@@ -21,7 +21,31 @@ You can install it and this package by adding following lines to your project's 
 
 1. Create a new Unity project or open an existing one.
 2. Add the package to your project as described in the Installation section.
-3. Add some C# scripts to use the SDK features.
+3. Create a config file called "noctuagg.json" in the "Asserts/StreamingAssets" folder. The file should contain the following content:
+
+    ```json
+    {
+      "productCode": "<NOCTUA_PRODUCT_CODE>",
+      "adjust": {
+        "appToken": "<ADJUST_APP_TOKEN>",
+        "environment": "sandbox",
+        "eventMap": {
+          "Purchase": "<ADJUST_PURCHASE_EVENT_TOKEN>",
+          "TestSendEvent": "<ADJUST_CUSTOM_EVENT_TOKEN>"
+        }
+      },
+      "noctua": {
+        "trackerUrl": ""
+      }
+    }
+    ```
+
+    a. Replace the placeholders with the actual values. 
+    b. The "trackerUrl" field is optional and should be used only if you have a custom Noctua tracker URL.
+    c. The "Purchase" event is a special event that is used to track purchases. 
+    d. The "TestSendEvent" event is a custom event that you can use to track any custom event.
+
+4. Add some C# scripts to use the SDK features.
     
     ```csharp
     public class NoctuaEventsHandlers : MonoBehaviour
@@ -86,4 +110,4 @@ You can install it and this package by adding following lines to your project's 
     }
     ```
 
-4. Attach the buttons in your scene to the script's fields.
+5. Attach the buttons in your scene to the script's fields.
