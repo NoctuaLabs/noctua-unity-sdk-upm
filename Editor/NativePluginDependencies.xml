@@ -1,0 +1,5 @@
+﻿<dependencies>
+    <androidPackages>
+        <androidPackage spec="com.noctuagames.sdk:noctua-android-sdk:0.1.6" />
+    </androidPackages>
+</dependencies>

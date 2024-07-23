@@ -1,0 +1,15 @@
+﻿{
+  "name": "com.noctuagames.sdk",
+  "version": "0.1.0",
+  "displayName": "Noctua Games SDK",
+  "description": "Noctua Games SDK for Unity",
+  "unity": "2022.3",
+  "author": {
+    "name": "Noctua Labs",
+    "email": "tech@noctuag.gg",
+    "url": "https://noctuagames.com"
+  },
+  "dependencies": {
+    "com.google.external-dependency-manager": "1.2.181"
+  }
+}
