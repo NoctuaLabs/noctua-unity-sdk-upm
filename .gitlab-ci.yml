@@ -1,6 +1,6 @@
 trigger_job:
   trigger:
     project: $BUILDER_PROJECT
-    rules:
-      - if: $CI_COMMIT_BRANCH == "main"
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
 
