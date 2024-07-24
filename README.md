@@ -12,13 +12,21 @@ This package provides a set of tools to help you develop Noctua games using Unit
       "dependencies": {
         // other dependencies ...
         "com.google.external-dependency-manager": "https://github.com/google-unity/external-dependency-manager.git#1.2.181",
-        "com.noctuagames.sdk": "https://github.com/NoctuaLabs/noctua-unity-upm.git#0.1.0",
+        "com.noctuagames.sdk": "https://github.com/NoctuaLabs/noctua-unity-sdk-upm.git#0.1.0",
         // other dependencies ...
       }
     }
     ```
 
-3. Create a config file called "noctuagg.json" in the "Asserts/StreamingAssets" folder. The file should contain the following content:
+3. Platform Settings for External Dependency Manager
+
+    * For Android, enable gradle custom templates in Project Settings > Player > (Android Logo) > Publishing Settings
+        a. Check Custom Main Gradle Template
+        b. Check Custom Gradle Properties Template
+        c. Check CUstom Gradle Settings Template
+        d. Go to Assets > External Dependency Manager > Android Resolver, and click Resolve
+
+4. Create a config file called "noctuagg.json" in the "Asserts/StreamingAssets" folder. The file should contain the following content:
 
     ```json
     {
@@ -42,7 +50,7 @@ This package provides a set of tools to help you develop Noctua games using Unit
     c. The "Purchase" event is a special event that is used to track purchases. 
     d. The "TestSendEvent" event is a custom event that you can use to track any custom event.
 
-4. Add some C# scripts to use the SDK features.
+5. Add some C# scripts to use the SDK features.
     
     ```csharp
     public class NoctuaEventsHandlers : MonoBehaviour
@@ -107,4 +115,4 @@ This package provides a set of tools to help you develop Noctua games using Unit
     }
     ```
 
-5. Attach the buttons in your scene to the script's fields.
+6. Attach the buttons in your scene to the script's fields.
