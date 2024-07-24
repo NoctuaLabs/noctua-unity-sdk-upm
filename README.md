@@ -2,25 +2,22 @@
 
 This package provides a set of tools to help you develop Noctua games using Unity.
 
-## Installation
-
-This package requires Google's External Dependency Manager for Unity. 
-You can install it and this package by adding following lines to your project's `Packages/manifest.json` file:
-
-```json
-{
-  "dependencies": {
-    "com.google.external-dependency-manager": "https://github.com/google-unity/external-dependency-manager.git#1.2.181",
-	"com.noctuagames.sdk": "https://github.com/NoctuaLabs/noctua-unity-upm.git#0.1.0",
-    "...": "..."
-  }
-}
-```
-
 ## Getting Started
 
 1. Create a new Unity project or open an existing one.
-2. Add the package to your project as described in the Installation section.
+2. This package also requires Google's External Dependency Manager for Unity. Add following lines to your project's `Packages/manifest.json` file:
+
+    ```json
+    {
+      "dependencies": {
+        // other dependencies ...
+        "com.google.external-dependency-manager": "https://github.com/google-unity/external-dependency-manager.git#1.2.181",
+        "com.noctuagames.sdk": "https://github.com/NoctuaLabs/noctua-unity-upm.git#0.1.0",
+        // other dependencies ...
+      }
+    }
+    ```
+
 3. Create a config file called "noctuagg.json" in the "Asserts/StreamingAssets" folder. The file should contain the following content:
 
     ```json
