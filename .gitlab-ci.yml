@@ -7,7 +7,7 @@ trigger_job:
   trigger:
     project: $BUILDER_PROJECT
   rules:
-    when: never
+    - when: never
 
 .bump-version:
   image :
