@@ -18,6 +18,7 @@ trigger_job:
   before_script:
     - apk add git-cliff
     - apk add jq
+    - apk add curl
     - git config --global user.email "gitlab-ci@noctua.gg"
     - git config --global user.name "Noctua Gitlab CI"
 
@@ -49,8 +50,6 @@ release:
   stage: release
   rules:
     - if: $CI_COMMIT_BRANCH == "main"
-      changes:
-        - android/**/*
       when: manual
   variables:
     GIT_STRATEGY: fetch # reuse workspace
