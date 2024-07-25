@@ -1,9 +1,11 @@
 stages:
+  - trigger
   - bump-version
   - release
   - publish
 
 trigger_job:
+  stage: trigger
   trigger:
     project: $BUILDER_PROJECT
   rules:
