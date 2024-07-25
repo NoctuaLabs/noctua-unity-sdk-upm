@@ -27,8 +27,6 @@ bump-version:
   stage: bump-version
   rules:
     - if: $CI_COMMIT_BRANCH == "main"
-      changes:
-        - android/**/*
       when: always
   variables:
     GIT_STRATEGY: fetch # reuse workspace
