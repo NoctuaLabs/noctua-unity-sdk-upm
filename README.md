@@ -20,11 +20,14 @@ This package provides a set of tools to help you develop Noctua games using Unit
 
 3. Platform Settings for External Dependency Manager
 
-    * For Android, enable gradle custom templates in Project Settings > Player > (Android Logo) > Publishing Settings
-        a. Check Custom Main Gradle Template
-        b. Check Custom Gradle Properties Template
-        c. Check CUstom Gradle Settings Template
-        d. Go to Assets > External Dependency Manager > Android Resolver, and click Resolve
+    * **Android**
+        1. Enable gradle custom templates in Project Settings > Player > (Android Logo) > Publishing Settings
+
+            * Check Custom Main Gradle Template
+            * Check Custom Gradle Properties Template
+            * Check Custom Gradle Settings Template
+
+        2. Go to Assets > External Dependency Manager > Android Resolver, and click Resolve
 
 4. Create a config file called "noctuagg.json" in the "Asserts/StreamingAssets" folder. The file should contain the following content:
 
