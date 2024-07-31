@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.1.2] - 2024-07-31
+
+### 🐛 Bug Fixes
+
+- Change AndroidJNIHelper.Box for 2021.3 compatibility
+
 ## [0.1.1] - 2024-07-25
 
 ### 🐛 Bug Fixes
