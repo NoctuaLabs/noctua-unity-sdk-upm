@@ -76,14 +76,14 @@ namespace com.noctuagames.sdk
             {
                 var boxValue = pair.Value switch
                 {
-                    sbyte sbyteValue => new AndroidJavaObject(AndroidJNIHelper.Box(sbyteValue)),
-                    short shortValue => new AndroidJavaObject(AndroidJNIHelper.Box(shortValue)),
-                    int intValue => new AndroidJavaObject(AndroidJNIHelper.Box(intValue)),
-                    long longValue => new AndroidJavaObject(AndroidJNIHelper.Box(longValue)),
-                    float floatValue => new AndroidJavaObject(AndroidJNIHelper.Box(floatValue)),
-                    double doubleValue => new AndroidJavaObject(AndroidJNIHelper.Box(doubleValue)),
-                    char charValue => new AndroidJavaObject(AndroidJNIHelper.Box(charValue)),
-                    bool boolValue => new AndroidJavaObject(AndroidJNIHelper.Box(boolValue)),
+                    sbyte sbyteValue => new AndroidJavaObject("java.lang.Byte", sbyteValue),
+                    short shortValue => new AndroidJavaObject("java.lang.Short", shortValue),
+                    int intValue => new AndroidJavaObject("java.lang.Integer", intValue),
+                    long longValue => new AndroidJavaObject("java.lang.Long", longValue),
+                    float floatValue => new AndroidJavaObject("java.lang.Float", floatValue),
+                    double doubleValue => new AndroidJavaObject("java.lang.Double", doubleValue),
+                    char charValue => new AndroidJavaObject("java.lang.Character", charValue),
+                    bool boolValue => new AndroidJavaObject("java.lang.Boolean", boolValue),
                     string stringValue => new AndroidJavaObject("java.lang.String", stringValue),
                     DateTime time => new AndroidJavaObject("java.lang.String", time.ToString("o")),
                     _ => new AndroidJavaObject("java.lang.String", pair.Value.ToString(CultureInfo.InvariantCulture))
