@@ -2,4 +2,10 @@
     <androidPackages>
         <androidPackage spec="com.noctuagames.sdk:noctua-android-sdk:0.1.6" />
     </androidPackages>
+    <iosPods>
+        <iosPod name="NoctuaSDK" version="~> 0.1.4" bitcodeEnabled="true" minTargetSdk="14.0" addToAllTargets="false" />
+        <iosPod name="NoctuaSDK/Adjust" version="~> 0.1.5" bitcodeEnabled="true" minTargetSdk="14.0" addToAllTargets="false" />
+        <iosPod name="NoctuaSDK/Firebase" version="~> 0.1.5" bitcodeEnabled="true" minTargetSdk="14.0" addToAllTargets="false" />
+        <iosPod name="NoctuaSDK/FirebaseAnalytics" version="~> 0.1.5" bitcodeEnabled="true" minTargetSdk="14.0" addToAllTargets="false" />
+    </iosPods>
 </dependencies>

@@ -10,21 +10,12 @@ namespace com.noctuagames.sdk
         
         public static void Init()
         {
-            if (Application.platform == RuntimePlatform.Android)
-            {
-                Plugin.Init();
-            }
-            else
-            {
-                Debug.LogError("Noctua is not supported on this platform");
-                
-                throw new PlatformNotSupportedException("Noctua is not supported on this platform");
-            }
+            Plugin?.Init();
         }
 
         public static void OnApplicationPause(bool pause)
         {
-            Plugin.OnApplicationPause(pause);
+            Plugin?.OnApplicationPause(pause);
         }
 
         public static void TrackAdRevenue(
@@ -34,7 +25,7 @@ namespace com.noctuagames.sdk
             Dictionary<string, IConvertible> extraPayload = null
         )
         {
-            Plugin.TrackAdRevenue(source, revenue, currency, extraPayload);
+            Plugin?.TrackAdRevenue(source, revenue, currency, extraPayload);
         }
 
         public static void TrackPurchase(
@@ -44,7 +35,7 @@ namespace com.noctuagames.sdk
             Dictionary<string, IConvertible> extraPayload = null
         )
         {
-            Plugin.TrackPurchase(orderId, amount, currency, extraPayload);
+            Plugin?.TrackPurchase(orderId, amount, currency, extraPayload);
         }
 
         public static void TrackCustomEvent(
@@ -52,17 +43,21 @@ namespace com.noctuagames.sdk
             Dictionary<string, IConvertible> extraPayload = null
         )
         {
-            Plugin.TrackCustomEvent(name, extraPayload);
+            Plugin?.TrackCustomEvent(name, extraPayload);
         }
         
         private static INoctuaNativePlugin GetPlugin()
         {
-            if (Application.platform == RuntimePlatform.Android)
-            {
+            #if UNITY_ANDROID
+                Debug.Log("Plugin is NoctuaAndroidPlugin");
                 return new NoctuaAndroidPlugin();
-            }
-
-            throw new PlatformNotSupportedException("Noctua is not supported on this platform");
+            #elif UNITY_IOS
+                Debug.Log("Plugin is NoctuaIPhonePlugin");
+                return new NoctuaIPhonePlugin();
+            #else
+                Debug.Log("Plugin is null");
+                return null;
+            #endif
         }
     }
 }
