@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.2.0] - 2024-08-08
+
+### 🚀 Features
+
+- Integrate ios plugin
+
 ## [0.1.2] - 2024-07-31
 
 ### 🐛 Bug Fixes
