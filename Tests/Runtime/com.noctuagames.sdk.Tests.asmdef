@@ -1,0 +1,10 @@
+﻿{
+  "name": "com.noctuagames.sdk.Tests",
+  "references": [
+      "com.noctuagames.sdk",
+      "UniTask"
+  ],
+  "optionalUnityReferences": [
+    "TestAssemblies"
+  ]
+}

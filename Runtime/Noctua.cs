@@ -1,13 +1,40 @@
 ﻿using System;
 using System.Collections.Generic;
+using Newtonsoft.Json;
 using UnityEngine;
 
 namespace com.noctuagames.sdk
 {
+    public class NoctuaConfig
+    {
+        [JsonProperty("baseUrl")] public string BaseUrl;
+    }
+
+    public class GlobalConfig
+    {
+        [JsonProperty("noctua")] public NoctuaConfig Noctua;
+        [JsonProperty("clientId")] public string ClientId;
+    }
+
     public class Noctua
     {
-        private static readonly INoctuaNativePlugin Plugin = GetPlugin();
-        
+        public static readonly NoctuaAuthService Auth;
+        private static readonly INativePlugin Plugin = GetNativePlugin();
+
+        static Noctua()
+        {
+            var configPath = Application.streamingAssetsPath + "/noctuagg.json";
+            var config = JsonConvert.DeserializeObject<GlobalConfig>(System.IO.File.ReadAllText(configPath));
+
+            Auth = new NoctuaAuthService(
+                new NoctuaAuthService.Config
+                {
+                    BaseUrl = config.Noctua.BaseUrl,
+                    ClientId = config.ClientId
+                }
+            );
+        }
+
         public static void Init()
         {
             Plugin?.Init();
@@ -45,19 +72,19 @@ namespace com.noctuagames.sdk
         {
             Plugin?.TrackCustomEvent(name, extraPayload);
         }
-        
-        private static INoctuaNativePlugin GetPlugin()
+
+        private static INativePlugin GetNativePlugin()
         {
-            #if UNITY_ANDROID
+#if UNITY_ANDROID
                 Debug.Log("Plugin is NoctuaAndroidPlugin");
-                return new NoctuaAndroidPlugin();
-            #elif UNITY_IOS
+                return new AndroidPlugin();
+#elif UNITY_IOS
                 Debug.Log("Plugin is NoctuaIPhonePlugin");
-                return new NoctuaIPhonePlugin();
-            #else
-                Debug.Log("Plugin is null");
-                return null;
-            #endif
+                return new IosPlugin();
+#else
+            Debug.Log("Plugin is null");
+            return null;
+#endif
         }
     }
 }

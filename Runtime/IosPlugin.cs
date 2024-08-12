@@ -1,12 +1,11 @@
 using System;
 using System.Collections.Generic;
-using System.Globalization;
 using System.Runtime.InteropServices;
 using UnityEngine;
 
 namespace com.noctuagames.sdk
 {
-    public class NoctuaIPhonePlugin : INoctuaNativePlugin {
+    internal class IosPlugin : INativePlugin {
         [DllImport("__Internal")]
         private static extern void noctuaInitialize();
 
