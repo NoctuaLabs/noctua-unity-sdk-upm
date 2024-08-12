@@ -10,6 +10,7 @@
     "url": "https://noctuagames.com"
   },
   "dependencies": {
-    "com.google.external-dependency-manager": "1.2.181"
+    "com.google.external-dependency-manager": "1.2.181",
+    "com.unity.nuget.newtonsoft-json": "3.2.1"
   }
 }

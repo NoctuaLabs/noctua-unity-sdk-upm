@@ -1,11 +1,14 @@
 {
     "name": "com.noctuagames.sdk",
     "rootNamespace": "com.noctuagames.sdk",
-    "references": [],
+    "references": [
+        "UniTask"
+    ],
     "includePlatforms": [
         "Android",
         "Editor",
-        "iOS"
+        "iOS",
+        "WindowsStandalone64"
     ],
     "excludePlatforms": [],
     "allowUnsafeCode": false,

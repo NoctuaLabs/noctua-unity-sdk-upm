@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace com.noctuagames.sdk
 {
-    public interface INoctuaNativePlugin
+    internal interface INativePlugin
     {
         void Init();
         void OnApplicationPause(bool pause);

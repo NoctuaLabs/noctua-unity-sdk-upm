@@ -5,7 +5,7 @@ using UnityEngine;
 
 namespace com.noctuagames.sdk
 {
-    public class NoctuaAndroidPlugin : INoctuaNativePlugin
+    internal class AndroidPlugin : INativePlugin
     {
         public void Init()
         {
@@ -16,8 +16,6 @@ namespace com.noctuagames.sdk
             using AndroidJavaObject noctua = new AndroidJavaObject("com.noctuagames.sdk.Noctua$Companion");
             noctua.Call("init", unityContext);
             noctua.Call("onResume");
-
-            Debug.Log("[Noctua] Starting");
         }
 
         public void OnApplicationPause(bool pause)
@@ -86,7 +84,7 @@ namespace com.noctuagames.sdk
                     bool boolValue => new AndroidJavaObject("java.lang.Boolean", boolValue),
                     string stringValue => new AndroidJavaObject("java.lang.String", stringValue),
                     DateTime time => new AndroidJavaObject("java.lang.String", time.ToString("o")),
-                    _ => new AndroidJavaObject("java.lang.String", pair.Value.ToString(CultureInfo.InvariantCulture))
+                    _ => new AndroidJavaObject("java.lang.String", pair.Value.ToString(CultureInfo.InvariantCulture))  
                 };
                 
                 hashMap.Call<AndroidJavaObject>("put", pair.Key, boxValue);
