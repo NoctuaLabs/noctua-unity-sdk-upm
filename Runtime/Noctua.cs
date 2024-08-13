@@ -52,21 +52,19 @@ public class GlobalConfig
             Debug.Log("Loading streaming assets...");
             var configPath = Path.Combine(Application.streamingAssetsPath, "noctuagg.json");
             Debug.Log(configPath);
-            var loadingRequest = UnityWebRequest.Get(configPath);
-            loadingRequest.SendWebRequest();
-            while (!loadingRequest.isDone) {
-                if (loadingRequest.result == UnityWebRequest.Result.ProtocolError) {
-                    Debug.Log("Loading streaming assets: loadingRequest ProtocolError");
+            var configLoadRequest = UnityWebRequest.Get(configPath);
+            configLoadRequest.SendWebRequest();
+            while (!configLoadRequest.isDone) {
+                if (configLoadRequest.result == UnityWebRequest.Result.ProtocolError) {
+                    Debug.Log("Loading streaming assets: configLoadRequest ProtocolError");
                     break;
                 }
             }
-            if (loadingRequest.result == UnityWebRequest.Result.ProtocolError) {
-                    Debug.Log("Loading streaming assets: loadingRequest ProtocolError");
+            if (configLoadRequest.result == UnityWebRequest.Result.ProtocolError) {
+                    Debug.Log("Loading streaming assets: configLoadRequest ProtocolError");
             } else {
-                File.WriteAllBytes(Path.Combine(Application.persistentDataPath , "your.bytes"), loadingRequest.downloadHandler.data);
-                string jsonStr;
-                jsonStr = System.Text.Encoding.UTF8.GetString(loadingRequest.downloadHandler.data, 3, loadingRequest.downloadHandler.data.Length - 3);
-                config = JsonConvert.DeserializeObject<GlobalConfig>(jsonStr);
+                config = JsonConvert.DeserializeObject<GlobalConfig>(configLoadRequest.downloadHandler.text[1..]);
+                Debug.Log(config.ClientId);
             }
 
             Auth = new NoctuaAuthService(
