@@ -4,10 +4,43 @@ using System.IO;
 using Newtonsoft.Json;
 using UnityEngine;
 using UnityEngine.Networking;
-using System.IO;
 
 namespace com.noctuagames.sdk
 {
+
+    public class ProductDetails // Based on GoogleBilling ProductDetails struct
+    {
+    public string ProductId { get; set; }
+    public string Title { get; set; }
+    public string Description { get; set; }
+    public string Price { get; set; }
+    public long PriceAmountMicros { get; set; }
+    public string CurrencyCode { get; set; }
+    public string ProductType { get; set; }
+    public string SubscriptionPeriod { get; set; }
+    public string FreeTrialPeriod { get; set; }
+    public string IntroductoryPrice { get; set; }
+    public long IntroductoryPriceAmountMicros { get; set; }
+    public string IntroductoryPricePeriod { get; set; }
+    public int IntroductoryPriceCycles { get; set; }
+
+    public override string ToString()
+    {
+        return $"ProductId: {ProductId}\n" +
+               $"Title: {Title}\n" +
+               $"Description: {Description}\n" +
+               $"Price: {Price}\n" +
+               $"PriceAmountMicros: {PriceAmountMicros}\n" +
+               $"CurrencyCode: {CurrencyCode}\n" +
+               $"ProductType: {ProductType}\n" +
+               $"SubscriptionPeriod: {SubscriptionPeriod}\n" +
+               $"FreeTrialPeriod: {FreeTrialPeriod}\n" +
+               $"IntroductoryPrice: {IntroductoryPrice}\n" +
+               $"IntroductoryPriceAmountMicros: {IntroductoryPriceAmountMicros}\n" +
+               $"IntroductoryPricePeriod: {IntroductoryPricePeriod}\n" +
+               $"IntroductoryPriceCycles: {IntroductoryPriceCycles}";
+        }
+    }
 
     public class AdjustConfig
 {
@@ -46,6 +79,7 @@ public class GlobalConfig
     {
         public static readonly NoctuaAuthService Auth;
         private static readonly INativePlugin Plugin = GetNativePlugin();
+        private static readonly GoogleBilling GoogleBilling = new GoogleBilling();
 
         static Noctua()
         {
@@ -80,7 +114,9 @@ public class GlobalConfig
 
         public static void Init()
         {
+            Debug.Log("Noctua.Init()");
             Plugin?.Init();
+            GoogleBilling?.Init();
         }
 
         public static void OnApplicationPause(bool pause)
@@ -114,6 +150,20 @@ public class GlobalConfig
         )
         {
             Plugin?.TrackCustomEvent(name, extraPayload);
+        }
+
+        public static void PurchaseItem(
+            string productId
+        )
+        {
+            Debug.Log("=========================Noctua.PurchaseItem");
+            GoogleBilling?.PurchaseItem(productId);
+        }
+
+        public static void GetProductList()
+        {
+            Debug.Log("=========================Noctua.GetProductList");
+            GoogleBilling?.GetProductList();
         }
 
         private static INativePlugin GetNativePlugin()
