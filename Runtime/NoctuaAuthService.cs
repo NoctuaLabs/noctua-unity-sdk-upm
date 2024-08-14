@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using Cysharp.Threading.Tasks;
 using UnityEngine.Device;
 
@@ -47,6 +48,9 @@ namespace com.noctuagames.sdk
 
     public class NoctuaAuthService
     {
+        public bool IsAuthenticated => !string.IsNullOrEmpty(_accessToken);
+        public Player Player { get; private set; }
+
         private readonly Config _config;
 
         private string _accessToken;
@@ -70,8 +74,14 @@ namespace com.noctuagames.sdk
 
             var response = await request.Send<LoginResponse>();
             _accessToken = response.AccessToken;
+            Player = response.Player;
 
             return response.Player;
+        }
+
+        public IEnumerator Authenticate(Action<Player> onSuccess = null, Action<Exception> onError = null)
+        {
+            return LoginAsGuest().ToCoroutine(onSuccess, onError);
         }
 
         internal class Config

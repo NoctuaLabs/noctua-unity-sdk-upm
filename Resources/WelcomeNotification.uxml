@@ -1,0 +1,15 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" xsi="http://www.w3.org/2001/XMLSchema-instance" engine="UnityEngine.UIElements" editor="UnityEditor.UIElements" noNamespaceSchemaLocation="../../../../UIElementsSchema/UIElements.xsd" editor-extension-mode="False">
+    <ui:VisualElement name="NoctuaWelcomeBox" class="base welcome-box">
+        <ui:VisualElement name="NoctuaWelcomePlayerBox" class="player-box">
+            <ui:VisualElement name="NoctuaWelcomePlayerImage" class="player-image" />
+            <ui:VisualElement name="NoctuaWelcomePlayerText" class="player-text">
+                <ui:VisualElement name="NoctuaWelcomeText" class="welcome-text">
+                    <ui:Label name="NoctuaWelcomeLabel" text="Welcome" />
+                    <ui:Image name="NoctuaWelcomeIcon"  class="welcome-icon" />
+                </ui:VisualElement>
+                <ui:Label name="NoctuaWelcomePlayerName" class="player-name" text="ono.uni" />
+            </ui:VisualElement>
+        </ui:VisualElement>
+        <ui:VisualElement name="NoctuaLogo" class="noctua-logo" />
+    </ui:VisualElement>
+</ui:UXML>
