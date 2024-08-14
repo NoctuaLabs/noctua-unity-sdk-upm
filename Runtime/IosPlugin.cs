@@ -5,7 +5,8 @@ using UnityEngine;
 
 namespace com.noctuagames.sdk
 {
-    internal class IosPlugin : INativePlugin {
+    internal class IosPlugin { //: INativePlugin {
+        /*
         [DllImport("__Internal")]
         private static extern void noctuaInitialize();
 
@@ -41,5 +42,6 @@ namespace com.noctuagames.sdk
         {
             noctuaTrackCustomEvent(eventName, JsonUtility.ToJson(payload));
         }
+        */
     }
 }
