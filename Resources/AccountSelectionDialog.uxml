@@ -1,0 +1,10 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" xsi="http://www.w3.org/2001/XMLSchema-instance" engine="UnityEngine.UIElements" editor="UnityEditor.UIElements" noNamespaceSchemaLocation="../../../../UIElementsSchema/UIElements.xsd" editor-extension-mode="False">
+    <Style src="project://database/Packages/com.noctuagames.sdk/Resources/Noctua.uss?fileID=7433441132597879392&amp;guid=fe35e550fb23b6446af377f994effe35&amp;type=3#Noctua" />
+    <ui:VisualElement name="NoctuaAccountSelectionBox" class="base dialog-box">
+        <ui:VisualElement name="NoctuaLogoWithText" class="noctua-logo-with-text" />
+        <ui:Label name="NoctuaAccountSelectionInfoLabel" text="Noctua account detected, choose one to continue:" class="account-selection-info" />
+        <ui:ListView name="NoctuaAccountList" class="account-selection-list">
+        </ui:ListView>
+        <ui:Button name="NoctuaAccountSelectionContinueButton" text="Continue with another account" class="button-normal dialog-button account-selection-continue-other-button" />
+    </ui:VisualElement>
+</ui:UXML>

@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Collections;
 using Cysharp.Threading.Tasks;
-using UnityEngine.Device;
+using UnityEngine;
+using Application = UnityEngine.Device.Application;
+using SystemInfo = UnityEngine.Device.SystemInfo;
 
 namespace com.noctuagames.sdk
 {
@@ -62,6 +64,12 @@ namespace com.noctuagames.sdk
 
         public async UniTask<Player> LoginAsGuest()
         {
+            if (Application.identifier == "")
+            {
+                throw new ApplicationException($"App id for platform {Application.platform} is not set");
+            }
+            
+            
             var request = new HttpRequest(HttpMethod.Post, $"{_config.BaseUrl}/guests")
                 .WithHeader("X-CLIENT-ID", _config.ClientId)
                 .WithJsonBody(
@@ -71,7 +79,7 @@ namespace com.noctuagames.sdk
                         BundleId = Application.identifier
                     }
                 );
-
+            
             var response = await request.Send<LoginResponse>();
             _accessToken = response.AccessToken;
             Player = response.Player;
