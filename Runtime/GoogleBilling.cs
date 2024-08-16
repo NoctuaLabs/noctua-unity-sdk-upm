@@ -6,6 +6,15 @@ public class GoogleBilling : MonoBehaviour
     private AndroidJavaObject billingClient;
     private AndroidJavaObject activity;
 
+    // Signals
+    public delegate void PurchaseDone(string result);
+    public event PurchaseDone OnPurchaseDone;
+
+    private void InvokeOnPurchaseDone(string result)
+    {
+        OnPurchaseDone?.Invoke(result);
+    }
+
     public void Init()
     {
         Debug.Log("GoogleBilling.Start. Initialize billing client.");
@@ -20,114 +29,151 @@ public class GoogleBilling : MonoBehaviour
         }
 
         // Initialize the BillingClient
-        using (AndroidJavaClass billingClientClass = new AndroidJavaClass("com.android.billingclient.api.BillingClient"))
+        using (AndroidJavaClass billingClientClass = new AndroidJavaClass(
+            "com.android.billingclient.api.BillingClient"
+        ))
         {
+            Debug.Log("GoogleBilling.InitializeBilling");
             billingClient = billingClientClass.CallStatic<AndroidJavaObject>("newBuilder", activity)
-                .Call<AndroidJavaObject>("setListener", new PurchasesUpdatedListener())
+                .Call<AndroidJavaObject>("setListener", new PurchasesUpdatedListener(this))
                 .Call<AndroidJavaObject>("enablePendingPurchases")
                 .Call<AndroidJavaObject>("build");
+            Debug.Log("GoogleBilling.InitializeBilling done.");
         }
 
         billingClient.Call("startConnection", new BillingClientStateListener());
     }
 
-    public void GetProductList()
+    public void PurchaseItem(string productId)
     {
-        Debug.Log("=========================GoogleBilling.GetProductList");
-        // Create the Product object
-        using (AndroidJavaClass productClass = new AndroidJavaClass("com.android.billingclient.api.QueryProductDetailsParams$Product"))
+        // ProductDetails object can't be created by hand.
+        // We need to get the ProductDetails object first by quering against Google Server.
+         // Create a list of products to query
+        using (AndroidJavaClass productClass = new AndroidJavaClass(
+            "com.android.billingclient.api.QueryProductDetailsParams$Product"
+        ))
         {
             AndroidJavaObject product = productClass.CallStatic<AndroidJavaObject>("newBuilder")
-            .Call<AndroidJavaObject>("setProductId", "product_id_example")
-            .Call<AndroidJavaObject>("setProductType", "subs") // "inapp" for in-app purchases or "subs" for subscriptions
-            .Call<AndroidJavaObject>("build");
+                                                     .Call<AndroidJavaObject>("setProductId", productId)
+                                                     .Call<AndroidJavaObject>("setProductType", "inapp") 
+                                                     .Call<AndroidJavaObject>("build");
 
-            // Create a Java ArrayList for the product
-            using (AndroidJavaObject productList = new AndroidJavaObject("java.util.ArrayList"))
-            {
-                productList.Call<bool>("add", product); // Add the product to the list
+            AndroidJavaClass immutableListClass = new AndroidJavaClass("com.google.common.collect.ImmutableList");
+            AndroidJavaObject productList = immutableListClass.CallStatic<AndroidJavaObject>("of", product);
 
-                // Create QueryProductDetailsParams
-                using (AndroidJavaClass queryProductDetailsParamsClass = new AndroidJavaClass("com.android.billingclient.api.QueryProductDetailsParams"))
-                {
-                    AndroidJavaObject queryProductDetailsParams = queryProductDetailsParamsClass.CallStatic<AndroidJavaObject>("newBuilder")
-                    .Call<AndroidJavaObject>("setProductList", productList)
-                    .Call<AndroidJavaObject>("build");
-
-                    // Call queryProductDetailsAsync on the BillingClient
-                    billingClient.Call("queryProductDetailsAsync", queryProductDetailsParams, new ProductDetailsResponseListener());
-                }
-            }
-        }
-    }
-
-    public void PurchaseItem(string sku)
-    {
-        Debug.Log("=========================GoogleBilling.PurchaseItem");
-        // Fetch the SKU details
-        AndroidJavaObject skuDetails = GetSkuDetails(sku);
-        Debug.Log("=========================GoogleBilling.PurchaseItem skuDetails");
-
-        // Launch the billing flow
-        if (skuDetails != null)
-        {
-            Debug.Log("=========================GoogleBilling.PurchaseItem launchBillingFlow");
-            using (AndroidJavaClass billingFlowParamsClass = new AndroidJavaClass("com.android.billingclient.api.BillingFlowParams"))
-            {
-                AndroidJavaObject billingFlowParams = billingFlowParamsClass.CallStatic<AndroidJavaObject>("newBuilder")
-                    .Call<AndroidJavaObject>("setSkuDetails", skuDetails)
-                    .Call<AndroidJavaObject>("build");
-
-                billingClient.Call<AndroidJavaObject>("launchBillingFlow", activity, billingFlowParams);
-            }
-        }
-        else
-        {
-            Debug.LogError("SKU details not found for " + sku);
-        }
-    }
-
-    private AndroidJavaObject GetSkuDetails(string sku)
-    {
-        Debug.Log("=========================GoogleBilling.PurchaseItem getSkuDetails");
-        using (AndroidJavaClass skuDetailsParamsClass = new AndroidJavaClass("com.android.billingclient.api.SkuDetailsParams"))
-        {
-            List<string> skuList = new List<string> { sku };
-
-            AndroidJavaObject skuDetailsParams = skuDetailsParamsClass.CallStatic<AndroidJavaObject>("newBuilder")
-                .Call<AndroidJavaObject>("setSkusList", new AndroidJavaObject("java.util.ArrayList", skuList.ToArray()))
-                .Call<AndroidJavaObject>("setType", "inapp") // or "subs" for subscriptions
+            // Create QueryProductDetailsParams
+            AndroidJavaClass queryProductDetailsParamsClass = new AndroidJavaClass(
+                "com.android.billingclient.api.QueryProductDetailsParams"
+            );
+            AndroidJavaObject queryProductDetailsParams = queryProductDetailsParamsClass
+                .CallStatic<AndroidJavaObject>("newBuilder")
+                .Call<AndroidJavaObject>("setProductList", productList)
                 .Call<AndroidJavaObject>("build");
 
-            AndroidJavaObject skuDetailsResult = billingClient.Call<AndroidJavaObject>("querySkuDetails", skuDetailsParams);
-
-            AndroidJavaObject skuDetailsList = skuDetailsResult.Call<AndroidJavaObject>("getSkuDetailsList");
-
-            if (skuDetailsList.Call<int>("size") > 0)
-            {
-                return skuDetailsList.Call<AndroidJavaObject>("get", 0);
-            }
+            // Call queryProductDetailsAsync
+            billingClient.Call(
+                "queryProductDetailsAsync",
+                queryProductDetailsParams,
+                new ContinueToBillingFlow(billingClient, activity)
+            );
         }
-
-        return null;
     }
 
-    // Inner classes to handle callbacks
+    // This is actuallya ProductDetailsResponseListener but we make it as a continuation flow for PurcahseItem
+    // because we need to get the ProductDetails object first.
+    private class ContinueToBillingFlow : AndroidJavaProxy
+    {
+        private AndroidJavaObject billingClient;
+        private AndroidJavaObject activity;
+        public ContinueToBillingFlow(
+            AndroidJavaObject parentBillingClient,
+            AndroidJavaObject parentActivity
+        ) : base("com.android.billingclient.api.ProductDetailsResponseListener") {
+            billingClient = parentBillingClient;
+            activity = parentActivity;
+        }
+
+        void onProductDetailsResponse(AndroidJavaObject billingResult, AndroidJavaObject productDetailsList)
+        {
+            Debug.Log("GoogleBilling.ProductDetailsResponseListener");
+            int responseCode = billingResult.Call<int>("getResponseCode");
+            if (responseCode == 0) // BillingResponseCode.OK
+            {
+                Debug.Log("Product details query successful");
+
+                int size = productDetailsList.Call<int>("size");
+                Debug.Log(size);
+                AndroidJavaObject productDetails = productDetailsList.Call<AndroidJavaObject>("get", 0);
+                string productId = productDetails.Call<string>("getProductId");
+                Debug.Log("Product ID: " + productId);
+                Debug.Log("Continue to launchBillingFlow");
+
+
+                Debug.Log("Create ProductDetailsParams object");
+                // Process other details as needed
+                AndroidJavaClass productDetailsParamsClass = new AndroidJavaClass(
+                    "com.android.billingclient.api.BillingFlowParams$ProductDetailsParams"
+                );
+                // Get the er class from ProductDetailsParams
+                Debug.Log("Assign productDetails object into the productDetailsParams object");
+                AndroidJavaObject productDetailsParams = productDetailsParamsClass
+                    .CallStatic<AndroidJavaObject>("newBuilder")
+                    .Call<AndroidJavaObject>("setProductDetails", productDetails)
+                    .Call<AndroidJavaObject>("build");
+
+                // Get the ImmutableList class
+                Debug.Log("Create immutable list");
+                AndroidJavaClass immutableListClass = new AndroidJavaClass("com.google.common.collect.ImmutableList");
+
+                // Get the ImmutableList Builder
+                Debug.Log("Assign productDetailsParams object into the immutable list");
+                AndroidJavaObject productDetailsParamsList = immutableListClass.CallStatic<AndroidJavaObject>("builder")
+                                        .Call<AndroidJavaObject>("add", productDetailsParams)
+                                        .Call<AndroidJavaObject>("build");
+
+
+                Debug.Log("Create billingFlowParams object");
+                AndroidJavaClass billingFlowParamsClass = new AndroidJavaClass(
+                    "com.android.billingclient.api.BillingFlowParams"
+                );
+                Debug.Log("Assign productDetailsParamsList into the billingFlowParams object");
+                AndroidJavaObject billingFlowParams = billingFlowParamsClass.CallStatic<AndroidJavaObject>("newBuilder")
+                    .Call<AndroidJavaObject>("setProductDetailsParamsList", productDetailsParamsList)
+                    .Call<AndroidJavaObject>("build");
+                Debug.Log("Call launchBillingFlow with billingFlowParams as param");
+                billingClient.Call<AndroidJavaObject>("launchBillingFlow", activity, billingFlowParams);
+            }
+            else
+            {
+                string errorMessage = billingResult.Call<string>("getDebugMessage");
+                Debug.LogError("Failed to query product details: " + errorMessage);
+            }
+        }
+    }
+
+    // Inner classes to handle purchase callbacks
     private class PurchasesUpdatedListener : AndroidJavaProxy
     {
-        public PurchasesUpdatedListener() : base("com.android.billingclient.api.PurchasesUpdatedListener") { }
+        private GoogleBilling googleBilling;
+        public PurchasesUpdatedListener(GoogleBilling parent) : base(
+            "com.android.billingclient.api.PurchasesUpdatedListener"
+        ) {
+            googleBilling = parent;
+        }
 
         void onPurchasesUpdated(AndroidJavaObject billingResult, AndroidJavaObject purchases)
         {
             int responseCode = billingResult.Call<int>("getResponseCode");
-            if (responseCode == 0 && purchases != null) // BillingResponseCode.OK
+            if (responseCode == 0 && purchases != null)
             {
                 Debug.Log("Purchase successful");
+                googleBilling.InvokeOnPurchaseDone("success");
             }
             else
             {
                 string errorMessage = billingResult.Call<string>("getDebugMessage");
                 Debug.LogError("Purchase failed: " + errorMessage);
+                googleBilling.InvokeOnPurchaseDone("failed:" + errorMessage);
             }
         }
     }
@@ -156,9 +202,47 @@ public class GoogleBilling : MonoBehaviour
         }
     }
 
+    public void GetProductList()
+    {
+        Debug.Log("GoogleBilling.GetProductList");
+        using (AndroidJavaClass productClass = new AndroidJavaClass(
+            "com.android.billingclient.api.QueryProductDetailsParams$Product"
+            ))
+        {
+            AndroidJavaObject product = productClass.CallStatic<AndroidJavaObject>("newBuilder")
+            .Call<AndroidJavaObject>("setProductId", "noctua.unitysdktest.pack1")
+            .Call<AndroidJavaObject>("setProductType", "inapp")
+            .Call<AndroidJavaObject>("build");
+
+            using (AndroidJavaObject productList = new AndroidJavaObject("java.util.ArrayList"))
+            {
+                productList.Call<bool>("add", product);
+
+                using (AndroidJavaClass queryProductDetailsParamsClass = new AndroidJavaClass(
+                    "com.android.billingclient.api.QueryProductDetailsParams"
+                ))
+                {
+                    AndroidJavaObject queryProductDetailsParams = queryProductDetailsParamsClass
+                        .CallStatic<AndroidJavaObject>("newBuilder")
+                        .Call<AndroidJavaObject>("setProductList", productList)
+                        .Call<AndroidJavaObject>("build");
+
+                    billingClient.Call(
+                        "queryProductDetailsAsync",
+                        queryProductDetailsParams,
+                        new ProductDetailsResponseListener()
+                    );
+                }
+            }
+        }
+    }
+
     private class ProductDetailsResponseListener : AndroidJavaProxy
     {
-        public ProductDetailsResponseListener() : base("com.android.billingclient.api.ProductDetailsResponseListener") { }
+        public ProductDetailsResponseListener() : base("com.android.billingclient.api.ProductDetailsResponseListener")
+        {
+
+        }
 
         void onProductDetailsResponse(AndroidJavaObject billingResult, AndroidJavaObject productDetailsList)
         {
@@ -169,13 +253,13 @@ public class GoogleBilling : MonoBehaviour
                 Debug.Log("Product details query successful");
 
                 int size = productDetailsList.Call<int>("size");
+                Debug.Log("Product details list length: ");
                 Debug.Log(size);
                 for (int i = 0; i < size; i++)
                 {
                     AndroidJavaObject productDetails = productDetailsList.Call<AndroidJavaObject>("get", i);
                     string productId = productDetails.Call<string>("getProductId");
                     Debug.Log("Product ID: " + productId);
-                    // Process other details as needed
                 }
             }
             else

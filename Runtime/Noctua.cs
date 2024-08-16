@@ -8,40 +8,6 @@ using UnityEngine.Networking;
 namespace com.noctuagames.sdk
 {
 
-    public class ProductDetails // Based on GoogleBilling ProductDetails struct
-    {
-    public string ProductId { get; set; }
-    public string Title { get; set; }
-    public string Description { get; set; }
-    public string Price { get; set; }
-    public long PriceAmountMicros { get; set; }
-    public string CurrencyCode { get; set; }
-    public string ProductType { get; set; }
-    public string SubscriptionPeriod { get; set; }
-    public string FreeTrialPeriod { get; set; }
-    public string IntroductoryPrice { get; set; }
-    public long IntroductoryPriceAmountMicros { get; set; }
-    public string IntroductoryPricePeriod { get; set; }
-    public int IntroductoryPriceCycles { get; set; }
-
-    public override string ToString()
-    {
-        return $"ProductId: {ProductId}\n" +
-               $"Title: {Title}\n" +
-               $"Description: {Description}\n" +
-               $"Price: {Price}\n" +
-               $"PriceAmountMicros: {PriceAmountMicros}\n" +
-               $"CurrencyCode: {CurrencyCode}\n" +
-               $"ProductType: {ProductType}\n" +
-               $"SubscriptionPeriod: {SubscriptionPeriod}\n" +
-               $"FreeTrialPeriod: {FreeTrialPeriod}\n" +
-               $"IntroductoryPrice: {IntroductoryPrice}\n" +
-               $"IntroductoryPriceAmountMicros: {IntroductoryPriceAmountMicros}\n" +
-               $"IntroductoryPricePeriod: {IntroductoryPricePeriod}\n" +
-               $"IntroductoryPriceCycles: {IntroductoryPriceCycles}";
-        }
-    }
-
     public class AdjustConfig
 {
     [JsonProperty("appToken")]
@@ -77,9 +43,13 @@ public class GlobalConfig
 
     public class Noctua
     {
+
         public static readonly NoctuaAuthService Auth;
         private static readonly INativePlugin Plugin = GetNativePlugin();
-        private static readonly GoogleBilling GoogleBilling = new GoogleBilling();
+        private static readonly GoogleBilling GoogleBillingInstance = new GoogleBilling();
+
+        // Event to forward purchase results to the users of this class
+        public static event Action<string> OnPurchaseDone;
 
         static Noctua()
         {
@@ -110,13 +80,16 @@ public class GlobalConfig
                 }
             );
 
+            // Subscribe to the GoogleBillingInstance's OnPurchaseDone event
+            GoogleBillingInstance.OnPurchaseDone += HandlePurchaseDone;
         }
 
         public static void Init()
         {
             Debug.Log("Noctua.Init()");
             Plugin?.Init();
-            GoogleBilling?.Init();
+
+            GoogleBillingInstance?.Init();
         }
 
         public static void OnApplicationPause(bool pause)
@@ -156,14 +129,21 @@ public class GlobalConfig
             string productId
         )
         {
-            Debug.Log("=========================Noctua.PurchaseItem");
-            GoogleBilling?.PurchaseItem(productId);
+            Debug.Log("Noctua.PurchaseItem");
+            GoogleBillingInstance?.PurchaseItem(productId);
+        }
+
+        private static void HandlePurchaseDone(string result)
+        {
+            Debug.Log("Noctua.HandlePurchaseDone");
+            // Forward the event to subscribers of Noctua's OnPurchaseDone event
+            OnPurchaseDone?.Invoke(result);
         }
 
         public static void GetProductList()
         {
-            Debug.Log("=========================Noctua.GetProductList");
-            GoogleBilling?.GetProductList();
+            Debug.Log("Noctua.GetProductList");
+            GoogleBillingInstance?.GetProductList();
         }
 
         private static INativePlugin GetNativePlugin()
@@ -179,5 +159,6 @@ public class GlobalConfig
             return null;
 #endif
         }
+
     }
 }
