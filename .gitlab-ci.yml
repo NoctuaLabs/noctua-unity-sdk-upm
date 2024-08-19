@@ -9,11 +9,10 @@ trigger_job:
   tags:
     - windows
   rules:
-    - if: $CI_COMMIT_BRANCH == "main" || $CI_COMMIT_BRANCH == "pipeline"
+    - if: $CI_COMMIT_BRANCH == "main"
       when: always
   script:
     - "curl -X POST --fail -F token=$env:BUILDER_PROJECT_TRIGGER_TOKEN -F ref=main https://gitlab.com/api/v4/projects/$env:BUILDER_PROJECT_ID/trigger/pipeline"
-    - "curl -X POST --fail -F token=$env:BUILDER_PROJECT_TRIGGER_TOKEN -F ref=pipeline https://gitlab.com/api/v4/projects/$env:BUILDER_PROJECT_ID/trigger/pipeline"
 
 .bump-version:
   image :
