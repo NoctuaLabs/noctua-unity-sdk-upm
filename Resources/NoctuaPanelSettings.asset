@@ -21,11 +21,11 @@ MonoBehaviour:
   m_ReferenceResolution: {x: 800, y: 360}
   m_ScreenMatchMode: 1
   m_Match: 0
-  m_SortingOrder: 0
+  m_SortingOrder: 1000000
   m_TargetDisplay: 0
   m_ClearDepthStencil: 1
   m_ClearColor: 0
-  m_ColorClearValue: {r: 0, g: 0, b: 0, a: 0}
+  m_ColorClearValue: {r: 0.9622642, g: 0.9395693, b: 0.9395693, a: 0}
   m_DynamicAtlasSettings:
     m_MinAtlasSize: 64
     m_MaxAtlasSize: 4096

@@ -46,19 +46,17 @@ public class NoctuaConfig
     public class Noctua
     {
         private static readonly Lazy<Noctua> Instance = new(() => new Noctua());
+        public static NoctuaAuthService Auth => Instance.Value._auth;
+        public static NoctuaIAPService IAP => Instance.Value._iap;
 
-        public static readonly NoctuaAuthService Auth;
-        public static readonly NoctuaIAPService IAP;
-        private static readonly INativePlugin Plugin = GetNativePlugin();
-        private static readonly GoogleBilling GoogleBillingInstance = new GoogleBilling();
+        public event Action<string> OnPurchaseDone;
 
         private readonly NoctuaAuthService _auth;
+        private readonly NoctuaIAPService _iap;
         private readonly GoogleBilling _googleBilling;
         private readonly INativePlugin _nativePlugin = GetNativePlugin();
         private bool _initialized = false;
         // Event to forward purchase results to the users of this class
-        public static event Action<string> OnPurchaseDone;
-
         private Noctua()
         {
             GlobalConfig config = new GlobalConfig();
@@ -87,12 +85,12 @@ public class NoctuaConfig
             }
 
             // Let's fill the empty fields, if any
-            if (config.Noctua.BaseUrl == null || config.Noctua.BaseUrl == "")
+            if (string.IsNullOrEmpty(config.Noctua.BaseUrl))
             {
                 config.Noctua.BaseUrl = NoctuaConfig.DefaultBaseUrl;
             }
 
-            if (config.Noctua.TrackerUrl == null || config.Noctua.TrackerUrl == "")
+            if (string.IsNullOrEmpty(config.Noctua.TrackerUrl))
             {
                 config.Noctua.TrackerUrl = NoctuaConfig.DefaultTrackerUrl;
             }
@@ -107,7 +105,7 @@ public class NoctuaConfig
             Debug.Log(config.Noctua.TrackerUrl);
 
 
-            Auth = new NoctuaAuthService(
+            _auth = new NoctuaAuthService(
                 new NoctuaAuthService.Config
                 {
                     BaseUrl = config.Noctua.BaseUrl,
@@ -115,7 +113,7 @@ public class NoctuaConfig
                 }
             );
 
-            IAP = new NoctuaIAPService(
+            _iap = new NoctuaIAPService(
                 new NoctuaIAPService.Config
                 {
                     BaseUrl = config.Noctua.BaseUrl,
@@ -139,6 +137,7 @@ public class NoctuaConfig
             Debug.Log("Noctua.Init()");
             Instance.Value._nativePlugin?.Init();
             Instance.Value._googleBilling?.Init();
+            Instance.Value._initialized = true;
         }
 
         public static void OnApplicationPause(bool pause)

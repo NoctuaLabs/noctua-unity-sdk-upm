@@ -3,7 +3,7 @@
     <ui:VisualElement name="NoctuaAccountSelectionBox" class="base dialog-box">
         <ui:VisualElement name="NoctuaLogoWithText" class="noctua-logo-with-text" />
         <ui:Label name="NoctuaAccountSelectionInfoLabel" text="Noctua account detected, choose one to continue:" class="account-selection-info" />
-        <ui:ListView name="NoctuaAccountList" class="account-selection-list">
+        <ui:ListView name="NoctuaAccountSelectionList" class="account-selection-list">
         </ui:ListView>
         <ui:Button name="NoctuaAccountSelectionContinueButton" text="Continue with another account" class="button-normal dialog-button account-selection-continue-other-button" />
     </ui:VisualElement>
