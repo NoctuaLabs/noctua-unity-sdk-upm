@@ -166,6 +166,7 @@ namespace com.noctuagames.sdk
      
         public async UniTask<T> Send<T>()
         {
+            Debug.Log("HttpRequest.Send");
             if (_request.url.Contains("{") || _request.url.Contains("}"))
             {
                 throw new Exception($"There are still path parameters that are not replaced: {_request.url}");
@@ -173,27 +174,46 @@ namespace com.noctuagames.sdk
             
             _request.downloadHandler = new DownloadHandlerBuffer();
             
-            await _request.SendWebRequest();
-            
-            var response = _request.downloadHandler.text;
-            
-            switch (_request.result)
+            try
             {
-                case UnityWebRequest.Result.Success:
-                    return _request.responseCode switch
-                    {
-                        >= 500 => throw new HttpError(_request.responseCode, $"Server error {_request.responseCode}: {response}"),
-                        >= 400 => throw new HttpError(_request.responseCode, $"Client error {_request.responseCode}: {response}"),
-                        _ => JsonConvert.DeserializeObject<DataWrapper<T>>(response, _jsonSettings).Data
-                    };
-                case UnityWebRequest.Result.ProtocolError:
-                case UnityWebRequest.Result.DataProcessingError:
-                case UnityWebRequest.Result.ConnectionError:
-                    throw new NetworkError($"Failed to send request: {_request.error}");
-                case UnityWebRequest.Result.InProgress:
-                    throw new NetworkError("Request is still in progress.");
-                default:
-                    throw new Exception($"Unknown error: {_request.error}");
+                await _request.SendWebRequest();
+                var response = _request.downloadHandler.text;
+                Debug.Log(response);
+                switch (_request.result)
+                {
+                    case UnityWebRequest.Result.ConnectionError:
+                        response = @"{
+                            ""success"": false,
+                            ""error"": ""Connection error"",
+                            ""error_code"": 3001
+                        }";
+                        return JsonConvert.DeserializeObject<T>(response, _jsonSettings);
+                    case UnityWebRequest.Result.DataProcessingError:
+                        response = @"{
+                            ""success"": false,
+                            ""error"": ""Data processing error"",
+                            ""error_code"": 3002
+                        }";
+                        return JsonConvert.DeserializeObject<T>(response, _jsonSettings);
+                    case UnityWebRequest.Result.ProtocolError:
+                        response = @"{
+                            ""success"": false,
+                            ""error"": ""Protocol error"",
+                            ""error_code"": 3003
+                        }";
+                        return JsonConvert.DeserializeObject<T>(response, _jsonSettings);
+                    // We don't handle this
+                    // case UnityWebRequest.Result.InProgress:
+                    default:
+                        return JsonConvert.DeserializeObject<T>(response, _jsonSettings);
+                }
+            }
+            catch (Exception e)
+            {
+                // Keep parse the response and pass the error message and error code as is
+                var response = _request.downloadHandler.text;
+                Debug.Log(response);
+                return JsonConvert.DeserializeObject<T>(response, _jsonSettings);
             }
         }
     }

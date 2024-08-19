@@ -4,10 +4,11 @@ using System.IO;
 using Newtonsoft.Json;
 using UnityEngine;
 using UnityEngine.Networking;
+using System.Threading.Tasks;
+
 
 namespace com.noctuagames.sdk
 {
-
     public class AdjustConfig
 {
     [JsonProperty("appToken")]
@@ -22,11 +23,18 @@ namespace com.noctuagames.sdk
 
 public class NoctuaConfig
 {
+    public const string DefaultTrackerUrl = "https://kafka-proxy-poc.noctuaprojects.com";
+    public const string DefaultBaseUrl = "https://sdk-srv-new.noctuaprojects.com";
+    public const string DefaultSandboxBaseUrl = "https://sdk-srv-new-sandbox.noctuaprojects.com";
+
     [JsonProperty("trackerUrl")]
-    public string TrackerUrl { get; set; }
+    public string TrackerUrl { get; set; } = "https://kafka-proxy-poc.noctuaprojects.com";
 
     [JsonProperty("baseUrl")]
-    public string BaseUrl { get; set; }
+    public string BaseUrl { get; set; } = "https://sdk-srv-new.noctuaprojects.com";
+
+    [JsonProperty("isSandbox")]
+    public bool IsSandbox { get; set; } = false;
 }
 
 public class GlobalConfig
@@ -45,6 +53,7 @@ public class GlobalConfig
     {
 
         public static readonly NoctuaAuthService Auth;
+        public static readonly NoctuaIAPService IAP;
         private static readonly INativePlugin Plugin = GetNativePlugin();
         private static readonly GoogleBilling GoogleBillingInstance = new GoogleBilling();
 
@@ -72,8 +81,37 @@ public class GlobalConfig
                 Debug.Log(config.ClientId);
             }
 
+            // Let's fill the empty fields, if any
+            if (config.Noctua.BaseUrl == null || config.Noctua.BaseUrl == "")
+            {
+                config.Noctua.BaseUrl = NoctuaConfig.DefaultBaseUrl;
+            }
+
+            if (config.Noctua.TrackerUrl == null || config.Noctua.TrackerUrl == "")
+            {
+                config.Noctua.TrackerUrl = NoctuaConfig.DefaultTrackerUrl;
+            }
+
+            if (config.Noctua.IsSandbox)
+            {
+                config.Noctua.BaseUrl = NoctuaConfig.DefaultSandboxBaseUrl;
+            }
+
+            Debug.Log(config.ClientId);
+            Debug.Log(config.Noctua.BaseUrl);
+            Debug.Log(config.Noctua.TrackerUrl);
+
+
             Auth = new NoctuaAuthService(
                 new NoctuaAuthService.Config
+                {
+                    BaseUrl = config.Noctua.BaseUrl,
+                    ClientId = config.ClientId
+                }
+            );
+
+            IAP = new NoctuaIAPService(
+                new NoctuaIAPService.Config
                 {
                     BaseUrl = config.Noctua.BaseUrl,
                     ClientId = config.ClientId
@@ -125,6 +163,19 @@ public class GlobalConfig
             Plugin?.TrackCustomEvent(name, extraPayload);
         }
 
+        public static async Task<ProductListResponse> GetProductList()
+        {
+            Debug.Log("Noctua.GetProductList");
+
+            string gameId = "1";
+            string currency = "USD";
+            string enabledPaymentTypes = "playstore";
+
+            ProductListResponse productListResponse = await IAP?.GetProductListAsync(gameId, currency, enabledPaymentTypes);
+
+            return productListResponse;
+        }
+
         public static void PurchaseItem(
             string productId
         )
@@ -138,12 +189,6 @@ public class GlobalConfig
             Debug.Log("Noctua.HandlePurchaseDone");
             // Forward the event to subscribers of Noctua's OnPurchaseDone event
             OnPurchaseDone?.Invoke(result);
-        }
-
-        public static void GetProductList()
-        {
-            Debug.Log("Noctua.GetProductList");
-            GoogleBillingInstance?.GetProductList();
         }
 
         private static INativePlugin GetNativePlugin()
