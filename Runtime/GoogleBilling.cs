@@ -7,10 +7,18 @@ public class GoogleBilling : MonoBehaviour
     private AndroidJavaObject activity;
 
     // Signals
-    public delegate void PurchaseDone(string result);
+    public delegate void PurchaseDone(PurchaseResult result);
     public event PurchaseDone OnPurchaseDone;
 
-    private void InvokeOnPurchaseDone(string result)
+    public class PurchaseResult
+    {
+        public bool Success;
+        public string PurchaseToken;
+        public string ReceiptData;
+        public string Message;
+    }
+
+    private void InvokeOnPurchaseDone(PurchaseResult result)
     {
         OnPurchaseDone?.Invoke(result);
     }
@@ -163,17 +171,37 @@ public class GoogleBilling : MonoBehaviour
 
         void onPurchasesUpdated(AndroidJavaObject billingResult, AndroidJavaObject purchases)
         {
+            Debug.Log("GoogleBilling.PurchasesUpdatedListener");
             int responseCode = billingResult.Call<int>("getResponseCode");
             if (responseCode == 0 && purchases != null)
             {
                 Debug.Log("Purchase successful");
-                googleBilling.InvokeOnPurchaseDone("success");
+                for (int i = 0; i < purchases.Call<int>("size"); i++)
+                {
+                    AndroidJavaObject purchase = purchases.Call<AndroidJavaObject>("get", i);
+                    Debug.Log("GoogleBilling.PurchasesUpdatedListener: purchase object found");
+                    var originalJson = purchase.Call<string>("getOriginalJson");
+                    Debug.Log("originalJson: " + originalJson);
+                    var receiptData = purchase.Call<string>("getPurchaseToken");
+                    Debug.Log("receiptData: " + receiptData);
+                    googleBilling.InvokeOnPurchaseDone(new PurchaseResult{
+                        Success = true,
+                        Message = "success",
+                        ReceiptData = receiptData,
+                    });
+                    break;
+                }
             }
             else
             {
                 string errorMessage = billingResult.Call<string>("getDebugMessage");
                 Debug.LogError("Purchase failed: " + errorMessage);
-                googleBilling.InvokeOnPurchaseDone("failed:" + errorMessage);
+                googleBilling.InvokeOnPurchaseDone(new PurchaseResult{
+                    Success = false,
+                    Message = errorMessage,
+                    PurchaseToken = "",
+                    ReceiptData = "",
+                });
             }
         }
     }
