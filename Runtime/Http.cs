@@ -6,6 +6,7 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
 using UnityEngine;
 using UnityEngine.Networking;
+using System.Collections.Generic;
 
 namespace com.noctuagames.sdk
 {
@@ -167,54 +168,51 @@ namespace com.noctuagames.sdk
         public async UniTask<T> Send<T>()
         {
             Debug.Log("HttpRequest.Send");
+            Debug.Log(_request.url);
+
             if (_request.url.Contains("{") || _request.url.Contains("}"))
             {
-                throw new Exception($"There are still path parameters that are not replaced: {_request.url}");
+                Debug.Log($"There are still path parameters that are not replaced: {_request.url}");
+                throw NoctuaException.RequestUnreplacedParam;
             }
             
             _request.downloadHandler = new DownloadHandlerBuffer();
-            
-            try
-            {
+            string response = null;
+
+            try {
                 await _request.SendWebRequest();
-                var response = _request.downloadHandler.text;
+            } catch (Exception e) {
+                Debug.Log(_request.result.ToString());
+                response = _request.downloadHandler.text;
                 Debug.Log(response);
-                switch (_request.result)
-                {
-                    case UnityWebRequest.Result.ConnectionError:
-                        response = @"{
-                            ""success"": false,
-                            ""error"": ""Connection error"",
-                            ""error_code"": 3001
-                        }";
-                        return JsonConvert.DeserializeObject<T>(response, _jsonSettings);
-                    case UnityWebRequest.Result.DataProcessingError:
-                        response = @"{
-                            ""success"": false,
-                            ""error"": ""Data processing error"",
-                            ""error_code"": 3002
-                        }";
-                        return JsonConvert.DeserializeObject<T>(response, _jsonSettings);
-                    case UnityWebRequest.Result.ProtocolError:
-                        response = @"{
-                            ""success"": false,
-                            ""error"": ""Protocol error"",
-                            ""error_code"": 3003
-                        }";
-                        return JsonConvert.DeserializeObject<T>(response, _jsonSettings);
-                    // We don't handle this
-                    // case UnityWebRequest.Result.InProgress:
-                    default:
-                        return JsonConvert.DeserializeObject<T>(response, _jsonSettings);
+                Debug.Log(e.Message);
+
+                if (response == null || _request.result != UnityWebRequest.Result.Success) {
+                    // Try to parse the error first to get the error code
+                    ErrorResponse errorResponse = null;
+                    errorResponse = JsonConvert.DeserializeObject<ErrorResponse>(response, _jsonSettings);
+                    if (errorResponse != null && errorResponse.ErrorCode > 0) {
+                        throw new NoctuaException(errorResponse.ErrorCode, errorResponse.Error);
+                    } else { // If there is no error code in the response, throw the original error
+                        switch (_request.result)
+                        {
+                            case UnityWebRequest.Result.ConnectionError:
+                                // e.g. the device is disconnected from the internet/network
+                                throw NoctuaException.RequestConnectionError;
+                            case UnityWebRequest.Result.DataProcessingError:
+                                throw NoctuaException.RequestDataProcessingError;
+                            case UnityWebRequest.Result.ProtocolError:
+                                throw NoctuaException.RequestProtocolError;
+                            default:
+                                throw NoctuaException.OtherWebRequestError;
+                        }
+                    }
                 }
             }
-            catch (Exception e)
-            {
-                // Keep parse the response and pass the error message and error code as is
-                var response = _request.downloadHandler.text;
-                Debug.Log(response);
-                return JsonConvert.DeserializeObject<T>(response, _jsonSettings);
-            }
+
+            response = _request.downloadHandler.text;
+            Debug.Log(response);
+            return JsonConvert.DeserializeObject<DataWrapper<T>>(response, _jsonSettings).Data;
         }
     }
 }

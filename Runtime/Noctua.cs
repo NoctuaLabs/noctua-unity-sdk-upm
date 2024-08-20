@@ -163,19 +163,6 @@ public class GlobalConfig
             Plugin?.TrackCustomEvent(name, extraPayload);
         }
 
-        public static async Task<ProductListResponse> GetProductList()
-        {
-            Debug.Log("Noctua.GetProductList");
-
-            string gameId = "1";
-            string currency = "USD";
-            string enabledPaymentTypes = "playstore";
-
-            ProductListResponse productListResponse = await IAP?.GetProductListAsync(gameId, currency, enabledPaymentTypes);
-
-            return productListResponse;
-        }
-
         public static void PurchaseItem(
             string productId
         )

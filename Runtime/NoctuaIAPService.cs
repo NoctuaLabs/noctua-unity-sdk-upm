@@ -41,22 +41,6 @@ namespace com.noctuagames.sdk
     {
     }
 
-    public partial class ProductListResponse
-    {
-        [JsonProperty("data")]
-        public List<Product> Data { get; set; }
-
-        [JsonProperty("success")]
-        public bool Success { get; set; }
-
-        [JsonProperty("error")]
-        public string Error { get; set; }
-
-        [JsonProperty("error_code")]
-        public int ErrorCode { get; set; }
-    }
-
-
     public class NoctuaIAPService
     {
         private readonly Config _config;
@@ -68,8 +52,12 @@ namespace com.noctuagames.sdk
             _config = config;
         }
 
-        public async Task<ProductListResponse> GetProductListAsync(string gameId, string currency, string enabledPaymentTypes)
+        public async Task<ProductList> GetProductListAsync()
         {
+
+            int gameId = 1;
+            string currency = "USD";
+            string enabledPaymentTypes = "playstore";
 
             Debug.Log("NoctuaIAPService.GetProductListAsync");
             Debug.Log(_config.BaseUrl);
@@ -84,7 +72,7 @@ namespace com.noctuagames.sdk
             var request = new HttpRequest(HttpMethod.Get, url)
                 .WithHeader("X-CLIENT-ID", _config.ClientId);
 
-            var response = await request.Send<ProductListResponse>();
+            var response = await request.Send<ProductList>();
 
             return response;
         }
