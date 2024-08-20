@@ -1,16 +1,6 @@
 ﻿using System;
 using Newtonsoft.Json;
 
-/*
-
-
-- 3000, Other web request error
-- 3001: Web request connection error
-- 3002: Web reqest data processing error
-- 3003: Web request protocol error
-
-*/
-
 public class NoctuaException : Exception
 {
     public int ErrorCode { get; private set; }
