@@ -6,6 +6,7 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
 using UnityEngine;
 using UnityEngine.Networking;
+using System.Collections.Generic;
 
 namespace com.noctuagames.sdk
 {
@@ -166,35 +167,52 @@ namespace com.noctuagames.sdk
      
         public async UniTask<T> Send<T>()
         {
+            Debug.Log("HttpRequest.Send");
+            Debug.Log(_request.url);
+
             if (_request.url.Contains("{") || _request.url.Contains("}"))
             {
-                throw new Exception($"There are still path parameters that are not replaced: {_request.url}");
+                Debug.Log($"There are still path parameters that are not replaced: {_request.url}");
+                throw NoctuaException.RequestUnreplacedParam;
             }
             
             _request.downloadHandler = new DownloadHandlerBuffer();
-            
-            await _request.SendWebRequest();
-            
-            var response = _request.downloadHandler.text;
-            
-            switch (_request.result)
-            {
-                case UnityWebRequest.Result.Success:
-                    return _request.responseCode switch
-                    {
-                        >= 500 => throw new HttpError(_request.responseCode, $"Server error {_request.responseCode}: {response}"),
-                        >= 400 => throw new HttpError(_request.responseCode, $"Client error {_request.responseCode}: {response}"),
-                        _ => JsonConvert.DeserializeObject<DataWrapper<T>>(response, _jsonSettings).Data
-                    };
-                case UnityWebRequest.Result.ProtocolError:
-                case UnityWebRequest.Result.DataProcessingError:
-                case UnityWebRequest.Result.ConnectionError:
-                    throw new NetworkError($"Failed to send request: {_request.error}");
-                case UnityWebRequest.Result.InProgress:
-                    throw new NetworkError("Request is still in progress.");
-                default:
-                    throw new Exception($"Unknown error: {_request.error}");
+            string response = null;
+
+            try {
+                await _request.SendWebRequest();
+            } catch (Exception e) {
+                Debug.Log(_request.result.ToString());
+                response = _request.downloadHandler.text;
+                Debug.Log(response);
+                Debug.Log(e.Message);
+
+                if (response == null || _request.result != UnityWebRequest.Result.Success) {
+                    // Try to parse the error first to get the error code
+                    ErrorResponse errorResponse = null;
+                    errorResponse = JsonConvert.DeserializeObject<ErrorResponse>(response, _jsonSettings);
+                    if (errorResponse != null && errorResponse.ErrorCode > 0) {
+                        throw new NoctuaException(errorResponse.ErrorCode, errorResponse.Error);
+                    } else { // If there is no error code in the response, throw the original error
+                        switch (_request.result)
+                        {
+                            case UnityWebRequest.Result.ConnectionError:
+                                // e.g. the device is disconnected from the internet/network
+                                throw NoctuaException.RequestConnectionError;
+                            case UnityWebRequest.Result.DataProcessingError:
+                                throw NoctuaException.RequestDataProcessingError;
+                            case UnityWebRequest.Result.ProtocolError:
+                                throw NoctuaException.RequestProtocolError;
+                            default:
+                                throw NoctuaException.OtherWebRequestError;
+                        }
+                    }
+                }
             }
+
+            response = _request.downloadHandler.text;
+            Debug.Log(response);
+            return JsonConvert.DeserializeObject<DataWrapper<T>>(response, _jsonSettings).Data;
         }
     }
 }
