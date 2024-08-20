@@ -52,7 +52,7 @@ namespace com.noctuagames.sdk
             _config = config;
         }
 
-        public async Task<ProductList> GetProductListAsync()
+        public async UniTask<ProductList> GetProductListAsync()
         {
 
             int gameId = 1;
