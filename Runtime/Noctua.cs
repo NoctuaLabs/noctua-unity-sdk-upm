@@ -57,9 +57,6 @@ public class GlobalConfig
         private static readonly INativePlugin Plugin = GetNativePlugin();
         private static readonly GoogleBilling GoogleBillingInstance = new GoogleBilling();
 
-        // Event to forward purchase results to the users of this class
-        public static event Action<string> OnPurchaseDone;
-
         static Noctua()
         {
             GlobalConfig config = new GlobalConfig();
@@ -118,16 +115,14 @@ public class GlobalConfig
                 }
             );
 
-            // Subscribe to the GoogleBillingInstance's OnPurchaseDone event
-            GoogleBillingInstance.OnPurchaseDone += HandlePurchaseDone;
+            // TODO Move to somewhere where the JWT token is already loaded
+            IAP.RetryPendingPurchases();
         }
 
         public static void Init()
         {
             Debug.Log("Noctua.Init()");
             Plugin?.Init();
-
-            GoogleBillingInstance?.Init();
         }
 
         public static void OnApplicationPause(bool pause)
@@ -169,13 +164,6 @@ public class GlobalConfig
         {
             Debug.Log("Noctua.PurchaseItem");
             GoogleBillingInstance?.PurchaseItem(productId);
-        }
-
-        private static void HandlePurchaseDone(string result)
-        {
-            Debug.Log("Noctua.HandlePurchaseDone");
-            // Forward the event to subscribers of Noctua's OnPurchaseDone event
-            OnPurchaseDone?.Invoke(result);
         }
 
         private static INativePlugin GetNativePlugin()
