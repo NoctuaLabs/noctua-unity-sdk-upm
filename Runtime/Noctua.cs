@@ -10,16 +10,13 @@ using System.Threading.Tasks;
 namespace com.noctuagames.sdk
 {
     public class AdjustConfig
-{
-    [JsonProperty("appToken")]
-    public string AppToken { get; set; }
+    {
+        [JsonProperty("appToken")] public string AppToken { get; set; }
 
-    [JsonProperty("environment")]
-    public string Environment { get; set; }
+        [JsonProperty("environment")] public string Environment { get; set; }
 
-    [JsonProperty("eventMap")]
-    public Dictionary<string, string> EventMap { get; set; }
-}
+        [JsonProperty("eventMap")] public Dictionary<string, string> EventMap { get; set; }
+    }
 
 public class NoctuaConfig
 {
@@ -37,27 +34,30 @@ public class NoctuaConfig
     public bool IsSandbox { get; set; } = false;
 }
 
-public class GlobalConfig
-{
-    [JsonProperty("clientId")]
-    public string ClientId { get; set; }
+    public class GlobalConfig
+    {
+        [JsonProperty("clientId")] public string ClientId { get; set; }
 
-    [JsonProperty("adjust")]
-    public AdjustConfig Adjust { get; set; }
+        [JsonProperty("adjust")] public AdjustConfig Adjust { get; set; }
 
-    [JsonProperty("noctua")]
-    public NoctuaConfig Noctua { get; set; }
-}
+        [JsonProperty("noctua")] public NoctuaConfig Noctua { get; set; }
+    }
 
     public class Noctua
     {
+        private static readonly Lazy<Noctua> Instance = new(() => new Noctua());
+        public static NoctuaAuthService Auth => Instance.Value._auth;
+        public static NoctuaIAPService IAP => Instance.Value._iap;
 
-        public static readonly NoctuaAuthService Auth;
-        public static readonly NoctuaIAPService IAP;
-        private static readonly INativePlugin Plugin = GetNativePlugin();
-        private static readonly GoogleBilling GoogleBillingInstance = new GoogleBilling();
+        public event Action<string> OnPurchaseDone;
 
-        static Noctua()
+        private readonly NoctuaAuthService _auth;
+        private readonly NoctuaIAPService _iap;
+        private readonly GoogleBilling _googleBilling;
+        private readonly INativePlugin _nativePlugin = GetNativePlugin();
+        private bool _initialized = false;
+        // Event to forward purchase results to the users of this class
+        private Noctua()
         {
             GlobalConfig config = new GlobalConfig();
             Debug.Log("Loading streaming assets...");
@@ -65,26 +65,32 @@ public class GlobalConfig
             Debug.Log(configPath);
             var configLoadRequest = UnityWebRequest.Get(configPath);
             configLoadRequest.SendWebRequest();
-            while (!configLoadRequest.isDone) {
-                if (configLoadRequest.result == UnityWebRequest.Result.ProtocolError) {
+            while (!configLoadRequest.isDone)
+            {
+                if (configLoadRequest.result == UnityWebRequest.Result.ProtocolError)
+                {
                     Debug.Log("Loading streaming assets: configLoadRequest ProtocolError");
                     break;
                 }
             }
-            if (configLoadRequest.result == UnityWebRequest.Result.ProtocolError) {
-                    Debug.Log("Loading streaming assets: configLoadRequest ProtocolError");
-            } else {
+
+            if (configLoadRequest.result == UnityWebRequest.Result.ProtocolError)
+            {
+                Debug.Log("Loading streaming assets: configLoadRequest ProtocolError");
+            }
+            else
+            {
                 config = JsonConvert.DeserializeObject<GlobalConfig>(configLoadRequest.downloadHandler.text[1..]);
                 Debug.Log(config.ClientId);
             }
 
             // Let's fill the empty fields, if any
-            if (config.Noctua.BaseUrl == null || config.Noctua.BaseUrl == "")
+            if (string.IsNullOrEmpty(config.Noctua.BaseUrl))
             {
                 config.Noctua.BaseUrl = NoctuaConfig.DefaultBaseUrl;
             }
 
-            if (config.Noctua.TrackerUrl == null || config.Noctua.TrackerUrl == "")
+            if (string.IsNullOrEmpty(config.Noctua.TrackerUrl))
             {
                 config.Noctua.TrackerUrl = NoctuaConfig.DefaultTrackerUrl;
             }
@@ -99,7 +105,7 @@ public class GlobalConfig
             Debug.Log(config.Noctua.TrackerUrl);
 
 
-            Auth = new NoctuaAuthService(
+            _auth = new NoctuaAuthService(
                 new NoctuaAuthService.Config
                 {
                     BaseUrl = config.Noctua.BaseUrl,
@@ -107,7 +113,7 @@ public class GlobalConfig
                 }
             );
 
-            IAP = new NoctuaIAPService(
+            _iap = new NoctuaIAPService(
                 new NoctuaIAPService.Config
                 {
                     BaseUrl = config.Noctua.BaseUrl,
@@ -121,13 +127,22 @@ public class GlobalConfig
 
         public static void Init()
         {
+            if (Instance.Value._initialized)
+            {
+                Debug.Log("Noctua.Init() has been called");
+
+                return;
+            }
+            
             Debug.Log("Noctua.Init()");
-            Plugin?.Init();
+            Instance.Value._nativePlugin?.Init();
+            Instance.Value._googleBilling?.Init();
+            Instance.Value._initialized = true;
         }
 
         public static void OnApplicationPause(bool pause)
         {
-            Plugin?.OnApplicationPause(pause);
+            Instance.Value._nativePlugin?.OnApplicationPause(pause);
         }
 
         public static void TrackAdRevenue(
@@ -137,7 +152,7 @@ public class GlobalConfig
             Dictionary<string, IConvertible> extraPayload = null
         )
         {
-            Plugin?.TrackAdRevenue(source, revenue, currency, extraPayload);
+            Instance.Value._nativePlugin?.TrackAdRevenue(source, revenue, currency, extraPayload);
         }
 
         public static void TrackPurchase(
@@ -147,7 +162,7 @@ public class GlobalConfig
             Dictionary<string, IConvertible> extraPayload = null
         )
         {
-            Plugin?.TrackPurchase(orderId, amount, currency, extraPayload);
+            Instance.Value._nativePlugin?.TrackPurchase(orderId, amount, currency, extraPayload);
         }
 
         public static void TrackCustomEvent(
@@ -155,7 +170,7 @@ public class GlobalConfig
             Dictionary<string, IConvertible> extraPayload = null
         )
         {
-            Plugin?.TrackCustomEvent(name, extraPayload);
+            Instance.Value._nativePlugin?.TrackCustomEvent(name, extraPayload);
         }
 
         public static void PurchaseItem(
@@ -163,7 +178,7 @@ public class GlobalConfig
         )
         {
             Debug.Log("Noctua.PurchaseItem");
-            GoogleBillingInstance?.PurchaseItem(productId);
+            Instance.Value._googleBilling?.PurchaseItem(productId);
         }
 
         private static INativePlugin GetNativePlugin()

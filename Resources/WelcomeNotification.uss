@@ -1,0 +1,54 @@
+.welcome-show {
+    translate: 0 70px;
+    transition-duration: 400ms;
+}
+
+.welcome-hide {
+    translate: 0 -70px;
+    transition-duration: 400ms;
+}
+
+.welcome-box {
+    align-self: center;
+    top: -56px;
+    width: 328px;
+    height: 56px;
+    border-radius: 10px;
+    border-width: 1px;
+    border-color: rgba(216, 216, 216, 0.3);
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.player-box {
+    flex-direction: row;
+    align-items: center;
+    margin-left: 14px;
+}
+
+.player-image {
+    background-color: white;
+    width: 34px;
+    height: 34px;
+    border-radius: 30px;
+}
+
+.player-text {
+    flex-direction: column;
+    margin-left: 7px;
+    align-items: flex-start;
+    justify-content: flex-start;
+}
+
+.welcome-text {
+    flex-direction: row;
+    justify-content: flex-start;
+    align-items: center;
+}
+
+.welcome-icon {
+    background-image: url("./Hi.png");
+    width: 16px;
+    height: 16px;
+}

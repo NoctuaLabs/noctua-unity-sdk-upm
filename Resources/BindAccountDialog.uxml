@@ -1,0 +1,17 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" xsi="http://www.w3.org/2001/XMLSchema-instance" engine="UnityEngine.UIElements" editor="UnityEditor.UIElements" noNamespaceSchemaLocation="../../../../UIElementsSchema/UIElements.xsd" editor-extension-mode="False">
+    <Style src="./Noctua.uss" />
+    <ui:VisualElement name="NoctuaBindAccountDialog" class="base bind-account-dialog">
+        <ui:VisualElement name="NoctuaLogoWithText" class="noctua-logo-with-text" />
+        <ui:VisualElement name="NoctuaBindHandBlurImage" class="bind-hand-blur-image" />
+        <ui:VisualElement name="NoctuaBindHandImage" class="bind-hand-image" />
+        <ui:VisualElement name="NoctuaBindOfferMessage" class="bind-offer-message">
+            <ui:Label name="NoctuaBindOfferText" text="Continue your game on any device" class="bind-offer-text" />
+            <ui:VisualElement name="NoctuaBindOfferProgressIndicator" class="bind-offer-progress-indicator" />
+        </ui:VisualElement>
+        <ui:VisualElement name="NoctuaBindAccountButtonGroup" class="bind-account-button-group" >
+            <ui:Button text="Bind Account" name="NoctuaBindAccountButton" class="bind-account-dialog-button button-highlight" />
+            <ui:VisualElement name="Spacer" class="spacer" />
+            <ui:Button text="Remind me next time"  name="NoctuaRemindMeButton" class="bind-account-dialog-button button-normal" />
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>

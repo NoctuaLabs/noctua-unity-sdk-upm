@@ -1,7 +1,7 @@
 ﻿using UnityEngine;
 using System.Collections.Generic;
 
-public class GoogleBilling : MonoBehaviour
+public class GoogleBilling
 {
     private AndroidJavaObject billingClient;
     private AndroidJavaObject activity;
