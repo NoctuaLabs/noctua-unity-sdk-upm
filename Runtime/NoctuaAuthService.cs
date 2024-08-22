@@ -69,8 +69,10 @@ namespace com.noctuagames.sdk
         [JsonProperty("bundle_id")]
         public string BundleId;
 
+        [JsonProperty("user")]
         public User User;
 
+        [JsonProperty("user_id")]
         public int UserId;
     }
 

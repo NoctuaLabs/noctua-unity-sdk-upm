@@ -43,7 +43,7 @@ namespace com.noctuagames.sdk.UI
             View.styleSheets.Add(Resources.Load<StyleSheet>(viewResourceName));
             View.focusable = true;
 
-            gameObject.GetComponent<UIDocument>().rootVisualElement.Add(View);
+            //gameObject.GetComponent<UIDocument>().rootVisualElement.Add(View);
         }
     }
 }
