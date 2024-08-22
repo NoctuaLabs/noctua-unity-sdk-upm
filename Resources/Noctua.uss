@@ -18,6 +18,31 @@
     align-self: flex-end;
 }
 
+.noctua-logo-with-text {
+    background-image: url("./NoctuaLogoWithText.png");
+    width: 61px;
+    height: 13px;
+}
+
+.google-logo {
+    background-image: url("./GoogleLogo.png");
+    width: 24px;
+    height: 24px;
+}
+
+.facebook-logo {
+    background-image: url("./FacebookLogo.png");
+    width: 24px;
+    height: 24px;
+}
+
+.back-icon {
+    background-image: url("./BackIcon.png");
+    width: 24px;
+    height: 24px;
+    background-color: transparent;
+}
+
 .dialog-box {
     position: absolute;
     flex-direction: column;
@@ -38,101 +63,6 @@
     align-self: stretch;
 }
 
-.bind-account-dialog {
-    flex-direction: column;
-    border-radius: 20px;
-    width: 290px;
-    height: 290px;
-    border-width: 1px;
-    align-items: center;
-}
-
-.noctua-logo-with-text {
-    background-image: url("./NoctuaLogoWithText.png");
-    width: 61px;
-    height: 13px;
-}
-
-.bind-hand-image {
-    position: absolute;
-    background-image: url("./BindHand.png");
-    top: 25px;
-    height: 97px;
-    width: 97px;
-}
-
-.bind-hand-blur-image {
-    position: absolute;
-    background-image: url("./BindHandBlur.png");
-    top: 25px;
-    height: 117px;
-    width: 117px;
-}
-
-.bind-offer-message {
-    top: 125px;
-    align-items: center;
-}
-
-.bind-offer-text {
-    width: 196px;
-    height: 20px;
-}
-
-.bind-offer-progress-indicator {
-    background-image: url("./LeftProgressIndicator.png");
-    top: 10px;
-    width: 35px;
-    height: 4px;
-}
-
-.bind-account-button-group {
-    position: absolute;
-    top: 183px;
-}
-
-.bind-account-dialog-button {
-    margin: 4px;
-    width: 256px;
-    height: 40px;
-    border-radius: 10px;
-    font-size: 12px;
-}
-
-.account-selection-info {
-    flex-wrap: wrap;
-    top: 8px;
-    width: 187px;
-    font-size: 14px;
-    white-space: normal;
-}
-
-.account-selection-list {
-    width: 276px;
-    align-items: stretch;
-    flex-grow: 1;
-}
-
-.account-item {
-    background-color: #2D3138;
-    padding: 4px;
-    height: 40px;
-    border-radius: 10px;
-    flex-direction: row;
-    align-items: center;
-}
-
-.account-selection-continue-other-button {
-    border-color: #E5E7EB;
-    background-color: rgb(31, 35, 39);
-}
-
-.account-item-padding {
-    flex-grow: 1;
-}
-
-.account-item-recent-label {
-}
 
 /* General Noctua Text Input */
 
@@ -151,7 +81,7 @@
     height: 40px;
     margin-left: 10px;
     margin-right: 10px;
-    background-color: clear;
+    background-color: transparent;
 }
 
 .noctua-text-input #unity-text-input:hover {
@@ -166,7 +96,6 @@
     font-size: 12px;
     padding-left: 10px;
     background-color: transparent;
-    pointer-events: none;
 }
 
-/* End General Noctua Text Input */
+/* End Text Input */

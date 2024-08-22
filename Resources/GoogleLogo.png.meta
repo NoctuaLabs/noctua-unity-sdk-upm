@@ -1,9 +1,5 @@
 fileFormatVersion: 2
-<<<<<<<< HEAD:Resources/NoctuaBackIcon.png.meta
-guid: 841eec11827721c409f93483496328c3
-========
-guid: c997d1d50bedd6e49b25eb203eafdbaa
->>>>>>>> f50f9f3 (feat: login dialog style):Resources/BackIcon.png.meta
+guid: 67a9917a668bafd4194e4ce1dd6ebf3d
 TextureImporter:
   internalIDToNameTable: []
   externalObjects: {}

@@ -189,7 +189,7 @@ namespace com.noctuagames.sdk
 
         public async UniTask<PlayerTokenResponse> LoginAsGuest()
         {
-            if (Application.identifier == "")
+            if (string.IsNullOrEmpty(Application.identifier))
             {
                 throw new ApplicationException($"App id for platform {Application.platform} is not set");
             }

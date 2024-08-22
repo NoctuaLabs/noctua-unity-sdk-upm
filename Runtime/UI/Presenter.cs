@@ -40,10 +40,9 @@ namespace com.noctuagames.sdk.UI
         {
             var viewResourceName = GetType().Name.Replace("Presenter", "");
             View = Resources.Load<VisualTreeAsset>(viewResourceName).CloneTree();
-            View.styleSheets.Add(Resources.Load<StyleSheet>(viewResourceName));
             View.focusable = true;
 
-            //gameObject.GetComponent<UIDocument>().rootVisualElement.Add(View);
+            gameObject.GetComponent<UIDocument>()?.rootVisualElement.Add(View);
         }
     }
 }

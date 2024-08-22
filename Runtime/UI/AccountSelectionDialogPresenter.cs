@@ -47,7 +47,8 @@ namespace com.noctuagames.sdk.UI
 
         private void OnContinueButtonClick(ClickEvent evt)
         {
-            Debug.Log("Continue button clicked");
+            View.visible = false;
+            
         }
 
         public void LoadPlayers()
@@ -56,10 +57,7 @@ namespace com.noctuagames.sdk.UI
 
             _playerListView.makeItem = () =>
             {
-                // Instantiate the UXML template for the entry
                 var newListEntry = _itemTemplate.Instantiate();
-
-                // Return the root of the instantiated visual tree
                 return newListEntry;
             };
 
@@ -72,11 +70,6 @@ namespace com.noctuagames.sdk.UI
             };
             
             _playerListView.itemsSource = _players;
-        }
-
-        public void SetVisible(bool visible)
-        {
-            View.visible = visible;
         }
     }
 }

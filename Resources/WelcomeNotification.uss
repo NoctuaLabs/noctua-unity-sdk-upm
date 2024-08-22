@@ -9,6 +9,7 @@
 }
 
 .welcome-box {
+    position: absolute;
     align-self: center;
     top: -56px;
     width: 328px;
