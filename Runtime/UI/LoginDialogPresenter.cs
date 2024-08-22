@@ -28,12 +28,12 @@ namespace com.noctuagames.sdk
 
             passwordField.isPasswordField = true;
 
-            emailField.RegisterValueChangedCallback(evt => AdjustTopPositionLabel(emailField));
-            passwordField.RegisterValueChangedCallback(evt => AdjustTopPositionLabel(passwordField));
+            emailField.RegisterValueChangedCallback(evt => AdjustHideLabelElement(emailField));
+            passwordField.RegisterValueChangedCallback(evt => AdjustHideLabelElement(passwordField));
 
         }
 
-        private void AdjustTopPositionLabel(TextField textField) {
+        private void AdjustHideLabelElement(TextField textField) {
             if(string.IsNullOrEmpty(textField.value)) {
                 textField.labelElement.style.display = DisplayStyle.Flex;
             } else {
