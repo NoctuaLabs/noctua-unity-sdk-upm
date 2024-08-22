@@ -1,6 +1,7 @@
 ﻿using UnityEngine;
 using System.Collections.Generic;
 
+#if UNITY_ANDROID && !UNITY_EDITOR
 public class GoogleBilling
 {
     private AndroidJavaObject billingClient;
@@ -298,4 +299,5 @@ public class GoogleBilling
         }
     }
 }
+#endif
 
