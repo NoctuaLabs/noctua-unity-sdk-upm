@@ -35,7 +35,13 @@ namespace com.noctuagames.sdk.UI
             case State.Start:
                 if (Noctua.Auth.IsAuthenticated)
                 {
-                    _playerName.text = Noctua.Auth.Player.User.Nickname;
+                    if (Noctua.Auth.AccountContainer?.Recent?.Player?.Username != null) {
+                        // Use player username from in-game if possible
+                        _playerName.text = Noctua.Auth.AccountContainer.Recent.Player.Username;
+                    } else if (Noctua.Auth.AccountContainer?.Recent?.User?.Nickname != null) {
+                        // Fallback to user's nickname if the player username is not available
+                        _playerName.text = Noctua.Auth.AccountContainer.Recent.User.Nickname;
+                    }
                     _startTime = DateTime.UtcNow;
                     _welcomeBox.AddToClassList("welcome-show");
                     _state = State.Active;
