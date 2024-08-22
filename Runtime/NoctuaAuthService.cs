@@ -224,6 +224,7 @@ namespace com.noctuagames.sdk
                 userBundle = await TriggerAccountSelectionUI();
             }
 
+            Debug.Log("Authenticate: triggerOnAuthenticated");
             UniTask.Void(
                 async () =>
                 {

@@ -56,8 +56,6 @@ public class NoctuaConfig
         public static NoctuaAuthService Auth => Instance.Value._auth;
         public static NoctuaIAPService IAP => Instance.Value._iap;
 
-        private static readonly INativePlugin Plugin = GetNativePlugin();
-
         public event Action<string> OnPurchaseDone;
 
         private readonly NoctuaAuthService _auth;
@@ -133,7 +131,7 @@ public class NoctuaConfig
             );
 
             // TODO Move to somewhere where the JWT token is already loaded
-            IAP.RetryPendingPurchases();
+            _iap.RetryPendingPurchases();
         }
 
         public static void Init()
