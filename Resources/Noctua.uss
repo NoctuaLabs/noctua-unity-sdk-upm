@@ -43,6 +43,13 @@
     background-color: transparent;
 }
 
+.close-icon {
+    background-image: url("./CloseIcon.png");
+    width: 20px;
+    height: 20px;
+    background-color: transparent;
+}
+
 .dialog-box {
     position: absolute;
     flex-direction: column;
@@ -98,4 +105,17 @@
     background-color: transparent;
 }
 
+.custom-textfield-input-code #unity-text-input {
+    position: relative;
+    flex-direction: column;
+    background-color: transparent;
+    width: 37px;
+    height: 47px;
+    text-align: center;
+    font-size: 14px;
+    border-width: 1px;
+    border-color: #474B4E;
+    border-radius: 6px;
+    radius: 6px;
+}
 /* End Text Input */
