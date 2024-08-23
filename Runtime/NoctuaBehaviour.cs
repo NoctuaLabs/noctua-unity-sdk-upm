@@ -1,9 +1,6 @@
 ﻿using System.Collections;
-using System.Diagnostics.Tracing;
-using System.Linq;
 using com.noctuagames.sdk.UI;
 using UnityEngine;
-using UnityEngine.EventSystems;
 using UnityEngine.UIElements;
 
 namespace com.noctuagames.sdk
@@ -22,7 +19,8 @@ namespace com.noctuagames.sdk
             _uiDocument = gameObject.AddComponent<UIDocument>();
             _uiDocument.panelSettings = _panelSettings;
             _uiDocument.visualTreeAsset = ScriptableObject.CreateInstance<VisualTreeAsset>();
-            _uiDocument.rootVisualElement.styleSheets.Add(Resources.Load<StyleSheet>("Noctua"));
+            _uiDocument.rootVisualElement.styleSheets.Add(Resources.Load<StyleSheet>("Root"));
+            _uiDocument.rootVisualElement.AddToClassList("root");
             _uiDocument.rootVisualElement.focusable = true;
             _uiDocument.rootVisualElement.Focus();
             
@@ -31,29 +29,15 @@ namespace com.noctuagames.sdk
             
             _accountSelectionDialog = gameObject.AddComponent<AccountSelectionDialogPresenter>();
             _accountSelectionDialog.SetModel(Noctua.Auth);
-            
-            _uiDocument.rootVisualElement.RegisterCallback<KeyDownEvent>(OnKeyDown);
+            _accountSelectionDialog.Visible = false;
         }
 
-        private void OnKeyDown(KeyDownEvent evt)
+        private void Update()
         {
-            Debug.Log($"Key pressed: {evt.keyCode}");
-            
-            if (evt.keyCode == KeyCode.Space)
+            if (Input.GetKeyDown(KeyCode.Space))
             {
                 _accountSelectionDialog.Visible = !_accountSelectionDialog.Visible;
             }
-            
-        }
-
-        private void Start()
-        {
-            StartCoroutine(StartNoctua());
-        }
-
-        private IEnumerator StartNoctua()
-        {
-            yield return Noctua.Auth.Authenticate();
         }
     }
 }

@@ -3,13 +3,13 @@ using UnityEngine.UIElements;
 
 namespace com.noctuagames.sdk
 {
-    public class LoginDialogPresenter : MonoBehaviour
+    public class EmailLoginDialogPresenter : MonoBehaviour
     {
         private UIDocument _uiDoc;
 
         private void Awake()
         {
-            var visualTree = Resources.Load<VisualTreeAsset>("LoginDialog");
+            var visualTree = Resources.Load<VisualTreeAsset>("EmailLoginDialog");
             var panelSettings = Resources.Load<PanelSettings>("NoctuaPanelSettings");
             var styleSheet = Resources.Load<StyleSheet>("Noctua");
             
