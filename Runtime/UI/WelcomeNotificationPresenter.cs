@@ -28,16 +28,23 @@ namespace com.noctuagames.sdk.UI
             _playerName = View.Q<Label>("NoctuaWelcomePlayerName");
         }
 
-        private void ModelOnAuthenticated(Player player)
+        private void ModelOnAuthenticated(UserBundle userBundle)
         {
-            StartCoroutine(Show(player));
+            StartCoroutine(Show(userBundle));
         }
 
-        private IEnumerator Show(Player player)
+        private IEnumerator Show(UserBundle userBundle)
         {
             yield return new WaitForSeconds(1);
+
+            if (userBundle?.Player?.Username != null) {
+                // Use player username from in-game if possible
+                _playerName.text = userBundle.Player.Username;
+            } else if (userBundle?.User?.Nickname != null) {
+                // Fallback to user's nickname if the player username is not available
+                _playerName.text = userBundle.User.Nickname;
+            }
             
-            _playerName.text = player.User.Nickname;
             _welcomeBox.AddToClassList("welcome-show");
             
             yield return new WaitForSeconds(3);

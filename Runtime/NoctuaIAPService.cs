@@ -133,17 +133,21 @@ namespace com.noctuagames.sdk
 
         private static int _currentOrderId;
 
+        #if UNITY_ANDROID && !UNITY_EDITOR
         private static readonly GoogleBilling GoogleBillingInstance = new GoogleBilling();
         // Event to forward purchase results to the users of this class
+        #endif
         public static event Action<PurchaseResponse> OnPurchaseDone;
 
         internal NoctuaIAPService(Config config)
         {
             _config = config;
 
+            #if UNITY_ANDROID && !UNITY_EDITOR
             // Subscribe to the GoogleBillingInstance's OnPurchaseDone event
             GoogleBillingInstance.OnPurchaseDone += HandlePurchaseDone;
             GoogleBillingInstance?.Init();
+            #endif
         }
 
         public async UniTask<ProductList> GetProductListAsync()
@@ -233,9 +237,12 @@ namespace com.noctuagames.sdk
             }
 
             _currentOrderId = orderResponse.Id;
+            #if UNITY_ANDROID && !UNITY_EDITOR
             GoogleBillingInstance?.PurchaseItem(orderResponse.ProductId);
+            #endif
         }
 
+        #if UNITY_ANDROID && !UNITY_EDITOR
         private static async void HandlePurchaseDone(GoogleBilling.PurchaseResult result)
         {
             Debug.Log("Noctua.HandlePurchaseDone");
@@ -284,6 +291,7 @@ namespace com.noctuagames.sdk
                 throw e;
             }
         }
+        #endif
 
         private static void SavePendingPurchase(VerifyOrderRequest newOrder)
         {

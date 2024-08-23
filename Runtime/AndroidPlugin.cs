@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using UnityEngine;
 
+#if UNITY_ANDROID && !UNITY_EDITOR
 namespace com.noctuagames.sdk
 {
     internal class AndroidPlugin : INativePlugin
@@ -94,3 +95,4 @@ namespace com.noctuagames.sdk
         }
     }
 }
+#endif

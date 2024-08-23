@@ -7,8 +7,14 @@ using UnityEngine.Networking;
 using System.Threading.Tasks;
 
 
+
 namespace com.noctuagames.sdk
 {
+public static class Constants
+{
+    public const string PlayerPrefsKeyAccountContainer = "NoctuaAccountContainer";
+}
+
     public class AdjustConfig
     {
         [JsonProperty("appToken")] public string AppToken { get; set; }
@@ -21,17 +27,18 @@ namespace com.noctuagames.sdk
 public class NoctuaConfig
 {
     public const string DefaultTrackerUrl = "https://kafka-proxy-poc.noctuaprojects.com";
-    public const string DefaultBaseUrl = "https://sdk-srv-new.noctuaprojects.com";
-    public const string DefaultSandboxBaseUrl = "https://sdk-srv-new-sandbox.noctuaprojects.com";
+    public const string DefaultBaseUrl = "https://sdk-api-v2.noctuaprojects.com/api/v1";
+    public const string DefaultSandboxBaseUrl = "https://sandbox-sdk-api-v2.noctuaprojects.com/api/v1";
 
     [JsonProperty("trackerUrl")]
     public string TrackerUrl { get; set; } = "https://kafka-proxy-poc.noctuaprojects.com";
 
     [JsonProperty("baseUrl")]
-    public string BaseUrl { get; set; } = "https://sdk-srv-new.noctuaprojects.com";
+    public string BaseUrl { get; set; } = "https://sandbox-sdk-api-v2.noctuaprojects.com/api/v1";
 
     [JsonProperty("isSandbox")]
     public bool IsSandbox { get; set; } = false;
+
 }
 
     public class GlobalConfig
@@ -53,7 +60,9 @@ public class NoctuaConfig
 
         private readonly NoctuaAuthService _auth;
         private readonly NoctuaIAPService _iap;
+        #if UNITY_ANDROID && !UNITY_EDITOR
         private readonly GoogleBilling _googleBilling;
+        #endif
         private readonly INativePlugin _nativePlugin = GetNativePlugin();
         private bool _initialized = false;
         // Event to forward purchase results to the users of this class
@@ -122,7 +131,7 @@ public class NoctuaConfig
             );
 
             // TODO Move to somewhere where the JWT token is already loaded
-            IAP.RetryPendingPurchases();
+            _iap.RetryPendingPurchases();
         }
 
         public static void Init()
@@ -136,7 +145,9 @@ public class NoctuaConfig
             
             Debug.Log("Noctua.Init()");
             Instance.Value._nativePlugin?.Init();
+            #if UNITY_ANDROID && !UNITY_EDITOR
             Instance.Value._googleBilling?.Init();
+            #endif
             Instance.Value._initialized = true;
         }
 
@@ -178,15 +189,19 @@ public class NoctuaConfig
         )
         {
             Debug.Log("Noctua.PurchaseItem");
+
+            #if UNITY_ANDROID && !UNITY_EDITOR
             Instance.Value._googleBilling?.PurchaseItem(productId);
+            GoogleBillingInstance?.PurchaseItem(productId);
+            #endif
         }
 
         private static INativePlugin GetNativePlugin()
         {
-#if UNITY_ANDROID
+#if UNITY_ANDROID && !UNITY_EDITOR
                 Debug.Log("Plugin is NoctuaAndroidPlugin");
                 return new AndroidPlugin();
-#elif UNITY_IOS
+#elif UNITY_IOS && !UNITY_EDITOR
                 Debug.Log("Plugin is NoctuaIPhonePlugin");
                 return new IosPlugin();
 #else
