@@ -133,3 +133,40 @@
 
 .account-item-recent-label {
 }
+
+/* General Noctua Text Input */
+
+.noctua-text-input {
+    position: relative;
+    flex-direction: column;
+    border-width: 1px;
+    border-color: #474B4E;
+    border-radius: 10px;
+    margin-bottom: 10px;
+}
+
+.noctua-text-input #unity-text-input {
+    padding-left: 10px;
+    padding-right: 10px;
+    height: 40px;
+    margin-left: 10px;
+    margin-right: 10px;
+    background-color: clear;
+}
+
+.noctua-text-input #unity-text-input:hover {
+    border-width: 0px;
+    background-color: transparent;
+}
+
+.noctua-text-input Label {
+    position: absolute;
+    top: 12px;
+    left: 10px;
+    font-size: 12px;
+    padding-left: 10px;
+    background-color: transparent;
+    pointer-events: none;
+}
+
+/* End General Noctua Text Input */
