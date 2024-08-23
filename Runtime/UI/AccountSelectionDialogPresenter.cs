@@ -10,7 +10,7 @@ namespace com.noctuagames.sdk.UI
     {
         private VisualTreeAsset _itemTemplate;
         private ListView _playerListView;
-        private List<Player> _players;
+        private List<UserBundle> _players;
         private Button _continueButton;
 
         protected override void Attach()
@@ -53,7 +53,7 @@ namespace com.noctuagames.sdk.UI
 
         public void LoadPlayers()
         {
-            _players = Model.AllPlayers.Values.ToList();
+            _players = Model.AccountList.Values.ToList();
 
             _playerListView.makeItem = () =>
             {
@@ -65,8 +65,22 @@ namespace com.noctuagames.sdk.UI
             
             _playerListView.bindItem = (element, i) =>
             {
-                element.Q<Label>("NoctuaPlayerName").text = _players[i].User.Nickname;
-                element.Q<Button>("NoctuaRecentLabel").text = _players[i].UserId == Model.Player.UserId ? "Recent" : "";
+                if (_players[i]?.Player?.Username != null && _players[i]?.Player?.Username.Length > 0)
+                {
+                    // Use player username from in-game if possible
+                    element.Q<Label>("NoctuaPlayerName").text = _players[i]?.Player?.Username;
+                } else if (_players[i]?.User?.Nickname != null && _players[i]?.User?.Nickname.Length > 0)
+                {
+                    // Fallback to user's nickname if the player username is not available
+                    element.Q<Label>("NoctuaPlayerName").text = _players[i]?.User?.Nickname;
+                } else if (_players[i]?.Credential?.Provider == "device_id") {
+                    // Fallback to prefix guest
+                    element.Q<Label>("NoctuaPlayerName").text = "Guest " + _players[i].User?.Id.ToString();
+                } else {
+                    // Fallback to prefix user
+                    element.Q<Label>("NoctuaPlayerName").text = "User " + _players[i].User?.Id.ToString();
+                }
+                element.Q<Button>("NoctuaRecentLabel").text = _players[i].User.Id == Model.RecentAccount.User.Id ? "Recent" : "";
             };
             
             _playerListView.itemsSource = _players;

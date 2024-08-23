@@ -7,10 +7,11 @@ namespace com.noctuagames.sdk
 {
     public class NoctuaBehaviour : MonoBehaviour
     {
+        public string Action;
         private PanelSettings _panelSettings;
         private UIDocument _uiDocument;
         
-        private AccountSelectionDialogPresenter _accountSelectionDialog;
+        public AccountSelectionDialogPresenter _accountSelectionDialog;
 
         private void Awake()
         {
@@ -30,6 +31,12 @@ namespace com.noctuagames.sdk
             _accountSelectionDialog = gameObject.AddComponent<AccountSelectionDialogPresenter>();
             _accountSelectionDialog.SetModel(Noctua.Auth);
             _accountSelectionDialog.Visible = false;
+        }
+
+        public void SetAccountSelectionDialogVisibility(bool show)
+        {
+            _accountSelectionDialog.LoadPlayers();
+            _accountSelectionDialog.Visible = show;
         }
 
         private void Update()
