@@ -37,12 +37,18 @@ namespace com.noctuagames.sdk.UI
         {
             yield return new WaitForSeconds(1);
 
-            if (userBundle?.Player?.Username != null) {
+            if (userBundle?.Player?.Username != null && userBundle?.Player?.Username.Length > 0) {
                 // Use player username from in-game if possible
-                _playerName.text = userBundle.Player.Username;
-            } else if (userBundle?.User?.Nickname != null) {
+                _playerName.text = userBundle?.Player?.Username;
+            } else if (userBundle?.User?.Nickname != null && userBundle?.User?.Nickname.Length > 0) {
                 // Fallback to user's nickname if the player username is not available
-                _playerName.text = userBundle.User.Nickname;
+                _playerName.text = userBundle?.User?.Nickname;
+            } else if (userBundle?.Credential?.Provider == "device_id") {
+                // Fallback to prefix guest
+                _playerName.text = "Guest " + userBundle?.User?.Id.ToString();
+            } else {
+                // Fallback to prefix user
+                _playerName.text = "User " + userBundle?.User?.Id.ToString();
             }
             
             _welcomeBox.AddToClassList("welcome-show");
@@ -51,6 +57,7 @@ namespace com.noctuagames.sdk.UI
             
             _welcomeBox.RemoveFromClassList("welcome-show");
             _welcomeBox.AddToClassList("welcome-hide");
+            _welcomeBox.RemoveFromClassList("welcome-hide"); // So we can reshouw it again
         }
     }
 }
