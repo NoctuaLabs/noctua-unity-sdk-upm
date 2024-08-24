@@ -770,15 +770,15 @@ namespace com.noctuagames.sdk
         }
 
         // TODO: Add support for phone
-        public async UniTask<PlayerTokenResponse> ResetPassword(string email, string password, string code)
+        public async UniTask<PlayerTokenResponse> ResetPassword(string currentPassword, string newPassword, string code)
         {
-            var request = new HttpRequest(HttpMethod.Post, $"{_config.BaseUrl}/credentials/password-reset-confirm")
+            var request = new HttpRequest(HttpMethod.Post, $"{_config.BaseUrl}/credentials/password")
                 .WithHeader("X-CLIENT-ID", _config.ClientId)
                 .WithJsonBody(
                     new ResetPasswordRequest
                     {
-                        Email = email,
-                        Password = password,
+                        CurrentPassword = currentPassword,
+                        NewPassword = newPassword,
                         Code = code
                     }
                 );
