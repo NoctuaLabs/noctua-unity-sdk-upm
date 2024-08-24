@@ -686,6 +686,107 @@ namespace com.noctuagames.sdk
         public void SimulateMultipleRecentExistingAccountWithoutMatchedPlayer() {
         }
 
+        // TODO: Add support for phone
+        public async UniTask<PlayerTokenResponse> RegisterWithPassword(string email, string password)
+        {
+            var request = new HttpRequest(HttpMethod.Post, $"{_config.BaseUrl}/register")
+                .WithHeader("X-CLIENT-ID", _config.ClientId)
+                .WithJsonBody(
+                    new RegisterViaEmailRequest
+                    {
+                        Email = email,
+                        Password = password
+                    }
+                );
+
+            var response = await request.Send<PlayerTokenResponse>();
+            return response;
+        }
+
+        private async UniTask<PlayerTokenResponse> VerifyCodeInternal(string code, string endpoint)
+        {
+            var request = new HttpRequest(HttpMethod.Post, $"{_config.BaseUrl}/{endpoint}")
+                .WithHeader("X-CLIENT-ID", _config.ClientId)
+                .WithJsonBody(
+                    new VerifyCodeRequest
+                    {
+                        Code = code
+                    }
+                );
+
+            var response = await request.Send<PlayerTokenResponse>();
+            return response;
+        }
+
+        public async UniTask<PlayerTokenResponse> VerifyCode(string code, UseCase useCase)
+        {
+            string endpoint = "";
+            switch (useCase)
+            {
+                case UseCase.Register:
+                    endpoint = "credentials/confirm";
+                    break;
+                case UseCase.ResetPassword:
+                    endpoint = "credentials/password-reset-confirm";
+                    break;
+                default:
+                    throw new ArgumentException("Invalid useCase provided. Supported use cases are 'Register' and 'Reset Password'.");
+            }
+
+            return await VerifyCodeInternal(code, endpoint);
+        }
+
+        // TODO: Add support for phone
+        public async UniTask<PlayerTokenResponse> LoginWithPassword(string email, string password)
+        {
+            var request = new HttpRequest(HttpMethod.Post, $"{_config.BaseUrl}/login")
+                .WithHeader("X-CLIENT-ID", _config.ClientId)
+                .WithJsonBody(
+                    new LoginViaEmailRequest
+                    {
+                        Email = email,
+                        Password = password
+                    }
+                );
+
+            var response = await request.Send<PlayerTokenResponse>();
+            return response;
+        }
+
+        // TODO: Add support for phone
+        public async UniTask<PlayerTokenResponse> SendResetPassword(string email)
+        {
+            var request = new HttpRequest(HttpMethod.Post, $"{_config.BaseUrl}/credentials/password-reset")
+                .WithHeader("X-CLIENT-ID", _config.ClientId)
+                .WithJsonBody(
+                    new SendResetPasswordRequest
+                    {
+                        Email = email
+                    }
+                );
+
+            var response = await request.Send<PlayerTokenResponse>();
+            return response;
+        }
+
+        // TODO: Add support for phone
+        public async UniTask<PlayerTokenResponse> ResetPassword(string email, string password, string code)
+        {
+            var request = new HttpRequest(HttpMethod.Post, $"{_config.BaseUrl}/credentials/password-reset-confirm")
+                .WithHeader("X-CLIENT-ID", _config.ClientId)
+                .WithJsonBody(
+                    new ResetPasswordRequest
+                    {
+                        Email = email,
+                        Password = password,
+                        Code = code
+                    }
+                );
+
+            var response = await request.Send<PlayerTokenResponse>();
+            return response;
+        }
+
         internal class Config
         {
             public string BaseUrl;
