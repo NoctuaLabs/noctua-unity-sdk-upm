@@ -720,7 +720,7 @@ namespace com.noctuagames.sdk
 
         public async UniTask<PlayerTokenResponse> VerifyCode(string code, UseCase useCase)
         {
-            string endpoint = "";
+            string endpoint;
             switch (useCase)
             {
                 case UseCase.Register:
