@@ -8,7 +8,9 @@ using Application = UnityEngine.Device.Application;
 using SystemInfo = UnityEngine.Device.SystemInfo;
 using Newtonsoft.Json;
 using System.Collections.Generic;
-//using UniWebView;
+#if (UNITY_ANDROID || UNITY_IOS) && !UNITY_EDITOR
+// using static UniWebView;
+#endif
 
 namespace com.noctuagames.sdk
 {
@@ -234,7 +236,7 @@ namespace com.noctuagames.sdk
                 throw new ApplicationException($"App id for platform {Application.platform} is not set");
             }
 
-            var request = new HttpRequest(HttpMethod.Post, $"{_config.BaseUrl}/guests")
+            var request = new HttpRequest(HttpMethod.Post, $"{_config.BaseUrl}/auth/guest/login")
                 .WithHeader("X-CLIENT-ID", _config.ClientId)
                 .WithJsonBody(
                     new LoginAsGuestRequest
@@ -264,7 +266,7 @@ namespace com.noctuagames.sdk
             string json = JsonConvert.SerializeObject(exchangeToken);
             Debug.Log("ExchangeTokenRequest: " + json);
 
-            var request = new HttpRequest(HttpMethod.Post, $"{_config.BaseUrl}/token-exchange")
+            var request = new HttpRequest(HttpMethod.Post, $"{_config.BaseUrl}/auth/token-exchange")
                 .WithHeader("X-CLIENT-ID", _config.ClientId)
                 .WithHeader("Authorization", "Bearer " + _accessToken)
                 .WithJsonBody(exchangeToken);
@@ -279,22 +281,24 @@ namespace com.noctuagames.sdk
 
         public async UniTask<string> GetSocialLoginRedirectURL(string provider)
         {
-            Debug.Log("GetSocialLoginURL: " + provider);
+            Debug.Log("GetSocialLoginURL provider: " + provider);
 
-            var request = new HttpRequest(HttpMethod.Get, $"{_config.BaseUrl}/social-login/{provider}/redirect")
+            var request = new HttpRequest(HttpMethod.Get, $"{_config.BaseUrl}/auth/{provider}/login/redirect")
                 .WithHeader("X-CLIENT-ID", _config.ClientId)
                 .WithHeader("Authorization", "Bearer " + _accessToken);
 
             var redirectUrlResponse = await request.Send<SocialLoginRedirectUrlResponse>();
 
-            return redirectUrlResponse.RedirectUrl;
+            Debug.Log("GetSocialLoginURL result: " + redirectUrlResponse?.RedirectUrl);
+
+            return redirectUrlResponse?.RedirectUrl;
         }
 
         public async UniTask<PlayerToken> SocialLoginCallback(string provider, SocialLoginCallbackRequest payload)
         {
             Debug.Log("Social login callback: " + provider);
 
-            var request = new HttpRequest(HttpMethod.Post, $"{_config.BaseUrl}/social-login/{provider}/callback")
+            var request = new HttpRequest(HttpMethod.Post, $"{_config.BaseUrl}/social-login/{provider}/login/callback")
                 .WithHeader("X-CLIENT-ID", _config.ClientId)
                 .WithHeader("Authorization", "Bearer " + _accessToken)
                 .WithJsonBody(payload);
@@ -308,7 +312,7 @@ namespace com.noctuagames.sdk
         {
             Debug.Log("Bind: " + payload.GuestToken);
 
-            var request = new HttpRequest(HttpMethod.Post, $"{_config.BaseUrl}/bind")
+            var request = new HttpRequest(HttpMethod.Post, $"{_config.BaseUrl}/auth/bind")
                 .WithHeader("X-CLIENT-ID", _config.ClientId)
                 .WithHeader("Authorization", "Bearer " + _accessToken)
                 .WithJsonBody(payload);
@@ -361,25 +365,34 @@ namespace com.noctuagames.sdk
 
             Debug.Log("SocialLogin: " + provider + " " + redirectUrl);
 
-            Application.OpenURL(redirectUrl);
-
+            #if (UNITY_ANDROID || UNITY_IOS) && !UNITY_EDITOR
             /* Example of using UniWebView plugin
-            webView = gameObject.AddComponent<UniWebView>();
-            webView.OnPageStarted += OnSocialLoginWebviewUrlChanged;
+            var webView = NoctuaGameObject.AddComponent<UniWebView>();
+            webView.OnPageStarted += OnSocialLoginWebviewStarted;
+            //webView.OnPageFinished += OnSocialLoginWebviewFinished;
             webView.Load(redirectUrl);
             */
+            #endif
 
             var userBundle = await AccountDetection();
             return userBundle;
         }
 
+        #if (UNITY_ANDROID || UNITY_IOS) && !UNITY_EDITOR
         /*
-        private void OnSocialLoginWebviewUrlChanged(UniWebView webView, string url)
+        private void OnSocialLoginWebviewStarted(UniWebView webView, string url)
         {
             Debug.Log("URL started to load: " + url);
             // Detect URL change logic here
         }
+
+        private void OnSocialLoginWebviewFinished(UniWebView webView, int statusCode, string url)
+        {
+            Debug.Log("URL finishhed to load: " + url);
+            // Detect URL change logic here
+        }
         */
+        #endif
 
 
 
