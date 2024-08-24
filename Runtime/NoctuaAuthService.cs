@@ -8,6 +8,7 @@ using Application = UnityEngine.Device.Application;
 using SystemInfo = UnityEngine.Device.SystemInfo;
 using Newtonsoft.Json;
 using System.Collections.Generic;
+//using UniWebView;
 
 namespace com.noctuagames.sdk
 {
@@ -166,6 +167,31 @@ namespace com.noctuagames.sdk
         public string BundleId;
     }
 
+    public class SocialLoginRedirectUrlResponse
+    {
+        [JsonProperty("redirect_url")]
+        public string RedirectUrl;
+
+    }
+
+    public class SocialLoginCallbackRequest
+    {
+        [JsonProperty("code")]
+        public string Code;
+
+        [JsonProperty("state")]
+        public string State;
+
+        [JsonProperty("redirect_url")]
+        public string RedirectUrl;
+    }
+
+    public class BindRequest
+    {
+        [JsonProperty("guest_token")]
+        public string GuestToken;
+    }
+
     public class AccountContainer // Used by account container prefs and account detection logic
     {
 
@@ -220,8 +246,6 @@ namespace com.noctuagames.sdk
 
 
             var response = await request.Send<PlayerToken>();
-            var player = response.Player;
-
             _accessToken = response.AccessToken;
             return response;
         }
@@ -249,6 +273,47 @@ namespace com.noctuagames.sdk
             var response = await request.Send<PlayerToken>();
             var player = response.Player;
 
+            _accessToken = response.AccessToken;
+            return response;
+        }
+
+        public async UniTask<string> GetSocialLoginRedirectURL(string provider)
+        {
+            Debug.Log("GetSocialLoginURL: " + provider);
+
+            var request = new HttpRequest(HttpMethod.Get, $"{_config.BaseUrl}/social-login/{provider}/redirect")
+                .WithHeader("X-CLIENT-ID", _config.ClientId)
+                .WithHeader("Authorization", "Bearer " + _accessToken);
+
+            var redirectUrlResponse = await request.Send<SocialLoginRedirectUrlResponse>();
+
+            return redirectUrlResponse.RedirectUrl;
+        }
+
+        public async UniTask<PlayerToken> SocialLoginCallback(string provider, SocialLoginCallbackRequest payload)
+        {
+            Debug.Log("Social login callback: " + provider);
+
+            var request = new HttpRequest(HttpMethod.Post, $"{_config.BaseUrl}/social-login/{provider}/callback")
+                .WithHeader("X-CLIENT-ID", _config.ClientId)
+                .WithHeader("Authorization", "Bearer " + _accessToken)
+                .WithJsonBody(payload);
+
+            var response = await request.Send<PlayerToken>();
+            _accessToken = response.AccessToken;
+            return response;
+        }
+
+        public async UniTask<PlayerToken> Bind(BindRequest payload)
+        {
+            Debug.Log("Bind: " + payload.GuestToken);
+
+            var request = new HttpRequest(HttpMethod.Post, $"{_config.BaseUrl}/bind")
+                .WithHeader("X-CLIENT-ID", _config.ClientId)
+                .WithHeader("Authorization", "Bearer " + _accessToken)
+                .WithJsonBody(payload);
+
+            var response = await request.Send<PlayerToken>();
             _accessToken = response.AccessToken;
             return response;
         }
@@ -286,6 +351,37 @@ namespace com.noctuagames.sdk
 
             return userBundle;
         }
+
+        public async UniTask<UserBundle> SocialLogin(string provider)
+        {
+
+            Debug.Log("SocialLogin: " + provider);
+
+            var redirectUrl = await GetSocialLoginRedirectURL(provider);
+
+            Debug.Log("SocialLogin: " + provider + " " + redirectUrl);
+
+            Application.OpenURL(redirectUrl);
+
+            /* Example of using UniWebView plugin
+            webView = gameObject.AddComponent<UniWebView>();
+            webView.OnPageStarted += OnSocialLoginWebviewUrlChanged;
+            webView.Load(redirectUrl);
+            */
+
+            var userBundle = await AccountDetection();
+            return userBundle;
+        }
+
+        /*
+        private void OnSocialLoginWebviewUrlChanged(UniWebView webView, string url)
+        {
+            Debug.Log("URL started to load: " + url);
+            // Detect URL change logic here
+        }
+        */
+
+
 
         public async UniTask<UserBundle> TriggerAccountSelectionUI()
         {
