@@ -703,9 +703,9 @@ namespace com.noctuagames.sdk
             return response;
         }
 
-        private async UniTask<PlayerTokenResponse> VerifyCodeInternal(string code, string endpoint)
+        public async UniTask<PlayerTokenResponse> VerifyCode(string code)
         {
-            var request = new HttpRequest(HttpMethod.Post, $"{_config.BaseUrl}/{endpoint}")
+            var request = new HttpRequest(HttpMethod.Post, $"{_config.BaseUrl}/credentials/confirm")
                 .WithHeader("X-CLIENT-ID", _config.ClientId)
                 .WithJsonBody(
                     new VerifyCodeRequest
@@ -716,24 +716,6 @@ namespace com.noctuagames.sdk
 
             var response = await request.Send<PlayerTokenResponse>();
             return response;
-        }
-
-        public async UniTask<PlayerTokenResponse> VerifyCode(string code, UseCase useCase)
-        {
-            string endpoint;
-            switch (useCase)
-            {
-                case UseCase.Register:
-                    endpoint = "credentials/confirm";
-                    break;
-                case UseCase.ResetPassword:
-                    endpoint = "credentials/password-reset-confirm";
-                    break;
-                default:
-                    throw new ArgumentException("Invalid useCase provided. Supported use cases are 'Register' and 'Reset Password'.");
-            }
-
-            return await VerifyCodeInternal(code, endpoint);
         }
 
         // TODO: Add support for phone
