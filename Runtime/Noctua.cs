@@ -197,7 +197,6 @@ public class NoctuaConfig
 
             #if UNITY_ANDROID && !UNITY_EDITOR
             Instance.Value._googleBilling?.PurchaseItem(productId);
-            GoogleBillingInstance?.PurchaseItem(productId);
             #endif
         }
 
