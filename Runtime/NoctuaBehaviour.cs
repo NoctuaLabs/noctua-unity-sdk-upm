@@ -35,7 +35,6 @@ namespace com.noctuagames.sdk
 
         public void SetAccountSelectionDialogVisibility(bool show)
         {
-            _accountSelectionDialog.LoadPlayers();
             _accountSelectionDialog.Visible = show;
         }
 

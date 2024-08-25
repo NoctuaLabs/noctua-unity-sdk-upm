@@ -15,7 +15,6 @@
     background-image: url("./NoctuaLogo.png");
     width: 77px;
     height: 54px;
-    align-self: flex-end;
 }
 
 .noctua-logo-with-text {
@@ -50,16 +49,28 @@
     background-color: transparent;
 }
 
+.right-separator-short {
+    background-image: url("./RightSeparatorShort.png");
+    width: 50px;
+    height: 1px;
+}
+
+.left-separator-short {
+    background-image: url("./LeftSeparatorShort.png");
+    width: 50px;
+    height: 1px;
+}
+
 .dialog-box {
     position: absolute;
     flex-direction: column;
     border-radius: 20px;
     top: 18px;
-    width: 300px;
-    height: 300px;
+    width: 319px;
+    height: 337px;
     border-width: 1px;
     align-items: center;
-    padding: 8px;
+    padding: 14px;
     align-self: center;
 }
 
@@ -111,11 +122,16 @@
     background-color: transparent;
     width: 37px;
     height: 47px;
-    text-align: center;
+    -unity-text-align: middle-center;
     font-size: 14px;
     border-width: 1px;
     border-color: #474B4E;
     border-radius: 6px;
-    radius: 6px;
 }
 /* End Text Input */
+
+
+.unity-scroller--vertical {
+    width: 4px;
+    background-color: #2D3138;
+}

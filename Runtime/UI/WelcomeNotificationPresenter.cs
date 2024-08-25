@@ -51,13 +51,13 @@ namespace com.noctuagames.sdk.UI
                 _playerName.text = "User " + userBundle?.User?.Id.ToString();
             }
             
+            _welcomeBox.RemoveFromClassList("welcome-hide");
             _welcomeBox.AddToClassList("welcome-show");
             
             yield return new WaitForSeconds(3);
             
             _welcomeBox.RemoveFromClassList("welcome-show");
             _welcomeBox.AddToClassList("welcome-hide");
-            _welcomeBox.RemoveFromClassList("welcome-hide"); // So we can reshouw it again
         }
     }
 }

@@ -8,6 +8,7 @@ using Application = UnityEngine.Device.Application;
 using SystemInfo = UnityEngine.Device.SystemInfo;
 using Newtonsoft.Json;
 using System.Collections.Generic;
+using System.Linq;
 #if (UNITY_ANDROID || UNITY_IOS) && !UNITY_EDITOR
 using static UniWebView;
 #endif
@@ -122,7 +123,7 @@ namespace com.noctuagames.sdk
         public string NextBundleId;
 
         [JsonProperty("init_player")]
-        public bool init_player;
+        public bool InitPlayer;
     }
 
     public class PlayerToken
@@ -185,7 +186,7 @@ namespace com.noctuagames.sdk
 
     }
 
-    public class SocialLoginCallbackRequest
+    public class SocialLoginRequest
     {
         [JsonProperty("code")]
         public string Code;
@@ -205,10 +206,6 @@ namespace com.noctuagames.sdk
 
     public class AccountContainer // Used by account container prefs and account detection logic
     {
-
-        //[JsonProperty("recent")]
-        //public UserBundle Recent;
-
         [JsonProperty("accounts")]
         public List<UserBundle> Accounts;
     }
@@ -300,8 +297,7 @@ namespace com.noctuagames.sdk
             Debug.Log("GetSocialLoginURL provider: " + provider);
 
             var request = new HttpRequest(HttpMethod.Get, $"{_config.BaseUrl}/auth/{provider}/login/redirect")
-                .WithHeader("X-CLIENT-ID", _config.ClientId)
-                .WithHeader("Authorization", "Bearer " + _accessToken);
+                .WithHeader("X-CLIENT-ID", _config.ClientId);
 
             var redirectUrlResponse = await request.Send<SocialLoginRedirectUrlResponse>();
 
@@ -310,13 +306,12 @@ namespace com.noctuagames.sdk
             return redirectUrlResponse?.RedirectUrl;
         }
 
-        public async UniTask<PlayerToken> SocialLoginCallback(string provider, SocialLoginCallbackRequest payload)
+        public async UniTask<PlayerToken> SocialLogin(string provider, SocialLoginRequest payload)
         {
             Debug.Log("Social login callback: " + provider);
 
             var request = new HttpRequest(HttpMethod.Post, $"{_config.BaseUrl}/social-login/{provider}/login/callback")
                 .WithHeader("X-CLIENT-ID", _config.ClientId)
-                .WithHeader("Authorization", "Bearer " + _accessToken)
                 .WithJsonBody(payload);
 
             var response = await request.Send<PlayerToken>();
