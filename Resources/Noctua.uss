@@ -41,6 +41,24 @@
     height: 24px;
 }
 
+.guest-player-avatar {
+    background-image: url("./GuestPlayerAvatar.png");
+    width: 29px;
+    height: 29px;
+}
+
+.google-player-avatar {
+    background-image: url("./GooglePlayerAvatar.png");
+    width: 29px;
+    height: 29px;
+}
+
+.email-player-avatar {
+    background-image: url("./EmailPlayerAvatar.png");
+    width: 29px;
+    height: 29px;
+}
+
 .back-icon {
     background-image: url("./BackIcon.png");
     width: 24px;

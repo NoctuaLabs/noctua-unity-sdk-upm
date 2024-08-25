@@ -6,12 +6,21 @@
     align-items: center;
     margin-top: 3px;
     margin-bottom: 3px;
+    padding: 5px;
+    -unity-text-align: middle-left;
+}
+
+
+.account-item-player-name {
+    margin-left: 10px;
+    font-size: 14px;
+}
+
+.account-item-spacing {
+    flex: 1;
 }
 
 .account-item-recent-label {
     font-size: 10px;
 }
 
-.account-item-player-name {
-    font-size: 14px;
-}

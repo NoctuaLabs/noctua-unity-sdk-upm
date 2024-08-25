@@ -2,9 +2,9 @@
     <Style src="./Noctua.uss" />
     <Style src="./AccountItem.uss" />
     <ui:VisualElement name="NoctuaAccountItem" class="base account-item">
-        <ui:VisualElement name="NoctuaPlayerLogo" class="noctua-player-guest"  />
+        <ui:VisualElement name="NoctuaPlayerLogo" class="guest-player-avatar"  />
         <ui:Label name="NoctuaPlayerName" text="ono.uni" class="account-item-player-name" />
-        <ui:VisualElement name="NoctuaHAccountItemPadding" class="account-item-padding" />
+        <ui:VisualElement name="NoctuaHAccountItemPadding" class="account-item-spacing" />
         <ui:Label name="NoctuaRecentLabel" text="Recent" class="account-item-recent-label" />
     </ui:VisualElement>
 </ui:UXML>
