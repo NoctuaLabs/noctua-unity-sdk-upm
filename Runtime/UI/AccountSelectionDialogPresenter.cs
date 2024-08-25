@@ -9,81 +9,105 @@ namespace com.noctuagames.sdk.UI
     public class AccountSelectionDialogPresenter : Presenter<NoctuaAuthService>
     {
         private VisualTreeAsset _itemTemplate;
-        private ListView _playerListView;
-        private List<UserBundle> _players;
+        private ListView _gameAccountListView;
+        private ListView _noctuaAccountListView;
+        private readonly List<UserBundle> _gameUsers = new();
+        private readonly List<UserBundle> _noctuaUsers = new();
         private Button _continueButton;
 
         protected override void Attach()
         {
-            
+            Model.OnAuthenticated += RefreshItems;
         }
 
         protected override void Detach()
         {
+            Model.OnAuthenticated -= RefreshItems;
+        }
+
+        private void RefreshItems(UserBundle obj)
+        {
             
+            _gameUsers.Clear();
+            var gameUsers = Model.AccountList
+                .Where(x => x.Value.PlayerAccounts.Any(y => y.BundleId == Application.identifier))
+                .Select(x => x.Value)
+                .ToList();
+            
+            _gameUsers.AddRange(gameUsers);
+            
+            if (_gameUsers.Count > 0)
+            {
+                _gameAccountListView.Rebuild();
+            }
+            else
+            {
+                _gameAccountListView.Clear();
+            }
+
+            _noctuaUsers.Clear();
+            var noctuaUsers = Model.AccountList
+                .Where(x => x.Value.PlayerAccounts.All(y => y.BundleId != Application.identifier))
+                .Select(x => x.Value)
+                .ToList();
+
+            _noctuaUsers.AddRange(noctuaUsers);
+            
+            if (_noctuaUsers.Count > 0)
+            {
+                _noctuaAccountListView.Rebuild();
+            }
+            else
+            {
+                _noctuaAccountListView.Clear();
+            }
         }
 
         private void Awake()
         {
             LoadView();
-            
+
             _itemTemplate = Resources.Load<VisualTreeAsset>("AccountItem");
-            _playerListView = View.Q<ListView>("NoctuaAccountSelectionList");
+            _gameAccountListView = View.Q<ListView>("NoctuaGameAccountList");
+            _noctuaAccountListView = View.Q<ListView>("NoctuaAccountList");
             _continueButton = View.Q<Button>("NoctuaAccountSelectionContinueButton");
             _continueButton.RegisterCallback<ClickEvent>(OnContinueButtonClick);
-            
-            // View.visible = false;
         }
 
         private void Start()
         {
-            LoadPlayers();
-        }
-
-        private void OnEnable()
-        {
-            View.Focus();
+            BindListView(_gameAccountListView, _gameUsers);
+            BindListView(_noctuaAccountListView, _noctuaUsers);
         }
 
         private void OnContinueButtonClick(ClickEvent evt)
         {
             View.visible = false;
-            
         }
 
-        public void LoadPlayers()
+        private void BindListView(ListView listView, List<UserBundle> items)
         {
-            _players = Model.AccountList.Values.ToList();
-
-            _playerListView.makeItem = () =>
+            listView.makeItem = () =>
             {
                 var newListEntry = _itemTemplate.Instantiate();
                 return newListEntry;
             };
 
-            _playerListView.fixedItemHeight = 40;
-            
-            _playerListView.bindItem = (element, i) =>
-            {
-                if (_players[i]?.Player?.Username != null && _players[i]?.Player?.Username.Length > 0)
-                {
-                    // Use player username from in-game if possible
-                    element.Q<Label>("NoctuaPlayerName").text = _players[i]?.Player?.Username;
-                } else if (_players[i]?.User?.Nickname != null && _players[i]?.User?.Nickname.Length > 0)
-                {
-                    // Fallback to user's nickname if the player username is not available
-                    element.Q<Label>("NoctuaPlayerName").text = _players[i]?.User?.Nickname;
-                } else if (_players[i]?.Credential?.Provider == "device_id") {
-                    // Fallback to prefix guest
-                    element.Q<Label>("NoctuaPlayerName").text = "Guest " + _players[i].User?.Id.ToString();
-                } else {
-                    // Fallback to prefix user
-                    element.Q<Label>("NoctuaPlayerName").text = "User " + _players[i].User?.Id.ToString();
-                }
-                element.Q<Button>("NoctuaRecentLabel").text = _players[i].User.Id == Model.RecentAccount.User.Id ? "Recent" : "";
+            listView.bindItem = (element, index) => BindListViewItem(element, index, items);
+            listView.fixedItemHeight = 40;
+            listView.itemsSource = items;
+        }
+
+        private void BindListViewItem(VisualElement element, int index, List<UserBundle> items)
+        {
+            element.Q<Label>("NoctuaPlayerName").text = items[index] switch {
+                {Player: {Username: not null } player} => player.Username,
+                {User: {Nickname: not null } user} => user.Nickname,
+                {Credential: {Provider: "device_id"}} => "Guest " + items[index].User?.Id,
+                _ => "User " + items[index].User?.Id
             };
             
-            _playerListView.itemsSource = _players;
+            element.Q<Label>("NoctuaRecentLabel").text = items[index].User?.Id == Model.RecentAccount.User.Id ? "Recent" : "";
         }
     }
 }

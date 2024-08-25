@@ -9,7 +9,7 @@
                     <ui:Label name="NoctuaWelcomeLabel" text="Welcome" />
                     <ui:VisualElement name="NoctuaWelcomeIcon" class="welcome-icon" />
                 </ui:VisualElement>
-                <ui:Label name="NoctuaWelcomePlayerName" text="ono.uni" />
+                <ui:Label name="NoctuaWelcomePlayerName" text="ono.uni" class="player-name" />
             </ui:VisualElement>
         </ui:VisualElement>
         <ui:VisualElement name="NoctuaLogo" class="noctua-logo" />
