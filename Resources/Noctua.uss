@@ -35,6 +35,12 @@
     height: 24px;
 }
 
+.email-icon {
+    background-image: url("./EmailIcon.png");
+    width: 24px;
+    height: 24px;
+}
+
 .back-icon {
     background-image: url("./BackIcon.png");
     width: 24px;
@@ -58,6 +64,18 @@
 .left-separator-short {
     background-image: url("./LeftSeparatorShort.png");
     width: 50px;
+    height: 1px;
+}
+
+.right-separator-long {
+    background-image: url("./RightSeparatorLong.png");
+    width: 100px;
+    height: 1px;
+}
+
+.left-separator-long {
+    background-image: url("./LeftSeparatorLong.png");
+    width: 100px;
     height: 1px;
 }
 
