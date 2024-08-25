@@ -170,7 +170,8 @@ namespace com.noctuagames.sdk
             Debug.Log(url);
 
             var request = new HttpRequest(HttpMethod.Get, url)
-                .WithHeader("X-CLIENT-ID", _config.ClientId);
+                .WithHeader("X-CLIENT-ID", _config.ClientId)
+                .WithHeader("Authorization", "Bearer " + Noctua.Auth.GetAccessToken());
 
             var response = await request.Send<ProductList>();
 
@@ -185,6 +186,7 @@ namespace com.noctuagames.sdk
 
             var request = new HttpRequest(HttpMethod.Post, url)
                 .WithHeader("X-CLIENT-ID", _config.ClientId)
+                .WithHeader("Authorization", "Bearer " + Noctua.Auth.GetAccessToken())
                 .WithJsonBody(order);
 
             var response = await request.Send<OrderResponse>();
@@ -199,6 +201,7 @@ namespace com.noctuagames.sdk
 
             var request = new HttpRequest(HttpMethod.Post, url)
                 .WithHeader("X-CLIENT-ID", _config.ClientId)
+                .WithHeader("Authorization", "Bearer " + Noctua.Auth.GetAccessToken())
                 .WithJsonBody(order);
 
             var response = await request.Send<VerifyOrderResponse>();
