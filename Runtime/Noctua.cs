@@ -10,11 +10,6 @@ using System.Threading.Tasks;
 
 namespace com.noctuagames.sdk
 {
-public static class Constants
-{
-    public const string PlayerPrefsKeyAccountContainer = "NoctuaAccountContainer";
-}
-
     public class AdjustConfig
     {
         [JsonProperty("appToken")] public string AppToken { get; set; }

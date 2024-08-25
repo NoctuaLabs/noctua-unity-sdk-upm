@@ -9,11 +9,20 @@ using SystemInfo = UnityEngine.Device.SystemInfo;
 using Newtonsoft.Json;
 using System.Collections.Generic;
 #if (UNITY_ANDROID || UNITY_IOS) && !UNITY_EDITOR
-// using static UniWebView;
+using static UniWebView;
 #endif
+
+
 
 namespace com.noctuagames.sdk
 {
+    public static class Constants
+    {
+        public const string PlayerPrefsKeyAccountContainer = "NoctuaAccountContainer";
+        // GAME_ID and USER_ID need to be replaced before use
+        public const string CustomerServiceBaseUrl = "https://noctua.gg/embed-webview?url=https%3A%2F%2Fgo.crisp.chat%2Fchat%2Fembed%2F%3Fwebsite_id%3Dc4e95a3a-1fd1-49a2-92ea-a7cb5427bcd9&reason=general&vipLevel=";
+    }
+
     public class User
     {
         [JsonProperty("id")]
@@ -206,6 +215,8 @@ namespace com.noctuagames.sdk
     
     public class NoctuaAuthService
     {
+        public readonly List<string> SSOCloseWebViewKeywords = new List<string> { "https://developers.google.com/identity/protocols/oauth2" };
+
         private GameObject NoctuaGameObject = new GameObject();
 
         // AccountList will be synced data from AccountContainer.Accounts
@@ -226,6 +237,11 @@ namespace com.noctuagames.sdk
         internal NoctuaAuthService(Config config)
         {
             _config = config;
+        }
+
+        public string GetAccessToken()
+        {
+            return this.RecentAccount?.Player?.AccessToken;
         }
 
         public async UniTask<PlayerToken> LoginAsGuest()
@@ -366,12 +382,47 @@ namespace com.noctuagames.sdk
             Debug.Log("SocialLogin: " + provider + " " + redirectUrl);
 
             #if (UNITY_ANDROID || UNITY_IOS) && !UNITY_EDITOR
-            /* Example of using UniWebView plugin
+            Debug.Log("Initializing WebView");
             var webView = NoctuaGameObject.AddComponent<UniWebView>();
+
+            webView.SetBackButtonEnabled(true);
+            webView.EmbeddedToolbar.Show();
+            webView.EmbeddedToolbar.SetDoneButtonText("Close");
+            webView.EmbeddedToolbar.SetPosition(UniWebViewToolbarPosition.Top);
+            webView.Frame = new Rect(0, 0, Screen.width, Screen.height);
+
+            webView.OnPageFinished += OnSocialLoginWebviewFinished;
             webView.OnPageStarted += OnSocialLoginWebviewStarted;
-            //webView.OnPageFinished += OnSocialLoginWebviewFinished;
+            Debug.Log("Loading URL: " + redirectUrl);
             webView.Load(redirectUrl);
-            */
+            Debug.Log("Showing WebView");
+            webView.Show();
+            #endif
+
+            var userBundle = await AccountDetection();
+            return userBundle;
+        }
+
+        public async UniTask<UserBundle> CustomerService()
+        {
+            var customerServiceUrl = Constants.CustomerServiceBaseUrl + "&gameCode=" + this.RecentAccount?.Player?.GameName + "&uid=" + this.RecentAccount?.User?.Id;
+
+            #if (UNITY_ANDROID || UNITY_IOS) && !UNITY_EDITOR
+            Debug.Log("Initializing WebView");
+            var webView = NoctuaGameObject.AddComponent<UniWebView>();
+
+            webView.SetBackButtonEnabled(true);
+            webView.EmbeddedToolbar.Show();
+            webView.EmbeddedToolbar.SetDoneButtonText("Close");
+            webView.EmbeddedToolbar.SetPosition(UniWebViewToolbarPosition.Top);
+            webView.Frame = new Rect(0, 0, Screen.width, Screen.height);
+
+            webView.OnPageFinished += OnSocialLoginWebviewFinished;
+            webView.OnPageStarted += OnSocialLoginWebviewStarted;
+            Debug.Log("Loading URL: " + customerServiceUrl);
+            webView.Load(customerServiceUrl);
+            Debug.Log("Showing WebView");
+            webView.Show();
             #endif
 
             var userBundle = await AccountDetection();
@@ -379,19 +430,29 @@ namespace com.noctuagames.sdk
         }
 
         #if (UNITY_ANDROID || UNITY_IOS) && !UNITY_EDITOR
-        /*
         private void OnSocialLoginWebviewStarted(UniWebView webView, string url)
         {
             Debug.Log("URL started to load: " + url);
-            // Detect URL change logic here
+            foreach (var keyword in SSOCloseWebViewKeywords) {
+                if (url.Contains(keyword)) {
+                    webView = NoctuaGameObject.GetComponent("UniWebView") as UniWebView;
+                    webView.Hide();
+                    break;
+                }
+            }
         }
 
         private void OnSocialLoginWebviewFinished(UniWebView webView, int statusCode, string url)
         {
             Debug.Log("URL finishhed to load: " + url);
-            // Detect URL change logic here
+            foreach (var keyword in SSOCloseWebViewKeywords) {
+                if (url.Contains(keyword)) {
+                    webView = NoctuaGameObject.GetComponent("UniWebView") as UniWebView;
+                    webView.Hide();
+                    break;
+                }
+            }
         }
-        */
         #endif
 
 
