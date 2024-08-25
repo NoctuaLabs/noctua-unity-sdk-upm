@@ -28,41 +28,42 @@
 
 .noctua-button {
     background-color: #3B82F6;
-    border: 0px !important;
+    border-width: 0 !important;
     border-color: transparent;
 }
 
 .noctua-button:disabled {
     background-color: #474B4E;
-    border: 0px !important;
+    border-width: 0 !important;
     border-color: transparent;
 }
 
 .noctua-button:hover {
     background-color: #5190F7;
-    border: 0px !important;
+    border-width: 0 !important;
     border-color: transparent;
 }
 
 .noctua-button:active {
     background-color: #295BAC;
-    border: 0px !important;
+    border-width: 0 !important;
     border-color: transparent;
 }
 
 .unity-button {
-    border: 0px !important;
+    border-width: 0 !important;
     border-color: transparent;
 }
 
-.noctua-back-button{
-   flex-direction: column;
-   border: 0px transparent;
-   background-color: transparent;
-   justify-content: flex-start;
-   width: 24px;
-   background-image: url("project://database/Assets/UI%20Toolkit/UnityThemes/UnityDefaultRuntimeTheme.tss?fileID=1169890249420208065&amp;guid=4f666f58f28c9584baab1db4dbae7c50&amp;type=3#arrow-left");
-   align-items: auto;
+.noctua-back-button {
+    flex-direction: column;
+    border-width: 0;
+    border-color: transparent;
+    background-color: transparent;
+    justify-content: flex-start;
+    width: 24px;
+    background-image: url("project://database/Assets/UI%20Toolkit/UnityThemes/UnityDefaultRuntimeTheme.tss?fileID=1169890249420208065&amp;guid=4f666f58f28c9584baab1db4dbae7c50&amp;type=3#arrow-left");
+    align-items: auto;
 }
 
 /* End Button Style */
@@ -87,15 +88,13 @@
 
 .google-logo {
     background-image: url("./GoogleLogo.png");
-    width: 24px;
-    height: 24px;
 }
 
 .facebook-logo {
     background-image: url("./FacebookLogo.png");
-    width: 24px;
-    height: 24px;
 }
+
+
 
 .email-icon {
     background-image: url("./EmailIcon.png");
@@ -226,34 +225,34 @@
 .noctua-text-input {
     position: relative;
     flex-direction: column;
-    margin-right:-10px;
-    margin-left:-10px;
+    margin-right: -10px;
+    margin-left: -10px;
 }
 
 .unity-base-text-field__input {
     border-radius: 10px;
     margin-bottom: 10px;
     border-color: #474B4E;
-    caret-color: white;
+    --unity-cursor-color: white;
 }
 
 .unity-base-text-field__input:hover {
     border-radius: 10px;
     margin-bottom: 10px;
     border-color: white;
-    caret-color: white;
+    --unity-cursor-color: white;
 }
 
 .unity-base-text-field__input:active {
     border-radius: 10px;
     margin-bottom: 10px;
     border-color: white;
-    caret-color: white;
+    --unity-cursor-color: white;
 }
 
 .unity-base-field__label {
     color: grey;
-    margin-top:-2px; /* To make the label has the same position with the input text */
+    margin-top: -2px; /* To make the label has the same position with the input text */
 }
 
 .noctua-text-input #unity-text-input {
@@ -266,11 +265,11 @@
 }
 
 Label {
-    border: 0px !important;
+    border-width: 0 !important;
 }
 
 Label:hover {
-    border: 0px !important;
+    border-width: 0 !important;
 }
 
 .noctua-text-input Label {
@@ -280,7 +279,7 @@ Label:hover {
     font-size: 12px;
     padding-left: 10px;
     background-color: transparent;
-    border: 0px !important;
+    border-width: 0 !important;
 }
 
 .custom-textfield-input-code #unity-text-input {
@@ -295,6 +294,7 @@ Label:hover {
     border-color: #474B4E;
     border-radius: 6px;
 }
+
 /* End Text Input */
 
 

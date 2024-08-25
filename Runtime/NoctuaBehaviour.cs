@@ -11,8 +11,11 @@ namespace com.noctuagames.sdk
         private PanelSettings _panelSettings;
         private UIDocument _uiDocument;
         
-        public AccountSelectionDialogPresenter _accountSelectionDialog;
-        public RegisterDialogPresenter _registerDialog;
+        private AccountSelectionDialogPresenter _accountSelectionDialog;
+        private SwitchAccountConfirmationPresenter _switchAccountConfirmation;
+        private LoginOptionsDialogPresenter _loginOptionsDialog;
+        private EmailLoginDialogPresenter _emailLoginDialog;
+        private RegisterDialogPresenter _registerDialog;
 
         private void Awake()
         {
@@ -28,14 +31,19 @@ namespace com.noctuagames.sdk
             
             var welcome = gameObject.AddComponent<WelcomeNotificationPresenter>();
             welcome.SetModel(Noctua.Auth);
-            
+
+            var accountSelection = new AccountSelection(Noctua.Auth);
             _accountSelectionDialog = gameObject.AddComponent<AccountSelectionDialogPresenter>();
-            _accountSelectionDialog.SetModel(Noctua.Auth);
-            _accountSelectionDialog.Visible = false;
+            _accountSelectionDialog.SetModel(accountSelection);
+            _switchAccountConfirmation = gameObject.AddComponent<SwitchAccountConfirmationPresenter>();
+            _switchAccountConfirmation.SetModel(accountSelection);
+            _loginOptionsDialog = gameObject.AddComponent<LoginOptionsDialogPresenter>();
+            _loginOptionsDialog.SetModel(accountSelection);
+            _emailLoginDialog = gameObject.AddComponent<EmailLoginDialogPresenter>();
+            _emailLoginDialog.SetModel(accountSelection);
 
             _registerDialog = gameObject.AddComponent<RegisterDialogPresenter>();
             _registerDialog.SetModel(Noctua.Auth);
-            _registerDialog.Visible = false;
         }
 
         public void SetAccountSelectionDialogVisibility(bool show)

@@ -11,7 +11,7 @@
     border-color: transparent;
     width: 24px;
     height: 24px;
-    align-items: center;
+    align-items: stretch;
     justify-content: center;
 }
 
@@ -32,6 +32,11 @@
     padding: 6px;
     align-items: center;
     justify-content: center;
+}
+
+.login-method-logo {
+    width: 24px;
+    height: 24px;
 }
 
 .login-method-separator {

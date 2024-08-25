@@ -10,12 +10,28 @@
 }
 
 .method-logo {
+    border-radius: 14px;
+    background-color: rgba(255, 255, 255, 1);
     width: 28px;
     height: 28px;
 }
 
 .google-logo-white {
     background-image: url("./GoogleLogoWhite.png");
+    width: 28px;
+    height: 28px;
+}
+
+.facebook-logo {
+    background-image: url("./FacebookLogo.png");
+    width: 28px;
+    height: 28px;
+}
+
+.email-icon {
+    background-image: url("./EmailIcon.png");
+    width: 28px;
+    height: 28px;
 }
 
 .goto-icon {
@@ -35,10 +51,16 @@
 }
 
 .connect-status {
-    font-size: 12px;
+    font-size: 10px;
+    flex-direction: row;
 }
 
-.edit-profile-button {
+.connect-button {
+    padding-left: 20px;
+    padding-right: 20px;
+}
+
+.username {
     flex-direction: row;
     align-items: center;
 }
