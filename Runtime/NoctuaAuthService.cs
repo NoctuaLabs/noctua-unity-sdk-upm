@@ -8,11 +8,6 @@ using Application = UnityEngine.Device.Application;
 using SystemInfo = UnityEngine.Device.SystemInfo;
 using Newtonsoft.Json;
 using System.Collections.Generic;
-#if (UNITY_ANDROID || UNITY_IOS) && !UNITY_EDITOR
-using static UniWebView;
-#endif
-
-
 
 namespace com.noctuagames.sdk
 {
@@ -252,6 +247,8 @@ namespace com.noctuagames.sdk
                 throw new ApplicationException($"App id for platform {Application.platform} is not set");
             }
 
+            Debug.Log("ClientId: " + _config.ClientId);
+
             var request = new HttpRequest(HttpMethod.Post, $"{_config.BaseUrl}/auth/guest/login")
                 .WithHeader("X-CLIENT-ID", _config.ClientId)
                 .WithJsonBody(
@@ -381,23 +378,7 @@ namespace com.noctuagames.sdk
 
             Debug.Log("SocialLogin: " + provider + " " + redirectUrl);
 
-            #if (UNITY_ANDROID || UNITY_IOS) && !UNITY_EDITOR
-            Debug.Log("Initializing WebView");
-            var webView = NoctuaGameObject.AddComponent<UniWebView>();
-
-            webView.SetBackButtonEnabled(true);
-            webView.EmbeddedToolbar.Show();
-            webView.EmbeddedToolbar.SetDoneButtonText("Close");
-            webView.EmbeddedToolbar.SetPosition(UniWebViewToolbarPosition.Top);
-            webView.Frame = new Rect(0, 0, Screen.width, Screen.height);
-
-            webView.OnPageFinished += OnSocialLoginWebviewFinished;
-            webView.OnPageStarted += OnSocialLoginWebviewStarted;
-            Debug.Log("Loading URL: " + redirectUrl);
-            webView.Load(redirectUrl);
-            Debug.Log("Showing WebView");
-            webView.Show();
-            #endif
+            Application.OpenURL(redirectUrl);
 
             var userBundle = await AccountDetection();
             return userBundle;
@@ -407,55 +388,11 @@ namespace com.noctuagames.sdk
         {
             var customerServiceUrl = Constants.CustomerServiceBaseUrl + "&gameCode=" + this.RecentAccount?.Player?.GameName + "&uid=" + this.RecentAccount?.User?.Id;
 
-            #if (UNITY_ANDROID || UNITY_IOS) && !UNITY_EDITOR
-            Debug.Log("Initializing WebView");
-            var webView = NoctuaGameObject.AddComponent<UniWebView>();
-
-            webView.SetBackButtonEnabled(true);
-            webView.EmbeddedToolbar.Show();
-            webView.EmbeddedToolbar.SetDoneButtonText("Close");
-            webView.EmbeddedToolbar.SetPosition(UniWebViewToolbarPosition.Top);
-            webView.Frame = new Rect(0, 0, Screen.width, Screen.height);
-
-            webView.OnPageFinished += OnSocialLoginWebviewFinished;
-            webView.OnPageStarted += OnSocialLoginWebviewStarted;
-            Debug.Log("Loading URL: " + customerServiceUrl);
-            webView.Load(customerServiceUrl);
-            Debug.Log("Showing WebView");
-            webView.Show();
-            #endif
+            Application.OpenURL(customerServiceUrl);
 
             var userBundle = await AccountDetection();
             return userBundle;
         }
-
-        #if (UNITY_ANDROID || UNITY_IOS) && !UNITY_EDITOR
-        private void OnSocialLoginWebviewStarted(UniWebView webView, string url)
-        {
-            Debug.Log("URL started to load: " + url);
-            foreach (var keyword in SSOCloseWebViewKeywords) {
-                if (url.Contains(keyword)) {
-                    webView = NoctuaGameObject.GetComponent("UniWebView") as UniWebView;
-                    webView.Hide();
-                    break;
-                }
-            }
-        }
-
-        private void OnSocialLoginWebviewFinished(UniWebView webView, int statusCode, string url)
-        {
-            Debug.Log("URL finishhed to load: " + url);
-            foreach (var keyword in SSOCloseWebViewKeywords) {
-                if (url.Contains(keyword)) {
-                    webView = NoctuaGameObject.GetComponent("UniWebView") as UniWebView;
-                    webView.Hide();
-                    break;
-                }
-            }
-        }
-        #endif
-
-
 
         public async UniTask<UserBundle> TriggerAccountSelectionUI()
         {
