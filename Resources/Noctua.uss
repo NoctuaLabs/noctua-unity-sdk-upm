@@ -11,6 +11,11 @@
     background-color: rgb(45, 49, 56);
 }
 
+.button-transparent {
+    background-color: transparent;
+    border-width: 0;
+}
+
 .noctua-logo {
     background-image: url("./NoctuaLogo.png");
     width: 77px;

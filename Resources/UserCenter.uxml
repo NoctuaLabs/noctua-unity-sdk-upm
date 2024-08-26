@@ -1,0 +1,42 @@
+﻿<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" xsi="http://www.w3.org/2001/XMLSchema-instance" engine="UnityEngine.UIElements" editor="UnityEditor.UIElements" noNamespaceSchemaLocation="../../../../UIElementsSchema/UIElements.xsd" editor-extension-mode="False">
+    <Style src="./Noctua.uss" />
+    <Style src="./UserCenter.uss" />
+    <ui:VisualElement name="UserCenter" class="base user-center">
+        <ui:VisualElement name="UserProfile" class="user-profile">
+            <ui:VisualElement name="UserProfileHeader" class="user-profile-header">
+                <ui:Button name="ExitButton" class="user-profile-header-button exit-button">
+                    <ui:VisualElement name="ExitIcon" class="exit-icon" />
+                </ui:Button>
+                <ui:Button name="HelpButton" class="user-profile-header-button help-button">
+                    <ui:VisualElement name="HelpIcon" class="help-icon" />
+                    <ui:Label name="HelpLabel" text="Need help" class="help-label" />
+                </ui:Button>
+                <ui:Button name="SettingButton" class="user-profile-header-button setting-button">
+                    <ui:VisualElement name="SettingIcon" class="setting-icon" />
+                </ui:Button>
+            </ui:VisualElement>
+            <ui:VisualElement name="UserProfileSpacing" class="user-profile-spacing" />
+            <ui:VisualElement name="UserProfileContent" class="user-profile-content">
+                <ui:VisualElement name="HiLabel" class="hi-text">
+                    <ui:Label name="HiLabel" text="Hi" class="hi-label" />
+                    <ui:VisualElement name="HiIcon" class="hi-icon" />
+                </ui:VisualElement>
+                <ui:Label name="PlayerName" text="Guest123" class="player-name" />
+                <ui:VisualElement name="PlayerAvatar" class="player-avatar" />
+                <ui:Button name="UserId" class="user-id">
+                    <ui:Label name="UserIdLabel" text="User ID" class="user-id-label" />
+                    <ui:VisualElement name="CopyIcon" class="copy-icon"/>
+                </ui:Button>
+            </ui:VisualElement>
+        </ui:VisualElement>
+        <ui:VisualElement name="ConnectAccount" class="connect-account">
+            <ui:Label name="ConnectAccountLabel" text="Stay connect to Noctua" class="connect-account-label" />
+            <ui:ListView name="AccountList" class="account-list">
+            </ui:ListView>
+            <ui:VisualElement name="ConnectAccountFooter" class="connect-account-footer">
+                <ui:VisualElement name="NoctuaLogoWithText" class="noctua-logo-with-text" />
+                <ui:Label name="FindMoreLabel" text="Find more at noctua.gg" class="find-more-label" />
+            </ui:VisualElement>
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>

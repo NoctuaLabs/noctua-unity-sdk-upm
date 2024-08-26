@@ -9,6 +9,10 @@ using SystemInfo = UnityEngine.Device.SystemInfo;
 using Newtonsoft.Json;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net;
+using System.Net.Sockets;
+using System.Threading.Tasks;
+using System.Web;
 #if (UNITY_ANDROID || UNITY_IOS) && !UNITY_EDITOR
 using static UniWebView;
 #endif
@@ -212,24 +216,20 @@ namespace com.noctuagames.sdk
     
     public class NoctuaAuthService
     {
-        public readonly List<string> SSOCloseWebViewKeywords = new List<string> { "https://developers.google.com/identity/protocols/oauth2" };
+        public readonly List<string> SsoCloseWebViewKeywords = new() { "https://developers.google.com/identity/protocols/oauth2" };
 
-        private GameObject NoctuaGameObject = new GameObject();
+        private readonly GameObject _noctuaGameObject = new();
 
         // AccountList will be synced data from AccountContainer.Accounts
-        public Dictionary<string,UserBundle> AccountList { get; private set; } = new Dictionary<string, UserBundle>();
+        public Dictionary<string,UserBundle> AccountList { get; private set; } = new();
 
-        public bool IsAuthenticated => !string.IsNullOrEmpty(_accessToken);
-
-        //public Player Player { get; private set; } // Replaced with RecentAccount with UserBundle as type
+        public bool IsAuthenticated => !string.IsNullOrEmpty(RecentAccount?.Player?.AccessToken);
 
         public UserBundle RecentAccount { get; private set; }
 
         public event Action<UserBundle> OnAuthenticated;
 
         private readonly Config _config;
-
-        private string _accessToken;
 
         internal NoctuaAuthService(Config config)
         {
@@ -260,13 +260,16 @@ namespace com.noctuagames.sdk
                 );
 
 
-            var response = await request.Send<PlayerToken>();
-            _accessToken = response.AccessToken;
-            return response;
+            return await request.Send<PlayerToken>();
         }
 
-        public async UniTask<PlayerToken> ExchangeToken()
+        public async UniTask<PlayerToken> ExchangeToken(string accessToken)
         {
+            if (!IsAuthenticated)
+            {
+                throw new ApplicationException("User is not authenticated");
+            }
+            
             Debug.Log("LoginAsGuest: " + Application.identifier + " " + SystemInfo.deviceUniqueIdentifier);
             if (string.IsNullOrEmpty(Application.identifier))
             {
@@ -281,15 +284,11 @@ namespace com.noctuagames.sdk
 
             var request = new HttpRequest(HttpMethod.Post, $"{_config.BaseUrl}/auth/token-exchange")
                 .WithHeader("X-CLIENT-ID", _config.ClientId)
-                .WithHeader("Authorization", "Bearer " + _accessToken)
+                .WithHeader("Authorization", "Bearer " + accessToken)
                 .WithJsonBody(exchangeToken);
 
 
-            var response = await request.Send<PlayerToken>();
-            var player = response.Player;
-
-            _accessToken = response.AccessToken;
-            return response;
+            return await request.Send<PlayerToken>();
         }
 
         public async UniTask<string> GetSocialLoginRedirectURL(string provider)
@@ -314,30 +313,31 @@ namespace com.noctuagames.sdk
                 .WithHeader("X-CLIENT-ID", _config.ClientId)
                 .WithJsonBody(payload);
 
-            var response = await request.Send<PlayerToken>();
-            _accessToken = response.AccessToken;
-            return response;
+            return await request.Send<PlayerToken>();
         }
 
         public async UniTask<PlayerToken> Bind(BindRequest payload)
         {
+            if (!IsAuthenticated)
+            {
+                throw new ApplicationException("User is not authenticated");
+            }
+            
             Debug.Log("Bind: " + payload.GuestToken);
 
             var request = new HttpRequest(HttpMethod.Post, $"{_config.BaseUrl}/auth/bind")
                 .WithHeader("X-CLIENT-ID", _config.ClientId)
-                .WithHeader("Authorization", "Bearer " + _accessToken)
+                .WithHeader("Authorization", "Bearer " + RecentAccount.Player.AccessToken)
                 .WithJsonBody(payload);
 
-            var response = await request.Send<PlayerToken>();
-            _accessToken = response.AccessToken;
-            return response;
+            return await request.Send<PlayerToken>();
         }
 
         private NoctuaBehaviour GetNoctuaBehaviour()
         {
-            NoctuaBehaviour noctuaBehaviour = NoctuaGameObject.GetComponent<NoctuaBehaviour>();
+            NoctuaBehaviour noctuaBehaviour = _noctuaGameObject.GetComponent<NoctuaBehaviour>();
             if (noctuaBehaviour == null) {
-                noctuaBehaviour = NoctuaGameObject.AddComponent<NoctuaBehaviour>();
+                noctuaBehaviour = _noctuaGameObject.AddComponent<NoctuaBehaviour>();
             }
             return noctuaBehaviour;
         }
@@ -378,7 +378,7 @@ namespace com.noctuagames.sdk
 
             #if (UNITY_ANDROID || UNITY_IOS) && !UNITY_EDITOR
             Debug.Log("Initializing WebView");
-            var webView = NoctuaGameObject.AddComponent<UniWebView>();
+            var webView = _noctuaGameObject.AddComponent<UniWebView>();
 
             webView.SetBackButtonEnabled(true);
             webView.EmbeddedToolbar.Show();
@@ -392,6 +392,35 @@ namespace com.noctuagames.sdk
             webView.Load(redirectUrl);
             Debug.Log("Showing WebView");
             webView.Show();
+            #else
+            
+            // Start HTTP server to listen to the callback with random port
+            // open the browser with the redirect URL
+            
+            var task = new UniTaskCompletionSource();
+
+            void OnCallbackReceived(string callbackData)
+            {
+                Debug.Log("HTTP Server received callback: " + callbackData);
+                task.TrySetResult();
+            }
+
+            var httpServer = new HttpServer("social-login-callback");
+            httpServer.OnCallbackReceived += OnCallbackReceived;
+            httpServer.Start();
+
+            Debug.Log($"HTTP Server running on port: {httpServer.Port} with path: {httpServer.Path}");
+            
+            var localRedirectUrl = HttpUtility.UrlEncode($"http://localhost:{httpServer.Port}/{httpServer.Path}");
+            Debug.Log("Open URL with system browser: " + redirectUrl + "&redirect_uri=" + localRedirectUrl);
+            Application.OpenURL(redirectUrl + "&redirect_uri=" + localRedirectUrl);
+            
+            await task.Task;
+            
+            Debug.Log("HTTP Server received callback, stopping the server");
+            
+            httpServer.Stop();
+
             #endif
 
             var userBundle = await AccountDetection();
@@ -418,6 +447,9 @@ namespace com.noctuagames.sdk
             webView.Load(customerServiceUrl);
             Debug.Log("Showing WebView");
             webView.Show();
+            #else
+            Debug.Log("Open URL with system browser: " + customerServiceUrl);
+            Application.OpenURL(customerServiceUrl);
             #endif
 
             var userBundle = await AccountDetection();
@@ -546,8 +578,8 @@ namespace com.noctuagames.sdk
                     // 4.a.i.2. Bundle ID is NOT matched, try to borrow token for exchange
                     Debug.Log("AccountDetection: There is no account match with this game in the recent players, then exchange first");
                     Debug.Log("AccountDetection: borrowed access token: " + borrowedAccessToken);
-                    _accessToken = borrowedAccessToken;
-                    var exchangedAccount = TransformTokenResponseToUserBundle(await ExchangeToken());
+                    
+                    var exchangedAccount = TransformTokenResponseToUserBundle(await ExchangeToken(borrowedAccessToken));
                     exchangedAccount = UpdateRecentAccount(exchangedAccount, accountContainer);
 
                     return exchangedAccount;
@@ -726,9 +758,8 @@ namespace com.noctuagames.sdk
             Debug.Log("Reset");
             PlayerPrefs.SetString("NoctuaAccountContainer", "{}");
             PlayerPrefs.Save();
-            _accessToken = null;
-            this.AccountList = new Dictionary<string, UserBundle>();
-            this.RecentAccount = null;
+            AccountList = new Dictionary<string, UserBundle>();
+            RecentAccount = null;
         }
 
 
@@ -736,9 +767,8 @@ namespace com.noctuagames.sdk
             string json = "{\"accounts\":[{\"user\":{\"id\":1002,\"nickname\":\"Non-Guest 1002\",\"email_address\":null,\"phone_number\":null},\"credential\":{\"id\":1002,\"provider\":\"google\"},\"player\":{\"access_token\":\"eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3MjcwMDcyNzUsImdhbWVfYnVuZGxlX2lkIjoiY29tLm5vY3R1YWdhbWVzLmFuZHJvaWQuc2Vjb25kZXhhbXBsZWdhbWUiLCJnYW1lX2lkIjoxMDEsImdhbWVfbmFtZSI6IlNlY29uZCBFeGFtcGxlIEdhbWUiLCJnYW1lX29zIjoiYW5kcm9pZCIsImdhbWVfcGxhdGZvcm0iOiJwbGF5c3RvcmUiLCJnYW1lX3BsYXRmb3JtX2lkIjoxMDAxLCJpYXQiOjE3MjQ0MTUyNzUsImlzcyI6Im5vY3R1YS5nZyIsInBsYXllcl9pZCI6MTAwNywic3ViIjoiMTAwMiJ9.lqkOKAJNJFjSwaqJOpV1KjnydX-3K2N8YdSlnWsrv7jP8G6Oo991se0CYIDLpXLJGkyH8FVHOOT46gnlmkYdPQ\",\"id\":1007,\"role_id\":null,\"server_id\":null,\"username\":null,\"game_id\":101,\"game_name\":null,\"game_platform_id\":1001,\"game_platform\":\"playstore\",\"game_os\":\"android\",\"bundle_id\":\"com.noctuagames.android.secondexamplegame\",\"user\":{\"id\":1002,\"nickname\":\"Guest 1002\",\"email_address\":null,\"phone_number\":null},\"user_id\":1002},\"player_accounts\":[{\"access_token\":\"eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3MjcwMDcyNzUsImdhbWVfYnVuZGxlX2lkIjoiY29tLm5vY3R1YWdhbWVzLmFuZHJvaWQuc2Vjb25kZXhhbXBsZWdhbWUiLCJnYW1lX2lkIjoxMDEsImdhbWVfbmFtZSI6IlNlY29uZCBFeGFtcGxlIEdhbWUiLCJnYW1lX29zIjoiYW5kcm9pZCIsImdhbWVfcGxhdGZvcm0iOiJwbGF5c3RvcmUiLCJnYW1lX3BsYXRmb3JtX2lkIjoxMDAxLCJpYXQiOjE3MjQ0MTUyNzUsImlzcyI6Im5vY3R1YS5nZyIsInBsYXllcl9pZCI6MTAwNywic3ViIjoiMTAwMiJ9.lqkOKAJNJFjSwaqJOpV1KjnydX-3K2N8YdSlnWsrv7jP8G6Oo991se0CYIDLpXLJGkyH8FVHOOT46gnlmkYdPQ\",\"id\":1007,\"role_id\":null,\"server_id\":null,\"username\":null,\"game_id\":101,\"game_name\":null,\"game_platform_id\":1001,\"game_platform\":\"playstore\",\"game_os\":\"android\",\"bundle_id\":\"com.noctuagames.android.secondexamplegame\",\"user\":{\"id\":1002,\"nickname\":\"Guest 1002\",\"email_address\":null,\"phone_number\":null},\"user_id\":1002}],\"last_used\":\"2024-08-23T12:14:34.9354169Z\",\"is_guest\":true}]}";
             PlayerPrefs.SetString("NoctuaAccountContainer", json);
             PlayerPrefs.Save();
-            _accessToken = null;
-            this.AccountList = new Dictionary<string, UserBundle>();
-            this.RecentAccount = null;
+            AccountList = new Dictionary<string, UserBundle>();
+            RecentAccount = null;
         }
 
         public void SimulateSingleRecentExistingAccountWithoutMatchedPlayer() {
@@ -754,6 +784,77 @@ namespace com.noctuagames.sdk
         {
             public string BaseUrl;
             public string ClientId;
+        }
+    }
+    
+    public class HttpServer
+    {
+        private readonly HttpListener _listener;
+
+        public int Port { get; }
+
+        public string Path { get; }
+
+        public event Action<string> OnCallbackReceived;
+
+        public HttpServer(string path)
+        {
+            _listener = new HttpListener();
+            Port = GetRandomUnusedPort();
+            Path = path;
+            _listener.Prefixes.Add($"http://localhost:{Port}/{Path}/");
+        }
+
+        public void Start()
+        {
+            _listener.Start();
+            Debug.Log($"HTTP Server started on port {Port} with path {Path}");
+            Task.Run(Listen);
+        }
+
+        public void Stop()
+        {
+            _listener.Stop();
+            Debug.Log("HTTP Server stopped");
+        }
+
+        private async Task Listen()
+        {
+            while (_listener.IsListening)
+            {
+                try
+                {
+                    var context = await _listener.GetContextAsync();
+                    var request = context.Request;
+                    var response = context.Response;
+
+                    if (request.HttpMethod == "GET")
+                    {
+                        var callbackData = request.Url.Query;
+                        OnCallbackReceived?.Invoke(callbackData);
+                    }
+
+                    response.StatusCode = (int)HttpStatusCode.OK;
+                    response.ContentType = "text/plain";
+                    var buffer = System.Text.Encoding.UTF8.GetBytes("Social login completed. You can close this window now.");
+                    response.ContentLength64 = buffer.Length;
+                    
+                    response.Close();
+                }
+                catch (Exception ex)
+                {
+                    Debug.LogError($"HTTP Server error: {ex.Message}");
+                }
+            }
+        }
+
+        private int GetRandomUnusedPort()
+        {
+            var listener = new TcpListener(IPAddress.Loopback, 0);
+            listener.Start();
+            var port = ((IPEndPoint)listener.LocalEndpoint).Port;
+            listener.Stop();
+            return port;
         }
     }
 }

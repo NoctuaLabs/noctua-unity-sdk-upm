@@ -1,0 +1,39 @@
+﻿.gap {
+    height: 40px;
+}
+
+.switch-account-icon {
+    background-image: url("./SwitchAccountIcon.png");
+    width: 66px;
+    height: 66px;
+    background-color: transparent;
+}
+
+.question {
+    margin-top: 17px;
+    font-size: 17px;
+    color: #FFFFFF;
+    height: 34px;
+    -unity-text-align: middle-center;
+}
+
+.note {
+    margin-top: 17px;
+    font-size: 12px;
+    color: #9E9E9E;
+    height: 60px;
+    -unity-text-align: middle-center;
+}
+
+.button-group {
+    flex-direction: row;
+    justify-content: space-between;
+    margin-top: 49px;
+    align-self: stretch;
+}
+
+.switch-account-button {
+    width: 131px;
+    height: 35px;
+    border-radius: 6px;
+}
