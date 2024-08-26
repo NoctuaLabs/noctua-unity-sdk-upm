@@ -11,8 +11,8 @@
                 <ui:TextField label="Password" name="PasswordTF" class="noctua-text-input" />
                 <ui:TextField label="Re-enter Password" name="RePasswordTF" class="noctua-text-input" />
             </ui:VisualElement>
-            <ui:VisualElement name="ErrBox" style="padding-top: 0; padding-right: 0; padding-bottom: 0; padding-left: 0; margin-top: 10px; margin-bottom: 10px;">
-                <ui:VisualElement name="FooterContent" style="padding-top: 0; padding-right: 0; padding-bottom: 0; padding-left: 0; margin-top: 10px; margin-bottom: 10px; width: 100%; align-items: center; justify-content: center;">
+            <ui:VisualElement name="footerContent" style="padding-top: 0; padding-right: 0; padding-bottom: 0; padding-left: 0; margin-top: 10px; margin-bottom: 10px;">
+                <ui:VisualElement name="ErrBox" style="padding-top: 0; padding-right: 0; padding-bottom: 0; padding-left: 0; margin-top: 10px; margin-bottom: 10px; width: 100%; align-items: center; justify-content: center;">
                     <ui:Label name="ErrCode" text="" display-tooltip-when-elided="true" class="err-label hide" />
                     <ui:Label name="ErrEmailEmpty" text="Email address should not be empty" display-tooltip-when-elided="true" class="err-label hide"/>
                     <ui:Label name="ErrEmailInvalid" text="Email address is not valid" display-tooltip-when-elided="true" class="err-label hide"/>
