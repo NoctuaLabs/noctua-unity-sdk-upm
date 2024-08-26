@@ -198,6 +198,30 @@ namespace com.noctuagames.sdk
         public string GuestToken;
     }
 
+    public class CredPair
+    {
+        [JsonProperty("cred_key")]
+        public string CredKey;
+
+        [JsonProperty("cred_secret")]
+        public string CredSecret;
+
+        [JsonProperty("provider")]
+        public string Provider;
+    }
+
+    public class CredentialVerification
+    {
+        [JsonProperty("id")]
+        public int Id;
+
+        [JsonProperty("code")]
+        public string Code;
+
+        [JsonProperty("new_password")] // Used for password reset
+        public string NewPassword;
+    }
+
     public class AccountContainer // Used by account container prefs and account detection logic
     {
         [JsonProperty("accounts")]
@@ -344,7 +368,7 @@ namespace com.noctuagames.sdk
             var userBundle = await AccountDetection();
             if (userBundle == null) {
                 // Account Selection is needed
-                userBundle = await TriggerAccountSelectionUI();
+                userBundle = await ShowAccountSelectionUI();
             }
 
             Debug.Log("Authenticate: userBundle user ID is " + userBundle?.User?.Id);
@@ -387,10 +411,17 @@ namespace com.noctuagames.sdk
             return userBundle;
         }
 
-        public async UniTask<UserBundle> TriggerAccountSelectionUI()
+        public async UniTask<UserBundle> ShowAccountSelectionUI()
         {
             var noctuaBehaviour = GetNoctuaBehaviour();
             noctuaBehaviour.SetAccountSelectionDialogVisibility(true);
+            return null;
+        }
+
+        public async UniTask<UserBundle> ShowRegisterDialogUI()
+        {
+            var noctuaBehaviour = GetNoctuaBehaviour();
+            noctuaBehaviour.ShowRegisterDialogUI();
             return null;
         }
 
@@ -686,85 +717,100 @@ namespace com.noctuagames.sdk
         }
 
         // TODO: Add support for phone
-        public async UniTask<PlayerTokenResponse> RegisterWithPassword(string email, string password)
+        public async UniTask<CredentialVerification> RegisterWithPassword(string email, string password)
         {
+            Debug.Log("RegisterWithPassword: " + email + " : " + password);
             var request = new HttpRequest(HttpMethod.Post, $"{_config.BaseUrl}/auth/email/register")
                 .WithHeader("X-CLIENT-ID", _config.ClientId)
+                .WithHeader("Authorization", "Bearer " + _accessToken)
                 .WithJsonBody(
-                    new RegisterViaEmailRequest
+                    new CredPair
                     {
-                        Email = email,
-                        Password = password
+                        CredKey = email,
+                        CredSecret = password,
+                        Provider = "email"
                     }
                 );
 
-            var response = await request.Send<PlayerTokenResponse>();
-            return response;
+            try {
+                var response = await request.Send<CredentialVerification>();
+                return response;
+            }
+            catch (Exception e) {
+                if (e is NoctuaException noctuaEx)
+                {
+                    Debug.Log("NoctuaException: " + noctuaEx.ErrorCode + " : " + noctuaEx.Message);
+                } else {
+                    Debug.Log("Exception: " + e);
+                }
+                throw e;
+            }
         }
 
-        public async UniTask<PlayerTokenResponse> VerifyRegistration(string code)
+        public async UniTask<PlayerToken> VerifyCredential(int id, string code)
         {
             var request = new HttpRequest(HttpMethod.Post, $"{_config.BaseUrl}/auth/email/verify-registration")
                 .WithHeader("X-CLIENT-ID", _config.ClientId)
                 .WithJsonBody(
-                    new VerifyRegistrationRequest
+                    new CredentialVerification
                     {
+                        Id = id,
                         Code = code
                     }
                 );
 
-            var response = await request.Send<PlayerTokenResponse>();
+            var response = await request.Send<PlayerToken>();
             return response;
         }
 
         // TODO: Add support for phone
-        public async UniTask<PlayerTokenResponse> LoginWithPassword(string email, string password)
+        public async UniTask<PlayerToken> LoginWithPassword(string email, string password)
         {
             var request = new HttpRequest(HttpMethod.Post, $"{_config.BaseUrl}/auth/email/login")
                 .WithHeader("X-CLIENT-ID", _config.ClientId)
                 .WithJsonBody(
-                    new LoginViaEmailRequest
+                    new CredPair
                     {
-                        Email = email,
-                        Password = password
+                        CredKey = email,
+                        CredSecret = password
                     }
                 );
 
-            var response = await request.Send<PlayerTokenResponse>();
+            var response = await request.Send<PlayerToken>();
             return response;
         }
 
         // TODO: Add support for phone
-        public async UniTask<PlayerTokenResponse> SendResetPassword(string email)
+        public async UniTask<PlayerToken> RequestResetPassword(string email)
         {
             var request = new HttpRequest(HttpMethod.Post, $"{_config.BaseUrl}/auth/email/reset-password")
                 .WithHeader("X-CLIENT-ID", _config.ClientId)
                 .WithJsonBody(
-                    new SendResetPasswordRequest
+                    new CredPair
                     {
-                        Email = email
+                        CredKey = email
                     }
                 );
 
-            var response = await request.Send<PlayerTokenResponse>();
+            var response = await request.Send<PlayerToken>();
             return response;
         }
 
         // TODO: Add support for phone
-        public async UniTask<PlayerTokenResponse> ResetPassword(string currentPassword, string newPassword, string code)
+        public async UniTask<PlayerToken> ConfirmResetPassword(int id, string code, string newPassword)
         {
             var request = new HttpRequest(HttpMethod.Post, $"{_config.BaseUrl}/auth/email/verify-reset-password")
                 .WithHeader("X-CLIENT-ID", _config.ClientId)
                 .WithJsonBody(
-                    new ResetPasswordRequest
+                    new CredentialVerification
                     {
-                        CurrentPassword = currentPassword,
+                        Id = id,
+                        Code = code,
                         NewPassword = newPassword,
-                        Code = code
                     }
                 );
 
-            var response = await request.Send<PlayerTokenResponse>();
+            var response = await request.Send<PlayerToken>();
             return response;
         }
 
