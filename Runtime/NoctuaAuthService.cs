@@ -244,7 +244,6 @@ namespace com.noctuagames.sdk
             }
 
             Debug.Log("ClientId: " + _config.ClientId);
-
             var request = new HttpRequest(HttpMethod.Post, $"{_config.BaseUrl}/auth/guest/login")
                 .WithHeader("X-CLIENT-ID", _config.ClientId)
                 .WithJsonBody(
@@ -689,7 +688,7 @@ namespace com.noctuagames.sdk
         // TODO: Add support for phone
         public async UniTask<PlayerTokenResponse> RegisterWithPassword(string email, string password)
         {
-            var request = new HttpRequest(HttpMethod.Post, $"{_config.BaseUrl}/register")
+            var request = new HttpRequest(HttpMethod.Post, $"{_config.BaseUrl}/auth/email/register")
                 .WithHeader("X-CLIENT-ID", _config.ClientId)
                 .WithJsonBody(
                     new RegisterViaEmailRequest
@@ -703,12 +702,12 @@ namespace com.noctuagames.sdk
             return response;
         }
 
-        public async UniTask<PlayerTokenResponse> VerifyCode(string code)
+        public async UniTask<PlayerTokenResponse> VerifyRegistration(string code)
         {
-            var request = new HttpRequest(HttpMethod.Post, $"{_config.BaseUrl}/credentials/confirm")
+            var request = new HttpRequest(HttpMethod.Post, $"{_config.BaseUrl}/auth/email/verify-registration")
                 .WithHeader("X-CLIENT-ID", _config.ClientId)
                 .WithJsonBody(
-                    new VerifyCodeRequest
+                    new VerifyRegistrationRequest
                     {
                         Code = code
                     }
@@ -721,7 +720,7 @@ namespace com.noctuagames.sdk
         // TODO: Add support for phone
         public async UniTask<PlayerTokenResponse> LoginWithPassword(string email, string password)
         {
-            var request = new HttpRequest(HttpMethod.Post, $"{_config.BaseUrl}/login")
+            var request = new HttpRequest(HttpMethod.Post, $"{_config.BaseUrl}/auth/email/login")
                 .WithHeader("X-CLIENT-ID", _config.ClientId)
                 .WithJsonBody(
                     new LoginViaEmailRequest
@@ -738,7 +737,7 @@ namespace com.noctuagames.sdk
         // TODO: Add support for phone
         public async UniTask<PlayerTokenResponse> SendResetPassword(string email)
         {
-            var request = new HttpRequest(HttpMethod.Post, $"{_config.BaseUrl}/credentials/password-reset")
+            var request = new HttpRequest(HttpMethod.Post, $"{_config.BaseUrl}/auth/email/reset-password")
                 .WithHeader("X-CLIENT-ID", _config.ClientId)
                 .WithJsonBody(
                     new SendResetPasswordRequest
@@ -754,7 +753,7 @@ namespace com.noctuagames.sdk
         // TODO: Add support for phone
         public async UniTask<PlayerTokenResponse> ResetPassword(string currentPassword, string newPassword, string code)
         {
-            var request = new HttpRequest(HttpMethod.Post, $"{_config.BaseUrl}/credentials/password")
+            var request = new HttpRequest(HttpMethod.Post, $"{_config.BaseUrl}/auth/email/verify-reset-password")
                 .WithHeader("X-CLIENT-ID", _config.ClientId)
                 .WithJsonBody(
                     new ResetPasswordRequest
