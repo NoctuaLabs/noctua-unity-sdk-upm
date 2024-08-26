@@ -1,0 +1,17 @@
+﻿.account-item {
+    background-color: #2D3138;
+    height: 40px;
+    border-radius: 10px;
+    flex-direction: row;
+    align-items: center;
+    margin-top: 3px;
+    margin-bottom: 3px;
+}
+
+.account-item-recent-label {
+    font-size: 10px;
+}
+
+.account-item-player-name {
+    font-size: 14px;
+}
