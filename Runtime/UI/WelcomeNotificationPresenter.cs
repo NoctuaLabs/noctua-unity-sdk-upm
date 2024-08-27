@@ -5,19 +5,17 @@ using UnityEngine.UIElements;
 
 namespace com.noctuagames.sdk.UI
 {
-    public class WelcomeNotificationPresenter : Presenter<NoctuaAuthService>
+    public class WelcomeNotificationPresenter : Presenter<NoctuaBehaviour>
     {
         private VisualElement _welcomeBox;
         private Label _playerName;
         
         protected override void Attach()
         {
-            Model.OnAuthenticated += OnAuthenticated;
         }
         
         protected override void Detach()
         {
-            Model.OnAuthenticated -= OnAuthenticated;
         }
         
         private void Awake()
@@ -29,12 +27,12 @@ namespace com.noctuagames.sdk.UI
             _playerName = View.Q<Label>("NoctuaWelcomePlayerName");
         }
 
-        private void OnAuthenticated(UserBundle userBundle)
+        public void Show(UserBundle userBundle)
         {
-            StartCoroutine(Show(userBundle));
+            StartCoroutine(ShowWelcomeToast(userBundle));
         }
 
-        private IEnumerator Show(UserBundle userBundle)
+        private IEnumerator ShowWelcomeToast(UserBundle userBundle)
         {
             View.visible = true;
             

@@ -4,8 +4,10 @@ using UnityEngine.UIElements;
 
 namespace com.noctuagames.sdk.UI
 {
-    public class LoginOptionsDialogPresenter : Presenter<AccountSelection>
+    public class LoginOptionsDialogPresenter : Presenter<NoctuaBehaviour>
     {
+        private UserBundle _selectedAccount;
+
         private Button _loginWithGoogleButton;
         private Button _loginWithFacebookButton;
         private Button _loginWithEmailButton;
@@ -14,12 +16,16 @@ namespace com.noctuagames.sdk.UI
         
         protected override void Attach()
         {
-            Model.OnLoginOptionsRequested += OnLoginOptionsRequested;
         }
 
         protected override void Detach()
         {
-            Model.OnLoginOptionsRequested -= OnLoginOptionsRequested;
+        }
+
+        public void Show(UserBundle selectedAccount)
+        {
+            _selectedAccount = selectedAccount;
+            Visible = true;
         }
 
         private void Awake()
@@ -63,23 +69,21 @@ namespace com.noctuagames.sdk.UI
         private void OnLoginWithEmailButtonClicked()
         {
             Visible = false;
-            Model.RequestLoginWithEmail();
+            Model.ShowLoginWithEmailDialogUI();
         }
 
-        private void OnLoginOptionsRequested()
-        {
-            Visible = true;
-        }
         
-        private void OnRegisterButtonClicked()
+        private async void OnRegisterButtonClicked()
         {
             Visible = false;
+            await Model.AuthService.ShowRegisterDialogUI();
         }
 
         private void OnBackButtonClicked()
         {
             Visible = false;
-            Model.RequestAccountSelection();
+
+            Model.ShowAccountSelectionDialogUI();
         }
     }
 }

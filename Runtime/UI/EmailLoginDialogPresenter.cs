@@ -4,16 +4,19 @@ using UnityEngine.UIElements;
 
 namespace com.noctuagames.sdk
 {
-    public class EmailLoginDialogPresenter : Presenter<AccountSelection>
+    public class EmailLoginDialogPresenter : Presenter<NoctuaBehaviour>
     {
         protected override void Attach()
         {
-            Model.OnLoginWithEmailRequested += OnLoginWithEmailRequested;
         }
 
         protected override void Detach()
         {
-            Model.OnLoginWithEmailRequested -= OnLoginWithEmailRequested;
+        }
+
+        public void Show()
+        {
+            Visible = true;
         }
 
         private void Awake()
@@ -43,9 +46,5 @@ namespace com.noctuagames.sdk
             }
         }
 
-        private void OnLoginWithEmailRequested()
-        {
-            Visible = true;
-        }
     }
 }

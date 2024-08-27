@@ -10,7 +10,7 @@ using System.Globalization;
 
 namespace com.noctuagames.sdk.UI
 {
-    public class RegisterDialogPresenter : Presenter<NoctuaAuthService>
+    public class RegisterDialogPresenter : Presenter<NoctuaBehaviour>
     {
         private UIDocument _uiDoc;
 
@@ -20,14 +20,11 @@ namespace com.noctuagames.sdk.UI
 
         protected override void Attach()
         {
-            Model.OnAuthenticated += RefreshItems;
-
             HideAllErrors();
         }
 
         protected override void Detach()
         {
-            Model.OnAuthenticated -= RefreshItems;
             HideAllErrors();
         }
 
@@ -49,6 +46,7 @@ namespace com.noctuagames.sdk.UI
         {
 
             View.visible = true;
+            LoadView();
             SetupInputFields();
             HideAllErrors();
         }
@@ -90,7 +88,7 @@ namespace com.noctuagames.sdk.UI
             var backButton = View.Q<Button>("BackButton");
 
             // Visibility
-            View.Q<VisualElement>("Spinner").AddToClassList("hide");
+            //View.Q<VisualElement>("Spinner").AddToClassList("hide");
             continueButton.RemoveFromClassList("hide");
 
             // Default values
@@ -108,10 +106,6 @@ namespace com.noctuagames.sdk.UI
             rePasswordField.RegisterValueChangedCallback(evt => OnRePasswordValueChanged(rePasswordField));
 
 
-        }
-
-        private void RefreshItems(UserBundle obj)
-        {
         }
 
         private async void OnContinueButtonClick(ClickEvent evt)
@@ -166,7 +160,7 @@ namespace com.noctuagames.sdk.UI
             }
 
             try {
-                var result = await Model.RegisterWithPassword(emailAddress, password);
+                var result = await Model.AuthService.RegisterWithPassword(emailAddress, password);
                 Debug.Log("RegisterWithPassword verification ID: " + result.Id);
 
                 View.Q<Button>("ContinueButton").RemoveFromClassList("hide");

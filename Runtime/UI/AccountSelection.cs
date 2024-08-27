@@ -1,6 +1,8 @@
 ﻿using System;
 using UnityEngine;
 
+/**/
+
 namespace com.noctuagames.sdk.UI
 {
     public class AccountSelection

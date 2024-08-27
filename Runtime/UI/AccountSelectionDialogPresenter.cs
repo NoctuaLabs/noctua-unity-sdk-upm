@@ -6,7 +6,7 @@ using UnityEngine.UIElements;
 
 namespace com.noctuagames.sdk.UI
 {
-    public class AccountSelectionDialogPresenter : Presenter<AccountSelection>
+    public class AccountSelectionDialogPresenter : Presenter<NoctuaBehaviour>
     {
         private VisualTreeAsset _itemTemplate;
         private ListView _gameAccountListView;
@@ -19,18 +19,22 @@ namespace com.noctuagames.sdk.UI
         {
             BindListView(_gameAccountListView, _gameUsers);
             BindListView(_noctuaAccountListView, _noctuaUsers);
-            Model.AuthService.OnAuthenticated += RefreshItems;
-            Model.OnAccountSelectionRequested += OnAccountSelectionRequested;
         }
 
         protected override void Detach()
         {
-            Model.AuthService.OnAuthenticated -= RefreshItems;
-            Model.OnAccountSelectionRequested -= OnAccountSelectionRequested;
         }
 
-        private void RefreshItems(UserBundle obj)
+        public void Show()
         {
+            Visible = true;
+            RefreshItems();
+        }
+
+        private void RefreshItems()
+        {
+            var obj = Model.AuthService.RecentAccount;
+
             _gameUsers.Clear();
             var gameUsers = Model.AuthService.AccountList
                 .Where(x => x.Value.PlayerAccounts.Any(y => y.BundleId == Application.identifier))
@@ -80,12 +84,9 @@ namespace com.noctuagames.sdk.UI
         private void OnContinueButtonClick(ClickEvent evt)
         {
             View.visible = false;
-            Model.RequestLoginOptions();
-        }
 
-        private void OnAccountSelectionRequested()
-        {
-            View.visible = true;
+            // Use recent account as selectedAccount
+            Model.ShowLoginOptionsDialogUI(Model.AuthService.RecentAccount);
         }
 
         private void BindListView(ListView listView, List<UserBundle> items)
@@ -104,8 +105,12 @@ namespace com.noctuagames.sdk.UI
             {
                 var chosenItem = chosenItems.First() as UserBundle;
                 Debug.Log($"Selected {chosenItem?.User?.Nickname}");
-                
-                Model.SelectAccount(chosenItem);
+
+                if (chosenItem.IsRecent) {
+                    Model.ShowSwitchAccountConfirmationDialogUI(chosenItem);
+                } else {
+                    Model.AuthService.SwitchAccount(chosenItem);
+                }
             };
         }
 
