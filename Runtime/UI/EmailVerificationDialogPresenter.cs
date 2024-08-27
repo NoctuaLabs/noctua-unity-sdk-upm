@@ -13,13 +13,8 @@ namespace com.noctuagames.sdk.UI
         private string _password;
         private int _verificationId;
 
-        protected override void Attach()
-        {
-        }
-
-        protected override void Detach()
-        {
-        }
+        protected override void Attach(){}
+        protected override void Detach(){}
 
         public void Show(string email, string password, int verificationId)
         {

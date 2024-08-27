@@ -6,18 +6,13 @@ namespace com.noctuagames.sdk
 {
     public class EmailLoginDialogPresenter : Presenter<NoctuaBehaviour>
     {
-        protected override void Attach()
-        {
-        }
-
-        protected override void Detach()
-        {
-        }
-
         public void Show()
         {
             Visible = true;
         }
+
+        protected override void Attach(){}
+        protected override void Detach(){}
 
         private void Awake()
         {

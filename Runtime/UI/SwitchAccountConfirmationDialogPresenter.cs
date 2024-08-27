@@ -8,19 +8,14 @@ namespace com.noctuagames.sdk.UI
 
         private UserBundle _recentAccount;
 
-        protected override void Attach()
-        {
-        }
-
-        protected override void Detach()
-        {
-        }
-
         public void Show(UserBundle obj)
         {
             _recentAccount = obj;
             Visible = true;
         }
+
+        protected override void Attach(){}
+        protected override void Detach(){}
         
         private void Awake()
         {

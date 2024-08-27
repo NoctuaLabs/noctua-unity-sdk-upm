@@ -4,6 +4,9 @@ using System.Linq;
 using UnityEngine;
 using UnityEngine.UIElements;
 
+// Call Task
+using System.Threading.Tasks;
+
 namespace com.noctuagames.sdk.UI
 {
     public class AccountSelectionDialogPresenter : Presenter<NoctuaBehaviour>
@@ -15,24 +18,36 @@ namespace com.noctuagames.sdk.UI
         private readonly List<UserBundle> _noctuaUsers = new();
         private Button _continueButton;
 
-        protected override void Attach()
-        {
+        protected override void Attach(){
+            // Separate AccountList into Game Users (current game) and Noctua Users
+            LoadData();
+            // Render
             BindListView(_gameAccountListView, _gameUsers);
             BindListView(_noctuaAccountListView, _noctuaUsers);
         }
-
-        protected override void Detach()
-        {
-        }
+        protected override void Detach(){}
 
         public void Show()
         {
+            // Separate AccountList into Game Users (current game) and Noctua Users
+            LoadData();
+            // Render
+            BindListView(_gameAccountListView, _gameUsers);
+            BindListView(_noctuaAccountListView, _noctuaUsers);
+
             Visible = true;
-            RefreshItems();
         }
 
-        private void RefreshItems()
+        private void LoadData()
         {
+            if (_gameAccountListView == null) {
+                _gameAccountListView = View.Q<ListView>("GameAccountList");
+            }
+
+            if (_noctuaAccountListView == null) {
+                _noctuaAccountListView = View.Q<ListView>("NoctuaAccountList");
+            }
+
             var obj = Model.AuthService.RecentAccount;
 
             _gameUsers.Clear();
@@ -42,6 +57,7 @@ namespace com.noctuagames.sdk.UI
                 .ToList();
             
             _gameUsers.AddRange(gameUsers);
+
             
             if (_gameUsers.Count > 0)
             {
@@ -73,7 +89,7 @@ namespace com.noctuagames.sdk.UI
         private void Awake()
         {
             LoadView();
-            
+
             _itemTemplate = Resources.Load<VisualTreeAsset>("AccountItem");
             _gameAccountListView = View.Q<ListView>("GameAccountList");
             _noctuaAccountListView = View.Q<ListView>("NoctuaAccountList");

@@ -14,19 +14,14 @@ namespace com.noctuagames.sdk.UI
         private Button _registerButton;
         private Button _backButton;
         
-        protected override void Attach()
-        {
-        }
-
-        protected override void Detach()
-        {
-        }
-
         public void Show(UserBundle selectedAccount)
         {
             _selectedAccount = selectedAccount;
             Visible = true;
         }
+
+        protected override void Attach(){}
+        protected override void Detach(){}
 
         private void Awake()
         {

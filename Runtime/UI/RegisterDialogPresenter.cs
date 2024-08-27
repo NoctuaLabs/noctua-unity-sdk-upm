@@ -18,25 +18,11 @@ namespace com.noctuagames.sdk.UI
         private string _password;
         private string _rePassword;
 
-        protected override void Attach()
-        {
-            HideAllErrors();
-        }
-
-        protected override void Detach()
-        {
-            HideAllErrors();
-        }
+        protected override void Attach(){}
+        protected override void Detach(){}
 
         private void Awake()
         {
-            //var visualTree = Resources.Load<VisualTreeAsset>("RegisterDialog");
-            //var styleSheet = Resources.Load<StyleSheet>("Noctua");
-            
-            //_uiDoc = gameObject.AddComponent<UIDocument>();
-            //_uiDoc.visualTreeAsset = visualTree;
-            //_uiDoc.rootVisualElement.styleSheets.Add(styleSheet);
-
             LoadView();
             SetupInputFields();
             HideAllErrors();
@@ -46,7 +32,6 @@ namespace com.noctuagames.sdk.UI
         {
 
             View.visible = true;
-            LoadView();
             SetupInputFields();
             HideAllErrors();
         }

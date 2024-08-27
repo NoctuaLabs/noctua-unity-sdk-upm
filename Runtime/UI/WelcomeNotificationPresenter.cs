@@ -9,14 +9,9 @@ namespace com.noctuagames.sdk.UI
     {
         private VisualElement _welcomeBox;
         private Label _playerName;
-        
-        protected override void Attach()
-        {
-        }
-        
-        protected override void Detach()
-        {
-        }
+
+        protected override void Attach(){}
+        protected override void Detach(){}
         
         private void Awake()
         {

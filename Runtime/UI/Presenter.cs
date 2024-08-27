@@ -40,7 +40,7 @@ namespace com.noctuagames.sdk.UI
         {
             Debug.Log("LoadView " + GetType().Name);
             var viewResourceName = GetType().Name.Replace("Presenter", "");
-            Debug.Log("LoadView " + viewResourceName);
+            Debug.Log("LoadView resource name " + viewResourceName);
             var view = Resources.Load<VisualTreeAsset>(viewResourceName).CloneTree();
             if (view is null)
             { 
