@@ -27,7 +27,6 @@ namespace com.noctuagames.sdk.UI
 
         private void RefreshItems(UserBundle obj)
         {
-            
             _gameUsers.Clear();
             var gameUsers = Model.AccountList
                 .Where(x => x.Value.PlayerAccounts.Any(y => y.BundleId == Application.identifier))
@@ -68,9 +67,9 @@ namespace com.noctuagames.sdk.UI
             LoadView();
 
             _itemTemplate = Resources.Load<VisualTreeAsset>("AccountItem");
-            _gameAccountListView = View.Q<ListView>("NoctuaGameAccountList");
+            _gameAccountListView = View.Q<ListView>("GameAccountList");
             _noctuaAccountListView = View.Q<ListView>("NoctuaAccountList");
-            _continueButton = View.Q<Button>("NoctuaAccountSelectionContinueButton");
+            _continueButton = View.Q<Button>("ContinueButton");
             _continueButton.RegisterCallback<ClickEvent>(OnContinueButtonClick);
         }
 
@@ -100,14 +99,14 @@ namespace com.noctuagames.sdk.UI
 
         private void BindListViewItem(VisualElement element, int index, List<UserBundle> items)
         {
-            element.Q<Label>("NoctuaPlayerName").text = items[index] switch {
+            element.Q<Label>("PlayerName").text = items[index] switch {
                 {Player: {Username: not null } player} => player.Username,
                 {User: {Nickname: not null } user} => user.Nickname,
                 {Credential: {Provider: "device_id"}} => "Guest " + items[index].User?.Id,
                 _ => "User " + items[index].User?.Id
             };
             
-            element.Q<Label>("NoctuaRecentLabel").text = items[index].User?.Id == Model.RecentAccount.User.Id ? "Recent" : "";
+            element.Q<Label>("RecentLabel").text = items[index].User?.Id == Model.RecentAccount.User.Id ? "Recent" : "";
         }
     }
 }

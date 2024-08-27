@@ -1,0 +1,147 @@
+﻿.user-center {
+    right: 0;
+    width: 525px;
+    height: 100%;
+    border-top-left-radius: 20px;
+    border-bottom-left-radius: 20px;
+    flex-direction: row;
+}
+
+.user-profile {
+    border-top-left-radius: 20px;
+    border-bottom-left-radius: 20px;
+    flex-direction: column;
+    background-color: rgba(56, 65, 74, 0.7);
+    width: 35%;
+    padding: 8px;
+}
+
+.user-profile-header {
+    flex-direction: row;
+    justify-content: space-between;
+    align-self: stretch;
+}
+
+.user-profile-header-button {
+    border-radius: 20px;
+    height: 27px;
+    background-color: #3E4248;
+    align-items: center;
+    justify-content: center;
+    -unity-text-align: middle-center;
+}
+
+.exit-icon {
+    width: 16px;
+    height: 16px;
+    background-image: url("./ExitIcon.png");
+}
+
+.setting-icon {
+    width: 16px;
+    height: 16px;
+    background-image: url("./SettingIcon.png");
+}
+
+.help-button {
+    flex-direction: row;
+}
+
+.help-icon {
+    width: 16px;
+    height: 16px;
+    background-image: url("./HelpChatIcon.png");
+}
+
+.exit-button {
+    width: 27px;
+}
+
+
+.setting-button {
+    width: 27px;
+}
+
+.user-profile-spacing {
+    height: 52px;
+}
+
+.user-profile-content {
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.player-name {
+    color: #FFFFFF;
+    font-size: 16px;
+}
+
+.hi-text {
+    flex-direction: row;
+    align-items: center;
+}
+
+.hi-label {
+    color: #FFFFFF;
+    font-size: 12px;
+}
+
+.hi-icon {
+    width: 16px;
+    height: 16px;
+    background-image: url("./Hi.png");
+}
+
+.player-avatar {
+    width: 107px;
+    height: 107px;
+    background-image: url("./PlayerProfileBackground.png");
+}
+
+.user-id {
+    background-color: transparent;
+    border-width: 0;
+    flex-direction: row;
+}
+
+.user-id-label {
+    color: #FFFFFF;
+    font-size: 12px;
+}
+
+.copy-icon {
+    width: 13px;
+    height: 13px;
+    background-image: url("./CopyIcon.png");
+}
+
+.connect-account {
+    width: 65%;
+    flex-direction: column;
+    align-items: stretch;
+    padding: 8px;
+}
+
+.account-list {
+    flex: 1;    
+    align-self: stretch;
+}
+
+.connect-account-footer {
+    height: 11px;
+    font-size: 8px;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.profile-menu-button {
+    background-color: #2D3138;
+    height: 40px;
+    border-radius: 5px;
+    align-items: center;
+    justify-content: space-between;
+    flex-direction: row;
+    align-self: stretch;
+}
