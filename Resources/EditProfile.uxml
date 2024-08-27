@@ -45,7 +45,7 @@
                 </ui:VisualElement>
                 <ui:VisualElement style="flex-direction: row; flex-wrap: nowrap; align-items: center; justify-content: flex-start; margin-top: 10px; margin-bottom: 10px;">
                     <ui:VisualElement class="player-avatar" style="width: 50px; height: 50px; margin-right: 10px; border-top-width: 1px; border-right-width: 1px; border-bottom-width: 1px; border-left-width: 1px; border-left-color: rgb(80, 153, 252); border-right-color: rgb(80, 153, 252); border-top-color: rgb(80, 153, 252); border-bottom-color: rgb(80, 153, 252); border-top-left-radius: 25px; border-top-right-radius: 25px; border-bottom-right-radius: 25px; border-bottom-left-radius: 25px;" />
-                    <ui:Button text="Change Picture" display-tooltip-when-elided="true" name="ChangePictureButton" class="button-with-border" style="-unity-text-align: middle-center; flex-direction: column; height: 31px;" />
+                    <ui:Button text="Change Picture" display-tooltip-when-elided="true" name="ChangePictureButton" class="button-with-border" style="-unity-text-align: middle-center; flex-direction: column; height: 31px; border-left-color: rgba(80, 153, 252, 255); border-right-color: rgba(80, 153, 252, 255); border-top-color: rgba(80, 153, 252, 255); border-bottom-color: rgba(80, 153, 252, 255);" />
                 </ui:VisualElement>
                 <ui:TextField picking-mode="Ignore" label="Nickname" name="NicknameTF" class="noctua-text-input" />
                 <ui:TextField picking-mode="Ignore" label="Birthdate (Optional)" name="BirthdateTF" class="noctua-text-input" />

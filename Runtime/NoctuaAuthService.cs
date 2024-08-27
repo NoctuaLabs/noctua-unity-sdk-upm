@@ -208,6 +208,30 @@ namespace com.noctuagames.sdk
         public string GuestToken;
     }
 
+    public class CredPair
+    {
+        [JsonProperty("cred_key")]
+        public string CredKey;
+
+        [JsonProperty("cred_secret")]
+        public string CredSecret;
+
+        [JsonProperty("provider")]
+        public string Provider;
+    }
+
+    public class CredentialVerification
+    {
+        [JsonProperty("id")]
+        public int Id;
+
+        [JsonProperty("code")]
+        public string Code;
+
+        [JsonProperty("new_password")] // Used for password reset
+        public string NewPassword;
+    }
+
     public class AccountContainer // Used by account container prefs and account detection logic
     {
         [JsonProperty("accounts")]
@@ -249,6 +273,7 @@ namespace com.noctuagames.sdk
                 throw new ApplicationException($"App id for platform {Application.platform} is not set");
             }
 
+            Debug.Log("ClientId: " + _config.ClientId);
             var request = new HttpRequest(HttpMethod.Post, $"{_config.BaseUrl}/auth/guest/login")
                 .WithHeader("X-CLIENT-ID", _config.ClientId)
                 .WithJsonBody(
@@ -349,7 +374,7 @@ namespace com.noctuagames.sdk
             var userBundle = await AccountDetection();
             if (userBundle == null) {
                 // Account Selection is needed
-                userBundle = await TriggerAccountSelectionUI();
+                userBundle = await ShowAccountSelectionUI();
             }
 
             Debug.Log("Authenticate: userBundle user ID is " + userBundle?.User?.Id);
@@ -456,38 +481,17 @@ namespace com.noctuagames.sdk
             return userBundle;
         }
 
-        #if (UNITY_ANDROID || UNITY_IOS) && !UNITY_EDITOR
-        private void OnSocialLoginWebviewStarted(UniWebView webView, string url)
-        {
-            Debug.Log("URL started to load: " + url);
-            foreach (var keyword in SSOCloseWebViewKeywords) {
-                if (url.Contains(keyword)) {
-                    webView = NoctuaGameObject.GetComponent("UniWebView") as UniWebView;
-                    webView.Hide();
-                    break;
-                }
-            }
-        }
-
-        private void OnSocialLoginWebviewFinished(UniWebView webView, int statusCode, string url)
-        {
-            Debug.Log("URL finishhed to load: " + url);
-            foreach (var keyword in SSOCloseWebViewKeywords) {
-                if (url.Contains(keyword)) {
-                    webView = NoctuaGameObject.GetComponent("UniWebView") as UniWebView;
-                    webView.Hide();
-                    break;
-                }
-            }
-        }
-        #endif
-
-
-
-        public async UniTask<UserBundle> TriggerAccountSelectionUI()
+        public async UniTask<UserBundle> ShowAccountSelectionUI()
         {
             var noctuaBehaviour = GetNoctuaBehaviour();
             noctuaBehaviour.SetAccountSelectionDialogVisibility(true);
+            return null;
+        }
+
+        public async UniTask<UserBundle> ShowRegisterDialogUI()
+        {
+            var noctuaBehaviour = GetNoctuaBehaviour();
+            noctuaBehaviour.ShowRegisterDialogUI();
             return null;
         }
 
@@ -778,6 +782,104 @@ namespace com.noctuagames.sdk
         }
 
         public void SimulateMultipleRecentExistingAccountWithoutMatchedPlayer() {
+        }
+
+        // TODO: Add support for phone
+        public async UniTask<CredentialVerification> RegisterWithPassword(string email, string password)
+        {
+            Debug.Log("RegisterWithPassword: " + email + " : " + password);
+            var request = new HttpRequest(HttpMethod.Post, $"{_config.BaseUrl}/auth/email/register")
+                .WithHeader("X-CLIENT-ID", _config.ClientId)
+                .WithHeader("Authorization", "Bearer " + _accessToken)
+                .WithJsonBody(
+                    new CredPair
+                    {
+                        CredKey = email,
+                        CredSecret = password,
+                        Provider = "email"
+                    }
+                );
+
+            try {
+                var response = await request.Send<CredentialVerification>();
+                return response;
+            }
+            catch (Exception e) {
+                if (e is NoctuaException noctuaEx)
+                {
+                    Debug.Log("NoctuaException: " + noctuaEx.ErrorCode + " : " + noctuaEx.Message);
+                } else {
+                    Debug.Log("Exception: " + e);
+                }
+                throw e;
+            }
+        }
+
+        public async UniTask<PlayerToken> VerifyCredential(int id, string code)
+        {
+            var request = new HttpRequest(HttpMethod.Post, $"{_config.BaseUrl}/auth/email/verify-registration")
+                .WithHeader("X-CLIENT-ID", _config.ClientId)
+                .WithJsonBody(
+                    new CredentialVerification
+                    {
+                        Id = id,
+                        Code = code
+                    }
+                );
+
+            var response = await request.Send<PlayerToken>();
+            return response;
+        }
+
+        // TODO: Add support for phone
+        public async UniTask<PlayerToken> LoginWithPassword(string email, string password)
+        {
+            var request = new HttpRequest(HttpMethod.Post, $"{_config.BaseUrl}/auth/email/login")
+                .WithHeader("X-CLIENT-ID", _config.ClientId)
+                .WithJsonBody(
+                    new CredPair
+                    {
+                        CredKey = email,
+                        CredSecret = password
+                    }
+                );
+
+            var response = await request.Send<PlayerToken>();
+            return response;
+        }
+
+        // TODO: Add support for phone
+        public async UniTask<PlayerToken> RequestResetPassword(string email)
+        {
+            var request = new HttpRequest(HttpMethod.Post, $"{_config.BaseUrl}/auth/email/reset-password")
+                .WithHeader("X-CLIENT-ID", _config.ClientId)
+                .WithJsonBody(
+                    new CredPair
+                    {
+                        CredKey = email
+                    }
+                );
+
+            var response = await request.Send<PlayerToken>();
+            return response;
+        }
+
+        // TODO: Add support for phone
+        public async UniTask<PlayerToken> ConfirmResetPassword(int id, string code, string newPassword)
+        {
+            var request = new HttpRequest(HttpMethod.Post, $"{_config.BaseUrl}/auth/email/verify-reset-password")
+                .WithHeader("X-CLIENT-ID", _config.ClientId)
+                .WithJsonBody(
+                    new CredentialVerification
+                    {
+                        Id = id,
+                        Code = code,
+                        NewPassword = newPassword,
+                    }
+                );
+
+            var response = await request.Send<PlayerToken>();
+            return response;
         }
 
         internal class Config

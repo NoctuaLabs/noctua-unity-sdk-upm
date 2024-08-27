@@ -12,6 +12,7 @@ namespace com.noctuagames.sdk
         private UIDocument _uiDocument;
         
         public AccountSelectionDialogPresenter _accountSelectionDialog;
+        public RegisterDialogPresenter _registerDialog;
 
         private void Awake()
         {
@@ -31,11 +32,26 @@ namespace com.noctuagames.sdk
             _accountSelectionDialog = gameObject.AddComponent<AccountSelectionDialogPresenter>();
             _accountSelectionDialog.SetModel(Noctua.Auth);
             _accountSelectionDialog.Visible = false;
+
+            _registerDialog = gameObject.AddComponent<RegisterDialogPresenter>();
+            _registerDialog.SetModel(Noctua.Auth);
+            _registerDialog.Visible = false;
         }
 
         public void SetAccountSelectionDialogVisibility(bool show)
         {
+            // Disable all dialogs first
+            _registerDialog.Visible = false;
+
             _accountSelectionDialog.Visible = show;
+        }
+
+        public void ShowRegisterDialogUI()
+        {
+            // Disable all dialogs first
+            _accountSelectionDialog.Visible = false;
+
+            _registerDialog.Show();
         }
 
         private void Update()
