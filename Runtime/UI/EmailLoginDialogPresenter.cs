@@ -1,30 +1,31 @@
+using com.noctuagames.sdk.UI;
 using UnityEngine;
 using UnityEngine.UIElements;
 
 namespace com.noctuagames.sdk
 {
-    public class EmailLoginDialogPresenter : MonoBehaviour
+    public class EmailLoginDialogPresenter : Presenter<AccountSelection>
     {
-        private UIDocument _uiDoc;
+        protected override void Attach()
+        {
+            Model.OnLoginWithEmailRequested += OnLoginWithEmailRequested;
+        }
+
+        protected override void Detach()
+        {
+            Model.OnLoginWithEmailRequested -= OnLoginWithEmailRequested;
+        }
 
         private void Awake()
         {
-            var visualTree = Resources.Load<VisualTreeAsset>("EmailLoginDialog");
-            var panelSettings = Resources.Load<PanelSettings>("NoctuaPanelSettings");
-            var styleSheet = Resources.Load<StyleSheet>("Noctua");
-            
-            _uiDoc = gameObject.AddComponent<UIDocument>();
-            _uiDoc.panelSettings = panelSettings;
-            _uiDoc.visualTreeAsset = visualTree;
-            _uiDoc.rootVisualElement.styleSheets.Add(styleSheet);
-
+            LoadView();
             SetupInputFields();
         }
 
         private void SetupInputFields()
         {
-            var emailField = _uiDoc.rootVisualElement.Q<TextField>("EmailTF");
-            var passwordField = _uiDoc.rootVisualElement.Q<TextField>("PasswordTF");
+            var emailField = View.Q<TextField>("EmailTF");
+            var passwordField = View.Q<TextField>("PasswordTF");
 
             passwordField.isPasswordField = true;
 
@@ -40,6 +41,11 @@ namespace com.noctuagames.sdk
                 textField.labelElement.style.display = DisplayStyle.None;
 
             }
-        } 
+        }
+
+        private void OnLoginWithEmailRequested()
+        {
+            Visible = true;
+        }
     }
 }

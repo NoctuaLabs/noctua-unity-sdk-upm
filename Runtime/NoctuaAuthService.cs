@@ -336,6 +336,7 @@ namespace com.noctuagames.sdk
 
             var request = new HttpRequest(HttpMethod.Post, $"{_config.BaseUrl}/social-login/{provider}/login/callback")
                 .WithHeader("X-CLIENT-ID", _config.ClientId)
+                .WithHeader("Authorization", "Bearer " + RecentAccount.Player.AccessToken)
                 .WithJsonBody(payload);
 
             return await request.Send<PlayerToken>();
@@ -790,7 +791,7 @@ namespace com.noctuagames.sdk
             Debug.Log("RegisterWithPassword: " + email + " : " + password);
             var request = new HttpRequest(HttpMethod.Post, $"{_config.BaseUrl}/auth/email/register")
                 .WithHeader("X-CLIENT-ID", _config.ClientId)
-                .WithHeader("Authorization", "Bearer " + _accessToken)
+                .WithHeader("Authorization", "Bearer " + RecentAccount.Player.AccessToken)
                 .WithJsonBody(
                     new CredPair
                     {
@@ -886,6 +887,15 @@ namespace com.noctuagames.sdk
         {
             public string BaseUrl;
             public string ClientId;
+        }
+
+        public void SwitchAccount(UserBundle user)
+        {
+            var existingUser = AccountList.FirstOrDefault(x => x.Value.User.Id == user.User.Id && x.Value.Player.Id == user.Player.Id).Value;
+            
+            RecentAccount = existingUser ?? throw new ArgumentException($"User {user.User.Id} not found in account list");
+            
+            UpdateRecentAccount(RecentAccount, ReadPlayerPrefsAccountContainer());
         }
     }
     

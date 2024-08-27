@@ -1,7 +1,7 @@
 <ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" xsi="http://www.w3.org/2001/XMLSchema-instance" engine="UnityEngine.UIElements" editor="UnityEditor.UIElements" noNamespaceSchemaLocation="../../../../UIElementsSchema/UIElements.xsd" editor-extension-mode="False">
     <Style src="./Noctua.uss" />
     <Style src="./LoginOptionsDialog.uss" />
-    <ui:VisualElement name="NoctuaLoginOptions" class="base dialog-box">
+    <ui:VisualElement name="LoginOptionsDialog" class="base dialog-box">
         <ui:VisualElement class="login-dialog-header">
             <ui:Button name="BackButton" class="back-button">
                 <ui:VisualElement class="back-icon" />
@@ -9,12 +9,12 @@
             <ui:Label text="Continue with another account" />
         </ui:VisualElement>
         <ui:VisualElement class="social-account-row">
-            <ui:Button name="GoogleButton" class="social-account-button">
-                <ui:VisualElement class="google-logo" />
+            <ui:Button name="LoginWithGoogleButton" class="social-account-button">
+                <ui:VisualElement class="login-method-logo google-logo" />
                 <ui:Label text="Google" />
             </ui:Button>
-            <ui:Button name="FacebookButton" class="social-account-button">
-                <ui:VisualElement class="facebook-logo" />
+            <ui:Button name="LoginWithFacebookButton" class="social-account-button">
+                <ui:VisualElement class="login-method-logo facebook-logo" />
                 <ui:Label text="Facebook" />
             </ui:Button>
         </ui:VisualElement>
@@ -24,10 +24,10 @@
             <ui:VisualElement class="right-separator-long" />
         </ui:VisualElement>
         <ui:Button name="LoginWithEmailButton" class="button-normal login-with-email-button">
-            <ui:VisualElement class="email-icon" />
+            <ui:VisualElement class="login-method-logo email-icon" />
             <ui:Label text="Login With Email" />
         </ui:Button>
-        <ui:Label name="NoctuaLoginOptionsInfoLabel" text="By logging in or registering, you agree to our Terms of Service\n and Privacy Policy." class="tnc-text" />
+        <ui:Label name="LoginOptionsInfoLabel" text="By logging in or registering, you agree to our Terms of Service\n and Privacy Policy." class="tnc-text" />
         <ui:Button name="RegisterButton" class="register-button">
             <ui:Label text="Don&apos;t have an account? &lt;color=#3B82F6&gt;Register&lt;/color&gt;" />
         </ui:Button>

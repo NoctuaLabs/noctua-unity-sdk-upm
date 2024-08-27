@@ -12,29 +12,32 @@ namespace com.noctuagames.sdk.UI
         
         protected override void Attach()
         {
-            Model.OnAuthenticated += ModelOnAuthenticated;
+            Model.OnAuthenticated += OnAuthenticated;
         }
         
         protected override void Detach()
         {
-            Model.OnAuthenticated -= ModelOnAuthenticated;
+            Model.OnAuthenticated -= OnAuthenticated;
         }
         
         private void Awake()
         {
             LoadView();
-            
+
+            View.visible = true;
             _welcomeBox = View.Q<VisualElement>("NoctuaWelcomeBox");
             _playerName = View.Q<Label>("NoctuaWelcomePlayerName");
         }
 
-        private void ModelOnAuthenticated(UserBundle userBundle)
+        private void OnAuthenticated(UserBundle userBundle)
         {
             StartCoroutine(Show(userBundle));
         }
 
         private IEnumerator Show(UserBundle userBundle)
         {
+            View.visible = true;
+            
             yield return new WaitForSeconds(1);
 
             if (userBundle?.Player?.Username != null && userBundle?.Player?.Username.Length > 0) {
