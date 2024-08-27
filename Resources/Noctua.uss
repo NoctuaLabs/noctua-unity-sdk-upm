@@ -3,6 +3,8 @@
     color: white;
 }
 
+/* Start Button Style */
+
 .button-highlight {
     background-color: rgb(59, 130, 246);
 }
@@ -15,6 +17,16 @@
     background-color: transparent;
     border-width: 0;
 }
+
+.button-with-border {
+    border-radius: 5px;
+    border-color: #3B82F6;
+    border-width: 1px;
+    background-color: transparent;
+    color: #3B82F6;
+}
+
+/* End Button Style */
 
 .noctua-logo {
     background-image: url("./NoctuaLogo.png");
@@ -46,6 +58,36 @@
     height: 24px;
 }
 
+.edit-icon {
+    background-image: url("./EditIcon.png");
+    width: 20px;
+    height: 20px;
+}
+
+.second-switch-account-icon {
+    background-image: url("./SwitchAccountIconSecond.png");
+    width: 20px;
+    height: 20px;
+}
+
+.delete-icon {
+    background-image: url("./DeleteIcon.png");
+    width: 20px;
+    height: 20px;
+}
+
+.logout-icon {
+    background-image: url("./LogoutIcon.png");
+    width: 20px;
+    height: 20px;
+}
+
+.edit-profile-image {
+    background-image: url("./EditProfileImage.png");
+    width: 80px;
+    height: 80px;
+}
+
 .guest-player-avatar {
     background-image: url("./GuestPlayerAvatar.png");
     width: 29px;
@@ -66,6 +108,13 @@
 
 .back-icon {
     background-image: url("./BackIcon.png");
+    width: 24px;
+    height: 24px;
+    background-color: transparent;
+}
+
+.back-circle-icon {
+    background-image: url("./BackCircleIcon.png");
     width: 24px;
     height: 24px;
     background-color: transparent;

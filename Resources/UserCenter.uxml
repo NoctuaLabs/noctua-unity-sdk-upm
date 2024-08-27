@@ -1,17 +1,17 @@
-﻿<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" xsi="http://www.w3.org/2001/XMLSchema-instance" engine="UnityEngine.UIElements" editor="UnityEditor.UIElements" noNamespaceSchemaLocation="../../../../UIElementsSchema/UIElements.xsd" editor-extension-mode="False">
-    <Style src="./Noctua.uss" />
-    <Style src="./UserCenter.uss" />
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" xsi="http://www.w3.org/2001/XMLSchema-instance" engine="UnityEngine.UIElements" editor="UnityEditor.UIElements" noNamespaceSchemaLocation="../../../../UIElementsSchema/UIElements.xsd" editor-extension-mode="False">
+    <Style src="project://database/Packages/com.noctuagames.sdk/Resources/Noctua.uss?fileID=7433441132597879392&amp;guid=fe35e550fb23b6446af377f994effe35&amp;type=3#Noctua" />
+    <Style src="project://database/Packages/com.noctuagames.sdk/Resources/UserCenter.uss?fileID=7433441132597879392&amp;guid=0586cbcfb0a1419a8ac537b6a5e398cd&amp;type=3#UserCenter" />
     <ui:VisualElement name="UserCenter" class="base user-center">
         <ui:VisualElement name="UserProfile" class="user-profile">
             <ui:VisualElement name="UserProfileHeader" class="user-profile-header">
                 <ui:Button name="ExitButton" class="user-profile-header-button exit-button">
                     <ui:VisualElement name="ExitIcon" class="exit-icon" />
                 </ui:Button>
-                <ui:Button name="HelpButton" class="user-profile-header-button help-button">
+                <ui:Button name="HelpButton" class="user-profile-header-button help-button" style="display: flex;">
                     <ui:VisualElement name="HelpIcon" class="help-icon" />
                     <ui:Label name="HelpLabel" text="Need help" class="help-label" />
                 </ui:Button>
-                <ui:Button name="SettingButton" class="user-profile-header-button setting-button">
+                <ui:Button name="SettingButton" class="user-profile-header-button setting-button" style="display: none;">
                     <ui:VisualElement name="SettingIcon" class="setting-icon" />
                 </ui:Button>
             </ui:VisualElement>
@@ -25,14 +25,31 @@
                 <ui:VisualElement name="PlayerAvatar" class="player-avatar" />
                 <ui:Button name="UserId" class="user-id">
                     <ui:Label name="UserIdLabel" text="User ID" class="user-id-label" />
-                    <ui:VisualElement name="CopyIcon" class="copy-icon"/>
+                    <ui:VisualElement name="CopyIcon" class="copy-icon" />
+                </ui:Button>
+            </ui:VisualElement>
+            <ui:VisualElement name="ProfileMenuContent" class="user-profile-spacing" style="display: flex; height: auto; flex-direction: column; flex-wrap: nowrap; align-items: stretch; justify-content: space-around; margin-top: 15px;">
+                <ui:Button name="EditProfile" class="button-normal user-profile-header" style="justify-content: space-around; height: 40px; -unity-text-align: middle-center; margin-top: 1px; margin-right: 3px; margin-bottom: 1px; margin-left: 3px; align-items: center; border-top-left-radius: 5px; border-top-right-radius: 5px; border-bottom-right-radius: 5px; border-bottom-left-radius: 5px;">
+                    <ui:VisualElement class="email-icon edit-icon" style="-unity-text-align: middle-center;" />
+                    <ui:Label text="Edit Profile" style="width: 100px; -unity-text-align: middle-left;" />
+                </ui:Button>
+                <ui:Button name="SwitchProfile" class="button-normal user-profile-header" style="justify-content: space-around; height: 40px; align-items: center; border-top-left-radius: 5px; border-top-right-radius: 5px; border-bottom-right-radius: 5px; border-bottom-left-radius: 5px;">
+                    <ui:VisualElement class="email-icon second-switch-account-icon" />
+                    <ui:Label text="Switch Profile" style="width: 100px; -unity-text-align: middle-left;" />
+                </ui:Button>
+                <ui:Button name="DeleteAccount" class="button-normal profile-menu-button" style="justify-content: space-around;">
+                    <ui:VisualElement class="email-icon delete-icon" />
+                    <ui:Label text="Delete Account" style="-unity-text-align: middle-left; width: 100px; color: rgb(205, 33, 63);" />
+                </ui:Button>
+                <ui:Button name="LogoutAccount" class="button-normal profile-menu-button" style="justify-content: space-around;">
+                    <ui:VisualElement class="email-icon logout-icon" />
+                    <ui:Label text="Logout Account" style="width: 100px; -unity-text-align: middle-left;" />
                 </ui:Button>
             </ui:VisualElement>
         </ui:VisualElement>
         <ui:VisualElement name="ConnectAccount" class="connect-account">
             <ui:Label name="ConnectAccountLabel" text="Stay connect to Noctua" class="connect-account-label" />
-            <ui:ListView name="AccountList" class="account-list">
-            </ui:ListView>
+            <ui:ListView name="AccountList" class="account-list" />
             <ui:VisualElement name="ConnectAccountFooter" class="connect-account-footer">
                 <ui:VisualElement name="NoctuaLogoWithText" class="noctua-logo-with-text" />
                 <ui:Label name="FindMoreLabel" text="Find more at noctua.gg" class="find-more-label" />

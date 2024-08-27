@@ -1,0 +1,62 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" xsi="http://www.w3.org/2001/XMLSchema-instance" engine="UnityEngine.UIElements" editor="UnityEditor.UIElements" noNamespaceSchemaLocation="../../../../UIElementsSchema/UIElements.xsd" editor-extension-mode="False">
+    <Style src="project://database/Packages/com.noctuagames.sdk/Resources/Noctua.uss?fileID=7433441132597879392&amp;guid=fe35e550fb23b6446af377f994effe35&amp;type=3#Noctua" />
+    <Style src="project://database/Packages/com.noctuagames.sdk/Resources/UserCenter.uss?fileID=7433441132597879392&amp;guid=0586cbcfb0a1419a8ac537b6a5e398cd&amp;type=3#UserCenter" />
+    <Style src="project://database/Packages/com.noctuagames.sdk/Resources/EditProfile.uss?fileID=7433441132597879392&amp;guid=fd77a243e0c657644a7e362694ec508a&amp;type=3#EditProfile" />
+    <ui:VisualElement name="EditProfile" class="base user-center">
+        <ui:VisualElement name="UserProfile" class="user-profile root-container-left">
+            <ui:VisualElement name="UserProfileHeader" class="user-profile-header">
+                <ui:Button name="ExitButton" class="user-profile-header-button exit-button">
+                    <ui:VisualElement name="ExitIcon" class="exit-icon" />
+                </ui:Button>
+                <ui:Button name="HelpButton" class="user-profile-header-button help-button" style="display: none;">
+                    <ui:VisualElement name="HelpIcon" class="help-icon" />
+                    <ui:Label name="HelpLabel" text="Need help" class="help-label" />
+                </ui:Button>
+                <ui:Button name="SettingButton" class="user-profile-header-button setting-button" style="display: none;">
+                    <ui:VisualElement name="SettingIcon" class="setting-icon" />
+                </ui:Button>
+            </ui:VisualElement>
+            <ui:VisualElement name="UserProfileSpacing" class="user-profile-spacing" style="height: 120px;" />
+            <ui:VisualElement name="UserProfileContent" class="user-profile-content">
+                <ui:VisualElement name="PlayerAvatar" class="edit-profile-image" />
+                <ui:Button name="LabelTitle" class="user-id">
+                    <ui:Label name="UserIdLabel" text="Edit Profile" class="user-id-label" style="font-size: 16px; margin-top: 10px;" />
+                </ui:Button>
+            </ui:VisualElement>
+            <ui:VisualElement name="UserProfileSpacing" class="user-profile-spacing" style="height: 150px;" />
+            <ui:VisualElement style="justify-content: space-around; align-items: center;">
+                <ui:VisualElement name="NoctuaLogoWithText" class="noctua-logo-with-text" style="-unity-text-align: upper-left; align-items: center; justify-content: flex-start;" />
+            </ui:VisualElement>
+        </ui:VisualElement>
+        <ui:VisualElement name="ConnectAccount" class="connect-account">
+            <ui:ScrollView scroll-deceleration-rate="0,135" elasticity="0,1" horizontal-scroller-visibility="Hidden" vertical-scroller-visibility="Hidden" style="margin-bottom: 10px;">
+                <ui:VisualElement name="BackEditProfileHeader" class="user-profile-header" style="justify-content: flex-start; align-items: center;">
+                    <ui:Button name="BackButton" class="user-profile-header-button exit-button">
+                        <ui:VisualElement name="ExitIcon" class="back-circle-icon" />
+                    </ui:Button>
+                    <ui:Label text="Back" display-tooltip-when-elided="true" style="color: rgb(117, 117, 117);" />
+                    <ui:Button name="HelpButton" class="user-profile-header-button help-button" style="display: none;">
+                        <ui:VisualElement name="HelpIcon" class="help-icon" />
+                        <ui:Label name="HelpLabel" text="Need help" class="help-label" />
+                    </ui:Button>
+                    <ui:Button name="SettingButton" class="user-profile-header-button setting-button" style="display: none;">
+                        <ui:VisualElement name="SettingIcon" class="setting-icon" />
+                    </ui:Button>
+                </ui:VisualElement>
+                <ui:VisualElement style="flex-direction: row; flex-wrap: nowrap; align-items: center; justify-content: flex-start; margin-top: 10px; margin-bottom: 10px;">
+                    <ui:VisualElement class="player-avatar" style="width: 50px; height: 50px; margin-right: 10px; border-top-width: 1px; border-right-width: 1px; border-bottom-width: 1px; border-left-width: 1px; border-left-color: rgba(80, 153, 252, 255); border-right-color: rgba(80, 153, 252, 255); border-top-color: rgba(80, 153, 252, 255); border-bottom-color: rgba(80, 153, 252, 255); border-top-left-radius: 25px; border-top-right-radius: 25px; border-bottom-right-radius: 25px; border-bottom-left-radius: 25px;" />
+                    <ui:Button text="Change Picture" display-tooltip-when-elided="true" name="ChangePicture" class="button-with-border" style="-unity-text-align: middle-center; flex-direction: column; height: 31px;" />
+                </ui:VisualElement>
+                <ui:TextField picking-mode="Ignore" label="Nickname" name="Nickname" class="noctua-text-input" />
+                <ui:TextField picking-mode="Ignore" label="Birthdate (Optional)" name="Birthdate" class="noctua-text-input" />
+                <ui:TextField picking-mode="Ignore" label="Gender (Optional)" name="Gender" class="noctua-text-input" />
+                <ui:TextField picking-mode="Ignore" label="Country" name="Country" class="noctua-text-input" />
+                <ui:TextField picking-mode="Ignore" label="Language" name="Language" class="noctua-text-input" />
+                <ui:TextField picking-mode="Ignore" label="Currency" name="Currency" class="noctua-text-input" />
+            </ui:ScrollView>
+            <ui:VisualElement name="ConnectAccountFooter" style="border-top-left-radius: 6px; border-top-right-radius: 6px; border-bottom-right-radius: 6px; border-bottom-left-radius: 6px;">
+                <ui:Button text="Save" display-tooltip-when-elided="true" class="button-highlight" style="height: 40px; border-top-left-radius: 6px; border-top-right-radius: 6px; border-bottom-right-radius: 6px; border-bottom-left-radius: 6px;" />
+            </ui:VisualElement>
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>

@@ -135,3 +135,13 @@
     align-items: center;
     justify-content: space-between;
 }
+
+.profile-menu-button {
+    background-color: #2D3138;
+    height: 40px;
+    border-radius: 5px;
+    align-items: center;
+    justify-content: space-between;
+    flex-direction: row;
+    align-self: stretch;
+}
