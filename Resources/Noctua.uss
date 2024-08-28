@@ -209,22 +209,6 @@
     width: 100px;
     height: 1px;
 }
-/*
-        <!--
-         style="padding-top: 15px; padding-right: 15px; padding-bottom: 15px; padding-left: 15px; margin-top: 10px; margin-right: 10px; margin-bottom: 10px; margin-left: 10px; flex-grow: 0; flex-shrink: 1; top: auto; position: relative; display: flex; border-top-left-radius: 20px; border-top-right-radius: 20px; border-bottom-right-radius: 20px; border-bottom-left-radius: 20px; border-top-width: 1px; border-right-width: 1px; border-bottom-width: 1px; border-left-width: 1px; border-left-color: rgb(88, 88, 88); border-right-color: rgb(88, 88, 88); border-top-color: rgb(88, 88, 88); border-bottom-color: rgb(88, 88, 88); width: 319px;">
-         -->
-*/
-
-.foo {
-    flex-direction: column;
-    align-self: center;
-    top: 18px;
-    border-radius: 20px;
-    width: 319px;
-    height: 337px;
-    border-width: 1px;
-    padding: 14px;
-}
 
 .dialog-button {
     height: 40px;

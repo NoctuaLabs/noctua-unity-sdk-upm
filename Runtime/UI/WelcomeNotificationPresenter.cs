@@ -24,10 +24,10 @@ namespace com.noctuagames.sdk.UI
 
         public void Show(UserBundle userBundle)
         {
-            StartCoroutine(ShowWelcomeToast(userBundle));
+            StartCoroutine(RunAnimation(userBundle));
         }
 
-        private IEnumerator ShowWelcomeToast(UserBundle userBundle)
+        public IEnumerator RunAnimation(UserBundle userBundle)
         {
             View.visible = true;
             
