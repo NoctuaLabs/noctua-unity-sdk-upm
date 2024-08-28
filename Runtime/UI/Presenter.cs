@@ -38,8 +38,14 @@ namespace com.noctuagames.sdk.UI
 
         protected void LoadView()
         {
+            Debug.Log("LoadView " + GetType().Name);
             var viewResourceName = GetType().Name.Replace("Presenter", "");
+            Debug.Log("LoadView resource name " + viewResourceName);
             var view = Resources.Load<VisualTreeAsset>(viewResourceName).CloneTree();
+            if (view is null)
+            { 
+                Debug.LogError($"View not found for {viewResourceName}");
+            }
 
             View = view ?? throw new System.Exception($"View not found for {viewResourceName}");
             View.focusable = true;
@@ -49,6 +55,7 @@ namespace com.noctuagames.sdk.UI
 
             if (uiDoc is null)
             {
+                Debug.Log("UIDocument component not found on the GameObject " + GetType().Name);
                 throw new System.Exception("UIDocument component not found on the GameObject");
             }
             

@@ -7,6 +7,7 @@ namespace com.noctuagames.sdk
     {
         private UIDocument _uiDoc;
 
+
         private void Awake()
         {
             var visualTree = Resources.Load<VisualTreeAsset>("EditProfile");

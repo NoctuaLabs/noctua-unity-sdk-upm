@@ -1,7 +1,22 @@
 .base {
     background-color: rgb(31, 35, 39);
     color: white;
+    position:absolute;
 }
+
+.dialog-box {
+    position: absolute;
+    flex-direction: column;
+    border-radius: 20px;
+    top: 18px;
+    width: 319px;
+    height: 337px;
+    border-width: 1px;
+    align-items: center;
+    padding: 14px;
+    align-self: center;
+}
+
 
 /* Start Button Style */
 
@@ -193,19 +208,6 @@
     background-image: url("./LeftSeparatorLong.png");
     width: 100px;
     height: 1px;
-}
-
-.dialog-box {
-    position: absolute;
-    flex-direction: column;
-    border-radius: 20px;
-    top: 18px;
-    width: 319px;
-    height: 337px;
-    border-width: 1px;
-    align-items: center;
-    padding: 14px;
-    align-self: center;
 }
 
 .dialog-button {

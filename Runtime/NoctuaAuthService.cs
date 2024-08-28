@@ -13,11 +13,6 @@ using System.Net;
 using System.Net.Sockets;
 using System.Threading.Tasks;
 using System.Web;
-#if (UNITY_ANDROID || UNITY_IOS) && !UNITY_EDITOR
-using static UniWebView;
-#endif
-
-
 
 namespace com.noctuagames.sdk
 {
@@ -172,6 +167,9 @@ namespace com.noctuagames.sdk
 
         [JsonProperty("is_guest")]
         public bool IsGuest;
+
+        [JsonProperty("is_recent")]
+        public bool IsRecent;
     }
 
     public class LoginAsGuestRequest
@@ -251,7 +249,17 @@ namespace com.noctuagames.sdk
 
         public UserBundle RecentAccount { get; private set; }
 
-        public event Action<UserBundle> OnAuthenticated;
+        internal NoctuaBehaviour Behaviour {
+            get
+            {
+                NoctuaBehaviour behaviour = _noctuaGameObject.GetComponent<NoctuaBehaviour>();
+                if (behaviour == null) {
+                    behaviour = _noctuaGameObject.AddComponent<NoctuaBehaviour>();
+                }
+
+                return behaviour;
+            }
+        }
 
         private readonly Config _config;
 
@@ -359,36 +367,17 @@ namespace com.noctuagames.sdk
             return await request.Send<PlayerToken>();
         }
 
-        private NoctuaBehaviour GetNoctuaBehaviour()
-        {
-            NoctuaBehaviour noctuaBehaviour = _noctuaGameObject.GetComponent<NoctuaBehaviour>();
-            if (noctuaBehaviour == null) {
-                noctuaBehaviour = _noctuaGameObject.AddComponent<NoctuaBehaviour>();
-            }
-            return noctuaBehaviour;
-        }
-
         public async UniTask<UserBundle> Authenticate()
         {
-            GetNoctuaBehaviour(); // So welome box can be ready to be shown
-
+            // So welome box can be ready to be shown
             var userBundle = await AccountDetection();
             if (userBundle == null) {
                 // Account Selection is needed
                 userBundle = await ShowAccountSelectionUI();
             }
 
-            Debug.Log("Authenticate: userBundle user ID is " + userBundle?.User?.Id);
-
-            Debug.Log("Authenticate: triggerOnAuthenticated");
-            UniTask.Void(
-                async () =>
-                {
-                    OnAuthenticated?.Invoke(userBundle);
-
-                    await UniTask.Yield();
-                }
-            );
+            Debug.Log("Authenticate: show welcome toast for " + userBundle?.User?.Id);
+            Behaviour.ShowWelcomeToast(userBundle);
 
             return userBundle;
         }
@@ -402,23 +391,6 @@ namespace com.noctuagames.sdk
 
             Debug.Log("SocialLogin: " + provider + " " + redirectUrl);
 
-            #if (UNITY_ANDROID || UNITY_IOS) && !UNITY_EDITOR
-            Debug.Log("Initializing WebView");
-            var webView = _noctuaGameObject.AddComponent<UniWebView>();
-
-            webView.SetBackButtonEnabled(true);
-            webView.EmbeddedToolbar.Show();
-            webView.EmbeddedToolbar.SetDoneButtonText("Close");
-            webView.EmbeddedToolbar.SetPosition(UniWebViewToolbarPosition.Top);
-            webView.Frame = new Rect(0, 0, Screen.width, Screen.height);
-
-            webView.OnPageFinished += OnSocialLoginWebviewFinished;
-            webView.OnPageStarted += OnSocialLoginWebviewStarted;
-            Debug.Log("Loading URL: " + redirectUrl);
-            webView.Load(redirectUrl);
-            Debug.Log("Showing WebView");
-            webView.Show();
-            #else
             
             // Start HTTP server to listen to the callback with random port
             // open the browser with the redirect URL
@@ -447,8 +419,6 @@ namespace com.noctuagames.sdk
             
             httpServer.Stop();
 
-            #endif
-
             var userBundle = await AccountDetection();
             return userBundle;
         }
@@ -457,26 +427,8 @@ namespace com.noctuagames.sdk
         {
             var customerServiceUrl = Constants.CustomerServiceBaseUrl + "&gameCode=" + this.RecentAccount?.Player?.GameName + "&uid=" + this.RecentAccount?.User?.Id;
 
-            #if (UNITY_ANDROID || UNITY_IOS) && !UNITY_EDITOR
-            Debug.Log("Initializing WebView");
-            var webView = NoctuaGameObject.AddComponent<UniWebView>();
-
-            webView.SetBackButtonEnabled(true);
-            webView.EmbeddedToolbar.Show();
-            webView.EmbeddedToolbar.SetDoneButtonText("Close");
-            webView.EmbeddedToolbar.SetPosition(UniWebViewToolbarPosition.Top);
-            webView.Frame = new Rect(0, 0, Screen.width, Screen.height);
-
-            webView.OnPageFinished += OnSocialLoginWebviewFinished;
-            webView.OnPageStarted += OnSocialLoginWebviewStarted;
-            Debug.Log("Loading URL: " + customerServiceUrl);
-            webView.Load(customerServiceUrl);
-            Debug.Log("Showing WebView");
-            webView.Show();
-            #else
             Debug.Log("Open URL with system browser: " + customerServiceUrl);
             Application.OpenURL(customerServiceUrl);
-            #endif
 
             var userBundle = await AccountDetection();
             return userBundle;
@@ -484,15 +436,21 @@ namespace com.noctuagames.sdk
 
         public async UniTask<UserBundle> ShowAccountSelectionUI()
         {
-            var noctuaBehaviour = GetNoctuaBehaviour();
-            noctuaBehaviour.SetAccountSelectionDialogVisibility(true);
+            Behaviour.ShowAccountSelectionDialogUI();
             return null;
         }
 
+        // TODO not a public facing API, need to be removed
         public async UniTask<UserBundle> ShowRegisterDialogUI()
         {
-            var noctuaBehaviour = GetNoctuaBehaviour();
-            noctuaBehaviour.ShowRegisterDialogUI();
+            Behaviour.ShowEmailRegisterDialogUI();
+            return null;
+        }
+
+        // TODO not a public facing API, need to be removed
+        public async UniTask<UserBundle> ShowEmailVerificationDialogUI()
+        {
+            Behaviour.ShowEmailVerificationDialogUI("foo", "bar", 123);
             return null;
         }
 
@@ -650,14 +608,22 @@ namespace com.noctuagames.sdk
             }
             // Update the LastUsed to mark the recent account
             userBundle.LastUsed = DateTime.UtcNow;
+            userBundle.IsRecent = true;
+            userBundle.IsGuest = userBundle?.Credential?.Provider == "device_id";
+
             bool found = false;
             for (int i = 0; i < accountContainer?.Accounts?.Count; i++) {
+
+                accountContainer.Accounts[i].IsGuest = accountContainer.Accounts[i]?.Credential?.Provider == "device_id";
+
                 if (accountContainer?.Accounts[i].Player.Id == userBundle.Player.Id
                 || accountContainer?.Accounts[i].User.Id == userBundle.User.Id) {
                     Debug.Log("UpdateRecentAccount update account in accounts list");
                     accountContainer.Accounts[i] = userBundle;
                     found = true;
                     break;
+                } else {
+                    accountContainer.Accounts[i].IsRecent = false;
                 }
             }
 
