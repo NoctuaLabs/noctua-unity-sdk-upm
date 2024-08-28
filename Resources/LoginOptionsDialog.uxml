@@ -11,11 +11,11 @@
         <ui:VisualElement class="social-account-row">
             <ui:Button name="LoginWithGoogleButton" class="social-account-button">
                 <ui:VisualElement class="login-method-logo google-logo" />
-                <ui:Label text="Google" />
+                <ui:Label text="Google" class="social-account-label" />
             </ui:Button>
             <ui:Button name="LoginWithFacebookButton" class="social-account-button">
                 <ui:VisualElement class="login-method-logo facebook-logo" />
-                <ui:Label text="Facebook" />
+                <ui:Label text="Facebook" class="social-account-label" />
             </ui:Button>
         </ui:VisualElement>
         <ui:VisualElement class="login-method-separator">
@@ -25,7 +25,7 @@
         </ui:VisualElement>
         <ui:Button name="LoginWithEmailButton" class="button-normal login-with-email-button">
             <ui:VisualElement class="login-method-logo email-icon" />
-            <ui:Label text="Login With Email" />
+            <ui:Label text="Login With Email" class="social-account-label" />
         </ui:Button>
         <ui:Label name="LoginOptionsInfoLabel" text="By logging in or registering, you agree to our Terms of Service\n and Privacy Policy." class="tnc-text" />
         <ui:Button name="RegisterButton" class="register-button">

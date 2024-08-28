@@ -11,16 +11,16 @@
 }
 
 
-.account-item-player-name {
+.player-name {
     margin-left: 10px;
     font-size: 14px;
 }
 
-.account-item-spacing {
+.spacing {
     flex: 1;
 }
 
-.account-item-recent-label {
+.recent-label {
     font-size: 10px;
 }
 

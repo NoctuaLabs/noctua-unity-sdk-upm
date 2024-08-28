@@ -32,7 +32,7 @@ namespace com.noctuagames.sdk
         public string Action;
         private PanelSettings _panelSettings;
         private UIDocument _uiDocument;
-        
+
         private AccountSelectionDialogPresenter _accountSelectionDialog;
         private SwitchAccountConfirmationDialogPresenter _switchAccountConfirmationDialog;
         private LoginOptionsDialogPresenter _loginOptionsDialog;

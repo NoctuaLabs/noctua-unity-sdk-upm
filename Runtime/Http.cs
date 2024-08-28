@@ -1,12 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
-using com.noctuagames.sdk;
 using Cysharp.Threading.Tasks;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
 using UnityEngine;
 using UnityEngine.Networking;
-using System.Collections.Generic;
 
 namespace com.noctuagames.sdk
 {
@@ -81,7 +79,7 @@ namespace com.noctuagames.sdk
     
     internal class HttpRequest
     {
-        private readonly UnityWebRequest _request = new UnityWebRequest();
+        private readonly UnityWebRequest _request = new();
         private readonly JsonSerializerSettings _jsonSettings = new()
         {
             ContractResolver = new DefaultContractResolver

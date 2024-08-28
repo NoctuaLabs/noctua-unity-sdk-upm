@@ -1,3 +1,5 @@
+/* General */
+
 .base {
     background-color: rgb(31, 35, 39);
     color: white;
@@ -8,8 +10,26 @@
     display: none !important;
 }
 
+.err-label {
+    color: red;
+    font-size: 10px;
+}
+
+.unity-list-view__empty-label {
+    display: none;
+}
+
+.unity-scroller--vertical {
+    width: 4px;
+    background-color: #2D3138;
+}
+
+/* End General */
+
+/* Dialog */
+
 .dialog-box {
-    top: 50px;
+    top: 12px;
     position: absolute;
     flex-direction: column;
     border-radius: 20px;
@@ -70,7 +90,10 @@
     font-size: 10px;
 }
 
-/* Start Button Style */
+/* End Dialog */
+
+
+/* Button */
 
 .button-highlight {
     background-color: rgb(59, 130, 246);
@@ -147,7 +170,9 @@
     align-items: auto;
 }
 
-/* End Button Style */
+/* End Button */
+
+/* Image */
 
 .noctua-logo {
     background-image: url("./NoctuaLogo.png");
@@ -159,7 +184,6 @@
     align-items: center;
     justify-content: center;
 }
-
 
 .noctua-logo-with-text {
     background-image: url("./NoctuaLogoWithText.png");
@@ -174,8 +198,6 @@
 .facebook-logo {
     background-image: url("./FacebookLogo.png");
 }
-
-
 
 .email-icon {
     background-image: url("./EmailIcon.png");
@@ -276,20 +298,16 @@
     height: 1px;
 }
 
-.dialog-button {
-    height: 40px;
-    border-radius: 10px;
-    font-size: 12px;
-    align-self: stretch;
-}
+/* End Images */
 
+/* Text Input */
 
-/* General Noctua Text Input */
 /*
   The noctua-text-input class only control the position and flex
   The actual cosmetics are controlled by unity-base-* and unity-text-* classes below
   because their CSS behaviour is hard to override.
 */
+
 .noctua-text-input {
     position: relative;
     flex-direction: column;
@@ -364,9 +382,3 @@ Label:hover {
 }
 
 /* End Text Input */
-
-
-.unity-scroller--vertical {
-    width: 4px;
-    background-color: #2D3138;
-}
