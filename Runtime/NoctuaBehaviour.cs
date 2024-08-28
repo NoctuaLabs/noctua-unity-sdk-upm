@@ -106,7 +106,7 @@ namespace com.noctuagames.sdk
             _switchAccountConfirmationDialog.Show(recentAccount);
         }
 
-        private void ShowWelcomeToast(UserBundle recentAccount){
+        public void ShowWelcomeToast(UserBundle recentAccount){
             _welcome.Show(recentAccount);
         }
 
