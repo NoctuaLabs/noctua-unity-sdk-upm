@@ -367,6 +367,16 @@ namespace com.noctuagames.sdk
             return await request.Send<PlayerToken>();
         }
 
+        /// <summary>
+        /// Authenticates the user and returns the user bundle.
+        /// 
+        /// If the user bundle is not detected, it will show the account selection UI.
+        /// 
+        /// After authentication, it will show a welcome toast for the user.
+        /// 
+        /// Returns the authenticated user bundle.
+        /// </summary>
+        /// <returns>A UserBundle object representing the selected account.</returns>
         public async UniTask<UserBundle> Authenticate()
         {
             // So welome box can be ready to be shown
@@ -434,10 +444,17 @@ namespace com.noctuagames.sdk
             return userBundle;
         }
 
+        /// <summary>
+        /// Displays the account selection user interface.
+        /// 
+        /// This function does not take any parameters and returns a UserBundle object.
+        /// </summary>
+        /// <returns>A UserBundle object representing the selected account.</returns>
         public async UniTask<UserBundle> ShowAccountSelectionUI()
         {
             Behaviour.ShowAccountSelectionDialogUI();
-            return null;
+            // TODO how to wait for account selection flow to complete before continue?
+            return RecentAccount;
         }
 
         // TODO not a public facing API, need to be removed
