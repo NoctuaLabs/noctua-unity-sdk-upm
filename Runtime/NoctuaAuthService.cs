@@ -443,14 +443,14 @@ namespace com.noctuagames.sdk
         // TODO not a public facing API, need to be removed
         public async UniTask<UserBundle> ShowRegisterDialogUI()
         {
-            Behaviour.ShowEmailRegisterDialogUI();
+            Behaviour.ShowEmailRegisterDialogUI(true);
             return null;
         }
 
         // TODO not a public facing API, need to be removed
         public async UniTask<UserBundle> ShowEmailVerificationDialogUI()
         {
-            Behaviour.ShowEmailVerificationDialogUI("foo", "bar", 123);
+            Behaviour.ShowEmailVerificationDialogUI("herpiko@gmail.com", "arstarst", 123);
             return null;
         }
 
@@ -754,6 +754,12 @@ namespace com.noctuagames.sdk
         // TODO: Add support for phone
         public async UniTask<CredentialVerification> RegisterWithPassword(string email, string password)
         {
+
+            // Check for AccessToken
+            if (string.IsNullOrEmpty(RecentAccount?.Player?.AccessToken)) {
+                throw NoctuaException.MissingAccessToken;
+            }
+
             Debug.Log("RegisterWithPassword: " + email + " : " + password);
             var request = new HttpRequest(HttpMethod.Post, $"{_config.BaseUrl}/auth/email/register")
                 .WithHeader("X-CLIENT-ID", _config.ClientId)
@@ -782,10 +788,11 @@ namespace com.noctuagames.sdk
             }
         }
 
-        public async UniTask<PlayerToken> VerifyCredential(int id, string code)
+        public async UniTask<UserBundle> VerifyCredential(int id, string code)
         {
             var request = new HttpRequest(HttpMethod.Post, $"{_config.BaseUrl}/auth/email/verify-registration")
                 .WithHeader("X-CLIENT-ID", _config.ClientId)
+                .WithHeader("Authorization", "Bearer " + RecentAccount.Player.AccessToken)
                 .WithJsonBody(
                     new CredentialVerification
                     {
@@ -795,7 +802,12 @@ namespace com.noctuagames.sdk
                 );
 
             var response = await request.Send<PlayerToken>();
-            return response;
+
+            var accountContainer = ReadPlayerPrefsAccountContainer();
+            var recentAccount = TransformTokenResponseToUserBundle(response);
+            UpdateRecentAccount(recentAccount, accountContainer);
+
+            return recentAccount;
         }
 
         // TODO: Add support for phone
