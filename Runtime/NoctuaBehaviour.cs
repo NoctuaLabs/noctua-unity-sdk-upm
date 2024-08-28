@@ -6,17 +6,20 @@ using UnityEngine.UIElements;
 namespace com.noctuagames.sdk
 {
     /*
-    Actually, we were using UI-Presenter-Model pattern where the presenter being the place of the main logics.
+    We were using Model-View-Presenter, further reading:
+    - https://en.wikipedia.org/wiki/Model%E2%80%93view%E2%80%93presenter
+    - https://medium.com/cr8resume/make-you-hand-dirty-with-mvp-model-view-presenter-eab5b5c16e42
+    - https://www.baeldung.com/mvc-vs-mvp-pattern
     
     But in our case, we have unique conditions:
     1. Our model (*Services.cs) is the public facing API
     2. Our public facing API need to cover both UI and non-UI stuff.
 
-    Thus, we have to tweak the pattern to UI-Presenter-Model-API
+    Thus, we have to tweak the pattern to API-Model-View-Presenter
     1. UI:
     1. Presenter: where we control the state of the UI, but not the main logics
     2. Model: main logics + public facing API
-    3. API: the actual model, where we talk to either HTTP API or local storage (like player prefs)
+    3. API: the actual model, where we talk to either HTTP API or local storage like player prefs. (TODO)
 
     NoctuaBehaviour purposes:
     1. To allow our SDK instance (including UI) to be injected into the Scene
@@ -34,7 +37,7 @@ namespace com.noctuagames.sdk
         private SwitchAccountConfirmationDialogPresenter _switchAccountConfirmationDialog;
         private LoginOptionsDialogPresenter _loginOptionsDialog;
         private EmailLoginDialogPresenter _emailLoginDialog;
-        private RegisterDialogPresenter _registerDialog;
+        private EmailRegisterDialogPresenter _emailRegisterDialog;
         private EmailVerificationDialogPresenter _emailVerificationDialog;
         private WelcomeNotificationPresenter _welcome;
 
@@ -51,7 +54,7 @@ namespace com.noctuagames.sdk
             _uiDocument.rootVisualElement.AddToClassList("root");
             _uiDocument.rootVisualElement.focusable = true;
             _uiDocument.rootVisualElement.Focus();
-            
+
             _welcome = gameObject.AddComponent<WelcomeNotificationPresenter>();
             _welcome.SetModel(this);
 
@@ -70,8 +73,8 @@ namespace com.noctuagames.sdk
             _emailVerificationDialog = gameObject.AddComponent<EmailVerificationDialogPresenter>();
             _emailVerificationDialog.SetModel(this);
 
-            _registerDialog = gameObject.AddComponent<RegisterDialogPresenter>();
-            _registerDialog.SetModel(this);
+            _emailRegisterDialog = gameObject.AddComponent<EmailRegisterDialogPresenter>();
+            _emailRegisterDialog.SetModel(this);
         }
 
         public void ShowAccountSelectionDialogUI()
@@ -79,12 +82,9 @@ namespace com.noctuagames.sdk
             _accountSelectionDialog.Show();
         }
 
-        public void ShowRegisterDialogUI()
+        public void ShowEmailRegisterDialogUI()
         {
-            // Disable all dialogs first
-            _accountSelectionDialog.Visible = false;
-
-            _registerDialog.Show();
+            _emailRegisterDialog.Show();
         }
 
         public void ShowEmailVerificationDialogUI(string email, string password, int verificationID)

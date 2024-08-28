@@ -36,7 +36,6 @@ namespace com.noctuagames.sdk.UI
 
         private void SetupView()
         {
-            /*
             var code1 = View.Q<TextField>("Code1");
             var code2 = View.Q<TextField>("Code2");
             var code3 = View.Q<TextField>("Code3");
@@ -48,8 +47,6 @@ namespace com.noctuagames.sdk.UI
             var verifyButton = View.Q<Button>("VerifyButton");
 
             verifyButton.RegisterCallback<ClickEvent>(OnVerifyButtonClick);
-            */
-
         }
 
          private void OnVerifyButtonClick(ClickEvent evt)

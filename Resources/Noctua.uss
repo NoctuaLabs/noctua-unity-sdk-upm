@@ -1,7 +1,22 @@
 .base {
     background-color: rgb(31, 35, 39);
     color: white;
+    position:absolute;
 }
+
+.dialog-box {
+    position: absolute;
+    flex-direction: column;
+    border-radius: 20px;
+    top: 18px;
+    width: 319px;
+    height: 337px;
+    border-width: 1px;
+    align-items: center;
+    padding: 14px;
+    align-self: center;
+}
+
 
 /* Start Button Style */
 
@@ -194,18 +209,21 @@
     width: 100px;
     height: 1px;
 }
+/*
+        <!--
+         style="padding-top: 15px; padding-right: 15px; padding-bottom: 15px; padding-left: 15px; margin-top: 10px; margin-right: 10px; margin-bottom: 10px; margin-left: 10px; flex-grow: 0; flex-shrink: 1; top: auto; position: relative; display: flex; border-top-left-radius: 20px; border-top-right-radius: 20px; border-bottom-right-radius: 20px; border-bottom-left-radius: 20px; border-top-width: 1px; border-right-width: 1px; border-bottom-width: 1px; border-left-width: 1px; border-left-color: rgb(88, 88, 88); border-right-color: rgb(88, 88, 88); border-top-color: rgb(88, 88, 88); border-bottom-color: rgb(88, 88, 88); width: 319px;">
+         -->
+*/
 
-.dialog-box {
-    position: absolute;
+.foo {
     flex-direction: column;
-    border-radius: 20px;
+    align-self: center;
     top: 18px;
+    border-radius: 20px;
     width: 319px;
     height: 337px;
     border-width: 1px;
-    align-items: center;
     padding: 14px;
-    align-self: center;
 }
 
 .dialog-button {

@@ -68,10 +68,10 @@ namespace com.noctuagames.sdk.UI
         }
 
         
-        private async void OnRegisterButtonClicked()
+        private void OnRegisterButtonClicked()
         {
             Visible = false;
-            await Model.AuthService.ShowRegisterDialogUI();
+            Model.AuthService.ShowRegisterDialogUI();
         }
 
         private void OnBackButtonClicked()

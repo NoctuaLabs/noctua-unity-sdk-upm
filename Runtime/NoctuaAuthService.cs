@@ -251,6 +251,16 @@ namespace com.noctuagames.sdk
 
         private readonly Config _config;
 
+        private NoctuaBehaviour GetNoctuaBehaviour()
+        {
+            var behaviour = _noctuaGameObject.GetComponent<NoctuaBehaviour>();
+            if (behaviour == null) {
+                behaviour = _noctuaGameObject.AddComponent<NoctuaBehaviour>();
+            }
+
+            return behaviour;
+        }
+
         internal NoctuaAuthService(Config config)
         {
             _config = config;
@@ -355,20 +365,9 @@ namespace com.noctuagames.sdk
             return await request.Send<PlayerToken>();
         }
 
-        private NoctuaBehaviour GetNoctuaBehaviour()
-        {
-            NoctuaBehaviour noctuaBehaviour = _noctuaGameObject.GetComponent<NoctuaBehaviour>();
-            if (noctuaBehaviour == null) {
-                noctuaBehaviour = _noctuaGameObject.AddComponent<NoctuaBehaviour>();
-            }
-            return noctuaBehaviour;
-        }
-
         public async UniTask<UserBundle> Authenticate()
         {
             // So welome box can be ready to be shown
-            var noctuaBehaviour = GetNoctuaBehaviour();
-
             var userBundle = await AccountDetection();
             if (userBundle == null) {
                 // Account Selection is needed
@@ -376,7 +375,7 @@ namespace com.noctuagames.sdk
             }
 
             Debug.Log("Authenticate: show welcome toast for " + userBundle?.User?.Id);
-            noctuaBehaviour.ShowWelcomeToast(userBundle);
+            GetNoctuaBehaviour().ShowWelcomeToast(userBundle);
 
             return userBundle;
         }
@@ -390,23 +389,6 @@ namespace com.noctuagames.sdk
 
             Debug.Log("SocialLogin: " + provider + " " + redirectUrl);
 
-            #if (UNITY_ANDROID || UNITY_IOS) && !UNITY_EDITOR
-            Debug.Log("Initializing WebView");
-            var webView = _noctuaGameObject.AddComponent<UniWebView>();
-
-            webView.SetBackButtonEnabled(true);
-            webView.EmbeddedToolbar.Show();
-            webView.EmbeddedToolbar.SetDoneButtonText("Close");
-            webView.EmbeddedToolbar.SetPosition(UniWebViewToolbarPosition.Top);
-            webView.Frame = new Rect(0, 0, Screen.width, Screen.height);
-
-            webView.OnPageFinished += OnSocialLoginWebviewFinished;
-            webView.OnPageStarted += OnSocialLoginWebviewStarted;
-            Debug.Log("Loading URL: " + redirectUrl);
-            webView.Load(redirectUrl);
-            Debug.Log("Showing WebView");
-            webView.Show();
-            #else
             
             // Start HTTP server to listen to the callback with random port
             // open the browser with the redirect URL
@@ -435,8 +417,6 @@ namespace com.noctuagames.sdk
             
             httpServer.Stop();
 
-            #endif
-
             var userBundle = await AccountDetection();
             return userBundle;
         }
@@ -445,26 +425,8 @@ namespace com.noctuagames.sdk
         {
             var customerServiceUrl = Constants.CustomerServiceBaseUrl + "&gameCode=" + this.RecentAccount?.Player?.GameName + "&uid=" + this.RecentAccount?.User?.Id;
 
-            #if (UNITY_ANDROID || UNITY_IOS) && !UNITY_EDITOR
-            Debug.Log("Initializing WebView");
-            var webView = NoctuaGameObject.AddComponent<UniWebView>();
-
-            webView.SetBackButtonEnabled(true);
-            webView.EmbeddedToolbar.Show();
-            webView.EmbeddedToolbar.SetDoneButtonText("Close");
-            webView.EmbeddedToolbar.SetPosition(UniWebViewToolbarPosition.Top);
-            webView.Frame = new Rect(0, 0, Screen.width, Screen.height);
-
-            webView.OnPageFinished += OnSocialLoginWebviewFinished;
-            webView.OnPageStarted += OnSocialLoginWebviewStarted;
-            Debug.Log("Loading URL: " + customerServiceUrl);
-            webView.Load(customerServiceUrl);
-            Debug.Log("Showing WebView");
-            webView.Show();
-            #else
             Debug.Log("Open URL with system browser: " + customerServiceUrl);
             Application.OpenURL(customerServiceUrl);
-            #endif
 
             var userBundle = await AccountDetection();
             return userBundle;
@@ -472,24 +434,21 @@ namespace com.noctuagames.sdk
 
         public async UniTask<UserBundle> ShowAccountSelectionUI()
         {
-            var noctuaBehaviour = GetNoctuaBehaviour();
-            noctuaBehaviour.ShowAccountSelectionDialogUI();
+            GetNoctuaBehaviour().ShowAccountSelectionDialogUI();
             return null;
         }
 
         // TODO not a public facing API, need to be removed
         public async UniTask<UserBundle> ShowRegisterDialogUI()
         {
-            var noctuaBehaviour = GetNoctuaBehaviour();
-            noctuaBehaviour.ShowRegisterDialogUI();
+            GetNoctuaBehaviour().ShowEmailRegisterDialogUI();
             return null;
         }
 
         // TODO not a public facing API, need to be removed
         public async UniTask<UserBundle> ShowEmailVerificationDialogUI()
         {
-            var noctuaBehaviour = GetNoctuaBehaviour();
-            noctuaBehaviour.ShowEmailVerificationDialogUI("foo", "bar", 123);
+            GetNoctuaBehaviour().ShowEmailVerificationDialogUI("foo", "bar", 123);
             return null;
         }
 
