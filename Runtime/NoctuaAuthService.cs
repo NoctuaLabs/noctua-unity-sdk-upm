@@ -249,17 +249,19 @@ namespace com.noctuagames.sdk
 
         public UserBundle RecentAccount { get; private set; }
 
-        private readonly Config _config;
+        internal NoctuaBehaviour Behaviour {
+            get
+            {
+                NoctuaBehaviour behaviour = _noctuaGameObject.GetComponent<NoctuaBehaviour>();
+                if (behaviour == null) {
+                    behaviour = _noctuaGameObject.AddComponent<NoctuaBehaviour>();
+                }
 
-        private NoctuaBehaviour GetNoctuaBehaviour()
-        {
-            var behaviour = _noctuaGameObject.GetComponent<NoctuaBehaviour>();
-            if (behaviour == null) {
-                behaviour = _noctuaGameObject.AddComponent<NoctuaBehaviour>();
+                return behaviour;
             }
-
-            return behaviour;
         }
+
+        private readonly Config _config;
 
         internal NoctuaAuthService(Config config)
         {
@@ -375,7 +377,7 @@ namespace com.noctuagames.sdk
             }
 
             Debug.Log("Authenticate: show welcome toast for " + userBundle?.User?.Id);
-            GetNoctuaBehaviour().ShowWelcomeToast(userBundle);
+            Behaviour.ShowWelcomeToast(userBundle);
 
             return userBundle;
         }
@@ -434,21 +436,21 @@ namespace com.noctuagames.sdk
 
         public async UniTask<UserBundle> ShowAccountSelectionUI()
         {
-            GetNoctuaBehaviour().ShowAccountSelectionDialogUI();
+            Behaviour.ShowAccountSelectionDialogUI();
             return null;
         }
 
         // TODO not a public facing API, need to be removed
         public async UniTask<UserBundle> ShowRegisterDialogUI()
         {
-            GetNoctuaBehaviour().ShowEmailRegisterDialogUI();
+            Behaviour.ShowEmailRegisterDialogUI();
             return null;
         }
 
         // TODO not a public facing API, need to be removed
         public async UniTask<UserBundle> ShowEmailVerificationDialogUI()
         {
-            GetNoctuaBehaviour().ShowEmailVerificationDialogUI("foo", "bar", 123);
+            Behaviour.ShowEmailVerificationDialogUI("foo", "bar", 123);
             return null;
         }
 
