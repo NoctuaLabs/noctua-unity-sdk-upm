@@ -15,6 +15,8 @@ namespace com.noctuagames.sdk.UI
             rotatingRectangle.style.width = 2;   // Width
             rotatingRectangle.style.height = 24; // Height (15 times the width)
             rotatingRectangle.style.backgroundColor = new Color(0.231f, 0.510f, 0.965f);  // Hex color #3B82F6
+            // How to set background image?
+            // rotatingRectangle.style.backgroundImage = new StyleBackground(Resources.Load<Texture2D>("Spinner.png"));
 
             // Add the rectangle to the Spinner element
             this.Add(rotatingRectangle);

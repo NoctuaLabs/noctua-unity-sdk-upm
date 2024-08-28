@@ -31,6 +31,7 @@ public class NoctuaException : Exception
     public static readonly NoctuaException RequestDataProcessingError = new NoctuaException(3002, "Request data processing error");
     public static readonly NoctuaException RequestProtocolError = new NoctuaException(3003, "Request protocol error");
     public static readonly NoctuaException RequestUnreplacedParam = new NoctuaException(3004, "Request unreplaced param");
+    public static readonly NoctuaException MissingAccessToken = new NoctuaException(3005, "Missing access token");
 }
 
 public class ErrorResponse

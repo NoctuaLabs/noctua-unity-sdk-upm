@@ -4,11 +4,15 @@
     position:absolute;
 }
 
+.hide {
+    display: none !important;
+}
+
 .dialog-box {
+    top: 50px;
     position: absolute;
     flex-direction: column;
     border-radius: 20px;
-    top: 18px;
     width: 319px;
     height: 337px;
     border-width: 1px;
@@ -17,6 +21,54 @@
     align-self: center;
 }
 
+.dialog-header {
+    height: 24px;
+    flex-direction: row;
+    font-size: 12px;
+    align-items: center;
+    align-self: flex-start;
+}
+
+.dialog-title {
+    font-size: 16px;
+}
+
+.dialog-back-button {
+    margin-top:20px;
+    margin-right:14px;
+    height:24px;
+    width: 24px;
+    flex-direction: column;
+    border-width: 0;
+    border-color: transparent;
+    background-color: transparent;
+    justify-content: flex-start;
+    background-image: url("./Backicon.png");
+    align-items: auto;
+}
+
+.dialog-content {
+    padding: 14px;
+    margin-top: 15px;
+    flex-direction: column;
+    width: 300px;
+}
+
+.dialog-footer {
+    padding: 14px;
+    width: 300px;
+    margin-top: 10px;
+    margin-bottom: 10px;
+    align-items: center;
+    justify-content: center;
+}
+
+.dialog-err-label {
+    margin-top:10px;
+    margin-bottom:10px;
+    color: red;
+    font-size: 10px;
+}
 
 /* Start Button Style */
 
@@ -41,25 +93,39 @@
     color: #3B82F6;
 }
 
-.noctua-button {
+.dialog-button {
+    height: 60px;
+    width: 100%;
     background-color: #3B82F6;
     border-width: 0 !important;
     border-color: transparent;
+    padding-top: 14px;
+    padding-right: 24px;
+    padding-bottom: 14px;
+    padding-left: 24px;
+    border-top-left-radius: 10px;
+    border-top-right-radius: 10px;
+    border-bottom-right-radius: 10px;
+    border-bottom-left-radius: 10px;
+    margin-top: 0;
+    margin-right: 0;
+    margin-bottom: 0;
+    margin-left: 0;
 }
 
-.noctua-button:disabled {
+.dialog-button:disabled {
     background-color: #474B4E;
     border-width: 0 !important;
     border-color: transparent;
 }
 
-.noctua-button:hover {
+.dialog-button:hover {
     background-color: #5190F7;
     border-width: 0 !important;
     border-color: transparent;
 }
 
-.noctua-button:active {
+.dialog-button:active {
     background-color: #295BAC;
     border-width: 0 !important;
     border-color: transparent;
@@ -303,13 +369,4 @@ Label:hover {
 .unity-scroller--vertical {
     width: 4px;
     background-color: #2D3138;
-}
-
-.err-label {
-    color: red;
-    font-size: 10px;
-}
-
-.hide {
-    display: none !important;
 }

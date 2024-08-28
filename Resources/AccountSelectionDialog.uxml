@@ -3,7 +3,7 @@
     <Style src="./AccountSelectionDialog.uss" />
     <ui:VisualElement name="AccountSelectionDialog" class="base dialog-box">
         <ui:VisualElement name="NoctuaLogoWithText" class="noctua-logo-with-text" />
-        <ui:Label name="AccountSelectionInfo" text="Choose Account" class="account-selection-info" />
+        <ui:Label name="AccountSelectionInfo" text="Choose Account" class="account-selection-info dialog-title" />
         <ui:ListView name="GameAccountList" class="account-selection-list" />
         <ui:VisualElement class="separator">
             <ui:VisualElement class="left-separator-short" />

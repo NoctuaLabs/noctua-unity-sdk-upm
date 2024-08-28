@@ -82,9 +82,9 @@ namespace com.noctuagames.sdk
             _accountSelectionDialog.Show();
         }
 
-        public void ShowEmailRegisterDialogUI()
+        public void ShowEmailRegisterDialogUI(bool clearForm)
         {
-            _emailRegisterDialog.Show();
+            _emailRegisterDialog.Show(clearForm);
         }
 
         public void ShowEmailVerificationDialogUI(string email, string password, int verificationID)

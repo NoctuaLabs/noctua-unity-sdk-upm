@@ -1,36 +1,29 @@
 <ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" xsi="http://www.w3.org/2001/XMLSchema-instance" engine="UnityEngine.UIElements" editor="UnityEditor.UIElements" noNamespaceSchemaLocation="../../../../UIElementsSchema/UIElements.xsd" editor-extension-mode="False">
     <Style src="project://database/Packages/com.noctuagames.sdk/Resources/Noctua.uss?fileID=7433441132597879392&amp;guid=fe35e550fb23b6446af377f994effe35&amp;type=3#Noctua" />
-    <!--
-    -->
-    <ui:VisualElement name="EmailVerificationDialog" class="base">
-        <ui:VisualElement class="base-header-with-close-button" style="top: auto; margin-top: 0; width: 280px; height: 40px;">
-            <ui:VisualElement class="box-back-button">
-                <ui:Button name="BackButton" class="back-button">
-                    <ui:VisualElement class="back-icon" />
-                </ui:Button>
-            </ui:VisualElement>
-            <ui:VisualElement class="box-text-verif-code">
-                <ui:Label text="Email Verifiction Code" />
-            </ui:VisualElement>
-            <ui:VisualElement class="box-close-button">
-                <ui:Button name="CloseButton" class="back-button">
-                    <ui:VisualElement class="close-icon" style="height: 20px; width: 20px;" />
-                </ui:Button>
-            </ui:VisualElement>
+    <ui:VisualElement name="EmailVerificationDialog" class="base dialog-box">
+        <ui:VisualElement name="DialogHeader" class="dialog-header">
+            <ui:Button display-tooltip-when-elided="true" name="BackButton" class="dialog-back-button" />
+            <ui:Label text="Email Verification Code" class="dialog-title" />
         </ui:VisualElement>
-        <ui:VisualElement style="top: auto; margin-top: 30px;">
-            <ui:Label text="A 6-digit code was sent to r****@****. Enter it within 10 minutes" display-tooltip-when-elided="true" style="justify-content: flex-start; align-items: stretch; flex-wrap: nowrap; -unity-text-align: middle-left; white-space: normal; top: auto; margin-top: 0; margin-right: 0; margin-bottom: 0; margin-left: 0; padding-top: 0; padding-right: 15px; padding-bottom: 0; padding-left: 15px; color: rgb(117, 117, 117);" />
-            <ui:VisualElement name="ContentCode" class="social-account-row" style="top: auto; -unity-text-align: middle-left; white-space: nowrap; flex-direction: row; flex-wrap: nowrap; margin-top: 30px; margin-right: 10px; margin-bottom: 10px; margin-left: 10px;">
-                <ui:TextField picking-mode="Ignore" max-length="1" tabindex="0" name="Code1" class="custom-textfield-input-code" />
-                <ui:TextField picking-mode="Ignore" max-length="1" tabindex="0" name="Code2" class="custom-textfield-input-code" />
-                <ui:TextField picking-mode="Ignore" max-length="1" name="Code3" class="custom-textfield-input-code" />
-                <ui:Label text="-" display-tooltip-when-elided="true" style="font-size: 16px;" />
-                <ui:TextField picking-mode="Ignore" max-length="1" name="Code4" class="custom-textfield-input-code" />
-                <ui:TextField picking-mode="Ignore" max-length="1" name="Code5" class="custom-textfield-input-code" />
-                <ui:TextField picking-mode="Ignore" max-length="1" name="Code6" class="custom-textfield-input-code" />
+        <ui:VisualElement name="DialogContent" class="dialog-content" style="justify-content: center; align-items: center; margin-top:24px;">
+            <ui:Label text="A 6-digit code was sent to your email." display-tooltip-when-elided="true" />
+            <ui:Label text="Please enter it within 10 minutes" display-tooltip-when-elided="true" style="margin-top:0px;"/>
+            <ui:TextField name="VerificationCode" class="noctua-text-input" style="width: 100%; margin-top:14px;"/>
+        </ui:VisualElement>
+        <ui:VisualElement class="dialog-footer" style="justify-content: center; align-items: center;">
+            <ui:VisualElement name="ErrBox" style="padding-top: 0; padding-right: 0; padding-bottom: 0; padding-left: 0; margin-top: 10px; margin-bottom: 10px; width: 100%; align-items: center; justify-content: center;">
+                <ui:Label name="ErrCode" display-tooltip-when-elided="true" class="dialog-err-label hide" />
+                <ui:Label name="ErrEmailEmpty" text="Email address should not be empty" display-tooltip-when-elided="true" class="dialog-err-label hide" />
+                <ui:Label name="ErrEmailInvalid" text="Email address is not valid" display-tooltip-when-elided="true" class="dialog-err-label hide" />
+                <ui:Label name="ErrPasswordMismatch" text="Password is not matched with repeated password" display-tooltip-when-elided="true" class="dialog-err-label hide" />
+                <ui:Label name="ErrPasswordTooShort" text="Password is too short. Minimum 6 character" display-tooltip-when-elided="true" class="dialog-err-label hide" />
+                <ui:Label name="ErrPasswordEmpty" text="Password should not be empty" display-tooltip-when-elided="true" class="dialog-err-label hide" />
             </ui:VisualElement>
-            <ui:Label text="Resend Code" display-tooltip-when-elided="true" name="ResendCode" class="disable-backgroud-button" style="margin-top: 10px; margin-right: 0; margin-bottom: 0; margin-left: 0; top: 5px; padding-right: 15px; padding-left: 15px; color: rgb(59, 130, 246); -unity-text-align: middle-left;" />
-            <ui:Button text="Verify" display-tooltip-when-elided="true" name="VerifyButton" class="dialog-button" style="height: 40px; margin-top: 90px; margin-right: 10px; margin-bottom: 10px; margin-left: 10px; top: auto; padding-top: 0; padding-right: 0; padding-bottom: 0; padding-left: 0;" />
+            <ui:Label name="ResendingCode" text="Sending verification code..." display-tooltip-when-elided="true" class="hide" style="margin-bottom:50px;"/>
+            <ui:Label name="VerifyingCode" text="Verifying..." display-tooltip-when-elided="true" class="hide" style="margin-bottom:50px;"/>
+            <ui:VisualElement name="Spinner" class="noctua-spinner hide" />
+            <ui:Label text="Resend Code" display-tooltip-when-elided="true" name="ResendCode" class="disable-backgroud-button" style="margin-top: 10px; margin-right: 0; margin-bottom: 0; margin-left: 0; top: 5px; color: rgb(59, 130, 246); -unity-text-align: middle-left;" />
+            <ui:Button text="Verify" display-tooltip-when-elided="true" name="VerifyButton" class="dialog-button" style="height: 40px; margin-top: 50px; margin-right: 10px; margin-bottom: 10px;" />
         </ui:VisualElement>
     </ui:VisualElement>
 </ui:UXML>
