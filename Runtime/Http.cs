@@ -1,10 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
 using Cysharp.Threading.Tasks;
-using Newtonsoft.Json;
+using Newtonsoft;
 using Newtonsoft.Json.Serialization;
 using UnityEngine;
 using UnityEngine.Networking;
+using Newtonsoft.Json;
+using System.Text.Json.Serialization;
+using System.Text.RegularExpressions;
 
 namespace com.noctuagames.sdk
 {
@@ -80,7 +83,7 @@ namespace com.noctuagames.sdk
     internal class HttpRequest
     {
         private readonly UnityWebRequest _request = new();
-        private readonly JsonSerializerSettings _jsonSettings = new()
+        private readonly Newtonsoft.Json.JsonSerializerSettings _jsonSettings = new()
         {
             ContractResolver = new DefaultContractResolver
             {
@@ -159,10 +162,83 @@ namespace com.noctuagames.sdk
 
         private class DataWrapper<T>
         {
+            [JsonProperty("success")]
+            public bool Success { get; set; }
+
             [JsonProperty("data")]
-            public T Data;
+            public T Data { get; set; }
+
+            // Parameterless constructor is not strictly required but can be useful for deserialization
+            public DataWrapper() { }
+
+            // Optional constructor for convenience
+            public DataWrapper(bool success, T data)
+            {
+                Success = success;
+                Data = data;
+            }
         }
-     
+
+        public static string ConvertSnakeCaseToCamelCase(string json)
+    {
+        var jsonDoc = System.Text.Json.JsonDocument.Parse(json);
+        var jsonObject = ProcessJsonElement(jsonDoc.RootElement);
+        return SerializeObjectToJson(jsonObject);
+    }
+
+    private static object ProcessJsonElement(System.Text.Json.JsonElement element)
+    {
+        switch (element.ValueKind)
+        {
+            case System.Text.Json.JsonValueKind.Object:
+                return ProcessJsonObject(element);
+            case System.Text.Json.JsonValueKind.Array:
+                return ProcessJsonArray(element);
+            default:
+                return element.ToString();  // Handle primitive types
+        }
+    }
+
+    private static Dictionary<string, object> ProcessJsonObject(System.Text.Json.JsonElement element)
+    {
+        var jsonObject = new Dictionary<string, object>();
+
+        foreach (var property in element.EnumerateObject())
+        {
+            var camelCaseName = ConvertSnakeToCamelCase(property.Name);
+            jsonObject[camelCaseName] = ProcessJsonElement(property.Value);
+        }
+
+        return jsonObject;
+    }
+
+    private static List<object> ProcessJsonArray(System.Text.Json.JsonElement arrayElement)
+    {
+        var jsonArray = new List<object>();
+
+        foreach (var item in arrayElement.EnumerateArray())
+        {
+            jsonArray.Add(ProcessJsonElement(item));
+        }
+
+        return jsonArray;
+    }
+
+    private static string ConvertSnakeToCamelCase(string snakeCase)
+    {
+        if (string.IsNullOrEmpty(snakeCase))
+            return snakeCase;
+
+        // Convert snake_case to camelCase
+        var camelCase = Regex.Replace(snakeCase, "_([a-z])", match => match.Groups[1].Value.ToUpper());
+        return char.ToLower(camelCase[0]) + camelCase.Substring(1);
+    }
+
+    private static string SerializeObjectToJson(object obj)
+    {
+        return System.Text.Json.JsonSerializer.Serialize(obj, new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
+    }
+
         public async UniTask<T> Send<T>()
         {
             Debug.Log("HttpRequest.Send");
@@ -178,8 +254,10 @@ namespace com.noctuagames.sdk
             string response = null;
 
             try {
+                Debug.Log("Http.Send() -> _request.SendWebRequest()");
                 await _request.SendWebRequest();
             } catch (Exception e) {
+                Debug.Log("Http.Send() -> _request.SendWebRequest() -> Exception");
                 Debug.Log(_request.result.ToString());
                 response = _request.downloadHandler.text;
                 Debug.Log(response);
@@ -208,9 +286,32 @@ namespace com.noctuagames.sdk
                 }
             }
 
+            Debug.Log("Http.Send() -> _request.SendWebRequest() -> Success");
             response = _request.downloadHandler.text;
             Debug.Log(response);
-            return JsonConvert.DeserializeObject<DataWrapper<T>>(response, _jsonSettings).Data;
+            #if UNITY_IOS
+                Debug.Log("Http.Send() -> JsonUtility.FromJson");
+                /* Not work: Exception: System.PlatformNotSupportedException: Operation is not supported on this platform.
+                  at System.Reflection.Emit.DynamicMethod..ctor (System.String name, System.Type returnType, System.Type[]
+                var CamelCaseResponse = ConvertSnakeCaseToCamelCase(response);
+                var result =  JsonUtility.FromJson<DataWrapper<T>>(CamelCaseResponse).Data;
+                */
+
+                var options = new System.Text.Json.JsonSerializerOptions
+                {
+                    PropertyNamingPolicy = new SnakeCaseNamingPolicy(),
+                    WriteIndented = true,
+                };
+                var result = System.Text.Json.JsonSerializer.Deserialize<DataWrapper<T>>(response, options);
+                Debug.Log("Http.Send() -> parsed");
+                Debug.Log(result);
+                return result.Data;
+            #else
+                Debug.Log("Http.Send() -> JsonConvert.DeserializeObject");
+                var result = JsonConvert.DeserializeObject<DataWrapper<T>>(response, _jsonSettings).Data;
+                Debug.Log("Http.Send() -> parsed");
+                Debug.Log(result);
+            #endif
         }
     }
 }

@@ -23,125 +23,138 @@ namespace com.noctuagames.sdk
     public class User
     {
         [JsonProperty("id")]
-        public int Id;
+        public int Id { get; set; }
 
         [JsonProperty("nickname")]
-        public string Nickname;
+        public string Nickname { get; set; }
 
         [JsonProperty("email_address")]
-        public string EmailAddress;
+        public string EmailAddress { get; set; }
 
         [JsonProperty("phone_number")]
-        public string PhoneNumbers;
+        public string PhoneNumbers { get; set; }
     }
 
     public class Credential {
         [JsonProperty("id")]
-        public int Id;
+        public int Id { get; set; }
 
         [JsonProperty("provider")]
-        public string Provider;
+        public string Provider { get; set; }
     }
 
     public class Player
     {
         [JsonProperty("access_token")]
-        public string AccessToken;
+        public string AccessToken { get; set; }
 
         [JsonProperty("id")]
-        public int Id;
+        public int Id { get; set; }
 
         [JsonProperty("role_id")]
-        public string RoleId;
+        public string RoleId { get; set; }
 
         [JsonProperty("server_id")]
-        public string ServerId;
+        public string ServerId { get; set; }
 
         [JsonProperty("username")] // in-game
-        public string Username;
+        public string Username { get; set; }
 
         [JsonProperty("game_id")]
-        public int GameId;
+        public int GameId { get; set; }
 
         [JsonProperty("game_name")]
-        public string GameName;
+        public string GameName { get; set; }
 
         [JsonProperty("game_platform_id")]
-        public int GamePlatformId;
+        public int GamePlatformId { get; set; }
 
         [JsonProperty("game_platform")]
-        public string GamePlatform;
+        public string GamePlatform { get; set; }
 
         [JsonProperty("game_os")]
-        public string GameOS;
+        public string GameOS { get; set; }
 
         [JsonProperty("bundle_id")]
-        public string BundleId;
+        public string BundleId { get; set; }
 
         [JsonProperty("user")]
-        public User User;
+        public User User { get; set; }
 
         [JsonProperty("user_id")]
-        public int UserId;
+        public int UserId { get; set; }
     }
 
     public class Game
     {
         [JsonProperty("id")]
-        public int Id;
+        public int Id { get; set; }
 
         [JsonProperty("name")]
-        public string Name;
+        public string Name { get; set; }
 
         [JsonProperty("platform_id")]
-        public int GamePlatformId;
+        public int GamePlatformId { get; set; }
 
     }
 
     public class GamePlatform
     {
         [JsonProperty("id")]
-        public int Id;
+        public int Id { get; set; }
 
         [JsonProperty("os")]
-        public string OS;
+        public string OS { get; set; }
 
         [JsonProperty("platform")]
-        public string Platform;
+        public string Platform { get; set; }
 
         [JsonProperty("bundle_id")]
-        public string BundleId;
+        public string BundleId { get; set; }
     }
 
     public class ExchangeTokenRequest {
         // Used for token exchange
         [JsonProperty("next_bundle_id")]
-        public string NextBundleId;
+        public string NextBundleId { get; set; }
 
         [JsonProperty("init_player")]
-        public bool InitPlayer;
+        public bool InitPlayer { get; set; }
     }
 
     public class PlayerToken
     {
         [JsonProperty("access_token")]
-        public string AccessToken;
-
+        public string AccessToken { get; set; }
 
         [JsonProperty("player")]
-        public Player Player;
+        public Player Player { get; set; }
 
         [JsonProperty("user")]
-        public User User;
+        public User User { get; set; }
 
         [JsonProperty("credential")]
-        public Credential Credential;
+        public Credential Credential { get; set; }
 
         [JsonProperty("game")]
-        public Game Game;
+        public Game Game { get; set; }
 
         [JsonProperty("game_platform")]
-        public GamePlatform GamePlatform;
+        public GamePlatform GamePlatform { get; set; }
+
+        // Parameterless constructor
+        public PlayerToken() { }
+
+    // Optional: You can add additional constructors if needed
+        public PlayerToken(string accessToken, Player player, User user, Credential credential, Game game, GamePlatform gamePlatform)
+        {
+            AccessToken = accessToken;
+            Player = player;
+            User = user;
+            Credential = credential;
+            Game = game;
+            GamePlatform = gamePlatform;
+        }
     }
 
 
