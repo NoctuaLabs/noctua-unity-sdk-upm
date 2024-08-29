@@ -91,8 +91,15 @@ public class NoctuaConfig
             else
             {
                 // Avoid BOM with [1..].
-                config = JsonConvert.DeserializeObject<GlobalConfig>(configLoadRequest.downloadHandler.text[1..]);
-                Debug.Log(config.ClientId);
+                if (configLoadRequest.downloadHandler.text.Length > 1)
+                {
+                    config = JsonConvert.DeserializeObject<GlobalConfig>(configLoadRequest.downloadHandler.text[1..]);
+                    Debug.Log(config.ClientId);
+                }
+                else
+                {
+                    Debug.Log("Loading streaming assets: configLoadRequest downloadHandler.text is too short.");
+                }
             }
             #endif
 
