@@ -1,4 +1,11 @@
-﻿.account-selection-info {
+﻿.list-container {
+    flex-direction: column;
+    align-items: stretch;
+    align-self: stretch;
+    flex-grow: 1;
+}
+
+.account-selection-info {
     flex-wrap: wrap;
     top: 10px;
     width: 187px;
@@ -13,11 +20,7 @@
     margin-top: 1px;
     margin-bottom: 1px;
     align-self: stretch;
-    flex-grow: 1;
-}
-
-.unity-scroller--vertical {
-    visibility: hidden;
+    align-items: stretch;
 }
 
 .separator {
@@ -35,15 +38,11 @@
 }
 
 .continue-other-button {
+    height: 40px;
     bottom: 0;
     border-color: #E5E7EB;
     border-width: 1px;
+    border-radius: 10px;
     background-color: rgb(31, 35, 39);
-}
-
-.account-item-padding {
-    flex-grow: 1;
-}
-
-.account-item-recent-label {
+    align-self: stretch;
 }

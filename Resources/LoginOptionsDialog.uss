@@ -7,11 +7,12 @@
 }
 
 .back-button {
+    padding: 0;
     background-color: transparent;
     border-color: transparent;
     width: 24px;
     height: 24px;
-    align-items: stretch;
+    align-items: center;
     justify-content: center;
 }
 
@@ -32,6 +33,11 @@
     padding: 6px;
     align-items: center;
     justify-content: center;
+}
+
+.social-account-label {
+    font-size: 10px;
+    -unity-text-align: middle-center;
 }
 
 .login-method-logo {

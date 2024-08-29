@@ -1,13 +1,10 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
-using com.noctuagames.sdk;
 using Cysharp.Threading.Tasks;
 using UnityEngine;
 using Application = UnityEngine.Device.Application;
 using SystemInfo = UnityEngine.Device.SystemInfo;
 using Newtonsoft.Json;
-using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
@@ -196,8 +193,8 @@ namespace com.noctuagames.sdk
         [JsonProperty("state")]
         public string State;
 
-        [JsonProperty("redirect_url")]
-        public string RedirectUrl;
+        [JsonProperty("redirect_uri")]
+        public string RedirectUri;
     }
 
     public class BindRequest
@@ -249,17 +246,9 @@ namespace com.noctuagames.sdk
 
         public UserBundle RecentAccount { get; private set; }
 
-        internal NoctuaBehaviour Behaviour {
-            get
-            {
-                NoctuaBehaviour behaviour = _noctuaGameObject.GetComponent<NoctuaBehaviour>();
-                if (behaviour == null) {
-                    behaviour = _noctuaGameObject.AddComponent<NoctuaBehaviour>();
-                }
+        private NoctuaBehaviour Behaviour =>
+            _noctuaGameObject.GetComponent<NoctuaBehaviour>() ?? _noctuaGameObject.AddComponent<NoctuaBehaviour>();
 
-                return behaviour;
-            }
-        }
 
         private readonly Config _config;
 
@@ -342,7 +331,7 @@ namespace com.noctuagames.sdk
         {
             Debug.Log("Social login callback: " + provider);
 
-            var request = new HttpRequest(HttpMethod.Post, $"{_config.BaseUrl}/social-login/{provider}/login/callback")
+            var request = new HttpRequest(HttpMethod.Post, $"{_config.BaseUrl}/auth/{provider}/login/callback")
                 .WithHeader("X-CLIENT-ID", _config.ClientId)
                 .WithHeader("Authorization", "Bearer " + RecentAccount.Player.AccessToken)
                 .WithJsonBody(payload);
@@ -381,10 +370,6 @@ namespace com.noctuagames.sdk
         {
             // So welome box can be ready to be shown
             var userBundle = await AccountDetection();
-            if (userBundle == null) {
-                // Account Selection is needed
-                userBundle = await ShowAccountSelectionUI();
-            }
 
             Debug.Log("Authenticate: show welcome toast for " + userBundle?.User?.Id);
             Behaviour.ShowWelcomeToast(userBundle);
@@ -394,43 +379,101 @@ namespace com.noctuagames.sdk
 
         public async UniTask<UserBundle> SocialLogin(string provider)
         {
-
             Debug.Log("SocialLogin: " + provider);
 
-            var redirectUrl = await GetSocialLoginRedirectURL(provider);
+            var socialLoginUrl = await GetSocialLoginRedirectURL(provider);
 
-            Debug.Log("SocialLogin: " + provider + " " + redirectUrl);
+            Debug.Log("SocialLogin: " + provider + " " + socialLoginUrl);
 
-            
+#if (UNITY_STANDALONE || UNITY_EDITOR) && !UNITY_WEBGL
+
             // Start HTTP server to listen to the callback with random port
             // open the browser with the redirect URL
-            
-            var task = new UniTaskCompletionSource();
+
+            var task = new TaskCompletionSource<Dictionary<string, string>>();
 
             void OnCallbackReceived(string callbackData)
             {
                 Debug.Log("HTTP Server received callback: " + callbackData);
-                task.TrySetResult();
+
+                task.TrySetResult(ParseQueryString(callbackData));
             }
 
-            var httpServer = new HttpServer("social-login-callback");
+            var httpServer = new HttpServer();
             httpServer.OnCallbackReceived += OnCallbackReceived;
             httpServer.Start();
 
-            Debug.Log($"HTTP Server running on port: {httpServer.Port} with path: {httpServer.Path}");
-            
-            var localRedirectUrl = HttpUtility.UrlEncode($"http://localhost:{httpServer.Port}/{httpServer.Path}");
-            Debug.Log("Open URL with system browser: " + redirectUrl + "&redirect_uri=" + localRedirectUrl);
-            Application.OpenURL(redirectUrl + "&redirect_uri=" + localRedirectUrl);
-            
-            await task.Task;
-            
+            var redirectUrl = $"http://localhost:{httpServer.Port}";
+            var url = $"{socialLoginUrl}&redirect_uri={HttpUtility.UrlEncode(redirectUrl)}";
+            Debug.Log($"Open URL with system browser: {url}");
+
+            Application.OpenURL(url);
+
+            var callbackDataMap = await task.Task;
+
+
             Debug.Log("HTTP Server received callback, stopping the server");
-            
+
             httpServer.Stop();
 
-            var userBundle = await AccountDetection();
+
+#elif UNITY_IOS || UNITY_ANDROID
+            // Open the browser with the redirect URL
+
+            var task = new TaskCompletionSource<Dictionary<string, string>>();
+            
+            Application.deepLinkActivated += (uri) =>
+            {
+                Debug.Log("Deep link activated: " + uri);
+                
+                var callbackDataMap = ParseQueryString(uri);
+                
+                task.TrySetResult(callbackDataMap);
+            };
+            
+            var redirectUrl = $"{Application.identifier}:/auth";
+            var url = $"{socialLoginUrl}&redirect_uri={HttpUtility.UrlEncode(redirectUrl)}";
+
+            Debug.Log($"Open URL with system browser: {url}");
+            Application.OpenURL(url);
+            
+            var callbackDataMap = await task.Task;
+
+#endif
+
+            var socialLoginRequest = new SocialLoginRequest
+            {
+                Code = callbackDataMap["code"],
+                State = callbackDataMap["state"],
+                RedirectUri = redirectUrl
+            };
+
+            var player = await SocialLogin(provider, socialLoginRequest);
+
+            var userBundle = TransformTokenResponseToUserBundle(player);
+            UpdateRecentAccount(userBundle, ReadPlayerPrefsAccountContainer());
+
             return userBundle;
+        }
+
+        private static Dictionary<string, string> ParseQueryString(string queryString)
+        {
+            var queryParameters = new Dictionary<string, string>();
+            queryString = queryString[(queryString.IndexOf('?') + 1)..];
+
+            var pairs = queryString.Split('&');
+            foreach (var pair in pairs)
+            {
+                var keyValue = pair.Split('=');
+
+                if (keyValue.Length != 2) continue;
+
+                var key = Uri.UnescapeDataString(keyValue[0]);
+                var value = Uri.UnescapeDataString(keyValue[1]);
+                queryParameters[key] = value;
+            }
+
+            return queryParameters;
         }
 
         public async UniTask<UserBundle> CustomerService()
@@ -458,17 +501,15 @@ namespace com.noctuagames.sdk
         }
 
         // TODO not a public facing API, need to be removed
-        public async UniTask<UserBundle> ShowRegisterDialogUI()
+        public void ShowRegisterDialogUI()
         {
             Behaviour.ShowEmailRegisterDialogUI(true);
-            return null;
         }
 
         // TODO not a public facing API, need to be removed
-        public async UniTask<UserBundle> ShowEmailVerificationDialogUI()
+        public void ShowEmailVerificationDialogUI()
         {
-            Behaviour.ShowEmailVerificationDialogUI("herpiko@gmail.com", "arstarst", 123);
-            return null;
+            Behaviour.ShowEmailVerificationDialogUI("foo", "bar", 123);
         }
 
         private async UniTask<UserBundle> AccountDetection()
@@ -667,7 +708,7 @@ namespace com.noctuagames.sdk
             for (int i = 0; i < accountContainer.Accounts.Count; i++) {
                 this.AccountList[accountContainer.Accounts[i].User.Id + ":"+ accountContainer.Accounts[i].Player.Id] = accountContainer.Accounts[i];
             }
-
+            
             return userBundle;
         }
 
@@ -894,29 +935,25 @@ namespace com.noctuagames.sdk
         }
     }
     
-    public class HttpServer
+    internal class HttpServer
     {
-        private readonly HttpListener _listener;
-
-        public int Port { get; }
-
-        public string Path { get; }
+        private readonly HttpListener _listener = new();
 
         public event Action<string> OnCallbackReceived;
+        public string Path;
+        public int Port;
 
-        public HttpServer(string path)
+        public void Start(string path = "")
         {
-            _listener = new HttpListener();
-            Port = GetRandomUnusedPort();
             Path = path;
-            _listener.Prefixes.Add($"http://localhost:{Port}/{Path}/");
-        }
-
-        public void Start()
-        {
+            Port = GetRandomUnusedPort();
+            
+            _listener.Prefixes.Add($"http://localhost:{Port}/{path.Trim('/')}/");
             _listener.Start();
+            
             Debug.Log($"HTTP Server started on port {Port} with path {Path}");
-            Task.Run(Listen);
+            
+            UniTask.Create(Listen);
         }
 
         public void Stop()
@@ -925,7 +962,7 @@ namespace com.noctuagames.sdk
             Debug.Log("HTTP Server stopped");
         }
 
-        private async Task Listen()
+        private async UniTask Listen()
         {
             while (_listener.IsListening)
             {
@@ -934,19 +971,26 @@ namespace com.noctuagames.sdk
                     var context = await _listener.GetContextAsync();
                     var request = context.Request;
                     var response = context.Response;
-
-                    if (request.HttpMethod == "GET")
+                    
+                    if (request.HttpMethod != "GET")
                     {
-                        var callbackData = request.Url.Query;
-                        OnCallbackReceived?.Invoke(callbackData);
+                        response.StatusCode = (int)HttpStatusCode.MethodNotAllowed;
+                        response.Close();
+                        continue;
                     }
+
+                    var callbackData = request.Url.Query;
 
                     response.StatusCode = (int)HttpStatusCode.OK;
                     response.ContentType = "text/plain";
                     var buffer = System.Text.Encoding.UTF8.GetBytes("Social login completed. You can close this window now.");
                     response.ContentLength64 = buffer.Length;
                     
+                    await response.OutputStream.WriteAsync(buffer, 0, buffer.Length);
+                    
                     response.Close();
+
+                    OnCallbackReceived?.Invoke(callbackData);
                 }
                 catch (Exception ex)
                 {

@@ -55,10 +55,8 @@ namespace com.noctuagames.sdk.UI
         private void OnLoginWithGoogleButtonClicked()
         {
             Visible = false;
-            UniTask.Void(async () =>
-            {
-                await Model.AuthService.SocialLogin("google");
-            });
+            
+            StartCoroutine(Model.AuthService.SocialLogin("google").ToCoroutine()); 
         }
 
         private void OnLoginWithEmailButtonClicked()
