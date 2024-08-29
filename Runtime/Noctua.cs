@@ -5,7 +5,7 @@ using Newtonsoft.Json;
 using UnityEngine;
 using UnityEngine.Networking;
 using System.Threading.Tasks;
-
+using System.Text;
 
 
 namespace com.noctuagames.sdk
@@ -38,11 +38,14 @@ public class NoctuaConfig
 
     public class GlobalConfig
     {
-        [JsonProperty("clientId")] public string ClientId { get; set; }
+        [JsonProperty("clientId")]
+        public string ClientId { get; set; }
 
-        [JsonProperty("adjust")] public AdjustConfig Adjust { get; set; }
+        [JsonProperty("adjust")]
+        public AdjustConfig Adjust { get; set; }
 
-        [JsonProperty("noctua")] public NoctuaConfig Noctua { get; set; }
+        [JsonProperty("noctua")]
+        public NoctuaConfig Noctua { get; set; }
     }
 
     public class Noctua
@@ -67,6 +70,9 @@ public class NoctuaConfig
             Debug.Log("Loading streaming assets...");
             var configPath = Path.Combine(Application.streamingAssetsPath, "noctuagg.json");
             Debug.Log(configPath);
+
+            // For Android
+            #if UNITY_ANDROID || UNITY_EDITOR_WIN
             var configLoadRequest = UnityWebRequest.Get(configPath);
             configLoadRequest.SendWebRequest();
             while (!configLoadRequest.isDone)
@@ -84,8 +90,43 @@ public class NoctuaConfig
             }
             else
             {
+                // Avoid BOM with [1..].
                 config = JsonConvert.DeserializeObject<GlobalConfig>(configLoadRequest.downloadHandler.text[1..]);
                 Debug.Log(config.ClientId);
+            }
+            #endif
+
+            #if UNITY_IOS || UNITY_EDITOR_OSX
+            Debug.Log("Loading streaming assets in IOS by using System.IO.File.ReadAllText: " + configPath);
+
+            string dataAsJson = System.IO.File.ReadAllText(configPath, Encoding.UTF8);
+
+            Debug.Log("Loading streaming assets in IOS. Reading result: " + dataAsJson);
+
+            Debug.Log("Loading streaming assets in IOS. Try to parse...");
+            config = JsonConvert.DeserializeObject<GlobalConfig>(dataAsJson);
+            if (config == null)
+            {
+                Debug.Log("Loading streaming assets in IOS. config is null.");
+            }
+            Debug.Log("Loading streaming assets in IOS. ClientID: " + config.ClientId);
+            
+            if (config.ClientId == null)
+            {
+                Debug.Log("Loading streaming assets in IOS. ClientID is null, try to hardcode");
+                config.ClientId = "1-e724f5a9e6f1";
+            }
+
+            #endif
+
+            if (config.Noctua == null)
+            {
+                config.Noctua = new NoctuaConfig();
+            }
+
+            if (config.Adjust == null)
+            {
+                config.Adjust = new AdjustConfig();
             }
 
             // Let's fill the empty fields, if any
@@ -136,6 +177,16 @@ public class NoctuaConfig
 
         public static void Init()
         {
+            Debug.Log("Noctua Init()");
+
+            Debug.Log("Noctua Init() -> Checking if Instance.Value is null");
+            if (Instance?.Value == null)
+            {
+                Debug.Log("Noctua Init() -> Instance.Value is null");
+
+            }
+
+            Debug.Log("Noctua.Init() -> Checking if instance has been called");
             if (Instance.Value._initialized)
             {
                 Debug.Log("Noctua.Init() has been called");
@@ -143,11 +194,14 @@ public class NoctuaConfig
                 return;
             }
             
-            Debug.Log("Noctua.Init()");
+            Debug.Log("Noctua.Init() -> nativePlugin?.Init()");
             Instance.Value._nativePlugin?.Init();
+
             #if UNITY_ANDROID && !UNITY_EDITOR
             Instance.Value._googleBilling?.Init();
             #endif
+
+            Debug.Log("Noctua.Init() set _initialized to true");
             Instance.Value._initialized = true;
         }
 

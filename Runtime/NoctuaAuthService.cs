@@ -273,6 +273,7 @@ namespace com.noctuagames.sdk
             Debug.Log("ClientId: " + _config.ClientId);
             var request = new HttpRequest(HttpMethod.Post, $"{_config.BaseUrl}/auth/guest/login")
                 .WithHeader("X-CLIENT-ID", _config.ClientId)
+                .WithHeader("X-BUNDLE-ID", Application.identifier)
                 .WithJsonBody(
                     new LoginAsGuestRequest
                     {
@@ -306,6 +307,7 @@ namespace com.noctuagames.sdk
 
             var request = new HttpRequest(HttpMethod.Post, $"{_config.BaseUrl}/auth/token-exchange")
                 .WithHeader("X-CLIENT-ID", _config.ClientId)
+                .WithHeader("X-BUNDLE-ID", Application.identifier)
                 .WithHeader("Authorization", "Bearer " + accessToken)
                 .WithJsonBody(exchangeToken);
 
@@ -318,7 +320,8 @@ namespace com.noctuagames.sdk
             Debug.Log("GetSocialLoginURL provider: " + provider);
 
             var request = new HttpRequest(HttpMethod.Get, $"{_config.BaseUrl}/auth/{provider}/login/redirect")
-                .WithHeader("X-CLIENT-ID", _config.ClientId);
+                .WithHeader("X-CLIENT-ID", _config.ClientId)
+                .WithHeader("X-BUNDLE-ID", Application.identifier);
 
             var redirectUrlResponse = await request.Send<SocialLoginRedirectUrlResponse>();
 
@@ -333,6 +336,7 @@ namespace com.noctuagames.sdk
 
             var request = new HttpRequest(HttpMethod.Post, $"{_config.BaseUrl}/auth/{provider}/login/callback")
                 .WithHeader("X-CLIENT-ID", _config.ClientId)
+                .WithHeader("X-BUNDLE-ID", Application.identifier)
                 .WithHeader("Authorization", "Bearer " + RecentAccount.Player.AccessToken)
                 .WithJsonBody(payload);
 
@@ -350,6 +354,7 @@ namespace com.noctuagames.sdk
 
             var request = new HttpRequest(HttpMethod.Post, $"{_config.BaseUrl}/auth/bind")
                 .WithHeader("X-CLIENT-ID", _config.ClientId)
+                .WithHeader("X-BUNDLE-ID", Application.identifier)
                 .WithHeader("Authorization", "Bearer " + RecentAccount.Player.AccessToken)
                 .WithJsonBody(payload);
 
@@ -820,6 +825,7 @@ namespace com.noctuagames.sdk
             Debug.Log("RegisterWithPassword: " + email + " : " + password);
             var request = new HttpRequest(HttpMethod.Post, $"{_config.BaseUrl}/auth/email/register")
                 .WithHeader("X-CLIENT-ID", _config.ClientId)
+                .WithHeader("X-BUNDLE-ID", Application.identifier)
                 .WithHeader("Authorization", "Bearer " + RecentAccount.Player.AccessToken)
                 .WithJsonBody(
                     new CredPair
@@ -849,6 +855,7 @@ namespace com.noctuagames.sdk
         {
             var request = new HttpRequest(HttpMethod.Post, $"{_config.BaseUrl}/auth/email/verify-registration")
                 .WithHeader("X-CLIENT-ID", _config.ClientId)
+                .WithHeader("X-BUNDLE-ID", Application.identifier)
                 .WithHeader("Authorization", "Bearer " + RecentAccount.Player.AccessToken)
                 .WithJsonBody(
                     new CredentialVerification
@@ -872,6 +879,7 @@ namespace com.noctuagames.sdk
         {
             var request = new HttpRequest(HttpMethod.Post, $"{_config.BaseUrl}/auth/email/login")
                 .WithHeader("X-CLIENT-ID", _config.ClientId)
+                .WithHeader("X-BUNDLE-ID", Application.identifier)
                 .WithHeader("Authorization", "Bearer " + RecentAccount.Player.AccessToken)
                 .WithJsonBody(
                     new CredPair
@@ -895,6 +903,7 @@ namespace com.noctuagames.sdk
         {
             var request = new HttpRequest(HttpMethod.Post, $"{_config.BaseUrl}/auth/email/reset-password")
                 .WithHeader("X-CLIENT-ID", _config.ClientId)
+                .WithHeader("X-BUNDLE-ID", Application.identifier)
                 .WithJsonBody(
                     new CredPair
                     {
@@ -911,6 +920,7 @@ namespace com.noctuagames.sdk
         {
             var request = new HttpRequest(HttpMethod.Post, $"{_config.BaseUrl}/auth/email/verify-reset-password")
                 .WithHeader("X-CLIENT-ID", _config.ClientId)
+                .WithHeader("X-BUNDLE-ID", Application.identifier)
                 .WithJsonBody(
                     new CredentialVerification
                     {
