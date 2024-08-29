@@ -10,16 +10,19 @@ using System.Globalization;
 
 namespace com.noctuagames.sdk.UI
 {
-    public class EmailLoginDialogPresenter : Presenter<NoctuaBehaviour>
+    public class EmailResetPasswordDialogPresenter : Presenter<NoctuaBehaviour>
     {
         private string _email;
-        private string _password;
 
-        public void Show()
+        public void Show(bool clearForm)
         {
             Visible = true;
 
             Setup();
+
+            if (clearForm){
+                View.Q<TextField>("EmailTF").value = "";
+            }
         }
 
         protected override void Attach(){}
@@ -34,16 +37,10 @@ namespace com.noctuagames.sdk.UI
         private void Setup()
         {
             var emailField = View.Q<TextField>("EmailTF");
-            var passwordField = View.Q<TextField>("PasswordTF");
 
-            passwordField.isPasswordField = true;
 
             emailField.RegisterValueChangedCallback(evt => OnEmailValueChanged(emailField));
-            passwordField.RegisterValueChangedCallback(evt => OnPasswordValueChanged(passwordField));
 
-            View.Q<Label>("ForgotPassword").RegisterCallback<ClickEvent>(OnForgotPasswordButtonClick);
-            View.Q<Label>("Register").RegisterCallback<ClickEvent>(OnRegisterButtonClick);
-            View.Q<Button>("BackButton").RegisterCallback<ClickEvent>(OnBackButtonClick);
             View.Q<Button>("ContinueButton").RegisterCallback<ClickEvent>(OnContinueButtonClick);
         }
 
@@ -57,35 +54,6 @@ namespace com.noctuagames.sdk.UI
                 textField.labelElement.style.display = DisplayStyle.None;
             }
             _email = textField.value;
-            AdjustHideLabelElement(textField);
-        }
-
-        private void OnPasswordValueChanged(TextField textField)
-        {
-            HideAllErrors();
-
-            if(string.IsNullOrEmpty(textField.value)) {
-                textField.labelElement.style.display = DisplayStyle.Flex;
-            } else {
-                textField.labelElement.style.display = DisplayStyle.None;
-            }
-            _password = textField.value;
-
-            AdjustHideLabelElement(textField);
-        }
-
-        private void AdjustHideLabelElement(TextField textField) {
-            if(string.IsNullOrEmpty(textField.value)) {
-                textField.labelElement.style.display = DisplayStyle.Flex;
-            } else {
-                textField.labelElement.style.display = DisplayStyle.None;
-            }
-        }
-
-        private async void OnBackButtonClick(ClickEvent evt)
-        {
-            Visible = false;
-            Model.ShowLoginOptionsDialogUI(null);
         }
 
         private bool IsValidEmail(string email)
@@ -115,22 +83,9 @@ namespace com.noctuagames.sdk.UI
             }
         }
 
-        private void OnForgotPasswordButtonClick(ClickEvent evt)
-        {
-            Visible = false;
-            // Show with empty form
-            Model.ShowEmailResetPasswordDialogUI(true);
-        }
-
-        private void OnRegisterButtonClick(ClickEvent evt)
-        {
-            Visible = false;
-            Model.ShowEmailRegisterDialogUI(true);
-        }
-
         private async void OnContinueButtonClick(ClickEvent evt)
         {
-            Debug.Log("EmailLoginDialogPresenter.OnContinueButtonClick()");
+            Debug.Log("EmailForgotPasswordDialogPresenter.OnContinueButtonClick()");
 
             HideAllErrors();
 
@@ -139,10 +94,8 @@ namespace com.noctuagames.sdk.UI
             View.Q<VisualElement>("Spinner").Clear();
             View.Q<VisualElement>("Spinner").Add(spinnerInstance);
             View.Q<VisualElement>("Spinner").RemoveFromClassList("hide");
-            View.Q<VisualElement>("AdditionalFooterContent").AddToClassList("hide");
 
             var emailAddress = _email;
-            var password = _password;
 
             // Validation
             if (string.IsNullOrEmpty(emailAddress)) {
@@ -159,31 +112,16 @@ namespace com.noctuagames.sdk.UI
                 return;
             }
 
-            if (string.IsNullOrEmpty(password)) {
-                View.Q<Label>("ErrPasswordEmpty").RemoveFromClassList("hide");
-                View.Q<Button>("ContinueButton").RemoveFromClassList("hide");
-                View.Q<VisualElement>("Spinner").AddToClassList("hide");
-                return;
-            }
-
-            if (password?.Length < 6) {
-                View.Q<Label>("ErrPasswordTooShort").RemoveFromClassList("hide");
-                View.Q<Button>("ContinueButton").RemoveFromClassList("hide");
-                View.Q<VisualElement>("Spinner").AddToClassList("hide");
-                return;
-            }
-
             try {
 
-                var userBundle = await Model.AuthService.LoginWithPassword(_email, _password);
+                var credentialVerification = await Model.AuthService.RequestResetPassword(emailAddress);
 
-                Model.ShowWelcomeToast(userBundle);
+                Model.ShowEmailConfirmResetPasswordDialogUI(credentialVerification.Id);
 
                 View.visible = false;
 
                 View.Q<Label>("ErrCode").RemoveFromClassList("hide");
                 View.Q<Button>("ContinueButton").RemoveFromClassList("hide");
-                View.Q<VisualElement>("AdditionalFooterContent").RemoveFromClassList("hide");
                 View.Q<VisualElement>("Spinner").AddToClassList("hide");
 
             } catch (Exception e) {
@@ -197,7 +135,6 @@ namespace com.noctuagames.sdk.UI
                 }
                 View.Q<Label>("ErrCode").RemoveFromClassList("hide");
                 View.Q<Button>("ContinueButton").RemoveFromClassList("hide");
-                View.Q<VisualElement>("AdditionalFooterContent").RemoveFromClassList("hide");
                 View.Q<VisualElement>("Spinner").AddToClassList("hide");
                 return;
             }
@@ -209,16 +146,10 @@ namespace com.noctuagames.sdk.UI
             View.Q<Label>("ErrCode").RemoveFromClassList("hide");
             View.Q<Label>("ErrEmailInvalid").RemoveFromClassList("hide");
             View.Q<Label>("ErrEmailEmpty").RemoveFromClassList("hide");
-            View.Q<Label>("ErrPasswordTooShort").RemoveFromClassList("hide");
-            View.Q<Label>("ErrPasswordEmpty").RemoveFromClassList("hide");
-            View.Q<Label>("ErrPasswordMismatch").RemoveFromClassList("hide");
 
             View.Q<Label>("ErrCode").AddToClassList("hide");
             View.Q<Label>("ErrEmailInvalid").AddToClassList("hide");
             View.Q<Label>("ErrEmailEmpty").AddToClassList("hide");
-            View.Q<Label>("ErrPasswordTooShort").AddToClassList("hide");
-            View.Q<Label>("ErrPasswordEmpty").AddToClassList("hide");
-            View.Q<Label>("ErrPasswordMismatch").AddToClassList("hide");
         }
     }
 }

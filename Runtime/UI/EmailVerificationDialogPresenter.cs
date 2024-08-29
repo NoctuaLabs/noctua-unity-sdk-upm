@@ -12,7 +12,8 @@ namespace com.noctuagames.sdk.UI
 
         private string _email;
         private string _password;
-        private int _verificationId;
+        private int _credVerifyId;
+        private string _credVerifyCode;
 
         protected override void Attach(){}
         protected override void Detach(){}
@@ -24,7 +25,7 @@ namespace com.noctuagames.sdk.UI
 
             _email = email;
             _password = password;
-            _verificationId = verificationId;
+            _credVerifyId = verificationId;
 
             SetupView();
             HideAllErrors();
@@ -42,6 +43,7 @@ namespace com.noctuagames.sdk.UI
             var verificationCode = View.Q<TextField>("VerificationCode");
             verificationCode.value = string.Empty;
             verificationCode.Focus();
+            verificationCode.RegisterValueChangedCallback(evt => OnVerificationCodeValueChanged(verificationCode));
 
             var backButton = View.Q<Button>("BackButton");
             var resendButton = View.Q<Label>("ResendCode");
@@ -50,6 +52,18 @@ namespace com.noctuagames.sdk.UI
             resendButton.RegisterCallback<ClickEvent>(OnResendButtonClick);
             backButton.RegisterCallback<ClickEvent>(OnBackButtonClick);
             verifyButton.RegisterCallback<ClickEvent>(OnVerifyButtonClick);
+        }
+
+        private void OnVerificationCodeValueChanged(TextField textField)
+        {
+            HideAllErrors();
+
+            if(string.IsNullOrEmpty(textField.value)) {
+                textField.labelElement.style.display = DisplayStyle.Flex;
+            } else {
+                textField.labelElement.style.display = DisplayStyle.None;
+            }
+            _credVerifyCode = textField.value;
         }
 
         private void OnBackButtonClick(ClickEvent evt)
@@ -75,7 +89,7 @@ namespace com.noctuagames.sdk.UI
                 var result = await Model.AuthService.RegisterWithPassword(_email, _password);
                 Debug.Log("RegisterWithPassword verification ID: " + result.Id);
 
-                _verificationId = result.Id;
+                _credVerifyId = result.Id;
 
                 View?.Q<VisualElement>("Spinner")?.AddToClassList("hide");
                 View.Q<Label>("ResendingCode").AddToClassList("hide");
@@ -120,7 +134,7 @@ namespace com.noctuagames.sdk.UI
             View?.Q<VisualElement>("DialogContent")?.AddToClassList("hide");
             View?.Q<VisualElement>("DialogHeader")?.AddToClassList("hide");
             try {
-                var userBundle = await Model.AuthService.VerifyCredential(_verificationId, View.Q<TextField>("VerificationCode").value);
+                var userBundle = await Model.AuthService.VerifyCredential(_credVerifyId, _credVerifyCode);
 
                 Visible = false;
 

@@ -366,7 +366,7 @@ namespace com.noctuagames.sdk
         /// Returns the authenticated user bundle.
         /// </summary>
         /// <returns>A UserBundle object representing the selected account.</returns>
-        public async UniTask<UserBundle> Authenticate()
+        public async UniTask<UserBundle> AuthenticateAsync()
         {
             // So welome box can be ready to be shown
             var userBundle = await AccountDetection();
@@ -868,10 +868,11 @@ namespace com.noctuagames.sdk
         }
 
         // TODO: Add support for phone
-        public async UniTask<PlayerToken> LoginWithPassword(string email, string password)
+        public async UniTask<UserBundle> LoginWithPassword(string email, string password)
         {
             var request = new HttpRequest(HttpMethod.Post, $"{_config.BaseUrl}/auth/email/login")
                 .WithHeader("X-CLIENT-ID", _config.ClientId)
+                .WithHeader("Authorization", "Bearer " + RecentAccount.Player.AccessToken)
                 .WithJsonBody(
                     new CredPair
                     {
@@ -881,11 +882,16 @@ namespace com.noctuagames.sdk
                 );
 
             var response = await request.Send<PlayerToken>();
-            return response;
+
+            var accountContainer = ReadPlayerPrefsAccountContainer();
+            var recentAccount = TransformTokenResponseToUserBundle(response);
+            UpdateRecentAccount(recentAccount, accountContainer);
+
+            return recentAccount;
         }
 
         // TODO: Add support for phone
-        public async UniTask<PlayerToken> RequestResetPassword(string email)
+        public async UniTask<CredentialVerification> RequestResetPassword(string email)
         {
             var request = new HttpRequest(HttpMethod.Post, $"{_config.BaseUrl}/auth/email/reset-password")
                 .WithHeader("X-CLIENT-ID", _config.ClientId)
@@ -896,7 +902,7 @@ namespace com.noctuagames.sdk
                     }
                 );
 
-            var response = await request.Send<PlayerToken>();
+            var response = await request.Send<CredentialVerification>();
             return response;
         }
 

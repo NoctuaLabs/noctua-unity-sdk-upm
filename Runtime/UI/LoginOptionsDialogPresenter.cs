@@ -16,6 +16,11 @@ namespace com.noctuagames.sdk.UI
         
         public void Show(UserBundle selectedAccount)
         {
+
+            if (selectedAccount == null)
+            {
+                selectedAccount = Model.AuthService.RecentAccount;
+            }
             _selectedAccount = selectedAccount;
             Visible = true;
         }

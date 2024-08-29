@@ -33,6 +33,10 @@ namespace com.noctuagames.sdk
         private PanelSettings _panelSettings;
         private UIDocument _uiDocument;
 
+        // IMPORTANT NOTES!!!
+        // Your UI need to apply USS absolute property to the first VisualElement of the UI
+        // before being added to the UI Document.
+        // Violation of this rule will cause the UI (and the other UI too) to be unable to be displayed properly.
         private AccountSelectionDialogPresenter _accountSelectionDialog;
         private SwitchAccountConfirmationDialogPresenter _switchAccountConfirmationDialog;
         private LoginOptionsDialogPresenter _loginOptionsDialog;
@@ -40,6 +44,8 @@ namespace com.noctuagames.sdk
         private EmailRegisterDialogPresenter _emailRegisterDialog;
         private EmailVerificationDialogPresenter _emailVerificationDialog;
         private WelcomeNotificationPresenter _welcome;
+        private EmailResetPasswordDialogPresenter _emailResetPasswordDialog;
+        private EmailConfirmResetPasswordDialogPresenter _emailConfirmResetPasswordDialog;
 
         public NoctuaAuthService AuthService => Noctua.Auth;
 
@@ -75,6 +81,18 @@ namespace com.noctuagames.sdk
 
             _emailRegisterDialog = gameObject.AddComponent<EmailRegisterDialogPresenter>();
             _emailRegisterDialog.SetModel(this);
+
+            _emailResetPasswordDialog = gameObject.AddComponent<EmailResetPasswordDialogPresenter>();
+            _emailResetPasswordDialog.SetModel(this);
+
+            _emailConfirmResetPasswordDialog = gameObject.AddComponent<EmailConfirmResetPasswordDialogPresenter>();
+            _emailConfirmResetPasswordDialog.SetModel(this);
+
+            // IMPORTANT NOTES!!!
+            // Your UI need to apply USS absolute property to the first 
+            // VisualElement of the UI before being added to the UI Document.
+            // Violation of this rule will cause the UI (and the other UI too)
+            // to be unable to be displayed properly.
         }
 
         public void ShowAccountSelectionDialogUI()
@@ -99,6 +117,14 @@ namespace com.noctuagames.sdk
         public void ShowLoginWithEmailDialogUI()
         {
             _emailLoginDialog.Show();
+        }
+
+        public void ShowEmailResetPasswordDialogUI(bool clearForm){
+            _emailResetPasswordDialog.Show(clearForm);
+        }
+
+        public void ShowEmailConfirmResetPasswordDialogUI(int credVerifyId){
+            _emailConfirmResetPasswordDialog.Show(credVerifyId);
         }
 
         public void ShowSwitchAccountConfirmationDialogUI(UserBundle recentAccount)

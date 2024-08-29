@@ -12,8 +12,6 @@ namespace com.noctuagames.sdk.UI
 {
     public class EmailRegisterDialogPresenter : Presenter<NoctuaBehaviour>
     {
-        private UIDocument _uiDoc;
-
         private string _email;
         private string _password;
         private string _rePassword;
@@ -178,9 +176,11 @@ namespace com.noctuagames.sdk.UI
 
         private void OnBackButtonClick(ClickEvent evt)
         {
-            View.visible = false;
             View.Q<VisualElement>("Spinner").AddToClassList("hide");
             View.Q<Button>("ContinueButton").RemoveFromClassList("hide");
+
+            Visible = false;
+            Model.ShowLoginOptionsDialogUI(null);
         }
 
         private void OnEmailValueChanged(TextField textField)

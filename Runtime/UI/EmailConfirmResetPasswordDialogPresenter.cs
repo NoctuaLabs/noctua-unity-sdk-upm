@@ -10,14 +10,18 @@ using System.Globalization;
 
 namespace com.noctuagames.sdk.UI
 {
-    public class EmailLoginDialogPresenter : Presenter<NoctuaBehaviour>
+    public class EmailConfirmResetPasswordDialogPresenter : Presenter<NoctuaBehaviour>
     {
-        private string _email;
+        private string _credVerifyCode;
         private string _password;
+        private string _rePassword;
+        private int _credVerifyId;
 
-        public void Show()
+        public void Show(int credVerifyId)
         {
             Visible = true;
+
+            _credVerifyId = credVerifyId;
 
             Setup();
         }
@@ -33,21 +37,22 @@ namespace com.noctuagames.sdk.UI
 
         private void Setup()
         {
-            var emailField = View.Q<TextField>("EmailTF");
+            var verificationCodeField = View.Q<TextField>("VerificationCode");
             var passwordField = View.Q<TextField>("PasswordTF");
+            var rePasswordField = View.Q<TextField>("RePasswordTF");
 
             passwordField.isPasswordField = true;
+            rePasswordField.isPasswordField = true;
 
-            emailField.RegisterValueChangedCallback(evt => OnEmailValueChanged(emailField));
+            verificationCodeField.RegisterValueChangedCallback(evt => OnVerificationCodeValueChanged(verificationCodeField));
             passwordField.RegisterValueChangedCallback(evt => OnPasswordValueChanged(passwordField));
+            rePasswordField.RegisterValueChangedCallback(evt => OnRePasswordValueChanged(rePasswordField));
 
-            View.Q<Label>("ForgotPassword").RegisterCallback<ClickEvent>(OnForgotPasswordButtonClick);
-            View.Q<Label>("Register").RegisterCallback<ClickEvent>(OnRegisterButtonClick);
-            View.Q<Button>("BackButton").RegisterCallback<ClickEvent>(OnBackButtonClick);
             View.Q<Button>("ContinueButton").RegisterCallback<ClickEvent>(OnContinueButtonClick);
+            View.Q<Button>("BackButton").RegisterCallback<ClickEvent>(OnBackButtonClick);
         }
 
-        private void OnEmailValueChanged(TextField textField)
+        private void OnVerificationCodeValueChanged(TextField textField)
         {
             HideAllErrors();
 
@@ -56,8 +61,7 @@ namespace com.noctuagames.sdk.UI
             } else {
                 textField.labelElement.style.display = DisplayStyle.None;
             }
-            _email = textField.value;
-            AdjustHideLabelElement(textField);
+            _credVerifyCode = textField.value;
         }
 
         private void OnPasswordValueChanged(TextField textField)
@@ -70,67 +74,29 @@ namespace com.noctuagames.sdk.UI
                 textField.labelElement.style.display = DisplayStyle.None;
             }
             _password = textField.value;
-
-            AdjustHideLabelElement(textField);
         }
 
-        private void AdjustHideLabelElement(TextField textField) {
+        private void OnRePasswordValueChanged(TextField textField)
+        {
+            HideAllErrors();
+
             if(string.IsNullOrEmpty(textField.value)) {
                 textField.labelElement.style.display = DisplayStyle.Flex;
             } else {
                 textField.labelElement.style.display = DisplayStyle.None;
             }
+            _rePassword = textField.value;
         }
 
         private async void OnBackButtonClick(ClickEvent evt)
         {
             Visible = false;
-            Model.ShowLoginOptionsDialogUI(null);
-        }
-
-        private bool IsValidEmail(string email)
-        {
-            if (string.IsNullOrWhiteSpace(email))
-                return false;
-
-            try
-            {
-                // Regular expression pattern to validate email address
-                string pattern = @"^[^@\s]+@[^@\s]+\.[^@\s]+$";
-
-                // Use IdnMapping class to convert Unicode domain names, if applicable
-                email = Regex.Replace(email, @"(@)(.+)$", match =>
-                {
-                    var idn = new IdnMapping();
-                    string domainName = idn.GetAscii(match.Groups[2].Value);
-                    return match.Groups[1].Value + domainName;
-                }, RegexOptions.None, TimeSpan.FromMilliseconds(200));
-
-                // Return true if the email matches the pattern
-                return Regex.IsMatch(email, pattern, RegexOptions.IgnoreCase, TimeSpan.FromMilliseconds(250));
-            }
-            catch
-            {
-                return false;
-            }
-        }
-
-        private void OnForgotPasswordButtonClick(ClickEvent evt)
-        {
-            Visible = false;
-            // Show with empty form
-            Model.ShowEmailResetPasswordDialogUI(true);
-        }
-
-        private void OnRegisterButtonClick(ClickEvent evt)
-        {
-            Visible = false;
-            Model.ShowEmailRegisterDialogUI(true);
+            Model.ShowEmailResetPasswordDialogUI(false);
         }
 
         private async void OnContinueButtonClick(ClickEvent evt)
         {
-            Debug.Log("EmailLoginDialogPresenter.OnContinueButtonClick()");
+            Debug.Log("EmailConfirmResetPasswordDialogPresenter.OnContinueButtonClick()");
 
             HideAllErrors();
 
@@ -139,21 +105,15 @@ namespace com.noctuagames.sdk.UI
             View.Q<VisualElement>("Spinner").Clear();
             View.Q<VisualElement>("Spinner").Add(spinnerInstance);
             View.Q<VisualElement>("Spinner").RemoveFromClassList("hide");
-            View.Q<VisualElement>("AdditionalFooterContent").AddToClassList("hide");
 
-            var emailAddress = _email;
+            var verificationId = _credVerifyId;
+            var verificationCode = _credVerifyCode;
             var password = _password;
+            var rePassword = _rePassword;
 
             // Validation
-            if (string.IsNullOrEmpty(emailAddress)) {
-                View.Q<Label>("ErrEmailEmpty").RemoveFromClassList("hide");
-                View.Q<Button>("ContinueButton").RemoveFromClassList("hide");
-                View.Q<VisualElement>("Spinner").AddToClassList("hide");
-                return;
-            }
-
-            if (!IsValidEmail(emailAddress)) {
-                View.Q<Label>("ErrEmailInvalid").RemoveFromClassList("hide");
+            if (string.IsNullOrEmpty(verificationCode)) {
+                View.Q<Label>("ErrVerificationCodeEmpty").RemoveFromClassList("hide");
                 View.Q<Button>("ContinueButton").RemoveFromClassList("hide");
                 View.Q<VisualElement>("Spinner").AddToClassList("hide");
                 return;
@@ -173,31 +133,42 @@ namespace com.noctuagames.sdk.UI
                 return;
             }
 
+
+            if (!password.Equals(rePassword)) {
+                View.Q<Label>("ErrPasswordMismatch").RemoveFromClassList("hide");
+                View.Q<Button>("ContinueButton").RemoveFromClassList("hide");
+                View.Q<VisualElement>("Spinner").AddToClassList("hide");
+                return;
+            }
+
             try {
 
-                var userBundle = await Model.AuthService.LoginWithPassword(_email, _password);
-
-                Model.ShowWelcomeToast(userBundle);
+                await Model.AuthService.ConfirmResetPassword(verificationId, verificationCode, password);
 
                 View.visible = false;
 
                 View.Q<Label>("ErrCode").RemoveFromClassList("hide");
                 View.Q<Button>("ContinueButton").RemoveFromClassList("hide");
-                View.Q<VisualElement>("AdditionalFooterContent").RemoveFromClassList("hide");
                 View.Q<VisualElement>("Spinner").AddToClassList("hide");
+
+                // Go back to login dialog
+                Model.ShowLoginWithEmailDialogUI();
 
             } catch (Exception e) {
                 if (e is NoctuaException noctuaEx)
                 {
                     Debug.Log("NoctuaException: " + noctuaEx.ErrorCode + " : " + noctuaEx.Message);
-                    View.Q<Label>("ErrCode").text = noctuaEx.ErrorCode.ToString() + " : " + noctuaEx.Message;
+                    if (noctuaEx.ErrorCode == 2022) {
+                        View.Q<Label>("ErrVerificationCodeInvalid").RemoveFromClassList("hide");
+                    } else {
+                        View.Q<Label>("ErrCode").text = noctuaEx.ErrorCode.ToString() + " : " + noctuaEx.Message;
+                    }
                 } else {
                     Debug.Log("Exception: " + e);
                     View.Q<Label>("ErrCode").text = e.Message;
                 }
                 View.Q<Label>("ErrCode").RemoveFromClassList("hide");
                 View.Q<Button>("ContinueButton").RemoveFromClassList("hide");
-                View.Q<VisualElement>("AdditionalFooterContent").RemoveFromClassList("hide");
                 View.Q<VisualElement>("Spinner").AddToClassList("hide");
                 return;
             }
@@ -207,15 +178,13 @@ namespace com.noctuagames.sdk.UI
         {
             // To avoid duplicate classes
             View.Q<Label>("ErrCode").RemoveFromClassList("hide");
-            View.Q<Label>("ErrEmailInvalid").RemoveFromClassList("hide");
-            View.Q<Label>("ErrEmailEmpty").RemoveFromClassList("hide");
+            View.Q<Label>("ErrVerificationCodeEmpty").RemoveFromClassList("hide");
             View.Q<Label>("ErrPasswordTooShort").RemoveFromClassList("hide");
             View.Q<Label>("ErrPasswordEmpty").RemoveFromClassList("hide");
             View.Q<Label>("ErrPasswordMismatch").RemoveFromClassList("hide");
 
             View.Q<Label>("ErrCode").AddToClassList("hide");
-            View.Q<Label>("ErrEmailInvalid").AddToClassList("hide");
-            View.Q<Label>("ErrEmailEmpty").AddToClassList("hide");
+            View.Q<Label>("ErrVerificationCodeEmpty").AddToClassList("hide");
             View.Q<Label>("ErrPasswordTooShort").AddToClassList("hide");
             View.Q<Label>("ErrPasswordEmpty").AddToClassList("hide");
             View.Q<Label>("ErrPasswordMismatch").AddToClassList("hide");

@@ -50,11 +50,12 @@
 }
 
 .dialog-title {
+    margin-top:-5px;
     font-size: 16px;
 }
 
 .dialog-back-button {
-    margin-top:20px;
+    margin-top:0px;
     margin-right:14px;
     height:24px;
     width: 24px;
@@ -67,6 +68,20 @@
     align-items: auto;
 }
 
+.dialog-close-button {
+    margin-top:0px;
+    margin-right:14px;
+    height:24px;
+    width: 24px;
+    flex-direction: column;
+    border-width: 0;
+    border-color: transparent;
+    background-color: transparent;
+    justify-content: flex-start;
+    background-image: url("./CloseIcon.png");
+    align-items: auto;
+}
+
 .dialog-content {
     padding: 14px;
     margin-top: 15px;
@@ -75,6 +90,8 @@
 }
 
 .dialog-footer {
+    position: sticky;
+    bottom: 0;
     padding: 14px;
     width: 300px;
     margin-top: 10px;
@@ -117,7 +134,7 @@
 }
 
 .dialog-button {
-    height: 60px;
+    height: 40px;
     width: 100%;
     background-color: #3B82F6;
     border-width: 0 !important;

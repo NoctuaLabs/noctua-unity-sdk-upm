@@ -18,6 +18,7 @@ namespace com.noctuagames.sdk.UI
         private readonly List<UserBundle> _gameUsers = new();
         private readonly List<UserBundle> _noctuaUsers = new();
         private Button _continueButton;
+        private Button _closeButton;
 
         protected override void Attach()
         {
@@ -93,6 +94,8 @@ namespace com.noctuagames.sdk.UI
             _noctuaAccountListView = View.Q<ListView>("NoctuaAccountList");
             _continueButton = View.Q<Button>("ContinueButton");
             _continueButton.RegisterCallback<ClickEvent>(OnContinueButtonClick);
+            _closeButton = View.Q<Button>("CloseButton");
+            _closeButton.RegisterCallback<ClickEvent>(OnCloseButtonClick);
         }
 
         private void OnContinueButtonClick(ClickEvent evt)
@@ -101,6 +104,11 @@ namespace com.noctuagames.sdk.UI
 
             // Use recent account as selectedAccount
             Model.ShowLoginOptionsDialogUI(Model.AuthService.RecentAccount);
+        }
+
+        private void OnCloseButtonClick(ClickEvent evt)
+        {
+            Visible = false;
         }
 
         private void BindListView(ListView listView, List<UserBundle> items)
