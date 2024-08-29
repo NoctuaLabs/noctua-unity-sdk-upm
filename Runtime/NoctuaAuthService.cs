@@ -232,6 +232,21 @@ namespace com.noctuagames.sdk
         [JsonProperty("accounts")]
         public List<UserBundle> Accounts;
     }
+
+    public class PlayerAccountData
+    {
+        [JsonProperty("ingame_username")]
+        public string IngameUsername;
+
+        [JsonProperty("ingame_server_id")]
+        public string IngameServerId;
+
+        [JsonProperty("ingame_role_id")]
+        public string IngameRoleId;
+
+        [JsonProperty("extra")]
+        public Dictionary<string, string> Extra;
+    }
     
     public class NoctuaAuthService
     {
@@ -947,6 +962,16 @@ namespace com.noctuagames.sdk
             RecentAccount = existingUser ?? throw new ArgumentException($"User {user.User.Id} not found in account list");
             
             UpdateRecentAccount(RecentAccount, ReadPlayerPrefsAccountContainer());
+        }
+
+        public async UniTask<PlayerToken> UpdatePlayerAccountAsync(PlayerAccountData playerAccountData)
+        {
+            var request = new HttpRequest(HttpMethod.Post, $"{_config.BaseUrl}/api/v1/players/sync")
+                .WithHeader("X-CLIENT-ID", _config.ClientId)
+                .WithHeader("Authorization", "Bearer " + RecentAccount.Player.AccessToken)
+                .WithJsonBody(playerAccountData);
+
+            return await request.Send<PlayerToken>();
         }
     }
     
