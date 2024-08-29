@@ -493,11 +493,10 @@ namespace com.noctuagames.sdk
         /// This function does not take any parameters and returns a UserBundle object.
         /// </summary>
         /// <returns>A UserBundle object representing the selected account.</returns>
-        public async UniTask<UserBundle> ShowAccountSelectionUI()
+        // TODO ganti ke ShowSwitchAccountUI()
+        public void SwitchAccount()
         {
             Behaviour.ShowAccountSelectionDialogUI();
-            // TODO how to wait for account selection flow to complete before continue?
-            return RecentAccount;
         }
 
         // TODO not a public facing API, need to be removed
