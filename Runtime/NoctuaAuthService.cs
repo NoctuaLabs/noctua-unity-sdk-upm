@@ -10,6 +10,8 @@ using System.Net;
 using System.Net.Sockets;
 using System.Threading.Tasks;
 using System.Web;
+using UnityEngine.EventSystems;
+using UnityEngine.Scripting;
 
 namespace com.noctuagames.sdk
 {
@@ -233,6 +235,7 @@ namespace com.noctuagames.sdk
         public List<UserBundle> Accounts;
     }
 
+    [Preserve]
     public class PlayerAccountData
     {
         [JsonProperty("ingame_username")]
@@ -261,11 +264,15 @@ namespace com.noctuagames.sdk
 
         public UserBundle RecentAccount { get; private set; }
 
+        public event Action<UserBundle> OnAccountChanged;
+        public event Action<Player> OnAccountDeleted;
+
         private NoctuaBehaviour Behaviour =>
             _noctuaGameObject.GetComponent<NoctuaBehaviour>() ?? _noctuaGameObject.AddComponent<NoctuaBehaviour>();
 
 
         private readonly Config _config;
+        private HttpServer _oauthHttpServer;
 
         internal NoctuaAuthService(Config config)
         {
@@ -399,6 +406,11 @@ namespace com.noctuagames.sdk
 
         public async UniTask<UserBundle> SocialLogin(string provider)
         {
+            if (RecentAccount == null)
+            {
+                throw NoctuaException.NoRecentAccount;
+            }
+            
             Debug.Log("SocialLogin: " + provider);
 
             var socialLoginUrl = await GetSocialLoginRedirectURL(provider);
@@ -419,11 +431,16 @@ namespace com.noctuagames.sdk
                 task.TrySetResult(ParseQueryString(callbackData));
             }
 
-            var httpServer = new HttpServer();
-            httpServer.OnCallbackReceived += OnCallbackReceived;
-            httpServer.Start();
+            if (_oauthHttpServer is { IsRunning: true })
+            {
+                _oauthHttpServer.Stop();
+            }
+            
+            _oauthHttpServer = new HttpServer();
+            _oauthHttpServer.OnCallbackReceived += OnCallbackReceived;
+            _oauthHttpServer.Start();
 
-            var redirectUrl = $"http://localhost:{httpServer.Port}";
+            var redirectUrl = $"http://localhost:{_oauthHttpServer.Port}";
             var url = $"{socialLoginUrl}&redirect_uri={HttpUtility.UrlEncode(redirectUrl)}";
             Debug.Log($"Open URL with system browser: {url}");
 
@@ -434,8 +451,8 @@ namespace com.noctuagames.sdk
 
             Debug.Log("HTTP Server received callback, stopping the server");
 
-            httpServer.Stop();
-
+            _oauthHttpServer.Stop();
+            _oauthHttpServer = null;
 
 #elif UNITY_IOS || UNITY_ANDROID
             // Open the browser with the redirect URL
@@ -452,13 +469,12 @@ namespace com.noctuagames.sdk
             };
             
             var redirectUrl = $"{Application.identifier}:/auth";
-            var url = $"{socialLoginUrl}&redirect_uri={HttpUtility.UrlEncode(redirectUrl)}";
+            var url = $"{socialLoginUrl}&redirect_uri={redirectUrl}";
 
             Debug.Log($"Open URL with system browser: {url}");
             Application.OpenURL(url);
             
             var callbackDataMap = await task.Task;
-
 #endif
 
             var socialLoginRequest = new SocialLoginRequest
@@ -728,9 +744,10 @@ namespace com.noctuagames.sdk
                 this.AccountList[accountContainer.Accounts[i].User.Id + ":"+ accountContainer.Accounts[i].Player.Id] = accountContainer.Accounts[i];
             }
             
+            UniTask.Void(async () => OnAccountChanged?.Invoke(userBundle));
+           
             return userBundle;
         }
-
 
         private void SyncPlayerPrefsAccountContainer(AccountContainer accountContainer)
         {
@@ -982,6 +999,7 @@ namespace com.noctuagames.sdk
         public event Action<string> OnCallbackReceived;
         public string Path;
         public int Port;
+        public bool IsRunning => _listener.IsListening;
 
         public void Start(string path = "")
         {

@@ -218,8 +218,6 @@
 
 .email-icon {
     background-image: url("./EmailIcon.png");
-    width: 24px;
-    height: 24px;
 }
 
 .edit-icon {
