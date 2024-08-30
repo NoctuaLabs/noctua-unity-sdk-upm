@@ -24,7 +24,7 @@ namespace com.noctuagames.sdk.UI
             View.Q<Button>("ConfirmButton").clicked += () =>
             {
                 // TODO call AuthService to switch account
-                Model.AuthService.SwitchAccount(_recentAccount);
+                Model.ShowAccountSelection();
                 Visible = false;
             };
             

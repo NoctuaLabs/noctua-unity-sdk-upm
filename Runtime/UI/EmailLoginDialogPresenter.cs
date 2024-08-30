@@ -10,18 +10,28 @@ using System.Globalization;
 
 namespace com.noctuagames.sdk.UI
 {
+    public class LoginResult
+    {
+        public bool Success { get; set; }
+        public UserBundle User { get; set; }
+        public Exception Error { get; set; }
+    }
+    
     public class EmailLoginDialogPresenter : Presenter<NoctuaBehaviour>
     {
         private string _email;
         private string _password;
+        private Action<LoginResult> _onLoginDone;
 
-        public void Show()
+        public void Show(Action<LoginResult> onLoginDone)
         {
-            Visible = true;
-
+            _onLoginDone = onLoginDone;
             Setup();
-        }
 
+            Visible = true;
+        }
+        
+        
         protected override void Attach(){}
         protected override void Detach(){}
 
@@ -82,10 +92,11 @@ namespace com.noctuagames.sdk.UI
             }
         }
 
-        private async void OnBackButtonClick(ClickEvent evt)
+        private void OnBackButtonClick(ClickEvent evt)
         {
             Visible = false;
-            Model.ShowLoginOptionsDialogUI(null);
+            
+            _onLoginDone?.Invoke(new LoginResult { Success = false });
         }
 
         private bool IsValidEmail(string email)
@@ -119,13 +130,13 @@ namespace com.noctuagames.sdk.UI
         {
             Visible = false;
             // Show with empty form
-            Model.ShowEmailResetPasswordDialogUI(true);
+            Model.ShowEmailResetPassword(true);
         }
 
         private void OnRegisterButtonClick(ClickEvent evt)
         {
             Visible = false;
-            Model.ShowEmailRegisterDialogUI(true);
+            Model.ShowEmailRegistration(true);
         }
 
         private async void OnContinueButtonClick(ClickEvent evt)
@@ -149,6 +160,7 @@ namespace com.noctuagames.sdk.UI
                 View.Q<Label>("ErrEmailEmpty").RemoveFromClassList("hide");
                 View.Q<Button>("ContinueButton").RemoveFromClassList("hide");
                 View.Q<VisualElement>("Spinner").AddToClassList("hide");
+            
                 return;
             }
 
@@ -156,6 +168,7 @@ namespace com.noctuagames.sdk.UI
                 View.Q<Label>("ErrEmailInvalid").RemoveFromClassList("hide");
                 View.Q<Button>("ContinueButton").RemoveFromClassList("hide");
                 View.Q<VisualElement>("Spinner").AddToClassList("hide");
+                
                 return;
             }
 
@@ -163,6 +176,7 @@ namespace com.noctuagames.sdk.UI
                 View.Q<Label>("ErrPasswordEmpty").RemoveFromClassList("hide");
                 View.Q<Button>("ContinueButton").RemoveFromClassList("hide");
                 View.Q<VisualElement>("Spinner").AddToClassList("hide");
+                
                 return;
             }
 
@@ -170,6 +184,7 @@ namespace com.noctuagames.sdk.UI
                 View.Q<Label>("ErrPasswordTooShort").RemoveFromClassList("hide");
                 View.Q<Button>("ContinueButton").RemoveFromClassList("hide");
                 View.Q<VisualElement>("Spinner").AddToClassList("hide");
+                
                 return;
             }
 
@@ -177,15 +192,14 @@ namespace com.noctuagames.sdk.UI
 
                 var userBundle = await Model.AuthService.LoginWithPassword(_email, _password);
 
-                Model.ShowWelcomeToast(userBundle);
-
                 View.visible = false;
 
                 View.Q<Label>("ErrCode").RemoveFromClassList("hide");
                 View.Q<Button>("ContinueButton").RemoveFromClassList("hide");
                 View.Q<VisualElement>("AdditionalFooterContent").RemoveFromClassList("hide");
                 View.Q<VisualElement>("Spinner").AddToClassList("hide");
-
+                
+                _onLoginDone?.Invoke(new LoginResult { Success = true, User = userBundle });
             } catch (Exception e) {
                 if (e is NoctuaException noctuaEx)
                 {
@@ -199,7 +213,8 @@ namespace com.noctuagames.sdk.UI
                 View.Q<Button>("ContinueButton").RemoveFromClassList("hide");
                 View.Q<VisualElement>("AdditionalFooterContent").RemoveFromClassList("hide");
                 View.Q<VisualElement>("Spinner").AddToClassList("hide");
-                return;
+                
+                _onLoginDone?.Invoke(new LoginResult { Success = false });
             }
         }   
 

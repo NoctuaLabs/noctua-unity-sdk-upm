@@ -69,7 +69,7 @@ namespace com.noctuagames.sdk.UI
         private void OnBackButtonClick(ClickEvent evt)
         {
             Visible = false;
-            Model.ShowEmailRegisterDialogUI(false);
+            Model.ShowEmailRegistration(false);
         }
 
         private async void OnResendButtonClick(ClickEvent evt)
@@ -134,11 +134,9 @@ namespace com.noctuagames.sdk.UI
             View?.Q<VisualElement>("DialogContent")?.AddToClassList("hide");
             View?.Q<VisualElement>("DialogHeader")?.AddToClassList("hide");
             try {
-                var userBundle = await Model.AuthService.VerifyCredential(_credVerifyId, _credVerifyCode);
+                await Model.AuthService.VerifyCredential(_credVerifyId, _credVerifyCode);
 
                 Visible = false;
-
-                Model.ShowWelcomeToast(userBundle);
 
                 View?.Q<VisualElement>("Spinner")?.AddToClassList("hide");
                 View.Q<Label>("VerifyingCode").AddToClassList("hide");

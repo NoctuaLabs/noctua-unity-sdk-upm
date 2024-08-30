@@ -2,7 +2,7 @@
     <Style src="./Noctua.uss" />
     <Style src="./ConnectAccountItem.uss" />
     <ui:VisualElement name="ConnectAccountItem" class="connect-account-item">
-        <ui:VisualElement name="MethodLogo" class="method-logo email-icon" />
+        <ui:VisualElement name="MethodLogo" class="method-logo" />
         <ui:Label name="MethodName" text="Google" class="method-name" />
         <ui:VisualElement name="HorizontalGap" class="horizontal-gap" />
         <ui:VisualElement name="ConnectStatus" class="connect-status">

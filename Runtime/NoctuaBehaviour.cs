@@ -1,5 +1,7 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using com.noctuagames.sdk.UI;
+using Cysharp.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.UIElements;
 
@@ -10,7 +12,7 @@ namespace com.noctuagames.sdk
     - https://en.wikipedia.org/wiki/Model%E2%80%93view%E2%80%93presenter
     - https://medium.com/cr8resume/make-you-hand-dirty-with-mvp-model-view-presenter-eab5b5c16e42
     - https://www.baeldung.com/mvc-vs-mvp-pattern
-    
+
     But in our case, we have unique conditions:
     1. Our model (*Services.cs) is the public facing API
     2. Our public facing API need to cover both UI and non-UI stuff.
@@ -46,12 +48,20 @@ namespace com.noctuagames.sdk
         private WelcomeNotificationPresenter _welcome;
         private EmailResetPasswordDialogPresenter _emailResetPasswordDialog;
         private EmailConfirmResetPasswordDialogPresenter _emailConfirmResetPasswordDialog;
+        private UserCenterPresenter _userCenter;
 
         public NoctuaAuthService AuthService => Noctua.Auth;
+
+        public event Action<UserBundle> OnAccountChanged
+        {
+            add => AuthService.OnAccountChanged += value;
+            remove => AuthService.OnAccountChanged -= value;
+        }
 
         private void Awake()
         {
             Noctua.Init();
+
             _panelSettings = Resources.Load<PanelSettings>("NoctuaPanelSettings");
             _uiDocument = gameObject.AddComponent<UIDocument>();
             _uiDocument.panelSettings = _panelSettings;
@@ -87,6 +97,9 @@ namespace com.noctuagames.sdk
 
             _emailConfirmResetPasswordDialog = gameObject.AddComponent<EmailConfirmResetPasswordDialogPresenter>();
             _emailConfirmResetPasswordDialog.SetModel(this);
+            
+            _userCenter = gameObject.AddComponent<UserCenterPresenter>();
+            _userCenter.SetModel(this);
 
             // IMPORTANT NOTES!!!
             // Your UI need to apply USS absolute property to the first 
@@ -95,44 +108,48 @@ namespace com.noctuagames.sdk
             // to be unable to be displayed properly.
         }
 
-        public void ShowAccountSelectionDialogUI()
+        public void ShowAccountSelection()
         {
             _accountSelectionDialog.Show();
         }
 
-        public void ShowEmailRegisterDialogUI(bool clearForm)
+        public void ShowEmailRegistration(bool clearForm)
         {
             _emailRegisterDialog.Show(clearForm);
         }
 
-        public void ShowEmailVerificationDialogUI(string email, string password, int verificationID)
+        public void ShowEmailVerification(string email, string password, int verificationID)
         {
             _emailVerificationDialog.Show(email, password, verificationID);
         }
 
-        public void ShowLoginOptionsDialogUI(UserBundle recentAccount){
+        public void ShowLoginOptions(UserBundle recentAccount)
+        {
             _loginOptionsDialog.Show(recentAccount);
         }
 
-        public void ShowLoginWithEmailDialogUI()
+        public void ShowEmailLogin(Action<LoginResult> onLoginDone)
         {
-            _emailLoginDialog.Show();
+            _emailLoginDialog.Show(onLoginDone);
         }
 
-        public void ShowEmailResetPasswordDialogUI(bool clearForm){
+        public void ShowEmailResetPassword(bool clearForm)
+        {
             _emailResetPasswordDialog.Show(clearForm);
         }
 
-        public void ShowEmailConfirmResetPasswordDialogUI(int credVerifyId){
+        public void ShowEmailConfirmResetPassword(int credVerifyId)
+        {
             _emailConfirmResetPasswordDialog.Show(credVerifyId);
         }
 
-        public void ShowSwitchAccountConfirmationDialogUI(UserBundle recentAccount)
+        public void ShowSwitchAccountConfirmation(UserBundle recentAccount)
         {
             _switchAccountConfirmationDialog.Show(recentAccount);
         }
 
-        public void ShowWelcomeToast(UserBundle recentAccount){
+        public void ShowWelcomeToast(UserBundle recentAccount)
+        {
             _welcome.Show(recentAccount);
         }
 
@@ -140,7 +157,38 @@ namespace com.noctuagames.sdk
         {
             if (Input.GetKeyDown(KeyCode.Space))
             {
-                _accountSelectionDialog.Visible = !_accountSelectionDialog.Visible;
+                _userCenter.Visible = !_userCenter.Visible;
+            }
+        }
+
+        public void ShowSocialLogin(string provider, Action<LoginResult> onLoginDone)
+        {
+            UniTask.Void(async () => await SocialLogin(provider, onLoginDone));
+        }
+
+        private async UniTask SocialLogin(string provider, Action<LoginResult> onLoginDone)
+        {
+            try
+            {
+                var result = await AuthService.SocialLogin(provider);
+
+                onLoginDone?.Invoke(
+                    new LoginResult
+                    {
+                        Success = true,
+                        User = result
+                    }
+                );
+            }
+            catch (Exception e)
+            {
+                onLoginDone?.Invoke(
+                    new LoginResult
+                    {
+                        Success = false,
+                        Error = e
+                    }
+                );
             }
         }
     }

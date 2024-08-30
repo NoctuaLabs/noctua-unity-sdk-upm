@@ -116,7 +116,7 @@ namespace com.noctuagames.sdk.UI
 
                 var credentialVerification = await Model.AuthService.RequestResetPassword(emailAddress);
 
-                Model.ShowEmailConfirmResetPasswordDialogUI(credentialVerification.Id);
+                Model.ShowEmailConfirmResetPassword(credentialVerification.Id);
 
                 View.visible = false;
 

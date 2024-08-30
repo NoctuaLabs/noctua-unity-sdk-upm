@@ -169,6 +169,20 @@ namespace com.noctuagames.sdk
 
         [JsonProperty("is_recent")]
         public bool IsRecent;
+
+        public string DisplayName
+        {
+            get
+            {
+                return this switch
+                {
+                    { Player: { Username: not null } player } => player.Username,
+                    { User: { Nickname: not null } user } => user.Nickname,
+                    { Credential: { Provider: "device_id" } } => "Guest " + User?.Id,
+                    _ => "User " + User?.Id
+                };
+            }
+        }
     }
 
     public class LoginAsGuestRequest
@@ -184,7 +198,6 @@ namespace com.noctuagames.sdk
     {
         [JsonProperty("redirect_url")]
         public string RedirectUrl;
-
     }
 
     public class SocialLoginRequest
@@ -532,19 +545,19 @@ namespace com.noctuagames.sdk
         // TODO ganti ke ShowSwitchAccountUI()
         public void SwitchAccount()
         {
-            Behaviour.ShowAccountSelectionDialogUI();
+            Behaviour.ShowAccountSelection();
         }
 
         // TODO not a public facing API, need to be removed
         public void ShowRegisterDialogUI()
         {
-            Behaviour.ShowEmailRegisterDialogUI(true);
+            Behaviour.ShowEmailRegistration(true);
         }
 
         // TODO not a public facing API, need to be removed
         public void ShowEmailVerificationDialogUI()
         {
-            Behaviour.ShowEmailVerificationDialogUI("foo", "bar", 123);
+            Behaviour.ShowEmailVerification("foo", "bar", 123);
         }
 
         private async UniTask<UserBundle> AccountDetection()

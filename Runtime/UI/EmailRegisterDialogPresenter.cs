@@ -150,7 +150,7 @@ namespace com.noctuagames.sdk.UI
 
                 View.visible = false;
 
-                Model.ShowEmailVerificationDialogUI(emailAddress, password, result.Id);
+                Model.ShowEmailVerification(emailAddress, password, result.Id);
 
                 View.Q<Label>("ErrCode").RemoveFromClassList("hide");
                 View.Q<Button>("ContinueButton").RemoveFromClassList("hide");
@@ -180,7 +180,7 @@ namespace com.noctuagames.sdk.UI
             View.Q<Button>("ContinueButton").RemoveFromClassList("hide");
 
             Visible = false;
-            Model.ShowLoginOptionsDialogUI(null);
+            Model.ShowLoginOptions(null);
         }
 
         private void OnEmailValueChanged(TextField textField)

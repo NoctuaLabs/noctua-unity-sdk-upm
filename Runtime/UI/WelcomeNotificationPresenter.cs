@@ -10,9 +10,21 @@ namespace com.noctuagames.sdk.UI
         private VisualElement _welcomeBox;
         private Label _playerName;
 
-        protected override void Attach(){}
-        protected override void Detach(){}
+        protected override void Attach()
+        {
+            Model.OnAccountChanged += OnAccountChanged;
+        }
+
+        protected override void Detach()
+        {
+            Model.OnAccountChanged -= OnAccountChanged;
+        }
         
+        private void OnAccountChanged(UserBundle userBundle)
+        {
+            Show(userBundle);
+        }
+
         private void Awake()
         {
             LoadView();

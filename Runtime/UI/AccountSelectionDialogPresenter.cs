@@ -103,7 +103,7 @@ namespace com.noctuagames.sdk.UI
             View.visible = false;
 
             // Use recent account as selectedAccount
-            Model.ShowLoginOptionsDialogUI(Model.AuthService.RecentAccount);
+            Model.ShowLoginOptions(Model.AuthService.RecentAccount);
         }
 
         private void OnCloseButtonClick(ClickEvent evt)
@@ -135,20 +135,14 @@ namespace com.noctuagames.sdk.UI
                 }
                 else
                 {
-                    Model.ShowSwitchAccountConfirmationDialogUI(selectedAccount);
+                    Model.ShowSwitchAccountConfirmation(selectedAccount);
                 }
 
                 View.visible = false;
             
             });
 
-            element.Q<Label>("PlayerName").text = items[index] switch
-            {
-                { Player: { Username: not null } player } => player.Username,
-                { User: { Nickname: not null } user } => user.Nickname,
-                { Credential: { Provider: "device_id" } } => "Guest " + items[index].User?.Id,
-                _ => "User " + items[index].User?.Id
-            };
+            element.Q<Label>("PlayerName").text = items[index].DisplayName;
 
             element.Q<Label>("RecentLabel").text =
                 items[index].User?.Id == Model.AuthService.RecentAccount.User.Id ? "Recent" : "";

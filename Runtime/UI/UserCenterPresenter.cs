@@ -8,18 +8,19 @@ namespace com.noctuagames.sdk.UI
     public class UserCenterPresenter : Presenter<NoctuaBehaviour>
     {
         private VisualTreeAsset _itemTemplate;
-
-        private readonly List<UserCredential> _userCredentials = new()
+        private ListView _credentialListView;
+        
+        private readonly List<UserCredential> _credentials = new()
         {
             new UserCredential
             {
                 CredentialIconStyle = "email-icon",
-                CredentialProvider = "Email"
+                CredentialProvider = CredentialProvider.Email
             },
             new UserCredential
             {
                 CredentialIconStyle = "google-logo",
-                CredentialProvider = "Google"
+                CredentialProvider = CredentialProvider.Google
             },
         };
         
@@ -34,58 +35,83 @@ namespace com.noctuagames.sdk.UI
         private void Awake()
         {
             LoadView();
-            _itemTemplate = Resources.Load<VisualTreeAsset>("ConnectAccountItem");
-            BindListView(View.Q<ListView>("AccountList"), Model.AuthService.RecentAccount.Credential);
+            // _itemTemplate = Resources.Load<VisualTreeAsset>("ConnectAccountItem");
+            // BindListView();
         }
         
-        private void BindListView(ListView listView, List<UserBundle> items)
+        private void BindListView()
         {
-            listView.makeItem = _itemTemplate.Instantiate;
-            listView.bindItem = (element, index) => BindListViewItem(element, index, items);
-            listView.fixedItemHeight = 40;
-            listView.itemsSource = items;
-            listView.selectionType = SelectionType.Single;
+            _credentialListView = View.Q<ListView>("AccountList");
+            _credentialListView.makeItem = _itemTemplate.Instantiate;
+            _credentialListView.bindItem = BindListViewItem;
+            _credentialListView.fixedItemHeight = 40;
+            _credentialListView.itemsSource = _credentials;
+            _credentialListView.selectionType = SelectionType.Single;
         }
 
-        private void BindListViewItem(VisualElement element, int index, List<UserCredential> items)
+        private void BindListViewItem(VisualElement element, int index)
         {
-            element.userData = items[index];
-            element.RegisterCallback<PointerUpEvent>(_ =>
+            element.userData = _credentials[index];
+            
+            if (string.IsNullOrEmpty(_credentials[index].Username))
             {
-            //     var selectedAccount = items[index];
-            //     
-            //     Debug.Log($"Selected {selectedAccount?.User?.Nickname}");
-            //
-            //     if (selectedAccount is { IsRecent: true })
-            //     {
-            //         Model.AuthService.SwitchAccount(selectedAccount);
-            //     }
-            //     else
-            //     {
-            //         Model.ShowSwitchAccountConfirmationDialogUI(selectedAccount);
-            //     }
-            //
-            //     View.visible = false;
-            //
-            // });
-            //
-            // element.Q<Label>("PlayerName").text = items[index] switch
-            // {
-            //     { Player: { Username: not null } player } => player.Username,
-            //     { User: { Nickname: not null } user } => user.Nickname,
-            //     { Credential: { Provider: "device_id" } } => "Guest " + items[index].User?.Id,
-            //     _ => "User " + items[index].User?.Id
-            // };
-            //
-            // element.Q<Label>("RecentLabel").text =
-            //     items[index].User?.Id == Model.AuthService.RecentAccount.User.Id ? "Recent" : "";
+                element.Q<Label>("UsernameLabel").AddToClassList("hide");
+                element.Q<Button>("ConnectButton").RemoveFromClassList("hide");
+                element.Q<Button>("ConnectButton").RegisterCallback<PointerUpEvent, UserCredential>(OnConnectButtonClick, _credentials[index]);
+            }
+            else
+            {
+                element.Q<Button>("ConnectButton").AddToClassList("hide");
+                element.Q<Label>("UsernameLabel").text = _credentials[index].Username;
+            }
+            
+            element.Q<VisualElement>("MethodLogo").ClearClassList();
+            element.Q<VisualElement>("MethodLogo").AddToClassList("method-logo");
+            element.Q<VisualElement>("MethodLogo").AddToClassList(_credentials[index].CredentialIconStyle);
         }
         
+        private void OnConnectButtonClick(PointerUpEvent evt, UserCredential credential)
+        {
+            Debug.Log($"Selected {credential?.CredentialProvider}");
+
+            if (credential == null) return;
+                
+            switch (credential.CredentialProvider)
+            {
+                case CredentialProvider.Email:
+                    Model.ShowEmailLogin(result =>
+                    {
+                        Debug.Log($"ShowEmailLogin: {result.Success}");
+                        
+                        _credentials[0].Username = result.Success ? result.User?.DisplayName : "";
+                        _credentialListView.Rebuild();
+                    });
+                    break;
+                case CredentialProvider.Google:
+                    Model.ShowSocialLogin("google", result =>
+                    {
+                        Debug.Log($"ShowSocialLogin: {result.Success}");
+
+                        _credentials[1].Username = result.Success ? result.User?.DisplayName : "";
+                        _credentialListView.Rebuild();
+                    });
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException();
+            }
+        }
+        
+        private enum CredentialProvider
+        {
+            Email,
+            Google
+        }
+
         private class UserCredential
         {
             public string Username;
             public string CredentialIconStyle;
-            public string CredentialProvider;
+            public CredentialProvider CredentialProvider;
         }
     }
 }

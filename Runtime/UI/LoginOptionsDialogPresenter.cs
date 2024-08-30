@@ -67,7 +67,7 @@ namespace com.noctuagames.sdk.UI
         private void OnLoginWithEmailButtonClicked()
         {
             Visible = false;
-            Model.ShowLoginWithEmailDialogUI();
+            Model.ShowEmailLogin(null);
         }
 
         
@@ -81,7 +81,7 @@ namespace com.noctuagames.sdk.UI
         {
             Visible = false;
 
-            Model.ShowAccountSelectionDialogUI();
+            Model.ShowAccountSelection();
         }
     }
 }

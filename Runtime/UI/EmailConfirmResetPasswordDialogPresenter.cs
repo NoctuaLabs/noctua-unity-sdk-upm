@@ -91,7 +91,7 @@ namespace com.noctuagames.sdk.UI
         private async void OnBackButtonClick(ClickEvent evt)
         {
             Visible = false;
-            Model.ShowEmailResetPasswordDialogUI(false);
+            Model.ShowEmailResetPassword(false);
         }
 
         private async void OnContinueButtonClick(ClickEvent evt)
@@ -152,8 +152,7 @@ namespace com.noctuagames.sdk.UI
                 View.Q<VisualElement>("Spinner").AddToClassList("hide");
 
                 // Go back to login dialog
-                Model.ShowLoginWithEmailDialogUI();
-
+                Model.ShowEmailLogin(null);
             } catch (Exception e) {
                 if (e is NoctuaException noctuaEx)
                 {
