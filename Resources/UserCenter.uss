@@ -1,10 +1,12 @@
 ﻿.user-center {
-    right: 0;
-    width: 525px;
+    width: 66%;
     height: 100%;
     border-top-left-radius: 20px;
     border-bottom-left-radius: 20px;
+    background-color: rgb(31, 35, 39);
+    color: white;
     flex-direction: row;
+    align-self: flex-end;
 }
 
 .user-profile {
@@ -23,8 +25,9 @@
 }
 
 .user-profile-header-button {
-    border-radius: 20px;
-    height: 27px;
+    border-radius: 13px;
+    height: 26px;
+    padding: 5px;
     background-color: #3E4248;
     align-items: center;
     justify-content: center;
@@ -53,23 +56,37 @@
     background-image: url("./HelpChatIcon.png");
 }
 
-.exit-button {
-    width: 27px;
+.help-label {
+    color: rgba(237, 237, 237, 1);
+    font-size: 10px;
 }
 
-
-.setting-button {
-    width: 27px;
+.exit-button {
+    width: 26px;
 }
 
 .user-profile-spacing {
-    height: 52px;
+    flex: 1;
 }
 
 .user-profile-content {
     flex-direction: column;
     align-items: center;
     justify-content: center;
+}
+
+.menu-item {
+    flex-direction: row;
+    background-color: transparent;
+    justify-content: space-around;
+    height: 30px;
+    -unity-text-align: middle-center;
+    align-items: center;
+    font-size: 12px;
+}
+
+.menu-item:hover {
+    background-color: rgba(255, 255, 255, 0.1);
 }
 
 .player-name {
@@ -94,9 +111,10 @@
 }
 
 .player-avatar {
-    width: 107px;
-    height: 107px;
+    width: 96px;
+    height: 96px;
     background-image: url("./PlayerProfileBackground.png");
+    align-self: center;
 }
 
 .user-id {
@@ -123,6 +141,11 @@
     padding: 8px;
 }
 
+.connect-account-label {
+    color: rgba(194, 194, 194, 1);
+    font-size: 12px;
+}
+
 .account-list {
     flex: 1;    
     align-self: stretch;
@@ -139,14 +162,4 @@
 .find-more-label {
     color: #757575;
     font-size: 8px;
-}
-
-.profile-menu-button {
-    background-color: #2D3138;
-    height: 40px;
-    border-radius: 5px;
-    align-items: center;
-    justify-content: space-between;
-    flex-direction: row;
-    align-self: stretch;
 }

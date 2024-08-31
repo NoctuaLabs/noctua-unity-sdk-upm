@@ -5,7 +5,7 @@ using UnityEngine.UIElements;
 
 namespace com.noctuagames.sdk.UI
 {
-    public class UserCenterPresenter : Presenter<NoctuaBehaviour>
+    internal class UserCenterPresenter : Presenter<NoctuaAuthenticationBehaviour>
     {
         private VisualTreeAsset _itemTemplate;
         private ListView _credentialListView;

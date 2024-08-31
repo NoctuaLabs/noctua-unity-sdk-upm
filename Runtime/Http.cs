@@ -177,13 +177,19 @@ namespace com.noctuagames.sdk
             _request.downloadHandler = new DownloadHandlerBuffer();
             string response = null;
 
-            try {
+            try 
+            {
                 await _request.SendWebRequest();
-            } catch (Exception e) {
+            } 
+            catch (Exception e) 
+            {
                 Debug.Log(_request.result.ToString());
                 response = _request.downloadHandler.text;
                 Debug.Log(response);
                 Debug.Log(e.Message);
+                
+                _request.uploadHandler.Dispose();
+                _request.downloadHandler.Dispose();
 
                 if (response == null || _request.result != UnityWebRequest.Result.Success) {
                     // Try to parse the error first to get the error code
@@ -206,11 +212,17 @@ namespace com.noctuagames.sdk
                         }
                     }
                 }
+                
             }
 
             response = _request.downloadHandler.text;
             Debug.Log(response);
-            return JsonConvert.DeserializeObject<DataWrapper<T>>(response, _jsonSettings).Data;
+            var data = JsonConvert.DeserializeObject<DataWrapper<T>>(response, _jsonSettings).Data;
+            
+            _request.uploadHandler.Dispose();
+            _request.downloadHandler.Dispose();
+
+            return data;
         }
     }
 }

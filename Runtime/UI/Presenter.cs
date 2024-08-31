@@ -13,8 +13,9 @@ namespace com.noctuagames.sdk.UI
             get => View.visible;
             set
             {
-                View.Focus();
                 View.visible = value;
+                
+                if (value) View.Focus();
             }
         }
 

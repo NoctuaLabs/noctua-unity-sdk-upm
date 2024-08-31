@@ -10,7 +10,7 @@ using System.Globalization;
 
 namespace com.noctuagames.sdk.UI
 {
-    public class EmailResetPasswordDialogPresenter : Presenter<NoctuaBehaviour>
+    internal class EmailResetPasswordDialogPresenter : Presenter<NoctuaAuthenticationBehaviour>
     {
         private string _email;
 
@@ -41,7 +41,8 @@ namespace com.noctuagames.sdk.UI
 
             emailField.RegisterValueChangedCallback(evt => OnEmailValueChanged(emailField));
 
-            View.Q<Button>("ContinueButton").RegisterCallback<ClickEvent>(OnContinueButtonClick);
+            View.Q<Button>("ContinueButton").RegisterCallback<PointerUpEvent>(OnContinueButtonClick);
+            View.Q<Button>("BackButton").RegisterCallback<PointerUpEvent>(OnBackButtonClick);
         }
 
         private void OnEmailValueChanged(TextField textField)
@@ -83,7 +84,7 @@ namespace com.noctuagames.sdk.UI
             }
         }
 
-        private async void OnContinueButtonClick(ClickEvent evt)
+        private async void OnContinueButtonClick(PointerUpEvent evt)
         {
             Debug.Log("EmailForgotPasswordDialogPresenter.OnContinueButtonClick()");
 
@@ -138,7 +139,14 @@ namespace com.noctuagames.sdk.UI
                 View.Q<VisualElement>("Spinner").AddToClassList("hide");
                 return;
             }
-        }   
+        }
+
+        private void OnBackButtonClick(PointerUpEvent evt)
+        {
+            View.visible = false;
+            
+            Model.ShowEmailLogin(null);
+        }
 
         private void HideAllErrors()
         {

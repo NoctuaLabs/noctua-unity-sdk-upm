@@ -30,6 +30,7 @@
     justify-content: space-between;
     margin-top: 49px;
     align-self: stretch;
+    font-size: 12px;
 }
 
 .switch-account-button {

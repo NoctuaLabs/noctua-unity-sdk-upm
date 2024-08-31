@@ -1,7 +1,11 @@
 ﻿using System;
 using System.Collections;
+using System.Collections.Generic;
+using System.Threading.Tasks;
+using System.Web;
 using com.noctuagames.sdk.UI;
 using Cysharp.Threading.Tasks;
+using UnityEditor;
 using UnityEngine;
 using UnityEngine.UIElements;
 
@@ -23,17 +27,19 @@ namespace com.noctuagames.sdk
     2. Model: main logics + public facing API
     3. API: the actual model, where we talk to either HTTP API or local storage like player prefs. (TODO)
 
-    NoctuaBehaviour purposes:
+    NoctuaAuthenticationBehavour purposes:
     1. To allow our SDK instance (including UI) to be injected into the Scene
     3. To allow an UI presenter call another UI presenter
     2. To allow model layer (logic) to call an UI presenter
     */
 
-    public class NoctuaBehaviour : MonoBehaviour
+    internal class NoctuaAuthenticationBehaviour : MonoBehaviour
     {
         public string Action;
         private PanelSettings _panelSettings;
         private UIDocument _uiDocument;
+        
+        private HttpServer _oauthHttpServer;
 
         // IMPORTANT NOTES!!!
         // Your UI need to apply USS absolute property to the first VisualElement of the UI
@@ -50,18 +56,31 @@ namespace com.noctuagames.sdk
         private EmailConfirmResetPasswordDialogPresenter _emailConfirmResetPasswordDialog;
         private UserCenterPresenter _userCenter;
 
-        public NoctuaAuthService AuthService => Noctua.Auth;
+        private NoctuaAuthenticationService _authService;
 
-        public event Action<UserBundle> OnAccountChanged
+        public NoctuaAuthenticationService AuthService
         {
-            add => AuthService.OnAccountChanged += value;
-            remove => AuthService.OnAccountChanged -= value;
+            get => _authService;
+            set
+            {
+                if (_authService != null)
+                {
+                    _authService.OnAccountChanged -= OnAccountChanged;
+                }
+                
+                _authService = value;
+
+                if (_authService != null)
+                {
+                    _authService.OnAccountChanged += OnAccountChanged;
+                }
+            }
         }
+
+        public event Action<UserBundle> OnAccountChanged;
 
         private void Awake()
         {
-            Noctua.Init();
-
             _panelSettings = Resources.Load<PanelSettings>("NoctuaPanelSettings");
             _uiDocument = gameObject.AddComponent<UIDocument>();
             _uiDocument.panelSettings = _panelSettings;
@@ -123,9 +142,9 @@ namespace com.noctuagames.sdk
             _emailVerificationDialog.Show(email, password, verificationID);
         }
 
-        public void ShowLoginOptions(UserBundle recentAccount)
+        public void ShowLoginOptions(Action<LoginResult> onLoginDone = null)
         {
-            _loginOptionsDialog.Show(recentAccount);
+            _loginOptionsDialog.Show(onLoginDone);
         }
 
         public void ShowEmailLogin(Action<LoginResult> onLoginDone)
@@ -148,11 +167,6 @@ namespace com.noctuagames.sdk
             _switchAccountConfirmationDialog.Show(recentAccount);
         }
 
-        public void ShowWelcomeToast(UserBundle recentAccount)
-        {
-            _welcome.Show(recentAccount);
-        }
-
         private void Update()
         {
             if (Input.GetKeyDown(KeyCode.Space))
@@ -163,33 +177,143 @@ namespace com.noctuagames.sdk
 
         public void ShowSocialLogin(string provider, Action<LoginResult> onLoginDone)
         {
-            UniTask.Void(async () => await SocialLogin(provider, onLoginDone));
+            UniTask.Void(async () =>
+            {
+                try
+                {
+                    var result = await SocialLogin(provider);
+
+                    onLoginDone?.Invoke(
+                        new LoginResult
+                        {
+                            Success = true,
+                            User = result
+                        }
+                    );
+                }
+                catch (Exception e)
+                {
+                    onLoginDone?.Invoke(
+                        new LoginResult
+                        {
+                            Success = false,
+                            Error = e
+                        }
+                    );
+                }
+            });
         }
 
-        private async UniTask SocialLogin(string provider, Action<LoginResult> onLoginDone)
+        public async UniTask<UserBundle> SocialLogin(string provider)
         {
-            try
+            if (AuthService.RecentAccount == null)
             {
-                var result = await AuthService.SocialLogin(provider);
+                throw NoctuaException.NoRecentAccount;
+            }
+            
+            Debug.Log("SocialLogin: " + provider);
 
-                onLoginDone?.Invoke(
-                    new LoginResult
-                    {
-                        Success = true,
-                        User = result
-                    }
-                );
-            }
-            catch (Exception e)
+            var socialLoginUrl = await AuthService.GetSocialLoginRedirectURL(provider);
+
+            Debug.Log("SocialLogin: " + provider + " " + socialLoginUrl);
+
+#if (UNITY_STANDALONE || UNITY_EDITOR) && !UNITY_WEBGL
+
+            // Start HTTP server to listen to the callback with random port
+            // open the browser with the redirect URL
+
+            var task = new TaskCompletionSource<Dictionary<string, string>>();
+
+            void OnCallbackReceived(string callbackData)
             {
-                onLoginDone?.Invoke(
-                    new LoginResult
-                    {
-                        Success = false,
-                        Error = e
-                    }
-                );
+                Debug.Log("HTTP Server received callback: " + callbackData);
+
+                task.TrySetResult(ParseQueryString(callbackData));
             }
+
+            if (_oauthHttpServer is { IsRunning: true })
+            {
+                _oauthHttpServer.Stop();
+            }
+            
+            _oauthHttpServer = new HttpServer();
+            _oauthHttpServer.OnCallbackReceived += OnCallbackReceived;
+            _oauthHttpServer.Start();
+
+            var redirectUrl = $"http://localhost:{_oauthHttpServer.Port}";
+            var url = $"{socialLoginUrl}&redirect_uri={HttpUtility.UrlEncode(redirectUrl)}";
+            Debug.Log($"Open URL with system browser: {url}");
+
+            Application.OpenURL(url);
+
+            var callbackDataMap = await task.Task;
+
+            Debug.Log("HTTP Server received callback, stopping the server");
+
+            _oauthHttpServer.Stop();
+            _oauthHttpServer = null;
+
+#elif UNITY_IOS || UNITY_ANDROID
+            // Open the browser with the redirect URL
+
+            var task = new TaskCompletionSource<Dictionary<string, string>>();
+            
+            Application.deepLinkActivated += (uri) =>
+            {
+                Debug.Log("Deep link activated: " + uri);
+                
+                var callbackDataMap = ParseQueryString(uri);
+                
+                task.TrySetResult(callbackDataMap);
+            };
+            
+            var redirectUrl = $"{Application.identifier}:/auth";
+            var url = $"{socialLoginUrl}&redirect_uri={redirectUrl}";
+
+            Debug.Log($"Open URL with system browser: {url}");
+            Application.OpenURL(url);
+            
+            var callbackDataMap = await task.Task;
+#endif
+
+            var socialLoginRequest = new SocialLoginRequest
+            {
+                Code = callbackDataMap["code"],
+                State = callbackDataMap["state"],
+                RedirectUri = redirectUrl
+            };
+
+            return await AuthService.SocialLogin(provider, socialLoginRequest);
+        }
+
+        private static Dictionary<string, string> ParseQueryString(string queryString)
+        {
+            var queryParameters = new Dictionary<string, string>();
+            queryString = queryString[(queryString.IndexOf('?') + 1)..];
+
+            var pairs = queryString.Split('&');
+            foreach (var pair in pairs)
+            {
+                var keyValue = pair.Split('=');
+
+                if (keyValue.Length != 2) continue;
+
+                var key = Uri.UnescapeDataString(keyValue[0]);
+                var value = Uri.UnescapeDataString(keyValue[1]);
+                queryParameters[key] = value;
+            }
+
+            return queryParameters;
+        }
+
+        private void OnDestroy()
+        {
+            if (_oauthHttpServer is { IsRunning: true })
+            {
+                _oauthHttpServer.Stop();
+            }
+            
+            _oauthHttpServer = null;
         }
     }
 }

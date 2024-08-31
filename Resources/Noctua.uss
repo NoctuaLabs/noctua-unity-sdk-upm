@@ -51,11 +51,11 @@
 
 .dialog-title {
     margin-top:-5px;
-    font-size: 16px;
+    font-size: 12px;
 }
 
 .dialog-back-button {
-    margin-top:0px;
+    margin-top:0;
     margin-right:14px;
     height:24px;
     width: 24px;

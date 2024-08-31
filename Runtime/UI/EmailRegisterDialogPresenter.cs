@@ -10,7 +10,7 @@ using System.Globalization;
 
 namespace com.noctuagames.sdk.UI
 {
-    public class EmailRegisterDialogPresenter : Presenter<NoctuaBehaviour>
+    internal class EmailRegisterDialogPresenter : Presenter<NoctuaAuthenticationBehaviour>
     {
         private string _email;
         private string _password;
@@ -22,6 +22,7 @@ namespace com.noctuagames.sdk.UI
         private void Awake()
         {
             LoadView();
+            
             SetupInputFields(true);
             HideAllErrors();
         }
@@ -68,6 +69,7 @@ namespace com.noctuagames.sdk.UI
             var rePasswordField = View.Q<TextField>("RePasswordTF");
             var continueButton = View.Q<Button>("ContinueButton");
             var backButton = View.Q<Button>("BackButton");
+            var loginLink = View.Q<Label>("LoginLink");
 
             // Visibility
             continueButton.RemoveFromClassList("hide");
@@ -82,16 +84,21 @@ namespace com.noctuagames.sdk.UI
             }
 
             // Callbacks
-            continueButton.RegisterCallback<ClickEvent>(OnContinueButtonClick);
-            backButton.RegisterCallback<ClickEvent>(OnBackButtonClick);
+            continueButton.RegisterCallback<PointerUpEvent>(OnContinueButtonClick);
+            backButton.RegisterCallback<PointerUpEvent>(OnBackButtonClick);
             emailField.RegisterValueChangedCallback(evt => OnEmailValueChanged(emailField));
             passwordField.RegisterValueChangedCallback(evt => OnPasswordValueChanged(passwordField));
             rePasswordField.RegisterValueChangedCallback(evt => OnRePasswordValueChanged(rePasswordField));
-
-
+            loginLink.RegisterCallback<PointerUpEvent>(OnLoginLinkClick);
         }
 
-        private async void OnContinueButtonClick(ClickEvent evt)
+        private void OnLoginLinkClick(PointerUpEvent evt)
+        {
+            Visible = false;
+            Model.ShowEmailLogin(null);
+        }
+
+        private async void OnContinueButtonClick(PointerUpEvent evt)
         {
             HideAllErrors();
 
@@ -100,7 +107,6 @@ namespace com.noctuagames.sdk.UI
             View.Q<VisualElement>("Spinner").Clear();
             View.Q<VisualElement>("Spinner").Add(spinnerInstance);
             View.Q<VisualElement>("Spinner").RemoveFromClassList("hide");
-            View.Q<VisualElement>("AdditionalFooterContent").AddToClassList("hide");
 
             var emailAddress = _email;
             var password = _password;
@@ -144,8 +150,7 @@ namespace com.noctuagames.sdk.UI
             }
 
             try {
-
-                var result = await Model.AuthService.RegisterWithPassword(emailAddress, password);
+                var result = await Model.AuthService.RegisterWithEmail(emailAddress, password);
                 Debug.Log("RegisterWithPassword verification ID: " + result.Id);
 
                 View.visible = false;
@@ -157,7 +162,8 @@ namespace com.noctuagames.sdk.UI
                 View.Q<VisualElement>("AdditionalFooterContent").RemoveFromClassList("hide");
                 View.Q<VisualElement>("Spinner").AddToClassList("hide");
 
-            } catch (Exception e) {
+            } 
+            catch (Exception e) {
                 if (e is NoctuaException noctuaEx)
                 {
                     Debug.Log("NoctuaException: " + noctuaEx.ErrorCode + " : " + noctuaEx.Message);
@@ -174,13 +180,13 @@ namespace com.noctuagames.sdk.UI
             }
         }
 
-        private void OnBackButtonClick(ClickEvent evt)
+        private void OnBackButtonClick(PointerUpEvent evt)
         {
             View.Q<VisualElement>("Spinner").AddToClassList("hide");
             View.Q<Button>("ContinueButton").RemoveFromClassList("hide");
 
             Visible = false;
-            Model.ShowLoginOptions(null);
+            Model.ShowLoginOptions();
         }
 
         private void OnEmailValueChanged(TextField textField)

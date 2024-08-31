@@ -2,11 +2,9 @@
     <Style src="./Noctua.uss" />
     <Style src="./LoginOptionsDialog.uss" />
     <ui:VisualElement name="LoginOptionsDialog" class="base dialog-box">
-        <ui:VisualElement class="login-dialog-header">
-            <ui:Button name="BackButton" class="back-button">
-                <ui:VisualElement class="back-icon" />
-            </ui:Button>
-            <ui:Label text="Continue with another account" />
+        <ui:VisualElement class="dialog-header">
+            <ui:Button name="BackButton" class="dialog-back-button" />
+            <ui:Label text="Continue with another account" class="dialog-title" />
         </ui:VisualElement>
         <ui:VisualElement class="social-account-row">
             <ui:Button name="LoginWithGoogleButton" class="social-account-button">

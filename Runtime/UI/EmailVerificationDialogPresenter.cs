@@ -6,7 +6,7 @@ using UnityEngine.UIElements;
 
 namespace com.noctuagames.sdk.UI
 {
-    public class EmailVerificationDialogPresenter : Presenter<NoctuaBehaviour>
+    internal class EmailVerificationDialogPresenter : Presenter<NoctuaAuthenticationBehaviour>
     {
         private UIDocument _uiDoc;
 
@@ -86,7 +86,7 @@ namespace com.noctuagames.sdk.UI
             View?.Q<VisualElement>("DialogContent")?.AddToClassList("hide");
             View?.Q<VisualElement>("DialogHeader")?.AddToClassList("hide");
             try {
-                var result = await Model.AuthService.RegisterWithPassword(_email, _password);
+                var result = await Model.AuthService.RegisterWithEmail(_email, _password);
                 Debug.Log("RegisterWithPassword verification ID: " + result.Id);
 
                 _credVerifyId = result.Id;
@@ -134,7 +134,7 @@ namespace com.noctuagames.sdk.UI
             View?.Q<VisualElement>("DialogContent")?.AddToClassList("hide");
             View?.Q<VisualElement>("DialogHeader")?.AddToClassList("hide");
             try {
-                await Model.AuthService.VerifyCredential(_credVerifyId, _credVerifyCode);
+                await Model.AuthService.VerifyEmailRegistration(_credVerifyId, _credVerifyCode);
 
                 Visible = false;
 

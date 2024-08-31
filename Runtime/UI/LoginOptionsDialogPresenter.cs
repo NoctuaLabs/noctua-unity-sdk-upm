@@ -4,24 +4,18 @@ using UnityEngine.UIElements;
 
 namespace com.noctuagames.sdk.UI
 {
-    public class LoginOptionsDialogPresenter : Presenter<NoctuaBehaviour>
+    internal class LoginOptionsDialogPresenter : Presenter<NoctuaAuthenticationBehaviour>
     {
-        private UserBundle _selectedAccount;
-
         private Button _loginWithGoogleButton;
         private Button _loginWithFacebookButton;
         private Button _loginWithEmailButton;
         private Button _registerButton;
         private Button _backButton;
+        private Action<LoginResult> _onDone; 
         
-        public void Show(UserBundle selectedAccount)
+        public void Show(Action<LoginResult> onDone)
         {
-
-            if (selectedAccount == null)
-            {
-                selectedAccount = Model.AuthService.RecentAccount;
-            }
-            _selectedAccount = selectedAccount;
+            _onDone = onDone;
             Visible = true;
         }
 
@@ -33,48 +27,79 @@ namespace com.noctuagames.sdk.UI
             LoadView();
             
             _loginWithGoogleButton = View.Q<Button>("LoginWithGoogleButton");
-            _loginWithGoogleButton.clicked += OnLoginWithGoogleButtonClicked;
+            _loginWithGoogleButton.RegisterCallback<PointerUpEvent>(_ => OnLoginWithGoogleButtonClicked());
             
             _loginWithFacebookButton = View.Q<Button>("LoginWithFacebookButton");
-            _loginWithFacebookButton.clicked += OnLoginWithFacebookButtonClicked;
+            _loginWithFacebookButton.RegisterCallback<PointerUpEvent>(_ => OnLoginWithFacebookButtonClicked());
             
             _loginWithEmailButton = View.Q<Button>("LoginWithEmailButton");
-            _loginWithEmailButton.clicked += OnLoginWithEmailButtonClicked;
+            _loginWithEmailButton.RegisterCallback<PointerUpEvent>(_ => OnLoginWithEmailButtonClicked());
             
             _registerButton = View.Q<Button>("RegisterButton");
-            _registerButton.clicked += OnRegisterButtonClicked;
+            _registerButton.RegisterCallback<PointerUpEvent>(_ => OnRegisterButtonClicked());
             
             _backButton = View.Q<Button>("BackButton");
-            _backButton.clicked += OnBackButtonClicked;
+            _backButton.RegisterCallback<PointerUpEvent>(_ => OnBackButtonClicked());
         }
 
         private void OnLoginWithFacebookButtonClicked()
         {
             Visible = false;
-            UniTask.Void(async () =>
-            {
-                await Model.AuthService.SocialLogin("facebook");
-            });
+            StartCoroutine(SocialLogin("facebook").ToCoroutine());
         }
 
         private void OnLoginWithGoogleButtonClicked()
         {
             Visible = false;
-            
-            StartCoroutine(Model.AuthService.SocialLogin("google").ToCoroutine()); 
+            StartCoroutine(SocialLogin("google").ToCoroutine());
+        }
+
+        private async UniTask SocialLogin(string provider)
+        {
+            try
+            {
+                var userBundle = await Model.SocialLogin("google");
+
+                _onDone?.Invoke(
+                    new LoginResult
+                    {
+                        Success = true,
+                        User = userBundle,
+                    }
+                );
+            }
+            catch (Exception e)
+            {
+                _onDone?.Invoke(
+                    new LoginResult
+                    {
+                        Success = false,
+                        Error = e,
+                    }
+                );
+            }
         }
 
         private void OnLoginWithEmailButtonClicked()
         {
             Visible = false;
-            Model.ShowEmailLogin(null);
+            
+            Model.ShowEmailLogin(
+                result =>
+                {
+                    if (!result.Success)
+                    {
+                        Visible = true;
+                    }
+                }
+            );
         }
-
         
         private void OnRegisterButtonClicked()
         {
             Visible = false;
-            Model.AuthService.ShowRegisterDialogUI();
+            
+            Model.ShowEmailRegistration(true);
         }
 
         private void OnBackButtonClicked()

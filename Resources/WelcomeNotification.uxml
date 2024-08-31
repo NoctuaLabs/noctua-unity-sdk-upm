@@ -1,15 +1,17 @@
 <ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" xsi="http://www.w3.org/2001/XMLSchema-instance" engine="UnityEngine.UIElements" editor="UnityEditor.UIElements" noNamespaceSchemaLocation="../../../../UIElementsSchema/UIElements.xsd" editor-extension-mode="False">
     <Style src="./Noctua.uss" />
     <Style src="./WelcomeNotification.uss" />
-    <ui:VisualElement name="NoctuaWelcomeBox" class="base welcome-box">
-        <ui:VisualElement name="NoctuaWelcomePlayerBox" class="player-box">
-            <ui:VisualElement name="NoctuaWelcomePlayerImage" class="player-image" />
-            <ui:VisualElement name="NoctuaWelcomePlayerText" class="player-text">
-                <ui:VisualElement name="NoctuaWelcomeText" class="welcome-text">
-                    <ui:Label name="NoctuaWelcomeLabel" text="Welcome" />
-                    <ui:VisualElement name="NoctuaWelcomeIcon" class="welcome-icon" />
+    <ui:VisualElement name="WelcomeNotification" class="base welcome-box">
+        <ui:VisualElement name="PlayerBox" class="player-box">
+            <ui:VisualElement name="PlayerAvatar" class="player-avatar">
+                <ui:VisualElement name="PlayerAvatarImage" class="email-player-avatar" />
+            </ui:VisualElement>
+            <ui:VisualElement name="PlayerText" class="player-text">
+                <ui:VisualElement name="WelcomeText" class="welcome-text">
+                    <ui:Label name="WelcomeLabel" text="Welcome" class="welcome-label" />
+                    <ui:VisualElement name="WelcomeIcon" class="welcome-icon" />
                 </ui:VisualElement>
-                <ui:Label name="NoctuaWelcomePlayerName" text="ono.uni" class="player-name" />
+                <ui:Label name="PlayerName" text="ono.uni" class="player-name" />
             </ui:VisualElement>
         </ui:VisualElement>
         <ui:VisualElement name="NoctuaLogo" class="noctua-logo" />

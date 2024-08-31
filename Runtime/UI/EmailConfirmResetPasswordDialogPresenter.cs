@@ -10,7 +10,7 @@ using System.Globalization;
 
 namespace com.noctuagames.sdk.UI
 {
-    public class EmailConfirmResetPasswordDialogPresenter : Presenter<NoctuaBehaviour>
+    internal class EmailConfirmResetPasswordDialogPresenter : Presenter<NoctuaAuthenticationBehaviour>
     {
         private string _credVerifyCode;
         private string _password;
@@ -88,7 +88,7 @@ namespace com.noctuagames.sdk.UI
             _rePassword = textField.value;
         }
 
-        private async void OnBackButtonClick(ClickEvent evt)
+        private void OnBackButtonClick(ClickEvent evt)
         {
             Visible = false;
             Model.ShowEmailResetPassword(false);

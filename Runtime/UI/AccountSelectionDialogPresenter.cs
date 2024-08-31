@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 
 namespace com.noctuagames.sdk.UI
 {
-    public class AccountSelectionDialogPresenter : Presenter<NoctuaBehaviour>
+    internal class AccountSelectionDialogPresenter : Presenter<NoctuaAuthenticationBehaviour>
     {
         private VisualTreeAsset _itemTemplate;
         private ListView _gameAccountListView;
@@ -22,11 +22,6 @@ namespace com.noctuagames.sdk.UI
 
         protected override void Attach()
         {
-            // Separate AccountList into Game Users (current game) and Noctua Users
-            LoadData();
-            // Render
-            BindListView(_gameAccountListView, _gameUsers);
-            BindListView(_noctuaAccountListView, _noctuaUsers);
         }
 
         protected override void Detach()
@@ -35,11 +30,7 @@ namespace com.noctuagames.sdk.UI
 
         public void Show()
         {
-            // Separate AccountList into Game Users (current game) and Noctua Users
             LoadData();
-            // Render
-            BindListView(_gameAccountListView, _gameUsers);
-            BindListView(_noctuaAccountListView, _noctuaUsers);
 
             Visible = true;
         }
@@ -93,20 +84,21 @@ namespace com.noctuagames.sdk.UI
             _separator = View.Q<VisualElement>("Separator");
             _noctuaAccountListView = View.Q<ListView>("NoctuaAccountList");
             _continueButton = View.Q<Button>("ContinueButton");
-            _continueButton.RegisterCallback<ClickEvent>(OnContinueButtonClick);
+            _continueButton.RegisterCallback<PointerUpEvent>(OnContinueButtonClick);
             _closeButton = View.Q<Button>("CloseButton");
-            _closeButton.RegisterCallback<ClickEvent>(OnCloseButtonClick);
+            _closeButton.RegisterCallback<PointerUpEvent>(OnCloseButtonClick);
+            
+            BindListView(_gameAccountListView, _gameUsers);
+            BindListView(_noctuaAccountListView, _noctuaUsers);
         }
 
-        private void OnContinueButtonClick(ClickEvent evt)
+        private void OnContinueButtonClick(PointerUpEvent evt)
         {
             View.visible = false;
-
-            // Use recent account as selectedAccount
-            Model.ShowLoginOptions(Model.AuthService.RecentAccount);
+            Model.ShowLoginOptions();
         }
 
-        private void OnCloseButtonClick(ClickEvent evt)
+        private void OnCloseButtonClick(PointerUpEvent evt)
         {
             Visible = false;
         }
@@ -129,21 +121,26 @@ namespace com.noctuagames.sdk.UI
                 
                 Debug.Log($"Selected {selectedAccount?.User?.Nickname}");
 
-                if (selectedAccount is { IsRecent: true })
-                {
-                    Model.AuthService.SwitchAccount(selectedAccount);
-                }
-                else
+                if (selectedAccount is { IsRecent: false })
                 {
                     Model.ShowSwitchAccountConfirmation(selectedAccount);
                 }
 
                 View.visible = false;
-            
             });
 
             element.Q<Label>("PlayerName").text = items[index].DisplayName;
-
+            
+            var logoClass = items[index].Credential.Provider switch
+            {
+                "google" => "google-player-avatar",
+                "facebook" => "facebook-player-avatar",
+                "email" => "email-player-avatar",
+                _ => "guest-player-avatar"
+            };
+            element.Q<VisualElement>("PlayerLogo").ClearClassList();
+            element.Q<VisualElement>("PlayerLogo").AddToClassList(logoClass);
+            
             element.Q<Label>("RecentLabel").text =
                 items[index].User?.Id == Model.AuthService.RecentAccount.User.Id ? "Recent" : "";
         }

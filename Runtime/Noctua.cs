@@ -51,13 +51,14 @@ public class NoctuaConfig
     public class Noctua
     {
         private static readonly Lazy<Noctua> Instance = new(() => new Noctua());
-        public static NoctuaAuthService Auth => Instance.Value._auth;
+        public static NoctuaAuthentication Auth => Instance.Value._auth;
         public static NoctuaIAPService IAP => Instance.Value._iap;
 
         public event Action<string> OnPurchaseDone;
 
-        private readonly NoctuaAuthService _auth;
+        private readonly NoctuaAuthentication _auth;
         private readonly NoctuaIAPService _iap;
+
         #if UNITY_ANDROID && !UNITY_EDITOR
         private readonly GoogleBilling _googleBilling;
         #endif
@@ -126,15 +127,8 @@ public class NoctuaConfig
 
             #endif
 
-            if (config.Noctua == null)
-            {
-                config.Noctua = new NoctuaConfig();
-            }
-
-            if (config.Adjust == null)
-            {
-                config.Adjust = new AdjustConfig();
-            }
+            config.Noctua ??= new NoctuaConfig();
+            config.Adjust ??= new AdjustConfig();
 
             // Let's fill the empty fields, if any
             if (string.IsNullOrEmpty(config.Noctua.BaseUrl))
@@ -157,8 +151,8 @@ public class NoctuaConfig
             Debug.Log(config.Noctua.TrackerUrl);
 
 
-            _auth = new NoctuaAuthService(
-                new NoctuaAuthService.Config
+            _auth = new NoctuaAuthentication(
+                new NoctuaAuthentication.Config
                 {
                     BaseUrl = config.Noctua.BaseUrl,
                     ClientId = config.ClientId
@@ -185,13 +179,6 @@ public class NoctuaConfig
         public static void Init()
         {
             Debug.Log("Noctua Init()");
-
-            Debug.Log("Noctua Init() -> Checking if Instance.Value is null");
-            if (Instance?.Value == null)
-            {
-                Debug.Log("Noctua Init() -> Instance.Value is null");
-
-            }
 
             Debug.Log("Noctua.Init() -> Checking if instance has been called");
             if (Instance.Value._initialized)

@@ -5,10 +5,11 @@ using UnityEngine.UIElements;
 
 namespace com.noctuagames.sdk.UI
 {
-    public class WelcomeNotificationPresenter : Presenter<NoctuaBehaviour>
+    internal class WelcomeNotificationPresenter : Presenter<NoctuaAuthenticationBehaviour>
     {
-        private VisualElement _welcomeBox;
+        private VisualElement _root;
         private Label _playerName;
+        private VisualElement _playerAvatarImage;
 
         protected override void Attach()
         {
@@ -22,6 +23,8 @@ namespace com.noctuagames.sdk.UI
         
         private void OnAccountChanged(UserBundle userBundle)
         {
+            if (userBundle == null) return;
+            
             Show(userBundle);
         }
 
@@ -30,12 +33,15 @@ namespace com.noctuagames.sdk.UI
             LoadView();
 
             View.visible = true;
-            _welcomeBox = View.Q<VisualElement>("NoctuaWelcomeBox");
-            _playerName = View.Q<Label>("NoctuaWelcomePlayerName");
+            _root = View.Q<VisualElement>("WelcomeNotification");
+            _playerName = View.Q<Label>("PlayerName");
+            _playerAvatarImage = View.Q<VisualElement>("PlayerAvatarImage");
         }
 
         public void Show(UserBundle userBundle)
         {
+            Debug.Log("Welcome " + userBundle.DisplayName);
+            Debug.Log("Provider: " + userBundle.Credential.Provider);
             StartCoroutine(RunAnimation(userBundle));
         }
 
@@ -45,27 +51,27 @@ namespace com.noctuagames.sdk.UI
             
             yield return new WaitForSeconds(1);
 
-            if (userBundle?.Player?.Username != null && userBundle?.Player?.Username.Length > 0) {
-                // Use player username from in-game if possible
-                _playerName.text = userBundle?.Player?.Username;
-            } else if (userBundle?.User?.Nickname != null && userBundle?.User?.Nickname.Length > 0) {
-                // Fallback to user's nickname if the player username is not available
-                _playerName.text = userBundle?.User?.Nickname;
-            } else if (userBundle?.Credential?.Provider == "device_id") {
-                // Fallback to prefix guest
-                _playerName.text = "Guest " + userBundle?.User?.Id.ToString();
-            } else {
-                // Fallback to prefix user
-                _playerName.text = "User " + userBundle?.User?.Id.ToString();
-            }
+            _playerName.text = userBundle.DisplayName;
             
-            _welcomeBox.RemoveFromClassList("welcome-hide");
-            _welcomeBox.AddToClassList("welcome-show");
+            var logoClass = userBundle.Credential.Provider switch
+            {
+                "google" => "google-player-avatar",
+                "facebook" => "facebook-player-avatar",
+                "email" => "email-player-avatar",
+                _ => "guest-player-avatar"
+            };
+            
+            _playerAvatarImage.ClearClassList();
+            _playerAvatarImage.AddToClassList(logoClass);
+            _playerAvatarImage.AddToClassList("player-avatar");
+            
+            _root.RemoveFromClassList("welcome-hide");
+            _root.AddToClassList("welcome-show");
             
             yield return new WaitForSeconds(3);
             
-            _welcomeBox.RemoveFromClassList("welcome-show");
-            _welcomeBox.AddToClassList("welcome-hide");
+            _root.RemoveFromClassList("welcome-show");
+            _root.AddToClassList("welcome-hide");
         }
     }
 }

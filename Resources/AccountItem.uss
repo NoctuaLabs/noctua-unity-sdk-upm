@@ -10,6 +10,9 @@
     -unity-text-align: middle-left;
 }
 
+.account-item:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+}
 
 .player-name {
     margin-left: 10px;

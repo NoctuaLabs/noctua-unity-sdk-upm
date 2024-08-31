@@ -3,7 +3,7 @@ using UnityEngine.UIElements;
 
 namespace com.noctuagames.sdk.UI
 {
-    public class SwitchAccountConfirmationDialogPresenter : Presenter<NoctuaBehaviour>
+    internal class SwitchAccountConfirmationDialogPresenter : Presenter<NoctuaAuthenticationBehaviour>
     {
 
         private UserBundle _recentAccount;
@@ -21,17 +21,16 @@ namespace com.noctuagames.sdk.UI
         {
             LoadView();
             
-            View.Q<Button>("ConfirmButton").clicked += () =>
+            View.Q<Button>("ConfirmButton").RegisterCallback<PointerUpEvent>(_ =>
             {
-                // TODO call AuthService to switch account
-                Model.ShowAccountSelection();
+                Model.AuthService.SwitchAccount(_recentAccount);
                 Visible = false;
-            };
+            });
             
-            View.Q<Button>("CancelButton").clicked += () =>
+            View.Q<Button>("CancelButton").RegisterCallback<PointerUpEvent>(_ =>
             {
                 Visible = false;
-            };
+            });
         }
     }
 }
