@@ -8,7 +8,7 @@ namespace com.noctuagames.sdk.UI
         protected TModel Model;
         protected VisualElement View;
 
-        public bool Visible
+        public virtual bool Visible
         {
             get => View.visible;
             set

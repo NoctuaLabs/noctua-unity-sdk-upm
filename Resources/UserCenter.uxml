@@ -1,47 +1,50 @@
 ﻿<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" xsi="http://www.w3.org/2001/XMLSchema-instance" engine="UnityEngine.UIElements" editor="UnityEditor.UIElements" noNamespaceSchemaLocation="../../../../UIElementsSchema/UIElements.xsd" editor-extension-mode="False">
     <Style src="./Noctua.uss" />
     <Style src="./UserCenter.uss" />
-    <ui:VisualElement name="UserCenter" class="user-center">
+    <ui:VisualElement name="UserCenter" class="base user-center">
         <ui:VisualElement name="UserProfile" class="user-profile">
             <ui:VisualElement name="UserProfileHeader" class="user-profile-header">
-                <ui:VisualElement name="ExitButton" class="user-profile-header-button exit-button">
+                <ui:Button name="ExitButton" class="user-profile-header-button exit-button">
                     <ui:VisualElement name="ExitIcon" class="exit-icon" />
-                </ui:VisualElement>
-                <ui:VisualElement name="HelpButton" class="user-profile-header-button help-button" >
+                </ui:Button>
+                <ui:Button name="HelpButton" class="user-profile-header-button help-button" >
                     <ui:VisualElement name="HelpIcon" class="help-icon" />
                     <ui:Label name="HelpLabel" text="Need help" class="help-label" />
-                </ui:VisualElement>
+                </ui:Button>
+                <ui:Button name="MoreOptionsButton" class="user-profile-header-button more-options-button">
+                    <ui:VisualElement name="MoreOptionsIcon" class="more-options-icon" />
+                </ui:Button>
             </ui:VisualElement>
             <ui:VisualElement name="UserProfileSpacing1" class="user-profile-spacing" />
             <ui:VisualElement name="UserProfileContent" class="user-profile-content">
-                <ui:VisualElement name="HiLabel" class="hi-text">
+                <ui:VisualElement name="HiText" class="hi-text">
                     <ui:Label name="HiLabel" text="Hi" class="hi-label" />
                     <ui:VisualElement name="HiIcon" class="hi-icon" />
                 </ui:VisualElement>
                 <ui:Label name="PlayerName" text="Guest123" class="player-name" />
                 <ui:VisualElement name="PlayerAvatar" class="player-avatar" />
-                <ui:Button name="UserId" class="user-id">
+                <ui:VisualElement name="UserId" class="user-id">
                     <ui:Label name="UserIdLabel" text="User ID" class="user-id-label" />
                     <ui:VisualElement name="CopyIcon" class="copy-icon" />
-                </ui:Button>
+                </ui:VisualElement>
             </ui:VisualElement>
             <ui:VisualElement name="UserProfileSpacing2" class="user-profile-spacing" />
-            <ui:VisualElement name="UserProfileMenu" >
-                <ui:VisualElement name="EditProfile" class="button-normal menu-item">
-                    <ui:VisualElement class="email-icon edit-icon" style="-unity-text-align: middle-center;" />
-                    <ui:Label text="Edit Profile" style="width: 100px; -unity-text-align: middle-left;" />
+            <ui:VisualElement name="MoreOptionsMenu" class="more-options-menu" >
+                <ui:VisualElement name="EditProfile" class="more-options-menu-item">
+                    <ui:VisualElement class="edit-icon" />
+                    <ui:Label text="Edit Profile" class="more-options-menu-item-label" />
                 </ui:VisualElement>
-                <ui:VisualElement name="SwitchProfile" class="button-normal menu-item"> 
-                    <ui:VisualElement class="email-icon second-switch-account-icon" />
-                    <ui:Label text="Switch Profile" style="width: 100px; -unity-text-align: middle-left;" />
+                <ui:VisualElement name="SwitchProfile" class="more-options-menu-item"> 
+                    <ui:VisualElement class="second-switch-account-icon" />
+                    <ui:Label text="Switch Profile" class="more-options-menu-item-label" />
                 </ui:VisualElement>
-                <ui:VisualElement name="DeleteAccount" class="button-normal menu-item">
-                    <ui:VisualElement class="email-icon delete-icon" />
-                    <ui:Label text="Delete Account" style="-unity-text-align: middle-left; width: 100px; color: rgb(205, 33, 63);" />
+                <ui:VisualElement name="DeleteAccount" class="more-options-menu-item">
+                    <ui:VisualElement class="delete-icon" />
+                    <ui:Label text="Delete Account" class="more-options-menu-item-label delete-account-label" />
                 </ui:VisualElement>
-                <ui:VisualElement name="LogoutAccount" class="button-normal menu-item">
-                    <ui:VisualElement class="email-icon logout-icon" />
-                    <ui:Label text="Logout Account" style="width: 100px; -unity-text-align: middle-left;" />
+                <ui:VisualElement name="LogoutAccount" class="more-options-menu-item">
+                    <ui:VisualElement class="logout-icon" />
+                    <ui:Label text="Logout Account" class="more-options-menu-item-label" />
                 </ui:VisualElement>
             </ui:VisualElement>
         </ui:VisualElement>

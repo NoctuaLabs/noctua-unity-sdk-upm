@@ -85,13 +85,18 @@ namespace com.noctuagames.sdk
             _uiDocument = gameObject.AddComponent<UIDocument>();
             _uiDocument.panelSettings = _panelSettings;
             _uiDocument.visualTreeAsset = ScriptableObject.CreateInstance<VisualTreeAsset>();
-            _uiDocument.rootVisualElement.styleSheets.Add(Resources.Load<StyleSheet>("Root"));
-            _uiDocument.rootVisualElement.AddToClassList("root");
+            _uiDocument.rootVisualElement.style.position = Position.Absolute;
+            _uiDocument.rootVisualElement.style.left = 0;
+            _uiDocument.rootVisualElement.style.right = 0;
+            _uiDocument.rootVisualElement.style.top = 0;
+            _uiDocument.rootVisualElement.style.bottom = 0;
+            
+            
             _uiDocument.rootVisualElement.focusable = true;
             _uiDocument.rootVisualElement.Focus();
 
-            _welcome = gameObject.AddComponent<WelcomeNotificationPresenter>();
-            _welcome.SetModel(this);
+            _userCenter = gameObject.AddComponent<UserCenterPresenter>();
+            _userCenter.SetModel(this);
 
             _accountSelectionDialog = gameObject.AddComponent<AccountSelectionDialogPresenter>();
             _accountSelectionDialog.SetModel(this);
@@ -117,8 +122,8 @@ namespace com.noctuagames.sdk
             _emailConfirmResetPasswordDialog = gameObject.AddComponent<EmailConfirmResetPasswordDialogPresenter>();
             _emailConfirmResetPasswordDialog.SetModel(this);
             
-            _userCenter = gameObject.AddComponent<UserCenterPresenter>();
-            _userCenter.SetModel(this);
+            _welcome = gameObject.AddComponent<WelcomeNotificationPresenter>();
+            _welcome.SetModel(this);
 
             // IMPORTANT NOTES!!!
             // Your UI need to apply USS absolute property to the first 
@@ -165,14 +170,6 @@ namespace com.noctuagames.sdk
         public void ShowSwitchAccountConfirmation(UserBundle recentAccount)
         {
             _switchAccountConfirmationDialog.Show(recentAccount);
-        }
-
-        private void Update()
-        {
-            if (Input.GetKeyDown(KeyCode.Space))
-            {
-                _userCenter.Visible = !_userCenter.Visible;
-            }
         }
 
         public void ShowSocialLogin(string provider, Action<LoginResult> onLoginDone)
@@ -314,6 +311,11 @@ namespace com.noctuagames.sdk
             }
             
             _oauthHttpServer = null;
+        }
+
+        public void ShowUserCenter()
+        {
+            _userCenter.Show();
         }
     }
 }

@@ -2,15 +2,16 @@
     <Style src="./Noctua.uss" />
     <Style src="./ConnectAccountItem.uss" />
     <ui:VisualElement name="ConnectAccountItem" class="connect-account-item">
-        <ui:VisualElement name="MethodLogo" class="method-logo" />
+        <ui:VisualElement name="MethodLogoContainer" class="method-logo">
+            <ui:VisualElement name="MethodLogo" class="email-icon" />
+        </ui:VisualElement>
         <ui:Label name="MethodName" text="Google" class="method-name" />
         <ui:VisualElement name="HorizontalGap" class="horizontal-gap" />
-        <ui:VisualElement name="ConnectStatus" class="connect-status">
-            <ui:Button name="ConnectButton" text="Connect" class="button-highlight connect-button" />
-            <ui:VisualElement name="Username" class="username hide">
-                <ui:Label name="UsernameLabel" text="ono.uni@gmail.com" class="username" />
-                <ui:VisualElement name="GoToIcon" class="goto-icon" />
-            </ui:VisualElement>
+        <ui:Button name="ConnectButton" text="Connect" class="connect-button" />
+        <ui:VisualElement name="Username" class="username hide">
+            <ui:Label name="UsernameLabel" text="ono.uni@gmail.com" class="username-label" />
+            <ui:VisualElement name="GoToIcon" class="goto-icon" />
         </ui:VisualElement>
     </ui:VisualElement>
 </ui:UXML>
+ 

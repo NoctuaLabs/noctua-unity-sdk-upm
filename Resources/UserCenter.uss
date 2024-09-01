@@ -1,24 +1,26 @@
 ﻿.user-center {
-    width: 66%;
-    height: 100%;
+    top: 0;
+    right: 0;
+    height: 360px;
+    width: 525px;
     border-top-left-radius: 20px;
     border-bottom-left-radius: 20px;
-    background-color: rgb(31, 35, 39);
-    color: white;
     flex-direction: row;
-    align-self: flex-end;
 }
 
 .user-profile {
+    width: 36%;
+    height: 100%;
     border-top-left-radius: 20px;
     border-bottom-left-radius: 20px;
+    background-color: rgba(37, 42, 47, 0.7);
     flex-direction: column;
-    background-color: rgba(56, 65, 74, 0.7);
-    width: 35%;
     padding: 8px;
+    /*justify-content: center;*/
 }
 
 .user-profile-header {
+    height: 26px;
     flex-direction: row;
     justify-content: space-between;
     align-self: stretch;
@@ -34,16 +36,23 @@
     -unity-text-align: middle-center;
 }
 
+.exit-button {
+    height: 26px;
+    width: 26px;
+}
+
 .exit-icon {
     width: 16px;
     height: 16px;
     background-image: url("./ExitIcon.png");
+    background-position: center;
 }
 
-.setting-icon {
+.more-options-icon {
     width: 16px;
     height: 16px;
-    background-image: url("./SettingIcon.png");
+    background-image: url("./MoreOptionsIcon.png");
+    background-position: center;
 }
 
 .help-button {
@@ -54,6 +63,7 @@
     width: 16px;
     height: 16px;
     background-image: url("./HelpChatIcon.png");
+    background-position: center;
 }
 
 .help-label {
@@ -61,12 +71,13 @@
     font-size: 10px;
 }
 
-.exit-button {
+.more-options-button {
+    height: 26px;
     width: 26px;
-}
+} 
 
 .user-profile-spacing {
-    flex: 1;
+    flex-grow: 1;
 }
 
 .user-profile-content {
@@ -75,18 +86,34 @@
     justify-content: center;
 }
 
-.menu-item {
-    flex-direction: row;
-    background-color: transparent;
-    justify-content: space-around;
+.more-options-menu {
+    background-color: rgba(56, 65, 74, 1);
+    position: absolute;
+    right: 0;
+    top: 34px;
+    border-radius: 10px;
+}
+
+.more-options-menu-item {
     height: 30px;
-    -unity-text-align: middle-center;
+    flex-direction: row;
+    justify-content: flex-start;
     align-items: center;
+    border-radius: 10px;
+}
+
+.more-options-menu-item:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+.more-options-menu-item-label {
+    margin-left: 12px;
+    -unity-text-align: middle-left;
     font-size: 12px;
 }
 
-.menu-item:hover {
-    background-color: rgba(255, 255, 255, 0.1);
+.delete-account-label {
+    color: rgb(205, 33, 63);
 }
 
 .player-name {
@@ -97,17 +124,23 @@
 .hi-text {
     flex-direction: row;
     align-items: center;
+    justify-content: center;
 }
 
 .hi-label {
     color: #FFFFFF;
     font-size: 12px;
+    padding: 0;
+    border-width: 0;
+    margin: 0;
+    -unity-text-align: middle-center;
 }
 
 .hi-icon {
     width: 16px;
     height: 16px;
     background-image: url("./Hi.png");
+    background-position: center;
 }
 
 .player-avatar {
@@ -115,12 +148,14 @@
     height: 96px;
     background-image: url("./PlayerProfileBackground.png");
     align-self: center;
+    background-position: center;
 }
 
 .user-id {
-    background-color: transparent;
     border-width: 0;
     flex-direction: row;
+    align-items: center;
+    justify-content: center;
 }
 
 .user-id-label {
@@ -132,10 +167,12 @@
     width: 13px;
     height: 13px;
     background-image: url("./CopyIcon.png");
+    background-position: center;
 }
 
 .connect-account {
-    width: 65%;
+    width: 64%;
+    height: 100%;
     flex-direction: column;
     align-items: stretch;
     padding: 8px;
@@ -162,4 +199,5 @@
 .find-more-label {
     color: #757575;
     font-size: 8px;
+    -unity-text-align: middle-center;
 }

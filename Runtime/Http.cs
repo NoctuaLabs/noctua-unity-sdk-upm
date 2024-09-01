@@ -77,7 +77,7 @@ namespace com.noctuagames.sdk
     }
     
     
-    internal class HttpRequest
+    internal class HttpRequest : IDisposable
     {
         private readonly UnityWebRequest _request = new();
         private readonly JsonSerializerSettings _jsonSettings = new()
@@ -162,7 +162,7 @@ namespace com.noctuagames.sdk
             [JsonProperty("data")]
             public T Data;
         }
-     
+
         public async UniTask<T> Send<T>()
         {
             Debug.Log("HttpRequest.Send");
@@ -173,56 +173,73 @@ namespace com.noctuagames.sdk
                 Debug.Log($"There are still path parameters that are not replaced: {_request.url}");
                 throw NoctuaException.RequestUnreplacedParam;
             }
-            
-            _request.downloadHandler = new DownloadHandlerBuffer();
-            string response = null;
 
-            try 
+            _request.downloadHandler = new DownloadHandlerBuffer();
+
+            string response;
+
+            try
             {
                 await _request.SendWebRequest();
-            } 
-            catch (Exception e) 
+
+                response = _request.downloadHandler.text;
+                Debug.Log(response);
+                
+                return JsonConvert.DeserializeObject<DataWrapper<T>>(response, _jsonSettings).Data;
+            }
+            catch (Exception e)
             {
                 Debug.Log(_request.result.ToString());
                 response = _request.downloadHandler.text;
                 Debug.Log(response);
                 Debug.Log(e.Message);
-                
-                _request.uploadHandler.Dispose();
-                _request.downloadHandler.Dispose();
 
-                if (response == null || _request.result != UnityWebRequest.Result.Success) {
-                    // Try to parse the error first to get the error code
-                    ErrorResponse errorResponse = null;
-                    errorResponse = JsonConvert.DeserializeObject<ErrorResponse>(response, _jsonSettings);
-                    if (errorResponse != null && errorResponse.ErrorCode > 0) {
-                        throw new NoctuaException(errorResponse.ErrorCode, errorResponse.Error);
-                    } else { // If there is no error code in the response, throw the original error
-                        switch (_request.result)
-                        {
-                            case UnityWebRequest.Result.ConnectionError:
-                                // e.g. the device is disconnected from the internet/network
-                                throw NoctuaException.RequestConnectionError;
-                            case UnityWebRequest.Result.DataProcessingError:
-                                throw NoctuaException.RequestDataProcessingError;
-                            case UnityWebRequest.Result.ProtocolError:
-                                throw NoctuaException.RequestProtocolError;
-                            default:
-                                throw NoctuaException.OtherWebRequestError;
-                        }
-                    }
+                if (_request.result == UnityWebRequest.Result.Success)
+                {
+                    throw NoctuaException.OtherWebRequestError;
                 }
-                
+
+                if (response == null)
+                {
+                    throw NoctuaException.OtherWebRequestError;
+                }
+
+                var errorResponse = JsonConvert.DeserializeObject<ErrorResponse>(response, _jsonSettings);
+
+                if (errorResponse is { ErrorCode: > 0 })
+                {
+                    throw new NoctuaException(errorResponse.ErrorCode, errorResponse.Error);
+                } // If there is no error code in the response, throw the original error
+
+                switch (_request.result)
+                {
+                    case UnityWebRequest.Result.ConnectionError:
+                        // e.g. the device is disconnected from the internet/network
+                        throw NoctuaException.RequestConnectionError;
+                    case UnityWebRequest.Result.DataProcessingError:
+                        throw NoctuaException.RequestDataProcessingError;
+                    case UnityWebRequest.Result.ProtocolError:
+                        throw NoctuaException.RequestProtocolError;
+                    default:
+                        throw NoctuaException.OtherWebRequestError;
+                }
             }
+            finally
+            {
+                _request.downloadHandler.Dispose();
+                _request.uploadHandler?.Dispose();
+            }
+        }
 
-            response = _request.downloadHandler.text;
-            Debug.Log(response);
-            var data = JsonConvert.DeserializeObject<DataWrapper<T>>(response, _jsonSettings).Data;
-            
-            _request.uploadHandler.Dispose();
-            _request.downloadHandler.Dispose();
+        ~HttpRequest()
+        {
+            Dispose();
+        }
 
-            return data;
+        public void Dispose()
+        {
+            _request.uploadHandler?.Dispose();
+            _request.downloadHandler?.Dispose();
         }
     }
 }

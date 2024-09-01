@@ -309,6 +309,11 @@ namespace com.noctuagames.sdk
             public string BaseUrl;
             public string ClientId;
         }
+
+        public void ShowUserCenterUI()
+        {
+            _uiComponent.ShowUserCenter();
+        }
     }
     
     internal class HttpServer
