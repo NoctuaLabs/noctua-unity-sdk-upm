@@ -38,10 +38,53 @@ namespace com.noctuagames.sdk.UI
             set
             {
                 base.Visible = value;
+
+                if (!value)
+                {
+                    View.Q<VisualElement>("UserCenter").RemoveFromClassList("show");
+                    View.Q<VisualElement>("UserCenter").AddToClassList("hide");
+                    
+                    return;
+                }
                 
                 View.Q<VisualElement>("MoreOptionsMenu").AddToClassList("hide");
                 _credentialListView.Rebuild();
                 RefreshProfile();
+                SetOrientation();
+                
+                View.Q<VisualElement>("UserCenter").RemoveFromClassList("hide");
+                View.Q<VisualElement>("UserCenter").AddToClassList("show");
+            }
+        }
+
+        private void SetOrientation()
+        {
+            
+            if (Screen.width > Screen.height)
+            {
+                View.style.flexDirection = FlexDirection.Row;
+                View.style.justifyContent = Justify.FlexEnd;
+                
+                View.Q<VisualElement>("UserCenter").RemoveFromClassList("portrait");
+                View.Q<VisualElement>("UserProfile").RemoveFromClassList("portrait");
+                View.Q<VisualElement>("ConnectAccount").RemoveFromClassList("portrait");
+                
+                View.Q<VisualElement>("UserCenter").AddToClassList("landscape");
+                View.Q<VisualElement>("UserProfile").AddToClassList("landscape");
+                View.Q<VisualElement>("ConnectAccount").AddToClassList("landscape");
+            }
+            else
+            {
+                View.style.flexDirection = FlexDirection.Column;
+                View.style.justifyContent = Justify.FlexEnd;
+                
+                View.Q<VisualElement>("UserCenter").RemoveFromClassList("landscape");
+                View.Q<VisualElement>("UserProfile").RemoveFromClassList("landscape");
+                View.Q<VisualElement>("ConnectAccount").RemoveFromClassList("landscape");
+                
+                View.Q<VisualElement>("UserCenter").AddToClassList("portrait");
+                View.Q<VisualElement>("UserProfile").AddToClassList("portrait");
+                View.Q<VisualElement>("ConnectAccount").AddToClassList("portrait");
             }
         }
 
@@ -62,7 +105,7 @@ namespace com.noctuagames.sdk.UI
             
             View.Q<Button>("ExitButton").RegisterCallback<PointerUpEvent>(evt => Visible = false);
             View.Q<Button>("MoreOptionsButton").RegisterCallback<PointerUpEvent>(OnMoreOptionsButtonClick);
-            _itemTemplate = Resources.Load<VisualTreeAsset>("ConnectAccountItem");
+            View.RegisterCallback<GeometryChangedEvent>(_ => SetOrientation());
             
             BindListView();
         }
@@ -77,6 +120,7 @@ namespace com.noctuagames.sdk.UI
         private void BindListView()
         {
             _credentialListView = View.Q<ListView>("AccountList");
+            _itemTemplate ??= Resources.Load<VisualTreeAsset>("ConnectAccountItem");
             _credentialListView.makeItem = _itemTemplate.Instantiate;
             _credentialListView.bindItem = BindListViewItem;
             _credentialListView.fixedItemHeight = 52;

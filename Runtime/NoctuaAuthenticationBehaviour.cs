@@ -35,7 +35,6 @@ namespace com.noctuagames.sdk
 
     internal class NoctuaAuthenticationBehaviour : MonoBehaviour
     {
-        public string Action;
         private PanelSettings _panelSettings;
         private UIDocument _uiDocument;
         
@@ -75,55 +74,54 @@ namespace com.noctuagames.sdk
                     _authService.OnAccountChanged += OnAccountChanged;
                 }
             }
-        }
+        } 
 
         public event Action<UserBundle> OnAccountChanged;
 
         private void Awake()
         {
             _panelSettings = Resources.Load<PanelSettings>("NoctuaPanelSettings");
-            _uiDocument = gameObject.AddComponent<UIDocument>();
-            _uiDocument.panelSettings = _panelSettings;
-            _uiDocument.visualTreeAsset = ScriptableObject.CreateInstance<VisualTreeAsset>();
-            _uiDocument.rootVisualElement.style.position = Position.Absolute;
-            _uiDocument.rootVisualElement.style.left = 0;
-            _uiDocument.rootVisualElement.style.right = 0;
-            _uiDocument.rootVisualElement.style.top = 0;
-            _uiDocument.rootVisualElement.style.bottom = 0;
             
-            
-            _uiDocument.rootVisualElement.focusable = true;
-            _uiDocument.rootVisualElement.Focus();
-
             _userCenter = gameObject.AddComponent<UserCenterPresenter>();
             _userCenter.SetModel(this);
+            _userCenter.SetPanelSettings(_panelSettings);
 
             _accountSelectionDialog = gameObject.AddComponent<AccountSelectionDialogPresenter>();
             _accountSelectionDialog.SetModel(this);
+            _accountSelectionDialog.SetPanelSettings(_panelSettings);
 
             _switchAccountConfirmationDialog = gameObject.AddComponent<SwitchAccountConfirmationDialogPresenter>();
             _switchAccountConfirmationDialog.SetModel(this);
+            _switchAccountConfirmationDialog.SetPanelSettings(_panelSettings);
 
             _loginOptionsDialog = gameObject.AddComponent<LoginOptionsDialogPresenter>();
             _loginOptionsDialog.SetModel(this);
+            _loginOptionsDialog.SetPanelSettings(_panelSettings);
 
             _emailLoginDialog = gameObject.AddComponent<EmailLoginDialogPresenter>();
             _emailLoginDialog.SetModel(this);
+            _emailLoginDialog.SetPanelSettings(_panelSettings);
 
             _emailVerificationDialog = gameObject.AddComponent<EmailVerificationDialogPresenter>();
             _emailVerificationDialog.SetModel(this);
+            _emailVerificationDialog.SetPanelSettings(_panelSettings);
 
             _emailRegisterDialog = gameObject.AddComponent<EmailRegisterDialogPresenter>();
             _emailRegisterDialog.SetModel(this);
+            _emailRegisterDialog.SetPanelSettings(_panelSettings);
 
             _emailResetPasswordDialog = gameObject.AddComponent<EmailResetPasswordDialogPresenter>();
             _emailResetPasswordDialog.SetModel(this);
+            _emailResetPasswordDialog.SetPanelSettings(_panelSettings);
+            
 
             _emailConfirmResetPasswordDialog = gameObject.AddComponent<EmailConfirmResetPasswordDialogPresenter>();
             _emailConfirmResetPasswordDialog.SetModel(this);
+            _emailConfirmResetPasswordDialog.SetPanelSettings(_panelSettings);
             
             _welcome = gameObject.AddComponent<WelcomeNotificationPresenter>();
             _welcome.SetModel(this);
+            _welcome.SetPanelSettings(_panelSettings);
 
             // IMPORTANT NOTES!!!
             // Your UI need to apply USS absolute property to the first 

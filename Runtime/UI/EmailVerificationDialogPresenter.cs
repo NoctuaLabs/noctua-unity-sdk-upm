@@ -8,8 +8,6 @@ namespace com.noctuagames.sdk.UI
 {
     internal class EmailVerificationDialogPresenter : Presenter<NoctuaAuthenticationBehaviour>
     {
-        private UIDocument _uiDoc;
-
         private string _email;
         private string _password;
         private int _credVerifyId;
@@ -116,7 +114,6 @@ namespace com.noctuagames.sdk.UI
                 View?.Q<Button>("VerifyButton")?.RemoveFromClassList("hide");
                 View?.Q<VisualElement>("DialogContent")?.RemoveFromClassList("hide");
                 View?.Q<VisualElement>("DialogHeader")?.RemoveFromClassList("hide");
-                return;
             }
             
         }

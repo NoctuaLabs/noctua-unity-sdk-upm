@@ -1,4 +1,5 @@
-﻿using UnityEngine;
+﻿using System;
+using UnityEngine;
 using UnityEngine.UIElements;
 
 namespace com.noctuagames.sdk.UI
@@ -7,6 +8,9 @@ namespace com.noctuagames.sdk.UI
     {
         protected TModel Model;
         protected VisualElement View;
+        
+        private GameObject _uiGameObject;
+        private UIDocument _uiDoc;
 
         public virtual bool Visible
         {
@@ -33,6 +37,11 @@ namespace com.noctuagames.sdk.UI
                 Attach();
             }
         }
+        
+        public void SetPanelSettings(PanelSettings panelSettings)
+        {
+            _uiDoc.panelSettings = panelSettings ?? throw new ArgumentNullException(nameof(panelSettings));
+        }
 
         protected abstract void Attach();
         protected abstract void Detach();
@@ -41,26 +50,22 @@ namespace com.noctuagames.sdk.UI
         {
             Debug.Log("LoadView " + GetType().Name);
             var viewResourceName = GetType().Name.Replace("Presenter", "");
-            Debug.Log("LoadView resource name " + viewResourceName);
-            var view = Resources.Load<VisualTreeAsset>(viewResourceName).CloneTree();
-            if (view is null)
+            
+            _uiGameObject = new GameObject(viewResourceName);
+            _uiGameObject.transform.SetParent(gameObject.transform);
+            _uiDoc = _uiGameObject.AddComponent<UIDocument>();
+            
+            var visualTreeAsset = Resources.Load<VisualTreeAsset>(viewResourceName);
+
+            if (visualTreeAsset is null)
             { 
                 Debug.LogError($"View not found for {viewResourceName}");
             }
 
-            View = view ?? throw new System.Exception($"View not found for {viewResourceName}");
+            _uiDoc.visualTreeAsset = visualTreeAsset ?? throw new ArgumentNullException(nameof(visualTreeAsset));
+            View = _uiDoc.rootVisualElement;
             View.focusable = true;
             View.visible = false;
-
-            var uiDoc = gameObject.GetComponent<UIDocument>();
-
-            if (uiDoc is null)
-            {
-                Debug.Log("UIDocument component not found on the GameObject " + GetType().Name);
-                throw new System.Exception("UIDocument component not found on the GameObject");
-            }
-            
-            gameObject.GetComponent<UIDocument>().rootVisualElement.Add(View);
         }
     }
 }

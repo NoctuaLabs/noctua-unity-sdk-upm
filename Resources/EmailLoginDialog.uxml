@@ -1,16 +1,16 @@
 <ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" xsi="http://www.w3.org/2001/XMLSchema-instance" engine="UnityEngine.UIElements" editor="UnityEditor.UIElements" noNamespaceSchemaLocation="../../../../UIElementsSchema/UIElements.xsd" editor-extension-mode="False">
     <Style src="project://database/Packages/com.noctuagames.sdk/Resources/Noctua.uss?fileID=7433441132597879392&amp;guid=fe35e550fb23b6446af377f994effe35&amp;type=3#Noctua" />
-    <ui:VisualElement style="align-items: center;" class="base dialog-box">
+    <ui:VisualElement class="base dialog-box" style="align-items: center;">
         <ui:VisualElement name="HeaderContent" class="dialog-header">
             <ui:Button display-tooltip-when-elided="true" name="BackButton" class="dialog-back-button" />
             <ui:Label text="Continue with email" display-tooltip-when-elided="true" class="dialog-title" />
         </ui:VisualElement>
         <ui:VisualElement name="Content" class="dialog-content">
-                <ui:TextField label="Email Address" name="EmailTF" class="noctua-text-input" />
-                <ui:TextField label="Password" name="PasswordTF" class="noctua-text-input" />
-                <ui:Label text="Forgot Password" name="ForgotPassword" display-tooltip-when-elided="true" style="-unity-text-align: upper-right; -unity-slice-top: 0; margin-top: 5px; padding-top: 0; padding-right: 0; padding-bottom: 0; padding-left: 0; color: rgb(59, 130, 246);" />
+            <ui:TextField label="Email Address" name="EmailTF" class="noctua-text-input" />
+            <ui:TextField label="Password" name="PasswordTF" class="noctua-text-input" />
+            <ui:Label text="Forgot Password" name="ForgotPassword" display-tooltip-when-elided="true" style="align-self: flex-end; font-size: 12px; color: rgb(59, 130, 246);" />
         </ui:VisualElement>
-        <ui:VisualElement name="footerContent" class="dialog-footer">
+        <ui:VisualElement name="footerContent" class="dialog-footer" style="height: 125px;" >
             <ui:VisualElement name="ErrBox" style="padding-top: 0; padding-right: 0; padding-bottom: 0; padding-left: 0; margin-top: 10px; margin-bottom: 10px; width: 100%; height: 16px; align-items: center; justify-content: center;">
                 <ui:Label name="ErrCode" display-tooltip-when-elided="true" class="dialog-err-label hide" />
                 <ui:Label name="ErrEmailEmpty" text="Email address should not be empty" display-tooltip-when-elided="true" class="dialog-err-label hide" />
@@ -19,7 +19,7 @@
                 <ui:Label name="ErrPasswordTooShort" text="Password is too short. Minimum 6 character" display-tooltip-when-elided="true" class="dialog-err-label hide" />
                 <ui:Label name="ErrPasswordEmpty" text="Password should not be empty" display-tooltip-when-elided="true" class="dialog-err-label hide" />
             </ui:VisualElement>
-            <ui:Button text="Continue" display-tooltip-when-elided="true" name="ContinueButton" class="dialog-button"/>
+            <ui:Button text="Continue" display-tooltip-when-elided="true" name="ContinueButton" class="dialog-button" />
             <ui:VisualElement name="Spinner" class="noctua-spinner" style="height: 74px;" />
             <ui:VisualElement name="AdditionalFooterContent" style="flex-direction: row; -unity-text-align: middle-center; justify-content: center; align-items: stretch; margin-top: 15px;">
                 <ui:Label text="Don&apos;t have account?" display-tooltip-when-elided="true" style="font-size: 12px;" />

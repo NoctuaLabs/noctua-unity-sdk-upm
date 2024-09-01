@@ -203,14 +203,12 @@ namespace com.noctuagames.sdk
             return queryParameters;
         }
 
-        public async UniTask<UserBundle> CustomerService()
+        public void CustomerService()
         {
             var customerServiceUrl = Constants.CustomerServiceBaseUrl + "&gameCode=" + this.RecentAccount?.Player?.GameName + "&uid=" + this.RecentAccount?.User?.Id;
 
             Debug.Log("Open URL with system browser: " + customerServiceUrl);
             Application.OpenURL(customerServiceUrl);
-
-            return null;
         }
 
         /// <summary>
