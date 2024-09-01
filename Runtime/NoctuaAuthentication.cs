@@ -310,7 +310,7 @@ namespace com.noctuagames.sdk
             public string ClientId;
         }
 
-        public void ShowUserCenterUI()
+        public void UserCenter()
         {
             _uiComponent.ShowUserCenter();
         }
