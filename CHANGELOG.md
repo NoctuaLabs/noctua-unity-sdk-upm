@@ -2,6 +2,49 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.4.0] - 2024-09-02
+
+### 🚀 Features
+
+- Login dialog ui
+- Register dialog ui
+- Login dialog style
+- Email verification code ui
+- Login options dialog
+- Add player avatar
+- Add user center
+- Edit profile ui
+- Add cs file edit profile
+- Skeleton for register and reset-password flow
+- Login options dialog
+- Enable social login
+- Implement UpdatePlayerAccountAsync
+- OnAccountChanged and OnAccountDeleted
+- Social login user center
+- Change user center layout based on screen orientation
+
+### 🐛 Bug Fixes
+
+- Change name function
+- Split account list into game users and noctua users
+- Fix dummy var initiation
+- Reset password endpoint and request
+- VerifyCode is only for registration
+- Check size before slicing
+- Styling, navigation, memory leak
+- Rename ShowUserCenterUI() to UserCenter()
+- User center get data from /api/v1/user/profile
+
+### 🚜 Refactor
+
+- Move UI actions to NoctuaBehavior
+- Conform more closely to MVP pattern
+- Delete unused bind dialog
+
+### Wip
+
+- User center
+
 ## [0.3.0] - 2024-08-15
 
 ### 🚀 Features
