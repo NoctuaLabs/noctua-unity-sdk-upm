@@ -29,9 +29,8 @@ namespace com.noctuagames.sdk.UI
             HideAllErrors();
         }
 
-        private void Awake()
+        private void Start()
         {
-            LoadView();
             SetupView();
             HideAllErrors();
         }

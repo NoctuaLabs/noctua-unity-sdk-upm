@@ -36,9 +36,8 @@ namespace com.noctuagames.sdk.UI
         protected override void Attach(){}
         protected override void Detach(){}
 
-        private void Awake()
+        private void Start()
         {
-            LoadView();
             Setup();
         }
 

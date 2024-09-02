@@ -217,7 +217,6 @@ namespace com.noctuagames.sdk
         /// This function does not take any parameters and returns a UserBundle object.
         /// </summary>
         /// <returns>A UserBundle object representing the selected account.</returns>
-        // TODO ganti ke ShowSwitchAccountUI()
         public void SwitchAccount()
         {
             _uiComponent.ShowAccountSelection();
@@ -308,7 +307,7 @@ namespace com.noctuagames.sdk
             public string ClientId;
         }
 
-        public void UserCenter()
+        public void ShowUserCenter()
         {
             _uiComponent.ShowUserCenter();
         }

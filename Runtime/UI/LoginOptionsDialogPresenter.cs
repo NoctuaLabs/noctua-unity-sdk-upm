@@ -22,10 +22,8 @@ namespace com.noctuagames.sdk.UI
         protected override void Attach(){}
         protected override void Detach(){}
 
-        private void Awake()
+        private void Start()
         {
-            LoadView();
-            
             _loginWithGoogleButton = View.Q<Button>("LoginWithGoogleButton");
             _loginWithGoogleButton.RegisterCallback<PointerUpEvent>(_ => OnLoginWithGoogleButtonClicked());
             
@@ -58,7 +56,7 @@ namespace com.noctuagames.sdk.UI
         {
             try
             {
-                var userBundle = await Model.SocialLogin("google");
+                var userBundle = await Model.SocialLogin(provider);
 
                 _onDone?.Invoke(
                     new LoginResult

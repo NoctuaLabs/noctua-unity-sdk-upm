@@ -168,6 +168,7 @@
 .player-avatar {
     width: 96px;
     height: 96px;
+    border-radius: 48px;
     background-image: url("./PlayerProfileBackground.png");
     align-self: center;
     background-position: center;

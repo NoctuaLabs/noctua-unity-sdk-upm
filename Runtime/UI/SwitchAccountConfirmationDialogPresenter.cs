@@ -17,10 +17,8 @@ namespace com.noctuagames.sdk.UI
         protected override void Attach(){}
         protected override void Detach(){}
         
-        private void Awake()
+        private void Start()
         {
-            LoadView();
-            
             View.Q<Button>("ConfirmButton").RegisterCallback<PointerUpEvent>(_ =>
             {
                 Model.AuthService.SwitchAccount(_recentAccount);

@@ -8,7 +8,7 @@ namespace com.noctuagames.sdk
         private UIDocument _uiDoc;
 
 
-        private void Awake()
+        private void Start()
         {
             var visualTree = Resources.Load<VisualTreeAsset>("EditProfile");
             var panelSettings = Resources.Load<PanelSettings>("NoctuaPanelSettings");

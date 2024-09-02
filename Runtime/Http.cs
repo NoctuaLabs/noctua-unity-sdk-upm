@@ -203,14 +203,27 @@ namespace com.noctuagames.sdk
                 {
                     throw NoctuaException.OtherWebRequestError;
                 }
+                
+                ErrorResponse errorResponse;
 
-                var errorResponse = JsonConvert.DeserializeObject<ErrorResponse>(response, _jsonSettings);
+                try
+                {
+                    errorResponse = JsonConvert.DeserializeObject<ErrorResponse>(response, _jsonSettings);
+                    
+                    Debug.Log(errorResponse.Error);
+                }
+                catch (Exception exception)
+                {
+                    Debug.Log(exception.Message);
+
+                    errorResponse = null;
+                }
 
                 if (errorResponse is { ErrorCode: > 0 })
                 {
                     throw new NoctuaException(errorResponse.ErrorCode, errorResponse.Error);
-                } // If there is no error code in the response, throw the original error
-
+                }
+                
                 switch (_request.result)
                 {
                     case UnityWebRequest.Result.ConnectionError:

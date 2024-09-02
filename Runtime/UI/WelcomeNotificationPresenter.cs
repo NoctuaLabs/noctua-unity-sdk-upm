@@ -28,10 +28,8 @@ namespace com.noctuagames.sdk.UI
             Show(userBundle);
         }
 
-        private void Awake()
+        private void Start()
         {
-            LoadView();
-
             View.visible = true;
             _root = View.Q<VisualElement>("WelcomeNotification");
             _playerName = View.Q<Label>("PlayerName");

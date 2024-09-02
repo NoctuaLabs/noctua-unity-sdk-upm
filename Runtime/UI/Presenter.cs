@@ -8,7 +8,7 @@ namespace com.noctuagames.sdk.UI
     {
         protected TModel Model;
         protected VisualElement View;
-        
+
         private GameObject _uiGameObject;
         private UIDocument _uiDoc;
 
@@ -18,12 +18,18 @@ namespace com.noctuagames.sdk.UI
             set
             {
                 View.visible = value;
-                
+
                 if (value) View.Focus();
             }
         }
 
-        public void SetModel(TModel model)
+        public void Init(TModel model, PanelSettings panelSettings)
+        {
+            LoadView(panelSettings);
+            SetModel(model);
+        }
+
+        private void SetModel(TModel model)
         {
             if (Model is not null)
             {
@@ -37,28 +43,29 @@ namespace com.noctuagames.sdk.UI
                 Attach();
             }
         }
-        
-        public void SetPanelSettings(PanelSettings panelSettings)
+
+        protected virtual void Attach()
         {
-            _uiDoc.panelSettings = panelSettings ?? throw new ArgumentNullException(nameof(panelSettings));
         }
 
-        protected abstract void Attach();
-        protected abstract void Detach();
+        protected virtual void Detach()
+        {
+        }
 
-        protected void LoadView()
+        private void LoadView(PanelSettings panelSettings)
         {
             Debug.Log("LoadView " + GetType().Name);
-            var viewResourceName = GetType().Name.Replace("Presenter", "");
             
+            var viewResourceName = GetType().Name.Replace("Presenter", "");
+
             _uiGameObject = new GameObject(viewResourceName);
             _uiGameObject.transform.SetParent(gameObject.transform);
             _uiDoc = _uiGameObject.AddComponent<UIDocument>();
-            
+
             var visualTreeAsset = Resources.Load<VisualTreeAsset>(viewResourceName);
 
             if (visualTreeAsset is null)
-            { 
+            {
                 Debug.LogError($"View not found for {viewResourceName}");
             }
 
@@ -66,6 +73,8 @@ namespace com.noctuagames.sdk.UI
             View = _uiDoc.rootVisualElement;
             View.focusable = true;
             View.visible = false;
+            
+            _uiDoc.panelSettings = panelSettings ?? throw new ArgumentNullException(nameof(panelSettings));
         }
     }
 }

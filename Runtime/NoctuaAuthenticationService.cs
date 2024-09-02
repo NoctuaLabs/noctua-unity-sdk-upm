@@ -31,6 +31,12 @@ namespace com.noctuagames.sdk
 
         [JsonProperty("phone_number")]
         public string PhoneNumbers;
+
+        [JsonProperty("picture_url")]
+        public string PictureUrl;
+        
+        [JsonProperty("credentials")]
+        public List<Credential> Credentials;
     }
 
     public class Credential {
@@ -262,9 +268,6 @@ namespace com.noctuagames.sdk
     
     internal class NoctuaAuthenticationService
     {
-         public readonly List<string> SsoCloseWebViewKeywords = new() { "https://developers.google.com/identity/protocols/oauth2" };
-
-        // AccountList will be synced data from AccountContainer.Accounts
         public Dictionary<string,UserBundle> AccountList { get; private set; } = new();
 
         public bool IsAuthenticated => !string.IsNullOrEmpty(RecentAccount?.Player?.AccessToken);
@@ -282,11 +285,6 @@ namespace com.noctuagames.sdk
         {
             _clientId = clientId;
             _baseUrl = baseUrl;
-        }
-
-        public string GetAccessToken()
-        {
-            return RecentAccount?.Player?.AccessToken;
         }
 
         public async UniTask<UserBundle> LoginAsGuest()
@@ -532,6 +530,41 @@ namespace com.noctuagames.sdk
                 .WithJsonBody(payload);
 
             return await request.Send<PlayerToken>();
+        }
+        
+        public async UniTask<User> GetCurrentUser()
+        {
+            if (!IsAuthenticated)
+            {
+                throw new ApplicationException("User is not authenticated");
+            }
+            
+            Debug.Log("GetCurrentUser");
+
+            var request = new HttpRequest(HttpMethod.Get, $"{_baseUrl}/user/profile")
+                .WithHeader("X-CLIENT-ID", _clientId)
+                .WithHeader("X-BUNDLE-ID", Application.identifier)
+                .WithHeader("Authorization", "Bearer " + RecentAccount.Player.AccessToken);
+
+            return await request.Send<User>();
+        }
+        
+        public async UniTask UpdateUser(User user)
+        {
+            if (!IsAuthenticated)
+            {
+                throw new ApplicationException("User is not authenticated");
+            }
+            
+            Debug.Log("UpdateUser");
+
+            var request = new HttpRequest(HttpMethod.Put, $"{_baseUrl}/user/profile")
+                .WithHeader("X-CLIENT-ID", _clientId)
+                .WithHeader("X-BUNDLE-ID", Application.identifier)
+                .WithHeader("Authorization", "Bearer " + RecentAccount.Player.AccessToken)
+                .WithJsonBody(user);
+
+            _ = await request.Send<object>();
         }
 
         /// <summary>

@@ -75,10 +75,8 @@ namespace com.noctuagames.sdk.UI
             _separator.style.display = _noctuaUsers.Count > 0 ? DisplayStyle.Flex : DisplayStyle.None;
         }
 
-        private void Awake()
+        private void Start()
         {
-            LoadView();
-
             _itemTemplate = Resources.Load<VisualTreeAsset>("AccountItem");
             _gameAccountListView = View.Q<ListView>("GameAccountList");
             _separator = View.Q<VisualElement>("Separator");
