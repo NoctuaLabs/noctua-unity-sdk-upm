@@ -225,29 +225,29 @@
 
 .edit-icon {
     background-image: url("./EditIcon.png");
-    width: 20px;
-    height: 20px;
+    width: 16px;
+    height: 16px;
     background-position: center;
 }
 
 .second-switch-account-icon {
     background-image: url("./SwitchAccountIconSecond.png");
-    width: 20px;
-    height: 20px;
+    width: 16px;
+    height: 16px;
     background-position: center;
 }
 
 .delete-icon {
     background-image: url("./DeleteIcon.png");
-    width: 20px;
-    height: 20px;
+    width: 16px;
+    height: 16px;
     background-position: center;
 }
 
 .logout-icon {
     background-image: url("./LogoutIcon.png");
-    width: 20px;
-    height: 20px;
+    width: 16px;
+    height: 16px;
     background-position: center;
 }
 
