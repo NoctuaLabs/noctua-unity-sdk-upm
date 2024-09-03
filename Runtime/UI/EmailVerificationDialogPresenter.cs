@@ -83,7 +83,7 @@ namespace com.noctuagames.sdk.UI
             View?.Q<VisualElement>("DialogContent")?.AddToClassList("hide");
             View?.Q<VisualElement>("DialogHeader")?.AddToClassList("hide");
             try {
-                var result = await Model.AuthService.RegisterWithEmail(_email, _password);
+                var result = await Model.RegisterWithEmailAsync(_email, _password);
                 Debug.Log("RegisterWithPassword verification ID: " + result.Id);
 
                 _credVerifyId = result.Id;
@@ -130,7 +130,7 @@ namespace com.noctuagames.sdk.UI
             View?.Q<VisualElement>("DialogContent")?.AddToClassList("hide");
             View?.Q<VisualElement>("DialogHeader")?.AddToClassList("hide");
             try {
-                await Model.AuthService.VerifyEmailRegistration(_credVerifyId, _credVerifyCode);
+                await Model.VerifyEmailRegistration(_credVerifyId, _credVerifyCode);
 
                 Visible = false;
 
@@ -159,7 +159,6 @@ namespace com.noctuagames.sdk.UI
                 View?.Q<Button>("VerifyButton")?.RemoveFromClassList("hide");
                 View?.Q<VisualElement>("DialogContent")?.RemoveFromClassList("hide");
                 View?.Q<VisualElement>("DialogHeader")?.RemoveFromClassList("hide");
-                return;
             }
         }
 

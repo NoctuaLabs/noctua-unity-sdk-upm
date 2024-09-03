@@ -142,7 +142,7 @@ namespace com.noctuagames.sdk.UI
 
             try {
 
-                await Model.AuthService.ConfirmResetPassword(verificationId, verificationCode, password);
+                await Model.AuthService.ConfirmResetPasswordAsync(verificationId, verificationCode, password);
 
                 View.visible = false;
 
@@ -151,7 +151,7 @@ namespace com.noctuagames.sdk.UI
                 View.Q<VisualElement>("Spinner").AddToClassList("hide");
 
                 // Go back to login dialog
-                Model.ShowEmailLogin(null);
+                Model.ShowEmailLogin();
             } catch (Exception e) {
                 if (e is NoctuaException noctuaEx)
                 {

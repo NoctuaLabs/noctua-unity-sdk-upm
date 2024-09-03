@@ -210,7 +210,7 @@ namespace com.noctuagames.sdk
                 {
                     errorResponse = JsonConvert.DeserializeObject<ErrorResponse>(response, _jsonSettings);
                     
-                    Debug.Log(errorResponse.Error);
+                    Debug.Log(errorResponse.ErrorMessage);
                 }
                 catch (Exception exception)
                 {
@@ -221,7 +221,7 @@ namespace com.noctuagames.sdk
 
                 if (errorResponse is { ErrorCode: > 0 })
                 {
-                    throw new NoctuaException(errorResponse.ErrorCode, errorResponse.Error);
+                    throw new NoctuaException(errorResponse.ErrorCode, errorResponse.ErrorMessage);
                 }
                 
                 switch (_request.result)

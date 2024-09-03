@@ -6,6 +6,7 @@ using UnityEngine.UIElements;
 
 // Call Task
 using System.Threading.Tasks;
+using Cysharp.Threading.Tasks;
 
 namespace com.noctuagames.sdk.UI
 {
@@ -93,12 +94,16 @@ namespace com.noctuagames.sdk.UI
         private void OnContinueButtonClick(PointerUpEvent evt)
         {
             View.visible = false;
+            
+            Model.PushNavigation(() => Model.ShowAccountSelection());
             Model.ShowLoginOptions();
         }
 
         private void OnCloseButtonClick(PointerUpEvent evt)
         {
             Visible = false;
+            
+            Model.ClearNavigation();
         }
 
         private void BindListView(ListView listView, List<UserBundle> items)

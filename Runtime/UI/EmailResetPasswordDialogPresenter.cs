@@ -114,7 +114,7 @@ namespace com.noctuagames.sdk.UI
 
             try {
 
-                var credentialVerification = await Model.AuthService.RequestResetPassword(emailAddress);
+                var credentialVerification = await Model.AuthService.RequestResetPasswordAsync(emailAddress);
 
                 Model.ShowEmailConfirmResetPassword(credentialVerification.Id);
 
@@ -144,7 +144,7 @@ namespace com.noctuagames.sdk.UI
         {
             View.visible = false;
             
-            Model.ShowEmailLogin(null);
+            Model.ShowEmailLogin();
         }
 
         private void HideAllErrors()

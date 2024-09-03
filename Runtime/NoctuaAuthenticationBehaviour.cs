@@ -1,6 +1,9 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Net;
+using System.Net.Sockets;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Web;
 using com.noctuagames.sdk.UI;
@@ -38,8 +41,6 @@ namespace com.noctuagames.sdk
         private PanelSettings _panelSettings;
         private UIDocument _uiDocument;
         
-        private HttpServer _oauthHttpServer;
-
         // IMPORTANT NOTES!!!
         // Your UI need to apply USS absolute property to the first VisualElement of the UI
         // before being added to the UI Document.
@@ -56,6 +57,8 @@ namespace com.noctuagames.sdk
         private UserCenterPresenter _userCenter;
 
         private NoctuaAuthenticationService _authService;
+        
+        private readonly Stack<Action> _navigationStack = new();
 
         public NoctuaAuthenticationService AuthService
         {
@@ -76,7 +79,9 @@ namespace com.noctuagames.sdk
             }
         } 
 
-        public event Action<UserBundle> OnAccountChanged;
+        internal event Action<UserBundle> OnAccountChanged;
+
+        private AuthType _currentAuthType = AuthType.SwitchAccount;
 
         private void Awake()
         {
@@ -122,9 +127,30 @@ namespace com.noctuagames.sdk
             // Violation of this rule will cause the UI (and the other UI too)
             // to be unable to be displayed properly.
         }
+        
+        internal void PushNavigation(Action action)
+        {
+            if (action == null) return;
+            
+            _navigationStack.Push(action);
+        }
+        
+        internal void ClearNavigation()
+        {
+            _navigationStack.Clear();
+        }
+        
+        internal void NavigateBack()
+        {
+            if (_navigationStack.Count > 0)
+            {
+                _navigationStack.Pop().Invoke();
+            }
+        }
 
         public void ShowAccountSelection()
         {
+            _currentAuthType = AuthType.SwitchAccount;
             _accountSelectionDialog.Show();
         }
 
@@ -138,14 +164,14 @@ namespace com.noctuagames.sdk
             _emailVerificationDialog.Show(email, password, verificationID);
         }
 
-        public void ShowLoginOptions(Action<LoginResult> onLoginDone = null)
+        public void ShowLoginOptions()
         {
-            _loginOptionsDialog.Show(onLoginDone);
+            _loginOptionsDialog.Show();
         }
 
-        public void ShowEmailLogin(Action<LoginResult> onLoginDone)
+        public void ShowEmailLogin(Action<UserBundle> onLoginSuccess = null)
         {
-            _emailLoginDialog.Show(onLoginDone);
+            _emailLoginDialog.Show(onLoginSuccess);
         }
 
         public void ShowEmailResetPassword(bool clearForm)
@@ -162,46 +188,66 @@ namespace com.noctuagames.sdk
         {
             _switchAccountConfirmationDialog.Show(recentAccount);
         }
-
-        public void ShowSocialLogin(string provider, Action<LoginResult> onLoginDone)
+        
+        public void ShowUserCenter()
         {
-            UniTask.Void(async () =>
-            {
-                try
-                {
-                    var result = await SocialLogin(provider);
-
-                    onLoginDone?.Invoke(
-                        new LoginResult
-                        {
-                            Success = true,
-                            User = result
-                        }
-                    );
-                }
-                catch (Exception e)
-                {
-                    onLoginDone?.Invoke(
-                        new LoginResult
-                        {
-                            Success = false,
-                            Error = e
-                        }
-                    );
-                }
-            });
+            _currentAuthType = AuthType.LinkAccount;
+            _userCenter.Show();
         }
 
-        public async UniTask<UserBundle> SocialLogin(string provider)
+        internal async UniTask<CredentialVerification> RegisterWithEmailAsync(string email, string password)
         {
-            if (AuthService.RecentAccount == null)
+            return _currentAuthType switch
             {
-                throw NoctuaException.NoRecentAccount;
-            }
+                AuthType.SwitchAccount => await AuthService.RegisterWithEmailAsync(email, password),
+                AuthType.LinkAccount => await AuthService.LinkWithEmailAsync(email, password),
+                _ => throw new NotImplementedException(_currentAuthType.ToString())
+            };
+        }
+        
+        internal async UniTask<UserBundle> VerifyEmailRegistration(int credVerifyId, string code)
+        {
+            return _currentAuthType switch
+            {
+                AuthType.SwitchAccount => await AuthService.VerifyEmailRegistrationAsync(credVerifyId, code),
+                AuthType.LinkAccount => await AuthService.VerifyEmailLinkingAsync(credVerifyId, code),
+                _ => throw new NotImplementedException(_currentAuthType.ToString())
+            };
+        }
+
+        public async UniTask<UserBundle> SocialLoginAsync(string provider)
+        {
+            var callbackDataMap = await GetSocialAuthParamsAsync(provider);
+
+            var socialLoginRequest = new SocialLoginRequest
+            {
+                Code = callbackDataMap["code"],
+                State = callbackDataMap["state"],
+                RedirectUri = callbackDataMap["redirect_uri"]
+            };
+
+            return await AuthService.SocialLoginAsync(provider, socialLoginRequest);
+        }
+
+        public async UniTask<UserBundle> SocialLinkAsync(string provider)
+        {
+            var callbackDataMap = await GetSocialAuthParamsAsync(provider);
             
+            var socialLinkRequest = new SocialLinkRequest
+            {
+                Code = callbackDataMap["code"],
+                State = callbackDataMap["state"],
+                RedirectUri = callbackDataMap["redirect_uri"]
+            };
+
+            return await AuthService.SocialLinkAsync(provider, socialLinkRequest);
+        }
+
+        private async Task<Dictionary<string, string>> GetSocialAuthParamsAsync(string provider)
+        {
             Debug.Log("SocialLogin: " + provider);
 
-            var socialLoginUrl = await AuthService.GetSocialLoginRedirectURL(provider);
+            var socialLoginUrl = await AuthService.GetSocialLoginRedirectURLAsync(provider);
 
             Debug.Log("SocialLogin: " + provider + " " + socialLoginUrl);
 
@@ -210,40 +256,17 @@ namespace com.noctuagames.sdk
             // Start HTTP server to listen to the callback with random port
             // open the browser with the redirect URL
 
-            var task = new TaskCompletionSource<Dictionary<string, string>>();
+            var oauthRedirectListener = new OauthRedirectListener();
 
-            void OnCallbackReceived(string callbackData)
-            {
-                Debug.Log("HTTP Server received callback: " + callbackData);
-
-                task.TrySetResult(ParseQueryString(callbackData));
-            }
-
-            if (_oauthHttpServer is { IsRunning: true })
-            {
-                _oauthHttpServer.Stop();
-            }
-            
-            _oauthHttpServer = new HttpServer();
-            _oauthHttpServer.OnCallbackReceived += OnCallbackReceived;
-            _oauthHttpServer.Start();
-
-            var redirectUrl = $"http://localhost:{_oauthHttpServer.Port}";
+            var redirectUrl = $"http://localhost:{oauthRedirectListener.Port}";
             var url = $"{socialLoginUrl}&redirect_uri={HttpUtility.UrlEncode(redirectUrl)}";
             Debug.Log($"Open URL with system browser: {url}");
 
             Application.OpenURL(url);
-
-            var callbackDataMap = await task.Task;
-
-            Debug.Log("HTTP Server received callback, stopping the server");
-
-            _oauthHttpServer.Stop();
-            _oauthHttpServer = null;
+            
+            var callbackDataMap = await oauthRedirectListener.ListenAsync();
 
 #elif UNITY_IOS || UNITY_ANDROID
-            // Open the browser with the redirect URL
-
             var task = new TaskCompletionSource<Dictionary<string, string>>();
             
             Application.deepLinkActivated += (uri) =>
@@ -262,18 +285,81 @@ namespace com.noctuagames.sdk
             Application.OpenURL(url);
             
             var callbackDataMap = await task.Task;
+
 #endif
+            
+            callbackDataMap["redirect_uri"] = redirectUrl;
+            
+            return callbackDataMap;
+        }
+    }
+   
+    internal class OauthRedirectListener
+    {
+        private readonly HttpListener _listener = new();
 
-            var socialLoginRequest = new SocialLoginRequest
+        public string Path;
+        public int Port;
+
+        public OauthRedirectListener(string path = "")
+        {
+            Path = path;
+            Port = GetRandomUnusedPort();
+            _listener.Prefixes.Add($"http://localhost:{Port}/{path.Trim('/')}/");
+            
+            Debug.Log($"HTTP Server started on port {Port} with path {Path}");
+        }
+        
+        public async UniTask<Dictionary<string,string>> ListenAsync()
+        {
+            _listener.Start();
+
+            var contextTask = _listener.GetContextAsync();
+            var timeoutTask = Task.Delay(TimeSpan.FromSeconds(180));
+            
+            var completedTask = await Task.WhenAny(contextTask, timeoutTask);
+            
+            if (completedTask != contextTask)
             {
-                Code = callbackDataMap["code"],
-                State = callbackDataMap["state"],
-                RedirectUri = redirectUrl
-            };
+                throw new TimeoutException("Timeout while waiting for the HTTP server to respond");
+            }
+            
+            var request = contextTask.Result.Request;
+            var response = contextTask.Result.Response;
+            
+            if (request.HttpMethod != "GET")
+            {
+                response.StatusCode = (int)HttpStatusCode.MethodNotAllowed;
+                response.Close();
+                
+                throw new ArgumentException("Only GET method is allowed");
+            }
 
-            return await AuthService.SocialLogin(provider, socialLoginRequest);
+            var callbackData = ParseQueryString(request.Url.Query);
+
+            response.StatusCode = (int)HttpStatusCode.OK;
+            response.ContentType = "text/plain";
+            var buffer = System.Text.Encoding.UTF8.GetBytes("Social login completed. You can close this window now.");
+            response.ContentLength64 = buffer.Length;
+            
+            await response.OutputStream.WriteAsync(buffer, 0, buffer.Length);
+            
+            response.Close();
+            
+            _listener.Stop();
+
+            return callbackData;
         }
 
+        private int GetRandomUnusedPort()
+        {
+            var listener = new TcpListener(IPAddress.Loopback, 0);
+            listener.Start();
+            var port = ((IPEndPoint)listener.LocalEndpoint).Port;
+            listener.Stop();
+            return port;
+        }
+        
         private static Dictionary<string, string> ParseQueryString(string queryString)
         {
             var queryParameters = new Dictionary<string, string>();
@@ -293,20 +379,11 @@ namespace com.noctuagames.sdk
 
             return queryParameters;
         }
-
-        private void OnDestroy()
-        {
-            if (_oauthHttpServer is { IsRunning: true })
-            {
-                _oauthHttpServer.Stop();
-            }
-            
-            _oauthHttpServer = null;
-        }
-
-        public void ShowUserCenter()
-        {
-            _userCenter.Show();
-        }
+    }
+    
+    internal enum AuthType
+    {
+        SwitchAccount,
+        LinkAccount,
     }
 }

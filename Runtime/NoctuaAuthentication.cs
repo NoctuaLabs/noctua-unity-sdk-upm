@@ -8,6 +8,7 @@ using Newtonsoft.Json;
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Web;
 using UnityEngine.EventSystems;
@@ -44,7 +45,7 @@ namespace com.noctuagames.sdk
         private readonly GameObject _uiObject;
         private readonly NoctuaAuthenticationBehaviour _uiComponent;
         private readonly NoctuaAuthenticationService _service;
-        private HttpServer _oauthHttpServer;
+        private OauthRedirectListener _oauthOauthRedirectListener;
 
         internal NoctuaAuthentication(Config config)
         {
@@ -58,31 +59,6 @@ namespace com.noctuagames.sdk
         public string GetAccessToken()
         {
             return RecentAccount?.Player?.AccessToken;
-        }
-
-        public async UniTask<UserBundle> LoginAsGuest()
-        {
-            return await _service.LoginAsGuest();
-        }
-
-        public async UniTask<UserBundle> ExchangeToken(string accessToken)
-        {
-            return await _service.ExchangeToken(accessToken);
-        }
-
-        public async UniTask<string> GetSocialLoginRedirectURL(string provider)
-        {
-            return await _service.GetSocialLoginRedirectURL(provider);
-        }
-
-        public async UniTask<UserBundle> SocialLogin(string provider, SocialLoginRequest payload)
-        {
-            return await _service.SocialLogin(provider, payload);
-        }
-
-        public async UniTask<PlayerToken> Bind(BindRequest payload)
-        {
-            return await _service.Bind(payload);
         }
 
         /// <summary>
@@ -100,110 +76,101 @@ namespace com.noctuagames.sdk
             return await _service.AuthenticateAsync();
         }
 
-        public async UniTask<UserBundle> SocialLogin(string provider)
+        public async UniTask<UserBundle> LoginAsGuest()
         {
-            if (RecentAccount == null)
-            {
-                throw NoctuaException.NoRecentAccount;
-            }
-            
-            Debug.Log("SocialLogin: " + provider);
-
-            var socialLoginUrl = await GetSocialLoginRedirectURL(provider);
-
-            Debug.Log("SocialLogin: " + provider + " " + socialLoginUrl);
-
-#if (UNITY_STANDALONE || UNITY_EDITOR) && !UNITY_WEBGL
-
-            // Start HTTP server to listen to the callback with random port
-            // open the browser with the redirect URL
-
-            var task = new TaskCompletionSource<Dictionary<string, string>>();
-
-            void OnCallbackReceived(string callbackData)
-            {
-                Debug.Log("HTTP Server received callback: " + callbackData);
-
-                task.TrySetResult(ParseQueryString(callbackData));
-            }
-
-            if (_oauthHttpServer is { IsRunning: true })
-            {
-                _oauthHttpServer.Stop();
-            }
-            
-            _oauthHttpServer = new HttpServer();
-            _oauthHttpServer.OnCallbackReceived += OnCallbackReceived;
-            _oauthHttpServer.Start();
-
-            var redirectUrl = $"http://localhost:{_oauthHttpServer.Port}";
-            var url = $"{socialLoginUrl}&redirect_uri={HttpUtility.UrlEncode(redirectUrl)}";
-            Debug.Log($"Open URL with system browser: {url}");
-
-            Application.OpenURL(url);
-
-            var callbackDataMap = await task.Task;
-
-
-            Debug.Log("HTTP Server received callback, stopping the server");
-
-            _oauthHttpServer.Stop();
-            _oauthHttpServer = null;
-
-#elif UNITY_IOS || UNITY_ANDROID
-            // Open the browser with the redirect URL
-
-            var task = new TaskCompletionSource<Dictionary<string, string>>();
-            
-            Application.deepLinkActivated += (uri) =>
-            {
-                Debug.Log("Deep link activated: " + uri);
-                
-                var callbackDataMap = ParseQueryString(uri);
-                
-                task.TrySetResult(callbackDataMap);
-            };
-            
-            var redirectUrl = $"{Application.identifier}:/auth";
-            var url = $"{socialLoginUrl}&redirect_uri={redirectUrl}";
-
-            Debug.Log($"Open URL with system browser: {url}");
-            Application.OpenURL(url);
-            
-            var callbackDataMap = await task.Task;
-#endif
-
-            var socialLoginRequest = new SocialLoginRequest
-            {
-                Code = callbackDataMap["code"],
-                State = callbackDataMap["state"],
-                RedirectUri = redirectUrl
-            };
-
-            return await _service.SocialLogin(provider, socialLoginRequest);
+            return await _service.LoginAsGuestAsync();
         }
 
-        private static Dictionary<string, string> ParseQueryString(string queryString)
-        {
-            var queryParameters = new Dictionary<string, string>();
-            queryString = queryString[(queryString.IndexOf('?') + 1)..];
-
-            var pairs = queryString.Split('&');
-            foreach (var pair in pairs)
-            {
-                var keyValue = pair.Split('=');
-
-                if (keyValue.Length != 2) continue;
-
-                var key = Uri.UnescapeDataString(keyValue[0]);
-                var value = Uri.UnescapeDataString(keyValue[1]);
-                queryParameters[key] = value;
-            }
-
-            return queryParameters;
+        public void ResetAccounts() {
+            _service.ResetAccounts();
         }
 
-        public void CustomerService()
+        // TODO: Add support for phone
+        public async UniTask<CredentialVerification> RegisterWithEmailAsync(string email, string password)
+        {
+            return await _service.RegisterWithEmailAsync(email, password);
+        }
+
+        public async UniTask<UserBundle> VerifyEmailRegistrationAsync(int id, string code)
+        {
+            return await _service.VerifyEmailRegistrationAsync(id, code);
+        }
+
+        // TODO: Add support for phone
+        public async UniTask<CredentialVerification> LinkWithEmailAsync(string email, string password)
+        {
+            return await _service.LinkWithEmailAsync(email, password);
+        }
+        
+        public async UniTask<UserBundle> VerifyEmailLinkingAsync(int id, string code)
+        {
+            return await _service.VerifyEmailLinkingAsync(id, code);
+        }
+
+        // TODO: Add support for phone
+        public async UniTask<UserBundle> LoginWithEmailAsync(string email, string password)
+        {
+            return await _service.LoginWithEmailAsync(email, password);
+        }
+
+        // TODO: Add support for phone
+        public async UniTask<CredentialVerification> RequestResetPasswordAsync(string email)
+        {
+            return await _service.RequestResetPasswordAsync(email);
+        }
+
+        // TODO: Add support for phone
+        public async UniTask<UserBundle> ConfirmResetPasswordAsync(int id, string code, string newPassword)
+        {
+            return await _service.ConfirmResetPasswordAsync(id, code, newPassword);
+        }
+
+        public void SwitchAccount(UserBundle user)
+        {
+            _service.SwitchAccount(user);
+        }
+        
+        public async UniTask<UserBundle> ExchangeToken(string accessToken)
+        {
+            return await _service.ExchangeTokenAsync(accessToken);
+        }
+
+        public async UniTask<string> GetSocialLoginRedirectURL(string provider)
+        {
+            return await _service.GetSocialLoginRedirectURLAsync(provider);
+        }
+
+        public async UniTask<UserBundle> SocialLoginAsync(string provider, SocialLoginRequest payload)
+        {
+            return await _service.SocialLoginAsync(provider, payload);
+        }
+
+        public async UniTask<UserBundle> SocialLinkAsync(string provider, SocialLinkRequest payload)
+        {
+            return await _service.SocialLinkAsync(provider, payload);
+        }
+
+        public async UniTask<PlayerToken> Bind(BindRequest payload)
+        {
+            return await _service.Bind(payload);
+        }
+
+        public async UniTask<UserBundle> SocialLoginAsync(string provider)
+        {
+            return await _uiComponent.SocialLoginAsync(provider);
+        }
+
+        public async UniTask<UserBundle> UpdatePlayerAccountAsync(PlayerAccountData playerAccountData)
+        {
+            return await _service.UpdatePlayerAccountAsync(playerAccountData);
+        }
+        
+        public async UniTask<UserBundle> LogoutAsync()
+        {
+            return await _service.LogoutAsync();
+        }
+        
+        public void ShowCustomerService()
         {
             var customerServiceUrl = Constants.CustomerServiceBaseUrl + "&gameCode=" + this.RecentAccount?.Player?.GameName + "&uid=" + this.RecentAccount?.User?.Id;
 
@@ -211,12 +178,14 @@ namespace com.noctuagames.sdk
             Application.OpenURL(customerServiceUrl);
         }
 
+        public void ShowUserCenter()
+        {
+            _uiComponent.ShowUserCenter();
+        }
+
         /// <summary>
         /// Displays the account selection user interface.
-        /// 
-        /// This function does not take any parameters and returns a UserBundle object.
         /// </summary>
-        /// <returns>A UserBundle object representing the selected account.</returns>
         public void SwitchAccount()
         {
             _uiComponent.ShowAccountSelection();
@@ -233,158 +202,11 @@ namespace com.noctuagames.sdk
         {
             _uiComponent.ShowEmailVerification("foo", "bar", 123);
         }
-
-        public void Reset() {
-            _service.ResetAccounts();
-        }
-
-        // TODO: Add support for phone
-        public async UniTask<CredentialVerification> RegisterWithEmail(string email, string password)
-        {
-            return await _service.RegisterWithEmail(email, password);
-        }
-
-        public async UniTask<UserBundle> VerifyEmailRegistration(int id, string code)
-        {
-            return await _service.VerifyEmailRegistration(id, code);
-        }
-
-        // TODO: Add support for phone
-        public async UniTask<UserBundle> LoginWithEmail(string email, string password)
-        {
-            return await _service.LoginWithEmail(email, password);
-        }
-
-        // TODO: Add support for phone
-        public async UniTask<CredentialVerification> RequestResetPassword(string email)
-        {
-            var request = new HttpRequest(HttpMethod.Post, $"{_config.BaseUrl}/auth/email/reset-password")
-                .WithHeader("X-CLIENT-ID", _config.ClientId)
-                .WithHeader("X-BUNDLE-ID", Application.identifier)
-                .WithJsonBody(
-                    new CredPair
-                    {
-                        CredKey = email
-                    }
-                );
-
-            var response = await request.Send<CredentialVerification>();
-            return response;
-        }
-
-        // TODO: Add support for phone
-        public async UniTask<PlayerToken> ConfirmResetPassword(int id, string code, string newPassword)
-        {
-            var request = new HttpRequest(HttpMethod.Post, $"{_config.BaseUrl}/auth/email/verify-reset-password")
-                .WithHeader("X-CLIENT-ID", _config.ClientId)
-                .WithHeader("X-BUNDLE-ID", Application.identifier)
-                .WithJsonBody(
-                    new CredentialVerification
-                    {
-                        Id = id,
-                        Code = code,
-                        NewPassword = newPassword,
-                    }
-                );
-
-            var response = await request.Send<PlayerToken>();
-            return response;
-        }
-
-        public void SwitchAccount(UserBundle user)
-        {
-            _service.SwitchAccount(user);
-        }
-
-        public async UniTask<UserBundle> UpdatePlayerAccountAsync(PlayerAccountData playerAccountData)
-        {
-            return await _service.UpdatePlayerAccountAsync(playerAccountData);
-        }
         
         internal class Config
         {
             public string BaseUrl;
             public string ClientId;
-        }
-
-        public void ShowUserCenter()
-        {
-            _uiComponent.ShowUserCenter();
-        }
-    }
-    
-    internal class HttpServer
-    {
-        private readonly HttpListener _listener = new();
-
-        public event Action<string> OnCallbackReceived;
-        public string Path;
-        public int Port;
-        public bool IsRunning => _listener.IsListening;
-
-        public void Start(string path = "")
-        {
-            Path = path;
-            Port = GetRandomUnusedPort();
-            
-            _listener.Prefixes.Add($"http://localhost:{Port}/{path.Trim('/')}/");
-            _listener.Start();
-            
-            Debug.Log($"HTTP Server started on port {Port} with path {Path}");
-            
-            UniTask.Create(Listen);
-        }
-
-        public void Stop()
-        {
-            _listener.Stop();
-            Debug.Log("HTTP Server stopped");
-        }
-
-        private async UniTask Listen()
-        {
-            while (_listener.IsListening)
-            {
-                try
-                {
-                    var context = await _listener.GetContextAsync();
-                    var request = context.Request;
-                    var response = context.Response;
-                    
-                    if (request.HttpMethod != "GET")
-                    {
-                        response.StatusCode = (int)HttpStatusCode.MethodNotAllowed;
-                        response.Close();
-                        continue;
-                    }
-
-                    var callbackData = request.Url.Query;
-
-                    response.StatusCode = (int)HttpStatusCode.OK;
-                    response.ContentType = "text/plain";
-                    var buffer = System.Text.Encoding.UTF8.GetBytes("Social login completed. You can close this window now.");
-                    response.ContentLength64 = buffer.Length;
-                    
-                    await response.OutputStream.WriteAsync(buffer, 0, buffer.Length);
-                    
-                    response.Close();
-
-                    OnCallbackReceived?.Invoke(callbackData);
-                }
-                catch (Exception ex)
-                {
-                    Debug.LogError($"HTTP Server error: {ex.Message}");
-                }
-            }
-        }
-
-        private int GetRandomUnusedPort()
-        {
-            var listener = new TcpListener(IPAddress.Loopback, 0);
-            listener.Start();
-            var port = ((IPEndPoint)listener.LocalEndpoint).Port;
-            listener.Stop();
-            return port;
         }
     }
 }

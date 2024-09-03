@@ -22,13 +22,14 @@ namespace com.noctuagames.sdk.UI
         private string _email;
         private string _password;
         private VisualElement _spinner;
-        private Action<LoginResult> _onLoginDone;
+        
+        private Action<UserBundle> _onLoginSuccess;
 
-        public void Show(Action<LoginResult> onLoginDone)
+        public void Show(Action<UserBundle> onLoginSuccess)
         {
-            _onLoginDone = onLoginDone;
             Setup();
 
+            _onLoginSuccess = onLoginSuccess;
             Visible = true;
         }
         
@@ -101,7 +102,7 @@ namespace com.noctuagames.sdk.UI
         {
             Visible = false;
             
-            _onLoginDone?.Invoke(new LoginResult { Success = false });
+            Model.NavigateBack();
         }
 
         private bool IsValidEmail(string email)
@@ -135,12 +136,15 @@ namespace com.noctuagames.sdk.UI
         {
             Visible = false;
             // Show with empty form
+            Model.PushNavigation(() => Model.ShowEmailLogin());
             Model.ShowEmailResetPassword(true);
         }
 
         private void OnRegisterButtonClick(PointerUpEvent evt)
         {
             Visible = false;
+            
+            Model.PushNavigation(() => Model.ShowEmailLogin());
             Model.ShowEmailRegistration(true);
         }
 
@@ -191,8 +195,9 @@ namespace com.noctuagames.sdk.UI
             }
 
             try {
-
-                var userBundle = await Model.AuthService.LoginWithEmail(_email, _password);
+                var userBundle = await Model.AuthService.LoginWithEmailAsync(_email, _password);
+                
+                _onLoginSuccess?.Invoke(userBundle);
 
                 View.visible = false;
 
@@ -200,8 +205,6 @@ namespace com.noctuagames.sdk.UI
                 View.Q<Button>("ContinueButton").RemoveFromClassList("hide");
                 View.Q<VisualElement>("AdditionalFooterContent").RemoveFromClassList("hide");
                 View.Q<VisualElement>("Spinner").AddToClassList("hide");
-                
-                _onLoginDone?.Invoke(new LoginResult { Success = true, User = userBundle });
             } catch (Exception e) {
                 if (e is NoctuaException noctuaEx)
                 {

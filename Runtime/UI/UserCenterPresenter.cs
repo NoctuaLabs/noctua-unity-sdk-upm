@@ -11,6 +11,7 @@ namespace com.noctuagames.sdk.UI
     internal class UserCenterPresenter : Presenter<NoctuaAuthenticationBehaviour>
     {
         private VisualTreeAsset _itemTemplate;
+        private Texture2D _defaultAvatar;
         private ListView _credentialListView;
 
         private readonly List<UserCredential> _credentials = new()
@@ -26,7 +27,8 @@ namespace com.noctuagames.sdk.UI
                 CredentialProvider = CredentialProvider.Google
             },
         };
-        
+
+
         protected override void Attach()
         {
         }
@@ -68,15 +70,10 @@ namespace com.noctuagames.sdk.UI
 
         public void Show()
         {
-            Visible = true;
-            
-            View.Q<VisualElement>("MoreOptionsMenu").AddToClassList("hide");
-            _credentialListView.Rebuild();
-            SetOrientation();
-            StartCoroutine(GetCurrentUser().ToCoroutine());
+            StartCoroutine(ShowAsync().ToCoroutine());
         }
 
-        private async UniTask GetCurrentUser()
+        private async UniTask ShowAsync()
         {
             try
             {
@@ -84,7 +81,7 @@ namespace com.noctuagames.sdk.UI
                 
                 Debug.Log($"GetCurrentUser: {user?.Id} {user?.Nickname}");
 
-                View.Q<Label>("PlayerName").text = user?.Nickname ?? "";
+                View.Q<Label>("PlayerName").text = user?.IsGuest == true ? "Guest " + user.Id  : user?.Nickname;
                 View.Q<Label>("UserIdLabel").text = user?.Id.ToString() ?? "";
                 
                 if (!string.IsNullOrEmpty(user?.PictureUrl))
@@ -106,16 +103,22 @@ namespace com.noctuagames.sdk.UI
                         Debug.Log(e.Message);
                     }
                 }
+                else
+                {
+                    View.Q<VisualElement>("PlayerAvatar").style.backgroundImage = new StyleBackground(_defaultAvatar);
+                }
 
                 var emailCredential = user?.Credentials.Find(credential => credential.Provider == "email");
             
-                _credentials[0].Username = emailCredential?.Id.ToString() ?? "";
-                Debug.Log($"Email: {emailCredential?.Id}");
+                _credentials[0].Username = emailCredential?.DisplayText ?? "";
+                Debug.Log($"Email: {emailCredential?.DisplayText}");
             
                 var googleCredential = user?.Credentials.Find(credential => credential.Provider == "google");
             
-                _credentials[1].Username = googleCredential?.Id.ToString() ?? "";
-                Debug.Log($"Google: {googleCredential?.Id}");
+                _credentials[1].Username = googleCredential?.DisplayText ?? "";
+                Debug.Log($"Google: {googleCredential?.DisplayText}");
+                
+                _credentialListView.Rebuild();
             }
             catch (Exception e)
             {
@@ -124,6 +127,32 @@ namespace com.noctuagames.sdk.UI
                 _credentials[0].Username = "";
                 _credentials[1].Username = "";
             }
+            
+            Visible = true;
+
+            View.Q<VisualElement>("MoreOptionsMenu").AddToClassList("hide");
+            SetOrientation();
+
+        }
+
+        private void Awake()
+        {
+            _defaultAvatar = Resources.Load<Texture2D>("PlayerProfileBackground");
+            View.Q<VisualElement>("MoreOptionsMenu").RegisterCallback<PointerUpEvent>(OnMoreOptionsMenuSelected);
+            View.Q<VisualElement>("SwitchProfile").RegisterCallback<PointerUpEvent>(_ => OnSwitchProfile());
+            View.Q<VisualElement>("LogoutAccount").RegisterCallback<PointerUpEvent>(_ => OnLogout());
+        }
+
+        private void OnSwitchProfile()
+        {
+            Visible = false;
+            Model.ShowAccountSelection();
+        }
+
+        private void OnLogout()
+        {
+            Visible = false;
+            StartCoroutine(Model.AuthService.LogoutAsync().ToCoroutine());
         }
 
         private void OnEnable()
@@ -140,6 +169,11 @@ namespace com.noctuagames.sdk.UI
             Debug.Log("More options clicked");
             View.Q<VisualElement>("MoreOptionsMenu").ToggleInClassList("hide");
             View.Q<VisualElement>("MoreOptionsMenu").Focus();
+        }
+
+        private void OnMoreOptionsMenuSelected(PointerUpEvent evt)
+        {
+            View.Q<VisualElement>("MoreOptionsMenu").AddToClassList("hide");
         }
 
         private void BindListView()
@@ -161,7 +195,7 @@ namespace com.noctuagames.sdk.UI
 
             if (string.IsNullOrEmpty(_credentials[index].Username))
             {
-                element.Q<Label>("UsernameLabel").AddToClassList("hide");
+                element.Q<VisualElement>("Username").AddToClassList("hide");
                 element.Q<Button>("ConnectButton").RemoveFromClassList("hide");
                 element.Q<Button>("ConnectButton")
                     .RegisterCallback<PointerUpEvent, UserCredential>(OnConnectButtonClick, _credentials[index]);
@@ -169,6 +203,7 @@ namespace com.noctuagames.sdk.UI
             else
             {
                 element.Q<Button>("ConnectButton").AddToClassList("hide");
+                element.Q<VisualElement>("Username").RemoveFromClassList("hide");
                 element.Q<Label>("UsernameLabel").text = _credentials[index].Username;
             }
 
@@ -189,26 +224,33 @@ namespace com.noctuagames.sdk.UI
             switch (credential.CredentialProvider)
             {
                 case CredentialProvider.Email:
-                    Model.ShowEmailLogin(result =>
-                    {
-                        Debug.Log($"ShowEmailLogin: {result.Success}");
-                        
-                        Show();
-                    });
+                    Model.ShowEmailLogin(_ => Model.ShowUserCenter());
+                    
                     break;
                 case CredentialProvider.Google:
-                    Model.ShowSocialLogin("google", result =>
-                    {
-                        Debug.Log($"ShowSocialLogin: {result.Success}");
-
-                        Show();
-                    });
+                    StartCoroutine(SocialLinkAsync("google").ToCoroutine());
                     break;
                 default:
                     throw new ArgumentOutOfRangeException();
             }
         }
 
+        private async UniTask SocialLinkAsync(string provider)
+        {
+            try
+            {
+                var userBundle = await Model.SocialLinkAsync(provider);
+                            
+                Debug.Log($"StartSocialLink: {userBundle.User?.Id} {userBundle.User?.Nickname}");
+                            
+                Model.ShowUserCenter();
+            }
+            catch (Exception e)
+            {
+                Debug.Log(e.Message);
+            }
+        }
+        
         private enum CredentialProvider
         {
             Email,

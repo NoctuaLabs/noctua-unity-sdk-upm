@@ -93,7 +93,8 @@ namespace com.noctuagames.sdk.UI
         private void OnLoginLinkClick(PointerUpEvent evt)
         {
             Visible = false;
-            Model.ShowEmailLogin(null);
+            Model.PushNavigation(() => Model.ShowEmailRegistration(false));
+            Model.ShowEmailLogin();
         }
 
         private async void OnContinueButtonClick(PointerUpEvent evt)
@@ -148,7 +149,7 @@ namespace com.noctuagames.sdk.UI
             }
 
             try {
-                var result = await Model.AuthService.RegisterWithEmail(emailAddress, password);
+                var result = await Model.RegisterWithEmailAsync(emailAddress, password);
                 Debug.Log("RegisterWithPassword verification ID: " + result.Id);
 
                 View.visible = false;
@@ -184,7 +185,8 @@ namespace com.noctuagames.sdk.UI
             View.Q<Button>("ContinueButton").RemoveFromClassList("hide");
 
             Visible = false;
-            Model.ShowLoginOptions();
+            
+            Model.NavigateBack();
         }
 
         private void OnEmailValueChanged(TextField textField)

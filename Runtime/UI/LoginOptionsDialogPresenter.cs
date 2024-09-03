@@ -13,9 +13,8 @@ namespace com.noctuagames.sdk.UI
         private Button _backButton;
         private Action<LoginResult> _onDone; 
         
-        public void Show(Action<LoginResult> onDone)
+        public void Show()
         {
-            _onDone = onDone;
             Visible = true;
         }
 
@@ -56,7 +55,7 @@ namespace com.noctuagames.sdk.UI
         {
             try
             {
-                var userBundle = await Model.SocialLogin(provider);
+                var userBundle = await Model.SocialLoginAsync(provider);
 
                 _onDone?.Invoke(
                     new LoginResult
@@ -81,22 +80,16 @@ namespace com.noctuagames.sdk.UI
         private void OnLoginWithEmailButtonClicked()
         {
             Visible = false;
-            
-            Model.ShowEmailLogin(
-                result =>
-                {
-                    if (!result.Success)
-                    {
-                        Visible = true;
-                    }
-                }
-            );
+
+            Model.PushNavigation(() => Model.ShowLoginOptions());
+            Model.ShowEmailLogin();
         }
         
         private void OnRegisterButtonClicked()
         {
             Visible = false;
             
+            Model.PushNavigation(() => Model.ShowLoginOptions());
             Model.ShowEmailRegistration(true);
         }
 
@@ -104,7 +97,7 @@ namespace com.noctuagames.sdk.UI
         {
             Visible = false;
 
-            Model.ShowAccountSelection();
+            Model.NavigateBack();
         }
     }
 }

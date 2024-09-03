@@ -37,6 +37,9 @@ namespace com.noctuagames.sdk
         
         [JsonProperty("credentials")]
         public List<Credential> Credentials;
+        
+        [JsonProperty("is_guest")]
+        public bool IsGuest;
     }
 
     public class Credential {
@@ -45,6 +48,9 @@ namespace com.noctuagames.sdk
 
         [JsonProperty("provider")]
         public string Provider;
+        
+        [JsonProperty("display_text")]
+        public string DisplayText;
     }
 
     public class Player
@@ -197,13 +203,25 @@ namespace com.noctuagames.sdk
         public string BundleId;
     }
 
-    public class SocialLoginRedirectUrlResponse
+    public class SocialRedirectUrlResponse
     {
         [JsonProperty("redirect_url")]
         public string RedirectUrl;
     }
 
     public class SocialLoginRequest
+    {
+        [JsonProperty("code")]
+        public string Code;
+
+        [JsonProperty("state")]
+        public string State;
+
+        [JsonProperty("redirect_uri")]
+        public string RedirectUri;
+    }
+
+    public class SocialLinkRequest
     {
         [JsonProperty("code")]
         public string Code;
@@ -279,7 +297,7 @@ namespace com.noctuagames.sdk
 
         private readonly string _clientId;
         private readonly string _baseUrl;
-        private HttpServer _oauthHttpServer;
+        private OauthRedirectListener _oauthOauthRedirectListener;
 
         internal NoctuaAuthenticationService(string baseUrl, string clientId)
         {
@@ -287,7 +305,7 @@ namespace com.noctuagames.sdk
             _baseUrl = baseUrl;
         }
 
-        public async UniTask<UserBundle> LoginAsGuest()
+        public async UniTask<UserBundle> LoginAsGuestAsync()
         {
             Debug.Log("LoginAsGuest: " + Application.identifier + " " + SystemInfo.deviceUniqueIdentifier);
             if (string.IsNullOrEmpty(Application.identifier))
@@ -317,11 +335,10 @@ namespace com.noctuagames.sdk
             return recentAccount;
         }
 
-        public async UniTask<UserBundle> ExchangeToken(string accessToken)
+        public async UniTask<UserBundle> ExchangeTokenAsync(string accessToken)
         {
-            if (!IsAuthenticated)
-            {
-                throw new ApplicationException("User is not authenticated");
+            if (string.IsNullOrEmpty(RecentAccount?.Player?.AccessToken)) {
+                throw NoctuaException.MissingAccessToken;
             }
             
             Debug.Log("LoginAsGuest: " + Application.identifier + " " + SystemInfo.deviceUniqueIdentifier);
@@ -352,7 +369,7 @@ namespace com.noctuagames.sdk
             return recentAccount;
         }
 
-        public async UniTask<string> GetSocialLoginRedirectURL(string provider)
+        public async UniTask<string> GetSocialLoginRedirectURLAsync(string provider)
         {
             Debug.Log("GetSocialLoginURL provider: " + provider);
 
@@ -360,15 +377,19 @@ namespace com.noctuagames.sdk
                 .WithHeader("X-CLIENT-ID", _clientId)
                 .WithHeader("X-BUNDLE-ID", Application.identifier);
 
-            var redirectUrlResponse = await request.Send<SocialLoginRedirectUrlResponse>();
+            var redirectUrlResponse = await request.Send<SocialRedirectUrlResponse>();
 
             Debug.Log("GetSocialLoginURL result: " + redirectUrlResponse?.RedirectUrl);
 
             return redirectUrlResponse?.RedirectUrl;
         }
 
-        public async UniTask<UserBundle> SocialLogin(string provider, SocialLoginRequest payload)
+        public async UniTask<UserBundle> SocialLoginAsync(string provider, SocialLoginRequest payload)
         {
+            if (string.IsNullOrEmpty(RecentAccount?.Player?.AccessToken)) {
+                throw NoctuaException.MissingAccessToken;
+            }
+
             Debug.Log("Social login callback: " + provider);
 
             var request = new HttpRequest(HttpMethod.Post, $"{_baseUrl}/auth/{provider}/login/callback")
@@ -387,8 +408,12 @@ namespace com.noctuagames.sdk
         }
 
         // TODO: Add support for phone
-        public async UniTask<UserBundle> LoginWithEmail(string email, string password)
+        public async UniTask<UserBundle> LoginWithEmailAsync(string email, string password)
         {
+            if (string.IsNullOrEmpty(RecentAccount?.Player?.AccessToken)) {
+                throw NoctuaException.MissingAccessToken;
+            }
+
             var request = new HttpRequest(HttpMethod.Post, $"{_baseUrl}/auth/email/login")
                 .WithHeader("X-CLIENT-ID", _clientId)
                 .WithHeader("X-BUNDLE-ID", Application.identifier)
@@ -409,12 +434,10 @@ namespace com.noctuagames.sdk
 
             return recentAccount;
         }
-
+        
         // TODO: Add support for phone
-        public async UniTask<CredentialVerification> RegisterWithEmail(string email, string password)
+        public async UniTask<CredentialVerification> RegisterWithEmailAsync(string email, string password)
         {
-
-            // Check for AccessToken
             if (string.IsNullOrEmpty(RecentAccount?.Player?.AccessToken)) {
                 throw NoctuaException.MissingAccessToken;
             }
@@ -433,24 +456,15 @@ namespace com.noctuagames.sdk
                     }
                 );
 
-            try {
-                var response = await request.Send<CredentialVerification>();
-                return response;
-            }
-            catch (Exception e) {
-                if (e is NoctuaException noctuaEx)
-                {
-                    Debug.Log("NoctuaException: " + noctuaEx.ErrorCode + " : " + noctuaEx.Message);
-                } else {
-                    Debug.Log("Exception: " + e);
-                }
-                
-                throw;
-            }
+            return await request.Send<CredentialVerification>();
         }
 
-        public async UniTask<UserBundle> VerifyEmailRegistration(int id, string code)
+        public async UniTask<UserBundle> VerifyEmailRegistrationAsync(int id, string code)
         {
+            if (string.IsNullOrEmpty(RecentAccount?.Player?.AccessToken)) {
+                throw NoctuaException.MissingAccessToken;
+            }
+
             var request = new HttpRequest(HttpMethod.Post, $"{_baseUrl}/auth/email/verify-registration")
                 .WithHeader("X-CLIENT-ID", _clientId)
                 .WithHeader("X-BUNDLE-ID", Application.identifier)
@@ -473,7 +487,7 @@ namespace com.noctuagames.sdk
         }
         
         // TODO: Add support for phone
-        public async UniTask<CredentialVerification> RequestResetPassword(string email)
+        public async UniTask<CredentialVerification> RequestResetPasswordAsync(string email)
         {
             var request = new HttpRequest(HttpMethod.Post, $"{_baseUrl}/auth/email/reset-password")
                 .WithHeader("X-CLIENT-ID", _clientId)
@@ -491,7 +505,7 @@ namespace com.noctuagames.sdk
         }
 
         // TODO: Add support for phone
-        public async UniTask<UserBundle> ConfirmResetPassword(int id, string code, string newPassword)
+        public async UniTask<UserBundle> ConfirmResetPasswordAsync(int id, string code, string newPassword)
         {
             var request = new HttpRequest(HttpMethod.Post, $"{_baseUrl}/auth/email/verify-reset-password")
                 .WithHeader("X-CLIENT-ID", _clientId)
@@ -513,12 +527,84 @@ namespace com.noctuagames.sdk
             
             return recentAccount;
         }
+        
+        public async UniTask<UserBundle> SocialLinkAsync(string provider, SocialLinkRequest payload)
+        {
+            if (string.IsNullOrEmpty(RecentAccount?.Player?.AccessToken)) {
+                throw NoctuaException.MissingAccessToken;
+            }
+
+            Debug.Log("Social login callback: " + provider);
+
+            var request = new HttpRequest(HttpMethod.Post, $"{_baseUrl}/auth/{provider}/link/callback")
+                .WithHeader("X-CLIENT-ID", _clientId)
+                .WithHeader("X-BUNDLE-ID", Application.identifier)
+                .WithHeader("Authorization", "Bearer " + RecentAccount.Player.AccessToken)
+                .WithJsonBody(payload);
+
+            var response = await request.Send<PlayerToken>();
+            
+            var accountContainer = ReadPlayerPrefsAccountContainer();
+            var recentAccount = TransformTokenResponseToUserBundle(response);
+            UpdateRecentAccount(recentAccount, accountContainer);
+
+            return recentAccount;
+        }
+
+        // TODO: Add support for phone
+        public async UniTask<CredentialVerification> LinkWithEmailAsync(string email, string password)
+        {
+            if (string.IsNullOrEmpty(RecentAccount?.Player?.AccessToken)) {
+                throw NoctuaException.MissingAccessToken;
+            }
+
+            var request = new HttpRequest(HttpMethod.Post, $"{_baseUrl}/auth/email/register/link")
+                .WithHeader("X-CLIENT-ID", _clientId)
+                .WithHeader("X-BUNDLE-ID", Application.identifier)
+                .WithHeader("Authorization", "Bearer " + RecentAccount.Player.AccessToken)
+                .WithJsonBody(
+                    new CredPair
+                    {
+                        CredKey = email,
+                        CredSecret = password,
+                        Provider = "email"
+                    }
+                );
+
+            return await request.Send<CredentialVerification>();
+        }
+        
+        public async UniTask<UserBundle> VerifyEmailLinkingAsync(int id, string code)
+        {
+            if (string.IsNullOrEmpty(RecentAccount?.Player?.AccessToken)) {
+                throw NoctuaException.MissingAccessToken;
+            }
+
+            var request = new HttpRequest(HttpMethod.Post, $"{_baseUrl}/auth/email/verify-registration/link")
+                .WithHeader("X-CLIENT-ID", _clientId)
+                .WithHeader("X-BUNDLE-ID", Application.identifier)
+                .WithHeader("Authorization", "Bearer " + RecentAccount.Player.AccessToken)
+                .WithJsonBody(
+                    new CredentialVerification
+                    {
+                        Id = id,
+                        Code = code
+                    }
+                );
+
+            var response = await request.Send<PlayerToken>();
+
+            var accountContainer = ReadPlayerPrefsAccountContainer();
+            var recentAccount = TransformTokenResponseToUserBundle(response);
+            UpdateRecentAccount(recentAccount, accountContainer);
+
+            return recentAccount;
+        }
 
         public async UniTask<PlayerToken> Bind(BindRequest payload)
         {
-            if (!IsAuthenticated)
-            {
-                throw new ApplicationException("User is not authenticated");
+            if (string.IsNullOrEmpty(RecentAccount?.Player?.AccessToken)) {
+                throw NoctuaException.MissingAccessToken;
             }
             
             Debug.Log("Bind: " + payload.GuestToken);
@@ -531,12 +617,23 @@ namespace com.noctuagames.sdk
 
             return await request.Send<PlayerToken>();
         }
+
+        public async UniTask<UserBundle> LogoutAsync()
+        {
+            Debug.Log("Reset");
+            PlayerPrefs.SetString("NoctuaAccountContainer", "{}");
+            PlayerPrefs.Save();
+            AccountList = new Dictionary<string, UserBundle>();
+            RecentAccount = null;
+
+            return await LoginAsGuestAsync(); 
+        }
+        
         
         public async UniTask<User> GetCurrentUser()
         {
-            if (!IsAuthenticated)
-            {
-                throw new ApplicationException("User is not authenticated");
+            if (string.IsNullOrEmpty(RecentAccount?.Player?.AccessToken)) {
+                throw NoctuaException.MissingAccessToken;
             }
             
             Debug.Log("GetCurrentUser");
@@ -549,11 +646,10 @@ namespace com.noctuagames.sdk
             return await request.Send<User>();
         }
         
-        public async UniTask UpdateUser(User user)
+        public async UniTask UpdateUserAsync(User user)
         {
-            if (!IsAuthenticated)
-            {
-                throw new ApplicationException("User is not authenticated");
+            if (string.IsNullOrEmpty(RecentAccount?.Player?.AccessToken)) {
+                throw NoctuaException.MissingAccessToken;
             }
             
             Debug.Log("UpdateUser");
@@ -593,7 +689,7 @@ namespace com.noctuagames.sdk
             {
                 // 2.a - 2.c If there is no existing account, try to login as guest
                 Debug.Log("AccountDetection: Account not found, try to login as guest");
-                var response = await LoginAsGuest();
+                var response = await LoginAsGuestAsync();
                 
                 return response;
             } else {
@@ -663,7 +759,7 @@ namespace com.noctuagames.sdk
                     Debug.Log("AccountDetection: There is no account match with this game in the recent players, then exchange first");
                     Debug.Log("AccountDetection: borrowed access token: " + borrowedAccessToken);
 
-                    var exchangedAccount = await ExchangeToken(borrowedAccessToken);
+                    var exchangedAccount = await ExchangeTokenAsync(borrowedAccessToken);
 
                     return exchangedAccount;
                 } else if (count > 1) {
@@ -697,13 +793,13 @@ namespace com.noctuagames.sdk
                     if (!found) {
                         // 4.a.ii.1.1. No player's bundle id found, then create new guest
                         // Either create new guest or ask user to choose one of them.
-                        return await LoginAsGuest();
+                        return await LoginAsGuestAsync();
                     }
                 }
             }
 
             // Should not reach this point. Fallback to create new guest if it happens
-            return await LoginAsGuest();
+            return await LoginAsGuestAsync();
         }
 
         private void UpdateRecentAccount(UserBundle userBundle, AccountContainer accountContainer)
