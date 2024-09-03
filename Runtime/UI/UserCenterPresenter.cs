@@ -161,14 +161,39 @@ namespace com.noctuagames.sdk.UI
             View.Q<Button>("MoreOptionsButton").RegisterCallback<PointerUpEvent>(OnMoreOptionsButtonClick);
             View.RegisterCallback<GeometryChangedEvent>(_ => SetOrientation());
             
+            View.RegisterCallback<PointerDownEvent>(OnViewClicked);
+            
             BindListView();
         }
 
         private void OnMoreOptionsButtonClick(PointerUpEvent evt)
         {
             Debug.Log("More options clicked");
-            View.Q<VisualElement>("MoreOptionsMenu").ToggleInClassList("hide");
-            View.Q<VisualElement>("MoreOptionsMenu").Focus();
+            ToggleMoreOptionsMenu();
+            evt.StopPropagation();
+        }
+
+        private void ToggleMoreOptionsMenu()
+        {
+            var moreOptionsMenu = View.Q<VisualElement>("MoreOptionsMenu");
+            moreOptionsMenu.ToggleInClassList("hide");
+            if (!moreOptionsMenu.ClassListContains("hide"))
+            {
+                moreOptionsMenu.Focus();
+            }
+        }
+
+        private void OnViewClicked(PointerDownEvent evt)
+        {
+            var moreOptionsMenu = View.Q<VisualElement>("MoreOptionsMenu");
+            if (!moreOptionsMenu.ClassListContains("hide"))
+            {
+                var clickedElement = evt.target as VisualElement;
+                if (clickedElement != null && !moreOptionsMenu.Contains(clickedElement))
+                {
+                    ToggleMoreOptionsMenu();
+                }
+            }
         }
 
         private void OnMoreOptionsMenuSelected(PointerUpEvent evt)
