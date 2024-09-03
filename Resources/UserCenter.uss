@@ -67,14 +67,12 @@
     width: 16px;
     height: 16px;
     background-image: url("./ExitIcon.png");
-    background-position: center;
 }
 
 .more-options-icon {
     width: 16px;
     height: 16px;
     background-image: url("./MoreOptionsIcon.png");
-    background-position: center;
 }
 
 .help-button {
@@ -85,7 +83,6 @@
     width: 16px;
     height: 16px;
     background-image: url("./HelpChatIcon.png");
-    background-position: center;
 }
 
 .help-label {
@@ -111,9 +108,10 @@
 .more-options-menu {
     background-color: rgba(56, 65, 74, 1);
     position: absolute;
-    right: 0;
-    top: 34px;
+    right: 10px;
+    top: 40px;
     border-radius: 10px;
+    padding: 5px;
 }
 
 .more-options-menu-item {
@@ -122,6 +120,8 @@
     justify-content: flex-start;
     align-items: center;
     border-radius: 10px;
+    padding-left: 5px;
+    padding-right: 5px;
 }
 
 .more-options-menu-item:hover {
@@ -129,7 +129,7 @@
 }
 
 .more-options-menu-item-label {
-    margin-left: 12px;
+    margin-left: 10px;
     -unity-text-align: middle-left;
     font-size: 12px;
 }
@@ -162,7 +162,6 @@
     width: 16px;
     height: 16px;
     background-image: url("./Hi.png");
-    background-position: center;
 }
 
 .player-avatar {
@@ -171,7 +170,6 @@
     border-radius: 48px;
     background-image: url("./PlayerProfileBackground.png");
     align-self: center;
-    background-position: center;
 }
 
 .user-id {
@@ -190,7 +188,6 @@
     width: 13px;
     height: 13px;
     background-image: url("./CopyIcon.png");
-    background-position: center;
 }
 
 .connect-account {
