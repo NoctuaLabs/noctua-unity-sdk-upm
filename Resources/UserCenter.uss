@@ -218,6 +218,13 @@
     align-self: stretch;
 }
 
+.account-list .unity-list-view__item:active,
+.account-list .unity-list-view__item:focus,
+.account-list .unity-list-view__item--selected,
+.account-list .unity-collection-view__item--selected {
+    background-color: transparent;
+}
+
 .connect-account-footer {
     height: 11px;
     font-size: 8px;
