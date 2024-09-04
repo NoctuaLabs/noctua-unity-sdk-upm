@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.5.0] - 2024-09-04
+
+### 🚀 Features
+
+- Click outside to close MoreOptionsMenu
+
+### 🐛 Bug Fixes
+
+- Use link endpoints instead of login
+- Remove warning and fix MoreOptionsMenu styles
+- Make icons on MoreOptionsMenu smaller
+- IOS and Android runtime error
+
 ## [0.4.0] - 2024-09-02
 
 ### 🚀 Features
