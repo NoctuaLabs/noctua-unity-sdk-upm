@@ -1,5 +1,6 @@
 ﻿using System;
 using Newtonsoft.Json;
+using UnityEngine.Scripting;
 
 public class NoctuaException : Exception
 {
@@ -34,14 +35,15 @@ public class NoctuaException : Exception
     public static readonly NoctuaException MissingAccessToken = new NoctuaException(3005, "Missing access token");
 }
 
+[Preserve]
 public class ErrorResponse
 {
     [JsonProperty("success")]
-    public bool Success { get; set; }
+    public bool Success;
 
     [JsonProperty("error_message")]
-    public string ErrorMessage { get; set; }
+    public string ErrorMessage;
 
     [JsonProperty("error_code")]
-    public int ErrorCode { get; set; }
+    public int ErrorCode;
 }

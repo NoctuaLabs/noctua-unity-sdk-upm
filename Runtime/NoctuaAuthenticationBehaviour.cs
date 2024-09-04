@@ -243,7 +243,7 @@ namespace com.noctuagames.sdk
             return await AuthService.SocialLinkAsync(provider, socialLinkRequest);
         }
 
-        private async Task<Dictionary<string, string>> GetSocialAuthParamsAsync(string provider)
+        private async UniTask<Dictionary<string, string>> GetSocialAuthParamsAsync(string provider)
         {
             Debug.Log("SocialLogin: " + provider);
 
@@ -264,10 +264,11 @@ namespace com.noctuagames.sdk
 
             Application.OpenURL(url);
             
-            var callbackDataMap = await oauthRedirectListener.ListenAsync();
+            var callbackData = await oauthRedirectListener.ListenAsync();
+            var callbackDataMap = ParseQueryString(callbackData);
 
 #elif UNITY_IOS || UNITY_ANDROID
-            var task = new TaskCompletionSource<Dictionary<string, string>>();
+            var task = new UniTaskCompletionSource<Dictionary<string, string>>();
             
             Application.deepLinkActivated += (uri) =>
             {
@@ -292,6 +293,26 @@ namespace com.noctuagames.sdk
             
             return callbackDataMap;
         }
+
+        private static Dictionary<string, string> ParseQueryString(string queryString)
+        {
+            var queryParameters = new Dictionary<string, string>();
+            queryString = queryString[(queryString.IndexOf('?') + 1)..];
+
+            var pairs = queryString.Split('&');
+            foreach (var pair in pairs)
+            {
+                var keyValue = pair.Split('=');
+
+                if (keyValue.Length != 2) continue;
+
+                var key = Uri.UnescapeDataString(keyValue[0]);
+                var value = Uri.UnescapeDataString(keyValue[1]);
+                queryParameters[key] = value;
+            }
+
+            return queryParameters;
+        }
     }
    
     internal class OauthRedirectListener
@@ -310,7 +331,7 @@ namespace com.noctuagames.sdk
             Debug.Log($"HTTP Server started on port {Port} with path {Path}");
         }
         
-        public async UniTask<Dictionary<string,string>> ListenAsync()
+        public async UniTask<string> ListenAsync()
         {
             _listener.Start();
 
@@ -335,7 +356,7 @@ namespace com.noctuagames.sdk
                 throw new ArgumentException("Only GET method is allowed");
             }
 
-            var callbackData = ParseQueryString(request.Url.Query);
+            var callbackData = request.Url.Query;
 
             response.StatusCode = (int)HttpStatusCode.OK;
             response.ContentType = "text/plain";
@@ -358,26 +379,6 @@ namespace com.noctuagames.sdk
             var port = ((IPEndPoint)listener.LocalEndpoint).Port;
             listener.Stop();
             return port;
-        }
-        
-        private static Dictionary<string, string> ParseQueryString(string queryString)
-        {
-            var queryParameters = new Dictionary<string, string>();
-            queryString = queryString[(queryString.IndexOf('?') + 1)..];
-
-            var pairs = queryString.Split('&');
-            foreach (var pair in pairs)
-            {
-                var keyValue = pair.Split('=');
-
-                if (keyValue.Length != 2) continue;
-
-                var key = Uri.UnescapeDataString(keyValue[0]);
-                var value = Uri.UnescapeDataString(keyValue[1]);
-                queryParameters[key] = value;
-            }
-
-            return queryParameters;
         }
     }
     

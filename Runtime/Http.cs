@@ -5,6 +5,7 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
 using UnityEngine;
 using UnityEngine.Networking;
+using UnityEngine.Scripting;
 
 namespace com.noctuagames.sdk
 {
@@ -156,7 +157,8 @@ namespace com.noctuagames.sdk
             
             return this;
         }
-
+    
+        [Preserve]
         private class DataWrapper<T>
         {
             [JsonProperty("data")]

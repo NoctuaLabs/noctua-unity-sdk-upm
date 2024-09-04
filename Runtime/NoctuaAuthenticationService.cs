@@ -18,6 +18,7 @@ namespace com.noctuagames.sdk
         public const string CustomerServiceBaseUrl = "https://noctua.gg/embed-webview?url=https%3A%2F%2Fgo.crisp.chat%2Fchat%2Fembed%2F%3Fwebsite_id%3Dc4e95a3a-1fd1-49a2-92ea-a7cb5427bcd9&reason=general&vipLevel=";
     }
 
+    [Preserve]
     public class User
     {
         [JsonProperty("id")]
@@ -42,6 +43,7 @@ namespace com.noctuagames.sdk
         public bool IsGuest;
     }
 
+    [Preserve]
     public class Credential {
         [JsonProperty("id")]
         public int Id;
@@ -53,6 +55,7 @@ namespace com.noctuagames.sdk
         public string DisplayText;
     }
 
+    [Preserve]
     public class Player
     {
         [JsonProperty("access_token")]
@@ -95,6 +98,7 @@ namespace com.noctuagames.sdk
         public int UserId;
     }
 
+    [Preserve]
     public class Game
     {
         [JsonProperty("id")]
@@ -108,6 +112,7 @@ namespace com.noctuagames.sdk
 
     }
 
+    [Preserve]
     public class GamePlatform
     {
         [JsonProperty("id")]
@@ -123,6 +128,7 @@ namespace com.noctuagames.sdk
         public string BundleId;
     }
 
+    [Preserve]
     public class ExchangeTokenRequest {
         // Used for token exchange
         [JsonProperty("next_bundle_id")]
@@ -132,6 +138,7 @@ namespace com.noctuagames.sdk
         public bool InitPlayer;
     }
 
+    [Preserve]
     public class PlayerToken
     {
         [JsonProperty("access_token")]
@@ -155,6 +162,7 @@ namespace com.noctuagames.sdk
     }
 
 
+    [Preserve]
     public class UserBundle
     {
         [JsonProperty("user")]
@@ -194,6 +202,7 @@ namespace com.noctuagames.sdk
         }
     }
 
+    [Preserve]
     public class LoginAsGuestRequest
     {
         [JsonProperty("device_id")]
@@ -203,12 +212,14 @@ namespace com.noctuagames.sdk
         public string BundleId;
     }
 
+    [Preserve]
     public class SocialRedirectUrlResponse
     {
         [JsonProperty("redirect_url")]
         public string RedirectUrl;
     }
 
+    [Preserve]
     public class SocialLoginRequest
     {
         [JsonProperty("code")]
@@ -221,6 +232,7 @@ namespace com.noctuagames.sdk
         public string RedirectUri;
     }
 
+    [Preserve]
     public class SocialLinkRequest
     {
         [JsonProperty("code")]
@@ -233,12 +245,14 @@ namespace com.noctuagames.sdk
         public string RedirectUri;
     }
 
+    [Preserve]
     public class BindRequest
     {
         [JsonProperty("guest_token")]
         public string GuestToken;
     }
 
+    [Preserve]
     public class CredPair
     {
         [JsonProperty("cred_key")]
@@ -251,6 +265,7 @@ namespace com.noctuagames.sdk
         public string Provider;
     }
 
+    [Preserve]
     public class CredentialVerification
     {
         [JsonProperty("id")]
@@ -263,12 +278,14 @@ namespace com.noctuagames.sdk
         public string NewPassword;
     }
 
+    [Preserve]
     public class AccountContainer // Used by account container prefs and account detection logic
     {
         [JsonProperty("accounts")]
         public List<UserBundle> Accounts;
     }
 
+    [Preserve]
     public class PlayerAccountData
     {
         [JsonProperty("ingame_username")]
