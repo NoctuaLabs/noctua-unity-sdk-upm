@@ -87,21 +87,29 @@ public class NoctuaConfig
 
             if (configLoadRequest.result == UnityWebRequest.Result.ProtocolError)
             {
-                Debug.Log("Loading streaming assets: configLoadRequest ProtocolError");
+                throw new Exception("Failed to load config: " + configLoadRequest.error);
+            }
+
+            if (configLoadRequest.downloadHandler.data.Length < 7)
+            {
+                throw new Exception("Config file is too short: " + configLoadRequest.downloadHandler.text);
+            }
+
+            var rawConfig = configLoadRequest.downloadHandler.data;
+            string jsonConfig;
+
+            // Check if rawConfig prefix is UTF-8 BOM
+            if (rawConfig[0] == 0xEF && rawConfig[1] == 0xBB && rawConfig[2] == 0xBF)
+            {
+                jsonConfig = System.Text.Encoding.UTF8.GetString(rawConfig, 3, rawConfig.Length - 3);
             }
             else
             {
-                // Avoid BOM with [1..].
-                if (configLoadRequest.downloadHandler.text.Length > 1)
-                {
-                    config = JsonConvert.DeserializeObject<GlobalConfig>(configLoadRequest.downloadHandler.text[1..]);
-                    Debug.Log(config.ClientId);
-                }
-                else
-                {
-                    Debug.Log("Loading streaming assets: configLoadRequest downloadHandler.text is too short.");
-                }
+                jsonConfig = System.Text.Encoding.UTF8.GetString(rawConfig);
             }
+
+            config = JsonConvert.DeserializeObject<GlobalConfig>(jsonConfig);
+
             #endif
 
             #if UNITY_IOS || UNITY_EDITOR_OSX
