@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.5.1] - 2024-09-06
+
+### 🐛 Bug Fixes
+
+- Unwanted selected background on listview
+- Margin top dialog-title
+- Check for BOM characters before skipping
+
 ## [0.5.0] - 2024-09-04
 
 ### 🚀 Features
