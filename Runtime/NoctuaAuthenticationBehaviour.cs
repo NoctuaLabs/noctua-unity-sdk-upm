@@ -265,25 +265,53 @@ namespace com.noctuagames.sdk
             var callbackDataMap = ParseQueryString(callbackData);
 
 #elif UNITY_IOS || UNITY_ANDROID
-            var task = new UniTaskCompletionSource<Dictionary<string, string>>();
-            
-            Application.deepLinkActivated += (uri) =>
-            {
-                Debug.Log("Deep link activated: " + uri);
-                
-                var callbackDataMap = ParseQueryString(uri);
-                
-                task.TrySetResult(callbackDataMap);
-            };
-            
+            Debug.Log("Initializing WebView");
+            var webView = gameObject.AddComponent<UniWebView>();
+            webView.SetUserAgent("Mozilla/5.0 (iPhone; CPU iPhone OS 14_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.0 Mobile/15E148 Safari/604.1");
+
+            webView.SetBackButtonEnabled(true);
+            webView.EmbeddedToolbar.Show();
+            webView.EmbeddedToolbar.SetDoneButtonText("Close");
+            webView.EmbeddedToolbar.SetPosition(UniWebViewToolbarPosition.Top);
+            webView.Frame = new Rect(0, 0, Screen.width, Screen.height);
+
             var socialLoginUrl = await AuthService.GetSocialLoginRedirectURLAsync(provider);
 
-            Debug.Log($"Open URL with system browser: {socialLoginUrl}");
-
-            Application.OpenURL(socialLoginUrl);
+            var tcs = new UniTaskCompletionSource<string>();
             
-            var callbackDataMap = await task.Task;
+            void OnSocialLoginWebviewStarted(UniWebView webView, string url)
+            {
+                Debug.Log("URL started to load: " + url);
+                if (url.Contains($"api/v1/auth/{provider}/code")) {
+                    webView.Hide();
+                }
+            }
 
+            void OnSocialLoginWebviewFinished(UniWebView webView, int statusCode, string url)
+            {
+                Debug.Log("URL finishhed to load: " + url);
+                if (url.Contains($"api/v1/auth/{provider}/code")) {
+                    webView.Hide();
+
+                    tcs.TrySetResult(url);
+                }
+            }        
+
+            webView.OnPageFinished += OnSocialLoginWebviewFinished;
+            webView.OnPageStarted += OnSocialLoginWebviewStarted;
+
+            webView.Load(socialLoginUrl);
+            Debug.Log("Showing WebView");
+            webView.Show();
+
+            var callbackData = await tcs.Task;
+
+            var callbackDataMap = ParseQueryString(callbackData);
+
+            webView.OnPageFinished -= OnSocialLoginWebviewFinished;
+            webView.OnPageStarted -= OnSocialLoginWebviewStarted;
+
+            Destroy(webView);
 #endif
 
             return callbackDataMap;
