@@ -146,6 +146,8 @@ namespace com.noctuagames.sdk
             _request.SetRequestHeader("Content-Type", "application/json");
             var rawBody = System.Text.Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(body, _jsonSettings));
             _request.uploadHandler = new UploadHandlerRaw(rawBody);
+
+            Debug.Log(System.Text.Encoding.UTF8.GetString(rawBody));
             
             return this;
         }

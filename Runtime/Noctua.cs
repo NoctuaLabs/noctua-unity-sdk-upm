@@ -19,22 +19,22 @@ namespace com.noctuagames.sdk
         [JsonProperty("eventMap")] public Dictionary<string, string> EventMap { get; set; }
     }
 
-public class NoctuaConfig
-{
-    public const string DefaultTrackerUrl = "https://kafka-proxy-poc.noctuaprojects.com";
-    public const string DefaultBaseUrl = "https://sdk-api-v2.noctuaprojects.com/api/v1";
-    public const string DefaultSandboxBaseUrl = "https://sandbox-sdk-api-v2.noctuaprojects.com/api/v1";
+    public class NoctuaConfig
+    {
+        public const string DefaultTrackerUrl = "https://kafka-proxy-poc.noctuaprojects.com";
+        public const string DefaultBaseUrl = "https://sdk-api-v2.noctuaprojects.com/api/v1";
+        public const string DefaultSandboxBaseUrl = "https://sandbox-sdk-api-v2.noctuaprojects.com/api/v1";
 
-    [JsonProperty("trackerUrl")]
-    public string TrackerUrl { get; set; } = "https://kafka-proxy-poc.noctuaprojects.com";
+        [JsonProperty("trackerUrl")]
+        public string TrackerUrl { get; set; } = "https://kafka-proxy-poc.noctuaprojects.com";
 
-    [JsonProperty("baseUrl")]
-    public string BaseUrl { get; set; } = "https://sandbox-sdk-api-v2.noctuaprojects.com/api/v1";
+        [JsonProperty("baseUrl")]
+        public string BaseUrl { get; set; } = "https://sandbox-sdk-api-v2.noctuaprojects.com/api/v1";
 
-    [JsonProperty("isSandbox")]
-    public bool IsSandbox { get; set; } = false;
+        [JsonProperty("isSandbox")]
+        public bool IsSandbox { get; set; } = false;
 
-}
+    }
 
     public class GlobalConfig
     {

@@ -246,12 +246,6 @@ namespace com.noctuagames.sdk
 
         private async UniTask<Dictionary<string, string>> GetSocialAuthParamsAsync(string provider)
         {
-            Debug.Log("SocialLogin: " + provider);
-
-            var socialLoginUrl = await AuthService.GetSocialLoginRedirectURLAsync(provider);
-
-            Debug.Log("SocialLogin: " + provider + " " + socialLoginUrl);
-
 #if (UNITY_STANDALONE || UNITY_EDITOR) && !UNITY_WEBGL
 
             // Start HTTP server to listen to the callback with random port
@@ -259,11 +253,13 @@ namespace com.noctuagames.sdk
 
             var oauthRedirectListener = new OauthRedirectListener();
 
-            var redirectUrl = $"http://localhost:{oauthRedirectListener.Port}";
-            var url = $"{socialLoginUrl}&redirect_uri={HttpUtility.UrlEncode(redirectUrl)}";
-            Debug.Log($"Open URL with system browser: {url}");
+            var redirectUri = $"http://localhost:{oauthRedirectListener.Port}";
 
-            Application.OpenURL(url);
+            var socialLoginUrl = await AuthService.GetSocialLoginRedirectURLAsync(provider, redirectUri);
+
+            Debug.Log($"Open URL with system browser: {socialLoginUrl}");
+
+            Application.OpenURL(socialLoginUrl);
             
             var callbackData = await oauthRedirectListener.ListenAsync();
             var callbackDataMap = ParseQueryString(callbackData);
@@ -280,18 +276,16 @@ namespace com.noctuagames.sdk
                 task.TrySetResult(callbackDataMap);
             };
             
-            var redirectUrl = $"{Application.identifier}:/auth";
-            var url = $"{socialLoginUrl}&redirect_uri={redirectUrl}";
+            var socialLoginUrl = await AuthService.GetSocialLoginRedirectURLAsync(provider);
 
-            Debug.Log($"Open URL with system browser: {url}");
-            Application.OpenURL(url);
+            Debug.Log($"Open URL with system browser: {socialLoginUrl}");
+
+            Application.OpenURL(socialLoginUrl);
             
             var callbackDataMap = await task.Task;
 
 #endif
-            
-            callbackDataMap["redirect_uri"] = redirectUrl;
-            
+
             return callbackDataMap;
         }
 
@@ -299,6 +293,8 @@ namespace com.noctuagames.sdk
         {
             var queryParameters = new Dictionary<string, string>();
             queryString = queryString[(queryString.IndexOf('?') + 1)..];
+
+            Debug.Log("Query string: " + queryString);
 
             var pairs = queryString.Split('&');
             foreach (var pair in pairs)

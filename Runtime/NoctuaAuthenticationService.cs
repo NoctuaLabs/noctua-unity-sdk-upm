@@ -3,7 +3,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
+using System.Text;
 using System.Threading.Tasks;
+using System.Web;
 using Cysharp.Threading.Tasks;
 using Newtonsoft.Json;
 using UnityEngine;
@@ -386,11 +388,16 @@ namespace com.noctuagames.sdk
             return recentAccount;
         }
 
-        public async UniTask<string> GetSocialLoginRedirectURLAsync(string provider)
+        public async UniTask<string> GetSocialLoginRedirectURLAsync(string provider, string redirectUri = "")
         {
             Debug.Log("GetSocialLoginURL provider: " + provider);
 
-            var request = new HttpRequest(HttpMethod.Get, $"{_baseUrl}/auth/{provider}/login/redirect")
+            if (!string.IsNullOrEmpty(redirectUri))
+            {
+                redirectUri = $"?redirect_uri={HttpUtility.UrlEncode(redirectUri)}";
+            }
+
+            var request = new HttpRequest(HttpMethod.Get, $"{_baseUrl}/auth/{provider}/redirect{redirectUri}")
                 .WithHeader("X-CLIENT-ID", _clientId)
                 .WithHeader("X-BUNDLE-ID", Application.identifier);
 
@@ -551,7 +558,7 @@ namespace com.noctuagames.sdk
                 throw NoctuaException.MissingAccessToken;
             }
 
-            Debug.Log("Social login callback: " + provider);
+            Debug.Log("Social link callback: " + provider);
 
             var request = new HttpRequest(HttpMethod.Post, $"{_baseUrl}/auth/{provider}/link/callback")
                 .WithHeader("X-CLIENT-ID", _clientId)
