@@ -144,10 +144,10 @@ namespace com.noctuagames.sdk
         public HttpRequest WithJsonBody<T>(T body)
         {
             _request.SetRequestHeader("Content-Type", "application/json");
-            var rawBody = System.Text.Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(body, _jsonSettings));
+            var jsonBody = JsonConvert.SerializeObject(body, _jsonSettings);
+            Debug.Log($"Request: {jsonBody}");
+            var rawBody = System.Text.Encoding.UTF8.GetBytes(jsonBody);
             _request.uploadHandler = new UploadHandlerRaw(rawBody);
-
-            Debug.Log($"Request: {JsonConvert.SerializeObject(body, _jsonSettings)}");
             
             return this;
         }
