@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.5.2] - 2024-09-07
+
+### 🐛 Bug Fixes
+
+- Font and layout doesn't render correctly
+
 ## [0.5.1] - 2024-09-06
 
 ### 🐛 Bug Fixes
