@@ -13,28 +13,28 @@ namespace com.noctuagames.sdk
     public partial class Product
     {
         [JsonProperty("id")]
-        public int Id { get; set; }
+        public int Id;
 
         [JsonProperty("description")]
-        public string Description { get; set; }
+        public string Description;
 
         [JsonProperty("game_id")]
-        public int GameId { get; set; }
+        public int GameId;
 
         [JsonProperty("vat_rate")]
-        public double VatRate { get; set; }
+        public double VatRate;
 
         [JsonProperty("enabled_payment_types")]
-        public object EnabledPaymentTypes { get; set; }
+        public object EnabledPaymentTypes;
 
         [JsonProperty("price")]
-        public double Price { get; set; }
+        public double Price;
 
         [JsonProperty("price_vat")]
-        public double PriceVat { get; set; }
+        public double PriceVat;
 
         [JsonProperty("currency")]
-        public string Currency { get; set; }
+        public string Currency;
     }
 
     [JsonArray]
@@ -46,90 +46,90 @@ namespace com.noctuagames.sdk
     public class OrderRequest
     {
         [JsonProperty("payment_type")]
-        public string PaymentType { get; set; }
+        public string PaymentType;
 
         [JsonProperty("product_id")]
-        public string ProductId { get; set; }
+        public string ProductId;
 
         [JsonProperty("price")]
-        public decimal Price { get; set; }
+        public decimal Price;
 
         [JsonProperty("currency")]
-        public string Currency { get; set; }
+        public string Currency;
 
         [JsonProperty("role_id")]
-        public string RoleId { get; set; }
+        public string RoleId;
 
         [JsonProperty("server_id")]
-        public string ServerId { get; set; }
+        public string ServerId;
 
         [JsonProperty("ingame_item_id")]
-        public string IngameItemId { get; set; }
+        public string IngameItemId;
 
         [JsonProperty("ingame_item_name")]
-        public string IngameItemName { get; set; }
+        public string IngameItemName;
     }
 
     [Preserve]
     public class OrderResponse
     {
         [JsonProperty("id")]
-        public int Id { get; set; }
+        public int Id;
 
         [JsonProperty("product_id")]
-        public string ProductId { get; set; }
+        public string ProductId;
     }
 
     [Preserve]
     public class VerifyOrderRequest
     {
         [JsonProperty("id")]
-        public int Id { get; set; }
+        public int Id;
 
         [JsonProperty("receipt_data")]
-        public string ReceiptData { get; set; }
+        public string ReceiptData;
     }
 
     [Preserve]
     public class VerifyOrderResponse
     {
         [JsonProperty("id")]
-        public int Id { get; set; }
+        public int Id;
 
         [JsonProperty("status")]
-        public string Status { get; set; }
+        public string Status;
     }
 
     [Preserve]
     public class PurchaseRequest
     {
         [JsonProperty("product_id")]
-        public string ProductId { get; set; }
+        public string ProductId;
 
         [JsonProperty("price")]
-        public decimal Price { get; set; }
+        public decimal Price;
 
         [JsonProperty("currency")]
-        public string Currency { get; set; }
+        public string Currency;
 
         [JsonProperty("role_id")]
-        public string RoleId { get; set; }
+        public string RoleId;
 
         [JsonProperty("server_id")]
-        public string ServerId { get; set; }
+        public string ServerId;
 
         [JsonProperty("ingame_item_id")]
-        public string IngameItemId { get; set; }
+        public string IngameItemId;
 
         [JsonProperty("ingame_item_name")]
-        public string IngameItemName { get; set; }
+        public string IngameItemName;
     }
 
     [Preserve]
     public class PurchaseResponse
     {
         [JsonProperty("status")]
-        public string Status { get; set; }
+        public string Status;
     }
 
     [Preserve]
@@ -194,15 +194,6 @@ namespace com.noctuagames.sdk
 
         private async UniTask<OrderResponse> CreateOrderAsync(OrderRequest order)
         {
-            Debug.Log("NoctuaIAPService.CreateOrderAsync");
-            Debug.Log(order.ProductId);
-            Debug.Log(order.Price);
-            Debug.Log(order.Currency);
-            Debug.Log(order.RoleId);
-            Debug.Log(order.ServerId);
-            Debug.Log(order.IngameItemId);
-            Debug.Log(order.IngameItemName);
-
             var url = $"{_config.BaseUrl}/orders";
             Debug.Log(url);
 
@@ -233,7 +224,7 @@ namespace com.noctuagames.sdk
             return response;
         }
 
-        public async void PurchaseItemAsync(PurchaseRequest purchaseRequest)
+        public async UniTask PurchaseItemAsync(PurchaseRequest purchaseRequest)
         {
             Debug.Log("NoctuaIAPService.PurchaseItemAsync");
             var paymentType = "playstore";
@@ -252,15 +243,6 @@ namespace com.noctuagames.sdk
                 IngameItemId = purchaseRequest.IngameItemId,
                 IngameItemName = purchaseRequest.IngameItemName
             };
-
-            Debug.Log(orderRequest.ProductId);
-            Debug.Log(orderRequest.Price);
-            Debug.Log(orderRequest.Currency);
-            Debug.Log(orderRequest.RoleId);
-            Debug.Log(orderRequest.ServerId);
-            Debug.Log(orderRequest.IngameItemId);
-            Debug.Log(orderRequest.IngameItemName);
-            Debug.Log(orderRequest.PaymentType);
 
             _currentOrderId = 0; // Clear up first
             OrderResponse orderResponse = null;
