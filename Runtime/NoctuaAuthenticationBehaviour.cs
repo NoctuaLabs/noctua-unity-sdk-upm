@@ -88,6 +88,7 @@ namespace com.noctuagames.sdk
             gameObject.SetActive(false);
             
             _panelSettings = Resources.Load<PanelSettings>("NoctuaPanelSettings");
+            _panelSettings.themeStyleSheet = Resources.Load<ThemeStyleSheet>("NoctuaTheme");
             
             _userCenter = gameObject.AddComponent<UserCenterPresenter>();
             _userCenter.Init(this, _panelSettings);
