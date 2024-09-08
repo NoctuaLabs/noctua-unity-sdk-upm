@@ -266,18 +266,11 @@ namespace com.noctuagames.sdk.UI
 
         private async UniTask SocialLinkAsync(string provider)
         {
-            try
-            {
-                var userBundle = await Model.SocialLinkAsync(provider);
-                            
-                Debug.Log($"StartSocialLink: {userBundle.User?.Id} {userBundle.User?.Nickname}");
-                            
-                Model.ShowUserCenter();
-            }
-            catch (Exception e)
-            {
-                Debug.Log(e.Message);
-            }
+            var userBundle = await Model.SocialLinkAsync(provider);
+                        
+            Debug.Log($"StartSocialLink: {userBundle.User?.Id} {userBundle.User?.Nickname}");
+                        
+            Model.ShowUserCenter();
         }
         
         private enum CredentialProvider

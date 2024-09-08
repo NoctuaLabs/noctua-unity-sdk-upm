@@ -270,7 +270,7 @@ namespace com.noctuagames.sdk
             
             if (Application.platform == RuntimePlatform.Android)
             {
-                uniWebView.SetUserAgent("Mozilla/5.0 (Linux; Android 10; SM-G960F) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.181 Mobile Safari/537.36");
+                uniWebView.SetUserAgent("Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/118.0.0.0 Mobile Safari/537.3");
             }
             else if (Application.platform == RuntimePlatform.IPhonePlayer)
             {
@@ -285,21 +285,26 @@ namespace com.noctuagames.sdk
 
                 if (url.Contains($"api/v1/auth/{provider}/code")) {
                     webView.Hide();
-
                     tcs.TrySetResult(url);
                 }
-                else if (url.Contains("error_code=")) {
+                else if (url.Contains("error")) {
                     webView.Hide();
-                    
-                    var queries = ParseQueryString(url);
-
-                    tcs.TrySetException(new NoctuaException(NoctuaErrorCode.Application, "Social login failed: " + queries["error_code"]));
+                    tcs.TrySetException(new NoctuaException(NoctuaErrorCode.Authentication, $"{provider} login failed"));
                 }
             }
 
             void OnSocialLoginWebviewFinished(UniWebView webView, int statusCode, string url)
             {
                 Debug.Log("URL finished to load: " + url);
+                
+                if (url.Contains($"api/v1/auth/{provider}/code")) {
+                    webView.Hide();
+                    tcs.TrySetResult(url);
+                }
+                else if (url.Contains("error")) {
+                    webView.Hide();                
+                    tcs.TrySetException(new NoctuaException(NoctuaErrorCode.Authentication, $"{provider} login failed"));
+                }
             }        
 
             uniWebView.OnPageFinished += OnSocialLoginWebviewFinished;
@@ -316,12 +321,12 @@ namespace com.noctuagames.sdk
 
             if (!socialLoginUrlQueries.ContainsKey("redirect_uri"))
             {
-                throw new NoctuaException(NoctuaErrorCode.Application, "Redirect URI is not found in the social login URL");
+                throw new NoctuaException(NoctuaErrorCode.Authentication, "Redirect URI is not found in the social login URL");
             }
 
-            uniWebView.Load(socialLoginUrl);
             Debug.Log("Showing WebView");
             uniWebView.Show();
+            uniWebView.Load(socialLoginUrl);
 
             var callbackData = await tcs.Task;
 

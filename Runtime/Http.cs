@@ -147,7 +147,7 @@ namespace com.noctuagames.sdk
             var rawBody = System.Text.Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(body, _jsonSettings));
             _request.uploadHandler = new UploadHandlerRaw(rawBody);
 
-            Debug.Log(System.Text.Encoding.UTF8.GetString(rawBody));
+            Debug.Log($"Request: {JsonConvert.SerializeObject(body, _jsonSettings)}");
             
             return this;
         }
@@ -179,72 +179,58 @@ namespace com.noctuagames.sdk
             }
 
             _request.downloadHandler = new DownloadHandlerBuffer();
-
-            string response;
+            var response = "";
 
             try
             {
                 await _request.SendWebRequest();
-
                 response = _request.downloadHandler.text;
-                Debug.Log(response);
-                
-                return JsonConvert.DeserializeObject<DataWrapper<T>>(response, _jsonSettings).Data;
             }
             catch (Exception e)
             {
-                Debug.Log(_request.result.ToString());
-                response = _request.downloadHandler.text;
-                Debug.Log(response);
-                Debug.Log(e.Message);
-
-                if (_request.result == UnityWebRequest.Result.Success)
-                {
-                    throw NoctuaException.OtherWebRequestError;
-                }
-
-                if (response == null)
-                {
-                    throw NoctuaException.OtherWebRequestError;
-                }
-                
-                ErrorResponse errorResponse;
-
-                try
-                {
-                    errorResponse = JsonConvert.DeserializeObject<ErrorResponse>(response, _jsonSettings);
-                    
-                    Debug.Log(errorResponse.ErrorMessage);
-                }
-                catch (Exception exception)
-                {
-                    Debug.Log(exception.Message);
-
-                    errorResponse = null;
-                }
-
-                if (errorResponse is { ErrorCode: > 0 })
-                {
-                    throw new NoctuaException((NoctuaErrorCode)errorResponse.ErrorCode, errorResponse.ErrorMessage);
-                }
-                
                 switch (_request.result)
                 {
                     case UnityWebRequest.Result.ConnectionError:
-                        // e.g. the device is disconnected from the internet/network
                         throw NoctuaException.RequestConnectionError;
                     case UnityWebRequest.Result.DataProcessingError:
                         throw NoctuaException.RequestDataProcessingError;
-                    case UnityWebRequest.Result.ProtocolError:
-                        throw NoctuaException.RequestProtocolError;
-                    default:
-                        throw NoctuaException.OtherWebRequestError;
                 }
+                
+                response = _request.downloadHandler.text;
             }
             finally
             {
                 _request.downloadHandler.Dispose();
                 _request.uploadHandler?.Dispose();
+            }
+
+            Debug.Log($"Response: {response}");
+
+            if (_request.responseCode >= 400)
+            {
+                ErrorResponse errorResponse;
+                
+                try
+                {
+                    errorResponse = JsonConvert.DeserializeObject<ErrorResponse>(response, _jsonSettings);
+                }
+                catch (Exception e)
+                {
+                    throw new NoctuaException(NoctuaErrorCode.Networking, $"Unknown HTTP error {_request.responseCode}: {_request.downloadHandler.text}");
+                }
+                
+                throw new NoctuaException((NoctuaErrorCode)errorResponse.ErrorCode, errorResponse.ErrorMessage);
+            }
+
+            try
+            {
+                return JsonConvert.DeserializeObject<DataWrapper<T>>(response, _jsonSettings).Data;
+            }
+            catch (Exception e)
+            {
+                Debug.Log(e.Message);
+                
+                throw new NoctuaException(NoctuaErrorCode.Application, $"Failed to parse response as {typeof(T).Name}: {_request.downloadHandler.text}");
             }
         }
 
