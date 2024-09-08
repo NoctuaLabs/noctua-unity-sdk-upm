@@ -282,17 +282,24 @@ namespace com.noctuagames.sdk
             void OnSocialLoginWebviewStarted(UniWebView webView, string url)
             {
                 Debug.Log("URL started to load: " + url);
-            }
 
-            void OnSocialLoginWebviewFinished(UniWebView webView, int statusCode, string url)
-            {
-                Debug.Log("URL finished to load: " + url);
-                
                 if (url.Contains($"api/v1/auth/{provider}/code")) {
                     webView.Hide();
 
                     tcs.TrySetResult(url);
                 }
+                else if (url.Contains("error_code=")) {
+                    webView.Hide();
+                    
+                    var queries = ParseQueryString(url);
+
+                    tcs.TrySetException(new NoctuaException(NoctuaErrorCode.Application, "Social login failed: " + queries["error_code"]));
+                }
+            }
+
+            void OnSocialLoginWebviewFinished(UniWebView webView, int statusCode, string url)
+            {
+                Debug.Log("URL finished to load: " + url);
             }        
 
             uniWebView.OnPageFinished += OnSocialLoginWebviewFinished;

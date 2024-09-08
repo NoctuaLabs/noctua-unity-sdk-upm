@@ -26,6 +26,11 @@ namespace com.noctuagames.sdk.UI
                 CredentialIconStyle = "google-logo",
                 CredentialProvider = CredentialProvider.Google
             },
+            new UserCredential
+            {
+                CredentialIconStyle = "facebook-logo",
+                CredentialProvider = CredentialProvider.Facebook
+            },
         };
 
 
@@ -108,26 +113,22 @@ namespace com.noctuagames.sdk.UI
                     View.Q<VisualElement>("PlayerAvatar").style.backgroundImage = new StyleBackground(_defaultAvatar);
                 }
 
-                var emailCredential = user?.Credentials.Find(credential => credential.Provider == "email");
-            
-                _credentials[0].Username = emailCredential?.DisplayText ?? "";
-                Debug.Log($"Email: {emailCredential?.DisplayText}");
-            
-                var googleCredential = user?.Credentials.Find(credential => credential.Provider == "google");
-            
-                _credentials[1].Username = googleCredential?.DisplayText ?? "";
-                Debug.Log($"Google: {googleCredential?.DisplayText}");
-                
-                _credentialListView.Rebuild();
+                foreach (var t in _credentials)
+                {
+                    Debug.Log($"Credential: {t.CredentialProvider} {t.Username}");
+                    
+                    var credential = user?.Credentials.Find(c => c.Provider == t.CredentialProvider.ToString().ToLower());
+                    t.Username = credential?.DisplayText ?? "";
+                }
             }
             catch (Exception e)
             {
                 Debug.Log(e.Message);
                 
-                _credentials[0].Username = "";
-                _credentials[1].Username = "";
+                _credentials.ForEach(c => c.Username = "");
             }
             
+            _credentialListView.Rebuild();
             Visible = true;
 
             View.Q<VisualElement>("MoreOptionsMenu").AddToClassList("hide");
@@ -255,8 +256,11 @@ namespace com.noctuagames.sdk.UI
                 case CredentialProvider.Google:
                     StartCoroutine(SocialLinkAsync("google").ToCoroutine());
                     break;
+                case CredentialProvider.Facebook:
+                    StartCoroutine(SocialLinkAsync("facebook").ToCoroutine());
+                    break;
                 default:
-                    throw new ArgumentOutOfRangeException();
+                    throw new NoctuaException(NoctuaErrorCode.Application, $"{credential.CredentialProvider} not supported");
             }
         }
 
@@ -279,7 +283,8 @@ namespace com.noctuagames.sdk.UI
         private enum CredentialProvider
         {
             Email,
-            Google
+            Google,
+            Facebook
         }
 
         private class UserCredential
