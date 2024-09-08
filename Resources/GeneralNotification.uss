@@ -1,0 +1,28 @@
+.general-notification-box {
+    position: absolute;
+    align-self: center;
+    top: -56px;
+    width: 328px;
+    height: 56px;
+    border-radius: 10px;
+    border-width: 1px;
+    border-color: rgba(175, 28, 54, 1);
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.message-text-box {
+    height: 40px;
+    flex-direction: column;
+    margin-left: 7px;
+    align-items: flex-start;
+    justify-content: center;
+}
+
+.message-name {
+    font-size: 12px;
+    white-space: normal;
+    color: rgba(175, 28, 54, 1);
+    align: middle;
+}

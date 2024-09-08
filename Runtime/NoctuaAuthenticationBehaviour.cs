@@ -51,6 +51,7 @@ namespace com.noctuagames.sdk
         private EmailResetPasswordDialogPresenter _emailResetPasswordDialog;
         private EmailConfirmResetPasswordDialogPresenter _emailConfirmResetPasswordDialog;
         private UserCenterPresenter _userCenter;
+        private GeneralNotificationPresenter _generalNotification;
 
         private NoctuaAuthenticationService _authService;
         
@@ -113,6 +114,9 @@ namespace com.noctuagames.sdk
             _emailConfirmResetPasswordDialog = gameObject.AddComponent<EmailConfirmResetPasswordDialogPresenter>();
             _emailConfirmResetPasswordDialog.Init(this, _panelSettings);
             
+             _generalNotification = gameObject.AddComponent<GeneralNotificationPresenter>();
+            _generalNotification.Init(this, _panelSettings);
+
             _welcome = gameObject.AddComponent<WelcomeNotificationPresenter>();
             _welcome.Init(this, _panelSettings);
             
