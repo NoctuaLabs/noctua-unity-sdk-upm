@@ -331,6 +331,13 @@
     background-position: center;
 }
 
+.warning-icon {
+    background-image: url("./WarningIcon.png");
+    width: 29px;
+    height: 29px;
+    background-position: center;
+}
+
 /* End Images */
 
 /* Text Input */
