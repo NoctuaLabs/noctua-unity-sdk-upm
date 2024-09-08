@@ -1,14 +1,10 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Net;
 using System.Net.Sockets;
-using System.Threading;
 using System.Threading.Tasks;
-using System.Web;
 using com.noctuagames.sdk.UI;
 using Cysharp.Threading.Tasks;
-using UnityEditor;
 using UnityEngine;
 using UnityEngine.UIElements;
 
@@ -263,33 +259,35 @@ namespace com.noctuagames.sdk
             
             var callbackData = await oauthRedirectListener.ListenAsync();
             var callbackDataMap = ParseQueryString(callbackData);
+            
+            callbackDataMap["redirect_uri"] = redirectUri;
 
 #elif UNITY_IOS || UNITY_ANDROID
+            
             Debug.Log("Initializing WebView");
-            var webView = gameObject.AddComponent<UniWebView>();
-            webView.SetUserAgent("Mozilla/5.0 (iPhone; CPU iPhone OS 14_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.0 Mobile/15E148 Safari/604.1");
-
-            webView.SetBackButtonEnabled(true);
-            webView.EmbeddedToolbar.Show();
-            webView.EmbeddedToolbar.SetDoneButtonText("Close");
-            webView.EmbeddedToolbar.SetPosition(UniWebViewToolbarPosition.Top);
-            webView.Frame = new Rect(0, 0, Screen.width, Screen.height);
-
-            var socialLoginUrl = await AuthService.GetSocialLoginRedirectURLAsync(provider);
-
+            
+            var uniWebView = gameObject.AddComponent<UniWebView>();
+            
+            if (Application.platform == RuntimePlatform.Android)
+            {
+                uniWebView.SetUserAgent("Mozilla/5.0 (Linux; Android 10; SM-G960F) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.181 Mobile Safari/537.36");
+            }
+            else if (Application.platform == RuntimePlatform.IPhonePlayer)
+            {
+                uniWebView.SetUserAgent("Mozilla/5.0 (iPhone; CPU iPhone OS 14_4 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.0 Mobile/15E148 Safari/604.1");
+            }
+            
             var tcs = new UniTaskCompletionSource<string>();
             
             void OnSocialLoginWebviewStarted(UniWebView webView, string url)
             {
                 Debug.Log("URL started to load: " + url);
-                if (url.Contains($"api/v1/auth/{provider}/code")) {
-                    webView.Hide();
-                }
             }
 
             void OnSocialLoginWebviewFinished(UniWebView webView, int statusCode, string url)
             {
-                Debug.Log("URL finishhed to load: " + url);
+                Debug.Log("URL finished to load: " + url);
+                
                 if (url.Contains($"api/v1/auth/{provider}/code")) {
                     webView.Hide();
 
@@ -297,21 +295,37 @@ namespace com.noctuagames.sdk
                 }
             }        
 
-            webView.OnPageFinished += OnSocialLoginWebviewFinished;
-            webView.OnPageStarted += OnSocialLoginWebviewStarted;
+            uniWebView.OnPageFinished += OnSocialLoginWebviewFinished;
+            uniWebView.OnPageStarted += OnSocialLoginWebviewStarted;
 
-            webView.Load(socialLoginUrl);
+            uniWebView.SetBackButtonEnabled(true);
+            uniWebView.EmbeddedToolbar.Show();
+            uniWebView.EmbeddedToolbar.SetDoneButtonText("Close");
+            uniWebView.EmbeddedToolbar.SetPosition(UniWebViewToolbarPosition.Top);
+            uniWebView.Frame = new Rect(0, 0, Screen.width, Screen.height);
+
+            var socialLoginUrl = await AuthService.GetSocialLoginRedirectURLAsync(provider);
+            var socialLoginUrlQueries = ParseQueryString(socialLoginUrl);
+
+            if (!socialLoginUrlQueries.ContainsKey("redirect_uri"))
+            {
+                throw new NoctuaException(NoctuaErrorCode.Application, "Redirect URI is not found in the social login URL");
+            }
+
+            uniWebView.Load(socialLoginUrl);
             Debug.Log("Showing WebView");
-            webView.Show();
+            uniWebView.Show();
 
             var callbackData = await tcs.Task;
 
+            uniWebView.OnPageFinished -= OnSocialLoginWebviewFinished;
+            uniWebView.OnPageStarted -= OnSocialLoginWebviewStarted;
+
+            Destroy(uniWebView);
+
             var callbackDataMap = ParseQueryString(callbackData);
-
-            webView.OnPageFinished -= OnSocialLoginWebviewFinished;
-            webView.OnPageStarted -= OnSocialLoginWebviewStarted;
-
-            Destroy(webView);
+            
+            callbackDataMap["redirect_uri"] = socialLoginUrlQueries["redirect_uri"];
 #endif
 
             return callbackDataMap;

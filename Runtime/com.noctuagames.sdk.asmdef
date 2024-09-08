@@ -2,7 +2,8 @@
     "name": "com.noctuagames.sdk",
     "rootNamespace": "com.noctuagames.sdk",
     "references": [
-        "UniTask"
+        "UniTask",
+        "UniWebView-CSharp"
     ],
     "includePlatforms": [
         "Android",

@@ -397,7 +397,7 @@ namespace com.noctuagames.sdk
                 redirectUri = $"?redirect_uri={HttpUtility.UrlEncode(redirectUri)}";
             }
 
-            var request = new HttpRequest(HttpMethod.Get, $"{_baseUrl}/auth/{provider}/redirect{redirectUri}")
+            var request = new HttpRequest(HttpMethod.Get, $"{_baseUrl}/auth/{provider}/login/redirect{redirectUri}")
                 .WithHeader("X-CLIENT-ID", _clientId)
                 .WithHeader("X-BUNDLE-ID", Application.identifier);
 
