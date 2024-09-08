@@ -225,7 +225,7 @@ namespace com.noctuagames.sdk
 
                 if (errorResponse is { ErrorCode: > 0 })
                 {
-                    throw new NoctuaException(errorResponse.ErrorCode, errorResponse.ErrorMessage);
+                    throw new NoctuaException((NoctuaErrorCode)errorResponse.ErrorCode, errorResponse.ErrorMessage);
                 }
                 
                 switch (_request.result)

@@ -2,48 +2,62 @@
 using Newtonsoft.Json;
 using UnityEngine.Scripting;
 
-public class NoctuaException : Exception
+namespace com.noctuagames.sdk
 {
-    public int ErrorCode { get; private set; }
-
-    public NoctuaException(int errorCode, string message) 
-        : base(message)
+    public enum NoctuaErrorCode
     {
-        ErrorCode = errorCode;
+        Unknown = 3000,
+        Networking = 3001,
+        Application = 3002,
+        Authentication = 3003,
     }
-
-    public NoctuaException(int errorCode, string message, Exception innerException) 
-        : base(message, innerException)
+    
+    public class NoctuaException : Exception
     {
-        ErrorCode = errorCode;
-    }
+        public int ErrorCode { get; private set; }
 
-    public override string ToString()
-    {
-        return $"Error Code: {ErrorCode}, Message: {Message}";
-    }
+        public NoctuaException(NoctuaErrorCode errorCode, string message) : base(message)
+        {
+            ErrorCode = (int)errorCode;
+        }
+        
+        public NoctuaException(ErrorResponse errorResponse) : base(errorResponse.ErrorMessage)
+        {
+            ErrorCode = errorResponse.ErrorCode;
+        }
 
-    /* These act as:
+        public NoctuaException(NoctuaErrorCode errorCode, string message, Exception innerException) : base(message, innerException)
+        {
+            ErrorCode = (int)errorCode;
+        }
+
+        public override string ToString()
+        {
+            return $"Error Code: {ErrorCode}, Message: {Message}";
+        }
+
+        /* These act as:
      *  - Error code documentation
      *  - Reusable templating
      */
-    public static readonly NoctuaException OtherWebRequestError = new NoctuaException(3000, "Other web request error");
-    public static readonly NoctuaException RequestConnectionError = new NoctuaException(3001, "Request connection error");
-    public static readonly NoctuaException RequestDataProcessingError = new NoctuaException(3002, "Request data processing error");
-    public static readonly NoctuaException RequestProtocolError = new NoctuaException(3003, "Request protocol error");
-    public static readonly NoctuaException RequestUnreplacedParam = new NoctuaException(3004, "Request unreplaced param");
-    public static readonly NoctuaException MissingAccessToken = new NoctuaException(3005, "Missing access token");
-}
+        public static readonly NoctuaException OtherWebRequestError = new(NoctuaErrorCode.Networking, "Other web request error");
+        public static readonly NoctuaException RequestConnectionError = new(NoctuaErrorCode.Networking, "Request connection error");
+        public static readonly NoctuaException RequestDataProcessingError = new(NoctuaErrorCode.Networking, "Request data processing error");
+        public static readonly NoctuaException RequestProtocolError = new(NoctuaErrorCode.Networking, "Request protocol error");
+        public static readonly NoctuaException RequestUnreplacedParam = new(NoctuaErrorCode.Networking, "Request unreplaced param");
+        public static readonly NoctuaException MissingAccessToken = new(NoctuaErrorCode.Authentication, "Missing access token");
+    }
 
-[Preserve]
-public class ErrorResponse
-{
-    [JsonProperty("success")]
-    public bool Success;
+    [Preserve]
+    public class ErrorResponse
+    {
+        [JsonProperty("success")]
+        public bool Success;
 
-    [JsonProperty("error_message")]
-    public string ErrorMessage;
+        [JsonProperty("error_message")]
+        public string ErrorMessage;
 
-    [JsonProperty("error_code")]
-    public int ErrorCode;
+        [JsonProperty("error_code")]
+        public int ErrorCode;
+    }
 }

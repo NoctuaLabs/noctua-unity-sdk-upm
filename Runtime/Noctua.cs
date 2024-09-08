@@ -4,48 +4,45 @@ using System.IO;
 using Newtonsoft.Json;
 using UnityEngine;
 using UnityEngine.Networking;
-using System.Threading.Tasks;
 using System.Text;
+using System.Threading.Tasks;
+using UnityEngine.Scripting;
 
 
 namespace com.noctuagames.sdk
 {
+    [Preserve]
     public class AdjustConfig
     {
-        [JsonProperty("appToken")] public string AppToken { get; set; }
+        [JsonProperty("appToken"), JsonRequired] public string AppToken;
 
-        [JsonProperty("environment")] public string Environment { get; set; }
+        [JsonProperty("environment")] public string Environment = "sandbox";
 
-        [JsonProperty("eventMap")] public Dictionary<string, string> EventMap { get; set; }
+        [JsonProperty("eventMap")] public Dictionary<string, string> EventMap = new();
     }
 
+    [Preserve]
     public class NoctuaConfig
     {
         public const string DefaultTrackerUrl = "https://kafka-proxy-poc.noctuaprojects.com";
         public const string DefaultBaseUrl = "https://sdk-api-v2.noctuaprojects.com/api/v1";
         public const string DefaultSandboxBaseUrl = "https://sandbox-sdk-api-v2.noctuaprojects.com/api/v1";
 
-        [JsonProperty("trackerUrl")]
-        public string TrackerUrl { get; set; } = "https://kafka-proxy-poc.noctuaprojects.com";
+        [JsonProperty("trackerUrl")] public string TrackerUrl = DefaultTrackerUrl;
 
-        [JsonProperty("baseUrl")]
-        public string BaseUrl { get; set; } = "https://sandbox-sdk-api-v2.noctuaprojects.com/api/v1";
+        [JsonProperty("baseUrl")] public string BaseUrl = DefaultBaseUrl;
 
-        [JsonProperty("isSandbox")]
-        public bool IsSandbox { get; set; } = false;
-
+        [JsonProperty("isSandbox")] public bool IsSandbox;
     }
 
+    [Preserve]
     public class GlobalConfig
     {
-        [JsonProperty("clientId")]
-        public string ClientId { get; set; }
+        [JsonProperty("clientId"), JsonRequired] public string ClientId;
 
-        [JsonProperty("adjust")]
-        public AdjustConfig Adjust { get; set; }
+        [JsonProperty("adjust")] public AdjustConfig Adjust = new();
 
-        [JsonProperty("noctua")]
-        public NoctuaConfig Noctua { get; set; }
+        [JsonProperty("noctua")] public NoctuaConfig Noctua = new();
     }
 
     public class Noctua
@@ -67,74 +64,87 @@ namespace com.noctuagames.sdk
         // Event to forward purchase results to the users of this class
         private Noctua()
         {
-            GlobalConfig config = new GlobalConfig();
             Debug.Log("Loading streaming assets...");
             var configPath = Path.Combine(Application.streamingAssetsPath, "noctuagg.json");
             Debug.Log(configPath);
+            string jsonConfig;
 
             // For Android
             #if UNITY_ANDROID || UNITY_EDITOR_WIN
+            
+            Debug.Log("Loading streaming assets in Android by using UnityWebRequest: " + configPath);
+            
             var configLoadRequest = UnityWebRequest.Get(configPath);
+            var now = DateTime.UtcNow;
+            var timeout = now.AddSeconds(5);
             configLoadRequest.SendWebRequest();
-            while (!configLoadRequest.isDone)
+            
+            while (!configLoadRequest.isDone && now < timeout)
             {
-                if (configLoadRequest.result == UnityWebRequest.Result.ProtocolError)
-                {
-                    Debug.Log("Loading streaming assets: configLoadRequest ProtocolError");
-                    break;
-                }
+                Task.Delay(10).Wait();
+                now = DateTime.UtcNow;
             }
-
-            if (configLoadRequest.result == UnityWebRequest.Result.ProtocolError)
+            
+            if (now > timeout)
             {
-                throw new Exception("Failed to load config: " + configLoadRequest.error);
+                throw new NoctuaException(NoctuaErrorCode.Application, "Failed to load config: Timeout");
             }
-
+            
+            if (configLoadRequest.result != UnityWebRequest.Result.Success)
+            {
+                throw new NoctuaException(NoctuaErrorCode.Application, "Failed to load config: " + configLoadRequest.error);
+            }
+            
             if (configLoadRequest.downloadHandler.data.Length < 7)
             {
-                throw new Exception("Config file is too short: " + configLoadRequest.downloadHandler.text);
+                throw new NoctuaException(NoctuaErrorCode.Application, "Config file is too short");
             }
-
-            var rawConfig = configLoadRequest.downloadHandler.data;
-            string jsonConfig;
-
+            
+            ReadOnlySpan<byte> rawConfig = configLoadRequest.downloadHandler.data;
+            
             // Check if rawConfig prefix is UTF-8 BOM
-            if (rawConfig[0] == 0xEF && rawConfig[1] == 0xBB && rawConfig[2] == 0xBF)
+            if (Encoding.UTF8.Preamble.SequenceEqual(rawConfig[..3]))
             {
-                jsonConfig = System.Text.Encoding.UTF8.GetString(rawConfig, 3, rawConfig.Length - 3);
+                rawConfig = rawConfig[3..];
             }
-            else
+            
+            try
             {
-                jsonConfig = System.Text.Encoding.UTF8.GetString(rawConfig);
+                jsonConfig = Encoding.UTF8.GetString(rawConfig);
             }
-
-            config = JsonConvert.DeserializeObject<GlobalConfig>(jsonConfig);
-
-            #endif
-
-            #if UNITY_IOS || UNITY_EDITOR_OSX
+            catch (Exception e)
+            {
+                throw new NoctuaException(NoctuaErrorCode.Application, "Failed to parse config: " + e.Message);
+            }
+            
+            #elif UNITY_IOS || UNITY_EDITOR_OSX
+            
             Debug.Log("Loading streaming assets in IOS by using System.IO.File.ReadAllText: " + configPath);
 
-            string dataAsJson = System.IO.File.ReadAllText(configPath, Encoding.UTF8);
-
-            Debug.Log("Loading streaming assets in IOS. Reading result: " + dataAsJson);
-
-            Debug.Log("Loading streaming assets in IOS. Try to parse...");
-            config = JsonConvert.DeserializeObject<GlobalConfig>(dataAsJson);
-            if (config == null)
-            {
-                Debug.Log("Loading streaming assets in IOS. config is null.");
-            }
-            Debug.Log("Loading streaming assets in IOS. ClientID: " + config.ClientId);
-            
-            if (config.ClientId == null)
-            {
-                Debug.Log("Loading streaming assets in IOS. ClientID is null, try to hardcode");
-                config.ClientId = "1-e724f5a9e6f1";
+            try {
+                jsonConfig = File.ReadAllText(configPath, Encoding.UTF8);
+            } catch (Exception e) {
+                throw new NoctuaException(NoctuaErrorCode.Application, "Failed to load config: " + e.Message);
             }
 
             #endif
 
+            GlobalConfig config;
+
+            try
+            {
+                config = JsonConvert.DeserializeObject<GlobalConfig>(jsonConfig);
+            }
+            catch (Exception e)
+            {
+                throw new NoctuaException(NoctuaErrorCode.Application, "Failed to parse config: " + e.Message);
+            }
+            
+            if (config == null)
+            {
+                throw new NoctuaException(NoctuaErrorCode.Application, "Failed to parse config: config is null");
+            }
+            
             config.Noctua ??= new NoctuaConfig();
             config.Adjust ??= new AdjustConfig();
 
@@ -154,10 +164,9 @@ namespace com.noctuagames.sdk
                 config.Noctua.BaseUrl = NoctuaConfig.DefaultSandboxBaseUrl;
             }
 
-            Debug.Log(config.ClientId);
-            Debug.Log(config.Noctua.BaseUrl);
-            Debug.Log(config.Noctua.TrackerUrl);
-
+            Debug.Log($"Noctua.ClientId: {config.ClientId}");
+            Debug.Log($"Noctua.BaseUrl: {config.Noctua.BaseUrl}");
+            Debug.Log($"Noctua.TrackerUrl: {config.Noctua.TrackerUrl}");
 
             _auth = new NoctuaAuthentication(
                 new NoctuaAuthentication.Config
