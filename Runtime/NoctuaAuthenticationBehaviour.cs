@@ -356,19 +356,26 @@ namespace com.noctuagames.sdk
         {
             var queryParameters = new Dictionary<string, string>();
             queryString = queryString[(queryString.IndexOf('?') + 1)..];
-
-            Debug.Log("Query string: " + queryString);
+            queryString = queryString.Split('#')[0];
 
             var pairs = queryString.Split('&');
             foreach (var pair in pairs)
             {
-                var keyValue = pair.Split('=');
+                var splitIndex = pair.IndexOf('=');
 
-                if (keyValue.Length != 2) continue;
+                if (splitIndex < 1 || splitIndex == pair.Length - 1)
+                {
+                    continue;
+                }
 
-                var key = Uri.UnescapeDataString(keyValue[0]);
-                var value = Uri.UnescapeDataString(keyValue[1]);
+                var key = Uri.UnescapeDataString(pair[..splitIndex]);
+                var value = Uri.UnescapeDataString(pair[(splitIndex + 1)..]);
                 queryParameters[key] = value;
+            }
+
+            foreach (var (key, value) in queryParameters)
+            {
+                Debug.Log($"{key}: {value}");
             }
 
             return queryParameters;

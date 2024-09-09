@@ -216,7 +216,7 @@ namespace com.noctuagames.sdk
                 }
                 catch (Exception e)
                 {
-                    throw new NoctuaException(NoctuaErrorCode.Networking, $"Unknown HTTP error {_request.responseCode}: {_request.downloadHandler.text}");
+                    throw new NoctuaException(NoctuaErrorCode.Networking, $"Unknown HTTP error {_request.responseCode}: {response}");
                 }
                 
                 throw new NoctuaException((NoctuaErrorCode)errorResponse.ErrorCode, errorResponse.ErrorMessage);
@@ -230,7 +230,7 @@ namespace com.noctuagames.sdk
             {
                 Debug.Log(e.Message);
                 
-                throw new NoctuaException(NoctuaErrorCode.Application, $"Failed to parse response as {typeof(T).Name}: {_request.downloadHandler.text}");
+                throw new NoctuaException(NoctuaErrorCode.Application, $"Failed to parse response as {typeof(T).Name}: {response}");
             }
         }
 

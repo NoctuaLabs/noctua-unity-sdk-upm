@@ -1,5 +1,6 @@
 ﻿using System;
 using Cysharp.Threading.Tasks;
+using UnityEngine;
 using UnityEngine.UIElements;
 
 namespace com.noctuagames.sdk.UI
@@ -11,7 +12,6 @@ namespace com.noctuagames.sdk.UI
         private Button _loginWithEmailButton;
         private Button _registerButton;
         private Button _backButton;
-        private Action<LoginResult> _onDone; 
         
         public void Show()
         {
@@ -55,26 +55,10 @@ namespace com.noctuagames.sdk.UI
         {
             try
             {
-                var userBundle = await Model.SocialLoginAsync(provider);
-
-                _onDone?.Invoke(
-                    new LoginResult
-                    {
-                        Success = true,
-                        User = userBundle,
-                    }
-                );
+                await Model.SocialLoginAsync(provider);
             }
             catch (Exception e)
             {
-                _onDone?.Invoke(
-                    new LoginResult
-                    {
-                        Success = false,
-                        Error = e,
-                    }
-                );
-                
                 Model.ShowGeneralNotificationError(e.Message);
             }
         }
