@@ -2,6 +2,29 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.6.0] - 2024-09-09
+
+### 🚀 Features
+
+- Add UniWebView
+- Warning icon (error notification icon)
+- Error notification ui
+- Add public method show general notification error
+- Add method show notification error user center
+- Add method show notification error login options
+
+### 🐛 Bug Fixes
+
+- Add optional redirect_uri on desktop
+- Add uniwebview android AAR and moves UniWebView inside Plugins folder
+- Add facebook login support
+- Handle error on social login failed
+- Should throw error response from BE
+
+### 🚜 Refactor
+
+- Makes config load more robust
+
 ## [0.5.2] - 2024-09-07
 
 ### 🐛 Bug Fixes
