@@ -2,9 +2,10 @@
     <Style src="./Noctua.uss" />
     <Style src="./AccountItem.uss" />
     <ui:VisualElement name="AccountItem" class="account-item">
-        <ui:VisualElement name="PlayerLogo" class="guest-player-avatar"  />
+    <ui:VisualElement name="PlayerLogo" class="guest-player-avatar" />
+    <ui:VisualElement class="account-info">
         <ui:Label name="PlayerName" text="ono.uni" class="player-name" />
-        <ui:VisualElement name="Spacing" class="spacing" />
         <ui:Label name="RecentLabel" text="Recent" class="recent-label" />
     </ui:VisualElement>
+</ui:VisualElement>
 </ui:UXML>
