@@ -81,7 +81,7 @@ namespace com.noctuagames.sdk.UI
         private async UniTask ShowAsync()
         {
             try
-            {
+            {                
                 var user = await Model.AuthService.GetCurrentUser();
                 
                 Debug.Log($"GetCurrentUser: {user?.Id} {user?.Nickname}");
@@ -106,6 +106,7 @@ namespace com.noctuagames.sdk.UI
                     catch (Exception e)
                     {
                         Debug.Log(e.Message);
+                        Model.ShowGeneralNotificationError(e.Message);
                     }
                 }
                 else
@@ -126,6 +127,7 @@ namespace com.noctuagames.sdk.UI
                 Debug.Log(e.Message);
                 
                 _credentials.ForEach(c => c.Username = "");
+                Model.ShowGeneralNotificationError(e.Message);
             }
             
             _credentialListView.Rebuild();
