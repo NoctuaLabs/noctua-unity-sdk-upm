@@ -292,6 +292,11 @@ namespace com.noctuagames.sdk
             }
             
             var tcs = new UniTaskCompletionSource<string>();
+
+            void OnSocialLoginWebviewClosed(UniWebView webView, string windowId)
+            {
+                tcs.TrySetException(new NoctuaException(NoctuaErrorCode.Authentication, $"{provider} login canceled"));
+            }
             
             void OnSocialLoginWebviewStarted(UniWebView webView, string url)
             {
@@ -302,7 +307,8 @@ namespace com.noctuagames.sdk
                     tcs.TrySetResult(url);
                 }
                 else if (url.Contains("error") && provider == "google") { // "error" string does not apply for Facebook
-                    tcs.TrySetException(new NoctuaException(NoctuaErrorCode.Authentication, $"{provider} login failed"));
+                    var providerName = System.Threading.Thread.CurrentThread.CurrentCulture.TextInfo.ToTitleCase(provider);
+                    tcs.TrySetException(new NoctuaException(NoctuaErrorCode.Authentication, $"{providerName} login failed"));
                 }
             }
 
@@ -315,12 +321,23 @@ namespace com.noctuagames.sdk
                     tcs.TrySetResult(url);
                 }
                 else if (url.Contains("error") && provider == "google") { // "error" string does not apply for Facebook
-                    tcs.TrySetException(new NoctuaException(NoctuaErrorCode.Authentication, $"{provider} login failed"));
+                    var providerName = System.Threading.Thread.CurrentThread.CurrentCulture.TextInfo.ToTitleCase(provider);
+                    tcs.TrySetException(new NoctuaException(NoctuaErrorCode.Authentication, $"{providerName} login failed"));
                 }
             }        
 
             uniWebView.OnPageFinished += OnSocialLoginWebviewFinished;
             uniWebView.OnPageStarted += OnSocialLoginWebviewStarted;
+            uniWebView.OnMultipleWindowClosed += OnSocialLoginWebviewClosed;
+            uniWebView.OnShouldClose += (view) => {
+                if (!view.Url.Contains($"api/v1/auth/{provider}/code")) {
+                    Debug.Log("WebView closed by user before login completed");
+                    var providerName = System.Threading.Thread.CurrentThread.CurrentCulture.TextInfo.ToTitleCase(provider);
+                    tcs.TrySetException(new NoctuaException(NoctuaErrorCode.Authentication, $"{providerName} login canceled"));
+                }
+                // Continue to close the WebView
+                return true;
+            };
 
             uniWebView.SetBackButtonEnabled(true);
             uniWebView.EmbeddedToolbar.Show();
@@ -344,6 +361,8 @@ namespace com.noctuagames.sdk
 
             uniWebView.OnPageFinished -= OnSocialLoginWebviewFinished;
             uniWebView.OnPageStarted -= OnSocialLoginWebviewStarted;
+            uniWebView.OnMultipleWindowClosed -= OnSocialLoginWebviewClosed;
+
 
             Destroy(uniWebView);
 
