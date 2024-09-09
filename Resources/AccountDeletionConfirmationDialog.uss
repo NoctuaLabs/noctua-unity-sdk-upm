@@ -1,0 +1,46 @@
+﻿.gap {
+    height: 40px;
+}
+
+.delete-account-icon {
+    background-image: url("./DeleteAccountIcon.png");
+    width: 100px;
+    height: 100px;
+    background-color: transparent;
+    -unity-background-scale-mode: scale-to-fit;
+}
+
+.question {
+    margin-top: 17px;
+    font-size: 17px;
+    color: #FFFFFF;
+    height: 34px;
+    -unity-text-align: middle-center;
+}
+
+.note {
+    margin-top: 17px;
+    font-size: 12px;
+    color: #9E9E9E;
+    height: 60px;
+    -unity-text-align: middle-center;
+}
+
+.button-group {
+    flex-direction: row;
+    justify-content: space-between;
+    margin-top: 10px;
+    height: 100px;
+    align-self: stretch;
+    font-size: 12px;
+}
+
+.delete-account-button {
+    width: 131px;
+    height: 35px;
+    border-radius: 6px;
+}
+
+.red {
+    background-color: #FF0000 !important;
+}

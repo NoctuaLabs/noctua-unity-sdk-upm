@@ -162,11 +162,18 @@ namespace com.noctuagames.sdk.UI
         {
             View.Q<Button>("ExitButton").RegisterCallback<PointerUpEvent>(_ => { Visible = false; });
             View.Q<Button>("MoreOptionsButton").RegisterCallback<PointerUpEvent>(OnMoreOptionsButtonClick);
+            View.Q<VisualElement>("DeleteAccount").RegisterCallback<PointerUpEvent>(_ => OnDeleteAccount());
             View.RegisterCallback<GeometryChangedEvent>(_ => SetOrientation());
             
             View.RegisterCallback<PointerDownEvent>(OnViewClicked);
             
             BindListView();
+        }
+
+        private void OnDeleteAccount()
+        {
+            Visible = false;
+            Model.ShowAccountDeletionConfirmation(Model.AuthService.RecentAccount);
         }
 
         private void OnMoreOptionsButtonClick(PointerUpEvent evt)

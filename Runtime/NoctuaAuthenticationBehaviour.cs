@@ -52,6 +52,7 @@ namespace com.noctuagames.sdk
         private EmailConfirmResetPasswordDialogPresenter _emailConfirmResetPasswordDialog;
         private UserCenterPresenter _userCenter;
         private GeneralNotificationPresenter _generalNotification;
+        private AccountDeletionConfirmationDialogPresenter _accountDeletionConfirmationDialog;
 
         private NoctuaAuthenticationService _authService;
         
@@ -113,8 +114,11 @@ namespace com.noctuagames.sdk
 
             _emailConfirmResetPasswordDialog = gameObject.AddComponent<EmailConfirmResetPasswordDialogPresenter>();
             _emailConfirmResetPasswordDialog.Init(this, _panelSettings);
+
+            _accountDeletionConfirmationDialog = gameObject.AddComponent<AccountDeletionConfirmationDialogPresenter>();
+            _accountDeletionConfirmationDialog.Init(this, _panelSettings);
             
-             _generalNotification = gameObject.AddComponent<GeneralNotificationPresenter>();
+            _generalNotification = gameObject.AddComponent<GeneralNotificationPresenter>();
             _generalNotification.Init(this, _panelSettings);
 
             _welcome = gameObject.AddComponent<WelcomeNotificationPresenter>();
@@ -122,11 +126,6 @@ namespace com.noctuagames.sdk
             
             gameObject.SetActive(true);
 
-            // IMPORTANT NOTES!!!
-            // Your UI need to apply USS absolute property to the first 
-            // VisualElement of the UI before being added to the UI Document.
-            // Violation of this rule will cause the UI (and the other UI too)
-            // to be unable to be displayed properly.
         }
         
         internal void PushNavigation(Action action)
@@ -188,6 +187,11 @@ namespace com.noctuagames.sdk
         public void ShowSwitchAccountConfirmation(UserBundle recentAccount)
         {
             _switchAccountConfirmationDialog.Show(recentAccount);
+        }
+
+        public void ShowAccountDeletionConfirmation(UserBundle recentAccount)
+        {
+            _accountDeletionConfirmationDialog.Show(recentAccount);
         }
         
         public void ShowUserCenter()

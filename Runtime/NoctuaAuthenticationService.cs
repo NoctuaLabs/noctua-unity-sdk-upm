@@ -222,6 +222,13 @@ namespace com.noctuagames.sdk
     }
 
     [Preserve]
+    public class DeletePlayerAccountResponse
+    {
+        [JsonProperty("is_deleted")]
+        public bool IsDeleted;
+    }
+
+    [Preserve]
     public class SocialLoginRequest
     {
         [JsonProperty("code")]
@@ -995,6 +1002,22 @@ namespace com.noctuagames.sdk
             UpdateRecentAccount(recentAccount, accountContainer);
             
             return recentAccount;
+        }
+
+        public async UniTask DeletePlayerAccountAsync()
+        {
+            Debug.Log("Delete player account");
+
+            var currentPlayer = RecentAccount.Player;
+
+            var request = new HttpRequest(HttpMethod.Delete, $"{_baseUrl}/players/destroy")
+                .WithHeader("X-CLIENT-ID", _clientId)
+                .WithHeader("X-BUNDLE-ID", Application.identifier)
+                .WithHeader("Authorization", "Bearer " + RecentAccount.Player.AccessToken);
+
+            var response = await request.Send<DeletePlayerAccountResponse>();
+
+            OnAccountDeleted?.Invoke(currentPlayer);
         }
         
         internal class Config
