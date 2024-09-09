@@ -1,8 +1,11 @@
-#import <NoctuaSDK/NoctuaSDK.h>
 #import <NoctuaSDK/NoctuaSDK-Swift.h>
 
 void noctuaInitialize(void) {
-    [Noctua initialize];
+    NSError *error = nil;
+    [Noctua initNoctuaAndReturnError:&error];
+    if (error) {
+        NSLog(@"Error initializing Noctua: %@", error);
+    }
 }
 
 void noctuaTrackAdRevenue(const char* source, double revenue, const char* currency, const char* extraPayloadJson) {
@@ -12,6 +15,12 @@ void noctuaTrackAdRevenue(const char* source, double revenue, const char* curren
     NSData *data = [extraPayloadStr dataUsingEncoding:NSUTF8StringEncoding];
     NSDictionary *extraPayload = [NSJSONSerialization JSONObjectWithData:data options:0 error:nil];
     [Noctua trackAdRevenueWithSource:sourceStr revenue:revenue currency:currencyStr extraPayload:extraPayload];
+    // log params
+
+    NSLog(@"source: %s", source);
+    NSLog(@"revenue: %f", revenue);
+    NSLog(@"currency: %s", currency);
+    NSLog(@"extraPayload: %s", extraPayloadJson);
 }
 
 void noctuaTrackPurchase(const char* orderId, double amount, const char* currency, const char* extraPayloadJson) {
@@ -21,6 +30,13 @@ void noctuaTrackPurchase(const char* orderId, double amount, const char* currenc
     NSData *data = [extraPayloadStr dataUsingEncoding:NSUTF8StringEncoding];
     NSDictionary *extraPayload = [NSJSONSerialization JSONObjectWithData:data options:0 error:nil];
     [Noctua trackPurchaseWithOrderId:orderIdStr amount:amount currency:currencyStr extraPayload:extraPayload];
+
+    // log params
+
+    NSLog(@"orderId: %s", orderId);
+    NSLog(@"amount: %f", amount);
+    NSLog(@"currency: %s", currency);
+    NSLog(@"extraPayload: %s", extraPayloadJson);
 }
 
 void noctuaTrackCustomEvent(const char* eventName, const char* payloadJson) {
@@ -29,4 +45,9 @@ void noctuaTrackCustomEvent(const char* eventName, const char* payloadJson) {
     NSData *data = [payloadStr dataUsingEncoding:NSUTF8StringEncoding];
     NSDictionary *payload = [NSJSONSerialization JSONObjectWithData:data options:0 error:nil];
     [Noctua trackCustomEvent:eventNameStr payload:payload];
+
+    // log params
+
+    NSLog(@"eventName: %s", eventName);
+    NSLog(@"payload: %s", payloadJson);
 }

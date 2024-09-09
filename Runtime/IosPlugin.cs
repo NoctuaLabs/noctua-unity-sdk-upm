@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
+using Newtonsoft.Json;
 using UnityEngine;
 
 namespace com.noctuagames.sdk
@@ -30,17 +31,17 @@ namespace com.noctuagames.sdk
 
         public void TrackAdRevenue(string source, double revenue, string currency, Dictionary<string, IConvertible> extraPayload)
         {
-            noctuaTrackAdRevenue(source, revenue, currency, JsonUtility.ToJson(extraPayload));
+            noctuaTrackAdRevenue(source, revenue, currency, JsonConvert.SerializeObject(extraPayload));
         }
 
         public void TrackPurchase(string orderId, double amount, string currency, Dictionary<string, IConvertible> extraPayload)
         {
-            noctuaTrackPurchase(orderId, amount, currency, JsonUtility.ToJson(extraPayload));
+            noctuaTrackPurchase(orderId, amount, currency, JsonConvert.SerializeObject(extraPayload));
         }
 
         public void TrackCustomEvent(string eventName, Dictionary<string, IConvertible> payload)
         {
-            noctuaTrackCustomEvent(eventName, JsonUtility.ToJson(payload));
+            noctuaTrackCustomEvent(eventName, JsonConvert.SerializeObject(payload));
         }
     }
 #endif
