@@ -279,7 +279,12 @@ namespace com.noctuagames.sdk
             
             if (Application.platform == RuntimePlatform.Android)
             {
-                uniWebView.SetUserAgent("Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/118.0.0.0 Mobile Safari/537.3");
+                if (provider == "facebook")
+                {
+                    uniWebView.SetUserAgent("Mozilla/5.0 (Linux; Android 4.4.4; One Build/KTU84L.H4) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/33.0.0.0 Mobile Safari/537.36 [FB_IAB/FB4A;FBAV/28.0.0.20.16;]");
+                } else {
+                    uniWebView.SetUserAgent("Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/118.0.0.0 Mobile Safari/537.3");
+                }
             }
             else if (Application.platform == RuntimePlatform.IPhonePlayer)
             {
@@ -296,8 +301,7 @@ namespace com.noctuagames.sdk
                     webView.Hide();
                     tcs.TrySetResult(url);
                 }
-                else if (url.Contains("error")) {
-                    webView.Hide();
+                else if (url.Contains("error") && provider == "google") { // "error" string does not apply for Facebook
                     tcs.TrySetException(new NoctuaException(NoctuaErrorCode.Authentication, $"{provider} login failed"));
                 }
             }
@@ -310,8 +314,7 @@ namespace com.noctuagames.sdk
                     webView.Hide();
                     tcs.TrySetResult(url);
                 }
-                else if (url.Contains("error")) {
-                    webView.Hide();                
+                else if (url.Contains("error") && provider == "google") { // "error" string does not apply for Facebook
                     tcs.TrySetException(new NoctuaException(NoctuaErrorCode.Authentication, $"{provider} login failed"));
                 }
             }        
