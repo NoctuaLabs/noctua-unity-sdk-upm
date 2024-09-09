@@ -196,6 +196,11 @@ namespace com.noctuagames.sdk
             _userCenter.Show();
         }
 
+        public void ShowGeneralNotificationError(string message) 
+        {
+            _generalNotification.Show(message);
+        }
+
         internal async UniTask<CredentialVerification> RegisterWithEmailAsync(string email, string password)
         {
             return _currentAuthType switch
