@@ -74,6 +74,8 @@ namespace com.noctuagames.sdk.UI
                         Error = e,
                     }
                 );
+                
+                Model.ShowGeneralNotificationError(e.Message);
             }
         }
 
