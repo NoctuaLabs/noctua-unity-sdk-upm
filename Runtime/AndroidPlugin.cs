@@ -93,6 +93,11 @@ namespace com.noctuagames.sdk
 
             return hashMap;
         }
+
+        public void InitiatePayment(string productId)
+        {
+            // Do nothing
+        }
     }
 }
 #endif

@@ -176,7 +176,6 @@ namespace com.noctuagames.sdk
                 }
             );
 
-#if UNITY_ANDROID
             _iap = new NoctuaIAPService(
                 new NoctuaIAPService.Config
                 {
@@ -188,9 +187,6 @@ namespace com.noctuagames.sdk
             
             // TODO Move to somewhere where the JWT token is already loaded
             _iap.RetryPendingPurchases();
-#else
-            _iap = null;
-#endif
         }
 
         public static void Init()

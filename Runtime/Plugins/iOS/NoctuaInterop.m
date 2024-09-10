@@ -1,4 +1,5 @@
 #import <NoctuaSDK/NoctuaSDK-Swift.h>
+#import <NoctuaSDK/NoctuaBridge.h>
 
 void noctuaInitialize(void) {
     NSError *error = nil;
@@ -7,6 +8,12 @@ void noctuaInitialize(void) {
         NSLog(@"Error initializing Noctua: %@", error);
     }
 }
+
+// Define a type for the callback function pointer
+typedef void (*PurchaseCompletion)(bool success, const char* message);
+
+// Store the callback globally (not ideal for multiple simultaneous calls, but simpler)
+static PurchaseCompletion gPurchaseCompletion = NULL;
 
 void noctuaTrackAdRevenue(const char* source, double revenue, const char* currency, const char* extraPayloadJson) {
     NSLog(@"source: %s, revenue: %f, currency: %s, extraPayload: %s", source, revenue, currency, extraPayloadJson);
@@ -40,4 +47,58 @@ void noctuaTrackCustomEvent(const char* eventName, const char* payloadJson) {
     NSData *data = [payloadStr dataUsingEncoding:NSUTF8StringEncoding];
     NSDictionary *payload = [NSJSONSerialization JSONObjectWithData:data options:0 error:nil];
     [Noctua trackCustomEvent:eventNameStr payload:payload];
+}
+
+/*
+void noctuaPurchaseItem(const char* productId, PurchaseCompletion callback) {
+    NSString *productIdStr = [NSString stringWithUTF8String:productId];
+    
+    // Store the callback
+    gPurchaseCompletion = callback;
+    
+    // Use NoctuaService instead of Noctua if that's the correct class name
+    [NoctuaService purchaseItem:productIdStr completion:^(BOOL success, NSString * _Nonnull message) {
+        if (gPurchaseCompletion != NULL) {
+            const char* cMessage = [message UTF8String];
+            gPurchaseCompletion(success, cMessage);
+            
+            // Clear the callback after use
+            gPurchaseCompletion = NULL;
+        }
+    }];
+}
+*/
+typedef void (*PurchaseCompletionDelegate)(bool success, const char* message);
+
+
+void noctuaPurchaseItem(const char* productId, PurchaseCompletionDelegate callback) {
+    NSLog(@"noctuaPurchaseItem called with productId: %s", productId);
+    
+    if (productId == NULL) {
+        NSLog(@"Product ID is null");
+        if (callback != NULL) {
+            callback(false, "Product ID is null");
+        }
+        return;
+    }
+    
+    NSString *productIdStr = [NSString stringWithUTF8String:productId];
+    if (productIdStr.length == 0) {
+        NSLog(@"Product ID is empty");
+        if (callback != NULL) {
+            callback(false, "Product ID is empty");
+        }
+        return;
+    }
+    
+    NSLog(@"Calling Noctua purchaseItem");
+    /* Do nothing for now 
+    [Noctua purchaseItem:productIdStr completion:^(BOOL success, NSString * _Nonnull message) {
+        NSLog(@"Noctua purchase completion called. Success: %d, Message: %@", success, message);
+        if (callback != NULL) {
+            const char* cMessage = [message UTF8String];
+            callback(success, cMessage);
+        }
+    }];
+    */
 }
