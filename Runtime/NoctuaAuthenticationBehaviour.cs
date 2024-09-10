@@ -301,6 +301,17 @@ namespace com.noctuagames.sdk
             {
                 tcs.TrySetException(new NoctuaException(NoctuaErrorCode.Authentication, $"{provider} login canceled"));
             }
+
+            bool OnSocialLoginShouldClose(UniWebView webView)
+            {
+                if (!webView.Url.Contains($"api/v1/auth/{provider}/code")) {
+                    Debug.Log("WebView closed by user before login completed");
+                    var providerName = System.Threading.Thread.CurrentThread.CurrentCulture.TextInfo.ToTitleCase(provider);
+                    tcs.TrySetException(new NoctuaException(NoctuaErrorCode.Authentication, $"{providerName} login canceled"));
+                }
+                // Continue to close the WebView
+                return true;
+            }
             
             void OnSocialLoginWebviewStarted(UniWebView webView, string url)
             {
@@ -333,15 +344,7 @@ namespace com.noctuagames.sdk
             uniWebView.OnPageFinished += OnSocialLoginWebviewFinished;
             uniWebView.OnPageStarted += OnSocialLoginWebviewStarted;
             uniWebView.OnMultipleWindowClosed += OnSocialLoginWebviewClosed;
-            uniWebView.OnShouldClose += (view) => {
-                if (!view.Url.Contains($"api/v1/auth/{provider}/code")) {
-                    Debug.Log("WebView closed by user before login completed");
-                    var providerName = System.Threading.Thread.CurrentThread.CurrentCulture.TextInfo.ToTitleCase(provider);
-                    tcs.TrySetException(new NoctuaException(NoctuaErrorCode.Authentication, $"{providerName} login canceled"));
-                }
-                // Continue to close the WebView
-                return true;
-            };
+            uniWebView.OnShouldClose += OnSocialLoginShouldClose;
 
             uniWebView.SetBackButtonEnabled(true);
             uniWebView.EmbeddedToolbar.Show();
@@ -360,15 +363,22 @@ namespace com.noctuagames.sdk
             Debug.Log("Showing WebView");
             uniWebView.Show();
             uniWebView.Load(socialLoginUrl);
+            string callbackData = null;
 
-            var callbackData = await tcs.Task;
+            try 
+            {
+                callbackData = await tcs.Task;
+            } 
+            finally 
+            {
+                uniWebView.Hide();
+                uniWebView.OnPageFinished -= OnSocialLoginWebviewFinished;
+                uniWebView.OnPageStarted -= OnSocialLoginWebviewStarted;
+                uniWebView.OnMultipleWindowClosed -= OnSocialLoginWebviewClosed;
+                uniWebView.OnShouldClose -= OnSocialLoginShouldClose;
 
-            uniWebView.OnPageFinished -= OnSocialLoginWebviewFinished;
-            uniWebView.OnPageStarted -= OnSocialLoginWebviewStarted;
-            uniWebView.OnMultipleWindowClosed -= OnSocialLoginWebviewClosed;
-
-
-            Destroy(uniWebView);
+                Destroy(uniWebView);
+            }
 
             var callbackDataMap = ParseQueryString(callbackData);
             
