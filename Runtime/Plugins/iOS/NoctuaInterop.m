@@ -41,3 +41,37 @@ void noctuaTrackCustomEvent(const char* eventName, const char* payloadJson) {
     NSDictionary *payload = [NSJSONSerialization JSONObjectWithData:data options:0 error:nil];
     [Noctua trackCustomEvent:eventNameStr payload:payload];
 }
+
+typedef void (*PurchaseCompletionDelegate)(bool success, const char* message);
+
+void noctuaPurchaseItem(const char* productId, PurchaseCompletionDelegate callback) {
+    NSLog(@"noctuaPurchaseItem called with productId: %s", productId);
+    
+    if (productId == NULL) {
+        NSLog(@"Product ID is null");
+        if (callback != NULL) {
+            callback(false, "Product ID is null");
+        }
+        return;
+    }
+    
+    NSString *productIdStr = [NSString stringWithUTF8String:productId];
+    if (productIdStr.length == 0) {
+        NSLog(@"Product ID is empty");
+        if (callback != NULL) {
+            callback(false, "Product ID is empty");
+        }
+        return;
+    }
+    
+    NSLog(@"Calling Noctua purchaseItem");
+    [Noctua purchaseItem:productIdStr completion:^(BOOL success, NSString * _Nonnull message) {
+        NSLog(@"Noctua purchase completion called. Success: %d, Message: %@", success, message);
+        if (callback != NULL) {
+            const char* cMessage = [message UTF8String];
+            callback(success, cMessage);
+        }
+    }];
+    /* Do nothing for now 
+    */
+}

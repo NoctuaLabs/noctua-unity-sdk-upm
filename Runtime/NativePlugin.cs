@@ -10,5 +10,6 @@ namespace com.noctuagames.sdk
         void TrackAdRevenue(string source, double revenue, string currency, Dictionary<string, IConvertible> extraPayload = null);
         void TrackPurchase(string orderId, double amount, string currency, Dictionary<string, IConvertible> extraPayload = null);
         void TrackCustomEvent(string name, Dictionary<string, IConvertible> extraPayload = null);
+        void PurchaseItem(string productId, Action<bool, string> callback);
     }
 }

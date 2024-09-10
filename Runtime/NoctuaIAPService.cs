@@ -1,14 +1,15 @@
 ﻿using System;
 using System.Collections;
 using Cysharp.Threading.Tasks;
-using UnityEngine.Device;
 using UnityEngine;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
 using System.Collections.Generic;
+using UnityEngine.Scripting;
 
 namespace com.noctuagames.sdk
 {
+    [Preserve]
     public partial class Product
     {
         [JsonProperty("id")]
@@ -41,6 +42,7 @@ namespace com.noctuagames.sdk
     {
     }
 
+    [Preserve]
     public class OrderRequest
     {
         [JsonProperty("payment_type")]
@@ -68,6 +70,7 @@ namespace com.noctuagames.sdk
         public string IngameItemName { get; set; }
     }
 
+    [Preserve]
     public class OrderResponse
     {
         [JsonProperty("id")]
@@ -77,6 +80,7 @@ namespace com.noctuagames.sdk
         public string ProductId { get; set; }
     }
 
+    [Preserve]
     public class VerifyOrderRequest
     {
         [JsonProperty("id")]
@@ -86,6 +90,7 @@ namespace com.noctuagames.sdk
         public string ReceiptData { get; set; }
     }
 
+    [Preserve]
     public class VerifyOrderResponse
     {
         [JsonProperty("id")]
@@ -95,6 +100,7 @@ namespace com.noctuagames.sdk
         public string Status { get; set; }
     }
 
+    [Preserve]
     public class PurchaseRequest
     {
         [JsonProperty("product_id")]
@@ -119,12 +125,14 @@ namespace com.noctuagames.sdk
         public string IngameItemName { get; set; }
     }
 
+    [Preserve]
     public class PurchaseResponse
     {
         [JsonProperty("status")]
         public string Status { get; set; }
     }
 
+    [Preserve]
     public class NoctuaIAPService
     {
         private static Config _config;
@@ -135,8 +143,10 @@ namespace com.noctuagames.sdk
 
         #if UNITY_ANDROID && !UNITY_EDITOR
         private static readonly GoogleBilling GoogleBillingInstance = new GoogleBilling();
-        // Event to forward purchase results to the users of this class
+        #elif UNITY_IOS && !UNITY_EDITOR
+        private static readonly IosPlugin IosPluginInstance = new IosPlugin();
         #endif
+
         public static event Action<PurchaseResponse> OnPurchaseDone;
 
         internal NoctuaIAPService(Config config)
@@ -147,6 +157,8 @@ namespace com.noctuagames.sdk
             // Subscribe to the GoogleBillingInstance's OnPurchaseDone event
             GoogleBillingInstance.OnPurchaseDone += HandlePurchaseDone;
             GoogleBillingInstance?.Init();
+            #elif UNITY_IOS && !UNITY_EDITOR
+            IosPluginInstance?.Init();
             #endif
         }
 
@@ -171,6 +183,7 @@ namespace com.noctuagames.sdk
 
             var request = new HttpRequest(HttpMethod.Get, url)
                 .WithHeader("X-CLIENT-ID", _config.ClientId)
+                .WithHeader("X-BUNDLE-ID", Application.identifier)
                 .WithHeader("Authorization", "Bearer " + Noctua.Auth.GetAccessToken());
 
             var response = await request.Send<ProductList>();
@@ -184,8 +197,18 @@ namespace com.noctuagames.sdk
             var url = $"{_config.BaseUrl}/orders";
             Debug.Log(url);
 
+            Debug.Log(order.ProductId);
+            Debug.Log(order.Price);
+            Debug.Log(order.Currency);
+            Debug.Log(order.RoleId);
+            Debug.Log(order.ServerId);
+            Debug.Log(order.IngameItemId);
+            Debug.Log(order.IngameItemName);
+
+
             var request = new HttpRequest(HttpMethod.Post, url)
                 .WithHeader("X-CLIENT-ID", _config.ClientId)
+                .WithHeader("X-BUNDLE-ID", Application.identifier)
                 .WithHeader("Authorization", "Bearer " + Noctua.Auth.GetAccessToken())
                 .WithJsonBody(order);
 
@@ -201,6 +224,7 @@ namespace com.noctuagames.sdk
 
             var request = new HttpRequest(HttpMethod.Post, url)
                 .WithHeader("X-CLIENT-ID", _config.ClientId)
+                .WithHeader("X-BUNDLE-ID", Application.identifier)
                 .WithHeader("Authorization", "Bearer " + Noctua.Auth.GetAccessToken())
                 .WithJsonBody(order);
 
@@ -212,9 +236,14 @@ namespace com.noctuagames.sdk
         public async void PurchaseItemAsync(PurchaseRequest purchaseRequest)
         {
             Debug.Log("NoctuaIAPService.PurchaseItemAsync");
+            var paymentType = "playstore";
+            #if UNITY_IOS && !UNITY_EDITOR
+            paymentType = "applestore";
+            #endif
+
             var orderRequest = new OrderRequest
             {
-                PaymentType = "playstore", // TODO determine the payment type automatically
+                PaymentType = paymentType,
                 ProductId = purchaseRequest.ProductId,
                 Price = purchaseRequest.Price,
                 Currency = purchaseRequest.Currency,
@@ -223,6 +252,16 @@ namespace com.noctuagames.sdk
                 IngameItemId = purchaseRequest.IngameItemId,
                 IngameItemName = purchaseRequest.IngameItemName
             };
+
+            Debug.Log(orderRequest.ProductId);
+            Debug.Log(orderRequest.Price);
+            Debug.Log(orderRequest.Currency);
+            Debug.Log(orderRequest.RoleId);
+            Debug.Log(orderRequest.ServerId);
+            Debug.Log(orderRequest.IngameItemId);
+            Debug.Log(orderRequest.IngameItemName);
+            Debug.Log(orderRequest.PaymentType);
+
 
             _currentOrderId = 0; // Clear up first
             OrderResponse orderResponse = null;
@@ -240,8 +279,21 @@ namespace com.noctuagames.sdk
             }
 
             _currentOrderId = orderResponse.Id;
+
+            Debug.Log("NoctuaIAPService.PurchaseItemAsync _currentOrderId: " + _currentOrderId);
+            Debug.Log("NoctuaIAPService.PurchaseItemAsync orderResponse.ProductId: " + orderResponse.ProductId);
+            Debug.Log(JsonConvert.SerializeObject(orderResponse));
             #if UNITY_ANDROID && !UNITY_EDITOR
-            GoogleBillingInstance?.PurchaseItem(orderResponse.ProductId);
+                Debug.Log("NoctuaIAPService.PurchaseItemAsync purchase on playstore: " + orderResponse.ProductId);
+                GoogleBillingInstance?.PurchaseItem(orderResponse.ProductId);
+            #elif UNITY_IOS && !UNITY_EDITOR
+                Debug.Log("NoctuaIAPService.PurchaseItemAsync purchase on ios: " + orderResponse.ProductId);
+                orderResponse.ProductId = purchaseRequest.ProductId;
+                IosPluginInstance.PurchaseItem(orderResponse.ProductId, (success, errorMessage) => {
+                    Debug.Log("NoctuaIAPService.PurchaseItemAsync PurchaseItem callback");
+                    Debug.Log("NoctuaIAPService.PurchaseItemAsync PurchaseItem callback success: " + success);
+                    Debug.Log("NoctuaIAPService.PurchaseItemAsync PurchaseItem callback errorMessage: " + errorMessage);
+                });
             #endif
         }
 
@@ -275,6 +327,9 @@ namespace com.noctuagames.sdk
                 Id = _currentOrderId,
                 ReceiptData = result.ReceiptData
             };
+
+            Debug.Log(verifyOrderRequest.Id);
+            Debug.Log(verifyOrderRequest.ReceiptData);
 
             try {
                 var verifyOrderResponse = await VerifyOrderAsync(verifyOrderRequest);
