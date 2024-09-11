@@ -318,7 +318,7 @@ namespace com.noctuagames.sdk.UI
             var _guestContainer = View.Q<VisualElement>("UserGuestUI");
             var _stayConnect = View.Q<Label>("ConnectAccountLabel");
 
-            if(isGuest == true) {
+            if(isGuest) {
                 _credentialListView.AddToClassList("hide");
                 _stayConnect.AddToClassList("hide");
                 _guestContainer.AddToClassList("show");
