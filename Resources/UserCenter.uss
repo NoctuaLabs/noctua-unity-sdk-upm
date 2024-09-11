@@ -274,4 +274,17 @@
     justify-content: center;
 }
 
+.indicator {
+    width: 10px;
+    height: 10px;
+    margin-left: 5px;
+    margin-right: 5px;
+    background-color: gray;
+    border-radius: 50%;
+}
+
+.indicator.active {
+    background-color: white;
+}
+
 /* END */

@@ -336,18 +336,7 @@ namespace com.noctuagames.sdk.UI
             for (int i = 0; i < _carouselItems.Length; i++)
             {
                 VisualElement indicator = new VisualElement();
-                indicator.style.width = 10;
-                indicator.style.height = 10;
-                indicator.style.marginLeft = 5;
-                indicator.style.marginRight = 5;
-                indicator.style.backgroundColor = new StyleColor(Color.gray);
-                
-                float radius = 20F;
-
-                indicator.style.borderBottomLeftRadius = radius;
-                indicator.style.borderBottomRightRadius = radius;
-                indicator.style.borderTopLeftRadius = radius;
-                indicator.style.borderTopRightRadius = radius;
+                indicator.AddToClassList("indicator");
 
                 _indicatorContainer.Add(indicator);
             }
@@ -372,11 +361,11 @@ namespace com.noctuagames.sdk.UI
                 VisualElement indicator = _indicatorContainer[i];
                 if (i == _currentIndex)
                 {
-                    indicator.style.backgroundColor = new StyleColor(Color.white);
+                    indicator.AddToClassList("active");
                 }
                 else
                 {
-                    indicator.style.backgroundColor = new StyleColor(Color.gray);
+                    indicator.RemoveFromClassList("active");
                 }
             }
         }
