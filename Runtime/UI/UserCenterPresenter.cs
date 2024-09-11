@@ -13,6 +13,16 @@ namespace com.noctuagames.sdk.UI
         private VisualTreeAsset _itemTemplate;
         private Texture2D _defaultAvatar;
         private ListView _credentialListView;
+        private Label _carouselLabel;
+        private VisualElement _indicatorContainer;
+        private string[] _carouselItems = { 
+            "Unlock special benefits by owning a Noctua account", 
+            "Protect your hard-earned progress and achievements",
+            "Enjoy the flexibility to play your game on any device"
+            };
+        private int _currentIndex = 0;
+        private float _slideInterval = 3f;
+
 
         private readonly List<UserCredential> _credentials = new()
         {
@@ -88,6 +98,8 @@ namespace com.noctuagames.sdk.UI
 
                 View.Q<Label>("PlayerName").text = user?.IsGuest == true ? "Guest " + user.Id  : user?.Nickname;
                 View.Q<Label>("UserIdLabel").text = user?.Id.ToString() ?? "";
+
+                UpdateUIGuest(user?.IsGuest ?? false);
                 
                 if (!string.IsNullOrEmpty(user?.PictureUrl))
                 {
@@ -160,6 +172,9 @@ namespace com.noctuagames.sdk.UI
 
         private void OnEnable()
         {
+            _carouselLabel = View.Q<Label>("TextCarousel");
+            _indicatorContainer = View.Q<VisualElement>("IndicatorContainer");
+
             View.Q<Button>("ExitButton").RegisterCallback<PointerUpEvent>(_ => { Visible = false; });
             View.Q<Button>("MoreOptionsButton").RegisterCallback<PointerUpEvent>(OnMoreOptionsButtonClick);
             View.Q<VisualElement>("DeleteAccount").RegisterCallback<PointerUpEvent>(_ => OnDeleteAccount());
@@ -168,6 +183,17 @@ namespace com.noctuagames.sdk.UI
             View.RegisterCallback<PointerDownEvent>(OnViewClicked);
             
             BindListView();
+            SetupIndicators();
+
+            UpdateCarouselText();
+            HighlightCurrentIndicator();
+
+            InvokeRepeating(nameof(SlideToNextItem), _slideInterval, _slideInterval);
+        }
+        
+        private void OnDisable() 
+        {
+            CancelInvoke(nameof(SlideToNextItem));
         }
 
         private void OnDeleteAccount()
@@ -287,7 +313,73 @@ namespace com.noctuagames.sdk.UI
                         
             Model.ShowUserCenter();
         }
-        
+
+        private void UpdateUIGuest(bool isGuest) {
+            var _guestContainer = View.Q<VisualElement>("UserGuestUI");
+            var _stayConnect = View.Q<Label>("ConnectAccountLabel");
+
+            if(isGuest == true) {
+                _credentialListView.AddToClassList("hide");
+                _stayConnect.AddToClassList("hide");
+                _guestContainer.AddToClassList("show");
+            } else {
+                _credentialListView.AddToClassList("show");
+                _stayConnect.AddToClassList("show");
+                _guestContainer.AddToClassList("hide");
+            }
+        }
+
+        private void SetupIndicators()
+        {
+            _indicatorContainer.Clear();
+
+            for (int i = 0; i < _carouselItems.Length; i++)
+            {
+                VisualElement indicator = new VisualElement();
+                indicator.style.width = 10;
+                indicator.style.height = 10;
+                indicator.style.marginLeft = 5;
+                indicator.style.marginRight = 5;
+                indicator.style.backgroundColor = new StyleColor(Color.gray);
+                
+                float radius = 20F;
+
+                indicator.style.borderBottomLeftRadius = radius;
+                indicator.style.borderBottomRightRadius = radius;
+                indicator.style.borderTopLeftRadius = radius;
+                indicator.style.borderTopRightRadius = radius;
+
+                _indicatorContainer.Add(indicator);
+            }
+        }
+
+        private void SlideToNextItem()
+        {
+            _currentIndex = (_currentIndex + 1) % _carouselItems.Length;
+            UpdateCarouselText();
+            HighlightCurrentIndicator();
+        }
+
+        private void UpdateCarouselText()
+        {
+            _carouselLabel.text = _carouselItems[_currentIndex];
+        }
+
+        private void HighlightCurrentIndicator()
+        {
+            for (int i = 0; i < _indicatorContainer.childCount; i++)
+            {
+                VisualElement indicator = _indicatorContainer[i];
+                if (i == _currentIndex)
+                {
+                    indicator.style.backgroundColor = new StyleColor(Color.white);
+                }
+                else
+                {
+                    indicator.style.backgroundColor = new StyleColor(Color.gray);
+                }
+            }
+        }
         private enum CredentialProvider
         {
             Email,
