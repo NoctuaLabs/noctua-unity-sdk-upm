@@ -238,3 +238,40 @@
     font-size: 8px;
     -unity-text-align: middle-center;
 }
+
+/* User Center - Guest UI */
+.user-guest-box {
+    justify-content: space-around;
+    align-items: stretch;
+    flex: 1;    
+}
+
+.text-carousel {
+    font-size: 12px;
+    white-space: normal; 
+    align: middle;
+    -unity-text-align: upper-center;
+}
+
+.image-carousel {
+    margin-top: 40px;
+    background-image: url("./TwoHand.png");
+    width: 97px;
+    height: 97px;
+    background-position: center;
+}
+
+.connect-button-guest {
+    height: 40px;
+    margin-top: 20px;
+    margin-bottom: 20px;
+    border-radius: 10px;
+}
+
+.ellipse-indicator {
+    margin-top: 30px;
+    flex-direction: row;
+    justify-content: center;
+}
+
+/* END */
