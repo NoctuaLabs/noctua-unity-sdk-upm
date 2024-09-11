@@ -155,7 +155,7 @@ namespace com.noctuagames.sdk
 
             #if UNITY_ANDROID && !UNITY_EDITOR
             // Subscribe to the GoogleBillingInstance's OnPurchaseDone event
-            GoogleBillingInstance.OnPurchaseDone += HandlePurchaseDone;
+            GoogleBillingInstance.OnPurchaseDone += HandleGooglePurchaseDone;
             GoogleBillingInstance?.Init();
             #elif UNITY_IOS && !UNITY_EDITOR
             IosPluginInstance?.Init();
@@ -259,6 +259,9 @@ namespace com.noctuagames.sdk
                 throw e;
             }
 
+            Debug.Log(orderResponse.Id);
+            Debug.Log(orderResponse.ProductId);
+
             _currentOrderId = orderResponse.Id;
 
             Debug.Log("NoctuaIAPService.PurchaseItemAsync _currentOrderId: " + _currentOrderId);
@@ -269,18 +272,19 @@ namespace com.noctuagames.sdk
             #elif UNITY_IOS && !UNITY_EDITOR
                 Debug.Log("NoctuaIAPService.PurchaseItemAsync purchase on ios: " + orderResponse.ProductId);
                 orderResponse.ProductId = purchaseRequest.ProductId;
-                IosPluginInstance.PurchaseItem(orderResponse.ProductId, (success, errorMessage) => {
+                IosPluginInstance.PurchaseItem(orderResponse.ProductId, (success, message) => {
                     Debug.Log("NoctuaIAPService.PurchaseItemAsync PurchaseItem callback");
                     Debug.Log("NoctuaIAPService.PurchaseItemAsync PurchaseItem callback success: " + success);
-                    Debug.Log("NoctuaIAPService.PurchaseItemAsync PurchaseItem callback errorMessage: " + errorMessage);
+                    Debug.Log("NoctuaIAPService.PurchaseItemAsync PurchaseItem callback message: " + message);
+                    HandleIosPurchaseDone(orderResponse.Id, success, message);
                 });
             #endif
         }
 
         #if UNITY_ANDROID && !UNITY_EDITOR
-        private static async void HandlePurchaseDone(GoogleBilling.PurchaseResult result)
+        private static async void HandleGooglePurchaseDone(GoogleBilling.PurchaseResult result)
         {
-            Debug.Log("Noctua.HandlePurchaseDone");
+            Debug.Log("Noctua.HandleGooglePurchaseDone");
             // Forward the event to subscribers of Noctua's OnPurchaseDone even
             if (result == null || (result != null && !result.Success))
             {
@@ -307,6 +311,64 @@ namespace com.noctuagames.sdk
                 Id = _currentOrderId,
                 ReceiptData = result.ReceiptData
             };
+
+            try {
+                var verifyOrderResponse = await VerifyOrderAsync(verifyOrderRequest);
+                if (verifyOrderResponse.Status != "completed")
+                {
+                    SavePendingPurchase(verifyOrderRequest); // For retry later
+                }
+                OnPurchaseDone?.Invoke(new PurchaseResponse{
+                    Status = "completed"
+                });
+            } catch (Exception e) {
+                SavePendingPurchase(verifyOrderRequest); // For retry later
+                if (e is NoctuaException noctuaEx)
+                {
+                    Debug.Log("NoctuaException: " + noctuaEx.ErrorCode + " : " + noctuaEx.Message);
+                }
+                throw e;
+            }
+        }
+        #endif
+
+        #if UNITY_IOS && !UNITY_EDITOR
+        private static async void HandleIosPurchaseDone(int orderId, bool success, string message)
+        {
+            Debug.Log("Noctua.HandleIosPurchaseDone");
+            Debug.Log("Noctua.HandleIosPurchaseDone orderId: " + orderId);
+            Debug.Log("Noctua.HandleIosPurchaseDone success: " + success);
+            Debug.Log("Noctua.HandleIosPurchaseDone message: " + message);
+
+            // Forward the event to subscribers of Noctua's OnPurchaseDone even
+            if (!success)
+            {
+                // Check if message contains cancel keyword
+                if (message.Contains("cancel")) {
+                    Debug.LogError("Purchase canceled: ");
+                    OnPurchaseDone?.Invoke(new PurchaseResponse{
+                        Status = "canceled"
+                    });
+                    return;
+                }
+
+                Debug.LogError("Purchase failed: " + message);
+                OnPurchaseDone?.Invoke(new PurchaseResponse{
+                    Status = "failed"
+                });
+                return;
+            }
+
+            Debug.Log("Purchase was successful! Let's verify it");
+            Debug.Log(orderId);
+            var verifyOrderRequest = new VerifyOrderRequest
+            {
+                Id = orderId,
+                ReceiptData = message
+            };
+
+            Debug.Log(verifyOrderRequest.Id);
+            Debug.Log(verifyOrderRequest.ReceiptData);
 
             try {
                 var verifyOrderResponse = await VerifyOrderAsync(verifyOrderRequest);
