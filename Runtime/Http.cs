@@ -167,6 +167,13 @@ namespace com.noctuagames.sdk
             public T Data;
         }
 
+        public async UniTask<string> SendRaw()
+        {
+            _request.downloadHandler = new DownloadHandlerBuffer();
+            await _request.SendWebRequest();
+            return _request.downloadHandler.text;
+        }
+
         public async UniTask<T> Send<T>()
         {
             Debug.Log("HttpRequest.Send");

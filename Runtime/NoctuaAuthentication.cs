@@ -56,6 +56,11 @@ namespace com.noctuagames.sdk
             _uiComponent.AuthService = _service;
         }
 
+        public UserBundle GetRecentAccount()
+        {
+            return RecentAccount;
+        }
+
         public string GetAccessToken()
         {
             return RecentAccount?.Player?.AccessToken;

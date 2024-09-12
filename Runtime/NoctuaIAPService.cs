@@ -141,6 +141,8 @@ namespace com.noctuagames.sdk
 
         private static int _currentOrderId;
 
+        private static List<string> _enabledPaymentTypes;
+
         #if UNITY_ANDROID && !UNITY_EDITOR
         private static readonly GoogleBilling GoogleBillingInstance = new GoogleBilling();
         #elif UNITY_IOS && !UNITY_EDITOR
@@ -162,15 +164,26 @@ namespace com.noctuagames.sdk
             #endif
         }
 
+        public void SetEnabledPaymentTypes(List<string> enabledPaymentTypes)
+        {
+            _enabledPaymentTypes = enabledPaymentTypes;
+        }
+
         public async UniTask<ProductList> GetProductListAsync()
         {
             Debug.Log("NoctuaIAPService.GetProductListAsync");
 
-            // TODO construct from token
-            int gameId = 1;
-            string currency = "USD";
-            string enabledPaymentTypes = "playstore";
+            var recentAccount = Noctua.Auth.GetRecentAccount();
 
+            if (recentAccount?.Player?.GameId == null || recentAccount.Player.GameId <= 0)
+            {
+                throw new Exception("Game ID not found or invalid. Please authenticate first");
+            }
+
+            string gameId = recentAccount.Player.GameId.ToString();
+            string currency = Noctua.Locale.GetCurrency();
+            string enabledPaymentTypes = string.Join(",", _enabledPaymentTypes);
+            
             Debug.Log("NoctuaIAPService.GetProductListAsync");
             Debug.Log(_config.BaseUrl);
             Debug.Log(_config.ClientId);
@@ -224,13 +237,47 @@ namespace com.noctuagames.sdk
             return response;
         }
 
+        public async UniTask<string> GetActiveCurrencyAsync(string productId)
+        {
+            #if UNITY_IOS && !UNITY_EDITOR
+            var tcs = new UniTaskCompletionSource<string>();
+            IosPluginInstance.GetActiveCurrency(productId, (success, currency) => {
+                Debug.Log("NoctuaIAPService.GetActiveCurrency callback");
+                Debug.Log("NoctuaIAPService.GetActiveCurrency callback success: " + success);
+                Debug.Log("NoctuaIAPService.GetActiveCurrency callback currency: " + currency);
+                if (!success) {
+                    Debug.Log("NoctuaIAPService.GetActiveCurrency callback currency: " + currency);
+                    tcs.TrySetException(NoctuaException.ActiveCurrencyFailure);
+                    return;  
+                }
+                tcs.TrySetResult(currency);
+            });
+            return await tcs.Task;
+            #endif
+            Debug.Log("GetActiveCurrencyAsync: not found, default to IDR");
+            return "IDR";
+        }
+
         public async UniTask PurchaseItemAsync(PurchaseRequest purchaseRequest)
         {
             Debug.Log("NoctuaIAPService.PurchaseItemAsync");
-            var paymentType = "playstore";
-            #if UNITY_IOS && !UNITY_EDITOR
+            // TODO payment method selector. For now check against _enabledPaymentTypes
+            var paymentType = "";
+            #if UNITY_ANDROID && !UNITY_EDITOR
+            paymentType = "playstore";
+            #elif UNITY_IOS && !UNITY_EDITOR
             paymentType = "applestore";
+            #elif UNITY_EDITOR || UNITY_STANDALONE
+            paymentType = "noctuawallet";
             #endif
+
+            if (string.IsNullOrEmpty(paymentType)) {
+                throw new Exception("Payment type not supported for this platform");
+            }
+
+            if (!_enabledPaymentTypes.Contains(paymentType)) {
+                throw new Exception("This payment type is disabled for now: " + paymentType);
+            }
 
             var orderRequest = new OrderRequest
             {
@@ -243,6 +290,10 @@ namespace com.noctuagames.sdk
                 IngameItemId = purchaseRequest.IngameItemId,
                 IngameItemName = purchaseRequest.IngameItemName
             };
+
+            if (string.IsNullOrEmpty(orderRequest.Currency)) {
+                orderRequest.Currency = Noctua.Locale.GetCurrency();
+            }
 
             _currentOrderId = 0; // Clear up first
             OrderResponse orderResponse = null;

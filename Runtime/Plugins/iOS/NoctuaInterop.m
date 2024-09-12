@@ -42,9 +42,9 @@ void noctuaTrackCustomEvent(const char* eventName, const char* payloadJson) {
     [Noctua trackCustomEvent:eventNameStr payload:payload];
 }
 
-typedef void (*PurchaseCompletionDelegate)(bool success, const char* message);
+typedef void (*CompletionDelegate)(bool success, const char* message);
 
-void noctuaPurchaseItem(const char* productId, PurchaseCompletionDelegate callback) {
+void noctuaPurchaseItem(const char* productId, CompletionDelegate callback) {
     NSLog(@"noctuaPurchaseItem called with productId: %s", productId);
     
     if (productId == NULL) {
@@ -74,4 +74,33 @@ void noctuaPurchaseItem(const char* productId, PurchaseCompletionDelegate callba
     }];
     /* Do nothing for now 
     */
+}
+
+void noctuaGetActiveCurrency(const char* productId, CompletionDelegate callback) {
+    NSLog(@"noctuaGetActiveCurrency called with productId: %s", productId);
+
+    if (productId == NULL) {
+        NSLog(@"Product ID is null");
+        if (callback != NULL) {
+            callback(false, "Product ID is null");
+        }
+        return;
+    }
+
+    NSString *productIdStr = [NSString stringWithUTF8String:productId];
+    if (productIdStr.length == 0) {
+        NSLog(@"Product ID is empty");
+        if (callback != NULL) {
+            callback(false, "Product ID is empty");
+        }
+        return;
+    }
+
+    [Noctua getActiveCurrency:productIdStr completion:^(BOOL success, NSString * _Nonnull message) {
+        NSLog(@"Noctua getActiveCurrency completion called. Success: %d, Message: %@", success, message);
+        if (callback != NULL) {
+            const char* cMessage = [message UTF8String];
+            callback(success, cMessage);
+        }
+    }];
 }

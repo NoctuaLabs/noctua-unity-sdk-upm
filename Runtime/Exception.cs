@@ -10,6 +10,7 @@ namespace com.noctuagames.sdk
         Networking = 3001,
         Application = 3002,
         Authentication = 3003,
+        ActiveCurrencyFailure = 3004,
     }
     
     public class NoctuaException : Exception
@@ -46,6 +47,7 @@ namespace com.noctuagames.sdk
         public static readonly NoctuaException RequestProtocolError = new(NoctuaErrorCode.Networking, "Request protocol error");
         public static readonly NoctuaException RequestUnreplacedParam = new(NoctuaErrorCode.Networking, "Request unreplaced param");
         public static readonly NoctuaException MissingAccessToken = new(NoctuaErrorCode.Authentication, "Missing access token");
+        public static readonly NoctuaException ActiveCurrencyFailure = new(NoctuaErrorCode.ActiveCurrencyFailure, "Failed to get active currency");
     }
 
     [Preserve]

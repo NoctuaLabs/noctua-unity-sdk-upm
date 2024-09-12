@@ -21,7 +21,10 @@ namespace com.noctuagames.sdk
         private static extern void noctuaTrackCustomEvent(string eventName, string payloadJson);
 
         [DllImport("__Internal")]
-        private static extern void noctuaPurchaseItem(string productId, PurchaseCompletionDelegate callback);
+        private static extern void noctuaPurchaseItem(string productId, CompletionDelegate callback);
+
+        [DllImport("__Internal")]
+        private static extern void noctuaGetActiveCurrency(string productId, CompletionDelegate callback);
 
         public void Init()
         {
@@ -48,10 +51,10 @@ namespace com.noctuagames.sdk
         }
 
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-        private delegate void PurchaseCompletionDelegate(bool success, IntPtr messagePtr);
+        private delegate void CompletionDelegate(bool success, IntPtr messagePtr);
 
-        [AOT.MonoPInvokeCallback(typeof(PurchaseCompletionDelegate))]
-        private static void PurchaseCompletionCallback(bool success, IntPtr messagePtr)
+        [AOT.MonoPInvokeCallback(typeof(CompletionDelegate))]
+        private static void CompletionCallback(bool success, IntPtr messagePtr)
         {
             string message = messagePtr != IntPtr.Zero ? Marshal.PtrToStringAnsi(messagePtr) : "Unknown error";
             storedCompletion?.Invoke(success, message);
@@ -69,8 +72,22 @@ namespace com.noctuagames.sdk
             }
 
             storedCompletion = completion;
-            noctuaPurchaseItem(productId, new PurchaseCompletionDelegate(PurchaseCompletionCallback));
+            noctuaPurchaseItem(productId, new CompletionDelegate(CompletionCallback));
             Debug.Log("noctuaPurchaseItem called");
+        }
+
+        public void GetActiveCurrency(string productId, Action<bool, string> completion)
+        {
+            if (string.IsNullOrEmpty(productId))
+            {
+                Debug.LogError("Product ID is null or empty");
+                completion?.Invoke(false, "Product ID is null or empty");
+                return;
+            }
+
+            storedCompletion = completion;
+            noctuaGetActiveCurrency(productId, new CompletionDelegate(CompletionCallback));
+            Debug.Log("noctuaGetActiveCurrency called");
         }
 
     }

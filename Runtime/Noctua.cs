@@ -7,7 +7,7 @@ using UnityEngine.Networking;
 using System.Text;
 using System.Threading.Tasks;
 using UnityEngine.Scripting;
-
+using Cysharp.Threading.Tasks;
 
 namespace com.noctuagames.sdk
 {
@@ -50,11 +50,14 @@ namespace com.noctuagames.sdk
         private static readonly Lazy<Noctua> Instance = new(() => new Noctua());
         public static NoctuaAuthentication Auth => Instance.Value._auth;
         public static NoctuaIAPService IAP => Instance.Value._iap;
+        public static NoctuaLocale Locale => Instance.Value._locale;
 
         public event Action<string> OnPurchaseDone;
 
         private readonly NoctuaAuthentication _auth;
         private readonly NoctuaIAPService _iap;
+        private readonly NoctuaGameService _game;
+        private readonly NoctuaLocale _locale;
 
         #if UNITY_ANDROID && !UNITY_EDITOR
         private readonly GoogleBilling _googleBilling;
@@ -184,11 +187,18 @@ namespace com.noctuagames.sdk
                 }
             );
 
-            // TODO Move to somewhere where the JWT token is already loaded
-            _iap.RetryPendingPurchases();
+            _game = new NoctuaGameService(
+                new NoctuaGameService.Config
+                {
+                    BaseUrl = config.Noctua.BaseUrl,
+                    ClientId = config.ClientId
+                }
+            );  
+
+            _locale = new NoctuaLocale();
         }
 
-        public static void Init()
+        public static async UniTask InitAsync()
         {
             Debug.Log("Noctua Init()");
 
@@ -207,8 +217,41 @@ namespace com.noctuagames.sdk
             Instance.Value._googleBilling?.Init();
             #endif
 
+            // Init game
+            var initResponse = await Instance.Value._game.InitGameAsync();
+            if (string.IsNullOrEmpty(initResponse.Country))
+            {
+
+                // Get country ID from cloudflare
+                initResponse.Country = await Instance.Value._game.GetCountryIDFromCloudflareTraceAsync();
+
+            }
+
+            // Set locale values
+            if (!string.IsNullOrEmpty(initResponse.Country))
+            {
+                Instance.Value._locale.SetCountry(initResponse.Country);
+            }
+
+            // Try to get active currency
+            if (!string.IsNullOrEmpty(initResponse.ActiveProductId))
+            {
+                var activeCurrency = await Instance.Value._iap.GetActiveCurrencyAsync(initResponse.ActiveProductId);
+                if (!string.IsNullOrEmpty(activeCurrency))
+                {
+                    Debug.Log("Found active currency: " + activeCurrency);
+                    Instance.Value._locale.SetCurrency(activeCurrency);
+                }
+            }
+
+            // Remote config
+            Instance.Value._iap.SetEnabledPaymentTypes(initResponse.RemoteConfigs.EnabledPaymentTypes);
+
             Debug.Log("Noctua.Init() set _initialized to true");
             Instance.Value._initialized = true;
+
+            // Retry pending purchases, if any
+            Instance.Value._iap.RetryPendingPurchases();
         }
 
         public static void OnApplicationPause(bool pause)
