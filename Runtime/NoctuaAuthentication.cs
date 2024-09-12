@@ -202,6 +202,11 @@ namespace com.noctuagames.sdk
         {
             _uiComponent.ShowEmailVerification("foo", "bar", 123);
         }
+
+        public void WebViewCleanCache()
+        {
+            _uiComponent.WebViewCleanCache();
+        }
         
         internal class Config
         {

@@ -81,6 +81,8 @@ namespace com.noctuagames.sdk
 
         private AuthType _currentAuthType = AuthType.SwitchAccount;
 
+        private UniWebView uniWebView;
+
         private void Awake()
         {
             gameObject.SetActive(false);
@@ -279,7 +281,7 @@ namespace com.noctuagames.sdk
             
             Debug.Log("Initializing WebView");
             
-            var uniWebView = gameObject.AddComponent<UniWebView>();
+            uniWebView = gameObject.AddComponent<UniWebView>();
             
             if (Application.platform == RuntimePlatform.Android)
             {
@@ -386,6 +388,18 @@ namespace com.noctuagames.sdk
 #endif
 
             return callbackDataMap;
+        }
+
+        public void WebViewCleanCache()
+        {
+            if (uniWebView == null)
+            {
+                Debug.LogWarning("Initializing WebView");
+                uniWebView = gameObject.AddComponent<UniWebView>();
+            }
+
+            uniWebView.CleanCache();
+            Debug.Log("WebView cache cleaned.");
         }
 
         private static Dictionary<string, string> ParseQueryString(string queryString)
