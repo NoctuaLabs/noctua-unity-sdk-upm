@@ -141,7 +141,8 @@ namespace com.noctuagames.sdk
 
         private static int _currentOrderId;
 
-        private static List<string> _enabledPaymentTypes;
+        // By default all major payment types are enabled, then it will be overridden by the server config at SDK init
+        private static List<string> _enabledPaymentTypes = new List<string> { "playstore", "applestore", "noctuawallet" };
 
         #if UNITY_ANDROID && !UNITY_EDITOR
         private static readonly GoogleBilling GoogleBillingInstance = new GoogleBilling();
