@@ -219,12 +219,14 @@ namespace com.noctuagames.sdk
 
             // Init game
             var initResponse = await Instance.Value._game.InitGameAsync();
+
             if (string.IsNullOrEmpty(initResponse.Country))
             {
-
-                // Get country ID from cloudflare
                 initResponse.Country = await Instance.Value._game.GetCountryIDFromCloudflareTraceAsync();
+                Debug.Log("Noctua.Init() -> Using country from cloudflare: " + initResponse.Country);
 
+            } else {
+                Debug.Log("Noctua.Init() -> Using country from geoIP: " + initResponse.Country);
             }
 
             // Set locale values
