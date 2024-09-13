@@ -294,6 +294,13 @@
     background-position: center;
 }
 
+.facebook-player-avatar {
+    background-image: url("./FacebookPlayerAvatar.png");
+    width: 29px;
+    height: 29px;
+    background-position: center;
+}
+
 .email-player-avatar {
     background-image: url("./EmailPlayerAvatar.png");
     width: 29px;
