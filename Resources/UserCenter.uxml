@@ -52,13 +52,9 @@
             <ui:Label name="ConnectAccountLabel" text="Stay connect to Noctua" class="connect-account-label" />
             <ui:ListView name="AccountList" class="account-list" />
             <ui:VisualElement name="UserGuestUI" class="user-guest-box">
-                <ui:VisualElement style="justify-content: space-around; align-items: center;">
-                    <ui:VisualElement class="image-carousel" style="align-items: flex-start;" />
-                </ui:VisualElement>
+                <ui:VisualElement class="image-carousel" />
                 <ui:Label name="TextCarousel" text="Protect your heard-earned progress and achievements" class="text-carousel" />
-                <ui:VisualElement name="IndicatorContainer" class="ellipse-indicator">
-                </ui:VisualElement>
-                <ui:Button text="Connect Account" class="button-highlight connect-button-guest" />
+                <ui:VisualElement name="IndicatorContainer" class="ellipse-indicator" />
             </ui:VisualElement>
             <ui:VisualElement name="ConnectAccountFooter" class="connect-account-footer">
                 <ui:VisualElement name="NoctuaLogoWithText" class="noctua-logo-with-text" />

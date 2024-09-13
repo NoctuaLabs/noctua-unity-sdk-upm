@@ -93,13 +93,14 @@ namespace com.noctuagames.sdk.UI
             try
             {                
                 var user = await Model.AuthService.GetCurrentUser();
+                var isGuest = user?.IsGuest == true;
                 
                 Debug.Log($"GetCurrentUser: {user?.Id} {user?.Nickname}");
 
-                View.Q<Label>("PlayerName").text = user?.IsGuest == true ? "Guest " + user.Id  : user?.Nickname;
+                View.Q<Label>("PlayerName").text = isGuest ? "Guest " + user.Id  : user?.Nickname;
                 View.Q<Label>("UserIdLabel").text = user?.Id.ToString() ?? "";
 
-                UpdateUIGuest(user?.IsGuest ?? false);
+                UpdateUIGuest(isGuest);
                 
                 if (!string.IsNullOrEmpty(user?.PictureUrl))
                 {
@@ -126,12 +127,16 @@ namespace com.noctuagames.sdk.UI
                     View.Q<VisualElement>("PlayerAvatar").style.backgroundImage = new StyleBackground(_defaultAvatar);
                 }
 
-                foreach (var t in _credentials)
-                {
-                    Debug.Log($"Credential: {t.CredentialProvider} {t.Username}");
-                    
-                    var credential = user?.Credentials.Find(c => c.Provider == t.CredentialProvider.ToString().ToLower());
-                    t.Username = credential?.DisplayText ?? "";
+                if (!isGuest) {
+                    foreach (var t in _credentials)
+                    {
+                        Debug.Log($"Credential: {t.CredentialProvider} {t.Username}");
+                        
+                        var credential = user?.Credentials.Find(c => c.Provider == t.CredentialProvider.ToString().ToLower());
+                        t.Username = credential?.DisplayText ?? "";
+                    }
+
+                    _credentialListView.Rebuild();
                 }
             }
             catch (Exception e)
@@ -141,11 +146,9 @@ namespace com.noctuagames.sdk.UI
                 _credentials.ForEach(c => c.Username = "");
                 Model.ShowGeneralNotificationError(e.Message);
             }
-            
-            _credentialListView.Rebuild();
+
             Visible = true;
 
-            View.Q<VisualElement>("MoreOptionsMenu").AddToClassList("hide");
             SetOrientation();
 
         }
@@ -315,17 +318,28 @@ namespace com.noctuagames.sdk.UI
         }
 
         private void UpdateUIGuest(bool isGuest) {
+            var _moreOptionsButton = View.Q<Button>("MoreOptionsButton");
             var _guestContainer = View.Q<VisualElement>("UserGuestUI");
             var _stayConnect = View.Q<Label>("ConnectAccountLabel");
 
             if(isGuest) {
+                _moreOptionsButton.AddToClassList("hide");
+                _moreOptionsButton.RemoveFromClassList("show");
                 _credentialListView.AddToClassList("hide");
+                _credentialListView.RemoveFromClassList("show");
                 _stayConnect.AddToClassList("hide");
+                _stayConnect.RemoveFromClassList("show");
                 _guestContainer.AddToClassList("show");
+                _guestContainer.RemoveFromClassList("hide");
             } else {
+                _moreOptionsButton.AddToClassList("show");
+                _moreOptionsButton.RemoveFromClassList("hide");
                 _credentialListView.AddToClassList("show");
+                _credentialListView.RemoveFromClassList("hide");
                 _stayConnect.AddToClassList("show");
+                _stayConnect.RemoveFromClassList("hide");
                 _guestContainer.AddToClassList("hide");
+                _guestContainer.RemoveFromClassList("show");
             }
         }
 

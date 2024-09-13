@@ -249,16 +249,19 @@
 .text-carousel {
     font-size: 12px;
     white-space: normal; 
-    align: middle;
+    align-self: center;
     -unity-text-align: upper-center;
 }
 
 .image-carousel {
+    margin: 0 auto;
+    display: flex;
+    justify-content: center;
+    align-items: center;
     margin-top: 40px;
     background-image: url("./TwoHand.png");
     width: 97px;
     height: 97px;
-    background-position: center;
 }
 
 .connect-button-guest {
@@ -275,8 +278,8 @@
 }
 
 .indicator {
-    width: 10px;
-    height: 10px;
+    width: 5px;
+    height: 5px;
     margin-left: 5px;
     margin-right: 5px;
     background-color: gray;
