@@ -1,53 +1,173 @@
+using System;
 using System.IO;
+using UnityEngine;
+
+#if UNITY_IOS
 using UnityEditor;
 using UnityEditor.Callbacks;
 using UnityEditor.iOS.Xcode;
-using UnityEngine;
+#endif
 
-[InitializeOnLoad]
-public class NoctuaBuildPostProcessor : MonoBehaviour
+#if UNITY_ANDROID
+using UnityEditor.Android;
+#endif
+
+namespace Editor
 {
-    [PostProcessBuild]
-    public static void CopyFirebaseConfiguration(BuildTarget buildTarget, string pathToBuiltProject)
-    {
-        Debug.Log($"{nameof(NoctuaBuildPostProcessor)}: CopyFirebaseConfiguration");
+#if UNITY_IOS
 
-        if (buildTarget == BuildTarget.iOS)
+    public class NoctuaBuildPostProcessor : MonoBehaviour
+    {
+        [PostProcessBuild]
+        public static void IntegrateGoogleServices(BuildTarget buildTarget, string pathToBuiltProject)
         {
+            if (buildTarget != BuildTarget.iOS) return;
+            
+            Debug.Log($"{nameof(NoctuaBuildPostProcessor)}: IntegrateGoogleServices");
             // Define the source and destination paths
-            string sourcePath = Path.Combine(Application.dataPath, "StreamingAssets/GoogleService-Info.plist");
+            var sourcePath = Path.Combine(Application.dataPath, "StreamingAssets/GoogleService-Info.plist");
+            
+            if (!File.Exists(sourcePath))
+            {
+                Debug.LogWarning(
+                    $"{nameof(NoctuaBuildPostProcessor)}: GoogleService-Info.plist not found at path: {sourcePath}. " +
+                    "Google services plugin will not be added."
+                );
+
+                return;
+            }
+            
             Debug.Log($"{nameof(NoctuaBuildPostProcessor)}: sourcePath: " + sourcePath);
-            string destinationPath = Path.Combine(pathToBuiltProject, "GoogleService-Info.plist");
+            var destinationPath = Path.Combine(pathToBuiltProject, "GoogleService-Info.plist");
             Debug.Log($"{nameof(NoctuaBuildPostProcessor)}: destinationPath: " + destinationPath);
 
             // Copy the file to the Xcode root folder
-            File.Copy(sourcePath, destinationPath, true);
+            try
+            {
+                File.Copy(sourcePath, destinationPath, true);
+            }
+            catch (Exception e)
+            {
+                Debug.LogError($"{nameof(NoctuaBuildPostProcessor)}: Failed to copy GoogleService-Info.plist to Xcode project. " +
+                               $"Error: {e.Message}");
+            }
 
             // Load the Xcode project
-            string projPath = PBXProject.GetPBXProjectPath(pathToBuiltProject);
+            var projPath = PBXProject.GetPBXProjectPath(pathToBuiltProject);
             Debug.Log("BuildPostProcessor projPath: " + projPath);
-            PBXProject proj = new PBXProject();
+            var proj = new PBXProject();
             proj.ReadFromFile(projPath);
 
             // Get the target GUID
-            string targetGuid = proj.GetUnityMainTargetGuid();
+            var targetGuid = proj.GetUnityMainTargetGuid();
 
             // Add the file to the Xcode project as a resource
             proj.AddFileToBuild(targetGuid, proj.AddFile(destinationPath, "GoogleService-Info.plist"));
 
             // Write the changes to the Xcode project
-            proj.WriteToFile(projPath);
-        }
-        else if (buildTarget == BuildTarget.Android)
-        {
-            // Define the source and destination paths
-            string sourcePath = Path.Combine(Application.dataPath, "StreamingAssets/google-services.json");
-            Debug.Log($"{nameof(NoctuaBuildPostProcessor)}: sourcePath: " + sourcePath);
-            string destinationPath = Path.Combine(pathToBuiltProject, "google-services.json");
-            Debug.Log($"{nameof(NoctuaBuildPostProcessor)}: destinationPath: " + destinationPath);
-
-            // Copy the file to the Android root folder
-            File.Copy(sourcePath, destinationPath, true);
+            try
+            {
+                proj.WriteToFile(projPath);
+            }
+            catch (Exception e)
+            {
+                Debug.LogError($"{nameof(NoctuaBuildPostProcessor)}: Failed to write changes to Xcode project. " +
+                                 $"Error: {e.Message}");
+            }
         }
     }
+
+#endif
+
+#if UNITY_ANDROID
+
+    public class NoctuaAndroidBuildProcessor : IPostGenerateGradleAndroidProject
+    {
+        public int callbackOrder { get; }
+
+        public void OnPostGenerateGradleAndroidProject(string path)
+        {
+            Debug.Log($"{nameof(NoctuaAndroidBuildProcessor)}: OnPostGenerateGradleAndroidProject");
+
+            // Copy google-services.json to the Android root app folder
+            var srcGoogleServicesJsonPath = Path.Combine(Application.dataPath, "StreamingAssets/google-services.json");
+
+            if (!File.Exists(srcGoogleServicesJsonPath))
+            {
+                Debug.LogWarning(
+                    $"{nameof(NoctuaAndroidBuildProcessor)}: google-services.json not found at path: {srcGoogleServicesJsonPath}. " +
+                    "Google services plugin will not be added."
+                );
+
+                return;
+            }
+
+            Debug.Log($"{nameof(NoctuaAndroidBuildProcessor)}: sourcePath: " + srcGoogleServicesJsonPath);
+            var dstGoogleServicesJsonPath = Path.Combine(path, "../launcher/google-services.json");
+
+
+            // Copy the file to the Android root app folder
+            try
+            {
+                File.Copy(srcGoogleServicesJsonPath, dstGoogleServicesJsonPath, true);
+            }
+            catch (Exception e)
+            {
+                Debug.LogError($"{nameof(NoctuaAndroidBuildProcessor)}: Failed to copy google-services.json to Android launcher project. " +
+                               $"Error: {e.Message}");
+            }
+
+            // Modify the root-level build.gradle file
+            var rootGradlePath = Path.Combine(path, "../build.gradle");
+            var rootGradleFile = File.ReadAllText(rootGradlePath);
+
+            // Add the Google services plugin dependency
+            if (!rootGradleFile.Contains("com.google.gms.google-services"))
+            {
+                rootGradleFile = rootGradleFile.Replace(
+                    "id 'com.android.library' version '7.4.2' apply false",
+                    "id 'com.android.library' version '7.4.2' apply false\n" +
+                    "    id 'com.google.gms.google-services' version '4.4.2' apply false"
+                );
+
+                // Write the changes to the root-level build.gradle file
+                try
+                {
+                    File.WriteAllText(rootGradlePath, rootGradleFile);
+                }
+                catch (Exception e)
+                {
+                    Debug.LogError($"{nameof(NoctuaAndroidBuildProcessor)}: Failed to write changes to root-level build.gradle file. " +
+                                   $"Error: {e.Message}");
+                }
+            }
+
+            // Modify the launcher-level build.gradle file
+            var launcherGradlePath = Path.Combine(path, "../launcher/build.gradle");
+            var launcherGradleFile = File.ReadAllText(launcherGradlePath);
+
+            // Add the Google services plugin
+            if (!launcherGradleFile.Contains("com.google.gms.google-services"))
+            {
+                launcherGradleFile = launcherGradleFile.Replace(
+                    "apply plugin: 'com.android.application'",
+                    "apply plugin: 'com.android.application'\n" +
+                    "apply plugin: 'com.google.gms.google-services'"
+                );
+
+                // Write the changes to the launcher-level build.gradle file
+                try
+                {
+                    File.WriteAllText(launcherGradlePath, launcherGradleFile);
+                }
+                catch (Exception e)
+                {
+                    Debug.LogError($"{nameof(NoctuaAndroidBuildProcessor)}: Failed to write changes to unityLibrary-level build.gradle file. " +
+                                   $"Error: {e.Message}");
+                }
+            }
+        }
+    }
+
+#endif
 }

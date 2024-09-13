@@ -99,6 +99,10 @@ namespace com.noctuagames.sdk
             // Do nothing
         }
 
+        public void GetActiveCurrency(string productId, Action<bool, string> callback)
+        {
+            throw new NotImplementedException();
+        }
     }
 }
 #endif
