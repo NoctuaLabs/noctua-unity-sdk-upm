@@ -130,6 +130,9 @@ namespace com.noctuagames.sdk
     {
         [JsonProperty("status")]
         public string Status;
+
+        [JsonProperty("message")]
+        public string Message;
     }
 
     [Preserve]
@@ -141,6 +144,9 @@ namespace com.noctuagames.sdk
 
         private static int _currentOrderId;
 
+        private static UniTaskCompletionSource<string> _activeCurrencyTcs;
+        private static UniTaskCompletionSource<PurchaseResponse> _purchaseItemTcs;
+
         // By default all major payment types are enabled, then it will be overridden by the server config at SDK init
         private static List<string> _enabledPaymentTypes = new List<string> { "playstore", "applestore", "noctuawallet" };
 
@@ -150,15 +156,14 @@ namespace com.noctuagames.sdk
         private static readonly IosPlugin IosPluginInstance = new IosPlugin();
         #endif
 
-        public static event Action<PurchaseResponse> OnPurchaseDone;
 
         internal NoctuaIAPService(Config config)
         {
             _config = config;
 
             #if UNITY_ANDROID && !UNITY_EDITOR
-            // Subscribe to the GoogleBillingInstance's OnPurchaseDone event
             GoogleBillingInstance.OnPurchaseDone += HandleGooglePurchaseDone;
+            GoogleBillingInstance.OnProductDetailsDone += HandleGoogleProductDetails;
             GoogleBillingInstance?.Init();
             #elif UNITY_IOS && !UNITY_EDITOR
             IosPluginInstance?.Init();
@@ -253,13 +258,33 @@ namespace com.noctuagames.sdk
                 }
                 tcs.TrySetResult(currency);
             });
-            return await tcs.Task;
-            #endif
+            var activeCurrency = await tcs.Task;
+            tcs.TrySetCanceled();
+            tcs = null;
+
+            return activeCurrency;
+
+            #elif UNITY_ANDROID && !UNITY_EDITOR
+
+            Debug.Log("GetActiveCurrencyAsync: Android");
+            _activeCurrencyTcs = new UniTaskCompletionSource<string>();
+            GoogleBillingInstance.QueryProductDetails(productId);
+
+            var activeCurrency = await _activeCurrencyTcs.Task;
+            _activeCurrencyTcs.TrySetCanceled();
+            _activeCurrencyTcs = null;
+
+            return activeCurrency;
+
+            #else // TODO for Other platforms
+
             Debug.Log("GetActiveCurrencyAsync: not found, default to IDR");
             return "IDR";
+
+            #endif
         }
 
-        public async UniTask PurchaseItemAsync(PurchaseRequest purchaseRequest)
+        public async UniTask<PurchaseResponse> PurchaseItemAsync(PurchaseRequest purchaseRequest)
         {
             Debug.Log("NoctuaIAPService.PurchaseItemAsync");
             // TODO payment method selector. For now check against _enabledPaymentTypes
@@ -318,9 +343,16 @@ namespace com.noctuagames.sdk
 
             Debug.Log("NoctuaIAPService.PurchaseItemAsync _currentOrderId: " + _currentOrderId);
             Debug.Log("NoctuaIAPService.PurchaseItemAsync orderResponse.ProductId: " + orderResponse.ProductId);
+
+            var response = new PurchaseResponse();
+
+            _purchaseItemTcs = new UniTaskCompletionSource<PurchaseResponse>();
             #if UNITY_ANDROID && !UNITY_EDITOR
                 Debug.Log("NoctuaIAPService.PurchaseItemAsync purchase on playstore: " + orderResponse.ProductId);
                 GoogleBillingInstance?.PurchaseItem(orderResponse.ProductId);
+
+                response = await _purchaseItemTcs.Task;
+                Debug.Log("NoctuaIAPService.PurchaseItemAsync PurchaseItem callback response: " + response);
             #elif UNITY_IOS && !UNITY_EDITOR
                 Debug.Log("NoctuaIAPService.PurchaseItemAsync purchase on ios: " + orderResponse.ProductId);
                 orderResponse.ProductId = purchaseRequest.ProductId;
@@ -330,27 +362,59 @@ namespace com.noctuagames.sdk
                     Debug.Log("NoctuaIAPService.PurchaseItemAsync PurchaseItem callback message: " + message);
                     HandleIosPurchaseDone(orderResponse.Id, success, message);
                 });
+
+                response = await _purchaseItemTcs.Task;
+                Debug.Log("NoctuaIAPService.PurchaseItemAsync PurchaseItem callback response: " + response);
             #endif
+
+            _purchaseItemTcs.TrySetCanceled();
+            _purchaseItemTcs = null;
+            return response;
         }
 
         #if UNITY_ANDROID && !UNITY_EDITOR
+        private static void HandleGoogleProductDetails(GoogleBilling.ProductDetailsResponse response)
+        {
+            Debug.Log("NoctuaIAPService.HandleGoogleProductDetails");
+            Debug.Log("NoctuaIAPService.HandleGoogleProductDetails currency: " + response.Currency);
+            if (_activeCurrencyTcs != null) {
+                _activeCurrencyTcs.TrySetResult(response.Currency);
+            } else {
+                throw NoctuaException.MissingCompletionHandler;
+            }
+        }
+
         private static async void HandleGooglePurchaseDone(GoogleBilling.PurchaseResult result)
         {
+            if (_purchaseItemTcs == null) {
+                throw NoctuaException.MissingCompletionHandler;
+            }
+
             Debug.Log("Noctua.HandleGooglePurchaseDone");
-            // Forward the event to subscribers of Noctua's OnPurchaseDone even
             if (result == null || (result != null && !result.Success))
             {
-                if (result.Message != null) { // Empty message means canceled
-                    Debug.LogError("Purchase canceled: ");
-                    OnPurchaseDone?.Invoke(new PurchaseResponse{
+                Debug.Log("Noctua.HandleGooglePurchaseDone result.Message: " + result.Message);
+                if (string.IsNullOrEmpty(result.Message)) { // Empty message means canceled
+                    Debug.LogError("Purchase canceled: empty message means canceled");
+                    _purchaseItemTcs.TrySetResult(new PurchaseResponse{
                         Status = "canceled"
                     });
                     return;
                 }
 
+                if (result.Message == "product_not_found") {
+                    Debug.LogError("Purchase failed: product not found");
+                    _purchaseItemTcs.TrySetResult(new PurchaseResponse{
+                        Status = "failed",
+                        Message = "product_not_found"
+                    });
+                    return;
+                }
+
                 Debug.LogError("Purchase failed: " + result.Message);
-                OnPurchaseDone?.Invoke(new PurchaseResponse{
-                    Status = "failed"
+                _purchaseItemTcs.TrySetResult(new PurchaseResponse{
+                    Status = "failed",
+                    Message = result.Message
                 });
                 return;
             }
@@ -370,7 +434,7 @@ namespace com.noctuagames.sdk
                 {
                     SavePendingPurchase(verifyOrderRequest); // For retry later
                 }
-                OnPurchaseDone?.Invoke(new PurchaseResponse{
+                _purchaseItemTcs.TrySetResult(new PurchaseResponse{
                     Status = "completed"
                 });
             } catch (Exception e) {
@@ -387,26 +451,31 @@ namespace com.noctuagames.sdk
         #if UNITY_IOS && !UNITY_EDITOR
         private static async void HandleIosPurchaseDone(int orderId, bool success, string message)
         {
+            if (_purchaseItemTcs == null) {
+                throw NoctuaException.MissingCompletionHandler;
+            }
+
             Debug.Log("Noctua.HandleIosPurchaseDone");
             Debug.Log("Noctua.HandleIosPurchaseDone orderId: " + orderId);
             Debug.Log("Noctua.HandleIosPurchaseDone success: " + success);
             Debug.Log("Noctua.HandleIosPurchaseDone message: " + message);
 
-            // Forward the event to subscribers of Noctua's OnPurchaseDone even
             if (!success)
             {
                 // Check if message contains cancel keyword
                 if (message.Contains("cancel")) {
                     Debug.LogError("Purchase canceled: ");
-                    OnPurchaseDone?.Invoke(new PurchaseResponse{
+
+                    _purchaseItemTcs.TrySetResult(new PurchaseResponse{
                         Status = "canceled"
                     });
                     return;
                 }
 
                 Debug.LogError("Purchase failed: " + message);
-                OnPurchaseDone?.Invoke(new PurchaseResponse{
-                    Status = "failed"
+                _purchaseItemTcs.TrySetResult(new PurchaseResponse{
+                    Status = "failed",
+                    Message = message
                 });
                 return;
             }
@@ -428,7 +497,7 @@ namespace com.noctuagames.sdk
                 {
                     SavePendingPurchase(verifyOrderRequest); // For retry later
                 }
-                OnPurchaseDone?.Invoke(new PurchaseResponse{
+                _purchaseItemTcs.TrySetResult(new PurchaseResponse{
                     Status = "completed"
                 });
             } catch (Exception e) {
@@ -503,7 +572,7 @@ namespace com.noctuagames.sdk
                     {
                         SavePendingPurchase(verifyOrderRequest); // For retry later
                     }
-                    OnPurchaseDone?.Invoke(new PurchaseResponse{
+                    _purchaseItemTcs.TrySetResult(new PurchaseResponse{
                         Status = "completed"
                     });
                 } catch (Exception e) {

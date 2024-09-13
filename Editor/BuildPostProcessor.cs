@@ -2,9 +2,9 @@ using System;
 using System.IO;
 using UnityEngine;
 
-#if UNITY_IOS
 using UnityEditor;
 using UnityEditor.Callbacks;
+
 #if UNITY_IOS
 using UnityEditor.iOS.Xcode;
 #endif
@@ -170,6 +170,5 @@ namespace Editor
             }
         }
     }
-
 #endif
 }

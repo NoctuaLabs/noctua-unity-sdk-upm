@@ -1,5 +1,6 @@
 ﻿using UnityEngine;
 using System.Collections.Generic;
+using UnityEngine.Scripting;
 
 #if UNITY_ANDROID && !UNITY_EDITOR
 public class GoogleBilling
@@ -13,6 +14,7 @@ public class GoogleBilling
     public event PurchaseDone OnPurchaseDone;
     public event ProductDetailsDone OnProductDetailsDone;
 
+    [Preserve]
     public class PurchaseResult
     {
         public bool Success;
@@ -21,6 +23,7 @@ public class GoogleBilling
         public string Message;
     }
 
+    [Preserve]
     public class ProductDetailsResponse
     {
         public string ProductId;
@@ -99,7 +102,7 @@ public class GoogleBilling
             billingClient.Call(
                 "queryProductDetailsAsync",
                 queryProductDetailsParams,
-                new ContinueToBillingFlow(billingClient, activity)
+                new ContinueToBillingFlow(billingClient, activity, this)
             );
         }
     }
@@ -108,14 +111,17 @@ public class GoogleBilling
     // because we need to get the ProductDetails object first.
     private class ContinueToBillingFlow : AndroidJavaProxy
     {
+        private GoogleBilling googleBilling;
         private AndroidJavaObject billingClient;
         private AndroidJavaObject activity;
         public ContinueToBillingFlow(
             AndroidJavaObject parentBillingClient,
-            AndroidJavaObject parentActivity
+            AndroidJavaObject parentActivity,
+            GoogleBilling parentGoogleBilling
         ) : base("com.android.billingclient.api.ProductDetailsResponseListener") {
             billingClient = parentBillingClient;
             activity = parentActivity;
+            googleBilling = parentGoogleBilling;
         }
 
         void onProductDetailsResponse(AndroidJavaObject billingResult, AndroidJavaObject productDetailsList)
@@ -128,6 +134,19 @@ public class GoogleBilling
 
                 int size = productDetailsList.Call<int>("size");
                 Debug.Log(size);
+
+                if (size < 1) {
+                    Debug.LogError("No product details found");
+                    var result = new PurchaseResult{
+                        Success = false,
+                        Message = "product_not_found",
+                        ReceiptData = "",
+                    };
+                    Debug.Log("InvokeOnPurchaseDone with product_not_found");
+                    googleBilling.InvokeOnPurchaseDone(result);
+                    return;
+                }
+
                 AndroidJavaObject productDetails = productDetailsList.Call<AndroidJavaObject>("get", 0);
                 string productId = productDetails.Call<string>("getProductId");
                 Debug.Log("Product ID: " + productId);
@@ -249,35 +268,34 @@ public class GoogleBilling
 
     public void QueryProductDetails(string productId)
     {
-        Debug.Log("GoogleBilling.GetProductList");
+        Debug.Log("GoogleBilling.QueryProductDetails: " + productId);
         using (AndroidJavaClass productClass = new AndroidJavaClass(
             "com.android.billingclient.api.QueryProductDetailsParams$Product"
             ))
         {
             AndroidJavaObject product = productClass.CallStatic<AndroidJavaObject>("newBuilder")
-            .Call<AndroidJavaObject>("setProductId", productId)
-            .Call<AndroidJavaObject>("setProductType", "inapp")
-            .Call<AndroidJavaObject>("build");
+                .Call<AndroidJavaObject>("setProductId", productId)
+                .Call<AndroidJavaObject>("setProductType", "inapp")
+                .Call<AndroidJavaObject>("build");
 
-            using (AndroidJavaObject productList = new AndroidJavaObject("java.util.ArrayList"))
+            // Use ImmutableList instead of ArrayList
+            AndroidJavaClass immutableListClass = new AndroidJavaClass("com.google.common.collect.ImmutableList");
+            AndroidJavaObject productList = immutableListClass.CallStatic<AndroidJavaObject>("of", product);
+
+            using (AndroidJavaClass queryProductDetailsParamsClass = new AndroidJavaClass(
+                "com.android.billingclient.api.QueryProductDetailsParams"
+            ))
             {
-                productList.Call<bool>("add", product);
+                AndroidJavaObject queryProductDetailsParams = queryProductDetailsParamsClass
+                    .CallStatic<AndroidJavaObject>("newBuilder")
+                    .Call<AndroidJavaObject>("setProductList", productList)
+                    .Call<AndroidJavaObject>("build");
 
-                using (AndroidJavaClass queryProductDetailsParamsClass = new AndroidJavaClass(
-                    "com.android.billingclient.api.QueryProductDetailsParams"
-                ))
-                {
-                    AndroidJavaObject queryProductDetailsParams = queryProductDetailsParamsClass
-                        .CallStatic<AndroidJavaObject>("newBuilder")
-                        .Call<AndroidJavaObject>("setProductList", productList)
-                        .Call<AndroidJavaObject>("build");
-
-                    billingClient.Call(
-                        "queryProductDetailsAsync",
-                        queryProductDetailsParams,
-                        new ProductDetailsResponseListener(this)
-                    );
-                }
+                billingClient.Call(
+                    "queryProductDetailsAsync",
+                    queryProductDetailsParams,
+                    new ProductDetailsResponseListener(this)
+                );
             }
         }
     }
@@ -289,7 +307,6 @@ public class GoogleBilling
         public ProductDetailsResponseListener(GoogleBilling parent) : base("com.android.billingclient.api.ProductDetailsResponseListener")
         {
             googleBilling = parent;
-
         }
 
         void onProductDetailsResponse(AndroidJavaObject billingResult, AndroidJavaObject productDetailsList)
@@ -298,27 +315,33 @@ public class GoogleBilling
             int responseCode = billingResult.Call<int>("getResponseCode");
             if (responseCode == 0) // BillingResponseCode.OK
             {
-                Debug.Log("Product details query successful");
-
                 int size = productDetailsList.Call<int>("size");
-                Debug.Log("Product details list length: ");
-                Debug.Log(size);
-                for (int i = 0; i < size; i++)
+                Debug.Log("Product details list length: " + size);
+
+                if (size > 0)
                 {
-                    AndroidJavaObject productDetails = productDetailsList.Call<AndroidJavaObject>("get", i);
+                    AndroidJavaObject productDetails = productDetailsList.Call<AndroidJavaObject>("get", 0);
                     string productId = productDetails.Call<string>("getProductId");
-                    Debug.Log("Product ID: " + productId);
                     string title = productDetails.Call<string>("getTitle");
                     string description = productDetails.Call<string>("getDescription");
-                    string price = productDetails.Call<string>("getPrice");
-                    string currency = productDetails.Call<string>("getCurrency");
-                    googleBilling.InvokeOnProductDetailsResponse(new ProductDetailsResponse{
+
+                    // Get the first pricing phase for the product
+                    AndroidJavaObject oneTimePurchaseOfferDetails = productDetails.Call<AndroidJavaObject>("getOneTimePurchaseOfferDetails");
+                    string formattedPrice = oneTimePurchaseOfferDetails.Call<string>("getFormattedPrice");
+                    string priceCurrencyCode = oneTimePurchaseOfferDetails.Call<string>("getPriceCurrencyCode");
+
+                    googleBilling.InvokeOnProductDetailsResponse(new ProductDetailsResponse
+                    {
                         ProductId = productId,
                         Title = title,
                         Description = description,
-                        Price = price,
-                        Currency = currency,
+                        Price = formattedPrice,
+                        Currency = priceCurrencyCode,
                     });
+                }
+                else
+                {
+                    Debug.LogError("No product details found");
                 }
             }
             else

@@ -11,6 +11,7 @@ namespace com.noctuagames.sdk
         Application = 3002,
         Authentication = 3003,
         ActiveCurrencyFailure = 3004,
+        MissingCompletionHandler = 3005,
     }
     
     public class NoctuaException : Exception
@@ -48,6 +49,7 @@ namespace com.noctuagames.sdk
         public static readonly NoctuaException RequestUnreplacedParam = new(NoctuaErrorCode.Networking, "Request unreplaced param");
         public static readonly NoctuaException MissingAccessToken = new(NoctuaErrorCode.Authentication, "Missing access token");
         public static readonly NoctuaException ActiveCurrencyFailure = new(NoctuaErrorCode.ActiveCurrencyFailure, "Failed to get active currency");
+        public static readonly NoctuaException MissingCompletionHandler = new(NoctuaErrorCode.MissingCompletionHandler, "Missing task completion handler");
     }
 
     [Preserve]
