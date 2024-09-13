@@ -55,6 +55,7 @@
                 <ui:VisualElement class="image-carousel" />
                 <ui:Label name="TextCarousel" text="Protect your heard-earned progress and achievements" class="text-carousel" />
                 <ui:VisualElement name="IndicatorContainer" class="ellipse-indicator" />
+                <ui:Button name="GuestConnectButton" text="Connect Account" class="button-highlight connect-button-guest" />
             </ui:VisualElement>
             <ui:VisualElement name="ConnectAccountFooter" class="connect-account-footer">
                 <ui:VisualElement name="NoctuaLogoWithText" class="noctua-logo-with-text" />

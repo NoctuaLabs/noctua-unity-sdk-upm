@@ -180,6 +180,7 @@ namespace com.noctuagames.sdk.UI
 
             View.Q<Button>("ExitButton").RegisterCallback<PointerUpEvent>(_ => { Visible = false; });
             View.Q<Button>("MoreOptionsButton").RegisterCallback<PointerUpEvent>(OnMoreOptionsButtonClick);
+            View.Q<Button>("GuestConnectButton").RegisterCallback<PointerUpEvent>(OnGuestConnectButtonClick);
             View.Q<VisualElement>("DeleteAccount").RegisterCallback<PointerUpEvent>(_ => OnDeleteAccount());
             View.RegisterCallback<GeometryChangedEvent>(_ => SetOrientation());
             
@@ -209,6 +210,18 @@ namespace com.noctuagames.sdk.UI
         {
             Debug.Log("More options clicked");
             ToggleMoreOptionsMenu();
+            evt.StopPropagation();
+        }
+
+        private void OnGuestConnectButtonClick(PointerUpEvent evt)
+        {
+            Debug.Log("Guest connect clicked");
+
+            View.visible = false;
+            
+            Model.PushNavigation(() => Model.ShowAccountSelection());
+            Model.ShowLoginOptions();
+
             evt.StopPropagation();
         }
 
