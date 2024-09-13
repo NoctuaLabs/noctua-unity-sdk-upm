@@ -94,15 +94,16 @@ namespace com.noctuagames.sdk
             return hashMap;
         }
 
-        public void PurchaseItem(string productId, Action<bool, string> onPurchaseComplete)
+        public void PurchaseItem(string productId, Action<bool, string> callback)
         {
-            // Do nothing
+            throw new NotImplementedException();
         }
 
         public void GetActiveCurrency(string productId, Action<bool, string> callback)
         {
             throw new NotImplementedException();
         }
+
     }
 }
 #endif

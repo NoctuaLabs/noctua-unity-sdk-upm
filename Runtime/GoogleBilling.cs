@@ -9,7 +9,9 @@ public class GoogleBilling
 
     // Signals
     public delegate void PurchaseDone(PurchaseResult result);
+    public delegate void ProductDetailsDone(ProductDetailsResponse response);
     public event PurchaseDone OnPurchaseDone;
+    public event ProductDetailsDone OnProductDetailsDone;
 
     public class PurchaseResult
     {
@@ -19,9 +21,23 @@ public class GoogleBilling
         public string Message;
     }
 
+    public class ProductDetailsResponse
+    {
+        public string ProductId;
+        public string Title;
+        public string Description;
+        public string Price;
+        public string Currency;
+    }
+
     private void InvokeOnPurchaseDone(PurchaseResult result)
     {
         OnPurchaseDone?.Invoke(result);
+    }
+
+    private void InvokeOnProductDetailsResponse(ProductDetailsResponse response)
+    {
+        OnProductDetailsDone?.Invoke(response);
     }
 
     public void Init()
@@ -88,7 +104,7 @@ public class GoogleBilling
         }
     }
 
-    // This is actuallya ProductDetailsResponseListener but we make it as a continuation flow for PurcahseItem
+    // This is actually a ProductDetailsResponseListener but we make it as a continuation flow for PurcahseItem
     // because we need to get the ProductDetails object first.
     private class ContinueToBillingFlow : AndroidJavaProxy
     {
@@ -231,7 +247,7 @@ public class GoogleBilling
         }
     }
 
-    public void GetProductList()
+    public void QueryProductDetails(string productId)
     {
         Debug.Log("GoogleBilling.GetProductList");
         using (AndroidJavaClass productClass = new AndroidJavaClass(
@@ -239,7 +255,7 @@ public class GoogleBilling
             ))
         {
             AndroidJavaObject product = productClass.CallStatic<AndroidJavaObject>("newBuilder")
-            .Call<AndroidJavaObject>("setProductId", "noctua.unitysdktest.pack1")
+            .Call<AndroidJavaObject>("setProductId", productId)
             .Call<AndroidJavaObject>("setProductType", "inapp")
             .Call<AndroidJavaObject>("build");
 
@@ -259,7 +275,7 @@ public class GoogleBilling
                     billingClient.Call(
                         "queryProductDetailsAsync",
                         queryProductDetailsParams,
-                        new ProductDetailsResponseListener()
+                        new ProductDetailsResponseListener(this)
                     );
                 }
             }
@@ -268,8 +284,11 @@ public class GoogleBilling
 
     private class ProductDetailsResponseListener : AndroidJavaProxy
     {
-        public ProductDetailsResponseListener() : base("com.android.billingclient.api.ProductDetailsResponseListener")
+        private GoogleBilling googleBilling;
+
+        public ProductDetailsResponseListener(GoogleBilling parent) : base("com.android.billingclient.api.ProductDetailsResponseListener")
         {
+            googleBilling = parent;
 
         }
 
@@ -289,6 +308,17 @@ public class GoogleBilling
                     AndroidJavaObject productDetails = productDetailsList.Call<AndroidJavaObject>("get", i);
                     string productId = productDetails.Call<string>("getProductId");
                     Debug.Log("Product ID: " + productId);
+                    string title = productDetails.Call<string>("getTitle");
+                    string description = productDetails.Call<string>("getDescription");
+                    string price = productDetails.Call<string>("getPrice");
+                    string currency = productDetails.Call<string>("getCurrency");
+                    googleBilling.InvokeOnProductDetailsResponse(new ProductDetailsResponse{
+                        ProductId = productId,
+                        Title = title,
+                        Description = description,
+                        Price = price,
+                        Currency = currency,
+                    });
                 }
             }
             else

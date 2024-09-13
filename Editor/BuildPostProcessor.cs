@@ -5,8 +5,10 @@ using UnityEngine;
 #if UNITY_IOS
 using UnityEditor;
 using UnityEditor.Callbacks;
+#if UNITY_IOS
 using UnityEditor.iOS.Xcode;
 #endif
+using UnityEngine;
 
 #if UNITY_ANDROID
 using UnityEditor.Android;
