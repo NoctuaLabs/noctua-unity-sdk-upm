@@ -193,7 +193,7 @@ namespace com.noctuagames.sdk
                 await _request.SendWebRequest();
                 response = _request.downloadHandler.text;
             }
-            catch (Exception e)
+            catch (Exception)
             {
                 switch (_request.result)
                 {
@@ -221,7 +221,7 @@ namespace com.noctuagames.sdk
                 {
                     errorResponse = JsonConvert.DeserializeObject<ErrorResponse>(response, _jsonSettings);
                 }
-                catch (Exception e)
+                catch (Exception)
                 {
                     throw new NoctuaException(NoctuaErrorCode.Networking, $"Unknown HTTP error {_request.responseCode}: {response}");
                 }

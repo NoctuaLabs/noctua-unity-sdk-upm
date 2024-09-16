@@ -1,10 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Net;
-using System.Net.Sockets;
-using System.Text;
-using System.Threading.Tasks;
 using System.Web;
 using Cysharp.Threading.Tasks;
 using Newtonsoft.Json;
@@ -951,22 +947,6 @@ namespace com.noctuagames.sdk
             userBundle.Player.AccessToken = playerTokenResponse.AccessToken;
             
             return userBundle;
-        }
-
-        private PlayerToken TransformUserBundleToPlayerToken(UserBundle userBundle)
-        {
-            Debug.Log("TransformUserBundleToPlayerToken");
-            Debug.Log(JsonConvert.SerializeObject(userBundle));
-            var playerToken = new PlayerToken
-            {
-                AccessToken = userBundle?.Player?.AccessToken,
-                User = userBundle?.User,
-                Credential = userBundle?.Credential,
-                Player = userBundle?.Player,
-                //Game = userBundle.Game,
-                //GamePlatform = userBundle.GamePlatform
-            };
-            return playerToken;
         }
 
         public void ResetAccounts() {

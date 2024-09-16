@@ -54,8 +54,6 @@ namespace com.noctuagames.sdk.UI
 
         private void LoadView(PanelSettings panelSettings)
         {
-            Debug.Log("LoadView " + GetType().Name);
-            
             var viewResourceName = GetType().Name.Replace("Presenter", "");
 
             _uiGameObject = new GameObject(viewResourceName);

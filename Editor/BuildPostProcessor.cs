@@ -1,23 +1,26 @@
 using System;
 using System.IO;
+using System.Linq;
+using System.Xml;
+using System.Xml.Linq;
+using com.noctuagames.sdk;
 using UnityEngine;
-
-using UnityEditor;
-using UnityEditor.Callbacks;
 
 #if UNITY_IOS
+using UnityEditor;
+using UnityEditor.Callbacks;
 using UnityEditor.iOS.Xcode;
 #endif
-using UnityEngine;
 
 #if UNITY_ANDROID
+using Newtonsoft.Json;
 using UnityEditor.Android;
+using UnityEditor.Graphs;
 #endif
 
 namespace Editor
 {
 #if UNITY_IOS
-
     public class NoctuaBuildPostProcessor : MonoBehaviour
     {
         [PostProcessBuild]
@@ -85,89 +88,285 @@ namespace Editor
 
     public class NoctuaAndroidBuildProcessor : IPostGenerateGradleAndroidProject
     {
-        public int callbackOrder { get; }
+        public int callbackOrder => 1;
 
         public void OnPostGenerateGradleAndroidProject(string path)
         {
-            Debug.Log($"{nameof(NoctuaAndroidBuildProcessor)}: OnPostGenerateGradleAndroidProject");
-
-            // Copy google-services.json to the Android root app folder
-            var srcGoogleServicesJsonPath = Path.Combine(Application.dataPath, "StreamingAssets/google-services.json");
-
-            if (!File.Exists(srcGoogleServicesJsonPath))
+            var rootAndroidProjectPath = Path.Combine(path, "..");
+            var googleServicesJsonPath = Path.Combine(Application.dataPath, "StreamingAssets", "google-services.json");
+            
+            if (!File.Exists(googleServicesJsonPath))
             {
-                Debug.LogWarning(
-                    $"{nameof(NoctuaAndroidBuildProcessor)}: google-services.json not found at path: {srcGoogleServicesJsonPath}. " +
-                    "Google services plugin will not be added."
-                );
+                LogWarning("Google Services config file not found. Disabling Firebase services.");
+            }
+            
+            var noctuaConfigPath = Path.Combine(Application.dataPath, "StreamingAssets", "noctuagg.json");
+            var noctuaConfig = JsonConvert.DeserializeObject<GlobalConfig>(File.ReadAllText(noctuaConfigPath));
+
+            if (noctuaConfig == null)
+            {
+                LogError("Failed to parse noctuagg.json.");
 
                 return;
             }
 
-            Debug.Log($"{nameof(NoctuaAndroidBuildProcessor)}: sourcePath: " + srcGoogleServicesJsonPath);
-            var dstGoogleServicesJsonPath = Path.Combine(path, "../launcher/google-services.json");
+            ModifyAndroidManifest(rootAndroidProjectPath, noctuaConfig);
+            ModifyRootBuildGradle(rootAndroidProjectPath, noctuaConfig);
+            ModifyLauncherBuildGradle(rootAndroidProjectPath, noctuaConfig);
+            CopyOrRemoveGoogleServicesJson(rootAndroidProjectPath, noctuaConfig);
+        }
 
-
-            // Copy the file to the Android root app folder
-            try
+        private static void ModifyAndroidManifest(string path, GlobalConfig noctuaConfig)
+        {
+            if (noctuaConfig.Facebook is null)
             {
-                File.Copy(srcGoogleServicesJsonPath, dstGoogleServicesJsonPath, true);
-            }
-            catch (Exception e)
-            {
-                Debug.LogError($"{nameof(NoctuaAndroidBuildProcessor)}: Failed to copy google-services.json to Android launcher project. " +
-                               $"Error: {e.Message}");
-            }
+                LogWarning("Facebook config is null. Skipped modifying AndroidManifest.xml for Facebook App Events.");
 
-            // Modify the root-level build.gradle file
-            var rootGradlePath = Path.Combine(path, "../build.gradle");
-            var rootGradleFile = File.ReadAllText(rootGradlePath);
-
-            // Add the Google services plugin dependency
-            if (!rootGradleFile.Contains("com.google.gms.google-services"))
-            {
-                rootGradleFile = rootGradleFile.Replace(
-                    "id 'com.android.library' version '7.4.2' apply false",
-                    "id 'com.android.library' version '7.4.2' apply false\n" +
-                    "    id 'com.google.gms.google-services' version '4.4.2' apply false"
-                );
-
-                // Write the changes to the root-level build.gradle file
-                try
-                {
-                    File.WriteAllText(rootGradlePath, rootGradleFile);
-                }
-                catch (Exception e)
-                {
-                    Debug.LogError($"{nameof(NoctuaAndroidBuildProcessor)}: Failed to write changes to root-level build.gradle file. " +
-                                   $"Error: {e.Message}");
-                }
+                return;
             }
 
-            // Modify the launcher-level build.gradle file
-            var launcherGradlePath = Path.Combine(path, "../launcher/build.gradle");
-            var launcherGradleFile = File.ReadAllText(launcherGradlePath);
+            var manifestPath = Path.Combine(path, "launcher", "src", "main", "AndroidManifest.xml");
 
-            // Add the Google services plugin
-            if (!launcherGradleFile.Contains("com.google.gms.google-services"))
+            if (!File.Exists(manifestPath))
             {
-                launcherGradleFile = launcherGradleFile.Replace(
-                    "apply plugin: 'com.android.application'",
-                    "apply plugin: 'com.android.application'\n" +
-                    "apply plugin: 'com.google.gms.google-services'"
-                );
+                LogError($"AndroidManifest.xml not found at path: {manifestPath}");
 
-                // Write the changes to the launcher-level build.gradle file
-                try
-                {
-                    File.WriteAllText(launcherGradlePath, launcherGradleFile);
-                }
-                catch (Exception e)
-                {
-                    Debug.LogError($"{nameof(NoctuaAndroidBuildProcessor)}: Failed to write changes to unityLibrary-level build.gradle file. " +
-                                   $"Error: {e.Message}");
-                }
+                return;
             }
+
+            var manifestDoc = XDocument.Load(manifestPath);
+
+            if (noctuaConfig.Facebook is { AppId: not null, ClientToken: not null })
+            {
+                AddFacebookMetaData(manifestDoc, noctuaConfig.Facebook);
+
+                Log("Added Facebook meta-data to AndroidManifest.xml.");
+            }
+            else
+            {
+                RemoveFacebookMetaData(manifestDoc);
+
+                Log("Removed Facebook meta-data from AndroidManifest.xml.");
+            }
+
+            manifestDoc.Save(manifestPath);
+
+            Log("AndroidManifest.xml modified for Facebook App Events settings.");
+        }
+
+        private static void ModifyRootBuildGradle(string path, GlobalConfig noctuaConfig)
+        {
+            var rootGradlePath = Path.Combine(path, "build.gradle");
+
+            if (!File.Exists(rootGradlePath))
+            {
+                LogError($"Root build.gradle not found at path: {rootGradlePath}");
+
+                return;
+            }
+
+            var gradleContent = File.ReadAllText(rootGradlePath);
+            var googleServicesJsonPath = Path.Combine(Application.dataPath, "StreamingAssets", "google-services.json");
+            var firebaseEnabled = noctuaConfig.Firebase != null && File.Exists(googleServicesJsonPath);
+
+            if (firebaseEnabled && !gradleContent.Contains("com.google.gms.google-services"))
+            {
+                gradleContent = IncludeGoogleServicesPlugin(gradleContent);
+                File.WriteAllText(rootGradlePath, gradleContent);
+
+                Log("Added Google Services plugin to root build.gradle.");
+            }
+            else if (!firebaseEnabled && gradleContent.Contains("com.google.gms.google-services"))
+            {
+                gradleContent = ExcludeGoogleServicesPlugin(gradleContent);
+                File.WriteAllText(rootGradlePath, gradleContent);
+
+                Log("Removed Google Services plugin from root build.gradle.");
+            }
+        }
+
+        private static void ModifyLauncherBuildGradle(string path, GlobalConfig noctuaConfig)
+        {
+            var launcherGradlePath = Path.Combine(path, "launcher", "build.gradle");
+            
+            if (!File.Exists(launcherGradlePath))
+            {
+                LogError($"Launcher build.gradle not found at path: {launcherGradlePath}");
+
+                return;
+            }
+
+            var gradleContent = File.ReadAllText(launcherGradlePath);
+            var googleServicesJsonPath = Path.Combine(Application.dataPath, "StreamingAssets", "google-services.json");
+            var firebaseEnabled = noctuaConfig.Firebase != null && File.Exists(googleServicesJsonPath);
+
+            if (firebaseEnabled && !gradleContent.Contains("com.google.gms.google-services"))
+            {
+                gradleContent = ApplyGoogleServicesPlugin(gradleContent);
+                File.WriteAllText(launcherGradlePath, gradleContent);
+
+                Log("Added Google Services plugin to launcher build.gradle.");
+            }
+            else if (!firebaseEnabled && gradleContent.Contains("com.google.gms.google-services"))
+            {
+                gradleContent = RemoveGoogleServicesPlugin(gradleContent);
+                File.WriteAllText(launcherGradlePath, gradleContent);
+
+                Log("Removed Google Services plugin from launcher build.gradle.");
+            }
+        }
+
+        private static void CopyOrRemoveGoogleServicesJson(string rootProjectPath, GlobalConfig noctuaConfig)
+        {
+            var googleServicesJsonPath = Path.Combine(Application.dataPath, "StreamingAssets", "google-services.json");
+            var isGoogleServicesEnabled = noctuaConfig.Firebase != null && File.Exists(googleServicesJsonPath);
+            var destinationPath = Path.Combine(rootProjectPath, "launcher", "google-services.json");
+
+            if (isGoogleServicesEnabled)
+            {
+                File.Copy(googleServicesJsonPath, destinationPath, true);
+
+                Log("Copied google-services.json to launcher folder.");
+            }
+            else if (File.Exists(destinationPath))
+            {
+                File.Delete(destinationPath);
+
+                Log("Removed google-services.json from launcher folder.");
+            }
+        }
+
+        private static void AddFacebookMetaData(XDocument manifestDoc, FacebookConfig facebookConfig)
+        {
+            if (facebookConfig == null)
+            {
+                LogWarning("Cannot add Facebook meta-data to AndroidManifest.xml. Facebook config is null.");
+
+                return;
+            }
+
+            var appNode = manifestDoc.Root?.Element("application");
+
+            if (appNode == null)
+            {
+                LogError("Failed to find application node in AndroidManifest.xml.");
+
+                return;
+            }
+
+            XNamespace ns = "http://schemas.android.com/apk/res/android";
+
+            var fbAppIdNode = appNode.Descendants().FirstOrDefault(
+                node =>
+                    node.Name.LocalName == "meta-data" &&
+                    node.Attributes().Any(attr => attr.Name == ns+"name" && attr.Value == "com.facebook.sdk.ApplicationId")
+            );
+
+            fbAppIdNode?.Remove();
+
+            appNode.Add(
+                new XElement(
+                    "meta-data",
+                    new XAttribute(ns + "name", "com.facebook.sdk.ApplicationId"),
+                    new XAttribute(ns + "value", "fb"+ facebookConfig.AppId)
+                )
+            );
+
+            var fbClientTokenNode = appNode.Descendants().FirstOrDefault(
+                node =>
+                    node.Name.LocalName == "meta-data" &&
+                    node.Attributes().Any(attr => attr.Name == ns+"name" && attr.Value == "com.facebook.sdk.ClientToken")
+            );
+            
+            fbClientTokenNode?.Remove();
+
+            appNode.Add(
+                new XElement(
+                    "meta-data",
+                    new XAttribute(ns + "name", "com.facebook.sdk.ClientToken"),
+                    new XAttribute(ns + "value", facebookConfig.ClientToken)
+                )
+            );
+        }
+
+        private static void RemoveFacebookMetaData(XDocument manifestDoc)
+        {
+            var appNode = manifestDoc.Root?.Element("application");
+
+            if (appNode == null)
+            {
+                LogWarning("Failed to find application node in AndroidManifest.xml.");
+
+                return;
+            }
+
+            appNode.Descendants().FirstOrDefault(e => e.Attributes().Any(attr => attr.Value is "com.facebook.sdk.ApplicationId"))?.Remove();
+            appNode.Descendants().FirstOrDefault(e => e.Attributes().Any(attr => attr.Value is "com.facebook.sdk.ClientToken"))?.Remove();
+        }
+
+        private static string ApplyGoogleServicesPlugin(string gradleContent)
+        {
+            const string applyPluginString = "apply plugin:";
+            const string pluginEntry = "apply plugin: 'com.google.gms.google-services'\n";
+
+            var index = gradleContent.IndexOf(applyPluginString, StringComparison.Ordinal);
+
+            if (index < 0)
+            {
+                index = gradleContent.Length - 1;
+                gradleContent += "\n";
+            }
+
+            gradleContent = gradleContent.Insert(index, pluginEntry);
+
+            return gradleContent;
+        }
+
+        private static string RemoveGoogleServicesPlugin(string gradleContent)
+        {
+            return gradleContent.Replace("apply plugin: 'com.google.gms.google-services'\n", string.Empty);
+        }
+
+        private static string IncludeGoogleServicesPlugin(string gradleContent)
+        {
+            const string appPluginString = "plugins {";
+            var index = gradleContent.IndexOf(appPluginString, StringComparison.Ordinal);
+
+            if (index < 0)
+            {
+                Debug.LogError("Failed to find 'plugins {' in build.gradle file.");
+
+                return gradleContent;
+            }
+
+            const string pluginEntry = "\n    id 'com.google.gms.google-services' version '4.4.2' apply false";
+
+            gradleContent = gradleContent.Insert(index + appPluginString.Length, pluginEntry);
+
+            return gradleContent;
+        }
+
+        private static string ExcludeGoogleServicesPlugin(string gradleContent)
+        {
+            return gradleContent.Replace(
+                "\n    id 'com.google.gms.google-services' version '4.4.2' apply false",
+                string.Empty
+            );
+        }
+        
+        private static void Log(string message)
+        {
+            Debug.Log($"{nameof(NoctuaAndroidBuildProcessor)}: {message}");
+        }
+        
+        private static void LogError(string message)
+        {
+            Debug.LogError($"{nameof(NoctuaAndroidBuildProcessor)}: {message}");
+        }
+        
+        private static void LogWarning(string message)
+        {
+            Debug.LogWarning($"{nameof(NoctuaAndroidBuildProcessor)}: {message}");
         }
     }
 #endif

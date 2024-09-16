@@ -1,6 +1,6 @@
 {
     "name": "com.noctuagames.sdk.Editor",
-    "references": [],
+    "references": ["com.noctuagames.sdk"],
     "includePlatforms": [
         "Editor"
     ],

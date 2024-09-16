@@ -34,15 +34,35 @@ namespace com.noctuagames.sdk
 
         [JsonProperty("isSandbox")] public bool IsSandbox;
     }
+    
+    [Preserve]
+    public class FirebaseConfig
+    {
+        [JsonProperty("eventMap")] public Dictionary<string, string> EventMap = new();
+    }
+    
+    [Preserve]
+    public class FacebookConfig
+    {
+        [JsonProperty("appId"), JsonRequired] public string AppId;
+        
+        [JsonProperty("clientToken"), JsonRequired] public string ClientToken;
+        
+        [JsonProperty("eventMap")] public Dictionary<string, string> EventMap = new();
+    }
 
     [Preserve]
     public class GlobalConfig
     {
         [JsonProperty("clientId"), JsonRequired] public string ClientId;
 
-        [JsonProperty("adjust")] public AdjustConfig Adjust = new();
+        [JsonProperty("adjust")] public AdjustConfig Adjust;
 
-        [JsonProperty("noctua")] public NoctuaConfig Noctua = new();
+        [JsonProperty("firebase")] public FirebaseConfig Firebase;
+        
+        [JsonProperty("facebook")] public FacebookConfig Facebook;
+
+        [JsonProperty("noctua")] public NoctuaConfig Noctua;
     }
 
     public class Noctua
@@ -167,9 +187,7 @@ namespace com.noctuagames.sdk
                 config.Noctua.BaseUrl = NoctuaConfig.DefaultSandboxBaseUrl;
             }
 
-            Debug.Log($"Noctua.ClientId: {config.ClientId}");
-            Debug.Log($"Noctua.BaseUrl: {config.Noctua.BaseUrl}");
-            Debug.Log($"Noctua.TrackerUrl: {config.Noctua.TrackerUrl}");
+            Debug.Log($"Noctua config: \n{config.PrintFields()}");
 
             _auth = new NoctuaAuthentication(
                 new NoctuaAuthentication.Config
@@ -202,7 +220,6 @@ namespace com.noctuagames.sdk
         {
             Debug.Log("Noctua Init()");
 
-            Debug.Log("Noctua.Init() -> Checking if instance has been called");
             if (Instance.Value._initialized)
             {
                 Debug.Log("Noctua.Init() has been called");
