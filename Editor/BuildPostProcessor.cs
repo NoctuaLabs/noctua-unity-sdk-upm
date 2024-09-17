@@ -4,6 +4,7 @@ using System.Linq;
 using System.Xml;
 using System.Xml.Linq;
 using com.noctuagames.sdk;
+using Newtonsoft.Json;
 using UnityEngine;
 
 #if UNITY_IOS
@@ -13,7 +14,6 @@ using UnityEditor.iOS.Xcode;
 #endif
 
 #if UNITY_ANDROID
-using Newtonsoft.Json;
 using UnityEditor.Android;
 using UnityEditor.Graphs;
 #endif
@@ -21,64 +21,115 @@ using UnityEditor.Graphs;
 namespace Editor
 {
 #if UNITY_IOS
-    public class NoctuaBuildPostProcessor : MonoBehaviour
+    public class NoctuaIosBuildProcessor : MonoBehaviour
     {
         [PostProcessBuild]
         public static void IntegrateGoogleServices(BuildTarget buildTarget, string pathToBuiltProject)
         {
             if (buildTarget != BuildTarget.iOS) return;
             
-            Debug.Log($"{nameof(NoctuaBuildPostProcessor)}: IntegrateGoogleServices");
-            // Define the source and destination paths
-            var sourcePath = Path.Combine(Application.dataPath, "StreamingAssets/GoogleService-Info.plist");
-            
-            if (!File.Exists(sourcePath))
+            var noctuaConfigPath = Path.Combine(Application.dataPath, "StreamingAssets", "noctuagg.json");
+            var noctuaConfig = JsonConvert.DeserializeObject<GlobalConfig>(File.ReadAllText(noctuaConfigPath));
+
+            if (noctuaConfig == null)
             {
-                Debug.LogWarning(
-                    $"{nameof(NoctuaBuildPostProcessor)}: GoogleService-Info.plist not found at path: {sourcePath}. " +
-                    "Google services plugin will not be added."
-                );
+                LogError("Failed to parse noctuagg.json.");
 
                 return;
             }
             
-            Debug.Log($"{nameof(NoctuaBuildPostProcessor)}: sourcePath: " + sourcePath);
-            var destinationPath = Path.Combine(pathToBuiltProject, "GoogleService-Info.plist");
-            Debug.Log($"{nameof(NoctuaBuildPostProcessor)}: destinationPath: " + destinationPath);
+            var sourcePath = Path.Combine(Application.dataPath, "StreamingAssets/GoogleService-Info.plist");
+            
+            if (!File.Exists(sourcePath))
+            {
+                LogWarning("GoogleService-Info.plist not found. Disabling Firebase services.");
+            }
 
-            // Copy the file to the Xcode root folder
+            var firebaseEnabled = noctuaConfig.Firebase != null && File.Exists(sourcePath);
+        
+            var destinationPath = Path.Combine(pathToBuiltProject, "GoogleService-Info.plist");
+
+            if (!firebaseEnabled && File.Exists(destinationPath))
+            {
+                File.Delete(destinationPath);
+
+                Log("Deleted GoogleService-Info.plist from Xcode project folder.");
+            }
+            else if (firebaseEnabled)
+            {
+                try
+                {
+                    File.Copy(sourcePath, destinationPath, true);
+
+                    Log("Copied GoogleService-Info.plist to Xcode project folder.");
+                }
+                catch (Exception e)
+                {
+                    LogError($"Failed to copy GoogleService-Info.plist to path '{destinationPath}': {e.Message}");
+
+                    return;
+                }
+            }
+
+            var projPath = PBXProject.GetPBXProjectPath(pathToBuiltProject);
+            var proj = new PBXProject();
+
             try
             {
-                File.Copy(sourcePath, destinationPath, true);
+                proj.ReadFromFile(projPath);
             }
             catch (Exception e)
             {
-                Debug.LogError($"{nameof(NoctuaBuildPostProcessor)}: Failed to copy GoogleService-Info.plist to Xcode project. " +
-                               $"Error: {e.Message}");
+                LogError($"Failed to read Xcode project at path '{projPath}': {e.Message}");
+
+                return;
             }
 
-            // Load the Xcode project
-            var projPath = PBXProject.GetPBXProjectPath(pathToBuiltProject);
-            Debug.Log("BuildPostProcessor projPath: " + projPath);
-            var proj = new PBXProject();
-            proj.ReadFromFile(projPath);
-
-            // Get the target GUID
             var targetGuid = proj.GetUnityMainTargetGuid();
 
-            // Add the file to the Xcode project as a resource
-            proj.AddFileToBuild(targetGuid, proj.AddFile(destinationPath, "GoogleService-Info.plist"));
+            if (firebaseEnabled)
+            {
+                proj.AddFileToBuild(targetGuid, proj.AddFile(destinationPath, "GoogleService-Info.plist"));
 
-            // Write the changes to the Xcode project
+                Log("Added GoogleService-Info.plist to Xcode project.");
+            }
+            else
+            {
+                var googleServiceInfoGuid = proj.FindFileGuidByProjectPath("GoogleService-Info.plist");
+
+                if (googleServiceInfoGuid != null)
+                {
+                    proj.RemoveFile(googleServiceInfoGuid);
+
+                    Log("Removed GoogleService-Info.plist from Xcode project.");
+                }
+            }
+
             try
             {
                 proj.WriteToFile(projPath);
+
+                Log("Wrote changes to Xcode project.");
             }
             catch (Exception e)
             {
-                Debug.LogError($"{nameof(NoctuaBuildPostProcessor)}: Failed to write changes to Xcode project. " +
-                                 $"Error: {e.Message}");
+                LogError($"Failed to write changes to Xcode project at path '{projPath}': {e.Message}");
             }
+        }
+
+        private static void Log(string message)
+        {
+            Debug.Log($"{nameof(NoctuaIosBuildProcessor)}: {message}");
+        }
+        
+        private static void LogError(string message)
+        {
+            Debug.LogError($"{nameof(NoctuaIosBuildProcessor)}: {message}");
+        }
+        
+        private static void LogWarning(string message)
+        {
+            Debug.LogWarning($"{nameof(NoctuaIosBuildProcessor)}: {message}");
         }
     }
 
