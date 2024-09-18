@@ -306,6 +306,31 @@ namespace com.noctuagames.sdk
         [JsonProperty("extra")]
         public Dictionary<string, string> Extra;
     }
+
+    [Preserve]
+    public class EditProfileRequest
+    {
+        [JsonProperty("nickname")]
+        public string Nickname;
+
+        [JsonProperty("date_of_birth")]
+        public DateTime DateOfBirth;
+        
+        [JsonProperty("gender")]
+        public string Gender;
+
+        [JsonProperty("picture_url")]
+        public string PictureUrl;
+
+        [JsonProperty("language")]
+        public string Language;
+
+        [JsonProperty("country")]
+        public string Country;
+
+        [JsonProperty("currency")]
+        public string Currency;
+    }
     
     internal class NoctuaAuthenticationService
     {
@@ -485,6 +510,31 @@ namespace com.noctuagames.sdk
                 );
 
             return await request.Send<CredentialVerification>();
+        }
+
+        public async UniTask EditProfile(EditProfileRequest editProfileRequest)
+        {
+            if (string.IsNullOrEmpty(RecentAccount?.Player?.AccessToken)) {
+                throw NoctuaException.MissingAccessToken;
+            }
+
+             var request = new HttpRequest(HttpMethod.Post, $"{_baseUrl}/user/profile")
+                .WithHeader("X-CLIENT-ID", _clientId)
+                .WithHeader("X-BUNDLE-ID", Application.identifier)
+                .WithHeader("Authorization", "Bearer " + RecentAccount.Player.AccessToken)
+                .WithJsonBody(
+                    new EditProfileRequest
+                    {
+                        Nickname = editProfileRequest.Nickname,
+                        DateOfBirth = editProfileRequest.DateOfBirth,
+                        Gender = editProfileRequest.Gender,
+                        PictureUrl = editProfileRequest.PictureUrl,
+                        Language = editProfileRequest.Language,
+                        Country = editProfileRequest.Country,
+                        Currency = editProfileRequest.Currency
+                    }
+                );
+            _ = await request.Send<object>();
         }
 
         public async UniTask<UserBundle> VerifyEmailRegistrationAsync(int id, string code)
