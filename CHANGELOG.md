@@ -2,6 +2,40 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.7.0] - 2024-09-18
+
+### 🚀 Features
+
+- Implement account deletion with confirmation dialog.
+- Implement purchaseItem bridging against native SDK.
+- Icon two hand carousel
+- Code to show object in Noctua.uss
+- Uss code configuration for carousel
+- Add uxml carousel in user center
+- Add carousel logic in user center presenter
+- Wire up GetActiveCurrency for Android. Use UniTask for PurchaseItemAsync.
+- Apply facebook config to android project
+
+### 🐛 Bug Fixes
+
+- Ios bridging init
+- Truncate long PlayerName
+- Update iOS SDK version to fix JSON serialization crash
+- Show error on failed social link
+- Change auto properties to public fields to avoid code stripping
+- Remove get set to preserve deeply.
+- Make Firebase tracker works from Unity
+- Configure firebase Android from Unity
+- Facebook player avatar
+- Guest binding offer
+- Guest connect button
+- Remove GoogleService-Info.plist from project if Firebase disabled
+
+### 🚜 Refactor
+
+- Indicator style code to uss code
+- Remove comparation state
+
 ## [0.6.0] - 2024-09-09
 
 ### 🚀 Features
