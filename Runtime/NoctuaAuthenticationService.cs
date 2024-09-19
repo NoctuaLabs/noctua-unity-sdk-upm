@@ -1070,6 +1070,32 @@ namespace com.noctuagames.sdk
 
             OnAccountDeleted?.Invoke(currentPlayer);
         }
+
+        public async UniTask<string> FileUploader(string filePath)
+        {
+            if (string.IsNullOrEmpty(RecentAccount?.Player?.AccessToken)) {
+                throw NoctuaException.MissingAccessToken;
+            }
+
+            if (!System.IO.File.Exists(filePath))
+            {
+                throw new Exception($"File not found at {filePath}");
+            }
+
+            byte[] fileData = System.IO.File.ReadAllBytes(filePath);
+
+            var request = new HttpRequest(HttpMethod.Post, $"{_baseUrl}/user/profile-image")
+                .WithHeader("X-CLIENT-ID", _clientId)
+                .WithHeader("X-BUNDLE-ID", Application.identifier)
+                .WithHeader("Authorization", "Bearer " + RecentAccount.Player.AccessToken)
+                .WithRawBody(fileData);
+
+            string response = await request.SendRaw();
+            Newtonsoft.Json.Linq.JObject jObject = Newtonsoft.Json.Linq.JObject.Parse(response);
+            string fileUrl = jObject["data"]?["url"]?.ToString();
+
+            return fileUrl;
+        }
         
         internal class Config
         {
