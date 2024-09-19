@@ -68,12 +68,14 @@ namespace com.noctuagames.sdk
     public class Noctua
     {
         private static readonly Lazy<Noctua> Instance = new(() => new Noctua());
+        public static NoctuaEventService Event => Instance.Value._event;
         public static NoctuaAuthentication Auth => Instance.Value._auth;
         public static NoctuaIAPService IAP => Instance.Value._iap;
         public static NoctuaLocale Locale => Instance.Value._locale;
 
         public event Action<string> OnPurchaseDone;
 
+        private readonly NoctuaEventService _event;
         private readonly NoctuaAuthentication _auth;
         private readonly NoctuaIAPService _iap;
         private readonly NoctuaGameService _game;
@@ -82,7 +84,7 @@ namespace com.noctuagames.sdk
         #if UNITY_ANDROID && !UNITY_EDITOR
         private readonly GoogleBilling _googleBilling;
         #endif
-        private readonly INativePlugin _nativePlugin = GetNativePlugin();
+        private readonly INativePlugin _nativePlugin;
         private bool _initialized = false;
         // Event to forward purchase results to the users of this class
         private Noctua()
@@ -188,6 +190,9 @@ namespace com.noctuagames.sdk
             }
 
             Debug.Log($"Noctua config: \n{config.PrintFields()}");
+            
+            _nativePlugin = GetNativePlugin();
+            _event = new NoctuaEventService(_nativePlugin);
 
             _auth = new NoctuaAuthentication(
                 new NoctuaAuthentication.Config
@@ -276,34 +281,6 @@ namespace com.noctuagames.sdk
         public static void OnApplicationPause(bool pause)
         {
             Instance.Value._nativePlugin?.OnApplicationPause(pause);
-        }
-
-        public static void TrackAdRevenue(
-            string source,
-            double revenue,
-            string currency,
-            Dictionary<string, IConvertible> extraPayload = null
-        )
-        {
-            Instance.Value._nativePlugin?.TrackAdRevenue(source, revenue, currency, extraPayload);
-        }
-
-        public static void TrackPurchase(
-            string orderId,
-            double amount,
-            string currency,
-            Dictionary<string, IConvertible> extraPayload = null
-        )
-        {
-            Instance.Value._nativePlugin?.TrackPurchase(orderId, amount, currency, extraPayload);
-        }
-
-        public static void TrackCustomEvent(
-            string name,
-            Dictionary<string, IConvertible> extraPayload = null
-        )
-        {
-            Instance.Value._nativePlugin?.TrackCustomEvent(name, extraPayload);
         }
 
         public static void PurchaseItem(
