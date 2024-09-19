@@ -1,12 +1,6 @@
 using System;
-using System.Collections.Generic;
-using System.Linq;
 using UnityEngine;
 using UnityEngine.UIElements;
-using com.noctuagames.sdk.UI;
-using System.Threading.Tasks;
-using System.Text.RegularExpressions;
-using System.Globalization;
 
 namespace com.noctuagames.sdk.UI
 {
@@ -39,6 +33,10 @@ namespace com.noctuagames.sdk.UI
             var verificationCodeField = View.Q<TextField>("VerificationCode");
             var passwordField = View.Q<TextField>("PasswordTF");
             var rePasswordField = View.Q<TextField>("RePasswordTF");
+
+            verificationCodeField.value = "";
+            passwordField.value = "";
+            rePasswordField.value = "";
 
             passwordField.isPasswordField = true;
             rePasswordField.isPasswordField = true;

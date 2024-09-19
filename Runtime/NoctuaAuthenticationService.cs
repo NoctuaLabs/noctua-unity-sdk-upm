@@ -6,6 +6,7 @@ using Cysharp.Threading.Tasks;
 using Newtonsoft.Json;
 using UnityEngine;
 using UnityEngine.Scripting;
+using ArgumentNullException = System.ArgumentNullException;
 
 namespace com.noctuagames.sdk
 {
@@ -927,6 +928,26 @@ namespace com.noctuagames.sdk
         private UserBundle TransformTokenResponseToUserBundle(PlayerToken playerTokenResponse)
         {
             Debug.Log("TransformTokenResponseToUserBundle");
+            
+            if (playerTokenResponse == null)
+            {
+                throw new ArgumentNullException(nameof(playerTokenResponse));
+            }
+            
+            if (playerTokenResponse.User == null)
+            {
+                throw new ArgumentNullException(nameof(playerTokenResponse.User));
+            }
+            
+            if (playerTokenResponse.Player == null)
+            {
+                throw new ArgumentNullException(nameof(playerTokenResponse.Player));
+            }
+            
+            if (playerTokenResponse.Credential == null)
+            {
+                throw new ArgumentNullException(nameof(playerTokenResponse.Credential));
+            }
 
             var userBundle = new UserBundle
             {
@@ -939,11 +960,11 @@ namespace com.noctuagames.sdk
             
             Debug.Log("TransformTokenResponseToUserBundle Merge game related information to player");
 
-            userBundle.Player.BundleId = playerTokenResponse.GamePlatform.BundleId;
-            userBundle.Player.GameId = playerTokenResponse.Game.Id;
-            userBundle.Player.GamePlatformId = playerTokenResponse.GamePlatform.Id;
-            userBundle.Player.GamePlatform = playerTokenResponse.GamePlatform.Platform;
-            userBundle.Player.GameOS = playerTokenResponse.GamePlatform.OS;
+            userBundle.Player.BundleId = playerTokenResponse.GamePlatform?.BundleId;
+            userBundle.Player.GameId = playerTokenResponse.Game?.Id ?? 0;
+            userBundle.Player.GamePlatformId = playerTokenResponse.GamePlatform?.Id ?? 0;
+            userBundle.Player.GamePlatform = playerTokenResponse.GamePlatform?.Platform;
+            userBundle.Player.GameOS = playerTokenResponse.GamePlatform?.OS;
             userBundle.Player.AccessToken = playerTokenResponse.AccessToken;
             
             return userBundle;
