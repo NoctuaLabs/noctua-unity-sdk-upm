@@ -3,6 +3,7 @@ using System.IO;
 using System.Linq;
 using System.Xml;
 using System.Xml.Linq;
+using Newtonsoft.Json;
 using com.noctuagames.sdk;
 using Newtonsoft.Json;
 using UnityEngine;
@@ -23,7 +24,7 @@ namespace Editor
 #if UNITY_IOS
     public class NoctuaIosBuildProcessor : MonoBehaviour
     {
-        [PostProcessBuild]
+        [PostProcessBuild(1)]
         public static void IntegrateGoogleServices(BuildTarget buildTarget, string pathToBuiltProject)
         {
             if (buildTarget != BuildTarget.iOS) return;
@@ -364,8 +365,8 @@ namespace Editor
 
             if (index < 0)
             {
-                index = gradleContent.Length - 1;
                 gradleContent += "\n";
+                index = gradleContent.Length - 1;
             }
 
             gradleContent = gradleContent.Insert(index, pluginEntry);

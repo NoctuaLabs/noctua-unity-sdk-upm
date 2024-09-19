@@ -15,13 +15,13 @@ namespace com.noctuagames.sdk.UI
         private ListView _credentialListView;
         private Label _carouselLabel;
         private VisualElement _indicatorContainer;
-        private string[] _carouselItems = { 
+        private readonly string[] _carouselItems = { 
             "Unlock special benefits by owning a Noctua account", 
             "Protect your hard-earned progress and achievements",
             "Enjoy the flexibility to play your game on any device"
             };
-        private int _currentIndex = 0;
-        private float _slideInterval = 3f;
+        private int _currentIndex  = 0;
+        private const float SlideInterval = 3f;
 
 
         private readonly List<UserCredential> _credentials = new()
@@ -192,7 +192,7 @@ namespace com.noctuagames.sdk.UI
             UpdateCarouselText();
             HighlightCurrentIndicator();
 
-            InvokeRepeating(nameof(SlideToNextItem), _slideInterval, _slideInterval);
+            InvokeRepeating(nameof(SlideToNextItem), SlideInterval, SlideInterval);
         }
         
         private void OnDisable() 
@@ -331,28 +331,28 @@ namespace com.noctuagames.sdk.UI
         }
 
         private void UpdateUIGuest(bool isGuest) {
-            var _moreOptionsButton = View.Q<Button>("MoreOptionsButton");
-            var _guestContainer = View.Q<VisualElement>("UserGuestUI");
-            var _stayConnect = View.Q<Label>("ConnectAccountLabel");
+            var moreOptionsButton = View.Q<Button>("MoreOptionsButton");
+            var guestContainer = View.Q<VisualElement>("UserGuestUI");
+            var stayConnect = View.Q<Label>("ConnectAccountLabel");
 
             if(isGuest) {
-                _moreOptionsButton.AddToClassList("hide");
-                _moreOptionsButton.RemoveFromClassList("show");
+                moreOptionsButton.AddToClassList("hide");
+                moreOptionsButton.RemoveFromClassList("show");
                 _credentialListView.AddToClassList("hide");
                 _credentialListView.RemoveFromClassList("show");
-                _stayConnect.AddToClassList("hide");
-                _stayConnect.RemoveFromClassList("show");
-                _guestContainer.AddToClassList("show");
-                _guestContainer.RemoveFromClassList("hide");
+                stayConnect.AddToClassList("hide");
+                stayConnect.RemoveFromClassList("show");
+                guestContainer.AddToClassList("show");
+                guestContainer.RemoveFromClassList("hide");
             } else {
-                _moreOptionsButton.AddToClassList("show");
-                _moreOptionsButton.RemoveFromClassList("hide");
+                moreOptionsButton.AddToClassList("show");
+                moreOptionsButton.RemoveFromClassList("hide");
                 _credentialListView.AddToClassList("show");
                 _credentialListView.RemoveFromClassList("hide");
-                _stayConnect.AddToClassList("show");
-                _stayConnect.RemoveFromClassList("hide");
-                _guestContainer.AddToClassList("hide");
-                _guestContainer.RemoveFromClassList("show");
+                stayConnect.AddToClassList("show");
+                stayConnect.RemoveFromClassList("hide");
+                guestContainer.AddToClassList("hide");
+                guestContainer.RemoveFromClassList("show");
             }
         }
 

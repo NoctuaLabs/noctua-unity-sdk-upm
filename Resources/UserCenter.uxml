@@ -29,7 +29,7 @@
                 </ui:VisualElement>
             </ui:VisualElement>
             <ui:VisualElement name="UserProfileSpacing2" class="user-profile-spacing" />
-            <ui:VisualElement name="MoreOptionsMenu" class="more-options-menu">
+            <ui:VisualElement name="MoreOptionsMenu" class="more-options-menu hide">
                 <ui:VisualElement name="EditProfile" class="more-options-menu-item">
                     <ui:VisualElement class="edit-icon" />
                     <ui:Label text="Edit Profile" class="more-options-menu-item-label" />
