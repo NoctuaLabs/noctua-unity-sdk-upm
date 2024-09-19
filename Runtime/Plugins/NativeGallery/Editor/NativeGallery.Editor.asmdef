@@ -1,16 +1,8 @@
 {
-    "name": "com.noctuagames.sdk",
-    "rootNamespace": "com.noctuagames.sdk",
-    "references": [
-        "UniTask",
-        "UniWebView-CSharp",
-        "NativeGallery.Runtime"
-    ],
+    "name": "NativeGallery.Editor",
+    "references": [],
     "includePlatforms": [
-        "Android",
-        "Editor",
-        "iOS",
-        "WindowsStandalone64"
+        "Editor"
     ],
     "excludePlatforms": [],
     "allowUnsafeCode": false,
