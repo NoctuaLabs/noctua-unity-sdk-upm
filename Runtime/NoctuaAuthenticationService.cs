@@ -331,6 +331,32 @@ namespace com.noctuagames.sdk
         [JsonProperty("currency")]
         public string Currency;
     }
+
+    [Preserve]
+    public class ProfileOptionData
+    {
+        [JsonProperty("countries")]
+        public List<GeneralProfileData> Countries;
+        
+        [JsonProperty("languages")]
+        public List<GeneralProfileData> Languages;
+
+        [JsonProperty("currencies")]
+        public List<GeneralProfileData> Currencies;
+    }
+
+    [Preserve]
+    public class GeneralProfileData
+    {
+        [JsonProperty("iso_code")]
+        public string IsoCode;
+
+        [JsonProperty("native_name")]
+        public string NativeName;
+
+        [JsonProperty("english_name")]
+        public string EnglishName;
+    }
     
     internal class NoctuaAuthenticationService
     {
@@ -1095,6 +1121,20 @@ namespace com.noctuagames.sdk
             string fileUrl = jObject["data"]?["url"]?.ToString();
 
             return fileUrl;
+        }
+
+        public async UniTask<ProfileOptionData> GetProfileOptions(string filePath)
+        {
+            if (string.IsNullOrEmpty(RecentAccount?.Player?.AccessToken)) {
+                throw NoctuaException.MissingAccessToken;
+            }
+
+            var request = new HttpRequest(HttpMethod.Post, $"{_baseUrl}/user/profile-options")
+                .WithHeader("X-CLIENT-ID", _clientId)
+                .WithHeader("X-BUNDLE-ID", Application.identifier)
+                .WithHeader("Authorization", "Bearer " + RecentAccount.Player.AccessToken);
+
+            return await request.Send<ProfileOptionData>();
         }
         
         internal class Config
