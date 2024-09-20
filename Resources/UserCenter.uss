@@ -290,4 +290,18 @@
     background-color: white;
 }
 
-/* END */
+/* END User Center - Guest UI*/
+
+/* User Center - Edit Profile */
+.edit-profile-box {
+    justify-content: space-around;
+    align-items: stretch;
+    flex: 1;
+}
+
+.bottom-object {
+    height: 40px;
+    align-self: center;
+}
+
+/*END User Center - Edit Profile */

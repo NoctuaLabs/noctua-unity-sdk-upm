@@ -15,6 +15,15 @@ namespace com.noctuagames.sdk.UI
         private ListView _credentialListView;
         private Label _carouselLabel;
         private VisualElement _indicatorContainer;
+        private VisualElement _editProfileContainer;
+        private VisualElement _guestContainer;
+        private Label _stayConnect;
+        private VisualElement _hiTextContainer;
+        private Label _playerName;
+        private Button _moreOptionsMenuButton;
+        private Button _helpButton;
+        private VisualElement _copyIcon;
+
         private readonly string[] _carouselItems = { 
             "Unlock special benefits by owning a Noctua account", 
             "Protect your hard-earned progress and achievements",
@@ -22,6 +31,7 @@ namespace com.noctuagames.sdk.UI
             };
         private int _currentIndex  = 0;
         private const float SlideInterval = 3f;
+        private bool _isGuestUser = false;
 
 
         private readonly List<UserCredential> _credentials = new()
@@ -100,6 +110,7 @@ namespace com.noctuagames.sdk.UI
                 View.Q<Label>("PlayerName").text = isGuest ? "Guest " + user.Id  : user?.Nickname;
                 View.Q<Label>("UserIdLabel").text = user?.Id.ToString() ?? "";
 
+                _isGuestUser = user?.IsGuest ?? false;
                 UpdateUIGuest(isGuest);
                 
                 if (!string.IsNullOrEmpty(user?.PictureUrl))
@@ -156,10 +167,88 @@ namespace com.noctuagames.sdk.UI
         private void Awake()
         {
             _defaultAvatar = Resources.Load<Texture2D>("PlayerProfileBackground");
+            _editProfileContainer = View.Q<VisualElement>("EditProfileBox");
+
+            _guestContainer = View.Q<VisualElement>("UserGuestUI");
+            _stayConnect = View.Q<Label>("ConnectAccountLabel");
+            _hiTextContainer = View.Q<VisualElement>("HiText");
+            _playerName = View.Q<Label>("PlayerName");
+            _moreOptionsMenuButton = View.Q<Button>("MoreOptionsButton");
+            _helpButton = View.Q<Button>("HelpButton");
+            _copyIcon = View.Q<VisualElement>("CopyIcon");
+
+            _guestContainer.AddToClassList("hide");
+            _editProfileContainer.AddToClassList("hide");
+
             View.Q<VisualElement>("MoreOptionsMenu").RegisterCallback<PointerUpEvent>(OnMoreOptionsMenuSelected);
+            View.Q<VisualElement>("EditProfile").RegisterCallback<PointerUpEvent>(_ => OnEditProfile());
+            View.Q<VisualElement>("BackEditProfileHeader").RegisterCallback<PointerUpEvent>(_carouselItems => OnBackEditProfile());
             View.Q<VisualElement>("SwitchProfile").RegisterCallback<PointerUpEvent>(_ => OnSwitchProfile());
             View.Q<VisualElement>("LogoutAccount").RegisterCallback<PointerUpEvent>(_ => OnLogout());
+
+            //Edit Profile UI
+            View.Q<Button>("SaveButton").RegisterCallback<PointerUpEvent>(_ => OnSaveEditProfile());
         }
+
+        private void OnEditProfile() 
+        {
+            //remove class
+            _guestContainer.RemoveFromClassList("show");
+            _stayConnect.RemoveFromClassList("show");
+            _credentialListView.RemoveFromClassList("show");
+            _hiTextContainer.RemoveFromClassList("show");
+            _playerName.RemoveFromClassList("show");
+            _moreOptionsMenuButton.RemoveFromClassList("show");
+            _helpButton.RemoveFromClassList("show");
+            _copyIcon.RemoveFromClassList("show");
+
+            //add class
+            _moreOptionsMenuButton.AddToClassList("hide");
+            _helpButton.AddToClassList("hide");
+            _copyIcon.AddToClassList("hide");
+            _guestContainer.AddToClassList("hide");
+            _hiTextContainer.AddToClassList("hide");
+            _playerName.AddToClassList("hide");
+            _editProfileContainer.AddToClassList("show");
+        }
+
+        private void OnBackEditProfile() 
+        {
+            //remove class
+            _editProfileContainer.RemoveFromClassList("show");
+            _guestContainer.RemoveFromClassList("hide");
+            _stayConnect.RemoveFromClassList("hide");
+            _credentialListView.RemoveFromClassList("hide");
+            _hiTextContainer.RemoveFromClassList("hide");
+            _playerName.RemoveFromClassList("hide");
+            _moreOptionsMenuButton.RemoveFromClassList("hide");
+            _helpButton.RemoveFromClassList("hide");
+            _copyIcon.RemoveFromClassList("hide");
+
+            //add class
+            _editProfileContainer.AddToClassList("hide");
+            _hiTextContainer.AddToClassList("show");
+            _playerName.AddToClassList("show");
+            _moreOptionsMenuButton.AddToClassList("show");
+            _helpButton.AddToClassList("show");
+            _copyIcon.AddToClassList("show");
+
+            if(_isGuestUser) {
+                _credentialListView.AddToClassList("hide");
+                _stayConnect.AddToClassList("hide");
+                _guestContainer.AddToClassList("show");
+            } else {
+                _guestContainer.AddToClassList("hide");
+                _credentialListView.AddToClassList("show");
+                _stayConnect.AddToClassList("show");
+            }
+            
+        }
+
+        private void OnSaveEditProfile()
+        {
+
+        } 
 
         private void OnSwitchProfile()
         {

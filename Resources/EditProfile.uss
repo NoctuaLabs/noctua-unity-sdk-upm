@@ -1,9 +1,0 @@
-.root-container-left {
-    flex-grow: 1;
-    justify-content: flex-between;
-    padding: 10px;
-}
-
-.bottom-object {
-    align-self: center;
-}
