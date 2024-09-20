@@ -57,8 +57,7 @@ namespace com.noctuagames.sdk
             _panelSettings = Resources.Load<PanelSettings>("NoctuaPanelSettings");
             _panelSettings.themeStyleSheet = Resources.Load<ThemeStyleSheet>("NoctuaTheme");
             _uiFactory = new UIFactory("NoctuaAuthenticationUI");
-            _uiModel = new AuthenticationModel(_uiFactory);
-            _uiModel.AuthService = _service;
+            _uiModel = new AuthenticationModel(_uiFactory, _service);
         }
 
         public UserBundle GetRecentAccount()
