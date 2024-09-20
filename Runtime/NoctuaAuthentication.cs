@@ -11,8 +11,10 @@ using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Web;
+using com.noctuagames.sdk.UI;
 using UnityEngine.EventSystems;
 using UnityEngine.Scripting;
+using UnityEngine.UIElements;
 
 namespace com.noctuagames.sdk
 {
@@ -42,8 +44,9 @@ namespace com.noctuagames.sdk
         }
 
         private readonly Config _config;
-        private readonly GameObject _uiObject;
-        private readonly NoctuaAuthenticationBehaviour _uiComponent;
+        private readonly PanelSettings _panelSettings;
+        private readonly UIFactory _uiFactory;
+        private readonly AuthenticationModel _uiModel;
         private readonly NoctuaAuthenticationService _service;
         private OauthRedirectListener _oauthOauthRedirectListener;
 
@@ -51,9 +54,11 @@ namespace com.noctuagames.sdk
         {
             _service = new NoctuaAuthenticationService(config.BaseUrl, config.ClientId);
             
-            _uiObject = new GameObject("NoctuaAuthenticationUI");
-            _uiComponent = _uiObject.AddComponent<NoctuaAuthenticationBehaviour>();
-            _uiComponent.AuthService = _service;
+            _panelSettings = Resources.Load<PanelSettings>("NoctuaPanelSettings");
+            _panelSettings.themeStyleSheet = Resources.Load<ThemeStyleSheet>("NoctuaTheme");
+            _uiFactory = new UIFactory("NoctuaAuthenticationUI");
+            _uiModel = new AuthenticationModel(_uiFactory);
+            _uiModel.AuthService = _service;
         }
 
         public UserBundle GetRecentAccount()
@@ -162,7 +167,7 @@ namespace com.noctuagames.sdk
 
         public async UniTask<UserBundle> SocialLoginAsync(string provider)
         {
-            return await _uiComponent.SocialLoginAsync(provider);
+            return await _uiModel.SocialLoginAsync(provider);
         }
 
         public async UniTask<UserBundle> UpdatePlayerAccountAsync(PlayerAccountData playerAccountData)
@@ -185,7 +190,7 @@ namespace com.noctuagames.sdk
 
         public void ShowUserCenter()
         {
-            _uiComponent.ShowUserCenter();
+            _uiModel.ShowUserCenter();
         }
 
         /// <summary>
@@ -193,19 +198,19 @@ namespace com.noctuagames.sdk
         /// </summary>
         public void SwitchAccount()
         {
-            _uiComponent.ShowAccountSelection();
+            _uiModel.ShowAccountSelection();
         }
 
         // TODO not a public facing API, need to be removed
         public void ShowRegisterDialogUI()
         {
-            _uiComponent.ShowEmailRegistration(true);
+            _uiModel.ShowEmailRegistration(true);
         }
 
         // TODO not a public facing API, need to be removed
         public void ShowEmailVerificationDialogUI()
         {
-            _uiComponent.ShowEmailVerification("foo", "bar", 123);
+            _uiModel.ShowEmailVerification("foo", "bar", 123);
         }
         
         internal class Config

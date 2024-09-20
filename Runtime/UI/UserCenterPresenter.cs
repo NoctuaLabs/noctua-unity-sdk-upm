@@ -8,7 +8,7 @@ using UnityEngine.UIElements;
 
 namespace com.noctuagames.sdk.UI
 {
-    internal class UserCenterPresenter : Presenter<NoctuaAuthenticationBehaviour>
+    internal class UserCenterPresenter : Presenter<AuthenticationModel>
     {
         private VisualTreeAsset _itemTemplate;
         private Texture2D _defaultAvatar;

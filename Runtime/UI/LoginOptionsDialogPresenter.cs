@@ -5,7 +5,7 @@ using UnityEngine.UIElements;
 
 namespace com.noctuagames.sdk.UI
 {
-    internal class LoginOptionsDialogPresenter : Presenter<NoctuaAuthenticationBehaviour>
+    internal class LoginOptionsDialogPresenter : Presenter<AuthenticationModel>
     {
         private Button _loginWithGoogleButton;
         private Button _loginWithFacebookButton;

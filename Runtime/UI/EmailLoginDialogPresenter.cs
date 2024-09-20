@@ -17,7 +17,7 @@ namespace com.noctuagames.sdk.UI
         public Exception Error { get; set; }
     }
     
-    internal class EmailLoginDialogPresenter : Presenter<NoctuaAuthenticationBehaviour>
+    internal class EmailLoginDialogPresenter : Presenter<AuthenticationModel>
     {
         private string _email;
         private string _password;

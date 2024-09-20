@@ -10,7 +10,7 @@ using Cysharp.Threading.Tasks;
 
 namespace com.noctuagames.sdk.UI
 {
-    internal class AccountSelectionDialogPresenter : Presenter<NoctuaAuthenticationBehaviour>
+    internal class AccountSelectionDialogPresenter : Presenter<AuthenticationModel>
     {
         private VisualTreeAsset _itemTemplate;
         private ListView _gameAccountListView;

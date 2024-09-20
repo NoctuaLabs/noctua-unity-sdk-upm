@@ -5,7 +5,7 @@ using UnityEngine.UIElements;
 
 namespace com.noctuagames.sdk.UI
 {
-    internal class WelcomeNotificationPresenter : Presenter<NoctuaAuthenticationBehaviour>
+    internal class WelcomeNotificationPresenter : Presenter<AuthenticationModel>
     {
         private VisualElement _root;
         private Label _playerName;

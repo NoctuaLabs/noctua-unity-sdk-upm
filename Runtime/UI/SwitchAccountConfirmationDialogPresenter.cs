@@ -3,7 +3,7 @@ using UnityEngine.UIElements;
 
 namespace com.noctuagames.sdk.UI
 {
-    internal class SwitchAccountConfirmationDialogPresenter : Presenter<NoctuaAuthenticationBehaviour>
+    internal class SwitchAccountConfirmationDialogPresenter : Presenter<AuthenticationModel>
     {
 
         private UserBundle _recentAccount;

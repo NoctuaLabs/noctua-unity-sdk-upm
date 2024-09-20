@@ -6,7 +6,7 @@ using UnityEngine.UIElements;
 
 namespace com.noctuagames.sdk.UI
 {
-    internal class EmailVerificationDialogPresenter : Presenter<NoctuaAuthenticationBehaviour>
+    internal class EmailVerificationDialogPresenter : Presenter<AuthenticationModel>
     {
         private string _email;
         private string _password;

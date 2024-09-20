@@ -9,7 +9,6 @@ namespace com.noctuagames.sdk.UI
         protected TModel Model;
         protected VisualElement View;
 
-        private GameObject _uiGameObject;
         private UIDocument _uiDoc;
 
         public virtual bool Visible
@@ -56,9 +55,7 @@ namespace com.noctuagames.sdk.UI
         {
             var viewResourceName = GetType().Name.Replace("Presenter", "");
 
-            _uiGameObject = new GameObject(viewResourceName);
-            _uiGameObject.transform.SetParent(gameObject.transform);
-            _uiDoc = _uiGameObject.AddComponent<UIDocument>();
+            _uiDoc = gameObject.AddComponent<UIDocument>();
 
             var visualTreeAsset = Resources.Load<VisualTreeAsset>(viewResourceName);
 

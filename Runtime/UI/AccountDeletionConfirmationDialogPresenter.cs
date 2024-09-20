@@ -3,7 +3,7 @@ using UnityEngine.UIElements;
 
 namespace com.noctuagames.sdk.UI
 {
-    internal class AccountDeletionConfirmationDialogPresenter : Presenter<NoctuaAuthenticationBehaviour>
+    internal class AccountDeletionConfirmationDialogPresenter : Presenter<AuthenticationModel>
     {
 
         private UserBundle _recentAccount;

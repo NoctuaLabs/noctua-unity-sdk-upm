@@ -10,7 +10,7 @@ using System.Globalization;
 
 namespace com.noctuagames.sdk.UI
 {
-    internal class EmailRegisterDialogPresenter : Presenter<NoctuaAuthenticationBehaviour>
+    internal class EmailRegisterDialogPresenter : Presenter<AuthenticationModel>
     {
         private string _email;
         private string _password;

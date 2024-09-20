@@ -26,33 +26,32 @@ namespace com.noctuagames.sdk
     2. Model: main logics + public facing API
     3. API: the actual model, where we talk to either HTTP API or local storage like player prefs. (TODO)
 
-    NoctuaAuthenticationBehavour purposes:
+    AuthenticationModel purposes:
     1. To allow our SDK instance (including UI) to be injected into the Scene
     3. To allow an UI presenter call another UI presenter
     2. To allow model layer (logic) to call an UI presenter
     */
 
-    internal class NoctuaAuthenticationBehaviour : MonoBehaviour
+    internal class AuthenticationModel
     {
-        private PanelSettings _panelSettings;
-        private UIDocument _uiDocument;
-        
         // IMPORTANT NOTES!!!
         // Your UI need to apply USS absolute property to the first VisualElement of the UI
         // before being added to the UI Document.
         // Violation of this rule will cause the UI (and the other UI too) to be unable to be displayed properly.
-        private AccountSelectionDialogPresenter _accountSelectionDialog;
-        private SwitchAccountConfirmationDialogPresenter _switchAccountConfirmationDialog;
-        private LoginOptionsDialogPresenter _loginOptionsDialog;
-        private EmailLoginDialogPresenter _emailLoginDialog;
-        private EmailRegisterDialogPresenter _emailRegisterDialog;
-        private EmailVerificationDialogPresenter _emailVerificationDialog;
-        private WelcomeNotificationPresenter _welcome;
-        private EmailResetPasswordDialogPresenter _emailResetPasswordDialog;
-        private EmailConfirmResetPasswordDialogPresenter _emailConfirmResetPasswordDialog;
-        private UserCenterPresenter _userCenter;
-        private GeneralNotificationPresenter _generalNotification;
-        private AccountDeletionConfirmationDialogPresenter _accountDeletionConfirmationDialog;
+        private readonly UIFactory _uiFactory;
+        
+        private readonly AccountSelectionDialogPresenter _accountSelectionDialog;
+        private readonly SwitchAccountConfirmationDialogPresenter _switchAccountConfirmationDialog;
+        private readonly LoginOptionsDialogPresenter _loginOptionsDialog;
+        private readonly EmailLoginDialogPresenter _emailLoginDialog;
+        private readonly EmailRegisterDialogPresenter _emailRegisterDialog;
+        private readonly EmailVerificationDialogPresenter _emailVerificationDialog;
+        private readonly WelcomeNotificationPresenter _welcome;
+        private readonly EmailResetPasswordDialogPresenter _emailResetPasswordDialog;
+        private readonly EmailConfirmResetPasswordDialogPresenter _emailConfirmResetPasswordDialog;
+        private readonly UserCenterPresenter _userCenter;
+        private readonly GeneralNotificationPresenter _generalNotification;
+        private readonly AccountDeletionConfirmationDialogPresenter _accountDeletionConfirmationDialog;
 
         private NoctuaAuthenticationService _authService;
         
@@ -81,51 +80,22 @@ namespace com.noctuagames.sdk
 
         private AuthType _currentAuthType = AuthType.SwitchAccount;
 
-        private void Awake()
+        internal AuthenticationModel(UIFactory uiFactory)
         {
-            gameObject.SetActive(false);
+            _uiFactory = uiFactory;
             
-            _panelSettings = Resources.Load<PanelSettings>("NoctuaPanelSettings");
-            _panelSettings.themeStyleSheet = Resources.Load<ThemeStyleSheet>("NoctuaTheme");
-            
-            _userCenter = gameObject.AddComponent<UserCenterPresenter>();
-            _userCenter.Init(this, _panelSettings);
-
-            _accountSelectionDialog = gameObject.AddComponent<AccountSelectionDialogPresenter>();
-            _accountSelectionDialog.Init(this, _panelSettings);
-
-            _switchAccountConfirmationDialog = gameObject.AddComponent<SwitchAccountConfirmationDialogPresenter>();
-            _switchAccountConfirmationDialog.Init(this, _panelSettings);
-
-            _loginOptionsDialog = gameObject.AddComponent<LoginOptionsDialogPresenter>();
-            _loginOptionsDialog.Init(this, _panelSettings);
-
-            _emailLoginDialog = gameObject.AddComponent<EmailLoginDialogPresenter>();
-            _emailLoginDialog.Init(this, _panelSettings);
-
-            _emailVerificationDialog = gameObject.AddComponent<EmailVerificationDialogPresenter>();
-            _emailVerificationDialog.Init(this, _panelSettings);
-
-            _emailRegisterDialog = gameObject.AddComponent<EmailRegisterDialogPresenter>();
-            _emailRegisterDialog.Init(this, _panelSettings);
-
-            _emailResetPasswordDialog = gameObject.AddComponent<EmailResetPasswordDialogPresenter>();
-            _emailResetPasswordDialog.Init(this, _panelSettings);
-
-            _emailConfirmResetPasswordDialog = gameObject.AddComponent<EmailConfirmResetPasswordDialogPresenter>();
-            _emailConfirmResetPasswordDialog.Init(this, _panelSettings);
-
-            _accountDeletionConfirmationDialog = gameObject.AddComponent<AccountDeletionConfirmationDialogPresenter>();
-            _accountDeletionConfirmationDialog.Init(this, _panelSettings);
-            
-            _generalNotification = gameObject.AddComponent<GeneralNotificationPresenter>();
-            _generalNotification.Init(this, _panelSettings);
-
-            _welcome = gameObject.AddComponent<WelcomeNotificationPresenter>();
-            _welcome.Init(this, _panelSettings);
-            
-            gameObject.SetActive(true);
-
+            _userCenter = _uiFactory.Create<UserCenterPresenter, AuthenticationModel>(this);
+            _accountSelectionDialog = _uiFactory.Create<AccountSelectionDialogPresenter, AuthenticationModel>(this);
+            _switchAccountConfirmationDialog = _uiFactory.Create<SwitchAccountConfirmationDialogPresenter, AuthenticationModel>(this);
+            _loginOptionsDialog = _uiFactory.Create<LoginOptionsDialogPresenter, AuthenticationModel>(this);
+            _emailLoginDialog = _uiFactory.Create<EmailLoginDialogPresenter, AuthenticationModel>(this);
+            _emailVerificationDialog = _uiFactory.Create<EmailVerificationDialogPresenter, AuthenticationModel>(this);
+            _emailRegisterDialog = _uiFactory.Create<EmailRegisterDialogPresenter, AuthenticationModel>(this);
+            _emailResetPasswordDialog = _uiFactory.Create<EmailResetPasswordDialogPresenter, AuthenticationModel>(this);
+            _emailConfirmResetPasswordDialog = _uiFactory.Create<EmailConfirmResetPasswordDialogPresenter, AuthenticationModel>(this);
+            _accountDeletionConfirmationDialog = _uiFactory.Create<AccountDeletionConfirmationDialogPresenter, AuthenticationModel>(this);
+            _generalNotification = _uiFactory.Create<GeneralNotificationPresenter, AuthenticationModel>(this);
+            _welcome = _uiFactory.Create<WelcomeNotificationPresenter, AuthenticationModel>(this);
         }
         
         internal void PushNavigation(Action action)

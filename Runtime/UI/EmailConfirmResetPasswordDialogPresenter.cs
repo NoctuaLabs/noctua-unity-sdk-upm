@@ -4,7 +4,7 @@ using UnityEngine.UIElements;
 
 namespace com.noctuagames.sdk.UI
 {
-    internal class EmailConfirmResetPasswordDialogPresenter : Presenter<NoctuaAuthenticationBehaviour>
+    internal class EmailConfirmResetPasswordDialogPresenter : Presenter<AuthenticationModel>
     {
         private string _credVerifyCode;
         private string _password;
