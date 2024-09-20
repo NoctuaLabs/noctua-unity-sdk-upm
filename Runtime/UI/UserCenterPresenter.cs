@@ -1,10 +1,12 @@
 ﻿using System;
+using System.Globalization;
 using System.Collections;
 using System.Collections.Generic;
 using Cysharp.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.Networking;
 using UnityEngine.UIElements;
+using System.Text.RegularExpressions;
 
 namespace com.noctuagames.sdk.UI
 {
@@ -13,16 +15,34 @@ namespace com.noctuagames.sdk.UI
         private VisualTreeAsset _itemTemplate;
         private Texture2D _defaultAvatar;
         private ListView _credentialListView;
-        private Label _carouselLabel;
-        private VisualElement _indicatorContainer;
-        private VisualElement _editProfileContainer;
-        private VisualElement _guestContainer;
         private Label _stayConnect;
         private VisualElement _hiTextContainer;
         private Label _playerName;
         private Button _moreOptionsMenuButton;
         private Button _helpButton;
         private VisualElement _copyIcon;
+        private VisualElement _connectAccountFooter;
+
+        //Edit Profile UI
+        private VisualElement _editProfileContainer;
+        private TextField _nicknameTF;
+        private TextField _birthDateTF;
+        private DropdownField _genderTF;
+        private DropdownField _countryTF;
+        private DropdownField _languageTF;
+        private DropdownField _currencyTF;
+        private Button _changeProfile;
+        private string _newProfileUrl;
+
+        //Date Picker
+
+        // Regular expression to match the DD/MM/YYYY format
+        private readonly string datePattern = @"^([0-2][0-9]|(3)[0-1])/((0)[0-9]|(1)[0-2])/((19|20)\d\d)$";
+
+        // Suggest Bind UI
+        private VisualElement _guestContainer;
+        private Label _carouselLabel;
+        private VisualElement _indicatorContainer;
 
         private readonly string[] _carouselItems = { 
             "Unlock special benefits by owning a Noctua account", 
@@ -110,6 +130,21 @@ namespace com.noctuagames.sdk.UI
                 View.Q<Label>("PlayerName").text = isGuest ? "Guest " + user.Id  : user?.Nickname;
                 View.Q<Label>("UserIdLabel").text = user?.Id.ToString() ?? "";
 
+                //Edit Profile - Setup Data
+                if(!isGuest) {
+                    _nicknameTF.value = user?.Nickname;
+                    _newProfileUrl = user?.PictureUrl;
+
+                    DateTime dateTime = DateTime.Parse(user?.DateOfBirth, null, DateTimeStyles.RoundtripKind);
+                    string formattedDate = dateTime.ToString("dd/MM/yyyy", CultureInfo.InvariantCulture);
+                    
+                    _birthDateTF.value = formattedDate;
+                    _genderTF.value = user?.Gender;
+                    _countryTF.value = user?.Country;
+                    _languageTF.value = user?.Language;
+                    _currencyTF.value = user?.Currency;
+                }
+
                 _isGuestUser = user?.IsGuest ?? false;
                 UpdateUIGuest(isGuest);
                 
@@ -167,18 +202,14 @@ namespace com.noctuagames.sdk.UI
         private void Awake()
         {
             _defaultAvatar = Resources.Load<Texture2D>("PlayerProfileBackground");
-            _editProfileContainer = View.Q<VisualElement>("EditProfileBox");
 
-            _guestContainer = View.Q<VisualElement>("UserGuestUI");
             _stayConnect = View.Q<Label>("ConnectAccountLabel");
             _hiTextContainer = View.Q<VisualElement>("HiText");
             _playerName = View.Q<Label>("PlayerName");
             _moreOptionsMenuButton = View.Q<Button>("MoreOptionsButton");
             _helpButton = View.Q<Button>("HelpButton");
             _copyIcon = View.Q<VisualElement>("CopyIcon");
-
-            _guestContainer.AddToClassList("hide");
-            _editProfileContainer.AddToClassList("hide");
+            _connectAccountFooter = View.Q<VisualElement>("ConnectAccountFooter");
 
             View.Q<VisualElement>("MoreOptionsMenu").RegisterCallback<PointerUpEvent>(OnMoreOptionsMenuSelected);
             View.Q<VisualElement>("EditProfile").RegisterCallback<PointerUpEvent>(_ => OnEditProfile());
@@ -186,8 +217,173 @@ namespace com.noctuagames.sdk.UI
             View.Q<VisualElement>("SwitchProfile").RegisterCallback<PointerUpEvent>(_ => OnSwitchProfile());
             View.Q<VisualElement>("LogoutAccount").RegisterCallback<PointerUpEvent>(_ => OnLogout());
 
+            //Suggest Bind UI
+            _guestContainer = View.Q<VisualElement>("UserGuestUI");
+            _guestContainer.AddToClassList("hide");
+
             //Edit Profile UI
+            SetupEditProfileUI();
+
             View.Q<Button>("SaveButton").RegisterCallback<PointerUpEvent>(_ => OnSaveEditProfile());
+        }
+
+        private void SetupDatePickerUI()
+        {
+            _birthDateTF = View.Q<TextField>("BirthdateTF");
+
+            // Register the callback for each text change
+            _birthDateTF.RegisterCallback<ChangeEvent<string>>(evt => OnDateFieldChanged(evt.newValue));
+
+            // Register the callback for when the field loses focus
+            _birthDateTF.RegisterCallback<FocusOutEvent>(evt => ValidateDate());
+
+        }
+
+        private void OnDateFieldChanged(string newValue)
+        {
+            string formattedValue = AutoFormatDate(newValue);
+
+            AdjustHideLabelElement(_birthDateTF);
+            
+            // To prevent the callback from triggering an infinite loop, we need to check if the value has changed
+            if (_birthDateTF.value != formattedValue)
+            {
+                _birthDateTF.value = formattedValue;
+            }
+        }
+
+        private string AutoFormatDate(string input)
+        {
+            // Remove all non-numeric characters
+            string digitsOnly = Regex.Replace(input, @"[^0-9]", "");
+
+            // Format as DD/MM/YYYY
+            if (digitsOnly.Length > 8)
+                digitsOnly = digitsOnly.Substring(0, 8); // Limit input length to 8 digits
+
+            switch (digitsOnly.Length)
+            {
+                case > 6:
+                    return $"{digitsOnly.Substring(0, 2)}/{digitsOnly.Substring(2, 2)}/{digitsOnly.Substring(4, 4)}";
+                case > 4:
+                    return $"{digitsOnly.Substring(0, 2)}/{digitsOnly.Substring(2, 2)}/{digitsOnly.Substring(4)}";
+                case > 2:
+                    return $"{digitsOnly.Substring(0, 2)}/{digitsOnly.Substring(2)}";
+                default:
+                    return digitsOnly;
+            }
+        }
+
+        private void ValidateDate()
+        {
+            string dateText = _birthDateTF.value;
+
+            if (IsDateValid(dateText))
+            {
+                _birthDateTF.style.borderTopColor = Color.green;
+                _birthDateTF.style.borderBottomColor = Color.green;
+                _birthDateTF.style.borderLeftColor = Color.green;
+                _birthDateTF.style.borderRightColor = Color.green;
+            }
+            else
+            {
+                _birthDateTF.style.borderTopColor = Color.red;
+                _birthDateTF.style.borderBottomColor = Color.red;
+                _birthDateTF.style.borderLeftColor = Color.red;
+                _birthDateTF.style.borderRightColor = Color.red;
+
+                Debug.LogError("Invalid date format! Please use DD/MM/YYYY.");
+            }
+        }
+
+        private bool IsDateValid(string dateText)
+        {
+            // Use regular expression to check if the input matches the DD/MM/YYYY format
+            return Regex.IsMatch(dateText, datePattern);
+        }
+
+        private void SetupEditProfileUI() 
+        {
+            _editProfileContainer = View.Q<VisualElement>("EditProfileBox");
+            _editProfileContainer.AddToClassList("hide");
+
+            _nicknameTF = View.Q<TextField>("NicknameTF");
+            _genderTF = View.Q<DropdownField>("GenderTF");
+            _countryTF = View.Q<DropdownField>("CountryTF");
+            _languageTF = View.Q<DropdownField>("LanguageTF");
+            _currencyTF = View.Q<DropdownField>("CurrencyTF");
+            _changeProfile = View.Q<Button>("ChangePictureButton");
+
+            _nicknameTF.RegisterValueChangedCallback(evt => OnTextChanged(_nicknameTF));
+            _changeProfile.RegisterCallback<PointerUpEvent>(OnChangeProfile);
+
+            setupDropdownUI();
+        }
+
+        private async void setupDropdownUI() {
+            var genderChoices = new List<string> {"Male", "Female"};
+            var countries = new List<string> {"Indonesia", "Thailand", "Vietnam"};
+            var languages = new List<string> {"Indonesia", "Thailand", "Vietnam", "English"};
+            var currencies = new List<string> {"USD", "IDR"};
+
+            try
+            {
+                var dataOptions = await Model.AuthService.GetProfileOptions();
+                Debug.Log(dataOptions);
+            } 
+            catch (Exception e)
+            {
+                Debug.Log(e.Message);
+            }
+
+            _genderTF.choices = genderChoices; 
+            _genderTF.RegisterCallback<ChangeEvent<string>>((evt) =>
+            {
+                _genderTF.value = evt.newValue;
+                _genderTF.labelElement.style.display = DisplayStyle.None;
+            });
+
+            _countryTF.choices = countries; 
+            _countryTF.RegisterCallback<ChangeEvent<string>>((evt) =>
+            {
+                _countryTF.value = evt.newValue;
+                _countryTF.labelElement.style.display = DisplayStyle.None;
+            });
+
+            _languageTF.choices = languages;
+            _languageTF.RegisterCallback<ChangeEvent<string>>((evt) =>
+            {
+                _languageTF.value = evt.newValue;
+                _languageTF.labelElement.style.display = DisplayStyle.None;
+            });
+
+            _currencyTF.choices = currencies;
+            _currencyTF.RegisterCallback<ChangeEvent<string>>((evt) =>
+            {
+                _currencyTF.value = evt.newValue;
+                _currencyTF.labelElement.style.display = DisplayStyle.None;
+            });
+
+        }
+
+        private async void OnChangeProfile(PointerUpEvent evt)
+        {
+            // Debug.Log("Mobile Permission Check: " + NativeGallery.CheckPermission());
+            // try
+            // {
+            //     string filePath = @"C:\Users\User\Downloads\kucing1.jpg";
+            //     _newProfileUrl = await Model.AuthService.FileUploader(filePath);
+
+            //     if(!string.IsNullOrEmpty(_newProfileUrl)) 
+            //     {
+                    
+            //     }
+            // }
+            // catch (Exception e)
+            // {
+            //     Model.ShowGeneralNotificationError(e.Message);
+            // }
+           
         }
 
         private void OnEditProfile() 
@@ -201,6 +397,7 @@ namespace com.noctuagames.sdk.UI
             _moreOptionsMenuButton.RemoveFromClassList("show");
             _helpButton.RemoveFromClassList("show");
             _copyIcon.RemoveFromClassList("show");
+            _connectAccountFooter.RemoveFromClassList("show");
 
             //add class
             _moreOptionsMenuButton.AddToClassList("hide");
@@ -209,6 +406,10 @@ namespace com.noctuagames.sdk.UI
             _guestContainer.AddToClassList("hide");
             _hiTextContainer.AddToClassList("hide");
             _playerName.AddToClassList("hide");
+            _credentialListView.AddToClassList("hide");
+            _stayConnect.AddToClassList("hide");
+            _connectAccountFooter.AddToClassList("hide");
+
             _editProfileContainer.AddToClassList("show");
         }
 
@@ -224,6 +425,7 @@ namespace com.noctuagames.sdk.UI
             _moreOptionsMenuButton.RemoveFromClassList("hide");
             _helpButton.RemoveFromClassList("hide");
             _copyIcon.RemoveFromClassList("hide");
+            _connectAccountFooter.RemoveFromClassList("hide");
 
             //add class
             _editProfileContainer.AddToClassList("hide");
@@ -232,6 +434,7 @@ namespace com.noctuagames.sdk.UI
             _moreOptionsMenuButton.AddToClassList("show");
             _helpButton.AddToClassList("show");
             _copyIcon.AddToClassList("show");
+            _connectAccountFooter.AddToClassList("show");
 
             if(_isGuestUser) {
                 _credentialListView.AddToClassList("hide");
@@ -245,9 +448,47 @@ namespace com.noctuagames.sdk.UI
             
         }
 
-        private void OnSaveEditProfile()
+        private void OnTextChanged(TextField textField)
         {
+            AdjustHideLabelElement(textField);
+        }
 
+        private async void OnSaveEditProfile()
+        {
+            try
+            {
+                EditProfileRequest editProfileRequest = new EditProfileRequest();
+
+                var _dob = _birthDateTF.value;
+                Debug.Log("Date Of Birth :" + _dob);
+
+                // DateTime _dateTime = new DateTime(1990, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+
+                // Define the format of the input string
+                string format = "dd/MM/yyyy";
+                
+                // Convert to DateTime object using ParseExact method
+                DateTime _dateTime = DateTime.ParseExact(_dob, format, CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal);
+
+                // Set the time to 00:00:00 and the kind to UTC
+                _dateTime = new DateTime(_dateTime.Year, _dateTime.Month, _dateTime.Day, 0, 0, 0, DateTimeKind.Utc);
+
+                editProfileRequest.Nickname = _nicknameTF.value;
+                editProfileRequest.DateOfBirth = _dateTime;
+                editProfileRequest.Gender = _genderTF.value;
+                editProfileRequest.PictureUrl = _newProfileUrl;
+                editProfileRequest.Country = _countryTF.value;
+                editProfileRequest.Language = _languageTF.value;
+                editProfileRequest.Currency = _currencyTF.value;
+
+                await Model.AuthService.EditProfile(editProfileRequest);
+
+                Debug.Log("Update profile success");
+            }
+            catch (Exception e)
+            {
+                Model.ShowGeneralNotificationError("Failed to update profile");
+            }
         } 
 
         private void OnSwitchProfile()
@@ -274,6 +515,8 @@ namespace com.noctuagames.sdk.UI
             View.RegisterCallback<GeometryChangedEvent>(_ => SetOrientation());
             
             View.RegisterCallback<PointerDownEvent>(OnViewClicked);
+
+            SetupDatePickerUI();
             
             BindListView();
             SetupIndicators();
@@ -485,6 +728,14 @@ namespace com.noctuagames.sdk.UI
                 }
             }
         }
+         private void AdjustHideLabelElement(TextField textField) {
+            if(string.IsNullOrEmpty(textField.value)) {
+                textField.labelElement.style.display = DisplayStyle.Flex;
+            } else {
+                textField.labelElement.style.display = DisplayStyle.None;
+            }
+        }
+
         private enum CredentialProvider
         {
             Email,

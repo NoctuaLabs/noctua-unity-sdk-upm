@@ -40,6 +40,22 @@ namespace com.noctuagames.sdk
         
         [JsonProperty("is_guest")]
         public bool IsGuest;
+
+        [JsonProperty("date_of_birth")]
+        public string DateOfBirth;
+
+        [JsonProperty("gender")]
+        public string Gender;
+
+        [JsonProperty("language")]
+        public string Language;
+
+        [JsonProperty("country")]
+        public string Country;
+
+        [JsonProperty("currency")]
+        public string Currency;
+
     }
 
     [Preserve]
@@ -1123,7 +1139,7 @@ namespace com.noctuagames.sdk
             return fileUrl;
         }
 
-        public async UniTask<ProfileOptionData> GetProfileOptions(string filePath)
+        public async UniTask<ProfileOptionData> GetProfileOptions()
         {
             if (string.IsNullOrEmpty(RecentAccount?.Player?.AccessToken)) {
                 throw NoctuaException.MissingAccessToken;

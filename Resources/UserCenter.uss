@@ -299,9 +299,24 @@
     flex: 1;
 }
 
+.hint-textfield {
+    font-size: 10px;
+}
+
 .bottom-object {
     height: 40px;
     align-self: center;
 }
+
+.dropdown-box {
+    border-radius: 10px;
+    border-width: 1px;
+    border-color: #474B4E;
+}
+
+.dropdown-box .unity-base-field__label {
+    display: none;
+}
+
 
 /*END User Center - Edit Profile */
