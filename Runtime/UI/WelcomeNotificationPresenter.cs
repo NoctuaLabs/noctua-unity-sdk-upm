@@ -38,7 +38,7 @@ namespace com.noctuagames.sdk.UI
 
         public void Show(UserBundle userBundle)
         {
-            Debug.Log("Welcome " + userBundle.DisplayName);
+            Debug.Log("Welcome " + userBundle.User.Nickname);
             Debug.Log("Provider: " + userBundle.Credential.Provider);
             StartCoroutine(RunAnimation(userBundle));
         }

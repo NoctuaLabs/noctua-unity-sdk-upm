@@ -129,7 +129,12 @@ namespace com.noctuagames.sdk.UI
         private async UniTask ShowAsync()
         {
             try
-            {                
+            {
+                if (Model.AuthService.RecentAccount == null)
+                {
+                    throw new NoctuaException(NoctuaErrorCode.Authentication, "No account is logged in.");
+                }
+                
                 var user = await Model.AuthService.GetCurrentUser();
                 var isGuest = user?.IsGuest == true;
                 
@@ -186,21 +191,12 @@ namespace com.noctuagames.sdk.UI
                 {
                     var www = UnityWebRequestTexture.GetTexture(user.PictureUrl);
 
-                    try
+                    await www.SendWebRequest().ToUniTask();
+                
+                    if (www.result == UnityWebRequest.Result.Success)
                     {
-                        await www.SendWebRequest().ToUniTask();
-                    
-                        if (www.result == UnityWebRequest.Result.Success)
-                        {
-                            var picture = DownloadHandlerTexture.GetContent(www);
-                            View.Q<VisualElement>("PlayerAvatar").style.backgroundImage = new StyleBackground(picture);
-                            _profileImage.style.backgroundImage = new StyleBackground(picture);
-                        }
-                    }
-                    catch (Exception e)
-                    {
-                        Debug.Log(e.Message);
-                        Model.ShowGeneralNotificationError(e.Message);
+                        var picture = DownloadHandlerTexture.GetContent(www);
+                        View.Q<VisualElement>("PlayerAvatar").style.backgroundImage = new StyleBackground(picture);
                     }
                 }
                 else
@@ -219,6 +215,9 @@ namespace com.noctuagames.sdk.UI
 
                     _credentialListView.Rebuild();
                 }
+                
+                Visible = true;
+                SetOrientation();
             }
             catch (Exception e)
             {
@@ -227,11 +226,6 @@ namespace com.noctuagames.sdk.UI
                 _credentials.ForEach(c => c.Username = "");
                 Model.ShowGeneralNotificationError(e.Message);
             }
-
-            Visible = true;
-
-            SetOrientation();
-
         }
 
         private void Awake()
@@ -739,7 +733,7 @@ namespace com.noctuagames.sdk.UI
             switch (credential.CredentialProvider)
             {
                 case CredentialProvider.Email:
-                    Model.ShowEmailLogin(_ => Model.ShowUserCenter());
+                    Model.ShowEmailRegistration(true);
                     
                     break;
                 case CredentialProvider.Google:
@@ -757,8 +751,7 @@ namespace com.noctuagames.sdk.UI
         {
             try
             {
-                var userBundle = await Model.SocialLinkAsync(provider);
-                Debug.Log($"StartSocialLink: {userBundle.User?.Id} {userBundle.User?.Nickname}");
+                _ = await Model.SocialLinkAsync(provider);
             }
             catch (Exception e)
             {

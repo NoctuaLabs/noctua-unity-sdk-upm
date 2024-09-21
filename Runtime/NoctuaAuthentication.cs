@@ -111,7 +111,7 @@ namespace com.noctuagames.sdk
             return await _service.LinkWithEmailAsync(email, password);
         }
         
-        public async UniTask<UserBundle> VerifyEmailLinkingAsync(int id, string code)
+        public async UniTask<Credential> VerifyEmailLinkingAsync(int id, string code)
         {
             return await _service.VerifyEmailLinkingAsync(id, code);
         }
@@ -146,7 +146,7 @@ namespace com.noctuagames.sdk
 
         public async UniTask<string> GetSocialLoginRedirectURL(string provider)
         {
-            return await _service.GetSocialLoginRedirectURLAsync(provider);
+            return await _service.GetSocialAuthRedirectURLAsync(provider);
         }
 
         public async UniTask<UserBundle> SocialLoginAsync(string provider, SocialLoginRequest payload)
@@ -154,7 +154,7 @@ namespace com.noctuagames.sdk
             return await _service.SocialLoginAsync(provider, payload);
         }
 
-        public async UniTask<UserBundle> SocialLinkAsync(string provider, SocialLinkRequest payload)
+        public async UniTask<Credential> SocialLinkAsync(string provider, SocialLinkRequest payload)
         {
             return await _service.SocialLinkAsync(provider, payload);
         }

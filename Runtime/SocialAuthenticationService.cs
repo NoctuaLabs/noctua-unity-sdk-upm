@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Net;
 using System.Net.Sockets;
+using System.Threading;
 using System.Threading.Tasks;
 using Cysharp.Threading.Tasks;
 using UnityEngine;
@@ -37,7 +38,7 @@ namespace com.noctuagames.sdk
             return await _authService.SocialLoginAsync(provider, socialLoginRequest);
         }
 
-        public async UniTask<UserBundle> SocialLinkAsync(string provider)
+        public async UniTask<Credential> SocialLinkAsync(string provider)
         {
             if (_authService == null)
             {
@@ -67,7 +68,7 @@ namespace com.noctuagames.sdk
 
             var redirectUri = $"http://localhost:{oauthRedirectListener.Port}";
 
-            var socialLoginUrl = await _authService.GetSocialLoginRedirectURLAsync(provider, redirectUri);
+            var socialLoginUrl = await _authService.GetSocialAuthRedirectURLAsync(provider, redirectUri);
 
             Debug.Log($"Open URL with system browser: {socialLoginUrl}");
 
@@ -156,7 +157,7 @@ namespace com.noctuagames.sdk
             uniWebView.EmbeddedToolbar.SetPosition(UniWebViewToolbarPosition.Top);
             uniWebView.Frame = new Rect(0, 0, Screen.width, Screen.height);
 
-            var socialLoginUrl = await _authService.GetSocialLoginRedirectURLAsync(provider);
+            var socialLoginUrl = await _authService.GetSocialAuthRedirectURLAsync(provider);
             var socialLoginUrlQueries = ParseQueryString(socialLoginUrl);
 
             if (!socialLoginUrlQueries.ContainsKey("redirect_uri"))
@@ -243,7 +244,8 @@ namespace com.noctuagames.sdk
             _listener.Start();
 
             var contextTask = _listener.GetContextAsync();
-            var timeoutTask = Task.Delay(TimeSpan.FromSeconds(180));
+            var cts = new CancellationTokenSource();
+            var timeoutTask = Task.Delay(TimeSpan.FromSeconds(180), cts.Token);
             
             var completedTask = await Task.WhenAny(contextTask, timeoutTask);
             
@@ -251,6 +253,8 @@ namespace com.noctuagames.sdk
             {
                 throw new TimeoutException("Timeout while waiting for the HTTP server to respond");
             }
+            
+            cts.Cancel();
             
             var request = contextTask.Result.Request;
             var response = contextTask.Result.Response;

@@ -155,7 +155,7 @@ namespace com.noctuagames.sdk
         
         public void ShowUserCenter()
         {
-            _currentAuthType = AuthType.LinkAccount;
+            _currentAuthType = AuthType.LinkOrBindAccount;
             _userCenter.Show();
         }
 
@@ -169,19 +169,28 @@ namespace com.noctuagames.sdk
             return _currentAuthType switch
             {
                 AuthType.SwitchAccount => await AuthService.RegisterWithEmailAsync(email, password),
-                AuthType.LinkAccount => await AuthService.LinkWithEmailAsync(email, password),
+                AuthType.LinkOrBindAccount => await AuthService.LinkWithEmailAsync(email, password),
                 _ => throw new NotImplementedException(_currentAuthType.ToString())
             };
         }
-        
-        internal async UniTask<UserBundle> VerifyEmailRegistration(int credVerifyId, string code)
+
+        internal async UniTask VerifyEmailRegistration(int credVerifyId, string code)
         {
-            return _currentAuthType switch
+            switch (_currentAuthType)
             {
-                AuthType.SwitchAccount => await AuthService.VerifyEmailRegistrationAsync(credVerifyId, code),
-                AuthType.LinkAccount => await AuthService.VerifyEmailLinkingAsync(credVerifyId, code),
-                _ => throw new NotImplementedException(_currentAuthType.ToString())
-            };
+                case AuthType.SwitchAccount:
+                    await AuthService.VerifyEmailRegistrationAsync(credVerifyId, code);
+
+                    break;
+
+                case AuthType.LinkOrBindAccount:
+                    await AuthService.VerifyEmailLinkingAsync(credVerifyId, code);
+
+                    break;
+
+                default: 
+                    throw new NotImplementedException(_currentAuthType.ToString());
+            }
         }
 
         public async UniTask<UserBundle> SocialLoginAsync(string provider)
@@ -189,7 +198,7 @@ namespace com.noctuagames.sdk
             return await _socialAuth.SocialLoginAsync(provider);
         }
 
-        public async UniTask<UserBundle> SocialLinkAsync(string provider)
+        public async UniTask<Credential> SocialLinkAsync(string provider)
         {
             return await _socialAuth.SocialLinkAsync(provider);
         }
@@ -198,6 +207,6 @@ namespace com.noctuagames.sdk
     internal enum AuthType
     {
         SwitchAccount,
-        LinkAccount,
+        LinkOrBindAccount,
     }
 }

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Text;
 using Cysharp.Threading.Tasks;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
@@ -145,8 +146,7 @@ namespace com.noctuagames.sdk
         {
             _request.SetRequestHeader("Content-Type", "application/json");
             var jsonBody = JsonConvert.SerializeObject(body, _jsonSettings);
-            Debug.Log($"Request: {jsonBody}");
-            var rawBody = System.Text.Encoding.UTF8.GetBytes(jsonBody);
+            var rawBody = Encoding.UTF8.GetBytes(jsonBody);
             _request.uploadHandler = new UploadHandlerRaw(rawBody);
             
             return this;
@@ -176,17 +176,21 @@ namespace com.noctuagames.sdk
 
         public async UniTask<T> Send<T>()
         {
-            Debug.Log("HttpRequest.Send");
-            Debug.Log(_request.url);
-
             if (_request.url.Contains("{") || _request.url.Contains("}"))
             {
                 Debug.Log($"There are still path parameters that are not replaced: {_request.url}");
                 throw NoctuaException.RequestUnreplacedParam;
             }
-
+            
             _request.downloadHandler = new DownloadHandlerBuffer();
             var response = "";
+
+            Debug.Log(
+                $"{_request.method} {_request.url}" +
+                $"\nContent-Type: {_request.GetRequestHeader("Content-Type")}" +
+                $"\nAuthorization: {_request.GetRequestHeader("Authorization")}" +
+                $"\n\n{Encoding.UTF8.GetString(_request.uploadHandler?.data ?? Array.Empty<byte>())}"
+            );
 
             try
             {
