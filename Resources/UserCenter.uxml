@@ -1,7 +1,6 @@
 ﻿<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" xsi="http://www.w3.org/2001/XMLSchema-instance" engine="UnityEngine.UIElements" editor="UnityEditor.UIElements" noNamespaceSchemaLocation="../../../../UIElementsSchema/UIElements.xsd" editor-extension-mode="False">
     <Style src="project://database/Packages/com.noctuagames.sdk/Resources/Noctua.uss?fileID=7433441132597879392&amp;guid=fe35e550fb23b6446af377f994effe35&amp;type=3#Noctua" />
     <Style src="project://database/Packages/com.noctuagames.sdk/Resources/UserCenter.uss?fileID=7433441132597879392&amp;guid=0586cbcfb0a1419a8ac537b6a5e398cd&amp;type=3#UserCenter" />
-    <Style src="project://database/Packages/com.noctuagames.sdk/Resources/DatePicker.uss?fileID=7433441132597879392&amp;guid=fa46375ee682ef94691b659f3bffffda&amp;type=3#DatePicker" />
     <ui:VisualElement name="UserCenter" class="user-center">
         <ui:VisualElement name="UserProfile" class="user-profile">
             <ui:VisualElement name="UserProfileHeader" class="user-profile-header">
@@ -68,12 +67,14 @@
                             <ui:Label text="Back" style="color: rgb(117, 117, 117);" />
                         </ui:VisualElement>
                         <ui:VisualElement style="flex-direction: row; flex-wrap: nowrap; align-items: center; justify-content: flex-start; margin-top: 10px; margin-bottom: 10px;">
-                            <ui:VisualElement class="player-avatar" style="width: 50px; height: 50px; margin-right: 10px; border-top-width: 1px; border-right-width: 1px; border-bottom-width: 1px; border-left-width: 1px; border-left-color: rgb(80, 153, 252); border-right-color: rgb(80, 153, 252); border-top-color: rgb(80, 153, 252); border-bottom-color: rgb(80, 153, 252); border-top-left-radius: 25px; border-top-right-radius: 25px; border-bottom-right-radius: 25px; border-bottom-left-radius: 25px;" />
-                            <ui:Button text="Change Picture" name="ChangePictureButton" class="button-with-border" />
+                            <ui:VisualElement name="ProfileImage" class="profile-circle-with-border"/>
+                            <ui:Button text="Change Picture" name="ChangePictureButton" class="button-border" />
                         </ui:VisualElement>
 
-                        <ui:TextField label="Nickname" name="NicknameTF" class="noctua-text-input" />
-                        <ui:Label text="Don't use real name, You can change again in the next 14 days" class="hint-textfield"/>
+                        <ui:VisualElement>
+                            <ui:TextField label="Nickname" name="NicknameTF" class="noctua-text-input" />
+                            <ui:Label text="Don't use real name, You can change again in the next 14 days" class="hint-textfield"/>
+                        </ui:VisualElement>
                         <ui:TextField label="Birthdate (Optional)" name="BirthdateTF" class="noctua-text-input" />
                         <ui:DropdownField name="GenderTF" label="Gender (Optional)" class="dropdown-box" />
                         <ui:DropdownField label="Country" name="CountryTF" class="dropdown-box" />
