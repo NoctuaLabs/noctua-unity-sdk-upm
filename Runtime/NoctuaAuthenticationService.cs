@@ -1145,7 +1145,7 @@ namespace com.noctuagames.sdk
                 throw NoctuaException.MissingAccessToken;
             }
 
-            var request = new HttpRequest(HttpMethod.Post, $"{_baseUrl}/user/profile-options")
+            var request = new HttpRequest(HttpMethod.Get, $"{_baseUrl}/user/profile-options")
                 .WithHeader("X-CLIENT-ID", _clientId)
                 .WithHeader("X-BUNDLE-ID", Application.identifier)
                 .WithHeader("Authorization", "Bearer " + RecentAccount.Player.AccessToken);
