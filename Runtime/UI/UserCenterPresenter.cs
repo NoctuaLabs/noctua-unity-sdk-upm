@@ -31,8 +31,16 @@ namespace com.noctuagames.sdk.UI
         private DropdownField _countryTF;
         private DropdownField _languageTF;
         private DropdownField _currencyTF;
+        private VisualElement _profileImage;
+        private VisualElement _playerImage;
         private Button _changeProfile;
+        private Label _userIDLabel;
         private string _newProfileUrl;
+        private string _userIDValue;
+        private ProfileOptionData _profileDataOptions;
+        private List<string> _countryOptions = new List<string> { "Select Country" };
+        private List<string> _languageOptions = new List<string> { "Select Languages" };
+        private List<string> _currencyOptions = new List<string> { "Select Currency" };
 
         //Date Picker
 
@@ -129,20 +137,46 @@ namespace com.noctuagames.sdk.UI
 
                 View.Q<Label>("PlayerName").text = isGuest ? "Guest " + user.Id  : user?.Nickname;
                 View.Q<Label>("UserIdLabel").text = user?.Id.ToString() ?? "";
+                _userIDValue = user?.Id.ToString() ?? "";
 
                 //Edit Profile - Setup Data
-                if(!isGuest) {
+                if(!isGuest) 
+                {
+                    var profileOptions = await Model.AuthService.GetProfileOptions();
+                    _profileDataOptions = profileOptions;
+                    
+                    setupDropdownUI();
+                    
                     _nicknameTF.value = user?.Nickname;
                     _newProfileUrl = user?.PictureUrl;
 
                     DateTime dateTime = DateTime.Parse(user?.DateOfBirth, null, DateTimeStyles.RoundtripKind);
                     string formattedDate = dateTime.ToString("dd/MM/yyyy", CultureInfo.InvariantCulture);
+
+                    string genderOriginal = user?.Gender;
+                    string genderUpperChar = char.ToUpper(genderOriginal[0]) + genderOriginal.Substring(1);
                     
                     _birthDateTF.value = formattedDate;
-                    _genderTF.value = user?.Gender;
-                    _countryTF.value = user?.Country;
-                    _languageTF.value = user?.Language;
-                    _currencyTF.value = user?.Currency;
+                    _genderTF.value = genderUpperChar;
+
+
+                    int indexCountry = _profileDataOptions.Countries.FindIndex(item => item.IsoCode.ToLower() == user?.Country.ToLower());
+                    if (indexCountry != -1)
+                    {
+                        _countryTF.value = _countryOptions[indexCountry];
+                    }
+
+                    int indexLanguage = _profileDataOptions.Languages.FindIndex(item => item.IsoCode.ToLower() == user?.Language.ToLower());
+                    if (indexLanguage != -1)
+                    {
+                        _languageTF.value = _languageOptions[indexLanguage];
+                    }
+
+                    int indexCurrency = _profileDataOptions.Currencies.FindIndex(item => item.IsoCode.ToLower() == user?.Currency.ToLower());
+                    if (indexCurrency != -1)
+                    {
+                        _currencyTF.value = _currencyOptions[indexCountry];
+                    }
                 }
 
                 _isGuestUser = user?.IsGuest ?? false;
@@ -160,6 +194,7 @@ namespace com.noctuagames.sdk.UI
                         {
                             var picture = DownloadHandlerTexture.GetContent(www);
                             View.Q<VisualElement>("PlayerAvatar").style.backgroundImage = new StyleBackground(picture);
+                            _profileImage.style.backgroundImage = new StyleBackground(picture);
                         }
                     }
                     catch (Exception e)
@@ -305,6 +340,7 @@ namespace com.noctuagames.sdk.UI
         private void SetupEditProfileUI() 
         {
             _editProfileContainer = View.Q<VisualElement>("EditProfileBox");
+            _editProfileContainer.RemoveFromClassList("show");
             _editProfileContainer.AddToClassList("hide");
 
             _nicknameTF = View.Q<TextField>("NicknameTF");
@@ -313,6 +349,9 @@ namespace com.noctuagames.sdk.UI
             _languageTF = View.Q<DropdownField>("LanguageTF");
             _currencyTF = View.Q<DropdownField>("CurrencyTF");
             _changeProfile = View.Q<Button>("ChangePictureButton");
+            _profileImage = View.Q<VisualElement>("ProfileImage");
+            _playerImage = View.Q<VisualElement>("PlayerAvatar");
+            _userIDLabel = View.Q<Label>("UserIdLabel");
 
             _nicknameTF.RegisterValueChangedCallback(evt => OnTextChanged(_nicknameTF));
             _changeProfile.RegisterCallback<PointerUpEvent>(OnChangeProfile);
@@ -322,18 +361,28 @@ namespace com.noctuagames.sdk.UI
 
         private async void setupDropdownUI() {
             var genderChoices = new List<string> {"Male", "Female"};
-            var countries = new List<string> {"Indonesia", "Thailand", "Vietnam"};
-            var languages = new List<string> {"Indonesia", "Thailand", "Vietnam", "English"};
-            var currencies = new List<string> {"USD", "IDR"};
 
-            try
+            if(_profileDataOptions != null)
             {
-                var dataOptions = await Model.AuthService.GetProfileOptions();
-                Debug.Log(dataOptions);
-            } 
-            catch (Exception e)
-            {
-                Debug.Log(e.Message);
+                _countryOptions.Clear();
+                _languageOptions.Clear();
+                _currencyOptions.Clear();
+
+                foreach(GeneralProfileData _country in _profileDataOptions.Countries)
+                {
+                    _countryOptions.Add(_country.EnglishName);
+                }
+
+                foreach(GeneralProfileData _languages in _profileDataOptions.Languages)
+                {
+                    _languageOptions.Add(_languages.EnglishName);
+                }
+
+                foreach(GeneralProfileData _currency in _profileDataOptions.Currencies)
+                {
+                    _currencyOptions.Add(_currency.EnglishName);
+                }
+
             }
 
             _genderTF.choices = genderChoices; 
@@ -343,21 +392,21 @@ namespace com.noctuagames.sdk.UI
                 _genderTF.labelElement.style.display = DisplayStyle.None;
             });
 
-            _countryTF.choices = countries; 
+            _countryTF.choices = _countryOptions; 
             _countryTF.RegisterCallback<ChangeEvent<string>>((evt) =>
             {
                 _countryTF.value = evt.newValue;
                 _countryTF.labelElement.style.display = DisplayStyle.None;
             });
 
-            _languageTF.choices = languages;
+            _languageTF.choices = _languageOptions;
             _languageTF.RegisterCallback<ChangeEvent<string>>((evt) =>
             {
                 _languageTF.value = evt.newValue;
                 _languageTF.labelElement.style.display = DisplayStyle.None;
             });
 
-            _currencyTF.choices = currencies;
+            _currencyTF.choices = _currencyOptions;
             _currencyTF.RegisterCallback<ChangeEvent<string>>((evt) =>
             {
                 _currencyTF.value = evt.newValue;
@@ -368,22 +417,64 @@ namespace com.noctuagames.sdk.UI
 
         private async void OnChangeProfile(PointerUpEvent evt)
         {
-            // Debug.Log("Mobile Permission Check: " + NativeGallery.CheckPermission());
-            // try
-            // {
-            //     string filePath = @"C:\Users\User\Downloads\kucing1.jpg";
-            //     _newProfileUrl = await Model.AuthService.FileUploader(filePath);
+            if(NativeGallery.IsMediaPickerBusy())
+            {
+                return;
+            }
 
-            //     if(!string.IsNullOrEmpty(_newProfileUrl)) 
-            //     {
-                    
-            //     }
-            // }
-            // catch (Exception e)
-            // {
-            //     Model.ShowGeneralNotificationError(e.Message);
-            // }
-           
+            RequestPermissionAsynchronously(NativeGallery.PermissionType.Read, NativeGallery.MediaType.Image);
+        }
+
+        private async void RequestPermissionAsynchronously(NativeGallery.PermissionType permissionType, NativeGallery.MediaType mediaTypes)
+        {
+            NativeGallery.Permission permission = await NativeGallery.RequestPermissionAsync(permissionType, mediaTypes);
+            if(permission == NativeGallery.Permission.Granted) 
+            {
+                PickImage();
+            }
+        }
+
+        private void PickImage()
+        {
+            NativeGallery.Permission permission = NativeGallery.GetImageFromGallery( ( path ) =>
+            {
+                if( path != null )
+                {
+                   FileUploader(path);
+                }
+            } );
+
+            Debug.Log( "Permission result: " + permission );
+        }
+
+        private async void FileUploader(string filePath) {
+            try
+            {
+                _newProfileUrl = await Model.AuthService.FileUploader(filePath);
+                StartCoroutine(LoadImageFromUrl(_newProfileUrl));
+            }
+            catch (Exception e)
+            {
+                Model.ShowGeneralNotificationError(e.Message);
+            }
+        }
+
+        private IEnumerator LoadImageFromUrl(string url)
+        {
+            using (UnityWebRequest www = UnityWebRequestTexture.GetTexture(url))
+            {
+                yield return www.SendWebRequest();
+
+                if (www.result == UnityWebRequest.Result.ConnectionError || www.result == UnityWebRequest.Result.ProtocolError)
+                {
+                    Debug.LogError(www.error);
+                }
+                else
+                {
+                    Texture2D texture = ((DownloadHandlerTexture)www.downloadHandler).texture;
+                    _profileImage.style.backgroundImage = new StyleBackground(texture);
+                }
+            }
         }
 
         private void OnEditProfile() 
@@ -398,6 +489,7 @@ namespace com.noctuagames.sdk.UI
             _helpButton.RemoveFromClassList("show");
             _copyIcon.RemoveFromClassList("show");
             _connectAccountFooter.RemoveFromClassList("show");
+            _playerImage.RemoveFromClassList("player-avatar");
 
             //add class
             _moreOptionsMenuButton.AddToClassList("hide");
@@ -409,8 +501,13 @@ namespace com.noctuagames.sdk.UI
             _credentialListView.AddToClassList("hide");
             _stayConnect.AddToClassList("hide");
             _connectAccountFooter.AddToClassList("hide");
+            _playerImage.AddToClassList("profile-menu-image");
+            _playerImage.style.backgroundImage = Resources.Load<Texture2D>("EditProfileImage");
 
             _editProfileContainer.AddToClassList("show");
+
+            _userIDLabel.text = "Edit Profile";
+            _userIDLabel.style.fontSize = 16;
         }
 
         private void OnBackEditProfile() 
@@ -426,6 +523,7 @@ namespace com.noctuagames.sdk.UI
             _helpButton.RemoveFromClassList("hide");
             _copyIcon.RemoveFromClassList("hide");
             _connectAccountFooter.RemoveFromClassList("hide");
+            _playerImage.RemoveFromClassList("profile-menu-image");
 
             //add class
             _editProfileContainer.AddToClassList("hide");
@@ -435,6 +533,11 @@ namespace com.noctuagames.sdk.UI
             _helpButton.AddToClassList("show");
             _copyIcon.AddToClassList("show");
             _connectAccountFooter.AddToClassList("show");
+            _playerImage.AddToClassList("player-avatar");
+            _playerImage.style.backgroundImage = _defaultAvatar;
+
+            _userIDLabel.text = _userIDValue;
+            _userIDLabel.style.fontSize = 12;
 
             if(_isGuestUser) {
                 _credentialListView.AddToClassList("hide");
@@ -460,11 +563,6 @@ namespace com.noctuagames.sdk.UI
                 EditProfileRequest editProfileRequest = new EditProfileRequest();
 
                 var _dob = _birthDateTF.value;
-                Debug.Log("Date Of Birth :" + _dob);
-
-                // DateTime _dateTime = new DateTime(1990, 1, 1, 0, 0, 0, DateTimeKind.Utc);
-
-                // Define the format of the input string
                 string format = "dd/MM/yyyy";
                 
                 // Convert to DateTime object using ParseExact method
@@ -475,11 +573,16 @@ namespace com.noctuagames.sdk.UI
 
                 editProfileRequest.Nickname = _nicknameTF.value;
                 editProfileRequest.DateOfBirth = _dateTime;
-                editProfileRequest.Gender = _genderTF.value;
+                editProfileRequest.Gender = _genderTF.value.ToLower();
                 editProfileRequest.PictureUrl = _newProfileUrl;
-                editProfileRequest.Country = _countryTF.value;
-                editProfileRequest.Language = _languageTF.value;
-                editProfileRequest.Currency = _currencyTF.value;
+
+                int indexCountry = _profileDataOptions.Countries.FindIndex(item => item.EnglishName.ToLower() == _countryTF.value.ToLower());
+                int indexLanguage = _profileDataOptions.Languages.FindIndex(item => item.EnglishName.ToLower() == _languageTF.value.ToLower());
+                int indexCurrency = _profileDataOptions.Currencies.FindIndex(item => item.EnglishName.ToLower() == _currencyTF.value.ToLower());
+
+                editProfileRequest.Country = _profileDataOptions.Countries[indexCountry].IsoCode;
+                editProfileRequest.Language = _profileDataOptions.Languages[indexLanguage].IsoCode;
+                editProfileRequest.Currency = _profileDataOptions.Currencies[indexCurrency].IsoCode;
 
                 await Model.AuthService.EditProfile(editProfileRequest);
 
@@ -487,7 +590,7 @@ namespace com.noctuagames.sdk.UI
             }
             catch (Exception e)
             {
-                Model.ShowGeneralNotificationError("Failed to update profile");
+                Model.ShowGeneralNotificationError(e.Message);
             }
         } 
 
@@ -529,6 +632,9 @@ namespace com.noctuagames.sdk.UI
         
         private void OnDisable() 
         {
+            _editProfileContainer.RemoveFromClassList("show");
+            _editProfileContainer.AddToClassList("hide");
+
             CancelInvoke(nameof(SlideToNextItem));
         }
 
