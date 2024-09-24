@@ -149,9 +149,10 @@ namespace com.noctuagames.sdk.UI
                 {
                     var profileOptions = await Model.AuthService.GetProfileOptions();
                     _profileDataOptions = profileOptions;
-                    
+
+                    OnUIEditProfile(false);
                     setupDropdownUI();
-                    
+
                     _nicknameTF.value = user?.Nickname;
                     _newProfileUrl = user?.PictureUrl;
 
@@ -198,6 +199,7 @@ namespace com.noctuagames.sdk.UI
                     {
                         var picture = DownloadHandlerTexture.GetContent(www);
                         View.Q<VisualElement>("PlayerAvatar").style.backgroundImage = new StyleBackground(picture);
+                        _profileImage.style.backgroundImage = new StyleBackground(picture);
                     }
                 }
                 else
@@ -446,7 +448,7 @@ namespace com.noctuagames.sdk.UI
             try
             {
                 _newProfileUrl = await Model.AuthService.FileUploader(filePath);
-                StartCoroutine(LoadImageFromUrl(_newProfileUrl));
+                StartCoroutine(LoadImageFromUrl(_newProfileUrl, true));
             }
             catch (Exception e)
             {
@@ -454,7 +456,7 @@ namespace com.noctuagames.sdk.UI
             }
         }
 
-        private IEnumerator LoadImageFromUrl(string url)
+        private IEnumerator LoadImageFromUrl(string url, bool isEditProfile)
         {
             using (UnityWebRequest www = UnityWebRequestTexture.GetTexture(url))
             {
@@ -467,83 +469,111 @@ namespace com.noctuagames.sdk.UI
                 else
                 {
                     Texture2D texture = ((DownloadHandlerTexture)www.downloadHandler).texture;
-                    _profileImage.style.backgroundImage = new StyleBackground(texture);
+                    if(isEditProfile)
+                    {
+                        _profileImage.style.backgroundImage = new StyleBackground(texture);
+                    }
+                    else
+                    {
+                        _playerImage.style.backgroundImage = new StyleBackground(texture);
+                    }
                 }
             }
         }
 
         private void OnEditProfile() 
         {
-            //remove class
-            _guestContainer.RemoveFromClassList("show");
-            _stayConnect.RemoveFromClassList("show");
-            _credentialListView.RemoveFromClassList("show");
-            _hiTextContainer.RemoveFromClassList("show");
-            _playerName.RemoveFromClassList("show");
-            _moreOptionsMenuButton.RemoveFromClassList("show");
-            _helpButton.RemoveFromClassList("show");
-            _copyIcon.RemoveFromClassList("show");
-            _connectAccountFooter.RemoveFromClassList("show");
-            _playerImage.RemoveFromClassList("player-avatar");
-
-            //add class
-            _moreOptionsMenuButton.AddToClassList("hide");
-            _helpButton.AddToClassList("hide");
-            _copyIcon.AddToClassList("hide");
-            _guestContainer.AddToClassList("hide");
-            _hiTextContainer.AddToClassList("hide");
-            _playerName.AddToClassList("hide");
-            _credentialListView.AddToClassList("hide");
-            _stayConnect.AddToClassList("hide");
-            _connectAccountFooter.AddToClassList("hide");
-            _playerImage.AddToClassList("profile-menu-image");
-            _playerImage.style.backgroundImage = Resources.Load<Texture2D>("EditProfileImage");
-
-            _editProfileContainer.AddToClassList("show");
-
-            _userIDLabel.text = "Edit Profile";
-            _userIDLabel.style.fontSize = 16;
+            OnUIEditProfile(true);
         }
 
         private void OnBackEditProfile() 
         {
-            //remove class
-            _editProfileContainer.RemoveFromClassList("show");
-            _guestContainer.RemoveFromClassList("hide");
-            _stayConnect.RemoveFromClassList("hide");
-            _credentialListView.RemoveFromClassList("hide");
-            _hiTextContainer.RemoveFromClassList("hide");
-            _playerName.RemoveFromClassList("hide");
-            _moreOptionsMenuButton.RemoveFromClassList("hide");
-            _helpButton.RemoveFromClassList("hide");
-            _copyIcon.RemoveFromClassList("hide");
-            _connectAccountFooter.RemoveFromClassList("hide");
-            _playerImage.RemoveFromClassList("profile-menu-image");
+            OnUIEditProfile(false);
+        }
 
-            //add class
-            _editProfileContainer.AddToClassList("hide");
-            _hiTextContainer.AddToClassList("show");
-            _playerName.AddToClassList("show");
-            _moreOptionsMenuButton.AddToClassList("show");
-            _helpButton.AddToClassList("show");
-            _copyIcon.AddToClassList("show");
-            _connectAccountFooter.AddToClassList("show");
-            _playerImage.AddToClassList("player-avatar");
-            _playerImage.style.backgroundImage = _defaultAvatar;
+        private void OnUIEditProfile(bool isEditProfile)
+        {
+            if(isEditProfile)
+            {
+                //remove class
+                _guestContainer.RemoveFromClassList("show");
+                _stayConnect.RemoveFromClassList("show");
+                _credentialListView.RemoveFromClassList("show");
+                _hiTextContainer.RemoveFromClassList("show");
+                _playerName.RemoveFromClassList("show");
+                _moreOptionsMenuButton.RemoveFromClassList("show");
+                _helpButton.RemoveFromClassList("show");
+                _copyIcon.RemoveFromClassList("show");
+                _connectAccountFooter.RemoveFromClassList("show");
+                _playerImage.RemoveFromClassList("player-avatar");
 
-            _userIDLabel.text = _userIDValue;
-            _userIDLabel.style.fontSize = 12;
-
-            if(_isGuestUser) {
+                //add class
+                _moreOptionsMenuButton.AddToClassList("hide");
+                _helpButton.AddToClassList("hide");
+                _copyIcon.AddToClassList("hide");
+                _guestContainer.AddToClassList("hide");
+                _hiTextContainer.AddToClassList("hide");
+                _playerName.AddToClassList("hide");
                 _credentialListView.AddToClassList("hide");
                 _stayConnect.AddToClassList("hide");
-                _guestContainer.AddToClassList("show");
-            } else {
-                _guestContainer.AddToClassList("hide");
-                _credentialListView.AddToClassList("show");
-                _stayConnect.AddToClassList("show");
+                _connectAccountFooter.AddToClassList("hide");
+                _playerImage.AddToClassList("profile-menu-image");
+                _playerImage.style.backgroundImage = Resources.Load<Texture2D>("EditProfileImage");
+
+                _editProfileContainer.AddToClassList("show");
+
+                _userIDLabel.text = "Edit Profile";
+                _userIDLabel.style.fontSize = 16;   
             }
+            else
+            {
+                //remove class
+                _editProfileContainer.RemoveFromClassList("show");
+                _guestContainer.RemoveFromClassList("hide");
+                _stayConnect.RemoveFromClassList("hide");
+                _credentialListView.RemoveFromClassList("hide");
+                _hiTextContainer.RemoveFromClassList("hide");
+                _playerName.RemoveFromClassList("hide");
+                _moreOptionsMenuButton.RemoveFromClassList("hide");
+                _helpButton.RemoveFromClassList("hide");
+                _copyIcon.RemoveFromClassList("hide");
+                _connectAccountFooter.RemoveFromClassList("hide");
+                _playerImage.RemoveFromClassList("profile-menu-image");
+
+                //add class
+                _editProfileContainer.AddToClassList("hide");
+                _hiTextContainer.AddToClassList("show");
+                _playerName.AddToClassList("show");
+                _moreOptionsMenuButton.AddToClassList("show");
+                _helpButton.AddToClassList("show");
+                _copyIcon.AddToClassList("show");
+                _connectAccountFooter.AddToClassList("show");
+                _playerImage.AddToClassList("player-avatar");
+
+                //change player image with profile image
+                if(!string.IsNullOrEmpty(_newProfileUrl))
+                {
+                    StartCoroutine(LoadImageFromUrl(_newProfileUrl, false));
+                }
+                else
+                {
+                    _playerImage.style.backgroundImage = _defaultAvatar;
+                }
+
+                _userIDLabel.text = _userIDValue;
+                _userIDLabel.style.fontSize = 12;
+
+                if(_isGuestUser) {
+                    _credentialListView.AddToClassList("hide");
+                    _stayConnect.AddToClassList("hide");
+                    _guestContainer.AddToClassList("show");
+                } else {
+                    _guestContainer.AddToClassList("hide");
+                    _credentialListView.AddToClassList("show");
+                    _stayConnect.AddToClassList("show");
+                }
             
+            }
         }
 
         private void OnTextChanged(TextField textField)
@@ -627,9 +657,6 @@ namespace com.noctuagames.sdk.UI
         
         private void OnDisable() 
         {
-            _editProfileContainer.RemoveFromClassList("show");
-            _editProfileContainer.AddToClassList("hide");
-
             CancelInvoke(nameof(SlideToNextItem));
         }
 
