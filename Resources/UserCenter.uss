@@ -311,13 +311,23 @@
 }
 
 .dropdown-box {
-    border-radius: 10px;
-    border-width: 1px;
-    border-color: #474B4E;
+    margin-top: 20px;
 }
 
 .dropdown-box .unity-base-field__label {
     display: none;
+}
+
+.dropdown-box .unity-base-field__input {
+    background-color: transparent;
+    border-color: rgba(98, 100, 104, 1);
+    border-radius: 8px;
+    margin-right: 0;
+    margin-left: 0;
+}
+
+.dropdown-box .unity-base-popup-field__arrow {
+    -unity-background-image-tint-color: rgba(98, 100, 104, 1);
 }
 
 .profile-circle-with-border {
@@ -341,6 +351,20 @@
 .profile-menu-image {
     width: 100px;
     height: 100px;
+}
+
+.nickname-container {
+    top: 10px;
+}
+
+.back-circle-button {
+    background-color: transparent;
+    margin-left: -8px;
+}
+
+.back-edit-profile-title {
+    margin-left: -10px;
+    margin-top: -1px;
 }
 
 /*END User Center - Edit Profile */

@@ -318,8 +318,8 @@
 
 .back-circle-icon {
     background-image: url("./BackCircleIcon.png");
-    width: 24px;
-    height: 24px;
+    width: 26px;
+    height: 26px;
     background-color: transparent;
     background-position: center;
 }

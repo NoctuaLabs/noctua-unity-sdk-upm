@@ -41,6 +41,7 @@ namespace com.noctuagames.sdk.UI
         private List<string> _countryOptions = new List<string> { "Select Country" };
         private List<string> _languageOptions = new List<string> { "Select Languages" };
         private List<string> _currencyOptions = new List<string> { "Select Currency" };
+        private VisualElement _spinner;
 
         //Date Picker
 
@@ -445,14 +446,24 @@ namespace com.noctuagames.sdk.UI
         }
 
         private async void FileUploader(string filePath) {
+            var spinnerInstance = new Spinner();
+            
+            View.Q<VisualElement>("Spinner2").RemoveFromClassList("hide");
+            View.Q<Button>("ChangePictureButton").AddToClassList("hide");
+
             try
             {
                 _newProfileUrl = await Model.AuthService.FileUploader(filePath);
                 StartCoroutine(LoadImageFromUrl(_newProfileUrl, true));
+
+                View.Q<Button>("ChangePictureButton").RemoveFromClassList("hide");
+                View.Q<VisualElement>("Spinner2").AddToClassList("hide");
             }
             catch (Exception e)
             {
                 Model.ShowGeneralNotificationError(e.Message);
+                View.Q<Button>("ChangePictureButton").RemoveFromClassList("hide");
+                View.Q<VisualElement>("Spinner2").AddToClassList("hide");
             }
         }
 
@@ -581,8 +592,57 @@ namespace com.noctuagames.sdk.UI
             AdjustHideLabelElement(textField);
         }
 
+        private void SetupSpinner()
+        {
+            _spinner = new Spinner();
+            View.Q<VisualElement>("Spinner").Clear();
+            View.Q<VisualElement>("Spinner").Add(_spinner);
+            View.Q<VisualElement>("Spinner").AddToClassList("hide");
+
+            View.Q<VisualElement>("Spinner2").Clear();
+            View.Q<VisualElement>("Spinner2").Add(_spinner);
+            View.Q<VisualElement>("Spinner2").AddToClassList("hide");
+        }
+
         private async void OnSaveEditProfile()
         {
+            var spinnerInstance = new Spinner();
+            
+            View.Q<VisualElement>("Spinner").RemoveFromClassList("hide");
+            View.Q<Button>("SaveButton").AddToClassList("hide");
+
+            var _errorLabel = View.Q<Label>("ErrLabel");
+
+            if(string.IsNullOrEmpty(_nicknameTF.value))
+            {
+                _errorLabel.RemoveFromClassList("hide");
+                _errorLabel.text = "Nickname should not be empty";
+
+                View.Q<Button>("SaveButton").RemoveFromClassList("hide");
+                View.Q<VisualElement>("Spinner").AddToClassList("hide");
+                return;
+            }
+
+            if(string.IsNullOrEmpty(_birthDateTF.value))
+            {
+                _errorLabel.RemoveFromClassList("hide");
+                _errorLabel.text = "Birthdate should not be empty";
+
+                View.Q<Button>("SaveButton").RemoveFromClassList("hide");
+                View.Q<VisualElement>("Spinner").AddToClassList("hide");
+                return;
+            }
+
+            if(!IsDateValid(_birthDateTF.value))
+            {
+                _errorLabel.RemoveFromClassList("hide");
+                _errorLabel.text = "Birthdate format is not valid";
+
+                View.Q<Button>("SaveButton").RemoveFromClassList("hide");
+                View.Q<VisualElement>("Spinner").AddToClassList("hide");
+                return;
+            }
+
             try
             {
                 EditProfileRequest editProfileRequest = new EditProfileRequest();
@@ -611,11 +671,17 @@ namespace com.noctuagames.sdk.UI
 
                 await Model.AuthService.EditProfile(editProfileRequest);
 
+                View.Q<Button>("SaveButton").RemoveFromClassList("hide");
+                View.Q<VisualElement>("Spinner").AddToClassList("hide");
+
                 Debug.Log("Update profile success");
             }
             catch (Exception e)
             {
                 Model.ShowGeneralNotificationError(e.Message);
+                
+                View.Q<Button>("SaveButton").RemoveFromClassList("hide");
+                View.Q<VisualElement>("Spinner").AddToClassList("hide");
             }
         } 
 
