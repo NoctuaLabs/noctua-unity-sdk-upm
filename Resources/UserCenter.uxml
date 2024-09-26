@@ -72,15 +72,20 @@
                             <ui:VisualElement name="Spinner2" class="noctua-spinner" style="height: 74px;" />
                         </ui:VisualElement>
 
-                        <ui:VisualElement class="nickname-container">
+                        <ui:VisualElement class="nickname-container noctua-text-input-margin">
                             <ui:TextField label="Nickname" name="NicknameTF" class="noctua-text-input" />
                             <ui:Label text="Don't use real name, You can change again in the next 14 days" class="hint-textfield"/>
                         </ui:VisualElement>
-                        <ui:TextField label="Birthdate (Optional)" name="BirthdateTF" class="noctua-text-input" />
-                        <ui:DropdownField name="GenderTF" label="Gender (Optional)" class="dropdown-box" />
-                        <ui:DropdownField label="Country" name="CountryTF" class="dropdown-box" />
-                        <ui:DropdownField label="Language" name="LanguageTF" class="dropdown-box" />
-                        <ui:DropdownField label="Currency" name="CurrencyTF" class="dropdown-box" />
+                        <ui:VisualElement class="noctua-text-input-margin">
+                            <ui:TextField label="Birthdate (Optional)" name="BirthdateTF" class="noctua-text-input" />
+                        </ui:VisualElement>
+                        
+                        <ui:VisualElement class="dropdown-container">
+                            <ui:DropdownField name="GenderTF" label="Gender (Optional)" class="dropdown-box" />
+                            <ui:DropdownField label="Country" name="CountryTF" class="dropdown-box" />
+                            <ui:DropdownField label="Language" name="LanguageTF" class="dropdown-box" />
+                            <ui:DropdownField label="Currency" name="CurrencyTF" class="dropdown-box" />
+                        </ui:VisualElement>
 
                     </ui:ScrollView>
                     <ui:VisualElement name="SaveButtonContainer" style="border-top-left-radius: 6px; border-top-right-radius: 6px; border-bottom-right-radius: 6px; border-bottom-left-radius: 6px;">

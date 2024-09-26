@@ -320,7 +320,7 @@
 
 .dropdown-box .unity-base-field__input {
     background-color: transparent;
-    border-color: rgba(98, 100, 104, 1);
+    border-color: #474B4E;
     border-radius: 8px;
     margin-right: 0;
     margin-left: 0;
@@ -365,6 +365,17 @@
 .back-edit-profile-title {
     margin-left: -10px;
     margin-top: -1px;
+}
+
+.noctua-text-input-margin {
+    margin-left: 8px;
+    margin-right: 8px;
+}
+
+.dropdown-container {
+    margin-top: -10px;
+    margin-left: 3px;
+    margin-right: 3px;
 }
 
 /*END User Center - Edit Profile */
