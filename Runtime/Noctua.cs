@@ -32,6 +32,8 @@ namespace com.noctuagames.sdk
 
         [JsonProperty("baseUrl")] public string BaseUrl = DefaultBaseUrl;
 
+        [JsonProperty("paymentBaseUrl")] public string PaymentBaseUrl;
+
         [JsonProperty("isSandbox")] public bool IsSandbox;
     }
     
@@ -203,7 +205,8 @@ namespace com.noctuagames.sdk
                 new NoctuaIAPService.Config
                 {
                     BaseUrl = config.Noctua.BaseUrl,
-                    ClientId = config.ClientId
+                    ClientId = config.ClientId,
+                    WebPaymentBaseUrl = config.Noctua.PaymentBaseUrl
                 },
                 accessTokenProvider
             );

@@ -155,8 +155,9 @@ namespace com.noctuagames.sdk.UI
                     _nicknameTF.value = user?.Nickname;
                     _newProfileUrl = user?.PictureUrl;
 
-                    DateTime dateTime = DateTime.Parse(user?.DateOfBirth, null, DateTimeStyles.RoundtripKind);
-                    string formattedDate = dateTime.ToString("dd/MM/yyyy", CultureInfo.InvariantCulture);
+                    
+                    bool validDate = DateTime.TryParse(user?.DateOfBirth, null, DateTimeStyles.RoundtripKind, out DateTime dateTime);
+                    string formattedDate = validDate ? dateTime.ToString("dd/MM/yyyy", CultureInfo.InvariantCulture) : "";
 
                     string genderOriginal = user?.Gender;
                     string genderUpperChar = char.ToUpper(genderOriginal[0]) + genderOriginal.Substring(1);

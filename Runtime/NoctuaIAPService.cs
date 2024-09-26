@@ -92,15 +92,16 @@ namespace com.noctuagames.sdk
         [JsonProperty("product_id")]
         public string ProductId;
 
-        [JsonProperty("webview_url")]
-        public string WebviewUrl;
+        [JsonProperty("payment_url")]
+        public string PaymentUrl;
     }
     
     public enum PaymentStatus
     {
         Successful,
         Canceled,
-        Failed
+        Failed,
+        Confirmed
     }
     
     public class PaymentResult
@@ -193,6 +194,7 @@ namespace com.noctuagames.sdk
             { PaymentType.Playstore, PaymentType.Applestore, PaymentType.Noctuawallet };
 
         private readonly AccessTokenProvider _accessTokenProvider;
+        private readonly NoctuaWebPaymentService _noctuaPayment;
 
 #if UNITY_ANDROID && !UNITY_EDITOR
         private readonly GoogleBilling GoogleBillingInstance = new();
@@ -205,6 +207,7 @@ namespace com.noctuagames.sdk
         {
             _config = config;
             _accessTokenProvider = accessTokenProvider;
+            _noctuaPayment = new NoctuaWebPaymentService(config.WebPaymentBaseUrl);
 
 #if UNITY_ANDROID && !UNITY_EDITOR
             GoogleBillingInstance.OnProductDetailsDone += HandleGoogleProductDetails;
@@ -435,10 +438,8 @@ namespace com.noctuagames.sdk
 #endif
 
                 case PaymentType.Noctuawallet:
-                    paymentResult = new PaymentResult
-                    {
-                        Status = PaymentStatus.Canceled,
-                    };
+                    hasResult = true;
+                    paymentResult = await _noctuaPayment.PayAsync(orderResponse.PaymentUrl);
                     
                     break;
                 case PaymentType.Unknown:
@@ -454,7 +455,7 @@ namespace com.noctuagames.sdk
                 throw new NoctuaException(NoctuaErrorCode.Payment, "Payment timeout");
             }
             
-            if (paymentResult.Status != PaymentStatus.Successful)
+            if (paymentResult.Status is not (PaymentStatus.Successful or PaymentStatus.Confirmed))
             {
                 throw new NoctuaException(NoctuaErrorCode.Payment, $"OrderStatus: {paymentResult.Status}, Message: {paymentResult.Message}");
             }
@@ -658,6 +659,7 @@ namespace com.noctuagames.sdk
         {
             public string BaseUrl;
             public string ClientId;
+            public string WebPaymentBaseUrl;
         }
     }
 }
