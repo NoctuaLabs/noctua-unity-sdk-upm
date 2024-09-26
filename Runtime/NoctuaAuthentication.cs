@@ -50,9 +50,9 @@ namespace com.noctuagames.sdk
         private readonly NoctuaAuthenticationService _service;
         private OauthRedirectListener _oauthOauthRedirectListener;
 
-        internal NoctuaAuthentication(Config config)
+        internal NoctuaAuthentication(NoctuaAuthenticationService service)
         {
-            _service = new NoctuaAuthenticationService(config.BaseUrl, config.ClientId);
+            _service = service;
             
             _panelSettings = Resources.Load<PanelSettings>("NoctuaPanelSettings");
             _panelSettings.themeStyleSheet = Resources.Load<ThemeStyleSheet>("NoctuaTheme");

@@ -194,20 +194,18 @@ namespace com.noctuagames.sdk
             _nativePlugin = GetNativePlugin();
             _event = new NoctuaEventService(_nativePlugin);
 
-            _auth = new NoctuaAuthentication(
-                new NoctuaAuthentication.Config
-                {
-                    BaseUrl = config.Noctua.BaseUrl,
-                    ClientId = config.ClientId
-                }
-            );
+            var authService = new NoctuaAuthenticationService(config.Noctua.BaseUrl, config.ClientId);
+            _auth = new NoctuaAuthentication(authService);
+            
+            var accessTokenProvider = new AccessTokenProvider(authService);
 
             _iap = new NoctuaIAPService(
                 new NoctuaIAPService.Config
                 {
                     BaseUrl = config.Noctua.BaseUrl,
                     ClientId = config.ClientId
-                }
+                },
+                accessTokenProvider
             );
 
             _game = new NoctuaGameService(

@@ -30,7 +30,7 @@ namespace com.noctuagames.sdk
     public class RemoteConfigs
     {
         [JsonProperty("enabled_payment_types")]
-        public List<string> EnabledPaymentTypes;
+        public List<PaymentType> EnabledPaymentTypes;
     }
 
     internal class NoctuaGameService

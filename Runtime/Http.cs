@@ -215,7 +215,12 @@ namespace com.noctuagames.sdk
                 _request.uploadHandler?.Dispose();
             }
 
-            Debug.Log($"Response: {response}");
+            Debug.Log(
+                "Response: \n" +
+                $"URL: {_request.url}\n" +
+                $"Status: {_request.responseCode}\n" +
+                $"Body: {response}"
+            );
 
             if (_request.responseCode >= 400)
             {
@@ -241,7 +246,7 @@ namespace com.noctuagames.sdk
             {
                 Debug.Log(e.Message);
                 
-                throw new NoctuaException(NoctuaErrorCode.Application, $"Failed to parse response as {typeof(T).Name}: {response}");
+                throw new NoctuaException(NoctuaErrorCode.Application, $"Failed to parse response as {typeof(T).Name}: {response}. Error: {e.Message}");
             }
         }
 

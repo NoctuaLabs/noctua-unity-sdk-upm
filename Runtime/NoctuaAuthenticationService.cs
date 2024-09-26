@@ -374,6 +374,7 @@ namespace com.noctuagames.sdk
         public string EnglishName;
     }
     
+    
     internal class NoctuaAuthenticationService
     {
         public Dictionary<string,UserBundle> AccountList { get; private set; } = new();

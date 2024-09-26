@@ -12,6 +12,7 @@ namespace com.noctuagames.sdk
         Authentication = 3003,
         ActiveCurrencyFailure = 3004,
         MissingCompletionHandler = 3005,
+        Payment = 3006,
     }
     
     public class NoctuaException : Exception
