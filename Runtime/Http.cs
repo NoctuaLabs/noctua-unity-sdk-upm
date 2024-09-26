@@ -222,6 +222,11 @@ namespace com.noctuagames.sdk
                 $"Body: {response}"
             );
 
+            if (_request.responseCode >= 500)
+            {
+                throw new NoctuaException(NoctuaErrorCode.Networking, $"Server error {_request.responseCode}: {response}");
+            }
+
             if (_request.responseCode >= 400)
             {
                 ErrorResponse errorResponse;
@@ -232,7 +237,7 @@ namespace com.noctuagames.sdk
                 }
                 catch (Exception)
                 {
-                    throw new NoctuaException(NoctuaErrorCode.Networking, $"Unknown HTTP error {_request.responseCode}: {response}");
+                    throw new NoctuaException(NoctuaErrorCode.Application, $"Unknown HTTP error {_request.responseCode}: {response}");
                 }
                 
                 throw new NoctuaException((NoctuaErrorCode)errorResponse.ErrorCode, errorResponse.ErrorMessage);

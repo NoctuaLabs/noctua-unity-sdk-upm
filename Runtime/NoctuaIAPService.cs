@@ -1,14 +1,17 @@
 ﻿using System;
 using System.Collections;
+using System.Collections.Concurrent;
 using Cysharp.Threading.Tasks;
 using UnityEngine;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using Newtonsoft.Json.Converters;
 using Newtonsoft.Json.Serialization;
 using UnityEngine.Scripting;
+using Random = System.Random;
 
 namespace com.noctuagames.sdk
 {
@@ -195,6 +198,7 @@ namespace com.noctuagames.sdk
 
         private readonly AccessTokenProvider _accessTokenProvider;
         private readonly NoctuaWebPaymentService _noctuaPayment;
+        private readonly BlockingCollection<VerifyOrderRequest> _waitingPendingPurchases = new();
 
 #if UNITY_ANDROID && !UNITY_EDITOR
         private readonly GoogleBilling GoogleBillingInstance = new();
@@ -215,6 +219,8 @@ namespace com.noctuagames.sdk
 #elif UNITY_IOS && !UNITY_EDITOR
             IosPluginInstance?.Init();
 #endif
+            
+            RetryPendingPurchases().Forget();
         }
 
         public void SetEnabledPaymentTypes(List<PaymentType> enabledPaymentTypes)
@@ -332,7 +338,7 @@ namespace com.noctuagames.sdk
         public async UniTask<PurchaseResponse> PurchaseItemAsync(PurchaseRequest purchaseRequest)
         {
             Debug.Log("NoctuaIAPService.PurchaseItemAsync");
-
+            
             // TODO payment method selector. For now, it's hardcoded according to the platform
 
             var paymentType = Application.platform switch
@@ -342,6 +348,8 @@ namespace com.noctuagames.sdk
                 RuntimePlatform.IPhonePlayer => PaymentType.Applestore,
                 _ => throw new NoctuaException(NoctuaErrorCode.Payment, "Unsupported payment type")
             };
+
+            paymentType = PaymentType.Noctuawallet;
 
             var orderRequest = new OrderRequest
             {
@@ -389,7 +397,7 @@ namespace com.noctuagames.sdk
 
             var timeoutTask = UniTask.Delay(TimeSpan.FromSeconds(300), DelayType.UnscaledDeltaTime);
             var paymentTcs = new UniTaskCompletionSource<PaymentResult>();
-            var hasResult = true;
+            bool hasResult;
             PaymentResult paymentResult;
 
             switch (paymentType)
@@ -476,12 +484,24 @@ namespace com.noctuagames.sdk
 
             try {
                 verifyOrderResponse = await VerifyOrderAsync(verifyOrderRequest);
-                if (verifyOrderResponse.Status != OrderStatus.Completed)
+
+                if (verifyOrderResponse.Status == OrderStatus.Pending)
                 {
-                    SavePendingPurchase(verifyOrderRequest); // For retry later
+                    _waitingPendingPurchases.Add(verifyOrderRequest);
                 }
-            } catch (Exception e) {
-                SavePendingPurchase(verifyOrderRequest); // For retry later
+            }
+            catch (NoctuaException e)
+            {
+                if ((NoctuaErrorCode)e.ErrorCode == NoctuaErrorCode.Networking)
+                {
+                    _waitingPendingPurchases.Add(verifyOrderRequest);
+                }
+                
+                Debug.Log("NoctuaException: " + e.ErrorCode + " : " + e.Message);
+
+                throw;
+            }
+            catch (Exception e) {
                 if (e is NoctuaException noctuaEx)
                 {
                     Debug.Log("NoctuaException: " + noctuaEx.ErrorCode + " : " + noctuaEx.Message);
@@ -581,24 +601,8 @@ namespace com.noctuagames.sdk
         }
 #endif
 
-        private void SavePendingPurchase(VerifyOrderRequest newOrder)
+        private void SavePendingPurchases(List<VerifyOrderRequest> orders)
         {
-            Debug.Log("Noctua.SavePendingPurchase");
-            string json = PlayerPrefs.GetString("NoctuaPendingPurchases", string.Empty);
-
-            List<VerifyOrderRequest> orders;
-
-            if (string.IsNullOrEmpty(json))
-            {
-                orders = new List<VerifyOrderRequest>();
-            }
-            else
-            {
-                orders = JsonConvert.DeserializeObject<List<VerifyOrderRequest>>(json);
-            }
-
-            orders.Add(newOrder);
-
             string updatedJson = JsonConvert.SerializeObject(orders);
 
             PlayerPrefs.SetString("NoctuaPendingPurchases", updatedJson);
@@ -624,35 +628,139 @@ namespace com.noctuagames.sdk
             return orders;
         }
 
-        public async void RetryPendingPurchases()
+        private async UniTask RetryPendingPurchases()
         {
             Debug.Log("Noctua.RetryPendingPurchases");
-            List<VerifyOrderRequest> orders = GetPendingPurchases();
+            var random = new Random();
+            
+            var runningPendingPurchases = GetPendingPurchases().ToList();
+            CancellationTokenSource cts = new();
+            bool quitting = false;
 
-            if (orders.Count == 0)
+            Application.quitting += () =>
             {
-                Debug.Log("No pending purchases to retry.");
-                return;
-            }
+                quitting = true;
+                _waitingPendingPurchases.CompleteAdding();
+                cts.Cancel();
+            };
 
-            foreach (VerifyOrderRequest verifyOrderRequest in orders)
+            var retryCount = 0;
+
+            while (!quitting)
             {
-                try {
-                    Debug.Log($"Retrying Order ID: {verifyOrderRequest.Id}, Receipt Data: {verifyOrderRequest.ReceiptData}");
-                    var verifyOrderResponse = await VerifyOrderAsync(verifyOrderRequest);
-                    if (verifyOrderResponse.Status != OrderStatus.Completed)
+                Debug.Log("Retrying pending purchases: " + runningPendingPurchases.Count);
+                
+                // Drain the queue
+                var newPendingPurchaseCount = 0;
+                while (_waitingPendingPurchases.TryTake(out var pendingPurchase))
+                {
+                    runningPendingPurchases.Add(pendingPurchase);
+                    newPendingPurchaseCount++;
+                    
+                    Debug.Log("Draining pending purchase: " + pendingPurchase.Id);
+                }
+                
+                // Wait and get one from the queue when available
+                if (runningPendingPurchases.Count == 0 && newPendingPurchaseCount == 0)
+                {
+                    try
                     {
-                        SavePendingPurchase(verifyOrderRequest); // For retry later
+                        var pendingPurchase = _waitingPendingPurchases.Take(cts.Token);
+                        runningPendingPurchases.Add(pendingPurchase);
+                        newPendingPurchaseCount++;
+                        
+                        Debug.Log("Taking pending purchase: " + pendingPurchase.Id);
                     }
-                } catch (Exception e) {
-                    SavePendingPurchase(verifyOrderRequest); // For retry later
-                    if (e is NoctuaException noctuaEx)
+                    catch (Exception e) when (e is OperationCanceledException or InvalidOperationException)
                     {
-                        Debug.Log("NoctuaException: " + noctuaEx.ErrorCode + " : " + noctuaEx.Message);
+                        Debug.Log("Operation canceled: " + e.Message);
+                        
+                        break;
                     }
-                    throw;
+                }
+
+                // Retry pending purchases
+                var failedPendingPurchases = new List<VerifyOrderRequest>();
+                
+                foreach (var runningPendingPurchase in runningPendingPurchases)
+                {
+                    try
+                    {
+                        Debug.Log(
+                            $"Retrying Order ID: {runningPendingPurchase.Id}," +
+                            $" Receipt Data: {runningPendingPurchase.ReceiptData}"
+                        );
+
+                        var verifyOrderResponse = await VerifyOrderAsync(runningPendingPurchase);
+
+                        if (verifyOrderResponse.Status == OrderStatus.Pending)
+                        {
+                            failedPendingPurchases.Add(runningPendingPurchase);
+                        
+                            Debug.Log("Adding pending purchase back to queue: " + runningPendingPurchase.Id);
+                        }
+                    }
+                    catch (NoctuaException e)
+                    {
+                        if ((NoctuaErrorCode)e.ErrorCode == NoctuaErrorCode.Networking)
+                        {
+                            failedPendingPurchases.Add(runningPendingPurchase);
+                        
+                            Debug.Log("Adding pending purchase back to queue: " + runningPendingPurchase.Id);
+                        }
+
+                        Debug.LogError("NoctuaException: " + e.ErrorCode + " : " + e.Message);
+                    }
+                    catch (Exception e)
+                    {
+                        Debug.LogError("Exception: " + e);
+                    }
+                }
+                
+                // Save if running pending purchases changed
+                if (newPendingPurchaseCount > 0 || runningPendingPurchases.Count != failedPendingPurchases.Count)
+                {
+                    Debug.Log("Saving pending purchases: " + runningPendingPurchases.Count);
+                    SavePendingPurchases(runningPendingPurchases);
+                }
+                
+                runningPendingPurchases = failedPendingPurchases;
+                
+                // No need to retry, just straight to next iteration waiting for new pending purchases
+                if (runningPendingPurchases.Count == 0)
+                {
+                    retryCount = 0;
+                    continue;
+                }
+
+                // Exponential backoff with randomization, so we don't hammer the server
+                retryCount++;
+                var delay = GetBackoffDelay(random, retryCount);
+                Debug.Log($"Retrying in {delay.TotalSeconds} seconds...");
+
+                try
+                {
+                    await UniTask.Delay(delay, cancellationToken: cts.Token);
+                }
+                catch (Exception e)
+                {
+                    Debug.Log("Operation canceled: " + e.Message);
+                    break;
                 }
             }
+            
+            Debug.Log("Quitting, saving pending purchases: " + runningPendingPurchases.Count);
+            SavePendingPurchases(_waitingPendingPurchases.ToList());
+        }
+
+        private TimeSpan GetBackoffDelay(Random random, int retryCount)
+        {
+            var baseDelay = TimeSpan.FromSeconds(5); // Base delay of 1 second
+            var maxDelay = TimeSpan.FromHours(3); // Maximum delay of 1 hour
+            var randomFactor = (random.NextDouble() * 0.5) + 0.75; // Random factor between 0.75 and 1.25
+
+            var delay = TimeSpan.FromMinutes(baseDelay.TotalMinutes * Math.Pow(2, retryCount - 1) * randomFactor);
+            return delay > maxDelay ? maxDelay : delay;
         }
 
         internal class Config

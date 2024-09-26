@@ -47,7 +47,7 @@ namespace com.noctuagames.sdk
         public static readonly NoctuaException RequestConnectionError = new(NoctuaErrorCode.Networking, "Request connection error");
         public static readonly NoctuaException RequestDataProcessingError = new(NoctuaErrorCode.Networking, "Request data processing error");
         public static readonly NoctuaException RequestProtocolError = new(NoctuaErrorCode.Networking, "Request protocol error");
-        public static readonly NoctuaException RequestUnreplacedParam = new(NoctuaErrorCode.Networking, "Request unreplaced param");
+        public static readonly NoctuaException RequestUnreplacedParam = new(NoctuaErrorCode.Application, "Request unreplaced param");
         public static readonly NoctuaException MissingAccessToken = new(NoctuaErrorCode.Authentication, "Missing access token");
         public static readonly NoctuaException ActiveCurrencyFailure = new(NoctuaErrorCode.ActiveCurrencyFailure, "Failed to get active currency");
         public static readonly NoctuaException MissingCompletionHandler = new(NoctuaErrorCode.MissingCompletionHandler, "Missing task completion handler");

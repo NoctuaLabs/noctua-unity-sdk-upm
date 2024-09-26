@@ -274,9 +274,6 @@ namespace com.noctuagames.sdk
 
             Debug.Log("Noctua.Init() set _initialized to true");
             Instance.Value._initialized = true;
-
-            // Retry pending purchases, if any
-            Instance.Value._iap.RetryPendingPurchases();
         }
 
         public static void OnApplicationPause(bool pause)

@@ -1,10 +1,6 @@
-﻿#undef UNITY_EDITOR
-
-using System;
-using System.Linq;
+﻿using System;
 using Cysharp.Threading.Tasks;
 using UnityEngine;
-using Object = UnityEngine.Object;
 
 namespace com.noctuagames.sdk
 {
@@ -69,13 +65,13 @@ namespace com.noctuagames.sdk
 
             void PageClosed(UniWebView webView, string windowId)
             {
-                Debug.Log("Page closed");
+                Debug.Log("NoctuaWebPaymentService: Page closed");
                 tcs.TrySetResult(new PaymentResult { Status = PaymentStatus.Canceled, Message = "Payment window closed" });
             }
 
             bool ShouldClose(UniWebView webView)
             {
-                Debug.Log("Should close");
+                Debug.Log("NoctuaWebPaymentService: Should close");
                 tcs.TrySetResult(new PaymentResult { Status = PaymentStatus.Canceled, Message = "Payment window closed" });
                 
                 return true;
@@ -123,7 +119,7 @@ namespace com.noctuagames.sdk
             uniWebView.EmbeddedToolbar.SetPosition(UniWebViewToolbarPosition.Top);
             uniWebView.Frame = new Rect(0, 0, Screen.width, Screen.height);
 
-            Debug.Log("Showing WebView");
+            Debug.Log("NoctuaWebPaymentService: Showing WebView");
             uniWebView.Show();
             uniWebView.Load(paymentUrl);
 
@@ -133,14 +129,14 @@ namespace com.noctuagames.sdk
             }
             finally
             {
-                Debug.Log("Closing WebView");
+                Debug.Log("NoctuaWebPaymentService: Closing WebView");
                 uniWebView.Hide();
                 uniWebView.OnPageFinished -= PageFinished;
                 uniWebView.OnPageStarted -= PageStarted;
                 uniWebView.OnMultipleWindowClosed -= PageClosed;
                 uniWebView.OnShouldClose -= ShouldClose;
 
-                Object.Destroy(gameObject);
+                UnityEngine.Object.Destroy(gameObject);
             }
 #else
             throw new NoctuaException(NoctuaErrorCode.Application, "Web payment is not supported in this platform");
