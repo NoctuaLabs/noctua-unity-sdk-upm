@@ -324,7 +324,7 @@ namespace com.noctuagames.sdk
     }
 
     [Preserve]
-    public class EditProfileRequest
+    public class UpdateUserRequest
     {
         [JsonProperty("nickname")]
         public string Nickname;
@@ -553,31 +553,6 @@ namespace com.noctuagames.sdk
             return await request.Send<CredentialVerification>();
         }
 
-        public async UniTask EditProfile(EditProfileRequest editProfileRequest)
-        {
-            if (string.IsNullOrEmpty(RecentAccount?.Player?.AccessToken)) {
-                throw NoctuaException.MissingAccessToken;
-            }
-
-             var request = new HttpRequest(HttpMethod.Post, $"{_baseUrl}/user/profile")
-                .WithHeader("X-CLIENT-ID", _clientId)
-                .WithHeader("X-BUNDLE-ID", Application.identifier)
-                .WithHeader("Authorization", "Bearer " + RecentAccount.Player.AccessToken)
-                .WithJsonBody(
-                    new EditProfileRequest
-                    {
-                        Nickname = editProfileRequest.Nickname,
-                        DateOfBirth = editProfileRequest.DateOfBirth,
-                        Gender = editProfileRequest.Gender,
-                        PictureUrl = editProfileRequest.PictureUrl,
-                        Language = editProfileRequest.Language,
-                        Country = editProfileRequest.Country,
-                        Currency = editProfileRequest.Currency
-                    }
-                );
-            _ = await request.Send<object>();
-        }
-
         public async UniTask<UserBundle> VerifyEmailRegistrationAsync(int id, string code)
         {
             var request = new HttpRequest(HttpMethod.Post, $"{_baseUrl}/auth/email/verify-registration")
@@ -741,14 +716,12 @@ namespace com.noctuagames.sdk
             return await LoginAsGuestAsync(); 
         }
 
-        public async UniTask<User> GetCurrentUser()
+        public async UniTask<User> GetCurrentUserAsync()
         {
             if (string.IsNullOrEmpty(RecentAccount?.Player?.AccessToken)) {
                 throw NoctuaException.MissingAccessToken;
             }
             
-            Debug.Log("GetCurrentUser");
-
             var request = new HttpRequest(HttpMethod.Get, $"{_baseUrl}/user/profile")
                 .WithHeader("X-CLIENT-ID", _clientId)
                 .WithHeader("X-BUNDLE-ID", Application.identifier)
@@ -757,20 +730,18 @@ namespace com.noctuagames.sdk
             return await request.Send<User>();
         }
 
-        public async UniTask UpdateUserAsync(User user)
+        public async UniTask UpdateUserAsync(UpdateUserRequest updateUserRequest)
         {
             if (string.IsNullOrEmpty(RecentAccount?.Player?.AccessToken)) {
                 throw NoctuaException.MissingAccessToken;
             }
-            
-            Debug.Log("UpdateUser");
 
-            var request = new HttpRequest(HttpMethod.Put, $"{_baseUrl}/user/profile")
+            var request = new HttpRequest(HttpMethod.Post, $"{_baseUrl}/user/profile")
                 .WithHeader("X-CLIENT-ID", _clientId)
                 .WithHeader("X-BUNDLE-ID", Application.identifier)
                 .WithHeader("Authorization", "Bearer " + RecentAccount.Player.AccessToken)
-                .WithJsonBody(user);
-
+                .WithJsonBody(updateUserRequest);
+            
             _ = await request.Send<object>();
         }
 

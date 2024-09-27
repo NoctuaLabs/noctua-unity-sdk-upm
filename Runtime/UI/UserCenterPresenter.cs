@@ -136,7 +136,7 @@ namespace com.noctuagames.sdk.UI
                     throw new NoctuaException(NoctuaErrorCode.Authentication, "No account is logged in.");
                 }
                 
-                var user = await Model.AuthService.GetCurrentUser();
+                var user = await Model.AuthService.GetCurrentUserAsync();
                 var isGuest = user?.IsGuest == true;
                 
                 Debug.Log($"GetCurrentUser: {user?.Id} {user?.Nickname}");
@@ -645,7 +645,7 @@ namespace com.noctuagames.sdk.UI
 
             try
             {
-                EditProfileRequest editProfileRequest = new EditProfileRequest();
+                UpdateUserRequest updateUserRequest = new UpdateUserRequest();
 
                 var _dob = _birthDateTF.value;
                 string format = "dd/MM/yyyy";
@@ -656,20 +656,20 @@ namespace com.noctuagames.sdk.UI
                 // Set the time to 00:00:00 and the kind to UTC
                 _dateTime = new DateTime(_dateTime.Year, _dateTime.Month, _dateTime.Day, 0, 0, 0, DateTimeKind.Utc);
 
-                editProfileRequest.Nickname = _nicknameTF.value;
-                editProfileRequest.DateOfBirth = _dateTime;
-                editProfileRequest.Gender = _genderTF.value.ToLower();
-                editProfileRequest.PictureUrl = _newProfileUrl;
+                updateUserRequest.Nickname = _nicknameTF.value;
+                updateUserRequest.DateOfBirth = _dateTime;
+                updateUserRequest.Gender = _genderTF.value.ToLower();
+                updateUserRequest.PictureUrl = _newProfileUrl;
 
                 int indexCountry = _profileDataOptions.Countries.FindIndex(item => item.EnglishName.ToLower() == _countryTF.value.ToLower());
                 int indexLanguage = _profileDataOptions.Languages.FindIndex(item => item.EnglishName.ToLower() == _languageTF.value.ToLower());
                 int indexCurrency = _profileDataOptions.Currencies.FindIndex(item => item.EnglishName.ToLower() == _currencyTF.value.ToLower());
 
-                editProfileRequest.Country = _profileDataOptions.Countries[indexCountry].IsoCode;
-                editProfileRequest.Language = _profileDataOptions.Languages[indexLanguage].IsoCode;
-                editProfileRequest.Currency = _profileDataOptions.Currencies[indexCurrency].IsoCode;
+                updateUserRequest.Country = _profileDataOptions.Countries[indexCountry].IsoCode;
+                updateUserRequest.Language = _profileDataOptions.Languages[indexLanguage].IsoCode;
+                updateUserRequest.Currency = _profileDataOptions.Currencies[indexCurrency].IsoCode;
 
-                await Model.AuthService.EditProfile(editProfileRequest);
+                await Model.AuthService.UpdateUserAsync(updateUserRequest);
 
                 View.Q<Button>("SaveButton").RemoveFromClassList("hide");
                 View.Q<VisualElement>("Spinner").AddToClassList("hide");

@@ -34,6 +34,16 @@ namespace com.noctuagames.sdk
 
         [JsonProperty("paymentBaseUrl")] public string PaymentBaseUrl;
 
+        [JsonProperty("announcementBaseUrl")] public string AnnouncementBaseUrl =
+            "https://api-gtw.noctua.gg/account/v1/public/user-center/special-button/redirect?productCode=55112649122002616278791805982587&ts=1721213541000&userID=18665027&token=321e487334668bad41bbd3387f9d36c4&redirectType=igp";
+
+        [JsonProperty("rewardBaseUrl")] public string RewardBaseUrl =
+            "https://api-gtw.noctua.gg/account/v1/public/user-center/special-button/redirect?productCode=55112649122002616278791805982587&ts=1721213541000&userID=18665027&token=321e487334668bad41bbd3387f9d36c4&redirectType=reward";
+
+        [JsonProperty("customerServiceBaseUrl")]
+        public string CustomerServiceBaseUrl =
+            "https://api-gtw.noctua.gg/account/v1/public/user-center/special-button/redirect?productCode=55112649122002616278791805982587&ts=1721213541000&userID=18665027&token=321e487334668bad41bbd3387f9d36c4&redirectType=cs";
+
         [JsonProperty("isSandbox")] public bool IsSandbox;
     }
     
@@ -73,7 +83,7 @@ namespace com.noctuagames.sdk
         public static NoctuaEventService Event => Instance.Value._event;
         public static NoctuaAuthentication Auth => Instance.Value._auth;
         public static NoctuaIAPService IAP => Instance.Value._iap;
-        public static NoctuaLocale Locale => Instance.Value._locale;
+        public static NoctuaPlatform Platform => Instance.Value._platform;
 
         public event Action<string> OnPurchaseDone;
 
@@ -81,7 +91,7 @@ namespace com.noctuagames.sdk
         private readonly NoctuaAuthentication _auth;
         private readonly NoctuaIAPService _iap;
         private readonly NoctuaGameService _game;
-        private readonly NoctuaLocale _locale;
+        private readonly NoctuaPlatform _platform;
 
         #if UNITY_ANDROID && !UNITY_EDITOR
         private readonly GoogleBilling _googleBilling;
@@ -219,7 +229,7 @@ namespace com.noctuagames.sdk
                 }
             );  
 
-            _locale = new NoctuaLocale();
+            _platform = new NoctuaPlatform(config.Noctua, accessTokenProvider);
         }
 
         public static async UniTask InitAsync()
@@ -255,7 +265,7 @@ namespace com.noctuagames.sdk
             // Set locale values
             if (!string.IsNullOrEmpty(initResponse.Country))
             {
-                Instance.Value._locale.SetCountry(initResponse.Country);
+                Instance.Value._platform.Locale.SetCountry(initResponse.Country);
             }
 
             // Try to get active currency
@@ -265,7 +275,7 @@ namespace com.noctuagames.sdk
                 if (!string.IsNullOrEmpty(activeCurrency))
                 {
                     Debug.Log("Found active currency: " + activeCurrency);
-                    Instance.Value._locale.SetCurrency(activeCurrency);
+                    Instance.Value._platform.Locale.SetCurrency(activeCurrency);
                 }
             }
 

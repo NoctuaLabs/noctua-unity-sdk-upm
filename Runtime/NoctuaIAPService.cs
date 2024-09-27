@@ -240,7 +240,7 @@ namespace com.noctuagames.sdk
             }
 
             string gameId = recentAccount.Player.GameId.ToString();
-            string currency = Noctua.Locale.GetCurrency();
+            string currency = Noctua.Platform.Locale.GetCurrency();
             string enabledPaymentTypes = string.Join(",", _enabledPaymentTypes).ToLower();
 
             Debug.Log("NoctuaIAPService.GetProductListAsync");
@@ -365,7 +365,7 @@ namespace com.noctuagames.sdk
 
             if (string.IsNullOrEmpty(orderRequest.Currency))
             {
-                orderRequest.Currency = Noctua.Locale.GetCurrency();
+                orderRequest.Currency = Noctua.Platform.Locale.GetCurrency();
             }
 
             OrderResponse orderResponse;
