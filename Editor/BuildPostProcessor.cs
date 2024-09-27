@@ -5,7 +5,6 @@ using System.Xml;
 using System.Xml.Linq;
 using Newtonsoft.Json;
 using com.noctuagames.sdk;
-using Newtonsoft.Json;
 using UnityEngine;
 
 #if UNITY_IOS

@@ -31,6 +31,7 @@ namespace com.noctuagames.sdk.UI
         private DropdownField _countryTF;
         private DropdownField _languageTF;
         private DropdownField _currencyTF;
+        private DropdownField _paymentTypeTF;
         private VisualElement _profileImage;
         private VisualElement _playerImage;
         private Button _changeProfile;
@@ -41,6 +42,7 @@ namespace com.noctuagames.sdk.UI
         private List<string> _countryOptions = new List<string> { "Select Country" };
         private List<string> _languageOptions = new List<string> { "Select Languages" };
         private List<string> _currencyOptions = new List<string> { "Select Currency" };
+        private List<PaymentType> _paymentOptions = new List<PaymentType> { PaymentType.Unknown };
         private VisualElement _spinner;
 
         //Date Picker
@@ -136,7 +138,7 @@ namespace com.noctuagames.sdk.UI
                     throw new NoctuaException(NoctuaErrorCode.Authentication, "No account is logged in.");
                 }
                 
-                var user = await Model.AuthService.GetCurrentUserAsync();
+                var user = await Model.AuthService.GetUserAsync();
                 var isGuest = user?.IsGuest == true;
                 
                 Debug.Log($"GetCurrentUser: {user?.Id} {user?.Nickname}");
@@ -152,7 +154,7 @@ namespace com.noctuagames.sdk.UI
                     _profileDataOptions = profileOptions;
 
                     OnUIEditProfile(false);
-                    setupDropdownUI();
+                    SetupDropdownUI();
 
                     _nicknameTF.value = user?.Nickname;
                     _newProfileUrl = user?.PictureUrl;
@@ -346,6 +348,7 @@ namespace com.noctuagames.sdk.UI
             _countryTF = View.Q<DropdownField>("CountryTF");
             _languageTF = View.Q<DropdownField>("LanguageTF");
             _currencyTF = View.Q<DropdownField>("CurrencyTF");
+            _paymentTypeTF = View.Q<DropdownField>("PaymentTypeTF");
             _changeProfile = View.Q<Button>("ChangePictureButton");
             _profileImage = View.Q<VisualElement>("ProfileImage");
             _playerImage = View.Q<VisualElement>("PlayerAvatar");
@@ -354,10 +357,10 @@ namespace com.noctuagames.sdk.UI
             _nicknameTF.RegisterValueChangedCallback(evt => OnTextChanged(_nicknameTF));
             _changeProfile.RegisterCallback<PointerUpEvent>(OnChangeProfile);
 
-            setupDropdownUI();
+            SetupDropdownUI();
         }
 
-        private async void setupDropdownUI() {
+        private void SetupDropdownUI() {
             var genderChoices = new List<string> {"Male", "Female"};
 
             if(_profileDataOptions != null)
@@ -365,10 +368,11 @@ namespace com.noctuagames.sdk.UI
                 _countryOptions.Clear();
                 _languageOptions.Clear();
                 _currencyOptions.Clear();
+                _paymentOptions.Clear();
 
-                foreach(GeneralProfileData _country in _profileDataOptions.Countries)
+                foreach(GeneralProfileData country in _profileDataOptions.Countries)
                 {
-                    _countryOptions.Add(_country.EnglishName);
+                    _countryOptions.Add(country.EnglishName);
                 }
 
                 foreach(GeneralProfileData _languages in _profileDataOptions.Languages)
@@ -381,6 +385,16 @@ namespace com.noctuagames.sdk.UI
                     _currencyOptions.Add(_currency.EnglishName);
                 }
 
+                _paymentOptions.Add(PaymentType.Noctuawallet);
+
+                if (Application.platform == RuntimePlatform.Android)
+                {
+                    _paymentOptions.Add(PaymentType.Playstore);
+                }
+                else if (Application.platform == RuntimePlatform.IPhonePlayer)
+                {
+                    _paymentOptions.Add(PaymentType.Applestore);
+                }
             }
 
             _genderTF.choices = genderChoices; 
@@ -411,9 +425,15 @@ namespace com.noctuagames.sdk.UI
                 _currencyTF.labelElement.style.display = DisplayStyle.None;
             });
 
+            _paymentTypeTF.choices = _paymentOptions.ConvertAll(x => x.ToString());
+            _paymentTypeTF.RegisterCallback<ChangeEvent<string>>((evt) =>
+            {
+                _paymentTypeTF.value = evt.newValue;
+                _paymentTypeTF.labelElement.style.display = DisplayStyle.None;
+            });
         }
 
-        private async void OnChangeProfile(PointerUpEvent evt)
+        private void OnChangeProfile(PointerUpEvent evt)
         {
             if(NativeGallery.IsMediaPickerBusy())
             {
@@ -664,10 +684,12 @@ namespace com.noctuagames.sdk.UI
                 int indexCountry = _profileDataOptions.Countries.FindIndex(item => item.EnglishName.ToLower() == _countryTF.value.ToLower());
                 int indexLanguage = _profileDataOptions.Languages.FindIndex(item => item.EnglishName.ToLower() == _languageTF.value.ToLower());
                 int indexCurrency = _profileDataOptions.Currencies.FindIndex(item => item.EnglishName.ToLower() == _currencyTF.value.ToLower());
+                int indexPayment = _paymentOptions.FindIndex(item => item.ToString().ToLower() == _paymentTypeTF.value.ToLower());                
 
                 updateUserRequest.Country = _profileDataOptions.Countries[indexCountry].IsoCode;
                 updateUserRequest.Language = _profileDataOptions.Languages[indexLanguage].IsoCode;
                 updateUserRequest.Currency = _profileDataOptions.Currencies[indexCurrency].IsoCode;
+                updateUserRequest.PaymentType = _paymentOptions[indexPayment];
 
                 await Model.AuthService.UpdateUserAsync(updateUserRequest);
 

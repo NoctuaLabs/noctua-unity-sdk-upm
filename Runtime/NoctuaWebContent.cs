@@ -49,7 +49,7 @@ namespace com.noctuagames.sdk
             await OpenUrlInWebView(webContentDetails.Url);
         }
         
-        public async UniTask ShowCustomerSupport()
+        public async UniTask ShowCustomerService()
         {
             if (string.IsNullOrEmpty(_config.CustomerServiceBaseUrl))
             {

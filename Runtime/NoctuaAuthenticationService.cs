@@ -4,6 +4,8 @@ using System.Linq;
 using System.Web;
 using Cysharp.Threading.Tasks;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Converters;
+using Newtonsoft.Json.Serialization;
 using UnityEngine;
 using UnityEngine.Scripting;
 using ArgumentNullException = System.ArgumentNullException;
@@ -17,6 +19,16 @@ namespace com.noctuagames.sdk
         public const string CustomerServiceBaseUrl = "https://noctua.gg/embed-webview?url=https%3A%2F%2Fgo.crisp.chat%2Fchat%2Fembed%2F%3Fwebsite_id%3Dc4e95a3a-1fd1-49a2-92ea-a7cb5427bcd9&reason=general&vipLevel=";
     }
 
+
+    [Preserve, JsonConverter(typeof(StringEnumConverter), typeof(SnakeCaseNamingStrategy))]
+    public enum PaymentType
+    {
+        Unknown,
+        Applestore,
+        Playstore,
+        Noctuawallet
+    }
+    
     [Preserve]
     public class User
     {
@@ -56,6 +68,8 @@ namespace com.noctuagames.sdk
         [JsonProperty("currency")]
         public string Currency;
 
+        [JsonProperty("payment_type")]
+        public PaymentType PaymentType;
     }
 
     [Preserve]
@@ -346,6 +360,9 @@ namespace com.noctuagames.sdk
 
         [JsonProperty("currency")]
         public string Currency;
+        
+        [JsonProperty("payment_type")]
+        public PaymentType PaymentType;
     }
 
     [Preserve]
@@ -716,7 +733,7 @@ namespace com.noctuagames.sdk
             return await LoginAsGuestAsync(); 
         }
 
-        public async UniTask<User> GetCurrentUserAsync()
+        public async UniTask<User> GetUserAsync()
         {
             if (string.IsNullOrEmpty(RecentAccount?.Player?.AccessToken)) {
                 throw NoctuaException.MissingAccessToken;

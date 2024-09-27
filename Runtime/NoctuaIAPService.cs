@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Concurrent;
 using Cysharp.Threading.Tasks;
 using UnityEngine;
@@ -15,16 +14,14 @@ using Random = System.Random;
 
 namespace com.noctuagames.sdk
 {
-
-    [Preserve, JsonConverter(typeof(StringEnumConverter), typeof(SnakeCaseNamingStrategy))]
-    public enum PaymentType
-    {
-        Unknown,
-        Applestore,
-        Playstore,
-        Noctuawallet
-    }
     
+    [Preserve]
+    public class PaymentSettings
+    {
+        [JsonProperty("payment_type")]
+        public PaymentType PaymentType;
+    }
+
     [Preserve]
     public class Product
     {
@@ -189,6 +186,7 @@ namespace com.noctuagames.sdk
     public class NoctuaIAPService
     {
         private readonly Config _config;
+        private readonly ILogger _log = new NoctuaUnityDebugLogger();
 
         private UniTaskCompletionSource<string> _activeCurrencyTcs;
 
@@ -198,7 +196,7 @@ namespace com.noctuagames.sdk
 
         private readonly AccessTokenProvider _accessTokenProvider;
         private readonly NoctuaWebPaymentService _noctuaPayment;
-        private readonly BlockingCollection<VerifyOrderRequest> _waitingPendingPurchases = new();
+        private readonly BlockingCollection<RetryPendingPurchaseItem> _waitingPendingPurchases = new();
 
 #if UNITY_ANDROID && !UNITY_EDITOR
         private readonly GoogleBilling GoogleBillingInstance = new();
@@ -220,7 +218,7 @@ namespace com.noctuagames.sdk
             IosPluginInstance?.Init();
 #endif
             
-            RetryPendingPurchases().Forget();
+            Task.Run(RetryPendingPurchases);
         }
 
         public void SetEnabledPaymentTypes(List<PaymentType> enabledPaymentTypes)
@@ -230,7 +228,7 @@ namespace com.noctuagames.sdk
 
         public async UniTask<ProductList> GetProductListAsync()
         {
-            Debug.Log("NoctuaIAPService.GetProductListAsync");
+            _log.Log("NoctuaIAPService.GetProductListAsync");
 
             var recentAccount = Noctua.Auth.GetRecentAccount();
 
@@ -243,17 +241,17 @@ namespace com.noctuagames.sdk
             string currency = Noctua.Platform.Locale.GetCurrency();
             string enabledPaymentTypes = string.Join(",", _enabledPaymentTypes).ToLower();
 
-            Debug.Log("NoctuaIAPService.GetProductListAsync");
-            Debug.Log(_config.BaseUrl);
-            Debug.Log(_config.ClientId);
-            Debug.Log(gameId);
-            Debug.Log(currency);
-            Debug.Log(enabledPaymentTypes);
+            _log.Log("NoctuaIAPService.GetProductListAsync");
+            _log.Log(_config.BaseUrl);
+            _log.Log(_config.ClientId);
+            _log.Log(gameId);
+            _log.Log(currency);
+            _log.Log(enabledPaymentTypes);
 
             var url =
                 $"{_config.BaseUrl}/products?game_id={gameId}&currency={currency}&enabled_payment_types={enabledPaymentTypes}";
 
-            Debug.Log(url);
+            _log.Log(url);
 
             var request = new HttpRequest(HttpMethod.Get, url)
                 .WithHeader("X-CLIENT-ID", _config.ClientId)
@@ -280,14 +278,14 @@ namespace com.noctuagames.sdk
             return response;
         }
 
-        private async UniTask<VerifyOrderResponse> VerifyOrderAsync(VerifyOrderRequest order)
+        private async UniTask<VerifyOrderResponse> VerifyOrderAsync(VerifyOrderRequest order, string accessToken)
         {
             var url = $"{_config.BaseUrl}/verify-order";
 
             var request = new HttpRequest(HttpMethod.Post, url)
                 .WithHeader("X-CLIENT-ID", _config.ClientId)
                 .WithHeader("X-BUNDLE-ID", Application.identifier)
-                .WithHeader("Authorization", "Bearer " + _accessTokenProvider.AccessToken)
+                .WithHeader("Authorization", "Bearer " + accessToken)
                 .WithJsonBody(order);
 
             var response = await request.Send<VerifyOrderResponse>();
@@ -300,11 +298,11 @@ namespace com.noctuagames.sdk
 #if UNITY_IOS && !UNITY_EDITOR
             var tcs = new UniTaskCompletionSource<string>();
             IosPluginInstance.GetActiveCurrency(productId, (success, currency) => {
-                Debug.Log("NoctuaIAPService.GetActiveCurrency callback");
-                Debug.Log("NoctuaIAPService.GetActiveCurrency callback success: " + success);
-                Debug.Log("NoctuaIAPService.GetActiveCurrency callback currency: " + currency);
+                _log.Log("NoctuaIAPService.GetActiveCurrency callback");
+                _log.Log("NoctuaIAPService.GetActiveCurrency callback success: " + success);
+                _log.Log("NoctuaIAPService.GetActiveCurrency callback currency: " + currency);
                 if (!success) {
-                    Debug.Log("NoctuaIAPService.GetActiveCurrency callback currency: " + currency);
+                    _log.Log("NoctuaIAPService.GetActiveCurrency callback currency: " + currency);
                     tcs.TrySetException(NoctuaException.ActiveCurrencyFailure);
                     return;  
                 }
@@ -316,7 +314,7 @@ namespace com.noctuagames.sdk
             return activeCurrency;
 
 #elif UNITY_ANDROID && !UNITY_EDITOR
-            Debug.Log("GetActiveCurrencyAsync: Android");
+            _log.Log("GetActiveCurrencyAsync: Android");
             _activeCurrencyTcs = new UniTaskCompletionSource<string>();
             GoogleBillingInstance.QueryProductDetails(productId);
 
@@ -328,7 +326,7 @@ namespace com.noctuagames.sdk
 
 #else // TODO for Other platforms
 
-            Debug.Log("GetActiveCurrencyAsync: not found, default to IDR");
+            _log.Log("GetActiveCurrencyAsync: not found, default to IDR");
 
             return "IDR";
 
@@ -337,19 +335,9 @@ namespace com.noctuagames.sdk
 
         public async UniTask<PurchaseResponse> PurchaseItemAsync(PurchaseRequest purchaseRequest)
         {
-            Debug.Log("NoctuaIAPService.PurchaseItemAsync");
+            _log.Log("NoctuaIAPService.PurchaseItemAsync");
             
-            // TODO payment method selector. For now, it's hardcoded according to the platform
-
-            var paymentType = Application.platform switch
-            {
-                RuntimePlatform.WindowsPlayer or RuntimePlatform.OSXPlayer => PaymentType.Noctuawallet,
-                RuntimePlatform.Android => PaymentType.Playstore,
-                RuntimePlatform.IPhonePlayer => PaymentType.Applestore,
-                _ => throw new NoctuaException(NoctuaErrorCode.Payment, "Unsupported payment type")
-            };
-
-            paymentType = PaymentType.Noctuawallet;
+            var paymentType = await GetPaymentTypeAsync();
 
             var orderRequest = new OrderRequest
             {
@@ -372,28 +360,28 @@ namespace com.noctuagames.sdk
 
             try
             {
-                Debug.Log("NoctuaIAPService.PurchaseItemAsync try to CreateOrderAsync");
+                _log.Log("NoctuaIAPService.PurchaseItemAsync try to CreateOrderAsync");
 
                 orderResponse = await CreateOrderAsync(orderRequest);
             }
             catch (Exception e)
             {
-                Debug.Log("NoctuaIAPService.PurchaseItemAsync CreateOrderAsync failed");
+                _log.Log("NoctuaIAPService.PurchaseItemAsync CreateOrderAsync failed");
 
                 if (e is NoctuaException exception)
                 {
-                    Debug.Log("NoctuaException: " + exception.ErrorCode + " : " + exception.Message);
+                    _log.Log("NoctuaException: " + exception.ErrorCode + " : " + exception.Message);
                 }
                 else
                 {
-                    Debug.Log("Exception: " + e);
+                    _log.Log("Exception: " + e);
                 }
 
                 throw;
             }
 
-            Debug.Log("NoctuaIAPService.PurchaseItemAsync _currentOrderId: "         + orderResponse.Id);
-            Debug.Log("NoctuaIAPService.PurchaseItemAsync orderResponse.ProductId: " + orderResponse.ProductId);
+            _log.Log("NoctuaIAPService.PurchaseItemAsync _currentOrderId: "         + orderResponse.Id);
+            _log.Log("NoctuaIAPService.PurchaseItemAsync orderResponse.ProductId: " + orderResponse.ProductId);
 
             var timeoutTask = UniTask.Delay(TimeSpan.FromSeconds(300), DelayType.UnscaledDeltaTime);
             var paymentTcs = new UniTaskCompletionSource<PaymentResult>();
@@ -404,30 +392,30 @@ namespace com.noctuagames.sdk
             {
                 case PaymentType.Applestore:
 #if UNITY_IOS && !UNITY_EDITOR
-                    Debug.Log("NoctuaIAPService.PurchaseItemAsync purchase on ios: " + orderResponse.ProductId);
+                    _log.Log("NoctuaIAPService.PurchaseItemAsync purchase on ios: " + orderResponse.ProductId);
                     orderResponse.ProductId = purchaseRequest.ProductId;
                     IosPluginInstance.PurchaseItem(orderResponse.ProductId, (success, message) => {
-                        Debug.Log("NoctuaIAPService.PurchaseItemAsync PurchaseItem callback");
-                        Debug.Log("NoctuaIAPService.PurchaseItemAsync PurchaseItem callback success: " + success);
-                        Debug.Log("NoctuaIAPService.PurchaseItemAsync PurchaseItem callback message: " + message);
+                        _log.Log("NoctuaIAPService.PurchaseItemAsync PurchaseItem callback");
+                        _log.Log("NoctuaIAPService.PurchaseItemAsync PurchaseItem callback success: " + success);
+                        _log.Log("NoctuaIAPService.PurchaseItemAsync PurchaseItem callback message: " + message);
                         
                         paymentTcs.TrySetResult(GetAppstorePaymentResult(orderResponse.Id, success, message));
                     });
 
                     (hasResult, paymentResult) = await UniTask.WhenAny(paymentTcs.Task, timeoutTask);
                     
-                    Debug.Log("NoctuaIAPService.PurchaseItemAsync PurchaseItem callback response: " + paymentResult);
+                    _log.Log("NoctuaIAPService.PurchaseItemAsync PurchaseItem callback response: " + paymentResult);
                     break;
 #else
                     throw new NoctuaException(NoctuaErrorCode.Payment, "Applestore payment is not supported on this platform");
 #endif
                 case PaymentType.Playstore:
 #if UNITY_ANDROID && !UNITY_EDITOR
-                    Debug.Log("NoctuaIAPService.PurchaseItemAsync purchase on playstore: " + orderResponse.ProductId);
+                    _log.Log("NoctuaIAPService.PurchaseItemAsync purchase on playstore: " + orderResponse.ProductId);
                     
                     void PurchaseDone(GoogleBilling.PurchaseResult result)
                     {
-                        Debug.Log("NoctuaIAPService.PurchaseItemAsync PurchaseItem callback");
+                        _log.Log("NoctuaIAPService.PurchaseItemAsync PurchaseItem callback");
                         
                         paymentTcs.TrySetResult(GetPlaystorePaymentResult(result));
                     }
@@ -439,7 +427,7 @@ namespace com.noctuagames.sdk
 
                     GoogleBillingInstance.OnPurchaseDone -= PurchaseDone;
                     
-                    Debug.Log("NoctuaIAPService.PurchaseItemAsync PurchaseItem callback response: " + paymentResult);
+                    _log.Log("NoctuaIAPService.PurchaseItemAsync PurchaseItem callback response: " + paymentResult);
                     break;
 #else
                     throw new NoctuaException(NoctuaErrorCode.Payment, "Playstore payment is not supported on this platform");
@@ -469,42 +457,52 @@ namespace com.noctuagames.sdk
             }
 
             var orderId = orderResponse.Id;
-            Debug.Log($"Purchase was successful. Verifying order ID: {orderId}");
-            Debug.Log(orderId);
+            _log.Log($"Purchase was successful. Verifying order ID: {orderId}");
             var verifyOrderRequest = new VerifyOrderRequest
             {
                 Id = orderId,
                 ReceiptData = paymentResult.ReceiptData
             };
 
-            Debug.Log(verifyOrderRequest.Id);
-            Debug.Log(verifyOrderRequest.ReceiptData);
+            _log.Log($"Verifying order: {verifyOrderRequest.Id} with receipt data: {verifyOrderRequest.ReceiptData}");
             
             VerifyOrderResponse verifyOrderResponse;
 
             try {
-                verifyOrderResponse = await VerifyOrderAsync(verifyOrderRequest);
+                verifyOrderResponse = await VerifyOrderAsync(verifyOrderRequest, _accessTokenProvider.AccessToken);
 
                 if (verifyOrderResponse.Status == OrderStatus.Pending)
                 {
-                    _waitingPendingPurchases.Add(verifyOrderRequest);
+                    _waitingPendingPurchases.Add(
+                        new RetryPendingPurchaseItem
+                        {
+                            Order = verifyOrderRequest,
+                            AccessToken = _accessTokenProvider.AccessToken
+                        }
+                    );
                 }
             }
             catch (NoctuaException e)
             {
                 if ((NoctuaErrorCode)e.ErrorCode == NoctuaErrorCode.Networking)
                 {
-                    _waitingPendingPurchases.Add(verifyOrderRequest);
+                    _waitingPendingPurchases.Add(
+                        new RetryPendingPurchaseItem
+                        {
+                            Order = verifyOrderRequest,
+                            AccessToken = _accessTokenProvider.AccessToken
+                        }
+                    );
                 }
                 
-                Debug.Log("NoctuaException: " + e.ErrorCode + " : " + e.Message);
+                _log.Log("NoctuaException: " + e.ErrorCode + " : " + e.Message);
 
                 throw;
             }
             catch (Exception e) {
                 if (e is NoctuaException noctuaEx)
                 {
-                    Debug.Log("NoctuaException: " + noctuaEx.ErrorCode + " : " + noctuaEx.Message);
+                    _log.Log("NoctuaException: " + noctuaEx.ErrorCode + " : " + noctuaEx.Message);
                 }
                 
                 throw;
@@ -518,11 +516,33 @@ namespace com.noctuagames.sdk
             };
         }
 
+        private async UniTask<PaymentSettings> GetPaymentSettingsAsync()
+        {
+            var request = new HttpRequest(HttpMethod.Get, $"{_config.BaseUrl}/user/profile")
+                .WithHeader("X-CLIENT-ID", _config.ClientId)
+                .WithHeader("X-BUNDLE-ID", Application.identifier)
+                .WithHeader("Authorization", "Bearer " + _accessTokenProvider.AccessToken);
+
+            return await request.Send<PaymentSettings>();
+        }
+        
+        private async UniTask<PaymentType> GetPaymentTypeAsync()
+        {
+            var paymentSettings = await GetPaymentSettingsAsync();
+            
+            if (!_enabledPaymentTypes.Contains(paymentSettings.PaymentType))
+            {
+                throw new NoctuaException(NoctuaErrorCode.Payment, "Payment type is not enabled");
+            }
+            
+            return paymentSettings.PaymentType;
+        }
+
 #if UNITY_ANDROID && !UNITY_EDITOR
         private void HandleGoogleProductDetails(GoogleBilling.ProductDetailsResponse response)
         {
-            Debug.Log("NoctuaIAPService.HandleGoogleProductDetails");
-            Debug.Log("NoctuaIAPService.HandleGoogleProductDetails currency: " + response.Currency);
+            _log.Log("NoctuaIAPService.HandleGoogleProductDetails");
+            _log.Log("NoctuaIAPService.HandleGoogleProductDetails currency: " + response.Currency);
             if (_activeCurrencyTcs != null) {
                 _activeCurrencyTcs.TrySetResult(response.Currency);
             } else {
@@ -532,13 +552,13 @@ namespace com.noctuagames.sdk
 
         private PaymentResult GetPlaystorePaymentResult(GoogleBilling.PurchaseResult result)
         {
-            Debug.Log("Noctua.HandleGooglePurchaseDone");
+            _log.Log("Noctua.HandleGooglePurchaseDone");
             
             if (result == null || !result.Success)
             {
-                Debug.Log("Noctua.HandleGooglePurchaseDone result.Message: " + result.Message);
+                _log.Log("Noctua.HandleGooglePurchaseDone result.Message: " + result.Message);
                 if (string.IsNullOrEmpty(result.Message)) { // Empty message means canceled
-                    Debug.LogError("Purchase canceled: empty message means canceled");
+                    _log.Error("Purchase canceled: empty message means canceled");
 
                     return new PaymentResult
                     {
@@ -547,7 +567,7 @@ namespace com.noctuagames.sdk
                     };
                 }
 
-                Debug.LogError("Purchase failed: " + result.Message);
+                _log.Error("Purchase failed: " + result.Message);
                 
                 return new PaymentResult{
                     Status = PaymentStatus.Failed,
@@ -566,16 +586,16 @@ namespace com.noctuagames.sdk
 #if UNITY_IOS && !UNITY_EDITOR
         private PaymentResult GetAppstorePaymentResult(int orderId, bool success, string message)
         {
-            Debug.Log("Noctua.HandleIosPurchaseDone");
-            Debug.Log("Noctua.HandleIosPurchaseDone orderId: " + orderId);
-            Debug.Log("Noctua.HandleIosPurchaseDone success: " + success);
-            Debug.Log("Noctua.HandleIosPurchaseDone message: " + message);
+            _log.Log("Noctua.HandleIosPurchaseDone");
+            _log.Log("Noctua.HandleIosPurchaseDone orderId: " + orderId);
+            _log.Log("Noctua.HandleIosPurchaseDone success: " + success);
+            _log.Log("Noctua.HandleIosPurchaseDone message: " + message);
 
             if (!success)
             {
                 // Check if message contains cancel keyword
                 if (message.Contains("cancel")) {
-                    Debug.LogError("Purchase canceled: ");
+                    _log.Error("Purchase canceled: ");
 
                     return new PaymentResult
                     {
@@ -584,7 +604,7 @@ namespace com.noctuagames.sdk
                     };
                 }
 
-                Debug.LogError("Purchase failed: " + message);
+                _log.Error("Purchase failed: " + message);
                 
                 return new PaymentResult
                 {
@@ -601,36 +621,40 @@ namespace com.noctuagames.sdk
         }
 #endif
 
-        private void SavePendingPurchases(List<VerifyOrderRequest> orders)
+        private void SavePendingPurchases(List<RetryPendingPurchaseItem> orders)
         {
-            string updatedJson = JsonConvert.SerializeObject(orders);
+            var updatedJson = JsonConvert.SerializeObject(orders);
 
             PlayerPrefs.SetString("NoctuaPendingPurchases", updatedJson);
             PlayerPrefs.Save();
         }
 
-        public List<VerifyOrderRequest> GetPendingPurchases()
+        private List<RetryPendingPurchaseItem> GetPendingPurchases()
         {
-            Debug.Log("Noctua.GetPendingPurchases");
-            string json = PlayerPrefs.GetString("NoctuaPendingPurchases", string.Empty);
+            _log.Log("Noctua.GetPendingPurchases");
+            var json = PlayerPrefs.GetString("NoctuaPendingPurchases", string.Empty);
 
             if (string.IsNullOrEmpty(json))
             {
-                return new List<VerifyOrderRequest>();
+                return new List<RetryPendingPurchaseItem>();
             }
 
-            List<VerifyOrderRequest> orders = JsonConvert.DeserializeObject<List<VerifyOrderRequest>>(json);
-
-            // Clear up
-            PlayerPrefs.SetString("NoctuaPendingPurchases", "[]");
-            PlayerPrefs.Save();
-
-            return orders;
+            try
+            {
+                return JsonConvert.DeserializeObject<List<RetryPendingPurchaseItem>>(json);
+            }
+            catch (Exception e)
+            {
+                _log.Error("Failed to parse pending purchases: " + e);
+                
+                return new List<RetryPendingPurchaseItem>();
+            }
         }
 
-        private async UniTask RetryPendingPurchases()
+        private async Task RetryPendingPurchases()
         {
-            Debug.Log("Noctua.RetryPendingPurchases");
+            _log.Log("Starting pending purchases retry loop");
+            
             var random = new Random();
             
             var runningPendingPurchases = GetPendingPurchases().ToList();
@@ -648,7 +672,7 @@ namespace com.noctuagames.sdk
 
             while (!quitting)
             {
-                Debug.Log("Retrying pending purchases: " + runningPendingPurchases.Count);
+                _log.Log("Retrying pending purchases: " + runningPendingPurchases.Count);
                 
                 // Drain the queue
                 var newPendingPurchaseCount = 0;
@@ -657,11 +681,11 @@ namespace com.noctuagames.sdk
                     runningPendingPurchases.Add(pendingPurchase);
                     newPendingPurchaseCount++;
                     
-                    Debug.Log("Draining pending purchase: " + pendingPurchase.Id);
+                    _log.Log("Draining pending purchase: " + pendingPurchase.Order.Id);
                 }
                 
-                // Wait and get one from the queue when available
-                if (runningPendingPurchases.Count == 0 && newPendingPurchaseCount == 0)
+                // Wait and get one from the queue when available if there's no pending purchase to retry
+                if (runningPendingPurchases.Count == 0)
                 {
                     try
                     {
@@ -669,58 +693,58 @@ namespace com.noctuagames.sdk
                         runningPendingPurchases.Add(pendingPurchase);
                         newPendingPurchaseCount++;
                         
-                        Debug.Log("Taking pending purchase: " + pendingPurchase.Id);
+                        _log.Log("Taking pending purchase: " + pendingPurchase.Order.Id);
                     }
                     catch (Exception e) when (e is OperationCanceledException or InvalidOperationException)
                     {
-                        Debug.Log("Operation canceled: " + e.Message);
+                        _log.Log("Operation canceled: " + e.Message);
                         
                         break;
                     }
                 }
 
                 // Retry pending purchases
-                var failedPendingPurchases = new List<VerifyOrderRequest>();
+                var failedPendingPurchases = new List<RetryPendingPurchaseItem>();
                 
-                foreach (var runningPendingPurchase in runningPendingPurchases)
+                foreach (var item in runningPendingPurchases)
                 {
                     try
                     {
-                        Debug.Log(
-                            $"Retrying Order ID: {runningPendingPurchase.Id}," +
-                            $" Receipt Data: {runningPendingPurchase.ReceiptData}"
+                        _log.Log(
+                            $"Retrying Order ID: {item.Order.Id}, " +
+                            $"Receipt Data: {item.Order.ReceiptData}"
                         );
 
-                        var verifyOrderResponse = await VerifyOrderAsync(runningPendingPurchase);
+                        var verifyOrderResponse = await VerifyOrderAsync(item.Order, item.AccessToken);
 
                         if (verifyOrderResponse.Status == OrderStatus.Pending)
                         {
-                            failedPendingPurchases.Add(runningPendingPurchase);
+                            failedPendingPurchases.Add(item);
                         
-                            Debug.Log("Adding pending purchase back to queue: " + runningPendingPurchase.Id);
+                            _log.Log("Adding pending purchase back to queue: " + item.Order.Id);
                         }
                     }
                     catch (NoctuaException e)
                     {
                         if ((NoctuaErrorCode)e.ErrorCode == NoctuaErrorCode.Networking)
                         {
-                            failedPendingPurchases.Add(runningPendingPurchase);
+                            failedPendingPurchases.Add(item);
                         
-                            Debug.Log("Adding pending purchase back to queue: " + runningPendingPurchase.Id);
+                            _log.Log("Adding pending purchase back to queue: " + item.Order.Id);
                         }
 
-                        Debug.LogError("NoctuaException: " + e.ErrorCode + " : " + e.Message);
+                        _log.Error("NoctuaException: " + e.ErrorCode + " : " + e.Message);
                     }
                     catch (Exception e)
                     {
-                        Debug.LogError("Exception: " + e);
+                        _log.Error("Exception: " + e);
                     }
                 }
                 
                 // Save if running pending purchases changed
                 if (newPendingPurchaseCount > 0 || runningPendingPurchases.Count != failedPendingPurchases.Count)
                 {
-                    Debug.Log("Saving pending purchases: " + runningPendingPurchases.Count);
+                    _log.Log("Saving pending purchases: " + runningPendingPurchases.Count);
                     SavePendingPurchases(runningPendingPurchases);
                 }
                 
@@ -736,20 +760,20 @@ namespace com.noctuagames.sdk
                 // Exponential backoff with randomization, so we don't hammer the server
                 retryCount++;
                 var delay = GetBackoffDelay(random, retryCount);
-                Debug.Log($"Retrying in {delay.TotalSeconds} seconds...");
+                _log.Log($"Retrying in {delay.TotalSeconds} seconds...");
 
                 try
                 {
-                    await UniTask.Delay(delay, cancellationToken: cts.Token);
+                    await Task.Delay(delay, cancellationToken: cts.Token);
                 }
                 catch (Exception e)
                 {
-                    Debug.Log("Operation canceled: " + e.Message);
+                    _log.Log("Operation canceled: " + e.Message);
                     break;
                 }
             }
             
-            Debug.Log("Quitting, saving pending purchases: " + runningPendingPurchases.Count);
+            _log.Log("Quitting, saving pending purchases: " + runningPendingPurchases.Count);
             SavePendingPurchases(_waitingPendingPurchases.ToList());
         }
 
@@ -768,6 +792,12 @@ namespace com.noctuagames.sdk
             public string BaseUrl;
             public string ClientId;
             public string WebPaymentBaseUrl;
+        }
+        
+        private class RetryPendingPurchaseItem
+        {
+            public VerifyOrderRequest Order;
+            public string AccessToken;
         }
     }
 }

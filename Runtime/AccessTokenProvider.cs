@@ -32,7 +32,7 @@
         
         private string _accessToken;
 
-        public bool IsAuthenticated => !string.IsNullOrEmpty(AccessToken);
+        public bool IsAuthenticated => !string.IsNullOrEmpty(_accessToken);
         
         private void OnAccountChanged(UserBundle user)
         {

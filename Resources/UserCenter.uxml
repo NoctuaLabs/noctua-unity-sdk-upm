@@ -85,6 +85,7 @@
                             <ui:DropdownField label="Country" name="CountryTF" class="dropdown-box" />
                             <ui:DropdownField label="Language" name="LanguageTF" class="dropdown-box" />
                             <ui:DropdownField label="Currency" name="CurrencyTF" class="dropdown-box" />
+                            <ui:DropdownField label="PaymentType" name="PaymentTypeTF" class="dropdown-box" />
                         </ui:VisualElement>
 
                     </ui:ScrollView>
