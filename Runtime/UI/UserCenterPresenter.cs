@@ -44,6 +44,7 @@ namespace com.noctuagames.sdk.UI
         private List<string> _currencyOptions = new List<string> { "Select Currency" };
         private List<PaymentType> _paymentOptions = new List<PaymentType> { PaymentType.Unknown };
         private VisualElement _spinner;
+        private VisualElement _noctuaLogoWithText;
 
         //Date Picker
 
@@ -244,6 +245,7 @@ namespace com.noctuagames.sdk.UI
             _moreOptionsMenuButton = View.Q<Button>("MoreOptionsButton");
             _helpButton = View.Q<Button>("HelpButton");
             _copyIcon = View.Q<VisualElement>("CopyIcon");
+            _noctuaLogoWithText = View.Q<VisualElement>("NoctuaLogoContainer");
             _connectAccountFooter = View.Q<VisualElement>("ConnectAccountFooter");
 
             View.Q<VisualElement>("MoreOptionsMenu").RegisterCallback<PointerUpEvent>(OnMoreOptionsMenuSelected);
@@ -537,6 +539,7 @@ namespace com.noctuagames.sdk.UI
                 _copyIcon.RemoveFromClassList("show");
                 _connectAccountFooter.RemoveFromClassList("show");
                 _playerImage.RemoveFromClassList("player-avatar");
+                _noctuaLogoWithText.RemoveFromClassList("hide");
 
                 //add class
                 _moreOptionsMenuButton.AddToClassList("hide");
@@ -580,6 +583,7 @@ namespace com.noctuagames.sdk.UI
                 _copyIcon.AddToClassList("show");
                 _connectAccountFooter.AddToClassList("show");
                 _playerImage.AddToClassList("player-avatar");
+                _noctuaLogoWithText.AddToClassList("hide");
 
                 //change player image with profile image
                 if(!string.IsNullOrEmpty(_newProfileUrl))

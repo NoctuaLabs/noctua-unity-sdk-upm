@@ -27,6 +27,10 @@
     background-color: rgba(37, 42, 47, 0.7);
     flex-direction: column;
     padding: 8px;
+    justify-content: space-around;
+    align-items: stretch;
+    flex: 1;
+
 }
 
 .user-profile.landscape {
@@ -376,6 +380,11 @@
     margin-top: -10px;
     margin-left: 3px;
     margin-right: 3px;
+}
+
+.noctua-logo-container {
+    justify-content: center;
+    align-items: center;
 }
 
 /*END User Center - Edit Profile */
