@@ -302,6 +302,16 @@ namespace com.noctuagames.sdk
             #endif
         }
 
+        public static void ShowDatePicker(int year, int month, int day)
+        {
+            Instance.Value._nativePlugin?.ShowDatePicker(year, month, day);
+        }
+
+        public static void OpenDatePicker(int year , int month, int day, Action<DateTime> onChange = null, Action<DateTime> onClose = null)
+        {
+            MobileDateTimePicker.CreateDate(year, month, day, onChange, onClose);
+        }
+
         private static INativePlugin GetNativePlugin()
         {
 #if UNITY_ANDROID && !UNITY_EDITOR

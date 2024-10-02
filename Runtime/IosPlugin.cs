@@ -26,6 +26,9 @@ namespace com.noctuagames.sdk
         [DllImport("__Internal")]
         private static extern void noctuaGetActiveCurrency(string productId, CompletionDelegate callback);
 
+        [DllImport ("__Internal")]
+        private static extern void _TAG_ShowDatePicker(int mode, double unix);
+
         public void Init()
         {
             noctuaInitialize();
@@ -90,6 +93,12 @@ namespace com.noctuagames.sdk
             Debug.Log("noctuaGetActiveCurrency called");
         }
 
+        public static void ShowDatePicker(int year, int month, int day)
+        {
+            DateTime dateTime = new DateTime(year, month, day);
+            double unix = (TimeZoneInfo.ConvertTimeToUtc(dateTime) - new DateTime(1970, 1, 1, 0, 0, 0, 0, System.DateTimeKind.Utc)).TotalSeconds; 
+            _TAG_ShowDatePicker(2, unix);
+        }
     }
 #endif
 }

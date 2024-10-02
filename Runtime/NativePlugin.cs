@@ -12,5 +12,6 @@ namespace com.noctuagames.sdk
         void TrackCustomEvent(string name, Dictionary<string, IConvertible> extraPayload = null);
         void PurchaseItem(string productId, Action<bool, string> callback);
         void GetActiveCurrency(string productId, Action<bool, string> callback);
+        void ShowDatePicker(int year, int month, int day);
     }
 }

@@ -104,6 +104,11 @@ namespace com.noctuagames.sdk
             throw new NotImplementedException();
         }
 
+        public void ShowDatePicker(int year, int month, int day)
+        {
+            AndroidJavaClass javaUnityClass = new AndroidJavaClass("com.pingak9.nativepopup.Bridge");
+            javaUnityClass.CallStatic("ShowDatePicker", year, month, day);
+        }
     }
 }
 #endif
