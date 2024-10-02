@@ -93,7 +93,7 @@ namespace com.noctuagames.sdk
             Debug.Log("noctuaGetActiveCurrency called");
         }
 
-        public static void ShowDatePicker(int year, int month, int day)
+        public void ShowDatePicker(int year, int month, int day)
         {
             DateTime dateTime = new DateTime(year, month, day);
             double unix = (TimeZoneInfo.ConvertTimeToUtc(dateTime) - new DateTime(1970, 1, 1, 0, 0, 0, 0, System.DateTimeKind.Utc)).TotalSeconds; 

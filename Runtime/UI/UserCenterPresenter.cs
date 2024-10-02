@@ -670,6 +670,7 @@ namespace com.noctuagames.sdk.UI
 
                 await Model.AuthService.UpdateUserAsync(updateUserRequest);
 
+                _errorLabel.AddToClassList("hide");
                 View.Q<Button>("SaveButton").RemoveFromClassList("hide");
                 View.Q<VisualElement>("Spinner").AddToClassList("hide");
 
@@ -679,6 +680,7 @@ namespace com.noctuagames.sdk.UI
             {
                 Model.ShowGeneralNotificationError(e.Message);
                 
+                _errorLabel.AddToClassList("hide");
                 View.Q<Button>("SaveButton").RemoveFromClassList("hide");
                 View.Q<VisualElement>("Spinner").AddToClassList("hide");
             }
