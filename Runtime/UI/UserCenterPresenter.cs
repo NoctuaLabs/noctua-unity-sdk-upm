@@ -45,6 +45,7 @@ namespace com.noctuagames.sdk.UI
         private List<PaymentType> _paymentOptions = new List<PaymentType> { PaymentType.Unknown };
         private VisualElement _spinner;
         private VisualElement _noctuaLogoWithText;
+        private string _dateString;
 
         // Suggest Bind UI
         private VisualElement _guestContainer;
@@ -154,7 +155,6 @@ namespace com.noctuagames.sdk.UI
 
                     _nicknameTF.value = user?.Nickname;
                     _newProfileUrl = user?.PictureUrl;
-
                     
                     bool validDate = DateTime.TryParse(user?.DateOfBirth, null, DateTimeStyles.RoundtripKind, out DateTime dateTime);
                     string formattedDate = validDate ? dateTime.ToString("dd/MM/yyyy", CultureInfo.InvariantCulture) : "";
@@ -165,7 +165,8 @@ namespace com.noctuagames.sdk.UI
                     _birthDateTF.value = formattedDate;
                     _genderTF.value = genderUpperChar;
 
-
+                    _dateString = formattedDate;
+                    
                     int indexCountry = _profileDataOptions.Countries.FindIndex(item => item.IsoCode.ToLower() == user?.Country.ToLower());
                     if (indexCountry != -1)
                     {
@@ -271,8 +272,11 @@ namespace com.noctuagames.sdk.UI
             _birthDateTF = View.Q<TextField>("BirthdateTF");
             _birthDateTF.isReadOnly = true;
 
+            string _dob = string.IsNullOrEmpty(_dateString) ? "01/01/2000" : _dateString;
+            DateTime parsedDate = DateTime.ParseExact(_dob, "dd/MM/yyyy", null);
+
             _birthDateTF.RegisterCallback<PointerUpEvent>(_ => {
-                Noctua.OpenDatePicker(2000,5,10,
+                Noctua.OpenDatePicker(parsedDate.Year, parsedDate.Month, parsedDate.Day,
                 (DateTime _date) =>
                 {
                     Debug.Log(_date.ToString("dd/MM/yyyy"));
@@ -290,6 +294,7 @@ namespace com.noctuagames.sdk.UI
 
         private void OnDateFieldChanged()
         {
+            _dateString = _birthDateTF.value;
             AdjustHideLabelElement(_birthDateTF);
         }
 
@@ -313,6 +318,7 @@ namespace com.noctuagames.sdk.UI
             _nicknameTF.RegisterValueChangedCallback(evt => OnTextChanged(_nicknameTF));
             _changeProfile.RegisterCallback<PointerUpEvent>(OnChangeProfile);
 
+            SetupDatePickerUI();
             SetupDropdownUI();
         }
 
@@ -710,8 +716,6 @@ namespace com.noctuagames.sdk.UI
             View.RegisterCallback<GeometryChangedEvent>(_ => SetOrientation());
             
             View.RegisterCallback<PointerDownEvent>(OnViewClicked);
-
-            SetupDatePickerUI();
             
             BindListView();
             SetupIndicators();
