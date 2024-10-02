@@ -46,11 +46,6 @@ namespace com.noctuagames.sdk.UI
         private VisualElement _spinner;
         private VisualElement _noctuaLogoWithText;
 
-        //Date Picker
-
-        // Regular expression to match the DD/MM/YYYY format
-        private readonly string datePattern = @"^([0-2][0-9]|(3)[0-1])/((0)[0-9]|(1)[0-2])/((19|20)\d\d)$";
-
         // Suggest Bind UI
         private VisualElement _guestContainer;
         private Label _carouselLabel;
@@ -188,6 +183,13 @@ namespace com.noctuagames.sdk.UI
                     {
                         _currencyTF.value = _currencyOptions[indexCountry];
                     }
+
+                    int indexPaymentType = _paymentOptions.FindIndex(item => item == user?.PaymentType);
+
+                    if (indexPaymentType != -1)
+                    {
+                        _paymentTypeTF.value = _paymentOptions[indexPaymentType].ToString();
+                    }
                 }
 
                 _isGuestUser = user?.IsGuest ?? false;
@@ -267,76 +269,28 @@ namespace com.noctuagames.sdk.UI
         private void SetupDatePickerUI()
         {
             _birthDateTF = View.Q<TextField>("BirthdateTF");
+            _birthDateTF.isReadOnly = true;
 
-            // Register the callback for each text change
-            _birthDateTF.RegisterCallback<ChangeEvent<string>>(evt => OnDateFieldChanged(evt.newValue));
+            _birthDateTF.RegisterCallback<PointerUpEvent>(_ => {
+                Noctua.OpenDatePicker(2000,5,10,
+                (DateTime _date) =>
+                {
+                    Debug.Log(_date.ToString("dd/MM/yyyy"));
+                },
+                (DateTime _date) =>
+                {
+                    _birthDateTF.value = _date.ToString("dd/MM/yyyy");
 
-            // Register the callback for when the field loses focus
-            _birthDateTF.RegisterCallback<FocusOutEvent>(evt => ValidateDate());
+                });        
+            });
 
+            // // Register the callback for each text change
+            _birthDateTF.RegisterCallback<ChangeEvent<string>>(evt => OnDateFieldChanged());
         }
 
-        private void OnDateFieldChanged(string newValue)
+        private void OnDateFieldChanged()
         {
-            string formattedValue = AutoFormatDate(newValue);
-
             AdjustHideLabelElement(_birthDateTF);
-            
-            // To prevent the callback from triggering an infinite loop, we need to check if the value has changed
-            if (_birthDateTF.value != formattedValue)
-            {
-                _birthDateTF.value = formattedValue;
-            }
-        }
-
-        private string AutoFormatDate(string input)
-        {
-            // Remove all non-numeric characters
-            string digitsOnly = Regex.Replace(input, @"[^0-9]", "");
-
-            // Format as DD/MM/YYYY
-            if (digitsOnly.Length > 8)
-                digitsOnly = digitsOnly.Substring(0, 8); // Limit input length to 8 digits
-
-            switch (digitsOnly.Length)
-            {
-                case > 6:
-                    return $"{digitsOnly.Substring(0, 2)}/{digitsOnly.Substring(2, 2)}/{digitsOnly.Substring(4, 4)}";
-                case > 4:
-                    return $"{digitsOnly.Substring(0, 2)}/{digitsOnly.Substring(2, 2)}/{digitsOnly.Substring(4)}";
-                case > 2:
-                    return $"{digitsOnly.Substring(0, 2)}/{digitsOnly.Substring(2)}";
-                default:
-                    return digitsOnly;
-            }
-        }
-
-        private void ValidateDate()
-        {
-            string dateText = _birthDateTF.value;
-
-            if (IsDateValid(dateText))
-            {
-                _birthDateTF.style.borderTopColor = Color.green;
-                _birthDateTF.style.borderBottomColor = Color.green;
-                _birthDateTF.style.borderLeftColor = Color.green;
-                _birthDateTF.style.borderRightColor = Color.green;
-            }
-            else
-            {
-                _birthDateTF.style.borderTopColor = Color.red;
-                _birthDateTF.style.borderBottomColor = Color.red;
-                _birthDateTF.style.borderLeftColor = Color.red;
-                _birthDateTF.style.borderRightColor = Color.red;
-
-                Debug.LogError("Invalid date format! Please use DD/MM/YYYY.");
-            }
-        }
-
-        private bool IsDateValid(string dateText)
-        {
-            // Use regular expression to check if the input matches the DD/MM/YYYY format
-            return Regex.IsMatch(dateText, datePattern);
         }
 
         private void SetupEditProfileUI() 
@@ -647,24 +601,43 @@ namespace com.noctuagames.sdk.UI
                 return;
             }
 
-            if(string.IsNullOrEmpty(_birthDateTF.value))
+            if(string.IsNullOrEmpty(_countryTF.value))
             {
                 _errorLabel.RemoveFromClassList("hide");
-                _errorLabel.text = "Birthdate should not be empty";
+                _errorLabel.text = "Country should not be empty";
 
                 View.Q<Button>("SaveButton").RemoveFromClassList("hide");
                 View.Q<VisualElement>("Spinner").AddToClassList("hide");
                 return;
             }
 
-            if(!IsDateValid(_birthDateTF.value))
+            if(string.IsNullOrEmpty(_languageTF.value))
             {
                 _errorLabel.RemoveFromClassList("hide");
-                _errorLabel.text = "Birthdate format is not valid";
+                _errorLabel.text = "Language should not be empty";
 
                 View.Q<Button>("SaveButton").RemoveFromClassList("hide");
                 View.Q<VisualElement>("Spinner").AddToClassList("hide");
                 return;
+            }
+           
+            if(string.IsNullOrEmpty(_currencyTF.value))
+            {
+                _errorLabel.RemoveFromClassList("hide");
+                _errorLabel.text = "Currency should not be empty";
+
+                View.Q<Button>("SaveButton").RemoveFromClassList("hide");
+                View.Q<VisualElement>("Spinner").AddToClassList("hide");
+                return;
+            }
+
+            if(string.IsNullOrEmpty(_paymentTypeTF.value))
+            {
+                _errorLabel.RemoveFromClassList("hide");
+                _errorLabel.text = "Payment type should not be empty";
+
+                View.Q<Button>("SaveButton").RemoveFromClassList("hide");
+                View.Q<VisualElement>("Spinner").AddToClassList("hide");
             }
 
             try
