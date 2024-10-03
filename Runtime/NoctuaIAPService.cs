@@ -190,9 +190,6 @@ namespace com.noctuagames.sdk
 
         private UniTaskCompletionSource<string> _activeCurrencyTcs;
 
-        // By default all major payment types are enabled, then it will be overridden by the server config at SDK init
-        private List<PaymentType> _enabledPaymentTypes = new()
-            { PaymentType.Playstore, PaymentType.Applestore, PaymentType.Noctuawallet };
 
         private readonly AccessTokenProvider _accessTokenProvider;
         private readonly NoctuaWebPaymentService _noctuaPayment;
@@ -200,10 +197,18 @@ namespace com.noctuagames.sdk
 
 #if UNITY_ANDROID && !UNITY_EDITOR
         private readonly GoogleBilling GoogleBillingInstance = new();
+        // By default all major payment types are enabled, then it will be overridden by the server config at SDK init
+        private List<PaymentType> _enabledPaymentTypes = new()
+            { PaymentType.Playstore, PaymentType.Noctuawallet };
 #elif UNITY_IOS && !UNITY_EDITOR
         private readonly IosPlugin IosPluginInstance = new IosPlugin();
+        // By default all major payment types are enabled, then it will be overridden by the server config at SDK init
+        private List<PaymentType> _enabledPaymentTypes = new()
+            { PaymentType.Applestore, PaymentType.Noctuawallet };
+#else
+        private List<PaymentType> _enabledPaymentTypes = new()
+            { PaymentType.Noctuawallet };
 #endif
-
 
         internal NoctuaIAPService(Config config, AccessTokenProvider accessTokenProvider)
         {
@@ -223,6 +228,7 @@ namespace com.noctuagames.sdk
 
         public void SetEnabledPaymentTypes(List<PaymentType> enabledPaymentTypes)
         {
+            // The sequence represent the priority.
             _enabledPaymentTypes = enabledPaymentTypes;
         }
 
@@ -529,12 +535,27 @@ namespace com.noctuagames.sdk
         private async UniTask<PaymentType> GetPaymentTypeAsync()
         {
             var paymentSettings = await GetPaymentSettingsAsync();
-            
-            if (!_enabledPaymentTypes.Contains(paymentSettings.PaymentType))
+            _log.Log("Payment Type From Settings: " + paymentSettings.PaymentType);
+            _log.Log("Enabled Payment Types: " + string.Join(", ", _enabledPaymentTypes));
+            if (paymentSettings.PaymentType == null || string.IsNullOrEmpty(paymentSettings.PaymentType.ToString()) ||
+            paymentSettings.PaymentType.ToString() == "unknown")
             {
-                throw new NoctuaException(NoctuaErrorCode.Payment, "Payment type is not enabled");
+                if (_enabledPaymentTypes.Count == 0)
+                {
+                    throw new NoctuaException(NoctuaErrorCode.Payment, "No payment types are enabled");
+                }
+                _log.Log("Payment Type From Settings is empty, fallback to server remote config");
+                paymentSettings.PaymentType = _enabledPaymentTypes.First();
+            } else {
+                if (!_enabledPaymentTypes.Contains(paymentSettings.PaymentType))
+                {
+                    _log.Log("Payment Type From Settings is not enabled from server side, fallback to server remote config");
+                    // Fallback to _enabledPaymentTypes from SDK init
+                    paymentSettings.PaymentType = _enabledPaymentTypes.First();
+                }
             }
             
+            _log.Log("Selected payment Type: " + paymentSettings.PaymentType);
             return paymentSettings.PaymentType;
         }
 
