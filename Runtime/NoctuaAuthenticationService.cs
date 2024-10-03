@@ -344,7 +344,7 @@ namespace com.noctuagames.sdk
         public string Nickname;
 
         [JsonProperty("date_of_birth")]
-        public DateTime DateOfBirth;
+        public DateTime? DateOfBirth;
         
         [JsonProperty("gender")]
         public string Gender;

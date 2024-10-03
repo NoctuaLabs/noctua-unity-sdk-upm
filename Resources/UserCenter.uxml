@@ -72,7 +72,7 @@
                         <ui:VisualElement style="flex-direction: row; flex-wrap: nowrap; align-items: center; justify-content: flex-start; margin-top: 10px; margin-bottom: 10px;">
                             <ui:VisualElement name="ProfileImage" class="profile-circle-with-border"/>
                             <ui:Button text="Change Picture" name="ChangePictureButton" class="button-border" />
-                            <ui:VisualElement name="Spinner2" class="noctua-spinner" style="height: 74px;" />
+                            <ui:VisualElement name="Spinner2" class="noctua-spinner hide" style="height: 74px;" />
                         </ui:VisualElement>
 
                         <ui:VisualElement class="nickname-container noctua-text-input-margin">
@@ -97,7 +97,7 @@
                             <ui:Label name="ErrLabel" display-tooltip-when-elided="true" class="dialog-err-label hide" />
                         </ui:VisualElement>
                         <ui:Button text="Save" display-tooltip-when-elided="true" name="SaveButton" class="button-highlight" style="height: 40px; border-top-left-radius: 6px; border-top-right-radius: 6px; border-bottom-right-radius: 6px; border-bottom-left-radius: 6px;" />
-                        <ui:VisualElement name="Spinner" class="noctua-spinner" style="height: 74px;" />
+                        <ui:VisualElement name="Spinner" class="noctua-spinner hide" style="height: 74px;" />
                     </ui:VisualElement>
                 </ui:VisualElement>
             </ui:VisualElement>

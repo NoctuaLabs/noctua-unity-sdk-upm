@@ -172,11 +172,19 @@ namespace com.noctuagames.sdk.UI
                     {
                         _countryTF.value = _countryOptions[indexCountry];
                     }
+                    else
+                    {
+                        _countryTF.value = "Select Country";
+                    }
 
                     int indexLanguage = _profileDataOptions.Languages.FindIndex(item => item.IsoCode.ToLower() == user?.Language.ToLower());
                     if (indexLanguage != -1)
                     {
                         _languageTF.value = _languageOptions[indexLanguage];
+                    }
+                    else
+                    {
+                        _languageTF.value = "Select Language";
                     }
 
                     int indexCurrency = _profileDataOptions.Currencies.FindIndex(item => item.IsoCode.ToLower() == user?.Currency.ToLower());
@@ -184,12 +192,20 @@ namespace com.noctuagames.sdk.UI
                     {
                         _currencyTF.value = _currencyOptions[indexCountry];
                     }
+                    else
+                    {
+                        _currencyTF.value = "Select Currency";
+                    }
 
                     int indexPaymentType = _paymentOptions.FindIndex(item => item == user?.PaymentType);
 
                     if (indexPaymentType != -1)
                     {
                         _paymentTypeTF.value = _paymentOptions[indexPaymentType].ToString();
+                    }
+                    else
+                    {
+                        _paymentTypeTF.value = "Select Payment Type";
                     }
                 }
 
@@ -320,6 +336,7 @@ namespace com.noctuagames.sdk.UI
 
             SetupDatePickerUI();
             SetupDropdownUI();
+            SetupSpinner();
         }
 
         private void SetupDropdownUI() {
@@ -427,9 +444,8 @@ namespace com.noctuagames.sdk.UI
             Debug.Log( "Permission result: " + permission );
         }
 
-        private async void FileUploader(string filePath) {
-            var spinnerInstance = new Spinner();
-            
+        private async void FileUploader(string filePath) 
+        {
             View.Q<VisualElement>("Spinner2").RemoveFromClassList("hide");
             View.Q<Button>("ChangePictureButton").AddToClassList("hide");
 
@@ -590,8 +606,6 @@ namespace com.noctuagames.sdk.UI
 
         private async void OnSaveEditProfile()
         {
-            var spinnerInstance = new Spinner();
-            
             View.Q<VisualElement>("Spinner").RemoveFromClassList("hide");
             View.Q<Button>("SaveButton").AddToClassList("hide");
 
@@ -607,61 +621,71 @@ namespace com.noctuagames.sdk.UI
                 return;
             }
 
-            if(string.IsNullOrEmpty(_countryTF.value))
+            if(string.IsNullOrEmpty(_countryTF.value) || _countryTF.value == "Select Country")
             {
                 _errorLabel.RemoveFromClassList("hide");
-                _errorLabel.text = "Country should not be empty";
+                _errorLabel.text = "Please select country!";
 
                 View.Q<Button>("SaveButton").RemoveFromClassList("hide");
                 View.Q<VisualElement>("Spinner").AddToClassList("hide");
                 return;
             }
 
-            if(string.IsNullOrEmpty(_languageTF.value))
+            if(string.IsNullOrEmpty(_languageTF.value) || _languageTF.value == "Select Language")
             {
                 _errorLabel.RemoveFromClassList("hide");
-                _errorLabel.text = "Language should not be empty";
+                _errorLabel.text = "Please select language!";
 
                 View.Q<Button>("SaveButton").RemoveFromClassList("hide");
                 View.Q<VisualElement>("Spinner").AddToClassList("hide");
                 return;
             }
            
-            if(string.IsNullOrEmpty(_currencyTF.value))
+            if(string.IsNullOrEmpty(_currencyTF.value) || _currencyTF.value == "Select Currency")
             {
                 _errorLabel.RemoveFromClassList("hide");
-                _errorLabel.text = "Currency should not be empty";
+                _errorLabel.text = "PLease select currency";
 
                 View.Q<Button>("SaveButton").RemoveFromClassList("hide");
                 View.Q<VisualElement>("Spinner").AddToClassList("hide");
                 return;
             }
 
-            if(string.IsNullOrEmpty(_paymentTypeTF.value))
+            if(string.IsNullOrEmpty(_paymentTypeTF.value) || _paymentTypeTF.value == "Select Payment Type")
             {
                 _errorLabel.RemoveFromClassList("hide");
-                _errorLabel.text = "Payment type should not be empty";
+                _errorLabel.text = "PLease select payment type";
 
                 View.Q<Button>("SaveButton").RemoveFromClassList("hide");
                 View.Q<VisualElement>("Spinner").AddToClassList("hide");
+                return;
             }
 
             try
             {
                 UpdateUserRequest updateUserRequest = new UpdateUserRequest();
 
-                var _dob = _birthDateTF.value;
-                string format = "dd/MM/yyyy";
-                
-                // Convert to DateTime object using ParseExact method
-                DateTime _dateTime = DateTime.ParseExact(_dob, format, CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal);
-
-                // Set the time to 00:00:00 and the kind to UTC
-                _dateTime = new DateTime(_dateTime.Year, _dateTime.Month, _dateTime.Day, 0, 0, 0, DateTimeKind.Utc);
-
                 updateUserRequest.Nickname = _nicknameTF.value;
-                updateUserRequest.DateOfBirth = _dateTime;
-                updateUserRequest.Gender = _genderTF.value.ToLower();
+
+                var _dob = _birthDateTF.value;
+                
+                if(!string.IsNullOrEmpty(_dob))
+                {
+                    string format = "dd/MM/yyyy";
+                    DateTime _dateTime = DateTime.ParseExact(_dob, format, CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal);
+                    _dateTime = new DateTime(_dateTime.Year, _dateTime.Month, _dateTime.Day, 0, 0, 0, DateTimeKind.Utc);
+                    updateUserRequest.DateOfBirth = _dateTime;
+                }
+                else
+                {
+                    updateUserRequest.DateOfBirth = null;
+                }
+
+                if(!string.IsNullOrEmpty(_genderTF.value))
+                {
+                    updateUserRequest.Gender = _genderTF.value.ToLower();
+                }
+
                 updateUserRequest.PictureUrl = _newProfileUrl;
 
                 int indexCountry = _profileDataOptions.Countries.FindIndex(item => item.EnglishName.ToLower() == _countryTF.value.ToLower());
