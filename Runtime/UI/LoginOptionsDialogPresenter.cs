@@ -59,7 +59,7 @@ namespace com.noctuagames.sdk.UI
             }
             catch (Exception e)
             {
-                Model.ShowGeneralNotificationError(e.Message);
+                Model.ShowGeneralNotification(e.Message);
             }
         }
 

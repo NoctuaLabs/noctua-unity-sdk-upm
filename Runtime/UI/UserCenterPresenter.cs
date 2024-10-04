@@ -250,7 +250,7 @@ namespace com.noctuagames.sdk.UI
                 Debug.Log(e.Message);
                 
                 _credentials.ForEach(c => c.Username = "");
-                Model.ShowGeneralNotificationError(e.Message);
+                Model.ShowGeneralNotification(e.Message);
             }
         }
 
@@ -459,7 +459,7 @@ namespace com.noctuagames.sdk.UI
             }
             catch (Exception e)
             {
-                Model.ShowGeneralNotificationError(e.Message);
+                Model.ShowGeneralNotification(e.Message);
                 View.Q<Button>("ChangePictureButton").RemoveFromClassList("hide");
                 View.Q<VisualElement>("Spinner2").AddToClassList("hide");
             }
@@ -704,11 +704,11 @@ namespace com.noctuagames.sdk.UI
                 View.Q<Button>("SaveButton").RemoveFromClassList("hide");
                 View.Q<VisualElement>("Spinner").AddToClassList("hide");
 
-                Debug.Log("Update profile success");
+                Model.ShowGeneralNotification("Update profile successfully", true);
             }
             catch (Exception e)
             {
-                Model.ShowGeneralNotificationError(e.Message);
+                Model.ShowGeneralNotification(e.Message);
                 
                 _errorLabel.AddToClassList("hide");
                 View.Q<Button>("SaveButton").RemoveFromClassList("hide");
@@ -878,7 +878,7 @@ namespace com.noctuagames.sdk.UI
             }
             catch (Exception e)
             {
-                Model.ShowGeneralNotificationError(e.Message);
+                Model.ShowGeneralNotification(e.Message);
             }
                         
             Model.ShowUserCenter();

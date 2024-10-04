@@ -159,9 +159,9 @@ namespace com.noctuagames.sdk
             _userCenter.Show();
         }
 
-        public void ShowGeneralNotificationError(string message) 
+        public void ShowGeneralNotification(string message, bool isNotifSuccess = false) 
         {
-            _generalNotification.Show(message);
+            _generalNotification.Show(message, isNotifSuccess);
         }
 
         internal async UniTask<CredentialVerification> RegisterWithEmailAsync(string email, string password)

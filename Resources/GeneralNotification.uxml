@@ -4,8 +4,8 @@
     <Style src="project://database/Packages/com.noctuagames.sdk/Resources/GeneralNotification.uss?fileID=7433441132597879392&amp;guid=ecb6324b7ae2357419ae41cd82dda4fb&amp;type=3#GeneralNotification" />
     <ui:VisualElement name="GeneralNotification" class="base general-notification-box">
         <ui:VisualElement name="PlayerBox" class="player-box">
-            <ui:VisualElement name="PlayerAvatar" class="player-avatar">
-                <ui:VisualElement name="PlayerAvatarImage" class="warning-icon" />
+            <ui:VisualElement name="NotifIconBox" class="player-avatar">
+                <ui:VisualElement name="NotifIcon" class="warning-icon" />
             </ui:VisualElement>
             <ui:VisualElement name="PlayerText" class="message-text-box">
                 <ui:Label name="MessageName" text="Couldn’t find your Noctua Account. Check or register new account." class="message-name" />
