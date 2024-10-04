@@ -11,6 +11,8 @@ using Newtonsoft.Json.Converters;
 using Newtonsoft.Json.Serialization;
 using UnityEngine.Scripting;
 using Random = System.Random;
+using com.noctuagames.sdk.UI;
+using UnityEngine.UIElements;
 
 namespace com.noctuagames.sdk
 {
@@ -203,13 +205,20 @@ namespace com.noctuagames.sdk
 #elif UNITY_IOS && !UNITY_EDITOR
         private readonly IosPlugin IosPluginInstance = new IosPlugin();
 #endif
+        private readonly PanelSettings _panelSettings;
+        private readonly UIFactory _uiFactory;
+        private readonly AuthenticationModel _uiModel;
 
-
-        internal NoctuaIAPService(Config config, AccessTokenProvider accessTokenProvider)
+        internal NoctuaIAPService(Config config, AccessTokenProvider accessTokenProvider, NoctuaAuthenticationService service)
         {
             _config = config;
             _accessTokenProvider = accessTokenProvider;
             _noctuaPayment = new NoctuaWebPaymentService(config.WebPaymentBaseUrl);
+
+            _panelSettings = Resources.Load<PanelSettings>("NoctuaPanelSettings");
+            _panelSettings.themeStyleSheet = Resources.Load<ThemeStyleSheet>("NoctuaTheme");
+            _uiFactory = new UIFactory("NoctuaAuthenticationUI");
+            _uiModel = new AuthenticationModel(_uiFactory, service);
 
 #if UNITY_ANDROID && !UNITY_EDITOR
             GoogleBillingInstance.OnProductDetailsDone += HandleGoogleProductDetails;
@@ -360,9 +369,12 @@ namespace com.noctuagames.sdk
 
             try
             {
+                _uiModel.ShowLoadingProgress(true);
                 _log.Log("NoctuaIAPService.PurchaseItemAsync try to CreateOrderAsync");
 
                 orderResponse = await CreateOrderAsync(orderRequest);
+
+                _uiModel.ShowLoadingProgress(false);
             }
             catch (Exception e)
             {
@@ -371,10 +383,14 @@ namespace com.noctuagames.sdk
                 if (e is NoctuaException exception)
                 {
                     _log.Log("NoctuaException: " + exception.ErrorCode + " : " + exception.Message);
+                    _uiModel.ShowLoadingProgress(false);
+                    _uiModel.ShowGeneralNotification(exception.ErrorCode + " : " + exception.Message);
                 }
                 else
                 {
                     _log.Log("Exception: " + e);
+                    _uiModel.ShowLoadingProgress(false);
+                    _uiModel.ShowGeneralNotification(e.Message);
                 }
 
                 throw;
@@ -469,6 +485,7 @@ namespace com.noctuagames.sdk
             VerifyOrderResponse verifyOrderResponse;
 
             try {
+                _uiModel.ShowLoadingProgress(true);
                 verifyOrderResponse = await VerifyOrderAsync(verifyOrderRequest, _accessTokenProvider.AccessToken);
 
                 if (verifyOrderResponse.Status == OrderStatus.Pending)
@@ -481,6 +498,8 @@ namespace com.noctuagames.sdk
                         }
                     );
                 }
+
+                _uiModel.ShowLoadingProgress(false);
             }
             catch (NoctuaException e)
             {
@@ -496,6 +515,8 @@ namespace com.noctuagames.sdk
                 }
                 
                 _log.Log("NoctuaException: " + e.ErrorCode + " : " + e.Message);
+                _uiModel.ShowLoadingProgress(false);
+                _uiModel.ShowGeneralNotification(e.ErrorCode + " : " + e.Message);
 
                 throw;
             }
@@ -503,6 +524,8 @@ namespace com.noctuagames.sdk
                 if (e is NoctuaException noctuaEx)
                 {
                     _log.Log("NoctuaException: " + noctuaEx.ErrorCode + " : " + noctuaEx.Message);
+                    _uiModel.ShowLoadingProgress(false);
+                    _uiModel.ShowGeneralNotification(noctuaEx.ErrorCode + " : " + noctuaEx.Message);
                 }
                 
                 throw;

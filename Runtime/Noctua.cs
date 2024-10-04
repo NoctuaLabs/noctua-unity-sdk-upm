@@ -218,7 +218,8 @@ namespace com.noctuagames.sdk
                     ClientId = config.ClientId,
                     WebPaymentBaseUrl = config.Noctua.PaymentBaseUrl
                 },
-                accessTokenProvider
+                accessTokenProvider,
+                authService
             );
 
             _game = new NoctuaGameService(
