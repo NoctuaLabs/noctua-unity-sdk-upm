@@ -188,7 +188,7 @@ namespace com.noctuagames.sdk
         private readonly Config _config;
         private readonly ILogger _log = new NoctuaUnityDebugLogger();
 
-        private UniTaskCompletionSource<string> _activeCurrencyTcs;
+        private TaskCompletionSource<string> _activeCurrencyTcs;
 
 
         private readonly AccessTokenProvider _accessTokenProvider;
@@ -210,7 +210,7 @@ namespace com.noctuagames.sdk
             { PaymentType.Noctuawallet };
 #endif
 
-        internal NoctuaIAPService(Config config, AccessTokenProvider accessTokenProvider)
+        internal NoctuaIAPService(Config config, AccessTokenProvider accessTokenProvider, INativePlugin nativePlugin)
         {
             _config = config;
             _accessTokenProvider = accessTokenProvider;
@@ -220,7 +220,7 @@ namespace com.noctuagames.sdk
             GoogleBillingInstance.OnProductDetailsDone += HandleGoogleProductDetails;
             GoogleBillingInstance?.Init();
 #elif UNITY_IOS && !UNITY_EDITOR
-            IosPluginInstance?.Init();
+            IosPluginInstance = nativePlugin as IosPlugin;
 #endif
             
             Task.Run(RetryPendingPurchases);
@@ -302,7 +302,7 @@ namespace com.noctuagames.sdk
         public async UniTask<string> GetActiveCurrencyAsync(string productId)
         {
 #if UNITY_IOS && !UNITY_EDITOR
-            var tcs = new UniTaskCompletionSource<string>();
+            var tcs = new TaskCompletionSource<string>();
             IosPluginInstance.GetActiveCurrency(productId, (success, currency) => {
                 _log.Log("NoctuaIAPService.GetActiveCurrency callback");
                 _log.Log("NoctuaIAPService.GetActiveCurrency callback success: " + success);
@@ -314,6 +314,7 @@ namespace com.noctuagames.sdk
                 }
                 tcs.TrySetResult(currency);
             });
+
             var activeCurrency = await tcs.Task;
             tcs.TrySetCanceled();
 
@@ -321,7 +322,7 @@ namespace com.noctuagames.sdk
 
 #elif UNITY_ANDROID && !UNITY_EDITOR
             _log.Log("GetActiveCurrencyAsync: Android");
-            _activeCurrencyTcs = new UniTaskCompletionSource<string>();
+            _activeCurrencyTcs = new TaskCompletionSource<string>();
             GoogleBillingInstance.QueryProductDetails(productId);
 
             var activeCurrency = await _activeCurrencyTcs.Task;
