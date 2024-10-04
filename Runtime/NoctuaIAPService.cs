@@ -190,11 +190,8 @@ namespace com.noctuagames.sdk
         private readonly Config _config;
         private readonly ILogger _log = new NoctuaUnityDebugLogger();
 
-        private UniTaskCompletionSource<string> _activeCurrencyTcs;
+        private TaskCompletionSource<string> _activeCurrencyTcs;
 
-        // By default all major payment types are enabled, then it will be overridden by the server config at SDK init
-        private List<PaymentType> _enabledPaymentTypes = new()
-            { PaymentType.Playstore, PaymentType.Applestore, PaymentType.Noctuawallet };
 
         private readonly AccessTokenProvider _accessTokenProvider;
         private readonly NoctuaWebPaymentService _noctuaPayment;
@@ -202,14 +199,23 @@ namespace com.noctuagames.sdk
 
 #if UNITY_ANDROID && !UNITY_EDITOR
         private readonly GoogleBilling GoogleBillingInstance = new();
+        // By default all major payment types are enabled, then it will be overridden by the server config at SDK init
+        private List<PaymentType> _enabledPaymentTypes = new()
+            { PaymentType.Playstore, PaymentType.Noctuawallet };
 #elif UNITY_IOS && !UNITY_EDITOR
         private readonly IosPlugin IosPluginInstance = new IosPlugin();
+        // By default all major payment types are enabled, then it will be overridden by the server config at SDK init
+        private List<PaymentType> _enabledPaymentTypes = new()
+            { PaymentType.Applestore, PaymentType.Noctuawallet };
+#else
+        private List<PaymentType> _enabledPaymentTypes = new()
+            { PaymentType.Noctuawallet };
 #endif
         private readonly PanelSettings _panelSettings;
         private readonly UIFactory _uiFactory;
         private readonly AuthenticationModel _uiModel;
 
-        internal NoctuaIAPService(Config config, AccessTokenProvider accessTokenProvider, NoctuaAuthenticationService service)
+        internal NoctuaIAPService(Config config, AccessTokenProvider accessTokenProvider, NoctuaAuthenticationService service, INativePlugin nativePlugin)
         {
             _config = config;
             _accessTokenProvider = accessTokenProvider;
@@ -224,7 +230,7 @@ namespace com.noctuagames.sdk
             GoogleBillingInstance.OnProductDetailsDone += HandleGoogleProductDetails;
             GoogleBillingInstance?.Init();
 #elif UNITY_IOS && !UNITY_EDITOR
-            IosPluginInstance?.Init();
+            IosPluginInstance = nativePlugin as IosPlugin;
 #endif
             
             Task.Run(RetryPendingPurchases);
@@ -232,6 +238,7 @@ namespace com.noctuagames.sdk
 
         public void SetEnabledPaymentTypes(List<PaymentType> enabledPaymentTypes)
         {
+            // The sequence represent the priority.
             _enabledPaymentTypes = enabledPaymentTypes;
         }
 
@@ -305,7 +312,7 @@ namespace com.noctuagames.sdk
         public async UniTask<string> GetActiveCurrencyAsync(string productId)
         {
 #if UNITY_IOS && !UNITY_EDITOR
-            var tcs = new UniTaskCompletionSource<string>();
+            var tcs = new TaskCompletionSource<string>();
             IosPluginInstance.GetActiveCurrency(productId, (success, currency) => {
                 _log.Log("NoctuaIAPService.GetActiveCurrency callback");
                 _log.Log("NoctuaIAPService.GetActiveCurrency callback success: " + success);
@@ -317,6 +324,7 @@ namespace com.noctuagames.sdk
                 }
                 tcs.TrySetResult(currency);
             });
+
             var activeCurrency = await tcs.Task;
             tcs.TrySetCanceled();
 
@@ -324,7 +332,7 @@ namespace com.noctuagames.sdk
 
 #elif UNITY_ANDROID && !UNITY_EDITOR
             _log.Log("GetActiveCurrencyAsync: Android");
-            _activeCurrencyTcs = new UniTaskCompletionSource<string>();
+            _activeCurrencyTcs = new TaskCompletionSource<string>();
             GoogleBillingInstance.QueryProductDetails(productId);
 
             var activeCurrency = await _activeCurrencyTcs.Task;
@@ -552,12 +560,27 @@ namespace com.noctuagames.sdk
         private async UniTask<PaymentType> GetPaymentTypeAsync()
         {
             var paymentSettings = await GetPaymentSettingsAsync();
-            
-            if (!_enabledPaymentTypes.Contains(paymentSettings.PaymentType))
+            _log.Log("Payment Type From Settings: " + paymentSettings.PaymentType);
+            _log.Log("Enabled Payment Types: " + string.Join(", ", _enabledPaymentTypes));
+            if (paymentSettings.PaymentType == null || string.IsNullOrEmpty(paymentSettings.PaymentType.ToString()) ||
+            paymentSettings.PaymentType.ToString() == "unknown")
             {
-                throw new NoctuaException(NoctuaErrorCode.Payment, "Payment type is not enabled");
+                if (_enabledPaymentTypes.Count == 0)
+                {
+                    throw new NoctuaException(NoctuaErrorCode.Payment, "No payment types are enabled");
+                }
+                _log.Log("Payment Type From Settings is empty, fallback to server remote config");
+                paymentSettings.PaymentType = _enabledPaymentTypes.First();
+            } else {
+                if (!_enabledPaymentTypes.Contains(paymentSettings.PaymentType))
+                {
+                    _log.Log("Payment Type From Settings is not enabled from server side, fallback to server remote config");
+                    // Fallback to _enabledPaymentTypes from SDK init
+                    paymentSettings.PaymentType = _enabledPaymentTypes.First();
+                }
             }
             
+            _log.Log("Selected payment Type: " + paymentSettings.PaymentType);
             return paymentSettings.PaymentType;
         }
 

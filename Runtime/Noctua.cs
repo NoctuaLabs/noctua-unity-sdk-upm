@@ -219,7 +219,8 @@ namespace com.noctuagames.sdk
                     WebPaymentBaseUrl = config.Noctua.PaymentBaseUrl
                 },
                 accessTokenProvider,
-                authService
+                authService,
+                _nativePlugin
             );
 
             _game = new NoctuaGameService(
