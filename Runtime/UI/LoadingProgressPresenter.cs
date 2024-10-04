@@ -34,7 +34,6 @@ namespace com.noctuagames.sdk.UI
                 _loadingProgress.Clear();
             }
 
-            Debug.Log("IS SHOW: " + (isShow ? "YES" : "NO"));
             Visible = isShow;
         }
 
