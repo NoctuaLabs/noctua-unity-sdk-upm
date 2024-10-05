@@ -1,0 +1,12 @@
+﻿<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" xsi="http://www.w3.org/2001/XMLSchema-instance" engine="UnityEngine.UIElements" editor="UnityEditor.UIElements" noNamespaceSchemaLocation="../../../../UIElementsSchema/UIElements.xsd" editor-extension-mode="False">
+    <Style src="./Noctua.uss" />
+    <Style src="./WebContent.uss" />
+    <ui:VisualElement name="Container" class="container">
+        <ui:VisualElement name="Header" class="header">
+            <ui:Label name="Title" text="Title" class="title" />
+            <ui:VisualElement name="CloseButton" class="close-icon" />
+        </ui:VisualElement>
+        <ui:VisualElement name="WebViewAnchor" class="web-view-anchor" />
+        <ui:Toggle name="NoShowingToggle" text="Don't show again today" class="no-showing-toggle" />
+    </ui:VisualElement>
+</ui:UXML>

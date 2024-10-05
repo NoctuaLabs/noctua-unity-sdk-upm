@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Net;
 using System.Text;
 using Cysharp.Threading.Tasks;
 using Newtonsoft.Json;
@@ -81,6 +82,7 @@ namespace com.noctuagames.sdk
     
     internal class HttpRequest : IDisposable
     {
+        private readonly NoctuaUnityDebugLogger _log = new();
         private readonly UnityWebRequest _request = new();
         private readonly JsonSerializerSettings _jsonSettings = new()
         {
@@ -178,18 +180,18 @@ namespace com.noctuagames.sdk
         {
             if (_request.url.Contains("{") || _request.url.Contains("}"))
             {
-                Debug.Log($"There are still path parameters that are not replaced: {_request.url}");
+                _log.Error($"There are still path parameters that are not replaced: {_request.url}");
                 throw NoctuaException.RequestUnreplacedParam;
             }
             
             _request.downloadHandler = new DownloadHandlerBuffer();
             var response = "";
 
-            Debug.Log(
-                $"{_request.method} {_request.url}" +
-                $"\nContent-Type: {_request.GetRequestHeader("Content-Type")}" +
-                $"\nAuthorization: {_request.GetRequestHeader("Authorization")}" +
-                $"\n\n{Encoding.UTF8.GetString(_request.uploadHandler?.data ?? Array.Empty<byte>())}"
+            _log.Log(
+                $"=> {_request.method} {_request.url}\n" +
+                $"Content-Type: {_request.GetRequestHeader("Content-Type")}\n" +
+                $"Authorization: {_request.GetRequestHeader("Authorization")}\n\n" +
+                $"{Encoding.UTF8.GetString(_request.uploadHandler?.data ?? Array.Empty<byte>())}"
             );
 
             try
@@ -215,11 +217,9 @@ namespace com.noctuagames.sdk
                 _request.uploadHandler?.Dispose();
             }
 
-            Debug.Log(
-                "Response: \n" +
-                $"URL: {_request.url}\n" +
-                $"Status: {_request.responseCode}\n" +
-                $"Body: {response}"
+            _log.Log(
+                $"<= {_request.responseCode} {(HttpStatusCode)_request.responseCode} {_request.method} {_request.url}\n\n" +
+                $"{response}"
             );
 
             if (_request.responseCode >= 500)

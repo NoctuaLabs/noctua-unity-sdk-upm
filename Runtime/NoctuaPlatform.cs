@@ -1,4 +1,6 @@
-﻿namespace com.noctuagames.sdk
+﻿using com.noctuagames.sdk.UI;
+
+namespace com.noctuagames.sdk
 {
     public class NoctuaPlatform
     {
@@ -6,7 +8,7 @@
 
         public readonly NoctuaWebContent Content;
         
-        internal NoctuaPlatform(NoctuaConfig config, AccessTokenProvider accessTokenProvider)
+        internal NoctuaPlatform(NoctuaConfig config, AccessTokenProvider accessTokenProvider, UIFactory uiFactory)
         {
             Locale = new NoctuaLocale();
             Content = new NoctuaWebContent(
@@ -16,7 +18,8 @@
                     RewardBaseUrl = config.RewardBaseUrl,
                     CustomerServiceBaseUrl = config.CustomerServiceBaseUrl
                 },
-                accessTokenProvider
+                accessTokenProvider,
+                uiFactory
             );
         }
     }

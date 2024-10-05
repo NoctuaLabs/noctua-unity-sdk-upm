@@ -152,8 +152,10 @@ namespace com.noctuagames.sdk
             uniWebView.OnShouldClose += OnSocialLoginShouldClose;
 
             uniWebView.SetBackButtonEnabled(true);
+            uniWebView.EmbeddedToolbar.SetBackgroundColor(new Color(31/255f, 35/255f, 39/255f));
             uniWebView.EmbeddedToolbar.Show();
             uniWebView.EmbeddedToolbar.SetDoneButtonText("Close");
+            uniWebView.EmbeddedToolbar.SetButtonTextColor(Color.white);
             uniWebView.EmbeddedToolbar.SetPosition(UniWebViewToolbarPosition.Top);
             uniWebView.Frame = new Rect(0, 0, Screen.width, Screen.height);
 
