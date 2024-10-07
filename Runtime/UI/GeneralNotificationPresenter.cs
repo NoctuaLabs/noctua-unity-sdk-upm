@@ -5,7 +5,7 @@ using UnityEngine.UIElements;
 
 namespace com.noctuagames.sdk.UI
 {
-    internal class GeneralNotificationPresenter : Presenter<AuthenticationModel>
+    internal class GeneralNotificationPresenter : Presenter<object>
     {
         private VisualElement _root;
         private VisualElement _notifIconBox;

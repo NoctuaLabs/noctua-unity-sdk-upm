@@ -5,7 +5,7 @@ using UnityEngine.UIElements;
 
 namespace com.noctuagames.sdk.UI
 {
-    internal class LoadingProgressPresenter : Presenter<AuthenticationModel>
+    internal class LoadingProgressPresenter : Presenter<object>
     {
         private VisualElement _loadingProgress;
         protected override void Attach()

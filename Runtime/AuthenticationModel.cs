@@ -50,9 +50,7 @@ namespace com.noctuagames.sdk
         private readonly EmailResetPasswordDialogPresenter _emailResetPasswordDialog;
         private readonly EmailConfirmResetPasswordDialogPresenter _emailConfirmResetPasswordDialog;
         private readonly UserCenterPresenter _userCenter;
-        private readonly GeneralNotificationPresenter _generalNotification;
         private readonly AccountDeletionConfirmationDialogPresenter _accountDeletionConfirmationDialog;
-        private readonly LoadingProgressPresenter _loadingProgress;
 
         private NoctuaAuthenticationService _authService;
         private GameObject _socialAuthObject;
@@ -80,8 +78,6 @@ namespace com.noctuagames.sdk
             _emailResetPasswordDialog = _uiFactory.Create<EmailResetPasswordDialogPresenter, AuthenticationModel>(this);
             _emailConfirmResetPasswordDialog = _uiFactory.Create<EmailConfirmResetPasswordDialogPresenter, AuthenticationModel>(this);
             _accountDeletionConfirmationDialog = _uiFactory.Create<AccountDeletionConfirmationDialogPresenter, AuthenticationModel>(this);
-            _generalNotification = _uiFactory.Create<GeneralNotificationPresenter, AuthenticationModel>(this);
-            _loadingProgress = _uiFactory.Create<LoadingProgressPresenter, AuthenticationModel>(this);
             _welcome = _uiFactory.Create<WelcomeNotificationPresenter, AuthenticationModel>(this);
 
             _authService = authService;
@@ -163,12 +159,12 @@ namespace com.noctuagames.sdk
 
         public void ShowGeneralNotification(string message, bool isNotifSuccess = false) 
         {
-            _generalNotification.Show(message, isNotifSuccess);
+            _uiFactory.ShowGeneralNotification(message, isNotifSuccess);
         }
 
         public void ShowLoadingProgress(bool isShow)
         {
-            _loadingProgress.Show(isShow);
+            _uiFactory.ShowLoadingProgress(isShow);
         }
 
         internal async UniTask<CredentialVerification> RegisterWithEmailAsync(string email, string password)
