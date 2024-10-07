@@ -353,6 +353,8 @@ namespace com.noctuagames.sdk
         public async UniTask<PurchaseResponse> PurchaseItemAsync(PurchaseRequest purchaseRequest)
         {
             _log.Log("NoctuaIAPService.PurchaseItemAsync");
+
+            //  _uiModel.ShowLoadingProgress(true);
             
             var paymentType = await GetPaymentTypeAsync();
 
@@ -407,12 +409,11 @@ namespace com.noctuagames.sdk
 
             try
             {
-                _uiModel.ShowLoadingProgress(true);
                 _log.Log("NoctuaIAPService.PurchaseItemAsync try to CreateOrderAsync");
 
                 orderResponse = await CreateOrderAsync(orderRequest);
 
-                _uiModel.ShowLoadingProgress(false);
+                // _uiModel.ShowLoadingProgress(false);
             }
             catch (Exception e)
             {
@@ -519,12 +520,16 @@ namespace com.noctuagames.sdk
             };
 
             _log.Log($"Verifying order: {verifyOrderRequest.Id} with receipt data: {verifyOrderRequest.ReceiptData}");
+
+            // _uiModel.ShowLoadingProgress(true);
             
             VerifyOrderResponse verifyOrderResponse;
 
             try {
-                _uiModel.ShowLoadingProgress(true);
+                // _uiModel.ShowLoadingProgress(true);
                 verifyOrderResponse = await VerifyOrderAsync(verifyOrderRequest, _accessTokenProvider.AccessToken);
+
+                Debug.Log("MASUK SINI COY" + verifyOrderResponse.Status.ToString());
 
                 if (verifyOrderResponse.Status == OrderStatus.Pending)
                 {
