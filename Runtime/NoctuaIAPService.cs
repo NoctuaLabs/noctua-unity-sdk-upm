@@ -490,6 +490,9 @@ namespace com.noctuagames.sdk
                 case PaymentType.Noctuawallet:
                     hasResult = true;
                     paymentResult = await _noctuaPayment.PayAsync(orderResponse.PaymentUrl);
+
+                    var getReceipt = Utility.ParseQueryString(orderResponse.PaymentUrl);
+                    paymentResult.ReceiptData = getReceipt["receiptId"];
                     
                     break;
                 case PaymentType.Unknown:
