@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Reflection;
+using UnityEngine;
 
 namespace com.noctuagames.sdk
 {
@@ -78,6 +79,35 @@ namespace com.noctuagames.sdk
 
                 PrintFieldsRecursive(value, indentLevel + 1, sb);
             }
+        }
+
+        public static Dictionary<string, string> ParseQueryString(string queryString)
+        {
+            var queryParameters = new Dictionary<string, string>();
+            queryString = queryString[(queryString.IndexOf('?') + 1)..];
+            queryString = queryString.Split('#')[0];
+
+            var pairs = queryString.Split('&');
+            foreach (var pair in pairs)
+            {
+                var splitIndex = pair.IndexOf('=');
+
+                if (splitIndex < 1 || splitIndex == pair.Length - 1)
+                {
+                    continue;
+                }
+
+                var key = Uri.UnescapeDataString(pair[..splitIndex]);
+                var value = Uri.UnescapeDataString(pair[(splitIndex + 1)..]);
+                queryParameters[key] = value;
+            }
+
+            foreach (var (key, value) in queryParameters)
+            {
+                Debug.Log($"{key}: {value}");
+            }
+
+            return queryParameters;
         }
     }
 }
