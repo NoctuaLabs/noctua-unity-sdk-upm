@@ -6,8 +6,10 @@ using UnityEngine;
 using UnityEngine.Networking;
 using System.Text;
 using System.Threading.Tasks;
+using com.noctuagames.sdk.UI;
 using UnityEngine.Scripting;
 using Cysharp.Threading.Tasks;
+using UnityEngine.UIElements;
 
 namespace com.noctuagames.sdk
 {
@@ -34,15 +36,11 @@ namespace com.noctuagames.sdk
 
         [JsonProperty("paymentBaseUrl")] public string PaymentBaseUrl;
 
-        [JsonProperty("announcementBaseUrl")] public string AnnouncementBaseUrl =
-            "https://api-gtw.noctua.gg/account/v1/public/user-center/special-button/redirect?productCode=55112649122002616278791805982587&ts=1721213541000&userID=18665027&token=321e487334668bad41bbd3387f9d36c4&redirectType=igp";
+        [JsonProperty("announcementBaseUrl")] public string AnnouncementBaseUrl = "https://sdk-api-v2.noctuaprojects.com/api/v1/games/announcements";
 
-        [JsonProperty("rewardBaseUrl")] public string RewardBaseUrl =
-            "https://api-gtw.noctua.gg/account/v1/public/user-center/special-button/redirect?productCode=55112649122002616278791805982587&ts=1721213541000&userID=18665027&token=321e487334668bad41bbd3387f9d36c4&redirectType=reward";
+        [JsonProperty("rewardBaseUrl")] public string RewardBaseUrl = "https://sdk-api-v2.noctuaprojects.com/api/v1/games/rewards";
 
-        [JsonProperty("customerServiceBaseUrl")]
-        public string CustomerServiceBaseUrl =
-            "https://api-gtw.noctua.gg/account/v1/public/user-center/special-button/redirect?productCode=55112649122002616278791805982587&ts=1721213541000&userID=18665027&token=321e487334668bad41bbd3387f9d36c4&redirectType=cs";
+        [JsonProperty("customerServiceBaseUrl")] public string CustomerServiceBaseUrl = "https://sdk-api-v2.noctuaprojects.com/api/v1/games/cs";
 
         [JsonProperty("isSandbox")] public bool IsSandbox;
     }
@@ -206,8 +204,12 @@ namespace com.noctuagames.sdk
             _nativePlugin = GetNativePlugin();
             _event = new NoctuaEventService(_nativePlugin);
 
+            var panelSettings = Resources.Load<PanelSettings>("NoctuaPanelSettings");
+            panelSettings.themeStyleSheet = Resources.Load<ThemeStyleSheet>("NoctuaTheme");
+
             var authService = new NoctuaAuthenticationService(config.Noctua.BaseUrl, config.ClientId);
-            _auth = new NoctuaAuthentication(authService);
+            var uiFactory = new UIFactory(new GameObject("NoctuaAuthenticationUI"), panelSettings);
+            _auth = new NoctuaAuthentication(authService, uiFactory);
             
             var accessTokenProvider = new AccessTokenProvider(authService);
 
@@ -229,9 +231,9 @@ namespace com.noctuagames.sdk
                     BaseUrl = config.Noctua.BaseUrl,
                     ClientId = config.ClientId
                 }
-            );  
+            );
 
-            _platform = new NoctuaPlatform(config.Noctua, accessTokenProvider);
+            _platform = new NoctuaPlatform(config.Noctua, accessTokenProvider, uiFactory);
         }
 
         public static async UniTask InitAsync()
