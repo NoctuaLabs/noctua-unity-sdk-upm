@@ -1060,20 +1060,14 @@ namespace com.noctuagames.sdk
             UpdateRecentAccount(RecentAccount, ReadPlayerPrefsAccountContainer());
         }
 
-        public async UniTask<UserBundle> UpdatePlayerAccountAsync(PlayerAccountData playerAccountData)
+        public async UniTask UpdatePlayerAccountAsync(PlayerAccountData playerAccountData)
         {
-            var request = new HttpRequest(HttpMethod.Post, $"{_baseUrl}/api/v1/players/sync")
+            var request = new HttpRequest(HttpMethod.Post, $"{_baseUrl}/players/sync")
                 .WithHeader("X-CLIENT-ID", _clientId)
                 .WithHeader("Authorization", "Bearer " + RecentAccount.Player.AccessToken)
                 .WithJsonBody(playerAccountData);
-
-            var response = await request.Send<PlayerToken>();
             
-            var accountContainer = ReadPlayerPrefsAccountContainer();
-            var recentAccount = TransformTokenResponseToUserBundle(response);
-            UpdateRecentAccount(recentAccount, accountContainer);
-            
-            return recentAccount;
+            _ = await request.Send<object>();
         }
 
         public async UniTask DeletePlayerAccountAsync()

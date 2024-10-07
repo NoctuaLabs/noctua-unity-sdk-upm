@@ -167,9 +167,9 @@ namespace com.noctuagames.sdk
             return await _uiModel.SocialLoginAsync(provider);
         }
 
-        public async UniTask<UserBundle> UpdatePlayerAccountAsync(PlayerAccountData playerAccountData)
+        public async UniTask UpdatePlayerAccountAsync(PlayerAccountData playerAccountData)
         {
-            return await _service.UpdatePlayerAccountAsync(playerAccountData);
+            await _service.UpdatePlayerAccountAsync(playerAccountData);
         }
         
         public async UniTask<UserBundle> LogoutAsync()

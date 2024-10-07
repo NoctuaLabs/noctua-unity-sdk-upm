@@ -373,6 +373,36 @@ namespace com.noctuagames.sdk
                 orderRequest.Currency = Noctua.Platform.Locale.GetCurrency();
             }
 
+            try
+            {
+                var playerData = new PlayerAccountData
+                {
+                    IngameUsername = "Player",
+                    IngameServerId = purchaseRequest.ServerId,
+                    IngameRoleId = purchaseRequest.RoleId,
+                    Extra = new Dictionary<string, string>
+                    {
+                        { "", "" },
+                    }
+                };
+
+                await Noctua.Auth.UpdatePlayerAccountAsync(playerData);
+                Debug.Log($"Player account updated successfully");
+            }
+            catch (Exception e)
+            {
+                if (e is NoctuaException exception)
+                {
+                    Debug.Log("NoctuaException: " + exception.ErrorCode + " : " + exception.Message);
+                    _uiModel.ShowGeneralNotification(exception.ErrorCode + " : " + exception.Message);
+                }
+                else
+                {
+                    Debug.Log("Exception: " + e);
+                    _uiModel.ShowGeneralNotification(e.Message);
+                }
+            }
+
             OrderResponse orderResponse;
 
             try
