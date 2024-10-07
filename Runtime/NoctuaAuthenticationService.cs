@@ -575,7 +575,6 @@ namespace com.noctuagames.sdk
             var request = new HttpRequest(HttpMethod.Post, $"{_baseUrl}/auth/email/verify-registration")
                 .WithHeader("X-CLIENT-ID", _clientId)
                 .WithHeader("X-BUNDLE-ID", Application.identifier)
-                .WithHeader("Authorization", "Bearer " + RecentAccount.Player.AccessToken)
                 .WithJsonBody(
                     new CredentialVerification
                     {
@@ -583,6 +582,11 @@ namespace com.noctuagames.sdk
                         Code = code
                     }
                 );
+
+            if (!string.IsNullOrEmpty(RecentAccount?.Player?.AccessToken) && RecentAccount.IsGuest)
+            {
+                request.WithHeader("Authorization", "Bearer " + RecentAccount.Player.AccessToken);
+            }
 
             var response = await request.Send<PlayerToken>();
 
