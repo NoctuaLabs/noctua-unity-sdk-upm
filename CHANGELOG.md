@@ -2,6 +2,61 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.8.0] - 2024-10-07
+
+### 🚀 Features
+
+- Add 3rd party NativeGallery
+- Add edit profile service
+- Add file uploader services
+- Add get profile options service
+- Date picker and refactor code
+- Image picker
+- Add payment by noctua website
+- Spinner, error label and styling dropdown
+- Add NoctuaWebContent
+- Add payment type in user profile
+- Noctua logo with text footer in edit profile left side
+- Add date picker
+- Add loading progress when iap
+
+### 🐛 Bug Fixes
+
+- More options menu shows on guest account opening user center
+- Clear email reset password confirmation on start and makes error text not floating
+- Rebase and resolve conflict
+- Nickname input field and profile image and button change profile
+- Change method post to get profile options
+- Use tokens only if needed
+- Bug ui edit profile when directly close
+- Margin dropdown and border color
+- Retry pending purchases with backoff
+- Update native sdk to delete manifest entry that removes gms.permission.AD_ID
+- Add validation dropdown and add default value for payment type
+- Error label not hide
+- Date picker default value
+- Edit profile not working
+- Remove log
+- Set enabled payment types priority higher than user preferences.
+- Update to ios-sdk-v0.2.0 to include facebook sdk as static framework
+- Makes webview can be wrapped with UI and don't show again toggle
+- Verif order not working
+- Verif order not processed
+
+### 🚜 Refactor
+
+- Moves Event methods under NoctuaEventService class
+- Makes UI creation more reusable via UIFactory
+- Take out social authentication flow from AuthenticationModel
+- Use enum status and move tcs out of retry
+- General notificaiton can be reusable
+- Hide loading progress for temporary
+- General notification message and loading progress
+
+### 📚 Documentation
+
+- Update readme
+
 ## [0.7.0] - 2024-09-18
 
 ### 🚀 Features
