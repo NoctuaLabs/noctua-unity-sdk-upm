@@ -176,14 +176,6 @@ namespace com.noctuagames.sdk
         {
             return await _service.LogoutAsync();
         }
-        
-        public void ShowCustomerService()
-        {
-            var customerServiceUrl = Constants.CustomerServiceBaseUrl + "&gameCode=" + this.RecentAccount?.Player?.GameName + "&uid=" + this.RecentAccount?.User?.Id;
-
-            Debug.Log("Open URL with system browser: " + customerServiceUrl);
-            Application.OpenURL(customerServiceUrl);
-        }
 
         public void ShowUserCenter()
         {
