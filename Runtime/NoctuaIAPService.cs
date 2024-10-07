@@ -211,20 +211,15 @@ namespace com.noctuagames.sdk
         private List<PaymentType> _enabledPaymentTypes = new()
             { PaymentType.Noctuawallet };
 #endif
-        private readonly PanelSettings _panelSettings;
         private readonly UIFactory _uiFactory;
-        private readonly AuthenticationModel _uiModel;
 
-        internal NoctuaIAPService(Config config, AccessTokenProvider accessTokenProvider, NoctuaAuthenticationService service, INativePlugin nativePlugin)
+        internal NoctuaIAPService(Config config, AccessTokenProvider accessTokenProvider, UIFactory uiFactory, INativePlugin nativePlugin)
         {
             _config = config;
             _accessTokenProvider = accessTokenProvider;
             _noctuaPayment = new NoctuaWebPaymentService(config.WebPaymentBaseUrl);
-
-            _panelSettings = Resources.Load<PanelSettings>("NoctuaPanelSettings");
-            _panelSettings.themeStyleSheet = Resources.Load<ThemeStyleSheet>("NoctuaTheme");
-            _uiFactory = new UIFactory("NoctuaAuthenticationUI");
-            _uiModel = new AuthenticationModel(_uiFactory, service);
+            
+            _uiFactory = uiFactory;
 
 #if UNITY_ANDROID && !UNITY_EDITOR
             GoogleBillingInstance.OnProductDetailsDone += HandleGoogleProductDetails;
@@ -354,7 +349,7 @@ namespace com.noctuagames.sdk
         {
             _log.Log("NoctuaIAPService.PurchaseItemAsync");
 
-            //  _uiModel.ShowLoadingProgress(true);
+             _uiFactory.ShowLoadingProgress(true);
             
             var paymentType = await GetPaymentTypeAsync();
 
@@ -396,12 +391,10 @@ namespace com.noctuagames.sdk
                 if (e is NoctuaException exception)
                 {
                     Debug.Log("NoctuaException: " + exception.ErrorCode + " : " + exception.Message);
-                    _uiModel.ShowGeneralNotification(exception.ErrorCode + " : " + exception.Message);
                 }
                 else
                 {
                     Debug.Log("Exception: " + e);
-                    _uiModel.ShowGeneralNotification(e.Message);
                 }
             }
 
@@ -413,7 +406,7 @@ namespace com.noctuagames.sdk
 
                 orderResponse = await CreateOrderAsync(orderRequest);
 
-                // _uiModel.ShowLoadingProgress(false);
+                _uiFactory.ShowLoadingProgress(false);
             }
             catch (Exception e)
             {
@@ -422,14 +415,14 @@ namespace com.noctuagames.sdk
                 if (e is NoctuaException exception)
                 {
                     _log.Log("NoctuaException: " + exception.ErrorCode + " : " + exception.Message);
-                    _uiModel.ShowLoadingProgress(false);
-                    _uiModel.ShowGeneralNotification(exception.ErrorCode + " : " + exception.Message);
+                    _uiFactory.ShowLoadingProgress(false);
+                    _uiFactory.ShowGeneralNotification(exception.ErrorCode + " : " + exception.Message);
                 }
                 else
                 {
                     _log.Log("Exception: " + e);
-                    _uiModel.ShowLoadingProgress(false);
-                    _uiModel.ShowGeneralNotification(e.Message);
+                    _uiFactory.ShowLoadingProgress(false);
+                    _uiFactory.ShowGeneralNotification(e.Message);
                 }
 
                 throw;
@@ -438,8 +431,8 @@ namespace com.noctuagames.sdk
             _log.Log("NoctuaIAPService.PurchaseItemAsync _currentOrderId: "         + orderResponse.Id);
             _log.Log("NoctuaIAPService.PurchaseItemAsync orderResponse.ProductId: " + orderResponse.ProductId);
 
-            var timeoutTask = UniTask.Delay(TimeSpan.FromSeconds(300), DelayType.UnscaledDeltaTime);
-            var paymentTcs = new UniTaskCompletionSource<PaymentResult>();
+            var timeoutTask = Task.Delay(TimeSpan.FromSeconds(300));
+            var paymentTcs = new TaskCompletionSource<PaymentResult>();
             bool hasResult;
             PaymentResult paymentResult;
 
@@ -457,7 +450,10 @@ namespace com.noctuagames.sdk
                         paymentTcs.TrySetResult(GetAppstorePaymentResult(orderResponse.Id, success, message));
                     });
 
-                    (hasResult, paymentResult) = await UniTask.WhenAny(paymentTcs.Task, timeoutTask);
+                    var task = await Task.WhenAny(paymentTcs.Task, timeoutTask);
+                    
+                    hasResult = task == paymentTcs.Task;
+                    paymentResult = paymentTcs.Task.Result;
                     
                     _log.Log("NoctuaIAPService.PurchaseItemAsync PurchaseItem callback response: " + paymentResult);
                     break;
@@ -478,7 +474,10 @@ namespace com.noctuagames.sdk
                     GoogleBillingInstance.OnPurchaseDone += PurchaseDone;
                     GoogleBillingInstance.PurchaseItem(orderResponse.ProductId);
 
-                    (hasResult, paymentResult) = await UniTask.WhenAny(paymentTcs.Task, timeoutTask);
+                    var task = await Task.WhenAny(paymentTcs.Task, timeoutTask);
+                    
+                    hasResult = task == paymentTcs.Task;
+                    paymentResult = paymentTcs.Task.Result;
 
                     GoogleBillingInstance.OnPurchaseDone -= PurchaseDone;
                     
@@ -520,16 +519,13 @@ namespace com.noctuagames.sdk
             };
 
             _log.Log($"Verifying order: {verifyOrderRequest.Id} with receipt data: {verifyOrderRequest.ReceiptData}");
-
-            // _uiModel.ShowLoadingProgress(true);
             
             VerifyOrderResponse verifyOrderResponse;
 
             try {
-                // _uiModel.ShowLoadingProgress(true);
-                verifyOrderResponse = await VerifyOrderAsync(verifyOrderRequest, _accessTokenProvider.AccessToken);
+                _uiFactory.ShowLoadingProgress(true);
 
-                Debug.Log("MASUK SINI COY" + verifyOrderResponse.Status.ToString());
+                verifyOrderResponse = await VerifyOrderAsync(verifyOrderRequest, _accessTokenProvider.AccessToken);
 
                 if (verifyOrderResponse.Status == OrderStatus.Pending)
                 {
@@ -542,7 +538,7 @@ namespace com.noctuagames.sdk
                     );
                 }
 
-                _uiModel.ShowLoadingProgress(false);
+                _uiFactory.ShowLoadingProgress(false);
             }
             catch (NoctuaException e)
             {
@@ -558,8 +554,8 @@ namespace com.noctuagames.sdk
                 }
                 
                 _log.Log("NoctuaException: " + e.ErrorCode + " : " + e.Message);
-                _uiModel.ShowLoadingProgress(false);
-                _uiModel.ShowGeneralNotification(e.ErrorCode + " : " + e.Message);
+                _uiFactory.ShowLoadingProgress(false);
+                _uiFactory.ShowGeneralNotification(e.ErrorCode + " : " + e.Message);
 
                 throw;
             }
@@ -567,8 +563,8 @@ namespace com.noctuagames.sdk
                 if (e is NoctuaException noctuaEx)
                 {
                     _log.Log("NoctuaException: " + noctuaEx.ErrorCode + " : " + noctuaEx.Message);
-                    _uiModel.ShowLoadingProgress(false);
-                    _uiModel.ShowGeneralNotification(noctuaEx.ErrorCode + " : " + noctuaEx.Message);
+                    _uiFactory.ShowLoadingProgress(false);
+                    _uiFactory.ShowGeneralNotification(noctuaEx.ErrorCode + " : " + noctuaEx.Message);
                 }
                 
                 throw;
