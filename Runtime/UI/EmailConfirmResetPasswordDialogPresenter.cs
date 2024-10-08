@@ -143,7 +143,7 @@ namespace com.noctuagames.sdk.UI
                 await Model.AuthService.ConfirmResetPasswordAsync(verificationId, verificationCode, password);
 
                 View.visible = false;
-
+                
                 View.Q<Label>("ErrCode").RemoveFromClassList("hide");
                 View.Q<Button>("ContinueButton").RemoveFromClassList("hide");
                 View.Q<VisualElement>("Spinner").AddToClassList("hide");
@@ -163,7 +163,6 @@ namespace com.noctuagames.sdk.UI
                     Debug.Log("Exception: " + e);
                     View.Q<Label>("ErrCode").text = e.Message;
                 }
-                View.Q<Label>("ErrCode").RemoveFromClassList("hide");
                 View.Q<Button>("ContinueButton").RemoveFromClassList("hide");
                 View.Q<VisualElement>("Spinner").AddToClassList("hide");
                 return;
@@ -175,12 +174,14 @@ namespace com.noctuagames.sdk.UI
             // To avoid duplicate classes
             View.Q<Label>("ErrCode").RemoveFromClassList("hide");
             View.Q<Label>("ErrVerificationCodeEmpty").RemoveFromClassList("hide");
+            View.Q<Label>("ErrVerificationCodeInvalid").RemoveFromClassList("hide");
             View.Q<Label>("ErrPasswordTooShort").RemoveFromClassList("hide");
             View.Q<Label>("ErrPasswordEmpty").RemoveFromClassList("hide");
             View.Q<Label>("ErrPasswordMismatch").RemoveFromClassList("hide");
 
             View.Q<Label>("ErrCode").AddToClassList("hide");
             View.Q<Label>("ErrVerificationCodeEmpty").AddToClassList("hide");
+            View.Q<Label>("ErrVerificationCodeInvalid").AddToClassList("hide");
             View.Q<Label>("ErrPasswordTooShort").AddToClassList("hide");
             View.Q<Label>("ErrPasswordEmpty").AddToClassList("hide");
             View.Q<Label>("ErrPasswordMismatch").AddToClassList("hide");
