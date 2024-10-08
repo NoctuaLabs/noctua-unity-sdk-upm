@@ -7,11 +7,6 @@ namespace com.noctuagames.sdk
 {
     public static class Utility
     {
-        public static string RemoveWhiteSpace(string text)
-        {
-            string result = text.Replace(" ", string.Empty);
-            return result;
-        }
 
         public static string PrintFields<T>(this T obj)
         {
