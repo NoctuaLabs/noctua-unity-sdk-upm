@@ -95,7 +95,7 @@ namespace com.noctuagames.sdk.UI
             View.Q<VisualElement>("Spinner").Add(spinnerInstance);
             View.Q<VisualElement>("Spinner").RemoveFromClassList("hide");
 
-            var emailAddress = _email;
+            var emailAddress = Utility.RemoveWhiteSpace(_email);
 
             // Validation
             if (string.IsNullOrEmpty(emailAddress)) {
