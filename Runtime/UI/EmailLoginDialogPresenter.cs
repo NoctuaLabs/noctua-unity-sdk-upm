@@ -158,7 +158,7 @@ namespace com.noctuagames.sdk.UI
             View.Q<Button>("ContinueButton").AddToClassList("hide");
             View.Q<VisualElement>("Spinner").RemoveFromClassList("hide");
 
-            var emailAddress = Utility.RemoveWhiteSpace(_email);
+            var emailAddress = _email.Replace(" ", string.Empty);
             var password = _password;
 
             // Validation
