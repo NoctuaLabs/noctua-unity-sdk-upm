@@ -317,8 +317,6 @@ namespace com.noctuagames.sdk.UI
         private void SetupEditProfileUI() 
         {
             _editProfileContainer = View.Q<VisualElement>("EditProfileBox");
-            _editProfileContainer.RemoveFromClassList("show");
-            _editProfileContainer.AddToClassList("hide");
 
             _nicknameTF = View.Q<TextField>("NicknameTF");
             _genderTF = View.Q<DropdownField>("GenderTF");
@@ -452,10 +450,8 @@ namespace com.noctuagames.sdk.UI
             try
             {
                 _newProfileUrl = await Model.AuthService.FileUploader(filePath);
-                StartCoroutine(LoadImageFromUrl(_newProfileUrl, true));
 
-                View.Q<Button>("ChangePictureButton").RemoveFromClassList("hide");
-                View.Q<VisualElement>("Spinner2").AddToClassList("hide");
+                SaveProfile();
             }
             catch (Exception e)
             {
@@ -604,9 +600,17 @@ namespace com.noctuagames.sdk.UI
             View.Q<VisualElement>("Spinner2").AddToClassList("hide");
         }
 
-        private async void OnSaveEditProfile()
+        private void OnSaveEditProfile()
+        {
+            SaveProfile();
+        }
+
+        private async void SaveProfile()
         {
             View.Q<VisualElement>("Spinner").RemoveFromClassList("hide");
+            View.Q<VisualElement>("Spinner2").RemoveFromClassList("hide");
+
+            View.Q<Button>("ChangePictureButton").AddToClassList("hide");
             View.Q<Button>("SaveButton").AddToClassList("hide");
 
             var _errorLabel = View.Q<Label>("ErrLabel");
@@ -700,9 +704,14 @@ namespace com.noctuagames.sdk.UI
 
                 await Model.AuthService.UpdateUserAsync(updateUserRequest);
 
+                StartCoroutine(LoadImageFromUrl(_newProfileUrl, true));
+
                 _errorLabel.AddToClassList("hide");
                 View.Q<Button>("SaveButton").RemoveFromClassList("hide");
                 View.Q<VisualElement>("Spinner").AddToClassList("hide");
+
+                View.Q<Button>("ChangePictureButton").RemoveFromClassList("hide");
+                View.Q<VisualElement>("Spinner2").AddToClassList("hide");
 
                 Model.ShowGeneralNotification("Update profile successfully", true);
             }
@@ -711,20 +720,27 @@ namespace com.noctuagames.sdk.UI
                 Model.ShowGeneralNotification(e.Message);
                 
                 _errorLabel.AddToClassList("hide");
+
                 View.Q<Button>("SaveButton").RemoveFromClassList("hide");
                 View.Q<VisualElement>("Spinner").AddToClassList("hide");
+
+                View.Q<Button>("ChangePictureButton").RemoveFromClassList("hide");
+                View.Q<VisualElement>("Spinner2").AddToClassList("hide");
+
             }
-        } 
+        }
 
         private void OnSwitchProfile()
         {
             Visible = false;
             Model.ShowAccountSelection();
+            OnUIEditProfile(false);
         }
 
         private void OnLogout()
         {
             Visible = false;
+            OnUIEditProfile(false);
             StartCoroutine(Model.AuthService.LogoutAsync().ToCoroutine());
         }
 
@@ -733,7 +749,11 @@ namespace com.noctuagames.sdk.UI
             _carouselLabel = View.Q<Label>("TextCarousel");
             _indicatorContainer = View.Q<VisualElement>("IndicatorContainer");
 
-            View.Q<Button>("ExitButton").RegisterCallback<PointerUpEvent>(_ => { Visible = false; });
+            View.Q<Button>("ExitButton").RegisterCallback<PointerUpEvent>(_ => 
+            { 
+                Visible = false; 
+                OnUIEditProfile(false);
+            });
             View.Q<Button>("MoreOptionsButton").RegisterCallback<PointerUpEvent>(OnMoreOptionsButtonClick);
             View.Q<Button>("GuestConnectButton").RegisterCallback<PointerUpEvent>(OnGuestConnectButtonClick);
             View.Q<VisualElement>("DeleteAccount").RegisterCallback<PointerUpEvent>(_ => OnDeleteAccount());
@@ -758,6 +778,7 @@ namespace com.noctuagames.sdk.UI
         private void OnDeleteAccount()
         {
             Visible = false;
+            OnUIEditProfile(false);
             Model.ShowAccountDeletionConfirmation(Model.AuthService.RecentAccount);
         }
 

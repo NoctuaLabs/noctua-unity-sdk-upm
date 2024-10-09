@@ -60,7 +60,7 @@
                 <ui:VisualElement name="IndicatorContainer" class="ellipse-indicator" />
                 <ui:Button name="GuestConnectButton" text="Connect Account" class="button-highlight connect-button-guest" />
             </ui:VisualElement>
-            <ui:VisualElement name="EditProfileBox" class="user-center edit-profile-box">
+            <ui:VisualElement name="EditProfileBox" class="user-center edit-profile-box hide">
                 <ui:VisualElement>
                     <ui:ScrollView scroll-deceleration-rate="0,135" elasticity="0,1" horizontal-scroller-visibility="Hidden" vertical-scroller-visibility="Hidden" style="margin-bottom: 10px;">
                         <ui:VisualElement name="BackEditProfileHeader" class="user-profile-header" style="justify-content: flex-start; align-items: center; flex-wrap: nowrap;">
