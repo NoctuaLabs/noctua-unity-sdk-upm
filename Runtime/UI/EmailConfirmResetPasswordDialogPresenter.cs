@@ -148,8 +148,6 @@ namespace com.noctuagames.sdk.UI
                 View.Q<Button>("ContinueButton").RemoveFromClassList("hide");
                 View.Q<VisualElement>("Spinner").AddToClassList("hide");
 
-                // Go back to login dialog
-                Model.ShowEmailLogin();
             } catch (Exception e) {
                 if (e is NoctuaException noctuaEx)
                 {
