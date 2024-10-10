@@ -142,7 +142,7 @@ namespace com.noctuagames.sdk
         [JsonProperty("id")]
         public int Id;
 
-        [JsonProperty("status")]
+        [JsonProperty("order_status")]
         public OrderStatus Status;
     }
 
@@ -562,7 +562,8 @@ namespace com.noctuagames.sdk
 
                 throw;
             }
-            catch (Exception e) {
+            catch (Exception e) 
+            {
                 if (e is NoctuaException noctuaEx)
                 {
                     _log.Log("NoctuaException: " + noctuaEx.ErrorCode + " : " + noctuaEx.Message);
