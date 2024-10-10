@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.9.1] - 2024-10-10
+
+### ⚙️ Miscellaneous Tasks
+
+- Split long log
+
 ## [0.9.0] - 2024-10-10
 
 ### 🚀 Features
