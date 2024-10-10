@@ -2,6 +2,33 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.9.0] - 2024-10-10
+
+### 🚀 Features
+
+- Add method remove white space
+
+### 🐛 Bug Fixes
+
+- Include token only if it's guest
+- Error label not hide when on loading spinner
+- Email not valid when have white space
+- Email not valid when have white space
+- Hide welcome notificaiton when success reset password
+- Change wording Continue to Reset Password and Login
+- Rollback after reset password and then login
+- Hide show login with email after reset password success
+- Bug ui edit profile and adjust save change profile
+- Ordering ui message notification and loading progress
+- Update VerifyOrderResponse struct to match with BE.
+- Error label not showing when email verif code
+- Apply scaling consistently between editor and real device
+
+### 🚜 Refactor
+
+- Remove utility method remove white space
+- Use method directly to remove white space
+
 ## [0.8.0] - 2024-10-07
 
 ### 🚀 Features
@@ -19,6 +46,7 @@ All notable changes to this project will be documented in this file.
 - Noctua logo with text footer in edit profile left side
 - Add date picker
 - Add loading progress when iap
+- Add parse query string
 
 ### 🐛 Bug Fixes
 
@@ -42,6 +70,7 @@ All notable changes to this project will be documented in this file.
 - Makes webview can be wrapped with UI and don't show again toggle
 - Verif order not working
 - Verif order not processed
+- Get receipt data from response payment url noctua wallet
 
 ### 🚜 Refactor
 
