@@ -26,7 +26,9 @@ namespace com.noctuagames.sdk.UI
             _panelSettings = panelSettings;
 
             _loading = CreateLoadingPresenter();
+            _loading.GetComponent<UIDocument>().sortingOrder = 1;
             _notification = CreateNotificationPresenter();
+            _notification.GetComponent<UIDocument>().sortingOrder = 1;
         }
         
         internal TPresenter Create<TPresenter, TModel>(TModel model) where TPresenter : Presenter<TModel>
