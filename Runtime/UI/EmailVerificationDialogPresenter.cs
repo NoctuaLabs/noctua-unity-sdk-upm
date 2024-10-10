@@ -107,6 +107,8 @@ namespace com.noctuagames.sdk.UI
                     View.Q<Label>("ErrCode").text = e.Message;
                 }
 
+                View.Q<Label>("ErrCode").RemoveFromClassList("hide");
+
                 View?.Q<VisualElement>("Spinner")?.AddToClassList("hide");
                 View.Q<Label>("ResendingCode").AddToClassList("hide");
 
@@ -152,6 +154,8 @@ namespace com.noctuagames.sdk.UI
                     Debug.Log("Exception: " + e);
                     View.Q<Label>("ErrCode").text = e.Message;
                 }
+
+                View.Q<Label>("ErrCode").RemoveFromClassList("hide");
 
                 View?.Q<VisualElement>("Spinner")?.AddToClassList("hide");
                 View.Q<Label>("VerifyingCode").AddToClassList("hide");
