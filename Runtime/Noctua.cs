@@ -206,9 +206,14 @@ namespace com.noctuagames.sdk
 
             var panelSettings = Resources.Load<PanelSettings>("NoctuaPanelSettings");
             panelSettings.themeStyleSheet = Resources.Load<ThemeStyleSheet>("NoctuaTheme");
+            // Calculate the scale factor based on the screen width and height short side
+            // Apply the scale to the panel settings to keep the UI consistent.
+            panelSettings.scale = 1.0f * Mathf.Min(Screen.width, Screen.height) / panelSettings.referenceResolution.y;
 
             var authService = new NoctuaAuthenticationService(config.Noctua.BaseUrl, config.ClientId);
-            var uiFactory = new UIFactory(new GameObject("NoctuaAuthenticationUI"), panelSettings);
+            var noctuaUIGameObject = new GameObject("NoctuaUI");
+            noctuaUIGameObject.transform.SetParent(null);
+            var uiFactory = new UIFactory(noctuaUIGameObject, panelSettings);
             _auth = new NoctuaAuthentication(authService, uiFactory);
             
             var accessTokenProvider = new AccessTokenProvider(authService);

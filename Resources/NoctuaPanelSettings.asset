@@ -12,14 +12,14 @@ MonoBehaviour:
   m_Script: {fileID: 19101, guid: 0000000000000000e000000000000000, type: 0}
   m_Name: NoctuaPanelSettings
   m_EditorClassIdentifier: 
-  themeUss: {fileID: -4733365628477956816, guid: 4f666f58f28c9584baab1db4dbae7c50, type: 3}
+  themeUss: {fileID: -4733365628477956816, guid: 6a24e96cc58008f48b5388d2245e70e6, type: 3}
   m_TargetTexture: {fileID: 0}
-  m_ScaleMode: 1
-  m_Scale: 1
+  m_ScaleMode: 0
+  m_Scale: 4
   m_ReferenceDpi: 160
   m_FallbackDpi: 160
   m_ReferenceResolution: {x: 800, y: 360}
-  m_ScreenMatchMode: 2
+  m_ScreenMatchMode: 0
   m_Match: 0
   m_SortingOrder: 1000000
   m_TargetDisplay: 0
