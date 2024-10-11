@@ -31,18 +31,15 @@ namespace com.noctuagames.sdk.UI
 
         public IEnumerator RunAnimation(string textMessage, bool isNotifSuccess)
         {
-            if(isNotifSuccess)
-            {
-                Color borderColor = new Color(6f / 255f, 208f / 255f, 1f / 255f);
+            Color borderColor = isNotifSuccess ? new Color(6f / 255f, 208f / 255f, 1f / 255f) : new Color(255f / 255f, 0f / 255f, 0f / 255f);
 
-                _root.style.borderTopColor = new StyleColor(borderColor);
-                _root.style.borderRightColor = new StyleColor(borderColor);
-                _root.style.borderBottomColor = new StyleColor(borderColor);
-                _root.style.borderLeftColor = new StyleColor(borderColor);
+            _root.style.borderTopColor = new StyleColor(borderColor);
+            _root.style.borderRightColor = new StyleColor(borderColor);
+            _root.style.borderBottomColor = new StyleColor(borderColor);
+            _root.style.borderLeftColor = new StyleColor(borderColor);
 
-                _notifIconBox.style.display = DisplayStyle.None;
-                _messageName.style.color = borderColor;
-            }
+            _notifIconBox.style.display = DisplayStyle.None;
+            _messageName.style.color = borderColor;
 
             View.visible = true;
             
