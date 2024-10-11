@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.10.0] - 2024-10-11
+
+### 🚀 Features
+
+- Add method detect multiple values changes
+
+### 🐛 Bug Fixes
+
+- Color not change message notification
+- Back to user center after update profile success
+- Spinner ui not correct
+- Spinner ui, profile url null will not loaded, detect value changes to enable button save
+- Dont destroy UI with new scene
+
 ## [0.9.1] - 2024-10-10
 
 ### ⚙️ Miscellaneous Tasks
