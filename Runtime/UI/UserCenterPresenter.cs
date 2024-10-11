@@ -274,6 +274,8 @@ namespace com.noctuagames.sdk.UI
             View.Q<VisualElement>("BackEditProfileHeader").RegisterCallback<PointerUpEvent>(_carouselItems => OnBackEditProfile());
             View.Q<VisualElement>("SwitchProfile").RegisterCallback<PointerUpEvent>(_ => OnSwitchProfile());
             View.Q<VisualElement>("LogoutAccount").RegisterCallback<PointerUpEvent>(_ => OnLogout());
+            
+            _copyIcon.RegisterCallback<PointerUpEvent>(_ => OnCopyText());
 
             //Suggest Bind UI
             _guestContainer = View.Q<VisualElement>("UserGuestUI");
@@ -281,6 +283,14 @@ namespace com.noctuagames.sdk.UI
 
             //Edit Profile UI
             SetupEditProfileUI();
+        }
+
+        private void OnCopyText()
+        {
+            GUIUtility.systemCopyBuffer = _userIDValue;
+            Debug.Log("Text copied to clipboard: " + _userIDValue);
+
+            Model.ShowGeneralNotification("Text copied to clipboard", true);
         }
 
         private void SetupDatePickerUI()
