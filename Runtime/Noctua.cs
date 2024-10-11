@@ -10,6 +10,7 @@ using com.noctuagames.sdk.UI;
 using UnityEngine.Scripting;
 using Cysharp.Threading.Tasks;
 using UnityEngine.UIElements;
+using Object = UnityEngine.Object;
 
 namespace com.noctuagames.sdk
 {
@@ -213,6 +214,7 @@ namespace com.noctuagames.sdk
             var authService = new NoctuaAuthenticationService(config.Noctua.BaseUrl, config.ClientId);
             var noctuaUIGameObject = new GameObject("NoctuaUI");
             noctuaUIGameObject.transform.SetParent(null);
+            Object.DontDestroyOnLoad(noctuaUIGameObject);
             var uiFactory = new UIFactory(noctuaUIGameObject, panelSettings);
             _auth = new NoctuaAuthentication(authService, uiFactory);
             
