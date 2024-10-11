@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Reflection;
 using UnityEngine;
+using UnityEngine.UIElements;
 
 namespace com.noctuagames.sdk
 {
@@ -109,6 +110,46 @@ namespace com.noctuagames.sdk
             }
 
             return queryParameters;
+        }
+
+        public static void RegisterForMultipleValueChanges<T>(
+            VisualElement root, 
+            List<string> elementNames, 
+            Button buttonToEnable)
+        {
+            Dictionary<string, T> initialValues = new Dictionary<string, T>();
+
+            foreach (var elementName in elementNames)
+            {
+                var element = root.Q<BindableElement>(elementName);
+
+                if (element != null)
+                {
+                    var initialValue = (element as INotifyValueChanged<T>).value;
+                    initialValues[elementName] = initialValue;
+
+                    element.RegisterCallback<ChangeEvent<T>>(evt =>
+                    {
+                        bool anyChanged = false;
+                        foreach (var name in elementNames)
+                        {
+                            var currentElement = root.Q<BindableElement>(name);
+                            var currentValue = (currentElement as INotifyValueChanged<T>).value;
+
+                            if (!currentValue.Equals(initialValues[name]))
+                            {
+                                anyChanged = true;
+                                break;
+                            }
+                        }
+                        buttonToEnable.SetEnabled(anyChanged);
+                    });
+                }
+                else
+                {
+                    Debug.LogWarning($"Element with name '{elementName}' not found.");
+                }
+            }
         }
     }
 }
