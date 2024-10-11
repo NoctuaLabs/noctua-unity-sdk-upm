@@ -19,9 +19,9 @@ namespace com.noctuagames.sdk.UI
         
         private void Start()
         {
-            View.Q<Button>("ConfirmButton").RegisterCallback<PointerUpEvent>(_ =>
+            View.Q<Button>("ConfirmButton").RegisterCallback<PointerUpEvent>(async _ =>
             {
-                Model.AuthService.SwitchAccount(_recentAccount);
+                await Model.AuthService.SwitchAccountAsync(_recentAccount);
                 Visible = false;
             });
             

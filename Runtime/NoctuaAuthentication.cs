@@ -25,7 +25,7 @@ namespace com.noctuagames.sdk
         public readonly List<string> SsoCloseWebViewKeywords = new() { "https://developers.google.com/identity/protocols/oauth2" };
 
         // AccountList will be synced data from AccountContainer.Accounts
-        public Dictionary<string,UserBundle> AccountList => _service.AccountList;
+        public IReadOnlyList<UserBundle> AccountList => _service.AccountList;
 
         public bool IsAuthenticated => _service.IsAuthenticated;
 
@@ -134,7 +134,7 @@ namespace com.noctuagames.sdk
 
         public void SwitchAccount(UserBundle user)
         {
-            _service.SwitchAccount(user);
+            UniTask.Void(async () => await _service.SwitchAccountAsync(user));
         }
         
         public async UniTask<UserBundle> ExchangeToken(string accessToken)

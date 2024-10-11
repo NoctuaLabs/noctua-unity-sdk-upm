@@ -8,7 +8,6 @@ using Newtonsoft.Json.Converters;
 using Newtonsoft.Json.Serialization;
 using UnityEngine;
 using UnityEngine.Scripting;
-using ArgumentNullException = System.ArgumentNullException;
 
 namespace com.noctuagames.sdk
 {
@@ -33,7 +32,7 @@ namespace com.noctuagames.sdk
     public class User
     {
         [JsonProperty("id")]
-        public int Id;
+        public long Id;
 
         [JsonProperty("nickname")]
         public string Nickname;
@@ -70,18 +69,28 @@ namespace com.noctuagames.sdk
 
         [JsonProperty("payment_type")]
         public PaymentType PaymentType;
+        
+        public User ShallowCopy()
+        {
+            return (User) MemberwiseClone();
+        }
     }
 
     [Preserve]
     public class Credential {
         [JsonProperty("id")]
-        public int Id;
+        public long Id;
 
         [JsonProperty("provider")]
         public string Provider;
         
         [JsonProperty("display_text")]
         public string DisplayText;
+        
+        public Credential ShallowCopy()
+        {
+            return (Credential) MemberwiseClone();
+        }
     }
 
     [Preserve]
@@ -91,7 +100,7 @@ namespace com.noctuagames.sdk
         public string AccessToken;
 
         [JsonProperty("id")]
-        public int Id;
+        public long Id;
 
         [JsonProperty("role_id")]
         public string RoleId;
@@ -103,13 +112,13 @@ namespace com.noctuagames.sdk
         public string Username;
 
         [JsonProperty("game_id")]
-        public int GameId;
+        public long GameId;
 
         [JsonProperty("game_name")]
         public string GameName;
 
         [JsonProperty("game_platform_id")]
-        public int GamePlatformId;
+        public long GamePlatformId;
 
         [JsonProperty("game_platform")]
         public string GamePlatform;
@@ -124,20 +133,25 @@ namespace com.noctuagames.sdk
         public User User;
 
         [JsonProperty("user_id")]
-        public int UserId;
+        public long UserId;
+        
+        public Player ShallowCopy()
+        {
+            return (Player) MemberwiseClone();
+        }
     }
 
     [Preserve]
     public class Game
     {
         [JsonProperty("id")]
-        public int Id;
+        public long Id;
 
         [JsonProperty("name")]
         public string Name;
 
         [JsonProperty("platform_id")]
-        public int GamePlatformId;
+        public long GamePlatformId;
 
     }
 
@@ -145,7 +159,7 @@ namespace com.noctuagames.sdk
     public class GamePlatform
     {
         [JsonProperty("id")]
-        public int Id;
+        public long Id;
 
         [JsonProperty("os")]
         public string OS;
@@ -209,12 +223,13 @@ namespace com.noctuagames.sdk
         [JsonProperty("last_used")]
         public DateTime LastUsed;
 
-        [JsonProperty("is_guest")]
-        public bool IsGuest;
-
         [JsonProperty("is_recent")]
         public bool IsRecent;
 
+        [JsonIgnore]
+        public bool IsGuest => User?.IsGuest ?? Credential?.Provider == "device_id";
+
+        [JsonIgnore]
         public string DisplayName
         {
             get
@@ -224,6 +239,7 @@ namespace com.noctuagames.sdk
                     {Player: {Username: {Length: > 0}}} => Player.Username,
                     {User: {Nickname: {Length: > 0}}} => User.Nickname,
                     {Credential: {Provider: "device_id"}} => "Guest " + User?.Id,
+                    {Credential: {DisplayText: { Length: > 0 } }} => Credential.DisplayText,
                     {User: {Id: > 0}} => "User " + User.Id,
                     _ => "Noctua Player"
                 };
@@ -315,13 +331,6 @@ namespace com.noctuagames.sdk
     }
 
     [Preserve]
-    public class AccountContainer // Used by account container prefs and account detection logic
-    {
-        [JsonProperty("accounts")]
-        public List<UserBundle> Accounts;
-    }
-
-    [Preserve]
     public class PlayerAccountData
     {
         [JsonProperty("ingame_username")]
@@ -394,34 +403,53 @@ namespace com.noctuagames.sdk
     
     internal class NoctuaAuthenticationService
     {
-        public Dictionary<string,UserBundle> AccountList { get; private set; } = new();
+        public IReadOnlyList<UserBundle> AccountList => _accountContainer.Accounts;
 
-        public bool IsAuthenticated => !string.IsNullOrEmpty(RecentAccount?.Player?.AccessToken);
+        public IReadOnlyList<UserBundle> CurrentGameAccountList => _accountContainer.CurrentGameAccounts;
+        
+        public IReadOnlyList<UserBundle> OtherGamesAccountList => _accountContainer.OtherGamesAccounts;
 
-        public UserBundle RecentAccount { get; private set; }
+        public bool IsAuthenticated => !string.IsNullOrEmpty(_accountContainer.RecentAccount?.Player?.AccessToken);
 
-        public event Action<UserBundle> OnAccountChanged;
+        public UserBundle RecentAccount => _accountContainer.RecentAccount;
+
+        public event Action<UserBundle> OnAccountChanged {
+            add => _accountContainer.OnAccountChanged += value;
+            remove => _accountContainer.OnAccountChanged -= value;
+        }
+
         public event Action<Player> OnAccountDeleted;
 
+        private readonly ILogger _log = new NoctuaUnityDebugLogger();
         private readonly string _clientId;
         private readonly string _baseUrl;
+        private readonly AccountContainer _accountContainer;
         private OauthRedirectListener _oauthOauthRedirectListener;
 
-        internal NoctuaAuthenticationService(string baseUrl, string clientId)
+        internal NoctuaAuthenticationService(string baseUrl, string clientId, INativeAccountStore nativeAccountStore)
         {
+            if (string.IsNullOrEmpty(baseUrl))
+            {
+                throw new ArgumentNullException(nameof(baseUrl));
+            }
+            
+            if (string.IsNullOrEmpty(clientId))
+            {
+                throw new ArgumentNullException(nameof(clientId));
+            }
+            
             _clientId = clientId;
             _baseUrl = baseUrl;
+            _accountContainer = new AccountContainer(nativeAccountStore, Application.identifier);
         }
 
         public async UniTask<UserBundle> LoginAsGuestAsync()
         {
-            Debug.Log("LoginAsGuest: " + Application.identifier + " " + SystemInfo.deviceUniqueIdentifier);
             if (string.IsNullOrEmpty(Application.identifier))
             {
                 throw new ApplicationException($"App id for platform {Application.platform} is not set");
             }
 
-            Debug.Log("ClientId: " + _clientId);
             var request = new HttpRequest(HttpMethod.Post, $"{_baseUrl}/auth/guest/login")
                 .WithHeader("X-CLIENT-ID", _clientId)
                 .WithHeader("X-BUNDLE-ID", Application.identifier)
@@ -435,31 +463,24 @@ namespace com.noctuagames.sdk
 
 
             var response = await request.Send<PlayerToken>();
+            
+            _accountContainer.UpdateRecentAccount(response);
 
-            var accountContainer = ReadPlayerPrefsAccountContainer();
-            var recentAccount = TransformTokenResponseToUserBundle(response);
-            UpdateRecentAccount(recentAccount, accountContainer);
-
-            return recentAccount;
+            return _accountContainer.RecentAccount;
         }
 
         public async UniTask<UserBundle> ExchangeTokenAsync(string accessToken)
         {
-            if (string.IsNullOrEmpty(RecentAccount?.Player?.AccessToken)) {
-                throw NoctuaException.MissingAccessToken;
-            }
-            
-            Debug.Log("LoginAsGuest: " + Application.identifier + " " + SystemInfo.deviceUniqueIdentifier);
             if (string.IsNullOrEmpty(Application.identifier))
             {
                 throw new ApplicationException($"App id for platform {Application.platform} is not set");
             }
 
-
-            ExchangeTokenRequest exchangeToken = new ExchangeTokenRequest();
-            exchangeToken.NextBundleId = Application.identifier;
-            string json = JsonConvert.SerializeObject(exchangeToken);
-            Debug.Log("ExchangeTokenRequest: " + json);
+            var exchangeToken = new ExchangeTokenRequest
+            {
+                NextBundleId = Application.identifier,
+                InitPlayer = true
+            };
 
             var request = new HttpRequest(HttpMethod.Post, $"{_baseUrl}/auth/token-exchange")
                 .WithHeader("X-CLIENT-ID", _clientId)
@@ -470,17 +491,13 @@ namespace com.noctuagames.sdk
 
             var response = await request.Send<PlayerToken>();
 
-            var accountContainer = ReadPlayerPrefsAccountContainer();
-            var recentAccount = TransformTokenResponseToUserBundle(response);
-            UpdateRecentAccount(recentAccount, accountContainer);
+            _accountContainer.UpdateRecentAccount(response);
 
-            return recentAccount;
+            return _accountContainer.RecentAccount;
         }
 
         public async UniTask<string> GetSocialAuthRedirectURLAsync(string provider, string redirectUri = "")
         {
-            Debug.Log("GetSocialLoginURL provider: " + provider);
-
             if (!string.IsNullOrEmpty(redirectUri))
             {
                 redirectUri = $"?redirect_uri={HttpUtility.UrlEncode(redirectUri)}";
@@ -491,8 +508,6 @@ namespace com.noctuagames.sdk
                 .WithHeader("X-BUNDLE-ID", Application.identifier);
 
             var redirectUrlResponse = await request.Send<SocialRedirectUrlResponse>();
-
-            Debug.Log("GetSocialLoginURL result: " + redirectUrlResponse?.RedirectUrl);
 
             return redirectUrlResponse?.RedirectUrl;
         }
@@ -511,11 +526,9 @@ namespace com.noctuagames.sdk
 
             var response = await request.Send<PlayerToken>();
             
-            var accountContainer = ReadPlayerPrefsAccountContainer();
-            var recentAccount = TransformTokenResponseToUserBundle(response);
-            UpdateRecentAccount(recentAccount, accountContainer);
+            _accountContainer.UpdateRecentAccount(response);
 
-            return recentAccount;
+            return _accountContainer.RecentAccount;
         }
 
         // TODO: Add support for phone
@@ -539,11 +552,9 @@ namespace com.noctuagames.sdk
 
             var response = await request.Send<PlayerToken>();
 
-            var accountContainer = ReadPlayerPrefsAccountContainer();
-            var recentAccount = TransformTokenResponseToUserBundle(response);
-            UpdateRecentAccount(recentAccount, accountContainer);
+            _accountContainer.UpdateRecentAccount(response);
 
-            return recentAccount;
+            return _accountContainer.RecentAccount;
         }
         
         // TODO: Add support for phone
@@ -562,7 +573,7 @@ namespace com.noctuagames.sdk
                     }
                 );
 
-            if (!string.IsNullOrEmpty(RecentAccount?.Player?.AccessToken) && RecentAccount.IsGuest)
+            if (!string.IsNullOrEmpty(RecentAccount?.Player?.AccessToken) && RecentAccount.User.IsGuest)
             {
                 request.WithHeader("Authorization", "Bearer " + RecentAccount.Player.AccessToken);
             }
@@ -590,11 +601,9 @@ namespace com.noctuagames.sdk
 
             var response = await request.Send<PlayerToken>();
 
-            var accountContainer = ReadPlayerPrefsAccountContainer();
-            var recentAccount = TransformTokenResponseToUserBundle(response);
-            UpdateRecentAccount(recentAccount, accountContainer);
+            _accountContainer.UpdateRecentAccount(response);
 
-            return recentAccount;
+            return _accountContainer.RecentAccount;
         }
 
         // TODO: Add support for phone
@@ -634,11 +643,9 @@ namespace com.noctuagames.sdk
 
             var response = await request.Send<PlayerToken>();
             
-            var accountContainer = ReadPlayerPrefsAccountContainer();
-            var recentAccount = TransformTokenResponseToUserBundle(response);
-            UpdateRecentAccount(recentAccount, accountContainer);
-            
-            return recentAccount;
+            _accountContainer.UpdateRecentAccount(response);
+
+            return _accountContainer.RecentAccount;
         }
 
         public async UniTask<Credential> SocialLinkAsync(string provider, SocialLinkRequest payload)
@@ -715,7 +722,7 @@ namespace com.noctuagames.sdk
                 throw NoctuaException.MissingAccessToken;
             }
             
-            Debug.Log("Bind: " + payload.GuestToken);
+            _log.Log("Bind: " + payload.GuestToken);
 
             var request = new HttpRequest(HttpMethod.Post, $"{_baseUrl}/auth/bind")
                 .WithHeader("X-CLIENT-ID", _clientId)
@@ -728,11 +735,7 @@ namespace com.noctuagames.sdk
 
         public async UniTask<UserBundle> LogoutAsync()
         {
-            Debug.Log("Reset");
-            PlayerPrefs.SetString("NoctuaAccountContainer", "{}");
-            PlayerPrefs.Save();
-            AccountList = new Dictionary<string, UserBundle>();
-            RecentAccount = null;
+            _accountContainer.ResetAccounts();
 
             return await LoginAsGuestAsync(); 
         }
@@ -778,290 +781,55 @@ namespace com.noctuagames.sdk
         /// <returns>A UserBundle object representing the selected account.</returns>
         public async UniTask<UserBundle> AuthenticateAsync()
         {
-            // 1. The SDK will try to look up at (shared) account container, to check whether an account exists
-            Debug.Log("AccountDetection: Try to read player prefs for account container");
-            var accountContainer = ReadPlayerPrefsAccountContainer();
-
-            // Check if the account container is entirely empty
-            if (accountContainer == null ||
-                (accountContainer != null && (
-                    accountContainer.Accounts == null || (
-                        accountContainer.Accounts != null &&
-                        accountContainer.Accounts.Count == 0)))
-            )
+            if (IsAuthenticated)
             {
-                // 2.a - 2.c If there is no existing account, try to login as guest
-                Debug.Log("AccountDetection: Account not found, try to login as guest");
-                var response = await LoginAsGuestAsync();
-                
-                return response;
-            } else {
-                // Sort by last used to get the recent account
-                accountContainer.Accounts.Sort((x, y) => y.LastUsed.CompareTo(x.LastUsed));
-                var recentAccount = accountContainer.Accounts[0];
-
-                // Existing account is not empty
-
-                // 3.a.i Check if there is recent account for this particular game
-                Debug.Log("AccountDetection: try to check if there is recent account for this particular game.");
-                if (recentAccount != null && recentAccount.Player != null
-                    && recentAccount.Player.BundleId == Application.identifier) {
-                        Debug.Log("AccountDetection: player matched, use this user bundle.");
-                
-                        UpdateRecentAccount(recentAccount, accountContainer);
-                        
-                        return recentAccount;
-                } else {
-                    // Recent player is not matched with this game,
-                    // Try to lookup in the players array of this user
-                    Debug.Log("AccountDetection: no matched player, try to lookup in the players array of this user");
-                    for (int i = 0; i < recentAccount.PlayerAccounts.Count; i++) {
-                        if (recentAccount.PlayerAccounts[i].BundleId == Application.identifier) {
-                            // 3.a.i.1. The bundle ID matched
-                            Debug.Log("AccountDetection: Found recent account that match with this game., return the user bundle immediately");
-                            // Update the recent player, including the player's access token
-                            recentAccount.Player = recentAccount.PlayerAccounts[i];
-                            UpdateRecentAccount(recentAccount, accountContainer);
-                            
-                            return recentAccount;
-                        }
-                    }
-                }
-                // 3.a.i.2. The bundle ID IS NOT matched, try to borrow the existing token
-                // This logic is linear with 4.a, so let's continue to 4.a
-
-                // 4.a. If there are existing accounts but without any matched player
-                Debug.Log("AccountDetection: There is no recent account for this game, try to count the non-guest account first.");
-                int selectedAccountIndex = -1;
-                int count = 0;
-                for (int i = 0; i < accountContainer.Accounts.Count; i++) {
-                    if (!accountContainer.Accounts[i].Credential.Provider.Equals("device_id")) {
-                        selectedAccountIndex = i;
-                        count++;
-                    }
-                }
-                
-                if (count == 1) {
-                    // 4.a.i.1 If there is only one non-guest account
-                    Debug.Log("AccountDetection: One non-guest account found, return the user bundle");
-                    recentAccount = accountContainer.Accounts[selectedAccountIndex];
-                    string borrowedAccessToken = null;
-                    for (int i = 0; i < recentAccount.PlayerAccounts.Count; i++) {
-                        borrowedAccessToken = recentAccount.PlayerAccounts[i].AccessToken;
-                        if (recentAccount.PlayerAccounts[i].BundleId == Application.identifier) {
-                            // 4.a.i.1. Bundle ID is matched
-                            Debug.Log("AccountDetection: Found recent account that match with this game., return the user bundle immediately");
-                            // Update the recent player, including the player's access token
-                            recentAccount.Player = recentAccount.PlayerAccounts[i];
-                            UpdateRecentAccount(recentAccount, accountContainer);
-                            
-                            return recentAccount;
-                        }
-                    }
-                    // 4.a.i.2. Bundle ID is NOT matched, try to borrow token for exchange
-                    Debug.Log("AccountDetection: There is no account match with this game in the recent players, then exchange first");
-                    Debug.Log("AccountDetection: borrowed access token: " + borrowedAccessToken);
-
-                    var exchangedAccount = await ExchangeTokenAsync(borrowedAccessToken);
-
-                    return exchangedAccount;
-                } else if (count > 1) {
-                    // 4.a.ii.1 If there are more than one non-guest account
-                    bool found = false;
-                    
-                    for (int i = 0; i < accountContainer?.Accounts?.Count; i++) {
-                        if (accountContainer.Accounts[i]?.Player?.BundleId == Application.identifier) {
-                            // Matched user player's bundle id found
-                            found = true;
-                            recentAccount = accountContainer.Accounts[i];
-                            recentAccount.Player = accountContainer?.Accounts[i]?.Player;
-                            UpdateRecentAccount(recentAccount, accountContainer);
-                        
-                            return recentAccount;
-                        } else {
-                            // No player's bundle id found, try to lookup in the user's players array
-                            for (int j = 0; j < accountContainer.Accounts[i].PlayerAccounts.Count; j++) {
-                                if (accountContainer.Accounts[i].PlayerAccounts[j].BundleId == Application.identifier) {
-                                    found = true;
-                                    recentAccount = accountContainer.Accounts[i];
-                                    recentAccount.Player = accountContainer?.Accounts[i]?.Player;
-                                    UpdateRecentAccount(recentAccount, accountContainer);
-                                    
-                                    return recentAccount;
-                                }
-                            }
-                        }
-                    }
-
-                    if (!found) {
-                        // 4.a.ii.1.1. No player's bundle id found, then create new guest
-                        // Either create new guest or ask user to choose one of them.
-                        return await LoginAsGuestAsync();
-                    }
-                }
+                return RecentAccount;
             }
 
-            // Should not reach this point. Fallback to create new guest if it happens
-            return await LoginAsGuestAsync();
+            _accountContainer.Load();
+            
+            if (_accountContainer.Accounts.Count == 0)
+            {
+                return await LoginAsGuestAsync();
+            }
+            
+            var firstUser = _accountContainer.Accounts.First();
+            
+            if (firstUser.Player != null)
+            {
+                _accountContainer.UpdateRecentAccount(firstUser);
+            }
+            
+            var firstPlayer = firstUser.PlayerAccounts.FirstOrDefault();
+            
+            if (firstPlayer == null)
+            {
+                throw new NoctuaException(NoctuaErrorCode.Authentication, "No player account found");
+            }
+            
+            return await ExchangeTokenAsync(firstPlayer.AccessToken);
         }
 
-        private void UpdateRecentAccount(UserBundle userBundle, AccountContainer accountContainer)
+        public async UniTask SwitchAccountAsync(UserBundle user)
         {
-            Debug.Log("UpdateRecentAccount");
-            if (accountContainer == null) {
-                Debug.Log("UpdateRecentAccount, accountContainer is null");
-                accountContainer = new AccountContainer(){
-                    Accounts = new List<UserBundle>()
-                };
-            } else if (accountContainer.Accounts == null) {
-                Debug.Log("UpdateRecentAccount, accountContainer is not null, but the Accounts is null, initiate it");
-                accountContainer.Accounts = new List<UserBundle>(){userBundle};
-            }
-            if (userBundle == null) {
-                Debug.Log("UpdateRecentAccount, userBundle is null");
-            } else {
-                Debug.Log("UpdateRecentAccount, userBundle is not null");
-            }
-            // Update the LastUsed to mark the recent account
-            userBundle.LastUsed = DateTime.UtcNow;
-            userBundle.IsRecent = true;
-            userBundle.IsGuest = userBundle?.Credential?.Provider == "device_id";
-
-            bool found = false;
-            for (int i = 0; i < accountContainer?.Accounts?.Count; i++) {
-
-                accountContainer.Accounts[i].IsGuest = accountContainer.Accounts[i]?.Credential?.Provider == "device_id";
-
-                if (accountContainer?.Accounts[i].Player.Id == userBundle.Player.Id
-                || accountContainer?.Accounts[i].User.Id == userBundle.User.Id) {
-                    Debug.Log("UpdateRecentAccount update account in accounts list");
-                    accountContainer.Accounts[i] = userBundle;
-                    found = true;
-                    break;
-                } else {
-                    accountContainer.Accounts[i].IsRecent = false;
-                }
-            }
-
-            if (!found) {
-                Debug.Log("UpdateRecentAccount, user bundle not found in accounts list, add it");
-                accountContainer?.Accounts?.Add(userBundle);
-                Debug.Log("UpdateRecentAccount, added");
-            }
-
-            // Sort it again by LastUsed
-            Debug.Log("UpdateRecentAccount, sort to recent");
-            accountContainer.Accounts.Sort((x, y) => y.LastUsed.CompareTo(x.LastUsed));
-
-            // Write-sync to PlayerPrefs
-            Debug.Log("UpdateRecentAccount, sync against player prefs");
-            SyncPlayerPrefsAccountContainer(accountContainer);
-
-            // Assign to class
-            Debug.Log("UpdateRecentAccount, assign to class's recent account");
-            this.RecentAccount = userBundle;
-            // Convert array of object to dictionary so it's easier to use in UI rendering
-            Debug.Log("UpdateRecentAccount, assign to class's account list");
-            this.AccountList = new Dictionary<string, UserBundle>();
-            for (int i = 0; i < accountContainer.Accounts.Count; i++) {
-                this.AccountList[accountContainer.Accounts[i].User.Id + ":"+ accountContainer.Accounts[i].Player.Id] = accountContainer.Accounts[i];
+            var targetUser = AccountList.FirstOrDefault(x => x.User.Id == user.User.Id);
+            
+            if (targetUser == null)
+            {
+                throw new NoctuaException(NoctuaErrorCode.Authentication, $"User {user.User.Id} not found in account list");
             }
             
-            UniTask.Void(async () => OnAccountChanged?.Invoke(userBundle));
+            if (targetUser.Player == null)
+            {
+                targetUser = await ExchangeTokenAsync(user.PlayerAccounts.First().AccessToken);
+            }
+            
+            _accountContainer.UpdateRecentAccount(targetUser);
         }
-
-        private void SyncPlayerPrefsAccountContainer(AccountContainer accountContainer)
+        
+        public void ResetAccounts()
         {
-                // Convert accountContainer to JSON string
-                var json = JsonConvert.SerializeObject(accountContainer);
-                if (string.IsNullOrEmpty(json)) {
-                    json = "{}";
-                }
-                // Save to Player Prefs
-                Debug.Log("AccountDetection: Sync player prefs account container");
-                PlayerPrefs.SetString(Constants.PlayerPrefsKeyAccountContainer, json);
-                PlayerPrefs.Save();
-        }
-
-        private AccountContainer ReadPlayerPrefsAccountContainer()
-        {
-            string json = PlayerPrefs.GetString(Constants.PlayerPrefsKeyAccountContainer, string.Empty);
-            if (string.IsNullOrEmpty(json))
-            {
-                json = "{}";
-            }
-            Debug.Log("AccountDetection: Read player prefs account container JSON: " + json);
-            try {
-                var accountContainer = JsonConvert.DeserializeObject<AccountContainer>(json);
-                return accountContainer;
-            } catch (Exception e) {
-                Debug.Log("Exception: Failed to parse the account container JSON: " + e);
-                return null;
-            }
-        }
-
-        private UserBundle TransformTokenResponseToUserBundle(PlayerToken playerTokenResponse)
-        {
-            Debug.Log("TransformTokenResponseToUserBundle");
-            
-            if (playerTokenResponse == null)
-            {
-                throw new ArgumentNullException(nameof(playerTokenResponse));
-            }
-            
-            if (playerTokenResponse.User == null)
-            {
-                throw new ArgumentNullException(nameof(playerTokenResponse.User));
-            }
-            
-            if (playerTokenResponse.Player == null)
-            {
-                throw new ArgumentNullException(nameof(playerTokenResponse.Player));
-            }
-            
-            if (playerTokenResponse.Credential == null)
-            {
-                throw new ArgumentNullException(nameof(playerTokenResponse.Credential));
-            }
-
-            var userBundle = new UserBundle
-            {
-                User = playerTokenResponse.User,
-                Credential = playerTokenResponse.Credential,
-                Player = playerTokenResponse.Player,
-                IsGuest = playerTokenResponse.Credential.Provider == "device_id",
-                PlayerAccounts = new List<Player> { playerTokenResponse.Player }
-            };
-            
-            Debug.Log("TransformTokenResponseToUserBundle Merge game related information to player");
-
-            userBundle.Player.BundleId = playerTokenResponse.GamePlatform?.BundleId;
-            userBundle.Player.GameId = playerTokenResponse.Game?.Id ?? 0;
-            userBundle.Player.GamePlatformId = playerTokenResponse.GamePlatform?.Id ?? 0;
-            userBundle.Player.GamePlatform = playerTokenResponse.GamePlatform?.Platform;
-            userBundle.Player.GameOS = playerTokenResponse.GamePlatform?.OS;
-            userBundle.Player.AccessToken = playerTokenResponse.AccessToken;
-            
-            return userBundle;
-        }
-
-        public void ResetAccounts() {
-            Debug.Log("Reset");
-            PlayerPrefs.SetString("NoctuaAccountContainer", "{}");
-            PlayerPrefs.Save();
-            AccountList = new Dictionary<string, UserBundle>();
-            RecentAccount = null;
-            
-            UniTask.Void(async () => OnAccountChanged?.Invoke(null));
-        }
-
-        public void SwitchAccount(UserBundle user)
-        {
-            var existingUser = AccountList.FirstOrDefault(x => x.Value.User.Id == user.User.Id && x.Value.Player.Id == user.Player.Id).Value;
-            
-            RecentAccount = existingUser ?? throw new ArgumentException($"User {user.User.Id} not found in account list");
-            
-            UpdateRecentAccount(RecentAccount, ReadPlayerPrefsAccountContainer());
+            _accountContainer.ResetAccounts();
         }
 
         public async UniTask UpdatePlayerAccountAsync(PlayerAccountData playerAccountData)

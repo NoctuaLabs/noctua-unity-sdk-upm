@@ -190,7 +190,9 @@ namespace com.noctuagames.sdk
             _log.Log(
                 $"=> {_request.method} {_request.url}\n" +
                 $"Content-Type: {_request.GetRequestHeader("Content-Type")}\n" +
-                $"Authorization: {_request.GetRequestHeader("Authorization")}\n\n" +
+                $"Authorization: {_request.GetRequestHeader("Authorization")}\n" +
+                $"X-CLIENT-ID: {_request.GetRequestHeader("X-CLIENT-ID")}\n" +
+                $"X-BUNDLE-ID: {_request.GetRequestHeader("X-BUNDLE-ID")}\n\n" +
                 $"{Encoding.UTF8.GetString(_request.uploadHandler?.data ?? Array.Empty<byte>())}"
             );
 

@@ -218,7 +218,6 @@ namespace com.noctuagames.sdk
             _event = new NoctuaEventService(_nativePlugin);
 
             var panelSettings = Resources.Load<PanelSettings>("NoctuaPanelSettings");
-            Object.DontDestroyOnLoad(panelSettings);
             panelSettings.themeStyleSheet = Resources.Load<ThemeStyleSheet>("NoctuaTheme");
             // Calculate the scale factor based on the screen width and height short side
             // Apply the scale to the panel settings to keep the UI consistent.
@@ -226,12 +225,11 @@ namespace com.noctuagames.sdk
 
             
             var noctuaUIGameObject = new GameObject("NoctuaUI");
-            noctuaUIGameObject.transform.SetParent(null);
             Object.DontDestroyOnLoad(noctuaUIGameObject);
             
             var uiFactory = new UIFactory(noctuaUIGameObject, panelSettings);
             
-            var authService = new NoctuaAuthenticationService(config.Noctua.BaseUrl, config.ClientId);
+            var authService = new NoctuaAuthenticationService(config.Noctua.BaseUrl, config.ClientId, _nativePlugin);
 
             _auth = new NoctuaAuthentication(authService, uiFactory, config);
             
@@ -364,8 +362,8 @@ namespace com.noctuagames.sdk
                 Debug.Log("Plugin is NoctuaIPhonePlugin");
                 return new IosPlugin();
 #else
-            Debug.Log("Plugin is null");
-            return null;
+            Debug.Log("Plugin is default");
+            return new DefaultNativePlugin();
 #endif
         }
 

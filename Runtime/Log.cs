@@ -8,9 +8,9 @@ namespace com.noctuagames.sdk
 {
     internal interface ILogger
     {
-        void Log(string message, string caller = "");
-        void Warning(string message, string caller = "");
-        void Error(string message, string caller = "");
+        void Log(string message, [CallerMemberName] string caller = "");
+        void Warning(string message, [CallerMemberName] string caller = "");
+        void Error(string message, [CallerMemberName] string caller = "");
     }
     
     internal class NoctuaUnityDebugLogger : ILogger

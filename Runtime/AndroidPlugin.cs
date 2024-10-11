@@ -126,7 +126,7 @@ namespace com.noctuagames.sdk
             
             return new NativeAccount
             {
-                UserId = javaAccount.Get<long>("userId"),
+                PlayerId = javaAccount.Get<long>("userId"),
                 GameId = javaAccount.Get<long>("gameId"),
                 RawData = javaAccount.Get<string>("rawData"),
                 LastUpdated = DateTimeOffset.FromUnixTimeMilliseconds(javaAccount.Get<long>("lastUpdated")).UtcDateTime
@@ -144,7 +144,7 @@ namespace com.noctuagames.sdk
             for (var i = 0; i < size; i++)
             {
                 var account = javaAccounts.Call<AndroidJavaObject>("get", i);
-                var userId = account.Get<long>("userId");
+                var playerId = account.Get<long>("userId");
                 var gameId = account.Get<long>("gameId");
                 var rawData = account.Get<string>("rawData");
                 var lastUpdated = account.Get<long>("lastUpdated");
@@ -152,7 +152,7 @@ namespace com.noctuagames.sdk
                 accounts.Add(
                     new NativeAccount
                     {
-                        UserId = userId,
+                        PlayerId = playerId,
                         GameId = gameId,
                         RawData = rawData,
                         LastUpdated = DateTimeOffset.FromUnixTimeMilliseconds(lastUpdated).UtcDateTime
@@ -169,7 +169,7 @@ namespace com.noctuagames.sdk
 
             using var javaAccount = new AndroidJavaObject(
                 "com.noctuagames.sdk.Account",
-                account.UserId,
+                account.PlayerId,
                 account.GameId,
                 account.RawData
             );
@@ -183,7 +183,7 @@ namespace com.noctuagames.sdk
 
             using var javaAccount = new AndroidJavaObject(
                 "com.noctuagames.sdk.Account",
-                account.UserId,
+                account.PlayerId,
                 account.GameId,
                 ""
             );

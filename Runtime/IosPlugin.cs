@@ -102,22 +102,45 @@ namespace com.noctuagames.sdk
 
         public NativeAccount GetAccount(long userId, long gameId)
         {
-            throw new NotImplementedException();
+            var rawAccounts = PlayerPrefs.GetString("NoctuaAccountContainer");
+            var accounts = JsonConvert.DeserializeObject<List<NativeAccount>>(rawAccounts);
+            
+            return accounts.Find(a => a.PlayerId == userId && a.GameId == gameId);
         }
 
         public List<NativeAccount> GetAccounts()
         {
-            throw new NotImplementedException();
+            var rawAccounts = PlayerPrefs.GetString("NoctuaAccountContainer");
+
+            try
+            {
+                return JsonConvert.DeserializeObject<List<NativeAccount>>(rawAccounts) ?? new List<NativeAccount>();
+            }
+            catch (Exception e)
+            {
+                return new List<NativeAccount>();
+            }
         }
 
         public void PutAccount(NativeAccount account)
         {
-            throw new NotImplementedException();
+            var accounts = GetAccounts();
+            
+            accounts.RemoveAll(a => a.PlayerId == account.PlayerId && a.GameId == account.GameId);
+            account.LastUpdated = DateTime.UtcNow;
+            accounts.Add(account);
+            
+            PlayerPrefs.SetString("NoctuaAccountContainer", JsonConvert.SerializeObject(accounts));
         }
 
         public int DeleteAccount(NativeAccount account)
         {
-            throw new NotImplementedException();
+            var accounts = GetAccounts();
+            
+            accounts.RemoveAll(a => a.PlayerId == account.PlayerId && a.GameId == account.GameId);
+
+            PlayerPrefs.SetString("NoctuaAccountContainer", JsonConvert.SerializeObject(accounts));
+            return 1;
         }
     }
 #endif

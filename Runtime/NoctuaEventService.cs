@@ -5,28 +5,28 @@ namespace com.noctuagames.sdk
 {
     public class NoctuaEventService
     {
-        private readonly INativePlugin _nativePlugin;
+        private readonly INativeTracker _nativeTracker;
         
-        internal NoctuaEventService(INativePlugin nativePlugin)
+        internal NoctuaEventService(INativeTracker nativeTracker)
         {
-            _nativePlugin = nativePlugin;
+            _nativeTracker = nativeTracker;
         }
 
         public void TrackAdRevenue(string source, double revenue, string currency,
             Dictionary<string, IConvertible> extraPayload = null)
         {
-            _nativePlugin?.TrackAdRevenue(source, revenue, currency, extraPayload);
+            _nativeTracker?.TrackAdRevenue(source, revenue, currency, extraPayload);
         }
 
         public void TrackPurchase(string orderId, double amount, string currency,
             Dictionary<string, IConvertible> extraPayload = null)
         {
-            _nativePlugin?.TrackPurchase(orderId, amount, currency, extraPayload);
+            _nativeTracker?.TrackPurchase(orderId, amount, currency, extraPayload);
         }
 
         public void TrackCustomEvent(string name, Dictionary<string, IConvertible> extraPayload = null)
         {
-            _nativePlugin?.TrackCustomEvent(name, extraPayload);
+            _nativeTracker?.TrackCustomEvent(name, extraPayload);
         }
     }
 }

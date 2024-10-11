@@ -21,10 +21,10 @@ namespace com.noctuagames.sdk
     
     public class NativeAccount
     {
-        public long UserId;
+        public long PlayerId;
         public long GameId;
         public string RawData;
-        public DateTime LastUpdated;
+        public DateTime LastUpdated = DateTime.UtcNow;
     }
 
     public interface INativeAccountStore

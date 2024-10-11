@@ -1,12 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 using UnityEngine.UIElements;
 
 // Call Task
-using System.Threading.Tasks;
-using Cysharp.Threading.Tasks;
 
 namespace com.noctuagames.sdk.UI
 {
@@ -20,6 +17,7 @@ namespace com.noctuagames.sdk.UI
         private readonly List<UserBundle> _noctuaUsers = new();
         private Button _continueButton;
         private Button _closeButton;
+        private readonly ILogger _log = new NoctuaUnityDebugLogger();
 
         protected override void Attach()
         {
@@ -39,39 +37,12 @@ namespace com.noctuagames.sdk.UI
         private void LoadData()
         {
             _gameUsers.Clear();
-            var gameUsers = Model.AuthService.AccountList
-                .Where(x => x.Value.PlayerAccounts.Any(y => y.BundleId == Application.identifier))
-                .Select(x => x.Value)
-                .ToList();
-
-            _gameUsers.AddRange(gameUsers);
-
-
-            if (_gameUsers.Count > 0)
-            {
-                _gameAccountListView.Rebuild();
-            }
-            else
-            {
-                _gameAccountListView.Clear();
-            }
+            _gameUsers.AddRange(Model.AuthService.CurrentGameAccountList);
+            _gameAccountListView.Rebuild();
 
             _noctuaUsers.Clear();
-            var noctuaUsers = Model.AuthService.AccountList
-                .Where(x => x.Value.PlayerAccounts.All(y => y.BundleId != Application.identifier))
-                .Select(x => x.Value)
-                .ToList();
-
-            _noctuaUsers.AddRange(noctuaUsers);
-
-            if (_noctuaUsers.Count > 0)
-            {
-                _noctuaAccountListView.Rebuild();
-            }
-            else
-            {
-                _noctuaAccountListView.Clear();
-            }
+            _noctuaUsers.AddRange(Model.AuthService.OtherGamesAccountList);
+            _noctuaAccountListView.Rebuild();
 
             _separator.style.display = _noctuaUsers.Count > 0 ? DisplayStyle.Flex : DisplayStyle.None;
         }
@@ -133,7 +104,7 @@ namespace com.noctuagames.sdk.UI
             {
                 var selectedAccount = items[index];
                 
-                Debug.Log($"Selected {selectedAccount?.User?.Nickname}");
+                _log.Log($"Selected {selectedAccount?.User?.Nickname}");
 
                 if (selectedAccount is { IsRecent: false })
                 {
@@ -145,7 +116,7 @@ namespace com.noctuagames.sdk.UI
 
             element.Q<Label>("PlayerName").text = items[index].DisplayName;
             
-            var logoClass = items[index].Credential.Provider switch
+            var logoClass = items?[index].Credential.Provider switch
             {
                 "google" => "google-player-avatar",
                 "facebook" => "facebook-player-avatar",
@@ -156,7 +127,7 @@ namespace com.noctuagames.sdk.UI
             element.Q<VisualElement>("PlayerLogo").AddToClassList(logoClass);
             
             element.Q<Label>("RecentLabel").text =
-                items[index].User?.Id == Model.AuthService.RecentAccount.User.Id ? "Recent" : "";
+                items?[index].User?.Id == Model.AuthService.RecentAccount?.User.Id ? "Recent" : "";
         }
     }
 }
