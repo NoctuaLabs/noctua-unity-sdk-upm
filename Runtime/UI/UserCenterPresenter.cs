@@ -207,6 +207,8 @@ namespace com.noctuagames.sdk.UI
                     {
                         _paymentTypeTF.value = "Select Payment Type";
                     }
+
+                    SetupEditProfileUI();
                 }
 
                 _isGuestUser = user?.IsGuest ?? false;
@@ -279,8 +281,6 @@ namespace com.noctuagames.sdk.UI
 
             //Edit Profile UI
             SetupEditProfileUI();
-
-            View.Q<Button>("SaveButton").RegisterCallback<PointerUpEvent>(_ => OnSaveEditProfile());
         }
 
         private void SetupDatePickerUI()
@@ -328,6 +328,22 @@ namespace com.noctuagames.sdk.UI
             _profileImage = View.Q<VisualElement>("ProfileImage");
             _playerImage = View.Q<VisualElement>("PlayerAvatar");
             _userIDLabel = View.Q<Label>("UserIdLabel");
+
+            var saveButton = View.Q<Button>("SaveButton");
+            saveButton.SetEnabled(false);
+            saveButton.RegisterCallback<PointerUpEvent>(_ => OnSaveEditProfile());
+
+            var elementNames = new List<string>
+            {
+                "NicknameTF",
+                "GenderTF",
+                "CountryTF",
+                "LanguageTF",
+                "CurrencyTF",
+                "PaymentTypeTF"
+            };
+
+            Utility.RegisterForMultipleValueChanges<string>(View, elementNames, saveButton);
 
             _nicknameTF.RegisterValueChangedCallback(evt => OnTextChanged(_nicknameTF));
             _changeProfile.RegisterCallback<PointerUpEvent>(OnChangeProfile);
@@ -529,7 +545,9 @@ namespace com.noctuagames.sdk.UI
                 _editProfileContainer.AddToClassList("show");
 
                 _userIDLabel.text = "Edit Profile";
-                _userIDLabel.style.fontSize = 16;   
+                _userIDLabel.style.fontSize = 16;  
+
+                View.Q<Button>("SaveButton").SetEnabled(false);
             }
             else
             {
@@ -622,6 +640,7 @@ namespace com.noctuagames.sdk.UI
 
                 View.Q<Button>("SaveButton").RemoveFromClassList("hide");
                 View.Q<VisualElement>("Spinner").AddToClassList("hide");
+                View.Q<VisualElement>("Spinner2").AddToClassList("hide");
                 return;
             }
 
@@ -632,6 +651,7 @@ namespace com.noctuagames.sdk.UI
 
                 View.Q<Button>("SaveButton").RemoveFromClassList("hide");
                 View.Q<VisualElement>("Spinner").AddToClassList("hide");
+                View.Q<VisualElement>("Spinner2").AddToClassList("hide");
                 return;
             }
 
@@ -642,6 +662,7 @@ namespace com.noctuagames.sdk.UI
 
                 View.Q<Button>("SaveButton").RemoveFromClassList("hide");
                 View.Q<VisualElement>("Spinner").AddToClassList("hide");
+                View.Q<VisualElement>("Spinner2").AddToClassList("hide");
                 return;
             }
            
@@ -652,6 +673,7 @@ namespace com.noctuagames.sdk.UI
 
                 View.Q<Button>("SaveButton").RemoveFromClassList("hide");
                 View.Q<VisualElement>("Spinner").AddToClassList("hide");
+                View.Q<VisualElement>("Spinner2").AddToClassList("hide");
                 return;
             }
 
@@ -662,6 +684,7 @@ namespace com.noctuagames.sdk.UI
 
                 View.Q<Button>("SaveButton").RemoveFromClassList("hide");
                 View.Q<VisualElement>("Spinner").AddToClassList("hide");
+                View.Q<VisualElement>("Spinner2").AddToClassList("hide");
                 return;
             }
 
@@ -704,7 +727,10 @@ namespace com.noctuagames.sdk.UI
 
                 await Model.AuthService.UpdateUserAsync(updateUserRequest);
 
-                StartCoroutine(LoadImageFromUrl(_newProfileUrl, true));
+                if(!string.IsNullOrEmpty(_newProfileUrl))
+                {
+                    StartCoroutine(LoadImageFromUrl(_newProfileUrl, true));
+                }
 
                 _errorLabel.AddToClassList("hide");
                 View.Q<Button>("SaveButton").RemoveFromClassList("hide");
