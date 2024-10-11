@@ -714,6 +714,8 @@ namespace com.noctuagames.sdk.UI
                 View.Q<VisualElement>("Spinner2").AddToClassList("hide");
 
                 Model.ShowGeneralNotification("Update profile successfully", true);
+
+                OnUIEditProfile(false);
             }
             catch (Exception e)
             {
