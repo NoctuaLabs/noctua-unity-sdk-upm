@@ -11,6 +11,8 @@ namespace com.noctuagames.sdk.UI
         private string _password;
         private string _rePassword;
         private int _credVerifyId;
+        private List<TextField> textFields;
+        private Button submitButton;
 
         public void Show(int credVerifyId)
         {
@@ -34,7 +36,7 @@ namespace com.noctuagames.sdk.UI
             var verificationCodeField = View.Q<TextField>("VerificationCode");
             var passwordField = View.Q<TextField>("PasswordTF");
             var rePasswordField = View.Q<TextField>("RePasswordTF");
-            var submitButton = View.Q<Button>("ContinueButton");
+            submitButton = View.Q<Button>("ContinueButton");
 
             verificationCodeField.value = "";
             passwordField.value = "";
@@ -47,7 +49,7 @@ namespace com.noctuagames.sdk.UI
             passwordField.RegisterValueChangedCallback(evt => OnPasswordValueChanged(passwordField));
             rePasswordField.RegisterValueChangedCallback(evt => OnRePasswordValueChanged(rePasswordField));
                 
-            List<TextField> textFields = new List<TextField>
+            textFields = new List<TextField>
             {
                 verificationCodeField,
                 passwordField,
@@ -55,7 +57,7 @@ namespace com.noctuagames.sdk.UI
 
             };
 
-            Utility.ValidateFormFields(textFields, submitButton);
+            Utility.UpdateButtonState(textFields, submitButton);
 
             View.Q<Button>("ContinueButton").RegisterCallback<ClickEvent>(OnContinueButtonClick);
             View.Q<Button>("BackButton").RegisterCallback<ClickEvent>(OnBackButtonClick);
@@ -71,6 +73,8 @@ namespace com.noctuagames.sdk.UI
                 textField.labelElement.style.display = DisplayStyle.None;
             }
             _credVerifyCode = textField.value;
+
+            Utility.UpdateButtonState(textFields, submitButton);
         }
 
         private void OnPasswordValueChanged(TextField textField)
@@ -83,6 +87,8 @@ namespace com.noctuagames.sdk.UI
                 textField.labelElement.style.display = DisplayStyle.None;
             }
             _password = textField.value;
+
+            Utility.UpdateButtonState(textFields, submitButton);
         }
 
         private void OnRePasswordValueChanged(TextField textField)
@@ -95,6 +101,8 @@ namespace com.noctuagames.sdk.UI
                 textField.labelElement.style.display = DisplayStyle.None;
             }
             _rePassword = textField.value;
+
+            Utility.UpdateButtonState(textFields, submitButton);
         }
 
         private void OnBackButtonClick(ClickEvent evt)

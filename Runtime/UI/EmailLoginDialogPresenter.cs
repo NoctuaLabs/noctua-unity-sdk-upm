@@ -22,6 +22,8 @@ namespace com.noctuagames.sdk.UI
         private string _email;
         private string _password;
         private VisualElement _spinner;
+        private List<TextField> textFields;
+        private Button submitButton;
         
         private Action<UserBundle> _onLoginSuccess;
 
@@ -46,20 +48,20 @@ namespace com.noctuagames.sdk.UI
         {
             var emailField = View.Q<TextField>("EmailTF");
             var passwordField = View.Q<TextField>("PasswordTF");
-            var submitButton = View.Q<Button>("ContinueButton");
+            submitButton = View.Q<Button>("ContinueButton");
 
             passwordField.isPasswordField = true;
 
             emailField.RegisterValueChangedCallback(evt => OnEmailValueChanged(emailField));
             passwordField.RegisterValueChangedCallback(evt => OnPasswordValueChanged(passwordField));
 
-            List<TextField> textFields = new List<TextField>
+            textFields = new List<TextField>
             {
                 emailField,
                 passwordField
             };
 
-            Utility.ValidateFormFields(textFields, submitButton);
+            Utility.UpdateButtonState(textFields, submitButton);
 
             View.Q<Label>("ForgotPassword").RegisterCallback<PointerUpEvent>(OnForgotPasswordButtonClick);
             View.Q<Label>("Register").RegisterCallback<PointerUpEvent>(OnRegisterButtonClick);
@@ -83,6 +85,7 @@ namespace com.noctuagames.sdk.UI
             }
             _email = textField.value;
             AdjustHideLabelElement(textField);
+            Utility.UpdateButtonState(textFields, submitButton);
         }
 
         private void OnPasswordValueChanged(TextField textField)
@@ -97,6 +100,7 @@ namespace com.noctuagames.sdk.UI
             _password = textField.value;
 
             AdjustHideLabelElement(textField);
+            Utility.UpdateButtonState(textFields, submitButton);
         }
 
         private void AdjustHideLabelElement(TextField textField) {

@@ -13,6 +13,8 @@ namespace com.noctuagames.sdk.UI
     internal class EmailResetPasswordDialogPresenter : Presenter<AuthenticationModel>
     {
         private string _email;
+        private List<TextField> textFields;
+        private Button submitButton;
 
         public void Show(bool clearForm)
         {
@@ -36,16 +38,16 @@ namespace com.noctuagames.sdk.UI
         private void Setup()
         {
             var emailField = View.Q<TextField>("EmailTF");
-            var submitButton = View.Q<Button>("ContinueButton");
+            submitButton = View.Q<Button>("ContinueButton");
 
             emailField.RegisterValueChangedCallback(evt => OnEmailValueChanged(emailField));
 
-            List<TextField> textFields = new List<TextField>
+            textFields = new List<TextField>
             {
                 emailField
             };
 
-            Utility.ValidateFormFields(textFields, submitButton);
+            Utility.UpdateButtonState(textFields, submitButton);
 
             View.Q<Button>("ContinueButton").RegisterCallback<PointerUpEvent>(OnContinueButtonClick);
             View.Q<Button>("BackButton").RegisterCallback<PointerUpEvent>(OnBackButtonClick);
@@ -61,6 +63,8 @@ namespace com.noctuagames.sdk.UI
                 textField.labelElement.style.display = DisplayStyle.None;
             }
             _email = textField.value;
+
+            Utility.UpdateButtonState(textFields, submitButton);
         }
 
         private bool IsValidEmail(string email)

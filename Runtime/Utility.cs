@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Reflection;
 using UnityEngine;
 using UnityEngine.UIElements;
+using System.Linq;
 
 namespace com.noctuagames.sdk
 {
@@ -152,30 +153,9 @@ namespace com.noctuagames.sdk
             }
         }
 
-        public static void ValidateFormFields(List<TextField> textFields, Button submitButton)
+        public static void UpdateButtonState(List<TextField> textFields, Button submitButton)
         {
-            foreach (var textField in textFields)
-            {
-                textField.UnregisterCallback<ChangeEvent<string>>(evt => UpdateButtonState(textFields, submitButton));
-
-                textField.RegisterValueChangedCallback(evt => UpdateButtonState(textFields, submitButton));
-            }
-            
-            UpdateButtonState(textFields, submitButton);
-        }
-
-        private static void UpdateButtonState(List<TextField> textFields, Button submitButton)
-        {
-            bool isAnyFieldEmpty = false;
-
-            foreach (var textField in textFields)
-            {
-                if (string.IsNullOrEmpty(textField.value))
-                {
-                    isAnyFieldEmpty = true;
-                    break;
-                }
-            }
+            bool isAnyFieldEmpty = textFields.Any(textField => string.IsNullOrEmpty(textField.value));
 
             submitButton.SetEnabled(!isAnyFieldEmpty);
         }

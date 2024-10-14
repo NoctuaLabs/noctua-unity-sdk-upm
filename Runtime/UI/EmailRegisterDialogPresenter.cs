@@ -15,6 +15,8 @@ namespace com.noctuagames.sdk.UI
         private string _email;
         private string _password;
         private string _rePassword;
+        private List<TextField> textFields;
+        private Button continueButton;
 
         protected override void Attach(){}
         protected override void Detach(){}
@@ -65,7 +67,7 @@ namespace com.noctuagames.sdk.UI
             var emailField = View.Q<TextField>("EmailTF");
             var passwordField = View.Q<TextField>("PasswordTF");
             var rePasswordField = View.Q<TextField>("RePasswordTF");
-            var continueButton = View.Q<Button>("ContinueButton");
+            continueButton = View.Q<Button>("ContinueButton");
             var backButton = View.Q<Button>("BackButton");
             var loginLink = View.Q<Label>("LoginLink");
 
@@ -82,7 +84,7 @@ namespace com.noctuagames.sdk.UI
             }
 
             
-            List<TextField> textFields = new List<TextField>
+            textFields = new List<TextField>
             {
                 emailField,
                 passwordField,
@@ -90,7 +92,7 @@ namespace com.noctuagames.sdk.UI
 
             };
 
-            Utility.ValidateFormFields(textFields, continueButton);
+            Utility.UpdateButtonState(textFields, continueButton);
 
             // Callbacks
             continueButton.RegisterCallback<PointerUpEvent>(OnContinueButtonClick);
@@ -210,6 +212,8 @@ namespace com.noctuagames.sdk.UI
                 textField.labelElement.style.display = DisplayStyle.None;
             }
             _email = textField.value;
+
+            Utility.UpdateButtonState(textFields, continueButton);
         }
 
         private void OnPasswordValueChanged(TextField textField)
@@ -222,6 +226,8 @@ namespace com.noctuagames.sdk.UI
                 textField.labelElement.style.display = DisplayStyle.None;
             }
             _password = textField.value;
+
+            Utility.UpdateButtonState(textFields, continueButton);
         }
 
         private void OnRePasswordValueChanged(TextField textField)
@@ -234,6 +240,8 @@ namespace com.noctuagames.sdk.UI
                 textField.labelElement.style.display = DisplayStyle.None;
             }
             _rePassword = textField.value;
+
+            Utility.UpdateButtonState(textFields, continueButton);
         }
 
         private void HideAllErrors()
