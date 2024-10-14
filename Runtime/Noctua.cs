@@ -274,7 +274,7 @@ namespace com.noctuagames.sdk
                 catch (Exception e)
                 {
                     Debug.Log("Noctua.Init() -> Using country from default value: " + initResponse.Country);
-                    initResponse.Country = "IDR"
+                    initResponse.Country = "IDR";
                 }
             } else {
                 Debug.Log("Noctua.Init() -> Using country from geoIP: " + initResponse.Country);
