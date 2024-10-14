@@ -2,6 +2,25 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.11.0] - 2024-10-14
+
+### 🚀 Features
+
+- Add copy user id to clipboard
+- Reusable validate textfield
+
+### 🐛 Bug Fixes
+
+- Add more failsafe around SDK init.
+- Style button save - edit profile
+- Disable button when text input is empty
+- Disable button when text input is empty
+- Disable button when text input is empty
+- Disable button when text input is empty
+- Prevent registering twice
+- Optimaze validate textfield code
+- Calculating webview frame
+
 ## [0.10.0] - 2024-10-11
 
 ### 🚀 Features
