@@ -46,11 +46,20 @@ namespace com.noctuagames.sdk.UI
         {
             var emailField = View.Q<TextField>("EmailTF");
             var passwordField = View.Q<TextField>("PasswordTF");
+            var submitButton = View.Q<Button>("ContinueButton");
 
             passwordField.isPasswordField = true;
 
             emailField.RegisterValueChangedCallback(evt => OnEmailValueChanged(emailField));
             passwordField.RegisterValueChangedCallback(evt => OnPasswordValueChanged(passwordField));
+
+            List<TextField> textFields = new List<TextField>
+            {
+                emailField,
+                passwordField
+            };
+
+            Utility.ValidateFormFields(textFields, submitButton);
 
             View.Q<Label>("ForgotPassword").RegisterCallback<PointerUpEvent>(OnForgotPasswordButtonClick);
             View.Q<Label>("Register").RegisterCallback<PointerUpEvent>(OnRegisterButtonClick);
