@@ -81,6 +81,17 @@ namespace com.noctuagames.sdk.UI
                 rePasswordField.value = "";
             }
 
+            
+            List<TextField> textFields = new List<TextField>
+            {
+                emailField,
+                passwordField,
+                rePasswordField
+
+            };
+
+            Utility.ValidateFormFields(textFields, continueButton);
+
             // Callbacks
             continueButton.RegisterCallback<PointerUpEvent>(OnContinueButtonClick);
             backButton.RegisterCallback<PointerUpEvent>(OnBackButtonClick);
