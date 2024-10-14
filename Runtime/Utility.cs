@@ -151,5 +151,31 @@ namespace com.noctuagames.sdk
                 }
             }
         }
+
+        public static void ValidateFormFields(List<TextField> textFields, Button submitButton)
+        {
+            foreach (var textField in textFields)
+            {
+                textField.RegisterValueChangedCallback(evt => UpdateButtonState(textFields, submitButton));
+            }
+            
+            UpdateButtonState(textFields, submitButton);
+        }
+
+        private static void UpdateButtonState(List<TextField> textFields, Button submitButton)
+        {
+            bool isAnyFieldEmpty = false;
+
+            foreach (var textField in textFields)
+            {
+                if (string.IsNullOrEmpty(textField.value))
+                {
+                    isAnyFieldEmpty = true;
+                    break;
+                }
+            }
+
+            submitButton.SetEnabled(!isAnyFieldEmpty);
+        }
     }
 }
