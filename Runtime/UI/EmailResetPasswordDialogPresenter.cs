@@ -36,9 +36,16 @@ namespace com.noctuagames.sdk.UI
         private void Setup()
         {
             var emailField = View.Q<TextField>("EmailTF");
-
+            var submitButton = View.Q<Button>("ContinueButton");
 
             emailField.RegisterValueChangedCallback(evt => OnEmailValueChanged(emailField));
+
+            List<TextField> textFields = new List<TextField>
+            {
+                emailField
+            };
+
+            Utility.ValidateFormFields(textFields, submitButton);
 
             View.Q<Button>("ContinueButton").RegisterCallback<PointerUpEvent>(OnContinueButtonClick);
             View.Q<Button>("BackButton").RegisterCallback<PointerUpEvent>(OnBackButtonClick);
