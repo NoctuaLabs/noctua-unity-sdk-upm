@@ -156,6 +156,8 @@ namespace com.noctuagames.sdk
         {
             foreach (var textField in textFields)
             {
+                textField.UnregisterCallback<ChangeEvent<string>>(evt => UpdateButtonState(textFields, submitButton));
+
                 textField.RegisterValueChangedCallback(evt => UpdateButtonState(textFields, submitButton));
             }
             
