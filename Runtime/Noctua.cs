@@ -266,9 +266,16 @@ namespace com.noctuagames.sdk
 
             if (string.IsNullOrEmpty(initResponse.Country))
             {
-                initResponse.Country = await Instance.Value._game.GetCountryIDFromCloudflareTraceAsync();
-                Debug.Log("Noctua.Init() -> Using country from cloudflare: " + initResponse.Country);
-
+                try
+                {
+                    initResponse.Country = await Instance.Value._game.GetCountryIDFromCloudflareTraceAsync();
+                    Debug.Log("Noctua.Init() -> Using country from cloudflare: " + initResponse.Country);
+                }
+                catch (Exception e)
+                {
+                    Debug.Log("Noctua.Init() -> Using country from default value: " + initResponse.Country);
+                    initResponse.Country = "IDR"
+                }
             } else {
                 Debug.Log("Noctua.Init() -> Using country from geoIP: " + initResponse.Country);
             }
@@ -282,11 +289,18 @@ namespace com.noctuagames.sdk
             // Try to get active currency
             if (!string.IsNullOrEmpty(initResponse.ActiveProductId))
             {
-                var activeCurrency = await Instance.Value._iap.GetActiveCurrencyAsync(initResponse.ActiveProductId);
-                if (!string.IsNullOrEmpty(activeCurrency))
+                try
                 {
-                    Debug.Log("Found active currency: " + activeCurrency);
-                    Instance.Value._platform.Locale.SetCurrency(activeCurrency);
+                    var activeCurrency = await Instance.Value._iap.GetActiveCurrencyAsync(initResponse.ActiveProductId);
+                    if (!string.IsNullOrEmpty(activeCurrency))
+                    {
+                        Debug.Log("Found active currency: " + activeCurrency);
+                        Instance.Value._platform.Locale.SetCurrency(activeCurrency);
+                    }
+                }
+                catch (Exception e)
+                {
+                    Instance.Value._platform.Locale.SetCurrency("IDR");
                 }
             }
 
