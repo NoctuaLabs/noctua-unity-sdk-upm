@@ -1,6 +1,7 @@
 using System;
 using UnityEngine;
 using UnityEngine.UIElements;
+using System.Collections.Generic;
 
 namespace com.noctuagames.sdk.UI
 {
@@ -33,6 +34,7 @@ namespace com.noctuagames.sdk.UI
             var verificationCodeField = View.Q<TextField>("VerificationCode");
             var passwordField = View.Q<TextField>("PasswordTF");
             var rePasswordField = View.Q<TextField>("RePasswordTF");
+            var submitButton = View.Q<Button>("ContinueButton");
 
             verificationCodeField.value = "";
             passwordField.value = "";
@@ -44,6 +46,16 @@ namespace com.noctuagames.sdk.UI
             verificationCodeField.RegisterValueChangedCallback(evt => OnVerificationCodeValueChanged(verificationCodeField));
             passwordField.RegisterValueChangedCallback(evt => OnPasswordValueChanged(passwordField));
             rePasswordField.RegisterValueChangedCallback(evt => OnRePasswordValueChanged(rePasswordField));
+                
+            List<TextField> textFields = new List<TextField>
+            {
+                verificationCodeField,
+                passwordField,
+                rePasswordField
+
+            };
+
+            Utility.ValidateFormFields(textFields, submitButton);
 
             View.Q<Button>("ContinueButton").RegisterCallback<ClickEvent>(OnContinueButtonClick);
             View.Q<Button>("BackButton").RegisterCallback<ClickEvent>(OnBackButtonClick);
