@@ -162,7 +162,7 @@ namespace com.noctuagames.sdk.UI
         {
 
             var layout = element.LocalToWorld(new Rect(0, 0, element.layout.width, element.layout.height));
-            var scaleFactor = Screen.dpi / gameObject.GetComponent<UIDocument>().panelSettings.referenceDpi;
+            var scaleFactor = gameObject.GetComponent<UIDocument>().panelSettings.scale;
             
             var adjustedLayout = new Rect(
                 layout.position.x * scaleFactor,
