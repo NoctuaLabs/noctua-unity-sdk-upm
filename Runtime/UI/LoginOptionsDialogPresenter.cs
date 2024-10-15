@@ -7,12 +7,14 @@ namespace com.noctuagames.sdk.UI
 {
     internal class LoginOptionsDialogPresenter : Presenter<AuthenticationModel>
     {
+        private Label _tnCLabel;
+        private Label _privacyLabel;
         private Button _loginWithGoogleButton;
         private Button _loginWithFacebookButton;
         private Button _loginWithEmailButton;
         private Button _registerButton;
         private Button _backButton;
-        
+        private GlobalConfig _config;
         public void Show()
         {
             Visible = true;
@@ -23,6 +25,12 @@ namespace com.noctuagames.sdk.UI
 
         private void Start()
         {
+            _tnCLabel = View.Q<Label>("TnCLabel");
+            _tnCLabel.RegisterCallback<PointerUpEvent>(_ => OnTnCClicked());
+
+            _privacyLabel = View.Q<Label>("PrivacyLabel");
+            _privacyLabel.RegisterCallback<PointerUpEvent>(_ => OnPrivacyClicked());
+            
             _loginWithGoogleButton = View.Q<Button>("LoginWithGoogleButton");
             _loginWithGoogleButton.RegisterCallback<PointerUpEvent>(_ => OnLoginWithGoogleButtonClicked());
             
@@ -37,6 +45,23 @@ namespace com.noctuagames.sdk.UI
             
             _backButton = View.Q<Button>("BackButton");
             _backButton.RegisterCallback<PointerUpEvent>(_ => OnBackButtonClicked());
+        }
+        
+        public void SetWhitelabel(GlobalConfig config)
+        {
+            _config = config;
+        }
+
+        private void OnTnCClicked()
+        {
+            var tncUrl = string.IsNullOrEmpty(_config.Noctua.Flags) ? "https://noctua.gg/tou" : _config.CoPublisher.CompanyTermUrl;
+            Application.OpenURL(tncUrl);
+        }
+
+        private void OnPrivacyClicked()
+        {
+            var privacyUrl = string.IsNullOrEmpty(_config.Noctua.Flags) ? "https://noctua.gg/privacy" : _config.CoPublisher.CompanyPrivacyUrl;
+            Application.OpenURL(privacyUrl);
         }
 
         private void OnLoginWithFacebookButtonClicked()
