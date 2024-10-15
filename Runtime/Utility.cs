@@ -159,20 +159,16 @@ namespace com.noctuagames.sdk
 
             submitButton.SetEnabled(!isAnyFieldEmpty);
         }
-        
+
         public static string GetCoPublisherLogo(string companyName)
         {
-            var logo = "";
-            switch(companyName)
+            var logoMap = new Dictionary<string, string>
             {
-                case "OEG":
-                    logo = "OegWhiteLogo";
-                    break;
-                default:
-                    logo = "NoctuaLogoWithText";
-                    break;
-            }
-            return logo;
+                { "OEG", "OegWhiteLogo" }
+            };
+
+            return logoMap.GetValueOrDefault(companyName, "NoctuaLogoWithText");
         }
+
     }
 }
