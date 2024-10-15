@@ -53,16 +53,24 @@
     align-self: stretch;
 }
 
-.tnc-text {
+.tnc-text-first {
     font-size: 8px;
     color: #8B8E91;
-    width: 234px;
-    height: 20px;
     align-self: center;
     flex-wrap: wrap;
     align-items: center;
     -unity-text-align: middle-center;
     margin-top: 10px;
+}
+
+.tnc-text {
+    font-size: 8px;
+    color: #8B8E91;
+    width: 234px;
+    align-self: center;
+    flex-wrap: wrap;
+    align-items: center;
+    -unity-text-align: middle-center;
 }
 
 .register-button {

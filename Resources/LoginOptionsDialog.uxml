@@ -25,7 +25,11 @@
             <ui:VisualElement class="login-method-logo email-icon" />
             <ui:Label text="Login With Email" class="social-account-label" />
         </ui:Button>
-        <ui:Label name="LoginOptionsInfoLabel" text="By logging in or registering, you agree to our Terms of Service\n and Privacy Policy." class="tnc-text" />
+        <ui:VisualElement style="flex-direction: row;">
+            <ui:Label text="By logging in or registering, you agree to our" class="tnc-text-first" />
+            <ui:Label name="TnCLabel" text="&lt;color=#3B82F6&gt;Terms of Service&lt;/color&gt;" class="tnc-text-first" />
+        </ui:VisualElement>
+        <ui:Label name="PrivacyLabel" text="and &lt;color=#3B82F6&gt;Privacy Policy&lt;/color&gt;." class="tnc-text" />
         <ui:Button name="RegisterButton" class="register-button">
             <ui:Label text="Don&apos;t have an account? &lt;color=#3B82F6&gt;Register&lt;/color&gt;" />
         </ui:Button>
