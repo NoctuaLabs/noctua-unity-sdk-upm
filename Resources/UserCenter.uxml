@@ -102,7 +102,7 @@
                 </ui:VisualElement>
             </ui:VisualElement>
             <ui:VisualElement name="ConnectAccountFooter" class="connect-account-footer">
-                <ui:VisualElement name="NoctuaLogoWithText" class="noctua-logo-with-text" />
+                <ui:VisualElement name="NoctuaLogoWithText2" class="noctua-logo-with-text" />
                 <ui:Label name="FindMoreLabel" text="Find more at noctua.gg" class="find-more-label" />
             </ui:VisualElement>
         </ui:VisualElement>
