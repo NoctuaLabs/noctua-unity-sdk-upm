@@ -44,6 +44,8 @@ namespace com.noctuagames.sdk
         [JsonProperty("customerServiceBaseUrl")] public string CustomerServiceBaseUrl = "https://sdk-api-v2.noctuaprojects.com/api/v1/games/cs";
 
         [JsonProperty("isSandbox")] public bool IsSandbox;
+        [JsonProperty("region")]  public string Region;
+        [JsonProperty("flags")]  public string Flags;
     }
     
     [Preserve]
@@ -63,6 +65,15 @@ namespace com.noctuagames.sdk
     }
 
     [Preserve]
+    public class CoPublisherConfig
+    {
+        [JsonProperty("companyName"), JsonRequired] public string CompanyName;
+        [JsonProperty("companyWebsiteUrl"), JsonRequired] public string CompanyWebsiteUrl;
+        [JsonProperty("companyTermUrl"), JsonRequired] public string CompanyTermUrl;
+        [JsonProperty("companyPrivacyUrl"), JsonRequired] public string CompanyPrivacyUrl;
+    }
+
+    [Preserve]
     public class GlobalConfig
     {
         [JsonProperty("clientId"), JsonRequired] public string ClientId;
@@ -74,6 +85,7 @@ namespace com.noctuagames.sdk
         [JsonProperty("facebook")] public FacebookConfig Facebook;
 
         [JsonProperty("noctua")] public NoctuaConfig Noctua;
+        [JsonProperty("copublisher")] public CoPublisherConfig CoPublisher;
     }
 
     public class Noctua
@@ -216,7 +228,7 @@ namespace com.noctuagames.sdk
             noctuaUIGameObject.transform.SetParent(null);
             Object.DontDestroyOnLoad(noctuaUIGameObject);
             var uiFactory = new UIFactory(noctuaUIGameObject, panelSettings);
-            _auth = new NoctuaAuthentication(authService, uiFactory);
+            _auth = new NoctuaAuthentication(authService, uiFactory, config);
             
             var accessTokenProvider = new AccessTokenProvider(authService);
 

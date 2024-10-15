@@ -50,12 +50,12 @@ namespace com.noctuagames.sdk
         private readonly NoctuaAuthenticationService _service;
         private OauthRedirectListener _oauthOauthRedirectListener;
 
-        internal NoctuaAuthentication(NoctuaAuthenticationService service, UIFactory uiFactory)
+        internal NoctuaAuthentication(NoctuaAuthenticationService service, UIFactory uiFactory, GlobalConfig config)
         {
             _service = service;
                         
             _uiFactory = uiFactory;
-            _uiModel = new AuthenticationModel(_uiFactory, _service);
+            _uiModel = new AuthenticationModel(_uiFactory, _service, config);
         }
 
         public UserBundle GetRecentAccount()

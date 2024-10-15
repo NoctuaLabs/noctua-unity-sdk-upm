@@ -64,7 +64,7 @@ namespace com.noctuagames.sdk
 
         private AuthType _currentAuthType = AuthType.SwitchAccount;
 
-        internal AuthenticationModel(UIFactory uiFactory, NoctuaAuthenticationService authService)
+        internal AuthenticationModel(UIFactory uiFactory, NoctuaAuthenticationService authService, GlobalConfig config)
         {
             _uiFactory = uiFactory;
             
@@ -80,6 +80,10 @@ namespace com.noctuagames.sdk
             _accountDeletionConfirmationDialog = _uiFactory.Create<AccountDeletionConfirmationDialogPresenter, AuthenticationModel>(this);
             _welcome = _uiFactory.Create<WelcomeNotificationPresenter, AuthenticationModel>(this);
 
+            _accountSelectionDialog.SetWhitelabel(config);
+            _loginOptionsDialog.SetWhitelabel(config);
+            _userCenter.SetWhitelabel(config);
+            
             _authService = authService;
             _authService.OnAccountChanged += OnAccountChanged;
             _socialAuth = new SocialAuthenticationService(_authService);
