@@ -60,8 +60,6 @@ namespace com.noctuagames.sdk.UI
         private int _currentIndex  = 0;
         private const float SlideInterval = 3f;
         private bool _isGuestUser = false;
-
-
         private readonly List<UserCredential> _credentials = new()
         {
             new UserCredential
@@ -125,6 +123,23 @@ namespace com.noctuagames.sdk.UI
         {
             StartCoroutine(ShowAsync().ToCoroutine());
         }
+
+        public void SetWhitelabel(GlobalConfig config)
+        {
+            if(!string.IsNullOrEmpty(config.Noctua.Flags))
+            {
+                _stayConnect.text = "Stay connect to " + config.CoPublisher.CompanyName;
+
+                var logo = Utility.GetCoPublisherLogo(config.CoPublisher.CompanyName);
+                
+                var _defaultLogo = Resources.Load<Texture2D>(logo);
+                View.Q<VisualElement>("NoctuaLogoWithText").style.backgroundImage = new StyleBackground(_defaultLogo);
+                View.Q<VisualElement>("NoctuaLogoWithText2").style.backgroundImage = new StyleBackground(_defaultLogo);
+                
+                string cleanedUrl = config.CoPublisher.CompanyWebsiteUrl.Replace("https://", "");
+                View.Q<Label>("FindMoreLabel").text = "Find more at " + cleanedUrl;
+            }
+        } 
 
         private async UniTask ShowAsync()
         {
