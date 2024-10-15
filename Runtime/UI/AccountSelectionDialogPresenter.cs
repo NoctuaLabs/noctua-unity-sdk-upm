@@ -91,6 +91,17 @@ namespace com.noctuagames.sdk.UI
             BindListView(_noctuaAccountListView, _noctuaUsers);
         }
 
+        public void SetWhitelabel(GlobalConfig config)
+        {
+            if(!string.IsNullOrEmpty(config.Noctua.Flags))
+            {
+                var logo = Utility.GetCoPublisherLogo(config.CoPublisher.CompanyName);
+
+                var _defaultLogo = Resources.Load<Texture2D>(logo);
+                View.Q<VisualElement>("NoctuaLogoWithText").style.backgroundImage = new StyleBackground(_defaultLogo);                
+            }
+        }
+
         private void OnContinueButtonClick(PointerUpEvent evt)
         {
             View.visible = false;
