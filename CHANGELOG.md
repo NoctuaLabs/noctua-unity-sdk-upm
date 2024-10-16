@@ -2,6 +2,27 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.12.0] - 2024-10-16
+
+### 🚀 Features
+
+- Add oeg logo
+- Whitelabel - user center
+- Add whitelabel - login options
+- Add whitelabel - account selection
+- Add reusbale get co publisher logo
+- Add configuration for whitelabel
+
+### 🐛 Bug Fixes
+
+- Tnc and privacy can clickable
+- Don't destroy panelSettings when switching scene
+
+### 🚜 Refactor
+
+- Name logo with text - user center
+- Method get co publisher logo
+
 ## [0.11.0] - 2024-10-14
 
 ### 🚀 Features
