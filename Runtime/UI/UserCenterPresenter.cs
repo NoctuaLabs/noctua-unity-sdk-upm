@@ -126,7 +126,7 @@ namespace com.noctuagames.sdk.UI
 
         public void SetWhitelabel(GlobalConfig config)
         {
-            if(!string.IsNullOrEmpty(config.Noctua.Flags))
+            if(!string.IsNullOrEmpty(config.CoPublisher.CompanyName))
             {
                 _stayConnect.text = "Stay connect to " + config.CoPublisher.CompanyName;
 

@@ -54,13 +54,13 @@ namespace com.noctuagames.sdk.UI
 
         private void OnTnCClicked()
         {
-            var tncUrl = string.IsNullOrEmpty(_config.Noctua.Flags) ? "https://noctua.gg/tou" : _config.CoPublisher.CompanyTermUrl;
+            var tncUrl = string.IsNullOrEmpty(_config.CoPublisher.CompanyName) ? "https://noctua.gg/tou" : _config.CoPublisher.CompanyTermUrl;
             Application.OpenURL(tncUrl);
         }
 
         private void OnPrivacyClicked()
         {
-            var privacyUrl = string.IsNullOrEmpty(_config.Noctua.Flags) ? "https://noctua.gg/privacy" : _config.CoPublisher.CompanyPrivacyUrl;
+            var privacyUrl = string.IsNullOrEmpty(_config.CoPublisher.CompanyName) ? "https://noctua.gg/privacy" : _config.CoPublisher.CompanyPrivacyUrl;
             Application.OpenURL(privacyUrl);
         }
 

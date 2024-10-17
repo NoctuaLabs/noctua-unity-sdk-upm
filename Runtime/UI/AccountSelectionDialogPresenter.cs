@@ -64,7 +64,7 @@ namespace com.noctuagames.sdk.UI
 
         public void SetWhitelabel(GlobalConfig config)
         {
-            if(!string.IsNullOrEmpty(config.Noctua.Flags))
+            if(!string.IsNullOrEmpty(config.CoPublisher.CompanyName))
             {
                 var logo = Utility.GetCoPublisherLogo(config.CoPublisher.CompanyName);
 
