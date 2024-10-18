@@ -7,6 +7,7 @@ using com.noctuagames.sdk.UI;
 using System.Threading.Tasks;
 using System.Text.RegularExpressions;
 using System.Globalization;
+using Newtonsoft.Json;
 
 namespace com.noctuagames.sdk.UI
 {
@@ -15,8 +16,23 @@ namespace com.noctuagames.sdk.UI
         private string _email;
         private string _password;
         private string _rePassword;
+
+        //Behaviour whitelabel - VN
+        private TextField _fullname;
+        private DropdownField _phoneCode;
+        private TextField _phoneNumber;
+        private TextField _birthDate;
+        private DropdownField _gender;
+        private DropdownField _country;
+        private TextField _idCard;
+        private TextField _placeOfIssue;
+        private TextField _dateOfIssue;
+        private TextField _address;
         private List<TextField> textFields;
         private Button continueButton;
+        private GlobalConfig _config;
+        private List<string> _phoneCodeList = new List<string>();
+        private List<string> _countryList = new List<string>();
 
         protected override void Attach(){}
         protected override void Detach(){}
@@ -33,6 +49,11 @@ namespace com.noctuagames.sdk.UI
             HideAllErrors();
 
             Visible = true;
+        }
+
+        public void SetBehaviourWhitelabel(GlobalConfig config)
+        {
+            _config = config;
         }
 
         private bool IsValidEmail(string email)
@@ -71,6 +92,26 @@ namespace com.noctuagames.sdk.UI
             var backButton = View.Q<Button>("BackButton");
             var loginLink = View.Q<Label>("LoginLink");
 
+            //Behaviour whitelabel - VN
+            _fullname = View.Q<TextField>("FullNameTF");
+            _phoneCode = View.Q<DropdownField>("PhoneCodeDF");
+            _phoneNumber = View.Q<TextField>("PhoneNumberTF");
+            _birthDate = View.Q<TextField>("BirthdateTF");
+            _gender = View.Q<DropdownField>("GenderTF");
+            _country = View.Q<DropdownField>("CountryTF");
+            _idCard = View.Q<TextField>("IDCardTF");
+            _placeOfIssue = View.Q<TextField>("PlaceOfIssueTF");
+            _dateOfIssue = View.Q<TextField>("DateOfIssueTF");
+            _address = View.Q<TextField>("AddressTF");
+
+            if(!string.IsNullOrEmpty(_config.Noctua.Flags))
+            {
+                SetupDropdown();  
+                SetupDatePicker();
+                SetCountries();
+                ShowBehaviourWhitelabel(true);
+            }
+
             // Visibility
             continueButton.RemoveFromClassList("hide");
 
@@ -81,16 +122,40 @@ namespace com.noctuagames.sdk.UI
                 emailField.value = "";
                 passwordField.value = "";
                 rePasswordField.value = "";
+
+                _fullname.value = "";
+                _phoneNumber.value = "";
+                _idCard.value = "";
+                _placeOfIssue.value = "";
+                _address.value = "";
             }
 
-            
-            textFields = new List<TextField>
+            if(string.IsNullOrEmpty(_config.Noctua.Flags))
             {
-                emailField,
-                passwordField,
-                rePasswordField
+                textFields = new List<TextField>
+                {
+                    emailField,
+                    passwordField,
+                    rePasswordField
 
-            };
+                };
+            }
+            else
+            {
+                textFields = new List<TextField>
+                {
+                    emailField,
+                    passwordField,
+                    rePasswordField,
+                    _fullname,
+                    _phoneNumber,
+                    _birthDate,
+                    _idCard,
+                    _placeOfIssue,
+                    _dateOfIssue,
+                    _address
+                };
+            }
 
             Utility.UpdateButtonState(textFields, continueButton);
 
@@ -100,7 +165,104 @@ namespace com.noctuagames.sdk.UI
             emailField.RegisterValueChangedCallback(evt => OnEmailValueChanged(emailField));
             passwordField.RegisterValueChangedCallback(evt => OnPasswordValueChanged(passwordField));
             rePasswordField.RegisterValueChangedCallback(evt => OnRePasswordValueChanged(rePasswordField));
+            
+            //Behaviour whitelabel - VN
+            if(!string.IsNullOrEmpty(_config.Noctua.Flags))
+            {
+                _fullname.RegisterValueChangedCallback(evt => OnValueChanged(_fullname));
+                _phoneNumber.RegisterValueChangedCallback(evt => OnValueChanged(_phoneNumber));
+                _idCard.RegisterValueChangedCallback(evt => OnValueChanged(_idCard));
+                _placeOfIssue.RegisterValueChangedCallback(evt => OnValueChanged(_placeOfIssue));
+                _address.RegisterValueChangedCallback(evt => OnValueChanged(_address));
+            }
+
             loginLink.RegisterCallback<PointerUpEvent>(OnLoginLinkClick);
+        }
+
+        private void SetupDropdown()
+        {
+             var genderChoices = new List<string> {"Male", "Female"};
+            Color textColor = new Color(98f / 255f, 100f / 255f, 104f / 255f);
+            
+            _gender.choices = genderChoices; 
+            _gender.value = "Select Gender";
+            _gender.style.color = textColor;
+
+            _gender.RegisterCallback<ChangeEvent<string>>((evt) =>
+            {
+                _gender.style.color = Color.white;
+                _gender.value = evt.newValue;
+                _gender.labelElement.style.display = DisplayStyle.None;
+            });
+        }
+
+        private void SetupDatePicker()
+        {
+            _birthDate.isReadOnly = true;
+            _dateOfIssue.isReadOnly = true;
+
+            string startDate = "01/01/2000";
+            DateTime parsedDate = DateTime.ParseExact(startDate, "dd/MM/yyyy", null);
+
+            void OpenDatePickerHandler(int pickerId, TextField textField, PointerUpEvent upEvent)
+            {
+                //handle open twice date picker
+                upEvent.StopImmediatePropagation();
+
+                Noctua.OpenDatePicker(parsedDate.Year, parsedDate.Month, parsedDate.Day, pickerId,
+                (DateTime _date) =>
+                {
+                    Debug.Log("Date Selected :" + _date.ToString("dd/MM/yyyy"));
+                },
+                (DateTime _date) =>
+                {
+                    Debug.Log("Date Picked :" + _date.ToString("dd/MM/yyyy"));
+
+                    textField.value = _date.ToString("dd/MM/yyyy");
+                    textField.labelElement.style.display = DisplayStyle.None;
+                    Utility.UpdateButtonState(textFields, continueButton);
+                });
+            }
+
+            _birthDate.UnregisterCallback<PointerUpEvent>(evt => OpenDatePickerHandler(1, _birthDate, evt));
+            _dateOfIssue.UnregisterCallback<PointerUpEvent>(evt => OpenDatePickerHandler(2, _dateOfIssue, evt));
+
+            _birthDate.RegisterCallback<PointerUpEvent>(evt => OpenDatePickerHandler(1, _birthDate, evt));
+            _dateOfIssue.RegisterCallback<PointerUpEvent>(evt => OpenDatePickerHandler(2, _dateOfIssue, evt));  
+        }
+
+        private void SetCountries()
+        {
+            _phoneCodeList.Clear();
+            _countryList.Clear();
+
+            List<Country> countries = CountryData.Countries;
+
+            foreach(var country in countries)
+            {
+                _countryList.Add(country.Name);
+                _phoneCodeList.Add(country.PhoneCode);
+            }
+
+            _phoneCode.choices = _phoneCodeList; 
+            _phoneCode.value = _phoneCodeList[0];
+            _phoneCode.RegisterCallback<ChangeEvent<string>>((evt) =>
+            {
+                _phoneCode.value = evt.newValue;
+                _phoneCode.labelElement.style.display = DisplayStyle.None;
+            });
+
+            Color textColor = new Color(98f / 255f, 100f / 255f, 104f / 255f);
+            
+            _country.choices = _countryList; 
+            _country.value = "Select Country";
+            _country.style.color = textColor;
+            _country.RegisterCallback<ChangeEvent<string>>((evt) =>
+            {
+                _country.style.color = Color.white;
+                _country.value = evt.newValue;
+                _country.labelElement.style.display = DisplayStyle.None;
+            });            
         }
 
         private void OnLoginLinkClick(PointerUpEvent evt)
@@ -160,9 +322,54 @@ namespace com.noctuagames.sdk.UI
                 View.Q<VisualElement>("Spinner").AddToClassList("hide");
                 return;
             }
+            
+            if(!string.IsNullOrEmpty(_config.Noctua.Flags) && _gender.value == "Select Gender")
+            {
+                View.Q<Label>("ErrEmailEmpty").text = "Please Select Gender!";
+                View.Q<Label>("ErrEmailEmpty").RemoveFromClassList("hide");
+                View.Q<Button>("ContinueButton").RemoveFromClassList("hide");
+                View.Q<VisualElement>("Spinner").AddToClassList("hide");
+                return;
+            }
+
+            if(!string.IsNullOrEmpty(_config.Noctua.Flags) && _country.value == "Select Country")
+            {
+                View.Q<Label>("ErrEmailEmpty").text = "Please Select Country!";
+                View.Q<Label>("ErrEmailEmpty").RemoveFromClassList("hide");
+                View.Q<Button>("ContinueButton").RemoveFromClassList("hide");
+                View.Q<VisualElement>("Spinner").AddToClassList("hide");
+                return;
+            }
 
             try {
-                var result = await Model.RegisterWithEmailAsync(emailAddress, password);
+                string regExtraJson = "";
+
+                if(!string.IsNullOrEmpty(_config.Noctua.Flags))
+                {
+                    var _dob = _birthDate.value;
+                    string format = "dd/MM/yyyy";
+                    DateTime _dateTime = DateTime.ParseExact(_dob, format, CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal);
+                    _dateTime = new DateTime(_dateTime.Year, _dateTime.Month, _dateTime.Day, 0, 0, 0, DateTimeKind.Utc);
+
+                    var doi = _dateOfIssue.value;
+                    DateTime _dateTimeDoi = DateTime.ParseExact(doi, format, CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal);
+                    _dateTimeDoi = new DateTime(_dateTimeDoi.Year, _dateTimeDoi.Month, _dateTimeDoi.Day, 0, 0, 0, DateTimeKind.Utc);
+
+                    Dictionary<string, string> regExtraDic = new Dictionary<string, string>()
+                    {
+                        { "fullname", _fullname.value },
+                        { "phoneNumber", _phoneCode.value + _phoneNumber.value },
+                        { "birthDate", _dateTime.ToString() },
+                        { "idCard", _idCard.value },
+                        { "placeOfIssue", _placeOfIssue.value },
+                        { "dateOfIssue", _dateTimeDoi.ToString() },
+                        { "address", _address.value }
+                    };
+
+                    regExtraJson = JsonConvert.SerializeObject(regExtraDic);
+                }
+
+                var result = await Model.RegisterWithEmailAsync(emailAddress, password, string.IsNullOrEmpty(regExtraJson) ? null : regExtraJson);
                 Debug.Log("RegisterWithPassword verification ID: " + result.Id);
 
                 View.visible = false;
@@ -244,6 +451,18 @@ namespace com.noctuagames.sdk.UI
             Utility.UpdateButtonState(textFields, continueButton);
         }
 
+        //Behaviour whitelabel - VN
+        private void OnValueChanged(TextField textField)
+        {
+            if(string.IsNullOrEmpty(textField.value)) {
+                textField.labelElement.style.display = DisplayStyle.Flex;
+            } else {
+                textField.labelElement.style.display = DisplayStyle.None;
+            }
+
+            Utility.UpdateButtonState(textFields, continueButton);           
+        }
+
         private void HideAllErrors()
         {
             // To avoid duplicate classes
@@ -260,6 +479,36 @@ namespace com.noctuagames.sdk.UI
             View.Q<Label>("ErrPasswordTooShort").AddToClassList("hide");
             View.Q<Label>("ErrPasswordEmpty").AddToClassList("hide");
             View.Q<Label>("ErrPasswordMismatch").AddToClassList("hide");
+        }
+
+        private void ShowBehaviourWhitelabel(bool isShow)
+        {
+            if(isShow)
+            {
+                View.Q<VisualElement>("PhoneNumberContainer").RemoveFromClassList("hide");
+
+                _fullname.RemoveFromClassList("hide");
+                _birthDate.RemoveFromClassList("hide");
+                _gender.RemoveFromClassList("hide");
+                _country.RemoveFromClassList("hide");
+                _idCard.RemoveFromClassList("hide");
+                _placeOfIssue.RemoveFromClassList("hide");
+                _dateOfIssue.RemoveFromClassList("hide");
+                _address.RemoveFromClassList("hide");
+            }
+            else
+            {
+                View.Q<VisualElement>("PhoneNumberContainer").AddToClassList("hide");
+
+                _fullname.AddToClassList("hide");
+                _birthDate.AddToClassList("hide");
+                _gender.AddToClassList("hide");
+                _country.AddToClassList("hide");
+                _idCard.AddToClassList("hide");
+                _placeOfIssue.AddToClassList("hide");
+                _dateOfIssue.AddToClassList("hide");
+                _address.AddToClassList("hide");
+            }
         }
     }
 }
