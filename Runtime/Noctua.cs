@@ -343,14 +343,14 @@ namespace com.noctuagames.sdk
             #endif
         }
 
-        public static void ShowDatePicker(int year, int month, int day)
+        public static void ShowDatePicker(int year, int month, int day, int id)
         {
-            Instance.Value._nativePlugin?.ShowDatePicker(year, month, day);
+            Instance.Value._nativePlugin?.ShowDatePicker(year, month, day, id);
         }
 
-        public static void OpenDatePicker(int year , int month, int day, Action<DateTime> onChange = null, Action<DateTime> onClose = null)
+        public static void OpenDatePicker(int year, int month, int day, int pickerId = 1, Action<DateTime> onChange = null, Action<DateTime> onClose = null)
         {
-            MobileDateTimePicker.CreateDate(year, month, day, onChange, onClose);
+            MobileDateTimePicker.CreateDate(pickerId, year, month, day, onChange, onClose);
         }
 
         private static INativePlugin GetNativePlugin()
