@@ -467,3 +467,32 @@ Label:hover {
 }
 
 /* End Text Input */
+
+/* Start - Dropdown */
+.general-dropdown-box {
+    margin-bottom: 10px;
+    margin-right: -0.3px;
+    margin-left: -0.3px;
+
+}
+
+.general-dropdown-box .unity-base-field__label {
+    display: none;
+}
+
+.general-dropdown-box .unity-base-field__input {
+    background-color: transparent;
+    border-color: #474B4E;
+    border-radius: 8px;
+    margin-right: 0;
+    margin-left: 0;
+    height: 40px;
+
+}
+
+.general-dropdown-box .unity-base-popup-field__arrow {
+    width: 10px;
+    -unity-background-image-tint-color: rgba(98, 100, 104, 1);
+}
+
+/* End - Dropdown */
