@@ -80,6 +80,8 @@ namespace com.noctuagames.sdk
             _accountDeletionConfirmationDialog = _uiFactory.Create<AccountDeletionConfirmationDialogPresenter, AuthenticationModel>(this);
             _welcome = _uiFactory.Create<WelcomeNotificationPresenter, AuthenticationModel>(this);
 
+            _welcome.SetBehaviourWhitelabel(config);
+            _emailLoginDialog.SetBehaviourWhitelabel(config);
             _emailRegisterDialog.SetBehaviourWhitelabel(config);
             _accountSelectionDialog.SetWhitelabel(config);
             _loginOptionsDialog.SetWhitelabel(config);
