@@ -1,4 +1,5 @@
 ﻿using System;
+using System.IO;
 using System.Collections.Generic;
 using System.Linq;
 using System.Web;
@@ -315,6 +316,9 @@ namespace com.noctuagames.sdk
 
         [JsonProperty("provider")]
         public string Provider;
+        
+        [JsonProperty("reg_extra")]
+        public string? RegExtra;
     }
 
     [Preserve]
@@ -399,7 +403,6 @@ namespace com.noctuagames.sdk
         [JsonProperty("english_name")]
         public string EnglishName;
     }
-    
     
     internal class NoctuaAuthenticationService
     {
@@ -558,7 +561,7 @@ namespace com.noctuagames.sdk
         }
         
         // TODO: Add support for phone
-        public async UniTask<CredentialVerification> RegisterWithEmailAsync(string email, string password)
+        public async UniTask<CredentialVerification> RegisterWithEmailAsync(string email, string password, string regExtra = null)
         {
             
             var request = new HttpRequest(HttpMethod.Post, $"{_baseUrl}/auth/email/register")
@@ -569,7 +572,8 @@ namespace com.noctuagames.sdk
                     {
                         CredKey = email,
                         CredSecret = password,
-                        Provider = "email"
+                        Provider = "email",
+                        RegExtra = regExtra
                     }
                 );
 
@@ -897,7 +901,7 @@ namespace com.noctuagames.sdk
 
             return await request.Send<ProfileOptionData>();
         }
-        
+
         internal class Config
         {
             public string BaseUrl;
