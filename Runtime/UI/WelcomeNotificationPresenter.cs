@@ -10,7 +10,7 @@ namespace com.noctuagames.sdk.UI
         private VisualElement _root;
         private Label _playerName;
         private VisualElement _playerAvatarImage;
-
+        private GlobalConfig _config;
         protected override void Attach()
         {
             Model.OnAccountChanged += OnAccountChanged;
@@ -43,8 +43,19 @@ namespace com.noctuagames.sdk.UI
             StartCoroutine(RunAnimation(userBundle));
         }
 
+        public void SetBehaviourWhitelabel(GlobalConfig config)
+        {
+            _config = config;
+        }
+
         public IEnumerator RunAnimation(UserBundle userBundle)
         {
+            if (!string.IsNullOrEmpty(_config.Noctua.Flags) && _config.Noctua.Flags.Contains("VN") && userBundle.IsGuest)
+            {
+                Model.ShowEmailLogin();
+                yield break;
+            }
+
             View.visible = true;
             
             yield return new WaitForSeconds(1);
