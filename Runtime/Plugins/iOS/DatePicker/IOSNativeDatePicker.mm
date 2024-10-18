@@ -33,37 +33,38 @@
     return w;
 }
 
-+ (void)DP_changeDate:(UIDatePicker *)sender {
-    
++ (void) DP_changeDate:(UIDatePicker *)sender {
     NSDateFormatter *dateFormatter = [[NSDateFormatter alloc] init];
-
-    
-    [dateFormatter setDateFormat: @"yyyy-MM-dd HH:mm:ss"];
+    [dateFormatter setDateFormat:@"yyyy-MM-dd HH:mm:ss"];
     NSString *dateString = [dateFormatter stringFromDate:sender.date];
+
+    // Get the pickerId from the datePicker's tag
+    int pickerId = (int)sender.tag;
+
+    // Include the pickerId in the Unity message
+    NSString *unityObjectName = [NSString stringWithFormat:@"MobileDateTimePicker_%d", pickerId];
     
-    NSLog(@"DateChangedEvent: %@", dateString);
-    
-    UnitySendMessage("MobileDateTimePicker", "DateChangedEvent", [DataConvertor NSStringToChar:dateString]);
+    UnitySendMessage([unityObjectName UTF8String], "DateChangedEvent", [dateString UTF8String]);
 }
 
-+(void) DP_PickerClosed:(UIDatePicker *)sender {
++ (void) DP_PickerClosed:(UIDatePicker *)sender {
     NSDateFormatter *dateFormatter = [[NSDateFormatter alloc] init];
-
-    [dateFormatter setDateFormat: @"yyyy-MM-dd HH:mm:ss"];
+    [dateFormatter setDateFormat:@"yyyy-MM-dd HH:mm:ss"];
     NSString *dateString = [dateFormatter stringFromDate:sender.date];
     
-    NSLog(@"DateChangedEvent: %@", dateString);
-    
-    UnitySendMessage("MobileDateTimePicker", "PickerClosedEvent", [DataConvertor NSStringToChar:dateString]);
-    
+    // Get the pickerId from the datePicker's tag
+    int pickerId = (int)sender.tag;
+
+    // Include the pickerId in the Unity message
+    NSString *unityObjectName = [NSString stringWithFormat:@"MobileDateTimePicker_%d", pickerId];
+
+    UnitySendMessage([unityObjectName UTF8String], "PickerClosedEvent", [dateString UTF8String]);
 }
 
 UIDatePicker *datePicker;
 
-+ (void) DP_show:(int)mode secondNumber:(double)unix{
++ (void) DP_show:(int)mode secondNumber:(double)unix pickerId:(int)pickerId{
     UIViewController *vc =  UnityGetGLViewController();
-    
-    
     
     CGRect toolbarTargetFrame = CGRectMake(0, vc.view.bounds.size.height-216-44, [self GetW], 44);
     CGRect datePickerTargetFrame = CGRectMake(0, vc.view.bounds.size.height-216, [self GetW], 216);
@@ -102,7 +103,9 @@ UIDatePicker *datePicker;
     
     
     datePicker = [[UIDatePicker alloc] initWithFrame:CGRectMake(0, vc.view.bounds.size.height+44, [self GetW], 216)];
-    datePicker.tag = 10;
+    // datePicker.tag = 10;
+    // Store the pickerId as a tag or use it in the message
+    datePicker.tag = pickerId; // Store the picker ID in the tag for later use.
         
     
     [datePicker addTarget:self action:@selector(DP_changeDate:) forControlEvents:UIControlEventValueChanged];
@@ -184,8 +187,8 @@ extern "C" {
     //  Unity Call Date Time Picker
     //--------------------------------------
     
-    void _TAG_ShowDatePicker(int mode, double unix) {
-        [IOSNativeDatePicker DP_show:mode secondNumber:unix];
+    void _TAG_ShowDatePicker(int mode, double unix, int pickerId) {
+        [IOSNativeDatePicker DP_show:mode secondNumber:unix pickerId:pickerId];
     }
 }
 
