@@ -74,6 +74,14 @@ namespace com.noctuagames.sdk.UI
             View.Q<VisualElement>("Spinner").AddToClassList("hide");
         }
 
+        public void SetBehaviourWhitelabel(GlobalConfig _config)
+        {
+            if (!string.IsNullOrEmpty(_config.Noctua.Flags) && _config.Noctua.Flags.Contains("VN"))
+            {
+                View.Q<Button>("BackButton").AddToClassList("hide");
+            }
+        }
+
         private void OnEmailValueChanged(TextField textField)
         {
             HideAllErrors();
