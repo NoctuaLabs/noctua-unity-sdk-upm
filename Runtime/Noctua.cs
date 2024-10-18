@@ -271,15 +271,16 @@ namespace com.noctuagames.sdk
                 return;
             }
             
-            Debug.Log("Noctua.Init() -> nativePlugin?.Init()");
-            Instance.Value._nativePlugin?.Init();
-
-            #if UNITY_ANDROID && !UNITY_EDITOR
-            Instance.Value._googleBilling?.Init();
-            #endif
 
             // Init game
             var initResponse = await Instance.Value._game.InitGameAsync();
+
+            Debug.Log("Noctua.Init() -> nativePlugin?.Init()");
+            Instance.Value._nativePlugin?.Init(initResponse.ActiveBundleIds);
+
+#if UNITY_ANDROID && !UNITY_EDITOR
+            Instance.Value._googleBilling?.Init();
+#endif
 
             if (string.IsNullOrEmpty(initResponse.Country))
             {

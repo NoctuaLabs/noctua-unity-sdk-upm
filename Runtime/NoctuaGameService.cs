@@ -21,9 +21,12 @@ namespace com.noctuagames.sdk
 
         [JsonProperty("active_product_id")]
         public string ActiveProductId;
-
+        
         [JsonProperty("remote_configs")]
         public RemoteConfigs RemoteConfigs;
+        
+        [JsonProperty("active_bundle_ids")]
+        public List<string> ActiveBundleIds;
     }
 
     [Preserve]

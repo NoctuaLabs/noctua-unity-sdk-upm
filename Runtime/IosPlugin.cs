@@ -29,7 +29,7 @@ namespace com.noctuagames.sdk
         [DllImport ("__Internal")]
         private static extern void _TAG_ShowDatePicker(int mode, double unix);
 
-        public void Init()
+        public void Init(List<string> activeBundleIds)
         {
             noctuaInitialize();
         }
@@ -98,6 +98,26 @@ namespace com.noctuagames.sdk
             DateTime dateTime = new DateTime(year, month, day);
             double unix = (TimeZoneInfo.ConvertTimeToUtc(dateTime) - new DateTime(1970, 1, 1, 0, 0, 0, 0, System.DateTimeKind.Utc)).TotalSeconds; 
             _TAG_ShowDatePicker(2, unix);
+        }
+
+        public NativeAccount GetAccount(long userId, long gameId)
+        {
+            throw new NotImplementedException();
+        }
+
+        public List<NativeAccount> GetAccounts()
+        {
+            throw new NotImplementedException();
+        }
+
+        public void PutAccount(NativeAccount account)
+        {
+            throw new NotImplementedException();
+        }
+
+        public int DeleteAccount(NativeAccount account)
+        {
+            throw new NotImplementedException();
         }
     }
 #endif
