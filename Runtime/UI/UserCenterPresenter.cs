@@ -317,7 +317,7 @@ namespace com.noctuagames.sdk.UI
             DateTime parsedDate = DateTime.ParseExact(_dob, "dd/MM/yyyy", null);
 
             _birthDateTF.RegisterCallback<PointerUpEvent>(_ => {
-                Noctua.OpenDatePicker(parsedDate.Year, parsedDate.Month, parsedDate.Day,
+                Noctua.OpenDatePicker(parsedDate.Year, parsedDate.Month, parsedDate.Day, 1,
                 (DateTime _date) =>
                 {
                     Debug.Log(_date.ToString("dd/MM/yyyy"));
