@@ -13,14 +13,21 @@ namespace com.noctuagames.sdk
     internal class SocialAuthenticationService
     {
         private readonly NoctuaAuthenticationService _authService;
+        private readonly GlobalConfig _config;
         
-        internal SocialAuthenticationService(NoctuaAuthenticationService authService)
+        internal SocialAuthenticationService(NoctuaAuthenticationService authService, GlobalConfig config)
         {
             _authService = authService;
+            _config = config;
         }
         
         public async UniTask<UserBundle> SocialLoginAsync(string provider)
         {
+            if(_config.Noctua.Flags.Contains("VN"))
+            {
+                throw new NoctuaException(NoctuaErrorCode.Authentication, "Social Login is Disable");
+            }
+
             if (_authService == null)
             {
                 throw new NoctuaException(NoctuaErrorCode.Authentication, "AuthService is not set");

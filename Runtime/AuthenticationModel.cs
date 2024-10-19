@@ -89,7 +89,7 @@ namespace com.noctuagames.sdk
             
             _authService = authService;
             _authService.OnAccountChanged += OnAccountChanged;
-            _socialAuth = new SocialAuthenticationService(_authService);
+            _socialAuth = new SocialAuthenticationService(_authService, config);
         }
         
         internal void PushNavigation(Action action)
@@ -133,9 +133,9 @@ namespace com.noctuagames.sdk
             _loginOptionsDialog.Show();
         }
 
-        public void ShowEmailLogin(Action<UserBundle> onLoginSuccess = null)
+        public void ShowEmailLogin(Action<UserBundle> onLoginSuccess = null, bool isShowBackButton = false)
         {
-            _emailLoginDialog.Show(onLoginSuccess);
+            _emailLoginDialog.Show(onLoginSuccess, isShowBackButton);
         }
 
         public void ShowEmailResetPassword(bool clearForm)
