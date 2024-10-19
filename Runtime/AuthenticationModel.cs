@@ -62,7 +62,7 @@ namespace com.noctuagames.sdk
 
         internal event Action<UserBundle> OnAccountChanged;
 
-        private AuthType _currentAuthType = AuthType.SwitchAccount;
+        private AuthType _currentAuthType = AuthType.SwitchOrBindAccount;
 
         internal AuthenticationModel(UIFactory uiFactory, NoctuaAuthenticationService authService, GlobalConfig config)
         {
@@ -111,7 +111,7 @@ namespace com.noctuagames.sdk
 
         public void ShowAccountSelection()
         {
-            _currentAuthType = AuthType.SwitchAccount;
+            _currentAuthType = AuthType.SwitchOrBindAccount;
             _accountSelectionDialog.Show();
         }
 
@@ -157,7 +157,8 @@ namespace com.noctuagames.sdk
         
         public void ShowUserCenter()
         {
-            _currentAuthType = AuthType.LinkOrBindAccount;
+            _currentAuthType = _authService.RecentAccount.IsGuest ? AuthType.SwitchOrBindAccount : AuthType.LinkAccount;
+
             _userCenter.Show();
         }
 
@@ -175,8 +176,8 @@ namespace com.noctuagames.sdk
         {
             return _currentAuthType switch
             {
-                AuthType.SwitchAccount => await AuthService.RegisterWithEmailAsync(email, password),
-                AuthType.LinkOrBindAccount => await AuthService.LinkWithEmailAsync(email, password),
+                AuthType.SwitchOrBindAccount => await AuthService.RegisterWithEmailAsync(email, password),
+                AuthType.LinkAccount => await AuthService.LinkWithEmailAsync(email, password),
                 _ => throw new NotImplementedException(_currentAuthType.ToString())
             };
         }
@@ -185,12 +186,12 @@ namespace com.noctuagames.sdk
         {
             switch (_currentAuthType)
             {
-                case AuthType.SwitchAccount:
+                case AuthType.SwitchOrBindAccount:
                     await AuthService.VerifyEmailRegistrationAsync(credVerifyId, code);
 
                     break;
 
-                case AuthType.LinkOrBindAccount:
+                case AuthType.LinkAccount:
                     await AuthService.VerifyEmailLinkingAsync(credVerifyId, code);
 
                     break;
@@ -213,7 +214,7 @@ namespace com.noctuagames.sdk
     
     internal enum AuthType
     {
-        SwitchAccount,
-        LinkOrBindAccount,
+        SwitchOrBindAccount,
+        LinkAccount,
     }
 }
