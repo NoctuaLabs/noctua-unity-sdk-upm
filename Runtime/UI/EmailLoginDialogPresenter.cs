@@ -26,9 +26,15 @@ namespace com.noctuagames.sdk.UI
         private Button submitButton;
         
         private Action<UserBundle> _onLoginSuccess;
+        private GlobalConfig _config;
 
-        public void Show(Action<UserBundle> onLoginSuccess)
+        public void Show(Action<UserBundle> onLoginSuccess, bool isShowBackButton = false)
         {
+            if(_config.Noctua.Flags.Contains("VN"))
+            {
+                View.Q<Button>("BackButton").EnableInClassList("hide", !isShowBackButton);  
+            }
+
             Setup();
 
             _onLoginSuccess = onLoginSuccess;
@@ -74,9 +80,10 @@ namespace com.noctuagames.sdk.UI
             View.Q<VisualElement>("Spinner").AddToClassList("hide");
         }
 
-        public void SetBehaviourWhitelabel(GlobalConfig _config)
+        public void SetBehaviourWhitelabel(GlobalConfig config)
         {
-            if (!string.IsNullOrEmpty(_config.Noctua.Flags) && _config.Noctua.Flags.Contains("VN"))
+            _config = config;
+            if (!string.IsNullOrEmpty(config.Noctua.Flags) && config.Noctua.Flags.Contains("VN"))
             {
                 View.Q<Button>("BackButton").AddToClassList("hide");
             }

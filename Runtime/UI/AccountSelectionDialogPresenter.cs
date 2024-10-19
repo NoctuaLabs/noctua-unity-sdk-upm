@@ -94,7 +94,14 @@ namespace com.noctuagames.sdk.UI
             View.visible = false;
             
             Model.PushNavigation(() => Model.ShowAccountSelection());
-            Model.ShowLoginOptions();
+            if(_config.Noctua.Flags.Contains("VN"))
+            {
+                Model.ShowEmailLogin(null, true);
+            }
+            else
+            {
+                Model.ShowLoginOptions();
+            }
         }
 
         private void OnCloseButtonClick(PointerUpEvent evt)
