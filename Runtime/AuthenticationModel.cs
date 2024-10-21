@@ -80,6 +80,7 @@ namespace com.noctuagames.sdk
             _accountDeletionConfirmationDialog = _uiFactory.Create<AccountDeletionConfirmationDialogPresenter, AuthenticationModel>(this);
             _welcome = _uiFactory.Create<WelcomeNotificationPresenter, AuthenticationModel>(this);
 
+            _emailRegisterDialog.SetBehaviourWhitelabel(config);
             _accountSelectionDialog.SetWhitelabel(config);
             _loginOptionsDialog.SetWhitelabel(config);
             _userCenter.SetWhitelabel(config);
@@ -172,11 +173,11 @@ namespace com.noctuagames.sdk
             _uiFactory.ShowLoadingProgress(isShow);
         }
 
-        internal async UniTask<CredentialVerification> RegisterWithEmailAsync(string email, string password)
+        internal async UniTask<CredentialVerification> RegisterWithEmailAsync(string email, string password, string regExtra = null)
         {
             return _currentAuthType switch
             {
-                AuthType.SwitchOrBindAccount => await AuthService.RegisterWithEmailAsync(email, password),
+                AuthType.SwitchOrBindAccount => await AuthService.RegisterWithEmailAsync(email, password, regExtra),
                 AuthType.LinkAccount => await AuthService.LinkWithEmailAsync(email, password),
                 _ => throw new NotImplementedException(_currentAuthType.ToString())
             };
