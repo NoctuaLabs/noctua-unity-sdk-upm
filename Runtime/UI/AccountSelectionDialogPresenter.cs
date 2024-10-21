@@ -38,24 +38,15 @@ namespace com.noctuagames.sdk.UI
         {
             _gameUsers.Clear();
 
-            var currentGameAccountList = Model.AuthService.CurrentGameAccountList;
-            var nonGuestUsersCurrentGame = currentGameAccountList.Where(user => 
-                (string.IsNullOrEmpty(_config.Noctua.Flags) || !_config.Noctua.Flags.Contains("VN")) && 
-                !user.IsGuest
-            );
-
-            _gameUsers.AddRange(nonGuestUsersCurrentGame);
+            var currentGameAccountList = _config.Noctua.Flags.Contains("VN") ? Model.AuthService.CurrentGameAccountList.Where(user => !user.IsGuest) : Model.AuthService.CurrentGameAccountList;
+            _gameUsers.AddRange(currentGameAccountList);
             _gameAccountListView.Rebuild();
 
             _noctuaUsers.Clear();
 
-            var otherGamesAccountList = Model.AuthService.OtherGamesAccountList;
-            var nonGuestUsersOtherGames = otherGamesAccountList.Where(user => 
-                (string.IsNullOrEmpty(_config.Noctua.Flags) || !_config.Noctua.Flags.Contains("VN")) && 
-                !user.IsGuest
-            );
+            var otherGamesAccountList = (string.IsNullOrEmpty(_config.Noctua.Flags) || !_config.Noctua.Flags.Contains("VN")) ? Model.AuthService.OtherGamesAccountList.Where(user => !user.IsGuest) : Model.AuthService.OtherGamesAccountList;
 
-            _noctuaUsers.AddRange(nonGuestUsersOtherGames);
+            _noctuaUsers.AddRange(otherGamesAccountList);
             _noctuaAccountListView.Rebuild();
 
             _separator.style.display = _noctuaUsers.Count > 0 ? DisplayStyle.Flex : DisplayStyle.None;
