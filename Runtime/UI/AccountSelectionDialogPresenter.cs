@@ -18,7 +18,7 @@ namespace com.noctuagames.sdk.UI
         private Button _continueButton;
         private Button _closeButton;
         private readonly ILogger _log = new NoctuaUnityDebugLogger();
-
+        private GlobalConfig _config;
         protected override void Attach()
         {
         }
@@ -37,11 +37,25 @@ namespace com.noctuagames.sdk.UI
         private void LoadData()
         {
             _gameUsers.Clear();
-            _gameUsers.AddRange(Model.AuthService.CurrentGameAccountList);
+
+            var currentGameAccountList = Model.AuthService.CurrentGameAccountList;
+            var nonGuestUsersCurrentGame = currentGameAccountList.Where(user => 
+                (string.IsNullOrEmpty(_config.Noctua.Flags) || !_config.Noctua.Flags.Contains("VN")) && 
+                !user.IsGuest
+            );
+
+            _gameUsers.AddRange(nonGuestUsersCurrentGame);
             _gameAccountListView.Rebuild();
 
             _noctuaUsers.Clear();
-            _noctuaUsers.AddRange(Model.AuthService.OtherGamesAccountList);
+
+            var otherGamesAccountList = Model.AuthService.OtherGamesAccountList;
+            var nonGuestUsersOtherGames = otherGamesAccountList.Where(user => 
+                (string.IsNullOrEmpty(_config.Noctua.Flags) || !_config.Noctua.Flags.Contains("VN")) && 
+                !user.IsGuest
+            );
+
+            _noctuaUsers.AddRange(nonGuestUsersOtherGames);
             _noctuaAccountListView.Rebuild();
 
             _separator.style.display = _noctuaUsers.Count > 0 ? DisplayStyle.Flex : DisplayStyle.None;
@@ -64,6 +78,8 @@ namespace com.noctuagames.sdk.UI
 
         public void SetWhitelabel(GlobalConfig config)
         {
+            _config = config;
+
             if(!string.IsNullOrEmpty(config.CoPublisher.CompanyName))
             {
                 var logo = Utility.GetCoPublisherLogo(config.CoPublisher.CompanyName);
