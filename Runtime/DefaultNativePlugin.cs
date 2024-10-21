@@ -16,7 +16,7 @@ namespace com.noctuagames.sdk
         {
         }
 
-        public void ShowDatePicker(int year, int month, int day)
+        public void ShowDatePicker(int year, int month, int day, int id)
         {
             throw new NotImplementedException();
         }
