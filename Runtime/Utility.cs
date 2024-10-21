@@ -169,6 +169,14 @@ namespace com.noctuagames.sdk
 
             return logoMap.GetValueOrDefault(companyName, "NoctuaLogoWithText");
         }
+        
+        public static bool ContainsFlag(string flags, string flagToCheck)
+        {
+            return flags
+                .Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries)
+                .Select(flag => flag.Trim())
+                .Contains(flagToCheck, StringComparer.OrdinalIgnoreCase);
+        }
 
     }
 }
