@@ -30,7 +30,7 @@ namespace com.noctuagames.sdk.UI
 
         public void Show(Action<UserBundle> onLoginSuccess, bool isShowBackButton = false)
         {
-            if(_config.Noctua.Flags.Contains("VN"))
+            if(Utility.ContainsFlag(_config.Noctua.Flags, "VNLegalPurpose"))
             {
                 View.Q<Button>("BackButton").EnableInClassList("hide", !isShowBackButton);  
             }
