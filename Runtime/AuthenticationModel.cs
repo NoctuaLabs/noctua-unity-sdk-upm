@@ -175,7 +175,7 @@ namespace com.noctuagames.sdk
             _uiFactory.ShowLoadingProgress(isShow);
         }
 
-        internal async UniTask<CredentialVerification> RegisterWithEmailAsync(string email, string password, string regExtra = null)
+        internal async UniTask<CredentialVerification> RegisterWithEmailAsync(string email, string password, Dictionary<string, string> regExtra = null)
         {
             return _currentAuthType switch
             {

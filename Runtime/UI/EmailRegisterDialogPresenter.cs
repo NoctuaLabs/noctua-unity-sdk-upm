@@ -342,7 +342,7 @@ namespace com.noctuagames.sdk.UI
             }
 
             try {
-                string regExtraJson = "";
+                 Dictionary<string, string> regExtra = new();
 
                 if(!string.IsNullOrEmpty(_config.Noctua.Flags))
                 {
@@ -358,18 +358,18 @@ namespace com.noctuagames.sdk.UI
                     Dictionary<string, string> regExtraDic = new Dictionary<string, string>()
                     {
                         { "fullname", _fullname.value },
-                        { "phoneNumber", _phoneCode.value + _phoneNumber.value },
-                        { "birthDate", _dateTime.ToString() },
-                        { "idCard", _idCard.value },
-                        { "placeOfIssue", _placeOfIssue.value },
-                        { "dateOfIssue", _dateTimeDoi.ToString() },
+                        { "phone_number", _phoneCode.value + _phoneNumber.value },
+                        { "birth_date", _dateTime.ToString() },
+                        { "id_card", _idCard.value },
+                        { "place_of_issue", _placeOfIssue.value },
+                        { "date_of_issue", _dateTimeDoi.ToString() },
                         { "address", _address.value }
                     };
 
-                    regExtraJson = JsonConvert.SerializeObject(regExtraDic);
+                    regExtra = regExtraDic;
                 }
 
-                var result = await Model.RegisterWithEmailAsync(emailAddress, password, string.IsNullOrEmpty(regExtraJson) ? null : regExtraJson);
+                var result = await Model.RegisterWithEmailAsync(emailAddress, password, regExtra == null ? null : regExtra);
                 Debug.Log("RegisterWithPassword verification ID: " + result.Id);
 
                 View.visible = false;

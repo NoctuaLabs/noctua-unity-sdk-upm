@@ -317,7 +317,7 @@ namespace com.noctuagames.sdk
         public string Provider;
         
         [JsonProperty("reg_extra")]
-        public string? RegExtra;
+        public Dictionary<string, string>? RegExtra;
     }
 
     [Preserve]
@@ -560,7 +560,7 @@ namespace com.noctuagames.sdk
         }
         
         // TODO: Add support for phone
-        public async UniTask<CredentialVerification> RegisterWithEmailAsync(string email, string password, string regExtra = null)
+        public async UniTask<CredentialVerification> RegisterWithEmailAsync(string email, string password, Dictionary<string, string> regExtra = null)
         {
             
             var request = new HttpRequest(HttpMethod.Post, $"{_baseUrl}/auth/email/register")
