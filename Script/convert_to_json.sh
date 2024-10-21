@@ -30,17 +30,14 @@ while IFS=',' read -r event_name adjust_android firebase_android facebook_androi
     cat android.json  | jq '.adjust.eventMap += {"'$event_name'": "'$adjust_android'"}' > buffer && mv buffer android.json
     cat android.json  | jq '.firebase.eventMap += {"'$event_name'": "'$firebase_android'"}' > buffer && mv buffer android.json
     cat android.json  | jq '.facebook.eventMap += {"'$event_name'": "'$facebook_android'"}' > buffer && mv buffer android.json
-    cat android.json  | jq '.noctua.eventMap += {"'$event_name'": "'$event_name'"}' > buffer && mv buffer android.json
 
     cat ios.json  | jq '.adjust.eventMap += {"'$event_name'": "'$adjust_ios'"}' > buffer && mv buffer ios.json
     cat ios.json  | jq '.firebase.eventMap += {"'$event_name'": "'$firebase_ios'"}' > buffer && mv buffer ios.json
     cat ios.json  | jq '.facebook.eventMap += {"'$event_name'": "'$facebook_ios'"}' > buffer && mv buffer ios.json
-    cat ios.json  | jq '.noctua.eventMap += {"'$event_name'": "'$event_name'"}' > buffer && mv buffer ios.json
 
     cat windows.json  | jq '.adjust.eventMap += {"'$event_name'": "'$adjust_windows'"}' > buffer && mv buffer windows.json
     cat windows.json  | jq '.firebase.eventMap += {"'$event_name'": "'$firebase_windows'"}' > buffer && mv buffer windows.json
     cat windows.json  | jq '.facebook.eventMap += {"'$event_name'": "'$facebook_windows'"}' > buffer && mv buffer windows.json
-    cat windows.json  | jq '.noctua.eventMap += {"'$event_name'": "'$event_name'"}' > buffer && mv buffer windows.json
 
 done < "$input_file"
 
