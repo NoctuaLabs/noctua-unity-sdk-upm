@@ -109,7 +109,18 @@ namespace com.noctuagames.sdk
             var request = new HttpRequest(HttpMethod.Get, url)
                 .WithHeader("Content-Type", "application/json")
                 .WithHeader("Accept", "application/json")
-                .WithHeader("Authorization", "Bearer " + _accessTokenProvider.AccessToken);
+
+
+            try
+            {
+                request.WithHeader("Authorization", "Bearer " + _accessTokenProvider.AccessToken);
+            }
+            catch (Exception e)
+            {
+                // Do nothing. Backend will handle unauthenticated requests.
+                // It either returns empty URL (if the request is not allowed)
+                // or the URL if authentication is not required.
+            }
             
             return await request.Send<WebContentUrl>();
         }
