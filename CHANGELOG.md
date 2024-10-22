@@ -2,6 +2,44 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.13.0] - 2024-10-22
+
+### 🚀 Features
+
+- Add cross-game account storage
+- Add countries data and phone code
+- Add registration extra params for behaviour vn
+- Form field for behaviour whitelabel vn
+- Picker id param
+- Add form register for behaviour whitelabel vn
+- Configuration behaviour whitelabel vn
+- Remove close/back button in login with email for behaviour whitelabel vn
+- Don't show notif user guest if behavior whitelabel vn is true
+- Disable SSO for Behaviour whitelabel vn
+- Show direct login with email when player continue with other account
+- Add reusable ContainsFlag Checker
+- Add event tracker generator for multiple platforms and multiple thirdparty trackers.
+
+### 🐛 Bug Fixes
+
+- Shim for android sdk with content provider
+- Guest can't bind account
+- Change flag by company name
+- Update library date picker android native
+- Conflict rebase
+- Update bridging file date picker native ios
+- Adjust code conflict
+- Update player avatar
+- Change req_extra to dictionary
+- Add idPicker params - showDatePicker
+- Adjust code to filter non guest account - account selection
+- Enhance flag checking more robust
+- Make token optional for fetching platform content.
+
+### 🚜 Refactor
+
+- Open date picker - user center
+
 ## [0.12.0] - 2024-10-16
 
 ### 🚀 Features
