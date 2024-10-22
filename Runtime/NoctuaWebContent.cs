@@ -108,7 +108,7 @@ namespace com.noctuagames.sdk
         {
             var request = new HttpRequest(HttpMethod.Get, url)
                 .WithHeader("Content-Type", "application/json")
-                .WithHeader("Accept", "application/json")
+                .WithHeader("Accept", "application/json");
 
 
             try
