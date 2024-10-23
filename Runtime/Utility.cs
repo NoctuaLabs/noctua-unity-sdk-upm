@@ -1,14 +1,18 @@
 using System;
+using System.IO;
 using System.Collections.Generic;
 using System.Reflection;
 using UnityEngine;
 using UnityEngine.UIElements;
 using System.Linq;
+using Newtonsoft.Json;
 
 namespace com.noctuagames.sdk
 {
     public static class Utility
     {
+
+        private static Dictionary<string, string> _translations;
 
         public static string PrintFields<T>(this T obj)
         {
@@ -178,5 +182,76 @@ namespace com.noctuagames.sdk
                 .Contains(flagToCheck, StringComparer.OrdinalIgnoreCase);
         }
 
+        public static void LoadTranslations(string resourceFileName)
+        {
+            TextAsset jsonFile = Resources.Load<TextAsset>(resourceFileName);
+            
+            if (jsonFile != null)
+            {
+                _translations = JsonConvert.DeserializeObject<Dictionary<string, string>>(jsonFile.text);
+            }
+            else
+            {
+                Debug.LogError($"Translation file {resourceFileName} not found in Resources.");
+            }
+        }
+
+        public static string GetTranslation(string key)
+        {
+            if (_translations != null && _translations.TryGetValue(key, out string localizedText))
+            {
+                return localizedText;
+            }
+
+            return key;
+        }
+
+        public static void ApplyTranslations(VisualElement root, string uxmlName)
+        {
+            ApplyTranslationsToElement(root, uxmlName);
+        }
+
+        private static void ApplyTranslationsToElement(VisualElement element, string uxmlName)
+        {
+            string elementName = element.name ?? string.Empty;
+            string elementType = element.GetType().Name;
+            element.Q<Label>(elementName);
+
+            switch (element)
+            {
+                case Label label:
+                    string labelKey = $"{uxmlName}.{elementName}.{elementType}.text";
+                    string labelTranslation = GetTranslation(labelKey);
+                    label.text = labelTranslation;
+                    break;
+                case Button button:
+                    string buttonKey = $"{uxmlName}.{elementName}.{elementType}.text";
+                    string buttonTranslation = GetTranslation(buttonKey);
+
+                    if(buttonTranslation != buttonKey)
+                    {
+                        button.text = buttonTranslation;
+                    }
+                    break;
+                case TextField textField:
+                    string textFieldKey = $"{uxmlName}.{elementName}.{elementType}.label";
+                    string textFieldTranslation = GetTranslation(textFieldKey);
+                    textField.label = textFieldTranslation;
+                    break;
+                case VisualElement visualElement:
+                    // If it's a VisualElement, just log that it's a container and continue with child elements
+                    Debug.Log($"Handling VisualElement: {elementName} ({elementType})");
+
+                    // Recursively apply translations to all child elements
+                    foreach (var child in visualElement.Children())
+                    {
+                        ApplyTranslationsToElement(child, uxmlName);
+                    }
+                    break;
+                default:
+                    Debug.Log($"Unhandled element type: {elementType}");
+                    break;
+            }
+        }
     }
 }

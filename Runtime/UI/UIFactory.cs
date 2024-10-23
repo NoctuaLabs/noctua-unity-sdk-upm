@@ -10,8 +10,11 @@ namespace com.noctuagames.sdk.UI
         private readonly PanelSettings _panelSettings;
         private readonly LoadingProgressPresenter _loading;
         private readonly GeneralNotificationPresenter _notification;
+        private readonly string resourceLocalizationFileName = "noctua-translation.en";
         internal UIFactory(string gameObjectName, string panelSettingsPath = "NoctuaPanelSettings", string themeStyleSheetPath = "NoctuaTheme")
         {
+            Utility.LoadTranslations(resourceLocalizationFileName);
+
             _rootObject = new GameObject(gameObjectName);
             _panelSettings = Resources.Load<PanelSettings>(panelSettingsPath);
             _panelSettings.themeStyleSheet = Resources.Load<ThemeStyleSheet>(themeStyleSheetPath);
@@ -22,6 +25,8 @@ namespace com.noctuagames.sdk.UI
         
         internal UIFactory(GameObject rootObject, PanelSettings panelSettings)
         {
+            Utility.LoadTranslations(resourceLocalizationFileName);
+
             _rootObject = rootObject;
             _panelSettings = panelSettings;
 
@@ -43,6 +48,10 @@ namespace com.noctuagames.sdk.UI
             var presenter = gameObject.AddComponent<TPresenter>();
             presenter.transform.SetParent(_rootObject.transform);
             presenter.Init(model, _panelSettings);
+
+            var visualElementRoot = gameObject.GetComponent<UIDocument>().rootVisualElement;
+            ApplyLocalization(visualElementRoot, typeof(TPresenter).Name);
+
             gameObject.SetActive(true);
             
             return presenter;
@@ -66,6 +75,11 @@ namespace com.noctuagames.sdk.UI
         private GeneralNotificationPresenter CreateNotificationPresenter()
         {
             return Create<GeneralNotificationPresenter, object>(new object());
+        }
+
+        private void ApplyLocalization(VisualElement root, string uxmlName)
+        {
+            Utility.ApplyTranslations(root, uxmlName);
         }
     }
 }
