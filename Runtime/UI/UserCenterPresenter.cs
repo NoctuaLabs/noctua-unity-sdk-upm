@@ -19,6 +19,7 @@ namespace com.noctuagames.sdk.UI
         private Texture2D _defaultAvatar;
         private ListView _credentialListView;
         private Label _stayConnect;
+        private VisualElement _containerStayConnect;
         private VisualElement _hiTextContainer;
         private Label _playerName;
         private Button _moreOptionsMenuButton;
@@ -131,7 +132,7 @@ namespace com.noctuagames.sdk.UI
         {
             if(!string.IsNullOrEmpty(config.CoPublisher.CompanyName))
             {
-                _stayConnect.text = "Stay connect to " + config.CoPublisher.CompanyName;
+                _stayConnect.text = config.CoPublisher.CompanyName;
 
                 var logo = Utility.GetCoPublisherLogo(config.CoPublisher.CompanyName);
                 
@@ -140,7 +141,7 @@ namespace com.noctuagames.sdk.UI
                 View.Q<VisualElement>("NoctuaLogoWithText2").style.backgroundImage = new StyleBackground(_defaultLogo);
                 
                 string cleanedUrl = config.CoPublisher.CompanyWebsiteUrl.Replace("https://", "");
-                View.Q<Label>("FindMoreLabel").text = "Find more at " + cleanedUrl;
+                View.Q<Label>("FindMoreLabel").text = cleanedUrl;
             }
         } 
 
@@ -281,6 +282,7 @@ namespace com.noctuagames.sdk.UI
             _defaultAvatar = Resources.Load<Texture2D>("PlayerProfileBackground");
 
             _stayConnect = View.Q<Label>("ConnectAccountLabel");
+            _containerStayConnect = View.Q<VisualElement>("ContainerStayConnect");
             _hiTextContainer = View.Q<VisualElement>("HiText");
             _playerName = View.Q<Label>("PlayerName");
             _moreOptionsMenuButton = View.Q<Button>("MoreOptionsButton");
@@ -549,6 +551,7 @@ namespace com.noctuagames.sdk.UI
                 //remove class
                 _guestContainer.RemoveFromClassList("show");
                 _stayConnect.RemoveFromClassList("show");
+                _containerStayConnect.RemoveFromClassList("show");
                 _credentialListView.RemoveFromClassList("show");
                 _hiTextContainer.RemoveFromClassList("show");
                 _playerName.RemoveFromClassList("show");
@@ -568,6 +571,7 @@ namespace com.noctuagames.sdk.UI
                 _playerName.AddToClassList("hide");
                 _credentialListView.AddToClassList("hide");
                 _stayConnect.AddToClassList("hide");
+                _containerStayConnect.AddToClassList("hide");
                 _connectAccountFooter.AddToClassList("hide");
                 _playerImage.AddToClassList("profile-menu-image");
                 _playerImage.style.backgroundImage = Resources.Load<Texture2D>("EditProfileImage");
@@ -585,6 +589,7 @@ namespace com.noctuagames.sdk.UI
                 _editProfileContainer.RemoveFromClassList("show");
                 _guestContainer.RemoveFromClassList("hide");
                 _stayConnect.RemoveFromClassList("hide");
+                _containerStayConnect.RemoveFromClassList("hide");
                 _credentialListView.RemoveFromClassList("hide");
                 _hiTextContainer.RemoveFromClassList("hide");
                 _playerName.RemoveFromClassList("hide");
@@ -621,11 +626,13 @@ namespace com.noctuagames.sdk.UI
                 if(_isGuestUser) {
                     _credentialListView.AddToClassList("hide");
                     _stayConnect.AddToClassList("hide");
+                    _containerStayConnect.AddToClassList("hide");
                     _guestContainer.AddToClassList("show");
                 } else {
                     _guestContainer.AddToClassList("hide");
                     _credentialListView.AddToClassList("show");
                     _stayConnect.AddToClassList("show");
+                    _containerStayConnect.AddToClassList("show");
                 }
             
             }
@@ -967,6 +974,7 @@ namespace com.noctuagames.sdk.UI
             var moreOptionsButton = View.Q<Button>("MoreOptionsButton");
             var guestContainer = View.Q<VisualElement>("UserGuestUI");
             var stayConnect = View.Q<Label>("ConnectAccountLabel");
+            var containerStayConnect = View.Q<VisualElement>("ContainerStayConnect");
 
             if(isGuest) {
                 moreOptionsButton.AddToClassList("hide");
@@ -975,6 +983,8 @@ namespace com.noctuagames.sdk.UI
                 _credentialListView.RemoveFromClassList("show");
                 stayConnect.AddToClassList("hide");
                 stayConnect.RemoveFromClassList("show");
+                containerStayConnect.AddToClassList("hide");
+                containerStayConnect.RemoveFromClassList("show");
                 guestContainer.AddToClassList("show");
                 guestContainer.RemoveFromClassList("hide");
             } else {
@@ -984,6 +994,8 @@ namespace com.noctuagames.sdk.UI
                 _credentialListView.RemoveFromClassList("hide");
                 stayConnect.AddToClassList("show");
                 stayConnect.RemoveFromClassList("hide");
+                containerStayConnect.AddToClassList("show");
+                containerStayConnect.RemoveFromClassList("hide");
                 guestContainer.AddToClassList("hide");
                 guestContainer.RemoveFromClassList("show");
             }

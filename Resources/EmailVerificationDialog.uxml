@@ -3,11 +3,11 @@
     <ui:VisualElement name="EmailVerificationDialog" class="base dialog-box">
         <ui:VisualElement name="DialogHeader" class="dialog-header">
             <ui:Button display-tooltip-when-elided="true" name="BackButton" class="dialog-back-button" />
-            <ui:Label text="Email Verification Code" class="dialog-title" />
+            <ui:Label name="TitleEmailVerifCode" text="Email Verification Code" class="dialog-title" />
         </ui:VisualElement>
         <ui:VisualElement name="DialogContent" class="dialog-content" style="flex-direction: column; justify-content: center; align-items: center; margin-top:24px;">
-            <ui:Label text="A 6-digit code was sent to your email address." display-tooltip-when-elided="true" style="font-size: 12px; color: rgba(117, 117, 117, 1); " />
-            <ui:Label text="Please enter it within 10 minutes" display-tooltip-when-elided="true" style="margin-top:0px; font-size: 12px; color: rgba(117, 117, 117, 1);"/>
+            <ui:Label name="DialogContent1" text="A 6-digit code was sent to your email address." display-tooltip-when-elided="true" style="font-size: 12px; color: rgba(117, 117, 117, 1); " />
+            <ui:Label name="DialogContent2" text="Please enter it within 10 minutes" display-tooltip-when-elided="true" style="margin-top:0px; font-size: 12px; color: rgba(117, 117, 117, 1);"/>
             <ui:TextField name="VerificationCode" label="Verification Code" class="noctua-text-input" style="width: 100%; margin-top:14px;"/>
         </ui:VisualElement>
         <ui:VisualElement class="dialog-footer" style="height: 125px; justify-content: center; align-items: center;">

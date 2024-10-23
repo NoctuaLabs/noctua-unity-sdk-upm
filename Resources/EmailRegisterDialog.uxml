@@ -36,7 +36,7 @@
             <ui:Button text="Continue" display-tooltip-when-elided="true" name="ContinueButton" class="dialog-button"/>
             <ui:VisualElement name="Spinner" class="noctua-spinner hide" />
             <ui:VisualElement name="AdditionalFooterContent" style="flex-direction: row; -unity-text-align: middle-center; justify-content: center; align-items: stretch; margin-top: 15px;">
-                <ui:Label text="Already have an account?" display-tooltip-when-elided="true" style="font-size: 12px;" />
+                <ui:Label name="AlreadyHaveAccount" text="Already have an account?" display-tooltip-when-elided="true" style="font-size: 12px;" />
                 <ui:Label name="LoginLink" text="Login" display-tooltip-when-elided="true" style="color: rgb(59, 130, 246); font-size: 12px;" />
             </ui:VisualElement>
         </ui:VisualElement>
