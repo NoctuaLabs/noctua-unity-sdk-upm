@@ -3,7 +3,7 @@
     <ui:VisualElement class="base dialog-box" style="align-items: center;">
         <ui:VisualElement name="HeaderContent" class="dialog-header">
             <ui:Button display-tooltip-when-elided="true" name="BackButton" class="dialog-back-button" />
-            <ui:Label text="Continue with email" display-tooltip-when-elided="true" class="dialog-title" />
+            <ui:Label name="TitleContinueWithEmail" text="Continue with email" display-tooltip-when-elided="true" class="dialog-title" />
         </ui:VisualElement>
         <ui:VisualElement name="Content" class="dialog-content">
             <ui:TextField label="Email Address" name="EmailTF" class="noctua-text-input" />
@@ -22,7 +22,7 @@
             <ui:Button text="Continue" display-tooltip-when-elided="true" name="ContinueButton" class="dialog-button" />
             <ui:VisualElement name="Spinner" class="noctua-spinner" style="height: 74px;" />
             <ui:VisualElement name="AdditionalFooterContent" style="flex-direction: row; -unity-text-align: middle-center; justify-content: center; align-items: stretch; margin-top: 15px;">
-                <ui:Label text="Don&apos;t have account?" display-tooltip-when-elided="true" style="font-size: 12px;" />
+                <ui:Label name="DontHaveAccount" text="Don&apos;t have account?" display-tooltip-when-elided="true" style="font-size: 12px;" />
                 <ui:Label text="Register" name="Register" display-tooltip-when-elided="true" style="color: rgb(59, 130, 246); font-size: 12px;" />
             </ui:VisualElement>
         </ui:VisualElement>
