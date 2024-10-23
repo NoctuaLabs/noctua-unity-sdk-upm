@@ -1,6 +1,7 @@
 using System;
 using UnityEngine;
 using UnityEngine.UIElements;
+using System.Collections.Generic;
 
 namespace com.noctuagames.sdk.UI
 {
@@ -10,10 +11,11 @@ namespace com.noctuagames.sdk.UI
         private readonly PanelSettings _panelSettings;
         private readonly LoadingProgressPresenter _loading;
         private readonly GeneralNotificationPresenter _notification;
+        private readonly Dictionary<string, string> _translations;
         private readonly string resourceLocalizationFileName = "noctua-translation.en";
         internal UIFactory(string gameObjectName, string panelSettingsPath = "NoctuaPanelSettings", string themeStyleSheetPath = "NoctuaTheme")
         {
-            Utility.LoadTranslations(resourceLocalizationFileName);
+            _translations = Utility.LoadTranslations(resourceLocalizationFileName);
 
             _rootObject = new GameObject(gameObjectName);
             _panelSettings = Resources.Load<PanelSettings>(panelSettingsPath);
@@ -25,7 +27,7 @@ namespace com.noctuagames.sdk.UI
         
         internal UIFactory(GameObject rootObject, PanelSettings panelSettings)
         {
-            Utility.LoadTranslations(resourceLocalizationFileName);
+            _translations = Utility.LoadTranslations(resourceLocalizationFileName);
 
             _rootObject = rootObject;
             _panelSettings = panelSettings;
@@ -50,7 +52,7 @@ namespace com.noctuagames.sdk.UI
             presenter.Init(model, _panelSettings);
 
             var visualElementRoot = gameObject.GetComponent<UIDocument>().rootVisualElement;
-            ApplyLocalization(visualElementRoot, typeof(TPresenter).Name);
+            ApplyLocalization(visualElementRoot, typeof(TPresenter).Name, _translations);
 
             gameObject.SetActive(true);
             
@@ -77,9 +79,9 @@ namespace com.noctuagames.sdk.UI
             return Create<GeneralNotificationPresenter, object>(new object());
         }
 
-        private void ApplyLocalization(VisualElement root, string uxmlName)
+        private void ApplyLocalization(VisualElement root, string uxmlName, Dictionary<string, string> localization)
         {
-            Utility.ApplyTranslations(root, uxmlName);
+            Utility.ApplyTranslations(root, uxmlName, localization);
         }
     }
 }

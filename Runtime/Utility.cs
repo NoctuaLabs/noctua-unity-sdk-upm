@@ -11,9 +11,6 @@ namespace com.noctuagames.sdk
 {
     public static class Utility
     {
-
-        private static Dictionary<string, string> _translations;
-
         public static string PrintFields<T>(this T obj)
         {
             var sb = new System.Text.StringBuilder();
@@ -182,21 +179,23 @@ namespace com.noctuagames.sdk
                 .Contains(flagToCheck, StringComparer.OrdinalIgnoreCase);
         }
 
-        public static void LoadTranslations(string resourceFileName)
+        private static string GetTranslationByLanguage()
         {
-            TextAsset jsonFile = Resources.Load<TextAsset>(resourceFileName);
-            
-            if (jsonFile != null)
+            var language = new NoctuaLocale();
+            return language.GetLanguage() switch
             {
-                _translations = JsonConvert.DeserializeObject<Dictionary<string, string>>(jsonFile.text);
-            }
-            else
-            {
-                Debug.LogError($"Translation file {resourceFileName} not found in Resources.");
-            }
+                "id" => "noctua-translation.id",
+                _ => "noctua-translation.en"
+            };
         }
 
-        public static string GetTranslation(string key)
+        public static Dictionary<string, string> LoadTranslations(string resourceFileName)
+        {
+            TextAsset jsonFile = Resources.Load<TextAsset>(resourceFileName);
+            return JsonConvert.DeserializeObject<Dictionary<string, string>>(jsonFile.text);
+        }
+
+        public static string GetTranslation(string key, Dictionary<string, string> _translations)
         {
             if (_translations != null && _translations.TryGetValue(key, out string localizedText))
             {
@@ -206,12 +205,12 @@ namespace com.noctuagames.sdk
             return key;
         }
 
-        public static void ApplyTranslations(VisualElement root, string uxmlName)
+        public static void ApplyTranslations(VisualElement root, string uxmlName, Dictionary<string, string> translations)
         {
-            ApplyTranslationsToElement(root, uxmlName);
+            ApplyTranslationsToElement(root, uxmlName, translations);
         }
 
-        private static void ApplyTranslationsToElement(VisualElement element, string uxmlName)
+        private static void ApplyTranslationsToElement(VisualElement element, string uxmlName, Dictionary<string, string> translations)
         {
             string elementName = element.name ?? string.Empty;
             string elementType = element.GetType().Name;
@@ -221,12 +220,12 @@ namespace com.noctuagames.sdk
             {
                 case Label label:
                     string labelKey = $"{uxmlName}.{elementName}.{elementType}.text";
-                    string labelTranslation = GetTranslation(labelKey);
+                    string labelTranslation = GetTranslation(labelKey, translations);
                     label.text = labelTranslation;
                     break;
                 case Button button:
                     string buttonKey = $"{uxmlName}.{elementName}.{elementType}.text";
-                    string buttonTranslation = GetTranslation(buttonKey);
+                    string buttonTranslation = GetTranslation(buttonKey, translations);
 
                     if(buttonTranslation != buttonKey)
                     {
@@ -235,7 +234,7 @@ namespace com.noctuagames.sdk
                     break;
                 case TextField textField:
                     string textFieldKey = $"{uxmlName}.{elementName}.{elementType}.label";
-                    string textFieldTranslation = GetTranslation(textFieldKey);
+                    string textFieldTranslation = GetTranslation(textFieldKey, translations);
                     textField.label = textFieldTranslation;
                     break;
                 case VisualElement visualElement:
@@ -245,7 +244,7 @@ namespace com.noctuagames.sdk
                     // Recursively apply translations to all child elements
                     foreach (var child in visualElement.Children())
                     {
-                        ApplyTranslationsToElement(child, uxmlName);
+                        ApplyTranslationsToElement(child, uxmlName, translations);
                     }
                     break;
                 default:
