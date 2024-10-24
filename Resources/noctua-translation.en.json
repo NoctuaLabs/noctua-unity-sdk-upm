@@ -47,11 +47,11 @@
     "LoginOptionsDialogPresenter.TitleGoogle.Label.text": "Google",
     "LoginOptionsDialogPresenter.TitleFacebook.Button.text": "Facebook",
     "LoginOptionsDialogPresenter.OrContinueWith.Label.text": "or continue with",    
-    "LoginOptionsDialogPresenter.SubLoginWithEmail.Label.text": "Login With Email",
+    "LoginOptionsDialogPresenter.TextLoginWithEmail.Label.text": "Login With Email",
     "LoginOptionsDialogPresenter.ByLoggingOrRegister.Label.text": "By logging in or registering, you agree to our",    
     "LoginOptionsDialogPresenter.TnCLabel.Label.text": "<color=#3B82F6>Terms of Service</color>",
     "LoginOptionsDialogPresenter.PrivacyLabel.Label.text": "and <color=#3B82F6>Privacy Policy</color>.",
-    "LoginOptionsDialogPresenter.SubRegister.Button.text": "Don't have an account? <color=#3B82F6>Register</color>",
+    "LoginOptionsDialogPresenter.SubRegister.Label.text": "Don't have an account? <color=#3B82F6>Register</color>",
 
     "EmailVerificationDialogPresenter.TitleEmailVerifCode.Label.text": "Email Verification Code",
     "EmailVerificationDialogPresenter.DialogContent1.Label.text": "A 6-digit code was sent to your email address.",
@@ -123,6 +123,11 @@
     "UserCenterPresenter.CurrencyTF.DropdownField.label": "Currency",
     "UserCenterPresenter.PaymentTypeTF.DropdownField.label": "PaymentType",
     "UserCenterPresenter.SaveButtonContainer.SaveButton.Button.text": "Save",
-    "UserCenterPresenter.TitleFindMoreLabel.Label.text": "Find more at"
+    "UserCenterPresenter.TitleFindMoreLabel.Label.text": "Find more at",
+
+    "SuggestionBindText.Content1": "Unlock special benefits by owning a Noctua account",
+    "SuggestionBindText.Content2": "Protect your hard-earned progress and achievements",
+    "SuggestionBindText.Content3": "Enjoy the flexibility to play your game on any device"
+
   }
   
