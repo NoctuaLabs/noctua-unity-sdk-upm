@@ -215,7 +215,6 @@ namespace com.noctuagames.sdk
         {
             string elementName = element.name ?? string.Empty;
             string elementType = element.GetType().Name;
-            element.Q<Label>(elementName);
 
             switch (element)
             {
@@ -231,6 +230,12 @@ namespace com.noctuagames.sdk
                     if(buttonTranslation != buttonKey)
                     {
                         button.text = buttonTranslation;
+                    }
+                    
+                    // Recursively apply translations to child elements within the Button
+                    foreach (var child in button.Children())
+                    {
+                        ApplyTranslationsToElement(child, uxmlName, translations);
                     }
                     break;
                 case TextField textField:
