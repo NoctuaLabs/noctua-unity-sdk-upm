@@ -23,7 +23,7 @@
         </ui:VisualElement>
         <ui:Button name="LoginWithEmailButton" class="button-normal login-with-email-button">
             <ui:VisualElement class="login-method-logo email-icon" />
-            <ui:Label name="SubLoginWithEmail" text="Login With Email" class="social-account-label" />
+            <ui:Label name="TextLoginWithEmail" text="Login With Email" class="social-account-label" />
         </ui:Button>
         <ui:VisualElement style="flex-direction: row;">
             <ui:Label name="ByLoggingOrRegister" text="By logging in or registering, you agree to our" class="tnc-text-first" />
