@@ -213,6 +213,8 @@ namespace com.noctuagames.sdk
 
         private static void ApplyTranslationsToElement(VisualElement element, string uxmlName, Dictionary<string, string> translations)
         {
+            NoctuaUnityDebugLogger _log = new();
+
             string elementName = element.name ?? string.Empty;
             string elementType = element.GetType().Name;
 
@@ -232,7 +234,6 @@ namespace com.noctuagames.sdk
                         button.text = buttonTranslation;
                     }
                     
-                    // Recursively apply translations to child elements within the Button
                     foreach (var child in button.Children())
                     {
                         ApplyTranslationsToElement(child, uxmlName, translations);
@@ -244,17 +245,15 @@ namespace com.noctuagames.sdk
                     textField.label = textFieldTranslation;
                     break;
                 case VisualElement visualElement:
-                    // If it's a VisualElement, just log that it's a container and continue with child elements
-                    Debug.Log($"Handling VisualElement: {elementName} ({elementType})");
+                    _log.Log($"Handling VisualElement: {elementName} ({elementType})");
 
-                    // Recursively apply translations to all child elements
                     foreach (var child in visualElement.Children())
                     {
                         ApplyTranslationsToElement(child, uxmlName, translations);
                     }
                     break;
                 default:
-                    Debug.Log($"Unhandled element type: {elementType}");
+                    _log.Log($"Unhandled element type: {elementType}");
                     break;
             }
         }
