@@ -45,7 +45,7 @@
 
     "LoginOptionsDialogPresenter.TitleContinueWithAnotherAccount.Label.text": "Continue with another account",
     "LoginOptionsDialogPresenter.TitleGoogle.Label.text": "Google",
-    "LoginOptionsDialogPresenter.TitleFacebook.Button.text": "Facebook",
+    "LoginOptionsDialogPresenter.TitleFacebook.Label.text": "Facebook",
     "LoginOptionsDialogPresenter.OrContinueWith.Label.text": "or continue with",    
     "LoginOptionsDialogPresenter.TextLoginWithEmail.Label.text": "Login With Email",
     "LoginOptionsDialogPresenter.ByLoggingOrRegister.Label.text": "By logging in or registering, you agree to our",    
