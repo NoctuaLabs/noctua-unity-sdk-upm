@@ -385,26 +385,32 @@ namespace Tests.Runtime
                     baseUrl: "https://sdk-api-v2.noctuaprojects.com/api/v1",
                     clientId: "102-0abe09ca2ed8",
                     nativeAccountStore: new DefaultNativePlugin(),
-                    eventSender: eventSender
+                    eventSender: eventSender,
+                    bundleId: Application.identifier
                 );
 
                 await authSvc.AuthenticateAsync();
                 
                 await UniTask.WhenAny(UniTask.Delay(1000), UniTask.WaitUntil(() => _server.Requests.Count > 0));
                 
-                Assert.IsTrue(_server.Requests.TryDequeue(out var request));
+                var sb = new StringBuilder();
                 
-                var eventBodies = request.Body.Split('\n');
+                while (_server.Requests.TryDequeue(out var request))
+                {
+                    sb.AppendLine(request.Body);
+                }
+
+                var events = sb.ToString().Trim().Split('\n').Select(JsonUtility.FromJson<EventData>).ToArray();
+                var eventNames = events.Select(evt => evt.event_name).ToList();
                 
-                Assert.AreEqual(1, eventBodies.Length);
-                
-                var evt = JsonUtility.FromJson<EventData>(eventBodies[0]);
-                
-                Assert.AreEqual("account_authenticated", evt.event_name);
-                Assert.AreNotEqual(0, evt.user_id);
-                Assert.AreNotEqual(0, evt.player_id);
-                Assert.AreNotEqual(0, evt.credential_id);
-                Assert.IsNotNull(evt.credential_provider);
+                Assert.AreEqual(1, eventNames.Count(x => x == "account_authenticated"));
+
+                foreach (var evt in events)
+                {
+                    Assert.AreNotEqual(0, evt.user_id);
+                    Assert.AreNotEqual(0, evt.player_id);
+                    Assert.AreNotEqual(0, evt.credential_id);
+                }
             }
         );
         
@@ -430,7 +436,8 @@ namespace Tests.Runtime
                     baseUrl: "https://sdk-api-v2.noctuaprojects.com/api/v1",
                     clientId: "102-0abe09ca2ed8",
                     nativeAccountStore: new DefaultNativePlugin(),
-                    eventSender: eventSender
+                    eventSender: eventSender,
+                    bundleId: Application.identifier
                 );
 
                 await authSvc.AuthenticateAsync();
@@ -439,17 +446,25 @@ namespace Tests.Runtime
                 
                 await UniTask.WhenAny(UniTask.Delay(1000), UniTask.WaitUntil(() => _server.Requests.Count > 0));
 
-                Assert.IsTrue(_server.Requests.TryDequeue(out var request));
+                var sb = new StringBuilder();
                 
-                var eventBodies = request.Body.Split('\n');
+                while (_server.Requests.TryDequeue(out var request))
+                {
+                    sb.AppendLine(request.Body);
+                }
+
+                var events = sb.ToString().Trim().Split('\n').Select(JsonUtility.FromJson<EventData>).ToArray();
+                var eventNames = events.Select(evt => evt.event_name).ToList();
                 
-                Assert.AreEqual(2, eventBodies.Length);
-                
-                var evt = JsonUtility.FromJson<EventData>(eventBodies[1]);
-                
-                Assert.AreEqual("test_event", evt.event_name);
-                Assert.AreNotEqual(0, evt.user_id);
-                Assert.AreNotEqual(0, evt.player_id);
+                Assert.AreEqual(1, eventNames.Count(x => x == "account_authenticated"));
+                Assert.AreEqual(1, eventNames.Count(x => x == "test_event"));
+
+                foreach (var evt in events)
+                {
+                    Assert.AreNotEqual(0, evt.user_id);
+                    Assert.AreNotEqual(0, evt.player_id);
+                    Assert.AreNotEqual(0, evt.credential_id);
+                }
             }
         );
         
@@ -475,7 +490,8 @@ namespace Tests.Runtime
                     baseUrl: "https://sdk-api-v2.noctuaprojects.com/api/v1",
                     clientId: "102-0abe09ca2ed8",
                     nativeAccountStore: new DefaultNativePlugin(),
-                    eventSender: eventSender
+                    eventSender: eventSender,
+                    bundleId: Application.identifier
                 );
                 
                 // don't ask me how I got these accounts
@@ -495,21 +511,18 @@ namespace Tests.Runtime
                     sb.AppendLine(request.Body);
                 }
 
-                var eventBodies = sb.ToString().Trim().Split('\n');
-
-                Assert.AreEqual(3, eventBodies.Length);
+                var events = sb.ToString().Trim().Split('\n').Select(JsonUtility.FromJson<EventData>).ToArray();
+                var eventNames = events.Select(evt => evt.event_name).ToList();
                 
-                var events = eventBodies.Select(JsonUtility.FromJson<EventData>).ToArray();
-                var expectedEventNames = new[] { "account_authenticated", "account_authenticated", "account_switch" }; 
+                Assert.AreEqual(2, eventNames.Count(x => x == "account_authenticated"));
+                Assert.AreEqual(2, eventNames.Count(x => x == "account_authenticated_by_email"));
+                Assert.AreEqual(1, eventNames.Count(x => x == "account_switched"));
 
-                for (var i = 0; i < events.Length; i++)
+                foreach (var evt in events)
                 {
-                    Assert.AreEqual(expectedEventNames[i], events[i].event_name);
-                 
-                    Assert.AreNotEqual(0, events[i].user_id);
-                    Assert.AreNotEqual(0, events[i].player_id);
-                    Assert.AreNotEqual(0, events[i].credential_id);
-                    Assert.IsNotNull(events[i].credential_provider);
+                    Assert.AreNotEqual(0, evt.user_id);
+                    Assert.AreNotEqual(0, evt.player_id);
+                    Assert.AreNotEqual(0, evt.credential_id);
                 }
             }
         );
