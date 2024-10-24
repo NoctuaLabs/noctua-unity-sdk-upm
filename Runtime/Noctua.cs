@@ -263,7 +263,8 @@ namespace com.noctuagames.sdk
                 },
                 accessTokenProvider,
                 uiFactory,
-                _nativePlugin
+                _nativePlugin,
+                _eventSender
             );
 
             _game = new NoctuaGameService(

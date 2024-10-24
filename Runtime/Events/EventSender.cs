@@ -166,7 +166,7 @@ namespace com.noctuagames.sdk.Events
             if (_sessionId != null) data.TryAdd("session_id", _sessionId);
             if (_uniqueId != null) data.TryAdd("unique_id", _uniqueId);
             
-            _log.Log($"Sending event {name} with data: {JsonConvert.SerializeObject(data)}");
+            _log.Log($"Queued event '{timestamp}-{name}-{_deviceId}-{_userId}-{_playerId}-{_sessionId}'");
             
             _eventQueue.Enqueue(data);
         }
