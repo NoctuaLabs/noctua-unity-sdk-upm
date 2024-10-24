@@ -12,10 +12,10 @@ namespace com.noctuagames.sdk.UI
         private readonly LoadingProgressPresenter _loading;
         private readonly GeneralNotificationPresenter _notification;
         private readonly Dictionary<string, string> _translations;
-        private readonly string resourceLocalizationFileName = "noctua-translation.en";
+        private readonly string _regionCode;
         internal UIFactory(string gameObjectName, string panelSettingsPath = "NoctuaPanelSettings", string themeStyleSheetPath = "NoctuaTheme")
         {
-            _translations = Utility.LoadTranslations(resourceLocalizationFileName);
+            _translations = Utility.LoadTranslations(_regionCode);
 
             _rootObject = new GameObject(gameObjectName);
             _panelSettings = Resources.Load<PanelSettings>(panelSettingsPath);
@@ -25,9 +25,10 @@ namespace com.noctuagames.sdk.UI
             _notification = CreateNotificationPresenter();
         }
         
-        internal UIFactory(GameObject rootObject, PanelSettings panelSettings)
+        internal UIFactory(GameObject rootObject, PanelSettings panelSettings, GlobalConfig config)
         {
-            _translations = Utility.LoadTranslations(resourceLocalizationFileName);
+            _regionCode = config.Noctua.Region;
+            _translations = Utility.LoadTranslations(_regionCode);
 
             _rootObject = rootObject;
             _panelSettings = panelSettings;

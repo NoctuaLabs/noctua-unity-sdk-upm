@@ -240,7 +240,7 @@ namespace com.noctuagames.sdk
             var noctuaUIGameObject = new GameObject("NoctuaUI");
             Object.DontDestroyOnLoad(noctuaUIGameObject);
             
-            var uiFactory = new UIFactory(noctuaUIGameObject, panelSettings);
+            var uiFactory = new UIFactory(noctuaUIGameObject, panelSettings, config);
             
             var authService = new NoctuaAuthenticationService(
                 baseUrl: config.Noctua.BaseUrl, 

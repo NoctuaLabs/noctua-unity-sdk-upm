@@ -179,19 +179,20 @@ namespace com.noctuagames.sdk
                 .Contains(flagToCheck, StringComparer.OrdinalIgnoreCase);
         }
 
-        private static string GetTranslationByLanguage()
+        private static string GetTranslationByLanguage(string regionCodeParam)
         {
             var language = new NoctuaLocale();
-            return language.GetLanguage() switch
+            var regionCode = string.IsNullOrEmpty(regionCodeParam) ? language.GetLanguage() : regionCodeParam.ToLower();
+            return regionCode switch
             {
                 "id" => "noctua-translation.id",
                 _ => "noctua-translation.en"
             };
         }
 
-        public static Dictionary<string, string> LoadTranslations(string resourceFileName)
+        public static Dictionary<string, string> LoadTranslations(string regionCode)
         {
-            TextAsset jsonFile = Resources.Load<TextAsset>(resourceFileName);
+            TextAsset jsonFile = Resources.Load<TextAsset>(GetTranslationByLanguage(regionCode));
             return JsonConvert.DeserializeObject<Dictionary<string, string>>(jsonFile.text);
         }
 
