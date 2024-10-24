@@ -55,11 +55,11 @@ namespace com.noctuagames.sdk.UI
         private VisualElement _guestContainer;
         private Label _carouselLabel;
         private VisualElement _indicatorContainer;
-
+        private Dictionary<string, string> _translations;
         private readonly string[] _carouselItems = { 
-            "Unlock special benefits by owning a Noctua account", 
-            "Protect your hard-earned progress and achievements",
-            "Enjoy the flexibility to play your game on any device"
+            "SuggestionBindText.Content1", 
+            "SuggestionBindText.Content2",
+            "SuggestionBindText.Content3"
             };
         private int _currentIndex  = 0;
         private const float SlideInterval = 3f;
@@ -83,6 +83,7 @@ namespace com.noctuagames.sdk.UI
             },
         };
 
+        private GlobalConfig _globalConfig;
 
         protected override void Attach()
         {
@@ -130,6 +131,8 @@ namespace com.noctuagames.sdk.UI
 
         public void SetWhitelabel(GlobalConfig config)
         {
+            _globalConfig = config;
+
             if(!string.IsNullOrEmpty(config.CoPublisher.CompanyName))
             {
                 _stayConnect.text = config.CoPublisher.CompanyName;
@@ -142,6 +145,11 @@ namespace com.noctuagames.sdk.UI
                 
                 string cleanedUrl = config.CoPublisher.CompanyWebsiteUrl.Replace("https://", "");
                 View.Q<Label>("FindMoreLabel").text = cleanedUrl;
+            }
+            else
+            {
+                _stayConnect.text = "Noctua";
+                View.Q<Label>("FindMoreLabel").text = "noctua.gg";
             }
         } 
 
@@ -1023,7 +1031,8 @@ namespace com.noctuagames.sdk.UI
 
         private void UpdateCarouselText()
         {
-            _carouselLabel.text = _carouselItems[_currentIndex];
+            var regionCode = string.IsNullOrEmpty(_globalConfig.Noctua.Region) ? _globalConfig.Noctua.Region : "";
+            _carouselLabel.text = Utility.GetTranslation(_carouselItems[_currentIndex],  Utility.LoadTranslations(regionCode));
         }
 
         private void HighlightCurrentIndicator()
