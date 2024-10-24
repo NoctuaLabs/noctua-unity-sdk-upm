@@ -45,7 +45,7 @@
 
     "LoginOptionsDialogPresenter.TitleContinueWithAnotherAccount.Label.text": "Lanjutkan dengan akun lain",
     "LoginOptionsDialogPresenter.TitleGoogle.Label.text": "Google",
-    "LoginOptionsDialogPresenter.TitleFacebook.Button.text": "Facebook",
+    "LoginOptionsDialogPresenter.TitleFacebook.Label.text": "Facebook",
     "LoginOptionsDialogPresenter.OrContinueWith.Label.text": "atau lanjutkan dengan",
     "LoginOptionsDialogPresenter.TextLoginWithEmail.Label.text": "Masuk Dengan Email",
     "LoginOptionsDialogPresenter.ByLoggingOrRegister.Label.text": "Dengan masuk atau mendaftar, Anda setuju dengan",
