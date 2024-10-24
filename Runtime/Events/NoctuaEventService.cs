@@ -1,15 +1,17 @@
 using System;
 using System.Collections.Generic;
 
-namespace com.noctuagames.sdk
+namespace com.noctuagames.sdk.Events
 {
     public class NoctuaEventService
     {
         private readonly INativeTracker _nativeTracker;
+        private readonly EventSender _eventSender;
         
-        internal NoctuaEventService(INativeTracker nativeTracker)
+        internal NoctuaEventService(INativeTracker nativeTracker, EventSender eventSender = null)
         {
             _nativeTracker = nativeTracker;
+            _eventSender = eventSender;
         }
 
         public void TrackAdRevenue(string source, double revenue, string currency,
@@ -27,6 +29,7 @@ namespace com.noctuagames.sdk
         public void TrackCustomEvent(string name, Dictionary<string, IConvertible> extraPayload = null)
         {
             _nativeTracker?.TrackCustomEvent(name, extraPayload);
+            _eventSender?.Send(name, extraPayload);
         }
     }
 }

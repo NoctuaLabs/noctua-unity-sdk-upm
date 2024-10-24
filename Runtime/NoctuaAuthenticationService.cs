@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Web;
+using com.noctuagames.sdk.Events;
 using Cysharp.Threading.Tasks;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
@@ -403,7 +404,7 @@ namespace com.noctuagames.sdk
         public string EnglishName;
     }
     
-    internal class NoctuaAuthenticationService
+    public class NoctuaAuthenticationService
     {
         public IReadOnlyList<UserBundle> AccountList => _accountContainer.Accounts;
 
@@ -426,23 +427,36 @@ namespace com.noctuagames.sdk
         private readonly string _clientId;
         private readonly string _baseUrl;
         private readonly AccountContainer _accountContainer;
+        private readonly EventSender _eventSender;
         private OauthRedirectListener _oauthOauthRedirectListener;
 
-        internal NoctuaAuthenticationService(string baseUrl, string clientId, INativeAccountStore nativeAccountStore)
+        public NoctuaAuthenticationService(
+            string baseUrl,
+            string clientId,
+            INativeAccountStore nativeAccountStore,
+            string bundleId = null,
+            EventSender eventSender = null
+        )
         {
             if (string.IsNullOrEmpty(baseUrl))
             {
                 throw new ArgumentNullException(nameof(baseUrl));
             }
-            
+
             if (string.IsNullOrEmpty(clientId))
             {
                 throw new ArgumentNullException(nameof(clientId));
             }
             
+            if (string.IsNullOrEmpty(bundleId))
+            {
+                bundleId = Application.identifier;
+            }
+            
             _clientId = clientId;
             _baseUrl = baseUrl;
-            _accountContainer = new AccountContainer(nativeAccountStore, Application.identifier);
+            _eventSender = eventSender;
+            _accountContainer = new AccountContainer(nativeAccountStore, bundleId);
         }
 
         public async UniTask<UserBundle> LoginAsGuestAsync()
@@ -467,6 +481,9 @@ namespace com.noctuagames.sdk
             var response = await request.Send<PlayerToken>();
             
             _accountContainer.UpdateRecentAccount(response);
+
+            SetEventSenderFields(response);
+            SendEvent("account_authenticated");
 
             return _accountContainer.RecentAccount;
         }
@@ -494,6 +511,9 @@ namespace com.noctuagames.sdk
             var response = await request.Send<PlayerToken>();
 
             _accountContainer.UpdateRecentAccount(response);
+            
+            SetEventSenderFields(response);
+            SendEvent("account_switch");
 
             return _accountContainer.RecentAccount;
         }
@@ -530,6 +550,9 @@ namespace com.noctuagames.sdk
             
             _accountContainer.UpdateRecentAccount(response);
 
+            SetEventSenderFields(response);
+            SendEvent("account_authenticated_by_sso");
+
             return _accountContainer.RecentAccount;
         }
 
@@ -555,6 +578,9 @@ namespace com.noctuagames.sdk
             var response = await request.Send<PlayerToken>();
 
             _accountContainer.UpdateRecentAccount(response);
+
+            SetEventSenderFields(response);
+            SendEvent("account_authenticated");
 
             return _accountContainer.RecentAccount;
         }
@@ -606,6 +632,9 @@ namespace com.noctuagames.sdk
 
             _accountContainer.UpdateRecentAccount(response);
 
+            SetEventSenderFields(response);
+            SendEvent("account_created");
+
             return _accountContainer.RecentAccount;
         }
 
@@ -625,6 +654,8 @@ namespace com.noctuagames.sdk
 
             var response = await request.Send<CredentialVerification>();
             
+            SendEvent("reset_password_requested");
+
             return response;
         }
 
@@ -647,6 +678,8 @@ namespace com.noctuagames.sdk
             var response = await request.Send<PlayerToken>();
             
             _accountContainer.UpdateRecentAccount(response);
+            
+            SendEvent("reset_password_success");
 
             return _accountContainer.RecentAccount;
         }
@@ -667,7 +700,18 @@ namespace com.noctuagames.sdk
                 .WithHeader("Authorization", "Bearer " + RecentAccount.Player.AccessToken)
                 .WithJsonBody(payload);
 
-            return await request.Send<Credential>();
+            var response = await request.Send<Credential>();
+            
+            SendEvent(
+                "credential_added",
+                new()
+                {
+                    { "new_credential_provider", response.Provider },
+                    { "new_credential_id", response.Id }
+                }
+            );
+            
+            return response;
         }
 
         // TODO: Add support for phone
@@ -716,7 +760,18 @@ namespace com.noctuagames.sdk
                     }
                 );
 
-            return await request.Send<Credential>();
+            var response = await request.Send<Credential>();
+            
+            SendEvent(
+                "credential_added",
+                new()
+                {
+                    { "new_credential_provider", response.Provider },
+                    { "new_credential_id", response.Id }
+                }
+            );
+            
+            return response;
         }
 
         public async UniTask<PlayerToken> Bind(BindRequest payload)
@@ -770,12 +825,21 @@ namespace com.noctuagames.sdk
                 .WithJsonBody(updateUserRequest);
             
             _ = await request.Send<object>();
+            
+            SendEvent(
+                "profile_updated",
+                new()
+                {
+                    { "new_country", updateUserRequest.Country },
+                    { "new_currency", updateUserRequest.Currency },
+                    { "new_language", updateUserRequest.Language },
+                    { "new_payment_type", updateUserRequest.PaymentType }
+                }
+            );
         }
 
         /// <summary>
         /// Authenticates the user and returns the user bundle.
-        /// 
-        /// If the user bundle is not detected, it will show the account selection UI.
         /// 
         /// After authentication, it will show a welcome toast for the user.
         /// 
@@ -789,27 +853,47 @@ namespace com.noctuagames.sdk
                 return RecentAccount;
             }
 
+            // 3.b and 4.a.i.2: Invalid data will not be loaded
+            
             _accountContainer.Load();
             
-            if (_accountContainer.Accounts.Count == 0)
-            {
-                return await LoginAsGuestAsync();
-            }
+            // 2.a: If there is no account, login as guest
             
+            if (_accountContainer.Accounts.Count == 0) 
+            {
+                await LoginAsGuestAsync();
+                
+                return RecentAccount;
+            }
+
             var firstUser = _accountContainer.Accounts.First();
+            
+            // Recent accounts are accounts that have played the game, they always match this game
+            // 3.a: If there is already a recent account, reuse token
             
             if (firstUser.Player != null)
             {
                 _accountContainer.UpdateRecentAccount(firstUser);
+                
+                SetEventSenderFields(firstUser);
+                SendEvent("account_switch");
+
+                return RecentAccount;
             }
+
+            // Non recent accounts are accounts that have not played the game, they always don't match this game
             
-            var firstPlayer = firstUser.PlayerAccounts.FirstOrDefault();
+            var firstPlayer = firstUser.PlayerAccounts.FirstOrDefault(); 
+            
+            // This isn't supposed to happen, because a user will at least have a player account
             
             if (firstPlayer == null)
             {
                 throw new NoctuaException(NoctuaErrorCode.Authentication, "No player account found");
             }
             
+            // 4.a.i.2, 4.a.ii.1.b: If there is no recent account, exchange token 
+
             return await ExchangeTokenAsync(firstPlayer.AccessToken);
         }
 
@@ -824,10 +908,15 @@ namespace com.noctuagames.sdk
             
             if (targetUser.Player == null)
             {
-                targetUser = await ExchangeTokenAsync(user.PlayerAccounts.First().AccessToken);
+                await ExchangeTokenAsync(user.PlayerAccounts.First().AccessToken);
+                
+                return;
             }
             
             _accountContainer.UpdateRecentAccount(targetUser);
+            
+            SetEventSenderFields(targetUser);
+            SendEvent("account_switch");
         }
         
         public void ResetAccounts()
@@ -843,6 +932,16 @@ namespace com.noctuagames.sdk
                 .WithJsonBody(playerAccountData);
             
             _ = await request.Send<object>();
+
+            SendEvent(
+                "role_updated",
+                new()
+                {
+                    { "ingame_username", playerAccountData.IngameUsername },
+                    { "ingame_server_id", playerAccountData.IngameServerId },
+                    { "ingame_role_id", playerAccountData.IngameRoleId }
+                }
+            );
         }
 
         public async UniTask DeletePlayerAccountAsync()
@@ -899,6 +998,38 @@ namespace com.noctuagames.sdk
                 .WithHeader("Authorization", "Bearer " + RecentAccount.Player.AccessToken);
 
             return await request.Send<ProfileOptionData>();
+        }
+
+        private void SetEventSenderFields(UserBundle newUser)
+        {
+            _eventSender?.SetFields(
+                userId: newUser.User?.Id,
+                playerId: newUser.Player?.Id,
+                gameId: newUser.Player?.GameId,
+                gamePlatformId: newUser.Player?.GamePlatformId
+            );
+        }
+
+        private void SetEventSenderFields(PlayerToken newUser)
+        {
+            _eventSender?.SetFields(
+                userId: newUser.User?.Id,
+                playerId: newUser.Player?.Id,
+                gameId: newUser.Player?.GameId,
+                gamePlatformId: newUser.Player?.GamePlatformId
+            );
+        }
+
+        private void SendEvent(string eventName, Dictionary<string, IConvertible> data = null)
+        {
+            data ??= new Dictionary<string, IConvertible>();
+
+            data.TryAdd("user_nickname", _accountContainer.RecentAccount.User.Nickname);
+            data.TryAdd("player_username", _accountContainer.RecentAccount.Player.Username);
+            data.TryAdd("credential_id", _accountContainer.RecentAccount.Credential.Id);
+            data.TryAdd("credential_provider", _accountContainer.RecentAccount.Credential.Provider);
+            
+            _eventSender?.Send(eventName, data);
         }
 
         internal class Config

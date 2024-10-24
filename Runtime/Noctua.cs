@@ -6,6 +6,7 @@ using UnityEngine;
 using UnityEngine.Networking;
 using System.Text;
 using System.Threading.Tasks;
+using com.noctuagames.sdk.Events;
 using com.noctuagames.sdk.UI;
 using UnityEngine.Scripting;
 using Cysharp.Threading.Tasks;
@@ -27,7 +28,7 @@ namespace com.noctuagames.sdk
     [Preserve]
     public class NoctuaConfig
     {
-        public const string DefaultTrackerUrl = "https://kafka-proxy-poc.noctuaprojects.com";
+        public const string DefaultTrackerUrl = "https://sdk-tracker.noctuaprojects.com/api/v1";
         public const string DefaultBaseUrl = "https://sdk-api-v2.noctuaprojects.com/api/v1";
         public const string DefaultSandboxBaseUrl = "https://sandbox-sdk-api-v2.noctuaprojects.com/api/v1";
 
@@ -85,6 +86,7 @@ namespace com.noctuagames.sdk
         [JsonProperty("facebook")] public FacebookConfig Facebook;
 
         [JsonProperty("noctua")] public NoctuaConfig Noctua;
+        
         [JsonProperty("copublisher")] public CoPublisherConfig CoPublisher;
     }
 
@@ -229,7 +231,23 @@ namespace com.noctuagames.sdk
             
             var uiFactory = new UIFactory(noctuaUIGameObject, panelSettings);
             
-            var authService = new NoctuaAuthenticationService(config.Noctua.BaseUrl, config.ClientId, _nativePlugin);
+            var eventSender = new EventSender(
+                new EventSenderConfig
+                {
+                    BaseUrl = config.Noctua.TrackerUrl,
+                    ClientId = config.ClientId,
+                    BundleId = Application.identifier
+                },
+                new NoctuaLocale()
+            );
+            
+            var authService = new NoctuaAuthenticationService(
+                baseUrl: config.Noctua.BaseUrl, 
+                clientId: config.ClientId, 
+                nativeAccountStore: _nativePlugin,
+                bundleId: Application.identifier,
+                eventSender: eventSender
+            );
 
             _auth = new NoctuaAuthentication(authService, uiFactory, config);
             

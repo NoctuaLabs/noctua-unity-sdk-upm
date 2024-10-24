@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using com.noctuagames.sdk.Events;
 using Cysharp.Threading.Tasks;
 using Newtonsoft.Json;
 using UnityEngine;
@@ -32,17 +33,12 @@ namespace com.noctuagames.sdk
 
         public AccountContainer(INativeAccountStore nativeAccountStore, string bundleId)
         {
-            if (nativeAccountStore == null)
-            {
-                throw new ArgumentNullException(nameof(nativeAccountStore));
-            }
-
             if (string.IsNullOrEmpty(bundleId))
             {
                 throw new ArgumentNullException(nameof(bundleId));
             }
 
-            _nativeAccountStore = nativeAccountStore;
+            _nativeAccountStore = nativeAccountStore ?? throw new ArgumentNullException(nameof(nativeAccountStore));
             _bundleId = bundleId;
         }
 
@@ -64,16 +60,15 @@ namespace com.noctuagames.sdk
             UpdateRecentAccount(userBundle);
         }
 
-        public void UpdateRecentAccount(UserBundle userBundle)
+        public void UpdateRecentAccount(UserBundle newUser)
         {
-            var oldUserBundle = RecentAccount;
+            var oldUser = RecentAccount;
 
-            Save(userBundle);
+            Save(newUser);
             Load(); // reload so that we don't have to worry about caching
-
             RecentAccount = Accounts.FirstOrDefault(x => x.IsRecent);
 
-            if (oldUserBundle?.User?.Id != RecentAccount?.User?.Id || oldUserBundle?.Player?.Id != RecentAccount?.Player.Id)
+            if (oldUser?.User?.Id != RecentAccount?.User?.Id || oldUser?.Player?.Id != RecentAccount?.Player.Id)
             {
                 UniTask.Void(async () => OnAccountChanged?.Invoke(RecentAccount));
             }
@@ -192,7 +187,18 @@ namespace com.noctuagames.sdk
 
             foreach (var account in accounts)
             {
-                var data = JsonConvert.DeserializeObject<NativeAccountData>(account.RawData);
+                NativeAccountData data;
+                
+                try
+                {
+                    data = JsonConvert.DeserializeObject<NativeAccountData>(account.RawData);
+                }
+                catch (Exception e)
+                {
+                    _log.Error($"failed to parse account data: {e.Message}");
+                    
+                    continue;
+                }
 
                 _log.Log($"loaded account {data.User?.Id}-{data.Player?.Id}-{data.Player?.BundleId}");
 

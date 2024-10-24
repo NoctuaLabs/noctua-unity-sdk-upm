@@ -59,6 +59,13 @@ release:
     - NEW_VERSION_TAG=$(git-cliff --bumped-version)
     - jq --arg version "$NEW_VERSION_TAG" '.version = $version' package.json > temp.json && mv temp.json package.json
     - git add package.json
+    - |
+      cat <<EOF > Runtime/AssemblyInfo.cs
+      using System.Reflection;
+
+      [assembly: AssemblyVersion("$NEW_VERSION_TAG")]
+      EOF
+    - git add Runtime/AssemblyInfo.cs
     - git-cliff --bump > CHANGELOG.md
     - git add CHANGELOG.md
     - git commit -m "Release $NEW_VERSION_TAG"

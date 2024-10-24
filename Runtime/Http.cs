@@ -1,10 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
+using System.Linq;
 using System.Net;
 using System.Text;
 using Cysharp.Threading.Tasks;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
+using Unity.Collections;
 using UnityEngine;
 using UnityEngine.Networking;
 using UnityEngine.Scripting;
@@ -16,7 +19,7 @@ namespace com.noctuagames.sdk
         string Get();
     }
 
-    
+
     internal class BasicAuth : IHttpAuth
     {
         private readonly string _username;
@@ -34,7 +37,7 @@ namespace com.noctuagames.sdk
         }
     }
 
-    
+
     internal class BearerAuth : IHttpAuth
     {
         private readonly string _token;
@@ -50,26 +53,26 @@ namespace com.noctuagames.sdk
         }
     }
 
-    
+
     public class HttpError : Exception
     {
         public long StatusCode { get; }
-        
+
         public HttpError(long statusCode, string message) : base(message)
         {
             StatusCode = statusCode;
         }
     }
-    
-    
+
+
     internal class NetworkError : Exception
     {
         public NetworkError(string message) : base(message)
         {
         }
     }
-    
-    
+
+
     public enum HttpMethod
     {
         Get,
@@ -78,12 +81,12 @@ namespace com.noctuagames.sdk
         Delete,
         Patch
     }
-    
-    
+
     internal class HttpRequest : IDisposable
     {
         private readonly NoctuaUnityDebugLogger _log = new();
         private readonly UnityWebRequest _request = new();
+
         private readonly JsonSerializerSettings _jsonSettings = new()
         {
             ContractResolver = new DefaultContractResolver
@@ -99,7 +102,7 @@ namespace com.noctuagames.sdk
             _request.method = method.ToString().ToUpper();
             _request.url = url;
         }
-        
+
         public HttpRequest WithPathParam(string key, string value)
         {
             if (string.IsNullOrEmpty(key))
@@ -116,18 +119,18 @@ namespace com.noctuagames.sdk
 
             return this;
         }
-        
+
         public HttpRequest WithAuth(IHttpAuth auth)
         {
             _request.SetRequestHeader("Authorization", auth.Get());
-            
+
             return this;
         }
 
         public HttpRequest WithHeader(string key, string value)
         {
             _request.SetRequestHeader(key, value);
-            
+
             return this;
         }
 
@@ -135,33 +138,78 @@ namespace com.noctuagames.sdk
         {
             _request.SetRequestHeader("Content-Type", "application/x-www-form-urlencoded");
             var form = new WWWForm();
+
             foreach (var pair in body)
             {
                 form.AddField(pair.Key, pair.Value);
             }
+
             _request.uploadHandler = new UploadHandlerRaw(form.data);
-            
+
             return this;
         }
-        
+
         public HttpRequest WithJsonBody<T>(T body)
         {
             _request.SetRequestHeader("Content-Type", "application/json");
             var jsonBody = JsonConvert.SerializeObject(body, _jsonSettings);
             var rawBody = Encoding.UTF8.GetBytes(jsonBody);
             _request.uploadHandler = new UploadHandlerRaw(rawBody);
-            
+
             return this;
         }
-        
+
+        public HttpRequest WithNdjsonBody<T>(IList<T> body)
+        {
+            _request.SetRequestHeader("Content-Type", "application/x-ndjson");
+
+            var jsonSettings =
+                new JsonSerializerSettings
+                {
+                    ContractResolver = new DefaultContractResolver
+                    {
+                        NamingStrategy = new SnakeCaseNamingStrategy()
+                    },
+                    NullValueHandling = NullValueHandling.Ignore,
+                    Formatting = Formatting.None,
+                };
+
+            using (var stream = new MemoryStream())
+            using (var writer = new StreamWriter(stream, Encoding.UTF8))
+            using (var jsonWriter = new JsonTextWriter(writer))
+            {
+                var serializer = JsonSerializer.Create(jsonSettings);
+
+                for (var i = 0; i < body.Count - 1; i++)
+                {
+                    serializer.Serialize(jsonWriter, body[i]);
+                    writer.Write("\n");
+                }
+                
+                var last = body.LastOrDefault();
+                
+                if (last != null)
+                {
+                    serializer.Serialize(jsonWriter, last);
+                }
+
+                jsonWriter.Flush();
+
+                _request.uploadHandler = new UploadHandlerRaw(stream.ToArray());
+            }
+
+
+            return this;
+        }
+
         public HttpRequest WithRawBody(byte[] body)
         {
             _request.SetRequestHeader("Content-Type", "application/octet-stream");
             _request.uploadHandler = new UploadHandlerRaw(body);
-            
+
             return this;
         }
-    
+
         [Preserve]
         private class DataWrapper<T>
         {
@@ -173,6 +221,7 @@ namespace com.noctuagames.sdk
         {
             _request.downloadHandler = new DownloadHandlerBuffer();
             await _request.SendWebRequest();
+
             return _request.downloadHandler.text;
         }
 
@@ -181,18 +230,19 @@ namespace com.noctuagames.sdk
             if (_request.url.Contains("{") || _request.url.Contains("}"))
             {
                 _log.Error($"There are still path parameters that are not replaced: {_request.url}");
+
                 throw NoctuaException.RequestUnreplacedParam;
             }
-            
+
             _request.downloadHandler = new DownloadHandlerBuffer();
             var response = "";
 
             _log.Log(
-                $"=> {_request.method} {_request.url}\n" +
-                $"Content-Type: {_request.GetRequestHeader("Content-Type")}\n" +
+                $"=> {_request.method} {_request.url}\n"                         +
+                $"Content-Type: {_request.GetRequestHeader("Content-Type")}\n"   +
                 $"Authorization: {_request.GetRequestHeader("Authorization")}\n" +
-                $"X-CLIENT-ID: {_request.GetRequestHeader("X-CLIENT-ID")}\n" +
-                $"X-BUNDLE-ID: {_request.GetRequestHeader("X-BUNDLE-ID")}\n\n" +
+                $"X-CLIENT-ID: {_request.GetRequestHeader("X-CLIENT-ID")}\n"     +
+                $"X-BUNDLE-ID: {_request.GetRequestHeader("X-BUNDLE-ID")}\n\n"   +
                 $"{Encoding.UTF8.GetString(_request.uploadHandler?.data ?? Array.Empty<byte>())}"
             );
 
@@ -205,12 +255,10 @@ namespace com.noctuagames.sdk
             {
                 switch (_request.result)
                 {
-                    case UnityWebRequest.Result.ConnectionError:
-                        throw NoctuaException.RequestConnectionError;
-                    case UnityWebRequest.Result.DataProcessingError:
-                        throw NoctuaException.RequestDataProcessingError;
+                    case UnityWebRequest.Result.ConnectionError:     throw NoctuaException.RequestConnectionError;
+                    case UnityWebRequest.Result.DataProcessingError: throw NoctuaException.RequestDataProcessingError;
                 }
-                
+
                 response = _request.downloadHandler.text;
             }
             finally
@@ -226,22 +274,28 @@ namespace com.noctuagames.sdk
 
             if (_request.responseCode >= 500)
             {
-                throw new NoctuaException(NoctuaErrorCode.Networking, $"Server error {_request.responseCode}: {response}");
+                throw new NoctuaException(
+                    NoctuaErrorCode.Networking,
+                    $"Server error {_request.responseCode}: {response}"
+                );
             }
 
             if (_request.responseCode >= 400)
             {
                 ErrorResponse errorResponse;
-                
+
                 try
                 {
                     errorResponse = JsonConvert.DeserializeObject<ErrorResponse>(response, _jsonSettings);
                 }
                 catch (Exception)
                 {
-                    throw new NoctuaException(NoctuaErrorCode.Application, $"Unknown HTTP error {_request.responseCode}: {response}");
+                    throw new NoctuaException(
+                        NoctuaErrorCode.Application,
+                        $"Unknown HTTP error {_request.responseCode}: {response}"
+                    );
                 }
-                
+
                 throw new NoctuaException((NoctuaErrorCode)errorResponse.ErrorCode, errorResponse.ErrorMessage);
             }
 
@@ -252,8 +306,11 @@ namespace com.noctuagames.sdk
             catch (Exception e)
             {
                 Debug.Log(e.Message);
-                
-                throw new NoctuaException(NoctuaErrorCode.Application, $"Failed to parse response as {typeof(T).Name}: {response}. Error: {e.Message}");
+
+                throw new NoctuaException(
+                    NoctuaErrorCode.Application,
+                    $"Failed to parse response as {typeof(T).Name}: {response}. Error: {e.Message}"
+                );
             }
         }
 

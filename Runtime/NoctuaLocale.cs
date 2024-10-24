@@ -22,7 +22,7 @@ namespace com.noctuagames.sdk
         private string PlayerPrefsKeyLocaleCountry = "NoctuaLocaleCountry";
         private string PlayerPrefsKeyLocaleCurrency = "NoctuaLocaleCurrency";
 
-        internal NoctuaLocale()
+        public NoctuaLocale()
         {
         }
 
