@@ -36,7 +36,7 @@ namespace com.noctuagames.sdk.UI
                 try
                 {
                     await Model.AuthService.DeletePlayerAccountAsync();
-                    await Model.AuthService.LogoutAsync(); // This also login as guest
+                    await Model.AuthService.LoginAsGuestAsync();
 
                     View.Q<VisualElement>("Spinner").AddToClassList("hide");
                     View.Q<VisualElement>("ButtonGroup").RemoveFromClassList("hide");

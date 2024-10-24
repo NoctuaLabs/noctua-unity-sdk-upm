@@ -100,6 +100,7 @@ namespace com.noctuagames.sdk
 
         public event Action<string> OnPurchaseDone;
 
+        private readonly EventSender _eventSender;
         private readonly NoctuaEventService _event;
         private readonly NoctuaAuthentication _auth;
         private readonly NoctuaIAPService _iap;
@@ -216,8 +217,18 @@ namespace com.noctuagames.sdk
 
             Debug.Log($"Noctua config: \n{config.PrintFields()}");
             
+            _eventSender = new EventSender(
+                new EventSenderConfig
+                {
+                    BaseUrl = config.Noctua.TrackerUrl,
+                    ClientId = config.ClientId,
+                    BundleId = Application.identifier
+                },
+                new NoctuaLocale()
+            );
+            
             _nativePlugin = GetNativePlugin();
-            _event = new NoctuaEventService(_nativePlugin);
+            _event = new NoctuaEventService(_nativePlugin, _eventSender);
 
             var panelSettings = Resources.Load<PanelSettings>("NoctuaPanelSettings");
             panelSettings.themeStyleSheet = Resources.Load<ThemeStyleSheet>("NoctuaTheme");
@@ -231,25 +242,15 @@ namespace com.noctuagames.sdk
             
             var uiFactory = new UIFactory(noctuaUIGameObject, panelSettings);
             
-            var eventSender = new EventSender(
-                new EventSenderConfig
-                {
-                    BaseUrl = config.Noctua.TrackerUrl,
-                    ClientId = config.ClientId,
-                    BundleId = Application.identifier
-                },
-                new NoctuaLocale()
-            );
-            
             var authService = new NoctuaAuthenticationService(
                 baseUrl: config.Noctua.BaseUrl, 
                 clientId: config.ClientId, 
                 nativeAccountStore: _nativePlugin,
                 bundleId: Application.identifier,
-                eventSender: eventSender
+                eventSender: _eventSender
             );
 
-            _auth = new NoctuaAuthentication(authService, uiFactory, config);
+            _auth = new NoctuaAuthentication(authService, uiFactory, config, _eventSender);
             
             var accessTokenProvider = new AccessTokenProvider(authService);
 
@@ -340,9 +341,28 @@ namespace com.noctuagames.sdk
 
             // Remote config
             Instance.Value._iap.SetEnabledPaymentTypes(initResponse.RemoteConfigs.EnabledPaymentTypes);
+            
+            Instance.Value._eventSender.Send("init");
+            
+            if (Noctua.IsFirstOpen())
+            {
+                Instance.Value._eventSender.Send("first_open");
+            }
 
             Debug.Log("Noctua.Init() set _initialized to true");
             Instance.Value._initialized = true;
+        }
+
+        private static bool IsFirstOpen()
+        {
+            var isFirstOpen = PlayerPrefs.GetInt("NoctuaFirstOpen", 1) == 1;
+            
+            if (isFirstOpen)
+            {
+                PlayerPrefs.SetInt("NoctuaFirstOpen", 0);
+            }
+            
+            return isFirstOpen;
         }
 
         public static void OnApplicationPause(bool pause)

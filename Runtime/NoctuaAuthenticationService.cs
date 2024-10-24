@@ -426,6 +426,7 @@ namespace com.noctuagames.sdk
         private readonly ILogger _log = new NoctuaUnityDebugLogger();
         private readonly string _clientId;
         private readonly string _baseUrl;
+        private readonly string _bundleId;
         private readonly AccountContainer _accountContainer;
         private readonly EventSender _eventSender;
         private OauthRedirectListener _oauthOauthRedirectListener;
@@ -450,11 +451,12 @@ namespace com.noctuagames.sdk
             
             if (string.IsNullOrEmpty(bundleId))
             {
-                bundleId = Application.identifier;
+                throw new ArgumentNullException(nameof(bundleId));
             }
             
             _clientId = clientId;
             _baseUrl = baseUrl;
+            _bundleId = bundleId;
             _eventSender = eventSender;
             _accountContainer = new AccountContainer(nativeAccountStore, bundleId);
         }
@@ -468,7 +470,7 @@ namespace com.noctuagames.sdk
 
             var request = new HttpRequest(HttpMethod.Post, $"{_baseUrl}/auth/guest/login")
                 .WithHeader("X-CLIENT-ID", _clientId)
-                .WithHeader("X-BUNDLE-ID", Application.identifier)
+                .WithHeader("X-BUNDLE-ID", _bundleId)
                 .WithJsonBody(
                     new LoginAsGuestRequest
                     {
@@ -482,7 +484,7 @@ namespace com.noctuagames.sdk
             
             _accountContainer.UpdateRecentAccount(response);
 
-            SetEventSenderFields(response);
+            SetEventProperties(response);
             SendEvent("account_authenticated");
 
             return _accountContainer.RecentAccount;
@@ -490,20 +492,15 @@ namespace com.noctuagames.sdk
 
         public async UniTask<UserBundle> ExchangeTokenAsync(string accessToken)
         {
-            if (string.IsNullOrEmpty(Application.identifier))
-            {
-                throw new ApplicationException($"App id for platform {Application.platform} is not set");
-            }
-
             var exchangeToken = new ExchangeTokenRequest
             {
-                NextBundleId = Application.identifier,
+                NextBundleId = _bundleId,
                 InitPlayer = true
             };
 
             var request = new HttpRequest(HttpMethod.Post, $"{_baseUrl}/auth/token-exchange")
                 .WithHeader("X-CLIENT-ID", _clientId)
-                .WithHeader("X-BUNDLE-ID", Application.identifier)
+                .WithHeader("X-BUNDLE-ID", _bundleId)
                 .WithHeader("Authorization", "Bearer " + accessToken)
                 .WithJsonBody(exchangeToken);
 
@@ -512,8 +509,8 @@ namespace com.noctuagames.sdk
 
             _accountContainer.UpdateRecentAccount(response);
             
-            SetEventSenderFields(response);
-            SendEvent("account_switch");
+            SetEventProperties(response);
+            SendEvent("account_switched");
 
             return _accountContainer.RecentAccount;
         }
@@ -527,7 +524,7 @@ namespace com.noctuagames.sdk
 
             var request = new HttpRequest(HttpMethod.Get, $"{_baseUrl}/auth/{provider}/login/redirect{redirectUri}")
                 .WithHeader("X-CLIENT-ID", _clientId)
-                .WithHeader("X-BUNDLE-ID", Application.identifier);
+                .WithHeader("X-BUNDLE-ID", _bundleId);
 
             var redirectUrlResponse = await request.Send<SocialRedirectUrlResponse>();
 
@@ -538,7 +535,7 @@ namespace com.noctuagames.sdk
         {
             var request = new HttpRequest(HttpMethod.Post, $"{_baseUrl}/auth/{provider}/login/callback")
                 .WithHeader("X-CLIENT-ID", _clientId)
-                .WithHeader("X-BUNDLE-ID", Application.identifier)
+                .WithHeader("X-BUNDLE-ID", _bundleId)
                 .WithJsonBody(payload);
 
             if (!string.IsNullOrEmpty(RecentAccount?.Player?.AccessToken) && RecentAccount.IsGuest)
@@ -548,10 +545,22 @@ namespace com.noctuagames.sdk
 
             var response = await request.Send<PlayerToken>();
             
+            bool accountBound = RecentAccount is { IsGuest: true } && response?.Player?.Id == RecentAccount?.Player?.Id;
+
             _accountContainer.UpdateRecentAccount(response);
 
-            SetEventSenderFields(response);
-            SendEvent("account_authenticated_by_sso");
+            SetEventProperties(response);
+            
+            if (accountBound)
+            {
+                SendEvent("account_bound");
+                SendEvent("account_bound_by_sso");
+            }
+            else
+            {
+                SendEvent("account_authenticated");
+                SendEvent("account_authenticated_by_sso");
+            }
 
             return _accountContainer.RecentAccount;
         }
@@ -561,7 +570,7 @@ namespace com.noctuagames.sdk
         {
             var request = new HttpRequest(HttpMethod.Post, $"{_baseUrl}/auth/email/login")
                 .WithHeader("X-CLIENT-ID", _clientId)
-                .WithHeader("X-BUNDLE-ID", Application.identifier)
+                .WithHeader("X-BUNDLE-ID", _bundleId)
                 .WithJsonBody(
                     new CredPair
                     {
@@ -576,11 +585,23 @@ namespace com.noctuagames.sdk
             }
 
             var response = await request.Send<PlayerToken>();
+            
+            bool accountBound = RecentAccount is { IsGuest: true } && response?.Player?.Id == RecentAccount?.Player?.Id;
 
             _accountContainer.UpdateRecentAccount(response);
 
-            SetEventSenderFields(response);
-            SendEvent("account_authenticated");
+            SetEventProperties(response);
+            
+            if (accountBound)
+            {
+                SendEvent("account_bound");
+                SendEvent("account_bound_by_email");
+            }
+            else
+            {
+                SendEvent("account_authenticated");
+                SendEvent("account_authenticated_by_email");
+            }
 
             return _accountContainer.RecentAccount;
         }
@@ -591,7 +612,7 @@ namespace com.noctuagames.sdk
             
             var request = new HttpRequest(HttpMethod.Post, $"{_baseUrl}/auth/email/register")
                 .WithHeader("X-CLIENT-ID", _clientId)
-                .WithHeader("X-BUNDLE-ID", Application.identifier)
+                .WithHeader("X-BUNDLE-ID", _bundleId)
                 .WithJsonBody(
                     new CredPair
                     {
@@ -614,7 +635,7 @@ namespace com.noctuagames.sdk
         {
             var request = new HttpRequest(HttpMethod.Post, $"{_baseUrl}/auth/email/verify-registration")
                 .WithHeader("X-CLIENT-ID", _clientId)
-                .WithHeader("X-BUNDLE-ID", Application.identifier)
+                .WithHeader("X-BUNDLE-ID", _bundleId)
                 .WithJsonBody(
                     new CredentialVerification
                     {
@@ -632,8 +653,9 @@ namespace com.noctuagames.sdk
 
             _accountContainer.UpdateRecentAccount(response);
 
-            SetEventSenderFields(response);
+            SetEventProperties(response);
             SendEvent("account_created");
+            SendEvent("account_created_by_email");
 
             return _accountContainer.RecentAccount;
         }
@@ -644,7 +666,7 @@ namespace com.noctuagames.sdk
         {
             var request = new HttpRequest(HttpMethod.Post, $"{_baseUrl}/auth/email/reset-password")
                 .WithHeader("X-CLIENT-ID", _clientId)
-                .WithHeader("X-BUNDLE-ID", Application.identifier)
+                .WithHeader("X-BUNDLE-ID", _bundleId)
                 .WithJsonBody(
                     new CredPair
                     {
@@ -665,7 +687,7 @@ namespace com.noctuagames.sdk
         {
             var request = new HttpRequest(HttpMethod.Post, $"{_baseUrl}/auth/email/verify-reset-password")
                 .WithHeader("X-CLIENT-ID", _clientId)
-                .WithHeader("X-BUNDLE-ID", Application.identifier)
+                .WithHeader("X-BUNDLE-ID", _bundleId)
                 .WithJsonBody(
                     new CredentialVerification
                     {
@@ -679,7 +701,7 @@ namespace com.noctuagames.sdk
             
             _accountContainer.UpdateRecentAccount(response);
             
-            SendEvent("reset_password_success");
+            SendEvent("reset_password_completed");
 
             return _accountContainer.RecentAccount;
         }
@@ -696,7 +718,7 @@ namespace com.noctuagames.sdk
 
             var request = new HttpRequest(HttpMethod.Post, $"{_baseUrl}/auth/{provider}/link/callback")
                 .WithHeader("X-CLIENT-ID", _clientId)
-                .WithHeader("X-BUNDLE-ID", Application.identifier)
+                .WithHeader("X-BUNDLE-ID", _bundleId)
                 .WithHeader("Authorization", "Bearer " + RecentAccount.Player.AccessToken)
                 .WithJsonBody(payload);
 
@@ -750,7 +772,7 @@ namespace com.noctuagames.sdk
 
             var request = new HttpRequest(HttpMethod.Post, $"{_baseUrl}/auth/email/verify-link")
                 .WithHeader("X-CLIENT-ID", _clientId)
-                .WithHeader("X-BUNDLE-ID", Application.identifier)
+                .WithHeader("X-BUNDLE-ID", _bundleId)
                 .WithHeader("Authorization", "Bearer " + RecentAccount.Player.AccessToken)
                 .WithJsonBody(
                     new CredentialVerification
@@ -793,9 +815,7 @@ namespace com.noctuagames.sdk
 
         public async UniTask<UserBundle> LogoutAsync()
         {
-            _accountContainer.ResetAccounts();
-
-            return await LoginAsGuestAsync(); 
+            return await LoginAsGuestAsync(); // will always back to guest
         }
 
         public async UniTask<User> GetUserAsync()
@@ -806,7 +826,7 @@ namespace com.noctuagames.sdk
             
             var request = new HttpRequest(HttpMethod.Get, $"{_baseUrl}/user/profile")
                 .WithHeader("X-CLIENT-ID", _clientId)
-                .WithHeader("X-BUNDLE-ID", Application.identifier)
+                .WithHeader("X-BUNDLE-ID", _bundleId)
                 .WithHeader("Authorization", "Bearer " + RecentAccount.Player.AccessToken);
 
             return await request.Send<User>();
@@ -820,7 +840,7 @@ namespace com.noctuagames.sdk
 
             var request = new HttpRequest(HttpMethod.Post, $"{_baseUrl}/user/profile")
                 .WithHeader("X-CLIENT-ID", _clientId)
-                .WithHeader("X-BUNDLE-ID", Application.identifier)
+                .WithHeader("X-BUNDLE-ID", _bundleId)
                 .WithHeader("Authorization", "Bearer " + RecentAccount.Player.AccessToken)
                 .WithJsonBody(updateUserRequest);
             
@@ -850,6 +870,8 @@ namespace com.noctuagames.sdk
         {
             if (IsAuthenticated)
             {
+                SendEvent("account_detected");
+
                 return RecentAccount;
             }
 
@@ -863,6 +885,8 @@ namespace com.noctuagames.sdk
             {
                 await LoginAsGuestAsync();
                 
+                SendEvent("account_detected");
+                
                 return RecentAccount;
             }
 
@@ -875,8 +899,9 @@ namespace com.noctuagames.sdk
             {
                 _accountContainer.UpdateRecentAccount(firstUser);
                 
-                SetEventSenderFields(firstUser);
-                SendEvent("account_switch");
+                SetEventProperties(firstUser);
+                SendEvent("account_switched");
+                SendEvent("account_detected");
 
                 return RecentAccount;
             }
@@ -894,7 +919,11 @@ namespace com.noctuagames.sdk
             
             // 4.a.i.2, 4.a.ii.1.b: If there is no recent account, exchange token 
 
-            return await ExchangeTokenAsync(firstPlayer.AccessToken);
+            await ExchangeTokenAsync(firstPlayer.AccessToken);
+            
+            SendEvent("account_detected");
+            
+            return RecentAccount;
         }
 
         public async UniTask SwitchAccountAsync(UserBundle user)
@@ -915,8 +944,8 @@ namespace com.noctuagames.sdk
             
             _accountContainer.UpdateRecentAccount(targetUser);
             
-            SetEventSenderFields(targetUser);
-            SendEvent("account_switch");
+            SetEventProperties(targetUser);
+            SendEvent("account_switched");
         }
         
         public void ResetAccounts()
@@ -928,6 +957,7 @@ namespace com.noctuagames.sdk
         {
             var request = new HttpRequest(HttpMethod.Post, $"{_baseUrl}/players/sync")
                 .WithHeader("X-CLIENT-ID", _clientId)
+                .WithHeader("X-BUNDLE-ID", _bundleId)
                 .WithHeader("Authorization", "Bearer " + RecentAccount.Player.AccessToken)
                 .WithJsonBody(playerAccountData);
             
@@ -952,10 +982,14 @@ namespace com.noctuagames.sdk
 
             var request = new HttpRequest(HttpMethod.Delete, $"{_baseUrl}/players/destroy")
                 .WithHeader("X-CLIENT-ID", _clientId)
-                .WithHeader("X-BUNDLE-ID", Application.identifier)
+                .WithHeader("X-BUNDLE-ID", _bundleId)
                 .WithHeader("Authorization", "Bearer " + RecentAccount.Player.AccessToken);
 
             _ = await request.Send<DeletePlayerAccountResponse>();
+            
+            _accountContainer.DeleteRecentAccount();
+            
+            SendEvent("account_deleted");
 
             OnAccountDeleted?.Invoke(currentPlayer);
         }
@@ -975,7 +1009,7 @@ namespace com.noctuagames.sdk
 
             var request = new HttpRequest(HttpMethod.Post, $"{_baseUrl}/user/profile-image")
                 .WithHeader("X-CLIENT-ID", _clientId)
-                .WithHeader("X-BUNDLE-ID", Application.identifier)
+                .WithHeader("X-BUNDLE-ID", _bundleId)
                 .WithHeader("Authorization", "Bearer " + RecentAccount.Player.AccessToken)
                 .WithRawBody(fileData);
 
@@ -994,27 +1028,29 @@ namespace com.noctuagames.sdk
 
             var request = new HttpRequest(HttpMethod.Get, $"{_baseUrl}/user/profile-options")
                 .WithHeader("X-CLIENT-ID", _clientId)
-                .WithHeader("X-BUNDLE-ID", Application.identifier)
+                .WithHeader("X-BUNDLE-ID", _bundleId)
                 .WithHeader("Authorization", "Bearer " + RecentAccount.Player.AccessToken);
 
             return await request.Send<ProfileOptionData>();
         }
 
-        private void SetEventSenderFields(UserBundle newUser)
+        private void SetEventProperties(UserBundle newUser)
         {
-            _eventSender?.SetFields(
+            _eventSender?.SetProperties(
                 userId: newUser.User?.Id,
                 playerId: newUser.Player?.Id,
+                credentialId: newUser.Credential?.Id,
                 gameId: newUser.Player?.GameId,
                 gamePlatformId: newUser.Player?.GamePlatformId
             );
         }
 
-        private void SetEventSenderFields(PlayerToken newUser)
+        private void SetEventProperties(PlayerToken newUser)
         {
-            _eventSender?.SetFields(
+            _eventSender?.SetProperties(
                 userId: newUser.User?.Id,
                 playerId: newUser.Player?.Id,
+                credentialId: newUser.Credential?.Id,
                 gameId: newUser.Player?.GameId,
                 gamePlatformId: newUser.Player?.GamePlatformId
             );
@@ -1024,9 +1060,6 @@ namespace com.noctuagames.sdk
         {
             data ??= new Dictionary<string, IConvertible>();
 
-            data.TryAdd("user_nickname", _accountContainer.RecentAccount.User.Nickname);
-            data.TryAdd("player_username", _accountContainer.RecentAccount.Player.Username);
-            data.TryAdd("credential_id", _accountContainer.RecentAccount.Credential.Id);
             data.TryAdd("credential_provider", _accountContainer.RecentAccount.Credential.Provider);
             
             _eventSender?.Send(eventName, data);

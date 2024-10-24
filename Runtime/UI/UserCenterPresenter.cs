@@ -7,11 +7,14 @@ using UnityEngine;
 using UnityEngine.Networking;
 using UnityEngine.UIElements;
 using System.Text.RegularExpressions;
+using com.noctuagames.sdk.Events;
 
 namespace com.noctuagames.sdk.UI
 {
     internal class UserCenterPresenter : Presenter<AuthenticationModel>
     {
+        public EventSender EventSender;
+        
         private VisualTreeAsset _itemTemplate;
         private Texture2D _defaultAvatar;
         private ListView _credentialListView;
@@ -261,6 +264,8 @@ namespace com.noctuagames.sdk.UI
                 
                 Visible = true;
                 SetOrientation();
+                
+                EventSender?.Send("user_center_opened");
             }
             catch (Exception e)
             {

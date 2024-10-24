@@ -23,17 +23,14 @@ namespace com.noctuagames.sdk
 
         public void TrackAdRevenue(string source, double revenue, string currency, Dictionary<string, IConvertible> extraPayload = null)
         {
-            throw new NotImplementedException();
         }
 
         public void TrackPurchase(string orderId, double amount, string currency, Dictionary<string, IConvertible> extraPayload = null)
         {
-            throw new NotImplementedException();
         }
 
         public void TrackCustomEvent(string name, Dictionary<string, IConvertible> extraPayload = null)
         {
-            throw new NotImplementedException();
         }
 
         public void PurchaseItem(string productId, Action<bool, string> callback)

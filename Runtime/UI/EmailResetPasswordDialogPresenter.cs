@@ -7,11 +7,14 @@ using com.noctuagames.sdk.UI;
 using System.Threading.Tasks;
 using System.Text.RegularExpressions;
 using System.Globalization;
+using com.noctuagames.sdk.Events;
 
 namespace com.noctuagames.sdk.UI
 {
     internal class EmailResetPasswordDialogPresenter : Presenter<AuthenticationModel>
     {
+        public EventSender EventSender;
+     
         private string _email;
         private List<TextField> textFields;
         private Button submitButton;
@@ -25,6 +28,8 @@ namespace com.noctuagames.sdk.UI
             if (clearForm){
                 View.Q<TextField>("EmailTF").value = "";
             }
+            
+            EventSender?.Send("forgot_password_opened");
         }
 
         protected override void Attach(){}
@@ -127,9 +132,12 @@ namespace com.noctuagames.sdk.UI
 
                 var credentialVerification = await Model.AuthService.RequestResetPasswordAsync(emailAddress);
 
+                EventSender?.Send("forgot_password_success");
+
                 Model.ShowEmailConfirmResetPassword(credentialVerification.Id);
 
                 View.visible = false;
+
 
                 View.Q<Label>("ErrCode").RemoveFromClassList("hide");
                 View.Q<Button>("ContinueButton").RemoveFromClassList("hide");

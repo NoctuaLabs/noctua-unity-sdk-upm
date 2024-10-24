@@ -40,11 +40,13 @@ namespace com.noctuagames.sdk.Events
         private readonly UniTask _sendTask;
         private readonly CancellationTokenSource _cancelSendSource;
         private readonly DateTime _start;
+        private readonly string _sdkVersion;
         private readonly string _uniqueId;
         private readonly string _deviceId;
 
         private long? _userId;
         private long? _playerId;
+        private long? _credentialId;
         private long? _gameId;
         private long? _gamePlatformId;
         private string _sessionId;
@@ -55,9 +57,10 @@ namespace com.noctuagames.sdk.Events
             _playerId = playerId;
         }
 
-        public void SetFields(
+        public void SetProperties(
             long? userId = null,
             long? playerId = null,
+            long? credentialId = null,
             long? gameId = null,
             long? gamePlatformId = null,
             string sessionId = null
@@ -65,6 +68,7 @@ namespace com.noctuagames.sdk.Events
         {
             _userId = userId;
             _playerId = playerId;
+            _credentialId = credentialId;
             _gameId = gameId;
             _gamePlatformId = gamePlatformId;
             _sessionId = sessionId;
@@ -113,6 +117,7 @@ namespace com.noctuagames.sdk.Events
             _sendTask = UniTask.Create(async () => await SendEvents(_cancelSendSource.Token));
             
             _deviceId = SystemInfo.deviceUniqueIdentifier;
+            _sdkVersion = Assembly.GetExecutingAssembly().GetName().Version.ToString();
 
 #if UNITY_ANDROID && !UNITY_EDITOR
                 _uniqueId = GetGoogleAdId();
@@ -140,7 +145,7 @@ namespace com.noctuagames.sdk.Events
             }
             
             data.TryAdd("event_name", name);
-            data.TryAdd("sdk_version", Assembly.GetExecutingAssembly().GetName().Version.ToString());
+            data.TryAdd("sdk_version", _sdkVersion);
             data.TryAdd("device_id", _deviceId);
             data.TryAdd("device_os_version", SystemInfo.operatingSystem);
             data.TryAdd("device_os", SystemInfo.operatingSystemFamily.ToString());
@@ -155,6 +160,7 @@ namespace com.noctuagames.sdk.Events
             
             if (_userId   != null) data.TryAdd("user_id", _userId);
             if (_playerId != null) data.TryAdd("player_id", _playerId);
+            if (_credentialId != null) data.TryAdd("credential_id", _credentialId);
             if (_gameId != null) data.TryAdd("game_id", _gameId);
             if (_gamePlatformId != null) data.TryAdd("game_platform_id", _gamePlatformId);
             if (_sessionId != null) data.TryAdd("session_id", _sessionId);

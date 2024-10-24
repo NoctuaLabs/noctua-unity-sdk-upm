@@ -196,7 +196,7 @@ namespace Tests.Runtime
                     new NoctuaLocale()
                 );
                 
-                eventSender.SetFields(gameId: 7, gamePlatformId: 17);
+                eventSender.SetProperties(gameId: 7, gamePlatformId: 17);
 
                 eventSender.Send("test_event");
                 
@@ -272,7 +272,7 @@ namespace Tests.Runtime
                     new NoctuaLocale()
                 );
 
-                eventSender.SetFields(gameId: 7, gamePlatformId: 17);
+                eventSender.SetProperties(gameId: 7, gamePlatformId: 17);
 
                 eventSender.Send("test_event_1");
                 eventSender.Send("test_event_1");
@@ -327,7 +327,7 @@ namespace Tests.Runtime
                     new NoctuaLocale()
                 );
                 
-                eventSender.SetFields(gameId: 7, gamePlatformId: 17);
+                eventSender.SetProperties(gameId: 7, gamePlatformId: 17);
 
                 eventSender.Send("test_event_1");
                 eventSender.Send("test_event_1");

@@ -2,11 +2,14 @@ using System;
 using UnityEngine;
 using UnityEngine.UIElements;
 using System.Collections.Generic;
+using com.noctuagames.sdk.Events;
 
 namespace com.noctuagames.sdk.UI
 {
     internal class EmailConfirmResetPasswordDialogPresenter : Presenter<AuthenticationModel>
     {
+        public EventSender EventSender;
+     
         private string _credVerifyCode;
         private string _password;
         private string _rePassword;
@@ -16,11 +19,13 @@ namespace com.noctuagames.sdk.UI
 
         public void Show(int credVerifyId)
         {
-            Visible = true;
 
+            Visible = true;
             _credVerifyId = credVerifyId;
 
             Setup();
+
+            EventSender?.Send("reset_password_opened");
         }
 
         protected override void Attach(){}
@@ -161,6 +166,8 @@ namespace com.noctuagames.sdk.UI
             try {
 
                 await Model.AuthService.ConfirmResetPasswordAsync(verificationId, verificationCode, password);
+                
+                EventSender?.Send("reset_password_success");
 
                 View.visible = false;
                 

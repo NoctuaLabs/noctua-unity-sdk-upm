@@ -11,6 +11,7 @@ using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Web;
+using com.noctuagames.sdk.Events;
 using com.noctuagames.sdk.UI;
 using UnityEngine.EventSystems;
 using UnityEngine.Scripting;
@@ -50,12 +51,17 @@ namespace com.noctuagames.sdk
         private readonly NoctuaAuthenticationService _service;
         private OauthRedirectListener _oauthOauthRedirectListener;
 
-        internal NoctuaAuthentication(NoctuaAuthenticationService service, UIFactory uiFactory, GlobalConfig config)
+        internal NoctuaAuthentication(
+            NoctuaAuthenticationService service, 
+            UIFactory uiFactory, 
+            GlobalConfig config,
+            EventSender eventSender = null
+        )
         {
             _service = service;
                         
             _uiFactory = uiFactory;
-            _uiModel = new AuthenticationModel(_uiFactory, _service, config);
+            _uiModel = new AuthenticationModel(_uiFactory, _service, config, eventSender);
         }
 
         public UserBundle GetRecentAccount()

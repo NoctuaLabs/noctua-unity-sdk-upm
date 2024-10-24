@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Net;
 using System.Net.Sockets;
 using System.Threading.Tasks;
+using com.noctuagames.sdk.Events;
 using com.noctuagames.sdk.UI;
 using Cysharp.Threading.Tasks;
 using UnityEngine;
@@ -64,11 +65,17 @@ namespace com.noctuagames.sdk
 
         private AuthType _currentAuthType = AuthType.SwitchOrBindAccount;
 
-        internal AuthenticationModel(UIFactory uiFactory, NoctuaAuthenticationService authService, GlobalConfig config)
+        internal AuthenticationModel(
+            UIFactory uiFactory, 
+            NoctuaAuthenticationService authService, 
+            GlobalConfig config,
+            EventSender eventSender = null
+        )
         {
             _uiFactory = uiFactory;
             
             _userCenter = _uiFactory.Create<UserCenterPresenter, AuthenticationModel>(this);
+            _userCenter.EventSender = eventSender;
             _accountSelectionDialog = _uiFactory.Create<AccountSelectionDialogPresenter, AuthenticationModel>(this);
             _switchAccountConfirmationDialog = _uiFactory.Create<SwitchAccountConfirmationDialogPresenter, AuthenticationModel>(this);
             _loginOptionsDialog = _uiFactory.Create<LoginOptionsDialogPresenter, AuthenticationModel>(this);
@@ -76,7 +83,9 @@ namespace com.noctuagames.sdk
             _emailVerificationDialog = _uiFactory.Create<EmailVerificationDialogPresenter, AuthenticationModel>(this);
             _emailRegisterDialog = _uiFactory.Create<EmailRegisterDialogPresenter, AuthenticationModel>(this);
             _emailResetPasswordDialog = _uiFactory.Create<EmailResetPasswordDialogPresenter, AuthenticationModel>(this);
+            _emailResetPasswordDialog.EventSender = eventSender;
             _emailConfirmResetPasswordDialog = _uiFactory.Create<EmailConfirmResetPasswordDialogPresenter, AuthenticationModel>(this);
+            _emailConfirmResetPasswordDialog.EventSender = eventSender;
             _accountDeletionConfirmationDialog = _uiFactory.Create<AccountDeletionConfirmationDialogPresenter, AuthenticationModel>(this);
             _welcome = _uiFactory.Create<WelcomeNotificationPresenter, AuthenticationModel>(this);
 

@@ -121,6 +121,11 @@ namespace com.noctuagames.sdk
             return userBundle;
         }
 
+        public void Logout()
+        {
+            RecentAccount = null;
+        }
+
         public void ResetAccounts()
         {
             if (string.IsNullOrEmpty(_bundleId))
@@ -276,6 +281,28 @@ namespace com.noctuagames.sdk
             [JsonProperty("user")] public User User;
             [JsonProperty("player")] public Player Player;
             [JsonProperty("credential")] public Credential Credential;
+        }
+
+        public void DeleteRecentAccount()
+        {
+            if (RecentAccount == null)
+            {
+                return;
+            }
+
+            _nativeAccountStore.DeleteAccount(
+                new NativeAccount
+                {
+                    PlayerId = RecentAccount.Player.Id,
+                    GameId = RecentAccount.Player.GameId
+                }
+            );
+
+            Load();
+            
+            RecentAccount = null;
+            
+            UniTask.Void(async () => OnAccountChanged?.Invoke(RecentAccount));
         }
     }
 }
