@@ -83,7 +83,7 @@ namespace com.noctuagames.sdk.UI
         public void SetBehaviourWhitelabel(GlobalConfig config)
         {
             _config = config;
-            if (!string.IsNullOrEmpty(config.Noctua.Flags) && config.Noctua.Flags.Contains("VN"))
+            if (!string.IsNullOrEmpty(config?.Noctua?.Flags) && config.Noctua.Flags.Contains("VN"))
             {
                 View.Q<Button>("BackButton").AddToClassList("hide");
             }

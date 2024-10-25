@@ -104,7 +104,7 @@ namespace com.noctuagames.sdk.UI
             _dateOfIssue = View.Q<TextField>("DateOfIssueTF");
             _address = View.Q<TextField>("AddressTF");
 
-            if(!string.IsNullOrEmpty(_config.Noctua.Flags))
+            if(!string.IsNullOrEmpty(_config?.Noctua?.Flags))
             {
                 SetupDropdown();  
                 SetupDatePicker();
@@ -130,7 +130,7 @@ namespace com.noctuagames.sdk.UI
                 _address.value = "";
             }
 
-            if(string.IsNullOrEmpty(_config.Noctua.Flags))
+            if(string.IsNullOrEmpty(_config?.Noctua?.Flags))
             {
                 textFields = new List<TextField>
                 {
@@ -167,7 +167,7 @@ namespace com.noctuagames.sdk.UI
             rePasswordField.RegisterValueChangedCallback(evt => OnRePasswordValueChanged(rePasswordField));
             
             //Behaviour whitelabel - VN
-            if(!string.IsNullOrEmpty(_config.Noctua.Flags))
+            if(!string.IsNullOrEmpty(_config?.Noctua?.Flags))
             {
                 _fullname.RegisterValueChangedCallback(evt => OnValueChanged(_fullname));
                 _phoneNumber.RegisterValueChangedCallback(evt => OnValueChanged(_phoneNumber));
@@ -323,7 +323,7 @@ namespace com.noctuagames.sdk.UI
                 return;
             }
             
-            if(!string.IsNullOrEmpty(_config.Noctua.Flags) && _gender.value == "Select Gender")
+            if(!string.IsNullOrEmpty(_config?.Noctua?.Flags) && _gender.value == "Select Gender")
             {
                 View.Q<Label>("ErrEmailEmpty").text = "Please Select Gender!";
                 View.Q<Label>("ErrEmailEmpty").RemoveFromClassList("hide");
@@ -332,7 +332,7 @@ namespace com.noctuagames.sdk.UI
                 return;
             }
 
-            if(!string.IsNullOrEmpty(_config.Noctua.Flags) && _country.value == "Select Country")
+            if(!string.IsNullOrEmpty(_config?.Noctua?.Flags) && _country.value == "Select Country")
             {
                 View.Q<Label>("ErrEmailEmpty").text = "Please Select Country!";
                 View.Q<Label>("ErrEmailEmpty").RemoveFromClassList("hide");
@@ -344,25 +344,25 @@ namespace com.noctuagames.sdk.UI
             try {
                  Dictionary<string, string> regExtra = new();
 
-                if(!string.IsNullOrEmpty(_config.Noctua.Flags))
+                if(!string.IsNullOrEmpty(_config?.Noctua?.Flags))
                 {
-                    var _dob = _birthDate.value;
+                    var dob = _birthDate.value;
                     string format = "dd/MM/yyyy";
-                    DateTime _dateTime = DateTime.ParseExact(_dob, format, CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal);
-                    _dateTime = new DateTime(_dateTime.Year, _dateTime.Month, _dateTime.Day, 0, 0, 0, DateTimeKind.Utc);
+                    DateTime dateTime = DateTime.ParseExact(dob, format, CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal);
+                    dateTime = new DateTime(dateTime.Year, dateTime.Month, dateTime.Day, 0, 0, 0, DateTimeKind.Utc);
 
                     var doi = _dateOfIssue.value;
-                    DateTime _dateTimeDoi = DateTime.ParseExact(doi, format, CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal);
-                    _dateTimeDoi = new DateTime(_dateTimeDoi.Year, _dateTimeDoi.Month, _dateTimeDoi.Day, 0, 0, 0, DateTimeKind.Utc);
+                    DateTime dateTimeDoi = DateTime.ParseExact(doi, format, CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal);
+                    dateTimeDoi = new DateTime(dateTimeDoi.Year, dateTimeDoi.Month, dateTimeDoi.Day, 0, 0, 0, DateTimeKind.Utc);
 
                     Dictionary<string, string> regExtraDic = new Dictionary<string, string>()
                     {
                         { "fullname", _fullname.value },
                         { "phone_number", _phoneCode.value + _phoneNumber.value },
-                        { "birth_date", _dateTime.ToString() },
+                        { "birth_date", dateTime.ToString() },
                         { "id_card", _idCard.value },
                         { "place_of_issue", _placeOfIssue.value },
-                        { "date_of_issue", _dateTimeDoi.ToString() },
+                        { "date_of_issue", dateTimeDoi.ToString() },
                         { "address", _address.value }
                     };
 

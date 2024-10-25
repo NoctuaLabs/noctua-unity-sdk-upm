@@ -71,13 +71,12 @@ namespace com.noctuagames.sdk.UI
         {
             _config = config;
 
-            if(!string.IsNullOrEmpty(config.CoPublisher.CompanyName))
-            {
-                var logo = Utility.GetCoPublisherLogo(config.CoPublisher.CompanyName);
+            if (string.IsNullOrEmpty(_config?.CoPublisher?.CompanyName)) return;
 
-                var _defaultLogo = Resources.Load<Texture2D>(logo);
-                View.Q<VisualElement>("NoctuaLogoWithText").style.backgroundImage = new StyleBackground(_defaultLogo);                
-            }
+            var logo = Utility.GetCoPublisherLogo(_config.CoPublisher.CompanyName);
+
+            var defaultLogo = Resources.Load<Texture2D>(logo);
+            View.Q<VisualElement>("NoctuaLogoWithText").style.backgroundImage = new StyleBackground(defaultLogo);
         }
 
         private void OnContinueButtonClick(PointerUpEvent evt)

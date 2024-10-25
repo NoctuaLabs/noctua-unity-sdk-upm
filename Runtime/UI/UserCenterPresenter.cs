@@ -133,15 +133,15 @@ namespace com.noctuagames.sdk.UI
         {
             _globalConfig = config;
 
-            if(!string.IsNullOrEmpty(config.CoPublisher.CompanyName))
+            if(!string.IsNullOrEmpty(config?.CoPublisher?.CompanyName))
             {
                 _stayConnect.text = config.CoPublisher.CompanyName;
 
                 var logo = Utility.GetCoPublisherLogo(config.CoPublisher.CompanyName);
                 
-                var _defaultLogo = Resources.Load<Texture2D>(logo);
-                View.Q<VisualElement>("NoctuaLogoWithText").style.backgroundImage = new StyleBackground(_defaultLogo);
-                View.Q<VisualElement>("NoctuaLogoWithText2").style.backgroundImage = new StyleBackground(_defaultLogo);
+                var defaultLogo = Resources.Load<Texture2D>(logo);
+                View.Q<VisualElement>("NoctuaLogoWithText").style.backgroundImage = new StyleBackground(defaultLogo);
+                View.Q<VisualElement>("NoctuaLogoWithText2").style.backgroundImage = new StyleBackground(defaultLogo);
                 
                 string cleanedUrl = config.CoPublisher.CompanyWebsiteUrl.Replace("https://", "");
                 View.Q<Label>("FindMoreLabel").text = cleanedUrl;
