@@ -184,8 +184,10 @@ namespace com.noctuagames.sdk.UI
              var genderChoices = new List<string> {"Male", "Female"};
             Color textColor = new Color(98f / 255f, 100f / 255f, 104f / 255f);
             
+            var regionCode = _config?.Noctua?.Region ?? "";
+
             _gender.choices = genderChoices; 
-            _gender.value = "Select Gender";
+            _gender.value = Utility.GetTranslation("Select.Gender",  Utility.LoadTranslations(regionCode));
             _gender.style.color = textColor;
 
             _gender.RegisterCallback<ChangeEvent<string>>((evt) =>
@@ -253,9 +255,11 @@ namespace com.noctuagames.sdk.UI
             });
 
             Color textColor = new Color(98f / 255f, 100f / 255f, 104f / 255f);
-            
+
+            var regionCode = _config?.Noctua?.Region ?? "";
+
             _country.choices = _countryList; 
-            _country.value = "Select Country";
+            _country.value = Utility.GetTranslation("Select.Country",  Utility.LoadTranslations(regionCode));
             _country.style.color = textColor;
             _country.RegisterCallback<ChangeEvent<string>>((evt) =>
             {
