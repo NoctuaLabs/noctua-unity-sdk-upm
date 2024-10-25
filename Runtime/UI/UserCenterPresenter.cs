@@ -586,7 +586,9 @@ namespace com.noctuagames.sdk.UI
 
                 _editProfileContainer.AddToClassList("show");
 
-                _userIDLabel.text = "Edit Profile";
+                var regionCode = _globalConfig?.Noctua?.Region ?? "";
+
+                _userIDLabel.text = Utility.GetTranslation("UserCenterPresenter.MenuEditProfile.Label.text",  Utility.LoadTranslations(regionCode));
                 _userIDLabel.style.fontSize = 16;  
 
                 View.Q<Button>("SaveButton").SetEnabled(false);
