@@ -2,6 +2,38 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.14.0] - 2024-10-25
+
+### 🚀 Features
+
+- Authentication builtin tracker
+- Add events  to Auth UIs, add double events to some auth process
+- Add localization EN json file
+- Add configuration for localization
+- Add localization
+- Add indonesia localization file
+
+### 🐛 Bug Fixes
+
+- Adjsut name some widget to support localization - email login
+- Update the localization text sources
+- Enhance code localization data
+- Update text localization
+- Rename label name text
+- Optimaze config localization code
+- Enhance code to support localization - user center
+- Translation en type widget
+- Translation id type widget
+- Translate label inside the button as container
+- Change debug log to noctua debug log
+- Add support for Unity versions with older Gradle 6
+- Optional copublisher config should be ignored instead of exception
+- Add elvis operators to potentially null configs
+
+### 🧪 Testing
+
+- Fix tests to adjust with original requirements
+
 ## [0.13.0] - 2024-10-22
 
 ### 🚀 Features
