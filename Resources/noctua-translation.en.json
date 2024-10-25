@@ -127,7 +127,9 @@
 
     "SuggestionBindText.Content1": "Unlock special benefits by owning a Noctua account",
     "SuggestionBindText.Content2": "Protect your hard-earned progress and achievements",
-    "SuggestionBindText.Content3": "Enjoy the flexibility to play your game on any device"
+    "SuggestionBindText.Content3": "Enjoy the flexibility to play your game on any device",
+    "Select.Gender" : "Select Gender",
+    "Select.Country": "Select Country"
 
   }
   
