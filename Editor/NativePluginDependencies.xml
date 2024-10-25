@@ -2,7 +2,7 @@
     <androidPackages>
         <androidPackage spec="com.noctuagames.sdk:noctua-android-sdk:0.3.7" />
         <androidPackage spec="com.android.billingclient:billing:7.0.0" />
-        <androidPackage spec="com.google.guava:guava:33.2.1-android" />
+        <androidPackage spec="com.google.guava:guava:31.1-android" />
     </androidPackages>
     <iosPods>
         <iosPod name="NoctuaSDK" version="~> 0.2.0" minTargetSdk="14.0" addToAllTargets="false" />

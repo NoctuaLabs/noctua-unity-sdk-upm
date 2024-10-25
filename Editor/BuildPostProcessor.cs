@@ -1,6 +1,8 @@
 using System;
 using System.IO;
 using System.Linq;
+using System.Runtime.CompilerServices;
+using System.Text.RegularExpressions;
 using System.Xml;
 using System.Xml.Linq;
 using Newtonsoft.Json;
@@ -219,20 +221,46 @@ namespace Editor
             var gradleContent = File.ReadAllText(rootGradlePath);
             var googleServicesJsonPath = Path.Combine(Application.dataPath, "StreamingAssets", "google-services.json");
             var firebaseEnabled = noctuaConfig.Firebase != null && File.Exists(googleServicesJsonPath);
-
-            if (firebaseEnabled && !gradleContent.Contains("com.google.gms.google-services"))
+            
+            var gradleVersion = GetGradleVersion(path);
+            
+            if (gradleVersion.Major >= 7)
             {
-                gradleContent = IncludeGoogleServicesPlugin(gradleContent);
-                File.WriteAllText(rootGradlePath, gradleContent);
+                if (firebaseEnabled && !gradleContent.Contains("com.google.gms.google-services"))
+                {
+                    gradleContent = IncludeGoogleServicesPluginForGradle7(gradleContent);
+                    File.WriteAllText(rootGradlePath, gradleContent);
 
-                Log("Added Google Services plugin to root build.gradle.");
+                    Log("Added Google Services plugin to root build.gradle.");
+                }
+                else if (!firebaseEnabled && gradleContent.Contains("com.google.gms.google-services"))
+                {
+                    gradleContent = ExcludeGoogleServicesPluginForGradle7(gradleContent);
+                    File.WriteAllText(rootGradlePath, gradleContent);
+
+                    Log("Removed Google Services plugin from root build.gradle.");
+                }
             }
-            else if (!firebaseEnabled && gradleContent.Contains("com.google.gms.google-services"))
+            else if (gradleVersion.Major == 6)
             {
-                gradleContent = ExcludeGoogleServicesPlugin(gradleContent);
-                File.WriteAllText(rootGradlePath, gradleContent);
+                if (firebaseEnabled && !gradleContent.Contains("com.google.gms:google-services"))
+                {
+                    gradleContent = IncludeGoogleServicesPluginForGradle6(gradleContent);
+                    File.WriteAllText(rootGradlePath, gradleContent);
 
-                Log("Removed Google Services plugin from root build.gradle.");
+                    Log("Added Google Services plugin to root build.gradle.");
+                }
+                else if (!firebaseEnabled && gradleContent.Contains("com.google.gms:google-services"))
+                {
+                    gradleContent = ExcludeGoogleServicesPluginForGradle6(gradleContent);
+                    File.WriteAllText(rootGradlePath, gradleContent);
+
+                    Log("Removed Google Services plugin from root build.gradle.");
+                }
+            }
+            else
+            {
+                LogError($"Unsupported Gradle version: {gradleVersion}");
             }
         }
 
@@ -360,12 +388,25 @@ namespace Editor
             const string applyPluginString = "apply plugin:";
             const string pluginEntry = "apply plugin: 'com.google.gms.google-services'\n";
 
-            var index = gradleContent.IndexOf(applyPluginString, StringComparison.Ordinal);
+            var index = gradleContent.LastIndexOf(applyPluginString, StringComparison.Ordinal);
 
             if (index < 0)
             {
                 gradleContent += "\n";
                 index = gradleContent.Length - 1;
+            }
+            else
+            {
+                index = gradleContent[index..].IndexOf('\n');
+                
+                if (index < 0)
+                {
+                    index = gradleContent.Length - 1;
+                }
+                else
+                {
+                    index += 1;
+                }
             }
 
             gradleContent = gradleContent.Insert(index, pluginEntry);
@@ -378,7 +419,7 @@ namespace Editor
             return gradleContent.Replace("apply plugin: 'com.google.gms.google-services'\n", string.Empty);
         }
 
-        private static string IncludeGoogleServicesPlugin(string gradleContent)
+        private static string IncludeGoogleServicesPluginForGradle7(string gradleContent)
         {
             const string appPluginString = "plugins {";
             var index = gradleContent.IndexOf(appPluginString, StringComparison.Ordinal);
@@ -397,7 +438,7 @@ namespace Editor
             return gradleContent;
         }
 
-        private static string ExcludeGoogleServicesPlugin(string gradleContent)
+        private static string ExcludeGoogleServicesPluginForGradle7(string gradleContent)
         {
             return gradleContent.Replace(
                 "\n    id 'com.google.gms.google-services' version '4.4.2' apply false",
@@ -405,19 +446,78 @@ namespace Editor
             );
         }
         
-        private static void Log(string message)
+        private static string IncludeGoogleServicesPluginForGradle6(string gradleContent)
         {
-            Debug.Log($"{nameof(NoctuaAndroidBuildProcessor)}: {message}");
+            const string appPluginString = "dependencies {";
+            var index = gradleContent.IndexOf(appPluginString, StringComparison.Ordinal);
+
+            if (index < 0)
+            {
+                Debug.LogError("Failed to find 'plugins {' in build.gradle file.");
+
+                return gradleContent;
+            }
+
+            const string pluginEntry = "\n            classpath 'com.google.gms:google-services:4.3.10'";
+
+            gradleContent = gradleContent.Insert(index + appPluginString.Length, pluginEntry);
+
+            return gradleContent;
+        }
+
+        private static string ExcludeGoogleServicesPluginForGradle6(string gradleContent)
+        {
+            return gradleContent.Replace(
+                "\n            classpath 'com.google.gms.google-services:4.3.10'",
+                string.Empty
+            );
+        }
+
+        private static Version GetGradleVersion(string projectPath)
+        {
+            var wrapperPropertiesPath = Path.Combine(projectPath, "gradle", "wrapper", "gradle-wrapper.properties");
+
+            if (!File.Exists(wrapperPropertiesPath))
+            {
+                LogError("gradle-wrapper.properties not found.");
+                return new Version(7, 0); // Default to Gradle 7.0 if we can't find it
+            }
+
+            var versionLine = File.ReadAllLines(wrapperPropertiesPath)
+                .FirstOrDefault(line => line.StartsWith("distributionUrl"));
+            
+            if (versionLine == null)
+            {
+                LogWarning("Failed to read distributionUrl from gradle-wrapper.properties. Defaulting to Gradle 7.0.");
+                
+                return new Version(7, 0); // Default to Gradle 7.0 if we can't find it
+            }
+            
+            var match = Regex.Match(versionLine, @"gradle-(\d+\.\d+\.\d+)-bin\.zip");
+
+            if (match.Success          &&
+                match.Groups.Count > 1 &&
+                Version.TryParse(match.Groups[1].Value, out var gradleVersion))
+            {
+                return gradleVersion;
+            }
+
+            return new Version(7, 0); // Default to Gradle 7.0 if parsing fails
         }
         
-        private static void LogError(string message)
+        private static void Log(string message, [CallerMemberName] string caller = "")
         {
-            Debug.LogError($"{nameof(NoctuaAndroidBuildProcessor)}: {message}");
+            Debug.Log($"{nameof(NoctuaAndroidBuildProcessor)}.{caller}: {message}");
         }
         
-        private static void LogWarning(string message)
+        private static void LogError(string message, [CallerMemberName] string caller = "")
         {
-            Debug.LogWarning($"{nameof(NoctuaAndroidBuildProcessor)}: {message}");
+            Debug.LogError($"{nameof(NoctuaAndroidBuildProcessor)}.{caller}: {message}");
+        }
+        
+        private static void LogWarning(string message, [CallerMemberName] string caller = "")
+        {
+            Debug.LogWarning($"{nameof(NoctuaAndroidBuildProcessor)}.{caller}: {message}");
         }
     }
 #endif
