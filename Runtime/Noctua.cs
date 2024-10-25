@@ -275,7 +275,7 @@ namespace com.noctuagames.sdk
                 }
             );
 
-            _platform = new NoctuaPlatform(config.Noctua, accessTokenProvider, uiFactory);
+            _platform = new NoctuaPlatform(config.Noctua, accessTokenProvider, uiFactory, _eventSender);
         }
 
         public static async UniTask InitAsync()

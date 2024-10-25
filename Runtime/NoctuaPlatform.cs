@@ -1,4 +1,5 @@
-﻿using com.noctuagames.sdk.UI;
+﻿using com.noctuagames.sdk.Events;
+using com.noctuagames.sdk.UI;
 
 namespace com.noctuagames.sdk
 {
@@ -7,8 +8,13 @@ namespace com.noctuagames.sdk
         public readonly NoctuaLocale Locale;
 
         public readonly NoctuaWebContent Content;
-        
-        internal NoctuaPlatform(NoctuaConfig config, AccessTokenProvider accessTokenProvider, UIFactory uiFactory)
+
+        internal NoctuaPlatform(
+            NoctuaConfig config,
+            AccessTokenProvider accessTokenProvider,
+            UIFactory uiFactory,
+            EventSender eventSender = null
+        )
         {
             Locale = new NoctuaLocale();
             Content = new NoctuaWebContent(
@@ -19,7 +25,8 @@ namespace com.noctuagames.sdk
                     CustomerServiceBaseUrl = config.CustomerServiceBaseUrl
                 },
                 accessTokenProvider,
-                uiFactory
+                uiFactory,
+                eventSender
             );
         }
     }

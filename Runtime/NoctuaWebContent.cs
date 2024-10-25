@@ -1,4 +1,5 @@
 ﻿using System;
+using com.noctuagames.sdk.Events;
 using com.noctuagames.sdk.UI;
 using Cysharp.Threading.Tasks;
 using Newtonsoft.Json;
@@ -28,13 +29,19 @@ namespace com.noctuagames.sdk
         private readonly AccessTokenProvider _accessTokenProvider;
         private readonly WebContentModel _webContent = new();
         private readonly WebContentPresenter _webView;
+        private readonly EventSender _eventSender;
 
-        internal NoctuaWebContent(NoctuaWebContentConfig config, AccessTokenProvider accessTokenProvider, UIFactory uiFactory)
+        internal NoctuaWebContent(
+            NoctuaWebContentConfig config,
+            AccessTokenProvider accessTokenProvider,
+            UIFactory uiFactory,
+            EventSender eventSender = null
+        )
         {
             _config = config ?? throw new ArgumentNullException(nameof(config));
             _accessTokenProvider = accessTokenProvider ?? throw new ArgumentNullException(nameof(accessTokenProvider));
-            
             _webView = uiFactory.Create<WebContentPresenter, WebContentModel>(_webContent);
+            _eventSender = eventSender;
         }
         
         public async UniTask<bool> ShowAnnouncement()
@@ -58,8 +65,9 @@ namespace com.noctuagames.sdk
                 _log.Log($"Web content already shown today on {_webContent.LastShown.Value.ToUniversalTime():O}");
                 return false;
             }
-
             
+            _eventSender?.Send("platform_content_reward_opened");
+
             await _webView.OpenAsync();
 
             if (_webContent.LastShown != default)
@@ -79,6 +87,8 @@ namespace com.noctuagames.sdk
             
             var details = await GetWebContentDetails(_config.RewardBaseUrl);
             
+            _eventSender?.Send("platform_content_announcement_opened");
+
             _webContent.Url = details.Url;
             _webContent.ScreenMode = ScreenMode.FullScreen;
             _webContent.Title = "Reward";
@@ -96,6 +106,8 @@ namespace com.noctuagames.sdk
             
             var details = await GetWebContentDetails(_config.CustomerServiceBaseUrl);
             
+            _eventSender?.Send("customer_service_opened");
+
             _webContent.Url = details.Url;
             _webContent.ScreenMode = ScreenMode.FullScreen;
             _webContent.Title = "Customer Service";
@@ -109,7 +121,6 @@ namespace com.noctuagames.sdk
             var request = new HttpRequest(HttpMethod.Get, url)
                 .WithHeader("Content-Type", "application/json")
                 .WithHeader("Accept", "application/json");
-
 
             try
             {
