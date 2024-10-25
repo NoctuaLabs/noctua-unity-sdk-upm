@@ -1031,7 +1031,7 @@ namespace com.noctuagames.sdk.UI
 
         private void UpdateCarouselText()
         {
-            var regionCode = string.IsNullOrEmpty(_globalConfig.Noctua.Region) ? _globalConfig.Noctua.Region : "";
+            var regionCode = _globalConfig?.Noctua?.Region ?? "";
             _carouselLabel.text = Utility.GetTranslation(_carouselItems[_currentIndex],  Utility.LoadTranslations(regionCode));
         }
 

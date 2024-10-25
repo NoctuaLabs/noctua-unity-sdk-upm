@@ -23,7 +23,7 @@ namespace com.noctuagames.sdk
         
         public async UniTask<UserBundle> SocialLoginAsync(string provider)
         {
-            if(Utility.ContainsFlag(_config.Noctua.Flags, "VNLegalPurpose"))
+            if(Utility.ContainsFlag(_config?.Noctua?.Flags, "VNLegalPurpose"))
             {
                 throw new NoctuaException(NoctuaErrorCode.Authentication, "Social Login is Disabled");
             }

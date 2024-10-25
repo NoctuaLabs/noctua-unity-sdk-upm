@@ -174,9 +174,11 @@ namespace com.noctuagames.sdk
         public static bool ContainsFlag(string flags, string flagToCheck)
         {
             return flags
-                .Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries)
-                .Select(flag => flag.Trim())
-                .Contains(flagToCheck, StringComparer.OrdinalIgnoreCase);
+                    ?
+                    .Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries)
+                    .Select(flag => flag.Trim())
+                    .Contains(flagToCheck, StringComparer.OrdinalIgnoreCase) ??
+                false;
         }
 
         private static string GetTranslationByLanguage(string regionCodeParam)

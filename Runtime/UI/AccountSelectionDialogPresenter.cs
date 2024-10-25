@@ -38,13 +38,13 @@ namespace com.noctuagames.sdk.UI
         {
             _gameUsers.Clear();
 
-            var currentGameAccountList = Utility.ContainsFlag(_config.Noctua.Flags, "VNLegalPurpose") ? Model.AuthService.CurrentGameAccountList.Where(user => !user.IsGuest) : Model.AuthService.CurrentGameAccountList;
+            var currentGameAccountList = Utility.ContainsFlag(_config?.Noctua?.Flags, "VNLegalPurpose") ? Model.AuthService.CurrentGameAccountList.Where(user => !user.IsGuest) : Model.AuthService.CurrentGameAccountList;
             _gameUsers.AddRange(currentGameAccountList);
             _gameAccountListView.Rebuild();
 
             _noctuaUsers.Clear();
 
-            var otherGamesAccountList = Utility.ContainsFlag(_config.Noctua.Flags, "VNLegalPurpose") ? Model.AuthService.OtherGamesAccountList.Where(user => !user.IsGuest) : Model.AuthService.OtherGamesAccountList;
+            var otherGamesAccountList = Utility.ContainsFlag(_config?.Noctua?.Flags, "VNLegalPurpose") ? Model.AuthService.OtherGamesAccountList.Where(user => !user.IsGuest) : Model.AuthService.OtherGamesAccountList;
 
             _noctuaUsers.AddRange(otherGamesAccountList);
             _noctuaAccountListView.Rebuild();
