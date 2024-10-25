@@ -169,7 +169,7 @@ namespace com.noctuagames.sdk
         
         public void ShowUserCenter()
         {
-            _currentAuthType = _authService.RecentAccount.IsGuest ? AuthType.SwitchOrBindAccount : AuthType.LinkAccount;
+            _currentAuthType = _authService?.RecentAccount?.IsGuest == true ? AuthType.SwitchOrBindAccount : AuthType.LinkAccount;
 
             _userCenter.Show();
         }
