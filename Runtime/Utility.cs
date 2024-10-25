@@ -188,6 +188,7 @@ namespace com.noctuagames.sdk
             return regionCode switch
             {
                 "id" => "noctua-translation.id",
+                "vn" => "noctua-translation.vn",
                 _ => "noctua-translation.en"
             };
         }
@@ -225,7 +226,11 @@ namespace com.noctuagames.sdk
                 case Label label:
                     string labelKey = $"{uxmlName}.{elementName}.{elementType}.text";
                     string labelTranslation = GetTranslation(labelKey, translations);
-                    label.text = labelTranslation;
+
+                    if(labelTranslation != labelKey)
+                    {
+                        label.text = labelTranslation;
+                    }
                     break;
                 case Button button:
                     string buttonKey = $"{uxmlName}.{elementName}.{elementType}.text";
