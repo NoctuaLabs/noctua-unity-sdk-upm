@@ -20,8 +20,8 @@ namespace com.noctuagames.sdk.Events
         public string BaseUrl;
         public string ClientId;
         public string BundleId = Application.identifier;
-        public uint BatchingNumberThreshold = 20;
-        public uint BatchingTimoutMs = 300_000;
+        public uint BatchSize = 20;
+        public uint BatchPeriodMs = 300_000;
     }
     
     [Preserve]
@@ -33,6 +33,8 @@ namespace com.noctuagames.sdk.Events
 
     public class EventSender : IDisposable
     {
+        public DateTime LastEventTime { get; private set; }
+        
         private readonly ILogger _log = new NoctuaUnityDebugLogger();
         private readonly EventSenderConfig _config;
         private readonly NoctuaLocale _locale;
@@ -44,34 +46,36 @@ namespace com.noctuagames.sdk.Events
         private readonly string _uniqueId;
         private readonly string _deviceId;
 
+        private bool _flush;
+        private bool _disposed;
+
         private long? _userId;
         private long? _playerId;
         private long? _credentialId;
         private long? _gameId;
         private long? _gamePlatformId;
         private string _sessionId;
-        
-        public void SetUser(long? userId, long? playerId)
-        {
-            _userId = userId;
-            _playerId = playerId;
-        }
 
         public void SetProperties(
-            long? userId = null,
-            long? playerId = null,
-            long? credentialId = null,
-            long? gameId = null,
-            long? gamePlatformId = null,
-            string sessionId = null
+            long? userId = 0,
+            long? playerId = 0,
+            long? credentialId = 0,
+            long? gameId = 0,
+            long? gamePlatformId = 0,
+            string sessionId = ""
         )
         {
-            _userId = userId;
-            _playerId = playerId;
-            _credentialId = credentialId;
-            _gameId = gameId;
-            _gamePlatformId = gamePlatformId;
-            _sessionId = sessionId;
+            if (userId != 0) _userId = userId;
+            
+            if (playerId != 0) _playerId = playerId;
+            
+            if (credentialId != 0) _credentialId = credentialId;
+            
+            if (gameId != 0) _gameId = gameId;
+            
+            if (gamePlatformId != 0) _gamePlatformId = gamePlatformId;
+            
+            if (sessionId != "") _sessionId = sessionId;
             
             _log.Log($"Setting fields: " +
                 $"userId={userId}, " +
@@ -101,30 +105,20 @@ namespace com.noctuagames.sdk.Events
                 throw new ArgumentException("Bundle ID must be provided", nameof(config));
             }
             
-            if (_config.BatchingNumberThreshold <= 0)
-            {
-                throw new ArgumentException("Batching number threshold must be greater than 0", nameof(config));
-            }
-            
-            if (_config.BatchingTimoutMs <= 0)
-            {
-                throw new ArgumentException("Batching timeout seconds must be greater than 0", nameof(config));
-            }
-            
             _locale = locale ?? throw new ArgumentNullException(nameof(locale));
             _start = DateTime.UtcNow - TimeSpan.FromSeconds(Stopwatch.GetTimestamp() / (double) Stopwatch.Frequency);
             _cancelSendSource = new CancellationTokenSource();
-            _sendTask = UniTask.Create(async () => await SendEvents(_cancelSendSource.Token));
+            _sendTask = UniTask.Create(SendEvents, _cancelSendSource.Token);
             
             _deviceId = SystemInfo.deviceUniqueIdentifier;
             _sdkVersion = Assembly.GetExecutingAssembly().GetName().Version.ToString();
 
 #if UNITY_ANDROID && !UNITY_EDITOR
-                _uniqueId = GetGoogleAdId();
+            _uniqueId = GetGoogleAdId();
 #elif UNITY_IOS && !UNITY_EDITOR
-                _uniqueId = UnityEngine.iOS.Device.vendorIdentifier;
+            _uniqueId = UnityEngine.iOS.Device.vendorIdentifier;
 #else
-                _uniqueId = null;
+            _uniqueId = null;
 #endif
         }
 
@@ -144,6 +138,7 @@ namespace com.noctuagames.sdk.Events
                 data.Remove(field);
             }
             
+            data.TryAdd("event_version", 1);
             data.TryAdd("event_name", name);
             data.TryAdd("sdk_version", _sdkVersion);
             data.TryAdd("device_id", _deviceId);
@@ -155,8 +150,8 @@ namespace com.noctuagames.sdk.Events
             data.TryAdd("game_version", Application.version);
             data.TryAdd("country", _locale.GetCountry());
 
-            var timestamp = _start.AddSeconds(Stopwatch.GetTimestamp() / (double)Stopwatch.Frequency).ToString("o");
-            data.TryAdd("timestamp", timestamp);
+            LastEventTime = _start.AddSeconds(Stopwatch.GetTimestamp() / (double)Stopwatch.Frequency);
+            data.TryAdd("timestamp", LastEventTime.ToString("O"));
             
             if (_userId   != null) data.TryAdd("user_id", _userId);
             if (_playerId != null) data.TryAdd("player_id", _playerId);
@@ -166,7 +161,7 @@ namespace com.noctuagames.sdk.Events
             if (_sessionId != null) data.TryAdd("session_id", _sessionId);
             if (_uniqueId != null) data.TryAdd("unique_id", _uniqueId);
             
-            _log.Log($"Queued event '{timestamp}-{name}-{_deviceId}-{_userId}-{_playerId}-{_sessionId}'");
+            _log.Log($"queued event '{LastEventTime:O}|{name}|{_deviceId}|{_sessionId}|{_userId}|{_playerId}'");
             
             _eventQueue.Enqueue(data);
         }
@@ -200,11 +195,26 @@ namespace com.noctuagames.sdk.Events
             return null;
         }
 #endif
+
+        public void Flush()
+        {
+            _flush = true;
+        }
         
         public void Dispose()
         {
+            if (_disposed)
+            {
+                return;
+            }
+            
             _cancelSendSource.Cancel();
-            _sendTask.GetAwaiter().GetResult();
+            _disposed = true;
+        }
+        
+        ~EventSender()
+        {
+            Dispose();
         }
         
         private async UniTask SendEvents(CancellationToken token)
@@ -216,9 +226,9 @@ namespace com.noctuagames.sdk.Events
                     await UniTask.Delay(100, cancellationToken: token);
                 }
                 
-                var batchTimeout = DateTime.UtcNow.AddMilliseconds(_config.BatchingTimoutMs);
+                var nextBatchSchedule = DateTime.UtcNow.AddMilliseconds(_config.BatchPeriodMs);
 
-                while (_eventQueue.Count < _config.BatchingNumberThreshold && DateTime.UtcNow < batchTimeout)
+                while (!_flush && _eventQueue.Count < _config.BatchSize && DateTime.UtcNow < nextBatchSchedule)
                 {
                     await UniTask.Delay(100, cancellationToken: token);
                 }
@@ -237,6 +247,8 @@ namespace com.noctuagames.sdk.Events
 
                 await request.Send<EventResponse>();
                 
+                _flush = false;
+
                 _log.Log($"Sent {events.Count} events");
             }
         }

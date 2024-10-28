@@ -31,18 +31,27 @@ namespace com.noctuagames.sdk
         public const string DefaultTrackerUrl = "https://sdk-tracker.noctuaprojects.com/api/v1";
         public const string DefaultBaseUrl = "https://sdk-api-v2.noctuaprojects.com/api/v1";
         public const string DefaultSandboxBaseUrl = "https://sandbox-sdk-api-v2.noctuaprojects.com/api/v1";
+        public const string DefaultPaymentBaseUrl = "https://dev.noctua.gg/noctua-gold-payment-webview";
+        public const string DefaultAnnouncementBaseUrl = "https://sdk-api-v2.noctuaprojects.com/api/v1/games/announcements";
+        public const string DefaultRewardBaseUrl = "https://sdk-api-v2.noctuaprojects.com/api/v1/games/rewards";
+        public const string DefaultCustomerServiceBaseUrl = "https://sdk-api-v2.noctuaprojects.com/api/v1/games/cs";
 
         [JsonProperty("trackerUrl")] public string TrackerUrl = DefaultTrackerUrl;
 
         [JsonProperty("baseUrl")] public string BaseUrl = DefaultBaseUrl;
 
-        [JsonProperty("paymentBaseUrl")] public string PaymentBaseUrl;
+        [JsonProperty("paymentBaseUrl")] public string PaymentBaseUrl = DefaultPaymentBaseUrl;
 
-        [JsonProperty("announcementBaseUrl")] public string AnnouncementBaseUrl = "https://sdk-api-v2.noctuaprojects.com/api/v1/games/announcements";
+        [JsonProperty("announcementBaseUrl")] public string AnnouncementBaseUrl = DefaultAnnouncementBaseUrl;
 
-        [JsonProperty("rewardBaseUrl")] public string RewardBaseUrl = "https://sdk-api-v2.noctuaprojects.com/api/v1/games/rewards";
+        [JsonProperty("rewardBaseUrl")] public string RewardBaseUrl = DefaultRewardBaseUrl;
 
-        [JsonProperty("customerServiceBaseUrl")] public string CustomerServiceBaseUrl = "https://sdk-api-v2.noctuaprojects.com/api/v1/games/cs";
+        [JsonProperty("customerServiceBaseUrl")] public string CustomerServiceBaseUrl = DefaultCustomerServiceBaseUrl;
+
+        [JsonProperty("trackerBatchSize")] public uint TrackerBatchSize = 20;
+        [JsonProperty("trackerBatchPeriodMs")] public uint TrackerBatchPeriodMs = 300_000;
+        [JsonProperty("sessionHeartbeatPeriodMs")] public uint SessionHeartbeatPeriodMs = 60_000;
+        [JsonProperty("sessionTimeoutMs")] public uint SessionTimeoutMs = 300_000;
 
         [JsonProperty("isSandbox")] public bool IsSandbox;
         [JsonProperty("region")]  public string Region;
@@ -101,6 +110,7 @@ namespace com.noctuagames.sdk
         public event Action<string> OnPurchaseDone;
 
         private readonly EventSender _eventSender;
+        private readonly SessionTracker _sessionTracker;
         private readonly NoctuaEventService _event;
         private readonly NoctuaAuthentication _auth;
         private readonly NoctuaIAPService _iap;
@@ -112,7 +122,7 @@ namespace com.noctuagames.sdk
         #endif
         private readonly INativePlugin _nativePlugin;
         private bool _initialized = false;
-        // Event to forward purchase results to the users of this class
+
         private Noctua()
         {
             Debug.Log("Loading streaming assets...");
@@ -222,9 +232,20 @@ namespace com.noctuagames.sdk
                 {
                     BaseUrl = config.Noctua.TrackerUrl,
                     ClientId = config.ClientId,
-                    BundleId = Application.identifier
+                    BundleId = Application.identifier,
+                    BatchSize = config.Noctua.TrackerBatchSize,
+                    BatchPeriodMs = config.Noctua.TrackerBatchPeriodMs
                 },
                 new NoctuaLocale()
+            );
+            
+            _sessionTracker = new SessionTracker(
+                new SessionTrackerConfig
+                {
+                    HeartbeatPeriodMs = config.Noctua.SessionHeartbeatPeriodMs,
+                    SessionTimeoutMs = config.Noctua.SessionTimeoutMs
+                },
+                _eventSender
             );
             
             _nativePlugin = GetNativePlugin();
@@ -239,6 +260,10 @@ namespace com.noctuagames.sdk
             
             var noctuaUIGameObject = new GameObject("NoctuaUI");
             Object.DontDestroyOnLoad(noctuaUIGameObject);
+            
+            var sessionTrackerBehaviour = noctuaUIGameObject.AddComponent<SessionTrackerBehaviour>();
+            
+            sessionTrackerBehaviour.SessionTracker = _sessionTracker;
             
             var uiFactory = new UIFactory(noctuaUIGameObject, panelSettings, config);
             

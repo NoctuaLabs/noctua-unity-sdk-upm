@@ -1,16 +1,13 @@
 ﻿using System;
 using System.Collections;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Collections.Specialized;
-using System.IO;
 using System.Linq;
-using System.Net;
 using System.Text;
 using System.Threading.Tasks;
 using com.noctuagames.sdk;
 using com.noctuagames.sdk.Events;
 using Cysharp.Threading.Tasks;
+using Newtonsoft.Json;
 using NUnit.Framework;
 using UnityEngine;
 using UnityEngine.Scripting;
@@ -18,123 +15,29 @@ using UnityEngine.TestTools;
 
 namespace Tests.Runtime
 {
-    public class RequestData
+    [Preserve]
+    public class EventData
     {
-        public string Method;
-        public string Path;
-        public NameValueCollection Headers;
-        public string Body;
-    }
-
-    public class HttpMockServer : IDisposable
-    {
-        public readonly ConcurrentQueue<RequestData> Requests = new();
-
-        private readonly HttpListener _listener;
-        private readonly string _basePath;
-        private readonly Dictionary<string, Func<HttpListenerRequest, string>> _handlers;
-
-        public HttpMockServer(string prefix)
-        {
-            _listener = new HttpListener();
-            _listener.Prefixes.Add(prefix);
-            _basePath = new Uri(prefix).AbsolutePath;
-            _handlers = new Dictionary<string, Func<HttpListenerRequest, string>>();
-        }
-
-        public void AddHandler(string path, Func<HttpListenerRequest, string> handler)
-        {
-            _handlers[$"{_basePath}{path[1..]}"] = handler;
-        }
-
-        public void RemoveHandler(string path)
-        {
-            _handlers.Remove($"{_basePath}{path[1..]}");
-        }
-
-        public void Start()
-        {
-            if (_listener.IsListening) throw new InvalidOperationException("Server is already running.");
-
-            _listener.Start();
-            _ = Task.Run(HandleIncomingConnections);
-
-            Debug.Log("HttpMockServer started.");
-        }
-
-        private async Task HandleIncomingConnections()
-        {
-            while (_listener.IsListening)
-            {
-                Debug.Log("HttpMockServer: Waiting for incoming connection...");
-                
-                var context = await _listener.GetContextAsync();
-                var request = context.Request;
-                using var response = context.Response;
-
-                // Find the handler for the requested path
-                if (_handlers.TryGetValue(request.Url.AbsolutePath, out var handler))
-                {
-                    var responseString = handler(request);
-
-                    try
-                    {
-                        using var reader = new StreamReader(request.InputStream);
-                        var requestString = await reader.ReadToEndAsync();
-
-                        Requests.Enqueue(
-                            new RequestData
-                            {
-                                Method = request.HttpMethod,
-                                Path = request.Url.AbsolutePath,
-                                Headers = request.Headers,
-                                Body = requestString,
-                            }
-                        );
-
-                        Debug.Log($"HttpMockServer: {request.HttpMethod} {request.Url} => {response.StatusCode}");
-                        
-                        var buffer = Encoding.UTF8.GetBytes(responseString);
-                        response.ContentLength64 = buffer.Length;
-                        
-                        Debug.Log($"HttpMockServer: writing response to {request.Url.AbsolutePath}");
-                        
-                        response.StatusCode = (int)HttpStatusCode.OK;
-
-                        await response.OutputStream.WriteAsync(buffer, 0, buffer.Length);
-                        
-                        response.OutputStream.Close();
-
-                        Debug.Log($"HttpMockServer: response written to {request.Url.AbsolutePath}");
-                    }
-                    catch (Exception ex)
-                    {
-                        response.StatusCode = (int)HttpStatusCode.InternalServerError;
-                    }
-                }
-                else
-                {
-                    response.StatusCode = (int)HttpStatusCode.NotFound;
-                }
-            }
-        }
-
-        // Stops the mock server
-        public void Stop()
-        {
-            if (!_listener.IsListening) throw new InvalidOperationException("Server is not running.");
-
-            _listener.Stop();
-            _listener.Close();
-
-            Debug.Log("HttpMockServer stopped.");
-        }
-
-        public void Dispose()
-        {
-            Stop();
-            _listener.Close();
-        }
+        public string event_version;
+        public string event_name;
+        public string sdk_version;
+        public string device_id;
+        public string device_os_version;
+        public string device_os;
+        public string device_type;
+        public string device_model;
+        public string bundle_id;
+        public long? game_id;
+        public long? game_platform_id;
+        public string game_version;
+        public string unique_id;
+        public string session_id;
+        public string country;
+        public string timestamp;
+        public long? user_id;
+        public long? player_id;
+        public long? credential_id;
+        public string credential_provider;
     }
 
     public class EventTest
@@ -142,9 +45,10 @@ namespace Tests.Runtime
         private HttpMockServer _server;
 
         [OneTimeSetUp]
-        public void Setup()
+        public void OneTimeSetup()
         {
             _server = new HttpMockServer("http://localhost:7777/api/v1/");
+
             _server.AddHandler(
                 "/events",
                 _ => @"{""success"":""true"",""data"":{""message"":""events tracked""}}"
@@ -154,19 +58,23 @@ namespace Tests.Runtime
         }
 
         [OneTimeTearDown]
-        public void TearDown()
+        public void OneTimeTearDown()
         {
             _server.RemoveHandler("/events");
             _server.Dispose();
         }
         
+        [TearDown]
+        public void TearDown()
+        {
+            _server.Requests.Clear();
+        }
+
         [Ignore("This test is ignored because it requires a real server.")]
-        [UnityTest, Order(0)]
+        [UnityTest]
         public IEnumerator SendAndEventToRealServer_ExpectSuccess() => UniTask.ToCoroutine(
             async () =>
             {
-                _server.Requests.Clear();
-
                 var eventSender = new EventSender(
                     new EventSenderConfig
                     {
@@ -175,31 +83,31 @@ namespace Tests.Runtime
                     },
                     new NoctuaLocale()
                 );
+                
+                eventSender.Flush();
 
                 Assert.DoesNotThrow(() => eventSender.Send("test_event"));
             }
         );
 
-        [UnityTest, Order(1)]
+        [UnityTest]
         public IEnumerator SendAnEvent_AllMandatoryFieldsAreIncluded() => UniTask.ToCoroutine(
             async () =>
             {
-                _server.Requests.Clear();
-
                 var eventSender = new EventSender(
                     new EventSenderConfig
                     {
                         BaseUrl = "http://localhost:7777/api/v1",
                         ClientId = "test_client_id",
-                        BatchingNumberThreshold = 1
+                        BatchSize = 1
                     },
                     new NoctuaLocale()
                 );
-                
+
                 eventSender.SetProperties(gameId: 7, gamePlatformId: 17);
 
                 eventSender.Send("test_event");
-                
+
                 await UniTask.WhenAny(UniTask.Delay(1000), UniTask.WaitUntil(() => _server.Requests.Count > 0));
 
                 Assert.IsTrue(_server.Requests.TryDequeue(out var request));
@@ -210,7 +118,7 @@ namespace Tests.Runtime
                 Assert.IsNotNull(request.Headers["X-CLIENT-ID"]);
                 Assert.IsNotNull(request.Headers["X-DEVICE-ID"]);
 
-                var evt = JsonUtility.FromJson<EventData>(request.Body);
+                var evt = JsonConvert.DeserializeObject<EventData>(request.Body);
 
                 Assert.IsNotNull(evt.event_version);
                 Assert.IsNotNull(evt.event_name);
@@ -227,21 +135,115 @@ namespace Tests.Runtime
 
                 Assert.IsNotNull(evt.country);
                 Assert.IsNotNull(evt.timestamp);
+                
+                eventSender.Dispose();
+                _server.Requests.Clear();
             }
         );
-        
-        [UnityTest, Order(2)]
+
+        [UnityTest]
+        public IEnumerator SetAndClearProperties_EventPropertiesAffected() => UniTask.ToCoroutine(
+            async () =>
+            {
+                var eventSender = new EventSender(
+                    new EventSenderConfig
+                    {
+                        BaseUrl = "http://localhost:7777/api/v1",
+                        ClientId = "test_client_id",
+                        BatchSize = 1
+                    },
+                    new NoctuaLocale()
+                );
+
+                eventSender.SetProperties(
+                    userId: 1,
+                    playerId: 2,
+                    credentialId: 3,
+                    gameId: 4,
+                    gamePlatformId: 5,
+                    sessionId: "6"
+                );
+
+                eventSender.Send("test_event");
+
+                eventSender.SetProperties(
+                    userId: 11,
+                    playerId: 12,
+                    credentialId: 13
+                );
+
+                eventSender.Send("test_event");
+
+                eventSender.SetProperties(
+                    userId: null,
+                    playerId: null,
+                    credentialId: null
+                );
+
+                eventSender.Send("test_event");
+
+                var win = await UniTask.WhenAny(
+                    UniTask.Delay(1000),
+                    UniTask.WaitUntil(() => _server.Requests.Count > 0)
+                );
+
+                if (win == 0)
+                {
+                    Assert.Fail("No requests received.");
+                }
+
+                var sb = new StringBuilder();
+
+                while (_server.Requests.TryDequeue(out var request))
+                {
+                    sb.AppendLine(request.Body);
+                }
+
+                var events = sb
+                    .ToString()
+                    .Trim()
+                    .Split('\n')
+                    .Select(JsonConvert.DeserializeObject<Dictionary<string, object>>)
+                    .ToList();
+
+                Assert.AreEqual(3, events.Count);
+
+                Assert.AreEqual(1, events[0]["user_id"]);
+                Assert.AreEqual(2, events[0]["player_id"]);
+                Assert.AreEqual(3, events[0]["credential_id"]);
+                Assert.AreEqual(4, events[0]["game_id"]);
+                Assert.AreEqual(5, events[0]["game_platform_id"]);
+                Assert.AreEqual("6", events[0]["session_id"]);
+
+                Assert.AreEqual(11, events[1]["user_id"]);
+                Assert.AreEqual(12, events[1]["player_id"]);
+                Assert.AreEqual(13, events[1]["credential_id"]);
+                Assert.AreEqual(4, events[1]["game_id"]);
+                Assert.AreEqual(5, events[1]["game_platform_id"]);
+                Assert.AreEqual("6", events[1]["session_id"]);
+
+                Assert.IsFalse(events[2].ContainsKey("user_id"));
+                Assert.IsFalse(events[2].ContainsKey("player_id"));
+                Assert.IsFalse(events[2].ContainsKey("credential_id"));
+                Assert.AreEqual(4, events[2]["game_id"]);
+                Assert.AreEqual(5, events[2]["game_platform_id"]);
+                Assert.AreEqual("6", events[2]["session_id"]);
+                
+                eventSender.Dispose();
+                _server.Requests.Clear();
+            }
+        );
+
+        [UnityTest]
         public IEnumerator SendAnEvent_DontReachBatchingNumberThreshold_DontSendToServer() => UniTask.ToCoroutine(
             async () =>
             {
-                _server.Requests.Clear();
-
                 var eventSender = new EventSender(
                     new EventSenderConfig
                     {
                         BaseUrl = "http://localhost:7777/api/v1",
                         ClientId = "test_client_id",
-                        BatchingNumberThreshold = 3
+                        BatchSize = 3
                     },
                     new NoctuaLocale()
                 );
@@ -249,25 +251,55 @@ namespace Tests.Runtime
                 eventSender.Send("test_event_1");
 
                 eventSender.Send("test_event_1");
-                
+
                 await UniTask.WhenAny(UniTask.Delay(1000), UniTask.WaitUntil(() => _server.Requests.Count > 0));
 
                 Assert.IsFalse(_server.Requests.TryDequeue(out _));
+                
+                eventSender.Dispose();
+                _server.Requests.Clear();
             }
         );
-        
-        [UnityTest, Order(3)]
+
+        [UnityTest]
+        public IEnumerator SendAnEvent_DontReachBatchingNumberThresholdButFlushed_SendToServer() => UniTask.ToCoroutine(
+            async () =>
+            {
+                var eventSender = new EventSender(
+                    new EventSenderConfig
+                    {
+                        BaseUrl = "http://localhost:7777/api/v1",
+                        ClientId = "test_client_id",
+                        BatchSize = 3
+                    },
+                    new NoctuaLocale()
+                );
+
+                eventSender.Send("test_event_1");
+
+                eventSender.Send("test_event_1");
+
+                eventSender.Flush();
+
+                var events = await GetEventsFromServerAsync();
+
+                Assert.AreEqual(2, events.Count);
+                
+                eventSender.Dispose();
+                _server.Requests.Clear();
+            }
+        );
+
+        [UnityTest]
         public IEnumerator SendAnEvent_ReachBatchingNumberThreshold_SendToServer() => UniTask.ToCoroutine(
             async () =>
             {
-                _server.Requests.Clear();
-
                 var eventSender = new EventSender(
                     new EventSenderConfig
                     {
                         BaseUrl = "http://localhost:7777/api/v1",
                         ClientId = "test_client_id",
-                        BatchingNumberThreshold = 3
+                        BatchSize = 3
                     },
                     new NoctuaLocale()
                 );
@@ -278,19 +310,13 @@ namespace Tests.Runtime
                 eventSender.Send("test_event_1");
                 eventSender.Send("test_event_1");
                 eventSender.Send("test_event_1");
-                
-                await UniTask.WhenAny(UniTask.Delay(1000), UniTask.WaitUntil(() => _server.Requests.Count > 0));
 
-                Assert.IsTrue(_server.Requests.TryDequeue(out var request));
-                
-                var eventBodies = request.Body.Split('\n');
-                
-                Assert.GreaterOrEqual(eventBodies.Length, 3);
-                
-                foreach (var body in eventBodies)
+                var events = await GetEventsFromServerAsync();
+
+                Assert.GreaterOrEqual(events.Count, 3);
+
+                foreach (var evt in events)
                 {
-                    var evt = JsonUtility.FromJson<EventData>(body);
-                    
                     Assert.IsNotNull(evt.event_version);
                     Assert.IsNotNull(evt.event_name);
                     Assert.IsNotNull(evt.sdk_version);
@@ -307,43 +333,38 @@ namespace Tests.Runtime
                     Assert.IsNotNull(evt.country);
                     Assert.IsNotNull(evt.timestamp);
                 }
+                
+                eventSender.Dispose();
+                _server.Requests.Clear();
             }
         );
-        
-        [UnityTest, Order(4)]
+
+        [UnityTest]
         public IEnumerator SendAnEvent_ReachBatchingTimeout_SendToServer() => UniTask.ToCoroutine(
             async () =>
             {
-                _server.Requests.Clear();
-
                 var eventSender = new EventSender(
                     new EventSenderConfig
                     {
                         BaseUrl = "http://localhost:7777/api/v1",
                         ClientId = "test_client_id",
-                        BatchingNumberThreshold = 3,
-                        BatchingTimoutMs = 500
+                        BatchSize = 3,
+                        BatchPeriodMs = 500
                     },
                     new NoctuaLocale()
                 );
-                
+
                 eventSender.SetProperties(gameId: 7, gamePlatformId: 17);
 
                 eventSender.Send("test_event_1");
                 eventSender.Send("test_event_1");
-                
-                await UniTask.WhenAny(UniTask.Delay(1000), UniTask.WaitUntil(() => _server.Requests.Count > 0));
 
-                Assert.IsTrue(_server.Requests.TryDequeue(out var request));
-                
-                var eventBodies = request.Body.Split('\n');
-                
-                Assert.AreEqual(2, eventBodies.Length);
-                
-                foreach (var body in eventBodies)
+                var events = await GetEventsFromServerAsync();
+
+                Assert.AreEqual(2, events.Count);
+
+                foreach (var evt in events)
                 {
-                    var evt = JsonUtility.FromJson<EventData>(body);
-                    
                     Assert.IsNotNull(evt.event_version);
                     Assert.IsNotNull(evt.event_name);
                     Assert.IsNotNull(evt.sdk_version);
@@ -360,25 +381,26 @@ namespace Tests.Runtime
                     Assert.IsNotNull(evt.country);
                     Assert.IsNotNull(evt.timestamp);
                 }
+                
+                eventSender.Dispose();
+                _server.Requests.Clear();
             }
         );
-        
-        [UnityTest, Order(5)]
+
+        [UnityTest]
         public IEnumerator LoginAsGuest_SendAuthenticatedEvent() => UniTask.ToCoroutine(
             async () =>
             {
-                _server.Requests.Clear();
-
                 var eventSender = new EventSender(
                     new EventSenderConfig
                     {
                         BaseUrl = "http://localhost:7777/api/v1",
                         ClientId = "test_client_id",
-                        BatchingNumberThreshold = 1
+                        BatchSize = 1
                     },
                     new NoctuaLocale()
                 );
-                
+
                 PlayerPrefs.DeleteKey("NoctuaAccountContainer");
 
                 var authSvc = new NoctuaAuthenticationService(
@@ -390,19 +412,11 @@ namespace Tests.Runtime
                 );
 
                 await authSvc.AuthenticateAsync();
-                
-                await UniTask.WhenAny(UniTask.Delay(1000), UniTask.WaitUntil(() => _server.Requests.Count > 0));
-                
-                var sb = new StringBuilder();
-                
-                while (_server.Requests.TryDequeue(out var request))
-                {
-                    sb.AppendLine(request.Body);
-                }
 
-                var events = sb.ToString().Trim().Split('\n').Select(JsonUtility.FromJson<EventData>).ToArray();
+                var events = await GetEventsFromServerAsync();
+
                 var eventNames = events.Select(evt => evt.event_name).ToList();
-                
+
                 Assert.AreEqual(1, eventNames.Count(x => x == "account_authenticated"));
 
                 foreach (var evt in events)
@@ -411,25 +425,26 @@ namespace Tests.Runtime
                     Assert.AreNotEqual(0, evt.player_id);
                     Assert.AreNotEqual(0, evt.credential_id);
                 }
+                
+                eventSender.Dispose();
+                _server.Requests.Clear();
             }
         );
-        
-        [UnityTest, Order(6)]
+
+        [UnityTest]
         public IEnumerator LoginAsGuest_ThenSendCustomEvent_UserIdAndPlayerIdAttached() => UniTask.ToCoroutine(
             async () =>
             {
-                _server.Requests.Clear();
-
                 var eventSender = new EventSender(
                     new EventSenderConfig
                     {
                         BaseUrl = "http://localhost:7777/api/v1",
                         ClientId = "test_client_id",
-                        BatchingNumberThreshold = 2
+                        BatchSize = 2
                     },
                     new NoctuaLocale()
                 );
-                
+
                 PlayerPrefs.DeleteKey("NoctuaAccountContainer");
 
                 var authSvc = new NoctuaAuthenticationService(
@@ -441,21 +456,13 @@ namespace Tests.Runtime
                 );
 
                 await authSvc.AuthenticateAsync();
-                
+
                 eventSender.Send("test_event");
-                
-                await UniTask.WhenAny(UniTask.Delay(1000), UniTask.WaitUntil(() => _server.Requests.Count > 0));
 
-                var sb = new StringBuilder();
-                
-                while (_server.Requests.TryDequeue(out var request))
-                {
-                    sb.AppendLine(request.Body);
-                }
+                var events = await GetEventsFromServerAsync();
 
-                var events = sb.ToString().Trim().Split('\n').Select(JsonUtility.FromJson<EventData>).ToArray();
                 var eventNames = events.Select(evt => evt.event_name).ToList();
-                
+
                 Assert.AreEqual(1, eventNames.Count(x => x == "account_authenticated"));
                 Assert.AreEqual(1, eventNames.Count(x => x == "test_event"));
 
@@ -465,25 +472,26 @@ namespace Tests.Runtime
                     Assert.AreNotEqual(0, evt.player_id);
                     Assert.AreNotEqual(0, evt.credential_id);
                 }
+                
+                eventSender.Dispose();
+                _server.Requests.Clear();
             }
         );
-        
-        [UnityTest, Order(7)]
+
+        [UnityTest]
         public IEnumerator LoginWithEmailTwiceThenSwitch_SendThreeEvents() => UniTask.ToCoroutine(
             async () =>
             {
-                _server.Requests.Clear();
-
                 var eventSender = new EventSender(
                     new EventSenderConfig
                     {
                         BaseUrl = "http://localhost:7777/api/v1",
                         ClientId = "102-0abe09ca2ed8",
-                        BatchingNumberThreshold = 3
+                        BatchSize = 3
                     },
                     new NoctuaLocale()
                 );
-                
+
                 PlayerPrefs.DeleteKey("NoctuaAccountContainer");
 
                 var authSvc = new NoctuaAuthenticationService(
@@ -493,27 +501,19 @@ namespace Tests.Runtime
                     eventSender: eventSender,
                     bundleId: Application.identifier
                 );
-                
+
                 // don't ask me how I got these accounts
 
                 await authSvc.LoginWithEmailAsync("weteso6757@digopm.com", "aaaaaa");
-                
+
                 await authSvc.LoginWithEmailAsync("sefeg80041@digopm.com", "aaaaaa");
 
                 await authSvc.SwitchAccountAsync(authSvc.AccountList.Last());
 
-                await UniTask.WhenAny(UniTask.Delay(1000), UniTask.WaitUntil(() => _server.Requests.Count > 0));
-                
-                var sb = new StringBuilder();
-                
-                while (_server.Requests.TryDequeue(out var request))
-                {
-                    sb.AppendLine(request.Body);
-                }
+                var events = await GetEventsFromServerAsync();
 
-                var events = sb.ToString().Trim().Split('\n').Select(JsonUtility.FromJson<EventData>).ToArray();
                 var eventNames = events.Select(evt => evt.event_name).ToList();
-                
+
                 Assert.AreEqual(2, eventNames.Count(x => x == "account_authenticated"));
                 Assert.AreEqual(2, eventNames.Count(x => x == "account_authenticated_by_email"));
                 Assert.AreEqual(1, eventNames.Count(x => x == "account_switched"));
@@ -524,32 +524,200 @@ namespace Tests.Runtime
                     Assert.AreNotEqual(0, evt.player_id);
                     Assert.AreNotEqual(0, evt.credential_id);
                 }
+                
+                eventSender.Dispose();
+                _server.Requests.Clear();
+            }
+        );
+        
+        [UnityTest]
+        public IEnumerator SessionTracker_OnStartPauseAndResume_SendStartPauseAndResumeEvents() => UniTask.ToCoroutine(
+            async () =>
+            {
+                var eventSender = new EventSender(
+                    new EventSenderConfig
+                    {
+                        BaseUrl = "http://localhost:7777/api/v1",
+                        ClientId = "test_client_id",
+                        BatchSize = 1
+                    },
+                    new NoctuaLocale()
+                );
+
+                var sessionTracker = new SessionTracker(new SessionTrackerConfig(), eventSender);
+
+                sessionTracker.OnApplicationPause(false);
+                sessionTracker.OnApplicationPause(true);
+                sessionTracker.OnApplicationPause(false);
+
+                var events = await GetEventsFromServerAsync();
+
+                Assert.AreEqual("session_start", events[0].event_name);
+                Assert.AreEqual("session_pause", events[1].event_name);
+                Assert.AreEqual("session_continue", events[2].event_name);
+
+                Assert.True(events.All(evt => evt.session_id != null));
+                
+                sessionTracker.Dispose();
+                eventSender.Dispose();
+                _server.Requests.Clear();
+            }
+        );
+        
+        
+        [UnityTest]
+        public IEnumerator SessionTracker_NotStarted_NoEvents() => UniTask.ToCoroutine(
+            async () =>
+            {
+                var eventSender = new EventSender(
+                    new EventSenderConfig
+                    {
+                        BaseUrl = "http://localhost:7777/api/v1",
+                        ClientId = "test_client_id",
+                        BatchSize = 1
+                    },
+                    new NoctuaLocale()
+                );
+
+                var sessionTracker = new SessionTracker(
+                    new SessionTrackerConfig
+                    {
+                        HeartbeatPeriodMs = 100,
+                        SessionTimeoutMs = 2000
+                    },
+                    eventSender
+                );
+                
+                await UniTask.Delay(1000);
+
+                var events = await GetEventsFromServerAsync();
+
+                Assert.AreEqual(0, events.Count);
+                
+                sessionTracker.Dispose();
+                eventSender.Dispose();
+                _server.Requests.Clear();
             }
         );
 
-        [Preserve]
-        public class EventData
+        [UnityTest]
+        public IEnumerator SessionTracker_OnHeartbeatPeriod_SendHeartbeatEvent() => UniTask.ToCoroutine(
+            async () =>
+            {
+                var eventSender = new EventSender(
+                    new EventSenderConfig
+                    {
+                        BaseUrl = "http://localhost:7777/api/v1",
+                        ClientId = "test_client_id",
+                        BatchSize = 1
+                    },
+                    new NoctuaLocale()
+                );
+        
+                var sessionTracker = new SessionTracker(
+                    new SessionTrackerConfig
+                    {
+                        HeartbeatPeriodMs = 500,
+                        SessionTimeoutMs = 2000
+                    },
+                    eventSender
+                );
+        
+                sessionTracker.OnApplicationPause(false);
+                
+                await UniTask.Delay(1200);
+
+                var events = await GetEventsFromServerAsync();
+                
+                Debug.Log(events.Select(evt => evt.event_name).Aggregate((a, b) => $"{a}\n{b}"));
+
+                Assert.AreEqual("session_start", events[0].event_name);
+                Assert.AreEqual("session_heartbeat", events[1].event_name);
+                Assert.AreEqual("session_heartbeat", events[2].event_name);
+                
+                var sessionId = events[0].session_id;
+                var sessionIds = events.Skip(1).Select(evt => evt.session_id).ToList();
+                
+                Assert.True(sessionIds.All(id => id == sessionId));
+                
+                sessionTracker.Dispose();
+                eventSender.Dispose();
+                _server.Requests.Clear();
+            }
+        );
+
+        [UnityTest]
+        public IEnumerator SessionTracker_OnSessionTimeout_EndSessionAndStartNewSession() => UniTask.ToCoroutine(
+            async () =>
+            {
+                var eventSender = new EventSender(
+                    new EventSenderConfig
+                    {
+                        BaseUrl = "http://localhost:7777/api/v1",
+                        ClientId = "test_client_id",
+                        BatchSize = 1
+                    },
+                    new NoctuaLocale()
+                );
+        
+                var sessionTracker = new SessionTracker(
+                    new SessionTrackerConfig
+                    {
+                        HeartbeatPeriodMs = 500,
+                        SessionTimeoutMs = 2000
+                    },
+                    eventSender
+                );
+        
+                sessionTracker.OnApplicationPause(false);
+                sessionTracker.OnApplicationPause(true);
+                
+                await UniTask.Delay(2500);
+                
+                sessionTracker.OnApplicationPause(false);
+        
+                await UniTask.Delay(100);
+
+                var events = await GetEventsFromServerAsync();
+                
+                Debug.Log(events.Select(evt => evt.event_name).Aggregate((a, b) => $"{a}\n{b}"));
+                
+                Assert.AreEqual("session_start", events[0].event_name);
+                Assert.AreEqual("session_pause", events[1].event_name);
+                Assert.AreEqual("session_start", events[2].event_name);
+                
+                Assert.True(events.All(evt => evt.session_id != null));
+                
+                Assert.True(events.Select(evt => evt.session_id).Distinct().Count() == 2);
+                
+                Assert.AreEqual(events[0].session_id, events[1].session_id);
+                Assert.AreNotEqual(events[0].session_id, events[2].session_id);
+                Assert.AreNotEqual(events[1].session_id, events[2].session_id);
+
+                sessionTracker.Dispose();
+                eventSender.Dispose();
+                _server.Requests.Clear();
+            }
+        );
+
+        private async Task<List<EventData>> GetEventsFromServerAsync()
         {
-            public string event_version = "1.0";
-            public string event_name;
-            public string sdk_version;
-            public string device_id;
-            public string device_os_version;
-            public string device_os;
-            public string device_type;
-            public string device_model;
-            public string bundle_id;
-            public int game_id;
-            public int game_platform_id;
-            public string game_version;
-            public string unique_id;
-            public string session_id;
-            public string country;
-            public string timestamp;
-            public long user_id;
-            public long player_id;
-            public long credential_id;
-            public string credential_provider;
+            var win = await UniTask.WhenAny(UniTask.Delay(1000), UniTask.WaitUntil(() => _server.Requests.Count > 0));
+
+            if (win == 0)
+            {
+                return new List<EventData>();
+            }
+
+            var sb = new StringBuilder();
+
+            while (_server.Requests.TryDequeue(out var request))
+            {
+                sb.AppendLine(request.Body);
+            }
+
+            return sb.ToString().Trim().Split('\n').Select(JsonConvert.DeserializeObject<EventData>).ToList();
         }
     }
 }
+

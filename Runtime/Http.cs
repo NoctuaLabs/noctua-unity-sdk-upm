@@ -175,14 +175,13 @@ namespace com.noctuagames.sdk
                 };
 
             using (var stream = new MemoryStream())
-            using (var writer = new StreamWriter(stream, Encoding.UTF8))
-            using (var jsonWriter = new JsonTextWriter(writer))
+            using (var writer = new StreamWriter(stream, new UTF8Encoding(false)))
             {
                 var serializer = JsonSerializer.Create(jsonSettings);
 
                 for (var i = 0; i < body.Count - 1; i++)
                 {
-                    serializer.Serialize(jsonWriter, body[i]);
+                    serializer.Serialize(writer, body[i]);
                     writer.Write("\n");
                 }
                 
@@ -190,10 +189,10 @@ namespace com.noctuagames.sdk
                 
                 if (last != null)
                 {
-                    serializer.Serialize(jsonWriter, last);
+                    serializer.Serialize(writer, last);
                 }
 
-                jsonWriter.Flush();
+                writer.Flush();
 
                 _request.uploadHandler = new UploadHandlerRaw(stream.ToArray());
             }
@@ -237,10 +236,12 @@ namespace com.noctuagames.sdk
             _request.downloadHandler = new DownloadHandlerBuffer();
             var response = "";
 
+            var auth = !string.IsNullOrEmpty(_request.GetRequestHeader("Authorization")) ? "Authorization: Bearer" : "";
+            
             _log.Log(
                 $"=> {_request.method} {_request.url}\n"                         +
                 $"Content-Type: {_request.GetRequestHeader("Content-Type")}\n"   +
-                $"Authorization: {_request.GetRequestHeader("Authorization")}\n" +
+                $"{auth}\n" +
                 $"X-CLIENT-ID: {_request.GetRequestHeader("X-CLIENT-ID")}\n"     +
                 $"X-BUNDLE-ID: {_request.GetRequestHeader("X-BUNDLE-ID")}\n\n"   +
                 $"{Encoding.UTF8.GetString(_request.uploadHandler?.data ?? Array.Empty<byte>())}"
@@ -305,7 +306,7 @@ namespace com.noctuagames.sdk
             }
             catch (Exception e)
             {
-                Debug.Log(e.Message);
+                _log.Log(e.Message);
 
                 throw new NoctuaException(
                     NoctuaErrorCode.Application,
