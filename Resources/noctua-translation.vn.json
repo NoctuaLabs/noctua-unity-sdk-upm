@@ -88,7 +88,7 @@
     "AccountDeletionConfirmationDialogPresenter.ErrCode.Label.tooltip": "Mã lỗi",
     "AccountDeletionConfirmationDialogPresenter.ConfirmButton.Button.text": "Xóa tài khoản",
     "AccountDeletionConfirmationDialogPresenter.CancelButton.Button.text": "Hủy",
-    "LoadingProgressPresenter.LoadingContainer.Label.text": "Vui lòng chờ…",
+    "LoadingProgressPresenter.TitleLoading.Label.text": "Vui lòng chờ…",
     "SwitchAccountConfirmationDialogPresenter.Question.Label.text": "Bạn có muốn chuyển tài\n khoản game của mình không?",
     "SwitchAccountConfirmationDialogPresenter.Note.Label.text": "Chúng tôi sẽ khởi động lại trò chơi của bạn ngay\n khi bạn xác nhận việc chuyển đổi tài khoản.\n Hãy yên tâm, tiến trình game của bạn\n sẽ được lưu vào tài khoản hiện tại.",
     "SwitchAccountConfirmationDialogPresenter.CancelButton.Button.text": "Hủy",

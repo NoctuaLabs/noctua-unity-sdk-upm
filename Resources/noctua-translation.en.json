@@ -97,7 +97,7 @@
     "AccountDeletionConfirmationDialogPresenter.ConfirmButton.Button.text": "Delete Account",
     "AccountDeletionConfirmationDialogPresenter.CancelButton.Button.text": "Cancel",
 
-    "LoadingProgressPresenter.LoadingContainer.Label.text": "Please wait...",
+    "LoadingProgressPresenter.TitleLoading.Label.text": "Please wait...",
 
     "SwitchAccountConfirmationDialogPresenter.Question.Label.text": "Are you sure you want to switch\nyour game account?",
     "SwitchAccountConfirmationDialogPresenter.Note.Label.text": "We will restart your game, once you\nhave confirming to switch account.\nRelax, your game progress will be\nsaved to current account.",

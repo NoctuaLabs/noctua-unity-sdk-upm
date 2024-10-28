@@ -97,7 +97,7 @@
     "AccountDeletionConfirmationDialogPresenter.ConfirmButton.Button.text": "Hapus Akun",
     "AccountDeletionConfirmationDialogPresenter.CancelButton.Button.text": "Batal",
 
-    "LoadingProgressPresenter.LoadingContainer.Label.text": "Harap tunggu...",
+    "LoadingProgressPresenter.TitleLoading.Label.text": "Harap tunggu...",
 
     "SwitchAccountConfirmationDialogPresenter.Question.Label.text": "Apakah Anda yakin ingin mengganti\nakun game Anda?",
     "SwitchAccountConfirmationDialogPresenter.Note.Label.text": "Kami akan memulai ulang game Anda, setelah Anda\nmengonfirmasi untuk mengganti akun.\nTenang, kemajuan game Anda akan\ntersimpan ke akun saat ini.",

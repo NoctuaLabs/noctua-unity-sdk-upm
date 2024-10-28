@@ -4,7 +4,7 @@
     <ui:VisualElement name="LoadingBox" class="loading-box">
         <ui:VisualElement name="LoadingContainer" class="loading-container">
             <ui:VisualElement name="LoadingProgress" class="noctua-spinner" style="height: 74px; width: 74px;" />
-            <ui:Label text="Please wait..." />
+            <ui:Label name="TitleLoading" text="Please wait..." />
         </ui:VisualElement>
     </ui:VisualElement>
 </ui:UXML>
