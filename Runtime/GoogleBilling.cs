@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using UnityEngine.Scripting;
 
-#if UNITY_ANDROID && !UNITY_EDITOR
+#if UNITY_ANDROID
 public class GoogleBilling
 {
     private AndroidJavaObject billingClient;
@@ -42,14 +42,8 @@ public class GoogleBilling
     {
         OnProductDetailsDone?.Invoke(response);
     }
-
-    public void Init()
-    {
-        Debug.Log("GoogleBilling.Start. Initialize billing client.");
-        InitializeBilling();
-    }
-
-    private void InitializeBilling()
+    
+    public GoogleBilling()
     {
         using (AndroidJavaClass unityPlayer = new AndroidJavaClass("com.unity3d.player.UnityPlayer"))
         {
@@ -58,8 +52,8 @@ public class GoogleBilling
 
         // Initialize the BillingClient
         using (AndroidJavaClass billingClientClass = new AndroidJavaClass(
-            "com.android.billingclient.api.BillingClient"
-        ))
+                "com.android.billingclient.api.BillingClient"
+            ))
         {
             Debug.Log("GoogleBilling.InitializeBilling");
             billingClient = billingClientClass.CallStatic<AndroidJavaObject>("newBuilder", activity)
@@ -68,10 +62,16 @@ public class GoogleBilling
                 .Call<AndroidJavaObject>("build");
             Debug.Log("GoogleBilling.InitializeBilling done.");
         }
-
-        billingClient.Call("startConnection", new BillingClientStateListener());
     }
 
+    public void Init()
+    {
+        Debug.Log("GoogleBilling.Start. Initialize billing client.");
+        billingClient.Call("startConnection", new BillingClientStateListener());
+    }
+    
+    public bool IsReady => billingClient.Call<bool>("isReady");
+    
     public void PurchaseItem(string productId)
     {
         // ProductDetails object can't be created by hand.

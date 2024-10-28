@@ -239,6 +239,25 @@ namespace com.noctuagames.sdk
             
             _retryPendingPurchasesTask = UniTask.Create(RetryPendingPurchases);
         }
+        
+        public bool IsReady
+        {
+            get
+            {
+#if UNITY_ANDROID && !UNITY_EDITOR
+                return GoogleBillingInstance.IsReady;
+#else
+                return true;
+#endif
+            }
+        }
+        
+        public void Init()
+        {
+#if UNITY_ANDROID && !UNITY_EDITOR
+            GoogleBillingInstance.Init();
+#endif
+        }
 
         public void SetEnabledPaymentTypes(List<PaymentType> enabledPaymentTypes)
         {

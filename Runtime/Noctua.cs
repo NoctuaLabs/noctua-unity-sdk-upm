@@ -101,6 +101,8 @@ namespace com.noctuagames.sdk
 
     public class Noctua
     {
+        private static readonly ILogger Log = new NoctuaUnityDebugLogger();
+
         private static readonly Lazy<Noctua> Instance = new(() => new Noctua());
         public static NoctuaEventService Event => Instance.Value._event;
         public static NoctuaAuthentication Auth => Instance.Value._auth;
@@ -117,23 +119,19 @@ namespace com.noctuagames.sdk
         private readonly NoctuaGameService _game;
         private readonly NoctuaPlatform _platform;
 
-        #if UNITY_ANDROID && !UNITY_EDITOR
-        private readonly GoogleBilling _googleBilling;
-        #endif
         private readonly INativePlugin _nativePlugin;
         private bool _initialized = false;
 
         private Noctua()
         {
-            Debug.Log("Loading streaming assets...");
             var configPath = Path.Combine(Application.streamingAssetsPath, "noctuagg.json");
-            Debug.Log(configPath);
+            Log.Log($"Loading config from: {configPath}");
             string jsonConfig;
 
             // For Android
             #if UNITY_ANDROID || UNITY_EDITOR_WIN
             
-            Debug.Log("Loading streaming assets in Android by using UnityWebRequest: " + configPath);
+            Log.Log("Loading streaming assets in Android by using UnityWebRequest: " + configPath);
             
             var configLoadRequest = UnityWebRequest.Get(configPath);
             var now = DateTime.UtcNow;
@@ -180,7 +178,7 @@ namespace com.noctuagames.sdk
             
             #elif UNITY_IOS || UNITY_EDITOR_OSX
             
-            Debug.Log("Loading streaming assets in IOS by using System.IO.File.ReadAllText: " + configPath);
+            Log.Log("Loading streaming assets in IOS by using System.IO.File.ReadAllText: " + configPath);
 
             try {
                 jsonConfig = File.ReadAllText(configPath, Encoding.UTF8);
@@ -225,7 +223,7 @@ namespace com.noctuagames.sdk
                 config.Noctua.BaseUrl = NoctuaConfig.DefaultSandboxBaseUrl;
             }
 
-            Debug.Log($"Noctua config: \n{config.PrintFields()}");
+            Log.Log($"Noctua config: \n{config.PrintFields()}");
             
             _eventSender = new EventSender(
                 new EventSenderConfig
@@ -305,11 +303,11 @@ namespace com.noctuagames.sdk
 
         public static async UniTask InitAsync()
         {
-            Debug.Log("Noctua Init()");
+            Log.Log("start Noctua.InitAsync()");
 
             if (Instance.Value._initialized)
             {
-                Debug.Log("Noctua.Init() has been called");
+                Log.Log("Noctua.InitAsync() has been called");
 
                 return;
             }
@@ -318,27 +316,51 @@ namespace com.noctuagames.sdk
             // Init game
             var initResponse = await Instance.Value._game.InitGameAsync();
 
-            Debug.Log("Noctua.Init() -> nativePlugin?.Init()");
+            Log.Log("nativePlugin?.Init()");
             Instance.Value._nativePlugin?.Init(initResponse.ActiveBundleIds);
 
-#if UNITY_ANDROID && !UNITY_EDITOR
-            Instance.Value._googleBilling?.Init();
-#endif
+            var iapReadyTimeout = DateTime.UtcNow.AddSeconds(5);
+            
+            Instance.Value._iap.Init();
+            
+            Log.Log($"IAP ready: {Instance.Value._iap.IsReady}");
 
+            while (!Instance.Value._iap.IsReady && DateTime.UtcNow < iapReadyTimeout)
+            {
+                var win = await UniTask.WhenAny(
+                    UniTask.WaitUntil(() => Noctua.Instance.Value._iap.IsReady),
+                    UniTask.Delay(1000)
+                );
+                
+                Log.Log($"IAP ready: {Instance.Value._iap.IsReady}");
+
+                if (win == 0)
+                {
+                    break;
+                }
+
+                Instance.Value._iap.Init();
+            }
+            
+            if (!Instance.Value._iap.IsReady)
+            {
+                throw new NoctuaException(NoctuaErrorCode.Application, "IAP is not ready after timeout");
+            }
+            
             if (string.IsNullOrEmpty(initResponse.Country))
             {
                 try
                 {
                     initResponse.Country = await Instance.Value._game.GetCountryIDFromCloudflareTraceAsync();
-                    Debug.Log("Noctua.Init() -> Using country from cloudflare: " + initResponse.Country);
+                    Log.Log("Using country from cloudflare: " + initResponse.Country);
                 }
                 catch (Exception e)
                 {
-                    Debug.Log("Noctua.Init() -> Using country from default value: " + initResponse.Country);
+                    Log.Log("Using country from default value: " + initResponse.Country);
                     initResponse.Country = "IDR";
                 }
             } else {
-                Debug.Log("Noctua.Init() -> Using country from geoIP: " + initResponse.Country);
+                Log.Log("Using country from geoIP: " + initResponse.Country);
             }
 
             // Set locale values
@@ -355,7 +377,7 @@ namespace com.noctuagames.sdk
                     var activeCurrency = await Instance.Value._iap.GetActiveCurrencyAsync(initResponse.ActiveProductId);
                     if (!string.IsNullOrEmpty(activeCurrency))
                     {
-                        Debug.Log("Found active currency: " + activeCurrency);
+                        Log.Log("Found active currency: " + activeCurrency);
                         Instance.Value._platform.Locale.SetCurrency(activeCurrency);
                     }
                 }
@@ -375,7 +397,7 @@ namespace com.noctuagames.sdk
                 Instance.Value._eventSender.Send("first_open");
             }
 
-            Debug.Log("Noctua.Init() set _initialized to true");
+            Log.Log("Noctua.Init() set _initialized to true");
             Instance.Value._initialized = true;
         }
 
@@ -396,17 +418,6 @@ namespace com.noctuagames.sdk
             Instance.Value._nativePlugin?.OnApplicationPause(pause);
         }
 
-        public static void PurchaseItem(
-            string productId
-        )
-        {
-            Debug.Log("Noctua.PurchaseItem");
-
-            #if UNITY_ANDROID && !UNITY_EDITOR
-            Instance.Value._googleBilling?.PurchaseItem(productId);
-            #endif
-        }
-
         public static void ShowDatePicker(int year, int month, int day, int id)
         {
             Instance.Value._nativePlugin?.ShowDatePicker(year, month, day, id);
@@ -420,13 +431,13 @@ namespace com.noctuagames.sdk
         private static INativePlugin GetNativePlugin()
         {
 #if UNITY_ANDROID && !UNITY_EDITOR
-                Debug.Log("Plugin is NoctuaAndroidPlugin");
+                Log.Log("Plugin is NoctuaAndroidPlugin");
                 return new AndroidPlugin();
 #elif UNITY_IOS && !UNITY_EDITOR
-                Debug.Log("Plugin is NoctuaIPhonePlugin");
+                Log.Log("Plugin is NoctuaIPhonePlugin");
                 return new IosPlugin();
 #else
-            Debug.Log("Plugin is default");
+            Log.Log("Plugin is default");
             return new DefaultNativePlugin();
 #endif
         }
