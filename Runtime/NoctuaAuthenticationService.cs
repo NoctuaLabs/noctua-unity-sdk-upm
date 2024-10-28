@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Web;
+using System.Net;
 using com.noctuagames.sdk.Events;
 using Cysharp.Threading.Tasks;
 using Newtonsoft.Json;
@@ -519,7 +519,7 @@ namespace com.noctuagames.sdk
         {
             if (!string.IsNullOrEmpty(redirectUri))
             {
-                redirectUri = $"?redirect_uri={HttpUtility.UrlEncode(redirectUri)}";
+                redirectUri = $"?redirect_uri={WebUtility.UrlEncode(redirectUri)}";
             }
 
             var request = new HttpRequest(HttpMethod.Get, $"{_baseUrl}/auth/{provider}/login/redirect{redirectUri}")
@@ -621,7 +621,7 @@ namespace com.noctuagames.sdk
                         Provider = "email",
                         RegExtra = regExtra
                     }
-                );
+                );  
 
             if (!string.IsNullOrEmpty(RecentAccount?.Player?.AccessToken) && RecentAccount.User.IsGuest)
             {
