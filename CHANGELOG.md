@@ -2,6 +2,26 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.15.0] - 2024-10-29
+
+### 🚀 Features
+
+- Add events to IAP and fix retry pending purchases
+- Add platform content events
+- Translation vn
+- Add translation vn language
+- Add translation for select gender and country
+- Add session tracking
+
+### 🐛 Bug Fixes
+
+- Text not translated - user center
+- Text not translated - email register
+- Object reference not set when open user center the first time (not logged yet)
+- Translation loading
+- Add retry to Google Billing init
+- Use WebUtility instead of HttpUtility to be compatible with .NET Framework API Level
+
 ## [0.14.0] - 2024-10-25
 
 ### 🚀 Features
