@@ -198,6 +198,7 @@ namespace com.noctuagames.sdk
         private readonly NoctuaWebPaymentService _noctuaPayment;
         private readonly Queue<RetryPendingPurchaseItem> _waitingPendingPurchases = new();
         private readonly UniTask _retryPendingPurchasesTask;
+        private readonly INativePlugin _nativePlugin;
 
 #if UNITY_ANDROID && !UNITY_EDITOR
         private readonly GoogleBilling GoogleBillingInstance = new();
@@ -205,7 +206,6 @@ namespace com.noctuagames.sdk
         private List<PaymentType> _enabledPaymentTypes = new()
             { PaymentType.Playstore, PaymentType.Noctuawallet };
 #elif UNITY_IOS && !UNITY_EDITOR
-        private readonly IosPlugin IosPluginInstance = new IosPlugin();
         // By default all major payment types are enabled, then it will be overridden by the server config at SDK init
         private List<PaymentType> _enabledPaymentTypes = new()
             { PaymentType.Applestore, PaymentType.Noctuawallet };
@@ -233,9 +233,8 @@ namespace com.noctuagames.sdk
 #if UNITY_ANDROID && !UNITY_EDITOR
             GoogleBillingInstance.OnProductDetailsDone += HandleGoogleProductDetails;
             GoogleBillingInstance?.Init();
-#elif UNITY_IOS && !UNITY_EDITOR
-            IosPluginInstance = nativePlugin as IosPlugin;
 #endif
+            _nativePlugin = nativePlugin;
             
             _retryPendingPurchasesTask = UniTask.Create(RetryPendingPurchases);
         }
@@ -336,7 +335,7 @@ namespace com.noctuagames.sdk
         {
 #if UNITY_IOS && !UNITY_EDITOR
             var tcs = new TaskCompletionSource<string>();
-            IosPluginInstance.GetActiveCurrency(productId, (success, currency) => {
+            _nativePlugin.GetActiveCurrency(productId, (success, currency) => {
                 _log.Log("NoctuaIAPService.GetActiveCurrency callback");
                 _log.Log("NoctuaIAPService.GetActiveCurrency callback success: " + success);
                 _log.Log("NoctuaIAPService.GetActiveCurrency callback currency: " + currency);
@@ -486,7 +485,7 @@ namespace com.noctuagames.sdk
 #if UNITY_IOS && !UNITY_EDITOR
                     _log.Log("NoctuaIAPService.PurchaseItemAsync purchase on ios: " + orderResponse.ProductId);
                     orderResponse.ProductId = purchaseRequest.ProductId;
-                    IosPluginInstance.PurchaseItem(orderResponse.ProductId, (success, message) => {
+                    _nativePlugin.PurchaseItem(orderResponse.ProductId, (success, message) => {
                         _log.Log("NoctuaIAPService.PurchaseItemAsync PurchaseItem callback");
                         _log.Log("NoctuaIAPService.PurchaseItemAsync PurchaseItem callback success: " + success);
                         _log.Log("NoctuaIAPService.PurchaseItemAsync PurchaseItem callback message: " + message);
@@ -588,17 +587,11 @@ namespace com.noctuagames.sdk
 
                 verifyOrderResponse = await VerifyOrderAsync(verifyOrderRequest, _accessTokenProvider.AccessToken);
                 
-                var eventName = verifyOrderResponse.Status switch
+                switch (verifyOrderResponse.Status)
                 {
-                    OrderStatus.Completed => "purchase_completed",
-                    OrderStatus.Canceled => "purchase_cancelled",
-                    _ => null
-                };
-
-                if (eventName != null)
-                {
+                case OrderStatus.Completed:
                     _eventSender?.Send(
-                        eventName,
+                        "purchase_completed",
                         new()
                         {
                             { "product_id", orderResponse.ProductId },
@@ -607,6 +600,24 @@ namespace com.noctuagames.sdk
                             { "order_id", verifyOrderResponse.Id }
                         }
                     );
+                    _nativePlugin?.TrackPurchase(
+                        verifyOrderResponse.Id.ToString(),
+                        (double)orderRequest.Price,
+                        orderRequest.Currency
+                    );
+                    break;
+                case OrderStatus.Canceled:
+                    _eventSender?.Send(
+                        "purchase_cancelled",
+                        new()
+                        {
+                            { "product_id", orderResponse.ProductId },
+                            { "amount", orderRequest.Price },
+                            { "currency", orderRequest.Currency },
+                            { "order_id", verifyOrderResponse.Id }
+                        }
+                    );
+                    break;
                 }
 
                 if (verifyOrderResponse.Status == OrderStatus.Pending)
@@ -877,25 +888,41 @@ namespace com.noctuagames.sdk
 
                         var verifyOrderResponse = await VerifyOrderAsync(item.VerifyOrder, item.AccessToken);
 
-                        var eventName = verifyOrderResponse.Status switch
+                        switch (verifyOrderResponse.Status)
                         {
-                            OrderStatus.Completed => "purchase_completed",
-                            OrderStatus.Canceled  => "purchase_cancelled",
-                            _                     => null
-                        };
-
-                        if (eventName != null)
-                        {
+                        case OrderStatus.Completed:
                             _eventSender?.Send(
-                                eventName,
+                                "purchase_completed",
                                 new()
                                 {
                                     { "product_id", item.Order.ProductId },
                                     { "amount", item.Order.Price },
                                     { "currency", item.Order.Currency },
-                                    { "order_id", item.VerifyOrder.Id }
+                                    { "order_id", verifyOrderResponse.Id }
                                 }
                             );
+
+                            _nativePlugin?.TrackPurchase(
+                                verifyOrderResponse.Id.ToString(),
+                                (double)item.Order.Price,
+                                item.Order.Currency
+                            );
+
+                            break;
+
+                        case OrderStatus.Canceled:
+                            _eventSender?.Send(
+                                "purchase_cancelled",
+                                new()
+                                {
+                                    { "product_id", item.Order.ProductId },
+                                    { "amount", item.Order.Price },
+                                    { "currency", item.Order.Currency },
+                                    { "order_id", verifyOrderResponse.Id }
+                                }
+                            );
+
+                            break;
                         }
 
                         if (verifyOrderResponse.Status == OrderStatus.Pending)
