@@ -46,12 +46,12 @@ namespace com.noctuagames.sdk.Events
         private readonly string _uniqueId;
         private readonly string _deviceId;
 
-        private bool _flush;
         private bool _disposed;
 
         private long? _userId;
         private long? _playerId;
         private long? _credentialId;
+        private string _credentialProvider;
         private long? _gameId;
         private long? _gamePlatformId;
         private string _sessionId;
@@ -60,6 +60,7 @@ namespace com.noctuagames.sdk.Events
             long? userId = 0,
             long? playerId = 0,
             long? credentialId = 0,
+            string credentialProvider = "",
             long? gameId = 0,
             long? gamePlatformId = 0,
             string sessionId = ""
@@ -71,6 +72,8 @@ namespace com.noctuagames.sdk.Events
             
             if (credentialId != 0) _credentialId = credentialId;
             
+            if (credentialProvider != "") _credentialProvider = credentialProvider;
+            
             if (gameId != 0) _gameId = gameId;
             
             if (gamePlatformId != 0) _gamePlatformId = gamePlatformId;
@@ -80,6 +83,8 @@ namespace com.noctuagames.sdk.Events
             _log.Log($"Setting fields: " +
                 $"userId={userId}, " +
                 $"playerId={playerId}, " +
+                $"credentialId={credentialId}, " +
+                $"credentialProvider={credentialProvider}, " +
                 $"gameId={gameId}, " +
                 $"gamePlatformId={gamePlatformId}, " +
                 $"sessionId={sessionId}"
@@ -156,6 +161,7 @@ namespace com.noctuagames.sdk.Events
             if (_userId   != null) data.TryAdd("user_id", _userId);
             if (_playerId != null) data.TryAdd("player_id", _playerId);
             if (_credentialId != null) data.TryAdd("credential_id", _credentialId);
+            if (_credentialProvider != null) data.TryAdd("credential_provider", _credentialProvider);
             if (_gameId != null) data.TryAdd("game_id", _gameId);
             if (_gamePlatformId != null) data.TryAdd("game_platform_id", _gamePlatformId);
             if (_sessionId != null) data.TryAdd("session_id", _sessionId);
@@ -198,7 +204,21 @@ namespace com.noctuagames.sdk.Events
 
         public void Flush()
         {
-            _flush = true;
+            var events = new List<Dictionary<string, IConvertible>>();
+
+            while (_eventQueue.TryDequeue(out var evt))
+            {
+                events.Add(evt);
+            }
+                
+            var request = new HttpRequest(HttpMethod.Post, $"{_config.BaseUrl}/events")
+                .WithHeader("X-CLIENT-ID", _config.ClientId)
+                .WithHeader("X-DEVICE-ID", _deviceId)
+                .WithNdjsonBody(events);
+
+            UniTask.Void(async () => await request.Send<EventResponse>());
+            
+            _log.Log($"Sent {events.Count} events");
         }
         
         public void Dispose()
@@ -228,9 +248,14 @@ namespace com.noctuagames.sdk.Events
                 
                 var nextBatchSchedule = DateTime.UtcNow.AddMilliseconds(_config.BatchPeriodMs);
 
-                while (!_flush && _eventQueue.Count < _config.BatchSize && DateTime.UtcNow < nextBatchSchedule)
+                while (_eventQueue.Count < _config.BatchSize && DateTime.UtcNow < nextBatchSchedule)
                 {
                     await UniTask.Delay(100, cancellationToken: token);
+                }
+                
+                if (_eventQueue.Count == 0)
+                {
+                    continue;
                 }
 
                 var events = new List<Dictionary<string, IConvertible>>();
@@ -246,8 +271,6 @@ namespace com.noctuagames.sdk.Events
                     .WithNdjsonBody(events);
 
                 await request.Send<EventResponse>();
-                
-                _flush = false;
 
                 _log.Log($"Sent {events.Count} events");
             }

@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using com.noctuagames.sdk;
 using com.noctuagames.sdk.Events;
@@ -64,12 +65,21 @@ namespace Tests.Runtime
             _server.Dispose();
         }
         
-        [TearDown]
-        public void TearDown()
+        [UnitySetUp]
+        public IEnumerator SetUp()
         {
-            _server.Requests.Clear();
-        }
+            var empty = false;
+            
+            while (!empty)
+            {
+                _server.Requests.Clear();
 
+                yield return new WaitForSeconds(0.2f);
+
+                empty = _server.Requests.Count == 0;
+            }
+        }
+        
         [Ignore("This test is ignored because it requires a real server.")]
         [UnityTest]
         public IEnumerator SendAndEventToRealServer_ExpectSuccess() => UniTask.ToCoroutine(
@@ -137,7 +147,6 @@ namespace Tests.Runtime
                 Assert.IsNotNull(evt.timestamp);
                 
                 eventSender.Dispose();
-                _server.Requests.Clear();
             }
         );
 
@@ -230,12 +239,11 @@ namespace Tests.Runtime
                 Assert.AreEqual("6", events[2]["session_id"]);
                 
                 eventSender.Dispose();
-                _server.Requests.Clear();
             }
         );
 
         [UnityTest]
-        public IEnumerator SendAnEvent_DontReachBatchingNumberThreshold_DontSendToServer() => UniTask.ToCoroutine(
+        public IEnumerator SendEvents_DontReachBatchingNumberThreshold_DontSendToServer() => UniTask.ToCoroutine(
             async () =>
             {
                 var eventSender = new EventSender(
@@ -257,12 +265,11 @@ namespace Tests.Runtime
                 Assert.IsFalse(_server.Requests.TryDequeue(out _));
                 
                 eventSender.Dispose();
-                _server.Requests.Clear();
             }
         );
 
         [UnityTest]
-        public IEnumerator SendAnEvent_DontReachBatchingNumberThresholdButFlushed_SendToServer() => UniTask.ToCoroutine(
+        public IEnumerator SendEvents_DontReachBatchingNumberThresholdButFlushed_SendToServer() => UniTask.ToCoroutine(
             async () =>
             {
                 var eventSender = new EventSender(
@@ -286,12 +293,11 @@ namespace Tests.Runtime
                 Assert.AreEqual(2, events.Count);
                 
                 eventSender.Dispose();
-                _server.Requests.Clear();
             }
         );
-
+        
         [UnityTest]
-        public IEnumerator SendAnEvent_ReachBatchingNumberThreshold_SendToServer() => UniTask.ToCoroutine(
+        public IEnumerator SendEvents_ReachBatchingNumberThreshold_SendToServer() => UniTask.ToCoroutine(
             async () =>
             {
                 var eventSender = new EventSender(
@@ -335,12 +341,11 @@ namespace Tests.Runtime
                 }
                 
                 eventSender.Dispose();
-                _server.Requests.Clear();
             }
         );
 
         [UnityTest]
-        public IEnumerator SendAnEvent_ReachBatchingTimeout_SendToServer() => UniTask.ToCoroutine(
+        public IEnumerator SendEvents_ReachBatchingTimeout_SendToServer() => UniTask.ToCoroutine(
             async () =>
             {
                 var eventSender = new EventSender(
@@ -383,7 +388,6 @@ namespace Tests.Runtime
                 }
                 
                 eventSender.Dispose();
-                _server.Requests.Clear();
             }
         );
 
@@ -427,7 +431,6 @@ namespace Tests.Runtime
                 }
                 
                 eventSender.Dispose();
-                _server.Requests.Clear();
             }
         );
 
@@ -474,7 +477,6 @@ namespace Tests.Runtime
                 }
                 
                 eventSender.Dispose();
-                _server.Requests.Clear();
             }
         );
 
@@ -526,7 +528,6 @@ namespace Tests.Runtime
                 }
                 
                 eventSender.Dispose();
-                _server.Requests.Clear();
             }
         );
         
@@ -549,21 +550,59 @@ namespace Tests.Runtime
                 sessionTracker.OnApplicationPause(false);
                 sessionTracker.OnApplicationPause(true);
                 sessionTracker.OnApplicationPause(false);
+                sessionTracker.OnApplicationPause(true);
 
                 var events = await GetEventsFromServerAsync();
 
                 Assert.AreEqual("session_start", events[0].event_name);
                 Assert.AreEqual("session_pause", events[1].event_name);
                 Assert.AreEqual("session_continue", events[2].event_name);
+                Assert.AreEqual("session_pause", events[3].event_name);
 
                 Assert.True(events.All(evt => evt.session_id != null));
                 
                 sessionTracker.Dispose();
                 eventSender.Dispose();
-                _server.Requests.Clear();
             }
         );
         
+        [UnityTest]
+        public IEnumerator SendEvents_SessionTrackerPaused_FlushedAndSendToServer() => UniTask.ToCoroutine(
+            async () =>
+            {
+                var eventSender = new EventSender(
+                    new EventSenderConfig
+                    {
+                        BaseUrl = "http://localhost:7777/api/v1",
+                        ClientId = "test_client_id",
+                        BatchSize = 100,
+                        BatchPeriodMs = 300_000
+                    },
+                    new NoctuaLocale()
+                );
+
+                var sessionTracker = new SessionTracker(new SessionTrackerConfig(), eventSender);
+
+                sessionTracker.OnApplicationPause(false);
+                
+                eventSender.Send("test_event_1");
+                eventSender.Send("test_event_2");
+                
+                sessionTracker.OnApplicationPause(true);
+
+                var events = await GetEventsFromServerAsync();
+
+                Assert.AreEqual("session_start", events[0].event_name);
+                Assert.AreEqual("test_event_1", events[1].event_name);
+                Assert.AreEqual("test_event_2", events[2].event_name);
+                Assert.AreEqual("session_pause", events[3].event_name);
+
+                Assert.True(events.All(evt => evt.session_id != null));
+                
+                sessionTracker.Dispose();
+                eventSender.Dispose();
+            }
+        );
         
         [UnityTest]
         public IEnumerator SessionTracker_NotStarted_NoEvents() => UniTask.ToCoroutine(
@@ -596,7 +635,6 @@ namespace Tests.Runtime
                 
                 sessionTracker.Dispose();
                 eventSender.Dispose();
-                _server.Requests.Clear();
             }
         );
 
@@ -642,7 +680,6 @@ namespace Tests.Runtime
                 
                 sessionTracker.Dispose();
                 eventSender.Dispose();
-                _server.Requests.Clear();
             }
         );
 
@@ -696,7 +733,6 @@ namespace Tests.Runtime
 
                 sessionTracker.Dispose();
                 eventSender.Dispose();
-                _server.Requests.Clear();
             }
         );
 

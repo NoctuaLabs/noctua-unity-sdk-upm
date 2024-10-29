@@ -1051,6 +1051,7 @@ namespace com.noctuagames.sdk
                 userId: newUser.User?.Id,
                 playerId: newUser.Player?.Id,
                 credentialId: newUser.Credential?.Id,
+                credentialProvider: newUser.Credential?.Provider,
                 gameId: newUser.Player?.GameId,
                 gamePlatformId: newUser.Player?.GamePlatformId
             );
@@ -1062,6 +1063,7 @@ namespace com.noctuagames.sdk
                 userId: newUser.User?.Id,
                 playerId: newUser.Player?.Id,
                 credentialId: newUser.Credential?.Id,
+                credentialProvider: newUser.Credential?.Provider,
                 gameId: newUser.Player?.GameId,
                 gamePlatformId: newUser.Player?.GamePlatformId
             );
@@ -1069,11 +1071,7 @@ namespace com.noctuagames.sdk
 
         private void SendEvent(string eventName, Dictionary<string, IConvertible> data = null)
         {
-            data ??= new Dictionary<string, IConvertible>();
-
-            data.TryAdd("credential_provider", _accountContainer.RecentAccount.Credential.Provider);
-            
-            _eventSender?.Send(eventName, data);
+            _eventSender?.Send(eventName, data ?? new Dictionary<string, IConvertible>());
         }
 
         internal class Config
