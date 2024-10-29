@@ -247,6 +247,8 @@ namespace com.noctuagames.sdk
             );
             
             _nativePlugin = GetNativePlugin();
+            _nativePlugin?.Init(new List<string>());
+            
             _event = new NoctuaEventService(_nativePlugin, _eventSender);
 
             var panelSettings = Resources.Load<PanelSettings>("NoctuaPanelSettings");
@@ -311,13 +313,9 @@ namespace com.noctuagames.sdk
 
                 return;
             }
-            
 
             // Init game
             var initResponse = await Instance.Value._game.InitGameAsync();
-
-            Log.Log("nativePlugin?.Init()");
-            Instance.Value._nativePlugin?.Init(initResponse.ActiveBundleIds);
 
             var iapReadyTimeout = DateTime.UtcNow.AddSeconds(5);
             
