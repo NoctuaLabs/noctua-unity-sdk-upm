@@ -8,6 +8,8 @@ namespace com.noctuagames.sdk
 {
 #if UNITY_IOS
     internal class IosPlugin : INativePlugin {
+        private readonly ILogger _log = new NoctuaUnityDebugLogger();
+
         [DllImport("__Internal")]
         private static extern void noctuaInitialize();
 
@@ -51,6 +53,8 @@ namespace com.noctuagames.sdk
         public void TrackCustomEvent(string eventName, Dictionary<string, IConvertible> payload)
         {
             noctuaTrackCustomEvent(eventName, JsonConvert.SerializeObject(payload));
+
+            _log.Log($"forwarded event '{eventName}' to native tracker");
         }
 
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]

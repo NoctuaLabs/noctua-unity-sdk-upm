@@ -651,11 +651,22 @@ namespace com.noctuagames.sdk
 
             var response = await request.Send<PlayerToken>();
 
+            bool accountBound = RecentAccount is { IsGuest: true } && response?.Player?.Id == RecentAccount?.Player?.Id;
+
             _accountContainer.UpdateRecentAccount(response);
 
             SetEventProperties(response);
-            SendEvent("account_created");
-            SendEvent("account_created_by_email");
+            
+            if (accountBound)
+            {
+                SendEvent("account_bound");
+                SendEvent("account_bound_by_email");
+            }
+            else
+            {
+                SendEvent("account_created");
+                SendEvent("account_created_by_email");
+            }
 
             return _accountContainer.RecentAccount;
         }

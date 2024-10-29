@@ -69,6 +69,8 @@ namespace com.noctuagames.sdk
             using AndroidJavaObject noctua = new AndroidJavaObject("com.noctuagames.sdk.Noctua$Companion");
 
             noctua.Call("trackCustomEvent", name, javaPayload);
+
+            _log.Log($"forwarded event '{name}' to native tracker");
         }
 
         private static AndroidJavaObject ConvertToJavaHashMap(Dictionary<string, IConvertible> dictionary)
