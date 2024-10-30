@@ -165,7 +165,7 @@ namespace com.noctuagames.sdk
         {
             var logoMap = new Dictionary<string, string>
             {
-                { "OEG", "OegWhiteLogo" }
+                { "OEG JSC", "OegWhiteLogo" }
             };
 
             return logoMap.GetValueOrDefault(companyName, "NoctuaLogoWithText");
