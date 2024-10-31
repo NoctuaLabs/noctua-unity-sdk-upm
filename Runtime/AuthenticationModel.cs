@@ -142,9 +142,9 @@ namespace com.noctuagames.sdk
             _loginOptionsDialog.Show();
         }
 
-        public void ShowEmailLogin(Action<UserBundle> onLoginSuccess = null, bool isShowBackButton = false)
+        public void ShowEmailLogin(Action<UserBundle> onLoginSuccess = null)
         {
-            _emailLoginDialog.Show(onLoginSuccess, isShowBackButton);
+            _emailLoginDialog.Show(onLoginSuccess);
         }
 
         public void ShowEmailResetPassword(bool clearForm)
