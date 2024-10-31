@@ -3,7 +3,7 @@
     <Style src="project://database/Packages/com.noctuagames.sdk/Resources/LoadingProgress.uss?fileID=7433441132597879392&amp;guid=d3115f236cd8d954aa24a1c0eed09be1&amp;type=3#LoadingProgress" />
     <ui:VisualElement name="LoadingBox" class="loading-box">
         <ui:VisualElement name="LoadingContainer" class="loading-container">
-            <ui:VisualElement name="LoadingProgress" class="noctua-spinner" style="height: 74px; width: 74px;" />
+            <ui:VisualElement name="LoadingProgress" class="noctua-spinner" style="height: 90px; width: 90px;" />
             <ui:Label name="TitleLoading" text="Please wait..." />
         </ui:VisualElement>
     </ui:VisualElement>
