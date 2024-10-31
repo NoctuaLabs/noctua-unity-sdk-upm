@@ -28,13 +28,8 @@ namespace com.noctuagames.sdk.UI
         private Action<UserBundle> _onLoginSuccess;
         private GlobalConfig _config;
 
-        public void Show(Action<UserBundle> onLoginSuccess, bool isShowBackButton = false)
+        public void Show(Action<UserBundle> onLoginSuccess)
         {
-            if(Utility.ContainsFlag(_config.Noctua.Flags, "VNLegalPurpose"))
-            {
-                View.Q<Button>("BackButton").EnableInClassList("hide", !isShowBackButton);  
-            }
-
             Setup();
 
             _onLoginSuccess = onLoginSuccess;
@@ -83,10 +78,6 @@ namespace com.noctuagames.sdk.UI
         public void SetBehaviourWhitelabel(GlobalConfig config)
         {
             _config = config;
-            if (!string.IsNullOrEmpty(config?.Noctua?.Flags) && config.Noctua.Flags.Contains("VN"))
-            {
-                View.Q<Button>("BackButton").AddToClassList("hide");
-            }
         }
 
         private void OnEmailValueChanged(TextField textField)

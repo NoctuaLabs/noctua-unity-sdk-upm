@@ -86,7 +86,7 @@ namespace com.noctuagames.sdk.UI
             Model.PushNavigation(() => Model.ShowAccountSelection());
             if(Utility.ContainsFlag(_config.Noctua.Flags, "VNLegalPurpose"))
             {
-                Model.ShowEmailLogin(null, true);
+                Model.ShowEmailLogin(null);
             }
             else
             {
