@@ -7,6 +7,7 @@ using UnityEngine;
 using UnityEngine.Networking;
 using UnityEngine.UIElements;
 using System.Text.RegularExpressions;
+using System.Linq;
 using com.noctuagames.sdk.Events;
 
 namespace com.noctuagames.sdk.UI
@@ -132,6 +133,8 @@ namespace com.noctuagames.sdk.UI
         public void SetWhitelabel(GlobalConfig config)
         {
             _globalConfig = config;
+
+            BindListView();
 
             if(!string.IsNullOrEmpty(config?.CoPublisher?.CompanyName))
             {
@@ -906,12 +909,14 @@ namespace com.noctuagames.sdk.UI
 
         private void BindListView()
         {
+            var credentialFiltered = Utility.ContainsFlag(_globalConfig?.Noctua?.Flags, "VNLegalPurpose") ? _credentials.Where(c => c.CredentialProvider == CredentialProvider.Email).ToList() : _credentials;
+            
             _credentialListView = View.Q<ListView>("AccountList");
             _itemTemplate ??= Resources.Load<VisualTreeAsset>("ConnectAccountItem");
             _credentialListView.makeItem = _itemTemplate.Instantiate;
             _credentialListView.bindItem = BindListViewItem;
             _credentialListView.fixedItemHeight = 52;
-            _credentialListView.itemsSource = _credentials;
+            _credentialListView.itemsSource = credentialFiltered;
             _credentialListView.selectionType = SelectionType.Single;
         }
 
