@@ -46,6 +46,7 @@ namespace com.noctuagames.sdk.UI
         public void SetBehaviourWhitelabel(GlobalConfig config)
         {
             _config = config;
+            View.Q<VisualElement>("NoctuaLogo").EnableInClassList("hide", !string.IsNullOrEmpty(config?.CoPublisher?.CompanyName));
         }
 
         public IEnumerator RunAnimation(UserBundle userBundle)
