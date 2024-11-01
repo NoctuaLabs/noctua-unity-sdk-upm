@@ -2,6 +2,22 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.15.1] - 2024-11-01
+
+### 🐛 Bug Fixes
+
+- Tracker can be used without calling init
+- Account bound should be fired on registering email with guest account
+- Add semicolon to CI
+- Purchase completed also send to native tracker
+- Use credential provider before deleted when sending event
+- Still used noctua logo
+- Ui loading progress
+- Make default show exit button for behaviour vn
+- Remove params isShowBackButton
+- Remove SSO connect UI - user center
+- Hide noctua logo welcome notification
+
 ## [0.15.0] - 2024-10-29
 
 ### 🚀 Features
