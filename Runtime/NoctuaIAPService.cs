@@ -199,6 +199,7 @@ namespace com.noctuagames.sdk
         private readonly Queue<RetryPendingPurchaseItem> _waitingPendingPurchases = new();
         private readonly UniTask _retryPendingPurchasesTask;
         private readonly INativePlugin _nativePlugin;
+        private readonly ProductList _usdProducts = new();
 
 #if UNITY_ANDROID && !UNITY_EDITOR
         private readonly GoogleBilling GoogleBillingInstance = new();
@@ -264,7 +265,7 @@ namespace com.noctuagames.sdk
             _enabledPaymentTypes = enabledPaymentTypes;
         }
 
-        public async UniTask<ProductList> GetProductListAsync()
+        public async UniTask<ProductList> GetProductListAsync(string currency = null)
         {
             _log.Log("NoctuaIAPService.GetProductListAsync");
 
@@ -276,7 +277,12 @@ namespace com.noctuagames.sdk
             }
 
             string gameId = recentAccount.Player.GameId.ToString();
-            string currency = Noctua.Platform.Locale.GetCurrency();
+
+            if (string.IsNullOrEmpty(currency))
+            {
+                currency = Noctua.Platform.Locale.GetCurrency();
+            }
+            
             string enabledPaymentTypes = string.Join(",", _enabledPaymentTypes).ToLower();
 
             _log.Log("NoctuaIAPService.GetProductListAsync");
@@ -383,6 +389,11 @@ namespace com.noctuagames.sdk
 
             _uiFactory.ShowLoadingProgress(true);
             
+            if (_usdProducts.Count == 0)
+            {
+                _usdProducts.AddRange(await GetProductListAsync("USD"));
+            }
+            
             var paymentType = await GetPaymentTypeAsync();
 
             var orderRequest = new OrderRequest
@@ -416,21 +427,38 @@ namespace com.noctuagames.sdk
                 };
 
                 await Noctua.Auth.UpdatePlayerAccountAsync(playerData);
-                Debug.Log($"Player account updated successfully");
+                _log.Log($"Player account updated successfully");
             }
             catch (Exception e)
             {
                 if (e is NoctuaException exception)
                 {
-                    Debug.Log("NoctuaException: " + exception.ErrorCode + " : " + exception.Message);
+                    _log.Log("NoctuaException: " + exception.ErrorCode + " : " + exception.Message);
                 }
                 else
                 {
-                    Debug.Log("Exception: " + e);
+                    _log.Log("Exception: " + e);
                 }
             }
 
             OrderResponse orderResponse;
+            
+            var product = _usdProducts.FirstOrDefault(p => p.Id == orderRequest.ProductId);
+            double price;
+            string currency;
+            
+            if (product == null)
+            {
+                _log.Warning("Product not found in product list");
+                
+                price = (double)orderRequest.Price;
+                currency = orderRequest.Currency;
+            }
+            else
+            {
+                price = product.Price;
+                currency = product.Currency;
+            }
 
             try
             {
@@ -443,9 +471,11 @@ namespace com.noctuagames.sdk
                     new()
                     {
                         { "product_id", orderResponse.ProductId },
-                        { "amount", orderRequest.Price },
-                        { "currency", orderRequest.Currency },
-                        { "order_id", orderResponse.Id }
+                        { "amount", price },
+                        { "currency", currency },
+                        { "order_id", orderResponse.Id },
+                        { "orig_amount", orderRequest.Price },
+                        { "orig_currency", orderRequest.Currency }
                     }
                 );
 
@@ -471,8 +501,8 @@ namespace com.noctuagames.sdk
                 throw;
             }
 
-            _log.Log("NoctuaIAPService.PurchaseItemAsync _currentOrderId: "         + orderResponse.Id);
-            _log.Log("NoctuaIAPService.PurchaseItemAsync orderResponse.ProductId: " + orderResponse.ProductId);
+            _log.Log("_currentOrderId: "         + orderResponse.Id);
+            _log.Log("orderResponse.ProductId: " + orderResponse.ProductId);
 
             var timeoutTask = Task.Delay(TimeSpan.FromSeconds(300));
             var paymentTcs = new TaskCompletionSource<PaymentResult>();
@@ -558,9 +588,11 @@ namespace com.noctuagames.sdk
                     new()
                     {
                         { "product_id", orderResponse.ProductId },
-                        { "amount", orderRequest.Price },
-                        { "currency", orderRequest.Currency },
-                        { "order_id", orderResponse.Id }
+                        { "amount", price },
+                        { "currency", currency },
+                        { "order_id", orderResponse.Id },
+                        { "orig_amount", orderRequest.Price },
+                        { "orig_currency", orderRequest.Currency }
                     }
                 );
             }
@@ -586,7 +618,7 @@ namespace com.noctuagames.sdk
                 _uiFactory.ShowLoadingProgress(true);
 
                 verifyOrderResponse = await VerifyOrderAsync(verifyOrderRequest, _accessTokenProvider.AccessToken);
-                
+
                 switch (verifyOrderResponse.Status)
                 {
                 case OrderStatus.Completed:
@@ -595,9 +627,11 @@ namespace com.noctuagames.sdk
                         new()
                         {
                             { "product_id", orderResponse.ProductId },
-                            { "amount", orderRequest.Price },
-                            { "currency", orderRequest.Currency },
-                            { "order_id", verifyOrderResponse.Id }
+                            { "amount", price },
+                            { "currency", currency },
+                            { "order_id", verifyOrderResponse.Id },
+                            { "orig_amount", orderRequest.Price },
+                            { "orig_currency", orderRequest.Currency }
                         }
                     );
                     _nativePlugin?.TrackPurchase(
@@ -612,9 +646,11 @@ namespace com.noctuagames.sdk
                         new()
                         {
                             { "product_id", orderResponse.ProductId },
-                            { "amount", orderRequest.Price },
-                            { "currency", orderRequest.Currency },
-                            { "order_id", verifyOrderResponse.Id }
+                            { "amount", price },
+                            { "currency", currency },
+                            { "order_id", verifyOrderResponse.Id },
+                            { "orig_amount", orderRequest.Price },
+                            { "orig_currency", orderRequest.Currency }
                         }
                     );
                     break;
@@ -672,7 +708,7 @@ namespace com.noctuagames.sdk
                 Message = "Purchase completed"
             };
         }
-
+        
         private async UniTask<PaymentSettings> GetPaymentSettingsAsync()
         {
             var request = new HttpRequest(HttpMethod.Get, $"{_config.BaseUrl}/user/profile")
@@ -851,6 +887,11 @@ namespace com.noctuagames.sdk
             };
 
             var retryCount = 0;
+            
+            if (_usdProducts.Count == 0)
+            {
+                await GetProductListAsync();
+            }
 
             while (!quitting)
             {
@@ -887,7 +928,24 @@ namespace com.noctuagames.sdk
                         );
 
                         var verifyOrderResponse = await VerifyOrderAsync(item.VerifyOrder, item.AccessToken);
-
+                        
+                        var product = _usdProducts.FirstOrDefault(p => p.Id == item.Order.ProductId && p.Currency == "USD");
+                        double price;
+                        string currency;
+            
+                        if (product == null)
+                        {
+                            _log.Warning("Product not found in product list");
+                
+                            price = (double)item.Order.Price;
+                            currency = item.Order.Currency;
+                        }
+                        else
+                        {
+                            price = product.Price;
+                            currency = product.Currency;
+                        }
+                        
                         switch (verifyOrderResponse.Status)
                         {
                         case OrderStatus.Completed:
@@ -896,9 +954,11 @@ namespace com.noctuagames.sdk
                                 new()
                                 {
                                     { "product_id", item.Order.ProductId },
-                                    { "amount", item.Order.Price },
-                                    { "currency", item.Order.Currency },
-                                    { "order_id", verifyOrderResponse.Id }
+                                    { "amount", price },
+                                    { "currency", currency },
+                                    { "order_id", verifyOrderResponse.Id },
+                                    { "orig_amount", item.Order.Price },
+                                    { "orig_currency", item.Order.Currency }
                                 }
                             );
 
@@ -916,9 +976,11 @@ namespace com.noctuagames.sdk
                                 new()
                                 {
                                     { "product_id", item.Order.ProductId },
-                                    { "amount", item.Order.Price },
-                                    { "currency", item.Order.Currency },
-                                    { "order_id", verifyOrderResponse.Id }
+                                    { "amount", price },
+                                    { "currency", currency },
+                                    { "order_id", verifyOrderResponse.Id },
+                                    { "orig_amount", item.Order.Price },
+                                    { "orig_currency", item.Order.Currency }
                                 }
                             );
 
