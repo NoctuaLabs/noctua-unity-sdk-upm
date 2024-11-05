@@ -1,13 +1,13 @@
 ﻿<dependencies>
     <androidPackages>
-        <androidPackage spec="com.noctuagames.sdk:noctua-android-sdk:0.3.8" />
+        <androidPackage spec="com.noctuagames.sdk:noctua-android-sdk:0.3.9" />
         <androidPackage spec="com.android.billingclient:billing:7.0.0" />
         <androidPackage spec="com.google.guava:guava:31.1-android" />
     </androidPackages>
     <iosPods>
-        <iosPod name="NoctuaSDK" version="~> 0.2.5" minTargetSdk="14.0" addToAllTargets="false" />
-        <iosPod name="NoctuaSDK/Adjust" version="~> 0.2.5" minTargetSdk="14.0" addToAllTargets="false" />
-        <iosPod name="NoctuaSDK/FirebaseAnalytics" version="~> 0.2.5" minTargetSdk="14.0" addToAllTargets="false" />
-        <iosPod name="NoctuaSDK/FacebookSDK" version="~> 0.2.5" minTargetSdk="14.0" addToAllTargets="false" />
+        <iosPod name="NoctuaSDK" version="~> 0.3.0" minTargetSdk="14.0" addToAllTargets="false" />
+        <iosPod name="NoctuaSDK/Adjust" version="~> 0.3.0" minTargetSdk="14.0" addToAllTargets="false" />
+        <iosPod name="NoctuaSDK/FirebaseAnalytics" version="~> 0.3.0" minTargetSdk="14.0" addToAllTargets="false" />
+        <iosPod name="NoctuaSDK/FacebookSDK" version="~> 0.3.0" minTargetSdk="14.0" addToAllTargets="false" />
     </iosPods>
 </dependencies>
