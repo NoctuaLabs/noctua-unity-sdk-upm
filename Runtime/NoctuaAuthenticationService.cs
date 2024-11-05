@@ -908,8 +908,8 @@ namespace com.noctuagames.sdk
             
             if (firstUser.Player != null)
             {
-                _accountContainer.UpdateRecentAccount(firstUser);
-                
+                await ExchangeTokenAsync(firstUser.Player.AccessToken);
+
                 SetEventProperties(firstUser);
                 SendEvent("account_switched");
                 SendEvent("account_detected");
