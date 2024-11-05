@@ -8,6 +8,7 @@ using UnityEngine.Networking;
 using UnityEngine.UIElements;
 using System.Text.RegularExpressions;
 using System.Linq;
+using System.Reflection;
 using com.noctuagames.sdk.Events;
 
 namespace com.noctuagames.sdk.UI
@@ -50,6 +51,7 @@ namespace com.noctuagames.sdk.UI
         private List<PaymentType> _paymentOptions = new List<PaymentType> { PaymentType.Unknown };
         private VisualElement _spinner;
         private VisualElement _noctuaLogoWithText;
+        private Label _sdkVersion;
         private string _dateString;
 
         // Suggest Bind UI
@@ -301,6 +303,8 @@ namespace com.noctuagames.sdk.UI
             _copyIcon = View.Q<VisualElement>("CopyIcon");
             _noctuaLogoWithText = View.Q<VisualElement>("NoctuaLogoContainer");
             _connectAccountFooter = View.Q<VisualElement>("ConnectAccountFooter");
+            _sdkVersion = View.Q<Label>("SDKVersion");
+            _sdkVersion.text = $"v{Assembly.GetExecutingAssembly().GetName().Version}";
 
             View.Q<VisualElement>("MoreOptionsMenu").RegisterCallback<PointerUpEvent>(OnMoreOptionsMenuSelected);
             View.Q<VisualElement>("EditProfile").RegisterCallback<PointerUpEvent>(_ => OnEditProfile());

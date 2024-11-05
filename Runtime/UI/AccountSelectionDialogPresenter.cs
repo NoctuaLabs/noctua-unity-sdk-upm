@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using UnityEngine;
 using UnityEngine.UIElements;
 
@@ -19,6 +20,8 @@ namespace com.noctuagames.sdk.UI
         private Button _closeButton;
         private readonly ILogger _log = new NoctuaUnityDebugLogger();
         private GlobalConfig _config;
+        private Label _sdkVersion;
+
         protected override void Attach()
         {
         }
@@ -62,6 +65,8 @@ namespace com.noctuagames.sdk.UI
             _continueButton.RegisterCallback<PointerUpEvent>(OnContinueButtonClick);
             _closeButton = View.Q<Button>("CloseButton");
             _closeButton.RegisterCallback<PointerUpEvent>(OnCloseButtonClick);
+            _sdkVersion = View.Q<Label>("SDKVersion");
+            _sdkVersion.text = $"v{Assembly.GetExecutingAssembly().GetName().Version}";
             
             BindListView(_gameAccountListView, _gameUsers);
             BindListView(_noctuaAccountListView, _noctuaUsers);

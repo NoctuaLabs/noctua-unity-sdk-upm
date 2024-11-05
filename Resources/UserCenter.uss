@@ -387,4 +387,11 @@
     align-items: center;
 }
 
+.sdk-version {
+    left: 5px;
+    font-size: 8px;
+    color: #8B8E91;
+    align-self: center;
+}
+
 /*END User Center - Edit Profile */

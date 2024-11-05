@@ -7,8 +7,9 @@
     <ui:VisualElement name="AccountSelectionDialog" class="base dialog-box">
         <ui:VisualElement name="DialogHeader" class="dialog-header">
             <ui:Button display-tooltip-when-elided="true" name="CloseButton" class="dialog-close-button" />
-            <ui:VisualElement style="width:240px; justify-content: center; align-items:center;">
+            <ui:VisualElement style="width:240px; justify-content: center; align-items:center; flex-direction:row;">
                 <ui:VisualElement name="NoctuaLogoWithText" class="noctua-logo-with-text" />
+                <ui:Label name="SDKVersion" text="SDKVersion" class="sdk-version" />
             </ui:VisualElement>
         </ui:VisualElement>
         <ui:Label name="AccountSelectionInfo" text="Choose Account" class="account-selection-info" />
