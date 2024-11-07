@@ -2,6 +2,23 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.16.0] - 2024-11-07
+
+### 🚀 Features
+
+- Dynamic custom event suffix for Android and iOS
+- Add sdk version to account selection and user center
+
+### 🐛 Bug Fixes
+
+- Update iOS SDK to lower Facebook SDK version that doesn't have Swift float linker error
+- Support ban user by exchange token for current game
+- Track USD as revenue while still keeping  original currency
+
+### 📚 Documentation
+
+- Add manual release guide [skip ci]
+
 ## [0.15.1] - 2024-11-01
 
 ### 🐛 Bug Fixes
