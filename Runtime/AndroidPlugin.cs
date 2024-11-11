@@ -121,17 +121,17 @@ namespace com.noctuagames.sdk
             javaUnityClass.CallStatic("ShowDatePicker", year, month, day, id);
         }
 
-        public NativeAccount GetAccount(long userId, long gameId)
+        public NativeAccount GetAccount(long playerId, long gameId)
         {
             using AndroidJavaObject noctua = new AndroidJavaObject("com.noctuagames.sdk.Noctua$Companion");
-            AndroidJavaObject javaAccount = noctua.Call<AndroidJavaObject>("getAccount", userId, gameId);
+            AndroidJavaObject javaAccount = noctua.Call<AndroidJavaObject>("getAccount", playerId, gameId);
             
             return new NativeAccount
             {
                 PlayerId = javaAccount.Get<long>("userId"),
                 GameId = javaAccount.Get<long>("gameId"),
                 RawData = javaAccount.Get<string>("rawData"),
-                LastUpdated = DateTimeOffset.FromUnixTimeMilliseconds(javaAccount.Get<long>("lastUpdated")).UtcDateTime
+                LastUpdated = javaAccount.Get<long>("lastUpdated")
             };
         }
 
@@ -145,19 +145,15 @@ namespace com.noctuagames.sdk
             
             for (var i = 0; i < size; i++)
             {
-                var account = javaAccounts.Call<AndroidJavaObject>("get", i);
-                var playerId = account.Get<long>("userId");
-                var gameId = account.Get<long>("gameId");
-                var rawData = account.Get<string>("rawData");
-                var lastUpdated = account.Get<long>("lastUpdated");
+                var javaAccount = javaAccounts.Call<AndroidJavaObject>("get", i);
 
                 accounts.Add(
                     new NativeAccount
                     {
-                        PlayerId = playerId,
-                        GameId = gameId,
-                        RawData = rawData,
-                        LastUpdated = DateTimeOffset.FromUnixTimeMilliseconds(lastUpdated).UtcDateTime
+                        PlayerId = javaAccount.Get<long>("userId"),
+                        GameId = javaAccount.Get<long>("gameId"),
+                        RawData = javaAccount.Get<string>("rawData"),
+                        LastUpdated = javaAccount.Get<long>("lastUpdated")
                     }
                 );
             }

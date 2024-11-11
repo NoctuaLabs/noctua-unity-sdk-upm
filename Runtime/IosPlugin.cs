@@ -7,7 +7,8 @@ using UnityEngine;
 namespace com.noctuagames.sdk
 {
 #if UNITY_IOS
-    internal class IosPlugin : INativePlugin {
+    internal class IosPlugin : INativePlugin
+    {
         private readonly ILogger _log = new NoctuaUnityDebugLogger();
 
         [DllImport("__Internal")]
@@ -28,7 +29,20 @@ namespace com.noctuagames.sdk
         [DllImport("__Internal")]
         private static extern void noctuaGetActiveCurrency(string productId, CompletionDelegate callback);
 
-        [DllImport ("__Internal")]
+        [DllImport("__Internal")]
+        private static extern void noctuaPutAccount(long gameId, long playerId, string rawData);
+
+        [DllImport("__Internal")]
+        private static extern void noctuaGetAllAccounts(StringDelegate callback);
+
+        [DllImport("__Internal")]
+        private static extern void noctuaGetSingleAccount(long gameId, long playerId, StringDelegate callback);
+
+        [DllImport("__Internal")]
+        private static extern void noctuaDeleteAccount(long gameId, long playerId);
+
+
+        [DllImport("__Internal")]
         private static extern void _TAG_ShowDatePicker(int mode, double unix, int pickerId);
 
         public void Init(List<string> activeBundleIds)
@@ -100,50 +114,76 @@ namespace com.noctuagames.sdk
         public void ShowDatePicker(int year, int month, int day, int id)
         {
             DateTime dateTime = new DateTime(year, month, day);
-            double unix = (TimeZoneInfo.ConvertTimeToUtc(dateTime) - new DateTime(1970, 1, 1, 0, 0, 0, 0, System.DateTimeKind.Utc)).TotalSeconds; 
+            double unix = (TimeZoneInfo.ConvertTimeToUtc(dateTime) - new DateTime(1970, 1, 1, 0, 0, 0, 0, System.DateTimeKind.Utc)).TotalSeconds;
             _TAG_ShowDatePicker(2, unix, id);
         }
 
-        public NativeAccount GetAccount(long userId, long gameId)
+        [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+        private delegate void StringDelegate(IntPtr resultPtr);
+
+        private static NativeAccount _nativeAccount;
+
+        [AOT.MonoPInvokeCallback(typeof(StringDelegate))]
+        private static void OnGetAccount(IntPtr resultPtr)
         {
-            var rawAccounts = PlayerPrefs.GetString("NoctuaAccountContainer");
-            var accounts = JsonConvert.DeserializeObject<List<NativeAccount>>(rawAccounts);
-            
-            return accounts.Find(a => a.PlayerId == userId && a.GameId == gameId);
+            if (resultPtr == IntPtr.Zero)
+            {
+                return;
+            }
+
+            string rawAccount = Marshal.PtrToStringAnsi(resultPtr);
+            _nativeAccount = JsonConvert.DeserializeObject<NativeAccount>(rawAccount);
+        }
+
+        public NativeAccount GetAccount(long playerId, long gameId)
+        {
+            noctuaGetSingleAccount(gameId, playerId, OnGetAccount);
+
+            var account = _nativeAccount;
+            _nativeAccount = null;
+
+            return account;
+        }
+
+        private static List<NativeAccount> _nativeAccounts;
+
+        [AOT.MonoPInvokeCallback(typeof(StringDelegate))]
+        private static void OnGetAccounts(IntPtr resultPtr)
+        {
+            if (resultPtr == IntPtr.Zero)
+            {
+                return;
+            }
+
+            string rawAccounts = Marshal.PtrToStringAnsi(resultPtr);
+
+            _nativeAccounts = JsonConvert.DeserializeObject<List<NativeAccount>>(rawAccounts) ?? new();
         }
 
         public List<NativeAccount> GetAccounts()
         {
-            var rawAccounts = PlayerPrefs.GetString("NoctuaAccountContainer");
+            noctuaGetAllAccounts(OnGetAccounts);
 
-            try
+            var accounts = _nativeAccounts;
+            _nativeAccounts = null;
+
+            foreach (var account in accounts)
             {
-                return JsonConvert.DeserializeObject<List<NativeAccount>>(rawAccounts) ?? new List<NativeAccount>();
+                _log.Log($"Account: |{account.LastUpdated}|{account.PlayerId}");
             }
-            catch (Exception e)
-            {
-                return new List<NativeAccount>();
-            }
+
+            return accounts;
         }
 
         public void PutAccount(NativeAccount account)
         {
-            var accounts = GetAccounts();
-            
-            accounts.RemoveAll(a => a.PlayerId == account.PlayerId && a.GameId == account.GameId);
-            account.LastUpdated = DateTime.UtcNow;
-            accounts.Add(account);
-            
-            PlayerPrefs.SetString("NoctuaAccountContainer", JsonConvert.SerializeObject(accounts));
+            noctuaPutAccount(account.GameId, account.PlayerId, account.RawData);
         }
 
         public int DeleteAccount(NativeAccount account)
         {
-            var accounts = GetAccounts();
+            noctuaDeleteAccount(account.GameId, account.PlayerId);
             
-            accounts.RemoveAll(a => a.PlayerId == account.PlayerId && a.GameId == account.GameId);
-
-            PlayerPrefs.SetString("NoctuaAccountContainer", JsonConvert.SerializeObject(accounts));
             return 1;
         }
     }

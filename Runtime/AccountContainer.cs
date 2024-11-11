@@ -235,9 +235,9 @@ namespace com.noctuagames.sdk
                     userBundleMap[data.User.Id] = userBundle;
                 }
 
-                if (userBundle.User == null || account.LastUpdated > userBundle.LastUsed)
+                if (userBundle.User == null || DateTimeOffset.FromUnixTimeMilliseconds(account.LastUpdated) > userBundle.LastUsed)
                 {
-                    userBundle.LastUsed = account.LastUpdated;
+                    userBundle.LastUsed = DateTimeOffset.FromUnixTimeMilliseconds(account.LastUpdated).DateTime;
                     userBundle.User = data.User;
                 }
 

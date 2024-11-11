@@ -104,3 +104,46 @@ void noctuaGetActiveCurrency(const char* productId, CompletionDelegate callback)
         }
     }];
 }
+
+void noctuaPutAccount(int64_t gameId, int64_t playerId, const char* rawData) {
+    NSString *rawDataStr = [NSString stringWithUTF8String:rawData];
+    [Noctua putAccountWithGameId:gameId playerId:playerId rawData:rawDataStr];
+}
+
+typedef void (*StringDelegate)(const char* result);
+
+void noctuaGetAllAccounts(StringDelegate callback) {
+    NSArray *accounts = [Noctua getAllAccounts];
+    NSError *error;
+    NSData *jsonData = [NSJSONSerialization dataWithJSONObject:accounts options:0 error:&error];
+    if (!jsonData) {
+        NSLog(@"Error serializing accounts to JSON: %@", error);
+        callback(NULL);
+        return;
+    }
+    NSString *jsonString = [[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding];
+    callback([jsonString UTF8String]);
+}
+
+void noctuaGetSingleAccount(int64_t gameId, int64_t playerId, StringDelegate callback) {
+    NSDictionary *account = [Noctua getSingleAccountWithGameId:gameId playerId:playerId];
+
+    if (!account) {
+        callback(NULL);
+        return;
+    }
+
+    NSError *error;
+    NSData *jsonData = [NSJSONSerialization dataWithJSONObject:account options:0 error:&error];
+    if (!jsonData) {
+        NSLog(@"Error serializing account to JSON: %@", error);
+        callback(NULL);
+        return;
+    }
+    NSString *jsonString = [[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding];
+    callback([jsonString UTF8String]);
+}
+
+void noctuaDeleteAccount(int64_t gameId, int64_t playerId) {
+    [Noctua deleteAccountWithGameId:gameId playerId:playerId];
+}

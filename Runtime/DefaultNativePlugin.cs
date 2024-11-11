@@ -70,7 +70,7 @@ namespace com.noctuagames.sdk
             var accounts = GetAccounts();
             
             accounts.RemoveAll(a => a.PlayerId == account.PlayerId && a.GameId == account.GameId);
-            account.LastUpdated = DateTime.UtcNow;
+            account.LastUpdated = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
             accounts.Add(account);
             
             PlayerPrefs.SetString("NoctuaAccountContainer", JsonConvert.SerializeObject(accounts));

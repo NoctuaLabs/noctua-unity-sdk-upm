@@ -27,7 +27,7 @@ namespace Tests.Runtime
 
             public void PutAccount(NativeAccount account)
             {
-                account.LastUpdated = DateTime.UtcNow;
+                account.LastUpdated = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
                 _accounts.RemoveAll(a => a.PlayerId == account.PlayerId && a.GameId == account.GameId);
                 _accounts.Add(account);
             }

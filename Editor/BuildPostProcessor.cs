@@ -26,10 +26,45 @@ namespace Editor
     public class NoctuaIosBuildProcessor : MonoBehaviour
     {
         [PostProcessBuild(1)]
+        public static void EnableKeychainSharing(BuildTarget buildTarget, string pathToBuiltProject)
+        {
+            string entitlementsFileName = "NoctuaSDK.entitlements";
+            string entitlementsFilePath = Path.Combine(pathToBuiltProject, entitlementsFileName);
+
+            Log($"Creating entitlements file at path: {entitlementsFilePath}");
+            var entitlements = new PlistDocument();
+            var keychainGroups = entitlements.root.CreateArray("keychain-access-groups");
+            keychainGroups.AddString("$(AppIdentifierPrefix)com.noctuagames.accounts");
+
+            if (File.Exists(entitlementsFilePath))
+            {
+                File.Delete(entitlementsFilePath);
+            }
+
+            File.WriteAllText(entitlementsFilePath, entitlements.WriteToString());
+
+            Log($"Added keychain sharing entitlements to Xcode project.");
+            string pbxProjectPath = PBXProject.GetPBXProjectPath(pathToBuiltProject);
+            var pbxProject = new PBXProject();
+            pbxProject.ReadFromFile(pbxProjectPath);
+            string targetGuid = pbxProject.GetUnityMainTargetGuid();
+            pbxProject.AddCapability(targetGuid, PBXCapabilityType.KeychainSharing, entitlementsFileName);
+            pbxProject.WriteToFile(pbxProjectPath);
+
+            Log($"Expose AppIdentifierPrefix to Info.plist");
+            string plistPath = Path.Combine(pathToBuiltProject, "Info.plist");
+            var plist = new PlistDocument();
+            plist.ReadFromFile(plistPath);
+            string appIdPrefix = "$(AppIdentifierPrefix)";
+            plist.root.SetString("AppIdPrefix", appIdPrefix);
+            plist.WriteToFile(plistPath);
+        }
+
+        [PostProcessBuild(2)]
         public static void IntegrateGoogleServices(BuildTarget buildTarget, string pathToBuiltProject)
         {
             if (buildTarget != BuildTarget.iOS) return;
-            
+
             var noctuaConfigPath = Path.Combine(Application.dataPath, "StreamingAssets", "noctuagg.json");
             var noctuaConfig = JsonConvert.DeserializeObject<GlobalConfig>(File.ReadAllText(noctuaConfigPath));
 
@@ -39,16 +74,16 @@ namespace Editor
 
                 return;
             }
-            
+
             var sourcePath = Path.Combine(Application.dataPath, "StreamingAssets/GoogleService-Info.plist");
-            
+
             if (!File.Exists(sourcePath))
             {
                 LogWarning("GoogleService-Info.plist not found. Disabling Firebase services.");
             }
 
             var firebaseEnabled = noctuaConfig.Firebase != null && File.Exists(sourcePath);
-        
+
             var destinationPath = Path.Combine(pathToBuiltProject, "GoogleService-Info.plist");
 
             if (!firebaseEnabled && File.Exists(destinationPath))
@@ -123,12 +158,12 @@ namespace Editor
         {
             Debug.Log($"{nameof(NoctuaIosBuildProcessor)}: {message}");
         }
-        
+
         private static void LogError(string message)
         {
             Debug.LogError($"{nameof(NoctuaIosBuildProcessor)}: {message}");
         }
-        
+
         private static void LogWarning(string message)
         {
             Debug.LogWarning($"{nameof(NoctuaIosBuildProcessor)}: {message}");
