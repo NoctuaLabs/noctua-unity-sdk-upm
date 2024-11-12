@@ -422,6 +422,7 @@ namespace Editor
         {
             const string applyPluginString = "apply plugin:";
             const string pluginEntry = "apply plugin: 'com.google.gms.google-services'\n";
+            const string crashlyticsPluginEntry = "apply plugin: 'com.google.firebase.crashlytics'\n";
 
             var index = gradleContent.LastIndexOf(applyPluginString, StringComparison.Ordinal);
 
@@ -444,14 +445,17 @@ namespace Editor
                 }
             }
 
-            gradleContent = gradleContent.Insert(index, pluginEntry);
+            gradleContent = gradleContent.Insert(index, pluginEntry + crashlyticsPluginEntry);
 
             return gradleContent;
         }
 
         private static string RemoveGoogleServicesPlugin(string gradleContent)
         {
-            return gradleContent.Replace("apply plugin: 'com.google.gms.google-services'\n", string.Empty);
+            gradleContent = gradleContent.Replace("apply plugin: 'com.google.gms.google-services'\n", string.Empty);
+            gradleContent = gradleContent.Replace("apply plugin: 'com.google.firebase.crashlytics'\n", string.Empty);
+
+            return gradleContent;
         }
 
         private static string IncludeGoogleServicesPluginForGradle7(string gradleContent)
@@ -467,18 +471,26 @@ namespace Editor
             }
 
             const string pluginEntry = "\n    id 'com.google.gms.google-services' version '4.4.2' apply false";
+            const string crashlyticsPluginEntry = "\n    id 'com.google.firebase.crashlytics' version '2.9.5' apply false";
 
-            gradleContent = gradleContent.Insert(index + appPluginString.Length, pluginEntry);
+            gradleContent = gradleContent.Insert(index + appPluginString.Length, pluginEntry + crashlyticsPluginEntry);
 
             return gradleContent;
         }
 
         private static string ExcludeGoogleServicesPluginForGradle7(string gradleContent)
         {
-            return gradleContent.Replace(
+            gradleContent = gradleContent.Replace(
                 "\n    id 'com.google.gms.google-services' version '4.4.2' apply false",
                 string.Empty
             );
+            
+            gradleContent = gradleContent.Replace(
+                "\n    id 'com.google.firebase.crashlytics' version '2.9.5' apply false",
+                string.Empty
+            );
+
+            return gradleContent;
         }
         
         private static string IncludeGoogleServicesPluginForGradle6(string gradleContent)
@@ -494,18 +506,26 @@ namespace Editor
             }
 
             const string pluginEntry = "\n            classpath 'com.google.gms:google-services:4.3.10'";
+            const string crashlyticsPluginEntry = "\n            classpath 'com.google.firebase:firebase-crashlytics-gradle:2.9.5'";
 
-            gradleContent = gradleContent.Insert(index + appPluginString.Length, pluginEntry);
+            gradleContent = gradleContent.Insert(index + appPluginString.Length, pluginEntry + crashlyticsPluginEntry);
 
             return gradleContent;
         }
 
         private static string ExcludeGoogleServicesPluginForGradle6(string gradleContent)
         {
-            return gradleContent.Replace(
-                "\n            classpath 'com.google.gms.google-services:4.3.10'",
+            gradleContent = gradleContent.Replace(
+                "\n            classpath 'com.google.gms:google-services:4.3.10'",
                 string.Empty
             );
+
+            gradleContent = gradleContent.Replace(
+                "\n            classpath 'com.google.firebase:firebase-crashlytics-gradle:2.9.5'",
+                string.Empty
+            );
+
+            return gradleContent;
         }
 
         private static Version GetGradleVersion(string projectPath)
