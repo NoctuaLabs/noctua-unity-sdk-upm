@@ -1,4 +1,5 @@
 #import <NoctuaSDK/NoctuaSDK-Swift.h>
+#import <UIKit/UIKit.h>
 
 void noctuaInitialize(void) {
     NSError *error = nil;
@@ -146,4 +147,23 @@ void noctuaGetSingleAccount(int64_t gameId, int64_t playerId, StringDelegate cal
 
 void noctuaDeleteAccount(int64_t gameId, int64_t playerId) {
     [Noctua deleteAccountWithGameId:gameId playerId:playerId];
+}
+
+void noctuaCloseKeyboardIOS(void) {
+    if (@available(iOS 13.0, *)) {
+        NSSet<UIScene *> *connectedScenes = [UIApplication sharedApplication].connectedScenes;
+        for (UIScene *scene in connectedScenes) {
+            if ([scene isKindOfClass:[UIWindowScene class]]) {
+                UIWindowScene *windowScene = (UIWindowScene *)scene;
+                for (UIWindow *window in windowScene.windows) {
+                    if (window.isKeyWindow) {
+                        [window endEditing:YES];
+                        return;
+                    }
+                }
+            }
+        }
+    } else {
+        [[UIApplication sharedApplication].keyWindow endEditing:YES];
+    }
 }

@@ -8,5 +8,6 @@ void noctuaTrackCustomEvent(const char* eventName, const char* payloadJson);
 typedef void (*PurchaseCompletionDelegate)(bool success, const char* message);
 void noctuaPurchaseItem(const char* productId, PurchaseCompletionDelegate callback);
 
+void noctuaCloseKeyboardIOS(void);
 
 }

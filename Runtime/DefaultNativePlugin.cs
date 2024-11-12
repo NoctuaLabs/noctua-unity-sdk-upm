@@ -85,5 +85,7 @@ namespace com.noctuagames.sdk
             PlayerPrefs.SetString("NoctuaAccountContainer", JsonConvert.SerializeObject(accounts));
             return 1;
         }
+
+        public void CloseKeyboardiOS() {}
     }
 }

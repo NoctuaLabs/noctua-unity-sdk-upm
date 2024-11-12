@@ -426,6 +426,11 @@ namespace com.noctuagames.sdk
             MobileDateTimePicker.CreateDate(pickerId, year, month, day, onChange, onClose);
         }
 
+        public static void CloseKeyboardiOS()
+        {
+            Instance.Value._nativePlugin?.CloseKeyboardiOS();
+        }
+
         private static INativePlugin GetNativePlugin()
         {
 #if UNITY_ANDROID && !UNITY_EDITOR
