@@ -5,44 +5,61 @@ namespace com.noctuagames.sdk.UI
 {
     public class Spinner : VisualElement
     {
-        private float rotationSpeed = 1000f;  // Set rotation speed
-        private VisualElement rotatingRectangle;
+        private const float StepAngle = 45f; // Each step is 45 degrees
+        private float _currentAngle = 0f;
+        private IVisualElementScheduledItem _scheduledRotation;
 
+        public float StepInterval { get; set; } = 0.1f; // Default interval of 0.3 seconds
+
+        // Constructor
         public Spinner()
         {
-            // Set up the rotating rectangle as a child of the Spinner
-            rotatingRectangle = new VisualElement();
-            rotatingRectangle.style.width = 2;   // Width
-            rotatingRectangle.style.height = 24; // Height (15 times the width)
-            rotatingRectangle.style.backgroundColor = new Color(0.231f, 0.510f, 0.965f);  // Hex color #3B82F6
-            // How to set background image?
-            // rotatingRectangle.style.backgroundImage = new StyleBackground(Resources.Load<Texture2D>("Spinner.png"));
+            // Set up the spinner style and background image
+            style.width = new StyleLength(Length.Percent(100));
+            style.height = new StyleLength(Length.Percent(100));
+            style.backgroundImage = new StyleBackground(Resources.Load<Texture2D>("Spinner")); // Replace with your image path
+            style.unityBackgroundScaleMode = new StyleEnum<ScaleMode>(ScaleMode.ScaleToFit);
 
-            // Add the rectangle to the Spinner element
-            this.Add(rotatingRectangle);
-
-            // Register the callback for the update event
-            RegisterCallback<GeometryChangedEvent>(OnGeometryChanged);
+            // Start the self-rotation
+            StartRotation();
         }
 
-        private void OnGeometryChanged(GeometryChangedEvent evt)
+        // Method to rotate the spinner in steps
+        private void RotateStep()
         {
-            // Start the rotation animation when the geometry is ready
-            RegisterCallback<DetachFromPanelEvent>(evt => UnregisterCallback<GeometryChangedEvent>(OnGeometryChanged));
-            Application.onBeforeRender += Rotate;
+            _currentAngle = (_currentAngle + StepAngle) % 360f;
+            style.rotate = new Rotate(_currentAngle);
         }
 
-        private void Rotate()
+        private void StartRotation()
         {
-            // Rotate the rectangle forever
-            float angle = rotationSpeed * Time.deltaTime;
-            rotatingRectangle.transform.rotation = Quaternion.Euler(0, 0, rotatingRectangle.transform.rotation.eulerAngles.z + angle);
+            // Cancel any existing schedule
+            StopRotation();
+
+            // Schedule the rotation with a repeating interval
+            _scheduledRotation = schedule.Execute(RotateStep).Every((long)(StepInterval * 1000));
         }
 
-        // Optionally, you can expose a method to set the rotation speed
-        public void SetRotationSpeed(float speed)
+        private void StopRotation()
         {
-            rotationSpeed = speed;
+            _scheduledRotation?.Pause();
+            _scheduledRotation = null;
+        }
+
+        // Register the Spinner as a custom control for UXML
+        public new class UxmlFactory : UxmlFactory<Spinner, UxmlTraits> { }
+        public new class UxmlTraits : VisualElement.UxmlTraits
+        {
+            private readonly UxmlFloatAttributeDescription _stepInterval = new() { name = "step-interval", defaultValue = 0.3f };
+
+            public override void Init(VisualElement ve, IUxmlAttributes bag, CreationContext cc)
+            {
+                base.Init(ve, bag, cc);
+                var spinner = (Spinner)ve;
+                spinner.StepInterval = _stepInterval.GetValueFromBag(bag, cc);
+                spinner.StartRotation();
+            }
         }
     }
+
 }

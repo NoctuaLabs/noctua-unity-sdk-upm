@@ -24,7 +24,7 @@ namespace com.noctuagames.sdk
     
     public class NoctuaWebContent
     {
-        private readonly NoctuaUnityDebugLogger _log = new();
+        private readonly NoctuaLogger _log = new(typeof(NoctuaWebContent));
         private readonly NoctuaWebContentConfig _config;
         private readonly AccessTokenProvider _accessTokenProvider;
         private readonly WebContentModel _webContent = new();
@@ -62,7 +62,7 @@ namespace com.noctuagames.sdk
             
             if (DateTime.Now.ToUniversalTime() < _webContent.LastShown.Value.Add(TimeSpan.FromDays(1)))
             {
-                _log.Log($"Web content already shown today on {_webContent.LastShown.Value.ToUniversalTime():O}");
+                _log.Info($"Web content already shown today on {_webContent.LastShown.Value.ToUniversalTime():O}");
                 return false;
             }
             
@@ -126,7 +126,7 @@ namespace com.noctuagames.sdk
             {
                 request.WithHeader("Authorization", "Bearer " + _accessTokenProvider.AccessToken);
             }
-            catch (Exception e)
+            catch (Exception)
             {
                 // Do nothing. Backend will handle unauthenticated requests.
                 // It either returns empty URL (if the request is not allowed)

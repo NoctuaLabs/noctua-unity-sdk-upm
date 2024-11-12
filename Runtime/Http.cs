@@ -84,7 +84,7 @@ namespace com.noctuagames.sdk
 
     internal class HttpRequest : IDisposable
     {
-        private readonly NoctuaUnityDebugLogger _log = new();
+        private readonly NoctuaLogger _log = new(typeof(HttpRequest));
         private readonly UnityWebRequest _request = new();
 
         private readonly JsonSerializerSettings _jsonSettings = new()
@@ -238,7 +238,7 @@ namespace com.noctuagames.sdk
 
             var auth = !string.IsNullOrEmpty(_request.GetRequestHeader("Authorization")) ? "Authorization: Bearer" : "";
             
-            _log.Log(
+            _log.Debug(
                 $"=> {_request.method} {_request.url}\n"                         +
                 $"Content-Type: {_request.GetRequestHeader("Content-Type")}\n"   +
                 $"{auth}\n" +
@@ -268,7 +268,7 @@ namespace com.noctuagames.sdk
                 _request.uploadHandler?.Dispose();
             }
 
-            _log.Log(
+            _log.Debug(
                 $"<= {_request.responseCode} {(HttpStatusCode)_request.responseCode} {_request.method} {_request.url}\n\n" +
                 $"{response}"
             );
@@ -306,7 +306,7 @@ namespace com.noctuagames.sdk
             }
             catch (Exception e)
             {
-                _log.Log(e.Message);
+                _log.Info(e.Message);
 
                 throw new NoctuaException(
                     NoctuaErrorCode.Application,

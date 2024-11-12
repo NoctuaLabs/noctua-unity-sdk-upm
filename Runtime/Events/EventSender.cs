@@ -35,7 +35,7 @@ namespace com.noctuagames.sdk.Events
     {
         public DateTime LastEventTime { get; private set; }
         
-        private readonly ILogger _log = new NoctuaUnityDebugLogger();
+        private readonly ILogger _log = new NoctuaLogger(typeof(EventSender));
         private readonly EventSenderConfig _config;
         private readonly NoctuaLocale _locale;
         private readonly Queue<Dictionary<string, IConvertible>> _eventQueue = new();
@@ -80,7 +80,7 @@ namespace com.noctuagames.sdk.Events
             
             if (sessionId != "") _sessionId = sessionId;
             
-            _log.Log($"Setting fields: " +
+            _log.Info($"Setting fields: " +
                 $"userId={userId}, " +
                 $"playerId={playerId}, " +
                 $"credentialId={credentialId}, " +
@@ -167,7 +167,7 @@ namespace com.noctuagames.sdk.Events
             if (_sessionId != null) data.TryAdd("session_id", _sessionId);
             if (_uniqueId != null) data.TryAdd("unique_id", _uniqueId);
             
-            _log.Log($"queued event '{LastEventTime:O}|{name}|{_deviceId}|{_sessionId}|{_userId}|{_playerId}'");
+            _log.Info($"queued event '{LastEventTime:O}|{name}|{_deviceId}|{_sessionId}|{_userId}|{_playerId}'");
             
             _eventQueue.Enqueue(data);
         }
@@ -218,7 +218,7 @@ namespace com.noctuagames.sdk.Events
 
             UniTask.Void(async () => await request.Send<EventResponse>());
             
-            _log.Log($"Sent {events.Count} events");
+            _log.Info($"Sent {events.Count} events");
         }
         
         public void Dispose()
@@ -272,7 +272,7 @@ namespace com.noctuagames.sdk.Events
 
                 await request.Send<EventResponse>();
 
-                _log.Log($"Sent {events.Count} events");
+                _log.Info($"Sent {events.Count} events");
             }
         }
     }

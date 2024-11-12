@@ -318,7 +318,7 @@ namespace com.noctuagames.sdk
         public string Provider;
         
         [JsonProperty("reg_extra")]
-        public Dictionary<string, string>? RegExtra;
+        public Dictionary<string, string> RegExtra;
     }
 
     [Preserve]
@@ -423,7 +423,7 @@ namespace com.noctuagames.sdk
 
         public event Action<Player> OnAccountDeleted;
 
-        private readonly ILogger _log = new NoctuaUnityDebugLogger();
+        private readonly ILogger _log = new NoctuaLogger(typeof(NoctuaAuthenticationService));
         private readonly string _clientId;
         private readonly string _baseUrl;
         private readonly string _bundleId;
@@ -813,7 +813,7 @@ namespace com.noctuagames.sdk
                 throw NoctuaException.MissingAccessToken;
             }
             
-            _log.Log("Bind: " + payload.GuestToken);
+            _log.Info("Bind: " + payload.GuestToken);
 
             var request = new HttpRequest(HttpMethod.Post, $"{_baseUrl}/auth/bind")
                 .WithHeader("X-CLIENT-ID", _clientId)

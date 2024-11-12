@@ -59,7 +59,7 @@ namespace com.noctuagames.sdk
             {
                 return JsonConvert.DeserializeObject<List<NativeAccount>>(rawAccounts) ?? new List<NativeAccount>();
             }
-            catch (Exception e)
+            catch (Exception)
             {
                 return new List<NativeAccount>();
             }

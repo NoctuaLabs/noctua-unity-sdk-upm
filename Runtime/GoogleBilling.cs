@@ -1,10 +1,13 @@
 ﻿using UnityEngine;
 using System.Collections.Generic;
+using com.noctuagames.sdk;
 using UnityEngine.Scripting;
+using ILogger = com.noctuagames.sdk.ILogger;
 
 #if UNITY_ANDROID
 public class GoogleBilling
 {
+    private readonly ILogger _log = new NoctuaLogger(typeof(GoogleBilling));
     private AndroidJavaObject billingClient;
     private AndroidJavaObject activity;
 
@@ -55,18 +58,18 @@ public class GoogleBilling
                 "com.android.billingclient.api.BillingClient"
             ))
         {
-            Debug.Log("GoogleBilling.InitializeBilling");
+            _log.Debug("start");
             billingClient = billingClientClass.CallStatic<AndroidJavaObject>("newBuilder", activity)
                 .Call<AndroidJavaObject>("setListener", new PurchasesUpdatedListener(this))
                 .Call<AndroidJavaObject>("enablePendingPurchases")
                 .Call<AndroidJavaObject>("build");
-            Debug.Log("GoogleBilling.InitializeBilling done.");
+            _log.Debug("done");
         }
     }
 
     public void Init()
     {
-        Debug.Log("GoogleBilling.Start. Initialize billing client.");
+        _log.Debug("GoogleBilling.Start. Initialize billing client.");
         billingClient.Call("startConnection", new BillingClientStateListener());
     }
     
@@ -111,6 +114,7 @@ public class GoogleBilling
     // because we need to get the ProductDetails object first.
     private class ContinueToBillingFlow : AndroidJavaProxy
     {
+        private readonly ILogger _log = new NoctuaLogger(typeof(ContinueToBillingFlow));
         private GoogleBilling googleBilling;
         private AndroidJavaObject billingClient;
         private AndroidJavaObject activity;
@@ -126,71 +130,71 @@ public class GoogleBilling
 
         void onProductDetailsResponse(AndroidJavaObject billingResult, AndroidJavaObject productDetailsList)
         {
-            Debug.Log("GoogleBilling.ProductDetailsResponseListener");
+            _log.Debug("GoogleBilling.ProductDetailsResponseListener");
             int responseCode = billingResult.Call<int>("getResponseCode");
             if (responseCode == 0) // BillingResponseCode.OK
             {
-                Debug.Log("Product details query successful");
+                _log.Debug("Product details query successful");
 
                 int size = productDetailsList.Call<int>("size");
-                Debug.Log(size);
+                _log.Debug(size.ToString());
 
                 if (size < 1) {
-                    Debug.LogError("No product details found");
+                    _log.Error("No product details found");
                     var result = new PurchaseResult{
                         Success = false,
                         Message = "product_not_found",
                         ReceiptData = "",
                     };
-                    Debug.Log("InvokeOnPurchaseDone with product_not_found");
+                    _log.Debug("InvokeOnPurchaseDone with product_not_found");
                     googleBilling.InvokeOnPurchaseDone(result);
                     return;
                 }
 
                 AndroidJavaObject productDetails = productDetailsList.Call<AndroidJavaObject>("get", 0);
                 string productId = productDetails.Call<string>("getProductId");
-                Debug.Log("Product ID: " + productId);
-                Debug.Log("Continue to launchBillingFlow");
+                _log.Debug("Product ID: " + productId);
+                _log.Debug("Continue to launchBillingFlow");
 
 
-                Debug.Log("Create ProductDetailsParams object");
+                _log.Debug("Create ProductDetailsParams object");
                 // Process other details as needed
                 AndroidJavaClass productDetailsParamsClass = new AndroidJavaClass(
                     "com.android.billingclient.api.BillingFlowParams$ProductDetailsParams"
                 );
                 // Get the er class from ProductDetailsParams
-                Debug.Log("Assign productDetails object into the productDetailsParams object");
+                _log.Debug("Assign productDetails object into the productDetailsParams object");
                 AndroidJavaObject productDetailsParams = productDetailsParamsClass
                     .CallStatic<AndroidJavaObject>("newBuilder")
                     .Call<AndroidJavaObject>("setProductDetails", productDetails)
                     .Call<AndroidJavaObject>("build");
 
                 // Get the ImmutableList class
-                Debug.Log("Create immutable list");
+                _log.Debug("Create immutable list");
                 AndroidJavaClass immutableListClass = new AndroidJavaClass("com.google.common.collect.ImmutableList");
 
                 // Get the ImmutableList Builder
-                Debug.Log("Assign productDetailsParams object into the immutable list");
+                _log.Debug("Assign productDetailsParams object into the immutable list");
                 AndroidJavaObject productDetailsParamsList = immutableListClass.CallStatic<AndroidJavaObject>("builder")
                                         .Call<AndroidJavaObject>("add", productDetailsParams)
                                         .Call<AndroidJavaObject>("build");
 
 
-                Debug.Log("Create billingFlowParams object");
+                _log.Debug("Create billingFlowParams object");
                 AndroidJavaClass billingFlowParamsClass = new AndroidJavaClass(
                     "com.android.billingclient.api.BillingFlowParams"
                 );
-                Debug.Log("Assign productDetailsParamsList into the billingFlowParams object");
+                _log.Debug("Assign productDetailsParamsList into the billingFlowParams object");
                 AndroidJavaObject billingFlowParams = billingFlowParamsClass.CallStatic<AndroidJavaObject>("newBuilder")
                     .Call<AndroidJavaObject>("setProductDetailsParamsList", productDetailsParamsList)
                     .Call<AndroidJavaObject>("build");
-                Debug.Log("Call launchBillingFlow with billingFlowParams as param");
+                _log.Debug("Call launchBillingFlow with billingFlowParams as param");
                 billingClient.Call<AndroidJavaObject>("launchBillingFlow", activity, billingFlowParams);
             }
             else
             {
                 string errorMessage = billingResult.Call<string>("getDebugMessage");
-                Debug.LogError("Failed to query product details: " + errorMessage);
+                _log.Error("Failed to query product details: " + errorMessage);
             }
         }
     }
@@ -198,6 +202,7 @@ public class GoogleBilling
     // Inner classes to handle purchase callbacks
     private class PurchasesUpdatedListener : AndroidJavaProxy
     {
+        private readonly ILogger _log = new NoctuaLogger(typeof(PurchasesUpdatedListener));
         private GoogleBilling googleBilling;
         public PurchasesUpdatedListener(GoogleBilling parent) : base(
             "com.android.billingclient.api.PurchasesUpdatedListener"
@@ -207,19 +212,19 @@ public class GoogleBilling
 
         void onPurchasesUpdated(AndroidJavaObject billingResult, AndroidJavaObject purchases)
         {
-            Debug.Log("GoogleBilling.PurchasesUpdatedListener");
+            _log.Debug("GoogleBilling.PurchasesUpdatedListener");
             int responseCode = billingResult.Call<int>("getResponseCode");
             if (responseCode == 0 && purchases != null)
             {
-                Debug.Log("Purchase successful");
+                _log.Debug("Purchase successful");
                 for (int i = 0; i < purchases.Call<int>("size"); i++)
                 {
                     AndroidJavaObject purchase = purchases.Call<AndroidJavaObject>("get", i);
-                    Debug.Log("GoogleBilling.PurchasesUpdatedListener: purchase object found");
+                    _log.Debug("GoogleBilling.PurchasesUpdatedListener: purchase object found");
                     var originalJson = purchase.Call<string>("getOriginalJson");
-                    Debug.Log("originalJson: " + originalJson);
+                    _log.Debug("originalJson: " + originalJson);
                     var receiptData = purchase.Call<string>("getPurchaseToken");
-                    Debug.Log("receiptData: " + receiptData);
+                    _log.Debug("receiptData: " + receiptData);
                     googleBilling.InvokeOnPurchaseDone(new PurchaseResult{
                         Success = true,
                         Message = "success",
@@ -231,7 +236,7 @@ public class GoogleBilling
             else
             {
                 string errorMessage = billingResult.Call<string>("getDebugMessage");
-                Debug.LogError("Purchase failed: " + errorMessage);
+                _log.Error("Purchase failed: " + errorMessage);
                 googleBilling.InvokeOnPurchaseDone(new PurchaseResult{
                     Success = false,
                     Message = errorMessage,
@@ -244,6 +249,7 @@ public class GoogleBilling
 
     private class BillingClientStateListener : AndroidJavaProxy
     {
+        private readonly ILogger _log = new NoctuaLogger(typeof(BillingClientStateListener));
         public BillingClientStateListener() : base("com.android.billingclient.api.BillingClientStateListener") { }
 
         void onBillingSetupFinished(AndroidJavaObject billingResult)
@@ -251,24 +257,24 @@ public class GoogleBilling
             int responseCode = billingResult.Call<int>("getResponseCode");
             if (responseCode == 0) // BillingResponseCode.OK
             {
-                Debug.Log("Billing setup finished successfully");
+                _log.Debug("Billing setup finished successfully");
             }
             else
             {
                 string errorMessage = billingResult.Call<string>("getDebugMessage");
-                Debug.LogError("Billing setup failed: " + errorMessage);
+                _log.Error("Billing setup failed: " + errorMessage);
             }
         }
 
         void onBillingServiceDisconnected()
         {
-            Debug.LogError("Billing service disconnected");
+            _log.Error("Billing service disconnected");
         }
     }
 
     public void QueryProductDetails(string productId)
     {
-        Debug.Log("GoogleBilling.QueryProductDetails: " + productId);
+        _log.Debug("GoogleBilling.QueryProductDetails: " + productId);
         using (AndroidJavaClass productClass = new AndroidJavaClass(
             "com.android.billingclient.api.QueryProductDetailsParams$Product"
             ))
@@ -302,6 +308,7 @@ public class GoogleBilling
 
     private class ProductDetailsResponseListener : AndroidJavaProxy
     {
+        private readonly ILogger _log = new NoctuaLogger(typeof(ProductDetailsResponseListener));
         private GoogleBilling googleBilling;
 
         public ProductDetailsResponseListener(GoogleBilling parent) : base("com.android.billingclient.api.ProductDetailsResponseListener")
@@ -311,12 +318,12 @@ public class GoogleBilling
 
         void onProductDetailsResponse(AndroidJavaObject billingResult, AndroidJavaObject productDetailsList)
         {
-            Debug.Log("GoogleBilling.ProductDetailsResponseListener");
+            _log.Debug("GoogleBilling.ProductDetailsResponseListener");
             int responseCode = billingResult.Call<int>("getResponseCode");
             if (responseCode == 0) // BillingResponseCode.OK
             {
                 int size = productDetailsList.Call<int>("size");
-                Debug.Log("Product details list length: " + size);
+                _log.Debug("Product details list length: " + size);
 
                 if (size > 0)
                 {
@@ -341,13 +348,13 @@ public class GoogleBilling
                 }
                 else
                 {
-                    Debug.LogError("No product details found");
+                    _log.Error("No product details found");
                 }
             }
             else
             {
                 string errorMessage = billingResult.Call<string>("getDebugMessage");
-                Debug.LogError("Failed to query product details: " + errorMessage);
+                _log.Error("Failed to query product details: " + errorMessage);
             }
         }
     }

@@ -8,7 +8,7 @@ namespace com.noctuagames.sdk
 {
     internal class AndroidPlugin : INativePlugin
     {
-        private readonly ILogger _log = new NoctuaUnityDebugLogger();
+        private readonly ILogger _log = new NoctuaLogger(typeof(AndroidPlugin));
         
         public void Init(List<string> activeBundleIds)
         {
@@ -70,7 +70,7 @@ namespace com.noctuagames.sdk
 
             noctua.Call("trackCustomEvent", name, javaPayload);
 
-            _log.Log($"forwarded event '{name}' to native tracker");
+            _log.Info($"forwarded event '{name}' to native tracker");
         }
 
         private static AndroidJavaObject ConvertToJavaHashMap(Dictionary<string, IConvertible> dictionary)

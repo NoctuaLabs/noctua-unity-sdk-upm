@@ -7,6 +7,7 @@ namespace com.noctuagames.sdk.UI
 {
     internal class WelcomeNotificationPresenter : Presenter<AuthenticationModel>
     {
+        private readonly ILogger _log = new NoctuaLogger(typeof(WelcomeNotificationPresenter));
         private VisualElement _root;
         private Label _playerName;
         private VisualElement _playerAvatarImage;
@@ -38,8 +39,8 @@ namespace com.noctuagames.sdk.UI
 
         public void Show(UserBundle userBundle)
         {
-            Debug.Log("Welcome " + userBundle.User.Nickname);
-            Debug.Log("Provider: " + userBundle.Credential.Provider);
+            _log.Debug("Welcome " + userBundle.User.Nickname);
+            _log.Debug("Provider: " + userBundle.Credential.Provider);
             StartCoroutine(RunAnimation(userBundle));
         }
 

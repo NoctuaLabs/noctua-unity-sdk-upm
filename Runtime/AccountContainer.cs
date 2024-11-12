@@ -28,7 +28,7 @@ namespace com.noctuagames.sdk
 
         private readonly List<UserBundle> _accounts = new();
         private readonly INativeAccountStore _nativeAccountStore;
-        private readonly ILogger _log = new NoctuaUnityDebugLogger();
+        private readonly ILogger _log = new NoctuaLogger(typeof(AccountContainer));
         private readonly string _bundleId;
 
         public AccountContainer(INativeAccountStore nativeAccountStore, string bundleId)
@@ -162,7 +162,7 @@ namespace com.noctuagames.sdk
                 throw new ArgumentNullException(nameof(userBundle));
             }
             
-            _log.Log($"saving account {userBundle.User.Id}-{userBundle.Player.Id}-{userBundle.Player.BundleId}");
+            _log.Info($"saving account {userBundle.User.Id}-{userBundle.Player.Id}-{userBundle.Player.BundleId}");
 
             var data = new NativeAccountData
             {
@@ -205,7 +205,7 @@ namespace com.noctuagames.sdk
                     continue;
                 }
 
-                _log.Log($"loaded account {data.User?.Id}-{data.Player?.Id}-{data.Player?.BundleId}");
+                _log.Info($"loaded account {data.User?.Id}-{data.Player?.Id}-{data.Player?.BundleId}");
 
                 if (data?.User == null || data.Player == null || data.Credential == null)
                 {

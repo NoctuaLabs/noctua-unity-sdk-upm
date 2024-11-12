@@ -14,7 +14,7 @@ namespace com.noctuagames.sdk.UI
     
     internal class WebContentPresenter : Presenter<WebContentModel>
     {
-        private readonly NoctuaUnityDebugLogger _log = new();
+        private readonly NoctuaLogger _log = new(typeof(WebContentPresenter));
         private VisualElement _container;
         private Label _title;
         private VisualElement _closeButton;
@@ -51,12 +51,12 @@ namespace com.noctuagames.sdk.UI
 
             void PageStarted(UniWebView webView, string url)
             {
-                _log.Log($"Page started: {url}");
+                _log.Info($"Page started: {url}");
             }
 
             void PageFinished(UniWebView webView, int statusCode, string url)
             {
-                _log.Log($"Page finished: {url}");
+                _log.Info($"Page finished: {url}");
             }
 
             void Close(PointerUpEvent evt)
@@ -77,11 +77,11 @@ namespace com.noctuagames.sdk.UI
 
             SetLayout(uniWebView);
 
-            _log.Log($"Loading URL: {Model.Url}");
+            _log.Info($"Loading URL: {Model.Url}");
             uniWebView.SetShowSpinnerWhileLoading(true);
             uniWebView.Load(Model.Url);
             
-            _log.Log("Showing WebView");
+            _log.Info("Showing WebView");
             View.visible = true;
             uniWebView.Show();
 
@@ -107,7 +107,7 @@ namespace com.noctuagames.sdk.UI
             }
             finally
             {
-                _log.Log("Closing WebView");
+                _log.Info("Closing WebView");
                 
                 View.visible = false;
                 

@@ -9,7 +9,7 @@ namespace com.noctuagames.sdk
 #if UNITY_IOS
     internal class IosPlugin : INativePlugin
     {
-        private readonly ILogger _log = new NoctuaUnityDebugLogger();
+        private readonly ILogger _log = new NoctuaLogger(typeof(IosPlugin));
 
         [DllImport("__Internal")]
         private static extern void noctuaInitialize();
@@ -71,7 +71,7 @@ namespace com.noctuagames.sdk
         {
             noctuaTrackCustomEvent(eventName, JsonConvert.SerializeObject(payload));
 
-            _log.Log($"forwarded event '{eventName}' to native tracker");
+            _log.Info($"forwarded event '{eventName}' to native tracker");
         }
 
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
@@ -172,7 +172,7 @@ namespace com.noctuagames.sdk
 
             foreach (var account in accounts)
             {
-                _log.Log($"Account: |{account.LastUpdated}|{account.PlayerId}");
+                _log.Info($"Account: |{account.LastUpdated}|{account.PlayerId}");
             }
 
             return accounts;

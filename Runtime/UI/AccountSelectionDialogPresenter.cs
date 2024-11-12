@@ -18,7 +18,7 @@ namespace com.noctuagames.sdk.UI
         private readonly List<UserBundle> _noctuaUsers = new();
         private Button _continueButton;
         private Button _closeButton;
-        private readonly ILogger _log = new NoctuaUnityDebugLogger();
+        private readonly ILogger _log = new NoctuaLogger(typeof(AccountSelectionDialogPresenter));
         private GlobalConfig _config;
         private Label _sdkVersion;
 
@@ -122,7 +122,7 @@ namespace com.noctuagames.sdk.UI
             {
                 var selectedAccount = items[index];
                 
-                _log.Log($"Selected {selectedAccount?.User?.Nickname}");
+                _log.Info($"Selected {selectedAccount?.User?.Nickname}");
 
                 if (selectedAccount is { IsRecent: false })
                 {
