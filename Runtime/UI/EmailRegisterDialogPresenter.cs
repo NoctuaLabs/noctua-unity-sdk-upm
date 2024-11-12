@@ -271,6 +271,7 @@ namespace com.noctuagames.sdk.UI
 
         private void OnLoginLinkClick(PointerUpEvent evt)
         {
+            Noctua.CloseKeyboardiOS();
             Visible = false;
             Model.PushNavigation(() => Model.ShowEmailRegistration(false));
             Model.ShowEmailLogin();
@@ -278,6 +279,7 @@ namespace com.noctuagames.sdk.UI
 
         private async void OnContinueButtonClick(PointerUpEvent evt)
         {
+            Noctua.CloseKeyboardiOS();
             HideAllErrors();
 
             var spinnerInstance = new Spinner();
@@ -405,6 +407,8 @@ namespace com.noctuagames.sdk.UI
 
         private void OnBackButtonClick(PointerUpEvent evt)
         {
+            Noctua.CloseKeyboardiOS();
+            
             View.Q<VisualElement>("Spinner").AddToClassList("hide");
             View.Q<Button>("ContinueButton").RemoveFromClassList("hide");
 

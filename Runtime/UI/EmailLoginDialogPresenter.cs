@@ -119,6 +119,7 @@ namespace com.noctuagames.sdk.UI
 
         private void OnBackButtonClick(PointerUpEvent evt)
         {
+            Noctua.CloseKeyboardiOS();
             Visible = false;
             
             Model.NavigateBack();
@@ -153,6 +154,7 @@ namespace com.noctuagames.sdk.UI
 
         private void OnForgotPasswordButtonClick(PointerUpEvent evt)
         {
+            Noctua.CloseKeyboardiOS();
             Visible = false;
             // Show with empty form
             Model.PushNavigation(() => Model.ShowEmailLogin());
@@ -161,6 +163,7 @@ namespace com.noctuagames.sdk.UI
 
         private void OnRegisterButtonClick(PointerUpEvent evt)
         {
+            Noctua.CloseKeyboardiOS();
             Visible = false;
             
             Model.PushNavigation(() => Model.ShowEmailLogin());
@@ -169,6 +172,8 @@ namespace com.noctuagames.sdk.UI
 
         private async void OnContinueButtonClick(PointerUpEvent evt)
         {
+            Noctua.CloseKeyboardiOS();
+            
             Debug.Log("EmailLoginDialogPresenter.OnContinueButtonClick()");
 
             HideAllErrors();

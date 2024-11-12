@@ -66,12 +66,14 @@ namespace com.noctuagames.sdk.UI
 
         private void OnBackButtonClick(ClickEvent evt)
         {
+            Noctua.CloseKeyboardiOS();
             Visible = false;
             Model.ShowEmailRegistration(false);
         }
 
         private async void OnResendButtonClick(ClickEvent evt)
         {
+            Noctua.CloseKeyboardiOS();
 
             var spinnerInstance = new Spinner();
             View.Q<VisualElement>("Spinner").Clear();
@@ -122,6 +124,8 @@ namespace com.noctuagames.sdk.UI
 
         private async void OnVerifyButtonClick(ClickEvent evt)
         {
+            Noctua.CloseKeyboardiOS();
+            
             var spinnerInstance = new Spinner();
             View.Q<VisualElement>("Spinner").Clear();
             View.Q<VisualElement>("Spinner").Add(spinnerInstance);
