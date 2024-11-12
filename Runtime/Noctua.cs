@@ -428,7 +428,9 @@ namespace com.noctuagames.sdk
 
         public static void CloseKeyboardiOS()
         {
+            #if UNITY_IOS
             Instance.Value._nativePlugin?.CloseKeyboardiOS();
+            #endif
         }
 
         private static INativePlugin GetNativePlugin()
