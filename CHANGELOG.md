@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.18.0] - 2024-11-13
+
+### 🚀 Features
+
+- New spinner and logger to file
+
 ## [0.17.0] - 2024-11-13
 
 ### 🚀 Features
