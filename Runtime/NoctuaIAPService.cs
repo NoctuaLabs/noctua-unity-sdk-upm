@@ -212,7 +212,7 @@ namespace com.noctuagames.sdk
             { PaymentType.Applestore, PaymentType.Noctuawallet };
 #else
         private List<PaymentType> _enabledPaymentTypes = new()
-            { PaymentType.Noctuawallet };
+            { PaymentType.Noctuastore };
 #endif
         private readonly UIFactory _uiFactory;
 
@@ -511,7 +511,7 @@ namespace com.noctuagames.sdk
 
             switch (paymentType)
             {
-                case PaymentType.Applestore:
+                case PaymentType.Appstore:
 #if UNITY_IOS && !UNITY_EDITOR
                     _log.Log("NoctuaIAPService.PurchaseItemAsync purchase on ios: " + orderResponse.ProductId);
                     orderResponse.ProductId = purchaseRequest.ProductId;
@@ -560,7 +560,7 @@ namespace com.noctuagames.sdk
                     throw new NoctuaException(NoctuaErrorCode.Payment, "Playstore payment is not supported on this platform");
 #endif
 
-                case PaymentType.Noctuawallet:
+                case PaymentType.Noctuastore:
                     hasResult = true;
                     paymentResult = await _noctuaPayment.PayAsync(orderResponse.PaymentUrl);
 

@@ -425,7 +425,7 @@ namespace com.noctuagames.sdk.UI
                     _currencyOptions.Add(_currency.EnglishName);
                 }
 
-                _paymentOptions.Add(PaymentType.Noctuawallet);
+                _paymentOptions.Add(PaymentType.Noctuastore);
 
                 if (Application.platform == RuntimePlatform.Android)
                 {
@@ -433,7 +433,7 @@ namespace com.noctuagames.sdk.UI
                 }
                 else if (Application.platform == RuntimePlatform.IPhonePlayer)
                 {
-                    _paymentOptions.Add(PaymentType.Applestore);
+                    _paymentOptions.Add(PaymentType.Appstore);
                 }
             }
 

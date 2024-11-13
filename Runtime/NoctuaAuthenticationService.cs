@@ -24,9 +24,9 @@ namespace com.noctuagames.sdk
     public enum PaymentType
     {
         Unknown,
-        Applestore,
+        Appstore,
         Playstore,
-        Noctuawallet
+        Noctuastore
     }
     
     [Preserve]
