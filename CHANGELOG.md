@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.17.0] - 2024-11-13
+
+### 🚀 Features
+
+- Makes accounts available across games in iOS
+- Add bridging function close keyboard ios
+- Firebase crashlytics
+
+### 🐛 Bug Fixes
+
+- Virtual keyboard not hidden in iOS
+- Validate call function close keyboard only ios
+- Update noctua android sdk native to 0.6.0
+- Change to follow BE payment type
+
 ## [0.16.0] - 2024-11-07
 
 ### 🚀 Features
