@@ -1,0 +1,12 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" xsi="http://www.w3.org/2001/XMLSchema-instance" engine="UnityEngine.UIElements" editor="UnityEditor.UIElements" noNamespaceSchemaLocation="../../../../UIElementsSchema/UIElements.xsd" editor-extension-mode="False">
+    <Style src="./Noctua.uss" />
+    <Style src="./GeneralConfirmDialog.uss" />
+    <ui:VisualElement name="GeneralConfirmDialog" class="base dialog-box base-general-confirm" style="height: 40%;">
+        <ui:Label 
+            name="Note" 
+            text="Your account has been temporarily banned from playing this game. If you believe this is an error, please contact our support team."
+            class="note" 
+        />
+        <ui:Button name="CSButton" text="Contact Support" class="dialog-button button-cs" />
+    </ui:VisualElement>
+</ui:UXML>

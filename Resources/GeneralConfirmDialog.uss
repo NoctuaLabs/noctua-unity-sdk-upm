@@ -1,0 +1,17 @@
+.base-general-confirm {
+    flex-direction: column;
+    flex: 1;
+    justify-content: space-around;
+}
+
+.note {
+    font-size: 12px;
+    color: #9E9E9E;
+    height: 60px;
+    -unity-text-align: middle-center;
+    white-space: normal;
+}
+
+.button-cs {
+    width: 80%;
+}
