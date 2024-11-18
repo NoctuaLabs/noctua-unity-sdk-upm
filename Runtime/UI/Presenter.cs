@@ -14,12 +14,7 @@ namespace com.noctuagames.sdk.UI
         public virtual bool Visible
         {
             get => View.visible;
-            set
-            {
-                View.visible = value;
-
-                if (value) View.Focus();
-            }
+            set => View.visible = value;
         }
 
         public void Init(TModel model, PanelSettings panelSettings)

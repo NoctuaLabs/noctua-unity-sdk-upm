@@ -1,37 +1,39 @@
 <ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" xsi="http://www.w3.org/2001/XMLSchema-instance" engine="UnityEngine.UIElements" editor="UnityEditor.UIElements" noNamespaceSchemaLocation="../../../../UIElementsSchema/UIElements.xsd" editor-extension-mode="False">
     <Style src="./Noctua.uss" />
     <Style src="./LoginOptionsDialog.uss" />
-    <ui:VisualElement name="LoginOptionsDialog" class="base dialog-box">
-        <ui:VisualElement class="dialog-header">
-            <ui:Button name="BackButton" class="dialog-back-button" />
-            <ui:Label name="TitleContinueWithAnotherAccount" text="Continue with another account" class="dialog-title" />
-        </ui:VisualElement>
-        <ui:VisualElement class="social-account-row">
-            <ui:Button name="LoginWithGoogleButton" class="social-account-button">
-                <ui:VisualElement class="login-method-logo google-logo" />
-                <ui:Label name="TitleGoogle" text="Google" class="social-account-label" />
+    <ui:VisualElement name="Root" class="root">
+        <ui:VisualElement name="LoginOptionsDialog" class="base dialog-box">
+            <ui:VisualElement class="dialog-header">
+                <ui:Button name="BackButton" class="dialog-back-button" />
+                <ui:Label name="TitleContinueWithAnotherAccount" text="Continue with another account" class="dialog-title" />
+            </ui:VisualElement>
+            <ui:VisualElement class="social-account-row">
+                <ui:Button name="LoginWithGoogleButton" class="social-account-button">
+                    <ui:VisualElement class="login-method-logo google-logo" />
+                    <ui:Label name="TitleGoogle" text="Google" class="social-account-label" />
+                </ui:Button>
+                <ui:Button name="LoginWithFacebookButton" class="social-account-button">
+                    <ui:VisualElement class="login-method-logo facebook-logo" />
+                    <ui:Label name="TitleFacebook" text="Facebook" class="social-account-label" />
+                </ui:Button>
+            </ui:VisualElement>
+            <ui:VisualElement class="login-method-separator">
+                <ui:VisualElement class="left-separator-long" />
+                <ui:Label name="OrContinueWith" text="or continue with" class="login-method-separator-label" />
+                <ui:VisualElement class="right-separator-long" />
+            </ui:VisualElement>
+            <ui:Button name="LoginWithEmailButton" class="button-normal login-with-email-button">
+                <ui:VisualElement class="login-method-logo email-icon" />
+                <ui:Label name="TextLoginWithEmail" text="Login With Email" class="social-account-label" />
             </ui:Button>
-            <ui:Button name="LoginWithFacebookButton" class="social-account-button">
-                <ui:VisualElement class="login-method-logo facebook-logo" />
-                <ui:Label name="TitleFacebook" text="Facebook" class="social-account-label" />
+            <ui:VisualElement style="flex-direction: row;">
+                <ui:Label name="ByLoggingOrRegister" text="By logging in or registering, you agree to our" class="tnc-text-first" />
+                <ui:Label name="TnCLabel" text="&lt;color=#3B82F6&gt;Terms of Service&lt;/color&gt;" class="tnc-text-first" style="margin-left: -4;" />
+            </ui:VisualElement>
+            <ui:Label name="PrivacyLabel" text="and &lt;color=#3B82F6&gt;Privacy Policy&lt;/color&gt;." class="tnc-text" />
+            <ui:Button name="RegisterButton" class="register-button">
+                <ui:Label name="SubRegister" text="Don&apos;t have an account? &lt;color=#3B82F6&gt;Register&lt;/color&gt;" />
             </ui:Button>
         </ui:VisualElement>
-        <ui:VisualElement class="login-method-separator">
-            <ui:VisualElement class="left-separator-long" />
-            <ui:Label name="OrContinueWith" text="or continue with" class="login-method-separator-label" />
-            <ui:VisualElement class="right-separator-long" />
-        </ui:VisualElement>
-        <ui:Button name="LoginWithEmailButton" class="button-normal login-with-email-button">
-            <ui:VisualElement class="login-method-logo email-icon" />
-            <ui:Label name="TextLoginWithEmail" text="Login With Email" class="social-account-label" />
-        </ui:Button>
-        <ui:VisualElement style="flex-direction: row;">
-            <ui:Label name="ByLoggingOrRegister" text="By logging in or registering, you agree to our" class="tnc-text-first" />
-            <ui:Label name="TnCLabel" text="&lt;color=#3B82F6&gt;Terms of Service&lt;/color&gt;" class="tnc-text-first" style="margin-left: -4;" />
-        </ui:VisualElement>
-        <ui:Label name="PrivacyLabel" text="and &lt;color=#3B82F6&gt;Privacy Policy&lt;/color&gt;." class="tnc-text" />
-        <ui:Button name="RegisterButton" class="register-button">
-            <ui:Label name="SubRegister" text="Don&apos;t have an account? &lt;color=#3B82F6&gt;Register&lt;/color&gt;" />
-        </ui:Button>
     </ui:VisualElement>
 </ui:UXML>

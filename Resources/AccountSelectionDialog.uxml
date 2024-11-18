@@ -4,27 +4,29 @@
          editor-extension-mode="False">
     <Style src="./Noctua.uss" />
     <Style src="./AccountSelectionDialog.uss" />
-    <ui:VisualElement name="AccountSelectionDialog" class="base dialog-box">
-        <ui:VisualElement name="DialogHeader" class="dialog-header">
-            <ui:Button display-tooltip-when-elided="true" name="CloseButton" class="dialog-close-button" />
-            <ui:VisualElement style="width:240px; justify-content: center; align-items:center; flex-direction:row;">
-                <ui:VisualElement name="NoctuaLogoWithText" class="noctua-logo-with-text" />
-                <ui:Label name="SDKVersion" text="SDKVersion" class="sdk-version" />
+    <ui:VisualElement name="Root" class="root" >
+        <ui:VisualElement name="AccountSelectionDialog" class="base dialog-box">
+            <ui:VisualElement name="DialogHeader" class="dialog-header">
+                <ui:Button display-tooltip-when-elided="true" name="CloseButton" class="dialog-close-button" />
+                <ui:VisualElement style="width:240px; justify-content: center; align-items:center; flex-direction:row;">
+                    <ui:VisualElement name="NoctuaLogoWithText" class="noctua-logo-with-text" />
+                    <ui:Label name="SDKVersion" text="SDKVersion" class="sdk-version" />
+                </ui:VisualElement>
             </ui:VisualElement>
-        </ui:VisualElement>
-        <ui:Label name="AccountSelectionInfo" text="Choose Account" class="account-selection-info" />
-        <ui:VisualElement name="ListContainer" class="list-container" >
-            <ui:ListView name="GameAccountList" class="account-selection-list" />
-            <ui:VisualElement name="Separator" class="separator">
-                <ui:VisualElement class="left-separator-short" />
-                <ui:Label text="Other Noctua Account detected" class="separator-label" />
-                <ui:VisualElement class="right-separator-short" />
+            <ui:Label name="AccountSelectionInfo" text="Choose Account" class="account-selection-info" />
+            <ui:VisualElement name="ListContainer" class="list-container" >
+                <ui:ListView name="GameAccountList" class="account-selection-list" />
+                <ui:VisualElement name="Separator" class="separator">
+                    <ui:VisualElement class="left-separator-short" />
+                    <ui:Label text="Other Noctua Account detected" class="separator-label" />
+                    <ui:VisualElement class="right-separator-short" />
+                </ui:VisualElement>
+                <ui:ListView name="NoctuaAccountList" class="account-selection-list" />
             </ui:VisualElement>
-            <ui:ListView name="NoctuaAccountList" class="account-selection-list" />
+            <ui:Button
+                name="ContinueButton"
+                text="Continue with another account"
+                class="continue-other-button button-normal" />
         </ui:VisualElement>
-        <ui:Button
-            name="ContinueButton"
-            text="Continue with another account"
-            class="continue-other-button button-normal" />
     </ui:VisualElement>
 </ui:UXML>

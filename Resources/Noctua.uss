@@ -6,6 +6,12 @@
     position:absolute;
 }
 
+.root {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+}
+
 .hide {
     display: none !important;
 }

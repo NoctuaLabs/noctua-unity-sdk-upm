@@ -1,29 +1,31 @@
 <ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" xsi="http://www.w3.org/2001/XMLSchema-instance" engine="UnityEngine.UIElements" editor="UnityEditor.UIElements" noNamespaceSchemaLocation="../../../../UIElementsSchema/UIElements.xsd" editor-extension-mode="False">
     <Style src="project://database/Packages/com.noctuagames.sdk/Resources/Noctua.uss?fileID=7433441132597879392&amp;guid=fe35e550fb23b6446af377f994effe35&amp;type=3#Noctua" />
-    <ui:VisualElement name="EmailVerificationDialog" class="base dialog-box">
-        <ui:VisualElement name="DialogHeader" class="dialog-header">
-            <ui:Button display-tooltip-when-elided="true" name="BackButton" class="dialog-back-button" />
-            <ui:Label name="TitleEmailVerifCode" text="Email Verification Code" class="dialog-title" />
-        </ui:VisualElement>
-        <ui:VisualElement name="DialogContent" class="dialog-content" style="flex-direction: column; justify-content: center; align-items: center; margin-top:24px;">
-            <ui:Label name="DialogContent1" text="A 6-digit code was sent to your email address." display-tooltip-when-elided="true" style="font-size: 12px; color: rgba(117, 117, 117, 1); " />
-            <ui:Label name="DialogContent2" text="Please enter it within 10 minutes" display-tooltip-when-elided="true" style="margin-top:0px; font-size: 12px; color: rgba(117, 117, 117, 1);"/>
-            <ui:TextField name="VerificationCode" label="Verification Code" class="noctua-text-input" style="width: 100%; margin-top:14px;"/>
-        </ui:VisualElement>
-        <ui:VisualElement class="dialog-footer" style="height: 125px; justify-content: center; align-items: center;">
-            <ui:VisualElement name="ErrBox" style="padding-top: 0; padding-right: 0; padding-bottom: 0; padding-left: 0; margin-top: 10px; margin-bottom: 10px; width: 100%; height: 16px; align-items: center; justify-content: center;">
-                <ui:Label name="ErrCode" display-tooltip-when-elided="true" class="dialog-err-label hide" />
-                <ui:Label name="ErrEmailEmpty" text="Email address should not be empty" display-tooltip-when-elided="true" class="dialog-err-label hide" />
-                <ui:Label name="ErrEmailInvalid" text="Email address is not valid" display-tooltip-when-elided="true" class="dialog-err-label hide" />
-                <ui:Label name="ErrPasswordMismatch" text="Password is not matched with repeated password" display-tooltip-when-elided="true" class="dialog-err-label hide" />
-                <ui:Label name="ErrPasswordTooShort" text="Password is too short. Minimum 6 character" display-tooltip-when-elided="true" class="dialog-err-label hide" />
-                <ui:Label name="ErrPasswordEmpty" text="Password should not be empty" display-tooltip-when-elided="true" class="dialog-err-label hide" />
+    <ui:VisualElement name="Root" class="root">
+        <ui:VisualElement name="EmailVerificationDialog" class="base dialog-box">
+            <ui:VisualElement name="DialogHeader" class="dialog-header">
+                <ui:Button display-tooltip-when-elided="true" name="BackButton" class="dialog-back-button" />
+                <ui:Label name="TitleEmailVerifCode" text="Email Verification Code" class="dialog-title" />
             </ui:VisualElement>
-            <ui:Label name="ResendingCode" text="Sending verification code..." display-tooltip-when-elided="true" class="hide" style="margin-bottom:50px;"/>
-            <ui:Label name="VerifyingCode" text="Verifying..." display-tooltip-when-elided="true" class="hide" style="margin-bottom:50px;"/>
-            <ui:VisualElement name="Spinner" class="noctua-spinner hide" />
-            <ui:Label text="Resend Code" display-tooltip-when-elided="true" name="ResendCode" class="disable-backgroud-button" style="margin-top: 10px; margin-right: 0; margin-bottom: 0; margin-left: 0; top: 5px; color: rgb(59, 130, 246); -unity-text-align: middle-left;" />
-            <ui:Button text="Verify" display-tooltip-when-elided="true" name="VerifyButton" class="dialog-button" style="height: 40px; margin-top: 50px; margin-right: 10px; margin-bottom: 10px;" />
+            <ui:VisualElement name="DialogContent" class="dialog-content" style="flex-direction: column; justify-content: center; align-items: center; margin-top:24px;">
+                <ui:Label name="DialogContent1" text="A 6-digit code was sent to your email address." display-tooltip-when-elided="true" style="font-size: 12px; color: rgba(117, 117, 117, 1); " />
+                <ui:Label name="DialogContent2" text="Please enter it within 10 minutes" display-tooltip-when-elided="true" style="margin-top:0px; font-size: 12px; color: rgba(117, 117, 117, 1);"/>
+                <ui:TextField name="VerificationCode" label="Verification Code" class="noctua-text-input" style="width: 100%; margin-top:14px;"/>
+            </ui:VisualElement>
+            <ui:VisualElement class="dialog-footer" style="height: 125px; justify-content: center; align-items: center;">
+                <ui:VisualElement name="ErrBox" style="padding-top: 0; padding-right: 0; padding-bottom: 0; padding-left: 0; margin-top: 10px; margin-bottom: 10px; width: 100%; height: 16px; align-items: center; justify-content: center;">
+                    <ui:Label name="ErrCode" display-tooltip-when-elided="true" class="dialog-err-label hide" />
+                    <ui:Label name="ErrEmailEmpty" text="Email address should not be empty" display-tooltip-when-elided="true" class="dialog-err-label hide" />
+                    <ui:Label name="ErrEmailInvalid" text="Email address is not valid" display-tooltip-when-elided="true" class="dialog-err-label hide" />
+                    <ui:Label name="ErrPasswordMismatch" text="Password is not matched with repeated password" display-tooltip-when-elided="true" class="dialog-err-label hide" />
+                    <ui:Label name="ErrPasswordTooShort" text="Password is too short. Minimum 6 character" display-tooltip-when-elided="true" class="dialog-err-label hide" />
+                    <ui:Label name="ErrPasswordEmpty" text="Password should not be empty" display-tooltip-when-elided="true" class="dialog-err-label hide" />
+                </ui:VisualElement>
+                <ui:Label name="ResendingCode" text="Sending verification code..." display-tooltip-when-elided="true" class="hide" style="margin-bottom:50px;"/>
+                <ui:Label name="VerifyingCode" text="Verifying..." display-tooltip-when-elided="true" class="hide" style="margin-bottom:50px;"/>
+                <ui:VisualElement name="Spinner" class="noctua-spinner hide" />
+                <ui:Label text="Resend Code" display-tooltip-when-elided="true" name="ResendCode" class="disable-backgroud-button" style="margin-top: 10px; margin-right: 0; margin-bottom: 0; margin-left: 0; top: 5px; color: rgb(59, 130, 246); -unity-text-align: middle-left;" />
+                <ui:Button text="Verify" display-tooltip-when-elided="true" name="VerifyButton" class="dialog-button" style="height: 40px; margin-top: 50px; margin-right: 10px; margin-bottom: 10px;" />
+            </ui:VisualElement>
         </ui:VisualElement>
     </ui:VisualElement>
 </ui:UXML>

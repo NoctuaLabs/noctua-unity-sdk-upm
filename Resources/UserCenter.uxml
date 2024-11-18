@@ -1,116 +1,119 @@
 ﻿<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" xsi="http://www.w3.org/2001/XMLSchema-instance" engine="UnityEngine.UIElements" editor="UnityEditor.UIElements" noNamespaceSchemaLocation="../../../../UIElementsSchema/UIElements.xsd" editor-extension-mode="False">
     <Style src="project://database/Packages/com.noctuagames.sdk/Resources/Noctua.uss?fileID=7433441132597879392&amp;guid=fe35e550fb23b6446af377f994effe35&amp;type=3#Noctua" />
     <Style src="project://database/Packages/com.noctuagames.sdk/Resources/UserCenter.uss?fileID=7433441132597879392&amp;guid=0586cbcfb0a1419a8ac537b6a5e398cd&amp;type=3#UserCenter" />
-    <ui:VisualElement name="UserCenter" class="user-center">
-        <ui:VisualElement name="UserProfile" class="user-profile">
-            <ui:VisualElement name="UserProfileHeader" class="user-profile-header">
-                <ui:Button name="ExitButton" class="user-profile-header-button exit-button">
-                    <ui:VisualElement name="ExitIcon" class="exit-icon" />
-                </ui:Button>
-                <ui:Button name="HelpButton" class="user-profile-header-button help-button">
-                    <ui:VisualElement name="HelpIcon" class="help-icon" />
-                    <ui:Label name="HelpLabel" text="Need help" class="help-label" />
-                </ui:Button>
-                <ui:Button name="MoreOptionsButton" class="user-profile-header-button more-options-button">
-                    <ui:VisualElement name="MoreOptionsIcon" class="more-options-icon" />
-                </ui:Button>
-            </ui:VisualElement>
-            <ui:VisualElement name="UserProfileSpacing1" class="user-profile-spacing" />
-            <ui:VisualElement name="UserProfileContent" class="user-profile-content">
-                <ui:VisualElement name="HiText" class="hi-text">
-                    <ui:Label name="HiLabel" text="Hi" class="hi-label" />
-                    <ui:VisualElement name="HiIcon" class="hi-icon" />
+    <ui:VisualElement name="Root" class="root">
+        <ui:VisualElement name="UserProfileSpacing0" class="user-profile-spacing" />
+        <ui:VisualElement name="UserCenter" class="user-center" >
+            <ui:VisualElement name="UserProfile" class="user-profile">
+                <ui:VisualElement name="UserProfileHeader" class="user-profile-header">
+                    <ui:Button name="ExitButton" class="user-profile-header-button exit-button">
+                        <ui:VisualElement name="ExitIcon" class="exit-icon" />
+                    </ui:Button>
+                    <ui:Button name="HelpButton" class="user-profile-header-button help-button">
+                        <ui:VisualElement name="HelpIcon" class="help-icon" />
+                        <ui:Label name="HelpLabel" text="Need help" class="help-label" />
+                    </ui:Button>
+                    <ui:Button name="MoreOptionsButton" class="user-profile-header-button more-options-button">
+                        <ui:VisualElement name="MoreOptionsIcon" class="more-options-icon" />
+                    </ui:Button>
                 </ui:VisualElement>
-                <ui:Label name="PlayerName" text="Guest123" class="player-name" />
-                <ui:VisualElement name="PlayerAvatar" class="player-avatar" />
-                <ui:VisualElement name="UserId" class="user-id">
-                    <ui:Label name="UserIdLabel" text="User ID" class="user-id-label" />
-                    <ui:VisualElement name="CopyIcon" class="copy-icon" />
+                <ui:VisualElement name="UserProfileSpacing1" class="user-profile-spacing" />
+                <ui:VisualElement name="UserProfileContent" class="user-profile-content">
+                    <ui:VisualElement name="HiText" class="hi-text">
+                        <ui:Label name="HiLabel" text="Hi" class="hi-label" />
+                        <ui:VisualElement name="HiIcon" class="hi-icon" />
+                    </ui:VisualElement>
+                    <ui:Label name="PlayerName" text="Guest123" class="player-name" />
+                    <ui:VisualElement name="PlayerAvatar" class="player-avatar" />
+                    <ui:VisualElement name="UserId" class="user-id">
+                        <ui:Label name="UserIdLabel" text="User ID" class="user-id-label" />
+                        <ui:VisualElement name="CopyIcon" class="copy-icon" />
+                    </ui:VisualElement>
                 </ui:VisualElement>
-            </ui:VisualElement>
-            <ui:VisualElement name="UserProfileSpacing2" class="user-profile-spacing" />
-            <ui:VisualElement name="NoctuaLogoContainer" class="noctua-logo-container hide">
-                    <ui:VisualElement name="NoctuaLogoWithText" class="noctua-logo-with-text" />
-            </ui:VisualElement>
-            <ui:VisualElement name="MoreOptionsMenu" class="more-options-menu hide">
-                <ui:VisualElement name="EditProfile" class="more-options-menu-item">
-                    <ui:VisualElement class="edit-icon" />
-                    <ui:Label name="MenuEditProfile" text="Edit Profile" class="more-options-menu-item-label" />
+                <ui:VisualElement name="UserProfileSpacing2" class="user-profile-spacing" />
+                <ui:VisualElement name="NoctuaLogoContainer" class="noctua-logo-container hide">
+                        <ui:VisualElement name="NoctuaLogoWithText" class="noctua-logo-with-text" />
                 </ui:VisualElement>
-                <ui:VisualElement name="SwitchProfile" class="more-options-menu-item">
-                    <ui:VisualElement class="second-switch-account-icon" />
-                    <ui:Label name="MenuSwitchProfile" text="Switch Profile" class="more-options-menu-item-label" />
-                </ui:VisualElement>
-                <ui:VisualElement name="DeleteAccount" class="more-options-menu-item">
-                    <ui:VisualElement class="delete-icon" />
-                    <ui:Label name="MenuDeleteAccount" text="Delete Account" class="more-options-menu-item-label delete-account-label" />
-                </ui:VisualElement>
-                <ui:VisualElement name="LogoutAccount" class="more-options-menu-item">
-                    <ui:VisualElement class="logout-icon" />
-                    <ui:Label name="MenuLogout" text="Logout Account" class="more-options-menu-item-label" />
-                </ui:VisualElement>
-            </ui:VisualElement>
-        </ui:VisualElement>
-        <ui:VisualElement name="ConnectAccount" class="connect-account">
-            <ui:VisualElement name="ContainerStayConnect" style="flex-direction: row;">
-                <ui:Label name="StayConnectCompany" text="Stay connect to" class="connect-account-label" style="margin-left: -2px;"/>
-                <ui:Label name="ConnectAccountLabel" text="Noctua" class="connect-account-label" style="margin-left: -3px;"/>
-            </ui:VisualElement>
-            <ui:ListView name="AccountList" class="account-list" />
-            <ui:VisualElement name="UserGuestUI" class="user-guest-box">
-                <ui:VisualElement class="image-carousel" />
-                <ui:Label name="TextCarousel" text="Protect your heard-earned progress and achievements" class="text-carousel" />
-                <ui:VisualElement name="IndicatorContainer" class="ellipse-indicator" />
-                <ui:Button name="GuestConnectButton" text="Connect Account" class="button-highlight connect-button-guest" />
-            </ui:VisualElement>
-            <ui:VisualElement name="EditProfileBox" class="user-center edit-profile-box hide">
-                <ui:VisualElement>
-                    <ui:ScrollView scroll-deceleration-rate="0,135" elasticity="0,1" horizontal-scroller-visibility="Hidden" vertical-scroller-visibility="Hidden" style="margin-bottom: 10px;">
-                        <ui:VisualElement name="BackEditProfileHeader" class="user-profile-header" style="justify-content: flex-start; align-items: center; flex-wrap: nowrap;">
-                            <ui:Button name="BackButton" class="back-circle-button">
-                                <ui:VisualElement name="ExitIcon" class="back-circle-icon" />
-                            </ui:Button>
-                            <ui:Label name="TitleEditBack" text="Back" class="back-edit-profile-title" style="color: rgb(117, 117, 117);" />
-                        </ui:VisualElement>
-                        <ui:VisualElement style="flex-direction: row; flex-wrap: nowrap; align-items: center; justify-content: flex-start; margin-top: 10px; margin-bottom: 10px;">
-                            <ui:VisualElement name="ProfileImage" class="profile-circle-with-border"/>
-                            <ui:Button text="Change Picture" name="ChangePictureButton" class="button-border" />
-                            <ui:VisualElement name="Spinner2" class="noctua-spinner hide" style="height: 74px; margin-left: 20px;" />
-                        </ui:VisualElement>
-
-                        <ui:VisualElement class="nickname-container noctua-text-input-margin">
-                            <ui:TextField label="Nickname" name="NicknameTF" class="noctua-text-input" />
-                            <ui:Label name="HintNickname" text="Don't use real name, You can change again in the next 14 days" class="hint-textfield"/>
-                        </ui:VisualElement>
-                        <ui:VisualElement class="noctua-text-input-margin">
-                            <ui:TextField label="Birthdate (Optional)" name="BirthdateTF" class="noctua-text-input" />
-                        </ui:VisualElement>
-                        
-                        <ui:VisualElement class="dropdown-container">
-                            <ui:DropdownField name="GenderTF" label="Gender (Optional)" class="dropdown-box" />
-                            <ui:DropdownField label="Country" name="CountryTF" class="dropdown-box" />
-                            <ui:DropdownField label="Language" name="LanguageTF" class="dropdown-box" />
-                            <ui:DropdownField label="Currency" name="CurrencyTF" class="dropdown-box" />
-                            <ui:DropdownField label="PaymentType" name="PaymentTypeTF" class="dropdown-box" />
-                        </ui:VisualElement>
-
-                    </ui:ScrollView>
-                    <ui:VisualElement name="SaveButtonContainer" style="border-top-left-radius: 6px; border-top-right-radius: 6px; border-bottom-right-radius: 6px; border-bottom-left-radius: 6px;">
-                        <ui:VisualElement name="ErrBox" style="padding-top: 0; padding-right: 0; padding-bottom: 0; padding-left: 0; margin-top: 10px; margin-bottom: 10px; width: 100%; height: 16px; align-items: center; justify-content: center;">
-                            <ui:Label name="ErrLabel" display-tooltip-when-elided="true" class="dialog-err-label hide" />
-                        </ui:VisualElement>
-                        <ui:Button text="Save" display-tooltip-when-elided="true" name="SaveButton" class="dialog-button" />
-                        <ui:VisualElement name="Spinner" class="noctua-spinner hide" style="height: 74px;" />
+                <ui:VisualElement name="MoreOptionsMenu" class="more-options-menu hide">
+                    <ui:VisualElement name="EditProfile" class="more-options-menu-item">
+                        <ui:VisualElement class="edit-icon" />
+                        <ui:Label name="MenuEditProfile" text="Edit Profile" class="more-options-menu-item-label" />
+                    </ui:VisualElement>
+                    <ui:VisualElement name="SwitchProfile" class="more-options-menu-item">
+                        <ui:VisualElement class="second-switch-account-icon" />
+                        <ui:Label name="MenuSwitchProfile" text="Switch Profile" class="more-options-menu-item-label" />
+                    </ui:VisualElement>
+                    <ui:VisualElement name="DeleteAccount" class="more-options-menu-item">
+                        <ui:VisualElement class="delete-icon" />
+                        <ui:Label name="MenuDeleteAccount" text="Delete Account" class="more-options-menu-item-label delete-account-label" />
+                    </ui:VisualElement>
+                    <ui:VisualElement name="LogoutAccount" class="more-options-menu-item">
+                        <ui:VisualElement class="logout-icon" />
+                        <ui:Label name="MenuLogout" text="Logout Account" class="more-options-menu-item-label" />
                     </ui:VisualElement>
                 </ui:VisualElement>
             </ui:VisualElement>
-            <ui:VisualElement name="ConnectAccountFooter" class="connect-account-footer">
-                <ui:VisualElement name="NoctuaLogoWithText2" class="noctua-logo-with-text" />
-                <ui:Label name="SDKVersion" text="SDKVersion" class="sdk-version" />
-                <ui:VisualElement style="flex: 1;" />
-                <ui:VisualElement name="ContainerFindMore" style="flex-direction: row;">
-                    <ui:Label name="TitleFindMoreLabel" text="Find more at" class="find-more-label" style="margin-right: -3px;" />
-                    <ui:Label name="FindMoreLabel" text="noctua.gg" class="find-more-label" style="margin-right: -2px;"/>
+            <ui:VisualElement name="ConnectAccount" class="connect-account">
+                <ui:VisualElement name="ContainerStayConnect" style="flex-direction: row;">
+                    <ui:Label name="StayConnectCompany" text="Stay connect to" class="connect-account-label" style="margin-left: -2px;"/>
+                    <ui:Label name="ConnectAccountLabel" text="Noctua" class="connect-account-label" style="margin-left: -3px;"/>
+                </ui:VisualElement>
+                <ui:ListView name="AccountList" class="account-list" />
+                <ui:VisualElement name="UserGuestUI" class="user-guest-box">
+                    <ui:VisualElement class="image-carousel" />
+                    <ui:Label name="TextCarousel" text="Protect your heard-earned progress and achievements" class="text-carousel" />
+                    <ui:VisualElement name="IndicatorContainer" class="ellipse-indicator" />
+                    <ui:Button name="GuestConnectButton" text="Connect Account" class="button-highlight connect-button-guest" />
+                </ui:VisualElement>
+                <ui:VisualElement name="EditProfileBox" class="user-center edit-profile-box hide">
+                    <ui:VisualElement>
+                        <ui:ScrollView scroll-deceleration-rate="0,135" elasticity="0,1" horizontal-scroller-visibility="Hidden" vertical-scroller-visibility="Hidden" style="margin-bottom: 10px;">
+                            <ui:VisualElement name="BackEditProfileHeader" class="user-profile-header" style="justify-content: flex-start; align-items: center; flex-wrap: nowrap;">
+                                <ui:Button name="BackButton" class="back-circle-button">
+                                    <ui:VisualElement name="ExitIcon" class="back-circle-icon" />
+                                </ui:Button>
+                                <ui:Label name="TitleEditBack" text="Back" class="back-edit-profile-title" style="color: rgb(117, 117, 117);" />
+                            </ui:VisualElement>
+                            <ui:VisualElement style="flex-direction: row; flex-wrap: nowrap; align-items: center; justify-content: flex-start; margin-top: 10px; margin-bottom: 10px;">
+                                <ui:VisualElement name="ProfileImage" class="profile-circle-with-border"/>
+                                <ui:Button text="Change Picture" name="ChangePictureButton" class="button-border" />
+                                <ui:VisualElement name="Spinner2" class="noctua-spinner hide" style="height: 74px; margin-left: 20px;" />
+                            </ui:VisualElement>
+    
+                            <ui:VisualElement class="nickname-container noctua-text-input-margin">
+                                <ui:TextField label="Nickname" name="NicknameTF" class="noctua-text-input" />
+                                <ui:Label name="HintNickname" text="Don't use real name, You can change again in the next 14 days" class="hint-textfield"/>
+                            </ui:VisualElement>
+                            <ui:VisualElement class="noctua-text-input-margin">
+                                <ui:TextField label="Birthdate (Optional)" name="BirthdateTF" class="noctua-text-input" />
+                            </ui:VisualElement>
+                            
+                            <ui:VisualElement class="dropdown-container">
+                                <ui:DropdownField name="GenderTF" label="Gender (Optional)" class="dropdown-box" />
+                                <ui:DropdownField label="Country" name="CountryTF" class="dropdown-box" />
+                                <ui:DropdownField label="Language" name="LanguageTF" class="dropdown-box" />
+                                <ui:DropdownField label="Currency" name="CurrencyTF" class="dropdown-box" />
+                                <ui:DropdownField label="PaymentType" name="PaymentTypeTF" class="dropdown-box" />
+                            </ui:VisualElement>
+    
+                        </ui:ScrollView>
+                        <ui:VisualElement name="SaveButtonContainer" style="border-top-left-radius: 6px; border-top-right-radius: 6px; border-bottom-right-radius: 6px; border-bottom-left-radius: 6px;">
+                            <ui:VisualElement name="ErrBox" style="padding-top: 0; padding-right: 0; padding-bottom: 0; padding-left: 0; margin-top: 10px; margin-bottom: 10px; width: 100%; height: 16px; align-items: center; justify-content: center;">
+                                <ui:Label name="ErrLabel" display-tooltip-when-elided="true" class="dialog-err-label hide" />
+                            </ui:VisualElement>
+                            <ui:Button text="Save" display-tooltip-when-elided="true" name="SaveButton" class="dialog-button" />
+                            <ui:VisualElement name="Spinner" class="noctua-spinner hide" style="height: 74px;" />
+                        </ui:VisualElement>
+                    </ui:VisualElement>
+                </ui:VisualElement>
+                <ui:VisualElement name="ConnectAccountFooter" class="connect-account-footer">
+                    <ui:VisualElement name="NoctuaLogoWithText2" class="noctua-logo-with-text" />
+                    <ui:Label name="SDKVersion" text="SDKVersion" class="sdk-version" />
+                    <ui:VisualElement style="flex: 1;" />
+                    <ui:VisualElement name="ContainerFindMore" style="flex-direction: row;">
+                        <ui:Label name="TitleFindMoreLabel" text="Find more at" class="find-more-label" style="margin-right: -3px;" />
+                        <ui:Label name="FindMoreLabel" text="noctua.gg" class="find-more-label" style="margin-right: -2px;"/>
+                    </ui:VisualElement>
                 </ui:VisualElement>
             </ui:VisualElement>
         </ui:VisualElement>

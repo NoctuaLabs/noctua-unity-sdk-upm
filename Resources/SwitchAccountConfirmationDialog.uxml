@@ -1,18 +1,20 @@
 ﻿<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" xsi="http://www.w3.org/2001/XMLSchema-instance" engine="UnityEngine.UIElements" editor="UnityEditor.UIElements" noNamespaceSchemaLocation="../../../../UIElementsSchema/UIElements.xsd" editor-extension-mode="False">
     <Style src="./Noctua.uss" />
     <Style src="./SwitchAccountConfirmationDialog.uss" />
-    <ui:VisualElement name="SwitchAccountConfirmationDialog" class="base dialog-box">
-        <ui:VisualElement name="Gap" class="gap" />
-        <ui:VisualElement name="SwitchIcon" class="switch-account-icon" />
-        <ui:Label name="Question" text="Are you sure you want to switch\nyour game account?" class="question" />
-        <ui:Label 
-                name="Note" 
-                text="We will restart your game, once you\nhave confirming to switch account.\nRelax, your game progress will be\nsaved to current account."
-                class="note" 
-        />
-        <ui:VisualElement name="ButtonGroup" class="button-group">
-            <ui:Button name="CancelButton" text="Cancel" class="button-normal switch-account-button" />
-            <ui:Button name="ConfirmButton" text="Confirm" class="button-highlight switch-account-button" />
+    <ui:VisualElement name="Root" class="root">
+        <ui:VisualElement name="SwitchAccountConfirmationDialog" class="base dialog-box">
+            <ui:VisualElement name="Gap" class="gap" />
+            <ui:VisualElement name="SwitchIcon" class="switch-account-icon" />
+            <ui:Label name="Question" text="Are you sure you want to switch\nyour game account?" class="question" />
+            <ui:Label 
+                    name="Note" 
+                    text="We will restart your game, once you\nhave confirming to switch account.\nRelax, your game progress will be\nsaved to current account."
+                    class="note" 
+            />
+            <ui:VisualElement name="ButtonGroup" class="button-group">
+                <ui:Button name="CancelButton" text="Cancel" class="button-normal switch-account-button" />
+                <ui:Button name="ConfirmButton" text="Confirm" class="button-highlight switch-account-button" />
+            </ui:VisualElement>
         </ui:VisualElement>
     </ui:VisualElement>
 </ui:UXML>
