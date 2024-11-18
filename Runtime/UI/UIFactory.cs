@@ -11,6 +11,7 @@ namespace com.noctuagames.sdk.UI
         private readonly PanelSettings _panelSettings;
         private readonly LoadingProgressPresenter _loading;
         private readonly GeneralNotificationPresenter _notification;
+        private readonly GeneralConfirmDialogPresenter _confirmDialog;
         private readonly Dictionary<string, string> _translations;
         private readonly string _regionCode;
         internal UIFactory(string gameObjectName, string panelSettingsPath = "NoctuaPanelSettings", string themeStyleSheetPath = "NoctuaTheme")
@@ -23,6 +24,7 @@ namespace com.noctuagames.sdk.UI
 
             _loading = CreateLoadingPresenter();
             _notification = CreateNotificationPresenter();
+            _confirmDialog = CreateConfirmDialogPresenter();
         }
         
         internal UIFactory(GameObject rootObject, PanelSettings panelSettings, GlobalConfig config)
@@ -37,6 +39,8 @@ namespace com.noctuagames.sdk.UI
             _loading.GetComponent<UIDocument>().sortingOrder = 1;
             _notification = CreateNotificationPresenter();
             _notification.GetComponent<UIDocument>().sortingOrder = 1;
+            _confirmDialog = CreateConfirmDialogPresenter();
+            _confirmDialog.GetComponent<UIDocument>().sortingOrder = 1;
         }
         
         internal TPresenter Create<TPresenter, TModel>(TModel model) where TPresenter : Presenter<TModel>
@@ -60,6 +64,11 @@ namespace com.noctuagames.sdk.UI
             return presenter;
         }
 
+        public void ShowGeneralConfirmDialog()
+        {
+            _confirmDialog.Show(_regionCode);
+        }
+
         public void ShowLoadingProgress(bool isShow)
         {
             _loading.Show(isShow);
@@ -68,6 +77,11 @@ namespace com.noctuagames.sdk.UI
         public void ShowGeneralNotification(string message, bool isSuccess = false)
         {
             _notification.Show(message, isSuccess);
+        }
+
+        private GeneralConfirmDialogPresenter CreateConfirmDialogPresenter()
+        {
+            return Create<GeneralConfirmDialogPresenter, object>(new object());
         }
 
         private LoadingProgressPresenter CreateLoadingPresenter()

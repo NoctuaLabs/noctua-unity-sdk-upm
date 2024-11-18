@@ -184,6 +184,11 @@ namespace com.noctuagames.sdk
             _uiFactory.ShowLoadingProgress(isShow);
         }
 
+        public void ShowGeneralConfirmDialog()
+        {
+            _uiFactory.ShowGeneralConfirmDialog();
+        }
+
         internal async UniTask<CredentialVerification> RegisterWithEmailAsync(string email, string password, Dictionary<string, string> regExtra = null)
         {
             return _currentAuthType switch
