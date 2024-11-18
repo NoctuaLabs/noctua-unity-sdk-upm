@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.18.1] - 2024-11-18
+
+### 🐛 Bug Fixes
+
+- Ios log using os_log
+
 ## [0.18.0] - 2024-11-13
 
 ### 🚀 Features
