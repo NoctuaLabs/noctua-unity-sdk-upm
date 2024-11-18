@@ -179,7 +179,7 @@ namespace com.noctuagames.sdk
             
             #elif UNITY_IOS || UNITY_EDITOR_OSX
             
-            Log.Log("Loading streaming assets in IOS by using System.IO.File.ReadAllText: " + configPath);
+            Log.Info("Loading streaming assets in IOS by using System.IO.File.ReadAllText: " + configPath);
 
             try {
                 jsonConfig = File.ReadAllText(configPath, Encoding.UTF8);

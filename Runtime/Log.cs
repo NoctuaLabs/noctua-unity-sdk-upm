@@ -139,8 +139,7 @@ namespace com.noctuagames.sdk
         }
 
         [DllImport("__Internal")]
-        public static extern void os_log_with_type(IntPtr log, OSLogType type, string format, __arglist);
-        
+        public static extern void OsLogWithType(IntPtr log, OSLogType type, string message);    
         
         private readonly IntPtr _log = os_log_create("com.noctuagames.sdk", "NoctuaSDK");
 
@@ -158,7 +157,7 @@ namespace com.noctuagames.sdk
                 _                         => OSLogType.Default
             };
             
-            os_log_with_type(_log, level, message, __arglist());
+            OsLogWithType(_log, level, message);
         }
     }
 #endif
