@@ -117,6 +117,8 @@
     "SuggestionBindText.Content2": "Lưu giữ tiến trình và thành tựu bạn đã nỗ lực đạt được",
     "SuggestionBindText.Content3": "Linh hoạt chơi game trên mọi thiết bị",
     "Select.Gender": "Chọn Giới Tính",
-    "Select.Country": "Chọn Quốc Gia"
+    "Select.Country": "Chọn Quốc Gia",
+    "Title.Text.ConctactSupport": "Contact Support",
+    "User.Banned.Info": "Your account has been temporarily banned from playing this game. If this is unexpected, please contact our support."
 
 }

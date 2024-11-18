@@ -129,5 +129,8 @@
     "SuggestionBindText.Content2": "Lindungi progres dan pencapaian yang telah Anda dapatkan",
     "SuggestionBindText.Content3": "Nikmati fleksibilitas untuk bermain game Anda di perangkat apa pun",
     "Select.Gender": "Pilih Jenis Kelamin",
-    "Select.Country": "Pilih Negara"
+    "Select.Country": "Pilih Negara",
+
+    "Title.Text.ConctactSupport": "Hubungi Dukungan",
+    "User.Banned.Info": "Akun Anda telah diblokir sementara dari memainkan game ini. Jika hal ini tidak terduga, silakan hubungi dukungan kami."
 }

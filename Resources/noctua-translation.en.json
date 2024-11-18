@@ -129,7 +129,10 @@
     "SuggestionBindText.Content2": "Protect your hard-earned progress and achievements",
     "SuggestionBindText.Content3": "Enjoy the flexibility to play your game on any device",
     "Select.Gender" : "Select Gender",
-    "Select.Country": "Select Country"
+    "Select.Country": "Select Country",
+
+    "Title.Text.ConctactSupport": "Contact Support",
+    "User.Banned.Info": "Your account has been temporarily banned from playing this game. If you believe this is an error, please contact our support team."
 
   }
   
