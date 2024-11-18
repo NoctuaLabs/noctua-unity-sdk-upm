@@ -84,9 +84,22 @@ namespace com.noctuagames.sdk
         /// Returns the authenticated user bundle.
         /// </summary>
         /// <returns>A UserBundle object representing the selected account.</returns>
-        public async UniTask<UserBundle> AuthenticateAsync()
+        public async UniTask<(UserBundle userBundle, Exception exception)> AuthenticateAsync()
         {
-            return await _service.AuthenticateAsync();
+            try
+            {
+                var userBundle = await _service.AuthenticateAsync();
+                return (userBundle, null);
+            }
+            catch (NoctuaException noctuaEx) when (noctuaEx.ErrorCode == (int)NoctuaErrorCode.UserBanned)
+            {
+                _uiFactory.ShowGeneralConfirmDialog();
+                return (null, noctuaEx);
+            }
+            catch (Exception ex)
+            {
+                return (null, ex);
+            }
         }
 
         public async UniTask<UserBundle> LoginAsGuest()
