@@ -232,6 +232,11 @@ namespace com.noctuagames.sdk.UI
             } catch (Exception e) {
                 if (e is NoctuaException noctuaEx)
                 {
+                    if(noctuaEx.ErrorCode == (int)NoctuaErrorCode.UserBanned)
+                    {
+                        Model.ShowGeneralConfirmDialog();
+                    }
+
                     Debug.Log("NoctuaException: " + noctuaEx.ErrorCode + " : " + noctuaEx.Message);
                     View.Q<Label>("ErrCode").text = noctuaEx.ErrorCode.ToString() + " : " + noctuaEx.Message;
                 } else {
