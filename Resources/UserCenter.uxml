@@ -108,7 +108,9 @@
                 </ui:VisualElement>
                 <ui:VisualElement name="ConnectAccountFooter" class="connect-account-footer">
                     <ui:VisualElement name="NoctuaLogoWithText2" class="noctua-logo-with-text" />
-                    <ui:Label name="SDKVersion" text="SDKVersion" class="sdk-version" />
+                    <ui:VisualElement name="SDKVersionContainer">
+                        <ui:Label name="SDKVersion" text="SDKVersion" class="sdk-version" />
+                    </ui:VisualElement>
                     <ui:VisualElement style="flex: 1;" />
                     <ui:VisualElement name="ContainerFindMore" style="flex-direction: row;">
                         <ui:Label name="TitleFindMoreLabel" text="Find more at" class="find-more-label" style="margin-right: -3px;" />
