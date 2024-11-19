@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.18.2] - 2024-11-19
+
+### 🐛 Bug Fixes
+
+- Overlay UI should block whole screen
+- Account item should have no hover and connected account item should have no action indicator
+- Align SDK version text in UserCenter
+
 ## [0.18.1] - 2024-11-18
 
 ### 🐛 Bug Fixes
