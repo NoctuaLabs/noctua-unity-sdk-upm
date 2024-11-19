@@ -92,7 +92,7 @@ namespace com.noctuagames.sdk
             }
             catch (NoctuaException noctuaEx) when (noctuaEx.ErrorCode == (int)NoctuaErrorCode.UserBanned)
             {
-                _uiFactory.ShowGeneralConfirmDialog();
+                _uiFactory.ShowConfirmationDialog();
                 throw;
             }
         }

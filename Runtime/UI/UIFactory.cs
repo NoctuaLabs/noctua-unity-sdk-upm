@@ -11,7 +11,7 @@ namespace com.noctuagames.sdk.UI
         private readonly PanelSettings _panelSettings;
         private readonly LoadingProgressPresenter _loading;
         private readonly GeneralNotificationPresenter _notification;
-        private readonly GeneralConfirmDialogPresenter _confirmDialog;
+        private readonly ConfirmationDialogPresenter _confirmDialog;
         private readonly Dictionary<string, string> _translations;
         private readonly string _regionCode;
         internal UIFactory(string gameObjectName, string panelSettingsPath = "NoctuaPanelSettings", string themeStyleSheetPath = "NoctuaTheme")
@@ -64,7 +64,7 @@ namespace com.noctuagames.sdk.UI
             return presenter;
         }
 
-        public void ShowGeneralConfirmDialog()
+        public void ShowConfirmationDialog()
         {
             _confirmDialog.Show(_regionCode);
         }
@@ -79,9 +79,9 @@ namespace com.noctuagames.sdk.UI
             _notification.Show(message, isSuccess);
         }
 
-        private GeneralConfirmDialogPresenter CreateConfirmDialogPresenter()
+        private ConfirmationDialogPresenter CreateConfirmDialogPresenter()
         {
-            return Create<GeneralConfirmDialogPresenter, object>(new object());
+            return Create<ConfirmationDialogPresenter, object>(new object());
         }
 
         private LoadingProgressPresenter CreateLoadingPresenter()

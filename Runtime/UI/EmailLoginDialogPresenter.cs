@@ -234,7 +234,7 @@ namespace com.noctuagames.sdk.UI
                 {
                     if(noctuaEx.ErrorCode == (int)NoctuaErrorCode.UserBanned)
                     {
-                        Model.ShowGeneralConfirmDialog();
+                        Model.ShowConfirmationDialog();
                     }
 
                     Debug.Log("NoctuaException: " + noctuaEx.ErrorCode + " : " + noctuaEx.Message);

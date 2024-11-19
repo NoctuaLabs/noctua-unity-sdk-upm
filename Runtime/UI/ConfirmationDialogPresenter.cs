@@ -6,7 +6,7 @@ using UnityEngine.UIElements;
 
 namespace com.noctuagames.sdk.UI
 {
-    internal class GeneralConfirmDialogPresenter : Presenter<object>
+    internal class ConfirmationDialogPresenter : Presenter<object>
     {
         private Button _btnCS;
         private Label _note;
