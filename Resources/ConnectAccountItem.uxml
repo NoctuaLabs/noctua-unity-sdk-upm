@@ -10,7 +10,6 @@
         <ui:Button name="ConnectButton" text="Connect" class="connect-button" />
         <ui:VisualElement name="Username" class="username hide">
             <ui:Label name="UsernameLabel" text="ono.uni@gmail.com" class="username-label" />
-            <ui:VisualElement name="GoToIcon" class="goto-icon" />
         </ui:VisualElement>
     </ui:VisualElement>
 </ui:UXML>

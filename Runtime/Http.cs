@@ -7,7 +7,6 @@ using System.Text;
 using Cysharp.Threading.Tasks;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
-using Unity.Collections;
 using UnityEngine;
 using UnityEngine.Networking;
 using UnityEngine.Scripting;
@@ -252,8 +251,10 @@ namespace com.noctuagames.sdk
                 await _request.SendWebRequest();
                 response = _request.downloadHandler.text;
             }
-            catch (Exception)
+            catch (Exception e)
             {
+                _log.Exception(e);
+                
                 switch (_request.result)
                 {
                     case UnityWebRequest.Result.ConnectionError:     throw NoctuaException.RequestConnectionError;
@@ -275,6 +276,8 @@ namespace com.noctuagames.sdk
 
             if (_request.responseCode >= 500)
             {
+                _log.Error($"Unknown HTTP error {_request.responseCode}, response: '{response}'");
+
                 throw new NoctuaException(
                     NoctuaErrorCode.Networking,
                     $"Server error {_request.responseCode}: {response}"
@@ -291,11 +294,15 @@ namespace com.noctuagames.sdk
                 }
                 catch (Exception)
                 {
+                    _log.Error($"Unknown HTTP error {_request.responseCode}, response: '{response}'");
+                    
                     throw new NoctuaException(
                         NoctuaErrorCode.Application,
                         $"Unknown HTTP error {_request.responseCode}: {response}"
                     );
                 }
+                
+                _log.Error($"Noctua error {errorResponse.ErrorCode}: {errorResponse.ErrorMessage}");
 
                 throw new NoctuaException((NoctuaErrorCode)errorResponse.ErrorCode, errorResponse.ErrorMessage);
             }
@@ -306,7 +313,7 @@ namespace com.noctuagames.sdk
             }
             catch (Exception e)
             {
-                _log.Info(e.Message);
+                _log.Exception(e);
 
                 throw new NoctuaException(
                     NoctuaErrorCode.Application,
