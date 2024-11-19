@@ -28,7 +28,7 @@ namespace com.noctuagames.sdk.UI
         {
             Visible = true;
 
-            _btnCS.text = Utility.GetTranslation("Title.Text.ConctactSupport",  Utility.LoadTranslations(regionCode));
+            _btnCS.text = Utility.GetTranslation("Title.Text.ContactSupport",  Utility.LoadTranslations(regionCode));
             _note.text = Utility.GetTranslation("User.Banned.Info",  Utility.LoadTranslations(regionCode));
 
         }
