@@ -883,8 +883,8 @@ namespace com.noctuagames.sdk
 	    // Please refer to  https://kg3hddjaru.larksuite.com/docx/NbJJdCOk5ofZC7xZyWPuukUns0g
 	    // for logic walkthrough notation
 	    //
-	    // Comparison with previous logic:
-	    // https://gitlab.com/evosverse/noctua/noctua-sdk-unity-upm/-/blob/3f6049cc5aad718f915dc1ccb2fc89109ba6ce2f/Runtime/NoctuaAuthenticationService.cs
+	    // Comparison with previous logic implementation:
+	    // https://gitlab.com/evosverse/noctua/noctua-sdk-unity-upm/-/blob/3f6049cc5aad718f915dc1ccb2fc89109ba6ce2f/Runtime/NoctuaAuthenticationService.cs#L779
 	    
             if (IsAuthenticated)
             {
