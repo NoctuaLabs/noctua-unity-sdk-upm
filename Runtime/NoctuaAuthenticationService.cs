@@ -879,6 +879,13 @@ namespace com.noctuagames.sdk
         /// <returns>A UserBundle object representing the selected account.</returns>
         public async UniTask<UserBundle> AuthenticateAsync()
         {
+
+	    // Please refer to  https://kg3hddjaru.larksuite.com/docx/NbJJdCOk5ofZC7xZyWPuukUns0g
+	    // for logic walkthrough notation
+	    //
+	    // Comparison with previous logic:
+	    // https://gitlab.com/evosverse/noctua/noctua-sdk-unity-upm/-/blob/3f6049cc5aad718f915dc1ccb2fc89109ba6ce2f/Runtime/NoctuaAuthenticationService.cs
+	    
             if (IsAuthenticated)
             {
                 SendEvent("account_detected");
@@ -886,12 +893,17 @@ namespace com.noctuagames.sdk
                 return RecentAccount;
             }
 
+	    // The RecentAccount is updated anytime the ExchangeTokenAsync is called successfuly
+	    // which also update the data in the storage.
+	    // See _accountContainer.UpdateRecentAccount().
+
             // 3.b and 4.a.i.2: Invalid data will not be loaded
-            
+	    // X: Please don't assume, recheck it throughly.
+           
+	    // Load from storage.
             _accountContainer.Load();
             
-            // 2.a: If there is no account, login as guest
-            
+            // 2.a: If there is no existing account, try to login as guest
             if (_accountContainer.Accounts.Count == 0) 
             {
                 await LoginAsGuestAsync();
@@ -901,13 +913,21 @@ namespace com.noctuagames.sdk
                 return RecentAccount;
             }
 
+	    // X: Previously the Accounts array is sorted first before the first array loaded as recent account.
+	    // Where does it get sorted?
             var firstUser = _accountContainer.Accounts.First();
             
             // Recent accounts are accounts that have played the game, they always match this game
             // 3.a: If there is already a recent account, reuse token
-            
             if (firstUser.Player != null)
             {
+		// X: BundleID check is missing. See 3.a.i
+
+	    	// X: If BundleID does not match, try to lookup in the players array of this user
+		// Then reuse the token. See 3.a.i.1
+
+		// This exchange token process is also act as
+		// ban system guard.
                 await ExchangeTokenAsync(firstUser.Player.AccessToken);
 
                 SetEventProperties(firstUser);
@@ -916,6 +936,24 @@ namespace com.noctuagames.sdk
 
                 return RecentAccount;
             }
+
+	    // 3.a.i.2. The bundle ID IS NOT matched, try to borrow the existing token
+            // This logic is linear with 4.a, so let's continue to 4.a
+
+	    // X: 4.a. If there are existing accounts but without any matched player. The PlayerAccounts need to be counted first, whether it's only one or multiple.
+	    
+	    // X: 4.a.i.1 If there is only one non-guest account
+	    // X: Bundle ID check is missing
+	    // X: 4.a.i.1. Bundle ID is matched, reuse Account
+	    // X: 4.a.i.2. Bundle ID is NOT matched, reuse token
+	    
+	    // X: 4.a.ii.1 If there are more than one non-guest account
+	    // X: Bundle ID check is missing
+	    // X: 4.a.ii.1. Bundle ID is matched, reuse Account
+	    // X: 4.a.ii.2. Bundle ID is NOT matched, reuse token
+	    
+	    // X: Fallback case: 4.a.ii.1.1. No player's bundle id found, then create new guest
+            // Either create new guest or ask user to choose one of them.
 
             // Non recent accounts are accounts that have not played the game, they always don't match this game
             

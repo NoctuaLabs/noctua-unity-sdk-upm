@@ -49,6 +49,9 @@ namespace com.noctuagames.sdk
             var nativeAccounts = _nativeAccountStore.GetAccounts();
             var accounts = FromNativeAccounts(nativeAccounts);
 
+	    // TODO need to validate this result first.
+	    // If it's empty or not valid, fallback to PlayerPrefs.
+
             _accounts.Clear();
             _accounts.AddRange(accounts);
         }
@@ -72,6 +75,8 @@ namespace com.noctuagames.sdk
             {
                 UniTask.Void(async () => OnAccountChanged?.Invoke(RecentAccount));
             }
+
+	    // TODO need to update the AccountContainer to PlayerPrefs as well as fallback.
         }
 
         private void Save(UserBundle userBundle)
