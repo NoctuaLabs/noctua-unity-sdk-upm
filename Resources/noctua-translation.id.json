@@ -132,5 +132,7 @@
     "Select.Country": "Pilih Negara",
 
     "Title.Text.ContactSupport": "Hubungi Dukungan",
-    "User.Banned.Info": "Akun Anda telah diblokir sementara dari memainkan game ini. Jika hal ini tidak terduga, silakan hubungi dukungan kami."
+    "User.Banned.Info": "Akun Anda telah diblokir sementara dari memainkan game ini. Jika hal ini tidak terduga,",
+    "User.Banned.Info2": "silakan <color=#3B82F6>hubungi dukungan kami</color>."
+
 }

@@ -132,7 +132,9 @@
     "Select.Country": "Select Country",
 
     "Title.Text.ContactSupport": "Contact Support",
-    "User.Banned.Info": "Your account has been temporarily banned from playing this game. If you believe this is an error, please contact our support team."
+    "User.Banned.Info": "Your account has been temporarily banned from playing this game. If you believe this is an error,",
+    "User.Banned.Info2": "please <color=#3B82F6>contact our support</color> team."
+
 
   }
   
