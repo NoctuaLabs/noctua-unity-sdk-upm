@@ -65,9 +65,9 @@ namespace com.noctuagames.sdk.UI
             return presenter;
         }
 
-        public void ShowBannedConfirmationDialog(UniTaskCompletionSource<bool> tcs)
+        public async UniTask<bool> ShowBannedConfirmationDialog()
         {
-            _confirmDialog.Show(_regionCode, tcs);
+            return await _confirmDialog.Show(_regionCode);
         }
 
         public void ShowLoadingProgress(bool isShow)
