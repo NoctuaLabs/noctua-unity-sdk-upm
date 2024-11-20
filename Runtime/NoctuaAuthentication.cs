@@ -86,14 +86,23 @@ namespace com.noctuagames.sdk
         /// <returns>A UserBundle object representing the selected account.</returns>
         public async UniTask<UserBundle> AuthenticateAsync()
         {
+            var tcs = new UniTaskCompletionSource<bool>();
+
             try
             {
                 return await _service.AuthenticateAsync();
             }
             catch (NoctuaException noctuaEx) when (noctuaEx.ErrorCode == (int)NoctuaErrorCode.UserBanned)
             {
-                _uiFactory.ShowConfirmationDialog();
-                throw;
+                _uiFactory.ShowConfirmationDialog(tcs);
+
+                bool confirmed = await tcs.Task;
+                if (confirmed)
+                {
+                    throw;
+                }
+
+                throw new OperationCanceledException("Action canceled.");
             }
         }
 

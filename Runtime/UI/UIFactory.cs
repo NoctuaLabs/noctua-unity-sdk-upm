@@ -2,6 +2,7 @@ using System;
 using UnityEngine;
 using UnityEngine.UIElements;
 using System.Collections.Generic;
+using Cysharp.Threading.Tasks;
 
 namespace com.noctuagames.sdk.UI
 {
@@ -11,7 +12,7 @@ namespace com.noctuagames.sdk.UI
         private readonly PanelSettings _panelSettings;
         private readonly LoadingProgressPresenter _loading;
         private readonly GeneralNotificationPresenter _notification;
-        private readonly ConfirmationDialogPresenter _confirmDialog;
+        private readonly BannedConfirmationDialogPresenter _confirmDialog;
         private readonly Dictionary<string, string> _translations;
         private readonly string _regionCode;
         internal UIFactory(string gameObjectName, string panelSettingsPath = "NoctuaPanelSettings", string themeStyleSheetPath = "NoctuaTheme")
@@ -64,9 +65,9 @@ namespace com.noctuagames.sdk.UI
             return presenter;
         }
 
-        public void ShowConfirmationDialog()
+        public void ShowConfirmationDialog(UniTaskCompletionSource<bool> tcs)
         {
-            _confirmDialog.Show(_regionCode);
+            _confirmDialog.Show(_regionCode, tcs);
         }
 
         public void ShowLoadingProgress(bool isShow)
@@ -79,9 +80,9 @@ namespace com.noctuagames.sdk.UI
             _notification.Show(message, isSuccess);
         }
 
-        private ConfirmationDialogPresenter CreateConfirmDialogPresenter()
+        private BannedConfirmationDialogPresenter CreateConfirmDialogPresenter()
         {
-            return Create<ConfirmationDialogPresenter, object>(new object());
+            return Create<BannedConfirmationDialogPresenter, object>(new object());
         }
 
         private LoadingProgressPresenter CreateLoadingPresenter()

@@ -7,6 +7,7 @@ using com.noctuagames.sdk.UI;
 using System.Threading.Tasks;
 using System.Text.RegularExpressions;
 using System.Globalization;
+using Cysharp.Threading.Tasks;
 
 namespace com.noctuagames.sdk.UI
 {
@@ -185,6 +186,8 @@ namespace com.noctuagames.sdk.UI
             var emailAddress = _email.Replace(" ", string.Empty);
             var password = _password;
 
+            var tcs = new UniTaskCompletionSource<bool>();
+
             // Validation
             if (string.IsNullOrEmpty(emailAddress)) {
                 View.Q<Label>("ErrEmailEmpty").RemoveFromClassList("hide");
@@ -234,7 +237,15 @@ namespace com.noctuagames.sdk.UI
                 {
                     if(noctuaEx.ErrorCode == (int)NoctuaErrorCode.UserBanned)
                     {
-                        Model.ShowConfirmationDialog();
+                        Model.ShowConfirmationDialog(tcs);
+
+                        bool confirmed = await tcs.Task;
+                        if (confirmed)
+                        {
+                            throw;
+                        }
+
+                        throw new OperationCanceledException("Action canceled.");
                     }
 
                     Debug.Log("NoctuaException: " + noctuaEx.ErrorCode + " : " + noctuaEx.Message);
