@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.19.1] - 2024-11-20
+
+### 🐛 Bug Fixes
+
+- Welcome toast doesn't show up at first call of AuthenticateAsync
+
 ## [0.19.0] - 2024-11-20
 
 ### 🚀 Features
