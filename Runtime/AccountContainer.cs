@@ -24,12 +24,34 @@ namespace com.noctuagames.sdk
                 .Where(x => x.PlayerAccounts.All(y => y.BundleId != _bundleId))
                 .ToList();
 
-        public UserBundle RecentAccount { get; private set; }
+        public UserBundle RecentAccount
+        {
+            get => _recentAccount;
+
+            private set
+            {
+                var oldUser = _recentAccount;
+                _recentAccount = value;
+
+                if (_recentAccount == null)
+                {
+                    return;
+                }
+
+                if (oldUser?.User?.Id == _recentAccount?.User?.Id && oldUser?.Player?.Id == _recentAccount?.Player.Id)
+                {
+                    return;
+                }
+                
+                UniTask.Void(async () => OnAccountChanged?.Invoke(RecentAccount));
+            }
+        }
 
         private readonly List<UserBundle> _accounts = new();
         private readonly INativeAccountStore _nativeAccountStore;
         private readonly ILogger _log = new NoctuaLogger(typeof(AccountContainer));
         private readonly string _bundleId;
+        private UserBundle _recentAccount;
 
         public AccountContainer(INativeAccountStore nativeAccountStore, string bundleId)
         {
@@ -80,30 +102,21 @@ namespace com.noctuagames.sdk
                 return;
             }
 
-            var oldUser = RecentAccount;
+            Save(newUser);
+            Load(); // reload so that we don't have to worry about caching
+
+            if (_accounts.Count != 0) return;
+
+            _log.Warning("failed to save account, retrying");
 
             Save(newUser);
             Load(); // reload so that we don't have to worry about caching
 
-            if (_accounts.Count == 0)
-            {
-                _log.Warning("failed to save account, retrying");
+            if (_accounts.Count != 0) return;
 
-                Save(newUser);
-                Load(); // reload so that we don't have to worry about caching
+            _log.Error("failed to save account, please check native account store configuration");
 
-                if (_accounts.Count == 0)
-                {
-                    _log.Error("failed to save account, please check native account store configuration");
-
-                    throw new NoctuaException(NoctuaErrorCode.AccountStorage, "failed to save account");
-                }
-            }
-
-            if (oldUser?.User?.Id != RecentAccount?.User?.Id || oldUser?.Player?.Id != RecentAccount?.Player.Id)
-            {
-                UniTask.Void(async () => OnAccountChanged?.Invoke(RecentAccount));
-            }
+            throw new NoctuaException(NoctuaErrorCode.AccountStorage, "failed to save account");
         }
 
         private void Save(UserBundle userBundle)

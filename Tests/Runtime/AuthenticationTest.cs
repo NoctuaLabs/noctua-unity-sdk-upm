@@ -9,12 +9,29 @@ namespace Tests.Runtime
     public class AuthenticationTest
     {
         [UnityTest]
-        public IEnumerator TestGuestLogin() => UniTask.ToCoroutine(async () =>
+        public IEnumerator TestAccountChanged() => UniTask.ToCoroutine(async () =>
         {
             try
             {
-                var loginResponse = await Noctua.Auth.LoginAsGuest();
-                Assert.IsNotNull(loginResponse);
+                var numAccountChanged = 0;
+                Noctua.Auth.OnAccountChanged += _ => numAccountChanged++;
+
+                await Noctua.InitAsync();
+
+                var userBundle = await Noctua.Auth.AuthenticateAsync();
+
+                Assert.IsNotNull(userBundle);
+                Assert.AreEqual(1, numAccountChanged);
+
+                userBundle = await Noctua.Auth.LoginWithEmailAsync("weteso6757@digopm.com", "aaaaaa");
+                
+                Assert.IsNotNull(userBundle);
+                Assert.AreEqual(2, numAccountChanged);
+
+                userBundle = await Noctua.Auth.LoginAsGuest();
+                
+                Assert.IsNotNull(userBundle);
+                Assert.AreEqual(3, numAccountChanged);
             }
             catch (HttpError e)
             {

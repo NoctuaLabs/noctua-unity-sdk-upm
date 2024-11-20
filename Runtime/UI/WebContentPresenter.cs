@@ -29,8 +29,8 @@ namespace com.noctuagames.sdk.UI
             _webViewAnchor = View.Q<VisualElement>("WebViewAnchor");
             _noShowingToggle = View.Q<Toggle>("NoShowingToggle");
             
-            View.style.alignItems = Align.Center;
-            View.style.justifyContent = Justify.Center;
+            View.Q<VisualElement>("Root").style.alignItems = Align.Center;
+            View.Q<VisualElement>("Root").style.justifyContent = Justify.Center;
         }
 
         public async UniTask OpenAsync()
