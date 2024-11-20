@@ -184,9 +184,9 @@ namespace com.noctuagames.sdk
             _uiFactory.ShowLoadingProgress(isShow);
         }
 
-        public void ShowConfirmationDialog(UniTaskCompletionSource<bool> tcs)
+        public void ShowBannedConfirmationDialog(UniTaskCompletionSource<bool> tcs)
         {
-            _uiFactory.ShowConfirmationDialog(tcs);
+            _uiFactory.ShowBannedConfirmationDialog(tcs);
         }
 
         internal async UniTask<CredentialVerification> RegisterWithEmailAsync(string email, string password, Dictionary<string, string> regExtra = null)

@@ -94,7 +94,7 @@ namespace com.noctuagames.sdk
             }
             catch (NoctuaException noctuaEx) when (noctuaEx.ErrorCode == (int)NoctuaErrorCode.UserBanned)
             {
-                _uiFactory.ShowConfirmationDialog(tcs);
+                _uiFactory.ShowBannedConfirmationDialog(tcs);
 
                 bool confirmed = await tcs.Task;
                 if (confirmed)

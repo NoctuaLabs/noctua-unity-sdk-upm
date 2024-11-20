@@ -237,7 +237,7 @@ namespace com.noctuagames.sdk.UI
                 {
                     if(noctuaEx.ErrorCode == (int)NoctuaErrorCode.UserBanned)
                     {
-                        Model.ShowConfirmationDialog(tcs);
+                        Model.ShowBannedConfirmationDialog(tcs);
 
                         bool confirmed = await tcs.Task;
                         if (confirmed)
