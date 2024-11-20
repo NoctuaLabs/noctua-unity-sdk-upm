@@ -12,6 +12,13 @@
     white-space: normal;
 }
 
+.note2 {
+    font-size: 12px;
+    color: #9E9E9E;
+    -unity-text-align: middle-center;
+    margin-top: -20;
+}
+
 .button-cs {
     width: 80%;
 }
