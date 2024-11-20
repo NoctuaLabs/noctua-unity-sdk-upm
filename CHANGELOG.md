@@ -2,6 +2,33 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.19.0] - 2024-11-20
+
+### 🚀 Features
+
+- Add translation for user banned info
+- Add exception error code for user banned
+- General confirm dialog for user banned
+- Add public method general confirm dialog
+- Add handle error user banned - login with email
+
+### 🐛 Bug Fixes
+
+- Update translation vn
+- Function authenticateAsync
+- Rename key localization contact support
+- Make throw exeption after user clicked button or hyperlink
+- Retry saving account if failed
+
+### 🚜 Refactor
+
+- Method authenticateAsync
+- Rename GeneralConfirmDialog to ConfirmationDialog
+- Used color for hyperlink - translation for user banned
+- Rename with spesific name banned confirmation dialog
+- Rename method name to ShowBannedConfirmationDialog
+- Changed to async and return UniTask
+
 ## [0.18.2] - 2024-11-19
 
 ### 🐛 Bug Fixes
