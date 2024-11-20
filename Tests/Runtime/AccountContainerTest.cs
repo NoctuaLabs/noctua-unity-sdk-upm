@@ -385,6 +385,7 @@ namespace Tests.Runtime
         {
             var mockStore = new MockNativeAccountStore();
             var accountContainer = new AccountContainer(mockStore, Application.identifier);
+            var accountContainer2 = new AccountContainer(mockStore, Application.identifier + "2");
 
             var playerToken = new PlayerToken
             {
@@ -417,7 +418,9 @@ namespace Tests.Runtime
                 }
             };
 
-            accountContainer.UpdateRecentAccount(playerToken);
+            accountContainer2.UpdateRecentAccount(playerToken);
+            
+            accountContainer.Load();
 
             var accounts = accountContainer.Accounts;
 
@@ -547,6 +550,7 @@ namespace Tests.Runtime
         {
             var mockStore = new MockNativeAccountStore();
             var accountContainer = new AccountContainer(mockStore, Application.identifier);
+            var accountContainer2 = new AccountContainer(mockStore, Application.identifier + "2");
 
             var playerToken = new PlayerToken
             {
@@ -614,8 +618,10 @@ namespace Tests.Runtime
                 }
             };
 
-            accountContainer.UpdateRecentAccount(playerToken2);
+            accountContainer2.UpdateRecentAccount(playerToken2);
 
+            accountContainer.Load();
+            
             var accounts = accountContainer.Accounts;
 
             Assert.AreEqual(1, accounts.Count);
@@ -875,6 +881,7 @@ namespace Tests.Runtime
         {
             var mockStore = new MockNativeAccountStore();
             var accountContainer = new AccountContainer(mockStore, Application.identifier);
+            var accountContainer2 = new AccountContainer(mockStore, Application.identifier + "2");
 
             var playerToken1 = new PlayerToken
             {
@@ -942,7 +949,7 @@ namespace Tests.Runtime
                 }
             };
 
-            accountContainer.UpdateRecentAccount(playerToken2);
+            accountContainer2.UpdateRecentAccount(playerToken2);
 
             yield return new WaitForSeconds(0.01f);
 
@@ -977,7 +984,7 @@ namespace Tests.Runtime
                 }
             };
 
-            accountContainer.UpdateRecentAccount(playerToken3);
+            accountContainer2.UpdateRecentAccount(playerToken3);
 
             yield return new WaitForSeconds(0.01f);
 
@@ -1038,6 +1045,9 @@ namespace Tests.Runtime
         {
             var mockStore = new MockNativeAccountStore();
             var accountContainer = new AccountContainer(mockStore, Application.identifier);
+            var accountContainer2 = new AccountContainer(mockStore, Application.identifier + "2");
+            var accountContainer3 = new AccountContainer(mockStore, Application.identifier + "3");
+            var accountContainer4 = new AccountContainer(mockStore, Application.identifier + "4");
 
             var playerToken1 = new PlayerToken
             {
@@ -1140,9 +1150,9 @@ namespace Tests.Runtime
                 }
             };
 
-            accountContainer.UpdateRecentAccount(playerToken1);
-            accountContainer.UpdateRecentAccount(playerToken2);
-            accountContainer.UpdateRecentAccount(playerToken3);
+            accountContainer2.UpdateRecentAccount(playerToken1);
+            accountContainer3.UpdateRecentAccount(playerToken2);
+            accountContainer4.UpdateRecentAccount(playerToken3);
 
             accountContainer.Load();
 

@@ -48,9 +48,13 @@ namespace com.noctuagames.sdk
         {
             var nativeAccounts = _nativeAccountStore.GetAccounts();
             var accounts = FromNativeAccounts(nativeAccounts);
+            
+            _log.Debug($"loaded {accounts.Count} accounts from native account store");
 
             _accounts.Clear();
             _accounts.AddRange(accounts);
+
+            RecentAccount = Accounts.FirstOrDefault(x => x.IsRecent);
         }
 
         public void UpdateRecentAccount(PlayerToken playerToken)
@@ -62,11 +66,39 @@ namespace com.noctuagames.sdk
 
         public void UpdateRecentAccount(UserBundle newUser)
         {
+            if (newUser is null)
+            {
+                _log.Warning("attempted to save null account");
+                
+                return;
+            }
+            
+            if (newUser.Player?.BundleId != _bundleId)
+            {
+                _log.Warning("attempted to save account for another game");
+
+                return;
+            }
+
             var oldUser = RecentAccount;
 
             Save(newUser);
             Load(); // reload so that we don't have to worry about caching
-            RecentAccount = Accounts.FirstOrDefault(x => x.IsRecent);
+
+            if (_accounts.Count == 0)
+            {
+                _log.Warning("failed to save account, retrying");
+
+                Save(newUser);
+                Load(); // reload so that we don't have to worry about caching
+
+                if (_accounts.Count == 0)
+                {
+                    _log.Error("failed to save account, please check native account store configuration");
+
+                    throw new NoctuaException(NoctuaErrorCode.AccountStorage, "failed to save account");
+                }
+            }
 
             if (oldUser?.User?.Id != RecentAccount?.User?.Id || oldUser?.Player?.Id != RecentAccount?.Player.Id)
             {
@@ -76,6 +108,8 @@ namespace com.noctuagames.sdk
 
         private void Save(UserBundle userBundle)
         {
+            _log.Debug($"saving account {userBundle.User.Id}-{userBundle.Player.Id}-{userBundle.Player.BundleId}");
+
             _nativeAccountStore.PutAccount(ToNativeAccount(userBundle));
         }
 
@@ -162,8 +196,6 @@ namespace com.noctuagames.sdk
                 throw new ArgumentNullException(nameof(userBundle));
             }
             
-            _log.Info($"saving account {userBundle.User.Id}-{userBundle.Player.Id}-{userBundle.Player.BundleId}");
-
             var data = new NativeAccountData
             {
                 User = userBundle.User.ShallowCopy(),
@@ -205,7 +237,7 @@ namespace com.noctuagames.sdk
                     continue;
                 }
 
-                _log.Info($"loaded account {data.User?.Id}-{data.Player?.Id}-{data.Player?.BundleId}");
+                _log.Debug($"loaded account {data.Credential?.DisplayText}-{data.User?.Id}-{data.Player?.Id}-{data.Player?.BundleId}");
 
                 if (data?.User == null || data.Player == null || data.Credential == null)
                 {

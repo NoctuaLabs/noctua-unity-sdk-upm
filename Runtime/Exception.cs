@@ -13,6 +13,7 @@ namespace com.noctuagames.sdk
         ActiveCurrencyFailure = 3004,
         MissingCompletionHandler = 3005,
         Payment = 3006,
+        AccountStorage = 3007,
         UserBanned = 2202
     }
     
