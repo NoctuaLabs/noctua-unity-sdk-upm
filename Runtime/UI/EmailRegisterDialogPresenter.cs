@@ -380,6 +380,21 @@ namespace com.noctuagames.sdk.UI
 
                 View.visible = false;
 
+                View.Q<TextField>("EmailTF").value = string.Empty;
+                View.Q<TextField>("PasswordTF").value = string.Empty;
+                View.Q<TextField>("RePasswordTF").value = string.Empty;
+
+                if(!string.IsNullOrEmpty(_config?.Noctua?.Flags))
+                {
+                    _fullname.value = string.Empty;
+                    _phoneCode.value = string.Empty;
+                    _birthDate.value = string.Empty;
+                    _idCard.value = string.Empty;
+                    _placeOfIssue.value = string.Empty;
+                    _dateOfIssue.value = string.Empty;
+                    _address.value = string.Empty;
+                }
+
                 Model.ShowEmailVerification(emailAddress, password, result.Id);
 
                 View.Q<Label>("ErrCode").RemoveFromClassList("hide");
