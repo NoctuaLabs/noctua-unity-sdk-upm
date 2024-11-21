@@ -225,6 +225,9 @@ namespace com.noctuagames.sdk.UI
 
                 View.visible = false;
 
+                View.Q<TextField>("EmailTF").value = string.Empty;
+                View.Q<TextField>("PasswordTF").value = string.Empty;
+
                 View.Q<Label>("ErrCode").RemoveFromClassList("hide");
                 View.Q<Button>("ContinueButton").RemoveFromClassList("hide");
                 View.Q<VisualElement>("AdditionalFooterContent").RemoveFromClassList("hide");
