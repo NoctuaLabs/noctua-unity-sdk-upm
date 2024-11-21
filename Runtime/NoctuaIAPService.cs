@@ -265,10 +265,8 @@ namespace com.noctuagames.sdk
             _enabledPaymentTypes = enabledPaymentTypes;
         }
 
-        public async UniTask<ProductList> GetProductListAsync(string currency = null)
+        public async UniTask<ProductList> GetProductListAsync(string currency = null, string platformType = null)
         {
-            _log.Info("NoctuaIAPService.GetProductListAsync");
-
             var recentAccount = Noctua.Auth.GetRecentAccount();
 
             if (recentAccount?.Player?.GameId == null || recentAccount.Player.GameId <= 0)
@@ -285,17 +283,29 @@ namespace com.noctuagames.sdk
             
             string enabledPaymentTypes = string.Join(",", _enabledPaymentTypes).ToLower();
 
-            _log.Info("NoctuaIAPService.GetProductListAsync");
-            _log.Info(_config.BaseUrl);
-            _log.Info(_config.ClientId);
-            _log.Info(gameId);
-            _log.Info(currency);
-            _log.Info(enabledPaymentTypes);
+            _log.Debug(_config.BaseUrl);
+            _log.Debug(_config.ClientId);
+            _log.Debug(gameId);
+            _log.Debug(currency);
+            _log.Debug(enabledPaymentTypes);
+
+            if (string.IsNullOrEmpty(platformType))
+            {
+#if UNITY_ANDROID
+                platformType = "playstore";
+#elif UNITY_IOS
+                platformType = "appstore";
+#else
+                platformType = "unknown";
+#endif
+            }
 
             var url =
-                $"{_config.BaseUrl}/products?game_id={gameId}&currency={currency}&enabled_payment_types={enabledPaymentTypes}";
-
-            _log.Info(url);
+                $"{_config.BaseUrl}/products" +
+                $"?game_id={gameId}" +
+                $"&currency={currency}" +
+                $"&enabled_payment_types={enabledPaymentTypes}" +
+                $"&platform={platformType}";
 
             var request = new HttpRequest(HttpMethod.Get, url)
                 .WithHeader("X-CLIENT-ID", _config.ClientId)
@@ -389,32 +399,21 @@ namespace com.noctuagames.sdk
 
             _uiFactory.ShowLoadingProgress(true);
             
-            if (_usdProducts.Count == 0)
-            {
-                _usdProducts.AddRange(await GetProductListAsync("USD"));
-            }
-            
-            var paymentType = await GetPaymentTypeAsync();
-
-            var orderRequest = new OrderRequest
-            {
-                PaymentType = paymentType,
-                ProductId = purchaseRequest.ProductId,
-                Price = purchaseRequest.Price,
-                Currency = purchaseRequest.Currency,
-                RoleId = purchaseRequest.RoleId,
-                ServerId = purchaseRequest.ServerId,
-                IngameItemId = purchaseRequest.IngameItemId,
-                IngameItemName = purchaseRequest.IngameItemName
-            };
-
-            if (string.IsNullOrEmpty(orderRequest.Currency))
-            {
-                orderRequest.Currency = Noctua.Platform.Locale.GetCurrency();
-            }
+            PaymentType paymentType;
+            OrderRequest orderRequest;
+            OrderResponse orderResponse;
+            double price;
+            string currency;
 
             try
             {
+                paymentType = await GetPaymentTypeAsync();
+                
+                if (_usdProducts.Count == 0)
+                {
+                    _usdProducts.AddRange(await GetProductListAsync("USD", paymentType.ToString().ToLower()));
+                }
+                
                 var playerData = new PlayerAccountData
                 {
                     IngameUsername = "Player",
@@ -427,42 +426,42 @@ namespace com.noctuagames.sdk
                 };
 
                 await Noctua.Auth.UpdatePlayerAccountAsync(playerData);
+                
                 _log.Info($"Player account updated successfully");
-            }
-            catch (Exception e)
-            {
-                if (e is NoctuaException exception)
+                
+                orderRequest = new OrderRequest
                 {
-                    _log.Info("NoctuaException: " + exception.ErrorCode + " : " + exception.Message);
+                    PaymentType = paymentType,
+                    ProductId = purchaseRequest.ProductId,
+                    Price = purchaseRequest.Price,
+                    Currency = purchaseRequest.Currency,
+                    RoleId = purchaseRequest.RoleId,
+                    ServerId = purchaseRequest.ServerId,
+                    IngameItemId = purchaseRequest.IngameItemId,
+                    IngameItemName = purchaseRequest.IngameItemName
+                };
+
+                if (string.IsNullOrEmpty(orderRequest.Currency))
+                {
+                    orderRequest.Currency = Noctua.Platform.Locale.GetCurrency();
+                }
+                
+                var product = _usdProducts.FirstOrDefault(p => p.Id == orderRequest.ProductId);
+            
+                if (product == null)
+                {
+                    _log.Warning("Product not found in product list");
+                
+                    price = (double)orderRequest.Price;
+                    currency = orderRequest.Currency;
                 }
                 else
                 {
-                    _log.Info("Exception: " + e);
+                    price = product.Price;
+                    currency = product.Currency;
                 }
-            }
-
-            OrderResponse orderResponse;
-            
-            var product = _usdProducts.FirstOrDefault(p => p.Id == orderRequest.ProductId);
-            double price;
-            string currency;
-            
-            if (product == null)
-            {
-                _log.Warning("Product not found in product list");
                 
-                price = (double)orderRequest.Price;
-                currency = orderRequest.Currency;
-            }
-            else
-            {
-                price = product.Price;
-                currency = product.Currency;
-            }
-
-            try
-            {
-                _log.Info("NoctuaIAPService.PurchaseItemAsync try to CreateOrderAsync");
+                _log.Debug("creating order");
 
                 orderResponse = await CreateOrderAsync(orderRequest);
                 
@@ -479,30 +478,19 @@ namespace com.noctuagames.sdk
                     }
                 );
 
+                _log.Debug("_currentOrderId: "         + orderResponse.Id);
+                _log.Debug("orderResponse.ProductId: " + orderResponse.ProductId);
+
                 _uiFactory.ShowLoadingProgress(false);
             }
             catch (Exception e)
             {
-                _log.Info("NoctuaIAPService.PurchaseItemAsync CreateOrderAsync failed");
-
-                if (e is NoctuaException exception)
-                {
-                    _log.Info("NoctuaException: " + exception.ErrorCode + " : " + exception.Message);
-                    _uiFactory.ShowLoadingProgress(false);
-                    _uiFactory.ShowGeneralNotification(exception.ErrorCode + " : " + exception.Message);
-                }
-                else
-                {
-                    _log.Info("Exception: " + e);
-                    _uiFactory.ShowLoadingProgress(false);
-                    _uiFactory.ShowGeneralNotification(e.Message);
-                }
+                _uiFactory.ShowError(e.Message);
+                _log.Exception(e);
+                _uiFactory.ShowLoadingProgress(false);
 
                 throw;
             }
-
-            _log.Info("_currentOrderId: "         + orderResponse.Id);
-            _log.Info("orderResponse.ProductId: " + orderResponse.ProductId);
 
             var timeoutTask = Task.Delay(TimeSpan.FromSeconds(300));
             var paymentTcs = new TaskCompletionSource<PaymentResult>();
@@ -683,20 +671,17 @@ namespace com.noctuagames.sdk
                     );
                 }
                 
-                _log.Info("NoctuaException: " + e.ErrorCode + " : " + e.Message);
                 _uiFactory.ShowLoadingProgress(false);
-                _uiFactory.ShowGeneralNotification(e.ErrorCode + " : " + e.Message);
+                _log.Exception(e);
+                _uiFactory.ShowError(e.ErrorCode + " : " + e.Message);
 
                 throw;
             }
             catch (Exception e) 
             {
-                if (e is NoctuaException noctuaEx)
-                {
-                    _log.Info("NoctuaException: " + noctuaEx.ErrorCode + " : " + noctuaEx.Message);
-                    _uiFactory.ShowLoadingProgress(false);
-                    _uiFactory.ShowGeneralNotification(noctuaEx.ErrorCode + " : " + noctuaEx.Message);
-                }
+                _uiFactory.ShowLoadingProgress(false);
+                _log.Exception(e);
+                _uiFactory.ShowError(e.Message);
                 
                 throw;
             }
@@ -890,7 +875,8 @@ namespace com.noctuagames.sdk
             
             if (_usdProducts.Count == 0)
             {
-                await GetProductListAsync();
+                var paymentType = await GetPaymentTypeAsync();
+                await GetProductListAsync(platformType: paymentType.ToString().ToLower());
             }
 
             while (!quitting)

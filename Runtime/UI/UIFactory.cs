@@ -79,7 +79,17 @@ namespace com.noctuagames.sdk.UI
         {
             _notification.Show(message, isSuccess);
         }
-
+        
+        public void ShowInfo(string message)
+        {
+            _notification.Show(message, true);
+        }
+        
+        public void ShowError(string message)
+        {
+            _notification.Show(message, false);
+        }
+        
         private BannedConfirmationDialogPresenter CreateConfirmDialogPresenter()
         {
             return Create<BannedConfirmationDialogPresenter, object>(new object());
