@@ -106,11 +106,6 @@ namespace com.noctuagames.sdk
                 queryParameters[key] = value;
             }
 
-            foreach (var (key, value) in queryParameters)
-            {
-                Debug.Log($"{key}: {value}");
-            }
-
             return queryParameters;
         }
 

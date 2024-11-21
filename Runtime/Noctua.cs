@@ -126,13 +126,13 @@ namespace com.noctuagames.sdk
         {
             NoctuaLogger.Init();
             var configPath = Path.Combine(Application.streamingAssetsPath, "noctuagg.json");
-            Log.Info($"Loading config from: {configPath}");
+            Log.Debug($"Loading config from: {configPath}");
             string jsonConfig;
 
             // For Android
             #if UNITY_ANDROID || UNITY_EDITOR_WIN
             
-            Log.Info("Loading streaming assets in Android by using UnityWebRequest: " + configPath);
+            Log.Debug("Loading streaming assets in Android by using UnityWebRequest: " + configPath);
             
             var configLoadRequest = UnityWebRequest.Get(configPath);
             var now = DateTime.UtcNow;
@@ -179,7 +179,7 @@ namespace com.noctuagames.sdk
             
             #elif UNITY_IOS || UNITY_EDITOR_OSX
             
-            Log.Info("Loading streaming assets in IOS by using System.IO.File.ReadAllText: " + configPath);
+            Noctua.Log.Debug("Loading streaming assets in IOS by using System.IO.File.ReadAllText: " + configPath);
 
             try {
                 jsonConfig = File.ReadAllText(configPath, Encoding.UTF8);
@@ -306,7 +306,7 @@ namespace com.noctuagames.sdk
 
         public static async UniTask InitAsync()
         {
-            Log.Info("start Noctua.InitAsync()");
+            Log.Debug("start Noctua.InitAsync()");
 
             if (Instance.Value._initialized)
             {
@@ -322,7 +322,7 @@ namespace com.noctuagames.sdk
             
             Instance.Value._iap.Init();
             
-            Log.Info($"IAP ready: {Instance.Value._iap.IsReady}");
+            Log.Debug($"IAP ready: {Instance.Value._iap.IsReady}");
 
             while (!Instance.Value._iap.IsReady && DateTime.UtcNow < iapReadyTimeout)
             {
@@ -331,7 +331,7 @@ namespace com.noctuagames.sdk
                     UniTask.Delay(1000)
                 );
                 
-                Log.Info($"IAP ready: {Instance.Value._iap.IsReady}");
+                Log.Debug($"IAP ready: {Instance.Value._iap.IsReady}");
 
                 if (win == 0)
                 {

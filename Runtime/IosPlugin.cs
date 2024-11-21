@@ -97,7 +97,8 @@ namespace com.noctuagames.sdk
 
             storedCompletion = completion;
             noctuaPurchaseItem(productId, new CompletionDelegate(CompletionCallback));
-            Debug.Log("noctuaPurchaseItem called");
+
+            _log.Debug("noctuaPurchaseItem called");
         }
 
         public void GetActiveCurrency(string productId, Action<bool, string> completion)
@@ -111,7 +112,8 @@ namespace com.noctuagames.sdk
 
             storedCompletion = completion;
             noctuaGetActiveCurrency(productId, new CompletionDelegate(CompletionCallback));
-            Debug.Log("noctuaGetActiveCurrency called");
+
+            _log.Debug("noctuaGetActiveCurrency called");
         }
 
         public void ShowDatePicker(int year, int month, int day, int id)

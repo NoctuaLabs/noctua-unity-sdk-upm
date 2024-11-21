@@ -40,6 +40,7 @@ namespace com.noctuagames.sdk
     {
         private readonly string _clientId;
         private readonly string _baseUrl;
+        private readonly ILogger _log = new NoctuaLogger();
 
         internal NoctuaGameService(Config config)
         {
@@ -49,22 +50,23 @@ namespace com.noctuagames.sdk
 
         public async UniTask<InitGameResponse> InitGameAsync()
         {
-            Debug.Log("InitGame: " + Application.identifier + " " + SystemInfo.deviceUniqueIdentifier);
             if (string.IsNullOrEmpty(Application.identifier))
             {
                 throw new ApplicationException($"App id for platform {Application.platform} is not set");
             }
 
-            Debug.Log("ClientID: " + _clientId);
-            Debug.Log("BundleID: " + Application.identifier);
+            _log.Debug(
+                "bundleId " + Application.identifier + 
+                ", deviceId " + SystemInfo.deviceUniqueIdentifier +
+                ", clientId " + _clientId
+            );
 
-            Debug.Log("ClientId: " + _clientId);
             var request = new HttpRequest(HttpMethod.Get, $"{_baseUrl}/games/init")
                 .WithHeader("X-CLIENT-ID", _clientId)
                 .WithHeader("X-BUNDLE-ID", Application.identifier);
 
             var response = await request.Send<InitGameResponse>();
-            Debug.Log("InitGameResponse: " + response.Country + " " + response.ActiveProductId);
+
             return response;
         }
 
@@ -73,7 +75,7 @@ namespace com.noctuagames.sdk
             // Extract domain from baseUrl
             Uri baseUri = new Uri(_baseUrl);
             string domain = baseUri.Host;
-            Debug.Log($"Domain extracted from baseUrl: {domain}");
+            _log.Debug($"Domain extracted from baseUrl: {domain}");
             var request = new HttpRequest(HttpMethod.Get, $"https://{domain}/cdn-cgi/trace")
                 .WithHeader("X-CLIENT-ID", _clientId)
                 .WithHeader("X-BUNDLE-ID", Application.identifier);
@@ -92,7 +94,7 @@ namespace com.noctuagames.sdk
                 }
             }
 
-            Debug.Log($"Location value: {locValue}");
+            _log.Debug($"Location value: {locValue}");
 
             return locValue;
         }

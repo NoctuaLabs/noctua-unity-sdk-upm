@@ -987,8 +987,6 @@ namespace com.noctuagames.sdk
 
         public async UniTask DeletePlayerAccountAsync()
         {
-            Debug.Log("Delete player account");
-
             var currentPlayer = RecentAccount.Player;
 
             var request = new HttpRequest(HttpMethod.Delete, $"{_baseUrl}/players/destroy")

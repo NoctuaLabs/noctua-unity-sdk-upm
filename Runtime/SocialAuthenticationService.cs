@@ -14,6 +14,7 @@ namespace com.noctuagames.sdk
     {
         private readonly NoctuaAuthenticationService _authService;
         private readonly GlobalConfig _config;
+        private readonly ILogger _log = new NoctuaLogger();
         
         internal SocialAuthenticationService(NoctuaAuthenticationService authService, GlobalConfig config)
         {
@@ -77,7 +78,7 @@ namespace com.noctuagames.sdk
 
             var socialLoginUrl = await _authService.GetSocialAuthRedirectURLAsync(provider, redirectUri);
 
-            Debug.Log($"Open URL with system browser: {socialLoginUrl}");
+            _log.Debug($"Open URL with system browser: {socialLoginUrl}");
 
             Application.OpenURL(socialLoginUrl);
             
@@ -88,7 +89,7 @@ namespace com.noctuagames.sdk
 
 #elif UNITY_IOS || UNITY_ANDROID
             
-            Debug.Log("Initializing WebView");
+            _log.Debug("Initializing WebView");
             
             var gameObject = new GameObject("SocialLoginWebView");
             var uniWebView = gameObject.AddComponent<UniWebView>();
@@ -117,7 +118,7 @@ namespace com.noctuagames.sdk
             bool OnSocialLoginShouldClose(UniWebView webView)
             {
                 if (!webView.Url.Contains($"api/v1/auth/{provider}/code")) {
-                    Debug.Log("WebView closed by user before login completed");
+                    _log.Debug("WebView closed by user before login completed");
                     var providerName = System.Threading.Thread.CurrentThread.CurrentCulture.TextInfo.ToTitleCase(provider);
                     tcs.TrySetException(new NoctuaException(NoctuaErrorCode.Authentication, $"{providerName} login canceled"));
                 }
@@ -127,7 +128,7 @@ namespace com.noctuagames.sdk
             
             void OnSocialLoginWebviewStarted(UniWebView webView, string url)
             {
-                Debug.Log("URL started to load: " + url);
+                _log.Debug("URL started to load: " + url);
 
                 if (url.Contains($"api/v1/auth/{provider}/code")) {
                     webView.Hide();
@@ -141,7 +142,7 @@ namespace com.noctuagames.sdk
 
             void OnSocialLoginWebviewFinished(UniWebView webView, int statusCode, string url)
             {
-                Debug.Log("URL finished to load: " + url);
+                _log.Debug("URL finished to load: " + url);
                 
                 if (url.Contains($"api/v1/auth/{provider}/code")) {
                     webView.Hide();
@@ -174,7 +175,7 @@ namespace com.noctuagames.sdk
                 throw new NoctuaException(NoctuaErrorCode.Authentication, "Redirect URI is not found in the social login URL");
             }
 
-            Debug.Log("Showing WebView");
+            _log.Debug("Showing WebView");
             uniWebView.Show();
             uniWebView.Load(socialLoginUrl);
             string callbackData = null;
@@ -223,11 +224,6 @@ namespace com.noctuagames.sdk
                 queryParameters[key] = value;
             }
 
-            foreach (var (key, value) in queryParameters)
-            {
-                Debug.Log($"{key}: {value}");
-            }
-
             return queryParameters;
         }
     }
@@ -235,6 +231,7 @@ namespace com.noctuagames.sdk
     internal class OauthRedirectListener
     {
         private readonly HttpListener _listener = new();
+        private readonly ILogger _log = new NoctuaLogger();
 
         public string Path;
         public int Port;
@@ -245,7 +242,7 @@ namespace com.noctuagames.sdk
             Port = GetRandomUnusedPort();
             _listener.Prefixes.Add($"http://localhost:{Port}/{path.Trim('/')}/");
             
-            Debug.Log($"HTTP Server started on port {Port} with path {Path}");
+            _log.Debug($"HTTP Server started on port {Port} with path {Path}");
         }
         
         public async UniTask<string> ListenAsync()

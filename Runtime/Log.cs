@@ -46,9 +46,17 @@ namespace com.noctuagames.sdk
                 .CreateLogger();
         }
 
-        public NoctuaLogger(Type type)
+        public NoctuaLogger(Type type = null)
         {
-            _typeName = type.Name;
+            if (type == null)
+            {
+                var stackTrace = new StackTrace();
+                var frame = stackTrace.GetFrame(1); // Get the calling method frame
+                var method = frame.GetMethod();
+                type = method.DeclaringType;
+            }
+            
+            _typeName = type?.Name;
         }
 
         public void Debug(string message, [CallerMemberName] string memberName = "")
