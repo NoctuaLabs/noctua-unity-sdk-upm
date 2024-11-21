@@ -20,8 +20,6 @@ using UnityEditor.Android;
 using UnityEditor.Graphs;
 #endif
 
-namespace Editor
-{
 #if UNITY_IOS
     public class NoctuaIosBuildProcessor : MonoBehaviour
     {
@@ -576,4 +574,3 @@ namespace Editor
         }
     }
 #endif
-}
