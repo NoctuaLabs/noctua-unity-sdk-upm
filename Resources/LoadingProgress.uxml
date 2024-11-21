@@ -4,8 +4,8 @@
     <ui:VisualElement name="Root" class="root">
         <ui:VisualElement name="LoadingBox" class="loading-box">
             <ui:VisualElement name="LoadingContainer" class="loading-container">
-                <ui:VisualElement name="LoadingProgress" class="noctua-spinner" style="height: 90px; width: 90px;" />
-                <ui:Label name="TitleLoading" text="Please wait..." />
+                <ui:VisualElement name="LoadingProgress" class="noctua-spinner loading-progress" />
+                <ui:Label name="TitleLoading" text="Please wait..." class="title-loading"  />
             </ui:VisualElement>
         </ui:VisualElement>
     </ui:VisualElement>

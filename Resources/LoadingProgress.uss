@@ -17,3 +17,13 @@
     padding: 14px;
     align-items: center;
 }
+
+.loading-progress {
+    height: 64px;
+    width: 64px;
+}
+
+.title-loading {
+    font-size: 10px;
+    margin-top: 10px;
+}

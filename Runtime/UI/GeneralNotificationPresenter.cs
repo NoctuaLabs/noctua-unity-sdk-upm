@@ -47,13 +47,11 @@ namespace com.noctuagames.sdk.UI
 
             _messageName.text = textMessage;
             
-            _root.RemoveFromClassList("welcome-hide");
-            _root.AddToClassList("welcome-show");
+            _root.AddToClassList("expanded");
             
             yield return new WaitForSeconds(3);
             
-            _root.RemoveFromClassList("welcome-show");
-            _root.AddToClassList("welcome-hide");
+            _root.RemoveFromClassList("expanded");
         }
     }
 }

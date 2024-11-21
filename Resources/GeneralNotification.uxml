@@ -1,13 +1,12 @@
 <ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" xsi="http://www.w3.org/2001/XMLSchema-instance" engine="UnityEngine.UIElements" editor="UnityEditor.UIElements" noNamespaceSchemaLocation="../../../../UIElementsSchema/UIElements.xsd" editor-extension-mode="False">
-    <Style src="project://database/Packages/com.noctuagames.sdk/Resources/Noctua.uss?fileID=7433441132597879392&amp;guid=fe35e550fb23b6446af377f994effe35&amp;type=3#Noctua" />
-    <Style src="project://database/Packages/com.noctuagames.sdk/Resources/WelcomeNotification.uss?fileID=7433441132597879392&amp;guid=fd3ecae65e8541ad89379dd763c2f630&amp;type=3#WelcomeNotification" />
-    <Style src="project://database/Packages/com.noctuagames.sdk/Resources/GeneralNotification.uss?fileID=7433441132597879392&amp;guid=ecb6324b7ae2357419ae41cd82dda4fb&amp;type=3#GeneralNotification" />
+    <Style src="./Noctua.uss" />
+    <Style src="./GeneralNotification.uss" />
     <ui:VisualElement name="GeneralNotification" class="base general-notification-box">
-        <ui:VisualElement name="PlayerBox" class="player-box">
-            <ui:VisualElement name="NotifIconBox" class="player-avatar">
+        <ui:VisualElement name="NotifBox" class="notif-box">
+            <ui:VisualElement name="NotifIconBox" class="notif-icon-box">
                 <ui:VisualElement name="NotifIcon" class="warning-icon" />
             </ui:VisualElement>
-            <ui:VisualElement name="PlayerText" class="message-text-box">
+            <ui:VisualElement name="MessageTextBox" class="message-text-box">
                 <ui:Label name="MessageName" text="Couldn’t find your Noctua Account. Check or register new account." class="message-name" />
             </ui:VisualElement>
         </ui:VisualElement>
