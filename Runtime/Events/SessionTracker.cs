@@ -44,9 +44,12 @@ namespace com.noctuagames.sdk.Events
         
         public void OnApplicationPause(bool pauseStatus)
         {
-            _pauseStatus = pauseStatus;
+            if (_pauseStatus == pauseStatus)
+            {
+                return;
+            }
             
-            // Debug.Log($"SessionTracker: OnApplicationPause({pauseStatus})");
+            _pauseStatus = pauseStatus;
             
             if (pauseStatus)
             {

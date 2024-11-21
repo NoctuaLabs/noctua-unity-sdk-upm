@@ -80,7 +80,7 @@ namespace com.noctuagames.sdk.Events
             
             if (sessionId != "") _sessionId = sessionId;
             
-            _log.Info($"Setting fields: " +
+            _log.Debug($"Setting fields: " +
                 $"userId={userId}, " +
                 $"playerId={playerId}, " +
                 $"credentialId={credentialId}, " +
