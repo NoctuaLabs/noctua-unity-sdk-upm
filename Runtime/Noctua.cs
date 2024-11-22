@@ -10,6 +10,8 @@ using com.noctuagames.sdk.Events;
 using com.noctuagames.sdk.UI;
 using UnityEngine.Scripting;
 using Cysharp.Threading.Tasks;
+using UnityEngine.EventSystems;
+using UnityEngine.SceneManagement;
 using UnityEngine.UIElements;
 using Object = UnityEngine.Object;
 
@@ -261,6 +263,8 @@ namespace com.noctuagames.sdk
             
             var noctuaUIGameObject = new GameObject("NoctuaUI");
             Object.DontDestroyOnLoad(noctuaUIGameObject);
+            
+            SceneManager.sceneLoaded += (_, _) => EventSystem.SetUITookitEventSystemOverride(EventSystem.current);
             
             var sessionTrackerBehaviour = noctuaUIGameObject.AddComponent<SessionTrackerBehaviour>();
             
