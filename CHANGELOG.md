@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.19.2] - 2024-11-22
+
+### 🐛 Bug Fixes
+
+- Session not initialized in iOS
+- Purchase error blocked by loading box and platform param should be included in  get product list
+- Notif box text should not overflow
+- Redirect some Debug.Log to files and logcat/os_log
+- Remove unnecessary namespace from Editor assembly
+- UI event handling breaks when changing scenes
+- Clear login form after success
+- Clear form register after success
+
 ## [0.19.1] - 2024-11-20
 
 ### 🐛 Bug Fixes
