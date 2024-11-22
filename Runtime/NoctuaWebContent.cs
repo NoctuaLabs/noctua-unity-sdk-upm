@@ -52,6 +52,11 @@ namespace com.noctuagames.sdk
             }
             
             var details = await GetWebContentDetails(_config.AnnouncementBaseUrl);
+
+            if(string.IsNullOrEmpty(details.Url))
+            {
+                throw new ArgumentNullException("Url is Empty");
+            }
             
             _webContent.Url = details.Url;
             _webContent.ScreenMode = ScreenMode.Windowed;
@@ -86,6 +91,11 @@ namespace com.noctuagames.sdk
             }
             
             var details = await GetWebContentDetails(_config.RewardBaseUrl);
+
+            if(string.IsNullOrEmpty(details.Url))
+            {
+                throw new ArgumentNullException("Url is Empty");
+            }
             
             _eventSender?.Send("platform_content_announcement_opened");
 
@@ -105,6 +115,11 @@ namespace com.noctuagames.sdk
             }
             
             var details = await GetWebContentDetails(_config.CustomerServiceBaseUrl);
+
+            if(string.IsNullOrEmpty(details.Url))
+            {
+                throw new ArgumentNullException("Url is Empty");
+            }
             
             _eventSender?.Send("customer_service_opened");
 
