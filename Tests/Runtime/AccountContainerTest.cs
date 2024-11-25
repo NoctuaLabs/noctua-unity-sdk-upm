@@ -40,7 +40,6 @@ namespace Tests.Runtime
             }
         }
 
-
         [UnityTest]
         public IEnumerator EmptyContainer_NoAccountsAndNoRecentAccount()
         {
@@ -1163,6 +1162,465 @@ namespace Tests.Runtime
             Assert.IsNull(accountContainer.RecentAccount);
             Assert.AreEqual(playerToken3.User.Id, accounts[0].User.Id);
             Assert.AreEqual(playerToken3.User.Nickname, accounts[0].User.Nickname);
+
+            yield return null;
+        }
+        
+        private class FaultyMockNativeAccountStore : INativeAccountStore
+        {
+            private readonly List<NativeAccount> _accounts = new();
+
+            public int FailedSaveCount { get; private set; }
+            public int FailedLoadCount { get; private set; }
+            
+            private int _numFailures;
+            private bool _throwExceptionAtSave;
+            private bool _throwExceptionAtLoad;
+
+            public void EnableFailedSave(int numFailures)
+            {
+                _numFailures = numFailures;
+            }
+            
+            public void EnableThrowExceptionAtSave(bool throwException)
+            {
+                _throwExceptionAtSave = throwException;
+            }
+            
+            public void EnableThrowExceptionAtLoad(bool throwException)
+            {
+                _throwExceptionAtLoad = throwException;
+            }
+
+            public NativeAccount GetAccount(long userId, long gameId)
+            {
+                if (!_throwExceptionAtLoad)
+                    return _accounts.First(account => account.PlayerId == userId && account.GameId == gameId);
+
+                FailedLoadCount++;
+                throw new Exception("Failed to load account");
+            }
+
+            public List<NativeAccount> GetAccounts()
+            {
+                if (!_throwExceptionAtLoad) return new List<NativeAccount>(_accounts);
+
+                FailedLoadCount++;
+                throw new Exception("Failed to load account");
+
+            }
+
+            public void PutAccount(NativeAccount account)
+            {
+                if (_throwExceptionAtSave)
+                {
+                    FailedSaveCount++;
+                    throw new Exception("Failed to save account");
+                }
+                
+                if (_numFailures > 0)
+                {
+                    FailedSaveCount++;
+                    _numFailures--;
+                    return;
+                }
+                
+                account.LastUpdated = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+                _accounts.RemoveAll(a => a.PlayerId == account.PlayerId && a.GameId == account.GameId);
+                _accounts.Add(account);
+            }
+
+            public int DeleteAccount(NativeAccount account)
+            {
+                _accounts.RemoveAll(a => a.PlayerId == account.PlayerId && a.GameId == account.GameId);
+
+                return 1;
+            }
+        }
+        
+        [UnityTest]
+        public IEnumerator AccountStoreWithFallback_OnThrowExceptionAtLoad_SwitchToPlayerPrefs()
+        {
+            PlayerPrefs.DeleteKey("NoctuaAccountContainer.UseFallback");
+            PlayerPrefs.DeleteKey("NoctuaAccountContainer");
+                
+            var mockStore = new FaultyMockNativeAccountStore();
+            var accountContainer = new AccountContainer(mockStore, Application.identifier);
+
+            var playerToken = new PlayerToken
+            {
+                AccessToken = "accessToken",
+                User = new User
+                {
+                    Id = 1,
+                    Nickname = "User1"
+                },
+                Player = new Player
+                {
+                    Id = 1,
+                    Username = "Player1",
+                    GameId = 1,
+                    UserId = 1
+                },
+                Credential = new Credential
+                {
+                    Id = 1,
+                    Provider = "email",
+                    DisplayText = "User 1"
+                },
+                Game = new Game
+                {
+                    Id = 1,
+                    Name = "Game1"
+                },
+                GamePlatform = new GamePlatform
+                {
+                    BundleId = Application.identifier,
+                    OS = "Android"
+                }
+            };
+
+            accountContainer.UpdateRecentAccount(playerToken);
+            
+            mockStore.EnableThrowExceptionAtLoad(true);
+            
+            accountContainer.Load();
+
+            var accounts = accountContainer.Accounts;
+            var useFallback = PlayerPrefs.GetInt("NoctuaAccountContainer.UseFallback");
+            PlayerPrefs.DeleteKey("NoctuaAccountContainer.UseFallback");
+            
+            Assert.AreEqual(1, accounts.Count);
+            Assert.AreEqual(1, mockStore.FailedLoadCount);
+            Assert.AreEqual(1, useFallback);
+            
+            yield return null;
+        }
+        
+        [UnityTest]
+        public IEnumerator AccountStoreWithFallback_OnThrowExceptionAtSave_SwitchToPlayerPrefs()
+        {
+            PlayerPrefs.DeleteKey("NoctuaAccountContainer.UseFallback");
+            PlayerPrefs.DeleteKey("NoctuaAccountContainer");
+            
+            var mockStore = new FaultyMockNativeAccountStore();
+            var accountContainer = new AccountContainer(mockStore, Application.identifier);
+            
+            var playerToken = new PlayerToken
+            {
+                AccessToken = "accessToken",
+                User = new User
+                {
+                    Id = 1,
+                    Nickname = "User1"
+                },
+                Player = new Player
+                {
+                    Id = 1,
+                    Username = "Player1",
+                    GameId = 1,
+                    UserId = 1
+                },
+                Credential = new Credential
+                {
+                    Id = 1,
+                    Provider = "email",
+                    DisplayText = "User 1"
+                },
+                Game = new Game
+                {
+                    Id = 1,
+                    Name = "Game1"
+                },
+                GamePlatform = new GamePlatform
+                {
+                    BundleId = Application.identifier,
+                    OS = "Android"
+                }
+            };
+
+            mockStore.EnableThrowExceptionAtSave(true);
+
+            accountContainer.UpdateRecentAccount(playerToken);
+
+            var accounts = accountContainer.Accounts;
+            
+            var useFallback = PlayerPrefs.GetInt("NoctuaAccountContainer.UseFallback");
+            PlayerPrefs.DeleteKey("NoctuaAccountContainer.UseFallback");
+            PlayerPrefs.DeleteKey("NoctuaAccountContainer");
+            
+            Assert.AreEqual(1, accounts.Count);
+            Assert.AreEqual(1, mockStore.FailedSaveCount);
+            Assert.AreEqual(1, useFallback);
+            
+            yield return null;
+        }
+        
+
+        [UnityTest]
+        public IEnumerator AccountStoreWithFallback_OnFail1x_DontSwitchToPlayerPrefs()
+        {
+            PlayerPrefs.DeleteKey("NoctuaAccountContainer.UseFallback");
+            PlayerPrefs.DeleteKey("NoctuaAccountContainer");
+                
+            var mockStore = new FaultyMockNativeAccountStore();
+            var accountContainer = new AccountContainer(mockStore, Application.identifier);
+
+            var playerToken = new PlayerToken
+            {
+                AccessToken = "accessToken",
+                User = new User
+                {
+                    Id = 1,
+                    Nickname = "User1"
+                },
+                Player = new Player
+                {
+                    Id = 1,
+                    Username = "Player1",
+                    GameId = 1,
+                    UserId = 1
+                },
+                Credential = new Credential
+                {
+                    Id = 1,
+                    Provider = "email",
+                    DisplayText = "User 1"
+                },
+                Game = new Game
+                {
+                    Id = 1,
+                    Name = "Game1"
+                },
+                GamePlatform = new GamePlatform
+                {
+                    BundleId = Application.identifier,
+                    OS = "Android"
+                }
+            };
+
+            mockStore.EnableFailedSave(1);
+            
+            accountContainer.UpdateRecentAccount(playerToken);
+
+            var accounts = accountContainer.Accounts;
+            var useFallback = PlayerPrefs.GetInt("NoctuaAccountContainer.UseFallback");
+            PlayerPrefs.DeleteKey("NoctuaAccountContainer.UseFallback");
+            
+            Assert.AreEqual(1, accounts.Count);
+            Assert.AreEqual(1, mockStore.FailedSaveCount);
+            Assert.AreEqual(0, useFallback);
+            
+            yield return null;
+        }
+        
+        [UnityTest]
+        public IEnumerator AccountStoreWithFallback_OnFail2x_SwitchToPlayerPrefs()
+        {
+            PlayerPrefs.DeleteKey("NoctuaAccountContainer.UseFallback");
+            PlayerPrefs.DeleteKey("NoctuaAccountContainer");
+                
+            var mockStore = new FaultyMockNativeAccountStore();
+            var accountContainer = new AccountContainer(mockStore, Application.identifier);
+
+            var playerToken = new PlayerToken
+            {
+                AccessToken = "accessToken",
+                User = new User
+                {
+                    Id = 1,
+                    Nickname = "User1"
+                },
+                Player = new Player
+                {
+                    Id = 1,
+                    Username = "Player1",
+                    GameId = 1,
+                    UserId = 1
+                },
+                Credential = new Credential
+                {
+                    Id = 1,
+                    Provider = "email",
+                    DisplayText = "User 1"
+                },
+                Game = new Game
+                {
+                    Id = 1,
+                    Name = "Game1"
+                },
+                GamePlatform = new GamePlatform
+                {
+                    BundleId = Application.identifier,
+                    OS = "Android"
+                }
+            };
+
+            mockStore.EnableFailedSave(2);
+            
+            accountContainer.UpdateRecentAccount(playerToken);
+
+            var accounts = accountContainer.Accounts;
+            var useFallback = PlayerPrefs.GetInt("NoctuaAccountContainer.UseFallback");
+
+            PlayerPrefs.DeleteKey("NoctuaAccountContainer.UseFallback");
+            PlayerPrefs.DeleteKey("NoctuaAccountContainer");
+            
+            Assert.AreEqual(1, accounts.Count);
+            Assert.AreEqual(2, mockStore.FailedSaveCount);
+            Assert.AreEqual(1, useFallback);
+            
+            yield return null;
+        }
+        
+        [UnityTest]
+        public IEnumerator AccountStoreWithFallback_OnFail2xAfterSuccess_SwitchToPlayerPrefs()
+        {
+            PlayerPrefs.DeleteKey("NoctuaAccountContainer.UseFallback");
+            PlayerPrefs.DeleteKey("NoctuaAccountContainer");
+                
+            var mockStore = new FaultyMockNativeAccountStore();
+            var accountContainer = new AccountContainer(mockStore, Application.identifier);
+
+            var playerToken = new PlayerToken
+            {
+                AccessToken = "accessToken",
+                User = new User
+                {
+                    Id = 1,
+                    Nickname = "User1"
+                },
+                Player = new Player
+                {
+                    Id = 1,
+                    Username = "Player1",
+                    GameId = 1,
+                    UserId = 1
+                },
+                Credential = new Credential
+                {
+                    Id = 1,
+                    Provider = "email",
+                    DisplayText = "User 1"
+                },
+                Game = new Game
+                {
+                    Id = 1,
+                    Name = "Game1"
+                },
+                GamePlatform = new GamePlatform
+                {
+                    BundleId = Application.identifier,
+                    OS = "Android"
+                }
+            };
+
+            var playerToken2 = new PlayerToken
+            {
+                AccessToken = "accessToken2",
+                User = new User
+                {
+                    Id = 2,
+                    Nickname = "User2",
+                    IsGuest = true
+                },
+                Player = new Player
+                {
+                    Id = 2,
+                    Username = "Player2",
+                    GameId = 2,
+                    UserId = 2
+                },
+                Credential = new Credential
+                {
+                    Id = 2,
+                    Provider = "device_id",
+                    DisplayText = "Guest 2"
+                },
+                Game = new Game
+                {
+                    Id = 1,
+                    Name = "Game1"
+                },
+                GamePlatform = new GamePlatform
+                {
+                    BundleId = Application.identifier,
+                    OS = "Android"
+                }
+            };
+
+            accountContainer.UpdateRecentAccount(playerToken);
+
+            mockStore.EnableFailedSave(2);
+            
+            accountContainer.UpdateRecentAccount(playerToken2);
+
+            var accounts = accountContainer.Accounts;
+            var useFallback = PlayerPrefs.GetInt("NoctuaAccountContainer.UseFallback");
+
+            PlayerPrefs.DeleteKey("NoctuaAccountContainer.UseFallback");
+            PlayerPrefs.DeleteKey("NoctuaAccountContainer");
+            
+            Assert.AreEqual(2, accounts.Count);
+            Assert.AreEqual(2, mockStore.FailedSaveCount);
+            Assert.AreEqual(1, useFallback);
+            
+            yield return null;
+        }
+        
+        [UnityTest]
+        public IEnumerator AccountStoreWithFallback_UseFallbackAtStartup_NeverWritesToMainStore()
+        {
+            PlayerPrefs.DeleteKey("NoctuaAccountContainer");
+            PlayerPrefs.SetInt("NoctuaAccountContainer.UseFallback", 1);
+                
+            var mockStore = new FaultyMockNativeAccountStore();
+            var accountContainer = new AccountContainer(mockStore, Application.identifier);
+
+            var playerToken = new PlayerToken
+            {
+                AccessToken = "accessToken",
+                User = new User
+                {
+                    Id = 1,
+                    Nickname = "User1"
+                },
+                Player = new Player
+                {
+                    Id = 1,
+                    Username = "Player1",
+                    GameId = 1,
+                    UserId = 1
+                },
+                Credential = new Credential
+                {
+                    Id = 1,
+                    Provider = "email",
+                    DisplayText = "User 1"
+                },
+                Game = new Game
+                {
+                    Id = 1,
+                    Name = "Game1"
+                },
+                GamePlatform = new GamePlatform
+                {
+                    BundleId = Application.identifier,
+                    OS = "Android"
+                }
+            };
+
+            accountContainer.UpdateRecentAccount(playerToken);
+
+            var accounts = accountContainer.Accounts;
+            PlayerPrefs.DeleteKey("NoctuaAccountContainer.UseFallback");
+            
+            Assert.AreEqual(1, accounts.Count);
+            Assert.AreEqual(0, mockStore.FailedSaveCount);
+            Assert.AreEqual(0, mockStore.GetAccounts().Count);
+            
+            PlayerPrefs.DeleteKey("NoctuaAccountContainer.UseFallback");
+            PlayerPrefs.DeleteKey("NoctuaAccountContainer");
 
             yield return null;
         }

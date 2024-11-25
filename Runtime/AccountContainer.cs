@@ -48,7 +48,7 @@ namespace com.noctuagames.sdk
         }
 
         private readonly List<UserBundle> _accounts = new();
-        private readonly INativeAccountStore _nativeAccountStore;
+        private readonly AccountStoreWithFallback _accountStore;
         private readonly ILogger _log = new NoctuaLogger(typeof(AccountContainer));
         private readonly string _bundleId;
         private UserBundle _recentAccount;
@@ -60,7 +60,9 @@ namespace com.noctuagames.sdk
                 throw new ArgumentNullException(nameof(bundleId));
             }
 
-            _nativeAccountStore = nativeAccountStore ?? throw new ArgumentNullException(nameof(nativeAccountStore));
+            var mainAccountStore = nativeAccountStore ?? throw new ArgumentNullException(nameof(nativeAccountStore));
+            var fallbackAccountStore = new DefaultNativePlugin();
+            _accountStore = new AccountStoreWithFallback(mainAccountStore, fallbackAccountStore);
             _bundleId = bundleId;
         }
 
@@ -68,7 +70,7 @@ namespace com.noctuagames.sdk
 
         public void Load()
         {
-            var nativeAccounts = _nativeAccountStore.GetAccounts();
+            var nativeAccounts = _accountStore.GetAccounts();
             var accounts = FromNativeAccounts(nativeAccounts);
             
             _log.Debug($"loaded {accounts.Count} accounts from native account store");
@@ -102,20 +104,43 @@ namespace com.noctuagames.sdk
                 return;
             }
 
+            try
+            {
+                var expectedCount = _accounts.Count;
+                
+                if (_accounts.All(x => x.Player?.Id != newUser.Player.Id))
+                {
+                    expectedCount++;    
+                }
+                
+                Save(newUser);
+                Load();
+
+                if (_accounts.Count == expectedCount) return;
+
+                _log.Warning("failed to save account, retrying");
+
+                Save(newUser);
+                Load();
+
+                if (_accounts.Count == expectedCount) return;
+                
+                _log.Warning("failed to save account, fallback to PlayerPrefs");
+                _accountStore.EnableFallback();
+            }
+            catch (Exception e)
+            {
+                _log.Warning($"saving account throws exception, fallback to PlayerPrefs: {e.Message}");
+                _accountStore.EnableFallback();
+            }
+            
             Save(newUser);
-            Load(); // reload so that we don't have to worry about caching
+            Load();
 
             if (_accounts.Count != 0) return;
 
-            _log.Warning("failed to save account, retrying");
-
-            Save(newUser);
-            Load(); // reload so that we don't have to worry about caching
-
-            if (_accounts.Count != 0) return;
-
-            _log.Error("failed to save account, please check native account store configuration");
-
+            _log.Error("failed to save account, fallback failed");
+                
             throw new NoctuaException(NoctuaErrorCode.AccountStorage, "failed to save account");
         }
 
@@ -123,7 +148,7 @@ namespace com.noctuagames.sdk
         {
             _log.Debug($"saving account {userBundle.User.Id}-{userBundle.Player.Id}-{userBundle.Player.BundleId}");
 
-            _nativeAccountStore.PutAccount(ToNativeAccount(userBundle));
+            _accountStore.PutAccount(ToNativeAccount(userBundle));
         }
 
         private UserBundle TransformTokenResponseToUserBundle(PlayerToken playerTokenResponse)
@@ -188,7 +213,7 @@ namespace com.noctuagames.sdk
 
                 foreach (var account in accounts)
                 {
-                    _nativeAccountStore.DeleteAccount(
+                    _accountStore.DeleteAccount(
                         new NativeAccount
                         {
                             PlayerId = account.Id,
@@ -320,14 +345,6 @@ namespace com.noctuagames.sdk
             return currentGameUsers.Concat(otherGameUsers).ToList();
         }
 
-        [Preserve]
-        private class NativeAccountData
-        {
-            [JsonProperty("user")] public User User;
-            [JsonProperty("player")] public Player Player;
-            [JsonProperty("credential")] public Credential Credential;
-        }
-
         public void DeleteRecentAccount()
         {
             if (RecentAccount == null)
@@ -335,7 +352,7 @@ namespace com.noctuagames.sdk
                 return;
             }
 
-            _nativeAccountStore.DeleteAccount(
+            _accountStore.DeleteAccount(
                 new NativeAccount
                 {
                     PlayerId = RecentAccount.Player.Id,
@@ -348,6 +365,78 @@ namespace com.noctuagames.sdk
             RecentAccount = null;
             
             UniTask.Void(async () => OnAccountChanged?.Invoke(RecentAccount));
+        }
+
+        [Preserve]
+        private class NativeAccountData
+        {
+            [JsonProperty("user")] public User User;
+            [JsonProperty("player")] public Player Player;
+            [JsonProperty("credential")] public Credential Credential;
+        }
+
+        private class AccountStoreWithFallback
+        {
+            private readonly INativeAccountStore _mainStore;
+            private readonly INativeAccountStore _fallbackStore;
+            private bool _useFallback;
+            
+            public void EnableFallback()
+            {
+                _useFallback = true;
+                PlayerPrefs.SetInt("NoctuaAccountContainer.UseFallback", 1);
+            }
+            
+            public AccountStoreWithFallback(INativeAccountStore mainStore, INativeAccountStore fallbackStore)
+            {
+                _mainStore = mainStore ?? throw new ArgumentNullException(nameof(mainStore));
+                _fallbackStore = fallbackStore ?? throw new ArgumentNullException(nameof(fallbackStore));
+                
+                _useFallback = PlayerPrefs.GetInt("NoctuaAccountContainer.UseFallback", 0) == 1; 
+            }
+            
+            public NativeAccount GetAccount(long userId, long gameId)
+            {
+                try
+                {
+                    return _useFallback ? _fallbackStore.GetAccount(userId, gameId) : _mainStore.GetAccount(userId, gameId);
+                }
+                catch (Exception e)
+                {
+                    EnableFallback();
+
+                    return _fallbackStore.GetAccount(userId, gameId);
+                }
+            }
+            
+            public List<NativeAccount> GetAccounts()
+            {
+                try
+                {
+                    return _useFallback ? _fallbackStore.GetAccounts() : _mainStore.GetAccounts();
+                }
+                catch (Exception e)
+                {
+                    EnableFallback();
+
+                    return _fallbackStore.GetAccounts();
+                }
+            }
+            
+            public void PutAccount(NativeAccount account)
+            {
+                if (!_useFallback)
+                {
+                    _mainStore.PutAccount(account);
+                }
+
+                _fallbackStore.PutAccount(account);
+            }
+            
+            public int DeleteAccount(NativeAccount account)
+            {
+                return _useFallback ? _fallbackStore.DeleteAccount(account) : _mainStore.DeleteAccount(account);
+            }
         }
     }
 }
