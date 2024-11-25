@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.19.3] - 2024-11-25
+
+### 🐛 Bug Fixes
+
+- Handle webview url empty
+- Expose iOS logs to Files app
+
 ## [0.19.2] - 2024-11-22
 
 ### 🐛 Bug Fixes
