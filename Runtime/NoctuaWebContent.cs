@@ -55,7 +55,8 @@ namespace com.noctuagames.sdk
 
             if(string.IsNullOrEmpty(details.Url))
             {
-                throw new ArgumentNullException("Url is Empty");
+                _log.Warning("Url is Empty");
+                return false;
             }
             
             _webContent.Url = details.Url;
@@ -94,7 +95,8 @@ namespace com.noctuagames.sdk
 
             if(string.IsNullOrEmpty(details.Url))
             {
-                throw new ArgumentNullException("Url is Empty");
+                _log.Warning("Url is Empty");
+                return;
             }
             
             _eventSender?.Send("platform_content_announcement_opened");
@@ -118,7 +120,8 @@ namespace com.noctuagames.sdk
 
             if(string.IsNullOrEmpty(details.Url))
             {
-                throw new ArgumentNullException("Url is Empty");
+                _log.Warning("Url is Empty");
+                return;
             }
             
             _eventSender?.Send("customer_service_opened");
