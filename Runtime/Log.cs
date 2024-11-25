@@ -29,7 +29,7 @@ namespace com.noctuagames.sdk
         {
             Log.Logger = new LoggerConfiguration()
                 .MinimumLevel.Debug()
-                .WriteTo.File(Path.Combine(Application.persistentDataPath, "noctuasdk.txt"), 
+                .WriteTo.File(Path.Combine(Application.persistentDataPath, $"{Application.productName}-noctua-log.txt"), 
                               rollingInterval: RollingInterval.Day, 
                               fileSizeLimitBytes: 4 * 1024 * 1024, 
                               retainedFileCountLimit: 8, 

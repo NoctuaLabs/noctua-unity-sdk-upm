@@ -49,12 +49,20 @@ using UnityEditor.Graphs;
             pbxProject.AddCapability(targetGuid, PBXCapabilityType.KeychainSharing, entitlementsFileName);
             pbxProject.WriteToFile(pbxProjectPath);
 
-            Log($"Expose AppIdentifierPrefix to Info.plist");
+            Log($"Loaded Info.plist from Xcode project.");
             string plistPath = Path.Combine(pathToBuiltProject, "Info.plist");
             var plist = new PlistDocument();
             plist.ReadFromFile(plistPath);
+
+            Log($"Expose AppIdentifierPrefix by Info.plist");
             string appIdPrefix = "$(AppIdentifierPrefix)";
             plist.root.SetString("AppIdPrefix", appIdPrefix);
+
+            Log($"Expose log files to users by Info.plist");
+            plist.root.SetBoolean("UIFileSharingEnabled", true);
+            plist.root.SetBoolean("LSSupportsOpeningDocumentsInPlace", true);
+
+            Log($"Write changes to Info.plist");    
             plist.WriteToFile(plistPath);
         }
 
