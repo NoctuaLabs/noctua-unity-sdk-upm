@@ -28,6 +28,11 @@ namespace com.noctuagames.sdk
         public static void Init()
         {
             Log.Logger = new LoggerConfiguration()
+                .WriteTo.Sentry(o =>
+                {
+                    o.Dsn = "";
+                    o.MinimumEventLevel = LogEventLevel.Error;
+                })
                 .MinimumLevel.Debug()
                 .WriteTo.File(Path.Combine(Application.persistentDataPath, $"{Application.productName}-noctua-log.txt"), 
                               rollingInterval: RollingInterval.Day, 
