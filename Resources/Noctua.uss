@@ -502,3 +502,20 @@ Label:hover {
 }
 
 /* End - Dropdown */
+
+/* Start - Toggle */
+
+.custom-toggle {
+    /* background-color: #474B4E; */
+}
+
+.custom-toggle .unity-toggle__checkmark {
+    width: 15px; /* Adjust size as needed */
+    height: 15px; /* Ensure the checkbox is square */
+    border: 2px solid #FFFFFF; /* White border */
+    border-radius: 4px; /* Rounded corners for the checkbox */
+    background-color: transparent; /* Transparent background */
+    text-color: white;
+}
+
+/* End - Toggle */

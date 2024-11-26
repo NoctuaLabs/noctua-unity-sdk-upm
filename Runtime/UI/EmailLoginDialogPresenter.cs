@@ -24,6 +24,7 @@ namespace com.noctuagames.sdk.UI
         private VisualElement _spinner;
         private List<TextField> textFields;
         private Button submitButton;
+        private Toggle toggleShowPassword;
         
         private Action<UserBundle> _onLoginSuccess;
         private GlobalConfig _config;
@@ -49,6 +50,7 @@ namespace com.noctuagames.sdk.UI
         {
             var emailField = View.Q<TextField>("EmailTF");
             var passwordField = View.Q<TextField>("PasswordTF");
+            toggleShowPassword = View.Q<Toggle>("ToggleShowPassword");
             submitButton = View.Q<Button>("ContinueButton");
 
             passwordField.isPasswordField = true;
@@ -68,6 +70,10 @@ namespace com.noctuagames.sdk.UI
             View.Q<Label>("Register").RegisterCallback<PointerUpEvent>(OnRegisterButtonClick);
             View.Q<Button>("BackButton").RegisterCallback<PointerUpEvent>(OnBackButtonClick);
             View.Q<Button>("ContinueButton").RegisterCallback<PointerUpEvent>(OnContinueButtonClick);
+            toggleShowPassword.RegisterCallback<ChangeEvent<bool>>((evt) =>
+            {
+                passwordField.isPasswordField = !evt.newValue;
+            });
             
             _spinner = new Spinner();
             View.Q<VisualElement>("Spinner").Clear();
