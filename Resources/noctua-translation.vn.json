@@ -13,6 +13,7 @@
     "EmailLoginDialogPresenter.ContinueButton.Button.text": "Tiếp tục",
     "EmailLoginDialogPresenter.DontHaveAccount.Label.text": "Không có tài khoản",
     "EmailLoginDialogPresenter.Register.Label.text": "Đăng ký",
+    "EmailLoginDialogPresenter.TitleShowPassword.Label.text": "Hiển thị mật khẩu",
     "EmailRegisterDialogPresenter.LabelRegister1.Label.text": "Đăng ký bằng email",
     "EmailRegisterDialogPresenter.FullNameTF.TextField.label": "Họ và tên",
     "EmailRegisterDialogPresenter.EmailTF.TextField.label": "Email",

@@ -14,6 +14,7 @@
     "EmailLoginDialogPresenter.ContinueButton.Button.text": "Continue",
     "EmailLoginDialogPresenter.DontHaveAccount.Label.text": "Don't have an account?",
     "EmailLoginDialogPresenter.Register.Label.text": "Register",
+    "EmailLoginDialogPresenter.TitleShowPassword.Label.text": "Show password",
 
     "EmailRegisterDialogPresenter.LabelRegister1.Label.text": "Register with email",
     "EmailRegisterDialogPresenter.FullNameTF.TextField.label": "Full Name",

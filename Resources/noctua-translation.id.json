@@ -14,6 +14,7 @@
     "EmailLoginDialogPresenter.ContinueButton.Button.text": "Lanjutkan",
     "EmailLoginDialogPresenter.DontHaveAccount.Label.text": "Tidak punya akun?",
     "EmailLoginDialogPresenter.Register.Label.text": "Daftar",
+    "EmailLoginDialogPresenter.TitleShowPassword.Label.text": "Tampilkan kata sandi",
 
     "EmailRegisterDialogPresenter.LabelRegister1.Label.text": "Daftar dengan email",
     "EmailRegisterDialogPresenter.FullNameTF.TextField.label": "Nama Lengkap",
