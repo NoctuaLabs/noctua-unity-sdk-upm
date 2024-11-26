@@ -21,6 +21,24 @@ namespace com.noctuagames.sdk
     [Preserve]
     public class AdjustConfig
     {
+	[JsonProperty("android"), JsonRequired] public AdjustAndroidConfig Android;
+
+	[JsonProperty("ios"), JsonRequired] public AdjustIosConfig Ios;
+    }
+
+    [Preserve]
+    public class AdjustAndroidConfig
+    {
+        [JsonProperty("appToken"), JsonRequired] public string AppToken;
+
+        [JsonProperty("environment")] public string Environment = "sandbox";
+
+        [JsonProperty("eventMap")] public Dictionary<string, string> EventMap = new();
+    }
+
+    [Preserve]
+    public class AdjustIosConfig
+    {
         [JsonProperty("appToken"), JsonRequired] public string AppToken;
 
         [JsonProperty("environment")] public string Environment = "sandbox";
@@ -65,11 +83,41 @@ namespace com.noctuagames.sdk
     [Preserve]
     public class FirebaseConfig
     {
+	[JsonProperty("android"), JsonRequired] public FirebaseAndroidConfig Android;
+	[JsonProperty("ios"), JsonRequired] public FirebaseIosConfig Ios;
+    }
+
+    [Preserve]
+    public class FirebaseAndroidConfig
+    {
+        [JsonProperty("eventMap")] public Dictionary<string, string> EventMap = new();
+    }
+
+    [Preserve]
+    public class FirebaseIosConfig
+    {
         [JsonProperty("eventMap")] public Dictionary<string, string> EventMap = new();
     }
     
     [Preserve]
     public class FacebookConfig
+    {
+	[JsonProperty("android"), JsonRequired] public FacebookAndroidConfig Android;
+	[JsonProperty("ios"), JsonRequired] public FacebookIosConfig Ios;
+    }
+
+    [Preserve]
+    public class FacebookAndroidConfig
+    {
+        [JsonProperty("appId"), JsonRequired] public string AppId;
+
+        [JsonProperty("clientToken"), JsonRequired] public string ClientToken;
+
+        [JsonProperty("eventMap")] public Dictionary<string, string> EventMap = new();
+    }
+
+    [Preserve]
+    public class FacebookIosConfig
     {
         [JsonProperty("appId"), JsonRequired] public string AppId;
         
