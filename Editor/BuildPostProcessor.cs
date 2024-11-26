@@ -88,7 +88,7 @@ using UnityEditor.Graphs;
                 LogWarning("GoogleService-Info.plist not found. Disabling Firebase services.");
             }
 
-            var firebaseEnabled = noctuaConfig.Firebase != null && File.Exists(sourcePath);
+            var firebaseEnabled = File.Exists(sourcePath);
 
             var destinationPath = Path.Combine(pathToBuiltProject, "GoogleService-Info.plist");
 
@@ -261,7 +261,7 @@ using UnityEditor.Graphs;
 
             var gradleContent = File.ReadAllText(rootGradlePath);
             var googleServicesJsonPath = Path.Combine(Application.dataPath, "StreamingAssets", "google-services.json");
-            var firebaseEnabled = noctuaConfig.Firebase != null && File.Exists(googleServicesJsonPath);
+            var firebaseEnabled = File.Exists(googleServicesJsonPath);
             
             var gradleVersion = GetGradleVersion(path);
             
@@ -318,7 +318,7 @@ using UnityEditor.Graphs;
 
             var gradleContent = File.ReadAllText(launcherGradlePath);
             var googleServicesJsonPath = Path.Combine(Application.dataPath, "StreamingAssets", "google-services.json");
-            var firebaseEnabled = noctuaConfig.Firebase != null && File.Exists(googleServicesJsonPath);
+            var firebaseEnabled = File.Exists(googleServicesJsonPath);
 
             if (firebaseEnabled && !gradleContent.Contains("com.google.gms.google-services"))
             {
@@ -339,7 +339,7 @@ using UnityEditor.Graphs;
         private static void CopyOrRemoveGoogleServicesJson(string rootProjectPath, GlobalConfig noctuaConfig)
         {
             var googleServicesJsonPath = Path.Combine(Application.dataPath, "StreamingAssets", "google-services.json");
-            var isGoogleServicesEnabled = noctuaConfig.Firebase != null && File.Exists(googleServicesJsonPath);
+            var isGoogleServicesEnabled = File.Exists(googleServicesJsonPath);
             var destinationPath = Path.Combine(rootProjectPath, "launcher", "google-services.json");
 
             if (isGoogleServicesEnabled)
