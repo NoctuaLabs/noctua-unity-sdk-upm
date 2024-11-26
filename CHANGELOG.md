@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.19.4] - 2024-11-26
+
+### 🐛 Bug Fixes
+
+- Use fallback if native account store is unavailable.
+
+### 🚜 Refactor
+
+- Change throw exeption to log warning
+
 ## [0.19.3] - 2024-11-25
 
 ### 🐛 Bug Fixes
