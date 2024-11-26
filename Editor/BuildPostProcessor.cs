@@ -212,7 +212,7 @@ using UnityEditor.Graphs;
 
         private static void ModifyAndroidManifest(string path, GlobalConfig noctuaConfig)
         {
-            if (noctuaConfig.Facebook is null)
+            if (noctuaConfig.Facebook.Android is null)
             {
                 LogWarning("Facebook config is null. Skipped modifying AndroidManifest.xml for Facebook App Events.");
 
@@ -230,9 +230,9 @@ using UnityEditor.Graphs;
 
             var manifestDoc = XDocument.Load(manifestPath);
 
-            if (noctuaConfig.Facebook is { AppId: not null, ClientToken: not null })
+            if (noctuaConfig.Facebook.Android is { AppId: not null, ClientToken: not null })
             {
-                AddFacebookMetaData(manifestDoc, noctuaConfig.Facebook);
+                AddFacebookMetaData(manifestDoc, noctuaConfig.Facebook.Android);
 
                 Log("Added Facebook meta-data to AndroidManifest.xml.");
             }
@@ -356,7 +356,7 @@ using UnityEditor.Graphs;
             }
         }
 
-        private static void AddFacebookMetaData(XDocument manifestDoc, FacebookConfig facebookConfig)
+        private static void AddFacebookMetaData(XDocument manifestDoc, FacebookAndroidConfig facebookConfig)
         {
             if (facebookConfig == null)
             {
