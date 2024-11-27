@@ -145,7 +145,7 @@ namespace com.noctuagames.sdk.UI
             element.Q<VisualElement>("PlayerLogo").AddToClassList(logoClass);
             
             element.Q<Label>("RecentLabel").text =
-                items?[index].User?.Id == Model.AuthService.RecentAccount?.User.Id ? "Recent" : "";
+                items?[index].User?.Id == Model.AuthService.RecentAccount?.User.Id ? "Active" : "";
         }
     }
 }
