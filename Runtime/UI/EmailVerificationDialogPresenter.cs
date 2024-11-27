@@ -40,7 +40,6 @@ namespace com.noctuagames.sdk.UI
         {
             var verificationCode = View.Q<TextField>("VerificationCode");
             verificationCode.value = string.Empty;
-            verificationCode.Focus();
             verificationCode.RegisterValueChangedCallback(evt => OnVerificationCodeValueChanged(verificationCode));
 
             var backButton = View.Q<Button>("BackButton");
