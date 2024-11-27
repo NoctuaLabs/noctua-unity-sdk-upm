@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.19.6] - 2024-11-27
+
+### 🐛 Bug Fixes
+
+- Keyboard show up at startup
+- Blur if visible false
+
 ## [0.19.5] - 2024-11-27
 
 ### 🐛 Bug Fixes
