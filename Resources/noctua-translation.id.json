@@ -41,9 +41,9 @@
 
     "AccountSelectionDialogPresenter.AccountSelectionInfo.Label.text": "Pilih Akun",
     "AccountSelectionDialogPresenter.GameAccountList.ListView.label": "Daftar Akun Game",
-    "AccountSelectionDialogPresenter.ContinueButton.Button.text": "Lanjutkan dengan akun lain",
+    "AccountSelectionDialogPresenter.ContinueButton.Button.text": "Hubungkan atau Lanjutkan dengan akun lain",
 
-    "LoginOptionsDialogPresenter.TitleContinueWithAnotherAccount.Label.text": "Lanjutkan dengan akun lain",
+    "LoginOptionsDialogPresenter.TitleContinueWithAnotherAccount.Label.text": "Hubungkan atau Lanjutkan dengan akun lain",
     "LoginOptionsDialogPresenter.TitleGoogle.Label.text": "Google",
     "LoginOptionsDialogPresenter.TitleFacebook.Label.text": "Facebook",
     "LoginOptionsDialogPresenter.OrContinueWith.Label.text": "atau lanjutkan dengan",

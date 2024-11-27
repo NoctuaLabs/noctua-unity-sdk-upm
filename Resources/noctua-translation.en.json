@@ -41,9 +41,9 @@
 
     "AccountSelectionDialogPresenter.AccountSelectionInfo.Label.text": "Choose Account",
     "AccountSelectionDialogPresenter.GameAccountList.ListView.label": "Game Account List",
-    "AccountSelectionDialogPresenter.ContinueButton.Button.text": "Continue with another account",
+    "AccountSelectionDialogPresenter.ContinueButton.Button.text": "Bind or Continue with another account",
 
-    "LoginOptionsDialogPresenter.TitleContinueWithAnotherAccount.Label.text": "Continue with another account",
+    "LoginOptionsDialogPresenter.TitleContinueWithAnotherAccount.Label.text": "Bind or Continue with another account",
     "LoginOptionsDialogPresenter.TitleGoogle.Label.text": "Google",
     "LoginOptionsDialogPresenter.TitleFacebook.Label.text": "Facebook",
     "LoginOptionsDialogPresenter.OrContinueWith.Label.text": "or continue with",    
