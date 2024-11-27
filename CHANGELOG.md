@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.19.5] - 2024-11-27
+
+### 🐛 Bug Fixes
+
+- Simplify enum conversion
+
 ## [0.19.4] - 2024-11-26
 
 ### 🐛 Bug Fixes
