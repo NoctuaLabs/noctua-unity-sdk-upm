@@ -14,7 +14,13 @@ namespace com.noctuagames.sdk.UI
         public virtual bool Visible
         {
             get => View.visible;
-            set => View.visible = value;
+
+            set
+            {
+                View.visible = value;
+                
+                if (!value) View.Blur();
+            }
         }
 
         public void Init(TModel model, PanelSettings panelSettings)
@@ -61,7 +67,6 @@ namespace com.noctuagames.sdk.UI
 
             _uiDoc.visualTreeAsset = visualTreeAsset ?? throw new ArgumentNullException(nameof(visualTreeAsset));
             View = _uiDoc.rootVisualElement;
-            View.focusable = true;
             View.visible = false;
             
             _uiDoc.panelSettings = panelSettings ?? throw new ArgumentNullException(nameof(panelSettings));

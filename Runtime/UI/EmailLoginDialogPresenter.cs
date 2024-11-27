@@ -178,9 +178,8 @@ namespace com.noctuagames.sdk.UI
 
             HideAllErrors();
 
-            var spinnerInstance = new Spinner();
-            View.Q<Button>("ContinueButton").AddToClassList("hide");
             View.Q<VisualElement>("Spinner").RemoveFromClassList("hide");
+            View.Q<Button>("ContinueButton").AddToClassList("hide");
 
             var emailAddress = _email.Replace(" ", string.Empty);
             var password = _password;
@@ -223,8 +222,6 @@ namespace com.noctuagames.sdk.UI
                 
                 _onLoginSuccess?.Invoke(userBundle);
 
-                View.visible = false;
-
                 View.Q<TextField>("EmailTF").value = string.Empty;
                 View.Q<TextField>("PasswordTF").value = string.Empty;
 
@@ -232,6 +229,8 @@ namespace com.noctuagames.sdk.UI
                 View.Q<Button>("ContinueButton").RemoveFromClassList("hide");
                 View.Q<VisualElement>("AdditionalFooterContent").RemoveFromClassList("hide");
                 View.Q<VisualElement>("Spinner").AddToClassList("hide");
+                
+                Visible = false;
             } catch (Exception e) {
                 if (e is NoctuaException noctuaEx)
                 {
