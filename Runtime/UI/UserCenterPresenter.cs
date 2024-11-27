@@ -780,7 +780,8 @@ namespace com.noctuagames.sdk.UI
                 updateUserRequest.Country = _profileDataOptions.Countries[indexCountry].IsoCode;
                 updateUserRequest.Language = _profileDataOptions.Languages[indexLanguage].IsoCode;
                 updateUserRequest.Currency = _profileDataOptions.Currencies[indexCurrency].IsoCode;
-                updateUserRequest.PaymentType = _paymentOptions[indexPayment];
+		// Convert enum to string
+		updateUserRequest.PaymentType = _paymentOptions[indexPayment].ToString().ToLower();
 
                 await Model.AuthService.UpdateUserAsync(updateUserRequest);
 

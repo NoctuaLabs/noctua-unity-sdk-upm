@@ -374,7 +374,7 @@ namespace com.noctuagames.sdk
         public string Currency;
         
         [JsonProperty("payment_type")]
-        public PaymentType PaymentType;
+        public string PaymentType;
     }
 
     [Preserve]
