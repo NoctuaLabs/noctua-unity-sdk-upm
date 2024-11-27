@@ -16,7 +16,7 @@ namespace com.noctuagames.sdk
             EventSender eventSender = null
         )
         {
-            Locale = new NoctuaLocale();
+            Locale = new NoctuaLocale(config.Region);
             Content = new NoctuaWebContent(
                 new NoctuaWebContentConfig
                 {

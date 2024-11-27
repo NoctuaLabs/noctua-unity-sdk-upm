@@ -33,14 +33,14 @@ namespace com.noctuagames.sdk.UI
             _btnOK.RegisterCallback<PointerUpEvent>(CloseDialog);
         }
 
-        public async UniTask<bool> Show(string regionCode)
+        public async UniTask<bool> Show(string language)
         {
             _tcs = new UniTaskCompletionSource<bool>();
 
             Visible = true;
 
-            _note.text = Utility.GetTranslation("User.Banned.Info",  Utility.LoadTranslations(regionCode));
-            _note2.text = Utility.GetTranslation("User.Banned.Info2",  Utility.LoadTranslations(regionCode));
+            _note.text = Utility.GetTranslation("User.Banned.Info",  Utility.LoadTranslations(language));
+            _note2.text = Utility.GetTranslation("User.Banned.Info2",  Utility.LoadTranslations(language));
 
             return await _tcs.Task;
         }

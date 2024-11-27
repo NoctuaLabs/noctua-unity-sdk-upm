@@ -19,7 +19,6 @@ namespace com.noctuagames.sdk
         public const string CustomerServiceBaseUrl = "https://noctua.gg/embed-webview?url=https%3A%2F%2Fgo.crisp.chat%2Fchat%2Fembed%2F%3Fwebsite_id%3Dc4e95a3a-1fd1-49a2-92ea-a7cb5427bcd9&reason=general&vipLevel=";
     }
 
-
     [Preserve]
     public enum PaymentType
     {

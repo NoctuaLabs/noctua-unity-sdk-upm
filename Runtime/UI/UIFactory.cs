@@ -14,10 +14,10 @@ namespace com.noctuagames.sdk.UI
         private readonly GeneralNotificationPresenter _notification;
         private readonly BannedConfirmationDialogPresenter _confirmDialog;
         private readonly Dictionary<string, string> _translations;
-        private readonly string _regionCode;
+        private readonly string _language;
         internal UIFactory(string gameObjectName, string panelSettingsPath = "NoctuaPanelSettings", string themeStyleSheetPath = "NoctuaTheme")
         {
-            _translations = Utility.LoadTranslations(_regionCode);
+            _translations = Utility.LoadTranslations(_language);
 
             _rootObject = new GameObject(gameObjectName);
             _panelSettings = Resources.Load<PanelSettings>(panelSettingsPath);
@@ -30,8 +30,9 @@ namespace com.noctuagames.sdk.UI
         
         internal UIFactory(GameObject rootObject, PanelSettings panelSettings, GlobalConfig config)
         {
-            _regionCode = config.Noctua.Region;
-            _translations = Utility.LoadTranslations(_regionCode);
+            var locale = new NoctuaLocale(config.Noctua.Region);
+            _language = locale.GetLanguage();
+            _translations = Utility.LoadTranslations(_language);
 
             _rootObject = rootObject;
             _panelSettings = panelSettings;
@@ -67,7 +68,7 @@ namespace com.noctuagames.sdk.UI
 
         public async UniTask<bool> ShowBannedConfirmationDialog()
         {
-            return await _confirmDialog.Show(_regionCode);
+            return await _confirmDialog.Show(_language);
         }
 
         public void ShowLoadingProgress(bool isShow)

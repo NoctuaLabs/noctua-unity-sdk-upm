@@ -176,21 +176,21 @@ namespace com.noctuagames.sdk
                 false;
         }
 
-        private static string GetTranslationByLanguage(string regionCodeParam)
+        private static string GetTranslationByLanguage(string language)
         {
-            var language = new NoctuaLocale();
-            var regionCode = string.IsNullOrEmpty(regionCodeParam) ? language.GetLanguage() : regionCodeParam.ToLower();
-            return regionCode switch
+	    // Language to translation asset mapping
+	    // Language format is using ISO 639-1
+            return language switch
             {
                 "id" => "noctua-translation.id",
-                "vn" => "noctua-translation.vn",
+                "vi" => "noctua-translation.vi",
                 _ => "noctua-translation.en"
             };
         }
 
-        public static Dictionary<string, string> LoadTranslations(string regionCode)
+        public static Dictionary<string, string> LoadTranslations(string language)
         {
-            TextAsset jsonFile = Resources.Load<TextAsset>(GetTranslationByLanguage(regionCode));
+            TextAsset jsonFile = Resources.Load<TextAsset>(GetTranslationByLanguage(language));
             return JsonConvert.DeserializeObject<Dictionary<string, string>>(jsonFile.text);
         }
 

@@ -237,7 +237,7 @@ namespace com.noctuagames.sdk
                     BatchSize = config.Noctua.TrackerBatchSize,
                     BatchPeriodMs = config.Noctua.TrackerBatchPeriodMs
                 },
-                new NoctuaLocale()
+                new NoctuaLocale(null)
             );
             
             _sessionTracker = new SessionTracker(

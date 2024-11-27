@@ -12,6 +12,8 @@ namespace com.noctuagames.sdk
 {
     public class AccountContainer // Used by account container prefs and account detection logic
     {
+        private const string PlayerPrefsKeyUserPrefsLanguage = "NoctuaLocaleUserPrefsLanguage";
+
         public IReadOnlyList<UserBundle> Accounts => _accounts;
         
         public IReadOnlyList<UserBundle> CurrentGameAccounts => 
@@ -103,6 +105,14 @@ namespace com.noctuagames.sdk
 
                 return;
             }
+
+	    // Update user preference language
+	    if (!string.IsNullOrEmpty(newUser.User.Language))
+	    {
+		PlayerPrefs.SetString(PlayerPrefsKeyUserPrefsLanguage, newUser.User.Language);
+	    } else {
+		PlayerPrefs.DeleteKey(PlayerPrefsKeyUserPrefsLanguage);
+	    }
 
             try
             {
