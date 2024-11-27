@@ -1289,7 +1289,8 @@ namespace Tests.Runtime
             var accounts = accountContainer.Accounts;
             var useFallback = PlayerPrefs.GetInt("NoctuaAccountContainer.UseFallback");
             PlayerPrefs.DeleteKey("NoctuaAccountContainer.UseFallback");
-            
+            PlayerPrefs.DeleteKey("NoctuaAccountContainer");
+
             Assert.AreEqual(1, accounts.Count);
             Assert.AreEqual(1, mockStore.FailedLoadCount);
             Assert.AreEqual(1, useFallback);
@@ -1406,6 +1407,7 @@ namespace Tests.Runtime
             var accounts = accountContainer.Accounts;
             var useFallback = PlayerPrefs.GetInt("NoctuaAccountContainer.UseFallback");
             PlayerPrefs.DeleteKey("NoctuaAccountContainer.UseFallback");
+            PlayerPrefs.DeleteKey("NoctuaAccountContainer");
             
             Assert.AreEqual(1, accounts.Count);
             Assert.AreEqual(1, mockStore.FailedSaveCount);
@@ -1613,8 +1615,7 @@ namespace Tests.Runtime
             accountContainer.UpdateRecentAccount(playerToken);
 
             var accounts = accountContainer.Accounts;
-            PlayerPrefs.DeleteKey("NoctuaAccountContainer.UseFallback");
-            
+
             Assert.AreEqual(1, accounts.Count);
             Assert.AreEqual(0, mockStore.FailedSaveCount);
             Assert.AreEqual(0, mockStore.GetAccounts().Count);

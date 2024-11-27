@@ -48,7 +48,7 @@ namespace com.noctuagames.sdk.UI
         private List<string> _countryOptions = new List<string> { "Select Country" };
         private List<string> _languageOptions = new List<string> { "Select Languages" };
         private List<string> _currencyOptions = new List<string> { "Select Currency" };
-        private List<PaymentType> _paymentOptions = new List<PaymentType> { PaymentType.Unknown };
+        private List<PaymentType> _paymentOptions = new List<PaymentType> { PaymentType.unknown };
         private VisualElement _spinner;
         private VisualElement _noctuaLogoWithText;
         private Label _sdkVersion;
@@ -425,15 +425,15 @@ namespace com.noctuagames.sdk.UI
                     _currencyOptions.Add(_currency.EnglishName);
                 }
 
-                _paymentOptions.Add(PaymentType.Noctuastore);
+                _paymentOptions.Add(PaymentType.noctuastore);
 
                 if (Application.platform == RuntimePlatform.Android)
                 {
-                    _paymentOptions.Add(PaymentType.Playstore);
+                    _paymentOptions.Add(PaymentType.playstore);
                 }
                 else if (Application.platform == RuntimePlatform.IPhonePlayer)
                 {
-                    _paymentOptions.Add(PaymentType.Appstore);
+                    _paymentOptions.Add(PaymentType.appstore);
                 }
             }
 

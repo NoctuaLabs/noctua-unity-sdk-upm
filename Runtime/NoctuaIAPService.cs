@@ -205,14 +205,14 @@ namespace com.noctuagames.sdk
         private readonly GoogleBilling GoogleBillingInstance = new();
         // By default all major payment types are enabled, then it will be overridden by the server config at SDK init
         private List<PaymentType> _enabledPaymentTypes = new()
-            { PaymentType.Playstore, PaymentType.Noctuastore };
+            { PaymentType.playstore, PaymentType.noctuastore };
 #elif UNITY_IOS && !UNITY_EDITOR
         // By default all major payment types are enabled, then it will be overridden by the server config at SDK init
         private List<PaymentType> _enabledPaymentTypes = new()
-            { PaymentType.Appstore, PaymentType.Noctuastore };
+            { PaymentType.appstore, PaymentType.noctuastore };
 #else
         private List<PaymentType> _enabledPaymentTypes = new()
-            { PaymentType.Noctuastore };
+            { PaymentType.noctuastore };
 #endif
         private readonly UIFactory _uiFactory;
 
@@ -499,7 +499,7 @@ namespace com.noctuagames.sdk
 
             switch (paymentType)
             {
-                case PaymentType.Appstore:
+                case PaymentType.appstore:
 #if UNITY_IOS && !UNITY_EDITOR
                     _log.Info("NoctuaIAPService.PurchaseItemAsync purchase on ios: " + orderResponse.ProductId);
                     orderResponse.ProductId = purchaseRequest.ProductId;
@@ -521,7 +521,7 @@ namespace com.noctuagames.sdk
 #else
                     throw new NoctuaException(NoctuaErrorCode.Payment, "Applestore payment is not supported on this platform");
 #endif
-                case PaymentType.Playstore:
+                case PaymentType.playstore:
 #if UNITY_ANDROID && !UNITY_EDITOR
                     _log.Info("NoctuaIAPService.PurchaseItemAsync purchase on playstore: " + orderResponse.ProductId);
                     
@@ -548,7 +548,7 @@ namespace com.noctuagames.sdk
                     throw new NoctuaException(NoctuaErrorCode.Payment, "Playstore payment is not supported on this platform");
 #endif
 
-                case PaymentType.Noctuastore:
+                case PaymentType.noctuastore:
                     hasResult = true;
                     paymentResult = await _noctuaPayment.PayAsync(orderResponse.PaymentUrl);
 
@@ -556,7 +556,7 @@ namespace com.noctuagames.sdk
                     paymentResult.ReceiptData = getReceipt["receiptId"];
                     
                     break;
-                case PaymentType.Unknown:
+                case PaymentType.unknown:
                     throw new NoctuaException(NoctuaErrorCode.Payment, "Unknown payment type");
                 default:
                     throw new NoctuaException(NoctuaErrorCode.Payment, "Unsupported payment type " + paymentType);

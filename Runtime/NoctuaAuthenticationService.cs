@@ -20,13 +20,13 @@ namespace com.noctuagames.sdk
     }
 
 
-    [Preserve, JsonConverter(typeof(StringEnumConverter), typeof(SnakeCaseNamingStrategy))]
+    [Preserve]
     public enum PaymentType
     {
-        Unknown,
-        Appstore,
-        Playstore,
-        Noctuastore
+        unknown,
+        appstore,
+        playstore,
+        noctuastore
     }
     
     [Preserve]
@@ -910,8 +910,6 @@ namespace com.noctuagames.sdk
             {
                 await ExchangeTokenAsync(firstUser.Player.AccessToken);
 
-                SetEventProperties(firstUser);
-                SendEvent("account_switched");
                 SendEvent("account_detected");
 
                 return RecentAccount;
