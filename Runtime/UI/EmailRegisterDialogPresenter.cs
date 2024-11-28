@@ -271,7 +271,6 @@ namespace com.noctuagames.sdk.UI
 
         private void OnLoginLinkClick(PointerUpEvent evt)
         {
-            Noctua.CloseKeyboardiOS();
             Visible = false;
             Model.PushNavigation(() => Model.ShowEmailRegistration(false));
             Model.ShowEmailLogin();
@@ -279,7 +278,6 @@ namespace com.noctuagames.sdk.UI
 
         private async void OnContinueButtonClick(PointerUpEvent evt)
         {
-            Noctua.CloseKeyboardiOS();
             HideAllErrors();
 
             var spinnerInstance = new Spinner();
@@ -378,7 +376,7 @@ namespace com.noctuagames.sdk.UI
                 var result = await Model.RegisterWithEmailAsync(emailAddress, password, regExtra == null ? null : regExtra);
                 Debug.Log("RegisterWithPassword verification ID: " + result.Id);
 
-                View.visible = false;
+                Visible = false;
 
                 View.Q<TextField>("EmailTF").value = string.Empty;
                 View.Q<TextField>("PasswordTF").value = string.Empty;
@@ -422,8 +420,6 @@ namespace com.noctuagames.sdk.UI
 
         private void OnBackButtonClick(PointerUpEvent evt)
         {
-            Noctua.CloseKeyboardiOS();
-            
             View.Q<VisualElement>("Spinner").AddToClassList("hide");
             View.Q<Button>("ContinueButton").RemoveFromClassList("hide");
 

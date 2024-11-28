@@ -3,7 +3,7 @@
     <ui:VisualElement name="Root" class="root">
         <ui:VisualElement name="EmailVerificationDialog" class="base dialog-box">
             <ui:VisualElement name="DialogHeader" class="dialog-header">
-                <ui:Button display-tooltip-when-elided="true" name="BackButton" class="dialog-back-button" />
+                <ui:Button display-tooltip-when-elided="true" name="BackButton" class="dialog-back-button" focusable="false" />
                 <ui:Label name="TitleEmailVerifCode" text="Email Verification Code" class="dialog-title" />
             </ui:VisualElement>
             <ui:VisualElement name="DialogContent" class="dialog-content" style="flex-direction: column; justify-content: center; align-items: center; margin-top:24px;">
@@ -24,7 +24,7 @@
                 <ui:Label name="VerifyingCode" text="Verifying..." display-tooltip-when-elided="true" class="hide" style="margin-bottom:50px;"/>
                 <ui:VisualElement name="Spinner" class="noctua-spinner hide" />
                 <ui:Label text="Resend Code" display-tooltip-when-elided="true" name="ResendCode" class="disable-backgroud-button" style="margin-top: 10px; margin-right: 0; margin-bottom: 0; margin-left: 0; top: 5px; color: rgb(59, 130, 246); -unity-text-align: middle-left;" />
-                <ui:Button text="Verify" display-tooltip-when-elided="true" name="VerifyButton" class="dialog-button" style="height: 40px; margin-top: 50px; margin-right: 10px; margin-bottom: 10px;" />
+                <ui:Button text="Verify" display-tooltip-when-elided="true" name="VerifyButton" class="dialog-button" style="height: 40px; margin-top: 50px; margin-right: 10px; margin-bottom: 10px;" focusable="false" />
             </ui:VisualElement>
         </ui:VisualElement>
     </ui:VisualElement>

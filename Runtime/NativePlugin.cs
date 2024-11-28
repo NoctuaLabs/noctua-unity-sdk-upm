@@ -47,7 +47,5 @@ namespace com.noctuagames.sdk
         void OnApplicationPause(bool pause);
 
         void ShowDatePicker(int year, int month, int day, int id);
-
-        void CloseKeyboardiOS();
     }
 }

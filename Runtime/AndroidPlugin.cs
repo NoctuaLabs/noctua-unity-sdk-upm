@@ -188,8 +188,6 @@ namespace com.noctuagames.sdk
             
             return noctua.Call<int>("deleteAccount", javaAccount);
         }
-
-        public void CloseKeyboardiOS() {}
     }
 }
 #endif

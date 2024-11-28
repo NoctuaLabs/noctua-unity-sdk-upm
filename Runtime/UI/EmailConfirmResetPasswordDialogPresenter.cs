@@ -112,15 +112,12 @@ namespace com.noctuagames.sdk.UI
 
         private void OnBackButtonClick(ClickEvent evt)
         {
-            Noctua.CloseKeyboardiOS();
             Visible = false;
             Model.ShowEmailResetPassword(false);
         }
 
         private async void OnContinueButtonClick(ClickEvent evt)
         {
-            Noctua.CloseKeyboardiOS();
-            
             Debug.Log("EmailConfirmResetPasswordDialogPresenter.OnContinueButtonClick()");
 
             HideAllErrors();
@@ -172,7 +169,7 @@ namespace com.noctuagames.sdk.UI
                 
                 EventSender?.Send("reset_password_success");
 
-                View.visible = false;
+                Visible = false;
                 
                 View.Q<Label>("ErrCode").RemoveFromClassList("hide");
                 View.Q<Button>("ContinueButton").RemoveFromClassList("hide");

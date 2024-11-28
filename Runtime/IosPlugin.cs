@@ -90,7 +90,7 @@ namespace com.noctuagames.sdk
         {
             if (string.IsNullOrEmpty(productId))
             {
-                Debug.LogError("Product ID is null or empty");
+                _log.Error("Product ID is null or empty");
                 completion?.Invoke(false, "Product ID is null or empty");
                 return;
             }
@@ -190,11 +190,6 @@ namespace com.noctuagames.sdk
             noctuaDeleteAccount(account.GameId, account.PlayerId);
             
             return 1;
-        }
-
-        public void CloseKeyboardiOS()
-        {
-            noctuaCloseKeyboardIOS();
         }
     }
 #endif

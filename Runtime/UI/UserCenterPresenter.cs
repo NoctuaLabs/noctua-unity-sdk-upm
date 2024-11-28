@@ -556,8 +556,6 @@ namespace com.noctuagames.sdk.UI
 
         private void OnBackEditProfile() 
         {
-            Noctua.CloseKeyboardiOS();
-
             OnUIEditProfile(false);
         }
 
@@ -676,7 +674,6 @@ namespace com.noctuagames.sdk.UI
 
         private void OnSaveEditProfile()
         {
-            Noctua.CloseKeyboardiOS();
             SaveProfile();
         }
 
@@ -837,7 +834,6 @@ namespace com.noctuagames.sdk.UI
 
             View.Q<Button>("ExitButton").RegisterCallback<PointerUpEvent>(_ => 
             {
-                Noctua.CloseKeyboardiOS();
                 Visible = false; 
                 OnUIEditProfile(false);
             });

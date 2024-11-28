@@ -3,7 +3,7 @@
     <ui:VisualElement name="Root" class="root">
         <ui:VisualElement name="NoctuaRegisterBox" class="base dialog-box">
             <ui:VisualElement name="HeaderContent" class="dialog-header">
-                <ui:Button display-tooltip-when-elided="true" name="BackButton" class="dialog-back-button" />
+                <ui:Button display-tooltip-when-elided="true" name="BackButton" class="dialog-back-button" focusable="false" />
                 <ui:Label text="Register with email" display-tooltip-when-elided="true" name="LabelRegister1" class="dialog-title" />
             </ui:VisualElement>
             <ui:VisualElement name="Content" class="dialog-content" style="height: 200px;">
@@ -34,7 +34,7 @@
                     <ui:Label name="ErrPasswordTooShort" text="Password is too short. Minimum 6 character" display-tooltip-when-elided="true" class="dialog-err-label hide" />
                     <ui:Label name="ErrPasswordEmpty" text="Password should not be empty" display-tooltip-when-elided="true" class="dialog-err-label hide" />
                 </ui:VisualElement>
-                <ui:Button text="Continue" display-tooltip-when-elided="true" name="ContinueButton" class="dialog-button"/>
+                <ui:Button text="Continue" display-tooltip-when-elided="true" name="ContinueButton" class="dialog-button" focusable="false"/>
                 <ui:VisualElement name="Spinner" class="noctua-spinner hide" />
                 <ui:VisualElement name="AdditionalFooterContent" style="flex-direction: row; -unity-text-align: middle-center; justify-content: center; align-items: stretch; margin-top: 15px;">
                     <ui:Label name="AlreadyHaveAccount" text="Already have an account?" display-tooltip-when-elided="true" style="font-size: 12px;" />
