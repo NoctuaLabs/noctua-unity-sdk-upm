@@ -405,8 +405,6 @@ namespace com.noctuagames.sdk
     
     public class NoctuaAuthenticationService
     {
-        private const string PlayerPrefsKeyUserPrefsLanguage = "NoctuaLocaleUserPrefsLanguage";
-
         public IReadOnlyList<UserBundle> AccountList => _accountContainer.Accounts;
 
         public IReadOnlyList<UserBundle> CurrentGameAccountList => _accountContainer.CurrentGameAccounts;
@@ -861,16 +859,13 @@ namespace com.noctuagames.sdk
             
             _ = await request.Send<object>();
 
+            // Update the user language in player prefs
+            // so user does not have to restart twice to load the translation
+            if (_locale != null)
+            {
+                _locale.SetUserPrefsLanguage(updateUserRequest.Language);
+            }
 
-	    // Update the user language in player prefs
-	    // so user does not have to restart twice to load the translation
-	    if (!string.IsNullOrEmpty(updateUserRequest.Language))
-	    {
-		PlayerPrefs.SetString(PlayerPrefsKeyUserPrefsLanguage, updateUserRequest.Language);
-	    } else {
-		PlayerPrefs.DeleteKey(PlayerPrefsKeyUserPrefsLanguage);
-	    }
-            
             SendEvent(
                 "profile_updated",
                 new()
