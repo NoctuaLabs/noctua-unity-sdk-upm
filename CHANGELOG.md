@@ -2,6 +2,22 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.19.7] - 2024-11-28
+
+### 🐛 Bug Fixes
+
+- Determine language by this priority; user preference, region, system language.
+- Update user prefs payment type with string instead of numeric enum.
+- Use Active label instead of Recent for current active/recent account.
+- Update wording for continue with another account button.
+- Update the user language preference immediately after successfully update to backend.
+- Remove duplicate HTTP log.
+- Keyboard not closed after entering input
+
+### ⚙️ Miscellaneous Tasks
+
+- Initiate locale once, then inject it anywhere we need.
+
 ## [0.19.6] - 2024-11-27
 
 ### 🐛 Bug Fixes
