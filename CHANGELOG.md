@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.19.8] - 2024-11-28
+
+### 🐛 Bug Fixes
+
+- Update Android SDK to remove QUERY_ALL_PACKAGES permission
+
 ## [0.19.7] - 2024-11-28
 
 ### 🐛 Bug Fixes
