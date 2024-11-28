@@ -206,6 +206,8 @@ namespace com.noctuagames.sdk
             {
                 throw new NoctuaException(NoctuaErrorCode.Application, "Failed to parse config: config is null");
             }
+
+            var locale = new NoctuaLocale(config.Noctua.Region);
             
             config.Noctua ??= new NoctuaConfig();
             config.Adjust ??= new AdjustConfig();
@@ -237,7 +239,7 @@ namespace com.noctuagames.sdk
                     BatchSize = config.Noctua.TrackerBatchSize,
                     BatchPeriodMs = config.Noctua.TrackerBatchPeriodMs
                 },
-                new NoctuaLocale(null)
+                locale
             );
             
             _sessionTracker = new SessionTracker(
@@ -270,12 +272,13 @@ namespace com.noctuagames.sdk
             
             sessionTrackerBehaviour.SessionTracker = _sessionTracker;
             
-            var uiFactory = new UIFactory(noctuaUIGameObject, panelSettings, config);
+            var uiFactory = new UIFactory(noctuaUIGameObject, panelSettings, config, locale);
             
             var authService = new NoctuaAuthenticationService(
                 baseUrl: config.Noctua.BaseUrl, 
                 clientId: config.ClientId, 
                 nativeAccountStore: _nativePlugin,
+                locale: locale,
                 bundleId: Application.identifier,
                 eventSender: _eventSender
             );

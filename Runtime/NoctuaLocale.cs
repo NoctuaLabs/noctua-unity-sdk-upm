@@ -18,8 +18,8 @@ namespace com.noctuagames.sdk
 {
     public class NoctuaLocale
     {
-	private readonly string _region;
-        private string PlayerPrefsKeyUserPrefsLanguage = "NoctuaLocaleUserPrefsLanguage";
+    private readonly string _region;
+        private const string PlayerPrefsKeyUserPrefsLanguage = "NoctuaLocaleUserPrefsLanguage";
         private string PlayerPrefsKeyLocaleCountry = "NoctuaLocaleCountry";
         private string PlayerPrefsKeyLocaleCurrency = "NoctuaLocaleCurrency";
 
@@ -27,62 +27,62 @@ namespace com.noctuagames.sdk
         private readonly ILogger _log = new NoctuaLogger(typeof(NoctuaLocale));
 
         public NoctuaLocale(
-		string region = ""
-	)
+        string region = ""
+    )
         {
-	    if (region != null)
-	    {
-		_region = region;
-	    }
+        if (region != null)
+        {
+        _region = region;
+        }
         }
 
         public string GetLanguage()
         {
 
-	    var language = "en";
+        var language = "en";
 
-	    // Determine by this priority: user pref, region, system
+        // Determine by this priority: user pref, region, system
 
-	    // 1. Get from user profiles first.
-	    if (PlayerPrefs.HasKey(PlayerPrefsKeyUserPrefsLanguage))
-	    {
-		var userPrefsLanguage = PlayerPrefs.GetString(PlayerPrefsKeyUserPrefsLanguage, "");
+        // 1. Get from user profiles first.
+        if (PlayerPrefs.HasKey(PlayerPrefsKeyUserPrefsLanguage))
+        {
+        var userPrefsLanguage = PlayerPrefs.GetString(PlayerPrefsKeyUserPrefsLanguage, "");
 
-		if (!string.IsNullOrEmpty(userPrefsLanguage))
-		{
-		    _log.Info("GetLanguage: using language from user preferences");
-		    language = userPrefsLanguage;
-		    return language;
-		}
-	    } else {
-		_log.Info("GetLanguage: PlayerPrefsKeyUserPrefsLanguage is empty");
-	    }
+        if (!string.IsNullOrEmpty(userPrefsLanguage))
+        {
+            _log.Info("GetLanguage: using language from user preferences");
+            language = userPrefsLanguage;
+            return language;
+        }
+        } else {
+        _log.Info("GetLanguage: PlayerPrefsKeyUserPrefsLanguage is empty");
+        }
 
-	    // 2. Get from region
-	    if (!string.IsNullOrEmpty(_region))
-	    {
-		// Region to language mapping
-		// Region code is using Alpha-2,
-		// meanwhile the language code is using ISO 639-1.
-		//
-		// Use if else to support early return
-		if (_region == "th")
-		{
-		    _log.Info("GetLanguage: using language by region: " + _region);
-		    language = "th";
-		    return language;
-		} else if (_region == "vn")
-		{
-		    _log.Info("GetLanguage: using language by region: " + _region);
-		    language = "vi";
-		    return language;
-		} else {
-		    _log.Info("GetLanguage: no language mapping for this region: " + _region);
-		}
-	    }
+        // 2. Get from region
+        if (!string.IsNullOrEmpty(_region))
+        {
+        // Region to language mapping
+        // Region code is using Alpha-2,
+        // meanwhile the language code is using ISO 639-1.
+        //
+        // Use if else to support early return
+        if (_region == "th")
+        {
+            _log.Info("GetLanguage: using language by region: " + _region);
+            language = "th";
+            return language;
+        } else if (_region == "vn")
+        {
+            _log.Info("GetLanguage: using language by region: " + _region);
+            language = "vi";
+            return language;
+        } else {
+            _log.Info("GetLanguage: no language mapping for this region: " + _region);
+        }
+        }
 
-	    // 3. Fallback to system language
-	    _log.Info("GetLanguage: using language by system language");
+        // 3. Fallback to system language
+        _log.Info("GetLanguage: using language by system language");
             var languageMapping = new Dictionary<SystemLanguage, string>
             {
                 { SystemLanguage.Afrikaans, "af" },
@@ -137,6 +137,17 @@ namespace com.noctuagames.sdk
         {
             country = country.ToUpper();
             PlayerPrefs.SetString(PlayerPrefsKeyLocaleCountry, country);
+        }
+
+        public void SetUserPrefsLanguage(string language)
+        {
+	        // Update user preference language
+	        if (!string.IsNullOrEmpty(language))
+	        {
+		        PlayerPrefs.SetString(PlayerPrefsKeyUserPrefsLanguage, language);
+	        } else {
+		        PlayerPrefs.DeleteKey(PlayerPrefsKeyUserPrefsLanguage);
+	        }
         }
 
         public void SetCurrency(string currency)

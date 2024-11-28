@@ -12,8 +12,6 @@ namespace com.noctuagames.sdk
 {
     public class AccountContainer // Used by account container prefs and account detection logic
     {
-        private const string PlayerPrefsKeyUserPrefsLanguage = "NoctuaLocaleUserPrefsLanguage";
-
         public IReadOnlyList<UserBundle> Accounts => _accounts;
         
         public IReadOnlyList<UserBundle> CurrentGameAccounts => 
@@ -54,8 +52,9 @@ namespace com.noctuagames.sdk
         private readonly ILogger _log = new NoctuaLogger(typeof(AccountContainer));
         private readonly string _bundleId;
         private UserBundle _recentAccount;
+        private NoctuaLocale _locale;
 
-        public AccountContainer(INativeAccountStore nativeAccountStore, string bundleId)
+        public AccountContainer(INativeAccountStore nativeAccountStore, string bundleId, NoctuaLocale locale = null)
         {
             if (string.IsNullOrEmpty(bundleId))
             {
@@ -66,6 +65,7 @@ namespace com.noctuagames.sdk
             var fallbackAccountStore = new DefaultNativePlugin();
             _accountStore = new AccountStoreWithFallback(mainAccountStore, fallbackAccountStore);
             _bundleId = bundleId;
+            _locale = locale;
         }
 
         public event Action<UserBundle> OnAccountChanged;
@@ -106,13 +106,10 @@ namespace com.noctuagames.sdk
                 return;
             }
 
-	    // Update user preference language
-	    if (!string.IsNullOrEmpty(newUser.User.Language))
-	    {
-		PlayerPrefs.SetString(PlayerPrefsKeyUserPrefsLanguage, newUser.User.Language);
-	    } else {
-		PlayerPrefs.DeleteKey(PlayerPrefsKeyUserPrefsLanguage);
-	    }
+            // Update user preference language if any
+            if (_locale != null) {
+                _locale.SetUserPrefsLanguage(newUser.User.Language);
+            }
 
             try
             {

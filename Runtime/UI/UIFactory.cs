@@ -10,6 +10,7 @@ namespace com.noctuagames.sdk.UI
     {
         private readonly GameObject _rootObject;
         private readonly PanelSettings _panelSettings;
+        private readonly NoctuaLocale _locale;
         private readonly LoadingProgressPresenter _loading;
         private readonly GeneralNotificationPresenter _notification;
         private readonly BannedConfirmationDialogPresenter _confirmDialog;
@@ -28,9 +29,9 @@ namespace com.noctuagames.sdk.UI
             _confirmDialog = CreateConfirmDialogPresenter();
         }
         
-        internal UIFactory(GameObject rootObject, PanelSettings panelSettings, GlobalConfig config)
+        internal UIFactory(GameObject rootObject, PanelSettings panelSettings, GlobalConfig config, NoctuaLocale locale)
         {
-            var locale = new NoctuaLocale(config.Noctua.Region);
+            _locale = locale;
             _language = locale.GetLanguage();
             _translations = Utility.LoadTranslations(_language);
 

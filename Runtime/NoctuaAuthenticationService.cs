@@ -428,6 +428,7 @@ namespace com.noctuagames.sdk
         private readonly string _clientId;
         private readonly string _baseUrl;
         private readonly string _bundleId;
+        private readonly NoctuaLocale _locale;
         private readonly AccountContainer _accountContainer;
         private readonly EventSender _eventSender;
         private OauthRedirectListener _oauthOauthRedirectListener;
@@ -436,6 +437,7 @@ namespace com.noctuagames.sdk
             string baseUrl,
             string clientId,
             INativeAccountStore nativeAccountStore,
+            NoctuaLocale locale = null,
             string bundleId = null,
             EventSender eventSender = null
         )
@@ -454,12 +456,13 @@ namespace com.noctuagames.sdk
             {
                 throw new ArgumentNullException(nameof(bundleId));
             }
-            
+
             _clientId = clientId;
             _baseUrl = baseUrl;
+            _locale = locale;
             _bundleId = bundleId;
             _eventSender = eventSender;
-            _accountContainer = new AccountContainer(nativeAccountStore, bundleId);
+            _accountContainer = new AccountContainer(nativeAccountStore, bundleId, _locale);
         }
 
         public async UniTask<UserBundle> LoginAsGuestAsync()
