@@ -113,24 +113,19 @@ namespace com.noctuagames.sdk
 
             try
             {
-                var expectedCount = _accounts.Count;
-                
-                if (_accounts.All(x => x.Player?.Id != newUser.Player.Id))
-                {
-                    expectedCount++;    
-                }
-                
                 Save(newUser);
                 Load();
+                
+                bool IsNewUser(UserBundle x) => x.Player?.Id == newUser.Player.Id && x.Player?.AccessToken == newUser.Player?.AccessToken;
 
-                if (_accounts.Count == expectedCount) return;
+                if (_accounts.Any(x => IsNewUser(x))) return;
 
                 _log.Warning("failed to save account, retrying");
 
                 Save(newUser);
                 Load();
 
-                if (_accounts.Count == expectedCount) return;
+                if (_accounts.Any(x => IsNewUser(x))) return;
                 
                 _log.Warning("failed to save account, fallback to PlayerPrefs");
                 _accountStore.EnableFallback();

@@ -1523,8 +1523,7 @@ namespace Tests.Runtime
                 User = new User
                 {
                     Id = 2,
-                    Nickname = "User2",
-                    IsGuest = true
+                    Nickname = "User2"
                 },
                 Player = new Player
                 {
@@ -1566,6 +1565,97 @@ namespace Tests.Runtime
             Assert.AreEqual(2, accounts.Count);
             Assert.AreEqual(2, mockStore.FailedSaveCount);
             Assert.AreEqual(1, useFallback);
+            
+            yield return null;
+        }
+        
+        [UnityTest]
+        public IEnumerator AccountStoreWithFallback_SavingPlayerWithTheSameUser_DontSwitchToFallback()
+        {
+            PlayerPrefs.DeleteKey("NoctuaAccountContainer.UseFallback");
+            PlayerPrefs.DeleteKey("NoctuaAccountContainer");
+                
+            var mockStore = new FaultyMockNativeAccountStore();
+            var accountContainer = new AccountContainer(mockStore, Application.identifier);
+
+            var playerToken = new PlayerToken
+            {
+                AccessToken = "accessToken",
+                User = new User
+                {
+                    Id = 1,
+                    Nickname = "User1"
+                },
+                Player = new Player
+                {
+                    Id = 1,
+                    Username = "Player1",
+                    GameId = 1,
+                    UserId = 1
+                },
+                Credential = new Credential
+                {
+                    Id = 1,
+                    Provider = "email",
+                    DisplayText = "User 1"
+                },
+                Game = new Game
+                {
+                    Id = 2,
+                    Name = "Game2"
+                },
+                GamePlatform = new GamePlatform
+                {
+                    BundleId = Application.identifier,
+                    OS = "Android"
+                }
+            };
+
+            var playerToken2 = new PlayerToken
+            {
+                AccessToken = "accessToken2",
+                User = new User
+                {
+                    Id = 1,
+                    Nickname = "User1",
+                },
+                Player = new Player
+                {
+                    Id = 2,
+                    Username = "Player2",
+                    GameId = 2,
+                    UserId = 2
+                },
+                Credential = new Credential
+                {
+                    Id = 2,
+                    Provider = "device_id",
+                    DisplayText = "Guest 2"
+                },
+                Game = new Game
+                {
+                    Id = 2,
+                    Name = "Game2"
+                },
+                GamePlatform = new GamePlatform
+                {
+                    BundleId = Application.identifier,
+                    OS = "Android"
+                }
+            };
+
+            accountContainer.UpdateRecentAccount(playerToken);
+            accountContainer.UpdateRecentAccount(playerToken2);
+
+            var accounts = accountContainer.Accounts;
+            var useFallback = PlayerPrefs.GetInt("NoctuaAccountContainer.UseFallback");
+
+            PlayerPrefs.DeleteKey("NoctuaAccountContainer.UseFallback");
+            PlayerPrefs.DeleteKey("NoctuaAccountContainer");
+            
+            Assert.AreEqual(1, accounts.Count);
+            Assert.AreEqual(2, accounts.First().PlayerAccounts.Count);
+            Assert.AreEqual(0, useFallback);
             
             yield return null;
         }
