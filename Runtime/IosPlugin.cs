@@ -45,9 +45,6 @@ namespace com.noctuagames.sdk
         [DllImport("__Internal")]
         private static extern void _TAG_ShowDatePicker(int mode, double unix, int pickerId);
 
-        [DllImport ("__Internal")]
-        private static extern void noctuaCloseKeyboardIOS();
-
         public void Init(List<string> activeBundleIds)
         {
             noctuaInitialize();
