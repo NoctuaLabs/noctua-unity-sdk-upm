@@ -128,13 +128,13 @@ namespace com.noctuagames.sdk
         private Noctua()
         {
             var configPath = Path.Combine(Application.streamingAssetsPath, "noctuagg.json");
-            _log.Debug($"Loading config from: {configPath}");
+            Debug.Log($"Loading config from: {configPath}");
             string jsonConfig;
 
             // For Android
             #if UNITY_ANDROID || UNITY_EDITOR_WIN
             
-            _log.Debug("Loading streaming assets in Android by using UnityWebRequest: " + configPath);
+            Debug.Log("Loading streaming assets in Android by using UnityWebRequest: " + configPath);
             
             var configLoadRequest = UnityWebRequest.Get(configPath);
             var now = DateTime.UtcNow;
@@ -181,7 +181,7 @@ namespace com.noctuagames.sdk
             
             #elif UNITY_IOS || UNITY_EDITOR_OSX
             
-            _log.Debug("Loading streaming assets in IOS by using System.IO.File.ReadAllText: " + configPath);
+            Debug.Log("Loading streaming assets in IOS by using System.IO.File.ReadAllText: " + configPath);
 
             try {
                 jsonConfig = File.ReadAllText(configPath, Encoding.UTF8);
