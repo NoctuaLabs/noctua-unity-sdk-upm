@@ -154,8 +154,6 @@ namespace com.noctuagames.sdk
             var jsonBody = JsonConvert.SerializeObject(body, _jsonSettings);
             var rawBody = Encoding.UTF8.GetBytes(jsonBody);
 
-            _log.Debug(jsonBody);
-
             _request.uploadHandler = new UploadHandlerRaw(rawBody);
 
             return this;
