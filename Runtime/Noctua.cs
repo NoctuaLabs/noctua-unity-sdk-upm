@@ -181,7 +181,7 @@ namespace com.noctuagames.sdk
             
             #elif UNITY_IOS || UNITY_EDITOR_OSX
             
-            Noctua.Log.Debug("Loading streaming assets in IOS by using System.IO.File.ReadAllText: " + configPath);
+            _log.Debug("Loading streaming assets in IOS by using System.IO.File.ReadAllText: " + configPath);
 
             try {
                 jsonConfig = File.ReadAllText(configPath, Encoding.UTF8);
@@ -208,7 +208,7 @@ namespace com.noctuagames.sdk
             }
 
             var locale = new NoctuaLocale(config.Noctua.Region);
-            
+
             NoctuaLogger.Init(config);
             
             config.Noctua ??= new NoctuaConfig();
