@@ -25,12 +25,12 @@ namespace com.noctuagames.sdk
     {
         private readonly string _typeName;
         
-        public static void Init()
+        public static void Init(GlobalConfig globalConfig)
         {
             Log.Logger = new LoggerConfiguration()
                 .WriteTo.Sentry(o =>
                 {
-                    o.Dsn = "";
+                    o.Dsn = globalConfig?.Noctua?.SentryDsnUrl ?? "";
                     o.MinimumEventLevel = LogEventLevel.Error;
                 })
                 .MinimumLevel.Debug()

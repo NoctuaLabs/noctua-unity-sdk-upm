@@ -50,6 +50,7 @@ namespace com.noctuagames.sdk
         [JsonProperty("rewardBaseUrl")] public string RewardBaseUrl = DefaultRewardBaseUrl;
 
         [JsonProperty("customerServiceBaseUrl")] public string CustomerServiceBaseUrl = DefaultCustomerServiceBaseUrl;
+        [JsonProperty("sentryDsnUrl")] public string SentryDsnUrl = "";
 
         [JsonProperty("trackerBatchSize")] public uint TrackerBatchSize = 20;
         [JsonProperty("trackerBatchPeriodMs")] public uint TrackerBatchPeriodMs = 300_000;
@@ -126,7 +127,6 @@ namespace com.noctuagames.sdk
 
         private Noctua()
         {
-            NoctuaLogger.Init();
             var configPath = Path.Combine(Application.streamingAssetsPath, "noctuagg.json");
             _log.Debug($"Loading config from: {configPath}");
             string jsonConfig;
@@ -208,6 +208,8 @@ namespace com.noctuagames.sdk
             }
 
             var locale = new NoctuaLocale(config.Noctua.Region);
+            
+            NoctuaLogger.Init(config);
             
             config.Noctua ??= new NoctuaConfig();
             config.Adjust ??= new AdjustConfig();
