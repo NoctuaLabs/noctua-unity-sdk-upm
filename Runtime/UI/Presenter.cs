@@ -6,6 +6,7 @@ namespace com.noctuagames.sdk.UI
 {
     public abstract class Presenter<TModel> : MonoBehaviour
     {
+        private readonly ILogger _log = new NoctuaLogger(typeof(Presenter<TModel>));
         protected TModel Model;
         protected VisualElement View;
 
@@ -14,7 +15,12 @@ namespace com.noctuagames.sdk.UI
         public virtual bool Visible
         {
             get => View.visible;
-            set => View.visible = value;
+            set
+            {
+                _log.Debug(value ? $"showing {_uiDoc.visualTreeAsset.name}" : $"hiding {_uiDoc.visualTreeAsset.name}");
+
+                View.visible = value;
+            }
         }
 
         public void Init(TModel model, PanelSettings panelSettings)
@@ -56,7 +62,7 @@ namespace com.noctuagames.sdk.UI
 
             if (visualTreeAsset is null)
             {
-                Debug.LogError($"View not found for {viewResourceName}");
+                _log.Error($"View not found for {viewResourceName}");
             }
 
             _uiDoc.visualTreeAsset = visualTreeAsset ?? throw new ArgumentNullException(nameof(visualTreeAsset));

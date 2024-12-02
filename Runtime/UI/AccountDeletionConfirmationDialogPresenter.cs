@@ -5,7 +5,7 @@ namespace com.noctuagames.sdk.UI
 {
     internal class AccountDeletionConfirmationDialogPresenter : Presenter<AuthenticationModel>
     {
-
+        private readonly ILogger _log = new NoctuaLogger();
         private UserBundle _recentAccount;
 
         public void Show(UserBundle obj)
@@ -25,6 +25,8 @@ namespace com.noctuagames.sdk.UI
         {
             View.Q<Button>("ConfirmButton").RegisterCallback<PointerUpEvent>(async _  =>
             {
+                _log.Debug("clicking confirm button");
+                
                 var spinner = new Spinner();
                 View.Q<VisualElement>("Spinner").Clear();
                 View.Q<VisualElement>("Spinner").Add(spinner);
@@ -63,6 +65,8 @@ namespace com.noctuagames.sdk.UI
             
             View.Q<Button>("CancelButton").RegisterCallback<PointerUpEvent>(_ =>
             {
+                _log.Debug("clicking cancel button");
+                
                 Visible = false;
                 Model.ShowUserCenter();
             });

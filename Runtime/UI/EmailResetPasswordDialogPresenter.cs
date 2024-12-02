@@ -15,6 +15,7 @@ namespace com.noctuagames.sdk.UI
     {
         public EventSender EventSender;
      
+        private readonly ILogger _log = new NoctuaLogger();
         private string _email;
         private List<TextField> textFields;
         private Button submitButton;
@@ -101,7 +102,7 @@ namespace com.noctuagames.sdk.UI
 
         private async void OnContinueButtonClick(PointerUpEvent evt)
         {
-            Debug.Log("EmailForgotPasswordDialogPresenter.OnContinueButtonClick()");
+            _log.Debug("clicking continue button");
 
             HideAllErrors();
 
@@ -143,23 +144,25 @@ namespace com.noctuagames.sdk.UI
                 View.Q<VisualElement>("Spinner").AddToClassList("hide");
 
             } catch (Exception e) {
+                _log.Warning($"{e.Message}\n{e.StackTrace}");
+                
                 if (e is NoctuaException noctuaEx)
                 {
-                    Debug.Log("NoctuaException: " + noctuaEx.ErrorCode + " : " + noctuaEx.Message);
                     View.Q<Label>("ErrCode").text = noctuaEx.ErrorCode.ToString() + " : " + noctuaEx.Message;
                 } else {
-                    Debug.Log("Exception: " + e);
                     View.Q<Label>("ErrCode").text = e.Message;
                 }
+                
                 View.Q<Label>("ErrCode").RemoveFromClassList("hide");
                 View.Q<Button>("ContinueButton").RemoveFromClassList("hide");
                 View.Q<VisualElement>("Spinner").AddToClassList("hide");
-                return;
             }
         }
 
         private void OnBackButtonClick(PointerUpEvent evt)
         {
+            _log.Debug("clicking back button");
+            
             Visible = false;
             
             Model.ShowEmailLogin();

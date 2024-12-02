@@ -44,6 +44,7 @@ namespace com.noctuagames.sdk
             remove => _service.OnAccountDeleted -= value;
         }
 
+        private readonly ILogger _log = new NoctuaLogger();
         private readonly Config _config;
         private readonly PanelSettings _panelSettings;
         private readonly UIFactory _uiFactory;
@@ -86,6 +87,8 @@ namespace com.noctuagames.sdk
         /// <returns>A UserBundle object representing the selected account.</returns>
         public async UniTask<UserBundle> AuthenticateAsync()
         {
+            _log.Debug("calling API");
+            
             try
             {
                 return await _service.AuthenticateAsync();
@@ -105,100 +108,138 @@ namespace com.noctuagames.sdk
 
         public async UniTask<UserBundle> LoginAsGuest()
         {
+            _log.Debug("calling API");
+            
             return await _service.LoginAsGuestAsync();
         }
 
         public void ResetAccounts() {
+            _log.Debug("calling API");
+            
             _service.ResetAccounts();
         }
 
         // TODO: Add support for phone
         public async UniTask<CredentialVerification> RegisterWithEmailAsync(string email, string password, Dictionary<string, string> regExtra = null)
         {
+            _log.Debug("calling API");
+
             return await _service.RegisterWithEmailAsync(email, password, regExtra);
         }
 
         public async UniTask<UserBundle> VerifyEmailRegistrationAsync(int id, string code)
         {
+            _log.Debug("calling API");
+
             return await _service.VerifyEmailRegistrationAsync(id, code);
         }
 
         // TODO: Add support for phone
         public async UniTask<CredentialVerification> LinkWithEmailAsync(string email, string password)
         {
+            _log.Debug("calling API");
+
             return await _service.LinkWithEmailAsync(email, password);
         }
         
         public async UniTask<Credential> VerifyEmailLinkingAsync(int id, string code)
         {
+            _log.Debug("calling API");
+
             return await _service.VerifyEmailLinkingAsync(id, code);
         }
 
         // TODO: Add support for phone
         public async UniTask<UserBundle> LoginWithEmailAsync(string email, string password)
         {
+            _log.Debug("calling API");
+
             return await _service.LoginWithEmailAsync(email, password);
         }
 
         // TODO: Add support for phone
         public async UniTask<CredentialVerification> RequestResetPasswordAsync(string email)
         {
+            _log.Debug("calling API");
+
             return await _service.RequestResetPasswordAsync(email);
         }
 
         // TODO: Add support for phone
         public async UniTask<UserBundle> ConfirmResetPasswordAsync(int id, string code, string newPassword)
         {
+            _log.Debug("calling API");
+
             return await _service.ConfirmResetPasswordAsync(id, code, newPassword);
         }
 
         public void SwitchAccount(UserBundle user)
         {
+            _log.Debug("calling API");
+            
             UniTask.Void(async () => await _service.SwitchAccountAsync(user));
         }
         
         public async UniTask<UserBundle> ExchangeToken(string accessToken)
         {
+            _log.Debug("calling API");
+
             return await _service.ExchangeTokenAsync(accessToken);
         }
 
         public async UniTask<string> GetSocialLoginRedirectURL(string provider)
         {
+            _log.Debug("calling API");
+
             return await _service.GetSocialAuthRedirectURLAsync(provider);
         }
 
         public async UniTask<UserBundle> SocialLoginAsync(string provider, SocialLoginRequest payload)
         {
+            _log.Debug("calling API");
+
             return await _service.SocialLoginAsync(provider, payload);
         }
 
         public async UniTask<Credential> SocialLinkAsync(string provider, SocialLinkRequest payload)
         {
+            _log.Debug("calling API");
+
             return await _service.SocialLinkAsync(provider, payload);
         }
 
         public async UniTask<PlayerToken> Bind(BindRequest payload)
         {
+            _log.Debug("calling API");
+
             return await _service.Bind(payload);
         }
 
         public async UniTask<UserBundle> SocialLoginAsync(string provider)
         {
+            _log.Debug("calling API");
+
             return await _uiModel.SocialLoginAsync(provider);
         }
 
         public async UniTask UpdatePlayerAccountAsync(PlayerAccountData playerAccountData)
         {
+            _log.Debug("calling API");
+
             await _service.UpdatePlayerAccountAsync(playerAccountData);
         }
         
         public async UniTask<UserBundle> LogoutAsync()
         {
+            _log.Debug("calling API");
+
             return await _service.LogoutAsync();
         }
 
         public void ShowUserCenter()
         {
+            _log.Debug("calling API");
+
             _uiModel.ShowUserCenter();
         }
 
@@ -207,6 +248,8 @@ namespace com.noctuagames.sdk
         /// </summary>
         public void SwitchAccount()
         {
+            _log.Debug("calling API");
+
             _uiModel.ShowAccountSelection();
         }
 

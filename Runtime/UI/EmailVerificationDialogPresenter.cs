@@ -9,6 +9,8 @@ namespace com.noctuagames.sdk.UI
 {
     internal class EmailVerificationDialogPresenter : Presenter<AuthenticationModel>
     {
+        private readonly ILogger _log = new NoctuaLogger();
+        
         private string _email;
         private string _password;
         private int _credVerifyId;
@@ -71,6 +73,8 @@ namespace com.noctuagames.sdk.UI
 
         private async void OnResendButtonClick(ClickEvent evt)
         {
+            _log.Debug("clicking resend button");
+            
             var spinnerInstance = new Spinner();
             View.Q<VisualElement>("Spinner").Clear();
             View.Q<VisualElement>("Spinner").Add(spinnerInstance);
@@ -83,7 +87,7 @@ namespace com.noctuagames.sdk.UI
             View?.Q<VisualElement>("DialogHeader")?.AddToClassList("hide");
             try {
                 var result = await Model.RegisterWithEmailAsync(_email, _password);
-                Debug.Log("RegisterWithPassword verification ID: " + result.Id);
+                _log.Debug("RegisterWithPassword verification ID: " + result.Id);
 
                 _credVerifyId = result.Id;
 
@@ -96,12 +100,12 @@ namespace com.noctuagames.sdk.UI
                 View?.Q<VisualElement>("DialogHeader")?.RemoveFromClassList("hide");
 
             } catch (Exception e) {
+                _log.Warning($"{e.Message}\n{e.StackTrace}");
+                
                 if (e is NoctuaException noctuaEx)
                 {
-                    Debug.Log("NoctuaException: " + noctuaEx.ErrorCode + " : " + noctuaEx.Message);
                     View.Q<Label>("ErrCode").text = noctuaEx.ErrorCode.ToString() + " : " + noctuaEx.Message;
                 } else {
-                    Debug.Log("Exception: " + e);
                     View.Q<Label>("ErrCode").text = e.Message;
                 }
 
@@ -120,6 +124,8 @@ namespace com.noctuagames.sdk.UI
 
         private async void OnVerifyButtonClick(ClickEvent evt)
         {
+            _log.Debug("clicking verify button");
+            
             var spinnerInstance = new Spinner();
             View.Q<VisualElement>("Spinner").Clear();
             View.Q<VisualElement>("Spinner").Add(spinnerInstance);
@@ -144,12 +150,12 @@ namespace com.noctuagames.sdk.UI
                 View?.Q<VisualElement>("DialogHeader")?.RemoveFromClassList("hide");
 
             } catch (Exception e) {
+                _log.Warning($"{e.Message}\n{e.StackTrace}");
+                
                 if (e is NoctuaException noctuaEx)
                 {
-                    Debug.Log("NoctuaException: " + noctuaEx.ErrorCode + " : " + noctuaEx.Message);
                     View.Q<Label>("ErrCode").text = noctuaEx.ErrorCode.ToString() + " : " + noctuaEx.Message;
                 } else {
-                    Debug.Log("Exception: " + e);
                     View.Q<Label>("ErrCode").text = e.Message;
                 }
 

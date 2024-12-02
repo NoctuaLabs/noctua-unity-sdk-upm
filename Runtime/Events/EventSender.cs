@@ -173,7 +173,7 @@ namespace com.noctuagames.sdk.Events
         }
 
 #if UNITY_ANDROID && !UNITY_EDITOR
-        private static string GetGoogleAdId()
+        private string GetGoogleAdId()
         {
             try
             {
@@ -195,7 +195,7 @@ namespace com.noctuagames.sdk.Events
             }
             catch (AndroidJavaException e)
             {
-                Debug.Log("Failed to get Google Advertising ID: " + e.Message);
+                _log.Warning("Failed to get Google Advertising ID: " + e.Message);
             }
             
             return null;

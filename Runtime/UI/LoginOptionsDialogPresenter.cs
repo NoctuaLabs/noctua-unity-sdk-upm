@@ -7,6 +7,7 @@ namespace com.noctuagames.sdk.UI
 {
     internal class LoginOptionsDialogPresenter : Presenter<AuthenticationModel>
     {
+        private readonly ILogger _log = new NoctuaLogger();
         private Label _tnCLabel;
         private Label _privacyLabel;
         private Button _loginWithGoogleButton;
@@ -54,24 +55,32 @@ namespace com.noctuagames.sdk.UI
 
         private void OnTnCClicked()
         {
+            _log.Debug("clicking tnc");
+            
             var tncUrl = string.IsNullOrEmpty(_config?.CoPublisher?.CompanyName) ? "https://noctua.gg/tou" : _config.CoPublisher.CompanyTermUrl;
             Application.OpenURL(tncUrl);
         }
 
         private void OnPrivacyClicked()
         {
+            _log.Debug("clicking privacy");
+            
             var privacyUrl = string.IsNullOrEmpty(_config?.CoPublisher?.CompanyName) ? "https://noctua.gg/privacy" : _config.CoPublisher.CompanyPrivacyUrl;
             Application.OpenURL(privacyUrl);
         }
 
         private void OnLoginWithFacebookButtonClicked()
         {
+            _log.Debug("clicking login with facebook");
+            
             Visible = false;
             StartCoroutine(SocialLogin("facebook").ToCoroutine());
         }
 
         private void OnLoginWithGoogleButtonClicked()
         {
+            _log.Debug("clicking login with google");
+            
             Visible = false;
             StartCoroutine(SocialLogin("google").ToCoroutine());
         }
@@ -90,6 +99,8 @@ namespace com.noctuagames.sdk.UI
 
         private void OnLoginWithEmailButtonClicked()
         {
+            _log.Debug("clicking login with email");
+            
             Visible = false;
 
             Model.PushNavigation(() => Model.ShowLoginOptions());
@@ -98,6 +109,8 @@ namespace com.noctuagames.sdk.UI
         
         private void OnRegisterButtonClicked()
         {
+            _log.Debug("clicking register with email");
+            
             Visible = false;
             
             Model.PushNavigation(() => Model.ShowLoginOptions());
@@ -106,6 +119,8 @@ namespace com.noctuagames.sdk.UI
 
         private void OnBackButtonClicked()
         {
+            _log.Debug("clicking back button");
+            
             Visible = false;
 
             Model.NavigateBack();

@@ -51,12 +51,12 @@ namespace com.noctuagames.sdk.UI
 
             void PageStarted(UniWebView webView, string url)
             {
-                _log.Info($"Page started: {url}");
+                _log.Debug($"Page started: {url}");
             }
 
             void PageFinished(UniWebView webView, int statusCode, string url)
             {
-                _log.Info($"Page finished: {url}");
+                _log.Debug($"Page finished: {url}");
             }
 
             void Close(PointerUpEvent evt)

@@ -47,6 +47,8 @@ namespace com.noctuagames.sdk.UI
 
         private async void OpenCS(PointerUpEvent evt)
         {
+            _log.Debug("clicking customer Service button");
+            
             try
             {
                 Visible = false;
@@ -75,6 +77,8 @@ namespace com.noctuagames.sdk.UI
 
         private void CloseDialog(PointerUpEvent evt)
         {
+            _log.Debug("clicking OK button");
+            
             Visible = false;
             _tcs?.TrySetResult(true);
         }

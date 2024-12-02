@@ -102,7 +102,7 @@ namespace com.noctuagames.sdk
         {
             if (string.IsNullOrEmpty(productId))
             {
-                Debug.LogError("Product ID is null or empty");
+                _log.Debug("Product ID is null or empty");
                 completion?.Invoke(false, "Product ID is null or empty");
                 return;
             }

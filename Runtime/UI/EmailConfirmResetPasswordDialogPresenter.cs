@@ -10,6 +10,7 @@ namespace com.noctuagames.sdk.UI
     {
         public EventSender EventSender;
      
+        private readonly ILogger _log = new NoctuaLogger();
         private string _credVerifyCode;
         private string _password;
         private string _rePassword;
@@ -112,13 +113,15 @@ namespace com.noctuagames.sdk.UI
 
         private void OnBackButtonClick(ClickEvent evt)
         {
+            _log.Debug("clicking back button");
+            
             Visible = false;
             Model.ShowEmailResetPassword(false);
         }
 
         private async void OnContinueButtonClick(ClickEvent evt)
         {
-            Debug.Log("EmailConfirmResetPasswordDialogPresenter.OnContinueButtonClick()");
+            _log.Debug("clicking continue button");
 
             HideAllErrors();
 
@@ -164,7 +167,6 @@ namespace com.noctuagames.sdk.UI
             }
 
             try {
-
                 await Model.AuthService.ConfirmResetPasswordAsync(verificationId, verificationCode, password);
                 
                 EventSender?.Send("reset_password_success");
@@ -176,21 +178,21 @@ namespace com.noctuagames.sdk.UI
                 View.Q<VisualElement>("Spinner").AddToClassList("hide");
 
             } catch (Exception e) {
+                _log.Warning($"{e.Message}\n{e.StackTrace}");
+                    
                 if (e is NoctuaException noctuaEx)
                 {
-                    Debug.Log("NoctuaException: " + noctuaEx.ErrorCode + " : " + noctuaEx.Message);
                     if (noctuaEx.ErrorCode == 2022) {
                         View.Q<Label>("ErrVerificationCodeInvalid").RemoveFromClassList("hide");
                     } else {
                         View.Q<Label>("ErrCode").text = noctuaEx.ErrorCode.ToString() + " : " + noctuaEx.Message;
                     }
                 } else {
-                    Debug.Log("Exception: " + e);
                     View.Q<Label>("ErrCode").text = e.Message;
                 }
+                
                 View.Q<Button>("ContinueButton").RemoveFromClassList("hide");
                 View.Q<VisualElement>("Spinner").AddToClassList("hide");
-                return;
             }
         }   
 

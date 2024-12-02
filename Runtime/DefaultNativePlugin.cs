@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using Newtonsoft.Json;
 using UnityEngine;
@@ -8,6 +9,8 @@ namespace com.noctuagames.sdk
 {
     public class DefaultNativePlugin : INativePlugin
     {
+        private readonly ILogger _log = new NoctuaLogger(typeof(DefaultNativePlugin));
+        
         public void Init(List<string> activeBundleIds)
         {
         }
@@ -61,6 +64,8 @@ namespace com.noctuagames.sdk
             }
             catch (Exception)
             {
+                _log.Error("Failed to parse account container");
+                
                 return new List<NativeAccount>();
             }
         }

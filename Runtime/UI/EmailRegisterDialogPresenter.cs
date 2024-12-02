@@ -13,6 +13,8 @@ namespace com.noctuagames.sdk.UI
 {
     internal class EmailRegisterDialogPresenter : Presenter<AuthenticationModel>
     {
+        private readonly ILogger _log = new NoctuaLogger();
+        
         private string _email;
         private string _password;
         private string _rePassword;
@@ -54,6 +56,8 @@ namespace com.noctuagames.sdk.UI
         public void SetBehaviourWhitelabel(GlobalConfig config)
         {
             _config = config;
+            
+            _log.Debug("behaviour Whitelabel: " + JsonConvert.SerializeObject(_config?.Noctua?.Flags));
         }
 
         private bool IsValidEmail(string email)
@@ -278,6 +282,8 @@ namespace com.noctuagames.sdk.UI
 
         private async void OnContinueButtonClick(PointerUpEvent evt)
         {
+            _log.Debug("clicking continue button");
+            
             HideAllErrors();
 
             var spinnerInstance = new Spinner();
@@ -402,24 +408,26 @@ namespace com.noctuagames.sdk.UI
 
             } 
             catch (Exception e) {
+                _log.Warning($"{e.Message}\n{e.StackTrace}");
+                
                 if (e is NoctuaException noctuaEx)
                 {
-                    Debug.Log("NoctuaException: " + noctuaEx.ErrorCode + " : " + noctuaEx.Message);
                     View.Q<Label>("ErrCode").text = noctuaEx.ErrorCode.ToString() + " : " + noctuaEx.Message;
                 } else {
-                    Debug.Log("Exception: " + e);
                     View.Q<Label>("ErrCode").text = e.Message;
                 }
+
                 View.Q<Label>("ErrCode").RemoveFromClassList("hide");
                 View.Q<Button>("ContinueButton").RemoveFromClassList("hide");
                 View.Q<VisualElement>("AdditionalFooterContent").RemoveFromClassList("hide");
                 View.Q<VisualElement>("Spinner").AddToClassList("hide");
-                return;
             }
         }
 
         private void OnBackButtonClick(PointerUpEvent evt)
         {
+            _log.Debug("clicking back button");
+            
             View.Q<VisualElement>("Spinner").AddToClassList("hide");
             View.Q<Button>("ContinueButton").RemoveFromClassList("hide");
 

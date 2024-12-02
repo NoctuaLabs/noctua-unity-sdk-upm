@@ -40,6 +40,24 @@ namespace Tests.Runtime
             }
         }
 
+        [UnitySetUp]
+        public IEnumerator SetUp()
+        {
+            PlayerPrefs.DeleteKey("NoctuaAccountContainer");
+            PlayerPrefs.DeleteKey("NoctuaAccountContainer.UseFallback");
+
+            yield return null;
+        }
+
+        [UnityTearDown]
+        public IEnumerator TearDown()
+        {
+            PlayerPrefs.DeleteKey("NoctuaAccountContainer");
+            PlayerPrefs.DeleteKey("NoctuaAccountContainer.UseFallback");
+
+            yield return null;
+        }
+
         [UnityTest]
         public IEnumerator EmptyContainer_NoAccountsAndNoRecentAccount()
         {
@@ -81,7 +99,7 @@ namespace Tests.Runtime
                       }
                     }"
             };
-            
+
             var account2 = new NativeAccount
             {
                 PlayerId = 2,
@@ -111,7 +129,7 @@ namespace Tests.Runtime
             var accountContainer = new AccountContainer(mockStore, "example.noctuagames.android.game1");
 
             accountContainer.Load();
-            
+
             var accounts = accountContainer.Accounts;
 
             Assert.AreEqual(2, accounts.Count);
@@ -418,7 +436,7 @@ namespace Tests.Runtime
             };
 
             accountContainer2.UpdateRecentAccount(playerToken);
-            
+
             accountContainer.Load();
 
             var accounts = accountContainer.Accounts;
@@ -620,7 +638,7 @@ namespace Tests.Runtime
             accountContainer2.UpdateRecentAccount(playerToken2);
 
             accountContainer.Load();
-            
+
             var accounts = accountContainer.Accounts;
 
             Assert.AreEqual(1, accounts.Count);
@@ -1158,21 +1176,24 @@ namespace Tests.Runtime
             var accounts = accountContainer.Accounts;
 
             Assert.AreEqual(1, accounts.Count);
-            
+
             Assert.IsNull(accountContainer.RecentAccount);
             Assert.AreEqual(playerToken3.User.Id, accounts[0].User.Id);
             Assert.AreEqual(playerToken3.User.Nickname, accounts[0].User.Nickname);
 
             yield return null;
         }
-        
+    }
+
+    public class AccountStoreWithFallbackTest
+    {
         private class FaultyMockNativeAccountStore : INativeAccountStore
         {
             private readonly List<NativeAccount> _accounts = new();
 
             public int FailedSaveCount { get; private set; }
             public int FailedLoadCount { get; private set; }
-            
+
             private int _numFailures;
             private bool _throwExceptionAtSave;
             private bool _throwExceptionAtLoad;
@@ -1181,12 +1202,12 @@ namespace Tests.Runtime
             {
                 _numFailures = numFailures;
             }
-            
+
             public void EnableThrowExceptionAtSave(bool throwException)
             {
                 _throwExceptionAtSave = throwException;
             }
-            
+
             public void EnableThrowExceptionAtLoad(bool throwException)
             {
                 _throwExceptionAtLoad = throwException;
@@ -1198,6 +1219,7 @@ namespace Tests.Runtime
                     return _accounts.First(account => account.PlayerId == userId && account.GameId == gameId);
 
                 FailedLoadCount++;
+
                 throw new Exception("Failed to load account");
             }
 
@@ -1206,6 +1228,7 @@ namespace Tests.Runtime
                 if (!_throwExceptionAtLoad) return new List<NativeAccount>(_accounts);
 
                 FailedLoadCount++;
+
                 throw new Exception("Failed to load account");
 
             }
@@ -1215,16 +1238,18 @@ namespace Tests.Runtime
                 if (_throwExceptionAtSave)
                 {
                     FailedSaveCount++;
+
                     throw new Exception("Failed to save account");
                 }
-                
+
                 if (_numFailures > 0)
                 {
                     FailedSaveCount++;
                     _numFailures--;
+
                     return;
                 }
-                
+
                 account.LastUpdated = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
                 _accounts.RemoveAll(a => a.PlayerId == account.PlayerId && a.GameId == account.GameId);
                 _accounts.Add(account);
@@ -1238,12 +1263,27 @@ namespace Tests.Runtime
             }
         }
         
+        [UnitySetUp]
+        public IEnumerator SetUp()
+        {
+            PlayerPrefs.DeleteKey("NoctuaAccountContainer");
+            PlayerPrefs.DeleteKey("NoctuaAccountContainer.UseFallback");
+
+            yield return null;
+        }
+
+        [UnityTearDown]
+        public IEnumerator TearDown()
+        {
+            PlayerPrefs.DeleteKey("NoctuaAccountContainer");
+            PlayerPrefs.DeleteKey("NoctuaAccountContainer.UseFallback");
+
+            yield return null;
+        }
+
         [UnityTest]
         public IEnumerator AccountStoreWithFallback_OnThrowExceptionAtLoad_SwitchToPlayerPrefs()
         {
-            PlayerPrefs.DeleteKey("NoctuaAccountContainer.UseFallback");
-            PlayerPrefs.DeleteKey("NoctuaAccountContainer");
-                
             var mockStore = new FaultyMockNativeAccountStore();
             var accountContainer = new AccountContainer(mockStore, Application.identifier);
 
@@ -1288,8 +1328,6 @@ namespace Tests.Runtime
 
             var accounts = accountContainer.Accounts;
             var useFallback = PlayerPrefs.GetInt("NoctuaAccountContainer.UseFallback");
-            PlayerPrefs.DeleteKey("NoctuaAccountContainer.UseFallback");
-            PlayerPrefs.DeleteKey("NoctuaAccountContainer");
 
             Assert.AreEqual(1, accounts.Count);
             Assert.AreEqual(1, mockStore.FailedLoadCount);
@@ -1301,9 +1339,6 @@ namespace Tests.Runtime
         [UnityTest]
         public IEnumerator AccountStoreWithFallback_OnThrowExceptionAtSave_SwitchToPlayerPrefs()
         {
-            PlayerPrefs.DeleteKey("NoctuaAccountContainer.UseFallback");
-            PlayerPrefs.DeleteKey("NoctuaAccountContainer");
-            
             var mockStore = new FaultyMockNativeAccountStore();
             var accountContainer = new AccountContainer(mockStore, Application.identifier);
             
@@ -1347,8 +1382,6 @@ namespace Tests.Runtime
             var accounts = accountContainer.Accounts;
             
             var useFallback = PlayerPrefs.GetInt("NoctuaAccountContainer.UseFallback");
-            PlayerPrefs.DeleteKey("NoctuaAccountContainer.UseFallback");
-            PlayerPrefs.DeleteKey("NoctuaAccountContainer");
             
             Assert.AreEqual(1, accounts.Count);
             Assert.AreEqual(1, mockStore.FailedSaveCount);
@@ -1361,9 +1394,6 @@ namespace Tests.Runtime
         [UnityTest]
         public IEnumerator AccountStoreWithFallback_OnFail1x_DontSwitchToPlayerPrefs()
         {
-            PlayerPrefs.DeleteKey("NoctuaAccountContainer.UseFallback");
-            PlayerPrefs.DeleteKey("NoctuaAccountContainer");
-                
             var mockStore = new FaultyMockNativeAccountStore();
             var accountContainer = new AccountContainer(mockStore, Application.identifier);
 
@@ -1406,8 +1436,6 @@ namespace Tests.Runtime
 
             var accounts = accountContainer.Accounts;
             var useFallback = PlayerPrefs.GetInt("NoctuaAccountContainer.UseFallback");
-            PlayerPrefs.DeleteKey("NoctuaAccountContainer.UseFallback");
-            PlayerPrefs.DeleteKey("NoctuaAccountContainer");
             
             Assert.AreEqual(1, accounts.Count);
             Assert.AreEqual(1, mockStore.FailedSaveCount);
@@ -1464,9 +1492,6 @@ namespace Tests.Runtime
 
             var accounts = accountContainer.Accounts;
             var useFallback = PlayerPrefs.GetInt("NoctuaAccountContainer.UseFallback");
-
-            PlayerPrefs.DeleteKey("NoctuaAccountContainer.UseFallback");
-            PlayerPrefs.DeleteKey("NoctuaAccountContainer");
             
             Assert.AreEqual(1, accounts.Count);
             Assert.AreEqual(2, mockStore.FailedSaveCount);
@@ -1478,9 +1503,6 @@ namespace Tests.Runtime
         [UnityTest]
         public IEnumerator AccountStoreWithFallback_OnFail2xAfterSuccess_SwitchToPlayerPrefs()
         {
-            PlayerPrefs.DeleteKey("NoctuaAccountContainer.UseFallback");
-            PlayerPrefs.DeleteKey("NoctuaAccountContainer");
-                
             var mockStore = new FaultyMockNativeAccountStore();
             var accountContainer = new AccountContainer(mockStore, Application.identifier);
 
@@ -1570,11 +1592,8 @@ namespace Tests.Runtime
         }
         
         [UnityTest]
-        public IEnumerator AccountStoreWithFallback_SavingPlayerWithTheSameUser_DontSwitchToFallback()
+        public IEnumerator EmptyContainer_UpdatingPlayer_DontSwitchToFallback()
         {
-            PlayerPrefs.DeleteKey("NoctuaAccountContainer.UseFallback");
-            PlayerPrefs.DeleteKey("NoctuaAccountContainer");
-                
             var mockStore = new FaultyMockNativeAccountStore();
             var accountContainer = new AccountContainer(mockStore, Application.identifier);
 
@@ -1591,7 +1610,8 @@ namespace Tests.Runtime
                     Id = 1,
                     Username = "Player1",
                     GameId = 1,
-                    UserId = 1
+                    UserId = 1,
+                    AccessToken = "accessToken"
                 },
                 Credential = new Credential
                 {
@@ -1624,13 +1644,14 @@ namespace Tests.Runtime
                     Id = 2,
                     Username = "Player2",
                     GameId = 2,
-                    UserId = 2
+                    UserId = 1,
+                    AccessToken = "updatedAccessToken"
                 },
                 Credential = new Credential
                 {
                     Id = 2,
-                    Provider = "device_id",
-                    DisplayText = "Guest 2"
+                    Provider = "email",
+                    DisplayText = "User 1"
                 },
                 Game = new Game
                 {
@@ -1649,9 +1670,6 @@ namespace Tests.Runtime
 
             var accounts = accountContainer.Accounts;
             var useFallback = PlayerPrefs.GetInt("NoctuaAccountContainer.UseFallback");
-
-            PlayerPrefs.DeleteKey("NoctuaAccountContainer.UseFallback");
-            PlayerPrefs.DeleteKey("NoctuaAccountContainer");
             
             Assert.AreEqual(1, accounts.Count);
             Assert.AreEqual(2, accounts.First().PlayerAccounts.Count);
@@ -1663,7 +1681,6 @@ namespace Tests.Runtime
         [UnityTest]
         public IEnumerator AccountStoreWithFallback_UseFallbackAtStartup_NeverWritesToMainStore()
         {
-            PlayerPrefs.DeleteKey("NoctuaAccountContainer");
             PlayerPrefs.SetInt("NoctuaAccountContainer.UseFallback", 1);
                 
             var mockStore = new FaultyMockNativeAccountStore();
@@ -1709,9 +1726,6 @@ namespace Tests.Runtime
             Assert.AreEqual(1, accounts.Count);
             Assert.AreEqual(0, mockStore.FailedSaveCount);
             Assert.AreEqual(0, mockStore.GetAccounts().Count);
-            
-            PlayerPrefs.DeleteKey("NoctuaAccountContainer.UseFallback");
-            PlayerPrefs.DeleteKey("NoctuaAccountContainer");
 
             yield return null;
         }

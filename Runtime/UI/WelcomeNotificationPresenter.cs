@@ -39,8 +39,8 @@ namespace com.noctuagames.sdk.UI
 
         public void Show(UserBundle userBundle)
         {
-            _log.Debug("Welcome " + userBundle.User.Nickname);
-            _log.Debug("Provider: " + userBundle.Credential.Provider);
+            _log.Debug($"show welcome toast, user is '{userBundle.User?.Id} - {userBundle.Player?.Id} - {userBundle.DisplayName}'");
+            
             StartCoroutine(RunAnimation(userBundle));
         }
 

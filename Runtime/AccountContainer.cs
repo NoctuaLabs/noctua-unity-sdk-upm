@@ -32,17 +32,14 @@ namespace com.noctuagames.sdk
             {
                 var oldUser = _recentAccount;
                 _recentAccount = value;
-
-                if (_recentAccount == null)
-                {
-                    return;
-                }
-
+                
                 if (oldUser?.User?.Id == _recentAccount?.User?.Id && oldUser?.Player?.Id == _recentAccount?.Player.Id)
                 {
                     return;
                 }
                 
+                _log.Debug($"account changed to '{RecentAccount?.User?.Id}-{RecentAccount?.Player?.Id}-{RecentAccount?.Credential?.DisplayText}'");
+
                 UniTask.Void(async () => OnAccountChanged?.Invoke(RecentAccount));
             }
         }
@@ -138,7 +135,7 @@ namespace com.noctuagames.sdk
             
             Save(newUser);
             Load();
-
+            
             if (_accounts.Count != 0) return;
 
             _log.Error("failed to save account, fallback failed");
@@ -363,10 +360,6 @@ namespace com.noctuagames.sdk
             );
 
             Load();
-            
-            RecentAccount = null;
-            
-            UniTask.Void(async () => OnAccountChanged?.Invoke(RecentAccount));
         }
 
         [Preserve]
@@ -379,6 +372,7 @@ namespace com.noctuagames.sdk
 
         private class AccountStoreWithFallback
         {
+            private readonly ILogger _log = new NoctuaLogger();
             private readonly INativeAccountStore _mainStore;
             private readonly INativeAccountStore _fallbackStore;
             private bool _useFallback;
@@ -387,6 +381,7 @@ namespace com.noctuagames.sdk
             {
                 _useFallback = true;
                 PlayerPrefs.SetInt("NoctuaAccountContainer.UseFallback", 1);
+                PlayerPrefs.Save();
             }
             
             public AccountStoreWithFallback(INativeAccountStore mainStore, INativeAccountStore fallbackStore)
@@ -419,6 +414,8 @@ namespace com.noctuagames.sdk
                 }
                 catch (Exception e)
                 {
+                    _log.Error($"failed to get accounts: {e.Message}, fallback enabled");
+                    
                     EnableFallback();
 
                     return _fallbackStore.GetAccounts();

@@ -19,6 +19,8 @@ namespace com.noctuagames.sdk.UI
     
     internal class EmailLoginDialogPresenter : Presenter<AuthenticationModel>
     {
+        private readonly ILogger _log = new NoctuaLogger();
+        
         private string _email;
         private string _password;
         private VisualElement _spinner;
@@ -35,7 +37,6 @@ namespace com.noctuagames.sdk.UI
             _onLoginSuccess = onLoginSuccess;
             Visible = true;
         }
-        
         
         protected override void Attach(){}
         protected override void Detach(){}
@@ -153,6 +154,8 @@ namespace com.noctuagames.sdk.UI
 
         private void OnForgotPasswordButtonClick(PointerUpEvent evt)
         {
+            _log.Debug("clicking forgot password button");
+            
             Visible = false;
             // Show with empty form
             Model.PushNavigation(() => Model.ShowEmailLogin());
@@ -161,6 +164,8 @@ namespace com.noctuagames.sdk.UI
 
         private void OnRegisterButtonClick(PointerUpEvent evt)
         {
+            _log.Debug("clicking register button");
+            
             Visible = false;
             
             Model.PushNavigation(() => Model.ShowEmailLogin());
@@ -169,7 +174,7 @@ namespace com.noctuagames.sdk.UI
 
         private async void OnContinueButtonClick(PointerUpEvent evt)
         {
-            Debug.Log("EmailLoginDialogPresenter.OnContinueButtonClick()");
+            _log.Debug("clicking continue button");
 
             HideAllErrors();
 
@@ -227,6 +232,8 @@ namespace com.noctuagames.sdk.UI
                 
                 Visible = false;
             } catch (Exception e) {
+                _log.Warning($"{e.Message}\n{e.StackTrace}");
+                
                 if (e is NoctuaException noctuaEx)
                 {
                     if(noctuaEx.ErrorCode == (int)NoctuaErrorCode.UserBanned)
@@ -241,10 +248,8 @@ namespace com.noctuagames.sdk.UI
                         throw new OperationCanceledException("Action canceled.");
                     }
 
-                    Debug.Log("NoctuaException: " + noctuaEx.ErrorCode + " : " + noctuaEx.Message);
                     View.Q<Label>("ErrCode").text = noctuaEx.ErrorCode.ToString() + " : " + noctuaEx.Message;
                 } else {
-                    Debug.Log("Exception: " + e);
                     View.Q<Label>("ErrCode").text = e.Message;
                 }
 

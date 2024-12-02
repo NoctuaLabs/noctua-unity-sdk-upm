@@ -12,7 +12,7 @@ using UnityEngine;
 
 namespace com.noctuagames.sdk
 {
-    internal interface ILogger
+    public interface ILogger
     {
         void Debug(string message, [CallerMemberName] string caller = "");
         void Info(string message, [CallerMemberName] string caller = "");
@@ -170,13 +170,12 @@ namespace com.noctuagames.sdk
     }
 #endif
 
-    public class GlobalExceptionHandler : MonoBehaviour
+    internal class GlobalExceptionLogger : MonoBehaviour
     {
-        private ILogger _logger;
+        private readonly ILogger _log = new NoctuaLogger();
 
         void Awake()
         {
-            _logger = new NoctuaLogger(typeof(GlobalExceptionHandler));
             Application.logMessageReceived += HandleLog;
             AppDomain.CurrentDomain.UnhandledException += HandleUnhandledException;
             Application.logMessageReceivedThreaded += HandleLogThreaded;
@@ -186,21 +185,21 @@ namespace com.noctuagames.sdk
         {
             if (type == LogType.Exception)
             {
-                _logger.Error($"{logString}\n{stackTrace}");
+                _log.Error($"{logString}\n{stackTrace}");
             }
         }
 
         private void HandleUnhandledException(object sender, UnhandledExceptionEventArgs e)
         {
             Exception ex = (Exception)e.ExceptionObject;
-            _logger.Exception(ex);
+            _log.Exception(ex);
         }
 
         private void HandleLogThreaded(string logString, string stackTrace, LogType type)
         {
             if (type == LogType.Exception)
             {
-                _logger.Error($"{logString}\n{stackTrace}");
+                _log.Error($"{logString}\n{stackTrace}");
             }
         }
 

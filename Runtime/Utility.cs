@@ -9,7 +9,7 @@ using Newtonsoft.Json;
 
 namespace com.noctuagames.sdk
 {
-    public static class Utility
+    internal static class Utility
     {
         public static string PrintFields<T>(this T obj)
         {

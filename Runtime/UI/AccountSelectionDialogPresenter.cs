@@ -86,6 +86,8 @@ namespace com.noctuagames.sdk.UI
 
         private void OnContinueButtonClick(PointerUpEvent evt)
         {
+            _log.Debug("clicking continue button");
+            
             View.visible = false;
             
             Model.PushNavigation(() => Model.ShowAccountSelection());
@@ -101,6 +103,8 @@ namespace com.noctuagames.sdk.UI
 
         private void OnCloseButtonClick(PointerUpEvent evt)
         {
+            _log.Debug("clicking close button");
+            
             Visible = false;
             
             Model.ClearNavigation();
@@ -120,13 +124,13 @@ namespace com.noctuagames.sdk.UI
             element.userData = items[index];
             element.RegisterCallback<PointerUpEvent>(_ =>
             {
-                var selectedAccount = items[index];
+                var selected = items[index];
                 
-                _log.Info($"Selected {selectedAccount?.User?.Nickname}");
+                _log.Info($"selected {selected?.Credential?.DisplayText} - {selected?.User?.Id} - {selected?.Player?.Id}");
 
-                if (selectedAccount is { IsRecent: false })
+                if (selected is { IsRecent: false })
                 {
-                    Model.ShowSwitchAccountConfirmation(selectedAccount);
+                    Model.ShowSwitchAccountConfirmation(selected);
                 }
 
                 View.visible = false;

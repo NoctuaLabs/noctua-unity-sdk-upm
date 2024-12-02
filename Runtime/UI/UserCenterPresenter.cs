@@ -17,6 +17,8 @@ namespace com.noctuagames.sdk.UI
     {
         public EventSender EventSender;
         
+        private readonly ILogger _log = new NoctuaLogger();
+        
         private VisualTreeAsset _itemTemplate;
         private Texture2D _defaultAvatar;
         private ListView _credentialListView;
@@ -170,7 +172,7 @@ namespace com.noctuagames.sdk.UI
                 var user = await Model.AuthService.GetUserAsync();
                 var isGuest = user?.IsGuest == true;
                 
-                Debug.Log($"GetCurrentUser: {user?.Id} {user?.Nickname}");
+                _log.Debug($"current user in user center is '{user?.Id} - {user?.Nickname}'");
 
                 View.Q<Label>("PlayerName").text = isGuest ? "Guest " + user.Id  : user?.Nickname;
                 View.Q<Label>("UserIdLabel").text = user?.Id.ToString() ?? "";
@@ -267,7 +269,7 @@ namespace com.noctuagames.sdk.UI
                 if (!isGuest) {
                     foreach (var t in _credentials)
                     {
-                        Debug.Log($"Credential: {t.CredentialProvider} {t.Username}");
+                        _log.Debug($"credential: {t.CredentialProvider} {t.Username}");
                         
                         var credential = user?.Credentials.Find(c => c.Provider == t.CredentialProvider.ToString().ToLower());
                         t.Username = credential?.DisplayText ?? "";
@@ -283,7 +285,7 @@ namespace com.noctuagames.sdk.UI
             }
             catch (Exception e)
             {
-                Debug.Log(e.Message);
+                _log.Warning($"{e.Message}\n{e.StackTrace}");
                 
                 _credentials.ForEach(c => c.Username = "");
                 Model.ShowGeneralNotification(e.Message);
@@ -325,9 +327,9 @@ namespace com.noctuagames.sdk.UI
         private void OnCopyText()
         {
             GUIUtility.systemCopyBuffer = _userIDValue;
-            Debug.Log("Text copied to clipboard: " + _userIDValue);
+            _log.Debug($"copied '{_userIDValue}' to clipboard");
 
-            Model.ShowGeneralNotification("Text copied to clipboard", true);
+            Model.ShowGeneralNotification($"copied '{_userIDValue}' to clipboard", true);
         }
 
         private void SetupDatePickerUI()
@@ -342,7 +344,7 @@ namespace com.noctuagames.sdk.UI
                 Noctua.OpenDatePicker(parsedDate.Year, parsedDate.Month, parsedDate.Day, 1,
                 (DateTime _date) =>
                 {
-                    Debug.Log(_date.ToString("dd/MM/yyyy"));
+                    _log.Debug($"picked date '{_date:O}'");
                 },
                 (DateTime _date) =>
                 {
@@ -502,7 +504,7 @@ namespace com.noctuagames.sdk.UI
                 }
             } );
 
-            Debug.Log( "Permission result: " + permission );
+            _log.Debug( "Permission result: " + permission );
         }
 
         private async void FileUploader(string filePath) 
@@ -532,7 +534,7 @@ namespace com.noctuagames.sdk.UI
 
                 if (www.result == UnityWebRequest.Result.ConnectionError || www.result == UnityWebRequest.Result.ProtocolError)
                 {
-                    Debug.LogError(www.error);
+                    _log.Error($"Error loading image from url: {url}, error: {www.error}");
                 }
                 else
                 {
@@ -551,11 +553,15 @@ namespace com.noctuagames.sdk.UI
 
         private void OnEditProfile() 
         {
+            _log.Debug("clicking edit profile");
+
             OnUIEditProfile(true);
         }
 
         private void OnBackEditProfile() 
         {
+            _log.Debug("clicking back on edit profile");
+            
             OnUIEditProfile(false);
         }
 
@@ -674,6 +680,8 @@ namespace com.noctuagames.sdk.UI
 
         private void OnSaveEditProfile()
         {
+            _log.Debug("clicking save edit profile");
+            
             SaveProfile();
         }
 
@@ -797,9 +805,13 @@ namespace com.noctuagames.sdk.UI
                 Model.ShowGeneralNotification("Update profile successfully", true);
 
                 OnUIEditProfile(false);
+                
+                _log.Debug("updated user profile successfully");
             }
             catch (Exception e)
             {
+                _log.Exception(e);
+                
                 Model.ShowGeneralNotification(e.Message);
                 
                 _errorLabel.AddToClassList("hide");
@@ -809,12 +821,13 @@ namespace com.noctuagames.sdk.UI
 
                 View.Q<Button>("ChangePictureButton").RemoveFromClassList("hide");
                 View.Q<VisualElement>("Spinner2").AddToClassList("hide");
-
             }
         }
 
         private void OnSwitchProfile()
         {
+            _log.Debug("clicking switch profile");
+            
             Visible = false;
             Model.ShowAccountSelection();
             OnUIEditProfile(false);
@@ -822,6 +835,8 @@ namespace com.noctuagames.sdk.UI
 
         private void OnLogout()
         {
+            _log.Debug("clicking logout");
+            
             Visible = false;
             OnUIEditProfile(false);
             StartCoroutine(Model.AuthService.LogoutAsync().ToCoroutine());
@@ -860,6 +875,8 @@ namespace com.noctuagames.sdk.UI
 
         private void OnDeleteAccount()
         {
+            _log.Debug("clicking delete account");
+            
             Visible = false;
             OnUIEditProfile(false);
             Model.ShowAccountDeletionConfirmation(Model.AuthService.RecentAccount);
@@ -867,14 +884,15 @@ namespace com.noctuagames.sdk.UI
 
         private void OnMoreOptionsButtonClick(PointerUpEvent evt)
         {
-            Debug.Log("More options clicked");
+            _log.Debug("clicking more options button");
+            
             ToggleMoreOptionsMenu();
             evt.StopPropagation();
         }
 
         private void OnGuestConnectButtonClick(PointerUpEvent evt)
         {
-            Debug.Log("Guest connect clicked");
+            _log.Debug("clicking guest connect button");
 
             View.visible = false;
             
@@ -896,6 +914,8 @@ namespace com.noctuagames.sdk.UI
 
         private void OnViewClicked(PointerDownEvent evt)
         {
+            _log.Debug("clicking user center view");
+            
             var moreOptionsMenu = View.Q<VisualElement>("MoreOptionsMenu");
             if (!moreOptionsMenu.ClassListContains("hide"))
             {
@@ -909,6 +929,8 @@ namespace com.noctuagames.sdk.UI
 
         private void OnMoreOptionsMenuSelected(PointerUpEvent evt)
         {
+            _log.Debug("clicking more options menu item");
+            
             View.Q<VisualElement>("MoreOptionsMenu").AddToClassList("hide");
         }
 
@@ -953,9 +975,7 @@ namespace com.noctuagames.sdk.UI
 
         private void OnConnectButtonClick(PointerUpEvent evt, UserCredential credential)
         {
-            Debug.Log($"Selected {credential?.CredentialProvider}");
-
-            if (credential == null) return;
+            _log.Debug($"clicking connect button for {credential.CredentialProvider}");
 
             Visible = false;
             
@@ -980,13 +1000,17 @@ namespace com.noctuagames.sdk.UI
         {
             try
             {
-                _ = await Model.SocialLinkAsync(provider);
+                var credential = await Model.SocialLinkAsync(provider);
+                
+                _log.Debug($"social link completed: {provider}, {credential.DisplayText}");
             }
             catch (Exception e)
             {
+                _log.Exception(e);
+                
                 Model.ShowGeneralNotification(e.Message);
             }
-                        
+
             Model.ShowUserCenter();
         }
 
