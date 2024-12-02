@@ -1,6 +1,6 @@
 {
   "name": "com.noctuagames.sdk",
-  "version": "0.19.9",
+  "version": "0.19.10",
   "displayName": "Noctua Games SDK",
   "description": "Noctua Games SDK for Unity",
   "unity": "2021.3",
