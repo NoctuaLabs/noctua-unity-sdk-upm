@@ -27,28 +27,37 @@ namespace com.noctuagames.sdk
         
         public static void Init(GlobalConfig globalConfig)
         {
-            Log.Logger = new LoggerConfiguration()
-                .WriteTo.Sentry(o =>
+            var loggerConfig = new LoggerConfiguration();
+
+            if (!string.IsNullOrEmpty(globalConfig?.Noctua?.SentryDsnUrl))
+            {
+                loggerConfig.WriteTo.Sentry(o =>
                 {
-                    o.Dsn = globalConfig?.Noctua?.SentryDsnUrl ?? "";
+                    o.Dsn = globalConfig.Noctua.SentryDsnUrl;
                     o.MinimumEventLevel = LogEventLevel.Error;
-                })
+                });
+            }
+
+            loggerConfig
                 .MinimumLevel.Debug()
-                .WriteTo.File(Path.Combine(Application.persistentDataPath, $"{Application.productName}-noctua-log.txt"), 
-                              rollingInterval: RollingInterval.Day, 
-                              fileSizeLimitBytes: 4 * 1024 * 1024, 
-                              retainedFileCountLimit: 8, 
-                              outputTemplate: "{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} [{Level}] {Message}{NewLine}{Exception}")
-#if UNITY_EDITOR
+                .WriteTo.File(
+                    Path.Combine(Application.persistentDataPath, $"{Application.productName}-noctua-log.txt"),
+                    rollingInterval: RollingInterval.Day,
+                    fileSizeLimitBytes: 4 * 1024 * 1024,
+                    retainedFileCountLimit: 8,
+                    outputTemplate: "{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} [{Level}] {Message}{NewLine}{Exception}")
+        #if UNITY_EDITOR
                 .WriteTo.Sink(new UnityLogSink())
-#endif
-#if UNITY_ANDROID && !UNITY_EDITOR
+        #endif
+        #if UNITY_ANDROID && !UNITY_EDITOR
                 .WriteTo.Sink(new AndroidLogSink())
-#endif
-#if UNITY_IOS && !UNITY_EDITOR
+        #endif
+        #if UNITY_IOS && !UNITY_EDITOR
                 .WriteTo.Sink(new IosLogSink())
-#endif
-                .CreateLogger();
+        #endif
+                ;
+
+            Log.Logger = loggerConfig.CreateLogger();
         }
 
         public NoctuaLogger(Type type = null)
