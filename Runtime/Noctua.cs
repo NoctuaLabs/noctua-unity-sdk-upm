@@ -206,11 +206,11 @@ namespace com.noctuagames.sdk
             {
                 throw new NoctuaException(NoctuaErrorCode.Application, "Failed to parse config: config is null");
             }
+            
+            NoctuaLogger.Init(config);
 
             var locale = new NoctuaLocale(config.Noctua.Region);
 
-            NoctuaLogger.Init(config);
-            
             config.Noctua ??= new NoctuaConfig();
             config.Adjust ??= new AdjustConfig();
 
