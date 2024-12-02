@@ -81,25 +81,6 @@ namespace com.noctuagames.sdk
     }
     
     [Preserve]
-    public class FirebaseConfig
-    {
-	[JsonProperty("android"), JsonRequired] public FirebaseAndroidConfig Android;
-	[JsonProperty("ios"), JsonRequired] public FirebaseIosConfig Ios;
-    }
-
-    [Preserve]
-    public class FirebaseAndroidConfig
-    {
-        [JsonProperty("eventMap")] public Dictionary<string, string> EventMap = new();
-    }
-
-    [Preserve]
-    public class FirebaseIosConfig
-    {
-        [JsonProperty("eventMap")] public Dictionary<string, string> EventMap = new();
-    }
-    
-    [Preserve]
     public class FacebookConfig
     {
 	[JsonProperty("android"), JsonRequired] public FacebookAndroidConfig Android;
@@ -112,8 +93,6 @@ namespace com.noctuagames.sdk
         [JsonProperty("appId"), JsonRequired] public string AppId;
 
         [JsonProperty("clientToken"), JsonRequired] public string ClientToken;
-
-        [JsonProperty("eventMap")] public Dictionary<string, string> EventMap = new();
     }
 
     [Preserve]
@@ -122,8 +101,6 @@ namespace com.noctuagames.sdk
         [JsonProperty("appId"), JsonRequired] public string AppId;
         
         [JsonProperty("clientToken"), JsonRequired] public string ClientToken;
-        
-        [JsonProperty("eventMap")] public Dictionary<string, string> EventMap = new();
     }
 
     [Preserve]
@@ -142,8 +119,6 @@ namespace com.noctuagames.sdk
 
         [JsonProperty("adjust")] public AdjustConfig Adjust;
 
-        [JsonProperty("firebase")] public FirebaseConfig Firebase;
-        
         [JsonProperty("facebook")] public FacebookConfig Facebook;
 
         [JsonProperty("noctua")] public NoctuaConfig Noctua;
