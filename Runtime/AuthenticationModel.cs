@@ -174,9 +174,9 @@ namespace com.noctuagames.sdk
             _userCenter.Show();
         }
 
-        public void ShowGeneralNotification(string message, bool isNotifSuccess = false) 
+        public void ShowGeneralNotification(string message, bool isNotifSuccess = false, uint durationMs = 3000) 
         {
-            _uiFactory.ShowGeneralNotification(message, isNotifSuccess);
+            _uiFactory.ShowGeneralNotification(message, isNotifSuccess, durationMs);
         }
 
         public void ShowLoadingProgress(bool isShow)

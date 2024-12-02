@@ -77,9 +77,9 @@ namespace com.noctuagames.sdk.UI
             _loading.Show(isShow);
         }
 
-        public void ShowGeneralNotification(string message, bool isSuccess = false)
+        public void ShowGeneralNotification(string message, bool isSuccess = false, uint durationMs = 3000)
         {
-            _notification.Show(message, isSuccess);
+            _notification.Show(message, isSuccess, durationMs);
         }
         
         public void ShowInfo(string message)
