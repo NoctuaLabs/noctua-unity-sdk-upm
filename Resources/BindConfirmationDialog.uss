@@ -1,0 +1,104 @@
+﻿.bind-confirmation-dialog {
+    background-color: rgba(20, 20, 20, 1);
+    flex-direction: column;
+}
+
+.noctua-logo-container {
+    align-items: center;
+    justify-content: center;
+}
+
+.bind-players-box {
+    margin-top: 54px;
+    flex-direction: row;
+    align-self: stretch;
+    justify-content: space-between;
+}
+
+.player-box {
+    flex: 1;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    border-radius: 10px;
+    padding: 10px;
+    background-color: rgba(31, 35, 39, 1);
+}
+
+.player-avatar-container {
+    width: 29px;
+    height: 29px;
+    align-items: center;
+    justify-content: center;
+}
+
+.origin-player-avatar {
+    background-color: transparent;
+    width: 26px;
+    height: 26px;
+    align-items: center;
+    justify-content: center;
+}
+
+.target-player-avatar {
+    background-color: transparent;
+    width: 29px;
+    height: 29px;
+    align-items: center;
+    justify-content: center;
+}
+
+.display-name {
+    -unity-text-align: middle-left;
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-size: 12px;
+}
+
+.button-group {
+    flex-direction: row;
+    height: 40px;
+    align-self: stretch;
+}
+
+.bind-confirmation-container {
+    flex: 1;
+    overflow: visible;
+}
+
+.bind-confirmation-label {
+    font-size: 14px;
+    overflow: visible;
+    flex-wrap: wrap;
+    -unity-text-align: middle-center;
+    white-space: normal;
+    flex: 1;
+}
+
+.connect-button {
+    flex: 1;
+    border-width: 1px;
+    border-radius: 5px;
+    border-color: rgba(59, 130, 246, 1);
+}
+
+.cancel-button {
+    flex: 1;
+    border-width: 1px;
+    border-radius: 5px;
+    border-color: rgba(59, 130, 246, 1);
+}
+
+.bind-arrow-container {
+    margin: 10px;
+    align-items: center;
+    justify-content: center;
+}
+
+.bind-arrow-image {
+    background-image: url("./BindArrow.png");
+    width: 22px;
+    height: 39px;
+    background-position: center;
+}

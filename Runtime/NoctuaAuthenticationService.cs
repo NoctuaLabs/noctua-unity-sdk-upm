@@ -282,6 +282,9 @@ namespace com.noctuagames.sdk
 
         [JsonProperty("redirect_uri")]
         public string RedirectUri;
+        
+        [JsonProperty("no_bind_guest")]
+        public bool NoBindGuest;
     }
 
     [Preserve]
@@ -316,6 +319,9 @@ namespace com.noctuagames.sdk
         [JsonProperty("provider")]
         public string Provider;
         
+        [JsonProperty("no_bind_guest")]
+        public bool NoBindGuest;
+        
         [JsonProperty("reg_extra")]
         public Dictionary<string, string> RegExtra;
     }
@@ -328,6 +334,9 @@ namespace com.noctuagames.sdk
 
         [JsonProperty("code")]
         public string Code;
+        
+        [JsonProperty("no_bind_guest")]
+        public bool NoBindGuest;
 
         [JsonProperty("new_password")] // Used for password reset
         public string NewPassword;
@@ -532,7 +541,6 @@ namespace com.noctuagames.sdk
 
             return redirectUrlResponse?.RedirectUrl;
         }
-
         public async UniTask<UserBundle> SocialLoginAsync(string provider, SocialLoginRequest payload)
         {
             var request = new HttpRequest(HttpMethod.Post, $"{_baseUrl}/auth/{provider}/login/callback")
@@ -546,23 +554,12 @@ namespace com.noctuagames.sdk
             }
 
             var response = await request.Send<PlayerToken>();
-            
-            bool accountBound = RecentAccount is { IsGuest: true } && response?.Player?.Id == RecentAccount?.Player?.Id;
 
             _accountContainer.UpdateRecentAccount(response);
 
             SetEventProperties(response);
-            
-            if (accountBound)
-            {
-                SendEvent("account_bound");
-                SendEvent("account_bound_by_sso");
-            }
-            else
-            {
-                SendEvent("account_authenticated");
-                SendEvent("account_authenticated_by_sso");
-            }
+            SendEvent("account_authenticated");
+            SendEvent("account_authenticated_by_sso");
 
             return _accountContainer.RecentAccount;
         }
@@ -581,29 +578,13 @@ namespace com.noctuagames.sdk
                     }
                 );
 
-            if (!string.IsNullOrEmpty(RecentAccount?.Player?.AccessToken) && RecentAccount.IsGuest)
-            {
-                request.WithHeader("Authorization", "Bearer " + RecentAccount.Player.AccessToken);
-            }
-
             var response = await request.Send<PlayerToken>();
-            
-            bool accountBound = RecentAccount is { IsGuest: true } && response?.Player?.Id == RecentAccount?.Player?.Id;
 
             _accountContainer.UpdateRecentAccount(response);
 
             SetEventProperties(response);
-            
-            if (accountBound)
-            {
-                SendEvent("account_bound");
-                SendEvent("account_bound_by_email");
-            }
-            else
-            {
-                SendEvent("account_authenticated");
-                SendEvent("account_authenticated_by_email");
-            }
+            SendEvent("account_authenticated");
+            SendEvent("account_authenticated_by_email");
 
             return _accountContainer.RecentAccount;
         }
@@ -623,12 +604,7 @@ namespace com.noctuagames.sdk
                         Provider = "email",
                         RegExtra = regExtra
                     }
-                );  
-
-            if (!string.IsNullOrEmpty(RecentAccount?.Player?.AccessToken) && RecentAccount.User.IsGuest)
-            {
-                request.WithHeader("Authorization", "Bearer " + RecentAccount.Player.AccessToken);
-            }
+                );
 
             return await request.Send<CredentialVerification>();
         }
@@ -642,33 +618,18 @@ namespace com.noctuagames.sdk
                     new CredentialVerification
                     {
                         Id = id,
-                        Code = code
+                        Code = code,
+                        NoBindGuest = true
                     }
                 );
 
-            if (!string.IsNullOrEmpty(RecentAccount?.Player?.AccessToken) && RecentAccount.IsGuest)
-            {
-                request.WithHeader("Authorization", "Bearer " + RecentAccount.Player.AccessToken);
-            }
-
             var response = await request.Send<PlayerToken>();
-
-            bool accountBound = RecentAccount is { IsGuest: true } && response?.Player?.Id == RecentAccount?.Player?.Id;
 
             _accountContainer.UpdateRecentAccount(response);
 
             SetEventProperties(response);
-            
-            if (accountBound)
-            {
-                SendEvent("account_bound");
-                SendEvent("account_bound_by_email");
-            }
-            else
-            {
-                SendEvent("account_created");
-                SendEvent("account_created_by_email");
-            }
+            SendEvent("account_created");
+            SendEvent("account_created_by_email");
 
             return _accountContainer.RecentAccount;
         }
@@ -809,21 +770,140 @@ namespace com.noctuagames.sdk
             return response;
         }
 
-        public async UniTask<PlayerToken> Bind(BindRequest payload)
+        public async UniTask<PlayerToken> BeginVerifyEmailRegistrationAsync(int id, string code)
         {
-            if (string.IsNullOrEmpty(RecentAccount?.Player?.AccessToken)) {
-                throw NoctuaException.MissingAccessToken;
+            if (!RecentAccount.IsGuest)
+            {
+                throw new NoctuaException(NoctuaErrorCode.Authentication, "Account is not a guest account");
             }
             
-            _log.Info("Bind: " + payload.GuestToken);
+            var request = new HttpRequest(HttpMethod.Post, $"{_baseUrl}/auth/email/verify-registration")
+                .WithHeader("X-CLIENT-ID", _clientId)
+                .WithHeader("X-BUNDLE-ID", _bundleId)
+                .WithJsonBody(
+                    new CredentialVerification
+                    {
+                        Id = id,
+                        Code = code,
+                        NoBindGuest = true
+                    }
+                );
 
+            request.WithHeader("Authorization", "Bearer " + RecentAccount.Player.AccessToken);
+
+            return await request.Send<PlayerToken>();
+        }
+        
+        public void EndVerifyEmailRegistration(PlayerToken playerToken)
+        {
+            _accountContainer.UpdateRecentAccount(playerToken);
+            
+            SetEventProperties(playerToken);
+            SendEvent("account_created");
+            SendEvent("account_created_by_email");
+        }
+
+        public async UniTask<PlayerToken> GetSocialLoginTokenAsync(string provider, SocialLoginRequest payload)
+        {
+            if (!RecentAccount.IsGuest)
+            {
+                throw new NoctuaException(NoctuaErrorCode.Authentication, "Account is not a guest account");
+            }
+            
+            payload.NoBindGuest = true;
+            
+            var request = new HttpRequest(HttpMethod.Post, $"{_baseUrl}/auth/{provider}/login/callback")
+                .WithHeader("X-CLIENT-ID", _clientId)
+                .WithHeader("X-BUNDLE-ID", _bundleId)
+                .WithJsonBody(payload);
+
+            request.WithHeader("Authorization", "Bearer " + RecentAccount.Player.AccessToken);
+
+            return await request.Send<PlayerToken>();
+        }
+        
+        // TODO: Add support for phone
+        public async UniTask<PlayerToken> GetEmailLoginTokenAsync(string email, string password)
+        {
+            if (!RecentAccount.IsGuest)
+            {
+                throw new NoctuaException(NoctuaErrorCode.Authentication, "Account is not a guest account");
+            }
+
+            var request = new HttpRequest(HttpMethod.Post, $"{_baseUrl}/auth/email/login")
+                .WithHeader("X-CLIENT-ID", _clientId)
+                .WithHeader("X-BUNDLE-ID", _bundleId)
+                .WithJsonBody(
+                    new CredPair
+                    {
+                        CredKey = email,
+                        CredSecret = password,
+                        NoBindGuest = true
+                    }
+                );
+            
+            request.WithHeader("Authorization", "Bearer " + RecentAccount.Player.AccessToken);
+
+            return await request.Send<PlayerToken>();
+        }
+        
+        public void LoginWithToken(PlayerToken playerToken)
+        {
+            _accountContainer.UpdateRecentAccount(playerToken);
+            
+            SetEventProperties(playerToken);
+            
+            SendEvent("account_authenticated");
+            
+            var eventName = RecentAccount.Credential?.Provider switch
+            {
+                "email" => "account_authenticated_by_email",
+                "device_id" => "account_authenticated_by_guest",
+                _ => "account_authenticated_by_sso"
+            };
+            
+            SendEvent(eventName);
+        }
+
+        public async UniTask<UserBundle> BindGuestAndLoginAsync(PlayerToken targetPlayer)
+        {
+            if (!RecentAccount.IsGuest)
+            {
+                throw new NoctuaException(NoctuaErrorCode.Authentication, "Account is not a guest account");
+            }
+            
+            if (string.IsNullOrEmpty(RecentAccount?.Player?.AccessToken)) {
+                throw new NoctuaException(NoctuaErrorCode.Authentication, "origin access token is missing");
+            }
+            
+            if (string.IsNullOrEmpty(targetPlayer?.AccessToken)) {
+                throw new NoctuaException(NoctuaErrorCode.Authentication, "target access token is missing");
+            }
+            
             var request = new HttpRequest(HttpMethod.Post, $"{_baseUrl}/auth/bind")
                 .WithHeader("X-CLIENT-ID", _clientId)
                 .WithHeader("X-BUNDLE-ID", Application.identifier)
-                .WithHeader("Authorization", "Bearer " + RecentAccount.Player.AccessToken)
-                .WithJsonBody(payload);
+                .WithHeader("Authorization", "Bearer " + targetPlayer?.AccessToken)
+                .WithJsonBody(new BindRequest { GuestToken = RecentAccount.Player.AccessToken });
 
-            return await request.Send<PlayerToken>();
+            var response = await request.Send<PlayerToken>();
+            
+            _accountContainer.UpdateRecentAccount(response);
+
+            SetEventProperties(response);
+
+            SendEvent("account_bound");
+            
+            if (RecentAccount.Credential?.Provider == "email")
+            {
+                SendEvent("account_bound_by_email");
+            }
+            else if (RecentAccount.Credential?.Provider != "device_id")
+            {
+                SendEvent("account_bound_by_sso");
+            }
+            
+            return _accountContainer.RecentAccount;
         }
 
         public async UniTask<UserBundle> LogoutAsync()
@@ -953,16 +1033,9 @@ namespace com.noctuagames.sdk
                 throw new NoctuaException(NoctuaErrorCode.Authentication, $"User {user.User.Id} not found in account list");
             }
             
-            if (targetUser.Player == null)
-            {
-                await ExchangeTokenAsync(user.PlayerAccounts.First().AccessToken);
-                
-                return;
-            }
+            await ExchangeTokenAsync(user.PlayerAccounts.First().AccessToken);
             
-            _accountContainer.UpdateRecentAccount(targetUser);
-            
-            SetEventProperties(targetUser);
+            SetEventProperties(_accountContainer.RecentAccount);
             SendEvent("account_switched");
         }
         

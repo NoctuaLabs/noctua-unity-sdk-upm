@@ -492,6 +492,7 @@ namespace com.noctuagames.sdk
                 _uiFactory.ShowError(e.Message);
                 _log.Exception(e);
                 _uiFactory.ShowLoadingProgress(false);
+                _uiFactory.ShowError(e.Message);
 
                 throw;
             }

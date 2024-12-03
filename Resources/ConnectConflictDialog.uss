@@ -1,0 +1,87 @@
+﻿.connect-conflict-dialog {
+    background-color: rgba(20, 20, 20, 1);
+    flex-direction: column;
+}
+
+.noctua-logo-container {
+    align-items: center;
+    justify-content: center;
+}
+
+.player-box {
+    margin-top: 38px;
+    height: 55px;
+    width: 219px;
+    flex-direction: row;
+    align-items: center;
+    border-radius: 10px;
+    padding: 10px;
+    background-color: rgba(31, 35, 39, 1);
+}
+
+.player-avatar {
+    background-color: transparent;
+    width: 36px;
+    height: 36px;
+    margin-left: 8px;
+    margin-right: 8px;
+    align-items: center;
+    justify-content: center;
+}
+
+.player-text {
+    flex-direction: column;
+    justify-content: center;
+    align-items: flex-start;
+    height: 100%;
+}
+
+.user-nickname {
+    font-size: 12px;
+    -unity-text-align: middle-left;
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.credential-display-text {
+    font-size: 12px;
+    -unity-text-align: middle-left;
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.button-group {
+    flex-direction: row;
+    height: 40px;
+    align-self: stretch;
+}
+
+.connect-conflict-information-container {
+    flex: 1;
+    overflow: visible;
+}
+
+.connect-conflict-information-label {
+    font-size: 14px;
+    overflow: visible;
+    flex-wrap: wrap;
+    -unity-text-align: middle-center;
+    white-space: normal;
+    flex: 1;
+}
+
+.switch-account-button {
+    flex: 1;
+    border-width: 1px;
+    border-radius: 5px;
+    border-color: rgba(59, 130, 246, 1);
+}
+
+.cancel-button {
+    flex: 1;
+    border-width: 1px;
+    border-radius: 5px;
+    border-color: rgba(59, 130, 246, 1);
+}

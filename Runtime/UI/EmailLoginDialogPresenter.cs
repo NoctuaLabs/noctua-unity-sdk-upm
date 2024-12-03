@@ -217,10 +217,27 @@ namespace com.noctuagames.sdk.UI
                 return;
             }
 
-            try {
-                var userBundle = await Model.AuthService.LoginWithEmailAsync(_email, _password);
-                
-                _onLoginSuccess?.Invoke(userBundle);
+            try 
+            {
+                if (Model.AuthService.RecentAccount.IsGuest)
+                {
+                    var playerToken = await Model.AuthService.GetEmailLoginTokenAsync(emailAddress, password);
+                    
+                    if (playerToken.Player == null)
+                    {
+                        Model.ShowBindConfirmation(playerToken);
+                    }
+                    else
+                    {
+                        Model.ShowConnectConflict(playerToken);
+                    }
+                }
+                else
+                {
+                    var userBundle = await Model.AuthService.LoginWithEmailAsync(emailAddress, password);
+
+                    _onLoginSuccess?.Invoke(userBundle);
+                }
 
                 View.Q<TextField>("EmailTF").value = string.Empty;
                 View.Q<TextField>("PasswordTF").value = string.Empty;
@@ -231,7 +248,9 @@ namespace com.noctuagames.sdk.UI
                 View.Q<VisualElement>("Spinner").AddToClassList("hide");
                 
                 Visible = false;
-            } catch (Exception e) {
+            } 
+            catch (Exception e) 
+            {
                 _log.Warning($"{e.Message}\n{e.StackTrace}");
                 
                 if (e is NoctuaException noctuaEx)

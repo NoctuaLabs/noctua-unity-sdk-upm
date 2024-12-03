@@ -137,7 +137,15 @@ namespace com.noctuagames.sdk.UI
             View?.Q<VisualElement>("DialogContent")?.AddToClassList("hide");
             View?.Q<VisualElement>("DialogHeader")?.AddToClassList("hide");
             try {
-                await Model.VerifyEmailRegistration(_credVerifyId, _credVerifyCode);
+                if (Model.AuthService.RecentAccount.IsGuest)
+                {
+                    var token = await Model.AuthService.BeginVerifyEmailRegistrationAsync(_credVerifyId, _credVerifyCode);
+                    Model.ShowBindConfirmation(token);
+                }
+                else
+                {
+                    await Model.VerifyEmailRegistration(_credVerifyId, _credVerifyCode);
+                }
 
                 Visible = false;
 

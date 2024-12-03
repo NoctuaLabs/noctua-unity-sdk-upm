@@ -1,0 +1,45 @@
+﻿<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements"
+         xsi="http://www.w3.org/2001/XMLSchema-instance" engine="UnityEngine.UIElements"
+         editor="UnityEditor.UIElements" editor-extension-mode="False"
+>
+    <Style src="./Noctua.uss" />
+    <Style src="./BindConfirmationDialog.uss" />
+    <ui:VisualElement name="Root" class="root">
+        <ui:VisualElement name="BindConfirmationDialog" class="base dialog-box bind-confirmation-dialog">
+            <ui:VisualElement name="NoctuaLogoContainer" class="noctua-logo-container">
+                <ui:VisualElement name="NoctuaLogoWithText" class="noctua-logo-with-text" />
+            </ui:VisualElement>
+            <ui:VisualElement name="BindPlayersBox" class="bind-players-box">
+                <ui:VisualElement name="GuestPlayerBox" class="player-box">
+                    <ui:VisualElement class="player-avatar-container">
+                        <ui:VisualElement name="GuestPlayerAvatarImage" class="origin-player-avatar guest-player-avatar" />
+                    </ui:VisualElement>
+                    <ui:VisualElement>
+                        <ui:Label name="GuestDisplayName" text="Guest 123" class="display-name" />
+                    </ui:VisualElement>
+                </ui:VisualElement>
+                <ui:VisualElement class="bind-arrow-container">
+                    <ui:VisualElement class="bind-arrow-image" />
+                </ui:VisualElement>
+                <ui:VisualElement name="TargetPlayerBox" class="player-box">
+                    <ui:VisualElement class="player-avatar-container">
+                        <ui:VisualElement name="TargetPlayerAvatarImage" class="target-player-avatar" />
+                    </ui:VisualElement>
+                    <ui:VisualElement>
+                        <ui:Label name="TargetDisplayName" text="guweg@susuh.example" class="display-name" />
+                    </ui:VisualElement>
+                </ui:VisualElement>
+            </ui:VisualElement>
+            <ui:VisualElement name="BindConfirmationContainer" class="bind-confirmation-container">
+                <ui:Label
+                    name="BindConfirmationLabel"
+                    class="bind-confirmation-label"
+                    text="Would you like to connect your progress to selected account?" />
+            </ui:VisualElement>
+            <ui:VisualElement name="ButtonGroup" class="button-group">
+                <ui:Button name="CancelButton" text="Cancel" class="cancel-button button-transparent" focusable="false" />
+                <ui:Button name="ConnectButton" text="Connect" class="connect-button button-highlight" focusable="false" />
+            </ui:VisualElement>
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>

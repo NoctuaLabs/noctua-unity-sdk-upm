@@ -57,6 +57,7 @@
     position: absolute;
     flex-direction: column;
     border-radius: 20px;
+    border-color: rgba(165, 165, 165, 0.5);
     width: 319px;
     height: 337px;
     border-width: 1px;

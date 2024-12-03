@@ -208,13 +208,6 @@ namespace com.noctuagames.sdk
             return await _service.SocialLinkAsync(provider, payload);
         }
 
-        public async UniTask<PlayerToken> Bind(BindRequest payload)
-        {
-            _log.Debug("calling API");
-
-            return await _service.Bind(payload);
-        }
-
         public async UniTask<UserBundle> SocialLoginAsync(string provider)
         {
             _log.Debug("calling API");

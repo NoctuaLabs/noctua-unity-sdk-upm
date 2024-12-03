@@ -38,7 +38,7 @@ namespace com.noctuagames.sdk.UI
                 try
                 {
                     await Model.AuthService.DeletePlayerAccountAsync();
-                    await Model.AuthService.LoginAsGuestAsync();
+                    await Model.AuthService.AuthenticateAsync();
 
                     View.Q<VisualElement>("Spinner").AddToClassList("hide");
                     View.Q<VisualElement>("ButtonGroup").RemoveFromClassList("hide");
@@ -60,7 +60,6 @@ namespace com.noctuagames.sdk.UI
                     View.Q<VisualElement>("Spinner").AddToClassList("hide");
                     View.Q<VisualElement>("ButtonGroup").RemoveFromClassList("hide");
                 }
-
             });
             
             View.Q<Button>("CancelButton").RegisterCallback<PointerUpEvent>(_ =>
