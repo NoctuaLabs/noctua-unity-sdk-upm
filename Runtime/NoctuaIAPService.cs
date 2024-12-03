@@ -63,7 +63,7 @@ namespace com.noctuagames.sdk
     public class OrderRequest
     {
         [JsonProperty("payment_type")] 
-        public PaymentType PaymentType;
+        public string PaymentType; // String of PaymentType struct
 
         [JsonProperty("product_id")]
         public string ProductId;
@@ -432,7 +432,7 @@ namespace com.noctuagames.sdk
                 
                 orderRequest = new OrderRequest
                 {
-                    PaymentType = paymentType,
+                    PaymentType = paymentType.ToString().ToLower(),
                     ProductId = purchaseRequest.ProductId,
                     Price = purchaseRequest.Price,
                     Currency = purchaseRequest.Currency,
