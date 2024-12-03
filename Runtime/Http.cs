@@ -6,6 +6,7 @@ using System.Net;
 using System.Text;
 using Cysharp.Threading.Tasks;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Converters;
 using Newtonsoft.Json.Serialization;
 using UnityEngine;
 using UnityEngine.Networking;
@@ -98,6 +99,7 @@ namespace com.noctuagames.sdk
 
         internal HttpRequest(HttpMethod method, string url)
         {
+            _jsonSettings.Converters.Add(new StringEnumConverter());
             _request.method = method.ToString().ToUpper();
             _request.url = url;
         }

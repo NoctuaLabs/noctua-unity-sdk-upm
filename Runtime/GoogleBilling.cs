@@ -349,6 +349,8 @@ public class GoogleBilling
                 else
                 {
                     _log.Error("No product details found");
+                    
+                    googleBilling.InvokeOnProductDetailsResponse(null);
                 }
             }
             else
@@ -356,14 +358,7 @@ public class GoogleBilling
                 string errorMessage = billingResult.Call<string>("getDebugMessage");
                 _log.Error("Failed to query product details: " + errorMessage + ": returning empty strings");
 
-                googleBilling.InvokeOnProductDetailsResponse(new ProductDetailsResponse
-                {
-                    ProductId = "",
-                    Title = "",
-                    Description = "",
-                    Price = "",
-                    Currency = "",
-                });
+                googleBilling.InvokeOnProductDetailsResponse(null);
             }
         }
     }

@@ -1,4 +1,6 @@
-﻿using System;
+﻿#undef UNITY_EDITOR
+
+using System;
 using System.Collections.Concurrent;
 using Cysharp.Threading.Tasks;
 using UnityEngine;
@@ -14,6 +16,7 @@ using UnityEngine.Scripting;
 using Random = System.Random;
 using com.noctuagames.sdk.UI;
 using UnityEngine.UIElements;
+
 
 namespace com.noctuagames.sdk
 {
@@ -742,12 +745,22 @@ namespace com.noctuagames.sdk
         private void HandleGoogleProductDetails(GoogleBilling.ProductDetailsResponse response)
         {
             _log.Info("NoctuaIAPService.HandleGoogleProductDetails");
-            _log.Info("NoctuaIAPService.HandleGoogleProductDetails currency: " + response.Currency);
-            if (_activeCurrencyTcs != null) {
-                _activeCurrencyTcs.TrySetResult(response.Currency);
-            } else {
+
+            if (_activeCurrencyTcs == null)
+            {
                 throw NoctuaException.MissingCompletionHandler;
             }
+            
+            if (response is null)
+            {
+                _activeCurrencyTcs.TrySetException(NoctuaException.ActiveCurrencyFailure);
+            
+                return;
+            }
+
+            _log.Info("NoctuaIAPService.HandleGoogleProductDetails currency: " + response.Currency);
+
+            _activeCurrencyTcs.TrySetResult(response.Currency);
         }
 
         private PaymentResult GetPlaystorePaymentResult(GoogleBilling.PurchaseResult result)
