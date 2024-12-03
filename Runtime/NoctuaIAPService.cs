@@ -1,6 +1,4 @@
-﻿#undef UNITY_EDITOR
-
-using System;
+﻿using System;
 using System.Collections.Concurrent;
 using Cysharp.Threading.Tasks;
 using UnityEngine;
