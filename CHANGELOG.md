@@ -2,6 +2,33 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.20.0] - 2024-12-03
+
+### 🚀 Features
+
+- Add sentry dll files
+- Add configuration sentry
+- Add Dsn sentry url to config
+- Log json body http
+- Update sdk native version
+
+### 🐛 Bug Fixes
+
+- Change from Noctua.Log.Debug to _log.debug
+- Delete log http
+- Set result for google billing product details and makes CreateOrder works again
+- Forgotten temporary undef
+
+### 🚜 Refactor
+
+- Do not write if url sentry is empty
+- Change _log to Debug.Log
+- Change noctua logger init position
+
+### ⚙️ Miscellaneous Tasks
+
+- Add logging to aid debugging
+
 ## [0.19.9] - 2024-11-29
 
 ### 🐛 Bug Fixes
