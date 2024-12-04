@@ -1,4 +1,4 @@
-﻿.social-account-row {
+.social-account-row {
     margin-top: 52px;
     flex-direction: row;
     justify-content: center;
@@ -7,13 +7,14 @@
 }
 
 .social-account-button {
-    background-color: #2D3138;
+    background-color: rgb(45, 49, 56);
     width: 62px;
     border-radius: 10px;
     margin: 4px;
     padding: 10px;
     align-items: center;
     justify-content: center;
+    padding-top: 15px;
 }
 
 .social-account-label {
@@ -25,6 +26,7 @@
 .login-method-logo {
     width: 24px;
     height: 24px;
+    flex-shrink: 0;
 }
 
 .login-method-separator {
@@ -39,12 +41,12 @@
 
 .login-method-separator-label {
     font-size: 10px;
-    color: #8B8E91;
+    color: rgb(139, 142, 145);
     -unity-text-align: middle-center;
 }
 
 .login-with-email-button {
-    background-color: #2D3138;
+    background-color: rgb(45, 49, 56);
     height: 40px;
     border-radius: 10px;
     align-items: center;
@@ -55,7 +57,7 @@
 
 .tnc-text-first {
     font-size: 8px;
-    color: #8B8E91;
+    color: rgb(139, 142, 145);
     align-self: center;
     flex-wrap: wrap;
     align-items: center;
@@ -65,7 +67,7 @@
 
 .tnc-text {
     font-size: 8px;
-    color: #8B8E91;
+    color: rgb(139, 142, 145);
     width: 234px;
     align-self: center;
     flex-wrap: wrap;
