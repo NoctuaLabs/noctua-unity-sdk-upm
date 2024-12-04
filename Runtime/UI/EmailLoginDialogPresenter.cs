@@ -51,11 +51,10 @@ namespace com.noctuagames.sdk.UI
             var emailField = View.Q<TextField>("EmailTF");
             var passwordField = View.Q<TextField>("PasswordTF");
             submitButton = View.Q<Button>("ContinueButton");
-
             passwordField.isPasswordField = true;
 
             emailField.RegisterValueChangedCallback(evt => OnEmailValueChanged(emailField));
-            passwordField.RegisterValueChangedCallback(evt => OnPasswordValueChanged(passwordField));
+            passwordField.RegisterValueChangedCallback(evt => OnPasswordValueChanged(passwordField));            
 
             textFields = new List<TextField>
             {

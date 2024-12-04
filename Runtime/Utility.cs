@@ -154,6 +154,7 @@ namespace com.noctuagames.sdk
             bool isAnyFieldEmpty = textFields.Any(textField => string.IsNullOrEmpty(textField.value));
 
             submitButton.SetEnabled(!isAnyFieldEmpty);
+            submitButton.pickingMode = !isAnyFieldEmpty ? PickingMode.Position : PickingMode.Ignore;                
         }
 
         public static string GetCoPublisherLogo(string companyName)

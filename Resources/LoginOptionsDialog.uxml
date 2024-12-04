@@ -1,20 +1,20 @@
 <ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" xsi="http://www.w3.org/2001/XMLSchema-instance" engine="UnityEngine.UIElements" editor="UnityEditor.UIElements" noNamespaceSchemaLocation="../../../../UIElementsSchema/UIElements.xsd" editor-extension-mode="False">
-    <Style src="./Noctua.uss" />
-    <Style src="./LoginOptionsDialog.uss" />
-    <ui:VisualElement name="Root" class="root">
+    <Style src="project://database/Packages/com.noctuagames.sdk/Resources/Noctua.uss?fileID=7433441132597879392&amp;guid=fe35e550fb23b6446af377f994effe35&amp;type=3#Noctua" />
+    <Style src="project://database/Packages/com.noctuagames.sdk/Resources/LoginOptionsDialog.uss?fileID=7433441132597879392&amp;guid=abdaadebb3f1465a8ac5fa17edcef5c8&amp;type=3#LoginOptionsDialog" />
+    <ui:VisualElement name="Root" class="root" style="justify-content: center;">
         <ui:VisualElement name="LoginOptionsDialog" class="base dialog-box">
             <ui:VisualElement class="dialog-header">
-                <ui:Button name="BackButton" class="dialog-back-button" />
-                <ui:Label name="TitleContinueWithAnotherAccount" text="Continue with another account" class="dialog-title" />
+                <ui:Button name="BackButton" class="dialog-back-button" style="margin-bottom: 0;" />
+                <ui:Label name="TitleContinueWithAnotherAccount" text="Continue with another account" class="dialog-title" style="margin-bottom: 0;" />
             </ui:VisualElement>
             <ui:VisualElement class="social-account-row">
                 <ui:Button name="LoginWithGoogleButton" class="social-account-button">
                     <ui:VisualElement class="login-method-logo google-logo" />
-                    <ui:Label name="TitleGoogle" text="Google" class="social-account-label" />
+                    <ui:Label name="TitleGoogle" text="Google" class="social-account-label" style="padding-left: 2px; margin-right: 2px;" />
                 </ui:Button>
                 <ui:Button name="LoginWithFacebookButton" class="social-account-button">
                     <ui:VisualElement class="login-method-logo facebook-logo" />
-                    <ui:Label name="TitleFacebook" text="Facebook" class="social-account-label" />
+                    <ui:Label name="TitleFacebook" text="Facebook" class="social-account-label" style="padding-left: 2px; margin-right: 2px;" />
                 </ui:Button>
             </ui:VisualElement>
             <ui:VisualElement class="login-method-separator">
