@@ -9,15 +9,15 @@
 .social-account-button {
     background-color: #2D3138;
     width: 62px;
-    height: 70px;
     border-radius: 10px;
     margin: 4px;
-    padding: 6px;
+    padding: 10px;
     align-items: center;
     justify-content: center;
 }
 
 .social-account-label {
+    margin-top: 10px;
     font-size: 10px;
     -unity-text-align: middle-center;
 }
