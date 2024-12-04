@@ -294,6 +294,9 @@ namespace com.noctuagames.sdk
             {
 #if UNITY_ANDROID
                 platformType = "playstore";
+
+                // TODO Handle more platforms
+                // - "direct" platformType for Direct distribution.
 #elif UNITY_IOS
                 platformType = "appstore";
 #else
@@ -412,7 +415,7 @@ namespace com.noctuagames.sdk
                 
                 if (_usdProducts.Count == 0)
                 {
-                    _usdProducts.AddRange(await GetProductListAsync("USD", paymentType.ToString().ToLower()));
+                    _usdProducts.AddRange(await GetProductListAsync(currency: "USD"));
                 }
                 
                 var playerData = new PlayerAccountData
