@@ -1,15 +1,17 @@
 <ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" xsi="http://www.w3.org/2001/XMLSchema-instance" engine="UnityEngine.UIElements" editor="UnityEditor.UIElements" noNamespaceSchemaLocation="../../../../UIElementsSchema/UIElements.xsd" editor-extension-mode="False">
     <Style src="project://database/Packages/com.noctuagames.sdk/Resources/Noctua.uss?fileID=7433441132597879392&amp;guid=fe35e550fb23b6446af377f994effe35&amp;type=3#Noctua" />
     <ui:VisualElement name="Root" class="root">
-        <ui:VisualElement class="base dialog-box" style="align-items: center;">
+        <ui:VisualElement class="base dialog-box">
             <ui:VisualElement name="HeaderContent" class="dialog-header">
                 <ui:Button display-tooltip-when-elided="true" name="BackButton" focusable="false" class="dialog-back-button" />
                 <ui:Label name="TitleContinueWithEmail" text="Login with email" display-tooltip-when-elided="true" class="dialog-title" />
             </ui:VisualElement>
             <ui:VisualElement name="Content" class="dialog-content">
                 <ui:TextField label="Email Address" name="EmailTF" class="noctua-text-input" />
-                <ui:TextField label="Password" name="PasswordTF" class="noctua-text-input" style="margin-bottom: 0;" />
-                <ui:Label text="Forgot Password" name="ForgotPassword" display-tooltip-when-elided="true" style="align-self: flex-end; font-size: 12px; color: rgb(59, 130, 246); margin-top: 0; padding-top: 0;" />
+                <ui:TextField label="Password" name="PasswordTF" class="noctua-text-input">
+                    <ui:Button parse-escape-sequences="true" display-tooltip-when-elided="true" name="Btn_ShowPassword" class="btn-password_show" style="position: absolute; background-color: rgba(255, 255, 255, 0); align-self: center; justify-content: center; top: 7px; right: 22px;" />
+                </ui:TextField>
+                <ui:Label text="Forgot Password" name="ForgotPassword" display-tooltip-when-elided="true" style="align-self: flex-end; font-size: 12px; color: rgb(59, 130, 246); margin-top: -4px; padding-top: 0;" />
             </ui:VisualElement>
             <ui:VisualElement name="footerContent" class="dialog-footer" style="height: 125px;">
                 <ui:VisualElement name="ErrBox" style="padding-top: 0; padding-right: 0; padding-bottom: 0; padding-left: 0; margin-top: 10px; margin-bottom: 10px; width: 100%; height: 16px; align-items: center; justify-content: center;">
