@@ -2,6 +2,26 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.21.0] - 2024-12-05
+
+### 🚀 Features
+
+- Copy user data to clipboard when selected account held down for 3 seconds
+- Bind confirmation and connect conflict dialogs
+
+### 🐛 Bug Fixes
+
+- Set platform distribution by platform OS instead of payment type.
+- Sso logo stretched
+- Update IOS upstream library that fix Adjust event map null check.
+- Remove justify in root
+- Add translation to Bind Confirmation and Connect Conflict Dialog
+- Wording id 'continue with another account'
+
+### 🚜 Refactor
+
+- Sso logo stretched code
+
 ## [0.20.0] - 2024-12-03
 
 ### 🚀 Features
