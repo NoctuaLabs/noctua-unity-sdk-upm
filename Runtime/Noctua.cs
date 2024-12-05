@@ -390,7 +390,7 @@ namespace com.noctuagames.sdk
                 catch (Exception)
                 {
                     log.Info("Using country from default value: " + initResponse.Country);
-                    initResponse.Country = "IDR";
+                    initResponse.Country = "ID";
                 }
             } else {
                 log.Info("Using country from geoIP: " + initResponse.Country);
@@ -416,7 +416,7 @@ namespace com.noctuagames.sdk
                 }
                 catch (Exception)
                 {
-                    Instance.Value._platform.Locale.SetCurrency("IDR");
+                    Instance.Value._platform.Locale.SetCurrency("USD");
                 }
             }
 
