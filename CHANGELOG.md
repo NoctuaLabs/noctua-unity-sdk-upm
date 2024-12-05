@@ -2,12 +2,31 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.22.0] - 2024-12-05
+
+### 🚀 Features
+
+- Show/Hide password in email login pop up
+- Add extra params in purchase request
+- Add display_price in product class
+- Add extra param in UpdatePlayerAccountAsync - purchase
+
+### 🐛 Bug Fixes
+
+- Login options dialog ui issues
+- Text button login with email
+- Set default/fallback currency to USD.
+- Naming convention
+- Show error when playstore payment failed
+- Addtional params for product purchase
+
 ## [0.21.0] - 2024-12-05
 
 ### 🚀 Features
 
 - Copy user data to clipboard when selected account held down for 3 seconds
 - Bind confirmation and connect conflict dialogs
+- Show/Hide password in email login pop up
 
 ### 🐛 Bug Fixes
 
