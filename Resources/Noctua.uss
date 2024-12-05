@@ -473,10 +473,10 @@ Label:hover {
     -unity-background-image-tint-color: rgb(98, 100, 104);
 }
 
-.btn-password_show {
+.btn-password-show {
     background-image: resource('Sprite/Eye-Close');
 }
 
-.btn-password_hide {
+.btn-password-hide {
     background-image: resource('Sprite/Eye-Open');
 }
