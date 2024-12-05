@@ -163,7 +163,7 @@ namespace com.noctuagames.sdk
 
         public string GetCurrency()
         {
-            return PlayerPrefs.GetString(PlayerPrefsKeyLocaleCurrency, "IDR"); // Default to Indonesia's Rupiah
+            return PlayerPrefs.GetString(PlayerPrefsKeyLocaleCurrency, "USD"); // Default to USD
         }
 
         internal class Config

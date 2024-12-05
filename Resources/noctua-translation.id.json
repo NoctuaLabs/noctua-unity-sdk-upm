@@ -41,9 +41,9 @@
 
     "AccountSelectionDialogPresenter.AccountSelectionInfo.Label.text": "Pilih Akun",
     "AccountSelectionDialogPresenter.GameAccountList.ListView.label": "Daftar Akun Game",
-    "AccountSelectionDialogPresenter.ContinueButton.Button.text": "Hubungkan atau Lanjutkan dengan akun lain",
+    "AccountSelectionDialogPresenter.ContinueButton.Button.text": "Hubungkan atau Masuk akun lain",
 
-    "LoginOptionsDialogPresenter.TitleContinueWithAnotherAccount.Label.text": "Hubungkan atau Lanjutkan dengan akun lain",
+    "LoginOptionsDialogPresenter.TitleContinueWithAnotherAccount.Label.text": "Hubungkan atau Masuk akun lain",
     "LoginOptionsDialogPresenter.TitleGoogle.Label.text": "Google",
     "LoginOptionsDialogPresenter.TitleFacebook.Label.text": "Facebook",
     "LoginOptionsDialogPresenter.OrContinueWith.Label.text": "atau lanjutkan dengan",
@@ -124,6 +124,14 @@
     "UserCenterPresenter.PaymentTypeTF.DropdownField.label": "Tipe Pembayaran",
     "UserCenterPresenter.SaveButtonContainer.SaveButton.Button.text": "Simpan",
     "UserCenterPresenter.TitleFindMoreLabel.Label.text": "Cari lebih banyak di",
+
+    "BindConfirmationDialogPresenter.BindConfirmationLabel.Label.text": "Apakah anda ingin menghubungkan dengan akun yang dipilih?",
+    "BindConfirmationDialogPresenter.ConnectButton.Button.text": "Hubungkan",
+    "BindConfirmationDialogPresenter.CancelButton.Button.text": "Batal",
+
+    "ConnectConflictDialogPresenter.ConnectConflictInformationLabel.Label.text": "Kredensial ini sudah terhubung ke suatu akun. Apakah Anda ingin mengganti akun?",
+    "ConnectConflictDialogPresenter.SwitchAccountButton.Button.text": "Ganti Akun",
+    "ConnectConflictDialogPresenter.CancelButton.Button.text": "Batal",
     
     "SuggestionBindText.Content1": "Buka manfaat khusus dengan memiliki akun Noctua",
     "SuggestionBindText.Content2": "Lindungi progres dan pencapaian yang telah Anda dapatkan",

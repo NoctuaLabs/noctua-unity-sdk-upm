@@ -1,4 +1,4 @@
-.social-account-row {
+﻿.social-account-row {
     margin-top: 52px;
     flex-direction: row;
     justify-content: center;
@@ -30,6 +30,12 @@
     padding-left: 2px;
 }
 
+.social-account-label-button {
+    margin-top: -0.01%;
+    font-size: 10px;
+    -unity-text-align: middle-center;
+}
+
 .login-method-logo {
     width: 24px;
     height: 24px;
@@ -43,10 +49,11 @@
     justify-content: space-between;
     align-self: stretch;
     margin-top: 20px;
-    margin-bottom: 20px;
 }
 
 .login-method-separator-label {
+    margin-top: -0.5%;
+    margin-right: -0.08%;
     font-size: 10px;
     color: rgb(139, 142, 145);
     -unity-text-align: middle-center;

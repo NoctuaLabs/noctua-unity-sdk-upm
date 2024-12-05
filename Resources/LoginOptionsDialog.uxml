@@ -24,13 +24,15 @@
             </ui:VisualElement>
             <ui:Button name="LoginWithEmailButton" class="button-normal login-with-email-button">
                 <ui:VisualElement class="login-method-logo email-icon" />
-                <ui:Label name="TextLoginWithEmail" text="Login With Email" class="social-account-label" />
+                <ui:Label name="TextLoginWithEmail" text="Login With Email" class="social-account-label-button" />
             </ui:Button>
-            <ui:VisualElement style="flex-direction: row;">
-                <ui:Label name="ByLoggingOrRegister" text="By logging in or registering, you agree to our" class="tnc-text-first" />
-                <ui:Label name="TnCLabel" text="&lt;color=#3B82F6&gt;Terms of Service&lt;/color&gt;" class="tnc-text-first" style="margin-left: -4;" />
+            <ui:VisualElement style="flex-direction: column;">
+                <ui:VisualElement style="flex-direction: row; margin-top: 10%;">
+                    <ui:Label name="ByLoggingOrRegister" text="By logging in or registering, you agree to our" class="tnc-text-first" />
+                    <ui:Label name="TnCLabel" text="&lt;color=#3B82F6&gt;Terms of Service&lt;/color&gt;" class="tnc-text-first" style="margin-left: -4;" />
+                </ui:VisualElement>
+                <ui:Label name="PrivacyLabel" text="and &lt;color=#3B82F6&gt;Privacy Policy&lt;/color&gt;." class="tnc-text" />
             </ui:VisualElement>
-            <ui:Label name="PrivacyLabel" text="and &lt;color=#3B82F6&gt;Privacy Policy&lt;/color&gt;." class="tnc-text" />
             <ui:Button name="RegisterButton" class="register-button">
                 <ui:Label name="SubRegister" text="Don&apos;t have an account? &lt;color=#3B82F6&gt;Register&lt;/color&gt;" />
             </ui:Button>

@@ -124,6 +124,14 @@
     "UserCenterPresenter.PaymentTypeTF.DropdownField.label": "PaymentType",
     "UserCenterPresenter.SaveButtonContainer.SaveButton.Button.text": "Save",
     "UserCenterPresenter.TitleFindMoreLabel.Label.text": "Find more at",
+    
+    "BindConfirmationDialogPresenter.BindConfirmationLabel.Label.text": "Would you like to connect your progress to selected account?",
+    "BindConfirmationDialogPresenter.ConnectButton.Button.text": "Connect",
+    "BindConfirmationDialogPresenter.CancelButton.Button.text": "Cancel",
+
+    "ConnectConflictDialogPresenter.ConnectConflictInformationLabel.Label.text": "This credential is already connected to an account. Do you want to switch account?",
+    "ConnectConflictDialogPresenter.SwitchAccountButton.Button.text": "Switch account",
+    "ConnectConflictDialogPresenter.CancelButton.Button.text": "Cancel",
 
     "SuggestionBindText.Content1": "Unlock special benefits by owning a Noctua account",
     "SuggestionBindText.Content2": "Protect your hard-earned progress and achievements",
