@@ -33,12 +33,12 @@ namespace com.noctuagames.sdk
                 var oldUser = _recentAccount;
                 _recentAccount = value;
                 
-                if (oldUser?.User?.Id == _recentAccount?.User?.Id && oldUser?.Player?.Id == _recentAccount?.Player.Id)
+                if (oldUser?.User?.Id == _recentAccount?.User?.Id && oldUser?.Player?.Id == _recentAccount?.Player?.Id)
                 {
                     return;
                 }
                 
-                _log.Debug($"account changed to '{RecentAccount?.User?.Id}-{RecentAccount?.Player?.Id}-{RecentAccount?.Credential?.DisplayText}'");
+                _log.Debug($"account changed to '{_recentAccount?.User?.Id}-{_recentAccount?.Player?.Id}-{_recentAccount?.Credential?.DisplayText}'");
 
                 UniTask.Void(async () => OnAccountChanged?.Invoke(RecentAccount));
             }
@@ -82,7 +82,7 @@ namespace com.noctuagames.sdk
 
         public void UpdateRecentAccount(PlayerToken playerToken)
         {
-            var userBundle = TransformTokenResponseToUserBundle(playerToken);
+            var userBundle = AccountContainer.TransformTokenResponseToUserBundle(playerToken);
 
             UpdateRecentAccount(userBundle);
         }
@@ -150,7 +150,7 @@ namespace com.noctuagames.sdk
             _accountStore.PutAccount(ToNativeAccount(userBundle));
         }
 
-        private UserBundle TransformTokenResponseToUserBundle(PlayerToken playerTokenResponse)
+        private static UserBundle TransformTokenResponseToUserBundle(PlayerToken playerTokenResponse)
         {
             if (playerTokenResponse == null)
             {
@@ -161,7 +161,7 @@ namespace com.noctuagames.sdk
             {
                 throw new ArgumentNullException(nameof(playerTokenResponse.User));
             }
-
+            
             if (playerTokenResponse.Player == null)
             {
                 throw new ArgumentNullException(nameof(playerTokenResponse.Player));

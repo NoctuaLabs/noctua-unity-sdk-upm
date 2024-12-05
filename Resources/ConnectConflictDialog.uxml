@@ -1,0 +1,38 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements"
+         xsi="http://www.w3.org/2001/XMLSchema-instance" engine="UnityEngine.UIElements"
+         editor="UnityEditor.UIElements" noNamespaceSchemaLocation="../../../../UIElementsSchema/UIElements.xsd"
+         editor-extension-mode="False"
+>
+    <Style src="./Noctua.uss" />
+    <Style src="./ConnectConflictDialog.uss" />
+    <ui:VisualElement name="Root" class="root">
+        <ui:VisualElement name="ConnectConflictDialog" class="base dialog-box connect-conflict-dialog">
+            <ui:VisualElement name="NoctuaLogoContainer" class="noctua-logo-container">
+                <ui:VisualElement name="NoctuaLogoWithText" class="noctua-logo-with-text" />
+            </ui:VisualElement>
+            <ui:VisualElement name="PlayerBox" class="player-box">
+                <ui:VisualElement>
+                    <ui:VisualElement name="PlayerAvatarImage" />
+                </ui:VisualElement>
+                <ui:VisualElement name="PlayerText" class="player-text">
+                    <ui:VisualElement>
+                        <ui:Label name="UserNickname" text="ono.uni" class="user-nickname" />
+                    </ui:VisualElement>
+                    <ui:VisualElement>
+                        <ui:Label name="CredentialDisplayText" text="ono.uni@gmail.com" class="credential-display-text" />
+                    </ui:VisualElement>
+                </ui:VisualElement>
+            </ui:VisualElement>
+            <ui:VisualElement name="ConnectConflictInformationContainer" class="connect-conflict-information-container">
+                <ui:Label 
+                        name="ConnectConflictInformationLabel"
+                        class="connect-conflict-information-label"
+                        text="This credential is already connected to an account. Do you want to switch account?" />
+            </ui:VisualElement>
+            <ui:VisualElement name="ButtonGroup" class="button-group">
+                <ui:Button name="CancelButton" text="Cancel" class="cancel-button button-transparent" />
+                <ui:Button name="SwitchAccountButton" text="Switch account" class="switch-account-button button-highlight" />
+            </ui:VisualElement>
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>

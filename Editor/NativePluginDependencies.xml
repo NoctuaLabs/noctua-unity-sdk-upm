@@ -5,7 +5,7 @@
         <androidPackage spec="com.google.guava:guava:31.1-android" />
     </androidPackages>
     <iosPods>
-        <iosPod name="NoctuaSDK" version="~> 0.5.5" minTargetSdk="14.0" addToAllTargets="false" />
+        <iosPod name="NoctuaSDK" version="~> 0.5.7" minTargetSdk="14.0" addToAllTargets="false" />
         <iosPod name="NoctuaSDK/Adjust" version="~> 0.5.5" minTargetSdk="14.0" addToAllTargets="false" />
         <iosPod name="NoctuaSDK/FirebaseAnalytics" version="~> 0.5.5" minTargetSdk="14.0" addToAllTargets="false" />
         <iosPod name="NoctuaSDK/FacebookSDK" version="~> 0.5.5" minTargetSdk="14.0" addToAllTargets="false" />

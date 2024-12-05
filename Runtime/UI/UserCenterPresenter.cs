@@ -250,16 +250,15 @@ namespace com.noctuagames.sdk.UI
                 
                 if (!string.IsNullOrEmpty(user?.PictureUrl))
                 {
-                    var www = UnityWebRequestTexture.GetTexture(user.PictureUrl);
+                    var picture = await DownloadTexture2D(user.PictureUrl);
 
-                    await www.SendWebRequest().ToUniTask();
-                
-                    if (www.result == UnityWebRequest.Result.Success)
+                    if (picture == null)
                     {
-                        var picture = DownloadHandlerTexture.GetContent(www);
-                        View.Q<VisualElement>("PlayerAvatar").style.backgroundImage = new StyleBackground(picture);
-                        _profileImage.style.backgroundImage = new StyleBackground(picture);
+                        picture = _defaultAvatar;
                     }
+                    
+                    View.Q<VisualElement>("PlayerAvatar").style.backgroundImage = new StyleBackground(picture);
+                    _profileImage.style.backgroundImage = new StyleBackground(picture);
                 }
                 else
                 {
@@ -548,6 +547,31 @@ namespace com.noctuagames.sdk.UI
                         _playerImage.style.backgroundImage = new StyleBackground(texture);
                     }
                 }
+            }
+        }
+        
+        private async UniTask<Texture2D> DownloadTexture2D(string url)
+        {
+            try
+            {
+                using UnityWebRequest www = UnityWebRequestTexture.GetTexture(url);
+
+                await www.SendWebRequest();
+
+                if (www.result is not UnityWebRequest.Result.Success)
+                {
+                    _log.Error($"error loading image from url: {url}, error: {www.error}");
+
+                    return null;
+                }
+
+                return DownloadHandlerTexture.GetContent(www);
+            }
+            catch (Exception e)
+            {
+                _log.Error($"error loading image from url: {url}, error: {e.Message}");
+
+                return null;
             }
         }
 
@@ -896,7 +920,7 @@ namespace com.noctuagames.sdk.UI
 
             View.visible = false;
             
-            Model.PushNavigation(() => Model.ShowAccountSelection());
+            Model.PushNavigation(() => Model.ShowUserCenter());
             Model.ShowLoginOptions();
 
             evt.StopPropagation();

@@ -47,11 +47,13 @@ namespace com.noctuagames.sdk
         private readonly EmailLoginDialogPresenter _emailLoginDialog;
         private readonly EmailRegisterDialogPresenter _emailRegisterDialog;
         private readonly EmailVerificationDialogPresenter _emailVerificationDialog;
-        private readonly WelcomeNotificationPresenter _welcome;
         private readonly EmailResetPasswordDialogPresenter _emailResetPasswordDialog;
         private readonly EmailConfirmResetPasswordDialogPresenter _emailConfirmResetPasswordDialog;
         private readonly UserCenterPresenter _userCenter;
         private readonly AccountDeletionConfirmationDialogPresenter _accountDeletionConfirmationDialog;
+        private readonly BindConfirmationDialogPresenter _bindConfirmation;
+        private readonly ConnectConflictDialogPresenter _connectConflictDialog;
+        private readonly WelcomeNotificationPresenter _welcome;
 
         private NoctuaAuthenticationService _authService;
         private GameObject _socialAuthObject;
@@ -63,7 +65,7 @@ namespace com.noctuagames.sdk
 
         internal event Action<UserBundle> OnAccountChanged;
 
-        private AuthType _currentAuthType = AuthType.SwitchOrBindAccount;
+        private AuthType _currentAuthType = AuthType.Switch;
 
         internal AuthenticationModel(
             UIFactory uiFactory, 
@@ -87,6 +89,8 @@ namespace com.noctuagames.sdk
             _emailConfirmResetPasswordDialog = _uiFactory.Create<EmailConfirmResetPasswordDialogPresenter, AuthenticationModel>(this);
             _emailConfirmResetPasswordDialog.EventSender = eventSender;
             _accountDeletionConfirmationDialog = _uiFactory.Create<AccountDeletionConfirmationDialogPresenter, AuthenticationModel>(this);
+            _bindConfirmation = _uiFactory.Create<BindConfirmationDialogPresenter, AuthenticationModel>(this);
+            _connectConflictDialog = _uiFactory.Create<ConnectConflictDialogPresenter, AuthenticationModel>(this);
             _welcome = _uiFactory.Create<WelcomeNotificationPresenter, AuthenticationModel>(this);
 
             _welcome.SetBehaviourWhitelabel(config);
@@ -123,7 +127,7 @@ namespace com.noctuagames.sdk
 
         public void ShowAccountSelection()
         {
-            _currentAuthType = AuthType.SwitchOrBindAccount;
+            _currentAuthType = AuthType.Switch;
             _accountSelectionDialog.Show();
         }
 
@@ -169,14 +173,24 @@ namespace com.noctuagames.sdk
         
         public void ShowUserCenter()
         {
-            _currentAuthType = _authService?.RecentAccount?.IsGuest == true ? AuthType.SwitchOrBindAccount : AuthType.LinkAccount;
+            _currentAuthType = _authService?.RecentAccount?.IsGuest == true ? AuthType.Switch : AuthType.LinkAccount;
 
             _userCenter.Show();
         }
-
-        public void ShowGeneralNotification(string message, bool isNotifSuccess = false) 
+        
+        public void ShowError(string message)
         {
-            _uiFactory.ShowGeneralNotification(message, isNotifSuccess);
+            _uiFactory.ShowError(message);
+        }
+        
+        public void ShowInfo(string message)
+        {
+            _uiFactory.ShowInfo(message);
+        }
+
+        public void ShowGeneralNotification(string message, bool isNotifSuccess = false, uint durationMs = 3000) 
+        {
+            _uiFactory.ShowGeneralNotification(message, isNotifSuccess, durationMs);
         }
 
         public void ShowLoadingProgress(bool isShow)
@@ -193,7 +207,7 @@ namespace com.noctuagames.sdk
         {
             return _currentAuthType switch
             {
-                AuthType.SwitchOrBindAccount => await AuthService.RegisterWithEmailAsync(email, password, regExtra),
+                AuthType.Switch => await AuthService.RegisterWithEmailAsync(email, password, regExtra),
                 AuthType.LinkAccount => await AuthService.LinkWithEmailAsync(email, password),
                 _ => throw new NotImplementedException(_currentAuthType.ToString())
             };
@@ -203,7 +217,7 @@ namespace com.noctuagames.sdk
         {
             switch (_currentAuthType)
             {
-                case AuthType.SwitchOrBindAccount:
+                case AuthType.Switch:
                     await AuthService.VerifyEmailRegistrationAsync(credVerifyId, code);
 
                     break;
@@ -222,16 +236,31 @@ namespace com.noctuagames.sdk
         {
             return await _socialAuth.SocialLoginAsync(provider);
         }
+        
+        public async UniTask<PlayerToken> BeginSocialLoginAsync(string provider)
+        {
+            return await _socialAuth.BeginSocialLoginAsync(provider);
+        }
 
         public async UniTask<Credential> SocialLinkAsync(string provider)
         {
             return await _socialAuth.SocialLinkAsync(provider);
         }
+
+        public void ShowBindConfirmation(PlayerToken playerToken)
+        {
+            _bindConfirmation.Show(playerToken);
+        }
+        
+        public void ShowConnectConflict(PlayerToken playerToken)
+        {
+            _connectConflictDialog.Show(playerToken);
+        }
     }
     
     internal enum AuthType
     {
-        SwitchOrBindAccount,
+        Switch,
         LinkAccount,
     }
 }

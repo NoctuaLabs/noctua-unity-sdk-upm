@@ -45,6 +45,31 @@ namespace com.noctuagames.sdk
 
             return await _authService.SocialLoginAsync(provider, socialLoginRequest);
         }
+        
+        public async UniTask<PlayerToken> BeginSocialLoginAsync(string provider)
+        {
+            if(Utility.ContainsFlag(_config?.Noctua?.Flags, "VNLegalPurpose"))
+            {
+                throw new NoctuaException(NoctuaErrorCode.Authentication, "Social Login is Disabled");
+            }
+
+            if (_authService == null)
+            {
+                throw new NoctuaException(NoctuaErrorCode.Authentication, "AuthService is not set");
+            }
+            
+            var callbackDataMap = await GetSocialAuthParamsAsync(provider);
+
+            var socialLoginRequest = new SocialLoginRequest
+            {
+                Code = callbackDataMap["code"],
+                State = callbackDataMap["state"],
+                RedirectUri = callbackDataMap["redirect_uri"],
+                NoBindGuest = true
+            };
+
+            return await _authService.GetSocialLoginTokenAsync(provider, socialLoginRequest);
+        }
 
         public async UniTask<Credential> SocialLinkAsync(string provider)
         {

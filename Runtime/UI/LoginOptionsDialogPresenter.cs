@@ -89,7 +89,23 @@ namespace com.noctuagames.sdk.UI
         {
             try
             {
-                await Model.SocialLoginAsync(provider);
+                if (Model.AuthService.RecentAccount.IsGuest)
+                {
+                    var playerToken = await Model.BeginSocialLoginAsync(provider);
+                    
+                    if (playerToken.Player == null)
+                    {
+                        Model.ShowBindConfirmation(playerToken);
+                    }
+                    else
+                    {
+                        Model.ShowConnectConflict(playerToken);
+                    }
+                }
+                else
+                {
+                    await Model.SocialLoginAsync(provider);
+                }
             }
             catch (Exception e)
             {

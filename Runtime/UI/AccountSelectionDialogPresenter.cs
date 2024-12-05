@@ -1,6 +1,9 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using System.Threading;
+using Cysharp.Threading.Tasks;
+using Newtonsoft.Json;
 using UnityEngine;
 using UnityEngine.UIElements;
 
@@ -122,8 +125,56 @@ namespace com.noctuagames.sdk.UI
         private void BindListViewItem(VisualElement element, int index, List<UserBundle> items)
         {
             element.userData = items[index];
-            element.RegisterCallback<PointerUpEvent>(_ =>
+            
+            var timeout = false;
+            
+            void TimerCallback(object _)
             {
+                timeout = true;
+
+                _log.Debug($"held down player '{items[index]?.Player?.Id}' for 3 seconds");
+
+                UniTask.Void(
+                    async () =>
+                    {
+                        await UniTask.SwitchToMainThread();
+
+                        var textToCopy = $"{{"                                            +
+                            $"\"userId\":\"{items[index]?.User?.Id}\","                   +
+                            $"\"playerId\":\"{items[index]?.Player?.Id}\","               +
+                            $"\"provider\":\"{items[index]?.Credential?.Provider}\","     +
+                            $"\"credentialId\":\"{items[index]?.Credential?.Id}\","       +
+                            $"\"credential\":\"{items[index]?.Credential?.DisplayText}\"" +
+                            $"}}";
+
+                        Model.ShowGeneralNotification(
+                            $"Player '{items[index]?.Player?.Id}' data copied to clipboard",
+                            true,
+                            7000
+                        );
+
+                        GUIUtility.systemCopyBuffer = textToCopy;
+                    }
+                );
+            }
+            
+            var holdTimer = new Timer(TimerCallback, null, Timeout.Infinite, Timeout.Infinite);
+            
+            element.RegisterCallback<PointerDownEvent>(evt =>
+            {
+                timeout = false;
+                holdTimer.Change(3000, Timeout.Infinite);
+            });
+
+            element.RegisterCallback<PointerUpEvent>(evt =>
+            {
+                if (timeout)
+                {
+                    return;
+                }
+                
+                holdTimer.Change(Timeout.Infinite, Timeout.Infinite);
+
                 var selected = items[index];
                 
                 _log.Info($"selected {selected?.Credential?.DisplayText} - {selected?.User?.Id} - {selected?.Player?.Id}");
@@ -145,6 +196,7 @@ namespace com.noctuagames.sdk.UI
                 "email" => "email-player-avatar",
                 _ => "guest-player-avatar"
             };
+            
             element.Q<VisualElement>("PlayerLogo").ClearClassList();
             element.Q<VisualElement>("PlayerLogo").AddToClassList(logoClass);
             

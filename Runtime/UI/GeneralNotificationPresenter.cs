@@ -24,12 +24,12 @@ namespace com.noctuagames.sdk.UI
             _messageName = View.Q<Label>("MessageName");
         }
 
-        public void Show(string textMessage, bool isNotifSuccess)
+        public void Show(string textMessage, bool isNotifSuccess, uint durationMs = 3000)
         {
-            StartCoroutine(RunAnimation(textMessage, isNotifSuccess));
+            StartCoroutine(RunAnimation(textMessage, isNotifSuccess, durationMs));
         }
 
-        public IEnumerator RunAnimation(string textMessage, bool isNotifSuccess)
+        public IEnumerator RunAnimation(string textMessage, bool isNotifSuccess, uint durationMs)
         {
             Color borderColor = isNotifSuccess ? new Color(6f / 255f, 208f / 255f, 1f / 255f) : new Color(255f / 255f, 0f / 255f, 0f / 255f);
 
@@ -49,7 +49,7 @@ namespace com.noctuagames.sdk.UI
             
             _root.AddToClassList("expanded");
             
-            yield return new WaitForSeconds(3);
+            yield return new WaitForSeconds(durationMs / 1000.0f);
             
             _root.RemoveFromClassList("expanded");
         }
