@@ -599,6 +599,8 @@ namespace com.noctuagames.sdk
 
             if (paymentResult.Status is not (PaymentStatus.Successful or PaymentStatus.Confirmed))
             {
+                _uiFactory.ShowError(paymentResult.Message);
+                
                 throw new NoctuaException(NoctuaErrorCode.Payment, $"OrderStatus: {paymentResult.Status}, Message: {paymentResult.Message}");
             }
 
