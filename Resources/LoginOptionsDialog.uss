@@ -21,6 +21,13 @@
     margin-top: 10px;
     font-size: 10px;
     -unity-text-align: middle-center;
+    margin-right: 2px;
+    margin-bottom: 2px;
+    margin-left: 2px;
+    padding-top: 4px;
+    padding-right: 2px;
+    padding-bottom: 4px;
+    padding-left: 2px;
 }
 
 .login-method-logo {

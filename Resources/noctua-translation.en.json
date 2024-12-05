@@ -1,7 +1,7 @@
 {
     "WelcomeNotificationPresenter.WelcomeLabel.Label.text": "Welcome",
 
-    "EmailLoginDialogPresenter.TitleContinueWithEmail.Label.text": "Continue with email",
+    "EmailLoginDialogPresenter.TitleContinueWithEmail.Label.text": "Login with email",
     "EmailLoginDialogPresenter.EmailTF.TextField.label": "Email Address",
     "EmailLoginDialogPresenter.PasswordTF.TextField.label": "Password",
     "EmailLoginDialogPresenter.ForgotPassword.Label.text": "Forgot Password",
@@ -11,7 +11,7 @@
     "EmailLoginDialogPresenter.ErrPasswordMismatch.Label.text": "Password is not matched with repeated password",
     "EmailLoginDialogPresenter.ErrPasswordTooShort.Label.text": "Password is too short. Minimum 6 characters",
     "EmailLoginDialogPresenter.ErrPasswordEmpty.Label.text": "Password should not be empty",
-    "EmailLoginDialogPresenter.ContinueButton.Button.text": "Continue",
+    "EmailLoginDialogPresenter.ContinueButton.Button.text": "Login",
     "EmailLoginDialogPresenter.DontHaveAccount.Label.text": "Don't have an account?",
     "EmailLoginDialogPresenter.Register.Label.text": "Register",
 

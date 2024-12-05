@@ -10,11 +10,11 @@
             <ui:VisualElement class="social-account-row">
                 <ui:Button name="LoginWithGoogleButton" class="social-account-button">
                     <ui:VisualElement class="login-method-logo google-logo" />
-                    <ui:Label name="TitleGoogle" text="Google" class="social-account-label" style="padding-left: 2px; margin-right: 2px;" />
+                    <ui:Label name="TitleGoogle" text="Google" class="social-account-label" />
                 </ui:Button>
                 <ui:Button name="LoginWithFacebookButton" class="social-account-button">
                     <ui:VisualElement class="login-method-logo facebook-logo" />
-                    <ui:Label name="TitleFacebook" text="Facebook" class="social-account-label" style="padding-left: 2px; margin-right: 2px;" />
+                    <ui:Label name="TitleFacebook" text="Facebook" class="social-account-label" />
                 </ui:Button>
             </ui:VisualElement>
             <ui:VisualElement class="login-method-separator">

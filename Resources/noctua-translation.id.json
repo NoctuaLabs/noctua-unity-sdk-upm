@@ -1,7 +1,7 @@
 {
     "WelcomeNotificationPresenter.WelcomeLabel.Label.text": "Selamat Datang",
 
-    "EmailLoginDialogPresenter.TitleContinueWithEmail.Label.text": "Lanjutkan dengan email",
+    "EmailLoginDialogPresenter.TitleContinueWithEmail.Label.text": "Masuk dengan email",
     "EmailLoginDialogPresenter.EmailTF.TextField.label": "Alamat Email",
     "EmailLoginDialogPresenter.PasswordTF.TextField.label": "Kata Sandi",
     "EmailLoginDialogPresenter.ForgotPassword.Label.text": "Lupa Kata Sandi",
@@ -11,7 +11,7 @@
     "EmailLoginDialogPresenter.ErrPasswordMismatch.Label.text": "Kata sandi tidak cocok dengan kata sandi ulang",
     "EmailLoginDialogPresenter.ErrPasswordTooShort.Label.text": "Kata sandi terlalu pendek. Minimal 6 karakter",
     "EmailLoginDialogPresenter.ErrPasswordEmpty.Label.text": "Kata sandi tidak boleh kosong",
-    "EmailLoginDialogPresenter.ContinueButton.Button.text": "Lanjutkan",
+    "EmailLoginDialogPresenter.ContinueButton.Button.text": "Masuk",
     "EmailLoginDialogPresenter.DontHaveAccount.Label.text": "Tidak punya akun?",
     "EmailLoginDialogPresenter.Register.Label.text": "Daftar",
 
