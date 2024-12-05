@@ -25,8 +25,10 @@ namespace com.noctuagames.sdk.UI
         private string _password;
         private VisualElement _spinner;
         private List<TextField> textFields;
+        private TextField passwordField;
         private Button submitButton;
-        
+        private Button buttonShowPassword;
+
         private Action<UserBundle> _onLoginSuccess;
         private GlobalConfig _config;
 
@@ -49,8 +51,9 @@ namespace com.noctuagames.sdk.UI
         private void Setup()
         {
             var emailField = View.Q<TextField>("EmailTF");
-            var passwordField = View.Q<TextField>("PasswordTF");
+            passwordField = View.Q<TextField>("PasswordTF");
             submitButton = View.Q<Button>("ContinueButton");
+            buttonShowPassword = View.Q<Button>("Btn_ShowPassword");
             passwordField.isPasswordField = true;
 
             emailField.RegisterValueChangedCallback(evt => OnEmailValueChanged(emailField));
@@ -68,11 +71,28 @@ namespace com.noctuagames.sdk.UI
             View.Q<Label>("Register").RegisterCallback<PointerUpEvent>(OnRegisterButtonClick);
             View.Q<Button>("BackButton").RegisterCallback<PointerUpEvent>(OnBackButtonClick);
             View.Q<Button>("ContinueButton").RegisterCallback<PointerUpEvent>(OnContinueButtonClick);
+            buttonShowPassword.RegisterCallback<PointerUpEvent>(OnToggleShowPassword);
             
             _spinner = new Spinner();
             View.Q<VisualElement>("Spinner").Clear();
             View.Q<VisualElement>("Spinner").Add(_spinner);
             View.Q<VisualElement>("Spinner").AddToClassList("hide");
+        }
+
+        public void OnToggleShowPassword(PointerUpEvent _event)
+        {
+            _log.Debug("clicking Show Password");
+
+            passwordField.isPasswordField = !passwordField.isPasswordField;
+
+            if (passwordField.isPasswordField)
+            {
+                buttonShowPassword.RemoveFromClassList("btn-password_hide");
+            }
+            else
+            {
+                buttonShowPassword.AddToClassList("btn-password_hide");
+            }
         }
 
         public void SetBehaviourWhitelabel(GlobalConfig config)

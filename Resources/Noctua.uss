@@ -1,9 +1,7 @@
-/* General */
-
 .base {
     background-color: rgb(31, 35, 39);
     color: white;
-    position:absolute;
+    position: absolute;
 }
 
 .root {
@@ -13,7 +11,7 @@
 }
 
 .hide {
-    display: none !important;
+    display: none;
 }
 
 .show {
@@ -30,6 +28,7 @@
     align-items: center;
     justify-content: center;
 }
+
 .err-label {
     color: red;
     font-size: 10px;
@@ -45,12 +44,8 @@
 
 .unity-scroller--vertical {
     width: 4px;
-    background-color: #2D3138;
+    background-color: rgb(45, 49, 56);
 }
-
-/* End General */
-
-/* Dialog */
 
 .dialog-box {
     top: 12px;
@@ -80,31 +75,31 @@
 }
 
 .dialog-back-button {
-    margin-top:0;
-    margin-right:14px;
-    height:24px;
+    margin-top: 0;
+    margin-right: 14px;
+    height: 24px;
     width: 24px;
     flex-direction: column;
     border-width: 0;
     border-color: transparent;
     background-color: transparent;
     justify-content: flex-start;
-    background-image: url("./Backicon.png");
+    background-image: url("project://database/Packages/com.noctuagames.sdk/Resources/BackIcon.png?fileID=21300000&guid=26917d39f45fdac47a6e498ce7306fd4&type=3#BackIcon");
     align-items: auto;
     background-position: center;
 }
 
 .dialog-close-button {
-    margin-top:0px;
-    margin-right:14px;
-    height:24px;
+    margin-top: 0;
+    margin-right: 14px;
+    height: 24px;
     width: 24px;
     flex-direction: column;
     border-width: 0;
     border-color: transparent;
     background-color: transparent;
     justify-content: flex-start;
-    background-image: url("./CloseIcon.png");
+    background-image: url("project://database/Packages/com.noctuagames.sdk/Resources/CloseIcon.png?fileID=21300000&guid=b23e5a84f2194ff4d92a9607559f17f2&type=3#CloseIcon");
     align-items: auto;
     background-position: center;
 }
@@ -128,16 +123,11 @@
 }
 
 .dialog-err-label {
-    margin-top:10px;
-    margin-bottom:10px;
+    margin-top: 10px;
+    margin-bottom: 10px;
     color: red;
     font-size: 10px;
 }
-
-/* End Dialog */
-
-
-/* Button */
 
 .button-highlight {
     background-color: rgb(59, 130, 246);
@@ -154,17 +144,17 @@
 
 .button-with-border {
     border-radius: 5px;
-    border-color: #3B82F6;
+    border-color: rgb(59, 130, 246);
     border-width: 1px;
     background-color: transparent;
-    color: #3B82F6;
+    color: rgb(59, 130, 246);
 }
 
 .dialog-button {
     height: 40px;
     width: 100%;
-    background-color: #3B82F6;
-    border-width: 0 !important;
+    background-color: rgb(59, 130, 246);
+    border-width: 0;
     border-color: transparent;
     padding-top: 14px;
     padding-right: 24px;
@@ -181,25 +171,25 @@
 }
 
 .dialog-button:disabled {
-    background-color: #474B4E;
-    border-width: 0 !important;
+    background-color: rgb(71, 75, 78);
+    border-width: 0;
     border-color: transparent;
 }
 
 .dialog-button:hover {
-    background-color: #5190F7;
-    border-width: 0 !important;
+    background-color: rgb(81, 144, 247);
+    border-width: 0;
     border-color: transparent;
 }
 
 .dialog-button:active {
-    background-color: #295BAC;
-    border-width: 0 !important;
+    background-color: rgb(41, 91, 172);
+    border-width: 0;
     border-color: transparent;
 }
 
 .unity-button {
-    border-width: 0 !important;
+    border-width: 0;
     border-color: transparent;
 }
 
@@ -210,16 +200,12 @@
     background-color: transparent;
     justify-content: flex-start;
     width: 24px;
-    background-image: url("project://database/Assets/UI%20Toolkit/UnityThemes/UnityDefaultRuntimeTheme.tss?fileID=1169890249420208065&amp;guid=4f666f58f28c9584baab1db4dbae7c50&amp;type=3#arrow-left");
+    background-image: url('project://database/Assets/UI%20Toolkit/UnityThemes/UnityDefaultRuntimeTheme.tss?fileID=1169890249420208065&amp;guid=4f666f58f28c9584baab1db4dbae7c50&amp;type=3#arrow-left');
     align-items: auto;
 }
 
-/* End Button */
-
-/* Image */
-
 .noctua-logo {
-    background-image: url("./NoctuaLogo.png");
+    background-image: url("project://database/Packages/com.noctuagames.sdk/Resources/NoctuaLogo.png?fileID=21300000&guid=b19b481b266e1c048b4438e4bcaa21a4&type=3#NoctuaLogo");
     width: 77px;
     height: 54px;
     background-position: center;
@@ -231,92 +217,92 @@
 }
 
 .noctua-logo-with-text {
-    background-image: url("./NoctuaLogoWithText.png");
+    background-image: url("project://database/Packages/com.noctuagames.sdk/Resources/NoctuaLogoWithText.png?fileID=21300000&guid=d32523a2b418bae4c913f1aeb1105733&type=3#NoctuaLogoWithText");
     width: 61px;
     height: 13px;
     background-position: center;
 }
 
 .google-logo {
-    background-image: url("./GoogleLogo.png");
+    background-image: url("project://database/Packages/com.noctuagames.sdk/Resources/GoogleLogo.png?fileID=21300000&guid=67a9917a668bafd4194e4ce1dd6ebf3d&type=3#GoogleLogo");
     background-position: center;
 }
 
 .facebook-logo {
-    background-image: url("./FacebookLogo.png");
+    background-image: url("project://database/Packages/com.noctuagames.sdk/Resources/FacebookLogo.png?fileID=21300000&guid=c5229f932dbdbef48830e438d192109c&type=3#FacebookLogo");
     background-position: center;
 }
 
 .email-icon {
-    background-image: url("./EmailIcon.png");
+    background-image: url("project://database/Packages/com.noctuagames.sdk/Resources/EmailIcon.png?fileID=21300000&guid=285b46087e2de154eb8ad52b64fc6015&type=3#EmailIcon");
     background-position: center;
 }
 
 .edit-icon {
-    background-image: url("./EditIcon.png");
+    background-image: url("project://database/Packages/com.noctuagames.sdk/Resources/EditIcon.png?fileID=21300000&guid=129d5718072e96245877c26951f13d07&type=3#EditIcon");
     width: 16px;
     height: 16px;
     background-position: center;
 }
 
 .second-switch-account-icon {
-    background-image: url("./SwitchAccountIconSecond.png");
+    background-image: url("project://database/Packages/com.noctuagames.sdk/Resources/SwitchAccountIconSecond.png?fileID=21300000&guid=ffd37c0dd1d9ce9479ee7e3db9aa4dfe&type=3#SwitchAccountIconSecond");
     width: 16px;
     height: 16px;
     background-position: center;
 }
 
 .delete-icon {
-    background-image: url("./DeleteIcon.png");
+    background-image: url("project://database/Packages/com.noctuagames.sdk/Resources/DeleteIcon.png?fileID=21300000&guid=e8ecea30825c140428318081a153b55c&type=3#DeleteIcon");
     width: 16px;
     height: 16px;
     background-position: center;
 }
 
 .logout-icon {
-    background-image: url("./LogoutIcon.png");
+    background-image: url("project://database/Packages/com.noctuagames.sdk/Resources/LogoutIcon.png?fileID=21300000&guid=30bf29c8c10087a4a9209b4629b1f672&type=3#LogoutIcon");
     width: 16px;
     height: 16px;
     background-position: center;
 }
 
 .edit-profile-image {
-    background-image: url("./EditProfileImage.png");
+    background-image: url("project://database/Packages/com.noctuagames.sdk/Resources/EditProfileImage.png?fileID=21300000&guid=d1fb506cafe4dfa498065b419d96524e&type=3#EditProfileImage");
     width: 80px;
     height: 80px;
     background-position: center;
 }
 
 .guest-player-avatar {
-    background-image: url("./GuestPlayerAvatar.png");
+    background-image: url("project://database/Packages/com.noctuagames.sdk/Resources/GuestPlayerAvatar.png?fileID=21300000&guid=8796914f94dbb024899f4648d1c42a9b&type=3#GuestPlayerAvatar");
     width: 29px;
     height: 29px;
     background-position: center;
 }
 
 .google-player-avatar {
-    background-image: url("./GooglePlayerAvatar.png");
+    background-image: url("project://database/Packages/com.noctuagames.sdk/Resources/GooglePlayerAvatar.png?fileID=21300000&guid=5c9c5f84de0a4b44d82c954b8aa77aa6&type=3#GooglePlayerAvatar");
     width: 29px;
     height: 29px;
     background-position: center;
 }
 
 .facebook-player-avatar {
-    background-image: url("./FacebookPlayerAvatar.png");
+    background-image: url("project://database/Packages/com.noctuagames.sdk/Resources/FacebookPlayerAvatar.png?fileID=21300000&guid=9298bd9c9b358452bb25e2f7376b34eb&type=3#FacebookPlayerAvatar");
     width: 29px;
     height: 29px;
     background-position: center;
 }
 
 .email-player-avatar {
-    background-image: url("./EmailPlayerAvatar.png");
+    background-image: url("project://database/Packages/com.noctuagames.sdk/Resources/EmailPlayerAvatar.png?fileID=21300000&guid=03a029042b47d6a4f8af5ef12714056c&type=3#EmailPlayerAvatar");
     width: 29px;
     height: 29px;
     background-position: center;
 }
 
 .back-icon {
-    background-image: url("./BackIcon.png");
+    background-image: url("project://database/Packages/com.noctuagames.sdk/Resources/BackIcon.png?fileID=21300000&guid=26917d39f45fdac47a6e498ce7306fd4&type=3#BackIcon");
     width: 24px;
     height: 24px;
     background-color: transparent;
@@ -324,7 +310,7 @@
 }
 
 .back-circle-icon {
-    background-image: url("./BackCircleIcon.png");
+    background-image: url("project://database/Packages/com.noctuagames.sdk/Resources/BackCircleIcon.png?fileID=21300000&guid=9bc651595f727f049b0a7286f86734bd&type=3#BackCircleIcon");
     width: 26px;
     height: 26px;
     background-color: transparent;
@@ -332,7 +318,7 @@
 }
 
 .close-icon {
-    background-image: url("./CloseIcon.png");
+    background-image: url("project://database/Packages/com.noctuagames.sdk/Resources/CloseIcon.png?fileID=21300000&guid=b23e5a84f2194ff4d92a9607559f17f2&type=3#CloseIcon");
     width: 20px;
     height: 20px;
     background-color: transparent;
@@ -340,49 +326,39 @@
 }
 
 .right-separator-short {
-    background-image: url("./RightSeparatorShort.png");
+    background-image: url("project://database/Packages/com.noctuagames.sdk/Resources/RightSeparatorShort.png?fileID=21300000&guid=a148a39287b7c13418f541cc6836f79e&type=3#RightSeparatorShort");
     width: 50px;
     height: 1px;
     background-position: center;
 }
 
 .left-separator-short {
-    background-image: url("./LeftSeparatorShort.png");
+    background-image: url("project://database/Packages/com.noctuagames.sdk/Resources/LeftSeparatorShort.png?fileID=21300000&guid=41fc1a804e389e34ca4c50069242387a&type=3#LeftSeparatorShort");
     width: 50px;
     height: 1px;
     background-position: center;
 }
 
 .right-separator-long {
-    background-image: url("./RightSeparatorLong.png");
+    background-image: url("project://database/Packages/com.noctuagames.sdk/Resources/RightSeparatorLong.png?fileID=21300000&guid=f7179925f2690574eb9857a04b8263d3&type=3#RightSeparatorLong");
     width: 100px;
     height: 1px;
     background-position: center;
 }
 
 .left-separator-long {
-    background-image: url("./LeftSeparatorLong.png");
+    background-image: url("project://database/Packages/com.noctuagames.sdk/Resources/LeftSeparatorLong.png?fileID=21300000&guid=8f0ede3d250ca9045bf7d61e498ff033&type=3#LeftSeparatorLong");
     width: 100px;
     height: 1px;
     background-position: center;
 }
 
 .warning-icon {
-    background-image: url("./WarningIcon.png");
+    background-image: url("project://database/Packages/com.noctuagames.sdk/Resources/WarningIcon.png?fileID=21300000&guid=91114b5477f33454081377fc3c8313a6&type=3#WarningIcon");
     width: 29px;
     height: 29px;
     background-position: center;
 }
-
-/* End Images */
-
-/* Text Input */
-
-/*
-  The noctua-text-input class only control the position and flex
-  The actual cosmetics are controlled by unity-base-* and unity-text-* classes below
-  because their CSS behaviour is hard to override.
-*/
 
 .noctua-text-input {
     position: relative;
@@ -394,7 +370,7 @@
 .unity-base-text-field__input {
     border-radius: 10px;
     margin-bottom: 10px;
-    border-color: #474B4E;
+    border-color: rgb(71, 75, 78);
     --unity-cursor-color: white;
 }
 
@@ -414,7 +390,7 @@
 
 .unity-base-field__label {
     color: grey;
-    margin-top: -2px; /* To make the label has the same position with the input text */
+    margin-top: -2px;
 }
 
 .unity-list-view__empty-label {
@@ -443,11 +419,11 @@
 }
 
 Label {
-    border-width: 0 !important;
+    border-width: 0;
 }
 
 Label:hover {
-    border-width: 0 !important;
+    border-width: 0;
 }
 
 .noctua-text-input Label {
@@ -457,7 +433,7 @@ Label:hover {
     font-size: 12px;
     padding-left: 10px;
     background-color: transparent;
-    border-width: 0 !important;
+    border-width: 0;
 }
 
 .custom-textfield-input-code #unity-text-input {
@@ -469,18 +445,14 @@ Label:hover {
     -unity-text-align: middle-center;
     font-size: 14px;
     border-width: 1px;
-    border-color: #474B4E;
+    border-color: rgb(71, 75, 78);
     border-radius: 6px;
 }
 
-/* End Text Input */
-
-/* Start - Dropdown */
 .general-dropdown-box {
     margin-bottom: 10px;
     margin-right: -0.3px;
     margin-left: -0.3px;
-
 }
 
 .general-dropdown-box .unity-base-field__label {
@@ -489,17 +461,22 @@ Label:hover {
 
 .general-dropdown-box .unity-base-field__input {
     background-color: transparent;
-    border-color: #474B4E;
+    border-color: rgb(71, 75, 78);
     border-radius: 8px;
     margin-right: 0;
     margin-left: 0;
     height: 40px;
-
 }
 
 .general-dropdown-box .unity-base-popup-field__arrow {
     width: 10px;
-    -unity-background-image-tint-color: rgba(98, 100, 104, 1);
+    -unity-background-image-tint-color: rgb(98, 100, 104);
 }
 
-/* End - Dropdown */
+.btn-password_show {
+    background-image: resource('Sprite/Eye-Close');
+}
+
+.btn-password_hide {
+    background-image: resource('Sprite/Eye-Open');
+}
