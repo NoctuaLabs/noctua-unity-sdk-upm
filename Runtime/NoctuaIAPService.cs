@@ -171,6 +171,10 @@ namespace com.noctuagames.sdk
 
         [JsonProperty("ingame_item_name")]
         public string IngameItemName;
+
+        [JsonProperty("extra")]
+        public Dictionary<string, string> Extra;
+        
     }
     
     [Preserve]
@@ -423,10 +427,8 @@ namespace com.noctuagames.sdk
                     IngameUsername = "Player",
                     IngameServerId = purchaseRequest.ServerId,
                     IngameRoleId = purchaseRequest.RoleId,
-                    Extra = new Dictionary<string, string>
-                    {
-                        { "", "" },
-                    }
+                    Extra = (purchaseRequest.Extra != null && purchaseRequest.Extra.Count > 0) ? purchaseRequest.Extra : new Dictionary<string, string> {{ "", "" }}
+
                 };
 
                 await Noctua.Auth.UpdatePlayerAccountAsync(playerData);
