@@ -52,6 +52,9 @@ namespace com.noctuagames.sdk
 
         [JsonProperty("currency")]
         public string Currency;
+
+        [JsonProperty("display_price")]
+        public string DisplayPrice;
     }
 
     [JsonArray]
