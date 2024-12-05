@@ -430,7 +430,9 @@ namespace com.noctuagames.sdk
                     IngameUsername = "Player",
                     IngameServerId = purchaseRequest.ServerId,
                     IngameRoleId = purchaseRequest.RoleId,
-                    Extra = (purchaseRequest.Extra != null && purchaseRequest.Extra.Count > 0) ? purchaseRequest.Extra : new Dictionary<string, string> {{ "", "" }}
+                    Extra = (purchaseRequest.Extra != null && purchaseRequest.Extra.Count > 0) 
+                    ? purchaseRequest.Extra 
+                    : new Dictionary<string, string> {{ "", "" }}
 
                 };
 
