@@ -134,17 +134,20 @@ namespace com.noctuagames.sdk
         public string ReceiptData;
     }
 
-    [Preserve, JsonConverter(typeof(StringEnumConverter), typeof(SnakeCaseNamingStrategy))]
+    [Preserve]
     public enum OrderStatus
     {
-        Unknown,
-        Pending,
-        Completed,
-        Failed,
-        Refunded,
-        Canceled,
-        Expired,
-        VerificationFailed,
+        unknown,
+        pending,
+        completed,
+        failed,
+        verification_failed,
+        delivery_callback_failed,
+        error,
+        refunded,
+        canceled,
+        expired,
+        invalid
     }
 
     [Preserve]
@@ -629,7 +632,7 @@ namespace com.noctuagames.sdk
 
                 switch (verifyOrderResponse.Status)
                 {
-                case OrderStatus.Completed:
+                case OrderStatus.completed:
                     _eventSender?.Send(
                         "purchase_completed",
                         new()
@@ -648,7 +651,7 @@ namespace com.noctuagames.sdk
                         orderRequest.Currency
                     );
                     break;
-                case OrderStatus.Canceled:
+                case OrderStatus.canceled:
                     _eventSender?.Send(
                         "purchase_cancelled",
                         new()
@@ -664,7 +667,7 @@ namespace com.noctuagames.sdk
                     break;
                 }
 
-                if (verifyOrderResponse.Status == OrderStatus.Pending)
+                if (verifyOrderResponse.Status == OrderStatus.pending)
                 {
                     _waitingPendingPurchases.Enqueue(
                         new RetryPendingPurchaseItem
@@ -964,7 +967,7 @@ namespace com.noctuagames.sdk
                         
                         switch (verifyOrderResponse.Status)
                         {
-                        case OrderStatus.Completed:
+                        case OrderStatus.completed:
                             _eventSender?.Send(
                                 "purchase_completed",
                                 new()
@@ -986,7 +989,7 @@ namespace com.noctuagames.sdk
 
                             break;
 
-                        case OrderStatus.Canceled:
+                        case OrderStatus.canceled:
                             _eventSender?.Send(
                                 "purchase_cancelled",
                                 new()
@@ -1003,7 +1006,7 @@ namespace com.noctuagames.sdk
                             break;
                         }
 
-                        if (verifyOrderResponse.Status == OrderStatus.Pending)
+                        if (verifyOrderResponse.Status == OrderStatus.pending)
                         {
                             failedPendingPurchases.Add(item);
                         
