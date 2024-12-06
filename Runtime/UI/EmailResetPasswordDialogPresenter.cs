@@ -14,11 +14,14 @@ namespace com.noctuagames.sdk.UI
     internal class EmailResetPasswordDialogPresenter : Presenter<AuthenticationModel>
     {
         public EventSender EventSender;
-     
+
         private readonly ILogger _log = new NoctuaLogger();
         private string _email;
         private List<TextField> textFields;
         private Button submitButton;
+
+        private TextField emailField;
+        private VisualElement panelVE;
 
         public void Show(bool clearForm)
         {
@@ -26,15 +29,16 @@ namespace com.noctuagames.sdk.UI
 
             Setup();
 
-            if (clearForm){
+            if (clearForm)
+            {
                 View.Q<TextField>("EmailTF").value = "";
             }
-            
+
             EventSender?.Send("forgot_password_opened");
         }
 
-        protected override void Attach(){}
-        protected override void Detach(){}
+        protected override void Attach() { }
+        protected override void Detach() { }
 
         private void Start()
         {
@@ -43,10 +47,13 @@ namespace com.noctuagames.sdk.UI
 
         private void Setup()
         {
-            var emailField = View.Q<TextField>("EmailTF");
+            panelVE = View.Q<VisualElement>("Panel");
+            emailField = View.Q<TextField>("EmailTF");
             submitButton = View.Q<Button>("ContinueButton");
 
             emailField.RegisterValueChangedCallback(evt => OnEmailValueChanged(emailField));
+            emailField.RegisterCallback<FocusInEvent>(OnEmailFocus);
+            emailField.RegisterCallback<FocusOutEvent>(OnEmailNotFocus);
 
             textFields = new List<TextField>
             {
@@ -59,13 +66,27 @@ namespace com.noctuagames.sdk.UI
             View.Q<Button>("BackButton").RegisterCallback<PointerUpEvent>(OnBackButtonClick);
         }
 
+        public void OnEmailFocus(FocusInEvent _event)
+        {
+            panelVE.AddToClassList("dialog-box-keyboard-shown");
+        }
+
+        public void OnEmailNotFocus(FocusOutEvent _event)
+        {
+            //Centered Panel
+            panelVE.RemoveFromClassList("dialog-box-keyboard-shown");
+        }
+
         private void OnEmailValueChanged(TextField textField)
         {
             HideAllErrors();
 
-            if(string.IsNullOrEmpty(textField.value)) {
+            if (string.IsNullOrEmpty(textField.value))
+            {
                 textField.labelElement.style.display = DisplayStyle.Flex;
-            } else {
+            }
+            else
+            {
                 textField.labelElement.style.display = DisplayStyle.None;
             }
             _email = textField.value;
@@ -115,21 +136,24 @@ namespace com.noctuagames.sdk.UI
             var emailAddress = _email.Replace(" ", string.Empty);
 
             // Validation
-            if (string.IsNullOrEmpty(emailAddress)) {
+            if (string.IsNullOrEmpty(emailAddress))
+            {
                 View.Q<Label>("ErrEmailEmpty").RemoveFromClassList("hide");
                 View.Q<Button>("ContinueButton").RemoveFromClassList("hide");
                 View.Q<VisualElement>("Spinner").AddToClassList("hide");
                 return;
             }
 
-            if (!IsValidEmail(emailAddress)) {
+            if (!IsValidEmail(emailAddress))
+            {
                 View.Q<Label>("ErrEmailInvalid").RemoveFromClassList("hide");
                 View.Q<Button>("ContinueButton").RemoveFromClassList("hide");
                 View.Q<VisualElement>("Spinner").AddToClassList("hide");
                 return;
             }
 
-            try {
+            try
+            {
 
                 var credentialVerification = await Model.AuthService.RequestResetPasswordAsync(emailAddress);
 
@@ -143,16 +167,20 @@ namespace com.noctuagames.sdk.UI
                 View.Q<Button>("ContinueButton").RemoveFromClassList("hide");
                 View.Q<VisualElement>("Spinner").AddToClassList("hide");
 
-            } catch (Exception e) {
+            }
+            catch (Exception e)
+            {
                 _log.Warning($"{e.Message}\n{e.StackTrace}");
-                
+
                 if (e is NoctuaException noctuaEx)
                 {
                     View.Q<Label>("ErrCode").text = noctuaEx.ErrorCode.ToString() + " : " + noctuaEx.Message;
-                } else {
+                }
+                else
+                {
                     View.Q<Label>("ErrCode").text = e.Message;
                 }
-                
+
                 View.Q<Label>("ErrCode").RemoveFromClassList("hide");
                 View.Q<Button>("ContinueButton").RemoveFromClassList("hide");
                 View.Q<VisualElement>("Spinner").AddToClassList("hide");
@@ -162,9 +190,9 @@ namespace com.noctuagames.sdk.UI
         private void OnBackButtonClick(PointerUpEvent evt)
         {
             _log.Debug("clicking back button");
-            
+
             Visible = false;
-            
+
             Model.ShowEmailLogin();
         }
 

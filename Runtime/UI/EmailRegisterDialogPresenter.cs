@@ -18,6 +18,14 @@ namespace com.noctuagames.sdk.UI
         private string _email;
         private string _password;
         private string _rePassword;
+        private TextField emailField;
+        private TextField passwordField;
+        private TextField rePasswordField;
+
+        private Button showPasswordButton;
+        private Button showRePasswordButton;
+
+        private VisualElement panelVE;
 
         //Behaviour whitelabel - VN
         private TextField _fullname;
@@ -35,6 +43,10 @@ namespace com.noctuagames.sdk.UI
         private GlobalConfig _config;
         private List<string> _phoneCodeList = new List<string>();
         private List<string> _countryList = new List<string>();
+
+        private bool isPasswordFocus;
+        private bool isRePasswordFocus;
+        private bool isEmailFocus;
 
         protected override void Attach(){}
         protected override void Detach(){}
@@ -89,9 +101,14 @@ namespace com.noctuagames.sdk.UI
 
         private void SetupInputFields(bool clearForm)
         {
-            var emailField = View.Q<TextField>("EmailTF");
-            var passwordField = View.Q<TextField>("PasswordTF");
-            var rePasswordField = View.Q<TextField>("RePasswordTF");
+            panelVE = View.Q<VisualElement>("NoctuaRegisterBox");
+            emailField = View.Q<TextField>("EmailTF");
+            passwordField = View.Q<TextField>("PasswordTF");
+            rePasswordField = View.Q<TextField>("RePasswordTF");
+
+            showPasswordButton = View.Q<Button>("ShowPasswordButton");
+            showRePasswordButton = View.Q<Button>("ShowRePasswordButton");
+
             continueButton = View.Q<Button>("ContinueButton");
             var backButton = View.Q<Button>("BackButton");
             var loginLink = View.Q<Label>("LoginLink");
@@ -169,9 +186,19 @@ namespace com.noctuagames.sdk.UI
             emailField.RegisterValueChangedCallback(evt => OnEmailValueChanged(emailField));
             passwordField.RegisterValueChangedCallback(evt => OnPasswordValueChanged(passwordField));
             rePasswordField.RegisterValueChangedCallback(evt => OnRePasswordValueChanged(rePasswordField));
-            
+
+            showPasswordButton.RegisterCallback<PointerUpEvent>(OnToggleShowPassword);
+            showRePasswordButton.RegisterCallback<PointerUpEvent>(OnToggleShowRePassword);
+
+            passwordField.RegisterCallback<FocusInEvent>(OnPasswordFocus);
+            passwordField.RegisterCallback<FocusOutEvent>(OnPasswordNotFocus);
+            rePasswordField.RegisterCallback<FocusInEvent>(OnRePasswordFocus);
+            rePasswordField.RegisterCallback<FocusOutEvent>(OnRePasswordNotFocus);
+            emailField.RegisterCallback<FocusInEvent>(OnEmailFocus);
+            emailField.RegisterCallback<FocusOutEvent>(OnEmailNotFocus);
+
             //Behaviour whitelabel - VN
-            if(!string.IsNullOrEmpty(_config?.Noctua?.Flags))
+            if (!string.IsNullOrEmpty(_config?.Noctua?.Flags))
             {
                 _fullname.RegisterValueChangedCallback(evt => OnValueChanged(_fullname));
                 _phoneNumber.RegisterValueChangedCallback(evt => OnValueChanged(_phoneNumber));
@@ -182,6 +209,92 @@ namespace com.noctuagames.sdk.UI
 
             loginLink.RegisterCallback<PointerUpEvent>(OnLoginLinkClick);
         }
+
+        #region Check Text Field Focus
+
+        public void OnToggleShowPassword(PointerUpEvent _event)
+        {
+            passwordField.isPasswordField = !passwordField.isPasswordField;
+
+            if (passwordField.isPasswordField)
+            {
+                showPasswordButton.RemoveFromClassList("btn-password-hide");
+            }
+            else
+            {
+                showPasswordButton.AddToClassList("btn-password-hide");
+            }
+        }
+
+        public void OnToggleShowRePassword(PointerUpEvent _event)
+        {
+            rePasswordField.isPasswordField = !rePasswordField.isPasswordField;
+
+            if (rePasswordField.isPasswordField)
+            {
+                showRePasswordButton.RemoveFromClassList("btn-password-hide");
+            }
+            else
+            {
+                showRePasswordButton.AddToClassList("btn-password-hide");
+            }
+        }
+
+        public void OnPasswordFocus(FocusInEvent _event)
+        {
+            isPasswordFocus = true;
+
+            panelVE.AddToClassList("dialog-box-keyboard-shown");
+        }
+
+        public void OnPasswordNotFocus(FocusOutEvent _event)
+        {
+            isPasswordFocus = false;
+
+            if (!isEmailFocus && !isRePasswordFocus)
+            {
+                //Centered Panel
+                panelVE.RemoveFromClassList("dialog-box-keyboard-shown");
+            }
+        }
+
+        public void OnRePasswordFocus(FocusInEvent _event)
+        {
+            isRePasswordFocus = true;
+
+            panelVE.AddToClassList("dialog-box-keyboard-shown");
+        }
+
+        public void OnRePasswordNotFocus(FocusOutEvent _event)
+        {
+            isRePasswordFocus = false;
+
+            if (!isEmailFocus && !isPasswordFocus)
+            {
+                //Centered Panel
+                panelVE.RemoveFromClassList("dialog-box-keyboard-shown");
+            }
+        }
+
+        public void OnEmailFocus(FocusInEvent _event)
+        {
+            isEmailFocus = true;
+
+            panelVE.AddToClassList("dialog-box-keyboard-shown");
+        }
+
+        public void OnEmailNotFocus(FocusOutEvent _event)
+        {
+            isEmailFocus = false;
+
+            if (!isPasswordFocus && !isRePasswordFocus)
+            {
+                //Centered Panel
+                panelVE.RemoveFromClassList("dialog-box-keyboard-shown");
+            }
+        }
+
+        #endregion
 
         private void SetupDropdown()
         {

@@ -24,13 +24,18 @@ namespace com.noctuagames.sdk.UI
         private string _email;
         private string _password;
         private VisualElement _spinner;
+        private VisualElement panelVE;
         private List<TextField> textFields;
+        private TextField emailField;
         private TextField passwordField;
         private Button submitButton;
         private Button showPasswordButton;
 
         private Action<UserBundle> _onLoginSuccess;
         private GlobalConfig _config;
+
+        private bool isPasswordFocus;
+        private bool isEmailFocus;
 
         public void Show(Action<UserBundle> onLoginSuccess)
         {
@@ -50,10 +55,12 @@ namespace com.noctuagames.sdk.UI
 
         private void Setup()
         {
-            var emailField = View.Q<TextField>("EmailTF");
+            panelVE = View.Q<VisualElement>("Panel");
+            emailField = View.Q<TextField>("EmailTF");
             passwordField = View.Q<TextField>("PasswordTF");
             submitButton = View.Q<Button>("ContinueButton");
             showPasswordButton = View.Q<Button>("ShowPasswordButton");
+
             passwordField.isPasswordField = true;
 
             emailField.RegisterValueChangedCallback(evt => OnEmailValueChanged(emailField));
@@ -71,12 +78,53 @@ namespace com.noctuagames.sdk.UI
             View.Q<Label>("Register").RegisterCallback<PointerUpEvent>(OnRegisterButtonClick);
             View.Q<Button>("BackButton").RegisterCallback<PointerUpEvent>(OnBackButtonClick);
             View.Q<Button>("ContinueButton").RegisterCallback<PointerUpEvent>(OnContinueButtonClick);
+
             showPasswordButton.RegisterCallback<PointerUpEvent>(OnToggleShowPassword);
-            
+            passwordField.RegisterCallback<FocusInEvent>(OnPasswordFocus);
+            passwordField.RegisterCallback<FocusOutEvent>(OnPasswordNotFocus);
+            emailField.RegisterCallback<FocusInEvent>(OnEmailFocus);
+            emailField.RegisterCallback<FocusOutEvent>(OnEmailNotFocus);
+
             _spinner = new Spinner();
             View.Q<VisualElement>("Spinner").Clear();
             View.Q<VisualElement>("Spinner").Add(_spinner);
             View.Q<VisualElement>("Spinner").AddToClassList("hide");
+        }
+
+        public void OnPasswordFocus(FocusInEvent _event)
+        {
+            isPasswordFocus = true;
+
+            panelVE.AddToClassList("dialog-box-keyboard-shown");
+        }
+
+        public void OnPasswordNotFocus(FocusOutEvent _event)
+        {
+            isPasswordFocus = false;
+
+            if (!isEmailFocus)
+            {
+                //Centered Panel
+                panelVE.RemoveFromClassList("dialog-box-keyboard-shown");
+            }
+        }
+
+        public void OnEmailFocus(FocusInEvent _event)
+        {
+            isEmailFocus = true;
+
+            panelVE.AddToClassList("dialog-box-keyboard-shown");
+        }
+
+        public void OnEmailNotFocus(FocusOutEvent _event)
+        {
+            isEmailFocus = false;
+
+            if (!isPasswordFocus)
+            {
+                //Centered Panel
+                panelVE.RemoveFromClassList("dialog-box-keyboard-shown");
+            }
         }
 
         public void OnToggleShowPassword(PointerUpEvent _event)
