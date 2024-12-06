@@ -416,6 +416,8 @@ namespace com.noctuagames.sdk
                 }
                 catch (Exception)
                 {
+                    log.Warning("Failed to get active currency, using default: USD");
+                    
                     Instance.Value._platform.Locale.SetCurrency("USD");
                 }
             }
