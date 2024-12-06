@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.22.1] - 2024-12-06
+
+### 🐛 Bug Fixes
+
+- Match OrderStatus enum to backen types
+
 ## [0.22.0] - 2024-12-05
 
 ### 🚀 Features
