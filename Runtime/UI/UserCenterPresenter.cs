@@ -643,9 +643,12 @@ namespace com.noctuagames.sdk.UI
                 _userIDLabel.style.fontSize = 16;  
 
                 View.Q<Button>("SaveButton").SetEnabled(false);
+                View.Q<VisualElement>("UserProfileHeader").style.justifyContent = Justify.FlexEnd;
             }
             else
             {
+                View.Q<VisualElement>("UserProfileHeader").style.justifyContent = Justify.SpaceBetween;
+
                 //remove class
                 _editProfileContainer.RemoveFromClassList("show");
                 _guestContainer.RemoveFromClassList("hide");
