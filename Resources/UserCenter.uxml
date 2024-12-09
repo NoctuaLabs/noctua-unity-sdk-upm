@@ -9,13 +9,15 @@
                     <ui:Button name="ExitButton" class="user-profile-header-button exit-button" focusable="false">
                         <ui:VisualElement name="ExitIcon" class="exit-icon" />
                     </ui:Button>
-                    <ui:Button name="HelpButton" class="user-profile-header-button help-button" focusable="false">
-                        <ui:VisualElement name="HelpIcon" class="help-icon" />
-                        <ui:Label name="HelpLabel" text="Need help" class="help-label" />
-                    </ui:Button>
-                    <ui:Button name="MoreOptionsButton" class="user-profile-header-button more-options-button" focusable="false">
-                        <ui:VisualElement name="MoreOptionsIcon" class="more-options-icon" />
-                    </ui:Button>
+                    <ui:VisualElement style="flex-direction: row;">
+                        <ui:Button name="HelpButton" class="user-profile-header-button help-button" focusable="false">
+                            <ui:VisualElement name="HelpIcon" class="help-icon" />
+                            <ui:Label name="HelpLabel" text="Need help" class="help-label" />
+                        </ui:Button>
+                        <ui:Button name="MoreOptionsButton" class="user-profile-header-button more-options-button" focusable="false">
+                            <ui:VisualElement name="MoreOptionsIcon" class="more-options-icon" />
+                        </ui:Button>
+                    </ui:VisualElement>
                 </ui:VisualElement>
                 <ui:VisualElement name="UserProfileSpacing1" class="user-profile-spacing" />
                 <ui:VisualElement name="UserProfileContent" class="user-profile-content">
