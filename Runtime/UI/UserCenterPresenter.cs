@@ -98,7 +98,7 @@ namespace com.noctuagames.sdk.UI
         {
         }
 
-        private void SetOrientation()
+        private void SetOrientation(bool isEditProfile = false)
         {
             
             if (Screen.width > Screen.height)
@@ -126,6 +126,19 @@ namespace com.noctuagames.sdk.UI
                 View.Q<VisualElement>("UserCenter").AddToClassList("portrait");
                 View.Q<VisualElement>("UserProfile").AddToClassList("portrait");
                 View.Q<VisualElement>("ConnectAccount").AddToClassList("portrait");
+
+                if(isEditProfile)
+                {
+                    View.Q<VisualElement>("ConnectAccount").RemoveFromClassList("portrait");
+                    View.Q<VisualElement>("ConnectAccount").RemoveFromClassList("connect-account");
+                    View.Q<VisualElement>("ConnectAccount").AddToClassList("connect-account-edit-profile-portrait");
+                } 
+                else
+                {
+                    View.Q<VisualElement>("ConnectAccount").RemoveFromClassList("connect-account-edit-profile-portrait");
+                    View.Q<VisualElement>("ConnectAccount").AddToClassList("connect-account");
+                    View.Q<VisualElement>("ConnectAccount").AddToClassList("portrait");
+                }
             }
         }
 
@@ -591,6 +604,7 @@ namespace com.noctuagames.sdk.UI
 
         private void OnUIEditProfile(bool isEditProfile)
         {
+            SetOrientation(isEditProfile);
             if(isEditProfile)
             {
                 //remove class
