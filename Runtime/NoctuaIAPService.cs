@@ -94,6 +94,9 @@ namespace com.noctuagames.sdk
 
         [JsonProperty("ingame_item_name")]
         public string IngameItemName;
+
+        [JsonProperty("extra")]
+        public Dictionary<string, string> Extra;
     }
 
     [Preserve]
@@ -460,6 +463,14 @@ namespace com.noctuagames.sdk
                     IngameItemId = purchaseRequest.IngameItemId,
                     IngameItemName = purchaseRequest.IngameItemName
                 };
+
+		if (purchaseRequest.Extra != null && purchaseRequest.Extra.Count > 0)
+		{
+		    foreach (var kvp in purchaseRequest.Extra)
+		    {
+		        orderRequest.Extra.Add(kvp.Key, kvp.Value);
+		    }
+		}
 
                 if (string.IsNullOrEmpty(orderRequest.Currency))
                 {
