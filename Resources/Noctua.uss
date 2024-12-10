@@ -257,28 +257,28 @@
 
 .edit-icon {
     background-image: url("project://database/Packages/com.noctuagames.sdk/Resources/EditIcon.png?fileID=21300000&guid=129d5718072e96245877c26951f13d07&type=3#EditIcon");
-    width: 16px;
+    width: 20px;
     height: 16px;
     background-position: center;
 }
 
 .second-switch-account-icon {
     background-image: url("project://database/Packages/com.noctuagames.sdk/Resources/SwitchAccountIconSecond.png?fileID=21300000&guid=ffd37c0dd1d9ce9479ee7e3db9aa4dfe&type=3#SwitchAccountIconSecond");
-    width: 16px;
+    width: 20px;
     height: 16px;
     background-position: center;
 }
 
 .delete-icon {
     background-image: url("project://database/Packages/com.noctuagames.sdk/Resources/DeleteIcon.png?fileID=21300000&guid=e8ecea30825c140428318081a153b55c&type=3#DeleteIcon");
-    width: 16px;
+    width: 20px;
     height: 16px;
     background-position: center;
 }
 
 .logout-icon {
     background-image: url("project://database/Packages/com.noctuagames.sdk/Resources/LogoutIcon.png?fileID=21300000&guid=30bf29c8c10087a4a9209b4629b1f672&type=3#LogoutIcon");
-    width: 16px;
+    width: 20px;
     height: 16px;
     background-position: center;
 }

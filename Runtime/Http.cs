@@ -279,11 +279,11 @@ namespace com.noctuagames.sdk
 
             if (_request.responseCode >= 500)
             {
-                _log.Error($"Unknown HTTP error {_request.responseCode}, response: '{response}'");
-
+                _log.Error($"HTTP error {_request.responseCode}, response: '{response}'");
+                
                 throw new NoctuaException(
                     NoctuaErrorCode.Networking,
-                    $"Server error {_request.responseCode}: {response}"
+                    $"HTTP error {_request.responseCode} {((HttpStatusCode)_request.responseCode).ToString()}"
                 );
             }
 
@@ -297,11 +297,11 @@ namespace com.noctuagames.sdk
                 }
                 catch (Exception)
                 {
-                    _log.Error($"Unknown HTTP error {_request.responseCode}, response: '{response}'");
+                    _log.Error($"HTTP error {_request.responseCode}, response: '{response}'");
                     
                     throw new NoctuaException(
                         NoctuaErrorCode.Application,
-                        $"Unknown HTTP error {_request.responseCode}: {response}"
+                        $"HTTP error {_request.responseCode}: {((HttpStatusCode)_request.responseCode).ToString()}"
                     );
                 }
                 

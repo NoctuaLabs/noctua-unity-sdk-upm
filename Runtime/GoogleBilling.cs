@@ -4,7 +4,7 @@ using com.noctuagames.sdk;
 using UnityEngine.Scripting;
 using ILogger = com.noctuagames.sdk.ILogger;
 
-#if UNITY_ANDROID
+#if UNITY_ANDROID && !UNITY_EDITOR
 public class GoogleBilling
 {
     private readonly ILogger _log = new NoctuaLogger(typeof(GoogleBilling));
@@ -195,6 +195,14 @@ public class GoogleBilling
             {
                 string errorMessage = billingResult.Call<string>("getDebugMessage");
                 _log.Error("Failed to query product details: " + errorMessage);
+                
+                var result = new PurchaseResult{
+                    Success = false,
+                    Message = errorMessage,
+                    ReceiptData = "",
+                };
+                
+                googleBilling.InvokeOnPurchaseDone(result);
             }
         }
     }
