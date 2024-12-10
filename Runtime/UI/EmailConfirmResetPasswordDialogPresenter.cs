@@ -18,6 +18,15 @@ namespace com.noctuagames.sdk.UI
         private List<TextField> textFields;
         private Button submitButton;
 
+        private TextField verificationCodeField;
+        private TextField passwordField;
+        private TextField rePasswordField;
+
+        private Button showPasswordButton;
+        private Button showRePasswordButton;
+
+        private VisualElement panelVE;
+
         public void Show(int credVerifyId)
         {
 
@@ -37,16 +46,35 @@ namespace com.noctuagames.sdk.UI
             Setup();
         }
 
+        private void Update()
+        {
+            if (panelVE == null) return;
+
+            if (TouchScreenKeyboard.visible && !panelVE.ClassListContains("dialog-box-keyboard-shown"))
+            {
+                panelVE.AddToClassList("dialog-box-keyboard-shown");
+            }
+
+            if (!TouchScreenKeyboard.visible && panelVE.ClassListContains("dialog-box-keyboard-shown"))
+            {
+                panelVE.RemoveFromClassList("dialog-box-keyboard-shown");
+            }
+        }
+
         private void Setup()
         {
-            var verificationCodeField = View.Q<TextField>("VerificationCode");
-            var passwordField = View.Q<TextField>("PasswordTF");
-            var rePasswordField = View.Q<TextField>("RePasswordTF");
+            panelVE = View.Q<VisualElement>("NoctuaRegisterBox");
+            verificationCodeField = View.Q<TextField>("VerificationCode");
+            passwordField = View.Q<TextField>("PasswordTF");
+            rePasswordField = View.Q<TextField>("RePasswordTF");
             submitButton = View.Q<Button>("ContinueButton");
 
             verificationCodeField.value = "";
             passwordField.value = "";
             rePasswordField.value = "";
+
+            showPasswordButton = View.Q<Button>("ShowPasswordButton");
+            showRePasswordButton = View.Q<Button>("ShowRePasswordButton");
 
             passwordField.isPasswordField = true;
             rePasswordField.isPasswordField = true;
@@ -54,7 +82,17 @@ namespace com.noctuagames.sdk.UI
             verificationCodeField.RegisterValueChangedCallback(evt => OnVerificationCodeValueChanged(verificationCodeField));
             passwordField.RegisterValueChangedCallback(evt => OnPasswordValueChanged(passwordField));
             rePasswordField.RegisterValueChangedCallback(evt => OnRePasswordValueChanged(rePasswordField));
-                
+
+            showPasswordButton.RegisterCallback<PointerUpEvent>(OnToggleShowPassword);
+            showRePasswordButton.RegisterCallback<PointerUpEvent>(OnToggleShowRePassword);
+
+            passwordField.hideMobileInput = true;
+            rePasswordField.hideMobileInput = true;
+            verificationCodeField.hideMobileInput = true;            
+            
+            showPasswordButton.RemoveFromClassList("btn-password-hide");
+            showRePasswordButton.RemoveFromClassList("btn-password-hide");
+
             textFields = new List<TextField>
             {
                 verificationCodeField,
@@ -68,6 +106,44 @@ namespace com.noctuagames.sdk.UI
             View.Q<Button>("ContinueButton").RegisterCallback<ClickEvent>(OnContinueButtonClick);
             View.Q<Button>("BackButton").RegisterCallback<ClickEvent>(OnBackButtonClick);
         }
+
+        #region Check Text Field Focus
+
+        public void OnToggleShowPassword(PointerUpEvent _event)
+        {
+            passwordField.Blur();
+            passwordField.isPasswordField = !passwordField.isPasswordField;
+
+            if (passwordField.isPasswordField)
+            {
+                showPasswordButton.RemoveFromClassList("btn-password-hide");
+            }
+            else
+            {
+                showPasswordButton.AddToClassList("btn-password-hide");
+            }
+
+            TouchScreenKeyboard.hideInput = true;
+        }
+
+        public void OnToggleShowRePassword(PointerUpEvent _event)
+        {
+            rePasswordField.Blur();
+            rePasswordField.isPasswordField = !rePasswordField.isPasswordField;
+
+            if (rePasswordField.isPasswordField)
+            {
+                showRePasswordButton.RemoveFromClassList("btn-password-hide");
+            }
+            else
+            {
+                showRePasswordButton.AddToClassList("btn-password-hide");
+            }
+
+            TouchScreenKeyboard.hideInput = true;
+        }
+
+        #endregion
 
         private void OnVerificationCodeValueChanged(TextField textField)
         {
@@ -116,6 +192,7 @@ namespace com.noctuagames.sdk.UI
             _log.Debug("clicking back button");
             
             Visible = false;
+
             Model.ShowEmailResetPassword(false);
         }
 

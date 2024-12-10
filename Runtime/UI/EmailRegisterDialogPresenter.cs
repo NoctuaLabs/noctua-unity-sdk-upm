@@ -44,10 +44,6 @@ namespace com.noctuagames.sdk.UI
         private List<string> _phoneCodeList = new List<string>();
         private List<string> _countryList = new List<string>();
 
-        private bool isPasswordFocus;
-        private bool isRePasswordFocus;
-        private bool isEmailFocus;
-
         protected override void Attach(){}
         protected override void Detach(){}
 
@@ -55,6 +51,21 @@ namespace com.noctuagames.sdk.UI
         {
             SetupInputFields(true);
             HideAllErrors();
+        }
+
+        private void Update()
+        {
+            if (panelVE == null) return;
+
+            if (TouchScreenKeyboard.visible && !panelVE.ClassListContains("dialog-box-keyboard-shown"))
+            {
+                panelVE.AddToClassList("dialog-box-keyboard-shown");
+            }
+
+            if (!TouchScreenKeyboard.visible && panelVE.ClassListContains("dialog-box-keyboard-shown"))
+            {
+                panelVE.RemoveFromClassList("dialog-box-keyboard-shown");
+            }
         }
 
         public void Show(bool clearForm)
@@ -190,12 +201,12 @@ namespace com.noctuagames.sdk.UI
             showPasswordButton.RegisterCallback<PointerUpEvent>(OnToggleShowPassword);
             showRePasswordButton.RegisterCallback<PointerUpEvent>(OnToggleShowRePassword);
 
-            passwordField.RegisterCallback<FocusInEvent>(OnPasswordFocus);
-            passwordField.RegisterCallback<FocusOutEvent>(OnPasswordNotFocus);
-            rePasswordField.RegisterCallback<FocusInEvent>(OnRePasswordFocus);
-            rePasswordField.RegisterCallback<FocusOutEvent>(OnRePasswordNotFocus);
-            emailField.RegisterCallback<FocusInEvent>(OnEmailFocus);
-            emailField.RegisterCallback<FocusOutEvent>(OnEmailNotFocus);
+            showPasswordButton.RemoveFromClassList("btn-password-hide");
+            showRePasswordButton.RemoveFromClassList("btn-password-hide");
+
+            emailField.hideMobileInput = true;
+            passwordField.hideMobileInput = true;
+            rePasswordField.hideMobileInput = true;
 
             //Behaviour whitelabel - VN
             if (!string.IsNullOrEmpty(_config?.Noctua?.Flags))
@@ -214,6 +225,7 @@ namespace com.noctuagames.sdk.UI
 
         public void OnToggleShowPassword(PointerUpEvent _event)
         {
+            passwordField.Blur();
             passwordField.isPasswordField = !passwordField.isPasswordField;
 
             if (passwordField.isPasswordField)
@@ -224,10 +236,13 @@ namespace com.noctuagames.sdk.UI
             {
                 showPasswordButton.AddToClassList("btn-password-hide");
             }
+
+            TouchScreenKeyboard.hideInput = true;
         }
 
         public void OnToggleShowRePassword(PointerUpEvent _event)
         {
+            rePasswordField.Blur();
             rePasswordField.isPasswordField = !rePasswordField.isPasswordField;
 
             if (rePasswordField.isPasswordField)
@@ -238,60 +253,8 @@ namespace com.noctuagames.sdk.UI
             {
                 showRePasswordButton.AddToClassList("btn-password-hide");
             }
-        }
 
-        public void OnPasswordFocus(FocusInEvent _event)
-        {
-            isPasswordFocus = true;
-
-            panelVE.AddToClassList("dialog-box-keyboard-shown");
-        }
-
-        public void OnPasswordNotFocus(FocusOutEvent _event)
-        {
-            isPasswordFocus = false;
-
-            if (!isEmailFocus && !isRePasswordFocus)
-            {
-                //Centered Panel
-                panelVE.RemoveFromClassList("dialog-box-keyboard-shown");
-            }
-        }
-
-        public void OnRePasswordFocus(FocusInEvent _event)
-        {
-            isRePasswordFocus = true;
-
-            panelVE.AddToClassList("dialog-box-keyboard-shown");
-        }
-
-        public void OnRePasswordNotFocus(FocusOutEvent _event)
-        {
-            isRePasswordFocus = false;
-
-            if (!isEmailFocus && !isPasswordFocus)
-            {
-                //Centered Panel
-                panelVE.RemoveFromClassList("dialog-box-keyboard-shown");
-            }
-        }
-
-        public void OnEmailFocus(FocusInEvent _event)
-        {
-            isEmailFocus = true;
-
-            panelVE.AddToClassList("dialog-box-keyboard-shown");
-        }
-
-        public void OnEmailNotFocus(FocusOutEvent _event)
-        {
-            isEmailFocus = false;
-
-            if (!isPasswordFocus && !isRePasswordFocus)
-            {
-                //Centered Panel
-                panelVE.RemoveFromClassList("dialog-box-keyboard-shown");
-            }
+            TouchScreenKeyboard.hideInput = true;
         }
 
         #endregion

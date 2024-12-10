@@ -8,9 +8,10 @@
             </ui:VisualElement>
             <ui:VisualElement name="Content" class="dialog-content">
                 <ui:TextField label="Email Address" name="EmailTF" class="noctua-text-input" />
-                <ui:TextField label="Password" name="PasswordTF" class="noctua-text-input">
-                    <ui:Button parse-escape-sequences="true" display-tooltip-when-elided="true" name="ShowPasswordButton" class="btn-password-show" style="position: absolute; background-color: rgba(255, 255, 255, 0); align-self: center; justify-content: center; top: 7px; right: 22px;" />
-                </ui:TextField>
+                <ui:VisualElement name="Password" style="flex-grow: 1;">
+                    <ui:TextField label="Password" name="PasswordTF" class="noctua-text-input" />
+                    <ui:Button parse-escape-sequences="true" display-tooltip-when-elided="true" name="ShowPasswordButton" class="btn-password-show" style="position: absolute; background-color: rgba(255, 255, 255, 0); align-self: center; justify-content: center;" />
+                </ui:VisualElement>
                 <ui:Label text="Forgot Password" name="ForgotPassword" display-tooltip-when-elided="true" style="align-self: flex-end; font-size: 12px; color: rgb(59, 130, 246); margin-top: -4px; padding-top: 0;" />
             </ui:VisualElement>
             <ui:VisualElement name="footerContent" class="dialog-footer" style="height: 125px;">

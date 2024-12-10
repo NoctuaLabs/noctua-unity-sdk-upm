@@ -21,12 +21,14 @@
                     <ui:TextField label="Place Of Issue" name="PlaceOfIssueTF" class="noctua-text-input hide" />
                     <ui:TextField label="Date Of Issue" name="DateOfIssueTF" class="noctua-text-input hide" />
                     <ui:TextField label="Address" name="AddressTF" class="noctua-text-input hide" />
-                    <ui:TextField label="Password" name="PasswordTF" class="noctua-text-input">
-                        <ui:Button parse-escape-sequences="true" display-tooltip-when-elided="true" name="ShowPasswordButton" class="btn-password-show" style="position: absolute; background-color: rgba(255, 255, 255, 0); align-self: center; justify-content: center; top: 7px; right: 22px;" />
-                    </ui:TextField>
-                    <ui:TextField label="Re-enter Password" name="RePasswordTF" class="noctua-text-input">
-                        <ui:Button parse-escape-sequences="true" display-tooltip-when-elided="true" name="ShowRePasswordButton" class="btn-password-show" style="position: absolute; background-color: rgba(255, 255, 255, 0); align-self: center; justify-content: center; top: 7px; right: 22px;" />
-                    </ui:TextField>
+                    <ui:VisualElement name="Password" style="flex-grow: 1;">
+                        <ui:TextField label="Password" name="PasswordTF" class="noctua-text-input" />
+                        <ui:Button parse-escape-sequences="true" display-tooltip-when-elided="true" name="ShowPasswordButton" class="btn-password-show" style="position: absolute; background-color: rgba(255, 255, 255, 0); align-self: center; justify-content: center; top: 9.5px; right: 10px;" />
+                    </ui:VisualElement>
+                    <ui:VisualElement name="RePassword" style="flex-grow: 1;">
+                        <ui:TextField label="Re-enter Password" name="RePasswordTF" class="noctua-text-input" />
+                        <ui:Button parse-escape-sequences="true" display-tooltip-when-elided="true" name="ShowRePasswordButton" class="btn-password-show" style="position: absolute; background-color: rgba(255, 255, 255, 0); align-self: center; justify-content: center; top: 9.5px; right: 10px;" />
+                    </ui:VisualElement>
                 </ui:ScrollView>
             </ui:VisualElement>
             <ui:VisualElement name="footerContent" class="dialog-footer" style="height: 125px;">
