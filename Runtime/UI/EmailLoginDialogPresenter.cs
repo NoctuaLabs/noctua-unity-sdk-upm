@@ -34,9 +34,6 @@ namespace com.noctuagames.sdk.UI
         private Action<UserBundle> _onLoginSuccess;
         private GlobalConfig _config;
 
-        private bool isPasswordFocus;
-        private bool isEmailFocus;
-
         public void Show(Action<UserBundle> onLoginSuccess)
         {
             Setup();
@@ -53,6 +50,21 @@ namespace com.noctuagames.sdk.UI
             Setup();
         }
 
+        private void Update()
+        {
+            if (panelVE == null) return;
+
+            if(TouchScreenKeyboard.visible && !panelVE.ClassListContains("dialog-box-keyboard-shown"))
+            {
+                panelVE.AddToClassList("dialog-box-keyboard-shown");
+            }
+
+            if (!TouchScreenKeyboard.visible && panelVE.ClassListContains("dialog-box-keyboard-shown"))
+            {
+                panelVE.RemoveFromClassList("dialog-box-keyboard-shown");
+            }
+        }
+
         private void Setup()
         {
             panelVE = View.Q<VisualElement>("Panel");
@@ -64,7 +76,10 @@ namespace com.noctuagames.sdk.UI
             passwordField.isPasswordField = true;
 
             emailField.RegisterValueChangedCallback(evt => OnEmailValueChanged(emailField));
-            passwordField.RegisterValueChangedCallback(evt => OnPasswordValueChanged(passwordField));            
+            passwordField.RegisterValueChangedCallback(evt => OnPasswordValueChanged(passwordField));
+
+            emailField.hideMobileInput = true;
+            passwordField.hideMobileInput = true;
 
             textFields = new List<TextField>
             {
@@ -79,11 +94,9 @@ namespace com.noctuagames.sdk.UI
             View.Q<Button>("BackButton").RegisterCallback<PointerUpEvent>(OnBackButtonClick);
             View.Q<Button>("ContinueButton").RegisterCallback<PointerUpEvent>(OnContinueButtonClick);
 
-            showPasswordButton.RegisterCallback<PointerUpEvent>(OnToggleShowPassword);
-            passwordField.RegisterCallback<FocusInEvent>(OnPasswordFocus);
-            passwordField.RegisterCallback<FocusOutEvent>(OnPasswordNotFocus);
-            emailField.RegisterCallback<FocusInEvent>(OnEmailFocus);
-            emailField.RegisterCallback<FocusOutEvent>(OnEmailNotFocus);
+            showPasswordButton.RegisterCallback<PointerUpEvent>(OnToggleShowPassword);      
+
+            showPasswordButton.RemoveFromClassList("btn-password-hide");
 
             _spinner = new Spinner();
             View.Q<VisualElement>("Spinner").Clear();
@@ -91,44 +104,8 @@ namespace com.noctuagames.sdk.UI
             View.Q<VisualElement>("Spinner").AddToClassList("hide");
         }
 
-        public void OnPasswordFocus(FocusInEvent _event)
-        {
-            isPasswordFocus = true;
-
-            panelVE.AddToClassList("dialog-box-keyboard-shown");
-        }
-
-        public void OnPasswordNotFocus(FocusOutEvent _event)
-        {
-            isPasswordFocus = false;
-
-            if (!isEmailFocus)
-            {
-                //Centered Panel
-                panelVE.RemoveFromClassList("dialog-box-keyboard-shown");
-            }
-        }
-
-        public void OnEmailFocus(FocusInEvent _event)
-        {
-            isEmailFocus = true;
-
-            panelVE.AddToClassList("dialog-box-keyboard-shown");
-        }
-
-        public void OnEmailNotFocus(FocusOutEvent _event)
-        {
-            isEmailFocus = false;
-
-            if (!isPasswordFocus)
-            {
-                //Centered Panel
-                panelVE.RemoveFromClassList("dialog-box-keyboard-shown");
-            }
-        }
-
         public void OnToggleShowPassword(PointerUpEvent _event)
-        {
+        {                      
             passwordField.isPasswordField = !passwordField.isPasswordField;
 
             if (passwordField.isPasswordField)
@@ -139,6 +116,12 @@ namespace com.noctuagames.sdk.UI
             {
                 showPasswordButton.AddToClassList("btn-password-hide");
             }
+        }
+
+        private void ShowMobileInput()
+        {
+            passwordField.hideMobileInput = false;
+            emailField.hideMobileInput = false;
         }
 
         public void SetBehaviourWhitelabel(GlobalConfig config)

@@ -10,14 +10,17 @@ namespace com.noctuagames.sdk.UI
     internal class EmailVerificationDialogPresenter : Presenter<AuthenticationModel>
     {
         private readonly ILogger _log = new NoctuaLogger();
-        
+
         private string _email;
         private string _password;
         private int _credVerifyId;
         private string _credVerifyCode;
 
-        protected override void Attach(){}
-        protected override void Detach(){}
+        private VisualElement panelVE;
+        private TextField verificationCode;
+
+        protected override void Attach() { }
+        protected override void Detach() { }
 
         public void Show(string email, string password, int verificationId)
         {
@@ -38,9 +41,25 @@ namespace com.noctuagames.sdk.UI
             HideAllErrors();
         }
 
+        private void Update()
+        {
+            if (panelVE == null) return;
+
+            if (TouchScreenKeyboard.visible && !panelVE.ClassListContains("dialog-box-keyboard-shown"))
+            {
+                panelVE.AddToClassList("dialog-box-keyboard-shown");
+            }
+
+            if (!TouchScreenKeyboard.visible && panelVE.ClassListContains("dialog-box-keyboard-shown"))
+            {
+                panelVE.RemoveFromClassList("dialog-box-keyboard-shown");
+            }
+        }
+
         private void SetupView()
         {
-            var verificationCode = View.Q<TextField>("VerificationCode");
+            panelVE = View.Q<VisualElement>("EmailVerificationDialog");
+            verificationCode = View.Q<TextField>("VerificationCode");
             verificationCode.value = string.Empty;
             verificationCode.RegisterValueChangedCallback(evt => OnVerificationCodeValueChanged(verificationCode));
 
@@ -57,9 +76,12 @@ namespace com.noctuagames.sdk.UI
         {
             HideAllErrors();
 
-            if(string.IsNullOrEmpty(textField.value)) {
+            if (string.IsNullOrEmpty(textField.value))
+            {
                 textField.labelElement.style.display = DisplayStyle.Flex;
-            } else {
+            }
+            else
+            {
                 textField.labelElement.style.display = DisplayStyle.None;
             }
             _credVerifyCode = textField.value;
@@ -74,7 +96,7 @@ namespace com.noctuagames.sdk.UI
         private async void OnResendButtonClick(ClickEvent evt)
         {
             _log.Debug("clicking resend button");
-            
+
             var spinnerInstance = new Spinner();
             View.Q<VisualElement>("Spinner").Clear();
             View.Q<VisualElement>("Spinner").Add(spinnerInstance);
@@ -85,7 +107,8 @@ namespace com.noctuagames.sdk.UI
             View?.Q<Button>("VerifyButton")?.AddToClassList("hide");
             View?.Q<VisualElement>("DialogContent")?.AddToClassList("hide");
             View?.Q<VisualElement>("DialogHeader")?.AddToClassList("hide");
-            try {
+            try
+            {
                 var result = await Model.RegisterWithEmailAsync(_email, _password);
                 _log.Debug("RegisterWithPassword verification ID: " + result.Id);
 
@@ -99,13 +122,17 @@ namespace com.noctuagames.sdk.UI
                 View?.Q<VisualElement>("DialogContent")?.RemoveFromClassList("hide");
                 View?.Q<VisualElement>("DialogHeader")?.RemoveFromClassList("hide");
 
-            } catch (Exception e) {
+            }
+            catch (Exception e)
+            {
                 _log.Warning($"{e.Message}\n{e.StackTrace}");
-                
+
                 if (e is NoctuaException noctuaEx)
                 {
                     View.Q<Label>("ErrCode").text = noctuaEx.ErrorCode.ToString() + " : " + noctuaEx.Message;
-                } else {
+                }
+                else
+                {
                     View.Q<Label>("ErrCode").text = e.Message;
                 }
 
@@ -119,13 +146,13 @@ namespace com.noctuagames.sdk.UI
                 View?.Q<VisualElement>("DialogContent")?.RemoveFromClassList("hide");
                 View?.Q<VisualElement>("DialogHeader")?.RemoveFromClassList("hide");
             }
-            
+
         }
 
         private async void OnVerifyButtonClick(ClickEvent evt)
         {
             _log.Debug("clicking verify button");
-            
+
             var spinnerInstance = new Spinner();
             View.Q<VisualElement>("Spinner").Clear();
             View.Q<VisualElement>("Spinner").Add(spinnerInstance);
@@ -136,7 +163,8 @@ namespace com.noctuagames.sdk.UI
             View?.Q<Button>("VerifyButton")?.AddToClassList("hide");
             View?.Q<VisualElement>("DialogContent")?.AddToClassList("hide");
             View?.Q<VisualElement>("DialogHeader")?.AddToClassList("hide");
-            try {
+            try
+            {
                 if (Model.AuthService.RecentAccount.IsGuest)
                 {
                     var token = await Model.AuthService.BeginVerifyEmailRegistrationAsync(_credVerifyId, _credVerifyCode);
@@ -157,13 +185,17 @@ namespace com.noctuagames.sdk.UI
                 View?.Q<VisualElement>("DialogContent")?.RemoveFromClassList("hide");
                 View?.Q<VisualElement>("DialogHeader")?.RemoveFromClassList("hide");
 
-            } catch (Exception e) {
+            }
+            catch (Exception e)
+            {
                 _log.Warning($"{e.Message}\n{e.StackTrace}");
-                
+
                 if (e is NoctuaException noctuaEx)
                 {
                     View.Q<Label>("ErrCode").text = noctuaEx.ErrorCode.ToString() + " : " + noctuaEx.Message;
-                } else {
+                }
+                else
+                {
                     View.Q<Label>("ErrCode").text = e.Message;
                 }
 

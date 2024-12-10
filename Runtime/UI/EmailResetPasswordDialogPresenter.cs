@@ -45,15 +45,28 @@ namespace com.noctuagames.sdk.UI
             Setup();
         }
 
+        private void Update()
+        {
+            if (panelVE == null) return;
+
+            if (TouchScreenKeyboard.visible && !panelVE.ClassListContains("dialog-box-keyboard-shown"))
+            {
+                panelVE.AddToClassList("dialog-box-keyboard-shown");
+            }
+
+            if (!TouchScreenKeyboard.visible && panelVE.ClassListContains("dialog-box-keyboard-shown"))
+            {
+                panelVE.RemoveFromClassList("dialog-box-keyboard-shown");
+            }
+        }
+
         private void Setup()
         {
             panelVE = View.Q<VisualElement>("Panel");
             emailField = View.Q<TextField>("EmailTF");
             submitButton = View.Q<Button>("ContinueButton");
 
-            emailField.RegisterValueChangedCallback(evt => OnEmailValueChanged(emailField));
-            emailField.RegisterCallback<FocusInEvent>(OnEmailFocus);
-            emailField.RegisterCallback<FocusOutEvent>(OnEmailNotFocus);
+            emailField.RegisterValueChangedCallback(evt => OnEmailValueChanged(emailField));            
 
             textFields = new List<TextField>
             {
@@ -64,17 +77,6 @@ namespace com.noctuagames.sdk.UI
 
             View.Q<Button>("ContinueButton").RegisterCallback<PointerUpEvent>(OnContinueButtonClick);
             View.Q<Button>("BackButton").RegisterCallback<PointerUpEvent>(OnBackButtonClick);
-        }
-
-        public void OnEmailFocus(FocusInEvent _event)
-        {
-            panelVE.AddToClassList("dialog-box-keyboard-shown");
-        }
-
-        public void OnEmailNotFocus(FocusOutEvent _event)
-        {
-            //Centered Panel
-            panelVE.RemoveFromClassList("dialog-box-keyboard-shown");
         }
 
         private void OnEmailValueChanged(TextField textField)
