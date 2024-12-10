@@ -103,3 +103,4 @@ publish:
     - git remote add github https://github.com/NoctuaLabs/noctua-unity-sdk-upm.git
     - gh release create $NEW_VERSION_TAG --title $NEW_VERSION_TAG --notes-file GithubRelease.md
     - git remote remove github
+  
