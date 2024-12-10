@@ -1,6 +1,7 @@
 stages:
   - trigger
   - bump-version
+  - trigger-parent
   - release
   - publish
 
@@ -49,6 +50,18 @@ bump-version:
       else
         echo "No version bump required";
       fi
+
+trigger-parent-project:
+  stage: trigger-parent
+  rules:
+    - if: $CI_COMMIT_BRANCH == "build/dev"
+      when: always
+  script:
+    - echo "Triggering the parent project pipeline"
+  trigger:
+    project: "evosverse/noctua/noctua-sdk-unity" # Replace with your parent project path
+    branch: main # Specify the branch in the parent project to trigger
+    strategy: depend # Ensure parent project only triggers if submodule build is successful
 
 release:
   extends: .bump-version
