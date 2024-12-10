@@ -411,14 +411,52 @@ namespace com.noctuagames.sdk
                     if (!string.IsNullOrEmpty(activeCurrency))
                     {
                         log.Info("Found active currency: " + activeCurrency);
-                        Instance.Value._platform.Locale.SetCurrency(activeCurrency);
+                        if (initResponse.SupportedCurrencies != null && 
+                        initResponse.SupportedCurrencies.Contains(activeCurrency))
+                        {
+                            log.Info("Active currency is supported: " + activeCurrency);
+                            Instance.Value._platform.Locale.SetCurrency(activeCurrency);
+                        }
+                        else
+                        {
+                            log.Warning("Active currency is not supported. Fallback to USD.");
+                            Instance.Value._platform.Locale.SetCurrency("USD");
+                        }
+                    } else {
+                        log.Warning("Active currency is not found. Try to use country to currency map.");
+                        if (initResponse.CountryToCurrencyMap != null &&
+                        initResponse.CountryToCurrencyMap.ContainsKey(initResponse.Country))
+                        {
+                            var currencyFromMap = initResponse.CountryToCurrencyMap[initResponse.Country];
+                            log.Info("Using currency from country map: " + currencyFromMap);
+                            Instance.Value._platform.Locale.SetCurrency(currencyFromMap);
+                        }
+                        else
+                        {
+                            log.Warning("Currency not found in country map. Fallback to USD.");
+                            Instance.Value._platform.Locale.SetCurrency("USD");
+                        }
                     }
                 }
                 catch (Exception)
                 {
-                    log.Warning("Failed to get active currency, using default: USD");
-                    
-                    Instance.Value._platform.Locale.SetCurrency("USD");
+                    log.Warning("Failed to get active currency. Try to use country to currency map.");
+                    if (initResponse.CountryToCurrencyMap != null &&
+                    initResponse.CountryToCurrencyMap.ContainsKey(initResponse.Country))
+                    {
+                        if (initResponse.CountryToCurrencyMap.TryGetValue(
+                            initResponse.Country, out var currencyFromMap
+                        ))
+                        {
+                            log.Info("Using currency from country map: " + currencyFromMap);
+                            Instance.Value._platform.Locale.SetCurrency(currencyFromMap);
+                        }
+                    }
+                    else
+                    {
+                        log.Warning("Currency not found in country map. Fallback to USD.");
+                        Instance.Value._platform.Locale.SetCurrency("USD");
+                    }
                 }
             }
 

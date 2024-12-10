@@ -404,9 +404,9 @@ namespace com.noctuagames.sdk
 
 #else // TODO for Other platforms
 
-            _log.Info("GetActiveCurrencyAsync: not found, default to USD");
+            _log.Info("GetActiveCurrencyAsync: not found, return empty string");
 
-            return "USD";
+            return "";
 
 #endif
         }

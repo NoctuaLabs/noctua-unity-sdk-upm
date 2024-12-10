@@ -27,6 +27,12 @@ namespace com.noctuagames.sdk
         
         [JsonProperty("active_bundle_ids")]
         public List<string> ActiveBundleIds;
+
+        [JsonProperty("supported_currencies")]
+        public List<string> SupportedCurrencies;
+
+        [JsonProperty("country_to_currency_map")]
+        public Dictionary<string, string> CountryToCurrencyMap;
     }
 
     [Preserve]
