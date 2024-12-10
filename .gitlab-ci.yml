@@ -1,15 +1,9 @@
 stages:
   - trigger
   - bump-version
+  - trigger-parent
   - release
   - publish
-
-trigger_job:
-  stage: trigger
-  trigger:
-    project: $BUILDER_PROJECT
-  rules:
-    - when: never
 
 .bump-version:
   image :
@@ -49,6 +43,16 @@ bump-version:
       else
         echo "No version bump required";
       fi
+
+trigger-parent-project:
+  stage: trigger-parent
+  rules:
+    - if: $CI_COMMIT_BRANCH == "build/dev"
+      when: always
+  trigger:
+    project: "evosverse/noctua/noctua-sdk-unity"
+    branch: main
+    strategy: depend
 
 release:
   extends: .bump-version
