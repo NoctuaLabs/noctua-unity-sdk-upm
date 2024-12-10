@@ -1,15 +1,16 @@
-﻿.user-center {
+.user-center {
     position: relative;
-    background-color: rgb(31, 35, 39);
-    color: white;    
+    background-color: rgba(31, 35, 39, 0);
+    color: white;
 }
 
 .user-center.landscape {
     border-radius: 20px 0 0 20px;
     flex-direction: row;
     align-self: flex-end;
-    width: 66%;
+    width: 70%;
     height: 100%;
+    justify-content: flex-end;
 }
 
 .user-center.portrait {
@@ -21,19 +22,21 @@
 }
 
 .user-profile {
-    background-color: rgba(37, 42, 47, 0.7);
+    background-color: rgb(35, 40, 45);
     flex-direction: column;
     padding: 8px;
     justify-content: space-around;
     align-items: stretch;
     flex: 1;
-
 }
 
 .user-profile.landscape {
     border-radius: 20px 0 0 20px;
-    width: 34%;
+    width: 185px;
     height: 100%;
+    flex-shrink: 0;
+    flex-grow: 0;
+    min-width: 185px;
 }
 
 .user-profile.portrait {
@@ -44,16 +47,18 @@
 
 .user-profile-header {
     height: 26px;
-    flex-direction: row;
-    justify-content: space-between;
+    justify-content: flex-end;
     align-self: stretch;
+    flex-shrink: 0;
+    align-items: stretch;
+    flex-direction: row;
 }
 
 .user-profile-header-button {
     border-radius: 13px;
     height: 26px;
     padding: 5px;
-    background-color: #3E4248;
+    background-color: rgb(62, 66, 72);
     align-items: center;
     justify-content: center;
     -unity-text-align: middle-center;
@@ -62,39 +67,62 @@
 .exit-button {
     height: 26px;
     width: 26px;
+    align-self: flex-start;
+    position: absolute;
+    left: 0;
 }
 
 .exit-icon {
     width: 16px;
     height: 16px;
-    background-image: url("./ExitIcon.png");
+    background-image: url("project://database/Packages/com.noctuagames.sdk/Resources/ExitIcon.png?fileID=21300000&guid=d05c635247c1e10408d940a316e2e82c&type=3#ExitIcon");
 }
 
 .more-options-icon {
     width: 16px;
     height: 16px;
-    background-image: url("./MoreOptionsIcon.png");
+    background-image: url("project://database/Packages/com.noctuagames.sdk/Resources/MoreOptionsIcon.png?fileID=21300000&guid=8f78ddf9f8968894e8490dc40a0c444e&type=3#MoreOptionsIcon");
 }
 
 .help-button {
     flex-direction: row;
+    margin-top: 0;
+    margin-right: 0;
+    margin-bottom: 0;
+    margin-left: 0;
+    padding-top: 0;
+    padding-right: 0;
+    padding-bottom: 0;
+    padding-left: 0;
+    position: absolute;
+    right: 30px;
 }
 
 .help-icon {
     width: 16px;
     height: 16px;
-    background-image: url("./HelpChatIcon.png");
+    background-image: url("project://database/Packages/com.noctuagames.sdk/Resources/HelpChatIcon.png?fileID=21300000&guid=3627307d4c51a814299f496ab4722a9f&type=3#HelpChatIcon");
 }
 
 .help-label {
-    color: rgba(237, 237, 237, 1);
+    color: rgb(237, 237, 237);
     font-size: 10px;
 }
 
 .more-options-button {
     height: 26px;
     width: 26px;
-} 
+    margin-top: 0;
+    margin-right: 0;
+    margin-bottom: 0;
+    margin-left: 4px;
+    padding-top: 0;
+    padding-right: 0;
+    padding-bottom: 0;
+    padding-left: 0;
+    position: absolute;
+    right: 0;
+}
 
 .user-profile-spacing {
     flex-grow: 1;
@@ -107,7 +135,7 @@
 }
 
 .more-options-menu {
-    background-color: rgba(56, 65, 74, 1);
+    background-color: rgb(56, 65, 74);
     position: absolute;
     right: 10px;
     top: 40px;
@@ -140,9 +168,17 @@
 }
 
 .player-name {
-    color: #FFFFFF;
-    font-size: 16px;
+    color: rgb(255, 255, 255);
+    font-size: 16%;
     margin-top: 4;
+    -unity-text-align: middle-center;
+    width: 100%;
+    height: 10%;
+    margin-bottom: 10px;
+    flex-grow: 1;
+    flex-shrink: 0;
+    text-overflow: ellipsis;
+    overflow: hidden;
 }
 
 .hi-text {
@@ -153,7 +189,7 @@
 }
 
 .hi-label {
-    color: #FFFFFF;
+    color: rgb(255, 255, 255);
     font-size: 12px;
     padding: 0;
     border-width: 0;
@@ -164,16 +200,19 @@
 .hi-icon {
     width: 16px;
     height: 16px;
-    background-image: url("./Hi.png");
+    background-image: url("project://database/Packages/com.noctuagames.sdk/Resources/Hi.png?fileID=21300000&guid=81b6c51fc72ea6a479845f257c1c381f&type=3#Hi");
 }
 
 .player-avatar {
-    width: 96px;
-    height: 96px;
+    width: 65px;
+    height: 65px;
     border-radius: 48px;
-    background-image: url("./PlayerProfileBackground.png");
+    background-image: url("project://database/Packages/com.noctuagames.sdk/Resources/PlayerProfileBackground.png?fileID=21300000&guid=ae0d0e3f9cbb53b4d8264a1a5e5a2d7b&type=3#PlayerProfileBackground");
     align-self: center;
-    margin-top: 4;
+    margin-top: 0;
+    margin-right: 0;
+    margin-bottom: 0;
+    margin-left: 0;
 }
 
 .user-id {
@@ -185,14 +224,14 @@
 }
 
 .user-id-label {
-    color: #FFFFFF;
+    color: rgb(255, 255, 255);
     font-size: 12px;
 }
 
 .copy-icon {
     width: 13px;
     height: 13px;
-    background-image: url("./CopyIcon.png");
+    background-image: url("project://database/Packages/com.noctuagames.sdk/Resources/CopyIcon.png?fileID=21300000&guid=9f736dbc87e058f4c92d691580bce89c&type=3#CopyIcon");
 }
 
 .connect-account {
@@ -201,10 +240,11 @@
     flex-direction: column;
     align-items: stretch;
     padding: 8px;
+    background-color: rgb(31, 35, 39);
 }
 
 .connect-account.landscape {
-    width: 64%;
+    width: 66%;
     height: 100%;
 }
 
@@ -219,18 +259,27 @@
 }
 
 .connect-account-label {
-    color: rgba(194, 194, 194, 1);
+    color: rgb(194, 194, 194);
     font-size: 12px;
 }
 
 .account-list {
-    flex: 1;    
+    flex: 1;
     align-self: stretch;
 }
 
-.account-list .unity-list-view__item:active,
-.account-list .unity-list-view__item:focus,
-.account-list .unity-list-view__item--selected,
+.account-list .unity-list-view__item:active {
+    background-color: transparent;
+}
+
+.account-list .unity-list-view__item:focus {
+    background-color: transparent;
+}
+
+.account-list .unity-list-view__item--selected {
+    background-color: transparent;
+}
+
 .account-list .unity-collection-view__item--selected {
     background-color: transparent;
 }
@@ -244,21 +293,20 @@
 }
 
 .find-more-label {
-    color: #757575;
+    color: rgb(117, 117, 117);
     font-size: 8px;
     -unity-text-align: middle-center;
 }
 
-/* User Center - Guest UI */
 .user-guest-box {
     justify-content: space-around;
     align-items: stretch;
-    flex: 1;    
+    flex: 1;
 }
 
 .text-carousel {
     font-size: 12px;
-    white-space: normal; 
+    white-space: normal;
     align-self: center;
     -unity-text-align: upper-center;
 }
@@ -269,7 +317,7 @@
     justify-content: center;
     align-items: center;
     margin-top: 40px;
-    background-image: url("./TwoHand.png");
+    background-image: url("project://database/Packages/com.noctuagames.sdk/Resources/TwoHand.png?fileID=21300000&guid=f519225f0016f124dbe0b0d628a3247c&type=3#TwoHand");
     width: 97px;
     height: 97px;
 }
@@ -300,9 +348,6 @@
     background-color: white;
 }
 
-/* END User Center - Guest UI*/
-
-/* User Center - Edit Profile */
 .edit-profile-box {
     justify-content: space-around;
     align-items: stretch;
@@ -312,7 +357,7 @@
 .hint-textfield {
     font-size: 10px;
     top: -15px;
-    color: rgba(117, 117, 117, 1);
+    color: rgb(117, 117, 117);
 }
 
 .bottom-object {
@@ -330,14 +375,14 @@
 
 .dropdown-box .unity-base-field__input {
     background-color: transparent;
-    border-color: #474B4E;
+    border-color: rgb(71, 75, 78);
     border-radius: 8px;
     margin-right: 0;
     margin-left: 0;
 }
 
 .dropdown-box .unity-base-popup-field__arrow {
-    -unity-background-image-tint-color: rgba(98, 100, 104, 1);
+    -unity-background-image-tint-color: rgb(98, 100, 104);
 }
 
 .profile-circle-with-border {
@@ -345,17 +390,17 @@
     height: 50px;
     margin-right: 10px;
     border-width: 1px;
-    border-color: #5099FC; /* Equivalent to rgb(80, 153, 252) */
+    border-color: rgb(80, 153, 252);
     border-radius: 25px;
 }
 
 .button-border {
     height: 31px;
     border-radius: 5px;
-    border-color: #3B82F6;
+    border-color: rgb(59, 130, 246);
     border-width: 1px;
     background-color: transparent;
-    color: #3B82F6;
+    color: rgb(59, 130, 246);
 }
 
 .profile-menu-image {
@@ -396,8 +441,6 @@
 .sdk-version {
     left: 5px;
     font-size: 8px;
-    color: #8B8E91;
+    color: rgb(139, 142, 145);
     -unity-text-align: middle-center;
 }
-
-/*END User Center - Edit Profile */

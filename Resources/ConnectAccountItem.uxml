@@ -1,11 +1,11 @@
 <ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" xsi="http://www.w3.org/2001/XMLSchema-instance" engine="UnityEngine.UIElements" editor="UnityEditor.UIElements" noNamespaceSchemaLocation="../../../../UIElementsSchema/UIElements.xsd" editor-extension-mode="False">
-    <Style src="./Noctua.uss" />
-    <Style src="./ConnectAccountItem.uss" />
-    <ui:VisualElement name="ConnectAccountItem" class="connect-account-item">
-        <ui:VisualElement name="MethodLogoContainer" class="method-logo">
-            <ui:VisualElement name="MethodLogo" class="email-icon" />
+    <Style src="project://database/Packages/com.noctuagames.sdk/Resources/Noctua.uss?fileID=7433441132597879392&amp;guid=fe35e550fb23b6446af377f994effe35&amp;type=3#Noctua" />
+    <Style src="project://database/Packages/com.noctuagames.sdk/Resources/ConnectAccountItem.uss?fileID=7433441132597879392&amp;guid=c1fedfb8640c4da1af2043a126098a5c&amp;type=3#ConnectAccountItem" />
+    <ui:VisualElement name="ConnectAccountItem" class="connect-account-item" style="align-items: flex-end; padding-left: 10px; padding-right: 10px; justify-content: flex-end;">
+        <ui:VisualElement name="MethodLogoContainer" class="method-logo" style="flex-grow: 0; flex-shrink: 0; align-self: flex-start;">
+            <ui:VisualElement name="MethodLogo" class="email-icon" style="width: 100%; height: 100%; flex-shrink: 0;" />
         </ui:VisualElement>
-        <ui:Label name="MethodName" text="Google" class="method-name" />
+        <ui:Label name="MethodName" text="Google" class="method-name" style="align-self: center; align-items: center;" />
         <ui:VisualElement name="HorizontalGap" class="horizontal-gap" />
         <ui:Button name="ConnectButton" text="Connect" class="connect-button" />
         <ui:VisualElement name="Username" class="username hide">
@@ -13,4 +13,3 @@
         </ui:VisualElement>
     </ui:VisualElement>
 </ui:UXML>
- 
