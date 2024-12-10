@@ -2,6 +2,27 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.23.0] - 2024-12-10
+
+### 🚀 Features
+
+- Improve currency accuracy by using country to currency map.
+
+### 🐛 Bug Fixes
+
+- Bring extra params for create order.
+- Ui edit profile strached
+- Icon more option streched - user center
+- Change help button to position end - user center
+- Change exit button position to flex end - edit profile
+- Throws exception on Google Billing error
+- Remove superfluous exception message
+- Remove permission conflict
+
+### ⚙️ Miscellaneous Tasks
+
+- Add LICENSE
+
 ## [0.22.1] - 2024-12-06
 
 ### 🐛 Bug Fixes
@@ -597,15 +618,15 @@ All notable changes to this project will be documented in this file.
 - Rename ShowUserCenterUI() to UserCenter()
 - User center get data from /api/v1/user/profile
 
+### 💼 Other
+
+- User center
+
 ### 🚜 Refactor
 
 - Move UI actions to NoctuaBehavior
 - Conform more closely to MVP pattern
 - Delete unused bind dialog
-
-### Wip
-
-- User center
 
 ## [0.3.0] - 2024-08-15
 
