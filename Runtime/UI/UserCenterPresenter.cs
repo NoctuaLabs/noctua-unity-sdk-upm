@@ -306,7 +306,7 @@ namespace com.noctuagames.sdk.UI
 
         private void Awake()
         {
-            _defaultAvatar = Resources.Load<Texture2D>("PlayerProfileBackground");
+            _defaultAvatar = Resources.Load<Texture2D>("DefaultAvatar");
 
             _stayConnect = View.Q<Label>("ConnectAccountLabel");
             _containerStayConnect = View.Q<VisualElement>("ContainerStayConnect");
@@ -319,13 +319,14 @@ namespace com.noctuagames.sdk.UI
             _connectAccountFooter = View.Q<VisualElement>("ConnectAccountFooter");
             _sdkVersion = View.Q<Label>("SDKVersion");
             _sdkVersion.text = $"v{Assembly.GetExecutingAssembly().GetName().Version}";
-
+            
             View.Q<VisualElement>("MoreOptionsMenu").RegisterCallback<PointerUpEvent>(OnMoreOptionsMenuSelected);
             View.Q<VisualElement>("EditProfile").RegisterCallback<PointerUpEvent>(_ => OnEditProfile());
             View.Q<VisualElement>("BackEditProfileHeader").RegisterCallback<PointerUpEvent>(_carouselItems => OnBackEditProfile());
             View.Q<VisualElement>("SwitchProfile").RegisterCallback<PointerUpEvent>(_ => OnSwitchProfile());
             View.Q<VisualElement>("LogoutAccount").RegisterCallback<PointerUpEvent>(_ => OnLogout());
             
+            _helpButton.RegisterCallback<PointerUpEvent>(OnHelp);
             _copyIcon.RegisterCallback<PointerUpEvent>(_ => OnCopyText());
 
             //Suggest Bind UI
@@ -334,6 +335,11 @@ namespace com.noctuagames.sdk.UI
 
             //Edit Profile UI
             SetupEditProfileUI();
+        }
+
+        private async void OnHelp(PointerUpEvent evt)
+        {
+            await Noctua.Platform.Content.ShowCustomerService();
         }
 
         private void OnCopyText()
