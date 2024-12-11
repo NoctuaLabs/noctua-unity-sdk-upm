@@ -360,24 +360,24 @@ namespace com.noctuagames.sdk
 
             while (!Instance.Value._iap.IsReady && DateTime.UtcNow < iapReadyTimeout)
             {
-                var win = await UniTask.WhenAny(
+                Instance.Value._iap.Init();
+
+                var completedTask = await UniTask.WhenAny(
                     UniTask.WaitUntil(() => Noctua.Instance.Value._iap.IsReady),
                     UniTask.Delay(1000)
                 );
                 
                 log.Debug($"IAP ready: {Instance.Value._iap.IsReady}");
 
-                if (win == 0)
+                if (completedTask == 0)
                 {
                     break;
                 }
-
-                Instance.Value._iap.Init();
             }
             
             if (!Instance.Value._iap.IsReady)
             {
-                throw new NoctuaException(NoctuaErrorCode.Application, "IAP is not ready after timeout");
+                log.Error("IAP is not ready after timeout");
             }
             
             if (string.IsNullOrEmpty(initResponse.Country))
@@ -396,6 +396,11 @@ namespace com.noctuagames.sdk
                 log.Info("Using country from geoIP: " + initResponse.Country);
             }
 
+            if (initResponse != null)
+            {
+                Instance.Value._event.SetProperties(initResponse.Country, initResponse.IpAddress);
+            }
+
             // Set locale values
             if (!string.IsNullOrEmpty(initResponse.Country))
             {
@@ -411,20 +416,65 @@ namespace com.noctuagames.sdk
                     if (!string.IsNullOrEmpty(activeCurrency))
                     {
                         log.Info("Found active currency: " + activeCurrency);
-                        Instance.Value._platform.Locale.SetCurrency(activeCurrency);
+                        if (initResponse.SupportedCurrencies != null && 
+                        initResponse.SupportedCurrencies.Contains(activeCurrency))
+                        {
+                            log.Info("Active currency is supported: " + activeCurrency);
+                            Instance.Value._platform.Locale.SetCurrency(activeCurrency);
+                        }
+                        else
+                        {
+                            log.Warning("Active currency is not supported. Fallback to USD.");
+                            Instance.Value._platform.Locale.SetCurrency("USD");
+                        }
+                    } else {
+                        log.Warning("Active currency is not found. Try to use country to currency map.");
+                        if (initResponse.CountryToCurrencyMap != null &&
+                        initResponse.CountryToCurrencyMap.ContainsKey(initResponse.Country))
+                        {
+                            var currencyFromMap = initResponse.CountryToCurrencyMap[initResponse.Country];
+                            log.Info("Using currency from country map: " + currencyFromMap);
+                            Instance.Value._platform.Locale.SetCurrency(currencyFromMap);
+                        }
+                        else
+                        {
+                            log.Warning("Currency not found in country map. Fallback to USD.");
+                            Instance.Value._platform.Locale.SetCurrency("USD");
+                        }
                     }
                 }
                 catch (Exception)
                 {
-                    log.Warning("Failed to get active currency, using default: USD");
-                    
-                    Instance.Value._platform.Locale.SetCurrency("USD");
+                    log.Warning("Failed to get active currency. Try to use country to currency map.");
+                    if (initResponse.CountryToCurrencyMap != null &&
+                    initResponse.CountryToCurrencyMap.ContainsKey(initResponse.Country))
+                    {
+                        if (initResponse.CountryToCurrencyMap.TryGetValue(
+                            initResponse.Country, out var currencyFromMap
+                        ))
+                        {
+                            log.Info("Using currency from country map: " + currencyFromMap);
+                            Instance.Value._platform.Locale.SetCurrency(currencyFromMap);
+                        }
+                    }
+                    else
+                    {
+                        log.Warning("Currency not found in country map. Fallback to USD.");
+                        Instance.Value._platform.Locale.SetCurrency("USD");
+                    }
                 }
             }
 
-            // Remote config
-            Instance.Value._iap.SetEnabledPaymentTypes(initResponse.RemoteConfigs.EnabledPaymentTypes);
+            var enabledPaymentTypes = initResponse.RemoteConfigs.EnabledPaymentTypes;
+
+            if (!Noctua.Instance.Value._iap.IsReady)
+            {
+                enabledPaymentTypes.Remove(PaymentType.appstore);
+                enabledPaymentTypes.Remove(PaymentType.playstore);
+            }
             
+            Instance.Value._iap.SetEnabledPaymentTypes(enabledPaymentTypes);
+
             Instance.Value._eventSender.Send("init");
             
             if (Noctua.IsFirstOpen())

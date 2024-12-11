@@ -6,6 +6,7 @@ namespace com.noctuagames.sdk
 {
     internal class NoctuaWebPaymentService
     {
+        private readonly ILogger _log = new NoctuaLogger();
         private readonly string _basePaymentUrl;
 
         internal NoctuaWebPaymentService(string basePaymentUrl)
@@ -17,11 +18,6 @@ namespace com.noctuagames.sdk
         internal async UniTask<PaymentResult> PayAsync(string paymentUrl)
         {
 #if (UNITY_ANDROID || UNITY_IOS) && !UNITY_EDITOR
-            if (!paymentUrl.Contains(_basePaymentUrl))
-            {
-                throw new NoctuaException(NoctuaErrorCode.Payment, $"Invalid payment URL: {paymentUrl}. Base URL: {_basePaymentUrl}");
-            }
-
             var gameObject = new GameObject("SocialLoginWebView");
             var uniWebView = gameObject.AddComponent<UniWebView>();
 
@@ -38,7 +34,7 @@ namespace com.noctuagames.sdk
 
             void PageStarted(UniWebView webView, string url)
             {
-                Debug.Log($"Page started: {url}");
+                _log.Info($"Page started: {url}");
 
                 if (!url.Contains(_basePaymentUrl))
                 {
@@ -65,13 +61,13 @@ namespace com.noctuagames.sdk
 
             void PageClosed(UniWebView webView, string windowId)
             {
-                Debug.Log("NoctuaWebPaymentService: Page closed");
+                _log.Debug("on page closed");
                 tcs.TrySetResult(new PaymentResult { Status = PaymentStatus.Canceled, Message = "Payment window closed" });
             }
 
             bool ShouldClose(UniWebView webView)
             {
-                Debug.Log("NoctuaWebPaymentService: Should close");
+                _log.Debug("on should close");
                 tcs.TrySetResult(new PaymentResult { Status = PaymentStatus.Canceled, Message = "Payment window closed" });
                 
                 return true;
@@ -79,7 +75,7 @@ namespace com.noctuagames.sdk
 
             void PageFinished(UniWebView webView, int statusCode, string url)
             {
-                Debug.Log($"Page finished: {url}");
+                _log.Debug($"page finished: {url}");
                 
                 if (!url.Contains(_basePaymentUrl))
                 {
@@ -121,7 +117,7 @@ namespace com.noctuagames.sdk
             uniWebView.EmbeddedToolbar.SetPosition(UniWebViewToolbarPosition.Top);
             uniWebView.Frame = new Rect(0, 0, Screen.width, Screen.height);
 
-            Debug.Log("NoctuaWebPaymentService: Showing WebView");
+            _log.Debug("showing web view");
             uniWebView.SetShowSpinnerWhileLoading(true);
             uniWebView.Show();
             uniWebView.Load(paymentUrl);
@@ -132,7 +128,7 @@ namespace com.noctuagames.sdk
             }
             finally
             {
-                Debug.Log("NoctuaWebPaymentService: Closing WebView");
+                _log.Debug("web view closing");
                 uniWebView.Hide();
                 uniWebView.OnPageFinished -= PageFinished;
                 uniWebView.OnPageStarted -= PageStarted;

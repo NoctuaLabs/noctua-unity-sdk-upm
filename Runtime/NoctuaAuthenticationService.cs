@@ -381,9 +381,6 @@ namespace com.noctuagames.sdk
 
         [JsonProperty("currency")]
         public string Currency;
-        
-        [JsonProperty("payment_type")]
-        public string PaymentType;
     }
 
     [Preserve]
@@ -953,7 +950,6 @@ namespace com.noctuagames.sdk
                     { "new_country", updateUserRequest.Country },
                     { "new_currency", updateUserRequest.Currency },
                     { "new_language", updateUserRequest.Language },
-                    { "new_payment_type", updateUserRequest.PaymentType }
                 }
             );
         }
