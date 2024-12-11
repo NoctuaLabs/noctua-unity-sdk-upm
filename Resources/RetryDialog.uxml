@@ -1,22 +1,24 @@
 <ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" xsi="http://www.w3.org/2001/XMLSchema-instance" engine="UnityEngine.UIElements" editor="UnityEditor.UIElements" noNamespaceSchemaLocation="../../../../UIElementsSchema/UIElements.xsd" editor-extension-mode="False">
     <Style src="./Noctua.uss" />
     <Style src="./RetryDialog.uss" />
-    <ui:VisualElement name="RetryDialog" class="base dialog-box base-general-confirm" style="height: 40%;">
-        <ui:Button name="ExitButton" focusable="false" class="user-profile-header-button exit-button">
-                <ui:VisualElement name="ExitIcon" class="exit-icon" />
-        </ui:Button>        
-        <ui:VisualElement style="flex-direction: column;">
-            <ui:Label 
-                name="Info" 
-                text="Please check your internet connection and try again."
-                class="text-info" 
-            />
-            <ui:Label 
-                name="CSInfo" 
-                text="If the issue persists, &lt;color=#3B82F6&gt;contact our support team&lt;/color&gt;."
-                class="text-info2" 
-            />
+    <ui:VisualElement name="Root" class="root" >
+        <ui:VisualElement name="RetryDialog" class="base dialog-box base-general-confirm" style="height: 30%;">
+            <ui:Button name="ExitButton" focusable="false" class="user-profile-header-button exit-button">
+                    <ui:VisualElement name="ExitIcon" class="exit-icon" />
+            </ui:Button>        
+            <ui:VisualElement style="flex-direction: column;">
+                <ui:Label 
+                    name="Info" 
+                    text="Please check your internet connection and try again."
+                    class="text-info" 
+                />
+                <ui:Label 
+                    name="CSInfo" 
+                    text="If the issue persists, &lt;color=#3B82F6&gt;contact our support team&lt;/color&gt;."
+                    class="text-info2" 
+                />
+            </ui:VisualElement>
+            <ui:Button name="RetryButton" text="Retry" class="dialog-button button-cs" style="width: 90%;" />
         </ui:VisualElement>
-        <ui:Button name="RetryButton" text="Retry" class="dialog-button button-cs" style="width: 90%;" />
     </ui:VisualElement>
 </ui:UXML>
