@@ -423,11 +423,15 @@ namespace com.noctuagames.sdk
 
             if (!_accessTokenProvider.IsAuthenticated)
             {
+                _uiFactory.ShowError("purchase requires user authentication");
+                
                 throw new NoctuaException(NoctuaErrorCode.Authentication, "purchase requires user authentication");
             }
             
             if (_enabledPaymentTypes.Count == 0)
             {
+                _uiFactory.ShowError("No payment type enabled. Please contact support.");
+                
                 throw new NoctuaException(NoctuaErrorCode.Payment, "no payment types enabled");
             }
             
