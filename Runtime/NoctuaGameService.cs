@@ -19,6 +19,9 @@ namespace com.noctuagames.sdk
         [JsonProperty("country")]
         public string Country;
 
+        [JsonProperty("ip_address")]
+        public string IpAddress;
+
         [JsonProperty("active_product_id")]
         public string ActiveProductId;
         
@@ -72,6 +75,8 @@ namespace com.noctuagames.sdk
                 .WithHeader("X-BUNDLE-ID", Application.identifier);
 
             var response = await request.Send<InitGameResponse>();
+
+            var initResponseJson = JsonConvert.SerializeObject(response);
 
             return response;
         }
