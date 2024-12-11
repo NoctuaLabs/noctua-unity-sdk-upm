@@ -12,11 +12,26 @@ namespace com.noctuagames.sdk.UI
         public float StepInterval { get; set; } = 0.1f; // Default interval of 0.3 seconds
 
         // Constructor
-        public Spinner()
+        public Spinner(float _width, float _height)
         {
-            // Set up the spinner style and background image
+            style.width = _width;
+            style.height = _height;
+
+            Initialize();
+        }
+
+        public Spinner()
+        {                   
             style.width = new StyleLength(Length.Percent(100));
             style.height = new StyleLength(Length.Percent(100));
+
+            Initialize();
+        }
+
+        private void Initialize()
+        {
+            // Set up the spinner style and background image     
+            name = "Spinner";
             style.backgroundImage = new StyleBackground(Resources.Load<Texture2D>("Spinner")); // Replace with your image path
             style.unityBackgroundScaleMode = new StyleEnum<ScaleMode>(ScaleMode.ScaleToFit);
 

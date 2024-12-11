@@ -16,11 +16,11 @@ namespace com.noctuagames.sdk.UI
         public UserBundle User { get; set; }
         public Exception Error { get; set; }
     }
-    
+
     internal class EmailLoginDialogPresenter : Presenter<AuthenticationModel>
     {
         private readonly ILogger _log = new NoctuaLogger();
-        
+
         private string _email;
         private string _password;
         private VisualElement _spinner;
@@ -41,9 +41,9 @@ namespace com.noctuagames.sdk.UI
             _onLoginSuccess = onLoginSuccess;
             Visible = true;
         }
-        
-        protected override void Attach(){}
-        protected override void Detach(){}
+
+        protected override void Attach() { }
+        protected override void Detach() { }
 
         private void Start()
         {
@@ -54,7 +54,7 @@ namespace com.noctuagames.sdk.UI
         {
             if (panelVE == null) return;
 
-            if(TouchScreenKeyboard.visible && !panelVE.ClassListContains("dialog-box-keyboard-shown"))
+            if (TouchScreenKeyboard.visible && !panelVE.ClassListContains("dialog-box-keyboard-shown"))
             {
                 panelVE.AddToClassList("dialog-box-keyboard-shown");
             }
@@ -94,18 +94,24 @@ namespace com.noctuagames.sdk.UI
             View.Q<Button>("BackButton").RegisterCallback<PointerUpEvent>(OnBackButtonClick);
             View.Q<Button>("ContinueButton").RegisterCallback<PointerUpEvent>(OnContinueButtonClick);
 
-            showPasswordButton.RegisterCallback<PointerUpEvent>(OnToggleShowPassword);      
+            showPasswordButton.RegisterCallback<PointerUpEvent>(OnToggleShowPassword);
 
             showPasswordButton.RemoveFromClassList("btn-password-hide");
 
-            _spinner = new Spinner();
-            View.Q<VisualElement>("Spinner").Clear();
-            View.Q<VisualElement>("Spinner").Add(_spinner);
-            View.Q<VisualElement>("Spinner").AddToClassList("hide");
+            if (View.Q<VisualElement>("Spinner").childCount > 0)
+            {
+                _spinner = View.Q<VisualElement>("Spinner").Children().ElementAt(0);
+            }
+            else
+            {
+                _spinner = new Spinner(30, 30);
+                View.Q<VisualElement>("Spinner").Add(_spinner);
+                View.Q<VisualElement>("Spinner").AddToClassList("hide");
+            }
         }
 
         public void OnToggleShowPassword(PointerUpEvent _event)
-        {                      
+        {
             passwordField.isPasswordField = !passwordField.isPasswordField;
 
             if (passwordField.isPasswordField)
@@ -133,9 +139,12 @@ namespace com.noctuagames.sdk.UI
         {
             HideAllErrors();
 
-            if(string.IsNullOrEmpty(textField.value)) {
+            if (string.IsNullOrEmpty(textField.value))
+            {
                 textField.labelElement.style.display = DisplayStyle.Flex;
-            } else {
+            }
+            else
+            {
                 textField.labelElement.style.display = DisplayStyle.None;
             }
             _email = textField.value;
@@ -147,9 +156,12 @@ namespace com.noctuagames.sdk.UI
         {
             HideAllErrors();
 
-            if(string.IsNullOrEmpty(textField.value)) {
+            if (string.IsNullOrEmpty(textField.value))
+            {
                 textField.labelElement.style.display = DisplayStyle.Flex;
-            } else {
+            }
+            else
+            {
                 textField.labelElement.style.display = DisplayStyle.None;
             }
             _password = textField.value;
@@ -158,10 +170,14 @@ namespace com.noctuagames.sdk.UI
             Utility.UpdateButtonState(textFields, submitButton);
         }
 
-        private void AdjustHideLabelElement(TextField textField) {
-            if(string.IsNullOrEmpty(textField.value)) {
+        private void AdjustHideLabelElement(TextField textField)
+        {
+            if (string.IsNullOrEmpty(textField.value))
+            {
                 textField.labelElement.style.display = DisplayStyle.Flex;
-            } else {
+            }
+            else
+            {
                 textField.labelElement.style.display = DisplayStyle.None;
             }
         }
@@ -169,7 +185,7 @@ namespace com.noctuagames.sdk.UI
         private void OnBackButtonClick(PointerUpEvent evt)
         {
             Visible = false;
-            
+
             Model.NavigateBack();
         }
 
@@ -203,7 +219,7 @@ namespace com.noctuagames.sdk.UI
         private void OnForgotPasswordButtonClick(PointerUpEvent evt)
         {
             _log.Debug("clicking forgot password button");
-            
+
             Visible = false;
             // Show with empty form
             Model.PushNavigation(() => Model.ShowEmailLogin());
@@ -213,9 +229,9 @@ namespace com.noctuagames.sdk.UI
         private void OnRegisterButtonClick(PointerUpEvent evt)
         {
             _log.Debug("clicking register button");
-            
+
             Visible = false;
-            
+
             Model.PushNavigation(() => Model.ShowEmailLogin());
             Model.ShowEmailRegistration(true);
         }
@@ -233,44 +249,48 @@ namespace com.noctuagames.sdk.UI
             var password = _password;
 
             // Validation
-            if (string.IsNullOrEmpty(emailAddress)) {
+            if (string.IsNullOrEmpty(emailAddress))
+            {
                 View.Q<Label>("ErrEmailEmpty").RemoveFromClassList("hide");
                 View.Q<Button>("ContinueButton").RemoveFromClassList("hide");
                 View.Q<VisualElement>("Spinner").AddToClassList("hide");
-            
+
                 return;
             }
 
-            if (!IsValidEmail(emailAddress)) {
+            if (!IsValidEmail(emailAddress))
+            {
                 View.Q<Label>("ErrEmailInvalid").RemoveFromClassList("hide");
                 View.Q<Button>("ContinueButton").RemoveFromClassList("hide");
                 View.Q<VisualElement>("Spinner").AddToClassList("hide");
-                
+
                 return;
             }
 
-            if (string.IsNullOrEmpty(password)) {
+            if (string.IsNullOrEmpty(password))
+            {
                 View.Q<Label>("ErrPasswordEmpty").RemoveFromClassList("hide");
                 View.Q<Button>("ContinueButton").RemoveFromClassList("hide");
                 View.Q<VisualElement>("Spinner").AddToClassList("hide");
-                
+
                 return;
             }
 
-            if (password?.Length < 6) {
+            if (password?.Length < 6)
+            {
                 View.Q<Label>("ErrPasswordTooShort").RemoveFromClassList("hide");
                 View.Q<Button>("ContinueButton").RemoveFromClassList("hide");
                 View.Q<VisualElement>("Spinner").AddToClassList("hide");
-                
+
                 return;
             }
-
-            try 
+            
+            try
             {
                 if (Model.AuthService.RecentAccount.IsGuest)
                 {
                     var playerToken = await Model.AuthService.GetEmailLoginTokenAsync(emailAddress, password);
-                    
+
                     if (playerToken.Player == null)
                     {
                         Model.ShowBindConfirmation(playerToken);
@@ -294,16 +314,16 @@ namespace com.noctuagames.sdk.UI
                 View.Q<Button>("ContinueButton").RemoveFromClassList("hide");
                 View.Q<VisualElement>("AdditionalFooterContent").RemoveFromClassList("hide");
                 View.Q<VisualElement>("Spinner").AddToClassList("hide");
-                
+
                 Visible = false;
-            } 
-            catch (Exception e) 
+            }
+            catch (Exception e)
             {
                 _log.Warning($"{e.Message}\n{e.StackTrace}");
-                
+
                 if (e is NoctuaException noctuaEx)
                 {
-                    if(noctuaEx.ErrorCode == (int)NoctuaErrorCode.UserBanned)
+                    if (noctuaEx.ErrorCode == (int)NoctuaErrorCode.UserBanned)
                     {
                         bool confirmed = await Model.ShowBannedConfirmationDialog();
 
@@ -316,7 +336,9 @@ namespace com.noctuagames.sdk.UI
                     }
 
                     View.Q<Label>("ErrCode").text = noctuaEx.ErrorCode.ToString() + " : " + noctuaEx.Message;
-                } else {
+                }
+                else
+                {
                     View.Q<Label>("ErrCode").text = e.Message;
                 }
 
@@ -325,7 +347,7 @@ namespace com.noctuagames.sdk.UI
                 View.Q<VisualElement>("AdditionalFooterContent").RemoveFromClassList("hide");
                 View.Q<VisualElement>("Spinner").AddToClassList("hide");
             }
-        }   
+        }
 
         private void HideAllErrors()
         {
