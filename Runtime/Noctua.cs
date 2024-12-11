@@ -396,6 +396,11 @@ namespace com.noctuagames.sdk
                 log.Info("Using country from geoIP: " + initResponse.Country);
             }
 
+            if (initResponse != null)
+            {
+                Instance.Value._event.SetProperties(initResponse.Country, initResponse.IpAddress);
+            }
+
             // Set locale values
             if (!string.IsNullOrEmpty(initResponse.Country))
             {
