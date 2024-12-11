@@ -1,6 +1,6 @@
 .user-center {
     position: relative;
-    background-color: rgba(31, 35, 39, 0);
+    background-color: rgba(31, 35, 39, 1);
     color: white;
 }
 

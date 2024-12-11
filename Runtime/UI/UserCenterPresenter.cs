@@ -39,7 +39,6 @@ namespace com.noctuagames.sdk.UI
         private DropdownField _countryTF;
         private DropdownField _languageTF;
         private DropdownField _currencyTF;
-        private DropdownField _paymentTypeTF;
         private VisualElement _profileImage;
         private VisualElement _playerImage;
         private Button _changeProfile;
@@ -50,7 +49,6 @@ namespace com.noctuagames.sdk.UI
         private List<string> _countryOptions = new List<string> { "Select Country" };
         private List<string> _languageOptions = new List<string> { "Select Languages" };
         private List<string> _currencyOptions = new List<string> { "Select Currency" };
-        private List<PaymentType> _paymentOptions = new List<PaymentType> { PaymentType.unknown };
         private VisualElement _spinner;
         private VisualElement _noctuaLogoWithText;
         private Label _sdkVersion;
@@ -244,17 +242,6 @@ namespace com.noctuagames.sdk.UI
                         _currencyTF.value = "Select Currency";
                     }
 
-                    int indexPaymentType = _paymentOptions.FindIndex(item => item == user?.PaymentType);
-
-                    if (indexPaymentType != -1)
-                    {
-                        _paymentTypeTF.value = _paymentOptions[indexPaymentType].ToString();
-                    }
-                    else
-                    {
-                        _paymentTypeTF.value = "Select Payment Type";
-                    }
-
                     SetupEditProfileUI();
                 }
 
@@ -390,7 +377,6 @@ namespace com.noctuagames.sdk.UI
             _countryTF = View.Q<DropdownField>("CountryTF");
             _languageTF = View.Q<DropdownField>("LanguageTF");
             _currencyTF = View.Q<DropdownField>("CurrencyTF");
-            _paymentTypeTF = View.Q<DropdownField>("PaymentTypeTF");
             _changeProfile = View.Q<Button>("ChangePictureButton");
             _profileImage = View.Q<VisualElement>("ProfileImage");
             _playerImage = View.Q<VisualElement>("PlayerAvatar");
@@ -406,8 +392,7 @@ namespace com.noctuagames.sdk.UI
                 "GenderTF",
                 "CountryTF",
                 "LanguageTF",
-                "CurrencyTF",
-                "PaymentTypeTF"
+                "CurrencyTF"
             };
 
             Utility.RegisterForMultipleValueChanges<string>(View, elementNames, saveButton);
@@ -428,7 +413,6 @@ namespace com.noctuagames.sdk.UI
                 _countryOptions.Clear();
                 _languageOptions.Clear();
                 _currencyOptions.Clear();
-                _paymentOptions.Clear();
 
                 foreach(GeneralProfileData country in _profileDataOptions.Countries)
                 {
@@ -443,17 +427,6 @@ namespace com.noctuagames.sdk.UI
                 foreach(GeneralProfileData _currency in _profileDataOptions.Currencies)
                 {
                     _currencyOptions.Add(_currency.EnglishName);
-                }
-
-                _paymentOptions.Add(PaymentType.noctuastore);
-
-                if (Application.platform == RuntimePlatform.Android)
-                {
-                    _paymentOptions.Add(PaymentType.playstore);
-                }
-                else if (Application.platform == RuntimePlatform.IPhonePlayer)
-                {
-                    _paymentOptions.Add(PaymentType.appstore);
                 }
             }
 
@@ -483,13 +456,6 @@ namespace com.noctuagames.sdk.UI
             {
                 _currencyTF.value = evt.newValue;
                 _currencyTF.labelElement.style.display = DisplayStyle.None;
-            });
-
-            _paymentTypeTF.choices = _paymentOptions.ConvertAll(x => x.ToString());
-            _paymentTypeTF.RegisterCallback<ChangeEvent<string>>((evt) =>
-            {
-                _paymentTypeTF.value = evt.newValue;
-                _paymentTypeTF.labelElement.style.display = DisplayStyle.None;
             });
         }
 
@@ -786,17 +752,6 @@ namespace com.noctuagames.sdk.UI
                 return;
             }
 
-            if(string.IsNullOrEmpty(_paymentTypeTF.value) || _paymentTypeTF.value == "Select Payment Type")
-            {
-                _errorLabel.RemoveFromClassList("hide");
-                _errorLabel.text = "PLease select payment type";
-
-                View.Q<Button>("SaveButton").RemoveFromClassList("hide");
-                View.Q<VisualElement>("Spinner").AddToClassList("hide");
-                View.Q<VisualElement>("Spinner2").AddToClassList("hide");
-                return;
-            }
-
             try
             {
                 UpdateUserRequest updateUserRequest = new UpdateUserRequest();
@@ -827,13 +782,10 @@ namespace com.noctuagames.sdk.UI
                 int indexCountry = _profileDataOptions.Countries.FindIndex(item => item.EnglishName.ToLower() == _countryTF.value.ToLower());
                 int indexLanguage = _profileDataOptions.Languages.FindIndex(item => item.EnglishName.ToLower() == _languageTF.value.ToLower());
                 int indexCurrency = _profileDataOptions.Currencies.FindIndex(item => item.EnglishName.ToLower() == _currencyTF.value.ToLower());
-                int indexPayment = _paymentOptions.FindIndex(item => item.ToString().ToLower() == _paymentTypeTF.value.ToLower());                
 
                 updateUserRequest.Country = _profileDataOptions.Countries[indexCountry].IsoCode;
                 updateUserRequest.Language = _profileDataOptions.Languages[indexLanguage].IsoCode;
                 updateUserRequest.Currency = _profileDataOptions.Currencies[indexCurrency].IsoCode;
-		// Convert enum to string
-		updateUserRequest.PaymentType = _paymentOptions[indexPayment].ToString().ToLower();
 
                 await Model.AuthService.UpdateUserAsync(updateUserRequest);
 

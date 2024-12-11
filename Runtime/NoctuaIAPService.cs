@@ -253,7 +253,6 @@ namespace com.noctuagames.sdk
 
 #if UNITY_ANDROID && !UNITY_EDITOR
             GoogleBillingInstance.OnProductDetailsDone += HandleGoogleProductDetails;
-            GoogleBillingInstance?.Init();
 #endif
             _nativePlugin = nativePlugin;
             
@@ -413,16 +412,23 @@ namespace com.noctuagames.sdk
 
         public async UniTask<PurchaseResponse> PurchaseItemAsync(PurchaseRequest purchaseRequest)
         {
-            _log.Info("started");
+            _log.Debug("started");
 
             if (!_accessTokenProvider.IsAuthenticated)
             {
-                throw new NoctuaException(NoctuaErrorCode.Authentication, "Purchase requires user authentication");
+                throw new NoctuaException(NoctuaErrorCode.Authentication, "purchase requires user authentication");
             }
+            
+            if (_enabledPaymentTypes.Count == 0)
+            {
+                throw new NoctuaException(NoctuaErrorCode.Payment, "no payment types enabled");
+            }
+            
+            var paymentType = _enabledPaymentTypes.First();
 
             _uiFactory.ShowLoadingProgress(true);
             
-            PaymentType paymentType;
+            Product product;
             OrderRequest orderRequest;
             OrderResponse orderResponse;
             double price;
@@ -430,8 +436,6 @@ namespace com.noctuagames.sdk
 
             try
             {
-                paymentType = await GetPaymentTypeAsync();
-                
                 if (_usdProducts.Count == 0)
                 {
                     _usdProducts.AddRange(await GetProductListAsync(currency: "USD"));
@@ -439,7 +443,6 @@ namespace com.noctuagames.sdk
                 
                 var playerData = new PlayerAccountData
                 {
-                    IngameUsername = "Player",
                     IngameServerId = purchaseRequest.ServerId,
                     IngameRoleId = purchaseRequest.RoleId,
                     Extra = (purchaseRequest.Extra != null && purchaseRequest.Extra.Count > 0) 
@@ -450,7 +453,7 @@ namespace com.noctuagames.sdk
 
                 await Noctua.Auth.UpdatePlayerAccountAsync(playerData);
                 
-                _log.Info($"Player account updated successfully");
+                _log.Debug($"updated player role: '{playerData.IngameRoleId}', server: '{playerData.IngameServerId}'");
                 
                 orderRequest = new OrderRequest
                 {
@@ -461,37 +464,22 @@ namespace com.noctuagames.sdk
                     RoleId = purchaseRequest.RoleId,
                     ServerId = purchaseRequest.ServerId,
                     IngameItemId = purchaseRequest.IngameItemId,
-                    IngameItemName = purchaseRequest.IngameItemName
+                    IngameItemName = purchaseRequest.IngameItemName,
+                    Extra = purchaseRequest.Extra
                 };
-
-		if (purchaseRequest.Extra != null && purchaseRequest.Extra.Count > 0)
-		{
-		    foreach (var kvp in purchaseRequest.Extra)
-		    {
-		        orderRequest.Extra.Add(kvp.Key, kvp.Value);
-		    }
-		}
 
                 if (string.IsNullOrEmpty(orderRequest.Currency))
                 {
                     orderRequest.Currency = Noctua.Platform.Locale.GetCurrency();
                 }
                 
-                var product = _usdProducts.FirstOrDefault(p => p.Id == orderRequest.ProductId);
-            
+                product = _usdProducts.FirstOrDefault(p => p.Id == orderRequest.ProductId);
+                
                 if (product == null)
                 {
-                    _log.Warning("Product not found in product list");
-                
-                    price = (double)orderRequest.Price;
-                    currency = orderRequest.Currency;
+                    throw new NoctuaException(NoctuaErrorCode.Payment, $"USD price not found for product '{orderRequest.ProductId}'");
                 }
-                else
-                {
-                    price = product.Price;
-                    currency = product.Currency;
-                }
-                
+            
                 _log.Debug("creating order");
 
                 orderResponse = await CreateOrderAsync(orderRequest);
@@ -501,15 +489,15 @@ namespace com.noctuagames.sdk
                     new()
                     {
                         { "product_id", orderResponse.ProductId },
-                        { "amount", price },
-                        { "currency", currency },
+                        { "amount", product.Price },
+                        { "currency", product.Currency },
                         { "order_id", orderResponse.Id },
                         { "orig_amount", orderRequest.Price },
                         { "orig_currency", orderRequest.Currency }
                     }
                 );
 
-                _log.Debug("_currentOrderId: "         + orderResponse.Id);
+                _log.Debug("orderResponse.Id: "         + orderResponse.Id);
                 _log.Debug("orderResponse.ProductId: " + orderResponse.ProductId);
 
                 _uiFactory.ShowLoadingProgress(false);
@@ -551,7 +539,7 @@ namespace com.noctuagames.sdk
                     _log.Info("NoctuaIAPService.PurchaseItemAsync PurchaseItem callback response: " + paymentResult);
                     break;
 #else
-                    throw new NoctuaException(NoctuaErrorCode.Payment, "Applestore payment is not supported on this platform");
+                    throw new NoctuaException(NoctuaErrorCode.Payment, "Apptore payment is not supported on this platform");
 #endif
                 case PaymentType.playstore:
 #if UNITY_ANDROID && !UNITY_EDITOR
@@ -608,8 +596,8 @@ namespace com.noctuagames.sdk
                     new()
                     {
                         { "product_id", orderResponse.ProductId },
-                        { "amount", price },
-                        { "currency", currency },
+                        { "amount", product.Price },
+                        { "currency", product.Currency },
                         { "order_id", orderResponse.Id },
                         { "orig_amount", orderRequest.Price },
                         { "orig_currency", orderRequest.Currency }
@@ -649,8 +637,8 @@ namespace com.noctuagames.sdk
                         new()
                         {
                             { "product_id", orderResponse.ProductId },
-                            { "amount", price },
-                            { "currency", currency },
+                            { "amount", product.Price },
+                            { "currency", product.Currency },
                             { "order_id", verifyOrderResponse.Id },
                             { "orig_amount", orderRequest.Price },
                             { "orig_currency", orderRequest.Currency }
@@ -668,8 +656,8 @@ namespace com.noctuagames.sdk
                         new()
                         {
                             { "product_id", orderResponse.ProductId },
-                            { "amount", price },
-                            { "currency", currency },
+                            { "amount", product.Price },
+                            { "currency", product.Currency },
                             { "order_id", verifyOrderResponse.Id },
                             { "orig_amount", orderRequest.Price },
                             { "orig_currency", orderRequest.Currency }
@@ -728,50 +716,6 @@ namespace com.noctuagames.sdk
             };
         }
         
-        private async UniTask<PaymentSettings> GetPaymentSettingsAsync()
-        {
-            var request = new HttpRequest(HttpMethod.Get, $"{_config.BaseUrl}/user/profile")
-                .WithHeader("X-CLIENT-ID", _config.ClientId)
-                .WithHeader("X-BUNDLE-ID", Application.identifier)
-                .WithHeader("Authorization", "Bearer " + _accessTokenProvider.AccessToken);
-
-            return await request.Send<PaymentSettings>();
-        }
-        
-        private async UniTask<PaymentType> GetPaymentTypeAsync()
-        {
-            var paymentSettings = await GetPaymentSettingsAsync();
-            _log.Info("Payment Type From Settings: " + paymentSettings.PaymentType);
-            _log.Info("Enabled Payment Types: " + string.Join(", ", _enabledPaymentTypes));
-
-            if (string.IsNullOrEmpty(paymentSettings.PaymentType.ToString()) ||
-                paymentSettings.PaymentType.ToString() == "unknown")
-            {
-                if (_enabledPaymentTypes.Count == 0)
-                {
-                    throw new NoctuaException(NoctuaErrorCode.Payment, "No payment types are enabled");
-                }
-
-                _log.Info("Payment Type From Settings is empty, fallback to server remote config");
-                paymentSettings.PaymentType = _enabledPaymentTypes.First();
-            }
-            else
-            {
-                if (!_enabledPaymentTypes.Contains(paymentSettings.PaymentType))
-                {
-                    _log.Info(
-                        "Payment Type From Settings is not enabled from server side, fallback to server remote config"
-                    );
-
-                    // Fallback to _enabledPaymentTypes from SDK init
-                    paymentSettings.PaymentType = _enabledPaymentTypes.First();
-                }
-            }
-            
-            _log.Info("Selected payment Type: " + paymentSettings.PaymentType);
-            return paymentSettings.PaymentType;
-        }
-
 #if UNITY_ANDROID && !UNITY_EDITOR
         private void HandleGoogleProductDetails(GoogleBilling.ProductDetailsResponse response)
         {
@@ -917,15 +861,20 @@ namespace com.noctuagames.sdk
 
             var retryCount = 0;
             
+            if (_enabledPaymentTypes.Count == 0)
+            {
+                _log.Error("no payment types enabled, quitting");
+                
+                return;
+            }
+            
             if (_usdProducts.Count == 0)
             {
-                var paymentType = await GetPaymentTypeAsync();
-                await GetProductListAsync(platformType: paymentType.ToString().ToLower());
+                _usdProducts.AddRange(await GetProductListAsync(currency: "USD"));
             }
 
             while (!quitting)
             {
-                // No pending purchases, just wait for new ones
                 if (runningPendingPurchases.Count == 0)
                 {
                     await UniTask.Delay(1000, cancellationToken: cts.Token);

@@ -360,24 +360,24 @@ namespace com.noctuagames.sdk
 
             while (!Instance.Value._iap.IsReady && DateTime.UtcNow < iapReadyTimeout)
             {
-                var win = await UniTask.WhenAny(
+                Instance.Value._iap.Init();
+
+                var completedTask = await UniTask.WhenAny(
                     UniTask.WaitUntil(() => Noctua.Instance.Value._iap.IsReady),
                     UniTask.Delay(1000)
                 );
                 
                 log.Debug($"IAP ready: {Instance.Value._iap.IsReady}");
 
-                if (win == 0)
+                if (completedTask == 0)
                 {
                     break;
                 }
-
-                Instance.Value._iap.Init();
             }
             
             if (!Instance.Value._iap.IsReady)
             {
-                throw new NoctuaException(NoctuaErrorCode.Application, "IAP is not ready after timeout");
+                log.Error("IAP is not ready after timeout");
             }
             
             if (string.IsNullOrEmpty(initResponse.Country))
@@ -465,9 +465,16 @@ namespace com.noctuagames.sdk
                 }
             }
 
-            // Remote config
-            Instance.Value._iap.SetEnabledPaymentTypes(initResponse.RemoteConfigs.EnabledPaymentTypes);
+            var enabledPaymentTypes = initResponse.RemoteConfigs.EnabledPaymentTypes;
+
+            if (!Noctua.Instance.Value._iap.IsReady)
+            {
+                enabledPaymentTypes.Remove(PaymentType.appstore);
+                enabledPaymentTypes.Remove(PaymentType.playstore);
+            }
             
+            Instance.Value._iap.SetEnabledPaymentTypes(enabledPaymentTypes);
+
             Instance.Value._eventSender.Send("init");
             
             if (Noctua.IsFirstOpen())
