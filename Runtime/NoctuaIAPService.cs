@@ -493,7 +493,7 @@ namespace com.noctuagames.sdk
             
                 _log.Debug("creating order");
 
-                orderResponse = await CreateOrderAsync(orderRequest);
+                orderResponse = await RetryAsync(() => CreateOrderAsync(orderRequest));
                 
                 _eventSender?.Send(
                     "purchase_opened",
@@ -638,7 +638,7 @@ namespace com.noctuagames.sdk
             try {
                 _uiFactory.ShowLoadingProgress(true);
 
-                verifyOrderResponse = await VerifyOrderAsync(verifyOrderRequest, _accessTokenProvider.AccessToken);
+                verifyOrderResponse = await RetryAsync(() => VerifyOrderAsync(verifyOrderRequest, _accessTokenProvider.AccessToken));
 
                 switch (verifyOrderResponse.Status)
                 {
@@ -725,6 +725,45 @@ namespace com.noctuagames.sdk
                 Status = verifyOrderResponse.Status,
                 Message = "Purchase completed"
             };
+        }
+
+        private async UniTask<T> RetryAsync<T>(Func<UniTask<T>> action)
+        {
+            while (true)
+            {
+                try
+                {
+                    return await action();
+                }
+               catch (NoctuaException e)
+                {
+                    var errorCode = (NoctuaErrorCode)e.ErrorCode;
+
+                    switch (errorCode)
+                    {
+                        case NoctuaErrorCode.Networking:
+                            _uiFactory.ShowLoadingProgress(false);
+                            _log.Exception(e);
+
+                            var OnRetryNetwork = await _uiFactory.ShowRetryDialog("Please check your internet connection.");
+                            if (!OnRetryNetwork)
+                                throw;
+                            break;
+                        default:
+                            _uiFactory.ShowLoadingProgress(false);
+                            _log.Exception(e);
+                            _uiFactory.ShowError(e.Message);
+                            throw;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _uiFactory.ShowLoadingProgress(false);
+                    _log.Exception(ex);
+                    _uiFactory.ShowError(ex.Message);
+                    throw;
+                }
+            }
         }
         
 #if UNITY_ANDROID && !UNITY_EDITOR
