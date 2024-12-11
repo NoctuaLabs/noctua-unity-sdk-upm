@@ -503,3 +503,13 @@ Label:hover {
     right: 10px;
     position: absolute;
 }
+
+.spinner-fake-button {
+    background-color: rgb(41, 91, 172);
+    align-items: center;
+    justify-content: center;
+    padding-top: 0;
+    padding-right: 0;
+    padding-bottom: 0;
+    padding-left: 0;
+}
