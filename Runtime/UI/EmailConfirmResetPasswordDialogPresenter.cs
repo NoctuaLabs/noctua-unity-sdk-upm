@@ -63,7 +63,7 @@ namespace com.noctuagames.sdk.UI
 
         private void Setup()
         {
-            panelVE = View.Q<VisualElement>("NoctuaRegisterBox");
+            panelVE = View.Q<VisualElement>("Panel");
             verificationCodeField = View.Q<TextField>("VerificationCode");
             passwordField = View.Q<TextField>("PasswordTF");
             rePasswordField = View.Q<TextField>("RePasswordTF");
