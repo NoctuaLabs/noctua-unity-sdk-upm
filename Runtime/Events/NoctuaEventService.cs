@@ -53,6 +53,13 @@ namespace com.noctuagames.sdk.Events
         {
             extraPayload = AppendProperties(extraPayload);
 
+            string properties = "";
+            foreach (var (key, value) in extraPayload)
+            {
+                properties += $"{key}={value}, ";
+            }
+            _log.Debug($"Event name: {name}, Event properties: {properties}");
+
             _nativeTracker?.TrackCustomEvent(name, extraPayload);
             _eventSender?.Send(name, extraPayload);
         }
