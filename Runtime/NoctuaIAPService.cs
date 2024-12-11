@@ -235,6 +235,7 @@ namespace com.noctuagames.sdk
             { PaymentType.noctuastore };
 #endif
         private readonly UIFactory _uiFactory;
+        private bool _enabled;
 
         internal NoctuaIAPService(
             Config config,
@@ -286,7 +287,11 @@ namespace com.noctuagames.sdk
 
         public async UniTask<ProductList> GetProductListAsync(string currency = null, string platformType = null)
         {
-            var recentAccount = Noctua.Auth.GetRecentAccount();
+            EnsureEnabled();
+            
+            _log.Debug("calling API");
+            
+            var recentAccount = Noctua.Auth.RecentAccount;
 
             if (recentAccount?.Player?.GameId == null || recentAccount.Player.GameId <= 0)
             {
@@ -412,7 +417,9 @@ namespace com.noctuagames.sdk
 
         public async UniTask<PurchaseResponse> PurchaseItemAsync(PurchaseRequest purchaseRequest)
         {
-            _log.Debug("started");
+            EnsureEnabled();
+            
+            _log.Debug("calling API");
 
             if (!_accessTokenProvider.IsAuthenticated)
             {
@@ -1050,6 +1057,20 @@ namespace com.noctuagames.sdk
             public OrderRequest Order;
             public VerifyOrderRequest VerifyOrder;
             public string AccessToken;
+        }
+        
+        private void EnsureEnabled()
+        {
+            if (_enabled) return;
+
+            _log.Error("Noctua IAP is not enabled due to initialization failure.");
+                
+            throw new NoctuaException(NoctuaErrorCode.Application, "Noctua IAP is not enabled due to initialization failure.");
+        }
+
+        public void Enable()
+        {
+            _enabled = true;
         }
     }
 }

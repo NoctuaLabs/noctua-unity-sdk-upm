@@ -89,9 +89,9 @@ namespace com.noctuagames.sdk.UI
         {
             try
             {
-                if (Model.AuthService.RecentAccount.IsGuest)
+                if (Model.AuthService.RecentAccount?.IsGuest ?? false)
                 {
-                    var playerToken = await Model.BeginSocialLoginAsync(provider);
+                    var playerToken = await Model.GetSocialLoginTokenAsync(provider);
                     
                     if (playerToken.Player == null)
                     {

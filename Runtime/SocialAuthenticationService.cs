@@ -46,7 +46,7 @@ namespace com.noctuagames.sdk
             return await _authService.SocialLoginAsync(provider, socialLoginRequest);
         }
         
-        public async UniTask<PlayerToken> BeginSocialLoginAsync(string provider)
+        public async UniTask<PlayerToken> GetSocialLoginTokenAsync(string provider)
         {
             if(Utility.ContainsFlag(_config?.Noctua?.Flags, "VNLegalPurpose"))
             {

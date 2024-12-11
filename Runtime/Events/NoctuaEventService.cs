@@ -18,7 +18,8 @@ namespace com.noctuagames.sdk.Events
 
         public void SetProperties(string country = "", string ipAddress = "")
         {
-            if (country != "") {
+            if (country != "")
+            {
                 _country = country;
             }
 
@@ -27,32 +28,40 @@ namespace com.noctuagames.sdk.Events
                 _ipAddress = ipAddress;
             }
         }
-        
+
         internal NoctuaEventService(INativeTracker nativeTracker, EventSender eventSender = null)
         {
             _nativeTracker = nativeTracker;
             _eventSender = eventSender;
         }
 
-        public void TrackAdRevenue(string source, double revenue, string currency,
-            Dictionary<string, IConvertible> extraPayload = null)
+        public void TrackAdRevenue(
+            string source,
+            double revenue,
+            string currency,
+            Dictionary<string, IConvertible> extraPayload = null
+        )
         {
-            extraPayload = AppendProperties(extraPayload);
+            AppendProperties(extraPayload);
 
             _nativeTracker?.TrackAdRevenue(source, revenue, currency, extraPayload);
         }
 
-        public void TrackPurchase(string orderId, double amount, string currency,
-            Dictionary<string, IConvertible> extraPayload = null)
+        public void TrackPurchase(
+            string orderId,
+            double amount,
+            string currency,
+            Dictionary<string, IConvertible> extraPayload = null
+        )
         {
-            extraPayload = AppendProperties(extraPayload);
+            AppendProperties(extraPayload);
 
             _nativeTracker?.TrackPurchase(orderId, amount, currency, extraPayload);
         }
 
         public void TrackCustomEvent(string name, Dictionary<string, IConvertible> extraPayload = null)
         {
-            extraPayload = AppendProperties(extraPayload);
+            AppendProperties(extraPayload);
 
 
             string properties = "";
@@ -66,20 +75,26 @@ namespace com.noctuagames.sdk.Events
             _eventSender?.Send(name, extraPayload);
         }
 
-        private Dictionary<string,IConvertible> AppendProperties(Dictionary<string, IConvertible> extraPayload = null)
+        private void AppendProperties(Dictionary<string, IConvertible> extraPayload)
         {
+            if (string.IsNullOrEmpty(_country) && string.IsNullOrEmpty(_ipAddress))
+            {
+                return;
+            }
 
-            if (_country != "") {
+            extraPayload ??= new Dictionary<string, IConvertible>();
+
+            if (!string.IsNullOrEmpty(_country))
+            {
                 _log.Debug("Add country to event's extra payload: " + _country);
                 extraPayload.Add("country", _country);
             }
 
-            if (_ipAddress != "") {
+            if (!string.IsNullOrEmpty(_ipAddress))
+            {
                 _log.Debug("Add ip_address to event's extra payload: " + _ipAddress);
                 extraPayload.Add("ip_address", _ipAddress);
             }
-
-            return extraPayload;
         }
     }
 }
