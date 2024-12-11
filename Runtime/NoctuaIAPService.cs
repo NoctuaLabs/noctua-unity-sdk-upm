@@ -733,39 +733,46 @@ namespace com.noctuagames.sdk
             {
                 try
                 {
+                    _uiFactory.ShowLoadingProgress(true);
                     return await action();
                 }
-               catch (NoctuaException e)
+                catch (NoctuaException e)
                 {
+                    _uiFactory.ShowLoadingProgress(false);
                     var errorCode = (NoctuaErrorCode)e.ErrorCode;
 
+                    bool shouldRetry = false;
                     switch (errorCode)
                     {
                         case NoctuaErrorCode.Networking:
-                            _uiFactory.ShowLoadingProgress(false);
                             _log.Exception(e);
-
-                            var OnRetryNetwork = await _uiFactory.ShowRetryDialog("Please check your internet connection.");
-                            if (!OnRetryNetwork)
-                                throw;
+                            shouldRetry = await _uiFactory.ShowRetryDialog("Please check your internet connection.");
                             break;
                         default:
-                            _uiFactory.ShowLoadingProgress(false);
                             _log.Exception(e);
-                            _uiFactory.ShowError(e.Message);
-                            throw;
+                            shouldRetry = await _uiFactory.ShowRetryDialog(e.Message);
+                            break;
+                    }
+
+                    if (!shouldRetry)
+                    {
+                        throw;
                     }
                 }
                 catch (Exception ex)
                 {
                     _uiFactory.ShowLoadingProgress(false);
                     _log.Exception(ex);
-                    _uiFactory.ShowError(ex.Message);
-                    throw;
+
+                    bool shouldRetry = await _uiFactory.ShowRetryDialog(ex.Message);
+                    if (!shouldRetry)
+                    {
+                        throw;
+                    }
                 }
             }
         }
-        
+
 #if UNITY_ANDROID && !UNITY_EDITOR
         private void HandleGoogleProductDetails(GoogleBilling.ProductDetailsResponse response)
         {

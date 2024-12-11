@@ -61,6 +61,7 @@ namespace com.noctuagames.sdk.UI
             try
             {
                 Visible = false;
+                _tcs?.TrySetResult(false);
 
                 await Noctua.Platform.Content.ShowCustomerService();
 
@@ -70,6 +71,7 @@ namespace com.noctuagames.sdk.UI
             catch (Exception e) {
 
                 Visible = false;
+                _tcs?.TrySetResult(false);
 
                 if (e is NoctuaException noctuaEx)
                 {
@@ -83,6 +85,7 @@ namespace com.noctuagames.sdk.UI
         private void CloseDialog(PointerUpEvent evt)
         {            
             Visible = false;
+            _tcs?.TrySetResult(false);
         }
     }
 }
