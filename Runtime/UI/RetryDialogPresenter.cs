@@ -37,9 +37,7 @@ namespace com.noctuagames.sdk.UI
         }
 
         public async UniTask<bool> Show(string message)
-        {
-            _log.Debug("Show retry dialog");
-            
+        {            
             _tcs = new UniTaskCompletionSource<bool>();
 
             Visible = true;
