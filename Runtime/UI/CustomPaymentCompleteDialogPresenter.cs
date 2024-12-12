@@ -56,13 +56,13 @@ namespace com.noctuagames.sdk.UI
         {
             _log.Debug("clicking customer Service button");
             
+            Visible = false;
+
             try
             {
                 await Noctua.Platform.Content.ShowCustomerService();
             } 
             catch (Exception e) {
-
-                Visible = false;
                 _tcs?.TrySetResult(false);
 
                 if (e is NoctuaException noctuaEx)
@@ -72,6 +72,8 @@ namespace com.noctuagames.sdk.UI
                     _log.Error("Exception: " + e);
                 }
             }
+
+            Visible = true;
         }
 
         private void CloseDialog(PointerUpEvent evt)
