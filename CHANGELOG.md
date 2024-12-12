@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.25.0] - 2024-12-12
+
+### 🚀 Features
+
+- Enable secondary payment after Noctuastore payment get canceled.
+
+### 🐛 Bug Fixes
+
+- Tidy up some UIs.
+
 ## [0.24.0] - 2024-12-12
 
 ### 🚀 Features
