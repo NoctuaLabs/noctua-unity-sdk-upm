@@ -32,7 +32,7 @@ namespace com.noctuagames.sdk.UI
             _message = View.Q<Label>("Info");
 
             _btnComplete.RegisterCallback<PointerUpEvent>(CustomPaymentCompleteDialog);
-            _btnClose.RegisterCallback<PointerUpEvent>(CustomPaymentCompleteDialog);
+            _btnClose.RegisterCallback<PointerUpEvent>(CloseDialog);
             _btnCustomerService.RegisterCallback<PointerUpEvent>(OpenCS);
         }
 
@@ -80,7 +80,7 @@ namespace com.noctuagames.sdk.UI
 
             Visible = false;
 
-            _tcs?.TrySetResult(true);
+            _tcs?.TrySetResult(false);
         }
     }
 }

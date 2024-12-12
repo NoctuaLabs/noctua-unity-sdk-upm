@@ -529,7 +529,7 @@ namespace com.noctuagames.sdk
 #endif
         }
 
-        public async UniTask<PurchaseResponse> PurchaseItemAsync(PurchaseRequest purchaseRequest)
+        public async UniTask<PurchaseResponse> PurchaseItemAsync(PurchaseRequest purchaseRequest, bool useSecondaryPaymentType = false)
         {
             EnsureEnabled();
             
@@ -552,6 +552,10 @@ namespace com.noctuagames.sdk
             // The payment types are prioritized in backend
             // and filtered by runtime platform in InitAsync()
             var paymentType = _enabledPaymentTypes.First();
+            if (useSecondaryPaymentType && _enabledPaymentTypes.Count > 1)
+            {
+                paymentType = _enabledPaymentTypes[1];
+            }
 
             _uiFactory.ShowLoadingProgress(true);
             
@@ -708,7 +712,14 @@ namespace com.noctuagames.sdk
 
                     _log.Debug(orderResponse.PaymentUrl);
                     Application.OpenURL(orderResponse.PaymentUrl);
-                    await _uiFactory.ShowCustomPaymentCompleteDialog();
+                    var continueToVerify = await _uiFactory.ShowCustomPaymentCompleteDialog();
+
+                    if (!continueToVerify && _enabledPaymentTypes.Count > 1)
+                    {
+                        // Custom payment get canceled. Fallback to secondary payment option
+                        RemoveFromRetryPendingPurchasesByOrderID(orderResponse.Id);
+                        return await PurchaseItemAsync(purchaseRequest, true);
+                    }
 
                     // Native browser custom payment is using OrderId as ReceiptData
                     paymentResult = new PaymentResult{Status = PaymentStatus.Confirmed};
@@ -817,6 +828,8 @@ namespace com.noctuagames.sdk
                 
                 throw;
             }
+
+            _uiFactory.ShowGeneralNotification("Payment successful!", true);
 
             return new PurchaseResponse
             {
