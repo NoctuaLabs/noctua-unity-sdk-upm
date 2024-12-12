@@ -38,6 +38,8 @@ namespace com.noctuagames.sdk.UI
 
         public async UniTask<bool> Show(string message)
         {
+            _log.Debug("Show retry dialog");
+            
             _tcs = new UniTaskCompletionSource<bool>();
 
             Visible = true;
@@ -64,9 +66,6 @@ namespace com.noctuagames.sdk.UI
                 _tcs?.TrySetResult(false);
 
                 await Noctua.Platform.Content.ShowCustomerService();
-
-                _log.Info("Customer Service URL opened");
-
             } 
             catch (Exception e) {
 
@@ -75,16 +74,19 @@ namespace com.noctuagames.sdk.UI
 
                 if (e is NoctuaException noctuaEx)
                 {
-                    _log.Info("NoctuaException: " + noctuaEx.ErrorCode + " : " + noctuaEx.Message);
+                    _log.Error("NoctuaException: " + noctuaEx.ErrorCode + " : " + noctuaEx.Message);
                 } else {
-                    _log.Info("Exception: " + e);
+                    _log.Error("Exception: " + e);
                 }
             }
         }
 
         private void CloseDialog(PointerUpEvent evt)
-        {            
+        { 
+            _log.Debug("On close dialog");
+
             Visible = false;
+
             _tcs?.TrySetResult(false);
         }
     }
