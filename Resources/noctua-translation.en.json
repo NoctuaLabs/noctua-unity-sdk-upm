@@ -38,6 +38,7 @@
     "EmailRegisterDialogPresenter.ContinueButton.Button.text": "Continue",
     "EmailRegisterDialogPresenter.LoginLink.Label.text": "Login",
     "EmailRegisterDialogPresenter.AlreadyHaveAccount.Label.text": "Already have an account?",
+    "EmailRegisterDialogPresenter.ErrUnderage.Label.text": "Minimum age is 18 years old",
 
     "AccountSelectionDialogPresenter.AccountSelectionInfo.Label.text": "Choose Account",
     "AccountSelectionDialogPresenter.GameAccountList.ListView.label": "Game Account List",

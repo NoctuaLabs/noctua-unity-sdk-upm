@@ -39,6 +39,7 @@
                     <ui:Label name="ErrPasswordMismatch" text="Password is not matched with repeated password" display-tooltip-when-elided="true" class="dialog-err-label hide" />
                     <ui:Label name="ErrPasswordTooShort" text="Password is too short. Minimum 6 character" display-tooltip-when-elided="true" class="dialog-err-label hide" />
                     <ui:Label name="ErrPasswordEmpty" text="Password should not be empty" display-tooltip-when-elided="true" class="dialog-err-label hide" />
+                    <ui:Label name="ErrUnderage" text="Minimum age is 18 years old" display-tooltip-when-elided="true" class="dialog-err-label hide" />
                 </ui:VisualElement>
                 <ui:Button text="Continue" display-tooltip-when-elided="true" name="ContinueButton" focusable="false" class="dialog-button" />
                 <ui:Button display-tooltip-when-elided="true" name="Spinner" focusable="false" picking-mode="Ignore" class="dialog-button spinner-fake-button hide" />

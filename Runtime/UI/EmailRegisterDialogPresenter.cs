@@ -410,54 +410,60 @@ namespace com.noctuagames.sdk.UI
                 View.Q<VisualElement>("Spinner").AddToClassList("hide");
                 return;
             }
-            
-            if(!string.IsNullOrEmpty(_config?.Noctua?.Flags) && _gender.value == "Select Gender")
-            {
-                View.Q<Label>("ErrEmailEmpty").text = "Please Select Gender!";
-                View.Q<Label>("ErrEmailEmpty").RemoveFromClassList("hide");
-                View.Q<Button>("ContinueButton").RemoveFromClassList("hide");
-                View.Q<VisualElement>("Spinner").AddToClassList("hide");
-                return;
-            }
 
-            if(!string.IsNullOrEmpty(_config?.Noctua?.Flags) && _country.value == "Select Country")
+            Dictionary<string, string> regExtra = null;
+            
+            if (!string.IsNullOrEmpty(_config?.Noctua?.Flags))
             {
-                View.Q<Label>("ErrEmailEmpty").text = "Please Select Country!";
-                View.Q<Label>("ErrEmailEmpty").RemoveFromClassList("hide");
-                View.Q<Button>("ContinueButton").RemoveFromClassList("hide");
-                View.Q<VisualElement>("Spinner").AddToClassList("hide");
-                return;
+                if(_gender.value == "Select Gender")
+                {
+                    View.Q<Label>("ErrEmailEmpty").text = "Please Select Gender!";
+                    View.Q<Label>("ErrEmailEmpty").RemoveFromClassList("hide");
+                    View.Q<Button>("ContinueButton").RemoveFromClassList("hide");
+                    View.Q<VisualElement>("Spinner").AddToClassList("hide");
+                    return;
+                }
+
+                if(_country.value == "Select Country")
+                {
+                    View.Q<Label>("ErrEmailEmpty").text = "Please Select Country!";
+                    View.Q<Label>("ErrEmailEmpty").RemoveFromClassList("hide");
+                    View.Q<Button>("ContinueButton").RemoveFromClassList("hide");
+                    View.Q<VisualElement>("Spinner").AddToClassList("hide");
+                    return;
+                }
+
+                var birthDate = DateTime
+                    .ParseExact(_birthDate.value, "dd/MM/yyyy", CultureInfo.InvariantCulture)
+                    .ToUniversalTime();
+                    
+                if (birthDate.AddYears(18) > DateTime.UtcNow)
+                {
+                    View.Q<Label>("ErrUnderage").RemoveFromClassList("hide");
+                    View.Q<Button>("ContinueButton").RemoveFromClassList("hide");
+                    View.Q<VisualElement>("Spinner").AddToClassList("hide");
+                        
+                    return;
+                }
+
+                var issueDate = DateTime
+                    .ParseExact(_dateOfIssue.value, "dd/MM/yyyy", CultureInfo.InvariantCulture)
+                    .ToUniversalTime();
+
+                regExtra = new Dictionary<string, string>()
+                {
+                    { "fullname", _fullname.value },
+                    { "phone_number", _phoneCode.value + _phoneNumber.value },
+                    { "birth_date", birthDate.ToString() },
+                    { "id_card", _idCard.value },
+                    { "place_of_issue", _placeOfIssue.value },
+                    { "date_of_issue", issueDate.ToString() },
+                    { "address", _address.value }
+                };
             }
 
             try {
-                 Dictionary<string, string> regExtra = new();
-
-                if(!string.IsNullOrEmpty(_config?.Noctua?.Flags))
-                {
-                    var dob = _birthDate.value;
-                    string format = "dd/MM/yyyy";
-                    DateTime dateTime = DateTime.ParseExact(dob, format, CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal);
-                    dateTime = new DateTime(dateTime.Year, dateTime.Month, dateTime.Day, 0, 0, 0, DateTimeKind.Utc);
-
-                    var doi = _dateOfIssue.value;
-                    DateTime dateTimeDoi = DateTime.ParseExact(doi, format, CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal);
-                    dateTimeDoi = new DateTime(dateTimeDoi.Year, dateTimeDoi.Month, dateTimeDoi.Day, 0, 0, 0, DateTimeKind.Utc);
-
-                    Dictionary<string, string> regExtraDic = new Dictionary<string, string>()
-                    {
-                        { "fullname", _fullname.value },
-                        { "phone_number", _phoneCode.value + _phoneNumber.value },
-                        { "birth_date", dateTime.ToString() },
-                        { "id_card", _idCard.value },
-                        { "place_of_issue", _placeOfIssue.value },
-                        { "date_of_issue", dateTimeDoi.ToString() },
-                        { "address", _address.value }
-                    };
-
-                    regExtra = regExtraDic;
-                }
-
-                var result = await Model.RegisterWithEmailAsync(emailAddress, password, regExtra == null ? null : regExtra);
+                var result = await Model.RegisterWithEmailAsync(emailAddress, password, regExtra);
                 Debug.Log("RegisterWithPassword verification ID: " + result.Id);
 
                 Visible = false;
@@ -577,6 +583,7 @@ namespace com.noctuagames.sdk.UI
             View.Q<Label>("ErrPasswordTooShort").RemoveFromClassList("hide");
             View.Q<Label>("ErrPasswordEmpty").RemoveFromClassList("hide");
             View.Q<Label>("ErrPasswordMismatch").RemoveFromClassList("hide");
+            View.Q<Label>("ErrUnderage").RemoveFromClassList("hide");
 
             View.Q<Label>("ErrCode").AddToClassList("hide");
             View.Q<Label>("ErrEmailInvalid").AddToClassList("hide");
@@ -584,6 +591,7 @@ namespace com.noctuagames.sdk.UI
             View.Q<Label>("ErrPasswordTooShort").AddToClassList("hide");
             View.Q<Label>("ErrPasswordEmpty").AddToClassList("hide");
             View.Q<Label>("ErrPasswordMismatch").AddToClassList("hide");
+            View.Q<Label>("ErrUnderage").AddToClassList("hide");
         }
 
         private void ShowBehaviourWhitelabel(bool isShow)

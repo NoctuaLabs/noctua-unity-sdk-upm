@@ -33,6 +33,7 @@
     "EmailRegisterDialogPresenter.ErrPasswordMismatch.Label.text": "Mật khẩu không khớp với mật khẩu xác nhận",
     "EmailRegisterDialogPresenter.ErrPasswordTooShort.Label.text": "Mật khẩu quá ngắn. Tối thiểu 6 ký tự",
     "EmailRegisterDialogPresenter.ErrPasswordEmpty.Label.text": "Không được để trống mật khẩu",
+    "EmailRegisterDialogPresenter.ErrUnderage.Label.text": "Độ tuổi tối thiểu là 18 tuổi",
     "EmailRegisterDialogPresenter.ContinueButton.Button.text": "Tiếp tục",
     "EmailRegisterDialogPresenter.LoginLink.Label.text": "Đăng nhập",
     "EmailRegisterDialogPresenter.AlreadyHaveAccount.Label.text": "Đã có tài khoản?",

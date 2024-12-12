@@ -38,6 +38,7 @@
     "EmailRegisterDialogPresenter.ContinueButton.Button.text": "Lanjutkan",
     "EmailRegisterDialogPresenter.LoginLink.Label.text": "Masuk",
     "EmailRegisterDialogPresenter.AlreadyHaveAccount.Label.text": "Sudah punya akun?",
+    "EmailRegisterDialogPresenter.ErrUnderage.Label.text": "Usia minimal 18 tahun",
 
     "AccountSelectionDialogPresenter.AccountSelectionInfo.Label.text": "Pilih Akun",
     "AccountSelectionDialogPresenter.GameAccountList.ListView.label": "Daftar Akun Game",
