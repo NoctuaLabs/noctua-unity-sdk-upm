@@ -529,7 +529,7 @@ namespace com.noctuagames.sdk
 #endif
         }
 
-        public async UniTask<PurchaseResponse> PurchaseItemAsync(PurchaseRequest purchaseRequest, bool useSecondaryPaymentType = false)
+        public async UniTask<PurchaseResponse> PurchaseItemAsync(PurchaseRequest purchaseRequest, bool tryToUseSecondaryPayment = false)
         {
             EnsureEnabled();
             
@@ -552,7 +552,7 @@ namespace com.noctuagames.sdk
             // The payment types are prioritized in backend
             // and filtered by runtime platform in InitAsync()
             var paymentType = _enabledPaymentTypes.First();
-            if (useSecondaryPaymentType && _enabledPaymentTypes.Count > 1)
+            if (tryToUseSecondaryPayment && _enabledPaymentTypes.Count > 1)
             {
                 paymentType = _enabledPaymentTypes[1];
             }
@@ -716,9 +716,30 @@ namespace com.noctuagames.sdk
 
                     if (!continueToVerify && _enabledPaymentTypes.Count > 1)
                     {
-                        // Custom payment get canceled. Fallback to secondary payment option
-                        RemoveFromRetryPendingPurchasesByOrderID(orderResponse.Id);
+                        try
+                        {
+                            // At least try to verify before fallback to secondary paymennt.
+                            var verifyReq = new VerifyOrderRequest
+                            {
+                                Id = orderResponse.Id,
+                                ReceiptData = orderResponse.Id.ToString(),
+                            };
+                            await VerifyOrderImplAsync(
+                                orderRequest,
+                                verifyReq,
+                                _accessTokenProvider.AccessToken
+                            );
+                        }
+                        catch (Exception e) 
+                        {
+                            _log.Exception(e);
+                        }
+
+                        // Custom payment get canceled. Fallback to secondary payment option.
                         return await PurchaseItemAsync(purchaseRequest, true);
+                    } else if (!continueToVerify && _enabledPaymentTypes.Count == 1)
+                    {
+                        RemoveFromRetryPendingPurchasesByOrderID(orderResponse.Id);
                     }
 
                     // Native browser custom payment is using OrderId as ReceiptData
@@ -765,14 +786,13 @@ namespace com.noctuagames.sdk
             var orderId = orderResponse.Id;
             _log.Info($"Purchase was successful. Verifying order ID: {orderId}");
 
-
             var verifyOrderRequest = new VerifyOrderRequest
             {
                 Id = orderId,
                 ReceiptData = paymentResult.ReceiptData
             };
 
-            // Store early for Negative Payment Cases no #5
+            // Store early for Negative Payment Cases no #4
             EnqueueToRetryPendingPurchases(
                 new RetryPendingPurchaseItem
                 {
@@ -1085,6 +1105,13 @@ namespace com.noctuagames.sdk
                             item.VerifyOrderRequest,
                             item.AccessToken
                         );
+
+                        if (verifyOrderResponse.Status != OrderStatus.completed &&
+                        verifyOrderResponse.Status != OrderStatus.canceled &&
+                        verifyOrderResponse.Status != OrderStatus.voided)
+                        {
+                            failedPendingPurchases.Add(item);
+                        }
                     }
                     catch (NoctuaException e)
                     {
@@ -1121,10 +1148,16 @@ namespace com.noctuagames.sdk
                 if (newPendingPurchaseCount > 0 || runningPendingPurchases.Count != failedPendingPurchases.Count)
                 {
                     _log.Info("Saving pending purchases: " + runningPendingPurchases.Count);
-                    
-                    SavePendingPurchases(runningPendingPurchases);
+
+                    // Merge with existing _waitingPendingPurchases instead of overwrite
+                    foreach (var item in runningPendingPurchases)
+                    {
+                        EnqueueToRetryPendingPurchases(item);
+                    }
+                    SavePendingPurchases(_waitingPendingPurchases.ToList());
                 }
-                
+
+                // Continue the current failed retry. 
                 runningPendingPurchases = failedPendingPurchases;
                 
                 // No need to retry, just straight to next iteration waiting for new pending purchases
