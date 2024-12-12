@@ -22,8 +22,7 @@ namespace com.noctuagames.sdk.UI
         private readonly ILogger _log = new NoctuaLogger();
 
         private string _email;
-        private string _password;
-        private VisualElement _spinner;
+        private string _password;        
         private VisualElement panelVE;
         private List<TextField> textFields;
         private TextField emailField;
@@ -98,14 +97,9 @@ namespace com.noctuagames.sdk.UI
 
             showPasswordButton.RemoveFromClassList("btn-password-hide");
 
-            if (View.Q<VisualElement>("Spinner").childCount > 0)
+            if (View.Q<VisualElement>("Spinner").childCount == 0)
             {
-                _spinner = View.Q<VisualElement>("Spinner").Children().ElementAt(0);
-            }
-            else
-            {
-                _spinner = new Spinner(30, 30);
-                View.Q<VisualElement>("Spinner").Add(_spinner);
+                View.Q<VisualElement>("Spinner").Add(new Spinner(30, 30));
                 View.Q<VisualElement>("Spinner").AddToClassList("hide");
             }
         }

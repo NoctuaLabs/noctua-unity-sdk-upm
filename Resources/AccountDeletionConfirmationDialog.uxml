@@ -1,22 +1,20 @@
-﻿<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" xsi="http://www.w3.org/2001/XMLSchema-instance" engine="UnityEngine.UIElements" editor="UnityEditor.UIElements" noNamespaceSchemaLocation="../../../../UIElementsSchema/UIElements.xsd" editor-extension-mode="False">
-    <Style src="./Noctua.uss" />
-    <Style src="./AccountDeletionConfirmationDialog.uss" />
-    <ui:VisualElement name="AccountDeletionConfirmationDialog" class="base dialog-box" style="height: 350px;">
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" xsi="http://www.w3.org/2001/XMLSchema-instance" engine="UnityEngine.UIElements" editor="UnityEditor.UIElements" noNamespaceSchemaLocation="../../../../UIElementsSchema/UIElements.xsd" editor-extension-mode="False">
+    <Style src="project://database/Packages/com.noctuagames.sdk/Resources/Noctua.uss?fileID=7433441132597879392&amp;guid=fe35e550fb23b6446af377f994effe35&amp;type=3#Noctua" />
+    <Style src="project://database/Packages/com.noctuagames.sdk/Resources/AccountDeletionConfirmationDialog.uss?fileID=7433441132597879392&amp;guid=5a62c103903df41aeb7b3319331b5857&amp;type=3#AccountDeletionConfirmationDialog" />
+    <ui:VisualElement name="Root" class="root" style="flex-grow: 1;">
+        <ui:VisualElement name="AccountDeletionConfirmationDialog" class="base dialog-box" style="height: 350px;">
             <ui:VisualElement name="Gap" class="gap" />
-            <ui:VisualElement name="DeleteIcon" class="delete-account-icon"/>
-            <ui:Label name="Question" text="Are you sure you want to\ndelete this account?" class="question" />
-            <ui:Label 
-                name="Note" 
-                text="All your progress and\ndata will be lost. This action is\npermanent and cannot be undone."
-                class="note" 
-            />
+            <ui:VisualElement name="DeleteIcon" class="delete-account-icon" />
+            <ui:Label name="Question" text="Are you sure you want to delete this account?" class="question" />
+            <ui:Label name="Note" text="All your progress and\ndata will be lost. This action is\npermanent and cannot be undone." class="note" />
             <ui:VisualElement name="ErrBox" class="err-box">
                 <ui:Label name="ErrCode" display-tooltip-when-elided="true" class="dialog-err-label hide" />
             </ui:VisualElement>
             <ui:VisualElement name="ButtonGroup" class="button-group">
                 <ui:Button name="ConfirmButton" text="Delete Account" class="button-highlight red delete-account-button" />
+                <ui:Button display-tooltip-when-elided="true" name="Spinner" focusable="false" picking-mode="Ignore" class="spinner-fake-button hide red delete-account-button" />
                 <ui:Button name="CancelButton" text="Cancel" class="button-normal delete-account-button" />
             </ui:VisualElement>
-        <ui:VisualElement name="Spinner" class="noctua-spinner" style="height: 115px;" />
+        </ui:VisualElement>
     </ui:VisualElement>
 </ui:UXML>
