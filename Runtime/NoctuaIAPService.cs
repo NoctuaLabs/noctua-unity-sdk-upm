@@ -544,7 +544,7 @@ namespace com.noctuagames.sdk
             
             if (_enabledPaymentTypes.Count == 0)
             {
-                _uiFactory.ShowError("No payment type enabled.Please contact support.");
+                _uiFactory.ShowError("Payment is disabled. Please contact customer support.");
 
                 throw new NoctuaException(NoctuaErrorCode.Payment, "no payment types enabled");
             }

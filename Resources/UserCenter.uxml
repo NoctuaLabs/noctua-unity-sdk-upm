@@ -73,7 +73,7 @@
                                 </ui:Button>
                                 <ui:Label name="TitleEditBack" text="Back" class="back-edit-profile-title" style="color: rgb(117, 117, 117);" />
                             </ui:VisualElement>
-                            <ui:VisualElement style="flex-direction: row; flex-wrap: nowrap; align-items: center; justify-content: flex-start; margin-top: 10px; margin-bottom: 10px;">
+                            <ui:VisualElement style="flex-direction: row; flex-wrap: nowrap; align-items: center; justify-content: flex-start; margin-top: 10px; margin-bottom: 10px; margin-left:10px;">
                                 <ui:VisualElement name="ProfileImage" class="profile-circle-with-border" />
                                 <ui:Button text="Change Picture" name="ChangePictureButton" focusable="false" class="button-border" />
                                 <ui:VisualElement name="Spinner2" class="noctua-spinner hide" style="height: 74px; margin-left: 20px;" />
@@ -91,8 +91,8 @@
                                 <ui:DropdownField label="Language" name="LanguageTF" class="dropdown-box" />
                             </ui:VisualElement>
                         </ui:ScrollView>
-                        <ui:VisualElement name="SaveButtonContainer" style="border-top-left-radius: 6px; border-top-right-radius: 6px; border-bottom-right-radius: 6px; border-bottom-left-radius: 6px;">
-                            <ui:VisualElement name="ErrBox" style="padding-top: 0; padding-right: 0; padding-bottom: 0; padding-left: 0; margin-top: 10px; margin-bottom: 10px; width: 100%; height: 16px; align-items: center; justify-content: center;">
+                        <ui:VisualElement name="SaveButtonContainer" style="border-top-left-radius: 6px; border-top-right-radius: 6px; border-bottom-right-radius: 6px; border-bottom-left-radius: 6px; margin-left:6px; margin-right:6px; margin-bottom:5px">
+                            <ui:VisualElement name="ErrBox" style="padding-top: 0; padding-right: 0; padding-bottom: 0; padding-left: 0; margin-top: 5px; margin-bottom: 5px; width: 100%; height: 16px; align-items: center; justify-content: center;">
                                 <ui:Label name="ErrLabel" display-tooltip-when-elided="true" class="dialog-err-label hide" />
                             </ui:VisualElement>
                             <ui:Button text="Save" display-tooltip-when-elided="true" name="SaveButton" focusable="false" class="dialog-button" />

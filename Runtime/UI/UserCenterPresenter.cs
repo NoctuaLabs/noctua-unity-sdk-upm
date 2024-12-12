@@ -297,7 +297,8 @@ namespace com.noctuagames.sdk.UI
             
             View.Q<VisualElement>("MoreOptionsMenu").RegisterCallback<PointerUpEvent>(OnMoreOptionsMenuSelected);
             View.Q<VisualElement>("EditProfile").RegisterCallback<PointerUpEvent>(_ => OnEditProfile());
-            View.Q<VisualElement>("BackEditProfileHeader").RegisterCallback<PointerUpEvent>(_carouselItems => OnBackEditProfile());
+            View.Q<Label>("TitleEditBack").RegisterCallback<PointerUpEvent>(_carouselItems => OnBackEditProfile());
+            View.Q<Button>("BackButton").RegisterCallback<PointerUpEvent>(_carouselItems => OnBackEditProfile());
             View.Q<VisualElement>("SwitchProfile").RegisterCallback<PointerUpEvent>(_ => OnSwitchProfile());
             View.Q<VisualElement>("LogoutAccount").RegisterCallback<PointerUpEvent>(_ => OnLogout());
             

@@ -2,7 +2,7 @@
     <Style src="./Noctua.uss" />
     <Style src="./CustomPaymentCompleteDialog.uss" />
     <ui:VisualElement name="Root" class="root" >
-        <ui:VisualElement name="CustomPaymentCompleteDialog" class="base dialog-box base-general-confirm" style="height: 60%;">
+        <ui:VisualElement name="CustomPaymentCompleteDialog" class="base dialog-box base-general-confirm" style="height: 220px;">
             <ui:Button name="CustomPaymentExitButton" focusable="false" class="user-profile-header-button exit-button">
                     <ui:VisualElement name="ExitIcon" class="exit-icon" />
             </ui:Button>        
