@@ -2,6 +2,41 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.24.0] - 2024-12-12
+
+### 🚀 Features
+
+- Default avatar
+- Add action help button
+- Add geo metadata in tracker event's extra payload.
+- Retry dialog ui
+- Retry mechanism for create order and verify order
+- Show error notification - purchase
+- Get noctua gold
+- Add Noctua Payment implementation using native browser with improved retry pending purchase.
+
+### 🐛 Bug Fixes
+
+- Landscape user account design
+- Remove payment options
+- Add spinner after click continue button in email login
+- Add spinner after click continue button in email login
+- Update spinner grafic
+- Failed init should disable auth completely
+- Email confirm reset password panel not move to top when virtual keyboard showing
+- Add noctua games to manifest at build times
+- Adjust retry dialog ui into center
+- Adjust retry mechanism code
+- Fix some logs in retry dialog presenter
+- Remove log when show retry dialog
+- More robust implementation to add keychain sharing
+- Filter payment type by runtime platform. Open payment URL with native browser.
+- Remove currency from edit profile to prevent user playing around with currency to get cheaper goods.
+
+### ⚙️ Miscellaneous Tasks
+
+- Print all custom tracker event parameters for easier debugging.
+
 ## [0.23.0] - 2024-12-10
 
 ### 🚀 Features
