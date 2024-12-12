@@ -38,7 +38,6 @@ namespace com.noctuagames.sdk.UI
         private DropdownField _genderTF;
         private DropdownField _countryTF;
         private DropdownField _languageTF;
-        private DropdownField _currencyTF;
         private VisualElement _profileImage;
         private VisualElement _playerImage;
         private Button _changeProfile;
@@ -48,7 +47,6 @@ namespace com.noctuagames.sdk.UI
         private ProfileOptionData _profileDataOptions;
         private List<string> _countryOptions = new List<string> { "Select Country" };
         private List<string> _languageOptions = new List<string> { "Select Languages" };
-        private List<string> _currencyOptions = new List<string> { "Select Currency" };
         private VisualElement _spinner;
         private VisualElement _noctuaLogoWithText;
         private Label _sdkVersion;
@@ -232,16 +230,6 @@ namespace com.noctuagames.sdk.UI
                         _languageTF.value = "Select Language";
                     }
 
-                    int indexCurrency = _profileDataOptions.Currencies.FindIndex(item => item.IsoCode.ToLower() == user?.Currency.ToLower());
-                    if (indexCurrency != -1)
-                    {
-                        _currencyTF.value = _currencyOptions[indexCountry];
-                    }
-                    else
-                    {
-                        _currencyTF.value = "Select Currency";
-                    }
-
                     SetupEditProfileUI();
                 }
 
@@ -376,7 +364,6 @@ namespace com.noctuagames.sdk.UI
             _genderTF = View.Q<DropdownField>("GenderTF");
             _countryTF = View.Q<DropdownField>("CountryTF");
             _languageTF = View.Q<DropdownField>("LanguageTF");
-            _currencyTF = View.Q<DropdownField>("CurrencyTF");
             _changeProfile = View.Q<Button>("ChangePictureButton");
             _profileImage = View.Q<VisualElement>("ProfileImage");
             _playerImage = View.Q<VisualElement>("PlayerAvatar");
@@ -392,7 +379,6 @@ namespace com.noctuagames.sdk.UI
                 "GenderTF",
                 "CountryTF",
                 "LanguageTF",
-                "CurrencyTF"
             };
 
             Utility.RegisterForMultipleValueChanges<string>(View, elementNames, saveButton);
@@ -412,7 +398,6 @@ namespace com.noctuagames.sdk.UI
             {
                 _countryOptions.Clear();
                 _languageOptions.Clear();
-                _currencyOptions.Clear();
 
                 foreach(GeneralProfileData country in _profileDataOptions.Countries)
                 {
@@ -422,11 +407,6 @@ namespace com.noctuagames.sdk.UI
                 foreach(GeneralProfileData _languages in _profileDataOptions.Languages)
                 {
                     _languageOptions.Add(_languages.EnglishName);
-                }
-
-                foreach(GeneralProfileData _currency in _profileDataOptions.Currencies)
-                {
-                    _currencyOptions.Add(_currency.EnglishName);
                 }
             }
 
@@ -451,12 +431,6 @@ namespace com.noctuagames.sdk.UI
                 _languageTF.labelElement.style.display = DisplayStyle.None;
             });
 
-            _currencyTF.choices = _currencyOptions;
-            _currencyTF.RegisterCallback<ChangeEvent<string>>((evt) =>
-            {
-                _currencyTF.value = evt.newValue;
-                _currencyTF.labelElement.style.display = DisplayStyle.None;
-            });
         }
 
         private void OnChangeProfile(PointerUpEvent evt)
@@ -741,17 +715,6 @@ namespace com.noctuagames.sdk.UI
                 return;
             }
            
-            if(string.IsNullOrEmpty(_currencyTF.value) || _currencyTF.value == "Select Currency")
-            {
-                _errorLabel.RemoveFromClassList("hide");
-                _errorLabel.text = "PLease select currency";
-
-                View.Q<Button>("SaveButton").RemoveFromClassList("hide");
-                View.Q<VisualElement>("Spinner").AddToClassList("hide");
-                View.Q<VisualElement>("Spinner2").AddToClassList("hide");
-                return;
-            }
-
             try
             {
                 UpdateUserRequest updateUserRequest = new UpdateUserRequest();
@@ -781,11 +744,9 @@ namespace com.noctuagames.sdk.UI
 
                 int indexCountry = _profileDataOptions.Countries.FindIndex(item => item.EnglishName.ToLower() == _countryTF.value.ToLower());
                 int indexLanguage = _profileDataOptions.Languages.FindIndex(item => item.EnglishName.ToLower() == _languageTF.value.ToLower());
-                int indexCurrency = _profileDataOptions.Currencies.FindIndex(item => item.EnglishName.ToLower() == _currencyTF.value.ToLower());
 
                 updateUserRequest.Country = _profileDataOptions.Countries[indexCountry].IsoCode;
                 updateUserRequest.Language = _profileDataOptions.Languages[indexLanguage].IsoCode;
-                updateUserRequest.Currency = _profileDataOptions.Currencies[indexCurrency].IsoCode;
 
                 await Model.AuthService.UpdateUserAsync(updateUserRequest);
 

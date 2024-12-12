@@ -89,7 +89,6 @@
                                 <ui:DropdownField name="GenderTF" label="Gender (Optional)" class="dropdown-box" />
                                 <ui:DropdownField label="Country" name="CountryTF" class="dropdown-box" />
                                 <ui:DropdownField label="Language" name="LanguageTF" class="dropdown-box" />
-                                <ui:DropdownField label="Currency" name="CurrencyTF" class="dropdown-box" />
                             </ui:VisualElement>
                         </ui:ScrollView>
                         <ui:VisualElement name="SaveButtonContainer" style="border-top-left-radius: 6px; border-top-right-radius: 6px; border-bottom-right-radius: 6px; border-bottom-left-radius: 6px;">
