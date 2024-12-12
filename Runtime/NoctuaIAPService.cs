@@ -206,6 +206,25 @@ namespace com.noctuagames.sdk
     }
 
     [Preserve]
+    public class NoctuaGoldData
+    {
+        [JsonProperty("vip_level")]
+        public double VipLevel;
+
+        [JsonProperty("gold_amount")]
+        public double GoldAmount;
+
+        [JsonProperty("bound_gold_amount")]
+        public double BoundGoldAmount;
+        
+        [JsonProperty("total_gold_amount")]
+        public double TotalGoldAmount; 
+        
+        [JsonProperty("eligible_gold_amount")]
+        public double EligibleGoldAmount;
+    }
+
+    [Preserve]
     public class NoctuaIAPService
     {
         private readonly Config _config;
@@ -1083,6 +1102,16 @@ namespace com.noctuagames.sdk
             _log.Info("Quitting, saving pending purchases: " + runningPendingPurchases.Count);
             
             SavePendingPurchases(_waitingPendingPurchases.ToList());
+        }
+
+        public async UniTask<NoctuaGoldData> GetNoctuaGold()
+        {
+            var request = new HttpRequest(HttpMethod.Get, $"{_config.BaseUrl}/noctuastore/wallet")
+                .WithHeader("X-CLIENT-ID", _config.ClientId)
+                .WithHeader("X-BUNDLE-ID", Application.identifier)
+                .WithHeader("Authorization", "Bearer " + _accessTokenProvider.AccessToken);
+
+            return await request.Send<NoctuaGoldData>();
         }
 
         private TimeSpan GetBackoffDelay(Random random, int retryCount)
