@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.25.2] - 2024-12-12
+
+### 🐛 Bug Fixes
+
+- Adjust retry pending purchase mechanism to make it more persistent for upcoming failed verification.
+
 ## [0.25.1] - 2024-12-12
 
 ### 🐛 Bug Fixes
