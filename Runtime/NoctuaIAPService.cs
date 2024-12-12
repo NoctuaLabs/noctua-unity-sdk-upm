@@ -453,7 +453,9 @@ namespace com.noctuagames.sdk
 
                 throw new NoctuaException(NoctuaErrorCode.Payment, "no payment types enabled");
             }
-            
+
+            // The payment types are prioritized in backend
+            // and filtered by runtime platform in InitAsync()
             var paymentType = _enabledPaymentTypes.First();
 
             _uiFactory.ShowLoadingProgress(true);
@@ -602,8 +604,8 @@ namespace com.noctuagames.sdk
                     hasResult = true;
                     paymentResult = await _noctuaPayment.PayAsync(orderResponse.PaymentUrl);
 
-                    var getReceipt = Utility.ParseQueryString(orderResponse.PaymentUrl);
-                    paymentResult.ReceiptData = getReceipt["receiptId"];
+                    // Native browser custom payment is using OrderId as ReceiptData
+                    paymentResult.ReceiptData = orderResponse.Id;
                     
                     break;
                 case PaymentType.unknown:

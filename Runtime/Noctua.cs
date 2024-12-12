@@ -479,6 +479,22 @@ namespace com.noctuagames.sdk
                 enabledPaymentTypes.Remove(PaymentType.appstore);
                 enabledPaymentTypes.Remove(PaymentType.playstore);
             }
+
+
+            // Remove irrelevant payment by runtime platform
+#if !UNITY_ANDROID
+            enabledPaymentTypes.Remove(PaymentType.playstore);
+#endif
+
+#if !UNITY_IOS
+            enabledPaymentTypes.Remove(PaymentType.appstore);
+#endif
+
+#if UNITY_EDITOR
+            // UNITY_ANDROID macro is not accurate in In-Editor
+            enabledPaymentTypes.Remove(PaymentType.appstore);
+            enabledPaymentTypes.Remove(PaymentType.playstore);
+#endif
             
             Instance.Value._iap.SetEnabledPaymentTypes(enabledPaymentTypes);
 
