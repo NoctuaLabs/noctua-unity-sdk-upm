@@ -1,13 +1,16 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text.RegularExpressions;
+using System.Threading;
 using System.Xml;
 using System.Xml.Linq;
 using Newtonsoft.Json;
 using com.noctuagames.sdk;
 using UnityEngine;
+using UnityEngine.Networking;
 
 #if UNITY_IOS
 using UnityEditor;
@@ -243,9 +246,98 @@ using UnityEditor.Graphs;
                 Log("Removed Facebook meta-data from AndroidManifest.xml.");
             }
 
+            AddNoctuaGamesMetaData(manifestDoc, noctuaConfig);
+
             manifestDoc.Save(manifestPath);
 
             Log("AndroidManifest.xml modified for Facebook App Events settings.");
+        }
+
+        private static void AddNoctuaGamesMetaData(XDocument manifestDoc, GlobalConfig noctuaConfig)
+        {
+            var request = UnityWebRequest.Get($"{noctuaConfig.Noctua.BaseUrl}/games/build-config");
+            request.SetRequestHeader("X-CLIENT-ID", noctuaConfig.ClientId);
+            request.SetRequestHeader("X-BUNDLE-ID", Application.identifier);
+            var noctuaGames = new List<string>();
+
+            request.SendWebRequest();
+            
+            const int timeoutMs = 10000; // Timeout in milliseconds
+            const int sleepIntervalMs = 100; // Polling interval in milliseconds
+            int elapsedMs = 0;
+
+            // Wait for the request to complete or timeout
+            while (!request.isDone && elapsedMs < timeoutMs)
+            {
+                Thread.Sleep(sleepIntervalMs);
+                elapsedMs += sleepIntervalMs;
+            }
+
+            // Handle timeout
+            if (!request.isDone)
+            {
+                LogError("Request to fetch Noctua games timed out.");
+                
+                return;
+            }
+            
+            if (request.result != UnityWebRequest.Result.Success)
+            {
+                LogError($"Failed to fetch Noctua games: {request.error}");
+                
+                return;
+            }
+
+            var buildConfigResult = JsonConvert.DeserializeObject<BuildConfigResult>(request.downloadHandler.text);
+            
+            if (buildConfigResult == null)
+            {
+                LogError("Failed to parse InitGameResponse from JSON.");
+
+                return;
+            }
+            
+            if (!buildConfigResult.Success)
+            {
+                LogError($"Failed to fetch Noctua games: {request.downloadHandler.text}");
+
+                return;
+            }
+            
+            noctuaGames.AddRange(buildConfigResult.Data.ActiveBundleIds);
+
+            XNamespace ns = "http://schemas.android.com/apk/res/android";
+
+            var queriesNode = manifestDoc.Root?.Element("queries");
+            
+            if (queriesNode == null)
+            {
+                manifestDoc.Root?.Add(new XElement("queries"));
+                queriesNode = manifestDoc.Root?.Element("queries");
+            }
+            
+            queriesNode?.RemoveNodes();
+            
+            foreach (var game in noctuaGames)
+            {
+                queriesNode?.Add(
+                    new XElement(
+                        "provider",
+                        new XAttribute(ns + "authorities", $"{game}.noctuaaccountprovider")
+                    )
+                );
+            }
+        }
+
+        private class BuildConfigData
+        {
+            [JsonProperty("active_bundle_ids")] public List<string> ActiveBundleIds;
+        }
+        
+        private class BuildConfigResult
+        {
+            [JsonProperty("success")] public bool Success;
+            [JsonProperty("data")] public BuildConfigData Data;
         }
 
         private static void ModifyRootBuildGradle(string path, GlobalConfig noctuaConfig)

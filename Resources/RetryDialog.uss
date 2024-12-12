@@ -1,0 +1,51 @@
+.base-general-confirm {
+    flex-direction: column;
+    flex: 1;
+    justify-content: space-around;
+}
+
+.text-info {
+    font-size: 12px;
+    color: #9E9E9E;
+    height: 60px;
+    -unity-text-align: middle-center;
+    white-space: normal;
+    margin-top: -35;
+    margin-right: 30px;
+    margin-left: 30px;
+}
+
+.text-info2 {
+    font-size: 12px;
+    color: #9E9E9E;
+    -unity-text-align: middle-center;
+    margin-top: -15;
+}
+
+.button-cs {
+    width: 80%;
+}
+
+.user-profile-header-button {
+    border-radius: 13px;
+    height: 26px;
+    padding: 5px;
+    margin-top: -15px;
+    background-color: rgb(62, 66, 72);
+    align-items: flex-end;
+    justify-content: center;
+    -unity-text-align: middle-center;
+}
+
+.exit-button {
+    height: 26px;
+    width: 26px;
+    align-self: flex-end;
+    left: 0;
+}
+
+.exit-icon {
+    width: 16px;
+    height: 16px;
+    background-image: url("project://database/Packages/com.noctuagames.sdk/Resources/ExitIcon.png?fileID=21300000&guid=d05c635247c1e10408d940a316e2e82c&type=3#ExitIcon");
+}

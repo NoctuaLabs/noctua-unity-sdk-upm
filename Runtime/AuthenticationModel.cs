@@ -237,9 +237,9 @@ namespace com.noctuagames.sdk
             return await _socialAuth.SocialLoginAsync(provider);
         }
         
-        public async UniTask<PlayerToken> BeginSocialLoginAsync(string provider)
+        public async UniTask<PlayerToken> GetSocialLoginTokenAsync(string provider)
         {
-            return await _socialAuth.BeginSocialLoginAsync(provider);
+            return await _socialAuth.GetSocialLoginTokenAsync(provider);
         }
 
         public async UniTask<Credential> SocialLinkAsync(string provider)

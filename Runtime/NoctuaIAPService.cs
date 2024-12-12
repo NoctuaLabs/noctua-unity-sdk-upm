@@ -235,6 +235,7 @@ namespace com.noctuagames.sdk
             { PaymentType.noctuastore };
 #endif
         private readonly UIFactory _uiFactory;
+        private bool _enabled;
 
         internal NoctuaIAPService(
             Config config,
@@ -286,7 +287,11 @@ namespace com.noctuagames.sdk
 
         public async UniTask<ProductList> GetProductListAsync(string currency = null, string platformType = null)
         {
-            var recentAccount = Noctua.Auth.GetRecentAccount();
+            EnsureEnabled();
+            
+            _log.Debug("calling API");
+            
+            var recentAccount = Noctua.Auth.RecentAccount;
 
             if (recentAccount?.Player?.GameId == null || recentAccount.Player.GameId <= 0)
             {
@@ -412,15 +417,21 @@ namespace com.noctuagames.sdk
 
         public async UniTask<PurchaseResponse> PurchaseItemAsync(PurchaseRequest purchaseRequest)
         {
-            _log.Debug("started");
+            EnsureEnabled();
+            
+            _log.Debug("calling API");
 
             if (!_accessTokenProvider.IsAuthenticated)
             {
+                _uiFactory.ShowError("purchase requires user authenttication");
+
                 throw new NoctuaException(NoctuaErrorCode.Authentication, "purchase requires user authentication");
             }
             
             if (_enabledPaymentTypes.Count == 0)
             {
+                _uiFactory.ShowError("No payment type enabled.Please contact support.");
+
                 throw new NoctuaException(NoctuaErrorCode.Payment, "no payment types enabled");
             }
             
@@ -482,7 +493,7 @@ namespace com.noctuagames.sdk
             
                 _log.Debug("creating order");
 
-                orderResponse = await CreateOrderAsync(orderRequest);
+                orderResponse = await RetryAsync(() => CreateOrderAsync(orderRequest));
                 
                 _eventSender?.Send(
                     "purchase_opened",
@@ -627,7 +638,7 @@ namespace com.noctuagames.sdk
             try {
                 _uiFactory.ShowLoadingProgress(true);
 
-                verifyOrderResponse = await VerifyOrderAsync(verifyOrderRequest, _accessTokenProvider.AccessToken);
+                verifyOrderResponse = await RetryAsync(() => VerifyOrderAsync(verifyOrderRequest, _accessTokenProvider.AccessToken));
 
                 switch (verifyOrderResponse.Status)
                 {
@@ -715,7 +726,53 @@ namespace com.noctuagames.sdk
                 Message = "Purchase completed"
             };
         }
-        
+
+        private async UniTask<T> RetryAsync<T>(Func<UniTask<T>> action)
+        {
+            while (true)
+            {
+                try
+                {
+                    _uiFactory.ShowLoadingProgress(true);
+                    return await action();
+                }
+                catch (NoctuaException e)
+                {
+                    _uiFactory.ShowLoadingProgress(false);
+                    var errorCode = (NoctuaErrorCode)e.ErrorCode;
+
+                    bool shouldRetry = false;
+                    switch (errorCode)
+                    {
+                        case NoctuaErrorCode.Networking:
+                            _log.Exception(e);
+                            shouldRetry = await _uiFactory.ShowRetryDialog("Please check your internet connection.");
+                            break;
+                        default:
+                            _log.Exception(e);
+                            shouldRetry = await _uiFactory.ShowRetryDialog(e.Message);
+                            break;
+                    }
+
+                    if (!shouldRetry)
+                    {
+                        throw;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _uiFactory.ShowLoadingProgress(false);
+                    _log.Exception(ex);
+
+                    bool shouldRetry = await _uiFactory.ShowRetryDialog(ex.Message);
+                    if (!shouldRetry)
+                    {
+                        throw;
+                    }
+                }
+            }
+        }
+
 #if UNITY_ANDROID && !UNITY_EDITOR
         private void HandleGoogleProductDetails(GoogleBilling.ProductDetailsResponse response)
         {
@@ -1050,6 +1107,20 @@ namespace com.noctuagames.sdk
             public OrderRequest Order;
             public VerifyOrderRequest VerifyOrder;
             public string AccessToken;
+        }
+        
+        private void EnsureEnabled()
+        {
+            if (_enabled) return;
+
+            _log.Error("Noctua IAP is not enabled due to initialization failure.");
+                
+            throw new NoctuaException(NoctuaErrorCode.Application, "Noctua IAP is not enabled due to initialization failure.");
+        }
+
+        public void Enable()
+        {
+            _enabled = true;
         }
     }
 }

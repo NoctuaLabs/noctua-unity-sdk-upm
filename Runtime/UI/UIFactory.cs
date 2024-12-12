@@ -14,6 +14,7 @@ namespace com.noctuagames.sdk.UI
         private readonly LoadingProgressPresenter _loading;
         private readonly GeneralNotificationPresenter _notification;
         private readonly BannedConfirmationDialogPresenter _confirmDialog;
+        private readonly RetryDialogPresenter _retryDialog;
         private readonly Dictionary<string, string> _translations;
         private readonly string _language;
         internal UIFactory(string gameObjectName, string panelSettingsPath = "NoctuaPanelSettings", string themeStyleSheetPath = "NoctuaTheme")
@@ -27,6 +28,7 @@ namespace com.noctuagames.sdk.UI
             _loading = CreateLoadingPresenter();
             _notification = CreateNotificationPresenter();
             _confirmDialog = CreateConfirmDialogPresenter();
+            _retryDialog = CreateRetryDialogPresenter();
         }
         
         internal UIFactory(GameObject rootObject, PanelSettings panelSettings, GlobalConfig config, NoctuaLocale locale)
@@ -44,6 +46,8 @@ namespace com.noctuagames.sdk.UI
             _notification.GetComponent<UIDocument>().sortingOrder = 1;
             _confirmDialog = CreateConfirmDialogPresenter();
             _confirmDialog.GetComponent<UIDocument>().sortingOrder = 1;
+            _retryDialog = CreateRetryDialogPresenter();
+            _retryDialog.GetComponent<UIDocument>().sortingOrder = 1;
         }
         
         internal TPresenter Create<TPresenter, TModel>(TModel model) where TPresenter : Presenter<TModel>
@@ -65,6 +69,11 @@ namespace com.noctuagames.sdk.UI
             gameObject.SetActive(true);
             
             return presenter;
+        }
+
+        public async UniTask<bool> ShowRetryDialog(string message)
+        {
+            return await _retryDialog.Show(message);
         }
 
         public async UniTask<bool> ShowBannedConfirmationDialog()
@@ -90,6 +99,11 @@ namespace com.noctuagames.sdk.UI
         public void ShowError(string message)
         {
             _notification.Show(message, false);
+        }
+
+        private RetryDialogPresenter CreateRetryDialogPresenter()
+        {
+            return Create<RetryDialogPresenter, object>(new object());
         }
         
         private BannedConfirmationDialogPresenter CreateConfirmDialogPresenter()

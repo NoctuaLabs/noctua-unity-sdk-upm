@@ -340,6 +340,13 @@ namespace com.noctuagames.sdk
             _log.Info("Noctua instance created");
         }
 
+        private void Enable()
+        {
+            _iap.Enable();
+            _auth.Enable();
+            _initialized = true;
+        }
+
         public static async UniTask InitAsync()
         {
             if (Instance.Value._initialized)
@@ -483,7 +490,8 @@ namespace com.noctuagames.sdk
             }
 
             log.Info("Noctua.InitAsync() completed");
-            Instance.Value._initialized = true;
+
+            Instance.Value.Enable();
         }
 
         private static bool IsFirstOpen()

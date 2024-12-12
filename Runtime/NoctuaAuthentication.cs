@@ -45,6 +45,7 @@ namespace com.noctuagames.sdk
         }
 
         private readonly ILogger _log = new NoctuaLogger();
+        private bool _enabled;
         private readonly Config _config;
         private readonly PanelSettings _panelSettings;
         private readonly UIFactory _uiFactory;
@@ -63,6 +64,21 @@ namespace com.noctuagames.sdk
                         
             _uiFactory = uiFactory;
             _uiModel = new AuthenticationModel(_uiFactory, _service, config, eventSender);
+        }
+
+        public void Enable()
+        {
+            _log.Debug("calling API");
+            
+            _enabled = true;
+        }
+        
+        private void EnsureEnabled()
+        {
+            if (_enabled) return;
+
+            _log.Error("Noctua Authentication is not enabled due to initialization failure.");
+            throw new NoctuaException(NoctuaErrorCode.Application, "Noctua Authentication is not enabled due to initialization failure.");
         }
 
         public UserBundle GetRecentAccount()
@@ -87,6 +103,8 @@ namespace com.noctuagames.sdk
         /// <returns>A UserBundle object representing the selected account.</returns>
         public async UniTask<UserBundle> AuthenticateAsync()
         {
+            EnsureEnabled();
+            
             _log.Debug("calling API");
             
             try
@@ -108,12 +126,16 @@ namespace com.noctuagames.sdk
 
         public async UniTask<UserBundle> LoginAsGuest()
         {
+            EnsureEnabled();
+
             _log.Debug("calling API");
             
             return await _service.LoginAsGuestAsync();
         }
 
         public void ResetAccounts() {
+            EnsureEnabled();
+
             _log.Debug("calling API");
             
             _service.ResetAccounts();
@@ -122,6 +144,8 @@ namespace com.noctuagames.sdk
         // TODO: Add support for phone
         public async UniTask<CredentialVerification> RegisterWithEmailAsync(string email, string password, Dictionary<string, string> regExtra = null)
         {
+            EnsureEnabled();
+
             _log.Debug("calling API");
 
             return await _service.RegisterWithEmailAsync(email, password, regExtra);
@@ -129,6 +153,8 @@ namespace com.noctuagames.sdk
 
         public async UniTask<UserBundle> VerifyEmailRegistrationAsync(int id, string code)
         {
+            EnsureEnabled();
+
             _log.Debug("calling API");
 
             return await _service.VerifyEmailRegistrationAsync(id, code);
@@ -137,6 +163,8 @@ namespace com.noctuagames.sdk
         // TODO: Add support for phone
         public async UniTask<CredentialVerification> LinkWithEmailAsync(string email, string password)
         {
+            EnsureEnabled();
+
             _log.Debug("calling API");
 
             return await _service.LinkWithEmailAsync(email, password);
@@ -144,6 +172,8 @@ namespace com.noctuagames.sdk
         
         public async UniTask<Credential> VerifyEmailLinkingAsync(int id, string code)
         {
+            EnsureEnabled();
+
             _log.Debug("calling API");
 
             return await _service.VerifyEmailLinkingAsync(id, code);
@@ -152,6 +182,8 @@ namespace com.noctuagames.sdk
         // TODO: Add support for phone
         public async UniTask<UserBundle> LoginWithEmailAsync(string email, string password)
         {
+            EnsureEnabled();
+
             _log.Debug("calling API");
 
             return await _service.LoginWithEmailAsync(email, password);
@@ -160,6 +192,8 @@ namespace com.noctuagames.sdk
         // TODO: Add support for phone
         public async UniTask<CredentialVerification> RequestResetPasswordAsync(string email)
         {
+            EnsureEnabled();
+
             _log.Debug("calling API");
 
             return await _service.RequestResetPasswordAsync(email);
@@ -168,6 +202,8 @@ namespace com.noctuagames.sdk
         // TODO: Add support for phone
         public async UniTask<UserBundle> ConfirmResetPasswordAsync(int id, string code, string newPassword)
         {
+            EnsureEnabled();
+
             _log.Debug("calling API");
 
             return await _service.ConfirmResetPasswordAsync(id, code, newPassword);
@@ -175,6 +211,8 @@ namespace com.noctuagames.sdk
 
         public void SwitchAccount(UserBundle user)
         {
+            EnsureEnabled();
+
             _log.Debug("calling API");
             
             UniTask.Void(async () => await _service.SwitchAccountAsync(user));
@@ -182,6 +220,8 @@ namespace com.noctuagames.sdk
         
         public async UniTask<UserBundle> ExchangeToken(string accessToken)
         {
+            EnsureEnabled();
+
             _log.Debug("calling API");
 
             return await _service.ExchangeTokenAsync(accessToken);
@@ -189,6 +229,8 @@ namespace com.noctuagames.sdk
 
         public async UniTask<string> GetSocialLoginRedirectURL(string provider)
         {
+            EnsureEnabled();
+
             _log.Debug("calling API");
 
             return await _service.GetSocialAuthRedirectURLAsync(provider);
@@ -196,6 +238,8 @@ namespace com.noctuagames.sdk
 
         public async UniTask<UserBundle> SocialLoginAsync(string provider, SocialLoginRequest payload)
         {
+            EnsureEnabled();
+
             _log.Debug("calling API");
 
             return await _service.SocialLoginAsync(provider, payload);
@@ -203,6 +247,8 @@ namespace com.noctuagames.sdk
 
         public async UniTask<Credential> SocialLinkAsync(string provider, SocialLinkRequest payload)
         {
+            EnsureEnabled();
+
             _log.Debug("calling API");
 
             return await _service.SocialLinkAsync(provider, payload);
@@ -210,6 +256,8 @@ namespace com.noctuagames.sdk
 
         public async UniTask<UserBundle> SocialLoginAsync(string provider)
         {
+            EnsureEnabled();
+
             _log.Debug("calling API");
 
             return await _uiModel.SocialLoginAsync(provider);
@@ -217,6 +265,8 @@ namespace com.noctuagames.sdk
 
         public async UniTask UpdatePlayerAccountAsync(PlayerAccountData playerAccountData)
         {
+            EnsureEnabled();
+
             _log.Debug("calling API");
 
             await _service.UpdatePlayerAccountAsync(playerAccountData);
@@ -224,6 +274,8 @@ namespace com.noctuagames.sdk
         
         public async UniTask<UserBundle> LogoutAsync()
         {
+            EnsureEnabled();
+
             _log.Debug("calling API");
 
             return await _service.LogoutAsync();
@@ -231,6 +283,8 @@ namespace com.noctuagames.sdk
 
         public void ShowUserCenter()
         {
+            EnsureEnabled();
+
             _log.Debug("calling API");
 
             _uiModel.ShowUserCenter();
@@ -241,6 +295,8 @@ namespace com.noctuagames.sdk
         /// </summary>
         public void SwitchAccount()
         {
+            EnsureEnabled();
+
             _log.Debug("calling API");
 
             _uiModel.ShowAccountSelection();
