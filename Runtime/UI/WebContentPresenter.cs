@@ -122,7 +122,7 @@ namespace com.noctuagames.sdk.UI
                 uniWebView = null;
             }
 #else
-            throw new NoctuaException(NoctuaErrorCode.Application, "Web view is not supported in this platform");
+            Application.OpenURL(Model.Url);
 #endif
         }
 

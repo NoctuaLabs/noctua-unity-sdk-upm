@@ -38,17 +38,11 @@ namespace com.noctuagames.sdk
         [JsonProperty("game_id")]
         public int GameId;
 
-        [JsonProperty("vat_rate")]
-        public double VatRate;
-
         [JsonProperty("enabled_payment_types")]
         public PaymentType[] EnabledPaymentTypes;
 
         [JsonProperty("price")]
-        public double Price;
-
-        [JsonProperty("price_vat")]
-        public double PriceVat;
+        public decimal Price;
 
         [JsonProperty("currency")]
         public string Currency;
@@ -71,6 +65,9 @@ namespace com.noctuagames.sdk
     [Preserve]
     public class OrderRequest
     {
+        [JsonProperty("id")]
+        public int Id;
+
         [JsonProperty("payment_type")] 
         public PaymentType PaymentType;
 
@@ -82,6 +79,9 @@ namespace com.noctuagames.sdk
 
         [JsonProperty("currency")]
         public string Currency;
+
+        [JsonProperty("price_in_usd")]
+        public decimal PriceInUSD;
 
         [JsonProperty("role_id")]
         public string RoleId;
@@ -150,7 +150,8 @@ namespace com.noctuagames.sdk
         refunded,
         canceled,
         expired,
-        invalid
+        invalid,
+        voided
     }
 
     [Preserve]
@@ -236,7 +237,6 @@ namespace com.noctuagames.sdk
         private readonly AccessTokenProvider _accessTokenProvider;
         private readonly NoctuaWebPaymentService _noctuaPayment;
         private readonly Queue<RetryPendingPurchaseItem> _waitingPendingPurchases = new();
-        private readonly UniTask _retryPendingPurchasesTask;
         private readonly INativePlugin _nativePlugin;
         private readonly ProductList _usdProducts = new();
 
@@ -275,8 +275,6 @@ namespace com.noctuagames.sdk
             GoogleBillingInstance.OnProductDetailsDone += HandleGoogleProductDetails;
 #endif
             _nativePlugin = nativePlugin;
-            
-            _retryPendingPurchasesTask = UniTask.Create(RetryPendingPurchases);
         }
         
         public bool IsReady
@@ -393,6 +391,103 @@ namespace com.noctuagames.sdk
             return response;
         }
 
+        private async UniTask<VerifyOrderResponse> VerifyOrderImplAsync(
+            OrderRequest orderRequest,
+            VerifyOrderRequest verifyOrderRequest,
+            string token
+        )
+        {
+                var verifyOrderResponse = await VerifyOrderAsync(verifyOrderRequest, token);
+
+                switch (verifyOrderResponse.Status)
+                {
+                case OrderStatus.completed:
+                    // Remove from pending purchase
+                    RemoveFromRetryPendingPurchasesByOrderID(verifyOrderRequest.Id);
+
+                    _eventSender?.Send(
+                        "purchase_completed",
+                        new()
+                        {
+                            { "product_id", orderRequest.ProductId },
+                            { "amount", orderRequest.PriceInUSD },
+                            { "currency", "USD" },
+                            { "order_id", orderRequest.Id },
+                            { "orig_amount", orderRequest.Price },
+                            { "orig_currency", orderRequest.Currency }
+                        }
+                    );
+                    _nativePlugin?.TrackPurchase(
+                        verifyOrderRequest.Id.ToString(),
+                        (double)orderRequest.Price,
+                        orderRequest.Currency
+                    );
+                    break;
+                case OrderStatus.canceled:
+                    RemoveFromRetryPendingPurchasesByOrderID(verifyOrderRequest.Id);
+
+                    _eventSender?.Send(
+                        "purchase_cancelled",
+                        new()
+                        {
+                            { "product_id", orderRequest.ProductId },
+                            { "amount", orderRequest.PriceInUSD },
+                            { "currency", "USD" },
+                            { "order_id", orderRequest.Id },
+                            { "orig_amount", orderRequest.Price },
+                            { "orig_currency", orderRequest.Currency }
+                        }
+                    );
+                    break;
+                case OrderStatus.voided:
+                    RemoveFromRetryPendingPurchasesByOrderID(verifyOrderRequest.Id);
+
+                    _eventSender?.Send(
+                        "purchase_voided",
+                        new()
+                        {
+                            { "product_id", orderRequest.ProductId },
+                            { "amount", orderRequest.PriceInUSD },
+                            { "currency", "USD" },
+                            { "order_id", orderRequest.Id },
+                            { "orig_amount", orderRequest.Price },
+                            { "orig_currency", orderRequest.Currency }
+                        }
+                    );
+                    break;
+                }
+
+                if (verifyOrderResponse.Status != OrderStatus.completed &&
+                verifyOrderResponse.Status != OrderStatus.canceled &&
+                verifyOrderResponse.Status != OrderStatus.voided)
+                {
+                    _eventSender?.Send(
+                        "purchase_verify_order_failed",
+                        new()
+                        {
+                            { "product_id", orderRequest.ProductId },
+                            { "amount", orderRequest.PriceInUSD },
+                            { "currency", "USD" },
+                            { "order_id", orderRequest.Id },
+                            { "orig_amount", orderRequest.Price },
+                            { "orig_currency", orderRequest.Currency }
+                        }
+                    );
+
+                    EnqueueToRetryPendingPurchases(
+                        new RetryPendingPurchaseItem
+                        {
+                            OrderId = verifyOrderRequest.Id,
+                            OrderRequest = orderRequest,
+                            VerifyOrderRequest = verifyOrderRequest,
+                            AccessToken = _accessTokenProvider.AccessToken,
+                        }
+                    );
+                }
+
+                return verifyOrderResponse;
+        }
+
         public async UniTask<string> GetActiveCurrencyAsync(string productId)
         {
 #if UNITY_IOS && !UNITY_EDITOR
@@ -460,10 +555,10 @@ namespace com.noctuagames.sdk
 
             _uiFactory.ShowLoadingProgress(true);
             
-            Product product;
+            Product usdProduct;
             OrderRequest orderRequest;
             OrderResponse orderResponse;
-            double price;
+            decimal price;
             string currency;
 
             try
@@ -505,25 +600,29 @@ namespace com.noctuagames.sdk
                     orderRequest.Currency = Noctua.Platform.Locale.GetCurrency();
                 }
                 
-                product = _usdProducts.FirstOrDefault(p => p.Id == orderRequest.ProductId);
+                usdProduct = _usdProducts.FirstOrDefault(p => p.Id == orderRequest.ProductId);
                 
-                if (product == null)
+                if (usdProduct == null)
                 {
                     throw new NoctuaException(NoctuaErrorCode.Payment, $"USD price not found for product '{orderRequest.ProductId}'");
                 }
+
+                orderRequest.PriceInUSD = usdProduct.Price;
             
                 _log.Debug("creating order");
 
                 orderResponse = await RetryAsync(() => CreateOrderAsync(orderRequest));
+
+                orderRequest.Id = orderResponse.Id;
                 
                 _eventSender?.Send(
                     "purchase_opened",
                     new()
                     {
-                        { "product_id", orderResponse.ProductId },
-                        { "amount", product.Price },
-                        { "currency", product.Currency },
-                        { "order_id", orderResponse.Id },
+                        { "product_id", orderRequest.ProductId },
+                        { "amount", orderRequest.PriceInUSD },
+                        { "currency", "USD" },
+                        { "order_id", orderRequest.Id },
                         { "orig_amount", orderRequest.Price },
                         { "orig_currency", orderRequest.Currency }
                     }
@@ -602,10 +701,18 @@ namespace com.noctuagames.sdk
 
                 case PaymentType.noctuastore:
                     hasResult = true;
-                    paymentResult = await _noctuaPayment.PayAsync(orderResponse.PaymentUrl);
+
+                    if (string.IsNullOrEmpty(orderResponse.PaymentUrl)) {
+                        throw new NoctuaException(NoctuaErrorCode.Payment, "Payment URL is empty.");
+                    }
+
+                    _log.Debug(orderResponse.PaymentUrl);
+                    Application.OpenURL(orderResponse.PaymentUrl);
+                    await _uiFactory.ShowCustomPaymentCompleteDialog();
 
                     // Native browser custom payment is using OrderId as ReceiptData
-                    paymentResult.ReceiptData = orderResponse.Id;
+                    paymentResult = new PaymentResult{Status = PaymentStatus.Confirmed};
+                    paymentResult.ReceiptData = orderResponse.Id.ToString();
                     
                     break;
                 case PaymentType.unknown:
@@ -628,8 +735,8 @@ namespace com.noctuagames.sdk
                     new()
                     {
                         { "product_id", orderResponse.ProductId },
-                        { "amount", product.Price },
-                        { "currency", product.Currency },
+                        { "amount", usdProduct.Price },
+                        { "currency", usdProduct.Currency },
                         { "order_id", orderResponse.Id },
                         { "orig_amount", orderRequest.Price },
                         { "orig_currency", orderRequest.Currency }
@@ -641,16 +748,29 @@ namespace com.noctuagames.sdk
             {
                 _uiFactory.ShowError(paymentResult.Message);
                 
-                throw new NoctuaException(NoctuaErrorCode.Payment, $"OrderStatus: {paymentResult.Status}, Message: {paymentResult.Message}");
+                throw new NoctuaException(NoctuaErrorCode.Payment, $"payment status: {paymentResult.Status}, Message: {paymentResult.Message}");
             }
 
             var orderId = orderResponse.Id;
             _log.Info($"Purchase was successful. Verifying order ID: {orderId}");
+
+
             var verifyOrderRequest = new VerifyOrderRequest
             {
                 Id = orderId,
                 ReceiptData = paymentResult.ReceiptData
             };
+
+            // Store early for Negative Payment Cases no #5
+            EnqueueToRetryPendingPurchases(
+                new RetryPendingPurchaseItem
+                {
+                    OrderId = orderResponse.Id,
+                    OrderRequest = orderRequest,
+                    VerifyOrderRequest = verifyOrderRequest,
+                    AccessToken = _accessTokenProvider.AccessToken
+                }
+            );
 
             _log.Info($"Verifying order: {verifyOrderRequest.Id} with receipt data: {verifyOrderRequest.ReceiptData}");
             
@@ -659,55 +779,12 @@ namespace com.noctuagames.sdk
             try {
                 _uiFactory.ShowLoadingProgress(true);
 
-                verifyOrderResponse = await RetryAsync(() => VerifyOrderAsync(verifyOrderRequest, _accessTokenProvider.AccessToken));
-
-                switch (verifyOrderResponse.Status)
-                {
-                case OrderStatus.completed:
-                    _eventSender?.Send(
-                        "purchase_completed",
-                        new()
-                        {
-                            { "product_id", orderResponse.ProductId },
-                            { "amount", product.Price },
-                            { "currency", product.Currency },
-                            { "order_id", verifyOrderResponse.Id },
-                            { "orig_amount", orderRequest.Price },
-                            { "orig_currency", orderRequest.Currency }
-                        }
-                    );
-                    _nativePlugin?.TrackPurchase(
-                        verifyOrderResponse.Id.ToString(),
-                        (double)orderRequest.Price,
-                        orderRequest.Currency
-                    );
-                    break;
-                case OrderStatus.canceled:
-                    _eventSender?.Send(
-                        "purchase_cancelled",
-                        new()
-                        {
-                            { "product_id", orderResponse.ProductId },
-                            { "amount", product.Price },
-                            { "currency", product.Currency },
-                            { "order_id", verifyOrderResponse.Id },
-                            { "orig_amount", orderRequest.Price },
-                            { "orig_currency", orderRequest.Currency }
-                        }
-                    );
-                    break;
-                }
-
-                if (verifyOrderResponse.Status == OrderStatus.pending)
-                {
-                    _waitingPendingPurchases.Enqueue(
-                        new RetryPendingPurchaseItem
-                        {
-                            VerifyOrder = verifyOrderRequest,
-                            AccessToken = _accessTokenProvider.AccessToken
-                        }
-                    );
-                }
+                verifyOrderResponse = await RetryAsync(() => VerifyOrderImplAsync(
+                        orderRequest,
+                        verifyOrderRequest,
+                        _accessTokenProvider.AccessToken
+                    )
+                );
 
                 _uiFactory.ShowLoadingProgress(false);
             }
@@ -715,12 +792,13 @@ namespace com.noctuagames.sdk
             {
                 if ((NoctuaErrorCode)e.ErrorCode == NoctuaErrorCode.Networking)
                 {
-                    _waitingPendingPurchases.Enqueue(
+                    EnqueueToRetryPendingPurchases(
                         new RetryPendingPurchaseItem
                         {
-                            Order = orderRequest,
-                            VerifyOrder = verifyOrderRequest,
-                            AccessToken = _accessTokenProvider.AccessToken
+                            OrderId = orderResponse.Id,
+                            OrderRequest = orderRequest,
+                            VerifyOrderRequest = verifyOrderRequest,
+                            AccessToken = _accessTokenProvider.AccessToken,
                         }
                     );
                 }
@@ -767,7 +845,12 @@ namespace com.noctuagames.sdk
                     {
                         case NoctuaErrorCode.Networking:
                             _log.Exception(e);
-                            shouldRetry = await _uiFactory.ShowRetryDialog("Please check your internet connection.");
+                            if (e.Message.Contains("HTTP error"))
+                            {
+                                shouldRetry = await _uiFactory.ShowRetryDialog($"{e.Message}. Please try again later.");
+                            } else {
+                                shouldRetry = await _uiFactory.ShowRetryDialog("Please check your internet connection.");
+                            }
                             break;
                         default:
                             _log.Exception(e);
@@ -890,7 +973,6 @@ namespace com.noctuagames.sdk
         private void SavePendingPurchases(List<RetryPendingPurchaseItem> orders)
         {
             var updatedJson = JsonConvert.SerializeObject(orders);
-
             PlayerPrefs.SetString("NoctuaPendingPurchases", updatedJson);
             PlayerPrefs.Save();
         }
@@ -899,6 +981,7 @@ namespace com.noctuagames.sdk
         {
             _log.Info("Noctua.GetPendingPurchases");
             var json = PlayerPrefs.GetString("NoctuaPendingPurchases", string.Empty);
+            _log.Info($"Pending purchases data: {json}");
 
             if (string.IsNullOrEmpty(json))
             {
@@ -910,29 +993,33 @@ namespace com.noctuagames.sdk
                 var pendingPurchases = JsonConvert.DeserializeObject<List<RetryPendingPurchaseItem>>(json);
                 
                 return pendingPurchases
-                    .Where(p => p.Order != null && p.VerifyOrder != null && p.AccessToken != null)
+                    .Where(p => p.VerifyOrderRequest != null && p.AccessToken != null)
                     .ToList();
             }
             catch (Exception e)
             {
                 _log.Error("Failed to parse pending purchases: " + e);
+
+                PlayerPrefs.DeleteKey("NoctuaPendingPurchases");
                 
                 return new List<RetryPendingPurchaseItem>();
             }
         }
 
-        private async UniTask RetryPendingPurchases()
+        public async UniTask RetryPendingPurchasesAsync()
         {
-            _log.Info("Starting pending purchases retry loop");
+            _log.Info("Starting pending purchases retry loop.");
             
             var random = new Random();
             
             var runningPendingPurchases = GetPendingPurchases().ToList();
+            _log.Info("Queue count: " + runningPendingPurchases.Count);
             CancellationTokenSource cts = new();
             var quitting = false;
 
             Application.quitting += () =>
             {
+                _log.Info("Quitting pending purchases retry loop.");
                 quitting = true;
                 cts.Cancel();
             };
@@ -946,10 +1033,6 @@ namespace com.noctuagames.sdk
                 return;
             }
             
-            if (_usdProducts.Count == 0)
-            {
-                _usdProducts.AddRange(await GetProductListAsync(currency: "USD"));
-            }
 
             while (!quitting)
             {
@@ -969,7 +1052,7 @@ namespace com.noctuagames.sdk
                     runningPendingPurchases.Add(pendingPurchase);
                     newPendingPurchaseCount++;
                     
-                    _log.Info("Draining pending purchase: " + pendingPurchase.VerifyOrder.Id);
+                    _log.Info("Draining pending purchase: " + pendingPurchase.VerifyOrderRequest.Id);
                 }
                 
                 // Retry pending purchases
@@ -980,84 +1063,37 @@ namespace com.noctuagames.sdk
                     try
                     {
                         _log.Info(
-                            $"Retrying Order ID: {item.VerifyOrder.Id}, " +
-                            $"Receipt Data: {item.VerifyOrder.ReceiptData}"
+                            $"Retrying Order ID: {item.VerifyOrderRequest.Id}, " +
+                            $"Receipt Data: {item.VerifyOrderRequest.ReceiptData}"
                         );
 
-                        var verifyOrderResponse = await VerifyOrderAsync(item.VerifyOrder, item.AccessToken);
-                        
-                        var product = _usdProducts.FirstOrDefault(p => p.Id == item.Order.ProductId && p.Currency == "USD");
-                        double price;
-                        string currency;
-            
-                        if (product == null)
-                        {
-                            _log.Warning("Product not found in product list");
-                
-                            price = (double)item.Order.Price;
-                            currency = item.Order.Currency;
-                        }
-                        else
-                        {
-                            price = product.Price;
-                            currency = product.Currency;
-                        }
-                        
-                        switch (verifyOrderResponse.Status)
-                        {
-                        case OrderStatus.completed:
-                            _eventSender?.Send(
-                                "purchase_completed",
-                                new()
-                                {
-                                    { "product_id", item.Order.ProductId },
-                                    { "amount", price },
-                                    { "currency", currency },
-                                    { "order_id", verifyOrderResponse.Id },
-                                    { "orig_amount", item.Order.Price },
-                                    { "orig_currency", item.Order.Currency }
-                                }
-                            );
-
-                            _nativePlugin?.TrackPurchase(
-                                verifyOrderResponse.Id.ToString(),
-                                (double)item.Order.Price,
-                                item.Order.Currency
-                            );
-
-                            break;
-
-                        case OrderStatus.canceled:
-                            _eventSender?.Send(
-                                "purchase_cancelled",
-                                new()
-                                {
-                                    { "product_id", item.Order.ProductId },
-                                    { "amount", price },
-                                    { "currency", currency },
-                                    { "order_id", verifyOrderResponse.Id },
-                                    { "orig_amount", item.Order.Price },
-                                    { "orig_currency", item.Order.Currency }
-                                }
-                            );
-
-                            break;
-                        }
-
-                        if (verifyOrderResponse.Status == OrderStatus.pending)
-                        {
-                            failedPendingPurchases.Add(item);
-                        
-                            _log.Info("Adding pending purchase back to queue: " + item.VerifyOrder.Id);
-                        }
+                        var verifyOrderResponse = await VerifyOrderImplAsync(
+                            item.OrderRequest,
+                            item.VerifyOrderRequest,
+                            item.AccessToken
+                        );
                     }
                     catch (NoctuaException e)
                     {
+                        // Track failure
+                        _eventSender?.Send(
+                            "purchase_verify_order_failed",
+                            new()
+                            {
+                                { "product_id", item.OrderRequest.ProductId },
+                                { "amount", item.OrderRequest.PriceInUSD },
+                                { "currency", "USD" },
+                                { "order_id", item.OrderRequest.Id },
+                                { "orig_amount", item.OrderRequest.Price },
+                                { "orig_currency", item.OrderRequest.Currency }
+                            }
+                        );
+
                         if ((NoctuaErrorCode)e.ErrorCode == NoctuaErrorCode.Networking)
                         {
                             failedPendingPurchases.Add(item);
                         
-                            _log.Info("Adding pending purchase back to queue: " + item.VerifyOrder.Id);
+                            _log.Info("Adding pending purchase back to queue: " + item.VerifyOrderRequest.Id);
                         }
 
                         _log.Error("NoctuaException: " + e.ErrorCode + " : " + e.Message);
@@ -1126,17 +1162,46 @@ namespace com.noctuagames.sdk
             return delay > maxDelay ? maxDelay : delay;
         }
 
+        private void EnqueueToRetryPendingPurchases(RetryPendingPurchaseItem item)
+        {
+            // Remove the existing if any.
+            RemoveFromRetryPendingPurchasesByOrderID(item.OrderId);
+
+            _log.Info($"Enqueue to retry pending purchase: {item.OrderId}");
+            _waitingPendingPurchases.Enqueue(item);
+            SavePendingPurchases(_waitingPendingPurchases.ToList());
+        }
+
+        public void RemoveFromRetryPendingPurchasesByOrderID(int orderId)
+        {
+            _log.Info($"Remove from retry pending purchase: {orderId}");
+
+            // Rebuild the queue excluding the item with the specified OrderID
+            var updatedQueue = new Queue<RetryPendingPurchaseItem>(
+                _waitingPendingPurchases.Where(item => item.OrderId != orderId));
+
+            _waitingPendingPurchases.Clear();
+            foreach (var item in updatedQueue)
+            {
+                _waitingPendingPurchases.Enqueue(item);
+            }
+            SavePendingPurchases(_waitingPendingPurchases.ToList());
+        }
+
+        [Preserve]
         internal class Config
         {
             public string BaseUrl;
             public string ClientId;
             public string WebPaymentBaseUrl;
         }
-        
+
+        [Preserve]
         private class RetryPendingPurchaseItem
         {
-            public OrderRequest Order;
-            public VerifyOrderRequest VerifyOrder;
+            public int OrderId;
+            public OrderRequest OrderRequest;
+            public VerifyOrderRequest VerifyOrderRequest;
             public string AccessToken;
         }
         

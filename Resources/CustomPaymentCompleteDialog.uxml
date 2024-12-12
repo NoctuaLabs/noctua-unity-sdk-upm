@@ -1,0 +1,20 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" xsi="http://www.w3.org/2001/XMLSchema-instance" engine="UnityEngine.UIElements" editor="UnityEditor.UIElements" noNamespaceSchemaLocation="../../../../UIElementsSchema/UIElements.xsd" editor-extension-mode="False">
+    <Style src="./Noctua.uss" />
+    <Style src="./CustomPaymentCompleteDialog.uss" />
+    <ui:VisualElement name="Root" class="root" >
+        <ui:VisualElement name="CustomPaymentCompleteDialog" class="base dialog-box base-general-confirm" style="height: 60%;">
+            <ui:Button name="CustomPaymentExitButton" focusable="false" class="user-profile-header-button exit-button">
+                    <ui:VisualElement name="ExitIcon" class="exit-icon" />
+            </ui:Button>        
+            <ui:VisualElement style="flex-direction: column; padding-top:20px;">
+                <ui:Label 
+                    name="Info" 
+                    text="Your payment page is now open in your browser. Unless you want to cancel, do not close this pop up until the transaction is complete."
+                    class="text-info" 
+                />
+            </ui:VisualElement>
+            <ui:Button name="CustomPaymentCSButton" text="Contact Support" class="dialog-button secondary-button" style="width: 90%;" />
+            <ui:Button name="CustomPaymentCompleteButton" text="Complete" class="dialog-button primary-button" style="width: 90%;" />
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>

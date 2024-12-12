@@ -508,6 +508,9 @@ namespace com.noctuagames.sdk
             log.Info("Noctua.InitAsync() completed");
 
             Instance.Value.Enable();
+
+            // Trigger retry pending purchase after all module get enabled.
+            Instance.Value._iap.RetryPendingPurchasesAsync();
         }
 
         private static bool IsFirstOpen()

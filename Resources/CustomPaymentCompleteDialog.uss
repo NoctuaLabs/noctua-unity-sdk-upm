@@ -22,7 +22,12 @@
     margin-top: -15;
 }
 
-.button-cs {
+.primary-button {
+    width: 80%;
+}
+
+.secondary-button {
+    background-color: rgb(45, 49, 56);
     width: 80%;
 }
 
@@ -41,7 +46,7 @@
     height: 26px;
     width: 26px;
     align-self: flex-end;
-    left: 5;
+    left: 10;
     top: 5;
 }
 
