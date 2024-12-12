@@ -129,10 +129,12 @@ namespace com.noctuagames.sdk.UI
 
             HideAllErrors();
 
-            var spinnerInstance = new Spinner();
+            if (View.Q<VisualElement>("Spinner").childCount == 0)
+            {                
+                View.Q<VisualElement>("Spinner").Add(new Spinner(30, 30));
+            }
+
             View.Q<Button>("ContinueButton").AddToClassList("hide");
-            View.Q<VisualElement>("Spinner").Clear();
-            View.Q<VisualElement>("Spinner").Add(spinnerInstance);
             View.Q<VisualElement>("Spinner").RemoveFromClassList("hide");
 
             var emailAddress = _email.Replace(" ", string.Empty);

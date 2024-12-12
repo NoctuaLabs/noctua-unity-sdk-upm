@@ -15,7 +15,7 @@ namespace com.noctuagames.sdk.UI
 
             View.Q<Label>("ErrCode").AddToClassList("hide");
             View.Q<VisualElement>("Spinner").AddToClassList("hide");
-            View.Q<VisualElement>("ButtonGroup").RemoveFromClassList("hide");
+            View.Q<VisualElement>("ConfirmButton").RemoveFromClassList("hide");
         }
 
         protected override void Attach(){}
@@ -26,14 +26,16 @@ namespace com.noctuagames.sdk.UI
             View.Q<Button>("ConfirmButton").RegisterCallback<PointerUpEvent>(async _  =>
             {
                 _log.Debug("clicking confirm button");
-                
-                var spinner = new Spinner();
-                View.Q<VisualElement>("Spinner").Clear();
-                View.Q<VisualElement>("Spinner").Add(spinner);
+
+                if (View.Q<VisualElement>("Spinner").childCount == 0)
+                {
+                    View.Q<VisualElement>("Spinner").Add(new Spinner(30, 30));
+                }
+
                 View.Q<VisualElement>("Spinner").RemoveFromClassList("hide");
 
                 View.Q<Label>("ErrCode").AddToClassList("hide");
-                View.Q<VisualElement>("ButtonGroup").AddToClassList("hide");
+                View.Q<VisualElement>("ConfirmButton").AddToClassList("hide");
 
                 try
                 {
@@ -41,7 +43,7 @@ namespace com.noctuagames.sdk.UI
                     await Model.AuthService.AuthenticateAsync();
 
                     View.Q<VisualElement>("Spinner").AddToClassList("hide");
-                    View.Q<VisualElement>("ButtonGroup").RemoveFromClassList("hide");
+                    View.Q<VisualElement>("ConfirmButton").RemoveFromClassList("hide");
                     Visible = false;
                 }
                 catch (Exception e)
@@ -58,7 +60,7 @@ namespace com.noctuagames.sdk.UI
                     }
                     
                     View.Q<VisualElement>("Spinner").AddToClassList("hide");
-                    View.Q<VisualElement>("ButtonGroup").RemoveFromClassList("hide");
+                    View.Q<VisualElement>("ConfirmButton").RemoveFromClassList("hide");
                 }
             });
             

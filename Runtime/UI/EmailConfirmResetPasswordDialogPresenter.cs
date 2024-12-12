@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using UnityEngine;
 using UnityEngine.UIElements;
 using System.Collections.Generic;
@@ -202,11 +203,13 @@ namespace com.noctuagames.sdk.UI
 
             HideAllErrors();
 
-            var spinnerInstance = new Spinner();
-            View.Q<Button>("ContinueButton").AddToClassList("hide");
-            View.Q<VisualElement>("Spinner").Clear();
-            View.Q<VisualElement>("Spinner").Add(spinnerInstance);
+            if (View.Q<VisualElement>("Spinner").childCount == 0)
+            {                
+                View.Q<VisualElement>("Spinner").Add(new Spinner(30, 30));
+            }
+            
             View.Q<VisualElement>("Spinner").RemoveFromClassList("hide");
+            View.Q<Button>("ContinueButton").AddToClassList("hide");
 
             var verificationId = _credVerifyId;
             var verificationCode = _credVerifyCode;

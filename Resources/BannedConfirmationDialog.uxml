@@ -1,19 +1,13 @@
 <ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" xsi="http://www.w3.org/2001/XMLSchema-instance" engine="UnityEngine.UIElements" editor="UnityEditor.UIElements" noNamespaceSchemaLocation="../../../../UIElementsSchema/UIElements.xsd" editor-extension-mode="False">
-    <Style src="./Noctua.uss" />
-    <Style src="./BannedConfirmationDialog.uss" />
-    <ui:VisualElement name="ConfirmationDialog" class="base dialog-box base-general-confirm" style="height: 45%;">
-        <ui:VisualElement style="flex-direction: column;">
-            <ui:Label 
-                name="Note" 
-                text="Your account has been temporarily banned from playing this game. If you believe this is an error,"
-                class="note" 
-            />
-            <ui:Label 
-                name="Note2" 
-                text="please &lt;color=#3B82F6&gt;contact our support team&lt;/color&gt;."
-                class="note2" 
-            />
+    <Style src="project://database/Packages/com.noctuagames.sdk/Resources/Noctua.uss?fileID=7433441132597879392&amp;guid=fe35e550fb23b6446af377f994effe35&amp;type=3#Noctua" />
+    <Style src="project://database/Packages/com.noctuagames.sdk/Resources/BannedConfirmationDialog.uss?fileID=7433441132597879392&amp;guid=9f301d495e3555d42a8a6349078367c7&amp;type=3#BannedConfirmationDialog" />
+    <ui:VisualElement name="Root" class="root" style="flex-grow: 1;">
+        <ui:VisualElement name="ConfirmationDialog" class="base dialog-box base-general-confirm" style="height: 45%;">
+            <ui:VisualElement style="flex-direction: column;">
+                <ui:Label name="Note" text="Your account has been temporarily banned from playing this game. If you believe this is an error," class="note" />
+                <ui:Label name="Note2" text="please &lt;color=#3B82F6&gt;contact our support team&lt;/color&gt;." class="note2" />
+            </ui:VisualElement>
+            <ui:Button name="OKButton" text="OK" class="dialog-button button-cs" />
         </ui:VisualElement>
-        <ui:Button name="OKButton" text="OK" class="dialog-button button-cs" />
     </ui:VisualElement>
 </ui:UXML>

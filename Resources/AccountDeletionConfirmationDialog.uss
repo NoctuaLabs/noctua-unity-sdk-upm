@@ -1,9 +1,9 @@
-﻿.gap {
+.gap {
     height: 40px;
 }
 
 .delete-account-icon {
-    background-image: url("./DeleteAccountIcon.png");
+    background-image: url("project://database/Packages/com.noctuagames.sdk/Resources/DeleteAccountIcon.png?fileID=21300000&guid=68557b7009fc642358eecd7a2532b4fe&type=3#DeleteAccountIcon");
     width: 100px;
     height: 100px;
     background-color: transparent;
@@ -13,17 +13,19 @@
 .question {
     margin-top: 17px;
     font-size: 17px;
-    color: #FFFFFF;
+    color: rgb(255, 255, 255);
     height: 34px;
     -unity-text-align: middle-center;
+    white-space: normal;
 }
 
 .note {
     margin-top: 17px;
     font-size: 12px;
-    color: #9E9E9E;
+    color: rgb(158, 158, 158);
     height: 60px;
     -unity-text-align: middle-center;
+    white-space: normal;
 }
 
 .button-group {
@@ -42,5 +44,5 @@
 }
 
 .red {
-    background-color: #FF0000 !important;
+    background-color: rgb(255, 0, 0);
 }

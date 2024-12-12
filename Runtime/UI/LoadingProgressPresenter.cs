@@ -24,9 +24,8 @@ namespace com.noctuagames.sdk.UI
             if (isShow)
             {
                 if (_loadingProgress.childCount == 0)
-                {
-                    var spinnerInstance = new Spinner();
-                    _loadingProgress.Add(spinnerInstance);
+                {                    
+                    _loadingProgress.Add(new Spinner());
                 }
             }
             else

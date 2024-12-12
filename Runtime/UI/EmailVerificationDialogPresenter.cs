@@ -2,6 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using System;
+using System.Linq;
 using Cysharp.Threading.Tasks;
 using UnityEngine.UIElements;
 
@@ -97,9 +98,11 @@ namespace com.noctuagames.sdk.UI
         {
             _log.Debug("clicking resend button");
 
-            var spinnerInstance = new Spinner();
-            View.Q<VisualElement>("Spinner").Clear();
-            View.Q<VisualElement>("Spinner").Add(spinnerInstance);
+            if (View.Q<VisualElement>("Spinner").childCount == 0)
+            {                
+                View.Q<VisualElement>("Spinner").Add(new Spinner(30, 30));
+            }
+            
             View.Q<VisualElement>("Spinner").RemoveFromClassList("hide");
             View.Q<Label>("ResendingCode").RemoveFromClassList("hide");
 
