@@ -27,39 +27,12 @@ using UnityEditor.Graphs;
     public class NoctuaIosBuildProcessor : MonoBehaviour
     {
         [PostProcessBuild(1)]
-        public static void EnableKeychainSharing(BuildTarget buildTarget, string pathToBuiltProject)
+        public static void ExposeLogFiles(BuildTarget buildTarget, string pathToBuiltProject)
         {
-            string entitlementsFileName = "NoctuaSDK.entitlements";
-            string entitlementsFilePath = Path.Combine(pathToBuiltProject, entitlementsFileName);
-
-            Log($"Creating entitlements file at path: {entitlementsFilePath}");
-            var entitlements = new PlistDocument();
-            var keychainGroups = entitlements.root.CreateArray("keychain-access-groups");
-            keychainGroups.AddString("$(AppIdentifierPrefix)com.noctuagames.accounts");
-
-            if (File.Exists(entitlementsFilePath))
-            {
-                File.Delete(entitlementsFilePath);
-            }
-
-            File.WriteAllText(entitlementsFilePath, entitlements.WriteToString());
-
-            Log($"Added keychain sharing entitlements to Xcode project.");
-            string pbxProjectPath = PBXProject.GetPBXProjectPath(pathToBuiltProject);
-            var pbxProject = new PBXProject();
-            pbxProject.ReadFromFile(pbxProjectPath);
-            string targetGuid = pbxProject.GetUnityMainTargetGuid();
-            pbxProject.AddCapability(targetGuid, PBXCapabilityType.KeychainSharing, entitlementsFileName);
-            pbxProject.WriteToFile(pbxProjectPath);
-
             Log($"Loaded Info.plist from Xcode project.");
             string plistPath = Path.Combine(pathToBuiltProject, "Info.plist");
             var plist = new PlistDocument();
             plist.ReadFromFile(plistPath);
-
-            Log($"Expose AppIdentifierPrefix by Info.plist");
-            string appIdPrefix = "$(AppIdentifierPrefix)";
-            plist.root.SetString("AppIdPrefix", appIdPrefix);
 
             Log($"Expose log files to users by Info.plist");
             plist.root.SetBoolean("UIFileSharingEnabled", true);
@@ -161,6 +134,89 @@ using UnityEditor.Graphs;
             {
                 LogError($"Failed to write changes to Xcode project at path '{projPath}': {e.Message}");
             }
+        }
+
+        [PostProcessBuild(int.MaxValue)]
+        public static void EnableKeychainSharing(BuildTarget buildTarget, string pathToBuiltProject)
+        {
+            Log($"Added keychain sharing entitlements to Xcode project.");
+
+            string pbxProjectPath = PBXProject.GetPBXProjectPath(pathToBuiltProject);
+            var pbxProject = new PBXProject();
+            pbxProject.ReadFromFile(pbxProjectPath);
+            string targetGuid = pbxProject.GetUnityMainTargetGuid();
+
+            Log($"Loaded Xcode project at path: {pbxProjectPath}");
+            
+            var entitlementsFile = pbxProject.GetBuildPropertyForAnyConfig(targetGuid, "CODE_SIGN_ENTITLEMENTS");
+
+            if (string.IsNullOrEmpty(entitlementsFile))
+            {
+                Log($"No code sign entitlements file found. Creating new entitlements file.");
+                
+                entitlementsFile = "Unity-iPhone.entitlements";
+            }
+            else
+            {
+                Log($"Code sign entitlements file found: {entitlementsFile}");
+            }
+
+            var entitlementsFilePath = Path.Combine(pathToBuiltProject, entitlementsFile);
+
+            Log($"Entitlements file path: {entitlementsFilePath}");
+
+            var entitlements = new PlistDocument();
+
+            if (File.Exists(entitlementsFilePath))
+            {
+                entitlements.ReadFromFile(entitlementsFilePath);
+
+                Log($"Read entitlements file at path: {entitlementsFilePath}");
+            }
+            else
+            {
+                pbxProject.SetBuildProperty(targetGuid, "CODE_SIGN_ENTITLEMENTS", entitlementsFile);
+
+                Log($"Set project code sign entitlements to: {entitlementsFile}");
+            }
+
+            PlistElementArray keychainGroups;
+
+            try
+            {
+                keychainGroups = entitlements.root["keychain-access-groups"]?.AsArray();
+            }
+            catch (Exception e)
+            {
+                LogError($"Failed to read keychain-access-groups from entitlements: {e.Message}");
+
+                return;
+            }
+
+            keychainGroups ??= entitlements.root.CreateArray("keychain-access-groups");
+            var keychainGroup = $"$(AppIdentifierPrefix)com.noctuagames.accounts";
+
+            if (keychainGroups.values.All(value => value.AsString() != keychainGroup))
+            {
+                keychainGroups.AddString(keychainGroup);
+
+                Log($"Added keychain-access-groups to entitlements.");
+            }
+
+            entitlements.WriteToFile(entitlementsFilePath);
+            pbxProject.WriteToFile(pbxProjectPath);
+            
+            Log($"Loaded Info.plist from Xcode project.");
+            string plistPath = Path.Combine(pathToBuiltProject, "Info.plist");
+            var plist = new PlistDocument();
+            plist.ReadFromFile(plistPath);
+
+            Log($"Expose AppIdentifierPrefix by Info.plist");
+            string appIdPrefix = "$(AppIdentifierPrefix)";
+            plist.root.SetString("AppIdPrefix", appIdPrefix);
+
+            Log($"Write changes to Info.plist");    
+            plist.WriteToFile(plistPath);
         }
 
         private static void Log(string message)
