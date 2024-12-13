@@ -330,11 +330,15 @@ namespace com.noctuagames.sdk.UI
         {
             _birthDateTF = View.Q<TextField>("BirthdateTF");
             _birthDateTF.isReadOnly = true;
+            _birthDateTF.focusable = false;
 
             string _dob = string.IsNullOrEmpty(_dateString) ? "01/01/2000" : _dateString;
             DateTime parsedDate = DateTime.ParseExact(_dob, "dd/MM/yyyy", null);
 
-            _birthDateTF.RegisterCallback<PointerUpEvent>(_ => {
+            _birthDateTF.RegisterCallback<ClickEvent>(upEvent => {
+
+                upEvent.StopImmediatePropagation();
+
                 Noctua.OpenDatePicker(parsedDate.Year, parsedDate.Month, parsedDate.Day, 1,
                 (DateTime _date) =>
                 {
