@@ -1,10 +1,6 @@
-<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements"
-         xsi="http://www.w3.org/2001/XMLSchema-instance" engine="UnityEngine.UIElements"
-         editor="UnityEditor.UIElements" noNamespaceSchemaLocation="../../../../UIElementsSchema/UIElements.xsd"
-         editor-extension-mode="False"
->
-    <Style src="./Noctua.uss" />
-    <Style src="./ConnectConflictDialog.uss" />
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" xsi="http://www.w3.org/2001/XMLSchema-instance" engine="UnityEngine.UIElements" editor="UnityEditor.UIElements" noNamespaceSchemaLocation="../../../../UIElementsSchema/UIElements.xsd" editor-extension-mode="False">
+    <Style src="project://database/Packages/com.noctuagames.sdk/Resources/Noctua.uss?fileID=7433441132597879392&amp;guid=fe35e550fb23b6446af377f994effe35&amp;type=3#Noctua" />
+    <Style src="project://database/Packages/com.noctuagames.sdk/Resources/ConnectConflictDialog.uss?fileID=7433441132597879392&amp;guid=f7f2bd3909e8421cbecf3d0c5b75ebad&amp;type=3#ConnectConflictDialog" />
     <ui:VisualElement name="Root" class="root">
         <ui:VisualElement name="ConnectConflictDialog" class="base dialog-box connect-conflict-dialog">
             <ui:VisualElement name="NoctuaLogoContainer" class="noctua-logo-container">
@@ -24,13 +20,10 @@
                 </ui:VisualElement>
             </ui:VisualElement>
             <ui:VisualElement name="ConnectConflictInformationContainer" class="connect-conflict-information-container">
-                <ui:Label 
-                        name="ConnectConflictInformationLabel"
-                        class="connect-conflict-information-label"
-                        text="This credential is already connected to an account. Do you want to switch account?" />
+                <ui:Label name="ConnectConflictInformationLabel" text="This credential is already connected to an account. Do you want to switch account?" class="connect-conflict-information-label" />
             </ui:VisualElement>
             <ui:VisualElement name="ButtonGroup" class="button-group">
-                <ui:Button name="CancelButton" text="Cancel" class="cancel-button button-transparent" />
+                <ui:Button name="CancelButton" text="Cancel" class="cancel-button button-transparent" style="color: rgb(59, 130, 246);" />
                 <ui:Button name="SwitchAccountButton" text="Switch account" class="switch-account-button button-highlight" />
             </ui:VisualElement>
         </ui:VisualElement>
