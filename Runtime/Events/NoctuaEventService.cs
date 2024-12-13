@@ -6,7 +6,7 @@ using UnityEngine;
 
 namespace com.noctuagames.sdk.Events
 {
-    public class NoctuaEventService : MonoBehaviour
+    public class NoctuaEventService
     {
         private readonly INativeTracker _nativeTracker;
         private readonly EventSender _eventSender;
@@ -15,8 +15,10 @@ namespace com.noctuagames.sdk.Events
         private string _country;
 
         private string _ipAddress;
+        
+        private bool _isSandbox;
 
-        public void SetProperties(string country = "", string ipAddress = "")
+        public void SetProperties(string country = "", string ipAddress = "", bool isSandbox = false)
         {
             if (country != "")
             {
@@ -26,6 +28,11 @@ namespace com.noctuagames.sdk.Events
             if (ipAddress != "")
             {
                 _ipAddress = ipAddress;
+            }
+            
+            if (isSandbox)
+            {
+                _isSandbox = true;
             }
         }
 
@@ -42,6 +49,7 @@ namespace com.noctuagames.sdk.Events
             Dictionary<string, IConvertible> extraPayload = null
         )
         {
+            extraPayload ??= new Dictionary<string, IConvertible>();
             AppendProperties(extraPayload);
 
             _nativeTracker?.TrackAdRevenue(source, revenue, currency, extraPayload);
@@ -54,6 +62,7 @@ namespace com.noctuagames.sdk.Events
             Dictionary<string, IConvertible> extraPayload = null
         )
         {
+            extraPayload ??= new Dictionary<string, IConvertible>();
             AppendProperties(extraPayload);
 
             _nativeTracker?.TrackPurchase(orderId, amount, currency, extraPayload);
@@ -61,8 +70,8 @@ namespace com.noctuagames.sdk.Events
 
         public void TrackCustomEvent(string name, Dictionary<string, IConvertible> extraPayload = null)
         {
+            extraPayload ??= new Dictionary<string, IConvertible>();
             AppendProperties(extraPayload);
-
 
             string properties = "";
             foreach (var (key, value) in extraPayload)
@@ -77,13 +86,6 @@ namespace com.noctuagames.sdk.Events
 
         private void AppendProperties(Dictionary<string, IConvertible> extraPayload)
         {
-            if (string.IsNullOrEmpty(_country) && string.IsNullOrEmpty(_ipAddress))
-            {
-                return;
-            }
-
-            extraPayload ??= new Dictionary<string, IConvertible>();
-
             if (!string.IsNullOrEmpty(_country))
             {
                 _log.Debug("Add country to event's extra payload: " + _country);
@@ -94,6 +96,12 @@ namespace com.noctuagames.sdk.Events
             {
                 _log.Debug("Add ip_address to event's extra payload: " + _ipAddress);
                 extraPayload.Add("ip_address", _ipAddress);
+            }
+            
+            if (_isSandbox)
+            {
+                _log.Debug("Add sandbox to event's extra payload: " + _isSandbox);
+                extraPayload.Add("is_sandbox", _isSandbox);
             }
         }
     }

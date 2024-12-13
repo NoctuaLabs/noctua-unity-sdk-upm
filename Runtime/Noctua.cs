@@ -281,6 +281,7 @@ namespace com.noctuagames.sdk
             _nativePlugin?.Init(new List<string>());
             
             _event = new NoctuaEventService(_nativePlugin, _eventSender);
+            _event.SetProperties(isSandbox: config.Noctua.IsSandbox);
 
             var panelSettings = Resources.Load<PanelSettings>("NoctuaPanelSettings");
             panelSettings.themeStyleSheet = Resources.Load<ThemeStyleSheet>("NoctuaTheme");
