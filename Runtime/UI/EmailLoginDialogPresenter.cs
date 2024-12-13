@@ -22,7 +22,7 @@ namespace com.noctuagames.sdk.UI
         private readonly ILogger _log = new NoctuaLogger();
 
         private string _email;
-        private string _password;        
+        private string _password;
         private VisualElement panelVE;
         private List<TextField> textFields;
         private TextField emailField;
@@ -75,7 +75,7 @@ namespace com.noctuagames.sdk.UI
             passwordField.isPasswordField = true;
 
             emailField.RegisterValueChangedCallback(evt => OnEmailValueChanged(emailField));
-            passwordField.RegisterValueChangedCallback(evt => OnPasswordValueChanged(passwordField));
+            passwordField.RegisterValueChangedCallback(evt => OnPasswordValueChanged(passwordField));           
 
             emailField.hideMobileInput = true;
             passwordField.hideMobileInput = true;
@@ -278,7 +278,7 @@ namespace com.noctuagames.sdk.UI
 
                 return;
             }
-            
+
             try
             {
                 if (Model.AuthService.RecentAccount.IsGuest)

@@ -9,7 +9,7 @@
             <ui:VisualElement name="Content" class="dialog-content" style="height: 200px;">
                 <ui:ScrollView scroll-deceleration-rate="0,135" elasticity="0,1" horizontal-scroller-visibility="Hidden" vertical-scroller-visibility="Hidden" style="margin-bottom: 10px;">
                     <ui:TextField label="Full Name" name="FullNameTF" class="noctua-text-input hide" />
-                    <ui:TextField label="Email Address" name="EmailTF" class="noctua-text-input" />
+                    <ui:TextField label="Email Address" name="EmailTF" keyboard-type="EmailAddress" class="noctua-text-input" />
                     <ui:VisualElement name="PhoneNumberContainer" class="hide" style="flex-direction: row; position: relative;">
                         <ui:DropdownField name="PhoneCodeDF" class="general-dropdown-box" style="margin-right: 10px; width: 100px;" />
                         <ui:TextField label="PhoneNumber" name="PhoneNumberTF" class="noctua-text-input" style="width: 179px;" />
