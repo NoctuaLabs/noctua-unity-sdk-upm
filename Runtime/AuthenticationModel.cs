@@ -67,14 +67,22 @@ namespace com.noctuagames.sdk
 
         private AuthType _currentAuthType = AuthType.Switch;
 
+        private readonly NoctuaLocale _locale;
+
         internal AuthenticationModel(
             UIFactory uiFactory, 
             NoctuaAuthenticationService authService, 
             GlobalConfig config,
-            EventSender eventSender = null
+            EventSender eventSender = null,
+            NoctuaLocale locale = null
         )
         {
             _uiFactory = uiFactory;
+
+            if (locale != null)
+            {
+                _locale = locale;
+            }
             
             _userCenter = _uiFactory.Create<UserCenterPresenter, AuthenticationModel>(this);
             _userCenter.EventSender = eventSender;
@@ -255,6 +263,16 @@ namespace com.noctuagames.sdk
         public void ShowConnectConflict(PlayerToken playerToken)
         {
             _connectConflictDialog.Show(playerToken);
+        }
+
+        public string GetLanguage()
+        {
+            if (_locale == null)
+            {
+                return "en";
+            }
+
+            return _locale.GetLanguage();
         }
     }
     

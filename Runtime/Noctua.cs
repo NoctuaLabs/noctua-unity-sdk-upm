@@ -311,7 +311,7 @@ namespace com.noctuagames.sdk
                 eventSender: _eventSender
             );
 
-            _auth = new NoctuaAuthentication(authService, uiFactory, config, _eventSender);
+            _auth = new NoctuaAuthentication(authService, uiFactory, config, _eventSender, locale);
             
             var accessTokenProvider = new AccessTokenProvider(authService);
 

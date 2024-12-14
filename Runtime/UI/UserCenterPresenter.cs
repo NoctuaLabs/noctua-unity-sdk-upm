@@ -590,7 +590,7 @@ namespace com.noctuagames.sdk.UI
 
                 var regionCode = _globalConfig?.Noctua?.Region ?? "";
 
-                _userIDLabel.text = Utility.GetTranslation("UserCenterPresenter.MenuEditProfile.Label.text",  Utility.LoadTranslations(regionCode));
+                _userIDLabel.text = Utility.GetTranslation("UserCenterPresenter.MenuEditProfile.Label.text",  Utility.LoadTranslations(Model.GetLanguage()));
                 _userIDLabel.style.fontSize = 16;  
 
                 View.Q<Button>("SaveButton").SetEnabled(false);
@@ -905,6 +905,7 @@ namespace com.noctuagames.sdk.UI
             
             _credentialListView = View.Q<ListView>("AccountList");
             _itemTemplate ??= Resources.Load<VisualTreeAsset>("ConnectAccountItem");
+
             _credentialListView.makeItem = _itemTemplate.Instantiate;
             _credentialListView.bindItem = BindListViewItem;
             _credentialListView.fixedItemHeight = 52;
@@ -917,6 +918,7 @@ namespace com.noctuagames.sdk.UI
             element.userData = _credentials[index];
 
             element.Q<Button>("ConnectButton").UnregisterCallback<PointerUpEvent, UserCredential>(OnConnectButtonClick);
+            element.Q<Button>("ConnectButton").text = Utility.GetTranslation("ConnectAccountItem.Connect",  Utility.LoadTranslations(Model.GetLanguage()));
 
             if (string.IsNullOrEmpty(_credentials[index].Username))
             {
@@ -1033,7 +1035,7 @@ namespace com.noctuagames.sdk.UI
         private void UpdateCarouselText()
         {
             var regionCode = _globalConfig?.Noctua?.Region ?? "";
-            _carouselLabel.text = Utility.GetTranslation(_carouselItems[_currentIndex],  Utility.LoadTranslations(regionCode));
+            _carouselLabel.text = Utility.GetTranslation(_carouselItems[_currentIndex],  Utility.LoadTranslations(Model.GetLanguage()));
         }
 
         private void HighlightCurrentIndicator()

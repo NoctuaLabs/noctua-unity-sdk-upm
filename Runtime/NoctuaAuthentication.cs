@@ -57,13 +57,14 @@ namespace com.noctuagames.sdk
             NoctuaAuthenticationService service, 
             UIFactory uiFactory, 
             GlobalConfig config,
-            EventSender eventSender = null
+            EventSender eventSender = null,
+            NoctuaLocale locale = null
         )
         {
             _service = service;
                         
             _uiFactory = uiFactory;
-            _uiModel = new AuthenticationModel(_uiFactory, _service, config, eventSender);
+            _uiModel = new AuthenticationModel(_uiFactory, _service, config, eventSender, locale);
         }
 
         public void Enable()

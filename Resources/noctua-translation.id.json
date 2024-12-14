@@ -36,6 +36,13 @@
     "EmailRegisterDialogPresenter.ErrPasswordTooShort.Label.text": "Kata sandi terlalu pendek. Minimal 6 karakter",
     "EmailRegisterDialogPresenter.ErrPasswordEmpty.Label.text": "Kata sandi tidak boleh kosong",
     "EmailRegisterDialogPresenter.ContinueButton.Button.text": "Lanjutkan",
+    "EmailRegisterDialogPresenter.WizardContinueButton.Button.text": "Lanjutkan",
+    "EmailRegisterDialogPresenter.WizardPrevTo1Button.Button.text": "Sebelumnya",
+    "EmailRegisterDialogPresenter.WizardPrevTo2Button.Button.text": "Sebelumnya",
+    "EmailRegisterDialogPresenter.WizardPrevTo3Button.Button.text": "Sebelumnya",
+    "EmailRegisterDialogPresenter.WizardNextTo2Button.Button.text": "Lanjut",
+    "EmailRegisterDialogPresenter.WizardNextTo3Button.Button.text": "Lanjut",
+    "EmailRegisterDialogPresenter.WizardNextTo4Button.Button.text": "Lanjut",
     "EmailRegisterDialogPresenter.LoginLink.Label.text": "Masuk",
     "EmailRegisterDialogPresenter.AlreadyHaveAccount.Label.text": "Sudah punya akun?",
     "EmailRegisterDialogPresenter.ErrUnderage.Label.text": "Usia minimal 18 tahun",
@@ -142,6 +149,14 @@
 
     "Title.Text.ContactSupport": "Hubungi Dukungan",
     "User.Banned.Info": "Akun Anda telah diblokir sementara dari memainkan game ini. Jika hal ini tidak terduga,",
-    "User.Banned.Info2": "silakan <color=#3B82F6>hubungi dukungan kami</color>."
+    "User.Banned.Info2": "silakan <color=#3B82F6>hubungi dukungan kami</color>.",
+
+    "ConnectAccountItem.Connect": "Sambungkan",
+
+    "CustomPaymentCompleteDialogPresenter.Message.Label.text": "Halaman pembayaran telah dibuka di browser Anda. Kecuali Anda ingin membatalkan, jangan tutup jendela pop-up ini hingga Anda menyelesaikan pembayaran.",
+
+    "CustomPaymentCompleteDialogPresenter.CustomPaymentCSButton.Button.text": "Kontak CS",
+    "CustomPaymentCompleteDialogPresenter.CustomPaymentCompleteButton.Button.text": "Pembayaran Selesai",
+    "CustomPaymentCompleteDialogPresenter.OrderVerificationFailedMessage": "Pembayaran Anda belum terverifikasi. Silakan coba kembali."
 
 }

@@ -35,6 +35,13 @@
     "EmailRegisterDialogPresenter.ErrPasswordEmpty.Label.text": "Không được để trống mật khẩu",
     "EmailRegisterDialogPresenter.ErrUnderage.Label.text": "Độ tuổi tối thiểu là 18 tuổi",
     "EmailRegisterDialogPresenter.ContinueButton.Button.text": "Tiếp tục",
+    "EmailRegisterDialogPresenter.WizardContinueButton.Button.text": "Tiếp tục",
+    "EmailRegisterDialogPresenter.WizardPrevTo1Button.Button.text": "Trước",
+    "EmailRegisterDialogPresenter.WizardPrevTo2Button.Button.text": "Trước",
+    "EmailRegisterDialogPresenter.WizardPrevTo3Button.Button.text": "Trước",
+    "EmailRegisterDialogPresenter.WizardNextTo2Button.Button.text": "Kế tiếp",
+    "EmailRegisterDialogPresenter.WizardNextTo3Button.Button.text": "Kế tiếp",
+    "EmailRegisterDialogPresenter.WizardNextTo4Button.Button.text": "Kế tiếp",
     "EmailRegisterDialogPresenter.LoginLink.Label.text": "Đăng nhập",
     "EmailRegisterDialogPresenter.AlreadyHaveAccount.Label.text": "Đã có tài khoản?",
     "AccountSelectionDialogPresenter.AccountSelectionInfo.Label.text": "Chọn tài khoản",
@@ -127,6 +134,12 @@
     "Select.Country": "Chọn quốc gia",
     "Title.Text.ContactSupport": "Liên hệ hỗ trợ",
     "User.Banned.Info": "Tài khoản của bạn đã bị cấm chơi tạm thời. Nếu bạn cho rằng đây là sự nhầm lẫn,",
-    "User.Banned.Info2": "vui lòng <color=#3B82F6>liên hệ đội ngũ hỗ trợ của chúng tôi</color>."
+    "User.Banned.Info2": "vui lòng <color=#3B82F6>liên hệ đội ngũ hỗ trợ của chúng tôi</color>.",
 
+    "ConnectAccountItem.Connect": "Kết nối",
+
+    "CustomPaymentCompleteDialogPresenter.Message.Label.text": "Trang thanh toán của bạn hiện đã mở trong trình duyệt của bạn. Trừ khi bạn muốn hủy, đừng đóng cửa sổ bật lên này cho đến khi giao dịch hoàn tất.",
+    "CustomPaymentCompleteDialogPresenter.CustomPaymentCSButton.Button.text": "Hỗ trợ khách hàng",
+    "CustomPaymentCompleteDialogPresenter.CustomPaymentCompleteButton.Button.text": "Hoàn thành",
+    "CustomPaymentCompleteDialogPresenter.OrderVerificationFailedMessage": "Không thể xác minh thanh toán của bạn. Vui lòng thử lại sau."
 }

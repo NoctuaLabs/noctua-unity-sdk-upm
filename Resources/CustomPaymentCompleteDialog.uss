@@ -27,7 +27,7 @@
 }
 
 .secondary-button {
-    background-color: rgb(45, 49, 56);
+    background-color: transparent;
     border-color: rgb(59, 130, 246);
     color: rgb(59, 130, 246);
     border-width: 1px;
