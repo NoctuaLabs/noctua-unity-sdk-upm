@@ -37,6 +37,23 @@ namespace com.noctuagames.sdk
         {
             var language = "en";
 
+            // Determine by this priority: user pref, region, system
+
+            // 1. Get from user profiles first.
+            if (PlayerPrefs.HasKey(PlayerPrefsKeyUserPrefsLanguage))
+            {
+                var userPrefsLanguage = PlayerPrefs.GetString(PlayerPrefsKeyUserPrefsLanguage, "");
+
+                if (!string.IsNullOrEmpty(userPrefsLanguage))
+                {
+                    _log.Debug("GetLanguage: using language from user preferences");
+                    language = userPrefsLanguage;
+                    return language;
+                }
+            } else {
+                _log.Debug("GetLanguage: PlayerPrefsKeyUserPrefsLanguage is empty");
+            }
+
             // 2. Get from region
             if (!string.IsNullOrEmpty(_region))
             {
