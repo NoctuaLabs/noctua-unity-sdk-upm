@@ -187,6 +187,34 @@
     margin-left: 0;
 }
 
+.secondary-button {
+    background-color: transparent;
+    border-width: 1px;
+    border-color: rgb(59, 130, 246);
+    color: rgb(59, 130, 246):
+    height: 40px;
+    width: 100%;
+    padding-top: 14px;
+    padding-right: 24px;
+    padding-bottom: 14px;
+    padding-left: 24px;
+    border-top-left-radius: 10px;
+    border-top-right-radius: 10px;
+    border-bottom-right-radius: 10px;
+    border-bottom-left-radius: 10px;
+    margin-top: 0;
+    margin-right: 0;
+    margin-bottom: 0;
+    margin-left: 0;
+}
+
+.secondary-button:hover {
+    background-color: rgb(81, 144, 247);
+    border-width: 0;
+    border-color: transparent;
+    color: rgb(71, 75, 78);
+}
+
 .dialog-button:disabled {
     background-color: rgb(71, 75, 78);
     border-width: 0;
@@ -512,4 +540,20 @@ Label:hover {
     padding-right: 0;
     padding-bottom: 0;
     padding-left: 0;
+}
+
+.generic-register-footer {
+    height: 100px;
+}
+
+.wizard-register-footer {
+    height: 0px;
+}
+
+.generic-register-errbox {
+    margin-bottom: 10px;
+}
+
+.wizard-register-errbox {
+    margin-bottom: 55px;
 }

@@ -40,9 +40,12 @@ namespace com.noctuagames.sdk.UI
         private TextField _address;
         private List<TextField> textFields;
         private Button continueButton;
+        private Button wizardContinueButton;
         private GlobalConfig _config;
         private List<string> _phoneCodeList = new List<string>();
         private List<string> _countryList = new List<string>();
+
+        private int _wizardPage = 0;
 
         protected override void Attach(){}
         protected override void Detach(){}
@@ -53,13 +56,33 @@ namespace com.noctuagames.sdk.UI
             HideAllErrors();
         }
 
-        private void Update()
+        private async void Update()
         {
             if (panelVE == null) return;
 
             if (TouchScreenKeyboard.visible && !panelVE.ClassListContains("dialog-box-keyboard-shown"))
             {
+                // Hide the button to avoid double tap
+                View.Q<Button>("WizardNextTo2Button").AddToClassList("hide");
+                View.Q<Button>("WizardNextTo3Button").AddToClassList("hide");
+                View.Q<Button>("WizardNextTo4Button").AddToClassList("hide");
+                View.Q<Button>("WizardPrevTo1Button").AddToClassList("hide");
+                View.Q<Button>("WizardPrevTo2Button").AddToClassList("hide");
+                View.Q<Button>("WizardPrevTo3Button").AddToClassList("hide");
+                View.Q<Button>("ContinueButton").AddToClassList("hide");
+                View.Q<Button>("WizardContinueButton").AddToClassList("hide");
+                await Task.Delay(250);
                 panelVE.AddToClassList("dialog-box-keyboard-shown");
+                await Task.Delay(250);
+                // Show it again.
+                View.Q<Button>("WizardNextTo2Button").RemoveFromClassList("hide");
+                View.Q<Button>("WizardNextTo3Button").RemoveFromClassList("hide");
+                View.Q<Button>("WizardNextTo4Button").RemoveFromClassList("hide");
+                View.Q<Button>("WizardPrevTo1Button").RemoveFromClassList("hide");
+                View.Q<Button>("WizardPrevTo2Button").RemoveFromClassList("hide");
+                View.Q<Button>("WizardPrevTo3Button").RemoveFromClassList("hide");
+                View.Q<Button>("ContinueButton").RemoveFromClassList("hide");
+                View.Q<Button>("WizardContinueButton").RemoveFromClassList("hide");
             }
 
             if (!TouchScreenKeyboard.visible && panelVE.ClassListContains("dialog-box-keyboard-shown"))
@@ -121,6 +144,7 @@ namespace com.noctuagames.sdk.UI
             showRePasswordButton = View.Q<Button>("ShowRePasswordButton");
 
             continueButton = View.Q<Button>("ContinueButton");
+            wizardContinueButton = View.Q<Button>("WizardContinueButton");
             var backButton = View.Q<Button>("BackButton");
             var loginLink = View.Q<Label>("LoginLink");
 
@@ -136,7 +160,7 @@ namespace com.noctuagames.sdk.UI
             _dateOfIssue = View.Q<TextField>("DateOfIssueTF");
             _address = View.Q<TextField>("AddressTF");
 
-            if(!string.IsNullOrEmpty(_config?.Noctua?.Flags))
+            if (!string.IsNullOrEmpty(_config?.Noctua?.Flags) && _config!.Noctua!.Flags!.Contains("VNLegalPurpose"))
             {
                 SetupDropdown();  
                 SetupDatePicker();
@@ -146,6 +170,7 @@ namespace com.noctuagames.sdk.UI
 
             // Visibility
             continueButton.RemoveFromClassList("hide");
+            wizardContinueButton.RemoveFromClassList("hide");
 
             // Default values
             if (clearForm) {
@@ -162,17 +187,7 @@ namespace com.noctuagames.sdk.UI
                 _address.value = "";
             }
 
-            if(string.IsNullOrEmpty(_config?.Noctua?.Flags))
-            {
-                textFields = new List<TextField>
-                {
-                    emailField,
-                    passwordField,
-                    rePasswordField
-
-                };
-            }
-            else
+            if (!string.IsNullOrEmpty(_config?.Noctua?.Flags) && _config!.Noctua!.Flags!.Contains("VNLegalPurpose"))
             {
                 textFields = new List<TextField>
                 {
@@ -188,11 +203,23 @@ namespace com.noctuagames.sdk.UI
                     _address
                 };
             }
+            else
+            {
+                textFields = new List<TextField>
+                {
+                    emailField,
+                    passwordField,
+                    rePasswordField
+
+                };
+            }
 
             Utility.UpdateButtonState(textFields, continueButton);
+            Utility.UpdateButtonState(textFields, wizardContinueButton);
 
             // Callbacks
             continueButton.RegisterCallback<PointerUpEvent>(OnContinueButtonClick);
+            wizardContinueButton.RegisterCallback<PointerUpEvent>(OnContinueButtonClick);
             backButton.RegisterCallback<PointerUpEvent>(OnBackButtonClick);
             emailField.RegisterValueChangedCallback(evt => OnEmailValueChanged(emailField));
             passwordField.RegisterValueChangedCallback(evt => OnPasswordValueChanged(passwordField));
@@ -209,16 +236,85 @@ namespace com.noctuagames.sdk.UI
             rePasswordField.hideMobileInput = true;
 
             //Behaviour whitelabel - VN
-            if (!string.IsNullOrEmpty(_config?.Noctua?.Flags))
+            if (!string.IsNullOrEmpty(_config?.Noctua?.Flags) && _config!.Noctua!.Flags!.Contains("VNLegalPurpose"))
             {
                 _fullname.RegisterValueChangedCallback(evt => OnValueChanged(_fullname));
                 _phoneNumber.RegisterValueChangedCallback(evt => OnValueChanged(_phoneNumber));
                 _idCard.RegisterValueChangedCallback(evt => OnValueChanged(_idCard));
                 _placeOfIssue.RegisterValueChangedCallback(evt => OnValueChanged(_placeOfIssue));
                 _address.RegisterValueChangedCallback(evt => OnValueChanged(_address));
+            
+                // Wizard navigation
+                View.Q<Button>("WizardNextTo2Button").RegisterCallback<PointerUpEvent>(NavigateToWizard2);
+                View.Q<Button>("WizardNextTo3Button").RegisterCallback<PointerUpEvent>(NavigateToWizard3);
+                View.Q<Button>("WizardNextTo4Button").RegisterCallback<PointerUpEvent>(NavigateToWizard4);
+                View.Q<Button>("WizardPrevTo1Button").RegisterCallback<PointerUpEvent>(NavigateToWizard1);
+                View.Q<Button>("WizardPrevTo2Button").RegisterCallback<PointerUpEvent>(NavigateToWizard2);
+                View.Q<Button>("WizardPrevTo3Button").RegisterCallback<PointerUpEvent>(NavigateToWizard3);
+                // Hide the footer content
+                View.Q<VisualElement>("footerContent").AddToClassList("hide");
+                // Navigate to the first wizard
+                View.Q<VisualElement>("RegisterWizard1NextButton").RemoveFromClassList("hide");
+                NavigateToWizard1();
+            } else {
+                // Show the footer content
+                View.Q<VisualElement>("AdditionalFooterContent").RemoveFromClassList("hide");
+                View.Q<VisualElement>("footerContent").RemoveFromClassList("hide");
+                View.Q<VisualElement>("footerContent").AddToClassList("generic-register-footer");
+                View.Q<VisualElement>("ErrBox").AddToClassList("generic-register-errbox");
             }
 
             loginLink.RegisterCallback<PointerUpEvent>(OnLoginLinkClick);
+
+
+
+        }
+
+        public async void NavigateToWizard1(PointerUpEvent evt = null)
+        {
+            _wizardPage = 1;
+            View.Q<VisualElement>("RegisterWizard1").RemoveFromClassList("hide");
+            View.Q<VisualElement>("RegisterWizard2").AddToClassList("hide");
+            View.Q<VisualElement>("RegisterWizard3").AddToClassList("hide");
+            View.Q<VisualElement>("RegisterWizard4").AddToClassList("hide");
+            View.Q<VisualElement>("ErrBox").AddToClassList("hide");
+            View.Q<VisualElement>("AdditionalFooterContent").RemoveFromClassList("hide");
+            View.Q<VisualElement>("footerContent").AddToClassList("wizard-register-footer");
+        }
+
+        public async void NavigateToWizard2(PointerUpEvent evt = null)
+        {
+            _wizardPage = 2;
+            View.Q<VisualElement>("footerContent").AddToClassList("hide");
+            View.Q<VisualElement>("RegisterWizard1").AddToClassList("hide");
+            View.Q<VisualElement>("RegisterWizard2").RemoveFromClassList("hide");
+            View.Q<VisualElement>("RegisterWizard3").AddToClassList("hide");
+            View.Q<VisualElement>("RegisterWizard4").AddToClassList("hide");
+            View.Q<VisualElement>("ErrBox").AddToClassList("hide");
+            View.Q<VisualElement>("AdditionalFooterContent").AddToClassList("hide");
+        }
+
+        public async void NavigateToWizard3(PointerUpEvent evt = null) {
+            ResetErrorMessage();
+            _wizardPage = 3;
+            View.Q<VisualElement>("RegisterWizard1").AddToClassList("hide");
+            View.Q<VisualElement>("RegisterWizard2").AddToClassList("hide");
+            View.Q<VisualElement>("RegisterWizard3").RemoveFromClassList("hide");
+            View.Q<VisualElement>("RegisterWizard4").AddToClassList("hide");
+            View.Q<VisualElement>("ErrBox").AddToClassList("hide");
+            View.Q<VisualElement>("footerContent").AddToClassList("hide");
+            View.Q<VisualElement>("AdditionalFooterContent").AddToClassList("hide");
+        }
+
+        public async void NavigateToWizard4(PointerUpEvent evt = null) {
+            _wizardPage = 4;
+            View.Q<VisualElement>("RegisterWizard1").AddToClassList("hide");
+            View.Q<VisualElement>("RegisterWizard2").AddToClassList("hide");
+            View.Q<VisualElement>("RegisterWizard3").AddToClassList("hide");
+            View.Q<VisualElement>("RegisterWizard4").RemoveFromClassList("hide");
+            View.Q<VisualElement>("ErrBox").RemoveFromClassList("hide");
+            View.Q<VisualElement>("ErrBox").AddToClassList("wizard-register-errbox");
+            View.Q<VisualElement>("AdditionalFooterContent").AddToClassList("hide");
         }
 
         #region Check Text Field Focus
@@ -303,6 +399,7 @@ namespace com.noctuagames.sdk.UI
                     textField.value = _date.ToString("dd/MM/yyyy");
                     textField.labelElement.style.display = DisplayStyle.None;
                     Utility.UpdateButtonState(textFields, continueButton);
+                    Utility.UpdateButtonState(textFields, wizardContinueButton);
                 });
             }
 
@@ -369,6 +466,10 @@ namespace com.noctuagames.sdk.UI
 
             View.Q<Button>("ContinueButton").AddToClassList("hide");            
             View.Q<VisualElement>("Spinner").RemoveFromClassList("hide");
+            // Wizard
+            View.Q<Button>("WizardContinueButton").AddToClassList("hide");            
+            View.Q<Button>("WizardPrevTo3Button").AddToClassList("hide");
+            View.Q<VisualElement>("WizardSpinner").RemoveFromClassList("hide");
 
             var emailAddress = _email;
             var password = _password;
@@ -376,60 +477,94 @@ namespace com.noctuagames.sdk.UI
 
             // Validation
             if (string.IsNullOrEmpty(emailAddress)) {
+                _log.Debug("form validation: email is empty");
                 View.Q<Label>("ErrEmailEmpty").RemoveFromClassList("hide");
                 View.Q<Button>("ContinueButton").RemoveFromClassList("hide");
                 View.Q<VisualElement>("Spinner").AddToClassList("hide");
+                // Wizard
+                View.Q<Button>("WizardContinueButton").RemoveFromClassList("hide");            
+                View.Q<Button>("WizardPrevTo3Button").RemoveFromClassList("hide");
+                View.Q<VisualElement>("WizardSpinner").AddToClassList("hide");
                 return;
             }
 
             if (!IsValidEmail(emailAddress)) {
+                _log.Debug("form validation: email is not valid");
                 View.Q<Label>("ErrEmailInvalid").RemoveFromClassList("hide");
                 View.Q<Button>("ContinueButton").RemoveFromClassList("hide");
                 View.Q<VisualElement>("Spinner").AddToClassList("hide");
+                // Wizard
+                View.Q<Button>("WizardContinueButton").RemoveFromClassList("hide");            
+                View.Q<Button>("WizardPrevTo3Button").RemoveFromClassList("hide");
+                View.Q<VisualElement>("WizardSpinner").AddToClassList("hide");
                 return;
             }
 
             if (string.IsNullOrEmpty(password)) {
+                _log.Debug("form validation: password is empty");
                 View.Q<Label>("ErrPasswordEmpty").RemoveFromClassList("hide");
                 View.Q<Button>("ContinueButton").RemoveFromClassList("hide");
                 View.Q<VisualElement>("Spinner").AddToClassList("hide");
+                // Wizard
+                View.Q<Button>("WizardContinueButton").RemoveFromClassList("hide");            
+                View.Q<Button>("WizardPrevTo3Button").RemoveFromClassList("hide");
+                View.Q<VisualElement>("WizardSpinner").AddToClassList("hide");
                 return;
             }
 
             if (password?.Length < 6) {
+                _log.Debug("form validation: password is not valid");
                 View.Q<Label>("ErrPasswordTooShort").RemoveFromClassList("hide");
                 View.Q<Button>("ContinueButton").RemoveFromClassList("hide");
                 View.Q<VisualElement>("Spinner").AddToClassList("hide");
+                // Wizard
+                View.Q<Button>("WizardContinueButton").RemoveFromClassList("hide");            
+                View.Q<Button>("WizardPrevTo3Button").RemoveFromClassList("hide");
+                View.Q<VisualElement>("WizardSpinner").AddToClassList("hide");
                 return;
             }
 
-
             if (!password.Equals(rePassword)) {
+                _log.Debug("form validation: mismatched repeated password");
                 View.Q<Label>("ErrPasswordMismatch").RemoveFromClassList("hide");
                 View.Q<Button>("ContinueButton").RemoveFromClassList("hide");
                 View.Q<VisualElement>("Spinner").AddToClassList("hide");
+                // Wizard
+                View.Q<Button>("WizardContinueButton").RemoveFromClassList("hide");            
+                View.Q<Button>("WizardPrevTo3Button").RemoveFromClassList("hide");
+                View.Q<VisualElement>("WizardSpinner").AddToClassList("hide");
                 return;
             }
 
             Dictionary<string, string> regExtra = null;
             
-            if (!string.IsNullOrEmpty(_config?.Noctua?.Flags))
+            if (!string.IsNullOrEmpty(_config?.Noctua?.Flags) && _config!.Noctua!.Flags!.Contains("VNLegalPurpose"))
             {
                 if(_gender.value == "Select Gender")
                 {
+                    _log.Debug("form validation: gender is empty");
                     View.Q<Label>("ErrEmailEmpty").text = "Please Select Gender!";
                     View.Q<Label>("ErrEmailEmpty").RemoveFromClassList("hide");
                     View.Q<Button>("ContinueButton").RemoveFromClassList("hide");
                     View.Q<VisualElement>("Spinner").AddToClassList("hide");
+                    // Wizard
+                    View.Q<Button>("WizardContinueButton").RemoveFromClassList("hide");            
+                    View.Q<Button>("WizardPrevTo3Button").RemoveFromClassList("hide");
+                    View.Q<VisualElement>("WizardSpinner").AddToClassList("hide");
                     return;
                 }
 
                 if(_country.value == "Select Country")
                 {
+                    _log.Debug("form validation: country is empty");
                     View.Q<Label>("ErrEmailEmpty").text = "Please Select Country!";
                     View.Q<Label>("ErrEmailEmpty").RemoveFromClassList("hide");
                     View.Q<Button>("ContinueButton").RemoveFromClassList("hide");
                     View.Q<VisualElement>("Spinner").AddToClassList("hide");
+                    // Wizard
+                    View.Q<Button>("WizardContinueButton").RemoveFromClassList("hide");            
+                    View.Q<Button>("WizardPrevTo3Button").RemoveFromClassList("hide");
+                    View.Q<VisualElement>("WizardSpinner").AddToClassList("hide");
                     return;
                 }
 
@@ -439,9 +574,14 @@ namespace com.noctuagames.sdk.UI
                     
                 if (birthDate.AddYears(18) > DateTime.UtcNow)
                 {
+                    _log.Debug("form validation: birthdate under 18");
                     View.Q<Label>("ErrUnderage").RemoveFromClassList("hide");
                     View.Q<Button>("ContinueButton").RemoveFromClassList("hide");
                     View.Q<VisualElement>("Spinner").AddToClassList("hide");
+                    // Wizard
+                    View.Q<Button>("WizardContinueButton").RemoveFromClassList("hide");            
+                    View.Q<Button>("WizardPrevTo3Button").RemoveFromClassList("hide");
+                    View.Q<VisualElement>("WizardSpinner").AddToClassList("hide");
                         
                     return;
                 }
@@ -472,7 +612,7 @@ namespace com.noctuagames.sdk.UI
                 View.Q<TextField>("PasswordTF").value = string.Empty;
                 View.Q<TextField>("RePasswordTF").value = string.Empty;
 
-                if(!string.IsNullOrEmpty(_config?.Noctua?.Flags))
+                if (!string.IsNullOrEmpty(_config?.Noctua?.Flags) && _config!.Noctua!.Flags!.Contains("VNLegalPurpose"))
                 {
                     _fullname.value = string.Empty;
                     _phoneCode.value = string.Empty;
@@ -489,6 +629,10 @@ namespace com.noctuagames.sdk.UI
                 View.Q<Button>("ContinueButton").RemoveFromClassList("hide");
                 View.Q<VisualElement>("AdditionalFooterContent").RemoveFromClassList("hide");
                 View.Q<VisualElement>("Spinner").AddToClassList("hide");
+                // Wizard
+                View.Q<Button>("WizardContinueButton").RemoveFromClassList("hide");            
+                View.Q<Button>("WizardPrevTo3Button").RemoveFromClassList("hide");
+                View.Q<VisualElement>("WizardSpinner").AddToClassList("hide");
 
             } 
             catch (Exception e) {
@@ -505,13 +649,39 @@ namespace com.noctuagames.sdk.UI
                 View.Q<Button>("ContinueButton").RemoveFromClassList("hide");
                 View.Q<VisualElement>("AdditionalFooterContent").RemoveFromClassList("hide");
                 View.Q<VisualElement>("Spinner").AddToClassList("hide");
+                // Wizard
+                View.Q<Button>("WizardContinueButton").RemoveFromClassList("hide");            
+                View.Q<Button>("WizardPrevTo3Button").RemoveFromClassList("hide");
+                View.Q<VisualElement>("WizardSpinner").AddToClassList("hide");
             }
+        }
+
+        private void ResetErrorMessage()
+        {
+            View.Q<Label>("ErrCode").AddToClassList("hide");
+            View.Q<Label>("ErrEmailEmpty").AddToClassList("hide");
+            View.Q<Label>("ErrPasswordTooShort").AddToClassList("hide");
+            View.Q<Label>("ErrEmailInvalid").AddToClassList("hide");
+            View.Q<Label>("ErrPasswordEmpty").AddToClassList("hide");
+            View.Q<Label>("ErrPasswordMismatch").AddToClassList("hide");
+            View.Q<Label>("ErrUnderage").AddToClassList("hide");
         }
 
         private void OnBackButtonClick(PointerUpEvent evt)
         {
             _log.Debug("clicking back button");
-            
+
+            if (_wizardPage == 4) {
+                NavigateToWizard3();
+                return;
+            } else if (_wizardPage == 3) {
+                NavigateToWizard2();
+                return;
+            } else if (_wizardPage == 2) {
+                NavigateToWizard1();
+                return;
+            }
+
             View.Q<VisualElement>("Spinner").AddToClassList("hide");
             View.Q<Button>("ContinueButton").RemoveFromClassList("hide");
 
@@ -532,6 +702,7 @@ namespace com.noctuagames.sdk.UI
             _email = textField.value;
 
             Utility.UpdateButtonState(textFields, continueButton);
+            Utility.UpdateButtonState(textFields, wizardContinueButton);
         }
 
         private void OnPasswordValueChanged(TextField textField)
@@ -546,6 +717,7 @@ namespace com.noctuagames.sdk.UI
             _password = textField.value;
 
             Utility.UpdateButtonState(textFields, continueButton);
+            Utility.UpdateButtonState(textFields, wizardContinueButton);
         }
 
         private void OnRePasswordValueChanged(TextField textField)
@@ -560,6 +732,7 @@ namespace com.noctuagames.sdk.UI
             _rePassword = textField.value;
 
             Utility.UpdateButtonState(textFields, continueButton);
+            Utility.UpdateButtonState(textFields, wizardContinueButton);
         }
 
         //Behaviour whitelabel - VN
@@ -572,6 +745,7 @@ namespace com.noctuagames.sdk.UI
             }
 
             Utility.UpdateButtonState(textFields, continueButton);           
+            Utility.UpdateButtonState(textFields, wizardContinueButton);
         }
 
         private void HideAllErrors()
