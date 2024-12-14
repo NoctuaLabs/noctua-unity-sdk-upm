@@ -48,21 +48,21 @@ namespace com.noctuagames.sdk
                 var _regionToLower = _region.ToLower();
                 if (_regionToLower == "th")
                 {
-                    _log.Info("GetLanguage: using language by region: " + _region);
+                    _log.Debug("GetLanguage: using language by region: " + _region);
                     language = "th";
                     return language;
                 } else if (_regionToLower == "vn")
                 {
-                    _log.Info("GetLanguage: using language by region: " + _region);
+                    _log.Debug("GetLanguage: using language by region: " + _region);
                     language = "vi";
                     return language;
                 } else {
-                    _log.Info("GetLanguage: no language mapping for this region: " + _region);
+                    _log.Debug("GetLanguage: no language mapping for this region: " + _region);
                 }
             }
 
             // 3. Fallback to system language
-            _log.Info("GetLanguage: using language by system language");
+            _log.Debug("GetLanguage: using language by system language");
             var languageMapping = new Dictionary<SystemLanguage, string>
             {
                 { SystemLanguage.Afrikaans, "af" },
