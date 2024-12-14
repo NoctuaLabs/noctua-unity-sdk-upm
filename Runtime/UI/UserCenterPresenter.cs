@@ -10,6 +10,7 @@ using System.Text.RegularExpressions;
 using System.Linq;
 using System.Reflection;
 using com.noctuagames.sdk.Events;
+using System.Threading.Tasks;
 
 namespace com.noctuagames.sdk.UI
 {
@@ -173,6 +174,7 @@ namespace com.noctuagames.sdk.UI
         {
             try
             {
+                Model.ShowLoadingProgress(true);
                 if (Model.AuthService.RecentAccount == null)
                 {
                     throw new NoctuaException(NoctuaErrorCode.Authentication, "No account is logged in.");
@@ -186,6 +188,9 @@ namespace com.noctuagames.sdk.UI
                 View.Q<Label>("PlayerName").text = isGuest ? "Guest " + user.Id  : user?.Nickname;
                 View.Q<Label>("UserIdLabel").text = user?.Id.ToString() ?? "";
                 _userIDValue = user?.Id.ToString() ?? "";
+
+                await Task.Delay(200);
+                Model.ShowLoadingProgress(false);
 
                 //Edit Profile - Setup Data
                 if(!isGuest) 
@@ -301,6 +306,7 @@ namespace com.noctuagames.sdk.UI
             View.Q<Button>("BackButton").RegisterCallback<PointerUpEvent>(_carouselItems => OnBackEditProfile());
             View.Q<VisualElement>("SwitchProfile").RegisterCallback<PointerUpEvent>(_ => OnSwitchProfile());
             View.Q<VisualElement>("LogoutAccount").RegisterCallback<PointerUpEvent>(_ => OnLogout());
+            //View.Q<VisualElement>("PendingPurchases").RegisterCallback<PointerUpEvent>(_ => OnPendingPurchases());
             
             _helpButton.RegisterCallback<PointerUpEvent>(OnHelp);
             _copyIcon.RegisterCallback<PointerUpEvent>(_ => OnCopyText());
@@ -795,6 +801,14 @@ namespace com.noctuagames.sdk.UI
             
             Visible = false;
             Model.ShowAccountSelection();
+            OnUIEditProfile(false);
+        }
+        private void OnPendingPurchases()
+        {
+            _log.Debug("clicking pending purchases");
+
+            Visible = false;
+            Model.ShowPendingPurchasesDialog();
             OnUIEditProfile(false);
         }
 

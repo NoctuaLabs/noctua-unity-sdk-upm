@@ -56,6 +56,7 @@ namespace com.noctuagames.sdk
         private readonly WelcomeNotificationPresenter _welcome;
 
         private NoctuaAuthenticationService _authService;
+        private NoctuaIAPService _iapService;
         private GameObject _socialAuthObject;
         private SocialAuthenticationService _socialAuth;
         
@@ -72,6 +73,7 @@ namespace com.noctuagames.sdk
         internal AuthenticationModel(
             UIFactory uiFactory, 
             NoctuaAuthenticationService authService, 
+            NoctuaIAPService iapService,
             GlobalConfig config,
             EventSender eventSender = null,
             NoctuaLocale locale = null
@@ -273,6 +275,11 @@ namespace com.noctuagames.sdk
             }
 
             return _locale.GetLanguage();
+        }
+
+        public async void ShowPendingPurchasesDialog()
+        {
+            _uiFactory.ShowPendingPurchasesDialog();
         }
     }
     

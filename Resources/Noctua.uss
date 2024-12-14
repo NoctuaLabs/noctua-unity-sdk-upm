@@ -311,6 +311,13 @@
     background-position: center;
 }
 
+.pending-purchases-icon {
+    background-image: url("project://database/Packages/com.noctuagames.sdk/Resources/PendingPurchasesIcon.png");
+    width: 20px;
+    height: 16px;
+    background-position: center;
+}
+
 .edit-profile-image {
     background-image: url("project://database/Packages/com.noctuagames.sdk/Resources/EditProfileImage.png?fileID=21300000&guid=d1fb506cafe4dfa498065b419d96524e&type=3#EditProfileImage");
     width: 80px;

@@ -51,10 +51,12 @@ namespace com.noctuagames.sdk
         private readonly UIFactory _uiFactory;
         private readonly AuthenticationModel _uiModel;
         private readonly NoctuaAuthenticationService _service;
+        private readonly NoctuaIAPService _iapService;
         private OauthRedirectListener _oauthOauthRedirectListener;
 
         internal NoctuaAuthentication(
             NoctuaAuthenticationService service, 
+            NoctuaIAPService iapService,
             UIFactory uiFactory, 
             GlobalConfig config,
             EventSender eventSender = null,
@@ -62,9 +64,10 @@ namespace com.noctuagames.sdk
         )
         {
             _service = service;
+            _iapService = iapService;
                         
             _uiFactory = uiFactory;
-            _uiModel = new AuthenticationModel(_uiFactory, _service, config, eventSender, locale);
+            _uiModel = new AuthenticationModel(_uiFactory, _service, _iapService, config, eventSender, locale);
         }
 
         public void Enable()

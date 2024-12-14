@@ -42,6 +42,12 @@
                         <ui:VisualElement class="second-switch-account-icon" />
                         <ui:Label name="MenuSwitchProfile" text="Switch Profile" class="more-options-menu-item-label" />
                     </ui:VisualElement>
+                    <!--
+                    <ui:VisualElement name="PendingPurchases" class="more-options-menu-item">
+                        <ui:VisualElement class="pending-purchases-icon" />
+                        <ui:Label name="MenuPendingPurchases" text="Pending Purchases" class="more-options-menu-item-label" />
+                    </ui:VisualElement>
+                    -->
                     <ui:VisualElement name="DeleteAccount" class="more-options-menu-item">
                         <ui:VisualElement class="delete-icon" />
                         <ui:Label name="MenuDeleteAccount" text="Delete Account" class="more-options-menu-item-label delete-account-label" />

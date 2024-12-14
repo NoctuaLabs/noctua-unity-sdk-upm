@@ -71,9 +71,9 @@ namespace com.noctuagames.sdk.UI
                 View.Q<Button>("WizardPrevTo3Button").AddToClassList("hide");
                 View.Q<Button>("ContinueButton").AddToClassList("hide");
                 View.Q<Button>("WizardContinueButton").AddToClassList("hide");
-                await Task.Delay(250);
+                await Task.Delay(100);
                 panelVE.AddToClassList("dialog-box-keyboard-shown");
-                await Task.Delay(250);
+                await Task.Delay(100);
                 // Show it again.
                 View.Q<Button>("WizardNextTo2Button").RemoveFromClassList("hide");
                 View.Q<Button>("WizardNextTo3Button").RemoveFromClassList("hide");
@@ -364,8 +364,6 @@ namespace com.noctuagames.sdk.UI
 
             _gender.choices = genderChoices; 
             _gender.value = Utility.GetTranslation("Select.Gender",  Utility.LoadTranslations(Model.GetLanguage()));
-            Debug.Log("===========================================");
-            Debug.Log("===========================================" + _gender.value);
 
             _gender.style.color = textColor;
 
