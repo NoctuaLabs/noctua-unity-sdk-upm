@@ -483,6 +483,14 @@ namespace com.noctuagames.sdk
                             AccessToken = _accessTokenProvider.AccessToken,
                         }
                     );
+
+                    var message = Utility.GetTranslation("CustomPaymentCompleteDialogPresenter.OrderVerificationFailedMessage",  Utility.LoadTranslations(Noctua.Platform.Locale.GetLanguage()));
+                    if (message == "" || message == "CustomPaymentCompleteDialogPresenter.OrderVerificationFailedMessage")
+                    {
+                        message = "Your payment couldn’t be verified. Please retry later.";
+                    }
+
+                    throw new NoctuaException(NoctuaErrorCode.Payment, $"{message} Status: {verifyOrderResponse.Status.ToString()}");
                 }
 
                 return verifyOrderResponse;
@@ -712,10 +720,13 @@ namespace com.noctuagames.sdk
 
                     _log.Debug(orderResponse.PaymentUrl);
                     Application.OpenURL(orderResponse.PaymentUrl);
-                    var continueToVerify = await _uiFactory.ShowCustomPaymentCompleteDialog();
 
-                    if (!continueToVerify && _enabledPaymentTypes.Count > 1)
+                    paymentResult = new PaymentResult{Status = PaymentStatus.Confirmed};
+
+                    var continueToVerify = await _uiFactory.ShowCustomPaymentCompleteDialog();
+                    if (!continueToVerify) // Custom payment get canceled.
                     {
+                        var verifiedAtCancelation = false;
                         try
                         {
                             // At least try to verify before fallback to secondary paymennt.
@@ -724,26 +735,49 @@ namespace com.noctuagames.sdk
                                 Id = orderResponse.Id,
                                 ReceiptData = orderResponse.Id.ToString(),
                             };
-                            await VerifyOrderImplAsync(
+                            var verifyResponseAtCancel = await VerifyOrderImplAsync(
                                 orderRequest,
                                 verifyReq,
                                 _accessTokenProvider.AccessToken
                             );
+
+                            // If verified, cancel the falback to secondary payment.
+                            if (verifyResponseAtCancel.Status == OrderStatus.completed)
+                            {
+                                RemoveFromRetryPendingPurchasesByOrderID(orderResponse.Id);
+                                verifiedAtCancelation = true;
+                            }
                         }
                         catch (Exception e) 
                         {
+                            // Ignore the exception because we just want to try to verify
+                            // just in case it's already paid
                             _log.Exception(e);
                         }
 
-                        // Custom payment get canceled. Fallback to secondary payment option.
-                        return await PurchaseItemAsync(purchaseRequest, true);
-                    } else if (!continueToVerify && _enabledPaymentTypes.Count == 1)
-                    {
-                        RemoveFromRetryPendingPurchasesByOrderID(orderResponse.Id);
+                        if (_enabledPaymentTypes.Count > 1 && !verifiedAtCancelation)
+                        {
+                            // Fallback to secondary payment option.
+                            return await PurchaseItemAsync(purchaseRequest, true);
+                        } else if (verifiedAtCancelation) {
+                            // Verified at cancelation, set the paymentResult to confirmed
+                            // to allow this to be processed as successful purchase/payment.
+                            // Double verify will be happened but it's ok.
+                            paymentResult = new PaymentResult{
+                                Status = PaymentStatus.Confirmed
+                            };
+                        } else {
+                            // Custom payment is actually get canceled
+                            // but there is no secondary payment.
+                            RemoveFromRetryPendingPurchasesByOrderID(orderResponse.Id);
+                            paymentResult = new PaymentResult{
+                                Status = PaymentStatus.Canceled,
+                                Message = "Purchase canceled"
+                            };
+                        }
                     }
 
                     // Native browser custom payment is using OrderId as ReceiptData
-                    paymentResult = new PaymentResult{Status = PaymentStatus.Confirmed};
                     paymentResult.ReceiptData = orderResponse.Id.ToString();
                     
                     break;
@@ -844,12 +878,11 @@ namespace com.noctuagames.sdk
             {
                 _uiFactory.ShowLoadingProgress(false);
                 _log.Exception(e);
-                _uiFactory.ShowError(e.Message);
                 
                 throw;
             }
 
-            _uiFactory.ShowGeneralNotification("Payment successful!", true);
+            _uiFactory.ShowGeneralNotification("Purchase successful!", true);
 
             return new PurchaseResponse
             {
