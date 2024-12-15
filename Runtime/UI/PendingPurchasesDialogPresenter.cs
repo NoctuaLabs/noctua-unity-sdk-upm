@@ -61,9 +61,13 @@ namespace com.noctuagames.sdk.UI
             _pendingPurchasesListView = View.Q<ListView>("PendingPurchasesList");
             _pendingPurchasesListView.Rebuild();
 
-            if (_pendingPurchases.Count < 1)
+            if (_pendingPurchases.Count == 0)
             {
                 View.Q<Label>("Title").text = "No pending purchase at the moment";
+            } else if (_pendingPurchases.Count == 1) {
+                View.Q<Label>("Title").text = "Your Pending Purchase";
+            } else {
+                View.Q<Label>("Title").text = "Your Pending Purchases";
             }
 
 
