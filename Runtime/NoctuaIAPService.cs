@@ -3,11 +3,11 @@ using System.Collections.Concurrent;
 using Cysharp.Threading.Tasks;
 using UnityEngine;
 using System.Threading.Tasks;
-using Newtonsoft.Json;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using com.noctuagames.sdk.Events;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using Newtonsoft.Json.Serialization;
 using UnityEngine.Scripting;
@@ -97,6 +97,9 @@ namespace com.noctuagames.sdk
 
         [JsonProperty("extra")]
         public Dictionary<string, string> Extra;
+
+        [JsonProperty("timestamp")]
+        public string Timestamp;
     }
 
     [Preserve]
@@ -620,12 +623,14 @@ namespace com.noctuagames.sdk
                 }
 
                 orderRequest.PriceInUSD = usdProduct.Price;
+                orderRequest.Timestamp = DateTime.Now.ToString();
             
                 _log.Debug("creating order");
 
                 orderResponse = await RetryAsync(() => CreateOrderAsync(orderRequest));
 
                 orderRequest.Id = orderResponse.Id;
+
                 
                 _eventSender?.Send(
                     "purchase_opened",
@@ -727,14 +732,14 @@ namespace com.noctuagames.sdk
                     if (!continueToVerify) // Custom payment get canceled.
                     {
                         var verifiedAtCancelation = false;
-                        try
-                        {
-                            // At least try to verify before fallback to secondary paymennt.
-                            var verifyReq = new VerifyOrderRequest
+                        var verifyReq = new VerifyOrderRequest
                             {
                                 Id = orderResponse.Id,
                                 ReceiptData = orderResponse.Id.ToString(),
                             };
+                        try
+                        {
+                            // At least try to verify before fallback to secondary paymennt.
                             var verifyResponseAtCancel = await VerifyOrderImplAsync(
                                 orderRequest,
                                 verifyReq,
@@ -750,9 +755,18 @@ namespace com.noctuagames.sdk
                         }
                         catch (Exception e) 
                         {
-                            // Ignore the exception because we just want to try to verify
-                            // just in case it's already paid
+                            // TODO Do we really need to retry the canceled purchase?
+                            // What if the user is accidentally tap the close button instead of complete?
                             _log.Exception(e);
+                            EnqueueToRetryPendingPurchases(
+                                new RetryPendingPurchaseItem
+                                {
+                                    OrderId = orderResponse.Id,
+                                    OrderRequest = orderRequest,
+                                    VerifyOrderRequest = verifyReq,
+                                    AccessToken = _accessTokenProvider.AccessToken
+                                }
+                            );
                         }
 
                         if (_enabledPaymentTypes.Count > 1 && !verifiedAtCancelation)
@@ -774,6 +788,17 @@ namespace com.noctuagames.sdk
                                 Status = PaymentStatus.Canceled,
                                 Message = "Purchase canceled"
                             };
+                            // TODO Do we really need to retry the canceled purchase?
+                            // What if the user is accidentally tap the close button instead of complete?
+                            EnqueueToRetryPendingPurchases(
+                                new RetryPendingPurchaseItem
+                                {
+                                    OrderId = orderResponse.Id,
+                                    OrderRequest = orderRequest,
+                                    VerifyOrderRequest = verifyReq,
+                                    AccessToken = _accessTokenProvider.AccessToken
+                                }
+                            );
                         }
                     }
 
@@ -1043,7 +1068,7 @@ namespace com.noctuagames.sdk
             PlayerPrefs.Save();
         }
 
-        private List<RetryPendingPurchaseItem> GetPendingPurchases()
+        public List<RetryPendingPurchaseItem> GetPendingPurchases()
         {
             _log.Info("Noctua.GetPendingPurchases");
             var json = PlayerPrefs.GetString("NoctuaPendingPurchases", string.Empty);
@@ -1276,7 +1301,7 @@ namespace com.noctuagames.sdk
         }
 
         [Preserve]
-        private class RetryPendingPurchaseItem
+        public class RetryPendingPurchaseItem
         {
             public int OrderId;
             public OrderRequest OrderRequest;

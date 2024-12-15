@@ -177,6 +177,7 @@ namespace com.noctuagames.sdk.UI
                 Model.ShowLoadingProgress(true);
                 if (Model.AuthService.RecentAccount == null)
                 {
+                    Model.ShowLoadingProgress(false);
                     throw new NoctuaException(NoctuaErrorCode.Authentication, "No account is logged in.");
                 }
                 
@@ -188,9 +189,6 @@ namespace com.noctuagames.sdk.UI
                 View.Q<Label>("PlayerName").text = isGuest ? "Guest " + user.Id  : user?.Nickname;
                 View.Q<Label>("UserIdLabel").text = user?.Id.ToString() ?? "";
                 _userIDValue = user?.Id.ToString() ?? "";
-
-                await Task.Delay(200);
-                Model.ShowLoadingProgress(false);
 
                 //Edit Profile - Setup Data
                 if(!isGuest) 
@@ -270,6 +268,8 @@ namespace com.noctuagames.sdk.UI
                     _credentialListView.Rebuild();
                 }
                 
+                Model.ShowLoadingProgress(false);
+
                 Visible = true;
                 SetOrientation();
                 
@@ -306,7 +306,7 @@ namespace com.noctuagames.sdk.UI
             View.Q<Button>("BackButton").RegisterCallback<PointerUpEvent>(_carouselItems => OnBackEditProfile());
             View.Q<VisualElement>("SwitchProfile").RegisterCallback<PointerUpEvent>(_ => OnSwitchProfile());
             View.Q<VisualElement>("LogoutAccount").RegisterCallback<PointerUpEvent>(_ => OnLogout());
-            //View.Q<VisualElement>("PendingPurchases").RegisterCallback<PointerUpEvent>(_ => OnPendingPurchases());
+            View.Q<VisualElement>("PendingPurchases").RegisterCallback<PointerUpEvent>(_ => OnPendingPurchases());
             
             _helpButton.RegisterCallback<PointerUpEvent>(OnHelp);
             _copyIcon.RegisterCallback<PointerUpEvent>(_ => OnCopyText());
@@ -996,14 +996,19 @@ namespace com.noctuagames.sdk.UI
         }
 
         private void UpdateUIGuest(bool isGuest) {
-            var moreOptionsButton = View.Q<Button>("MoreOptionsButton");
             var guestContainer = View.Q<VisualElement>("UserGuestUI");
             var stayConnect = View.Q<Label>("ConnectAccountLabel");
             var containerStayConnect = View.Q<VisualElement>("ContainerStayConnect");
+            var moreOptionsButton = View.Q<Button>("MoreOptionsButton");
+            var editProfilebutton = View.Q<VisualElement>("EditProfile");
+            var switchProfileButton = View.Q<VisualElement>("SwitchProfile");
+            var deleteAccountButton = View.Q<VisualElement>("DeleteAccount");
+            var logoutAccountButton = View.Q<VisualElement>("LogoutAccount");
+            // Always show more options button
+            moreOptionsButton.AddToClassList("show");
+            moreOptionsButton.RemoveFromClassList("hide");
 
             if(isGuest) {
-                moreOptionsButton.AddToClassList("hide");
-                moreOptionsButton.RemoveFromClassList("show");
                 _credentialListView.AddToClassList("hide");
                 _credentialListView.RemoveFromClassList("show");
                 stayConnect.AddToClassList("hide");
@@ -1012,9 +1017,12 @@ namespace com.noctuagames.sdk.UI
                 containerStayConnect.RemoveFromClassList("show");
                 guestContainer.AddToClassList("show");
                 guestContainer.RemoveFromClassList("hide");
+                // Hide some menu item in more options button.
+                editProfilebutton.AddToClassList("hide");
+                switchProfileButton.AddToClassList("hide");
+                deleteAccountButton.AddToClassList("hide");
+                logoutAccountButton.AddToClassList("hide");
             } else {
-                moreOptionsButton.AddToClassList("show");
-                moreOptionsButton.RemoveFromClassList("hide");
                 _credentialListView.AddToClassList("show");
                 _credentialListView.RemoveFromClassList("hide");
                 stayConnect.AddToClassList("show");
@@ -1023,6 +1031,11 @@ namespace com.noctuagames.sdk.UI
                 containerStayConnect.RemoveFromClassList("hide");
                 guestContainer.AddToClassList("hide");
                 guestContainer.RemoveFromClassList("show");
+                // Show all items in more options button
+                editProfilebutton.RemoveFromClassList("hide");
+                switchProfileButton.RemoveFromClassList("hide");
+                deleteAccountButton.RemoveFromClassList("hide");
+                logoutAccountButton.RemoveFromClassList("hide");
             }
         }
 

@@ -8,9 +8,25 @@ using com.noctuagames.sdk.UI;
 using Cysharp.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.UIElements;
+using UnityEngine.Scripting;
+using System;
+using System.Text;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Converters;
+using Newtonsoft.Json.Serialization;
+
 
 namespace com.noctuagames.sdk
 {
+
+        [Preserve]
+        public class PendingPurchaseItem
+        {
+            public int OrderId;
+            public string Timestamp;
+            public string OrderRequest;
+            public string VerifyOrderRequest;
+        }
     /*
     We were using Model-View-Presenter, further reading:
     - https://en.wikipedia.org/wiki/Model%E2%80%93view%E2%80%93presenter
@@ -53,10 +69,12 @@ namespace com.noctuagames.sdk
         private readonly AccountDeletionConfirmationDialogPresenter _accountDeletionConfirmationDialog;
         private readonly BindConfirmationDialogPresenter _bindConfirmation;
         private readonly ConnectConflictDialogPresenter _connectConflictDialog;
+        private readonly PendingPurchasesDialogPresenter _pendingPurchasesDialog;
+        private List<PendingPurchaseItem> _pendingPurchases = new List<PendingPurchaseItem>();
         private readonly WelcomeNotificationPresenter _welcome;
 
         private NoctuaAuthenticationService _authService;
-        private NoctuaIAPService _iapService;
+        public NoctuaIAPService _iapService;
         private GameObject _socialAuthObject;
         private SocialAuthenticationService _socialAuth;
         
@@ -69,6 +87,8 @@ namespace com.noctuagames.sdk
         private AuthType _currentAuthType = AuthType.Switch;
 
         private readonly NoctuaLocale _locale;
+
+        private readonly ILogger _log = new NoctuaLogger(typeof(AuthenticationModel));
 
         internal AuthenticationModel(
             UIFactory uiFactory, 
@@ -85,10 +105,16 @@ namespace com.noctuagames.sdk
             {
                 _locale = locale;
             }
+
+            if (iapService != null)
+            {
+                _iapService = iapService;
+            }
             
             _userCenter = _uiFactory.Create<UserCenterPresenter, AuthenticationModel>(this);
             _userCenter.EventSender = eventSender;
             _accountSelectionDialog = _uiFactory.Create<AccountSelectionDialogPresenter, AuthenticationModel>(this);
+            _pendingPurchasesDialog = _uiFactory.Create<PendingPurchasesDialogPresenter, AuthenticationModel>(this);
             _switchAccountConfirmationDialog = _uiFactory.Create<SwitchAccountConfirmationDialogPresenter, AuthenticationModel>(this);
             _loginOptionsDialog = _uiFactory.Create<LoginOptionsDialogPresenter, AuthenticationModel>(this);
             _emailLoginDialog = _uiFactory.Create<EmailLoginDialogPresenter, AuthenticationModel>(this);
@@ -102,6 +128,7 @@ namespace com.noctuagames.sdk
             _bindConfirmation = _uiFactory.Create<BindConfirmationDialogPresenter, AuthenticationModel>(this);
             _connectConflictDialog = _uiFactory.Create<ConnectConflictDialogPresenter, AuthenticationModel>(this);
             _welcome = _uiFactory.Create<WelcomeNotificationPresenter, AuthenticationModel>(this);
+
 
             _welcome.SetBehaviourWhitelabel(config);
             _emailLoginDialog.SetBehaviourWhitelabel(config);
@@ -277,9 +304,30 @@ namespace com.noctuagames.sdk
             return _locale.GetLanguage();
         }
 
+        private List<PendingPurchaseItem> GetPendingPurchases()
+        {
+            if (_iapService == null) {
+                return _pendingPurchases;
+            }
+
+            var list =  _iapService.GetPendingPurchases();
+            _pendingPurchases = new List<PendingPurchaseItem>();
+            foreach (var item in list)
+            {
+                _pendingPurchases.Add(new PendingPurchaseItem{
+                    OrderId = item.OrderId,
+                    Timestamp = item.OrderRequest.Timestamp,
+                    OrderRequest = Convert.ToBase64String(Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(item.OrderRequest))),
+                    VerifyOrderRequest = Convert.ToBase64String(Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(item.VerifyOrderRequest)))
+                });
+            }
+
+            return _pendingPurchases;
+        }
+
         public async void ShowPendingPurchasesDialog()
         {
-            _uiFactory.ShowPendingPurchasesDialog();
+            _pendingPurchasesDialog.Show(GetPendingPurchases());
         }
     }
     

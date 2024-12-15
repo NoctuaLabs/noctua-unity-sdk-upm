@@ -16,7 +16,6 @@ namespace com.noctuagames.sdk.UI
         private readonly BannedConfirmationDialogPresenter _confirmDialog;
         private readonly RetryDialogPresenter _retryDialog;
         private readonly CustomPaymentCompleteDialogPresenter _customPaymentCompleteDialog;
-        private readonly PendingPurchasesDialogPresenter _pendingPurchasesDialog;
         private readonly Dictionary<string, string> _translations;
         private readonly string _language;
         internal UIFactory(string gameObjectName, string panelSettingsPath = "NoctuaPanelSettings", string themeStyleSheetPath = "NoctuaTheme")
@@ -32,7 +31,6 @@ namespace com.noctuagames.sdk.UI
             _confirmDialog = CreateConfirmDialogPresenter();
             _retryDialog = CreateRetryDialogPresenter();
             _customPaymentCompleteDialog = CreateCustomPaymentCompleteDialogPresenter();
-            _pendingPurchasesDialog = CreatePendingPurchasesDialogPresenter();
         }
         
         internal UIFactory(GameObject rootObject, PanelSettings panelSettings, GlobalConfig config, NoctuaLocale locale)
@@ -54,8 +52,6 @@ namespace com.noctuagames.sdk.UI
             _retryDialog.GetComponent<UIDocument>().sortingOrder = 1;
             _customPaymentCompleteDialog = CreateCustomPaymentCompleteDialogPresenter();
             _customPaymentCompleteDialog.GetComponent<UIDocument>().sortingOrder = 1;
-            _pendingPurchasesDialog = CreatePendingPurchasesDialogPresenter();
-            _pendingPurchasesDialog.GetComponent<UIDocument>().sortingOrder = 1;
         }
         
         internal TPresenter Create<TPresenter, TModel>(TModel model) where TPresenter : Presenter<TModel>
@@ -87,11 +83,6 @@ namespace com.noctuagames.sdk.UI
         public async UniTask<bool> ShowCustomPaymentCompleteDialog()
         {
             return await _customPaymentCompleteDialog.Show();
-        }
-
-        public async UniTask<bool> ShowPendingPurchasesDialog()
-        {
-            return await _pendingPurchasesDialog.Show();
         }
 
         public async UniTask<bool> ShowBannedConfirmationDialog()
@@ -129,11 +120,6 @@ namespace com.noctuagames.sdk.UI
             return Create<CustomPaymentCompleteDialogPresenter, object>(new object());
         }
 
-        private PendingPurchasesDialogPresenter CreatePendingPurchasesDialogPresenter()
-        {
-            return Create<PendingPurchasesDialogPresenter, object>(new object());
-        }
-        
         private BannedConfirmationDialogPresenter CreateConfirmDialogPresenter()
         {
             return Create<BannedConfirmationDialogPresenter, object>(new object());

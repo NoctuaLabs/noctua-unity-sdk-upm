@@ -1,0 +1,9 @@
+﻿<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" xsi="http://www.w3.org/2001/XMLSchema-instance" engine="UnityEngine.UIElements" editor="UnityEditor.UIElements" noNamespaceSchemaLocation="../../../../UIElementsSchema/UIElements.xsd" editor-extension-mode="False">
+    <Style src="./Noctua.uss" />
+    <ui:VisualElement name="PendingPurchaseItem" class="pending-purchase-item">
+    <ui:VisualElement class="purchase-info">
+        <ui:Label name="OrderId" text="Recent" class="recent-label" />
+        <ui:VisualElement name="CopyIcon" class="copy-icon" />
+    </ui:VisualElement>
+</ui:VisualElement>
+</ui:UXML>
