@@ -286,6 +286,7 @@ namespace com.noctuagames.sdk.UI
             }
             catch (Exception e)
             {
+                Model.ShowLoadingProgress(false);
                 _log.Warning($"{e.Message}\n{e.StackTrace}");
 
                 _credentials.ForEach(c => c.Username = "");
