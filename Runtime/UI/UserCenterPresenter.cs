@@ -58,6 +58,13 @@ namespace com.noctuagames.sdk.UI
         private Label _carouselLabel;
         private VisualElement _indicatorContainer;
         private Dictionary<string, string> _translations;
+        private readonly string[] _carouselImage =
+        {
+            "UC_Guest_1",
+            "UC_Guest_2",
+            "UC_Guest_3"
+        };
+
         private readonly string[] _carouselItems = { 
             "SuggestionBindText.Content1", 
             "SuggestionBindText.Content2",

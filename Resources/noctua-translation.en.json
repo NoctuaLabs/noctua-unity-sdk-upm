@@ -142,9 +142,9 @@
     "ConnectConflictDialogPresenter.SwitchAccountButton.Button.text": "Switch account",
     "ConnectConflictDialogPresenter.CancelButton.Button.text": "Cancel",
 
-    "SuggestionBindText.Content1": "Unlock special benefits by owning a Noctua account",
-    "SuggestionBindText.Content2": "Protect your hard-earned progress and achievements",
-    "SuggestionBindText.Content3": "Enjoy the flexibility to play your game on any device",
+    "SuggestionBindText.Content1": "Continue your game on any device.",
+    "SuggestionBindText.Content2": "Protect your game progress.",
+    "SuggestionBindText.Content3": "Get special items by binding your account.",
     "Select.Gender" : "Select Gender",
     "Select.Country": "Select Country",
 
