@@ -104,6 +104,7 @@ namespace com.noctuagames.sdk
             _request.url = url;
 
             // Inject locale data
+            _request.SetRequestHeader("Accept-Language", Noctua.Platform.Locale.GetLanguage());
             _request.SetRequestHeader("X-LANGUAGE", Noctua.Platform.Locale.GetLanguage());
             _request.SetRequestHeader("X-COUNTRY", Noctua.Platform.Locale.GetCountry());
             _request.SetRequestHeader("X-CURRENCY", Noctua.Platform.Locale.GetCurrency());
@@ -254,7 +255,8 @@ namespace com.noctuagames.sdk
                 $"X-BUNDLE-ID: {_request.GetRequestHeader("X-BUNDLE-ID")}\n"   +
                 $"X-LANGUAGE: {_request.GetRequestHeader("X-LANGUAGE")}\n"     +
                 $"X-COUNTRY: {_request.GetRequestHeader("X-COUNTRY")}\n"     +
-                $"X-CURRENCY: {_request.GetRequestHeader("X-CURRENCY")}\n\n"     +
+                $"X-CURRENCY: {_request.GetRequestHeader("X-CURRENCY")}\n"     +
+                $"Accept-Language: {_request.GetRequestHeader("X-LANGUAGE")}\n\n"     +
                 $"{Encoding.UTF8.GetString(_request.uploadHandler?.data ?? Array.Empty<byte>())}"
             );
 
