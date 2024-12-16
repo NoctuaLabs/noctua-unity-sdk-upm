@@ -22,7 +22,7 @@ namespace com.noctuagames.sdk.UI
         private readonly ILogger _log = new NoctuaLogger();
 
         private string _email;
-        private string _password;        
+        private string _password;
         private VisualElement panelVE;
         private List<TextField> textFields;
         private TextField emailField;
@@ -75,7 +75,7 @@ namespace com.noctuagames.sdk.UI
             passwordField.isPasswordField = true;
 
             emailField.RegisterValueChangedCallback(evt => OnEmailValueChanged(emailField));
-            passwordField.RegisterValueChangedCallback(evt => OnPasswordValueChanged(passwordField));
+            passwordField.RegisterValueChangedCallback(evt => OnPasswordValueChanged(passwordField));            
 
             emailField.hideMobileInput = true;
             passwordField.hideMobileInput = true;
@@ -92,6 +92,11 @@ namespace com.noctuagames.sdk.UI
             View.Q<Label>("Register").RegisterCallback<PointerUpEvent>(OnRegisterButtonClick);
             View.Q<Button>("BackButton").RegisterCallback<PointerUpEvent>(OnBackButtonClick);
             View.Q<Button>("ContinueButton").RegisterCallback<PointerUpEvent>(OnContinueButtonClick);
+
+            emailField.RegisterCallback<FocusInEvent>(OnTextFieldFocusChange);
+            passwordField.RegisterCallback<FocusInEvent>(OnTextFieldFocusChange);
+            emailField.RegisterCallback<FocusOutEvent>(OnTextFieldFocusChange);
+            passwordField.RegisterCallback<FocusOutEvent>(OnTextFieldFocusChange);
 
             showPasswordButton.RegisterCallback<PointerUpEvent>(OnToggleShowPassword);
 
@@ -118,10 +123,14 @@ namespace com.noctuagames.sdk.UI
             }
         }
 
-        private void ShowMobileInput()
+        public void OnTextFieldFocusChange(FocusInEvent _event)
         {
-            passwordField.hideMobileInput = false;
-            emailField.hideMobileInput = false;
+            (_event.target as VisualElement).Children().ElementAt(1).AddToClassList("noctua-text-input-focus");
+        }
+
+        public void OnTextFieldFocusChange(FocusOutEvent _event)
+        {
+            (_event.target as VisualElement).Children().ElementAt(1).RemoveFromClassList("noctua-text-input-focus");
         }
 
         public void SetBehaviourWhitelabel(GlobalConfig config)
@@ -278,7 +287,7 @@ namespace com.noctuagames.sdk.UI
 
                 return;
             }
-            
+
             try
             {
                 if (Model.AuthService.RecentAccount.IsGuest)

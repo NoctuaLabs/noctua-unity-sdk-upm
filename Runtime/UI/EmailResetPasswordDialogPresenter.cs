@@ -66,7 +66,9 @@ namespace com.noctuagames.sdk.UI
             emailField = View.Q<TextField>("EmailTF");
             submitButton = View.Q<Button>("ContinueButton");
 
-            emailField.RegisterValueChangedCallback(evt => OnEmailValueChanged(emailField));            
+            emailField.RegisterValueChangedCallback(evt => OnEmailValueChanged(emailField));
+            emailField.RegisterCallback<FocusInEvent>(OnTextFieldFocusChange);            
+            emailField.RegisterCallback<FocusOutEvent>(OnTextFieldFocusChange);            
 
             textFields = new List<TextField>
             {
@@ -77,6 +79,16 @@ namespace com.noctuagames.sdk.UI
 
             View.Q<Button>("ContinueButton").RegisterCallback<PointerUpEvent>(OnContinueButtonClick);
             View.Q<Button>("BackButton").RegisterCallback<PointerUpEvent>(OnBackButtonClick);
+        }
+
+        public void OnTextFieldFocusChange(FocusInEvent _event)
+        {
+            (_event.target as VisualElement).Children().ElementAt(1).AddToClassList("noctua-text-input-focus");
+        }
+
+        public void OnTextFieldFocusChange(FocusOutEvent _event)
+        {
+            (_event.target as VisualElement).Children().ElementAt(1).RemoveFromClassList("noctua-text-input-focus");
         }
 
         private void OnEmailValueChanged(TextField textField)

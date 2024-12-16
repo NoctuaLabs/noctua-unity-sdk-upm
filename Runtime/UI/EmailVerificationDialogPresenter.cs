@@ -64,6 +64,9 @@ namespace com.noctuagames.sdk.UI
             verificationCode.value = string.Empty;
             verificationCode.RegisterValueChangedCallback(evt => OnVerificationCodeValueChanged(verificationCode));
 
+            verificationCode.RegisterCallback<FocusInEvent>(OnTextFieldFocusChange);            
+            verificationCode.RegisterCallback<FocusOutEvent>(OnTextFieldFocusChange);            
+
             var backButton = View.Q<Button>("BackButton");
             var resendButton = View.Q<Label>("ResendCode");
             var verifyButton = View.Q<Button>("VerifyButton");
@@ -71,6 +74,16 @@ namespace com.noctuagames.sdk.UI
             resendButton.RegisterCallback<ClickEvent>(OnResendButtonClick);
             backButton.RegisterCallback<ClickEvent>(OnBackButtonClick);
             verifyButton.RegisterCallback<ClickEvent>(OnVerifyButtonClick);
+        }
+
+        public void OnTextFieldFocusChange(FocusInEvent _event)
+        {
+            (_event.target as VisualElement).Children().ElementAt(1).AddToClassList("noctua-text-input-focus");
+        }
+
+        public void OnTextFieldFocusChange(FocusOutEvent _event)
+        {
+            (_event.target as VisualElement).Children().ElementAt(1).RemoveFromClassList("noctua-text-input-focus");
         }
 
         private void OnVerificationCodeValueChanged(TextField textField)

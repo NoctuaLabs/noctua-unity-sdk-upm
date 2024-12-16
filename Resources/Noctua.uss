@@ -426,14 +426,21 @@
     --unity-cursor-color: white;
 }
 
-.unity-base-text-field__input:hover {
+.unity-base-text-field__input:active {
     border-radius: 10px;
     margin-bottom: 10px;
     border-color: white;
     --unity-cursor-color: white;
 }
 
-.unity-base-text-field__input:active {
+.unity-base-text-field__input:focus {
+    border-radius: 10px;
+    margin-bottom: 10px;
+    border-color: white;
+    --unity-cursor-color: white;
+}
+
+.unity-base-text-field__input:disabled {
     border-radius: 10px;
     margin-bottom: 10px;
     border-color: white;
@@ -468,6 +475,13 @@
     margin-left: 10px;
     margin-right: 10px;
     background-color: transparent;
+}
+
+.noctua-text-input-focus {
+    border-radius: 10px;
+    margin-bottom: 10px;
+    border-color: white;
+    --unity-cursor-color: white;
 }
 
 Label {

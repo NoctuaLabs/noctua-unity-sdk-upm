@@ -1,18 +1,19 @@
-﻿.gap {
+.gap {
     height: 40px;
 }
 
 .switch-account-icon {
-    background-image: url("./SwitchAccountIcon.png");
+    background-image: url("project://database/Packages/com.noctuagames.sdk/Resources/SwitchAccountIcon.png?fileID=21300000&guid=17962532c48d64d48b140004913e46bb&type=3#SwitchAccountIcon");
     width: 66px;
     height: 66px;
     background-color: transparent;
+    flex-shrink: 0;
 }
 
 .question {
     margin-top: 17px;
     font-size: 17px;
-    color: #FFFFFF;
+    color: rgb(255, 255, 255);
     height: 34px;
     -unity-text-align: middle-center;
 }
@@ -20,7 +21,7 @@
 .note {
     margin-top: 17px;
     font-size: 12px;
-    color: #9E9E9E;
+    color: rgb(158, 158, 158);
     height: 60px;
     -unity-text-align: middle-center;
 }
