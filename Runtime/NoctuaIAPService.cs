@@ -400,6 +400,11 @@ namespace com.noctuagames.sdk
             string token
         )
         {
+                if (orderRequest.Id == 0)
+                {
+                    throw new NoctuaException(NoctuaErrorCode.Payment, $": Invalid order ID: 0");
+                }
+
                 var verifyOrderResponse = await VerifyOrderAsync(verifyOrderRequest, token);
 
                 switch (verifyOrderResponse.Status)
