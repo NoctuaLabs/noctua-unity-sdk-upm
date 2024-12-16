@@ -360,8 +360,8 @@ namespace com.noctuagames.sdk
             
             var log = Instance.Value._log;
 
-            // Init game
-            var initResponse = await Instance.Value._game.InitGameAsync();
+            // Init game, retries on intermittent network failure
+            var initResponse = await Utility.RetryAsyncTask(Instance.Value._game.InitGameAsync);
 
             var iapReadyTimeout = DateTime.UtcNow.AddSeconds(5);
             

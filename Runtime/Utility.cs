@@ -5,11 +5,12 @@ using System.Reflection;
 using UnityEngine;
 using UnityEngine.UIElements;
 using System.Linq;
+using Cysharp.Threading.Tasks;
 using Newtonsoft.Json;
 
 namespace com.noctuagames.sdk
 {
-    internal static class Utility
+    public static class Utility
     {
         public static string PrintFields<T>(this T obj)
         {
@@ -254,6 +255,38 @@ namespace com.noctuagames.sdk
                 default:
                     break;
             }
+        }
+
+        public static async UniTask<T> RetryAsyncTask<T>(
+            Func<UniTask<T>> task,
+            int maxRetries = 3,
+            double initialDelaySeconds = 0.5,
+            double exponent = 2.0
+        )
+        {
+            var random = new System.Random();
+            var delay = initialDelaySeconds;
+
+            for (int retry = 0; retry < maxRetries; retry++)
+            {
+                try
+                {
+                    return await task();
+                }
+                catch (NoctuaException e)
+                {
+                    if ((NoctuaErrorCode)e.ErrorCode != NoctuaErrorCode.Networking)
+                    {
+                        throw;
+                    }
+
+                    var delayWithJitter = ((random.NextDouble() * 0.5) + 0.75) * delay;
+                    await UniTask.Delay(TimeSpan.FromSeconds(delayWithJitter));
+                    delay *= exponent;
+                }
+            }
+
+            return await task();
         }
     }
 }
