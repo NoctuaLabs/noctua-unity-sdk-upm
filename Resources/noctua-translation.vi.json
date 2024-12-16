@@ -91,6 +91,7 @@
     "EmailConfirmResetPasswordDialogPresenter.ErrPasswordTooShort.Label.text": "Mật khẩu quá ngắn. Tối thiểu 6 ký tự",
     "EmailConfirmResetPasswordDialogPresenter.ErrPasswordEmpty.Label.text": "Không được để trống mật khẩu",
     "EmailConfirmResetPasswordDialogPresenter.ContinueButton.Button.text": "Đặt lại mật khẩu và Đăng nhập",
+    "EmailConfirmResetPasswordDialogPresenter.SuccessNotification": "Đã đặt lại mật khẩu thành công. Vui lòng đăng nhập bằng mật khẩu mới của bạn.",
     "AccountDeletionConfirmationDialogPresenter.Question.Label.text": "Bạn có chắc muốn xóa\n tài khoản này không?",
     "AccountDeletionConfirmationDialogPresenter.Note.Label.text": "Tất cả tiến trình và dữ liệu của bạn sẽ mất.\n Hành động này là vĩnh viễn và không thể khôi phục.",
     "AccountDeletionConfirmationDialogPresenter.ErrCode.Label.tooltip": "Mã lỗi",

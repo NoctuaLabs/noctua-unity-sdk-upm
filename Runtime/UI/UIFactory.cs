@@ -65,7 +65,7 @@ namespace com.noctuagames.sdk.UI
             gameObject.SetActive(false);
             var presenter = gameObject.AddComponent<TPresenter>();
             presenter.transform.SetParent(_rootObject.transform);
-            presenter.Init(model, _panelSettings);
+            presenter.Init(model, _panelSettings, _locale);
 
             var visualElementRoot = gameObject.GetComponent<UIDocument>().rootVisualElement;
             ApplyLocalization(visualElementRoot, typeof(TPresenter).Name, _translations);

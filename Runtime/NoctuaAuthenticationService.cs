@@ -654,7 +654,7 @@ namespace com.noctuagames.sdk
 
         // TODO: Add support for phone
 
-        public async UniTask<UserBundle> ConfirmResetPasswordAsync(int id, string code, string newPassword)
+        public async UniTask<PlayerToken> ConfirmResetPasswordAsync(int id, string code, string newPassword)
         {
             var request = new HttpRequest(HttpMethod.Post, $"{_baseUrl}/auth/email/verify-reset-password")
                 .WithHeader("X-CLIENT-ID", _clientId)
@@ -670,11 +670,9 @@ namespace com.noctuagames.sdk
 
             var response = await request.Send<PlayerToken>();
             
-            _accountContainer.UpdateRecentAccount(response);
-            
             SendEvent("reset_password_completed");
 
-            return _accountContainer.RecentAccount;
+            return response;
         }
 
         public async UniTask<Credential> SocialLinkAsync(string provider, SocialLinkRequest payload)

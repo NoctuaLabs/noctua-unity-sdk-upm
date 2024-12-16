@@ -256,7 +256,8 @@ namespace com.noctuagames.sdk.UI
                 View.Q<Label>("ErrCode").RemoveFromClassList("hide");
                 View.Q<Button>("ContinueButton").RemoveFromClassList("hide");
                 View.Q<VisualElement>("Spinner").AddToClassList("hide");
-
+                
+                Model.ShowInfo(Locale.GetTranslation($"{GetType().Name}.SuccessNotification"));
             } catch (Exception e) {
                 _log.Warning($"{e.Message}\n{e.StackTrace}");
                     

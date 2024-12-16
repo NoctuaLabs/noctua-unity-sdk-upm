@@ -204,7 +204,7 @@ namespace com.noctuagames.sdk
         }
 
         // TODO: Add support for phone
-        public async UniTask<UserBundle> ConfirmResetPasswordAsync(int id, string code, string newPassword)
+        public async UniTask<PlayerToken> ConfirmResetPasswordAsync(int id, string code, string newPassword)
         {
             EnsureEnabled();
 

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using Cysharp.Threading.Tasks;
 using UnityEngine;
 using Application = UnityEngine.Device.Application;
@@ -20,67 +21,10 @@ namespace com.noctuagames.sdk
     {
         private readonly string _region;
         private const string PlayerPrefsKeyUserPrefsLanguage = "NoctuaLocaleUserPrefsLanguage";
-        private string PlayerPrefsKeyLocaleCountry = "NoctuaLocaleCountry";
-        private string PlayerPrefsKeyLocaleCurrency = "NoctuaLocaleCurrency";
-
-        private readonly ILogger _log = new NoctuaLogger(typeof(NoctuaLocale));
-
-        public NoctuaLocale(string region = "")
-        {
-            if (!string.IsNullOrEmpty(region))
-            {
-                _region = region;
-            }
-        }
-
-        public string GetLanguage()
-        {
-            var language = "en";
-
-            // Determine by this priority: user pref, region, system
-
-            // 1. Get from user profiles first.
-            if (PlayerPrefs.HasKey(PlayerPrefsKeyUserPrefsLanguage))
-            {
-                var userPrefsLanguage = PlayerPrefs.GetString(PlayerPrefsKeyUserPrefsLanguage, "");
-
-                if (!string.IsNullOrEmpty(userPrefsLanguage))
-                {
-                    _log.Debug("GetLanguage: using language from user preferences");
-                    language = userPrefsLanguage;
-                    return language;
-                }
-            } else {
-                _log.Debug("GetLanguage: PlayerPrefsKeyUserPrefsLanguage is empty");
-            }
-
-            // 2. Get from region
-            if (!string.IsNullOrEmpty(_region))
-            {
-                // Region to language mapping
-                // Region code is using Alpha-2,
-                // meanwhile the language code is using ISO 639-1.
-                //
-                // Use if else to support early return
-                var _regionToLower = _region.ToLower();
-                if (_regionToLower == "th")
-                {
-                    _log.Debug("GetLanguage: using language by region: " + _region);
-                    language = "th";
-                    return language;
-                } else if (_regionToLower == "vn")
-                {
-                    _log.Debug("GetLanguage: using language by region: " + _region);
-                    language = "vi";
-                    return language;
-                } else {
-                    _log.Debug("GetLanguage: no language mapping for this region: " + _region);
-                }
-            }
-
-            // 3. Fallback to system language
-            _log.Debug("GetLanguage: using language by system language");
-            var languageMapping = new Dictionary<SystemLanguage, string>
+        private const string PlayerPrefsKeyLocaleCountry = "NoctuaLocaleCountry";
+        private const string PlayerPrefsKeyLocaleCurrency = "NoctuaLocaleCurrency";
+        private readonly ImmutableDictionary<SystemLanguage, string> _languageMapping =
+            new Dictionary<SystemLanguage, string>
             {
                 { SystemLanguage.Afrikaans, "af" },
                 { SystemLanguage.Arabic, "ar" },
@@ -125,9 +69,74 @@ namespace com.noctuagames.sdk
                 { SystemLanguage.ChineseSimplified, "zh-CN" },
                 { SystemLanguage.ChineseTraditional, "zh-TW" },
                 { SystemLanguage.Unknown, "en" }
-            };
+            }.ToImmutableDictionary();
 
-            return languageMapping.TryGetValue(Application.systemLanguage, out var code) ? code : "en";
+        private readonly ILogger _log = new NoctuaLogger(typeof(NoctuaLocale));
+        private readonly Dictionary<string,string> _translations;
+        private readonly Dictionary<string,string> _defaultTranslations;
+
+        public NoctuaLocale(string region = "")
+        {
+            if (!string.IsNullOrEmpty(region))
+            {
+                _region = region;
+            }
+            
+            _translations = Utility.LoadTranslations(GetLanguage());
+            _defaultTranslations = Utility.LoadTranslations("en");
+        }
+
+        public string GetLanguage()
+        {
+            var language = "en";
+
+            // Determine by this priority: user pref, region, system
+
+            // 1. Get from user profiles first.
+            if (PlayerPrefs.HasKey(PlayerPrefsKeyUserPrefsLanguage))
+            {
+                var userPrefsLanguage = PlayerPrefs.GetString(PlayerPrefsKeyUserPrefsLanguage, "");
+
+                if (!string.IsNullOrEmpty(userPrefsLanguage))
+                {
+                    _log.Debug("GetLanguage: using language from user preferences");
+                    language = userPrefsLanguage;
+                    return language;
+                }
+            } else {
+                _log.Debug("GetLanguage: PlayerPrefsKeyUserPrefsLanguage is empty");
+            }
+
+            // 2. Get from region
+            if (!string.IsNullOrEmpty(_region))
+            {
+                // Region to language mapping
+                // Region code is using Alpha-2,
+                // meanwhile the language code is using ISO 639-1.
+                //
+                // Use if else to support early return
+                switch (_region.ToLower())
+                {
+                    case "th":
+                        _log.Debug("GetLanguage: using language by region: " + _region);
+                        language = "th";
+                        return language;
+
+                    case "vn":
+                        _log.Debug("GetLanguage: using language by region: " + _region);
+                        language = "vi";
+                        return language;
+
+                    default: _log.Debug("GetLanguage: no language mapping for this region: " + _region);
+
+                        break;
+                }
+            }
+
+            // 3. Fallback to system language
+            _log.Debug("GetLanguage: using language by system language");
+
+            return _languageMapping.GetValueOrDefault(Application.systemLanguage, "en");
         }
 
         public void SetCountry(string country)
@@ -161,6 +170,17 @@ namespace com.noctuagames.sdk
         public string GetCurrency()
         {
             return PlayerPrefs.GetString(PlayerPrefsKeyLocaleCurrency, "USD"); // Default to USD
+        }
+        
+        public string GetTranslation(string key)
+        {
+            _translations.TryGetValue(key, out var translation);
+
+            if (translation is not null) return translation;
+
+            _log.Warning($"Translation for key '{key}' not found");
+                
+            return _defaultTranslations.GetValueOrDefault(key, key);
         }
 
         internal class Config
