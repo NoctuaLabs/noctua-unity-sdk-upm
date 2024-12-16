@@ -9,6 +9,7 @@ namespace com.noctuagames.sdk.UI
         private readonly ILogger _log = new NoctuaLogger(typeof(Presenter<TModel>));
         protected TModel Model;
         protected VisualElement View;
+        protected NoctuaLocale Locale;
 
         private UIDocument _uiDoc;
 
@@ -23,10 +24,11 @@ namespace com.noctuagames.sdk.UI
             }
         }
 
-        public void Init(TModel model, PanelSettings panelSettings)
+        public void Init(TModel model, PanelSettings panelSettings, NoctuaLocale locale)
         {
             LoadView(panelSettings);
             SetModel(model);
+            Locale = locale;
         }
 
         private void SetModel(TModel model)

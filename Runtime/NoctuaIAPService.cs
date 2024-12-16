@@ -3,11 +3,11 @@ using System.Collections.Concurrent;
 using Cysharp.Threading.Tasks;
 using UnityEngine;
 using System.Threading.Tasks;
-using Newtonsoft.Json;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using com.noctuagames.sdk.Events;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using Newtonsoft.Json.Serialization;
 using UnityEngine.Scripting;
@@ -97,6 +97,9 @@ namespace com.noctuagames.sdk
 
         [JsonProperty("extra")]
         public Dictionary<string, string> Extra;
+
+        [JsonProperty("timestamp")]
+        public string Timestamp;
     }
 
     [Preserve]
@@ -483,6 +486,14 @@ namespace com.noctuagames.sdk
                             AccessToken = _accessTokenProvider.AccessToken,
                         }
                     );
+
+                    var message = Utility.GetTranslation("CustomPaymentCompleteDialogPresenter.OrderVerificationFailedMessage",  Utility.LoadTranslations(Noctua.Platform.Locale.GetLanguage()));
+                    if (message == "" || message == "CustomPaymentCompleteDialogPresenter.OrderVerificationFailedMessage")
+                    {
+                        message = "Your payment couldn’t be verified. Please retry later.";
+                    }
+
+                    throw new NoctuaException(NoctuaErrorCode.Payment, $"{message} Status: {verifyOrderResponse.Status.ToString()}");
                 }
 
                 return verifyOrderResponse;
@@ -612,12 +623,14 @@ namespace com.noctuagames.sdk
                 }
 
                 orderRequest.PriceInUSD = usdProduct.Price;
+                orderRequest.Timestamp = DateTime.Now.ToString();
             
                 _log.Debug("creating order");
 
                 orderResponse = await RetryAsync(() => CreateOrderAsync(orderRequest));
 
                 orderRequest.Id = orderResponse.Id;
+
                 
                 _eventSender?.Send(
                     "purchase_opened",
@@ -712,38 +725,84 @@ namespace com.noctuagames.sdk
 
                     _log.Debug(orderResponse.PaymentUrl);
                     Application.OpenURL(orderResponse.PaymentUrl);
-                    var continueToVerify = await _uiFactory.ShowCustomPaymentCompleteDialog();
 
-                    if (!continueToVerify && _enabledPaymentTypes.Count > 1)
+                    paymentResult = new PaymentResult{Status = PaymentStatus.Confirmed};
+
+                    var continueToVerify = await _uiFactory.ShowCustomPaymentCompleteDialog();
+                    if (!continueToVerify) // Custom payment get canceled.
                     {
-                        try
-                        {
-                            // At least try to verify before fallback to secondary paymennt.
-                            var verifyReq = new VerifyOrderRequest
+                        var verifiedAtCancelation = false;
+                        var verifyReq = new VerifyOrderRequest
                             {
                                 Id = orderResponse.Id,
                                 ReceiptData = orderResponse.Id.ToString(),
                             };
-                            await VerifyOrderImplAsync(
+                        try
+                        {
+                            // At least try to verify before fallback to secondary paymennt.
+                            var verifyResponseAtCancel = await VerifyOrderImplAsync(
                                 orderRequest,
                                 verifyReq,
                                 _accessTokenProvider.AccessToken
                             );
+
+                            // If verified, cancel the falback to secondary payment.
+                            if (verifyResponseAtCancel.Status == OrderStatus.completed)
+                            {
+                                RemoveFromRetryPendingPurchasesByOrderID(orderResponse.Id);
+                                verifiedAtCancelation = true;
+                            }
                         }
                         catch (Exception e) 
                         {
+                            // TODO Do we really need to retry the canceled purchase?
+                            // What if the user is accidentally tap the close button instead of complete?
                             _log.Exception(e);
+                            EnqueueToRetryPendingPurchases(
+                                new RetryPendingPurchaseItem
+                                {
+                                    OrderId = orderResponse.Id,
+                                    OrderRequest = orderRequest,
+                                    VerifyOrderRequest = verifyReq,
+                                    AccessToken = _accessTokenProvider.AccessToken
+                                }
+                            );
                         }
 
-                        // Custom payment get canceled. Fallback to secondary payment option.
-                        return await PurchaseItemAsync(purchaseRequest, true);
-                    } else if (!continueToVerify && _enabledPaymentTypes.Count == 1)
-                    {
-                        RemoveFromRetryPendingPurchasesByOrderID(orderResponse.Id);
+                        if (_enabledPaymentTypes.Count > 1 && !verifiedAtCancelation)
+                        {
+                            // Fallback to secondary payment option.
+                            return await PurchaseItemAsync(purchaseRequest, true);
+                        } else if (verifiedAtCancelation) {
+                            // Verified at cancelation, set the paymentResult to confirmed
+                            // to allow this to be processed as successful purchase/payment.
+                            // Double verify will be happened but it's ok.
+                            paymentResult = new PaymentResult{
+                                Status = PaymentStatus.Confirmed
+                            };
+                        } else {
+                            // Custom payment is actually get canceled
+                            // but there is no secondary payment.
+                            RemoveFromRetryPendingPurchasesByOrderID(orderResponse.Id);
+                            paymentResult = new PaymentResult{
+                                Status = PaymentStatus.Canceled,
+                                Message = "Purchase canceled"
+                            };
+                            // TODO Do we really need to retry the canceled purchase?
+                            // What if the user is accidentally tap the close button instead of complete?
+                            EnqueueToRetryPendingPurchases(
+                                new RetryPendingPurchaseItem
+                                {
+                                    OrderId = orderResponse.Id,
+                                    OrderRequest = orderRequest,
+                                    VerifyOrderRequest = verifyReq,
+                                    AccessToken = _accessTokenProvider.AccessToken
+                                }
+                            );
+                        }
                     }
 
                     // Native browser custom payment is using OrderId as ReceiptData
-                    paymentResult = new PaymentResult{Status = PaymentStatus.Confirmed};
                     paymentResult.ReceiptData = orderResponse.Id.ToString();
                     
                     break;
@@ -844,12 +903,11 @@ namespace com.noctuagames.sdk
             {
                 _uiFactory.ShowLoadingProgress(false);
                 _log.Exception(e);
-                _uiFactory.ShowError(e.Message);
                 
                 throw;
             }
 
-            _uiFactory.ShowGeneralNotification("Payment successful!", true);
+            _uiFactory.ShowGeneralNotification("Purchase successful!", true);
 
             return new PurchaseResponse
             {
@@ -1010,7 +1068,7 @@ namespace com.noctuagames.sdk
             PlayerPrefs.Save();
         }
 
-        private List<RetryPendingPurchaseItem> GetPendingPurchases()
+        public List<RetryPendingPurchaseItem> GetPendingPurchases()
         {
             _log.Info("Noctua.GetPendingPurchases");
             var json = PlayerPrefs.GetString("NoctuaPendingPurchases", string.Empty);
@@ -1243,7 +1301,7 @@ namespace com.noctuagames.sdk
         }
 
         [Preserve]
-        private class RetryPendingPurchaseItem
+        public class RetryPendingPurchaseItem
         {
             public int OrderId;
             public OrderRequest OrderRequest;

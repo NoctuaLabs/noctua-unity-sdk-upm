@@ -66,3 +66,46 @@
     height: 16px;
     background-image: url("project://database/Packages/com.noctuagames.sdk/Resources/ExitIcon.png?fileID=21300000&guid=d05c635247c1e10408d940a316e2e82c&type=3#ExitIcon");
 }
+
+.pending-purchase-item {
+    background-color: #2D3138;
+    height: 40px;
+    border-radius: 10px;
+    flex-direction: row;
+    align-items: center;
+    margin-top: 3px;
+    margin-bottom: 3px;
+    padding: 5px;
+    -unity-text-align: middle-left;
+}
+
+.purchase-info {
+    flex: 1;
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    padding-left:10px;
+    padding-right:10px;
+    font-size:10px;
+}
+
+.pending-purchases-list {
+    border-color: transparent;
+    margin-top: 1px;
+    margin-bottom: 1px;
+    align-self: stretch;
+    align-items: stretch;
+}
+.pending-purchases-list .unity-list-view__item:active,
+.pending-purchases-list .unity-list-view__item:focus,
+.pending-purchases-list .unity-list-view__item--selected,
+.pending-purchases-list .unity-collection-view__item--selected {
+    background-color: transparent;
+}
+
+.copy-icon {
+    width: 13px;
+    height: 13px;
+    background-image: url("project://database/Packages/com.noctuagames.sdk/Resources/CopyIcon.png?fileID=21300000&guid=9f736dbc87e058f4c92d691580bce89c&type=3#CopyIcon");
+}

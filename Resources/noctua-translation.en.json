@@ -36,6 +36,13 @@
     "EmailRegisterDialogPresenter.ErrPasswordTooShort.Label.text": "Password is too short. Minimum 6 characters",
     "EmailRegisterDialogPresenter.ErrPasswordEmpty.Label.text": "Password should not be empty",
     "EmailRegisterDialogPresenter.ContinueButton.Button.text": "Continue",
+    "EmailRegisterDialogPresenter.WizardContinueButton.Button.text": "Continue",
+    "EmailRegisterDialogPresenter.WizardPrevTo1Button.Button.text": "Prev",
+    "EmailRegisterDialogPresenter.WizardPrevTo2Button.Button.text": "Prev",
+    "EmailRegisterDialogPresenter.WizardPrevTo3Button.Button.text": "Prev",
+    "EmailRegisterDialogPresenter.WizardNextTo2Button.Button.text": "Next",
+    "EmailRegisterDialogPresenter.WizardNextTo3Button.Button.text": "Next",
+    "EmailRegisterDialogPresenter.WizardNextTo4Button.Button.text": "Next",
     "EmailRegisterDialogPresenter.LoginLink.Label.text": "Login",
     "EmailRegisterDialogPresenter.AlreadyHaveAccount.Label.text": "Already have an account?",
     "EmailRegisterDialogPresenter.ErrUnderage.Label.text": "Minimum age is 18 years old",
@@ -91,6 +98,7 @@
     "EmailConfirmResetPasswordDialogPresenter.ErrPasswordTooShort.Label.text": "Password is too short. Minimum 6 character",
     "EmailConfirmResetPasswordDialogPresenter.ErrPasswordEmpty.Label.text": "Password should not be empty",
     "EmailConfirmResetPasswordDialogPresenter.ContinueButton.Button.text": "Reset Password and Login",
+    "EmailConfirmResetPasswordDialogPresenter.SuccessNotification": "Password reset successfully. Please login with your new password.",
 
     "AccountDeletionConfirmationDialogPresenter.Question.Label.text": "Are you sure you want to\ndelete this account?",
     "AccountDeletionConfirmationDialogPresenter.Note.Label.text": "All your progress and\ndata will be lost. This action is\npermanent and cannot be undone.",
@@ -142,8 +150,12 @@
 
     "Title.Text.ContactSupport": "Contact Support",
     "User.Banned.Info": "Your account has been temporarily banned from playing this game. If you believe this is an error,",
-    "User.Banned.Info2": "please <color=#3B82F6>contact our support</color> team."
+    "User.Banned.Info2": "please <color=#3B82F6>contact our support</color> team.",
+    "ConnectAccountItem.Connect": "Connect",
 
-
+    "CustomPaymentCompleteDialogPresenter.Message.Label.text": "Your payment page is now open in your browser. Unless you want to cancel, do not close this pop up until the transaction is complete.",
+    "CustomPaymentCompleteDialogPresenter.CustomPaymentCSButton.Button.text": "Customer Support",
+    "CustomPaymentCompleteDialogPresenter.CustomPaymentCompleteButton.Button.text": "Completed",
+    "CustomPaymentCompleteDialogPresenter.OrderVerificationFailedMessage": "Your payment couldn’t be verified. Please retry later."
   }
   

@@ -51,19 +51,23 @@ namespace com.noctuagames.sdk
         private readonly UIFactory _uiFactory;
         private readonly AuthenticationModel _uiModel;
         private readonly NoctuaAuthenticationService _service;
+        private readonly NoctuaIAPService _iapService;
         private OauthRedirectListener _oauthOauthRedirectListener;
 
         internal NoctuaAuthentication(
             NoctuaAuthenticationService service, 
+            NoctuaIAPService iapService,
             UIFactory uiFactory, 
             GlobalConfig config,
-            EventSender eventSender = null
+            EventSender eventSender = null,
+            NoctuaLocale locale = null
         )
         {
             _service = service;
+            _iapService = iapService;
                         
             _uiFactory = uiFactory;
-            _uiModel = new AuthenticationModel(_uiFactory, _service, config, eventSender);
+            _uiModel = new AuthenticationModel(_uiFactory, _service, _iapService, config, eventSender, locale);
         }
 
         public void Enable()
@@ -200,7 +204,7 @@ namespace com.noctuagames.sdk
         }
 
         // TODO: Add support for phone
-        public async UniTask<UserBundle> ConfirmResetPasswordAsync(int id, string code, string newPassword)
+        public async UniTask<PlayerToken> ConfirmResetPasswordAsync(int id, string code, string newPassword)
         {
             EnsureEnabled();
 

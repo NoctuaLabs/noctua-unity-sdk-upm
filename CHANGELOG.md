@@ -2,6 +2,32 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.26.0] - 2024-12-16
+
+### 🚀 Features
+
+- Registration wizard for Vietnam region.
+- Add locale information in HTTP request header.
+- Add translation for Retry and Custom Payment Complete dialog.
+- Prepare retry pending purchases container.
+- Add Pending Purchase widget for both guest and authenticated user.
+
+### 🐛 Bug Fixes
+
+- Add sandbox flag to events
+- Add 18 years min age for VN
+- Region vn not translated
+- Datepicker open twice, hard to click, disabled focusable - edit profile
+- Improve custom payment cancelation logic.
+- Put back user pref for language determination.
+- Update Pending Purchases widget title according to the total of the purchases.
+- Reset password doesn't automatically login
+- Rename SDK first_open to sdk_first_open to differentiate with custom tracker event.
+
+### ⚙️ Miscellaneous Tasks
+
+- Downgrade locale log to Debug.
+
 ## [0.25.2] - 2024-12-12
 
 ### 🐛 Bug Fixes

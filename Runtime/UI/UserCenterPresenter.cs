@@ -10,6 +10,7 @@ using System.Text.RegularExpressions;
 using System.Linq;
 using System.Reflection;
 using com.noctuagames.sdk.Events;
+using System.Threading.Tasks;
 
 namespace com.noctuagames.sdk.UI
 {
@@ -173,8 +174,10 @@ namespace com.noctuagames.sdk.UI
         {
             try
             {
+                Model.ShowLoadingProgress(true);
                 if (Model.AuthService.RecentAccount == null)
                 {
+                    Model.ShowLoadingProgress(false);
                     throw new NoctuaException(NoctuaErrorCode.Authentication, "No account is logged in.");
                 }
                 
@@ -265,6 +268,8 @@ namespace com.noctuagames.sdk.UI
                     _credentialListView.Rebuild();
                 }
                 
+                Model.ShowLoadingProgress(false);
+
                 Visible = true;
                 SetOrientation();
                 
@@ -298,9 +303,10 @@ namespace com.noctuagames.sdk.UI
             View.Q<VisualElement>("MoreOptionsMenu").RegisterCallback<PointerUpEvent>(OnMoreOptionsMenuSelected);
             View.Q<VisualElement>("EditProfile").RegisterCallback<PointerUpEvent>(_ => OnEditProfile());
             View.Q<Label>("TitleEditBack").RegisterCallback<PointerUpEvent>(_carouselItems => OnBackEditProfile());
-            View.Q<Button>("BackButton").RegisterCallback<PointerUpEvent>(_carouselItems => OnBackEditProfile());
+            View.Q<VisualElement>("BackEditProfileHeader").RegisterCallback<ClickEvent>(_carouselItems => OnBackEditProfile());
             View.Q<VisualElement>("SwitchProfile").RegisterCallback<PointerUpEvent>(_ => OnSwitchProfile());
             View.Q<VisualElement>("LogoutAccount").RegisterCallback<PointerUpEvent>(_ => OnLogout());
+            View.Q<VisualElement>("PendingPurchases").RegisterCallback<PointerUpEvent>(_ => OnPendingPurchases());
             
             _helpButton.RegisterCallback<PointerUpEvent>(OnHelp);
             _copyIcon.RegisterCallback<PointerUpEvent>(_ => OnCopyText());
@@ -330,11 +336,15 @@ namespace com.noctuagames.sdk.UI
         {
             _birthDateTF = View.Q<TextField>("BirthdateTF");
             _birthDateTF.isReadOnly = true;
+            _birthDateTF.focusable = false;
 
             string _dob = string.IsNullOrEmpty(_dateString) ? "01/01/2000" : _dateString;
             DateTime parsedDate = DateTime.ParseExact(_dob, "dd/MM/yyyy", null);
 
-            _birthDateTF.RegisterCallback<PointerUpEvent>(_ => {
+            _birthDateTF.RegisterCallback<ClickEvent>(upEvent => {
+
+                upEvent.StopImmediatePropagation();
+
                 Noctua.OpenDatePicker(parsedDate.Year, parsedDate.Month, parsedDate.Day, 1,
                 (DateTime _date) =>
                 {
@@ -599,7 +609,7 @@ namespace com.noctuagames.sdk.UI
 
                 var regionCode = _globalConfig?.Noctua?.Region ?? "";
 
-                _userIDLabel.text = Utility.GetTranslation("UserCenterPresenter.MenuEditProfile.Label.text",  Utility.LoadTranslations(regionCode));
+                _userIDLabel.text = Utility.GetTranslation("UserCenterPresenter.MenuEditProfile.Label.text",  Utility.LoadTranslations(Model.GetLanguage()));
                 _userIDLabel.style.fontSize = 16;  
 
                 View.Q<Button>("SaveButton").SetEnabled(false);
@@ -807,6 +817,14 @@ namespace com.noctuagames.sdk.UI
             Model.ShowAccountSelection();
             OnUIEditProfile(false);
         }
+        private void OnPendingPurchases()
+        {
+            _log.Debug("clicking pending purchases");
+
+            Visible = false;
+            Model.ShowPendingPurchasesDialog();
+            OnUIEditProfile(false);
+        }
 
         private void OnLogout()
         {
@@ -915,6 +933,7 @@ namespace com.noctuagames.sdk.UI
             
             _credentialListView = View.Q<ListView>("AccountList");
             _itemTemplate ??= Resources.Load<VisualTreeAsset>("ConnectAccountItem");
+
             _credentialListView.makeItem = _itemTemplate.Instantiate;
             _credentialListView.bindItem = BindListViewItem;
             _credentialListView.fixedItemHeight = 52;
@@ -927,6 +946,7 @@ namespace com.noctuagames.sdk.UI
             element.userData = _credentials[index];
 
             element.Q<Button>("ConnectButton").UnregisterCallback<PointerUpEvent, UserCredential>(OnConnectButtonClick);
+            element.Q<Button>("ConnectButton").text = Utility.GetTranslation("ConnectAccountItem.Connect",  Utility.LoadTranslations(Model.GetLanguage()));
 
             if (string.IsNullOrEmpty(_credentials[index].Username))
             {
@@ -990,14 +1010,19 @@ namespace com.noctuagames.sdk.UI
         }
 
         private void UpdateUIGuest(bool isGuest) {
-            var moreOptionsButton = View.Q<Button>("MoreOptionsButton");
             var guestContainer = View.Q<VisualElement>("UserGuestUI");
             var stayConnect = View.Q<Label>("ConnectAccountLabel");
             var containerStayConnect = View.Q<VisualElement>("ContainerStayConnect");
+            var moreOptionsButton = View.Q<Button>("MoreOptionsButton");
+            var editProfilebutton = View.Q<VisualElement>("EditProfile");
+            var switchProfileButton = View.Q<VisualElement>("SwitchProfile");
+            var deleteAccountButton = View.Q<VisualElement>("DeleteAccount");
+            var logoutAccountButton = View.Q<VisualElement>("LogoutAccount");
+            // Always show more options button
+            moreOptionsButton.AddToClassList("show");
+            moreOptionsButton.RemoveFromClassList("hide");
 
             if(isGuest) {
-                moreOptionsButton.AddToClassList("hide");
-                moreOptionsButton.RemoveFromClassList("show");
                 _credentialListView.AddToClassList("hide");
                 _credentialListView.RemoveFromClassList("show");
                 stayConnect.AddToClassList("hide");
@@ -1006,9 +1031,12 @@ namespace com.noctuagames.sdk.UI
                 containerStayConnect.RemoveFromClassList("show");
                 guestContainer.AddToClassList("show");
                 guestContainer.RemoveFromClassList("hide");
+                // Hide some menu item in more options button.
+                editProfilebutton.AddToClassList("hide");
+                switchProfileButton.AddToClassList("hide");
+                deleteAccountButton.AddToClassList("hide");
+                logoutAccountButton.AddToClassList("hide");
             } else {
-                moreOptionsButton.AddToClassList("show");
-                moreOptionsButton.RemoveFromClassList("hide");
                 _credentialListView.AddToClassList("show");
                 _credentialListView.RemoveFromClassList("hide");
                 stayConnect.AddToClassList("show");
@@ -1017,6 +1045,11 @@ namespace com.noctuagames.sdk.UI
                 containerStayConnect.RemoveFromClassList("hide");
                 guestContainer.AddToClassList("hide");
                 guestContainer.RemoveFromClassList("show");
+                // Show all items in more options button
+                editProfilebutton.RemoveFromClassList("hide");
+                switchProfileButton.RemoveFromClassList("hide");
+                deleteAccountButton.RemoveFromClassList("hide");
+                logoutAccountButton.RemoveFromClassList("hide");
             }
         }
 
@@ -1043,7 +1076,7 @@ namespace com.noctuagames.sdk.UI
         private void UpdateCarouselText()
         {
             var regionCode = _globalConfig?.Noctua?.Region ?? "";
-            _carouselLabel.text = Utility.GetTranslation(_carouselItems[_currentIndex],  Utility.LoadTranslations(regionCode));
+            _carouselLabel.text = Utility.GetTranslation(_carouselItems[_currentIndex],  Utility.LoadTranslations(Model.GetLanguage()));
         }
 
         private void HighlightCurrentIndicator()
