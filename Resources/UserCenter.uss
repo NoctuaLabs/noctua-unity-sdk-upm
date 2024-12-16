@@ -1,6 +1,6 @@
 .user-center {
     position: relative;
-    background-color: rgba(31, 35, 39, 1);
+    background-color: rgb(31, 35, 39);
     color: white;
 }
 
@@ -317,7 +317,7 @@
     justify-content: center;
     align-items: center;
     margin-top: 40px;
-    background-image: url("project://database/Packages/com.noctuagames.sdk/Resources/TwoHand.png?fileID=21300000&guid=f519225f0016f124dbe0b0d628a3247c&type=3#TwoHand");
+    background-image: resource('UC_Guest_1');
     width: 97px;
     height: 97px;
 }
