@@ -198,6 +198,13 @@ namespace com.noctuagames.sdk.UI
             passwordField.RegisterValueChangedCallback(evt => OnPasswordValueChanged(passwordField));
             rePasswordField.RegisterValueChangedCallback(evt => OnRePasswordValueChanged(rePasswordField));
 
+            emailField.RegisterCallback<FocusInEvent>(OnTextFieldFocusChange);
+            passwordField.RegisterCallback<FocusInEvent>(OnTextFieldFocusChange);
+            rePasswordField.RegisterCallback<FocusInEvent>(OnTextFieldFocusChange);
+            emailField.RegisterCallback<FocusOutEvent>(OnTextFieldFocusChange);
+            passwordField.RegisterCallback<FocusOutEvent>(OnTextFieldFocusChange);
+            rePasswordField.RegisterCallback<FocusOutEvent>(OnTextFieldFocusChange);
+
             showPasswordButton.RegisterCallback<PointerUpEvent>(OnToggleShowPassword);
             showRePasswordButton.RegisterCallback<PointerUpEvent>(OnToggleShowRePassword);
 
@@ -223,6 +230,16 @@ namespace com.noctuagames.sdk.UI
 
         #region Check Text Field Focus
 
+        public void OnTextFieldFocusChange(FocusInEvent _event)
+        {
+            (_event.target as VisualElement).Children().ElementAt(1).AddToClassList("noctua-text-input-focus");
+        }
+
+        public void OnTextFieldFocusChange(FocusOutEvent _event)
+        {
+            (_event.target as VisualElement).Children().ElementAt(1).RemoveFromClassList("noctua-text-input-focus");
+        }
+
         public void OnToggleShowPassword(PointerUpEvent _event)
         {
             passwordField.Blur();
@@ -236,8 +253,6 @@ namespace com.noctuagames.sdk.UI
             {
                 showPasswordButton.AddToClassList("btn-password-hide");
             }
-
-            TouchScreenKeyboard.hideInput = true;
         }
 
         public void OnToggleShowRePassword(PointerUpEvent _event)
@@ -253,8 +268,6 @@ namespace com.noctuagames.sdk.UI
             {
                 showRePasswordButton.AddToClassList("btn-password-hide");
             }
-
-            TouchScreenKeyboard.hideInput = true;
         }
 
         #endregion

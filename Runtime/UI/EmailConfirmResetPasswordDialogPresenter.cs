@@ -84,6 +84,13 @@ namespace com.noctuagames.sdk.UI
             passwordField.RegisterValueChangedCallback(evt => OnPasswordValueChanged(passwordField));
             rePasswordField.RegisterValueChangedCallback(evt => OnRePasswordValueChanged(rePasswordField));
 
+            verificationCodeField.RegisterCallback<FocusInEvent>(OnTextFieldFocusChange);
+            passwordField.RegisterCallback<FocusInEvent>(OnTextFieldFocusChange);
+            rePasswordField.RegisterCallback<FocusInEvent>(OnTextFieldFocusChange);
+            verificationCodeField.RegisterCallback<FocusOutEvent>(OnTextFieldFocusChange);
+            passwordField.RegisterCallback<FocusOutEvent>(OnTextFieldFocusChange);
+            rePasswordField.RegisterCallback<FocusOutEvent>(OnTextFieldFocusChange);
+
             showPasswordButton.RegisterCallback<PointerUpEvent>(OnToggleShowPassword);
             showRePasswordButton.RegisterCallback<PointerUpEvent>(OnToggleShowRePassword);
 
@@ -109,6 +116,16 @@ namespace com.noctuagames.sdk.UI
         }
 
         #region Check Text Field Focus
+
+        public void OnTextFieldFocusChange(FocusInEvent _event)
+        {
+            (_event.target as VisualElement).Children().ElementAt(1).AddToClassList("noctua-text-input-focus");
+        }
+
+        public void OnTextFieldFocusChange(FocusOutEvent _event)
+        {
+            (_event.target as VisualElement).Children().ElementAt(1).RemoveFromClassList("noctua-text-input-focus");
+        }
 
         public void OnToggleShowPassword(PointerUpEvent _event)
         {

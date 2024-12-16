@@ -387,9 +387,22 @@ namespace com.noctuagames.sdk.UI
             _nicknameTF.RegisterValueChangedCallback(evt => OnTextChanged(_nicknameTF));
             _changeProfile.RegisterCallback<PointerUpEvent>(OnChangeProfile);
 
+            _nicknameTF.RegisterCallback<FocusInEvent>(OnTextFieldFocusChange);            
+            _nicknameTF.RegisterCallback<FocusOutEvent>(OnTextFieldFocusChange);            
+
             SetupDatePickerUI();
             SetupDropdownUI();
             SetupSpinner();
+        }
+
+        public void OnTextFieldFocusChange(FocusInEvent _event)
+        {
+            (_event.target as VisualElement).Children().ElementAt(1).AddToClassList("noctua-text-input-focus");
+        }
+
+        public void OnTextFieldFocusChange(FocusOutEvent _event)
+        {
+            (_event.target as VisualElement).Children().ElementAt(1).RemoveFromClassList("noctua-text-input-focus");
         }
 
         private void SetupDropdownUI() {
@@ -648,6 +661,7 @@ namespace com.noctuagames.sdk.UI
             
             }
         }
+
 
         private void OnTextChanged(TextField textField)
         {
