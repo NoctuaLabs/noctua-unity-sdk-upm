@@ -23,7 +23,7 @@
                 <ui:Label name="ConnectConflictInformationLabel" text="This credential is already connected to an account. Do you want to switch account?" class="connect-conflict-information-label" />
             </ui:VisualElement>
             <ui:VisualElement name="ButtonGroup" class="button-group">
-                <ui:Button name="CancelButton" text="Cancel" class="cancel-button button-transparent" style="color: rgb(59, 130, 246);" />
+                <ui:Button name="CancelButton" text="Cancel" class="cancel-button button-transparent" />
                 <ui:Button name="SwitchAccountButton" text="Switch account" class="switch-account-button button-highlight" />
             </ui:VisualElement>
         </ui:VisualElement>
