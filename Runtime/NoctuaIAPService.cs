@@ -630,7 +630,6 @@ namespace com.noctuagames.sdk
                 orderResponse = await RetryAsync(() => CreateOrderAsync(orderRequest));
 
                 orderRequest.Id = orderResponse.Id;
-
                 
                 _eventSender?.Send(
                     "purchase_opened",
@@ -1143,7 +1142,7 @@ namespace com.noctuagames.sdk
                     runningPendingPurchases.Add(pendingPurchase);
                     newPendingPurchaseCount++;
                     
-                    _log.Info("Draining pending purchase: " + pendingPurchase.VerifyOrderRequest.Id);
+                    _log.Info("Draining pending purchase: " + pendingPurchase.OrderId);
                 }
                 
                 // Retry pending purchases
@@ -1154,9 +1153,13 @@ namespace com.noctuagames.sdk
                     try
                     {
                         _log.Info(
-                            $"Retrying Order ID: {item.VerifyOrderRequest.Id}, " +
+                            $"Retrying Order ID: {item.OrderId}, " +
                             $"Receipt Data: {item.VerifyOrderRequest.ReceiptData}"
                         );
+
+                        if (item.OrderRequest.Id == 0) {
+                            item.OrderRequest.Id = item.OrderId;
+                        }
 
                         var verifyOrderResponse = await VerifyOrderImplAsync(
                             item.OrderRequest,
@@ -1168,6 +1171,9 @@ namespace com.noctuagames.sdk
                         verifyOrderResponse.Status != OrderStatus.canceled &&
                         verifyOrderResponse.Status != OrderStatus.voided)
                         {
+                            // Enqueue to player prefs for future read
+                            EnqueueToRetryPendingPurchases(item);
+                            // Enqueue to running queue
                             failedPendingPurchases.Add(item);
                         }
                     }
@@ -1187,11 +1193,13 @@ namespace com.noctuagames.sdk
                             }
                         );
 
+                        EnqueueToRetryPendingPurchases(item);
+
                         if ((NoctuaErrorCode)e.ErrorCode == NoctuaErrorCode.Networking)
                         {
                             failedPendingPurchases.Add(item);
                         
-                            _log.Info("Adding pending purchase back to queue: " + item.VerifyOrderRequest.Id);
+                            _log.Info("Adding pending purchase back to running queue: " + item.OrderId);
                         }
 
                         _log.Error("NoctuaException: " + e.ErrorCode + " : " + e.Message);
@@ -1201,14 +1209,14 @@ namespace com.noctuagames.sdk
                         _log.Error("Exception: " + e);
                     }
                 }
-                
-                // Save if running pending purchases changed
-                if (newPendingPurchaseCount > 0 || runningPendingPurchases.Count != failedPendingPurchases.Count)
+
+                // At this point, the successful ones are already removed from the PlayerPrefs. 
+                if (failedPendingPurchases.Count > 0)
                 {
-                    _log.Info("Saving pending purchases: " + runningPendingPurchases.Count);
+                    _log.Info("Saving failed pending purchases: " + failedPendingPurchases.Count);
 
                     // Merge with existing _waitingPendingPurchases instead of overwrite
-                    foreach (var item in runningPendingPurchases)
+                    foreach (var item in failedPendingPurchases)
                     {
                         EnqueueToRetryPendingPurchases(item);
                     }
