@@ -63,12 +63,12 @@
                 </ui:VisualElement>
                 <ui:ListView name="AccountList" class="account-list" />
                 <ui:VisualElement name="UserGuestUI" class="user-guest-box">
-                    <ui:VisualElement class="image-carousel" />
+                    <ui:VisualElement name="ImageCarousel" class="image-carousel" />
                     <ui:Label name="TextCarousel" text="Protect your heard-earned progress and achievements" class="text-carousel" />
                     <ui:VisualElement name="IndicatorContainer" class="ellipse-indicator" />
                     <ui:Button name="GuestConnectButton" text="Connect Account" focusable="false" class="button-highlight connect-button-guest" />
                 </ui:VisualElement>
-                <ui:VisualElement name="EditProfileBox" class="user-center edit-profile-box hide" >
+                <ui:VisualElement name="EditProfileBox" class="user-center edit-profile-box hide">
                     <ui:VisualElement>
                         <ui:ScrollView scroll-deceleration-rate="0,135" elasticity="0,1" horizontal-scroller-visibility="Hidden" vertical-scroller-visibility="Hidden" style="margin-bottom: 10px;">
                             <ui:VisualElement name="BackEditProfileHeader" class="user-profile-header" style="justify-content: flex-start; align-items: center; flex-wrap: nowrap;">
@@ -77,7 +77,7 @@
                                 </ui:Button>
                                 <ui:Label name="TitleEditBack" text="Back" class="back-edit-profile-title" style="color: rgb(117, 117, 117);" />
                             </ui:VisualElement>
-                            <ui:VisualElement style="flex-direction: row; flex-wrap: nowrap; align-items: center; justify-content: flex-start; margin-top: 10px; margin-bottom: 10px; margin-left:10px;">
+                            <ui:VisualElement style="flex-direction: row; flex-wrap: nowrap; align-items: center; justify-content: flex-start; margin-top: 10px; margin-bottom: 10px; margin-left: 10px;">
                                 <ui:VisualElement name="ProfileImage" class="profile-circle-with-border" />
                                 <ui:Button text="Change Picture" name="ChangePictureButton" focusable="false" class="button-border" />
                                 <ui:VisualElement name="Spinner2" class="noctua-spinner hide" style="height: 74px; margin-left: 20px;" />
@@ -95,7 +95,7 @@
                                 <ui:DropdownField label="Language" name="LanguageTF" class="dropdown-box" />
                             </ui:VisualElement>
                         </ui:ScrollView>
-                        <ui:VisualElement name="SaveButtonContainer" style="border-top-left-radius: 6px; border-top-right-radius: 6px; border-bottom-right-radius: 6px; border-bottom-left-radius: 6px; margin-left:6px; margin-right:6px; margin-bottom:5px">
+                        <ui:VisualElement name="SaveButtonContainer" style="border-top-left-radius: 6px; border-top-right-radius: 6px; border-bottom-right-radius: 6px; border-bottom-left-radius: 6px; margin-left: 6px; margin-right: 6px; margin-bottom: 5px;">
                             <ui:VisualElement name="ErrBox" style="padding-top: 0; padding-right: 0; padding-bottom: 0; padding-left: 0; margin-top: 5px; margin-bottom: 5px; width: 100%; height: 16px; align-items: center; justify-content: center;">
                                 <ui:Label name="ErrLabel" display-tooltip-when-elided="true" class="dialog-err-label hide" />
                             </ui:VisualElement>
