@@ -91,10 +91,20 @@ namespace com.noctuagames.sdk.UI
             }
         }
 
-        public void Show(bool clearForm)
+        public void Show(bool clearForm, bool isRegisterOnly)
         {
             SetupInputFields(clearForm);
             HideAllErrors();
+
+            var additionalFooter = View.Q<VisualElement>("AdditionalFooterContent");
+            if (isRegisterOnly)
+            {
+                additionalFooter.AddToClassList("hide");
+            }
+            else
+            { 
+                additionalFooter.RemoveFromClassList("hide");
+            }
 
             Visible = true;
         }

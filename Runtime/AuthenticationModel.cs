@@ -171,9 +171,9 @@ namespace com.noctuagames.sdk
             _accountSelectionDialog.Show();
         }
 
-        public void ShowEmailRegistration(bool clearForm)
+        public void ShowEmailRegistration(bool clearForm, bool isRegisterOnly = false)
         {
-            _emailRegisterDialog.Show(clearForm);
+            _emailRegisterDialog.Show(clearForm, isRegisterOnly);
         }
 
         public void ShowEmailVerification(string email, string password, int verificationID)

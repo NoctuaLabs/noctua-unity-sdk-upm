@@ -1011,7 +1011,7 @@ namespace com.noctuagames.sdk.UI
             switch (credential.CredentialProvider)
             {
                 case CredentialProvider.Email:
-                    Model.ShowEmailRegistration(true);
+                    Model.ShowEmailRegistration(true, true);
 
                     break;
                 case CredentialProvider.Google:
