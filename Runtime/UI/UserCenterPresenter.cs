@@ -140,12 +140,20 @@ namespace com.noctuagames.sdk.UI
                     View.Q<VisualElement>("ConnectAccount").RemoveFromClassList("portrait");
                     View.Q<VisualElement>("ConnectAccount").RemoveFromClassList("connect-account");
                     View.Q<VisualElement>("ConnectAccount").AddToClassList("connect-account-edit-profile-portrait");
+
+                    View.Q<VisualElement>("UserProfile").AddToClassList("hide");
+                    View.Q<VisualElement>("UserCenter").style.maxHeight = Length.Percent(65);
+                    View.Q<VisualElement>("ScrollViewContainer").style.marginTop = 10;
                 }
                 else
                 {
                     View.Q<VisualElement>("ConnectAccount").RemoveFromClassList("connect-account-edit-profile-portrait");
                     View.Q<VisualElement>("ConnectAccount").AddToClassList("connect-account");
                     View.Q<VisualElement>("ConnectAccount").AddToClassList("portrait");
+
+                    View.Q<VisualElement>("UserProfile").RemoveFromClassList("hide");
+                    View.Q<VisualElement>("UserCenter").style.maxHeight = StyleKeyword.Null;
+                    View.Q<VisualElement>("ScrollViewContainer").style.marginTop = StyleKeyword.Null;
                 }
             }
         }
