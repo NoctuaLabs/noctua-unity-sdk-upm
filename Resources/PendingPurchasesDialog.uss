@@ -95,11 +95,27 @@
 }
 
 .status-label {
-    background-color:darkorange;
     color:white;
     border-radius:4px;
     padding-left:6px;
     padding-right:6px;
+    flex-direction:column;
+}
+
+.status-label-pending {
+    background-color:darkorange;
+}
+
+.status-label-refunded {
+    background-color:green;
+}
+
+.status-label-canceled {
+    background-color:blue;
+}
+
+.status-label-verification-failed {
+    background-color:red;
 }
 
 .copy-icon {

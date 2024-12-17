@@ -320,7 +320,7 @@ namespace com.noctuagames.sdk
                 var status = item.Status;
                 if (string.IsNullOrEmpty(status))
                 {
-                    status = "Pending";
+                    status = "pending";
                 }
                 var purchaseItemName = item.OrderRequest.IngameItemName;
                 if (string.IsNullOrEmpty(purchaseItemName))
@@ -346,7 +346,7 @@ namespace com.noctuagames.sdk
             _pendingPurchasesDialog.Show(GetPendingPurchases());
         }
 
-        public async UniTask<bool> RetryPendingPurchaseByOrderId(int orderId)
+        public async UniTask<OrderStatus> RetryPendingPurchaseByOrderId(int orderId)
         {
             return await _iapService.RetryPendingPurchaseByOrderId(orderId);
         }

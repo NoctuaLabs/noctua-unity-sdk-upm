@@ -3,12 +3,12 @@
     <ui:VisualElement name="PendingPurchaseItem" class="pending-purchase-item">
         <ui:VisualElement style="flex-direction:row;font-size:8;margin-bottom:0px;">
             <ui:Label name="OrderId" text="ID" class="order-label"  style="flex-direction:column;"/>
-            <ui:Label name="Status" text="Pending" class="status-label"  style="flex-direction:column;"/>
+            <ui:Label name="Status" text="pending" class="status-label"  style="flex-direction:column;"/>
         </ui:VisualElement>
         <ui:VisualElement style="margin-top:-5px;">
             <ui:Label name="PaymentDetail" text="" class="payment-label" />
         </ui:VisualElement>
-        <ui:VisualElement name="NavigationButtons" style="flex-direction:row;margin-bottom:10px;">
+        <ui:VisualElement style="flex-direction:row;margin-bottom:10px;">
             <!--
             <ui:Button text="Customer Service" display-tooltip-when-elided="true" name="CSButton" focusable="false" class="dialog-button secondary-button" style="margin-right:7px;margin-left:7px;height:15px;width:100px;flex-direction:column;"/>
             -->

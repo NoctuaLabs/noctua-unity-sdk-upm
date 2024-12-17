@@ -422,7 +422,7 @@ namespace com.noctuagames.sdk
                 switch (verifyOrderResponse.Status)
                 {
                 case OrderStatus.completed:
-                    // Remove from pending purchase
+                    _log.Debug("remove from pending queue because it has been completed");
                     RemoveFromRetryPendingPurchasesByOrderID(verifyOrderRequest.Id);
 
                     _eventSender?.Send(
@@ -444,10 +444,8 @@ namespace com.noctuagames.sdk
                     );
                     break;
                 case OrderStatus.canceled:
-                    RemoveFromRetryPendingPurchasesByOrderID(verifyOrderRequest.Id);
-
                     _eventSender?.Send(
-                        "purchase_cancelled",
+                        "purchase_canceled",
                         new()
                         {
                             { "product_id", orderRequest.ProductId },
@@ -458,8 +456,44 @@ namespace com.noctuagames.sdk
                             { "orig_currency", orderRequest.Currency }
                         }
                     );
+
+                    EnqueueToRetryPendingPurchases(
+                        new RetryPendingPurchaseItem
+                        {
+                            OrderId = verifyOrderRequest.Id,
+                            OrderRequest = orderRequest,
+                            VerifyOrderRequest = verifyOrderRequest,
+                            AccessToken = _accessTokenProvider.AccessToken,
+                            Status = "canceled",
+                        }
+                    );
+                    break;
+                case OrderStatus.refunded:
+                    _eventSender?.Send(
+                        "purchase_refunded",
+                        new()
+                        {
+                            { "product_id", orderRequest.ProductId },
+                            { "amount", orderRequest.PriceInUSD },
+                            { "currency", "USD" },
+                            { "order_id", orderRequest.Id },
+                            { "orig_amount", orderRequest.Price },
+                            { "orig_currency", orderRequest.Currency }
+                        }
+                    );
+                    EnqueueToRetryPendingPurchases(
+                        new RetryPendingPurchaseItem
+                        {
+                            OrderId = verifyOrderRequest.Id,
+                            OrderRequest = orderRequest,
+                            VerifyOrderRequest = verifyOrderRequest,
+                            AccessToken = _accessTokenProvider.AccessToken,
+                            Status = "refunded",
+                        }
+                    );
                     break;
                 case OrderStatus.voided:
+                    _log.Debug("remove from pending queue because it has been voided");
                     RemoveFromRetryPendingPurchasesByOrderID(verifyOrderRequest.Id);
 
                     _eventSender?.Send(
@@ -479,6 +513,7 @@ namespace com.noctuagames.sdk
 
                 if (verifyOrderResponse.Status != OrderStatus.completed &&
                 verifyOrderResponse.Status != OrderStatus.canceled &&
+                verifyOrderResponse.Status != OrderStatus.refunded &&
                 verifyOrderResponse.Status != OrderStatus.voided)
                 {
                     _eventSender?.Send(
@@ -501,7 +536,7 @@ namespace com.noctuagames.sdk
                             OrderRequest = orderRequest,
                             VerifyOrderRequest = verifyOrderRequest,
                             AccessToken = _accessTokenProvider.AccessToken,
-                            Status = "Verification failed",
+                            Status = "verification_failed",
                         }
                     );
 
@@ -763,6 +798,7 @@ namespace com.noctuagames.sdk
                             // If verified, cancel the falback to secondary payment.
                             if (verifyResponseAtCancel.Status == OrderStatus.completed)
                             {
+                                _log.Debug("remove from pending queue because it has been completed");
                                 RemoveFromRetryPendingPurchasesByOrderID(orderResponse.Id);
                                 verifiedAtCancelation = true;
                             }
@@ -797,6 +833,7 @@ namespace com.noctuagames.sdk
                         } else {
                             // Custom payment is actually get canceled
                             // but there is no secondary payment.
+                            _log.Debug("custom payment is actually get canceled, but there is no secondary payment. Remove from pending queue.");
                             RemoveFromRetryPendingPurchasesByOrderID(orderResponse.Id);
                             paymentResult = new PaymentResult{
                                 Status = PaymentStatus.Canceled,
@@ -935,17 +972,41 @@ namespace com.noctuagames.sdk
                 throw;
             }
 
-            _uiFactory.ShowGeneralNotification("Purchase successful!", true);
+            switch (verifyOrderResponse.Status)
+            {
+                case OrderStatus.canceled:
+                    _uiFactory.ShowGeneralNotification(
+                        "Your purchase has been canceled. Please contact customer support for more details.",
+                        false
+                    );
+                    break;
+                case OrderStatus.refunded:
+                    _uiFactory.ShowGeneralNotification(
+                        "Your purchase has been refunded. Please contact customer support for more details.",
+                        false
+                    );
+                    break;
+                case OrderStatus.voided:
+                    _uiFactory.ShowGeneralNotification(
+                        "Your purchase has been voided. Please contact customer support for more details.",
+                        false
+                    );
+                    break;
+                default:
+                    _uiFactory.ShowGeneralNotification("Purchase successful!", true);
+                    break;
+            }
+
 
             return new PurchaseResponse
             {
                 OrderId = verifyOrderResponse.Id,
                 Status = verifyOrderResponse.Status,
-                Message = "Purchase completed"
+                Message = "Purchase " + verifyOrderResponse.Status.ToString(),
             };
         }
 
-        public async UniTask<bool>  RetryPendingPurchaseByOrderId(int orderId)
+        public async UniTask<OrderStatus>  RetryPendingPurchaseByOrderId(int orderId)
         {
             var item = GetPendingPurchaseByOrderId(orderId);
             try
@@ -975,12 +1036,7 @@ namespace com.noctuagames.sdk
                     _uiFactory.ShowGeneralNotification("Failed to verify the purchase. Status: " + verifyOrderResponse.Status.ToString(), false);
                 }
 
-                if (verifyOrderResponse.Status == OrderStatus.completed)
-                {
-                    return true;
-                } else {
-                    return false;
-                }
+                return verifyOrderResponse.Status;
             }
             catch (NoctuaException e)
             {
@@ -1005,20 +1061,20 @@ namespace com.noctuagames.sdk
                         OrderRequest = item.OrderRequest,
                         VerifyOrderRequest = item.VerifyOrderRequest,
                         AccessToken = item.AccessToken,
-                        Status = "Verification failed",
+                        Status = "verification_failed",
                     }
                 );
 
                 _log.Error("NoctuaException: " + e.ErrorCode + " : " + e.Message);
-                return false;
+                return OrderStatus.error;
             }
             catch (Exception e)
             {
                 _log.Error("Exception: " + e);
-                return false;
+                return OrderStatus.error;
             }
 
-            return true;
+            return OrderStatus.completed;
         }
 
         private async UniTask<T> RetryAsync<T>(Func<UniTask<T>> action)
@@ -1221,9 +1277,13 @@ namespace com.noctuagames.sdk
 
         private void SavePendingPurchases(List<RetryPendingPurchaseItem> orders)
         {
+            _log.Debug("save pending purchases to player prefs");
             var updatedJson = JsonConvert.SerializeObject(orders);
             PlayerPrefs.SetString("NoctuaPendingPurchases", updatedJson);
             PlayerPrefs.Save();
+
+            // Leave it here for debuggin purpose.
+            //GetPendingPurchases();
         }
 
         public List<RetryPendingPurchaseItem> GetPendingPurchases()
@@ -1241,9 +1301,12 @@ namespace com.noctuagames.sdk
             {
                 var pendingPurchases = JsonConvert.DeserializeObject<List<RetryPendingPurchaseItem>>(json);
                 
-                return pendingPurchases
+                var list = pendingPurchases
                     .Where(p => p.VerifyOrderRequest != null && p.AccessToken != null)
                     .ToList();
+                list.Sort((p1, p2) => p1.OrderId.CompareTo(p2.OrderId));
+
+                return list;
             }
             catch (Exception e)
             {
@@ -1306,6 +1369,7 @@ namespace com.noctuagames.sdk
             var random = new Random();
             
             var runningPendingPurchases = GetPendingPurchases().ToList();
+
             _log.Info("Queue count: " + runningPendingPurchases.Count);
             CancellationTokenSource cts = new();
             var quitting = false;
@@ -1352,6 +1416,17 @@ namespace com.noctuagames.sdk
                 
                 foreach (var item in runningPendingPurchases)
                 {
+
+                    if (item.Status == OrderStatus.refunded.ToString() ||
+                    item.Status == OrderStatus.canceled.ToString())
+                    {
+                        // We want to keep these items remains in the pending list
+                        EnqueueToRetryPendingPurchases(item);
+                        failedPendingPurchases.Add(item);
+
+                        continue;
+                    }
+
                     try
                     {
                         _log.Info(
@@ -1370,8 +1445,7 @@ namespace com.noctuagames.sdk
                         );
 
                         if (verifyOrderResponse.Status != OrderStatus.completed &&
-                            verifyOrderResponse.Status != OrderStatus.canceled  &&
-                            verifyOrderResponse.Status != OrderStatus.voided)
+                        verifyOrderResponse.Status != OrderStatus.voided)
                         {
                             // Enqueue to player prefs for future read
                             item.Status = verifyOrderResponse.Status.ToString();
@@ -1403,7 +1477,7 @@ namespace com.noctuagames.sdk
                                 OrderRequest = item.OrderRequest,
                                 VerifyOrderRequest = item.VerifyOrderRequest,
                                 AccessToken = item.AccessToken,
-                                Status = "Verification failed",
+                                Status = "verification_failed",
                             }
                         );
 

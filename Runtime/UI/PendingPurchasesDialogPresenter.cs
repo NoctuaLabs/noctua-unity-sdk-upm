@@ -59,9 +59,13 @@ namespace com.noctuagames.sdk.UI
             _page = 1;
 
             _pendingPurchases = pendingPurchases;
+            _pendingPurchases.Sort((p1, p2) => p1.OrderId.CompareTo(p2.OrderId));
             _pendingPurchases.Reverse();
             _pendingPurchasesListView = View.Q<ListView>("PendingPurchasesList");
             _pendingPurchasesListView.Rebuild();
+
+
+            _log.Debug("total pending purchases: " + _pendingPurchases.Count.ToString());
 
             if (_pendingPurchases.Count == 0)
             {
@@ -78,14 +82,21 @@ namespace com.noctuagames.sdk.UI
             var limit = 2;
             if (_pendingPurchases.Count <= limit)
             {
+                _log.Debug("hide navigation button");
                 View.Q<VisualElement>("NavigationButtonsSpacer").RemoveFromClassList("hide");
                 View.Q<VisualElement>("NavigationButtons").AddToClassList("hide");
             } else if (_pendingPurchases.Count > limit)
             {
+                _log.Debug("show navigation button");
                 View.Q<Button>("PrevButton").AddToClassList("hide");
                 View.Q<VisualElement>("NavigationButtonsSpacer").AddToClassList("hide");
                 View.Q<VisualElement>("NavigationButtons").RemoveFromClassList("hide");
+            } else {
+                _log.Debug("hide navigation button");
+                View.Q<VisualElement>("NavigationButtonsSpacer").RemoveFromClassList("hide");
+                View.Q<VisualElement>("NavigationButtons").AddToClassList("hide");
             }
+
             foreach (var item in _pendingPurchases)
             {
                 count++;
@@ -270,19 +281,43 @@ namespace com.noctuagames.sdk.UI
                 Model.ShowLoadingProgress(true);
                 try
                 {
-                    var isCompleted = await Model.RetryPendingPurchaseByOrderId(items[index].OrderId);
+                    var orderStatus = await Model.RetryPendingPurchaseByOrderId(items[index].OrderId);
 
                     Model.ShowLoadingProgress(false);
-                    if (isCompleted) {
-                        // Close the dialog and show toast
-                        Visible = false;
-                        Model.ShowGeneralNotification(
-                            "Your purchase receipt has been verified!",
-                            true,
-                            7000
-                        );
-                    } else {
-                        Visible = true;
+
+                    switch (orderStatus)
+                    {
+                        case OrderStatus.canceled:
+                            Visible = false;
+                            Model.ShowGeneralNotification(
+                                "Your purchase has been canceled. Please contact customer support for more details.",
+                                false,
+                                7000
+                            );
+                            break;
+                        case OrderStatus.refunded:
+                            Visible = false;
+                            Model.ShowGeneralNotification(
+                                "Your purchase has been refunded. Please contact customer support for more details.",
+                                false,
+                                7000
+                            );
+                            break;
+                        case OrderStatus.voided:
+                            Visible = false;
+                            Model.ShowGeneralNotification(
+                                "Your purchase has been voided. Please contact customer support for more details.",
+                                false,
+                                7000
+                            );
+                            break;
+                        case OrderStatus.completed:
+                            Visible = false;
+                            Model.ShowGeneralNotification("Your purchase has been verified!", true);
+                            break;
+                        default:
+                            Visible = false;
+                            break;
                     }
                 }
                 catch (Exception e)
@@ -301,6 +336,24 @@ namespace com.noctuagames.sdk.UI
             }
             element.Q<Label>("OrderId").text = text;
             element.Q<Label>("PaymentDetail").text = $"{items[index].PaymentType} - {items[index].PurchaseItemName}";
+
+            element.Q<Label>("Status").text = items[index].Status;
+            switch (items[index].Status) {
+                /*
+                case "refunded":
+                    element.Q<Label>("Status").AddToClassList("status-label-refunded");
+                    break;
+                case "canceled":
+                    element.Q<Label>("Status").AddToClassList("status-label-canceled");
+                    break;
+                case "verification_failed":
+                    element.Q<Label>("Status").AddToClassList("status-label-verification-failed");
+                    break;
+                */
+                default:
+                    element.Q<Label>("Status").AddToClassList("status-label-pending");
+                    break;
+            }
         }
     }
 }
