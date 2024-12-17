@@ -23,6 +23,9 @@ namespace com.noctuagames.sdk
         public class PendingPurchaseItem
         {
             public int OrderId;
+            public string PaymentType;
+            public string Status;
+            public string PurchaseItemName;
             public string Timestamp;
             public string OrderRequest;
             public string VerifyOrderRequest;
@@ -314,9 +317,22 @@ namespace com.noctuagames.sdk
             _pendingPurchases = new List<PendingPurchaseItem>();
             foreach (var item in list)
             {
+                var status = item.Status;
+                if (string.IsNullOrEmpty(status))
+                {
+                    status = "Pending";
+                }
+                var purchaseItemName = item.OrderRequest.IngameItemName;
+                if (string.IsNullOrEmpty(purchaseItemName))
+                {
+                    purchaseItemName = item.OrderRequest.ProductId;
+                }
                 _pendingPurchases.Add(new PendingPurchaseItem{
                     OrderId = item.OrderId,
                     Timestamp = item.OrderRequest.Timestamp,
+                    PaymentType = char.ToUpper(item.OrderRequest.PaymentType.ToString()[0]) + item.OrderRequest.PaymentType.ToString().Substring(1),
+                    Status = status,
+                    PurchaseItemName = purchaseItemName,
                     OrderRequest = Convert.ToBase64String(Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(item.OrderRequest))),
                     VerifyOrderRequest = Convert.ToBase64String(Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(item.VerifyOrderRequest)))
                 });
@@ -328,6 +344,11 @@ namespace com.noctuagames.sdk
         public async void ShowPendingPurchasesDialog()
         {
             _pendingPurchasesDialog.Show(GetPendingPurchases());
+        }
+
+        public async UniTask<bool> RetryPendingPurchaseByOrderId(int orderId)
+        {
+            return await _iapService.RetryPendingPurchaseByOrderId(orderId);
         }
     }
     

@@ -56,6 +56,8 @@ namespace com.noctuagames.sdk.UI
         {            
             _tcs = new UniTaskCompletionSource<bool>();
 
+            _page = 1;
+
             _pendingPurchases = pendingPurchases;
             _pendingPurchases.Reverse();
             _pendingPurchasesListView = View.Q<ListView>("PendingPurchasesList");
@@ -73,12 +75,12 @@ namespace com.noctuagames.sdk.UI
 
             var currentPageContent = new List<PendingPurchaseItem>();
             var count = 0;
-            var limit = 5;
-            if (_pendingPurchases.Count <= 5)
+            var limit = 2;
+            if (_pendingPurchases.Count <= limit)
             {
                 View.Q<VisualElement>("NavigationButtonsSpacer").RemoveFromClassList("hide");
                 View.Q<VisualElement>("NavigationButtons").AddToClassList("hide");
-            } else if (_pendingPurchases.Count > 5)
+            } else if (_pendingPurchases.Count > limit)
             {
                 View.Q<Button>("PrevButton").AddToClassList("hide");
                 View.Q<VisualElement>("NavigationButtonsSpacer").AddToClassList("hide");
@@ -115,7 +117,7 @@ namespace com.noctuagames.sdk.UI
         private void NavigatePage(int page)
         {
 
-            var limit = 5;
+            var limit = 2;
             var total = _pendingPurchases.Count;
             var offset = ((page - 1) * limit);
 
@@ -221,6 +223,8 @@ namespace com.noctuagames.sdk.UI
 
         private void CloseDialog(PointerUpEvent evt)
         { 
+            NavigatePage(1);
+
             _log.Debug("On close dialog");
 
             Visible = false;
@@ -232,7 +236,7 @@ namespace com.noctuagames.sdk.UI
         {
             listView.makeItem = _itemTemplate.Instantiate;
             listView.bindItem = (element, index) => BindListViewItem(element, index, items);
-            listView.fixedItemHeight = 40;
+            listView.fixedItemHeight = 100;
             listView.itemsSource = items;
             listView.selectionType = SelectionType.Single;
         }
@@ -248,7 +252,7 @@ namespace com.noctuagames.sdk.UI
             var fullReceiptData = JsonConvert.SerializeObject(items[index]);
             byte[] plainTextBytes = Encoding.UTF8.GetBytes(fullReceiptData);
             var textToCopy = Convert.ToBase64String(plainTextBytes);
-            element.RegisterCallback<PointerUpEvent>(evt =>
+            element.Q<Button>("CopyButton").RegisterCallback<PointerUpEvent>(evt =>
             {
 
                 Model.ShowGeneralNotification(
@@ -259,12 +263,44 @@ namespace com.noctuagames.sdk.UI
                 GUIUtility.systemCopyBuffer = textToCopy;
             });
 
-            var text = $"Oder ID {items[index].OrderId.ToString()}";
+            element.Q<Button>("RetryButton").RegisterCallback<PointerUpEvent>(async evt =>
+            {
+
+                Visible = false;
+                Model.ShowLoadingProgress(true);
+                try
+                {
+                    var isCompleted = await Model.RetryPendingPurchaseByOrderId(items[index].OrderId);
+
+                    Model.ShowLoadingProgress(false);
+                    if (isCompleted) {
+                        // Close the dialog and show toast
+                        Visible = false;
+                        Model.ShowGeneralNotification(
+                            "Your purchase receipt has been verified!",
+                            true,
+                            7000
+                        );
+                    } else {
+                        Visible = true;
+                    }
+                }
+                catch (Exception e)
+                {
+                    _log.Error("Exception: " + e);
+                    Visible = true;
+                }
+                Model.ShowLoadingProgress(false);
+            });
+
+            // Assign value to elements
+            var text = $"OrderID {items[index].OrderId.ToString()}";
             if (items[index].Timestamp != "")
             {
                 text += $" - {items[index].Timestamp}";
             }
             element.Q<Label>("OrderId").text = text;
+            element.Q<Label>("PaymentDetail").text = $"{items[index].PaymentType} - {items[index].PurchaseItemName}";
         }
     }
 }

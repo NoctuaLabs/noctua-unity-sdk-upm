@@ -501,6 +501,7 @@ namespace com.noctuagames.sdk
                             OrderRequest = orderRequest,
                             VerifyOrderRequest = verifyOrderRequest,
                             AccessToken = _accessTokenProvider.AccessToken,
+                            Status = "Verification failed",
                         }
                     );
 
@@ -915,6 +916,7 @@ namespace com.noctuagames.sdk
                             OrderRequest = orderRequest,
                             VerifyOrderRequest = verifyOrderRequest,
                             AccessToken = _accessTokenProvider.AccessToken,
+                            Status = "Network error"
                         }
                     );
                 }
@@ -941,6 +943,82 @@ namespace com.noctuagames.sdk
                 Status = verifyOrderResponse.Status,
                 Message = "Purchase completed"
             };
+        }
+
+        public async UniTask<bool>  RetryPendingPurchaseByOrderId(int orderId)
+        {
+            var item = GetPendingPurchaseByOrderId(orderId);
+            try
+            {
+                _log.Info(
+                    $"Retrying Order ID: {item.OrderId}, " +
+                    $"Receipt Data: {item.VerifyOrderRequest.ReceiptData}"
+                );
+
+                if (item.OrderRequest.Id == 0) {
+                item.OrderRequest.Id = item.OrderId;
+                }
+
+                var verifyOrderResponse = await VerifyOrderImplAsync(
+                    item.OrderRequest,
+                    item.VerifyOrderRequest,
+                    item.AccessToken
+                );
+
+                if (verifyOrderResponse.Status != OrderStatus.completed &&
+                verifyOrderResponse.Status != OrderStatus.canceled &&
+                verifyOrderResponse.Status != OrderStatus.voided)
+                {
+                    // Enqueue to player prefs for future read
+                    item.Status = verifyOrderResponse.Status.ToString();
+                    EnqueueToRetryPendingPurchases(item);
+                    _uiFactory.ShowGeneralNotification("Failed to verify the purchase. Status: " + verifyOrderResponse.Status.ToString(), false);
+                }
+
+                if (verifyOrderResponse.Status == OrderStatus.completed)
+                {
+                    return true;
+                } else {
+                    return false;
+                }
+            }
+            catch (NoctuaException e)
+            {
+                // Track failure
+                _eventSender?.Send(
+                    "purchase_verify_order_failed",
+                    new()
+                    {
+                        { "product_id", item.OrderRequest.ProductId },
+                        { "amount", item.OrderRequest.PriceInUSD },
+                        { "currency", "USD" },
+                        { "order_id", item.OrderRequest.Id },
+                        { "orig_amount", item.OrderRequest.Price },
+                        { "orig_currency", item.OrderRequest.Currency }
+                    }
+                );
+
+                EnqueueToRetryPendingPurchases(
+                    new RetryPendingPurchaseItem
+                    {
+                        OrderId = item.OrderId,
+                        OrderRequest = item.OrderRequest,
+                        VerifyOrderRequest = item.VerifyOrderRequest,
+                        AccessToken = item.AccessToken,
+                        Status = "Verification failed",
+                    }
+                );
+
+                _log.Error("NoctuaException: " + e.ErrorCode + " : " + e.Message);
+                return false;
+            }
+            catch (Exception e)
+            {
+                _log.Error("Exception: " + e);
+                return false;
+            }
+
+            return true;
         }
 
         private async UniTask<T> RetryAsync<T>(Func<UniTask<T>> action)
@@ -1177,6 +1255,50 @@ namespace com.noctuagames.sdk
             }
         }
 
+        public RetryPendingPurchaseItem GetPendingPurchaseByOrderId(int orderId)
+        {
+            _log.Info("Noctua.GetPendingPurchases");
+            var json = PlayerPrefs.GetString("NoctuaPendingPurchases", string.Empty);
+            _log.Info($"Pending purchases data: {json}");
+
+            if (string.IsNullOrEmpty(json))
+            {
+                throw new Exception($"No pending purchase with such ID {orderId}");
+            }
+
+            try
+            {
+                var pendingPurchases = JsonConvert.DeserializeObject<List<RetryPendingPurchaseItem>>(json);
+
+                var list = pendingPurchases
+                    .Where(p => p.VerifyOrderRequest != null && p.AccessToken != null)
+                    .ToList();
+
+                var result = new RetryPendingPurchaseItem();
+                var found = false;
+                foreach (var item in list)
+                {
+                    if (item.OrderId == orderId)
+                    {
+                        result = item;
+                        found = true;
+                        break;
+                    }
+                }
+                if (found)
+                {
+                    return result;
+                } else {
+                    throw new Exception($"No pending purchase with such ID {orderId}");
+                }
+            }
+            catch (Exception e)
+            {
+                _log.Error("Failed to parse pending purchases: " + e);
+                throw e;
+            }
+        }
+
         public async UniTask RetryPendingPurchasesAsync()
         {
             _log.Info("Starting pending purchases retry loop.");
@@ -1252,6 +1374,7 @@ namespace com.noctuagames.sdk
                             verifyOrderResponse.Status != OrderStatus.voided)
                         {
                             // Enqueue to player prefs for future read
+                            item.Status = verifyOrderResponse.Status.ToString();
                             EnqueueToRetryPendingPurchases(item);
                             // Enqueue to running queue
                             failedPendingPurchases.Add(item);
@@ -1273,7 +1396,16 @@ namespace com.noctuagames.sdk
                             }
                         );
 
-                        EnqueueToRetryPendingPurchases(item);
+                        EnqueueToRetryPendingPurchases(
+                            new RetryPendingPurchaseItem
+                            {
+                                OrderId = item.OrderId,
+                                OrderRequest = item.OrderRequest,
+                                VerifyOrderRequest = item.VerifyOrderRequest,
+                                AccessToken = item.AccessToken,
+                                Status = "Verification failed",
+                            }
+                        );
 
                         if ((NoctuaErrorCode)e.ErrorCode == NoctuaErrorCode.Networking)
                         {
@@ -1396,6 +1528,7 @@ namespace com.noctuagames.sdk
             public OrderRequest OrderRequest;
             public VerifyOrderRequest VerifyOrderRequest;
             public string AccessToken;
+            public string Status;
         }
         
         private void EnsureEnabled()

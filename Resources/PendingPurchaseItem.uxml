@@ -1,9 +1,19 @@
 ﻿<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" xsi="http://www.w3.org/2001/XMLSchema-instance" engine="UnityEngine.UIElements" editor="UnityEditor.UIElements" noNamespaceSchemaLocation="../../../../UIElementsSchema/UIElements.xsd" editor-extension-mode="False">
     <Style src="./Noctua.uss" />
     <ui:VisualElement name="PendingPurchaseItem" class="pending-purchase-item">
-    <ui:VisualElement class="purchase-info">
-        <ui:Label name="OrderId" text="Recent" class="recent-label" />
-        <ui:VisualElement name="CopyIcon" class="copy-icon" />
+        <ui:VisualElement style="flex-direction:row;font-size:8;margin-bottom:0px;">
+            <ui:Label name="OrderId" text="ID" class="order-label"  style="flex-direction:column;"/>
+            <ui:Label name="Status" text="Pending" class="status-label"  style="flex-direction:column;"/>
+        </ui:VisualElement>
+        <ui:VisualElement style="margin-top:-5px;">
+            <ui:Label name="PaymentDetail" text="" class="payment-label" />
+        </ui:VisualElement>
+        <ui:VisualElement name="NavigationButtons" style="flex-direction:row;margin-bottom:10px;">
+            <!--
+            <ui:Button text="Customer Service" display-tooltip-when-elided="true" name="CSButton" focusable="false" class="dialog-button secondary-button" style="margin-right:7px;margin-left:7px;height:15px;width:100px;flex-direction:column;"/>
+            -->
+            <ui:Button text="Retry" display-tooltip-when-elided="true" name="RetryButton" focusable="false" class="dialog-button secondary-button" style="margin-right:7px;height:15px;width:30px;flex-direction:column;"/>
+            <ui:Button text="Copy Receipt" display-tooltip-when-elided="true" name="CopyButton" focusable="false" class="dialog-button secondary-button" style="margin-right:7px;height:15px;width:80px;flex-direction:column;"/>
+        </ui:VisualElement>
     </ui:VisualElement>
-</ui:VisualElement>
 </ui:UXML>
