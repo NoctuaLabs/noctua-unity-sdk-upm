@@ -110,6 +110,16 @@ namespace com.noctuagames.sdk.UI
             _notification.Show(message, false);
         }
 
+        public void ShowInfo(LocaleTextKey textKey)
+        {
+            _notification.Show(textKey, true);
+        }
+        
+        public void ShowError(LocaleTextKey textKey)
+        {
+            _notification.Show(textKey, false);
+        }
+
         private RetryDialogPresenter CreateRetryDialogPresenter()
         {
             return Create<RetryDialogPresenter, object>(new object());

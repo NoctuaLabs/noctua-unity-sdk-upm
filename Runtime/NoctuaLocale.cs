@@ -182,11 +182,24 @@ namespace com.noctuagames.sdk
                 
             return _defaultTranslations.GetValueOrDefault(key, key);
         }
+        
+        public string GetTranslation(LocaleTextKey textKey)
+        {
+            return GetTranslation(textKey.ToString());
+        }
 
         internal class Config
         {
             public string BaseUrl;
             public string ClientId;
         }
+    }
+    
+    public enum LocaleTextKey
+    {
+        IAPCanceled,
+        IAPFailed,
+        IAPRequiresAuthentication,
+        IAPPaymentDisabled
     }
 }

@@ -120,12 +120,17 @@ namespace com.noctuagames.sdk
         Successful,
         Canceled,
         Failed,
-        Confirmed
+        Confirmed,
+        ItemAlreadyOwned,
+        Pending,
+        InvalidPurchaseObject,
+        PendingPurchaseOngoing
     }
     
     public class PaymentResult
     {
         public PaymentStatus Status;
+        public string ReceiptId;
         public string ReceiptData;
         public string Message;
     }
@@ -135,6 +140,9 @@ namespace com.noctuagames.sdk
     {
         [JsonProperty("id")]
         public int Id;
+
+        [JsonProperty("receipt_id")]
+        public string ReceiptId;
 
         [JsonProperty("receipt_data")]
         public string ReceiptData;
@@ -242,6 +250,8 @@ namespace com.noctuagames.sdk
         private readonly Queue<RetryPendingPurchaseItem> _waitingPendingPurchases = new();
         private readonly INativePlugin _nativePlugin;
         private readonly ProductList _usdProducts = new();
+        private readonly CustomPaymentCompleteDialogPresenter _customPaymentCompleteDialog;
+        private readonly FailedPaymentDialogPresenter _failedPaymentDialog;
 
 #if UNITY_ANDROID && !UNITY_EDITOR
         private readonly GoogleBilling GoogleBillingInstance = new();
@@ -273,6 +283,8 @@ namespace com.noctuagames.sdk
             _noctuaPayment = new NoctuaWebPaymentService(config.WebPaymentBaseUrl);
             
             _uiFactory = uiFactory;
+            _customPaymentCompleteDialog = _uiFactory.Create<CustomPaymentCompleteDialogPresenter, object>(new object());
+            _failedPaymentDialog = _uiFactory.Create<FailedPaymentDialogPresenter, object>(new object());
 
 #if UNITY_ANDROID && !UNITY_EDITOR
             GoogleBillingInstance.OnProductDetailsDone += HandleGoogleProductDetails;
@@ -553,14 +565,14 @@ namespace com.noctuagames.sdk
 
             if (!_accessTokenProvider.IsAuthenticated)
             {
-                _uiFactory.ShowError("purchase requires user authenttication");
+                _uiFactory.ShowError(LocaleTextKey.IAPRequiresAuthentication);
 
-                throw new NoctuaException(NoctuaErrorCode.Authentication, "purchase requires user authentication");
+                throw new NoctuaException(NoctuaErrorCode.Authentication, "Purchase requires user authentication");
             }
             
             if (_enabledPaymentTypes.Count == 0)
             {
-                _uiFactory.ShowError("Payment is disabled. Please contact customer support.");
+                _uiFactory.ShowError(LocaleTextKey.IAPPaymentDisabled);
 
                 throw new NoctuaException(NoctuaErrorCode.Payment, "no payment types enabled");
             }
@@ -578,8 +590,6 @@ namespace com.noctuagames.sdk
             Product usdProduct;
             OrderRequest orderRequest;
             OrderResponse orderResponse;
-            decimal price;
-            string currency;
 
             try
             {
@@ -659,7 +669,6 @@ namespace com.noctuagames.sdk
                 _uiFactory.ShowError(e.Message);
                 _log.Exception(e);
                 _uiFactory.ShowLoadingProgress(false);
-                _uiFactory.ShowError(e.Message);
 
                 throw;
             }
@@ -732,7 +741,7 @@ namespace com.noctuagames.sdk
 
                     paymentResult = new PaymentResult{Status = PaymentStatus.Confirmed};
 
-                    var continueToVerify = await _uiFactory.ShowCustomPaymentCompleteDialog();
+                    var continueToVerify = await _customPaymentCompleteDialog.Show();
                     if (!continueToVerify) // Custom payment get canceled.
                     {
                         var verifiedAtCancelation = false;
@@ -823,27 +832,39 @@ namespace com.noctuagames.sdk
                 throw new NoctuaException(NoctuaErrorCode.Payment, "Payment timeout");
             }
             
-            if (paymentResult.Status == PaymentStatus.Canceled)
+            switch (paymentResult.Status)
             {
-                _eventSender?.Send(
-                    "purchase_cancelled",
-                    new()
-                    {
-                        { "product_id", orderResponse.ProductId },
-                        { "amount", usdProduct.Price },
-                        { "currency", usdProduct.Currency },
-                        { "order_id", orderResponse.Id },
-                        { "orig_amount", orderRequest.Price },
-                        { "orig_currency", orderRequest.Currency }
-                    }
-                );
-            }
+                case PaymentStatus.Confirmed:
+                case PaymentStatus.Successful:
+                case PaymentStatus.Pending: // will attempt to verify directly
+                    break;
+                case PaymentStatus.PendingPurchaseOngoing:
+                case PaymentStatus.ItemAlreadyOwned:
+                    await _failedPaymentDialog.Show(paymentResult.Status);
+                    
+                    throw new NoctuaException(NoctuaErrorCode.Payment, paymentResult.Message);
+                case PaymentStatus.Canceled:
+                    _eventSender?.Send(
+                        "purchase_cancelled",
+                        new()
+                        {
+                            { "product_id", orderResponse.ProductId },
+                            { "amount", usdProduct.Price },
+                            { "currency", usdProduct.Currency },
+                            { "order_id", orderResponse.Id },
+                            { "orig_amount", orderRequest.Price },
+                            { "orig_currency", orderRequest.Currency }
+                        }
+                    );
 
-            if (paymentResult.Status is not (PaymentStatus.Successful or PaymentStatus.Confirmed))
-            {
-                _uiFactory.ShowError(paymentResult.Message);
+                    _uiFactory.ShowError(LocaleTextKey.IAPCanceled);
                 
-                throw new NoctuaException(NoctuaErrorCode.Payment, $"payment status: {paymentResult.Status}, Message: {paymentResult.Message}");
+                    throw new NoctuaException(NoctuaErrorCode.Payment, $"payment status: {paymentResult.Status}, Message: {paymentResult.Message}");
+
+                default:
+                    _uiFactory.ShowError(LocaleTextKey.IAPFailed);
+                
+                    throw new NoctuaException(NoctuaErrorCode.Payment, $"payment status: {paymentResult.Status}, Message: {paymentResult.Message}");
             }
 
             var orderId = orderResponse.Id;
@@ -852,6 +873,7 @@ namespace com.noctuagames.sdk
             var verifyOrderRequest = new VerifyOrderRequest
             {
                 Id = orderId,
+                ReceiptId = paymentResult.ReceiptId,
                 ReceiptData = paymentResult.ReceiptData
             };
 
@@ -899,7 +921,7 @@ namespace com.noctuagames.sdk
                 
                 _uiFactory.ShowLoadingProgress(false);
                 _log.Exception(e);
-                _uiFactory.ShowError(e.ErrorCode + " : " + e.Message);
+                _uiFactory.ShowError(e.Message);
 
                 throw;
             }
@@ -996,33 +1018,87 @@ namespace com.noctuagames.sdk
 
         private PaymentResult GetPlaystorePaymentResult(GoogleBilling.PurchaseResult result)
         {
-            _log.Info("Noctua.HandleGooglePurchaseDone");
-            
-            if (result == null || !result.Success)
+            if (result is null)
             {
-                _log.Info("Noctua.HandleGooglePurchaseDone result.Message: " + result.Message);
-                if (string.IsNullOrEmpty(result.Message)) { // Empty message means canceled
-                    _log.Error("Purchase canceled: empty message means canceled");
+                _log.Error("Purchase result is null");
 
-                    return new PaymentResult
-                    {
-                        Status = PaymentStatus.Canceled,
-                        Message = "Purchase canceled"
-                    };
-                }
+                return new PaymentResult
+                {
+                    Status = PaymentStatus.InvalidPurchaseObject,
+                    Message = "Purchase result is null"
+                };
+            }
 
-                _log.Error("Purchase failed: " + result.Message);
-                
-                return new PaymentResult{
+            _log.Debug(
+                $"Playstore purchase:\n"           +
+                $"token: {result.PurchaseToken}, " +
+                $"success: {result.Success}, "     +
+                $"errorCode: {result.ErrorCode}, " +
+                $"purchaseState={result.PurchaseState}"
+            );
+
+            if (result.ErrorCode == GoogleBilling.BillingErrorCode.UserCanceled)
+            {
+                return new PaymentResult
+                {
+                    Status = PaymentStatus.Canceled,
+                    Message = result.Message,
+                    ReceiptId = result.ReceiptId,
+                    ReceiptData = result.ReceiptData,
+                };
+            }
+
+            if (result.ErrorCode == GoogleBilling.BillingErrorCode.DeveloperError && 
+                result.Message.Contains("There is already a pending purchase for the requested item."))
+            {
+                return new PaymentResult
+                {
+                    Status = PaymentStatus.PendingPurchaseOngoing,
+                    Message = result.Message,
+                    ReceiptId = result.ReceiptId,
+                    ReceiptData = result.ReceiptData,
+                };
+            }
+
+            if (result.ErrorCode == GoogleBilling.BillingErrorCode.ItemAlreadyOwned)
+            {
+                return new PaymentResult
+                {
+                    Status = PaymentStatus.ItemAlreadyOwned,
+                    Message = $"Item with purchase token '{result.PurchaseToken}' already owned",
+                    ReceiptId = result.ReceiptId,
+                    ReceiptData = result.ReceiptData,
+                };
+            }
+
+            if (result.ErrorCode != GoogleBilling.BillingErrorCode.OK)
+            {
+                return new PaymentResult
+                {
                     Status = PaymentStatus.Failed,
-                    Message = result.Message
+                    Message = $"Purchase failed with error '{result.ErrorCode}'",
+                    ReceiptId = result.ReceiptId,
+                    ReceiptData = result.ReceiptData,
+                };
+            }
+
+            if (result.PurchaseState == GoogleBilling.PurchaseState.Pending)
+            {
+                return new PaymentResult
+                {
+                    Status = PaymentStatus.Pending,
+                    Message = $"Purchase with purchase token '{result.PurchaseToken}' is pending",
+                    ReceiptId = result.ReceiptId,
+                    ReceiptData = result.ReceiptData,
                 };
             }
 
             return new PaymentResult
             {
                 Status = PaymentStatus.Successful,
-                ReceiptData = result.ReceiptData
+                Message = $"Purchase '{result.ReceiptId}' successful",
+                ReceiptId = result.ReceiptId,
+                ReceiptData = result.ReceiptData,
             };
         }
 #endif
@@ -1127,7 +1203,6 @@ namespace com.noctuagames.sdk
                 
                 return;
             }
-            
 
             while (!quitting)
             {
@@ -1173,8 +1248,8 @@ namespace com.noctuagames.sdk
                         );
 
                         if (verifyOrderResponse.Status != OrderStatus.completed &&
-                        verifyOrderResponse.Status != OrderStatus.canceled &&
-                        verifyOrderResponse.Status != OrderStatus.voided)
+                            verifyOrderResponse.Status != OrderStatus.canceled  &&
+                            verifyOrderResponse.Status != OrderStatus.voided)
                         {
                             // Enqueue to player prefs for future read
                             EnqueueToRetryPendingPurchases(item);
@@ -1302,6 +1377,7 @@ namespace com.noctuagames.sdk
             {
                 _waitingPendingPurchases.Enqueue(item);
             }
+            
             SavePendingPurchases(_waitingPendingPurchases.ToList());
         }
 

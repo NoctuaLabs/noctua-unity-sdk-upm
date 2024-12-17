@@ -100,6 +100,10 @@
     "EmailConfirmResetPasswordDialogPresenter.ContinueButton.Button.text": "Atur Ulang Kata Sandi dan Masuk",
     "EmailConfirmResetPasswordDialogPresenter.SuccessNotification": "Kata sandi berhasil diatur ulang. Silakan masuk kembali.",
 
+    "FailedPaymentDialogPresenter.CSButton.Button.text": "Hubungi CS",
+    "FailedPaymentDialogPresenter.ItemAlreadyOwned": "Ada yang salah dengan pembelian Anda sebelumnya. Silakan hubungi layanan pelanggan.",
+    "FailedPaymentDialogPresenter.PendingPurchaseOngoing": "Pembelian Anda masih diproses. Harap tunggu beberapa menit dan coba mulai ulang permainan.",
+
     "AccountDeletionConfirmationDialogPresenter.Question.Label.text": "Apakah Anda yakin ingin\nmenghapus akun ini?",
     "AccountDeletionConfirmationDialogPresenter.Note.Label.text": "Semua kemajuan dan\ndata Anda akan hilang. Tindakan ini\npermanen dan tidak dapat dibatalkan.",
     "AccountDeletionConfirmationDialogPresenter.ErrCode.Label.tooltip": "Kode Kesalahan",
@@ -158,6 +162,10 @@
 
     "CustomPaymentCompleteDialogPresenter.CustomPaymentCSButton.Button.text": "Kontak CS",
     "CustomPaymentCompleteDialogPresenter.CustomPaymentCompleteButton.Button.text": "Pembayaran Selesai",
-    "CustomPaymentCompleteDialogPresenter.OrderVerificationFailedMessage": "Pembayaran Anda belum terverifikasi. Silakan coba kembali."
+    "CustomPaymentCompleteDialogPresenter.OrderVerificationFailedMessage": "Pembayaran Anda belum terverifikasi. Silakan coba kembali.",
 
+    "IAPCanceled": "Pembelian dibatalkan",
+    "IAPFailed": "Pembelian gagal",
+    "IAPRequiresAuthentication": "Pembelian memerlukan otentikasi",
+    "IAPPaymentDisabled": "Pembayaran dinonaktifkan. Silakan hubungi layanan pelanggan."
 }

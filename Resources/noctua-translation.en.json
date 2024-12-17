@@ -100,6 +100,10 @@
     "EmailConfirmResetPasswordDialogPresenter.ContinueButton.Button.text": "Reset Password and Login",
     "EmailConfirmResetPasswordDialogPresenter.SuccessNotification": "Password reset successfully. Please login with your new password.",
 
+    "FailedPaymentDialogPresenter.CSButton.Button.text": "Contact Support",
+    "FailedPaymentDialogPresenter.ItemAlreadyOwned": "Something went wrong with your previous purchase. Please contact customer service.",
+    "FailedPaymentDialogPresenter.PendingPurchaseOngoing": "Your purchase is still being processed. Please wait for a few minutes and try to restart the game.",
+    
     "AccountDeletionConfirmationDialogPresenter.Question.Label.text": "Are you sure you want to\ndelete this account?",
     "AccountDeletionConfirmationDialogPresenter.Note.Label.text": "All your progress and\ndata will be lost. This action is\npermanent and cannot be undone.",
     "AccountDeletionConfirmationDialogPresenter.ErrCode.Label.tooltip": "Error Code",
@@ -156,6 +160,11 @@
     "CustomPaymentCompleteDialogPresenter.Message.Label.text": "Your payment page is now open in your browser. Unless you want to cancel, do not close this pop up until the transaction is complete.",
     "CustomPaymentCompleteDialogPresenter.CustomPaymentCSButton.Button.text": "Customer Support",
     "CustomPaymentCompleteDialogPresenter.CustomPaymentCompleteButton.Button.text": "Completed",
-    "CustomPaymentCompleteDialogPresenter.OrderVerificationFailedMessage": "Your payment couldn’t be verified. Please retry later."
-  }
+    "CustomPaymentCompleteDialogPresenter.OrderVerificationFailedMessage": "Your payment couldn’t be verified. Please retry later.",
+
+    "IAPCanceled": "Purchase canceled",
+    "IAPFailed": "Purchase failed",
+    "IAPRequiresAuthentication": "Purchase requires user authentication",
+    "IAPPaymentDisabled": "Payment is disabled. Please contact customer support."
+}
   

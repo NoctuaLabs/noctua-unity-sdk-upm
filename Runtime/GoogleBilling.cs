@@ -18,10 +18,39 @@ public class GoogleBilling
     public event ProductDetailsDone OnProductDetailsDone;
 
     [Preserve]
+    public enum BillingErrorCode
+    {
+        OK = 0, // Success
+        UserCanceled = 1, // Transaction was canceled by the user
+        ServiceUnavailable = 2, // The service is currently unavailable
+        BillingUnavailable = 3, // A user billing error occurred during processing
+        ItemUnavailable = 4, // The requested product is not available for purchase
+        DeveloperError = 5, // Error resulting from incorrect usage of the API
+        Error = 6, // Fatal error during the API action
+        ItemAlreadyOwned = 7, // The purchase failed because the item is already owned
+        ItemNotOwned = 8, // Requested action on the item failed since it is not owned by the user
+        NetworkError = 12, // A network error occurred during the operation
+        FeatureNotSupported = -2, // The requested feature is not supported by the Play Store on the current device
+        ServiceDisconnected = -1, // The app is not connected to the Play Store service via the Google Play Billing Library
+        ServiceTimeout = -3 // Deprecated: See ServiceUnavailable
+    }
+
+    [Preserve]
+    public enum PurchaseState
+    {
+        Unspecified = 0, // The purchase state of the order is unspecified
+        Purchased = 1, // The order is purchased
+        Pending = 2 // The order is pending
+    }
+
+    [Preserve]
     public class PurchaseResult
     {
         public bool Success;
+        public BillingErrorCode ErrorCode;
+        public PurchaseState PurchaseState;
         public string PurchaseToken;
+        public string ReceiptId;
         public string ReceiptData;
         public string Message;
     }
@@ -132,6 +161,8 @@ public class GoogleBilling
         {
             _log.Debug("GoogleBilling.ProductDetailsResponseListener");
             int responseCode = billingResult.Call<int>("getResponseCode");
+            _log.Debug($"billingResult responseCode: '{(BillingErrorCode)responseCode}'");
+
             if (responseCode == 0) // BillingResponseCode.OK
             {
                 _log.Debug("Product details query successful");
@@ -198,6 +229,8 @@ public class GoogleBilling
                 
                 var result = new PurchaseResult{
                     Success = false,
+                    ErrorCode = (BillingErrorCode)responseCode,
+                    PurchaseState = PurchaseState.Unspecified,
                     Message = errorMessage,
                     ReceiptData = "",
                 };
@@ -220,38 +253,65 @@ public class GoogleBilling
 
         void onPurchasesUpdated(AndroidJavaObject billingResult, AndroidJavaObject purchases)
         {
-            _log.Debug("GoogleBilling.PurchasesUpdatedListener");
-            int responseCode = billingResult.Call<int>("getResponseCode");
-            if (responseCode == 0 && purchases != null)
+            var responseCode = billingResult.Call<int>("getResponseCode");
+            var debugMessage = billingResult.Call<string>("getDebugMessage");
+            _log.Debug($"billingResult code: '{(BillingErrorCode)responseCode}', message: '{debugMessage}'");
+
+            if (responseCode != 0)
             {
-                _log.Debug("Purchase successful");
-                for (int i = 0; i < purchases.Call<int>("size"); i++)
-                {
-                    AndroidJavaObject purchase = purchases.Call<AndroidJavaObject>("get", i);
-                    _log.Debug("GoogleBilling.PurchasesUpdatedListener: purchase object found");
-                    var originalJson = purchase.Call<string>("getOriginalJson");
-                    _log.Debug("originalJson: " + originalJson);
-                    var receiptData = purchase.Call<string>("getPurchaseToken");
-                    _log.Debug("receiptData: " + receiptData);
-                    googleBilling.InvokeOnPurchaseDone(new PurchaseResult{
-                        Success = true,
-                        Message = "success",
-                        ReceiptData = receiptData,
-                    });
-                    break;
-                }
+                _log.Error($"purchase failed, code: {(BillingErrorCode)responseCode}");
             }
-            else
+
+            if (purchases == null)
             {
-                string errorMessage = billingResult.Call<string>("getDebugMessage");
-                _log.Error("Purchase failed: " + errorMessage);
+                _log.Debug("purchases is null");
+                
                 googleBilling.InvokeOnPurchaseDone(new PurchaseResult{
                     Success = false,
-                    Message = errorMessage,
-                    PurchaseToken = "",
+                    ErrorCode = (BillingErrorCode)responseCode,
+                    PurchaseState = PurchaseState.Unspecified,
+                    Message = debugMessage,
                     ReceiptData = "",
                 });
+                
+                return;
             }
+
+            var purchaseSize = purchases.Call<int>("size");
+
+            if (purchaseSize < 1)
+            {
+                _log.Debug($"purchaseSize is 0");
+
+                googleBilling.InvokeOnPurchaseDone(new PurchaseResult{
+                    Success = false,
+                    ErrorCode = (BillingErrorCode)responseCode,
+                    PurchaseState = PurchaseState.Unspecified,
+                    Message = debugMessage,
+                    ReceiptData = "",
+                });
+
+                return;
+            }
+            
+            //Assuming only one purchase is made at a time
+            AndroidJavaObject purchase = purchases.Call<AndroidJavaObject>("get", 0);
+            _log.Debug($"originalJson: '{purchase.Call<string>("getOriginalJson")}'");
+
+            var purchaseState = purchase.Call<int>("getPurchaseState");
+            var orderId = purchase.Call<string>("getOrderId");
+            var purchaseToken = purchase.Call<string>("getPurchaseToken");
+
+            _log.Debug($"orderId: '{orderId}', purchaseToken: '{purchaseToken}', purchaseState: '{(PurchaseState)purchaseState}'");
+
+            googleBilling.InvokeOnPurchaseDone(new PurchaseResult{
+                Success = true,
+                ErrorCode = (BillingErrorCode)responseCode,
+                PurchaseState = (PurchaseState)purchaseState,
+                Message = debugMessage,
+                ReceiptId = orderId,
+                ReceiptData = purchaseToken,
+            });
         }
     }
 

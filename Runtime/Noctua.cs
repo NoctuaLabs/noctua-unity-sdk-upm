@@ -282,6 +282,8 @@ namespace com.noctuagames.sdk
             
             _event = new NoctuaEventService(_nativePlugin, _eventSender);
             _event.SetProperties(isSandbox: config.Noctua.IsSandbox);
+            _eventSender.SetProperties(isSandbox: config.Noctua.IsSandbox);
+            
 
             var panelSettings = Resources.Load<PanelSettings>("NoctuaPanelSettings");
             panelSettings.themeStyleSheet = Resources.Load<ThemeStyleSheet>("NoctuaTheme");
@@ -408,6 +410,7 @@ namespace com.noctuagames.sdk
             if (initResponse != null)
             {
                 Instance.Value._event.SetProperties(initResponse.Country, initResponse.IpAddress);
+                Instance.Value._eventSender.SetProperties(ipAddress: initResponse.IpAddress);
             }
 
             // Set locale values
