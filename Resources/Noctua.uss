@@ -123,7 +123,7 @@
 
 .dialog-content {
     padding: 14px;
-    margin-top: 15px;
+    margin-top: 0;
     flex-direction: column;
     width: 300px;
 }
@@ -191,8 +191,7 @@
     background-color: transparent;
     border-width: 1px;
     border-color: rgb(59, 130, 246);
-    color: rgb(59, 130, 246):
-    height: 40px;
+    color: rgb(59, 130, 246) height 40px;
     width: 100%;
     padding-top: 14px;
     padding-right: 24px;
@@ -312,7 +311,7 @@
 }
 
 .pending-purchases-icon {
-    background-image: url("project://database/Packages/com.noctuagames.sdk/Resources/PendingPurchasesIcon.png");
+    background-image: url("project://database/Packages/com.noctuagames.sdk/Resources/PendingPurchasesIcon.png?fileID=21300000&guid=96179ce18e6101a4db1e7d813962e303&type=3#PendingPurchasesIcon");
     width: 20px;
     height: 16px;
     background-position: center;
@@ -417,6 +416,7 @@
     flex-direction: column;
     margin-right: -10px;
     margin-left: -10px;
+    padding-top: 5px;
 }
 
 .unity-base-text-field__input {
@@ -500,6 +500,27 @@ Label:hover {
     padding-left: 10px;
     background-color: transparent;
     border-width: 0;
+    padding-top: 7px;
+}
+
+.noctua-text-input #Tittle {
+    background-color: rgb(31, 35, 39);
+    align-items: flex-start;
+    justify-content: flex-start;
+    top: -1px;
+    color: rgb(124, 126, 129);
+    -unity-text-align: upper-left;
+    margin-top: 0;
+    margin-right: 0;
+    margin-bottom: 0;
+    margin-left: 0;
+    padding-top: 0;
+    padding-right: 3px;
+    padding-bottom: 0;
+    padding-left: 3px;
+    left: 20px;
+    position: absolute;
+    font-size: 10px;
 }
 
 .custom-textfield-input-code #unity-text-input {
@@ -544,6 +565,7 @@ Label:hover {
     top: 9.5px;
     right: 10px;
     position: absolute;
+    margin-top: 7px;
 }
 
 .btn-password-hide {
@@ -551,6 +573,7 @@ Label:hover {
     top: 9.5px;
     right: 10px;
     position: absolute;
+    margin-top: 7px;
 }
 
 .spinner-fake-button {
@@ -568,7 +591,7 @@ Label:hover {
 }
 
 .wizard-register-footer {
-    height: 0px;
+    height: 0;
 }
 
 .generic-register-errbox {

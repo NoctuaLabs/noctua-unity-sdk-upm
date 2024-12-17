@@ -79,26 +79,35 @@ namespace com.noctuagames.sdk.UI
         public void OnTextFieldFocusChange(FocusInEvent _event)
         {
             (_event.target as VisualElement).Children().ElementAt(1).AddToClassList("noctua-text-input-focus");
+            (_event.target as VisualElement).Q<VisualElement>("Tittle").style.color = Color.white;
         }
 
         public void OnTextFieldFocusChange(FocusOutEvent _event)
         {
             (_event.target as VisualElement).Children().ElementAt(1).RemoveFromClassList("noctua-text-input-focus");
+            (_event.target as VisualElement).Q<VisualElement>("Tittle").style.color = new Color(0.4862745f, 0.4941176f, 0.5058824f, 1.0f);
         }
 
         private void OnVerificationCodeValueChanged(TextField textField)
         {
             HideAllErrors();
+            
+            _credVerifyCode = textField.value;
+            AdjustHideLabelElement(textField);
+        }
 
+        private void AdjustHideLabelElement(TextField textField)
+        {
             if (string.IsNullOrEmpty(textField.value))
             {
                 textField.labelElement.style.display = DisplayStyle.Flex;
+                textField.Q<VisualElement>("Tittle").AddToClassList("hide");
             }
             else
             {
                 textField.labelElement.style.display = DisplayStyle.None;
+                textField.Q<VisualElement>("Tittle").RemoveFromClassList("hide");
             }
-            _credVerifyCode = textField.value;
         }
 
         private void OnBackButtonClick(ClickEvent evt)

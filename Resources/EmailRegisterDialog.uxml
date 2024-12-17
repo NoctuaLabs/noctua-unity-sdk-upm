@@ -8,13 +8,19 @@
             </ui:VisualElement>
             <ui:VisualElement name="Content" class="dialog-content" style="height: 300px;">
                 <ui:VisualElement name="RegisterWizard1">
-                    <ui:TextField label="Email Address" name="EmailTF" keyboard-type="EmailAddress" class="noctua-text-input" />
+                    <ui:TextField label="Email address" name="EmailTF" keyboard-type="EmailAddress" class="noctua-text-input">
+                        <ui:Label tabindex="-1" text="Email address" parse-escape-sequences="true" display-tooltip-when-elided="true" name="Tittle" class="hide" />
+                    </ui:TextField>
                     <ui:VisualElement name="Password" style="flex-grow: 1;">
-                        <ui:TextField label="Password" name="PasswordTF" class="noctua-text-input" />
+                        <ui:TextField label="Password" name="PasswordTF" class="noctua-text-input">
+                            <ui:Label tabindex="-1" text="Password" parse-escape-sequences="true" display-tooltip-when-elided="true" name="Tittle" class="hide" />
+                        </ui:TextField>
                         <ui:Button parse-escape-sequences="true" display-tooltip-when-elided="true" name="ShowPasswordButton" class="btn-password-show" style="position: absolute; background-color: rgba(255, 255, 255, 0); align-self: center; justify-content: center; top: 9.5px; right: 10px;" />
                     </ui:VisualElement>
                     <ui:VisualElement name="RePassword" style="flex-grow: 1;">
-                        <ui:TextField label="Re-enter Password" name="RePasswordTF" class="noctua-text-input" />
+                        <ui:TextField label="Re-enter password" name="RePasswordTF" class="noctua-text-input">
+                            <ui:Label tabindex="-1" text="Re-enter password" parse-escape-sequences="true" display-tooltip-when-elided="true" name="Tittle" class="hide" />
+                        </ui:TextField>
                         <ui:Button parse-escape-sequences="true" display-tooltip-when-elided="true" name="ShowRePasswordButton" class="btn-password-show" style="position: absolute; background-color: rgba(255, 255, 255, 0); align-self: center; justify-content: center; top: 9.5px; right: 10px;" />
                     </ui:VisualElement>
                     <ui:VisualElement name="RegisterWizard1NextButton" class="hide">
@@ -22,30 +28,48 @@
                     </ui:VisualElement>
                 </ui:VisualElement>
                 <ui:VisualElement name="RegisterWizard2" class="hide">
-                    <ui:TextField label="Full Name" name="FullNameTF" class="noctua-text-input hide" />
+                    <ui:TextField label="Full Name" name="FullNameTF" class="noctua-text-input hide">
+                        <ui:Label tabindex="-1" text="Full name" parse-escape-sequences="true" display-tooltip-when-elided="true" name="Tittle" class="hide" />
+                    </ui:TextField>
                     <ui:VisualElement name="PhoneNumberContainer" class="hide" style="flex-direction: row; position: relative;">
                         <ui:DropdownField name="PhoneCodeDF" class="general-dropdown-box" style="margin-right: 10px; width: 100px;" />
-                        <ui:TextField label="PhoneNumber" name="PhoneNumberTF" class="noctua-text-input" style="width: 179px;" />
+                        <ui:TextField label="PhoneNumber" name="PhoneNumberTF" class="noctua-text-input" style="width: 179px;">
+                            <ui:Label tabindex="-1" text="Phone number" parse-escape-sequences="true" display-tooltip-when-elided="true" name="Tittle" class="hide" />
+                        </ui:TextField>
                     </ui:VisualElement>
-                    <ui:TextField label="Birthdate" name="BirthdateTF" class="noctua-text-input hide" />
+                    <ui:TextField label="Birthdate" name="BirthdateTF" class="noctua-text-input hide">
+                        <ui:Label tabindex="-1" text="Birthdate" parse-escape-sequences="true" display-tooltip-when-elided="true" name="Tittle" class="hide" />
+                    </ui:TextField>
                     <ui:VisualElement style="flex-direction: row; margin-top: 50px;">
                         <ui:Button text="Prev" display-tooltip-when-elided="true" name="WizardPrevTo1Button" focusable="false" class="dialog-button secondary-button" style="margin-right: 15px; width: 120px; flex-direction: column;" />
                         <ui:Button text="Next" display-tooltip-when-elided="true" name="WizardNextTo3Button" focusable="false" class="dialog-button" style="margin-left: 15px; width: 120px; flex-direction: column;" />
                     </ui:VisualElement>
                 </ui:VisualElement>
                 <ui:VisualElement name="RegisterWizard3" class="hide">
-                    <ui:DropdownField name="GenderTF" label="Gender" class="general-dropdown-box hide" />
-                    <ui:DropdownField label="Country" name="CountryTF" class="general-dropdown-box hide" />
-                    <ui:TextField label="ID Card" name="IDCardTF" class="noctua-text-input hide" />
+                    <ui:DropdownField name="GenderTF" label="Gender" class="general-dropdown-box hide">
+                        <ui:Label tabindex="-1" text="Gender" parse-escape-sequences="true" display-tooltip-when-elided="true" name="Tittle" />
+                    </ui:DropdownField>
+                    <ui:DropdownField label="Country" name="CountryTF" class="general-dropdown-box hide">
+                        <ui:Label tabindex="-1" text="Country" parse-escape-sequences="true" display-tooltip-when-elided="true" name="Tittle" />
+                    </ui:DropdownField>
+                    <ui:TextField label="ID Card" name="IDCardTF" class="noctua-text-input hide">
+                        <ui:Label tabindex="-1" text="ID card" parse-escape-sequences="true" display-tooltip-when-elided="true" name="Tittle" class="hide" />
+                    </ui:TextField>
                     <ui:VisualElement style="flex-direction: row; margin-top: 49px;">
                         <ui:Button text="Prev" display-tooltip-when-elided="true" name="WizardPrevTo2Button" focusable="false" class="dialog-button secondary-button" style="margin-right: 15px; width: 120px; flex-direction: column;" />
                         <ui:Button text="Next" display-tooltip-when-elided="true" name="WizardNextTo4Button" focusable="false" class="dialog-button" style="margin-left: 15px; width: 120px; flex-direction: column;" />
                     </ui:VisualElement>
                 </ui:VisualElement>
                 <ui:VisualElement name="RegisterWizard4" class="hide">
-                    <ui:TextField label="Place Of Issue" name="PlaceOfIssueTF" class="noctua-text-input hide" />
-                    <ui:TextField label="Date Of Issue" name="DateOfIssueTF" class="noctua-text-input hide" />
-                    <ui:TextField label="Address" name="AddressTF" class="noctua-text-input hide" />
+                    <ui:TextField label="Place Of Issue" name="PlaceOfIssueTF" class="noctua-text-input hide">
+                        <ui:Label tabindex="-1" text="Place of issue" parse-escape-sequences="true" display-tooltip-when-elided="true" name="Tittle" class="hide" />
+                    </ui:TextField>
+                    <ui:TextField label="Date Of Issue" name="DateOfIssueTF" class="noctua-text-input hide">
+                        <ui:Label tabindex="-1" text="Date of issue" parse-escape-sequences="true" display-tooltip-when-elided="true" name="Tittle" class="hide" />
+                    </ui:TextField>
+                    <ui:TextField label="Address" name="AddressTF" class="noctua-text-input hide">
+                        <ui:Label tabindex="-1" text="Address" parse-escape-sequences="true" display-tooltip-when-elided="true" name="Tittle" class="hide" />
+                    </ui:TextField>
                     <ui:VisualElement style="flex-direction: row; margin-top: 45px;">
                         <ui:Button text="Prev" display-tooltip-when-elided="true" name="WizardPrevTo3Button" focusable="false" class="dialog-button secondary-button" style="margin-right: 15px; width: 120px; flex-direction: column;" />
                         <ui:Button text="Register" display-tooltip-when-elided="true" name="WizardContinueButton" focusable="false" class="dialog-button" style="margin-left: 15px; width: 120px; flex-direction: column;" />
