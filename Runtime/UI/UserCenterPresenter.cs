@@ -71,6 +71,9 @@ namespace com.noctuagames.sdk.UI
             "SuggestionBindText.Content2",
             "SuggestionBindText.Content3"
             };
+
+        private string[] carouselTranslate;
+
         private int _currentIndex = 0;
         private const float SlideInterval = 3f;
         private bool _isGuestUser = false;
@@ -1054,6 +1057,13 @@ namespace com.noctuagames.sdk.UI
                 switchProfileButton.AddToClassList("hide");
                 deleteAccountButton.AddToClassList("hide");
                 logoutAccountButton.AddToClassList("hide");
+
+                carouselTranslate = new string[_carouselItems.Length];
+
+                for (int i = 0; i < _carouselItems.Length; i++)
+                {
+                    carouselTranslate[i] = Utility.GetTranslation(_carouselItems[i], Utility.LoadTranslations(Model.GetLanguage()));
+                }
             }
             else
             {
@@ -1095,8 +1105,10 @@ namespace com.noctuagames.sdk.UI
 
         private void UpdateCarousel()
         {
-            var regionCode = _globalConfig?.Noctua?.Region ?? "";
-            _carouselLabel.text = Utility.GetTranslation(_carouselItems[_currentIndex], Utility.LoadTranslations(Model.GetLanguage()));
+            if (carouselTranslate == null) return;
+            //var regionCode = _globalConfig?.Noctua?.Region ?? "";
+            
+            _carouselLabel.text = carouselTranslate[_currentIndex];
             _carouselVE.style.backgroundImage = new StyleBackground(Resources.Load<Sprite>(_carouselImage[_currentIndex]));
         }
 
