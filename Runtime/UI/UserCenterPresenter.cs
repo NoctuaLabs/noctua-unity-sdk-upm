@@ -198,7 +198,7 @@ namespace com.noctuagames.sdk.UI
                 _log.Debug($"current user in user center is '{user?.Id} - {user?.Nickname}'");
 
                 View.Q<Label>("PlayerName").text = isGuest ? "Guest " + user.Id : user?.Nickname;
-                View.Q<Label>("UserIdLabel").text = user?.Id.ToString() ?? "";
+                View.Q<Label>("UserIdLabel").text = "ID : " + user?.Id.ToString() ?? "";
                 _userIDValue = user?.Id.ToString() ?? "";
 
                 //Edit Profile - Setup Data
@@ -629,7 +629,7 @@ namespace com.noctuagames.sdk.UI
 
                 var regionCode = _globalConfig?.Noctua?.Region ?? "";
 
-                _userIDLabel.text = Utility.GetTranslation("UserCenterPresenter.MenuEditProfile.Label.text", Utility.LoadTranslations(Model.GetLanguage()));
+                _userIDLabel.text = "ID : " + Utility.GetTranslation("UserCenterPresenter.MenuEditProfile.Label.text", Utility.LoadTranslations(Model.GetLanguage()));
                 _userIDLabel.style.fontSize = 16;
 
                 View.Q<Button>("SaveButton").SetEnabled(false);
@@ -674,7 +674,7 @@ namespace com.noctuagames.sdk.UI
                     _playerImage.style.backgroundImage = _defaultAvatar;
                 }
 
-                _userIDLabel.text = _userIDValue;
+                _userIDLabel.text = "ID : " + _userIDValue;
                 _userIDLabel.style.fontSize = 12;
 
                 if (_isGuestUser)
@@ -1111,7 +1111,7 @@ namespace com.noctuagames.sdk.UI
         {
             if (carouselTranslate == null) return;
             //var regionCode = _globalConfig?.Noctua?.Region ?? "";
-            
+
             _carouselLabel.text = carouselTranslate[_currentIndex];
             _carouselVE.style.backgroundImage = new StyleBackground(Resources.Load<Sprite>(_carouselImage[_currentIndex]));
         }
