@@ -378,7 +378,7 @@ namespace com.noctuagames.sdk.UI
         private void OnDateFieldChanged()
         {
             _dateString = _birthDateTF.value;
-            AdjustHideLabelElement(_birthDateTF);
+            //AdjustHideLabelElement(_birthDateTF);
         }
 
         private void SetupEditProfileUI()
@@ -422,11 +422,13 @@ namespace com.noctuagames.sdk.UI
         public void OnTextFieldFocusChange(FocusInEvent _event)
         {
             (_event.target as VisualElement).Children().ElementAt(1).AddToClassList("noctua-text-input-focus");
+            (_event.target as VisualElement).Q<VisualElement>("Tittle").style.color = Color.white;
         }
 
         public void OnTextFieldFocusChange(FocusOutEvent _event)
         {
             (_event.target as VisualElement).Children().ElementAt(1).RemoveFromClassList("noctua-text-input-focus");
+            (_event.target as VisualElement).Q<VisualElement>("Tittle").style.color = new Color(0.4862745f, 0.4941176f, 0.5058824f, 1.0f);
         }
 
         private void SetupDropdownUI()
@@ -454,6 +456,7 @@ namespace com.noctuagames.sdk.UI
             {
                 _genderTF.value = evt.newValue;
                 _genderTF.labelElement.style.display = DisplayStyle.None;
+                _genderTF.Q<VisualElement>("Tittle").RemoveFromClassList("hide");
             });
 
             _countryTF.choices = _countryOptions;
@@ -461,6 +464,7 @@ namespace com.noctuagames.sdk.UI
             {
                 _countryTF.value = evt.newValue;
                 _countryTF.labelElement.style.display = DisplayStyle.None;
+                _countryTF.Q<VisualElement>("Tittle").RemoveFromClassList("hide");
             });
 
             _languageTF.choices = _languageOptions;
@@ -468,6 +472,7 @@ namespace com.noctuagames.sdk.UI
             {
                 _languageTF.value = evt.newValue;
                 _languageTF.labelElement.style.display = DisplayStyle.None;
+                _languageTF.Q<VisualElement>("Tittle").RemoveFromClassList("hide");
             });
 
         }
@@ -1132,10 +1137,12 @@ namespace com.noctuagames.sdk.UI
             if (string.IsNullOrEmpty(textField.value))
             {
                 textField.labelElement.style.display = DisplayStyle.Flex;
+                textField.Q<VisualElement>("Tittle").AddToClassList("hide");
             }
             else
             {
                 textField.labelElement.style.display = DisplayStyle.None;
+                textField.Q<VisualElement>("Tittle").RemoveFromClassList("hide");
             }
         }
 

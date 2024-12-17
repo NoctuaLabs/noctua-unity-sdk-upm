@@ -366,23 +366,77 @@
 }
 
 .dropdown-box {
-    margin-top: 20px;
+    margin-top: 2px;
+    padding-top: 5px;
+    margin-right: -10px;
+    margin-bottom: 2px;
+    margin-left: -10px;
+    flex-direction: column;
 }
 
 .dropdown-box .unity-base-field__label {
-    display: none;
+    position: absolute;
+    left: 10px;
+    top: 22px;
+    margin-top: -2px;
+    margin-right: 4px;
+    margin-bottom: 2px;
+    margin-left: 2px;
+    padding-top: 7px;
+    padding-right: 2px;
+    padding-bottom: 4px;
+    padding-left: 10px;
+    flex-shrink: 0;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    font-size: 12px;
 }
 
 .dropdown-box .unity-base-field__input {
     background-color: transparent;
     border-color: rgb(71, 75, 78);
     border-radius: 8px;
-    margin-right: 0;
-    margin-left: 0;
+    padding-top: 10px;
+    border-top-width: 1px;
+    border-right-width: 1px;
+    border-bottom-width: 1px;
+    border-left-width: 1px;
+    border-top-left-radius: 10px;
+    border-top-right-radius: 10px;
+    border-bottom-right-radius: 10px;
+    border-bottom-left-radius: 10px;
+    padding-right: 10px;
+    padding-bottom: 10px;
+    padding-left: 10px;
+    height: 40px;
+    margin-top: 10px;
+    margin-right: 10px;
+    margin-bottom: 10px;
+    margin-left: 10px;
 }
 
 .dropdown-box .unity-base-popup-field__arrow {
     -unity-background-image-tint-color: rgb(98, 100, 104);
+}
+
+.dropdown-box #Tittle {
+    background-color: rgb(31, 35, 39);
+    align-items: flex-start;
+    justify-content: flex-start;
+    top: 9px;
+    color: rgb(124, 126, 129);
+    -unity-text-align: upper-left;
+    margin-top: 0;
+    margin-right: 0;
+    margin-bottom: 0;
+    margin-left: 0;
+    padding-top: 0;
+    padding-right: 3px;
+    padding-bottom: 0;
+    padding-left: 3px;
+    left: 20px;
+    position: absolute;
+    font-size: 10px;
 }
 
 .profile-circle-with-border {
@@ -428,9 +482,9 @@
 }
 
 .dropdown-container {
-    margin-top: -10px;
-    margin-left: 3px;
-    margin-right: 3px;
+    margin-top: 0;
+    margin-left: 8px;
+    margin-right: 8px;
 }
 
 .noctua-logo-container {

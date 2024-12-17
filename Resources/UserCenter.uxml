@@ -83,16 +83,26 @@
                                 <ui:VisualElement name="Spinner2" class="noctua-spinner hide" style="height: 74px; margin-left: 20px;" />
                             </ui:VisualElement>
                             <ui:VisualElement class="nickname-container noctua-text-input-margin">
-                                <ui:TextField label="Nickname" name="NicknameTF" class="noctua-text-input" />
+                                <ui:TextField label="Nickname" name="NicknameTF" class="noctua-text-input">
+                                    <ui:Label tabindex="-1" text="Nickname" parse-escape-sequences="true" display-tooltip-when-elided="true" name="Tittle" class="hide" />
+                                </ui:TextField>
                                 <ui:Label name="HintNickname" text="Don&apos;t use real name, You can change again in the next 14 days" class="hint-textfield" />
                             </ui:VisualElement>
                             <ui:VisualElement class="noctua-text-input-margin">
-                                <ui:TextField label="Birthdate (Optional)" name="BirthdateTF" class="noctua-text-input" />
+                                <ui:TextField label="Birthdate (Optional)" name="BirthdateTF" class="noctua-text-input">
+                                    <ui:Label tabindex="-1" text="Birthdate (optional)" parse-escape-sequences="true" display-tooltip-when-elided="true" name="Tittle" class="hide" />
+                                </ui:TextField>
                             </ui:VisualElement>
                             <ui:VisualElement class="dropdown-container">
-                                <ui:DropdownField name="GenderTF" label="Gender (Optional)" class="dropdown-box" />
-                                <ui:DropdownField label="Country" name="CountryTF" class="dropdown-box" />
-                                <ui:DropdownField label="Language" name="LanguageTF" class="dropdown-box" />
+                                <ui:DropdownField name="GenderTF" label="Gender (Optional)" class="dropdown-box">
+                                    <ui:Label tabindex="-1" text="Gender (optional)" parse-escape-sequences="true" display-tooltip-when-elided="true" name="Tittle" class="hide" />
+                                </ui:DropdownField>
+                                <ui:DropdownField label="Country" name="CountryTF" class="dropdown-box">
+                                    <ui:Label tabindex="-1" text="Country" parse-escape-sequences="true" display-tooltip-when-elided="true" name="Tittle" class="hide" />
+                                </ui:DropdownField>
+                                <ui:DropdownField label="Language" name="LanguageTF" class="dropdown-box">
+                                    <ui:Label tabindex="-1" text="Language" parse-escape-sequences="true" display-tooltip-when-elided="true" name="Tittle" class="hide" />
+                                </ui:DropdownField>
                             </ui:VisualElement>
                         </ui:ScrollView>
                         <ui:VisualElement name="SaveButtonContainer" style="border-top-left-radius: 6px; border-top-right-radius: 6px; border-bottom-right-radius: 6px; border-bottom-left-radius: 6px; margin-left: 6px; margin-right: 6px; margin-bottom: 5px;">
