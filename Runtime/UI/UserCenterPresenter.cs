@@ -1059,7 +1059,6 @@ namespace com.noctuagames.sdk.UI
                 guestContainer.RemoveFromClassList("hide");
                 // Hide some menu item in more options button.
                 editProfilebutton.AddToClassList("hide");
-                switchProfileButton.AddToClassList("hide");
                 deleteAccountButton.AddToClassList("hide");
                 logoutAccountButton.AddToClassList("hide");
 
