@@ -8,11 +8,11 @@
             </ui:VisualElement>
             <ui:VisualElement name="Content" class="dialog-content">
                 <ui:TextField label="Email Address" name="EmailTF" keyboard-type="EmailAddress" usage-hints="-1" class="noctua-text-input">
-                    <ui:Label tabindex="-1" text="Email address" parse-escape-sequences="true" display-tooltip-when-elided="true" name="Tittle" class="hide" />
+                    <ui:Label tabindex="-1" text="Email address" parse-escape-sequences="true" display-tooltip-when-elided="true" name="title" class="hide" />
                 </ui:TextField>
                 <ui:VisualElement name="Password" style="flex-grow: 1;">
                     <ui:TextField label="Password" name="PasswordTF" class="noctua-text-input">
-                        <ui:Label tabindex="-1" text="Password" parse-escape-sequences="true" display-tooltip-when-elided="true" name="Tittle" class="hide" />
+                        <ui:Label tabindex="-1" text="Password" parse-escape-sequences="true" display-tooltip-when-elided="true" name="title" class="hide" />
                     </ui:TextField>
                     <ui:Button parse-escape-sequences="true" display-tooltip-when-elided="true" name="ShowPasswordButton" class="btn-password-show" style="position: absolute; background-color: rgba(255, 255, 255, 0); align-self: center; justify-content: center;" />
                 </ui:VisualElement>

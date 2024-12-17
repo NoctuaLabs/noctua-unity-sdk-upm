@@ -507,7 +507,7 @@ Label:hover {
     padding-top: 7px;
 }
 
-.noctua-text-input #Tittle {
+.noctua-text-input #title {
     background-color: rgb(31, 35, 39);
     align-items: flex-start;
     justify-content: flex-start;

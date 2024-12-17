@@ -329,13 +329,13 @@ namespace com.noctuagames.sdk.UI
         public void OnTextFieldFocusChange(FocusInEvent _event)
         {
             (_event.target as VisualElement).Children().ElementAt(1).AddToClassList("noctua-text-input-focus");
-            (_event.target as VisualElement).Q<VisualElement>("Tittle").style.color = Color.white;
+            (_event.target as VisualElement).Q<VisualElement>("title").style.color = Color.white;
         }
 
         public void OnTextFieldFocusChange(FocusOutEvent _event)
         {
             (_event.target as VisualElement).Children().ElementAt(1).RemoveFromClassList("noctua-text-input-focus");
-            (_event.target as VisualElement).Q<VisualElement>("Tittle").style.color = new Color(0.4862745f, 0.4941176f, 0.5058824f, 1.0f);
+            (_event.target as VisualElement).Q<VisualElement>("title").style.color = new Color(0.4862745f, 0.4941176f, 0.5058824f, 1.0f);
         }
 
         public void OnToggleShowPassword(PointerUpEvent _event)
@@ -752,12 +752,12 @@ namespace com.noctuagames.sdk.UI
             if (string.IsNullOrEmpty(textField.value))
             {
                 textField.labelElement.style.display = DisplayStyle.Flex;
-                textField.Q<VisualElement>("Tittle").AddToClassList("hide");
+                textField.Q<VisualElement>("title").AddToClassList("hide");
             }
             else
             {
                 textField.labelElement.style.display = DisplayStyle.None;
-                textField.Q<VisualElement>("Tittle").RemoveFromClassList("hide");
+                textField.Q<VisualElement>("title").RemoveFromClassList("hide");
             }
         }
 
