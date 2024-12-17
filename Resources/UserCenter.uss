@@ -443,21 +443,22 @@
 }
 
 .profile-circle-with-border {
-    width: 50px;
-    height: 50px;
+    width: 70px;
+    height: 70px;
     margin-right: 10px;
     border-width: 1px;
     border-color: rgb(80, 153, 252);
-    border-radius: 25px;
+    border-radius: 35px;
 }
 
 .button-border {
-    height: 31px;
     border-radius: 5px;
     border-color: rgb(59, 130, 246);
     border-width: 1px;
     background-color: transparent;
-    color: rgb(59, 130, 246);
+    color: rgb(59, 130, 246);    
+    padding: 1px;
+    font-size: 10px;
 }
 
 .profile-menu-image {

@@ -77,9 +77,9 @@
                                 </ui:Button>
                                 <ui:Label name="TitleEditBack" text="Back" class="back-edit-profile-title" style="color: rgb(117, 117, 117);" />
                             </ui:VisualElement>
-                            <ui:VisualElement style="flex-direction: row; flex-wrap: nowrap; align-items: center; justify-content: flex-start; margin-top: 10px; margin-bottom: 10px; margin-left: 10px;">
+                            <ui:VisualElement style="flex-direction: column; flex-wrap: nowrap; align-items: center; justify-content: flex-start; margin-top: 10px; margin-bottom: 10px; margin-left: 10px;">
                                 <ui:VisualElement name="ProfileImage" class="profile-circle-with-border" />
-                                <ui:Button text="Change Picture" name="ChangePictureButton" focusable="false" class="button-border" />
+                                <ui:Button text="Change Picture" name="ChangePictureButton" focusable="false" class="button-border" style="margin-top: 10px" />
                                 <ui:VisualElement name="Spinner2" class="noctua-spinner hide" style="height: 74px; margin-left: 20px;" />
                             </ui:VisualElement>
                             <ui:VisualElement class="nickname-container noctua-text-input-margin">

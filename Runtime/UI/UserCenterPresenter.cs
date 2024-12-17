@@ -323,8 +323,7 @@ namespace com.noctuagames.sdk.UI
 
             View.Q<VisualElement>("MoreOptionsMenu").RegisterCallback<PointerUpEvent>(OnMoreOptionsMenuSelected);
             View.Q<VisualElement>("EditProfile").RegisterCallback<PointerUpEvent>(_ => OnEditProfile());
-            View.Q<Label>("TitleEditBack").RegisterCallback<PointerUpEvent>(_ => OnBackEditProfile());
-            View.Q<VisualElement>("BackEditProfileHeader").RegisterCallback<ClickEvent>(_ => OnBackEditProfile());
+            View.Q<VisualElement>("BackButton").RegisterCallback<ClickEvent>(_ => OnBackEditProfile());
             View.Q<VisualElement>("SwitchProfile").RegisterCallback<PointerUpEvent>(_ => OnSwitchProfile());
             View.Q<VisualElement>("LogoutAccount").RegisterCallback<PointerUpEvent>(_ => OnLogout());
             View.Q<VisualElement>("PendingPurchases").RegisterCallback<PointerUpEvent>(_ => OnPendingPurchases());
@@ -649,6 +648,8 @@ namespace com.noctuagames.sdk.UI
 
                 _userIDLabel.text = "ID : " + Utility.GetTranslation("UserCenterPresenter.MenuEditProfile.Label.text", Utility.LoadTranslations(Model.GetLanguage()));
                 _userIDLabel.style.fontSize = 16;
+                
+                View.Q<Label>("TitleEditBack").text = Utility.GetTranslation("UserCenterPresenter.MenuEditProfile.Label.text", Utility.LoadTranslations(Model.GetLanguage()));
 
                 View.Q<Button>("SaveButton").SetEnabled(false);
                 View.Q<VisualElement>("UserProfileHeader").style.justifyContent = Justify.FlexEnd;
