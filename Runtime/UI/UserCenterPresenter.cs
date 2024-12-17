@@ -177,7 +177,7 @@ namespace com.noctuagames.sdk.UI
             else
             {
                 _stayConnect.text = "Noctua";
-                View.Q<Label>("FindMoreLabel").text = "noctua.gg";
+                View.Q<Label>("FindMoreLabel").text = "<color=#3B82F6>noctua.gg</color>";
             }
         }
 
@@ -315,11 +315,12 @@ namespace com.noctuagames.sdk.UI
 
             View.Q<VisualElement>("MoreOptionsMenu").RegisterCallback<PointerUpEvent>(OnMoreOptionsMenuSelected);
             View.Q<VisualElement>("EditProfile").RegisterCallback<PointerUpEvent>(_ => OnEditProfile());
-            View.Q<Label>("TitleEditBack").RegisterCallback<PointerUpEvent>(_carouselItems => OnBackEditProfile());
-            View.Q<VisualElement>("BackEditProfileHeader").RegisterCallback<ClickEvent>(_carouselItems => OnBackEditProfile());
+            View.Q<Label>("TitleEditBack").RegisterCallback<PointerUpEvent>(_ => OnBackEditProfile());
+            View.Q<VisualElement>("BackEditProfileHeader").RegisterCallback<ClickEvent>(_ => OnBackEditProfile());
             View.Q<VisualElement>("SwitchProfile").RegisterCallback<PointerUpEvent>(_ => OnSwitchProfile());
             View.Q<VisualElement>("LogoutAccount").RegisterCallback<PointerUpEvent>(_ => OnLogout());
             View.Q<VisualElement>("PendingPurchases").RegisterCallback<PointerUpEvent>(_ => OnPendingPurchases());
+            View.Q<VisualElement>("FindMoreLabel").RegisterCallback<PointerUpEvent>(_ => OnFindMore());
 
             _helpButton.RegisterCallback<PointerUpEvent>(OnHelp);
             _copyIcon.RegisterCallback<PointerUpEvent>(_ => OnCopyText());
@@ -330,6 +331,15 @@ namespace com.noctuagames.sdk.UI
 
             //Edit Profile UI
             SetupEditProfileUI();
+        }
+
+        private void OnFindMore()
+        {
+            _log.Debug("on find more clicked");
+
+            var findMorelUrl = _globalConfig?.CoPublisher?.CompanyWebsiteUrl ?? "https://noctua.gg";
+
+            Application.OpenURL(findMorelUrl);
         }
 
         private async void OnHelp(PointerUpEvent evt)

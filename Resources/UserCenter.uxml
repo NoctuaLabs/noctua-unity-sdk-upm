@@ -122,7 +122,7 @@
                     <ui:VisualElement style="flex: 1;" />
                     <ui:VisualElement name="ContainerFindMore" style="flex-direction: row;">
                         <ui:Label name="TitleFindMoreLabel" text="Find more at" class="find-more-label" style="margin-right: -3px;" />
-                        <ui:Label name="FindMoreLabel" text="noctua.gg" class="find-more-label" style="margin-right: -2px;" />
+                        <ui:Label name="FindMoreLabel" text="&lt;color=#3B82F6&gt;noctua.gg&lt;/color&gt;" class="find-more-label" style="margin-right: -2px;" />
                     </ui:VisualElement>
                 </ui:VisualElement>
             </ui:VisualElement>
