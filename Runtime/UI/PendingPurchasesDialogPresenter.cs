@@ -316,13 +316,15 @@ namespace com.noctuagames.sdk.UI
                             Model.ShowGeneralNotification("Your purchase has been verified!", true);
                             break;
                         default:
-                            Visible = false;
+                            Model.ShowGeneralNotification("Purchase is not verified yet. Please try again later.", false);
+                            Visible = true;
                             break;
                     }
                 }
                 catch (Exception e)
                 {
                     _log.Error("Exception: " + e);
+                    Model.ShowGeneralNotification("Purchase is not verified yet. Please try again later.", false);
                     Visible = true;
                 }
                 Model.ShowLoadingProgress(false);
