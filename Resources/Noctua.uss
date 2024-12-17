@@ -421,6 +421,7 @@
     margin-right: -10px;
     margin-left: -10px;
     padding-top: 5px;
+    background-color: rgba(0, 0, 0, 0);
 }
 
 .unity-base-text-field__input {
@@ -478,7 +479,13 @@
     height: 40px;
     margin-left: 10px;
     margin-right: 10px;
-    background-color: transparent;
+    background-color: rgba(0, 0, 0, 0);
+    padding-top: 0;
+    padding-bottom: 0;
+}
+
+.noctua-text-input #unity-text-input TextElement {
+    padding-bottom: 1.5px;
 }
 
 .noctua-text-input-focus {

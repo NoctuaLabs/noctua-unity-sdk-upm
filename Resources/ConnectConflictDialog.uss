@@ -13,10 +13,11 @@
     height: 55px;
     width: 219px;
     flex-direction: row;
-    align-items: center;
     border-radius: 10px;
     padding: 10px;
     background-color: rgb(31, 35, 39);
+    padding-top: 5px;
+    padding-bottom: 5px;
 }
 
 .player-avatar {
@@ -31,7 +32,6 @@
 
 .player-text {
     flex-direction: column;
-    justify-content: center;
     align-items: flex-start;
     height: 100%;
 }
@@ -42,6 +42,10 @@
     flex: 1;
     overflow: hidden;
     text-overflow: ellipsis;
+    padding-top: 0;
+    padding-right: 0;
+    padding-bottom: 0;
+    padding-left: 0;
 }
 
 .credential-display-text {
@@ -50,6 +54,10 @@
     flex: 1;
     overflow: hidden;
     text-overflow: ellipsis;
+    padding-top: 0;
+    padding-right: 0;
+    padding-bottom: 0;
+    padding-left: 0;
 }
 
 .button-group {
