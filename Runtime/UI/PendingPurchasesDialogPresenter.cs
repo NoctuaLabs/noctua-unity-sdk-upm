@@ -210,26 +210,6 @@ namespace com.noctuagames.sdk.UI
 
         private async void OpenCS(PointerUpEvent evt)
         {
-            _log.Debug("clicking customer Service button");
-            
-            Visible = false;
-
-            try
-            {
-                await Noctua.Platform.Content.ShowCustomerService();
-            } 
-            catch (Exception e) {
-                _tcs?.TrySetResult(false);
-
-                if (e is NoctuaException noctuaEx)
-                {
-                    _log.Error("NoctuaException: " + noctuaEx.ErrorCode + " : " + noctuaEx.Message);
-                } else {
-                    _log.Error("Exception: " + e);
-                }
-            }
-
-            Visible = true;
         }
 
         private void CloseDialog(PointerUpEvent evt)
@@ -263,6 +243,31 @@ namespace com.noctuagames.sdk.UI
             var fullReceiptData = JsonConvert.SerializeObject(items[index]);
             byte[] plainTextBytes = Encoding.UTF8.GetBytes(fullReceiptData);
             var textToCopy = Convert.ToBase64String(plainTextBytes);
+
+            element.Q<Button>("CSButton").RegisterCallback<PointerUpEvent>(async evt =>
+            {
+                _log.Debug("clicking customer Service button");
+
+                Visible = false;
+
+                try
+                {
+                    await Noctua.Platform.Content.ShowCustomerService("pending_purchase", $"order_id_{items[index].OrderId}");
+                }
+                catch (Exception e) {
+                    _tcs?.TrySetResult(false);
+
+                    if (e is NoctuaException noctuaEx)
+                    {
+                        _log.Error("NoctuaException: " + noctuaEx.ErrorCode + " : " + noctuaEx.Message);
+                    } else {
+                        _log.Error("Exception: " + e);
+                    }
+                }
+
+                Visible = true;
+            });
+
             element.Q<Button>("CopyButton").RegisterCallback<PointerUpEvent>(evt =>
             {
 

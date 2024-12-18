@@ -1098,14 +1098,14 @@ namespace com.noctuagames.sdk
                             _log.Exception(e);
                             if (e.Message.Contains("HTTP error"))
                             {
-                                shouldRetry = await _uiFactory.ShowRetryDialog($"{e.Message}. Please try again later.");
+                                shouldRetry = await _uiFactory.ShowRetryDialog($"{e.Message}. Please try again later.", "payment");
                             } else {
-                                shouldRetry = await _uiFactory.ShowRetryDialog("Please check your internet connection.");
+                                shouldRetry = await _uiFactory.ShowRetryDialog("Please check your internet connection.", "payment");
                             }
                             break;
                         default:
                             _log.Exception(e);
-                            shouldRetry = await _uiFactory.ShowRetryDialog(e.Message);
+                            shouldRetry = await _uiFactory.ShowRetryDialog(e.Message, "payment");
                             break;
                     }
 
@@ -1119,7 +1119,7 @@ namespace com.noctuagames.sdk
                     _uiFactory.ShowLoadingProgress(false);
                     _log.Exception(ex);
 
-                    bool shouldRetry = await _uiFactory.ShowRetryDialog(ex.Message);
+                    bool shouldRetry = await _uiFactory.ShowRetryDialog(ex.Message, "payment");
                     if (!shouldRetry)
                     {
                         throw;

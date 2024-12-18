@@ -28,6 +28,8 @@ namespace com.noctuagames.sdk
         private readonly NoctuaWebContentConfig _config;
         private readonly AccessTokenProvider _accessTokenProvider;
         private readonly WebContentModel _webContent = new();
+
+        private readonly UIFactory _uiFactory;
         private readonly WebContentPresenter _webView;
         private readonly EventSender _eventSender;
 
@@ -38,6 +40,7 @@ namespace com.noctuagames.sdk
             EventSender eventSender = null
         )
         {
+            _uiFactory = uiFactory;
             _config = config ?? throw new ArgumentNullException(nameof(config));
             _accessTokenProvider = accessTokenProvider ?? throw new ArgumentNullException(nameof(accessTokenProvider));
             _webView = uiFactory.Create<WebContentPresenter, WebContentModel>(_webContent);
@@ -51,15 +54,27 @@ namespace com.noctuagames.sdk
                 throw new ArgumentNullException(nameof(_config.AnnouncementBaseUrl));
             }
             
-            var details = await GetWebContentDetails(_config.AnnouncementBaseUrl);
+            var baseUrl = "";
+            _uiFactory.ShowLoadingProgress(true);
+            try
+            {
+                var details = await GetWebContentDetails(_config.AnnouncementBaseUrl);
+                baseUrl = details.Url;
+            }
+            catch (Exception e)
+            {
+                _uiFactory.ShowLoadingProgress(false);
+                throw e;
+            }
+            _uiFactory.ShowLoadingProgress(false);
 
-            if(string.IsNullOrEmpty(details.Url))
+            if(string.IsNullOrEmpty(baseUrl))
             {
                 _log.Warning("Url is Empty");
                 return false;
             }
             
-            _webContent.Url = details.Url;
+            _webContent.Url = baseUrl;
             _webContent.ScreenMode = ScreenMode.Windowed;
             _webContent.Title = "Announcement";
             
@@ -91,9 +106,22 @@ namespace com.noctuagames.sdk
                 throw new ArgumentNullException(nameof(_config.RewardBaseUrl));
             }
             
-            var details = await GetWebContentDetails(_config.RewardBaseUrl);
+            var baseUrl = "";
+            _uiFactory.ShowLoadingProgress(true);
+            try
+            {
+                var details = await GetWebContentDetails(_config.RewardBaseUrl);
+                baseUrl = details.Url;
+            }
+            catch (Exception e)
+            {
+                _uiFactory.ShowLoadingProgress(false);
+                throw e;
+            }
+            _uiFactory.ShowLoadingProgress(false);
 
-            if(string.IsNullOrEmpty(details.Url))
+
+            if(string.IsNullOrEmpty(baseUrl))
             {
                 _log.Warning("Url is Empty");
                 return;
@@ -101,7 +129,7 @@ namespace com.noctuagames.sdk
             
             _eventSender?.Send("platform_content_announcement_opened");
 
-            _webContent.Url = details.Url;
+            _webContent.Url = baseUrl;
             _webContent.ScreenMode = ScreenMode.FullScreen;
             _webContent.Title = "Reward";
             _webContent.LastShown = null;
@@ -109,16 +137,28 @@ namespace com.noctuagames.sdk
             await _webView.OpenAsync();
         }
         
-        public async UniTask ShowCustomerService()
+        public async UniTask ShowCustomerService(string reason = "general", string context = "")
         {
             if (string.IsNullOrEmpty(_config.CustomerServiceBaseUrl))
             {
                 throw new ArgumentNullException(nameof(_config.CustomerServiceBaseUrl));
             }
-            
-            var details = await GetWebContentDetails(_config.CustomerServiceBaseUrl);
 
-            if(string.IsNullOrEmpty(details.Url))
+            var baseUrl = "";
+            _uiFactory.ShowLoadingProgress(true);
+            try
+            {
+                var details = await GetWebContentDetails(_config.CustomerServiceBaseUrl);
+                baseUrl = details.Url;
+            }
+            catch (Exception e)
+            {
+                _uiFactory.ShowLoadingProgress(false);
+                throw e;
+            }
+            _uiFactory.ShowLoadingProgress(false);
+
+            if(string.IsNullOrEmpty(baseUrl))
             {
                 _log.Warning("Url is Empty");
                 return;
@@ -126,7 +166,23 @@ namespace com.noctuagames.sdk
             
             _eventSender?.Send("customer_service_opened");
 
-            _webContent.Url = details.Url;
+
+            if (baseUrl.Contains("reason=general"))
+            {
+                // Replace existing
+                baseUrl = baseUrl.Replace("reason=general", $"reason={reason}");
+            } else {
+                // Append new one
+                baseUrl = baseUrl + $"&reason={reason}";
+            }
+
+            if (!string.IsNullOrEmpty(context))
+            {
+                baseUrl = baseUrl + $"&context={context}";
+            }
+
+
+            _webContent.Url = baseUrl;
             _webContent.ScreenMode = ScreenMode.FullScreen;
             _webContent.Title = "Customer Service";
             _webContent.LastShown = null;

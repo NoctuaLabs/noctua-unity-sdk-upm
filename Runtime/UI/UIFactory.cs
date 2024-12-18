@@ -71,9 +71,9 @@ namespace com.noctuagames.sdk.UI
             return presenter;
         }
 
-        public async UniTask<bool> ShowRetryDialog(string message)
+        public async UniTask<bool> ShowRetryDialog(string message, string context = "general")
         {
-            return await _retryDialog.Show(message);
+            return await _retryDialog.Show(message, context);
         }
 
         public async UniTask<bool> ShowBannedConfirmationDialog()

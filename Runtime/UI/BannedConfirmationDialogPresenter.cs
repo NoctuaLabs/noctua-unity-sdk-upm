@@ -53,7 +53,7 @@ namespace com.noctuagames.sdk.UI
             {
                 Visible = false;
 
-                await Noctua.Platform.Content.ShowCustomerService();
+                await Noctua.Platform.Content.ShowCustomerService("user_get_banned");
 
                 _log.Info("Customer Service URL opened");
 
