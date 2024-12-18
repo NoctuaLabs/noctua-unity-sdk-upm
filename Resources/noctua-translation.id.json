@@ -97,7 +97,7 @@
     "EmailConfirmResetPasswordDialogPresenter.ErrPasswordMismatch.Label.text": "Kata sandi tidak cocok dengan kata sandi ulang",
     "EmailConfirmResetPasswordDialogPresenter.ErrPasswordTooShort.Label.text": "Kata sandi terlalu pendek. Minimal 6 karakter",
     "EmailConfirmResetPasswordDialogPresenter.ErrPasswordEmpty.Label.text": "Kata sandi tidak boleh kosong",
-    "EmailConfirmResetPasswordDialogPresenter.ContinueButton.Button.text": "Atur Ulang Kata Sandi dan Masuk",
+    "EmailConfirmResetPasswordDialogPresenter.ContinueButton.Button.text": "Atur Ulang Kata Sandi",
     "EmailConfirmResetPasswordDialogPresenter.SuccessNotification": "Kata sandi berhasil diatur ulang. Silakan masuk kembali.",
 
     "FailedPaymentDialogPresenter.CSButton.Button.text": "Hubungi CS",

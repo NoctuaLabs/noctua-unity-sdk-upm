@@ -90,7 +90,7 @@
     "EmailConfirmResetPasswordDialogPresenter.ErrPasswordMismatch.Label.text": "Mật khẩu không khớp với mật khẩu xác nhận",
     "EmailConfirmResetPasswordDialogPresenter.ErrPasswordTooShort.Label.text": "Mật khẩu quá ngắn. Tối thiểu 6 ký tự",
     "EmailConfirmResetPasswordDialogPresenter.ErrPasswordEmpty.Label.text": "Không được để trống mật khẩu",
-    "EmailConfirmResetPasswordDialogPresenter.ContinueButton.Button.text": "Đặt lại mật khẩu và Đăng nhập",
+    "EmailConfirmResetPasswordDialogPresenter.ContinueButton.Button.text": "Đặt lại mật khẩu",
     "EmailConfirmResetPasswordDialogPresenter.SuccessNotification": "Đã đặt lại mật khẩu thành công. Vui lòng đăng nhập bằng mật khẩu mới của bạn.",
     "FailedPaymentDialogPresenter.CSButton.Button.text": "Liên hệ CS",
     "FailedPaymentDialogPresenter.ItemAlreadyOwned": "Có vấn đề gì đó xảy ra với giao dịch mua trước đó của bạn. Vui lòng liên hệ với bộ phận chăm sóc khách hàng.",
