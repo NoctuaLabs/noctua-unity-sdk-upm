@@ -26,7 +26,7 @@
                     <ui:VisualElement name="PlayerAvatar" class="player-avatar" />
                     <ui:VisualElement name="UserId" class="user-id">
                         <ui:Label name="UserIdLabel" text="User ID" class="user-id-label" />
-                        <ui:VisualElement name="CopyIcon" class="copy-icon" />
+                        <ui:Button text="Copy" name="CopyIcon" focusable="false" class="button-border" style="margin-left: 0%;"/>
                     </ui:VisualElement>
                 </ui:VisualElement>
                 <ui:VisualElement name="UserProfileSpacing2" class="user-profile-spacing" />
