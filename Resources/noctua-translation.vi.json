@@ -125,6 +125,7 @@
     "UserCenterPresenter.PaymentTypeTF.DropdownField.label": "Phương thức thanh toán",
     "UserCenterPresenter.SaveButtonContainer.SaveButton.Button.text": "Lưu",
     "UserCenterPresenter.TitleFindMoreLabel.Label.text": "Tìm thêm tại",
+    "UserCenterPresenter.CopyIcon.Button.text": "Sao chép",
     "BindConfirmationDialogPresenter.BindConfirmationLabel.Label.text": "Bạn có muốn kết nối tiến trình của mình với tài khoản đã chọn không?",
     "BindConfirmationDialogPresenter.ConnectButton.Button.text": "Kết nối",
     "BindConfirmationDialogPresenter.CancelButton.Button.text": "Huỷ",

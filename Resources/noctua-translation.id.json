@@ -137,6 +137,7 @@
     "UserCenterPresenter.PaymentTypeTF.DropdownField.label": "Tipe Pembayaran",
     "UserCenterPresenter.SaveButtonContainer.SaveButton.Button.text": "Simpan",
     "UserCenterPresenter.TitleFindMoreLabel.Label.text": "Cari lebih banyak di",
+    "UserCenterPresenter.CopyIcon.Button.text": "Salin",
 
     "BindConfirmationDialogPresenter.BindConfirmationLabel.Label.text": "Apakah anda ingin menghubungkan dengan akun yang dipilih?",
     "BindConfirmationDialogPresenter.ConnectButton.Button.text": "Hubungkan",

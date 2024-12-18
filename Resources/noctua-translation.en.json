@@ -137,7 +137,8 @@
     "UserCenterPresenter.PaymentTypeTF.DropdownField.label": "PaymentType",
     "UserCenterPresenter.SaveButtonContainer.SaveButton.Button.text": "Save",
     "UserCenterPresenter.TitleFindMoreLabel.Label.text": "Find more at",
-    
+    "UserCenterPresenter.CopyIcon.Button.text": "Copy",
+
     "BindConfirmationDialogPresenter.BindConfirmationLabel.Label.text": "Would you like to connect your progress to selected account?",
     "BindConfirmationDialogPresenter.ConnectButton.Button.text": "Connect",
     "BindConfirmationDialogPresenter.CancelButton.Button.text": "Cancel",
