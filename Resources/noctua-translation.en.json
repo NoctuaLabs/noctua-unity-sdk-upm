@@ -123,7 +123,7 @@
     "UserCenterPresenter.MenuSwitchProfile.Label.text": "Switch Profile",
     "UserCenterPresenter.MenuDeleteAccount.Label.text": "Delete Account",
     "UserCenterPresenter.MenuLogout.Label.text": "Logout Account",
-    "UserCenterPresenter.GuestConnectButton.Button.text": "Connect Account",
+    "UserCenterPresenter.GuestConnectButton.Button.text": "Bind or Continue with another account",
     "UserCenterPresenter.ChangePictureButton.Button.text": "Change Picture",
     "UserCenterPresenter.TitleEditBack.Label.text": "Back",
     "UserCenterPresenter.StayConnectCompany.Label.text": "Stay connect to",
@@ -137,7 +137,8 @@
     "UserCenterPresenter.PaymentTypeTF.DropdownField.label": "PaymentType",
     "UserCenterPresenter.SaveButtonContainer.SaveButton.Button.text": "Save",
     "UserCenterPresenter.TitleFindMoreLabel.Label.text": "Find more at",
-    
+    "UserCenterPresenter.CopyIcon.Button.text": "Copy",
+
     "BindConfirmationDialogPresenter.BindConfirmationLabel.Label.text": "Would you like to connect your progress to selected account?",
     "BindConfirmationDialogPresenter.ConnectButton.Button.text": "Connect",
     "BindConfirmationDialogPresenter.CancelButton.Button.text": "Cancel",
