@@ -316,10 +316,11 @@
     display: flex;
     justify-content: center;
     align-items: center;
-    margin-top: 40px;
     background-image: resource('UC_Guest_1');
-    width: 97px;
-    height: 97px;
+    width: 234.5px;
+    height: 182px;
+    margin-bottom: -45px;
+    margin-top: -20px;
 }
 
 .connect-button-guest {
