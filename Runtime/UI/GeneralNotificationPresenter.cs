@@ -29,6 +29,11 @@ namespace com.noctuagames.sdk.UI
             StartCoroutine(RunAnimation(textMessage, isNotifSuccess, durationMs));
         }
 
+        public void Show(LocaleTextKey textKey, bool isNotifSuccess, uint durationMs = 3000)
+        {
+            StartCoroutine(RunAnimation(Locale.GetTranslation(textKey), isNotifSuccess, durationMs));
+        }
+
         public IEnumerator RunAnimation(string textMessage, bool isNotifSuccess, uint durationMs)
         {
             Color borderColor = isNotifSuccess ? new Color(6f / 255f, 208f / 255f, 1f / 255f) : new Color(255f / 255f, 0f / 255f, 0f / 255f);

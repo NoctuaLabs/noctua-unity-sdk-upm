@@ -936,10 +936,7 @@ namespace com.noctuagames.sdk
 
             // Update the user language in player prefs
             // so user does not have to restart twice to load the translation
-            if (_locale != null)
-            {
-                _locale.SetUserPrefsLanguage(updateUserRequest.Language);
-            }
+            _locale?.SetUserPrefsLanguage(updateUserRequest.Language);
 
             SendEvent(
                 "profile_updated",

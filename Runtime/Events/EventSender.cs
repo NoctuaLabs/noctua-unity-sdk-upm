@@ -55,6 +55,8 @@ namespace com.noctuagames.sdk.Events
         private long? _gameId;
         private long? _gamePlatformId;
         private string _sessionId;
+        private string _ipAddress;
+        private bool? _isSandbox;
 
         public void SetProperties(
             long? userId = 0,
@@ -63,7 +65,9 @@ namespace com.noctuagames.sdk.Events
             string credentialProvider = "",
             long? gameId = 0,
             long? gamePlatformId = 0,
-            string sessionId = ""
+            string sessionId = "",
+            string ipAddress = "",
+            bool? isSandbox = null
         )
         {
             if (userId != 0) _userId = userId;
@@ -80,6 +84,10 @@ namespace com.noctuagames.sdk.Events
             
             if (sessionId != "") _sessionId = sessionId;
             
+            if (ipAddress != "") _ipAddress = ipAddress;
+            
+            if (isSandbox != null) _isSandbox = isSandbox;
+            
             _log.Debug($"Setting fields: " +
                 $"userId={userId}, " +
                 $"playerId={playerId}, " +
@@ -87,7 +95,9 @@ namespace com.noctuagames.sdk.Events
                 $"credentialProvider={credentialProvider}, " +
                 $"gameId={gameId}, " +
                 $"gamePlatformId={gamePlatformId}, " +
-                $"sessionId={sessionId}"
+                $"sessionId={sessionId}, " +
+                $"ipAddress={ipAddress}, " +
+                $"isSandbox={isSandbox}"
             );
         }
 
@@ -154,6 +164,8 @@ namespace com.noctuagames.sdk.Events
             data.TryAdd("bundle_id", _config.BundleId);
             data.TryAdd("game_version", Application.version);
             data.TryAdd("country", _locale.GetCountry());
+            data.TryAdd("ipAddress", _ipAddress);
+            data.TryAdd("is_sandbox", _isSandbox);
 
             LastEventTime = _start.AddSeconds(Stopwatch.GetTimestamp() / (double)Stopwatch.Frequency);
             data.TryAdd("timestamp", LastEventTime.ToString("O"));

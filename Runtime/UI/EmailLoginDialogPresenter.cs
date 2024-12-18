@@ -277,7 +277,7 @@ namespace com.noctuagames.sdk.UI
 
             try
             {
-                if (Model.AuthService.RecentAccount.IsGuest)
+                if (Model.AuthService.RecentAccount?.IsGuest ?? false)
                 {
                     var playerToken = await Model.AuthService.GetEmailLoginTokenAsync(emailAddress, password);
 

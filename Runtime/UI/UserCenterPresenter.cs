@@ -140,12 +140,20 @@ namespace com.noctuagames.sdk.UI
                     View.Q<VisualElement>("ConnectAccount").RemoveFromClassList("portrait");
                     View.Q<VisualElement>("ConnectAccount").RemoveFromClassList("connect-account");
                     View.Q<VisualElement>("ConnectAccount").AddToClassList("connect-account-edit-profile-portrait");
+
+                    View.Q<VisualElement>("UserProfile").AddToClassList("hide");
+                    View.Q<VisualElement>("UserCenter").style.maxHeight = Length.Percent(65);
+                    View.Q<VisualElement>("ScrollViewContainer").style.marginTop = 10;
                 }
                 else
                 {
                     View.Q<VisualElement>("ConnectAccount").RemoveFromClassList("connect-account-edit-profile-portrait");
                     View.Q<VisualElement>("ConnectAccount").AddToClassList("connect-account");
                     View.Q<VisualElement>("ConnectAccount").AddToClassList("portrait");
+
+                    View.Q<VisualElement>("UserProfile").RemoveFromClassList("hide");
+                    View.Q<VisualElement>("UserCenter").style.maxHeight = StyleKeyword.Null;
+                    View.Q<VisualElement>("ScrollViewContainer").style.marginTop = StyleKeyword.Null;
                 }
             }
         }
@@ -177,7 +185,7 @@ namespace com.noctuagames.sdk.UI
             else
             {
                 _stayConnect.text = "Noctua";
-                View.Q<Label>("FindMoreLabel").text = "noctua.gg";
+                View.Q<Label>("FindMoreLabel").text = "<color=#3B82F6>noctua.gg</color>";
             }
         }
 
@@ -315,11 +323,11 @@ namespace com.noctuagames.sdk.UI
 
             View.Q<VisualElement>("MoreOptionsMenu").RegisterCallback<PointerUpEvent>(OnMoreOptionsMenuSelected);
             View.Q<VisualElement>("EditProfile").RegisterCallback<PointerUpEvent>(_ => OnEditProfile());
-            View.Q<Label>("TitleEditBack").RegisterCallback<PointerUpEvent>(_carouselItems => OnBackEditProfile());
-            View.Q<VisualElement>("BackEditProfileHeader").RegisterCallback<ClickEvent>(_carouselItems => OnBackEditProfile());
+            View.Q<VisualElement>("BackButton").RegisterCallback<ClickEvent>(_ => OnBackEditProfile());
             View.Q<VisualElement>("SwitchProfile").RegisterCallback<PointerUpEvent>(_ => OnSwitchProfile());
             View.Q<VisualElement>("LogoutAccount").RegisterCallback<PointerUpEvent>(_ => OnLogout());
             View.Q<VisualElement>("PendingPurchases").RegisterCallback<PointerUpEvent>(_ => OnPendingPurchases());
+            View.Q<VisualElement>("FindMoreLabel").RegisterCallback<PointerUpEvent>(_ => OnFindMore());
 
             _helpButton.RegisterCallback<PointerUpEvent>(OnHelp);
             _copyIcon.RegisterCallback<PointerUpEvent>(_ => OnCopyText());
@@ -330,6 +338,15 @@ namespace com.noctuagames.sdk.UI
 
             //Edit Profile UI
             SetupEditProfileUI();
+        }
+
+        private void OnFindMore()
+        {
+            _log.Debug("on find more clicked");
+
+            var findMorelUrl = _globalConfig?.CoPublisher?.CompanyWebsiteUrl ?? "https://noctua.gg";
+
+            Application.OpenURL(findMorelUrl);
         }
 
         private async void OnHelp(PointerUpEvent evt)
@@ -629,8 +646,10 @@ namespace com.noctuagames.sdk.UI
 
                 var regionCode = _globalConfig?.Noctua?.Region ?? "";
 
-                _userIDLabel.text = "ID : " + Utility.GetTranslation("UserCenterPresenter.MenuEditProfile.Label.text", Utility.LoadTranslations(Model.GetLanguage()));
+                _userIDLabel.text = "ID : " + Locale.GetTranslation("UserCenterPresenter.MenuEditProfile.Label.text");
                 _userIDLabel.style.fontSize = 16;
+                
+                View.Q<Label>("TitleEditBack").text = Locale.GetTranslation("UserCenterPresenter.MenuEditProfile.Label.text");
 
                 View.Q<Button>("SaveButton").SetEnabled(false);
                 View.Q<VisualElement>("UserProfileHeader").style.justifyContent = Justify.FlexEnd;
@@ -970,7 +989,7 @@ namespace com.noctuagames.sdk.UI
             element.userData = _credentials[index];
 
             element.Q<Button>("ConnectButton").UnregisterCallback<PointerUpEvent, UserCredential>(OnConnectButtonClick);
-            element.Q<Button>("ConnectButton").text = Utility.GetTranslation("ConnectAccountItem.Connect", Utility.LoadTranslations(Model.GetLanguage()));
+            element.Q<Button>("ConnectButton").text = Locale.GetTranslation("ConnectAccountItem.Connect");
 
             if (string.IsNullOrEmpty(_credentials[index].Username))
             {
@@ -1001,7 +1020,7 @@ namespace com.noctuagames.sdk.UI
             switch (credential.CredentialProvider)
             {
                 case CredentialProvider.Email:
-                    Model.ShowEmailRegistration(true);
+                    Model.ShowEmailRegistration(true, true);
 
                     break;
                 case CredentialProvider.Google:
@@ -1066,7 +1085,7 @@ namespace com.noctuagames.sdk.UI
 
                 for (int i = 0; i < _carouselItems.Length; i++)
                 {
-                    carouselTranslate[i] = Utility.GetTranslation(_carouselItems[i], Utility.LoadTranslations(Model.GetLanguage()));
+                    carouselTranslate[i] = Locale.GetTranslation(_carouselItems[i]);
                 }
             }
             else

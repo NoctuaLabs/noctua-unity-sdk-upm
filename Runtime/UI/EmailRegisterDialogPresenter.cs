@@ -91,10 +91,20 @@ namespace com.noctuagames.sdk.UI
             }
         }
 
-        public void Show(bool clearForm)
+        public void Show(bool clearForm, bool isRegisterOnly)
         {
             SetupInputFields(clearForm);
             HideAllErrors();
+
+            var additionalFooter = View.Q<VisualElement>("AdditionalFooterContent");
+            if (isRegisterOnly)
+            {
+                additionalFooter.AddToClassList("hide");
+            }
+            else
+            { 
+                additionalFooter.RemoveFromClassList("hide");
+            }
 
             Visible = true;
         }
@@ -378,7 +388,7 @@ namespace com.noctuagames.sdk.UI
             var regionCode = _config?.Noctua?.Region ?? "";
 
             _gender.choices = genderChoices; 
-            _gender.value = Utility.GetTranslation("Select.Gender",  Utility.LoadTranslations(Model.GetLanguage()));
+            _gender.value = Locale.GetTranslation("Select.Gender");
 
             _gender.style.color = textColor;
 
@@ -452,7 +462,7 @@ namespace com.noctuagames.sdk.UI
             var regionCode = _config?.Noctua?.Region ?? "";
 
             _country.choices = _countryList; 
-            _country.value = Utility.GetTranslation("Select.Country",  Utility.LoadTranslations(Model.GetLanguage()));
+            _country.value = Locale.GetTranslation("Select.Country");
             _country.style.color = textColor;
             _country.RegisterCallback<ChangeEvent<string>>((evt) =>
             {

@@ -69,22 +69,12 @@
 
 .pending-purchase-item {
     background-color: #2D3138;
-    height: 40px;
     border-radius: 10px;
-    flex-direction: row;
-    align-items: center;
     margin-top: 3px;
     margin-bottom: 3px;
     padding: 5px;
     -unity-text-align: middle-left;
-}
-
-.purchase-info {
-    flex: 1;
-    display: flex;
-    flex-direction: row;
     justify-content: space-between;
-    align-items: center;
     padding-left:10px;
     padding-right:10px;
     font-size:10px;
@@ -102,6 +92,30 @@
 .pending-purchases-list .unity-list-view__item--selected,
 .pending-purchases-list .unity-collection-view__item--selected {
     background-color: transparent;
+}
+
+.status-label {
+    color:white;
+    border-radius:4px;
+    padding-left:6px;
+    padding-right:6px;
+    flex-direction:column;
+}
+
+.status-label-pending {
+    background-color:darkorange;
+}
+
+.status-label-refunded {
+    background-color:green;
+}
+
+.status-label-canceled {
+    background-color:blue;
+}
+
+.status-label-verification-failed {
+    background-color:red;
 }
 
 .copy-icon {
