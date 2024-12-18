@@ -447,8 +447,6 @@
     width: 70px;
     height: 70px;
     margin-right: 10px;
-    border-width: 1px;
-    border-color: rgb(80, 153, 252);
     border-radius: 35px;
 }
 
