@@ -123,7 +123,7 @@
     "UserCenterPresenter.MenuSwitchProfile.Label.text": "Switch Profile",
     "UserCenterPresenter.MenuDeleteAccount.Label.text": "Delete Account",
     "UserCenterPresenter.MenuLogout.Label.text": "Logout Account",
-    "UserCenterPresenter.GuestConnectButton.Button.text": "Connect Account",
+    "UserCenterPresenter.GuestConnectButton.Button.text": "Bind or Continue with another account",
     "UserCenterPresenter.ChangePictureButton.Button.text": "Change Picture",
     "UserCenterPresenter.TitleEditBack.Label.text": "Back",
     "UserCenterPresenter.StayConnectCompany.Label.text": "Stay connect to",
