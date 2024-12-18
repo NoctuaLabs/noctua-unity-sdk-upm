@@ -192,8 +192,15 @@ namespace com.noctuagames.sdk
 
         public static Dictionary<string, string> LoadTranslations(string language)
         {
-            TextAsset jsonFile = Resources.Load<TextAsset>(GetTranslationByLanguage(language));
-            return JsonConvert.DeserializeObject<Dictionary<string, string>>(jsonFile.text);
+            try
+            {
+                TextAsset jsonFile = Resources.Load<TextAsset>(GetTranslationByLanguage(language));
+                return JsonConvert.DeserializeObject<Dictionary<string, string>>(jsonFile.text);
+            }
+            catch (Exception e)
+            {
+                return null;
+            }
         }
 
         public static string GetTranslation(string key, Dictionary<string, string> _translations)

@@ -103,10 +103,7 @@ namespace com.noctuagames.sdk
                 return;
             }
 
-            // Update user preference language if any
-            if (_locale != null) {
-                _locale.SetUserPrefsLanguage(newUser.User.Language);
-            }
+            _locale?.SetUserPrefsLanguage(newUser.User.Language);
 
             try
             {

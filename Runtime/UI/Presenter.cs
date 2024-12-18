@@ -29,6 +29,7 @@ namespace com.noctuagames.sdk.UI
             LoadView(panelSettings);
             SetModel(model);
             Locale = locale;
+            Locale.OnLanguageChanged += OnLanguageChanged;
         }
 
         private void SetModel(TModel model)
@@ -53,7 +54,7 @@ namespace com.noctuagames.sdk.UI
         protected virtual void Detach()
         {
         }
-
+        
         private void LoadView(PanelSettings panelSettings)
         {
             var viewResourceName = GetType().Name.Replace("Presenter", "");
@@ -72,6 +73,11 @@ namespace com.noctuagames.sdk.UI
             View.visible = false;
             
             _uiDoc.panelSettings = panelSettings ?? throw new ArgumentNullException(nameof(panelSettings));
+        }
+        
+        private void OnLanguageChanged(string language)
+        {
+            Utility.ApplyTranslations(View, GetType().Name, Locale.GetTranslations());
         }
     }
 }

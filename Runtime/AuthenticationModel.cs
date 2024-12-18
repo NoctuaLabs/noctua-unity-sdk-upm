@@ -297,16 +297,6 @@ namespace com.noctuagames.sdk
             _connectConflictDialog.Show(playerToken);
         }
 
-        public string GetLanguage()
-        {
-            if (_locale == null)
-            {
-                return "en";
-            }
-
-            return _locale.GetLanguage();
-        }
-
         private List<PendingPurchaseItem> GetPendingPurchases()
         {
             if (_iapService == null) {
