@@ -1,20 +1,17 @@
-<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements"
-         xsi="http://www.w3.org/2001/XMLSchema-instance" engine="UnityEngine.UIElements"
-         editor="UnityEditor.UIElements" noNamespaceSchemaLocation="../../../../UIElementsSchema/UIElements.xsd"
-         editor-extension-mode="False">
-    <Style src="./Noctua.uss" />
-    <Style src="./AccountSelectionDialog.uss" />
-    <ui:VisualElement name="Root" class="root" >
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" xsi="http://www.w3.org/2001/XMLSchema-instance" engine="UnityEngine.UIElements" editor="UnityEditor.UIElements" noNamespaceSchemaLocation="../../../../UIElementsSchema/UIElements.xsd" editor-extension-mode="False">
+    <Style src="project://database/Packages/com.noctuagames.sdk/Resources/Noctua.uss?fileID=7433441132597879392&amp;guid=fe35e550fb23b6446af377f994effe35&amp;type=3#Noctua" />
+    <Style src="project://database/Packages/com.noctuagames.sdk/Resources/AccountSelectionDialog.uss?fileID=7433441132597879392&amp;guid=6d606ddaac3843e18ea4674cd708e463&amp;type=3#AccountSelectionDialog" />
+    <ui:VisualElement name="Root" class="root">
         <ui:VisualElement name="AccountSelectionDialog" class="base dialog-box">
-            <ui:VisualElement name="DialogHeader" class="dialog-header">
-                <ui:Button display-tooltip-when-elided="true" name="CloseButton" class="dialog-close-button" />
-                <ui:VisualElement style="width:240px; justify-content: center; align-items:center; flex-direction:row;">
+            <ui:VisualElement name="DialogHeader" class="dialog-header-noctua">
+                <ui:VisualElement style="width: 240px; justify-content: center; align-items: center; flex-direction: row; padding-left: 15px;">
                     <ui:VisualElement name="NoctuaLogoWithText" class="noctua-logo-with-text" />
                     <ui:Label name="SDKVersion" text="SDKVersion" class="sdk-version" />
                 </ui:VisualElement>
+                <ui:Button display-tooltip-when-elided="true" name="CloseButton" class="dialog-close-button" />
             </ui:VisualElement>
             <ui:Label name="AccountSelectionInfo" text="Choose Account" class="account-selection-info" />
-            <ui:VisualElement name="ListContainer" class="list-container" >
+            <ui:VisualElement name="ListContainer" class="list-container">
                 <ui:ListView name="GameAccountList" class="account-selection-list" />
                 <ui:VisualElement name="Separator" class="separator">
                     <ui:VisualElement class="left-separator-short" />
@@ -23,10 +20,7 @@
                 </ui:VisualElement>
                 <ui:ListView name="NoctuaAccountList" class="account-selection-list" />
             </ui:VisualElement>
-            <ui:Button
-                name="ContinueButton"
-                text="Continue with another account"
-                class="continue-other-button button-normal" />
+            <ui:Button name="ContinueButton" text="Continue with another account" class="continue-other-button button-normal" />
         </ui:VisualElement>
     </ui:VisualElement>
 </ui:UXML>
