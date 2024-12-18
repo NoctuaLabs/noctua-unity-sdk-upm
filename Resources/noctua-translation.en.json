@@ -97,7 +97,7 @@
     "EmailConfirmResetPasswordDialogPresenter.ErrPasswordMismatch.Label.text": "Password is not matched with repeated password",
     "EmailConfirmResetPasswordDialogPresenter.ErrPasswordTooShort.Label.text": "Password is too short. Minimum 6 character",
     "EmailConfirmResetPasswordDialogPresenter.ErrPasswordEmpty.Label.text": "Password should not be empty",
-    "EmailConfirmResetPasswordDialogPresenter.ContinueButton.Button.text": "Reset Password and Login",
+    "EmailConfirmResetPasswordDialogPresenter.ContinueButton.Button.text": "Reset Password",
     "EmailConfirmResetPasswordDialogPresenter.SuccessNotification": "Password reset successfully. Please login with your new password.",
 
     "AccountDeletionConfirmationDialogPresenter.Question.Label.text": "Are you sure you want to\ndelete this account?",
