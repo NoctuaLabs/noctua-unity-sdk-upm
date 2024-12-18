@@ -28,12 +28,12 @@ namespace com.noctuagames.sdk
             }
 
             var type = obj.GetType();
-            
+
             if (type.IsPrimitive || type.IsEnum || type == typeof(string))
             {
                 return;
             }
-            
+
             if (type.IsArray && obj is Array array)
             {
                 sb.AppendLine(new string(' ', indentLevel * 2) + $"{type.Name}:");
@@ -45,11 +45,11 @@ namespace com.noctuagames.sdk
 
                 return;
             }
-            
+
             if (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(List<>))
             {
                 if (obj is not System.Collections.IList list) return;
-                
+
                 sb.AppendLine(new string(' ', indentLevel * 2) + $"{type.Name}:");
 
                 foreach (var item in list)
@@ -59,19 +59,19 @@ namespace com.noctuagames.sdk
 
                 return;
             }
-            
+
             if (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(Dictionary<,>))
             {
                 if (obj is not System.Collections.IDictionary dictionary) return;
-            
+
                 foreach (var key in dictionary.Keys)
                 {
                     var value = dictionary[key];
                     sb.AppendLine(new string(' ', indentLevel * 2) + $"{key}: {value}");
-            
+
                     PrintFieldsRecursive(value, indentLevel + 1, sb);
                 }
-            
+
                 return;
             }
 
@@ -111,8 +111,8 @@ namespace com.noctuagames.sdk
         }
 
         public static void RegisterForMultipleValueChanges<T>(
-            VisualElement root, 
-            List<string> elementNames, 
+            VisualElement root,
+            List<string> elementNames,
             Button buttonToEnable)
         {
             Dictionary<string, T> initialValues = new Dictionary<string, T>();
@@ -155,7 +155,7 @@ namespace com.noctuagames.sdk
             bool isAnyFieldEmpty = textFields.Any(textField => string.IsNullOrEmpty(textField.value));
 
             submitButton.SetEnabled(!isAnyFieldEmpty);
-            submitButton.pickingMode = !isAnyFieldEmpty ? PickingMode.Position : PickingMode.Ignore;                
+            submitButton.pickingMode = !isAnyFieldEmpty ? PickingMode.Position : PickingMode.Ignore;
         }
 
         public static string GetCoPublisherLogo(string companyName)
@@ -167,7 +167,7 @@ namespace com.noctuagames.sdk
 
             return logoMap.GetValueOrDefault(companyName, "NoctuaLogoWithText");
         }
-        
+
         public static bool ContainsFlag(string flags, string flagToCheck)
         {
             return flags
@@ -180,8 +180,8 @@ namespace com.noctuagames.sdk
 
         private static string GetTranslationByLanguage(string language)
         {
-	    // Language to translation asset mapping
-	    // Language format is using ISO 639-1
+            // Language to translation asset mapping
+            // Language format is using ISO 639-1
             return language switch
             {
                 "id" => "noctua-translation.id",
@@ -229,7 +229,7 @@ namespace com.noctuagames.sdk
                     string labelKey = $"{uxmlName}.{elementName}.{elementType}.text";
                     string labelTranslation = GetTranslation(labelKey, translations);
 
-                    if(labelTranslation != labelKey)
+                    if (labelTranslation != labelKey)
                     {
                         label.text = labelTranslation;
                     }
@@ -238,11 +238,11 @@ namespace com.noctuagames.sdk
                     string buttonKey = $"{uxmlName}.{elementName}.{elementType}.text";
                     string buttonTranslation = GetTranslation(buttonKey, translations);
 
-                    if(buttonTranslation != buttonKey)
+                    if (buttonTranslation != buttonKey)
                     {
                         button.text = buttonTranslation;
                     }
-                    
+
                     foreach (var child in button.Children())
                     {
                         ApplyTranslationsToElement(child, uxmlName, translations);
@@ -252,6 +252,11 @@ namespace com.noctuagames.sdk
                     string textFieldKey = $"{uxmlName}.{elementName}.{elementType}.label";
                     string textFieldTranslation = GetTranslation(textFieldKey, translations);
                     textField.label = textFieldTranslation;
+
+                    Label labelTitle = textField.Q<Label>("title");
+
+                    if (labelTitle != null) labelTitle.text = textFieldTranslation;                    
+
                     break;
                 case VisualElement visualElement:
                     foreach (var child in visualElement.Children())
