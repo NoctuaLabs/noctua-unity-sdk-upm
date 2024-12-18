@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Reflection;
 using System.Linq;
 using System.Net;
 using System.Text;
@@ -108,6 +109,7 @@ namespace com.noctuagames.sdk
             _request.SetRequestHeader("X-LANGUAGE", Noctua.Platform.Locale.GetLanguage());
             _request.SetRequestHeader("X-COUNTRY", Noctua.Platform.Locale.GetCountry());
             _request.SetRequestHeader("X-CURRENCY", Noctua.Platform.Locale.GetCurrency());
+            _request.SetRequestHeader("X-SDK-VERSION", Assembly.GetExecutingAssembly().GetName().Version.ToString());
 
         }
 
@@ -251,12 +253,13 @@ namespace com.noctuagames.sdk
                 $"=> {_request.method} {_request.url}\n"                         +
                 $"Content-Type: {_request.GetRequestHeader("Content-Type")}\n"   +
                 $"{auth}\n" +
+                $"Accept-Language: {_request.GetRequestHeader("X-LANGUAGE")}\n"     +
                 $"X-CLIENT-ID: {_request.GetRequestHeader("X-CLIENT-ID")}\n"     +
                 $"X-BUNDLE-ID: {_request.GetRequestHeader("X-BUNDLE-ID")}\n"   +
                 $"X-LANGUAGE: {_request.GetRequestHeader("X-LANGUAGE")}\n"     +
                 $"X-COUNTRY: {_request.GetRequestHeader("X-COUNTRY")}\n"     +
                 $"X-CURRENCY: {_request.GetRequestHeader("X-CURRENCY")}\n"     +
-                $"Accept-Language: {_request.GetRequestHeader("X-LANGUAGE")}\n\n"     +
+                $"X-SDK-VERSION: {_request.GetRequestHeader("X-SDK-VERSION")}\n\n"     +
                 $"{Encoding.UTF8.GetString(_request.uploadHandler?.data ?? Array.Empty<byte>())}"
             );
 
