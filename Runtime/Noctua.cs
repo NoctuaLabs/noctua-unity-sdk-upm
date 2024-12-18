@@ -144,6 +144,7 @@ namespace com.noctuagames.sdk
         private readonly NoctuaIAPService _iap;
         private readonly NoctuaGameService _game;
         private readonly NoctuaPlatform _platform;
+        private readonly UIFactory _uiFactory;
 
         private readonly INativePlugin _nativePlugin;
         private bool _initialized = false;
@@ -302,7 +303,7 @@ namespace com.noctuagames.sdk
             
             sessionTrackerBehaviour.SessionTracker = _sessionTracker;
             
-            var uiFactory = new UIFactory(noctuaUIGameObject, panelSettings, config, locale);
+            _uiFactory = new UIFactory(noctuaUIGameObject, panelSettings, locale);
             
             var authService = new NoctuaAuthenticationService(
                 baseUrl: config.Noctua.BaseUrl, 
@@ -324,12 +325,12 @@ namespace com.noctuagames.sdk
                     WebPaymentBaseUrl = config.Noctua.PaymentBaseUrl
                 },
                 accessTokenProvider,
-                uiFactory,
+                _uiFactory,
                 _nativePlugin,
                 _eventSender
             );
 
-            _auth = new NoctuaAuthentication(authService, _iap, uiFactory, config, _eventSender, locale);
+            _auth = new NoctuaAuthentication(authService, _iap, _uiFactory, config, _eventSender, locale);
 
             _game = new NoctuaGameService(
                 new NoctuaGameService.Config
@@ -339,7 +340,7 @@ namespace com.noctuagames.sdk
                 }
             );
 
-            _platform = new NoctuaPlatform(config.Noctua, accessTokenProvider, uiFactory, _eventSender);
+            _platform = new NoctuaPlatform(config.Noctua, accessTokenProvider, _uiFactory, _eventSender);
             
             _log.Info("Noctua instance created");
         }
@@ -363,8 +364,19 @@ namespace com.noctuagames.sdk
             var log = Instance.Value._log;
 
             // Init game, retries on intermittent network failure
-            var initResponse = await Utility.RetryAsyncTask(Instance.Value._game.InitGameAsync);
+            InitGameResponse initResponse = null;
+            
+            try
+            {
+                initResponse = await Utility.RetryAsyncTask(Instance.Value._game.InitGameAsync);
+            }
+            catch (Exception e)
+            {
+                log.Exception(e);
 
+                await Noctua.Instance.Value._uiFactory.ShowStartGameErrorDialog(e.Message);
+            }
+            
             var iapReadyTimeout = DateTime.UtcNow.AddSeconds(5);
             
             log.Debug($"IAP ready: {Instance.Value._iap.IsReady}");

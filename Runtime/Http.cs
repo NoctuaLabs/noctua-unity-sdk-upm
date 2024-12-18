@@ -294,7 +294,7 @@ namespace com.noctuagames.sdk
                 
                 throw new NoctuaException(
                     NoctuaErrorCode.Networking,
-                    $"HTTP error {_request.responseCode} {((HttpStatusCode)_request.responseCode).ToString()}"
+                    $"HTTP error {_request.responseCode}: {((HttpStatusCode)_request.responseCode).ToString()}"
                 );
             }
 

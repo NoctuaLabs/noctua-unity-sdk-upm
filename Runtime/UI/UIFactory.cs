@@ -15,39 +15,25 @@ namespace com.noctuagames.sdk.UI
         private readonly GeneralNotificationPresenter _notification;
         private readonly BannedConfirmationDialogPresenter _confirmDialog;
         private readonly RetryDialogPresenter _retryDialog;
-        private readonly Dictionary<string, string> _translations;
-        private readonly string _language;
-        internal UIFactory(string gameObjectName, string panelSettingsPath = "NoctuaPanelSettings", string themeStyleSheetPath = "NoctuaTheme")
-        {
-            _translations = Utility.LoadTranslations(_language);
+        private readonly StartGameErrorDialogPresenter _startGameErrorDialog;
 
-            _rootObject = new GameObject(gameObjectName);
-            _panelSettings = Resources.Load<PanelSettings>(panelSettingsPath);
-            _panelSettings.themeStyleSheet = Resources.Load<ThemeStyleSheet>(themeStyleSheetPath);
-
-            _loading = CreateLoadingPresenter();
-            _notification = CreateNotificationPresenter();
-            _confirmDialog = CreateConfirmDialogPresenter();
-            _retryDialog = CreateRetryDialogPresenter();
-        }
-        
-        internal UIFactory(GameObject rootObject, PanelSettings panelSettings, GlobalConfig config, NoctuaLocale locale)
+        internal UIFactory(GameObject rootObject, PanelSettings panelSettings, NoctuaLocale locale)
         {
             _locale = locale;
-            _language = locale.GetLanguage();
-            _translations = Utility.LoadTranslations(_language);
 
             _rootObject = rootObject;
             _panelSettings = panelSettings;
 
-            _loading = CreateLoadingPresenter();
+            _loading = Create<LoadingProgressPresenter, object>(new object());
             _loading.GetComponent<UIDocument>().sortingOrder = 1;
-            _notification = CreateNotificationPresenter();
+            _notification = Create<GeneralNotificationPresenter, object>(new object());
             _notification.GetComponent<UIDocument>().sortingOrder = 1;
-            _confirmDialog = CreateConfirmDialogPresenter();
+            _confirmDialog = Create<BannedConfirmationDialogPresenter, object>(new object());
             _confirmDialog.GetComponent<UIDocument>().sortingOrder = 1;
-            _retryDialog = CreateRetryDialogPresenter();
+            _retryDialog = Create<RetryDialogPresenter, object>(new object());
             _retryDialog.GetComponent<UIDocument>().sortingOrder = 1;
+            _startGameErrorDialog = Create<StartGameErrorDialogPresenter, object>(new object());
+            _startGameErrorDialog.GetComponent<UIDocument>().sortingOrder = 1;
         }
         
         internal TPresenter Create<TPresenter, TModel>(TModel model) where TPresenter : Presenter<TModel>
@@ -64,7 +50,7 @@ namespace com.noctuagames.sdk.UI
             presenter.Init(model, _panelSettings, _locale);
 
             var visualElementRoot = gameObject.GetComponent<UIDocument>().rootVisualElement;
-            ApplyLocalization(visualElementRoot, typeof(TPresenter).Name, _translations);
+            ApplyLocalization(visualElementRoot, typeof(TPresenter).Name, _locale.GetTranslations());
 
             gameObject.SetActive(true);
             
@@ -78,7 +64,7 @@ namespace com.noctuagames.sdk.UI
 
         public async UniTask<bool> ShowBannedConfirmationDialog()
         {
-            return await _confirmDialog.Show(_language);
+            return await _confirmDialog.Show();
         }
 
         public void ShowLoadingProgress(bool isShow)
@@ -110,30 +96,10 @@ namespace com.noctuagames.sdk.UI
         {
             _notification.Show(textKey, false);
         }
-
-        private RetryDialogPresenter CreateRetryDialogPresenter()
+        
+        public async UniTask ShowStartGameErrorDialog(string errorMessage)
         {
-            return Create<RetryDialogPresenter, object>(new object());
-        }
-
-        private CustomPaymentCompleteDialogPresenter CreateCustomPaymentCompleteDialogPresenter()
-        {
-            return Create<CustomPaymentCompleteDialogPresenter, object>(new object());
-        }
-
-        private BannedConfirmationDialogPresenter CreateConfirmDialogPresenter()
-        {
-            return Create<BannedConfirmationDialogPresenter, object>(new object());
-        }
-
-        private LoadingProgressPresenter CreateLoadingPresenter()
-        {
-            return Create<LoadingProgressPresenter, object>(new object());
-        }
-
-        private GeneralNotificationPresenter CreateNotificationPresenter()
-        {
-            return Create<GeneralNotificationPresenter, object>(new object());
+            await _startGameErrorDialog.Show(errorMessage);
         }
 
         private void ApplyLocalization(VisualElement root, string uxmlName, Dictionary<string, string> localization)

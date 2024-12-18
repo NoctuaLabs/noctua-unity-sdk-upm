@@ -191,7 +191,8 @@
     background-color: transparent;
     border-width: 1px;
     border-color: rgb(59, 130, 246);
-    color: rgb(59, 130, 246) height 40px;
+    color: rgb(59, 130, 246);
+    height: 40px;
     width: 100%;
     padding-top: 14px;
     padding-right: 24px;

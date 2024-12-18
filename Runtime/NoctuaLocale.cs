@@ -97,7 +97,7 @@ namespace com.noctuagames.sdk
             
             if (!string.IsNullOrEmpty(userPrefsLanguage))
             {
-                _log.Debug("Using language from user preferences");
+                _log.Debug("Using language from user preferences: " + userPrefsLanguage);
                     
                 return userPrefsLanguage;
             }
