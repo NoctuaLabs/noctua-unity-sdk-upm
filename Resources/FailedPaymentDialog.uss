@@ -5,6 +5,10 @@
     justify-content: space-around;
 }
 
+.exit-button.flex-end {
+    align-self: flex-end;
+}
+
 .message-label {
     font-size: 12px;
     color: rgba(158, 158, 158, 1);
@@ -35,23 +39,4 @@
     margin-bottom: 5px;
     width: 80%;
     height: 34px;
-}
-
-.exit-button {
-    height: 26px;
-    width: 26px;
-    border-radius: 13px;
-    margin: 0;
-    padding:0;
-    background-color: rgb(62, 66, 72);
-    align-items: center;
-    justify-content: center;
-    -unity-text-align: middle-center;
-    align-self: flex-end;
-}
-
-.exit-icon {
-    width: 16px;
-    height: 16px;
-    background-image: resource("ExitIcon");
 }
