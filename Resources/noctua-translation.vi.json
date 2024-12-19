@@ -156,7 +156,7 @@
     "IAPRequiresAuthentication": "Mua hàng yêu cầu xác thực người dùng",
     "IAPPaymentDisabled": "Thanh toán đã bị vô hiệu hóa. Vui lòng liên hệ với bộ phận hỗ trợ khách hàng.",
 
-    "NicknameValidation": "Biệt danh không được để trống",
-    "CountryValidation": "Vui lòng chọn quốc gia!",
-    "LanguageValidation": "Vui lòng chọn ngôn ngữ!"
+    "EdiProfile.NicknameValidation": "Biệt danh không được để trống",
+    "EdiProfile.CountryValidation": "Chọn quốc gia",
+    "EdiProfile.LanguageValidation": "Chọn ngôn ngữ"
 }

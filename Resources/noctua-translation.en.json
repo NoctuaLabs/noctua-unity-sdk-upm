@@ -172,8 +172,8 @@
     "IAPRequiresAuthentication": "Purchase requires user authentication",
     "IAPPaymentDisabled": "Payment is disabled. Please contact customer support.",
 
-    "NicknameValidation": "Nickname should not be empty",
-    "CountryValidation": "Please select country!",
-    "LanguageValidation": "Please select language!"
+    "EdiProfile.NicknameValidation": "Nickname should not be empty",
+    "EdiProfile.CountryValidation": "Select country",
+    "EdiProfile.LanguageValidation": "Select language"
 }
   
