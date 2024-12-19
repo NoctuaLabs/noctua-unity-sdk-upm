@@ -27,18 +27,14 @@
 }
 
 .secondary-button {
-    background-color: transparent;
-    border-color: rgb(59, 130, 246);
-    color: rgb(59, 130, 246);
-    border-width: 1px;
+    background-color: #4D4F54;
+    color: #FFFFFF;
     width: 80%;
 }
 
 .secondary-button:hover {
-    background-color: rgb(81, 144, 247);
-    border-color: rgb(59, 130, 246);
+    background-color: #4D4F54;
     color: #FFFFFF;
-    border-width: 1px;
     width: 80%;
 }
 
