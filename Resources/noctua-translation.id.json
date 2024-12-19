@@ -174,7 +174,7 @@
     "IAPRequiresAuthentication": "Pembelian memerlukan otentikasi",
     "IAPPaymentDisabled": "Pembayaran dinonaktifkan. Silakan hubungi layanan pelanggan.",
 
-    "EdiProfile.NicknameValidation": "Nama panggilan tidak boleh kosong",
-    "EdiProfile.CountryValidation": "Pilih negara",
-    "EdiProfile.LanguageValidation": "Pilih bahasa"
+    "EditProfile.NicknameValidation": "Nama panggilan tidak boleh kosong",
+    "EditProfile.CountryValidation": "Pilih negara",
+    "EditProfile.LanguageValidation": "Pilih bahasa"
 }

@@ -773,7 +773,7 @@ namespace com.noctuagames.sdk.UI
 
                 _nicknameTF.ElementAt(1).AddToClassList("noctua-text-input-error");
                 _nicknameTF.Q<Label>("error").RemoveFromClassList("hide");
-                _nicknameTF.Q<Label>("error").text = Locale.GetTranslation("EdiProfile.NicknameValidation");
+                _nicknameTF.Q<Label>("error").text = Locale.GetTranslation("EditProfile.NicknameValidation");
                 _nicknameTF.Q<VisualElement>("title").style.color = ColorModule.redError;
 
                 return;
@@ -787,7 +787,7 @@ namespace com.noctuagames.sdk.UI
 
                 _countryTF.ElementAt(1).AddToClassList("noctua-text-input-error");
                 _countryTF.Q<Label>("error").RemoveFromClassList("hide");
-                _countryTF.Q<Label>("error").text = Locale.GetTranslation("EdiProfile.CountryValidation");
+                _countryTF.Q<Label>("error").text = Locale.GetTranslation("EditProfile.CountryValidation");
                 _countryTF.Q<VisualElement>("title").style.color = ColorModule.redError;
 
                 return;
@@ -801,7 +801,7 @@ namespace com.noctuagames.sdk.UI
 
                 _languageTF.ElementAt(1).AddToClassList("noctua-text-input-error");
                 _languageTF.Q<Label>("error").RemoveFromClassList("hide");
-                _languageTF.Q<Label>("error").text = Locale.GetTranslation("EdiProfile.LanguageValidation");
+                _languageTF.Q<Label>("error").text = Locale.GetTranslation("EditProfile.LanguageValidation");
                 _languageTF.Q<VisualElement>("title").style.color = ColorModule.redError;
 
                 return;
