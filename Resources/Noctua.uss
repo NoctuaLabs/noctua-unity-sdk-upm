@@ -144,6 +144,8 @@
     margin-bottom: 10px;
     color: red;
     font-size: 10px;
+    white-space: normal;
+    -unity-text-align: lower-left;
 }
 
 .button-highlight {
