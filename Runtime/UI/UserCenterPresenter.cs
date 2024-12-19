@@ -822,6 +822,8 @@ namespace com.noctuagames.sdk.UI
                     StartCoroutine(LoadImageFromUrl(_newProfileUrl, true));
                 }
 
+                View.Q<Label>("PlayerName").text = _nicknameTF.value;
+
                 _errorLabel.AddToClassList("hide");
                 View.Q<Button>("SaveButton").RemoveFromClassList("hide");
                 View.Q<VisualElement>("Spinner").AddToClassList("hide");
