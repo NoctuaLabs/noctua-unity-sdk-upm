@@ -2,13 +2,13 @@
 
 namespace com.noctuagames.sdk.UI
 {
-    internal class ConnectConflictDialogPresenter : Presenter<AuthenticationModel>
+    internal class BindConflictDialogPresenter : Presenter<AuthenticationModel>
     {
         private readonly ILogger _log = new NoctuaLogger();
         private Button _switchAccountButton;
         private Button _cancelButton;
         private VisualElement _playerAvatarImage;
-        private Label _userNickname;
+        private Label _playerLabel;
         private Label _credentialDisplayText;
         private PlayerToken _targetPlayer;
 
@@ -25,7 +25,7 @@ namespace com.noctuagames.sdk.UI
         private void Start()
         {
             _playerAvatarImage = View.Q<VisualElement>("PlayerAvatarImage");
-            _userNickname = View.Q<Label>("UserNickname");
+            _playerLabel = View.Q<Label>("PlayerLabel");
             _credentialDisplayText = View.Q<Label>("CredentialDisplayText");
             _switchAccountButton = View.Q<Button>("SwitchAccountButton");
             _cancelButton = View.Q<Button>("CancelButton");
@@ -50,7 +50,7 @@ namespace com.noctuagames.sdk.UI
             _playerAvatarImage.RemoveFromClassList("email-player-avatar");
             _playerAvatarImage.AddToClassList(avatarClass);
             
-            _userNickname.text = targetPlayer.User?.Nickname;
+            _playerLabel.text = $"User {targetPlayer.User?.Id}";
             _credentialDisplayText.text = targetPlayer.Credential?.DisplayText;
             
             Visible = true;

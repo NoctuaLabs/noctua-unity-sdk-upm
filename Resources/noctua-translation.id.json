@@ -149,9 +149,9 @@
     "BindConfirmationDialogPresenter.ConnectButton.Button.text": "Hubungkan",
     "BindConfirmationDialogPresenter.CancelButton.Button.text": "Batal",
 
-    "ConnectConflictDialogPresenter.ConnectConflictInformationLabel.Label.text": "Kredensial ini sudah terhubung ke suatu akun. Apakah Anda ingin mengganti akun?",
-    "ConnectConflictDialogPresenter.SwitchAccountButton.Button.text": "Ganti Akun",
-    "ConnectConflictDialogPresenter.CancelButton.Button.text": "Batal",
+    "BindConflictDialogPresenter.ConnectConflictInformationLabel.Label.text": "Kredensial ini sudah terhubung ke suatu akun. Apakah Anda ingin mengganti akun?",
+    "BindConflictDialogPresenter.SwitchAccountButton.Button.text": "Ganti Akun",
+    "BindConflictDialogPresenter.CancelButton.Button.text": "Batal",
     
     "SuggestionBindText.Content1": "Lanjutkan permainan Anda di perangkat apa pun.",
     "SuggestionBindText.Content2": "Lindungi progres permainan Anda.",

@@ -68,7 +68,7 @@ namespace com.noctuagames.sdk
         private readonly UserCenterPresenter _userCenter;
         private readonly AccountDeletionConfirmationDialogPresenter _accountDeletionConfirmationDialog;
         private readonly BindConfirmationDialogPresenter _bindConfirmation;
-        private readonly ConnectConflictDialogPresenter _connectConflictDialog;
+        private readonly BindConflictDialogPresenter _bindConflictDialog;
         private readonly PendingPurchasesDialogPresenter _pendingPurchasesDialog;
         private readonly List<PendingPurchaseItem> _pendingPurchases = new();
         private readonly WelcomeNotificationPresenter _welcome;
@@ -123,7 +123,7 @@ namespace com.noctuagames.sdk
             _emailConfirmResetPasswordDialog.EventSender = eventSender;
             _accountDeletionConfirmationDialog = _uiFactory.Create<AccountDeletionConfirmationDialogPresenter, AuthenticationModel>(this);
             _bindConfirmation = _uiFactory.Create<BindConfirmationDialogPresenter, AuthenticationModel>(this);
-            _connectConflictDialog = _uiFactory.Create<ConnectConflictDialogPresenter, AuthenticationModel>(this);
+            _bindConflictDialog = _uiFactory.Create<BindConflictDialogPresenter, AuthenticationModel>(this);
             _welcome = _uiFactory.Create<WelcomeNotificationPresenter, AuthenticationModel>(this);
 
 
@@ -254,9 +254,9 @@ namespace com.noctuagames.sdk
             _bindConfirmation.Show(playerToken);
         }
         
-        public void ShowConnectConflict(PlayerToken playerToken)
+        public void ShowBindConflictDialog(PlayerToken playerToken)
         {
-            _connectConflictDialog.Show(playerToken);
+            _bindConflictDialog.Show(playerToken);
         }
 
         private List<PendingPurchaseItem> GetPendingPurchases()

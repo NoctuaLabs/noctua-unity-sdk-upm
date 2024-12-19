@@ -35,16 +35,13 @@
     height: 100%;
 }
 
-.user-nickname {
+.player-label {
     font-size: 12px;
     -unity-text-align: middle-left;
     flex: 1;
     overflow: hidden;
     text-overflow: ellipsis;
-    padding-top: 0;
-    padding-right: 0;
-    padding-bottom: 0;
-    padding-left: 0;
+    padding: 0;
 }
 
 .credential-display-text {
@@ -53,10 +50,7 @@
     flex: 1;
     overflow: hidden;
     text-overflow: ellipsis;
-    padding-top: 0;
-    padding-right: 0;
-    padding-bottom: 0;
-    padding-left: 0;
+    padding: 0;
 }
 
 .button-group {

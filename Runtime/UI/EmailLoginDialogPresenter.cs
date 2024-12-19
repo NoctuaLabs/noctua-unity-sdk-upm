@@ -200,7 +200,7 @@ namespace com.noctuagames.sdk.UI
                     }
                     else
                     {
-                        Model.ShowConnectConflict(playerToken);
+                        Model.ShowBindConflictDialog(playerToken);
                     }
                 }
 
