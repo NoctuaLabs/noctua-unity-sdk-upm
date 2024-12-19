@@ -563,6 +563,8 @@ Label:hover {
     padding-right: 0;
     padding-bottom: 0;
     padding-left: 0;
+    white-space: normal;
+    width: 85%;
 }
 
 .custom-textfield-input-code #unity-text-input {
