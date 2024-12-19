@@ -78,14 +78,15 @@ namespace com.noctuagames.sdk.UI
 
         public void OnTextFieldFocusChange(FocusInEvent _event)
         {
+            HideAllErrors();
             (_event.target as VisualElement).Children().ElementAt(1).AddToClassList("noctua-text-input-focus");
-            (_event.target as VisualElement).Q<VisualElement>("title").style.color = Color.white;
+            (_event.target as VisualElement).Q<VisualElement>("title").style.color = ColorModule.white;
         }
 
         public void OnTextFieldFocusChange(FocusOutEvent _event)
         {
             (_event.target as VisualElement).Children().ElementAt(1).RemoveFromClassList("noctua-text-input-focus");
-            (_event.target as VisualElement).Q<VisualElement>("title").style.color = new Color(0.4862745f, 0.4941176f, 0.5058824f, 1.0f);
+            (_event.target as VisualElement).Q<VisualElement>("title").style.color = ColorModule.greyInactive;
         }
 
         private void OnVerificationCodeValueChanged(TextField textField)
@@ -241,13 +242,9 @@ namespace com.noctuagames.sdk.UI
 
         private void HideAllErrors()
         {
-            // To avoid duplicate classes
-            View.Q<Label>("ErrCode").RemoveFromClassList("hide");
-            View.Q<Label>("ErrEmailInvalid").RemoveFromClassList("hide");
-            View.Q<Label>("ErrEmailEmpty").RemoveFromClassList("hide");
-            View.Q<Label>("ErrPasswordTooShort").RemoveFromClassList("hide");
-            View.Q<Label>("ErrPasswordEmpty").RemoveFromClassList("hide");
-            View.Q<Label>("ErrPasswordMismatch").RemoveFromClassList("hide");
+            //Normalize border
+            verificationCode.Children().ElementAt(1).RemoveFromClassList("noctua-text-input-error");            
+            verificationCode.Q<Label>("error").AddToClassList("hide");            
 
             View.Q<Label>("ErrCode").AddToClassList("hide");
             View.Q<Label>("ErrEmailInvalid").AddToClassList("hide");

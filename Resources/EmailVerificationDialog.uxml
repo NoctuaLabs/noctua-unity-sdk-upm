@@ -11,6 +11,7 @@
                 <ui:Label name="DialogContent2" text="Please enter it within 10 minutes" display-tooltip-when-elided="true" style="margin-top: 0; font-size: 12px; color: rgb(117, 117, 117);" />
                 <ui:TextField name="VerificationCode" label="Verification code" keyboard-type="PhonePad" class="noctua-text-input" style="width: 100%; margin-top: 14px;">
                     <ui:Label tabindex="-1" text="Verification code" parse-escape-sequences="true" display-tooltip-when-elided="true" name="title" class="hide" />
+                    <ui:Label tabindex="-1" text="error" parse-escape-sequences="true" display-tooltip-when-elided="true" name="error" class="hide" />
                 </ui:TextField>
             </ui:VisualElement>
             <ui:VisualElement name="DialogFooter" class="dialog-footer" style="height: 125px; align-items: center; margin-bottom: 20px;">

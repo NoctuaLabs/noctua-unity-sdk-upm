@@ -438,14 +438,26 @@ namespace com.noctuagames.sdk.UI
 
         public void OnTextFieldFocusChange(FocusInEvent _event)
         {
+            HideAllErrors();
             (_event.target as VisualElement).Children().ElementAt(1).AddToClassList("noctua-text-input-focus");
-            (_event.target as VisualElement).Q<VisualElement>("title").style.color = Color.white;
+            (_event.target as VisualElement).Q<VisualElement>("title").style.color = ColorModule.white;
         }
 
         public void OnTextFieldFocusChange(FocusOutEvent _event)
         {
             (_event.target as VisualElement).Children().ElementAt(1).RemoveFromClassList("noctua-text-input-focus");
-            (_event.target as VisualElement).Q<VisualElement>("title").style.color = new Color(0.4862745f, 0.4941176f, 0.5058824f, 1.0f);
+            (_event.target as VisualElement).Q<VisualElement>("title").style.color = ColorModule.greyInactive;
+        }
+
+        public void HideAllErrors()
+        {
+            _nicknameTF.Children().ElementAt(1).RemoveFromClassList("noctua-text-input-error");
+            _countryTF.Children().ElementAt(1).RemoveFromClassList("noctua-text-input-error");
+            _languageTF.Children().ElementAt(1).RemoveFromClassList("noctua-text-input-error");
+
+            _nicknameTF.Q<Label>("error").AddToClassList("hide");
+            _countryTF.Q<Label>("error").AddToClassList("hide");
+            _languageTF.Q<Label>("error").AddToClassList("hide");
         }
 
         private void SetupDropdownUI()
@@ -747,38 +759,55 @@ namespace com.noctuagames.sdk.UI
             View.Q<Button>("ChangePictureButton").AddToClassList("hide");
             View.Q<Button>("SaveButton").AddToClassList("hide");
 
-            var _errorLabel = View.Q<Label>("ErrLabel");
+            //var _errorLabel = View.Q<Label>("ErrLabel");
+
+            HideAllErrors();
 
             if (string.IsNullOrEmpty(_nicknameTF.value))
             {
-                _errorLabel.RemoveFromClassList("hide");
-                _errorLabel.text = "Nickname should not be empty";
+                //_errorLabel.RemoveFromClassList("hide");
+                //_errorLabel.text = "Nickname should not be empty";
 
                 View.Q<Button>("SaveButton").RemoveFromClassList("hide");
                 View.Q<VisualElement>("Spinner").AddToClassList("hide");
                 View.Q<VisualElement>("Spinner2").AddToClassList("hide");
+
+                _nicknameTF.ElementAt(1).AddToClassList("noctua-text-input-error");
+                _nicknameTF.Q<Label>("error").RemoveFromClassList("hide");
+                _nicknameTF.Q<Label>("error").text = "Nickname should not be empty";
+                _nicknameTF.Q<VisualElement>("title").style.color = ColorModule.redError;
                 return;
             }
 
             if (string.IsNullOrEmpty(_countryTF.value) || _countryTF.value == "Select Country")
             {
-                _errorLabel.RemoveFromClassList("hide");
-                _errorLabel.text = "Please select country!";
+                //_errorLabel.RemoveFromClassList("hide");
+                //_errorLabel.text = "Please select country!";
 
                 View.Q<Button>("SaveButton").RemoveFromClassList("hide");
                 View.Q<VisualElement>("Spinner").AddToClassList("hide");
                 View.Q<VisualElement>("Spinner2").AddToClassList("hide");
+
+                _countryTF.ElementAt(1).AddToClassList("noctua-text-input-error");
+                _countryTF.Q<Label>("error").RemoveFromClassList("hide");
+                _countryTF.Q<Label>("error").text = "Please select country!";
+                _countryTF.Q<VisualElement>("title").style.color = ColorModule.redError;
                 return;
             }
 
             if (string.IsNullOrEmpty(_languageTF.value) || _languageTF.value == "Select Language")
             {
-                _errorLabel.RemoveFromClassList("hide");
-                _errorLabel.text = "Please select language!";
+                //_errorLabel.RemoveFromClassList("hide");
+                //_errorLabel.text = "Please select language!";
 
                 View.Q<Button>("SaveButton").RemoveFromClassList("hide");
                 View.Q<VisualElement>("Spinner").AddToClassList("hide");
                 View.Q<VisualElement>("Spinner2").AddToClassList("hide");
+
+                _languageTF.ElementAt(1).AddToClassList("noctua-text-input-error");
+                _languageTF.Q<Label>("error").RemoveFromClassList("hide");
+                _languageTF.Q<Label>("error").text = "Please select language!";
+                _languageTF.Q<VisualElement>("title").style.color = ColorModule.redError;
                 return;
             }
 
@@ -822,7 +851,7 @@ namespace com.noctuagames.sdk.UI
                     StartCoroutine(LoadImageFromUrl(_newProfileUrl, true));
                 }
 
-                _errorLabel.AddToClassList("hide");
+                //_errorLabel.AddToClassList("hide");
                 View.Q<Button>("SaveButton").RemoveFromClassList("hide");
                 View.Q<VisualElement>("Spinner").AddToClassList("hide");
 
@@ -841,7 +870,7 @@ namespace com.noctuagames.sdk.UI
 
                 Model.ShowGeneralNotification(e.Message);
 
-                _errorLabel.AddToClassList("hide");
+                //_errorLabel.AddToClassList("hide");
 
                 View.Q<Button>("SaveButton").RemoveFromClassList("hide");
                 View.Q<VisualElement>("Spinner").AddToClassList("hide");

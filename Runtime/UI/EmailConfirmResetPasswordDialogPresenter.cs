@@ -119,14 +119,15 @@ namespace com.noctuagames.sdk.UI
 
         public void OnTextFieldFocusChange(FocusInEvent _event)
         {
+            HideAllErrors();
             (_event.target as VisualElement).Children().ElementAt(1).AddToClassList("noctua-text-input-focus");
-            (_event.target as VisualElement).Q<VisualElement>("title").style.color = Color.white;
+            (_event.target as VisualElement).Q<VisualElement>("title").style.color = ColorModule.white;
         }
 
         public void OnTextFieldFocusChange(FocusOutEvent _event)
         {
             (_event.target as VisualElement).Children().ElementAt(1).RemoveFromClassList("noctua-text-input-focus");
-            (_event.target as VisualElement).Q<VisualElement>("title").style.color = new Color(0.4862745f, 0.4941176f, 0.5058824f, 1.0f);
+            (_event.target as VisualElement).Q<VisualElement>("title").style.color = ColorModule.greyInactive;
         }
 
         public void OnToggleShowPassword(PointerUpEvent _event)
@@ -239,31 +240,51 @@ namespace com.noctuagames.sdk.UI
 
             // Validation
             if (string.IsNullOrEmpty(verificationCode)) {
-                View.Q<Label>("ErrVerificationCodeEmpty").RemoveFromClassList("hide");
+                //View.Q<Label>("ErrVerificationCodeEmpty").RemoveFromClassList("hide");
                 View.Q<Button>("ContinueButton").RemoveFromClassList("hide");
                 View.Q<VisualElement>("Spinner").AddToClassList("hide");
+
+                verificationCodeField.ElementAt(1).AddToClassList("noctua-text-input-error");
+                verificationCodeField.Q<Label>("error").RemoveFromClassList("hide");
+                verificationCodeField.Q<Label>("error").text = "Verification code should not be empty";
+                verificationCodeField.Q<VisualElement>("title").style.color = ColorModule.redError;
                 return;
             }
 
             if (string.IsNullOrEmpty(password)) {
-                View.Q<Label>("ErrPasswordEmpty").RemoveFromClassList("hide");
+                //View.Q<Label>("ErrPasswordEmpty").RemoveFromClassList("hide");
                 View.Q<Button>("ContinueButton").RemoveFromClassList("hide");
                 View.Q<VisualElement>("Spinner").AddToClassList("hide");
+
+                passwordField.ElementAt(1).AddToClassList("noctua-text-input-error");
+                passwordField.Q<Label>("error").RemoveFromClassList("hide");
+                passwordField.Q<Label>("error").text = "Password should not be empty";
+                passwordField.Q<VisualElement>("title").style.color = ColorModule.redError;
                 return;
             }
 
             if (password?.Length < 6) {
-                View.Q<Label>("ErrPasswordTooShort").RemoveFromClassList("hide");
+                //View.Q<Label>("ErrPasswordTooShort").RemoveFromClassList("hide");
                 View.Q<Button>("ContinueButton").RemoveFromClassList("hide");
                 View.Q<VisualElement>("Spinner").AddToClassList("hide");
+
+                passwordField.ElementAt(1).AddToClassList("noctua-text-input-error");
+                passwordField.Q<Label>("error").RemoveFromClassList("hide");
+                passwordField.Q<Label>("error").text = "Password is too short. Minimum 6 character";
+                passwordField.Q<VisualElement>("title").style.color = ColorModule.redError;
                 return;
             }
 
 
             if (!password.Equals(rePassword)) {
-                View.Q<Label>("ErrPasswordMismatch").RemoveFromClassList("hide");
+                //View.Q<Label>("ErrPasswordMismatch").RemoveFromClassList("hide");
                 View.Q<Button>("ContinueButton").RemoveFromClassList("hide");
                 View.Q<VisualElement>("Spinner").AddToClassList("hide");
+
+                rePasswordField.ElementAt(1).AddToClassList("noctua-text-input-error");
+                rePasswordField.Q<Label>("error").RemoveFromClassList("hide");
+                rePasswordField.Q<Label>("error").text = "Password is not matched with repeated password";
+                rePasswordField.Q<VisualElement>("title").style.color = ColorModule.redError;
                 return;
             }
 
@@ -284,9 +305,15 @@ namespace com.noctuagames.sdk.UI
                     
                 if (e is NoctuaException noctuaEx)
                 {
-                    if (noctuaEx.ErrorCode == 2022) {
-                        View.Q<Label>("ErrVerificationCodeInvalid").RemoveFromClassList("hide");
-                    } else {
+                    if (noctuaEx.ErrorCode == 2022) 
+                    {
+                        //View.Q<Label>("ErrVerificationCodeInvalid").RemoveFromClassList("hide");
+                        verificationCodeField.ElementAt(1).AddToClassList("noctua-text-input-error");
+                        verificationCodeField.Q<Label>("error").RemoveFromClassList("hide");
+                        verificationCodeField.Q<Label>("error").text = "The verification code is invalid";
+                        verificationCodeField.Q<VisualElement>("title").style.color = ColorModule.redError;
+                    } else 
+                    {
                         View.Q<Label>("ErrCode").text = noctuaEx.ErrorCode.ToString() + " : " + noctuaEx.Message;
                     }
                 } else {
@@ -300,13 +327,14 @@ namespace com.noctuagames.sdk.UI
 
         private void HideAllErrors()
         {
-            // To avoid duplicate classes
-            View.Q<Label>("ErrCode").RemoveFromClassList("hide");
-            View.Q<Label>("ErrVerificationCodeEmpty").RemoveFromClassList("hide");
-            View.Q<Label>("ErrVerificationCodeInvalid").RemoveFromClassList("hide");
-            View.Q<Label>("ErrPasswordTooShort").RemoveFromClassList("hide");
-            View.Q<Label>("ErrPasswordEmpty").RemoveFromClassList("hide");
-            View.Q<Label>("ErrPasswordMismatch").RemoveFromClassList("hide");
+            //Normalize border
+            verificationCodeField.Children().ElementAt(1).RemoveFromClassList("noctua-text-input-error");
+            passwordField.Children().ElementAt(1).RemoveFromClassList("noctua-text-input-error");
+            rePasswordField.Children().ElementAt(1).RemoveFromClassList("noctua-text-input-error");
+
+            verificationCodeField.Q<Label>("error").AddToClassList("hide");
+            passwordField.Q<Label>("error").AddToClassList("hide");
+            rePasswordField.Q<Label>("error").AddToClassList("hide");
 
             View.Q<Label>("ErrCode").AddToClassList("hide");
             View.Q<Label>("ErrVerificationCodeEmpty").AddToClassList("hide");
