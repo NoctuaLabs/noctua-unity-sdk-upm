@@ -111,6 +111,10 @@
     "AccountDeletionConfirmationDialogPresenter.CancelButton.Button.text": "Cancel",
 
     "LoadingProgressPresenter.TitleLoading.Label.text": "Please wait...",
+    
+    "StartGameErrorDialogPresenter.MessageLabel.Label.text": "Something went wrong, we can't continue the game. Please try to restart the game.",
+    "StartGameErrorDialogPresenter.QuitButton.Button.text": "Quit",
+    "StartGameErrorDialogPresenter.CSButton.Button.text": "Contact Support",
 
     "SwitchAccountConfirmationDialogPresenter.Question.Label.text": "Are you sure you want to switch\nyour game account?",
     "SwitchAccountConfirmationDialogPresenter.Note.Label.text": "We will restart your game, once you\nhave confirming to switch account.\nRelax, your game progress will be\nsaved to current account.",

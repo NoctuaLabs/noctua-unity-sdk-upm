@@ -112,6 +112,10 @@
 
     "LoadingProgressPresenter.TitleLoading.Label.text": "Harap tunggu...",
 
+    "StartGameErrorDialogPresenter.MessageLabel.Label.text": "Ada yang salah, kami tidak bisa melanjutkan permainan. Silakan coba mulai ulang permainan.",
+    "StartGameErrorDialogPresenter.QuitButton.Button.text": "Keluar",
+    "StartGameErrorDialogPresenter.CSButton.Button.text": "Hubungi CS",
+
     "SwitchAccountConfirmationDialogPresenter.Question.Label.text": "Apakah Anda yakin ingin mengganti\nakun game Anda?",
     "SwitchAccountConfirmationDialogPresenter.Note.Label.text": "Kami akan memulai ulang game Anda, setelah Anda\nmengonfirmasi untuk mengganti akun.\nTenang, kemajuan game Anda akan\ntersimpan ke akun saat ini.",
     "SwitchAccountConfirmationDialogPresenter.CancelButton.Button.text": "Batal",

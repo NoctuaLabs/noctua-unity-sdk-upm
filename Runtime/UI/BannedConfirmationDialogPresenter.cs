@@ -33,14 +33,14 @@ namespace com.noctuagames.sdk.UI
             _btnOK.RegisterCallback<PointerUpEvent>(CloseDialog);
         }
 
-        public async UniTask<bool> Show(string language)
+        public async UniTask<bool> Show()
         {
             _tcs = new UniTaskCompletionSource<bool>();
 
             Visible = true;
 
-            _note.text = Utility.GetTranslation("User.Banned.Info",  Utility.LoadTranslations(language));
-            _note2.text = Utility.GetTranslation("User.Banned.Info2",  Utility.LoadTranslations(language));
+            _note.text = Locale.GetTranslation("User.Banned.Info");
+            _note2.text = Locale.GetTranslation("User.Banned.Info2");
 
             return await _tcs.Task;
         }
@@ -53,7 +53,7 @@ namespace com.noctuagames.sdk.UI
             {
                 Visible = false;
 
-                await Noctua.Platform.Content.ShowCustomerService();
+                await Noctua.Platform.Content.ShowCustomerService("user_get_banned");
 
                 _log.Info("Customer Service URL opened");
 

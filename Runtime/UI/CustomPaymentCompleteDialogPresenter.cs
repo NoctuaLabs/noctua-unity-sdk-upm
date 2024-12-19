@@ -60,7 +60,7 @@ namespace com.noctuagames.sdk.UI
 
             try
             {
-                await Noctua.Platform.Content.ShowCustomerService();
+                await Noctua.Platform.Content.ShowCustomerService("custom_payment");
             } 
             catch (Exception e) {
                 _tcs?.TrySetResult(false);

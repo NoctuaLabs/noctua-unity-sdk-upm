@@ -1,14 +1,12 @@
 <ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" xsi="http://www.w3.org/2001/XMLSchema-instance" engine="UnityEngine.UIElements" editor="UnityEditor.UIElements" noNamespaceSchemaLocation="../../../../UIElementsSchema/UIElements.xsd" editor-extension-mode="False">
     <Style src="./Noctua.uss" />
-    <Style src="./FailedPaymentDialog.uss" />
+    <Style src="./StartGameErrorDialog.uss" />
     <ui:VisualElement name="Root" class="root" >
-        <ui:VisualElement name="FailedPaymentDialog" class="base dialog-box failed-payment-dialog" >
-            <ui:Button name="ExitButton" focusable="false" class="exit-button">
-                    <ui:VisualElement name="ExitIcon" class="exit-icon" />
-            </ui:Button>
-            <ui:Label name="MessageLabel" text="Payment failed" class="message-label" />
+        <ui:VisualElement name="StartGameErrorDialog" class="base dialog-box start-game-error-dialog" >
+            <ui:Label name="MessageLabel" text="Something went wrong, we can't continue the game. Please try to restart the game." class="label" />
+            <ui:Label name="ErrorLabel" text="Error: 500 internal server error" class="label" />
             <ui:Button name="CSButton" text="Contact Support" class="primary-button" />
-            <ui:Button name="OKButton" text="OK" class="secondary-button" />
+            <ui:Button name="QuitButton" text="Quit" class="secondary-button" />
         </ui:VisualElement>
     </ui:VisualElement>
 </ui:UXML>
