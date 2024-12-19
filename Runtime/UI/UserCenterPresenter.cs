@@ -388,7 +388,6 @@ namespace com.noctuagames.sdk.UI
                 });
             });
 
-            // // Register the callback for each text change
             _birthDateTF.RegisterCallback<ChangeEvent<string>>(evt => OnDateFieldChanged());
         }
 
@@ -711,6 +710,9 @@ namespace com.noctuagames.sdk.UI
                     _containerStayConnect.AddToClassList("show");
                 }
 
+                _nicknameTF.value = View.Q<Label>("PlayerName").text;
+                SetErrorUpdateProfile(false);
+
             }
         }
 
@@ -744,41 +746,32 @@ namespace com.noctuagames.sdk.UI
             View.Q<VisualElement>("Spinner").RemoveFromClassList("hide");
             View.Q<VisualElement>("Spinner2").RemoveFromClassList("hide");
 
-            View.Q<Button>("ChangePictureButton").AddToClassList("hide");
+            View.Q<Button>("ChangePictureButton").SetEnabled(false);
             View.Q<Button>("SaveButton").AddToClassList("hide");
 
             var _errorLabel = View.Q<Label>("ErrLabel");
 
             if (string.IsNullOrEmpty(_nicknameTF.value))
             {
-                _errorLabel.RemoveFromClassList("hide");
                 _errorLabel.text = "Nickname should not be empty";
 
-                View.Q<Button>("SaveButton").RemoveFromClassList("hide");
-                View.Q<VisualElement>("Spinner").AddToClassList("hide");
-                View.Q<VisualElement>("Spinner2").AddToClassList("hide");
+                SetErrorUpdateProfile(true);
                 return;
             }
 
             if (string.IsNullOrEmpty(_countryTF.value) || _countryTF.value == "Select Country")
             {
-                _errorLabel.RemoveFromClassList("hide");
                 _errorLabel.text = "Please select country!";
 
-                View.Q<Button>("SaveButton").RemoveFromClassList("hide");
-                View.Q<VisualElement>("Spinner").AddToClassList("hide");
-                View.Q<VisualElement>("Spinner2").AddToClassList("hide");
+                SetErrorUpdateProfile(true);
                 return;
             }
 
             if (string.IsNullOrEmpty(_languageTF.value) || _languageTF.value == "Select Language")
             {
-                _errorLabel.RemoveFromClassList("hide");
                 _errorLabel.text = "Please select language!";
 
-                View.Q<Button>("SaveButton").RemoveFromClassList("hide");
-                View.Q<VisualElement>("Spinner").AddToClassList("hide");
-                View.Q<VisualElement>("Spinner2").AddToClassList("hide");
+                SetErrorUpdateProfile(true);
                 return;
             }
 
@@ -824,12 +817,7 @@ namespace com.noctuagames.sdk.UI
 
                 View.Q<Label>("PlayerName").text = _nicknameTF.value;
 
-                _errorLabel.AddToClassList("hide");
-                View.Q<Button>("SaveButton").RemoveFromClassList("hide");
-                View.Q<VisualElement>("Spinner").AddToClassList("hide");
-
-                View.Q<Button>("ChangePictureButton").RemoveFromClassList("hide");
-                View.Q<VisualElement>("Spinner2").AddToClassList("hide");
+                SetErrorUpdateProfile(false);
 
                 Model.ShowGeneralNotification("Update profile successfully", true);
 
@@ -842,13 +830,35 @@ namespace com.noctuagames.sdk.UI
                 _log.Exception(e);
 
                 Model.ShowGeneralNotification(e.Message);
+                
+                SetErrorUpdateProfile(false);
+            }
+        }
 
-                _errorLabel.AddToClassList("hide");
+        private void SetErrorUpdateProfile(bool isError)
+        {
+            if(isError)
+            {
+                View.Q<VisualElement>("SaveButtonContainer").style.height = Length.Percent(30);
+                View.Q<VisualElement>("ErrBox").style.marginBottom = 20;
 
+                View.Q<Label>("ErrLabel").RemoveFromClassList("hide");
                 View.Q<Button>("SaveButton").RemoveFromClassList("hide");
-                View.Q<VisualElement>("Spinner").AddToClassList("hide");
+                View.Q<Button>("ChangePictureButton").SetEnabled(true);
 
-                View.Q<Button>("ChangePictureButton").RemoveFromClassList("hide");
+                View.Q<VisualElement>("Spinner").AddToClassList("hide");
+                View.Q<VisualElement>("Spinner2").AddToClassList("hide");
+            }
+            else
+            {
+                View.Q<VisualElement>("SaveButtonContainer").style.height = StyleKeyword.Null;
+                View.Q<VisualElement>("ErrBox").style.marginBottom = 10;
+
+                View.Q<Label>("ErrLabel").AddToClassList("hide");
+                View.Q<Button>("SaveButton").RemoveFromClassList("hide");
+                View.Q<Button>("ChangePictureButton").SetEnabled(true);
+                
+                View.Q<VisualElement>("Spinner").AddToClassList("hide");
                 View.Q<VisualElement>("Spinner2").AddToClassList("hide");
             }
         }

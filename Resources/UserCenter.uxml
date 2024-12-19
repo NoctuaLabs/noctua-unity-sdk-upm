@@ -105,8 +105,8 @@
                                 </ui:DropdownField>
                             </ui:VisualElement>
                         </ui:ScrollView>
-                        <ui:VisualElement name="SaveButtonContainer" style="border-top-left-radius: 6px; border-top-right-radius: 6px; border-bottom-right-radius: 6px; border-bottom-left-radius: 6px; margin-left: 6px; margin-right: 6px; margin-bottom: 5px;">
-                            <ui:VisualElement name="ErrBox" style="padding-top: 0; padding-right: 0; padding-bottom: 0; padding-left: 0; margin-top: 5px; margin-bottom: 5px; width: 100%; height: 16px; align-items: center; justify-content: center;">
+                        <ui:VisualElement name="SaveButtonContainer" style="border-top-left-radius: 6px; border-top-right-radius: 6px; border-bottom-right-radius: 6px; border-bottom-left-radius: 6px; margin-left: 6px; margin-right: 6px; margin-bottom: 20px;">
+                            <ui:VisualElement name="ErrBox" style="padding-top: 0; padding-right: 0; padding-bottom: 0; padding-left: 0; margin-top: 0px; width: 100%; height: 16px; align-items: center; justify-content: center;">
                                 <ui:Label name="ErrLabel" display-tooltip-when-elided="true" class="dialog-err-label hide" />
                             </ui:VisualElement>
                             <ui:Button text="Save" display-tooltip-when-elided="true" name="SaveButton" focusable="false" class="dialog-button" />
