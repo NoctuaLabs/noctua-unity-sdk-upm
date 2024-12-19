@@ -190,17 +190,17 @@ namespace com.noctuagames.sdk.UI
             View?.Q<VisualElement>("DialogHeader")?.AddToClassList("hide");
             try
             {
-                if (Model.AuthService.RecentAccount == null &&
-                (Model.AuthService.RecentAccount != null && Model.AuthService.RecentAccount.IsGuest))
+                if (Model.AuthService.RecentAccount == null ||
+                !(Model.AuthService.RecentAccount != null && Model.AuthService.RecentAccount.IsGuest))
                 {
-                    // There will be a confirmation dialog between verification processes.
-                    var token = await Model.AuthService.BeginVerifyEmailRegistrationAsync(_credVerifyId, _credVerifyCode);
-                    Model.ShowBindConfirmation(token);
+                    // Verify directly
+                    await Model.VerifyEmailRegistration(_credVerifyId, _credVerifyCode);
                 }
                 else
                 {
-                    // Verify directly without confirmation dialog.
-                    await Model.VerifyEmailRegistration(_credVerifyId, _credVerifyCode);
+                    // There will be a confirmation dialog between verification processes
+                    var token = await Model.AuthService.BeginVerifyEmailRegistrationAsync(_credVerifyId, _credVerifyCode);
+                    Model.ShowBindConfirmation(token);
                 }
 
                 Visible = false;
