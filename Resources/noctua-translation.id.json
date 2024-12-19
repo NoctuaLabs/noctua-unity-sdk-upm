@@ -177,6 +177,7 @@
     "IAPFailed": "Pembelian gagal",
     "IAPRequiresAuthentication": "Pembelian memerlukan otentikasi",
     "IAPPaymentDisabled": "Pembayaran dinonaktifkan. Silakan hubungi layanan pelanggan.",
+    "AuthEmailLinkingSuccessful": "Email berhasil dihubungkan",
 
     "EditProfile.NicknameValidation": "Nama panggilan tidak boleh kosong",
     "EditProfile.CountryValidation": "Pilih negara",

@@ -206,6 +206,7 @@ namespace com.noctuagames.sdk
         IAPCanceled,
         IAPFailed,
         IAPRequiresAuthentication,
-        IAPPaymentDisabled
+        IAPPaymentDisabled,
+        AuthEmailLinkingSuccessful,
     }
 }

@@ -15,6 +15,7 @@ namespace com.noctuagames.sdk.UI
         private string _email;
         private string _password;
         private int _credVerifyId;
+        private Dictionary<string,string> _extraData;
         private string _credVerifyCode;
 
         private InputFieldNoctua _inputVerificationCode;
@@ -23,7 +24,7 @@ namespace com.noctuagames.sdk.UI
         protected override void Attach() { }
         protected override void Detach() { }
 
-        public void Show(string email, string password, int verificationId)
+        public void Show(string email, string password, int verificationId, Dictionary<string, string> extraData)
         {
             Debug.Log("EmailVerificationDialogPresenter.Show()");
             View.visible = true;
@@ -31,6 +32,7 @@ namespace com.noctuagames.sdk.UI
             _email = email;
             _password = password;
             _credVerifyId = verificationId;
+            _extraData = extraData;
 
             SetupView();
             HideAllErrors();
@@ -86,7 +88,20 @@ namespace com.noctuagames.sdk.UI
             
             try
             {
-                var result = await Model.RegisterWithEmailAsync(_email, _password);
+                CredentialVerification result;
+                
+                switch (Model.AuthIntention)
+                {
+                    case AuthIntention.Switch:
+                        result = await Model.AuthService.RegisterWithEmailAsync(_email, _password, _extraData);
+                        break;
+                    case AuthIntention.Link:
+                        result = await Model.AuthService.LinkWithEmailAsync(_email, _password);
+                        break;
+                    default:
+                        throw new NoctuaException(NoctuaErrorCode.Authentication, $"Invalid AuthIntention {Model.AuthIntention}");
+                }
+
                 _log.Debug("RegisterWithPassword verification ID: " + result.Id);
 
                 _credVerifyId = result.Id;
@@ -141,7 +156,7 @@ namespace com.noctuagames.sdk.UI
                     // If account container is empty or it's not guest, verify directly.
                     await Model.VerifyEmailRegistration(_credVerifyId, _credVerifyCode);
                 }
-                else
+                else if (Model.AuthIntention == AuthIntention.Switch)
                 {
                     // If guest, here will be a confirmation dialog between verification processes.
                     var token = await Model.AuthService.BeginVerifyEmailRegistrationAsync(_credVerifyId, _credVerifyCode);

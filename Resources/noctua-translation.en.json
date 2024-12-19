@@ -175,6 +175,7 @@
     "IAPFailed": "Purchase failed",
     "IAPRequiresAuthentication": "Purchase requires user authentication",
     "IAPPaymentDisabled": "Payment is disabled. Please contact customer support.",
+    "AuthEmailLinkingSuccessful": "Email linking successful",
 
     "EditProfile.NicknameValidation": "Nickname should not be empty",
     "EditProfile.CountryValidation": "Select country",

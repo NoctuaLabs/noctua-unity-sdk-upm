@@ -37,6 +37,8 @@ namespace com.noctuagames.sdk.UI
         {
             LoadData();
 
+            Model.ClearNavigation();
+            Model.AuthIntention = AuthIntention.Switch;
             Visible = true;
         }
 

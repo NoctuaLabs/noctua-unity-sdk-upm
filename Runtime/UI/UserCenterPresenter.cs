@@ -933,6 +933,7 @@ namespace com.noctuagames.sdk.UI
             View.visible = false;
 
             Model.PushNavigation(() => Model.ShowUserCenter());
+            Model.AuthIntention = AuthIntention.Switch;
             Model.ShowLoginOptions();
 
             evt.StopPropagation();
@@ -1014,10 +1015,13 @@ namespace com.noctuagames.sdk.UI
             _log.Debug($"clicking connect button for {credential.CredentialProvider}");
 
             Visible = false;
+            Model.AuthIntention = AuthIntention.Link;
 
             switch (credential.CredentialProvider)
             {
                 case CredentialProvider.Email:
+                    Model.ClearNavigation();
+                    Model.PushNavigation(() => Model.ShowUserCenter());
                     Model.ShowEmailRegistration(true, true);
 
                     break;

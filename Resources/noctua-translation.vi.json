@@ -177,6 +177,7 @@
     "IAPFailed": "Mua hàng không thành công",
     "IAPRequiresAuthentication": "Mua hàng yêu cầu xác thực người dùng",
     "IAPPaymentDisabled": "Thanh toán đã bị vô hiệu hóa. Vui lòng liên hệ với bộ phận hỗ trợ khách hàng.",
+    "AuthEmailLinkingSuccessful": "Kết nối email thành công",
 
     "EditProfile.NicknameValidation": "Biệt danh không được để trống",
     "EditProfile.CountryValidation": "Chọn quốc gia",

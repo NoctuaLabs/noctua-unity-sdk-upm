@@ -54,10 +54,7 @@ namespace com.noctuagames.sdk
 
     internal class AuthenticationModel
     {
-        // IMPORTANT NOTES!!!
-        // Your UI need to apply USS absolute property to the first VisualElement of the UI
-        // before being added to the UI Document.
-        // Violation of this rule will cause the UI (and the other UI too) to be unable to be displayed properly.
+        private readonly ILogger _log = new NoctuaLogger();
         private readonly UIFactory _uiFactory;
         
         private readonly AccountSelectionDialogPresenter _accountSelectionDialog;
@@ -73,25 +70,22 @@ namespace com.noctuagames.sdk
         private readonly BindConfirmationDialogPresenter _bindConfirmation;
         private readonly ConnectConflictDialogPresenter _connectConflictDialog;
         private readonly PendingPurchasesDialogPresenter _pendingPurchasesDialog;
-        private List<PendingPurchaseItem> _pendingPurchases = new List<PendingPurchaseItem>();
+        private readonly List<PendingPurchaseItem> _pendingPurchases = new();
         private readonly WelcomeNotificationPresenter _welcome;
 
-        private NoctuaAuthenticationService _authService;
-        public NoctuaIAPService _iapService;
+        private readonly NoctuaAuthenticationService _authService;
+        private readonly NoctuaIAPService _iapService;
+        private readonly SocialAuthenticationService _socialAuth;
+        private readonly NoctuaLocale _locale;
         private GameObject _socialAuthObject;
-        private SocialAuthenticationService _socialAuth;
         
         private readonly Stack<Action> _navigationStack = new();
 
         public NoctuaAuthenticationService AuthService => _authService;
+        public AuthIntention AuthIntention { get; set; }
 
         internal event Action<UserBundle> OnAccountChanged;
 
-        private AuthType _currentAuthType = AuthType.Switch;
-
-        private readonly NoctuaLocale _locale;
-
-        private readonly ILogger _log = new NoctuaLogger(typeof(AuthenticationModel));
 
         internal AuthenticationModel(
             UIFactory uiFactory, 
@@ -167,7 +161,6 @@ namespace com.noctuagames.sdk
 
         public void ShowAccountSelection()
         {
-            _currentAuthType = AuthType.Switch;
             _accountSelectionDialog.Show();
         }
 
@@ -176,9 +169,9 @@ namespace com.noctuagames.sdk
             _emailRegisterDialog.Show(clearForm, isRegisterOnly);
         }
 
-        public void ShowEmailVerification(string email, string password, int verificationID)
+        public void ShowEmailVerification(string email, string password, int verificationID, Dictionary<string,string> extraData)
         {
-            _emailVerificationDialog.Show(email, password, verificationID);
+            _emailVerificationDialog.Show(email, password, verificationID, extraData);
         }
 
         public void ShowLoginOptions()
@@ -213,8 +206,6 @@ namespace com.noctuagames.sdk
         
         public void ShowUserCenter()
         {
-            _currentAuthType = _authService?.RecentAccount?.IsGuest == true ? AuthType.Switch : AuthType.LinkAccount;
-
             _userCenter.Show();
         }
         
@@ -241,35 +232,6 @@ namespace com.noctuagames.sdk
         public async UniTask<bool> ShowBannedConfirmationDialog()
         {
             return await _uiFactory.ShowBannedConfirmationDialog();
-        }
-
-        internal async UniTask<CredentialVerification> RegisterWithEmailAsync(string email, string password, Dictionary<string, string> regExtra = null)
-        {
-            return _currentAuthType switch
-            {
-                AuthType.Switch => await AuthService.RegisterWithEmailAsync(email, password, regExtra),
-                AuthType.LinkAccount => await AuthService.LinkWithEmailAsync(email, password),
-                _ => throw new NotImplementedException(_currentAuthType.ToString())
-            };
-        }
-
-        internal async UniTask VerifyEmailRegistration(int credVerifyId, string code)
-        {
-            switch (_currentAuthType)
-            {
-                case AuthType.Switch:
-                    await AuthService.VerifyEmailRegistrationAsync(credVerifyId, code);
-
-                    break;
-
-                case AuthType.LinkAccount:
-                    await AuthService.VerifyEmailLinkingAsync(credVerifyId, code);
-
-                    break;
-
-                default: 
-                    throw new NotImplementedException(_currentAuthType.ToString());
-            }
         }
 
         public async UniTask<UserBundle> SocialLoginAsync(string provider)
@@ -304,7 +266,8 @@ namespace com.noctuagames.sdk
             }
 
             var list =  _iapService.GetPendingPurchases();
-            _pendingPurchases = new List<PendingPurchaseItem>();
+            _pendingPurchases.Clear();
+
             foreach (var item in list)
             {
                 var status = item.Status;
@@ -342,9 +305,9 @@ namespace com.noctuagames.sdk
         }
     }
     
-    internal enum AuthType
+    internal enum AuthIntention
     {
         Switch,
-        LinkAccount,
+        Link,
     }
 }
