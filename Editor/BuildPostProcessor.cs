@@ -108,7 +108,7 @@ using UnityEditor.Graphs;
 
             if (firebaseEnabled)
             {
-                proj.AddFileToBuild(targetGuid, proj.AddFile(destinationPath, "GoogleService-Info.plist"));
+                proj.AddFileToBuild(targetGuid, proj.AddFile("GoogleService-Info.plist", "GoogleService-Info.plist"));
 
                 Log("Added GoogleService-Info.plist to Xcode project.");
             }
