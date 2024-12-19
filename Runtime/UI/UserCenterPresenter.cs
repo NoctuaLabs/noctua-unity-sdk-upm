@@ -388,7 +388,6 @@ namespace com.noctuagames.sdk.UI
                 });
             });
 
-            // // Register the callback for each text change
             _birthDateTF.RegisterCallback<ChangeEvent<string>>(evt => OnDateFieldChanged());
         }
 
@@ -723,6 +722,9 @@ namespace com.noctuagames.sdk.UI
                     _containerStayConnect.AddToClassList("show");
                 }
 
+                _nicknameTF.value = View.Q<Label>("PlayerName").text;
+                SetErrorUpdateProfile(false);
+
             }
         }
 
@@ -756,7 +758,7 @@ namespace com.noctuagames.sdk.UI
             View.Q<VisualElement>("Spinner").RemoveFromClassList("hide");
             View.Q<VisualElement>("Spinner2").RemoveFromClassList("hide");
 
-            View.Q<Button>("ChangePictureButton").AddToClassList("hide");
+            View.Q<Button>("ChangePictureButton").SetEnabled(false);
             View.Q<Button>("SaveButton").AddToClassList("hide");
 
             //var _errorLabel = View.Q<Label>("ErrLabel");
@@ -776,6 +778,10 @@ namespace com.noctuagames.sdk.UI
                 _nicknameTF.Q<Label>("error").RemoveFromClassList("hide");
                 _nicknameTF.Q<Label>("error").text = "Nickname should not be empty";
                 _nicknameTF.Q<VisualElement>("title").style.color = ColorModule.redError;
+
+                //_errorLabel.text = "Nickname should not be empty";
+
+                //SetErrorUpdateProfile(true);
                 return;
             }
 
@@ -792,6 +798,10 @@ namespace com.noctuagames.sdk.UI
                 _countryTF.Q<Label>("error").RemoveFromClassList("hide");
                 _countryTF.Q<Label>("error").text = "Please select country!";
                 _countryTF.Q<VisualElement>("title").style.color = ColorModule.redError;
+
+                //_errorLabel.text = "Please select country!";
+
+                //SetErrorUpdateProfile(true);
                 return;
             }
 
@@ -808,6 +818,10 @@ namespace com.noctuagames.sdk.UI
                 _languageTF.Q<Label>("error").RemoveFromClassList("hide");
                 _languageTF.Q<Label>("error").text = "Please select language!";
                 _languageTF.Q<VisualElement>("title").style.color = ColorModule.redError;
+
+
+                //_errorLabel.text = "Please select language!";
+                //SetErrorUpdateProfile(true);
                 return;
             }
 
@@ -855,8 +869,9 @@ namespace com.noctuagames.sdk.UI
                 View.Q<Button>("SaveButton").RemoveFromClassList("hide");
                 View.Q<VisualElement>("Spinner").AddToClassList("hide");
 
-                View.Q<Button>("ChangePictureButton").RemoveFromClassList("hide");
-                View.Q<VisualElement>("Spinner2").AddToClassList("hide");
+                View.Q<Label>("PlayerName").text = _nicknameTF.value;
+
+                SetErrorUpdateProfile(false);
 
                 Model.ShowGeneralNotification("Update profile successfully", true);
 
@@ -869,13 +884,35 @@ namespace com.noctuagames.sdk.UI
                 _log.Exception(e);
 
                 Model.ShowGeneralNotification(e.Message);
+                
+                SetErrorUpdateProfile(false);
+            }
+        }
 
-                //_errorLabel.AddToClassList("hide");
+        private void SetErrorUpdateProfile(bool isError)
+        {
+            if(isError)
+            {
+                View.Q<VisualElement>("SaveButtonContainer").style.height = Length.Percent(30);
+                View.Q<VisualElement>("ErrBox").style.marginBottom = 20;
 
+                View.Q<Label>("ErrLabel").RemoveFromClassList("hide");
                 View.Q<Button>("SaveButton").RemoveFromClassList("hide");
-                View.Q<VisualElement>("Spinner").AddToClassList("hide");
+                View.Q<Button>("ChangePictureButton").SetEnabled(true);
 
-                View.Q<Button>("ChangePictureButton").RemoveFromClassList("hide");
+                View.Q<VisualElement>("Spinner").AddToClassList("hide");
+                View.Q<VisualElement>("Spinner2").AddToClassList("hide");
+            }
+            else
+            {
+                View.Q<VisualElement>("SaveButtonContainer").style.height = StyleKeyword.Null;
+                View.Q<VisualElement>("ErrBox").style.marginBottom = 10;
+
+                View.Q<Label>("ErrLabel").AddToClassList("hide");
+                View.Q<Button>("SaveButton").RemoveFromClassList("hide");
+                View.Q<Button>("ChangePictureButton").SetEnabled(true);
+                
+                View.Q<VisualElement>("Spinner").AddToClassList("hide");
                 View.Q<VisualElement>("Spinner2").AddToClassList("hide");
             }
         }
