@@ -151,11 +151,14 @@ namespace com.noctuagames.sdk
         }
 
         public static void UpdateButtonState(List<TextField> textFields, Button submitButton)
-        {
-            bool isAnyFieldEmpty = textFields.Any(textField => string.IsNullOrEmpty(textField.value));
+        {           
+            UpdateButtonState(submitButton, !textFields.Any(textField => string.IsNullOrEmpty(textField.value)));
+        }
 
-            submitButton.SetEnabled(!isAnyFieldEmpty);
-            submitButton.pickingMode = !isAnyFieldEmpty ? PickingMode.Position : PickingMode.Ignore;
+        public static void UpdateButtonState(Button _submitButton, bool _isActive)
+        {
+            _submitButton.SetEnabled(_isActive);
+            _submitButton.pickingMode = !_isActive ? PickingMode.Position : PickingMode.Ignore;
         }
 
         public static string GetCoPublisherLogo(string companyName)

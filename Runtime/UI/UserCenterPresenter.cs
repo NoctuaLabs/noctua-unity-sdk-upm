@@ -42,6 +42,7 @@ namespace com.noctuagames.sdk.UI
         private VisualElement _profileImage;
         private VisualElement _playerImage;
         private Button _changeProfile;
+        private Button saveButton;
         private Label _userIDLabel;
         private string _newProfileUrl;
         private string _userIDValue;
@@ -412,8 +413,9 @@ namespace com.noctuagames.sdk.UI
             _playerImage = View.Q<VisualElement>("PlayerAvatar");
             _userIDLabel = View.Q<Label>("UserIdLabel");
 
-            var saveButton = View.Q<Button>("SaveButton");
-            saveButton.SetEnabled(false);
+            saveButton = View.Q<Button>("SaveButton");
+
+            Utility.UpdateButtonState(saveButton, false);            
             saveButton.RegisterCallback<PointerUpEvent>(_ => OnSaveEditProfile());
 
             var elementNames = new List<string>
@@ -664,7 +666,7 @@ namespace com.noctuagames.sdk.UI
                 
                 View.Q<Label>("TitleEditBack").text = Locale.GetTranslation("UserCenterPresenter.MenuEditProfile.Label.text");
 
-                View.Q<Button>("SaveButton").SetEnabled(false);
+                Utility.UpdateButtonState(saveButton, false);                
                 View.Q<VisualElement>("UserProfileHeader").style.justifyContent = Justify.FlexEnd;
             }
             else
@@ -762,13 +764,13 @@ namespace com.noctuagames.sdk.UI
             View.Q<VisualElement>("Spinner2").RemoveFromClassList("hide");
 
             View.Q<Button>("ChangePictureButton").SetEnabled(false);
-            View.Q<Button>("SaveButton").AddToClassList("hide");
+            saveButton.AddToClassList("hide");
 
             HideAllErrors();
 
             if (string.IsNullOrEmpty(_nicknameTF.value))
             {
-                View.Q<Button>("SaveButton").RemoveFromClassList("hide");
+                saveButton.RemoveFromClassList("hide");
                 View.Q<VisualElement>("Spinner").AddToClassList("hide");
                 View.Q<VisualElement>("Spinner2").AddToClassList("hide");
 
@@ -782,7 +784,7 @@ namespace com.noctuagames.sdk.UI
 
             if (string.IsNullOrEmpty(_countryTF.value) || _countryTF.value == "Select Country")
             {
-                View.Q<Button>("SaveButton").RemoveFromClassList("hide");
+                saveButton.RemoveFromClassList("hide");
                 View.Q<VisualElement>("Spinner").AddToClassList("hide");
                 View.Q<VisualElement>("Spinner2").AddToClassList("hide");
 
@@ -796,7 +798,7 @@ namespace com.noctuagames.sdk.UI
 
             if (string.IsNullOrEmpty(_languageTF.value) || _languageTF.value == "Select Language")
             {
-                View.Q<Button>("SaveButton").RemoveFromClassList("hide");
+                saveButton.RemoveFromClassList("hide");
                 View.Q<VisualElement>("Spinner").AddToClassList("hide");
                 View.Q<VisualElement>("Spinner2").AddToClassList("hide");
 
@@ -848,7 +850,7 @@ namespace com.noctuagames.sdk.UI
                     StartCoroutine(LoadImageFromUrl(_newProfileUrl, true));
                 }
 
-                View.Q<Button>("SaveButton").RemoveFromClassList("hide");
+                saveButton.RemoveFromClassList("hide");
                 View.Q<VisualElement>("Spinner").AddToClassList("hide");
 
                 View.Q<Label>("PlayerName").text = _nicknameTF.value;
@@ -876,7 +878,7 @@ namespace com.noctuagames.sdk.UI
             if(isError)
             {
 
-                View.Q<Button>("SaveButton").RemoveFromClassList("hide");
+                saveButton.RemoveFromClassList("hide");
                 View.Q<Button>("ChangePictureButton").SetEnabled(true);
 
                 View.Q<VisualElement>("Spinner").AddToClassList("hide");
@@ -884,7 +886,7 @@ namespace com.noctuagames.sdk.UI
             }
             else
             {
-                View.Q<Button>("SaveButton").RemoveFromClassList("hide");
+                saveButton.RemoveFromClassList("hide");
                 View.Q<Button>("ChangePictureButton").SetEnabled(true);
                 
                 View.Q<VisualElement>("Spinner").AddToClassList("hide");
