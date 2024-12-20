@@ -14,17 +14,11 @@ namespace com.noctuagames.sdk
         {
             using var unityPlayer = new AndroidJavaClass("com.unity3d.player.UnityPlayer");
             var unityActivity = unityPlayer.GetStatic<AndroidJavaObject>("currentActivity");
-            var unityContext = unityActivity.Call<AndroidJavaObject>("getApplicationContext");
 
             using var javaActiveBundleIds = new AndroidJavaObject("java.util.ArrayList");
-
-            foreach (var bundleId in activeBundleIds)
-            {
-                javaActiveBundleIds.Call<bool>("add", bundleId);
-            }
             
             using var noctua = new AndroidJavaObject("com.noctuagames.sdk.Noctua$Companion");
-            noctua.Call("init", unityContext, javaActiveBundleIds);
+            noctua.Call("init", unityActivity, javaActiveBundleIds);
             noctua.Call("onResume");
         }
 

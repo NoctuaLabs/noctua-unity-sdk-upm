@@ -476,6 +476,8 @@ namespace com.noctuagames.sdk.UI
         private void OnLoginLinkClick(PointerUpEvent evt)
         {
             Visible = false;
+            
+            Model.ClearNavigation();
             Model.PushNavigation(() => Model.ShowEmailRegistration(false));
             Model.ShowEmailLogin();
         }
