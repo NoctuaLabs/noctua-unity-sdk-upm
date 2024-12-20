@@ -25,7 +25,7 @@
     "EmailRegisterDialogPresenter.CountryTF.TextField.label": "Negara",
     "EmailRegisterDialogPresenter.IDCardTF.TextField.label": "Kartu Identitas",
     "EmailRegisterDialogPresenter.PlaceOfIssueTF.TextField.label": "Tempat Penerbitan",
-    "EmailRegisterDialogPresenter.DateOfIssueTF.TextField.label": "Tanggal Penerbitan",
+    "EmailRegisterDialogPresenter.DateOfIssueTF.Button.text": "Tanggal Penerbitan",
     "EmailRegisterDialogPresenter.AddressTF.TextField.label": "Alamat",
     "EmailRegisterDialogPresenter.PasswordTF.TextField.label": "Kata Sandi",
     "EmailRegisterDialogPresenter.RePasswordTF.TextField.label": "Masukkan Kembali Kata Sandi",
@@ -44,6 +44,7 @@
     "EmailRegisterDialogPresenter.WizardNextTo3Button.Button.text": "Lanjut",
     "EmailRegisterDialogPresenter.WizardNextTo4Button.Button.text": "Lanjut",
     "EmailRegisterDialogPresenter.LoginLink.Label.text": "Masuk",
+    "EmailRegisterDialogPresenter.WizardSpinner.Button.text": "Mendaftar...",
     "EmailRegisterDialogPresenter.AlreadyHaveAccount.Label.text": "Sudah punya akun?",
     "EmailRegisterDialogPresenter.ErrUnderage.Label.text": "Usia minimal 18 tahun",
 

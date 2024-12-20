@@ -25,7 +25,7 @@
     "EmailRegisterDialogPresenter.CountryTF.TextField.label": "Country",
     "EmailRegisterDialogPresenter.IDCardTF.TextField.label": "ID Card",
     "EmailRegisterDialogPresenter.PlaceOfIssueTF.TextField.label": "Place Of Issue",
-    "EmailRegisterDialogPresenter.DateOfIssueTF.TextField.label": "Date Of Issue",
+    "EmailRegisterDialogPresenter.DateOfIssueTF.Button.text": "Date Of Issue",
     "EmailRegisterDialogPresenter.AddressTF.TextField.label": "Address",
     "EmailRegisterDialogPresenter.PasswordTF.TextField.label": "Password",
     "EmailRegisterDialogPresenter.RePasswordTF.TextField.label": "Re-enter Password",
@@ -44,6 +44,7 @@
     "EmailRegisterDialogPresenter.WizardNextTo3Button.Button.text": "Next",
     "EmailRegisterDialogPresenter.WizardNextTo4Button.Button.text": "Next",
     "EmailRegisterDialogPresenter.LoginLink.Label.text": "Login",
+    "EmailRegisterDialogPresenter.WizardSpinner.Button.text": "Registering...",
     "EmailRegisterDialogPresenter.AlreadyHaveAccount.Label.text": "Already have an account?",
     "EmailRegisterDialogPresenter.ErrUnderage.Label.text": "Minimum age is 18 years old",
 

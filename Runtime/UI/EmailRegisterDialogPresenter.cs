@@ -35,7 +35,7 @@ namespace com.noctuagames.sdk.UI
         private TextField _country;
         private TextField _idCard;
         private TextField _placeOfIssue;
-        private TextField _dateOfIssue;
+        private Button _dateOfIssue;
         private TextField _address;
         private List<TextField> textFields;
         private Button continueButton;
@@ -92,6 +92,8 @@ namespace com.noctuagames.sdk.UI
         {
             SetupInputFields(clearForm);
             HideAllErrors();
+
+            View.Q<VisualElement>("WizardSpinner").AddToClassList("hide");
 
             var additionalFooter = View.Q<VisualElement>("AdditionalFooterContent");
             if (isRegisterOnly)
@@ -176,7 +178,7 @@ namespace com.noctuagames.sdk.UI
             _country = View.Q<TextField>("CountryTF");
             _idCard = View.Q<TextField>("IDCardTF");
             _placeOfIssue = View.Q<TextField>("PlaceOfIssueTF");
-            _dateOfIssue = View.Q<TextField>("DateOfIssueTF");
+            _dateOfIssue = View.Q<Button>("DateOfIssueTF");
             _address = View.Q<TextField>("AddressTF");
 
             if (!string.IsNullOrEmpty(_config?.Noctua?.Flags) && _config!.Noctua!.Flags!.Contains("VNLegalPurpose"))
@@ -185,7 +187,6 @@ namespace com.noctuagames.sdk.UI
                 SetupDatePicker();
                 // Disable country dropdown as Vietnam copublisher is asking for raw text input for country.
                 // SetCountries();
-                ShowBehaviourWhitelabel(true);
             }
 
             // Visibility
@@ -221,7 +222,6 @@ namespace com.noctuagames.sdk.UI
                     _country,
                     _idCard,
                     _placeOfIssue,
-                    _dateOfIssue,
                     _address
                 };
             }
@@ -417,7 +417,6 @@ namespace com.noctuagames.sdk.UI
         private void SetupDatePicker()
         {
             _birthDate.isReadOnly = true;
-            _dateOfIssue.isReadOnly = true;
 
             string startDate = "01/01/2000";
             DateTime parsedDate = DateTime.ParseExact(startDate, "dd/MM/yyyy", null);
@@ -437,17 +436,52 @@ namespace com.noctuagames.sdk.UI
                     Debug.Log("Date Picked :" + _date.ToString("dd/MM/yyyy"));
 
                     textField.value = _date.ToString("dd/MM/yyyy");
-                    textField.labelElement.style.display = DisplayStyle.None;
-                    Utility.UpdateButtonState(textFields, continueButton);
-                    Utility.UpdateButtonState(textFields, wizardContinueButton);
                 });
             }
 
-            _birthDate.UnregisterCallback<PointerUpEvent>(evt => OpenDatePickerHandler(1, _birthDate, evt));
-            _dateOfIssue.UnregisterCallback<PointerUpEvent>(evt => OpenDatePickerHandler(2, _dateOfIssue, evt));
+            View.Q<VisualElement>("BirthdateContainer").UnregisterCallback<PointerUpEvent>(evt => {});
 
-            _birthDate.RegisterCallback<PointerUpEvent>(evt => OpenDatePickerHandler(1, _birthDate, evt));
-            _dateOfIssue.RegisterCallback<PointerUpEvent>(evt => OpenDatePickerHandler(2, _dateOfIssue, evt));  
+            View.Q<VisualElement>("BirthdateContainer").RegisterCallback<ClickEvent>(upEvent =>
+            {
+
+                upEvent.StopImmediatePropagation();
+
+                Noctua.OpenDatePicker(parsedDate.Year, parsedDate.Month, parsedDate.Day, 1,
+                (DateTime _date) =>
+                {
+                    _log.Debug($"picked date '{_date:O}'");
+                },
+                (DateTime _date) =>
+                {
+                    _birthDate.value = _date.ToString("dd/MM/yyyy");
+                    _birthDate.labelElement.style.display = DisplayStyle.None;
+                    Utility.UpdateButtonState(textFields, continueButton);
+                    Utility.UpdateButtonState(textFields, wizardContinueButton);
+
+                });
+            });
+
+            View.Q<VisualElement>("DateOfIssueContainer").UnregisterCallback<PointerUpEvent>(evt => {});
+            View.Q<VisualElement>("DateOfIssueContainer").RegisterCallback<ClickEvent>(upEvent =>
+            {
+
+                upEvent.StopImmediatePropagation();
+
+                Noctua.OpenDatePicker(parsedDate.Year, parsedDate.Month, parsedDate.Day, 1,
+                (DateTime _date) =>
+                {
+                    _log.Debug($"picked date '{_date:O}'");
+                },
+                (DateTime _date) =>
+                {
+                    _dateOfIssue.text = _date.ToString("dd/MM/yyyy");
+                    _dateOfIssue.RemoveFromClassList("grey-text");
+                    _dateOfIssue.AddToClassList("white-text");
+                    Utility.UpdateButtonState(textFields, continueButton);
+                    Utility.UpdateButtonState(textFields, wizardContinueButton);
+
+                });
+            });
         }
 
         // Unused, leave it here for future use.
@@ -491,7 +525,6 @@ namespace com.noctuagames.sdk.UI
         private async void OnContinueButtonClick(PointerUpEvent evt)
         {
             _log.Debug("clicking continue button");
-            View.Q<Label>("ErrCode").AddToClassList("hide");
             
             HideAllErrors();
 
@@ -530,8 +563,7 @@ namespace com.noctuagames.sdk.UI
                 // Show the error at the end of the wizard as well
                 if (!string.IsNullOrEmpty(_config?.Noctua?.Flags) && _config!.Noctua!.Flags!.Contains("VNLegalPurpose"))
                 {
-                    View.Q<Label>("ErrCode").text = emailField.Q<Label>("error").text;
-                    View.Q<Label>("ErrCode").RemoveFromClassList("hide");
+                    Model.ShowGeneralNotification(emailField.Q<Label>("error").text, false);
                 }
 
                 return;
@@ -555,8 +587,7 @@ namespace com.noctuagames.sdk.UI
                 // Show the error at the end of the wizard as well
                 if (!string.IsNullOrEmpty(_config?.Noctua?.Flags) && _config!.Noctua!.Flags!.Contains("VNLegalPurpose"))
                 {
-                    View.Q<Label>("ErrCode").text = emailField.Q<Label>("error").text;
-                    View.Q<Label>("ErrCode").RemoveFromClassList("hide");
+                    Model.ShowGeneralNotification(emailField.Q<Label>("error").text, false);
                 }
 
                 return;
@@ -580,8 +611,7 @@ namespace com.noctuagames.sdk.UI
                 // Show the error at the end of the wizard as well
                 if (!string.IsNullOrEmpty(_config?.Noctua?.Flags) && _config!.Noctua!.Flags!.Contains("VNLegalPurpose"))
                 {
-                    View.Q<Label>("ErrCode").text = passwordField.Q<Label>("error").text;
-                    View.Q<Label>("ErrCode").RemoveFromClassList("hide");
+                    Model.ShowGeneralNotification(passwordField.Q<Label>("error").text, false);
                 }
                 return;
             }
@@ -604,8 +634,7 @@ namespace com.noctuagames.sdk.UI
                 // Show the error at the end of the wizard as well
                 if (!string.IsNullOrEmpty(_config?.Noctua?.Flags) && _config!.Noctua!.Flags!.Contains("VNLegalPurpose"))
                 {
-                    View.Q<Label>("ErrCode").text = passwordField.Q<Label>("error").text;
-                    View.Q<Label>("ErrCode").RemoveFromClassList("hide");
+                    Model.ShowGeneralNotification(passwordField.Q<Label>("error").text, false);
                 }
                 return;
             }
@@ -628,8 +657,7 @@ namespace com.noctuagames.sdk.UI
                 // Show the error at the end of the wizard as well
                 if (!string.IsNullOrEmpty(_config?.Noctua?.Flags) && _config!.Noctua!.Flags!.Contains("VNLegalPurpose"))
                 {
-                    View.Q<Label>("ErrCode").text = rePasswordField.Q<Label>("error").text;
-                    View.Q<Label>("ErrCode").RemoveFromClassList("hide");
+                    Model.ShowGeneralNotification(rePasswordField.Q<Label>("error").text, false);
                 }
                 return;
             }
@@ -658,8 +686,7 @@ namespace com.noctuagames.sdk.UI
                     // Show the error at the end of the wizard as well
                     if (!string.IsNullOrEmpty(_config?.Noctua?.Flags) && _config!.Noctua!.Flags!.Contains("VNLegalPurpose"))
                     {
-                        View.Q<Label>("ErrCode").text = _gender.Q<Label>("error").text;
-                        View.Q<Label>("ErrCode").RemoveFromClassList("hide");
+                        Model.ShowGeneralNotification(_gender.Q<Label>("error").text, false);
                     }
 
                     return;
@@ -688,15 +715,20 @@ namespace com.noctuagames.sdk.UI
                     // Show the error at the end of the wizard as well
                     if (!string.IsNullOrEmpty(_config?.Noctua?.Flags) && _config!.Noctua!.Flags!.Contains("VNLegalPurpose"))
                     {
-                        View.Q<Label>("ErrCode").text = _birthDate.Q<Label>("error").text;
-                        View.Q<Label>("ErrCode").RemoveFromClassList("hide");
+                        Model.ShowGeneralNotification(_birthDate.Q<Label>("error").text, false);
                     }
 
                     return;
                 }
 
+                if (_dateOfIssue.text == "")
+                {
+                    Model.ShowGeneralNotification("Date of issue should not be empty.", false);
+                    return;
+                }
+
                 var issueDate = DateTime
-                    .ParseExact(_dateOfIssue.value, "dd/MM/yyyy", CultureInfo.InvariantCulture)
+                    .ParseExact(_dateOfIssue.text, "dd/MM/yyyy", CultureInfo.InvariantCulture)
                     .ToUniversalTime();
 
                 regExtra = new Dictionary<string, string>()
@@ -729,7 +761,7 @@ namespace com.noctuagames.sdk.UI
                     _country.value = string.Empty;
                     _idCard.value = string.Empty;
                     _placeOfIssue.value = string.Empty;
-                    _dateOfIssue.value = string.Empty;
+                    _dateOfIssue.text = string.Empty;
                     _address.value = string.Empty;
                 }
 
@@ -764,7 +796,7 @@ namespace com.noctuagames.sdk.UI
                 View.Q<VisualElement>("WizardSpinner").AddToClassList("hide");
                 if (!string.IsNullOrEmpty(_config?.Noctua?.Flags) && _config!.Noctua!.Flags!.Contains("VNLegalPurpose"))
                 {
-                    View.Q<VisualElement>("AdditionalFooterContent").AddToClassList("hide");
+                    Model.ShowGeneralNotification(View.Q<Label>("ErrCode").text, false);
                 } else {
                     View.Q<VisualElement>("AdditionalFooterContent").RemoveFromClassList("hide");
                 }
@@ -774,6 +806,7 @@ namespace com.noctuagames.sdk.UI
         private void OnBackButtonClick(PointerUpEvent evt)
         {
             _log.Debug("clicking back button");
+            View.Q<VisualElement>("WizardSpinner").RemoveFromClassList("hide");
 
             if (_wizardPage == 4) {
                 NavigateToWizard3();
@@ -873,34 +906,6 @@ namespace com.noctuagames.sdk.UI
             View.Q<Label>("ErrPasswordEmpty").AddToClassList("hide");
             View.Q<Label>("ErrPasswordMismatch").AddToClassList("hide");
             View.Q<Label>("ErrUnderage").AddToClassList("hide");
-        }
-
-        private void ShowBehaviourWhitelabel(bool isShow)
-        {
-            if(isShow)
-            {
-                _fullname.RemoveFromClassList("hide");
-                _phoneNumber.RemoveFromClassList("hide");
-                _birthDate.RemoveFromClassList("hide");
-                _gender.RemoveFromClassList("hide");
-                _country.RemoveFromClassList("hide");
-                _idCard.RemoveFromClassList("hide");
-                _placeOfIssue.RemoveFromClassList("hide");
-                _dateOfIssue.RemoveFromClassList("hide");
-                _address.RemoveFromClassList("hide");
-            }
-            else
-            {
-                _fullname.AddToClassList("hide");
-                _phoneNumber.AddToClassList("hide");
-                _birthDate.AddToClassList("hide");
-                _gender.AddToClassList("hide");
-                _country.AddToClassList("hide");
-                _idCard.AddToClassList("hide");
-                _placeOfIssue.AddToClassList("hide");
-                _dateOfIssue.AddToClassList("hide");
-                _address.AddToClassList("hide");
-            }
         }
     }
 }

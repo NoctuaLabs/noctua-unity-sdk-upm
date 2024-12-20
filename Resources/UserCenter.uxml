@@ -90,11 +90,12 @@
                                 </ui:TextField>
                                 <ui:Label name="HintNickname" text="Don&apos;t use real name, You can change again in the next 14 days" class="hint-textfield" />
                             </ui:VisualElement>
-                            <ui:VisualElement class="noctua-text-input-margin">
+                            <ui:VisualElement name="BirthdateContainer" class="noctua-text-input-margin">
                                 <ui:TextField label="Birthdate (Optional)" name="BirthdateTF" class="noctua-text-input">
                                     <ui:Label tabindex="-1" text="Birthdate (optional)" parse-escape-sequences="true" display-tooltip-when-elided="true" name="title" class="hide" />
                                     <ui:Label tabindex="-1" text="error" parse-escape-sequences="true" display-tooltip-when-elided="true" name="error" class="hide" />
                                 </ui:TextField>
+                                <ui:Button parse-escape-sequences="true" display-tooltip-when-elided="true" class="btn-calendar" style="position: absolute; background-color: rgba(255, 255, 255, 0); align-self: center; justify-content: center;" />
                             </ui:VisualElement>
                             <ui:VisualElement class="dropdown-container">
                                 <ui:DropdownField name="GenderTF" label="Gender (Optional)" class="dropdown-box">

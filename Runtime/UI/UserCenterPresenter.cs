@@ -365,6 +365,7 @@ namespace com.noctuagames.sdk.UI
 
         private void SetupDatePickerUI()
         {
+            var birthDateContainer = View.Q<VisualElement>("BirthdateContainer");
             _birthDateTF = View.Q<TextField>("BirthdateTF");
             _birthDateTF.isReadOnly = true;
             _birthDateTF.focusable = false;
@@ -372,7 +373,7 @@ namespace com.noctuagames.sdk.UI
             string _dob = string.IsNullOrEmpty(_dateString) ? "01/01/2000" : _dateString;
             DateTime parsedDate = DateTime.ParseExact(_dob, "dd/MM/yyyy", null);
 
-            _birthDateTF.RegisterCallback<ClickEvent>(upEvent =>
+            birthDateContainer.RegisterCallback<ClickEvent>(upEvent =>
             {
 
                 upEvent.StopImmediatePropagation();
