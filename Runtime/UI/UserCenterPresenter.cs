@@ -860,11 +860,11 @@ namespace com.noctuagames.sdk.UI
 
                 _log.Debug("updated user profile successfully");
 
-                // We should not close the entire user center but
-                // there is bug that will occure if we edit the profile agin
+                // Reload the entire presenter because
+                // there is bug that will occure if we edit the profile again
                 // without closing the user center.
                 // https://applink.larksuite.com/client/message/link/open?token=AmdOk3AqAUAMZ2WcwcnAQAw%3D
-                Visible = false;
+                Show();
             }
             catch (Exception e)
             {
