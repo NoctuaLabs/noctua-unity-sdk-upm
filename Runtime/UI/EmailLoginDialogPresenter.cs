@@ -296,8 +296,17 @@ namespace com.noctuagames.sdk.UI
 
             try
             {
-                if (Model.AuthService.RecentAccount?.IsGuest ?? false)
+                if (Model.AuthService.RecentAccount == null ||
+                !(Model.AuthService.RecentAccount != null && Model.AuthService.RecentAccount.IsGuest))
                 {
+                    // If account container is empty or it's not guest, login directly.
+                    var userBundle = await Model.AuthService.LoginWithEmailAsync(emailAddress, password);
+
+                    _onLoginSuccess?.Invoke(userBundle);
+                }
+                else
+                {
+                    // If guest, show bind confirmation dialog for guest.
                     var playerToken = await Model.AuthService.GetEmailLoginTokenAsync(emailAddress, password);
 
                     if (playerToken.Player == null)
@@ -308,12 +317,6 @@ namespace com.noctuagames.sdk.UI
                     {
                         Model.ShowConnectConflict(playerToken);
                     }
-                }
-                else
-                {
-                    var userBundle = await Model.AuthService.LoginWithEmailAsync(emailAddress, password);
-
-                    _onLoginSuccess?.Invoke(userBundle);
                 }
 
                 View.Q<TextField>("EmailTF").value = string.Empty;
