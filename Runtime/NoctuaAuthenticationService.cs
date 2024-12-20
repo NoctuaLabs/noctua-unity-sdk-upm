@@ -236,7 +236,6 @@ namespace com.noctuagames.sdk
             {
                 return this switch
                 {
-                    {Player: {Username: {Length: > 0}}} => Player.Username,
                     {User: {Nickname: {Length: > 0}}} => User.Nickname,
                     {Credential: {Provider: "device_id"}} => "Guest " + User?.Id,
                     {Credential: {DisplayText: { Length: > 0 } }} => Credential.DisplayText,
