@@ -777,6 +777,7 @@ namespace com.noctuagames.sdk.UI
                 ShowButtonSpinner(false);
 
                 _nicknameTF.ElementAt(1).AddToClassList("noctua-text-input-error");
+                _nicknameTF.ElementAt(1).AddToClassList("noctua-text-input-error");
                 _nicknameTF.Q<Label>("error").RemoveFromClassList("hide");
                 _nicknameTF.Q<Label>("error").text = Locale.GetTranslation("EditProfile.NicknameValidation");
                 _nicknameTF.Q<VisualElement>("title").style.color = ColorModule.redError;
@@ -859,6 +860,12 @@ namespace com.noctuagames.sdk.UI
                 OnUIEditProfile(false);
 
                 _log.Debug("updated user profile successfully");
+
+                // We should not close the entire user center but
+                // there is bug that will occure if we edit the profile agin
+                // without closing the user center.
+                // https://applink.larksuite.com/client/message/link/open?token=AmdOk3AqAUAMZ2WcwcnAQAw%3D
+                Visible = false;
             }
             catch (Exception e)
             {
