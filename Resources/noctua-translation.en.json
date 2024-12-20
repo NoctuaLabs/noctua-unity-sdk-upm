@@ -22,7 +22,7 @@
     "EmailRegisterDialogPresenter.PhoneNumberTF.TextField.label": "Phone Number",
     "EmailRegisterDialogPresenter.BirthdateTF.TextField.label": "Birthdate",
     "EmailRegisterDialogPresenter.GenderTF.DropdownField.label": "Gender",
-    "EmailRegisterDialogPresenter.CountryTF.DropdownField.label": "Country",
+    "EmailRegisterDialogPresenter.CountryTF.TextField.label": "Country",
     "EmailRegisterDialogPresenter.IDCardTF.TextField.label": "ID Card",
     "EmailRegisterDialogPresenter.PlaceOfIssueTF.TextField.label": "Place Of Issue",
     "EmailRegisterDialogPresenter.DateOfIssueTF.TextField.label": "Date Of Issue",
@@ -155,6 +155,8 @@
     "SuggestionBindText.Content2": "Protect your game progress.",
     "SuggestionBindText.Content3": "Get special items by binding your account.",
     "Select.Gender" : "Select Gender",
+    "Select.Gender.Male" : "Male",
+    "Select.Gender.Female" : "Female",
     "Select.Country": "Select Country",
 
     "Title.Text.ContactSupport": "Contact Support",

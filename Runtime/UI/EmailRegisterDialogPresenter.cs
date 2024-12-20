@@ -29,11 +29,10 @@ namespace com.noctuagames.sdk.UI
 
         //Behaviour whitelabel - VN
         private TextField _fullname;
-        private DropdownField _phoneCode;
         private TextField _phoneNumber;
         private TextField _birthDate;
         private DropdownField _gender;
-        private DropdownField _country;
+        private TextField _country;
         private TextField _idCard;
         private TextField _placeOfIssue;
         private TextField _dateOfIssue;
@@ -42,8 +41,6 @@ namespace com.noctuagames.sdk.UI
         private Button continueButton;
         private Button wizardContinueButton;
         private GlobalConfig _config;
-        private List<string> _phoneCodeList = new List<string>();
-        private List<string> _countryList = new List<string>();
 
         private int _wizardPage = 0;
 
@@ -106,6 +103,19 @@ namespace com.noctuagames.sdk.UI
                 additionalFooter.RemoveFromClassList("hide");
             }
 
+            // Show copublisher logo
+            if (!string.IsNullOrEmpty(_config?.CoPublisher?.CompanyName))
+            {
+                var logo = Utility.GetCoPublisherLogo(_config.CoPublisher.CompanyName);
+                var defaultLogo = Resources.Load<Texture2D>(logo);
+                View.Q<VisualElement>("NoctuaLogoWithText").style.backgroundImage = new StyleBackground(defaultLogo);
+                View.Q<VisualElement>("NoctuaLogoWithText").RemoveFromClassList("hide");
+            }
+            else
+            {
+                View.Q<VisualElement>("NoctuaLogoWithText").AddToClassList("hide");
+            }
+
             Visible = true;
         }
 
@@ -160,11 +170,10 @@ namespace com.noctuagames.sdk.UI
 
             //Behaviour whitelabel - VN
             _fullname = View.Q<TextField>("FullNameTF");
-            _phoneCode = View.Q<DropdownField>("PhoneCodeDF");
             _phoneNumber = View.Q<TextField>("PhoneNumberTF");
             _birthDate = View.Q<TextField>("BirthdateTF");
             _gender = View.Q<DropdownField>("GenderTF");
-            _country = View.Q<DropdownField>("CountryTF");
+            _country = View.Q<TextField>("CountryTF");
             _idCard = View.Q<TextField>("IDCardTF");
             _placeOfIssue = View.Q<TextField>("PlaceOfIssueTF");
             _dateOfIssue = View.Q<TextField>("DateOfIssueTF");
@@ -174,7 +183,8 @@ namespace com.noctuagames.sdk.UI
             {
                 SetupDropdown();  
                 SetupDatePicker();
-                SetCountries();
+                // Disable country dropdown as Vietnam copublisher is asking for raw text input for country.
+                // SetCountries();
                 ShowBehaviourWhitelabel(true);
             }
 
@@ -192,6 +202,7 @@ namespace com.noctuagames.sdk.UI
 
                 _fullname.value = "";
                 _phoneNumber.value = "";
+                _country.value = "";
                 _idCard.value = "";
                 _placeOfIssue.value = "";
                 _address.value = "";
@@ -207,6 +218,7 @@ namespace com.noctuagames.sdk.UI
                     _fullname,
                     _phoneNumber,
                     _birthDate,
+                    _country,
                     _idCard,
                     _placeOfIssue,
                     _dateOfIssue,
@@ -257,6 +269,7 @@ namespace com.noctuagames.sdk.UI
             {
                 _fullname.RegisterValueChangedCallback(evt => OnValueChanged(_fullname));
                 _phoneNumber.RegisterValueChangedCallback(evt => OnValueChanged(_phoneNumber));
+                _country.RegisterValueChangedCallback(evt => OnValueChanged(_country));
                 _idCard.RegisterValueChangedCallback(evt => OnValueChanged(_idCard));
                 _placeOfIssue.RegisterValueChangedCallback(evt => OnValueChanged(_placeOfIssue));
                 _address.RegisterValueChangedCallback(evt => OnValueChanged(_address));
@@ -383,7 +396,7 @@ namespace com.noctuagames.sdk.UI
 
         private void SetupDropdown()
         {
-             var genderChoices = new List<string> {"Male", "Female"};
+             var genderChoices = new List<string> {Locale.GetTranslation("Select.Gender.Male"), Locale.GetTranslation("Select.Gender.Female")};
             Color textColor = new Color(98f / 255f, 100f / 255f, 104f / 255f);
             
             var regionCode = _config?.Noctua?.Region ?? "";
@@ -437,9 +450,10 @@ namespace com.noctuagames.sdk.UI
             _dateOfIssue.RegisterCallback<PointerUpEvent>(evt => OpenDatePickerHandler(2, _dateOfIssue, evt));  
         }
 
+        // Unused, leave it here for future use.
+        /*
         private void SetCountries()
         {
-            _phoneCodeList.Clear();
             _countryList.Clear();
 
             List<Country> countries = CountryData.Countries;
@@ -447,16 +461,7 @@ namespace com.noctuagames.sdk.UI
             foreach(var country in countries)
             {
                 _countryList.Add(country.Name);
-                _phoneCodeList.Add(country.PhoneCode);
             }
-
-            _phoneCode.choices = _phoneCodeList; 
-            _phoneCode.value = _phoneCodeList[0];
-            _phoneCode.RegisterCallback<ChangeEvent<string>>((evt) =>
-            {
-                _phoneCode.value = evt.newValue;
-                _phoneCode.labelElement.style.display = DisplayStyle.None;
-            });
 
             Color textColor = new Color(98f / 255f, 100f / 255f, 104f / 255f);
 
@@ -472,6 +477,7 @@ namespace com.noctuagames.sdk.UI
                 _country.labelElement.style.display = DisplayStyle.None;
             });            
         }
+        */
 
         private void OnLoginLinkClick(PointerUpEvent evt)
         {
@@ -485,6 +491,7 @@ namespace com.noctuagames.sdk.UI
         private async void OnContinueButtonClick(PointerUpEvent evt)
         {
             _log.Debug("clicking continue button");
+            View.Q<Label>("ErrCode").AddToClassList("hide");
             
             HideAllErrors();
 
@@ -519,6 +526,14 @@ namespace com.noctuagames.sdk.UI
                 emailField.Q<Label>("error").RemoveFromClassList("hide");
                 emailField.Q<Label>("error").text = "Email address should not be empty";
                 emailField.Q<VisualElement>("title").style.color = ColorModule.redError;
+
+                // Show the error at the end of the wizard as well
+                if (!string.IsNullOrEmpty(_config?.Noctua?.Flags) && _config!.Noctua!.Flags!.Contains("VNLegalPurpose"))
+                {
+                    View.Q<Label>("ErrCode").text = emailField.Q<Label>("error").text;
+                    View.Q<Label>("ErrCode").RemoveFromClassList("hide");
+                }
+
                 return;
             }
 
@@ -536,6 +551,14 @@ namespace com.noctuagames.sdk.UI
                 emailField.Q<Label>("error").RemoveFromClassList("hide");
                 emailField.Q<Label>("error").text = "Email address is not valid";
                 emailField.Q<VisualElement>("title").style.color = ColorModule.redError;
+
+                // Show the error at the end of the wizard as well
+                if (!string.IsNullOrEmpty(_config?.Noctua?.Flags) && _config!.Noctua!.Flags!.Contains("VNLegalPurpose"))
+                {
+                    View.Q<Label>("ErrCode").text = emailField.Q<Label>("error").text;
+                    View.Q<Label>("ErrCode").RemoveFromClassList("hide");
+                }
+
                 return;
             }
 
@@ -553,6 +576,13 @@ namespace com.noctuagames.sdk.UI
                 passwordField.Q<Label>("error").RemoveFromClassList("hide");
                 passwordField.Q<Label>("error").text = "Password should not be empty";
                 passwordField.Q<VisualElement>("title").style.color = ColorModule.redError;
+
+                // Show the error at the end of the wizard as well
+                if (!string.IsNullOrEmpty(_config?.Noctua?.Flags) && _config!.Noctua!.Flags!.Contains("VNLegalPurpose"))
+                {
+                    View.Q<Label>("ErrCode").text = passwordField.Q<Label>("error").text;
+                    View.Q<Label>("ErrCode").RemoveFromClassList("hide");
+                }
                 return;
             }
 
@@ -570,6 +600,13 @@ namespace com.noctuagames.sdk.UI
                 passwordField.Q<Label>("error").RemoveFromClassList("hide");
                 passwordField.Q<Label>("error").text = "Password is too short. Minimum 6 character";
                 passwordField.Q<VisualElement>("title").style.color = ColorModule.redError;
+
+                // Show the error at the end of the wizard as well
+                if (!string.IsNullOrEmpty(_config?.Noctua?.Flags) && _config!.Noctua!.Flags!.Contains("VNLegalPurpose"))
+                {
+                    View.Q<Label>("ErrCode").text = passwordField.Q<Label>("error").text;
+                    View.Q<Label>("ErrCode").RemoveFromClassList("hide");
+                }
                 return;
             }
 
@@ -587,6 +624,13 @@ namespace com.noctuagames.sdk.UI
                 rePasswordField.Q<Label>("error").RemoveFromClassList("hide");
                 rePasswordField.Q<Label>("error").text = "Password is not matched with repeated password";
                 rePasswordField.Q<VisualElement>("title").style.color = ColorModule.redError;
+
+                // Show the error at the end of the wizard as well
+                if (!string.IsNullOrEmpty(_config?.Noctua?.Flags) && _config!.Noctua!.Flags!.Contains("VNLegalPurpose"))
+                {
+                    View.Q<Label>("ErrCode").text = rePasswordField.Q<Label>("error").text;
+                    View.Q<Label>("ErrCode").RemoveFromClassList("hide");
+                }
                 return;
             }
 
@@ -610,25 +654,14 @@ namespace com.noctuagames.sdk.UI
                     _gender.Q<Label>("error").RemoveFromClassList("hide");
                     _gender.Q<Label>("error").text = "Please Select Gender!";
                     _gender.Q<VisualElement>("title").style.color = ColorModule.redError;
-                    return;
-                }
 
-                if(_country.value == "Select Country")
-                {
-                    _log.Debug("form validation: country is empty");
-                    //View.Q<Label>("ErrEmailEmpty").text = "Please Select Country!";
-                    //View.Q<Label>("ErrEmailEmpty").RemoveFromClassList("hide");
-                    View.Q<Button>("ContinueButton").RemoveFromClassList("hide");
-                    View.Q<VisualElement>("Spinner").AddToClassList("hide");
-                    // Wizard
-                    View.Q<Button>("WizardContinueButton").RemoveFromClassList("hide");            
-                    View.Q<Button>("WizardPrevTo3Button").RemoveFromClassList("hide");
-                    View.Q<VisualElement>("WizardSpinner").AddToClassList("hide");
+                    // Show the error at the end of the wizard as well
+                    if (!string.IsNullOrEmpty(_config?.Noctua?.Flags) && _config!.Noctua!.Flags!.Contains("VNLegalPurpose"))
+                    {
+                        View.Q<Label>("ErrCode").text = _gender.Q<Label>("error").text;
+                        View.Q<Label>("ErrCode").RemoveFromClassList("hide");
+                    }
 
-                    _country.ElementAt(1).AddToClassList("noctua-text-input-error");
-                    _country.Q<Label>("error").RemoveFromClassList("hide");
-                    _country.Q<Label>("error").text = "Please Select Country!";
-                    _country.Q<VisualElement>("title").style.color = ColorModule.redError;
                     return;
                 }
 
@@ -652,6 +685,13 @@ namespace com.noctuagames.sdk.UI
                     _birthDate.Q<Label>("error").text = "Minimum age is 18 years old";
                     _birthDate.Q<VisualElement>("title").style.color = ColorModule.redError;
 
+                    // Show the error at the end of the wizard as well
+                    if (!string.IsNullOrEmpty(_config?.Noctua?.Flags) && _config!.Noctua!.Flags!.Contains("VNLegalPurpose"))
+                    {
+                        View.Q<Label>("ErrCode").text = _birthDate.Q<Label>("error").text;
+                        View.Q<Label>("ErrCode").RemoveFromClassList("hide");
+                    }
+
                     return;
                 }
 
@@ -662,8 +702,9 @@ namespace com.noctuagames.sdk.UI
                 regExtra = new Dictionary<string, string>()
                 {
                     { "fullname", _fullname.value },
-                    { "phone_number", _phoneCode.value + _phoneNumber.value },
+                    { "phone_number", _phoneNumber.value },
                     { "birth_date", birthDate.ToString() },
+                    { "country", _country.value },
                     { "id_card", _idCard.value },
                     { "place_of_issue", _placeOfIssue.value },
                     { "date_of_issue", issueDate.ToString() },
@@ -684,8 +725,8 @@ namespace com.noctuagames.sdk.UI
                 if (!string.IsNullOrEmpty(_config?.Noctua?.Flags) && _config!.Noctua!.Flags!.Contains("VNLegalPurpose"))
                 {
                     _fullname.value = string.Empty;
-                    _phoneCode.value = string.Empty;
                     _birthDate.value = string.Empty;
+                    _country.value = string.Empty;
                     _idCard.value = string.Empty;
                     _placeOfIssue.value = string.Empty;
                     _dateOfIssue.value = string.Empty;
@@ -716,12 +757,17 @@ namespace com.noctuagames.sdk.UI
 
                 View.Q<Label>("ErrCode").RemoveFromClassList("hide");
                 View.Q<Button>("ContinueButton").RemoveFromClassList("hide");
-                View.Q<VisualElement>("AdditionalFooterContent").RemoveFromClassList("hide");
                 View.Q<VisualElement>("Spinner").AddToClassList("hide");
                 // Wizard
                 View.Q<Button>("WizardContinueButton").RemoveFromClassList("hide");            
                 View.Q<Button>("WizardPrevTo3Button").RemoveFromClassList("hide");
                 View.Q<VisualElement>("WizardSpinner").AddToClassList("hide");
+                if (!string.IsNullOrEmpty(_config?.Noctua?.Flags) && _config!.Noctua!.Flags!.Contains("VNLegalPurpose"))
+                {
+                    View.Q<VisualElement>("AdditionalFooterContent").AddToClassList("hide");
+                } else {
+                    View.Q<VisualElement>("AdditionalFooterContent").RemoveFromClassList("hide");
+                }
             }
         }
 
@@ -833,9 +879,8 @@ namespace com.noctuagames.sdk.UI
         {
             if(isShow)
             {
-                View.Q<VisualElement>("PhoneNumberContainer").RemoveFromClassList("hide");
-
                 _fullname.RemoveFromClassList("hide");
+                _phoneNumber.RemoveFromClassList("hide");
                 _birthDate.RemoveFromClassList("hide");
                 _gender.RemoveFromClassList("hide");
                 _country.RemoveFromClassList("hide");
@@ -846,9 +891,8 @@ namespace com.noctuagames.sdk.UI
             }
             else
             {
-                View.Q<VisualElement>("PhoneNumberContainer").AddToClassList("hide");
-
                 _fullname.AddToClassList("hide");
+                _phoneNumber.AddToClassList("hide");
                 _birthDate.AddToClassList("hide");
                 _gender.AddToClassList("hide");
                 _country.AddToClassList("hide");

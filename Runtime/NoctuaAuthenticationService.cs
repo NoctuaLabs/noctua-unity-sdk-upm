@@ -588,6 +588,7 @@ namespace com.noctuagames.sdk
         // TODO: Add support for phone
         public async UniTask<CredentialVerification> RegisterWithEmailAsync(string email, string password, Dictionary<string, string> regExtra = null)
         {
+            _log.Debug("RegisterWithEmailAsync");
             
             var request = new HttpRequest(HttpMethod.Post, $"{_baseUrl}/auth/email/register")
                 .WithHeader("X-CLIENT-ID", _clientId)
@@ -676,6 +677,7 @@ namespace com.noctuagames.sdk
 
         public async UniTask<Credential> SocialLinkAsync(string provider, SocialLinkRequest payload)
         {
+            _log.Debug("SocialLinkAsync");
             if (string.IsNullOrEmpty(RecentAccount?.Player?.AccessToken)) {
                 throw NoctuaException.MissingAccessToken;
             }
@@ -708,6 +710,7 @@ namespace com.noctuagames.sdk
 
         public async UniTask<CredentialVerification> LinkWithEmailAsync(string email, string password)
         {
+            _log.Debug("LinkWithEmailAsync");
             if (string.IsNullOrEmpty(RecentAccount?.Player?.AccessToken)) {
                 throw NoctuaException.MissingAccessToken;
             }
