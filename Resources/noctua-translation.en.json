@@ -170,6 +170,10 @@
     "IAPCanceled": "Purchase canceled",
     "IAPFailed": "Purchase failed",
     "IAPRequiresAuthentication": "Purchase requires user authentication",
-    "IAPPaymentDisabled": "Payment is disabled. Please contact customer support."
+    "IAPPaymentDisabled": "Payment is disabled. Please contact customer support.",
+
+    "EditProfile.NicknameValidation": "Nickname should not be empty",
+    "EditProfile.CountryValidation": "Select country",
+    "EditProfile.LanguageValidation": "Select language"
 }
   

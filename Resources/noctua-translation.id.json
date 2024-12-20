@@ -172,5 +172,9 @@
     "IAPCanceled": "Pembelian dibatalkan",
     "IAPFailed": "Pembelian gagal",
     "IAPRequiresAuthentication": "Pembelian memerlukan otentikasi",
-    "IAPPaymentDisabled": "Pembayaran dinonaktifkan. Silakan hubungi layanan pelanggan."
+    "IAPPaymentDisabled": "Pembayaran dinonaktifkan. Silakan hubungi layanan pelanggan.",
+
+    "EditProfile.NicknameValidation": "Nama panggilan tidak boleh kosong",
+    "EditProfile.CountryValidation": "Pilih negara",
+    "EditProfile.LanguageValidation": "Pilih bahasa"
 }

@@ -18,8 +18,6 @@ namespace com.noctuagames.sdk.UI
         private Button _btnComplete;
         private Button _btnCustomerService;
         private Button _btnClose;
-        private Button _btnNextPage;
-        private Button _btnPrevPage;
         private Label _message;
 
         private int _page = 1;
@@ -42,12 +40,6 @@ namespace com.noctuagames.sdk.UI
         {
             _btnClose = View.Q<Button>("CustomPaymentExitButton");
             _btnClose.RegisterCallback<PointerUpEvent>(CloseDialog);
-
-            _btnNextPage = View.Q<Button>("NextButton");
-            _btnNextPage.RegisterCallback<PointerUpEvent>(NextPage);
-
-            _btnPrevPage = View.Q<Button>("PrevButton");
-            _btnPrevPage.RegisterCallback<PointerUpEvent>(PrevPage);
 
             _itemTemplate = Resources.Load<VisualTreeAsset>("PendingPurchaseItem");
         }
@@ -76,33 +68,10 @@ namespace com.noctuagames.sdk.UI
                 View.Q<Label>("Title").text = "Your Pending Purchases";
             }
 
-
             var currentPageContent = new List<PendingPurchaseItem>();
-            var count = 0;
-            var limit = 2;
-            if (_pendingPurchases.Count <= limit)
-            {
-                _log.Debug("hide navigation button");
-                View.Q<VisualElement>("NavigationButtonsSpacer").RemoveFromClassList("hide");
-                View.Q<VisualElement>("NavigationButtons").AddToClassList("hide");
-            } else if (_pendingPurchases.Count > limit)
-            {
-                _log.Debug("show navigation button");
-                View.Q<Button>("PrevButton").AddToClassList("hide");
-                View.Q<VisualElement>("NavigationButtonsSpacer").AddToClassList("hide");
-                View.Q<VisualElement>("NavigationButtons").RemoveFromClassList("hide");
-            } else {
-                _log.Debug("hide navigation button");
-                View.Q<VisualElement>("NavigationButtonsSpacer").RemoveFromClassList("hide");
-                View.Q<VisualElement>("NavigationButtons").AddToClassList("hide");
-            }
 
             foreach (var item in _pendingPurchases)
             {
-                count++;
-                if (count > limit) {
-                    break;
-                }
                 currentPageContent.Add(item);
             }
 
@@ -112,94 +81,6 @@ namespace com.noctuagames.sdk.UI
 
             return await _tcs.Task;
         }
-
-        private void NextPage(PointerUpEvent evt)
-        {
-            var currentPage = _page + 1;
-            NavigatePage(currentPage);
-
-        }
-        private void PrevPage(PointerUpEvent evt)
-        {
-            var currentPage = _page - 1;
-            NavigatePage(currentPage);
-        }
-
-        private void NavigatePage(int page)
-        {
-
-            var limit = 2;
-            var total = _pendingPurchases.Count;
-            var offset = ((page - 1) * limit);
-
-
-            var currentPageContent = new List<PendingPurchaseItem>();
-            var count = 0;
-            var index = 0;
-            foreach (var item in _pendingPurchases)
-            {
-                count++;
-                index++;
-                if (index <= offset) {
-                    continue;
-                }
-                count = count - offset;
-                if (count > limit) {
-                    break;
-                }
-                if (currentPageContent.Count >= limit)
-                {
-                    break;
-                }
-                currentPageContent.Add(item);
-            }
-
-            var showPrevPageButton = page > 1;
-            var showNextPageButton = false;
-            if (currentPageContent.Count < limit)
-            {
-                showNextPageButton = false;
-            }
-            if (((total - (page * limit) - (limit - currentPageContent.Count))) > 0)
-            {
-                showNextPageButton = true;
-            }
-            if (page == 1 && total > limit)
-            {
-                showNextPageButton = true;
-            }
-
-
-            if (currentPageContent.Count != 0)
-            {
-                _pendingPurchasesListView = View.Q<ListView>("PendingPurchasesList");
-                _pendingPurchasesListView.Clear();
-                _pendingPurchasesListView.Rebuild();
-                BindListView(_pendingPurchasesListView, currentPageContent);
-
-                _page = page;
-
-                if (showPrevPageButton && !showNextPageButton)
-                {
-                    _btnNextPage.AddToClassList("hide");
-                    _btnPrevPage.RemoveFromClassList("hide");
-                }
-                else if (!showPrevPageButton && showNextPageButton)
-                {
-                    _btnPrevPage.AddToClassList("hide");
-                    _btnNextPage.RemoveFromClassList("hide");
-                }
-                else if (showNextPageButton && showPrevPageButton)
-                {
-                    _btnPrevPage.RemoveFromClassList("hide");
-                    _btnNextPage.RemoveFromClassList("hide");
-                } else {
-                    _btnPrevPage.AddToClassList("hide");
-                    _btnNextPage.AddToClassList("hide");
-                }
-            }
-        }
-
 
         private void PendingPurchasesDialog(PointerUpEvent evt)
         {            
@@ -214,8 +95,6 @@ namespace com.noctuagames.sdk.UI
 
         private void CloseDialog(PointerUpEvent evt)
         { 
-            NavigatePage(1);
-
             _log.Debug("On close dialog");
 
             Visible = false;
