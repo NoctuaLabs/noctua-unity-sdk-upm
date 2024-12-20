@@ -745,23 +745,3 @@ Label:hover {
     margin-left: 40px;
     margin-right: 20px;
 }
-
-.unity-base-dropdown .unity-scroll-view {
-    background-color: rgb(56, 65, 74);
-    border-top-left-radius: 10px;
-    border-top-right-radius: 10px;
-    border-bottom-right-radius: 10px;
-    border-bottom-left-radius: 10px;
-    color: rgb(245, 245, 245);
-}
-
-.unity-base-dropdown__container-outer {
-    border-top-width: 0;
-    border-right-width: 0;
-    border-bottom-width: 0;
-    border-left-width: 0;
-}
-
-.unity-base-dropdown .unity-scroller--vertical {
-    margin-right: 10px;
-}

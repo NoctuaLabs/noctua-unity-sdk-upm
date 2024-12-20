@@ -157,7 +157,7 @@ namespace com.noctuagames.sdk
                                 break;
                             }
                         }
-                        buttonToEnable.SetEnabled(anyChanged);
+                        UpdateButtonState(buttonToEnable, anyChanged);                        
                     });
                 }
                 else
@@ -175,7 +175,7 @@ namespace com.noctuagames.sdk
         public static void UpdateButtonState(Button _submitButton, bool _isActive)
         {
             _submitButton.SetEnabled(_isActive);
-            _submitButton.pickingMode = !_isActive ? PickingMode.Position : PickingMode.Ignore;
+            _submitButton.pickingMode = _isActive ? PickingMode.Position : PickingMode.Ignore;
         }
 
         public static string GetCoPublisherLogo(string companyName)
