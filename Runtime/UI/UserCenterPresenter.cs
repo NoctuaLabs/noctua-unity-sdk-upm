@@ -540,20 +540,22 @@ namespace com.noctuagames.sdk.UI
 
         private async void FileUploader(string filePath)
         {
-            View.Q<VisualElement>("Spinner2").RemoveFromClassList("hide");
-            View.Q<Button>("ChangePictureButton").AddToClassList("hide");
+            View.Q<Button>("ChangePictureButton").SetEnabled(false);
 
             try
             {
                 _newProfileUrl = await Model.AuthService.FileUploader(filePath);
+
+                StartCoroutine(LoadImageFromUrl(_newProfileUrl, true));
+
+                View.Q<Button>("ChangePictureButton").SetEnabled(true);
 
                 SaveProfile();
             }
             catch (Exception e)
             {
                 Model.ShowGeneralNotification(e.Message);
-                View.Q<Button>("ChangePictureButton").RemoveFromClassList("hide");
-                View.Q<VisualElement>("Spinner2").AddToClassList("hide");
+                View.Q<Button>("ChangePictureButton").SetEnabled(true);
             }
         }
 
@@ -758,7 +760,6 @@ namespace com.noctuagames.sdk.UI
         private async void SaveProfile()
         {
             View.Q<VisualElement>("Spinner").RemoveFromClassList("hide");
-            View.Q<VisualElement>("Spinner2").RemoveFromClassList("hide");
 
             View.Q<Button>("ChangePictureButton").SetEnabled(false);
             View.Q<Button>("SaveButton").AddToClassList("hide");
