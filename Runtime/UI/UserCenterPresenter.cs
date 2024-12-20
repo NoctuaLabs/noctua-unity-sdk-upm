@@ -205,6 +205,7 @@ namespace com.noctuagames.sdk.UI
 
                 _log.Debug($"current user in user center is '{user?.Id} - {user?.Nickname}'");
 
+                View.Q<VisualElement>("MoreOptionsMenu").AddToClassList("hide");
                 View.Q<Label>("PlayerName").text = isGuest ? "Guest " + user.Id : user?.Nickname;
                 View.Q<Label>("UserIdLabel").text = "ID : " + user?.Id.ToString() ?? "";
                 _userIDValue = user?.Id.ToString() ?? "";
