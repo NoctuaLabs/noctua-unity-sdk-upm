@@ -107,6 +107,19 @@ namespace com.noctuagames.sdk.UI
                 View.Q<VisualElement>("Spinner").Add(new Spinner(30, 30));
                 View.Q<VisualElement>("Spinner").AddToClassList("hide");
             }
+
+            // Show copublisher logo
+            if (!string.IsNullOrEmpty(_config?.CoPublisher?.CompanyName))
+            {
+                var logo = Utility.GetCoPublisherLogo(_config.CoPublisher.CompanyName);
+                var defaultLogo = Resources.Load<Texture2D>(logo);
+                View.Q<VisualElement>("NoctuaLogoWithText").style.backgroundImage = new StyleBackground(defaultLogo);
+                View.Q<VisualElement>("NoctuaLogoWithText").RemoveFromClassList("hide");
+            }
+            else
+            {
+                View.Q<VisualElement>("NoctuaLogoWithText").AddToClassList("hide");
+            }
         }
 
         public void OnToggleShowPassword(PointerUpEvent _event)
