@@ -777,7 +777,6 @@ namespace com.noctuagames.sdk.UI
                 ShowButtonSpinner(false);
 
                 _nicknameTF.ElementAt(1).AddToClassList("noctua-text-input-error");
-                _nicknameTF.ElementAt(1).AddToClassList("noctua-text-input-error");
                 _nicknameTF.Q<Label>("error").RemoveFromClassList("hide");
                 _nicknameTF.Q<Label>("error").text = Locale.GetTranslation("EditProfile.NicknameValidation");
                 _nicknameTF.Q<VisualElement>("title").style.color = ColorModule.redError;
