@@ -1,5 +1,4 @@
-﻿.bind-confirmation-dialog {
-    background-color: rgba(20, 20, 20, 1);
+.bind-confirmation-dialog {
     flex-direction: column;
 }
 
@@ -22,7 +21,7 @@
     justify-content: center;
     border-radius: 10px;
     padding: 10px;
-    background-color: rgba(31, 35, 39, 1);
+    background-color: rgb(45, 49, 56);
 }
 
 .player-avatar-container {
@@ -80,14 +79,14 @@
     flex: 1;
     border-width: 1px;
     border-radius: 5px;
-    border-color: rgba(59, 130, 246, 1);
+    border-color: rgb(59, 130, 246);
 }
 
 .cancel-button {
     flex: 1;
     border-width: 1px;
     border-radius: 5px;
-    border-color: rgba(59, 130, 246, 1);
+    border-color: rgb(59, 130, 246);
 }
 
 .bind-arrow-container {
@@ -97,7 +96,7 @@
 }
 
 .bind-arrow-image {
-    background-image: url("./BindArrow.png");
+    background-image: url("project://database/Packages/com.noctuagames.sdk/Resources/BindArrow.png?fileID=21300000&guid=e07a4e2609b23774b88f1f8ef752f510&type=3#BindArrow");
     width: 22px;
     height: 39px;
     background-position: center;
