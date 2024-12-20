@@ -133,6 +133,23 @@ namespace com.noctuagames.sdk
                         {
                             var currentElement = root.Q<BindableElement>(name);
                             var currentValue = (currentElement as INotifyValueChanged<T>).value;
+                            
+                            if (currentValue == null && initialValues[name] == null)
+                            {
+                                continue;
+                            }
+                            
+                            if (currentValue == null && initialValues[name] != null)
+                            {
+                                anyChanged = true;
+                                break;
+                            }
+                            
+                            if (currentValue != null && initialValues[name] == null)
+                            {
+                                anyChanged = true;
+                                break;
+                            }
 
                             if (!currentValue.Equals(initialValues[name]))
                             {
@@ -253,9 +270,19 @@ namespace com.noctuagames.sdk
                     string textFieldTranslation = GetTranslation(textFieldKey, translations);
                     textField.label = textFieldTranslation;
 
-                    Label labelTitle = textField.Q<Label>("title");
+                    Label textFieldTitle = textField.Q<Label>("title");
 
-                    if (labelTitle != null) labelTitle.text = textFieldTranslation;                    
+                    if (textFieldTitle != null) textFieldTitle.text = textFieldTranslation;                    
+
+                    break;
+                case DropdownField dropdownField:
+                    string dropdownFieldKey = $"{uxmlName}.{elementName}.{elementType}.label";
+                    string dropdownFieldTranslation = GetTranslation(dropdownFieldKey, translations);
+                    dropdownField.label = dropdownFieldTranslation;
+
+                    Label dropdownTitle = dropdownField.Q<Label>("title");
+
+                    if (dropdownTitle != null) dropdownTitle.text = dropdownFieldTranslation;                    
 
                     break;
                 case VisualElement visualElement:
