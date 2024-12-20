@@ -97,8 +97,12 @@
     "EmailConfirmResetPasswordDialogPresenter.ErrPasswordMismatch.Label.text": "Kata sandi tidak cocok dengan kata sandi ulang",
     "EmailConfirmResetPasswordDialogPresenter.ErrPasswordTooShort.Label.text": "Kata sandi terlalu pendek. Minimal 6 karakter",
     "EmailConfirmResetPasswordDialogPresenter.ErrPasswordEmpty.Label.text": "Kata sandi tidak boleh kosong",
-    "EmailConfirmResetPasswordDialogPresenter.ContinueButton.Button.text": "Atur Ulang Kata Sandi dan Masuk",
+    "EmailConfirmResetPasswordDialogPresenter.ContinueButton.Button.text": "Atur Ulang Kata Sandi",
     "EmailConfirmResetPasswordDialogPresenter.SuccessNotification": "Kata sandi berhasil diatur ulang. Silakan masuk kembali.",
+
+    "FailedPaymentDialogPresenter.CSButton.Button.text": "Hubungi CS",
+    "FailedPaymentDialogPresenter.ItemAlreadyOwned": "Ada yang salah dengan pembelian Anda sebelumnya. Silakan hubungi layanan pelanggan.",
+    "FailedPaymentDialogPresenter.PendingPurchaseOngoing": "Pembelian Anda masih diproses. Harap tunggu beberapa menit dan coba mulai ulang permainan.",
 
     "AccountDeletionConfirmationDialogPresenter.Question.Label.text": "Apakah Anda yakin ingin\nmenghapus akun ini?",
     "AccountDeletionConfirmationDialogPresenter.Note.Label.text": "Semua kemajuan dan\ndata Anda akan hilang. Tindakan ini\npermanen dan tidak dapat dibatalkan.",
@@ -107,6 +111,10 @@
     "AccountDeletionConfirmationDialogPresenter.CancelButton.Button.text": "Batal",
 
     "LoadingProgressPresenter.TitleLoading.Label.text": "Harap tunggu...",
+
+    "StartGameErrorDialogPresenter.MessageLabel.Label.text": "Ada yang salah, kami tidak bisa melanjutkan permainan. Silakan coba mulai ulang permainan.",
+    "StartGameErrorDialogPresenter.QuitButton.Button.text": "Keluar",
+    "StartGameErrorDialogPresenter.CSButton.Button.text": "Hubungi CS",
 
     "SwitchAccountConfirmationDialogPresenter.Question.Label.text": "Apakah Anda yakin ingin mengganti\nakun game Anda?",
     "SwitchAccountConfirmationDialogPresenter.Note.Label.text": "Kami akan memulai ulang game Anda, setelah Anda\nmengonfirmasi untuk mengganti akun.\nTenang, kemajuan game Anda akan\ntersimpan ke akun saat ini.",
@@ -119,7 +127,7 @@
     "UserCenterPresenter.MenuSwitchProfile.Label.text": "Ganti Profil",
     "UserCenterPresenter.MenuDeleteAccount.Label.text": "Hapus Akun",
     "UserCenterPresenter.MenuLogout.Label.text": "Keluar",
-    "UserCenterPresenter.GuestConnectButton.Button.text": "Hubungkan Akun",
+    "UserCenterPresenter.GuestConnectButton.Button.text": "Hubungkan atau Lanjutkan dengan akun lain",
     "UserCenterPresenter.ChangePictureButton.Button.text": "Ubah Gambar",
     "UserCenterPresenter.TitleEditBack.Label.text": "Kembali",
     "UserCenterPresenter.StayConnectCompany.Label.text": "Tetap terhubung dengan",
@@ -133,6 +141,7 @@
     "UserCenterPresenter.PaymentTypeTF.DropdownField.label": "Tipe Pembayaran",
     "UserCenterPresenter.SaveButtonContainer.SaveButton.Button.text": "Simpan",
     "UserCenterPresenter.TitleFindMoreLabel.Label.text": "Cari lebih banyak di",
+    "UserCenterPresenter.CopyIcon.Button.text": "Salin",
 
     "BindConfirmationDialogPresenter.BindConfirmationLabel.Label.text": "Apakah anda ingin menghubungkan dengan akun yang dipilih?",
     "BindConfirmationDialogPresenter.ConnectButton.Button.text": "Hubungkan",
@@ -158,6 +167,14 @@
 
     "CustomPaymentCompleteDialogPresenter.CustomPaymentCSButton.Button.text": "Kontak CS",
     "CustomPaymentCompleteDialogPresenter.CustomPaymentCompleteButton.Button.text": "Pembayaran Selesai",
-    "CustomPaymentCompleteDialogPresenter.OrderVerificationFailedMessage": "Pembayaran Anda belum terverifikasi. Silakan coba kembali."
+    "CustomPaymentCompleteDialogPresenter.OrderVerificationFailedMessage": "Pembayaran Anda belum terverifikasi. Silakan coba kembali.",
 
+    "IAPCanceled": "Pembelian dibatalkan",
+    "IAPFailed": "Pembelian gagal",
+    "IAPRequiresAuthentication": "Pembelian memerlukan otentikasi",
+    "IAPPaymentDisabled": "Pembayaran dinonaktifkan. Silakan hubungi layanan pelanggan.",
+
+    "EditProfile.NicknameValidation": "Nama panggilan tidak boleh kosong",
+    "EditProfile.CountryValidation": "Pilih negara",
+    "EditProfile.LanguageValidation": "Pilih bahasa"
 }

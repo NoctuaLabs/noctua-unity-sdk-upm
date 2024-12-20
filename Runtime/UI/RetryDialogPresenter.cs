@@ -12,6 +12,7 @@ namespace com.noctuagames.sdk.UI
         private Button _btnRetry;
         private Button _btnClose;
         private Label _message;
+        private string _context;
         private Label _csInfo;
 
         private readonly ILogger _log = new NoctuaLogger(typeof(RetryDialogPresenter));
@@ -36,13 +37,14 @@ namespace com.noctuagames.sdk.UI
             _btnClose.RegisterCallback<PointerUpEvent>(CloseDialog);
         }
 
-        public async UniTask<bool> Show(string message)
+        public async UniTask<bool> Show(string message, string context = "general")
         {            
             _tcs = new UniTaskCompletionSource<bool>();
 
             Visible = true;
 
             _message.text = message;
+            _context = context;
 
             return await _tcs.Task;
         }
@@ -63,7 +65,7 @@ namespace com.noctuagames.sdk.UI
                 Visible = false;
                 _tcs?.TrySetResult(false);
 
-                await Noctua.Platform.Content.ShowCustomerService();
+                await Noctua.Platform.Content.ShowCustomerService(_context);
             } 
             catch (Exception e) {
 

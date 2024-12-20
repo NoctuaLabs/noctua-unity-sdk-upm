@@ -1,0 +1,14 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" xsi="http://www.w3.org/2001/XMLSchema-instance" engine="UnityEngine.UIElements" editor="UnityEditor.UIElements" noNamespaceSchemaLocation="../../../../UIElementsSchema/UIElements.xsd" editor-extension-mode="False">
+    <Style src="./Noctua.uss" />
+    <Style src="./FailedPaymentDialog.uss" />
+    <ui:VisualElement name="Root" class="root" >
+        <ui:VisualElement name="FailedPaymentDialog" class="base dialog-box failed-payment-dialog" >
+            <ui:Button name="ExitButton" focusable="false" class="exit-button">
+                    <ui:VisualElement name="ExitIcon" class="exit-icon" />
+            </ui:Button>
+            <ui:Label name="MessageLabel" text="Payment failed" class="message-label" />
+            <ui:Button name="CSButton" text="Contact Support" class="primary-button" />
+            <ui:Button name="OKButton" text="OK" class="secondary-button" />
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>

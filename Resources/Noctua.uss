@@ -1,5 +1,5 @@
 .base {
-    background-color: rgb(31, 35, 39);
+    background-color: rgb(31, 34, 39);
     color: white;
     position: absolute;
 }
@@ -43,11 +43,6 @@
     max-width: 100%;
 }
 
-.unity-scroller--vertical {
-    width: 4px;
-    background-color: rgb(45, 49, 56);
-}
-
 .dialog-box {
     flex-direction: column;
     border-radius: 20px;
@@ -62,6 +57,10 @@
     transition-property: position;
     transition-timing-function: ease-in;
     position: absolute;
+    border-top-width: 0;
+    border-right-width: 0;
+    border-bottom-width: 0;
+    border-left-width: 0;
 }
 
 .dialog-box-keyboard-shown {
@@ -89,6 +88,8 @@
 .dialog-title {
     margin-top: 0;
     font-size: 12px;
+    margin-bottom: 0;
+    -unity-text-align: middle-left;
 }
 
 .dialog-back-button {
@@ -104,11 +105,10 @@
     background-image: url("project://database/Packages/com.noctuagames.sdk/Resources/BackIcon.png?fileID=21300000&guid=26917d39f45fdac47a6e498ce7306fd4&type=3#BackIcon");
     align-items: auto;
     background-position: center;
+    margin-bottom: 0;
 }
 
 .dialog-close-button {
-    margin-top: 0;
-    margin-right: 14px;
     height: 24px;
     width: 24px;
     flex-direction: column;
@@ -123,7 +123,7 @@
 
 .dialog-content {
     padding: 14px;
-    margin-top: 15px;
+    margin-top: 0;
     flex-direction: column;
     width: 300px;
 }
@@ -144,6 +144,8 @@
     margin-bottom: 10px;
     color: red;
     font-size: 10px;
+    white-space: normal;
+    -unity-text-align: lower-left;
 }
 
 .button-highlight {
@@ -191,7 +193,7 @@
     background-color: transparent;
     border-width: 1px;
     border-color: rgb(59, 130, 246);
-    color: rgb(59, 130, 246):
+    color: rgb(59, 130, 246);
     height: 40px;
     width: 100%;
     padding-top: 14px;
@@ -312,7 +314,7 @@
 }
 
 .pending-purchases-icon {
-    background-image: url("project://database/Packages/com.noctuagames.sdk/Resources/PendingPurchasesIcon.png");
+    background-image: url("project://database/Packages/com.noctuagames.sdk/Resources/PendingPurchasesIcon.png?fileID=21300000&guid=96179ce18e6101a4db1e7d813962e303&type=3#PendingPurchasesIcon");
     width: 20px;
     height: 16px;
     background-position: center;
@@ -417,6 +419,8 @@
     flex-direction: column;
     margin-right: -10px;
     margin-left: -10px;
+    padding-top: 5px;
+    background-color: rgba(0, 0, 0, 0);
 }
 
 .unity-base-text-field__input {
@@ -474,7 +478,13 @@
     height: 40px;
     margin-left: 10px;
     margin-right: 10px;
-    background-color: transparent;
+    background-color: rgba(0, 0, 0, 0);
+    padding-top: 0;
+    padding-bottom: 0;
+}
+
+.noctua-text-input #unity-text-input TextElement {
+    padding-bottom: 1.5px;
 }
 
 .noctua-text-input-focus {
@@ -482,6 +492,17 @@
     margin-bottom: 10px;
     border-color: white;
     --unity-cursor-color: white;
+}
+
+.noctua-text-input-error {
+    border-radius: 10px;
+    margin-bottom: 10px;
+    border-color: white;
+    --unity-cursor-color: white;
+    border-left-color: rgb(175, 28, 54);
+    border-right-color: rgb(175, 28, 54);
+    border-top-color: rgb(175, 28, 54);
+    border-bottom-color: rgb(175, 28, 54);
 }
 
 Label {
@@ -500,6 +521,50 @@ Label:hover {
     padding-left: 10px;
     background-color: transparent;
     border-width: 0;
+    padding-top: 7px;
+}
+
+.noctua-text-input #title {
+    background-color: rgb(31, 35, 39);
+    align-items: flex-start;
+    justify-content: flex-start;
+    top: -1px;
+    color: rgb(124, 126, 129);
+    -unity-text-align: upper-left;
+    margin-top: 0;
+    margin-right: 0;
+    margin-bottom: 0;
+    margin-left: 0;
+    padding-top: 0;
+    padding-right: 3px;
+    padding-bottom: 0;
+    padding-left: 3px;
+    left: 20px;
+    position: absolute;
+    font-size: 10px;
+}
+
+.noctua-text-input #error {
+    background-color: rgb(31, 35, 39);
+    align-items: flex-start;
+    justify-content: flex-start;
+    top: -7px;
+    color: rgb(175, 28, 54);
+    -unity-text-align: upper-left;
+    margin-top: 0;
+    margin-right: 0;
+    margin-bottom: 0;
+    margin-left: 0;
+    left: 20px;
+    position: relative;
+    font-size: 8px;
+    flex-shrink: 0;
+    padding-top: 0;
+    padding-right: 0;
+    padding-bottom: 0;
+    padding-left: 0;
+    white-space: normal;
+    width: 85%;
 }
 
 .custom-textfield-input-code #unity-text-input {
@@ -544,6 +609,7 @@ Label:hover {
     top: 9.5px;
     right: 10px;
     position: absolute;
+    margin-top: 7px;
 }
 
 .btn-password-hide {
@@ -551,6 +617,7 @@ Label:hover {
     top: 9.5px;
     right: 10px;
     position: absolute;
+    margin-top: 7px;
 }
 
 .spinner-fake-button {
@@ -568,7 +635,7 @@ Label:hover {
 }
 
 .wizard-register-footer {
-    height: 0px;
+    height: 0;
 }
 
 .generic-register-errbox {
@@ -577,4 +644,96 @@ Label:hover {
 
 .wizard-register-errbox {
     margin-bottom: 55px;
+}
+
+.dialog-header-noctua {
+    height: 24px;
+    flex-direction: row;
+    font-size: 12px;
+    align-items: center;
+    align-self: flex-end;
+}
+
+.unity-scroller__low-button {
+    display: none;
+}
+
+.unity-scroller__high-button {
+    display: none;
+}
+
+.unity-scroller--vertical {
+    background-color: rgb(71, 75, 78);
+    width: 5px;
+    border-top-left-radius: 3px;
+    border-top-right-radius: 3px;
+    border-bottom-right-radius: 3px;
+    border-bottom-left-radius: 3px;
+    margin-right: -8.5px;
+    margin-left: 8px;
+}
+
+.unity-scroller--vertical .unity-scroller__slider {
+    background-color: rgb(71, 75, 78);
+    border-top-left-radius: 3px;
+    border-top-right-radius: 3px;
+    border-bottom-right-radius: 3px;
+    border-bottom-left-radius: 3px;
+    padding-top: 0;
+    padding-right: 0;
+    padding-bottom: 0;
+    padding-left: 0;
+    margin-top: 0;
+    margin-right: 0;
+    margin-bottom: 0;
+    margin-left: 0;
+    width: 5px;
+    min-width: 5px;
+}
+
+.unity-scroller--vertical .unity-base-slider__tracker {
+    background-color: rgb(71, 75, 78);
+    border-top-left-radius: 3px;
+    border-top-right-radius: 3px;
+    border-bottom-right-radius: 3px;
+    border-bottom-left-radius: 3px;
+    padding-top: 0;
+    padding-right: 0;
+    padding-bottom: 0;
+    padding-left: 0;
+    margin-top: 0;
+    margin-right: 0;
+    margin-bottom: 0;
+    margin-left: 0;
+    width: 5px;
+    min-width: 5px;
+    border-top-width: 0;
+    border-right-width: 0;
+    border-bottom-width: 0;
+    border-left-width: 0;
+}
+
+.unity-scroller--vertical .unity-base-slider__dragger {
+    background-color: rgb(150, 152, 154);
+    border-top-left-radius: 3px;
+    border-top-right-radius: 3px;
+    border-bottom-right-radius: 3px;
+    border-bottom-left-radius: 3px;
+    padding-top: 0;
+    padding-right: 0;
+    padding-bottom: 0;
+    padding-left: 0;
+    margin-top: 0;
+    margin-right: 0;
+    margin-bottom: 0;
+    margin-left: 0;
+    width: 5px;
+    min-width: 5px;
+    border-top-width: 0;
+    border-right-width: 0;
+    border-bottom-width: 0;
+    border-left-width: 0;
+    position: absolute;
+    left: 0;
+    right: 0;
 }

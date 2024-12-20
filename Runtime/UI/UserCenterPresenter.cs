@@ -140,12 +140,20 @@ namespace com.noctuagames.sdk.UI
                     View.Q<VisualElement>("ConnectAccount").RemoveFromClassList("portrait");
                     View.Q<VisualElement>("ConnectAccount").RemoveFromClassList("connect-account");
                     View.Q<VisualElement>("ConnectAccount").AddToClassList("connect-account-edit-profile-portrait");
+
+                    View.Q<VisualElement>("UserProfile").AddToClassList("hide");
+                    View.Q<VisualElement>("UserCenter").style.maxHeight = Length.Percent(65);
+                    View.Q<VisualElement>("ScrollViewContainer").style.marginTop = 10;
                 }
                 else
                 {
                     View.Q<VisualElement>("ConnectAccount").RemoveFromClassList("connect-account-edit-profile-portrait");
                     View.Q<VisualElement>("ConnectAccount").AddToClassList("connect-account");
                     View.Q<VisualElement>("ConnectAccount").AddToClassList("portrait");
+
+                    View.Q<VisualElement>("UserProfile").RemoveFromClassList("hide");
+                    View.Q<VisualElement>("UserCenter").style.maxHeight = StyleKeyword.Null;
+                    View.Q<VisualElement>("ScrollViewContainer").style.marginTop = StyleKeyword.Null;
                 }
             }
         }
@@ -177,7 +185,7 @@ namespace com.noctuagames.sdk.UI
             else
             {
                 _stayConnect.text = "Noctua";
-                View.Q<Label>("FindMoreLabel").text = "noctua.gg";
+                View.Q<Label>("FindMoreLabel").text = "<color=#3B82F6>noctua.gg</color>";
             }
         }
 
@@ -198,7 +206,7 @@ namespace com.noctuagames.sdk.UI
                 _log.Debug($"current user in user center is '{user?.Id} - {user?.Nickname}'");
 
                 View.Q<Label>("PlayerName").text = isGuest ? "Guest " + user.Id : user?.Nickname;
-                View.Q<Label>("UserIdLabel").text = user?.Id.ToString() ?? "";
+                View.Q<Label>("UserIdLabel").text = "ID : " + user?.Id.ToString() ?? "";
                 _userIDValue = user?.Id.ToString() ?? "";
 
                 //Edit Profile - Setup Data
@@ -315,11 +323,11 @@ namespace com.noctuagames.sdk.UI
 
             View.Q<VisualElement>("MoreOptionsMenu").RegisterCallback<PointerUpEvent>(OnMoreOptionsMenuSelected);
             View.Q<VisualElement>("EditProfile").RegisterCallback<PointerUpEvent>(_ => OnEditProfile());
-            View.Q<Label>("TitleEditBack").RegisterCallback<PointerUpEvent>(_carouselItems => OnBackEditProfile());
-            View.Q<VisualElement>("BackEditProfileHeader").RegisterCallback<ClickEvent>(_carouselItems => OnBackEditProfile());
+            View.Q<VisualElement>("BackButton").RegisterCallback<ClickEvent>(_ => OnBackEditProfile());
             View.Q<VisualElement>("SwitchProfile").RegisterCallback<PointerUpEvent>(_ => OnSwitchProfile());
             View.Q<VisualElement>("LogoutAccount").RegisterCallback<PointerUpEvent>(_ => OnLogout());
             View.Q<VisualElement>("PendingPurchases").RegisterCallback<PointerUpEvent>(_ => OnPendingPurchases());
+            View.Q<VisualElement>("FindMoreLabel").RegisterCallback<PointerUpEvent>(_ => OnFindMore());
 
             _helpButton.RegisterCallback<PointerUpEvent>(OnHelp);
             _copyIcon.RegisterCallback<PointerUpEvent>(_ => OnCopyText());
@@ -330,6 +338,15 @@ namespace com.noctuagames.sdk.UI
 
             //Edit Profile UI
             SetupEditProfileUI();
+        }
+
+        private void OnFindMore()
+        {
+            _log.Debug("on find more clicked");
+
+            var findMorelUrl = _globalConfig?.CoPublisher?.CompanyWebsiteUrl ?? "https://noctua.gg";
+
+            Application.OpenURL(findMorelUrl);
         }
 
         private async void OnHelp(PointerUpEvent evt)
@@ -371,7 +388,7 @@ namespace com.noctuagames.sdk.UI
                 });
             });
 
-            // // Register the callback for each text change
+            // Register the callback for each text change
             _birthDateTF.RegisterCallback<ChangeEvent<string>>(evt => OnDateFieldChanged());
         }
 
@@ -421,12 +438,26 @@ namespace com.noctuagames.sdk.UI
 
         public void OnTextFieldFocusChange(FocusInEvent _event)
         {
+            HideAllErrors();
             (_event.target as VisualElement).Children().ElementAt(1).AddToClassList("noctua-text-input-focus");
+            (_event.target as VisualElement).Q<VisualElement>("title").style.color = ColorModule.white;
         }
 
         public void OnTextFieldFocusChange(FocusOutEvent _event)
         {
             (_event.target as VisualElement).Children().ElementAt(1).RemoveFromClassList("noctua-text-input-focus");
+            (_event.target as VisualElement).Q<VisualElement>("title").style.color = ColorModule.greyInactive;
+        }
+
+        public void HideAllErrors()
+        {
+            _nicknameTF.Children().ElementAt(1).RemoveFromClassList("noctua-text-input-error");
+            _countryTF.Children().ElementAt(1).RemoveFromClassList("noctua-text-input-error");
+            _languageTF.Children().ElementAt(1).RemoveFromClassList("noctua-text-input-error");
+
+            _nicknameTF.Q<Label>("error").AddToClassList("hide");
+            _countryTF.Q<Label>("error").AddToClassList("hide");
+            _languageTF.Q<Label>("error").AddToClassList("hide");
         }
 
         private void SetupDropdownUI()
@@ -454,6 +485,7 @@ namespace com.noctuagames.sdk.UI
             {
                 _genderTF.value = evt.newValue;
                 _genderTF.labelElement.style.display = DisplayStyle.None;
+                _genderTF.Q<VisualElement>("title").RemoveFromClassList("hide");
             });
 
             _countryTF.choices = _countryOptions;
@@ -461,6 +493,7 @@ namespace com.noctuagames.sdk.UI
             {
                 _countryTF.value = evt.newValue;
                 _countryTF.labelElement.style.display = DisplayStyle.None;
+                _countryTF.Q<VisualElement>("title").RemoveFromClassList("hide");
             });
 
             _languageTF.choices = _languageOptions;
@@ -468,6 +501,7 @@ namespace com.noctuagames.sdk.UI
             {
                 _languageTF.value = evt.newValue;
                 _languageTF.labelElement.style.display = DisplayStyle.None;
+                _languageTF.Q<VisualElement>("title").RemoveFromClassList("hide");
             });
 
         }
@@ -624,8 +658,10 @@ namespace com.noctuagames.sdk.UI
 
                 var regionCode = _globalConfig?.Noctua?.Region ?? "";
 
-                _userIDLabel.text = Utility.GetTranslation("UserCenterPresenter.MenuEditProfile.Label.text", Utility.LoadTranslations(Model.GetLanguage()));
+                _userIDLabel.text = "ID : " + Locale.GetTranslation("UserCenterPresenter.MenuEditProfile.Label.text");
                 _userIDLabel.style.fontSize = 16;
+                
+                View.Q<Label>("TitleEditBack").text = Locale.GetTranslation("UserCenterPresenter.MenuEditProfile.Label.text");
 
                 View.Q<Button>("SaveButton").SetEnabled(false);
                 View.Q<VisualElement>("UserProfileHeader").style.justifyContent = Justify.FlexEnd;
@@ -669,7 +705,7 @@ namespace com.noctuagames.sdk.UI
                     _playerImage.style.backgroundImage = _defaultAvatar;
                 }
 
-                _userIDLabel.text = _userIDValue;
+                _userIDLabel.text = "ID : " + _userIDValue;
                 _userIDLabel.style.fontSize = 12;
 
                 if (_isGuestUser)
@@ -686,6 +722,10 @@ namespace com.noctuagames.sdk.UI
                     _stayConnect.AddToClassList("show");
                     _containerStayConnect.AddToClassList("show");
                 }
+
+                _nicknameTF.value = View.Q<Label>("PlayerName").text;
+                SetErrorUpdateProfile(false);
+                HideAllErrors();
 
             }
         }
@@ -720,41 +760,50 @@ namespace com.noctuagames.sdk.UI
             View.Q<VisualElement>("Spinner").RemoveFromClassList("hide");
             View.Q<VisualElement>("Spinner2").RemoveFromClassList("hide");
 
-            View.Q<Button>("ChangePictureButton").AddToClassList("hide");
+            View.Q<Button>("ChangePictureButton").SetEnabled(false);
             View.Q<Button>("SaveButton").AddToClassList("hide");
 
-            var _errorLabel = View.Q<Label>("ErrLabel");
+            HideAllErrors();
 
             if (string.IsNullOrEmpty(_nicknameTF.value))
             {
-                _errorLabel.RemoveFromClassList("hide");
-                _errorLabel.text = "Nickname should not be empty";
-
                 View.Q<Button>("SaveButton").RemoveFromClassList("hide");
                 View.Q<VisualElement>("Spinner").AddToClassList("hide");
                 View.Q<VisualElement>("Spinner2").AddToClassList("hide");
+
+                _nicknameTF.ElementAt(1).AddToClassList("noctua-text-input-error");
+                _nicknameTF.Q<Label>("error").RemoveFromClassList("hide");
+                _nicknameTF.Q<Label>("error").text = Locale.GetTranslation("EditProfile.NicknameValidation");
+                _nicknameTF.Q<VisualElement>("title").style.color = ColorModule.redError;
+
                 return;
             }
 
             if (string.IsNullOrEmpty(_countryTF.value) || _countryTF.value == "Select Country")
             {
-                _errorLabel.RemoveFromClassList("hide");
-                _errorLabel.text = "Please select country!";
-
                 View.Q<Button>("SaveButton").RemoveFromClassList("hide");
                 View.Q<VisualElement>("Spinner").AddToClassList("hide");
                 View.Q<VisualElement>("Spinner2").AddToClassList("hide");
+
+                _countryTF.ElementAt(1).AddToClassList("noctua-text-input-error");
+                _countryTF.Q<Label>("error").RemoveFromClassList("hide");
+                _countryTF.Q<Label>("error").text = Locale.GetTranslation("EditProfile.CountryValidation");
+                _countryTF.Q<VisualElement>("title").style.color = ColorModule.redError;
+
                 return;
             }
 
             if (string.IsNullOrEmpty(_languageTF.value) || _languageTF.value == "Select Language")
             {
-                _errorLabel.RemoveFromClassList("hide");
-                _errorLabel.text = "Please select language!";
-
                 View.Q<Button>("SaveButton").RemoveFromClassList("hide");
                 View.Q<VisualElement>("Spinner").AddToClassList("hide");
                 View.Q<VisualElement>("Spinner2").AddToClassList("hide");
+
+                _languageTF.ElementAt(1).AddToClassList("noctua-text-input-error");
+                _languageTF.Q<Label>("error").RemoveFromClassList("hide");
+                _languageTF.Q<Label>("error").text = Locale.GetTranslation("EditProfile.LanguageValidation");
+                _languageTF.Q<VisualElement>("title").style.color = ColorModule.redError;
+
                 return;
             }
 
@@ -798,12 +847,12 @@ namespace com.noctuagames.sdk.UI
                     StartCoroutine(LoadImageFromUrl(_newProfileUrl, true));
                 }
 
-                _errorLabel.AddToClassList("hide");
                 View.Q<Button>("SaveButton").RemoveFromClassList("hide");
                 View.Q<VisualElement>("Spinner").AddToClassList("hide");
 
-                View.Q<Button>("ChangePictureButton").RemoveFromClassList("hide");
-                View.Q<VisualElement>("Spinner2").AddToClassList("hide");
+                View.Q<Label>("PlayerName").text = _nicknameTF.value;
+
+                SetErrorUpdateProfile(false);
 
                 Model.ShowGeneralNotification("Update profile successfully", true);
 
@@ -816,13 +865,28 @@ namespace com.noctuagames.sdk.UI
                 _log.Exception(e);
 
                 Model.ShowGeneralNotification(e.Message);
+                
+                SetErrorUpdateProfile(false);
+            }
+        }
 
-                _errorLabel.AddToClassList("hide");
+        private void SetErrorUpdateProfile(bool isError)
+        {
+            if(isError)
+            {
 
                 View.Q<Button>("SaveButton").RemoveFromClassList("hide");
-                View.Q<VisualElement>("Spinner").AddToClassList("hide");
+                View.Q<Button>("ChangePictureButton").SetEnabled(true);
 
-                View.Q<Button>("ChangePictureButton").RemoveFromClassList("hide");
+                View.Q<VisualElement>("Spinner").AddToClassList("hide");
+                View.Q<VisualElement>("Spinner2").AddToClassList("hide");
+            }
+            else
+            {
+                View.Q<Button>("SaveButton").RemoveFromClassList("hide");
+                View.Q<Button>("ChangePictureButton").SetEnabled(true);
+                
+                View.Q<VisualElement>("Spinner").AddToClassList("hide");
                 View.Q<VisualElement>("Spinner2").AddToClassList("hide");
             }
         }
@@ -965,7 +1029,7 @@ namespace com.noctuagames.sdk.UI
             element.userData = _credentials[index];
 
             element.Q<Button>("ConnectButton").UnregisterCallback<PointerUpEvent, UserCredential>(OnConnectButtonClick);
-            element.Q<Button>("ConnectButton").text = Utility.GetTranslation("ConnectAccountItem.Connect", Utility.LoadTranslations(Model.GetLanguage()));
+            element.Q<Button>("ConnectButton").text = Locale.GetTranslation("ConnectAccountItem.Connect");
 
             if (string.IsNullOrEmpty(_credentials[index].Username))
             {
@@ -996,7 +1060,7 @@ namespace com.noctuagames.sdk.UI
             switch (credential.CredentialProvider)
             {
                 case CredentialProvider.Email:
-                    Model.ShowEmailRegistration(true);
+                    Model.ShowEmailRegistration(true, true);
 
                     break;
                 case CredentialProvider.Google:
@@ -1054,7 +1118,6 @@ namespace com.noctuagames.sdk.UI
                 guestContainer.RemoveFromClassList("hide");
                 // Hide some menu item in more options button.
                 editProfilebutton.AddToClassList("hide");
-                switchProfileButton.AddToClassList("hide");
                 deleteAccountButton.AddToClassList("hide");
                 logoutAccountButton.AddToClassList("hide");
 
@@ -1062,7 +1125,7 @@ namespace com.noctuagames.sdk.UI
 
                 for (int i = 0; i < _carouselItems.Length; i++)
                 {
-                    carouselTranslate[i] = Utility.GetTranslation(_carouselItems[i], Utility.LoadTranslations(Model.GetLanguage()));
+                    carouselTranslate[i] = Locale.GetTranslation(_carouselItems[i]);
                 }
             }
             else
@@ -1107,7 +1170,7 @@ namespace com.noctuagames.sdk.UI
         {
             if (carouselTranslate == null) return;
             //var regionCode = _globalConfig?.Noctua?.Region ?? "";
-            
+
             _carouselLabel.text = carouselTranslate[_currentIndex];
             _carouselVE.style.backgroundImage = new StyleBackground(Resources.Load<Sprite>(_carouselImage[_currentIndex]));
         }
@@ -1132,10 +1195,12 @@ namespace com.noctuagames.sdk.UI
             if (string.IsNullOrEmpty(textField.value))
             {
                 textField.labelElement.style.display = DisplayStyle.Flex;
+                textField.Q<VisualElement>("title").AddToClassList("hide");
             }
             else
             {
                 textField.labelElement.style.display = DisplayStyle.None;
+                textField.Q<VisualElement>("title").RemoveFromClassList("hide");
             }
         }
 

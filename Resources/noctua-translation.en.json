@@ -97,9 +97,13 @@
     "EmailConfirmResetPasswordDialogPresenter.ErrPasswordMismatch.Label.text": "Password is not matched with repeated password",
     "EmailConfirmResetPasswordDialogPresenter.ErrPasswordTooShort.Label.text": "Password is too short. Minimum 6 character",
     "EmailConfirmResetPasswordDialogPresenter.ErrPasswordEmpty.Label.text": "Password should not be empty",
-    "EmailConfirmResetPasswordDialogPresenter.ContinueButton.Button.text": "Reset Password and Login",
+    "EmailConfirmResetPasswordDialogPresenter.ContinueButton.Button.text": "Reset Password",
     "EmailConfirmResetPasswordDialogPresenter.SuccessNotification": "Password reset successfully. Please login with your new password.",
 
+    "FailedPaymentDialogPresenter.CSButton.Button.text": "Contact Support",
+    "FailedPaymentDialogPresenter.ItemAlreadyOwned": "Something went wrong with your previous purchase. Please contact customer service.",
+    "FailedPaymentDialogPresenter.PendingPurchaseOngoing": "Your purchase is still being processed. Please wait for a few minutes and try to restart the game.",
+    
     "AccountDeletionConfirmationDialogPresenter.Question.Label.text": "Are you sure you want to\ndelete this account?",
     "AccountDeletionConfirmationDialogPresenter.Note.Label.text": "All your progress and\ndata will be lost. This action is\npermanent and cannot be undone.",
     "AccountDeletionConfirmationDialogPresenter.ErrCode.Label.tooltip": "Error Code",
@@ -107,6 +111,10 @@
     "AccountDeletionConfirmationDialogPresenter.CancelButton.Button.text": "Cancel",
 
     "LoadingProgressPresenter.TitleLoading.Label.text": "Please wait...",
+    
+    "StartGameErrorDialogPresenter.MessageLabel.Label.text": "Something went wrong, we can't continue the game. Please try to restart the game.",
+    "StartGameErrorDialogPresenter.QuitButton.Button.text": "Quit",
+    "StartGameErrorDialogPresenter.CSButton.Button.text": "Contact Support",
 
     "SwitchAccountConfirmationDialogPresenter.Question.Label.text": "Are you sure you want to switch\nyour game account?",
     "SwitchAccountConfirmationDialogPresenter.Note.Label.text": "We will restart your game, once you\nhave confirming to switch account.\nRelax, your game progress will be\nsaved to current account.",
@@ -119,7 +127,7 @@
     "UserCenterPresenter.MenuSwitchProfile.Label.text": "Switch Profile",
     "UserCenterPresenter.MenuDeleteAccount.Label.text": "Delete Account",
     "UserCenterPresenter.MenuLogout.Label.text": "Logout Account",
-    "UserCenterPresenter.GuestConnectButton.Button.text": "Connect Account",
+    "UserCenterPresenter.GuestConnectButton.Button.text": "Bind or Continue with another account",
     "UserCenterPresenter.ChangePictureButton.Button.text": "Change Picture",
     "UserCenterPresenter.TitleEditBack.Label.text": "Back",
     "UserCenterPresenter.StayConnectCompany.Label.text": "Stay connect to",
@@ -133,7 +141,8 @@
     "UserCenterPresenter.PaymentTypeTF.DropdownField.label": "PaymentType",
     "UserCenterPresenter.SaveButtonContainer.SaveButton.Button.text": "Save",
     "UserCenterPresenter.TitleFindMoreLabel.Label.text": "Find more at",
-    
+    "UserCenterPresenter.CopyIcon.Button.text": "Copy",
+
     "BindConfirmationDialogPresenter.BindConfirmationLabel.Label.text": "Would you like to connect your progress to selected account?",
     "BindConfirmationDialogPresenter.ConnectButton.Button.text": "Connect",
     "BindConfirmationDialogPresenter.CancelButton.Button.text": "Cancel",
@@ -156,6 +165,15 @@
     "CustomPaymentCompleteDialogPresenter.Message.Label.text": "Your payment page is now open in your browser. Unless you want to cancel, do not close this pop up until the transaction is complete.",
     "CustomPaymentCompleteDialogPresenter.CustomPaymentCSButton.Button.text": "Customer Support",
     "CustomPaymentCompleteDialogPresenter.CustomPaymentCompleteButton.Button.text": "Completed",
-    "CustomPaymentCompleteDialogPresenter.OrderVerificationFailedMessage": "Your payment couldn’t be verified. Please retry later."
-  }
+    "CustomPaymentCompleteDialogPresenter.OrderVerificationFailedMessage": "Your payment couldn’t be verified. Please retry later.",
+
+    "IAPCanceled": "Purchase canceled",
+    "IAPFailed": "Purchase failed",
+    "IAPRequiresAuthentication": "Purchase requires user authentication",
+    "IAPPaymentDisabled": "Payment is disabled. Please contact customer support.",
+
+    "EditProfile.NicknameValidation": "Nickname should not be empty",
+    "EditProfile.CountryValidation": "Select country",
+    "EditProfile.LanguageValidation": "Select language"
+}
   

@@ -83,29 +83,39 @@ namespace com.noctuagames.sdk.UI
 
         public void OnTextFieldFocusChange(FocusInEvent _event)
         {
+            HideAllErrors();
             (_event.target as VisualElement).Children().ElementAt(1).AddToClassList("noctua-text-input-focus");
+            (_event.target as VisualElement).Q<VisualElement>("title").style.color = ColorModule.white;
         }
 
         public void OnTextFieldFocusChange(FocusOutEvent _event)
         {
             (_event.target as VisualElement).Children().ElementAt(1).RemoveFromClassList("noctua-text-input-focus");
+            (_event.target as VisualElement).Q<VisualElement>("title").style.color = ColorModule.greyInactive;
         }
 
         private void OnEmailValueChanged(TextField textField)
         {
             HideAllErrors();
+          
+            _email = textField.value;
 
+            AdjustHideLabelElement(textField);
+            Utility.UpdateButtonState(textFields, submitButton);
+        }
+
+        private void AdjustHideLabelElement(TextField textField)
+        {
             if (string.IsNullOrEmpty(textField.value))
             {
                 textField.labelElement.style.display = DisplayStyle.Flex;
+                textField.Q<VisualElement>("title").AddToClassList("hide");
             }
             else
             {
                 textField.labelElement.style.display = DisplayStyle.None;
+                textField.Q<VisualElement>("title").RemoveFromClassList("hide");
             }
-            _email = textField.value;
-
-            Utility.UpdateButtonState(textFields, submitButton);
         }
 
         private bool IsValidEmail(string email)
@@ -154,17 +164,27 @@ namespace com.noctuagames.sdk.UI
             // Validation
             if (string.IsNullOrEmpty(emailAddress))
             {
-                View.Q<Label>("ErrEmailEmpty").RemoveFromClassList("hide");
+                //View.Q<Label>("ErrEmailEmpty").RemoveFromClassList("hide");
                 View.Q<Button>("ContinueButton").RemoveFromClassList("hide");
                 View.Q<VisualElement>("Spinner").AddToClassList("hide");
+
+                emailField.ElementAt(1).AddToClassList("noctua-text-input-error");
+                emailField.Q<Label>("error").RemoveFromClassList("hide");
+                emailField.Q<Label>("error").text = "Email address should not be empty";
+                emailField.Q<VisualElement>("title").style.color = ColorModule.redError;
                 return;
             }
 
             if (!IsValidEmail(emailAddress))
             {
-                View.Q<Label>("ErrEmailInvalid").RemoveFromClassList("hide");
+                //View.Q<Label>("ErrEmailInvalid").RemoveFromClassList("hide");
                 View.Q<Button>("ContinueButton").RemoveFromClassList("hide");
                 View.Q<VisualElement>("Spinner").AddToClassList("hide");
+
+                emailField.ElementAt(1).AddToClassList("noctua-text-input-error");
+                emailField.Q<Label>("error").RemoveFromClassList("hide");
+                emailField.Q<Label>("error").text = "Email address is not valid";
+                emailField.Q<VisualElement>("title").style.color = ColorModule.redError;
                 return;
             }
 
@@ -214,10 +234,9 @@ namespace com.noctuagames.sdk.UI
 
         private void HideAllErrors()
         {
-            // To avoid duplicate classes
-            View.Q<Label>("ErrCode").RemoveFromClassList("hide");
-            View.Q<Label>("ErrEmailInvalid").RemoveFromClassList("hide");
-            View.Q<Label>("ErrEmailEmpty").RemoveFromClassList("hide");
+            //Normalize border
+            emailField.Children().ElementAt(1).RemoveFromClassList("noctua-text-input-error");            
+            emailField.Q<Label>("error").AddToClassList("hide");            
 
             View.Q<Label>("ErrCode").AddToClassList("hide");
             View.Q<Label>("ErrEmailInvalid").AddToClassList("hide");

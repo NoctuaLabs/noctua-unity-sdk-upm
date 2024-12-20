@@ -2,6 +2,70 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.27.0] - 2024-12-19
+
+### 🚀 Features
+
+- Add Accept-Language in HTTP header to help error message translation in backend side.
+- Show switch account menu in user center for guest account.
+- Add copy localization languages
+- Localization for text input validation message - edit profile
+
+### 🐛 Bug Fixes
+
+- Back button is hard to click
+- Add retry on failed init due to connection error
+- Make sure pending purchases get removed from persistent storage after it get verified.
+- Close the loading spinner widget if there is exception in User Center initialization.
+- Add order ID validation for VerifyOrderImplAsync().
+- Typo
+- Add ID label in user ID
+- Cutted input field
+- Add ID label in user ID
+- Cutted input field
+- Account selection dialog close button move to right
+- User center image resolution
+- Align back button with tittle header
+- Update reset password wording
+- Show error message if payment failed
+- Revamp pending purchases widget and add more functionalities (CS, Retry, Copy) and payment details.
+- Update error message for Pending Purchase retry attempt.
+- Find more website can clickable
+- Remove blue login button if the state is still in link account process
+- Edit profile ui
+- User center isssues
+- Apply localization immediately on language change
+- Account selection dialog close button move to right
+- User center image resolution
+- Align back button with tittle header
+- Update reset password wording
+- Translate text field title except in user update dropdown field
+- New scrollbar design
+- Change wording connect account when guest user
+- Tnc text size and position
+- Text to center of button and bottom
+- Copy icon change to copy button
+- Revamp ui edit profile
+- Append reason for customer service URL. Add loading spinner for PlatformContent API.
+- Profile edit profile image streched
+- Add start game error dialog if sdk init failed
+- Error dialogue to overflow
+- Add null check on register by email verification.
+- Add null check on register by email verification.
+- Error dialogue to overflow
+- Overflow label text in the new design
+- Nickname not update realtime after success edit
+- Nickname field empty then save, change picture button is gone
+- Use relative path instead of absolute path
+- Adjust margin bottom save and remove not necessary code
+- Localization text and key
+- Typo key
+- Update android native sdk to 0.9.0
+
+### ⚙️ Miscellaneous Tasks
+
+- Add SDK version to header.
+
 ## [0.26.0] - 2024-12-16
 
 ### 🚀 Features
@@ -16,6 +80,9 @@ All notable changes to this project will be documented in this file.
 
 - Add sandbox flag to events
 - Add 18 years min age for VN
+- Edit Keyboard type to match the value
+- Logo switch account yg gepeng
+- ConnectConflictDialog Cancel button color to blue
 - Region vn not translated
 - Datepicker open twice, hard to click, disabled focusable - edit profile
 - Improve custom payment cancelation logic.

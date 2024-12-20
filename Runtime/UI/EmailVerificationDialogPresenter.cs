@@ -78,27 +78,37 @@ namespace com.noctuagames.sdk.UI
 
         public void OnTextFieldFocusChange(FocusInEvent _event)
         {
+            HideAllErrors();
             (_event.target as VisualElement).Children().ElementAt(1).AddToClassList("noctua-text-input-focus");
+            (_event.target as VisualElement).Q<VisualElement>("title").style.color = ColorModule.white;
         }
 
         public void OnTextFieldFocusChange(FocusOutEvent _event)
         {
             (_event.target as VisualElement).Children().ElementAt(1).RemoveFromClassList("noctua-text-input-focus");
+            (_event.target as VisualElement).Q<VisualElement>("title").style.color = ColorModule.greyInactive;
         }
 
         private void OnVerificationCodeValueChanged(TextField textField)
         {
             HideAllErrors();
+            
+            _credVerifyCode = textField.value;
+            AdjustHideLabelElement(textField);
+        }
 
+        private void AdjustHideLabelElement(TextField textField)
+        {
             if (string.IsNullOrEmpty(textField.value))
             {
                 textField.labelElement.style.display = DisplayStyle.Flex;
+                textField.Q<VisualElement>("title").AddToClassList("hide");
             }
             else
             {
                 textField.labelElement.style.display = DisplayStyle.None;
+                textField.Q<VisualElement>("title").RemoveFromClassList("hide");
             }
-            _credVerifyCode = textField.value;
         }
 
         private void OnBackButtonClick(ClickEvent evt)
@@ -181,14 +191,17 @@ namespace com.noctuagames.sdk.UI
             View?.Q<VisualElement>("DialogHeader")?.AddToClassList("hide");
             try
             {
-                if (Model.AuthService.RecentAccount.IsGuest)
+                if (Model.AuthService.RecentAccount == null ||
+                !(Model.AuthService.RecentAccount != null && Model.AuthService.RecentAccount.IsGuest))
                 {
-                    var token = await Model.AuthService.BeginVerifyEmailRegistrationAsync(_credVerifyId, _credVerifyCode);
-                    Model.ShowBindConfirmation(token);
+                    // Verify directly
+                    await Model.VerifyEmailRegistration(_credVerifyId, _credVerifyCode);
                 }
                 else
                 {
-                    await Model.VerifyEmailRegistration(_credVerifyId, _credVerifyCode);
+                    // There will be a confirmation dialog between verification processes
+                    var token = await Model.AuthService.BeginVerifyEmailRegistrationAsync(_credVerifyId, _credVerifyCode);
+                    Model.ShowBindConfirmation(token);
                 }
 
                 Visible = false;
@@ -229,13 +242,9 @@ namespace com.noctuagames.sdk.UI
 
         private void HideAllErrors()
         {
-            // To avoid duplicate classes
-            View.Q<Label>("ErrCode").RemoveFromClassList("hide");
-            View.Q<Label>("ErrEmailInvalid").RemoveFromClassList("hide");
-            View.Q<Label>("ErrEmailEmpty").RemoveFromClassList("hide");
-            View.Q<Label>("ErrPasswordTooShort").RemoveFromClassList("hide");
-            View.Q<Label>("ErrPasswordEmpty").RemoveFromClassList("hide");
-            View.Q<Label>("ErrPasswordMismatch").RemoveFromClassList("hide");
+            //Normalize border
+            verificationCode.Children().ElementAt(1).RemoveFromClassList("noctua-text-input-error");            
+            verificationCode.Q<Label>("error").AddToClassList("hide");            
 
             View.Q<Label>("ErrCode").AddToClassList("hide");
             View.Q<Label>("ErrEmailInvalid").AddToClassList("hide");

@@ -22,7 +22,7 @@
 }
 
 .user-profile {
-    background-color: rgb(35, 40, 45);
+    background-color: rgb(37, 40, 46);
     flex-direction: column;
     padding: 8px;
     justify-content: space-around;
@@ -58,7 +58,7 @@
     border-radius: 13px;
     height: 26px;
     padding: 5px;
-    background-color: rgb(62, 66, 72);
+    background-color: rgb(45, 49, 56);
     align-items: center;
     justify-content: center;
     -unity-text-align: middle-center;
@@ -69,7 +69,7 @@
     width: 26px;
     align-self: flex-start;
     position: absolute;
-    left: 0;
+    right: 0;
 }
 
 .exit-icon {
@@ -86,42 +86,48 @@
 
 .help-button {
     flex-direction: row;
-    margin-top: 0;
-    margin-right: 0;
-    margin-bottom: 0;
-    margin-left: 0;
+    margin-top: 2px;
+    margin-right: 4px;
+    margin-bottom: 2px;
+    margin-left: 4px;
     padding-top: 0;
     padding-right: 5;
     padding-bottom: 0;
     padding-left: 5;
     position: absolute;
-    right: 30px;
+    right: 35px;
+    border-top-left-radius: 10px;
+    border-top-right-radius: 10px;
+    border-bottom-right-radius: 10px;
+    border-bottom-left-radius: 10px;
 }
 
 .help-icon {
     width: 16px;
     height: 16px;
     background-image: url("project://database/Packages/com.noctuagames.sdk/Resources/HelpChatIcon.png?fileID=21300000&guid=3627307d4c51a814299f496ab4722a9f&type=3#HelpChatIcon");
+    margin-top: 1.5px;
 }
 
 .help-label {
     color: rgb(237, 237, 237);
     font-size: 10px;
+    -unity-text-align: middle-left;
 }
 
 .more-options-button {
     height: 26px;
     width: 26px;
-    margin-top: 0;
-    margin-right: 0;
-    margin-bottom: 0;
+    margin-top: 2px;
+    margin-right: 4px;
+    margin-bottom: 2px;
     margin-left: 4px;
-    padding-top: 0;
-    padding-right: 0;
-    padding-bottom: 0;
-    padding-left: 0;
+    padding-top: 5px;
+    padding-right: 5px;
+    padding-bottom: 5px;
+    padding-left: 5px;
     position: absolute;
-    right: 0;
+    left: 0;
 }
 
 .user-profile-spacing {
@@ -240,7 +246,7 @@
     flex-direction: column;
     align-items: stretch;
     padding: 8px;
-    background-color: rgb(31, 35, 39);
+    background-color: rgb(31, 34, 39);
 }
 
 .connect-account.landscape {
@@ -254,8 +260,11 @@
 }
 
 .connect-account-edit-profile-portrait {
+    flex-direction: column;
+    align-items: stretch;
+    padding: 8px;
     width: 100%;
-    height: 75%;
+    border-radius: 20px 20px 0 0;
 }
 
 .connect-account-label {
@@ -316,10 +325,11 @@
     display: flex;
     justify-content: center;
     align-items: center;
-    margin-top: 40px;
     background-image: resource('UC_Guest_1');
-    width: 97px;
-    height: 97px;
+    width: 234.5px;
+    height: 182px;
+    margin-bottom: -45px;
+    margin-top: -20px;
 }
 
 .connect-button-guest {
@@ -366,41 +376,94 @@
 }
 
 .dropdown-box {
-    margin-top: 20px;
+    margin-top: 2px;
+    padding-top: 5px;
+    margin-right: -10px;
+    margin-bottom: 2px;
+    margin-left: -10px;
+    flex-direction: column;
 }
 
 .dropdown-box .unity-base-field__label {
-    display: none;
+    position: absolute;
+    left: 10px;
+    top: 22px;
+    margin-top: -2px;
+    margin-right: 4px;
+    margin-bottom: 2px;
+    margin-left: 2px;
+    padding-top: 7px;
+    padding-right: 2px;
+    padding-bottom: 4px;
+    padding-left: 10px;
+    flex-shrink: 0;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    font-size: 12px;
 }
 
 .dropdown-box .unity-base-field__input {
     background-color: transparent;
     border-color: rgb(71, 75, 78);
     border-radius: 8px;
-    margin-right: 0;
-    margin-left: 0;
+    padding-top: 10px;
+    border-top-width: 1px;
+    border-right-width: 1px;
+    border-bottom-width: 1px;
+    border-left-width: 1px;
+    border-top-left-radius: 10px;
+    border-top-right-radius: 10px;
+    border-bottom-right-radius: 10px;
+    border-bottom-left-radius: 10px;
+    padding-right: 10px;
+    padding-bottom: 10px;
+    padding-left: 10px;
+    height: 40px;
+    margin-top: 10px;
+    margin-right: 10px;
+    margin-bottom: 10px;
+    margin-left: 10px;
 }
 
 .dropdown-box .unity-base-popup-field__arrow {
     -unity-background-image-tint-color: rgb(98, 100, 104);
 }
 
+.dropdown-box #title {
+    background-color: rgb(31, 35, 39);
+    align-items: flex-start;
+    justify-content: flex-start;
+    top: 9px;
+    color: rgb(124, 126, 129);
+    -unity-text-align: upper-left;
+    margin-top: 0;
+    margin-right: 0;
+    margin-bottom: 0;
+    margin-left: 0;
+    padding-top: 0;
+    padding-right: 3px;
+    padding-bottom: 0;
+    padding-left: 3px;
+    left: 20px;
+    position: absolute;
+    font-size: 10px;
+}
+
 .profile-circle-with-border {
-    width: 50px;
-    height: 50px;
+    width: 70px;
+    height: 70px;
     margin-right: 10px;
-    border-width: 1px;
-    border-color: rgb(80, 153, 252);
-    border-radius: 25px;
+    border-radius: 35px;
 }
 
 .button-border {
-    height: 31px;
     border-radius: 5px;
     border-color: rgb(59, 130, 246);
     border-width: 1px;
     background-color: transparent;
     color: rgb(59, 130, 246);
+    padding: 1px;
+    font-size: 10px;
 }
 
 .profile-menu-image {
@@ -428,9 +491,9 @@
 }
 
 .dropdown-container {
-    margin-top: -10px;
-    margin-left: 3px;
-    margin-right: 3px;
+    margin-top: 0;
+    margin-left: 8px;
+    margin-right: 8px;
 }
 
 .noctua-logo-container {

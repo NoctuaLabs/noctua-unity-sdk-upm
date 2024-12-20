@@ -2,7 +2,7 @@
     <Style src="./Noctua.uss" />
     <Style src="./PendingPurchasesDialog.uss" />
     <ui:VisualElement name="Root" class="root" >
-        <ui:VisualElement name="PendingPurchasesDialog" class="base dialog-box base-general-confirm" style="height: 320px;">
+        <ui:VisualElement name="PendingPurchasesDialog" class="base dialog-box base-general-confirm" style="height: 320px;padding-top:20px;">
             <ui:Button name="CustomPaymentExitButton" focusable="false" class="user-profile-header-button exit-button">
                 <ui:VisualElement name="ExitIcon" class="exit-icon" />
             </ui:Button>        
@@ -12,13 +12,7 @@
                 class="dialog-title" 
                 style="margin-top:-15px;"
             />
-            <ui:ListView name="PendingPurchasesList" class="pending-purchases-list" style="width:280px;margin:5px;height:200px;" scroller-visibility="Hidden"/>
-            <ui:VisualElement name="NavigationButtons" style="flex-direction:row;">
-                <ui:Button text="Prev" display-tooltip-when-elided="true" name="PrevButton" focusable="false" class="dialog-button secondary-button" style="margin-right:7px;margin-left:7px;width:120px;flex-direction:column;"/>
-                <ui:Button text="Next" display-tooltip-when-elided="true" name="NextButton" focusable="false" class="dialog-button secondary-button" style="margin-left:7px;margin-right:7px;width:120px;flex-direction:column;"/>
-            </ui:VisualElement>
-            <ui:VisualElement name="NavigationButtonsSpacer" class="hide" style="height:50px">
-            </ui:VisualElement>
+            <ui:ListView name="PendingPurchasesList" class="pending-purchases-list" style="width:280px;margin:5px;height:300px;" scroller-visibility="Hidden"/>
         </ui:VisualElement>
     </ui:VisualElement>
 </ui:UXML>

@@ -1,0 +1,58 @@
+.start-game-error-dialog {
+    height: auto;
+    flex-direction: column;
+    flex: 1;
+    justify-content: space-around;
+    padding-top: 20px;
+    padding-bottom: 20px;
+}
+
+.label {
+    font-size: 12px;
+    color: rgba(158, 158, 158, 1);
+    -unity-text-align: middle-center;
+    white-space: normal;
+    margin: 5px 20px;
+    flex-wrap: wrap;
+}
+
+.primary-button {
+    background-color: rgba(59, 130, 246, 1);
+    color: rgba(245, 245, 245, 1);
+    font-size: 12px;
+    border-radius: 10px;
+    margin-top: 5px;
+    margin-bottom: 5px;
+    width: 80%;
+    height: 34px;
+}
+
+.secondary-button {
+    background-color: rgba(45, 49, 56, 1);
+    color: rgba(245, 245, 245, 1);
+    font-size: 12px;
+    border-radius: 10px;
+    margin-top: 5px;
+    margin-bottom: 5px;
+    width: 80%;
+    height: 34px;
+}
+
+.exit-button {
+    height: 26px;
+    width: 26px;
+    border-radius: 13px;
+    margin: 0;
+    padding:0;
+    background-color: rgb(62, 66, 72);
+    align-items: center;
+    justify-content: center;
+    -unity-text-align: middle-center;
+    align-self: flex-end;
+}
+
+.exit-icon {
+    width: 16px;
+    height: 16px;
+    background-image: resource("ExitIcon");
+}
