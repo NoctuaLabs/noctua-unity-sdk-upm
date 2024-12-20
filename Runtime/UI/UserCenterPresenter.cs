@@ -1074,7 +1074,7 @@ namespace com.noctuagames.sdk.UI
 
                 _log.Debug($"social link completed: {provider}, {credential.DisplayText}");
 
-                Model.ShowGeneralNotification("Social link completed", true);
+                Model.ShowGeneralNotification(Locale.GetTranslation("Usercenter.AccountLinked"), true);
             }
             catch (Exception e)
             {
