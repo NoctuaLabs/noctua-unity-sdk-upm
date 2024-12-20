@@ -222,7 +222,8 @@ namespace com.noctuagames.sdk.UI
             _log.Debug("clicking register button");
 
             Visible = false;
-
+            
+            Model.ClearNavigation();
             Model.PushNavigation(() => Model.ShowEmailLogin());
             Model.ShowEmailRegistration(true);
         }
