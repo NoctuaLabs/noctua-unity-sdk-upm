@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.27.1] - 2024-12-20
+
+### 🐛 Bug Fixes
+
+- Use scrollable page instead of pagination for pending purchase widget.
+- Different color panel pop up in bind confirmation dialog and connect conflict dialog
+- Login and register screen looped or stacked
+- Use currentActivity instead of applicationContext to ask notification permission
+- Check null on EditProfile saveButton enable and apply translations to dropdown fields
+
 ## [0.27.0] - 2024-12-19
 
 ### 🚀 Features
