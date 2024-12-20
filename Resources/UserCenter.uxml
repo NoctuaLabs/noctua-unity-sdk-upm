@@ -35,23 +35,24 @@
                 </ui:VisualElement>
                 <ui:VisualElement name="MoreOptionsMenu" class="more-options-menu hide">
                     <ui:VisualElement name="EditProfile" class="more-options-menu-item">
-                        <ui:VisualElement class="edit-icon" />
+                        <ui:VisualElement name="Icon" class="edit-icon more-option-icon" />
                         <ui:Label name="MenuEditProfile" text="Edit Profile" class="more-options-menu-item-label" />
                     </ui:VisualElement>
                     <ui:VisualElement name="SwitchProfile" class="more-options-menu-item">
-                        <ui:VisualElement class="second-switch-account-icon" />
+                        <ui:VisualElement name="Icon" class="second-switch-account-icon more-option-icon" />
                         <ui:Label name="MenuSwitchProfile" text="Switch Profile" class="more-options-menu-item-label" />
                     </ui:VisualElement>
                     <ui:VisualElement name="PendingPurchases" class="more-options-menu-item">
-                        <ui:VisualElement class="pending-purchases-icon" />
+                        <ui:VisualElement name="Icon" class="pending-purchases-icon more-option-icon" />
                         <ui:Label name="MenuPendingPurchases" text="Pending Purchases" class="more-options-menu-item-label" />
                     </ui:VisualElement>
+                    <ui:VisualElement name="Line" class="line" />
                     <ui:VisualElement name="DeleteAccount" class="more-options-menu-item">
-                        <ui:VisualElement class="delete-icon" />
-                        <ui:Label name="MenuDeleteAccount" text="Delete Account" class="more-options-menu-item-label delete-account-label" />
+                        <ui:VisualElement name="Icon" class="delete-icon more-option-icon" />
+                        <ui:Label name="MenuDeleteAccount" text="Delete Account" class="more-options-menu-item-label" />
                     </ui:VisualElement>
                     <ui:VisualElement name="LogoutAccount" class="more-options-menu-item">
-                        <ui:VisualElement class="logout-icon" />
+                        <ui:VisualElement name="Icon" class="logout-icon more-option-icon" />
                         <ui:Label name="MenuLogout" text="Logout Account" class="more-options-menu-item-label" />
                     </ui:VisualElement>
                 </ui:VisualElement>

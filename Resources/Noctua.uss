@@ -737,3 +737,11 @@ Label:hover {
     left: 0;
     right: 0;
 }
+
+.line {
+    flex-grow: 1;
+    background-color: rgb(66, 76, 86);
+    height: 1px;
+    margin-left: 40px;
+    margin-right: 20px;
+}
