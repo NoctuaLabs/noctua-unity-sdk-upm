@@ -160,5 +160,7 @@
 
     "EditProfile.NicknameValidation": "Biệt danh không được để trống",
     "EditProfile.CountryValidation": "Chọn quốc gia",
-    "EditProfile.LanguageValidation": "Chọn ngôn ngữ"
+    "EditProfile.LanguageValidation": "Chọn ngôn ngữ",
+
+    "Usercenter.AccountLinked": "Liên kết xã hội đã hoàn tất"
 }

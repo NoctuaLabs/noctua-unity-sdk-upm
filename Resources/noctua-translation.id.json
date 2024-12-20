@@ -178,5 +178,7 @@
 
     "EditProfile.NicknameValidation": "Nama panggilan tidak boleh kosong",
     "EditProfile.CountryValidation": "Pilih negara",
-    "EditProfile.LanguageValidation": "Pilih bahasa"
+    "EditProfile.LanguageValidation": "Pilih bahasa",
+
+    "Usercenter.AccountLinked": "Tautan sosial berhasil diselesaikan"
 }

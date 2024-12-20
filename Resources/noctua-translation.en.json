@@ -176,6 +176,8 @@
 
     "EditProfile.NicknameValidation": "Nickname should not be empty",
     "EditProfile.CountryValidation": "Select country",
-    "EditProfile.LanguageValidation": "Select language"
+    "EditProfile.LanguageValidation": "Select language",
+    
+    "Usercenter.AccountLinked": "Social link completed"
 }
   
