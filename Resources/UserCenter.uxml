@@ -5,15 +5,15 @@
         <ui:VisualElement name="UserCenter" class="user-center portrait" style="flex-shrink: 0;">
             <ui:VisualElement name="UserProfile" class="user-profile portrait">
                 <ui:VisualElement name="UserProfileHeader" class="user-profile-header">
-                    <ui:Button name="ExitButton" focusable="false" class="user-profile-header-button exit-button">
-                        <ui:VisualElement name="ExitIcon" class="exit-icon" />
+                    <ui:Button name="MoreOptionsButton" focusable="false" class="user-profile-header-button more-options-button">
+                        <ui:VisualElement name="MoreOptionsIcon" class="more-options-icon" />
                     </ui:Button>
                     <ui:Button name="HelpButton" focusable="false" class="user-profile-header-button help-button">
                         <ui:VisualElement name="HelpIcon" class="help-icon" />
-                        <ui:Label name="HelpLabel" text="Need help" class="help-label" />
+                        <ui:Label name="HelpLabel" text="Need help?" class="help-label" />
                     </ui:Button>
-                    <ui:Button name="MoreOptionsButton" focusable="false" class="user-profile-header-button more-options-button">
-                        <ui:VisualElement name="MoreOptionsIcon" class="more-options-icon" />
+                    <ui:Button name="ExitButton" focusable="false" class="user-profile-header-button exit-button">
+                        <ui:VisualElement name="ExitIcon" class="exit-icon" />
                     </ui:Button>
                 </ui:VisualElement>
                 <ui:VisualElement name="UserProfileSpacing1" class="user-profile-spacing" />

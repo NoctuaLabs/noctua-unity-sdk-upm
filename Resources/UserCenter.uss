@@ -58,7 +58,7 @@
     border-radius: 13px;
     height: 26px;
     padding: 5px;
-    background-color: rgb(62, 66, 72);
+    background-color: rgb(45, 49, 56);
     align-items: center;
     justify-content: center;
     -unity-text-align: middle-center;
@@ -69,7 +69,7 @@
     width: 26px;
     align-self: flex-start;
     position: absolute;
-    left: 0;
+    right: 0;
 }
 
 .exit-icon {
@@ -86,42 +86,48 @@
 
 .help-button {
     flex-direction: row;
-    margin-top: 0;
-    margin-right: 0;
-    margin-bottom: 0;
-    margin-left: 0;
+    margin-top: 2px;
+    margin-right: 4px;
+    margin-bottom: 2px;
+    margin-left: 4px;
     padding-top: 0;
     padding-right: 5;
     padding-bottom: 0;
     padding-left: 5;
     position: absolute;
-    right: 30px;
+    right: 35px;
+    border-top-left-radius: 10px;
+    border-top-right-radius: 10px;
+    border-bottom-right-radius: 10px;
+    border-bottom-left-radius: 10px;
 }
 
 .help-icon {
     width: 16px;
     height: 16px;
     background-image: url("project://database/Packages/com.noctuagames.sdk/Resources/HelpChatIcon.png?fileID=21300000&guid=3627307d4c51a814299f496ab4722a9f&type=3#HelpChatIcon");
+    margin-top: 1.5px;
 }
 
 .help-label {
     color: rgb(237, 237, 237);
     font-size: 10px;
+    -unity-text-align: middle-left;
 }
 
 .more-options-button {
     height: 26px;
     width: 26px;
-    margin-top: 0;
-    margin-right: 0;
-    margin-bottom: 0;
+    margin-top: 2px;
+    margin-right: 4px;
+    margin-bottom: 2px;
     margin-left: 4px;
-    padding-top: 0;
-    padding-right: 0;
-    padding-bottom: 0;
-    padding-left: 0;
+    padding-top: 5px;
+    padding-right: 5px;
+    padding-bottom: 5px;
+    padding-left: 5px;
     position: absolute;
-    right: 0;
+    left: 0;
 }
 
 .user-profile-spacing {
@@ -455,7 +461,7 @@
     border-color: rgb(59, 130, 246);
     border-width: 1px;
     background-color: transparent;
-    color: rgb(59, 130, 246);    
+    color: rgb(59, 130, 246);
     padding: 1px;
     font-size: 10px;
 }
