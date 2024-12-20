@@ -386,7 +386,7 @@ namespace com.noctuagames.sdk.UI
                 (DateTime _date) =>
                 {
                     _birthDateTF.value = _date.ToString("dd/MM/yyyy");
-
+                    Utility.UpdateButtonState(saveButton, true);
                 });
             });
 
@@ -489,6 +489,8 @@ namespace com.noctuagames.sdk.UI
                 _genderTF.value = evt.newValue;
                 _genderTF.labelElement.style.display = DisplayStyle.None;
                 _genderTF.Q<VisualElement>("title").RemoveFromClassList("hide");
+
+                Utility.UpdateButtonState(saveButton, true);
             });
 
             _countryTF.choices = _countryOptions;
@@ -766,20 +768,12 @@ namespace com.noctuagames.sdk.UI
 
         private async void SaveProfile()
         {
-            View.Q<VisualElement>("Spinner").RemoveFromClassList("hide");
-            View.Q<VisualElement>("Spinner2").RemoveFromClassList("hide");
-
-            View.Q<Button>("ChangePictureButton").SetEnabled(false);
-            saveButton.AddToClassList("hide");
             ShowButtonSpinner(true);
 
             HideAllErrors();
 
             if (string.IsNullOrEmpty(_nicknameTF.value))
             {
-                saveButton.RemoveFromClassList("hide");
-                View.Q<VisualElement>("Spinner").AddToClassList("hide");
-                View.Q<VisualElement>("Spinner2").AddToClassList("hide");
                 ShowButtonSpinner(false);
 
                 _nicknameTF.ElementAt(1).AddToClassList("noctua-text-input-error");
@@ -792,9 +786,6 @@ namespace com.noctuagames.sdk.UI
 
             if (string.IsNullOrEmpty(_countryTF.value) || _countryTF.value == "Select Country")
             {
-                saveButton.RemoveFromClassList("hide");
-                View.Q<VisualElement>("Spinner").AddToClassList("hide");
-                View.Q<VisualElement>("Spinner2").AddToClassList("hide");
                 ShowButtonSpinner(false);
 
                 _countryTF.ElementAt(1).AddToClassList("noctua-text-input-error");
@@ -807,9 +798,6 @@ namespace com.noctuagames.sdk.UI
 
             if (string.IsNullOrEmpty(_languageTF.value) || _languageTF.value == "Select Language")
             {
-                saveButton.RemoveFromClassList("hide");
-                View.Q<VisualElement>("Spinner").AddToClassList("hide");
-                View.Q<VisualElement>("Spinner2").AddToClassList("hide");
                 ShowButtonSpinner(false);
 
                 _languageTF.ElementAt(1).AddToClassList("noctua-text-input-error");
@@ -853,15 +841,14 @@ namespace com.noctuagames.sdk.UI
                 updateUserRequest.Country = _profileDataOptions.Countries[indexCountry].IsoCode;
                 updateUserRequest.Language = _profileDataOptions.Languages[indexLanguage].IsoCode;
 
+                _log.Debug($"Update user request: {updateUserRequest.Nickname} - {updateUserRequest.DateOfBirth} - {updateUserRequest.Gender} - {updateUserRequest.PictureUrl} - {updateUserRequest.Country} - {updateUserRequest.Language}");
+                
                 await Model.AuthService.UpdateUserAsync(updateUserRequest);
 
                 if (!string.IsNullOrEmpty(_newProfileUrl))
                 {
                     StartCoroutine(LoadImageFromUrl(_newProfileUrl, true));
                 }
-
-                saveButton.RemoveFromClassList("hide");
-                View.Q<VisualElement>("Spinner").AddToClassList("hide");
 
                 View.Q<Label>("PlayerName").text = _nicknameTF.value;
 
