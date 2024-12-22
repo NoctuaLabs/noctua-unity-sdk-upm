@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.29.0] - 2024-12-22
+
+### 🚀 Features
+
+- Add custom app controller
+- Automation add capability push notification
+
+### 🐛 Bug Fixes
+
+- Update native sdk for ios
+
 ## [0.28.0] - 2024-12-20
 
 ### 🚀 Features
