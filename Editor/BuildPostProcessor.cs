@@ -219,6 +219,65 @@ using UnityEditor.Graphs;
             plist.WriteToFile(plistPath);
         }
 
+        [PostProcessBuild(int.MaxValue)]
+        public static void EnablePushNotificationCapability(BuildTarget buildTarget, string pathToBuiltProject)
+        {
+            Log($"Enabling push notification capability in Xcode project.");
+
+            string pbxProjectPath = PBXProject.GetPBXProjectPath(pathToBuiltProject);
+            var pbxProject = new PBXProject();
+            pbxProject.ReadFromFile(pbxProjectPath);
+            string targetGuid = pbxProject.GetUnityMainTargetGuid();
+
+            Log($"Loaded Xcode project at path: {pbxProjectPath}");
+
+            // Add Push Notification capability
+            Log("Adding Push Notification capability to Xcode project.");
+            pbxProject.AddCapability(targetGuid, PBXCapabilityType.PushNotifications);
+
+            var entitlementsFile = pbxProject.GetBuildPropertyForAnyConfig(targetGuid, "CODE_SIGN_ENTITLEMENTS");
+
+            if (string.IsNullOrEmpty(entitlementsFile))
+            {
+                Log($"No code sign entitlements file found. Creating new entitlements file.");
+                entitlementsFile = "Unity-iPhone.entitlements";
+            }
+            
+            var entitlementsFilePath = Path.Combine(pathToBuiltProject, entitlementsFile);
+            Log($"Entitlements file path: {entitlementsFilePath}");
+
+            var entitlements = new PlistDocument();
+
+            if (File.Exists(entitlementsFilePath))
+            {
+                entitlements.ReadFromFile(entitlementsFilePath);
+                Log($"Read entitlements file at path: {entitlementsFilePath}");
+            }
+            else
+            {
+                pbxProject.SetBuildProperty(targetGuid, "CODE_SIGN_ENTITLEMENTS", entitlementsFile);
+                Log($"Set project code sign entitlements to: {entitlementsFile}");
+            }
+
+            // Add the aps-environment entitlement for push notifications
+            try
+            {
+                entitlements.root.SetString("aps-environment", "development"); // Change to "production" when you're ready for production
+                Log("Added aps-environment entitlement for Push Notifications.");
+            }
+            catch (Exception e)
+            {
+                LogError($"Failed to add aps-environment entitlement: {e.Message}");
+                return;
+            }
+
+            entitlements.WriteToFile(entitlementsFilePath);
+            pbxProject.WriteToFile(pbxProjectPath);
+
+            Log("Successfully enabled Push Notification capability and updated entitlements.");
+        }
+
+
         private static void Log(string message)
         {
             Debug.Log($"{nameof(NoctuaIosBuildProcessor)}: {message}");

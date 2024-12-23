@@ -140,13 +140,19 @@
     justify-content: center;
 }
 
+.more-option-icon {
+    width: 24px;
+    height: 24px;
+    flex-shrink: 0;
+}
+
 .more-options-menu {
     background-color: rgb(56, 65, 74);
     position: absolute;
-    right: 10px;
     top: 40px;
     border-radius: 10px;
     padding: 5px;
+    left: 10px;
 }
 
 .more-options-menu-item {
@@ -167,6 +173,7 @@
     margin-left: 10px;
     -unity-text-align: middle-left;
     font-size: 12px;
+    color: rgb(229, 231, 235);
 }
 
 .delete-account-label {

@@ -2,6 +2,53 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.29.0] - 2024-12-22
+
+### 🚀 Features
+
+- Add custom app controller
+- Automation add capability push notification
+
+### 🐛 Bug Fixes
+
+- Update native sdk for ios
+
+## [0.28.0] - 2024-12-20
+
+### 🚀 Features
+
+- Add copublisher logo on register widget. Improve register user experience.
+- Pop up success message linked account
+- Localization wording account linked
+
+### 🐛 Bug Fixes
+
+- Add null check for account container in email login widget.
+- Change picture button is gone after success update image
+- Change picture button not center
+- Spinner edit profile
+- Update design exit pada account selection dialog
+- Remove player username from user display name prioritization list.
+- Date picker ios
+- Improve UX on Vietnam registration.
+- Button not active when change date picker and remove not necessary code
+- Close the entire user center after profile is successfully updated.
+- Remove duplicate lines.
+- Reload the entire user center presenter to avoid unexpected bug.
+
+## [0.27.1] - 2024-12-20
+
+### 🐛 Bug Fixes
+
+- Use scrollable page instead of pagination for pending purchase widget.
+- Different color panel pop up in bind confirmation dialog and connect conflict dialog
+- More option menu still showing after closing and reopen the user center panel
+- Design dropdown panel
+- Save button turn blue on disable
+- Login and register screen looped or stacked
+- Use currentActivity instead of applicationContext to ask notification permission
+- Check null on EditProfile saveButton enable and apply translations to dropdown fields
+
 ## [0.27.0] - 2024-12-19
 
 ### 🚀 Features

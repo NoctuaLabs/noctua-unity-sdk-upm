@@ -414,15 +414,6 @@
     background-position: center;
 }
 
-.noctua-text-input {
-    position: relative;
-    flex-direction: column;
-    margin-right: -10px;
-    margin-left: -10px;
-    padding-top: 5px;
-    background-color: rgba(0, 0, 0, 0);
-}
-
 .unity-base-text-field__input {
     border-radius: 10px;
     margin-bottom: 10px;
@@ -470,6 +461,15 @@
 
 .unity-list-view__item:focus {
     background-color: transparent;
+}
+
+.noctua-text-input {
+    position: relative;
+    flex-direction: column;
+    margin-right: -10px;
+    margin-left: -10px;
+    padding-top: 5px;
+    background-color: rgba(0, 0, 0, 0);
 }
 
 .noctua-text-input #unity-text-input {
@@ -580,6 +580,19 @@ Label:hover {
     border-radius: 6px;
 }
 
+.button-as-text-input {
+    position: relative;
+    flex-direction: column;
+    background-color: transparent;
+    width: 37px;
+    height: 47px;
+    -unity-text-align: middle-center;
+    font-size: 14px;
+    border-width: 1px;
+    border-color: rgb(71, 75, 78);
+    border-radius: 6px;
+}
+
 .general-dropdown-box {
     margin-bottom: 10px;
     margin-right: -0.3px;
@@ -614,6 +627,14 @@ Label:hover {
 
 .btn-password-hide {
     background-image: resource('Eye-Open');
+    top: 9.5px;
+    right: 10px;
+    position: absolute;
+    margin-top: 7px;
+}
+
+.btn-calendar {
+    background-image: resource('Calendar');
     top: 9.5px;
     right: 10px;
     position: absolute;
@@ -736,4 +757,20 @@ Label:hover {
     position: absolute;
     left: 0;
     right: 0;
+}
+
+.line {
+    flex-grow: 1;
+    background-color: rgb(66, 76, 86);
+    height: 1px;
+    margin-left: 40px;
+    margin-right: 20px;
+}
+
+.grey-text {
+    color: grey;
+}
+
+.white-text {
+    color: white;
 }

@@ -22,10 +22,10 @@
     "EmailRegisterDialogPresenter.PhoneNumberTF.TextField.label": "Nomor Telepon",
     "EmailRegisterDialogPresenter.BirthdateTF.TextField.label": "Tanggal Lahir",
     "EmailRegisterDialogPresenter.GenderTF.DropdownField.label": "Jenis Kelamin",
-    "EmailRegisterDialogPresenter.CountryTF.DropdownField.label": "Negara",
+    "EmailRegisterDialogPresenter.CountryTF.TextField.label": "Negara",
     "EmailRegisterDialogPresenter.IDCardTF.TextField.label": "Kartu Identitas",
     "EmailRegisterDialogPresenter.PlaceOfIssueTF.TextField.label": "Tempat Penerbitan",
-    "EmailRegisterDialogPresenter.DateOfIssueTF.TextField.label": "Tanggal Penerbitan",
+    "EmailRegisterDialogPresenter.DateOfIssueTF.Button.text": "Tanggal Penerbitan",
     "EmailRegisterDialogPresenter.AddressTF.TextField.label": "Alamat",
     "EmailRegisterDialogPresenter.PasswordTF.TextField.label": "Kata Sandi",
     "EmailRegisterDialogPresenter.RePasswordTF.TextField.label": "Masukkan Kembali Kata Sandi",
@@ -44,6 +44,7 @@
     "EmailRegisterDialogPresenter.WizardNextTo3Button.Button.text": "Lanjut",
     "EmailRegisterDialogPresenter.WizardNextTo4Button.Button.text": "Lanjut",
     "EmailRegisterDialogPresenter.LoginLink.Label.text": "Masuk",
+    "EmailRegisterDialogPresenter.WizardSpinner.Button.text": "Mendaftar...",
     "EmailRegisterDialogPresenter.AlreadyHaveAccount.Label.text": "Sudah punya akun?",
     "EmailRegisterDialogPresenter.ErrUnderage.Label.text": "Usia minimal 18 tahun",
 
@@ -142,6 +143,7 @@
     "UserCenterPresenter.SaveButtonContainer.SaveButton.Button.text": "Simpan",
     "UserCenterPresenter.TitleFindMoreLabel.Label.text": "Cari lebih banyak di",
     "UserCenterPresenter.CopyIcon.Button.text": "Salin",
+    "UserCenterPresenter.MenuPendingPurchases.Label.text": "Pembelian Tertunda",
 
     "BindConfirmationDialogPresenter.BindConfirmationLabel.Label.text": "Apakah anda ingin menghubungkan dengan akun yang dipilih?",
     "BindConfirmationDialogPresenter.ConnectButton.Button.text": "Hubungkan",
@@ -155,6 +157,8 @@
     "SuggestionBindText.Content2": "Lindungi progres permainan Anda.",
     "SuggestionBindText.Content3": "Dapatkan barang spesial dengan mengikat akun Anda.",
     "Select.Gender": "Pilih Jenis Kelamin",
+    "Select.Gender.Male" : "Pria",
+    "Select.Gender.Female" : "Wanita",
     "Select.Country": "Pilih Negara",
 
     "Title.Text.ContactSupport": "Hubungi Dukungan",
@@ -176,5 +180,7 @@
 
     "EditProfile.NicknameValidation": "Nama panggilan tidak boleh kosong",
     "EditProfile.CountryValidation": "Pilih negara",
-    "EditProfile.LanguageValidation": "Pilih bahasa"
+    "EditProfile.LanguageValidation": "Pilih bahasa",
+
+    "Usercenter.AccountLinked": "Tautan sosial berhasil diselesaikan"
 }

@@ -22,10 +22,10 @@
     "EmailRegisterDialogPresenter.PhoneNumberTF.TextField.label": "Phone Number",
     "EmailRegisterDialogPresenter.BirthdateTF.TextField.label": "Birthdate",
     "EmailRegisterDialogPresenter.GenderTF.DropdownField.label": "Gender",
-    "EmailRegisterDialogPresenter.CountryTF.DropdownField.label": "Country",
+    "EmailRegisterDialogPresenter.CountryTF.TextField.label": "Country",
     "EmailRegisterDialogPresenter.IDCardTF.TextField.label": "ID Card",
     "EmailRegisterDialogPresenter.PlaceOfIssueTF.TextField.label": "Place Of Issue",
-    "EmailRegisterDialogPresenter.DateOfIssueTF.TextField.label": "Date Of Issue",
+    "EmailRegisterDialogPresenter.DateOfIssueTF.Button.text": "Date Of Issue",
     "EmailRegisterDialogPresenter.AddressTF.TextField.label": "Address",
     "EmailRegisterDialogPresenter.PasswordTF.TextField.label": "Password",
     "EmailRegisterDialogPresenter.RePasswordTF.TextField.label": "Re-enter Password",
@@ -44,6 +44,7 @@
     "EmailRegisterDialogPresenter.WizardNextTo3Button.Button.text": "Next",
     "EmailRegisterDialogPresenter.WizardNextTo4Button.Button.text": "Next",
     "EmailRegisterDialogPresenter.LoginLink.Label.text": "Login",
+    "EmailRegisterDialogPresenter.WizardSpinner.Button.text": "Registering...",
     "EmailRegisterDialogPresenter.AlreadyHaveAccount.Label.text": "Already have an account?",
     "EmailRegisterDialogPresenter.ErrUnderage.Label.text": "Minimum age is 18 years old",
 
@@ -142,6 +143,7 @@
     "UserCenterPresenter.SaveButtonContainer.SaveButton.Button.text": "Save",
     "UserCenterPresenter.TitleFindMoreLabel.Label.text": "Find more at",
     "UserCenterPresenter.CopyIcon.Button.text": "Copy",
+    "UserCenterPresenter.MenuPendingPurchases.Label.text": "Pending Purchases",
 
     "BindConfirmationDialogPresenter.BindConfirmationLabel.Label.text": "Would you like to connect your progress to selected account?",
     "BindConfirmationDialogPresenter.ConnectButton.Button.text": "Connect",
@@ -155,6 +157,8 @@
     "SuggestionBindText.Content2": "Protect your game progress.",
     "SuggestionBindText.Content3": "Get special items by binding your account.",
     "Select.Gender" : "Select Gender",
+    "Select.Gender.Male" : "Male",
+    "Select.Gender.Female" : "Female",
     "Select.Country": "Select Country",
 
     "Title.Text.ContactSupport": "Contact Support",
@@ -174,6 +178,8 @@
 
     "EditProfile.NicknameValidation": "Nickname should not be empty",
     "EditProfile.CountryValidation": "Select country",
-    "EditProfile.LanguageValidation": "Select language"
+    "EditProfile.LanguageValidation": "Select language",
+    
+    "Usercenter.AccountLinked": "Social link completed"
 }
   

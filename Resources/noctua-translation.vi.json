@@ -1,5 +1,6 @@
 {
     "WelcomeNotificationPresenter.WelcomeLabel.Label.text": "Chào mừng",
+
     "EmailLoginDialogPresenter.TitleContinueWithEmail.Label.text": "Tiếp tục với email",
     "EmailLoginDialogPresenter.EmailTF.TextField.label": "Email",
     "EmailLoginDialogPresenter.PasswordTF.TextField.label": "Mật khẩu",
@@ -13,6 +14,7 @@
     "EmailLoginDialogPresenter.ContinueButton.Button.text": "Tiếp tục",
     "EmailLoginDialogPresenter.DontHaveAccount.Label.text": "Không có tài khoản",
     "EmailLoginDialogPresenter.Register.Label.text": "Đăng ký",
+
     "EmailRegisterDialogPresenter.LabelRegister1.Label.text": "Đăng ký bằng email",
     "EmailRegisterDialogPresenter.FullNameTF.TextField.label": "Họ và tên",
     "EmailRegisterDialogPresenter.EmailTF.TextField.label": "Email",
@@ -20,10 +22,10 @@
     "EmailRegisterDialogPresenter.PhoneNumberTF.TextField.label": "Số điện thoại",
     "EmailRegisterDialogPresenter.BirthdateTF.TextField.label": "Ngày sinh",
     "EmailRegisterDialogPresenter.GenderTF.DropdownField.label": "Giới tính",
-    "EmailRegisterDialogPresenter.CountryTF.DropdownField.label": "Quốc gia",
+    "EmailRegisterDialogPresenter.CountryTF.TextField.label": "Quốc gia",
     "EmailRegisterDialogPresenter.IDCardTF.TextField.label": "Căn cước công dân",
     "EmailRegisterDialogPresenter.PlaceOfIssueTF.TextField.label": "Nơi cấp",
-    "EmailRegisterDialogPresenter.DateOfIssueTF.TextField.label": "Ngày cấp",
+    "EmailRegisterDialogPresenter.DateOfIssueTF.Button.text": "Ngày cấp",
     "EmailRegisterDialogPresenter.AddressTF.TextField.label": "Địa chỉ",
     "EmailRegisterDialogPresenter.PasswordTF.TextField.label": "Mật khẩu",
     "EmailRegisterDialogPresenter.RePasswordTF.TextField.label": "Nhập lại mật khẩu",
@@ -43,10 +45,13 @@
     "EmailRegisterDialogPresenter.WizardNextTo3Button.Button.text": "Kế tiếp",
     "EmailRegisterDialogPresenter.WizardNextTo4Button.Button.text": "Kế tiếp",
     "EmailRegisterDialogPresenter.LoginLink.Label.text": "Đăng nhập",
+    "EmailRegisterDialogPresenter.WizardSpinner.Button.text": "Đang đăng ký...",
     "EmailRegisterDialogPresenter.AlreadyHaveAccount.Label.text": "Đã có tài khoản?",
+
     "AccountSelectionDialogPresenter.AccountSelectionInfo.Label.text": "Chọn tài khoản",
     "AccountSelectionDialogPresenter.GameAccountList.ListView.label": "Danh sách tài khoản game",
     "AccountSelectionDialogPresenter.ContinueButton.Button.text": "Liên kết hoặc Tiếp tục với tài khoản khác",
+
     "LoginOptionsDialogPresenter.TitleContinueWithAnotherAccount.Label.text": "Liên kết hoặc Tiếp tục với tài khoản khác",
     "LoginOptionsDialogPresenter.TitleGoogle.Label.text": "Google",
     "LoginOptionsDialogPresenter.TitleFacebook.Label.text": "Facebook",
@@ -56,6 +61,7 @@
     "LoginOptionsDialogPresenter.TnCLabel.Label.text": "<color=#3B82F6>Điều khoản dịch vụ</color>",
     "LoginOptionsDialogPresenter.PrivacyLabel.Label.text": "và <color=#3B82F6>Chính sách bảo mật</color>.",
     "LoginOptionsDialogPresenter.SubRegister.Label.text": "Không có tài khoản? <color=#3B82F6>Đăng ký</color>",
+
     "EmailVerificationDialogPresenter.TitleEmailVerifCode.Label.text": "Mã xác minh email",
     "EmailVerificationDialogPresenter.DialogContent1.Label.text": "Một mã 6 chữ số đã được gửi đến email của bạn.",
     "EmailVerificationDialogPresenter.DialogContent2.Label.text": "Vui lòng nhập mã trong vòng 10 phút",
@@ -70,6 +76,7 @@
     "EmailVerificationDialogPresenter.VerifyingCode.Label.text": "Đang xác minh…",
     "EmailVerificationDialogPresenter.ResendCode.Label.text": "Gửi lại mã",
     "EmailVerificationDialogPresenter.VerifyButton.Button.text": "Xác minh",
+
     "EmailResetPasswordDialogPresenter.TitleResetPassword.Label.text": "Đặt lại mật khẩu",
     "EmailResetPasswordDialogPresenter.Content1.Label.text": "Chúng tôi sẽ gửi đến một email",
     "EmailResetPasswordDialogPresenter.Content2.Label.text": "kèm mã xác minh",
@@ -78,6 +85,7 @@
     "EmailResetPasswordDialogPresenter.ErrEmailEmpty.Label.text": "Không được để trống email",
     "EmailResetPasswordDialogPresenter.ErrEmailInvalid.Label.text": "Email không hợp lệ",
     "EmailResetPasswordDialogPresenter.ContinueButton.Button.text": "Tiếp tục",
+
     "EmailConfirmResetPasswordDialogPresenter.TitleConfirmResetPassword.Label.text": "Xác nhận đặt lại mật khẩu",
     "EmailConfirmResetPasswordDialogPresenter.Content1.Label.text": "Một mã 6 chữ số đã được gửi đến email của bạn.",
     "EmailConfirmResetPasswordDialogPresenter.Content2.Label.text": "Mật khẩu mới không được trùng với mật khẩu cũ",
@@ -92,22 +100,28 @@
     "EmailConfirmResetPasswordDialogPresenter.ErrPasswordEmpty.Label.text": "Không được để trống mật khẩu",
     "EmailConfirmResetPasswordDialogPresenter.ContinueButton.Button.text": "Đặt lại mật khẩu",
     "EmailConfirmResetPasswordDialogPresenter.SuccessNotification": "Đã đặt lại mật khẩu thành công. Vui lòng đăng nhập bằng mật khẩu mới của bạn.",
+
     "FailedPaymentDialogPresenter.CSButton.Button.text": "Liên hệ CS",
     "FailedPaymentDialogPresenter.ItemAlreadyOwned": "Có vấn đề gì đó xảy ra với giao dịch mua trước đó của bạn. Vui lòng liên hệ với bộ phận chăm sóc khách hàng.",
     "FailedPaymentDialogPresenter.PendingPurchaseOngoing": "Giao dịch mua của bạn vẫn đang được xử lý. Vui lòng đợi vài phút và thử khởi động lại trò chơi.",
+
     "AccountDeletionConfirmationDialogPresenter.Question.Label.text": "Bạn có chắc muốn xóa\n tài khoản này không?",
     "AccountDeletionConfirmationDialogPresenter.Note.Label.text": "Tất cả tiến trình và dữ liệu của bạn sẽ mất.\n Hành động này là vĩnh viễn và không thể khôi phục.",
     "AccountDeletionConfirmationDialogPresenter.ErrCode.Label.tooltip": "Mã lỗi",
     "AccountDeletionConfirmationDialogPresenter.ConfirmButton.Button.text": "Xóa tài khoản",
     "AccountDeletionConfirmationDialogPresenter.CancelButton.Button.text": "Hủy",
+
     "LoadingProgressPresenter.TitleLoading.Label.text": "Vui lòng chờ…",
+
     "StartGameErrorDialogPresenter.MessageLabel.Label.text": "Có lỗi xảy ra, chúng tôi không thể tiếp tục trò chơi. Vui lòng thử khởi động lại trò chơi.",
     "StartGameErrorDialogPresenter.QuitButton.Button.text": "Thoát",
     "StartGameErrorDialogPresenter.CSButton.Button.text": "Liên hệ CS",
+
     "SwitchAccountConfirmationDialogPresenter.Question.Label.text": "Bạn có muốn chuyển tài\n khoản game của mình không?",
     "SwitchAccountConfirmationDialogPresenter.Note.Label.text": "Chúng tôi sẽ khởi động lại trò chơi của bạn ngay\n khi bạn xác nhận việc chuyển đổi tài khoản.\n Hãy yên tâm, tiến trình trò chơi của bạn\n sẽ được lưu vào tài khoản hiện tại.",
     "SwitchAccountConfirmationDialogPresenter.CancelButton.Button.text": "Hủy",
     "SwitchAccountConfirmationDialogPresenter.ConfirmButton.Button.text": "Xác nhận",
+
     "UserCenterPresenter.HelpLabel.Label.text": "Cần trợ giúp",
     "UserCenterPresenter.HiLabel.Label.text": "Xin chào",
     "UserCenterPresenter.MenuEditProfile.Label.text": "Chỉnh sửa hồ sơ",
@@ -129,17 +143,25 @@
     "UserCenterPresenter.SaveButtonContainer.SaveButton.Button.text": "Lưu",
     "UserCenterPresenter.TitleFindMoreLabel.Label.text": "Tìm thêm tại",
     "UserCenterPresenter.CopyIcon.Button.text": "Sao chép",
+    "UserCenterPresenter.MenuPendingPurchases.Label.text": "Đang chờ mua hàng",
+
     "BindConfirmationDialogPresenter.BindConfirmationLabel.Label.text": "Bạn có muốn kết nối tiến trình của mình với tài khoản đã chọn không?",
     "BindConfirmationDialogPresenter.ConnectButton.Button.text": "Kết nối",
     "BindConfirmationDialogPresenter.CancelButton.Button.text": "Huỷ",
+
     "ConnectConflictDialogPresenter.ConnectConflictInformationLabel.Label.text": "Thông tin xác thực này đã được kết nối với một tài khoản. Bạn có muốn chuyển đổi tài khoản không?",
     "ConnectConflictDialogPresenter.SwitchAccountButton.Button.text": "Chuyển đổi tài khoản",
     "ConnectConflictDialogPresenter.CancelButton.Button.text": "Huỷ",
+
     "SuggestionBindText.Content1": "Tiếp tục trò chơi của bạn trên bất kỳ thiết bị nào.",
     "SuggestionBindText.Content2": "Bảo vệ tiến trình trò chơi của bạn.",
     "SuggestionBindText.Content3": "Nhận vật phẩm đặc biệt bằng cách liên kết tài khoản của bạn.",
+
     "Select.Gender": "Chọn giới tính",
+    "Select.Gender.Male" : "Nam",
+    "Select.Gender.Female" : "Nữ",
     "Select.Country": "Chọn quốc gia",
+    
     "Title.Text.ContactSupport": "Liên hệ hỗ trợ",
     "User.Banned.Info": "Tài khoản của bạn đã bị cấm chơi tạm thời. Nếu bạn cho rằng đây là sự nhầm lẫn,",
     "User.Banned.Info2": "vui lòng <color=#3B82F6>liên hệ đội ngũ hỗ trợ của chúng tôi</color>.",
@@ -158,5 +180,7 @@
 
     "EditProfile.NicknameValidation": "Biệt danh không được để trống",
     "EditProfile.CountryValidation": "Chọn quốc gia",
-    "EditProfile.LanguageValidation": "Chọn ngôn ngữ"
+    "EditProfile.LanguageValidation": "Chọn ngôn ngữ",
+
+    "Usercenter.AccountLinked": "Liên kết xã hội đã hoàn tất"
 }

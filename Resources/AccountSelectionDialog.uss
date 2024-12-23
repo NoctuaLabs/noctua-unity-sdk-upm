@@ -1,4 +1,4 @@
-﻿.list-container {
+.list-container {
     flex-direction: column;
     align-items: stretch;
     align-self: stretch;
@@ -23,9 +23,18 @@
     align-items: stretch;
 }
 
-.account-selection-list .unity-list-view__item:active,
-.account-selection-list .unity-list-view__item:focus,
-.account-selection-list .unity-list-view__item--selected,
+.account-selection-list .unity-list-view__item:active {
+    background-color: transparent;
+}
+
+.account-selection-list .unity-list-view__item:focus {
+    background-color: transparent;
+}
+
+.account-selection-list .unity-list-view__item--selected {
+    background-color: transparent;
+}
+
 .account-selection-list .unity-collection-view__item--selected {
     background-color: transparent;
 }
@@ -40,14 +49,14 @@
 
 .separator-label {
     font-size: 10px;
-    color: #8B8E91;
+    color: rgb(139, 142, 145);
     -unity-text-align: middle-center;
 }
 
 .continue-other-button {
     height: 40px;
     bottom: 0;
-    border-color: #E5E7EB;
+    border-color: rgb(229, 231, 235);
     border-width: 1px;
     border-radius: 10px;
     background-color: rgb(31, 35, 39);
@@ -56,6 +65,28 @@
 
 .sdk-version {
     font-size: 8px;
-    color: #8B8E91;
+    color: rgb(139, 142, 145);
     align-self: center;
+}
+
+.exit-button {
+    height: 26px;
+    width: 26px;
+    align-self: flex-start;
+}
+
+.exit-icon {
+    width: 16px;
+    height: 16px;
+    background-image: url("project://database/Packages/com.noctuagames.sdk/Resources/ExitIcon.png?fileID=21300000&guid=d05c635247c1e10408d940a316e2e82c&type=3#ExitIcon");
+}
+
+.header-button {
+    border-radius: 13px;
+    height: 26px;
+    padding: 5px;
+    background-color: rgb(45, 49, 56);
+    align-items: center;
+    justify-content: center;
+    -unity-text-align: middle-center;
 }

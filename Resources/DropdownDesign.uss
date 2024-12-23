@@ -1,0 +1,103 @@
+.unity-base-dropdown .unity-scroll-view {
+    background-color: rgb(56, 65, 74);
+    border-top-left-radius: 10px;
+    border-top-right-radius: 10px;
+    border-bottom-right-radius: 10px;
+    border-bottom-left-radius: 10px;
+    color: rgb(245, 245, 245);
+}
+
+.unity-base-dropdown__container-outer {
+    border-top-width: 0;
+    border-right-width: 0;
+    border-bottom-width: 0;
+    border-left-width: 0;
+}
+
+.unity-base-dropdown .unity-scroller--vertical {
+    margin-right: 10px;
+}
+
+.unity-base-dropdown .unity-scroller__low-button {
+    display: none;
+}
+
+.unity-base-dropdown .unity-scroller__high-button {
+    display: none;
+}
+
+.unity-base-dropdown .unity-scroller--vertical {
+    background-color: rgb(71, 75, 78);
+    width: 5px;
+    border-top-left-radius: 3px;
+    border-top-right-radius: 3px;
+    border-bottom-right-radius: 3px;
+    border-bottom-left-radius: 3px;
+    margin-right: 10px;
+    margin-left: 8px;
+}
+
+.unity-base-dropdown .unity-scroller--vertical .unity-scroller__slider {
+    background-color: rgb(71, 75, 78);
+    border-top-left-radius: 3px;
+    border-top-right-radius: 3px;
+    border-bottom-right-radius: 3px;
+    border-bottom-left-radius: 3px;
+    padding-top: 0;
+    padding-right: 0;
+    padding-bottom: 0;
+    padding-left: 0;
+    margin-top: 0;
+    margin-right: 0;
+    margin-bottom: 0;
+    margin-left: 0;
+    width: 5px;
+    min-width: 5px;
+}
+
+.unity-base-dropdown .unity-scroller--vertical .unity-base-slider__tracker {
+    background-color: rgb(71, 75, 78);
+    border-top-left-radius: 3px;
+    border-top-right-radius: 3px;
+    border-bottom-right-radius: 3px;
+    border-bottom-left-radius: 3px;
+    padding-top: 0;
+    padding-right: 0;
+    padding-bottom: 0;
+    padding-left: 0;
+    margin-top: 0;
+    margin-right: 0;
+    margin-bottom: 0;
+    margin-left: 0;
+    width: 5px;
+    min-width: 5px;
+    border-top-width: 0;
+    border-right-width: 0;
+    border-bottom-width: 0;
+    border-left-width: 0;
+}
+
+.unity-base-dropdown .unity-scroller--vertical .unity-base-slider__dragger {
+    background-color: rgb(150, 152, 154);
+    border-top-left-radius: 3px;
+    border-top-right-radius: 3px;
+    border-bottom-right-radius: 3px;
+    border-bottom-left-radius: 3px;
+    padding-top: 0;
+    padding-right: 0;
+    padding-bottom: 0;
+    padding-left: 0;
+    margin-top: 0;
+    margin-right: 0;
+    margin-bottom: 0;
+    margin-left: 0;
+    width: 5px;
+    min-width: 5px;
+    border-top-width: 0;
+    border-right-width: 0;
+    border-bottom-width: 0;
+    border-left-width: 0;
+    position: absolute;
+    left: 0;
+    right: 0;
+}

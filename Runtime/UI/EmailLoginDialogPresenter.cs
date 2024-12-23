@@ -107,6 +107,19 @@ namespace com.noctuagames.sdk.UI
                 View.Q<VisualElement>("Spinner").Add(new Spinner(30, 30));
                 View.Q<VisualElement>("Spinner").AddToClassList("hide");
             }
+
+            // Show copublisher logo
+            if (!string.IsNullOrEmpty(_config?.CoPublisher?.CompanyName))
+            {
+                var logo = Utility.GetCoPublisherLogo(_config.CoPublisher.CompanyName);
+                var defaultLogo = Resources.Load<Texture2D>(logo);
+                View.Q<VisualElement>("NoctuaLogoWithText").style.backgroundImage = new StyleBackground(defaultLogo);
+                View.Q<VisualElement>("NoctuaLogoWithText").RemoveFromClassList("hide");
+            }
+            else
+            {
+                View.Q<VisualElement>("NoctuaLogoWithText").AddToClassList("hide");
+            }
         }
 
         public void OnToggleShowPassword(PointerUpEvent _event)
@@ -222,7 +235,8 @@ namespace com.noctuagames.sdk.UI
             _log.Debug("clicking register button");
 
             Visible = false;
-
+            
+            Model.ClearNavigation();
             Model.PushNavigation(() => Model.ShowEmailLogin());
             Model.ShowEmailRegistration(true);
         }
@@ -295,8 +309,17 @@ namespace com.noctuagames.sdk.UI
 
             try
             {
-                if (Model.AuthService.RecentAccount?.IsGuest ?? false)
+                if (Model.AuthService.RecentAccount == null ||
+                !(Model.AuthService.RecentAccount != null && Model.AuthService.RecentAccount.IsGuest))
                 {
+                    // If account container is empty or it's not guest, login directly.
+                    var userBundle = await Model.AuthService.LoginWithEmailAsync(emailAddress, password);
+
+                    _onLoginSuccess?.Invoke(userBundle);
+                }
+                else
+                {
+                    // If guest, show bind confirmation dialog for guest.
                     var playerToken = await Model.AuthService.GetEmailLoginTokenAsync(emailAddress, password);
 
                     if (playerToken.Player == null)
@@ -307,12 +330,6 @@ namespace com.noctuagames.sdk.UI
                     {
                         Model.ShowConnectConflict(playerToken);
                     }
-                }
-                else
-                {
-                    var userBundle = await Model.AuthService.LoginWithEmailAsync(emailAddress, password);
-
-                    _onLoginSuccess?.Invoke(userBundle);
                 }
 
                 View.Q<TextField>("EmailTF").value = string.Empty;
