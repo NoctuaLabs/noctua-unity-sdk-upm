@@ -290,7 +290,7 @@ namespace com.noctuagames.sdk
             panelSettings.themeStyleSheet = Resources.Load<ThemeStyleSheet>("NoctuaTheme");
             // Calculate the scale factor based on the screen width and height short side
             // Apply the scale to the panel settings to keep the UI consistent.
-            panelSettings.scale = 1.0f * Mathf.Min(Screen.width, Screen.height) / panelSettings.referenceResolution.y;
+            //panelSettings.scale = 1.0f * Mathf.Min(Screen.width, Screen.height) / panelSettings.referenceResolution.y;
             
             var noctuaUIGameObject = new GameObject("NoctuaUI");
             noctuaUIGameObject.AddComponent<PauseBehaviour>();
