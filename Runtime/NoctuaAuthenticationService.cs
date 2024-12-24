@@ -572,7 +572,8 @@ namespace com.noctuagames.sdk
                         CredKey = email,
                         CredSecret = password
                     }
-                );
+                )
+                .NoVerboseLog();
 
             var response = await request.Send<PlayerToken>();
 
@@ -601,7 +602,8 @@ namespace com.noctuagames.sdk
                         Provider = "email",
                         RegExtra = regExtra
                     }
-                );
+                )
+                .NoVerboseLog();
 
             return await request.Send<CredentialVerification>();
         }
@@ -666,7 +668,8 @@ namespace com.noctuagames.sdk
                         Code = code,
                         NewPassword = newPassword,
                     }
-                );
+                )
+                .NoVerboseLog();
 
             var response = await request.Send<PlayerToken>();
             
@@ -730,7 +733,8 @@ namespace com.noctuagames.sdk
                         CredSecret = password,
                         Provider = "email"
                     }
-                );
+                )
+                .NoVerboseLog();
 
             return await request.Send<CredentialVerification>();
         }
@@ -837,7 +841,8 @@ namespace com.noctuagames.sdk
                         CredSecret = password,
                         NoBindGuest = true
                     }
-                );
+                )
+                .NoVerboseLog();
             
             request.WithHeader("Authorization", "Bearer " + RecentAccount.Player.AccessToken);
 
