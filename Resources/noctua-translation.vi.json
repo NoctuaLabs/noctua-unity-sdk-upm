@@ -50,9 +50,9 @@
 
     "AccountSelectionDialogPresenter.AccountSelectionInfo.Label.text": "Chọn tài khoản",
     "AccountSelectionDialogPresenter.GameAccountList.ListView.label": "Danh sách tài khoản game",
-    "AccountSelectionDialogPresenter.ContinueButton.Button.text": "Liên kết hoặc Tiếp tục với tài khoản khác",
+    "AccountSelectionDialogPresenter.ContinueButton.Button.text": "Liên kết hoặc Thêm tài khoản khác",
 
-    "LoginOptionsDialogPresenter.TitleContinueWithAnotherAccount.Label.text": "Liên kết hoặc Tiếp tục với tài khoản khác",
+    "LoginOptionsDialogPresenter.TitleContinueWithAnotherAccount.Label.text": "Liên kết hoặc Thêm tài khoản khác",
     "LoginOptionsDialogPresenter.TitleGoogle.Label.text": "Google",
     "LoginOptionsDialogPresenter.TitleFacebook.Label.text": "Facebook",
     "LoginOptionsDialogPresenter.OrContinueWith.Label.text": "hoặc tiếp tục",
@@ -128,7 +128,7 @@
     "UserCenterPresenter.MenuSwitchProfile.Label.text": "Thay đổi hồ sơ",
     "UserCenterPresenter.MenuDeleteAccount.Label.text": "Xóa tài khoản",
     "UserCenterPresenter.MenuLogout.Label.text": "Đăng xuất tài khoản",
-    "UserCenterPresenter.GuestConnectButton.Button.text": "Liên kết hoặc đổi tài khoản",
+    "UserCenterPresenter.GuestConnectButton.Button.text": "Liên kết hoặc Thêm tài khoản khác",
     "UserCenterPresenter.ChangePictureButton.Button.text": "Thay đổi hình ảnh",
     "UserCenterPresenter.TitleEditBack.Label.text": "Quay lại",
     "UserCenterPresenter.StayConnectCompany.Label.text": "Giữ kết nối với",

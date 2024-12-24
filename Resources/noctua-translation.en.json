@@ -50,9 +50,9 @@
 
     "AccountSelectionDialogPresenter.AccountSelectionInfo.Label.text": "Choose Account",
     "AccountSelectionDialogPresenter.GameAccountList.ListView.label": "Game Account List",
-    "AccountSelectionDialogPresenter.ContinueButton.Button.text": "Bind or Continue with another account",
+    "AccountSelectionDialogPresenter.ContinueButton.Button.text": "Bind or Add other account",
 
-    "LoginOptionsDialogPresenter.TitleContinueWithAnotherAccount.Label.text": "Bind or Continue with another account",
+    "LoginOptionsDialogPresenter.TitleContinueWithAnotherAccount.Label.text": "Bind or Add other account",
     "LoginOptionsDialogPresenter.TitleGoogle.Label.text": "Google",
     "LoginOptionsDialogPresenter.TitleFacebook.Label.text": "Facebook",
     "LoginOptionsDialogPresenter.OrContinueWith.Label.text": "or continue with",    
@@ -128,7 +128,7 @@
     "UserCenterPresenter.MenuSwitchProfile.Label.text": "Switch Profile",
     "UserCenterPresenter.MenuDeleteAccount.Label.text": "Delete Account",
     "UserCenterPresenter.MenuLogout.Label.text": "Logout Account",
-    "UserCenterPresenter.GuestConnectButton.Button.text": "Bind or Continue with another account",
+    "UserCenterPresenter.GuestConnectButton.Button.text": "Bind or Add other account",
     "UserCenterPresenter.ChangePictureButton.Button.text": "Change Picture",
     "UserCenterPresenter.TitleEditBack.Label.text": "Back",
     "UserCenterPresenter.StayConnectCompany.Label.text": "Stay connect to",
