@@ -33,11 +33,6 @@ namespace Tests.Runtime
                 Assert.IsNotNull(userBundle);
                 Assert.AreEqual(3, numAccountChanged);
             }
-            catch (HttpError e)
-            {
-                Assert.Fail($"Failed to login as guest: {e.StatusCode}");
-            }
-            
             catch (System.Exception e)
             {
                 Assert.Fail($"Failed to login as guest: {e.Message}");

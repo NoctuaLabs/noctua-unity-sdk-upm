@@ -55,25 +55,6 @@ namespace com.noctuagames.sdk
     }
 
 
-    public class HttpError : Exception
-    {
-        public long StatusCode { get; }
-
-        public HttpError(long statusCode, string message) : base(message)
-        {
-            StatusCode = statusCode;
-        }
-    }
-
-
-    internal class NetworkError : Exception
-    {
-        public NetworkError(string message) : base(message)
-        {
-        }
-    }
-
-
     public enum HttpMethod
     {
         Get,
@@ -97,6 +78,8 @@ namespace com.noctuagames.sdk
             NullValueHandling = NullValueHandling.Ignore,
             Formatting = Formatting.Indented,
         };
+        
+        private bool _noVerboseLog;
 
         internal HttpRequest(HttpMethod method, string url)
         {
@@ -109,6 +92,7 @@ namespace com.noctuagames.sdk
             _request.SetRequestHeader("X-LANGUAGE", Noctua.Platform.Locale.GetLanguage());
             _request.SetRequestHeader("X-COUNTRY", Noctua.Platform.Locale.GetCountry());
             _request.SetRequestHeader("X-CURRENCY", Noctua.Platform.Locale.GetCurrency());
+            
             _request.SetRequestHeader("X-SDK-VERSION", Assembly.GetExecutingAssembly().GetName().Version.ToString());
 
         }
@@ -219,6 +203,13 @@ namespace com.noctuagames.sdk
 
             return this;
         }
+        
+        public HttpRequest NoVerboseLog()
+        {
+            _noVerboseLog = true;
+            
+            return this;
+        }
 
         [Preserve]
         private class DataWrapper<T>
@@ -248,20 +239,28 @@ namespace com.noctuagames.sdk
             var response = "";
 
             var auth = !string.IsNullOrEmpty(_request.GetRequestHeader("Authorization")) ? "Authorization: Bearer" : "";
-            
-            _log.Debug(
-                $"=> {_request.method} {_request.url}\n"                         +
-                $"Content-Type: {_request.GetRequestHeader("Content-Type")}\n"   +
-                $"{auth}\n" +
-                $"Accept-Language: {_request.GetRequestHeader("X-LANGUAGE")}\n"     +
-                $"X-CLIENT-ID: {_request.GetRequestHeader("X-CLIENT-ID")}\n"     +
-                $"X-BUNDLE-ID: {_request.GetRequestHeader("X-BUNDLE-ID")}\n"   +
-                $"X-LANGUAGE: {_request.GetRequestHeader("X-LANGUAGE")}\n"     +
-                $"X-COUNTRY: {_request.GetRequestHeader("X-COUNTRY")}\n"     +
-                $"X-CURRENCY: {_request.GetRequestHeader("X-CURRENCY")}\n"     +
-                $"X-SDK-VERSION: {_request.GetRequestHeader("X-SDK-VERSION")}\n\n"     +
-                $"{Encoding.UTF8.GetString(_request.uploadHandler?.data ?? Array.Empty<byte>())}"
-            );
+
+            if (_noVerboseLog)
+            {
+                _log.Debug($"=> {_request.method} {_request.url}\n");
+                
+            }
+            else
+            {
+                _log.Debug(
+                    $"=> {_request.method} {_request.url}\n"                           +
+                    $"Content-Type: {_request.GetRequestHeader("Content-Type")}\n"     +
+                    $"{auth}\n"                                                        +
+                    $"Accept-Language: {_request.GetRequestHeader("X-LANGUAGE")}\n"    +
+                    $"X-CLIENT-ID: {_request.GetRequestHeader("X-CLIENT-ID")}\n"       +
+                    $"X-BUNDLE-ID: {_request.GetRequestHeader("X-BUNDLE-ID")}\n"       +
+                    $"X-LANGUAGE: {_request.GetRequestHeader("X-LANGUAGE")}\n"         +
+                    $"X-COUNTRY: {_request.GetRequestHeader("X-COUNTRY")}\n"           +
+                    $"X-CURRENCY: {_request.GetRequestHeader("X-CURRENCY")}\n"         +
+                    $"X-SDK-VERSION: {_request.GetRequestHeader("X-SDK-VERSION")}\n\n" +
+                    $"{Encoding.UTF8.GetString(_request.uploadHandler?.data ?? Array.Empty<byte>())}"
+                );
+            }
 
             try
             {
@@ -285,20 +284,20 @@ namespace com.noctuagames.sdk
                 _request.downloadHandler.Dispose();
                 _request.uploadHandler?.Dispose();
             }
-
-            _log.Debug(
-                $"<= {_request.responseCode} {(HttpStatusCode)_request.responseCode} {_request.method} {_request.url}\n\n" +
-                $"{response}"
-            );
-
-            if (_request.responseCode >= 500)
+            
+            var responseCode = _request.responseCode;
+            var responseCodeString = ((HttpStatusCode)responseCode).ToString();
+            var url = _request.url;
+            var method = _request.method;
+            
+            if (_noVerboseLog)
             {
-                _log.Error($"HTTP error {_request.responseCode}, response: '{response}'");
-                
-                throw new NoctuaException(
-                    NoctuaErrorCode.Networking,
-                    $"HTTP error {_request.responseCode}: {((HttpStatusCode)_request.responseCode).ToString()}"
-                );
+                _log.Debug($"<= {responseCode} {responseCodeString} {method} {url}");
+            }
+            else
+            {
+                var responseHeaders = _request.GetResponseHeaders().Aggregate("", (a, p) => $"{a}\n{p.Key}: {p.Value}");
+                _log.Debug($"<= {responseCode} {responseCodeString} {method} {url}\n{responseHeaders}\n\n{response}");
             }
 
             if (_request.responseCode >= 400)
