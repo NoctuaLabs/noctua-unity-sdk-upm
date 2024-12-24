@@ -154,7 +154,7 @@ namespace com.noctuagames.sdk.UI
                 !(Model.AuthService.RecentAccount != null && Model.AuthService.RecentAccount.IsGuest))
                 {
                     // If account container is empty or it's not guest, verify directly.
-                    await Model.VerifyEmailRegistration(_credVerifyId, _credVerifyCode);
+                    await Model.AuthService.VerifyEmailRegistrationAsync(_credVerifyId, _credVerifyCode);
                 }
                 else if (Model.AuthIntention == AuthIntention.Switch)
                 {
