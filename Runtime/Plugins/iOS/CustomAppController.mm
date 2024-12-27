@@ -15,6 +15,7 @@ NSString *const kGCMMessageIDKey = @"gcm.message_id";
     
     [super application:application didFinishLaunchingWithOptions:launchOptions];
 
+    // Check the existing instance before initialize the new one.
     if(![FIRApp defaultApp]){
     	[FIRApp configure];
     }
