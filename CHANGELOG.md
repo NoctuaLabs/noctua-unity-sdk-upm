@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.30.1] - 2024-12-27
+
+### 🐛 Bug Fixes
+
+- Check for existing instance before call Firebase::configure.
+
 ## [0.30.0] - 2024-12-27
 
 ### 🚀 Features
