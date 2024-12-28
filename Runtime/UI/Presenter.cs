@@ -81,6 +81,56 @@ namespace com.noctuagames.sdk.UI
             Utility.ApplyTranslations(View, GetType().Name, Locale.GetTranslations());
         }
 
+        public class ButtonNoctua
+        {
+            public Button button { get; }
+            public VisualElement veSpinner { get; }
+            public Label labelError { get; }
+
+            public ButtonNoctua (Button _button)
+            {
+                button = _button;
+                labelError = button.parent.Q<Label>("ErrCode");
+                veSpinner = button.parent.Q<VisualElement>("Spinner");
+
+                if (veSpinner != null)
+                {
+                    if (veSpinner.childCount == 0)
+                    {
+                        veSpinner.Add(new Spinner(30, 30));
+                    }
+                }
+
+                Clear();
+            }
+
+            public void Clear()
+            {
+                labelError.AddToClassList("hide");
+                ToggleLoading(false);
+            }
+
+            public void ToggleLoading(bool _isLoading)
+            {
+                if (_isLoading)
+                {
+                    button.AddToClassList("hide");
+                    veSpinner.RemoveFromClassList("hide");
+                }
+                else
+                {
+                    button.RemoveFromClassList("hide");
+                    veSpinner.AddToClassList("hide");
+                }
+            }
+
+            public void Error(string _strMessage)
+            {
+                labelError.text = _strMessage;                
+                labelError.RemoveFromClassList("hide");               
+            }
+        }
+
         public class InputFieldNoctua
         {
             public TextField textField { get; }
