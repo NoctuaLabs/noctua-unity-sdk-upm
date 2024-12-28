@@ -1,8 +1,10 @@
 ﻿using System;
 using Cysharp.Threading.Tasks;
 using UnityEngine;
+using UnityEngine.UI;
 using UnityEngine.UIElements;
 using Object = UnityEngine.Object;
+using Toggle = UnityEngine.UIElements.Toggle;
 
 namespace com.noctuagames.sdk.UI
 {
@@ -162,13 +164,15 @@ namespace com.noctuagames.sdk.UI
         {
 
             var layout = element.LocalToWorld(new Rect(0, 0, element.layout.width, element.layout.height));
-            var scaleFactor = gameObject.GetComponent<UIDocument>().panelSettings.scale;
+            var match = gameObject.GetComponent<UIDocument>().panelSettings.match;
+            var referenceResolution = gameObject.GetComponent<UIDocument>().panelSettings.referenceResolution;
+            var scale = match == 0.0f ? Screen.width / referenceResolution.x : Screen.height / referenceResolution.y;
             
             var adjustedLayout = new Rect(
-                layout.position.x * scaleFactor,
-                layout.position.y * scaleFactor,
-                layout.width      * scaleFactor,
-                layout.height     * scaleFactor
+                layout.position.x * scale,
+                layout.position.y * scale,
+                layout.width      * scale,
+                layout.height     * scale
             );
 
             return adjustedLayout;

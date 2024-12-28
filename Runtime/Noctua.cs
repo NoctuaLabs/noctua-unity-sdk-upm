@@ -292,6 +292,8 @@ namespace com.noctuagames.sdk
             var noctuaUIGameObject = new GameObject("NoctuaUI");
             noctuaUIGameObject.AddComponent<PauseBehaviour>();
             noctuaUIGameObject.AddComponent<GlobalExceptionLogger>();
+            var screenRotationMonitor = noctuaUIGameObject.AddComponent<ScreenRotationMonitor>();
+            screenRotationMonitor.PanelSettings = panelSettings;
             Object.DontDestroyOnLoad(noctuaUIGameObject);
             
             SceneManager.sceneLoaded += (_, _) => EventSystem.SetUITookitEventSystemOverride(EventSystem.current);

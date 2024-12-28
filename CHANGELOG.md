@@ -2,6 +2,33 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.30.1] - 2024-12-27
+
+### 🐛 Bug Fixes
+
+- Check for existing instance before call Firebase::configure.
+
+## [0.30.0] - 2024-12-27
+
+### 🚀 Features
+
+- Add pending purhase menu translation vn
+
+### 🐛 Bug Fixes
+
+- Auto scaling problem
+- Delete old code
+- Wrong URL detection cause SSO to fail
+- Webview scale broken due to scaling change
+- Translation bind or add other account
+- Change button style
+- Scale should adjust with auto rotate
+- Check for existing instance before call Firebase::configure.
+
+### ⚙️ Miscellaneous Tasks
+
+- No verbose log for HTTP requests with passwords
+
 ## [0.29.0] - 2024-12-22
 
 ### 🚀 Features

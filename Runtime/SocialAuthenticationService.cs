@@ -142,12 +142,17 @@ namespace com.noctuagames.sdk
 
             bool OnSocialLoginShouldClose(UniWebView webView)
             {
-                if (!webView.Url.Contains($"api/v1/auth/{provider}/code")) {
+                if (!webView.Url.StartsWith($"{_config.Noctua.BaseUrl}/auth/{provider}/code")) 
+                {
                     _log.Debug("WebView closed by user before login completed");
                     var providerName = System.Threading.Thread.CurrentThread.CurrentCulture.TextInfo.ToTitleCase(provider);
                     tcs.TrySetException(new NoctuaException(NoctuaErrorCode.Authentication, $"{providerName} login canceled"));
                 }
-                // Continue to close the WebView
+                else 
+                {
+                    tcs.TrySetResult(webView.Url);
+                }
+
                 return true;
             }
             
@@ -155,11 +160,13 @@ namespace com.noctuagames.sdk
             {
                 _log.Debug("URL started to load: " + url);
 
-                if (url.Contains($"api/v1/auth/{provider}/code")) {
-                    webView.Hide();
+                if (url.StartsWith($"{_config.Noctua.BaseUrl}/auth/{provider}/code")) 
+                {
                     tcs.TrySetResult(url);
                 }
-                else if (url.Contains("error") && provider == "google") { // "error" string does not apply for Facebook
+                else if (url.Contains("error") && provider == "google") 
+                { 
+                    // "error" string does not apply for Facebook
                     var providerName = System.Threading.Thread.CurrentThread.CurrentCulture.TextInfo.ToTitleCase(provider);
                     tcs.TrySetException(new NoctuaException(NoctuaErrorCode.Authentication, $"{providerName} login failed"));
                 }
@@ -169,11 +176,13 @@ namespace com.noctuagames.sdk
             {
                 _log.Debug("URL finished to load: " + url);
                 
-                if (url.Contains($"api/v1/auth/{provider}/code")) {
-                    webView.Hide();
+                if (url.StartsWith($"{_config.Noctua.BaseUrl}/auth/{provider}/code")) 
+                {
                     tcs.TrySetResult(url);
                 }
-                else if (url.Contains("error") && provider == "google") { // "error" string does not apply for Facebook
+                else if (url.Contains("error") && provider == "google") 
+                { 
+                    // "error" string does not apply for Facebook
                     var providerName = System.Threading.Thread.CurrentThread.CurrentCulture.TextInfo.ToTitleCase(provider);
                     tcs.TrySetException(new NoctuaException(NoctuaErrorCode.Authentication, $"{providerName} login failed"));
                 }

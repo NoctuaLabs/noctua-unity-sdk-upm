@@ -14,8 +14,11 @@ NSString *const kGCMMessageIDKey = @"gcm.message_id";
 - (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary<UIApplicationLaunchOptionsKey,id> *)launchOptions {
     
     [super application:application didFinishLaunchingWithOptions:launchOptions];
-    
-    [FIRApp configure];
+
+    // Check the existing instance before initialize the new one.
+    if(![FIRApp defaultApp]){
+    	[FIRApp configure];
+    }
     
     // Set FIRMessaging delegate
     [FIRMessaging messaging].delegate = self;
