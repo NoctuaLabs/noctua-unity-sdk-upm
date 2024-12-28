@@ -21,18 +21,17 @@ namespace com.noctuagames.sdk.UI
     {
         private readonly ILogger _log = new NoctuaLogger();
 
-        private string _email;
-        private string _password;
         private VisualElement panelVE;
         private List<TextField> textFields;
-        private TextField emailField;
-        private TextField passwordField;
+        private InputFieldNoctua inputEmail;
+        private InputFieldNoctua inputPassword;
+
         private Button submitButton;
         private Button showPasswordButton;
 
         private Action<UserBundle> _onLoginSuccess;
         private GlobalConfig _config;
-
+        
         public void Show(Action<UserBundle> onLoginSuccess)
         {
             Setup();
@@ -65,38 +64,34 @@ namespace com.noctuagames.sdk.UI
         }
 
         private void Setup()
-        {
+        {            
             panelVE = View.Q<VisualElement>("Panel");
-            emailField = View.Q<TextField>("EmailTF");
-            passwordField = View.Q<TextField>("PasswordTF");
             submitButton = View.Q<Button>("ContinueButton");
             showPasswordButton = View.Q<Button>("ShowPasswordButton");
 
-            passwordField.isPasswordField = true;
+            inputEmail = new InputFieldNoctua(View.Q<TextField>("EmailTF"));
+            inputPassword = new InputFieldNoctua(View.Q<TextField>("PasswordTF"));
 
-            emailField.RegisterValueChangedCallback(evt => OnEmailValueChanged(emailField));
-            passwordField.RegisterValueChangedCallback(evt => OnPasswordValueChanged(passwordField));            
+            inputPassword.textField.isPasswordField = true;
 
-            emailField.hideMobileInput = true;
-            passwordField.hideMobileInput = true;
+            inputEmail.textField.RegisterValueChangedCallback(evt => OnValueChanged(inputEmail));
+            inputPassword.textField.RegisterValueChangedCallback(evt => OnValueChanged(inputPassword));
+
+            inputEmail.SetFocus();
+            inputPassword.SetFocus();
 
             textFields = new List<TextField>
             {
-                emailField,
-                passwordField
+                inputEmail.textField,
+                inputPassword.textField
             };
 
-            Utility.UpdateButtonState(textFields, submitButton);
+            Utility.UpdateButtonState(textFields, submitButton);            
 
-            View.Q<Label>("ForgotPassword").RegisterCallback<PointerUpEvent>(OnForgotPasswordButtonClick);
-            View.Q<Label>("Register").RegisterCallback<PointerUpEvent>(OnRegisterButtonClick);
-            View.Q<Button>("BackButton").RegisterCallback<PointerUpEvent>(OnBackButtonClick);
-            View.Q<Button>("ContinueButton").RegisterCallback<PointerUpEvent>(OnContinueButtonClick);
-
-            emailField.RegisterCallback<FocusInEvent>(OnTextFieldFocusChange);
-            passwordField.RegisterCallback<FocusInEvent>(OnTextFieldFocusChange);
-            emailField.RegisterCallback<FocusOutEvent>(OnTextFieldFocusChange);
-            passwordField.RegisterCallback<FocusOutEvent>(OnTextFieldFocusChange);
+            View.Q<Label>("ForgotPassword").RegisterCallback<ClickEvent>(OnForgotPasswordButtonClick);
+            View.Q<Label>("Register").RegisterCallback<ClickEvent>(OnRegisterButtonClick);
+            View.Q<Button>("BackButton").RegisterCallback<ClickEvent>(OnBackButtonClick);
+            View.Q<Button>("ContinueButton").RegisterCallback<ClickEvent>(OnContinueButtonClick);
 
             showPasswordButton.RegisterCallback<PointerUpEvent>(OnToggleShowPassword);
 
@@ -120,13 +115,15 @@ namespace com.noctuagames.sdk.UI
             {
                 View.Q<VisualElement>("NoctuaLogoWithText").AddToClassList("hide");
             }
+
+            HideAllErrors();
         }
 
         public void OnToggleShowPassword(PointerUpEvent _event)
         {
-            passwordField.isPasswordField = !passwordField.isPasswordField;
+            inputPassword.textField.isPasswordField = !inputPassword.textField.isPasswordField;
 
-            if (passwordField.isPasswordField)
+            if (inputPassword.textField.isPasswordField)
             {
                 showPasswordButton.RemoveFromClassList("btn-password-hide");
             }
@@ -136,60 +133,20 @@ namespace com.noctuagames.sdk.UI
             }
         }
 
-        public void OnTextFieldFocusChange(FocusInEvent _event)
-        {
-            HideAllErrors();
-            (_event.target as VisualElement).Children().ElementAt(1).AddToClassList("noctua-text-input-focus");            
-            (_event.target as VisualElement).Q<VisualElement>("title").style.color = ColorModule.white;
-        }
-
-        public void OnTextFieldFocusChange(FocusOutEvent _event)
-        {
-            (_event.target as VisualElement).Children().ElementAt(1).RemoveFromClassList("noctua-text-input-focus");
-            (_event.target as VisualElement).Q<VisualElement>("title").style.color = ColorModule.greyInactive;
-        }
-
         public void SetBehaviourWhitelabel(GlobalConfig config)
         {
             _config = config;
         }
 
-        private void OnEmailValueChanged(TextField textField)
+        private void OnValueChanged(InputFieldNoctua _input)
         {
-            HideAllErrors();
-
-            _email = textField.value;
-            AdjustHideLabelElement(textField);
-            Utility.UpdateButtonState(textFields, submitButton);            
-        }
-
-        private void OnPasswordValueChanged(TextField textField)
-        {
-            HideAllErrors();
-
-            _password = textField.value;
-            AdjustHideLabelElement(textField);
+            _input.AdjustLabel();
             Utility.UpdateButtonState(textFields, submitButton);
         }
 
-        private void AdjustHideLabelElement(TextField textField)
-        {
-            if (string.IsNullOrEmpty(textField.value))
-            {
-                textField.labelElement.style.display = DisplayStyle.Flex;
-                textField.Q<VisualElement>("title").AddToClassList("hide");
-            }
-            else
-            {
-                textField.labelElement.style.display = DisplayStyle.None;
-                textField.Q<VisualElement>("title").RemoveFromClassList("hide");
-            }
-        }
-
-        private void OnBackButtonClick(PointerUpEvent evt)
+        private void OnBackButtonClick(ClickEvent evt)
         {
             Visible = false;
-
             Model.NavigateBack();
         }
 
@@ -220,7 +177,7 @@ namespace com.noctuagames.sdk.UI
             }
         }
 
-        private void OnForgotPasswordButtonClick(PointerUpEvent evt)
+        private void OnForgotPasswordButtonClick(ClickEvent evt)
         {
             _log.Debug("clicking forgot password button");
 
@@ -230,18 +187,18 @@ namespace com.noctuagames.sdk.UI
             Model.ShowEmailResetPassword(true);
         }
 
-        private void OnRegisterButtonClick(PointerUpEvent evt)
+        private void OnRegisterButtonClick(ClickEvent evt)
         {
             _log.Debug("clicking register button");
 
             Visible = false;
-            
+
             Model.ClearNavigation();
             Model.PushNavigation(() => Model.ShowEmailLogin());
             Model.ShowEmailRegistration(true);
         }
 
-        private async void OnContinueButtonClick(PointerUpEvent evt)
+        private async void OnContinueButtonClick(ClickEvent evt)
         {
             _log.Debug("clicking continue button");
 
@@ -250,60 +207,43 @@ namespace com.noctuagames.sdk.UI
             View.Q<VisualElement>("Spinner").RemoveFromClassList("hide");
             View.Q<Button>("ContinueButton").AddToClassList("hide");
 
-            var emailAddress = _email.Replace(" ", string.Empty);
-            var password = _password;
+            var emailAddress = inputEmail.text.Replace(" ", string.Empty);
+            var password = inputPassword.text;
 
             // Validation
             if (string.IsNullOrEmpty(emailAddress))
-            {
-                //View.Q<Label>("ErrEmailEmpty").RemoveFromClassList("hide");
+            {                
                 View.Q<Button>("ContinueButton").RemoveFromClassList("hide");
                 View.Q<VisualElement>("Spinner").AddToClassList("hide");
-                
-                emailField.ElementAt(1).AddToClassList("noctua-text-input-error");
-                emailField.Q<Label>("error").RemoveFromClassList("hide");
-                emailField.Q<Label>("error").text = "Email address should not be empty";
-                emailField.Q<VisualElement>("title").style.color = ColorModule.redError;
+
+                inputEmail.Error("Email address should not be empty");
                 return;
             }
 
             if (!IsValidEmail(emailAddress))
             {
-                //View.Q<Label>("ErrEmailInvalid").RemoveFromClassList("hide");
                 View.Q<Button>("ContinueButton").RemoveFromClassList("hide");
                 View.Q<VisualElement>("Spinner").AddToClassList("hide");
-                
-                emailField.ElementAt(1).AddToClassList("noctua-text-input-error");
-                emailField.Q<Label>("error").RemoveFromClassList("hide");
-                emailField.Q<Label>("error").text = "Email address is not valid";
-                emailField.Q<VisualElement>("title").style.color = ColorModule.redError;
+
+                inputEmail.Error("Email address is not valid");
                 return;
             }
 
             if (string.IsNullOrEmpty(password))
-            {
-                //View.Q<Label>("ErrPasswordEmpty").RemoveFromClassList("hide");
+            {                
                 View.Q<Button>("ContinueButton").RemoveFromClassList("hide");
                 View.Q<VisualElement>("Spinner").AddToClassList("hide");
 
-                passwordField.ElementAt(1).AddToClassList("noctua-text-input-error");
-                passwordField.Q<Label>("error").RemoveFromClassList("hide");
-                passwordField.Q<Label>("error").text = "Password should not be empty";
-                passwordField.Q<VisualElement>("title").style.color = ColorModule.redError;
-
+                inputPassword.Error("Password should not be empty");
                 return;
             }
 
             if (password?.Length < 6)
-            {
-                //View.Q<Label>("ErrPasswordTooShort").RemoveFromClassList("hide");
+            {                
                 View.Q<Button>("ContinueButton").RemoveFromClassList("hide");
                 View.Q<VisualElement>("Spinner").AddToClassList("hide");
 
-                passwordField.ElementAt(1).AddToClassList("noctua-text-input-error");
-                passwordField.Q<Label>("error").RemoveFromClassList("hide");
-                passwordField.Q<Label>("error").text = "Password is too short. Minimum 6 character";
-                passwordField.Q<VisualElement>("title").style.color = ColorModule.redError;
+                inputPassword.Error("Password is too short. Minimum 6 character");
                 return;
             }
 
@@ -332,12 +272,11 @@ namespace com.noctuagames.sdk.UI
                     }
                 }
 
-                View.Q<TextField>("EmailTF").value = string.Empty;
-                View.Q<TextField>("PasswordTF").value = string.Empty;
+                inputEmail.Clear();
+                inputPassword.Clear();
 
                 View.Q<Label>("ErrCode").RemoveFromClassList("hide");
-                View.Q<Button>("ContinueButton").RemoveFromClassList("hide");
-                View.Q<VisualElement>("AdditionalFooterContent").RemoveFromClassList("hide");
+                View.Q<Button>("ContinueButton").RemoveFromClassList("hide");                
                 View.Q<VisualElement>("Spinner").AddToClassList("hide");
 
                 Visible = false;
@@ -368,8 +307,7 @@ namespace com.noctuagames.sdk.UI
                 }
 
                 View.Q<Label>("ErrCode").RemoveFromClassList("hide");
-                View.Q<Button>("ContinueButton").RemoveFromClassList("hide");
-                View.Q<VisualElement>("AdditionalFooterContent").RemoveFromClassList("hide");
+                View.Q<Button>("ContinueButton").RemoveFromClassList("hide");                
                 View.Q<VisualElement>("Spinner").AddToClassList("hide");
             }
         }
@@ -377,18 +315,10 @@ namespace com.noctuagames.sdk.UI
         private void HideAllErrors()
         {
             //Normalize border
-            emailField.Children().ElementAt(1).RemoveFromClassList("noctua-text-input-error");
-            passwordField.Children().ElementAt(1).RemoveFromClassList("noctua-text-input-error");
+            inputEmail.Reset();
+            inputPassword.Reset();
 
-            emailField.Q<Label>("error").AddToClassList("hide");
-            passwordField.Q<Label>("error").AddToClassList("hide");
-
-            View.Q<Label>("ErrCode").AddToClassList("hide");
-            View.Q<Label>("ErrEmailInvalid").AddToClassList("hide");
-            View.Q<Label>("ErrEmailEmpty").AddToClassList("hide");
-            View.Q<Label>("ErrPasswordTooShort").AddToClassList("hide");
-            View.Q<Label>("ErrPasswordEmpty").AddToClassList("hide");
-            View.Q<Label>("ErrPasswordMismatch").AddToClassList("hide");
+            View.Q<Label>("ErrCode").AddToClassList("hide");            
         }
     }
 }

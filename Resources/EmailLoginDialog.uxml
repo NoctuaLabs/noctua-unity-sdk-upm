@@ -2,10 +2,10 @@
     <Style src="project://database/Packages/com.noctuagames.sdk/Resources/Noctua.uss?fileID=7433441132597879392&amp;guid=fe35e550fb23b6446af377f994effe35&amp;type=3#Noctua" />
     <ui:VisualElement name="Root" class="root">
         <ui:VisualElement name="Panel" class="base dialog-box">
-            <ui:VisualElement name="HeaderContent" class="dialog-header" style="width:100%;">
+            <ui:VisualElement name="HeaderContent" class="dialog-header" style="width: 100%;">
                 <ui:Button display-tooltip-when-elided="true" name="BackButton" focusable="false" class="dialog-back-button" />
                 <ui:Label name="TitleContinueWithEmail" text="Login with email" display-tooltip-when-elided="true" class="dialog-title" />
-                <ui:VisualElement name="NoctuaLogoWithText" class="noctua-logo-with-text hide" style="position:absolute;right:10px;"/>
+                <ui:VisualElement name="NoctuaLogoWithText" class="noctua-logo-with-text hide" style="position: absolute; right: 10px;" />
             </ui:VisualElement>
             <ui:VisualElement name="Content" class="dialog-content">
                 <ui:TextField label="Email Address" name="EmailTF" keyboard-type="EmailAddress" usage-hints="-1" class="noctua-text-input">
@@ -23,12 +23,7 @@
             </ui:VisualElement>
             <ui:VisualElement name="footerContent" class="dialog-footer" style="height: 125px;">
                 <ui:VisualElement name="ErrBox" style="margin-top: 0; margin-bottom: 5px; width: 100%; align-items: center; justify-content: center;">
-                    <ui:Label name="ErrCode" display-tooltip-when-elided="true" text="error" class="dialog-err-label hide" />
-                    <ui:Label name="ErrEmailEmpty" text="Email address should not be empty" display-tooltip-when-elided="true" class="dialog-err-label hide" />
-                    <ui:Label name="ErrEmailInvalid" text="Email address is not valid" display-tooltip-when-elided="true" class="dialog-err-label hide" />
-                    <ui:Label name="ErrPasswordMismatch" text="Password is not matched with repeated password" display-tooltip-when-elided="true" class="dialog-err-label hide" />
-                    <ui:Label name="ErrPasswordTooShort" text="Password is too short. Minimum 6 character" display-tooltip-when-elided="true" class="dialog-err-label hide" />
-                    <ui:Label name="ErrPasswordEmpty" text="Password should not be empty" display-tooltip-when-elided="true" class="dialog-err-label hide" />
+                    <ui:Label name="ErrCode" display-tooltip-when-elided="true" class="dialog-err-label hide" />
                 </ui:VisualElement>
                 <ui:Button text="Login" display-tooltip-when-elided="true" name="ContinueButton" focusable="false" class="dialog-button" />
                 <ui:Button display-tooltip-when-elided="true" name="Spinner" focusable="false" picking-mode="Ignore" class="dialog-button spinner-fake-button hide" />

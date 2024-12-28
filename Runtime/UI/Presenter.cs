@@ -1,5 +1,6 @@
 ﻿using System;
 using UnityEngine;
+using UnityEngine.Events;
 using UnityEngine.UIElements;
 
 namespace com.noctuagames.sdk.UI
@@ -54,7 +55,7 @@ namespace com.noctuagames.sdk.UI
         protected virtual void Detach()
         {
         }
-        
+
         private void LoadView(PanelSettings panelSettings)
         {
             var viewResourceName = GetType().Name.Replace("Presenter", "");
@@ -71,13 +72,109 @@ namespace com.noctuagames.sdk.UI
             _uiDoc.visualTreeAsset = visualTreeAsset ?? throw new ArgumentNullException(nameof(visualTreeAsset));
             View = _uiDoc.rootVisualElement;
             View.visible = false;
-            
+
             _uiDoc.panelSettings = panelSettings ?? throw new ArgumentNullException(nameof(panelSettings));
         }
-        
+
         private void OnLanguageChanged(string language)
         {
             Utility.ApplyTranslations(View, GetType().Name, Locale.GetTranslations());
+        }
+
+        public class InputFieldNoctua
+        {
+            public TextField textField { get; }
+            public VisualElement veTextInput { get; }
+            public Label labelTitle { get; }
+            public Label labelError { get; }
+            public string text { get { return textField.text; } }
+
+            private UnityAction onFocusIn;
+            private UnityAction onFocusOut;
+
+            public InputFieldNoctua(TextField _textField)
+            {
+                textField = _textField;
+                veTextInput = textField.Q("unity-text-input");
+                labelTitle = textField.Q<Label>("title");
+                labelError = textField.Q<Label>("error");
+
+                textField.hideMobileInput = true;
+
+                Clear();                
+            }
+
+            public void SetFocus(UnityAction _onFocusIn = null, UnityAction _onFocusOut = null)
+            {
+                onFocusIn = _onFocusIn;
+                onFocusOut = _onFocusOut;
+
+                textField.RegisterCallback<FocusInEvent>(OnFocusChange);
+                textField.RegisterCallback<FocusOutEvent>(OnFocusChange);
+            }
+
+            public void OnFocusChange(FocusInEvent _event)
+            {                
+                onFocusIn?.Invoke();
+                Reset();
+
+                veTextInput.AddToClassList("noctua-text-input-focus");
+                labelTitle.style.color = ColorModule.white;                
+            }
+
+            public void OnFocusChange(FocusOutEvent _event)
+            {                
+                onFocusOut?.Invoke();
+                veTextInput.RemoveFromClassList("noctua-text-input-focus");
+                labelTitle.style.color = ColorModule.greyInactive;                
+            }
+
+            public void Clear()
+            {
+                textField.value = string.Empty;
+                Reset();
+            }
+
+            public void Reset()
+            {
+                veTextInput.RemoveFromClassList("noctua-text-input-error");
+                labelError.AddToClassList("hide");
+                labelTitle.style.color = ColorModule.greyInactive;
+            }
+
+            public void Error(string _strMessage)
+            {
+                labelError.text = _strMessage;
+                veTextInput.AddToClassList("noctua-text-input-error");
+                labelError.RemoveFromClassList("hide");                
+                labelTitle.style.color = ColorModule.redError;
+            }
+
+            public void AdjustLabel()
+            {
+                if (string.IsNullOrEmpty(textField.value))
+                {
+                    textField.labelElement.style.display = DisplayStyle.Flex;
+                    ToggleTitle(false);
+                }
+                else
+                {
+                    textField.labelElement.style.display = DisplayStyle.None;
+                    ToggleTitle(true);
+                }
+            }
+
+            public void ToggleTitle(bool _isShow)
+            {
+                if (_isShow)
+                {
+                    labelTitle.RemoveFromClassList("hide");
+                }
+                else
+                {
+                    labelTitle.AddToClassList("hide");
+                }
+            }
         }
     }
 }
