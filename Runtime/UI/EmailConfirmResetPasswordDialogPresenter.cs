@@ -10,23 +10,20 @@ namespace com.noctuagames.sdk.UI
     internal class EmailConfirmResetPasswordDialogPresenter : Presenter<AuthenticationModel>
     {
         public EventSender EventSender;
-     
-        private readonly ILogger _log = new NoctuaLogger();
-        private string _credVerifyCode;
-        private string _password;
-        private string _rePassword;
-        private int _credVerifyId;
-        private List<TextField> textFields;
-        private Button submitButton;
 
-        private TextField verificationCodeField;
-        private TextField passwordField;
-        private TextField rePasswordField;
+        private readonly ILogger _log = new NoctuaLogger();
+
+        private int _credVerifyId;
+
+        private List<TextField> textFields;
+        private ButtonNoctua submitButton;
+
+        private InputFieldNoctua inputVerificationCode;
+        private InputFieldNoctua inputPassword;
+        private InputFieldNoctua inputRePassword;
 
         private Button showPasswordButton;
         private Button showRePasswordButton;
-
-        private VisualElement panelVE;
 
         public void Show(int credVerifyId)
         {
@@ -39,103 +36,63 @@ namespace com.noctuagames.sdk.UI
             EventSender?.Send("reset_password_opened");
         }
 
-        protected override void Attach(){}
-        protected override void Detach(){}
+        protected override void Attach() { }
+        protected override void Detach() { }
 
         private void Start()
         {
             Setup();
         }
 
-        private void Update()
-        {
-            if (panelVE == null) return;
-
-            if (TouchScreenKeyboard.visible && !panelVE.ClassListContains("dialog-box-keyboard-shown"))
-            {
-                panelVE.AddToClassList("dialog-box-keyboard-shown");
-            }
-
-            if (!TouchScreenKeyboard.visible && panelVE.ClassListContains("dialog-box-keyboard-shown"))
-            {
-                panelVE.RemoveFromClassList("dialog-box-keyboard-shown");
-            }
-        }
-
         private void Setup()
         {
             panelVE = View.Q<VisualElement>("Panel");
-            verificationCodeField = View.Q<TextField>("VerificationCode");
-            passwordField = View.Q<TextField>("PasswordTF");
-            rePasswordField = View.Q<TextField>("RePasswordTF");
-            submitButton = View.Q<Button>("ContinueButton");
 
-            verificationCodeField.value = "";
-            passwordField.value = "";
-            rePasswordField.value = "";
+            inputVerificationCode = new InputFieldNoctua(View.Q<TextField>("VerificationCode"));
+            inputPassword = new InputFieldNoctua(View.Q<TextField>("PasswordTF"));
+            inputRePassword = new InputFieldNoctua(View.Q<TextField>("RePasswordTF"));
+            submitButton = new ButtonNoctua(View.Q<Button>("ContinueButton"));
 
             showPasswordButton = View.Q<Button>("ShowPasswordButton");
             showRePasswordButton = View.Q<Button>("ShowRePasswordButton");
 
-            passwordField.isPasswordField = true;
-            rePasswordField.isPasswordField = true;
+            inputPassword.textField.isPasswordField = true;
+            inputRePassword.textField.isPasswordField = true;
 
-            verificationCodeField.RegisterValueChangedCallback(evt => OnVerificationCodeValueChanged(verificationCodeField));
-            passwordField.RegisterValueChangedCallback(evt => OnPasswordValueChanged(passwordField));
-            rePasswordField.RegisterValueChangedCallback(evt => OnRePasswordValueChanged(rePasswordField));
+            inputVerificationCode.textField.RegisterValueChangedCallback(evt => OnValueChanged(inputVerificationCode));
+            inputPassword.textField.RegisterValueChangedCallback(evt => OnValueChanged(inputPassword));
+            inputRePassword.textField.RegisterValueChangedCallback(evt => OnValueChanged(inputRePassword));
 
-            verificationCodeField.RegisterCallback<FocusInEvent>(OnTextFieldFocusChange);
-            passwordField.RegisterCallback<FocusInEvent>(OnTextFieldFocusChange);
-            rePasswordField.RegisterCallback<FocusInEvent>(OnTextFieldFocusChange);
-            verificationCodeField.RegisterCallback<FocusOutEvent>(OnTextFieldFocusChange);
-            passwordField.RegisterCallback<FocusOutEvent>(OnTextFieldFocusChange);
-            rePasswordField.RegisterCallback<FocusOutEvent>(OnTextFieldFocusChange);
+            inputVerificationCode.SetFocus();
+            inputPassword.SetFocus();
+            inputRePassword.SetFocus();
 
-            showPasswordButton.RegisterCallback<PointerUpEvent>(OnToggleShowPassword);
-            showRePasswordButton.RegisterCallback<PointerUpEvent>(OnToggleShowRePassword);
+            showPasswordButton.RegisterCallback<ClickEvent>(OnToggleShowPassword);
+            showRePasswordButton.RegisterCallback<ClickEvent>(OnToggleShowRePassword);
 
-            passwordField.hideMobileInput = true;
-            rePasswordField.hideMobileInput = true;
-            verificationCodeField.hideMobileInput = true;            
-            
             showPasswordButton.RemoveFromClassList("btn-password-hide");
             showRePasswordButton.RemoveFromClassList("btn-password-hide");
 
             textFields = new List<TextField>
             {
-                verificationCodeField,
-                passwordField,
-                rePasswordField
+                inputVerificationCode.textField,
+                inputPassword.textField,
+                inputRePassword.textField
 
             };
 
-            Utility.UpdateButtonState(textFields, submitButton);
+            Utility.UpdateButtonState(textFields, submitButton.button);
 
-            View.Q<Button>("ContinueButton").RegisterCallback<ClickEvent>(OnContinueButtonClick);
+            submitButton.button.RegisterCallback<ClickEvent>(OnContinueButtonClick);
             View.Q<Button>("BackButton").RegisterCallback<ClickEvent>(OnBackButtonClick);
         }
 
-        #region Check Text Field Focus
-
-        public void OnTextFieldFocusChange(FocusInEvent _event)
+        public void OnToggleShowPassword(ClickEvent _event)
         {
-            HideAllErrors();
-            (_event.target as VisualElement).Children().ElementAt(1).AddToClassList("noctua-text-input-focus");
-            (_event.target as VisualElement).Q<VisualElement>("title").style.color = ColorModule.white;
-        }
+            inputPassword.textField.Blur();
+            inputPassword.textField.isPasswordField = !inputPassword.textField.isPasswordField;
 
-        public void OnTextFieldFocusChange(FocusOutEvent _event)
-        {
-            (_event.target as VisualElement).Children().ElementAt(1).RemoveFromClassList("noctua-text-input-focus");
-            (_event.target as VisualElement).Q<VisualElement>("title").style.color = ColorModule.greyInactive;
-        }
-
-        public void OnToggleShowPassword(PointerUpEvent _event)
-        {
-            passwordField.Blur();
-            passwordField.isPasswordField = !passwordField.isPasswordField;
-
-            if (passwordField.isPasswordField)
+            if (inputPassword.textField.isPasswordField)
             {
                 showPasswordButton.RemoveFromClassList("btn-password-hide");
             }
@@ -147,12 +104,12 @@ namespace com.noctuagames.sdk.UI
             TouchScreenKeyboard.hideInput = true;
         }
 
-        public void OnToggleShowRePassword(PointerUpEvent _event)
+        public void OnToggleShowRePassword(ClickEvent _event)
         {
-            rePasswordField.Blur();
-            rePasswordField.isPasswordField = !rePasswordField.isPasswordField;
+            inputRePassword.textField.Blur();
+            inputRePassword.textField.isPasswordField = !inputRePassword.textField.isPasswordField;
 
-            if (rePasswordField.isPasswordField)
+            if (inputRePassword.textField.isPasswordField)
             {
                 showRePasswordButton.RemoveFromClassList("btn-password-hide");
             }
@@ -164,56 +121,16 @@ namespace com.noctuagames.sdk.UI
             TouchScreenKeyboard.hideInput = true;
         }
 
-        #endregion
-
-        private void OnVerificationCodeValueChanged(TextField textField)
+        private void OnValueChanged(InputFieldNoctua _input)
         {
-            HideAllErrors();
-
-            _credVerifyCode = textField.value;
-
-            AdjustHideLabelElement(textField);
-            Utility.UpdateButtonState(textFields, submitButton);
-        }
-
-        private void OnPasswordValueChanged(TextField textField)
-        {
-            HideAllErrors();
-            
-            _password = textField.value;
-
-            AdjustHideLabelElement(textField);
-            Utility.UpdateButtonState(textFields, submitButton);
-        }
-
-        private void OnRePasswordValueChanged(TextField textField)
-        {
-            HideAllErrors();
-
-            _rePassword = textField.value;
-
-            AdjustHideLabelElement(textField);
-            Utility.UpdateButtonState(textFields, submitButton);
-        }
-
-        private void AdjustHideLabelElement(TextField textField)
-        {
-            if (string.IsNullOrEmpty(textField.value))
-            {
-                textField.labelElement.style.display = DisplayStyle.Flex;
-                textField.Q<VisualElement>("title").AddToClassList("hide");
-            }
-            else
-            {
-                textField.labelElement.style.display = DisplayStyle.None;
-                textField.Q<VisualElement>("title").RemoveFromClassList("hide");
-            }
+            _input.AdjustLabel();
+            Utility.UpdateButtonState(textFields, submitButton.button);
         }
 
         private void OnBackButtonClick(ClickEvent evt)
         {
             _log.Debug("clicking back button");
-            
+
             Visible = false;
 
             Model.ShowEmailResetPassword(false);
@@ -225,123 +142,82 @@ namespace com.noctuagames.sdk.UI
 
             HideAllErrors();
 
-            if (View.Q<VisualElement>("Spinner").childCount == 0)
-            {                
-                View.Q<VisualElement>("Spinner").Add(new Spinner(30, 30));
-            }
-            
-            View.Q<VisualElement>("Spinner").RemoveFromClassList("hide");
-            View.Q<Button>("ContinueButton").AddToClassList("hide");
+            submitButton.ToggleLoading(true);
 
             var verificationId = _credVerifyId;
-            var verificationCode = _credVerifyCode;
-            var password = _password;
-            var rePassword = _rePassword;
+            var verificationCode = inputVerificationCode.text;
+            var password = inputPassword.text;
+            var rePassword = inputRePassword.text;
 
             // Validation
-            if (string.IsNullOrEmpty(verificationCode)) {
-                //View.Q<Label>("ErrVerificationCodeEmpty").RemoveFromClassList("hide");
-                View.Q<Button>("ContinueButton").RemoveFromClassList("hide");
-                View.Q<VisualElement>("Spinner").AddToClassList("hide");
-
-                verificationCodeField.ElementAt(1).AddToClassList("noctua-text-input-error");
-                verificationCodeField.Q<Label>("error").RemoveFromClassList("hide");
-                verificationCodeField.Q<Label>("error").text = "Verification code should not be empty";
-                verificationCodeField.Q<VisualElement>("title").style.color = ColorModule.redError;
-                return;
-            }
-
-            if (string.IsNullOrEmpty(password)) {
-                //View.Q<Label>("ErrPasswordEmpty").RemoveFromClassList("hide");
-                View.Q<Button>("ContinueButton").RemoveFromClassList("hide");
-                View.Q<VisualElement>("Spinner").AddToClassList("hide");
-
-                passwordField.ElementAt(1).AddToClassList("noctua-text-input-error");
-                passwordField.Q<Label>("error").RemoveFromClassList("hide");
-                passwordField.Q<Label>("error").text = "Password should not be empty";
-                passwordField.Q<VisualElement>("title").style.color = ColorModule.redError;
-                return;
-            }
-
-            if (password?.Length < 6) {
-                //View.Q<Label>("ErrPasswordTooShort").RemoveFromClassList("hide");
-                View.Q<Button>("ContinueButton").RemoveFromClassList("hide");
-                View.Q<VisualElement>("Spinner").AddToClassList("hide");
-
-                passwordField.ElementAt(1).AddToClassList("noctua-text-input-error");
-                passwordField.Q<Label>("error").RemoveFromClassList("hide");
-                passwordField.Q<Label>("error").text = "Password is too short. Minimum 6 character";
-                passwordField.Q<VisualElement>("title").style.color = ColorModule.redError;
-                return;
-            }
-
-
-            if (!password.Equals(rePassword)) {
-                //View.Q<Label>("ErrPasswordMismatch").RemoveFromClassList("hide");
-                View.Q<Button>("ContinueButton").RemoveFromClassList("hide");
-                View.Q<VisualElement>("Spinner").AddToClassList("hide");
-
-                rePasswordField.ElementAt(1).AddToClassList("noctua-text-input-error");
-                rePasswordField.Q<Label>("error").RemoveFromClassList("hide");
-                rePasswordField.Q<Label>("error").text = "Password is not matched with repeated password";
-                rePasswordField.Q<VisualElement>("title").style.color = ColorModule.redError;
-                return;
-            }
-
-            try {
-                await Model.AuthService.ConfirmResetPasswordAsync(verificationId, verificationCode, password);
+            if (string.IsNullOrEmpty(verificationCode))
+            {
+                submitButton.ToggleLoading(false);
                 
+                inputVerificationCode.Error("Verification code should not be empty");                
+                return;
+            }
+
+            if (!string.IsNullOrEmpty(Utility.ValidatePassword(password)))
+            {
+                submitButton.ToggleLoading(false);                
+
+                inputPassword.Error(Utility.ValidatePassword(password));
+                return;
+            }
+
+            if (!string.IsNullOrEmpty(Utility.ValidateReenterPassword(password, rePassword)))
+            {
+                submitButton.ToggleLoading(false);                
+                
+                inputRePassword.Error(Utility.ValidateReenterPassword(password, rePassword));
+                return;
+            }
+
+            try
+            {
+                await Model.AuthService.ConfirmResetPasswordAsync(verificationId, verificationCode, password);
+
                 EventSender?.Send("reset_password_success");
 
                 Visible = false;
-                
-                View.Q<Label>("ErrCode").RemoveFromClassList("hide");
-                View.Q<Button>("ContinueButton").RemoveFromClassList("hide");
-                View.Q<VisualElement>("Spinner").AddToClassList("hide");
-                
+
+                submitButton.Clear();
+
                 Model.ShowInfo(Locale.GetTranslation($"{GetType().Name}.SuccessNotification"));
-            } catch (Exception e) {
+            }
+            catch (Exception e)
+            {
                 _log.Warning($"{e.Message}\n{e.StackTrace}");
-                    
+
                 if (e is NoctuaException noctuaEx)
                 {
-                    if (noctuaEx.ErrorCode == 2022) 
+                    if (noctuaEx.ErrorCode == 2022)
                     {
-                        //View.Q<Label>("ErrVerificationCodeInvalid").RemoveFromClassList("hide");
-                        verificationCodeField.ElementAt(1).AddToClassList("noctua-text-input-error");
-                        verificationCodeField.Q<Label>("error").RemoveFromClassList("hide");
-                        verificationCodeField.Q<Label>("error").text = "The verification code is invalid";
-                        verificationCodeField.Q<VisualElement>("title").style.color = ColorModule.redError;
-                    } else 
-                    {
-                        View.Q<Label>("ErrCode").text = noctuaEx.ErrorCode.ToString() + " : " + noctuaEx.Message;
+                        inputVerificationCode.Error("The verification code is invalid");
                     }
-                } else {
-                    View.Q<Label>("ErrCode").text = e.Message;
+                    else
+                    {
+                        submitButton.Error(noctuaEx.ErrorCode.ToString() + " : " + noctuaEx.Message);                        
+                    }
                 }
-                
-                View.Q<Button>("ContinueButton").RemoveFromClassList("hide");
-                View.Q<VisualElement>("Spinner").AddToClassList("hide");
+                else
+                {
+                    submitButton.Error(e.Message);                    
+                }
+
+                submitButton.ToggleLoading(false);
             }
-        }   
+        }
 
         private void HideAllErrors()
         {
             //Normalize border
-            verificationCodeField.Children().ElementAt(1).RemoveFromClassList("noctua-text-input-error");
-            passwordField.Children().ElementAt(1).RemoveFromClassList("noctua-text-input-error");
-            rePasswordField.Children().ElementAt(1).RemoveFromClassList("noctua-text-input-error");
+            inputVerificationCode.Reset();
+            inputPassword.Reset();
+            inputRePassword.Reset();
 
-            verificationCodeField.Q<Label>("error").AddToClassList("hide");
-            passwordField.Q<Label>("error").AddToClassList("hide");
-            rePasswordField.Q<Label>("error").AddToClassList("hide");
-
-            View.Q<Label>("ErrCode").AddToClassList("hide");
-            View.Q<Label>("ErrVerificationCodeEmpty").AddToClassList("hide");
-            View.Q<Label>("ErrVerificationCodeInvalid").AddToClassList("hide");
-            View.Q<Label>("ErrPasswordTooShort").AddToClassList("hide");
-            View.Q<Label>("ErrPasswordEmpty").AddToClassList("hide");
-            View.Q<Label>("ErrPasswordMismatch").AddToClassList("hide");
+            submitButton.Clear();
         }
     }
 }
