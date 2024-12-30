@@ -15,19 +15,12 @@
                 </ui:TextField>
             </ui:VisualElement>
             <ui:VisualElement name="DialogFooter" class="dialog-footer" style="height: 125px; align-items: center; margin-bottom: 20px;">
-                <ui:VisualElement name="ErrBox" style="padding-top: 0; padding-right: 0; padding-bottom: 0; padding-left: 0; margin-top: 10px; margin-bottom: 10px; width: 100%; height: 16px; align-items: center; justify-content: center;">
-                    <ui:Label name="ErrCode" display-tooltip-when-elided="true" class="dialog-err-label hide" />
-                    <ui:Label name="ErrEmailEmpty" text="Email address should not be empty" display-tooltip-when-elided="true" class="dialog-err-label hide" />
-                    <ui:Label name="ErrEmailInvalid" text="Email address is not valid" display-tooltip-when-elided="true" class="dialog-err-label hide" />
-                    <ui:Label name="ErrPasswordMismatch" text="Password is not matched with repeated password" display-tooltip-when-elided="true" class="dialog-err-label hide" />
-                    <ui:Label name="ErrPasswordTooShort" text="Password is too short. Minimum 6 character" display-tooltip-when-elided="true" class="dialog-err-label hide" />
-                    <ui:Label name="ErrPasswordEmpty" text="Password should not be empty" display-tooltip-when-elided="true" class="dialog-err-label hide" />
-                </ui:VisualElement>
                 <ui:VisualElement name="TextInfo" style="flex-grow: 1; margin-top: 4px; margin-right: 2px; margin-bottom: 4px; margin-left: 2px; padding-top: 4px; padding-right: 2px; padding-bottom: 4px; padding-left: 1px;">
                     <ui:Label name="ResendingCode" text="Sending verification code..." display-tooltip-when-elided="true" class="hide" style="margin-right: 0; margin-bottom: 0; margin-top: 0; margin-left: 0; padding-top: 0; padding-right: 0; padding-bottom: 0; padding-left: 0;" />
                     <ui:Label name="VerifyingCode" text="Verifying..." display-tooltip-when-elided="true" class="hide" style="margin-right: 0; margin-bottom: 0; margin-top: 0; margin-left: 0; padding-top: 0; padding-right: 0; padding-bottom: 0; padding-left: 0;" />
                 </ui:VisualElement>
                 <ui:Label text="Resend Code" display-tooltip-when-elided="true" name="ResendCode" class="disable-backgroud-button" style="margin-top: 10px; margin-right: 0; margin-bottom: 15px; margin-left: 0; top: 5px; color: rgb(59, 130, 246); -unity-text-align: middle-left;" />
+                <ui:Label name="ErrCode" display-tooltip-when-elided="true" class="dialog-err-label hide" />
                 <ui:Button text="Verify" display-tooltip-when-elided="true" name="VerifyButton" focusable="false" class="dialog-button" style="height: 40px;" />
                 <ui:Button display-tooltip-when-elided="true" name="Spinner" focusable="false" picking-mode="Ignore" class="dialog-button spinner-fake-button hide" />
             </ui:VisualElement>
