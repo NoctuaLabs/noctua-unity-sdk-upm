@@ -11,6 +11,7 @@ namespace com.noctuagames.sdk.UI
         protected TModel Model;
         protected VisualElement View;
         protected NoctuaLocale Locale;
+        protected VisualElement panelVE;
 
         private UIDocument _uiDoc;
 
@@ -45,6 +46,22 @@ namespace com.noctuagames.sdk.UI
             if (Model is not null)
             {
                 Attach();
+            }
+        }
+
+
+        protected void Update()
+        {
+            if (panelVE == null) return;
+
+            if (TouchScreenKeyboard.visible && !panelVE.ClassListContains("dialog-box-keyboard-shown"))
+            {
+                panelVE.AddToClassList("dialog-box-keyboard-shown");
+            }
+
+            if (!TouchScreenKeyboard.visible && panelVE.ClassListContains("dialog-box-keyboard-shown"))
+            {
+                panelVE.RemoveFromClassList("dialog-box-keyboard-shown");
             }
         }
 

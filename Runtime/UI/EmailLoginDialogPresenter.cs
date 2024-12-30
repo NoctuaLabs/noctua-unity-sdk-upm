@@ -16,8 +16,7 @@ namespace com.noctuagames.sdk.UI
     internal class EmailLoginDialogPresenter : Presenter<AuthenticationModel>
     {
         private readonly ILogger _log = new NoctuaLogger();
-
-        private VisualElement panelVE;
+       
         private List<TextField> textFields;
         private InputFieldNoctua inputEmail;
         private InputFieldNoctua inputPassword;
@@ -42,21 +41,6 @@ namespace com.noctuagames.sdk.UI
         private void Start()
         {
             Setup();
-        }
-
-        private void Update()
-        {
-            if (panelVE == null) return;
-
-            if (TouchScreenKeyboard.visible && !panelVE.ClassListContains("dialog-box-keyboard-shown"))
-            {
-                panelVE.AddToClassList("dialog-box-keyboard-shown");
-            }
-
-            if (!TouchScreenKeyboard.visible && panelVE.ClassListContains("dialog-box-keyboard-shown"))
-            {
-                panelVE.RemoveFromClassList("dialog-box-keyboard-shown");
-            }
         }
 
         private void Setup()

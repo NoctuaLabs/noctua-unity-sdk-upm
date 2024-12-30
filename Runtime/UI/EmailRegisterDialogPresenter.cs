@@ -20,8 +20,6 @@ namespace com.noctuagames.sdk.UI
         private Button showPasswordButton;
         private Button showRePasswordButton;
 
-        private VisualElement panelVE;
-
         //Behaviour whitelabel - VN
         private InputFieldNoctua _fullname;
         private InputFieldNoctua _phoneNumber;
@@ -47,41 +45,6 @@ namespace com.noctuagames.sdk.UI
         {
             SetupInputFields(true);
             HideAllErrors();
-        }
-
-        private async void Update()
-        {
-            if (panelVE == null) return;
-
-            if (TouchScreenKeyboard.visible && !panelVE.ClassListContains("dialog-box-keyboard-shown"))
-            {
-                // Hide the button to avoid double tap
-                View.Q<Button>("WizardNextTo2Button").AddToClassList("hide");
-                View.Q<Button>("WizardNextTo3Button").AddToClassList("hide");
-                View.Q<Button>("WizardNextTo4Button").AddToClassList("hide");
-                View.Q<Button>("WizardPrevTo1Button").AddToClassList("hide");
-                View.Q<Button>("WizardPrevTo2Button").AddToClassList("hide");
-                View.Q<Button>("WizardPrevTo3Button").AddToClassList("hide");
-                View.Q<Button>("ContinueButton").AddToClassList("hide");
-                View.Q<Button>("WizardContinueButton").AddToClassList("hide");
-
-                panelVE.AddToClassList("dialog-box-keyboard-shown");
-                await Task.Delay(100);
-                // Show it again.
-                View.Q<Button>("WizardNextTo2Button").RemoveFromClassList("hide");
-                View.Q<Button>("WizardNextTo3Button").RemoveFromClassList("hide");
-                View.Q<Button>("WizardNextTo4Button").RemoveFromClassList("hide");
-                View.Q<Button>("WizardPrevTo1Button").RemoveFromClassList("hide");
-                View.Q<Button>("WizardPrevTo2Button").RemoveFromClassList("hide");
-                View.Q<Button>("WizardPrevTo3Button").RemoveFromClassList("hide");
-                View.Q<Button>("ContinueButton").RemoveFromClassList("hide");
-                View.Q<Button>("WizardContinueButton").RemoveFromClassList("hide");
-            }
-
-            if (!TouchScreenKeyboard.visible && panelVE.ClassListContains("dialog-box-keyboard-shown"))
-            {
-                panelVE.RemoveFromClassList("dialog-box-keyboard-shown");
-            }
         }
 
         public void Show(bool clearForm, bool isRegisterOnly)
