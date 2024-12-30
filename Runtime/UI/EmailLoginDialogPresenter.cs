@@ -3,10 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 using UnityEngine.UIElements;
-using com.noctuagames.sdk.UI;
-using System.Threading.Tasks;
-using System.Text.RegularExpressions;
-using System.Globalization;
 
 namespace com.noctuagames.sdk.UI
 {
@@ -86,14 +82,14 @@ namespace com.noctuagames.sdk.UI
                 inputPassword.textField
             };
 
-            Utility.UpdateButtonState(textFields, submitButton.button);            
+            Utility.UpdateButtonState(textFields, submitButton.button);
 
+            submitButton.button.RegisterCallback<ClickEvent>(OnContinueButtonClick);
             View.Q<Label>("ForgotPassword").RegisterCallback<ClickEvent>(OnForgotPasswordButtonClick);
             View.Q<Label>("Register").RegisterCallback<ClickEvent>(OnRegisterButtonClick);
-            View.Q<Button>("BackButton").RegisterCallback<ClickEvent>(OnBackButtonClick);
-            View.Q<Button>("ContinueButton").RegisterCallback<ClickEvent>(OnContinueButtonClick);
+            View.Q<Button>("BackButton").RegisterCallback<ClickEvent>(OnBackButtonClick);            
 
-            showPasswordButton.RegisterCallback<PointerUpEvent>(OnToggleShowPassword);
+            showPasswordButton.RegisterCallback<ClickEvent>(OnToggleShowPassword);
 
             showPasswordButton.RemoveFromClassList("btn-password-hide");
 
@@ -119,7 +115,7 @@ namespace com.noctuagames.sdk.UI
             HideAllErrors();
         }
 
-        public void OnToggleShowPassword(PointerUpEvent _event)
+        public void OnToggleShowPassword(ClickEvent _event)
         {
             inputPassword.textField.isPasswordField = !inputPassword.textField.isPasswordField;
 
@@ -148,33 +144,6 @@ namespace com.noctuagames.sdk.UI
         {
             Visible = false;
             Model.NavigateBack();
-        }
-
-        private bool IsValidEmail(string email)
-        {
-            if (string.IsNullOrWhiteSpace(email))
-                return false;
-
-            try
-            {
-                // Regular expression pattern to validate email address
-                string pattern = @"^[^@\s]+@[^@\s]+\.[^@\s]+$";
-
-                // Use IdnMapping class to convert Unicode domain names, if applicable
-                email = Regex.Replace(email, @"(@)(.+)$", match =>
-                {
-                    var idn = new IdnMapping();
-                    string domainName = idn.GetAscii(match.Groups[2].Value);
-                    return match.Groups[1].Value + domainName;
-                }, RegexOptions.None, TimeSpan.FromMilliseconds(200));
-
-                // Return true if the email matches the pattern
-                return Regex.IsMatch(email, pattern, RegexOptions.IgnoreCase, TimeSpan.FromMilliseconds(250));
-            }
-            catch
-            {
-                return false;
-            }
         }
 
         private void OnForgotPasswordButtonClick(ClickEvent evt)
@@ -210,35 +179,19 @@ namespace com.noctuagames.sdk.UI
             var password = inputPassword.text;
 
             // Validation
-            if (string.IsNullOrEmpty(emailAddress))
+            if (!string.IsNullOrEmpty(Utility.ValidateEmail(emailAddress)))
             {
                 submitButton.ToggleLoading(false);
 
-                inputEmail.Error("Email address should not be empty");
+                inputEmail.Error(Utility.ValidateEmail(emailAddress));
                 return;
             }
 
-            if (!IsValidEmail(emailAddress))
+            if (!string.IsNullOrEmpty(Utility.ValidatePassword(password)))
             {
                 submitButton.ToggleLoading(false);
 
-                inputEmail.Error("Email address is not valid");
-                return;
-            }
-
-            if (string.IsNullOrEmpty(password))
-            {
-                submitButton.ToggleLoading(false);
-
-                inputPassword.Error("Password should not be empty");
-                return;
-            }
-
-            if (password?.Length < 6)
-            {
-                submitButton.ToggleLoading(false);
-
-                inputPassword.Error("Password is too short. Minimum 6 character");
+                inputPassword.Error(Utility.ValidatePassword(password));
                 return;
             }
 

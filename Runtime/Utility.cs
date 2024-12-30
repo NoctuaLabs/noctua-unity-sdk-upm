@@ -2,6 +2,9 @@ using System;
 using System.IO;
 using System.Collections.Generic;
 using System.Reflection;
+using System.Text.RegularExpressions;
+using System.Globalization;
+
 using UnityEngine;
 using UnityEngine.UIElements;
 using System.Linq;
@@ -133,18 +136,18 @@ namespace com.noctuagames.sdk
                         {
                             var currentElement = root.Q<BindableElement>(name);
                             var currentValue = (currentElement as INotifyValueChanged<T>).value;
-                            
+
                             if (currentValue == null && initialValues[name] == null)
                             {
                                 continue;
                             }
-                            
+
                             if (currentValue == null && initialValues[name] != null)
                             {
                                 anyChanged = true;
                                 break;
                             }
-                            
+
                             if (currentValue != null && initialValues[name] == null)
                             {
                                 anyChanged = true;
@@ -157,7 +160,7 @@ namespace com.noctuagames.sdk
                                 break;
                             }
                         }
-                        UpdateButtonState(buttonToEnable, anyChanged);                        
+                        UpdateButtonState(buttonToEnable, anyChanged);
                     });
                 }
                 else
@@ -168,7 +171,7 @@ namespace com.noctuagames.sdk
         }
 
         public static void UpdateButtonState(List<TextField> textFields, Button submitButton)
-        {           
+        {
             UpdateButtonState(submitButton, !textFields.Any(textField => string.IsNullOrEmpty(textField.value)));
         }
 
@@ -275,7 +278,7 @@ namespace com.noctuagames.sdk
 
                     Label textFieldTitle = textField.Q<Label>("title");
 
-                    if (textFieldTitle != null) textFieldTitle.text = textFieldTranslation;                    
+                    if (textFieldTitle != null) textFieldTitle.text = textFieldTranslation;
 
                     break;
                 case DropdownField dropdownField:
@@ -285,7 +288,7 @@ namespace com.noctuagames.sdk
 
                     Label dropdownTitle = dropdownField.Q<Label>("title");
 
-                    if (dropdownTitle != null) dropdownTitle.text = dropdownFieldTranslation;                    
+                    if (dropdownTitle != null) dropdownTitle.text = dropdownFieldTranslation;
 
                     break;
                 case VisualElement visualElement:
@@ -329,6 +332,72 @@ namespace com.noctuagames.sdk
             }
 
             return await task();
+        }
+
+        public static bool ValidateIsEmpty(string _str)
+        {
+            if (string.IsNullOrEmpty(_str))
+            {
+                return true;
+            }
+
+            return false;
+        }
+
+        public static string ValidateEmail(string _str)
+        {
+            if (ValidateIsEmpty(_str)) return "Email address should not be empty";
+
+            if (string.IsNullOrWhiteSpace(_str))
+                return "Email address is not valid";
+
+            try
+            {
+                // Regular expression pattern to validate email address
+                string pattern = @"^[^@\s]+@[^@\s]+\.[^@\s]+$";
+
+                // Use IdnMapping class to convert Unicode domain names, if applicable
+                _str = Regex.Replace(_str, @"(@)(.+)$", match =>
+                {
+                    var idn = new IdnMapping();
+                    string domainName = idn.GetAscii(match.Groups[2].Value);
+                    return match.Groups[1].Value + domainName;
+                }, RegexOptions.None, TimeSpan.FromMilliseconds(200));
+
+                // Return true if the email matches the pattern
+                if (Regex.IsMatch(_str, pattern, RegexOptions.IgnoreCase, TimeSpan.FromMilliseconds(250)))
+                    return string.Empty;
+                else
+                    return "Email address is not valid";
+            }
+            catch
+            {
+                return "Email address is not valid";
+            }
+        }
+
+        public static string ValidatePassword(string _str)
+        {
+            if (ValidateIsEmpty(_str)) return "Password should not be empty";
+
+            if (_str?.Length < 6)
+            {
+                return "Password is too short. Minimum 6 character";
+            }
+
+            return string.Empty;
+        }
+
+        public static string ValidateReenterPassword(string _strPassword, string _strRePassword)
+        {
+            if (ValidateIsEmpty(_strRePassword)) return "Re-Enter password should not be empty";
+
+            if (!_strPassword.Equals(_strRePassword))
+            {
+                return "Password is not matched with repeated password";
+            }
+
+            return string.Empty;
         }
     }
 }

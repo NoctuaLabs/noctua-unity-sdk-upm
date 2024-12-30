@@ -106,7 +106,7 @@ namespace com.noctuagames.sdk.UI
 
             public void Clear()
             {
-                labelError.AddToClassList("hide");
+                labelError?.AddToClassList("hide");
                 ToggleLoading(false);
             }
 
