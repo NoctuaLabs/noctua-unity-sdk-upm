@@ -17,8 +17,8 @@ namespace com.noctuagames.sdk.UI
         private int _credVerifyId;
         private string _credVerifyCode;
 
-        private InputFieldNoctua inputVerificationCode;
-        private ButtonNoctua buttonVerify;
+        private InputFieldNoctua _inputVerificationCode;
+        private ButtonNoctua _buttonVerify;
 
         protected override void Attach() { }
         protected override void Detach() { }
@@ -46,23 +46,23 @@ namespace com.noctuagames.sdk.UI
         {
             panelVE = View.Q<VisualElement>("EmailVerificationDialog");
 
-            inputVerificationCode = new InputFieldNoctua(View.Q<TextField>("VerificationCode"));
+            _inputVerificationCode = new InputFieldNoctua(View.Q<TextField>("VerificationCode"));
             
-            inputVerificationCode.textField.RegisterValueChangedCallback(evt => OnValueChanged(inputVerificationCode));
-            inputVerificationCode.SetFocus();
+            _inputVerificationCode.textField.RegisterValueChangedCallback(evt => OnValueChanged(_inputVerificationCode));
+            _inputVerificationCode.SetFocus();
 
             var backButton = View.Q<Button>("BackButton");
             var resendButton = View.Q<Label>("ResendCode");
-            buttonVerify = new ButtonNoctua(View.Q<Button>("VerifyButton"));
+            _buttonVerify = new ButtonNoctua(View.Q<Button>("VerifyButton"));
 
             resendButton.RegisterCallback<ClickEvent>(OnResendButtonClick);
             backButton.RegisterCallback<ClickEvent>(OnBackButtonClick);
-            buttonVerify.button.RegisterCallback<ClickEvent>(OnVerifyButtonClick);
+            _buttonVerify.button.RegisterCallback<ClickEvent>(OnVerifyButtonClick);
         }
 
-        private void OnValueChanged(InputFieldNoctua _input)
+        private void OnValueChanged(InputFieldNoctua input)
         {
-            _input.AdjustLabel();
+            input.AdjustLabel();
             HideAllErrors();
         }
 
@@ -76,7 +76,7 @@ namespace com.noctuagames.sdk.UI
         {
             _log.Debug("clicking resend button");
 
-            buttonVerify.ToggleLoading(true);
+            _buttonVerify.ToggleLoading(true);
                         
             View.Q<Label>("ResendingCode").RemoveFromClassList("hide");
 
@@ -91,7 +91,7 @@ namespace com.noctuagames.sdk.UI
 
                 _credVerifyId = result.Id;
 
-                buttonVerify.ToggleLoading(false);
+                _buttonVerify.ToggleLoading(false);
 
                 View.Q<Label>("ResendingCode").AddToClassList("hide");
                 View?.Q<Label>("ResendCode")?.RemoveFromClassList("hide");                
@@ -105,14 +105,14 @@ namespace com.noctuagames.sdk.UI
 
                 if (e is NoctuaException noctuaEx)
                 {
-                    buttonVerify.Error(noctuaEx.ErrorCode.ToString() + " : " + noctuaEx.Message);                    
+                    _buttonVerify.Error(noctuaEx.ErrorCode.ToString() + " : " + noctuaEx.Message);                    
                 }
                 else
                 {
-                    buttonVerify.Error(e.Message);                    
+                    _buttonVerify.Error(e.Message);                    
                 }
 
-                buttonVerify.ToggleLoading(false);
+                _buttonVerify.ToggleLoading(false);
 
                 View.Q<Label>("ResendingCode").AddToClassList("hide");
                 View?.Q<Label>("ResendCode")?.RemoveFromClassList("hide");                
@@ -126,7 +126,7 @@ namespace com.noctuagames.sdk.UI
         {
             _log.Debug("clicking verify button");
 
-            buttonVerify.ToggleLoading(true);
+            _buttonVerify.ToggleLoading(true);
 
             View.Q<Label>("VerifyingCode").RemoveFromClassList("hide");
             View?.Q<Label>("ResendCode")?.AddToClassList("hide");            
@@ -150,7 +150,7 @@ namespace com.noctuagames.sdk.UI
 
                 Visible = false;
 
-                buttonVerify.Clear();
+                _buttonVerify.Clear();
 
                 View.Q<Label>("VerifyingCode").AddToClassList("hide");
                 View?.Q<Label>("ResendCode")?.RemoveFromClassList("hide");                
@@ -164,14 +164,14 @@ namespace com.noctuagames.sdk.UI
 
                 if (e is NoctuaException noctuaEx)
                 {
-                    buttonVerify.Error(noctuaEx.ErrorCode.ToString() + " : " + noctuaEx.Message);                    
+                    _buttonVerify.Error(noctuaEx.ErrorCode.ToString() + " : " + noctuaEx.Message);                    
                 }
                 else
                 {
-                    buttonVerify.Error(e.Message);                    
+                    _buttonVerify.Error(e.Message);                    
                 }
                 
-                buttonVerify.ToggleLoading(false);
+                _buttonVerify.ToggleLoading(false);
 
                 View.Q<Label>("VerifyingCode").AddToClassList("hide");
                 View?.Q<Label>("ResendCode")?.RemoveFromClassList("hide");                
@@ -181,12 +181,9 @@ namespace com.noctuagames.sdk.UI
         }
 
         private void HideAllErrors()
-        {
-            //Normalize border
-            inputVerificationCode.Reset();
-            buttonVerify.Clear();
-
-            View.Q<Label>("ErrCode").AddToClassList("hide");            
+        {            
+            _inputVerificationCode.Reset();
+            _buttonVerify.Clear();         
         }
     }
 }

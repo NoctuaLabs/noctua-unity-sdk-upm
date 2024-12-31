@@ -13,12 +13,12 @@ namespace com.noctuagames.sdk.UI
     {
         private readonly ILogger _log = new NoctuaLogger();
 
-        private InputFieldNoctua inputEmail;
-        private InputFieldNoctua inputPassword;
-        private InputFieldNoctua inputRepassword;
+        private InputFieldNoctua _inputEmail;
+        private InputFieldNoctua _inputPassword;
+        private InputFieldNoctua _inputRepassword;
 
-        private Button showPasswordButton;
-        private Button showRePasswordButton;
+        private Button _showPasswordButton;
+        private Button _showRePasswordButton;
 
         //Behaviour whitelabel - VN
         private InputFieldNoctua _fullname;
@@ -32,8 +32,8 @@ namespace com.noctuagames.sdk.UI
         private InputFieldNoctua _address;
         private List<TextField> textFields;
 
-        private ButtonNoctua continueButton;
-        private ButtonNoctua wizardContinueButton;
+        private ButtonNoctua _continueButton;
+        private ButtonNoctua _wizardContinueButton;
         private GlobalConfig _config;
 
         private int _wizardPage = 0;
@@ -88,15 +88,15 @@ namespace com.noctuagames.sdk.UI
         private void SetupInputFields(bool clearForm)
         {
             panelVE = View.Q<VisualElement>("NoctuaRegisterBox");
-            inputEmail = new InputFieldNoctua(View.Q<TextField>("EmailTF"));
-            inputPassword = new InputFieldNoctua(View.Q<TextField>("PasswordTF"));
-            inputRepassword = new InputFieldNoctua(View.Q<TextField>("RePasswordTF"));
+            _inputEmail = new InputFieldNoctua(View.Q<TextField>("EmailTF"));
+            _inputPassword = new InputFieldNoctua(View.Q<TextField>("PasswordTF"));
+            _inputRepassword = new InputFieldNoctua(View.Q<TextField>("RePasswordTF"));
 
-            showPasswordButton = View.Q<Button>("ShowPasswordButton");
-            showRePasswordButton = View.Q<Button>("ShowRePasswordButton");
+            _showPasswordButton = View.Q<Button>("ShowPasswordButton");
+            _showRePasswordButton = View.Q<Button>("ShowRePasswordButton");
 
-            continueButton = new ButtonNoctua(View.Q<Button>("ContinueButton"));
-            wizardContinueButton = new ButtonNoctua(View.Q<Button>("WizardContinueButton"));
+            _continueButton = new ButtonNoctua(View.Q<Button>("ContinueButton"));
+            _wizardContinueButton = new ButtonNoctua(View.Q<Button>("WizardContinueButton"));
             var backButton = View.Q<Button>("BackButton");
             var loginLink = View.Q<Label>("LoginLink");
 
@@ -122,17 +122,17 @@ namespace com.noctuagames.sdk.UI
             // Default values
             if (clearForm)
             {
-                inputPassword.textField.isPasswordField = true;
-                inputRepassword.textField.isPasswordField = true;
+                _inputPassword.textField.isPasswordField = true;
+                _inputRepassword.textField.isPasswordField = true;
             }
 
             if (!string.IsNullOrEmpty(_config?.Noctua?.Flags) && _config!.Noctua!.Flags!.Contains("VNLegalPurpose"))
             {
                 textFields = new List<TextField>
                 {
-                    inputEmail.textField,
-                    inputPassword.textField,
-                    inputRepassword.textField,
+                    _inputEmail.textField,
+                    _inputPassword.textField,
+                    _inputRepassword.textField,
                     _fullname.textField,
                     _phoneNumber.textField,
                     _birthDate.textField,
@@ -146,38 +146,38 @@ namespace com.noctuagames.sdk.UI
             {
                 textFields = new List<TextField>
                 {
-                    inputEmail.textField,
-                    inputPassword.textField,
-                    inputRepassword.textField
+                    _inputEmail.textField,
+                    _inputPassword.textField,
+                    _inputRepassword.textField
 
                 };
             }
 
-            Utility.UpdateButtonState(textFields, continueButton.button);
-            Utility.UpdateButtonState(textFields, wizardContinueButton.button);
+            Utility.UpdateButtonState(textFields, _continueButton.button);
+            Utility.UpdateButtonState(textFields, _wizardContinueButton.button);
 
             // Callbacks
-            continueButton.button.RegisterCallback<ClickEvent>(OnContinueButtonClick);
-            wizardContinueButton.button.RegisterCallback<ClickEvent>(OnContinueButtonClick);
+            _continueButton.button.RegisterCallback<ClickEvent>(OnContinueButtonClick);
+            _wizardContinueButton.button.RegisterCallback<ClickEvent>(OnContinueButtonClick);
             loginLink.RegisterCallback<ClickEvent>(OnLoginLinkClick);
             backButton.RegisterCallback<ClickEvent>(OnBackButtonClick);
 
-            showPasswordButton.RegisterCallback<ClickEvent>(OnToggleShowPassword);
-            showRePasswordButton.RegisterCallback<ClickEvent>(OnToggleShowRePassword);
+            _showPasswordButton.RegisterCallback<ClickEvent>(OnToggleShowPassword);
+            _showRePasswordButton.RegisterCallback<ClickEvent>(OnToggleShowRePassword);
 
-            showPasswordButton.RemoveFromClassList("btn-password-hide");
-            showRePasswordButton.RemoveFromClassList("btn-password-hide");
+            _showPasswordButton.RemoveFromClassList("btn-password-hide");
+            _showRePasswordButton.RemoveFromClassList("btn-password-hide");
 
-            inputEmail.textField.RegisterValueChangedCallback(evt => OnValueChanged(inputEmail));
-            inputPassword.textField.RegisterValueChangedCallback(evt => OnValueChanged(inputPassword));
-            inputRepassword.textField.RegisterValueChangedCallback(evt => OnValueChanged(inputRepassword));
+            _inputEmail.textField.RegisterValueChangedCallback(evt => OnValueChanged(_inputEmail));
+            _inputPassword.textField.RegisterValueChangedCallback(evt => OnValueChanged(_inputPassword));
+            _inputRepassword.textField.RegisterValueChangedCallback(evt => OnValueChanged(_inputRepassword));
 
-            inputEmail.SetFocus();
-            inputPassword.SetFocus();
-            inputRepassword.SetFocus();
-            inputEmail.SetFocus();
-            inputPassword.SetFocus();
-            inputRepassword.SetFocus();
+            _inputEmail.SetFocus();
+            _inputPassword.SetFocus();
+            _inputRepassword.SetFocus();
+            _inputEmail.SetFocus();
+            _inputPassword.SetFocus();
+            _inputRepassword.SetFocus();
 
             #region Behaviour whitelabel - VN
             if (!string.IsNullOrEmpty(_config?.Noctua?.Flags) && _config!.Noctua!.Flags!.Contains("VNLegalPurpose"))
@@ -265,33 +265,33 @@ namespace com.noctuagames.sdk.UI
         }
         #endregion
 
-        public void OnToggleShowPassword(ClickEvent _event)
+        public void OnToggleShowPassword(ClickEvent evt)
         {
-            inputPassword.textField.Blur();
-            inputPassword.textField.isPasswordField = !inputPassword.textField.isPasswordField;
+            _inputPassword.textField.Blur();
+            _inputPassword.textField.isPasswordField = !_inputPassword.textField.isPasswordField;
 
-            if (inputPassword.textField.isPasswordField)
+            if (_inputPassword.textField.isPasswordField)
             {
-                showPasswordButton.RemoveFromClassList("btn-password-hide");
+                _showPasswordButton.RemoveFromClassList("btn-password-hide");
             }
             else
             {
-                showPasswordButton.AddToClassList("btn-password-hide");
+                _showPasswordButton.AddToClassList("btn-password-hide");
             }
         }
 
-        public void OnToggleShowRePassword(ClickEvent _event)
+        public void OnToggleShowRePassword(ClickEvent evt)
         {
-            inputRepassword.textField.Blur();
-            inputRepassword.textField.isPasswordField = !inputRepassword.textField.isPasswordField;
+            _inputRepassword.textField.Blur();
+            _inputRepassword.textField.isPasswordField = !_inputRepassword.textField.isPasswordField;
 
-            if (inputRepassword.textField.isPasswordField)
+            if (_inputRepassword.textField.isPasswordField)
             {
-                showRePasswordButton.RemoveFromClassList("btn-password-hide");
+                _showRePasswordButton.RemoveFromClassList("btn-password-hide");
             }
             else
             {
-                showRePasswordButton.AddToClassList("btn-password-hide");
+                _showRePasswordButton.AddToClassList("btn-password-hide");
             }
         }
 
@@ -356,8 +356,8 @@ namespace com.noctuagames.sdk.UI
                 {
                     _birthDate.textField.value = _date.ToString("dd/MM/yyyy");
                     _birthDate.textField.labelElement.style.display = DisplayStyle.None;
-                    Utility.UpdateButtonState(textFields, continueButton.button);
-                    Utility.UpdateButtonState(textFields, wizardContinueButton.button);
+                    Utility.UpdateButtonState(textFields, _continueButton.button);
+                    Utility.UpdateButtonState(textFields, _wizardContinueButton.button);
 
                 });
             });
@@ -378,8 +378,8 @@ namespace com.noctuagames.sdk.UI
                     _dateOfIssue.text = _date.ToString("dd/MM/yyyy");
                     _dateOfIssue.RemoveFromClassList("grey-text");
                     _dateOfIssue.AddToClassList("white-text");
-                    Utility.UpdateButtonState(textFields, continueButton.button);
-                    Utility.UpdateButtonState(textFields, wizardContinueButton.button);
+                    Utility.UpdateButtonState(textFields, _continueButton.button);
+                    Utility.UpdateButtonState(textFields, _wizardContinueButton.button);
 
                 });
             });
@@ -429,31 +429,31 @@ namespace com.noctuagames.sdk.UI
 
             HideAllErrors();
 
-            continueButton.ToggleLoading(true);
-            wizardContinueButton.ToggleLoading(true);
+            _continueButton.ToggleLoading(true);
+            _wizardContinueButton.ToggleLoading(true);
 
             // Wizard            
             View.Q<Button>("WizardPrevTo3Button").AddToClassList("hide");
 
-            var emailAddress = inputEmail.text.Replace(" ", string.Empty);
-            var password = inputPassword.text;
-            var rePassword = inputRepassword.text;
+            var emailAddress = _inputEmail.text.Replace(" ", string.Empty);
+            var password = _inputPassword.text;
+            var rePassword = _inputRepassword.text;
 
             // Validation
             if (!string.IsNullOrEmpty(Utility.ValidateEmail(emailAddress)))
             {
-                continueButton.ToggleLoading(false);
-                wizardContinueButton.ToggleLoading(false);
+                _continueButton.ToggleLoading(false);
+                _wizardContinueButton.ToggleLoading(false);
 
                 //Wizard
                 View.Q<Button>("WizardPrevTo3Button").RemoveFromClassList("hide");
 
-                inputEmail.Error(Utility.ValidateEmail(emailAddress));
+                _inputEmail.Error(Utility.ValidateEmail(emailAddress));
 
                 // Show the error at the end of the wizard as well
                 if (!string.IsNullOrEmpty(_config?.Noctua?.Flags) && _config!.Noctua!.Flags!.Contains("VNLegalPurpose"))
                 {
-                    Model.ShowGeneralNotification(inputEmail.labelError.text, false);
+                    Model.ShowGeneralNotification(_inputEmail.labelError.text, false);
                 }
 
                 return;
@@ -461,18 +461,18 @@ namespace com.noctuagames.sdk.UI
 
             if (!string.IsNullOrEmpty(Utility.ValidatePassword(password)))
             {
-                continueButton.ToggleLoading(false);
-                wizardContinueButton.ToggleLoading(false);
+                _continueButton.ToggleLoading(false);
+                _wizardContinueButton.ToggleLoading(false);
 
                 //Wizard
                 View.Q<Button>("WizardPrevTo3Button").RemoveFromClassList("hide");
 
-                inputPassword.Error(Utility.ValidatePassword(password));
+                _inputPassword.Error(Utility.ValidatePassword(password));
 
                 // Show the error at the end of the wizard as well
                 if (!string.IsNullOrEmpty(_config?.Noctua?.Flags) && _config!.Noctua!.Flags!.Contains("VNLegalPurpose"))
                 {
-                    Model.ShowGeneralNotification(inputPassword.labelError.text, false);
+                    Model.ShowGeneralNotification(_inputPassword.labelError.text, false);
                 }
 
                 return;
@@ -480,18 +480,18 @@ namespace com.noctuagames.sdk.UI
 
             if (!string.IsNullOrEmpty(Utility.ValidateReenterPassword(password, rePassword)))
             {
-                continueButton.ToggleLoading(false);
-                wizardContinueButton.ToggleLoading(false);
+                _continueButton.ToggleLoading(false);
+                _wizardContinueButton.ToggleLoading(false);
 
                 //Wizard
                 View.Q<Button>("WizardPrevTo3Button").RemoveFromClassList("hide");
 
-                inputRepassword.Error(Utility.ValidateReenterPassword(password, rePassword));
+                _inputRepassword.Error(Utility.ValidateReenterPassword(password, rePassword));
 
                 // Show the error at the end of the wizard as well
                 if (!string.IsNullOrEmpty(_config?.Noctua?.Flags) && _config!.Noctua!.Flags!.Contains("VNLegalPurpose"))
                 {
-                    Model.ShowGeneralNotification(inputRepassword.labelError.text, false);
+                    Model.ShowGeneralNotification(_inputRepassword.labelError.text, false);
                 }
 
                 return;
@@ -505,8 +505,8 @@ namespace com.noctuagames.sdk.UI
                 {
                     _log.Debug("form validation: gender is empty");
 
-                    continueButton.ToggleLoading(false);
-                    wizardContinueButton.ToggleLoading(false);
+                    _continueButton.ToggleLoading(false);
+                    _wizardContinueButton.ToggleLoading(false);
 
                     //Wizard
                     View.Q<Button>("WizardPrevTo3Button").RemoveFromClassList("hide");
@@ -533,8 +533,8 @@ namespace com.noctuagames.sdk.UI
                 {
                     _log.Debug("form validation: birthdate under 18");
 
-                    continueButton.ToggleLoading(false);
-                    wizardContinueButton.ToggleLoading(false);
+                    _continueButton.ToggleLoading(false);
+                    _wizardContinueButton.ToggleLoading(false);
 
                     //Wizard
                     View.Q<Button>("WizardPrevTo3Button").RemoveFromClassList("hide");
@@ -580,9 +580,9 @@ namespace com.noctuagames.sdk.UI
 
                 Visible = false;
 
-                inputEmail.Clear();
-                inputPassword.Clear();
-                inputRepassword.Clear();
+                _inputEmail.Clear();
+                _inputPassword.Clear();
+                _inputRepassword.Clear();
 
                 if (!string.IsNullOrEmpty(_config?.Noctua?.Flags) && _config!.Noctua!.Flags!.Contains("VNLegalPurpose"))
                 {
@@ -597,8 +597,8 @@ namespace com.noctuagames.sdk.UI
 
                 Model.ShowEmailVerification(emailAddress, password, result.Id);
 
-                continueButton.Clear();
-                wizardContinueButton.Clear();
+                _continueButton.Clear();
+                _wizardContinueButton.Clear();
                 // Wizard                
                 View.Q<Button>("WizardPrevTo3Button").RemoveFromClassList("hide");                
 
@@ -609,23 +609,23 @@ namespace com.noctuagames.sdk.UI
 
                 if (e is NoctuaException noctuaEx)
                 {
-                    continueButton.Error(noctuaEx.ErrorCode.ToString() + " : " + noctuaEx.Message);
-                    wizardContinueButton.Error(noctuaEx.ErrorCode.ToString() + " : " + noctuaEx.Message);
+                    _continueButton.Error(noctuaEx.ErrorCode.ToString() + " : " + noctuaEx.Message);
+                    _wizardContinueButton.Error(noctuaEx.ErrorCode.ToString() + " : " + noctuaEx.Message);
                 }
                 else
                 {
-                    continueButton.Error(e.Message);
-                    wizardContinueButton.Error(e.Message);                    
+                    _continueButton.Error(e.Message);
+                    _wizardContinueButton.Error(e.Message);                    
                 }
 
-                continueButton.ToggleLoading(false);
-                wizardContinueButton.ToggleLoading(false);
+                _continueButton.ToggleLoading(false);
+                _wizardContinueButton.ToggleLoading(false);
                 // Wizard                
                 View.Q<Button>("WizardPrevTo3Button").RemoveFromClassList("hide");
                 
                 if (!string.IsNullOrEmpty(_config?.Noctua?.Flags) && _config!.Noctua!.Flags!.Contains("VNLegalPurpose"))
                 {
-                    Model.ShowGeneralNotification(continueButton.labelError.text, false);
+                    Model.ShowGeneralNotification(_continueButton.labelError.text, false);
                 }
                 else
                 {
@@ -654,35 +654,35 @@ namespace com.noctuagames.sdk.UI
                 return;
             }
 
-            continueButton.Clear();
-            wizardContinueButton.Clear();
+            _continueButton.Clear();
+            _wizardContinueButton.Clear();
 
             Visible = false;
 
             Model.NavigateBack();
         }
 
-        private void OnValueChanged(InputFieldNoctua _input)
+        private void OnValueChanged(InputFieldNoctua input)
         {
-            _input.AdjustLabel();
-            Utility.UpdateButtonState(textFields, continueButton.button);
-            Utility.UpdateButtonState(textFields, wizardContinueButton.button);
+            input.AdjustLabel();
+            Utility.UpdateButtonState(textFields, _continueButton.button);
+            Utility.UpdateButtonState(textFields, _wizardContinueButton.button);
         }
 
         private void HideAllErrors()
         {
             //Normalize border
-            inputEmail.Reset();
-            inputPassword.Reset();
-            inputRepassword.Reset();
+            _inputEmail.Reset();
+            _inputPassword.Reset();
+            _inputRepassword.Reset();
             _country.Reset();
             _birthDate.Reset();
 
             _gender.Children().ElementAt(1).RemoveFromClassList("noctua-text-input-error");
             _gender.Q<Label>("error").AddToClassList("hide");
 
-            continueButton.Clear();
-            wizardContinueButton.Clear();
+            _continueButton.Clear();
+            _wizardContinueButton.Clear();
         }
     }
 }

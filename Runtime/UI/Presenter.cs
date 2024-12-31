@@ -104,11 +104,11 @@ namespace com.noctuagames.sdk.UI
             public VisualElement veSpinner { get; }
             public Label labelError { get; }
 
-            public ButtonNoctua (Button _button)
+            public ButtonNoctua (Button button)
             {
-                button = _button;
-                labelError = button.parent.Q<Label>("ErrCode");
-                veSpinner = button.parent.Q<VisualElement>("Spinner");
+                this.button = button;
+                labelError = this.button.parent.Q<Label>("ErrCode");
+                veSpinner = this.button.parent.Q<VisualElement>("Spinner");
 
                 if (veSpinner != null)
                 {
@@ -127,9 +127,9 @@ namespace com.noctuagames.sdk.UI
                 ToggleLoading(false);
             }
 
-            public void ToggleLoading(bool _isLoading)
+            public void ToggleLoading(bool isLoading)
             {
-                if (_isLoading)
+                if (isLoading)
                 {
                     button.AddToClassList("hide");
                     veSpinner.RemoveFromClassList("hide");
@@ -141,9 +141,9 @@ namespace com.noctuagames.sdk.UI
                 }
             }
 
-            public void Error(string _strMessage)
+            public void Error(string strMessage)
             {
-                labelError.text = _strMessage;                
+                labelError.text = strMessage;                
                 labelError.RemoveFromClassList("hide");               
             }
         }
@@ -156,42 +156,42 @@ namespace com.noctuagames.sdk.UI
             public Label labelError { get; }
             public string text { get { return textField.text; } }
 
-            private UnityAction onFocusIn;
-            private UnityAction onFocusOut;
+            private UnityAction _onFocusIn;
+            private UnityAction _onFocusOut;
 
-            public InputFieldNoctua(TextField _textField)
+            public InputFieldNoctua(TextField textField)
             {
-                textField = _textField;
-                veTextInput = textField.Q("unity-text-input");
-                labelTitle = textField.Q<Label>("title");
-                labelError = textField.Q<Label>("error");
+                this.textField = textField;
+                veTextInput = this.textField.Q("unity-text-input");
+                labelTitle = this.textField.Q<Label>("title");
+                labelError = this.textField.Q<Label>("error");
 
-                textField.hideMobileInput = true;
+                this.textField.hideMobileInput = true;
 
                 Clear();                
             }
 
-            public void SetFocus(UnityAction _onFocusIn = null, UnityAction _onFocusOut = null)
+            public void SetFocus(UnityAction onFocusIn = null, UnityAction onFocusOut = null)
             {
-                onFocusIn = _onFocusIn;
-                onFocusOut = _onFocusOut;
+                this._onFocusIn = onFocusIn;
+                this._onFocusOut = onFocusOut;
 
                 textField.RegisterCallback<FocusInEvent>(OnFocusChange);
                 textField.RegisterCallback<FocusOutEvent>(OnFocusChange);
             }
 
-            public void OnFocusChange(FocusInEvent _event)
+            public void OnFocusChange(FocusInEvent evt)
             {                
-                onFocusIn?.Invoke();
+                _onFocusIn?.Invoke();
                 Reset();
 
                 veTextInput.AddToClassList("noctua-text-input-focus");
                 labelTitle.style.color = ColorModule.white;                
             }
 
-            public void OnFocusChange(FocusOutEvent _event)
+            public void OnFocusChange(FocusOutEvent evt)
             {                
-                onFocusOut?.Invoke();
+                _onFocusOut?.Invoke();
                 veTextInput.RemoveFromClassList("noctua-text-input-focus");
                 labelTitle.style.color = ColorModule.greyInactive;                
             }
@@ -209,9 +209,9 @@ namespace com.noctuagames.sdk.UI
                 labelTitle.style.color = ColorModule.greyInactive;
             }
 
-            public void Error(string _strMessage)
+            public void Error(string strMessage)
             {
-                labelError.text = _strMessage;
+                labelError.text = strMessage;
                 veTextInput.AddToClassList("noctua-text-input-error");
                 labelError.RemoveFromClassList("hide");                
                 labelTitle.style.color = ColorModule.redError;
@@ -231,9 +231,9 @@ namespace com.noctuagames.sdk.UI
                 }
             }
 
-            public void ToggleTitle(bool _isShow)
+            public void ToggleTitle(bool isShow)
             {
-                if (_isShow)
+                if (isShow)
                 {
                     labelTitle.RemoveFromClassList("hide");
                 }

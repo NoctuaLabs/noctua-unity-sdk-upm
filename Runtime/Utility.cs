@@ -332,23 +332,13 @@ namespace com.noctuagames.sdk
             }
 
             return await task();
-        }
+        }        
 
-        public static bool ValidateIsEmpty(string _str)
+        public static string ValidateEmail(string str)
         {
-            if (string.IsNullOrEmpty(_str))
-            {
-                return true;
-            }
+            if (string.IsNullOrEmpty(str)) return "Email address should not be empty";
 
-            return false;
-        }
-
-        public static string ValidateEmail(string _str)
-        {
-            if (ValidateIsEmpty(_str)) return "Email address should not be empty";
-
-            if (string.IsNullOrWhiteSpace(_str))
+            if (string.IsNullOrWhiteSpace(str))
                 return "Email address is not valid";
 
             try
@@ -357,7 +347,7 @@ namespace com.noctuagames.sdk
                 string pattern = @"^[^@\s]+@[^@\s]+\.[^@\s]+$";
 
                 // Use IdnMapping class to convert Unicode domain names, if applicable
-                _str = Regex.Replace(_str, @"(@)(.+)$", match =>
+                str = Regex.Replace(str, @"(@)(.+)$", match =>
                 {
                     var idn = new IdnMapping();
                     string domainName = idn.GetAscii(match.Groups[2].Value);
@@ -365,7 +355,7 @@ namespace com.noctuagames.sdk
                 }, RegexOptions.None, TimeSpan.FromMilliseconds(200));
 
                 // Return true if the email matches the pattern
-                if (Regex.IsMatch(_str, pattern, RegexOptions.IgnoreCase, TimeSpan.FromMilliseconds(250)))
+                if (Regex.IsMatch(str, pattern, RegexOptions.IgnoreCase, TimeSpan.FromMilliseconds(250)))
                     return string.Empty;
                 else
                     return "Email address is not valid";
@@ -376,11 +366,11 @@ namespace com.noctuagames.sdk
             }
         }
 
-        public static string ValidatePassword(string _str)
+        public static string ValidatePassword(string str)
         {
-            if (ValidateIsEmpty(_str)) return "Password should not be empty";
+            if (string.IsNullOrEmpty(str)) return "Password should not be empty";
 
-            if (_str?.Length < 6)
+            if (str?.Length < 6)
             {
                 return "Password is too short. Minimum 6 character";
             }
@@ -388,11 +378,11 @@ namespace com.noctuagames.sdk
             return string.Empty;
         }
 
-        public static string ValidateReenterPassword(string _strPassword, string _strRePassword)
+        public static string ValidateReenterPassword(string strPassword, string strRePassword)
         {
-            if (ValidateIsEmpty(_strRePassword)) return "Re-Enter password should not be empty";
+            if (string.IsNullOrEmpty(strRePassword)) return "Re-Enter password should not be empty";
 
-            if (!_strPassword.Equals(_strRePassword))
+            if (!strPassword.Equals(strRePassword))
             {
                 return "Password is not matched with repeated password";
             }

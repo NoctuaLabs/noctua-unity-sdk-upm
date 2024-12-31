@@ -14,10 +14,10 @@ namespace com.noctuagames.sdk.UI
 
         private readonly ILogger _log = new NoctuaLogger();
         
-        private List<TextField> textFields;
-        private ButtonNoctua submitButton;
+        private List<TextField> _textFields;
+        private ButtonNoctua _submitButton;
 
-        private InputFieldNoctua inputEmail;
+        private InputFieldNoctua _inputEmail;
 
         public void Show(bool clearForm)
         {
@@ -27,7 +27,7 @@ namespace com.noctuagames.sdk.UI
 
             if (clearForm)
             {
-                inputEmail.Clear();
+                _inputEmail.Clear();
             }
 
             EventSender?.Send("forgot_password_opened");
@@ -45,27 +45,27 @@ namespace com.noctuagames.sdk.UI
         {
             panelVE = View.Q<VisualElement>("Panel");
           
-            inputEmail = new InputFieldNoctua(View.Q<TextField>("EmailTF"));
-            submitButton = new ButtonNoctua(View.Q<Button>("ContinueButton"));
+            _inputEmail = new InputFieldNoctua(View.Q<TextField>("EmailTF"));
+            _submitButton = new ButtonNoctua(View.Q<Button>("ContinueButton"));
 
-            inputEmail.textField.RegisterValueChangedCallback(evt => OnValueChanged(inputEmail));
-            inputEmail.SetFocus();
+            _inputEmail.textField.RegisterValueChangedCallback(evt => OnValueChanged(_inputEmail));
+            _inputEmail.SetFocus();
             
-            textFields = new List<TextField>
+            _textFields = new List<TextField>
             {
-                inputEmail.textField
+                _inputEmail.textField
             };
 
-            Utility.UpdateButtonState(textFields, submitButton.button);
+            Utility.UpdateButtonState(_textFields, _submitButton.button);
 
-            submitButton.button.RegisterCallback<ClickEvent>(OnContinueButtonClick);
+            _submitButton.button.RegisterCallback<ClickEvent>(OnContinueButtonClick);
             View.Q<Button>("BackButton").RegisterCallback<ClickEvent>(OnBackButtonClick);
         }
 
-        private void OnValueChanged(InputFieldNoctua _input)
+        private void OnValueChanged(InputFieldNoctua input)
         {
-            _input.AdjustLabel();
-            Utility.UpdateButtonState(textFields, submitButton.button);
+            input.AdjustLabel();
+            Utility.UpdateButtonState(_textFields, _submitButton.button);
         }
 
         private async void OnContinueButtonClick(ClickEvent evt)
@@ -74,16 +74,16 @@ namespace com.noctuagames.sdk.UI
 
             HideAllErrors();
 
-            submitButton.ToggleLoading(true);
+            _submitButton.ToggleLoading(true);
 
-            var emailAddress = inputEmail.text.Replace(" ", string.Empty);
+            var emailAddress = _inputEmail.text.Replace(" ", string.Empty);
 
             // Validation
             if (!string.IsNullOrEmpty(Utility.ValidateEmail(emailAddress)))
             {
-                submitButton.ToggleLoading(false);
+                _submitButton.ToggleLoading(false);
 
-                inputEmail.Error(Utility.ValidateEmail(emailAddress));
+                _inputEmail.Error(Utility.ValidateEmail(emailAddress));
                 return;
             }
 
@@ -98,8 +98,8 @@ namespace com.noctuagames.sdk.UI
 
                 Visible = false;
 
-                inputEmail.Clear();
-                submitButton.Clear();
+                _inputEmail.Clear();
+                _submitButton.Clear();
 
             }
             catch (Exception e)
@@ -108,14 +108,14 @@ namespace com.noctuagames.sdk.UI
 
                 if (e is NoctuaException noctuaEx)
                 {
-                    submitButton.Error(noctuaEx.ErrorCode.ToString() + " : " + noctuaEx.Message);                    
+                    _submitButton.Error(noctuaEx.ErrorCode.ToString() + " : " + noctuaEx.Message);                    
                 }
                 else
                 {
-                    submitButton.Error(e.Message);                    
+                    _submitButton.Error(e.Message);                    
                 }
 
-                submitButton.ToggleLoading(false);
+                _submitButton.ToggleLoading(false);
             }
         }
 
@@ -129,10 +129,9 @@ namespace com.noctuagames.sdk.UI
         }
 
         private void HideAllErrors()
-        {
-            //Normalize border
-            inputEmail.Reset();
-            submitButton.Clear();
+        {            
+            _inputEmail.Reset();
+            _submitButton.Clear();
         }
     }
 }
