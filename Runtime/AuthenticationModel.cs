@@ -82,7 +82,7 @@ namespace com.noctuagames.sdk
         private readonly Stack<Action> _navigationStack = new();
 
         public NoctuaAuthenticationService AuthService => _authService;
-        public AuthIntention AuthIntention { get; set; }
+        public AuthIntention AuthIntention { get; set; } = AuthIntention.None;
 
         internal event Action<UserBundle> OnAccountChanged;
 
@@ -307,6 +307,7 @@ namespace com.noctuagames.sdk
     
     internal enum AuthIntention
     {
+        None,
         Switch,
         Link,
     }

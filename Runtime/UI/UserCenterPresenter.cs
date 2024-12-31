@@ -882,12 +882,7 @@ namespace com.noctuagames.sdk.UI
             _carouselVE = View.Q<VisualElement>("ImageCarousel");
             _indicatorContainer = View.Q<VisualElement>("IndicatorContainer");
 
-            View.Q<Button>("ExitButton").RegisterCallback<PointerUpEvent>(_ =>
-            {
-                Visible = false;
-                OnUIEditProfile(false);
-            });
-
+            View.Q<Button>("ExitButton").RegisterCallback<PointerUpEvent>(OnExitButton);
             _moreOptionsMenuButton.RegisterCallback<ClickEvent>(OnMoreOptionsButtonClick);
             View.Q<Button>("GuestConnectButton").RegisterCallback<ClickEvent>(OnGuestConnectButtonClick);
             View.Q<VisualElement>("DeleteAccount").RegisterCallback<ClickEvent>(_ => OnDeleteAccount());
@@ -902,6 +897,13 @@ namespace com.noctuagames.sdk.UI
             HighlightCurrentIndicator();
 
             InvokeRepeating(nameof(SlideToNextItem), SlideInterval, SlideInterval);
+        }
+        
+        private void OnExitButton(PointerUpEvent evt)
+        {
+            Visible = false;
+            OnUIEditProfile(false);
+            Model.AuthIntention = AuthIntention.None;
         }
 
         private void OnDisable()

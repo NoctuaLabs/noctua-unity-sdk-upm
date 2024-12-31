@@ -146,8 +146,6 @@ namespace com.noctuagames.sdk.UI
 
             Visible = false;
 
-            Model.ClearNavigation();
-            Model.PushNavigation(() => Model.ShowEmailLogin());
             Model.ShowEmailRegistration(true);
         }
 

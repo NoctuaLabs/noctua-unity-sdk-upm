@@ -92,6 +92,7 @@ namespace com.noctuagames.sdk.UI
                 
                 switch (Model.AuthIntention)
                 {
+                    case AuthIntention.None:
                     case AuthIntention.Switch:
                         result = await Model.AuthService.RegisterWithEmailAsync(_email, _password, _extraData);
                         break;

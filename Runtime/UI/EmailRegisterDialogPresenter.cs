@@ -418,8 +418,6 @@ namespace com.noctuagames.sdk.UI
         {
             Visible = false;
 
-            Model.ClearNavigation();
-            Model.PushNavigation(() => Model.ShowEmailRegistration(false));
             Model.ShowEmailLogin();
         }
 
@@ -578,6 +576,7 @@ namespace com.noctuagames.sdk.UI
                 
                 switch (Model.AuthIntention)
                 {
+                    case AuthIntention.None:
                     case AuthIntention.Switch:
                         result = await Model.AuthService.RegisterWithEmailAsync(emailAddress, password, regExtra);
                         break;

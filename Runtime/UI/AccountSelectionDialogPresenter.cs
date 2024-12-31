@@ -113,6 +113,7 @@ namespace com.noctuagames.sdk.UI
             Visible = false;
             
             Model.ClearNavigation();
+            Model.AuthIntention = AuthIntention.None;
         }
 
         private void BindListView(ListView listView, List<UserBundle> items)
