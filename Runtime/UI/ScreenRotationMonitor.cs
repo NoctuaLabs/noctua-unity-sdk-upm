@@ -7,17 +7,18 @@ namespace com.noctuagames.sdk.UI
 {
     public class ScreenRotationMonitor : MonoBehaviour
     {
-        private bool _isLandscape;
-        
         public PanelSettings PanelSettings;
         
         private void Update()
         {
-            if (_isLandscape == Screen.width > Screen.height) return;
-
-            _isLandscape = Screen.width > Screen.height;
+            if (PanelSettings is null) return;
             
-            if (_isLandscape)
+            var isPanelSettingsLandscape = PanelSettings.referenceResolution.x > PanelSettings.referenceResolution.y;
+            var isScreenLandscape = Screen.width > Screen.height;
+
+            if (isPanelSettingsLandscape == isScreenLandscape) return;
+            
+            if (isScreenLandscape)
             {
                 PanelSettings.match = 0;
                 PanelSettings.referenceResolution = new Vector2Int(800, 360);
