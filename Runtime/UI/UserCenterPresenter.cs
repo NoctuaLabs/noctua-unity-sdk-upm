@@ -31,18 +31,20 @@ namespace com.noctuagames.sdk.UI
         private Button _helpButton;
         private VisualElement _copyIcon;
         private VisualElement _connectAccountFooter;
+        private VisualElement _moreOptionsMenu;
 
+        #region Edit Profile Variable
         //Edit Profile UI
         private VisualElement _editProfileContainer;
-        private TextField _nicknameTF;
-        private TextField _birthDateTF;
-        private DropdownField _genderTF;
-        private DropdownField _countryTF;
-        private DropdownField _languageTF;
+        private InputFieldNoctua _nicknameTF;
+        private InputFieldNoctua _birthDateTF;
+        private DropdownField _genderDF;
+        private DropdownField _countryDF;
+        private DropdownField _languageDF;
         private VisualElement _profileImage;
-        private VisualElement _playerImage;
-        private Button _changeProfile;
-        private Button saveButton;
+        private VisualElement _playerImage;        
+        private ButtonNoctua _saveButton;
+        private ButtonNoctua _changePictureButton;
         private Label _userIDLabel;
         private string _newProfileUrl;
         private string _userIDValue;
@@ -52,6 +54,7 @@ namespace com.noctuagames.sdk.UI
         private VisualElement _noctuaLogoWithText;
         private Label _sdkVersion;
         private string _dateString;
+        #endregion
 
         // Suggest Bind UI
         private VisualElement _guestContainer;
@@ -104,6 +107,42 @@ namespace com.noctuagames.sdk.UI
 
         protected override void Detach()
         {
+        }
+
+        private void Awake()
+        {
+            _defaultAvatar = Resources.Load<Texture2D>("DefaultAvatar");
+
+            _stayConnect = View.Q<Label>("ConnectAccountLabel");
+            _containerStayConnect = View.Q<VisualElement>("ContainerStayConnect");
+            _hiTextContainer = View.Q<VisualElement>("HiText");
+            _playerName = View.Q<Label>("PlayerName");
+            _moreOptionsMenuButton = View.Q<Button>("MoreOptionsButton");
+            _moreOptionsMenu = View.Q<VisualElement>("MoreOptionsMenu");
+            _helpButton = View.Q<Button>("HelpButton");
+            _copyIcon = View.Q<VisualElement>("CopyIcon");
+            _noctuaLogoWithText = View.Q<VisualElement>("NoctuaLogoContainer");
+            _connectAccountFooter = View.Q<VisualElement>("ConnectAccountFooter");
+            _sdkVersion = View.Q<Label>("SDKVersion");
+            _sdkVersion.text = $"v{Assembly.GetExecutingAssembly().GetName().Version}";
+
+            _moreOptionsMenu.RegisterCallback<ClickEvent>(_ => OnMoreOptionsMenuSelected());
+            View.Q<VisualElement>("EditProfile").RegisterCallback<ClickEvent>(_ => OnEditProfile());
+            View.Q<VisualElement>("BackButton").RegisterCallback<ClickEvent>(_ => OnBackEditProfile());
+            View.Q<VisualElement>("SwitchProfile").RegisterCallback<ClickEvent>(_ => OnSwitchProfile());
+            View.Q<VisualElement>("LogoutAccount").RegisterCallback<ClickEvent>(_ => OnLogout());
+            View.Q<VisualElement>("PendingPurchases").RegisterCallback<ClickEvent>(_ => OnPendingPurchases());
+            View.Q<VisualElement>("FindMoreLabel").RegisterCallback<ClickEvent>(_ => OnFindMore());
+
+            _helpButton.RegisterCallback<ClickEvent>(OnHelp);
+            _copyIcon.RegisterCallback<ClickEvent>(_ => OnCopyText());
+
+            //Suggest Bind UI
+            _guestContainer = View.Q<VisualElement>("UserGuestUI");
+            _guestContainer.AddToClassList("hide");
+
+            //Edit Profile UI
+            SetupEditProfileUI();
         }
 
         private void SetOrientation(bool isEditProfile = false)
@@ -205,7 +244,7 @@ namespace com.noctuagames.sdk.UI
 
                 _log.Debug($"current user in user center is '{user?.Id} - {user?.Nickname}'");
 
-                View.Q<VisualElement>("MoreOptionsMenu").AddToClassList("hide");
+                _moreOptionsMenu.AddToClassList("hide");
                 View.Q<Label>("PlayerName").text = isGuest ? "Guest " + user.Id : user?.Nickname;
                 View.Q<Label>("UserIdLabel").text = "ID : " + user?.Id.ToString() ?? "";
                 _userIDValue = user?.Id.ToString() ?? "";
@@ -219,7 +258,7 @@ namespace com.noctuagames.sdk.UI
                     OnUIEditProfile(false);
                     SetupDropdownUI();
 
-                    _nicknameTF.value = user?.Nickname;
+                    _nicknameTF.textField.value = user?.Nickname;
                     _newProfileUrl = user?.PictureUrl;
 
                     bool validDate = DateTime.TryParse(user?.DateOfBirth, null, DateTimeStyles.RoundtripKind, out DateTime dateTime);
@@ -228,29 +267,29 @@ namespace com.noctuagames.sdk.UI
                     string genderOriginal = user?.Gender;
                     string genderUpperChar = char.ToUpper(genderOriginal[0]) + genderOriginal.Substring(1);
 
-                    _birthDateTF.value = formattedDate;
-                    _genderTF.value = genderUpperChar;
+                    _birthDateTF.textField.value = formattedDate;
+                    _genderDF.value = genderUpperChar;
 
                     _dateString = formattedDate;
 
                     int indexCountry = _profileDataOptions.Countries.FindIndex(item => item.IsoCode.ToLower() == user?.Country.ToLower());
                     if (indexCountry != -1)
                     {
-                        _countryTF.value = _countryOptions[indexCountry];
+                        _countryDF.value = _countryOptions[indexCountry];
                     }
                     else
                     {
-                        _countryTF.value = "Select Country";
+                        _countryDF.value = "Select Country";
                     }
 
                     int indexLanguage = _profileDataOptions.Languages.FindIndex(item => item.IsoCode.ToLower() == user?.Language.ToLower());
                     if (indexLanguage != -1)
                     {
-                        _languageTF.value = _languageOptions[indexLanguage];
+                        _languageDF.value = _languageOptions[indexLanguage];
                     }
                     else
                     {
-                        _languageTF.value = "Select Language";
+                        _languageDF.value = "Select Language";
                     }
 
                     SetupEditProfileUI();
@@ -304,42 +343,7 @@ namespace com.noctuagames.sdk.UI
                 _credentials.ForEach(c => c.Username = "");
                 Model.ShowGeneralNotification(e.Message);
             }
-        }
-
-        private void Awake()
-        {
-            _defaultAvatar = Resources.Load<Texture2D>("DefaultAvatar");
-
-            _stayConnect = View.Q<Label>("ConnectAccountLabel");
-            _containerStayConnect = View.Q<VisualElement>("ContainerStayConnect");
-            _hiTextContainer = View.Q<VisualElement>("HiText");
-            _playerName = View.Q<Label>("PlayerName");
-            _moreOptionsMenuButton = View.Q<Button>("MoreOptionsButton");
-            _helpButton = View.Q<Button>("HelpButton");
-            _copyIcon = View.Q<VisualElement>("CopyIcon");
-            _noctuaLogoWithText = View.Q<VisualElement>("NoctuaLogoContainer");
-            _connectAccountFooter = View.Q<VisualElement>("ConnectAccountFooter");
-            _sdkVersion = View.Q<Label>("SDKVersion");
-            _sdkVersion.text = $"v{Assembly.GetExecutingAssembly().GetName().Version}";
-
-            View.Q<VisualElement>("MoreOptionsMenu").RegisterCallback<PointerUpEvent>(OnMoreOptionsMenuSelected);
-            View.Q<VisualElement>("EditProfile").RegisterCallback<PointerUpEvent>(_ => OnEditProfile());
-            View.Q<VisualElement>("BackButton").RegisterCallback<ClickEvent>(_ => OnBackEditProfile());
-            View.Q<VisualElement>("SwitchProfile").RegisterCallback<PointerUpEvent>(_ => OnSwitchProfile());
-            View.Q<VisualElement>("LogoutAccount").RegisterCallback<PointerUpEvent>(_ => OnLogout());
-            View.Q<VisualElement>("PendingPurchases").RegisterCallback<PointerUpEvent>(_ => OnPendingPurchases());
-            View.Q<VisualElement>("FindMoreLabel").RegisterCallback<PointerUpEvent>(_ => OnFindMore());
-
-            _helpButton.RegisterCallback<PointerUpEvent>(OnHelp);
-            _copyIcon.RegisterCallback<PointerUpEvent>(_ => OnCopyText());
-
-            //Suggest Bind UI
-            _guestContainer = View.Q<VisualElement>("UserGuestUI");
-            _guestContainer.AddToClassList("hide");
-
-            //Edit Profile UI
-            SetupEditProfileUI();
-        }
+        }        
 
         private void OnFindMore()
         {
@@ -350,7 +354,7 @@ namespace com.noctuagames.sdk.UI
             Application.OpenURL(findMorelUrl);
         }
 
-        private async void OnHelp(PointerUpEvent evt)
+        private async void OnHelp(ClickEvent evt)
         {
             await Noctua.Platform.Content.ShowCustomerService();
         }
@@ -366,9 +370,9 @@ namespace com.noctuagames.sdk.UI
         private void SetupDatePickerUI()
         {
             var birthDateContainer = View.Q<VisualElement>("BirthdateContainer");
-            _birthDateTF = View.Q<TextField>("BirthdateTF");
-            _birthDateTF.isReadOnly = true;
-            _birthDateTF.focusable = false;
+            _birthDateTF = new InputFieldNoctua(View.Q<TextField>("BirthdateTF"));
+            _birthDateTF.textField.isReadOnly = true;
+            _birthDateTF.textField.focusable = false;
 
             string _dob = string.IsNullOrEmpty(_dateString) ? "01/01/2000" : _dateString;
             DateTime parsedDate = DateTime.ParseExact(_dob, "dd/MM/yyyy", null);
@@ -385,38 +389,38 @@ namespace com.noctuagames.sdk.UI
                 },
                 (DateTime _date) =>
                 {
-                    _birthDateTF.value = _date.ToString("dd/MM/yyyy");
-                    Utility.UpdateButtonState(saveButton, true);
+                    _birthDateTF.textField.value = _date.ToString("dd/MM/yyyy");
+                    Utility.UpdateButtonState(_saveButton.button, true);
                 });
             });
 
             // Register the callback for each text change
-            _birthDateTF.RegisterCallback<ChangeEvent<string>>(evt => OnDateFieldChanged());
+            _birthDateTF.textField.RegisterCallback<ChangeEvent<string>>(evt => OnDateFieldChanged());
         }
 
         private void OnDateFieldChanged()
         {
-            _dateString = _birthDateTF.value;
-            AdjustHideLabelElement(_birthDateTF);
+            _dateString = _birthDateTF.text;
+            _birthDateTF.AdjustLabel();            
         }
 
         private void SetupEditProfileUI()
         {
             _editProfileContainer = View.Q<VisualElement>("EditProfileBox");
 
-            _nicknameTF = View.Q<TextField>("NicknameTF");
-            _genderTF = View.Q<DropdownField>("GenderTF");
-            _countryTF = View.Q<DropdownField>("CountryTF");
-            _languageTF = View.Q<DropdownField>("LanguageTF");
-            _changeProfile = View.Q<Button>("ChangePictureButton");
+            _nicknameTF = new InputFieldNoctua(View.Q<TextField>("NicknameTF"));
+            _genderDF = View.Q<DropdownField>("GenderTF");
+            _countryDF = View.Q<DropdownField>("CountryTF");
+            _languageDF = View.Q<DropdownField>("LanguageTF");            
             _profileImage = View.Q<VisualElement>("ProfileImage");
             _playerImage = View.Q<VisualElement>("PlayerAvatar");
             _userIDLabel = View.Q<Label>("UserIdLabel");
 
-            saveButton = View.Q<Button>("SaveButton");
+            _changePictureButton = new ButtonNoctua(View.Q<Button>("ChangePictureButton"));
+            _saveButton = new ButtonNoctua(View.Q<Button>("SaveButton"));
 
-            Utility.UpdateButtonState(saveButton, false);            
-            saveButton.RegisterCallback<PointerUpEvent>(_ => OnSaveEditProfile());
+            Utility.UpdateButtonState(_saveButton.button, false);            
+            _saveButton.button.RegisterCallback<ClickEvent>(_ => OnSaveEditProfile());
 
             var elementNames = new List<string>
             {
@@ -426,41 +430,26 @@ namespace com.noctuagames.sdk.UI
                 "LanguageTF",
             };
 
-            Utility.RegisterForMultipleValueChanges<string>(View, elementNames, saveButton);
+            Utility.RegisterForMultipleValueChanges<string>(View, elementNames, _saveButton.button);
 
-            _nicknameTF.RegisterValueChangedCallback(evt => OnTextChanged(_nicknameTF));
-            _changeProfile.RegisterCallback<PointerUpEvent>(OnChangeProfile);
+            _nicknameTF.textField.RegisterValueChangedCallback(evt => OnValueChanged(_nicknameTF));
+            _changePictureButton.button.RegisterCallback<ClickEvent>(evt => OnChangeProfile());
 
-            _nicknameTF.RegisterCallback<FocusInEvent>(OnTextFieldFocusChange);
-            _nicknameTF.RegisterCallback<FocusOutEvent>(OnTextFieldFocusChange);
+            _nicknameTF.SetFocus();
 
             SetupDatePickerUI();
-            SetupDropdownUI();
-            SetupSpinner();
-        }
-
-        public void OnTextFieldFocusChange(FocusInEvent _event)
-        {
-            HideAllErrors();
-            (_event.target as VisualElement).Children().ElementAt(1).AddToClassList("noctua-text-input-focus");
-            (_event.target as VisualElement).Q<VisualElement>("title").style.color = ColorModule.white;
-        }
-
-        public void OnTextFieldFocusChange(FocusOutEvent _event)
-        {
-            (_event.target as VisualElement).Children().ElementAt(1).RemoveFromClassList("noctua-text-input-focus");
-            (_event.target as VisualElement).Q<VisualElement>("title").style.color = ColorModule.greyInactive;
+            SetupDropdownUI();            
         }
 
         public void HideAllErrors()
         {
-            _nicknameTF.Children().ElementAt(1).RemoveFromClassList("noctua-text-input-error");
-            _countryTF.Children().ElementAt(1).RemoveFromClassList("noctua-text-input-error");
-            _languageTF.Children().ElementAt(1).RemoveFromClassList("noctua-text-input-error");
+            _nicknameTF.Reset();
 
-            _nicknameTF.Q<Label>("error").AddToClassList("hide");
-            _countryTF.Q<Label>("error").AddToClassList("hide");
-            _languageTF.Q<Label>("error").AddToClassList("hide");
+            _countryDF.Children().ElementAt(1).RemoveFromClassList("noctua-text-input-error");
+            _languageDF.Children().ElementAt(1).RemoveFromClassList("noctua-text-input-error");
+            
+            _countryDF.Q<Label>("error").AddToClassList("hide");
+            _languageDF.Q<Label>("error").AddToClassList("hide");
         }
 
         private void SetupDropdownUI()
@@ -483,35 +472,35 @@ namespace com.noctuagames.sdk.UI
                 }
             }
 
-            _genderTF.choices = genderChoices;
-            _genderTF.RegisterCallback<ChangeEvent<string>>((evt) =>
+            _genderDF.choices = genderChoices;
+            _genderDF.RegisterCallback<ChangeEvent<string>>((evt) =>
             {
-                _genderTF.value = evt.newValue;
-                _genderTF.labelElement.style.display = DisplayStyle.None;
-                _genderTF.Q<VisualElement>("title").RemoveFromClassList("hide");
+                _genderDF.value = evt.newValue;
+                _genderDF.labelElement.style.display = DisplayStyle.None;
+                _genderDF.Q<VisualElement>("title").RemoveFromClassList("hide");
 
-                Utility.UpdateButtonState(saveButton, true);
+                Utility.UpdateButtonState(_saveButton.button, true);
             });
 
-            _countryTF.choices = _countryOptions;
-            _countryTF.RegisterCallback<ChangeEvent<string>>((evt) =>
+            _countryDF.choices = _countryOptions;
+            _countryDF.RegisterCallback<ChangeEvent<string>>((evt) =>
             {
-                _countryTF.value = evt.newValue;
-                _countryTF.labelElement.style.display = DisplayStyle.None;
-                _countryTF.Q<VisualElement>("title").RemoveFromClassList("hide");
+                _countryDF.value = evt.newValue;
+                _countryDF.labelElement.style.display = DisplayStyle.None;
+                _countryDF.Q<VisualElement>("title").RemoveFromClassList("hide");
             });
 
-            _languageTF.choices = _languageOptions;
-            _languageTF.RegisterCallback<ChangeEvent<string>>((evt) =>
+            _languageDF.choices = _languageOptions;
+            _languageDF.RegisterCallback<ChangeEvent<string>>((evt) =>
             {
-                _languageTF.value = evt.newValue;
-                _languageTF.labelElement.style.display = DisplayStyle.None;
-                _languageTF.Q<VisualElement>("title").RemoveFromClassList("hide");
+                _languageDF.value = evt.newValue;
+                _languageDF.labelElement.style.display = DisplayStyle.None;
+                _languageDF.Q<VisualElement>("title").RemoveFromClassList("hide");
             });
 
         }
 
-        private void OnChangeProfile(PointerUpEvent evt)
+        private void OnChangeProfile()
         {
             if (NativeGallery.IsMediaPickerBusy())
             {
@@ -671,7 +660,7 @@ namespace com.noctuagames.sdk.UI
                 
                 View.Q<Label>("TitleEditBack").text = Locale.GetTranslation("UserCenterPresenter.MenuEditProfile.Label.text");
 
-                Utility.UpdateButtonState(saveButton, false);                
+                Utility.UpdateButtonState(_saveButton.button, false);                
                 View.Q<VisualElement>("UserProfileHeader").style.justifyContent = Justify.FlexEnd;
             }
             else
@@ -731,7 +720,7 @@ namespace com.noctuagames.sdk.UI
                     _containerStayConnect.AddToClassList("show");
                 }
 
-                _nicknameTF.value = View.Q<Label>("PlayerName").text;
+                _nicknameTF.textField.value = View.Q<Label>("PlayerName").text;
                 ShowButtonSpinner(false);
                 HideAllErrors();
 
@@ -739,24 +728,9 @@ namespace com.noctuagames.sdk.UI
         }
 
 
-        private void OnTextChanged(TextField textField)
+        private void OnValueChanged(InputFieldNoctua textField)
         {
-            AdjustHideLabelElement(textField);
-        }
-
-        private void SetupSpinner()
-        {
-            if (View.Q<VisualElement>("Spinner").childCount == 0)
-            {
-                View.Q<VisualElement>("Spinner").Add(new Spinner(30, 30));
-                View.Q<VisualElement>("Spinner").AddToClassList("hide");
-            }
-
-            if (View.Q<VisualElement>("Spinner2").childCount == 0)
-            {
-                View.Q<VisualElement>("Spinner2").Add(new Spinner(30, 30));
-                View.Q<VisualElement>("Spinner2").AddToClassList("hide");
-            }
+            textField.AdjustLabel();
         }
 
         private void OnSaveEditProfile()
@@ -772,39 +746,33 @@ namespace com.noctuagames.sdk.UI
 
             HideAllErrors();
 
-            if (string.IsNullOrEmpty(_nicknameTF.value))
+            if (string.IsNullOrEmpty(_nicknameTF.textField.value))
             {
                 ShowButtonSpinner(false);
 
-                _nicknameTF.ElementAt(1).AddToClassList("noctua-text-input-error");
-                _nicknameTF.Q<Label>("error").RemoveFromClassList("hide");
-                _nicknameTF.Q<Label>("error").text = Locale.GetTranslation("EditProfile.NicknameValidation");
-                _nicknameTF.Q<VisualElement>("title").style.color = ColorModule.redError;
-
+                _nicknameTF.Error(Locale.GetTranslation("EditProfile.NicknameValidation"));                
                 return;
             }
 
-            if (string.IsNullOrEmpty(_countryTF.value) || _countryTF.value == "Select Country")
+            if (string.IsNullOrEmpty(_countryDF.value) || _countryDF.value == "Select Country")
             {
                 ShowButtonSpinner(false);
 
-                _countryTF.ElementAt(1).AddToClassList("noctua-text-input-error");
-                _countryTF.Q<Label>("error").RemoveFromClassList("hide");
-                _countryTF.Q<Label>("error").text = Locale.GetTranslation("EditProfile.CountryValidation");
-                _countryTF.Q<VisualElement>("title").style.color = ColorModule.redError;
-
+                _countryDF.ElementAt(1).AddToClassList("noctua-text-input-error");
+                _countryDF.Q<Label>("error").RemoveFromClassList("hide");
+                _countryDF.Q<Label>("error").text = Locale.GetTranslation("EditProfile.CountryValidation");
+                _countryDF.Q<VisualElement>("title").style.color = ColorModule.redError;
                 return;
             }
 
-            if (string.IsNullOrEmpty(_languageTF.value) || _languageTF.value == "Select Language")
+            if (string.IsNullOrEmpty(_languageDF.value) || _languageDF.value == "Select Language")
             {
                 ShowButtonSpinner(false);
 
-                _languageTF.ElementAt(1).AddToClassList("noctua-text-input-error");
-                _languageTF.Q<Label>("error").RemoveFromClassList("hide");
-                _languageTF.Q<Label>("error").text = Locale.GetTranslation("EditProfile.LanguageValidation");
-                _languageTF.Q<VisualElement>("title").style.color = ColorModule.redError;
-
+                _languageDF.ElementAt(1).AddToClassList("noctua-text-input-error");
+                _languageDF.Q<Label>("error").RemoveFromClassList("hide");
+                _languageDF.Q<Label>("error").text = Locale.GetTranslation("EditProfile.LanguageValidation");
+                _languageDF.Q<VisualElement>("title").style.color = ColorModule.redError;
                 return;
             }
 
@@ -812,9 +780,9 @@ namespace com.noctuagames.sdk.UI
             {
                 UpdateUserRequest updateUserRequest = new UpdateUserRequest();
 
-                updateUserRequest.Nickname = _nicknameTF.value;
+                updateUserRequest.Nickname = _nicknameTF.text;
 
-                var _dob = _birthDateTF.value;
+                var _dob = _birthDateTF.text;
 
                 if (!string.IsNullOrEmpty(_dob))
                 {
@@ -828,15 +796,15 @@ namespace com.noctuagames.sdk.UI
                     updateUserRequest.DateOfBirth = null;
                 }
 
-                if (!string.IsNullOrEmpty(_genderTF.value))
+                if (!string.IsNullOrEmpty(_genderDF.value))
                 {
-                    updateUserRequest.Gender = _genderTF.value.ToLower();
+                    updateUserRequest.Gender = _genderDF.value.ToLower();
                 }
 
                 updateUserRequest.PictureUrl = _newProfileUrl;
 
-                int indexCountry = _profileDataOptions.Countries.FindIndex(item => item.EnglishName.ToLower() == _countryTF.value.ToLower());
-                int indexLanguage = _profileDataOptions.Languages.FindIndex(item => item.EnglishName.ToLower() == _languageTF.value.ToLower());
+                int indexCountry = _profileDataOptions.Countries.FindIndex(item => item.EnglishName.ToLower() == _countryDF.value.ToLower());
+                int indexLanguage = _profileDataOptions.Languages.FindIndex(item => item.EnglishName.ToLower() == _languageDF.value.ToLower());
 
                 updateUserRequest.Country = _profileDataOptions.Countries[indexCountry].IsoCode;
                 updateUserRequest.Language = _profileDataOptions.Languages[indexLanguage].IsoCode;
@@ -850,7 +818,7 @@ namespace com.noctuagames.sdk.UI
                     StartCoroutine(LoadImageFromUrl(_newProfileUrl, true));
                 }
 
-                View.Q<Label>("PlayerName").text = _nicknameTF.value;
+                View.Q<Label>("PlayerName").text = _nicknameTF.text;
 
                 ShowButtonSpinner(false);
 
@@ -878,22 +846,8 @@ namespace com.noctuagames.sdk.UI
 
         private void ShowButtonSpinner(bool isShowSpinner)
         {
-            if(isShowSpinner)
-            {
-                saveButton.AddToClassList("hide");
-                View.Q<Button>("ChangePictureButton").AddToClassList("hide");
-
-                View.Q<Button>("Spinner").RemoveFromClassList("hide");
-                View.Q<Button>("Spinner2").RemoveFromClassList("hide");
-            }
-            else
-            {
-                saveButton.RemoveFromClassList("hide");
-                View.Q<Button>("ChangePictureButton").RemoveFromClassList("hide");
-
-                View.Q<Button>("Spinner").AddToClassList("hide");
-                View.Q<Button>("Spinner2").AddToClassList("hide");
-            }
+            _saveButton.ToggleLoading(isShowSpinner);
+            _changePictureButton.ToggleLoading(isShowSpinner);
         }
 
         private void OnSwitchProfile()
@@ -933,9 +887,10 @@ namespace com.noctuagames.sdk.UI
                 Visible = false;
                 OnUIEditProfile(false);
             });
-            View.Q<Button>("MoreOptionsButton").RegisterCallback<PointerUpEvent>(OnMoreOptionsButtonClick);
-            View.Q<Button>("GuestConnectButton").RegisterCallback<PointerUpEvent>(OnGuestConnectButtonClick);
-            View.Q<VisualElement>("DeleteAccount").RegisterCallback<PointerUpEvent>(_ => OnDeleteAccount());
+
+            _moreOptionsMenuButton.RegisterCallback<ClickEvent>(OnMoreOptionsButtonClick);
+            View.Q<Button>("GuestConnectButton").RegisterCallback<ClickEvent>(OnGuestConnectButtonClick);
+            View.Q<VisualElement>("DeleteAccount").RegisterCallback<ClickEvent>(_ => OnDeleteAccount());
             View.RegisterCallback<GeometryChangedEvent>(_ => SetOrientation());
 
             View.RegisterCallback<PointerDownEvent>(OnViewClicked);
@@ -963,7 +918,7 @@ namespace com.noctuagames.sdk.UI
             Model.ShowAccountDeletionConfirmation(Model.AuthService.RecentAccount);
         }
 
-        private void OnMoreOptionsButtonClick(PointerUpEvent evt)
+        private void OnMoreOptionsButtonClick(ClickEvent evt)
         {
             _log.Debug("clicking more options button");
 
@@ -971,7 +926,7 @@ namespace com.noctuagames.sdk.UI
             evt.StopPropagation();
         }
 
-        private void OnGuestConnectButtonClick(PointerUpEvent evt)
+        private void OnGuestConnectButtonClick(ClickEvent evt)
         {
             _log.Debug("clicking guest connect button");
 
@@ -984,35 +939,33 @@ namespace com.noctuagames.sdk.UI
         }
 
         private void ToggleMoreOptionsMenu()
-        {
-            var moreOptionsMenu = View.Q<VisualElement>("MoreOptionsMenu");
-            moreOptionsMenu.ToggleInClassList("hide");
-            if (!moreOptionsMenu.ClassListContains("hide"))
+        {            
+            _moreOptionsMenu.ToggleInClassList("hide");
+            if (!_moreOptionsMenu.ClassListContains("hide"))
             {
-                moreOptionsMenu.Focus();
+                _moreOptionsMenu.Focus();
             }
         }
 
         private void OnViewClicked(PointerDownEvent evt)
         {
             _log.Debug("clicking user center view");
-
-            var moreOptionsMenu = View.Q<VisualElement>("MoreOptionsMenu");
-            if (!moreOptionsMenu.ClassListContains("hide"))
+            
+            if (!_moreOptionsMenu.ClassListContains("hide"))
             {
                 var clickedElement = evt.target as VisualElement;
-                if (clickedElement != null && !moreOptionsMenu.Contains(clickedElement))
+                if (clickedElement != null && !_moreOptionsMenu.Contains(clickedElement))
                 {
                     ToggleMoreOptionsMenu();
                 }
             }
         }
 
-        private void OnMoreOptionsMenuSelected(PointerUpEvent evt)
+        private void OnMoreOptionsMenuSelected()
         {
             _log.Debug("clicking more options menu item");
 
-            View.Q<VisualElement>("MoreOptionsMenu").AddToClassList("hide");
+            _moreOptionsMenu.AddToClassList("hide");
         }
 
         private void BindListView()
@@ -1109,6 +1062,8 @@ namespace com.noctuagames.sdk.UI
             var switchProfileButton = View.Q<VisualElement>("SwitchProfile");
             var deleteAccountButton = View.Q<VisualElement>("DeleteAccount");
             var logoutAccountButton = View.Q<VisualElement>("LogoutAccount");
+            var line = View.Q<VisualElement>("Line");
+
             // Always show more options button
             moreOptionsButton.AddToClassList("show");
             moreOptionsButton.RemoveFromClassList("hide");
@@ -1127,6 +1082,7 @@ namespace com.noctuagames.sdk.UI
                 editProfilebutton.AddToClassList("hide");
                 deleteAccountButton.AddToClassList("hide");
                 logoutAccountButton.AddToClassList("hide");
+                line.AddToClassList("hide");
 
                 carouselTranslate = new string[_carouselItems.Length];
 
@@ -1150,6 +1106,7 @@ namespace com.noctuagames.sdk.UI
                 switchProfileButton.RemoveFromClassList("hide");
                 deleteAccountButton.RemoveFromClassList("hide");
                 logoutAccountButton.RemoveFromClassList("hide");
+                line.RemoveFromClassList("hide");
             }
         }
 
@@ -1195,19 +1152,6 @@ namespace com.noctuagames.sdk.UI
                 {
                     indicator.RemoveFromClassList("active");
                 }
-            }
-        }
-        private void AdjustHideLabelElement(TextField textField)
-        {
-            if (string.IsNullOrEmpty(textField.value))
-            {
-                textField.labelElement.style.display = DisplayStyle.Flex;
-                textField.Q<VisualElement>("title").AddToClassList("hide");
-            }
-            else
-            {
-                textField.labelElement.style.display = DisplayStyle.None;
-                textField.Q<VisualElement>("title").RemoveFromClassList("hide");
             }
         }
 
