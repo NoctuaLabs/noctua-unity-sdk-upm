@@ -42,7 +42,7 @@ namespace com.noctuagames.sdk.UI
         private DropdownField _countryDF;
         private DropdownField _languageDF;
         private VisualElement _profileImage;
-        private VisualElement _playerImage;        
+        private VisualElement _playerImage;
         private ButtonNoctua _saveButton;
         private ButtonNoctua _changePictureButton;
         private Label _userIDLabel;
@@ -100,7 +100,7 @@ namespace com.noctuagames.sdk.UI
         };
 
         private GlobalConfig _globalConfig;
-
+        private StyleBackground _originalStyleBackground;
         protected override void Attach()
         {
         }
@@ -343,7 +343,7 @@ namespace com.noctuagames.sdk.UI
                 _credentials.ForEach(c => c.Username = "");
                 Model.ShowGeneralNotification(e.Message);
             }
-        }        
+        }
 
         private void OnFindMore()
         {
@@ -401,7 +401,7 @@ namespace com.noctuagames.sdk.UI
         private void OnDateFieldChanged()
         {
             _dateString = _birthDateTF.text;
-            _birthDateTF.AdjustLabel();            
+            _birthDateTF.AdjustLabel();
         }
 
         private void SetupEditProfileUI()
@@ -411,7 +411,7 @@ namespace com.noctuagames.sdk.UI
             _nicknameTF = new InputFieldNoctua(View.Q<TextField>("NicknameTF"));
             _genderDF = View.Q<DropdownField>("GenderTF");
             _countryDF = View.Q<DropdownField>("CountryTF");
-            _languageDF = View.Q<DropdownField>("LanguageTF");            
+            _languageDF = View.Q<DropdownField>("LanguageTF");
             _profileImage = View.Q<VisualElement>("ProfileImage");
             _playerImage = View.Q<VisualElement>("PlayerAvatar");
             _userIDLabel = View.Q<Label>("UserIdLabel");
@@ -419,7 +419,7 @@ namespace com.noctuagames.sdk.UI
             _changePictureButton = new ButtonNoctua(View.Q<Button>("ChangePictureButton"));
             _saveButton = new ButtonNoctua(View.Q<Button>("SaveButton"));
 
-            Utility.UpdateButtonState(_saveButton.button, false);            
+            Utility.UpdateButtonState(_saveButton.button, false);
             _saveButton.button.RegisterCallback<ClickEvent>(_ => OnSaveEditProfile());
 
             var elementNames = new List<string>
@@ -438,7 +438,7 @@ namespace com.noctuagames.sdk.UI
             _nicknameTF.SetFocus();
 
             SetupDatePickerUI();
-            SetupDropdownUI();            
+            SetupDropdownUI();
         }
 
         public void HideAllErrors()
@@ -447,7 +447,7 @@ namespace com.noctuagames.sdk.UI
 
             _countryDF.Children().ElementAt(1).RemoveFromClassList("noctua-text-input-error");
             _languageDF.Children().ElementAt(1).RemoveFromClassList("noctua-text-input-error");
-            
+
             _countryDF.Q<Label>("error").AddToClassList("hide");
             _languageDF.Q<Label>("error").AddToClassList("hide");
         }
@@ -534,7 +534,7 @@ namespace com.noctuagames.sdk.UI
 
         private async void FileUploader(string filePath)
         {
-           ShowButtonSpinner(true);
+            ShowButtonSpinner(true);
 
             try
             {
@@ -543,8 +543,6 @@ namespace com.noctuagames.sdk.UI
                 StartCoroutine(LoadImageFromUrl(_newProfileUrl, true));
 
                 ShowButtonSpinner(false);
-
-                SaveProfile();
             }
             catch (Exception e)
             {
@@ -569,11 +567,13 @@ namespace com.noctuagames.sdk.UI
                     Texture2D texture = ((DownloadHandlerTexture)www.downloadHandler).texture;
                     if (isEditProfile)
                     {
+                        _originalStyleBackground = _profileImage.style.backgroundImage;
                         _profileImage.style.backgroundImage = new StyleBackground(texture);
                     }
                     else
                     {
-                        _playerImage.style.backgroundImage = new StyleBackground(texture);
+                        _profileImage.style.backgroundImage = _originalStyleBackground;
+                        _playerImage.style.backgroundImage = _originalStyleBackground;
                     }
                 }
             }
@@ -623,6 +623,7 @@ namespace com.noctuagames.sdk.UI
             SetOrientation(isEditProfile);
             if (isEditProfile)
             {
+                Debug.Log("Back From EditProfile");
                 //remove class
                 _guestContainer.RemoveFromClassList("show");
                 _stayConnect.RemoveFromClassList("show");
@@ -657,14 +658,15 @@ namespace com.noctuagames.sdk.UI
 
                 _userIDLabel.text = "ID : " + Locale.GetTranslation("UserCenterPresenter.MenuEditProfile.Label.text");
                 _userIDLabel.style.fontSize = 16;
-                
+
                 View.Q<Label>("TitleEditBack").text = Locale.GetTranslation("UserCenterPresenter.MenuEditProfile.Label.text");
 
-                Utility.UpdateButtonState(_saveButton.button, false);                
+                Utility.UpdateButtonState(_saveButton.button, false);
                 View.Q<VisualElement>("UserProfileHeader").style.justifyContent = Justify.FlexEnd;
             }
             else
             {
+                Debug.Log("Back From Edit Player profile");
                 View.Q<VisualElement>("UserProfileHeader").style.justifyContent = Justify.SpaceBetween;
 
                 //remove class
@@ -750,7 +752,7 @@ namespace com.noctuagames.sdk.UI
             {
                 ShowButtonSpinner(false);
 
-                _nicknameTF.Error(Locale.GetTranslation("EditProfile.NicknameValidation"));                
+                _nicknameTF.Error(Locale.GetTranslation("EditProfile.NicknameValidation"));
                 return;
             }
 
@@ -810,7 +812,7 @@ namespace com.noctuagames.sdk.UI
                 updateUserRequest.Language = _profileDataOptions.Languages[indexLanguage].IsoCode;
 
                 _log.Debug($"Update user request: {updateUserRequest.Nickname} - {updateUserRequest.DateOfBirth} - {updateUserRequest.Gender} - {updateUserRequest.PictureUrl} - {updateUserRequest.Country} - {updateUserRequest.Language}");
-                
+
                 await Model.AuthService.UpdateUserAsync(updateUserRequest);
 
                 if (!string.IsNullOrEmpty(_newProfileUrl))
@@ -839,7 +841,7 @@ namespace com.noctuagames.sdk.UI
                 _log.Exception(e);
 
                 Model.ShowGeneralNotification(e.Message);
-                
+
                 ShowButtonSpinner(false);
             }
         }
@@ -939,7 +941,7 @@ namespace com.noctuagames.sdk.UI
         }
 
         private void ToggleMoreOptionsMenu()
-        {            
+        {
             _moreOptionsMenu.ToggleInClassList("hide");
             if (!_moreOptionsMenu.ClassListContains("hide"))
             {
@@ -950,7 +952,7 @@ namespace com.noctuagames.sdk.UI
         private void OnViewClicked(PointerDownEvent evt)
         {
             _log.Debug("clicking user center view");
-            
+
             if (!_moreOptionsMenu.ClassListContains("hide"))
             {
                 var clickedElement = evt.target as VisualElement;
