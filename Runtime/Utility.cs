@@ -336,10 +336,7 @@ namespace com.noctuagames.sdk
 
         public static string ValidateEmail(string str)
         {
-            if (string.IsNullOrEmpty(str)) return "Email address should not be empty";
-
-            if (string.IsNullOrWhiteSpace(str))
-                return "Email address is not valid";
+            if (string.IsNullOrWhiteSpace(str)) return "Email address should not be empty";
 
             try
             {
