@@ -45,9 +45,7 @@ namespace com.noctuagames.sdk.UI
                 _ => "email-player-avatar"
             };
             
-            _playerAvatarImage.RemoveFromClassList("google-player-avatar");
-            _playerAvatarImage.RemoveFromClassList("facebook-player-avatar");
-            _playerAvatarImage.RemoveFromClassList("email-player-avatar");
+            _playerAvatarImage.ClearClassList();
             _playerAvatarImage.AddToClassList(avatarClass);
             
             _playerLabel.text = $"User {targetPlayer.User?.Id}";

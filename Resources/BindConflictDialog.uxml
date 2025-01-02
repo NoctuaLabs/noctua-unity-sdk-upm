@@ -8,7 +8,7 @@
             </ui:VisualElement>
             <ui:VisualElement name="PlayerBox" class="player-box">
                 <ui:VisualElement>
-                    <ui:VisualElement name="PlayerAvatarImage" />
+                    <ui:VisualElement name="PlayerAvatarImage" class="email-player-avatar" />
                 </ui:VisualElement>
                 <ui:VisualElement name="PlayerText" class="player-text">
                     <ui:VisualElement>

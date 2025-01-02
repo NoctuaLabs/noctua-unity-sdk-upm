@@ -17,6 +17,7 @@
     background-color: rgb(45, 49, 56);
     padding-top: 5px;
     padding-bottom: 5px;
+    align-items: center;
 }
 
 .player-avatar {
