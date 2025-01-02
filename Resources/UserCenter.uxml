@@ -77,12 +77,12 @@
                             </ui:Button>
                             <ui:Label name="TitleEditBack" text="Back" class="back-edit-profile-title" style="color: rgb(117, 117, 117);" />
                         </ui:VisualElement>
-                        <ui:VisualElement style="height: 70%; flex-direction: column; flex-wrap: nowrap; align-items: center; justify-content: center; margin-top: 10px; margin-bottom: 10px;">
+                        <ui:VisualElement class="edit-change-profile-container">
                             <ui:VisualElement name="ProfileImage" class="profile-circle-with-border" />
                             <ui:Button text="Change Picture" name="ChangePictureButton" focusable="false" class="button-border" style="margin-top: 10px; margin-left: -5px;" />
                             <ui:Button display-tooltip-when-elided="true" name="Spinner" focusable="false" picking-mode="Ignore" class="margin-top: 10px; margin-left: -5px; spinner-fake-button hide" />
                         </ui:VisualElement>
-                        <ui:ScrollView scroll-deceleration-rate="0,135" elasticity="0,1" horizontal-scroller-visibility="Hidden" vertical-scroller-visibility="Hidden" style="margin-bottom: 10px;">
+                        <ui:ScrollView scroll-deceleration-rate="0,135" elasticity="0,1" horizontal-scroller-visibility="Hidden" vertical-scroller-visibility="Hidden" name="ProfileDetails" class="profile-details">
                             <ui:VisualElement class="nickname-container noctua-text-input-margin">
                                 <ui:TextField label="Nickname" name="NicknameTF" class="noctua-text-input">
                                     <ui:Label tabindex="-1" text="title" parse-escape-sequences="true" display-tooltip-when-elided="true" name="title" class="hide" />
@@ -112,7 +112,7 @@
                                 </ui:DropdownField>
                             </ui:VisualElement>
                         </ui:ScrollView>
-                        <ui:VisualElement name="SaveButtonContainer" style="border-top-left-radius: 6px; border-top-right-radius: 6px; border-bottom-right-radius: 6px; border-bottom-left-radius: 6px; margin-left: 6px; margin-right: 6px; margin-bottom: 20px;">
+                        <ui:VisualElement name="SaveButtonContainer" class="edit-save-button">
                             <ui:Button text="Save" display-tooltip-when-elided="true" name="SaveButton" focusable="false" class="dialog-button" />
                             <ui:Button display-tooltip-when-elided="true" name="Spinner" focusable="false" picking-mode="Ignore" class="dialog-button spinner-fake-button hide" />
                         </ui:VisualElement>
