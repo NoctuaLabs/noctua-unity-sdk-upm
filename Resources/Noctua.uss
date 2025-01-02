@@ -633,6 +633,13 @@ Label:hover {
     -unity-background-image-tint-color: rgb(98, 100, 104);
 }
 
+.dropdown-error-label {
+    color: rgb(175, 28, 54);
+    font-size: 8px;
+    margin-top: -10px;
+    margin-left: 15px;
+}
+
 .btn-password-show {
     background-image: resource('Eye-Close');
     top: 9.5px;
