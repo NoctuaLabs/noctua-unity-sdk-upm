@@ -246,6 +246,8 @@ namespace com.noctuagames.sdk.UI
                 var user = await Model.AuthService.GetUserAsync();
                 var isGuest = user?.IsGuest == true;
 
+                await UniTask.Delay(TimeSpan.FromSeconds(2)); // Wait for 2 seconds
+
                 _log.Debug($"current user in user center is '{user?.Id} - {user?.Nickname}'");
 
                 _moreOptionsMenu.AddToClassList("hide");
@@ -636,8 +638,9 @@ namespace com.noctuagames.sdk.UI
             SetOrientation(isEditProfile);
             if (isEditProfile)
             {
-                _originalStyleBackground = _profileImage.style.backgroundImage;
+                _nicknameTF.textField.value = View.Q<Label>("PlayerName").text;
 
+                _originalStyleBackground = _profileImage.style.backgroundImage;
                 //remove class
                 _guestContainer.RemoveFromClassList("show");
                 _stayConnect.RemoveFromClassList("show");
