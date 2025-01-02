@@ -176,6 +176,11 @@ namespace com.noctuagames.sdk.UI
 
                 if (isEditProfile)
                 {
+                    View.Q<VisualElement>("UserProfile").AddToClassList("hide");
+                    View.Q<VisualElement>("UserProfileHeader").AddToClassList("hide");
+                    View.Q<VisualElement>("UserProfileHeader").RemoveFromClassList("show");
+                    View.Q<VisualElement>("UserProfile").RemoveFromClassList("show");
+
                     View.Q<VisualElement>("ConnectAccount").RemoveFromClassList("portrait");
                     View.Q<VisualElement>("ConnectAccount").RemoveFromClassList("connect-account");
                     View.Q<VisualElement>("ConnectAccount").AddToClassList("connect-account-edit-profile-portrait");
@@ -186,13 +191,12 @@ namespace com.noctuagames.sdk.UI
                 }
                 else
                 {
-                    View.Q<VisualElement>("ConnectAccount").RemoveFromClassList("connect-account-edit-profile-portrait");
+
+
+
                     View.Q<VisualElement>("ConnectAccount").AddToClassList("connect-account");
                     View.Q<VisualElement>("ConnectAccount").AddToClassList("portrait");
-
-                    View.Q<VisualElement>("UserProfile").RemoveFromClassList("hide");
-                    View.Q<VisualElement>("UserCenter").style.maxHeight = StyleKeyword.Null;
-                    View.Q<VisualElement>("ScrollViewContainer").style.marginTop = StyleKeyword.Null;
+                    View.Q<VisualElement>("ScrollViewContainer").style.marginTop = 0;
                 }
             }
         }
@@ -521,6 +525,7 @@ namespace com.noctuagames.sdk.UI
 
         private void PickImage()
         {
+ 
             NativeGallery.Permission permission = NativeGallery.GetImageFromGallery((path) =>
            {
                if (path != null)
@@ -554,7 +559,7 @@ namespace com.noctuagames.sdk.UI
 
         private IEnumerator LoadImageFromUrl(string url, bool isEditProfile)
         {
-            using (UnityWebRequest www = UnityWebRequestTexture.GetTexture(url))
+              using (UnityWebRequest www = UnityWebRequestTexture.GetTexture(url))
             {
                 yield return www.SendWebRequest();
 
@@ -564,10 +569,11 @@ namespace com.noctuagames.sdk.UI
                 }
                 else
                 {
+
+
                     Texture2D texture = ((DownloadHandlerTexture)www.downloadHandler).texture;
                     if (isEditProfile)
                     {
-                        _originalStyleBackground = _profileImage.style.backgroundImage;
                         _profileImage.style.backgroundImage = new StyleBackground(texture);
                     }
                     else
@@ -614,16 +620,24 @@ namespace com.noctuagames.sdk.UI
         private void OnBackEditProfile()
         {
             _log.Debug("clicking back on edit profile");
-
+            ShowUserProfile();
             OnUIEditProfile(false);
         }
+        private void ShowUserProfile()
+        {
+            View.Q<VisualElement>("UserProfileHeader").AddToClassList("show");
+            View.Q<VisualElement>("UserProfile").AddToClassList("show");
 
+            View.Q<VisualElement>("UserProfile").RemoveFromClassList("hide");
+            View.Q<VisualElement>("UserProfileHeader").RemoveFromClassList("hide");
+        }
         private void OnUIEditProfile(bool isEditProfile)
         {
             SetOrientation(isEditProfile);
             if (isEditProfile)
             {
-                Debug.Log("Back From EditProfile");
+                _originalStyleBackground = _profileImage.style.backgroundImage;
+
                 //remove class
                 _guestContainer.RemoveFromClassList("show");
                 _stayConnect.RemoveFromClassList("show");
@@ -662,12 +676,10 @@ namespace com.noctuagames.sdk.UI
                 View.Q<Label>("TitleEditBack").text = Locale.GetTranslation("UserCenterPresenter.MenuEditProfile.Label.text");
 
                 Utility.UpdateButtonState(_saveButton.button, false);
-                View.Q<VisualElement>("UserProfileHeader").style.justifyContent = Justify.FlexEnd;
+
             }
             else
             {
-                Debug.Log("Back From Edit Player profile");
-                View.Q<VisualElement>("UserProfileHeader").style.justifyContent = Justify.SpaceBetween;
 
                 //remove class
                 _editProfileContainer.RemoveFromClassList("show");
@@ -692,18 +704,12 @@ namespace com.noctuagames.sdk.UI
                 _copyIcon.AddToClassList("show");
                 _connectAccountFooter.AddToClassList("show");
                 _playerImage.AddToClassList("player-avatar");
-                _noctuaLogoWithText.AddToClassList("hide");
 
-                //change player image with profile image
                 if (!string.IsNullOrEmpty(_newProfileUrl))
-                {
-                    StartCoroutine(LoadImageFromUrl(_newProfileUrl, false));
+                {          
+                    _playerImage.style.backgroundImage = _originalStyleBackground;
+                    _profileImage.style.backgroundImage = _originalStyleBackground;
                 }
-                else
-                {
-                    _playerImage.style.backgroundImage = _defaultAvatar;
-                }
-
                 _userIDLabel.text = "ID : " + _userIDValue;
                 _userIDLabel.style.fontSize = 12;
 
@@ -738,7 +744,7 @@ namespace com.noctuagames.sdk.UI
         private void OnSaveEditProfile()
         {
             _log.Debug("clicking save edit profile");
-
+            ShowUserProfile();
             SaveProfile();
         }
 
