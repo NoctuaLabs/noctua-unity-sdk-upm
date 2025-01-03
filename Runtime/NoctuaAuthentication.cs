@@ -305,18 +305,6 @@ namespace com.noctuagames.sdk
 
             _uiModel.ShowAccountSelection();
         }
-
-        // TODO not a public facing API, need to be removed
-        public void ShowRegisterDialogUI()
-        {
-            _uiModel.ShowEmailRegistration(true);
-        }
-
-        // TODO not a public facing API, need to be removed
-        public void ShowEmailVerificationDialogUI()
-        {
-            _uiModel.ShowEmailVerification("foo", "bar", 123);
-        }
         
         internal class Config
         {

@@ -37,6 +37,8 @@ namespace com.noctuagames.sdk.UI
         {
             LoadData();
 
+            Model.ClearNavigation();
+            Model.AuthIntention = AuthIntention.Switch;
             Visible = true;
         }
 
@@ -111,6 +113,7 @@ namespace com.noctuagames.sdk.UI
             Visible = false;
             
             Model.ClearNavigation();
+            Model.AuthIntention = AuthIntention.None;
         }
 
         private void BindListView(ListView listView, List<UserBundle> items)
@@ -186,6 +189,12 @@ namespace com.noctuagames.sdk.UI
 
                 View.visible = false;
             });
+            
+            element.RegisterCallback<PointerLeaveEvent>(evt =>
+            {
+                timeout = false;
+                holdTimer.Change(Timeout.Infinite, Timeout.Infinite);
+            });
 
             element.Q<Label>("PlayerName").text = items[index].DisplayName;
             
@@ -199,9 +208,9 @@ namespace com.noctuagames.sdk.UI
             
             element.Q<VisualElement>("PlayerLogo").ClearClassList();
             element.Q<VisualElement>("PlayerLogo").AddToClassList(logoClass);
-            
-            element.Q<Label>("RecentLabel").text =
-                items?[index].User?.Id == Model.AuthService.RecentAccount?.User.Id ? "Active" : "";
+
+            var isActive = items?[index].User?.Id == Model.AuthService.RecentAccount?.User.Id; 
+            element.Q<Label>("RecentLabel").style.display = isActive ? DisplayStyle.Flex : DisplayStyle.None;
         }
     }
 }

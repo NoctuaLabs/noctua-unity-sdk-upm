@@ -236,6 +236,21 @@
     border-color: transparent;
 }
 
+.exit-button {
+    height: 26px;
+    width: 26px;
+    border-radius: 13px;
+    margin: 0;
+    padding:0;
+    background-color: rgb(62, 66, 72);
+    background-image: resource("ExitIcon");
+    background-size: 16px;
+    background-position: center;
+    align-items: center;
+    justify-content: center;
+    -unity-text-align: middle-center;
+}
+
 .unity-button {
     border-width: 0;
     border-color: transparent;
@@ -616,6 +631,13 @@ Label:hover {
 .general-dropdown-box .unity-base-popup-field__arrow {
     width: 10px;
     -unity-background-image-tint-color: rgb(98, 100, 104);
+}
+
+.dropdown-error-label {
+    color: rgb(175, 28, 54);
+    font-size: 8px;
+    margin-top: -10px;
+    margin-left: 15px;
 }
 
 .btn-password-show {

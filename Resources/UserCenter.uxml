@@ -100,15 +100,15 @@
                             <ui:VisualElement class="dropdown-container">
                                 <ui:DropdownField name="GenderTF" label="Gender (Optional)" class="dropdown-box">
                                     <ui:Label tabindex="-1" text="Gender (optional)" parse-escape-sequences="true" display-tooltip-when-elided="true" name="title" class="hide" />
-                                    <ui:Label tabindex="-1" text="error" parse-escape-sequences="true" display-tooltip-when-elided="true" name="error" class="hide" />
+                                    <ui:Label tabindex="-1" text="error" parse-escape-sequences="true" display-tooltip-when-elided="true" name="error" class="dropdown-error-label hide" />
                                 </ui:DropdownField>
                                 <ui:DropdownField label="Country" name="CountryTF" class="dropdown-box">
                                     <ui:Label tabindex="-1" text="Country" parse-escape-sequences="true" display-tooltip-when-elided="true" name="title" class="hide" />
-                                    <ui:Label tabindex="-1" text="error" parse-escape-sequences="true" display-tooltip-when-elided="true" name="error" class="hide" />
+                                    <ui:Label tabindex="-1" text="error" parse-escape-sequences="true" display-tooltip-when-elided="true" name="error" class="dropdown-error-label hide" />
                                 </ui:DropdownField>
                                 <ui:DropdownField label="Language" name="LanguageTF" class="dropdown-box">
                                     <ui:Label tabindex="-1" text="Language" parse-escape-sequences="true" display-tooltip-when-elided="true" name="title" class="hide" />
-                                    <ui:Label tabindex="-1" text="error" parse-escape-sequences="true" display-tooltip-when-elided="true" name="error" class="hide" />
+                                    <ui:Label tabindex="-1" text="error" parse-escape-sequences="true" display-tooltip-when-elided="true" name="error" class="dropdown-error-label hide" />
                                 </ui:DropdownField>
                             </ui:VisualElement>
                         </ui:ScrollView>
