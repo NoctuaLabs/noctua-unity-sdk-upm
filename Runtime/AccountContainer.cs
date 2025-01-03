@@ -76,7 +76,7 @@ namespace com.noctuagames.sdk
 
             _accounts.Clear();
             _accounts.AddRange(accounts);
-
+            
             RecentAccount = Accounts.FirstOrDefault(x => x.IsRecent);
         }
 

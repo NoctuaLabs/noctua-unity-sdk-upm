@@ -749,6 +749,7 @@ namespace com.noctuagames.sdk.UI
             _log.Debug("clicking save edit profile");
             ShowUserProfile();
             SaveProfile();
+
         }
 
         private async void SaveProfile()
