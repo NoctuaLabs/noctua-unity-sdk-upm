@@ -5,6 +5,7 @@ using UnityEngine;
 using UnityEngine.UIElements;
 using Cysharp.Threading.Tasks;
 using System;
+using System.Linq;
 using System.Text;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
@@ -14,19 +15,17 @@ namespace com.noctuagames.sdk.UI
 {
     internal class PendingPurchasesDialogPresenter : Presenter<AuthenticationModel>
     {
+        private readonly ILogger _log = new NoctuaLogger();
+        private readonly List<PendingPurchaseItem> _pendingPurchases = new();
+
         private VisualTreeAsset _itemTemplate;
         private Button _btnComplete;
         private Button _btnCustomerService;
         private Button _btnClose;
         private Label _message;
-
-        private int _page = 1;
-
-        private List<PendingPurchaseItem> _pendingPurchases = new List<PendingPurchaseItem>();
+        private Label _title;
 
         private ListView _pendingPurchasesListView;
-
-        private readonly ILogger _log = new NoctuaLogger(typeof(PendingPurchasesDialogPresenter));
 
         private UniTaskCompletionSource<bool> _tcs;
 
@@ -40,57 +39,39 @@ namespace com.noctuagames.sdk.UI
         {
             _btnClose = View.Q<Button>("CustomPaymentExitButton");
             _btnClose.RegisterCallback<PointerUpEvent>(CloseDialog);
+            _pendingPurchasesListView = View.Q<ListView>("PendingPurchasesList");
+            _title = View.Q<Label>("Title");
 
             _itemTemplate = Resources.Load<VisualTreeAsset>("PendingPurchaseItem");
+            
+            BindListView(_pendingPurchasesListView, _pendingPurchases);
         }
 
         public async UniTask<bool> Show(List<PendingPurchaseItem> pendingPurchases)
         {            
             _tcs = new UniTaskCompletionSource<bool>();
-
-            _page = 1;
-
-            _pendingPurchases = pendingPurchases;
-            _pendingPurchases.Sort((p1, p2) => p1.OrderId.CompareTo(p2.OrderId));
-            _pendingPurchases.Reverse();
-            _pendingPurchasesListView = View.Q<ListView>("PendingPurchasesList");
+            _pendingPurchases.Clear();
+            _pendingPurchases.AddRange(
+                pendingPurchases
+                .Where(p => p is not null && p.PlayerId == Model.AuthService.RecentAccount?.Player?.Id)
+                .OrderByDescending(p => p.OrderId)
+            );
             _pendingPurchasesListView.Rebuild();
 
-
-            _log.Debug("total pending purchases: " + _pendingPurchases.Count.ToString());
+            _log.Debug("total pending purchases: " + _pendingPurchases.Count);
 
             if (_pendingPurchases.Count == 0)
             {
-                View.Q<Label>("Title").text = "No pending purchase at the moment";
+                _title.text = "No pending purchase at the moment";
             } else if (_pendingPurchases.Count == 1) {
-                View.Q<Label>("Title").text = "Your Pending Purchase";
+                _title.text = "Your Pending Purchase";
             } else {
-                View.Q<Label>("Title").text = "Your Pending Purchases";
+                _title.text = "Your Pending Purchases";
             }
-
-            var currentPageContent = new List<PendingPurchaseItem>();
-
-            foreach (var item in _pendingPurchases)
-            {
-                currentPageContent.Add(item);
-            }
-
-            BindListView(_pendingPurchasesListView, currentPageContent);
 
             Visible = true;
 
             return await _tcs.Task;
-        }
-
-        private void PendingPurchasesDialog(PointerUpEvent evt)
-        {            
-            Visible = false;
-
-            _tcs?.TrySetResult(true);
-        }
-
-        private async void OpenCS(PointerUpEvent evt)
-        {
         }
 
         private void CloseDialog(PointerUpEvent evt)
