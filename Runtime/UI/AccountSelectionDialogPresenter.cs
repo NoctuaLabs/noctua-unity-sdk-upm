@@ -36,10 +36,10 @@ namespace com.noctuagames.sdk.UI
         public void Show()
         {
             LoadData();
-
             Model.ClearNavigation();
             Model.AuthIntention = AuthIntention.Switch;
             Visible = true;
+            _log.Debug("Loading and showing user");
         }
 
         private void LoadData()
@@ -197,7 +197,7 @@ namespace com.noctuagames.sdk.UI
             });
 
             element.Q<Label>("PlayerName").text = items[index].DisplayName;
-            
+            _log.Debug(items[index].DisplayName);
             var logoClass = items?[index].Credential.Provider switch
             {
                 "google" => "google-player-avatar",

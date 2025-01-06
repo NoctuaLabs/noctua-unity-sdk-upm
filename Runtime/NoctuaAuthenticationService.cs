@@ -27,7 +27,7 @@ namespace com.noctuagames.sdk
         playstore,
         noctuastore
     }
-    
+
     [Preserve]
     public class User
     {
@@ -45,10 +45,10 @@ namespace com.noctuagames.sdk
 
         [JsonProperty("picture_url")]
         public string PictureUrl;
-        
+
         [JsonProperty("credentials")]
         public List<Credential> Credentials;
-        
+
         [JsonProperty("is_guest")]
         public bool IsGuest;
 
@@ -69,27 +69,28 @@ namespace com.noctuagames.sdk
 
         [JsonProperty("payment_type")]
         public PaymentType PaymentType;
-        
+
         public User ShallowCopy()
         {
-            return (User) MemberwiseClone();
+            return (User)MemberwiseClone();
         }
     }
 
     [Preserve]
-    public class Credential {
+    public class Credential
+    {
         [JsonProperty("id")]
         public long Id;
 
         [JsonProperty("provider")]
         public string Provider;
-        
+
         [JsonProperty("display_text")]
         public string DisplayText;
-        
+
         public Credential ShallowCopy()
         {
-            return (Credential) MemberwiseClone();
+            return (Credential)MemberwiseClone();
         }
     }
 
@@ -134,10 +135,10 @@ namespace com.noctuagames.sdk
 
         [JsonProperty("user_id")]
         public long UserId;
-        
+
         public Player ShallowCopy()
         {
-            return (Player) MemberwiseClone();
+            return (Player)MemberwiseClone();
         }
     }
 
@@ -172,7 +173,8 @@ namespace com.noctuagames.sdk
     }
 
     [Preserve]
-    public class ExchangeTokenRequest {
+    public class ExchangeTokenRequest
+    {
         // Used for token exchange
         [JsonProperty("next_bundle_id")]
         public string NextBundleId;
@@ -236,10 +238,10 @@ namespace com.noctuagames.sdk
             {
                 return this switch
                 {
-                    {User: {Nickname: {Length: > 0}}} => User.Nickname,
-                    {Credential: {Provider: "device_id"}} => "Guest " + User?.Id,
-                    {Credential: {DisplayText: { Length: > 0 } }} => Credential.DisplayText,
-                    {User: {Id: > 0}} => "User " + User.Id,
+                    { User: { Nickname: { Length: > 0 } } } => User.Nickname,
+                    { Credential: { Provider: "device_id" } } => "Guest " + User?.Id,
+                    { Credential: { DisplayText: { Length: > 0 } } } => Credential.DisplayText,
+                    { User: { Id: > 0 } } => "User " + User.Id,
                     _ => "Noctua Player"
                 };
             }
@@ -281,7 +283,7 @@ namespace com.noctuagames.sdk
 
         [JsonProperty("redirect_uri")]
         public string RedirectUri;
-        
+
         [JsonProperty("no_bind_guest")]
         public bool NoBindGuest;
     }
@@ -317,10 +319,10 @@ namespace com.noctuagames.sdk
 
         [JsonProperty("provider")]
         public string Provider;
-        
+
         [JsonProperty("no_bind_guest")]
         public bool NoBindGuest;
-        
+
         [JsonProperty("reg_extra")]
         public Dictionary<string, string> RegExtra;
     }
@@ -333,7 +335,7 @@ namespace com.noctuagames.sdk
 
         [JsonProperty("code")]
         public string Code;
-        
+
         [JsonProperty("no_bind_guest")]
         public bool NoBindGuest;
 
@@ -365,7 +367,7 @@ namespace com.noctuagames.sdk
 
         [JsonProperty("date_of_birth")]
         public DateTime? DateOfBirth;
-        
+
         [JsonProperty("gender")]
         public string Gender;
 
@@ -387,7 +389,7 @@ namespace com.noctuagames.sdk
     {
         [JsonProperty("countries")]
         public List<GeneralProfileData> Countries;
-        
+
         [JsonProperty("languages")]
         public List<GeneralProfileData> Languages;
 
@@ -407,20 +409,21 @@ namespace com.noctuagames.sdk
         [JsonProperty("english_name")]
         public string EnglishName;
     }
-    
+
     public class NoctuaAuthenticationService
     {
         public IReadOnlyList<UserBundle> AccountList => _accountContainer.Accounts;
 
         public IReadOnlyList<UserBundle> CurrentGameAccountList => _accountContainer.CurrentGameAccounts;
-        
+
         public IReadOnlyList<UserBundle> OtherGamesAccountList => _accountContainer.OtherGamesAccounts;
 
         public bool IsAuthenticated => !string.IsNullOrEmpty(_accountContainer.RecentAccount?.Player?.AccessToken);
 
         public UserBundle RecentAccount => _accountContainer.RecentAccount;
 
-        public event Action<UserBundle> OnAccountChanged {
+        public event Action<UserBundle> OnAccountChanged
+        {
             add => _accountContainer.OnAccountChanged += value;
             remove => _accountContainer.OnAccountChanged -= value;
         }
@@ -454,7 +457,7 @@ namespace com.noctuagames.sdk
             {
                 throw new ArgumentNullException(nameof(clientId));
             }
-            
+
             if (string.IsNullOrEmpty(bundleId))
             {
                 throw new ArgumentNullException(nameof(bundleId));
@@ -488,7 +491,7 @@ namespace com.noctuagames.sdk
 
 
             var response = await request.Send<PlayerToken>();
-            
+
             _accountContainer.UpdateRecentAccount(response);
 
             SetEventProperties(response);
@@ -515,7 +518,7 @@ namespace com.noctuagames.sdk
             var response = await request.Send<PlayerToken>();
 
             _accountContainer.UpdateRecentAccount(response);
-            
+
             SetEventProperties(response);
             SendEvent("account_switched");
 
@@ -579,18 +582,19 @@ namespace com.noctuagames.sdk
 
             _accountContainer.UpdateRecentAccount(response);
 
+
             SetEventProperties(response);
             SendEvent("account_authenticated");
             SendEvent("account_authenticated_by_email");
 
             return _accountContainer.RecentAccount;
         }
-        
+
         // TODO: Add support for phone
         public async UniTask<CredentialVerification> RegisterWithEmailAsync(string email, string password, Dictionary<string, string> regExtra)
         {
             _log.Debug("RegisterWithEmailAsync");
-            
+
             var request = new HttpRequest(HttpMethod.Post, $"{_baseUrl}/auth/email/register")
                 .WithHeader("X-CLIENT-ID", _clientId)
                 .WithHeader("X-BUNDLE-ID", _bundleId)
@@ -648,7 +652,7 @@ namespace com.noctuagames.sdk
                 );
 
             var response = await request.Send<CredentialVerification>();
-            
+
             SendEvent("reset_password_requested");
 
             return response;
@@ -672,7 +676,7 @@ namespace com.noctuagames.sdk
                 .NoVerboseLog();
 
             var response = await request.Send<PlayerToken>();
-            
+
             SendEvent("reset_password_completed");
 
             return response;
@@ -681,11 +685,13 @@ namespace com.noctuagames.sdk
         public async UniTask<Credential> SocialLinkAsync(string provider, SocialLinkRequest payload)
         {
             _log.Debug("SocialLinkAsync");
-            if (string.IsNullOrEmpty(RecentAccount?.Player?.AccessToken)) {
+            if (string.IsNullOrEmpty(RecentAccount?.Player?.AccessToken))
+            {
                 throw NoctuaException.MissingAccessToken;
             }
 
-            if (RecentAccount.IsGuest) {
+            if (RecentAccount.IsGuest)
+            {
                 throw new NoctuaException(NoctuaErrorCode.Authentication, "Guest account cannot link email");
             }
 
@@ -696,7 +702,7 @@ namespace com.noctuagames.sdk
                 .WithJsonBody(payload);
 
             var response = await request.Send<Credential>();
-            
+
             SendEvent(
                 "credential_added",
                 new()
@@ -705,7 +711,7 @@ namespace com.noctuagames.sdk
                     { "new_credential_id", response.Id }
                 }
             );
-            
+
             return response;
         }
 
@@ -714,11 +720,13 @@ namespace com.noctuagames.sdk
         public async UniTask<CredentialVerification> LinkWithEmailAsync(string email, string password)
         {
             _log.Debug("LinkWithEmailAsync");
-            if (string.IsNullOrEmpty(RecentAccount?.Player?.AccessToken)) {
+            if (string.IsNullOrEmpty(RecentAccount?.Player?.AccessToken))
+            {
                 throw NoctuaException.MissingAccessToken;
             }
 
-            if (RecentAccount.IsGuest) {
+            if (RecentAccount.IsGuest)
+            {
                 throw new NoctuaException(NoctuaErrorCode.Authentication, "Guest account cannot link email");
             }
 
@@ -741,7 +749,8 @@ namespace com.noctuagames.sdk
 
         public async UniTask<Credential> VerifyEmailLinkingAsync(int id, string code)
         {
-            if (string.IsNullOrEmpty(RecentAccount?.Player?.AccessToken)) {
+            if (string.IsNullOrEmpty(RecentAccount?.Player?.AccessToken))
+            {
                 throw NoctuaException.MissingAccessToken;
             }
 
@@ -758,7 +767,7 @@ namespace com.noctuagames.sdk
                 );
 
             var response = await request.Send<Credential>();
-            
+
             SendEvent(
                 "credential_added",
                 new()
@@ -767,7 +776,7 @@ namespace com.noctuagames.sdk
                     { "new_credential_id", response.Id }
                 }
             );
-            
+
             return response;
         }
 
@@ -777,7 +786,7 @@ namespace com.noctuagames.sdk
             {
                 throw new NoctuaException(NoctuaErrorCode.Authentication, "Account is not a guest account");
             }
-            
+
             var request = new HttpRequest(HttpMethod.Post, $"{_baseUrl}/auth/email/verify-registration")
                 .WithHeader("X-CLIENT-ID", _clientId)
                 .WithHeader("X-BUNDLE-ID", _bundleId)
@@ -794,11 +803,11 @@ namespace com.noctuagames.sdk
 
             return await request.Send<PlayerToken>();
         }
-        
+
         public void EndVerifyEmailRegistration(PlayerToken playerToken)
         {
             _accountContainer.UpdateRecentAccount(playerToken);
-            
+
             SetEventProperties(playerToken);
             SendEvent("account_created");
             SendEvent("account_created_by_email");
@@ -810,9 +819,9 @@ namespace com.noctuagames.sdk
             {
                 throw new NoctuaException(NoctuaErrorCode.Authentication, "Account is not a guest account");
             }
-            
+
             payload.NoBindGuest = true;
-            
+
             var request = new HttpRequest(HttpMethod.Post, $"{_baseUrl}/auth/{provider}/login/callback")
                 .WithHeader("X-CLIENT-ID", _clientId)
                 .WithHeader("X-BUNDLE-ID", _bundleId)
@@ -822,7 +831,7 @@ namespace com.noctuagames.sdk
 
             return await request.Send<PlayerToken>();
         }
-        
+
         // TODO: Add support for phone
         public async UniTask<PlayerToken> GetEmailLoginTokenAsync(string email, string password)
         {
@@ -843,27 +852,27 @@ namespace com.noctuagames.sdk
                     }
                 )
                 .NoVerboseLog();
-            
+
             request.WithHeader("Authorization", "Bearer " + RecentAccount.Player.AccessToken);
 
             return await request.Send<PlayerToken>();
         }
-        
+
         public void LoginWithToken(PlayerToken playerToken)
         {
             _accountContainer.UpdateRecentAccount(playerToken);
-            
+
             SetEventProperties(playerToken);
-            
+
             SendEvent("account_authenticated");
-            
+
             var eventName = RecentAccount.Credential?.Provider switch
             {
                 "email" => "account_authenticated_by_email",
                 "device_id" => "account_authenticated_by_guest",
                 _ => "account_authenticated_by_sso"
             };
-            
+
             SendEvent(eventName);
         }
 
@@ -873,15 +882,17 @@ namespace com.noctuagames.sdk
             {
                 throw new NoctuaException(NoctuaErrorCode.Authentication, "Account is not a guest account");
             }
-            
-            if (string.IsNullOrEmpty(RecentAccount?.Player?.AccessToken)) {
+
+            if (string.IsNullOrEmpty(RecentAccount?.Player?.AccessToken))
+            {
                 throw new NoctuaException(NoctuaErrorCode.Authentication, "origin access token is missing");
             }
-            
-            if (string.IsNullOrEmpty(targetPlayer?.AccessToken)) {
+
+            if (string.IsNullOrEmpty(targetPlayer?.AccessToken))
+            {
                 throw new NoctuaException(NoctuaErrorCode.Authentication, "target access token is missing");
             }
-            
+
             var request = new HttpRequest(HttpMethod.Post, $"{_baseUrl}/auth/bind")
                 .WithHeader("X-CLIENT-ID", _clientId)
                 .WithHeader("X-BUNDLE-ID", Application.identifier)
@@ -889,13 +900,13 @@ namespace com.noctuagames.sdk
                 .WithJsonBody(new BindRequest { GuestToken = RecentAccount.Player.AccessToken });
 
             var response = await request.Send<PlayerToken>();
-            
+
             _accountContainer.UpdateRecentAccount(response);
 
             SetEventProperties(response);
 
             SendEvent("account_bound");
-            
+
             if (RecentAccount.Credential?.Provider == "email")
             {
                 SendEvent("account_bound_by_email");
@@ -904,7 +915,7 @@ namespace com.noctuagames.sdk
             {
                 SendEvent("account_bound_by_sso");
             }
-            
+
             return _accountContainer.RecentAccount;
         }
 
@@ -915,10 +926,11 @@ namespace com.noctuagames.sdk
 
         public async UniTask<User> GetUserAsync()
         {
-            if (string.IsNullOrEmpty(RecentAccount?.Player?.AccessToken)) {
+            if (string.IsNullOrEmpty(RecentAccount?.Player?.AccessToken))
+            {
                 throw NoctuaException.MissingAccessToken;
             }
-            
+
             var request = new HttpRequest(HttpMethod.Get, $"{_baseUrl}/user/profile")
                 .WithHeader("X-CLIENT-ID", _clientId)
                 .WithHeader("X-BUNDLE-ID", _bundleId)
@@ -929,7 +941,8 @@ namespace com.noctuagames.sdk
 
         public async UniTask UpdateUserAsync(UpdateUserRequest updateUserRequest)
         {
-            if (string.IsNullOrEmpty(RecentAccount?.Player?.AccessToken)) {
+            if (string.IsNullOrEmpty(RecentAccount?.Player?.AccessToken))
+            {
                 throw NoctuaException.MissingAccessToken;
             }
 
@@ -938,9 +951,10 @@ namespace com.noctuagames.sdk
                 .WithHeader("X-BUNDLE-ID", _bundleId)
                 .WithHeader("Authorization", "Bearer " + RecentAccount.Player.AccessToken)
                 .WithJsonBody(updateUserRequest);
-            
+
             _ = await request.Send<object>();
 
+            await ExchangeTokenAsync(RecentAccount.Player.AccessToken);
             // Update the user language in player prefs
             // so user does not have to restart twice to load the translation
             _locale?.SetUserPrefsLanguage(updateUserRequest.Language);
@@ -954,6 +968,7 @@ namespace com.noctuagames.sdk
                     { "new_language", updateUserRequest.Language },
                 }
             );
+
         }
 
         /// <summary>
@@ -974,25 +989,25 @@ namespace com.noctuagames.sdk
             }
 
             // 3.b and 4.a.i.2: Invalid data will not be loaded
-            
+
             _accountContainer.Load();
-            
+
             // 2.a: If there is no account, login as guest
-            
-            if (_accountContainer.Accounts.Count == 0) 
+
+            if (_accountContainer.Accounts.Count == 0)
             {
                 await LoginAsGuestAsync();
-                
+
                 SendEvent("account_detected");
-                
+
                 return RecentAccount;
             }
 
             var firstUser = _accountContainer.Accounts.First();
-            
+
             // Recent accounts are accounts that have played the game, they always match this game
             // 3.a: If there is already a recent account, reuse token
-            
+
             if (firstUser.Player != null)
             {
                 await ExchangeTokenAsync(firstUser.Player.AccessToken);
@@ -1003,40 +1018,40 @@ namespace com.noctuagames.sdk
             }
 
             // Non recent accounts are accounts that have not played the game, they always don't match this game
-            
-            var firstPlayer = firstUser.PlayerAccounts.FirstOrDefault(); 
-            
+
+            var firstPlayer = firstUser.PlayerAccounts.FirstOrDefault();
+
             // This isn't supposed to happen, because a user will at least have a player account
-            
+
             if (firstPlayer == null)
             {
                 throw new NoctuaException(NoctuaErrorCode.Authentication, "No player account found");
             }
-            
+
             // 4.a.i.2, 4.a.ii.1.b: If there is no recent account, exchange token 
 
             await ExchangeTokenAsync(firstPlayer.AccessToken);
-            
+
             SendEvent("account_detected");
-            
+
             return RecentAccount;
         }
 
         public async UniTask SwitchAccountAsync(UserBundle user)
         {
             var targetUser = AccountList.FirstOrDefault(x => x.User.Id == user.User.Id);
-            
+
             if (targetUser == null)
             {
                 throw new NoctuaException(NoctuaErrorCode.Authentication, $"User {user.User.Id} not found in account list");
             }
-            
+
             await ExchangeTokenAsync(user.PlayerAccounts.First().AccessToken);
-            
+
             SetEventProperties(_accountContainer.RecentAccount);
             SendEvent("account_switched");
         }
-        
+
         public void ResetAccounts()
         {
             _accountContainer.ResetAccounts();
@@ -1049,7 +1064,7 @@ namespace com.noctuagames.sdk
                 .WithHeader("X-BUNDLE-ID", _bundleId)
                 .WithHeader("Authorization", "Bearer " + RecentAccount.Player.AccessToken)
                 .WithJsonBody(playerAccountData);
-            
+
             _ = await request.Send<object>();
 
             SendEvent(
@@ -1073,9 +1088,9 @@ namespace com.noctuagames.sdk
                 .WithHeader("Authorization", "Bearer " + RecentAccount.Player.AccessToken);
 
             _ = await request.Send<DeletePlayerAccountResponse>();
-            
+
             _accountContainer.DeleteRecentAccount();
-            
+
             SendEvent("account_deleted");
 
             OnAccountDeleted?.Invoke(currentPlayer);
@@ -1083,7 +1098,8 @@ namespace com.noctuagames.sdk
 
         public async UniTask<string> FileUploader(string filePath)
         {
-            if (string.IsNullOrEmpty(RecentAccount?.Player?.AccessToken)) {
+            if (string.IsNullOrEmpty(RecentAccount?.Player?.AccessToken))
+            {
                 throw NoctuaException.MissingAccessToken;
             }
 
@@ -1109,7 +1125,8 @@ namespace com.noctuagames.sdk
 
         public async UniTask<ProfileOptionData> GetProfileOptions()
         {
-            if (string.IsNullOrEmpty(RecentAccount?.Player?.AccessToken)) {
+            if (string.IsNullOrEmpty(RecentAccount?.Player?.AccessToken))
+            {
                 throw NoctuaException.MissingAccessToken;
             }
 
