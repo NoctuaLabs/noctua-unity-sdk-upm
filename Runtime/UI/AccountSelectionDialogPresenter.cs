@@ -36,10 +36,6 @@ namespace com.noctuagames.sdk.UI
         public void Show()
         {
             LoadData();
-
-            BindListView(_gameAccountListView, _gameUsers);
-            BindListView(_noctuaAccountListView, _noctuaUsers);
-
             Model.ClearNavigation();
             Model.AuthIntention = AuthIntention.Switch;
             Visible = true;
