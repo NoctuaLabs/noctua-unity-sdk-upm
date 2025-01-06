@@ -13,6 +13,7 @@ using System;
 using System.Text;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
+using Newtonsoft.Json.Linq;
 using Newtonsoft.Json.Serialization;
 
 
@@ -29,6 +30,7 @@ namespace com.noctuagames.sdk
             public string Timestamp;
             public string OrderRequest;
             public string VerifyOrderRequest;
+            public long? PlayerId;
         }
     /*
     We were using Model-View-Presenter, further reading:
@@ -287,7 +289,8 @@ namespace com.noctuagames.sdk
                     Status = status,
                     PurchaseItemName = purchaseItemName,
                     OrderRequest = Convert.ToBase64String(Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(item.OrderRequest))),
-                    VerifyOrderRequest = Convert.ToBase64String(Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(item.VerifyOrderRequest)))
+                    VerifyOrderRequest = Convert.ToBase64String(Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(item.VerifyOrderRequest))),
+                    PlayerId = GetPlayerIdFromJwt(item.AccessToken)
                 });
             }
 
@@ -303,6 +306,59 @@ namespace com.noctuagames.sdk
         {
             return await _iapService.RetryPendingPurchaseByOrderId(orderId);
         }
+        
+        private long? GetPlayerIdFromJwt(string token)
+        {
+            if (string.IsNullOrEmpty(token))
+            {
+                _log.Warning("Empty JWT token.");
+                
+                return null;
+            }
+
+            var parts = token.Split('.');
+            if (parts.Length != 3)
+            {
+                _log.Error("Invalid JWT format: Token must have 3 parts (header, payload, signature).");
+                
+                return null;
+            }
+            
+            try
+            {
+                var payload = parts[1];
+                var paddedPayload = payload.PadRight((payload.Length + 2) / 3 * 3, '=');                
+                var json = Encoding.UTF8.GetString(Convert.FromBase64String(paddedPayload));
+                var parsed = JObject.Parse(json);
+
+                if (parsed["player_id"] == null)
+                {
+                    _log.Error("Missing 'player_id' claim in JWT payload.");
+                    
+                    return null;
+                }
+
+                var playerId = parsed["player_id"]?.Value<long?>();
+                
+                if (playerId == null)
+                {
+                    _log.Error("The 'player_id' claim is not a valid number.");
+                }
+
+                return playerId;
+            }
+            catch (FormatException ex)
+            {
+                _log.Error($"Base64 decoding error: {ex.Message}");
+            }
+            catch (Exception ex)
+            {
+                _log.Error($"Unexpected error while parsing JWT: {ex.Message}");
+            }
+
+            return null;
+        }
+
     }
     
     internal enum AuthIntention
