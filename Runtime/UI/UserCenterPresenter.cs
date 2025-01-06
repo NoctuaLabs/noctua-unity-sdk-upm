@@ -80,6 +80,7 @@ namespace com.noctuagames.sdk.UI
         private int _currentIndex = 0;
         private const float SlideInterval = 3f;
         private bool _isGuestUser = false;
+        private bool _isDatePickerOpen = false;
         private readonly List<UserCredential> _credentials = new()
         {
             new UserCredential
@@ -385,8 +386,14 @@ namespace com.noctuagames.sdk.UI
 
             birthDateContainer.RegisterCallback<ClickEvent>(upEvent =>
             {
-
                 upEvent.StopImmediatePropagation();
+
+                if(_isDatePickerOpen)
+                {
+                    return;
+                }
+
+                _isDatePickerOpen = true;
 
                 Noctua.OpenDatePicker(parsedDate.Year, parsedDate.Month, parsedDate.Day, 1,
                 (DateTime _date) =>
@@ -397,6 +404,7 @@ namespace com.noctuagames.sdk.UI
                 {
                     _birthDateTF.textField.value = _date.ToString("dd/MM/yyyy");
                     Utility.UpdateButtonState(_saveButton.button, true);
+                    _isDatePickerOpen = false;
                 });
             });
 
