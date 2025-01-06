@@ -7,9 +7,7 @@
                 <ui:VisualElement name="NoctuaLogoWithText" class="noctua-logo-with-text" />
             </ui:VisualElement>
             <ui:VisualElement name="PlayerBox" class="player-box">
-                <ui:VisualElement>
-                    <ui:VisualElement name="PlayerAvatarImage" class="email-player-avatar" />
-                </ui:VisualElement>
+                <ui:VisualElement name="PlayerAvatarImage" class="email-player-avatar" />
                 <ui:VisualElement name="PlayerText" class="player-text">
                     <ui:VisualElement>
                         <ui:Label name="PlayerLabel" text="ono.uni" class="player-label" />
