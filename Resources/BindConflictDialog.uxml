@@ -1,18 +1,18 @@
 <ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" xsi="http://www.w3.org/2001/XMLSchema-instance" engine="UnityEngine.UIElements" editor="UnityEditor.UIElements" noNamespaceSchemaLocation="../../../../UIElementsSchema/UIElements.xsd" editor-extension-mode="False">
     <Style src="project://database/Packages/com.noctuagames.sdk/Resources/Noctua.uss?fileID=7433441132597879392&amp;guid=fe35e550fb23b6446af377f994effe35&amp;type=3#Noctua" />
-    <Style src="project://database/Packages/com.noctuagames.sdk/Resources/ConnectConflictDialog.uss?fileID=7433441132597879392&amp;guid=f7f2bd3909e8421cbecf3d0c5b75ebad&amp;type=3#ConnectConflictDialog" />
+    <Style src="project://database/Packages/com.noctuagames.sdk/Resources/BindConflictDialog.uss?fileID=7433441132597879392&amp;guid=f7f2bd3909e8421cbecf3d0c5b75ebad&amp;type=3#BindConflictDialog" />
     <ui:VisualElement name="Root" class="root">
-        <ui:VisualElement name="ConnectConflictDialog" class="base dialog-box connect-conflict-dialog">
+        <ui:VisualElement name="BindConflictDialog" class="base dialog-box connect-conflict-dialog">
             <ui:VisualElement name="NoctuaLogoContainer" class="noctua-logo-container">
                 <ui:VisualElement name="NoctuaLogoWithText" class="noctua-logo-with-text" />
             </ui:VisualElement>
             <ui:VisualElement name="PlayerBox" class="player-box">
                 <ui:VisualElement>
-                    <ui:VisualElement name="PlayerAvatarImage" />
+                    <ui:VisualElement name="PlayerAvatarImage" class="email-player-avatar" />
                 </ui:VisualElement>
                 <ui:VisualElement name="PlayerText" class="player-text">
                     <ui:VisualElement>
-                        <ui:Label name="UserNickname" text="ono.uni" class="user-nickname" />
+                        <ui:Label name="PlayerLabel" text="ono.uni" class="player-label" />
                     </ui:VisualElement>
                     <ui:VisualElement>
                         <ui:Label name="CredentialDisplayText" text="ono.uni@gmail.com" class="credential-display-text" />

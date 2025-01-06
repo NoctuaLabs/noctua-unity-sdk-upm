@@ -149,9 +149,9 @@
     "BindConfirmationDialogPresenter.ConnectButton.Button.text": "Connect",
     "BindConfirmationDialogPresenter.CancelButton.Button.text": "Cancel",
 
-    "ConnectConflictDialogPresenter.ConnectConflictInformationLabel.Label.text": "This credential is already connected to an account. Do you want to switch account?",
-    "ConnectConflictDialogPresenter.SwitchAccountButton.Button.text": "Switch account",
-    "ConnectConflictDialogPresenter.CancelButton.Button.text": "Cancel",
+    "BindConflictDialogPresenter.ConnectConflictInformationLabel.Label.text": "This credential is already connected to an account. Do you want to switch account?",
+    "BindConflictDialogPresenter.SwitchAccountButton.Button.text": "Switch account",
+    "BindConflictDialogPresenter.CancelButton.Button.text": "Cancel",
 
     "SuggestionBindText.Content1": "Continue your game on any device.",
     "SuggestionBindText.Content2": "Protect your game progress.",
@@ -175,6 +175,7 @@
     "IAPFailed": "Purchase failed",
     "IAPRequiresAuthentication": "Purchase requires user authentication",
     "IAPPaymentDisabled": "Payment is disabled. Please contact customer support.",
+    "AuthEmailLinkingSuccessful": "Email linking successful",
 
     "EditProfile.NicknameValidation": "Nickname should not be empty",
     "EditProfile.CountryValidation": "Select country",

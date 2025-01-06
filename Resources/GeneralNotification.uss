@@ -2,10 +2,8 @@
     position: absolute;
     align-self: center;
     top: 14px;
-    width: 328px;
-    border-radius: 10px;
-    border-width: 1px;
-    border-color: rgba(175, 28, 54, 1);
+    max-width: 328px;
+    border-radius: 5px;
     flex-direction: row;
     justify-content: space-between;
     align-items: center;

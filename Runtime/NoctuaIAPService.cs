@@ -1385,7 +1385,7 @@ namespace com.noctuagames.sdk
             
             if (_enabledPaymentTypes.Count == 0)
             {
-                _log.Error("no payment types enabled, quitting");
+                _log.Warning("no payment types enabled, quitting");
                 
                 return;
             }

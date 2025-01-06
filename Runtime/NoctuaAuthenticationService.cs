@@ -587,7 +587,7 @@ namespace com.noctuagames.sdk
         }
         
         // TODO: Add support for phone
-        public async UniTask<CredentialVerification> RegisterWithEmailAsync(string email, string password, Dictionary<string, string> regExtra = null)
+        public async UniTask<CredentialVerification> RegisterWithEmailAsync(string email, string password, Dictionary<string, string> regExtra)
         {
             _log.Debug("RegisterWithEmailAsync");
             

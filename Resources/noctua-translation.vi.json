@@ -149,9 +149,9 @@
     "BindConfirmationDialogPresenter.ConnectButton.Button.text": "Kết nối",
     "BindConfirmationDialogPresenter.CancelButton.Button.text": "Huỷ",
 
-    "ConnectConflictDialogPresenter.ConnectConflictInformationLabel.Label.text": "Thông tin xác thực này đã được kết nối với một tài khoản. Bạn có muốn chuyển đổi tài khoản không?",
-    "ConnectConflictDialogPresenter.SwitchAccountButton.Button.text": "Chuyển đổi tài khoản",
-    "ConnectConflictDialogPresenter.CancelButton.Button.text": "Huỷ",
+    "BindConflictDialogPresenter.ConnectConflictInformationLabel.Label.text": "Thông tin xác thực này đã được kết nối với một tài khoản. Bạn có muốn chuyển đổi tài khoản không?",
+    "BindConflictDialogPresenter.SwitchAccountButton.Button.text": "Chuyển đổi tài khoản",
+    "BindConflictDialogPresenter.CancelButton.Button.text": "Huỷ",
 
     "SuggestionBindText.Content1": "Tiếp tục trò chơi của bạn trên bất kỳ thiết bị nào.",
     "SuggestionBindText.Content2": "Bảo vệ tiến trình trò chơi của bạn.",
@@ -177,6 +177,7 @@
     "IAPFailed": "Mua hàng không thành công",
     "IAPRequiresAuthentication": "Mua hàng yêu cầu xác thực người dùng",
     "IAPPaymentDisabled": "Thanh toán đã bị vô hiệu hóa. Vui lòng liên hệ với bộ phận hỗ trợ khách hàng.",
+    "AuthEmailLinkingSuccessful": "Kết nối email thành công",
 
     "EditProfile.NicknameValidation": "Biệt danh không được để trống",
     "EditProfile.CountryValidation": "Chọn quốc gia",

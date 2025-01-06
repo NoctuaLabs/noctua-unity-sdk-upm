@@ -13,6 +13,7 @@ using System;
 using System.Text;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
+using Newtonsoft.Json.Linq;
 using Newtonsoft.Json.Serialization;
 
 
@@ -29,6 +30,7 @@ namespace com.noctuagames.sdk
             public string Timestamp;
             public string OrderRequest;
             public string VerifyOrderRequest;
+            public long? PlayerId;
         }
     /*
     We were using Model-View-Presenter, further reading:
@@ -54,10 +56,7 @@ namespace com.noctuagames.sdk
 
     internal class AuthenticationModel
     {
-        // IMPORTANT NOTES!!!
-        // Your UI need to apply USS absolute property to the first VisualElement of the UI
-        // before being added to the UI Document.
-        // Violation of this rule will cause the UI (and the other UI too) to be unable to be displayed properly.
+        private readonly ILogger _log = new NoctuaLogger();
         private readonly UIFactory _uiFactory;
         
         private readonly AccountSelectionDialogPresenter _accountSelectionDialog;
@@ -71,27 +70,24 @@ namespace com.noctuagames.sdk
         private readonly UserCenterPresenter _userCenter;
         private readonly AccountDeletionConfirmationDialogPresenter _accountDeletionConfirmationDialog;
         private readonly BindConfirmationDialogPresenter _bindConfirmation;
-        private readonly ConnectConflictDialogPresenter _connectConflictDialog;
+        private readonly BindConflictDialogPresenter _bindConflictDialog;
         private readonly PendingPurchasesDialogPresenter _pendingPurchasesDialog;
-        private List<PendingPurchaseItem> _pendingPurchases = new List<PendingPurchaseItem>();
+        private readonly List<PendingPurchaseItem> _pendingPurchases = new();
         private readonly WelcomeNotificationPresenter _welcome;
 
-        private NoctuaAuthenticationService _authService;
-        public NoctuaIAPService _iapService;
+        private readonly NoctuaAuthenticationService _authService;
+        private readonly NoctuaIAPService _iapService;
+        private readonly SocialAuthenticationService _socialAuth;
+        private readonly NoctuaLocale _locale;
         private GameObject _socialAuthObject;
-        private SocialAuthenticationService _socialAuth;
         
         private readonly Stack<Action> _navigationStack = new();
 
         public NoctuaAuthenticationService AuthService => _authService;
+        public AuthIntention AuthIntention { get; set; } = AuthIntention.None;
 
         internal event Action<UserBundle> OnAccountChanged;
 
-        private AuthType _currentAuthType = AuthType.Switch;
-
-        private readonly NoctuaLocale _locale;
-
-        private readonly ILogger _log = new NoctuaLogger(typeof(AuthenticationModel));
 
         internal AuthenticationModel(
             UIFactory uiFactory, 
@@ -129,7 +125,7 @@ namespace com.noctuagames.sdk
             _emailConfirmResetPasswordDialog.EventSender = eventSender;
             _accountDeletionConfirmationDialog = _uiFactory.Create<AccountDeletionConfirmationDialogPresenter, AuthenticationModel>(this);
             _bindConfirmation = _uiFactory.Create<BindConfirmationDialogPresenter, AuthenticationModel>(this);
-            _connectConflictDialog = _uiFactory.Create<ConnectConflictDialogPresenter, AuthenticationModel>(this);
+            _bindConflictDialog = _uiFactory.Create<BindConflictDialogPresenter, AuthenticationModel>(this);
             _welcome = _uiFactory.Create<WelcomeNotificationPresenter, AuthenticationModel>(this);
 
 
@@ -167,7 +163,6 @@ namespace com.noctuagames.sdk
 
         public void ShowAccountSelection()
         {
-            _currentAuthType = AuthType.Switch;
             _accountSelectionDialog.Show();
         }
 
@@ -176,9 +171,9 @@ namespace com.noctuagames.sdk
             _emailRegisterDialog.Show(clearForm, isRegisterOnly);
         }
 
-        public void ShowEmailVerification(string email, string password, int verificationID)
+        public void ShowEmailVerification(string email, string password, int verificationID, Dictionary<string,string> extraData)
         {
-            _emailVerificationDialog.Show(email, password, verificationID);
+            _emailVerificationDialog.Show(email, password, verificationID, extraData);
         }
 
         public void ShowLoginOptions()
@@ -213,8 +208,6 @@ namespace com.noctuagames.sdk
         
         public void ShowUserCenter()
         {
-            _currentAuthType = _authService?.RecentAccount?.IsGuest == true ? AuthType.Switch : AuthType.LinkAccount;
-
             _userCenter.Show();
         }
         
@@ -243,35 +236,6 @@ namespace com.noctuagames.sdk
             return await _uiFactory.ShowBannedConfirmationDialog();
         }
 
-        internal async UniTask<CredentialVerification> RegisterWithEmailAsync(string email, string password, Dictionary<string, string> regExtra = null)
-        {
-            return _currentAuthType switch
-            {
-                AuthType.Switch => await AuthService.RegisterWithEmailAsync(email, password, regExtra),
-                AuthType.LinkAccount => await AuthService.LinkWithEmailAsync(email, password),
-                _ => throw new NotImplementedException(_currentAuthType.ToString())
-            };
-        }
-
-        internal async UniTask VerifyEmailRegistration(int credVerifyId, string code)
-        {
-            switch (_currentAuthType)
-            {
-                case AuthType.Switch:
-                    await AuthService.VerifyEmailRegistrationAsync(credVerifyId, code);
-
-                    break;
-
-                case AuthType.LinkAccount:
-                    await AuthService.VerifyEmailLinkingAsync(credVerifyId, code);
-
-                    break;
-
-                default: 
-                    throw new NotImplementedException(_currentAuthType.ToString());
-            }
-        }
-
         public async UniTask<UserBundle> SocialLoginAsync(string provider)
         {
             return await _socialAuth.SocialLoginAsync(provider);
@@ -292,9 +256,9 @@ namespace com.noctuagames.sdk
             _bindConfirmation.Show(playerToken);
         }
         
-        public void ShowConnectConflict(PlayerToken playerToken)
+        public void ShowBindConflictDialog(PlayerToken playerToken)
         {
-            _connectConflictDialog.Show(playerToken);
+            _bindConflictDialog.Show(playerToken);
         }
 
         private List<PendingPurchaseItem> GetPendingPurchases()
@@ -304,7 +268,8 @@ namespace com.noctuagames.sdk
             }
 
             var list =  _iapService.GetPendingPurchases();
-            _pendingPurchases = new List<PendingPurchaseItem>();
+            _pendingPurchases.Clear();
+
             foreach (var item in list)
             {
                 var status = item.Status;
@@ -324,7 +289,8 @@ namespace com.noctuagames.sdk
                     Status = status,
                     PurchaseItemName = purchaseItemName,
                     OrderRequest = Convert.ToBase64String(Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(item.OrderRequest))),
-                    VerifyOrderRequest = Convert.ToBase64String(Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(item.VerifyOrderRequest)))
+                    VerifyOrderRequest = Convert.ToBase64String(Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(item.VerifyOrderRequest))),
+                    PlayerId = GetPlayerIdFromJwt(item.AccessToken)
                 });
             }
 
@@ -340,11 +306,65 @@ namespace com.noctuagames.sdk
         {
             return await _iapService.RetryPendingPurchaseByOrderId(orderId);
         }
+        
+        private long? GetPlayerIdFromJwt(string token)
+        {
+            if (string.IsNullOrEmpty(token))
+            {
+                _log.Warning("Empty JWT token.");
+                
+                return null;
+            }
+
+            var parts = token.Split('.');
+            if (parts.Length != 3)
+            {
+                _log.Error("Invalid JWT format: Token must have 3 parts (header, payload, signature).");
+                
+                return null;
+            }
+            
+            try
+            {
+                var payload = parts[1];
+                var paddedPayload = payload.PadRight((payload.Length + 2) / 3 * 3, '=');                
+                var json = Encoding.UTF8.GetString(Convert.FromBase64String(paddedPayload));
+                var parsed = JObject.Parse(json);
+
+                if (parsed["player_id"] == null)
+                {
+                    _log.Error("Missing 'player_id' claim in JWT payload.");
+                    
+                    return null;
+                }
+
+                var playerId = parsed["player_id"]?.Value<long?>();
+                
+                if (playerId == null)
+                {
+                    _log.Error("The 'player_id' claim is not a valid number.");
+                }
+
+                return playerId;
+            }
+            catch (FormatException ex)
+            {
+                _log.Error($"Base64 decoding error: {ex.Message}");
+            }
+            catch (Exception ex)
+            {
+                _log.Error($"Unexpected error while parsing JWT: {ex.Message}");
+            }
+
+            return null;
+        }
+
     }
     
-    internal enum AuthType
+    internal enum AuthIntention
     {
+        None,
         Switch,
-        LinkAccount,
+        Link,
     }
 }

@@ -418,8 +418,6 @@ namespace com.noctuagames.sdk.UI
         {
             Visible = false;
 
-            Model.ClearNavigation();
-            Model.PushNavigation(() => Model.ShowEmailRegistration(false));
             Model.ShowEmailLogin();
         }
 
@@ -573,9 +571,22 @@ namespace com.noctuagames.sdk.UI
                 };
             }
 
-            try
-            {
-                var result = await Model.RegisterWithEmailAsync(emailAddress, password, regExtra);
+            try {
+                CredentialVerification result;
+                
+                switch (Model.AuthIntention)
+                {
+                    case AuthIntention.None:
+                    case AuthIntention.Switch:
+                        result = await Model.AuthService.RegisterWithEmailAsync(emailAddress, password, regExtra);
+                        break;
+                    case AuthIntention.Link:
+                        result = await Model.AuthService.LinkWithEmailAsync(emailAddress, password);
+                        break;
+                    default:
+                        throw new NoctuaException(NoctuaErrorCode.Authentication, $"Invalid AuthIntention {Model.AuthIntention}");
+                }
+                
                 Debug.Log("RegisterWithPassword verification ID: " + result.Id);
 
                 Visible = false;
@@ -595,7 +606,7 @@ namespace com.noctuagames.sdk.UI
                     _address.Clear();
                 }
 
-                Model.ShowEmailVerification(emailAddress, password, result.Id);
+                Model.ShowEmailVerification(emailAddress, password, result.Id, regExtra);
 
                 _continueButton.Clear();
                 _wizardContinueButton.Clear();

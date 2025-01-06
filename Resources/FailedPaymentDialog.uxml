@@ -3,8 +3,7 @@
     <Style src="./FailedPaymentDialog.uss" />
     <ui:VisualElement name="Root" class="root" >
         <ui:VisualElement name="FailedPaymentDialog" class="base dialog-box failed-payment-dialog" >
-            <ui:Button name="ExitButton" focusable="false" class="exit-button">
-                    <ui:VisualElement name="ExitIcon" class="exit-icon" />
+            <ui:Button name="ExitButton" focusable="false" class="exit-button flex-end">
             </ui:Button>
             <ui:Label name="MessageLabel" text="Payment failed" class="message-label" />
             <ui:Button name="CSButton" text="Contact Support" class="primary-button" />
