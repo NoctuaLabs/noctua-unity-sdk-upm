@@ -13,7 +13,7 @@ namespace Tests.Runtime
     {
         private class MockNativeAccountStore : INativeAccountStore
         {
-            private readonly List<NativeAccount> _accounts = new();
+            public readonly List<NativeAccount> _accounts = new();
 
             public NativeAccount GetAccount(long userId, long gameId)
             {
@@ -27,7 +27,11 @@ namespace Tests.Runtime
 
             public void PutAccount(NativeAccount account)
             {
-                account.LastUpdated = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+                if (account.LastUpdated == 0)
+                {
+                    account.LastUpdated = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+                }
+
                 _accounts.RemoveAll(a => a.PlayerId == account.PlayerId && a.GameId == account.GameId);
                 _accounts.Add(account);
             }
@@ -1180,6 +1184,98 @@ namespace Tests.Runtime
             Assert.IsNull(accountContainer.RecentAccount);
             Assert.AreEqual(playerToken3.User.Id, accounts[0].User.Id);
             Assert.AreEqual(playerToken3.User.Nickname, accounts[0].User.Nickname);
+
+            yield return null;
+        }
+        
+        [UnityTest]
+        public IEnumerator ContainerWithAccountsFromDifferentGames_LoadAccounts_SortedByLastUpdated()
+        {
+            var now = 1736140000000;
+            var mockStore = new MockNativeAccountStore();
+            mockStore.PutAccount(
+                new NativeAccount
+                {
+                    PlayerId = 2,
+                    GameId = 1,
+                    RawData = @"{
+                      ""user"": {
+                        ""id"": 1,
+                        ""nickname"": ""User1""
+                      },
+                      ""player"": {
+                        ""id"": 2,
+                        ""username"": ""Player2"",
+                        ""bundle_id"": ""example.noctuagames.android.game1"",
+                        ""game_id"": 1
+                      },
+                      ""credential"": {
+                        ""id"": 1,
+                        ""provider"": ""email"",
+                        ""display_text"": ""User 1""
+                      }
+                    }",
+                    LastUpdated = now
+                }
+            );
+            mockStore.PutAccount(
+                new NativeAccount
+                {
+                    PlayerId = 3,
+                    GameId = 1,
+                    RawData = @"{
+                      ""user"": {
+                        ""id"": 2,
+                        ""nickname"": ""User2""
+                      },
+                      ""player"": {
+                        ""id"": 3,
+                        ""username"": ""Player3"",
+                        ""bundle_id"": ""example.noctuagames.android.game1"",
+                        ""game_id"": 1
+                       },
+                      ""credential"": {
+                        ""id"": 2,
+                        ""provider"": ""email"",
+                        ""display_text"": ""User 2""
+                      }
+                    }",
+                    LastUpdated = now + 1000
+                }
+            );
+            mockStore.PutAccount(
+                new NativeAccount
+                {
+                    PlayerId = 4,
+                    GameId = 2,
+                    RawData = @"{
+                      ""user"": {
+                        ""id"": 2,
+                        ""nickname"": ""User2""
+                      },
+                      ""player"": {
+                        ""id"": 4,
+                        ""username"": ""Player4"",
+                        ""bundle_id"": ""example.noctuagames.android.game2"",
+                        ""game_id"": 1
+                      },
+                      ""credential"": {
+                        ""id"": 2,
+                        ""provider"": ""email"",
+                        ""display_text"": ""User 2""
+                      }
+                    }",
+                    LastUpdated = now - 1000
+                }
+            );
+            
+            var accountContainer = new AccountContainer(mockStore, "example.noctuagames.android.game1");
+            
+            accountContainer.Load();
+            
+            Assert.AreEqual(2, accountContainer.Accounts.Count);
+            Assert.AreEqual(2, accountContainer.RecentAccount.User.Id);
+            Assert.AreEqual(3, accountContainer.RecentAccount.Player.Id);
 
             yield return null;
         }

@@ -223,7 +223,7 @@ namespace com.noctuagames.sdk
         public List<Player> PlayerAccounts;
 
         [JsonProperty("last_used")]
-        public DateTime LastUsed;
+        public DateTimeOffset LastUsed;
 
         [JsonProperty("is_recent")]
         public bool IsRecent;
@@ -518,9 +518,6 @@ namespace com.noctuagames.sdk
             var response = await request.Send<PlayerToken>();
 
             _accountContainer.UpdateRecentAccount(response);
-
-            SetEventProperties(response);
-            SendEvent("account_switched");
 
             return _accountContainer.RecentAccount;
         }
