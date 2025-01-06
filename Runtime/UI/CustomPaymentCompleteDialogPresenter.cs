@@ -82,7 +82,8 @@ namespace com.noctuagames.sdk.UI
 
             Visible = false;
 
-            _tcs?.TrySetResult(false);
+            // We don't want to retry the payment at close dialog
+            _tcs?.TrySetResult(true);
         }
     }
 }

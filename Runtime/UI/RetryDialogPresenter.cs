@@ -32,7 +32,7 @@ namespace com.noctuagames.sdk.UI
             _message = View.Q<Label>("Info");
             _csInfo = View.Q<Label>("CSInfo");
 
-            _btnRetry.RegisterCallback<PointerUpEvent>(RetryDialog);
+            _btnRetry.RegisterCallback<PointerUpEvent>(RetryProcess);
             _csInfo.RegisterCallback<PointerUpEvent>(OpenCS);
             _btnClose.RegisterCallback<PointerUpEvent>(CloseDialog);
         }
@@ -49,7 +49,7 @@ namespace com.noctuagames.sdk.UI
             return await _tcs.Task;
         }
 
-        private void RetryDialog(PointerUpEvent evt)
+        private void RetryProcess(PointerUpEvent evt)
         {            
             Visible = false;
 

@@ -113,6 +113,9 @@ namespace com.noctuagames.sdk
 
         [JsonProperty("payment_url")]
         public string PaymentUrl;
+
+        [JsonProperty("payment_type")]
+        public PaymentType PaymentType;
     }
     
     public enum PaymentStatus
@@ -615,6 +618,8 @@ namespace com.noctuagames.sdk
 
             // The payment types are prioritized in backend
             // and filtered by runtime platform in InitAsync()
+            // This payment type could be override by
+            // the response of create order.
             var paymentType = _enabledPaymentTypes.First();
             if (tryToUseSecondaryPayment && _enabledPaymentTypes.Count > 1)
             {
@@ -681,6 +686,9 @@ namespace com.noctuagames.sdk
                 orderResponse = await RetryAsync(() => CreateOrderAsync(orderRequest));
 
                 orderRequest.Id = orderResponse.Id;
+
+                // Override the payment type in case this get altered from backend.
+                paymentType = orderResponse.PaymentType;
                 
                 _eventSender?.Send(
                     "purchase_opened",
