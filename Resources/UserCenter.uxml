@@ -80,7 +80,7 @@
                         <ui:VisualElement class="edit-change-profile-container">
                             <ui:VisualElement name="ProfileImage" class="profile-circle-with-border" />
                             <ui:Button text="Change Picture" name="ChangePictureButton" focusable="false" class="button-border" style="margin-top: 10px; margin-left: -5px;" />
-                            <ui:Button display-tooltip-when-elided="true" name="Spinner" focusable="false" picking-mode="Ignore" class="margin-top: 10px; margin-left: -5px; spinner-fake-button hide" />
+                            <ui:Button display-tooltip-when-elided="true" name="Spinner" focusable="false" picking-mode="Ignore" class="margin-top: 10px; margin-left: -5px; spinner-fake-button hide" style="background-color: rgba(41, 91, 172, 0);" />
                         </ui:VisualElement>
                         <ui:ScrollView scroll-deceleration-rate="0,135" elasticity="0,1" horizontal-scroller-visibility="Hidden" vertical-scroller-visibility="Hidden" name="ProfileDetails" class="profile-details">
                             <ui:VisualElement class="nickname-container noctua-text-input-margin">
