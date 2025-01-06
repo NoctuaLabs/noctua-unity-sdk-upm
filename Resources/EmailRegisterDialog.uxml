@@ -1,5 +1,6 @@
 <ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" xsi="http://www.w3.org/2001/XMLSchema-instance" engine="UnityEngine.UIElements" editor="UnityEditor.UIElements" noNamespaceSchemaLocation="../../../../UIElementsSchema/UIElements.xsd" editor-extension-mode="False">
     <Style src="project://database/Packages/com.noctuagames.sdk/Resources/Noctua.uss?fileID=7433441132597879392&amp;guid=fe35e550fb23b6446af377f994effe35&amp;type=3#Noctua" />
+    <Style src="project://database/Packages/com.noctuagames.sdk/Resources/EmailRegisterDialog.uss?fileID=7433441132597879392&amp;guid=7541804efcc259640b0566500cbe76bc&amp;type=3#EmailRegisterDialog" />
     <ui:VisualElement name="Root" class="root">
         <ui:VisualElement name="NoctuaRegisterBox" class="base dialog-box">
             <ui:VisualElement name="HeaderContent" class="dialog-header" style="width: 100%;">
@@ -7,7 +8,7 @@
                 <ui:Label text="Register with email" display-tooltip-when-elided="true" name="LabelRegister1" class="dialog-title" />
                 <ui:VisualElement name="NoctuaLogoWithText" class="noctua-logo-with-text hide" style="position: absolute; right: 10px;" />
             </ui:VisualElement>
-            <ui:VisualElement name="Content" class="dialog-content" style="height: 300px;">
+            <ui:VisualElement name="Content" class="dialog-content dialog-content-register">
                 <ui:VisualElement name="RegisterWizard1">
                     <ui:TextField label="Email address" name="EmailTF" keyboard-type="EmailAddress" class="noctua-text-input">
                         <ui:Label tabindex="-1" text="Email address" parse-escape-sequences="true" display-tooltip-when-elided="true" name="title" class="hide" />
@@ -95,10 +96,10 @@
                 <ui:Label name="ErrCode" display-tooltip-when-elided="true" class="dialog-err-label hide" />
                 <ui:Button text="Continue" display-tooltip-when-elided="true" name="ContinueButton" focusable="false" class="dialog-button" />
                 <ui:Button display-tooltip-when-elided="true" name="Spinner" focusable="false" picking-mode="Ignore" class="dialog-button spinner-fake-button hide" />
-            </ui:VisualElement>
-            <ui:VisualElement name="AdditionalFooterContent" style="flex-direction: row; -unity-text-align: middle-center; justify-content: center; align-items: stretch; margin-top: 10%;">
-                <ui:Label name="AlreadyHaveAccount" text="Already have an account?" display-tooltip-when-elided="true" style="font-size: 12px;" />
-                <ui:Label name="LoginLink" text="Login" display-tooltip-when-elided="true" style="color: rgb(59, 130, 246); font-size: 12px;" />
+                <ui:VisualElement name="AdditionalFooterContent" style="flex-direction: row; -unity-text-align: middle-center; justify-content: center; align-items: stretch; margin-top: 10px;">
+                    <ui:Label name="AlreadyHaveAccount" text="Already have an account?" display-tooltip-when-elided="true" style="font-size: 12px;" />
+                    <ui:Label name="LoginLink" text="Login" display-tooltip-when-elided="true" style="color: rgb(59, 130, 246); font-size: 12px;" />
+                </ui:VisualElement>
             </ui:VisualElement>
         </ui:VisualElement>
     </ui:VisualElement>

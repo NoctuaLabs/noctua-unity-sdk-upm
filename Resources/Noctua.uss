@@ -61,6 +61,10 @@
     border-right-width: 0;
     border-bottom-width: 0;
     border-left-width: 0;
+    padding-top: 12px;
+    padding-right: 5px;
+    padding-bottom: 10px;
+    padding-left: 10px;
 }
 
 .dialog-box-keyboard-shown {
@@ -83,6 +87,7 @@
     font-size: 12px;
     align-items: center;
     align-self: flex-start;
+    margin-bottom: 10px;
 }
 
 .dialog-title {
@@ -94,9 +99,9 @@
 
 .dialog-back-button {
     margin-top: 0;
-    margin-right: 14px;
-    height: 24px;
-    width: 24px;
+    margin-right: 8px;
+    height: 26px;
+    width: 26px;
     flex-direction: column;
     border-width: 0;
     border-color: transparent;
@@ -106,6 +111,7 @@
     align-items: auto;
     background-position: center;
     margin-bottom: 0;
+    margin-left: 0;
 }
 
 .dialog-close-button {
@@ -123,9 +129,11 @@
 
 .dialog-content {
     padding: 14px;
-    margin-top: 0;
     flex-direction: column;
     width: 300px;
+    padding-right: 5px;
+    padding-left: 5px;
+    padding-top: 25px;
 }
 
 .dialog-footer {
@@ -138,6 +146,8 @@
     align-items: center;
     justify-content: center;
     flex-grow: 1;
+    padding-right: 5px;
+    padding-left: 5px;
 }
 
 .dialog-err-label {
@@ -487,6 +497,9 @@
     margin-left: -10px;
     padding-top: 5px;
     background-color: rgba(0, 0, 0, 0);
+    margin-top: 0;
+    margin-bottom: 0;
+    padding-bottom: 0;
 }
 
 .noctua-text-input #unity-text-input {
@@ -646,7 +659,7 @@ Label:hover {
     top: 9.5px;
     right: 10px;
     position: absolute;
-    margin-top: 7px;
+    margin-top: 5px;
 }
 
 .btn-password-hide {
@@ -654,7 +667,7 @@ Label:hover {
     top: 9.5px;
     right: 10px;
     position: absolute;
-    margin-top: 7px;
+    margin-top: 5px;
 }
 
 .btn-calendar {
