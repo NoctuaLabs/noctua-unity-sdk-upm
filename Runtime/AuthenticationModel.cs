@@ -125,7 +125,6 @@ namespace com.noctuagames.sdk
             _emailConfirmResetPasswordDialog.EventSender = eventSender;
             _accountDeletionConfirmationDialog = _uiFactory.Create<AccountDeletionConfirmationDialogPresenter, AuthenticationModel>(this);
             _bindConfirmation = _uiFactory.Create<BindConfirmationDialogPresenter, AuthenticationModel>(this);
-            _bindConfirmation.Loading = _uiFactory.Create<LoadingProgressPresenter, object>(new object());
             _bindConflictDialog = _uiFactory.Create<BindConflictDialogPresenter, AuthenticationModel>(this);
             _welcome = _uiFactory.Create<WelcomeNotificationPresenter, AuthenticationModel>(this);
 

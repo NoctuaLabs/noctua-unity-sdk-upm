@@ -175,6 +175,17 @@
     "IAPFailed": "Purchase failed",
     "IAPRequiresAuthentication": "Purchase requires user authentication",
     "IAPPaymentDisabled": "Payment is disabled. Please contact customer support.",
+    "IAPPendingPurchaseTitle": "You have {0} pending purchase(s)",
+    "IAPPendingPurchaseReceiptCopied": "Your purchase receipt has been copied to clipboard.",
+    "IAPPendingPurchaseCanceled":  "Your purchase has been canceled. Please contact customer support for more details.",
+    "IAPPendingPurchaseRefunded":  "Your purchase has been refunded. Please contact customer support for more details.",
+    "IAPPendingPurchaseVoided":  "Your purchase has been voided. Please contact customer support for more details.",
+    "IAPPendingPurchaseCompleted":  "Your purchase has been verified!",
+    "IAPPendingPurchaseNotVerified": "Purchase is not verified yet. Please try again later.",
+    "IAPPendingPurchaseItemCsButtonText":  "Customer Service",
+    "IAPPendingPurchaseItemCopyButtonText":  "Copy Receipt",
+    "IAPPendingPurchaseItemRetryButtonText" : "Retry",
+
     "AuthEmailLinkingSuccessful": "Email linking successful",
 
     "EditProfile.NicknameValidation": "Nickname should not be empty",

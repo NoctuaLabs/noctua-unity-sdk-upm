@@ -207,6 +207,17 @@ namespace com.noctuagames.sdk
         IAPFailed,
         IAPRequiresAuthentication,
         IAPPaymentDisabled,
-        AuthEmailLinkingSuccessful,
+        IAPPendingPurchaseTitle,
+        IAPPendingPurchaseReceiptCopied,
+        IAPPendingPurchaseCanceled,
+        IAPPendingPurchaseRefunded,
+        IAPPendingPurchaseVoided,
+        IAPPendingPurchaseCompleted,
+        IAPPendingPurchaseNotVerified,
+        IAPPendingPurchaseItemCsButtonText,
+        IAPPendingPurchaseItemCopyButtonText,
+        IAPPendingPurchaseItemRetryButtonText,
+        
+        AuthEmailLinkingSuccessful
     }
 }

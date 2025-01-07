@@ -22,7 +22,6 @@ namespace com.noctuagames.sdk.UI
         private Button _btnComplete;
         private Button _btnCustomerService;
         private Button _btnClose;
-        private Label _message;
         private Label _title;
 
         private ListView _pendingPurchasesListView;
@@ -59,15 +58,8 @@ namespace com.noctuagames.sdk.UI
             _pendingPurchasesListView.Rebuild();
 
             _log.Debug("total pending purchases: " + _pendingPurchases.Count);
-
-            if (_pendingPurchases.Count == 0)
-            {
-                _title.text = "No pending purchase at the moment";
-            } else if (_pendingPurchases.Count == 1) {
-                _title.text = "Your Pending Purchase";
-            } else {
-                _title.text = "Your Pending Purchases";
-            }
+            
+            _title.text = String.Format(Locale.GetTranslation(LocaleTextKey.IAPPendingPurchaseTitle), _pendingPurchases.Count);
 
             Visible = true;
 
@@ -104,6 +96,7 @@ namespace com.noctuagames.sdk.UI
             byte[] plainTextBytes = Encoding.UTF8.GetBytes(fullReceiptData);
             var textToCopy = Convert.ToBase64String(plainTextBytes);
 
+            element.Q<Button>("CSButton").text = Locale.GetTranslation(LocaleTextKey.IAPPendingPurchaseItemCsButtonText);
             element.Q<Button>("CSButton").RegisterCallback<PointerUpEvent>(async evt =>
             {
                 _log.Debug("clicking customer Service button");
@@ -128,17 +121,19 @@ namespace com.noctuagames.sdk.UI
                 Visible = true;
             });
 
+            element.Q<Button>("CopyButton").text = Locale.GetTranslation(LocaleTextKey.IAPPendingPurchaseItemCopyButtonText);
             element.Q<Button>("CopyButton").RegisterCallback<PointerUpEvent>(evt =>
             {
 
                 Model.ShowGeneralNotification(
-                "Your purchase receipt has been copied to clipboard.",
+                    Locale.GetTranslation(LocaleTextKey.IAPPendingPurchaseReceiptCopied),
                     true,
                     7000
                 );
                 GUIUtility.systemCopyBuffer = textToCopy;
             });
 
+            element.Q<Button>("RetryButton").text = Locale.GetTranslation(LocaleTextKey.IAPPendingPurchaseItemRetryButtonText);
             element.Q<Button>("RetryButton").RegisterCallback<PointerUpEvent>(async evt =>
             {
 
@@ -155,7 +150,7 @@ namespace com.noctuagames.sdk.UI
                         case OrderStatus.canceled:
                             Visible = false;
                             Model.ShowGeneralNotification(
-                                "Your purchase has been canceled. Please contact customer support for more details.",
+                                Locale.GetTranslation(LocaleTextKey.IAPPendingPurchaseCanceled),
                                 false,
                                 7000
                             );
@@ -163,7 +158,7 @@ namespace com.noctuagames.sdk.UI
                         case OrderStatus.refunded:
                             Visible = false;
                             Model.ShowGeneralNotification(
-                                "Your purchase has been refunded. Please contact customer support for more details.",
+                                Locale.GetTranslation(LocaleTextKey.IAPPendingPurchaseRefunded),
                                 false,
                                 7000
                             );
@@ -171,17 +166,23 @@ namespace com.noctuagames.sdk.UI
                         case OrderStatus.voided:
                             Visible = false;
                             Model.ShowGeneralNotification(
-                                "Your purchase has been voided. Please contact customer support for more details.",
+                                Locale.GetTranslation(LocaleTextKey.IAPPendingPurchaseVoided),
                                 false,
                                 7000
                             );
                             break;
                         case OrderStatus.completed:
                             Visible = false;
-                            Model.ShowGeneralNotification("Your purchase has been verified!", true);
+                            Model.ShowGeneralNotification(
+                                Locale.GetTranslation(LocaleTextKey.IAPPendingPurchaseCompleted),
+                                true
+                            );
                             break;
                         default:
-                            Model.ShowGeneralNotification("Purchase is not verified yet. Please try again later.", false);
+                            Model.ShowGeneralNotification(
+                                Locale.GetTranslation(LocaleTextKey.IAPPendingPurchaseNotVerified), 
+                                false
+                            );
                             Visible = true;
                             break;
                     }

@@ -14,8 +14,6 @@ namespace com.noctuagames.sdk.UI
         private Button _connectButton;
         private Button _createNewButton;
         
-        internal LoadingProgressPresenter Loading { get; set; }
-        
         protected override void Attach()
         {
             
@@ -44,7 +42,7 @@ namespace com.noctuagames.sdk.UI
             
             try 
             {
-                Loading?.Show(true);
+                Model.ShowLoadingProgress(true);
                 
                 await Model.AuthService.BindGuestAndLoginAsync(_bindTarget);
             }
@@ -56,7 +54,7 @@ namespace com.noctuagames.sdk.UI
             }
             finally
             {
-                Loading?.Show(false);                
+                Model.ShowLoadingProgress(false);                
             }
 
             Visible = false;
@@ -68,7 +66,7 @@ namespace com.noctuagames.sdk.UI
 
             try
             {
-                Loading?.Show(true);
+                Model.ShowLoadingProgress(true);
 
                 await Model.AuthService.ExchangeTokenAsync(_bindTarget.AccessToken);
             }
@@ -80,7 +78,7 @@ namespace com.noctuagames.sdk.UI
             }
             finally
             {
-                Loading?.Show(false);
+                Model.ShowLoadingProgress(false);
             }
             
             Visible = false;
