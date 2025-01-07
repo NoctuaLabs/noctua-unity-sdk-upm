@@ -148,19 +148,21 @@ namespace com.noctuagames.sdk.UI
             View?.Q<Label>("ResendCode")?.AddToClassList("hide");            
             View?.Q<VisualElement>("DialogContent")?.AddToClassList("hide");
             View?.Q<VisualElement>("DialogHeader")?.AddToClassList("hide");
+            
+            var verificationCode = _inputVerificationCode.textField.value;
 
             try
             {
-                if (Model.AuthService.RecentAccount == null ||
-                !(Model.AuthService.RecentAccount != null && Model.AuthService.RecentAccount.IsGuest))
+                if (Model.AuthService.RecentAccount == null || !Model.AuthService.RecentAccount.IsGuest)
                 {
                     // If account container is empty or it's not guest, verify directly.
-                    await Model.AuthService.VerifyEmailRegistrationAsync(_credVerifyId, _credVerifyCode);
+                    await Model.AuthService.VerifyEmailRegistrationAsync(_credVerifyId, verificationCode);
                 }
                 else if (Model.AuthIntention == AuthIntention.Switch)
                 {
                     // If guest, here will be a confirmation dialog between verification processes.
-                    var token = await Model.AuthService.BeginVerifyEmailRegistrationAsync(_credVerifyId, _credVerifyCode);
+                    var token = await Model.AuthService.BeginVerifyEmailRegistrationAsync(_credVerifyId, verificationCode);
+                    
                     Model.ShowBindConfirmation(token);
                 }
 
