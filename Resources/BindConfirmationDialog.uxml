@@ -34,8 +34,8 @@
                 <ui:Label name="BindConfirmationLabel" text="Would you like to connect your progress to selected account or create new account?" class="bind-confirmation-label" />
             </ui:VisualElement>
             <ui:VisualElement name="ButtonGroup" class="button-group">
-                <ui:Button name="CreateNewButton" text="CreateNew" focusable="false" class="create-new-button button-transparent" />
                 <ui:Button name="ConnectButton" text="Connect" focusable="false" class="connect-button button-highlight" />
+                <ui:Button name="CreateNewButton" text="CreateNew" focusable="false" class="create-new-button button-transparent" />
             </ui:VisualElement>
         </ui:VisualElement>
     </ui:VisualElement>

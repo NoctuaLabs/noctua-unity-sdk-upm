@@ -9,7 +9,7 @@
 }
 
 .bind-players-box {
-    margin-top: 54px;
+    margin-top: 10%;
     flex-direction: row;
     align-self: stretch;
     justify-content: space-between;
@@ -57,13 +57,15 @@
 }
 
 .button-group {
-    flex-direction: row;
+    flex-direction: column;
     height: 40px;
     align-self: stretch;
+    align-items: center;
 }
 
 .bind-confirmation-container {
-    flex: 1;
+    margin-top: 10%;
+    height: 25%;
     overflow: visible;
 }
 
@@ -73,18 +75,19 @@
     flex-wrap: wrap;
     -unity-text-align: middle-center;
     white-space: normal;
-    flex: 1;
 }
 
 .connect-button {
-    flex: 1;
+    width: 90%;
+    height: 35px;
     border-width: 1px;
     border-radius: 5px;
     border-color: rgba(59, 130, 246, 1);
 }
 
 .create-new-button {
-    flex: 1;
+    width: 90%;
+    height: 35px;
     border-width: 1px;
     border-radius: 5px;
     border-color: rgba(59, 130, 246, 1);
