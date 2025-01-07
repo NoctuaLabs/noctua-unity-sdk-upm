@@ -145,9 +145,9 @@
     "UserCenterPresenter.CopyIcon.Button.text": "Sao chép",
     "UserCenterPresenter.MenuPendingPurchases.Label.text": "Đang chờ mua hàng",
 
-    "BindConfirmationDialogPresenter.BindConfirmationLabel.Label.text": "Bạn có muốn kết nối tiến trình của mình với tài khoản đã chọn không?",
+    "BindConfirmationDialogPresenter.BindConfirmationLabel.Label.text": "Bạn có muốn kết nối tiến trình của mình với tài khoản đã chọn hoặc tạo tài khoản mới không?",
     "BindConfirmationDialogPresenter.ConnectButton.Button.text": "Kết nối",
-    "BindConfirmationDialogPresenter.CancelButton.Button.text": "Huỷ",
+    "BindConfirmationDialogPresenter.CreateNewButton.Button.text": "Tạo mới",
 
     "BindConflictDialogPresenter.ConnectConflictInformationLabel.Label.text": "Thông tin xác thực này đã được kết nối với một tài khoản. Bạn có muốn chuyển đổi tài khoản không?",
     "BindConflictDialogPresenter.SwitchAccountButton.Button.text": "Chuyển đổi tài khoản",

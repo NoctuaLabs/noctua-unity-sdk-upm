@@ -145,9 +145,9 @@
     "UserCenterPresenter.CopyIcon.Button.text": "Salin",
     "UserCenterPresenter.MenuPendingPurchases.Label.text": "Pembelian Tertunda",
 
-    "BindConfirmationDialogPresenter.BindConfirmationLabel.Label.text": "Apakah anda ingin menghubungkan dengan akun yang dipilih?",
+    "BindConfirmationDialogPresenter.BindConfirmationLabel.Label.text": "Apakah anda ingin menghubungkan dengan akun yang dipilih atau membuat akun baru?",
     "BindConfirmationDialogPresenter.ConnectButton.Button.text": "Hubungkan",
-    "BindConfirmationDialogPresenter.CancelButton.Button.text": "Batal",
+    "BindConfirmationDialogPresenter.CreateNewButton.Button.text": "Buat baru",
 
     "BindConflictDialogPresenter.ConnectConflictInformationLabel.Label.text": "Kredensial ini sudah terhubung ke suatu akun. Apakah Anda ingin mengganti akun?",
     "BindConflictDialogPresenter.SwitchAccountButton.Button.text": "Ganti Akun",

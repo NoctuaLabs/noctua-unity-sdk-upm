@@ -1,5 +1,6 @@
 .bind-confirmation-dialog {
-    flex-direction: column;
+    padding-left: 10px;
+    padding-right: 10px;
 }
 
 .noctua-logo-container {
@@ -82,7 +83,7 @@
     border-color: rgba(59, 130, 246, 1);
 }
 
-.cancel-button {
+.create-new-button {
     flex: 1;
     border-width: 1px;
     border-radius: 5px;

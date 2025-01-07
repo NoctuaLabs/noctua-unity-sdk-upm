@@ -145,9 +145,9 @@
     "UserCenterPresenter.CopyIcon.Button.text": "Copy",
     "UserCenterPresenter.MenuPendingPurchases.Label.text": "Pending Purchases",
 
-    "BindConfirmationDialogPresenter.BindConfirmationLabel.Label.text": "Would you like to connect your progress to selected account?",
+    "BindConfirmationDialogPresenter.BindConfirmationLabel.Label.text": "Would you like to connect your progress to selected account or create new account?",
     "BindConfirmationDialogPresenter.ConnectButton.Button.text": "Connect",
-    "BindConfirmationDialogPresenter.CancelButton.Button.text": "Cancel",
+    "BindConfirmationDialogPresenter.CreateNewButton.Button.text": "Create new",
 
     "BindConflictDialogPresenter.ConnectConflictInformationLabel.Label.text": "This credential is already connected to an account. Do you want to switch account?",
     "BindConflictDialogPresenter.SwitchAccountButton.Button.text": "Switch account",

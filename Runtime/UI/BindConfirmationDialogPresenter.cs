@@ -12,7 +12,9 @@ namespace com.noctuagames.sdk.UI
         private Label _guestDisplayName;
         private Label _targetDisplayName;
         private Button _connectButton;
-        private Button _cancelButton;
+        private Button _createNewButton;
+        
+        internal LoadingProgressPresenter Loading { get; set; }
         
         protected override void Attach()
         {
@@ -30,10 +32,10 @@ namespace com.noctuagames.sdk.UI
             _guestDisplayName = View.Q<Label>("GuestDisplayName");
             _targetDisplayName = View.Q<Label>("TargetDisplayName");
             _connectButton = View.Q<Button>("ConnectButton");
-            _cancelButton = View.Q<Button>("CancelButton");
+            _createNewButton = View.Q<Button>("CreateNewButton");
             
             _connectButton.RegisterCallback<PointerUpEvent>(OnConnectButtonClicked);
-            _cancelButton.RegisterCallback<PointerUpEvent>(OnCancelButtonClicked);
+            _createNewButton.RegisterCallback<PointerUpEvent>(OnCreateNewButtonClicked);
         }
 
         private async void OnConnectButtonClicked(PointerUpEvent evt)
@@ -42,21 +44,44 @@ namespace com.noctuagames.sdk.UI
             
             try 
             {
-                await Model.AuthService.BindGuestAndLoginAsync(_bindTarget);
+                Loading?.Show(true);
                 
-                Visible = false;
+                await Model.AuthService.BindGuestAndLoginAsync(_bindTarget);
             }
             catch (Exception e)
             {
-                Model.ShowGeneralNotification(e.Message);
+                _log.Exception(e);
+
+                Model.ShowError(e.Message);
+            }
+            finally
+            {
+                Loading?.Show(false);                
             }
 
             Visible = false;
         }
 
-        private void OnCancelButtonClicked(PointerUpEvent evt)
+        private async void OnCreateNewButtonClicked(PointerUpEvent evt)
         {
             _log.Debug("clicking cancel button");
+
+            try
+            {
+                Loading?.Show(true);
+
+                await Model.AuthService.ExchangeTokenAsync(_bindTarget.AccessToken);
+            }
+            catch (Exception e)
+            {
+                _log.Exception(e);
+
+                Model.ShowError(e.Message);
+            }
+            finally
+            {
+                Loading?.Show(false);
+            }
             
             Visible = false;
         }
