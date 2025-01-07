@@ -57,8 +57,8 @@ namespace com.noctuagames.sdk.UI
                 // Filter by player ID
                 (p is not null && Model.AuthService.RecentAccount?.Player?.Id is not null &&
                 p.PlayerId == Model.AuthService.RecentAccount?.Player?.Id)
-                // But show it if the player ID is not present
-                || (p is not null && p.PlayerId is null))
+                // But show it if the player ID is not present from both side
+                || (p is not null && (p.PlayerId is null || Model.AuthService.RecentAccount?.Player?.Id is null)))
                 .OrderByDescending(p => p.OrderId)
             );
             _pendingPurchasesListView.Rebuild();

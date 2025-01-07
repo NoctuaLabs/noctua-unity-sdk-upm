@@ -412,7 +412,8 @@ namespace com.noctuagames.sdk
         private async UniTask<VerifyOrderResponse> VerifyOrderImplAsync(
             OrderRequest orderRequest,
             VerifyOrderRequest verifyOrderRequest,
-            string token
+            string token,
+            long? playerId
         )
         {
                 if (orderRequest.Id == 0)
@@ -803,7 +804,8 @@ namespace com.noctuagames.sdk
                             var verifyResponseAtCancel = await VerifyOrderImplAsync(
                                 orderRequest,
                                 verifyReq,
-                                _accessTokenProvider.AccessToken
+                                _accessTokenProvider.AccessToken,
+                                Noctua.Auth.RecentAccount?.Player?.Id
                             );
 
                             // If verified, cancel the falback to secondary payment.
@@ -950,7 +952,8 @@ namespace com.noctuagames.sdk
                 verifyOrderResponse = await RetryAsync(() => VerifyOrderImplAsync(
                         orderRequest,
                         verifyOrderRequest,
-                        _accessTokenProvider.AccessToken
+                        _accessTokenProvider.AccessToken,
+                        Noctua.Auth.RecentAccount?.Player?.Id
                     )
                 );
 
@@ -1038,7 +1041,8 @@ namespace com.noctuagames.sdk
                 var verifyOrderResponse = await VerifyOrderImplAsync(
                     item.OrderRequest,
                     item.VerifyOrderRequest,
-                    item.AccessToken
+                    item.AccessToken,
+                    item.PlayerId
                 );
 
                 if (verifyOrderResponse.Status != OrderStatus.completed &&
@@ -1457,7 +1461,8 @@ namespace com.noctuagames.sdk
                         var verifyOrderResponse = await VerifyOrderImplAsync(
                             item.OrderRequest,
                             item.VerifyOrderRequest,
-                            item.AccessToken
+                            item.AccessToken,
+                            item.PlayerId
                         );
 
                         if (verifyOrderResponse.Status != OrderStatus.completed &&
@@ -1579,6 +1584,28 @@ namespace com.noctuagames.sdk
 
         private void EnqueueToRetryPendingPurchases(RetryPendingPurchaseItem item)
         {
+
+            if (item.OrderId == 0)
+            {
+                throw new NoctuaException(NoctuaErrorCode.Application, "Missing parameter when enqueue retry pending purchase item: orderId");
+            }
+            if (item.OrderRequest is null)
+            {
+                throw new NoctuaException(NoctuaErrorCode.Application, "Missing parameter when enqueue retry pending purchase item: orderRequest");
+            }
+            if (item.VerifyOrderRequest is null)
+            {
+                throw new NoctuaException(NoctuaErrorCode.Application, "Missing parameter when enqueue retry pending purchase item: verifyOrderRequest");
+            }
+            if (string.IsNullOrEmpty(item.AccessToken))
+            {
+                throw new NoctuaException(NoctuaErrorCode.Application, "Missing parameter when enqueue retry pending purchase item: accessToken");
+            }
+            if (item.PlayerId is null)
+            {
+                throw new NoctuaException(NoctuaErrorCode.Application, "Missing parameter when enqueue retry pending purchase item: playerId");
+            }
+
             // Remove the existing if any.
             RemoveFromRetryPendingPurchasesByOrderID(item.OrderId);
 

@@ -283,19 +283,6 @@ namespace com.noctuagames.sdk
                     purchaseItemName = item.OrderRequest.ProductId;
                 }
 
-                if (item.PlayerId == null) {
-                    // Catch the error because we don't want
-                    // this breaks the entire iteration.
-                    try
-                    {
-                        item.PlayerId = GetPlayerIdFromJwt(item.AccessToken);
-                    }
-                    catch (Exception ex)
-                    {
-                        _log.Error($"Failed to get player ID from Jwt {ex.Message}");
-                    }
-                }
-
                 _pendingPurchases.Add(new PendingPurchaseItem{
                     OrderId = item.OrderId,
                     Timestamp = item.OrderRequest.Timestamp,
@@ -366,7 +353,7 @@ namespace com.noctuagames.sdk
             }
             catch (FormatException ex)
             {
-                _log.Error($"Base64 decoding error: {ex.Message}: {paddedPayload}");
+                _log.Error($"Base64 decoding error: {ex.Message}: {paddedPayload} : {token}");
             }
             catch (Exception ex)
             {
