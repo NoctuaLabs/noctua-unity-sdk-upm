@@ -162,11 +162,10 @@ namespace com.noctuagames.sdk.UI
 
         private Rect CalculateFrame(VisualElement element)
         {
-
             var layout = element.LocalToWorld(new Rect(0, 0, element.layout.width, element.layout.height));
-            var match = gameObject.GetComponent<UIDocument>().panelSettings.match;
             var referenceResolution = gameObject.GetComponent<UIDocument>().panelSettings.referenceResolution;
-            var scale = match == 0.0f ? Screen.width / referenceResolution.x : Screen.height / referenceResolution.y;
+            var isPortrait = Screen.width < Screen.height;
+            var scale = isPortrait ? 1f*Screen.width / referenceResolution.x : 1f*Screen.height / referenceResolution.y;
             
             var adjustedLayout = new Rect(
                 layout.position.x * scale,
