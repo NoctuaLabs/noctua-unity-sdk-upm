@@ -468,6 +468,7 @@ namespace com.noctuagames.sdk
                             VerifyOrderRequest = verifyOrderRequest,
                             AccessToken = _accessTokenProvider.AccessToken,
                             Status = "canceled",
+                            PlayerId = Noctua.Auth.RecentAccount?.Player?.Id,
                         }
                     );
                     break;
@@ -492,6 +493,7 @@ namespace com.noctuagames.sdk
                             VerifyOrderRequest = verifyOrderRequest,
                             AccessToken = _accessTokenProvider.AccessToken,
                             Status = "refunded",
+                            PlayerId = Noctua.Auth.RecentAccount?.Player?.Id,
                         }
                     );
                     break;
@@ -540,6 +542,7 @@ namespace com.noctuagames.sdk
                             VerifyOrderRequest = verifyOrderRequest,
                             AccessToken = _accessTokenProvider.AccessToken,
                             Status = "verification_failed",
+                            PlayerId = Noctua.Auth.RecentAccount?.Player?.Id,
                         }
                     );
 
@@ -822,7 +825,8 @@ namespace com.noctuagames.sdk
                                     OrderId = orderResponse.Id,
                                     OrderRequest = orderRequest,
                                     VerifyOrderRequest = verifyReq,
-                                    AccessToken = _accessTokenProvider.AccessToken
+                                    AccessToken = _accessTokenProvider.AccessToken,
+                                    PlayerId = Noctua.Auth.RecentAccount?.Player?.Id,
                                 }
                             );
                         }
@@ -855,7 +859,8 @@ namespace com.noctuagames.sdk
                                     OrderId = orderResponse.Id,
                                     OrderRequest = orderRequest,
                                     VerifyOrderRequest = verifyReq,
-                                    AccessToken = _accessTokenProvider.AccessToken
+                                    AccessToken = _accessTokenProvider.AccessToken,
+                                    PlayerId = Noctua.Auth.RecentAccount?.Player?.Id,
                                 }
                             );
                         }
@@ -930,7 +935,8 @@ namespace com.noctuagames.sdk
                     OrderId = orderResponse.Id,
                     OrderRequest = orderRequest,
                     VerifyOrderRequest = verifyOrderRequest,
-                    AccessToken = _accessTokenProvider.AccessToken
+                    AccessToken = _accessTokenProvider.AccessToken,
+                    PlayerId = Noctua.Auth.RecentAccount?.Player?.Id,
                 }
             );
 
@@ -961,7 +967,8 @@ namespace com.noctuagames.sdk
                             OrderRequest = orderRequest,
                             VerifyOrderRequest = verifyOrderRequest,
                             AccessToken = _accessTokenProvider.AccessToken,
-                            Status = "Network error"
+                            Status = "Network error",
+                            PlayerId = Noctua.Auth.RecentAccount?.Player?.Id
                         }
                     );
                 }
@@ -1070,6 +1077,7 @@ namespace com.noctuagames.sdk
                         VerifyOrderRequest = item.VerifyOrderRequest,
                         AccessToken = item.AccessToken,
                         Status = "verification_failed",
+                        PlayerId = Noctua.Auth.RecentAccount?.Player?.Id
                     }
                 );
 
@@ -1486,6 +1494,7 @@ namespace com.noctuagames.sdk
                                 VerifyOrderRequest = item.VerifyOrderRequest,
                                 AccessToken = item.AccessToken,
                                 Status = "verification_failed",
+                                PlayerId = Noctua.Auth.RecentAccount?.Player?.Id,
                             }
                         );
 
@@ -1611,6 +1620,7 @@ namespace com.noctuagames.sdk
             public VerifyOrderRequest VerifyOrderRequest;
             public string AccessToken;
             public string Status;
+            public long? PlayerId;
         }
         
         private void EnsureEnabled()

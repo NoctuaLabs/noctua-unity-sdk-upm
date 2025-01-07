@@ -282,6 +282,20 @@ namespace com.noctuagames.sdk
                 {
                     purchaseItemName = item.OrderRequest.ProductId;
                 }
+
+                if (item.PlayerId == null) {
+                    // Catch the error because we don't want
+                    // this breaks the entire iteration.
+                    try
+                    {
+                        item.PlayerId = GetPlayerIdFromJwt(item.AccessToken);
+                    }
+                    catch (Exception ex)
+                    {
+                        _log.Error($"Failed to get player ID from Jwt {ex.Message}");
+                    }
+                }
+
                 _pendingPurchases.Add(new PendingPurchaseItem{
                     OrderId = item.OrderId,
                     Timestamp = item.OrderRequest.Timestamp,
@@ -290,7 +304,7 @@ namespace com.noctuagames.sdk
                     PurchaseItemName = purchaseItemName,
                     OrderRequest = Convert.ToBase64String(Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(item.OrderRequest))),
                     VerifyOrderRequest = Convert.ToBase64String(Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(item.VerifyOrderRequest))),
-                    PlayerId = GetPlayerIdFromJwt(item.AccessToken)
+                    PlayerId = item.PlayerId,
                 });
             }
 
@@ -323,11 +337,12 @@ namespace com.noctuagames.sdk
                 
                 return null;
             }
+            var paddedPayload = "";
             
             try
             {
                 var payload = parts[1];
-                var paddedPayload = payload.PadRight((payload.Length + 2) / 3 * 3, '=');                
+                paddedPayload = payload.PadRight((payload.Length + 2) / 3 * 3, '=');
                 var json = Encoding.UTF8.GetString(Convert.FromBase64String(paddedPayload));
                 var parsed = JObject.Parse(json);
 
@@ -345,11 +360,13 @@ namespace com.noctuagames.sdk
                     _log.Error("The 'player_id' claim is not a valid number.");
                 }
 
+                _log.Debug($"The 'player_id' claim is exist {playerId}");
+
                 return playerId;
             }
             catch (FormatException ex)
             {
-                _log.Error($"Base64 decoding error: {ex.Message}");
+                _log.Error($"Base64 decoding error: {ex.Message}: {paddedPayload}");
             }
             catch (Exception ex)
             {

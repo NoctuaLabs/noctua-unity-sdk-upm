@@ -48,11 +48,17 @@ namespace com.noctuagames.sdk.UI
 
         public async UniTask<bool> Show(List<PendingPurchaseItem> pendingPurchases)
         {            
+            _log.Debug("Player ID from recent account: " + Model.AuthService.RecentAccount?.Player?.Id);
             _tcs = new UniTaskCompletionSource<bool>();
             _pendingPurchases.Clear();
             _pendingPurchases.AddRange(
                 pendingPurchases
-                .Where(p => p is not null && p.PlayerId == Model.AuthService.RecentAccount?.Player?.Id)
+                .Where(p =>
+                // Filter by player ID
+                (p is not null && Model.AuthService.RecentAccount?.Player?.Id is not null &&
+                p.PlayerId == Model.AuthService.RecentAccount?.Player?.Id)
+                // But show it if the player ID is not present
+                || (p is not null && p.PlayerId is null))
                 .OrderByDescending(p => p.OrderId)
             );
             _pendingPurchasesListView.Rebuild();
