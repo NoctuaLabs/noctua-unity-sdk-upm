@@ -801,13 +801,28 @@ namespace com.noctuagames.sdk
             return await request.Send<PlayerToken>();
         }
 
-        public void EndVerifyEmailRegistration(PlayerToken playerToken)
+        public async UniTask<PlayerToken> BeginVerifyEmailLinkingAsync(int id, string code)
         {
-            _accountContainer.UpdateRecentAccount(playerToken);
+            if (!RecentAccount.IsGuest)
+            {
+                throw new NoctuaException(NoctuaErrorCode.Authentication, "Account is not a guest account");
+            }
 
-            SetEventProperties(playerToken);
-            SendEvent("account_created");
-            SendEvent("account_created_by_email");
+            var request = new HttpRequest(HttpMethod.Post, $"{_baseUrl}/auth/email/verify-link")
+                .WithHeader("X-CLIENT-ID", _clientId)
+                .WithHeader("X-BUNDLE-ID", _bundleId)
+                .WithJsonBody(
+                    new CredentialVerification
+                    {
+                        Id = id,
+                        Code = code,
+                        NoBindGuest = true
+                    }
+                );
+
+            request.WithHeader("Authorization", "Bearer " + RecentAccount.Player.AccessToken);
+
+            return await request.Send<PlayerToken>();
         }
 
         public async UniTask<PlayerToken> GetSocialLoginTokenAsync(string provider, SocialLoginRequest payload)
