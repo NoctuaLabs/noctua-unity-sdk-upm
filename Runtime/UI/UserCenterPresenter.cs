@@ -269,20 +269,21 @@ namespace com.noctuagames.sdk.UI
 
                     OnUIEditProfile(false);
                     SetupDropdownUI();
+                    SetupDatePickerUI();
 
                     _nicknameTF.textField.value = user?.Nickname;
                     _newProfileUrl = user?.PictureUrl;
 
                     bool validDate = DateTime.TryParse(user?.DateOfBirth, null, DateTimeStyles.RoundtripKind, out DateTime dateTime);
                     string formattedDate = validDate ? dateTime.ToString("dd/MM/yyyy", CultureInfo.InvariantCulture) : "";
+                    
+                    new InputFieldNoctua(View.Q<TextField>("BirthdateTF")).textField.value = formattedDate;
+                    _dateString = formattedDate;
 
                     string genderOriginal = user?.Gender;
                     string genderUpperChar = char.ToUpper(genderOriginal[0]) + genderOriginal.Substring(1);
 
-                    _birthDateTF.textField.value = formattedDate;
                     _genderDF.value = genderUpperChar;
-
-                    _dateString = formattedDate;
 
                     int indexCountry = _profileDataOptions.Countries.FindIndex(item => item.IsoCode.ToLower() == user?.Country.ToLower());
                     if (indexCountry != -1)
@@ -461,7 +462,6 @@ namespace com.noctuagames.sdk.UI
 
             _nicknameTF.SetFocus();
 
-            SetupDatePickerUI();
             SetupDropdownUI();
         }
 
