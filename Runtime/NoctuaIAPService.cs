@@ -1047,6 +1047,7 @@ namespace com.noctuagames.sdk
 
                 if (verifyOrderResponse.Status != OrderStatus.completed &&
                 verifyOrderResponse.Status != OrderStatus.canceled &&
+                verifyOrderResponse.Status != OrderStatus.refunded &&
                 verifyOrderResponse.Status != OrderStatus.voided)
                 {
                     // Enqueue to player prefs for future read
