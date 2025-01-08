@@ -3,9 +3,7 @@
     <Style src="project://database/Packages/com.noctuagames.sdk/Resources/FailedPaymentDialog.uss?fileID=7433441132597879392&amp;guid=64ce1b7fe1a3486782597e0d02bc63ec&amp;type=3#FailedPaymentDialog" />
     <ui:VisualElement name="Root" class="root">
         <ui:VisualElement name="FailedPaymentDialog" class="base dialog-box failed-payment-dialog">
-            <ui:VisualElement name="Header" class="dialog-header-noctua" style="flex-grow: 1;">
-                <ui:Button name="ExitButton" focusable="false" class="exit-button flex-end" />
-            </ui:VisualElement>
+            <ui:Button name="ExitButton" focusable="false" class="exit-button flex-end" />
             <ui:Label name="MessageLabel" text="Payment failed" class="message-label" />
             <ui:Button name="CSButton" text="Contact Support" class="primary-button" />
             <ui:Button name="OKButton" text="OK" class="secondary-button" />
