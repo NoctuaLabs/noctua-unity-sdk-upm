@@ -277,7 +277,7 @@ namespace com.noctuagames.sdk.UI
                     bool validDate = DateTime.TryParse(user?.DateOfBirth, null, DateTimeStyles.RoundtripKind, out DateTime dateTime);
                     string formattedDate = validDate ? dateTime.ToString("dd/MM/yyyy", CultureInfo.InvariantCulture) : "";
                     
-                    new InputFieldNoctua(View.Q<TextField>("BirthdateTF")).textField.value = formattedDate;
+                    _birthDateTF.textField.value = formattedDate;
                     _dateString = formattedDate;
 
                     string genderOriginal = user?.Gender;
