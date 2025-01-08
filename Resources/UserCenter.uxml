@@ -12,7 +12,7 @@
                         <ui:VisualElement name="HelpIcon" class="help-icon" />
                         <ui:Label name="HelpLabel" text="Need help?" class="help-label" />
                     </ui:Button>
-                    <ui:Button name="ExitButton" focusable="false" class="user-profile-header-button exit-button">
+                    <ui:Button name="ExitButton" focusable="false" class="user-profile-header-button exit-button-user-center">
                         <ui:VisualElement name="ExitIcon" class="exit-icon" />
                     </ui:Button>
                 </ui:VisualElement>

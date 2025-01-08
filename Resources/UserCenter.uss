@@ -66,7 +66,7 @@
     -unity-text-align: middle-center;
 }
 
-.exit-button {
+.exit-button-user-center {
     height: 26px;
     width: 26px;
     align-self: flex-start;
@@ -77,13 +77,13 @@
 .exit-icon {
     width: 16px;
     height: 16px;
-    background-image: url('project://database/Packages/com.noctuagames.sdk/Resources/ExitIcon.png?fileID=21300000&guid=d05c635247c1e10408d940a316e2e82c&type=3#ExitIcon');
+    background-image: url("project://database/Packages/com.noctuagames.sdk/Resources/ExitIcon.png?fileID=21300000&guid=d05c635247c1e10408d940a316e2e82c&type=3#ExitIcon");
 }
 
 .more-options-icon {
     width: 16px;
     height: 16px;
-    background-image: url('project://database/Packages/com.noctuagames.sdk/Resources/MoreOptionsIcon.png?fileID=21300000&guid=8f78ddf9f8968894e8490dc40a0c444e&type=3#MoreOptionsIcon');
+    background-image: url("project://database/Packages/com.noctuagames.sdk/Resources/MoreOptionsIcon.png?fileID=21300000&guid=8f78ddf9f8968894e8490dc40a0c444e&type=3#MoreOptionsIcon");
 }
 
 .help-button {
@@ -107,7 +107,7 @@
 .help-icon {
     width: 16px;
     height: 16px;
-    background-image: url('project://database/Packages/com.noctuagames.sdk/Resources/HelpChatIcon.png?fileID=21300000&guid=3627307d4c51a814299f496ab4722a9f&type=3#HelpChatIcon');
+    background-image: url("project://database/Packages/com.noctuagames.sdk/Resources/HelpChatIcon.png?fileID=21300000&guid=3627307d4c51a814299f496ab4722a9f&type=3#HelpChatIcon");
     margin-top: 1.5px;
 }
 
@@ -215,14 +215,14 @@
 .hi-icon {
     width: 16px;
     height: 16px;
-    background-image: url('project://database/Packages/com.noctuagames.sdk/Resources/Hi.png?fileID=21300000&guid=81b6c51fc72ea6a479845f257c1c381f&type=3#Hi');
+    background-image: url("project://database/Packages/com.noctuagames.sdk/Resources/Hi.png?fileID=21300000&guid=81b6c51fc72ea6a479845f257c1c381f&type=3#Hi");
 }
 
 .player-avatar {
     width: 65px;
     height: 65px;
     border-radius: 48px;
-    background-image: url('project://database/Packages/com.noctuagames.sdk/Resources/PlayerProfileBackground.png?fileID=21300000&guid=ae0d0e3f9cbb53b4d8264a1a5e5a2d7b&type=3#PlayerProfileBackground');
+    background-image: url("project://database/Packages/com.noctuagames.sdk/Resources/PlayerProfileBackground.png?fileID=21300000&guid=ae0d0e3f9cbb53b4d8264a1a5e5a2d7b&type=3#PlayerProfileBackground");
     align-self: center;
     margin-top: 0;
     margin-right: 0;
@@ -246,7 +246,7 @@
 .copy-icon {
     width: 13px;
     height: 13px;
-    background-image: url('project://database/Packages/com.noctuagames.sdk/Resources/CopyIcon.png?fileID=21300000&guid=9f736dbc87e058f4c92d691580bce89c&type=3#CopyIcon');
+    background-image: url("project://database/Packages/com.noctuagames.sdk/Resources/CopyIcon.png?fileID=21300000&guid=9f736dbc87e058f4c92d691580bce89c&type=3#CopyIcon");
 }
 
 .connect-account {
