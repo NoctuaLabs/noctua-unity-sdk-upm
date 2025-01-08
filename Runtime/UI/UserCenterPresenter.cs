@@ -453,6 +453,9 @@ namespace com.noctuagames.sdk.UI
 
             Utility.RegisterForMultipleValueChanges<string>(View, elementNames, _saveButton.button);
 
+            //Show mobile input
+            _nicknameTF.textField.hideMobileInput = false;
+
             _nicknameTF.textField.RegisterValueChangedCallback(evt => OnValueChanged(_nicknameTF));
             _changePictureButton.button.RegisterCallback<ClickEvent>(evt => OnChangeProfile());
 
