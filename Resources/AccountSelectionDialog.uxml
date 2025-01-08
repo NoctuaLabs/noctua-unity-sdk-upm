@@ -2,7 +2,7 @@
     <Style src="project://database/Packages/com.noctuagames.sdk/Resources/Noctua.uss?fileID=7433441132597879392&amp;guid=fe35e550fb23b6446af377f994effe35&amp;type=3#Noctua" />
     <Style src="project://database/Packages/com.noctuagames.sdk/Resources/AccountSelectionDialog.uss?fileID=7433441132597879392&amp;guid=6d606ddaac3843e18ea4674cd708e463&amp;type=3#AccountSelectionDialog" />
     <ui:VisualElement name="Root" class="root">
-        <ui:VisualElement name="AccountSelectionDialog" class="base dialog-box">
+        <ui:VisualElement name="AccountSelectionDialog" class="base dialog-box account-selection-dialog">
             <ui:VisualElement name="DialogHeader" class="dialog-header-noctua">
                 <ui:VisualElement style="width: 240px; justify-content: center; align-items: center; flex-direction: row; padding-left: 15px;">
                     <ui:VisualElement name="NoctuaLogoWithText" class="noctua-logo-with-text" />

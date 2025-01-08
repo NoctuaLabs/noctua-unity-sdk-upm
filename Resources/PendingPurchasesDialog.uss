@@ -1,79 +1,13 @@
-.base-general-confirm {
+.pending-purchases-dialog {
     flex-direction: column;
-    flex: 1;
     justify-content: space-around;
+    padding: 10px;
 }
 
-.text-info {
-    font-size: 12px;
-    color: #9E9E9E;
-    height: 60px;
-    -unity-text-align: middle-center;
-    white-space: normal;
-    margin-top: -35;
-    margin-right: 30px;
-    margin-left: 30px;
-}
-
-.text-info2 {
-    font-size: 12px;
-    color: #9E9E9E;
-    -unity-text-align: middle-center;
-    margin-top: -15;
-}
-
-.primary-button {
-    width: 80%;
-}
-
-.secondary-button {
-    background-color: #4D4F54;
-    color: #FFFFFF;
-    width: 80%;
-}
-
-.secondary-button:hover {
-    background-color: #4D4F54;
-    color: #FFFFFF;
-    width: 80%;
-}
-
-.user-profile-header-button {
-    border-radius: 13px;
-    height: 26px;
-    padding: 5px;
-    margin-top: -15px;
-    background-color: rgb(62, 66, 72);
-    align-items: flex-end;
-    justify-content: center;
-    -unity-text-align: middle-center;
-}
-
-.exit-button {
-    height: 26px;
-    width: 26px;
-    align-self: flex-end;
-    left: 10;
-    top: 5;
-}
-
-.exit-icon {
-    width: 16px;
-    height: 16px;
-    background-image: url("project://database/Packages/com.noctuagames.sdk/Resources/ExitIcon.png?fileID=21300000&guid=d05c635247c1e10408d940a316e2e82c&type=3#ExitIcon");
-}
-
-.pending-purchase-item {
-    background-color: #2D3138;
-    border-radius: 10px;
-    margin-top: 3px;
-    margin-bottom: 3px;
-    padding: 5px;
-    -unity-text-align: middle-left;
+.pending-purchases-dialog-header {
+    flex-direction: row;
     justify-content: space-between;
-    padding-left:10px;
-    padding-right:10px;
-    font-size:10px;
+    align-self: stretch;
 }
 
 .pending-purchases-list {
@@ -88,34 +22,4 @@
 .pending-purchases-list .unity-list-view__item--selected,
 .pending-purchases-list .unity-collection-view__item--selected {
     background-color: transparent;
-}
-
-.status-label {
-    color:white;
-    border-radius:4px;
-    padding-left:6px;
-    padding-right:6px;
-    flex-direction:column;
-}
-
-.status-label-pending {
-    background-color:darkorange;
-}
-
-.status-label-refunded {
-    background-color:green;
-}
-
-.status-label-canceled {
-    background-color:blue;
-}
-
-.status-label-verification-failed {
-    background-color:red;
-}
-
-.copy-icon {
-    width: 13px;
-    height: 13px;
-    background-image: url("project://database/Packages/com.noctuagames.sdk/Resources/CopyIcon.png?fileID=21300000&guid=9f736dbc87e058f4c92d691580bce89c&type=3#CopyIcon");
 }
