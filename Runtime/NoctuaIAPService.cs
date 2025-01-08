@@ -938,7 +938,6 @@ namespace com.noctuagames.sdk
                     OrderRequest = orderRequest,
                     VerifyOrderRequest = verifyOrderRequest,
                     AccessToken = _accessTokenProvider.AccessToken,
-                    PlayerId = Noctua.Auth.RecentAccount?.Player?.Id,
                 }
             );
 
