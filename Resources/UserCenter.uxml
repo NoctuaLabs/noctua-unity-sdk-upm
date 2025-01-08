@@ -59,12 +59,12 @@
             </ui:VisualElement>
             <ui:VisualElement name="ConnectAccount" class="connect-account portrait">
                 <ui:VisualElement name="ContainerStayConnect" style="flex-direction: row;">
-                    <ui:Label name="StayConnectCompany" text="Stay connect to" class="connect-account-label" style="margin-left: 5%" />
+                    <ui:Label name="StayConnectCompany" text="Stay connect to" class="connect-account-label" style="margin-left: 5%;" />
                     <ui:Label name="ConnectAccountLabel" text="Noctua" class="connect-account-label" style="margin-left: -3px;" />
                 </ui:VisualElement>
                 <ui:ListView name="AccountList" class="account-list" />
                 <ui:VisualElement name="UserGuestUI" class="user-guest-box">
-                    <ui:VisualElement name="CarouselParent" class="image-carousel" style="background-image: none; flex-shrink: 1; display: flex;">
+                    <ui:VisualElement name="CarouselParent" class="carousel-swipe-area" style="background-image: none; flex-shrink: 1; display: flex;">
                         <ui:ScrollView scroll-deceleration-rate="0" elasticity="0" name="ScrollRectCarousel" focusable="false" mode="Horizontal" vertical-scroller-visibility="Hidden" horizontal-scroller-visibility="Hidden" nested-interaction-kind="ForwardScrolling" elastic-animation-interval-ms="0" touch-scroll-type="Elastic" vertical-page-size="0" horizontal-page-size="0" mouse-wheel-scroll-size="0" picking-mode="Ignore" class="scroll-rect-carousel">
                             <ui:VisualElement name="Image1" class="carousel-image" style="background-image: resource(&apos;UC_Guest_1&apos;); transition-property: translate; transition-duration: 1s;" />
                             <ui:VisualElement name="Image2" class="carousel-image" style="background-image: resource(&apos;UC_Guest_2&apos;);" />
