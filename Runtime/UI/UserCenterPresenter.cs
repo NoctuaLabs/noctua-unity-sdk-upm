@@ -11,6 +11,7 @@ using System.Linq;
 using System.Reflection;
 using com.noctuagames.sdk.Events;
 using System.Threading.Tasks;
+using System.Xml.Linq;
 
 namespace com.noctuagames.sdk.UI
 {
@@ -58,16 +59,12 @@ namespace com.noctuagames.sdk.UI
 
         // Suggest Bind UI
         private VisualElement _guestContainer;
-        private VisualElement _carouselVE;
+        private ScrollView _scrollRectCarousel;
+        private VisualElement _veCarouselParent;
         private Label _carouselLabel;
         private VisualElement _indicatorContainer;
         private Dictionary<string, string> _translations;
-        private readonly string[] _carouselImage =
-        {
-            "UC_Guest_1",
-            "UC_Guest_2",
-            "UC_Guest_3"
-        };
+        private List<VisualElement> _carouselImage = new List<VisualElement>();
 
         private readonly string[] _carouselItems = {
             "SuggestionBindText.Content1",
@@ -102,6 +99,13 @@ namespace com.noctuagames.sdk.UI
 
         private GlobalConfig _globalConfig;
         private StyleBackground _originalStyleBackground;
+        private bool _isScrolling;
+        private bool _isDraggingCarousel;
+        private Vector2 _vectTargetScrollOffset;
+        private Vector2 _vectLastPointerPosition;
+        private float _fltScrollDuration = 3f; // Duration of the scroll animation
+        private float _fltElapsedTime = 0f;
+
         protected override void Attach()
         {
         }
@@ -116,6 +120,7 @@ namespace com.noctuagames.sdk.UI
 
             _stayConnect = View.Q<Label>("ConnectAccountLabel");
             _containerStayConnect = View.Q<VisualElement>("ContainerStayConnect");
+            _veCarouselParent = View.Q<VisualElement>("CarouselParent");
             _hiTextContainer = View.Q<VisualElement>("HiText");
             _playerName = View.Q<Label>("PlayerName");
             _moreOptionsMenuButton = View.Q<Button>("MoreOptionsButton");
@@ -145,7 +150,29 @@ namespace com.noctuagames.sdk.UI
             //Edit Profile UI
             SetupEditProfileUI();
         }
+        protected override void Update()
+        {
+            base.Update();
+            CarouselScrollAnimation();
+        }
+        private void OnEnable()
+        {
+            _carouselLabel = View.Q<Label>("TextCarousel");
+            _indicatorContainer = View.Q<VisualElement>("IndicatorContainer");
+            View.Q<Button>("ExitButton").RegisterCallback<PointerUpEvent>(OnExitButton);
+            _moreOptionsMenuButton.RegisterCallback<ClickEvent>(OnMoreOptionsButtonClick);
+            View.Q<Button>("GuestConnectButton").RegisterCallback<ClickEvent>(OnGuestConnectButtonClick);
+            View.Q<VisualElement>("DeleteAccount").RegisterCallback<ClickEvent>(_ => OnDeleteAccount());
+            View.RegisterCallback<GeometryChangedEvent>(_ => SetOrientation());
 
+            View.RegisterCallback<PointerDownEvent>(OnViewClicked);
+
+            BindListView();
+
+            //Carousel            
+            InitCarousel();
+
+        }
         private void SetOrientation(bool isEditProfile = false)
         {
 
@@ -535,7 +562,7 @@ namespace com.noctuagames.sdk.UI
 
         private void PickImage()
         {
- 
+
             NativeGallery.Permission permission = NativeGallery.GetImageFromGallery((path) =>
            {
                if (path != null)
@@ -569,7 +596,7 @@ namespace com.noctuagames.sdk.UI
 
         private IEnumerator LoadImageFromUrl(string url, bool isEditProfile)
         {
-              using (UnityWebRequest www = UnityWebRequestTexture.GetTexture(url))
+            using (UnityWebRequest www = UnityWebRequestTexture.GetTexture(url))
             {
                 yield return www.SendWebRequest();
 
@@ -717,7 +744,7 @@ namespace com.noctuagames.sdk.UI
                 _playerImage.AddToClassList("player-avatar");
 
                 if (!string.IsNullOrEmpty(_newProfileUrl))
-                {          
+                {
                     _playerImage.style.backgroundImage = _originalStyleBackground;
                     _profileImage.style.backgroundImage = _originalStyleBackground;
                 }
@@ -745,8 +772,6 @@ namespace com.noctuagames.sdk.UI
 
             }
         }
-
-
         private void OnValueChanged(InputFieldNoctua textField)
         {
             textField.AdjustLabel();
@@ -896,29 +921,7 @@ namespace com.noctuagames.sdk.UI
             StartCoroutine(Model.AuthService.LogoutAsync().ToCoroutine());
         }
 
-        private void OnEnable()
-        {
-            _carouselLabel = View.Q<Label>("TextCarousel");
-            _carouselVE = View.Q<VisualElement>("ImageCarousel");
-            _indicatorContainer = View.Q<VisualElement>("IndicatorContainer");
 
-            View.Q<Button>("ExitButton").RegisterCallback<PointerUpEvent>(OnExitButton);
-            _moreOptionsMenuButton.RegisterCallback<ClickEvent>(OnMoreOptionsButtonClick);
-            View.Q<Button>("GuestConnectButton").RegisterCallback<ClickEvent>(OnGuestConnectButtonClick);
-            View.Q<VisualElement>("DeleteAccount").RegisterCallback<ClickEvent>(_ => OnDeleteAccount());
-            View.RegisterCallback<GeometryChangedEvent>(_ => SetOrientation());
-
-            View.RegisterCallback<PointerDownEvent>(OnViewClicked);
-
-            BindListView();
-            SetupIndicators();
-
-            UpdateCarousel();
-            HighlightCurrentIndicator();
-
-            InvokeRepeating(nameof(SlideToNextItem), SlideInterval, SlideInterval);
-        }
-        
         private void OnExitButton(PointerUpEvent evt)
         {
             Visible = false;
@@ -928,8 +931,9 @@ namespace com.noctuagames.sdk.UI
 
         private void OnDisable()
         {
-            CancelInvoke(nameof(SlideToNextItem));
+            DisableCarousel();
         }
+
 
         private void OnDeleteAccount()
         {
@@ -1136,6 +1140,30 @@ namespace com.noctuagames.sdk.UI
             }
         }
 
+        #region Carousel
+        private void DisableCarousel()
+        {
+            CancelInvoke(nameof(SlideToNextItem));
+        }
+        private void EnableCarousel()
+        {
+            InvokeRepeating(nameof(SlideToNextItem), SlideInterval, SlideInterval);
+        }
+        private void InitCarousel()
+        {
+            _scrollRectCarousel = View.Q<ScrollView>("ScrollRectCarousel");
+            _carouselImage = _scrollRectCarousel.Query(className: "carousel-image").ToList();
+
+            _veCarouselParent.RegisterCallback<PointerDownEvent>(_evt => OnCarouselDragStart(_evt));
+            _veCarouselParent.RegisterCallback<PointerUpEvent>(_evt => OnCarouselDragEnd(_evt));
+
+            SetupIndicators();
+            HighlightCurrentIndicator();
+
+            _scrollRectCarousel.SetEnabled(false);
+
+            EnableCarousel();
+        }
         private void SetupIndicators()
         {
             _indicatorContainer.Clear();
@@ -1148,23 +1176,56 @@ namespace com.noctuagames.sdk.UI
                 _indicatorContainer.Add(indicator);
             }
         }
-
         private void SlideToNextItem()
         {
+            if (carouselTranslate == null) return;
             _currentIndex = (_currentIndex + 1) % _carouselItems.Length;
-            UpdateCarousel();
+
+            //var regionCode = _globalConfig?.Noctua?.Region ?? "";
+            _carouselLabel.text = carouselTranslate[_currentIndex];
+            ScrollToItem(_carouselImage[_currentIndex]);
             HighlightCurrentIndicator();
         }
-
-        private void UpdateCarousel()
+        private void SlideToNextItem(int _currentIndex)
         {
             if (carouselTranslate == null) return;
+
             //var regionCode = _globalConfig?.Noctua?.Region ?? "";
-
             _carouselLabel.text = carouselTranslate[_currentIndex];
-            _carouselVE.style.backgroundImage = new StyleBackground(Resources.Load<Sprite>(_carouselImage[_currentIndex]));
+            ScrollToItem(_carouselImage[_currentIndex]);
+            HighlightCurrentIndicator();
         }
+        private void ScrollToItem(VisualElement _element)
+        {
+            _scrollRectCarousel.MarkDirtyRepaint();
+            _vectTargetScrollOffset = _scrollRectCarousel.scrollOffset;
+            _vectTargetScrollOffset.x = _element.worldBound.width * _currentIndex;
+            _isScrolling = true;
+            _fltElapsedTime = 0f;
+        }
+        private void CarouselScrollAnimation()
+        {
+            if (_isScrolling && !_isDraggingCarousel)
+            {
+                // Update elapsed time
+                _fltElapsedTime += Time.deltaTime;
 
+                // Calculate progress (0 to 1)
+                float _fltProgress = Mathf.Clamp01(_fltElapsedTime / _fltScrollDuration);
+
+                // Interpolate between current and target scroll offsets
+                Vector2 _vectNewScrollOffset = Vector2.Lerp(_scrollRectCarousel.scrollOffset, _vectTargetScrollOffset, _fltProgress);
+
+                // Apply the new scroll offset
+                _scrollRectCarousel.scrollOffset = _vectNewScrollOffset;
+
+                // Stop scrolling when the animation is complete
+                if (_fltProgress >= 1f)
+                {
+                    _isScrolling = false;
+                }
+            }
+        }
         private void HighlightCurrentIndicator()
         {
             for (int i = 0; i < _indicatorContainer.childCount; i++)
@@ -1180,7 +1241,62 @@ namespace com.noctuagames.sdk.UI
                 }
             }
         }
+        private void OnCarouselDragStart(PointerDownEvent _evt)
+        {
+            _veCarouselParent.CapturePointer(_evt.pointerId);
 
+            _vectLastPointerPosition = _evt.position;
+
+            DisableCarousel();
+            _isDraggingCarousel = true;
+
+        }
+        private void OnCarouselDragEnd(PointerUpEvent _evt)
+        {
+            _veCarouselParent.ReleasePointer(_evt.pointerId);
+            if (!_isDraggingCarousel) return;
+            Vector2 _vectCurrentPosition = _evt.position;
+
+            Vector2 delta = _vectCurrentPosition - _vectLastPointerPosition;
+
+            // Determine the drag direction
+            if (delta.x > 0f)
+            {
+                if (_currentIndex - 1 >= 0)
+                    _currentIndex--;
+            }
+            else if (delta.x < -0f)
+            {
+                if (_currentIndex + 1 < _carouselImage.Count)
+                    _currentIndex++;
+            }
+            SlideToNextItem(_currentIndex);
+
+              EnableCarousel();
+            _isDraggingCarousel = false;
+        }
+
+        private VisualElement FindClosestElement(float currentScrollPos)
+        {
+            VisualElement closestElement = null;
+            float minDistance = float.MaxValue;
+
+            foreach (VisualElement _veChild in _carouselImage)
+            {
+                float elementCenter = _veChild.worldBound.x + (_veChild.worldBound.width / 2);
+                float distance = Mathf.Abs(currentScrollPos - elementCenter);
+
+                if (distance < minDistance)
+                {
+                    minDistance = distance;
+                    closestElement = _veChild;
+                }
+            }
+
+            return closestElement;
+        }
+
+        #endregion
         private enum CredentialProvider
         {
             Email,
