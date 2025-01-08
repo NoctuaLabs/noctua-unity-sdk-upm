@@ -150,11 +150,13 @@ namespace com.noctuagames.sdk.UI
             //Edit Profile UI
             SetupEditProfileUI();
         }
+
         protected override void Update()
         {
             base.Update();
             CarouselScrollAnimation();
         }
+
         private void OnEnable()
         {
             _carouselLabel = View.Q<Label>("TextCarousel");
@@ -173,6 +175,7 @@ namespace com.noctuagames.sdk.UI
             InitCarousel();
 
         }
+
         private void SetOrientation(bool isEditProfile = false)
         {
 
