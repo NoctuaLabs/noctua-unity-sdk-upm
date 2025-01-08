@@ -267,6 +267,7 @@
 .connect-account.portrait {
     width: 100%;
     height: auto;
+    background-color: rgba(0, 0, 0, 0);
 }
 
 .connect-account-edit-profile-portrait {
@@ -288,8 +289,9 @@
 .account-list {
     flex: 1;
     align-self: stretch;
-    padding-right: 8px;
-    padding-left: 8px;
+    margin-left: 5%;
+    margin-right: 5%;
+    margin-bottom: 5%;
 }
 
 .account-list .unity-list-view__item:active {
@@ -314,6 +316,8 @@
     flex-direction: row;
     align-items: center;
     justify-content: space-between;
+    margin-left: 3%;
+    margin-right: 3%;
 }
 
 .find-more-label {
