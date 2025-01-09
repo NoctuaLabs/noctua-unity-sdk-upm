@@ -315,8 +315,6 @@ namespace com.noctuagames.sdk.UI
                     {
                         _languageDF.value = "Select Language";
                     }
-
-                    SetupEditProfileUI();
                 }
 
                 _isGuestUser = user?.IsGuest ?? false;
@@ -513,8 +511,6 @@ namespace com.noctuagames.sdk.UI
                 _genderDF.value = evt.newValue;
                 _genderDF.labelElement.style.display = DisplayStyle.None;
                 _genderDF.Q<VisualElement>("title").RemoveFromClassList("hide");
-
-                Utility.UpdateButtonState(_saveButton.button, true);
             });
 
             _countryDF.choices = _countryOptions;
