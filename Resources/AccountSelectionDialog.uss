@@ -19,13 +19,21 @@
     align-self: flex-start;
 }
 
-.account-selection-list {
+.game-account-selection-list {
     border-color: transparent;
     margin-top: 1px;
     margin-bottom: 1px;
     align-self: stretch;
     align-items: stretch;
     min-height: 80px;
+}
+
+.account-selection-list {
+    border-color: transparent;
+    margin-top: 1px;
+    margin-bottom: 1px;
+    align-self: stretch;
+    align-items: stretch;
 }
 
 .account-selection-list .unity-list-view__item:active {
