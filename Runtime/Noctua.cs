@@ -548,6 +548,11 @@ namespace com.noctuagames.sdk
             Instance.Value._nativePlugin?.ShowDatePicker(year, month, day, id);
         }
 
+        public static void CloseDatePicker()
+        {
+            Instance.Value._nativePlugin?.CloseDatePicker();
+        }
+
         public static void OpenDatePicker(int year, int month, int day, int pickerId = 1, Action<DateTime> onChange = null, Action<DateTime> onClose = null)
         {
             MobileDateTimePicker.CreateDate(pickerId, year, month, day, onChange, onClose);

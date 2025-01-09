@@ -121,14 +121,26 @@ UIDatePicker *datePicker;
 + (void)DP_dismissDatePicker:(id)sender {
     UIViewController *vc = UnityGetGLViewController();
 
+    // Check if the date picker is currently shown
+    if (!datePicker || !datePicker.superview || datePicker.frame.origin.y >= vc.view.bounds.size.height) {
+        NSLog(@"DatePicker is not currently shown.");
+        return; // Exit if the date picker is not visible
+    }
+
     [self DP_PickerClosed:datePicker];
 
     CGRect offscreenFrame = CGRectMake(0, vc.view.bounds.size.height, [self GetW], 260);
 
     [UIView animateWithDuration:0.3 animations:^{
-        [vc.view viewWithTag:9].frame = offscreenFrame;
         datePicker.frame = offscreenFrame;
-        [vc.view viewWithTag:11].frame = offscreenFrame;
+        // Assuming other views are directly referenced:
+        if (datePicker.superview) {
+            for (UIView *subview in datePicker.superview.subviews) {
+                if (subview != datePicker) {
+                    subview.frame = offscreenFrame;
+                }
+            }
+        }
     } completion:^(BOOL finished) {
         [self DP_removeViews];
     }];
@@ -142,6 +154,10 @@ extern "C" {
 
     void _TAG_ShowDatePicker(int mode, double unix, int pickerId) {
         [IOSNativeDatePicker DP_show:mode secondNumber:unix pickerId:pickerId];
+    }
+    
+    void DismissDatePicker() {
+        [IOSNativeDatePicker DP_dismissDatePicker:nil];
     }
 }
 

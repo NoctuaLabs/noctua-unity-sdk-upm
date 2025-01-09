@@ -45,6 +45,9 @@ namespace com.noctuagames.sdk
         [DllImport("__Internal")]
         private static extern void _TAG_ShowDatePicker(int mode, double unix, int pickerId);
 
+        [DllImport("__Internal")]
+        private static extern void DismissDatePicker();
+
         public void Init(List<string> activeBundleIds)
         {
             noctuaInitialize();
@@ -118,6 +121,11 @@ namespace com.noctuagames.sdk
             DateTime dateTime = new DateTime(year, month, day);
             double unix = (TimeZoneInfo.ConvertTimeToUtc(dateTime) - new DateTime(1970, 1, 1, 0, 0, 0, 0, System.DateTimeKind.Utc)).TotalSeconds;
             _TAG_ShowDatePicker(2, unix, id);
+        }
+
+        public void CloseDatePicker()
+        {
+            DismissDatePicker();
         }
 
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
