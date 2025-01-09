@@ -25,6 +25,7 @@
     margin-bottom: 1px;
     align-self: stretch;
     align-items: stretch;
+    min-height: 80px;
 }
 
 .account-selection-list .unity-list-view__item:active {
