@@ -1279,6 +1279,99 @@ namespace Tests.Runtime
 
             yield return null;
         }
+        
+        [UnityTest]
+        public IEnumerator ContainerWithAccountsFromTheSameUsers_LoadAccounts_UseLatestUserData()
+        {
+            var now = 1736140000000;
+            var mockStore = new MockNativeAccountStore();
+            mockStore.PutAccount(
+                new NativeAccount
+                {
+                    PlayerId = 2,
+                    GameId = 1,
+                    RawData = @"{
+                      ""user"": {
+                        ""id"": 1,
+                        ""nickname"": ""User1""
+                      },
+                      ""player"": {
+                        ""id"": 2,
+                        ""username"": ""Player2"",
+                        ""bundle_id"": ""example.noctuagames.android.game1"",
+                        ""game_id"": 1
+                      },
+                      ""credential"": {
+                        ""id"": 1,
+                        ""provider"": ""email"",
+                        ""display_text"": ""User 1""
+                      }
+                    }",
+                    LastUpdated = now
+                }
+            );
+            mockStore.PutAccount(
+                new NativeAccount
+                {
+                    PlayerId = 3,
+                    GameId = 1,
+                    RawData = @"{
+                      ""user"": {
+                        ""id"": 2,
+                        ""nickname"": ""User2 old""
+                      },
+                      ""player"": {
+                        ""id"": 3,
+                        ""username"": ""Player3"",
+                        ""bundle_id"": ""example.noctuagames.android.game1"",
+                        ""game_id"": 1
+                       },
+                      ""credential"": {
+                        ""id"": 2,
+                        ""provider"": ""email"",
+                        ""display_text"": ""User 2""
+                      }
+                    }",
+                    LastUpdated = now + 1000
+                }
+            );
+            mockStore.PutAccount(
+                new NativeAccount
+                {
+                    PlayerId = 4,
+                    GameId = 2,
+                    RawData = @"{
+                      ""user"": {
+                        ""id"": 2,
+                        ""nickname"": ""User2 new""
+                      },
+                      ""player"": {
+                        ""id"": 4,
+                        ""username"": ""Player4"",
+                        ""bundle_id"": ""example.noctuagames.android.game2"",
+                        ""game_id"": 1
+                      },
+                      ""credential"": {
+                        ""id"": 2,
+                        ""provider"": ""email"",
+                        ""display_text"": ""User 2""
+                      }
+                    }",
+                    LastUpdated = now + 2000
+                }
+            );
+            
+            var accountContainer = new AccountContainer(mockStore, "example.noctuagames.android.game2");
+            
+            accountContainer.Load();
+            
+            Assert.AreEqual(2, accountContainer.Accounts.Count);
+            Assert.AreEqual(2, accountContainer.RecentAccount.User.Id);
+            Assert.AreEqual(4, accountContainer.RecentAccount.Player.Id);
+            Assert.AreEqual("User2 new", accountContainer.RecentAccount.User.Nickname);
+
+            yield return null;
+        }
     }
 
     public class AccountStoreWithFallbackTest
