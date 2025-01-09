@@ -26,6 +26,8 @@
     border-radius:4px;
     color: rgba(245, 245, 245, 1);
     background-color:darkorange;
+    padding-top: 7px;
+    padding-bottom: 7px;
 }
 
 .status-label-pending {
@@ -47,10 +49,12 @@
 .payment-label {
     color: rgba(245, 245, 245, 1);
     font-size: 12px;
-    margin-top: 10px;
+    margin-top: 12px;
     margin-bottom: 10px;
     flex: 1;
     text-overflow: ellipsis;
+    overflow: hidden;
+    padding-bottom:10px;
 }
 
 .button-group {
@@ -68,7 +72,8 @@
     border-width: 1px;
     font-size: 12px;
     padding: 5px;
-    min-width: 25%;
+    padding-top: 10px;
+    padding-bottom: 10px;
     margin: 0;
 }
 
@@ -80,7 +85,8 @@
     border-radius: 5px;
     border-width: 1px;
     padding: 5px;
-    min-width: 25%;
+    padding-top: 10px;
+    padding-bottom: 10px;
     margin: 0;
 }
 

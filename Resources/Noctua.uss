@@ -665,7 +665,11 @@ Label:hover {
 }
 
 .btn-password-show {
+<<<<<<< HEAD
     background-image: resource('Eye-Open');
+=======
+    background-image: resource('Eye-Close');
+>>>>>>> 1c700c08213c7beec7600565f589b40b267b7e2a
     top: 8.5px;
     right: 10px;
     position: absolute;
@@ -675,7 +679,11 @@ Label:hover {
 }
 
 .btn-password-hide {
+<<<<<<< HEAD
     background-image: resource('Eye-Close');
+=======
+    background-image: resource('Eye-Open');
+>>>>>>> 1c700c08213c7beec7600565f589b40b267b7e2a
     top: 8.5px;
     right: 10px;
     position: absolute;
