@@ -2,15 +2,19 @@
     <Style src="project://database/Packages/com.noctuagames.sdk/Resources/Noctua.uss?fileID=7433441132597879392&amp;guid=fe35e550fb23b6446af377f994effe35&amp;type=3#Noctua" />
     <Style src="project://database/Packages/com.noctuagames.sdk/Resources/CustomPaymentCompleteDialog.uss?fileID=7433441132597879392&amp;guid=add8ad3f2a6620945b73753137d16d91&amp;type=3#CustomPaymentCompleteDialog" />
     <ui:VisualElement name="Root" class="root">
-        <ui:VisualElement name="CustomPaymentCompleteDialog" class="base dialog-box base-general-confirm" style="height: 220px;">
+        <ui:VisualElement name="CustomPaymentCompleteDialog" class="base dialog-box base-general-confirm" style="height: 270px;">
             <ui:Button name="CustomPaymentExitButton" focusable="false" class="exit-button user-profile-header-button">
                 <ui:VisualElement name="ExitIcon" class="exit-icon" />
             </ui:Button>
             <ui:VisualElement style="flex-direction: column; padding-top: 20px;">
                 <ui:Label name="Message" text="Your payment page is now open in your browser. Unless you want to cancel, do not close this pop up until the transaction is complete." class="text-info" />
             </ui:VisualElement>
-            <ui:Button name="CustomPaymentCSButton" text="Contact Support" class="dialog-button secondary-button" style="width: 90%;" />
             <ui:Button name="CustomPaymentCompleteButton" text="Complete" class="dialog-button primary-button" style="width: 90%;" />
+            <ui:Button name="CustomPaymentCSButton" text="Contact Support" class="dialog-button secondary-button" style="width: 90%;" />
+            <ui:VisualElement name="Separator" class="login-method-separator hide" style="margin-top:5px;margin-bottom:5px;">
+                <ui:VisualElement class="separator-long" />
+            </ui:VisualElement>
+            <ui:Button name="PayWithNativePaymentButton" text="Pay with Native Payment" class="dialog-button secondary-button hide" style="width: 90%; padding:2px; margin-bottom:5px;" />
         </ui:VisualElement>
     </ui:VisualElement>
 </ui:UXML>

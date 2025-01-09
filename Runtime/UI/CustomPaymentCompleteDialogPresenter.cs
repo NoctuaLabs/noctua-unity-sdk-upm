@@ -12,11 +12,12 @@ namespace com.noctuagames.sdk.UI
         private Button _btnComplete;
         private Button _btnCustomerService;
         private Button _btnClose;
+        private Button _btnNativePayment;
         private Label _message;
 
         private readonly ILogger _log = new NoctuaLogger(typeof(CustomPaymentCompleteDialogPresenter));
 
-        private UniTaskCompletionSource<bool> _tcs;
+        private UniTaskCompletionSource<string> _tcs;
 
         protected override void Attach()
         {}
@@ -28,19 +29,30 @@ namespace com.noctuagames.sdk.UI
         {
             _btnComplete = View.Q<Button>("CustomPaymentCompleteButton");
             _btnClose = View.Q<Button>("CustomPaymentExitButton");
+            _btnNativePayment = View.Q<Button>("PayWithNativePaymentButton");
             _btnCustomerService = View.Q<Button>("CustomPaymentCSButton");
             _message = View.Q<Label>("Info");
 
             _btnComplete.RegisterCallback<PointerUpEvent>(CustomPaymentCompleteDialog);
             _btnClose.RegisterCallback<PointerUpEvent>(CloseDialog);
+            _btnNativePayment.RegisterCallback<PointerUpEvent>(PurchaseUsingNativePayment);
             _btnCustomerService.RegisterCallback<PointerUpEvent>(OpenCS);
         }
 
-        public async UniTask<bool> Show()
+        public async UniTask<string> Show()
         {            
-            _tcs = new UniTaskCompletionSource<bool>();
+            _tcs = new UniTaskCompletionSource<string>();
 
             Visible = true;
+#if UNITY_ANDROID
+            View.Q<VisualElement>("Separator").RemoveFromClassList("hide");
+            _btnNativePayment.RemoveFromClassList("hide");
+            _btnNativePayment.text = Locale.GetTranslation("CustomPaymentCompleteDialogPresenter.PayWithPlaystore");
+#elif UNITY_IOS
+            View.Q<VisualElement>("Separator").RemoveFromClassList("hide");
+            _btnNativePayment.RemoveFromClassList("hide");
+            _btnNativePayment.text = Locale.GetTranslation("CustomPaymentCompleteDialogPresenter.PayWithAppstore");
+#endif
 
             return await _tcs.Task;
         }
@@ -49,7 +61,7 @@ namespace com.noctuagames.sdk.UI
         {            
             Visible = false;
 
-            _tcs?.TrySetResult(true);
+            _tcs?.TrySetResult("continue_verify");
         }
 
         private async void OpenCS(PointerUpEvent evt)
@@ -63,7 +75,7 @@ namespace com.noctuagames.sdk.UI
                 await Noctua.Platform.Content.ShowCustomerService("custom_payment");
             } 
             catch (Exception e) {
-                _tcs?.TrySetResult(false);
+                _tcs?.TrySetResult("error");
 
                 if (e is NoctuaException noctuaEx)
                 {
@@ -83,7 +95,17 @@ namespace com.noctuagames.sdk.UI
             Visible = false;
 
             // We don't want to retry the payment at close dialog
-            _tcs?.TrySetResult(true);
+            _tcs?.TrySetResult("cancel");
+        }
+
+        private void PurchaseUsingNativePayment(PointerUpEvent evt)
+        { 
+            _log.Debug("On purchase with native payment");
+
+            Visible = false;
+
+            // We don't want to retry the payment at close dialog
+            _tcs?.TrySetResult("native_payment");
         }
     }
 }

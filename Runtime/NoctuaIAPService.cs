@@ -100,6 +100,9 @@ namespace com.noctuagames.sdk
 
         [JsonProperty("timestamp")]
         public string Timestamp;
+
+        [JsonProperty("allow_payment_type_override")]
+        public bool AllowPaymentTypeOverride = true;
     }
 
     [Preserve]
@@ -165,7 +168,8 @@ namespace com.noctuagames.sdk
         canceled,
         expired,
         invalid,
-        voided
+        voided,
+        fallback_to_native_payment
     }
 
     [Preserve]
@@ -600,7 +604,28 @@ namespace com.noctuagames.sdk
 #endif
         }
 
-        public async UniTask<PurchaseResponse> PurchaseItemAsync(PurchaseRequest purchaseRequest, bool tryToUseSecondaryPayment = false)
+        public async UniTask<PurchaseResponse> PurchaseItemAsync(PurchaseRequest purchaseRequest, bool tryToUseSecondaryPayment = false, PaymentType enforcedPaymentType = PaymentType.unknown)
+        {
+            var result = await PurchaseItemImplAsync(purchaseRequest, tryToUseSecondaryPayment, enforcedPaymentType);
+
+            if (result.Status == OrderStatus.fallback_to_native_payment)
+            {
+#if UNITY_ANDROID
+                enforcedPaymentType = PaymentType.playstore;
+                _log.Debug($"Fallback to native payment: {enforcedPaymentType}");
+                result = await PurchaseItemImplAsync(purchaseRequest, false, enforcedPaymentType);
+#elif UNITY_IOS
+                enforcedPaymentType = PaymentType.appstore;
+                _log.Debug($"Fallback to native payment: {enforcedPaymentType}");
+                result = await PurchaseItemImplAsync(purchaseRequest, false, enforcedPaymentType);
+#endif
+                return result;
+            } else {
+                return result;
+            }
+        }
+
+        public async UniTask<PurchaseResponse> PurchaseItemImplAsync(PurchaseRequest purchaseRequest, bool tryToUseSecondaryPayment = false, PaymentType enforcedPaymentType = PaymentType.unknown)
         {
             EnsureEnabled();
             
@@ -628,6 +653,15 @@ namespace com.noctuagames.sdk
             if (tryToUseSecondaryPayment && _enabledPaymentTypes.Count > 1)
             {
                 paymentType = _enabledPaymentTypes[1];
+                _log.Debug($"Fallback to secondary payment type: {paymentType}");
+            }
+
+            // Enforce particular payment type if available.
+            // This could be triggered from CustomPaymentCompleteDialogPresenter.cs.
+            if (enforcedPaymentType != PaymentType.unknown)
+            {
+                paymentType = enforcedPaymentType;
+                _log.Debug($"Fallback to enforced payment type: {paymentType}");
             }
 
             _uiFactory.ShowLoadingProgress(true);
@@ -684,15 +718,25 @@ namespace com.noctuagames.sdk
 
                 orderRequest.PriceInUSD = usdProduct.Price;
                 orderRequest.Timestamp = DateTime.Now.ToString();
+                orderRequest.AllowPaymentTypeOverride = true;
             
                 _log.Debug("creating order");
+
+                if (enforcedPaymentType != PaymentType.unknown)
+                {
+                    orderRequest.AllowPaymentTypeOverride = false;
+                }
 
                 orderResponse = await RetryAsync(() => CreateOrderAsync(orderRequest));
 
                 orderRequest.Id = orderResponse.Id;
 
                 // Override the payment type in case this get altered from backend.
-                paymentType = orderResponse.PaymentType;
+                if (enforcedPaymentType == PaymentType.unknown) // It means that there is no enforce on payment type
+                {
+                    paymentType = orderResponse.PaymentType;
+                    _log.Debug($"Payment type get overrided from backend: {paymentType}");
+                }
                 
                 _eventSender?.Send(
                     "purchase_opened",
@@ -789,8 +833,8 @@ namespace com.noctuagames.sdk
 
                     paymentResult = new PaymentResult{Status = PaymentStatus.Confirmed};
 
-                    var continueToVerify = await _customPaymentCompleteDialog.Show();
-                    if (!continueToVerify) // Custom payment get canceled.
+                    var completeDialogResult = await _customPaymentCompleteDialog.Show();
+                    if (completeDialogResult == "cancel") // Custom payment get canceled.
                     {
                         var verifiedAtCancelation = false;
                         var verifyReq = new VerifyOrderRequest
@@ -833,10 +877,14 @@ namespace com.noctuagames.sdk
                             );
                         }
 
-                        if (_enabledPaymentTypes.Count > 1 && !verifiedAtCancelation)
+                        if (_enabledPaymentTypes.Count > 1 &&
+                        !verifiedAtCancelation &&
+                        enforcedPaymentType == PaymentType.unknown &&
+                        _enabledPaymentTypes[1] != paymentType
+                        )
                         {
                             // Fallback to secondary payment option.
-                            return await PurchaseItemAsync(purchaseRequest, true);
+                            return await PurchaseItemImplAsync(purchaseRequest, true);
                         } else if (verifiedAtCancelation) {
                             // Verified at cancelation, set the paymentResult to confirmed
                             // to allow this to be processed as successful purchase/payment.
@@ -866,6 +914,17 @@ namespace com.noctuagames.sdk
                                 }
                             );
                         }
+                    }
+                    else if (completeDialogResult == "native_payment")
+                    {
+#if UNITY_ANDROID || UNITY_IOS
+                        return new PurchaseResponse
+                        {
+                            OrderId = 0,
+                            Status = OrderStatus.fallback_to_native_payment,
+                            Message = "Payment method changed",
+                        };
+#endif
                     }
 
                     // Native browser custom payment is using OrderId as ReceiptData

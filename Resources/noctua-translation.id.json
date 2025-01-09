@@ -172,6 +172,8 @@
     "CustomPaymentCompleteDialogPresenter.CustomPaymentCSButton.Button.text": "Kontak CS",
     "CustomPaymentCompleteDialogPresenter.CustomPaymentCompleteButton.Button.text": "Pembayaran Selesai",
     "CustomPaymentCompleteDialogPresenter.OrderVerificationFailedMessage": "Pembayaran Anda belum terverifikasi. Silakan coba kembali.",
+    "CustomPaymentCompleteDialogPresenter.PayWithPlaystore": "Bayar dengan Playstore",
+    "CustomPaymentCompleteDialogPresenter.PayWithAppstore": "Bayar dengan Appstore",
 
     "IAPCanceled": "Pembelian dibatalkan",
     "IAPFailed": "Pembelian gagal",
