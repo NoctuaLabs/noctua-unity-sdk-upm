@@ -11,7 +11,7 @@
             </ui:VisualElement>
             <ui:Label name="AccountSelectionInfo" text="Choose Account" class="account-selection-info" />
             <ui:VisualElement name="ListContainer" class="list-container">
-                <ui:ListView name="GameAccountList" class="account-selection-list" />
+                <ui:ListView name="GameAccountList" class="game-account-selection-list" />
                 <ui:VisualElement name="Separator" class="separator">
                     <ui:VisualElement class="left-separator-short" />
                     <ui:Label text="Other Noctua Account detected" class="separator-label" />
