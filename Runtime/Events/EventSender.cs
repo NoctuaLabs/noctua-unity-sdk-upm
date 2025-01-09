@@ -1,16 +1,13 @@
 ﻿using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
 using System.Threading;
-using System.Threading.Tasks;
 using Cysharp.Threading.Tasks;
 using Newtonsoft.Json;
 using UnityEngine;
 using UnityEngine.Scripting;
-using Debug = UnityEngine.Debug;
 
 namespace com.noctuagames.sdk.Events
 {
@@ -21,6 +18,7 @@ namespace com.noctuagames.sdk.Events
         public string ClientId;
         public string BundleId = Application.identifier;
         public uint BatchSize = 20;
+        public uint MaxBatchSize = 100;
         public uint BatchPeriodMs = 300_000;
     }
     
@@ -272,19 +270,43 @@ namespace com.noctuagames.sdk.Events
 
                 var events = new List<Dictionary<string, IConvertible>>();
 
-                while (_eventQueue.TryDequeue(out var evt))
+                while (_eventQueue.TryDequeue(out var evt) && events.Count < _config.MaxBatchSize)
                 {
                     events.Add(evt);
                 }
-                
-                var request = new HttpRequest(HttpMethod.Post, $"{_config.BaseUrl}/events")
-                    .WithHeader("X-CLIENT-ID", _config.ClientId)
-                    .WithHeader("X-DEVICE-ID", _deviceId)
-                    .WithNdjsonBody(events);
 
-                await request.Send<EventResponse>();
+                try
+                {
+                    await Utility.RetryAsyncTask(
+                        async () =>
+                        {
+                            var request = new HttpRequest(HttpMethod.Post, $"{_config.BaseUrl}/events")
+                                .WithHeader("X-CLIENT-ID", _config.ClientId)
+                                .WithHeader("X-DEVICE-ID", _deviceId)
+                                .WithNdjsonBody(events);
 
-                _log.Info($"Sent {events.Count} events");
+                            return await request.Send<EventResponse>();
+                        },
+                        maxRetries: 25,
+                        maxDelaySeconds: 20000
+                    );
+
+                    _log.Info($"Sent {events.Count} events");
+                }
+                catch (Exception e)
+                {
+                    // There is error that's not retryable and might be caused by incorrect data
+                    
+                    _log.Exception(e);
+                    
+                    // Dump incorrect events to log
+                    foreach (var evt in events)
+                    {
+                        var jsonEvent = JsonConvert.SerializeObject(evt);
+                        
+                        _log.Warning($"Invalid event data'{jsonEvent}'");
+                    }
+                }
             }
         }
     }
