@@ -672,7 +672,7 @@ Label:hover {
 }
 
 .btn-password-show {
-    background-image: resource('Eye-Close');
+    background-image: resource('Eye-Open');
     top: 8.5px;
     right: 10px;
     position: absolute;
@@ -682,7 +682,7 @@ Label:hover {
 }
 
 .btn-password-hide {
-    background-image: resource('Eye-Open');
+    background-image: resource('Eye-Close');
     top: 8.5px;
     right: 10px;
     position: absolute;
