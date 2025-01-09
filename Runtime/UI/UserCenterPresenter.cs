@@ -686,7 +686,7 @@ namespace com.noctuagames.sdk.UI
 
                 _editProfileContainer.AddToClassList("show");
 
-                var regionCode = _globalConfig?.Noctua?.Region ?? "";
+               _isDatePickerOpen = false;
 
                 _userIDLabel.text = "ID : " + Locale.GetTranslation("UserCenterPresenter.MenuEditProfile.Label.text");
                 _userIDLabel.style.fontSize = 16;
@@ -759,6 +759,9 @@ namespace com.noctuagames.sdk.UI
                 }
 
                 _nicknameTF.textField.value = View.Q<Label>("PlayerName").text;
+                _isDatePickerOpen = false;
+
+                Noctua.CloseDatePicker();
                 ShowButtonSpinner(false);
                 HideAllErrors();
 
