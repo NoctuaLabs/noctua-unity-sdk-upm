@@ -307,6 +307,7 @@ namespace com.noctuagames.sdk
                 
                 if (accountLastUsed > userBundle.LastUsed)
                 {
+                    userBundle.User = data.User;
                     userBundle.LastUsed = accountLastUsed;
                 }
 
