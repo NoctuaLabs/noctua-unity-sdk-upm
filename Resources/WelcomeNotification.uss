@@ -20,6 +20,10 @@
     flex-direction: row;
     justify-content: space-between;
     align-items: center;
+    border-top-width: 0;
+    border-right-width: 0;
+    border-bottom-width: 0;
+    border-left-width: 0;
 }
 
 .player-box {
@@ -63,7 +67,7 @@
 }
 
 .welcome-icon {
-    background-image: url("./Hi.png");
+    background-image: url("project://database/Packages/com.noctuagames.sdk/Resources/Hi.png?fileID=21300000&guid=81b6c51fc72ea6a479845f257c1c381f&type=3#Hi");
     width: 20px;
     height: 20px;
     align-self: center;
