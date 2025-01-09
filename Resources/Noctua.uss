@@ -673,18 +673,22 @@ Label:hover {
 
 .btn-password-show {
     background-image: resource('Eye-Close');
-    top: 9.5px;
+    top: 8.5px;
     right: 10px;
     position: absolute;
     margin-top: 5px;
+    width: 24px;
+    height: 24px;
 }
 
 .btn-password-hide {
     background-image: resource('Eye-Open');
-    top: 9.5px;
+    top: 8.5px;
     right: 10px;
     position: absolute;
     margin-top: 5px;
+    width: 24px;
+    height: 24px;
 }
 
 .btn-calendar {
