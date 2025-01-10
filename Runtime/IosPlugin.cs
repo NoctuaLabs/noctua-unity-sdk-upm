@@ -45,6 +45,9 @@ namespace com.noctuagames.sdk
         [DllImport("__Internal")]
         private static extern void _TAG_ShowDatePicker(int mode, double unix, int pickerId);
 
+        [DllImport("__Internal")]
+        private static extern void DismissDatePicker();
+
         public void Init(List<string> activeBundleIds)
         {
             noctuaInitialize();
@@ -118,6 +121,13 @@ namespace com.noctuagames.sdk
             DateTime dateTime = new DateTime(year, month, day);
             double unix = (TimeZoneInfo.ConvertTimeToUtc(dateTime) - new DateTime(1970, 1, 1, 0, 0, 0, 0, System.DateTimeKind.Utc)).TotalSeconds;
             _TAG_ShowDatePicker(2, unix, id);
+        }
+
+        // Closes the date picker by dismissing it from the user interface.
+        public void CloseDatePicker()
+        {
+            // Calls the method that contains the logic to hide or remove the date picker.
+            DismissDatePicker();
         }
 
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
