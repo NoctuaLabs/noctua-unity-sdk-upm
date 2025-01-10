@@ -543,12 +543,45 @@ namespace com.noctuagames.sdk
 
         public static void ShowDatePicker(int year, int month, int day, int id)
         {
-            Instance.Value._nativePlugin?.ShowDatePicker(year, month, day, id);
+            var log = Instance.Value._log;
+
+            if (Instance.Value._nativePlugin != null)
+            {
+                try
+                {
+                    Instance.Value._nativePlugin?.ShowDatePicker(year, month, day, id);
+                }
+                catch (Exception ex)
+                {
+                    log.Debug("Failed to call method ShowDatePicker: " + ex.Message);
+                }
+            }
+            else
+            {
+                log.Error("Native plugin is null");
+            }
         }
 
         public static void CloseDatePicker()
         {
-            Instance.Value._nativePlugin?.CloseDatePicker();
+            var log = Instance.Value._log;
+
+            if (Instance.Value._nativePlugin != null)
+            {
+                try
+                {
+                    Instance.Value._nativePlugin.CloseDatePicker();
+                }
+                catch (Exception ex)
+                {
+                    //this method is optional for android, so we can ignore the exception
+                    log.Debug("Failed to call method closeDatePicker: " + ex.Message);
+                }
+            }
+            else
+            {
+                log.Error("Native plugin is null");
+            }
         }
 
         public static void OpenDatePicker(int year, int month, int day, int pickerId = 1, Action<DateTime> onChange = null, Action<DateTime> onClose = null)

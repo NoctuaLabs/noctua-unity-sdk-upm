@@ -26,7 +26,6 @@ namespace com.noctuagames.sdk
 
         public void CloseDatePicker()
         {
-            throw new NotImplementedException();
         }
 
         public void TrackAdRevenue(string source, double revenue, string currency, Dictionary<string, IConvertible> extraPayload = null)

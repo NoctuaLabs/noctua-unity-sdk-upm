@@ -115,8 +115,6 @@ namespace com.noctuagames.sdk
             javaUnityClass.CallStatic("ShowDatePicker", year, month, day, id);
         }
 
-        public void CloseDatePicker() {}
-
         public NativeAccount GetAccount(long playerId, long gameId)
         {
             using AndroidJavaObject noctua = new AndroidJavaObject("com.noctuagames.sdk.Noctua$Companion");

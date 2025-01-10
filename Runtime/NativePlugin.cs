@@ -40,14 +40,16 @@ namespace com.noctuagames.sdk
         int DeleteAccount(NativeAccount account);
     }
 
-    public interface INativePlugin : INativeTracker, INativeIAP, INativeAccountStore
+    public interface INativePlugin : INativeTracker, INativeIAP, INativeAccountStore, INativeDatePicker
     {
         void Init(List<String> activeBundleIds);
 
         void OnApplicationPause(bool pause);
+    }
 
+    public interface INativeDatePicker
+    {
         void ShowDatePicker(int year, int month, int day, int id);
-
         void CloseDatePicker();
     }
 }
