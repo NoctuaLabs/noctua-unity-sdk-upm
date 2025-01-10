@@ -7,9 +7,7 @@
                 <ui:VisualElement name="NoctuaLogoWithText" class="noctua-logo-with-text" />
             </ui:VisualElement>
             <ui:VisualElement name="PlayerBox" class="player-box">
-                <ui:VisualElement>
-                    <ui:VisualElement name="PlayerAvatarImage" class="email-player-avatar" />
-                </ui:VisualElement>
+                <ui:VisualElement name="PlayerAvatarImage" class="email-player-avatar" />
                 <ui:VisualElement name="PlayerText" class="player-text">
                     <ui:VisualElement>
                         <ui:Label name="PlayerLabel" text="ono.uni" class="player-label" />
@@ -23,8 +21,8 @@
                 <ui:Label name="ConnectConflictInformationLabel" text="This credential is already connected to an account. Do you want to switch account?" class="connect-conflict-information-label" />
             </ui:VisualElement>
             <ui:VisualElement name="ButtonGroup" class="button-group">
-                <ui:Button name="CancelButton" text="Cancel" class="cancel-button button-transparent" />
                 <ui:Button name="SwitchAccountButton" text="Switch account" class="switch-account-button button-highlight" />
+                <ui:Button name="CancelButton" text="Cancel" class="cancel-button button-transparent" />
             </ui:VisualElement>
         </ui:VisualElement>
     </ui:VisualElement>

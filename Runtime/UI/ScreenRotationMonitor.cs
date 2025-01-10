@@ -20,12 +20,12 @@ namespace com.noctuagames.sdk.UI
             
             if (isScreenLandscape)
             {
-                PanelSettings.match = 0;
+                PanelSettings.match = 1;
                 PanelSettings.referenceResolution = new Vector2Int(800, 360);
             }
             else
             {
-                PanelSettings.match = 1;
+                PanelSettings.match = 0;
                 PanelSettings.referenceResolution = new Vector2Int(360, 800);
             }
         }

@@ -2,6 +2,70 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.32.0] - 2025-01-09
+
+### 🚀 Features
+
+- Allow user to pay with native payment in custom payment complete dialog.
+
+### 🐛 Bug Fixes
+
+- Button reset password override error label
+- Adjust style dialog footer
+- Fix missing profile picture in edit mode.
+- Revert deleted line.
+- Show mobile input on user center edit profile nicknameTF
+- Non guest email linking not working
+- Fix minor styling issues.
+- Birthdate value not set - edit profile
+- Adjust clean code
+
+## [0.31.0] - 2025-01-08
+
+### 🚀 Features
+
+- Allow payment type override from backend.
+
+### 🐛 Bug Fixes
+
+- Update code email register dialog
+- Update code email reset password dialog
+- Update code email confirm reset password dialog
+- Update code email confirm reset password dialog
+- Code format
+- Force scaling at startup.
+- Back to user center after email linking
+- Change user nickname to user id in bind conflict
+- Use exit button with new style
+- Use AuthService instead of removed Model proxy method
+- Register and login back to login options
+- Prevent copy player when scrolling
+- Dropdown error label - edit profile
+- Filter pending purchases by player id
+- Logo profile teralu keatas saat guest diarahkan ke prompt buat switch account
+- In edit profile, the loading screen is not the standard UI theme
+- Failed to switch accounts if user logged in to other games
+- Resolved an issue where the date picker could appear multiple times in the iOS registration flow VN.
+- Resolved an issue where the date picker could appear multiple times in the iOS edit profile.
+- Instead cancel, create new player if user doesn't want to bind guest
+- Webview scale should be floating point
+- Reversed match panel settings parameter
+- Button not consistent in switch account confirm dialog
+- Button not consistent in account deletion confirm dialog
+- Change position confirm button - switch account confirm dialog
+- Button position not consistent in bind confirmation dialog
+- Button position not consistent in bind conflict dialog
+- Translate pending purchase dialog to id and vi
+- Add PlayerID as parameter for retry pending purchase item. Use JWT parser as backup.
+- Add Player ID as VerifyOrderImplAsync param.
+- Remove GetPlayerIdFromJwt.
+- Bring back disappearing verification code
+- Style pending purchase to match UI design
+- Close button position
+- Change margin close button failed payment dialog
+- Add retry to event sender
+- Usercenter design not matches
+
 ## [0.30.1] - 2024-12-27
 
 ### 🐛 Bug Fixes

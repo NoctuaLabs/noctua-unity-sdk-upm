@@ -130,5 +130,49 @@ namespace Tests.Runtime
                 Assert.AreEqual(initialDelay * exponent * exponent, delays[3], 0.5 * exponent * exponent);
             }
         );
+        
+        [UnityTest]
+        public IEnumerator RetryAsyncTask_MaxDelayReached() => UniTask.ToCoroutine(
+            async () =>
+            {
+                int attempt = 0;
+
+                Stopwatch stopwatch = new Stopwatch();
+                List<double> delays = new List<double>();
+
+                try
+                {
+                    stopwatch.Start();
+
+                    await Utility.RetryAsyncTask<object>(
+                        async () =>
+                        {
+                            delays.Add(stopwatch.Elapsed.TotalSeconds);
+                            stopwatch.Restart();
+                            attempt++;
+                            UnityEngine.Debug.Log($"Retry Attempt {attempt}");
+
+                            throw new NoctuaException(NoctuaErrorCode.Networking, "Networking error");
+                        },
+                        maxRetries: 6,
+                        maxDelaySeconds: 4.0
+                    );
+                }
+                catch (NoctuaException e)
+                {
+                    stopwatch.Stop();
+                    Assert.AreEqual(NoctuaErrorCode.Networking, (NoctuaErrorCode)e.ErrorCode);
+                }
+
+                Assert.AreEqual(7, attempt); // Initial try + 3 retries
+                
+                Assert.AreEqual(7, delays.Count);
+
+                for (int i = 4; i < delays.Count; i++)
+                {
+                    Assert.AreEqual(4.0, delays[i], 1);
+                }
+            }
+        );
     }
 }

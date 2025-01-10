@@ -12,7 +12,7 @@
                         <ui:VisualElement name="HelpIcon" class="help-icon" />
                         <ui:Label name="HelpLabel" text="Need help?" class="help-label" />
                     </ui:Button>
-                    <ui:Button name="ExitButton" focusable="false" class="user-profile-header-button exit-button">
+                    <ui:Button name="ExitButton" focusable="false" class="user-profile-header-button exit-button-user-center">
                         <ui:VisualElement name="ExitIcon" class="exit-icon" />
                     </ui:Button>
                 </ui:VisualElement>
@@ -59,7 +59,7 @@
             </ui:VisualElement>
             <ui:VisualElement name="ConnectAccount" class="connect-account portrait">
                 <ui:VisualElement name="ContainerStayConnect" style="flex-direction: row;">
-                    <ui:Label name="StayConnectCompany" text="Stay connect to" class="connect-account-label" style="margin-left: -2px;" />
+                    <ui:Label name="StayConnectCompany" text="Stay connect to" class="connect-account-label" style="margin-left: 5%" />
                     <ui:Label name="ConnectAccountLabel" text="Noctua" class="connect-account-label" style="margin-left: -3px;" />
                 </ui:VisualElement>
                 <ui:ListView name="AccountList" class="account-list" />
@@ -79,8 +79,8 @@
                         </ui:VisualElement>
                         <ui:VisualElement class="edit-change-profile-container">
                             <ui:VisualElement name="ProfileImage" class="profile-circle-with-border" />
-                            <ui:Button text="Change Picture" name="ChangePictureButton" focusable="false" class="button-border" />
-                            <ui:Button display-tooltip-when-elided="true" name="Spinner" focusable="false" picking-mode="Ignore" class="margin-top: 10px; margin-left: -5px; spinner-fake-button hide" />
+                            <ui:Button text="Change Picture" name="ChangePictureButton" focusable="false" class="button-border" style="margin-top: 10px; margin-left: -5px; padding-left: 3px; padding-right: 3px;" />
+                            <ui:Button display-tooltip-when-elided="true" name="Spinner" focusable="false" picking-mode="Ignore" class="margin-top: 10px; margin-left: -5px; spinner-fake-button hide" style="background-color: rgba(41, 91, 172, 0);" />
                         </ui:VisualElement>
                         <ui:ScrollView scroll-deceleration-rate="0,135" elasticity="0,1" horizontal-scroller-visibility="Hidden" vertical-scroller-visibility="Hidden" name="ProfileDetails" class="profile-details">
                             <ui:VisualElement class="nickname-container noctua-text-input-margin">

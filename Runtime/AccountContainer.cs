@@ -290,21 +290,25 @@ namespace com.noctuagames.sdk
                 {
                     continue;
                 }
+                
+                var accountLastUsed = DateTimeOffset.FromUnixTimeMilliseconds(account.LastUpdated);
 
                 if (!userBundleMap.TryGetValue(data.User.Id, out var userBundle))
                 {
                     userBundle = new UserBundle
                     {
-                        PlayerAccounts = new List<Player>()
+                        PlayerAccounts = new List<Player>(),
+                        LastUsed = accountLastUsed,
+                        User = data.User
                     };
 
                     userBundleMap[data.User.Id] = userBundle;
                 }
-
-                if (userBundle.User == null || DateTimeOffset.FromUnixTimeMilliseconds(account.LastUpdated) > userBundle.LastUsed)
+                
+                if (accountLastUsed > userBundle.LastUsed)
                 {
-                    userBundle.LastUsed = DateTimeOffset.FromUnixTimeMilliseconds(account.LastUpdated).DateTime;
                     userBundle.User = data.User;
+                    userBundle.LastUsed = accountLastUsed;
                 }
 
                 userBundle.PlayerAccounts.Add(data.Player);

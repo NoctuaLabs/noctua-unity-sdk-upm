@@ -100,6 +100,9 @@ namespace com.noctuagames.sdk
 
         [JsonProperty("timestamp")]
         public string Timestamp;
+
+        [JsonProperty("allow_payment_type_override")]
+        public bool AllowPaymentTypeOverride = true;
     }
 
     [Preserve]
@@ -113,6 +116,9 @@ namespace com.noctuagames.sdk
 
         [JsonProperty("payment_url")]
         public string PaymentUrl;
+
+        [JsonProperty("payment_type")]
+        public PaymentType PaymentType;
     }
     
     public enum PaymentStatus
@@ -162,7 +168,8 @@ namespace com.noctuagames.sdk
         canceled,
         expired,
         invalid,
-        voided
+        voided,
+        fallback_to_native_payment
     }
 
     [Preserve]
@@ -409,7 +416,8 @@ namespace com.noctuagames.sdk
         private async UniTask<VerifyOrderResponse> VerifyOrderImplAsync(
             OrderRequest orderRequest,
             VerifyOrderRequest verifyOrderRequest,
-            string token
+            string token,
+            long? playerId
         )
         {
                 if (orderRequest.Id == 0)
@@ -465,6 +473,7 @@ namespace com.noctuagames.sdk
                             VerifyOrderRequest = verifyOrderRequest,
                             AccessToken = _accessTokenProvider.AccessToken,
                             Status = "canceled",
+                            PlayerId = Noctua.Auth.RecentAccount?.Player?.Id,
                         }
                     );
                     break;
@@ -489,6 +498,7 @@ namespace com.noctuagames.sdk
                             VerifyOrderRequest = verifyOrderRequest,
                             AccessToken = _accessTokenProvider.AccessToken,
                             Status = "refunded",
+                            PlayerId = Noctua.Auth.RecentAccount?.Player?.Id,
                         }
                     );
                     break;
@@ -537,6 +547,7 @@ namespace com.noctuagames.sdk
                             VerifyOrderRequest = verifyOrderRequest,
                             AccessToken = _accessTokenProvider.AccessToken,
                             Status = "verification_failed",
+                            PlayerId = Noctua.Auth.RecentAccount?.Player?.Id,
                         }
                     );
 
@@ -593,7 +604,28 @@ namespace com.noctuagames.sdk
 #endif
         }
 
-        public async UniTask<PurchaseResponse> PurchaseItemAsync(PurchaseRequest purchaseRequest, bool tryToUseSecondaryPayment = false)
+        public async UniTask<PurchaseResponse> PurchaseItemAsync(PurchaseRequest purchaseRequest, bool tryToUseSecondaryPayment = false, PaymentType enforcedPaymentType = PaymentType.unknown)
+        {
+            var result = await PurchaseItemImplAsync(purchaseRequest, tryToUseSecondaryPayment, enforcedPaymentType);
+
+            if (result.Status == OrderStatus.fallback_to_native_payment)
+            {
+#if UNITY_ANDROID
+                enforcedPaymentType = PaymentType.playstore;
+                _log.Debug($"Fallback to native payment: {enforcedPaymentType}");
+                result = await PurchaseItemImplAsync(purchaseRequest, false, enforcedPaymentType);
+#elif UNITY_IOS
+                enforcedPaymentType = PaymentType.appstore;
+                _log.Debug($"Fallback to native payment: {enforcedPaymentType}");
+                result = await PurchaseItemImplAsync(purchaseRequest, false, enforcedPaymentType);
+#endif
+                return result;
+            } else {
+                return result;
+            }
+        }
+
+        public async UniTask<PurchaseResponse> PurchaseItemImplAsync(PurchaseRequest purchaseRequest, bool tryToUseSecondaryPayment = false, PaymentType enforcedPaymentType = PaymentType.unknown)
         {
             EnsureEnabled();
             
@@ -615,10 +647,21 @@ namespace com.noctuagames.sdk
 
             // The payment types are prioritized in backend
             // and filtered by runtime platform in InitAsync()
+            // This payment type could be override by
+            // the response of create order.
             var paymentType = _enabledPaymentTypes.First();
             if (tryToUseSecondaryPayment && _enabledPaymentTypes.Count > 1)
             {
                 paymentType = _enabledPaymentTypes[1];
+                _log.Debug($"Fallback to secondary payment type: {paymentType}");
+            }
+
+            // Enforce particular payment type if available.
+            // This could be triggered from CustomPaymentCompleteDialogPresenter.cs.
+            if (enforcedPaymentType != PaymentType.unknown)
+            {
+                paymentType = enforcedPaymentType;
+                _log.Debug($"Fallback to enforced payment type: {paymentType}");
             }
 
             _uiFactory.ShowLoadingProgress(true);
@@ -675,12 +718,25 @@ namespace com.noctuagames.sdk
 
                 orderRequest.PriceInUSD = usdProduct.Price;
                 orderRequest.Timestamp = DateTime.Now.ToString();
+                orderRequest.AllowPaymentTypeOverride = true;
             
                 _log.Debug("creating order");
+
+                if (enforcedPaymentType != PaymentType.unknown)
+                {
+                    orderRequest.AllowPaymentTypeOverride = false;
+                }
 
                 orderResponse = await RetryAsync(() => CreateOrderAsync(orderRequest));
 
                 orderRequest.Id = orderResponse.Id;
+
+                // Override the payment type in case this get altered from backend.
+                if (enforcedPaymentType == PaymentType.unknown) // It means that there is no enforce on payment type
+                {
+                    paymentType = orderResponse.PaymentType;
+                    _log.Debug($"Payment type get overrided from backend: {paymentType}");
+                }
                 
                 _eventSender?.Send(
                     "purchase_opened",
@@ -777,8 +833,8 @@ namespace com.noctuagames.sdk
 
                     paymentResult = new PaymentResult{Status = PaymentStatus.Confirmed};
 
-                    var continueToVerify = await _customPaymentCompleteDialog.Show();
-                    if (!continueToVerify) // Custom payment get canceled.
+                    var completeDialogResult = await _customPaymentCompleteDialog.Show();
+                    if (completeDialogResult == "cancel") // Custom payment get canceled.
                     {
                         var verifiedAtCancelation = false;
                         var verifyReq = new VerifyOrderRequest
@@ -792,7 +848,8 @@ namespace com.noctuagames.sdk
                             var verifyResponseAtCancel = await VerifyOrderImplAsync(
                                 orderRequest,
                                 verifyReq,
-                                _accessTokenProvider.AccessToken
+                                _accessTokenProvider.AccessToken,
+                                Noctua.Auth.RecentAccount?.Player?.Id
                             );
 
                             // If verified, cancel the falback to secondary payment.
@@ -814,15 +871,20 @@ namespace com.noctuagames.sdk
                                     OrderId = orderResponse.Id,
                                     OrderRequest = orderRequest,
                                     VerifyOrderRequest = verifyReq,
-                                    AccessToken = _accessTokenProvider.AccessToken
+                                    AccessToken = _accessTokenProvider.AccessToken,
+                                    PlayerId = Noctua.Auth.RecentAccount?.Player?.Id,
                                 }
                             );
                         }
 
-                        if (_enabledPaymentTypes.Count > 1 && !verifiedAtCancelation)
+                        if (_enabledPaymentTypes.Count > 1 &&
+                        !verifiedAtCancelation &&
+                        enforcedPaymentType == PaymentType.unknown &&
+                        _enabledPaymentTypes[1] != paymentType
+                        )
                         {
                             // Fallback to secondary payment option.
-                            return await PurchaseItemAsync(purchaseRequest, true);
+                            return await PurchaseItemImplAsync(purchaseRequest, true);
                         } else if (verifiedAtCancelation) {
                             // Verified at cancelation, set the paymentResult to confirmed
                             // to allow this to be processed as successful purchase/payment.
@@ -847,10 +909,22 @@ namespace com.noctuagames.sdk
                                     OrderId = orderResponse.Id,
                                     OrderRequest = orderRequest,
                                     VerifyOrderRequest = verifyReq,
-                                    AccessToken = _accessTokenProvider.AccessToken
+                                    AccessToken = _accessTokenProvider.AccessToken,
+                                    PlayerId = Noctua.Auth.RecentAccount?.Player?.Id,
                                 }
                             );
                         }
+                    }
+                    else if (completeDialogResult == "native_payment")
+                    {
+#if UNITY_ANDROID || UNITY_IOS
+                        return new PurchaseResponse
+                        {
+                            OrderId = 0,
+                            Status = OrderStatus.fallback_to_native_payment,
+                            Message = "Payment method changed",
+                        };
+#endif
                     }
 
                     // Native browser custom payment is using OrderId as ReceiptData
@@ -922,7 +996,8 @@ namespace com.noctuagames.sdk
                     OrderId = orderResponse.Id,
                     OrderRequest = orderRequest,
                     VerifyOrderRequest = verifyOrderRequest,
-                    AccessToken = _accessTokenProvider.AccessToken
+                    AccessToken = _accessTokenProvider.AccessToken,
+                    PlayerId = Noctua.Auth.RecentAccount?.Player?.Id,
                 }
             );
 
@@ -936,7 +1011,8 @@ namespace com.noctuagames.sdk
                 verifyOrderResponse = await RetryAsync(() => VerifyOrderImplAsync(
                         orderRequest,
                         verifyOrderRequest,
-                        _accessTokenProvider.AccessToken
+                        _accessTokenProvider.AccessToken,
+                        Noctua.Auth.RecentAccount?.Player?.Id
                     )
                 );
 
@@ -953,7 +1029,8 @@ namespace com.noctuagames.sdk
                             OrderRequest = orderRequest,
                             VerifyOrderRequest = verifyOrderRequest,
                             AccessToken = _accessTokenProvider.AccessToken,
-                            Status = "Network error"
+                            Status = "Network error",
+                            PlayerId = Noctua.Auth.RecentAccount?.Player?.Id
                         }
                     );
                 }
@@ -1023,11 +1100,13 @@ namespace com.noctuagames.sdk
                 var verifyOrderResponse = await VerifyOrderImplAsync(
                     item.OrderRequest,
                     item.VerifyOrderRequest,
-                    item.AccessToken
+                    item.AccessToken,
+                    item.PlayerId
                 );
 
                 if (verifyOrderResponse.Status != OrderStatus.completed &&
                 verifyOrderResponse.Status != OrderStatus.canceled &&
+                verifyOrderResponse.Status != OrderStatus.refunded &&
                 verifyOrderResponse.Status != OrderStatus.voided)
                 {
                     // Enqueue to player prefs for future read
@@ -1062,6 +1141,7 @@ namespace com.noctuagames.sdk
                         VerifyOrderRequest = item.VerifyOrderRequest,
                         AccessToken = item.AccessToken,
                         Status = "verification_failed",
+                        PlayerId = Noctua.Auth.RecentAccount?.Player?.Id
                     }
                 );
 
@@ -1441,7 +1521,8 @@ namespace com.noctuagames.sdk
                         var verifyOrderResponse = await VerifyOrderImplAsync(
                             item.OrderRequest,
                             item.VerifyOrderRequest,
-                            item.AccessToken
+                            item.AccessToken,
+                            item.PlayerId
                         );
 
                         if (verifyOrderResponse.Status != OrderStatus.completed &&
@@ -1478,6 +1559,7 @@ namespace com.noctuagames.sdk
                                 VerifyOrderRequest = item.VerifyOrderRequest,
                                 AccessToken = item.AccessToken,
                                 Status = "verification_failed",
+                                PlayerId = Noctua.Auth.RecentAccount?.Player?.Id,
                             }
                         );
 
@@ -1562,6 +1644,28 @@ namespace com.noctuagames.sdk
 
         private void EnqueueToRetryPendingPurchases(RetryPendingPurchaseItem item)
         {
+
+            if (item.OrderId == 0)
+            {
+                throw new NoctuaException(NoctuaErrorCode.Application, "Missing parameter when enqueue retry pending purchase item: orderId");
+            }
+            if (item.OrderRequest is null)
+            {
+                throw new NoctuaException(NoctuaErrorCode.Application, "Missing parameter when enqueue retry pending purchase item: orderRequest");
+            }
+            if (item.VerifyOrderRequest is null)
+            {
+                throw new NoctuaException(NoctuaErrorCode.Application, "Missing parameter when enqueue retry pending purchase item: verifyOrderRequest");
+            }
+            if (string.IsNullOrEmpty(item.AccessToken))
+            {
+                throw new NoctuaException(NoctuaErrorCode.Application, "Missing parameter when enqueue retry pending purchase item: accessToken");
+            }
+            if (item.PlayerId is null)
+            {
+                throw new NoctuaException(NoctuaErrorCode.Application, "Missing parameter when enqueue retry pending purchase item: playerId");
+            }
+
             // Remove the existing if any.
             RemoveFromRetryPendingPurchasesByOrderID(item.OrderId);
 
@@ -1603,6 +1707,7 @@ namespace com.noctuagames.sdk
             public VerifyOrderRequest VerifyOrderRequest;
             public string AccessToken;
             public string Status;
+            public long? PlayerId;
         }
         
         private void EnsureEnabled()

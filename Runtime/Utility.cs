@@ -306,11 +306,13 @@ namespace com.noctuagames.sdk
             Func<UniTask<T>> task,
             int maxRetries = 3,
             double initialDelaySeconds = 0.5,
-            double exponent = 2.0
+            double exponent = 2.0,
+            double maxDelaySeconds = -1
         )
         {
             var random = new System.Random();
             var delay = initialDelaySeconds;
+            maxDelaySeconds = maxDelaySeconds > 0 ? maxDelaySeconds : initialDelaySeconds * Math.Pow(exponent, maxRetries - 1);
 
             for (int retry = 0; retry < maxRetries; retry++)
             {
@@ -328,6 +330,8 @@ namespace com.noctuagames.sdk
                     var delayWithJitter = ((random.NextDouble() * 0.5) + 0.75) * delay;
                     await UniTask.Delay(TimeSpan.FromSeconds(delayWithJitter));
                     delay *= exponent;
+                    
+                    delay = Math.Min(delay, maxDelaySeconds);
                 }
             }
 

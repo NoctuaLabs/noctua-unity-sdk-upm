@@ -148,20 +148,32 @@ namespace com.noctuagames.sdk.UI
             View?.Q<Label>("ResendCode")?.AddToClassList("hide");            
             View?.Q<VisualElement>("DialogContent")?.AddToClassList("hide");
             View?.Q<VisualElement>("DialogHeader")?.AddToClassList("hide");
+            
+            var verificationCode = _inputVerificationCode.textField.value;
 
             try
             {
-                if (Model.AuthService.RecentAccount == null ||
-                !(Model.AuthService.RecentAccount != null && Model.AuthService.RecentAccount.IsGuest))
+                switch (Model.AuthIntention)
                 {
-                    // If account container is empty or it's not guest, verify directly.
-                    await Model.AuthService.VerifyEmailRegistrationAsync(_credVerifyId, _credVerifyCode);
-                }
-                else if (Model.AuthIntention == AuthIntention.Switch)
-                {
-                    // If guest, here will be a confirmation dialog between verification processes.
-                    var token = await Model.AuthService.BeginVerifyEmailRegistrationAsync(_credVerifyId, _credVerifyCode);
-                    Model.ShowBindConfirmation(token);
+                    case AuthIntention.Switch when Model.AuthService.RecentAccount is { IsGuest: true }:
+                        var token = await Model.AuthService.BeginVerifyEmailRegistrationAsync(_credVerifyId, verificationCode);
+                    
+                        Model.ShowBindConfirmation(token);
+
+                        break;
+                    case AuthIntention.Switch when Model.AuthService.RecentAccount is null or { IsGuest: false }:
+                        await Model.AuthService.VerifyEmailRegistrationAsync(_credVerifyId, verificationCode);
+                        
+                        break;
+                    case AuthIntention.Link when Model.AuthService.RecentAccount is { IsGuest: false }:
+                        await Model.AuthService.VerifyEmailLinkingAsync(_credVerifyId, verificationCode);
+
+                        Model.ShowInfo($"Successfully linked email to {Model.AuthService.RecentAccount.DisplayName}");
+
+                        break;
+
+                    default:
+                        throw new NoctuaException(NoctuaErrorCode.Authentication, $"Invalid AuthIntention {Model.AuthIntention}");
                 }
 
                 Visible = false;

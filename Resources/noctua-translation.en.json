@@ -145,9 +145,9 @@
     "UserCenterPresenter.CopyIcon.Button.text": "Copy",
     "UserCenterPresenter.MenuPendingPurchases.Label.text": "Pending Purchases",
 
-    "BindConfirmationDialogPresenter.BindConfirmationLabel.Label.text": "Would you like to connect your progress to selected account?",
+    "BindConfirmationDialogPresenter.BindConfirmationLabel.Label.text": "Would you like to connect your progress to selected account or create new account?",
     "BindConfirmationDialogPresenter.ConnectButton.Button.text": "Connect",
-    "BindConfirmationDialogPresenter.CancelButton.Button.text": "Cancel",
+    "BindConfirmationDialogPresenter.CreateNewButton.Button.text": "Create new",
 
     "BindConflictDialogPresenter.ConnectConflictInformationLabel.Label.text": "This credential is already connected to an account. Do you want to switch account?",
     "BindConflictDialogPresenter.SwitchAccountButton.Button.text": "Switch account",
@@ -170,11 +170,24 @@
     "CustomPaymentCompleteDialogPresenter.CustomPaymentCSButton.Button.text": "Customer Support",
     "CustomPaymentCompleteDialogPresenter.CustomPaymentCompleteButton.Button.text": "Completed",
     "CustomPaymentCompleteDialogPresenter.OrderVerificationFailedMessage": "Your payment couldn’t be verified. Please retry later.",
+    "CustomPaymentCompleteDialogPresenter.PayWithPlaystore": "Pay with Playstore",
+    "CustomPaymentCompleteDialogPresenter.PayWithAppstore": "Pay with Appstore",
 
     "IAPCanceled": "Purchase canceled",
     "IAPFailed": "Purchase failed",
     "IAPRequiresAuthentication": "Purchase requires user authentication",
     "IAPPaymentDisabled": "Payment is disabled. Please contact customer support.",
+    "IAPPendingPurchaseTitle": "You have {0} pending purchase(s)",
+    "IAPPendingPurchaseReceiptCopied": "Your purchase receipt has been copied to clipboard.",
+    "IAPPendingPurchaseCanceled":  "Your purchase has been canceled. Please contact customer support for more details.",
+    "IAPPendingPurchaseRefunded":  "Your purchase has been refunded. Please contact customer support for more details.",
+    "IAPPendingPurchaseVoided":  "Your purchase has been voided. Please contact customer support for more details.",
+    "IAPPendingPurchaseCompleted":  "Your purchase has been verified!",
+    "IAPPendingPurchaseNotVerified": "Purchase is not verified yet. Please try again later.",
+    "IAPPendingPurchaseItemCsButtonText":  "Customer Service",
+    "IAPPendingPurchaseItemCopyButtonText":  "Copy Receipt",
+    "IAPPendingPurchaseItemRetryButtonText" : "Retry",
+
     "AuthEmailLinkingSuccessful": "Email linking successful",
 
     "EditProfile.NicknameValidation": "Nickname should not be empty",

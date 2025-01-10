@@ -12,8 +12,8 @@
                     class="note" 
             />
             <ui:VisualElement name="ButtonGroup" class="button-group">
-                <ui:Button name="CancelButton" text="Cancel" class="button-normal switch-account-button" />
                 <ui:Button name="ConfirmButton" text="Confirm" class="button-highlight switch-account-button" />
+                <ui:Button name="CancelButton" text="Cancel" class="button-normal switch-account-button" />
             </ui:VisualElement>
         </ui:VisualElement>
     </ui:VisualElement>

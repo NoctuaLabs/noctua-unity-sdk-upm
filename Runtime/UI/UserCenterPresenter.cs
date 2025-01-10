@@ -42,6 +42,7 @@ namespace com.noctuagames.sdk.UI
         private DropdownField _countryDF;
         private DropdownField _languageDF;
         private VisualElement _profileImage;
+        private string _profileImageUrl;
         private VisualElement _playerImage;
         private ButtonNoctua _saveButton;
         private ButtonNoctua _changePictureButton;
@@ -80,6 +81,7 @@ namespace com.noctuagames.sdk.UI
         private int _currentIndex = 0;
         private const float SlideInterval = 3f;
         private bool _isGuestUser = false;
+        private bool _isDatePickerOpen = false;
         private readonly List<UserCredential> _credentials = new()
         {
             new UserCredential
@@ -243,6 +245,10 @@ namespace com.noctuagames.sdk.UI
                     throw new NoctuaException(NoctuaErrorCode.Authentication, "No account is logged in.");
                 }
 
+                // Reset some values
+                _profileImageUrl = "";
+                _originalStyleBackground = null;
+
                 var user = await Model.AuthService.GetUserAsync();
                 var isGuest = user?.IsGuest == true;
 
@@ -263,20 +269,21 @@ namespace com.noctuagames.sdk.UI
 
                     OnUIEditProfile(false);
                     SetupDropdownUI();
+                    SetupDatePickerUI();
 
                     _nicknameTF.textField.value = user?.Nickname;
                     _newProfileUrl = user?.PictureUrl;
 
                     bool validDate = DateTime.TryParse(user?.DateOfBirth, null, DateTimeStyles.RoundtripKind, out DateTime dateTime);
                     string formattedDate = validDate ? dateTime.ToString("dd/MM/yyyy", CultureInfo.InvariantCulture) : "";
+                    
+                    _birthDateTF.textField.value = formattedDate;
+                    _dateString = formattedDate;
 
                     string genderOriginal = user?.Gender;
                     string genderUpperChar = char.ToUpper(genderOriginal[0]) + genderOriginal.Substring(1);
 
-                    _birthDateTF.textField.value = formattedDate;
                     _genderDF.value = genderUpperChar;
-
-                    _dateString = formattedDate;
 
                     int indexCountry = _profileDataOptions.Countries.FindIndex(item => item.IsoCode.ToLower() == user?.Country.ToLower());
                     if (indexCountry != -1)
@@ -297,8 +304,6 @@ namespace com.noctuagames.sdk.UI
                     {
                         _languageDF.value = "Select Language";
                     }
-
-                    SetupEditProfileUI();
                 }
 
                 _isGuestUser = user?.IsGuest ?? false;
@@ -306,6 +311,8 @@ namespace com.noctuagames.sdk.UI
 
                 if (!string.IsNullOrEmpty(user?.PictureUrl))
                 {
+                    _profileImageUrl = user.PictureUrl;
+
                     var picture = await DownloadTexture2D(user.PictureUrl);
 
                     if (picture == null)
@@ -385,8 +392,14 @@ namespace com.noctuagames.sdk.UI
 
             birthDateContainer.RegisterCallback<ClickEvent>(upEvent =>
             {
-
                 upEvent.StopImmediatePropagation();
+
+                if(_isDatePickerOpen)
+                {
+                    return;
+                }
+
+                _isDatePickerOpen = true;
 
                 Noctua.OpenDatePicker(parsedDate.Year, parsedDate.Month, parsedDate.Day, 1,
                 (DateTime _date) =>
@@ -397,6 +410,7 @@ namespace com.noctuagames.sdk.UI
                 {
                     _birthDateTF.textField.value = _date.ToString("dd/MM/yyyy");
                     Utility.UpdateButtonState(_saveButton.button, true);
+                    _isDatePickerOpen = false;
                 });
             });
 
@@ -438,12 +452,14 @@ namespace com.noctuagames.sdk.UI
 
             Utility.RegisterForMultipleValueChanges<string>(View, elementNames, _saveButton.button);
 
+            //Show mobile input
+            _nicknameTF.textField.hideMobileInput = false;
+
             _nicknameTF.textField.RegisterValueChangedCallback(evt => OnValueChanged(_nicknameTF));
             _changePictureButton.button.RegisterCallback<ClickEvent>(evt => OnChangeProfile());
 
             _nicknameTF.SetFocus();
 
-            SetupDatePickerUI();
             SetupDropdownUI();
         }
 
@@ -484,8 +500,6 @@ namespace com.noctuagames.sdk.UI
                 _genderDF.value = evt.newValue;
                 _genderDF.labelElement.style.display = DisplayStyle.None;
                 _genderDF.Q<VisualElement>("title").RemoveFromClassList("hide");
-
-                Utility.UpdateButtonState(_saveButton.button, true);
             });
 
             _countryDF.choices = _countryOptions;
@@ -633,11 +647,12 @@ namespace com.noctuagames.sdk.UI
             View.Q<VisualElement>("UserProfile").RemoveFromClassList("hide");
             View.Q<VisualElement>("UserProfileHeader").RemoveFromClassList("hide");
         }
-        private void OnUIEditProfile(bool isEditProfile)
+        private async void OnUIEditProfile(bool isEditProfile)
         {
             SetOrientation(isEditProfile);
             if (isEditProfile)
             {
+                _log.Debug("Edit profile");
                 _nicknameTF.textField.value = View.Q<Label>("PlayerName").text;
 
                 _originalStyleBackground = _profileImage.style.backgroundImage;
@@ -680,9 +695,21 @@ namespace com.noctuagames.sdk.UI
 
                 Utility.UpdateButtonState(_saveButton.button, false);
 
+                if (!string.IsNullOrEmpty(_profileImageUrl)) 
+                {
+                    var picture = await DownloadTexture2D(_profileImageUrl);
+                    if (picture == null)
+                    {
+                        picture = _defaultAvatar;
+                    }
+                    _profileImage.style.backgroundImage = new StyleBackground(picture);
+                } else {
+                    _profileImage.style.backgroundImage = Resources.Load<Texture2D>("EditProfileImage");
+                }
             }
             else
             {
+                _log.Debug("Not edit profile");
 
                 //remove class
                 _editProfileContainer.RemoveFromClassList("show");

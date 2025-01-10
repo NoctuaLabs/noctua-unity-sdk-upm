@@ -1,0 +1,97 @@
+﻿.pending-purchase-item {
+    background-color: rgba(45, 49, 56, 1);
+    border-radius: 10px;
+    margin-top: 3px;
+    margin-bottom: 3px;
+    -unity-text-align: middle-left;
+    justify-content: space-between;
+    padding:10px;
+}
+
+.purchase-item-header {
+    flex-direction: row;
+    justify-content: space-between;
+}
+
+.order-label {
+    font-size: 10px;
+    text-overflow: ellipsis;
+    flex: 1;
+    color:rgba(124, 126, 129, 1);
+}
+
+.status-label {
+    font-size: 10px;
+    padding:4px;
+    border-radius:4px;
+    color: rgba(245, 245, 245, 1);
+    background-color:darkorange;
+    padding-top: 7px;
+    padding-bottom: 7px;
+}
+
+.status-label-pending {
+    background-color:darkorange;
+}
+
+.status-label-refunded {
+    background-color:green;
+}
+
+.status-label-canceled {
+    background-color:blue;
+}
+
+.status-label-verification-failed {
+    background-color:red;
+}
+
+.payment-label {
+    color: rgba(245, 245, 245, 1);
+    font-size: 12px;
+    margin-top: 12px;
+    margin-bottom: 10px;
+    flex: 1;
+    text-overflow: ellipsis;
+    overflow: hidden;
+    padding-bottom:10px;
+}
+
+.button-group {
+    margin-top: 5px;
+    margin-bottom: 5px;
+    flex-direction: row;
+    justify-content: space-between;
+}
+
+.purchase-item-button__secondary {
+    color: rgba(229, 231, 235, 1);
+    background-color: rgba(56, 62, 71, 1);
+    border-color: transparent;
+    border-radius: 5px;
+    border-width: 1px;
+    font-size: 12px;
+    padding: 5px;
+    padding-top: 10px;
+    padding-bottom: 10px;
+    margin: 0;
+}
+
+.purchase-item-button__tertiary {
+    color: rgba(59, 130, 246, 1);
+    background-color: transparent;
+    font-size: 12px;
+    border-color: rgba(59, 130, 246, 1);
+    border-radius: 5px;
+    border-width: 1px;
+    padding: 5px;
+    padding-top: 10px;
+    padding-bottom: 10px;
+    margin: 0;
+}
+
+.copy-icon {
+    width: 13px;
+    height: 13px;
+    background-image: url("project://database/Packages/com.noctuagames.sdk/Resources/CopyIcon.png?fileID=21300000&guid=9f736dbc87e058f4c92d691580bce89c&type=3#CopyIcon");
+}

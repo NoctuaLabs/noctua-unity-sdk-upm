@@ -49,6 +49,8 @@ namespace com.noctuagames.sdk
         
         public async UniTask<bool> ShowAnnouncement()
         {
+            _log.Debug("calling API");
+            
             if (string.IsNullOrEmpty(_config.AnnouncementBaseUrl))
             {
                 throw new ArgumentNullException(nameof(_config.AnnouncementBaseUrl));
@@ -56,6 +58,7 @@ namespace com.noctuagames.sdk
             
             var baseUrl = "";
             _uiFactory.ShowLoadingProgress(true);
+
             try
             {
                 var details = await GetWebContentDetails(_config.AnnouncementBaseUrl);
@@ -63,10 +66,15 @@ namespace com.noctuagames.sdk
             }
             catch (Exception e)
             {
-                _uiFactory.ShowLoadingProgress(false);
-                throw e;
+                _log.Exception(e);
+                _uiFactory.ShowError(e.Message);
+
+                return false;
             }
-            _uiFactory.ShowLoadingProgress(false);
+            finally
+            {
+                _uiFactory.ShowLoadingProgress(false);
+            }
 
             if(string.IsNullOrEmpty(baseUrl))
             {
@@ -101,6 +109,8 @@ namespace com.noctuagames.sdk
 
         public async UniTask ShowReward()
         {
+            _log.Debug("calling API");
+
             if (string.IsNullOrEmpty(_config.RewardBaseUrl))
             {
                 throw new ArgumentNullException(nameof(_config.RewardBaseUrl));
@@ -108,6 +118,7 @@ namespace com.noctuagames.sdk
             
             var baseUrl = "";
             _uiFactory.ShowLoadingProgress(true);
+            
             try
             {
                 var details = await GetWebContentDetails(_config.RewardBaseUrl);
@@ -115,10 +126,15 @@ namespace com.noctuagames.sdk
             }
             catch (Exception e)
             {
-                _uiFactory.ShowLoadingProgress(false);
-                throw e;
+                _log.Exception(e);
+                _uiFactory.ShowError(e.Message);
+
+                return;
             }
-            _uiFactory.ShowLoadingProgress(false);
+            finally
+            {
+                _uiFactory.ShowLoadingProgress(false);
+            }
 
 
             if(string.IsNullOrEmpty(baseUrl))
@@ -139,6 +155,8 @@ namespace com.noctuagames.sdk
         
         public async UniTask ShowCustomerService(string reason = "general", string context = "")
         {
+            _log.Debug("calling API");
+
             if (string.IsNullOrEmpty(_config.CustomerServiceBaseUrl))
             {
                 throw new ArgumentNullException(nameof(_config.CustomerServiceBaseUrl));
@@ -146,6 +164,7 @@ namespace com.noctuagames.sdk
 
             var baseUrl = "";
             _uiFactory.ShowLoadingProgress(true);
+            
             try
             {
                 var details = await GetWebContentDetails(_config.CustomerServiceBaseUrl);
@@ -153,10 +172,15 @@ namespace com.noctuagames.sdk
             }
             catch (Exception e)
             {
-                _uiFactory.ShowLoadingProgress(false);
-                throw e;
+                _log.Exception(e);
+                _uiFactory.ShowError(e.Message);
+
+                return;
             }
-            _uiFactory.ShowLoadingProgress(false);
+            finally
+            {
+                _uiFactory.ShowLoadingProgress(false);
+            }
 
             if(string.IsNullOrEmpty(baseUrl))
             {
@@ -165,7 +189,6 @@ namespace com.noctuagames.sdk
             }
             
             _eventSender?.Send("customer_service_opened");
-
 
             if (baseUrl.Contains("reason=general"))
             {
@@ -194,19 +217,9 @@ namespace com.noctuagames.sdk
         {
             var request = new HttpRequest(HttpMethod.Get, url)
                 .WithHeader("Content-Type", "application/json")
-                .WithHeader("Accept", "application/json");
+                .WithHeader("Accept", "application/json")
+                .WithHeader("Authorization", "Bearer " + _accessTokenProvider.AccessToken);
 
-            try
-            {
-                request.WithHeader("Authorization", "Bearer " + _accessTokenProvider.AccessToken);
-            }
-            catch (Exception)
-            {
-                // Do nothing. Backend will handle unauthenticated requests.
-                // It either returns empty URL (if the request is not allowed)
-                // or the URL if authentication is not required.
-            }
-            
             return await request.Send<WebContentUrl>();
         }
     }

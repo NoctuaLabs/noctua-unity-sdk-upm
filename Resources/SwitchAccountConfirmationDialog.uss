@@ -1,5 +1,5 @@
 .gap {
-    height: 40px;
+    height: 5%;
 }
 
 .switch-account-icon {
@@ -27,15 +27,15 @@
 }
 
 .button-group {
-    flex-direction: row;
-    justify-content: space-between;
-    margin-top: 49px;
+    flex-direction: column;
+    margin-top: 4%;
     align-self: stretch;
+    align-items: center;
     font-size: 12px;
 }
 
 .switch-account-button {
-    width: 131px;
+    width: 90%;
     height: 35px;
     border-radius: 6px;
 }

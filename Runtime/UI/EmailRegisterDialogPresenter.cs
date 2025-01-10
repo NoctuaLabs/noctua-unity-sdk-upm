@@ -37,6 +37,7 @@ namespace com.noctuagames.sdk.UI
         private GlobalConfig _config;
 
         private int _wizardPage = 0;
+        private bool _isDatePickerOpen = false;
 
         protected override void Attach() { }
         protected override void Detach() { }
@@ -326,6 +327,13 @@ namespace com.noctuagames.sdk.UI
             {
                 //handle open twice date picker
                 upEvent.StopImmediatePropagation();
+                
+                if(_isDatePickerOpen)
+                {
+                    return;
+                }
+
+                _isDatePickerOpen = true;
 
                 Noctua.OpenDatePicker(parsedDate.Year, parsedDate.Month, parsedDate.Day, pickerId,
                 (DateTime _date) =>
@@ -337,6 +345,7 @@ namespace com.noctuagames.sdk.UI
                     Debug.Log("Date Picked :" + _date.ToString("dd/MM/yyyy"));
 
                     textField.value = _date.ToString("dd/MM/yyyy");
+                    _isDatePickerOpen = false;
                 });
             }
 
@@ -346,6 +355,13 @@ namespace com.noctuagames.sdk.UI
             {
 
                 upEvent.StopImmediatePropagation();
+
+                if(_isDatePickerOpen)
+                {
+                    return;
+                }
+
+                _isDatePickerOpen = true;
 
                 Noctua.OpenDatePicker(parsedDate.Year, parsedDate.Month, parsedDate.Day, 1,
                 (DateTime _date) =>
@@ -359,6 +375,8 @@ namespace com.noctuagames.sdk.UI
                     Utility.UpdateButtonState(textFields, _continueButton.button);
                     Utility.UpdateButtonState(textFields, _wizardContinueButton.button);
 
+                    _isDatePickerOpen = false;
+
                 });
             });
 
@@ -367,6 +385,13 @@ namespace com.noctuagames.sdk.UI
             {
 
                 upEvent.StopImmediatePropagation();
+
+                if(_isDatePickerOpen)
+                {
+                    return;
+                }
+
+                _isDatePickerOpen = true;
 
                 Noctua.OpenDatePicker(parsedDate.Year, parsedDate.Month, parsedDate.Day, 1,
                 (DateTime _date) =>
@@ -380,6 +405,8 @@ namespace com.noctuagames.sdk.UI
                     _dateOfIssue.AddToClassList("white-text");
                     Utility.UpdateButtonState(textFields, _continueButton.button);
                     Utility.UpdateButtonState(textFields, _wizardContinueButton.button);
+
+                    _isDatePickerOpen = false;
 
                 });
             });
