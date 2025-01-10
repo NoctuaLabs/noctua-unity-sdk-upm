@@ -33,25 +33,27 @@
 .player-text {
     flex-direction: column;
     align-items: flex-start;
+    justify-content: center;
+    margin-left: 2%;
     height: 100%;
 }
 
 .player-label {
     font-size: 12px;
     -unity-text-align: middle-left;
-    flex: 1;
     overflow: hidden;
     text-overflow: ellipsis;
     padding: 0;
+    margin: 0;
 }
 
 .credential-display-text {
     font-size: 12px;
     -unity-text-align: middle-left;
-    flex: 1;
     overflow: hidden;
     text-overflow: ellipsis;
     padding: 0;
+    margin: 0;
 }
 
 .button-group {
