@@ -10,5 +10,7 @@ namespace com.noctuagames.sdk
         public static readonly Color blueButton = new Color(0.2313726f, 0.509804f, 0.9647059f, 1.0f);
         public static readonly Color greyInactive = new Color(0.4862745f, 0.4941176f, 0.5058824f, 1.0f);
         public static readonly Color redError = new Color(0.6862745f, 0.1098039f, 0.2117647f, 1.0f);
+        public static readonly Color greenSuccess = new Color(0.09019608f, 0.6392157f, 0.2901961f, 1.0f);
+        public static readonly Color redFailed = new Color(0.7882353f, 0.3058824f, 0.3058824f, 1.0f);
     }
 }

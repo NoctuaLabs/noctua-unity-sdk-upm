@@ -672,19 +672,23 @@ Label:hover {
 }
 
 .btn-password-show {
-    background-image: resource('Eye-Close');
-    top: 9.5px;
+    background-image: resource('Eye-Open');
+    top: 8.5px;
     right: 10px;
     position: absolute;
     margin-top: 5px;
+    width: 24px;
+    height: 24px;
 }
 
 .btn-password-hide {
-    background-image: resource('Eye-Open');
-    top: 9.5px;
+    background-image: resource('Eye-Close');
+    top: 8.5px;
     right: 10px;
     position: absolute;
     margin-top: 5px;
+    width: 24px;
+    height: 24px;
 }
 
 .btn-calendar {
@@ -864,4 +868,21 @@ Label:hover {
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
+}
+
+.carousel-image {
+    flex-grow: 1;
+    background-image: resource('UC_Guest_3');
+    background-color: rgba(255, 255, 255, 0);
+    width: 100%;
+    height: 132px;
+    flex-shrink: 0;
+    -unity-background-scale-mode: scale-to-fit;
+}
+
+.scroll-rect-carousel {
+    flex-grow: 1;
+    width: 100%;
+    height: 100%;
+    flex-direction: column;
 }

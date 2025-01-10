@@ -36,7 +36,7 @@ namespace com.noctuagames.sdk.UI
 
         public IEnumerator RunAnimation(string textMessage, bool isNotifSuccess, uint durationMs)
         {
-            Color color = isNotifSuccess ? new Color(23f / 255f, 163f / 255f, 74f / 255f) : new Color(201f / 255f, 78f / 255f, 78f / 255f);
+            Color color = isNotifSuccess ? ColorModule.greenSuccess : ColorModule.redFailed;
 
             _notifIconBox.style.display = DisplayStyle.None;
             _messageName.style.color = color;

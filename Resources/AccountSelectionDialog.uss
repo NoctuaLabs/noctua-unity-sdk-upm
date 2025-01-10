@@ -19,6 +19,15 @@
     align-self: flex-start;
 }
 
+.game-account-selection-list {
+    border-color: transparent;
+    margin-top: 1px;
+    margin-bottom: 1px;
+    align-self: stretch;
+    align-items: stretch;
+    min-height: 80px;
+}
+
 .account-selection-list {
     border-color: transparent;
     margin-top: 1px;
