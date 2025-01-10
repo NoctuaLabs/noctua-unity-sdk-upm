@@ -123,8 +123,10 @@ namespace com.noctuagames.sdk
             _TAG_ShowDatePicker(2, unix, id);
         }
 
+        // Closes the date picker by dismissing it from the user interface.
         public void CloseDatePicker()
         {
+            // Calls the method that contains the logic to hide or remove the date picker.
             DismissDatePicker();
         }
 
