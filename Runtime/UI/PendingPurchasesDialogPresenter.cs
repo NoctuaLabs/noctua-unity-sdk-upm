@@ -146,6 +146,9 @@ namespace com.noctuagames.sdk.UI
                 {
                     var orderStatus = await Model.RetryPendingPurchaseByOrderId(items[index].OrderId);
 
+                    // Order statuses are now shown as "pending"
+                    orderStatus = OrderStatus.pending;
+
                     Model.ShowLoadingProgress(false);
 
                     switch (orderStatus)

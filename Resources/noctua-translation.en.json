@@ -170,6 +170,8 @@
     "CustomPaymentCompleteDialogPresenter.CustomPaymentCSButton.Button.text": "Customer Support",
     "CustomPaymentCompleteDialogPresenter.CustomPaymentCompleteButton.Button.text": "Completed",
     "CustomPaymentCompleteDialogPresenter.OrderVerificationFailedMessage": "Your payment couldn’t be verified. Please retry later.",
+    "CustomPaymentCompleteDialogPresenter.PayWithPlaystore": "Pay with Playstore",
+    "CustomPaymentCompleteDialogPresenter.PayWithAppstore": "Pay with Appstore",
 
     "IAPCanceled": "Purchase canceled",
     "IAPFailed": "Purchase failed",

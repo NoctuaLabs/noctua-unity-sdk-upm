@@ -172,6 +172,8 @@
     "CustomPaymentCompleteDialogPresenter.CustomPaymentCSButton.Button.text": "Hỗ trợ khách hàng",
     "CustomPaymentCompleteDialogPresenter.CustomPaymentCompleteButton.Button.text": "Hoàn thành",
     "CustomPaymentCompleteDialogPresenter.OrderVerificationFailedMessage": "Không thể xác minh thanh toán của bạn. Vui lòng thử lại sau.",
+    "CustomPaymentCompleteDialogPresenter.PayWithPlaystore": "Thanh toán bằng Playstore",
+    "CustomPaymentCompleteDialogPresenter.PayWithAppstore": "Thanh toán bằng Appstore",
 
     "IAPCanceled": "Đã hủy mua hàng",
     "IAPFailed": "Mua hàng không thành công",
