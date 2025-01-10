@@ -115,6 +115,9 @@ namespace com.noctuagames.sdk
             javaUnityClass.CallStatic("ShowDatePicker", year, month, day, id);
         }
 
+        // Suppresses ReSharper warning for unused global parameter in CloseDatePicker method.
+        public void CloseDatePicker() {}
+
         public NativeAccount GetAccount(long playerId, long gameId)
         {
             using AndroidJavaObject noctua = new AndroidJavaObject("com.noctuagames.sdk.Noctua$Companion");
