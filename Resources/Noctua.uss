@@ -444,6 +444,13 @@
     background-position: center;
 }
 
+.separator-long {
+    background-image: url("project://database/Packages/com.noctuagames.sdk/Resources/SeparatorLong.png");
+    width: 192px;
+    height: 1px;
+    background-position: center;
+}
+
 .warning-icon {
     background-image: url("project://database/Packages/com.noctuagames.sdk/Resources/WarningIcon.png?fileID=21300000&guid=91114b5477f33454081377fc3c8313a6&type=3#WarningIcon");
     width: 29px;

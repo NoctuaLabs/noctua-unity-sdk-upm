@@ -2,6 +2,24 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.32.0] - 2025-01-09
+
+### 🚀 Features
+
+- Allow user to pay with native payment in custom payment complete dialog.
+
+### 🐛 Bug Fixes
+
+- Button reset password override error label
+- Adjust style dialog footer
+- Fix missing profile picture in edit mode.
+- Revert deleted line.
+- Show mobile input on user center edit profile nicknameTF
+- Non guest email linking not working
+- Fix minor styling issues.
+- Birthdate value not set - edit profile
+- Adjust clean code
+
 ## [0.31.0] - 2025-01-08
 
 ### 🚀 Features
