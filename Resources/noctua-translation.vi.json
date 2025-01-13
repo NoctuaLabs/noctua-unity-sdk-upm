@@ -195,5 +195,10 @@
     "EditProfile.CountryValidation": "Chọn quốc gia",
     "EditProfile.LanguageValidation": "Chọn ngôn ngữ",
 
-    "Usercenter.AccountLinked": "Liên kết xã hội đã hoàn tất"
+    "Usercenter.AccountLinked": "Liên kết xã hội đã hoàn tất",
+
+    "LogoutConfirmDialogPresenter.Question.Label.text": "Bạn có chắc chắn muốn đăng xuất tài khoản này không?",
+    "LogoutConfirmDialogPresenter.Note.Label.text": "Đừng lo, tiến trình trò chơi của bạn sẽ được lưu vào tài khoản hiện tại. Bạn sẽ tiếp tục với tài khoản Khách",
+    "LogoutConfirmDialogPresenter.ConfirmButton.Button.text": "Xác nhận Đăng xuất",
+    "LogoutConfirmDialogPresenter.CancelButton.Label.text": "Hủy"
 }

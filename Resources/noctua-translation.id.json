@@ -195,5 +195,11 @@
     "EditProfile.CountryValidation": "Pilih negara",
     "EditProfile.LanguageValidation": "Pilih bahasa",
 
-    "Usercenter.AccountLinked": "Tautan sosial berhasil diselesaikan"
+    "Usercenter.AccountLinked": "Tautan sosial berhasil diselesaikan",
+
+    "LogoutConfirmDialogPresenter.Question.Label.text": "Apakah Anda yakin ingin keluar dari akun ini?",
+    "LogoutConfirmDialogPresenter.Note.Label.text": "Tenang, kemajuan permainan Anda akan disimpan ke akun saat ini. Anda akan melanjutkan dengan akun Tamu",
+    "LogoutConfirmDialogPresenter.ConfirmButton.Button.text": "Konfirmasi Keluar",
+    "LogoutConfirmDialogPresenter.CancelButton.Label.text": "Batal"
+
 }
