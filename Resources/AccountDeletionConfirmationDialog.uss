@@ -4,8 +4,8 @@
 
 .delete-account-icon {
     background-image: url("project://database/Packages/com.noctuagames.sdk/Resources/DeleteAccountIcon.png?fileID=21300000&guid=68557b7009fc642358eecd7a2532b4fe&type=3#DeleteAccountIcon");
-    width: 100px;
-    height: 100px;
+    width: 50px;
+    height: 50px;
     background-color: transparent;
     -unity-background-scale-mode: scale-to-fit;
 }
