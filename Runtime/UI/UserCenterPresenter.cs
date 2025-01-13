@@ -192,6 +192,8 @@ namespace com.noctuagames.sdk.UI
                 View.Q<VisualElement>("UserCenter").AddToClassList("landscape");
                 View.Q<VisualElement>("UserProfile").AddToClassList("landscape");
                 View.Q<VisualElement>("ConnectAccount").AddToClassList("landscape");
+
+                _noctuaLogoWithText.RemoveFromClassList("hide");
             }
             else
             {
@@ -223,9 +225,6 @@ namespace com.noctuagames.sdk.UI
                 }
                 else
                 {
-
-
-
                     View.Q<VisualElement>("ConnectAccount").AddToClassList("connect-account");
                     View.Q<VisualElement>("ConnectAccount").AddToClassList("portrait");
                     View.Q<VisualElement>("ScrollViewContainer").style.marginTop = 0;
@@ -700,7 +699,6 @@ namespace com.noctuagames.sdk.UI
                 _copyIcon.RemoveFromClassList("show");
                 _connectAccountFooter.RemoveFromClassList("show");
                 _playerImage.RemoveFromClassList("player-avatar");
-                _noctuaLogoWithText.RemoveFromClassList("hide");
 
                 //add class
                 _moreOptionsMenuButton.AddToClassList("hide");
