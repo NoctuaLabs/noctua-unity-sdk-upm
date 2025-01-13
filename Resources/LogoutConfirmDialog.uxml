@@ -1,0 +1,20 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" xsi="http://www.w3.org/2001/XMLSchema-instance" engine="UnityEngine.UIElements" editor="UnityEditor.UIElements" noNamespaceSchemaLocation="../../../../UIElementsSchema/UIElements.xsd" editor-extension-mode="False">
+    <Style src="project://database/Packages/com.noctuagames.sdk/Resources/Noctua.uss?fileID=7433441132597879392&amp;guid=fe35e550fb23b6446af377f994effe35&amp;type=3#Noctua" />
+    <Style src="project://database/Packages/com.noctuagames.sdk/Resources/AccountDeletionConfirmationDialog.uss?fileID=7433441132597879392&amp;guid=5a62c103903df41aeb7b3319331b5857&amp;type=3#AccountDeletionConfirmationDialog" />
+    <ui:VisualElement name="Root" class="root" style="flex-grow: 1;">
+        <ui:VisualElement name="LogoutConfirmDialog" class="base dialog-box" style="height: 300px;">
+            <ui:VisualElement name="Gap" class="gap" />
+            <ui:VisualElement name="LogoutIcon" class="logout-left-icon" />
+            <ui:Label name="Question" text="Are you sure you want to logout this account?" class="question" />
+            <ui:Label name="Note" text="Relax, your game progress will be saved to current account. You'll continue with Guest account" class="note" />
+            <ui:VisualElement name="ErrBox" class="err-box">
+                <ui:Label name="ErrCode" display-tooltip-when-elided="true" class="dialog-err-label hide" />
+            </ui:VisualElement>
+            <ui:VisualElement name="ButtonGroup" class="button-group">
+                <ui:Button name="ConfirmButton" text="Confirm Logout" class="button-highlight delete-account-button" />
+                <ui:Button display-tooltip-when-elided="true" name="Spinner" focusable="false" picking-mode="Ignore" class="spinner-fake-button hide" />
+                <ui:Button name="CancelButton" text="Cancel" class="button-normal delete-account-button" style="margin-top: 2%;"/>
+            </ui:VisualElement>
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>

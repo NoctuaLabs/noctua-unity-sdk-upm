@@ -59,6 +59,7 @@ namespace com.noctuagames.sdk
         private readonly ILogger _log = new NoctuaLogger();
         private readonly UIFactory _uiFactory;
         
+        private readonly LogoutConfirmDialogPresenter _logoutConfirmDialog;
         private readonly AccountSelectionDialogPresenter _accountSelectionDialog;
         private readonly SwitchAccountConfirmationDialogPresenter _switchAccountConfirmationDialog;
         private readonly LoginOptionsDialogPresenter _loginOptionsDialog;
@@ -112,6 +113,7 @@ namespace com.noctuagames.sdk
             
             _userCenter = _uiFactory.Create<UserCenterPresenter, AuthenticationModel>(this);
             _userCenter.EventSender = eventSender;
+            _logoutConfirmDialog = _uiFactory.Create<LogoutConfirmDialogPresenter, AuthenticationModel>(this);
             _accountSelectionDialog = _uiFactory.Create<AccountSelectionDialogPresenter, AuthenticationModel>(this);
             _pendingPurchasesDialog = _uiFactory.Create<PendingPurchasesDialogPresenter, AuthenticationModel>(this);
             _switchAccountConfirmationDialog = _uiFactory.Create<SwitchAccountConfirmationDialogPresenter, AuthenticationModel>(this);
@@ -229,6 +231,11 @@ namespace com.noctuagames.sdk
         public void ShowLoadingProgress(bool isShow)
         {
             _uiFactory.ShowLoadingProgress(isShow);
+        }
+
+        public void ShowLogoutConfirmation()
+        {
+            _logoutConfirmDialog.Show();
         }
 
         public async UniTask<bool> ShowBannedConfirmationDialog()

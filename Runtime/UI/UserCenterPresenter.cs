@@ -945,15 +945,15 @@ namespace com.noctuagames.sdk.UI
             OnUIEditProfile(false);
         }
 
-        private void OnLogout()
+        private async void OnLogout()
         {
             _log.Debug("clicking logout");
-
+            
             Visible = false;
             OnUIEditProfile(false);
-            StartCoroutine(Model.AuthService.LogoutAsync().ToCoroutine());
-        }
 
+           Model.ShowLogoutConfirmation();
+        }
 
         private void OnExitButton(PointerUpEvent evt)
         {
