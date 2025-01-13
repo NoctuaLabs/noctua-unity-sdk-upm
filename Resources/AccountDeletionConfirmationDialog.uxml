@@ -2,7 +2,7 @@
     <Style src="project://database/Packages/com.noctuagames.sdk/Resources/Noctua.uss?fileID=7433441132597879392&amp;guid=fe35e550fb23b6446af377f994effe35&amp;type=3#Noctua" />
     <Style src="project://database/Packages/com.noctuagames.sdk/Resources/AccountDeletionConfirmationDialog.uss?fileID=7433441132597879392&amp;guid=5a62c103903df41aeb7b3319331b5857&amp;type=3#AccountDeletionConfirmationDialog" />
     <ui:VisualElement name="Root" class="root" style="flex-grow: 1;">
-        <ui:VisualElement name="AccountDeletionConfirmationDialog" class="base dialog-box" style="height: 350px;">
+        <ui:VisualElement name="AccountDeletionConfirmationDialog" class="base dialog-box" style="height: 300px;">
             <ui:VisualElement name="Gap" class="gap" />
             <ui:VisualElement name="DeleteIcon" class="delete-account-icon" />
             <ui:Label name="Question" text="Are you sure you want to delete this account?" class="question" />
