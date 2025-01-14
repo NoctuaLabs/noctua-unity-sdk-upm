@@ -85,7 +85,7 @@ namespace com.noctuagames.sdk.UI
         private const float SlideInterval = 3f;
         private bool _isGuestUser = false;
         private bool _isDatePickerOpen = false;
-        private List<UserCredential> _credentials = new()
+        private readonly List<UserCredential> _credentials = new()
         {
             new UserCredential
             {
