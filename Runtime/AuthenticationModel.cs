@@ -311,6 +311,7 @@ namespace com.noctuagames.sdk
         public void SetFlag(bool SSODisabled = false)
         {
             _loginOptionsDialog.SetFlag(SSODisabled);
+            _userCenter.SetFlag(SSODisabled);
         }
         
     }

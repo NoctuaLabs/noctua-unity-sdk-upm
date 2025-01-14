@@ -20,6 +20,9 @@ namespace com.noctuagames.sdk.UI
 
         private readonly ILogger _log = new NoctuaLogger();
 
+        // Flags
+        private bool _ssoDisabled = false;
+
         private VisualTreeAsset _itemTemplate;
         private Texture2D _defaultAvatar;
         private ListView _credentialListView;
@@ -82,7 +85,7 @@ namespace com.noctuagames.sdk.UI
         private const float SlideInterval = 3f;
         private bool _isGuestUser = false;
         private bool _isDatePickerOpen = false;
-        private readonly List<UserCredential> _credentials = new()
+        private List<UserCredential> _credentials = new()
         {
             new UserCredential
             {
@@ -238,6 +241,14 @@ namespace com.noctuagames.sdk.UI
         {
             try
             {
+
+                // Hide SSO if the backend told so.
+                if (_ssoDisabled)
+                {
+                    // Refresh the connect account item list view.
+                    BindListView();
+                }
+
                 Model.ShowLoadingProgress(true);
                 if (Model.AuthService.RecentAccount == null)
                 {
@@ -1016,7 +1027,7 @@ namespace com.noctuagames.sdk.UI
 
         private void BindListView()
         {
-            var credentialFiltered = Utility.ContainsFlag(_globalConfig?.Noctua?.Flags, "VNLegalPurpose") ? _credentials.Where(c => c.CredentialProvider == CredentialProvider.Email).ToList() : _credentials;
+            var credentialFiltered = Utility.ContainsFlag(_globalConfig?.Noctua?.Flags, "VNLegalPurpose") || _ssoDisabled ? _credentials.Where(c => c.CredentialProvider == CredentialProvider.Email).ToList() : _credentials;
 
             _credentialListView = View.Q<ListView>("AccountList");
             _itemTemplate ??= Resources.Load<VisualTreeAsset>("ConnectAccountItem");
@@ -1202,6 +1213,11 @@ namespace com.noctuagames.sdk.UI
                     indicator.RemoveFromClassList("active");
                 }
             }
+        }
+
+        public void SetFlag(bool SSODisabled = false)
+        {
+            _ssoDisabled = SSODisabled;
         }
 
         private enum CredentialProvider

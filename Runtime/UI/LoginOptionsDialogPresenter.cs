@@ -8,6 +8,10 @@ namespace com.noctuagames.sdk.UI
     internal class LoginOptionsDialogPresenter : Presenter<AuthenticationModel>
     {
         private readonly ILogger _log = new NoctuaLogger();
+
+        // Flags
+        private bool _ssoDisabled = false;
+
         private Label _tnCLabel;
         private Label _privacyLabel;
         private Button _loginWithGoogleButton;
@@ -17,7 +21,6 @@ namespace com.noctuagames.sdk.UI
         private Button _backButton;
         private GlobalConfig _config;
 
-        private bool _ssoDisabled = false;
         public void Show()
         {
             if (_ssoDisabled)
