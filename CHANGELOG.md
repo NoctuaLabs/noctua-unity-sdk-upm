@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.33.1] - 2025-01-14
+
+### 🐛 Bug Fixes
+
+- Increase timeout. Show error message toast for Platform Content.
+
 ## [0.33.0] - 2025-01-14
 
 ### 🚀 Features
