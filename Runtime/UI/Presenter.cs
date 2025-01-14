@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Events;
 using UnityEngine.UIElements;
@@ -104,7 +105,7 @@ namespace com.noctuagames.sdk.UI
             public VisualElement veSpinner { get; }
             public Label labelError { get; }
 
-            public ButtonNoctua (Button button)
+            public ButtonNoctua(Button button)
             {
                 this.button = button;
                 labelError = this.button.parent.Q<Label>("ErrCode");
@@ -143,8 +144,8 @@ namespace com.noctuagames.sdk.UI
 
             public void Error(string strMessage)
             {
-                labelError.text = strMessage;                
-                labelError.RemoveFromClassList("hide");               
+                labelError.text = strMessage;
+                labelError.RemoveFromClassList("hide");
             }
         }
 
@@ -168,7 +169,7 @@ namespace com.noctuagames.sdk.UI
 
                 this.textField.hideMobileInput = true;
 
-                Clear();                
+                Clear();
             }
 
             public void SetFocus(UnityAction onFocusIn = null, UnityAction onFocusOut = null)
@@ -181,19 +182,19 @@ namespace com.noctuagames.sdk.UI
             }
 
             public void OnFocusChange(FocusInEvent evt)
-            {                
+            {
                 _onFocusIn?.Invoke();
                 Reset();
 
                 veTextInput.AddToClassList("noctua-text-input-focus");
-                labelTitle.style.color = ColorModule.white;                
+                labelTitle.style.color = ColorModule.white;
             }
 
             public void OnFocusChange(FocusOutEvent evt)
-            {                
+            {
                 _onFocusOut?.Invoke();
                 veTextInput.RemoveFromClassList("noctua-text-input-focus");
-                labelTitle.style.color = ColorModule.greyInactive;                
+                labelTitle.style.color = ColorModule.greyInactive;
             }
 
             public void Clear()
@@ -213,7 +214,7 @@ namespace com.noctuagames.sdk.UI
             {
                 labelError.text = strMessage;
                 veTextInput.AddToClassList("noctua-text-input-error");
-                labelError.RemoveFromClassList("hide");                
+                labelError.RemoveFromClassList("hide");
                 labelTitle.style.color = ColorModule.redError;
             }
 
@@ -241,6 +242,110 @@ namespace com.noctuagames.sdk.UI
                 {
                     labelTitle.AddToClassList("hide");
                 }
+            }
+        }
+
+        public class DropdownNoctua
+        {
+            public DropdownField dropdownField { get; }
+            public VisualElement veBorder { get; }
+            public Label labelTitle { get; }
+            public Label labelError { get; }
+            public string text { get { return dropdownField.text; } }
+
+            private UnityAction _onFocus;            
+
+            public string value
+            {
+                get
+                {
+                    return dropdownField.value;
+                }
+
+                set
+                {
+                    dropdownField.value = value;
+                }
+            }
+
+            public DropdownNoctua(DropdownField dropdownField)
+            {
+                this.dropdownField = dropdownField;
+                veBorder = this.dropdownField.ElementAt(1);
+                labelTitle = this.dropdownField.Q<Label>("title");
+                labelError = this.dropdownField.Q<Label>("error");
+
+                Clear();
+            }
+
+            public void SetupList(List<string> listOptions)
+            {
+                dropdownField.choices = listOptions;
+
+                dropdownField.RegisterCallback<ChangeEvent<string>>(OnChangeString);
+            }
+
+            public void OnChangeString(ChangeEvent<string> evt)
+            {
+                dropdownField.value = evt.newValue;
+                dropdownField.labelElement.style.display = DisplayStyle.None;
+                ToggleTitle(true);
+            }
+
+            public void Clear()
+            {
+                Reset();
+            }
+
+            public void Reset()
+            {
+                veBorder.RemoveFromClassList("noctua-text-input-error");
+                labelError.AddToClassList("hide");
+                labelTitle.style.color = ColorModule.greyInactive;
+            }
+
+            public void SetFocus(UnityAction onFocus = null)
+            {
+                this._onFocus = onFocus;                
+
+                dropdownField.RegisterCallback<MouseDownEvent>(OnMouseDown);
+                dropdownField.RegisterCallback<FocusOutEvent>(OnFocusChange);
+            }
+
+            public void OnMouseDown(MouseDownEvent evt)
+            {
+                //_onFocus?.Invoke();
+                Reset();
+
+                veBorder.AddToClassList("noctua-text-input-focus");
+                labelTitle.style.color = ColorModule.white;
+            }
+
+            public void OnFocusChange(FocusOutEvent evt)
+            {
+                _onFocus?.Invoke();
+                //veBorder.RemoveFromClassList("noctua-text-input-focus");
+                //labelTitle.style.color = ColorModule.greyInactive;
+            }
+
+            public void ToggleTitle(bool isShow)
+            {
+                if (isShow)
+                {
+                    labelTitle.RemoveFromClassList("hide");
+                }
+                else
+                {
+                    labelTitle.AddToClassList("hide");
+                }
+            }
+
+            public void Error(string strMessage)
+            {
+                labelError.text = strMessage;
+                veBorder.AddToClassList("noctua-text-input-error");
+                labelError.RemoveFromClassList("hide");
+                labelTitle.style.color = ColorModule.redError;
             }
         }
     }
