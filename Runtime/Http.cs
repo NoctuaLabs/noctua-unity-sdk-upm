@@ -129,6 +129,13 @@ namespace com.noctuagames.sdk
             return this;
         }
 
+        public HttpRequest WithTimeout(int timeout) // in seconds
+        {
+            _request.timeout = timeout;
+
+            return this;
+        }
+
         public HttpRequest WithFormBody(Dictionary<string, string> body)
         {
             _request.SetRequestHeader("Content-Type", "application/x-www-form-urlencoded");
@@ -222,7 +229,7 @@ namespace com.noctuagames.sdk
         public async UniTask<string> SendRaw()
         {
             _request.downloadHandler = new DownloadHandlerBuffer();
-            _request.timeout = 10;
+            _request.timeout = 30;
             await _request.SendWebRequest();
 
             return _request.downloadHandler.text;
@@ -267,7 +274,6 @@ namespace com.noctuagames.sdk
 
             try
             {
-                _request.timeout = 10;
                 await _request.SendWebRequest();
                 response = _request.downloadHandler.text;
             }

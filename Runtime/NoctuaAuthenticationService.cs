@@ -438,6 +438,7 @@ namespace com.noctuagames.sdk
         private readonly AccountContainer _accountContainer;
         private readonly EventSender _eventSender;
         private OauthRedirectListener _oauthOauthRedirectListener;
+        private int _timeout = 10; // HTTP timeout in seconds
 
         public NoctuaAuthenticationService(
             string baseUrl,
@@ -481,6 +482,7 @@ namespace com.noctuagames.sdk
             var request = new HttpRequest(HttpMethod.Post, $"{_baseUrl}/auth/guest/login")
                 .WithHeader("X-CLIENT-ID", _clientId)
                 .WithHeader("X-BUNDLE-ID", _bundleId)
+                .WithTimeout(_timeout)
                 .WithJsonBody(
                     new LoginAsGuestRequest
                     {
@@ -512,6 +514,7 @@ namespace com.noctuagames.sdk
                 .WithHeader("X-CLIENT-ID", _clientId)
                 .WithHeader("X-BUNDLE-ID", _bundleId)
                 .WithHeader("Authorization", "Bearer " + accessToken)
+                .WithTimeout(_timeout)
                 .WithJsonBody(exchangeToken);
 
 
@@ -531,7 +534,8 @@ namespace com.noctuagames.sdk
 
             var request = new HttpRequest(HttpMethod.Get, $"{_baseUrl}/auth/{provider}/login/redirect{redirectUri}")
                 .WithHeader("X-CLIENT-ID", _clientId)
-                .WithHeader("X-BUNDLE-ID", _bundleId);
+                .WithHeader("X-BUNDLE-ID", _bundleId)
+                .WithTimeout(_timeout);
 
             var redirectUrlResponse = await request.Send<SocialRedirectUrlResponse>();
 
@@ -542,11 +546,13 @@ namespace com.noctuagames.sdk
             var request = new HttpRequest(HttpMethod.Post, $"{_baseUrl}/auth/{provider}/login/callback")
                 .WithHeader("X-CLIENT-ID", _clientId)
                 .WithHeader("X-BUNDLE-ID", _bundleId)
+                .WithTimeout(_timeout)
                 .WithJsonBody(payload);
 
             if (!string.IsNullOrEmpty(RecentAccount?.Player?.AccessToken) && RecentAccount.IsGuest)
             {
-                request.WithHeader("Authorization", "Bearer " + RecentAccount.Player.AccessToken);
+                request.WithHeader("Authorization", "Bearer " + RecentAccount.Player.AccessToken)
+                .WithTimeout(_timeout);
             }
 
             var response = await request.Send<PlayerToken>();
@@ -566,6 +572,7 @@ namespace com.noctuagames.sdk
             var request = new HttpRequest(HttpMethod.Post, $"{_baseUrl}/auth/email/login")
                 .WithHeader("X-CLIENT-ID", _clientId)
                 .WithHeader("X-BUNDLE-ID", _bundleId)
+                .WithTimeout(_timeout)
                 .WithJsonBody(
                     new CredPair
                     {
@@ -595,6 +602,7 @@ namespace com.noctuagames.sdk
             var request = new HttpRequest(HttpMethod.Post, $"{_baseUrl}/auth/email/register")
                 .WithHeader("X-CLIENT-ID", _clientId)
                 .WithHeader("X-BUNDLE-ID", _bundleId)
+                .WithTimeout(_timeout)
                 .WithJsonBody(
                     new CredPair
                     {
@@ -614,6 +622,7 @@ namespace com.noctuagames.sdk
             var request = new HttpRequest(HttpMethod.Post, $"{_baseUrl}/auth/email/verify-registration")
                 .WithHeader("X-CLIENT-ID", _clientId)
                 .WithHeader("X-BUNDLE-ID", _bundleId)
+                .WithTimeout(_timeout)
                 .WithJsonBody(
                     new CredentialVerification
                     {
@@ -641,6 +650,7 @@ namespace com.noctuagames.sdk
             var request = new HttpRequest(HttpMethod.Post, $"{_baseUrl}/auth/email/reset-password")
                 .WithHeader("X-CLIENT-ID", _clientId)
                 .WithHeader("X-BUNDLE-ID", _bundleId)
+                .WithTimeout(_timeout)
                 .WithJsonBody(
                     new CredPair
                     {
@@ -662,6 +672,7 @@ namespace com.noctuagames.sdk
             var request = new HttpRequest(HttpMethod.Post, $"{_baseUrl}/auth/email/verify-reset-password")
                 .WithHeader("X-CLIENT-ID", _clientId)
                 .WithHeader("X-BUNDLE-ID", _bundleId)
+                .WithTimeout(_timeout)
                 .WithJsonBody(
                     new CredentialVerification
                     {
@@ -696,6 +707,7 @@ namespace com.noctuagames.sdk
                 .WithHeader("X-CLIENT-ID", _clientId)
                 .WithHeader("X-BUNDLE-ID", _bundleId)
                 .WithHeader("Authorization", "Bearer " + RecentAccount.Player.AccessToken)
+                .WithTimeout(_timeout)
                 .WithJsonBody(payload);
 
             var response = await request.Send<Credential>();
@@ -731,6 +743,7 @@ namespace com.noctuagames.sdk
                 .WithHeader("X-CLIENT-ID", _clientId)
                 .WithHeader("X-BUNDLE-ID", Application.identifier)
                 .WithHeader("Authorization", "Bearer " + RecentAccount.Player.AccessToken)
+                .WithTimeout(_timeout)
                 .WithJsonBody(
                     new CredPair
                     {
@@ -755,6 +768,7 @@ namespace com.noctuagames.sdk
                 .WithHeader("X-CLIENT-ID", _clientId)
                 .WithHeader("X-BUNDLE-ID", _bundleId)
                 .WithHeader("Authorization", "Bearer " + RecentAccount.Player.AccessToken)
+                .WithTimeout(_timeout)
                 .WithJsonBody(
                     new CredentialVerification
                     {
@@ -787,6 +801,7 @@ namespace com.noctuagames.sdk
             var request = new HttpRequest(HttpMethod.Post, $"{_baseUrl}/auth/email/verify-registration")
                 .WithHeader("X-CLIENT-ID", _clientId)
                 .WithHeader("X-BUNDLE-ID", _bundleId)
+                .WithTimeout(_timeout)
                 .WithJsonBody(
                     new CredentialVerification
                     {
@@ -811,6 +826,7 @@ namespace com.noctuagames.sdk
             var request = new HttpRequest(HttpMethod.Post, $"{_baseUrl}/auth/email/verify-link")
                 .WithHeader("X-CLIENT-ID", _clientId)
                 .WithHeader("X-BUNDLE-ID", _bundleId)
+                .WithTimeout(_timeout)
                 .WithJsonBody(
                     new CredentialVerification
                     {
@@ -837,6 +853,7 @@ namespace com.noctuagames.sdk
             var request = new HttpRequest(HttpMethod.Post, $"{_baseUrl}/auth/{provider}/login/callback")
                 .WithHeader("X-CLIENT-ID", _clientId)
                 .WithHeader("X-BUNDLE-ID", _bundleId)
+                .WithTimeout(_timeout)
                 .WithJsonBody(payload);
 
             request.WithHeader("Authorization", "Bearer " + RecentAccount.Player.AccessToken);
@@ -855,6 +872,7 @@ namespace com.noctuagames.sdk
             var request = new HttpRequest(HttpMethod.Post, $"{_baseUrl}/auth/email/login")
                 .WithHeader("X-CLIENT-ID", _clientId)
                 .WithHeader("X-BUNDLE-ID", _bundleId)
+                .WithTimeout(_timeout)
                 .WithJsonBody(
                     new CredPair
                     {
@@ -909,6 +927,7 @@ namespace com.noctuagames.sdk
                 .WithHeader("X-CLIENT-ID", _clientId)
                 .WithHeader("X-BUNDLE-ID", Application.identifier)
                 .WithHeader("Authorization", "Bearer " + targetPlayer?.AccessToken)
+                .WithTimeout(_timeout)
                 .WithJsonBody(new BindRequest { GuestToken = RecentAccount.Player.AccessToken });
 
             var response = await request.Send<PlayerToken>();
@@ -946,7 +965,8 @@ namespace com.noctuagames.sdk
             var request = new HttpRequest(HttpMethod.Get, $"{_baseUrl}/user/profile")
                 .WithHeader("X-CLIENT-ID", _clientId)
                 .WithHeader("X-BUNDLE-ID", _bundleId)
-                .WithHeader("Authorization", "Bearer " + RecentAccount.Player.AccessToken);
+                .WithHeader("Authorization", "Bearer " + RecentAccount.Player.AccessToken)
+                .WithTimeout(_timeout);
 
             return await request.Send<User>();
         }
@@ -962,6 +982,7 @@ namespace com.noctuagames.sdk
                 .WithHeader("X-CLIENT-ID", _clientId)
                 .WithHeader("X-BUNDLE-ID", _bundleId)
                 .WithHeader("Authorization", "Bearer " + RecentAccount.Player.AccessToken)
+                .WithTimeout(_timeout)
                 .WithJsonBody(updateUserRequest);
 
             _ = await request.Send<object>();
@@ -1075,6 +1096,7 @@ namespace com.noctuagames.sdk
                 .WithHeader("X-CLIENT-ID", _clientId)
                 .WithHeader("X-BUNDLE-ID", _bundleId)
                 .WithHeader("Authorization", "Bearer " + RecentAccount.Player.AccessToken)
+                .WithTimeout(_timeout)
                 .WithJsonBody(playerAccountData);
 
             _ = await request.Send<object>();
@@ -1097,7 +1119,8 @@ namespace com.noctuagames.sdk
             var request = new HttpRequest(HttpMethod.Delete, $"{_baseUrl}/players/destroy")
                 .WithHeader("X-CLIENT-ID", _clientId)
                 .WithHeader("X-BUNDLE-ID", _bundleId)
-                .WithHeader("Authorization", "Bearer " + RecentAccount.Player.AccessToken);
+                .WithHeader("Authorization", "Bearer " + RecentAccount.Player.AccessToken)
+                .WithTimeout(_timeout);
 
             _ = await request.Send<DeletePlayerAccountResponse>();
 
@@ -1126,6 +1149,7 @@ namespace com.noctuagames.sdk
                 .WithHeader("X-CLIENT-ID", _clientId)
                 .WithHeader("X-BUNDLE-ID", _bundleId)
                 .WithHeader("Authorization", "Bearer " + RecentAccount.Player.AccessToken)
+                .WithTimeout(_timeout)
                 .WithRawBody(fileData);
 
             string response = await request.SendRaw();
@@ -1145,7 +1169,8 @@ namespace com.noctuagames.sdk
             var request = new HttpRequest(HttpMethod.Get, $"{_baseUrl}/user/profile-options")
                 .WithHeader("X-CLIENT-ID", _clientId)
                 .WithHeader("X-BUNDLE-ID", _bundleId)
-                .WithHeader("Authorization", "Bearer " + RecentAccount.Player.AccessToken);
+                .WithHeader("Authorization", "Bearer " + RecentAccount.Player.AccessToken)
+                .WithTimeout(_timeout);
 
             return await request.Send<ProfileOptionData>();
         }
@@ -1177,6 +1202,11 @@ namespace com.noctuagames.sdk
         private void SendEvent(string eventName, Dictionary<string, IConvertible> data = null)
         {
             _eventSender?.Send(eventName, data ?? new Dictionary<string, IConvertible>());
+        }
+
+        public void SetTimeout(int timeout)
+        {
+            _timeout = timeout;
         }
 
         internal class Config
