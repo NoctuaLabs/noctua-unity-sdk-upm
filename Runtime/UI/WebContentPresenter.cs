@@ -157,7 +157,14 @@ namespace com.noctuagames.sdk.UI
                 _container.AddToClassList("windowed");
             }
             
-            webView.Frame = CalculateFrame(_webViewAnchor);
+            if (Model.ScreenMode == ScreenMode.FullScreen)
+            {
+                webView.Frame = new Rect(0.05f*Screen.width, 0.1f*Screen.height, 0.9f*Screen.width, 0.8f*Screen.height);
+            }
+            else
+            {
+                webView.Frame = CalculateFrame(_webViewAnchor);
+            }
         }
 
         private Rect CalculateFrame(VisualElement element)
