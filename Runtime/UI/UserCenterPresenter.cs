@@ -42,9 +42,9 @@ namespace com.noctuagames.sdk.UI
         private VisualElement _editProfileContainer;
         private InputFieldNoctua _nicknameTF;
         private InputFieldNoctua _birthDateTF;
-        private DropdownField _genderDF;
-        private DropdownField _countryDF;
-        private DropdownField _languageDF;
+        private DropdownNoctua _genderDF;
+        private DropdownNoctua _countryDF;
+        private DropdownNoctua _languageDF;
         private VisualElement _profileImage;
         private string _profileImageUrl;
         private VisualElement _playerImage;
@@ -59,6 +59,7 @@ namespace com.noctuagames.sdk.UI
         private VisualElement _noctuaLogoWithText;
         private Label _sdkVersion;
         private string _dateString;
+        private VisualElement _veDropdownDrawer;
         #endregion
 
         // Suggest Bind UI
@@ -316,7 +317,7 @@ namespace com.noctuagames.sdk.UI
 
                     bool validDate = DateTime.TryParse(user?.DateOfBirth, null, DateTimeStyles.RoundtripKind, out DateTime dateTime);
                     string formattedDate = validDate ? dateTime.ToString("dd/MM/yyyy", CultureInfo.InvariantCulture) : "";
-                    
+
                     _birthDateTF.textField.value = formattedDate;
                     _dateString = formattedDate;
 
@@ -434,7 +435,7 @@ namespace com.noctuagames.sdk.UI
             {
                 upEvent.StopImmediatePropagation();
 
-                if(_isDatePickerOpen)
+                if (_isDatePickerOpen)
                 {
                     return;
                 }
@@ -469,9 +470,9 @@ namespace com.noctuagames.sdk.UI
             _editProfileContainer = View.Q<VisualElement>("EditProfileBox");
 
             _nicknameTF = new InputFieldNoctua(View.Q<TextField>("NicknameTF"));
-            _genderDF = View.Q<DropdownField>("GenderTF");
-            _countryDF = View.Q<DropdownField>("CountryTF");
-            _languageDF = View.Q<DropdownField>("LanguageTF");
+            _genderDF = new DropdownNoctua(View.Q<DropdownField>("GenderTF"));
+            _countryDF = new DropdownNoctua(View.Q<DropdownField>("CountryTF"));
+            _languageDF = new DropdownNoctua(View.Q<DropdownField>("LanguageTF"));
             _profileImage = View.Q<VisualElement>("ProfileImage");
             _playerImage = View.Q<VisualElement>("PlayerAvatar");
             _userIDLabel = View.Q<Label>("UserIdLabel");
@@ -506,17 +507,14 @@ namespace com.noctuagames.sdk.UI
         public void HideAllErrors()
         {
             _nicknameTF.Reset();
-
-            _countryDF.Children().ElementAt(1).RemoveFromClassList("noctua-text-input-error");
-            _languageDF.Children().ElementAt(1).RemoveFromClassList("noctua-text-input-error");
-
-            _countryDF.Q<Label>("error").AddToClassList("hide");
-            _languageDF.Q<Label>("error").AddToClassList("hide");
+            _genderDF.Reset();
+            _countryDF.Reset();
+            _languageDF.Reset();
         }
 
         private void SetupDropdownUI()
         {
-            var genderChoices = new List<string> { "Male", "Female" };
+            var genderOption = new List<string> { "Male", "Female" };
 
             if (_profileDataOptions != null)
             {
@@ -534,30 +532,27 @@ namespace com.noctuagames.sdk.UI
                 }
             }
 
-            _genderDF.choices = genderChoices;
-            _genderDF.RegisterCallback<ChangeEvent<string>>((evt) =>
-            {
-                _genderDF.value = evt.newValue;
-                _genderDF.labelElement.style.display = DisplayStyle.None;
-                _genderDF.Q<VisualElement>("title").RemoveFromClassList("hide");
-            });
+            _genderDF.SetFocus(DropdownFocus);
+            _countryDF.SetFocus(DropdownFocus);
+            _languageDF.SetFocus(DropdownFocus);
 
-            _countryDF.choices = _countryOptions;
-            _countryDF.RegisterCallback<ChangeEvent<string>>((evt) =>
-            {
-                _countryDF.value = evt.newValue;
-                _countryDF.labelElement.style.display = DisplayStyle.None;
-                _countryDF.Q<VisualElement>("title").RemoveFromClassList("hide");
-            });
+            _genderDF.SetupList(genderOption);
+            _countryDF.SetupList(_countryOptions);
+            _languageDF.SetupList(_languageOptions);
+        }
 
-            _languageDF.choices = _languageOptions;
-            _languageDF.RegisterCallback<ChangeEvent<string>>((evt) =>
-            {
-                _languageDF.value = evt.newValue;
-                _languageDF.labelElement.style.display = DisplayStyle.None;
-                _languageDF.Q<VisualElement>("title").RemoveFromClassList("hide");
-            });
+        public void DropdownFocus()
+        {
+            _veDropdownDrawer = View.parent.Q(className: "unity-base-dropdown").Q("unity-content-container");
+            _veDropdownDrawer.RegisterCallback<FocusOutEvent>(evt => OnDropdownFocusOut());
+            _veDropdownDrawer.RegisterCallback<MouseDownEvent>(evt => OnDropdownFocusOut());
+        }
 
+        private void OnDropdownFocusOut()
+        {
+            _genderDF.Reset();
+            _countryDF.Reset();
+            _languageDF.Reset();
         }
 
         private void OnChangeProfile()
@@ -691,7 +686,7 @@ namespace com.noctuagames.sdk.UI
         {
             SetOrientation(isEditProfile);
             _isDatePickerOpen = false;
-            
+
             if (isEditProfile)
             {
                 _log.Debug("Edit profile");
@@ -734,7 +729,7 @@ namespace com.noctuagames.sdk.UI
 
                 Utility.UpdateButtonState(_saveButton.button, false);
 
-                if (!string.IsNullOrEmpty(_profileImageUrl)) 
+                if (!string.IsNullOrEmpty(_profileImageUrl))
                 {
                     var picture = await DownloadTexture2D(_profileImageUrl);
                     if (picture == null)
@@ -742,7 +737,9 @@ namespace com.noctuagames.sdk.UI
                         picture = _defaultAvatar;
                     }
                     _profileImage.style.backgroundImage = new StyleBackground(picture);
-                } else {
+                }
+                else
+                {
                     _profileImage.style.backgroundImage = Resources.Load<Texture2D>("EditProfileImage");
                 }
             }
@@ -836,10 +833,7 @@ namespace com.noctuagames.sdk.UI
             {
                 ShowButtonSpinner(false);
 
-                _countryDF.ElementAt(1).AddToClassList("noctua-text-input-error");
-                _countryDF.Q<Label>("error").RemoveFromClassList("hide");
-                _countryDF.Q<Label>("error").text = Locale.GetTranslation("EditProfile.CountryValidation");
-                _countryDF.Q<VisualElement>("title").style.color = ColorModule.redError;
+                _countryDF.Error(Locale.GetTranslation("EditProfile.CountryValidation"));
                 return;
             }
 
@@ -847,10 +841,7 @@ namespace com.noctuagames.sdk.UI
             {
                 ShowButtonSpinner(false);
 
-                _languageDF.ElementAt(1).AddToClassList("noctua-text-input-error");
-                _languageDF.Q<Label>("error").RemoveFromClassList("hide");
-                _languageDF.Q<Label>("error").text = Locale.GetTranslation("EditProfile.LanguageValidation");
-                _languageDF.Q<VisualElement>("title").style.color = ColorModule.redError;
+                _languageDF.Error(Locale.GetTranslation("EditProfile.LanguageValidation"));
                 return;
             }
 
@@ -948,11 +939,11 @@ namespace com.noctuagames.sdk.UI
         private async void OnLogout()
         {
             _log.Debug("clicking logout");
-            
+
             Visible = false;
             OnUIEditProfile(false);
 
-           Model.ShowLogoutConfirmation();
+            Model.ShowLogoutConfirmation();
         }
 
         private void OnExitButton(PointerUpEvent evt)
@@ -1311,7 +1302,7 @@ namespace com.noctuagames.sdk.UI
             }
             SlideToNextItem(_currentIndex);
 
-              EnableCarousel();
+            EnableCarousel();
             _isDraggingCarousel = false;
         }
 
