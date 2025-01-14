@@ -489,6 +489,7 @@ namespace com.noctuagames.sdk
             }
 
             var enabledPaymentTypes = initResponse.RemoteConfigs.EnabledPaymentTypes;
+            Noctua.Instance.Value._auth.SetFlag(initResponse.RemoteConfigs.SSODisabled);
 
             if (!Noctua.Instance.Value._iap.IsReady)
             {

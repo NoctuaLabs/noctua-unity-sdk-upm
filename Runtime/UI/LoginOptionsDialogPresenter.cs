@@ -16,9 +16,16 @@ namespace com.noctuagames.sdk.UI
         private Button _registerButton;
         private Button _backButton;
         private GlobalConfig _config;
+
+        private bool _ssoDisabled = false;
         public void Show()
         {
-            Visible = true;
+            if (_ssoDisabled)
+            {
+                Model.ShowEmailLogin(null);
+            } else {
+                Visible = true;
+            }
         }
 
         protected override void Attach(){}
@@ -51,6 +58,11 @@ namespace com.noctuagames.sdk.UI
         public void SetWhitelabel(GlobalConfig config)
         {
             _config = config;
+        }
+
+        public void SetFlag(bool SSODisabled = false)
+        {
+            _ssoDisabled = SSODisabled;
         }
 
         private void OnTnCClicked()

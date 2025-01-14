@@ -43,6 +43,9 @@ namespace com.noctuagames.sdk
     {
         [JsonProperty("enabled_payment_types")]
         public List<PaymentType> EnabledPaymentTypes;
+
+        [JsonProperty("sso_disabled")]
+        public bool SSODisabled;
     }
 
     internal class NoctuaGameService
