@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.33.0] - 2025-01-14
+
+### 🚀 Features
+
+- Implement remote config to enable or disable SSO.
+- Implement remote config for user center SSO linking.
+- Add HTTP timeout at 10 seconds. Add X-DEVICE-ID in the header.
+- Add APIs to help gamedev maintains SDK playerPrefs.
+
+### 🐛 Bug Fixes
+
+- Work around for fullscreen web content on iOS not aligned
+- Restore readonly property of _credentials.
+
 ## [0.32.0] - 2025-01-09
 
 ### 🚀 Features
