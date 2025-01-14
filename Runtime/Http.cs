@@ -222,7 +222,7 @@ namespace com.noctuagames.sdk
         public async UniTask<string> SendRaw()
         {
             _request.downloadHandler = new DownloadHandlerBuffer();
-            _request.timeout = 10;
+            _request.timeout = 60;
             await _request.SendWebRequest();
 
             return _request.downloadHandler.text;
@@ -267,7 +267,7 @@ namespace com.noctuagames.sdk
 
             try
             {
-                _request.timeout = 10;
+                _request.timeout = 20;
                 await _request.SendWebRequest();
                 response = _request.downloadHandler.text;
             }

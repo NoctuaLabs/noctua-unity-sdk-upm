@@ -64,6 +64,14 @@ namespace com.noctuagames.sdk
             catch (Exception e)
             {
                 _uiFactory.ShowLoadingProgress(false);
+
+                if (e.Message.Contains("Networking"))
+                {
+                    _uiFactory.ShowError("Failed to load the contents. Please kindly check your connection and try again.");
+                } else {
+                    _uiFactory.ShowError(e.Message);
+                }
+
                 throw e;
             }
             _uiFactory.ShowLoadingProgress(false);
@@ -116,6 +124,14 @@ namespace com.noctuagames.sdk
             catch (Exception e)
             {
                 _uiFactory.ShowLoadingProgress(false);
+
+                if (e.Message.Contains("Networking"))
+                {
+                    _uiFactory.ShowError("Failed to load the contents. Please kindly check your connection and try again.");
+                } else {
+                    _uiFactory.ShowError(e.Message);
+                }
+
                 throw e;
             }
             _uiFactory.ShowLoadingProgress(false);
@@ -154,6 +170,14 @@ namespace com.noctuagames.sdk
             catch (Exception e)
             {
                 _uiFactory.ShowLoadingProgress(false);
+
+                if (e.Message.Contains("Networking"))
+                {
+                    _uiFactory.ShowError("Failed to load the contents. Please kindly check your connection and try again.");
+                } else {
+                    _uiFactory.ShowError(e.Message);
+                }
+
                 throw e;
             }
             _uiFactory.ShowLoadingProgress(false);
