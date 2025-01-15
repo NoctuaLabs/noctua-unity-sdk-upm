@@ -43,5 +43,5 @@
 }
 
 .red {
-    background-color: rgb(255, 0, 0);
+    background-color: rgba(175, 28, 54, 1);
 }
