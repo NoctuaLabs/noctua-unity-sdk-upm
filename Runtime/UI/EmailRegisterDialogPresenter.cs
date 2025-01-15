@@ -158,8 +158,8 @@ namespace com.noctuagames.sdk.UI
             Utility.UpdateButtonState(textFields, _wizardContinueButton.button);
 
             // Callbacks
-            _continueButton.button.RegisterCallback<ClickEvent>(OnContinueButtonClick);
-            _wizardContinueButton.button.RegisterCallback<ClickEvent>(OnContinueButtonClick);
+            _continueButton.button.RegisterCallback<PointerUpEvent>(OnContinueButtonClick);
+            _wizardContinueButton.button.RegisterCallback<PointerUpEvent>(OnContinueButtonClick);
             loginLink.RegisterCallback<ClickEvent>(OnLoginLinkClick);
             backButton.RegisterCallback<ClickEvent>(OnBackButtonClick);
 
@@ -448,7 +448,7 @@ namespace com.noctuagames.sdk.UI
             Model.ShowEmailLogin();
         }
 
-        private async void OnContinueButtonClick(ClickEvent evt)
+        private async void OnContinueButtonClick(PointerUpEvent evt)
         {
             _log.Debug("clicking continue button");
 
