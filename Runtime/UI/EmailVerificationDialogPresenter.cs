@@ -59,7 +59,7 @@ namespace com.noctuagames.sdk.UI
 
             resendButton.RegisterCallback<ClickEvent>(OnResendButtonClick);
             backButton.RegisterCallback<ClickEvent>(OnBackButtonClick);
-            _buttonVerify.button.RegisterCallback<ClickEvent>(OnVerifyButtonClick);
+            _buttonVerify.button.RegisterCallback<PointerUpEvent>(OnVerifyButtonClick);
         }
 
         private void OnValueChanged(InputFieldNoctua input)
@@ -138,7 +138,7 @@ namespace com.noctuagames.sdk.UI
 
         }
 
-        private async void OnVerifyButtonClick(ClickEvent evt)
+        private async void OnVerifyButtonClick(PointerUpEvent evt)
         {
             _log.Debug("clicking verify button");
 
