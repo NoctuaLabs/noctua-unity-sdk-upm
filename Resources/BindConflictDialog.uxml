@@ -9,12 +9,8 @@
             <ui:VisualElement name="PlayerBox" class="player-box">
                 <ui:VisualElement name="PlayerAvatarImage" class="email-player-avatar" />
                 <ui:VisualElement name="PlayerText" class="player-text">
-                    <ui:VisualElement>
-                        <ui:Label name="PlayerLabel" text="ono.uni" class="player-label" />
-                    </ui:VisualElement>
-                    <ui:VisualElement>
-                        <ui:Label name="CredentialDisplayText" text="ono.uni@gmail.com" class="credential-display-text" />
-                    </ui:VisualElement>
+                    <ui:Label name="PlayerLabel" text="ono.uni" class="player-label" />
+                    <ui:Label name="CredentialDisplayText" text="ono.uni@gmail.com" class="credential-display-text" />
                 </ui:VisualElement>
             </ui:VisualElement>
             <ui:VisualElement name="ConnectConflictInformationContainer" class="connect-conflict-information-container">
