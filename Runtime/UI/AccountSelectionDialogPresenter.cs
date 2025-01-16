@@ -122,7 +122,7 @@ namespace com.noctuagames.sdk.UI
             listView.bindItem = (element, index) => BindListViewItem(element, index, items);
             listView.fixedItemHeight = 40;
             listView.itemsSource = items;
-            listView.selectionType = SelectionType.Single;
+            listView.selectionType = SelectionType.None;
         }
 
         private void BindListViewItem(VisualElement element, int index, List<UserBundle> items)
