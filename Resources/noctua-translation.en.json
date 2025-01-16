@@ -199,6 +199,13 @@
     "LogoutConfirmDialogPresenter.Question.Label.text": "Are you sure you want to logout this account?",
     "LogoutConfirmDialogPresenter.Note.Label.text": "Relax, your game progress will be saved to current account. You'll continue with Guest account",
     "LogoutConfirmDialogPresenter.ConfirmButton.Button.text": "Confirm Logout",
-    "LogoutConfirmDialogPresenter.CancelButton.Label.text": "Cancel"
+    "LogoutConfirmDialogPresenter.CancelButton.Label.text": "Cancel",
+
+	"ErrorEmailEmpty": "Email address should not be empty",
+	"ErrorEmailNotValid": "Email address is not valid",
+	"ErrorPasswordEmpty": "Password should not be empty",
+	"ErrorPasswordShort": "Password is too short. Minimum 6 character",
+	"ErrorRePasswordEmpty": "Repeated password should not be empty",
+	"ErrorRePasswordNotMatch": "Password is not matched with repeated password"
 }
   

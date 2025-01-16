@@ -200,5 +200,12 @@
     "LogoutConfirmDialogPresenter.Question.Label.text": "Bạn có chắc chắn muốn đăng xuất tài khoản này không?",
     "LogoutConfirmDialogPresenter.Note.Label.text": "Đừng lo, tiến trình trò chơi của bạn sẽ được lưu vào tài khoản hiện tại. Bạn sẽ tiếp tục với tài khoản Khách",
     "LogoutConfirmDialogPresenter.ConfirmButton.Button.text": "Xác nhận Đăng xuất",
-    "LogoutConfirmDialogPresenter.CancelButton.Label.text": "Hủy"
+    "LogoutConfirmDialogPresenter.CancelButton.Label.text": "Hủy",
+
+	"ErrorEmailEmpty": "Không được để trống email",
+	"ErrorEmailNotValid": "Email không hợp lệ",
+	"ErrorPasswordEmpty": "Không được để trống mật khẩu",
+	"ErrorPasswordShort": "Mật khẩu quá ngắn. Tối thiểu 6 ký tự",
+	"ErrorRePasswordEmpty": "Không được để trống mật khẩu xác nhận",
+	"ErrorRePasswordNotMatch": "Mật khẩu không khớp với mật khẩu xác nhận"
 }
