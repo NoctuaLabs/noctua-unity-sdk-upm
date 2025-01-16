@@ -347,13 +347,13 @@ namespace com.noctuagames.sdk
         }        
 
         private static void ApplyErrorTranslation(Dictionary<string, string> translations)
-        {
-            errorEmailEmpty = GetTranslation("ErrorEmailEmpty", translations);
-            errorEmailNotValid = GetTranslation("ErrorEmailNotValid", translations);
-            errorPasswordEmpty = GetTranslation("ErrorPasswordEmpty", translations);
-            errorPasswordShort = GetTranslation("ErrorPasswordShort", translations);
-            errorRePasswordEmpty = GetTranslation("ErrorRePasswordEmpty", translations);
-            errorRePasswordNotMatch = GetTranslation("ErrorRePasswordNotMatch", translations);
+        {            
+            errorEmailEmpty = GetTranslation(LocaleTextKey.ErrorEmailEmpty.ToString(), translations);
+            errorEmailNotValid = GetTranslation(LocaleTextKey.ErrorEmailNotValid.ToString(), translations);
+            errorPasswordEmpty = GetTranslation(LocaleTextKey.ErrorPasswordEmpty.ToString(), translations);
+            errorPasswordShort = GetTranslation(LocaleTextKey.ErrorPasswordShort.ToString(), translations);
+            errorRePasswordEmpty = GetTranslation(LocaleTextKey.ErrorRePasswordEmpty.ToString(), translations);
+            errorRePasswordNotMatch = GetTranslation(LocaleTextKey.ErrorRePasswordNotMatch.ToString(), translations);            
         }
 
         public static string ValidateEmail(string str)

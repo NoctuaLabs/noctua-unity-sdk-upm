@@ -217,7 +217,14 @@ namespace com.noctuagames.sdk
         IAPPendingPurchaseItemCsButtonText,
         IAPPendingPurchaseItemCopyButtonText,
         IAPPendingPurchaseItemRetryButtonText,
-        
+
+        ErrorEmailEmpty,
+        ErrorEmailNotValid,
+        ErrorPasswordEmpty,
+        ErrorPasswordShort,
+        ErrorRePasswordEmpty,
+        ErrorRePasswordNotMatch,
+
         AuthEmailLinkingSuccessful
     }
 }
