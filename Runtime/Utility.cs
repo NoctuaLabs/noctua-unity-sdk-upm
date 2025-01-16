@@ -15,6 +15,13 @@ namespace com.noctuagames.sdk
 {
     public static class Utility
     {
+        public static string errorEmailEmpty = "Email address should not be empty";
+        public static string errorEmailNotValid = "Email address is not valid";
+        public static string errorPasswordEmpty = "Password should not be empty";
+        public static string errorPasswordShort = "Password is too short. Minimum 6 character";
+        public static string errorRePasswordEmpty = "Re-Enter password should not be empty";
+        public static string errorRePasswordNotMatch = "Password is not matched with repeated password";
+
         public static string PrintFields<T>(this T obj)
         {
             var sb = new System.Text.StringBuilder();
@@ -239,6 +246,7 @@ namespace com.noctuagames.sdk
         public static void ApplyTranslations(VisualElement root, string uxmlName, Dictionary<string, string> translations)
         {
             ApplyTranslationsToElement(root, uxmlName, translations);
+            ApplyErrorTranslation(translations);
         }
 
         private static void ApplyTranslationsToElement(VisualElement element, string uxmlName, Dictionary<string, string> translations)
@@ -338,9 +346,19 @@ namespace com.noctuagames.sdk
             return await task();
         }        
 
+        private static void ApplyErrorTranslation(Dictionary<string, string> translations)
+        {
+            errorEmailEmpty = GetTranslation("ErrorEmailEmpty", translations);
+            errorEmailNotValid = GetTranslation("ErrorEmailNotValid", translations);
+            errorPasswordEmpty = GetTranslation("ErrorPasswordEmpty", translations);
+            errorPasswordShort = GetTranslation("ErrorPasswordShort", translations);
+            errorRePasswordEmpty = GetTranslation("ErrorRePasswordEmpty", translations);
+            errorRePasswordNotMatch = GetTranslation("ErrorRePasswordNotMatch", translations);
+        }
+
         public static string ValidateEmail(string str)
         {
-            if (string.IsNullOrWhiteSpace(str)) return "Email address should not be empty";
+            if (string.IsNullOrWhiteSpace(str)) return errorEmailEmpty;
 
             try
             {
@@ -359,21 +377,21 @@ namespace com.noctuagames.sdk
                 if (Regex.IsMatch(str, pattern, RegexOptions.IgnoreCase, TimeSpan.FromMilliseconds(250)))
                     return string.Empty;
                 else
-                    return "Email address is not valid";
+                    return errorEmailNotValid;
             }
             catch
             {
-                return "Email address is not valid";
+                return errorEmailNotValid;
             }
         }
 
         public static string ValidatePassword(string str)
         {
-            if (string.IsNullOrEmpty(str)) return "Password should not be empty";
+            if (string.IsNullOrEmpty(str)) return errorPasswordEmpty;
 
             if (str?.Length < 6)
             {
-                return "Password is too short. Minimum 6 character";
+                return errorPasswordShort;
             }
 
             return string.Empty;
@@ -381,11 +399,11 @@ namespace com.noctuagames.sdk
 
         public static string ValidateReenterPassword(string strPassword, string strRePassword)
         {
-            if (string.IsNullOrEmpty(strRePassword)) return "Re-Enter password should not be empty";
+            if (string.IsNullOrEmpty(strRePassword)) return errorRePasswordEmpty;
 
             if (!strPassword.Equals(strRePassword))
             {
-                return "Password is not matched with repeated password";
+                return errorRePasswordNotMatch;
             }
 
             return string.Empty;

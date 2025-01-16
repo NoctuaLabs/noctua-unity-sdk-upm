@@ -201,6 +201,12 @@
     "LogoutConfirmDialogPresenter.Question.Label.text": "Apakah Anda yakin ingin keluar dari akun ini?",
     "LogoutConfirmDialogPresenter.Note.Label.text": "Tenang, kemajuan permainan Anda akan disimpan ke akun saat ini. Anda akan melanjutkan dengan akun Tamu",
     "LogoutConfirmDialogPresenter.ConfirmButton.Button.text": "Konfirmasi Keluar",
-    "LogoutConfirmDialogPresenter.CancelButton.Label.text": "Batal"
+    "LogoutConfirmDialogPresenter.CancelButton.Label.text": "Batal",
 
+	"ErrorEmailEmpty": "Alamat email tidak boleh kosong",
+	"ErrorEmailNotValid": "Alamat email tidak valid",
+	"ErrorPasswordEmpty": "Kata sandi tidak boleh kosong",
+	"ErrorPasswordShort": "Kata sandi terlalu pendek. Minimal 6 karakter",
+	"ErrorRePasswordEmpty": "Kata sandi ulang tidak boleh kosong",
+	"ErrorRePasswordNotMatch": "Kata sandi tidak cocok dengan kata sandi ulang"
 }
