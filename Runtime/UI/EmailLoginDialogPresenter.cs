@@ -68,7 +68,11 @@ namespace com.noctuagames.sdk.UI
 
             Utility.UpdateButtonState(_textFields, _submitButton.button);
 
-            _submitButton.button.RegisterCallback<ClickEvent>(OnContinueButtonClick);
+           // _submitButton.button.RegisterCallback<ClickEvent>(OnContinueButtonClick);
+            _submitButton.button.RegisterCallback<PointerUpEvent>(evt =>
+            {
+                OnContinueButtonClick(evt);
+            });
             View.Q<Label>("ForgotPassword").RegisterCallback<ClickEvent>(OnForgotPasswordButtonClick);
             View.Q<Label>("Register").RegisterCallback<ClickEvent>(OnRegisterButtonClick);
             View.Q<Button>("BackButton").RegisterCallback<ClickEvent>(OnBackButtonClick);            
@@ -149,7 +153,7 @@ namespace com.noctuagames.sdk.UI
             Model.ShowEmailRegistration(true);
         }
 
-        private async void OnContinueButtonClick(ClickEvent evt)
+        private async void OnContinueButtonClick(PointerUpEvent evt)
         {
             _log.Debug("clicking continue button");
 
