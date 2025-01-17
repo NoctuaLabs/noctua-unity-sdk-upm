@@ -22,6 +22,7 @@ namespace com.noctuagames.sdk.UI
         private readonly ILogger _log = new NoctuaLogger();
 
         private VisualTreeAsset _itemTemplate;
+        private VisualElement _rootView;
         private Texture2D _defaultAvatar;
         private ListView _credentialListView;
         private Label _stayConnect;
@@ -123,6 +124,7 @@ namespace com.noctuagames.sdk.UI
 
         private void Awake()
         {
+            _rootView = View.Q<VisualElement>("Root");
             _defaultAvatar = Resources.Load<Texture2D>("DefaultAvatar");
 
             _stayConnect = View.Q<Label>("ConnectAccountLabel");
@@ -162,8 +164,21 @@ namespace com.noctuagames.sdk.UI
         {
             base.Update();
             CarouselScrollAnimation();
+            AdjustPopupForKeyboard();
         }
 
+      private void AdjustPopupForKeyboard() {
+        // Adjust the popup behavior to handle keyboard blocking the input field
+        
+        if (Screen.width > Screen.height) {
+            // No specific behavior defined for landscape mode, so leave as is
+            return;
+        }
+        
+        _rootView.style.justifyContent = TouchScreenKeyboard.visible 
+            ? Justify.FlexStart 
+            : Justify.FlexEnd;
+    }
         private void OnEnable()
         {
             _carouselLabel = View.Q<Label>("TextCarousel");
