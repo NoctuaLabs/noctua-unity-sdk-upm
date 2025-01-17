@@ -16,6 +16,7 @@ namespace com.noctuagames.sdk.UI
         private Label _privacyLabel;
         private Button _loginWithGoogleButton;
         private Button _loginWithFacebookButton;
+        private Button _loginWithAppleButton;
         private Button _loginWithEmailButton;
         private Button _registerButton;
         private Button _backButton;
@@ -47,6 +48,9 @@ namespace com.noctuagames.sdk.UI
             
             _loginWithFacebookButton = View.Q<Button>("LoginWithFacebookButton");
             _loginWithFacebookButton.RegisterCallback<PointerUpEvent>(_ => OnLoginWithFacebookButtonClicked());
+            
+            _loginWithAppleButton = View.Q<Button>("LoginWithAppleButton");
+            _loginWithAppleButton.RegisterCallback<PointerUpEvent>(_ => OnLoginWithAppleButtonClicked());
             
             _loginWithEmailButton = View.Q<Button>("LoginWithEmailButton");
             _loginWithEmailButton.RegisterCallback<PointerUpEvent>(_ => OnLoginWithEmailButtonClicked());
@@ -100,6 +104,14 @@ namespace com.noctuagames.sdk.UI
             StartCoroutine(SocialLogin("google").ToCoroutine());
         }
 
+        private void OnLoginWithAppleButtonClicked()
+        {
+            _log.Debug("clicking login with apple");
+        
+            Visible = false;
+            StartCoroutine(SocialLogin("apple").ToCoroutine());
+        }
+
         private async UniTask SocialLogin(string provider)
         {
             try
@@ -127,7 +139,7 @@ namespace com.noctuagames.sdk.UI
                 Model.ShowGeneralNotification(e.Message);
             }
         }
-
+        
         private void OnLoginWithEmailButtonClicked()
         {
             _log.Debug("clicking login with email");

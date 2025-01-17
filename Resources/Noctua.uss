@@ -316,6 +316,11 @@
     background-position: center;
 }
 
+.apple-logo {
+    background-image: resource('AppleLogo');
+    background-position: center;
+}
+
 .email-icon {
     background-image: url("project://database/Packages/com.noctuagames.sdk/Resources/EmailIcon.png?fileID=21300000&guid=285b46087e2de154eb8ad52b64fc6015&type=3#EmailIcon");
     background-position: center;
