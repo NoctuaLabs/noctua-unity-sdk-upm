@@ -16,6 +16,10 @@
                     <ui:VisualElement class="login-method-logo facebook-logo" />
                     <ui:Label name="TitleFacebook" text="Facebook" class="social-account-label" />
                 </ui:Button>
+                <ui:Button name="LoginWithAppleButton" class="social-account-button">
+                    <ui:VisualElement class="login-method-logo apple-logo" />
+                    <ui:Label name="TitleApple" text="Apple" class="social-account-label" />
+                </ui:Button>
             </ui:VisualElement>
             <ui:VisualElement class="login-method-separator">
                 <ui:VisualElement class="left-separator-long" />

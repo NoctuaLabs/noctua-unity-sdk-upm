@@ -97,6 +97,11 @@ namespace com.noctuagames.sdk.UI
                 CredentialIconStyle = "facebook-logo",
                 CredentialProvider = CredentialProvider.Facebook
             },
+            new UserCredential
+            {
+                CredentialIconStyle = "apple-logo",
+                CredentialProvider = CredentialProvider.Apple
+            },
         };
 
         private GlobalConfig _globalConfig;
@@ -1065,10 +1070,10 @@ namespace com.noctuagames.sdk.UI
 
                     break;
                 case CredentialProvider.Google:
-                    StartCoroutine(SocialLinkAsync("google").ToCoroutine());
-                    break;
                 case CredentialProvider.Facebook:
-                    StartCoroutine(SocialLinkAsync("facebook").ToCoroutine());
+                case CredentialProvider.Apple:
+                    StartCoroutine(SocialLinkAsync(credential.CredentialProvider.ToString().ToLower()).ToCoroutine());
+                    
                     break;
                 default:
                     throw new NoctuaException(NoctuaErrorCode.Application, $"{credential.CredentialProvider} not supported");
@@ -1314,7 +1319,8 @@ namespace com.noctuagames.sdk.UI
         {
             Email,
             Google,
-            Facebook
+            Facebook,
+            Apple,
         }
 
         private class UserCredential
