@@ -445,7 +445,7 @@
 }
 
 .separator-long {
-    background-image: url("project://database/Packages/com.noctuagames.sdk/Resources/SeparatorLong.png");
+    background-image: url("project://database/Packages/com.noctuagames.sdk/Resources/SeparatorLong.png?fileID=21300000&guid=3b15c5b5cfbea5a45afbbc9fc4a5fd5c&type=3#SeparatorLong");
     width: 192px;
     height: 1px;
     background-position: center;
@@ -459,7 +459,7 @@
 }
 
 .logout-left-icon {
-    background-image: url("project://database/Packages/com.noctuagames.sdk/Resources/LogoutLeftIcon.png");
+    background-image: url("project://database/Packages/com.noctuagames.sdk/Resources/LogoutLeftIcon.png?fileID=21300000&guid=acbd489bfb2c58c43a0b149e1dde7453&type=3#LogoutLeftIcon");
     width: 50px;
     height: 50px;
     background-color: transparent;
@@ -680,7 +680,7 @@ Label:hover {
 }
 
 .btn-password-show {
-    background-image: resource('Eye-Open');
+    background-image: resource('Eye-Close');
     top: 8.5px;
     right: 10px;
     position: absolute;
@@ -690,7 +690,7 @@ Label:hover {
 }
 
 .btn-password-hide {
-    background-image: resource('Eye-Close');
+    background-image: resource('Eye-Open');
     top: 8.5px;
     right: 10px;
     position: absolute;
