@@ -76,6 +76,8 @@ namespace com.noctuagames.sdk.UI
 
         private async void OnResendButtonClick(ClickEvent evt)
         {
+            HideAllErrors();
+
             _log.Debug("clicking resend button");
 
             _buttonVerify.ToggleLoading(true);
