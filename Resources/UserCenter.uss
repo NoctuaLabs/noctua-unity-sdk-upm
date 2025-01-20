@@ -4,6 +4,16 @@
     color: white;
 }
 
+.change-picture-button-border {
+    border-radius: 5px;
+    border-color: rgb(59, 130, 246);
+    border-width: 1px;
+    background-color: rgba(0, 0, 0, 0);
+    color: rgb(59, 130, 246);
+    padding: 1px;
+    font-size: 10px;
+}
+
 .user-center.landscape {
     border-radius: 20px 0 0 20px;
     flex-direction: row;
@@ -534,4 +544,12 @@
     font-size: 8px;
     color: rgb(139, 142, 145);
     -unity-text-align: middle-center;
+}
+
+.photo-profile-edit {
+    width: 70px;
+    height: 70px;
+    margin-right: 0;
+    border-radius: 35px;
+    margin-bottom: 10px;
 }

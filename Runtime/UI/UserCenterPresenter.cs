@@ -617,8 +617,7 @@ namespace com.noctuagames.sdk.UI
                 _newProfileUrl = await Model.AuthService.FileUploader(filePath);
 
                 StartCoroutine(LoadImageFromUrl(_newProfileUrl, true));
-
-                ShowButtonSpinner(false);
+                 ShowButtonSpinner(false);
             }
             catch (Exception e)
             {
@@ -646,6 +645,7 @@ namespace com.noctuagames.sdk.UI
                     if (isEditProfile)
                     {
                         _profileImage.style.backgroundImage = new StyleBackground(texture);
+                        Utility.UpdateButtonState(_saveButton.button, true);
                     }
                     else
                     {
@@ -653,6 +653,7 @@ namespace com.noctuagames.sdk.UI
                         _playerImage.style.backgroundImage = _originalStyleBackground;
                     }
                 }
+     
             }
         }
 
