@@ -83,9 +83,9 @@
                             </ui:Button>
                             <ui:Label name="TitleEditBack" text="Back" class="back-edit-profile-title" style="color: rgb(117, 117, 117);" />
                         </ui:VisualElement>
-                        <ui:VisualElement class="edit-change-profile-container">
-                            <ui:VisualElement name="ProfileImage" class="profile-circle-with-border" />
-                            <ui:Button text="Change Picture" name="ChangePictureButton" focusable="false" class="button-border" style="margin-top: 10px; margin-left: -5px; padding-left: 3px; padding-right: 3px;" />
+                        <ui:VisualElement name="ChangePicturePanel" class="edit-change-profile-container">
+                            <ui:VisualElement name="ProfileImage" class="photo-profile-edit" />
+                            <ui:Button text="Change Picture" name="ChangePictureButton" focusable="false" class="change-picture-button-border" />
                             <ui:Button display-tooltip-when-elided="true" name="Spinner" focusable="false" picking-mode="Ignore" class="margin-top: 10px; margin-left: -5px; spinner-fake-button hide" style="background-color: rgba(41, 91, 172, 0);" />
                         </ui:VisualElement>
                         <ui:ScrollView scroll-deceleration-rate="0,135" elasticity="0,1" horizontal-scroller-visibility="Hidden" vertical-scroller-visibility="Hidden" name="ProfileDetails" class="profile-details">
