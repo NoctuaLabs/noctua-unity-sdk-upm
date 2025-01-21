@@ -551,10 +551,19 @@ namespace com.noctuagames.sdk.UI
         }
 
         public void DropdownFocus()
-        {
-            _veDropdownDrawer = View.parent.Q(className: "unity-base-dropdown").Q("unity-content-container");
-            _veDropdownDrawer.RegisterCallback<FocusOutEvent>(evt => OnDropdownFocusOut());
-            _veDropdownDrawer.RegisterCallback<MouseDownEvent>(evt => OnDropdownFocusOut());
+        {         
+            
+            _veDropdownDrawer = View.parent.Q(className: "unity-base-dropdown");
+            if(_veDropdownDrawer != null)
+            {
+                _veDropdownDrawer.Q("unity-content-container").RegisterCallback<FocusOutEvent>(evt => OnDropdownFocusOut());
+                _veDropdownDrawer.Q("unity-content-container").RegisterCallback<PointerDownEvent>(evt => OnDropdownFocusOut());
+            }
+            else
+            {
+                OnDropdownFocusOut();
+            }
+        
         }
 
         private void OnDropdownFocusOut()
