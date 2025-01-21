@@ -6,6 +6,7 @@ using com.noctuagames.sdk;
 using NUnit.Framework;
 using UnityEngine.TestTools;
 using UnityEngine;
+using NativeAccount = com.noctuagames.sdk.NativeAccount;
 
 namespace Tests.Runtime
 {
@@ -1212,7 +1213,7 @@ namespace Tests.Runtime
                       ""credential"": {
                         ""id"": 1,
                         ""provider"": ""email"",
-                        ""display_text"": ""User 1""
+                        ""display_text"": ""Credential1""
                       }
                     }",
                     LastUpdated = now
@@ -1226,7 +1227,7 @@ namespace Tests.Runtime
                     RawData = @"{
                       ""user"": {
                         ""id"": 2,
-                        ""nickname"": ""User2""
+                        ""nickname"": ""User2 Latest""
                       },
                       ""player"": {
                         ""id"": 3,
@@ -1235,9 +1236,9 @@ namespace Tests.Runtime
                         ""game_id"": 1
                        },
                       ""credential"": {
-                        ""id"": 2,
-                        ""provider"": ""email"",
-                        ""display_text"": ""User 2""
+                        ""id"": 12,
+                        ""provider"": ""google"",
+                        ""display_text"": ""Credential2 Google""
                       }
                     }",
                     LastUpdated = now + 1000
@@ -1262,7 +1263,7 @@ namespace Tests.Runtime
                       ""credential"": {
                         ""id"": 2,
                         ""provider"": ""email"",
-                        ""display_text"": ""User 2""
+                        ""display_text"": ""Credential2 Email""
                       }
                     }",
                     LastUpdated = now - 1000
@@ -1275,6 +1276,8 @@ namespace Tests.Runtime
             
             Assert.AreEqual(2, accountContainer.Accounts.Count);
             Assert.AreEqual(2, accountContainer.RecentAccount.User.Id);
+            Assert.AreEqual("User2 Latest", accountContainer.RecentAccount.User.Nickname);
+            Assert.AreEqual("google", accountContainer.RecentAccount.Credential.Provider);
             Assert.AreEqual(3, accountContainer.RecentAccount.Player.Id);
 
             yield return null;

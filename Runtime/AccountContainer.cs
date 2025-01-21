@@ -298,8 +298,9 @@ namespace com.noctuagames.sdk
                     userBundle = new UserBundle
                     {
                         PlayerAccounts = new List<Player>(),
+                        User = data.User,
+                        Credential = data.Credential,
                         LastUsed = accountLastUsed,
-                        User = data.User
                     };
 
                     userBundleMap[data.User.Id] = userBundle;
@@ -308,11 +309,11 @@ namespace com.noctuagames.sdk
                 if (accountLastUsed > userBundle.LastUsed)
                 {
                     userBundle.User = data.User;
+                    userBundle.Credential = data.Credential;
                     userBundle.LastUsed = accountLastUsed;
                 }
 
                 userBundle.PlayerAccounts.Add(data.Player);
-                userBundle.Credential = data.Credential;
             }
 
             // repopulate self referential data
