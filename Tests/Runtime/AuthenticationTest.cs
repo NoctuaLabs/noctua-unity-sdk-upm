@@ -9,7 +9,7 @@ namespace Tests.Runtime
     public class AuthenticationTest
     {
         [UnityTest]
-        public IEnumerator TestAccountChanged() => UniTask.ToCoroutine(async () =>
+        public IEnumerator AccountChanged_RaiseEvent() => UniTask.ToCoroutine(async () =>
         {
             try
             {
@@ -37,6 +37,28 @@ namespace Tests.Runtime
             {
                 Assert.Fail($"Failed to login as guest: {e.Message}");
             }
+        });
+
+        [UnityTest]
+        public IEnumerator ExistingUser_SetLanguageFromLocale_RaiseOnLanguageChanged() => UniTask.ToCoroutine(async () =>
+        {
+            await Noctua.InitAsync();
+            await Noctua.Auth.AuthenticateAsync();
+            await Noctua.Auth.LoginWithEmailAsync("weteso6757@digopm.com", "aaaaaa");
+
+            var lang = Noctua.Platform.Locale.GetLanguage();
+
+            var newLang = lang switch
+            {
+                "id" => "vi",
+                _    => "id"
+            };
+            
+            var changedLang = lang;
+            Noctua.Platform.Locale.OnLanguageChanged += l => changedLang = l;
+            Noctua.Platform.Locale.SetUserPrefsLanguage(newLang);
+            
+            Assert.AreEqual(newLang, changedLang);
         });
     }
 }
