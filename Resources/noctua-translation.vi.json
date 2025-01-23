@@ -177,6 +177,7 @@
 
     "IAPCanceled": "Đã hủy mua hàng",
     "IAPFailed": "Mua hàng không thành công",
+    "IAPNotReady": "Không thể thực hiện thanh toán. Vui lòng khởi động lại trò chơi và thử lại.",
     "IAPRequiresAuthentication": "Mua hàng yêu cầu xác thực người dùng",
     "IAPPaymentDisabled": "Thanh toán đã bị vô hiệu hóa. Vui lòng liên hệ với bộ phận hỗ trợ khách hàng.",
     "IAPPendingPurchaseTitle": "Bạn có {0} giao dịch mua đang chờ xử lý",

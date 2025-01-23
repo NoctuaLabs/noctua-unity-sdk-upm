@@ -608,28 +608,18 @@ namespace com.noctuagames.sdk
         public async UniTask<PurchaseResponse> PurchaseItemAsync(PurchaseRequest purchaseRequest, bool tryToUseSecondaryPayment = false, PaymentType enforcedPaymentType = PaymentType.unknown)
         {
             var iapReadyTimeout = DateTime.UtcNow.AddSeconds(5);
-            var retryCount = 0;
-            if (!IsReady)
+            while (!IsReady && DateTime.UtcNow < iapReadyTimeout)
             {
-                while (!IsReady && DateTime.UtcNow < iapReadyTimeout)
+                Init();
+
+                var completedTask = await UniTask.WhenAny(
+                    UniTask.WaitUntil(() => IsReady),
+                    UniTask.Delay(1000)
+                );
+
+                if (completedTask == 0)
                 {
-                    if (retryCount >= 5) {
-                        throw new NoctuaException(NoctuaErrorCode.Authentication, "Purchase requires user authentication");
-                        break;
-                    }
-
-                    Init();
-
-                    var completedTask = await UniTask.WhenAny(
-                        UniTask.WaitUntil(() => IsReady),
-                        UniTask.Delay(1000)
-                    );
-
-                    if (completedTask == 0)
-                    {
-                        break;
-                    }
-                    retryCount++;
+                    break;
                 }
             }
 

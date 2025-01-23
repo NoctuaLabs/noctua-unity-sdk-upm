@@ -177,6 +177,7 @@
 
     "IAPCanceled": "Pembelian dibatalkan",
     "IAPFailed": "Pembelian gagal",
+    "IAPNotReady": "Gagal mengaktifkan pembayaran. Silakan restart aplikasi dan coba kembali.",
     "IAPRequiresAuthentication": "Pembelian memerlukan otentikasi",
     "IAPPaymentDisabled": "Pembayaran dinonaktifkan. Silakan hubungi layanan pelanggan.",
     "IAPPendingPurchaseTitle": "Anda memiliki {0} pembelian tertunda",
