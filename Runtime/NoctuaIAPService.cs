@@ -130,7 +130,8 @@ namespace com.noctuagames.sdk
         ItemAlreadyOwned,
         Pending,
         InvalidPurchaseObject,
-        PendingPurchaseOngoing
+        PendingPurchaseOngoing,
+        IapNotReady,
     }
     
     public class PaymentResult
@@ -606,6 +607,32 @@ namespace com.noctuagames.sdk
 
         public async UniTask<PurchaseResponse> PurchaseItemAsync(PurchaseRequest purchaseRequest, bool tryToUseSecondaryPayment = false, PaymentType enforcedPaymentType = PaymentType.unknown)
         {
+            var iapReadyTimeout = DateTime.UtcNow.AddSeconds(5);
+            var retryCount = 0;
+            if (!IsReady)
+            {
+                while (!IsReady && DateTime.UtcNow < iapReadyTimeout)
+                {
+                    if (retryCount >= 5) {
+                        throw new NoctuaException(NoctuaErrorCode.Authentication, "Purchase requires user authentication");
+                        break;
+                    }
+
+                    Init();
+
+                    var completedTask = await UniTask.WhenAny(
+                        UniTask.WaitUntil(() => IsReady),
+                        UniTask.Delay(1000)
+                    );
+
+                    if (completedTask == 0)
+                    {
+                        break;
+                    }
+                    retryCount++;
+                }
+            }
+
             var result = await PurchaseItemImplAsync(purchaseRequest, tryToUseSecondaryPayment, enforcedPaymentType);
 
             if (result.Status == OrderStatus.fallback_to_native_payment)
@@ -972,7 +999,10 @@ namespace com.noctuagames.sdk
                     _uiFactory.ShowError(LocaleTextKey.IAPCanceled);
                 
                     throw new NoctuaException(NoctuaErrorCode.Payment, $"payment status: {paymentResult.Status}, Message: {paymentResult.Message}");
+                case PaymentStatus.IapNotReady:
+                    _uiFactory.ShowError(LocaleTextKey.IAPNotReady);
 
+                    throw new NoctuaException(NoctuaErrorCode.Payment, $"payment status: {paymentResult.Status}, Message: {paymentResult.Message}");
                 default:
                     _uiFactory.ShowError(LocaleTextKey.IAPFailed);
                 
@@ -1287,9 +1317,16 @@ namespace com.noctuagames.sdk
 
             if (result.ErrorCode != GoogleBilling.BillingErrorCode.OK)
             {
+
+                var paymentStatus = PaymentStatus.Failed;
+                if (result.ErrorCode == GoogleBilling.BillingErrorCode.ServiceDisconnected)
+                {
+                    paymentStatus = PaymentStatus.IapNotReady;
+                }
+
                 return new PaymentResult
                 {
-                    Status = PaymentStatus.Failed,
+                    Status = paymentStatus,
                     Message = $"Purchase failed with error '{result.ErrorCode}'",
                     ReceiptId = result.ReceiptId,
                     ReceiptData = result.ReceiptData,
