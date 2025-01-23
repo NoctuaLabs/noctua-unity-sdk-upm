@@ -167,18 +167,20 @@ namespace com.noctuagames.sdk.UI
             AdjustPopupForKeyboard();
         }
 
-      private void AdjustPopupForKeyboard() {
-        // Adjust the popup behavior to handle keyboard blocking the input field
-        
-        if (Screen.width > Screen.height) {
-            // No specific behavior defined for landscape mode, so leave as is
-            return;
+        private void AdjustPopupForKeyboard()
+        {
+            // Adjust the popup behavior to handle keyboard blocking the input field
+
+            if (Screen.width > Screen.height)
+            {
+                // No specific behavior defined for landscape mode, so leave as is
+                return;
+            }
+
+            _rootView.style.justifyContent = TouchScreenKeyboard.visible
+                ? Justify.FlexStart
+                : Justify.FlexEnd;
         }
-        
-        _rootView.style.justifyContent = TouchScreenKeyboard.visible 
-            ? Justify.FlexStart 
-            : Justify.FlexEnd;
-    }
         private void OnEnable()
         {
             _carouselLabel = View.Q<Label>("TextCarousel");
@@ -200,8 +202,9 @@ namespace com.noctuagames.sdk.UI
 
         private void SetOrientation(bool isEditProfile = false)
         {
+            bool isLandscape = Screen.width > Screen.height;
 
-            if (Screen.width > Screen.height)
+            if (isLandscape)
             {
                 View.style.flexDirection = FlexDirection.Row;
                 View.style.justifyContent = Justify.FlexEnd;
@@ -215,6 +218,16 @@ namespace com.noctuagames.sdk.UI
                 View.Q<VisualElement>("ConnectAccount").AddToClassList("landscape");
 
                 _noctuaLogoWithText.RemoveFromClassList("hide");
+
+                if (isEditProfile)
+                {
+                    View.Q<VisualElement>("EditProfileBox").RemoveFromClassList("potrait");
+                    View.Q<VisualElement>("EditProfileBox").AddToClassList("landscape");
+
+                    View.Q<VisualElement>("UserProfile").RemoveFromClassList("show");
+                    View.Q<VisualElement>("UserProfile").AddToClassList("hide");
+
+                }
             }
             else
             {
@@ -231,15 +244,17 @@ namespace com.noctuagames.sdk.UI
 
                 if (isEditProfile)
                 {
-                    View.Q<VisualElement>("UserProfile").AddToClassList("hide");
+                    View.Q<VisualElement>("EditProfileBox").RemoveFromClassList("landscape");
+                    View.Q<VisualElement>("EditProfileBox").AddToClassList("potrait");
+
                     View.Q<VisualElement>("UserProfileHeader").AddToClassList("hide");
                     View.Q<VisualElement>("UserProfileHeader").RemoveFromClassList("show");
-                    View.Q<VisualElement>("UserProfile").RemoveFromClassList("show");
-
+                 
                     View.Q<VisualElement>("ConnectAccount").RemoveFromClassList("portrait");
                     View.Q<VisualElement>("ConnectAccount").RemoveFromClassList("connect-account");
                     View.Q<VisualElement>("ConnectAccount").AddToClassList("connect-account-edit-profile-portrait");
-
+                   
+                    View.Q<VisualElement>("UserProfile").RemoveFromClassList("show");
                     View.Q<VisualElement>("UserProfile").AddToClassList("hide");
                     View.Q<VisualElement>("UserCenter").style.maxHeight = Length.Percent(65);
                     View.Q<VisualElement>("ScrollViewContainer").style.marginTop = 10;
@@ -551,10 +566,10 @@ namespace com.noctuagames.sdk.UI
         }
 
         public void DropdownFocus()
-        {         
-            
+        {
+
             _veDropdownDrawer = View.parent.Q(className: "unity-base-dropdown");
-            if(_veDropdownDrawer != null)
+            if (_veDropdownDrawer != null)
             {
                 _veDropdownDrawer.Q("unity-content-container").RegisterCallback<FocusOutEvent>(evt => OnDropdownFocusOut());
                 _veDropdownDrawer.Q("unity-content-container").RegisterCallback<PointerDownEvent>(evt => OnDropdownFocusOut());
@@ -563,7 +578,7 @@ namespace com.noctuagames.sdk.UI
             {
                 OnDropdownFocusOut();
             }
-        
+
         }
 
         private void OnDropdownFocusOut()
@@ -615,7 +630,7 @@ namespace com.noctuagames.sdk.UI
                 _newProfileUrl = await Model.AuthService.FileUploader(filePath);
 
                 StartCoroutine(LoadImageFromUrl(_newProfileUrl, true));
-                 ShowButtonSpinner(false);
+                ShowButtonSpinner(false);
             }
             catch (Exception e)
             {
@@ -651,7 +666,7 @@ namespace com.noctuagames.sdk.UI
                         _playerImage.style.backgroundImage = _originalStyleBackground;
                     }
                 }
-     
+
             }
         }
 
@@ -1098,7 +1113,7 @@ namespace com.noctuagames.sdk.UI
                 case CredentialProvider.Facebook:
                 case CredentialProvider.Apple:
                     StartCoroutine(SocialLinkAsync(credential.CredentialProvider.ToString().ToLower()).ToCoroutine());
-                    
+
                     break;
                 default:
                     throw new NoctuaException(NoctuaErrorCode.Application, $"{credential.CredentialProvider} not supported");
