@@ -18,7 +18,7 @@
     border-radius: 20px 0 0 20px;
     flex-direction: row;
     align-self: flex-end;
-    width: 70%;
+    width: auto;
     height: 100%;
     justify-content: flex-end;
 }
@@ -270,7 +270,7 @@
 }
 
 .connect-account.landscape {
-    width: 66%;
+    width: auto;
     height: 100%;
 }
 
@@ -392,13 +392,6 @@
 
 .indicator.active {
     background-color: white;
-}
-
-.edit-profile-box {
-    justify-content: space-around;
-    align-items: stretch;
-    flex: 1;
-    background-color: rgba(0, 0, 0, 0);
 }
 
 .hint-textfield {
@@ -547,9 +540,28 @@
 }
 
 .photo-profile-edit {
-    width: 70px;
-    height: 70px;
+    width: 75px;
+    height: 75px;
     margin-right: 0;
     border-radius: 35px;
     margin-bottom: 10px;
+    -unity-background-scale-mode: stretch-to-fill;
+}
+
+.edit-profile-box.potrait {
+    justify-content: space-around;
+    align-items: stretch;
+    flex: 1;
+    background-color: rgba(0, 0, 0, 0);
+}
+
+.edit-profile-box.landscape {
+    justify-content: space-around;
+    align-items: stretch;
+    flex: 1;
+    background-color: rgba(0, 0, 0, 0);
+    flex-direction: row;
+}
+
+.edit-profile-box {
 }
