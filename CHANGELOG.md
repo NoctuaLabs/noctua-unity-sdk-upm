@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.34.0] - 2025-01-24
+
+### 🚀 Features
+
+- Hide native payment button for direct APK distribution.
+
+### 🐛 Bug Fixes
+
+- Reinit if the Playstore billing get disconnected at purchase.
+- Add translation for IAPNotReady error.
+
 ## [0.33.1] - 2025-01-14
 
 ### 🐛 Bug Fixes
