@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.34.1] - 2025-01-24
+
+### 🐛 Bug Fixes
+
+- Revert hardcoded deviceId.
+
 ## [0.34.0] - 2025-01-24
 
 ### 🚀 Features
