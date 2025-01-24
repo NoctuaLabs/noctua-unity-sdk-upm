@@ -276,6 +276,7 @@ namespace com.noctuagames.sdk
 #endif
         private readonly UIFactory _uiFactory;
         private bool _enabled;
+        private string _distributionPlaftorm;
 
         internal NoctuaIAPService(
             Config config,
@@ -323,6 +324,12 @@ namespace com.noctuagames.sdk
         {
             // The sequence represent the priority.
             _enabledPaymentTypes = enabledPaymentTypes;
+        }
+
+        public void SetDistributionPlatform(string platform)
+        {
+            // The sequence represent the priority.
+            _distributionPlaftorm = platform;
         }
 
         public async UniTask<ProductList> GetProductListAsync(string currency = null, string platformType = null)
@@ -850,7 +857,9 @@ namespace com.noctuagames.sdk
 
                     paymentResult = new PaymentResult{Status = PaymentStatus.Confirmed};
 
-                    var completeDialogResult = await _customPaymentCompleteDialog.Show();
+                    var nativePaymentButtonEnabled = _distributionPlaftorm != "direct";
+
+                    var completeDialogResult = await _customPaymentCompleteDialog.Show(nativePaymentButtonEnabled);
                     if (completeDialogResult == "cancel") // Custom payment get canceled.
                     {
                         var verifiedAtCancelation = false;

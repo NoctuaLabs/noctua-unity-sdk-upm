@@ -36,6 +36,9 @@ namespace com.noctuagames.sdk
 
         [JsonProperty("country_to_currency_map")]
         public Dictionary<string, string> CountryToCurrencyMap;
+
+        [JsonProperty("distribution_platform")]
+        public string DistributionPlatform;
     }
 
     [Preserve]

@@ -514,6 +514,7 @@ namespace com.noctuagames.sdk
 #endif
             
             Instance.Value._iap.SetEnabledPaymentTypes(enabledPaymentTypes);
+            Instance.Value._iap.SetDistributionPlatform(initResponse.DistributionPlatform);
 
             Instance.Value._eventSender.Send("init");
             
