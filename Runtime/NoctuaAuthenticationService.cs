@@ -484,7 +484,7 @@ namespace com.noctuagames.sdk
                 .WithJsonBody(
                     new LoginAsGuestRequest
                     {
-                        DeviceId = "19af15c29e989ab9d7576bdbb92f9d97",
+                        DeviceId = SystemInfo.deviceUniqueIdentifier,
                         BundleId = Application.identifier
                     }
                 );
