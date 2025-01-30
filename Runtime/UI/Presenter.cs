@@ -50,7 +50,7 @@ namespace com.noctuagames.sdk.UI
         }
 
 
-        protected void Update()
+        protected virtual void Update()
         {
             if (panelVE == null) return;
 
