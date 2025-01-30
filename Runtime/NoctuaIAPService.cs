@@ -659,6 +659,7 @@ namespace com.noctuagames.sdk
             {
                 _uiFactory.ShowError(LocaleTextKey.IAPRequiresAuthentication);
 
+                _log.Warning($"Purchase requires user authentication");
                 throw new NoctuaException(NoctuaErrorCode.Authentication, "Purchase requires user authentication");
             }
             
@@ -666,6 +667,7 @@ namespace com.noctuagames.sdk
             {
                 _uiFactory.ShowError(LocaleTextKey.IAPPaymentDisabled);
 
+                _log.Warning($"No payment types enabled");
                 throw new NoctuaException(NoctuaErrorCode.Payment, "no payment types enabled");
             }
 
@@ -677,7 +679,7 @@ namespace com.noctuagames.sdk
             if (tryToUseSecondaryPayment && _enabledPaymentTypes.Count > 1)
             {
                 paymentType = _enabledPaymentTypes[1];
-                _log.Debug($"Fallback to secondary payment type: {paymentType}");
+                _log.Info($"Fallback to secondary payment type: {paymentType}");
             }
 
             // Enforce particular payment type if available.
@@ -685,7 +687,7 @@ namespace com.noctuagames.sdk
             if (enforcedPaymentType != PaymentType.unknown)
             {
                 paymentType = enforcedPaymentType;
-                _log.Debug($"Fallback to enforced payment type: {paymentType}");
+                _log.Info($"Fallback to enforced payment type: {paymentType}");
             }
 
             _uiFactory.ShowLoadingProgress(true);
@@ -713,7 +715,7 @@ namespace com.noctuagames.sdk
 
                 await Noctua.Auth.UpdatePlayerAccountAsync(playerData);
                 
-                _log.Debug($"updated player role: '{playerData.IngameRoleId}', server: '{playerData.IngameServerId}'");
+                _log.Info($"updated player role: '{playerData.IngameRoleId}', server: '{playerData.IngameServerId}'");
                 
                 orderRequest = new OrderRequest
                 {
@@ -737,6 +739,7 @@ namespace com.noctuagames.sdk
                 
                 if (usdProduct == null)
                 {
+                    _log.Warning($"USD price not found for product {orderRequest.ProductId}");
                     throw new NoctuaException(NoctuaErrorCode.Payment, $"USD price not found for product '{orderRequest.ProductId}'");
                 }
 
@@ -744,7 +747,7 @@ namespace com.noctuagames.sdk
                 orderRequest.Timestamp = DateTime.Now.ToString();
                 orderRequest.AllowPaymentTypeOverride = true;
             
-                _log.Debug("creating order");
+                _log.Info("creating order");
 
                 if (enforcedPaymentType != PaymentType.unknown)
                 {
@@ -759,7 +762,7 @@ namespace com.noctuagames.sdk
                 if (enforcedPaymentType == PaymentType.unknown) // It means that there is no enforce on payment type
                 {
                     paymentType = orderResponse.PaymentType;
-                    _log.Debug($"Payment type get overrided from backend: {paymentType}");
+                    _log.Info($"Payment type get overrided from backend: {paymentType}");
                 }
                 
                 _eventSender?.Send(
@@ -775,13 +778,14 @@ namespace com.noctuagames.sdk
                     }
                 );
 
-                _log.Debug("orderResponse.Id: "         + orderResponse.Id);
-                _log.Debug("orderResponse.ProductId: " + orderResponse.ProductId);
+                _log.Info("orderResponse.Id: "         + orderResponse.Id);
+                _log.Info("orderResponse.ProductId: " + orderResponse.ProductId);
 
                 _uiFactory.ShowLoadingProgress(false);
             }
             catch (Exception e)
             {
+                _log.Warning($"Failed to prepare purchase: {e.Message}");
                 _uiFactory.ShowError(e.Message);
                 _log.Exception(e);
                 _uiFactory.ShowLoadingProgress(false);
@@ -789,9 +793,7 @@ namespace com.noctuagames.sdk
                 throw;
             }
 
-            var timeoutTask = Task.Delay(TimeSpan.FromSeconds(300));
             var paymentTcs = new TaskCompletionSource<PaymentResult>();
-            bool hasResult;
             PaymentResult paymentResult;
 
             switch (paymentType)
@@ -808,9 +810,8 @@ namespace com.noctuagames.sdk
                         paymentTcs.TrySetResult(GetAppstorePaymentResult(orderResponse.Id, success, message));
                     });
 
-                    var task = await Task.WhenAny(paymentTcs.Task, timeoutTask);
+                    var task = await paymentTcs.Task;
                     
-                    hasResult = task == paymentTcs.Task;
                     paymentResult = paymentTcs.Task.Result;
                     
                     _log.Info("NoctuaIAPService.PurchaseItemAsync PurchaseItem callback response: " + paymentResult);
@@ -832,9 +833,8 @@ namespace com.noctuagames.sdk
                     GoogleBillingInstance.OnPurchaseDone += PurchaseDone;
                     GoogleBillingInstance.PurchaseItem(orderResponse.ProductId);
 
-                    var task = await Task.WhenAny(paymentTcs.Task, timeoutTask);
+                    var task = await paymentTcs.Task;
                     
-                    hasResult = task == paymentTcs.Task;
                     paymentResult = paymentTcs.Task.Result;
 
                     GoogleBillingInstance.OnPurchaseDone -= PurchaseDone;
@@ -846,9 +846,9 @@ namespace com.noctuagames.sdk
 #endif
 
                 case PaymentType.noctuastore:
-                    hasResult = true;
 
                     if (string.IsNullOrEmpty(orderResponse.PaymentUrl)) {
+                        _log.Warning($"Payment URL is empty");
                         throw new NoctuaException(NoctuaErrorCode.Payment, "Payment URL is empty.");
                     }
 
@@ -888,6 +888,7 @@ namespace com.noctuagames.sdk
                         }
                         catch (Exception e) 
                         {
+                            _log.Warning($"Failed to verify order at cancelation: {e.Message}");
                             // TODO Do we really need to retry the canceled purchase?
                             // What if the user is accidentally tap the close button instead of complete?
                             _log.Exception(e);
@@ -921,7 +922,7 @@ namespace com.noctuagames.sdk
                         } else {
                             // Custom payment is actually get canceled
                             // but there is no secondary payment.
-                            _log.Debug("custom payment is actually get canceled, but there is no secondary payment. Remove from pending queue.");
+                            _log.Info("custom payment is actually get canceled, but there is no secondary payment. Remove from pending queue.");
                             RemoveFromRetryPendingPurchasesByOrderID(orderResponse.Id);
                             paymentResult = new PaymentResult{
                                 Status = PaymentStatus.Canceled,
@@ -958,59 +959,15 @@ namespace com.noctuagames.sdk
                     
                     break;
                 case PaymentType.unknown:
+                    _log.Warning($"Unknown payment type");
                     throw new NoctuaException(NoctuaErrorCode.Payment, "Unknown payment type");
                 default:
+                    _log.Warning($"Unsupported payment type");
                     throw new NoctuaException(NoctuaErrorCode.Payment, "Unsupported payment type " + paymentType);
-            }
-            
-            if (!hasResult)
-            {
-                paymentTcs.TrySetCanceled();
-                
-                throw new NoctuaException(NoctuaErrorCode.Payment, "Payment timeout");
-            }
-            
-            switch (paymentResult.Status)
-            {
-                case PaymentStatus.Confirmed:
-                case PaymentStatus.Successful:
-                case PaymentStatus.Pending: // will attempt to verify directly
-                    break;
-                case PaymentStatus.PendingPurchaseOngoing:
-                case PaymentStatus.ItemAlreadyOwned:
-                    await _failedPaymentDialog.Show(paymentResult.Status);
-                    
-                    throw new NoctuaException(NoctuaErrorCode.Payment, paymentResult.Message);
-                case PaymentStatus.Canceled:
-                    _eventSender?.Send(
-                        "purchase_cancelled",
-                        new()
-                        {
-                            { "product_id", orderResponse.ProductId },
-                            { "amount", usdProduct.Price },
-                            { "currency", usdProduct.Currency },
-                            { "order_id", orderResponse.Id },
-                            { "orig_amount", orderRequest.Price },
-                            { "orig_currency", orderRequest.Currency }
-                        }
-                    );
-
-                    _uiFactory.ShowError(LocaleTextKey.IAPCanceled);
-                
-                    throw new NoctuaException(NoctuaErrorCode.Payment, $"payment status: {paymentResult.Status}, Message: {paymentResult.Message}");
-                case PaymentStatus.IapNotReady:
-                    _uiFactory.ShowError(LocaleTextKey.IAPNotReady);
-
-                    throw new NoctuaException(NoctuaErrorCode.Payment, $"payment status: {paymentResult.Status}, Message: {paymentResult.Message}");
-                default:
-                    _uiFactory.ShowError(LocaleTextKey.IAPFailed);
-                
-                    throw new NoctuaException(NoctuaErrorCode.Payment, $"payment status: {paymentResult.Status}, Message: {paymentResult.Message}");
             }
 
             var orderId = orderResponse.Id;
-            _log.Info($"Purchase was successful. Verifying order ID: {orderId}");
-
+            _log.Info($"Purchase process was done, whatever the status. Store the data to pending purchase early before verifying.  Order ID: {orderId}");
             var verifyOrderRequest = new VerifyOrderRequest
             {
                 Id = orderId,
@@ -1029,6 +986,50 @@ namespace com.noctuagames.sdk
                     PlayerId = Noctua.Auth.RecentAccount?.Player?.Id,
                 }
             );
+
+            _log.Info($"Check payment result status: {paymentResult.Status}");
+            switch (paymentResult.Status)
+            {
+                case PaymentStatus.Confirmed:
+                case PaymentStatus.Successful:
+                case PaymentStatus.Pending:
+                    _log.Warning($"Purchase status pending, will attempt to verify directly");
+                    break;
+                case PaymentStatus.PendingPurchaseOngoing:
+                case PaymentStatus.ItemAlreadyOwned:
+                    _log.Warning($"Purchase status ItemAlreadyOwned: {paymentResult.Status}, Message: {paymentResult.Message}");
+                    await _failedPaymentDialog.Show(paymentResult.Status);
+                    
+                    throw new NoctuaException(NoctuaErrorCode.Payment, paymentResult.Message);
+                case PaymentStatus.Canceled:
+                    _log.Warning($"Purchase status Canceled: {paymentResult.Status}, Message: {paymentResult.Message}");
+                    _eventSender?.Send(
+                        "purchase_cancelled",
+                        new()
+                        {
+                            { "product_id", orderResponse.ProductId },
+                            { "amount", usdProduct.Price },
+                            { "currency", usdProduct.Currency },
+                            { "order_id", orderResponse.Id },
+                            { "orig_amount", orderRequest.Price },
+                            { "orig_currency", orderRequest.Currency }
+                        }
+                    );
+
+                    _uiFactory.ShowError(LocaleTextKey.IAPCanceled);
+                
+                    throw new NoctuaException(NoctuaErrorCode.Payment, $"payment status: {paymentResult.Status}, Message: {paymentResult.Message}");
+                case PaymentStatus.IapNotReady:
+                    _log.Warning($"Purchase status IAPNotReady: {paymentResult.Status}, Message: {paymentResult.Message}");
+                    _uiFactory.ShowError(LocaleTextKey.IAPNotReady);
+
+                    throw new NoctuaException(NoctuaErrorCode.Payment, $"payment status: {paymentResult.Status}, Message: {paymentResult.Message}");
+                default:
+                    _log.Warning($"Purchase status IAPFailed: {paymentResult.Status}, Message: {paymentResult.Message}");
+                    _uiFactory.ShowError(LocaleTextKey.IAPFailed);
+                
+                    throw new NoctuaException(NoctuaErrorCode.Payment, $"payment status: {paymentResult.Status}, Message: {paymentResult.Message}");
+            }
 
             _log.Info($"Verifying order: {verifyOrderRequest.Id} with receipt data: {verifyOrderRequest.ReceiptData}");
             
@@ -1049,6 +1050,7 @@ namespace com.noctuagames.sdk
             }
             catch (NoctuaException e)
             {
+                _log.Warning($"Failed to verify order: {e.Message}");
                 if ((NoctuaErrorCode)e.ErrorCode == NoctuaErrorCode.Networking)
                 {
                     EnqueueToRetryPendingPurchases(
@@ -1072,12 +1074,14 @@ namespace com.noctuagames.sdk
             }
             catch (Exception e) 
             {
+                _log.Warning($"Failed to verify order: {e.Message}");
                 _uiFactory.ShowLoadingProgress(false);
                 _log.Exception(e);
                 
                 throw;
             }
 
+            _log.Info($"Verify order status: {verifyOrderResponse.Status}");
             switch (verifyOrderResponse.Status)
             {
                 case OrderStatus.canceled:
