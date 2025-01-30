@@ -1372,7 +1372,7 @@ namespace com.noctuagames.sdk.UI
         }
 
         #endregion
->>>>>>> 7a6dbf8 (fix carousel)
+
         private enum CredentialProvider
         {
             Email,
