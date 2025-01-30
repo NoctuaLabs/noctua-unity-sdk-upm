@@ -95,7 +95,7 @@
                                     <ui:Label tabindex="-1" text="Birthdate (optional)" parse-escape-sequences="true" display-tooltip-when-elided="true" name="title" class="hide" />
                                     <ui:Label tabindex="-1" text="error" parse-escape-sequences="true" display-tooltip-when-elided="true" name="error" class="hide" />
                                 </ui:TextField>
-                                <ui:Button parse-escape-sequences="true" display-tooltip-when-elided="true" class="btn-calendar" style="position: absolute; background-color: rgba(255, 255, 255, 0); align-self: center; justify-content: center;" />
+                                <ui:Button parse-escape-sequences="true" display-tooltip-when-elided="true" class="btn-calendar" style="position: absolute;" />
                             </ui:VisualElement>
                             <ui:VisualElement class="dropdown-container">
                                 <ui:DropdownField name="GenderTF" label="Gender (Optional)" class="dropdown-box">

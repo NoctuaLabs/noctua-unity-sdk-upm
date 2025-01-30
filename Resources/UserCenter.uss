@@ -474,8 +474,9 @@
 .profile-circle-with-border {
     width: 70px;
     height: 70px;
-    margin-right: 10px;
+    margin-right: 0;
     border-radius: 35px;
+    margin-bottom: 10px;
 }
 
 .button-border {
