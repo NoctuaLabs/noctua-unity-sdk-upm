@@ -627,6 +627,7 @@ namespace com.noctuagames.sdk
                 "NoctuaLocaleCountry",
                 "NoctuaLocaleCurrency",
                 "NoctuaLocaleUserPrefsLanguage",
+                "NoctuaUnpairedOrders",
             };
 
             foreach (var key in IntegerKeys)
@@ -694,6 +695,7 @@ namespace com.noctuagames.sdk
                 "NoctuaLocaleCountry",
                 "NoctuaLocaleCurrency",
                 "NoctuaLocaleUserPrefsLanguage",
+                "NoctuaUnpairedOrders",
             };
         }
     }
