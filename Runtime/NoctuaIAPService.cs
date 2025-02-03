@@ -244,6 +244,7 @@ namespace com.noctuagames.sdk
         public double EligibleGoldAmount;
     }
 
+    
     [Preserve]
     public class NoctuaIAPService
     {
@@ -260,6 +261,7 @@ namespace com.noctuagames.sdk
         private readonly ProductList _usdProducts = new();
         private readonly CustomPaymentCompleteDialogPresenter _customPaymentCompleteDialog;
         private readonly FailedPaymentDialogPresenter _failedPaymentDialog;
+        private TaskCompletionSource<PaymentResult> _paymentTcs;
 
 #if UNITY_ANDROID && !UNITY_EDITOR
         private readonly GoogleBilling GoogleBillingInstance = new();
@@ -297,6 +299,7 @@ namespace com.noctuagames.sdk
 
 #if UNITY_ANDROID && !UNITY_EDITOR
             GoogleBillingInstance.OnProductDetailsDone += HandleGoogleProductDetails;
+            GoogleBillingInstance.OnPurchaseDone += HandleGooglePurchaseDone;
 #endif
             _nativePlugin = nativePlugin;
         }
@@ -317,6 +320,7 @@ namespace com.noctuagames.sdk
         {
 #if UNITY_ANDROID && !UNITY_EDITOR
             GoogleBillingInstance.Init();
+            _paymentTcs = null;
 #endif
         }
 
@@ -793,7 +797,7 @@ namespace com.noctuagames.sdk
                 throw;
             }
 
-            var paymentTcs = new TaskCompletionSource<PaymentResult>();
+            _paymentTcs = new TaskCompletionSource<PaymentResult>();
             PaymentResult paymentResult;
 
             switch (paymentType)
@@ -807,12 +811,12 @@ namespace com.noctuagames.sdk
                         _log.Info("NoctuaIAPService.PurchaseItemAsync PurchaseItem callback success: " + success);
                         _log.Info("NoctuaIAPService.PurchaseItemAsync PurchaseItem callback message: " + message);
                         
-                        paymentTcs.TrySetResult(GetAppstorePaymentResult(orderResponse.Id, success, message));
+                        _paymentTcs.TrySetResult(GetAppstorePaymentResult(orderResponse.Id, success, message));
                     });
 
-                    var task = await paymentTcs.Task;
+                    var task = await _paymentTcs.Task;
                     
-                    paymentResult = paymentTcs.Task.Result;
+                    paymentResult = _paymentTcs.Task.Result;
                     
                     _log.Info("NoctuaIAPService.PurchaseItemAsync PurchaseItem callback response: " + paymentResult);
                     break;
@@ -823,21 +827,11 @@ namespace com.noctuagames.sdk
 #if UNITY_ANDROID && !UNITY_EDITOR
                     _log.Info("NoctuaIAPService.PurchaseItemAsync purchase on playstore: " + orderResponse.ProductId);
                     
-                    void PurchaseDone(GoogleBilling.PurchaseResult result)
-                    {
-                        _log.Info("NoctuaIAPService.PurchaseItemAsync PurchaseItem callback");
-                        
-                        paymentTcs.TrySetResult(GetPlaystorePaymentResult(result));
-                    }
-                    
-                    GoogleBillingInstance.OnPurchaseDone += PurchaseDone;
                     GoogleBillingInstance.PurchaseItem(orderResponse.ProductId);
 
-                    var task = await paymentTcs.Task;
+                    var task = await _paymentTcs.Task;
                     
-                    paymentResult = paymentTcs.Task.Result;
-
-                    GoogleBillingInstance.OnPurchaseDone -= PurchaseDone;
+                    paymentResult = _paymentTcs.Task.Result;
                     
                     _log.Info("NoctuaIAPService.PurchaseItemAsync PurchaseItem callback response: " + paymentResult);
                     break;
@@ -966,26 +960,44 @@ namespace com.noctuagames.sdk
                     throw new NoctuaException(NoctuaErrorCode.Payment, "Unsupported payment type " + paymentType);
             }
 
+            // Declare early
             var orderId = orderResponse.Id;
-            _log.Info($"Purchase process was done, whatever the status. Store the data to pending purchase early before verifying.  Order ID: {orderId}");
             var verifyOrderRequest = new VerifyOrderRequest
             {
                 Id = orderId,
                 ReceiptId = paymentResult.ReceiptId,
                 ReceiptData = paymentResult.ReceiptData
             };
+            var pendingPurchaseItem = new RetryPendingPurchaseItem
+            {
+                OrderId = orderResponse.Id,
+                OrderRequest = orderRequest,
+                VerifyOrderRequest = verifyOrderRequest,
+                AccessToken = _accessTokenProvider.AccessToken,
+                PlayerId = Noctua.Auth.RecentAccount?.Player?.Id,
+            };
+
+            // Store unpaired order
+            var unpairedOrders = new Dictionary<string, RetryPendingPurchaseItem>();
+            var unpairedOrdersJson = PlayerPrefs.GetString("NoctuaUnpairedOrders", "[]");
+            try
+            {
+                unpairedOrders = JsonConvert.DeserializeObject<Dictionary<string, RetryPendingPurchaseItem>>(unpairedOrdersJson);
+            }
+            catch (Exception e)
+            {
+                _log.Error($"Failed to parse unpaired orders: {e}");
+                unpairedOrders = new Dictionary<string, RetryPendingPurchaseItem>();
+            }
+            unpairedOrders[orderRequest.ProductId] = pendingPurchaseItem;
+            PlayerPrefs.SetString("NoctuaUnpairedOrders", JsonConvert.SerializeObject(unpairedOrders));
+            PlayerPrefs.Save();
+            _log.Info($"NoctuaUnpairedOrders: {JsonConvert.SerializeObject(unpairedOrders)}");
+
+            _log.Info($"Purchase process was done, whatever the status. Store the data to pending purchase early before verifying.  Order ID: {orderId}");
 
             // Store early for Negative Payment Cases no #4
-            EnqueueToRetryPendingPurchases(
-                new RetryPendingPurchaseItem
-                {
-                    OrderId = orderResponse.Id,
-                    OrderRequest = orderRequest,
-                    VerifyOrderRequest = verifyOrderRequest,
-                    AccessToken = _accessTokenProvider.AccessToken,
-                    PlayerId = Noctua.Auth.RecentAccount?.Player?.Id,
-                }
-            );
+            EnqueueToRetryPendingPurchases(pendingPurchaseItem);
 
             _log.Info($"Check payment result status: {paymentResult.Status}");
             switch (paymentResult.Status)
@@ -1065,6 +1077,14 @@ namespace com.noctuagames.sdk
                         }
                     );
                 }
+
+                // At this point the unpaired order is already paired with receipt data.
+
+                // Remove from unpaired orders since we have receipt data now
+                unpairedOrders.Remove(orderRequest.ProductId);
+                PlayerPrefs.SetString("NoctuaUnpairedOrders", JsonConvert.SerializeObject(unpairedOrders));
+                PlayerPrefs.Save();
+                _log.Info($"NoctuaUnpairedOrders: {JsonConvert.SerializeObject(unpairedOrders)}");
                 
                 _uiFactory.ShowLoadingProgress(false);
                 _log.Exception(e);
@@ -1242,6 +1262,55 @@ namespace com.noctuagames.sdk
         }
 
 #if UNITY_ANDROID && !UNITY_EDITOR
+        private void HandleGooglePurchaseDone(GoogleBilling.PurchaseResult result)
+        {
+            _log.Info("NoctuaIAPService.PurchaseItemAsync PurchaseItem callback");
+
+            if (_paymentTcs == null)
+            {
+                _log.Info("NoctuaIAPService.PurchaseItemAsync Find out the order ID pair...");
+
+                var unpairedOrdersJson = PlayerPrefs.GetString("NoctuaUnpairedOrders", "[]");
+                Dictionary<string, RetryPendingPurchaseItem> unpairedOrders;
+                try
+                {
+                    unpairedOrders = JsonConvert.DeserializeObject<Dictionary<string, RetryPendingPurchaseItem>>(unpairedOrdersJson);
+                }
+                catch (Exception e)
+                {
+                    _log.Error($"Failed to parse unpaired orders: {e}");
+                    _log.Info($"Create empty unpairedOrders array");
+                    unpairedOrders = new Dictionary<string, RetryPendingPurchaseItem>();
+                }
+
+                var productId = result.ProductId;
+                if (unpairedOrders.TryGetValue(productId, out var pendingPurchaseItem))
+                {
+                    _log.Info($"Found unpaired order for product {productId}. Order ID: {pendingPurchaseItem.OrderId}");
+
+                    var verifyOrderRequest = pendingPurchaseItem.VerifyOrderRequest;
+                    verifyOrderRequest.ReceiptData = result.PurchaseToken;
+
+                    EnqueueToRetryPendingPurchases(pendingPurchaseItem);
+
+                    // Remove from unpaired orders since we have receipt data now
+                    unpairedOrders.Remove(productId);
+                    PlayerPrefs.SetString("NoctuaUnpairedOrders", JsonConvert.SerializeObject(unpairedOrders));
+                    PlayerPrefs.Save();
+                    _log.Info($"NoctuaUnpairedOrders: {JsonConvert.SerializeObject(unpairedOrders)}");
+                }
+                else
+                {
+                    _log.Warning($"No unpaired order found for product {productId}");
+                }
+            } else
+            {
+                _paymentTcs.TrySetResult(GetPlaystorePaymentResult(result));
+            }
+                        
+        }
+                    
+
         private void HandleGoogleProductDetails(GoogleBilling.ProductDetailsResponse response)
         {
             _log.Info("NoctuaIAPService.HandleGoogleProductDetails");
