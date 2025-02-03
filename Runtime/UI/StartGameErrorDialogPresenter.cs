@@ -12,6 +12,7 @@ namespace com.noctuagames.sdk.UI
         private Button _quitButton;
         private Button _csButton;
         private Label _errorLabel;
+        private Label _messageLabel;
 
         private readonly ILogger _log = new NoctuaLogger();
 
@@ -28,6 +29,7 @@ namespace com.noctuagames.sdk.UI
             _quitButton = View.Q<Button>("QuitButton");
             _csButton = View.Q<Button>("CSButton");
             _errorLabel = View.Q<Label>("ErrorLabel");
+            _messageLabel = View.Q<Label>("MessageLabel");
 
             _quitButton.RegisterCallback<PointerUpEvent>(OnQuitButton);
             _csButton.RegisterCallback<PointerUpEvent>(OnCSButton);
@@ -37,6 +39,11 @@ namespace com.noctuagames.sdk.UI
         {
             _tcs = new UniTaskCompletionSource();
             _errorLabel.text = errorMessage;
+
+            if (errorMessage.Contains("Networking"))
+            {
+                _messageLabel.text = "Unable to reach the server. Please check your internet connection and try again. If the issue continues, please switch to a different network and try again.";
+            }
 
             Visible = true;
 

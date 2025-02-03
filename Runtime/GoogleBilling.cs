@@ -50,6 +50,7 @@ public class GoogleBilling
         public BillingErrorCode ErrorCode;
         public PurchaseState PurchaseState;
         public string PurchaseToken;
+        public string ProductId;
         public string ReceiptId;
         public string ReceiptData;
         public string Message;
@@ -301,6 +302,9 @@ public class GoogleBilling
             var purchaseState = purchase.Call<int>("getPurchaseState");
             var orderId = purchase.Call<string>("getOrderId");
             var purchaseToken = purchase.Call<string>("getPurchaseToken");
+            // getProducts() returns a List<String> of product IDs
+            var productList = purchase.Call<AndroidJavaObject>("getProducts");
+            var productId = productList.Call<string>("get", 0); // Get first SKU
 
             _log.Debug($"orderId: '{orderId}', purchaseToken: '{purchaseToken}', purchaseState: '{(PurchaseState)purchaseState}'");
 
@@ -311,6 +315,7 @@ public class GoogleBilling
                 Message = debugMessage,
                 ReceiptId = orderId,
                 ReceiptData = purchaseToken,
+                ProductId = productId,
             });
         }
     }
