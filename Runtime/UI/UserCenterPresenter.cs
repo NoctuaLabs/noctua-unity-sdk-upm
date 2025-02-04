@@ -21,6 +21,9 @@ namespace com.noctuagames.sdk.UI
 
         private readonly ILogger _log = new NoctuaLogger();
 
+        // Flags
+        private bool _ssoDisabled = false;
+
         private VisualTreeAsset _itemTemplate;
         private VisualElement _rootView;
         private Texture2D _defaultAvatar;
@@ -303,6 +306,14 @@ namespace com.noctuagames.sdk.UI
         {
             try
             {
+
+                // Hide SSO if the backend told so.
+                if (_ssoDisabled)
+                {
+                    // Refresh the connect account item list view.
+                    BindListView();
+                }
+
                 Model.ShowLoadingProgress(true);
                 if (Model.AuthService.RecentAccount == null)
                 {
@@ -1055,7 +1066,7 @@ namespace com.noctuagames.sdk.UI
 
         private void BindListView()
         {
-            var credentialFiltered = Utility.ContainsFlag(_globalConfig?.Noctua?.Flags, "VNLegalPurpose") ? _credentials.Where(c => c.CredentialProvider == CredentialProvider.Email).ToList() : _credentials;
+            var credentialFiltered = Utility.ContainsFlag(_globalConfig?.Noctua?.Flags, "VNLegalPurpose") || _ssoDisabled ? _credentials.Where(c => c.CredentialProvider == CredentialProvider.Email).ToList() : _credentials;
 
             _credentialListView = View.Q<ListView>("AccountList");
             _itemTemplate ??= Resources.Load<VisualTreeAsset>("ConnectAccountItem");
@@ -1309,6 +1320,12 @@ namespace com.noctuagames.sdk.UI
             _isDraggingCarousel = true;
 
         }
+
+        public void SetFlag(bool SSODisabled = false)
+        {
+            _ssoDisabled = SSODisabled;
+        }
+
         private void OnCarouselDragEnd(PointerUpEvent _evt)
         {
             _veCarouselParent.ReleasePointer(_evt.pointerId);
@@ -1355,6 +1372,7 @@ namespace com.noctuagames.sdk.UI
         }
 
         #endregion
+
         private enum CredentialProvider
         {
             Email,

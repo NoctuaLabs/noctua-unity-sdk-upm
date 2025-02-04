@@ -130,7 +130,8 @@ namespace com.noctuagames.sdk
         ItemAlreadyOwned,
         Pending,
         InvalidPurchaseObject,
-        PendingPurchaseOngoing
+        PendingPurchaseOngoing,
+        IapNotReady,
     }
     
     public class PaymentResult
@@ -275,6 +276,7 @@ namespace com.noctuagames.sdk
 #endif
         private readonly UIFactory _uiFactory;
         private bool _enabled;
+        private string _distributionPlaftorm;
 
         internal NoctuaIAPService(
             Config config,
@@ -322,6 +324,12 @@ namespace com.noctuagames.sdk
         {
             // The sequence represent the priority.
             _enabledPaymentTypes = enabledPaymentTypes;
+        }
+
+        public void SetDistributionPlatform(string platform)
+        {
+            // The sequence represent the priority.
+            _distributionPlaftorm = platform;
         }
 
         public async UniTask<ProductList> GetProductListAsync(string currency = null, string platformType = null)
@@ -606,6 +614,22 @@ namespace com.noctuagames.sdk
 
         public async UniTask<PurchaseResponse> PurchaseItemAsync(PurchaseRequest purchaseRequest, bool tryToUseSecondaryPayment = false, PaymentType enforcedPaymentType = PaymentType.unknown)
         {
+            var iapReadyTimeout = DateTime.UtcNow.AddSeconds(5);
+            while (!IsReady && DateTime.UtcNow < iapReadyTimeout)
+            {
+                Init();
+
+                var completedTask = await UniTask.WhenAny(
+                    UniTask.WaitUntil(() => IsReady),
+                    UniTask.Delay(1000)
+                );
+
+                if (completedTask == 0)
+                {
+                    break;
+                }
+            }
+
             var result = await PurchaseItemImplAsync(purchaseRequest, tryToUseSecondaryPayment, enforcedPaymentType);
 
             if (result.Status == OrderStatus.fallback_to_native_payment)
@@ -833,7 +857,9 @@ namespace com.noctuagames.sdk
 
                     paymentResult = new PaymentResult{Status = PaymentStatus.Confirmed};
 
-                    var completeDialogResult = await _customPaymentCompleteDialog.Show();
+                    var nativePaymentButtonEnabled = _distributionPlaftorm != "direct";
+
+                    var completeDialogResult = await _customPaymentCompleteDialog.Show(nativePaymentButtonEnabled);
                     if (completeDialogResult == "cancel") // Custom payment get canceled.
                     {
                         var verifiedAtCancelation = false;
@@ -972,7 +998,10 @@ namespace com.noctuagames.sdk
                     _uiFactory.ShowError(LocaleTextKey.IAPCanceled);
                 
                     throw new NoctuaException(NoctuaErrorCode.Payment, $"payment status: {paymentResult.Status}, Message: {paymentResult.Message}");
+                case PaymentStatus.IapNotReady:
+                    _uiFactory.ShowError(LocaleTextKey.IAPNotReady);
 
+                    throw new NoctuaException(NoctuaErrorCode.Payment, $"payment status: {paymentResult.Status}, Message: {paymentResult.Message}");
                 default:
                     _uiFactory.ShowError(LocaleTextKey.IAPFailed);
                 
@@ -1287,9 +1316,16 @@ namespace com.noctuagames.sdk
 
             if (result.ErrorCode != GoogleBilling.BillingErrorCode.OK)
             {
+
+                var paymentStatus = PaymentStatus.Failed;
+                if (result.ErrorCode == GoogleBilling.BillingErrorCode.ServiceDisconnected)
+                {
+                    paymentStatus = PaymentStatus.IapNotReady;
+                }
+
                 return new PaymentResult
                 {
-                    Status = PaymentStatus.Failed,
+                    Status = paymentStatus,
                     Message = $"Purchase failed with error '{result.ErrorCode}'",
                     ReceiptId = result.ReceiptId,
                     ReceiptData = result.ReceiptData,

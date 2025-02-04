@@ -2,6 +2,43 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.34.1] - 2025-01-24
+
+### 🐛 Bug Fixes
+
+- Revert hardcoded deviceId.
+
+## [0.34.0] - 2025-01-24
+
+### 🚀 Features
+
+- Hide native payment button for direct APK distribution.
+
+### 🐛 Bug Fixes
+
+- Reinit if the Playstore billing get disconnected at purchase.
+- Add translation for IAPNotReady error.
+
+## [0.33.1] - 2025-01-14
+
+### 🐛 Bug Fixes
+
+- Increase timeout. Show error message toast for Platform Content.
+
+## [0.33.0] - 2025-01-14
+
+### 🚀 Features
+
+- Implement remote config to enable or disable SSO.
+- Implement remote config for user center SSO linking.
+- Add HTTP timeout at 10 seconds. Add X-DEVICE-ID in the header.
+- Add APIs to help gamedev maintains SDK playerPrefs.
+
+### 🐛 Bug Fixes
+
+- Work around for fullscreen web content on iOS not aligned
+- Restore readonly property of _credentials.
+
 ## [0.32.0] - 2025-01-09
 
 ### 🚀 Features

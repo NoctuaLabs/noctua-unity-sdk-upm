@@ -175,6 +175,7 @@
 
     "IAPCanceled": "Purchase canceled",
     "IAPFailed": "Purchase failed",
+    "IAPNotReady": "Failed to initiate payment. Please restart the game and try again.",
     "IAPRequiresAuthentication": "Purchase requires user authentication",
     "IAPPaymentDisabled": "Payment is disabled. Please contact customer support.",
     "IAPPendingPurchaseTitle": "You have {0} pending purchase(s)",

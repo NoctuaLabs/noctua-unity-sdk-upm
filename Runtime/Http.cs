@@ -92,6 +92,7 @@ namespace com.noctuagames.sdk
             _request.SetRequestHeader("X-LANGUAGE", Noctua.Platform.Locale.GetLanguage());
             _request.SetRequestHeader("X-COUNTRY", Noctua.Platform.Locale.GetCountry());
             _request.SetRequestHeader("X-CURRENCY", Noctua.Platform.Locale.GetCurrency());
+            _request.SetRequestHeader("X-DEVICE-ID", SystemInfo.deviceUniqueIdentifier);
             
             _request.SetRequestHeader("X-SDK-VERSION", Assembly.GetExecutingAssembly().GetName().Version.ToString());
 
@@ -221,6 +222,7 @@ namespace com.noctuagames.sdk
         public async UniTask<string> SendRaw()
         {
             _request.downloadHandler = new DownloadHandlerBuffer();
+            _request.timeout = 60;
             await _request.SendWebRequest();
 
             return _request.downloadHandler.text;
@@ -257,6 +259,7 @@ namespace com.noctuagames.sdk
                     $"X-LANGUAGE: {_request.GetRequestHeader("X-LANGUAGE")}\n"         +
                     $"X-COUNTRY: {_request.GetRequestHeader("X-COUNTRY")}\n"           +
                     $"X-CURRENCY: {_request.GetRequestHeader("X-CURRENCY")}\n"         +
+                    $"X-DEVICE-ID: {_request.GetRequestHeader("X-DEVICE-ID")}\n"       +
                     $"X-SDK-VERSION: {_request.GetRequestHeader("X-SDK-VERSION")}\n\n" +
                     $"{Encoding.UTF8.GetString(_request.uploadHandler?.data ?? Array.Empty<byte>())}"
                 );
@@ -264,6 +267,7 @@ namespace com.noctuagames.sdk
 
             try
             {
+                _request.timeout = 20;
                 await _request.SendWebRequest();
                 response = _request.downloadHandler.text;
             }

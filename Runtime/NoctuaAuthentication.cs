@@ -294,6 +294,11 @@ namespace com.noctuagames.sdk
             _uiModel.ShowUserCenter();
         }
 
+        public void SetFlag(bool SSODisabled = false)
+        {
+            _uiModel.SetFlag(SSODisabled);
+        }
+
         /// <summary>
         /// Displays the account selection user interface.
         /// </summary>

@@ -314,6 +314,12 @@ namespace com.noctuagames.sdk
         {
             return await _iapService.RetryPendingPurchaseByOrderId(orderId);
         }
+
+        public void SetFlag(bool SSODisabled = false)
+        {
+            _loginOptionsDialog.SetFlag(SSODisabled);
+            _userCenter.SetFlag(SSODisabled);
+        }
         
     }
     

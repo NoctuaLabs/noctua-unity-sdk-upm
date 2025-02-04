@@ -39,20 +39,26 @@ namespace com.noctuagames.sdk.UI
             _btnCustomerService.RegisterCallback<PointerUpEvent>(OpenCS);
         }
 
-        public async UniTask<string> Show()
+        public async UniTask<string> Show(bool nativePaymentButtonEnabled)
         {            
             _tcs = new UniTaskCompletionSource<string>();
 
             Visible = true;
+            if (nativePaymentButtonEnabled)
+            {
+                View.Q<VisualElement>("Separator").RemoveFromClassList("hide");
+                _btnNativePayment.RemoveFromClassList("hide");
 #if UNITY_ANDROID
-            View.Q<VisualElement>("Separator").RemoveFromClassList("hide");
-            _btnNativePayment.RemoveFromClassList("hide");
-            _btnNativePayment.text = Locale.GetTranslation("CustomPaymentCompleteDialogPresenter.PayWithPlaystore");
+                _btnNativePayment.text = Locale.GetTranslation("CustomPaymentCompleteDialogPresenter.PayWithPlaystore");
 #elif UNITY_IOS
-            View.Q<VisualElement>("Separator").RemoveFromClassList("hide");
-            _btnNativePayment.RemoveFromClassList("hide");
-            _btnNativePayment.text = Locale.GetTranslation("CustomPaymentCompleteDialogPresenter.PayWithAppstore");
+                _btnNativePayment.text = Locale.GetTranslation("CustomPaymentCompleteDialogPresenter.PayWithAppstore");
 #endif
+            } else {
+                View.Q<VisualElement>("Separator").AddToClassList("hide");
+                _btnNativePayment.AddToClassList("hide");
+                View.Q<VisualElement>("Separator").AddToClassList("hide");
+                _btnNativePayment.AddToClassList("hide");
+            }
 
             return await _tcs.Task;
         }

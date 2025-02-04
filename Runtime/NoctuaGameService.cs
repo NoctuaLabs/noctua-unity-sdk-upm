@@ -36,6 +36,9 @@ namespace com.noctuagames.sdk
 
         [JsonProperty("country_to_currency_map")]
         public Dictionary<string, string> CountryToCurrencyMap;
+
+        [JsonProperty("distribution_platform")]
+        public string DistributionPlatform;
     }
 
     [Preserve]
@@ -43,6 +46,9 @@ namespace com.noctuagames.sdk
     {
         [JsonProperty("enabled_payment_types")]
         public List<PaymentType> EnabledPaymentTypes;
+
+        [JsonProperty("sso_disabled")]
+        public bool SSODisabled;
     }
 
     internal class NoctuaGameService
