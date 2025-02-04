@@ -56,9 +56,8 @@
                 </ui:VisualElement>
             </ui:VisualElement>
             <ui:VisualElement name="ConnectAccount" class="connect-account portrait">
-                <ui:VisualElement name="ContainerStayConnect">
-                    <ui:Label name="StayConnectCompany" text="Stay connect to" class="connect-account-label" style="margin-left: 5%;" />
-                    <ui:Label name="ConnectAccountLabel" text="Noctua" class="connect-account-label" style="margin-left: -3px;" />
+                <ui:VisualElement name="ContainerStayConnect" style="flex-direction: row; display: flex;">
+                    <ui:Label name="StayConnectCompany" text="Stay connect to Noctua!" class="connect-account-label" style="margin-left: 5%; height: 28px; flex-shrink: 1; flex-grow: 1;" />
                 </ui:VisualElement>
                 <ui:ListView name="AccountList" class="account-list" />
                 <ui:VisualElement name="UserGuestUI" class="user-guest-box">
