@@ -142,7 +142,7 @@ namespace com.noctuagames.sdk
 
             bool OnSocialLoginShouldClose(UniWebView webView)
             {
-                if (!webView.Url.StartsWith($"{_config.Noctua.BaseUrl}/auth/{provider}/code")) 
+                if (webView.Url == null || !webView.Url.StartsWith($"{_config.Noctua.BaseUrl}/auth/{provider}/code?")) 
                 {
                     _log.Debug("WebView closed by user before login completed");
                     var providerName = System.Threading.Thread.CurrentThread.CurrentCulture.TextInfo.ToTitleCase(provider);
@@ -160,7 +160,7 @@ namespace com.noctuagames.sdk
             {
                 _log.Debug("URL started to load: " + url);
 
-                if (url.StartsWith($"{_config.Noctua.BaseUrl}/auth/{provider}/code")) 
+                if (url.StartsWith($"{_config.Noctua.BaseUrl}/auth/{provider}/code?")) 
                 {
                     tcs.TrySetResult(url);
                 }
@@ -176,7 +176,7 @@ namespace com.noctuagames.sdk
             {
                 _log.Debug("URL finished to load: " + url);
                 
-                if (url.StartsWith($"{_config.Noctua.BaseUrl}/auth/{provider}/code")) 
+                if (url.StartsWith($"{_config.Noctua.BaseUrl}/auth/{provider}/code?")) 
                 {
                     tcs.TrySetResult(url);
                 }

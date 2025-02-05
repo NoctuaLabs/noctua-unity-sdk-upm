@@ -7,19 +7,7 @@
                 <ui:Button name="BackButton" class="dialog-back-button" style="margin-bottom: 0;" />
                 <ui:Label name="TitleContinueWithAnotherAccount" text="Continue with another account" class="dialog-title" style="margin-bottom: 0;" />
             </ui:VisualElement>
-            <ui:VisualElement class="social-account-row">
-                <ui:Button name="LoginWithGoogleButton" class="social-account-button">
-                    <ui:VisualElement class="login-method-logo google-logo" />
-                    <ui:Label name="TitleGoogle" text="Google" class="social-account-label" />
-                </ui:Button>
-                <ui:Button name="LoginWithFacebookButton" class="social-account-button">
-                    <ui:VisualElement class="login-method-logo facebook-logo" />
-                    <ui:Label name="TitleFacebook" text="Facebook" class="social-account-label" />
-                </ui:Button>
-                <ui:Button name="LoginWithAppleButton" class="social-account-button">
-                    <ui:VisualElement class="login-method-logo apple-logo" />
-                    <ui:Label name="TitleApple" text="Apple" class="social-account-label" />
-                </ui:Button>
+            <ui:VisualElement name="SocialAccountContainer" class="social-account-row">
             </ui:VisualElement>
             <ui:VisualElement class="login-method-separator">
                 <ui:VisualElement class="left-separator-long" />

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using Cysharp.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.UIElements;
@@ -14,13 +15,34 @@ namespace com.noctuagames.sdk.UI
 
         private Label _tnCLabel;
         private Label _privacyLabel;
-        private Button _loginWithGoogleButton;
-        private Button _loginWithFacebookButton;
-        private Button _loginWithAppleButton;
+        private VisualElement _socialAccountContainer;
         private Button _loginWithEmailButton;
         private Button _registerButton;
         private Button _backButton;
         private GlobalConfig _config;
+
+        private readonly List<SocialLoginMethod> _socialLoginMethods = new() {
+            new SocialLoginMethod
+            {
+                Provider = "google",
+                Title = "Google",
+                LogoClass = "google-logo",
+            },
+            new SocialLoginMethod
+            {
+                Provider = "facebook",
+                Title = "Facebook",
+                LogoClass = "facebook-logo"
+            },
+#if UNITY_IOS
+            new SocialLoginMethod
+            {
+                Provider = "apple",
+                Title = "Apple",
+                LogoClass = "apple-logo"
+            },
+#endif
+        };
 
         public void Show()
         {
@@ -42,16 +64,29 @@ namespace com.noctuagames.sdk.UI
 
             _privacyLabel = View.Q<Label>("PrivacyLabel");
             _privacyLabel.RegisterCallback<PointerUpEvent>(_ => OnPrivacyClicked());
-            
-            _loginWithGoogleButton = View.Q<Button>("LoginWithGoogleButton");
-            _loginWithGoogleButton.RegisterCallback<PointerUpEvent>(_ => OnLoginWithGoogleButtonClicked());
-            
-            _loginWithFacebookButton = View.Q<Button>("LoginWithFacebookButton");
-            _loginWithFacebookButton.RegisterCallback<PointerUpEvent>(_ => OnLoginWithFacebookButtonClicked());
-            
-            _loginWithAppleButton = View.Q<Button>("LoginWithAppleButton");
-            _loginWithAppleButton.RegisterCallback<PointerUpEvent>(_ => OnLoginWithAppleButtonClicked());
-            
+
+            _socialAccountContainer = View.Q<VisualElement>("SocialAccountContainer");
+
+            foreach (var loginMethod in _socialLoginMethods)
+            {
+                var button = new Button();
+                button.AddToClassList("social-account-button");
+
+                var logo = new VisualElement();
+                logo.AddToClassList("login-method-logo");
+                logo.AddToClassList(loginMethod.LogoClass);
+
+                var title = new Label();
+                title.text = loginMethod.Title;
+                title.AddToClassList("social-account-label");
+
+                button.Add(logo);
+                button.Add(title);
+                button.RegisterCallback<PointerUpEvent>(_ => OnSocialLoginButtonClicked(loginMethod.Provider));
+
+                _socialAccountContainer.Add(button);
+            }
+                        
             _loginWithEmailButton = View.Q<Button>("LoginWithEmailButton");
             _loginWithEmailButton.RegisterCallback<PointerUpEvent>(_ => OnLoginWithEmailButtonClicked());
             
@@ -88,28 +123,12 @@ namespace com.noctuagames.sdk.UI
             Application.OpenURL(privacyUrl);
         }
 
-        private void OnLoginWithFacebookButtonClicked()
+        private void OnSocialLoginButtonClicked(string provider)
         {
-            _log.Debug("clicking login with facebook");
-            
-            Visible = false;
-            StartCoroutine(SocialLogin("facebook").ToCoroutine());
-        }
+            _log.Debug($"clicking login with {provider}");
 
-        private void OnLoginWithGoogleButtonClicked()
-        {
-            _log.Debug("clicking login with google");
-            
             Visible = false;
-            StartCoroutine(SocialLogin("google").ToCoroutine());
-        }
-
-        private void OnLoginWithAppleButtonClicked()
-        {
-            _log.Debug("clicking login with apple");
-        
-            Visible = false;
-            StartCoroutine(SocialLogin("apple").ToCoroutine());
+            StartCoroutine(SocialLogin(provider).ToCoroutine());
         }
 
         private async UniTask SocialLogin(string provider)
@@ -167,6 +186,13 @@ namespace com.noctuagames.sdk.UI
             Visible = false;
 
             Model.NavigateBack();
+        }
+
+        private class SocialLoginMethod
+        {
+            public string Provider;
+            public string Title;
+            public string LogoClass;
         }
     }
 }

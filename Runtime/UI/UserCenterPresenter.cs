@@ -101,11 +101,13 @@ namespace com.noctuagames.sdk.UI
                 CredentialIconStyle = "facebook-logo",
                 CredentialProvider = CredentialProvider.Facebook
             },
+#if UNITY_IOS            
             new UserCredential
             {
                 CredentialIconStyle = "apple-logo",
                 CredentialProvider = CredentialProvider.Apple
             },
+#endif
         };
 
         private GlobalConfig _globalConfig;
