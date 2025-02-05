@@ -130,7 +130,7 @@ namespace com.noctuagames.sdk.UI
             _rootView = View.Q<VisualElement>("Root");
             _defaultAvatar = Resources.Load<Texture2D>("DefaultAvatar");
 
-            _stayConnect = View.Q<Label>("ConnectAccountLabel");
+            _stayConnect = View.Q<Label>("StayConnectCompany");
             _containerStayConnect = View.Q<VisualElement>("ContainerStayConnect");
             _veCarouselParent = View.Q<VisualElement>("CarouselParent");
             _hiTextContainer = View.Q<VisualElement>("HiText");
@@ -146,11 +146,11 @@ namespace com.noctuagames.sdk.UI
 
             _moreOptionsMenu.RegisterCallback<ClickEvent>(_ => OnMoreOptionsMenuSelected());
             View.Q<VisualElement>("EditProfile").RegisterCallback<ClickEvent>(_ => OnEditProfile());
-            View.Q<VisualElement>("BackButton").RegisterCallback<ClickEvent>(_ => OnBackEditProfile());
+            View.Q<Button>("BackButton").RegisterCallback<ClickEvent>(_ => OnBackEditProfile());
             View.Q<VisualElement>("SwitchProfile").RegisterCallback<ClickEvent>(_ => OnSwitchProfile());
             View.Q<VisualElement>("LogoutAccount").RegisterCallback<ClickEvent>(_ => OnLogout());
             View.Q<VisualElement>("PendingPurchases").RegisterCallback<ClickEvent>(_ => OnPendingPurchases());
-            View.Q<VisualElement>("FindMoreLabel").RegisterCallback<ClickEvent>(_ => OnFindMore());
+            View.Q<Label>("FindMoreLabel").RegisterCallback<ClickEvent>(_ => OnFindMore());
 
             _helpButton.RegisterCallback<ClickEvent>(OnHelp);
             _copyIcon.RegisterCallback<ClickEvent>(_ => OnCopyText());
@@ -1154,7 +1154,7 @@ namespace com.noctuagames.sdk.UI
         private void UpdateUIGuest(bool isGuest)
         {
             var guestContainer = View.Q<VisualElement>("UserGuestUI");
-            var stayConnect = View.Q<Label>("ConnectAccountLabel");
+            var stayConnect = View.Q<Label>("StayConnectCompany");
             var containerStayConnect = View.Q<VisualElement>("ContainerStayConnect");
             var moreOptionsButton = View.Q<Button>("MoreOptionsButton");
             var editProfilebutton = View.Q<VisualElement>("EditProfile");
