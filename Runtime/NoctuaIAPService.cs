@@ -279,7 +279,7 @@ namespace com.noctuagames.sdk
         private readonly UIFactory _uiFactory;
         private bool _enabled;
         private string _distributionPlaftorm;
-
+        
         internal NoctuaIAPService(
             Config config,
             AccessTokenProvider accessTokenProvider,
@@ -618,6 +618,41 @@ namespace com.noctuagames.sdk
 
         public async UniTask<PurchaseResponse> PurchaseItemAsync(PurchaseRequest purchaseRequest, bool tryToUseSecondaryPayment = false, PaymentType enforcedPaymentType = PaymentType.unknown)
         {
+            // Offline-first handler
+            if (Noctua.IsOfflineMode() && !Noctua.IsInitialized())
+            {
+                var offlineModeMessage = Noctua.Platform.Locale.GetTranslation(LocaleTextKey.IAPPurchaseOfflineModeMessage);
+                _uiFactory.ShowLoadingProgress(true);
+                try
+                {
+                    await Noctua.InitAsync();
+                } catch(Exception e)
+                {
+                    _uiFactory.ShowLoadingProgress(false);
+                    _uiFactory.ShowError($"{e.Message}");
+                    throw new NoctuaException(NoctuaErrorCode.Authentication, $"{e.Message}");
+                }
+
+                if (Noctua.IsOfflineMode())
+                {
+                    _uiFactory.ShowLoadingProgress(false);
+                    _uiFactory.ShowError($"{offlineModeMessage}");
+                    throw new NoctuaException(NoctuaErrorCode.Authentication, offlineModeMessage);
+                }
+
+                try
+                {
+                    await Noctua.Auth.AuthenticateAsync();
+                } catch(Exception e)
+                {
+                    _uiFactory.ShowLoadingProgress(false);
+                    _uiFactory.ShowError($"{e.Message}");
+                    throw new NoctuaException(NoctuaErrorCode.Authentication, $"{e.Message}");
+                }
+
+                _uiFactory.ShowLoadingProgress(false);
+            }
+
             var iapReadyTimeout = DateTime.UtcNow.AddSeconds(5);
             while (!IsReady && DateTime.UtcNow < iapReadyTimeout)
             {

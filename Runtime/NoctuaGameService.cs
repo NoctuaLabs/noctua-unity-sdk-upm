@@ -39,6 +39,9 @@ namespace com.noctuagames.sdk
 
         [JsonProperty("distribution_platform")]
         public string DistributionPlatform;
+
+        [JsonProperty("offline_mode")]
+        public bool OfflineMode;
     }
 
     [Preserve]
@@ -55,12 +58,14 @@ namespace com.noctuagames.sdk
     {
         private readonly string _clientId;
         private readonly string _baseUrl;
+        private readonly bool _isOfflineFirst;
         private readonly ILogger _log = new NoctuaLogger();
 
         internal NoctuaGameService(Config config)
         {
             _clientId = config.ClientId;
             _baseUrl = config.BaseUrl;
+            _isOfflineFirst = config.IsOfflineFirst;
         }
 
         public async UniTask<InitGameResponse> InitGameAsync()
@@ -80,9 +85,8 @@ namespace com.noctuagames.sdk
                 .WithHeader("X-CLIENT-ID", _clientId)
                 .WithHeader("X-BUNDLE-ID", Application.identifier);
 
-            var response = await request.Send<InitGameResponse>();
-
-            var initResponseJson = JsonConvert.SerializeObject(response);
+            InitGameResponse response;
+            response = await request.Send<InitGameResponse>();
 
             return response;
         }
@@ -120,6 +124,7 @@ namespace com.noctuagames.sdk
         {
             public string BaseUrl;
             public string ClientId;
+            public bool IsOfflineFirst;
         }
     }
 }

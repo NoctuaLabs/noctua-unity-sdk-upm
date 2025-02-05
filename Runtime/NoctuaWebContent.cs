@@ -49,6 +49,8 @@ namespace com.noctuagames.sdk
         
         public async UniTask<bool> ShowAnnouncement()
         {
+            await OfflineModeHandler();
+
             _log.Debug("calling API");
             
             if (string.IsNullOrEmpty(_config.AnnouncementBaseUrl))
@@ -115,6 +117,8 @@ namespace com.noctuagames.sdk
 
         public async UniTask ShowReward()
         {
+            await OfflineModeHandler();
+
             _log.Debug("calling API");
 
             if (string.IsNullOrEmpty(_config.RewardBaseUrl))
@@ -167,6 +171,8 @@ namespace com.noctuagames.sdk
         
         public async UniTask ShowCustomerService(string reason = "general", string context = "")
         {
+            await OfflineModeHandler();
+
             _log.Debug("calling API");
 
             if (string.IsNullOrEmpty(_config.CustomerServiceBaseUrl))
@@ -239,6 +245,44 @@ namespace com.noctuagames.sdk
                 .WithHeader("Authorization", "Bearer " + _accessTokenProvider.AccessToken);
 
             return await request.Send<WebContentUrl>();
+        }
+
+        private async UniTask OfflineModeHandler()
+        {
+            // Offline-first handler
+            if (Noctua.IsOfflineMode() && !Noctua.IsInitialized())
+            {
+                var offlineModeMessage = Noctua.Platform.Locale.GetTranslation(LocaleTextKey.IAPPurchaseOfflineModeMessage);
+                _uiFactory.ShowLoadingProgress(true);
+                try
+                {
+                    await Noctua.InitAsync();
+                } catch(Exception e)
+                {
+                    _uiFactory.ShowLoadingProgress(false);
+                    _uiFactory.ShowError($"{e.Message}");
+                    throw new NoctuaException(NoctuaErrorCode.Authentication, $"{e.Message}");
+                }
+
+                if (Noctua.IsOfflineMode())
+                {
+                    _uiFactory.ShowLoadingProgress(false);
+                    _uiFactory.ShowError($"{offlineModeMessage}");
+                    throw new NoctuaException(NoctuaErrorCode.Authentication, offlineModeMessage);
+                }
+
+                try
+                {
+                    await Noctua.Auth.AuthenticateAsync();
+                } catch(Exception e)
+                {
+                    _uiFactory.ShowLoadingProgress(false);
+                    _uiFactory.ShowError($"{e.Message}");
+                    throw new NoctuaException(NoctuaErrorCode.Authentication, $"{e.Message}");
+                }
+
+                _uiFactory.ShowLoadingProgress(false);
+            }
         }
     }
 
