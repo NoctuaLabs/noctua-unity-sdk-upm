@@ -188,6 +188,7 @@
     "IAPPendingPurchaseItemCsButtonText":  "Customer Service",
     "IAPPendingPurchaseItemCopyButtonText":  "Copy Receipt",
     "IAPPendingPurchaseItemRetryButtonText" : "Retry",
+    "IAPPurchaseOfflineModeMessage" : "Purchase feature requires internet connection. Please check your internet connection and try again.",
 
     "AuthEmailLinkingSuccessful": "Email linking successful",
 
