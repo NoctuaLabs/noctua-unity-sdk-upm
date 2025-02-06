@@ -119,6 +119,11 @@ namespace com.noctuagames.sdk
             var gameObject = new GameObject("SocialLoginWebView");
             var uniWebView = gameObject.AddComponent<UniWebView>();
             
+            uniWebView.OnOrientationChanged += (view, orietation) =>
+            {
+                uniWebView.Frame = new Rect(0, 0, Screen.width, Screen.height);
+            };
+
             if (Application.platform == RuntimePlatform.Android)
             {
                 if (provider == "facebook")
