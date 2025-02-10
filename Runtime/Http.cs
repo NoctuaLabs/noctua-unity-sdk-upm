@@ -221,11 +221,83 @@ namespace com.noctuagames.sdk
 
         public async UniTask<string> SendRaw()
         {
-            _request.downloadHandler = new DownloadHandlerBuffer();
-            _request.timeout = 60;
-            await _request.SendWebRequest();
+            if (_request.url.Contains("{") || _request.url.Contains("}"))
+            {
+                _log.Error($"There are still path parameters that are not replaced: {_request.url}");
 
-            return _request.downloadHandler.text;
+                throw NoctuaException.RequestUnreplacedParam;
+            }
+
+            _request.downloadHandler = new DownloadHandlerBuffer();
+            var response = "";
+
+            var auth = !string.IsNullOrEmpty(_request.GetRequestHeader("Authorization")) ? "Authorization: Bearer" : "";
+
+            if (_noVerboseLog)
+            {
+                _log.Debug($"=> {_request.method} {_request.url}\n");
+            }
+            else
+            {
+                _log.Debug(
+                    $"=> {_request.method} {_request.url}\n"                           +
+                    $"Content-Type: {_request.GetRequestHeader("Content-Type")}\n"     +
+                    $"{auth}\n"                                                        +
+                    $"Accept-Language: {_request.GetRequestHeader("X-LANGUAGE")}\n"    +
+                    $"X-CLIENT-ID: {_request.GetRequestHeader("X-CLIENT-ID")}\n"       +
+                    $"X-BUNDLE-ID: {_request.GetRequestHeader("X-BUNDLE-ID")}\n"       +
+                    $"X-LANGUAGE: {_request.GetRequestHeader("X-LANGUAGE")}\n"         +
+                    $"X-COUNTRY: {_request.GetRequestHeader("X-COUNTRY")}\n"           +
+                    $"X-CURRENCY: {_request.GetRequestHeader("X-CURRENCY")}\n"         +
+                    $"X-DEVICE-ID: {_request.GetRequestHeader("X-DEVICE-ID")}\n"       +
+                    $"X-SDK-VERSION: {_request.GetRequestHeader("X-SDK-VERSION")}\n\n" +
+                    $"{Encoding.UTF8.GetString(_request.uploadHandler?.data ?? Array.Empty<byte>())}"
+                );
+            }
+
+            try
+            {
+                _request.timeout = 60;
+                await _request.SendWebRequest();
+                response = _request.downloadHandler.text;
+            }
+            catch (Exception e)
+            {
+                _log.Exception(e);
+                
+                switch (_request.result)
+                {
+                    case UnityWebRequest.Result.ConnectionError: throw NoctuaException.RequestConnectionError;
+                    case UnityWebRequest.Result.DataProcessingError: throw NoctuaException.RequestDataProcessingError;
+                    case UnityWebRequest.Result.InProgress: throw NoctuaException.RequestInProgress;
+                    case UnityWebRequest.Result.ProtocolError: // HTTP statuses >= 400
+                    case UnityWebRequest.Result.Success: // HTTP statuses < 400
+                        response = _request.downloadHandler.text;
+                        break;
+                }
+            }
+            finally
+            {
+                _request.downloadHandler.Dispose();
+                _request.uploadHandler?.Dispose();
+            }
+            
+            var responseCode = _request.responseCode;
+            var responseCodeString = ((HttpStatusCode)responseCode).ToString();
+            var url = _request.url;
+            var method = _request.method;
+            
+            if (_noVerboseLog)
+            {
+                _log.Debug($"<= {responseCode} {responseCodeString} {method} {url}");
+            }
+            else
+            {
+                var responseHeaders = _request.GetResponseHeaders().Aggregate("", (a, p) => $"{a}\n{p.Key}: {p.Value}");
+                _log.Debug($"<= {responseCode} {responseCodeString} {method} {url}\n{responseHeaders}\n\n{response}");
+            }
+
+            return response;
         }
 
         public async UniTask<T> Send<T>()
