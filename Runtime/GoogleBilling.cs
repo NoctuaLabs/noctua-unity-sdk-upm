@@ -14,8 +14,10 @@ public class GoogleBilling
     // Signals
     public delegate void PurchaseDone(PurchaseResult result);
     public delegate void ProductDetailsDone(ProductDetailsResponse response);
+    public delegate void QueryPurchasesDone(PurchaseResult[] results);
     public event PurchaseDone OnPurchaseDone;
     public event ProductDetailsDone OnProductDetailsDone;
+    public event QueryPurchasesDone OnQueryPurchasesDone;
 
     [Preserve]
     public enum BillingErrorCode
@@ -76,6 +78,11 @@ public class GoogleBilling
         OnProductDetailsDone?.Invoke(response);
     }
     
+    private void InvokeOnQueryPurchasesDone(PurchaseResult[] results)
+    {
+        OnQueryPurchasesDone?.Invoke(results);
+    }
+
     public GoogleBilling()
     {
         using (AndroidJavaClass unityPlayer = new AndroidJavaClass("com.unity3d.player.UnityPlayer"))
@@ -432,6 +439,90 @@ public class GoogleBilling
                 _log.Error("Failed to query product details: " + errorMessage + ": returning empty strings");
 
                 googleBilling.InvokeOnProductDetailsResponse(null);
+            }
+        }
+    }
+
+    public void QueryPurchasesAsync()
+    {
+        _log.Debug("GoogleBilling.QueryPurchasesAsync: ");
+        // https://developer.android.com/reference/com/android/billingclient/api/QueryPurchasesParams
+        using (AndroidJavaClass queryPurchasesParamsClass = new AndroidJavaClass(
+            "com.android.billingclient.api.QueryPurchasesParams"
+            ))
+        {
+            AndroidJavaObject queryParams = queryPurchasesParamsClass
+                .CallStatic<AndroidJavaObject>("newBuilder")
+                .Call<AndroidJavaObject>("setProductType", "inapp")
+                .Call<AndroidJavaObject>("build");
+
+            billingClient.Call(
+                "queryPurchasesAsync",
+                queryParams,
+                new QueryPurchasesResponseListener(this)
+            );
+        }
+    }
+
+    private class QueryPurchasesResponseListener : AndroidJavaProxy
+    {
+        private readonly ILogger _log = new NoctuaLogger(typeof(QueryPurchasesResponseListener));
+        private GoogleBilling googleBilling;
+
+        public QueryPurchasesResponseListener(GoogleBilling parent) : base("com.android.billingclient.api.PurchasesResponseListener")
+        {
+            googleBilling = parent;
+        }
+
+        void onQueryPurchasesResponse(AndroidJavaObject billingResult, AndroidJavaObject purchaseList)
+        {
+            _log.Debug("GoogleBilling.PurchasesResponseListener");
+            int responseCode = billingResult.Call<int>("getResponseCode");
+            if (responseCode == 0) // BillingResponseCode.OK
+            {
+                int size = purchaseList.Call<int>("size");
+                _log.Debug("Purchase list length: " + size);
+
+                if (size > 0)
+                {
+                    PurchaseResult[] results = new PurchaseResult[size];
+                    for (int i = 0; i < size; i++)
+                    {
+                        AndroidJavaObject purchase = purchaseList.Call<AndroidJavaObject>("get", i);
+                        var productList = purchase.Call<AndroidJavaObject>("getProducts");
+                        // Get first SKU since we don't support
+                        // multiple product purchase
+                        string productId = productList.Call<string>("get", 0);
+                        string purchaseToken = purchase.Call<string>("getPurchaseToken");
+                        int purchaseState = purchase.Call<int>("getPurchaseState");
+                        string orderId = purchase.Call<string>("getOrderId");
+                        string originalJson = purchase.Call<string>("getOriginalJson");
+
+                        results[i] = new PurchaseResult
+                        {
+                            Success = true,
+                            ProductId = productId,
+                            PurchaseToken = purchaseToken,
+                            PurchaseState = (PurchaseState)purchaseState,
+                            ReceiptId = orderId,
+                            ReceiptData = originalJson
+                        };
+                    }
+
+                    googleBilling.InvokeOnQueryPurchasesDone(results);
+                }
+                else
+                {
+                    _log.Error("No purchase found");
+                    googleBilling.InvokeOnQueryPurchasesDone(null);
+                }
+            }
+            else
+            {
+                string errorMessage = billingResult.Call<string>("getDebugMessage");
+                _log.Error("Failed to query product details: " + errorMessage + ": returning empty strings");
+
+                googleBilling.InvokeOnQueryPurchasesDone(null);
             }
         }
     }
