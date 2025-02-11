@@ -529,6 +529,10 @@ namespace com.noctuagames.sdk
 
             // Trigger retry pending purchase after all module get enabled.
             Instance.Value._iap.RetryPendingPurchasesAsync();
+            // Query purchases against Google Play Billing
+#if UNITY_ANDROID
+            Instance.Value._iap.QueryPurchasesAsync();
+#endif
         }
 
         private static bool IsFirstOpen()
@@ -606,7 +610,26 @@ namespace com.noctuagames.sdk
         {
             private void OnApplicationPause(bool pause)
             {
+                var log = new NoctuaLogger();
+                log.Info($"NoctuaPauseBehaviour: OnApplicationPause: {pause}");
+
                 Noctua.Instance.Value._nativePlugin?.OnApplicationPause(pause);
+
+                if (!pause) // If resumed from background, try to fetch purchases data
+                {
+                    Noctua.Instance.Value._iap?.QueryPurchasesAsync();
+                }
+            }
+
+            private void OnApplicationResumed()
+            {
+                var log = new NoctuaLogger();
+                log.Info("NoctuaPauseBehaviour: OnApplicationResumed");
+            }
+            private void OnApplicationFocusGained()
+            {
+                var log = new NoctuaLogger();
+                log.Info("NoctuaPauseBehaviour: OnApplicationFocusGained");
             }
         }
 
