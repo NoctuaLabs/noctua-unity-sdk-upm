@@ -93,6 +93,9 @@ namespace com.noctuagames.sdk
             _request.SetRequestHeader("X-COUNTRY", Noctua.Platform.Locale.GetCountry());
             _request.SetRequestHeader("X-CURRENCY", Noctua.Platform.Locale.GetCurrency());
             _request.SetRequestHeader("X-DEVICE-ID", SystemInfo.deviceUniqueIdentifier);
+            _request.SetRequestHeader("X-PLATFORM", Utility.GetStoreName());
+            _request.SetRequestHeader("X-OS-AGENT", SystemInfo.operatingSystem);
+            _request.SetRequestHeader("X-OS", Application.platform.ToString().ToLower());
             
             _request.SetRequestHeader("X-SDK-VERSION", Assembly.GetExecutingAssembly().GetName().Version.ToString());
 
@@ -260,6 +263,9 @@ namespace com.noctuagames.sdk
                     $"X-COUNTRY: {_request.GetRequestHeader("X-COUNTRY")}\n"           +
                     $"X-CURRENCY: {_request.GetRequestHeader("X-CURRENCY")}\n"         +
                     $"X-DEVICE-ID: {_request.GetRequestHeader("X-DEVICE-ID")}\n"       +
+                    $"X-PLATFORM: {_request.GetRequestHeader("X-PLATFORM")}\n"         +
+                    $"X-OS: {_request.GetRequestHeader("X-OS")}\n"                     +
+                    $"X-OS-AGENT: {_request.GetRequestHeader("X-OS-AGENT")}\n"         +
                     $"X-SDK-VERSION: {_request.GetRequestHeader("X-SDK-VERSION")}\n\n" +
                     $"{Encoding.UTF8.GetString(_request.uploadHandler?.data ?? Array.Empty<byte>())}"
                 );
