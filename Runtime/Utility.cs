@@ -408,5 +408,15 @@ namespace com.noctuagames.sdk
 
             return string.Empty;
         }
+
+        public static string GetStoreName()
+        {
+           return Application.installerName switch
+            {
+                "com.android.vending" => PaymentType.playstore.ToString(),
+                "com.apple.appstore" => PaymentType.appstore.ToString(),
+                _ => PaymentType.direct.ToString()
+            };
+        }
     }
 }
