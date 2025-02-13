@@ -34,6 +34,10 @@
     background-color:darkorange;
 }
 
+.status-label-completed {
+    background-color:darkgreen;
+}
+
 .status-label-refunded {
     background-color:green;
 }

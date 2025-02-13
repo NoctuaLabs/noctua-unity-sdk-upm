@@ -1,0 +1,13 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" xsi="http://www.w3.org/2001/XMLSchema-instance" engine="UnityEngine.UIElements" editor="UnityEditor.UIElements" noNamespaceSchemaLocation="../../../../UIElementsSchema/UIElements.xsd" editor-extension-mode="False">
+    <Style src="./Noctua.uss" />
+    <Style src="./PendingPurchasesDialog.uss" />
+    <ui:VisualElement name="Root" class="root" >
+        <ui:VisualElement name="PendingPurchasesDialog" class="base dialog-box pending-purchases-dialog" >
+            <ui:VisualElement name="PendingPurchasesDialogHeader" class="pending-purchases-dialog-header">
+                <ui:Label name="Title" text="Your Purchase History" class="dialog-title" />
+                <ui:Button name="CustomPaymentExitButton" focusable="false" class="exit-button" />
+            </ui:VisualElement>
+            <ui:ListView name="PurchaseHistoryList" class="pending-purchases-list" style="width:280px;margin:5px;height:300px;" scroller-visibility="Hidden"/>
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>

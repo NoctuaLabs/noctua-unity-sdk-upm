@@ -144,6 +144,7 @@
     "UserCenterPresenter.TitleFindMoreLabel.Label.text": "Cari lebih banyak di",
     "UserCenterPresenter.CopyIcon.Button.text": "Salin",
     "UserCenterPresenter.MenuPendingPurchases.Label.text": "Pembelian Tertunda",
+    "UserCenterPresenter.MenuPurchaseHistory.Label.text": "Riwayat Pembelian",
 
     "BindConfirmationDialogPresenter.BindConfirmationLabel.Label.text": "Apakah anda ingin menghubungkan dengan akun yang dipilih atau membuat akun baru?",
     "BindConfirmationDialogPresenter.ConnectButton.Button.text": "Hubungkan",
@@ -191,6 +192,7 @@
     "IAPPendingPurchaseItemCopyButtonText":  "Salin",
     "IAPPendingPurchaseItemRetryButtonText" : "Coba Lagi",
     "AuthEmailLinkingSuccessful": "Email berhasil dihubungkan",
+    "IAPPurchaseHistoryTitle": "Anda memiliki {0} pembelian",
 
     "EditProfile.NicknameValidation": "Nama panggilan tidak boleh kosong",
     "EditProfile.CountryValidation": "Pilih negara",

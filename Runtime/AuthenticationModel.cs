@@ -21,7 +21,7 @@ namespace com.noctuagames.sdk
 {
 
         [Preserve]
-        public class PendingPurchaseItem
+        public class PurchaseItem
         {
             public int OrderId;
             public string PaymentType;
@@ -73,7 +73,9 @@ namespace com.noctuagames.sdk
         private readonly BindConfirmationDialogPresenter _bindConfirmation;
         private readonly BindConflictDialogPresenter _bindConflictDialog;
         private readonly PendingPurchasesDialogPresenter _pendingPurchasesDialog;
-        private readonly List<PendingPurchaseItem> _pendingPurchases = new();
+        private readonly PurchaseHistoryDialogPresenter _purchaseHistoryDialog;
+        private readonly List<PurchaseItem> _pendingPurchases = new();
+        private readonly List<PurchaseItem> _purchaseHistory = new();
         private readonly WelcomeNotificationPresenter _welcome;
 
         private readonly NoctuaAuthenticationService _authService;
@@ -116,6 +118,7 @@ namespace com.noctuagames.sdk
             _logoutConfirmDialog = _uiFactory.Create<LogoutConfirmDialogPresenter, AuthenticationModel>(this);
             _accountSelectionDialog = _uiFactory.Create<AccountSelectionDialogPresenter, AuthenticationModel>(this);
             _pendingPurchasesDialog = _uiFactory.Create<PendingPurchasesDialogPresenter, AuthenticationModel>(this);
+            _purchaseHistoryDialog = _uiFactory.Create<PurchaseHistoryDialogPresenter, AuthenticationModel>(this);
             _switchAccountConfirmationDialog = _uiFactory.Create<SwitchAccountConfirmationDialogPresenter, AuthenticationModel>(this);
             _loginOptionsDialog = _uiFactory.Create<LoginOptionsDialogPresenter, AuthenticationModel>(this);
             _emailLoginDialog = _uiFactory.Create<EmailLoginDialogPresenter, AuthenticationModel>(this);
@@ -268,7 +271,7 @@ namespace com.noctuagames.sdk
             _bindConflictDialog.Show(playerToken);
         }
 
-        private List<PendingPurchaseItem> GetPendingPurchases()
+        private List<PurchaseItem> GetPendingPurchases()
         {
             if (_iapService == null) {
                 return _pendingPurchases;
@@ -290,7 +293,7 @@ namespace com.noctuagames.sdk
                     purchaseItemName = item.OrderRequest.ProductId;
                 }
 
-                _pendingPurchases.Add(new PendingPurchaseItem{
+                _pendingPurchases.Add(new PurchaseItem{
                     OrderId = item.OrderId,
                     Timestamp = item.OrderRequest.Timestamp,
                     PaymentType = char.ToUpper(item.OrderRequest.PaymentType.ToString()[0]) + item.OrderRequest.PaymentType.ToString().Substring(1),
@@ -313,6 +316,48 @@ namespace com.noctuagames.sdk
         public async UniTask<OrderStatus> RetryPendingPurchaseByOrderId(int orderId)
         {
             return await _iapService.RetryPendingPurchaseByOrderId(orderId);
+        }
+
+        private List<PurchaseItem> GetPurchaseHistory()
+        {
+            if (_iapService == null) {
+                return _purchaseHistory;
+            }
+
+            var list =  _iapService.GetPurchaseHistory();
+            _purchaseHistory.Clear();
+
+            foreach (var item in list)
+            {
+                var status = item.Status;
+                if (string.IsNullOrEmpty(status))
+                {
+                    status = "pending";
+                }
+                var purchaseItemName = item.OrderRequest.IngameItemName;
+                if (string.IsNullOrEmpty(purchaseItemName))
+                {
+                    purchaseItemName = item.OrderRequest.ProductId;
+                }
+
+                _purchaseHistory.Add(new PurchaseItem{
+                    OrderId = item.OrderId,
+                    Timestamp = item.OrderRequest.Timestamp,
+                    PaymentType = char.ToUpper(item.OrderRequest.PaymentType.ToString()[0]) + item.OrderRequest.PaymentType.ToString().Substring(1),
+                    Status = status,
+                    PurchaseItemName = purchaseItemName,
+                    OrderRequest = Convert.ToBase64String(Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(item.OrderRequest))),
+                    VerifyOrderRequest = Convert.ToBase64String(Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(item.VerifyOrderRequest))),
+                    PlayerId = item.PlayerId,
+                });
+            }
+
+            return _purchaseHistory;
+        }
+
+        public async void ShowPurchaseHistoryDialog()
+        {
+            _purchaseHistoryDialog.Show(GetPurchaseHistory());
         }
 
         public void SetFlag(bool SSODisabled = false)

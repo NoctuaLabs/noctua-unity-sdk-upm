@@ -51,7 +51,6 @@ public class GoogleBilling
         public bool Success;
         public BillingErrorCode ErrorCode;
         public PurchaseState PurchaseState;
-        public string PurchaseToken;
         public string ProductId;
         public string ReceiptId;
         public string ReceiptData;
@@ -502,10 +501,9 @@ public class GoogleBilling
                         {
                             Success = true,
                             ProductId = productId,
-                            PurchaseToken = purchaseToken,
                             PurchaseState = (PurchaseState)purchaseState,
                             ReceiptId = orderId,
-                            ReceiptData = originalJson
+                            ReceiptData = purchaseToken
                         };
                     }
 

@@ -144,6 +144,7 @@
     "UserCenterPresenter.TitleFindMoreLabel.Label.text": "Tìm thêm tại",
     "UserCenterPresenter.CopyIcon.Button.text": "Sao chép",
     "UserCenterPresenter.MenuPendingPurchases.Label.text": "Đang chờ mua hàng",
+    "UserCenterPresenter.MenuPurchaseHistory.Label.text": "Lịch sử mua hàng",
 
     "BindConfirmationDialogPresenter.BindConfirmationLabel.Label.text": "Bạn có muốn kết nối tiến trình của mình với tài khoản đã chọn hoặc tạo tài khoản mới không?",
     "BindConfirmationDialogPresenter.ConnectButton.Button.text": "Kết nối",
@@ -191,6 +192,7 @@
     "IAPPendingPurchaseItemCopyButtonText":  "Sao chép biên lai",
     "IAPPendingPurchaseItemRetryButtonText" : "Thử lại",
     "AuthEmailLinkingSuccessful": "Kết nối email thành công",
+    "IAPPurchaseHistoryTitle": "Bạn có {0} lần mua hàng",
 
     "EditProfile.NicknameValidation": "Biệt danh không được để trống",
     "EditProfile.CountryValidation": "Chọn quốc gia",
