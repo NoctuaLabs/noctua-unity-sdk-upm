@@ -828,7 +828,9 @@ namespace com.noctuagames.sdk
                 orderRequest.Id = orderResponse.Id;
 
                 // Override the payment type in case this get altered from backend.
-                if (enforcedPaymentType == PaymentType.unknown) // It means that there is no enforce on payment type
+                if (enforcedPaymentType == PaymentType.unknown &&
+                    !tryToUseSecondaryPayment
+                ) // It means that there is no enforce on payment type
                 {
                     paymentType = orderResponse.PaymentType;
                     _log.Info($"Payment type get overrided from backend: {paymentType}");
