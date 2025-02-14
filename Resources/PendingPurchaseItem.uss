@@ -20,6 +20,12 @@
     color:rgba(124, 126, 129, 1);
 }
 
+.datetime-label {
+    font-size: 10px;
+    text-overflow: ellipsis;
+    color:rgba(124, 126, 129, 1);
+}
+
 .status-label {
     font-size: 10px;
     padding:4px;

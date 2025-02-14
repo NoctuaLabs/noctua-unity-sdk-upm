@@ -6,6 +6,7 @@
             <ui:Label name="OrderId" text="ID" class="order-label" />
             <ui:Label name="Status" text="completed" class="status-label" />
         </ui:VisualElement>
+        <ui:Label name="DateTime" text="-" class="datetime-label" />
         <ui:Label name="PaymentDetail" class="payment-label" text="PaymentType - PurchaseItemName" />
     </ui:VisualElement>
 </ui:UXML>
