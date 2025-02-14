@@ -1393,14 +1393,15 @@ namespace com.noctuagames.sdk
         private void HandleUnpairedPurchase(GoogleBilling.PurchaseResult result)
         {
             var productId = result.ProductId;
-            _log.Warning($"NoctuaIAPService.HandleUnpairedPurchase Try to find the purchase token in pending purchase first to avoid duplicate token {result.ReceiptData}.");
+            _log.Info($"NoctuaIAPService.HandleUnpairedPurchase Try to find the purchase token in pending purchase first to avoid duplicate token {result.ReceiptData}.");
             var foundInPendingPurchases = false;
             var foundInPurchaseHistory = false;
+            var foundUnpairedOrder = false;
 
             var pendingPurchases = GetPendingPurchases().ToList();
             foreach (var pendingPurchase in pendingPurchases)
             {
-                _log.Debug($"pending purchase receipt data            : {pendingPurchase.VerifyOrderRequest.ReceiptData}");
+                _log.Debug($"pending purchase receipt data for order ID {pendingPurchase.VerifyOrderRequest.Id} : {pendingPurchase.VerifyOrderRequest.ReceiptData}");
                 _log.Debug($"play billing purchase update receipt data: {result.ReceiptData}");
                 if (pendingPurchase.VerifyOrderRequest != null &&
                     !string.IsNullOrEmpty(pendingPurchase.VerifyOrderRequest.ReceiptData) &&
@@ -1428,7 +1429,7 @@ namespace com.noctuagames.sdk
             var purchaseHistory = GetPurchaseHistory().ToList();
             foreach (var purchaseItem in purchaseHistory)
             {
-                _log.Debug($"purchase history receipt data            : {purchaseItem.VerifyOrderRequest.ReceiptData}");
+                _log.Debug($"purchase history receipt data for order ID {purchaseItem.VerifyOrderRequest.Id} : {purchaseItem.VerifyOrderRequest.ReceiptData}");
                 _log.Debug($"play billing purchase update receipt data: {result.ReceiptData}");
                 if (purchaseItem.VerifyOrderRequest != null &&
                     !string.IsNullOrEmpty(purchaseItem.VerifyOrderRequest.ReceiptData) &&
@@ -1475,6 +1476,7 @@ namespace com.noctuagames.sdk
                 pendingPurchaseItem.VerifyOrderRequest.ReceiptData = result.ReceiptData;
 
                 _log.Info($"NoctuaIAPService.HandleUnpairedPurchase Found unpaired order for product ID: {productId}, Order ID: {pendingPurchaseItem.OrderId}, ReceiptData: {pendingPurchaseItem.VerifyOrderRequest.ReceiptData}");
+                foundUnpairedOrder = true;
                 EnqueueToRetryPendingPurchases(pendingPurchaseItem);
 
                 // Remove from unpaired orders since we have receipt data now
@@ -1499,7 +1501,7 @@ namespace com.noctuagames.sdk
                 }
             }
 
-            if (!foundInPurchaseHistory && !foundInPurchaseHistory) {
+            if (!foundInPurchaseHistory && !foundInPurchaseHistory && !foundUnpairedOrder) {
                 _log.Warning($"NoctuaIAPService.HandleUnpairedPurchase No unpaired order or pending purchase found for receipt data {result.ReceiptData}. Store to backend.");
                 var unpairedPurchaseRequest = new UnpairedPurchaseRequest
                 {
@@ -1988,11 +1990,41 @@ namespace com.noctuagames.sdk
             }
 
             // Remove the existing if any.
-            RemoveFromRetryPendingPurchasesByOrderID(item.OrderId);
+            var oldItem = GetThenRemoveFromRetryPendingPurchasesByOrderID(item.OrderId);
+
+            if (oldItem != null && !string.IsNullOrEmpty(oldItem.VerifyOrderRequest?.ReceiptData))
+            {
+                item.VerifyOrderRequest.ReceiptData = oldItem.VerifyOrderRequest.ReceiptData;
+                _log.Info($"Preserved ReceiptData for {item.OrderId}: {item.VerifyOrderRequest.ReceiptData}");
+            }
 
             _log.Info($"Enqueue to retry pending purchase: {item.OrderId}");
             _waitingPendingPurchases.Enqueue(item);
             SavePendingPurchases(_waitingPendingPurchases.ToList());
+        }
+
+        public PurchaseItem GetThenRemoveFromRetryPendingPurchasesByOrderID(int orderId)
+        {
+            _log.Info($"Remove from retry pending purchase: {orderId}");
+
+            var oldItem = _waitingPendingPurchases.FirstOrDefault(item => item.OrderId == orderId);
+            if (oldItem == null)
+            {
+                _log.Warning($"No pending purchase found with order ID: {orderId}");
+                return new PurchaseItem();
+            } else {
+                // Rebuild the queue excluding the item with the specified OrderID
+                var updatedQueue = new Queue<PurchaseItem>(
+                    _waitingPendingPurchases.Where(item => item.OrderId != orderId));
+                _waitingPendingPurchases.Clear();
+                foreach (var item in updatedQueue)
+                {
+                    _waitingPendingPurchases.Enqueue(item);
+                }
+                SavePendingPurchases(_waitingPendingPurchases.ToList());
+            }
+
+            return oldItem;
         }
 
         public void RemoveFromRetryPendingPurchasesByOrderID(int orderId)

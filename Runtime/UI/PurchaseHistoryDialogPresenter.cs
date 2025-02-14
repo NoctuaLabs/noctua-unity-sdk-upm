@@ -97,11 +97,11 @@ namespace com.noctuagames.sdk.UI
 
             // Assign value to elements
             var text = $"OrderID {items[index].OrderId.ToString()}";
+            element.Q<Label>("OrderId").text = text;
             if (items[index].Timestamp != "")
             {
-                text += $" - {items[index].Timestamp}";
+                element.Q<Label>("DateTime").text = $"{items[index].Timestamp}";
             }
-            element.Q<Label>("OrderId").text = text;
             element.Q<Label>("PaymentDetail").text = $"{items[index].PaymentType} - {items[index].PurchaseItemName}";
 
             element.Q<Label>("Status").text = "completed";
