@@ -828,8 +828,10 @@ namespace com.noctuagames.sdk
                 orderRequest.Id = orderResponse.Id;
 
                 // Override the payment type in case this get altered from backend.
-                if (enforcedPaymentType == PaymentType.unknown &&
-                    !tryToUseSecondaryPayment
+                // TODO this will cause payment loop if both of these conditions meet:
+                // 1. Noctuastore is prioritized above Playstore
+                // 2. The user have enough noctua gold
+                if (enforcedPaymentType == PaymentType.unknown
                 ) // It means that there is no enforce on payment type
                 {
                     paymentType = orderResponse.PaymentType;
