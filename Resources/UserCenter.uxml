@@ -31,37 +31,11 @@
                 <ui:VisualElement name="NoctuaLogoContainer" class="noctua-logo-container hide">
                     <ui:VisualElement name="NoctuaLogoWithText" class="noctua-logo-with-text" />
                 </ui:VisualElement>
-                <ui:VisualElement name="MoreOptionsMenu" class="more-options-menu hide">
-                    <ui:VisualElement name="EditProfile" class="more-options-menu-item">
-                        <ui:VisualElement name="Icon" class="edit-icon more-option-icon" />
-                        <ui:Label name="MenuEditProfile" text="Edit Profile" class="more-options-menu-item-label" />
-                    </ui:VisualElement>
-                    <ui:VisualElement name="SwitchProfile" class="more-options-menu-item">
-                        <ui:VisualElement name="Icon" class="second-switch-account-icon more-option-icon" />
-                        <ui:Label name="MenuSwitchProfile" text="Switch Profile" class="more-options-menu-item-label" />
-                    </ui:VisualElement>
-                    <ui:VisualElement name="PurchaseHistory" class="more-options-menu-item">
-                        <ui:VisualElement name="Icon" class="pending-purchases-icon more-option-icon" />
-                        <ui:Label name="MenuPurchaseHistory" text="Purchase History" class="more-options-menu-item-label" />
-                    </ui:VisualElement>
-                    <ui:VisualElement name="PendingPurchases" class="more-options-menu-item">
-                        <ui:VisualElement name="Icon" class="purchase-history-icon more-option-icon" />
-                        <ui:Label name="MenuPendingPurchases" text="Pending Purchases" class="more-options-menu-item-label" />
-                    </ui:VisualElement>
-                    <ui:VisualElement name="Line" class="line" />
-                    <ui:VisualElement name="DeleteAccount" class="more-options-menu-item">
-                        <ui:VisualElement name="Icon" class="delete-icon more-option-icon" />
-                        <ui:Label name="MenuDeleteAccount" text="Delete Account" class="more-options-menu-item-label" />
-                    </ui:VisualElement>
-                    <ui:VisualElement name="LogoutAccount" class="more-options-menu-item">
-                        <ui:VisualElement name="Icon" class="logout-icon more-option-icon" />
-                        <ui:Label name="MenuLogout" text="Logout Account" class="more-options-menu-item-label" />
-                    </ui:VisualElement>
-                </ui:VisualElement>
             </ui:VisualElement>
             <ui:VisualElement name="ConnectAccount" class="connect-account portrait">
-                <ui:VisualElement name="ContainerStayConnect" style="flex-direction: row; display: flex;">
-                    <ui:Label name="StayConnectCompany" text="Stay connect to Noctua!" class="connect-account-label" style="margin-left: 5%; height: 28px; flex-shrink: 1; flex-grow: 1;" />
+                <ui:VisualElement name="ContainerStayConnect" style="flex-direction: row;">
+                    <ui:Label name="StayConnectCompany" text="Stay connect to" tabindex="1" class="connect-account-label" style="margin-left: 5%; height: 28px; flex-shrink: 1; flex-grow: 0; -unity-text-align: middle-left; margin-right: 0;" />
+                    <ui:Label name="StayConnectCompanyName" text="Noctua!" class="connect-account-label" style="margin-left: 0; height: 28px; flex-shrink: 1; flex-grow: 1; -unity-text-align: middle-left;" />
                 </ui:VisualElement>
                 <ui:ListView name="AccountList" class="account-list" />
                 <ui:VisualElement name="UserGuestUI" class="user-guest-box">
@@ -139,7 +113,34 @@
                     </ui:VisualElement>
                 </ui:VisualElement>
             </ui:VisualElement>
-            <ui:VisualElement style="flex-grow: 1; display: none;" />
+            <ui:VisualElement name="MoreOptionsMenu" class="more-options-menu hide">
+                <ui:VisualElement name="EditProfile" class="more-options-menu-item">
+                    <ui:VisualElement name="Icon" class="edit-icon more-option-icon" />
+                    <ui:Label name="MenuEditProfile" text="Edit Profile" class="more-options-menu-item-label" />
+                </ui:VisualElement>
+                <ui:VisualElement name="SwitchProfile" class="more-options-menu-item">
+                    <ui:VisualElement name="Icon" class="second-switch-account-icon more-option-icon" />
+                    <ui:Label name="MenuSwitchProfile" text="Switch Profile" class="more-options-menu-item-label" />
+                </ui:VisualElement>
+                <ui:VisualElement name="PurchaseHistory" class="more-options-menu-item">
+                    <ui:VisualElement name="Icon" class="pending-purchases-icon more-option-icon" />
+                    <ui:Label name="MenuPurchaseHistory" text="Purchase History" class="more-options-menu-item-label" />
+                </ui:VisualElement>
+                <ui:VisualElement name="PendingPurchases" class="more-options-menu-item">
+                    <ui:VisualElement name="Icon" class="purchase-history-icon more-option-icon" />
+                    <ui:Label name="MenuPendingPurchases" text="Pending Purchases" class="more-options-menu-item-label" />
+                </ui:VisualElement>
+                <ui:VisualElement name="Line" class="line" />
+                <ui:VisualElement name="DeleteAccount" class="more-options-menu-item">
+                    <ui:VisualElement name="Icon" class="delete-icon more-option-icon" />
+                    <ui:Label name="MenuDeleteAccount" text="Delete Account" class="more-options-menu-item-label" />
+                </ui:VisualElement>
+                <ui:VisualElement name="LogoutAccount" class="more-options-menu-item">
+                    <ui:VisualElement name="Icon" class="logout-icon more-option-icon" />
+                    <ui:Label name="MenuLogout" text="Logout Account" class="more-options-menu-item-label" />
+                </ui:VisualElement>
+            </ui:VisualElement>
         </ui:VisualElement>
+        <ui:VisualElement style="flex-grow: 1; display: none;" />
     </ui:VisualElement>
 </ui:UXML>
