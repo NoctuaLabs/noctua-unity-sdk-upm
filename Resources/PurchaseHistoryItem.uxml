@@ -1,0 +1,12 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" xsi="http://www.w3.org/2001/XMLSchema-instance" engine="UnityEngine.UIElements" editor="UnityEditor.UIElements" noNamespaceSchemaLocation="../../../../UIElementsSchema/UIElements.xsd" editor-extension-mode="False">
+    <Style src="project://database/Packages/com.noctuagames.sdk/Resources/Noctua.uss?fileID=7433441132597879392&amp;guid=fe35e550fb23b6446af377f994effe35&amp;type=3#Noctua" />
+    <Style src="project://database/Packages/com.noctuagames.sdk/Resources/PendingPurchaseItem.uss?fileID=7433441132597879392&amp;guid=2941701e30f9428eaf5ebac04efff21e&amp;type=3#PendingPurchaseItem" />
+    <ui:VisualElement name="PurchaseItem" class="pending-purchase-item">
+        <ui:VisualElement class="purchase-item-header" >
+            <ui:Label name="OrderId" text="ID" class="order-label" />
+            <ui:Label name="Status" text="completed" class="status-label" />
+        </ui:VisualElement>
+        <ui:Label name="DateTime" text="-" class="datetime-label" />
+        <ui:Label name="PaymentDetail" class="payment-label" text="PaymentType - PurchaseItemName" />
+    </ui:VisualElement>
+</ui:UXML>

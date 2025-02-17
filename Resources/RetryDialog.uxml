@@ -2,7 +2,7 @@
     <Style src="./Noctua.uss" />
     <Style src="./RetryDialog.uss" />
     <ui:VisualElement name="Root" class="root" >
-        <ui:VisualElement name="RetryDialog" class="base dialog-box base-general-confirm" style="height: 200px;">
+        <ui:VisualElement name="RetryDialog" class="base dialog-box base-general-confirm" style="height: 215px;">
             <ui:Button name="ExitButton" focusable="false" class="user-profile-header-button exit-button">
                     <ui:VisualElement name="ExitIcon" class="exit-icon" />
             </ui:Button>        

@@ -373,6 +373,7 @@ using UnityEditor.Graphs;
             var request = UnityWebRequest.Get($"{noctuaConfig.Noctua.BaseUrl}/games/build-config");
             request.SetRequestHeader("X-CLIENT-ID", noctuaConfig.ClientId);
             request.SetRequestHeader("X-BUNDLE-ID", Application.identifier);
+            request.SetRequestHeader("X-PLATFORM", Utility.GetStoreName());
             var noctuaGames = new List<string>();
 
             request.SendWebRequest();

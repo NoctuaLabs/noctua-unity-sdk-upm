@@ -154,6 +154,7 @@ namespace com.noctuagames.sdk.UI
             View.Q<VisualElement>("SwitchProfile").RegisterCallback<ClickEvent>(_ => OnSwitchProfile());
             View.Q<VisualElement>("LogoutAccount").RegisterCallback<ClickEvent>(_ => OnLogout());
             View.Q<VisualElement>("PendingPurchases").RegisterCallback<ClickEvent>(_ => OnPendingPurchases());
+            View.Q<VisualElement>("PurchaseHistory").RegisterCallback<ClickEvent>(_ => OnPurchaseHistory());
             View.Q<Label>("FindMoreLabel").RegisterCallback<ClickEvent>(_ => OnFindMore());
 
             _helpButton.RegisterCallback<ClickEvent>(OnHelp);
@@ -981,12 +982,22 @@ namespace com.noctuagames.sdk.UI
             Model.ShowAccountSelection();
             OnUIEditProfile(false);
         }
+
         private void OnPendingPurchases()
         {
             _log.Debug("clicking pending purchases");
 
             Visible = false;
             Model.ShowPendingPurchasesDialog();
+            OnUIEditProfile(false);
+        }
+
+        private void OnPurchaseHistory()
+        {
+            _log.Debug("clicking purchase history");
+
+            Visible = false;
+            Model.ShowPurchaseHistoryDialog();
             OnUIEditProfile(false);
         }
 

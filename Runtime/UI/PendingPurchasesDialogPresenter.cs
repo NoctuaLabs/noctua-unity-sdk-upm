@@ -16,7 +16,7 @@ namespace com.noctuagames.sdk.UI
     internal class PendingPurchasesDialogPresenter : Presenter<AuthenticationModel>
     {
         private readonly ILogger _log = new NoctuaLogger();
-        private readonly List<PendingPurchaseItem> _pendingPurchases = new();
+        private readonly List<PurchaseItem> _pendingPurchases = new();
 
         private VisualTreeAsset _itemTemplate;
         private Button _btnComplete;
@@ -46,7 +46,7 @@ namespace com.noctuagames.sdk.UI
             BindListView(_pendingPurchasesListView, _pendingPurchases);
         }
 
-        public async UniTask<bool> Show(List<PendingPurchaseItem> pendingPurchases)
+        public async UniTask<bool> Show(List<PurchaseItem> pendingPurchases)
         {            
             _log.Debug("Player ID from recent account: " + Model.AuthService.RecentAccount?.Player?.Id);
             _tcs = new UniTaskCompletionSource<bool>();
@@ -78,7 +78,7 @@ namespace com.noctuagames.sdk.UI
             _tcs?.TrySetResult(false);
         }
 
-        private void BindListView(ListView listView, List<PendingPurchaseItem> items)
+        private void BindListView(ListView listView, List<PurchaseItem> items)
         {
             listView.makeItem = _itemTemplate.Instantiate;
             listView.bindItem = (element, index) => BindListViewItem(element, index, items);
@@ -87,7 +87,7 @@ namespace com.noctuagames.sdk.UI
             listView.selectionType = SelectionType.Single;
         }
 
-        private void BindListViewItem(VisualElement element, int index, List<PendingPurchaseItem> items)
+        private void BindListViewItem(VisualElement element, int index, List<PurchaseItem> items)
         {
             if (index >= items.Count)
             {

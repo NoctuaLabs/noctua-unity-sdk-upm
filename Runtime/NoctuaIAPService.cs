@@ -106,6 +106,25 @@ namespace com.noctuagames.sdk
     }
 
     [Preserve]
+    public class UnpairedPurchaseRequest
+    {
+        [JsonProperty("receipt_data")]
+        public string ReceiptData;
+
+        [JsonProperty("payment_type")]
+        public PaymentType PaymentType;
+
+        [JsonProperty("product_id")]
+        public string ProductId;
+
+        [JsonProperty("currency")]
+        public string Currency;
+
+        [JsonProperty("timestamp")]
+        public string Timestamp;
+    }
+
+    [Preserve]
     public class OrderResponse
     {
         [JsonProperty("id")]
@@ -119,6 +138,13 @@ namespace com.noctuagames.sdk
 
         [JsonProperty("payment_type")]
         public PaymentType PaymentType;
+    }
+
+    [Preserve]
+    public class UnpairedPurchaseResponse
+    {
+        [JsonProperty("id")]
+        public int Id;
     }
     
     public enum PaymentStatus
@@ -256,7 +282,7 @@ namespace com.noctuagames.sdk
         private readonly EventSender _eventSender;
         private readonly AccessTokenProvider _accessTokenProvider;
         private readonly NoctuaWebPaymentService _noctuaPayment;
-        private readonly Queue<RetryPendingPurchaseItem> _waitingPendingPurchases = new();
+        private readonly Queue<PurchaseItem> _waitingPendingPurchases = new();
         private readonly INativePlugin _nativePlugin;
         private readonly ProductList _usdProducts = new();
         private readonly CustomPaymentCompleteDialogPresenter _customPaymentCompleteDialog;
@@ -300,6 +326,7 @@ namespace com.noctuagames.sdk
 #if UNITY_ANDROID && !UNITY_EDITOR
             GoogleBillingInstance.OnProductDetailsDone += HandleGoogleProductDetails;
             GoogleBillingInstance.OnPurchaseDone += HandleGooglePurchaseDone;
+            GoogleBillingInstance.OnQueryPurchasesDone += HandleGoogleQueryPurchasesDone;
 #endif
             _nativePlugin = nativePlugin;
         }
@@ -410,6 +437,21 @@ namespace com.noctuagames.sdk
             return response;
         }
 
+        private async UniTask<UnpairedPurchaseResponse> CreateUnpairedPurchaseAsync(UnpairedPurchaseRequest purchase)
+        {
+            var url = $"{_config.BaseUrl}/unpaired-purchases";
+
+            var request = new HttpRequest(HttpMethod.Post, url)
+                .WithHeader("X-CLIENT-ID", _config.ClientId)
+                .WithHeader("X-BUNDLE-ID", Application.identifier)
+                .WithHeader("Authorization", "Bearer " + _accessTokenProvider.AccessToken)
+                .WithJsonBody(purchase);
+
+            var response = await request.Send<UnpairedPurchaseResponse>();
+
+            return response;
+        }
+
         private async UniTask<VerifyOrderResponse> VerifyOrderAsync(VerifyOrderRequest order, string accessToken)
         {
             var url = $"{_config.BaseUrl}/verify-order";
@@ -444,6 +486,18 @@ namespace com.noctuagames.sdk
                 case OrderStatus.completed:
                     _log.Debug("remove from pending queue because it has been completed");
                     RemoveFromRetryPendingPurchasesByOrderID(verifyOrderRequest.Id);
+                    _log.Debug("add to purchase history");
+                    AddToPurchaseHistory(
+                        new PurchaseItem
+                        {
+                            OrderId = verifyOrderRequest.Id,
+                            OrderRequest = orderRequest,
+                            VerifyOrderRequest = verifyOrderRequest,
+                            AccessToken = _accessTokenProvider.AccessToken,
+                            Status = "refunded",
+                            PlayerId = Noctua.Auth.RecentAccount?.Player?.Id,
+                        }
+                    );
 
                     _eventSender?.Send(
                         "purchase_completed",
@@ -478,7 +532,7 @@ namespace com.noctuagames.sdk
                     );
 
                     EnqueueToRetryPendingPurchases(
-                        new RetryPendingPurchaseItem
+                        new PurchaseItem
                         {
                             OrderId = verifyOrderRequest.Id,
                             OrderRequest = orderRequest,
@@ -503,7 +557,7 @@ namespace com.noctuagames.sdk
                         }
                     );
                     EnqueueToRetryPendingPurchases(
-                        new RetryPendingPurchaseItem
+                        new PurchaseItem
                         {
                             OrderId = verifyOrderRequest.Id,
                             OrderRequest = orderRequest,
@@ -552,7 +606,7 @@ namespace com.noctuagames.sdk
                     );
 
                     EnqueueToRetryPendingPurchases(
-                        new RetryPendingPurchaseItem
+                        new PurchaseItem
                         {
                             OrderId = verifyOrderRequest.Id,
                             OrderRequest = orderRequest,
@@ -613,6 +667,13 @@ namespace com.noctuagames.sdk
 
             return "";
 
+#endif
+        }
+
+        public void QueryPurchasesAsync()
+        {
+#if UNITY_ANDROID && !UNITY_EDITOR
+            GoogleBillingInstance.QueryPurchasesAsync();
 #endif
         }
 
@@ -700,6 +761,11 @@ namespace com.noctuagames.sdk
             OrderRequest orderRequest;
             OrderResponse orderResponse;
 
+            var unpairedOrders = new Dictionary<string, PurchaseItem>();
+            var orderId = 0;
+            var pendingPurchaseItem = new PurchaseItem();
+            var verifyOrderRequest = new VerifyOrderRequest();
+
             try
             {
                 if (_usdProducts.Count == 0)
@@ -759,15 +825,54 @@ namespace com.noctuagames.sdk
                 }
 
                 orderResponse = await RetryAsync(() => CreateOrderAsync(orderRequest));
-
                 orderRequest.Id = orderResponse.Id;
 
                 // Override the payment type in case this get altered from backend.
-                if (enforcedPaymentType == PaymentType.unknown) // It means that there is no enforce on payment type
+                // TODO this will cause payment loop if both of these conditions meet:
+                // 1. Noctuastore is prioritized above Playstore
+                // 2. The user have enough noctua gold
+                if (enforcedPaymentType == PaymentType.unknown
+                ) // It means that there is no enforce on payment type
                 {
                     paymentType = orderResponse.PaymentType;
                     _log.Info($"Payment type get overrided from backend: {paymentType}");
                 }
+
+                // Declare structs early so we can use it for multipurposes
+                orderId = orderResponse.Id;
+                verifyOrderRequest = new VerifyOrderRequest
+                {
+                    Id = orderId,
+                    // But no receipt id or receipt data at this point
+                };
+                pendingPurchaseItem = new PurchaseItem
+                {
+                    OrderId = orderResponse.Id,
+                    OrderRequest = orderRequest,
+                    VerifyOrderRequest = verifyOrderRequest,
+                    AccessToken = _accessTokenProvider.AccessToken,
+                    PlayerId = Noctua.Auth.RecentAccount?.Player?.Id,
+                };
+
+                // Store unpaired order
+                unpairedOrders = new Dictionary<string, PurchaseItem>();
+                var unpairedOrdersJson = PlayerPrefs.GetString("NoctuaUnpairedOrders", "[]");
+                try
+                {
+                    unpairedOrders = JsonConvert.DeserializeObject<Dictionary<string, PurchaseItem>>(unpairedOrdersJson);
+                }
+                catch (Exception e)
+                {
+                    _log.Error($"Failed to parse unpaired orders: {e}");
+                    unpairedOrders = new Dictionary<string, PurchaseItem>();
+                }
+                unpairedOrders[orderRequest.ProductId] = pendingPurchaseItem;
+                PlayerPrefs.SetString("NoctuaUnpairedOrders", JsonConvert.SerializeObject(unpairedOrders));
+                PlayerPrefs.Save();
+                _log.Info($"NoctuaUnpairedOrders: {JsonConvert.SerializeObject(unpairedOrders)}");
+
+                // Store early for Negative Payment Cases no #4
+                EnqueueToRetryPendingPurchases(pendingPurchaseItem);
                 
                 _eventSender?.Send(
                     "purchase_opened",
@@ -815,6 +920,7 @@ namespace com.noctuagames.sdk
                     });
 
                     var task = await _paymentTcs.Task;
+                    _log.Info("NoctuaIAPService.PurchaseItemAsync user side payment flow completed, clear up _paymentTcs then continue the payment flow.");
                     
                     paymentResult = _paymentTcs.Task.Result;
                     
@@ -830,6 +936,7 @@ namespace com.noctuagames.sdk
                     GoogleBillingInstance.PurchaseItem(orderResponse.ProductId);
 
                     var task = await _paymentTcs.Task;
+                    _log.Info("NoctuaIAPService.PurchaseItemAsync user side payment flow completed, clear up _paymentTcs then continue the payment flow.");
                     
                     paymentResult = _paymentTcs.Task.Result;
                     
@@ -840,6 +947,9 @@ namespace com.noctuagames.sdk
 #endif
 
                 case PaymentType.noctuastore:
+                    // Noctua store payment is not using _paymentTcs but rather have a different mechanism to wait
+                    // for user payment to be completed and directly set paymentResult.
+                    // Please see CustomPaymentCompleteDialog.
 
                     if (string.IsNullOrEmpty(orderResponse.PaymentUrl)) {
                         _log.Warning($"Payment URL is empty");
@@ -854,6 +964,8 @@ namespace com.noctuagames.sdk
                     var nativePaymentButtonEnabled = _distributionPlaftorm != "direct";
 
                     var completeDialogResult = await _customPaymentCompleteDialog.Show(nativePaymentButtonEnabled);
+                    _log.Info("NoctuaIAPService.PurchaseItemAsync user side payment flow completed (custom payment complete dialog), clear up _paymentTcs then continue the payment flow.");
+
                     if (completeDialogResult == "cancel") // Custom payment get canceled.
                     {
                         var verifiedAtCancelation = false;
@@ -887,7 +999,7 @@ namespace com.noctuagames.sdk
                             // What if the user is accidentally tap the close button instead of complete?
                             _log.Exception(e);
                             EnqueueToRetryPendingPurchases(
-                                new RetryPendingPurchaseItem
+                                new PurchaseItem
                                 {
                                     OrderId = orderResponse.Id,
                                     OrderRequest = orderRequest,
@@ -925,7 +1037,7 @@ namespace com.noctuagames.sdk
                             // TODO Do we really need to retry the canceled purchase?
                             // What if the user is accidentally tap the close button instead of complete?
                             EnqueueToRetryPendingPurchases(
-                                new RetryPendingPurchaseItem
+                                new PurchaseItem
                                 {
                                     OrderId = orderResponse.Id,
                                     OrderRequest = orderRequest,
@@ -960,39 +1072,18 @@ namespace com.noctuagames.sdk
                     throw new NoctuaException(NoctuaErrorCode.Payment, "Unsupported payment type " + paymentType);
             }
 
-            // Declare early
-            var orderId = orderResponse.Id;
-            var verifyOrderRequest = new VerifyOrderRequest
-            {
-                Id = orderId,
-                ReceiptId = paymentResult.ReceiptId,
-                ReceiptData = paymentResult.ReceiptData
-            };
-            var pendingPurchaseItem = new RetryPendingPurchaseItem
-            {
-                OrderId = orderResponse.Id,
-                OrderRequest = orderRequest,
-                VerifyOrderRequest = verifyOrderRequest,
-                AccessToken = _accessTokenProvider.AccessToken,
-                PlayerId = Noctua.Auth.RecentAccount?.Player?.Id,
-            };
+            // Clear up the payment flow instance
+            _paymentTcs = null;
 
-            // Store unpaired order
-            var unpairedOrders = new Dictionary<string, RetryPendingPurchaseItem>();
-            var unpairedOrdersJson = PlayerPrefs.GetString("NoctuaUnpairedOrders", "[]");
-            try
-            {
-                unpairedOrders = JsonConvert.DeserializeObject<Dictionary<string, RetryPendingPurchaseItem>>(unpairedOrdersJson);
-            }
-            catch (Exception e)
-            {
-                _log.Error($"Failed to parse unpaired orders: {e}");
-                unpairedOrders = new Dictionary<string, RetryPendingPurchaseItem>();
-            }
-            unpairedOrders[orderRequest.ProductId] = pendingPurchaseItem;
-            PlayerPrefs.SetString("NoctuaUnpairedOrders", JsonConvert.SerializeObject(unpairedOrders));
-            PlayerPrefs.Save();
-            _log.Info($"NoctuaUnpairedOrders: {JsonConvert.SerializeObject(unpairedOrders)}");
+            // Assign the update value
+            verifyOrderRequest.ReceiptId = paymentResult.ReceiptId;
+            verifyOrderRequest.ReceiptData = paymentResult.ReceiptData;
+
+            pendingPurchaseItem.OrderId = orderResponse.Id;
+            pendingPurchaseItem.OrderRequest = orderRequest;
+            pendingPurchaseItem.VerifyOrderRequest = verifyOrderRequest;
+            pendingPurchaseItem.AccessToken = _accessTokenProvider.AccessToken;
+            pendingPurchaseItem.PlayerId = Noctua.Auth.RecentAccount?.Player?.Id;
 
             _log.Info($"Purchase process was done, whatever the status. Store the data to pending purchase early before verifying.  Order ID: {orderId}");
 
@@ -1066,7 +1157,7 @@ namespace com.noctuagames.sdk
                 if ((NoctuaErrorCode)e.ErrorCode == NoctuaErrorCode.Networking)
                 {
                     EnqueueToRetryPendingPurchases(
-                        new RetryPendingPurchaseItem
+                        new PurchaseItem
                         {
                             OrderId = orderResponse.Id,
                             OrderRequest = orderRequest,
@@ -1079,12 +1170,14 @@ namespace com.noctuagames.sdk
                 }
 
                 // At this point the unpaired order is already paired with receipt data.
-
-                // Remove from unpaired orders since we have receipt data now
-                unpairedOrders.Remove(orderRequest.ProductId);
-                PlayerPrefs.SetString("NoctuaUnpairedOrders", JsonConvert.SerializeObject(unpairedOrders));
-                PlayerPrefs.Save();
-                _log.Info($"NoctuaUnpairedOrders: {JsonConvert.SerializeObject(unpairedOrders)}");
+                if (!string.IsNullOrEmpty(verifyOrderRequest.ReceiptData))
+                {
+                    _log.Info($"Remove from unpaired orders since we have receipt data now: {orderRequest.ProductId}");
+                    unpairedOrders.Remove(orderRequest.ProductId);
+                    PlayerPrefs.SetString("NoctuaUnpairedOrders", JsonConvert.SerializeObject(unpairedOrders));
+                    PlayerPrefs.Save();
+                    _log.Info($"NoctuaUnpairedOrders: {JsonConvert.SerializeObject(unpairedOrders)}");
+                }
                 
                 _uiFactory.ShowLoadingProgress(false);
                 _log.Exception(e);
@@ -1187,7 +1280,7 @@ namespace com.noctuagames.sdk
                 );
 
                 EnqueueToRetryPendingPurchases(
-                    new RetryPendingPurchaseItem
+                    new PurchaseItem
                     {
                         OrderId = item.OrderId,
                         OrderRequest = item.OrderRequest,
@@ -1270,46 +1363,13 @@ namespace com.noctuagames.sdk
             {
                 _log.Info("NoctuaIAPService.PurchaseItemAsync Find out the order ID pair...");
 
-                var unpairedOrdersJson = PlayerPrefs.GetString("NoctuaUnpairedOrders", "[]");
-                Dictionary<string, RetryPendingPurchaseItem> unpairedOrders;
-                try
-                {
-                    unpairedOrders = JsonConvert.DeserializeObject<Dictionary<string, RetryPendingPurchaseItem>>(unpairedOrdersJson);
-                }
-                catch (Exception e)
-                {
-                    _log.Error($"Failed to parse unpaired orders: {e}");
-                    _log.Info($"Create empty unpairedOrders array");
-                    unpairedOrders = new Dictionary<string, RetryPendingPurchaseItem>();
-                }
-
-                var productId = result.ProductId;
-                if (unpairedOrders.TryGetValue(productId, out var pendingPurchaseItem))
-                {
-                    _log.Info($"Found unpaired order for product {productId}. Order ID: {pendingPurchaseItem.OrderId}");
-
-                    var verifyOrderRequest = pendingPurchaseItem.VerifyOrderRequest;
-                    verifyOrderRequest.ReceiptData = result.PurchaseToken;
-
-                    EnqueueToRetryPendingPurchases(pendingPurchaseItem);
-
-                    // Remove from unpaired orders since we have receipt data now
-                    unpairedOrders.Remove(productId);
-                    PlayerPrefs.SetString("NoctuaUnpairedOrders", JsonConvert.SerializeObject(unpairedOrders));
-                    PlayerPrefs.Save();
-                    _log.Info($"NoctuaUnpairedOrders: {JsonConvert.SerializeObject(unpairedOrders)}");
-                }
-                else
-                {
-                    _log.Warning($"No unpaired order found for product {productId}");
-                }
+                HandleUnpairedPurchase(result);
             } else
             {
+                _log.Info("NoctuaIAPService.PurchaseItemAsync paymentTcs (payment flow instance) is still exist, try to continue the payment flow");
                 _paymentTcs.TrySetResult(GetPlaystorePaymentResult(result));
             }
-                        
         }
-                    
 
         private void HandleGoogleProductDetails(GoogleBilling.ProductDetailsResponse response)
         {
@@ -1332,6 +1392,162 @@ namespace com.noctuagames.sdk
             _activeCurrencyTcs.TrySetResult(response.Currency);
         }
 
+        private void HandleUnpairedPurchase(GoogleBilling.PurchaseResult result)
+        {
+            var productId = result.ProductId;
+            _log.Info($"NoctuaIAPService.HandleUnpairedPurchase Try to find the purchase token in pending purchase first to avoid duplicate token {result.ReceiptData}.");
+            var foundInPendingPurchases = false;
+            var foundInPurchaseHistory = false;
+            var foundUnpairedOrder = false;
+
+            var pendingPurchases = GetPendingPurchases().ToList();
+            foreach (var pendingPurchase in pendingPurchases)
+            {
+                _log.Debug($"pending purchase receipt data for order ID {pendingPurchase.VerifyOrderRequest.Id} : {pendingPurchase.VerifyOrderRequest.ReceiptData}");
+                _log.Debug($"play billing purchase update receipt data: {result.ReceiptData}");
+                if (pendingPurchase.VerifyOrderRequest != null &&
+                    !string.IsNullOrEmpty(pendingPurchase.VerifyOrderRequest.ReceiptData) &&
+                    pendingPurchase.VerifyOrderRequest.ReceiptData == result.ReceiptData
+                )
+                {
+                    _log.Info($"NoctuaIAPService.HandleUnpairedPurchase Found pending purchase with the same receipt data: {pendingPurchase.VerifyOrderRequest.ReceiptData}");
+                    foundInPendingPurchases = true;
+                    // Verify right now
+                    VerifyOrderImplAsync(
+                        pendingPurchase.OrderRequest,
+                        pendingPurchase.VerifyOrderRequest,
+                        pendingPurchase.AccessToken,
+                        pendingPurchase.PlayerId
+                    );
+
+                    break;
+                }
+            }
+            if (foundInPendingPurchases)
+            {
+                return;
+            }
+
+            var purchaseHistory = GetPurchaseHistory().ToList();
+            foreach (var purchaseItem in purchaseHistory)
+            {
+                _log.Debug($"purchase history receipt data for order ID {purchaseItem.VerifyOrderRequest.Id} : {purchaseItem.VerifyOrderRequest.ReceiptData}");
+                _log.Debug($"play billing purchase update receipt data: {result.ReceiptData}");
+                if (purchaseItem.VerifyOrderRequest != null &&
+                    !string.IsNullOrEmpty(purchaseItem.VerifyOrderRequest.ReceiptData) &&
+                    purchaseItem.VerifyOrderRequest.ReceiptData == result.ReceiptData
+                )
+                {
+                    _log.Info($"NoctuaIAPService.HandleUnpairedPurchase Found purchase history with the same receipt data: {purchaseItem.VerifyOrderRequest.ReceiptData}");
+                    foundInPurchaseHistory = true;
+                    // Verify right now
+                    VerifyOrderImplAsync(
+                        purchaseItem.OrderRequest,
+                        purchaseItem.VerifyOrderRequest,
+                        purchaseItem.AccessToken,
+                        purchaseItem.PlayerId
+                    );
+
+                    break;
+                }
+            }
+            if (foundInPurchaseHistory)
+            {
+                return;
+            }
+
+
+            _log.Info($"NoctuaIAPService.HandleUnpairedPurchase Not found in pending purchase and purchase history, continue to try to find out the order ID pair for {productId}");
+            var unpairedOrdersJson = PlayerPrefs.GetString("NoctuaUnpairedOrders", "[]");
+            _log.Info($"NoctuaIAPService.HandleUnpairedPurchase unpaired orders: {unpairedOrdersJson}");
+            Dictionary<string, PurchaseItem> unpairedOrders;
+            try
+            {
+                unpairedOrders = JsonConvert.DeserializeObject<Dictionary<string, PurchaseItem>>(unpairedOrdersJson);
+            }
+            catch (Exception e)
+            {
+                _log.Error($"NoctuaIAPService.HandleUnpairedPurchase Failed to parse unpaired orders: {e}");
+                _log.Info($"NoctuaIAPService.HandleUnpairedPurchase Create empty unpairedOrders array");
+                unpairedOrders = new Dictionary<string, PurchaseItem>();
+            }
+
+            if (unpairedOrders.TryGetValue(productId, out var pendingPurchaseItem))
+            {
+
+                pendingPurchaseItem.VerifyOrderRequest.ReceiptData = result.ReceiptData;
+
+                _log.Info($"NoctuaIAPService.HandleUnpairedPurchase Found unpaired order for product ID: {productId}, Order ID: {pendingPurchaseItem.OrderId}, ReceiptData: {pendingPurchaseItem.VerifyOrderRequest.ReceiptData}");
+                foundUnpairedOrder = true;
+                EnqueueToRetryPendingPurchases(pendingPurchaseItem);
+
+                // Remove from unpaired orders since we have receipt data now
+                unpairedOrders.Remove(productId);
+                PlayerPrefs.SetString("NoctuaUnpairedOrders", JsonConvert.SerializeObject(unpairedOrders));
+                PlayerPrefs.Save();
+                _log.Info($"NoctuaIAPService.HandleUnpairedPurchase NoctuaUnpairedOrders: {JsonConvert.SerializeObject(unpairedOrders)}");
+
+                // Verify right now, don't wait
+                try {
+
+                    VerifyOrderImplAsync(
+                        pendingPurchaseItem.OrderRequest,
+                        pendingPurchaseItem.VerifyOrderRequest,
+                        pendingPurchaseItem.AccessToken,
+                        pendingPurchaseItem.PlayerId
+                    );
+                }
+                catch (Exception e)
+                {
+                    _log.Error("NoctuaIAPService.HandleUnpairedPurchase verify failed: " + e);
+                }
+            }
+
+            if (!foundInPurchaseHistory && !foundInPurchaseHistory && !foundUnpairedOrder) {
+                _log.Warning($"NoctuaIAPService.HandleUnpairedPurchase No unpaired order or pending purchase found for receipt data {result.ReceiptData}. Store to backend.");
+                var unpairedPurchaseRequest = new UnpairedPurchaseRequest
+                {
+                    ReceiptData = result.ReceiptData,
+                    PaymentType = PaymentType.playstore, // This is always about playstore
+                    ProductId = result.ProductId,
+                    Currency = Noctua.Platform.Locale.GetCurrency(),
+                };
+
+                try
+                {
+                    CreateUnpairedPurchaseAsync(unpairedPurchaseRequest); // Async, but don't wait.
+                }
+                catch (Exception e)
+                {
+                    _log.Error("NoctuaIAPService.HandleUnpairedPurchase failed to create unpaired purchase: " + e);
+                }
+            }
+        }
+
+        private void HandleGoogleQueryPurchasesDone(GoogleBilling.PurchaseResult[] results)
+        {
+            _log.Info("NoctuaIAPService.QueryPurchasesAsync callback");
+
+            if (results == null)
+            {
+                _log.Info("NoctuaIAPService.QueryPurchasesAsync callback result is null, do nothing.");
+                return;
+            }
+
+            if (_paymentTcs != null)
+            {
+                _log.Info("NoctuaIAPService.QueryPurchasesAsync payment flow still running, abort to avoid race condition.");
+                return;
+            }
+
+            _log.Info("NoctuaIAPService.QueryPurchasesAsync No payment task is running, try to find out the order ID pair...");
+
+            foreach (var result in results)
+            {
+                HandleUnpairedPurchase(result);
+            }
+        }
+
         private PaymentResult GetPlaystorePaymentResult(GoogleBilling.PurchaseResult result)
         {
             if (result is null)
@@ -1347,7 +1563,7 @@ namespace com.noctuagames.sdk
 
             _log.Debug(
                 $"Playstore purchase:\n"           +
-                $"token: {result.PurchaseToken}, " +
+                $"token: {result.ReceiptData}, " +
                 $"success: {result.Success}, "     +
                 $"errorCode: {result.ErrorCode}, " +
                 $"purchaseState={result.PurchaseState}"
@@ -1381,7 +1597,7 @@ namespace com.noctuagames.sdk
                 return new PaymentResult
                 {
                     Status = PaymentStatus.ItemAlreadyOwned,
-                    Message = $"Item with purchase token '{result.PurchaseToken}' already owned",
+                    Message = $"Item with purchase token '{result.ReceiptData}' already owned",
                     ReceiptId = result.ReceiptId,
                     ReceiptData = result.ReceiptData,
                 };
@@ -1410,7 +1626,7 @@ namespace com.noctuagames.sdk
                 return new PaymentResult
                 {
                     Status = PaymentStatus.Pending,
-                    Message = $"Purchase with purchase token '{result.PurchaseToken}' is pending",
+                    Message = $"Purchase with purchase token '{result.ReceiptData}' is pending",
                     ReceiptId = result.ReceiptId,
                     ReceiptData = result.ReceiptData,
                 };
@@ -1464,7 +1680,7 @@ namespace com.noctuagames.sdk
         }
 #endif
 
-        private void SavePendingPurchases(List<RetryPendingPurchaseItem> orders)
+        private void SavePendingPurchases(List<PurchaseItem> orders)
         {
             _log.Debug("save pending purchases to player prefs");
             var updatedJson = JsonConvert.SerializeObject(orders);
@@ -1475,7 +1691,7 @@ namespace com.noctuagames.sdk
             //GetPendingPurchases();
         }
 
-        public List<RetryPendingPurchaseItem> GetPendingPurchases()
+        public List<PurchaseItem> GetPendingPurchases()
         {
             _log.Info("Noctua.GetPendingPurchases");
             var json = PlayerPrefs.GetString("NoctuaPendingPurchases", string.Empty);
@@ -1483,12 +1699,12 @@ namespace com.noctuagames.sdk
 
             if (string.IsNullOrEmpty(json))
             {
-                return new List<RetryPendingPurchaseItem>();
+                return new List<PurchaseItem>();
             }
 
             try
             {
-                var pendingPurchases = JsonConvert.DeserializeObject<List<RetryPendingPurchaseItem>>(json);
+                var pendingPurchases = JsonConvert.DeserializeObject<List<PurchaseItem>>(json);
                 
                 var list = pendingPurchases
                     .Where(p => p.VerifyOrderRequest != null && p.AccessToken != null)
@@ -1503,11 +1719,11 @@ namespace com.noctuagames.sdk
 
                 PlayerPrefs.DeleteKey("NoctuaPendingPurchases");
                 
-                return new List<RetryPendingPurchaseItem>();
+                return new List<PurchaseItem>();
             }
         }
 
-        public RetryPendingPurchaseItem GetPendingPurchaseByOrderId(int orderId)
+        public PurchaseItem GetPendingPurchaseByOrderId(int orderId)
         {
             _log.Info("Noctua.GetPendingPurchases");
             var json = PlayerPrefs.GetString("NoctuaPendingPurchases", string.Empty);
@@ -1520,13 +1736,13 @@ namespace com.noctuagames.sdk
 
             try
             {
-                var pendingPurchases = JsonConvert.DeserializeObject<List<RetryPendingPurchaseItem>>(json);
+                var pendingPurchases = JsonConvert.DeserializeObject<List<PurchaseItem>>(json);
 
                 var list = pendingPurchases
                     .Where(p => p.VerifyOrderRequest != null && p.AccessToken != null)
                     .ToList();
 
-                var result = new RetryPendingPurchaseItem();
+                var result = new PurchaseItem();
                 var found = false;
                 foreach (var item in list)
                 {
@@ -1601,7 +1817,7 @@ namespace com.noctuagames.sdk
                 }
                 
                 // Retry pending purchases
-                var failedPendingPurchases = new List<RetryPendingPurchaseItem>();
+                var failedPendingPurchases = new List<PurchaseItem>();
                 
                 foreach (var item in runningPendingPurchases)
                 {
@@ -1661,7 +1877,7 @@ namespace com.noctuagames.sdk
                         );
 
                         EnqueueToRetryPendingPurchases(
-                            new RetryPendingPurchaseItem
+                            new PurchaseItem
                             {
                                 OrderId = item.OrderId,
                                 OrderRequest = item.OrderRequest,
@@ -1751,7 +1967,7 @@ namespace com.noctuagames.sdk
             return delay > maxDelay ? maxDelay : delay;
         }
 
-        private void EnqueueToRetryPendingPurchases(RetryPendingPurchaseItem item)
+        private void EnqueueToRetryPendingPurchases(PurchaseItem item)
         {
 
             if (item.OrderId == 0)
@@ -1776,11 +1992,41 @@ namespace com.noctuagames.sdk
             }
 
             // Remove the existing if any.
-            RemoveFromRetryPendingPurchasesByOrderID(item.OrderId);
+            var oldItem = GetThenRemoveFromRetryPendingPurchasesByOrderID(item.OrderId);
+
+            if (oldItem != null && !string.IsNullOrEmpty(oldItem.VerifyOrderRequest?.ReceiptData))
+            {
+                item.VerifyOrderRequest.ReceiptData = oldItem.VerifyOrderRequest.ReceiptData;
+                _log.Info($"Preserved ReceiptData for {item.OrderId}: {item.VerifyOrderRequest.ReceiptData}");
+            }
 
             _log.Info($"Enqueue to retry pending purchase: {item.OrderId}");
             _waitingPendingPurchases.Enqueue(item);
             SavePendingPurchases(_waitingPendingPurchases.ToList());
+        }
+
+        public PurchaseItem GetThenRemoveFromRetryPendingPurchasesByOrderID(int orderId)
+        {
+            _log.Info($"Remove from retry pending purchase: {orderId}");
+
+            var oldItem = _waitingPendingPurchases.FirstOrDefault(item => item.OrderId == orderId);
+            if (oldItem == null)
+            {
+                _log.Warning($"No pending purchase found with order ID: {orderId}");
+                return new PurchaseItem();
+            } else {
+                // Rebuild the queue excluding the item with the specified OrderID
+                var updatedQueue = new Queue<PurchaseItem>(
+                    _waitingPendingPurchases.Where(item => item.OrderId != orderId));
+                _waitingPendingPurchases.Clear();
+                foreach (var item in updatedQueue)
+                {
+                    _waitingPendingPurchases.Enqueue(item);
+                }
+                SavePendingPurchases(_waitingPendingPurchases.ToList());
+            }
+
+            return oldItem;
         }
 
         public void RemoveFromRetryPendingPurchasesByOrderID(int orderId)
@@ -1788,7 +2034,7 @@ namespace com.noctuagames.sdk
             _log.Info($"Remove from retry pending purchase: {orderId}");
 
             // Rebuild the queue excluding the item with the specified OrderID
-            var updatedQueue = new Queue<RetryPendingPurchaseItem>(
+            var updatedQueue = new Queue<PurchaseItem>(
                 _waitingPendingPurchases.Where(item => item.OrderId != orderId));
 
             _waitingPendingPurchases.Clear();
@@ -1800,6 +2046,86 @@ namespace com.noctuagames.sdk
             SavePendingPurchases(_waitingPendingPurchases.ToList());
         }
 
+        public List<PurchaseItem> GetPurchaseHistory()
+        {
+            _log.Info("Noctua.GetPurchaseHistory");
+            var json = PlayerPrefs.GetString("NoctuaPurchaseHistory", string.Empty);
+            _log.Info($"PurchaseHistory data: {json}");
+
+            if (string.IsNullOrEmpty(json))
+            {
+                return new List<PurchaseItem>();
+            }
+
+            try
+            {
+                var purchaseHistory = JsonConvert.DeserializeObject<List<PurchaseItem>>(json);
+                var list = purchaseHistory
+                    .Where(p => p.VerifyOrderRequest != null && p.AccessToken != null)
+                    .ToList();
+                list.Sort((p1, p2) => p1.OrderId.CompareTo(p2.OrderId));
+
+                return list;
+            }
+            catch (Exception e)
+            {
+                _log.Error("Failed to parse purchase history: " + e);
+                PlayerPrefs.DeleteKey("NoctuaPurchaseHistory");
+                return new List<PurchaseItem>();
+            }
+        }
+
+        private void AddToPurchaseHistory(PurchaseItem item)
+        {
+
+            if (item.OrderId == 0)
+            {
+                throw new NoctuaException(NoctuaErrorCode.Application, "Missing parameter when add new purchase history item: orderId");
+            }
+            if (item.OrderRequest is null)
+            {
+                throw new NoctuaException(NoctuaErrorCode.Application, "Missing parameter when add new purchase history item: orderRequest");
+            }
+            if (item.VerifyOrderRequest is null)
+            {
+                throw new NoctuaException(NoctuaErrorCode.Application, "Missing parameter when add new purchase history item: verifyOrderRequest");
+            }
+            if (string.IsNullOrEmpty(item.AccessToken))
+            {
+                throw new NoctuaException(NoctuaErrorCode.Application, "Missing parameter when add new purchase history item: accessToken");
+            }
+            if (item.PlayerId is null)
+            {
+                throw new NoctuaException(NoctuaErrorCode.Application, "Missing parameter when add new purchase history item: playerId");
+            }
+
+            // Remove the existing if any.
+            RemoveFromPurchaseHistoryByOrderID(item.OrderId);
+            var list = GetPurchaseHistory();
+            list.Add(item);
+            SavePurchaseHistory(list);
+        }
+
+        private void SavePurchaseHistory(List<PurchaseItem> orders)
+        {
+            _log.Debug("save pending purchases to player prefs");
+            var updatedJson = JsonConvert.SerializeObject(orders);
+            PlayerPrefs.SetString("NoctuaPurchaseHistory", updatedJson);
+            PlayerPrefs.Save();
+
+            // Leave it here for debuggin purpose.
+            //GetPurchaseHistory();
+        }
+
+        public void RemoveFromPurchaseHistoryByOrderID(int orderId)
+        {
+            _log.Info($"Remove from purchase history: {orderId}");
+
+            var oldList = GetPurchaseHistory();
+            var newList = oldList.Where(item => item.OrderId != orderId);
+            SavePurchaseHistory(newList.ToList());
+        }
+
         [Preserve]
         internal class Config
         {
@@ -1809,7 +2135,7 @@ namespace com.noctuagames.sdk
         }
 
         [Preserve]
-        public class RetryPendingPurchaseItem
+        public class PurchaseItem
         {
             public int OrderId;
             public OrderRequest OrderRequest;

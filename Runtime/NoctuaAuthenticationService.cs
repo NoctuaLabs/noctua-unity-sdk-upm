@@ -25,7 +25,8 @@ namespace com.noctuagames.sdk
         unknown,
         appstore,
         playstore,
-        noctuastore
+        noctuastore,
+        direct
     }
 
     [Preserve]
@@ -181,6 +182,9 @@ namespace com.noctuagames.sdk
 
         [JsonProperty("init_player")]
         public bool InitPlayer;
+
+        [JsonProperty("next_distribution_platform")]
+        public string NextDistributionPlatform;
     }
 
     [Preserve]
@@ -256,6 +260,9 @@ namespace com.noctuagames.sdk
 
         [JsonProperty("bundle_id")]
         public string BundleId;
+
+        [JsonProperty("distribution_platform")]
+        public string DistributionPlatform;
     }
 
     [Preserve]
@@ -485,7 +492,8 @@ namespace com.noctuagames.sdk
                     new LoginAsGuestRequest
                     {
                         DeviceId = SystemInfo.deviceUniqueIdentifier,
-                        BundleId = Application.identifier
+                        BundleId = Application.identifier,
+                        DistributionPlatform = Utility.GetStoreName()
                     }
                 );
 
@@ -505,7 +513,8 @@ namespace com.noctuagames.sdk
             var exchangeToken = new ExchangeTokenRequest
             {
                 NextBundleId = _bundleId,
-                InitPlayer = true
+                InitPlayer = true,
+                NextDistributionPlatform = Utility.GetStoreName()
             };
 
             var request = new HttpRequest(HttpMethod.Post, $"{_baseUrl}/auth/token-exchange")

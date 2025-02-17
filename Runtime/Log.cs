@@ -80,7 +80,18 @@ namespace com.noctuagames.sdk
 
         public void Info(string message, [CallerMemberName] string memberName = "")
         {
-            Log.Information($"{_typeName}.{memberName}: {message}");
+            if (message.Length > 800)
+            {
+                for (int i = 0; i < message.Length; i += 800)
+                {
+                    var chunk = message.Substring(i, Math.Min(800, message.Length - i));
+                    Log.Information($"{_typeName}.{memberName}: {chunk}");
+                }
+            }
+            else
+            {
+                Log.Information($"{_typeName}.{memberName}: {message}");
+            }
         }
 
         public void Warning(string message, [CallerMemberName] string memberName = "")

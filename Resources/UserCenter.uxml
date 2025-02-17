@@ -40,8 +40,12 @@
                         <ui:VisualElement name="Icon" class="second-switch-account-icon more-option-icon" />
                         <ui:Label name="MenuSwitchProfile" text="Switch Profile" class="more-options-menu-item-label" />
                     </ui:VisualElement>
-                    <ui:VisualElement name="PendingPurchases" class="more-options-menu-item">
+                    <ui:VisualElement name="PurchaseHistory" class="more-options-menu-item">
                         <ui:VisualElement name="Icon" class="pending-purchases-icon more-option-icon" />
+                        <ui:Label name="MenuPurchaseHistory" text="Purchase History" class="more-options-menu-item-label" />
+                    </ui:VisualElement>
+                    <ui:VisualElement name="PendingPurchases" class="more-options-menu-item">
+                        <ui:VisualElement name="Icon" class="purchase-history-icon more-option-icon" />
                         <ui:Label name="MenuPendingPurchases" text="Pending Purchases" class="more-options-menu-item-label" />
                     </ui:VisualElement>
                     <ui:VisualElement name="Line" class="line" />

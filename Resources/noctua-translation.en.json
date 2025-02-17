@@ -144,6 +144,7 @@
     "UserCenterPresenter.TitleFindMoreLabel.Label.text": "Find more at",
     "UserCenterPresenter.CopyIcon.Button.text": "Copy",
     "UserCenterPresenter.MenuPendingPurchases.Label.text": "Pending Purchases",
+    "UserCenterPresenter.MenuPurchaseHistory.Label.text": "Purchase History",
 
     "BindConfirmationDialogPresenter.BindConfirmationLabel.Label.text": "Would you like to connect your progress to selected account or create new account?",
     "BindConfirmationDialogPresenter.ConnectButton.Button.text": "Connect",
@@ -188,6 +189,7 @@
     "IAPPendingPurchaseItemCsButtonText":  "Customer Service",
     "IAPPendingPurchaseItemCopyButtonText":  "Copy Receipt",
     "IAPPendingPurchaseItemRetryButtonText" : "Retry",
+    "IAPPurchaseHistoryTitle": "You have {0} purchase(s)",
 
     "AuthEmailLinkingSuccessful": "Email linking successful",
 
