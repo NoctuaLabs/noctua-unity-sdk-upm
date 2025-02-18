@@ -1004,6 +1004,7 @@ namespace com.noctuagames.sdk
         {
             if (IsAuthenticated)
             {
+                SetEventProperties(RecentAccount);
                 SendEvent("account_detected");
 
                 return RecentAccount;
@@ -1019,6 +1020,7 @@ namespace com.noctuagames.sdk
             {
                 await LoginAsGuestAsync();
 
+                SetEventProperties(RecentAccount);
                 SendEvent("account_detected");
 
                 return RecentAccount;
@@ -1033,6 +1035,7 @@ namespace com.noctuagames.sdk
             {
                 await ExchangeTokenAsync(firstUser.Player.AccessToken);
 
+                SetEventProperties(RecentAccount);
                 SendEvent("account_detected");
 
                 return RecentAccount;
@@ -1053,6 +1056,7 @@ namespace com.noctuagames.sdk
 
             await ExchangeTokenAsync(firstPlayer.AccessToken);
 
+            SetEventProperties(RecentAccount);
             SendEvent("account_detected");
 
             return RecentAccount;

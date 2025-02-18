@@ -220,7 +220,7 @@ namespace com.noctuagames.sdk.Events
             {
                 events.Add(evt);
             }
-                
+
             var request = new HttpRequest(HttpMethod.Post, $"{_config.BaseUrl}/events")
                 .WithHeader("X-CLIENT-ID", _config.ClientId)
                 .WithHeader("X-DEVICE-ID", _deviceId)
