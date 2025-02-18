@@ -39,6 +39,10 @@ namespace com.noctuagames.sdk.UI
 
         public void Show(UserBundle userBundle)
         {
+            if(!_config.Noctua.isAuthSDK) {
+                return;
+            }
+            
             _log.Debug($"show welcome toast, user is '{userBundle.User?.Id} - {userBundle.Player?.Id} - {userBundle.DisplayName}'");
             
             StartCoroutine(RunAnimation(userBundle));

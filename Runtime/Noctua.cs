@@ -80,6 +80,7 @@ namespace com.noctuagames.sdk
         [JsonProperty("region")]  public string Region;
         [JsonProperty("flags")]  public string Flags;
         [JsonProperty("isOfflineFirst")] public bool IsOfflineFirst = false;
+        [JsonProperty("isAuthSDK")] public bool isAuthSDK = true;
     }
     
     [Preserve]
@@ -374,75 +375,12 @@ namespace com.noctuagames.sdk
             return _initialized;
         }
 
-        // private static CancellationTokenSource _cancellationTokenSource = new();
-
-        // public static async Task WatchInternetReachability(CancellationToken token)
-        // {
-        //     var log = Instance.Value._log;
-        //     var lastReachability = Application.internetReachability;
-
-        //     while (!token.IsCancellationRequested)
-        //     {
-        //         var currentReachability = Application.internetReachability;
-
-        //         if (currentReachability != lastReachability)
-        //         {
-        //             log.Debug($"Internet reachability changed from {lastReachability} to {currentReachability}");
-        //             lastReachability = currentReachability;
-
-        //             if (currentReachability == NetworkReachability.NotReachable)
-        //             {
-        //                 log.Warning("Internet connection lost");
-        //                 _offlineMode = true;
-        //             }
-        //             else
-        //             {
-        //                 log.Info("Internet connection restored");
-        //                 _offlineMode = false;
-        //             }
-
-        //             Instance.Value.OnInternetReachable?.Invoke(!_offlineMode);
-        //         }
-
-        //         try
-        //         {
-        //             await Task.Delay(1000, token); // Supports cancellation
-        //         }
-        //         catch (TaskCanceledException)
-        //         {
-        //             log.Debug("Internet monitoring stopped.");
-        //             break; // Exit the loop gracefully
-        //         }
-        //     }
-        // }
-
-        // // Call this to start monitoring
-        // public static void StartWatching()
-        // {
-        //     StopWatching(); // Prevent duplicate monitoring
-        //     _cancellationTokenSource = new CancellationTokenSource();
-        //     _ = WatchInternetReachability(_cancellationTokenSource.Token);
-        // }
-
-        // // Call this to stop monitoring
-        // public static void StopWatching()
-        // {
-        //     if (_cancellationTokenSource != null)
-        //     {
-        //         _cancellationTokenSource.Cancel();
-        //         _cancellationTokenSource.Dispose();
-        //         _cancellationTokenSource = null;
-        //     }
-        // }
-
         public static bool CheckInternetConnection() {
 
-            var isInternetConnected = false;
             var log = Instance.Value._log;
 
             InternetChecker.CheckInternetConnection((isConnected) =>
             {
-                isInternetConnected = isConnected; 
                 _offlineMode = isConnected;
 
                 if (isConnected)
@@ -454,7 +392,7 @@ namespace com.noctuagames.sdk
                     log.Info("No internet connection.");
                 }
             });
-            return isInternetConnected;
+            return _offlineMode;
         }
 
         public static async UniTask InitAsync()
