@@ -257,11 +257,11 @@ namespace com.noctuagames.sdk.UI
 
                     View.Q<VisualElement>("UserProfileHeader").AddToClassList("hide");
                     View.Q<VisualElement>("UserProfileHeader").RemoveFromClassList("show");
-                 
+
                     View.Q<VisualElement>("ConnectAccount").RemoveFromClassList("portrait");
                     View.Q<VisualElement>("ConnectAccount").RemoveFromClassList("connect-account");
                     View.Q<VisualElement>("ConnectAccount").AddToClassList("connect-account-edit-profile-portrait");
-                   
+
                     View.Q<VisualElement>("UserProfile").RemoveFromClassList("show");
                     View.Q<VisualElement>("UserProfile").AddToClassList("hide");
                     View.Q<VisualElement>("UserCenter").style.maxHeight = Length.Percent(65);
@@ -876,29 +876,37 @@ namespace com.noctuagames.sdk.UI
 
             HideAllErrors();
 
+            bool isAnyFieldEmpty = false;
+
             if (string.IsNullOrEmpty(_nicknameTF.textField.value))
             {
                 ShowButtonSpinner(false);
 
                 _nicknameTF.Error(Locale.GetTranslation("EditProfile.NicknameValidation"));
-                return;
+
+                isAnyFieldEmpty = true;
             }
 
-            if (string.IsNullOrEmpty(_countryDF.value) || _countryDF.value == "Select Country")
+            if (string.IsNullOrEmpty(_countryDF.value) || _countryDF.value.Contains("Select Country", StringComparison.InvariantCultureIgnoreCase))
             {
                 ShowButtonSpinner(false);
 
                 _countryDF.Error(Locale.GetTranslation("EditProfile.CountryValidation"));
-                return;
+
+                isAnyFieldEmpty = true;
             }
 
-            if (string.IsNullOrEmpty(_languageDF.value) || _languageDF.value == "Select Language")
+            if (string.IsNullOrEmpty(_languageDF.value) || _languageDF.value.Contains("Select Language", StringComparison.InvariantCultureIgnoreCase))
             {
                 ShowButtonSpinner(false);
 
                 _languageDF.Error(Locale.GetTranslation("EditProfile.LanguageValidation"));
-                return;
+
+                isAnyFieldEmpty = true;
             }
+
+            if (isAnyFieldEmpty)
+                return;
 
             try
             {
@@ -966,6 +974,7 @@ namespace com.noctuagames.sdk.UI
 
                 ShowButtonSpinner(false);
             }
+
         }
 
         private void ShowButtonSpinner(bool isShowSpinner)
