@@ -6,8 +6,7 @@ namespace com.noctuagames.sdk
 {
     public static class InternetChecker
     {
-        private static string testUrl = "https://www.google.com"; // Change to your server URL if needed
-
+        private static string testUrl = "https://sdk-api-v2.noctuaprojects.com/api/v1/games/ping";
         /// <summary>
         /// Checks if the internet is available by sending a web request.
         /// </summary>
