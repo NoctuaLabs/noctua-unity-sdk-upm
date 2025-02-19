@@ -193,6 +193,7 @@
     "IAPPendingPurchaseItemRetryButtonText" : "Coba Lagi",
     "AuthEmailLinkingSuccessful": "Email berhasil dihubungkan",
     "IAPPurchaseHistoryTitle": "Anda memiliki {0} pembelian",
+    "IAPPurchaseOfflineModeMessage" : "Kesalahan Jaringan: Koneksi internet Anda masih tidak tersedia. Silakan periksa koneksi Anda dan coba lagi.",
 
     "EditProfile.NicknameValidation": "Nama panggilan tidak boleh kosong",
     "EditProfile.CountryValidation": "Pilih negara",

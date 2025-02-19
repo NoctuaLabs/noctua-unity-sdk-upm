@@ -190,7 +190,7 @@
     "IAPPendingPurchaseItemCopyButtonText":  "Copy Receipt",
     "IAPPendingPurchaseItemRetryButtonText" : "Retry",
     "IAPPurchaseHistoryTitle": "You have {0} purchase(s)",
-    "IAPPurchaseOfflineModeMessage" : "Purchase feature requires internet connection. Please check your internet connection and try again.",
+    "IAPPurchaseOfflineModeMessage" : "Network Error: Your internet connection is still unavailable. Please check your connection and try again.",
 
     "AuthEmailLinkingSuccessful": "Email linking successful",
 
