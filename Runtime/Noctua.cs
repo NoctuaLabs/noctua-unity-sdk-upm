@@ -78,6 +78,7 @@ namespace com.noctuagames.sdk
         [JsonProperty("isSandbox")] public bool IsSandbox;
         [JsonProperty("region")]  public string Region;
         [JsonProperty("flags")]  public string Flags;
+        [JsonProperty("isOfflineFirst")] public bool IsOfflineFirst = false;
     }
     
     [Preserve]
@@ -128,6 +129,7 @@ namespace com.noctuagames.sdk
 
     public class Noctua
     {
+
         private static readonly Lazy<Noctua> Instance = new(() => new Noctua());
         public static NoctuaEventService Event => Instance.Value._event;
         public static NoctuaAuthentication Auth => Instance.Value._auth;
@@ -135,6 +137,7 @@ namespace com.noctuagames.sdk
         public static NoctuaPlatform Platform => Instance.Value._platform;
 
         public event Action<string> OnPurchaseDone;
+        public event Action<bool> OnInternetReachable;
 
         private readonly ILogger _log = new NoctuaLogger();
         private readonly EventSender _eventSender;
@@ -147,7 +150,13 @@ namespace com.noctuagames.sdk
         private readonly UIFactory _uiFactory;
 
         private readonly INativePlugin _nativePlugin;
-        private bool _initialized = false;
+        // This is the flag from noctuagg.json config.
+        // Not all game has this feature enabled.
+        private bool _isOfflineFirst = false;
+        // Will be true if offline first is enabled AND
+        // there is network issue on init attempt
+        private static bool _offlineMode = false;
+        private static bool _initialized = false;
 
         private Noctua()
         {
@@ -284,6 +293,7 @@ namespace com.noctuagames.sdk
             _event = new NoctuaEventService(_nativePlugin, _eventSender);
             _event.SetProperties(isSandbox: config.Noctua.IsSandbox);
             _eventSender.SetProperties(isSandbox: config.Noctua.IsSandbox);
+            _isOfflineFirst = config.Noctua.IsOfflineFirst;
             
 
             var panelSettings = Resources.Load<PanelSettings>("NoctuaPanelSettings");
@@ -335,7 +345,8 @@ namespace com.noctuagames.sdk
                 new NoctuaGameService.Config
                 {
                     BaseUrl = config.Noctua.BaseUrl,
-                    ClientId = config.ClientId
+                    ClientId = config.ClientId,
+                    IsOfflineFirst = config.Noctua.IsOfflineFirst,
                 }
             );
 
@@ -351,9 +362,51 @@ namespace com.noctuagames.sdk
             _initialized = true;
         }
 
+        public static bool IsOfflineMode()
+        {
+            return _offlineMode;
+        }
+
+        public static bool IsInitialized()
+        {
+            return _initialized;
+        }
+
+        public async static void WatchInternetReachibility()
+        {
+            var log = Instance.Value._log;
+            var lastReachability = Application.internetReachability;
+
+            while (true)
+            {
+                var currentReachability = Application.internetReachability;
+
+                if (currentReachability != lastReachability)
+                {
+                    log.Debug($"Internet reachability changed from {lastReachability} to {currentReachability}");
+                    lastReachability = currentReachability;
+
+                    if (currentReachability == NetworkReachability.NotReachable)
+                    {
+                        log.Warning("Internet connection lost");
+                        _offlineMode = true;
+                    }
+                    else 
+                    {
+                        log.Info("Internet connection restored");
+                        _offlineMode = false;
+                    }
+
+                    Instance.Value.OnInternetReachable?.Invoke(!_offlineMode);
+                }
+
+                Task.Delay(1000).Wait();
+            }
+        }
+
         public static async UniTask InitAsync()
         {
-            if (Instance.Value._initialized)
+            if (_initialized)
             {
                 Instance.Value._log.Info("InitAsync() called but already initialized");
 
@@ -371,9 +424,42 @@ namespace com.noctuagames.sdk
             }
             catch (Exception e)
             {
-                log.Exception(e);
+                if (Instance.Value._isOfflineFirst && e.Message.Contains("Networking"))
+                {
+                    // We are suppressing and returning a dummy offline mode
+                    // response because:
+                    // 1. We want the init process to be done silently
+                    // 2. We want the Noctua.InitAsync to be reusable for
+                    //    the next init attempt.
+                    Instance.Value._log.Warning("Init: network issue on offline-first mode. Supress and continue to init silently.");
+                    // Construct the response with dummy values
+                    initResponse = new InitGameResponse
+                    {
+                        Country = "",
+                        IpAddress = "0.0.0.0",
+                        // Enable all features. These will be revisited at the next init.
+                        RemoteConfigs = new RemoteConfigs
+                        {
+                            EnabledPaymentTypes = new List<PaymentType> {
+                                PaymentType.playstore,
+                                PaymentType.appstore,
+                                PaymentType.noctuastore,
+                            },
+                            SSODisabled = false
+                        },
+                        OfflineMode = true,
+                    };
+                } else {
+                    log.Exception(e);
 
-                await Noctua.Instance.Value._uiFactory.ShowStartGameErrorDialog(e.Message);
+                    await Noctua.Instance.Value._uiFactory.ShowStartGameErrorDialog(e.Message);
+                }
+            }
+
+            _offlineMode = initResponse.OfflineMode;
+            if (_offlineMode)
+            {
+                Instance.Value._log.Info("InitAsync() offline mode is enabled.");
             }
             
             var iapReadyTimeout = DateTime.UtcNow.AddSeconds(5);
@@ -525,7 +611,15 @@ namespace com.noctuagames.sdk
 
             log.Info("Noctua.InitAsync() completed");
 
-            Instance.Value.Enable();
+            // If the SDK is in offline mode, the initialized flag remains
+            // false so PurchaseAsync() and other online-relian API could
+            // detect this.
+            // Some feature like Retry Pending Purchase mechanism is also disabled
+            if (!_offlineMode)
+            {
+                Instance.Value._iap.Enable();
+                Instance.Value._auth.Enable();
+                _initialized = true;
 
             // Trigger retry pending purchase after all module get enabled.
             Instance.Value._iap.RetryPendingPurchasesAsync();
@@ -606,6 +700,7 @@ namespace com.noctuagames.sdk
 #endif
         }
 
+        
         private class PauseBehaviour : MonoBehaviour
         {
             private void OnApplicationPause(bool pause)
