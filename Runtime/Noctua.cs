@@ -9,6 +9,7 @@ using System.Threading.Tasks;
 using com.noctuagames.sdk.Events;
 using com.noctuagames.sdk.UI;
 using UnityEngine.Scripting;
+using System.Threading;
 using Cysharp.Threading.Tasks;
 using Serilog;
 using UnityEngine.EventSystems;
@@ -364,7 +365,8 @@ namespace com.noctuagames.sdk
 
         public static bool IsOfflineMode()
         {
-            return _offlineMode;
+            var isConnected = CheckInternetConnection();
+            return isConnected;
         }
 
         public static bool IsInitialized()
@@ -372,36 +374,87 @@ namespace com.noctuagames.sdk
             return _initialized;
         }
 
-        public async static void WatchInternetReachibility()
-        {
+        // private static CancellationTokenSource _cancellationTokenSource = new();
+
+        // public static async Task WatchInternetReachability(CancellationToken token)
+        // {
+        //     var log = Instance.Value._log;
+        //     var lastReachability = Application.internetReachability;
+
+        //     while (!token.IsCancellationRequested)
+        //     {
+        //         var currentReachability = Application.internetReachability;
+
+        //         if (currentReachability != lastReachability)
+        //         {
+        //             log.Debug($"Internet reachability changed from {lastReachability} to {currentReachability}");
+        //             lastReachability = currentReachability;
+
+        //             if (currentReachability == NetworkReachability.NotReachable)
+        //             {
+        //                 log.Warning("Internet connection lost");
+        //                 _offlineMode = true;
+        //             }
+        //             else
+        //             {
+        //                 log.Info("Internet connection restored");
+        //                 _offlineMode = false;
+        //             }
+
+        //             Instance.Value.OnInternetReachable?.Invoke(!_offlineMode);
+        //         }
+
+        //         try
+        //         {
+        //             await Task.Delay(1000, token); // Supports cancellation
+        //         }
+        //         catch (TaskCanceledException)
+        //         {
+        //             log.Debug("Internet monitoring stopped.");
+        //             break; // Exit the loop gracefully
+        //         }
+        //     }
+        // }
+
+        // // Call this to start monitoring
+        // public static void StartWatching()
+        // {
+        //     StopWatching(); // Prevent duplicate monitoring
+        //     _cancellationTokenSource = new CancellationTokenSource();
+        //     _ = WatchInternetReachability(_cancellationTokenSource.Token);
+        // }
+
+        // // Call this to stop monitoring
+        // public static void StopWatching()
+        // {
+        //     if (_cancellationTokenSource != null)
+        //     {
+        //         _cancellationTokenSource.Cancel();
+        //         _cancellationTokenSource.Dispose();
+        //         _cancellationTokenSource = null;
+        //     }
+        // }
+
+        public static bool CheckInternetConnection() {
+
+            var isInternetConnected = false;
             var log = Instance.Value._log;
-            var lastReachability = Application.internetReachability;
 
-            while (true)
+            InternetChecker.CheckInternetConnection((isConnected) =>
             {
-                var currentReachability = Application.internetReachability;
+                isInternetConnected = isConnected; 
+                _offlineMode = isConnected;
 
-                if (currentReachability != lastReachability)
+                if (isConnected)
                 {
-                    log.Debug($"Internet reachability changed from {lastReachability} to {currentReachability}");
-                    lastReachability = currentReachability;
-
-                    if (currentReachability == NetworkReachability.NotReachable)
-                    {
-                        log.Warning("Internet connection lost");
-                        _offlineMode = true;
-                    }
-                    else 
-                    {
-                        log.Info("Internet connection restored");
-                        _offlineMode = false;
-                    }
-
-                    Instance.Value.OnInternetReachable?.Invoke(!_offlineMode);
+                    log.Info("Internet is available.");
                 }
-
-                Task.Delay(1000).Wait();
-            }
+                else
+                {
+                    log.Info("No internet connection.");
+                }
+            });
+            return isInternetConnected;
         }
 
         public static async UniTask InitAsync()
@@ -452,11 +505,13 @@ namespace com.noctuagames.sdk
                 } else {
                     log.Exception(e);
 
-                    await Noctua.Instance.Value._uiFactory.ShowStartGameErrorDialog(e.Message);
+                    await Instance.Value._uiFactory.ShowStartGameErrorDialog(e.Message);
                 }
             }
 
             _offlineMode = initResponse.OfflineMode;
+            Instance.Value._log.Error($"Offline mode: {_offlineMode}");
+
             if (_offlineMode)
             {
                 Instance.Value._log.Info("InitAsync() offline mode is enabled.");
@@ -604,7 +659,7 @@ namespace com.noctuagames.sdk
 
             Instance.Value._eventSender.Send("init");
             
-            if (Noctua.IsFirstOpen())
+            if (IsFirstOpen())
             {
                 Instance.Value._eventSender.Send("sdk_first_open");
             }

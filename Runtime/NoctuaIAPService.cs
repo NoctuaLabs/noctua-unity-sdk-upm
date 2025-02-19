@@ -679,7 +679,10 @@ namespace com.noctuagames.sdk
 
         public async UniTask<PurchaseResponse> PurchaseItemAsync(PurchaseRequest purchaseRequest, bool tryToUseSecondaryPayment = false, PaymentType enforcedPaymentType = PaymentType.unknown)
         {
+            // var isConnected = Noctua.CheckInternetConnection();
             // Offline-first handler
+            _log.Error("NoctuaIAPService.PurchaseItemAsync isConnected: " + Noctua.IsOfflineMode());
+
             if (Noctua.IsOfflineMode() && !Noctua.IsInitialized())
             {
                 var offlineModeMessage = Noctua.Platform.Locale.GetTranslation(LocaleTextKey.IAPPurchaseOfflineModeMessage);
