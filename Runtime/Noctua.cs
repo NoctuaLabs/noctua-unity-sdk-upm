@@ -620,6 +620,7 @@ namespace com.noctuagames.sdk
 #if UNITY_ANDROID
             Instance.Value._iap.QueryPurchasesAsync();
 #endif
+            }
         }
 
         private static bool IsFirstOpen()
