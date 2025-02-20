@@ -381,7 +381,7 @@ namespace com.noctuagames.sdk
 
             InternetChecker.CheckInternetConnection((isConnected) =>
             {
-                _offlineMode = isConnected;
+                _offlineMode = !isConnected;
 
                 if (isConnected)
                 {
