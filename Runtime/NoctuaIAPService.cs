@@ -677,27 +677,42 @@ namespace com.noctuagames.sdk
 #endif
         }
 
+        private async Task HandlePurchaseRetryPopUpMessageAsync(string offlineModeMessage, PurchaseRequest purchaseRequest, bool tryToUseSecondaryPayment = false, PaymentType enforcedPaymentType = PaymentType.unknown) {
+            bool isRetry = await _uiFactory.ShowRetryDialog(offlineModeMessage, "offlineMode");
+            if(isRetry)
+            {
+                await PurchaseItemAsync(purchaseRequest, tryToUseSecondaryPayment, enforcedPaymentType);
+            }
+        }
+
         public async UniTask<PurchaseResponse> PurchaseItemAsync(PurchaseRequest purchaseRequest, bool tryToUseSecondaryPayment = false, PaymentType enforcedPaymentType = PaymentType.unknown)
         {
             // Offline-first handler
             if (Noctua.IsOfflineMode() && !Noctua.IsInitialized())
             {
-                var offlineModeMessage = Noctua.Platform.Locale.GetTranslation(LocaleTextKey.IAPPurchaseOfflineModeMessage);
                 _uiFactory.ShowLoadingProgress(true);
+                
+                var offlineModeMessage = Noctua.Platform.Locale.GetTranslation(LocaleTextKey.IAPPurchaseOfflineModeMessage);
+
                 try
                 {
                     await Noctua.InitAsync();
                 } catch(Exception e)
                 {
                     _uiFactory.ShowLoadingProgress(false);
-                    _uiFactory.ShowError($"{e.Message}");
+
+                    await HandlePurchaseRetryPopUpMessageAsync(offlineModeMessage, purchaseRequest, tryToUseSecondaryPayment, enforcedPaymentType);
+
                     throw new NoctuaException(NoctuaErrorCode.Authentication, $"{e.Message}");
+
                 }
 
                 if (Noctua.IsOfflineMode())
                 {
                     _uiFactory.ShowLoadingProgress(false);
-                    _uiFactory.ShowError($"{offlineModeMessage}");
+
+                    await HandlePurchaseRetryPopUpMessageAsync(offlineModeMessage, purchaseRequest, tryToUseSecondaryPayment, enforcedPaymentType);
+
                     throw new NoctuaException(NoctuaErrorCode.Authentication, offlineModeMessage);
                 }
 
@@ -707,7 +722,9 @@ namespace com.noctuagames.sdk
                 } catch(Exception e)
                 {
                     _uiFactory.ShowLoadingProgress(false);
-                    _uiFactory.ShowError($"{e.Message}");
+
+                    await HandlePurchaseRetryPopUpMessageAsync(offlineModeMessage, purchaseRequest, tryToUseSecondaryPayment, enforcedPaymentType);
+
                     throw new NoctuaException(NoctuaErrorCode.Authentication, $"{e.Message}");
                 }
 
