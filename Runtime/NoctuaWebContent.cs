@@ -3,6 +3,7 @@ using com.noctuagames.sdk.Events;
 using com.noctuagames.sdk.UI;
 using Cysharp.Threading.Tasks;
 using Newtonsoft.Json;
+using Serilog;
 using UnityEngine;
 using UnityEngine.Scripting;
 
@@ -260,14 +261,18 @@ namespace com.noctuagames.sdk
                 } catch(Exception e)
                 {
                     _uiFactory.ShowLoadingProgress(false);
-                    _uiFactory.ShowError($"{e.Message}");
+
+                    await HandleRetryPopUpMessageAsync(offlineModeMessage);
+
                     throw new NoctuaException(NoctuaErrorCode.Authentication, $"{e.Message}");
                 }
 
                 if (Noctua.IsOfflineMode())
                 {
                     _uiFactory.ShowLoadingProgress(false);
-                    _uiFactory.ShowError($"{offlineModeMessage}");
+                    
+                    await HandleRetryPopUpMessageAsync(offlineModeMessage);
+
                     throw new NoctuaException(NoctuaErrorCode.Authentication, offlineModeMessage);
                 }
 
@@ -277,11 +282,21 @@ namespace com.noctuagames.sdk
                 } catch(Exception e)
                 {
                     _uiFactory.ShowLoadingProgress(false);
-                    _uiFactory.ShowError($"{e.Message}");
+
+                    await HandleRetryPopUpMessageAsync(offlineModeMessage);
+
                     throw new NoctuaException(NoctuaErrorCode.Authentication, $"{e.Message}");
                 }
 
                 _uiFactory.ShowLoadingProgress(false);
+            }
+        }
+
+        private async UniTask HandleRetryPopUpMessageAsync(string offlineModeMessage) {
+            bool isRetry = await _uiFactory.ShowRetryDialog(offlineModeMessage, "offlineMode");
+            if(isRetry)
+            {
+                await OfflineModeHandler();
             }
         }
     }
