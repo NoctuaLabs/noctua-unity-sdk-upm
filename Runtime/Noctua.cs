@@ -379,6 +379,8 @@ namespace com.noctuagames.sdk
 
             var log = Instance.Value._log;
 
+            _offlineMode = true;
+
             InternetChecker.CheckInternetConnection((isConnected) =>
             {
                 _offlineMode = !isConnected;
