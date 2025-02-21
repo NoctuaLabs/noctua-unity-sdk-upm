@@ -39,7 +39,7 @@ namespace com.noctuagames.sdk.UI
 
         public void Show(UserBundle userBundle)
         {
-            if(!_config.Noctua.isAuthSDK) {
+            if(_config.Noctua.welcomeToastDisabled) {
                 return;
             }
             
