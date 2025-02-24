@@ -179,6 +179,9 @@ namespace com.noctuagames.sdk
 
         [JsonProperty("receipt_data")]
         public string ReceiptData;
+
+        [JsonProperty("trigger")]
+        public string Trigger;
     }
 
     [Preserve]
@@ -268,6 +271,13 @@ namespace com.noctuagames.sdk
         
         [JsonProperty("eligible_gold_amount")]
         public double EligibleGoldAmount;
+    }
+
+    public enum VerifyOrderTrigger
+    {
+        payment_flow,
+        manual_retry,
+        client_automatic_retry,
     }
 
     
@@ -1020,6 +1030,7 @@ namespace com.noctuagames.sdk
                         try
                         {
                             // At least try to verify before fallback to secondary paymennt.
+                            verifyReq.Trigger = VerifyOrderTrigger.payment_flow.ToString();
                             var verifyResponseAtCancel = await VerifyOrderImplAsync(
                                 orderRequest,
                                 verifyReq,
@@ -1184,6 +1195,7 @@ namespace com.noctuagames.sdk
             try {
                 _uiFactory.ShowLoadingProgress(true);
 
+                verifyOrderRequest.Trigger = VerifyOrderTrigger.payment_flow.ToString();
                 verifyOrderResponse = await RetryAsync(() => VerifyOrderImplAsync(
                         orderRequest,
                         verifyOrderRequest,
@@ -1286,6 +1298,7 @@ namespace com.noctuagames.sdk
                 item.OrderRequest.Id = item.OrderId;
                 }
 
+                item.VerifyOrderRequest.Trigger = VerifyOrderTrigger.manual_retry.ToString();
                 var verifyOrderResponse = await VerifyOrderImplAsync(
                     item.OrderRequest,
                     item.VerifyOrderRequest,
@@ -1456,6 +1469,7 @@ namespace com.noctuagames.sdk
                     _log.Info($"NoctuaIAPService.HandleUnpairedPurchase Found pending purchase with the same receipt data: {pendingPurchase.VerifyOrderRequest.ReceiptData}");
                     foundInPendingPurchases = true;
                     // Verify right now
+                    pendingPurchase.VerifyOrderRequest.Trigger = VerifyOrderTrigger.payment_flow.ToStsring();
                     VerifyOrderImplAsync(
                         pendingPurchase.OrderRequest,
                         pendingPurchase.VerifyOrderRequest,
@@ -1484,6 +1498,7 @@ namespace com.noctuagames.sdk
                     _log.Info($"NoctuaIAPService.HandleUnpairedPurchase Found purchase history with the same receipt data: {purchaseItem.VerifyOrderRequest.ReceiptData}");
                     foundInPurchaseHistory = true;
                     // Verify right now
+                    purchaseItem.VerifyOrderRequest.Trigger = VerifyOrderTrigger.payment_flow.ToString();
                     VerifyOrderImplAsync(
                         purchaseItem.OrderRequest,
                         purchaseItem.VerifyOrderRequest,
@@ -1533,6 +1548,7 @@ namespace com.noctuagames.sdk
                 // Verify right now, don't wait
                 try {
 
+                    pendingPurchaseItem.VerifyOrderRequest.Trigger = VerifyOrderTrigger.payment_flow.ToString();
                     VerifyOrderImplAsync(
                         pendingPurchaseItem.OrderRequest,
                         pendingPurchaseItem.VerifyOrderRequest,
@@ -1886,6 +1902,7 @@ namespace com.noctuagames.sdk
                             item.OrderRequest.Id = item.OrderId;
                         }
 
+                        item.VerifyOrderRequest.Trigger = VerifyOrderTrigger.client_automatic_retry.ToString();
                         var verifyOrderResponse = await VerifyOrderImplAsync(
                             item.OrderRequest,
                             item.VerifyOrderRequest,
