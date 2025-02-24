@@ -2,6 +2,81 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.35.0] - 2025-02-24
+
+### 🚀 Features
+
+- Logout confirm dialog
+- Logout left icon
+- Localization for logout confirmation dialog
+- Add Apple SSO
+- Add text setting asset and font Noto Sans Thai
+- Add text setting for config default font to panel setting
+- Implement QueryPurchases to handle pending purchase. Split log to 800-char chunks.
+- Pair unpaired purchase to unpaired order for both QueryPurchasesAsync and OnPurchaseUpdate. Add purchase history list.
+- Get store/platform name
+- Add request header X-PLATFORM into build config
+- Add request header X-PLATFORM, X-OS-AGENT, X-OS for all http request
+- Add request params exhange token, login as guest
+- Add is auth with sdk checker to hide welcome notification
+- Add default variable _offlineMode
+- Add information about who trigger the verify order API call.
+
+### 🐛 Bug Fixes
+
+- Save button not disabled on starting edit profile
+- Update user with the latest data.
+- Increase choose account heigh
+- Remove welcome notification border
+- Eye naming
+- Increase choose account heigh
+- Datepicker not closed when back into user center in ios
+- Number keyboard on verification input field
+- Remove noctua text logo when potrait
+- Resize icon account delete and change height dialog - account deletion confirmation dialog
+- Improve dropdown field code
+- Player label not in center position
+- Color delete button
+- Add localization on error message
+- Strange grey selection in account selection
+- Eye in show password design is reverse
+- Remove error message when resend verification code on verification code window
+- Add more padding left for player label - bind conflict dialog
+- Keyboard blocking text input - edit profile
+- Update credential to last used
+- Missing name label - user center
+- Remove Apple SSO if not on iOS
+- Remove purchase timeout. Store pending purchase early. Add more valuable logs.
+- Add payment update listener and pair it with unpaired order IDs. Adjust network related error message for start game error dialog.
+- Add NoctuaUnpairedOrders to SDK's player prefs keys.
+- Allow payment override from backend only if it's started as primary payment.
+- Adding new item to pending purchase is now having old receipt data preserved.
+- Revert bug fix that cause payment loop. Add notes instead.
+- Fix missing user properties in event tracking.
+- Conflict
+- Conflict noctua file
+- Conflict translation
+- Update url test ping
+- Add }
+- Logic code check internet connection
+- Rename isAuthSDK to welcomeToastDisabled
+- Handle Online then Offline to show retry dialog
+- Handle retry platform when Online then Offline to show retry dialog
+
+### 💼 Other
+
+- Add comment for closeDatepicker android
+
+### 🚜 Refactor
+
+- Improve code close datepicker and open datepicker
+- Clean IAP Service code for handle offline mode
+- Clean web content code for handle offline mode
+
+### 🧪 Testing
+
+- Add test for locale / language
+
 ## [0.34.1] - 2025-01-24
 
 ### 🐛 Bug Fixes
@@ -29,6 +104,10 @@ All notable changes to this project will be documented in this file.
 
 ### 🚀 Features
 
+- Logout confirm dialog
+- Logout left icon
+- Localization for logout confirmation dialog
+- Add Apple SSO
 - Implement remote config to enable or disable SSO.
 - Implement remote config for user center SSO linking.
 - Add HTTP timeout at 10 seconds. Add X-DEVICE-ID in the header.
@@ -36,8 +115,45 @@ All notable changes to this project will be documented in this file.
 
 ### 🐛 Bug Fixes
 
+- Show error if no token when getting web content details
+- Save button not disabled on starting edit profile
+- Update user with the latest data.
+- Show mobile input on user center edit profile nicknameTF
+- Increase choose account heigh
+- Remove welcome notification border
+- Eye naming
+- Show error if no token when getting web content details
+- Increase choose account heigh
+- Remove welcome notification border
+- Conflict
+- Datepicker not closed when back into user center in ios
+- Number keyboard on verification input field
+- Remove noctua text logo when potrait
+- Resize icon account delete and change height dialog - account deletion confirmation dialog
+- Improve dropdown field code
+- Player label not in center position
+- Color delete button
+- Add localization on error message
+- Strange grey selection in account selection
+- Eye in show password design is reverse
+- Remove error message when resend verification code on verification code window
+- Add more padding left for player label - bind conflict dialog
+- Keyboard blocking text input - edit profile
+- Update credential to last used
 - Work around for fullscreen web content on iOS not aligned
 - Restore readonly property of _credentials.
+
+### 💼 Other
+
+- Add comment for closeDatepicker android
+
+### 🚜 Refactor
+
+- Improve code close datepicker and open datepicker
+
+### 🧪 Testing
+
+- Add test for locale / language
 
 ## [0.32.0] - 2025-01-09
 
