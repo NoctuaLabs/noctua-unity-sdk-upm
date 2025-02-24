@@ -364,9 +364,9 @@ namespace com.noctuagames.sdk
             _initialized = true;
         }
 
-        public static bool IsOfflineMode()
+        public static async UniTask<bool> IsOfflineModeAsync()
         {
-            var isConnected = CheckInternetConnection();
+            var isConnected = await CheckInternetConnectionAsync();
             return isConnected;
         }
 
@@ -375,27 +375,32 @@ namespace com.noctuagames.sdk
             return _initialized;
         }
 
-        public static bool CheckInternetConnection() {
-
+        public static async UniTask<bool> CheckInternetConnectionAsync()
+        {
             var log = Instance.Value._log;
 
-            _offlineMode = true;
+            var tcs = new UniTaskCompletionSource<bool>();
 
             InternetChecker.CheckInternetConnection((isConnected) =>
             {
-                _offlineMode = !isConnected;
-
-                if (isConnected)
-                {
-                    log.Info("Internet is available.");
-                }
-                else
-                {
-                    log.Info("No internet connection.");
-                }
+                tcs.TrySetResult(isConnected);
             });
+
+            bool isConnected = await tcs.Task;
+            _offlineMode = !isConnected;
+
+            if (isConnected)
+            {
+                log.Info("Internet is available.");
+            }
+            else
+            {
+                log.Info("No internet connection.");
+            }
+            
             return _offlineMode;
         }
+
 
         public static async UniTask InitAsync()
         {

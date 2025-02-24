@@ -688,37 +688,19 @@ namespace com.noctuagames.sdk
         public async UniTask<PurchaseResponse> PurchaseItemAsync(PurchaseRequest purchaseRequest, bool tryToUseSecondaryPayment = false, PaymentType enforcedPaymentType = PaymentType.unknown)
         {
             // Offline-first handler
-            if (Noctua.IsOfflineMode() && !Noctua.IsInitialized())
-            {
-                _uiFactory.ShowLoadingProgress(true);
-                
-                var offlineModeMessage = Noctua.Platform.Locale.GetTranslation(LocaleTextKey.IAPPurchaseOfflineModeMessage);
+            _uiFactory.ShowLoadingProgress(true);
+            
+            var offlineModeMessage = Noctua.Platform.Locale.GetTranslation(LocaleTextKey.IAPPurchaseOfflineModeMessage);
+            var isOffline = await Noctua.IsOfflineModeAsync();
 
+            if(!isOffline && !Noctua.IsInitialized())
+            {
                 try
                 {
                     await Noctua.InitAsync();
-                } catch(Exception e)
-                {
-                    _uiFactory.ShowLoadingProgress(false);
 
-                    await HandlePurchaseRetryPopUpMessageAsync(offlineModeMessage, purchaseRequest, tryToUseSecondaryPayment, enforcedPaymentType);
-
-                    throw new NoctuaException(NoctuaErrorCode.Authentication, $"{e.Message}");
-
-                }
-
-                if (Noctua.IsOfflineMode())
-                {
-                    _uiFactory.ShowLoadingProgress(false);
-
-                    await HandlePurchaseRetryPopUpMessageAsync(offlineModeMessage, purchaseRequest, tryToUseSecondaryPayment, enforcedPaymentType);
-
-                    throw new NoctuaException(NoctuaErrorCode.Authentication, offlineModeMessage);
-                }
-
-                try
-                {
                     await Noctua.Auth.AuthenticateAsync();
+
                 } catch(Exception e)
                 {
                     _uiFactory.ShowLoadingProgress(false);
@@ -727,9 +709,18 @@ namespace com.noctuagames.sdk
 
                     throw new NoctuaException(NoctuaErrorCode.Authentication, $"{e.Message}");
                 }
-
-                _uiFactory.ShowLoadingProgress(false);
             }
+
+            if (isOffline)
+            {
+                _uiFactory.ShowLoadingProgress(false);
+
+                await HandlePurchaseRetryPopUpMessageAsync(offlineModeMessage, purchaseRequest, tryToUseSecondaryPayment, enforcedPaymentType);
+
+                throw new NoctuaException(NoctuaErrorCode.Authentication, offlineModeMessage);
+            }
+
+            _uiFactory.ShowLoadingProgress(false);
 
             var iapReadyTimeout = DateTime.UtcNow.AddSeconds(5);
             while (!IsReady && DateTime.UtcNow < iapReadyTimeout)

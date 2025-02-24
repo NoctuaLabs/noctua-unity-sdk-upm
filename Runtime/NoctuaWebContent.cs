@@ -251,7 +251,9 @@ namespace com.noctuagames.sdk
         private async UniTask OfflineModeHandler()
         {
             // Offline-first handler
-            if (Noctua.IsOfflineMode() && !Noctua.IsInitialized())
+            var isOffline = await Noctua.IsOfflineModeAsync();
+            
+            if (isOffline && !Noctua.IsInitialized())
             {
                 var offlineModeMessage = Noctua.Platform.Locale.GetTranslation(LocaleTextKey.IAPPurchaseOfflineModeMessage);
                 _uiFactory.ShowLoadingProgress(true);
@@ -267,7 +269,7 @@ namespace com.noctuagames.sdk
                     throw new NoctuaException(NoctuaErrorCode.Authentication, $"{e.Message}");
                 }
 
-                if (Noctua.IsOfflineMode())
+                if (isOffline)
                 {
                     _uiFactory.ShowLoadingProgress(false);
                     

@@ -6,7 +6,7 @@ namespace com.noctuagames.sdk
 {
     public static class InternetChecker
     {
-        private static string testUrl = "https://sdk-api-v2.noctuaprojects.com/api/v1/games/ping";
+        private static string pingUrl = "https://sdk-api-v2.noctuaprojects.com/api/v1/games/ping";
         /// <summary>
         /// Checks if the internet is available by sending a web request.
         /// </summary>
@@ -22,7 +22,7 @@ namespace com.noctuagames.sdk
         {
             public IEnumerator CheckConnectionCoroutine(System.Action<bool> onResult)
             {
-                using (UnityWebRequest request = UnityWebRequest.Get(testUrl))
+                using (UnityWebRequest request = UnityWebRequest.Get(pingUrl))
                 {
                     request.timeout = 5;
                     yield return request.SendWebRequest();
