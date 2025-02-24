@@ -50,7 +50,7 @@ namespace com.noctuagames.sdk
         
         public async UniTask<bool> ShowAnnouncement()
         {
-            await OfflineModeHandler();
+            await OfflineModeHandler(async () => await ShowAnnouncement());
 
             _log.Debug("calling API");
             
@@ -118,7 +118,7 @@ namespace com.noctuagames.sdk
 
         public async UniTask ShowReward()
         {
-            await OfflineModeHandler();
+            await OfflineModeHandler(async () => await ShowReward());
 
             _log.Debug("calling API");
 
@@ -172,7 +172,7 @@ namespace com.noctuagames.sdk
         
         public async UniTask ShowCustomerService(string reason = "general", string context = "")
         {
-            await OfflineModeHandler();
+            await OfflineModeHandler(async () => await ShowCustomerService(reason, context));
 
             _log.Debug("calling API");
 
@@ -248,57 +248,49 @@ namespace com.noctuagames.sdk
             return await request.Send<WebContentUrl>();
         }
 
-        private async UniTask OfflineModeHandler()
+        private async UniTask OfflineModeHandler(Func<UniTask> retryFunction)
         {
             // Offline-first handler
-            var isOffline = await Noctua.IsOfflineModeAsync();
+            _uiFactory.ShowLoadingProgress(true);
             
-            if (isOffline && !Noctua.IsInitialized())
+            var offlineModeMessage = Noctua.Platform.Locale.GetTranslation(LocaleTextKey.IAPPurchaseOfflineModeMessage);
+            var isOffline = await Noctua.IsOfflineModeAsync();
+
+            if(!isOffline && !Noctua.IsInitialized())
             {
-                var offlineModeMessage = Noctua.Platform.Locale.GetTranslation(LocaleTextKey.IAPPurchaseOfflineModeMessage);
-                _uiFactory.ShowLoadingProgress(true);
                 try
                 {
                     await Noctua.InitAsync();
-                } catch(Exception e)
-                {
-                    _uiFactory.ShowLoadingProgress(false);
 
-                    await HandleRetryPopUpMessageAsync(offlineModeMessage);
-
-                    throw new NoctuaException(NoctuaErrorCode.Authentication, $"{e.Message}");
-                }
-
-                if (isOffline)
-                {
-                    _uiFactory.ShowLoadingProgress(false);
-                    
-                    await HandleRetryPopUpMessageAsync(offlineModeMessage);
-
-                    throw new NoctuaException(NoctuaErrorCode.Authentication, offlineModeMessage);
-                }
-
-                try
-                {
                     await Noctua.Auth.AuthenticateAsync();
+
                 } catch(Exception e)
                 {
                     _uiFactory.ShowLoadingProgress(false);
 
-                    await HandleRetryPopUpMessageAsync(offlineModeMessage);
+                    await HandleRetryPopUpMessageAsync(offlineModeMessage, retryFunction);
 
                     throw new NoctuaException(NoctuaErrorCode.Authentication, $"{e.Message}");
                 }
-
-                _uiFactory.ShowLoadingProgress(false);
             }
+
+            if (isOffline)
+            {
+                _uiFactory.ShowLoadingProgress(false);
+
+                await HandleRetryPopUpMessageAsync(offlineModeMessage, retryFunction);
+
+                throw new NoctuaException(NoctuaErrorCode.Authentication, offlineModeMessage);
+            }
+
+            _uiFactory.ShowLoadingProgress(false);
         }
 
-        private async UniTask HandleRetryPopUpMessageAsync(string offlineModeMessage) {
+        private async UniTask HandleRetryPopUpMessageAsync(string offlineModeMessage, Func<UniTask> retryFunction) {
             bool isRetry = await _uiFactory.ShowRetryDialog(offlineModeMessage, "offlineMode");
             if(isRetry)
             {
-                await OfflineModeHandler();
+                await retryFunction();                
             }
         }
     }
