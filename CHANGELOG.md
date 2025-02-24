@@ -28,7 +28,6 @@ All notable changes to this project will be documented in this file.
 - Update user with the latest data.
 - Increase choose account heigh
 - Remove welcome notification border
-- Eye naming
 - Increase choose account heigh
 - Datepicker not closed when back into user center in ios
 - Number keyboard on verification input field
@@ -36,7 +35,6 @@ All notable changes to this project will be documented in this file.
 - Resize icon account delete and change height dialog - account deletion confirmation dialog
 - Improve dropdown field code
 - Player label not in center position
-- Color delete button
 - Add localization on error message
 - Strange grey selection in account selection
 - Eye in show password design is reverse
@@ -53,11 +51,7 @@ All notable changes to this project will be documented in this file.
 - Adding new item to pending purchase is now having old receipt data preserved.
 - Revert bug fix that cause payment loop. Add notes instead.
 - Fix missing user properties in event tracking.
-- Conflict
-- Conflict noctua file
-- Conflict translation
 - Update url test ping
-- Add }
 - Logic code check internet connection
 - Rename isAuthSDK to welcomeToastDisabled
 - Handle Online then Offline to show retry dialog
