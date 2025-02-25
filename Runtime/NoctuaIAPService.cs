@@ -1469,7 +1469,7 @@ namespace com.noctuagames.sdk
                     _log.Info($"NoctuaIAPService.HandleUnpairedPurchase Found pending purchase with the same receipt data: {pendingPurchase.VerifyOrderRequest.ReceiptData}");
                     foundInPendingPurchases = true;
                     // Verify right now
-                    pendingPurchase.VerifyOrderRequest.Trigger = VerifyOrderTrigger.payment_flow.ToStsring();
+                    pendingPurchase.VerifyOrderRequest.Trigger = VerifyOrderTrigger.payment_flow.ToString();
                     VerifyOrderImplAsync(
                         pendingPurchase.OrderRequest,
                         pendingPurchase.VerifyOrderRequest,
