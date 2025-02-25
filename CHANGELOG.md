@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.35.1] - 2025-02-25
+
+### 🐛 Bug Fixes
+
+- Corrected a typo on VerifyOrderTrigger.payment_flow.
+
 ## [0.35.0] - 2025-02-24
 
 ### 🚀 Features
