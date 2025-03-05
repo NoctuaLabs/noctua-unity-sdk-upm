@@ -289,6 +289,8 @@ namespace com.noctuagames.sdk
 
         private TaskCompletionSource<string> _activeCurrencyTcs;
 
+        public event Action<OrderRequest> OnPurchaseDone;
+
         private readonly EventSender _eventSender;
         private readonly AccessTokenProvider _accessTokenProvider;
         private readonly NoctuaWebPaymentService _noctuaPayment;
@@ -526,6 +528,9 @@ namespace com.noctuagames.sdk
                         (double)orderRequest.Price,
                         orderRequest.Currency
                     );
+
+                    OnPurchaseDone?.Invoke(orderRequest);
+
                     break;
                 case OrderStatus.canceled:
                     _eventSender?.Send(

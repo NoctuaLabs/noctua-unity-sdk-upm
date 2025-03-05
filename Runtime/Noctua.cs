@@ -138,7 +138,6 @@ namespace com.noctuagames.sdk
         public static NoctuaIAPService IAP => Instance.Value._iap;
         public static NoctuaPlatform Platform => Instance.Value._platform;
 
-        public event Action<string> OnPurchaseDone;
         public event Action<bool> OnInternetReachable;
 
         private readonly ILogger _log = new NoctuaLogger();
