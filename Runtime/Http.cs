@@ -331,7 +331,7 @@ namespace com.noctuagames.sdk
                 case 502:
                 case 503:
                 case 504:
-                    response = response[..1000]; // Limit the response to 1000 characters
+                    response = response[..Math.Min(1000, response.Length)]; // Limit the response to 1000 characters
                     _log.Error($"HTTP error {_request.responseCode}, response: '{response}'");
 
                     throw new NoctuaException(
