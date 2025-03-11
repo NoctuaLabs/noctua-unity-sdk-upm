@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.36.0] - 2025-03-11
+
+### 🚀 Features
+
+- Add OnPurchaseDone event to let the game know if a purchase is completed.
+
+### 🐛 Bug Fixes
+
+- Error message not expected
+
 ## [0.35.1] - 2025-02-25
 
 ### 🐛 Bug Fixes
