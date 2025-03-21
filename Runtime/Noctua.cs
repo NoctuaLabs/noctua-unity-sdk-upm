@@ -140,6 +140,7 @@ namespace com.noctuagames.sdk
         public static NoctuaAuthentication Auth => Instance.Value._auth;
         public static NoctuaIAPService IAP => Instance.Value._iap;
         public static NoctuaPlatform Platform => Instance.Value._platform;
+        public static MediationManager IAA => Instance.Value._iaa;
 
         public event Action<bool> OnInternetReachable;
 
@@ -152,6 +153,7 @@ namespace com.noctuagames.sdk
         private readonly NoctuaGameService _game;
         private readonly NoctuaPlatform _platform;
         private readonly UIFactory _uiFactory;
+        private readonly MediationManager _iaa = new MediationManager();
 
         private readonly INativePlugin _nativePlugin;
         // This is the flag from noctuagg.json config.
