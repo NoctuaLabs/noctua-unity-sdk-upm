@@ -4,7 +4,8 @@
     "references": [
         "UniTask",
         "UniWebView-CSharp",
-        "NativeGallery.Runtime"
+        "NativeGallery.Runtime",
+        "MaxSdk.Scripts"
     ],
     "includePlatforms": [
         "Android",
