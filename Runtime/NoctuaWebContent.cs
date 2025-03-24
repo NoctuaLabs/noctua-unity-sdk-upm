@@ -104,7 +104,7 @@ namespace com.noctuagames.sdk
                 return false;
             }
             
-            _eventSender?.Send("platform_content_reward_opened");
+            _eventSender?.Send("platform_content_announcement_opened");
 
             await _webView.OpenAsync();
 
@@ -160,7 +160,7 @@ namespace com.noctuagames.sdk
                 return;
             }
             
-            _eventSender?.Send("platform_content_announcement_opened");
+            _eventSender?.Send("platform_content_reward_opened");
 
             _webContent.Url = baseUrl;
             _webContent.ScreenMode = ScreenMode.FullScreen;
@@ -286,6 +286,61 @@ namespace com.noctuagames.sdk
             _uiFactory.ShowLoadingProgress(false);
         }
 
+        public async UniTask<bool> ShowSocialMedia()
+        {
+            await OfflineModeHandler(async () => await ShowSocialMedia());
+
+            _log.Debug("calling API");
+
+            if (string.IsNullOrEmpty(_config.SocialMediaBaseUrl))
+            {
+                throw new ArgumentNullException(nameof(_config.SocialMediaBaseUrl));
+            }
+
+            var baseUrl = "";
+            _uiFactory.ShowLoadingProgress(true);
+
+            try
+            {
+                var details = await GetWebContentDetails(_config.SocialMediaBaseUrl);
+                baseUrl = details.Url;
+            }
+            catch (Exception e)
+            {
+                _uiFactory.ShowLoadingProgress(false);
+
+                if (e.Message.Contains("Networking"))
+                {
+                    _uiFactory.ShowError("Failed to load the contents. Please kindly check your connection and try again.");
+                } else {
+                    _uiFactory.ShowError(e.Message);
+                }
+
+                throw e;
+            }
+            finally
+            {
+                _uiFactory.ShowLoadingProgress(false);
+            }
+
+            if(string.IsNullOrEmpty(baseUrl))
+            {
+                _log.Warning("Url is Empty");
+                return false;
+            }
+
+            _webContent.Url = baseUrl;
+            _webContent.ScreenMode = ScreenMode.FullScreen;
+            _webContent.Title = "Social Media";
+
+            _eventSender?.Send("platform_content_social_media_opened");
+
+            await _webView.OpenAsync();
+
+            return true;
+        }
+
+
         private async UniTask HandleRetryPopUpMessageAsync(string offlineModeMessage, Func<UniTask> retryFunction) {
             bool isRetry = await _uiFactory.ShowRetryDialog(offlineModeMessage, "offlineMode");
             if(isRetry)
@@ -302,5 +357,7 @@ namespace com.noctuagames.sdk
         public string RewardBaseUrl;
 
         public string CustomerServiceBaseUrl;
+
+        public string SocialMediaBaseUrl;
     }
 }

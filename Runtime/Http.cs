@@ -255,6 +255,7 @@ namespace com.noctuagames.sdk
                 _log.Debug(
                     $"=> {_request.method} {_request.url}\n"                           +
                     $"Content-Type: {_request.GetRequestHeader("Content-Type")}\n"     +
+                    //$"Authorization: {_request.GetRequestHeader("Authorization")}\n"   + // Uncomment for debugging purpose
                     $"{auth}\n"                                                        +
                     $"Accept-Language: {_request.GetRequestHeader("X-LANGUAGE")}\n"    +
                     $"X-CLIENT-ID: {_request.GetRequestHeader("X-CLIENT-ID")}\n"       +

@@ -22,7 +22,8 @@ namespace com.noctuagames.sdk
                 {
                     AnnouncementBaseUrl = config.AnnouncementBaseUrl,
                     RewardBaseUrl = config.RewardBaseUrl,
-                    CustomerServiceBaseUrl = config.CustomerServiceBaseUrl
+                    CustomerServiceBaseUrl = config.CustomerServiceBaseUrl,
+                    SocialMediaBaseUrl = config.SocialMediaBaseUrl,
                 },
                 accessTokenProvider,
                 uiFactory,

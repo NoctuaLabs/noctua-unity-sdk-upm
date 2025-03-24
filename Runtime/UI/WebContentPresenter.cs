@@ -54,6 +54,21 @@ namespace com.noctuagames.sdk.UI
             void PageStarted(UniWebView webView, string url)
             {
                 _log.Debug($"Page started: {url}");
+                if (url.Contains("open-native-browser=true"))
+                {
+                    View.visible = false;
+
+                    uniWebView.Hide();
+                    uniWebView.OnPageFinished -= PageFinished;
+                    uniWebView.OnPageStarted -= PageStarted;
+                    _closeButton.UnregisterCallback<PointerUpEvent>(Close);
+                    _webViewAnchor.UnregisterCallback<GeometryChangedEvent>(GeometryChanged);
+
+                    Object.Destroy(uniWebView);
+                    uniWebView = null;
+
+                    Application.OpenURL(url);
+                }
             }
 
             void PageFinished(UniWebView webView, int statusCode, string url)
