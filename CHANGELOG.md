@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.37.0] - 2025-03-24
+
+### 🚀 Features
+
+- Add ShowSocialMedia() feature.
+
 ## [0.36.1] - 2025-03-24
 
 ### 🐛 Bug Fixes
