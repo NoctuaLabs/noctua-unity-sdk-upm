@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.36.1] - 2025-03-24
+
+### 🐛 Bug Fixes
+
+- Limit the generated unused port range from 61000 to 61010 so we can register these determined range to Google SSO setup.
+
 ## [0.36.0] - 2025-03-11
 
 ### 🚀 Features
