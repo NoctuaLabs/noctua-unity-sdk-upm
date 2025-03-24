@@ -330,11 +330,21 @@ namespace com.noctuagames.sdk
 
         private int GetRandomUnusedPort()
         {
-            var listener = new TcpListener(IPAddress.Loopback, 0);
-            listener.Start();
-            var port = ((IPEndPoint)listener.LocalEndpoint).Port;
-            listener.Stop();
-            return port;
+            for (int port = 61000; port <= 61010; port++)
+            {
+                try
+                {
+                    var listener = new TcpListener(IPAddress.Loopback, port);
+                    listener.Start();
+                    listener.Stop();
+                    return port;
+                }
+                catch (SocketException)
+                {
+                    continue;
+                }
+            }
+            throw new Exception("No available ports found in range 61000-61010 for SSO redirect uri");
         }
     }
 }
