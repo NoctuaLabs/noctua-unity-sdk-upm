@@ -12,7 +12,7 @@ namespace com.noctuagames.sdk.AppLovin
 
         int retryAttempt;
 
-        public void LoadInterstitial(string adUnitID)
+        public void SetInterstitialAdUnitID(string adUnitID)
         {
             if (adUnitID == null)
             {
@@ -21,6 +21,17 @@ namespace com.noctuagames.sdk.AppLovin
             }
 
             _adUnitIDInterstitial = adUnitID;
+
+            _log.Debug("Ad unit ID Interstitial set to : " + _adUnitIDInterstitial);
+        }
+
+        public void LoadInterstitial()
+        {
+            if (_adUnitIDInterstitial == null)
+            {
+                _log.Error("Ad unit ID Interstitial is empty.");
+                return;
+            }
 
             // Attach callback
             MaxSdkCallbacks.Interstitial.OnAdLoadedEvent += OnInterstitialLoadedEvent;
@@ -31,9 +42,9 @@ namespace com.noctuagames.sdk.AppLovin
             MaxSdkCallbacks.Interstitial.OnAdDisplayFailedEvent += OnInterstitialAdFailedToDisplayEvent;
 
             // Load the first interstitial
-            LoadInterstitial();
+            LoadInterstitialInternal();
 
-            _log.Debug("Interstitial ad loaded for ad unit id : " + adUnitID);
+            _log.Debug("Interstitial ad loaded for ad unit id : " + _adUnitIDInterstitial);
         }
 
         public void ShowInterstitial()
@@ -46,7 +57,7 @@ namespace com.noctuagames.sdk.AppLovin
             }
         }
 
-        private void LoadInterstitial()
+        private void LoadInterstitialInternal()
         {
             MaxSdk.LoadInterstitial(_adUnitIDInterstitial);
 
@@ -79,7 +90,7 @@ namespace com.noctuagames.sdk.AppLovin
             double retryDelay = Math.Pow(2, Math.Min(6, retryAttempt));
 
             await UniTask.Delay((int)(retryDelay * 1000));
-            LoadInterstitial();
+            LoadInterstitialInternal();
 
             _log.Debug("Retrying to load interstitial ad after " + retryDelay + " seconds");
         }
@@ -93,7 +104,7 @@ namespace com.noctuagames.sdk.AppLovin
         private void OnInterstitialAdFailedToDisplayEvent(string adUnitId, MaxSdkBase.ErrorInfo errorInfo, MaxSdkBase.AdInfo adInfo)
         {
             // Interstitial ad failed to display. AppLovin recommends that you load the next ad.
-            LoadInterstitial();
+            LoadInterstitialInternal();
 
             _log.Debug("Interstitial ad failed to display for ad unit id : " + adUnitId + " with error code : " + errorInfo.Code);
         }
@@ -106,7 +117,7 @@ namespace com.noctuagames.sdk.AppLovin
         private void OnInterstitialHiddenEvent(string adUnitId, MaxSdkBase.AdInfo adInfo)
         {
             // Interstitial ad is hidden. Pre-load the next ad.
-            LoadInterstitial();
+            LoadInterstitialInternal();
 
             _log.Debug("Interstitial ad hidden for ad unit id : " + adUnitId);
         }

@@ -16,10 +16,7 @@ namespace com.noctuagames.sdk.Admob
 
         private InterstitialAd _interstitialAd;
 
-        /// <summary>
-        /// Loads the interstitial ad.
-        /// </summary>
-        public void LoadInterstitialAd(string adUnitID)
+        public void SetInterstitialAdUnitID(string adUnitID)
         {
             if(adUnitID == null)
             {
@@ -28,6 +25,21 @@ namespace com.noctuagames.sdk.Admob
             }
 
             _adUnitIDInterstitial = adUnitID;
+
+            _log.Debug("Ad unit ID Interstitial set to : " + _adUnitIDInterstitial);
+        }
+
+        /// <summary>
+        /// Loads the interstitial ad.
+        /// </summary>
+        public void LoadInterstitialAd()
+        {
+            if(_adUnitIDInterstitial == null)
+            {
+                _log.Error("Ad unit ID Interstitial is empty.");
+                return;
+            }
+
             // Clean up the old ad before loading a new one.
             CleanupAd();
 
@@ -37,7 +49,7 @@ namespace com.noctuagames.sdk.Admob
             var adRequest = new AdRequest();
 
             // send the request to load the ad.
-            InterstitialAd.Load(adUnitID, adRequest,
+            InterstitialAd.Load(_adUnitIDInterstitial, adRequest,
                 (InterstitialAd ad, LoadAdError error) =>
                 {
                     // if error is not null, the load request failed.
@@ -107,7 +119,7 @@ namespace com.noctuagames.sdk.Admob
             {
                 _log.Debug("Interstitial ad full screen content closed.");
 
-                LoadInterstitialAd(_adUnitIDInterstitial);
+                LoadInterstitialAd();
 
                 InterstitialOnAdFullScreenContentClosed?.Invoke();
             };
@@ -117,7 +129,7 @@ namespace com.noctuagames.sdk.Admob
                 _log.Error("Interstitial ad failed to open full screen content " +
                             "with error : " + error);
 
-                LoadInterstitialAd(_adUnitIDInterstitial);
+                LoadInterstitialAd();
 
                 // InterstitialOnAdFullScreenContentFailed?.Invoke(error);
             };

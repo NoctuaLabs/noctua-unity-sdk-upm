@@ -12,10 +12,8 @@ namespace com.noctuagames.sdk.Admob
 
           private RewardedAd _rewardedAd;
 
-        /// <summary>
-        /// Loads the rewarded ad.
-        /// </summary>
-        public void LoadRewardedAd(string adUnitID)
+        
+        public void SetRewardedAdUnitID(string adUnitID)
         {
             if (adUnitID == null)
             {
@@ -24,6 +22,20 @@ namespace com.noctuagames.sdk.Admob
             }
 
             _adUnitIDRewarded = adUnitID;
+
+            _log.Debug("Ad unit ID Rewarded set to : " + _adUnitIDRewarded);
+        }
+
+        /// <summary>
+        /// Loads the rewarded ad.
+        /// </summary>
+        public void LoadRewardedAd()
+        {
+            if (_adUnitIDRewarded == null)
+            {
+                _log.Error("Ad unit ID Rewarded is empty.");
+                return;
+            }
             
             // Clean up the old ad before loading a new one.
             CleanupAd();
@@ -107,7 +119,7 @@ namespace com.noctuagames.sdk.Admob
             {
                 _log.Debug("Rewarded ad full screen content closed.");
 
-                LoadRewardedAd(_adUnitIDRewarded);
+                LoadRewardedAd();
             };
             // Raised when the ad failed to open full screen content.
             ad.OnAdFullScreenContentFailed += (AdError error) =>
@@ -115,7 +127,7 @@ namespace com.noctuagames.sdk.Admob
                 _log.Error("Rewarded ad failed to open full screen content " +
                             "with error : " + error);
 
-                LoadRewardedAd(_adUnitIDRewarded);
+                LoadRewardedAd();
             };
         }
 

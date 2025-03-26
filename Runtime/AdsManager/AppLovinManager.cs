@@ -1,6 +1,7 @@
 #if UNITY_APPLOVIN
 using System;
 using com.noctuagames.sdk.AppLovin;
+using UnityEngine;
 
 
 namespace com.noctuagames.sdk
@@ -10,6 +11,8 @@ namespace com.noctuagames.sdk
         private readonly NoctuaLogger _log = new(typeof(AppLovinManager));
 
         private InterstitialAppLovin _interstitialAppLovin;
+        private RewardedAppLovin _rewardedAppLovin;
+        private BannerAppLovin _bannerAppLovin;
 
         // public event Action InterstitialOnAdImpressionRecorded;
         public event Action InterstitialOnAdClicked;
@@ -27,36 +30,51 @@ namespace com.noctuagames.sdk
             MaxSdk.InitializeSdk();
         }
 
-        public void LoadInterstitialAd(string adUnitID)
+        public void SetInterstitialAdUnitID(string adUnitID)
         {
             _interstitialAppLovin = new InterstitialAppLovin();
 
-            _interstitialAppLovin.LoadInterstitial(adUnitID);
+            _interstitialAppLovin.SetInterstitialAdUnitID(adUnitID);
+
+        }
+
+        public void LoadInterstitialAd()
+        {
+            _interstitialAppLovin.LoadInterstitial();
         }
 
         public void ShowInterstitial()
         {
-            throw new NotImplementedException();
+            _interstitialAppLovin.ShowInterstitial();
         }
 
-        public void LoadRewardedAd(string adUnitID)
+        public void SetRewardedAdUnitID(string adUnitID)
         {
-            throw new NotImplementedException();
+            _rewardedAppLovin = new RewardedAppLovin();
+            
+            _rewardedAppLovin.SetRewardedAdUnitID(adUnitID);
+        }
+
+        public void LoadRewardedAd()
+        {
+            _rewardedAppLovin.LoadRewardedAds();
         }
 
         public void ShowRewardedAd()
         {
-            throw new NotImplementedException();
+           _rewardedAppLovin.ShowRewardedAd();
         }
 
         public void SetBannerAdUnitId(string adUnitID)
         {
-            throw new NotImplementedException();
+            _bannerAppLovin = new BannerAppLovin();
+
+            _bannerAppLovin.SetBannerAdUnitId(adUnitID);
         }
 
-        public void LoadBannerAd()
+        public void LoadAppLovinBanner(Color color, MaxSdkBase.BannerPosition bannerPosition)
         {
-            throw new NotImplementedException();
+            _bannerAppLovin.InitializeBannerAds(color, bannerPosition);
         }
 
         public void OnDestroy()
