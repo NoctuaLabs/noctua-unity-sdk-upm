@@ -44,15 +44,15 @@ namespace com.noctuagames.sdk
             _adNetwork.Initialize(() => initCompleteAction?.Invoke());
         }
 
-        public void LoadInterstitialAd(string adUnitID) => _adNetwork.LoadInterstitialAd(adUnitID);
+        public void LoadInterstitialAd() => _adNetwork.LoadInterstitialAd();
         public void ShowInterstitial() => _adNetwork.ShowInterstitial();
-        public void LoadRewardedAd(string adUnitID) => _adNetwork.LoadRewardedAd(adUnitID);
+        public void LoadRewardedAd() => _adNetwork.LoadRewardedAd();
         public void ShowRewardedAd() => _adNetwork.ShowRewardedAd();
         public void SetBannerAdUnitId(string adUnitID) => _adNetwork.SetBannerAdUnitId(adUnitID);
         #if UNITY_ADMOB
         public void CreateBannerViewAdAdmob(AdSize adSize, AdPosition adPosition) => _adNetwork.CreateBannerViewAdAdmob(adSize, adPosition);
         #endif
-        public void LoadBannerAd() => _adNetwork.LoadBannerAd();
+        public void LoadBannerAd() => _adNetwork.LoadAdmobBannerAd();
 
         public void OnIAADestroy()
         {

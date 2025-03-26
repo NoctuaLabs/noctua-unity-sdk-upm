@@ -66,9 +66,11 @@ namespace com.noctuagames.sdk
             });
         }
 
-        public void LoadInterstitialAd(string adUnitID)
+        public void SetInterstitialAdUnitID(string adUnitID)
         {
             _interstitialAdmob = new InterstitialAdmob();
+            
+            _interstitialAdmob.SetInterstitialAdUnitID(adUnitID);
 
             _interstitialAdmob.InterstitialOnAdClicked += _interstitialOnAdClicked;
             _interstitialAdmob.InterstitialOnAdFullScreenContentOpened += () => {
@@ -76,8 +78,12 @@ namespace com.noctuagames.sdk
 
                 _interstitialOnAdFullScreenContentOpened?.Invoke();
             };
+            
+        }
 
-            _interstitialAdmob.LoadInterstitialAd(adUnitID);
+        public void LoadInterstitialAd()
+        {
+            _interstitialAdmob.LoadInterstitialAd();
         }
 
         public void ShowInterstitial()
@@ -85,11 +91,14 @@ namespace com.noctuagames.sdk
             _interstitialAdmob.ShowInterstitialAd();
         }
 
-        public void LoadRewardedAd(string adUnitID)
+        public void SetRewardedAdUnitID(string adUnitID)
         {
             _rewardedAdmob = new RewardedAdmob();
+        }
 
-            _rewardedAdmob.LoadRewardedAd(adUnitID);
+        public void LoadRewardedAd()
+        {
+            _rewardedAdmob.LoadRewardedAd();
         }
 
         public void ShowRewardedAd()
@@ -110,7 +119,7 @@ namespace com.noctuagames.sdk
             _bannerAdmob.CreateBannerView(adSize, adPosition);
         }
 
-        public void LoadBannerAd()
+        public void LoadAdmobBannerAd()
         {
             _bannerAdmob.LoadAd();
         }
