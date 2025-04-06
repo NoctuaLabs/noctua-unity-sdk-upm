@@ -9,16 +9,24 @@ namespace com.noctuagames.sdk
 {
     public interface IAdNetwork
     {
+        //Event handler
+        event Action OnAdDisplayed { add{} remove{} }
+        event Action OnAdFailedDisplayed { add{} remove{} }
+        event Action OnAdClicked { add{} remove{} }
+        event Action OnAdImpressionRecorded { add{} remove{} }
+        event Action OnAdClosed { add{} remove{} }
+        event Action OnUserEarnedReward { add{} remove{} }
+
+        //Revenue event handler
         #if UNITY_ADMOB
-        // event Action<AdValue> InterstitialOnAdPaid { add{} remove{} }
-        // event Action<AdError> InterstitialOnAdFullScreenContentFailed { add{} remove{} }
+        event Action<AdValue> AdmobOnAdRevenuePaid { add{} remove{} }
         #endif
-
-        // event Action InterstitialOnAdImpressionRecorded;
-        event Action InterstitialOnAdClicked;
-        event Action InterstitialOnAdFullScreenContentOpened;
-        event Action InterstitialOnAdFullScreenContentClosed;
-
+        
+        #if UNITY_APPLOVIN
+        event Action<MaxSdkBase.AdInfo> AppLovinOnAdRevenuePaid { add{} remove{} }
+        #endif
+        
+        // Initialize IAA SDK
         void Initialize(Action initCompleteAction);
         
         //Interstitial
@@ -33,25 +41,21 @@ namespace com.noctuagames.sdk
 
         //Banner
         void SetBannerAdUnitId(string adUnitID);
+        void ShowBannerAd();
         //Banner Admob
         #if UNITY_ADMOB
         void CreateBannerViewAdAdmob(AdSize adSize, AdPosition adPosition) { throw new NotImplementedException(); }
-        void LoadAdmobBannerAd() { throw new NotImplementedException(); }
         #endif
 
         //Banner AppLovin
         #if UNITY_APPLOVIN
         void CreateBannerViewAdAppLovin(Color color, MaxSdkBase.BannerPosition bannerPosition) { throw new NotImplementedException(); }
-        void LoadAppLovinBanner() { throw new NotImplementedException(); }
-        void ShowBannerAppLovin() { throw new NotImplementedException(); }
         void HideBannerAppLovin() { throw new NotImplementedException(); }
         void DestroyBannerAppLovin() { throw new NotImplementedException(); }
         void SetBannerWidth(int width) { throw new NotImplementedException(); }
         Rect GetBannerPosition() { throw new NotImplementedException(); }
         void StopBannerAutoRefresh() { throw new NotImplementedException(); }
         void StartBannerAutoRefresh() { throw new NotImplementedException(); }
-        
         #endif
-        void OnDestroy();
     }
 }
