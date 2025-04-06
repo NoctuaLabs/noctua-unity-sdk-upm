@@ -52,6 +52,57 @@ namespace com.noctuagames.sdk
 
         [JsonProperty("sso_disabled")]
         public bool SSODisabled;
+        
+        [JsonProperty("iaa")]
+        public IAAResponse IAAResponse;
+    }
+
+    [Preserve]
+    public class IAAResponse
+    {
+        [JsonProperty("mediation")]
+        public string Mediation;
+
+        [JsonProperty("ad_formats")]
+        public AdFormat AdFormat;
+
+    }
+
+    [Preserve]
+    public class AdFormat
+    {
+        [JsonProperty("interstitial")]
+        public AdUnit Interstitial;
+       
+        [JsonProperty("rewarded")]
+        public AdUnit Rewarded;
+
+        [JsonProperty("banner")]
+        public AdUnit Banner;
+
+        [JsonProperty("app_open")]
+        public AdUnit AppOpen;
+
+        [JsonProperty("native")]
+        public AdUnit Native;
+    }
+
+    [Preserve]
+    public class AdUnit
+    {
+        [JsonProperty("android")]
+        public AdUnitID Android;
+
+        [JsonProperty("ios")]
+        public AdUnitID IOS;
+
+    }
+
+    [Preserve]
+    public class AdUnitID
+    {
+        [JsonProperty("ad_unit_id")]
+        public string adUnitID;
     }
 
     internal class NoctuaGameService
