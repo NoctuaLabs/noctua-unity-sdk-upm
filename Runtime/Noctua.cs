@@ -84,6 +84,8 @@ namespace com.noctuagames.sdk
         [JsonProperty("flags")]  public string Flags;
         [JsonProperty("isOfflineFirst")] public bool IsOfflineFirst = false;
         [JsonProperty("welcomeToastDisabled ")] public bool welcomeToastDisabled  = false;
+        [JsonProperty("isIAAEnabled ")] public bool isIAAEnabled  = false;
+
     }
     
     [Preserve]
@@ -294,7 +296,14 @@ namespace com.noctuagames.sdk
             
             _nativePlugin = GetNativePlugin();
             _log.Debug($"_nativePlugin type: {_nativePlugin?.GetType().FullName}");
-            _nativePlugin?.Init(new List<string>());
+
+            //Init analytics first when IAA is not enabled because:
+            //Both AppLovin MAX and AdMob handle user consent for GDPR, CCPA, and other privacy regulations. 
+            //Analytics SDKs (like Adjust, Firebase, Facebook) collect user data, so they must respect user privacy choices.
+            if(!config.Noctua.isIAAEnabled)
+            {              
+                _nativePlugin?.Init(new List<string>());
+            }
             
             _event = new NoctuaEventService(_nativePlugin, _eventSender);
             _event.SetProperties(isSandbox: config.Noctua.IsSandbox);
@@ -631,6 +640,23 @@ namespace com.noctuagames.sdk
 #if UNITY_ANDROID
             Instance.Value._iap.QueryPurchasesAsync();
 #endif
+            }
+
+            //Init iaa sdk and prepare iaa to show
+            if(initResponse.RemoteConfigs.IAAResponse != null)
+            {
+                log.Debug("initiazing IAA SDK : " + initResponse.RemoteConfigs.IAAResponse.Mediation);
+
+                Noctua.IAA.Initialize(initResponse.RemoteConfigs.IAAResponse, () => {
+                    log.Debug("IAA SDK initialized");
+
+                    //Init analytics
+                    Instance.Value._nativePlugin.Init(new List<string>());
+                });
+            }
+            else
+            {
+                log.Debug("Remote config IAA is not configured yet");
             }
         }
 
