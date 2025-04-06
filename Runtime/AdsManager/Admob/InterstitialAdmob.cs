@@ -10,9 +10,14 @@ namespace com.noctuagames.sdk.Admob
         private readonly NoctuaLogger _log = new(typeof(InterstitialAdmob));
         private string _adUnitIDInterstitial;
 
+        //public event handler
+        public event Action InterstitialOnAdDisplayed;
+        public event Action InterstitialOnAdFailedDisplayed;
         public event Action InterstitialOnAdClicked;
-        public event Action InterstitialOnAdFullScreenContentOpened;
-        public event Action InterstitialOnAdFullScreenContentClosed;
+        public event Action InterstitialOnAdImpressionRecorded;
+        public event Action InterstitialOnAdClosed;
+        public event Action<AdValue> AdmobOnAdRevenuePaid;
+
 
         private InterstitialAd _interstitialAd;
 
@@ -94,11 +99,16 @@ namespace com.noctuagames.sdk.Admob
                 _log.Debug(String.Format("Interstitial ad paid {0} {1}.",
                     adValue.Value,
                     adValue.CurrencyCode));
+
+                AdmobOnAdRevenuePaid?.Invoke(adValue);
+                
             };
             // Raised when an impression is recorded for an ad.
             interstitialAd.OnAdImpressionRecorded += () =>
             {
                 _log.Debug("Interstitial ad recorded an impression.");
+
+                InterstitialOnAdImpressionRecorded?.Invoke();
             };
             // Raised when a click is recorded for an ad.
             interstitialAd.OnAdClicked += () =>
@@ -112,7 +122,7 @@ namespace com.noctuagames.sdk.Admob
             {
                 _log.Debug("Interstitial ad full screen content opened.");
 
-                InterstitialOnAdFullScreenContentOpened?.Invoke();
+                InterstitialOnAdDisplayed?.Invoke();
             };
             // Raised when the ad closed full screen content.
             interstitialAd.OnAdFullScreenContentClosed += () =>
@@ -121,7 +131,7 @@ namespace com.noctuagames.sdk.Admob
 
                 LoadInterstitialAd();
 
-                InterstitialOnAdFullScreenContentClosed?.Invoke();
+                InterstitialOnAdClosed?.Invoke();
             };
             // Raised when the ad failed to open full screen content.
             interstitialAd.OnAdFullScreenContentFailed += (AdError error) =>
@@ -131,7 +141,7 @@ namespace com.noctuagames.sdk.Admob
 
                 LoadInterstitialAd();
 
-                // InterstitialOnAdFullScreenContentFailed?.Invoke(error);
+                InterstitialOnAdFailedDisplayed?.Invoke();
             };
         }
 
@@ -143,10 +153,6 @@ namespace com.noctuagames.sdk.Admob
                 _interstitialAd = null;
 
                 _log.Debug("Interstitial ad cleaned up.");
-
-                InterstitialOnAdClicked = null;
-                InterstitialOnAdFullScreenContentOpened = null;
-                InterstitialOnAdFullScreenContentClosed = null;
             }
         }
     }

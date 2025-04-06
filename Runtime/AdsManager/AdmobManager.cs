@@ -15,44 +15,24 @@ namespace com.noctuagames.sdk
         private BannerAdmob _bannerAdmob;
 
         // Private event handlers
-        // private Action<AdValue> _interstitialOnAdPaid;
-        // private Action _interstitialOnAdImpressionRecorded;
-        private Action _interstitialOnAdClicked;
-        public event Action _interstitialOnAdFullScreenContentOpened;
-        private Action _interstitialOnAdFullScreenContentClosed;
-        // private Action<AdError> _interstitialOnAdFullScreenContentFailed;
+        private event Action _onAdDisplayed;
+        private event Action _onAdFailedDisplayed;
+        private event Action _onAdClicked;
+        private event Action _onAdImpressionRecorded;
+        private event Action _onAdClosed;
+        private event Action _onUserEarnedReward;
 
-        // Public event properties
-        // public event Action<AdValue> InterstitialOnAdPaid
-        // {
-        //     add => _interstitialOnAdPaid += value;
-        //     remove => _interstitialOnAdPaid -= value;
-        // }
-        // public event Action InterstitialOnAdImpressionRecorded
-        // {
-        //     add => _interstitialOnAdImpressionRecorded += value;
-        //     remove => _interstitialOnAdImpressionRecorded -= value;
-        // }
-        public event Action InterstitialOnAdClicked
-        {
-            add => _interstitialOnAdClicked += value;
-            remove => _interstitialOnAdClicked -= value;
-        }
-        public event Action InterstitialOnAdFullScreenContentOpened
-        {
-            add => _interstitialOnAdFullScreenContentOpened += value;
-            remove => _interstitialOnAdFullScreenContentOpened -= value;
-        }
-        public event Action InterstitialOnAdFullScreenContentClosed
-        {
-            add => _interstitialOnAdFullScreenContentClosed += value;
-            remove => _interstitialOnAdFullScreenContentClosed -= value;
-        }
-        // public event Action<AdError> InterstitialOnAdFullScreenContentFailed
-        // {
-        //     add => _interstitialOnAdFullScreenContentFailed += value;
-        //     remove => _interstitialOnAdFullScreenContentFailed -= value;
-        // }
+        private event Action<AdValue> _admobOnAdRevenuePaid;
+
+
+        // public event handlers
+        public event Action OnAdDisplayed { add => _onAdDisplayed += value; remove => _onAdDisplayed -= value; }
+        public event Action OnAdFailedDisplayed { add => _onAdFailedDisplayed += value; remove => _onAdFailedDisplayed -= value; } 
+        public event Action OnAdClicked { add => _onAdClicked += value; remove => _onAdClicked -= value; }
+        public event Action OnAdImpressionRecorded { add => _onAdImpressionRecorded += value; remove => _onAdImpressionRecorded -= value; }
+        public event Action OnAdClosed { add => _onAdClosed += value; remove => _onAdClosed -= value; }
+        public event Action OnUserEarnedReward { add => _onUserEarnedReward += value; remove => _onUserEarnedReward -= value; }
+        public event Action<AdValue> AdmobOnAdRevenuePaid { add => _admobOnAdRevenuePaid += value; remove => _admobOnAdRevenuePaid -= value; }
 
         public void Initialize(Action initCompleteAction)
         {
@@ -72,13 +52,13 @@ namespace com.noctuagames.sdk
             
             _interstitialAdmob.SetInterstitialAdUnitID(adUnitID);
 
-            _interstitialAdmob.InterstitialOnAdClicked += _interstitialOnAdClicked;
-            _interstitialAdmob.InterstitialOnAdFullScreenContentOpened += () => {
-                _log.Info("Interstitial ad opened. AdmobManager");
-
-                _interstitialOnAdFullScreenContentOpened?.Invoke();
-            };
-            
+            // Subscribe to events
+            _interstitialAdmob.InterstitialOnAdDisplayed += () => { _onAdDisplayed?.Invoke(); };
+            _interstitialAdmob.InterstitialOnAdFailedDisplayed += () => { _onAdFailedDisplayed?.Invoke(); };
+            _interstitialAdmob.InterstitialOnAdClicked += () => { _onAdClicked?.Invoke(); };
+            _interstitialAdmob.InterstitialOnAdImpressionRecorded += () => { _onAdImpressionRecorded?.Invoke(); };
+            _interstitialAdmob.InterstitialOnAdClosed += () => { _onAdClosed?.Invoke(); };
+            _interstitialAdmob.AdmobOnAdRevenuePaid += (adValue) => { _admobOnAdRevenuePaid?.Invoke(adValue); };
         }
 
         public void LoadInterstitialAd()
@@ -94,6 +74,16 @@ namespace com.noctuagames.sdk
         public void SetRewardedAdUnitID(string adUnitID)
         {
             _rewardedAdmob = new RewardedAdmob();
+            _rewardedAdmob.SetRewardedAdUnitID(adUnitID);
+
+            // Subscribe to events
+            _rewardedAdmob.RewardedOnAdDisplayed += () => { _onAdDisplayed?.Invoke(); };
+            _rewardedAdmob.RewardedOnAdFailedDisplayed += () => { _onAdFailedDisplayed?.Invoke(); };
+            _rewardedAdmob.RewardedOnAdClicked += () => { _onAdClicked?.Invoke(); };
+            _rewardedAdmob.RewardedOnAdImpressionRecorded += () => { _onAdImpressionRecorded?.Invoke(); };
+            _rewardedAdmob.RewardedOnAdClosed += () => { _onAdClosed?.Invoke(); };
+            _rewardedAdmob.RewardedOnUserEarnedReward += () => { _onUserEarnedReward?.Invoke(); };
+            _rewardedAdmob.AdmobOnAdRevenuePaid += (adValue) => { _admobOnAdRevenuePaid?.Invoke(adValue); };
         }
 
         public void LoadRewardedAd()
@@ -111,6 +101,14 @@ namespace com.noctuagames.sdk
             _bannerAdmob = new BannerAdmob();
 
             _bannerAdmob.SetAdUnitId(adUnitID);
+
+            // Subscribe to events
+            _bannerAdmob.BannerOnAdDisplayed += () => { _onAdDisplayed?.Invoke(); };
+            _bannerAdmob.BannerOnAdFailedDisplayed += () => { _onAdFailedDisplayed?.Invoke(); };
+            _bannerAdmob.BannerOnAdClicked += () => { _onAdClicked?.Invoke(); };
+            _bannerAdmob.BannerOnAdImpressionRecorded += () => { _onAdImpressionRecorded?.Invoke(); };
+            _bannerAdmob.BannerOnAdClosed += () => { _onAdClosed?.Invoke(); };
+            _bannerAdmob.AdmobOnAdRevenuePaid += (adValue) => { _admobOnAdRevenuePaid?.Invoke(adValue); };
            
         }
 
@@ -119,23 +117,9 @@ namespace com.noctuagames.sdk
             _bannerAdmob.CreateBannerView(adSize, adPosition);
         }
 
-        public void LoadAdmobBannerAd()
+        public void ShowBannerAd()
         {
             _bannerAdmob.LoadAd();
-        }
-
-        public void OnDestroy()
-        {
-            if (_interstitialAdmob != null)
-            {
-                // _interstitialAdmob.InterstitialOnAdClicked -= _interstitialOnAdClicked;
-                // _interstitialAdmob.InterstitialOnAdFullScreenContentOpened -= _interstitialOnAdFullScreenContentOpened;
-                // _interstitialAdmob.InterstitialOnAdFullScreenContentClosed -= _interstitialOnAdFullScreenContentClosed;
-
-                // _interstitialAdmob = null;
-
-                _log.Info("AdmobManager destroyed.");
-            }
         }
     }
 }

@@ -10,8 +10,16 @@ namespace com.noctuagames.sdk.Admob
         private readonly NoctuaLogger _log = new(typeof(InterstitialAdmob));
         private string _adUnitIDRewarded;
 
-          private RewardedAd _rewardedAd;
+        private RewardedAd _rewardedAd;
 
+        //public event handler
+        public event Action RewardedOnAdDisplayed;
+        public event Action RewardedOnAdFailedDisplayed;
+        public event Action RewardedOnAdClicked;
+        public event Action RewardedOnAdImpressionRecorded;
+        public event Action RewardedOnAdClosed;
+        public event Action RewardedOnUserEarnedReward;
+        public event Action<AdValue> AdmobOnAdRevenuePaid;
         
         public void SetRewardedAdUnitID(string adUnitID)
         {
@@ -98,21 +106,29 @@ namespace com.noctuagames.sdk.Admob
                 _log.Debug(String.Format("Rewarded ad paid {0} {1}.",
                     adValue.Value,
                     adValue.CurrencyCode));
+                
+                AdmobOnAdRevenuePaid?.Invoke(adValue);
             };
             // Raised when an impression is recorded for an ad.
             ad.OnAdImpressionRecorded += () =>
             {
                 _log.Debug("Rewarded ad recorded an impression.");
+
+                RewardedOnAdImpressionRecorded?.Invoke();
             };
             // Raised when a click is recorded for an ad.
             ad.OnAdClicked += () =>
             {
                 _log.Debug("Rewarded ad was clicked.");
+
+                RewardedOnAdClicked?.Invoke();
             };
             // Raised when an ad opened full screen content.
             ad.OnAdFullScreenContentOpened += () =>
             {
                 _log.Debug("Rewarded ad full screen content opened.");
+
+                RewardedOnAdDisplayed?.Invoke();
             };
             // Raised when the ad closed full screen content.
             ad.OnAdFullScreenContentClosed += () =>
@@ -120,6 +136,8 @@ namespace com.noctuagames.sdk.Admob
                 _log.Debug("Rewarded ad full screen content closed.");
 
                 LoadRewardedAd();
+
+                RewardedOnAdClosed?.Invoke();
             };
             // Raised when the ad failed to open full screen content.
             ad.OnAdFullScreenContentFailed += (AdError error) =>
@@ -128,6 +146,8 @@ namespace com.noctuagames.sdk.Admob
                             "with error : " + error);
 
                 LoadRewardedAd();
+
+                RewardedOnAdFailedDisplayed?.Invoke();
             };
         }
 

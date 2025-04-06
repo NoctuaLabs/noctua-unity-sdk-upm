@@ -13,6 +13,13 @@ namespace com.noctuagames.sdk.Admob
         
         private string _adUnitIdBanner;
 
+        public event Action BannerOnAdDisplayed;
+        public event Action BannerOnAdFailedDisplayed;
+        public event Action BannerOnAdClicked;
+        public event Action BannerOnAdImpressionRecorded;
+        public event Action BannerOnAdClosed;
+        public event Action<AdValue> AdmobOnAdRevenuePaid;
+
         public void SetAdUnitId(string adUnitId)
         {
             if(adUnitId == null)
@@ -85,12 +92,16 @@ namespace com.noctuagames.sdk.Admob
             {
                 _log.Debug("Banner view loaded an ad with response : "
                     + _bannerView.GetResponseInfo());
+                
+                BannerOnAdDisplayed?.Invoke();
             };
             // Raised when an ad fails to load into the banner view.
             _bannerView.OnBannerAdLoadFailed += (LoadAdError error) =>
             {
                 _log.Error("Banner view failed to load an ad with error : "
                     + error);
+                
+                BannerOnAdFailedDisplayed?.Invoke();
             };
             // Raised when the ad is estimated to have earned money.
             _bannerView.OnAdPaid += (AdValue adValue) =>
@@ -98,26 +109,36 @@ namespace com.noctuagames.sdk.Admob
                 _log.Debug(String.Format("Banner view paid {0} {1}.",
                     adValue.Value,
                     adValue.CurrencyCode));
+                
+                AdmobOnAdRevenuePaid?.Invoke(adValue);
             };
             // Raised when an impression is recorded for an ad.
             _bannerView.OnAdImpressionRecorded += () =>
             {
                 _log.Debug("Banner view recorded an impression.");
+
+                BannerOnAdImpressionRecorded?.Invoke();
             };
             // Raised when a click is recorded for an ad.
             _bannerView.OnAdClicked += () =>
             {
                 _log.Debug("Banner view was clicked.");
+
+                BannerOnAdClicked?.Invoke();
             };
             // Raised when an ad opened full screen content.
             _bannerView.OnAdFullScreenContentOpened += () =>
             {
                 _log.Debug("Banner view full screen content opened.");
+
+                BannerOnAdDisplayed?.Invoke();
             };
             // Raised when the ad closed full screen content.
             _bannerView.OnAdFullScreenContentClosed += () =>
             {
                 _log.Debug("Banner view full screen content closed.");
+
+                BannerOnAdClosed?.Invoke();
             };
         }
 
