@@ -12,6 +12,13 @@ namespace com.noctuagames.sdk.AppLovin
 
         int retryAttempt;
 
+        public event Action RewardedOnAdDisplayed;
+        public event Action RewardedOnAdFailedDisplayed;
+        public event Action RewardedOnAdClicked;
+        public event Action<MaxSdk.Reward> RewardedOnUserEarnedReward;
+        public event Action RewardedOnAdClosed;
+        public event Action<MaxSdkBase.AdInfo> RewardedOnAdRevenuePaid;
+
         public void SetRewardedAdUnitID(string adUnitID)
         {
             if (adUnitID == null)
@@ -103,7 +110,13 @@ namespace com.noctuagames.sdk.AppLovin
         }
 
 
-        private void OnRewardedAdDisplayedEvent(string adUnitId, MaxSdkBase.AdInfo adInfo) {}
+        private void OnRewardedAdDisplayedEvent(string adUnitId, MaxSdkBase.AdInfo adInfo) {
+            // Rewarded ad displayed
+
+            _log.Debug("Rewarded ad displayed for ad unit id : " + adUnitId);
+
+            RewardedOnAdDisplayed?.Invoke();
+        }
 
         private void OnRewardedAdFailedToDisplayEvent(string adUnitId, MaxSdkBase.ErrorInfo errorInfo, MaxSdkBase.AdInfo adInfo)
         {
@@ -111,10 +124,14 @@ namespace com.noctuagames.sdk.AppLovin
             LoadRewardedAd();
 
             _log.Debug("Rewarded ad failed to display for ad unit id : " + adUnitId + " with error code : " + errorInfo.Code);
+
+            RewardedOnAdFailedDisplayed?.Invoke();
         }
 
         private void OnRewardedAdClickedEvent(string adUnitId, MaxSdkBase.AdInfo adInfo) {
             _log.Debug("Rewarded ad clicked for ad unit id : " + adUnitId);
+
+            RewardedOnAdClicked?.Invoke();
         }
 
         private void OnRewardedAdHiddenEvent(string adUnitId, MaxSdkBase.AdInfo adInfo)
@@ -123,6 +140,8 @@ namespace com.noctuagames.sdk.AppLovin
             LoadRewardedAd();
 
             _log.Debug("Rewarded ad hidden for ad unit id : " + adUnitId);
+
+            RewardedOnAdClosed?.Invoke();
         }
 
         private void OnRewardedAdReceivedRewardEvent(string adUnitId, MaxSdk.Reward reward, MaxSdkBase.AdInfo adInfo)
@@ -131,12 +150,16 @@ namespace com.noctuagames.sdk.AppLovin
             _log.Info("Rewarded user: " + reward.Amount + " " + reward.Label);
 
             _log.Debug("Rewarded ad received reward for ad unit id : " + adUnitId);
+
+            RewardedOnUserEarnedReward?.Invoke(reward);
         }
 
         private void OnRewardedAdRevenuePaidEvent(string adUnitId, MaxSdkBase.AdInfo adInfo)
         {
             // Ad revenue paid. Use this callback to track user revenue.
             _log.Debug("Rewarded ad revenue paid for ad unit id : " + adUnitId);
+            
+            RewardedOnAdRevenuePaid?.Invoke(adInfo);
         }
     }
 }
