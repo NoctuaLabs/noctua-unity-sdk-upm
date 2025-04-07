@@ -293,7 +293,6 @@ namespace com.noctuagames.sdk
 
         private readonly EventSender _eventSender;
         private readonly AccessTokenProvider _accessTokenProvider;
-        private readonly NoctuaWebPaymentService _noctuaPayment;
         private readonly Queue<PurchaseItem> _waitingPendingPurchases = new();
         private readonly INativePlugin _nativePlugin;
         private readonly ProductList _usdProducts = new();
@@ -329,7 +328,6 @@ namespace com.noctuagames.sdk
             _config = config;
             _accessTokenProvider = accessTokenProvider;
             _eventSender = eventSender;
-            _noctuaPayment = new NoctuaWebPaymentService(config.WebPaymentBaseUrl);
             
             _uiFactory = uiFactory;
             _customPaymentCompleteDialog = _uiFactory.Create<CustomPaymentCompleteDialogPresenter, object>(new object());
@@ -2196,7 +2194,6 @@ namespace com.noctuagames.sdk
         {
             public string BaseUrl;
             public string ClientId;
-            public string WebPaymentBaseUrl;
         }
 
         [Preserve]
