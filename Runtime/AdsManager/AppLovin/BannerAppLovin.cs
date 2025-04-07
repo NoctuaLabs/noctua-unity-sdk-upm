@@ -11,6 +11,13 @@ namespace com.noctuagames.sdk.AppLovin
 
         private string _adUnitIDBanner;
 
+        public event Action BannerOnAdDisplayed;
+        public event Action BannerOnAdFailedDisplayed;
+        public event Action BannerOnAdClicked;
+        public event Action BannerOnAdImpressionRecorded;
+        public event Action BannerOnAdClosed;
+        public event Action<MaxSdkBase.AdInfo> BannerOnAdRevenuePaid;
+
         public void SetBannerAdUnitId(string adUnitIDBanner) {
             if(adUnitIDBanner == null)
             {
@@ -38,16 +45,22 @@ namespace com.noctuagames.sdk.AppLovin
             MaxSdkCallbacks.Banner.OnAdRevenuePaidEvent += OnBannerAdRevenuePaidEvent;
             MaxSdkCallbacks.Banner.OnAdExpandedEvent    += OnBannerAdExpandedEvent;
             MaxSdkCallbacks.Banner.OnAdCollapsedEvent   += OnBannerAdCollapsedEvent;
+
+            _log.Debug("Banner ad initialized for ad unit id : " + _adUnitIDBanner);
         }
 
         public void ShowBanner()
         {
             MaxSdk.ShowBanner(_adUnitIDBanner);
+
+            _log.Debug("Banner ad shown for ad unit id : " + _adUnitIDBanner);
         }
 
         public void HideBanner()
         {
             MaxSdk.HideBanner(_adUnitIDBanner);
+
+            _log.Debug("Banner ad hidden for ad unit id : " + _adUnitIDBanner);
         }
 
         //Destroying Banners
@@ -57,6 +70,8 @@ namespace com.noctuagames.sdk.AppLovin
         public void DestroyBanner()
         {
             MaxSdk.DestroyBanner(_adUnitIDBanner);
+
+            _log.Debug("Banner ad destroyed for ad unit id : " + _adUnitIDBanner);
         }
 
         //Setting Banner Width
@@ -65,12 +80,16 @@ namespace com.noctuagames.sdk.AppLovin
         public void SetBannerWidth(int width)
         {
             MaxSdk.SetBannerWidth(_adUnitIDBanner, width);
+
+            _log.Debug("Banner ad width set to : " + width + " for ad unit id : " + _adUnitIDBanner);
         }
 
         // Getting Banner Position
         // To get the banner’s position and size, call GetBannerLayout(). This uses the same Unity coordinate system as explained in Loading a Banner.
         public Rect GetBannerPosition()
         {
+            _log.Debug("Getting banner position for ad unit id : " + _adUnitIDBanner);
+
             return MaxSdk.GetBannerLayout(_adUnitIDBanner);
         }
         // Stopping and Starting Auto-Refresh
@@ -78,25 +97,49 @@ namespace com.noctuagames.sdk.AppLovin
         // To stop auto-refresh for a banner, use the following code:
         public void StopBannerAutoRefresh()
         {
+            _log.Debug("Stopping banner auto refresh for ad unit id : " + _adUnitIDBanner);
+
             MaxSdk.StopBannerAutoRefresh(_adUnitIDBanner);
         }
 
         public void StartBannerAutoRefresh()
         {
+            _log.Debug("Starting banner auto refresh for ad unit id : " + _adUnitIDBanner);
+            
             MaxSdk.StartBannerAutoRefresh(_adUnitIDBanner);
         }
 
-        private void OnBannerAdLoadedEvent(string adUnitId, MaxSdkBase.AdInfo adInfo) {}
+        private void OnBannerAdLoadedEvent(string adUnitId, MaxSdkBase.AdInfo adInfo) {
+            _log.Debug("Banner ad loaded for ad unit id : " + adUnitId);
 
-        private void OnBannerAdLoadFailedEvent(string adUnitId, MaxSdkBase.ErrorInfo errorInfo) {}
+            BannerOnAdDisplayed?.Invoke();
+        }
 
-        private void OnBannerAdClickedEvent(string adUnitId, MaxSdkBase.AdInfo adInfo) {}
+        private void OnBannerAdLoadFailedEvent(string adUnitId, MaxSdkBase.ErrorInfo errorInfo) {
+            _log.Error("Banner ad failed to load for ad unit id : " + adUnitId + " with error code : " + errorInfo.Code + " and message : " + errorInfo.Message);
 
-        private void OnBannerAdRevenuePaidEvent(string adUnitId, MaxSdkBase.AdInfo adInfo) {}
+            BannerOnAdFailedDisplayed?.Invoke();
+        }
 
-        private void OnBannerAdExpandedEvent(string adUnitId, MaxSdkBase.AdInfo adInfo)  {}
+        private void OnBannerAdClickedEvent(string adUnitId, MaxSdkBase.AdInfo adInfo) {
+            _log.Debug("Banner ad clicked for ad unit id : " + adUnitId);
 
-        private void OnBannerAdCollapsedEvent(string adUnitId, MaxSdkBase.AdInfo adInfo) {}
+            BannerOnAdClicked?.Invoke();
+        }
+
+        private void OnBannerAdRevenuePaidEvent(string adUnitId, MaxSdkBase.AdInfo adInfo) {
+            _log.Debug("Banner ad revenue paid for ad unit id : " + adUnitId);
+
+            BannerOnAdRevenuePaid?.Invoke(adInfo);
+        }
+
+        private void OnBannerAdExpandedEvent(string adUnitId, MaxSdkBase.AdInfo adInfo)  {
+            _log.Debug("Banner ad expanded for ad unit id : " + adUnitId);
+        }
+
+        private void OnBannerAdCollapsedEvent(string adUnitId, MaxSdkBase.AdInfo adInfo) {
+            _log.Debug("Banner ad collapsed for ad unit id : " + adUnitId);
+        }
     }
 }
 #endif

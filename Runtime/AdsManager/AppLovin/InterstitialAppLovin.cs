@@ -12,6 +12,12 @@ namespace com.noctuagames.sdk.AppLovin
 
         int retryAttempt;
 
+        public event Action InterstitialOnAdDisplayed;
+        public event Action InterstitialOnAdFailedDisplayed;
+        public event Action InterstitialOnAdClicked;
+        public event Action InterstitialOnAdClosed;
+        public event Action<MaxSdkBase.AdInfo> InterstitialOnAdRevenuePaid;
+
         public void SetInterstitialAdUnitID(string adUnitID)
         {
             if (adUnitID == null)
@@ -40,6 +46,7 @@ namespace com.noctuagames.sdk.AppLovin
             MaxSdkCallbacks.Interstitial.OnAdClickedEvent += OnInterstitialClickedEvent;
             MaxSdkCallbacks.Interstitial.OnAdHiddenEvent += OnInterstitialHiddenEvent;
             MaxSdkCallbacks.Interstitial.OnAdDisplayFailedEvent += OnInterstitialAdFailedToDisplayEvent;
+            MaxSdkCallbacks.Interstitial.OnAdRevenuePaidEvent += OnAdRevenuePaidEvent;
 
             // Load the first interstitial
             LoadInterstitialInternal();
@@ -99,6 +106,8 @@ namespace com.noctuagames.sdk.AppLovin
             // Interstitial ad displayed
 
             _log.Debug("Interstitial ad displayed for ad unit id : " + adUnitId);
+
+            InterstitialOnAdDisplayed?.Invoke();
         }
 
         private void OnInterstitialAdFailedToDisplayEvent(string adUnitId, MaxSdkBase.ErrorInfo errorInfo, MaxSdkBase.AdInfo adInfo)
@@ -107,11 +116,15 @@ namespace com.noctuagames.sdk.AppLovin
             LoadInterstitialInternal();
 
             _log.Debug("Interstitial ad failed to display for ad unit id : " + adUnitId + " with error code : " + errorInfo.Code);
+
+            InterstitialOnAdFailedDisplayed?.Invoke();
         }
 
         private void OnInterstitialClickedEvent(string adUnitId, MaxSdkBase.AdInfo adInfo) {
 
             _log.Debug("Interstitial ad clicked for ad unit id : " + adUnitId);
+
+            InterstitialOnAdClicked?.Invoke();
         }
 
         private void OnInterstitialHiddenEvent(string adUnitId, MaxSdkBase.AdInfo adInfo)
@@ -120,8 +133,25 @@ namespace com.noctuagames.sdk.AppLovin
             LoadInterstitialInternal();
 
             _log.Debug("Interstitial ad hidden for ad unit id : " + adUnitId);
+
+            InterstitialOnAdClosed?.Invoke();
         }
 
+        private void OnAdRevenuePaidEvent(string adUnitId, MaxSdkBase.AdInfo adInfo)
+        {
+            double revenue = adInfo.Revenue;
+
+            // Miscellaneous data
+            string countryCode = MaxSdk.GetSdkConfiguration().CountryCode; // "US" for the United States, etc - Note: Do not confuse this with currency code which is "USD"
+            string networkName = adInfo.NetworkName; // Display name of the network that showed the ad
+            string adUnitIdentifier = adInfo.AdUnitIdentifier; // The MAX Ad Unit ID
+            string placement = adInfo.Placement; // The placement this ad's postbacks are tied to
+            string networkPlacement = adInfo.NetworkPlacement; // The placement ID from the network that showed the ad
+
+            _log.Debug("Interstitial ad revenue paid for ad unit id : " + adUnitId + " with revenue : " + revenue + " and country code : " + countryCode);
+
+            InterstitialOnAdRevenuePaid?.Invoke(adInfo);
+        }
     }
 }
 #endif
