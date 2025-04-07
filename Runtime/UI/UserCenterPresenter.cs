@@ -1095,7 +1095,7 @@ namespace com.noctuagames.sdk.UI
 
         private void BindListView()
         {
-            var credentialFiltered = Utility.ContainsFlag(_globalConfig?.Noctua?.Flags, "VNLegalPurpose") || _ssoDisabled ? _credentials.Where(c => c.CredentialProvider == CredentialProvider.Email).ToList() : _credentials;
+            var credentialFiltered = Utility.ParseBooleanFeatureFlag(_globalConfig?.Noctua?.FeatureFlags, "vn_legal_purpose_enabled") || _ssoDisabled ? _credentials.Where(c => c.CredentialProvider == CredentialProvider.Email).ToList() : _credentials;
 
             _credentialListView = View.Q<ListView>("AccountList");
             _itemTemplate ??= Resources.Load<VisualTreeAsset>("ConnectAccountItem");

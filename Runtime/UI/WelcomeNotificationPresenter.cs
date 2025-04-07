@@ -56,7 +56,7 @@ namespace com.noctuagames.sdk.UI
 
         public IEnumerator RunAnimation(UserBundle userBundle)
         {
-            if (!string.IsNullOrEmpty(_config?.Noctua?.Flags) && Utility.ContainsFlag(_config?.Noctua?.Flags, "VNLegalPurpose") && userBundle.IsGuest)
+            if (Utility.ParseBooleanFeatureFlag(_config?.Noctua?.FeatureFlags, "vn_legal_purpose_enabled") && userBundle.IsGuest)
             {
                 Model.ShowEmailLogin();
                 yield break;
