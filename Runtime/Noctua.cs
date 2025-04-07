@@ -145,7 +145,6 @@ namespace com.noctuagames.sdk
         public static MediationManager IAA => Instance.Value._iaa;
 
         public event Action<bool> OnInternetReachable;
-
         private readonly ILogger _log = new NoctuaLogger();
         private readonly EventSender _eventSender;
         private readonly SessionTracker _sessionTracker;
@@ -648,6 +647,7 @@ namespace com.noctuagames.sdk
                 log.Debug("initiazing IAA SDK : " + initResponse.RemoteConfigs.IAAResponse.Mediation);
 
                 Noctua.IAA.Initialize(initResponse.RemoteConfigs.IAAResponse, () => {
+
                     log.Debug("IAA SDK initialized");
 
                     //Init analytics
