@@ -78,7 +78,8 @@ namespace com.noctuagames.sdk
 
         [JsonProperty("isSandbox")] public bool IsSandbox;
         [JsonProperty("region")]  public string Region;
-        [JsonProperty("flags")]  public string Flags;
+        [JsonProperty("flags")]  public string Flags; // DEPRECATED
+        [JsonProperty("featureFlags")]  public Dictionary<string,string> FeatureFlags;
         [JsonProperty("isOfflineFirst")] public bool IsOfflineFirst = false;
         [JsonProperty("welcomeToastDisabled")] public bool welcomeToastDisabled  = false;
         [JsonProperty("isIAAEnabled")] public bool isIAAEnabled  = false;
@@ -161,6 +162,8 @@ namespace com.noctuagames.sdk
         // there is network issue on init attempt
         private static bool _offlineMode = false;
         private static bool _initialized = false;
+        private static GlobalConfig config;
+
 
         private Noctua()
         {
@@ -227,8 +230,6 @@ namespace com.noctuagames.sdk
             }
 
             #endif
-
-            GlobalConfig config;
 
             try
             {
@@ -597,8 +598,16 @@ namespace com.noctuagames.sdk
                 enabledPaymentTypes.Remove(PaymentType.playstore);
             }
 
-            log.Info("FeatureFlags: " + initResponse.RemoteConfigs.FeatureFlags);
-
+            log.Debug("Original client FeatureFlags: " + JsonConvert.SerializeObject(config.Noctua.FeatureFlags));
+            log.Debug("RemoteConfigs FeatureFlags: " + JsonConvert.SerializeObject(initResponse.RemoteConfigs.FeatureFlags));
+            if (initResponse.RemoteConfigs.FeatureFlags != null)
+            {
+                foreach (var flag in initResponse.RemoteConfigs.FeatureFlags)
+                {
+                    config.Noctua.FeatureFlags[flag.Key] = flag.Value;
+                }
+            }
+            log.Debug("Applied FeatureFlags: " + JsonConvert.SerializeObject(config.Noctua.FeatureFlags));
 
             // Remove irrelevant payment by runtime platform
 #if !UNITY_ANDROID

@@ -207,6 +207,16 @@ namespace com.noctuagames.sdk
                     .Contains(flagToCheck, StringComparer.OrdinalIgnoreCase) ??
                 false;
         }
+        public static bool ParseBooleanFeatureFlag(Dictionary<string,string> flags, string flag)
+        {
+            var result = false;
+            if (flags != null && flags.ContainsKey(flag) && flags[flag] == "true")
+            {
+                result = true;
+            }
+
+            return result;
+        }
 
         private static string GetTranslationByLanguage(string language)
         {

@@ -24,7 +24,7 @@ namespace com.noctuagames.sdk
         
         public async UniTask<UserBundle> SocialLoginAsync(string provider)
         {
-            if(Utility.ContainsFlag(_config?.Noctua?.Flags, "VNLegalPurpose"))
+            if(Utility.ParseBooleanFeatureFlag(_config?.Noctua?.FeatureFlags, "vn_legal_purpose_enabled"))
             {
                 throw new NoctuaException(NoctuaErrorCode.Authentication, "Social Login is Disabled");
             }
@@ -48,7 +48,7 @@ namespace com.noctuagames.sdk
         
         public async UniTask<PlayerToken> GetSocialLoginTokenAsync(string provider)
         {
-            if(Utility.ContainsFlag(_config?.Noctua?.Flags, "VNLegalPurpose"))
+            if(Utility.ParseBooleanFeatureFlag(_config?.Noctua?.FeatureFlags, "vn_legal_purpose_enabled"))
             {
                 throw new NoctuaException(NoctuaErrorCode.Authentication, "Social Login is Disabled");
             }

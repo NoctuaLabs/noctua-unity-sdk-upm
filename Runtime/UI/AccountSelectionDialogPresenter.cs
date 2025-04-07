@@ -46,13 +46,13 @@ namespace com.noctuagames.sdk.UI
         {
             _gameUsers.Clear();
 
-            var currentGameAccountList = Utility.ContainsFlag(_config?.Noctua?.Flags, "VNLegalPurpose") ? Model.AuthService.CurrentGameAccountList.Where(user => !user.IsGuest) : Model.AuthService.CurrentGameAccountList;
+            var currentGameAccountList = Utility.ParseBooleanFeatureFlag(_config?.Noctua?.FeatureFlags, "vn_legal_purpose_enabled") ? Model.AuthService.CurrentGameAccountList.Where(user => !user.IsGuest) : Model.AuthService.CurrentGameAccountList;
             _gameUsers.AddRange(currentGameAccountList);
             _gameAccountListView.Rebuild();
 
             _noctuaUsers.Clear();
 
-            var otherGamesAccountList = Utility.ContainsFlag(_config?.Noctua?.Flags, "VNLegalPurpose") ? Model.AuthService.OtherGamesAccountList.Where(user => !user.IsGuest) : Model.AuthService.OtherGamesAccountList;
+            var otherGamesAccountList = Utility.ParseBooleanFeatureFlag(_config?.Noctua?.FeatureFlags, "vn_legal_purpose_enabled") ? Model.AuthService.OtherGamesAccountList.Where(user => !user.IsGuest) : Model.AuthService.OtherGamesAccountList;
 
             _noctuaUsers.AddRange(otherGamesAccountList);
             _noctuaAccountListView.Rebuild();
@@ -96,7 +96,7 @@ namespace com.noctuagames.sdk.UI
             View.visible = false;
             
             Model.PushNavigation(() => Model.ShowAccountSelection());
-            if(Utility.ContainsFlag(_config.Noctua.Flags, "VNLegalPurpose"))
+            if (Utility.ParseBooleanFeatureFlag(_config?.Noctua?.FeatureFlags, "vn_legal_purpose_enabled"))
             {
                 Model.ShowEmailLogin(null);
             }
