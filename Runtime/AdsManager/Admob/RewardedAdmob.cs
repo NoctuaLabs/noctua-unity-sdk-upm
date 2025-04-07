@@ -18,7 +18,7 @@ namespace com.noctuagames.sdk.Admob
         public event Action RewardedOnAdClicked;
         public event Action RewardedOnAdImpressionRecorded;
         public event Action RewardedOnAdClosed;
-        public event Action RewardedOnUserEarnedReward;
+        public event Action<Reward> RewardedOnUserEarnedReward;
         public event Action<AdValue> AdmobOnAdRevenuePaid;
         
         public void SetRewardedAdUnitID(string adUnitID)
@@ -90,7 +90,10 @@ namespace com.noctuagames.sdk.Admob
             {
                 _rewardedAd.Show((Reward reward) =>
                 {
-                    // TODO: Reward the user.
+                    // Called when the user should be rewarded.
+
+                    RewardedOnUserEarnedReward.Invoke(reward);
+
                     _log.Debug(String.Format(rewardMsg, reward.Type, reward.Amount));
 
                     _log.Debug("Rewarded ad shown.");

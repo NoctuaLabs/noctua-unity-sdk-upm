@@ -20,7 +20,7 @@ namespace com.noctuagames.sdk
         private event Action _onAdClicked;
         private event Action _onAdImpressionRecorded;
         private event Action _onAdClosed;
-        private event Action _onUserEarnedReward;
+        private event Action<Reward> _onUserEarnedReward;
 
         private event Action<AdValue> _admobOnAdRevenuePaid;
 
@@ -31,7 +31,7 @@ namespace com.noctuagames.sdk
         public event Action OnAdClicked { add => _onAdClicked += value; remove => _onAdClicked -= value; }
         public event Action OnAdImpressionRecorded { add => _onAdImpressionRecorded += value; remove => _onAdImpressionRecorded -= value; }
         public event Action OnAdClosed { add => _onAdClosed += value; remove => _onAdClosed -= value; }
-        public event Action OnUserEarnedReward { add => _onUserEarnedReward += value; remove => _onUserEarnedReward -= value; }
+        public event Action<Reward> OnUserEarnedReward { add => _onUserEarnedReward += value; remove => _onUserEarnedReward -= value; }
         public event Action<AdValue> AdmobOnAdRevenuePaid { add => _admobOnAdRevenuePaid += value; remove => _admobOnAdRevenuePaid -= value; }
 
         public void Initialize(Action initCompleteAction)
@@ -82,7 +82,7 @@ namespace com.noctuagames.sdk
             _rewardedAdmob.RewardedOnAdClicked += () => { _onAdClicked?.Invoke(); };
             _rewardedAdmob.RewardedOnAdImpressionRecorded += () => { _onAdImpressionRecorded?.Invoke(); };
             _rewardedAdmob.RewardedOnAdClosed += () => { _onAdClosed?.Invoke(); };
-            _rewardedAdmob.RewardedOnUserEarnedReward += () => { _onUserEarnedReward?.Invoke(); };
+            _rewardedAdmob.RewardedOnUserEarnedReward += (reward) => { _onUserEarnedReward?.Invoke(reward); };
             _rewardedAdmob.AdmobOnAdRevenuePaid += (adValue) => { _admobOnAdRevenuePaid?.Invoke(adValue); };
         }
 
@@ -120,6 +120,16 @@ namespace com.noctuagames.sdk
         public void ShowBannerAd()
         {
             _bannerAdmob.LoadAd();
+        }
+
+        public void ShowMediationDebugger()
+        {
+            _log.Info("Showing mediation debugger");
+
+            MobileAds.OpenAdInspector((AdInspectorError error) =>
+            {
+                _log.Error("Admob mediation debugger closed with error: " + error);                
+            });
         }
     }
 }

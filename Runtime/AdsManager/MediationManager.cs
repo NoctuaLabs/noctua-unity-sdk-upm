@@ -11,6 +11,7 @@ namespace com.noctuagames.sdk
     {
         private readonly NoctuaLogger _log = new(typeof(MediationManager));
         private IAdNetwork _adNetwork;
+        private string _mediationType;
 
         // Private event handlers
         private event Action _onAdDisplayed;
@@ -18,14 +19,15 @@ namespace com.noctuagames.sdk
         private event Action _onAdClicked;
         private event Action _onAdImpressionRecorded;
         private event Action _onAdClosed;
-        private event Action _onUserEarnedReward;
 
         #if UNITY_ADMOB
+        private event Action<Reward> _admobOnUserEarnedReward;
         private event Action<AdValue> _admobOnAdRevenuePaid;
         #endif
 
         #if UNITY_APPLOVIN
-        private event Action<MaxSdkBase.AdInfo> _appLovinOnAdDisplayed;
+        private event Action<MaxSdk.Reward> _appLovinOnUserEarnedReward;
+        private event Action<MaxSdkBase.AdInfo> _appLovinOnAdRevenuePaid;
         #endif
 
         // public event handlers
@@ -34,18 +36,27 @@ namespace com.noctuagames.sdk
         public event Action OnAdClicked { add => _onAdClicked += value; remove => _onAdClicked -= value; }
         public event Action OnAdImpressionRecorded { add => _onAdImpressionRecorded += value; remove => _onAdImpressionRecorded -= value; }
         public event Action OnAdClosed { add => _onAdClosed += value; remove => _onAdClosed -= value; }
-        public event Action OnUserEarnedReward { add => _onUserEarnedReward += value; remove => _onUserEarnedReward -= value; }
 
         #if UNITY_ADMOB
+        public event Action<Reward> AdmobOnUserEarnedReward { add => _admobOnUserEarnedReward += value; remove => _admobOnUserEarnedReward -= value; }
         public event Action<AdValue> AdmobOnAdRevenuePaid { add => _admobOnAdRevenuePaid += value; remove => _admobOnAdRevenuePaid -= value; }
         #endif
         #if UNITY_APPLOVIN
-        public event Action<MaxSdkBase.AdInfo> AppLovinOnAdDisplayed { add => _appLovinOnAdDisplayed += value; remove => _appLovinOnAdDisplayed -= value; }
+        public event Action<MaxSdk.Reward> AppLovinOnUserEarnedReward { add => _appLovinOnUserEarnedReward += value; remove => _appLovinOnUserEarnedReward -= value; }
+        public event Action<MaxSdkBase.AdInfo> AppLovinOnAdRevenuePaid { add => _appLovinOnAdRevenuePaid += value; remove => _appLovinOnAdRevenuePaid -= value; }
         #endif
 
         public void Initialize(IAAResponse iAAResponse, Action initCompleteAction)
         {
             _log.Info("Initializing Ad Network");
+
+            _mediationType = iAAResponse.Mediation;
+
+            if (string.IsNullOrEmpty(_mediationType))
+            {
+                _log.Error("Mediation type is empty or null.");
+                return;
+            }
 
             switch (iAAResponse.Mediation)
             {
@@ -112,7 +123,7 @@ namespace com.noctuagames.sdk
             _adNetwork.OnAdClicked += () => { _onAdClicked?.Invoke(); };
             _adNetwork.OnAdImpressionRecorded += () => { _onAdImpressionRecorded?.Invoke(); };
             _adNetwork.OnAdClosed += () => { _onAdClosed?.Invoke(); };
-            _adNetwork.OnUserEarnedReward += () => { _onUserEarnedReward?.Invoke(); };
+            _adNetwork.AdmobOnUserEarnedReward += (reward) => { _admobOnUserEarnedReward?.Invoke(reward); };
             _adNetwork.AdmobOnAdRevenuePaid += (adValue) => { _admobOnAdRevenuePaid?.Invoke(adValue); };
         }
         #endif
@@ -127,8 +138,8 @@ namespace com.noctuagames.sdk
             _adNetwork.OnAdClicked += () => { _onAdClicked?.Invoke(); };
             _adNetwork.OnAdImpressionRecorded += () => { _onAdImpressionRecorded?.Invoke(); };
             _adNetwork.OnAdClosed += () => { _onAdClosed?.Invoke(); };
-            _adNetwork.OnUserEarnedReward += () => { _onUserEarnedReward?.Invoke(); };
-            _adNetwork.AppLovinOnAdRevenuePaid += (adInfo) => { _appLovinOnAdDisplayed?.Invoke(adInfo); };
+            _adNetwork.AppLovinOnUserEarnedReward += (Reward) => { _appLovinOnUserEarnedReward?.Invoke(Reward); };
+            _adNetwork.AppLovinOnAdRevenuePaid += (adInfo) => { _appLovinOnAdRevenuePaid?.Invoke(adInfo); };
         }
         #endif
 
@@ -147,18 +158,94 @@ namespace com.noctuagames.sdk
         public void ShowBannerAd() => _adNetwork.ShowBannerAd();
 
         #if UNITY_ADMOB
-        public void CreateBannerViewAdAdmob(AdSize adSize, AdPosition adPosition) => _adNetwork.CreateBannerViewAdAdmob(adSize, adPosition);
+        public void CreateBannerViewAdAdmob(AdSize adSize, AdPosition adPosition) 
+        {
+           if(!IsAdmob()) { return; }
+
+            _adNetwork.CreateBannerViewAdAdmob(adSize, adPosition);
+        }
         #endif
 
         //Banner public function for AppLovin
         #if UNITY_APPLOVIN
-        public void CreateBannerViewAdAppLovin(Color color, MaxSdkBase.BannerPosition bannerPosition) => _adNetwork.CreateBannerViewAdAppLovin(color, bannerPosition);
-        public void HideAppLovinBanner() => _adNetwork.HideBannerAppLovin();
-        public void DestroyBannerAppLovin() => _adNetwork.DestroyBannerAppLovin();
-        public void SetBannerWidth(int width) => _adNetwork.SetBannerWidth(width);
-        public Rect GetBannerPosition() => _adNetwork.GetBannerPosition();
-        public void StopBannerAutoRefresh() => _adNetwork.StopBannerAutoRefresh();
-        public void StartBannerAutoRefresh() => _adNetwork.StartBannerAutoRefresh();
+        public void CreateBannerViewAdAppLovin(Color color, MaxSdkBase.BannerPosition bannerPosition) 
+        {
+            if(!IsAppLovin()) { return; }
+
+            _adNetwork.CreateBannerViewAdAppLovin(color, bannerPosition);
+        }
+        public void HideAppLovinBanner() 
+        {
+            if(!IsAppLovin()) { return; }
+
+            _adNetwork.HideBannerAppLovin();
+        } 
+        public void DestroyBannerAppLovin() 
+        {
+            if(!IsAppLovin()) { return; }
+
+            _adNetwork.DestroyBannerAppLovin();
+        }
+        public void SetBannerWidth(int width)
+        {
+            if(!IsAppLovin()) { return; }
+
+            _adNetwork.SetBannerWidth(width);
+        }
+        public Rect GetBannerPosition() 
+        {
+            if(!IsAppLovin()) { return new Rect(); }
+
+            return _adNetwork.GetBannerPosition();
+        }
+        public void StopBannerAutoRefresh()
+        {
+            if(!IsAppLovin()) { return; }
+
+            _adNetwork.StopBannerAutoRefresh();
+        }
+        public void StartBannerAutoRefresh()
+        {
+            if(!IsAppLovin()) { return; }
+
+            _adNetwork.StartBannerAutoRefresh();
+        }
         #endif
+
+        public void ShowCreativeDebugger()
+        {
+            _adNetwork.ShowCreativeDebugger();
+        }
+
+        public void ShowMediationDebugger()
+        {
+            _adNetwork.ShowMediationDebugger();
+        }
+
+        private bool IsAppLovin() 
+        {
+            if (_mediationType == "applovin")
+            {
+                return true;
+            }
+            else
+            {
+                _log.Error("Mediation type is not AppLovin. Cannot perform AppLovin specific actions.");
+                return false;
+            }
+        }
+
+        private bool IsAdmob() 
+        {
+            if (_mediationType == "admob")
+            {
+                return true;
+            }
+            else
+            {
+                _log.Error("Mediation type is not Admob. Cannot perform Admob specific actions.");
+                return false;
+            }
+        }
     }
 }

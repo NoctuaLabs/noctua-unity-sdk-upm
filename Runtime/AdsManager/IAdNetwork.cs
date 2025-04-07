@@ -15,14 +15,15 @@ namespace com.noctuagames.sdk
         event Action OnAdClicked { add{} remove{} }
         event Action OnAdImpressionRecorded { add{} remove{} }
         event Action OnAdClosed { add{} remove{} }
-        event Action OnUserEarnedReward { add{} remove{} }
 
         //Revenue event handler
         #if UNITY_ADMOB
+        event Action<Reward> AdmobOnUserEarnedReward { add{} remove{} }
         event Action<AdValue> AdmobOnAdRevenuePaid { add{} remove{} }
         #endif
         
         #if UNITY_APPLOVIN
+        event Action<MaxSdk.Reward> AppLovinOnUserEarnedReward { add{} remove{} }
         event Action<MaxSdkBase.AdInfo> AppLovinOnAdRevenuePaid { add{} remove{} }
         #endif
         
@@ -57,5 +58,16 @@ namespace com.noctuagames.sdk
         void StopBannerAutoRefresh() { throw new NotImplementedException(); }
         void StartBannerAutoRefresh() { throw new NotImplementedException(); }
         #endif
+
+        //Other methods
+        void ShowCreativeDebugger() { throw new NotImplementedException(); }
+        void ShowMediationDebugger() { throw new NotImplementedException(); }
+        // void SetTestDeviceId(string testDeviceId) { throw new NotImplementedException(); }
+        // void SetTestDeviceIds(string[] testDeviceIds) { throw new NotImplementedException(); }
+        // void SetTagForChildDirectedTreatment(bool tagForChildDirectedTreatment) { throw new NotImplementedException(); }
+        // void SetTagForUnderAgeOfConsent(bool tagForUnderAgeOfConsent) { throw new NotImplementedException(); }
+        // void SetRequestConfiguration(RequestConfiguration requestConfiguration) { throw new NotImplementedException(); }
+        // void SetMaxAdContentRating(MaxAdContentRating maxAdContentRating) { throw new NotImplementedException(); }
+
     }
 }
