@@ -893,7 +893,7 @@ namespace com.noctuagames.sdk
                 ) // It means that there is no enforce on payment type
                 {
                     paymentType = orderResponse.PaymentType;
-                    _log.Info($"Payment type get overrided from backend: {paymentType}");
+                    _log.Info($"payment type get overrided from backend: {paymentType}");
                 }
 
                 // Declare structs early so we can use it for multipurposes
@@ -912,22 +912,27 @@ namespace com.noctuagames.sdk
                     PlayerId = Noctua.Auth.RecentAccount?.Player?.Id,
                 };
 
-                // Store unpaired order
+                // Store unpaired order.
+                _log.Info($"NoctuaIAPService.HandleUnpairedPurchase collect unpaired order for order ID: {JsonConvert.SerializeObject(orderRequest)}");
+                _log.Info($"NoctuaIAPService.HandleUnpairedPurchase pending purchase item for unpaired order: {JsonConvert.SerializeObject(pendingPurchaseItem)}");
                 unpairedOrders = new Dictionary<string, PurchaseItem>();
-                var unpairedOrdersJson = PlayerPrefs.GetString("NoctuaUnpairedOrders", "[]");
+                var unpairedOrdersJson = PlayerPrefs.GetString("NoctuaUnpairedOrders", "{}");
                 try
                 {
                     unpairedOrders = JsonConvert.DeserializeObject<Dictionary<string, PurchaseItem>>(unpairedOrdersJson);
+                    _log.Info($"NoctuaIAPService.HandleUnpairedPurchase unpaired orders from playerprefs: {unpairedOrdersJson}");
                 }
                 catch (Exception e)
                 {
-                    _log.Error($"Failed to parse unpaired orders: {e}");
+                    _log.Warning($"Failed to parse existing unpaired orders: {e}");
                     unpairedOrders = new Dictionary<string, PurchaseItem>();
                 }
+
                 unpairedOrders[orderRequest.ProductId] = pendingPurchaseItem;
-                PlayerPrefs.SetString("NoctuaUnpairedOrders", JsonConvert.SerializeObject(unpairedOrders));
+                var serializedUnpairedOrders = JsonConvert.SerializeObject(unpairedOrders);
+                _log.Info($"NoctuaIAPService.HandleUnpairedPurchase unpaired orders to be save: {serializedUnpairedOrders}");
+                PlayerPrefs.SetString("NoctuaUnpairedOrders", serializedUnpairedOrders);
                 PlayerPrefs.Save();
-                _log.Info($"NoctuaUnpairedOrders: {JsonConvert.SerializeObject(unpairedOrders)}");
 
                 // Store early for Negative Payment Cases no #4
                 EnqueueToRetryPendingPurchases(pendingPurchaseItem);
@@ -1521,7 +1526,7 @@ namespace com.noctuagames.sdk
 
 
             _log.Info($"NoctuaIAPService.HandleUnpairedPurchase Not found in pending purchase and purchase history, continue to try to find out the order ID pair for {productId}");
-            var unpairedOrdersJson = PlayerPrefs.GetString("NoctuaUnpairedOrders", "[]");
+            var unpairedOrdersJson = PlayerPrefs.GetString("NoctuaUnpairedOrders", "{}");
             _log.Info($"NoctuaIAPService.HandleUnpairedPurchase unpaired orders: {unpairedOrdersJson}");
             Dictionary<string, PurchaseItem> unpairedOrders;
             try
