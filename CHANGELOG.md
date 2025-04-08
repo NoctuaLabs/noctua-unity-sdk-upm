@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.37.1] - 2025-04-08
+
+### 🐛 Bug Fixes
+
+- Add more observability on the log around unpaired order creation.
+- Add more observability on the log around unpaired order creation.
+
 ## [0.37.0] - 2025-03-24
 
 ### 🚀 Features
