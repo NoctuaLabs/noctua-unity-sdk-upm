@@ -913,7 +913,7 @@ namespace com.noctuagames.sdk
                 };
 
                 // Store unpaired order.
-                _log.Info($"NoctuaIAPService.HandleUnpairedPurchase collect unpaired order for order ID: {JsonConvert.SerializeObject(orderRequest)}");
+                _log.Info($"NoctuaIAPService.HandleUnpairedPurchase store unpaired order for order ID: {JsonConvert.SerializeObject(orderRequest)}");
                 _log.Info($"NoctuaIAPService.HandleUnpairedPurchase pending purchase item for unpaired order: {JsonConvert.SerializeObject(pendingPurchaseItem)}");
                 unpairedOrders = new Dictionary<string, PurchaseItem>();
                 var unpairedOrdersJson = PlayerPrefs.GetString("NoctuaUnpairedOrders", "{}");
