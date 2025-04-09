@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.37.2] - 2025-04-09
+
+### 🐛 Bug Fixes
+
+- Check null after JsonConvert.Deserialize.
+
 ## [0.37.1] - 2025-04-08
 
 ### 🐛 Bug Fixes
