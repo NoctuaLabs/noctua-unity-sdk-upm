@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.37.3] - 2025-04-09
+
+### 🐛 Bug Fixes
+
+- Print serialized-parsed unpaired orders instead of the JSON one.
+
 ## [0.37.2] - 2025-04-09
 
 ### 🐛 Bug Fixes
