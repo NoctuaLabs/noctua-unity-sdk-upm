@@ -83,8 +83,8 @@ namespace com.noctuagames.sdk
         [JsonProperty("region")]  public string Region;
         [JsonProperty("flags")]  public string Flags;
         [JsonProperty("isOfflineFirst")] public bool IsOfflineFirst = false;
-        [JsonProperty("welcomeToastDisabled ")] public bool welcomeToastDisabled  = false;
-        [JsonProperty("isIAAEnabled ")] public bool isIAAEnabled  = false;
+        [JsonProperty("welcomeToastDisabled")] public bool welcomeToastDisabled  = false;
+        [JsonProperty("isIAAEnabled")] public bool isIAAEnabled  = false;
 
     }
     
