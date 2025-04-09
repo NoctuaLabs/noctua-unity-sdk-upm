@@ -76,6 +76,9 @@ namespace com.noctuagames.sdk
        
         [JsonProperty("rewarded")]
         public AdUnit Rewarded;
+        
+        [JsonProperty("rewarded_interstitial")]
+        public AdUnit RewardedInterstitial;
 
         [JsonProperty("banner")]
         public AdUnit Banner;
