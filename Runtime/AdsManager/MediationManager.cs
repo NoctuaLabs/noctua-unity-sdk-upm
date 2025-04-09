@@ -79,6 +79,7 @@ namespace com.noctuagames.sdk
 
                 var interstitialAdUnitID = "unused";
                 var rewardedAdUnitID = "unused";
+                var rewardedInterstitialAdUnitID = "unused";
                 var bannerAdUnitID = "unused";
 
                 #if UNITY_ANDROID
@@ -93,6 +94,12 @@ namespace com.noctuagames.sdk
                     rewardedAdUnitID = iAAResponse.AdFormat.Rewarded.IOS.adUnitID;
                 #endif
 
+                #if UNITY_ANDROID
+                    rewardedInterstitialAdUnitID = iAAResponse.AdFormat.Rewarded.Android.adUnitID;
+                #elif UNITY_IPHONE
+                    rewardedInterstitialAdUnitID = iAAResponse.AdFormat.Rewarded.IOS.adUnitID;
+                #endif
+
                  #if UNITY_ANDROID
                     bannerAdUnitID = iAAResponse.AdFormat.Banner.Android.adUnitID;
                 #elif UNITY_IPHONE
@@ -102,6 +109,7 @@ namespace com.noctuagames.sdk
                 //Setup Ad Unit ID
                 SetInterstitialAdUnitId(interstitialAdUnitID);
                 SetRewardedAdUnitId(rewardedAdUnitID);
+                SetRewardedInterstitialAdUnitId(rewardedInterstitialAdUnitID);
                 SetBannerAdUnitId(bannerAdUnitID);
 
                 _log.Debug("Setup Ad Unit ID is Done");
@@ -152,6 +160,18 @@ namespace com.noctuagames.sdk
         private void SetRewardedAdUnitId(string adUnitID) => _adNetwork.SetRewardedAdUnitID(adUnitID);
         public void LoadRewardedAd() => _adNetwork.LoadRewardedAd();
         public void ShowRewardedAd() => _adNetwork.ShowRewardedAd();
+
+        //Rewarded Interstitial public functions for Admob
+        #if UNITY_ADMOB
+        private void SetRewardedInterstitialAdUnitId(string adUnitID) {
+            
+            if (!IsAdmob()) { return; }
+
+            _adNetwork.SetRewardeInterstitialdAdUnitID(adUnitID);
+        }
+        public void LoadRewardedInterstitialAd() => _adNetwork.LoadRewardedInterstitialAd();
+        public void ShowRewardedInterstitialAd() => _adNetwork.ShowRewardedInterstitialAd();
+        #endif
 
         //Banner public functions
         private void SetBannerAdUnitId(string adUnitID) => _adNetwork.SetBannerAdUnitId(adUnitID);
@@ -230,7 +250,7 @@ namespace com.noctuagames.sdk
             }
             else
             {
-                _log.Error("Mediation type is not AppLovin. Cannot perform AppLovin specific actions.");
+                _log.Info("Mediation type is not AppLovin. Cannot perform AppLovin specific actions.");
                 return false;
             }
         }
@@ -243,7 +263,7 @@ namespace com.noctuagames.sdk
             }
             else
             {
-                _log.Error("Mediation type is not Admob. Cannot perform Admob specific actions.");
+                _log.Info("Mediation type is not Admob. Cannot perform Admob specific actions.");
                 return false;
             }
         }

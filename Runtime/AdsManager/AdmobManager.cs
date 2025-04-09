@@ -12,6 +12,7 @@ namespace com.noctuagames.sdk
 
         private InterstitialAdmob _interstitialAdmob;
         private RewardedAdmob _rewardedAdmob;
+        private RewardedInterstitialAdmob _rewardedInterstitialAdmob;
         private BannerAdmob _bannerAdmob;
 
         // Private event handlers
@@ -120,6 +121,31 @@ namespace com.noctuagames.sdk
         public void ShowBannerAd()
         {
             _bannerAdmob.LoadAd();
+        }
+
+        public void SetRewardeInterstitialdAdUnitID(string adUnitID)
+        {
+            _rewardedInterstitialAdmob = new RewardedInterstitialAdmob();
+            _rewardedInterstitialAdmob.SetRewardedInterstitialAdUnitID(adUnitID);
+
+            // Subscribe to events
+            _rewardedInterstitialAdmob.RewardedOnAdDisplayed += () => { _onAdDisplayed?.Invoke(); };
+            _rewardedInterstitialAdmob.RewardedOnAdFailedDisplayed += () => { _onAdFailedDisplayed?.Invoke(); };
+            _rewardedInterstitialAdmob.RewardedOnAdClicked += () => { _onAdClicked?.Invoke(); };
+            _rewardedInterstitialAdmob.RewardedOnAdImpressionRecorded += () => { _onAdImpressionRecorded?.Invoke(); };
+            _rewardedInterstitialAdmob.RewardedOnAdClosed += () => { _onAdClosed?.Invoke(); };
+            _rewardedInterstitialAdmob.RewardedOnUserEarnedReward += (reward) => { _onUserEarnedReward?.Invoke(reward); };
+            _rewardedInterstitialAdmob.AdmobOnAdRevenuePaid += (adValue) => { _admobOnAdRevenuePaid?.Invoke(adValue); };
+
+            
+        }
+        public void LoadRewardedInterstitialAd()
+        {
+            _rewardedInterstitialAdmob.LoadRewardedInterstitialAd();
+        }
+        public void ShowRewardedInterstitialAd()
+        {
+            _rewardedInterstitialAdmob.ShowRewardedInterstitialAd();
         }
 
         public void ShowMediationDebugger()
