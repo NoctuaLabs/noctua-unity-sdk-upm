@@ -642,6 +642,7 @@ namespace com.noctuagames.sdk
             }
 
             //Init iaa sdk and prepare iaa to show
+            #if UNITY_ADMOB || UNITY_APPLOVIN
             if(initResponse.RemoteConfigs.IAA != null)
             {
                 log.Debug("initiazing IAA SDK : " + initResponse.RemoteConfigs.IAA.Mediation);
@@ -658,6 +659,7 @@ namespace com.noctuagames.sdk
             {
                 log.Debug("Remote config IAA is not configured yet");
             }
+            #endif
         }
 
         private static bool IsFirstOpen()

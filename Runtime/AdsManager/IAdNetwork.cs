@@ -46,7 +46,6 @@ namespace com.noctuagames.sdk
         void LoadRewardedInterstitialAd() { throw new NotImplementedException(); }
         void ShowRewardedInterstitialAd() { throw new NotImplementedException(); }
         #endif
-        
         //Banner
         void SetBannerAdUnitId(string adUnitID);
         void ShowBannerAd();
