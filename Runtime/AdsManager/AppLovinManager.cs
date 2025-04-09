@@ -18,7 +18,6 @@ namespace com.noctuagames.sdk
          private event Action _onAdDisplayed;
         private event Action _onAdFailedDisplayed;
         private event Action _onAdClicked;
-        private event Action _onAdImpressionRecorded;
         private event Action _onAdClosed;
         private event Action<MaxSdk.Reward> _onUserEarnedReward;
         private event Action<MaxSdkBase.AdInfo> _appLovinOnAdDisplayed;
@@ -27,7 +26,6 @@ namespace com.noctuagames.sdk
         public event Action OnAdDisplayed { add => _onAdDisplayed += value; remove => _onAdDisplayed -= value; }
         public event Action OnAdFailedDisplayed { add => _onAdFailedDisplayed += value; remove => _onAdFailedDisplayed -= value; } 
         public event Action OnAdClicked { add => _onAdClicked += value; remove => _onAdClicked -= value; }
-        public event Action OnAdImpressionRecorded { add => _onAdImpressionRecorded += value; remove => _onAdImpressionRecorded -= value; }
         public event Action OnAdClosed { add => _onAdClosed += value; remove => _onAdClosed -= value; }
         public event Action<MaxSdk.Reward> OnUserEarnedReward { add => _onUserEarnedReward += value; remove => _onUserEarnedReward -= value; }        public event Action<MaxSdkBase.AdInfo> AppLovinOnAdDisplayed { add => _appLovinOnAdDisplayed += value; remove => _appLovinOnAdDisplayed -= value; }
 
