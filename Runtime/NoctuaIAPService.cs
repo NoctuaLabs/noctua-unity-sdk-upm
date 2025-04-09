@@ -920,6 +920,10 @@ namespace com.noctuagames.sdk
                 try
                 {
                     unpairedOrders = JsonConvert.DeserializeObject<Dictionary<string, PurchaseItem>>(unpairedOrdersJson);
+                    if (unpairedOrders == null)
+                    {
+                        unpairedOrders = new Dictionary<string, PurchaseItem>();
+                    }
                     _log.Info($"NoctuaIAPService.HandleUnpairedPurchase unpaired orders from playerprefs: {unpairedOrdersJson}");
                 }
                 catch (Exception e)
@@ -1532,6 +1536,10 @@ namespace com.noctuagames.sdk
             try
             {
                 unpairedOrders = JsonConvert.DeserializeObject<Dictionary<string, PurchaseItem>>(unpairedOrdersJson);
+                if (unpairedOrders == null)
+                {
+                    unpairedOrders = new Dictionary<string, PurchaseItem>();
+                }
             }
             catch (Exception e)
             {
@@ -1774,6 +1782,10 @@ namespace com.noctuagames.sdk
             try
             {
                 var pendingPurchases = JsonConvert.DeserializeObject<List<PurchaseItem>>(json);
+                if (pendingPurchases == null)
+                {
+                    pendingPurchases = new List<PurchaseItem>();
+                }
                 
                 var list = pendingPurchases
                     .Where(p => p.VerifyOrderRequest != null && p.AccessToken != null)
@@ -1806,6 +1818,10 @@ namespace com.noctuagames.sdk
             try
             {
                 var pendingPurchases = JsonConvert.DeserializeObject<List<PurchaseItem>>(json);
+                if (pendingPurchases == null)
+                {
+                    pendingPurchases = new List<PurchaseItem>();
+                }
 
                 var list = pendingPurchases
                     .Where(p => p.VerifyOrderRequest != null && p.AccessToken != null)
@@ -2130,6 +2146,11 @@ namespace com.noctuagames.sdk
             try
             {
                 var purchaseHistory = JsonConvert.DeserializeObject<List<PurchaseItem>>(json);
+                if (purchaseHistory == null)
+                {
+                    purchaseHistory = new List<PurchaseItem>();
+                }
+
                 var list = purchaseHistory
                     .Where(p => p.VerifyOrderRequest != null && p.AccessToken != null)
                     .ToList();
