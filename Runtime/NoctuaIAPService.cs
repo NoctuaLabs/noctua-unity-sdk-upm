@@ -913,21 +913,30 @@ namespace com.noctuagames.sdk
                 };
 
                 // Store unpaired order
+                _log.Info($"NoctuaIAPService.HandleUnpairedPurchase collect unpaired order for order ID: {JsonConvert.SerializeObject(orderRequest)}");
+                _log.Info($"NoctuaIAPService.HandleUnpairedPurchase pending purchase item for unpaired order: {JsonConvert.SerializeObject(pendingPurchaseItem)}");
                 unpairedOrders = new Dictionary<string, PurchaseItem>();
-                var unpairedOrdersJson = PlayerPrefs.GetString("NoctuaUnpairedOrders", "[]");
+                var unpairedOrdersJson = PlayerPrefs.GetString("NoctuaUnpairedOrders", "{}");
                 try
                 {
                     unpairedOrders = JsonConvert.DeserializeObject<Dictionary<string, PurchaseItem>>(unpairedOrdersJson);
+                    if (unpairedOrders == null)
+                    {
+                        unpairedOrders = new Dictionary<string, PurchaseItem>();
+                    }
+                    _log.Info($"NoctuaIAPService.HandleUnpairedPurchase unpaired orders from playerprefs: {JsonConvert.SerializeObject(unpairedOrders)}");
                 }
                 catch (Exception e)
                 {
-                    _log.Error($"Failed to parse unpaired orders: {e}");
+                    _log.Warning($"Failed to parse existing unpaired orders: {e}");
                     unpairedOrders = new Dictionary<string, PurchaseItem>();
                 }
+
                 unpairedOrders[orderRequest.ProductId] = pendingPurchaseItem;
-                PlayerPrefs.SetString("NoctuaUnpairedOrders", JsonConvert.SerializeObject(unpairedOrders));
+                var serializedUnpairedOrders = JsonConvert.SerializeObject(unpairedOrders);
+                _log.Info($"NoctuaIAPService.HandleUnpairedPurchase unpaired orders to be save: {serializedUnpairedOrders}");
+                PlayerPrefs.SetString("NoctuaUnpairedOrders", serializedUnpairedOrders);
                 PlayerPrefs.Save();
-                _log.Info($"NoctuaUnpairedOrders: {JsonConvert.SerializeObject(unpairedOrders)}");
 
                 // Store early for Negative Payment Cases no #4
                 EnqueueToRetryPendingPurchases(pendingPurchaseItem);
@@ -1521,12 +1530,16 @@ namespace com.noctuagames.sdk
 
 
             _log.Info($"NoctuaIAPService.HandleUnpairedPurchase Not found in pending purchase and purchase history, continue to try to find out the order ID pair for {productId}");
-            var unpairedOrdersJson = PlayerPrefs.GetString("NoctuaUnpairedOrders", "[]");
+            var unpairedOrdersJson = PlayerPrefs.GetString("NoctuaUnpairedOrders", "{}");
             _log.Info($"NoctuaIAPService.HandleUnpairedPurchase unpaired orders: {unpairedOrdersJson}");
             Dictionary<string, PurchaseItem> unpairedOrders;
             try
             {
                 unpairedOrders = JsonConvert.DeserializeObject<Dictionary<string, PurchaseItem>>(unpairedOrdersJson);
+                if (unpairedOrders == null)
+                {
+                    unpairedOrders = new Dictionary<string, PurchaseItem>();
+                }
             }
             catch (Exception e)
             {
@@ -1769,6 +1782,10 @@ namespace com.noctuagames.sdk
             try
             {
                 var pendingPurchases = JsonConvert.DeserializeObject<List<PurchaseItem>>(json);
+                if (pendingPurchases == null)
+                {
+                    pendingPurchases = new List<PurchaseItem>();
+                }
                 
                 var list = pendingPurchases
                     .Where(p => p.VerifyOrderRequest != null && p.AccessToken != null)
@@ -1801,6 +1818,10 @@ namespace com.noctuagames.sdk
             try
             {
                 var pendingPurchases = JsonConvert.DeserializeObject<List<PurchaseItem>>(json);
+                if (pendingPurchases == null)
+                {
+                    pendingPurchases = new List<PurchaseItem>();
+                }
 
                 var list = pendingPurchases
                     .Where(p => p.VerifyOrderRequest != null && p.AccessToken != null)
@@ -2125,6 +2146,10 @@ namespace com.noctuagames.sdk
             try
             {
                 var purchaseHistory = JsonConvert.DeserializeObject<List<PurchaseItem>>(json);
+                if (purchaseHistory == null)
+                {
+                    purchaseHistory = new List<PurchaseItem>();
+                }
                 var list = purchaseHistory
                     .Where(p => p.VerifyOrderRequest != null && p.AccessToken != null)
                     .ToList();
