@@ -296,9 +296,13 @@ namespace com.noctuagames.sdk
             _nativePlugin = GetNativePlugin();
             _log.Debug($"_nativePlugin type: {_nativePlugin?.GetType().FullName}");
 
-            //Init analytics first when IAA is not enabled because:
-            //Both AppLovin MAX and AdMob handle user consent for GDPR, CCPA, and other privacy regulations. 
-            //Analytics SDKs (like Adjust, Firebase, Facebook) collect user data, so they must respect user privacy choices.
+            // Initialize Analytics first when IAA (In-App Advertising) is not enabled.
+            // Reason:
+            // - Both AppLovin MAX and AdMob handle user consent for GDPR, CCPA, and other privacy regulations.
+            // - Analytics SDKs (such as Adjust, Firebase, Facebook) collect user data, so they must respect user privacy choices based on user consent.
+            // Note:
+            // This code has a continuation at line 645.
+            // Do not move or reorder this code since it follows a specific initialization flow.
             if(!config.Noctua.isIAAEnabled)
             {              
                 _nativePlugin?.Init(new List<string>());
@@ -641,7 +645,7 @@ namespace com.noctuagames.sdk
 #endif
             }
 
-            //Init iaa sdk and prepare iaa to show
+            // Initialize IAA (In-App Advertising) SDK and prepare IAA to be ready for showing ads to the user.
             #if UNITY_ADMOB || UNITY_APPLOVIN
             if(initResponse.RemoteConfigs.IAA != null)
             {
