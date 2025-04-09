@@ -1,8 +1,8 @@
 using System;
+using UnityEngine;
 
 #if UNITY_ADMOB
 using GoogleMobileAds.Api;
-using UnityEngine;
 #endif
 
 namespace com.noctuagames.sdk
@@ -61,11 +61,15 @@ namespace com.noctuagames.sdk
             switch (iAAResponse.Mediation)
             {
                 case "admob":
+                #if UNITY_ADMOB
                     InitializeAdmob();
+                #endif
                     break;
 
                 case "applovin":
+                #if UNITY_APPLOVIN
                     InitializeAppLovin();
+                #endif
                     break;
 
                 default:
@@ -109,7 +113,11 @@ namespace com.noctuagames.sdk
                 //Setup Ad Unit ID
                 SetInterstitialAdUnitId(interstitialAdUnitID);
                 SetRewardedAdUnitId(rewardedAdUnitID);
+                
+                #if UNITY_ADMOB
                 SetRewardedInterstitialAdUnitId(rewardedInterstitialAdUnitID);
+                #endif
+
                 SetBannerAdUnitId(bannerAdUnitID);
 
                 _log.Debug("Setup Ad Unit ID is Done");
@@ -250,7 +258,7 @@ namespace com.noctuagames.sdk
             }
             else
             {
-                _log.Info("Mediation type is not AppLovin. Cannot perform AppLovin specific actions.");
+                _log.Info("Mediation type is not AppLovin. Cannot perform AppLovin specific actions. " + "current mediation is : " + _mediationType);
                 return false;
             }
         }
@@ -263,7 +271,7 @@ namespace com.noctuagames.sdk
             }
             else
             {
-                _log.Info("Mediation type is not Admob. Cannot perform Admob specific actions.");
+                _log.Info("Mediation type is not Admob. Cannot perform Admob specific actions." + "current mediation is : " + _mediationType);
                 return false;
             }
         }
