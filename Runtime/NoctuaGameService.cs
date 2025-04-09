@@ -54,11 +54,11 @@ namespace com.noctuagames.sdk
         public bool SSODisabled;
         
         [JsonProperty("iaa")]
-        public IAAResponse IAAResponse;
+        public IAA IAA;
     }
 
     [Preserve]
-    public class IAAResponse
+    public class IAA
     {
         [JsonProperty("mediation")]
         public string Mediation;

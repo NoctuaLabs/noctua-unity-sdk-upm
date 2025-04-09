@@ -46,7 +46,7 @@ namespace com.noctuagames.sdk
         public event Action<MaxSdkBase.AdInfo> AppLovinOnAdRevenuePaid { add => _appLovinOnAdRevenuePaid += value; remove => _appLovinOnAdRevenuePaid -= value; }
         #endif
 
-        public void Initialize(IAAResponse iAAResponse, Action initCompleteAction)
+        public void Initialize(IAA iAAResponse, Action initCompleteAction)
         {
             _log.Info("Initializing Ad Network");
 

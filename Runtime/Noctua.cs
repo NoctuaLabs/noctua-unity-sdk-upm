@@ -642,11 +642,11 @@ namespace com.noctuagames.sdk
             }
 
             //Init iaa sdk and prepare iaa to show
-            if(initResponse.RemoteConfigs.IAAResponse != null)
+            if(initResponse.RemoteConfigs.IAA != null)
             {
-                log.Debug("initiazing IAA SDK : " + initResponse.RemoteConfigs.IAAResponse.Mediation);
+                log.Debug("initiazing IAA SDK : " + initResponse.RemoteConfigs.IAA.Mediation);
 
-                Noctua.IAA.Initialize(initResponse.RemoteConfigs.IAAResponse, () => {
+                Noctua.IAA.Initialize(initResponse.RemoteConfigs.IAA, () => {
 
                     log.Debug("IAA SDK initialized");
 
