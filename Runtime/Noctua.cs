@@ -301,7 +301,9 @@ namespace com.noctuagames.sdk
             // - Both AppLovin MAX and AdMob handle user consent for GDPR, CCPA, and other privacy regulations.
             // - Analytics SDKs (such as Adjust, Firebase, Facebook) collect user data, so they must respect user privacy choices based on user consent.
             // Note:
-            // This code has a continuation at line 645.
+            // This code has a continuation
+            // See the line that has this comment:
+            // - Initialize IAA (In-App Advertising) SDK and prepare IAA to be ready for showing ads to the user.
             // Do not move or reorder this code since it follows a specific initialization flow.
             if(!config.Noctua.isIAAEnabled)
             {              
