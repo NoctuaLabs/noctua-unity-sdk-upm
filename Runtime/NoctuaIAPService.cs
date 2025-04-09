@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Concurrent;
 using Cysharp.Threading.Tasks;
 using UnityEngine;
@@ -924,7 +924,7 @@ namespace com.noctuagames.sdk
                     {
                         unpairedOrders = new Dictionary<string, PurchaseItem>();
                     }
-                    _log.Info($"NoctuaIAPService.HandleUnpairedPurchase unpaired orders from playerprefs: {unpairedOrdersJson}");
+                    _log.Info($"NoctuaIAPService.HandleUnpairedPurchase unpaired orders from playerprefs: {JsonConvert.SerializeObject(unpairedOrders)}");
                 }
                 catch (Exception e)
                 {
