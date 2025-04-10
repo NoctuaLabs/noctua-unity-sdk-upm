@@ -53,6 +53,12 @@ namespace com.noctuagames.sdk.Events
             AppendProperties(extraPayload);
 
             _nativeTracker?.TrackAdRevenue(source, revenue, currency, extraPayload);
+
+            extraPayload.Add("source", source);
+            extraPayload.Add("revenue", revenue);
+            extraPayload.Add("currency", currency);
+
+            _eventSender?.Send("ad_revenue", extraPayload);
         }
 
         public void TrackPurchase(
