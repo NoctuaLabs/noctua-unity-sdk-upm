@@ -140,7 +140,58 @@ namespace com.noctuagames.sdk
             _adNetwork.OnAdImpressionRecorded += () => { _onAdImpressionRecorded?.Invoke(); };
             _adNetwork.OnAdClosed += () => { _onAdClosed?.Invoke(); };
             _adNetwork.AdmobOnUserEarnedReward += (reward) => { _admobOnUserEarnedReward?.Invoke(reward); };
-            _adNetwork.AdmobOnAdRevenuePaid += (adValue) => { _admobOnAdRevenuePaid?.Invoke(adValue); };
+            _adNetwork.AdmobOnAdRevenuePaid += (adValue) => {
+
+                // Send the impression-level ad revenue information
+                long valueMicros = adValue.Value;
+                string currencyCode = adValue.CurrencyCode;
+                PrecisionType precision = adValue.Precision;
+
+                ResponseInfo responseInfo = rewardedAd.GetResponseInfo();
+                string responseId = responseInfo.GetResponseId();
+
+                AdapterResponseInfo loadedAdapterResponseInfo = responseInfo.GetLoadedAdapterResponseInfo();
+                string adSourceId = loadedAdapterResponseInfo.AdSourceId;
+                string adSourceInstanceId = loadedAdapterResponseInfo.AdSourceInstanceId;
+                string adSourceInstanceName = loadedAdapterResponseInfo.AdSourceInstanceName;
+                string adSourceName = loadedAdapterResponseInfo.AdSourceName;
+                string adapterClassName = loadedAdapterResponseInfo.AdapterClassName;
+                long latencyMillis = loadedAdapterResponseInfo.LatencyMillis;
+                Dictionary<string, string> credentials = loadedAdapterResponseInfo.AdUnitMapping;
+
+                Dictionary<string, string> extras = responseInfo.GetResponseExtras();
+                string mediationGroupName = extras["mediation_group_name"];
+                string mediationABTestName = extras["mediation_ab_test_name"];
+                string mediationABTestVariant = extras["mediation_ab_test_variant"];
+
+                double revenue = valueMicros / 1000000f; // convert micros to currency unit
+
+                _log.Debug($"Admob Ad Revenue Paid: value in micros: {adValue.Value} / converted micros: {revenue}, {adValue.CurrencyCode} " +
+                    $"Precision: {adValue.Precision} " +
+                    $"Response ID: {responseId} " +
+                    $"Ad Source ID: {adSourceId} " +
+                    $"Ad Source Instance ID: {adSourceInstanceId} " +
+                    $"Ad Source Instance Name: {adSourceInstanceName} " +
+                    $"Ad Source Name: {adSourceName} " +
+                    $"Adapter Class Name: {adapterClassName} " +
+                    $"Latency Millis: {latencyMillis}");
+
+                Noctua.Event.TrackAdRevenue("admob_sdk", revenue, currencyCode, new Dictionary<string, IConvertible>
+                {
+                    { "ad_source_id", adSourceId },
+                    { "ad_source_instance_id", adSourceInstanceId },
+                    { "ad_source_instance_name", adSourceInstanceName },
+                    { "ad_source_name", adSourceName },
+                    { "adapter_class_name", adapterClassName },
+                    { "latency_millis", latencyMillis },
+                    { "response_id", responseId },
+                    { "mediation_group_name", mediationGroupName },
+                    { "mediation_ab_test_name", mediationABTestName },
+                    { "mediation_ab_test_variant", mediationABTestVariant }
+                });
+
+                _admobOnAdRevenuePaid?.Invoke(adValue);
+            };
         }
         #endif
 
@@ -155,7 +206,39 @@ namespace com.noctuagames.sdk
             _adNetwork.OnAdImpressionRecorded += () => { _onAdImpressionRecorded?.Invoke(); };
             _adNetwork.OnAdClosed += () => { _onAdClosed?.Invoke(); };
             _adNetwork.AppLovinOnUserEarnedReward += (Reward) => { _appLovinOnUserEarnedReward?.Invoke(Reward); };
-            _adNetwork.AppLovinOnAdRevenuePaid += (adInfo) => { _appLovinOnAdRevenuePaid?.Invoke(adInfo); };
+            _adNetwork.AppLovinOnAdRevenuePaid += (adInfo) => { 
+
+                double revenue = adInfo.Revenue;
+
+                // Miscellaneous data
+                string countryCode = MaxSdk.GetSdkConfiguration().CountryCode; // "US" for the United States, etc - Note: Do not confuse this with currency code which is "USD"
+                string networkName = adInfo.NetworkName; // Display name of the network that showed the ad
+                string adUnitIdentifier = adInfo.AdUnitIdentifier; // The MAX Ad Unit ID
+                string placement = adInfo.Placement; // The placement this ad's postbacks are tied to
+                string networkPlacement = adInfo.NetworkPlacement; // The placement ID from the network that showed the ad
+                string revenuePrecision = adInfo.RevenuePrecision;
+
+                _log.Debug($"AppLovin Ad Revenue Paid: revenue: {adInfo.Revenue}, " + 
+                    "currency: USD, " + 
+                    $"country code: {countryCode}, " + 
+                    $"network name: {networkName}, " + 
+                    $"ad unit identifier: {adUnitIdentifier}, " +
+                    $"placement: {placement}, " + 
+                    $"network placement: {networkPlacement}, " +
+                    $"revenue precision: {revenuePrecision}");
+
+                Noctua.Event.TrackAdRevenue("applovin_max_sdk", revenue, "USD", new Dictionary<string, IConvertible>
+                {
+                    { "country_code", countryCode },
+                    { "network_name", networkName },
+                    { "ad_unit_identifier", adUnitIdentifier },
+                    { "placement", placement },
+                    { "network_placement", networkPlacement },
+                    { "revenue_precision", revenuePrecision }
+                });
+            
+                _appLovinOnAdRevenuePaid?.Invoke(adInfo); 
+            };
         }
         #endif
 
