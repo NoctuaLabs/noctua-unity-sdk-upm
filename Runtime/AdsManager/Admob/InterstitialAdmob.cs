@@ -16,8 +16,7 @@ namespace com.noctuagames.sdk.Admob
         public event Action InterstitialOnAdClicked;
         public event Action InterstitialOnAdImpressionRecorded;
         public event Action InterstitialOnAdClosed;
-        public event Action<AdValue> AdmobOnAdRevenuePaid;
-
+        public event Action<AdValue, ResponseInfo> AdmobOnAdRevenuePaid;
 
         private InterstitialAd _interstitialAd;
 
@@ -100,7 +99,7 @@ namespace com.noctuagames.sdk.Admob
                     adValue.Value,
                     adValue.CurrencyCode));
 
-                AdmobOnAdRevenuePaid?.Invoke(adValue);
+                AdmobOnAdRevenuePaid?.Invoke(adValue, interstitialAd.GetResponseInfo());
                 
             };
             // Raised when an impression is recorded for an ad.

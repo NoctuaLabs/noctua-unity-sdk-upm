@@ -18,7 +18,7 @@ namespace com.noctuagames.sdk.Admob
         public event Action BannerOnAdClicked;
         public event Action BannerOnAdImpressionRecorded;
         public event Action BannerOnAdClosed;
-        public event Action<AdValue> AdmobOnAdRevenuePaid;
+        public event Action<AdValue, ResponseInfo> AdmobOnAdRevenuePaid;
 
         public void SetAdUnitId(string adUnitId)
         {
@@ -110,7 +110,7 @@ namespace com.noctuagames.sdk.Admob
                     adValue.Value,
                     adValue.CurrencyCode));
                 
-                AdmobOnAdRevenuePaid?.Invoke(adValue);
+                AdmobOnAdRevenuePaid?.Invoke(adValue, _bannerView.GetResponseInfo());
             };
             // Raised when an impression is recorded for an ad.
             _bannerView.OnAdImpressionRecorded += () =>
