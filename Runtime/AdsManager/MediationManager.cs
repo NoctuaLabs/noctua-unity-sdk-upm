@@ -165,7 +165,7 @@ namespace com.noctuagames.sdk
                 string mediationABTestName = extras["mediation_ab_test_name"];
                 string mediationABTestVariant = extras["mediation_ab_test_variant"];
 
-                double revenue = valueMicros / 1000000f; // convert micros to currency unit
+                double revenue = valueMicros / 1_000_000.0; // convert micros to currency unit
 
                 _log.Debug($"Admob Ad Revenue Paid: value in micros: {adValue.Value} / converted micros: {revenue}, {adValue.CurrencyCode} " +
                     $"Precision: {adValue.Precision} " +
