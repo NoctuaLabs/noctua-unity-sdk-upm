@@ -19,7 +19,7 @@ namespace com.noctuagames.sdk
         //Revenue event handler
         #if UNITY_ADMOB
         event Action<Reward> AdmobOnUserEarnedReward { add{} remove{} }
-        event Action<AdValue> AdmobOnAdRevenuePaid { add{} remove{} }
+        event Action<AdValue, ResponseInfo> AdmobOnAdRevenuePaid { add{} remove{} }
         #endif
         
         #if UNITY_APPLOVIN

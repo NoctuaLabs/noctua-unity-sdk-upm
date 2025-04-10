@@ -1,8 +1,10 @@
 using System;
 using UnityEngine;
+using System.Collections.Generic;
 
 #if UNITY_ADMOB
 using GoogleMobileAds.Api;
+using static GoogleMobileAds.Api.AdValue;
 #endif
 
 namespace com.noctuagames.sdk
@@ -22,7 +24,7 @@ namespace com.noctuagames.sdk
 
         #if UNITY_ADMOB
         private event Action<Reward> _admobOnUserEarnedReward;
-        private event Action<AdValue> _admobOnAdRevenuePaid;
+        private event Action<AdValue, ResponseInfo> _admobOnAdRevenuePaid;
         #endif
 
         #if UNITY_APPLOVIN
@@ -39,7 +41,7 @@ namespace com.noctuagames.sdk
 
         #if UNITY_ADMOB
         public event Action<Reward> AdmobOnUserEarnedReward { add => _admobOnUserEarnedReward += value; remove => _admobOnUserEarnedReward -= value; }
-        public event Action<AdValue> AdmobOnAdRevenuePaid { add => _admobOnAdRevenuePaid += value; remove => _admobOnAdRevenuePaid -= value; }
+        public event Action<AdValue, ResponseInfo> AdmobOnAdRevenuePaid { add => _admobOnAdRevenuePaid += value; remove => _admobOnAdRevenuePaid -= value; }
         #endif
         #if UNITY_APPLOVIN
         public event Action<MaxSdk.Reward> AppLovinOnUserEarnedReward { add => _appLovinOnUserEarnedReward += value; remove => _appLovinOnUserEarnedReward -= value; }
@@ -140,14 +142,13 @@ namespace com.noctuagames.sdk
             _adNetwork.OnAdImpressionRecorded += () => { _onAdImpressionRecorded?.Invoke(); };
             _adNetwork.OnAdClosed += () => { _onAdClosed?.Invoke(); };
             _adNetwork.AdmobOnUserEarnedReward += (reward) => { _admobOnUserEarnedReward?.Invoke(reward); };
-            _adNetwork.AdmobOnAdRevenuePaid += (adValue) => {
+            _adNetwork.AdmobOnAdRevenuePaid += (adValue, responseInfo) => {
 
                 // Send the impression-level ad revenue information
                 long valueMicros = adValue.Value;
                 string currencyCode = adValue.CurrencyCode;
                 PrecisionType precision = adValue.Precision;
 
-                ResponseInfo responseInfo = rewardedAd.GetResponseInfo();
                 string responseId = responseInfo.GetResponseId();
 
                 AdapterResponseInfo loadedAdapterResponseInfo = responseInfo.GetLoadedAdapterResponseInfo();
@@ -190,7 +191,7 @@ namespace com.noctuagames.sdk
                     { "mediation_ab_test_variant", mediationABTestVariant }
                 });
 
-                _admobOnAdRevenuePaid?.Invoke(adValue);
+                _admobOnAdRevenuePaid?.Invoke(adValue, responseInfo);
             };
         }
         #endif
