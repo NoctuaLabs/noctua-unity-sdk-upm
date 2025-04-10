@@ -473,7 +473,7 @@ namespace com.noctuagames.sdk
             }
 
             _offlineMode = initResponse.OfflineMode;
-            Instance.Value._log.Error($"Offline mode: {_offlineMode}");
+            Instance.Value._log.Info($"Offline mode: {_offlineMode}");
 
             if (_offlineMode)
             {
