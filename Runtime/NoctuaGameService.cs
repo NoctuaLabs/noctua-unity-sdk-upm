@@ -47,14 +47,24 @@ namespace com.noctuagames.sdk
     [Preserve]
     public class RemoteConfigs
     {
+	// For complex remote config, they will have their own key
+	// under RemoteConfigs
         [JsonProperty("enabled_payment_types")]
         public List<PaymentType> EnabledPaymentTypes;
 
-        [JsonProperty("sso_disabled")]
-        public bool SSODisabled;
-        
         [JsonProperty("iaa")]
         public IAA IAA;
+
+	// For boolean or simple value remote config, they have
+	// their place under FeatureFlags. This dictionary
+	// can be overriden from backend.
+        [JsonProperty("feature_flags")]
+        public Dictionary<string, string> FeatureFlags;
+
+	// SSO supposed to be under FeatureFlags
+	// but we leave it here for backward compatibility
+        [JsonProperty("sso_disabled")]
+        public bool SSODisabled;
     }
 
     [Preserve]

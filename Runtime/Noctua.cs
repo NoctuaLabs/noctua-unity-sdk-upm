@@ -53,7 +53,6 @@ namespace com.noctuagames.sdk
         public const string DefaultTrackerUrl = "https://sdk-tracker.noctuaprojects.com/api/v1";
         public const string DefaultBaseUrl = "https://sdk-api-v2.noctuaprojects.com/api/v1";
         public const string DefaultSandboxBaseUrl = "https://sandbox-sdk-api-v2.noctuaprojects.com/api/v1";
-        public const string DefaultPaymentBaseUrl = "https://dev.noctua.gg/noctua-gold-payment-webview";
         public const string DefaultAnnouncementBaseUrl = "https://sdk-api-v2.noctuaprojects.com/api/v1/games/announcements";
         public const string DefaultRewardBaseUrl = "https://sdk-api-v2.noctuaprojects.com/api/v1/games/rewards";
         public const string DefaultCustomerServiceBaseUrl = "https://sdk-api-v2.noctuaprojects.com/api/v1/games/cs";
@@ -62,8 +61,6 @@ namespace com.noctuagames.sdk
         [JsonProperty("trackerUrl")] public string TrackerUrl = DefaultTrackerUrl;
 
         [JsonProperty("baseUrl")] public string BaseUrl = DefaultBaseUrl;
-
-        [JsonProperty("paymentBaseUrl")] public string PaymentBaseUrl = DefaultPaymentBaseUrl;
 
         [JsonProperty("announcementBaseUrl")] public string AnnouncementBaseUrl = DefaultAnnouncementBaseUrl;
 
@@ -351,7 +348,6 @@ namespace com.noctuagames.sdk
                 {
                     BaseUrl = config.Noctua.BaseUrl,
                     ClientId = config.ClientId,
-                    WebPaymentBaseUrl = config.Noctua.PaymentBaseUrl
                 },
                 accessTokenProvider,
                 _uiFactory,
@@ -600,6 +596,8 @@ namespace com.noctuagames.sdk
                 enabledPaymentTypes.Remove(PaymentType.appstore);
                 enabledPaymentTypes.Remove(PaymentType.playstore);
             }
+
+            log.Info("FeatureFlags: " + initResponse.RemoteConfigs.FeatureFlags);
 
 
             // Remove irrelevant payment by runtime platform
