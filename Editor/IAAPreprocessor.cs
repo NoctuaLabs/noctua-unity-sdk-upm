@@ -9,34 +9,29 @@ public static class IAAPreprocessor
 {
     static IAAPreprocessor()
     {
-        CheckAndSetPreprocessorSymbols();
+        CheckAndSetPreprocessorSymbols(BuildTargetGroup.Android);
+        CheckAndSetPreprocessorSymbols(BuildTargetGroup.iOS);
     }
 
-    private static void CheckAndSetPreprocessorSymbols()
+    private static void CheckAndSetPreprocessorSymbols(BuildTargetGroup targetGroup)
     {
-        BuildTargetGroup targetGroup = BuildTargetGroup.Android;
         string defines = PlayerSettings.GetScriptingDefineSymbolsForGroup(targetGroup);
-
-        // Convert defines to a list for easier manipulation
         var defineList = defines.Split(';').Where(d => !string.IsNullOrWhiteSpace(d)).ToList();
 
-        // Check if SDKs exist
         bool hasAdMob = Directory.Exists("Assets/GoogleMobileAds");
-        bool hasAppLovin = Directory.Exists("Assets/MaxSdk"); // Adjusted the path
+        bool hasAppLovin = Directory.Exists("Assets/MaxSdk");
 
-        Debug.Log($"AdMob SDK Exists: {hasAdMob}");
-        Debug.Log($"AppLovin SDK Exists: {hasAppLovin}");
+        Debug.Log($"[{targetGroup}] AdMob SDK Exists: {hasAdMob}");
+        Debug.Log($"[{targetGroup}] AppLovin SDK Exists: {hasAppLovin}");
 
-        // Manage AdMob define
         UpdateDefineSymbol(defineList, "UNITY_ADMOB", hasAdMob);
         UpdateDefineSymbol(defineList, "UNITY_APPLOVIN", hasAppLovin);
 
-        // Apply changes only if there was a modification
         string newDefines = string.Join(";", defineList);
         if (newDefines != defines)
         {
             PlayerSettings.SetScriptingDefineSymbolsForGroup(targetGroup, newDefines);
-            Debug.Log("Updated Preprocessor Symbols: " + newDefines);
+            Debug.Log($"[{targetGroup}] Updated Preprocessor Symbols: {newDefines}");
         }
     }
 
