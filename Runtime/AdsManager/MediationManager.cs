@@ -63,15 +63,11 @@ namespace com.noctuagames.sdk
             switch (iAAResponse.Mediation)
             {
                 case "admob":
-                #if UNITY_ADMOB
                     InitializeAdmob();
-                #endif
                     break;
 
                 case "applovin":
-                #if UNITY_APPLOVIN
                     InitializeAppLovin();
-                #endif
                     break;
 
                 default:
@@ -101,9 +97,9 @@ namespace com.noctuagames.sdk
                 #endif
 
                 #if UNITY_ANDROID
-                    rewardedInterstitialAdUnitID = iAAResponse.AdFormat.Rewarded.Android.adUnitID;
+                    rewardedInterstitialAdUnitID = iAAResponse.AdFormat.RewardedInterstitial.Android.adUnitID;
                 #elif UNITY_IPHONE
-                    rewardedInterstitialAdUnitID = iAAResponse.AdFormat.Rewarded.IOS.adUnitID;
+                    rewardedInterstitialAdUnitID = iAAResponse.AdFormat.RewardedInterstitial.IOS.adUnitID;
                 #endif
 
                  #if UNITY_ANDROID
@@ -131,9 +127,9 @@ namespace com.noctuagames.sdk
             });
         }
 
-        #if UNITY_ADMOB
         private void InitializeAdmob()
         {
+            #if UNITY_ADMOB
             _adNetwork = new AdmobManager();
 
             _adNetwork.OnAdDisplayed += () => { _onAdDisplayed?.Invoke(); };
@@ -152,20 +148,21 @@ namespace com.noctuagames.sdk
                 string responseId = responseInfo.GetResponseId();
 
                 AdapterResponseInfo loadedAdapterResponseInfo = responseInfo.GetLoadedAdapterResponseInfo();
-                string adSourceId = loadedAdapterResponseInfo.AdSourceId;
-                string adSourceInstanceId = loadedAdapterResponseInfo.AdSourceInstanceId;
-                string adSourceInstanceName = loadedAdapterResponseInfo.AdSourceInstanceName;
-                string adSourceName = loadedAdapterResponseInfo.AdSourceName;
-                string adapterClassName = loadedAdapterResponseInfo.AdapterClassName;
-                long latencyMillis = loadedAdapterResponseInfo.LatencyMillis;
-                Dictionary<string, string> credentials = loadedAdapterResponseInfo.AdUnitMapping;
+
+                string adSourceId = loadedAdapterResponseInfo?.AdSourceId ?? "empty";
+                string adSourceInstanceId = loadedAdapterResponseInfo?.AdSourceInstanceId ?? "empty";
+                string adSourceInstanceName = loadedAdapterResponseInfo?.AdSourceInstanceName ?? "empty";
+                string adSourceName = loadedAdapterResponseInfo?.AdSourceName ?? "empty";
+                string adapterClassName = loadedAdapterResponseInfo?.AdapterClassName ?? "empty";
+                long latencyMillis = loadedAdapterResponseInfo?.LatencyMillis ?? 0;
+                Dictionary<string, string> credentials = loadedAdapterResponseInfo?.AdUnitMapping;
 
                 Dictionary<string, string> extras = responseInfo.GetResponseExtras();
-                string mediationGroupName = extras["mediation_group_name"];
-                string mediationABTestName = extras["mediation_ab_test_name"];
-                string mediationABTestVariant = extras["mediation_ab_test_variant"];
+                string mediationGroupName = extras != null && extras.ContainsKey("mediation_group_name") ? extras["mediation_group_name"] : "empty";
+                string mediationABTestName = extras != null && extras.ContainsKey("mediation_ab_test_name") ? extras["mediation_ab_test_name"] : "empty";
+                string mediationABTestVariant = extras != null && extras.ContainsKey("mediation_ab_test_variant") ? extras["mediation_ab_test_variant"] : "empty";
 
-                double revenue = valueMicros / 1_000_000.0; // convert micros to currency unit
+                double revenue = valueMicros / 1_000_000.0;
 
                 _log.Debug($"Admob Ad Revenue Paid: value in micros: {adValue.Value} / converted micros: {revenue}, {adValue.CurrencyCode} " +
                     $"Precision: {adValue.Precision} " +
@@ -193,12 +190,12 @@ namespace com.noctuagames.sdk
 
                 _admobOnAdRevenuePaid?.Invoke(adValue, responseInfo);
             };
+            #endif
         }
-        #endif
 
-        #if UNITY_APPLOVIN
         private void InitializeAppLovin()
         {
+            #if UNITY_APPLOVIN
             _adNetwork = new AppLovinManager();
 
             _adNetwork.OnAdDisplayed += () => { _onAdDisplayed?.Invoke(); };
@@ -240,8 +237,8 @@ namespace com.noctuagames.sdk
             
                 _appLovinOnAdRevenuePaid?.Invoke(adInfo); 
             };
+            #endif
         }
-        #endif
 
         //Interstitial public functions
         private void SetInterstitialAdUnitId(string adUnitID) => _adNetwork.SetInterstitialAdUnitID(adUnitID);
