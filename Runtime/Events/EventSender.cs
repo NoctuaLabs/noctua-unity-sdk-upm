@@ -134,27 +134,41 @@ namespace com.noctuagames.sdk.Events
             _uniqueId = null;
 #endif
 
-            // Load from PlayerPrefs and enqueue them all
-            var events = new List<Dictionary<string, IConvertible>>();
+            // Primitive JSON cannot be deserialized directly to IConvertible
+            // Load from PlayerPrefs and re-enqueue them all
+            var events = new List<Dictionary<string, object>>();
             var eventsJson = PlayerPrefs.GetString("NoctuaEvents", "[]");
             if (eventsJson == null)
             {
                 eventsJson = "[]";
             }
             try {
-                events = JsonConvert.DeserializeObject<List<Dictionary<string, IConvertible>>>(eventsJson);
+                events = JsonConvert.DeserializeObject<List<Dictionary<string, object>>>(eventsJson);
             } catch (Exception e) {
                 _log.Error($"Failed to load events from PlayerPrefs: {e.Message}");
-                events = new List<Dictionary<string, IConvertible>>();
+                events = new List<Dictionary<string, object>>();
             }
             if (events == null)
             {
-                events = new List<Dictionary<string, IConvertible>>();
+                events = new List<Dictionary<string, object>>();
             }
             foreach (var evt in events)
             {
-                _eventQueue.Enqueue(evt);
+                var dict = new Dictionary<string, IConvertible>();
+                foreach (var (key, val) in evt)
+                {
+                    if (val is IConvertible convertible)
+                    {
+                        dict[key] = convertible;
+                    }
+                    else
+                    {
+                        _log.Warning($"Event has non-convertible value for key {key} of value {val}");
+                    }
+                }
+                _eventQueue.Enqueue(dict);
             }
+            _log.Info($"Total loaded events: {events.Count}");
         }
 
         public void Send(string name, Dictionary<string, IConvertible> data = null)
@@ -203,7 +217,6 @@ namespace com.noctuagames.sdk.Events
             
             _eventQueue.Enqueue(data);
 
-            // Save to PlayerPrefs
             var events = new List<Dictionary<string, IConvertible>>();
             while (_eventQueue.TryDequeue(out var evt))
             {
@@ -215,6 +228,8 @@ namespace com.noctuagames.sdk.Events
             {
                 _eventQueue.Enqueue(evt);
             }
+            _log.Info($"Total event in queue: {events.Count}");
+
         }
 
 #if UNITY_ANDROID && !UNITY_EDITOR
@@ -256,14 +271,23 @@ namespace com.noctuagames.sdk.Events
                 events.Add(evt);
             }
 
-            var request = new HttpRequest(HttpMethod.Post, $"{_config.BaseUrl}/events")
-                .WithHeader("X-CLIENT-ID", _config.ClientId)
-                .WithHeader("X-DEVICE-ID", _deviceId)
-                .WithNdjsonBody(events);
+            try {
+                var request = new HttpRequest(HttpMethod.Post, $"{_config.BaseUrl}/events")
+                    .WithHeader("X-CLIENT-ID", _config.ClientId)
+                    .WithHeader("X-DEVICE-ID", _deviceId)
+                    .WithNdjsonBody(events);
 
-            UniTask.Void(async () => await request.Send<EventResponse>());
+                UniTask.Void(async () => await request.Send<EventResponse>());
             
-            _log.Info($"Sent {events.Count} events");
+                PlayerPrefs.SetString("NoctuaEvents", "[]");
+                PlayerPrefs.Save();
+                _log.Info($"Sent {events.Count} events. PlayerPrefs cleared.");
+            } catch (Exception e) {
+                _log.Error($"Failed to send events: {e.Message}");
+                _log.Info($"Backup events to PlayerPrefs");
+                PlayerPrefs.SetString("NoctuaEvents", JsonConvert.SerializeObject(events));
+                PlayerPrefs.Save();
+            }
         }
         
         public void Dispose()
@@ -286,16 +310,17 @@ namespace com.noctuagames.sdk.Events
         {
             while (!token.IsCancellationRequested)
             {
+
                 while (_eventQueue.Count == 0)
                 {
-                    await UniTask.Delay(100, cancellationToken: token);
+                    await UniTask.Delay(1000, cancellationToken: token);
                 }
                 
                 var nextBatchSchedule = DateTime.UtcNow.AddMilliseconds(_config.BatchPeriodMs);
 
                 while (_eventQueue.Count < _config.BatchSize && DateTime.UtcNow < nextBatchSchedule)
                 {
-                    await UniTask.Delay(100, cancellationToken: token);
+                    await UniTask.Delay(1000, cancellationToken: token);
                 }
                 
                 if (_eventQueue.Count == 0)
@@ -336,22 +361,19 @@ namespace com.noctuagames.sdk.Events
                 catch (Exception e)
                 {
                     _log.Error($"Failed to send events");
-                    foreach (var evt in events)
-                    {
-                        var jsonEvent = JsonConvert.SerializeObject(evt);
-                        _log.Warning($"Failed event data'{jsonEvent}'");
-                    }
-
-                    // Re-enqueue the events
+                    // Re-enqueue all the events
                     foreach (var evt in events)
                     {
                         _eventQueue.Enqueue(evt);
                     }
 
                     // Append events to backup then save to PlayerPrefs
+                    _log.Info($"Backup events to PlayerPrefs");
                     backup.AddRange(events);
                     PlayerPrefs.SetString("NoctuaEvents", JsonConvert.SerializeObject(backup));
                     PlayerPrefs.Save();
+
+                    await UniTask.Delay(1000, cancellationToken: token);
                 }
             }
         }
