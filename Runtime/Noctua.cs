@@ -164,6 +164,7 @@ namespace com.noctuagames.sdk
         // there is network issue on init attempt
         private static bool _offlineMode = false;
         private static bool _initialized = false;
+        private bool _isNativePluginInitialized = false;
 
         private Noctua()
         {
@@ -307,12 +308,12 @@ namespace com.noctuagames.sdk
             // Do not move or reorder this code since it follows a specific initialization flow.
             if(!config.Noctua.isIAAEnabled)
             {              
-                _nativePlugin?.Init(new List<string>());
+                InitializeNativePlugin();
             }
             else
             {
                 #if UNITY_IOS
-                    _nativePlugin?.Init(new List<string>());
+                   InitializeNativePlugin();
                 #endif
             }
 
@@ -379,6 +380,14 @@ namespace com.noctuagames.sdk
             _platform = new NoctuaPlatform(config.Noctua, accessTokenProvider, _uiFactory, _eventSender);
             
             _log.Info("Noctua instance created");
+        }
+
+        private void InitializeNativePlugin()
+        {
+            if (_isNativePluginInitialized) return;
+
+            _nativePlugin?.Init(new List<string>());
+            _isNativePluginInitialized = true;
         }
 
         private void Enable()
@@ -654,9 +663,10 @@ namespace com.noctuagames.sdk
             }
 
             // Initialize IAA (In-App Advertising) SDK and prepare IAA to be ready for showing ads to the user.
-            #if UNITY_ADMOB || UNITY_APPLOVIN
             if(initResponse.RemoteConfigs.IAA != null)
             {
+                #if UNITY_ADMOB || UNITY_APPLOVIN
+
                 log.Debug("initiazing IAA SDK : " + initResponse.RemoteConfigs.IAA.Mediation);
 
                 Noctua.IAA.Initialize(initResponse.RemoteConfigs.IAA, () => {
@@ -665,15 +675,16 @@ namespace com.noctuagames.sdk
 
                     //Init analytics
                     #if UNITY_ANDROID
-                    Instance.Value._nativePlugin.Init(new List<string>());
+                    InitializeNativePlugin();
                     #endif
                 });
+
+                #endif
             }
             else
             {
                 log.Debug("Remote config IAA is not configured yet");
             }
-            #endif
         }
 
         private static bool IsFirstOpen()
