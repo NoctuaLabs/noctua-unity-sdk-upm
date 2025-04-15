@@ -309,11 +309,13 @@ namespace com.noctuagames.sdk
             {              
                 _nativePlugin?.Init(new List<string>());
             }
+            else
+            {
+                #if UNITY_IOS
+                    _nativePlugin?.Init(new List<string>());
+                #endif
+            }
 
-            #if UNITY_IOS
-                _nativePlugin?.Init(new List<string>());
-            #endif
-            
             _event = new NoctuaEventService(_nativePlugin, _eventSender);
             _event.SetProperties(isSandbox: config.Noctua.IsSandbox);
             _eventSender.SetProperties(isSandbox: config.Noctua.IsSandbox);
