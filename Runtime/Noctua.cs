@@ -309,6 +309,10 @@ namespace com.noctuagames.sdk
             {              
                 _nativePlugin?.Init(new List<string>());
             }
+
+            #if UNITY_IOS
+                _nativePlugin?.Init(new List<string>());
+            #endif
             
             _event = new NoctuaEventService(_nativePlugin, _eventSender);
             _event.SetProperties(isSandbox: config.Noctua.IsSandbox);
@@ -658,7 +662,9 @@ namespace com.noctuagames.sdk
                     log.Debug("IAA SDK initialized");
 
                     //Init analytics
+                    #if UNITY_ANDROID
                     Instance.Value._nativePlugin.Init(new List<string>());
+                    #endif
                 });
             }
             else
