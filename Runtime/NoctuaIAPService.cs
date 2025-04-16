@@ -924,7 +924,6 @@ namespace com.noctuagames.sdk
                     {
                         unpairedOrders = new Dictionary<string, PurchaseItem>();
                     }
-                    _log.Info($"NoctuaIAPService.HandleUnpairedPurchase unpaired orders from playerprefs: {JsonConvert.SerializeObject(unpairedOrders)}");
                 }
                 catch (Exception e)
                 {
@@ -2150,7 +2149,10 @@ namespace com.noctuagames.sdk
                 {
                     purchaseHistory = new List<PurchaseItem>();
                 }
+<<<<<<< HEAD
 
+=======
+>>>>>>> 7f30dab (fix: Guard playerprefs value with null check.)
                 var list = purchaseHistory
                     .Where(p => p.VerifyOrderRequest != null && p.AccessToken != null)
                     .ToList();
