@@ -675,7 +675,7 @@ namespace com.noctuagames.sdk
 
                     //Init analytics
                     #if UNITY_ANDROID
-                    InitializeNativePlugin();
+                    Instance.Value.InitializeNativePlugin();
                     #endif
                 });
 
