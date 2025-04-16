@@ -134,39 +134,68 @@ namespace com.noctuagames.sdk.Events
             _uniqueId = null;
 #endif
 
-            // Primitive JSON cannot be deserialized directly to IConvertible
-            // Load from PlayerPrefs and re-enqueue them all
-            var events = new List<Dictionary<string, object>>();
+            LoadEventsFromPlayerPrefs();
+        }
+
+        private void LoadEventsFromPlayerPrefs()
+        {
+            _log.Info("Loading NoctuaEvents from PlayerPrefs to event queue");
             var eventsJson = PlayerPrefs.GetString("NoctuaEvents", "[]");
             if (eventsJson == null)
             {
                 eventsJson = "[]";
             }
+
+            // Try to parse into IConvertible first because it is
+            // the native type of the queue.
+            // There will be nested try catch to make it safe.
+            var events = new List<Dictionary<string, IConvertible>>();
+            //_log.Debug(eventsJson);
             try {
-                events = JsonConvert.DeserializeObject<List<Dictionary<string, object>>>(eventsJson);
+                events = JsonConvert.DeserializeObject<List<Dictionary<string, IConvertible>>>(eventsJson);
             } catch (Exception e) {
-                _log.Error($"Failed to load events from PlayerPrefs: {e.Message}");
-                events = new List<Dictionary<string, object>>();
+                events = new List<Dictionary<string, IConvertible>>();
+                _log.Error($"Failed to load events from PlayerPrefs: {e.Message}.");
+
+                // If fail, try to parse to object.
+                // IConvertible cannot parse null value from JSON.
+                // Load from PlayerPrefs and re-enqueue them all
+                _log.Info("Try to parse NoctuaEvents with object type");
+                var objects = new List<Dictionary<string, object>>();
+                try {
+                    objects = JsonConvert.DeserializeObject<List<Dictionary<string, object>>>(eventsJson);
+                } catch (Exception e2) {
+                    _log.Error($"Failed to load events from PlayerPrefs: {e2.Message}");
+                    objects = new List<Dictionary<string, object>>();
+                }
+                if (objects == null)
+                {
+                    objects = new List<Dictionary<string, object>>();
+                }
+                foreach (var evt in objects)
+                {
+                    var dict = new Dictionary<string, IConvertible>();
+                    foreach (var (key, val) in evt)
+                    {
+                        if (val is IConvertible convertible)
+                        {
+                            dict[key] = convertible;
+                        }
+                        else
+                        {
+                            _log.Warning($"Event has non-convertible value for key {key} of value {val}");
+                        }
+                        events.Add(dict);
+                    }
+                }
             }
             if (events == null)
             {
-                events = new List<Dictionary<string, object>>();
+                events = JsonConvert.DeserializeObject<List<Dictionary<string, IConvertible>>>(eventsJson);
             }
             foreach (var evt in events)
             {
-                var dict = new Dictionary<string, IConvertible>();
-                foreach (var (key, val) in evt)
-                {
-                    if (val is IConvertible convertible)
-                    {
-                        dict[key] = convertible;
-                    }
-                    else
-                    {
-                        _log.Warning($"Event has non-convertible value for key {key} of value {val}");
-                    }
-                }
-                _eventQueue.Enqueue(dict);
+                _eventQueue.Enqueue(evt);
             }
             _log.Info($"Total loaded events: {events.Count}");
         }
@@ -228,7 +257,7 @@ namespace com.noctuagames.sdk.Events
             {
                 _eventQueue.Enqueue(evt);
             }
-            _log.Info($"Total event in queue: {events.Count}");
+            _log.Info($"{name} added to the queue. Current total event in queue: {events.Count}");
 
         }
 
