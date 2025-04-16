@@ -90,6 +90,22 @@ namespace com.noctuagames.sdk.Events
             _eventSender?.Send(name, extraPayload);
         }
 
+        public void InternalTrackEvent(string eventName, Dictionary<string, IConvertible> extraPayload = null)
+        {
+            extraPayload ??= new Dictionary<string, IConvertible>();
+            AppendProperties(extraPayload);
+
+            string properties = "";
+            foreach (var (key, value) in extraPayload)
+            {
+                properties += $"{key}={value}, ";
+            }
+            
+            _log.Debug($"Event name: {eventName}, Event properties: {properties}");
+
+            _eventSender?.Send(eventName, extraPayload);
+        }
+
         private void AppendProperties(Dictionary<string, IConvertible> extraPayload)
         {
             if (!string.IsNullOrEmpty(_country))
