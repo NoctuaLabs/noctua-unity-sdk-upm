@@ -300,23 +300,25 @@ namespace com.noctuagames.sdk.Events
                 events.Add(evt);
             }
 
-            try {
-                var request = new HttpRequest(HttpMethod.Post, $"{_config.BaseUrl}/events")
-                    .WithHeader("X-CLIENT-ID", _config.ClientId)
-                    .WithHeader("X-DEVICE-ID", _deviceId)
-                    .WithNdjsonBody(events);
+            var request = new HttpRequest(HttpMethod.Post, $"{_config.BaseUrl}/events")
+                .WithHeader("X-CLIENT-ID", _config.ClientId)
+                .WithHeader("X-DEVICE-ID", _deviceId)
+                .WithNdjsonBody(events);
 
-                UniTask.Void(async () => await request.Send<EventResponse>());
+            UniTask.Void(async () => {
+                try {
+                    await request.Send<EventResponse>();
+                    PlayerPrefs.SetString("NoctuaEvents", "[]");
+                    PlayerPrefs.Save();
+                    _log.Info($"Sent {events.Count} events. PlayerPrefs cleared.");
+                } catch (Exception e) {
+                    _log.Error($"Failed to send events: {e.Message}");
+                    _log.Info($"Backup events to PlayerPrefs");
+                    PlayerPrefs.SetString("NoctuaEvents", JsonConvert.SerializeObject(events));
+                        PlayerPrefs.Save();
+                    }
+                });
             
-                PlayerPrefs.SetString("NoctuaEvents", "[]");
-                PlayerPrefs.Save();
-                _log.Info($"Sent {events.Count} events. PlayerPrefs cleared.");
-            } catch (Exception e) {
-                _log.Error($"Failed to send events: {e.Message}");
-                _log.Info($"Backup events to PlayerPrefs");
-                PlayerPrefs.SetString("NoctuaEvents", JsonConvert.SerializeObject(events));
-                PlayerPrefs.Save();
-            }
         }
         
         public void Dispose()
