@@ -2,6 +2,57 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.38.0] - 2025-04-16
+
+### 🚀 Features
+
+- Add reference for AppLovin MAX SDK
+- Add IAA Preprocessor for check mediation SDK is exists and generate the symbols #if UNITY_ADMOB and #if UNITY_APPLOVIN
+- Add MediationManager for unified mediation SDK handling
+- Add Admob Manager to handling function from ad format functions
+- Add AppLovin Manager to handling function from ad format functions
+- Add IAdNetwork interface for mediation abstraction
+- Add InterstitialAdmob class for managing AdMob interstitial ads
+- Add BannerAdmob class for managing AdMob Banner ads
+- Add RewardedAdmob class for managing AdMob Rewarded ads
+- Add InterstitialAppLovin class for managing AppLovin interstitial ads
+- Add RewardedAppLovin class for managing AppLovin Rewarded ads
+- Make MediationManager a public class for external access
+- Make set ad unit id used function by self
+- Add banner applovin
+- Add isIAAEnabled to handle init analytics SDK after init IAA SDK success
+- Add data class to handle mediation response
+- Add event handler admob
+- Add event handler for applovin
+- Add mediation debugger, creative debugger and enhance some functions
+- Rewarded interstitial admob
+- Add ad revenue tracker admob and applovin
+- Add ad revenue internal tracker
+- Add internal tracker
+- Add NoctuaEvents to registered player prefs keys.
+
+### 🐛 Bug Fixes
+
+- Rename IAAResponse to IAA
+- Remove unecessary code
+- Remove whitespace
+- Function not found when IAA SDK not installed
+- Update comment for IAA init flow
+- Update comment for IAA flow
+- Refactor log error offline mode as info
+- Missing responseInfo class admob
+- Change convert value micros
+- Preprocessor ios symbols
+- Ad revenue tracker crashes
+- Ios init ianalytics flow code is not working
+- Change condition when iaaEnabled is false
+- Keep native plugin init one time
+- Improve EventSender.
+- Backup internal tracker events to PlayerPrefs. Remove RetryAsync since there is already main loop that handle retries. Reenqueue if failed.
+- Try to parse to IConvertible first before parse to object to reduce computation cost.
+- Guard flush with try catch inside the async await.
+- Remove merge conflict marker.
+
 ## [0.37.3] - 2025-04-09
 
 ### 🐛 Bug Fixes
