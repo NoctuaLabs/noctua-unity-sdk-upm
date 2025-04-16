@@ -805,6 +805,7 @@ namespace com.noctuagames.sdk
                 "NoctuaLocaleUserPrefsLanguage",
                 "NoctuaUnpairedOrders",
                 "NoctuaPurchaseHistory",
+                "NoctuaEvents",
             };
 
             foreach (var key in IntegerKeys)
@@ -874,6 +875,7 @@ namespace com.noctuagames.sdk
                 "NoctuaLocaleUserPrefsLanguage",
                 "NoctuaUnpairedOrders",
                 "NoctuaPurchaseHistory",
+                "NoctuaEvents",
             };
         }
     }
