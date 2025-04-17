@@ -401,10 +401,20 @@ namespace com.noctuagames.sdk
             _initialized = true;
         }
 
-        public static async UniTask<bool> IsOfflineModeAsync()
+        public static async UniTask<bool> IsOfflineAsync()
         {
             var isConnected = await CheckInternetConnectionAsync();
             return isConnected;
+        }
+
+        public static <bool> IsOfflineMode()
+        {
+            return _offlineMode;
+        }
+
+        public static <bool> IsOfflineFirst()
+        {
+            return _isOfflineFirst;
         }
 
         public static bool IsInitialized()
@@ -459,7 +469,9 @@ namespace com.noctuagames.sdk
             }
             catch (Exception e)
             {
-                if (Instance.Value._isOfflineFirst && e.Message.Contains("Networking"))
+                if (Instance.Value._isOfflineFirst && (
+                    e.Message.Contains("Networking") || (true) // TODO catch 500 error too
+                ))
                 {
                     // We are suppressing and returning a dummy offline mode
                     // response because:
