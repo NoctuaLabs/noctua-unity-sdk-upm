@@ -17,9 +17,9 @@ namespace com.noctuagames.sdk.Events
         public string BaseUrl;
         public string ClientId;
         public string BundleId = Application.identifier;
-        public uint BatchSize = 20;
+        public uint BatchSize = 10;
         public uint MaxBatchSize = 100;
-        public uint BatchPeriodMs = 300_000;
+        public uint BatchPeriodMs = 60_000; // 1 minute
     }
     
     [Preserve]
@@ -259,6 +259,15 @@ namespace com.noctuagames.sdk.Events
             }
             _log.Info($"{name} added to the queue. Current total event in queue: {events.Count}");
 
+            InternetChecker.CheckInternetConnection((isConnected) =>
+            {
+                if (isConnected)
+                {
+                    // TODO call nativePlugin.onOnline()
+                } else {
+                    // TODO call nativePlugin.onOffline()
+                }
+            });
         }
 
 #if UNITY_ANDROID && !UNITY_EDITOR
@@ -341,7 +350,6 @@ namespace com.noctuagames.sdk.Events
         {
             while (!token.IsCancellationRequested)
             {
-
                 while (_eventQueue.Count == 0)
                 {
                     await UniTask.Delay(1000, cancellationToken: token);
@@ -388,6 +396,8 @@ namespace com.noctuagames.sdk.Events
 
                     await request.Send<EventResponse>();
                     _log.Info($"Sent {events.Count} events");
+
+                    // TODO call nativePlugin.onOnline()
                 }
                 catch (Exception e)
                 {
@@ -403,6 +413,16 @@ namespace com.noctuagames.sdk.Events
                     backup.AddRange(events);
                     PlayerPrefs.SetString("NoctuaEvents", JsonConvert.SerializeObject(backup));
                     PlayerPrefs.Save();
+
+                    InternetChecker.CheckInternetConnection((isConnected) =>
+                    {
+                        if (isConnected)
+                        {
+                            // TODO call nativePlugin.onOnline()
+                        } else {
+                            // TODO call nativePlugin.onOffline()
+                        }
+                    });
 
                     await UniTask.Delay(1000, cancellationToken: token);
                 }
