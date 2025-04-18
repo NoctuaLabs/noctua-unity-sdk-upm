@@ -308,12 +308,16 @@ namespace com.noctuagames.sdk
             // Do not move or reorder this code since it follows a specific initialization flow.
             if(!config.Noctua.isIAAEnabled)
             {              
+                _log.Info("Initialize nativePlugin while IAA is not enabled");
                 InitializeNativePlugin();
             }
             else
             {
                 #if UNITY_IOS
-                   InitializeNativePlugin();
+                _log.Info("Initialize nativePlugin in iOS even if IAA is enabled");
+                InitializeNativePlugin();
+                #else
+                _log.Info("The nativePlugin initialization is postponed until IAA is initialized");
                 #endif
             }
 
@@ -384,7 +388,10 @@ namespace com.noctuagames.sdk
 
         private void InitializeNativePlugin()
         {
-            if (_isNativePluginInitialized) return;
+            if (_isNativePluginInitialized) {
+                _log.Debug("nativePlugin is already initialized");
+                return;
+            }
 
             _nativePlugin?.Init(new List<string>());
             _isNativePluginInitialized = true;
@@ -673,6 +680,37 @@ namespace com.noctuagames.sdk
                 Instance.Value._eventSender.Send("sdk_first_open");
             }
 
+            // Initialize IAA (In-App Advertising) SDK and prepare IAA to be ready for showing ads to the user.
+            if(initResponse.RemoteConfigs.IAA != null)
+            {
+                #if UNITY_ADMOB || UNITY_APPLOVIN
+
+                log.Info("initializing IAA SDK : " + initResponse.RemoteConfigs.IAA.Mediation);
+
+                Noctua.IAA.Initialize(initResponse.RemoteConfigs.IAA, () => {
+
+                    log.Info("IAA SDK initialized");
+
+                    //Init analytics
+                    #if UNITY_ANDROID
+                    Instance.Value.InitializeNativePlugin();
+                    log.Info("nativePlugin initialized after IAA SDK initialized.");
+                    #endif
+                });
+                #else
+                Instance.Value.InitializeNativePlugin();
+                log.Info("nativePlugin initialized because UNITY_ADMOB or UNITY_APPLOVIN is not defined");
+                #endif
+            }
+            else
+            {
+                log.Info("Remote config IAA is not configured yet");
+                #if UNITY_ANDROID
+                Instance.Value.InitializeNativePlugin();
+                log.Info("nativePlugin initialized");
+                #endif
+            }
+
             log.Info("Noctua.InitAsync() completed");
 
             // If the SDK is in offline mode, the initialized flag remains
@@ -685,36 +723,12 @@ namespace com.noctuagames.sdk
                 Instance.Value._auth.Enable();
                 _initialized = true;
 
-            // Trigger retry pending purchase after all module get enabled.
-            Instance.Value._iap.RetryPendingPurchasesAsync();
-            // Query purchases against Google Play Billing
+                // Trigger retry pending purchase after all module get enabled.
+                Instance.Value._iap.RetryPendingPurchasesAsync();
+                // Query purchases against Google Play Billing
 #if UNITY_ANDROID
-            Instance.Value._iap.QueryPurchasesAsync();
+                Instance.Value._iap.QueryPurchasesAsync();
 #endif
-            }
-
-            // Initialize IAA (In-App Advertising) SDK and prepare IAA to be ready for showing ads to the user.
-            if(initResponse.RemoteConfigs.IAA != null)
-            {
-                #if UNITY_ADMOB || UNITY_APPLOVIN
-
-                log.Debug("initiazing IAA SDK : " + initResponse.RemoteConfigs.IAA.Mediation);
-
-                Noctua.IAA.Initialize(initResponse.RemoteConfigs.IAA, () => {
-
-                    log.Debug("IAA SDK initialized");
-
-                    //Init analytics
-                    #if UNITY_ANDROID
-                    Instance.Value.InitializeNativePlugin();
-                    #endif
-                });
-
-                #endif
-            }
-            else
-            {
-                log.Debug("Remote config IAA is not configured yet");
             }
         }
 
