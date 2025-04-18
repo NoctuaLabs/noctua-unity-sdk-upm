@@ -439,7 +439,7 @@ namespace com.noctuagames.sdk
         public static async UniTask<bool> IsOfflineAsync()
         {
             var log = Instance.Value._log;
-            var prevOfflineMode = Instance.Value._offlineMode;
+            var prevOfflineMode = _offlineMode;
 
             var tcs = new UniTaskCompletionSource<bool>();
 
@@ -491,17 +491,40 @@ namespace com.noctuagames.sdk
 
             // Init game, retries on intermittent network failure
             InitGameResponse initResponse = null;
+            var offlineModeInitResponse = new InitGameResponse
+            {
+                Country = "",
+                IpAddress = "0.0.0.0",
+                // Enable all features. These will be revisited at the next init.
+                RemoteConfigs = new RemoteConfigs
+                {
+                    EnabledPaymentTypes = new List<PaymentType> {
+                        PaymentType.playstore,
+                        PaymentType.appstore,
+                        PaymentType.noctuastore,
+                    },
+                    SSODisabled = false,
+                    OfflineMode = true,
+                }
+            };
             
             try
             {
                 initResponse = await Utility.RetryAsyncTask(Instance.Value._game.InitGameAsync);
+
+                if (Instance.Value._isOfflineFirst && initResponse == null)
+                {
+                    initResponse = offlineModeInitResponse;
+                }
             }
             catch (Exception e)
             {
                 if (Instance.Value._isOfflineFirst && (
-                    e.Message.Contains("Networking") || (true) // TODO catch 500 error too
+                    e.Message.Contains("Networking") ||
+                    e.Message.Contains("500")
                 ))
                 {
+                    log.Info($"{e.Message}");
                     // We are suppressing and returning a dummy offline mode
                     // response because:
                     // 1. We want the init process to be done silently
@@ -509,22 +532,7 @@ namespace com.noctuagames.sdk
                     //    the next init attempt.
                     Instance.Value._log.Warning("Init: network issue on offline-first mode. Supress and continue to init silently.");
                     // Construct the response with dummy values
-                    initResponse = new InitGameResponse
-                    {
-                        Country = "",
-                        IpAddress = "0.0.0.0",
-                        // Enable all features. These will be revisited at the next init.
-                        RemoteConfigs = new RemoteConfigs
-                        {
-                            EnabledPaymentTypes = new List<PaymentType> {
-                                PaymentType.playstore,
-                                PaymentType.appstore,
-                                PaymentType.noctuastore,
-                            },
-                            SSODisabled = false
-                        },
-                        OfflineMode = true,
-                    };
+                    initResponse = offlineModeInitResponse;
                 } else {
                     log.Exception(e);
 
@@ -538,6 +546,7 @@ namespace com.noctuagames.sdk
             if (_offlineMode)
             {
                 Instance.Value._log.Info("InitAsync() offline mode is enabled.");
+                Instance.Value._eventSender.Send("offline");
             }
             
             var iapReadyTimeout = DateTime.UtcNow.AddSeconds(5);

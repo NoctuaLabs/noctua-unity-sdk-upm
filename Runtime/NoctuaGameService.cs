@@ -55,6 +55,10 @@ namespace com.noctuagames.sdk
         
         [JsonProperty("iaa")]
         public IAA IAA;
+
+        // To be used locally by offline-first feature
+        [JsonProperty("offline_mode")]
+        public bool OfflineMode;
     }
 
     [Preserve]

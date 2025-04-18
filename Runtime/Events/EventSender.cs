@@ -19,7 +19,7 @@ namespace com.noctuagames.sdk.Events
         public string BundleId = Application.identifier;
         public uint BatchSize = 20;
         public uint MaxBatchSize = 100;
-        public uint BatchPeriodMs = 60_000; // 1 minute
+        public uint BatchPeriodMs = 300_000; // 5 minute
     }
     
     [Preserve]
@@ -259,13 +259,15 @@ namespace com.noctuagames.sdk.Events
             }
             _log.Info($"{name} added to the queue. Current total event in queue: {events.Count}");
 
-            var isOffline = await Noctua.IsOfflineAsync();
-            if (isOffline)
+            Noctua.IsOfflineAsync((isOffline) =>
             {
-                Noctua.OnOffline();
-            } else {
-                Noctua.OnOnline();
-            }
+                if (isOffline)
+                {
+                    Noctua.OnOffline();
+                } else {
+                    Noctua.OnOnline();
+                }
+            });
         }
 
 #if UNITY_ANDROID && !UNITY_EDITOR
@@ -411,13 +413,15 @@ namespace com.noctuagames.sdk.Events
                     PlayerPrefs.SetString("NoctuaEvents", JsonConvert.SerializeObject(backup));
                     PlayerPrefs.Save();
 
-                    var isOffline = await Noctua.IsOfflineAsync();
-                    if (isOffline)
+                    Noctua.IsOfflineAsync((isOffline) =>
                     {
-                        Noctua.OnOffline();
-                    } else {
-                        Noctua.OnOnline();
-                    }
+                        if (isOffline)
+                        {
+                            Noctua.OnOffline();
+                        } else {
+                            Noctua.OnOnline();
+                        }
+                    });
                 }
 
                 await UniTask.Delay(1000, cancellationToken: token);
