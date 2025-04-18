@@ -401,19 +401,35 @@ namespace com.noctuagames.sdk
             _initialized = true;
         }
 
-        public static <bool> IsOfflineMode()
+        public static bool IsOfflineMode()
         {
             return _offlineMode;
         }
 
-        public static <bool> IsOfflineFirst()
+        public static bool IsOfflineFirst()
         {
-            return _isOfflineFirst;
+            return Instance.Value._isOfflineFirst;
         }
 
         public static bool IsInitialized()
         {
             return _initialized;
+        }
+
+        public static void OnOnline()
+        {
+            if (Instance.Value._nativePlugin != null)
+            {
+                Instance.Value._nativePlugin.OnOnline();
+            }
+        }
+
+        public static void OnOffline()
+        {
+            if (Instance.Value._nativePlugin != null)
+            {
+                Instance.Value._nativePlugin.OnOffline();
+            }
         }
 
         public static async UniTask<bool> IsOfflineAsync()
@@ -433,10 +449,18 @@ namespace com.noctuagames.sdk
             if (isConnected)
             {
                 log.Info("Internet is available.");
+                if (Instance.Value._nativePlugin != null)
+                {
+                    Instance.Value._nativePlugin.OnOnline();
+                }
             }
             else
             {
                 log.Info("No internet connection.");
+                if (Instance.Value._nativePlugin != null)
+                {
+                    Instance.Value._nativePlugin.OnOnline();
+                }
                 Instance.Value._eventSender.Send("offline");
             }
             

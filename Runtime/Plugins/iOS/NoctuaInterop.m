@@ -148,3 +148,11 @@ void noctuaGetSingleAccount(int64_t gameId, int64_t playerId, StringDelegate cal
 void noctuaDeleteAccount(int64_t gameId, int64_t playerId) {
     [Noctua deleteAccountWithGameId:gameId playerId:playerId];
 }
+
+void noctuaOnOnline() {
+    [Noctua onOnline];
+}
+
+void noctuaOnOffline() {
+    [Noctua onOffline];
+}

@@ -41,6 +41,11 @@ namespace com.noctuagames.sdk
         [DllImport("__Internal")]
         private static extern void noctuaDeleteAccount(long gameId, long playerId);
 
+        [DllImport("__Internal")]
+        private static extern void noctuaOnOnline();
+
+        [DllImport("__Internal")]
+        private static extern void noctuaOnOffline();
 
         [DllImport("__Internal")]
         private static extern void _TAG_ShowDatePicker(int mode, double unix, int pickerId);
@@ -197,6 +202,18 @@ namespace com.noctuagames.sdk
             noctuaDeleteAccount(account.GameId, account.PlayerId);
             
             return 1;
+        }
+
+        public void OnOnline()
+        {
+            noctuaOnOffline();
+            _log.Info($"trigger online mode to native plugin");
+        }
+
+        public void OnOffline()
+        {
+            noctuaOnOnline();
+            _log.Info($"trigger offline mode to native plugin");
         }
     }
 #endif

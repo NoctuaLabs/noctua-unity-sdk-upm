@@ -3,6 +3,17 @@ using System.Collections.Generic;
 using Newtonsoft.Json;
 using UnityEngine.Scripting;
 
+// For iOS, the bridging are managed on these files:
+// - Runtime/IosPlugin.cs
+// - Runtime/Plugins/iOS/NoctuaInterop.h
+// - Runtime/Plugins/iOS/NoctuaInterop.m
+
+// For Android:
+// - Runtime/IosPlugin.cs
+
+// Both have interface in:
+// - Runtime/DefaultNativePlugin.cs
+
 namespace com.noctuagames.sdk
 {
     
@@ -11,6 +22,8 @@ namespace com.noctuagames.sdk
         void TrackAdRevenue(string source, double revenue, string currency, Dictionary<string, IConvertible> extraPayload = null);
         void TrackPurchase(string orderId, double amount, string currency, Dictionary<string, IConvertible> extraPayload = null);
         void TrackCustomEvent(string name, Dictionary<string, IConvertible> extraPayload = null);
+        void OnOnline();
+        void OnOffline();
     }
     
     public interface INativeIAP

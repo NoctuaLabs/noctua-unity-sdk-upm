@@ -40,6 +40,14 @@ namespace com.noctuagames.sdk
         {
         }
 
+        public void OnOnline()
+        {
+        }
+
+        public void OnOffline()
+        {
+        }
+
         public void PurchaseItem(string productId, Action<bool, string> callback)
         {
             throw new NotImplementedException();
