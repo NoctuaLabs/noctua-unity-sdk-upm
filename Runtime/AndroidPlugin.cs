@@ -185,6 +185,20 @@ namespace com.noctuagames.sdk
             
             return noctua.Call<int>("deleteAccount", javaAccount);
         }
+
+        public void OnOnline()
+        {
+            using var noctua = new AndroidJavaObject("com.noctuagames.sdk.Noctua$Companion");
+            noctua.Call("onOnline");
+            _log.Info($"trigger online mode to native plugin");
+        }
+
+        public void OnOffline()
+        {
+            using var noctua = new AndroidJavaObject("com.noctuagames.sdk.Noctua$Companion");
+            noctua.Call("onOffline");
+            _log.Info($"trigger offline mode to native plugin");
+        }
     }
 }
 #endif

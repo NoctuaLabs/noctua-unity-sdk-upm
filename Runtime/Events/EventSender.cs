@@ -17,7 +17,7 @@ namespace com.noctuagames.sdk.Events
         public string BaseUrl;
         public string ClientId;
         public string BundleId = Application.identifier;
-        public uint BatchSize = 10;
+        public uint BatchSize = 20;
         public uint MaxBatchSize = 100;
         public uint BatchPeriodMs = 60_000; // 1 minute
     }
@@ -263,9 +263,9 @@ namespace com.noctuagames.sdk.Events
             {
                 if (isConnected)
                 {
-                    // TODO call nativePlugin.onOnline()
+                    Noctua.OnOnline();
                 } else {
-                    // TODO call nativePlugin.onOffline()
+                    Noctua.OnOffline();
                 }
             });
         }
@@ -397,7 +397,7 @@ namespace com.noctuagames.sdk.Events
                     await request.Send<EventResponse>();
                     _log.Info($"Sent {events.Count} events");
 
-                    // TODO call nativePlugin.onOnline()
+                    Noctua.OnOnline();
                 }
                 catch (Exception e)
                 {
@@ -418,9 +418,9 @@ namespace com.noctuagames.sdk.Events
                     {
                         if (isConnected)
                         {
-                            // TODO call nativePlugin.onOnline()
+                            Noctua.OnOnline();
                         } else {
-                            // TODO call nativePlugin.onOffline()
+                            Noctua.OnOffline();
                         }
                     });
 
