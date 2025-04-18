@@ -259,15 +259,13 @@ namespace com.noctuagames.sdk.Events
             }
             _log.Info($"{name} added to the queue. Current total event in queue: {events.Count}");
 
-            InternetChecker.CheckInternetConnection((isConnected) =>
+            var isOffline = await Noctua.IsOfflineAsync();
+            if (isOffline)
             {
-                if (isConnected)
-                {
-                    Noctua.OnOnline();
-                } else {
-                    Noctua.OnOffline();
-                }
-            });
+                Noctua.OnOffline();
+            } else {
+                Noctua.OnOnline();
+            }
         }
 
 #if UNITY_ANDROID && !UNITY_EDITOR
@@ -324,10 +322,9 @@ namespace com.noctuagames.sdk.Events
                     _log.Error($"Failed to send events: {e.Message}");
                     _log.Info($"Backup events to PlayerPrefs");
                     PlayerPrefs.SetString("NoctuaEvents", JsonConvert.SerializeObject(events));
-                        PlayerPrefs.Save();
-                    }
-                });
-            
+                    PlayerPrefs.Save();
+                }
+            });
         }
         
         public void Dispose()
@@ -414,18 +411,16 @@ namespace com.noctuagames.sdk.Events
                     PlayerPrefs.SetString("NoctuaEvents", JsonConvert.SerializeObject(backup));
                     PlayerPrefs.Save();
 
-                    InternetChecker.CheckInternetConnection((isConnected) =>
+                    var isOffline = await Noctua.IsOfflineAsync();
+                    if (isOffline)
                     {
-                        if (isConnected)
-                        {
-                            Noctua.OnOnline();
-                        } else {
-                            Noctua.OnOffline();
-                        }
-                    });
-
-                    await UniTask.Delay(1000, cancellationToken: token);
+                        Noctua.OnOffline();
+                    } else {
+                        Noctua.OnOnline();
+                    }
                 }
+
+                await UniTask.Delay(1000, cancellationToken: token);
             }
         }
     }

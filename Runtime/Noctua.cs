@@ -439,6 +439,7 @@ namespace com.noctuagames.sdk
         public static async UniTask<bool> IsOfflineAsync()
         {
             var log = Instance.Value._log;
+            var prevOfflineMode = Instance.Value._offlineMode;
 
             var tcs = new UniTaskCompletionSource<bool>();
 
@@ -463,9 +464,14 @@ namespace com.noctuagames.sdk
                 log.Info("No internet connection.");
                 if (Instance.Value._nativePlugin != null)
                 {
-                    Instance.Value._nativePlugin.OnOnline();
+                    Instance.Value._nativePlugin.OnOffline();
                 }
-                Instance.Value._eventSender.Send("offline");
+
+                if (prevOfflineMode != _offlineMode)
+                {
+                    // Send offline event only if previously online.
+                    Instance.Value._eventSender.Send("offline");
+                }
             }
             
             return !isConnected;
@@ -695,7 +701,7 @@ namespace com.noctuagames.sdk
                     //Init analytics
                     #if UNITY_ANDROID
                     Instance.Value.InitializeNativePlugin();
-                    log.Info("nativePlugin initialized after IAA SDK initialized.");
+                    log.Info("nativePlugin initialized");
                     #endif
                 });
                 #else
