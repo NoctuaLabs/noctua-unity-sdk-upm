@@ -384,10 +384,14 @@ namespace com.noctuagames.sdk
 
         private void InitializeNativePlugin()
         {
-            if (_isNativePluginInitialized) return;
+            if (_isNativePluginInitialized) {
+                _log.Debug("nativePlugin is already initialized");
+                return;
+            }
 
             _nativePlugin?.Init(new List<string>());
             _isNativePluginInitialized = true;
+            _log.Debug("nativePlugin is initialized");
         }
 
         private void Enable()
