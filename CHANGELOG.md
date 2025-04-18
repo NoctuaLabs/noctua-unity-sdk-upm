@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.38.1] - 2025-04-18
+
+### 🐛 Bug Fixes
+
+- Keep init nativePlugin outside the IAA case.
+- Add more debug log around nativePlugin initialization.
+
 ## [0.38.0] - 2025-04-16
 
 ### 🚀 Features
