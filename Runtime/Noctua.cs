@@ -678,12 +678,16 @@ namespace com.noctuagames.sdk
                     Instance.Value.InitializeNativePlugin();
                     #endif
                 });
-
+                #else
+                Instance.Value.InitializeNativePlugin();
                 #endif
             }
             else
             {
                 log.Debug("Remote config IAA is not configured yet");
+                #if UNITY_ANDROID
+                Instance.Value.InitializeNativePlugin();
+                #endif
             }
         }
 
