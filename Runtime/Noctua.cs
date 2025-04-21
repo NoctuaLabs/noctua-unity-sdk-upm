@@ -453,7 +453,7 @@ namespace com.noctuagames.sdk
 
             if (isConnected)
             {
-                log.Info("Internet is available.");
+                log.Debug("Internet is available.");
                 if (Instance.Value._nativePlugin != null)
                 {
                     Instance.Value._nativePlugin.OnOnline();
@@ -461,7 +461,7 @@ namespace com.noctuagames.sdk
             }
             else
             {
-                log.Info("No internet connection.");
+                log.Debug("No internet connection.");
                 if (Instance.Value._nativePlugin != null)
                 {
                     Instance.Value._nativePlugin.OnOffline();
@@ -469,6 +469,7 @@ namespace com.noctuagames.sdk
 
                 if (prevOfflineMode != _offlineMode)
                 {
+                    log.Info("send offline event");
                     // Send offline event only if previously online.
                     Instance.Value._eventSender.Send("offline");
                 }
