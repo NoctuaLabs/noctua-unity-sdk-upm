@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.39.1] - 2025-04-21
+
+### 🐛 Bug Fixes
+
+- Sdk version not found
+- Do not track purchase_verify_order_failed if verify triggered by retry, worker, or loop.
+- Move some log.Info to log.Debug.
+
 ## [0.39.0] - 2025-04-21
 
 ### 🚀 Features
