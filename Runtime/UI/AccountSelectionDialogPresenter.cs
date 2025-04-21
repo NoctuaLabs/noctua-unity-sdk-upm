@@ -33,8 +33,17 @@ namespace com.noctuagames.sdk.UI
         {
         }
 
-        public void Show()
+        public async void Show()
         {
+
+            var isConnected = await Noctua.CheckInternetConnectionAsync();
+            _log.Debug($"================================ {isConnected}");
+            if (!isConnected)
+            {
+                var offlineModeMessage = Noctua.Platform.Locale.GetTranslation(LocaleTextKey.OfflineModeMessage) + " [AccountSelection]";
+                Model.HandleRetryAccountSelectionAsync(offlineModeMessage);
+                return;
+            }
             LoadData();
             Model.ClearNavigation();
             Model.AuthIntention = AuthIntention.Switch;

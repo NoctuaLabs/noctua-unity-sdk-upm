@@ -193,7 +193,8 @@
     "IAPPendingPurchaseItemRetryButtonText" : "Thử lại",
     "AuthEmailLinkingSuccessful": "Kết nối email thành công",
     "IAPPurchaseHistoryTitle": "Bạn có {0} lần mua hàng",
-    "IAPPurchaseOfflineModeMessage" : "Lỗi mạng: Kết nối internet của bạn vẫn không khả dụng. Vui lòng kiểm tra kết nối và thử lại.",
+
+    "OfflineModeMessage" : "Lỗi mạng: Kết nối internet của bạn vẫn không khả dụng. Vui lòng kiểm tra kết nối và thử lại.",
 
     "EditProfile.NicknameValidation": "Biệt danh không được để trống",
     "EditProfile.CountryValidation": "Chọn quốc gia",

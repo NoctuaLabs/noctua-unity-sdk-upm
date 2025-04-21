@@ -166,6 +166,14 @@ namespace com.noctuagames.sdk
             }
         }
 
+        public async Task HandleRetryAccountSelectionAsync(string offlineModeMessage) {
+            bool isRetry = await _uiFactory.ShowRetryDialog(offlineModeMessage, "offlineMode");
+            if(isRetry)
+            {
+                ShowAccountSelection();
+            }
+        }
+
         public void ShowAccountSelection()
         {
             _accountSelectionDialog.Show();
@@ -209,6 +217,14 @@ namespace com.noctuagames.sdk
         public void ShowAccountDeletionConfirmation(UserBundle recentAccount)
         {
             _accountDeletionConfirmationDialog.Show(recentAccount);
+        }
+
+        public async Task HandleRetryUserCenterAsync(string offlineModeMessage) {
+            bool isRetry = await _uiFactory.ShowRetryDialog(offlineModeMessage, "offlineMode");
+            if(isRetry)
+            {
+                ShowUserCenter();
+            }
         }
         
         public void ShowUserCenter()

@@ -705,7 +705,7 @@ namespace com.noctuagames.sdk
             // Offline-first handler
             _uiFactory.ShowLoadingProgress(true);
             
-            var offlineModeMessage = Noctua.Platform.Locale.GetTranslation(LocaleTextKey.IAPPurchaseOfflineModeMessage);
+            var offlineModeMessage = Noctua.Platform.Locale.GetTranslation(LocaleTextKey.OfflineModeMessage) + " [IAP]";
             var isOffline = await Noctua.IsOfflineAsync();
 
             if(!isOffline && !Noctua.IsInitialized())

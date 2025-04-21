@@ -330,7 +330,34 @@ namespace com.noctuagames.sdk.UI
                 _profileImageUrl = "";
                 _originalStyleBackground = null;
 
-                var user = await Model.AuthService.GetUserAsync();
+                var user = new User();
+
+                try
+                {
+                    user = await Model.AuthService.GetUserAsync();
+                } catch(Exception e)
+                {
+                    Model.ShowLoadingProgress(false);
+                    if (e.Message.Contains("Networking"))
+                    {
+                        Model.ShowLoadingProgress(false);
+                        var offlineModeMessage = Noctua.Platform.Locale.GetTranslation(LocaleTextKey.OfflineModeMessage) + " [UserCenter]";
+                        Model.HandleRetryUserCenterAsync(offlineModeMessage);
+                        return;
+                    }
+
+                    Model.ShowError(e.Message);
+
+                    throw e;
+                }
+
+                if (user == null)
+                {
+                    Model.ShowError("Failed to load user data. Please try again later.");
+                    var e = new Exception("Failed to load user data.");
+                    throw e;
+                }
+
                 var isGuest = user?.IsGuest == true;
 
                 await UniTask.Delay(TimeSpan.FromSeconds(2)); // Wait for 2 seconds
