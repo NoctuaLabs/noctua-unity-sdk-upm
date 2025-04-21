@@ -12,6 +12,7 @@ namespace com.noctuagames.sdk
         
         public void Init(List<string> activeBundleIds)
         {
+            _log.Info($"Initialize to nativePlugin");
             using var unityPlayer = new AndroidJavaClass("com.unity3d.player.UnityPlayer");
             var unityActivity = unityPlayer.GetStatic<AndroidJavaObject>("currentActivity");
 
@@ -189,15 +190,29 @@ namespace com.noctuagames.sdk
         public void OnOnline()
         {
             using var noctua = new AndroidJavaObject("com.noctuagames.sdk.Noctua$Companion");
-            noctua.Call("onOnline");
-            _log.Info($"trigger online mode to native plugin");
+            try
+            {
+                noctua.Call("onOnline");
+                _log.Info($"trigger online mode to native plugin");
+            }
+            catch (AndroidJavaException e)
+            {
+                _log.Warning("Failed to call onOnline method: " + e.Message);
+            }
         }
 
         public void OnOffline()
         {
             using var noctua = new AndroidJavaObject("com.noctuagames.sdk.Noctua$Companion");
-            noctua.Call("onOffline");
-            _log.Info($"trigger offline mode to native plugin");
+            try
+            {
+                noctua.Call("onOffline");
+                _log.Info($"trigger offline mode to native plugin");
+            }
+            catch (AndroidJavaException e)
+            {
+                _log.Warning("Failed to call onOffline method: " + e.Message);
+            }
         }
     }
 }
