@@ -2,6 +2,23 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.39.0] - 2025-04-21
+
+### 🚀 Features
+
+- Add bridging against native onOnline and onOffline methods.
+
+### 🐛 Bug Fixes
+
+- Keep init nativePlugin outside the IAA case.
+- Add more debug log around nativePlugin initialization.
+- Hook up internet check on event sender loop. Increase granularity and decrease batch size.
+- Add note to catch 500 error to suppress init error dialog in onfline-first mode.
+- Simplify offline checker, fix misleading function name.
+- Send offline event only if it is previously online.
+- Handle 500 error in offline-first.
+- Catch IsOfflineAsync result with ContinueWith.
+
 ## [0.38.0] - 2025-04-16
 
 ### 🚀 Features
