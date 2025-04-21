@@ -483,15 +483,62 @@ namespace com.noctuagames.sdk
             OrderRequest orderRequest,
             VerifyOrderRequest verifyOrderRequest,
             string token,
-            long? playerId
+            long? playerId,
+            bool isTriggeredByIAP
         )
         {
+                _log.Debug($"Attempt to verify orderID {verifyOrderRequest.Id}, triggered by IAP: ${isTriggeredByIAP}");
+
                 if (orderRequest.Id == 0)
                 {
                     throw new NoctuaException(NoctuaErrorCode.Payment, $": Invalid order ID: 0");
                 }
 
-                var verifyOrderResponse = await VerifyOrderAsync(verifyOrderRequest, token);
+                var verifyOrderResponse = new VerifyOrderResponse();
+                verifyOrderResponse.Id = verifyOrderRequest.Id;
+                try {
+                verifyOrderResponse = await VerifyOrderAsync(verifyOrderRequest, token);
+                }
+                catch(Exception e)
+                {
+                    verifyOrderResponse = new VerifyOrderResponse();
+                    verifyOrderResponse.Id = verifyOrderRequest.Id;
+                    if (e is NoctuaException noctuaEx)
+                    {
+                        switch (noctuaEx.ErrorCode)
+                        {
+                        case 2043:
+                            verifyOrderResponse.Status = OrderStatus.pending;
+                            break;
+                        case 2044:
+                            verifyOrderResponse.Status = OrderStatus.verification_failed;
+                            break;
+                        case 2045:
+                            verifyOrderResponse.Status = OrderStatus.delivery_callback_failed;
+                            break;
+                        case 2046:
+                            verifyOrderResponse.Status = OrderStatus.canceled;
+                            break;
+                        case 2047:
+                            verifyOrderResponse.Status = OrderStatus.refunded;
+                            break;
+                        case 2048:
+                            verifyOrderResponse.Status = OrderStatus.voided;
+                            break;
+                        default:
+                            break;
+                        }
+                    } else {
+                        throw e;
+                    }
+                }
+
+                if (verifyOrderResponse == null) // Guard it
+                {
+                    verifyOrderResponse = new VerifyOrderResponse();
+                    verifyOrderResponse.Id = verifyOrderRequest.Id;
+                    verifyOrderResponse.Status = OrderStatus.unknown;
+                }
 
                 switch (verifyOrderResponse.Status)
                 {
@@ -607,18 +654,22 @@ namespace com.noctuagames.sdk
                 verifyOrderResponse.Status != OrderStatus.refunded &&
                 verifyOrderResponse.Status != OrderStatus.voided)
                 {
-                    _eventSender?.Send(
-                        "purchase_verify_order_failed",
-                        new()
-                        {
-                            { "product_id", orderRequest.ProductId },
-                            { "amount", orderRequest.PriceInUSD },
-                            { "currency", "USD" },
-                            { "order_id", orderRequest.Id },
-                            { "orig_amount", orderRequest.Price },
-                            { "orig_currency", orderRequest.Currency }
-                        }
-                    );
+                    // Only send this event on IAP flow so retry/worker will not flood our data.
+                    if (isTriggeredByIAP)
+                    {
+                        _eventSender?.Send(
+                            "purchase_verify_order_failed",
+                            new()
+                            {
+                                { "product_id", orderRequest.ProductId },
+                                { "amount", orderRequest.PriceInUSD },
+                                { "currency", "USD" },
+                                { "order_id", orderRequest.Id },
+                                { "orig_amount", orderRequest.Price },
+                                { "orig_currency", orderRequest.Currency }
+                            }
+                        );
+                    }
 
                     EnqueueToRetryPendingPurchases(
                         new PurchaseItem
@@ -639,6 +690,7 @@ namespace com.noctuagames.sdk
                     }
 
                     throw new NoctuaException(NoctuaErrorCode.Payment, $"{message} Status: {verifyOrderResponse.Status.ToString()}");
+
                 }
 
                 return verifyOrderResponse;
@@ -1048,7 +1100,8 @@ namespace com.noctuagames.sdk
                                 orderRequest,
                                 verifyReq,
                                 _accessTokenProvider.AccessToken,
-                                Noctua.Auth.RecentAccount?.Player?.Id
+                                Noctua.Auth.RecentAccount?.Player?.Id,
+                                true
                             );
 
                             // If verified, cancel the falback to secondary payment.
@@ -1213,7 +1266,8 @@ namespace com.noctuagames.sdk
                         orderRequest,
                         verifyOrderRequest,
                         _accessTokenProvider.AccessToken,
-                        Noctua.Auth.RecentAccount?.Player?.Id
+                        Noctua.Auth.RecentAccount?.Player?.Id,
+                        true
                     )
                 );
 
@@ -1316,7 +1370,8 @@ namespace com.noctuagames.sdk
                     item.OrderRequest,
                     item.VerifyOrderRequest,
                     item.AccessToken,
-                    item.PlayerId
+                    item.PlayerId,
+                    false
                 );
 
                 if (verifyOrderResponse.Status != OrderStatus.completed &&
@@ -1334,20 +1389,8 @@ namespace com.noctuagames.sdk
             }
             catch (NoctuaException e)
             {
-                // Track failure
-                _eventSender?.Send(
-                    "purchase_verify_order_failed",
-                    new()
-                    {
-                        { "product_id", item.OrderRequest.ProductId },
-                        { "amount", item.OrderRequest.PriceInUSD },
-                        { "currency", "USD" },
-                        { "order_id", item.OrderRequest.Id },
-                        { "orig_amount", item.OrderRequest.Price },
-                        { "orig_currency", item.OrderRequest.Currency }
-                    }
-                );
-
+                // Do not track purchase_verify_order_failed
+                // as we don't want it to flood our data.
                 EnqueueToRetryPendingPurchases(
                     new PurchaseItem
                     {
@@ -1487,7 +1530,8 @@ namespace com.noctuagames.sdk
                         pendingPurchase.OrderRequest,
                         pendingPurchase.VerifyOrderRequest,
                         pendingPurchase.AccessToken,
-                        pendingPurchase.PlayerId
+                        pendingPurchase.PlayerId,
+                        false
                     );
 
                     break;
@@ -1516,7 +1560,8 @@ namespace com.noctuagames.sdk
                         purchaseItem.OrderRequest,
                         purchaseItem.VerifyOrderRequest,
                         purchaseItem.AccessToken,
-                        purchaseItem.PlayerId
+                        purchaseItem.PlayerId,
+                        false
                     );
 
                     break;
@@ -1570,7 +1615,8 @@ namespace com.noctuagames.sdk
                         pendingPurchaseItem.OrderRequest,
                         pendingPurchaseItem.VerifyOrderRequest,
                         pendingPurchaseItem.AccessToken,
-                        pendingPurchaseItem.PlayerId
+                        pendingPurchaseItem.PlayerId,
+                        false
                     );
                 }
                 catch (Exception e)
@@ -1932,7 +1978,8 @@ namespace com.noctuagames.sdk
                             item.OrderRequest,
                             item.VerifyOrderRequest,
                             item.AccessToken,
-                            item.PlayerId
+                            item.PlayerId,
+                            false
                         );
 
                         if (verifyOrderResponse.Status != OrderStatus.completed &&
@@ -1947,19 +1994,8 @@ namespace com.noctuagames.sdk
                     }
                     catch (NoctuaException e)
                     {
-                        // Track failure
-                        _eventSender?.Send(
-                            "purchase_verify_order_failed",
-                            new()
-                            {
-                                { "product_id", item.OrderRequest.ProductId },
-                                { "amount", item.OrderRequest.PriceInUSD },
-                                { "currency", "USD" },
-                                { "order_id", item.OrderRequest.Id },
-                                { "orig_amount", item.OrderRequest.Price },
-                                { "orig_currency", item.OrderRequest.Currency }
-                            }
-                        );
+                        // Do not track purchase_verify_order_failed
+                        // as we don't want it to flood our data.
 
                         EnqueueToRetryPendingPurchases(
                             new PurchaseItem
