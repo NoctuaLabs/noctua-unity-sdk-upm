@@ -284,9 +284,12 @@ namespace com.noctuagames.sdk
                 
                 switch (_request.result)
                 {
-                    case UnityWebRequest.Result.ConnectionError: throw NoctuaException.RequestConnectionError;
-                    case UnityWebRequest.Result.DataProcessingError: throw NoctuaException.RequestDataProcessingError;
-                    case UnityWebRequest.Result.InProgress: throw NoctuaException.RequestInProgress;
+                    case UnityWebRequest.Result.ConnectionError:
+                        throw NoctuaException.RequestConnectionError;
+                    case UnityWebRequest.Result.DataProcessingError:
+                        throw NoctuaException.RequestDataProcessingError;
+                    case UnityWebRequest.Result.InProgress:
+                        throw NoctuaException.RequestInProgress;
                     case UnityWebRequest.Result.ProtocolError: // HTTP statuses >= 400
                     case UnityWebRequest.Result.Success: // HTTP statuses < 400
                         response = _request.downloadHandler.text;
@@ -314,66 +317,62 @@ namespace com.noctuagames.sdk
                 _log.Debug($"<= {responseCode} {responseCodeString} {method} {url}\n{responseHeaders}\n\n{response}");
             }
             
-            // Retryable HTTP status codes are treated as networking error:           
-            // 408 Request Timeout
-            // 425 Too Early
-            // 429 Too Many Requests
-            // 500 Internal Server Error
-            // 502 Bad Gateway
-            // 503 Service Unavailable
-            // 504 Gateway Timeout
 
-            switch ((int)_request.responseCode)
+            if ((int)_request.responseCode >= 400 && (int)_request.responseCode <= 408)
             {
-                case 408:
-                case 425:
-                case 429:
-                case 500:
-                case 502:
-                case 503:
-                case 504:
-                    response = response[..Math.Min(1000, response.Length)]; // Limit the response to 1000 characters
-                    _log.Error($"HTTP error {_request.responseCode}, response: '{response}'");
+                ErrorResponse errorResponse;
 
+                try
+                {
+                    errorResponse = JsonConvert.DeserializeObject<ErrorResponse>(response, _jsonSettings);
+                }
+                catch (Exception)
+                {
+                    _log.Error($"HTTP error {_request.responseCode}, response: '{response}'");
+                    
                     throw new NoctuaException(
-                        NoctuaErrorCode.Networking,
+                        NoctuaErrorCode.Application,
+                            $"HTTP error {_request.responseCode}: {((HttpStatusCode)_request.responseCode).ToString()}"
+                        );
+                }
+                
+                _log.Error($"Noctua error {errorResponse.ErrorCode}: {errorResponse.ErrorMessage}");
+                
+                throw new NoctuaException((NoctuaErrorCode)errorResponse.ErrorCode, errorResponse.ErrorMessage);
+            }
+            else if ((int)_request.responseCode > 408) // Including 5XX
+            {
+                // Retryable HTTP status codes are treated as networking error:           
+                // 408 Request Timeout
+                // 425 Too Early
+                // 429 Too Many Requests
+                // 500 Internal Server Error
+                // 502 Bad Gateway
+                // 503 Service Unavailable
+                // 504 Gateway Timeout
+                // 522 Bad Gateway
+                response = response[..Math.Min(1000, response.Length)]; // Limit the response to 1000 characters
+                _log.Error($"HTTP error {_request.responseCode}, response: '{response}'");
+
+                throw new NoctuaException(
+                    NoctuaErrorCode.Networking,
                         $"HTTP error {_request.responseCode}: {((HttpStatusCode)_request.responseCode)}," +
                         $"Response: '{response}'"
                     );
-                case >= 400:
-                    ErrorResponse errorResponse;
+            } else {
+                try
+                {
+                    return JsonConvert.DeserializeObject<DataWrapper<T>>(response, _jsonSettings).Data;
+                }
+                catch (Exception e)
+                {
+                    _log.Exception(e);
 
-                    try
-                    {
-                        errorResponse = JsonConvert.DeserializeObject<ErrorResponse>(response, _jsonSettings);
-                    }
-                    catch (Exception)
-                    {
-                        _log.Error($"HTTP error {_request.responseCode}, response: '{response}'");
-                    
-                        throw new NoctuaException(
-                            NoctuaErrorCode.Application,
-                            $"HTTP error {_request.responseCode}: {((HttpStatusCode)_request.responseCode).ToString()}"
-                        );
-                    }
-                
-                    _log.Error($"Noctua error {errorResponse.ErrorCode}: {errorResponse.ErrorMessage}");
-                
-                    throw new NoctuaException((NoctuaErrorCode)errorResponse.ErrorCode, errorResponse.ErrorMessage);
-                default:                
-                    try
-                    {
-                        return JsonConvert.DeserializeObject<DataWrapper<T>>(response, _jsonSettings).Data;
-                    }
-                    catch (Exception e)
-                    {
-                        _log.Exception(e);
-
-                        throw new NoctuaException(
-                            NoctuaErrorCode.Application,
-                            $"Failed to parse response as {typeof(T).Name}: {response}. Error: {e.Message}"
-                        );
-                    }
+                    throw new NoctuaException(
+                        NoctuaErrorCode.Application,
+                        $"Failed to parse response as {typeof(T).Name}: {response}. Error: {e.Message}"
+                    );
+                }
             }
         }
 
