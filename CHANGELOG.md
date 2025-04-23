@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.39.2] - 2025-04-23
+
+### 🐛 Bug Fixes
+
+- Handle all status error code above 408 (including 522) properly.
+
 ## [0.39.1] - 2025-04-21
 
 ### 🐛 Bug Fixes
