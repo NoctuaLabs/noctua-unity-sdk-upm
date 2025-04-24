@@ -2,6 +2,7 @@
 using GoogleMobileAds.Api;
 using UnityEngine;
 using System;
+using System.Collections.Generic;
 
 namespace com.noctuagames.sdk.Admob
 {
@@ -67,6 +68,8 @@ namespace com.noctuagames.sdk.Admob
                     _log.Debug("Interstitial ad loaded with response : "
                                 + ad.GetResponseInfo());
 
+                    TrackAdCustomEventInterstitial("ad_loaded");
+
                     _interstitialAd = ad;
 
                     RegisterEventHandlers(ad);
@@ -114,12 +117,16 @@ namespace com.noctuagames.sdk.Admob
             {
                 _log.Debug("Interstitial ad was clicked.");
 
+                TrackAdCustomEventInterstitial("ad_clicked");
+
                 InterstitialOnAdClicked?.Invoke();
             };
             // Raised when an ad opened full screen content.
             interstitialAd.OnAdFullScreenContentOpened += () =>
             {
                 _log.Debug("Interstitial ad full screen content opened.");
+
+                TrackAdCustomEventInterstitial("ad_shown");
 
                 InterstitialOnAdDisplayed?.Invoke();
             };
@@ -130,6 +137,8 @@ namespace com.noctuagames.sdk.Admob
 
                 LoadInterstitialAd();
 
+                TrackAdCustomEventInterstitial("ad_closed");
+
                 InterstitialOnAdClosed?.Invoke();
             };
             // Raised when the ad failed to open full screen content.
@@ -139,6 +148,13 @@ namespace com.noctuagames.sdk.Admob
                             "with error : " + error);
 
                 LoadInterstitialAd();
+
+                TrackAdCustomEventInterstitial("ad_show_error", new Dictionary<string, IConvertible>()
+                {
+                    { "error_code", error.GetCode() },
+                    { "error_message", error.GetMessage() },
+                    { "domain", error.GetDomain() }
+                });
 
                 InterstitialOnAdFailedDisplayed?.Invoke();
             };
@@ -153,6 +169,32 @@ namespace com.noctuagames.sdk.Admob
 
                 _log.Debug("Interstitial ad cleaned up.");
             }
+        }
+
+        private void TrackAdCustomEventInterstitial(string eventName, Dictionary<string, IConvertible> extraPayload = null)
+        {
+            _log.Debug("Tracking custom event for interstitial ad: " + eventName);
+
+            extraPayload ??= new Dictionary<string, IConvertible>();
+
+            AdapterResponseInfo loadedAdapterResponseInfo = _interstitialAd.GetResponseInfo().GetLoadedAdapterResponseInfo();
+            string adSourceName = loadedAdapterResponseInfo?.AdSourceName ?? "empty";
+
+            extraPayload.Add("ad_unit_id", _interstitialAd.GetAdUnitID());
+            extraPayload.Add("ad_format", "interstitial");
+            extraPayload.Add("ad_network", adSourceName);
+            extraPayload.Add("mediation_service", "admob");
+            extraPayload.Add("sdk_version", MobileAds.GetVersion().ToString());
+
+            string properties = "";
+            foreach (var (key, value) in extraPayload)
+            {
+                properties += $"{key}={value}, ";
+            }
+
+            _log.Debug($"Event name: {eventName}, Event properties: {properties}");
+        
+            Noctua.Event.TrackCustomEvent(eventName, extraPayload);
         }
     }
 }

@@ -1,6 +1,7 @@
 #if UNITY_ADMOB
 using GoogleMobileAds.Api;
 using System;
+using System.Collections.Generic;
 
 namespace com.noctuagames.sdk.Admob
 {
@@ -92,6 +93,8 @@ namespace com.noctuagames.sdk.Admob
             {
                 _log.Debug("Banner view loaded an ad with response : "
                     + _bannerView.GetResponseInfo());
+
+                TrackAdCustomEventBanner("ad_loaded");
                 
                 BannerOnAdDisplayed?.Invoke();
             };
@@ -100,6 +103,13 @@ namespace com.noctuagames.sdk.Admob
             {
                 _log.Error("Banner view failed to load an ad with error : "
                     + error);
+
+                TrackAdCustomEventBanner("ad_show_error", new Dictionary<string, IConvertible>()
+                {
+                    { "error_code", error.GetCode() },
+                    { "error_message", error.GetMessage() },
+                    { "domain", error.GetDomain() }
+                });
                 
                 BannerOnAdFailedDisplayed?.Invoke();
             };
@@ -124,6 +134,8 @@ namespace com.noctuagames.sdk.Admob
             {
                 _log.Debug("Banner view was clicked.");
 
+                TrackAdCustomEventBanner("ad_clicked");
+
                 BannerOnAdClicked?.Invoke();
             };
             // Raised when an ad opened full screen content.
@@ -131,12 +143,16 @@ namespace com.noctuagames.sdk.Admob
             {
                 _log.Debug("Banner view full screen content opened.");
 
+                TrackAdCustomEventBanner("ad_shown");
+
                 BannerOnAdDisplayed?.Invoke();
             };
             // Raised when the ad closed full screen content.
             _bannerView.OnAdFullScreenContentClosed += () =>
             {
                 _log.Debug("Banner view full screen content closed.");
+
+                TrackAdCustomEventBanner("ad_closed");
 
                 BannerOnAdClosed?.Invoke();
             };
@@ -151,6 +167,32 @@ namespace com.noctuagames.sdk.Admob
 
                 _log.Debug("Banner view cleaned up.");
             }
+        }
+
+        private void TrackAdCustomEventBanner(string eventName, Dictionary<string, IConvertible> extraPayload = null)
+        {
+            _log.Debug("Tracking custom event for banner ad: " + eventName);
+
+            extraPayload ??= new Dictionary<string, IConvertible>();
+
+            AdapterResponseInfo loadedAdapterResponseInfo = _bannerView.GetResponseInfo().GetLoadedAdapterResponseInfo();
+            string adSourceName = loadedAdapterResponseInfo?.AdSourceName ?? "empty";
+
+            extraPayload.Add("ad_unit_id", _bannerView.GetAdUnitID());
+            extraPayload.Add("ad_format", "banner");
+            extraPayload.Add("ad_network", adSourceName);
+            extraPayload.Add("mediation_service", "admob");
+            extraPayload.Add("sdk_version", MobileAds.GetVersion().ToString());
+
+            string properties = "";
+            foreach (var (key, value) in extraPayload)
+            {
+                properties += $"{key}={value}, ";
+            }
+
+            _log.Debug($"Event name: {eventName}, Event properties: {properties}");
+        
+            Noctua.Event.TrackCustomEvent(eventName, extraPayload);
         }
     }
 }
