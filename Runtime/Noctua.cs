@@ -137,6 +137,8 @@ namespace com.noctuagames.sdk
         [JsonProperty("noctua")] public NoctuaConfig Noctua;
         
         [JsonProperty("copublisher")] public CoPublisherConfig CoPublisher;
+
+        [JsonProperty("iaa")] public IAA IAA;
     }
 
     public class Noctua
@@ -315,11 +317,21 @@ namespace com.noctuagames.sdk
             }
             else
             {
-                #if UNITY_IOS
-                _log.Info("Initialize nativePlugin in iOS even if IAA is enabled");
-                InitializeNativePlugin();
+                if(config.IAA == null)
+                {
+                    _log.Error("IAA local config is null, please check your config file");
+                    return;
+                }
+
+                #if UNITY_ADMOB || UNITY_APPLOVIN
+                _iaa.Initialize(config.IAA, () => {
+                    _log.Info("IAA SDK initialized from Local Config");
+
+                    InitializeNativePlugin();
+                });
                 #else
-                _log.Info("The nativePlugin initialization is postponed until IAA is initialized");
+                InitializeNativePlugin();
+                _log.Info("Initialize nativePlugin while IAA is not enabled and UNITY_ADMOB or UNITY_APPLOVIN is not defined");
                 #endif
             }
 
@@ -715,35 +727,7 @@ namespace com.noctuagames.sdk
             }
 
             // Initialize IAA (In-App Advertising) SDK and prepare IAA to be ready for showing ads to the user.
-            if(initResponse.RemoteConfigs.IAA != null)
-            {
-                #if UNITY_ADMOB || UNITY_APPLOVIN
-
-                log.Info("initializing IAA SDK : " + initResponse.RemoteConfigs.IAA.Mediation);
-
-                Noctua.IAA.Initialize(initResponse.RemoteConfigs.IAA, () => {
-
-                    log.Info("IAA SDK initialized");
-
-                    //Init analytics
-                    #if UNITY_ANDROID
-                    Instance.Value.InitializeNativePlugin();
-                    log.Info("nativePlugin initialized");
-                    #endif
-                });
-                #else
-                Instance.Value.InitializeNativePlugin();
-                log.Info("nativePlugin initialized because UNITY_ADMOB or UNITY_APPLOVIN is not defined");
-                #endif
-            }
-            else
-            {
-                log.Info("Remote config IAA is not configured yet");
-                #if UNITY_ANDROID
-                Instance.Value.InitializeNativePlugin();
-                log.Info("nativePlugin initialized");
-                #endif
-            }
+            InitMediationSDK(log, initResponse);
 
             log.Info("Noctua.InitAsync() completed");
 
@@ -818,6 +802,39 @@ namespace com.noctuagames.sdk
                     }
                 }
                 log.Debug("Reconnection loop exited.");
+            }
+        }
+
+        private static void InitMediationSDK(ILogger log, InitGameResponse initResponse)
+        {
+             if(initResponse.RemoteConfigs.IAA != null)
+            {
+                #if UNITY_ADMOB || UNITY_APPLOVIN
+
+                log.Info("initializing IAA SDK from remote config : " + initResponse.RemoteConfigs.IAA.Mediation);
+
+                Instance.Value._iaa.Initialize(initResponse.RemoteConfigs.IAA, () => {
+
+                    log.Info("IAA SDK initialized from remote config");
+
+                    //Init analytics
+                    #if UNITY_ANDROID
+                    Instance.Value.InitializeNativePlugin();
+                    log.Info("nativePlugin initialized");
+                    #endif
+                });
+                #else
+                Instance.Value.InitializeNativePlugin();
+                log.Info("nativePlugin initialized because UNITY_ADMOB or UNITY_APPLOVIN is not defined");
+                #endif
+            }
+            else
+            {
+                log.Info("Remote config IAA is not configured yet");
+                #if UNITY_ANDROID
+                Instance.Value.InitializeNativePlugin();
+                log.Info("nativePlugin initialized");
+                #endif
             }
         }
 
