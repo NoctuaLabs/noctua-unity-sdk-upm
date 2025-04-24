@@ -50,7 +50,7 @@ namespace com.noctuagames.sdk
 
         public void Initialize(IAA iAAResponse, Action initCompleteAction)
         {
-            _log.Info("Initializing Ad Network");
+            _log.Info("Initializing Ad Mediation");
 
             _mediationType = iAAResponse.Mediation;
 
@@ -79,51 +79,14 @@ namespace com.noctuagames.sdk
 
                 initCompleteAction?.Invoke();
 
-                var interstitialAdUnitID = "unused";
-                var rewardedAdUnitID = "unused";
-                var rewardedInterstitialAdUnitID = "unused";
-                var bannerAdUnitID = "unused";
+                _log.Info("Ad Mediation Initialized: " + iAAResponse.Mediation);
 
-                #if UNITY_ANDROID
-                    interstitialAdUnitID = iAAResponse.AdFormat.Interstitial.Android.adUnitID;
-                #elif UNITY_IPHONE
-                    interstitialAdUnitID = iAAResponse.AdFormat.Interstitial.IOS.adUnitID;
-                #endif
+                if(iAAResponse.AdFormat == null)
+                {
+                    return;
+                }
 
-                 #if UNITY_ANDROID
-                    rewardedAdUnitID = iAAResponse.AdFormat.Rewarded.Android.adUnitID;
-                #elif UNITY_IPHONE
-                    rewardedAdUnitID = iAAResponse.AdFormat.Rewarded.IOS.adUnitID;
-                #endif
-
-                #if UNITY_ANDROID
-                    rewardedInterstitialAdUnitID = iAAResponse.AdFormat.RewardedInterstitial.Android.adUnitID;
-                #elif UNITY_IPHONE
-                    rewardedInterstitialAdUnitID = iAAResponse.AdFormat.RewardedInterstitial.IOS.adUnitID;
-                #endif
-
-                 #if UNITY_ANDROID
-                    bannerAdUnitID = iAAResponse.AdFormat.Banner.Android.adUnitID;
-                #elif UNITY_IPHONE
-                    bannerAdUnitID = iAAResponse.AdFormat.Banner.IOS.adUnitID;
-                #endif
-
-                //Setup Ad Unit ID
-                SetInterstitialAdUnitId(interstitialAdUnitID);
-                SetRewardedAdUnitId(rewardedAdUnitID);
-                
-                #if UNITY_ADMOB
-                SetRewardedInterstitialAdUnitId(rewardedInterstitialAdUnitID);
-                #endif
-
-                SetBannerAdUnitId(bannerAdUnitID);
-
-                _log.Debug("Setup Ad Unit ID is Done");
-
-                //Prepare the ads
-                LoadInterstitialAd();
-                LoadRewardedAd();
-
+                SetupAdUnitID(iAAResponse);
             });
         }
 
@@ -238,6 +201,52 @@ namespace com.noctuagames.sdk
                 _appLovinOnAdRevenuePaid?.Invoke(adInfo); 
             };
             #endif
+        }
+
+        public void SetupAdUnitID(IAA iAAResponse)
+        {
+            var interstitialAdUnitID = "unused";
+            var rewardedAdUnitID = "unused";
+            var rewardedInterstitialAdUnitID = "unused";
+            var bannerAdUnitID = "unused";
+
+            #if UNITY_ANDROID
+                interstitialAdUnitID = iAAResponse.AdFormat.Interstitial.Android.adUnitID;
+            #elif UNITY_IPHONE
+                interstitialAdUnitID = iAAResponse.AdFormat.Interstitial.IOS.adUnitID;
+            #endif
+
+                #if UNITY_ANDROID
+                rewardedAdUnitID = iAAResponse.AdFormat.Rewarded.Android.adUnitID;
+            #elif UNITY_IPHONE
+                rewardedAdUnitID = iAAResponse.AdFormat.Rewarded.IOS.adUnitID;
+            #endif
+
+            #if UNITY_ANDROID
+                rewardedInterstitialAdUnitID = iAAResponse.AdFormat.RewardedInterstitial.Android.adUnitID;
+            #elif UNITY_IPHONE
+                rewardedInterstitialAdUnitID = iAAResponse.AdFormat.RewardedInterstitial.IOS.adUnitID;
+            #endif
+
+                #if UNITY_ANDROID
+                bannerAdUnitID = iAAResponse.AdFormat.Banner.Android.adUnitID;
+            #elif UNITY_IPHONE
+                bannerAdUnitID = iAAResponse.AdFormat.Banner.IOS.adUnitID;
+            #endif
+
+            //Setup Ad Unit ID
+            SetInterstitialAdUnitId(interstitialAdUnitID);
+            SetRewardedAdUnitId(rewardedAdUnitID);
+            
+            #if UNITY_ADMOB
+            SetRewardedInterstitialAdUnitId(rewardedInterstitialAdUnitID);
+            #endif
+
+            SetBannerAdUnitId(bannerAdUnitID);
+
+            //Prepare the ads
+            LoadInterstitialAd();
+            LoadRewardedAd();
         }
 
         //Interstitial public functions
