@@ -302,6 +302,13 @@ namespace com.noctuagames.sdk.Events
 
         public void Flush()
         {
+            //Check the game is quitting or not playing
+            if(!Application.isPlaying)
+            {
+                _log.Warning("Skipping Flush: Application is quitting or not playing.");
+                return;
+            }
+
             var events = new List<Dictionary<string, IConvertible>>();
 
             while (_eventQueue.TryDequeue(out var evt))
