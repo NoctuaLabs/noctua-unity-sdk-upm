@@ -259,15 +259,19 @@ namespace com.noctuagames.sdk.Events
             }
             _log.Info($"{name} added to the queue. Current total event in queue: {events.Count}");
 
-            Noctua.IsOfflineAsync().ContinueWith((isOffline) =>
+            if (data.event_name != "offline")
             {
-                if (isOffline)
+                Noctua.IsOfflineAsync().ContinueWith((isOffline) =>
                 {
-                    Noctua.OnOffline();
-                } else {
-                    Noctua.OnOnline();
-                }
-            });
+                    if (isOffline)
+                    {
+                        Noctua.OnOffline();
+                    } else {
+                        Noctua.OnOnline();
+                    }
+                });
+            }
+
         }
 
 #if UNITY_ANDROID && !UNITY_EDITOR
