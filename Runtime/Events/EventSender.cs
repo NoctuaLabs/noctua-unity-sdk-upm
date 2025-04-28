@@ -259,7 +259,7 @@ namespace com.noctuagames.sdk.Events
             }
             _log.Info($"{name} added to the queue. Current total event in queue: {events.Count}");
 
-            if (data.event_name != "offline")
+            if (data.TryGetValue("event_name", out var eventName) && eventName.ToString() != "offline")
             {
                 Noctua.IsOfflineAsync().ContinueWith((isOffline) =>
                 {
