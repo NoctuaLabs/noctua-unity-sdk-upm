@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.39.3] - 2025-04-28
+
+### 🐛 Bug Fixes
+
+- Add checker when the game is quitting or not playing to avoid crashes
+- Handle exeption when check internet connection
+- Send offline event only on non-offline event.
+
 ## [0.39.2] - 2025-04-23
 
 ### 🐛 Bug Fixes
