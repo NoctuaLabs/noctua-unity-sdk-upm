@@ -302,6 +302,8 @@ namespace com.noctuagames.sdk.Events
 
         public void Flush()
         {
+            _log.Debug("On Flush called. " + $"Current total event in queue: {_eventQueue.Count}");
+
             //Check the game is quitting or not playing
             if(!Application.isPlaying)
             {
