@@ -1,60 +1,53 @@
+using System;
+using System.Threading;
+using Cysharp.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.Networking;
-using System;
-using System.Collections;
 
 namespace com.noctuagames.sdk
 {
     public static class InternetChecker
     {
         private static readonly string pingUrl = "https://sdk-api-v2.noctuaprojects.com/api/v1/games/ping";
+        private static bool _isQuitting = false;
 
-        public static void CheckInternetConnection(Action<bool> onResult)
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
+        private static void RegisterQuitHandler()
         {
-            GameObject tempObj = new GameObject("InternetChecker");
-            InternetCheckHelper helper = tempObj.AddComponent<InternetCheckHelper>();
-            helper.StartCheck(onResult);
+            Application.quitting += () => _isQuitting = true;
         }
 
-        private class InternetCheckHelper : MonoBehaviour
+        public static async UniTask CheckInternetConnectionAsync(Action<bool> onResult, int timeoutSeconds = 5)
         {
-            private Action<bool> _onResult;
-
-            public void StartCheck(Action<bool> onResult)
+            if (_isQuitting || !Application.isPlaying)
             {
-                _onResult = onResult;
-                StartCoroutine(CheckConnectionCoroutine());
+                Debug.LogWarning("[InternetChecker] Skipped check: application is quitting or not playing.");
+                // onResult?.Invoke(false);
+                return;
             }
 
-            private IEnumerator CheckConnectionCoroutine()
+            try
             {
-                UnityWebRequest request = UnityWebRequest.Get(pingUrl);
-                request.timeout = 5;
+                await UniTask.SwitchToMainThread(); // UnityWebRequest must be on Unity thread
 
-                yield return request.SendWebRequest(); // <-- OUTSIDE try
+                using var request = UnityWebRequest.Get(pingUrl);
+                request.timeout = timeoutSeconds;
 
-                bool isConnected = false;
+                await request.SendWebRequest();
 
-                try
+                if (_isQuitting)
                 {
-                    isConnected = request.result == UnityWebRequest.Result.Success;
-                }
-                catch (Exception ex)
-                {
-                    Debug.LogWarning($"[InternetChecker] Exception checking request result: {ex}");
-                    isConnected = false;
-                }
-                finally
-                {
-                    request.Dispose();
+                    Debug.LogWarning("[InternetChecker] App is quitting. Ignoring result.");
+                    return;
                 }
 
-                _onResult?.Invoke(isConnected);
-
-                if (this != null && gameObject != null)
-                {
-                    Destroy(gameObject);
-                }
+                bool isConnected = request.result == UnityWebRequest.Result.Success;
+                onResult?.Invoke(isConnected);
+            }
+            catch (Exception e)
+            {
+                Debug.LogWarning($"[InternetChecker] Exception: {e.Message}");
+                onResult?.Invoke(false);
             }
         }
     }
