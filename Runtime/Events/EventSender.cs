@@ -55,6 +55,7 @@ namespace com.noctuagames.sdk.Events
         private string _sessionId;
         private string _ipAddress;
         private bool? _isSandbox;
+        private static bool _isQuitting = false;
 
         public void SetProperties(
             long? userId = 0,
@@ -304,6 +305,14 @@ namespace com.noctuagames.sdk.Events
         }
 #endif
 
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
+        private static void RegisterQuitHandler()
+        {
+            Application.quitting += () => {
+                _isQuitting = true;
+            };
+        }
+
         public void Flush()
         {
             _log.Debug("On Flush called. " + $"Current total event in queue: {_eventQueue.Count}");
@@ -315,12 +324,14 @@ namespace com.noctuagames.sdk.Events
                 events.Add(evt);
             }
 
-#if UNITY_IOS && !UNITY_EDITOR
-            _log.Info($"Skipping Flush on IOS, backup events to PlayerPrefs");
-            PlayerPrefs.SetString("NoctuaEvents", JsonConvert.SerializeObject(events));
-            PlayerPrefs.Save();
-            return;
-#endif
+            if (!Application.isPlaying || _isQuitting)
+            {
+                _log.Info($"On Application quitting. Backup events to PlayerPrefs");
+
+                PlayerPrefs.SetString("NoctuaEvents", JsonConvert.SerializeObject(events));
+                PlayerPrefs.Save();
+                return;
+            };
 
             var request = new HttpRequest(HttpMethod.Post, $"{_config.BaseUrl}/events")
                 .WithHeader("X-CLIENT-ID", _config.ClientId)
