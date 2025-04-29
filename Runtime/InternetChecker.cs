@@ -22,7 +22,6 @@ namespace com.noctuagames.sdk
             if (_isQuitting || !Application.isPlaying)
             {
                 Debug.LogWarning("[InternetChecker] Skipped check: application is quitting or not playing.");
-                // onResult?.Invoke(false);
                 return;
             }
 
