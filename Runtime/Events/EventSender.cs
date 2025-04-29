@@ -308,19 +308,19 @@ namespace com.noctuagames.sdk.Events
         {
             _log.Debug("On Flush called. " + $"Current total event in queue: {_eventQueue.Count}");
 
-            //Check the game is quitting or not playing
-            if(!Application.isPlaying)
-            {
-                _log.Warning("Skipping Flush: Application is quitting or not playing.");
-                return;
-            }
-
             var events = new List<Dictionary<string, IConvertible>>();
 
             while (_eventQueue.TryDequeue(out var evt))
             {
                 events.Add(evt);
             }
+
+#if UNITY_IOS && !UNITY_EDITOR
+            _log.Info($"Skipping Flush on IOS, backup events to PlayerPrefs");
+            PlayerPrefs.SetString("NoctuaEvents", JsonConvert.SerializeObject(events));
+            PlayerPrefs.Save();
+            return;
+#endif
 
             var request = new HttpRequest(HttpMethod.Post, $"{_config.BaseUrl}/events")
                 .WithHeader("X-CLIENT-ID", _config.ClientId)
