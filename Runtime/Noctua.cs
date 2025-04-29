@@ -443,7 +443,7 @@ namespace com.noctuagames.sdk
 
             var tcs = new UniTaskCompletionSource<bool>();
 
-            InternetChecker.CheckInternetConnection((isConnected) =>
+            await InternetChecker.CheckInternetConnectionAsync((isConnected) =>
             {
                 tcs.TrySetResult(isConnected);
             });
