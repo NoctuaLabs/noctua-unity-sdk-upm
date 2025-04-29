@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.39.4] - 2025-04-29
+
+### 🐛 Bug Fixes
+
+- Skip event flush on IOS as it could cause unexpected crash while sending the event.
+
 ## [0.39.3] - 2025-04-28
 
 ### 🐛 Bug Fixes
