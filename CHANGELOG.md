@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.39.5] - 2025-04-30
+
+### 🐛 Bug Fixes
+
+- Handle internet checker crashes when app is quitting
+- Handle event flush crashes when app is quitting
+
+### ⚙️ Miscellaneous Tasks
+
+- Update ios native sdk to 0.13.5 (support for disabling IAP).
+- Update noctua sdk ios to 0.14.0
+
 ## [0.39.4] - 2025-04-29
 
 ### 🐛 Bug Fixes
