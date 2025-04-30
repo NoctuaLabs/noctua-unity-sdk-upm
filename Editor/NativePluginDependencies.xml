@@ -5,11 +5,11 @@
         <androidPackage spec="com.google.guava:guava:31.1-android" />
     </androidPackages>
     <iosPods>
-        <iosPod name="NoctuaSDK" version="~> 0.13.5" minTargetSdk="14.0" addToAllTargets="false" />
-        <iosPod name="NoctuaSDK/Adjust" version="~> 0.13.5" minTargetSdk="14.0" addToAllTargets="false" />
-        <iosPod name="NoctuaSDK/FirebaseAnalytics" version="~> 0.13.5" minTargetSdk="14.0" addToAllTargets="false" />
-        <iosPod name="NoctuaSDK/FirebaseMessaging" version="~> 0.13.5" minTargetSdk="14.0" addToAllTargets="false" />
-        <iosPod name="NoctuaSDK/FirebaseCrashlytics" version="~> 0.13.5" minTargetSdk="14.0" addToAllTargets="false" />
-        <iosPod name="NoctuaSDK/FacebookSDK" version="~> 0.13.5" minTargetSdk="14.0" addToAllTargets="false" />
+        <iosPod name="NoctuaSDK" version="~> 0.14.0" minTargetSdk="14.0" addToAllTargets="false" />
+        <iosPod name="NoctuaSDK/Adjust" version="~> 0.14.0" minTargetSdk="14.0" addToAllTargets="false" />
+        <iosPod name="NoctuaSDK/FirebaseAnalytics" version="~> 0.14.0" minTargetSdk="14.0" addToAllTargets="false" />
+        <iosPod name="NoctuaSDK/FirebaseMessaging" version="~> 0.14.0" minTargetSdk="14.0" addToAllTargets="false" />
+        <iosPod name="NoctuaSDK/FirebaseCrashlytics" version="~> 0.14.0" minTargetSdk="14.0" addToAllTargets="false" />
+        <iosPod name="NoctuaSDK/FacebookSDK" version="~> 0.14.0" minTargetSdk="14.0" addToAllTargets="false" />
     </iosPods>
 </dependencies>
