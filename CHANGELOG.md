@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.39.6] - 2025-05-02
+
+### 🐛 Bug Fixes
+
+- Swap incorrect offline mode mapping.
+
 ## [0.39.5] - 2025-04-30
 
 ### 🐛 Bug Fixes
