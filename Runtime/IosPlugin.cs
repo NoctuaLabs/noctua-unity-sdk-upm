@@ -206,13 +206,13 @@ namespace com.noctuagames.sdk
 
         public void OnOnline()
         {
-            noctuaOnOffline();
+            noctuaOnOnline();
             _log.Info($"trigger online mode to native plugin");
         }
 
         public void OnOffline()
         {
-            noctuaOnOnline();
+            noctuaOnOffline();
             _log.Info($"trigger offline mode to native plugin");
         }
     }
