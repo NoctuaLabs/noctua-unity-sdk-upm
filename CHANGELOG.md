@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.39.7] - 2025-05-05
+
+### 🐛 Bug Fixes
+
+- Decrease event sender interval from 5 minutes to 1 minute.
+
 ## [0.39.6] - 2025-05-02
 
 ### 🐛 Bug Fixes
