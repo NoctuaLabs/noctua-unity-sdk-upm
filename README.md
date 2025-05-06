@@ -33,62 +33,88 @@ This package provides a set of tools to help you develop Noctua games using Unit
 
     ```json
     {
-      "clientId": "<NOCTUA_CLIENT_ID>",
-      "adjust": {
-        "appToken": "<ADJUST_APP_TOKEN>",
-        "environment": "sandbox",
-        "disableCustomEvent": false,
-        "eventMap": {
-          "Purchase": "<ADJUST_PURCHASE_EVENT_TOKEN>",
-          "TestSendEvent": "<ADJUST_CUSTOM_EVENT_TOKEN>"
-        }
-      },
-      "facebook": {
-        "appId": "<FB_APP_ID>",
-        "clientToken": "<FB_CLIENT_TOKEN",
-        "displayName": "<FB_DISPLAY_NAME>",
-        "enableDebug": true,
-        "disableCustomEvent": false,
-        "eventMap": {
-          "AdRevenue": "ad_revenue",
-          "Purchase": "purchase",
-          "TestSendEvent": "test_send_event"
-        }
-      },
-      "firebase": {
-        "disableCustomEvent": false,
-        "eventMap": {
-          "AdRevenue": "ad_revenue",
-          "Purchase": "purchase",
-          "TestSendEvent": "test_send_event"
-        }
-      },
-      "noctua": {
-        "disableCustomEvent": false,
-        "disableTracker": true,
-        "trackerUrl": "<NOCTUA_TRACKER_URL>",
-        "baseUrl": "<NOCTUA_BASE_URL>",
-        "paymentBaseUrl": "<NOCTUA_PAYMENT_BASE_URL>",
-        "announcementBaseUrl": "<NOCTUA_ANNOUNCEMENT_BASE_URL>",
-        "rewardBaseUrl": "<NOCTUA_REWARD_BASE_URL>",
-        "customerServiceBaseUrl": "<NOCTUA_CUSTOMER_SERVICE_BASE_URL>"
+  "productCode": "noctuaggdev", // Deprecated
+  "clientId": "1-e724f5a9e6f1", // Derived from backend
+  
+  // To track changes / version  
+  "meta": {
+    "name": "Sortify - 20250320",
+    "version": 4
+  },
+   
+  // White labeling and co publisher
+  // for region-based behaviours related, please see noctua.region
+  "copublisher": {
+    "companyName": "",
+    "companyWebsiteUrl": "",
+    "companyTermUrl": "",
+    "companyPrivacyUrl": ""
+  },
+  
+  // Noctua SDK Section
+  "noctua": {
+    "region": "vn", // Some region has verify specific behaviours/flow
+    "sentryDsnUrl": "https://", // Sentry DSN
+    
+    // Client side feature flags that will not be overriden by server
+    "iaaEnabled": true, // In-app advertising
+    "iapDisabled": true, // Some games may use their own IAP implementation and we need to disable our IAP internal callback
+    "sandboxEnabled": true, // If true, the SDK request will be point out to "https://sandbox-sdk-api-v2.noctuaprojects.com/api/v1"
+    "offlineFirstEnabled": true, // To enable offline first behaviours
+    "welcomeToastDisabled": false, // Usually casual games that need offline first feature wants to disable welcome toast// Remote feature flag:
+    
+    // Generic feature flags that could be overriden by server, the actual remote configs
+    // It's the feature reponsibility to parse it properly.
+    "remoteFeatureFlags": { // If defined here, then it will be default value of the remote config
+      "ssoDisabled": true, // To disable all SSO's entirely, 
+      "vnLegalPurposeEnabled": true,
+      "vnLegalPurposeFullKycEnabled": true,
+      "vnLegalPurposePhoneNumberVerificationEnabled": true,
+      "key": false
+    }
+  },
+  
+  // Third party trackers section
+  "adjust": { // Only Adjust that will have event map
+    "android": {
+      "appToken": "kg7l0jhuem80",
+      "eventMap": {
+        "purchase": "qye2vk",
+        "login": "xoizir"
+      }
+    },
+    "ios": {
+      "appToken": "kg7l0jhuem80",
+      "eventMap": {
+        "purchase": "qye2vk",
+        "login": "xoizir"
       }
     }
+  },
+  "facebook": { // Required for Facebook analytics and SSO
+    "android": {
+      "appId": "807936677546640",
+      "clientToken": "5eb9cb06333460b31c60e484676110a0",
+      "displayName": "SDK Test Noctua",
+      "enableDebug": true
+    },
+    "ios": {
+      "appId": "807936677546640",
+      "clientToken": "5eb9cb06333460b31c60e484676110a0",
+      "displayName": "SDK Test Noctua",
+      "enableDebug": true
+    }
+  },
+  "firebase": {
+    "android": {
+      "customEventDisabled": true // Custom event for specific thirdparty tracker could be disabled
+    },
+    "ios": {
+      "customEventDisabled": false
+    }
+  }
+}
     ```
-
-    a. Replace the placeholders with the actual values.
-
-    b. The "trackerUrl" field is optional and should be used only if you have a custom Noctua tracker URL.
-
-    c. The "Purchase" event is a special event that is used to track purchases. 
-
-    d. The "TestSendEvent" event is a custom event that you can use to track any custom event.
-
-    e. The "disableCustomEvent" field is optional and should be used only if you want to disable custom events.
-
-    f. The "disableTracker" field is optional and should be used only if you want to disable the Noctua tracker completely.
-
-    g. Third party services (e.g., Adjust, Facebook, Firebase) are optional. You can remove their configurations completely if you don't use them.
 
 5. If you use Firebase, put the "google-services.json" and "GoogleService-Info.plist" files in the "Assets/StreamingAssets" folder.
 
