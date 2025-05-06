@@ -102,9 +102,12 @@ namespace com.noctuagames.sdk.UI
             _config = config;
         }
 
-        public void SetFlag(bool SSODisabled = false)
+        public void SetFlag(Dictionary<string, bool> featureFlags)
         {
-            _ssoDisabled = SSODisabled;
+            if (featureFlags.ContainsKey("ssoDisabled"))
+            {
+                _ssoDisabled = featureFlags["ssoDisabled"];
+            }
         }
 
         private void OnTnCClicked()

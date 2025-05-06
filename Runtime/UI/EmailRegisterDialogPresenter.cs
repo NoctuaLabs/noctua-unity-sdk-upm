@@ -83,7 +83,7 @@ namespace com.noctuagames.sdk.UI
         {
             _config = config;
 
-            _log.Debug("behaviour Whitelabel: " + JsonConvert.SerializeObject(_config?.Noctua?.Flags));
+            _log.Debug("behaviour Whitelabel: " + JsonConvert.SerializeObject(_config?.Noctua?.RemoteFeatureFlags));
         }
 
         private void SetupInputFields(bool clearForm)
@@ -112,7 +112,7 @@ namespace com.noctuagames.sdk.UI
             _dateOfIssue = View.Q<Button>("DateOfIssueTF");
             _address = new InputFieldNoctua(View.Q<TextField>("AddressTF"));
 
-            if (!string.IsNullOrEmpty(_config?.Noctua?.Flags) && _config!.Noctua!.Flags!.Contains("VNLegalPurpose"))
+            if(IsVNLegalPurposeEnabled())
             {
                 SetupDropdown();
                 SetupDatePicker();
@@ -127,7 +127,7 @@ namespace com.noctuagames.sdk.UI
                 _inputRepassword.textField.isPasswordField = true;
             }
 
-            if (!string.IsNullOrEmpty(_config?.Noctua?.Flags) && _config!.Noctua!.Flags!.Contains("VNLegalPurpose"))
+            if(IsVNLegalPurposeEnabled())
             {
                 textFields = new List<TextField>
                 {
@@ -181,7 +181,7 @@ namespace com.noctuagames.sdk.UI
             _inputRepassword.SetFocus();
 
             #region Behaviour whitelabel - VN
-            if (!string.IsNullOrEmpty(_config?.Noctua?.Flags) && _config!.Noctua!.Flags!.Contains("VNLegalPurpose"))
+            if(IsVNLegalPurposeEnabled())
             {
                 _fullname.textField.RegisterValueChangedCallback(evt => OnValueChanged(_fullname));
                 _phoneNumber.textField.RegisterValueChangedCallback(evt => OnValueChanged(_phoneNumber));
@@ -476,7 +476,7 @@ namespace com.noctuagames.sdk.UI
                 _inputEmail.Error(Utility.ValidateEmail(emailAddress));
 
                 // Show the error at the end of the wizard as well
-                if (!string.IsNullOrEmpty(_config?.Noctua?.Flags) && _config!.Noctua!.Flags!.Contains("VNLegalPurpose"))
+                if(IsVNLegalPurposeEnabled())
                 {
                     Model.ShowGeneralNotification(_inputEmail.labelError.text, false);
                 }
@@ -495,7 +495,7 @@ namespace com.noctuagames.sdk.UI
                 _inputPassword.Error(Utility.ValidatePassword(password));
 
                 // Show the error at the end of the wizard as well
-                if (!string.IsNullOrEmpty(_config?.Noctua?.Flags) && _config!.Noctua!.Flags!.Contains("VNLegalPurpose"))
+                if(IsVNLegalPurposeEnabled())
                 {
                     Model.ShowGeneralNotification(_inputPassword.labelError.text, false);
                 }
@@ -514,7 +514,7 @@ namespace com.noctuagames.sdk.UI
                 _inputRepassword.Error(Utility.ValidateReenterPassword(password, rePassword));
 
                 // Show the error at the end of the wizard as well
-                if (!string.IsNullOrEmpty(_config?.Noctua?.Flags) && _config!.Noctua!.Flags!.Contains("VNLegalPurpose"))
+                if(IsVNLegalPurposeEnabled())
                 {
                     Model.ShowGeneralNotification(_inputRepassword.labelError.text, false);
                 }
@@ -524,7 +524,7 @@ namespace com.noctuagames.sdk.UI
 
             Dictionary<string, string> regExtra = null;
 
-            if (!string.IsNullOrEmpty(_config?.Noctua?.Flags) && _config!.Noctua!.Flags!.Contains("VNLegalPurpose"))
+            if(IsVNLegalPurposeEnabled())
             {
                 if (_gender.value == "Select Gender")
                 {
@@ -542,7 +542,7 @@ namespace com.noctuagames.sdk.UI
                     _gender.Q<VisualElement>("title").style.color = ColorModule.redError;
 
                     // Show the error at the end of the wizard as well
-                    if (!string.IsNullOrEmpty(_config?.Noctua?.Flags) && _config!.Noctua!.Flags!.Contains("VNLegalPurpose"))
+                    if(IsVNLegalPurposeEnabled())
                     {
                         Model.ShowGeneralNotification(_gender.Q<Label>("error").text, false);
                     }
@@ -567,7 +567,7 @@ namespace com.noctuagames.sdk.UI
                     _birthDate.Error("Minimum age is 18 years old");
 
                     // Show the error at the end of the wizard as well
-                    if (!string.IsNullOrEmpty(_config?.Noctua?.Flags) && _config!.Noctua!.Flags!.Contains("VNLegalPurpose"))
+                    if(IsVNLegalPurposeEnabled())
                     {
                         Model.ShowGeneralNotification(_birthDate.labelError.text, false);
                     }
@@ -622,7 +622,7 @@ namespace com.noctuagames.sdk.UI
                 _inputPassword.Clear();
                 _inputRepassword.Clear();
 
-                if (!string.IsNullOrEmpty(_config?.Noctua?.Flags) && _config!.Noctua!.Flags!.Contains("VNLegalPurpose"))
+                if(IsVNLegalPurposeEnabled())
                 {
                     _fullname.Clear();
                     _birthDate.Clear();
@@ -661,7 +661,7 @@ namespace com.noctuagames.sdk.UI
                 // Wizard                
                 View.Q<Button>("WizardPrevTo3Button").RemoveFromClassList("hide");
                 
-                if (!string.IsNullOrEmpty(_config?.Noctua?.Flags) && _config!.Noctua!.Flags!.Contains("VNLegalPurpose"))
+                if(IsVNLegalPurposeEnabled())
                 {
                     Model.ShowGeneralNotification(_continueButton.labelError.text, false);
                 }
@@ -721,6 +721,11 @@ namespace com.noctuagames.sdk.UI
 
             _continueButton.Clear();
             _wizardContinueButton.Clear();
+        }
+
+        private bool IsVNLegalPurposeEnabled()
+        {
+            return _config.Noctua.RemoteFeatureFlags.ContainsKey("vnLegalPurposeEnabled") == true && _config.Noctua.RemoteFeatureFlags["vnLegalPurposeEnabled"] == true;
         }
     }
 }

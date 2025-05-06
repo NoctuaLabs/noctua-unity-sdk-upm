@@ -57,13 +57,13 @@ namespace com.noctuagames.sdk.UI
         {
             _gameUsers.Clear();
 
-            var currentGameAccountList = Utility.ContainsFlag(_config?.Noctua?.Flags, "VNLegalPurpose") ? Model.AuthService.CurrentGameAccountList.Where(user => !user.IsGuest) : Model.AuthService.CurrentGameAccountList;
+            var currentGameAccountList = IsVNLegalPurposeEnabled() ? Model.AuthService.CurrentGameAccountList.Where(user => !user.IsGuest) : Model.AuthService.CurrentGameAccountList;
             _gameUsers.AddRange(currentGameAccountList);
             _gameAccountListView.Rebuild();
 
             _noctuaUsers.Clear();
 
-            var otherGamesAccountList = Utility.ContainsFlag(_config?.Noctua?.Flags, "VNLegalPurpose") ? Model.AuthService.OtherGamesAccountList.Where(user => !user.IsGuest) : Model.AuthService.OtherGamesAccountList;
+            var otherGamesAccountList = IsVNLegalPurposeEnabled() ? Model.AuthService.OtherGamesAccountList.Where(user => !user.IsGuest) : Model.AuthService.OtherGamesAccountList;
 
             _noctuaUsers.AddRange(otherGamesAccountList);
             _noctuaAccountListView.Rebuild();
@@ -107,7 +107,7 @@ namespace com.noctuagames.sdk.UI
             View.visible = false;
             
             Model.PushNavigation(() => Model.ShowAccountSelection());
-            if(Utility.ContainsFlag(_config.Noctua.Flags, "VNLegalPurpose"))
+            if(IsVNLegalPurposeEnabled())
             {
                 Model.ShowEmailLogin(null);
             }
@@ -222,6 +222,11 @@ namespace com.noctuagames.sdk.UI
 
             var isActive = items?[index].User?.Id == Model.AuthService.RecentAccount?.User.Id; 
             element.Q<Label>("RecentLabel").style.display = isActive ? DisplayStyle.Flex : DisplayStyle.None;
+        }
+
+        private bool IsVNLegalPurposeEnabled()
+        {
+            return _config.Noctua.RemoteFeatureFlags.ContainsKey("vnLegalPurposeEnabled") == true && _config.Noctua.RemoteFeatureFlags["vnLegalPurposeEnabled"] == true;
         }
     }
 }
