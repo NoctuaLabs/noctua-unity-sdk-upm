@@ -78,11 +78,18 @@ namespace com.noctuagames.sdk
 
         [JsonProperty("isSandbox")] public bool IsSandbox;
         [JsonProperty("region")]  public string Region;
-        [JsonProperty("flags")]  public string Flags;
-        [JsonProperty("isOfflineFirst")] public bool IsOfflineFirst = false;
-        [JsonProperty("welcomeToastDisabled")] public bool welcomeToastDisabled  = false;
-        [JsonProperty("isIAAEnabled")] public bool isIAAEnabled  = false;
 
+        // Client side feature flags that will not be overrided by server config
+        // For feature flags that will be overrided by server config, see NoctuaGameService.cs -> RemoteConfigs
+        [JsonProperty("welcomeToastDisabled")] public bool welcomeToastDisabled  = false;
+        [JsonProperty("iaaEnabled")] public bool isIAAEnabled  = false;
+        [JsonProperty("offlineFirstEnabled")] public bool IsOfflineFirst = false;
+
+        // Deprecated because of inconsistent naming
+        // [JsonProperty("isOfflineFirst")] public bool IsOfflineFirst = false;
+        // [JsonProperty("isIAAEnabled")] public bool isIAAEnabled  = false;
+        [JsonProperty("remoteFeatureFlags")]
+        public Dictionary<string, bool> RemoteFeatureFlags;
     }
     
     [Preserve]
@@ -140,6 +147,7 @@ namespace com.noctuagames.sdk
         public static NoctuaIAPService IAP => Instance.Value._iap;
         public static NoctuaPlatform Platform => Instance.Value._platform;
         public static MediationManager IAA => Instance.Value._iaa;
+        public static GlobalConfig Config => Instance.Value._config;
 
         public event Action<bool> OnInternetReachable;
         private readonly ILogger _log = new NoctuaLogger();
@@ -152,6 +160,7 @@ namespace com.noctuagames.sdk
         private readonly NoctuaPlatform _platform;
         private readonly UIFactory _uiFactory;
         private readonly MediationManager _iaa = new MediationManager();
+        private GlobalConfig _config;
 
         private readonly INativePlugin _nativePlugin;
         // This is the flag from noctuagg.json config.
@@ -229,55 +238,53 @@ namespace com.noctuagames.sdk
 
             #endif
 
-            GlobalConfig config;
-
             try
             {
-                config = JsonConvert.DeserializeObject<GlobalConfig>(jsonConfig);
+                _config = JsonConvert.DeserializeObject<GlobalConfig>(jsonConfig);
             }
             catch (Exception e)
             {
                 throw new NoctuaException(NoctuaErrorCode.Application, "Failed to parse config: " + e.Message);
             }
             
-            if (config == null)
+            if (_config == null)
             {
                 throw new NoctuaException(NoctuaErrorCode.Application, "Failed to parse config: config is null");
             }
             
-            NoctuaLogger.Init(config);
+            NoctuaLogger.Init(_config);
 
-            var locale = new NoctuaLocale(config.Noctua.Region);
+            var locale = new NoctuaLocale(_config.Noctua.Region);
 
-            config.Noctua ??= new NoctuaConfig();
-            config.Adjust ??= new AdjustConfig();
+            _config.Noctua ??= new NoctuaConfig();
+            _config.Adjust ??= new AdjustConfig();
 
             // Let's fill the empty fields, if any
-            if (string.IsNullOrEmpty(config.Noctua.BaseUrl))
+            if (string.IsNullOrEmpty(_config.Noctua.BaseUrl))
             {
-                config.Noctua.BaseUrl = NoctuaConfig.DefaultBaseUrl;
+                _config.Noctua.BaseUrl = NoctuaConfig.DefaultBaseUrl;
             }
 
-            if (string.IsNullOrEmpty(config.Noctua.TrackerUrl))
+            if (string.IsNullOrEmpty(_config.Noctua.TrackerUrl))
             {
-                config.Noctua.TrackerUrl = NoctuaConfig.DefaultTrackerUrl;
+                _config.Noctua.TrackerUrl = NoctuaConfig.DefaultTrackerUrl;
             }
 
-            if (config.Noctua.IsSandbox)
+            if (_config.Noctua.IsSandbox)
             {
-                config.Noctua.BaseUrl = NoctuaConfig.DefaultSandboxBaseUrl;
+                _config.Noctua.BaseUrl = NoctuaConfig.DefaultSandboxBaseUrl;
             }
 
-            _log.Debug($"Noctua config: \n{config.PrintFields()}");
+            _log.Debug($"Noctua config: \n{_config.PrintFields()}");
             
             _eventSender = new EventSender(
                 new EventSenderConfig
                 {
-                    BaseUrl = config.Noctua.TrackerUrl,
-                    ClientId = config.ClientId,
+                    BaseUrl = _config.Noctua.TrackerUrl,
+                    ClientId = _config.ClientId,
                     BundleId = Application.identifier,
-                    BatchSize = config.Noctua.TrackerBatchSize,
-                    BatchPeriodMs = config.Noctua.TrackerBatchPeriodMs
+                    BatchSize = _config.Noctua.TrackerBatchSize,
+                    BatchPeriodMs = _config.Noctua.TrackerBatchPeriodMs
                 },
                 locale
             );
@@ -285,8 +292,8 @@ namespace com.noctuagames.sdk
             _sessionTracker = new SessionTracker(
                 new SessionTrackerConfig
                 {
-                    HeartbeatPeriodMs = config.Noctua.SessionHeartbeatPeriodMs,
-                    SessionTimeoutMs = config.Noctua.SessionTimeoutMs
+                    HeartbeatPeriodMs = _config.Noctua.SessionHeartbeatPeriodMs,
+                    SessionTimeoutMs = _config.Noctua.SessionTimeoutMs
                 },
                 _eventSender
             );
@@ -303,7 +310,7 @@ namespace com.noctuagames.sdk
             // See the line that has this comment:
             // - Initialize IAA (In-App Advertising) SDK and prepare IAA to be ready for showing ads to the user.
             // Do not move or reorder this code since it follows a specific initialization flow.
-            if(!config.Noctua.isIAAEnabled)
+            if(!_config.Noctua.isIAAEnabled)
             {              
                 _log.Info("Initialize nativePlugin while IAA is not enabled");
                 InitializeNativePlugin();
@@ -319,9 +326,9 @@ namespace com.noctuagames.sdk
             }
 
             _event = new NoctuaEventService(_nativePlugin, _eventSender);
-            _event.SetProperties(isSandbox: config.Noctua.IsSandbox);
-            _eventSender.SetProperties(isSandbox: config.Noctua.IsSandbox);
-            _isOfflineFirst = config.Noctua.IsOfflineFirst;
+            _event.SetProperties(isSandbox: _config.Noctua.IsSandbox);
+            _eventSender.SetProperties(isSandbox: _config.Noctua.IsSandbox);
+            _isOfflineFirst = _config.Noctua.IsOfflineFirst;
             
 
             var panelSettings = Resources.Load<PanelSettings>("NoctuaPanelSettings");
@@ -343,8 +350,8 @@ namespace com.noctuagames.sdk
             _uiFactory = new UIFactory(noctuaUIGameObject, panelSettings, locale);
             
             var authService = new NoctuaAuthenticationService(
-                baseUrl: config.Noctua.BaseUrl, 
-                clientId: config.ClientId, 
+                baseUrl: _config.Noctua.BaseUrl, 
+                clientId: _config.ClientId, 
                 nativeAccountStore: _nativePlugin,
                 locale: locale,
                 bundleId: Application.identifier,
@@ -357,8 +364,8 @@ namespace com.noctuagames.sdk
             _iap = new NoctuaIAPService(
                 new NoctuaIAPService.Config
                 {
-                    BaseUrl = config.Noctua.BaseUrl,
-                    ClientId = config.ClientId,
+                    BaseUrl = _config.Noctua.BaseUrl,
+                    ClientId = _config.ClientId,
                 },
                 accessTokenProvider,
                 _uiFactory,
@@ -366,18 +373,18 @@ namespace com.noctuagames.sdk
                 _eventSender
             );
 
-            _auth = new NoctuaAuthentication(authService, _iap, _uiFactory, config, _eventSender, locale);
+            _auth = new NoctuaAuthentication(authService, _iap, _uiFactory, _config, _eventSender, locale);
 
             _game = new NoctuaGameService(
                 new NoctuaGameService.Config
                 {
-                    BaseUrl = config.Noctua.BaseUrl,
-                    ClientId = config.ClientId,
-                    IsOfflineFirst = config.Noctua.IsOfflineFirst,
+                    BaseUrl = _config.Noctua.BaseUrl,
+                    ClientId = _config.ClientId,
+                    IsOfflineFirst = _config.Noctua.IsOfflineFirst,
                 }
             );
 
-            _platform = new NoctuaPlatform(config.Noctua, accessTokenProvider, _uiFactory, _eventSender);
+            _platform = new NoctuaPlatform(_config.Noctua, accessTokenProvider, _uiFactory, _eventSender);
             
             _log.Info("Noctua instance created");
         }
@@ -500,9 +507,11 @@ namespace com.noctuagames.sdk
                         PaymentType.appstore,
                         PaymentType.noctuastore,
                     },
-                    SSODisabled = false,
-                    OfflineMode = true,
-                }
+                    RemoteFeatureFlags = new Dictionary<string, string>
+                    {
+                    },
+                },
+                OfflineMode = true,
             };
             
             try
@@ -659,7 +668,15 @@ namespace com.noctuagames.sdk
             }
 
             var enabledPaymentTypes = initResponse.RemoteConfigs.EnabledPaymentTypes;
-            Noctua.Instance.Value._auth.SetFlag(initResponse.RemoteConfigs.SSODisabled);
+
+            // Override the client remoteFeatureFlags if any
+            foreach (var key in initResponse.RemoteConfigs.RemoteFeatureFlags.Keys)
+            {
+                Noctua.Instance.Value._config.Noctua.RemoteFeatureFlags[key] = 
+                    bool.Parse(initResponse.RemoteConfigs.RemoteFeatureFlags[key]);
+            }
+            
+            Noctua.Instance.Value._auth.SetFlag(Noctua.Instance.Value._config.Noctua.RemoteFeatureFlags);
 
             if (!Noctua.Instance.Value._iap.IsReady)
             {
@@ -667,7 +684,7 @@ namespace com.noctuagames.sdk
                 enabledPaymentTypes.Remove(PaymentType.playstore);
             }
 
-            log.Info("FeatureFlags: " + initResponse.RemoteConfigs.FeatureFlags);
+            log.Info("FeatureFlags: " + Noctua.Instance.Value._config.Noctua.RemoteFeatureFlags);
 
 
             // Remove irrelevant payment by runtime platform

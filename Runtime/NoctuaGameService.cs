@@ -47,21 +47,28 @@ namespace com.noctuagames.sdk
     [Preserve]
     public class RemoteConfigs
     {
+        // Special feature flags that:
+        // - Does not defined in noctua.gg.json
+        // - Require custom value type, not a simple boolean or string or integer
+        // - Fully controlled by server
+
         [JsonProperty("enabled_payment_types")]
         public List<PaymentType> EnabledPaymentTypes;
 
-        [JsonProperty("sso_disabled")]
-        public bool SSODisabled;
-
-        [JsonProperty("feature_flags")]
-        public Dictionary<string, string> FeatureFlags;
-        
         [JsonProperty("iaa")]
         public IAA IAA;
 
-        // To be used locally by offline-first feature
-        [JsonProperty("offline_mode")]
-        public bool OfflineMode;
+        // Generic feature flags that could be defined in client side, but will be overrided by server, if any
+        //
+        // This contains key value pairs, the value is always in string format despite the parsed value is boolean or integer
+        // Current available remote configs:
+        // - ssoDisabled - Boolean
+        // - vnLegalPurposeEnabled - Boolean
+        // - vnLegalPurposeFullKycEnabled - Boolean
+        // - vnLegalPurposePhoneNumberVerificationEnabled - Boolean
+
+        [JsonProperty("feature_flags")]
+        public Dictionary<string, string> RemoteFeatureFlags;
     }
 
     [Preserve]

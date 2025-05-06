@@ -56,7 +56,7 @@ namespace com.noctuagames.sdk.UI
 
         public IEnumerator RunAnimation(UserBundle userBundle)
         {
-            if (!string.IsNullOrEmpty(_config?.Noctua?.Flags) && Utility.ContainsFlag(_config?.Noctua?.Flags, "VNLegalPurpose") && userBundle.IsGuest)
+            if (IsVNLegalPurposeEnabled() && userBundle.IsGuest)
             {
                 Model.ShowEmailLogin();
                 yield break;
@@ -87,6 +87,11 @@ namespace com.noctuagames.sdk.UI
             
             _root.RemoveFromClassList("welcome-show");
             _root.AddToClassList("welcome-hide");
+        }
+
+        private bool IsVNLegalPurposeEnabled()
+        {
+            return _config.Noctua.RemoteFeatureFlags.ContainsKey("vnLegalPurposeEnabled") == true && _config.Noctua.RemoteFeatureFlags["vnLegalPurposeEnabled"] == true;
         }
     }
 }
