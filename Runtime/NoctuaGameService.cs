@@ -52,6 +52,9 @@ namespace com.noctuagames.sdk
 
         [JsonProperty("sso_disabled")]
         public bool SSODisabled;
+
+        [JsonProperty("feature_flags")]
+        public Dictionary<string, string> FeatureFlags;
         
         [JsonProperty("iaa")]
         public IAA IAA;
