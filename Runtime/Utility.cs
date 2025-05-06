@@ -208,6 +208,18 @@ namespace com.noctuagames.sdk
                 false;
         }
 
+        public static bool ParseBooleanFeatureFlag(Dictionary<string,string> flags, string flag)
+        {
+            var result = false;
+            if (flags != null && flags.ContainsKey(flag) && (flags[flag] == "true" || flags[flag] == "1" || flags[flag] == "on"))
+            {
+                result = true;
+            }
+
+            return result;
+        }
+
+
         private static string GetTranslationByLanguage(string language)
         {
             // Language to translation asset mapping

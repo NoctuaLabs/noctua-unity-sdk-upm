@@ -376,10 +376,10 @@ namespace com.noctuagames.sdk
             _purchaseHistoryDialog.Show(GetPurchaseHistory());
         }
 
-        public void SetFlag(bool SSODisabled = false)
+        public void SetFlag(Dictionary<string, bool> featureFlags)
         {
-            _loginOptionsDialog.SetFlag(SSODisabled);
-            _userCenter.SetFlag(SSODisabled);
+            _loginOptionsDialog.SetFlag(featureFlags);
+            _userCenter.SetFlag(featureFlags);
         }
         
     }

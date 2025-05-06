@@ -23,6 +23,7 @@ namespace com.noctuagames.sdk.UI
 
         // Flags
         private bool _ssoDisabled = false;
+        private bool _vnLegalPurposeEnabled = false;
 
         private VisualTreeAsset _itemTemplate;
         private VisualElement _rootView;
@@ -1122,7 +1123,7 @@ namespace com.noctuagames.sdk.UI
 
         private void BindListView()
         {
-            var credentialFiltered = Utility.ContainsFlag(_globalConfig?.Noctua?.Flags, "VNLegalPurpose") || _ssoDisabled ? _credentials.Where(c => c.CredentialProvider == CredentialProvider.Email).ToList() : _credentials;
+            var credentialFiltered = (_vnLegalPurposeEnabled || _ssoDisabled) ? _credentials.Where(c => c.CredentialProvider == CredentialProvider.Email).ToList() : _credentials;
 
             _credentialListView = View.Q<ListView>("AccountList");
             _itemTemplate ??= Resources.Load<VisualTreeAsset>("ConnectAccountItem");
@@ -1377,9 +1378,17 @@ namespace com.noctuagames.sdk.UI
 
         }
 
-        public void SetFlag(bool SSODisabled = false)
+        public void SetFlag(Dictionary<string, bool> featureFlags)
         {
-            _ssoDisabled = SSODisabled;
+            if (featureFlags.ContainsKey("ssoDisabled"))
+            {
+                _ssoDisabled = featureFlags["ssoDisabled"];
+            }
+
+            if (featureFlags.ContainsKey("vnLegalPurposeEnabled"))
+            {
+                _vnLegalPurposeEnabled = featureFlags["vnLegalPurposeEnabled"];
+            }
         }
 
         private void OnCarouselDragEnd(PointerUpEvent _evt)

@@ -294,9 +294,9 @@ namespace com.noctuagames.sdk
             _uiModel.ShowUserCenter();
         }
 
-        public void SetFlag(bool SSODisabled = false)
+        public void SetFlag(Dictionary<string, bool> featureFlags)
         {
-            _uiModel.SetFlag(SSODisabled);
+            _uiModel.SetFlag(featureFlags);
         }
 
         /// <summary>
