@@ -145,6 +145,17 @@ namespace com.noctuagames.sdk
             _authService.OnAccountChanged += OnAccountChanged;
             _socialAuth = new SocialAuthenticationService(_authService, config);
         }
+
+        public void SetBehaviourWhitelabel(GlobalConfig config)
+        {
+            _welcome.SetBehaviourWhitelabel(config);
+            _emailLoginDialog.SetBehaviourWhitelabel(config);
+            _emailRegisterDialog.SetBehaviourWhitelabel(config);
+            _accountSelectionDialog.SetWhitelabel(config);
+            _loginOptionsDialog.SetWhitelabel(config);
+            _userCenter.SetWhitelabel(config);
+        }
+
         
         internal void PushNavigation(Action action)
         {
