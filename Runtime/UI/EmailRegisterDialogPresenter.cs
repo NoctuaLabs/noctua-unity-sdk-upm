@@ -32,8 +32,9 @@ namespace com.noctuagames.sdk.UI
         private InputFieldNoctua _address;
         private List<TextField> textFields;
 
-        private ButtonNoctua _continueButton;
-        private ButtonNoctua _wizardContinueButton;
+        private ButtonNoctua _continueButton; // Main submit button
+        private ButtonNoctua _wizardContinueButton; // Submit button on full KYC
+        private ButtonNoctua _wizard5ContinueButton; // Submit button on phone number verification
         private GlobalConfig _config;
 
         private int _wizardPage = 0;
@@ -98,6 +99,7 @@ namespace com.noctuagames.sdk.UI
 
             _continueButton = new ButtonNoctua(View.Q<Button>("ContinueButton"));
             _wizardContinueButton = new ButtonNoctua(View.Q<Button>("WizardContinueButton"));
+            _wizard5ContinueButton = new ButtonNoctua(View.Q<Button>("Wizard5ContinueButton"));
             var backButton = View.Q<Button>("BackButton");
             var loginLink = View.Q<Label>("LoginLink");
 
@@ -112,7 +114,7 @@ namespace com.noctuagames.sdk.UI
             _dateOfIssue = View.Q<Button>("DateOfIssueTF");
             _address = new InputFieldNoctua(View.Q<TextField>("AddressTF"));
 
-            if(IsVNLegalPurposeEnabled())
+            if (IsVNLegalPurposeEnabled())
             {
                 SetupDropdown();
                 SetupDatePicker();
@@ -127,7 +129,7 @@ namespace com.noctuagames.sdk.UI
                 _inputRepassword.textField.isPasswordField = true;
             }
 
-            if(IsVNLegalPurposeEnabled())
+            if (IsVNLegalPurposeEnabled())
             {
                 textFields = new List<TextField>
                 {
@@ -156,10 +158,12 @@ namespace com.noctuagames.sdk.UI
 
             Utility.UpdateButtonState(textFields, _continueButton.button);
             Utility.UpdateButtonState(textFields, _wizardContinueButton.button);
+            Utility.UpdateButtonState(textFields, _wizard5ContinueButton.button);
 
             // Callbacks
             _continueButton.button.RegisterCallback<PointerUpEvent>(OnContinueButtonClick);
-            _wizardContinueButton.button.RegisterCallback<PointerUpEvent>(OnContinueButtonClick);
+            _wizardContinueButton.button.RegisterCallback<PointerUpEvent>(OnWizardContinueButtonClick);
+            _wizard5ContinueButton.button.RegisterCallback<PointerUpEvent>(OnWizard5ContinueButtonClick);
             loginLink.RegisterCallback<ClickEvent>(OnLoginLinkClick);
             backButton.RegisterCallback<ClickEvent>(OnBackButtonClick);
 
@@ -181,7 +185,7 @@ namespace com.noctuagames.sdk.UI
             _inputRepassword.SetFocus();
 
             #region Behaviour whitelabel - VN
-            if(IsVNLegalPurposeEnabled())
+            if (IsVNLegalPurposeEnabled())
             {
                 _fullname.textField.RegisterValueChangedCallback(evt => OnValueChanged(_fullname));
                 _phoneNumber.textField.RegisterValueChangedCallback(evt => OnValueChanged(_phoneNumber));
@@ -204,10 +208,14 @@ namespace com.noctuagames.sdk.UI
                 View.Q<Button>("WizardPrevTo1Button").RegisterCallback<PointerUpEvent>(NavigateToWizard1);
                 View.Q<Button>("WizardPrevTo2Button").RegisterCallback<PointerUpEvent>(NavigateToWizard2);
                 View.Q<Button>("WizardPrevTo3Button").RegisterCallback<PointerUpEvent>(NavigateToWizard3);
+                View.Q<Button>("WizardPrevTo4Button").RegisterCallback<PointerUpEvent>(NavigateToWizard4);
                 // Hide the footer content
                 View.Q<VisualElement>("footerContent").AddToClassList("hide");
                 // Navigate to the first wizard
                 View.Q<VisualElement>("RegisterWizard1NextButton").RemoveFromClassList("hide");
+
+                View.Q<Button>("ContinueButton").AddToClassList("hide");
+
                 NavigateToWizard1();
             }
             else
@@ -228,6 +236,7 @@ namespace com.noctuagames.sdk.UI
             View.Q<VisualElement>("RegisterWizard2").AddToClassList("hide");
             View.Q<VisualElement>("RegisterWizard3").AddToClassList("hide");
             View.Q<VisualElement>("RegisterWizard4").AddToClassList("hide");            
+            View.Q<VisualElement>("RegisterWizard5").AddToClassList("hide");
             View.Q<VisualElement>("AdditionalFooterContent").RemoveFromClassList("hide");
             View.Q<VisualElement>("footerContent").AddToClassList("wizard-register-footer");
         }
@@ -240,19 +249,33 @@ namespace com.noctuagames.sdk.UI
             View.Q<VisualElement>("RegisterWizard2").RemoveFromClassList("hide");
             View.Q<VisualElement>("RegisterWizard3").AddToClassList("hide");
             View.Q<VisualElement>("RegisterWizard4").AddToClassList("hide");            
+            View.Q<VisualElement>("RegisterWizard5").AddToClassList("hide");
             View.Q<VisualElement>("AdditionalFooterContent").AddToClassList("hide");
         }
 
         public async void NavigateToWizard3(PointerUpEvent evt = null)
         {
-            HideAllErrors();
-            _wizardPage = 3;
-            View.Q<VisualElement>("RegisterWizard1").AddToClassList("hide");
-            View.Q<VisualElement>("RegisterWizard2").AddToClassList("hide");
-            View.Q<VisualElement>("RegisterWizard3").RemoveFromClassList("hide");
-            View.Q<VisualElement>("RegisterWizard4").AddToClassList("hide");            
-            View.Q<VisualElement>("footerContent").AddToClassList("hide");
-            View.Q<VisualElement>("AdditionalFooterContent").AddToClassList("hide");
+
+            if (IsVNLegalPurposeFullKYCEnabled())
+            {
+                HideAllErrors();
+                _wizardPage = 3;
+                View.Q<VisualElement>("RegisterWizard1").AddToClassList("hide");
+                View.Q<VisualElement>("RegisterWizard2").AddToClassList("hide");
+                View.Q<VisualElement>("RegisterWizard3").RemoveFromClassList("hide");
+                View.Q<VisualElement>("RegisterWizard4").AddToClassList("hide");            
+            View.Q<VisualElement>("RegisterWizard5").AddToClassList("hide");
+                View.Q<VisualElement>("footerContent").AddToClassList("hide");
+                View.Q<VisualElement>("AdditionalFooterContent").AddToClassList("hide");
+            } else {
+                if (IsVNLegalPurposePhoneNumberVerificationEnabled())
+                {
+                    // Show phone number verification wizard
+                } else {
+                    // Immediately submit register
+                    OnContinueButtonClick(evt);
+                }
+            }
         }
 
         public async void NavigateToWizard4(PointerUpEvent evt = null)
@@ -262,6 +285,19 @@ namespace com.noctuagames.sdk.UI
             View.Q<VisualElement>("RegisterWizard2").AddToClassList("hide");
             View.Q<VisualElement>("RegisterWizard3").AddToClassList("hide");
             View.Q<VisualElement>("RegisterWizard4").RemoveFromClassList("hide");            
+            View.Q<VisualElement>("RegisterWizard5").AddToClassList("hide");
+            View.Q<VisualElement>("AdditionalFooterContent").AddToClassList("hide");
+        }
+
+        // Wizard 5 is for phone number verification
+        public async void NavigateToWizard5(PointerUpEvent evt = null)
+        {
+            _wizardPage = 5;
+            View.Q<VisualElement>("RegisterWizard1").AddToClassList("hide");
+            View.Q<VisualElement>("RegisterWizard2").AddToClassList("hide");
+            View.Q<VisualElement>("RegisterWizard3").AddToClassList("hide");
+            View.Q<VisualElement>("RegisterWizard4").AddToClassList("hide");
+            View.Q<VisualElement>("RegisterWizard5").RemoveFromClassList("hide");            
             View.Q<VisualElement>("AdditionalFooterContent").AddToClassList("hide");
         }
         #endregion
@@ -318,8 +354,6 @@ namespace com.noctuagames.sdk.UI
 
         private void SetupDatePicker()
         {
-            _birthDate.textField.isReadOnly = true;
-
             string startDate = "01/01/2000";
             DateTime parsedDate = DateTime.ParseExact(startDate, "dd/MM/yyyy", null);
 
@@ -374,6 +408,7 @@ namespace com.noctuagames.sdk.UI
                     _birthDate.textField.labelElement.style.display = DisplayStyle.None;
                     Utility.UpdateButtonState(textFields, _continueButton.button);
                     Utility.UpdateButtonState(textFields, _wizardContinueButton.button);
+                    Utility.UpdateButtonState(textFields, _wizard5ContinueButton.button);
 
                     _isDatePickerOpen = false;
 
@@ -405,6 +440,7 @@ namespace com.noctuagames.sdk.UI
                     _dateOfIssue.AddToClassList("white-text");
                     Utility.UpdateButtonState(textFields, _continueButton.button);
                     Utility.UpdateButtonState(textFields, _wizardContinueButton.button);
+                    Utility.UpdateButtonState(textFields, _wizard5ContinueButton.button);
 
                     _isDatePickerOpen = false;
 
@@ -448,6 +484,27 @@ namespace com.noctuagames.sdk.UI
             Model.ShowEmailLogin();
         }
 
+        // Register button from full KCY wizard
+        private async void OnWizardContinueButtonClick(PointerUpEvent evt)
+        {
+
+            if (IsVNLegalPurposePhoneNumberVerificationEnabled())
+            {
+                NavigateToWizard5();
+            } else {
+                OnContinueButtonClick(evt);
+            }
+        }
+
+        // Register button from phone number verification wizard
+        private async void OnWizard5ContinueButtonClick(PointerUpEvent evt)
+        {
+            // Performs verification code / OTP check
+
+            // If it passed
+            OnContinueButtonClick(evt);
+        }
+
         private async void OnContinueButtonClick(PointerUpEvent evt)
         {
             _log.Debug("clicking continue button");
@@ -456,6 +513,7 @@ namespace com.noctuagames.sdk.UI
 
             _continueButton.ToggleLoading(true);
             _wizardContinueButton.ToggleLoading(true);
+            _wizard5ContinueButton.ToggleLoading(true);
 
             // Wizard            
             View.Q<Button>("WizardPrevTo3Button").AddToClassList("hide");
@@ -469,6 +527,7 @@ namespace com.noctuagames.sdk.UI
             {
                 _continueButton.ToggleLoading(false);
                 _wizardContinueButton.ToggleLoading(false);
+                _wizard5ContinueButton.ToggleLoading(false);
 
                 //Wizard
                 View.Q<Button>("WizardPrevTo3Button").RemoveFromClassList("hide");
@@ -476,7 +535,7 @@ namespace com.noctuagames.sdk.UI
                 _inputEmail.Error(Utility.ValidateEmail(emailAddress));
 
                 // Show the error at the end of the wizard as well
-                if(IsVNLegalPurposeEnabled())
+                if (IsVNLegalPurposeEnabled())
                 {
                     Model.ShowGeneralNotification(_inputEmail.labelError.text, false);
                 }
@@ -488,6 +547,7 @@ namespace com.noctuagames.sdk.UI
             {
                 _continueButton.ToggleLoading(false);
                 _wizardContinueButton.ToggleLoading(false);
+                _wizard5ContinueButton.ToggleLoading(false);
 
                 //Wizard
                 View.Q<Button>("WizardPrevTo3Button").RemoveFromClassList("hide");
@@ -495,7 +555,7 @@ namespace com.noctuagames.sdk.UI
                 _inputPassword.Error(Utility.ValidatePassword(password));
 
                 // Show the error at the end of the wizard as well
-                if(IsVNLegalPurposeEnabled())
+                if (IsVNLegalPurposeEnabled())
                 {
                     Model.ShowGeneralNotification(_inputPassword.labelError.text, false);
                 }
@@ -507,6 +567,7 @@ namespace com.noctuagames.sdk.UI
             {
                 _continueButton.ToggleLoading(false);
                 _wizardContinueButton.ToggleLoading(false);
+                _wizard5ContinueButton.ToggleLoading(false);
 
                 //Wizard
                 View.Q<Button>("WizardPrevTo3Button").RemoveFromClassList("hide");
@@ -514,7 +575,7 @@ namespace com.noctuagames.sdk.UI
                 _inputRepassword.Error(Utility.ValidateReenterPassword(password, rePassword));
 
                 // Show the error at the end of the wizard as well
-                if(IsVNLegalPurposeEnabled())
+                if (IsVNLegalPurposeEnabled())
                 {
                     Model.ShowGeneralNotification(_inputRepassword.labelError.text, false);
                 }
@@ -524,7 +585,7 @@ namespace com.noctuagames.sdk.UI
 
             Dictionary<string, string> regExtra = null;
 
-            if(IsVNLegalPurposeEnabled())
+            if (IsVNLegalPurposeEnabled())
             {
                 if (_gender.value == "Select Gender")
                 {
@@ -532,6 +593,7 @@ namespace com.noctuagames.sdk.UI
 
                     _continueButton.ToggleLoading(false);
                     _wizardContinueButton.ToggleLoading(false);
+                    _wizard5ContinueButton.ToggleLoading(false);
 
                     //Wizard
                     View.Q<Button>("WizardPrevTo3Button").RemoveFromClassList("hide");
@@ -542,7 +604,7 @@ namespace com.noctuagames.sdk.UI
                     _gender.Q<VisualElement>("title").style.color = ColorModule.redError;
 
                     // Show the error at the end of the wizard as well
-                    if(IsVNLegalPurposeEnabled())
+                    if (IsVNLegalPurposeEnabled())
                     {
                         Model.ShowGeneralNotification(_gender.Q<Label>("error").text, false);
                     }
@@ -560,6 +622,7 @@ namespace com.noctuagames.sdk.UI
 
                     _continueButton.ToggleLoading(false);
                     _wizardContinueButton.ToggleLoading(false);
+                    _wizard5ContinueButton.ToggleLoading(false);
 
                     //Wizard
                     View.Q<Button>("WizardPrevTo3Button").RemoveFromClassList("hide");
@@ -567,7 +630,7 @@ namespace com.noctuagames.sdk.UI
                     _birthDate.Error("Minimum age is 18 years old");
 
                     // Show the error at the end of the wizard as well
-                    if(IsVNLegalPurposeEnabled())
+                    if (IsVNLegalPurposeEnabled())
                     {
                         Model.ShowGeneralNotification(_birthDate.labelError.text, false);
                     }
@@ -622,7 +685,7 @@ namespace com.noctuagames.sdk.UI
                 _inputPassword.Clear();
                 _inputRepassword.Clear();
 
-                if(IsVNLegalPurposeEnabled())
+                if (IsVNLegalPurposeEnabled())
                 {
                     _fullname.Clear();
                     _birthDate.Clear();
@@ -637,6 +700,7 @@ namespace com.noctuagames.sdk.UI
 
                 _continueButton.Clear();
                 _wizardContinueButton.Clear();
+                _wizard5ContinueButton.Clear();
                 // Wizard                
                 View.Q<Button>("WizardPrevTo3Button").RemoveFromClassList("hide");                
 
@@ -649,19 +713,22 @@ namespace com.noctuagames.sdk.UI
                 {
                     _continueButton.Error(noctuaEx.ErrorCode.ToString() + " : " + noctuaEx.Message);
                     _wizardContinueButton.Error(noctuaEx.ErrorCode.ToString() + " : " + noctuaEx.Message);
+                    _wizard5ContinueButton.Error(noctuaEx.ErrorCode.ToString() + " : " + noctuaEx.Message);
                 }
                 else
                 {
                     _continueButton.Error(e.Message);
                     _wizardContinueButton.Error(e.Message);                    
+                    _wizard5ContinueButton.Error(e.Message);                    
                 }
 
                 _continueButton.ToggleLoading(false);
                 _wizardContinueButton.ToggleLoading(false);
+                _wizard5ContinueButton.ToggleLoading(false);
                 // Wizard                
                 View.Q<Button>("WizardPrevTo3Button").RemoveFromClassList("hide");
                 
-                if(IsVNLegalPurposeEnabled())
+                if (IsVNLegalPurposeEnabled())
                 {
                     Model.ShowGeneralNotification(_continueButton.labelError.text, false);
                 }
@@ -694,6 +761,7 @@ namespace com.noctuagames.sdk.UI
 
             _continueButton.Clear();
             _wizardContinueButton.Clear();
+            _wizard5ContinueButton.Clear();
 
             Visible = false;
 
@@ -705,6 +773,7 @@ namespace com.noctuagames.sdk.UI
             input.AdjustLabel();
             Utility.UpdateButtonState(textFields, _continueButton.button);
             Utility.UpdateButtonState(textFields, _wizardContinueButton.button);
+            Utility.UpdateButtonState(textFields, _wizard5ContinueButton.button);
         }
 
         private void HideAllErrors()
@@ -721,11 +790,22 @@ namespace com.noctuagames.sdk.UI
 
             _continueButton.Clear();
             _wizardContinueButton.Clear();
+            _wizard5ContinueButton.Clear();
         }
 
         private bool IsVNLegalPurposeEnabled()
         {
             return _config.Noctua.RemoteFeatureFlags.ContainsKey("vnLegalPurposeEnabled") == true && _config.Noctua.RemoteFeatureFlags["vnLegalPurposeEnabled"] == true;
+        }
+
+        private bool IsVNLegalPurposeFullKYCEnabled()
+        {
+            return _config.Noctua.RemoteFeatureFlags.ContainsKey("vnLegalPurposeFullKYCEnabled") == true && _config.Noctua.RemoteFeatureFlags["vnLegalPurposeFullKYCEnabled"] == true;
+        }
+
+        private bool IsVNLegalPurposePhoneNumberVerificationEnabled()
+        {
+            return _config.Noctua.RemoteFeatureFlags.ContainsKey("vnLegalPurposePhoneNumberVerificationEnabled") == true && _config.Noctua.RemoteFeatureFlags["vnLegalPurposePhoneNumberVerificationEnabled"] == true;
         }
     }
 }
