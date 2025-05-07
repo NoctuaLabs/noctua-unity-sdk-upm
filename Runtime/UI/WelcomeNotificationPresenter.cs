@@ -25,6 +25,20 @@ namespace com.noctuagames.sdk.UI
         private void OnAccountChanged(UserBundle userBundle)
         {
             if (userBundle == null) return;
+
+            Noctua.Event.TrackCustomEvent("login", new() {
+                    {"user_id", userBundle.User?.Id ?? 0}, 
+                    {"email", userBundle.User?.EmailAddress ?? ""}, 
+                    {"nickname", userBundle.User?.Nickname ?? ""}, 
+                    {"phone_number", userBundle.User?.PhoneNumbers ?? ""}, 
+                    {"provider_id", userBundle.Credential?.Id ?? 0},
+                    {"player_id", userBundle.Player?.Id ?? 0}, 
+                    {"display_name", userBundle.DisplayName ?? ""},
+                    {"provider", userBundle.Credential?.Provider ?? ""}, 
+                    {"is_guest", userBundle.IsGuest}
+                });
+
+            _log.Debug($"TrackCustomEvent OnAccountChanged Login");
             
             Show(userBundle);
         }
