@@ -764,6 +764,43 @@ namespace com.noctuagames.sdk
                 Instance.Value._iap.QueryPurchasesAsync();
 #endif
             }
+            else
+            {
+                // Start the realtime check for internet connection
+                RealtimeCheckInternetConnection().Forget();
+            }
+        }
+
+        private static async UniTask RealtimeCheckInternetConnection()
+        {
+            var log = Instance.Value._log;
+
+            if (_offlineMode)
+            {
+                log.Debug("Noctua: RealtimeCheckInternetConnection: offline mode is enabled, checking internet connection");
+
+                try
+                {
+                    while (await IsOfflineAsync())
+                    {
+                        log.Debug("Still offline... rechecking in 5 seconds.");
+                        await UniTask.Delay(TimeSpan.FromSeconds(5));
+                    }
+
+                    log.Debug("Internet connection restored.");
+
+                    if(!IsInitialized()) {
+
+                        await InitAsync();
+
+                        Instance.Value._auth.AuthenticateAsync().Forget();
+                    }
+                }
+                catch (Exception ex)
+                {
+                    log.Error($"Error during RealtimeCheckInternetConnection: {ex.Message}");
+                }
+            }
         }
 
         private static bool IsFirstOpen()
