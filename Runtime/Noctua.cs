@@ -83,6 +83,7 @@ namespace com.noctuagames.sdk
         // For feature flags that will be overrided by server config, see NoctuaGameService.cs -> RemoteConfigs
         [JsonProperty("welcomeToastDisabled")] public bool welcomeToastDisabled  = false;
         [JsonProperty("iaaEnabled")] public bool isIAAEnabled  = false;
+        [JsonProperty("iapDisabled")] public bool isIAPDisabled  = false;
         [JsonProperty("offlineFirstEnabled")] public bool IsOfflineFirst = false;
 
         // Deprecated because of inconsistent naming
@@ -363,6 +364,7 @@ namespace com.noctuagames.sdk
                 {
                     BaseUrl = _config.Noctua.BaseUrl,
                     ClientId = _config.ClientId,
+                    isIAPDisabled = _config.Noctua.isIAPDisabled,
                 },
                 accessTokenProvider,
                 _uiFactory,

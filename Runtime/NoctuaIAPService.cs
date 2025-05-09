@@ -752,6 +752,17 @@ namespace com.noctuagames.sdk
 
         public async UniTask<PurchaseResponse> PurchaseItemAsync(PurchaseRequest purchaseRequest, bool tryToUseSecondaryPayment = false, PaymentType enforcedPaymentType = PaymentType.unknown)
         {
+
+            if (_config.isIAPDisabled)
+            {
+                _uiFactory.ShowError(LocaleTextKey.IAPDisabled);
+
+                _log.Warning($"IAP is being disabled by config");
+                throw new NoctuaException(NoctuaErrorCode.Unknown, "IAP is being disabled by config");
+
+            }
+
+
             // Offline-first handler
             _uiFactory.ShowLoadingProgress(true);
             
@@ -2254,6 +2265,7 @@ namespace com.noctuagames.sdk
         {
             public string BaseUrl;
             public string ClientId;
+            public bool isIAPDisabled;
         }
 
         [Preserve]

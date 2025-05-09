@@ -190,6 +190,7 @@
     "IAPPendingPurchaseItemCopyButtonText":  "Copy Receipt",
     "IAPPendingPurchaseItemRetryButtonText" : "Retry",
     "IAPPurchaseHistoryTitle": "You have {0} purchase(s)",
+    "IAPDisabled": "In-App Purchase is disabled by configuration",
 
     "OfflineModeMessage" : "Network Error: Your internet connection is still unavailable. Please check your connection and try again.",
 
