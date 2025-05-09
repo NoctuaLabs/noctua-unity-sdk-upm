@@ -76,7 +76,7 @@ namespace com.noctuagames.sdk
         [JsonProperty("sessionHeartbeatPeriodMs")] public uint SessionHeartbeatPeriodMs = 60_000;
         [JsonProperty("sessionTimeoutMs")] public uint SessionTimeoutMs = 900_000;
 
-        [JsonProperty("isSandbox")] public bool IsSandbox;
+        [JsonProperty("sandboxEnabled")] public bool IsSandbox;
         [JsonProperty("region")]  public string Region;
 
         // Client side feature flags that will not be overrided by server config
@@ -251,7 +251,6 @@ namespace com.noctuagames.sdk
             {
                 throw new NoctuaException(NoctuaErrorCode.Application, "Failed to parse config: config is null");
             }
-            
             NoctuaLogger.Init(_config);
 
             var locale = new NoctuaLocale(_config.Noctua.Region);
@@ -275,8 +274,6 @@ namespace com.noctuagames.sdk
                 _config.Noctua.BaseUrl = NoctuaConfig.DefaultSandboxBaseUrl;
             }
 
-            _log.Debug($"Noctua config: \n{_config.PrintFields()}");
-            
             _eventSender = new EventSender(
                 new EventSenderConfig
                 {
@@ -545,6 +542,7 @@ namespace com.noctuagames.sdk
                     await Instance.Value._uiFactory.ShowStartGameErrorDialog(e.Message);
                 }
             }
+            log.Debug("Initial noctua config: " + JsonConvert.SerializeObject(Noctua.Instance.Value._config?.Noctua));
 
             _offlineMode = initResponse.OfflineMode;
             Instance.Value._log.Info($"Offline mode: {_offlineMode}");
@@ -677,6 +675,8 @@ namespace com.noctuagames.sdk
             }
             
             Noctua.Instance.Value._auth.SetFlag(Noctua.Instance.Value._config.Noctua.RemoteFeatureFlags);
+
+            log.Debug("Final noctua config: " + JsonConvert.SerializeObject(Noctua.Instance.Value._config?.Noctua));
 
             if (!Noctua.Instance.Value._iap.IsReady)
             {
