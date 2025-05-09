@@ -785,12 +785,7 @@ namespace com.noctuagames.sdk
                 {
                     await UniTask.Delay(TimeSpan.FromSeconds(5));
 
-                    // Double-check offline status
-                    if (await IsOfflineAsync())
-                    {
-                        log.Debug("Still offline... waiting.");
-                        continue;
-                    }
+                    log.Debug("Checking internet connection...");
 
                     try
                     {
