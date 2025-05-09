@@ -104,9 +104,9 @@ namespace com.noctuagames.sdk.UI
 
         public void SetFlag(Dictionary<string, bool> featureFlags)
         {
-            if (featureFlags.ContainsKey("ssoDisabled"))
+            if (featureFlags.ContainsKey("ssoDisabled") && featureFlags["ssoDisabled"])
             {
-                _ssoDisabled = featureFlags["ssoDisabled"];
+                _ssoDisabled = true;
             }
         }
 
