@@ -285,8 +285,51 @@ namespace com.noctuagames.sdk
             return await _service.LogoutAsync();
         }
 
-        public void ShowUserCenter()
+        private async Task HandleRetryPopUpMessageAsync(string offlineModeMessage) {
+            bool isRetry = await _uiFactory.ShowRetryDialog(offlineModeMessage, "offlineMode");
+            if(isRetry)
+            {
+                await ShowUserCenter();
+            }
+        }
+
+        public async UniTask ShowUserCenter()
         {
+            // Offline-first handler
+            _uiFactory.ShowLoadingProgress(true);
+            
+            var offlineModeMessage = Noctua.Platform.Locale.GetTranslation(LocaleTextKey.OfflineModeMessage) + " [UserCenter]";
+            var isOffline = await Noctua.IsOfflineAsync();
+
+            if(!isOffline && !Noctua.IsInitialized())
+            {
+                try
+                {
+                    await Noctua.InitAsync();
+
+                    await Noctua.Auth.AuthenticateAsync();
+
+                } catch(Exception e)
+                {
+                    _uiFactory.ShowLoadingProgress(false);
+
+                    await HandleRetryPopUpMessageAsync(offlineModeMessage);
+
+                    throw new NoctuaException(NoctuaErrorCode.Authentication, $"{e.Message}");
+                }
+            }
+
+            if (isOffline)
+            {
+                _uiFactory.ShowLoadingProgress(false);
+
+                await HandleRetryPopUpMessageAsync(offlineModeMessage);
+
+                throw new NoctuaException(NoctuaErrorCode.Authentication, offlineModeMessage);
+            }
+
+            _uiFactory.ShowLoadingProgress(false);
+
             EnsureEnabled();
 
             _log.Debug("calling API");

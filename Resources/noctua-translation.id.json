@@ -193,6 +193,7 @@
     "IAPPendingPurchaseItemRetryButtonText" : "Coba Lagi",
     "AuthEmailLinkingSuccessful": "Email berhasil dihubungkan",
     "IAPPurchaseHistoryTitle": "Anda memiliki {0} pembelian",
+    "IAPDisabled": "Pembelian di dalam aplikasi sedang dinonaktifkan",
 
     "OfflineModeMessage" : "Kesalahan Jaringan: Koneksi internet Anda masih tidak tersedia. Silakan periksa koneksi Anda dan coba lagi.",
 

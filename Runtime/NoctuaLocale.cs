@@ -219,6 +219,7 @@ namespace com.noctuagames.sdk
         IAPPendingPurchaseItemCopyButtonText,
         IAPPendingPurchaseItemRetryButtonText,
         IAPPurchaseHistoryTitle,
+        IAPDisabled,
         OfflineModeMessage,
 
         ErrorEmailEmpty,
