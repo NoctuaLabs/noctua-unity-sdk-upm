@@ -767,39 +767,62 @@ namespace com.noctuagames.sdk
             else
             {
                 // Start the realtime check for internet connection
-                RealtimeCheckInternetConnection().Forget();
+                RealtimeCheckInternetConnectionAndRetryAuth().Forget();
             }
         }
 
-        private static async UniTask RealtimeCheckInternetConnection()
+        private static async UniTask RealtimeCheckInternetConnectionAndRetryAuth()
         {
             var log = Instance.Value._log;
 
             if (_offlineMode)
             {
-                log.Debug("Noctua: RealtimeCheckInternetConnection: offline mode is enabled, checking internet connection");
+                bool loop = true;
 
-                try
+                log.Debug("Noctua: Offline mode is enabled, entering reconnection loop...");
+
+                while (loop)
                 {
-                    while (await IsOfflineAsync())
+                    await UniTask.Delay(TimeSpan.FromSeconds(5));
+
+                    // Double-check offline status
+                    if (await IsOfflineAsync())
                     {
-                        log.Debug("Still offline... rechecking in 5 seconds.");
-                        await UniTask.Delay(TimeSpan.FromSeconds(5));
+                        log.Debug("Still offline... waiting.");
+                        continue;
                     }
 
-                    log.Debug("Internet connection restored.");
+                    try
+                    {
+                        if (!IsInitialized())
+                        {
+                            await InitAsync();
+                        }
 
-                    if(!IsInitialized()) {
+                        await Instance.Value._auth.AuthenticateAsync();
+                    
+                        log.Debug("Authentication succeeded from offline.");
 
-                        await InitAsync();
+                        loop = false;
+                    }
+                    catch (NoctuaException noctuaEx)
+                    {
+                        log.Info($"Auth or init failed: {noctuaEx.Message}");
+                        
 
-                        Instance.Value._auth.AuthenticateAsync().Forget();
+                        if (noctuaEx.ErrorCode == (int)NoctuaErrorCode.Networking)
+                        {
+                            log.Debug("Detected network-related failure, will retry.");
+                            loop = true;
+                        }
+                        else
+                        {
+                            log.Warning("Non-network exception, aborting retry loop.");
+                            loop = false;
+                        }
                     }
                 }
-                catch (Exception ex)
-                {
-                    log.Error($"Error during RealtimeCheckInternetConnection: {ex.Message}");
-                }
+                log.Debug("Reconnection loop exited.");
             }
         }
 
