@@ -250,6 +250,16 @@ namespace com.noctuagames.sdk
                 };
             }
         }
+
+        public static UserBundle Empty => new()
+        {
+            User = null,
+            Credential = null,
+            Player = null,
+            PlayerAccounts = new List<Player>(),
+            LastUsed = default,
+            IsRecent = false
+        };
     }
 
     [Preserve]
