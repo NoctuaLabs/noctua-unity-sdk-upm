@@ -107,7 +107,10 @@ namespace com.noctuagames.sdk
         /// <returns>A UserBundle object representing the selected account.</returns>
         public async UniTask<UserBundle> AuthenticateAsync()
         {
-            EnsureEnabled();
+            if(!_enabled)
+            {
+                return UserBundle.Empty;
+            }
             
             _log.Debug("calling API");
             
