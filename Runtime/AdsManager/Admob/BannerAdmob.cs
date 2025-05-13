@@ -2,6 +2,7 @@
 using GoogleMobileAds.Api;
 using System;
 using System.Collections.Generic;
+using Cysharp.Threading.Tasks;
 
 namespace com.noctuagames.sdk.Admob
 {
@@ -171,28 +172,55 @@ namespace com.noctuagames.sdk.Admob
 
         private void TrackAdCustomEventBanner(string eventName, Dictionary<string, IConvertible> extraPayload = null)
         {
-            _log.Debug("Tracking custom event for banner ad: " + eventName);
-
-            extraPayload ??= new Dictionary<string, IConvertible>();
-
-            AdapterResponseInfo loadedAdapterResponseInfo = _bannerView.GetResponseInfo().GetLoadedAdapterResponseInfo();
-            string adSourceName = loadedAdapterResponseInfo?.AdSourceName ?? "empty";
-
-            extraPayload.Add("ad_unit_id", _bannerView.GetAdUnitID());
-            extraPayload.Add("ad_format", "banner");
-            extraPayload.Add("ad_network", adSourceName);
-            extraPayload.Add("mediation_service", "admob");
-            extraPayload.Add("sdk_version", MobileAds.GetVersion().ToString());
-
-            string properties = "";
-            foreach (var (key, value) in extraPayload)
+            try
             {
-                properties += $"{key}={value}, ";
-            }
+                _log.Debug("Tracking custom event for banner ad: " + eventName);
 
-            _log.Debug($"Event name: {eventName}, Event properties: {properties}");
-        
-            Noctua.Event.TrackCustomEvent(eventName, extraPayload);
+                extraPayload ??= new Dictionary<string, IConvertible>();
+
+                // Add basic information that doesn't require the ad instance
+                extraPayload.Add("ad_format", "banner");
+                extraPayload.Add("mediation_service", "admob");
+                
+                // Only add ad-specific information if the ad instance exists
+                if (_bannerView != null)
+                {
+                    var responseInfo = _bannerView.GetResponseInfo();
+                    if (responseInfo != null)
+                    {
+                        AdapterResponseInfo loadedAdapterResponseInfo = responseInfo.GetLoadedAdapterResponseInfo();
+                        string adSourceName = loadedAdapterResponseInfo?.AdSourceName ?? "empty";
+                        extraPayload.Add("ad_network", adSourceName);
+                    }
+                    else
+                    {
+                        extraPayload.Add("ad_network", "unknown");
+                    }
+
+                    extraPayload.Add("ad_unit_id", _bannerView.GetAdUnitID());
+                }
+                else
+                {
+                    extraPayload.Add("ad_network", "unknown");
+                    extraPayload.Add("ad_unit_id", _adUnitIdBanner ?? "unknown");
+                }
+
+                string properties = "";
+                foreach (var (key, value) in extraPayload)
+                {
+                    properties += $"{key}={value}, ";
+                }
+
+                _log.Debug($"Event name: {eventName}, Event properties: {properties}");
+            
+                // Use the thread-safe event queue instead of direct tracking
+                AdmobEventQueue.EnqueueEvent(eventName, extraPayload);
+            }
+            catch (Exception ex)
+            {
+                _log.Error($"Error tracking banner ad event '{eventName}': {ex.Message}\n{ex.StackTrace}");
+                // Continue execution - tracking errors shouldn't affect ad functionality
+            }
         }
     }
 }
