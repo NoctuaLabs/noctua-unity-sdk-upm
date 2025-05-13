@@ -317,14 +317,14 @@ namespace com.noctuagames.sdk
             }
             else
             {
-                if(config.IAA == null)
+                if(_config.IAA == null)
                 {
                     _log.Error("IAA local config is null, please check your config file");
                     return;
                 }
 
                 #if UNITY_ADMOB || UNITY_APPLOVIN
-                _iaa.Initialize(config.IAA, () => {
+                _iaa.Initialize(_config.IAA, () => {
                     _log.Info("IAA SDK initialized from Local Config");
 
                     InitializeNativePlugin();
