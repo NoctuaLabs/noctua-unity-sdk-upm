@@ -3,6 +3,7 @@ using GoogleMobileAds.Api;
 using UnityEngine;
 using System;
 using System.Collections.Generic;
+using Cysharp.Threading.Tasks;
 
 namespace com.noctuagames.sdk.Admob
 {
@@ -173,28 +174,55 @@ namespace com.noctuagames.sdk.Admob
 
         private void TrackAdCustomEventInterstitial(string eventName, Dictionary<string, IConvertible> extraPayload = null)
         {
-            _log.Debug("Tracking custom event for interstitial ad: " + eventName);
-
-            extraPayload ??= new Dictionary<string, IConvertible>();
-
-            AdapterResponseInfo loadedAdapterResponseInfo = _interstitialAd.GetResponseInfo().GetLoadedAdapterResponseInfo();
-            string adSourceName = loadedAdapterResponseInfo?.AdSourceName ?? "empty";
-
-            extraPayload.Add("ad_unit_id", _interstitialAd.GetAdUnitID());
-            extraPayload.Add("ad_format", "interstitial");
-            extraPayload.Add("ad_network", adSourceName);
-            extraPayload.Add("mediation_service", "admob");
-            extraPayload.Add("sdk_version", MobileAds.GetVersion().ToString());
-
-            string properties = "";
-            foreach (var (key, value) in extraPayload)
+            try
             {
-                properties += $"{key}={value}, ";
-            }
+                _log.Debug("Tracking custom event for interstitial ad: " + eventName);
 
-            _log.Debug($"Event name: {eventName}, Event properties: {properties}");
-        
-            Noctua.Event.TrackCustomEvent(eventName, extraPayload);
+                extraPayload ??= new Dictionary<string, IConvertible>();
+
+                // Add basic information that doesn't require the ad instance
+                extraPayload.Add("ad_format", "interstitial");
+                extraPayload.Add("mediation_service", "admob");
+                
+                // Only add ad-specific information if the ad instance exists
+                if (_interstitialAd != null)
+                {
+                    var responseInfo = _interstitialAd.GetResponseInfo();
+                    if (responseInfo != null)
+                    {
+                        AdapterResponseInfo loadedAdapterResponseInfo = responseInfo.GetLoadedAdapterResponseInfo();
+                        string adSourceName = loadedAdapterResponseInfo?.AdSourceName ?? "empty";
+                        extraPayload.Add("ad_network", adSourceName);
+                    }
+                    else
+                    {
+                        extraPayload.Add("ad_network", "unknown");
+                    }
+
+                    extraPayload.Add("ad_unit_id", _interstitialAd.GetAdUnitID());
+                }
+                else
+                {
+                    extraPayload.Add("ad_network", "unknown");
+                    extraPayload.Add("ad_unit_id", _adUnitIDInterstitial ?? "unknown");
+                }
+
+                string properties = "";
+                foreach (var (key, value) in extraPayload)
+                {
+                    properties += $"{key}={value}, ";
+                }
+
+                _log.Debug($"Event name: {eventName}, Event properties: {properties}");
+            
+                // Use the thread-safe event queue instead of direct tracking
+                AdmobEventQueue.EnqueueEvent(eventName, extraPayload);
+            }
+            catch (Exception ex)
+            {
+                _log.Error($"Error tracking interstitial ad event '{eventName}': {ex.Message}\n{ex.StackTrace}");
+                // Continue execution - tracking errors shouldn't affect ad functionality
+            }
         }
     }
 }
