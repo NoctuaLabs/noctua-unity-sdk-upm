@@ -427,6 +427,37 @@ namespace com.noctuagames.sdk
         public string EnglishName;
     }
 
+    // To support VN legal purpose
+    [Preserve]
+    public class RegisterWithEmailSendPhoneNumberVerification
+    {
+        [JsonProperty("phone_number")]
+        public string PhoneNumber;
+    }
+
+    [Preserve]
+    public class RegisterWithEmailSendPhoneNumberVerificationResponse
+    {
+        [JsonProperty("id")]
+        public string VerificationId;
+    }
+
+    // To support VN legal purpose
+    [Preserve]
+    public class RegisterWithEmailVerifyPhoneNumberVerification
+    {
+        [JsonProperty("id")]
+        public string VerificationId;
+
+        [JsonProperty("code")]
+        public string Code;
+    }
+
+    [Preserve]
+    public class RegisterWithEmailVerifyPhoneNumberVerificationResponse
+    {
+    }
+
     public class NoctuaAuthenticationService
     {
         public IReadOnlyList<UserBundle> AccountList => _accountContainer.Accounts;
@@ -626,6 +657,43 @@ namespace com.noctuagames.sdk
                 .NoVerboseLog();
 
             return await request.Send<CredentialVerification>();
+        }
+
+        // This API is a subset of email register to support VN legal purpose, not a full registration
+        // That is why it has RegisterWithEmail prefix. RegisterWithPhoneNumber will have its own API in the future.
+        public async UniTask<RegisterWithEmailSendPhoneNumberVerificationResponse> RegisterWithEmailSendPhoneNumberVerificationAsync(string phoneNumber)
+        {
+            _log.Debug("RegisterWithEmailSendPhoneNumberVerificationAsync");
+
+            var request = new HttpRequest(HttpMethod.Post, $"{_baseUrl}/auth/email/register-phone-number")
+                .WithHeader("X-CLIENT-ID", _clientId)
+                .WithHeader("X-BUNDLE-ID", _bundleId)
+                .WithJsonBody(
+                    new RegisterWithEmailSendPhoneNumberVerification
+                    {
+                        PhoneNumber = phoneNumber
+                    }
+                )
+                .NoVerboseLog();
+
+            return await request.Send<RegisterWithEmailSendPhoneNumberVerificationResponse>();
+        }
+
+        public async UniTask<RegisterWithEmailVerifyPhoneNumberVerificationResponse> RegisterWithEmailVerifyPhoneNumberAsync(string id, string code)
+        {
+            var request = new HttpRequest(HttpMethod.Post, $"{_baseUrl}/auth/email/verify-phone-number")
+                .WithHeader("X-CLIENT-ID", _clientId)
+                .WithHeader("X-BUNDLE-ID", _bundleId)
+                .WithJsonBody(
+                    new RegisterWithEmailVerifyPhoneNumberVerification
+                    {
+                        VerificationId = id,
+                        Code = code
+                    }
+                )
+                .NoVerboseLog();
+
+            return await request.Send<RegisterWithEmailVerifyPhoneNumberVerificationResponse>();
         }
 
         public async UniTask<UserBundle> VerifyEmailRegistrationAsync(int id, string code)
