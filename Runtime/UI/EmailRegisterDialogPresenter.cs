@@ -24,6 +24,7 @@ namespace com.noctuagames.sdk.UI
         private InputFieldNoctua _fullname;
         private InputFieldNoctua _phoneNumber;
         private InputFieldNoctua _birthDate;
+        private Label _birthDateLabel;
         private DropdownField _gender;
         private InputFieldNoctua _country;
         private InputFieldNoctua _idCard;
@@ -31,6 +32,7 @@ namespace com.noctuagames.sdk.UI
         private Button _dateOfIssue;
         private InputFieldNoctua _address;
         private List<TextField> textFields;
+        private string _verificationId;
 
         private ButtonNoctua _continueButton; // Main submit button
         private ButtonNoctua _wizardContinueButton; // Submit button on full KYC
@@ -107,6 +109,7 @@ namespace com.noctuagames.sdk.UI
             _fullname = new InputFieldNoctua(View.Q<TextField>("FullNameTF"));
             _phoneNumber = new InputFieldNoctua(View.Q<TextField>("PhoneNumberTF"));
             _birthDate = new InputFieldNoctua(View.Q<TextField>("BirthdateTF"));
+            _birthDateLabel = View.Q<Label>("BirthdateTFLabel");
             _gender = View.Q<DropdownField>("GenderTF");
             _country = new InputFieldNoctua(View.Q<TextField>("CountryTF"));
             _idCard = new InputFieldNoctua(View.Q<TextField>("IDCardTF"));
@@ -239,6 +242,7 @@ namespace com.noctuagames.sdk.UI
             View.Q<VisualElement>("RegisterWizard5").AddToClassList("hide");
             View.Q<VisualElement>("AdditionalFooterContent").RemoveFromClassList("hide");
             View.Q<VisualElement>("footerContent").AddToClassList("wizard-register-footer");
+            View.Q<VisualElement>("Loading").AddToClassList("hide");
         }
 
         public async void NavigateToWizard2(PointerUpEvent evt = null)
@@ -251,6 +255,7 @@ namespace com.noctuagames.sdk.UI
             View.Q<VisualElement>("RegisterWizard4").AddToClassList("hide");            
             View.Q<VisualElement>("RegisterWizard5").AddToClassList("hide");
             View.Q<VisualElement>("AdditionalFooterContent").AddToClassList("hide");
+            View.Q<VisualElement>("Loading").AddToClassList("hide");
         }
 
         public async void NavigateToWizard3(PointerUpEvent evt = null)
@@ -264,9 +269,10 @@ namespace com.noctuagames.sdk.UI
                 View.Q<VisualElement>("RegisterWizard2").AddToClassList("hide");
                 View.Q<VisualElement>("RegisterWizard3").RemoveFromClassList("hide");
                 View.Q<VisualElement>("RegisterWizard4").AddToClassList("hide");            
-            View.Q<VisualElement>("RegisterWizard5").AddToClassList("hide");
+                View.Q<VisualElement>("RegisterWizard5").AddToClassList("hide");
                 View.Q<VisualElement>("footerContent").AddToClassList("hide");
                 View.Q<VisualElement>("AdditionalFooterContent").AddToClassList("hide");
+                View.Q<VisualElement>("Loading").AddToClassList("hide");
             } else {
                 if (IsVNLegalPurposePhoneNumberVerificationEnabled())
                 {
@@ -287,6 +293,7 @@ namespace com.noctuagames.sdk.UI
             View.Q<VisualElement>("RegisterWizard4").RemoveFromClassList("hide");            
             View.Q<VisualElement>("RegisterWizard5").AddToClassList("hide");
             View.Q<VisualElement>("AdditionalFooterContent").AddToClassList("hide");
+            View.Q<VisualElement>("Loading").AddToClassList("hide");
         }
 
         // Wizard 5 is for phone number verification
@@ -299,6 +306,17 @@ namespace com.noctuagames.sdk.UI
             View.Q<VisualElement>("RegisterWizard4").AddToClassList("hide");
             View.Q<VisualElement>("RegisterWizard5").RemoveFromClassList("hide");            
             View.Q<VisualElement>("AdditionalFooterContent").AddToClassList("hide");
+            View.Q<VisualElement>("Loading").AddToClassList("hide");
+        }
+        public async void NavigateToLoading(PointerUpEvent evt = null)
+        {
+            View.Q<VisualElement>("RegisterWizard1").AddToClassList("hide");
+            View.Q<VisualElement>("RegisterWizard2").AddToClassList("hide");
+            View.Q<VisualElement>("RegisterWizard3").AddToClassList("hide");
+            View.Q<VisualElement>("RegisterWizard4").AddToClassList("hide");
+            View.Q<VisualElement>("RegisterWizard5").AddToClassList("hide");            
+            View.Q<VisualElement>("AdditionalFooterContent").AddToClassList("hide");
+            View.Q<VisualElement>("Loading").RemoveFromClassList("hide");            
         }
         #endregion
 
@@ -354,6 +372,11 @@ namespace com.noctuagames.sdk.UI
 
         private void SetupDatePicker()
         {
+
+            #if UNITY_EDITOR
+            // We are altering the behaviour of the form/wizard
+            // for in editor for easier development
+            #else
             string startDate = "01/01/2000";
             DateTime parsedDate = DateTime.ParseExact(startDate, "dd/MM/yyyy", null);
 
@@ -446,6 +469,8 @@ namespace com.noctuagames.sdk.UI
 
                 });
             });
+            #endif
+
         }
 
         // Unused, leave it here for future use.
@@ -490,6 +515,12 @@ namespace com.noctuagames.sdk.UI
 
             if (IsVNLegalPurposePhoneNumberVerificationEnabled())
             {
+                NavigateToLoading();
+                // Send phone number verification code
+                var result = await Model.AuthService.RegisterWithEmailSendPhoneNumberVerificationAsync(_phoneNumber.text);
+                _verificationId = result.VerificationId;
+                _log.Debug("OEG verificationId: " + _verificationId);
+
                 NavigateToWizard5();
             } else {
                 OnContinueButtonClick(evt);
@@ -659,6 +690,11 @@ namespace com.noctuagames.sdk.UI
                     { "date_of_issue", issueDate.ToString() },
                     { "address", _address.text}
                 };
+
+                _log.Debug("Register extra: " + JsonConvert.SerializeObject(regExtra));
+
+                // Phone number verification
+                
             }
 
             try {

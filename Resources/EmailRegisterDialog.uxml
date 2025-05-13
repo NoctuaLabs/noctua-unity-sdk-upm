@@ -80,9 +80,12 @@
                         <ui:Label tabindex="-1" text="Place of issue" parse-escape-sequences="true" display-tooltip-when-elided="true" name="title" class="hide" />
                         <ui:Label tabindex="-1" text="error" parse-escape-sequences="true" display-tooltip-when-elided="true" name="error" class="hide" />
                     </ui:TextField>
-                    <ui:VisualElement name="DateOfIssueContainer">
-                        <ui:Button name="DateOfIssueTF" text="Date of Issue" class="button-as-text-input grey-text" style="margin-left: -1px; height: 40px; width: 100%; border-radius: 10px; justify-content: left; -unity-text-align: left; align-items: left;" />
-                        <ui:Button parse-escape-sequences="true" display-tooltip-when-elided="true" class="btn-calendar" style="position: absolute; background-color: rgba(255, 255, 255, 0); align-self: center; justify-content: center; margin-top: 1px;" />
+                    <ui:VisualElement name="DateOfIssueContainer" class="noctua-text-input-margin">
+                        <ui:TextField label="Date of Issue" name="DateOfIssueTF" class="noctua-text-input">
+                            <ui:Label tabindex="-1" text="Date of issue" parse-escape-sequences="true" display-tooltip-when-elided="true" name="title" class="hide" />
+                            <ui:Label tabindex="-1" text="error" parse-escape-sequences="true" display-tooltip-when-elided="true" name="error" class="hide" />
+                        </ui:TextField>
+                        <ui:Button parse-escape-sequences="true" display-tooltip-when-elided="true" class="btn-calendar" style="position: absolute; background-color: rgba(255, 255, 255, 0); align-self: center; justify-content: center;" />
                     </ui:VisualElement>
                     <ui:VisualElement style="flex-direction: row; margin-top: 70px; padding-top: 5px;">
                         <ui:Label name="ErrCode" display-tooltip-when-elided="true" class="dialog-err-label hide" />
@@ -102,6 +105,9 @@
                         <ui:Button text="Register" display-tooltip-when-elided="true" name="Wizard5ContinueButton" focusable="false" class="dialog-button" style="margin-left: 15px; width: 120px; flex-direction: column;" />
                         <ui:Button text="Registering..." display-tooltip-when-elided="true" name="Spinner" focusable="false" picking-mode="Ignore" class="dialog-button hide" />
                     </ui:VisualElement>
+                </ui:VisualElement>
+                <ui:VisualElement name="Loading" class="hide">
+                    <ui:Button text="Please wait..." display-tooltip-when-elided="true" name="Spinner" focusable="false" picking-mode="Ignore" class="dialog-button" />
                 </ui:VisualElement>
             </ui:VisualElement>
 
