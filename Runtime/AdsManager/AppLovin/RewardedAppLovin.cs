@@ -1,6 +1,7 @@
 #if UNITY_APPLOVIN
 using Cysharp.Threading.Tasks;
 using System;
+using System.Collections.Generic;
 
 namespace com.noctuagames.sdk.AppLovin
 {
@@ -81,6 +82,9 @@ namespace com.noctuagames.sdk.AppLovin
             retryAttempt = 0;
 
             _log.Debug("Rewarded ad loaded for ad unit id : " + adUnitId);
+            
+            // Track ad loaded event
+            TrackAdCustomEventRewarded("ad_loaded", adUnitId, adInfo);
         }
 
         private void OnRewardedAdLoadFailedEvent(string adUnitId, MaxSdkBase.ErrorInfo errorInfo)
@@ -96,6 +100,15 @@ namespace com.noctuagames.sdk.AppLovin
 
             _log.Debug("Rewarded ad failed to load for ad unit id : " + adUnitId + " with error code : " + errorInfo.Code);
 
+            // Track ad load failed event
+            var extraPayload = new Dictionary<string, IConvertible>
+            {
+                { "error_code", errorInfo.Code },
+                { "error_message", errorInfo.Message },
+                { "mediator_error_code", errorInfo.MediatedNetworkErrorCode },
+                { "mediator_error_message", errorInfo.MediatedNetworkErrorMessage }
+            };
+            TrackAdCustomEventRewarded("ad_load_failed", adUnitId, null, extraPayload);
         }
 
         private async UniTaskVoid RetryLoadRewardedAsync()
@@ -115,6 +128,9 @@ namespace com.noctuagames.sdk.AppLovin
 
             _log.Debug("Rewarded ad displayed for ad unit id : " + adUnitId);
 
+            // Track ad shown event
+            TrackAdCustomEventRewarded("ad_shown", adUnitId, adInfo);
+
             RewardedOnAdDisplayed?.Invoke();
         }
 
@@ -125,11 +141,24 @@ namespace com.noctuagames.sdk.AppLovin
 
             _log.Debug("Rewarded ad failed to display for ad unit id : " + adUnitId + " with error code : " + errorInfo.Code);
 
+            // Track ad show failed event
+            var extraPayload = new Dictionary<string, IConvertible>
+            {
+                { "error_code", errorInfo.Code },
+                { "error_message", errorInfo.Message },
+                { "mediator_error_code", errorInfo.MediatedNetworkErrorCode },
+                { "mediator_error_message", errorInfo.MediatedNetworkErrorMessage }
+            };
+            TrackAdCustomEventRewarded("ad_shown_failed", adUnitId, adInfo, extraPayload);
+
             RewardedOnAdFailedDisplayed?.Invoke();
         }
 
         private void OnRewardedAdClickedEvent(string adUnitId, MaxSdkBase.AdInfo adInfo) {
             _log.Debug("Rewarded ad clicked for ad unit id : " + adUnitId);
+
+            // Track ad clicked event
+            TrackAdCustomEventRewarded("ad_clicked", adUnitId, adInfo);
 
             RewardedOnAdClicked?.Invoke();
         }
@@ -141,6 +170,9 @@ namespace com.noctuagames.sdk.AppLovin
 
             _log.Debug("Rewarded ad hidden for ad unit id : " + adUnitId);
 
+            // Track ad closed event
+            TrackAdCustomEventRewarded("ad_closed", adUnitId, adInfo);
+
             RewardedOnAdClosed?.Invoke();
         }
 
@@ -151,6 +183,14 @@ namespace com.noctuagames.sdk.AppLovin
 
             _log.Debug("Rewarded ad received reward for ad unit id : " + adUnitId);
 
+            // Track reward earned event
+            var extraPayload = new Dictionary<string, IConvertible>
+            {
+                { "reward_amount", reward.Amount },
+                { "reward_type", reward.Label }
+            };
+            TrackAdCustomEventRewarded("reward_earned", adUnitId, adInfo, extraPayload);
+
             RewardedOnUserEarnedReward?.Invoke(reward);
         }
 
@@ -160,6 +200,49 @@ namespace com.noctuagames.sdk.AppLovin
             _log.Debug("Rewarded ad revenue paid for ad unit id : " + adUnitId);
             
             RewardedOnAdRevenuePaid?.Invoke(adInfo);
+        }
+        
+        private void TrackAdCustomEventRewarded(string eventName, string adUnitId, MaxSdkBase.AdInfo adInfo, Dictionary<string, IConvertible> extraPayload = null)
+        {
+            try
+            {
+                _log.Debug("Tracking custom event for rewarded ad: " + eventName);
+
+                extraPayload ??= new Dictionary<string, IConvertible>();
+
+                // Add basic information that doesn't require the ad info
+                extraPayload.Add("ad_format", "rewarded");
+                extraPayload.Add("mediation_service", "applovin");
+                extraPayload.Add("ad_unit_id", adUnitId ?? _adUnitIDRewarded ?? "unknown");
+                
+                // Add ad info if available
+                if (adInfo != null)
+                {
+                    extraPayload.Add("ad_network", adInfo.NetworkName ?? "unknown");
+                    extraPayload.Add("placement", adInfo.Placement ?? "unknown");
+                    extraPayload.Add("network_placement", adInfo.NetworkPlacement ?? "unknown");
+                }
+                else
+                {
+                    extraPayload.Add("ad_network", "unknown");
+                }
+
+                string properties = "";
+                foreach (var (key, value) in extraPayload)
+                {
+                    properties += $"{key}={value}, ";
+                }
+
+                _log.Debug($"Event name: {eventName}, Event properties: {properties}");
+            
+                // Use the thread-safe event queue instead of direct tracking
+                IAAEventQueue.EnqueueEvent(eventName, extraPayload);
+            }
+            catch (Exception ex)
+            {
+                _log.Error($"Error tracking rewarded ad event '{eventName}': {ex.Message}\n{ex.StackTrace}");
+                // Continue execution - tracking errors shouldn't affect ad functionality
+            }
         }
     }
 }
