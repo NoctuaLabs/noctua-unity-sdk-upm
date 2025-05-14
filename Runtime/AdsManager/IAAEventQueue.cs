@@ -1,18 +1,18 @@
-#if UNITY_ADMOB
 using System;
 using System.Collections.Generic;
 using System.Collections.Concurrent;
 using UnityEngine;
 using Cysharp.Threading.Tasks;
 
-namespace com.noctuagames.sdk.Admob
+namespace com.noctuagames.sdk
 {
+
     /// <summary>
-    /// Thread-safe event queue for Admob events to ensure they are processed on the main thread
+    /// Thread-safe event queue for IAA events to ensure they are processed on the main thread
     /// </summary>
-    public static class AdmobEventQueue
+    public static class IAAEventQueue
     {
-        private static readonly NoctuaLogger _log = new(typeof(AdmobEventQueue));
+        private static readonly NoctuaLogger _log = new(typeof(IAAEventQueue));
         private static readonly ConcurrentQueue<EventData> _eventQueue = new ConcurrentQueue<EventData>();
         private static bool _isProcessing = false;
 
@@ -92,4 +92,3 @@ namespace com.noctuagames.sdk.Admob
         }
     }
 }
-#endif
