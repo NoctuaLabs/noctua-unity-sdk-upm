@@ -213,8 +213,7 @@ namespace com.noctuagames.sdk.Admob
 
                 _log.Debug($"Event name: {eventName}, Event properties: {properties}");
             
-                // Use the thread-safe event queue instead of direct tracking
-                IAAEventQueue.EnqueueEvent(eventName, extraPayload);
+                Noctua.Event.TrackCustomEvent(eventName, extraPayload);
             }
             catch (Exception ex)
             {
