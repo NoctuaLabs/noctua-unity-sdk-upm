@@ -1,6 +1,7 @@
 #if UNITY_APPLOVIN
 using Cysharp.Threading.Tasks;
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace com.noctuagames.sdk.AppLovin
@@ -112,17 +113,33 @@ namespace com.noctuagames.sdk.AppLovin
         private void OnBannerAdLoadedEvent(string adUnitId, MaxSdkBase.AdInfo adInfo) {
             _log.Debug("Banner ad loaded for ad unit id : " + adUnitId);
 
+            // Track ad loaded event
+            TrackAdCustomEventBanner("ad_loaded", adUnitId, adInfo);
+
             BannerOnAdDisplayed?.Invoke();
         }
 
         private void OnBannerAdLoadFailedEvent(string adUnitId, MaxSdkBase.ErrorInfo errorInfo) {
             _log.Error("Banner ad failed to load for ad unit id : " + adUnitId + " with error code : " + errorInfo.Code + " and message : " + errorInfo.Message);
 
+            // Track ad load failed event
+            var extraPayload = new Dictionary<string, IConvertible>
+            {
+                { "error_code", errorInfo.Code },
+                { "error_message", errorInfo.Message },
+                { "mediator_error_code", errorInfo.MediatedNetworkErrorCode },
+                { "mediator_error_message", errorInfo.MediatedNetworkErrorMessage }
+            };
+            TrackAdCustomEventBanner("ad_load_failed", adUnitId, null, extraPayload);
+
             BannerOnAdFailedDisplayed?.Invoke();
         }
 
         private void OnBannerAdClickedEvent(string adUnitId, MaxSdkBase.AdInfo adInfo) {
             _log.Debug("Banner ad clicked for ad unit id : " + adUnitId);
+
+            // Track ad clicked event
+            TrackAdCustomEventBanner("ad_clicked", adUnitId, adInfo);
 
             BannerOnAdClicked?.Invoke();
         }
@@ -135,10 +152,59 @@ namespace com.noctuagames.sdk.AppLovin
 
         private void OnBannerAdExpandedEvent(string adUnitId, MaxSdkBase.AdInfo adInfo)  {
             _log.Debug("Banner ad expanded for ad unit id : " + adUnitId);
+            
+            // Track ad expanded event
+            TrackAdCustomEventBanner("ad_expanded", adUnitId, adInfo);
         }
 
         private void OnBannerAdCollapsedEvent(string adUnitId, MaxSdkBase.AdInfo adInfo) {
             _log.Debug("Banner ad collapsed for ad unit id : " + adUnitId);
+            
+            // Track ad collapsed event
+            TrackAdCustomEventBanner("ad_collapsed", adUnitId, adInfo);
+        }
+        
+        private void TrackAdCustomEventBanner(string eventName, string adUnitId, MaxSdkBase.AdInfo adInfo, Dictionary<string, IConvertible> extraPayload = null)
+        {
+            try
+            {
+                _log.Debug("Tracking custom event for banner ad: " + eventName);
+
+                extraPayload ??= new Dictionary<string, IConvertible>();
+
+                // Add basic information that doesn't require the ad info
+                extraPayload.Add("ad_format", "banner");
+                extraPayload.Add("mediation_service", "applovin");
+                extraPayload.Add("ad_unit_id", adUnitId ?? _adUnitIDBanner ?? "unknown");
+                
+                // Add ad info if available
+                if (adInfo != null)
+                {
+                    extraPayload.Add("ad_network", adInfo.NetworkName ?? "unknown");
+                    extraPayload.Add("placement", adInfo.Placement ?? "unknown");
+                    extraPayload.Add("network_placement", adInfo.NetworkPlacement ?? "unknown");
+                }
+                else
+                {
+                    extraPayload.Add("ad_network", "unknown");
+                }
+
+                string properties = "";
+                foreach (var (key, value) in extraPayload)
+                {
+                    properties += $"{key}={value}, ";
+                }
+
+                _log.Debug($"Event name: {eventName}, Event properties: {properties}");
+            
+                // Use the thread-safe event queue instead of direct tracking
+                IAAEventQueue.EnqueueEvent(eventName, extraPayload);
+            }
+            catch (Exception ex)
+            {
+                _log.Error($"Error tracking banner ad event '{eventName}': {ex.Message}\n{ex.StackTrace}");
+                // Continue execution - tracking errors shouldn't affect ad functionality
+            }
         }
     }
 }
