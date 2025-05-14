@@ -436,6 +436,11 @@ namespace com.noctuagames.sdk
 
         public static void OnOnline()
         {
+            if(AdjustOfflineModeDisabled())
+            {
+                return;
+            }
+            
             if (Instance.Value._nativePlugin != null)
             {
                 Instance.Value._nativePlugin.OnOnline();
@@ -444,10 +449,26 @@ namespace com.noctuagames.sdk
 
         public static void OnOffline()
         {
+            if(AdjustOfflineModeDisabled())
+            {
+                return;
+            }
+
             if (Instance.Value._nativePlugin != null)
             {
                 Instance.Value._nativePlugin.OnOffline();
             }
+        }
+
+        public static bool AdjustOfflineModeDisabled()
+        {
+            if (Instance.Value._config.Noctua.RemoteFeatureFlags.TryGetValue("adjustOfflineModeDisabled", out var value) && value is bool flag && flag == true)
+            {
+                Instance.Value._log.Debug("Adjust offline mode is disabled");
+                return true;
+            }
+
+            return false;
         }
 
         public static async UniTask<bool> IsOfflineAsync()
@@ -470,7 +491,10 @@ namespace com.noctuagames.sdk
                 log.Debug("Internet is available.");
                 if (Instance.Value._nativePlugin != null)
                 {
-                    Instance.Value._nativePlugin.OnOnline();
+                    if(!AdjustOfflineModeDisabled())
+                    {
+                        Instance.Value._nativePlugin.OnOnline();
+                    }
                 }
             }
             else
@@ -478,7 +502,10 @@ namespace com.noctuagames.sdk
                 log.Debug("No internet connection.");
                 if (Instance.Value._nativePlugin != null)
                 {
-                    Instance.Value._nativePlugin.OnOffline();
+                    if(!AdjustOfflineModeDisabled())
+                    {
+                        Instance.Value._nativePlugin.OnOffline();
+                    }
                 }
 
                 if (prevOfflineMode != _offlineMode)
