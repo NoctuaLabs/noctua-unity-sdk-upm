@@ -78,12 +78,12 @@ namespace com.noctuagames.sdk
         public string Mediation;
 
         [JsonProperty("ad_formats")]
-        public AdFormat AdFormat;
+        public AdFormatNoctua AdFormat;
 
     }
 
     [Preserve]
-    public class AdFormat
+    public class AdFormatNoctua
     {
         [JsonProperty("interstitial")]
         public AdUnit Interstitial;
