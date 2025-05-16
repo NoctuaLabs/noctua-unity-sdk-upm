@@ -48,6 +48,20 @@ namespace com.noctuagames.sdk
         public event Action<MaxSdkBase.AdInfo> AppLovinOnAdRevenuePaid { add => _appLovinOnAdRevenuePaid += value; remove => _appLovinOnAdRevenuePaid -= value; }
         #endif
 
+        #if UNITY_ADMOB
+        public static AdmobAdPreloadManager _preloadManager = new();
+        private event Action<PreloadConfiguration> _onAdsAvailable;
+        private event Action<PreloadConfiguration> _onAdExhausted;
+
+        public event Action<PreloadConfiguration> OnAdsAvailable { add => _onAdsAvailable += value; remove => _onAdsAvailable -= value; }
+        public event Action<PreloadConfiguration> OnAdExhausted { add => _onAdExhausted += value; remove => _onAdExhausted -= value; }
+        #endif
+
+        private string _interstitialAdUnitID = "unused";
+        private string _rewardedAdUnitID = "unused";
+        private string _rewardedInterstitialAdUnitID = "unused";
+        private string _bannerAdUnitID = "unused";
+
         public void Initialize(IAA iAAResponse, Action initCompleteAction)
         {
             _log.Info("Initializing Ad Mediation");
@@ -75,17 +89,22 @@ namespace com.noctuagames.sdk
                     break;
             }
 
-            _adNetwork.Initialize(() => {
+            _adNetwork.Initialize(() =>
+            {
 
                 initCompleteAction?.Invoke();
 
                 _log.Info("Ad Mediation Initialized: " + iAAResponse.Mediation);
 
-                if(iAAResponse.AdFormat == null)
+                if (iAAResponse.AdFormat == null)
                 {
                     return;
                 }
 
+                if (IsAdmob())
+                {
+                    _preloadManager = AdmobAdPreloadManager.Instance;
+                }
                 SetupAdUnitID(iAAResponse);
             });
         }
@@ -205,64 +224,135 @@ namespace com.noctuagames.sdk
 
         public void SetupAdUnitID(IAA iAAResponse)
         {
-            var interstitialAdUnitID = "unused";
-            var rewardedAdUnitID = "unused";
-            var rewardedInterstitialAdUnitID = "unused";
-            var bannerAdUnitID = "unused";
-
             #if UNITY_ANDROID
-                interstitialAdUnitID = iAAResponse.AdFormat.Interstitial.Android.adUnitID;
+                _interstitialAdUnitID = iAAResponse.AdFormat.Interstitial.Android.adUnitID;
             #elif UNITY_IPHONE
                 interstitialAdUnitID = iAAResponse.AdFormat.Interstitial.IOS.adUnitID;
             #endif
 
-                #if UNITY_ANDROID
-                rewardedAdUnitID = iAAResponse.AdFormat.Rewarded.Android.adUnitID;
+            #if UNITY_ANDROID
+                _rewardedAdUnitID = iAAResponse.AdFormat.Rewarded.Android.adUnitID;
             #elif UNITY_IPHONE
                 rewardedAdUnitID = iAAResponse.AdFormat.Rewarded.IOS.adUnitID;
             #endif
 
             #if UNITY_ANDROID
-                rewardedInterstitialAdUnitID = iAAResponse.AdFormat.RewardedInterstitial.Android.adUnitID;
+                _rewardedInterstitialAdUnitID = iAAResponse.AdFormat.RewardedInterstitial.Android.adUnitID;
             #elif UNITY_IPHONE
                 rewardedInterstitialAdUnitID = iAAResponse.AdFormat.RewardedInterstitial.IOS.adUnitID;
             #endif
 
-                #if UNITY_ANDROID
-                bannerAdUnitID = iAAResponse.AdFormat.Banner.Android.adUnitID;
+            #if UNITY_ANDROID
+                _bannerAdUnitID = iAAResponse.AdFormat.Banner.Android.adUnitID;
             #elif UNITY_IPHONE
                 bannerAdUnitID = iAAResponse.AdFormat.Banner.IOS.adUnitID;
             #endif
 
-            //Setup Ad Unit ID
-            SetInterstitialAdUnitId(interstitialAdUnitID);
-            SetRewardedAdUnitId(rewardedAdUnitID);
-            
-            #if UNITY_ADMOB
-            SetRewardedInterstitialAdUnitId(rewardedInterstitialAdUnitID);
-            #endif
+            SetBannerAdUnitId(_bannerAdUnitID);
 
-            SetBannerAdUnitId(bannerAdUnitID);
+            if (IsAdmob())
+            {
+                SetRewardedInterstitialAdUnitId(_rewardedInterstitialAdUnitID);
 
-            //Prepare the ads
-            LoadInterstitialAd();
-            LoadRewardedAd();
+                var configs = new List<PreloadConfiguration>
+                {
+                    _preloadManager.CreateInterstitialPreloadConfig(_interstitialAdUnitID),
+                    _preloadManager.CreateRewardedPreloadConfig(_rewardedAdUnitID)
+                };
+
+                // Subscribe to events
+                _preloadManager.OnAdsAvailable += (config) =>
+                {
+                    _log.Debug($"Ad available for {config.Format}");
+
+                    _onAdsAvailable?.Invoke(config);
+                };
+
+                _preloadManager.OnAdExhausted += (config) =>
+                {
+                    _log.Debug($"Ad exhausted for {config.Format}");
+
+                    _onAdExhausted?.Invoke(config);
+                };
+
+                _preloadManager.StartPreloading(configs);
+            }
+            else
+            {
+                SetInterstitialAdUnitId(_interstitialAdUnitID);
+                SetRewardedAdUnitId(_rewardedAdUnitID);
+
+                //Prepare the ads
+                LoadInterstitialAd();
+                LoadRewardedAd();
+            }           
         }
 
         //Interstitial public functions
         private void SetInterstitialAdUnitId(string adUnitID) => _adNetwork.SetInterstitialAdUnitID(adUnitID);
         public void LoadInterstitialAd() => _adNetwork.LoadInterstitialAd();
-        public void ShowInterstitial() => _adNetwork.ShowInterstitial();
+        public void ShowInterstitial() {
+            if (IsAdmob())
+            {
+                // Check if the ad is available before showing
+                if (_preloadManager.IsAdAvailable(_interstitialAdUnitID, AdFormat.INTERSTITIAL))
+                {
+                    var ad = _preloadManager.PollInterstitialAd(_interstitialAdUnitID);
+                    if (ad != null)
+                    {
+                        _log.Info("Showing Admob Interstitial Ad");
+                        ad.Show();
+                    }
+                }
+                else
+                {
+                    _log.Info("Admob Interstitial Ad not available");
+                }
+            }
+            else
+            {
+                // For other networks, just show the ad
+                _adNetwork.ShowInterstitial();
+            }
+        }
 
         //Rewarded public functions
         private void SetRewardedAdUnitId(string adUnitID) => _adNetwork.SetRewardedAdUnitID(adUnitID);
         public void LoadRewardedAd() => _adNetwork.LoadRewardedAd();
-        public void ShowRewardedAd() => _adNetwork.ShowRewardedAd();
+        public void ShowRewardedAd()
+        {
+            if (IsAdmob())
+            {
+                // Check if the ad is available before showing
+                if (_preloadManager.IsAdAvailable(_rewardedAdUnitID, AdFormat.REWARDED))
+                {
+                    var ad = _preloadManager.PollRewardedAd(_rewardedAdUnitID);
+                    if (ad != null)
+                    {
+                        _log.Info("Showing Admob Rewarded Ad");
+
+                        ad.Show((Reward reward) =>
+                        {
+                            _log.Info("User earned reward from mediation manager : " + reward.Type + " - " + reward.Amount);
+                        });
+                    }
+                }
+                else
+                {
+                    _log.Info("Admob Rewarded Ad not available");
+                }
+            }
+            else
+            {
+                // For other networks, just show the ad
+                _adNetwork.ShowRewardedAd();
+            }
+        }
 
         //Rewarded Interstitial public functions for Admob
         #if UNITY_ADMOB
         private void SetRewardedInterstitialAdUnitId(string adUnitID) {
-            
+
             if (!IsAdmob()) { return; }
 
             _adNetwork.SetRewardeInterstitialdAdUnitID(adUnitID);
