@@ -25,7 +25,6 @@ namespace com.noctuagames.sdk
 
         private event Action<AdValue, ResponseInfo> _admobOnAdRevenuePaid;
 
-
         // public event handlers
         public event Action OnAdDisplayed { add => _onAdDisplayed += value; remove => _onAdDisplayed -= value; }
         public event Action OnAdFailedDisplayed { add => _onAdFailedDisplayed += value; remove => _onAdFailedDisplayed -= value; } 
