@@ -29,10 +29,13 @@ namespace com.noctuagames.sdk.UI
         private InputFieldNoctua _country;
         private InputFieldNoctua _idCard;
         private InputFieldNoctua _placeOfIssue;
-        private Button _dateOfIssue;
+        private InputFieldNoctua _dateOfIssue;
         private InputFieldNoctua _address;
         private List<TextField> textFields;
+
+        // OEG OTP
         private string _verificationId;
+        private InputFieldNoctua _phoneNumberVerificationCode;
 
         private ButtonNoctua _continueButton; // Main submit button
         private ButtonNoctua _wizardContinueButton; // Submit button on full KYC
@@ -114,8 +117,9 @@ namespace com.noctuagames.sdk.UI
             _country = new InputFieldNoctua(View.Q<TextField>("CountryTF"));
             _idCard = new InputFieldNoctua(View.Q<TextField>("IDCardTF"));
             _placeOfIssue = new InputFieldNoctua(View.Q<TextField>("PlaceOfIssueTF"));
-            _dateOfIssue = View.Q<Button>("DateOfIssueTF");
+            _dateOfIssue = new InputFieldNoctua(View.Q<TextField>("DateOfIssueTF"));
             _address = new InputFieldNoctua(View.Q<TextField>("AddressTF"));
+            _phoneNumberVerificationCode = new InputFieldNoctua(View.Q<TextField>("PhoneNumberVerificationCodeTF"));
 
             if (IsVNLegalPurposeEnabled())
             {
@@ -307,6 +311,10 @@ namespace com.noctuagames.sdk.UI
             View.Q<VisualElement>("RegisterWizard5").RemoveFromClassList("hide");            
             View.Q<VisualElement>("AdditionalFooterContent").AddToClassList("hide");
             View.Q<VisualElement>("Loading").AddToClassList("hide");
+            _wizard5ContinueButton.ToggleLoading(false);
+            View.Q<Button>("WizardPrevTo4Button").RemoveFromClassList("hide");
+
+
         }
         public async void NavigateToLoading(PointerUpEvent evt = null)
         {
@@ -427,8 +435,9 @@ namespace com.noctuagames.sdk.UI
                 },
                 (DateTime _date) =>
                 {
-                    _birthDate.textField.value = _date.ToString("dd/MM/yyyy");
-                    _birthDate.textField.labelElement.style.display = DisplayStyle.None;
+                    // This introduce error on android build
+                    //_birthDate.TextField.value = _date.ToString("dd/MM/yyyy");
+                    //_birthDate.TextField.labelElement.style.display = DisplayStyle.None;
                     Utility.UpdateButtonState(textFields, _continueButton.button);
                     Utility.UpdateButtonState(textFields, _wizardContinueButton.button);
                     Utility.UpdateButtonState(textFields, _wizard5ContinueButton.button);
@@ -458,9 +467,9 @@ namespace com.noctuagames.sdk.UI
                 },
                 (DateTime _date) =>
                 {
-                    _dateOfIssue.text = _date.ToString("dd/MM/yyyy");
-                    _dateOfIssue.RemoveFromClassList("grey-text");
-                    _dateOfIssue.AddToClassList("white-text");
+                    // This introduce error on android build
+                    //_dateOfIssue.TextField.value = _date.ToString("dd/MM/yyyy");
+                    //_dateOfIssue.TextField.labelElement.style.display = DisplayStyle.None;
                     Utility.UpdateButtonState(textFields, _continueButton.button);
                     Utility.UpdateButtonState(textFields, _wizardContinueButton.button);
                     Utility.UpdateButtonState(textFields, _wizard5ContinueButton.button);
@@ -515,13 +524,47 @@ namespace com.noctuagames.sdk.UI
 
             if (IsVNLegalPurposePhoneNumberVerificationEnabled())
             {
-                NavigateToLoading();
-                // Send phone number verification code
-                var result = await Model.AuthService.RegisterWithEmailSendPhoneNumberVerificationAsync(_phoneNumber.text);
-                _verificationId = result.VerificationId;
-                _log.Debug("OEG verificationId: " + _verificationId);
+                if (!validateForm()) {
+                    return;
+                }
 
-                NavigateToWizard5();
+                // Send phone number verification code
+                try
+                {
+
+                    var result = await Model.AuthService.RegisterWithEmailSendPhoneNumberVerificationAsync(_phoneNumber.text);
+                    _verificationId = result.VerificationId;
+                    _log.Debug("OEG verificationId: " + _verificationId);
+
+                    _wizardContinueButton.ToggleLoading(false);
+                    View.Q<Button>("WizardPrevTo3Button").RemoveFromClassList("hide");
+
+                    NavigateToWizard5();
+                }
+                catch (Exception e)
+                {
+
+                    _wizardContinueButton.ToggleLoading(false);
+                    View.Q<Button>("WizardPrevTo3Button").RemoveFromClassList("hide");
+
+                    _log.Debug("OEG send verification code failed: " + e.Message);
+                    if (e is NoctuaException noctuaEx)
+                    {
+                        switch (noctuaEx.ErrorCode)
+                        {
+                            case 2061:
+                                _log.Debug("OEG send verification code failed: " + noctuaEx.Message);
+                                Model.ShowGeneralNotification(noctuaEx.Message, true);
+                                NavigateToWizard5();
+                                break;
+                            default:
+                                _log.Debug("OEG send verification code failed: " + noctuaEx.Message);
+                                Model.ShowGeneralNotification(noctuaEx.Message, false);
+                                NavigateToWizard4();
+                                break;
+                        }
+                    }
+                }
             } else {
                 OnContinueButtonClick(evt);
             }
@@ -530,16 +573,46 @@ namespace com.noctuagames.sdk.UI
         // Register button from phone number verification wizard
         private async void OnWizard5ContinueButtonClick(PointerUpEvent evt)
         {
-            // Performs verification code / OTP check
+            View.Q<Button>("WizardPrevTo4Button").AddToClassList("hide");
+            View.Q<Button>("WizardPrevTo3Button").AddToClassList("hide");
 
-            // If it passed
-            OnContinueButtonClick(evt);
+            // Performs verification code / OTP check
+            try
+            {
+                var result = await Model.AuthService.RegisterWithEmailVerifyPhoneNumberAsync(_verificationId, _phoneNumberVerificationCode.text);
+
+                _wizard5ContinueButton.ToggleLoading(false);
+                View.Q<Button>("WizardPrevTo3Button").RemoveFromClassList("hide");
+                View.Q<Button>("WizardPrevTo4Button").RemoveFromClassList("hide");
+                
+                // If it passed, continue to the email registration
+                OnContinueButtonClick(evt);
+            }
+            catch (Exception e)
+            {
+
+                _wizard5ContinueButton.ToggleLoading(false);
+                View.Q<Button>("WizardPrevTo3Button").RemoveFromClassList("hide");
+                View.Q<Button>("WizardPrevTo4Button").RemoveFromClassList("hide");
+
+                _log.Debug("OEG verification failed: " + e.Message);
+                if (e is NoctuaException noctuaEx)
+                {
+                    switch (noctuaEx.ErrorCode)
+                    {
+                        default:
+                            _log.Debug("OEG verification failed: " + noctuaEx.Message);
+                            Model.ShowGeneralNotification(noctuaEx.Message, false);
+                            NavigateToWizard5();
+                            break;
+                    }
+                }
+            }
+
         }
 
-        private async void OnContinueButtonClick(PointerUpEvent evt)
+        private bool validateForm()
         {
-            _log.Debug("clicking continue button");
-
             HideAllErrors();
 
             _continueButton.ToggleLoading(true);
@@ -571,7 +644,7 @@ namespace com.noctuagames.sdk.UI
                     Model.ShowGeneralNotification(_inputEmail.labelError.text, false);
                 }
 
-                return;
+                return false;
             }
 
             if (!string.IsNullOrEmpty(Utility.ValidatePassword(password)))
@@ -591,7 +664,7 @@ namespace com.noctuagames.sdk.UI
                     Model.ShowGeneralNotification(_inputPassword.labelError.text, false);
                 }
 
-                return;
+                return false;
             }
 
             if (!string.IsNullOrEmpty(Utility.ValidateReenterPassword(password, rePassword)))
@@ -611,10 +684,8 @@ namespace com.noctuagames.sdk.UI
                     Model.ShowGeneralNotification(_inputRepassword.labelError.text, false);
                 }
 
-                return;
+                return false;
             }
-
-            Dictionary<string, string> regExtra = null;
 
             if (IsVNLegalPurposeEnabled())
             {
@@ -640,7 +711,7 @@ namespace com.noctuagames.sdk.UI
                         Model.ShowGeneralNotification(_gender.Q<Label>("error").text, false);
                     }
 
-                    return;
+                    return false;
                 }
 
                 var birthDate = DateTime
@@ -666,14 +737,38 @@ namespace com.noctuagames.sdk.UI
                         Model.ShowGeneralNotification(_birthDate.labelError.text, false);
                     }
 
-                    return;
+                    return false;
                 }
 
                 if (_dateOfIssue.text == "")
                 {
                     Model.ShowGeneralNotification("Date of issue should not be empty.", false);
-                    return;
+                    return false;
                 }
+            }
+
+            return true;
+        }
+
+        private async void OnContinueButtonClick(PointerUpEvent evt)
+        {
+            _log.Debug("clicking continue button");
+
+            if (!validateForm()) {
+                return;
+            }
+
+            var emailAddress = _inputEmail.text.Replace(" ", string.Empty);
+            var password = _inputPassword.text;
+            var rePassword = _inputRepassword.text;
+
+            Dictionary<string, string> regExtra = null;
+
+            if (IsVNLegalPurposeEnabled())
+            {
+                var birthDate = DateTime
+                    .ParseExact(_birthDate.text, "dd/MM/yyyy", CultureInfo.InvariantCulture)
+                    .ToUniversalTime();
 
                 var issueDate = DateTime
                     .ParseExact(_dateOfIssue.text, "dd/MM/yyyy", CultureInfo.InvariantCulture)
@@ -692,9 +787,6 @@ namespace com.noctuagames.sdk.UI
                 };
 
                 _log.Debug("Register extra: " + JsonConvert.SerializeObject(regExtra));
-
-                // Phone number verification
-                
             }
 
             try {
@@ -739,10 +831,16 @@ namespace com.noctuagames.sdk.UI
                 _wizard5ContinueButton.Clear();
                 // Wizard                
                 View.Q<Button>("WizardPrevTo3Button").RemoveFromClassList("hide");                
+                View.Q<Button>("WizardPrevTo4Button").RemoveFromClassList("hide");
 
             }
             catch (Exception e)
             {
+
+                _wizard5ContinueButton.ToggleLoading(false);
+                View.Q<Button>("WizardPrevTo3Button").RemoveFromClassList("hide");
+                View.Q<Button>("WizardPrevTo4Button").RemoveFromClassList("hide");
+
                 _log.Warning($"{e.Message}\n{e.StackTrace}");
 
                 if (e is NoctuaException noctuaEx)

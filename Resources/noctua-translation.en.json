@@ -48,7 +48,7 @@
     "EmailRegisterDialogPresenter.AlreadyHaveAccount.Label.text": "Already have an account?",
     "EmailRegisterDialogPresenter.ErrUnderage.Label.text": "Minimum age is 18 years old",
     "EmailRegisterDialogPresenter.DateOfIssueTF.TextField.label": "Date Of Issue",
-    "EmailRegisterDialogPresenter.PhoneNumberVerificationCode.Label.text": "Verification Code",
+    "EmailRegisterDialogPresenter.PhoneNumberVerificationCodeTF.TextField.label": "Verification Code",
 
     "AccountSelectionDialogPresenter.AccountSelectionInfo.Label.text": "Choose Account",
     "AccountSelectionDialogPresenter.GameAccountList.ListView.label": "Game Account List",

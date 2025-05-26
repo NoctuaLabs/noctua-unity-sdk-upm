@@ -95,11 +95,12 @@
                     </ui:VisualElement>
                 </ui:VisualElement>
                 <ui:VisualElement name="RegisterWizard5" class="hide">
-                    <ui:TextField label="PhoneNumberVerificationCode" name="PhoneNumberVerificationCodeTF" class="noctua-text-input">
+                    <ui:Label name="PhoneNumberVerificationCodeGuide" text="An OTP has been sent to your phone number" display-tooltip-when-elided="true" style="-unity-text-align: middle-center; font-size: 12px; color: rgb(117, 117, 117);" />
+                    <ui:TextField label="Verification Code" name="PhoneNumberVerificationCodeTF" class="noctua-text-input">
                         <ui:Label tabindex="-1" text="Verification Code" parse-escape-sequences="true" display-tooltip-when-elided="true" name="title" class="hide" />
                         <ui:Label tabindex="-1" text="error" parse-escape-sequences="true" display-tooltip-when-elided="true" name="error" class="hide" />
                     </ui:TextField>
-                    <ui:VisualElement style="flex-direction: row; margin-top: 70px; padding-top: 5px;">
+                    <ui:VisualElement style="flex-direction: row; margin-top: 140px; padding-top: 5px;">
                         <ui:Label name="ErrCode" display-tooltip-when-elided="true" class="dialog-err-label hide" />
                         <ui:Button text="Prev" display-tooltip-when-elided="true" name="WizardPrevTo4Button" focusable="false" class="dialog-button secondary-button" style="margin-right: 15px; width: 120px; flex-direction: column;" />
                         <ui:Button text="Register" display-tooltip-when-elided="true" name="Wizard5ContinueButton" focusable="false" class="dialog-button" style="margin-left: 15px; width: 120px; flex-direction: column;" />
@@ -107,7 +108,7 @@
                     </ui:VisualElement>
                 </ui:VisualElement>
                 <ui:VisualElement name="Loading" class="hide">
-                    <ui:Button text="Please wait..." display-tooltip-when-elided="true" name="Spinner" focusable="false" picking-mode="Ignore" class="dialog-button" />
+                    <ui:Label name="Please wait..." text="Please wait..." display-tooltip-when-elided="true" style="margin-top: 100px; margin-bottom: auto; -unity-text-align: middle-center;" />
                 </ui:VisualElement>
             </ui:VisualElement>
 
