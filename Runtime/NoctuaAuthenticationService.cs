@@ -681,7 +681,7 @@ namespace com.noctuagames.sdk
 
         public async UniTask<RegisterWithEmailVerifyPhoneNumberVerificationResponse> RegisterWithEmailVerifyPhoneNumberAsync(string id, string code)
         {
-            var request = new HttpRequest(HttpMethod.Post, $"{_baseUrl}/auth/email/verify-phone-number")
+            var request = new HttpRequest(HttpMethod.Post, $"{_baseUrl}/auth/email/verify-phone-number-registration")
                 .WithHeader("X-CLIENT-ID", _clientId)
                 .WithHeader("X-BUNDLE-ID", _bundleId)
                 .WithJsonBody(
