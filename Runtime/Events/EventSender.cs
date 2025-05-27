@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -340,7 +340,7 @@ namespace com.noctuagames.sdk.Events
             // This patch only applied for IOS to cover Sortify specific crash
             // where the HTTP request cause crash when the app is trying to quit
             _log.Debug("On Flush called on IOS. Abort to avoid crash");
-            return
+            return;
 
             // No need to backup to PlayerPrefs. The latest backup from Send() is already sufficient
 #endif
