@@ -223,7 +223,7 @@ namespace com.noctuagames.sdk.Events
         {
             if (_eventQueue.Count > 1000)
             {
-                _log.Warning($"Event queue is full, ignore this event {name}");
+                _log.Warning($"Event queue is full ({_eventQueue.Count}), ignore this event {name}");
                 return;
             }
 
