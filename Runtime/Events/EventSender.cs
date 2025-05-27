@@ -18,8 +18,9 @@ namespace com.noctuagames.sdk.Events
         public string ClientId;
         public string BundleId = Application.identifier;
         public uint BatchSize = 20;
-        public uint MaxBatchSize = 100;
-        public uint BatchPeriodMs = 60_000; // 1 minute, requested by Jeff
+        public int MaxBatchSize = 100;
+        public uint BatchPeriodMs = 60_000; // 1 minute, in ms
+        public int CycleDelay = 5000; // 5 sec, in ms
     }
     
     [Preserve]
@@ -36,7 +37,7 @@ namespace com.noctuagames.sdk.Events
         private readonly ILogger _log = new NoctuaLogger(typeof(EventSender));
         private readonly EventSenderConfig _config;
         private readonly NoctuaLocale _locale;
-        private readonly Queue<Dictionary<string, IConvertible>> _eventQueue = new();
+        private List<Dictionary<string, IConvertible>> _eventQueue;
         private readonly UniTask _sendTask;
         private readonly CancellationTokenSource _cancelSendSource;
         private readonly DateTime _start;
@@ -192,19 +193,21 @@ namespace com.noctuagames.sdk.Events
                         {
                             _log.Warning($"Event has non-convertible value for key {key} of value {val}");
                         }
-                        events.Add(dict);
                     }
+
+                    // Per object iteration, add the dict to events list
+                    events.Add(dict);
                 }
             }
             if (events == null)
             {
                 events = JsonConvert.DeserializeObject<List<Dictionary<string, IConvertible>>>(eventsJson);
             }
-            foreach (var evt in events)
-            {
-                _eventQueue.Enqueue(evt);
-            }
-            _log.Info($"Total loaded events: {events.Count}");
+            _log.Info($"Total loaded events from PlayerPrefs: {events.Count}");
+
+            _eventQueue = new List<Dictionary<string, IConvertible>>(events);
+
+            _log.Info($"Total loaded events from PlayerPrefs: {_eventQueue.Count}");
         }
 
         public void Send(string name, Dictionary<string, IConvertible> data = null)
@@ -250,22 +253,16 @@ namespace com.noctuagames.sdk.Events
             if (_uniqueId != null) data.TryAdd("unique_id", _uniqueId);
 
             _log.Info($"queued event '{LastEventTime:O}|{name}|{_deviceId}|{_sessionId}|{_userId}|{_playerId}'");
+            
+            _eventQueue.Add(data);
 
-            _eventQueue.Enqueue(data);
-
-            var events = new List<Dictionary<string, IConvertible>>();
-            while (_eventQueue.TryDequeue(out var evt))
-            {
-                events.Add(evt);
-            }
-            PlayerPrefs.SetString("NoctuaEvents", JsonConvert.SerializeObject(events));
+            PlayerPrefs.SetString("NoctuaEvents", JsonConvert.SerializeObject(_eventQueue));
             PlayerPrefs.Save();
-            foreach (var evt in events)
-            {
-                _eventQueue.Enqueue(evt);
-            }
-            _log.Info($"{name} added to the queue. Current total event in queue: {events.Count}");
+            _log.Info($"{name} added to the queue. Current total event in queue: {_eventQueue.Count}");
 
+            // This check is used to maintain the offline state more frequent to update.
+            // This also prevent "offline" event flooding the queue
+            // by not sending another "offline" event if the event name is "offline"
             if (data.TryGetValue("event_name", out var eventName) && eventName.ToString() != "offline")
             {
                 Noctua.IsOfflineAsync().ContinueWith((isOffline) =>
@@ -324,45 +321,40 @@ namespace com.noctuagames.sdk.Events
 
         public void Flush()
         {
+#if UNITY_IOS && !UNITY_EDITOR
+            // This patch only applied for IOS to cover Sortify specific crash
+            // where the HTTP request cause crash when the app is trying to quit
+            _log.Debug("On Flush called on IOS. Abort to avoid crash");
+            return
+
+            // No need to backup to PlayerPrefs. The latest backup from Send() is already sufficient
+#endif
+
             _log.Debug("On Flush called. " + $"Current total event in queue: {_eventQueue.Count}");
-
-            var events = new List<Dictionary<string, IConvertible>>();
-
-            while (_eventQueue.TryDequeue(out var evt))
-            {
-                events.Add(evt);
-            }
-
-            if (!Application.isPlaying || _isQuitting)
-            {
-                _log.Info($"On Application quitting. Backup events to PlayerPrefs");
-
-                PlayerPrefs.SetString("NoctuaEvents", JsonConvert.SerializeObject(events));
-                PlayerPrefs.Save();
-                return;
-            }
-            ;
 
             var request = new HttpRequest(HttpMethod.Post, $"{_config.BaseUrl}/events")
                 .WithHeader("X-CLIENT-ID", _config.ClientId)
                 .WithHeader("X-DEVICE-ID", SanitizeHeaderValue(_deviceId))
-                .WithNdjsonBody(events);
+                .WithNdjsonBody(_eventQueue);
 
             UniTask.Void(async () =>
             {
                 try
                 {
                     await request.Send<EventResponse>();
+                    // All dequeued events is sent successfuly to server,
+                    // then it's safe to remove all items from PlayerPrefs
                     PlayerPrefs.SetString("NoctuaEvents", "[]");
                     PlayerPrefs.Save();
+                    _eventQueue.Clear();
                     _log.Info($"Sent {events.Count} events. PlayerPrefs cleared.");
                 }
                 catch (Exception e)
                 {
-                    _log.Error($"Failed to send events: {e.Message}");
-                    _log.Info($"Backup events to PlayerPrefs");
-                    PlayerPrefs.SetString("NoctuaEvents", JsonConvert.SerializeObject(events));
-                    PlayerPrefs.Save();
+                    // No need to backup to PlayerPrefs. The latest backup from Send() is already sufficient.
+                    // No need to re-enqueue because the clearing queue part is on the success branch above
+                    // Simply print the error as warning
+                    _log.Warning("Failed to send events: " + e.Message);
                 }
             });
         }
@@ -387,42 +379,56 @@ namespace com.noctuagames.sdk.Events
         {
             while (!token.IsCancellationRequested)
             {
+                // For any early continue or next cycle, they will be guarded by this delay
+                await UniTask.Delay(_config.CycleDelay, cancellationToken: token);
+
+                // If the queue is empty, wait for another 1 sec
                 while (_eventQueue.Count == 0)
                 {
                     await UniTask.Delay(1000, cancellationToken: token);
                 }
 
                 var nextBatchSchedule = DateTime.UtcNow.AddMilliseconds(_config.BatchPeriodMs);
-
-                while (_eventQueue.Count < _config.BatchSize && DateTime.UtcNow < nextBatchSchedule)
+                // If the queue length is less than batch size
+                while (_eventQueue.Count < _config.BatchSize &&
+                // or it is not reached the next batch schedule yet
+                DateTime.UtcNow < nextBatchSchedule)
                 {
+                    // Then wait for another 1 sec.
                     await UniTask.Delay(1000, cancellationToken: token);
                 }
 
                 if (_eventQueue.Count == 0)
                 {
+                    // If the queue is still empty, immediately return.
+                    // At this point, the maximum delay for a cycle is "CycleDelay" + 2 seconds = 7 seconds
                     continue;
                 }
 
-                // Dequeue to be sent
-                var backup = new List<Dictionary<string, IConvertible>>();
-                var events = new List<Dictionary<string, IConvertible>>();
-                while (_eventQueue.TryDequeue(out var evt) && events.Count < _config.MaxBatchSize)
+                // The minimum delay time is 
+                var isOffline = await Noctua.IsOfflineAsync();
+                if (isOffline)
                 {
-                    events.Add(evt);
+                    Noctua.OnOffline();
+
+                    _log.Info($"Device is offline, continue to next cycle");
+                    continue;
+                }
+                
+                Noctua.OnOnline();
+
+                // Dequeue to be sent to server
+                var events = new List<Dictionary<string, IConvertible>>();
+                if (_eventQueue.Count <= _config.MaxBatchSize)
+                {
+                    events = new List<Dictionary<string, IConvertible>>(_eventQueue);
+                    _eventQueue.Clear();
+                } else {
+                    events = _eventQueue.GetRange(0, _config.MaxBatchSize);
+                    _eventQueue.RemoveRange(0, _config.MaxBatchSize);
                 }
 
-                // Dequeue the rest to be saved to player prefs
-                while (_eventQueue.TryDequeue(out var evt))
-                {
-                    backup.Add(evt);
-                }
-                PlayerPrefs.SetString("NoctuaEvents", JsonConvert.SerializeObject(backup));
-                PlayerPrefs.Save();
-                foreach (var evt in backup)
-                {
-                    _eventQueue.Enqueue(evt);
-                }
+                _log.Info($"Batch size: {_config.MaxBatchSize}, events to be send: {events.Count}, events in the queue: {_eventQueue.Count}");
 
                 try
                 {
@@ -432,39 +438,14 @@ namespace com.noctuagames.sdk.Events
                         .WithNdjsonBody(events);
 
                     await request.Send<EventResponse>();
-                    _log.Info($"Sent {events.Count} events");
-
-                    Noctua.OnOnline();
+                    _log.Info($"Sent {events.Count} events. Events in queue: {_eventQueue.Count}");
                 }
                 catch (Exception e)
                 {
                     _log.Error($"Failed to send events");
                     // Re-enqueue all the events
-                    foreach (var evt in events)
-                    {
-                        _eventQueue.Enqueue(evt);
-                    }
-
-                    // Append events to backup then save to PlayerPrefs
-                    _log.Info($"Backup events to PlayerPrefs");
-                    backup.AddRange(events);
-                    PlayerPrefs.SetString("NoctuaEvents", JsonConvert.SerializeObject(backup));
-                    PlayerPrefs.Save();
-
-                    Noctua.IsOfflineAsync().ContinueWith((isOffline) =>
-                    {
-                        if (isOffline)
-                        {
-                            Noctua.OnOffline();
-                        }
-                        else
-                        {
-                            Noctua.OnOnline();
-                        }
-                    });
+                    _eventQueue.AddRange(events);
                 }
-
-                await UniTask.Delay(1000, cancellationToken: token);
             }
         }
         
