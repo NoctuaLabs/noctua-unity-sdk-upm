@@ -20,7 +20,7 @@ namespace com.noctuagames.sdk.Events
         public uint BatchSize = 20;
         public int MaxBatchSize = 100;
         public uint BatchPeriodMs = 60_000; // 1 minute, in ms
-        public int CycleDelay = 5000; // 5 sec, in ms
+        public int CycleDelay = 1000; // 1 sec, in ms
     }
     
     [Preserve]
@@ -347,7 +347,7 @@ namespace com.noctuagames.sdk.Events
                     PlayerPrefs.SetString("NoctuaEvents", "[]");
                     PlayerPrefs.Save();
                     _eventQueue.Clear();
-                    _log.Info($"Sent {events.Count} events. PlayerPrefs cleared.");
+                    _log.Info($"Sent {_eventQueue.Count} events. PlayerPrefs cleared.");
                 }
                 catch (Exception e)
                 {
