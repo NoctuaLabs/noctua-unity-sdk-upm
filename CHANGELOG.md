@@ -2,6 +2,23 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.40.0] - 2025-05-27
+
+### 🚀 Features
+
+- Add limit to event queue length.
+
+### 🐛 Bug Fixes
+
+- Header value contains invalid characters
+- Object reference not set to an instance of an object when show start game error dialog
+- Adjust event queue name.
+- Change cycle delay to 5 seconds
+
+### 💼 Other
+
+- Improve log when the event queue is full.
+
 ## [0.39.7] - 2025-05-05
 
 ### 🐛 Bug Fixes
