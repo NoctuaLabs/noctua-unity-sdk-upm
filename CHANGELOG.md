@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.40.1] - 2025-05-27
+
+### 🐛 Bug Fixes
+
+- Error 'EventSender.Flush()' returns voiid, a return keyword must not be followed by an object expression
+
 ## [0.40.0] - 2025-05-27
 
 ### 🚀 Features
