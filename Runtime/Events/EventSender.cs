@@ -148,6 +148,15 @@ namespace com.noctuagames.sdk.Events
                 eventsJson = "[]";
             }
 
+            if (eventsJson.Length > 800000) // Around 1000 events
+            {
+                _log.Info("NoctuaEvents is too large, clearing it");
+                PlayerPrefs.SetString("NoctuaEvents", "[]");
+                PlayerPrefs.Save();
+                eventsJson = "[]";
+            }
+            
+
             // Try to parse into IConvertible first because it is
             // the native type of the queue.
             // There will be nested try catch to make it safe.
@@ -212,6 +221,12 @@ namespace com.noctuagames.sdk.Events
 
         public void Send(string name, Dictionary<string, IConvertible> data = null)
         {
+            if (_eventQueue.Count > 1000)
+            {
+                _log.Warning($"Event queue is full, ignore this event {name}");
+                return;
+            }
+
             data ??= new Dictionary<string, IConvertible>();
 
             if (name == null)
