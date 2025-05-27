@@ -32,7 +32,7 @@ namespace com.noctuagames.sdk.Events
     public class EventSender : IDisposable
     {
         public DateTime LastEventTime { get; private set; }
-        
+
         private readonly ILogger _log = new NoctuaLogger(typeof(EventSender));
         private readonly EventSenderConfig _config;
         private readonly NoctuaLocale _locale;
@@ -70,23 +70,23 @@ namespace com.noctuagames.sdk.Events
         )
         {
             if (userId != 0) _userId = userId;
-            
+
             if (playerId != 0) _playerId = playerId;
-            
+
             if (credentialId != 0) _credentialId = credentialId;
-            
+
             if (credentialProvider != "") _credentialProvider = credentialProvider;
-            
+
             if (gameId != 0) _gameId = gameId;
-            
+
             if (gamePlatformId != 0) _gamePlatformId = gamePlatformId;
-            
+
             if (sessionId != "") _sessionId = sessionId;
-            
+
             if (ipAddress != "") _ipAddress = ipAddress;
-            
+
             if (isSandbox != null) _isSandbox = isSandbox;
-            
+
             _log.Debug($"Setting fields: " +
                 $"userId={userId}, " +
                 $"playerId={playerId}, " +
@@ -103,27 +103,27 @@ namespace com.noctuagames.sdk.Events
         public EventSender(EventSenderConfig config, NoctuaLocale locale)
         {
             _config = config ?? throw new ArgumentNullException(nameof(config));
-            
+
             if (string.IsNullOrEmpty(_config.BaseUrl))
             {
                 throw new ArgumentException("Base URL must be provided", nameof(config));
             }
-            
+
             if (string.IsNullOrEmpty(_config.ClientId))
             {
                 throw new ArgumentException("Client ID must be provided", nameof(config));
             }
-            
+
             if (string.IsNullOrEmpty(_config.BundleId))
             {
                 throw new ArgumentException("Bundle ID must be provided", nameof(config));
             }
-            
+
             _locale = locale ?? throw new ArgumentNullException(nameof(locale));
-            _start = DateTime.UtcNow - TimeSpan.FromSeconds(Stopwatch.GetTimestamp() / (double) Stopwatch.Frequency);
+            _start = DateTime.UtcNow - TimeSpan.FromSeconds(Stopwatch.GetTimestamp() / (double)Stopwatch.Frequency);
             _cancelSendSource = new CancellationTokenSource();
             _sendTask = UniTask.Create(SendEvents, _cancelSendSource.Token);
-            
+
             _deviceId = SystemInfo.deviceUniqueIdentifier;
             _sdkVersion = Assembly.GetExecutingAssembly().GetName().Version.ToString();
 
@@ -152,9 +152,12 @@ namespace com.noctuagames.sdk.Events
             // There will be nested try catch to make it safe.
             var events = new List<Dictionary<string, IConvertible>>();
             //_log.Debug(eventsJson);
-            try {
+            try
+            {
                 events = JsonConvert.DeserializeObject<List<Dictionary<string, IConvertible>>>(eventsJson);
-            } catch (Exception e) {
+            }
+            catch (Exception e)
+            {
                 events = new List<Dictionary<string, IConvertible>>();
                 _log.Error($"Failed to load events from PlayerPrefs: {e.Message}.");
 
@@ -163,9 +166,12 @@ namespace com.noctuagames.sdk.Events
                 // Load from PlayerPrefs and re-enqueue them all
                 _log.Info("Try to parse NoctuaEvents with object type");
                 var objects = new List<Dictionary<string, object>>();
-                try {
+                try
+                {
                     objects = JsonConvert.DeserializeObject<List<Dictionary<string, object>>>(eventsJson);
-                } catch (Exception e2) {
+                }
+                catch (Exception e2)
+                {
                     _log.Error($"Failed to load events from PlayerPrefs: {e2.Message}");
                     objects = new List<Dictionary<string, object>>();
                 }
@@ -204,19 +210,19 @@ namespace com.noctuagames.sdk.Events
         public void Send(string name, Dictionary<string, IConvertible> data = null)
         {
             data ??= new Dictionary<string, IConvertible>();
-            
+
             if (name == null)
             {
                 throw new ArgumentNullException(nameof(name));
             }
-            
+
             var nullFields = data.Where(kv => kv.Value == null).Select(kv => kv.Key).ToList();
-            
+
             foreach (var field in nullFields)
             {
                 data.Remove(field);
             }
-            
+
             data.TryAdd("event_version", 1);
             data.TryAdd("event_name", name);
             data.TryAdd("sdk_version", _sdkVersion);
@@ -233,8 +239,8 @@ namespace com.noctuagames.sdk.Events
 
             LastEventTime = _start.AddSeconds(Stopwatch.GetTimestamp() / (double)Stopwatch.Frequency);
             data.TryAdd("timestamp", LastEventTime.ToString("O"));
-            
-            if (_userId   != null) data.TryAdd("user_id", _userId);
+
+            if (_userId != null) data.TryAdd("user_id", _userId);
             if (_playerId != null) data.TryAdd("player_id", _playerId);
             if (_credentialId != null) data.TryAdd("credential_id", _credentialId);
             if (_credentialProvider != null) data.TryAdd("credential_provider", _credentialProvider);
@@ -242,9 +248,9 @@ namespace com.noctuagames.sdk.Events
             if (_gamePlatformId != null) data.TryAdd("game_platform_id", _gamePlatformId);
             if (_sessionId != null) data.TryAdd("session_id", _sessionId);
             if (_uniqueId != null) data.TryAdd("unique_id", _uniqueId);
-            
+
             _log.Info($"queued event '{LastEventTime:O}|{name}|{_deviceId}|{_sessionId}|{_userId}|{_playerId}'");
-            
+
             _eventQueue.Enqueue(data);
 
             var events = new List<Dictionary<string, IConvertible>>();
@@ -267,7 +273,9 @@ namespace com.noctuagames.sdk.Events
                     if (isOffline)
                     {
                         Noctua.OnOffline();
-                    } else {
+                    }
+                    else
+                    {
                         Noctua.OnOnline();
                     }
                 });
@@ -308,7 +316,8 @@ namespace com.noctuagames.sdk.Events
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
         private static void RegisterQuitHandler()
         {
-            Application.quitting += () => {
+            Application.quitting += () =>
+            {
                 _isQuitting = true;
             };
         }
@@ -331,20 +340,25 @@ namespace com.noctuagames.sdk.Events
                 PlayerPrefs.SetString("NoctuaEvents", JsonConvert.SerializeObject(events));
                 PlayerPrefs.Save();
                 return;
-            };
+            }
+            ;
 
             var request = new HttpRequest(HttpMethod.Post, $"{_config.BaseUrl}/events")
                 .WithHeader("X-CLIENT-ID", _config.ClientId)
-                .WithHeader("X-DEVICE-ID", _deviceId)
+                .WithHeader("X-DEVICE-ID", SanitizeHeaderValue(_deviceId))
                 .WithNdjsonBody(events);
 
-            UniTask.Void(async () => {
-                try {
+            UniTask.Void(async () =>
+            {
+                try
+                {
                     await request.Send<EventResponse>();
                     PlayerPrefs.SetString("NoctuaEvents", "[]");
                     PlayerPrefs.Save();
                     _log.Info($"Sent {events.Count} events. PlayerPrefs cleared.");
-                } catch (Exception e) {
+                }
+                catch (Exception e)
+                {
                     _log.Error($"Failed to send events: {e.Message}");
                     _log.Info($"Backup events to PlayerPrefs");
                     PlayerPrefs.SetString("NoctuaEvents", JsonConvert.SerializeObject(events));
@@ -352,23 +366,23 @@ namespace com.noctuagames.sdk.Events
                 }
             });
         }
-        
+
         public void Dispose()
         {
             if (_disposed)
             {
                 return;
             }
-            
+
             _cancelSendSource.Cancel();
             _disposed = true;
         }
-        
+
         ~EventSender()
         {
             Dispose();
         }
-        
+
         private async UniTask SendEvents(CancellationToken token)
         {
             while (!token.IsCancellationRequested)
@@ -377,14 +391,14 @@ namespace com.noctuagames.sdk.Events
                 {
                     await UniTask.Delay(1000, cancellationToken: token);
                 }
-                
+
                 var nextBatchSchedule = DateTime.UtcNow.AddMilliseconds(_config.BatchPeriodMs);
 
                 while (_eventQueue.Count < _config.BatchSize && DateTime.UtcNow < nextBatchSchedule)
                 {
                     await UniTask.Delay(1000, cancellationToken: token);
                 }
-                
+
                 if (_eventQueue.Count == 0)
                 {
                     continue;
@@ -414,7 +428,7 @@ namespace com.noctuagames.sdk.Events
                 {
                     var request = new HttpRequest(HttpMethod.Post, $"{_config.BaseUrl}/events")
                         .WithHeader("X-CLIENT-ID", _config.ClientId)
-                        .WithHeader("X-DEVICE-ID", _deviceId)
+                        .WithHeader("X-DEVICE-ID", SanitizeHeaderValue(_deviceId))
                         .WithNdjsonBody(events);
 
                     await request.Send<EventResponse>();
@@ -442,7 +456,9 @@ namespace com.noctuagames.sdk.Events
                         if (isOffline)
                         {
                             Noctua.OnOffline();
-                        } else {
+                        }
+                        else
+                        {
                             Noctua.OnOnline();
                         }
                     });
@@ -451,5 +467,17 @@ namespace com.noctuagames.sdk.Events
                 await UniTask.Delay(1000, cancellationToken: token);
             }
         }
+        
+        private string SanitizeHeaderValue(string value)
+        {
+            if (string.IsNullOrEmpty(value)) return string.Empty;
+            var sanitized = new string(value.Where(c => c >= 32 && c != 127).ToArray());
+            if (sanitized != value)
+            {
+                _log.Info($"Header value sanitized. Original: {value}, Sanitized: {sanitized}");
+            }
+            return sanitized;
+        }
+
     }
 }
