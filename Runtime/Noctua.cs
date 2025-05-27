@@ -534,10 +534,21 @@ namespace com.noctuagames.sdk
                     Instance.Value._log.Warning("Init: network issue on offline-first mode. Supress and continue to init silently.");
                     // Construct the response with dummy values
                     initResponse = offlineModeInitResponse;
-                } else {
+                }
+                else
+                {
                     log.Exception(e);
 
-                    await Instance.Value._uiFactory.ShowStartGameErrorDialog(e.Message);
+                    var errorMessage = e.Message ?? "An unexpected error occurred";
+
+                    if (Instance.Value._uiFactory != null)
+                    {
+                        await Instance.Value._uiFactory.ShowStartGameErrorDialog(errorMessage);
+                    }
+                    else
+                    {
+                        log.Warning($"_uiFactory is null, cannot show error dialog: {errorMessage}");
+                    }
                 }
             }
 
