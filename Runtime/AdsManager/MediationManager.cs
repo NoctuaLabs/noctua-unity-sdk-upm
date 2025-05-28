@@ -103,7 +103,9 @@ namespace com.noctuagames.sdk
 
                 if (IsAdmob())
                 {
+                    #if UNITY_ADMOB
                     _preloadManager = AdmobAdPreloadManager.Instance;
+                    #endif
                 }
                 SetupAdUnitID(iAAResponse);
             });
@@ -252,6 +254,7 @@ namespace com.noctuagames.sdk
 
             if (IsAdmob())
             {
+                #if UNITY_ADMOB
                 SetRewardedInterstitialAdUnitId(_rewardedInterstitialAdUnitID);
 
                 var configs = new List<PreloadConfiguration>
@@ -276,6 +279,7 @@ namespace com.noctuagames.sdk
                 };
 
                 _preloadManager.StartPreloading(configs);
+                #endif
             }
             else
             {
@@ -294,6 +298,7 @@ namespace com.noctuagames.sdk
         public void ShowInterstitial() {
             if (IsAdmob())
             {
+                #if UNITY_ADMOB
                 // Check if the ad is available before showing
                 if (_preloadManager.IsAdAvailable(_interstitialAdUnitID, AdFormat.INTERSTITIAL))
                 {
@@ -308,6 +313,7 @@ namespace com.noctuagames.sdk
                 {
                     _log.Info("Admob Interstitial Ad not available");
                 }
+                #endif
             }
             else
             {
@@ -323,6 +329,7 @@ namespace com.noctuagames.sdk
         {
             if (IsAdmob())
             {
+                #if UNITY_ADMOB
                 // Check if the ad is available before showing
                 if (_preloadManager.IsAdAvailable(_rewardedAdUnitID, AdFormat.REWARDED))
                 {
@@ -341,6 +348,7 @@ namespace com.noctuagames.sdk
                 {
                     _log.Info("Admob Rewarded Ad not available");
                 }
+                #endif
             }
             else
             {
