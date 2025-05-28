@@ -718,12 +718,20 @@ namespace com.noctuagames.sdk
             }
 
             var enabledPaymentTypes = initResponse.RemoteConfigs.EnabledPaymentTypes;
-
-            // Override the client remoteFeatureFlags if any
+            
+            // Override the client RemoteFeatureFlags if any
             foreach (var key in initResponse.RemoteConfigs.RemoteFeatureFlags.Keys)
             {
-                Noctua.Instance.Value._config.Noctua.RemoteFeatureFlags[key] = 
-                    bool.Parse(initResponse.RemoteConfigs.RemoteFeatureFlags[key]);
+                var rawValue = initResponse.RemoteConfigs.RemoteFeatureFlags[key];
+
+                if (bool.TryParse(rawValue, out var parsedBool))
+                {
+                    Noctua.Instance.Value._config.Noctua.RemoteFeatureFlags[key] = parsedBool;
+                }
+                else
+                {
+                    log.Warning($"Invalid boolean flag: {key} = {rawValue}. Expected 'true' or 'false'.");
+                }
             }
             
             Noctua.Instance.Value._auth.SetFlag(Noctua.Instance.Value._config.Noctua.RemoteFeatureFlags);
