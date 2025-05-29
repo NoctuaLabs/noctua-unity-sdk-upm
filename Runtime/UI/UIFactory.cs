@@ -3,6 +3,7 @@ using UnityEngine;
 using UnityEngine.UIElements;
 using System.Collections.Generic;
 using Cysharp.Threading.Tasks;
+using com.noctuagames.sdk.AdPlaceholder;
 
 namespace com.noctuagames.sdk.UI
 {
@@ -16,6 +17,7 @@ namespace com.noctuagames.sdk.UI
         private readonly BannedConfirmationDialogPresenter _confirmDialog;
         private readonly RetryDialogPresenter _retryDialog;
         private readonly StartGameErrorDialogPresenter _startGameErrorDialog;
+        private readonly NoctuaAdPlaceholder _adPlaceholder;
 
         internal UIFactory(GameObject rootObject, PanelSettings panelSettings, NoctuaLocale locale)
         {
@@ -34,6 +36,8 @@ namespace com.noctuagames.sdk.UI
             _retryDialog.GetComponent<UIDocument>().sortingOrder = 1;
             _startGameErrorDialog = Create<StartGameErrorDialogPresenter, object>(new object());
             _startGameErrorDialog.GetComponent<UIDocument>().sortingOrder = 1;
+            _adPlaceholder = Create<NoctuaAdPlaceholder, object>(new object());
+            _adPlaceholder.GetComponent<UIDocument>().sortingOrder = 1;
         }
         
         internal TPresenter Create<TPresenter, TModel>(TModel model) where TPresenter : Presenter<TModel>
@@ -100,6 +104,16 @@ namespace com.noctuagames.sdk.UI
         public async UniTask ShowStartGameErrorDialog(string errorMessage)
         {
             await _startGameErrorDialog.Show(errorMessage);
+        }
+
+        public void ShowAdPlaceholder(AdPlaceholderType adType)
+        {
+            _adPlaceholder.Show(adType: adType);
+        }
+
+        public void CloseAdPlaceholder()
+        {
+            _adPlaceholder.CloseAdPlaceholder();
         }
 
         private void ApplyLocalization(VisualElement root, string uxmlName, Dictionary<string, string> localization)
