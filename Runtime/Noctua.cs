@@ -162,7 +162,7 @@ namespace com.noctuagames.sdk
         private readonly NoctuaGameService _game;
         private readonly NoctuaPlatform _platform;
         private readonly UIFactory _uiFactory;
-        private readonly MediationManager _iaa = new MediationManager();
+        private readonly MediationManager _iaa;
         private GlobalConfig _config;
 
         private readonly INativePlugin _nativePlugin;
@@ -396,6 +396,8 @@ namespace com.noctuagames.sdk
             );
 
             _platform = new NoctuaPlatform(_config.Noctua, accessTokenProvider, _uiFactory, _eventSender);
+
+            _iaa = new MediationManager(uiFactory: _uiFactory);
             
             _log.Info("Noctua instance created");
         }

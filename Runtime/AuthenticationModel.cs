@@ -15,6 +15,7 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using Newtonsoft.Json.Linq;
 using Newtonsoft.Json.Serialization;
+using com.noctuagames.sdk.AdPlaceholder;
 
 
 namespace com.noctuagames.sdk
@@ -297,14 +298,20 @@ namespace com.noctuagames.sdk
         {
             _bindConflictDialog.Show(playerToken);
         }
+        
+        public void ShowAdPlaceholder(AdPlaceholderType adPlaceholderType = AdPlaceholderType.Interstitial)
+        {
+            _uiFactory.ShowAdPlaceholder(adPlaceholderType);
+        }
 
         private List<PurchaseItem> GetPendingPurchases()
         {
-            if (_iapService == null) {
+            if (_iapService == null)
+            {
                 return _pendingPurchases;
             }
 
-            var list =  _iapService.GetPendingPurchases();
+            var list = _iapService.GetPendingPurchases();
             _pendingPurchases.Clear();
 
             foreach (var item in list)
@@ -320,7 +327,8 @@ namespace com.noctuagames.sdk
                     purchaseItemName = item.OrderRequest.ProductId;
                 }
 
-                _pendingPurchases.Add(new PurchaseItem{
+                _pendingPurchases.Add(new PurchaseItem
+                {
                     OrderId = item.OrderId,
                     Timestamp = item.OrderRequest.Timestamp,
                     PaymentType = char.ToUpper(item.OrderRequest.PaymentType.ToString()[0]) + item.OrderRequest.PaymentType.ToString().Substring(1),
