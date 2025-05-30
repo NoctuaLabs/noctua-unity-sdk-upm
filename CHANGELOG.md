@@ -2,6 +2,35 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.40.1] - 2025-05-27
+
+### 🐛 Bug Fixes
+
+- Error 'EventSender.Flush()' returns voiid, a return keyword must not be followed by an object expression
+
+## [0.40.0] - 2025-05-27
+
+### 🚀 Features
+
+- Add limit to event queue length.
+
+### 🐛 Bug Fixes
+
+- Header value contains invalid characters
+- Object reference not set to an instance of an object when show start game error dialog
+- Adjust event queue name.
+- Change cycle delay to 5 seconds
+
+### 💼 Other
+
+- Improve log when the event queue is full.
+
+## [0.39.7] - 2025-05-05
+
+### 🐛 Bug Fixes
+
+- Decrease event sender interval from 5 minutes to 1 minute.
+
 ## [0.39.6] - 2025-05-02
 
 ### 🐛 Bug Fixes
