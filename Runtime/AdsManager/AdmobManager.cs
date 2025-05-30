@@ -3,6 +3,7 @@ using GoogleMobileAds.Api;
 using UnityEngine;
 using System;
 using com.noctuagames.sdk.Admob;
+using System.Collections.Generic;
 
 namespace com.noctuagames.sdk
 {
@@ -43,6 +44,24 @@ namespace com.noctuagames.sdk
                 _log.Info("Admob initialized");
 
                 initCompleteAction?.Invoke();
+
+                Dictionary<string, AdapterStatus> map = initStatus.getAdapterStatusMap();
+                foreach (KeyValuePair<string, AdapterStatus> keyValuePair in map)
+                {
+                    string className = keyValuePair.Key;
+                    AdapterStatus status = keyValuePair.Value;
+                    switch (status.InitializationState)
+                    {
+                    case AdapterState.NotReady:
+                        // The adapter initialization did not complete.
+                        _log.Info("Adapter: " + className + " not ready.");
+                        break;
+                    case AdapterState.Ready:
+                        // The adapter was successfully initialized.
+                        _log.Info("Adapter: " + className + " is initialized.");
+                        break;
+                    }
+                }
             });
         }
 
