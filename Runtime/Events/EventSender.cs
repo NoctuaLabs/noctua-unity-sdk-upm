@@ -241,58 +241,63 @@ namespace com.noctuagames.sdk.Events
                 data.Remove(field);
             }
 
-            data.TryAdd("event_version", 1);
-            data.TryAdd("event_name", name);
-            data.TryAdd("sdk_version", _sdkVersion);
-            data.TryAdd("device_id", _deviceId);
-            data.TryAdd("device_os_version", SystemInfo.operatingSystem);
-            data.TryAdd("device_os", SystemInfo.operatingSystemFamily.ToString());
-            data.TryAdd("device_type", SystemInfo.deviceType.ToString());
-            data.TryAdd("device_model", SystemInfo.deviceModel);
-            data.TryAdd("bundle_id", _config.BundleId);
-            data.TryAdd("game_version", Application.version);
-            data.TryAdd("country", _locale.GetCountry());
-            data.TryAdd("ipAddress", _ipAddress);
-            data.TryAdd("is_sandbox", _isSandbox);
-
-            LastEventTime = _start.AddSeconds(Stopwatch.GetTimestamp() / (double)Stopwatch.Frequency);
-            data.TryAdd("timestamp", LastEventTime.ToString("O"));
-
-            if (_userId != null) data.TryAdd("user_id", _userId);
-            if (_playerId != null) data.TryAdd("player_id", _playerId);
-            if (_credentialId != null) data.TryAdd("credential_id", _credentialId);
-            if (_credentialProvider != null) data.TryAdd("credential_provider", _credentialProvider);
-            if (_gameId != null) data.TryAdd("game_id", _gameId);
-            if (_gamePlatformId != null) data.TryAdd("game_platform_id", _gamePlatformId);
-            if (_sessionId != null) data.TryAdd("session_id", _sessionId);
-            if (_uniqueId != null) data.TryAdd("unique_id", _uniqueId);
-
-            _log.Info($"queued event '{LastEventTime:O}|{name}|{_deviceId}|{_sessionId}|{_userId}|{_playerId}'");
-            
-            _eventQueue.Add(data);
-
-            PlayerPrefs.SetString("NoctuaEvents", JsonConvert.SerializeObject(_eventQueue));
-            PlayerPrefs.Save();
-            _log.Info($"{name} added to the queue. Current total event in queue: {_eventQueue.Count}");
-
-            // This check is used to maintain the offline state more frequent to update.
-            // This also prevent "offline" event flooding the queue
-            // by not sending another "offline" event if the event name is "offline"
-            if (data.TryGetValue("event_name", out var eventName) && eventName.ToString() != "offline")
+            // Fire-and-forget safe background task
+            UniTask.Void(async () =>
             {
-                Noctua.IsOfflineAsync().ContinueWith((isOffline) =>
-                {
-                    if (isOffline)
-                    {
-                        Noctua.OnOffline();
-                    }
-                    else
-                    {
-                        Noctua.OnOnline();
-                    }
-                });
-            }
+                await UniTask.SwitchToMainThread();
 
+                data.TryAdd("event_version", 1);
+                data.TryAdd("event_name", name);
+                data.TryAdd("sdk_version", _sdkVersion);
+                data.TryAdd("device_id", _deviceId);
+                data.TryAdd("device_os_version", SystemInfo.operatingSystem);
+                data.TryAdd("device_os", SystemInfo.operatingSystemFamily.ToString());
+                data.TryAdd("device_type", SystemInfo.deviceType.ToString());
+                data.TryAdd("device_model", SystemInfo.deviceModel);
+                data.TryAdd("bundle_id", _config.BundleId);
+                data.TryAdd("game_version", Application.version);
+                data.TryAdd("country", _locale.GetCountry());
+                data.TryAdd("ipAddress", _ipAddress);
+                data.TryAdd("is_sandbox", _isSandbox);
+
+                LastEventTime = _start.AddSeconds(Stopwatch.GetTimestamp() / (double)Stopwatch.Frequency);
+                data.TryAdd("timestamp", LastEventTime.ToString("O"));
+
+                if (_userId != null) data.TryAdd("user_id", _userId);
+                if (_playerId != null) data.TryAdd("player_id", _playerId);
+                if (_credentialId != null) data.TryAdd("credential_id", _credentialId);
+                if (_credentialProvider != null) data.TryAdd("credential_provider", _credentialProvider);
+                if (_gameId != null) data.TryAdd("game_id", _gameId);
+                if (_gamePlatformId != null) data.TryAdd("game_platform_id", _gamePlatformId);
+                if (_sessionId != null) data.TryAdd("session_id", _sessionId);
+                if (_uniqueId != null) data.TryAdd("unique_id", _uniqueId);
+
+                _log.Info($"queued event '{LastEventTime:O}|{name}|{_deviceId}|{_sessionId}|{_userId}|{_playerId}'");
+
+                _eventQueue.Add(data);
+
+                PlayerPrefs.SetString("NoctuaEvents", JsonConvert.SerializeObject(_eventQueue));
+                PlayerPrefs.Save();
+                _log.Info($"{name} added to the queue. Current total event in queue: {_eventQueue.Count}");
+
+                // This check is used to maintain the offline state more frequent to update.
+                // This also prevent "offline" event flooding the queue
+                // by not sending another "offline" event if the event name is "offline"
+                if (data.TryGetValue("event_name", out var eventName) && eventName.ToString() != "offline")
+                {
+                    Noctua.IsOfflineAsync().ContinueWith((isOffline) =>
+                    {
+                        if (isOffline)
+                        {
+                            Noctua.OnOffline();
+                        }
+                        else
+                        {
+                            Noctua.OnOnline();
+                        }
+                    });
+                }
+            });
         }
 
 #if UNITY_ANDROID && !UNITY_EDITOR
@@ -457,7 +462,7 @@ namespace com.noctuagames.sdk.Events
                 }
                 catch (Exception e)
                 {
-                    _log.Error($"Failed to send events");
+                    _log.Error($"Failed to send events to server: {e.Message}");
                     // Re-enqueue all the events
                     _eventQueue.AddRange(events);
                 }
