@@ -18,7 +18,9 @@ public static class IAAPreprocessor
         string defines = PlayerSettings.GetScriptingDefineSymbolsForGroup(targetGroup);
         var defineList = defines.Split(';').Where(d => !string.IsNullOrWhiteSpace(d)).ToList();
 
-        bool hasAdMob = Directory.Exists("Assets/GoogleMobileAds");
+        bool hasAdMob = Directory.Exists("Assets/GoogleMobileAds") ||
+                        Directory.Exists("Packages/com.google.ads.mobile/GoogleMobileAds");
+        
         bool hasAppLovin = Directory.Exists("Assets/MaxSdk");
 
         Debug.Log($"[{targetGroup}] AdMob SDK Exists: {hasAdMob}");
