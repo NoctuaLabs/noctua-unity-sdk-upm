@@ -198,7 +198,12 @@ namespace com.noctuagames.sdk
 #if UNITY_APPLOVIN
             _adNetwork = new AppLovinManager();
 
-            _adNetwork.OnAdDisplayed += () => { _onAdDisplayed?.Invoke(); };
+            _adNetwork.OnAdDisplayed += () => { 
+
+                CloseAdPlaceholder();
+
+                _onAdDisplayed?.Invoke(); 
+            };
             _adNetwork.OnAdFailedDisplayed += () => { _onAdFailedDisplayed?.Invoke(); };
             _adNetwork.OnAdClicked += () => { _onAdClicked?.Invoke(); };
             _adNetwork.OnAdImpressionRecorded += () => { _onAdImpressionRecorded?.Invoke(); };
@@ -417,10 +422,17 @@ namespace com.noctuagames.sdk
             _adNetwork.SetRewardeInterstitialdAdUnitID(adUnitID);
         }
         public void LoadRewardedInterstitialAd() => _adNetwork.LoadRewardedInterstitialAd();
-        public void ShowRewardedInterstitialAd() => _adNetwork.ShowRewardedInterstitialAd();
+        public void ShowRewardedInterstitialAd()
+        {
+             _hasClosedPlaceholder = false;
+
+            ShowAdPlaceholder(AdPlaceholderType.Rewarded);
+            
+            _adNetwork.ShowRewardedInterstitialAd();
+        }
         #endif
 
-        //Banner public functions
+            //Banner public functions
         private void SetBannerAdUnitId(string adUnitID) => _adNetwork.SetBannerAdUnitId(adUnitID);
         public void ShowBannerAd()
         {
