@@ -15,8 +15,6 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using Newtonsoft.Json.Linq;
 using Newtonsoft.Json.Serialization;
-using com.noctuagames.sdk.AdPlaceholder;
-
 
 namespace com.noctuagames.sdk
 {
@@ -297,11 +295,6 @@ namespace com.noctuagames.sdk
         public void ShowBindConflictDialog(PlayerToken playerToken)
         {
             _bindConflictDialog.Show(playerToken);
-        }
-        
-        public void ShowAdPlaceholder(AdPlaceholderType adPlaceholderType = AdPlaceholderType.Interstitial)
-        {
-            _uiFactory.ShowAdPlaceholder(adPlaceholderType);
         }
 
         private List<PurchaseItem> GetPendingPurchases()
