@@ -4,3 +4,22 @@
    padding-top: 5%; 
    align-self: center;
 }
+
+.banner-box {
+    position: absolute;
+    align-self: center;
+    top: 10px;
+    width: 200px;
+    height: 50px;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    border-top-width: 0;
+    border-right-width: 0;
+    border-bottom-width: 0;
+    border-left-width: 0;
+}
+
+.ad-placeholder-banner {
+   background-image: resource("NoctuaAdPlaceholder/BannerAd");
+}
