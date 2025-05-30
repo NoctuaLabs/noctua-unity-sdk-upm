@@ -2,11 +2,14 @@
     <Style src="project://database/Packages/com.noctuagames.sdk/Resources/Noctua.uss?fileID=7433441132597879392&amp;guid=fe35e550fb23b6446af377f994effe35&amp;type=3#Noctua" />
     <Style src="project://database/Packages/com.noctuagames.sdk/Resources/NoctuaAdPlaceholder/AdPlaceholder.uss?fileID=7433441132597879392&amp;guid=5b1bbb7ce94b10b43b19537d0b1c315f&amp;type=3#AdPlaceholder" />
     <ui:VisualElement name="Root" class="root" style="flex-grow: 1;">
-        <ui:VisualElement name="NoctuaAdPlaceholder" class="base" style="height: 100%; width: 100%; padding-top: 5%;">
+        <ui:VisualElement name="NoctuaAdPlaceholder" class="base hide" style="height: 100%; width: 100%; padding-top: 5%;">
             <ui:VisualElement name="Header" class="header" style="flex-wrap: wrap-reverse; margin-right: 5%; margin-left: 5%; padding-bottom: 3%;">
                 <ui:VisualElement name="CloseButton" class="close-icon" style="" />
             </ui:VisualElement>
             <ui:VisualElement name="AdPlaceholder" class="noctua-ad-placeholder"/>
         </ui:VisualElement>
+
+        <ui:VisualElement name="BannerPlaceholder" class="ad-placeholder-banner banner-box hide"/>
+       
     </ui:VisualElement>
 </ui:UXML>
