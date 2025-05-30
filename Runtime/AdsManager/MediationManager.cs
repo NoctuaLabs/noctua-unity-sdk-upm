@@ -1,6 +1,8 @@
 using System;
 using UnityEngine;
 using System.Collections.Generic;
+using com.noctuagames.sdk.UI;
+using com.noctuagames.sdk.AdPlaceholder;
 
 #if UNITY_ADMOB
 using GoogleMobileAds.Api;
@@ -22,45 +24,54 @@ namespace com.noctuagames.sdk
         private event Action _onAdImpressionRecorded;
         private event Action _onAdClosed;
 
-        #if UNITY_ADMOB
+#if UNITY_ADMOB
         private event Action<Reward> _admobOnUserEarnedReward;
         private event Action<AdValue, ResponseInfo> _admobOnAdRevenuePaid;
-        #endif
+#endif
 
-        #if UNITY_APPLOVIN
+#if UNITY_APPLOVIN
         private event Action<MaxSdk.Reward> _appLovinOnUserEarnedReward;
         private event Action<MaxSdkBase.AdInfo> _appLovinOnAdRevenuePaid;
-        #endif
+#endif
 
         // public event handlers
         public event Action OnAdDisplayed { add => _onAdDisplayed += value; remove => _onAdDisplayed -= value; }
-        public event Action OnAdFailedDisplayed { add => _onAdFailedDisplayed += value; remove => _onAdFailedDisplayed -= value; } 
+        public event Action OnAdFailedDisplayed { add => _onAdFailedDisplayed += value; remove => _onAdFailedDisplayed -= value; }
         public event Action OnAdClicked { add => _onAdClicked += value; remove => _onAdClicked -= value; }
         public event Action OnAdImpressionRecorded { add => _onAdImpressionRecorded += value; remove => _onAdImpressionRecorded -= value; }
         public event Action OnAdClosed { add => _onAdClosed += value; remove => _onAdClosed -= value; }
 
-        #if UNITY_ADMOB
+#if UNITY_ADMOB
         public event Action<Reward> AdmobOnUserEarnedReward { add => _admobOnUserEarnedReward += value; remove => _admobOnUserEarnedReward -= value; }
         public event Action<AdValue, ResponseInfo> AdmobOnAdRevenuePaid { add => _admobOnAdRevenuePaid += value; remove => _admobOnAdRevenuePaid -= value; }
-        #endif
-        #if UNITY_APPLOVIN
+#endif
+#if UNITY_APPLOVIN
         public event Action<MaxSdk.Reward> AppLovinOnUserEarnedReward { add => _appLovinOnUserEarnedReward += value; remove => _appLovinOnUserEarnedReward -= value; }
         public event Action<MaxSdkBase.AdInfo> AppLovinOnAdRevenuePaid { add => _appLovinOnAdRevenuePaid += value; remove => _appLovinOnAdRevenuePaid -= value; }
-        #endif
+#endif
 
-        #if UNITY_ADMOB
+#if UNITY_ADMOB
         public static AdmobAdPreloadManager _preloadManager = new();
         private event Action<PreloadConfiguration> _onAdsAvailable;
         private event Action<PreloadConfiguration> _onAdExhausted;
 
         public event Action<PreloadConfiguration> OnAdsAvailable { add => _onAdsAvailable += value; remove => _onAdsAvailable -= value; }
         public event Action<PreloadConfiguration> OnAdExhausted { add => _onAdExhausted += value; remove => _onAdExhausted -= value; }
-        #endif
+#endif
 
         private string _interstitialAdUnitID = "unused";
         private string _rewardedAdUnitID = "unused";
         private string _rewardedInterstitialAdUnitID = "unused";
         private string _bannerAdUnitID = "unused";
+
+        private readonly UIFactory _uiFactory;
+        private bool _hasClosedPlaceholder = false; // Track if the placeholder has been closed to prevent multiple closures
+
+
+        internal MediationManager(UIFactory uiFactory)
+        {
+            _uiFactory = uiFactory;
+        }
 
         public void Initialize(IAA iAAResponse, Action initCompleteAction)
         {
@@ -103,9 +114,9 @@ namespace com.noctuagames.sdk
 
                 if (IsAdmob())
                 {
-                    #if UNITY_ADMOB
+#if UNITY_ADMOB
                     _preloadManager = AdmobAdPreloadManager.Instance;
-                    #endif
+#endif
                 }
                 SetupAdUnitID(iAAResponse);
             });
@@ -113,10 +124,15 @@ namespace com.noctuagames.sdk
 
         private void InitializeAdmob()
         {
-            #if UNITY_ADMOB
+#if UNITY_ADMOB
             _adNetwork = new AdmobManager();
 
-            _adNetwork.OnAdDisplayed += () => { _onAdDisplayed?.Invoke(); };
+            _adNetwork.OnAdDisplayed += () =>
+            {
+                CloseAdPlaceholder();
+
+                _onAdDisplayed?.Invoke();
+            };
             _adNetwork.OnAdFailedDisplayed += () => { _onAdFailedDisplayed?.Invoke(); };
             _adNetwork.OnAdClicked += () => { _onAdClicked?.Invoke(); };
             _adNetwork.OnAdImpressionRecorded += () => { _onAdImpressionRecorded?.Invoke(); };
@@ -174,12 +190,12 @@ namespace com.noctuagames.sdk
 
                 _admobOnAdRevenuePaid?.Invoke(adValue, responseInfo);
             };
-            #endif
+#endif
         }
 
         private void InitializeAppLovin()
         {
-            #if UNITY_APPLOVIN
+#if UNITY_APPLOVIN
             _adNetwork = new AppLovinManager();
 
             _adNetwork.OnAdDisplayed += () => { _onAdDisplayed?.Invoke(); };
@@ -221,40 +237,40 @@ namespace com.noctuagames.sdk
             
                 _appLovinOnAdRevenuePaid?.Invoke(adInfo); 
             };
-            #endif
+#endif
         }
 
         public void SetupAdUnitID(IAA iAAResponse)
         {
-            #if UNITY_ANDROID
-                _interstitialAdUnitID = iAAResponse.AdFormat.Interstitial.Android.adUnitID;
-            #elif UNITY_IPHONE
+#if UNITY_ANDROID
+            _interstitialAdUnitID = iAAResponse.AdFormat.Interstitial.Android.adUnitID;
+#elif UNITY_IPHONE
                 interstitialAdUnitID = iAAResponse.AdFormat.Interstitial.IOS.adUnitID;
-            #endif
+#endif
 
-            #if UNITY_ANDROID
-                _rewardedAdUnitID = iAAResponse.AdFormat.Rewarded.Android.adUnitID;
-            #elif UNITY_IPHONE
+#if UNITY_ANDROID
+            _rewardedAdUnitID = iAAResponse.AdFormat.Rewarded.Android.adUnitID;
+#elif UNITY_IPHONE
                 rewardedAdUnitID = iAAResponse.AdFormat.Rewarded.IOS.adUnitID;
-            #endif
+#endif
 
-            #if UNITY_ANDROID
-                _rewardedInterstitialAdUnitID = iAAResponse.AdFormat.RewardedInterstitial.Android.adUnitID;
-            #elif UNITY_IPHONE
+#if UNITY_ANDROID
+            _rewardedInterstitialAdUnitID = iAAResponse.AdFormat.RewardedInterstitial.Android.adUnitID;
+#elif UNITY_IPHONE
                 rewardedInterstitialAdUnitID = iAAResponse.AdFormat.RewardedInterstitial.IOS.adUnitID;
-            #endif
+#endif
 
-            #if UNITY_ANDROID
-                _bannerAdUnitID = iAAResponse.AdFormat.Banner.Android.adUnitID;
-            #elif UNITY_IPHONE
+#if UNITY_ANDROID
+            _bannerAdUnitID = iAAResponse.AdFormat.Banner.Android.adUnitID;
+#elif UNITY_IPHONE
                 bannerAdUnitID = iAAResponse.AdFormat.Banner.IOS.adUnitID;
-            #endif
+#endif
 
             SetBannerAdUnitId(_bannerAdUnitID);
 
             if (IsAdmob())
             {
-                #if UNITY_ADMOB
+#if UNITY_ADMOB
                 SetRewardedInterstitialAdUnitId(_rewardedInterstitialAdUnitID);
 
                 var configs = new List<PreloadConfiguration>
@@ -279,7 +295,7 @@ namespace com.noctuagames.sdk
                 };
 
                 _preloadManager.StartPreloading(configs);
-                #endif
+#endif
             }
             else
             {
@@ -289,16 +305,21 @@ namespace com.noctuagames.sdk
                 //Prepare the ads
                 LoadInterstitialAd();
                 LoadRewardedAd();
-            }           
+            }
         }
 
         //Interstitial public functions
         private void SetInterstitialAdUnitId(string adUnitID) => _adNetwork.SetInterstitialAdUnitID(adUnitID);
         public void LoadInterstitialAd() => _adNetwork.LoadInterstitialAd();
         public void ShowInterstitial() {
+
+            _hasClosedPlaceholder = false;
+
+            ShowAdPlaceholder(AdPlaceholderType.Interstitial);
+
             if (IsAdmob())
             {
-                #if UNITY_ADMOB
+#if UNITY_ADMOB
                 // Check if the ad is available before showing
                 if (_preloadManager.IsAdAvailable(_interstitialAdUnitID, AdFormat.INTERSTITIAL))
                 {
@@ -307,13 +328,16 @@ namespace com.noctuagames.sdk
                     {
                         _log.Info("Showing Admob Interstitial Ad");
                         ad.Show();
+
+                        RegisterCallbackAdInterstitial(ad);
+
                     }
                 }
                 else
                 {
                     _log.Info("Admob Interstitial Ad not available");
                 }
-                #endif
+#endif
             }
             else
             {
@@ -322,14 +346,29 @@ namespace com.noctuagames.sdk
             }
         }
 
+        private void RegisterCallbackAdInterstitial(InterstitialAd interstitialAd)
+        {
+            interstitialAd.OnAdFullScreenContentOpened += () =>
+            {
+                CloseAdPlaceholder();
+
+                _log.Info("Noctua Placeholder closed for Interstitial Ad");
+            };
+        }
+
         //Rewarded public functions
         private void SetRewardedAdUnitId(string adUnitID) => _adNetwork.SetRewardedAdUnitID(adUnitID);
         public void LoadRewardedAd() => _adNetwork.LoadRewardedAd();
         public void ShowRewardedAd()
         {
+            _hasClosedPlaceholder = false;
+
+            ShowAdPlaceholder(AdPlaceholderType.Rewarded);
+
             if (IsAdmob())
             {
-                #if UNITY_ADMOB
+
+#if UNITY_ADMOB
                 // Check if the ad is available before showing
                 if (_preloadManager.IsAdAvailable(_rewardedAdUnitID, AdFormat.REWARDED))
                 {
@@ -342,19 +381,31 @@ namespace com.noctuagames.sdk
                         {
                             _log.Info("User earned reward from mediation manager : " + reward.Type + " - " + reward.Amount);
                         });
+
+                        RegisterCallbackAdInterstitial(ad);
                     }
                 }
                 else
                 {
                     _log.Info("Admob Rewarded Ad not available");
                 }
-                #endif
+#endif
             }
             else
             {
                 // For other networks, just show the ad
                 _adNetwork.ShowRewardedAd();
             }
+        }
+
+        private void RegisterCallbackAdInterstitial(RewardedAd rewardedAd)
+        {
+            rewardedAd.OnAdFullScreenContentOpened += () =>
+            {
+                CloseAdPlaceholder();
+
+                _log.Info("Noctua Placeholder closed for Rewarded Ad");
+            };
         }
 
         //Rewarded Interstitial public functions for Admob
@@ -371,12 +422,19 @@ namespace com.noctuagames.sdk
 
         //Banner public functions
         private void SetBannerAdUnitId(string adUnitID) => _adNetwork.SetBannerAdUnitId(adUnitID);
-        public void ShowBannerAd() => _adNetwork.ShowBannerAd();
+        public void ShowBannerAd()
+        {
+            _hasClosedPlaceholder = false;
+
+            ShowAdPlaceholder(AdPlaceholderType.Banner);
+
+            _adNetwork.ShowBannerAd();
+        } 
 
         #if UNITY_ADMOB
-        public void CreateBannerViewAdAdmob(AdSize adSize, AdPosition adPosition) 
+        public void CreateBannerViewAdAdmob(AdSize adSize, AdPosition adPosition)
         {
-           if(!IsAdmob()) { return; }
+            if (!IsAdmob()) { return; }
 
             _adNetwork.CreateBannerViewAdAdmob(adSize, adPosition);
         }
@@ -437,8 +495,31 @@ namespace com.noctuagames.sdk
         {
             _adNetwork.ShowMediationDebugger();
         }
+        
+        //Ad Placeholder public functions
+        public void ShowAdPlaceholder(AdPlaceholderType adType)
+        {
+            _log.Info($"Showing ad placeholder for type: {adType}");
 
-        private bool IsAppLovin() 
+            _uiFactory.ShowAdPlaceholder(adType);
+        }
+
+        public void CloseAdPlaceholder()
+        {
+            if (_hasClosedPlaceholder)
+            {
+                _log.Info("Ad placeholder already closed. Skipping close action.");
+                return;
+            }
+
+            _log.Info("Closing ad placeholder");
+
+            _uiFactory.CloseAdPlaceholder();
+
+            _hasClosedPlaceholder = true;
+        }
+
+        private bool IsAppLovin()
         {
             if (_mediationType == "applovin")
             {

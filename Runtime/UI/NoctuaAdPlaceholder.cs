@@ -1,6 +1,7 @@
 using UnityEngine;
 using UnityEngine.UIElements;
 using com.noctuagames.sdk.AdPlaceholder;
+using Cysharp.Threading.Tasks;
 
 namespace com.noctuagames.sdk.UI
 {
@@ -8,6 +9,7 @@ namespace com.noctuagames.sdk.UI
     {
         private VisualElement _closeBtn;
         private VisualElement _adPlaceholder;
+        private VisualElement _bannerPlaceholder;
 
         private readonly ILogger _log = new NoctuaLogger(typeof(NoctuaAdPlaceholder));
 
@@ -21,6 +23,7 @@ namespace com.noctuagames.sdk.UI
         {
             _closeBtn = View.Q<VisualElement>("CloseButton");
             _adPlaceholder = View.Q<VisualElement>("AdPlaceholder");
+            _bannerPlaceholder = View.Q<VisualElement>("BannerPlaceholder");
 
             _closeBtn.RegisterCallback<ClickEvent>(CloseDialog);
         }
@@ -36,8 +39,22 @@ namespace com.noctuagames.sdk.UI
             {
                 if (texture != null)
                 {
-                    _adPlaceholder.style.backgroundImage = new StyleBackground(texture);
-                    _log.Info($"Ad placeholder image set for type: {adType}");
+                    if (adType == AdPlaceholderType.Banner)
+                    {
+                        _bannerPlaceholder.RemoveFromClassList("hide");
+                        _adPlaceholder.AddToClassList("hide");
+
+                        _bannerPlaceholder.style.backgroundImage = new StyleBackground(texture);
+                        _log.Info($"Banner placeholder image set for type: {adType}");
+                    }
+                    else
+                    {
+                        _bannerPlaceholder.AddToClassList("hide");
+                        _adPlaceholder.RemoveFromClassList("hide");
+
+                        _adPlaceholder.style.backgroundImage = new StyleBackground(texture);
+                        _log.Info($"Ad placeholder image set for type: {adType}");
+                    }
                 }
                 else
                 {
@@ -54,7 +71,12 @@ namespace com.noctuagames.sdk.UI
 
         public void CloseAdPlaceholder()
         {
-            Visible = false;
+            UniTask.Void(async () =>
+            {
+                await UniTask.SwitchToMainThread();
+
+                Visible = false;
+            });
 
             _log.Info("Ad placeholder closed by external call");
         }
