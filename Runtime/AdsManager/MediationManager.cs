@@ -351,6 +351,7 @@ namespace com.noctuagames.sdk
             }
         }
 
+        #if UNITY_ADMOB
         private void RegisterCallbackAdInterstitial(InterstitialAd interstitialAd)
         {
             interstitialAd.OnAdFullScreenContentOpened += () =>
@@ -360,6 +361,7 @@ namespace com.noctuagames.sdk
                 _log.Info("Noctua Placeholder closed for Interstitial Ad");
             };
         }
+        #endif
 
         //Rewarded public functions
         private void SetRewardedAdUnitId(string adUnitID) => _adNetwork.SetRewardedAdUnitID(adUnitID);
@@ -403,6 +405,7 @@ namespace com.noctuagames.sdk
             }
         }
 
+        #if UNITY_ADMOB
         private void RegisterCallbackAdInterstitial(RewardedAd rewardedAd)
         {
             rewardedAd.OnAdFullScreenContentOpened += () =>
@@ -412,6 +415,7 @@ namespace com.noctuagames.sdk
                 _log.Info("Noctua Placeholder closed for Rewarded Ad");
             };
         }
+        #endif
 
         //Rewarded Interstitial public functions for Admob
         #if UNITY_ADMOB
