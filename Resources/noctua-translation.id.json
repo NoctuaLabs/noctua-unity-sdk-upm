@@ -40,7 +40,7 @@
     "EmailRegisterVNDialogPresenter.CountryTF.TextField.label": "Negara",
     "EmailRegisterVNDialogPresenter.IDCardTF.TextField.label": "Kartu Identitas",
     "EmailRegisterVNDialogPresenter.PlaceOfIssueTF.TextField.label": "Tempat Penerbitan",
-    "EmailRegisterVNDialogPresenter.DateOfIssueTF.TextField.text": "Tanggal Penerbitan",
+    "EmailRegisterVNDialogPresenter.DateOfIssueTF.TextField.label": "Tanggal Penerbitan",
     "EmailRegisterVNDialogPresenter.AddressTF.TextField.label": "Alamat",
     "EmailRegisterVNDialogPresenter.PasswordTF.TextField.label": "Kata Sandi",
     "EmailRegisterVNDialogPresenter.RePasswordTF.TextField.label": "Masukkan Kembali Kata Sandi",

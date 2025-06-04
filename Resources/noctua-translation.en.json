@@ -40,7 +40,7 @@
     "EmailRegisterVNDialogPresenter.CountryTF.TextField.label": "Country",
     "EmailRegisterVNDialogPresenter.IDCardTF.TextField.label": "ID Card",
     "EmailRegisterVNDialogPresenter.PlaceOfIssueTF.TextField.label": "Place Of Issue",
-    "EmailRegisterVNDialogPresenter.DateOfIssueTF.TextField.text": "Date Of Issue",
+    "EmailRegisterVNDialogPresenter.DateOfIssueTF.TextField.label": "Date Of Issue",
     "EmailRegisterVNDialogPresenter.AddressTF.TextField.label": "Address",
     "EmailRegisterVNDialogPresenter.PasswordTF.TextField.label": "Password",
     "EmailRegisterVNDialogPresenter.RePasswordTF.TextField.label": "Re-enter Password",
@@ -62,8 +62,6 @@
     "EmailRegisterVNDialogPresenter.WizardSpinner.Button.text": "Registering...",
     "EmailRegisterVNDialogPresenter.AlreadyHaveAccount.Label.text": "Already have an account?",
     "EmailRegisterVNDialogPresenter.ErrUnderage.Label.text": "Minimum age is 18 years old",
-    "EmailRegisterVNDialogPresenter.DateOfIssueTF.TextField.label": "Date Of Issue",
-    "EmailRegisterVNDialogPresenter.PhoneNumberVerificationCodeTF.TextField.label": "Verification Code",
 
     "AccountSelectionDialogPresenter.AccountSelectionInfo.Label.text": "Choose Account",
     "AccountSelectionDialogPresenter.GameAccountList.ListView.label": "Game Account List",
