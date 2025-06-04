@@ -64,7 +64,9 @@ namespace com.noctuagames.sdk
         private readonly LoginOptionsDialogPresenter _loginOptionsDialog;
         private readonly EmailLoginDialogPresenter _emailLoginDialog;
         private readonly EmailRegisterDialogPresenter _emailRegisterDialog;
+        private readonly EmailRegisterVNDialogPresenter _emailRegisterVNDialog;
         private readonly EmailVerificationDialogPresenter _emailVerificationDialog;
+        private readonly PhoneVerificationDialogPresenter _phoneVerificationDialog;
         private readonly EmailResetPasswordDialogPresenter _emailResetPasswordDialog;
         private readonly EmailConfirmResetPasswordDialogPresenter _emailConfirmResetPasswordDialog;
         private readonly UserCenterPresenter _userCenter;
@@ -81,6 +83,7 @@ namespace com.noctuagames.sdk
         private readonly NoctuaIAPService _iapService;
         private readonly SocialAuthenticationService _socialAuth;
         private readonly NoctuaLocale _locale;
+        private readonly GlobalConfig _config;
         private GameObject _socialAuthObject;
         
         private readonly Stack<Action> _navigationStack = new();
@@ -111,6 +114,8 @@ namespace com.noctuagames.sdk
             {
                 _iapService = iapService;
             }
+
+            _config = config;
             
             _userCenter = _uiFactory.Create<UserCenterPresenter, AuthenticationModel>(this);
             _userCenter.EventSender = eventSender;
@@ -122,7 +127,9 @@ namespace com.noctuagames.sdk
             _loginOptionsDialog = _uiFactory.Create<LoginOptionsDialogPresenter, AuthenticationModel>(this);
             _emailLoginDialog = _uiFactory.Create<EmailLoginDialogPresenter, AuthenticationModel>(this);
             _emailVerificationDialog = _uiFactory.Create<EmailVerificationDialogPresenter, AuthenticationModel>(this);
+            _phoneVerificationDialog = _uiFactory.Create<PhoneVerificationDialogPresenter, AuthenticationModel>(this);
             _emailRegisterDialog = _uiFactory.Create<EmailRegisterDialogPresenter, AuthenticationModel>(this);
+            _emailRegisterVNDialog = _uiFactory.Create<EmailRegisterVNDialogPresenter, AuthenticationModel>(this);
             _emailResetPasswordDialog = _uiFactory.Create<EmailResetPasswordDialogPresenter, AuthenticationModel>(this);
             _emailResetPasswordDialog.EventSender = eventSender;
             _emailConfirmResetPasswordDialog = _uiFactory.Create<EmailConfirmResetPasswordDialogPresenter, AuthenticationModel>(this);
@@ -131,7 +138,6 @@ namespace com.noctuagames.sdk
             _bindConfirmation = _uiFactory.Create<BindConfirmationDialogPresenter, AuthenticationModel>(this);
             _bindConflictDialog = _uiFactory.Create<BindConflictDialogPresenter, AuthenticationModel>(this);
             _welcome = _uiFactory.Create<WelcomeNotificationPresenter, AuthenticationModel>(this);
-
 
             _welcome.SetBehaviourWhitelabel(config);
             _emailLoginDialog.SetBehaviourWhitelabel(config);
@@ -191,12 +197,28 @@ namespace com.noctuagames.sdk
 
         public void ShowEmailRegistration(bool clearForm, bool isRegisterOnly = false)
         {
+            var IsVNLegalPurposeEnabled = _config.Noctua.RemoteFeatureFlags["vnLegalPurposeEnabled"] == true;
+
+            _log.Debug($"IsVNLegalPurposeEnabled: {IsVNLegalPurposeEnabled}");
+
+            if (IsVNLegalPurposeEnabled)
+            {
+                _emailRegisterVNDialog.Show(clearForm, isRegisterOnly);
+                _log.Debug("Showing EmailRegisterVNDialog");
+                return;
+            }
+
             _emailRegisterDialog.Show(clearForm, isRegisterOnly);
         }
 
-        public void ShowEmailVerification(string email, string password, int verificationID, Dictionary<string,string> extraData)
+        public void ShowEmailVerification(string email, string password, int verificationID, Dictionary<string, string> extraData)
         {
             _emailVerificationDialog.Show(email, password, verificationID, extraData);
+        }
+
+        public void ShowPhoneVerification(string verificationId, string phoneNumber, string emailAddress, string password, Dictionary<string, string> regExtra)
+        {
+            _phoneVerificationDialog.Show(verificationId, phoneNumber, emailAddress, password, regExtra);
         }
 
         public void ShowLoginOptions()

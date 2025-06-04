@@ -1,0 +1,29 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" xsi="http://www.w3.org/2001/XMLSchema-instance" engine="UnityEngine.UIElements" editor="UnityEditor.UIElements" noNamespaceSchemaLocation="../../../../UIElementsSchema/UIElements.xsd" editor-extension-mode="False">
+    <Style src="project://database/Packages/com.noctuagames.sdk/Resources/Noctua.uss?fileID=7433441132597879392&amp;guid=fe35e550fb23b6446af377f994effe35&amp;type=3#Noctua" />
+    <ui:VisualElement name="Root" class="root">
+        <ui:VisualElement name="PhoneVerificationDialog" class="base dialog-box">
+            <ui:VisualElement name="DialogHeader" class="dialog-header">
+                <ui:Button display-tooltip-when-elided="true" name="BackButton" focusable="false" class="dialog-back-button" />
+                <ui:Label name="TitlePhoneVerifCode" text="Phone Verification Code" class="dialog-title" />
+            </ui:VisualElement>
+            <ui:VisualElement name="DialogContent" class="dialog-content" style="flex-direction: column; justify-content: center; align-items: center; margin-top: 24px;">
+                <ui:Label name="DialogContent1" text="A 6-digit code was sent to your phone number." display-tooltip-when-elided="true" style="font-size: 12px; color: rgb(117, 117, 117);" />
+                <ui:Label name="DialogContent2" text="Please enter it within 10 minutes" display-tooltip-when-elided="true" style="margin-top: 0; font-size: 12px; color: rgb(117, 117, 117);" />
+                <ui:TextField name="VerificationCode" label="Verification code" keyboard-type="NumberPad" class="noctua-text-input" style="width: 100%; margin-top: 14px;">
+                    <ui:Label tabindex="-1" text="Verification code" parse-escape-sequences="true" display-tooltip-when-elided="true" name="title" class="hide" />
+                    <ui:Label tabindex="-1" text="error" parse-escape-sequences="true" display-tooltip-when-elided="true" name="error" class="hide" />
+                </ui:TextField>
+            </ui:VisualElement>
+            <ui:VisualElement name="DialogFooter" class="dialog-footer" style="height: 125px; align-items: center; margin-bottom: 20px;">
+                <ui:VisualElement name="TextInfo" style="flex-grow: 1; margin-top: 4px; margin-right: 2px; margin-bottom: 4px; margin-left: 2px; padding-top: 4px; padding-right: 2px; padding-bottom: 4px; padding-left: 1px;">
+                    <ui:Label name="ResendingCode" text="Sending verification code..." display-tooltip-when-elided="true" class="hide" style="margin-right: 0; margin-bottom: 0; margin-top: 0; margin-left: 0; padding-top: 0; padding-right: 0; padding-bottom: 0; padding-left: 0;" />
+                    <ui:Label name="VerifyingCode" text="Verifying..." display-tooltip-when-elided="true" class="hide" style="margin-right: 0; margin-bottom: 0; margin-top: 0; margin-left: 0; padding-top: 0; padding-right: 0; padding-bottom: 0; padding-left: 0;" />
+                </ui:VisualElement>
+                <ui:Label text="Resend Code" display-tooltip-when-elided="true" name="ResendCode" class="disable-backgroud-button" style="margin-top: 10px; margin-right: 0; margin-bottom: 15px; margin-left: 0; top: 5px; color: rgb(59, 130, 246); -unity-text-align: middle-left;" />
+                <ui:Label name="ErrCode" display-tooltip-when-elided="true" class="dialog-err-label hide" />
+                <ui:Button text="Verify" display-tooltip-when-elided="true" name="VerifyButton" focusable="false" class="dialog-button" style="height: 40px;" />
+                <ui:Button display-tooltip-when-elided="true" name="Spinner" focusable="false" picking-mode="Ignore" class="dialog-button spinner-fake-button hide" />
+            </ui:VisualElement>
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>
