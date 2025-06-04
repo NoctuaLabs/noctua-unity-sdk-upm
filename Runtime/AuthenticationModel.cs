@@ -197,11 +197,11 @@ namespace com.noctuagames.sdk
 
         public void ShowEmailRegistration(bool clearForm, bool isRegisterOnly = false)
         {
-            var IsVNLegalPurposeEnabled = _config.Noctua.RemoteFeatureFlags["vnLegalPurposeEnabled"] == true;
+            var isVNLegalPurposeEnabled = _config.Noctua.RemoteFeatureFlags?["vnLegalPurposeEnabled"] ?? false;
 
-            _log.Debug($"IsVNLegalPurposeEnabled: {IsVNLegalPurposeEnabled}");
+            _log.Debug($"IsVNLegalPurposeEnabled: {isVNLegalPurposeEnabled}");
 
-            if (IsVNLegalPurposeEnabled)
+            if (isVNLegalPurposeEnabled)
             {
                 _emailRegisterVNDialog.Show(clearForm, isRegisterOnly);
                 _log.Debug("Showing EmailRegisterVNDialog");

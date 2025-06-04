@@ -999,17 +999,24 @@ namespace com.noctuagames.sdk.UI
 
         private bool IsVNLegalPurposeEnabled()
         {
-            return _config.Noctua.RemoteFeatureFlags.ContainsKey("vnLegalPurposeEnabled") == true && _config.Noctua.RemoteFeatureFlags["vnLegalPurposeEnabled"] == true;
+            return GetFeatureFlag("vnLegalPurposeEnabled");
         }
 
         private bool IsVNLegalPurposeFullKYCEnabled()
         {
-            return _config.Noctua.RemoteFeatureFlags.ContainsKey("vnLegalPurposeFullKYCEnabled") == true && _config.Noctua.RemoteFeatureFlags["vnLegalPurposeFullKYCEnabled"] == true;
+            return GetFeatureFlag("vnLegalPurposeFullKYCEnabled");
         }
 
         private bool IsVNLegalPurposePhoneNumberVerificationEnabled()
         {
-            return _config.Noctua.RemoteFeatureFlags.ContainsKey("vnLegalPurposePhoneNumberVerificationEnabled") == true && _config.Noctua.RemoteFeatureFlags["vnLegalPurposePhoneNumberVerificationEnabled"] == true;
+            return GetFeatureFlag("vnLegalPurposePhoneNumberVerificationEnabled");
+        }
+
+        private bool GetFeatureFlag(string key)
+        {
+            return _config?.Noctua?.RemoteFeatureFlags != null &&
+                _config.Noctua.RemoteFeatureFlags.TryGetValue(key, out var value) &&
+                value == true;
         }
     }
 }
