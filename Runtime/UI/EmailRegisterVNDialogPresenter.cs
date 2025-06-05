@@ -106,13 +106,19 @@ namespace com.noctuagames.sdk.UI
             // Initialize VN-specific fields
             _fullname = new InputFieldNoctua(View.Q<TextField>("FullNameTF"));
             _phoneNumber = new InputFieldNoctua(View.Q<TextField>("PhoneNumberTF"));
+
             _birthDate = new InputFieldNoctua(View.Q<TextField>("BirthdateTF"));
+            _birthDate.textField.isReadOnly = true; // Make birthdate field read-only, handled by date picker
+            
             // _birthDateLabel = View.Q<Label>("BirthdateTFLabel"); // If unused, remove
             _gender = View.Q<DropdownField>("GenderTF");
             _country = new InputFieldNoctua(View.Q<TextField>("CountryTF"));
             _idCard = new InputFieldNoctua(View.Q<TextField>("IDCardTF"));
             _placeOfIssue = new InputFieldNoctua(View.Q<TextField>("PlaceOfIssueTF"));
+
             _dateOfIssue = new InputFieldNoctua(View.Q<TextField>("DateOfIssueTF"));
+            _dateOfIssue.textField.isReadOnly = true; // Make date of issue field read-only, handled by date picker
+
             _address = new InputFieldNoctua(View.Q<TextField>("AddressTF"));
             _phoneNumberVerificationCode = new InputFieldNoctua(View.Q<TextField>("PhoneNumberVerificationCodeTF"));
 
@@ -709,6 +715,7 @@ namespace com.noctuagames.sdk.UI
         private void OnValueChanged(InputFieldNoctua input)
         {
             input.AdjustLabel();
+            _isDatePickerOpen = false;
             // Update state for all buttons that might be active in various VN scenarios
             Utility.UpdateButtonState(textFields, _continueButton.button); 
             Utility.UpdateButtonState(textFields, _wizardContinueButton.button);
