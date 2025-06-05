@@ -722,20 +722,40 @@ namespace com.noctuagames.sdk
             var enabledPaymentTypes = initResponse.RemoteConfigs.EnabledPaymentTypes;
             
             // Override the client RemoteFeatureFlags if any
-            foreach (var key in initResponse.RemoteConfigs.RemoteFeatureFlags.Keys)
-            {
-                var rawValue = initResponse.RemoteConfigs.RemoteFeatureFlags[key];
+            log.Debug("Overriding RemoteFeatureFlags...");
 
-                if (bool.TryParse(rawValue, out var parsedBool))
+            var remoteFlags = initResponse?.RemoteConfigs?.RemoteFeatureFlags;
+
+            if (remoteFlags == null)
+            {
+                log.Warning("RemoteFeatureFlags is null — skipping feature flag override.");
+            }
+            else
+            {
+                foreach (var key in remoteFlags.Keys)
                 {
-                    Noctua.Instance.Value._config.Noctua.RemoteFeatureFlags[key] = parsedBool;
-                }
-                else
-                {
-                    log.Warning($"Invalid boolean flag: {key} = {rawValue}. Expected 'true' or 'false'.");
+                    // Defensive checks for key/value
+                    if (string.IsNullOrEmpty(key))
+                    {
+                        log.Warning("Empty key found in RemoteFeatureFlags. Skipping.");
+                        continue;
+                    }
+
+                    var rawValue = remoteFlags[key];
+
+                    // Normalize the value to ensure consistent parsing
+                    if (bool.TryParse(rawValue?.Trim().ToLowerInvariant(), out var parsedBool))
+                    {
+                        Noctua.Instance.Value._config.Noctua.RemoteFeatureFlags[key] = parsedBool;
+                        log.Debug($"Feature flag set: {key} = {parsedBool}");
+                    }
+                    else
+                    {
+                        log.Warning($"Invalid boolean flag: {key} = '{rawValue}'. Expected 'true' or 'false'.");
+                    }
                 }
             }
-            
+                        
             Noctua.Instance.Value._auth.SetFlag(Noctua.Instance.Value._config.Noctua.RemoteFeatureFlags);
 
             log.Debug("Final noctua config: " + JsonConvert.SerializeObject(Noctua.Instance.Value._config?.Noctua));
