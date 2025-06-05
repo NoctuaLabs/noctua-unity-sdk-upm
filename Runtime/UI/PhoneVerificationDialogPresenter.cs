@@ -146,8 +146,6 @@ namespace com.noctuagames.sdk.UI
 
                 _log.Debug($"Verified phone number with ID: {_credVerifyId}");
 
-                Visible = false;
-
                 _buttonVerify.Clear();
 
                 View.Q<Label>("VerifyingCode").AddToClassList("hide");
@@ -160,6 +158,8 @@ namespace com.noctuagames.sdk.UI
                 resultCredential = await Model.AuthService.RegisterWithEmailAsync(_emailAddress, _password, _regExtra);
 
                 Model.ShowEmailVerification(_emailAddress, _password, resultCredential.Id, _regExtra);
+
+                Visible = false;
 
             }
             catch (Exception e)
