@@ -250,25 +250,25 @@ namespace com.noctuagames.sdk
 #if UNITY_ANDROID
             _interstitialAdUnitID = iAAResponse.AdFormat.Interstitial.Android.adUnitID;
 #elif UNITY_IPHONE
-                interstitialAdUnitID = iAAResponse.AdFormat.Interstitial.IOS.adUnitID;
+            _interstitialAdUnitID = iAAResponse.AdFormat.Interstitial.IOS.adUnitID;
 #endif
 
 #if UNITY_ANDROID
             _rewardedAdUnitID = iAAResponse.AdFormat.Rewarded.Android.adUnitID;
 #elif UNITY_IPHONE
-                rewardedAdUnitID = iAAResponse.AdFormat.Rewarded.IOS.adUnitID;
+            _rewardedAdUnitID = iAAResponse.AdFormat.Rewarded.IOS.adUnitID;
 #endif
 
 #if UNITY_ANDROID
             _rewardedInterstitialAdUnitID = iAAResponse.AdFormat.RewardedInterstitial.Android.adUnitID;
 #elif UNITY_IPHONE
-                rewardedInterstitialAdUnitID = iAAResponse.AdFormat.RewardedInterstitial.IOS.adUnitID;
+            _rewardedInterstitialAdUnitID = iAAResponse.AdFormat.RewardedInterstitial.IOS.adUnitID;
 #endif
 
 #if UNITY_ANDROID
             _bannerAdUnitID = iAAResponse.AdFormat.Banner.Android.adUnitID;
 #elif UNITY_IPHONE
-                bannerAdUnitID = iAAResponse.AdFormat.Banner.IOS.adUnitID;
+            _bannerAdUnitID = iAAResponse.AdFormat.Banner.IOS.adUnitID;
 #endif
 
             SetBannerAdUnitId(_bannerAdUnitID);
