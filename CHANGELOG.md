@@ -2,6 +2,61 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.41.0] - 2025-06-05
+
+### 🚀 Features
+
+- Implement remote feature flags. Refactor the configuration convention.
+- Implement multilevel remote feature flags for VN (phone number verification).
+- Update native SDK that bring new configuration convention.
+- Improve offline first behaviour. Disable IAP on Unity SDK level if asked by config.
+- Add built in login event tracker
+- Add loop check internet connection
+- Add tracker for internal IAA admob
+- Thread-safe event queue for Admob events to ensure they are processed on the main thread
+- Add event ads tracker applovin
+- Add disbaled adjust offline mode by remote config
+- Add admob ad preload manager
+- Add preloading admob for ad format interstitial and rewarded
+- Add noctua ad placeholder
+- Add admob checker when using openupm-cli
+- Add Ad Placeholder for Banner and Rewarded Ad
+- Admob check init adapter
+- Implement VN OEG phone number verification.
+- Email register and phone verification for VN
+
+### 🐛 Bug Fixes
+
+- Adjust new config for sanbdox.
+- Improve loop internet checker
+- Enhance AuthenticateAsync to return empty data
+- Remove double check offline status
+- Improve init IAA SDK and analytics SDK
+- Change variable config to _config
+- Improve track ad custom event admob
+- Improve IAA event queue
+- PreloadManager class error not found when admob sdk is not installed
+- Loop for override the client RemoteFeatureFlags if any is not working properly
+- Adjust close ad placeholder for applovin max and add show ad placeholder for rewarded interstitial
+- Class not found because admob not installed
+- Adjust event queue name.
+- Safely handle missing or null RemoteFeatureFlags for VN legal purpose
+- Init not completed when remote config data is null
+- Ui closed earlier when email verification got error
+- Ui issues email register vn dialog
+
+### 🚜 Refactor
+
+- AdFormat class into AdFormatNoctua to avoid confused class from Admob preloading configuration
+- Change ad placeholder use uitoolkit
+- Remove vn flow from email register dialog
+- Adjust and add translation for email registration flow
+- Translation for date of issues
+
+### ⚙️ Miscellaneous Tasks
+
+- Remove Script folder as we already have separated repository for config generation.
+
 ## [0.40.1] - 2025-05-27
 
 ### 🐛 Bug Fixes
