@@ -20,11 +20,11 @@ namespace com.noctuagames.sdk.UI
         private Button _showPasswordButton;
         private Button _showRePasswordButton;
 
-        //Behaviour whitelabel - VN
+        // Behaviour whitelabel - VN (Vietnam specific fields)
         private InputFieldNoctua _fullname;
         private InputFieldNoctua _phoneNumber;
         private InputFieldNoctua _birthDate;
-        private Label _birthDateLabel;
+        // private Label _birthDateLabel; // Initialized but seems unused actively later, can be removed if it doesn't affect UI
         private DropdownField _gender;
         private InputFieldNoctua _country;
         private InputFieldNoctua _idCard;
@@ -33,43 +33,39 @@ namespace com.noctuagames.sdk.UI
         private InputFieldNoctua _address;
         private List<TextField> textFields;
 
-        // OEG OTP
+        // OEG OTP (One-Time Password for VN flow)
         private string _verificationId;
         private InputFieldNoctua _phoneNumberVerificationCode;
 
-        private ButtonNoctua _continueButton; // Main submit button
-        private ButtonNoctua _wizardContinueButton; // Submit button on full KYC
-        private ButtonNoctua _wizard5ContinueButton; // Submit button on phone number verification
+        private ButtonNoctua _continueButton; // Main submit button, hidden in VN wizard flow but used for simpler VN paths
+        private ButtonNoctua _wizardContinueButton; // Submit button on full KYC wizard page
+        private ButtonNoctua _wizard5ContinueButton; // Submit button on phone number verification wizard page
         private GlobalConfig _config;
 
-        private int _wizardPage = 0;
-        private bool _isDatePickerOpen = false;
+        private int _wizardPage = 0; // Current page in the VN wizard
+        private bool _isDatePickerOpen = false; // Flag to manage date picker state
 
         protected override void Attach() { }
         protected override void Detach() { }
 
         private void Start()
         {
+            // Assume IsVNLegalPurposeEnabled() is always true for this component if it's VN-only
             SetupInputFields(true);
             HideAllErrors();
         }
 
         public void Show(bool clearForm, bool isRegisterOnly)
         {
+            // Assume IsVNLegalPurposeEnabled() is always true for this component
             SetupInputFields(clearForm);
             HideAllErrors();
             
+            // VN flow manages its own footer display through wizard navigation
             var additionalFooter = View.Q<VisualElement>("AdditionalFooterContent");
-            if (isRegisterOnly)
-            {
-                additionalFooter.AddToClassList("hide");
-            }
-            else
-            {
-                additionalFooter.RemoveFromClassList("hide");
-            }
+            additionalFooter.AddToClassList("hide"); // Wizard will control this
 
-            // Show copublisher logo
+            // Show co-publisher logo (general, can be kept)
             if (!string.IsNullOrEmpty(_config?.CoPublisher?.CompanyName))
             {
                 var logo = Utility.GetCoPublisherLogo(_config.CoPublisher.CompanyName);
@@ -88,13 +84,12 @@ namespace com.noctuagames.sdk.UI
         public void SetBehaviourWhitelabel(GlobalConfig config)
         {
             _config = config;
-
-            _log.Debug("behaviour Whitelabel: " + JsonConvert.SerializeObject(_config?.Noctua?.RemoteFeatureFlags));
+            // This log line can be kept for debugging VN configurations
+            _log.Debug("behaviour Whitelabel (VN Flow): " + JsonConvert.SerializeObject(_config?.Noctua?.RemoteFeatureFlags));
         }
 
         private void SetupInputFields(bool clearForm)
         {
-            panelVE = View.Q<VisualElement>("NoctuaRegisterBox");
             _inputEmail = new InputFieldNoctua(View.Q<TextField>("EmailTF"));
             _inputPassword = new InputFieldNoctua(View.Q<TextField>("PasswordTF"));
             _inputRepassword = new InputFieldNoctua(View.Q<TextField>("RePasswordTF"));
@@ -102,17 +97,17 @@ namespace com.noctuagames.sdk.UI
             _showPasswordButton = View.Q<Button>("ShowPasswordButton");
             _showRePasswordButton = View.Q<Button>("ShowRePasswordButton");
 
-            _continueButton = new ButtonNoctua(View.Q<Button>("ContinueButton"));
+            _continueButton = new ButtonNoctua(View.Q<Button>("ContinueButton")); // Needed for non-wizard/fallback VN paths
             _wizardContinueButton = new ButtonNoctua(View.Q<Button>("WizardContinueButton"));
             _wizard5ContinueButton = new ButtonNoctua(View.Q<Button>("Wizard5ContinueButton"));
             var backButton = View.Q<Button>("BackButton");
             var loginLink = View.Q<Label>("LoginLink");
 
-            //Behaviour whitelabel - VN
+            // Initialize VN-specific fields
             _fullname = new InputFieldNoctua(View.Q<TextField>("FullNameTF"));
             _phoneNumber = new InputFieldNoctua(View.Q<TextField>("PhoneNumberTF"));
             _birthDate = new InputFieldNoctua(View.Q<TextField>("BirthdateTF"));
-            _birthDateLabel = View.Q<Label>("BirthdateTFLabel");
+            // _birthDateLabel = View.Q<Label>("BirthdateTFLabel"); // If unused, remove
             _gender = View.Q<DropdownField>("GenderTF");
             _country = new InputFieldNoctua(View.Q<TextField>("CountryTF"));
             _idCard = new InputFieldNoctua(View.Q<TextField>("IDCardTF"));
@@ -121,54 +116,32 @@ namespace com.noctuagames.sdk.UI
             _address = new InputFieldNoctua(View.Q<TextField>("AddressTF"));
             _phoneNumberVerificationCode = new InputFieldNoctua(View.Q<TextField>("PhoneNumberVerificationCodeTF"));
 
-            if (IsVNLegalPurposeEnabled())
-            {
-                SetupDropdown();
-                SetupDatePicker();
-                // Disable country dropdown as Vietnam copublisher is asking for raw text input for country.
-                // SetCountries();
-            }
+            SetupDropdown();
+            SetupDatePicker();
 
-            // Default values
             if (clearForm)
             {
                 _inputPassword.textField.isPasswordField = true;
                 _inputRepassword.textField.isPasswordField = true;
             }
 
-            if (IsVNLegalPurposeEnabled())
+            // textFields always include VN fields
+            textFields = new List<TextField>
             {
-                textFields = new List<TextField>
-                {
-                    _inputEmail.textField,
-                    _inputPassword.textField,
-                    _inputRepassword.textField,
-                    _fullname.textField,
-                    _phoneNumber.textField,
-                    _birthDate.textField,
-                    _country.textField,
-                    _idCard.textField,
-                    _placeOfIssue.textField,
-                    _address.textField
-                };
-            }
-            else
-            {
-                textFields = new List<TextField>
-                {
-                    _inputEmail.textField,
-                    _inputPassword.textField,
-                    _inputRepassword.textField
-
-                };
-            }
-
-            Utility.UpdateButtonState(textFields, _continueButton.button);
+                _inputEmail.textField, _inputPassword.textField, _inputRepassword.textField,
+                _fullname.textField, _phoneNumber.textField, _birthDate.textField,
+                _country.textField, _idCard.textField, _placeOfIssue.textField, 
+                _dateOfIssue.textField, // Added for consistency
+                _address.textField
+            };
+            
+            Utility.UpdateButtonState(textFields, _continueButton.button); // For non-wizard VN paths
             Utility.UpdateButtonState(textFields, _wizardContinueButton.button);
             Utility.UpdateButtonState(textFields, _wizard5ContinueButton.button);
 
             // Callbacks
-            _continueButton.button.RegisterCallback<PointerUpEvent>(OnContinueButtonClick);
+            // If ContinueButton has a role in simpler VN flows (without full wizard), this callback is kept.
+            _continueButton.button.RegisterCallback<PointerUpEvent>(OnContinueButtonClick); 
             _wizardContinueButton.button.RegisterCallback<PointerUpEvent>(OnWizardContinueButtonClick);
             _wizard5ContinueButton.button.RegisterCallback<PointerUpEvent>(OnWizard5ContinueButtonClick);
             loginLink.RegisterCallback<ClickEvent>(OnLoginLinkClick);
@@ -183,80 +156,60 @@ namespace com.noctuagames.sdk.UI
             _inputEmail.textField.RegisterValueChangedCallback(evt => OnValueChanged(_inputEmail));
             _inputPassword.textField.RegisterValueChangedCallback(evt => OnValueChanged(_inputPassword));
             _inputRepassword.textField.RegisterValueChangedCallback(evt => OnValueChanged(_inputRepassword));
+            
+            // Callbacks for VN fields
+            _fullname.textField.RegisterValueChangedCallback(evt => OnValueChanged(_fullname));
+            _phoneNumber.textField.RegisterValueChangedCallback(evt => OnValueChanged(_phoneNumber));
+            _birthDate.textField.RegisterValueChangedCallback(evt => OnValueChanged(_birthDate)); // Added if InputFieldNoctua
+            _country.textField.RegisterValueChangedCallback(evt => OnValueChanged(_country));
+            _idCard.textField.RegisterValueChangedCallback(evt => OnValueChanged(_idCard));
+            _placeOfIssue.textField.RegisterValueChangedCallback(evt => OnValueChanged(_placeOfIssue));
+            _dateOfIssue.textField.RegisterValueChangedCallback(evt => OnValueChanged(_dateOfIssue)); // Added
+            _address.textField.RegisterValueChangedCallback(evt => OnValueChanged(_address));
 
-            _inputEmail.SetFocus();
-            _inputPassword.SetFocus();
-            _inputRepassword.SetFocus();
-            _inputEmail.SetFocus();
-            _inputPassword.SetFocus();
-            _inputRepassword.SetFocus();
+            _inputEmail.SetFocus(); _inputPassword.SetFocus(); _inputRepassword.SetFocus();
+            _fullname.SetFocus(); _phoneNumber.SetFocus(); _birthDate.SetFocus(); // Added if InputFieldNoctua
+            _country.SetFocus(); _idCard.SetFocus(); _placeOfIssue.SetFocus();
+            _dateOfIssue.SetFocus(); // Added
+            _address.SetFocus();
 
-            #region Behaviour whitelabel - VN
-            if (IsVNLegalPurposeEnabled())
-            {
-                _fullname.textField.RegisterValueChangedCallback(evt => OnValueChanged(_fullname));
-                _phoneNumber.textField.RegisterValueChangedCallback(evt => OnValueChanged(_phoneNumber));
-                _country.textField.RegisterValueChangedCallback(evt => OnValueChanged(_country));
-                _idCard.textField.RegisterValueChangedCallback(evt => OnValueChanged(_idCard));
-                _placeOfIssue.textField.RegisterValueChangedCallback(evt => OnValueChanged(_placeOfIssue));
-                _address.textField.RegisterValueChangedCallback(evt => OnValueChanged(_address));
-
-                _fullname.SetFocus();
-                _phoneNumber.SetFocus();
-                _country.SetFocus();
-                _idCard.SetFocus();
-                _placeOfIssue.SetFocus();
-                _address.SetFocus();
-
-                // Wizard navigation
-                View.Q<Button>("WizardNextTo2Button").RegisterCallback<PointerUpEvent>(NavigateToWizard2);
-                View.Q<Button>("WizardNextTo3Button").RegisterCallback<PointerUpEvent>(NavigateToWizard3);
-                View.Q<Button>("WizardNextTo4Button").RegisterCallback<PointerUpEvent>(NavigateToWizard4);
-                View.Q<Button>("WizardPrevTo1Button").RegisterCallback<PointerUpEvent>(NavigateToWizard1);
-                View.Q<Button>("WizardPrevTo2Button").RegisterCallback<PointerUpEvent>(NavigateToWizard2);
-                View.Q<Button>("WizardPrevTo3Button").RegisterCallback<PointerUpEvent>(NavigateToWizard3);
-                View.Q<Button>("WizardPrevTo4Button").RegisterCallback<PointerUpEvent>(NavigateToWizard4);
-                // Hide the footer content
-                View.Q<VisualElement>("footerContent").AddToClassList("hide");
-                // Navigate to the first wizard
-                View.Q<VisualElement>("RegisterWizard1NextButton").RemoveFromClassList("hide");
-
-                View.Q<Button>("ContinueButton").AddToClassList("hide");
-
-                NavigateToWizard1();
-            }
-            else
-            {
-                // Show the footer content
-                View.Q<VisualElement>("AdditionalFooterContent").RemoveFromClassList("hide");
-                View.Q<VisualElement>("footerContent").RemoveFromClassList("hide");
-                View.Q<VisualElement>("footerContent").AddToClassList("generic-register-footer");                
-            }
-            #endregion
+            // VN Wizard specific UI logic
+            View.Q<Button>("WizardNextTo2Button").RegisterCallback<PointerUpEvent>(NavigateToWizard2);
+            View.Q<Button>("WizardNextTo3Button").RegisterCallback<PointerUpEvent>(NavigateToWizard3);
+            View.Q<Button>("WizardNextTo4Button").RegisterCallback<PointerUpEvent>(NavigateToWizard4);
+            View.Q<Button>("WizardPrevTo1Button").RegisterCallback<PointerUpEvent>(NavigateToWizard1);
+            View.Q<Button>("WizardPrevTo2Button").RegisterCallback<PointerUpEvent>(NavigateToWizard2);
+            View.Q<Button>("WizardPrevTo3Button").RegisterCallback<PointerUpEvent>(NavigateToWizard3);
+            View.Q<Button>("WizardPrevTo4Button").RegisterCallback<PointerUpEvent>(NavigateToWizard4);
+            
+            View.Q<VisualElement>("footerContent").AddToClassList("hide"); // Default footer hidden, wizard controls it
+            View.Q<VisualElement>("RegisterWizard1NextButton").RemoveFromClassList("hide");
+            View.Q<Button>("ContinueButton").AddToClassList("hide"); // Main continue button hidden for wizard flow
+            
+            NavigateToWizard1(); // Always start from the VN wizard
         }
 
         #region Navigate Wizard
+        // All wizard navigation methods (NavigateToWizard1 to NavigateToWizard5, NavigateToLoading) are kept as they are core to the VN flow.
         public void NavigateToWizard1(PointerUpEvent evt = null)
         {
             _isDatePickerOpen = false;
-
             _wizardPage = 1;
             View.Q<VisualElement>("RegisterWizard1").RemoveFromClassList("hide");
             View.Q<VisualElement>("RegisterWizard2").AddToClassList("hide");
             View.Q<VisualElement>("RegisterWizard3").AddToClassList("hide");
             View.Q<VisualElement>("RegisterWizard4").AddToClassList("hide");
             View.Q<VisualElement>("RegisterWizard5").AddToClassList("hide");
-            View.Q<VisualElement>("AdditionalFooterContent").RemoveFromClassList("hide");
-            View.Q<VisualElement>("footerContent").AddToClassList("wizard-register-footer");
+            View.Q<VisualElement>("AdditionalFooterContent").RemoveFromClassList("hide"); // Wizard 1 might show an additional footer
+            View.Q<VisualElement>("footerContent").AddToClassList("wizard-register-footer"); // Use wizard footer style
             View.Q<VisualElement>("Loading").AddToClassList("hide");
-
             _log.Debug("Navigating to wizard 1");
         }
 
         public void NavigateToWizard2(PointerUpEvent evt = null)
         {
             _wizardPage = 2;
-            View.Q<VisualElement>("footerContent").AddToClassList("hide");
+            View.Q<VisualElement>("footerContent").AddToClassList("hide"); // Hide general footer
             View.Q<VisualElement>("RegisterWizard1").AddToClassList("hide");
             View.Q<VisualElement>("RegisterWizard2").RemoveFromClassList("hide");
             View.Q<VisualElement>("RegisterWizard3").AddToClassList("hide");
@@ -264,13 +217,12 @@ namespace com.noctuagames.sdk.UI
             View.Q<VisualElement>("RegisterWizard5").AddToClassList("hide");
             View.Q<VisualElement>("AdditionalFooterContent").AddToClassList("hide");
             View.Q<VisualElement>("Loading").AddToClassList("hide");
-
             _log.Debug("Navigating to wizard 2");
         }
 
         public void NavigateToWizard3(PointerUpEvent evt = null)
         {
-
+            // This logic is part of the VN flow which might have branches (with/without full KYC, with/without OTP)
             if (IsVNLegalPurposeFullKYCEnabled())
             {
                 HideAllErrors();
@@ -284,22 +236,21 @@ namespace com.noctuagames.sdk.UI
                 View.Q<VisualElement>("AdditionalFooterContent").AddToClassList("hide");
                 View.Q<VisualElement>("Loading").AddToClassList("hide");
             }
-            else
+            else // VN, but not Full KYC
             {
                 if (IsVNLegalPurposePhoneNumberVerificationEnabled())
                 {
-                    // Show phone number verification wizard
-                    _log.Debug("Navigating to wizard 5 for phone number verification");
-                    // OnWizardContinueButtonClick(evt);
+                    // Call OnWizardContinueButtonClick to trigger OTP sending if form validation passes.
+                    // This will lead to PhoneVerificationDialog (or NavigateToWizard5 if handled here) via OnWizardContinueButtonClick.
+                     OnWizardContinueButtonClick(evt); 
                 }
                 else
                 {
-                    // Immediately submit register
+                    // Directly submit registration (simpler VN flow without full KYC & without OTP)
                     OnContinueButtonClick(evt);
                 }
             }
-
-            _log.Debug("Navigating to wizard 3");
+            _log.Debug("Navigating to wizard 3 logic");
         }
 
         public void NavigateToWizard4(PointerUpEvent evt = null)
@@ -312,26 +263,27 @@ namespace com.noctuagames.sdk.UI
             View.Q<VisualElement>("RegisterWizard5").AddToClassList("hide");
             View.Q<VisualElement>("AdditionalFooterContent").AddToClassList("hide");
             View.Q<VisualElement>("Loading").AddToClassList("hide");
-
             _log.Debug("Navigating to wizard 4");
         }
-
-        // Wizard 5 is for phone number verification
-        public void NavigateToWizard5(PointerUpEvent evt = null)
+        
+        public void NavigateToWizard5(PointerUpEvent evt = null) // Called from OnWizardContinueButtonClick logic if it decides to show a local wizard 5
         {
-            _wizardPage = 5;
-            View.Q<VisualElement>("RegisterWizard1").AddToClassList("hide");
-            View.Q<VisualElement>("RegisterWizard2").AddToClassList("hide");
-            View.Q<VisualElement>("RegisterWizard3").AddToClassList("hide");
-            View.Q<VisualElement>("RegisterWizard4").AddToClassList("hide");
-            View.Q<VisualElement>("RegisterWizard5").RemoveFromClassList("hide");
-            View.Q<VisualElement>("AdditionalFooterContent").AddToClassList("hide");
-            View.Q<VisualElement>("Loading").AddToClassList("hide");
-            _wizard5ContinueButton.ToggleLoading(false);
-            View.Q<Button>("WizardPrevTo4Button").RemoveFromClassList("hide");
-
-            _log.Debug("Navigating to wizard 5");
+            // This method might not be directly called by a UI button if Model.ShowPhoneVerification handles its own UI.
+            // However, if "RegisterWizard5" is a UI element controlled by this presenter, then this is relevant.
+            _log.Debug("NavigateToWizard5 was called. If phone verification UI is separate, this might be for a specific local UI.");
+            // If "RegisterWizard5" is part of this presenter:
+            // _wizardPage = 5;
+            // View.Q<VisualElement>("RegisterWizard1").AddToClassList("hide");
+            // View.Q<VisualElement>("RegisterWizard2").AddToClassList("hide");
+            // View.Q<VisualElement>("RegisterWizard3").AddToClassList("hide");
+            // View.Q<VisualElement>("RegisterWizard4").AddToClassList("hide");
+            // View.Q<VisualElement>("RegisterWizard5").RemoveFromClassList("hide"); // If this UI element exists
+            // View.Q<VisualElement>("AdditionalFooterContent").AddToClassList("hide");
+            // View.Q<VisualElement>("Loading").AddToClassList("hide");
+            // _wizard5ContinueButton.ToggleLoading(false);
+            // View.Q<Button>("WizardPrevTo4Button")?.RemoveFromClassList("hide"); // Or the appropriate back button
         }
+
         public void NavigateToLoading(PointerUpEvent evt = null)
         {
             View.Q<VisualElement>("RegisterWizard1").AddToClassList("hide");
@@ -341,7 +293,6 @@ namespace com.noctuagames.sdk.UI
             View.Q<VisualElement>("RegisterWizard5").AddToClassList("hide");
             View.Q<VisualElement>("AdditionalFooterContent").AddToClassList("hide");
             View.Q<VisualElement>("Loading").RemoveFromClassList("hide");
-
             _log.Debug("Navigating to loading screen");
         }
         #endregion
@@ -350,673 +301,448 @@ namespace com.noctuagames.sdk.UI
         {
             _inputPassword.textField.Blur();
             _inputPassword.textField.isPasswordField = !_inputPassword.textField.isPasswordField;
-
-            if (_inputPassword.textField.isPasswordField)
-            {
-                _showPasswordButton.RemoveFromClassList("btn-password-hide");
-            }
-            else
-            {
-                _showPasswordButton.AddToClassList("btn-password-hide");
-            }
+            _showPasswordButton.EnableInClassList("btn-password-hide", !_inputPassword.textField.isPasswordField);
         }
 
         public void OnToggleShowRePassword(ClickEvent evt)
         {
             _inputRepassword.textField.Blur();
             _inputRepassword.textField.isPasswordField = !_inputRepassword.textField.isPasswordField;
-
-            if (_inputRepassword.textField.isPasswordField)
-            {
-                _showRePasswordButton.RemoveFromClassList("btn-password-hide");
-            }
-            else
-            {
-                _showRePasswordButton.AddToClassList("btn-password-hide");
-            }
+            _showRePasswordButton.EnableInClassList("btn-password-hide", !_inputRepassword.textField.isPasswordField);
         }
 
-        private void SetupDropdown()
+        private void SetupDropdown() // VN-specific
         {
             var genderChoices = new List<string> { Locale.GetTranslation("Select.Gender.Male"), Locale.GetTranslation("Select.Gender.Female") };
             Color textColor = new Color(98f / 255f, 100f / 255f, 104f / 255f);
-
-            var regionCode = _config?.Noctua?.Region ?? "";
-
             _gender.choices = genderChoices;
-            _gender.value = Locale.GetTranslation("Select.Gender");
-
+            _gender.value = Locale.GetTranslation("Select.Gender"); // Placeholder
             _gender.style.color = textColor;
-
             _gender.RegisterCallback<ChangeEvent<string>>((evt) =>
             {
                 _gender.style.color = Color.white;
-                _gender.value = evt.newValue;
+                // _gender.value = evt.newValue; // Not necessary, automatically handled
                 _gender.labelElement.style.display = DisplayStyle.None;
             });
         }
 
-        private void SetupDatePicker()
+        private void SetupDatePicker() // VN-specific
         {
-
             #if UNITY_EDITOR
-            // We are altering the behaviour of the form/wizard
-            // for in editor for easier development
+            // Editor behavior for easier development
+            _birthDate.textField.value = "01/01/2000"; // Example
+            _dateOfIssue.textField.value = "01/01/2020"; // Example
             #else
-            string startDate = "01/01/2000";
-            DateTime parsedDate = DateTime.ParseExact(startDate, "dd/MM/yyyy", null);
-
-            void OpenDatePickerHandler(int pickerId, TextField textField, PointerUpEvent upEvent)
-            {
-                //handle open twice date picker
-                upEvent.StopImmediatePropagation();
-                
-                if(_isDatePickerOpen)
-                {
-                    return;
-                }
-
-                _isDatePickerOpen = true;
-
-                Noctua.OpenDatePicker(parsedDate.Year, parsedDate.Month, parsedDate.Day, pickerId,
-                (DateTime _date) =>
-                {
-                    Debug.Log("Date Selected :" + _date.ToString("dd/MM/yyyy"));
-                },
-                (DateTime _date) =>
-                {
-                    Debug.Log("Date Picked :" + _date.ToString("dd/MM/yyyy"));
-
-                    textField.value = _date.ToString("dd/MM/yyyy");
-                    _isDatePickerOpen = false;
-                });
-            }
-
-            View.Q<VisualElement>("BirthdateContainer").UnregisterCallback<PointerUpEvent>(evt => { });
+            string startDateStr = "01/01/2000"; // Default date for date picker
+            DateTime parsedStartDate = DateTime.ParseExact(startDateStr, "dd/MM/yyyy", CultureInfo.InvariantCulture);
 
             View.Q<VisualElement>("BirthdateContainer").RegisterCallback<ClickEvent>(upEvent =>
             {
-                _log.Debug("BirthdateContainer clicked : " + _isDatePickerOpen);
-
                 upEvent.StopImmediatePropagation();
-
-                if(_isDatePickerOpen)
-                {
-                    return;
-                }
-
+                if(_isDatePickerOpen) return;
                 _isDatePickerOpen = true;
-
-                Noctua.OpenDatePicker(parsedDate.Year, parsedDate.Month, parsedDate.Day, 1,
-                (DateTime _date) =>
-                {
-                    _log.Debug($"picked date '{_date:O}'");
-
-                    _isDatePickerOpen = false;
-                },
-                (DateTime _date) =>
-                {
+                Noctua.OpenDatePicker(parsedStartDate.Year, parsedStartDate.Month, parsedStartDate.Day, 1, // pickerId 1
+                (DateTime _date) => { _log.Debug($"Date selection cancelled/changed: '{_date:O}'"); _isDatePickerOpen = false; },
+                (DateTime _date) => {
                     _birthDate.textField.value = _date.ToString("dd/MM/yyyy");
-                    _birthDate.textField.labelElement.style.display = DisplayStyle.None;
-
-                    Utility.UpdateButtonState(textFields, _continueButton.button);
-                    Utility.UpdateButtonState(textFields, _wizardContinueButton.button);
-                    Utility.UpdateButtonState(textFields, _wizard5ContinueButton.button);
-
+                    _birthDate.textField.labelElement.style.display = DisplayStyle.None; // Hide label on value set
+                    OnValueChanged(_birthDate); // Call OnValueChanged to update button states
                     _isDatePickerOpen = false;
-
                 });
             });
 
-            View.Q<VisualElement>("DateOfIssueContainer").UnregisterCallback<PointerUpEvent>(evt => { });
             View.Q<VisualElement>("DateOfIssueContainer").RegisterCallback<ClickEvent>(upEvent =>
             {
-
                 upEvent.StopImmediatePropagation();
-
-                if(_isDatePickerOpen)
-                {
-                    return;
-                }
-
+                if(_isDatePickerOpen) return;
                 _isDatePickerOpen = true;
-
-                Noctua.OpenDatePicker(parsedDate.Year, parsedDate.Month, parsedDate.Day, 1,
-                (DateTime _date) =>
-                {
-                    _log.Debug($"picked date '{_date:O}'");
-
-                    _isDatePickerOpen = false;
-                },
-                (DateTime _date) =>
-                {
+                Noctua.OpenDatePicker(parsedStartDate.Year, parsedStartDate.Month, parsedStartDate.Day, 2, // pickerId 2 (different from birthdate)
+                (DateTime _date) => { _log.Debug($"Date selection cancelled/changed: '{_date:O}'"); _isDatePickerOpen = false; },
+                (DateTime _date) => {
                     _dateOfIssue.textField.value = _date.ToString("dd/MM/yyyy");
-                    _dateOfIssue.textField.labelElement.style.display = DisplayStyle.None;
-
-                    Utility.UpdateButtonState(textFields, _continueButton.button);
-                    Utility.UpdateButtonState(textFields, _wizardContinueButton.button);
-                    Utility.UpdateButtonState(textFields, _wizard5ContinueButton.button);
-
+                    _dateOfIssue.textField.labelElement.style.display = DisplayStyle.None; // Hide label on value set
+                    OnValueChanged(_dateOfIssue); // Call OnValueChanged
                     _isDatePickerOpen = false;
-
                 });
             });
             #endif
-
         }
-
-        // Unused, leave it here for future use.
-        /*
-        private void SetCountries()
-        {
-            _countryList.Clear();
-
-            List<Country> countries = CountryData.Countries;
-
-            foreach(var country in countries)
-            {
-                _countryList.Add(country.Name);
-            }
-
-            Color textColor = new Color(98f / 255f, 100f / 255f, 104f / 255f);
-
-            var regionCode = _config?.Noctua?.Region ?? "";
-
-            _country.choices = _countryList; 
-            _country.value = Locale.GetTranslation("Select.Country");
-            _country.style.color = textColor;
-            _country.RegisterCallback<ChangeEvent<string>>((evt) =>
-            {
-                _country.style.color = Color.white;
-                _country.value = evt.newValue;
-                _country.labelElement.style.display = DisplayStyle.None;
-            });            
-        }
-        */
 
         private void OnLoginLinkClick(ClickEvent evt)
         {
             Visible = false;
-
             Model.ShowEmailLogin();
         }
 
-        // Register button from full KCY wizard
+        // Submit button from full KYC wizard (or VN flow requiring OTP)
         private async void OnWizardContinueButtonClick(PointerUpEvent evt)
         {
+            if (!validateForm()) // Validate all fields first, including email, password, and VN fields
+            {
+                _log.Debug("VN wizard validation failed");
+                _wizardContinueButton.ToggleLoading(false); // Ensure loading is reset if validation fails
+                return;
+            }
 
             if (IsVNLegalPurposePhoneNumberVerificationEnabled())
             {
-                _isDatePickerOpen = false;
+                _wizardContinueButton.ToggleLoading(true); // Enable loading before async operation
+                View.Q<Button>("WizardPrevTo3Button")?.AddToClassList("hide"); // Hide back button during loading
 
-                if (!validateForm())
-                {
-                    _log.Debug("OEG validation failed");
-                    return;
-                }
-
-                // Send phone number verification code
                 try
                 {
-                    _log.Debug("OEG sending phone number verification code");
-
+                    _log.Debug("OEG sending phone number verification code for VN");
                     var result = await Model.AuthService.RegisterWithEmailSendPhoneNumberVerificationAsync(_phoneNumber.text);
-
                     _verificationId = result.VerificationId;
-                    _log.Debug("OEG verificationId: " + _verificationId);
+                    _log.Debug("OEG verificationId (VN): " + _verificationId);
 
                     _wizardContinueButton.ToggleLoading(false);
-                    View.Q<Button>("WizardPrevTo3Button").RemoveFromClassList("hide");
+                    View.Q<Button>("WizardPrevTo3Button")?.RemoveFromClassList("hide");
+                    Visible = false; // Hide current dialog
 
-                    Visible = false;
-
-                    _isDatePickerOpen = false;
-                
-                    var birthDate = DateTime
-                        .ParseExact(_birthDate.text, "dd/MM/yyyy", CultureInfo.InvariantCulture)
-                        .ToUniversalTime();
-
-                    var issueDate = DateTime
-                        .ParseExact(_dateOfIssue.text, "dd/MM/yyyy", CultureInfo.InvariantCulture)
-                        .ToUniversalTime();
-
-                    var regExtra = new Dictionary<string, string>()
-                    {
-                        { "fullname", _fullname.text },
-                        { "phone_number", _phoneNumber.text},
-                        { "birth_date", birthDate.ToString() },
-                        { "country", _country.text},
-                        { "id_card", _idCard.text},
-                        { "place_of_issue", _placeOfIssue.text},
-                        { "date_of_issue", issueDate.ToString() },
-                        { "address", _address.text}
+                    var birthDateVal = DateTime.ParseExact(_birthDate.text, "dd/MM/yyyy", CultureInfo.InvariantCulture).ToUniversalTime();
+                    var issueDateVal = DateTime.ParseExact(_dateOfIssue.text, "dd/MM/yyyy", CultureInfo.InvariantCulture).ToUniversalTime();
+                    var regExtraVN = new Dictionary<string, string>() {
+                        { "fullname", _fullname.text }, { "phone_number", _phoneNumber.text},
+                        { "birth_date", birthDateVal.ToString() }, { "country", _country.text},
+                        { "id_card", _idCard.text}, { "place_of_issue", _placeOfIssue.text},
+                        { "date_of_issue", issueDateVal.ToString() }, { "address", _address.text}
                     };
-
-                    Model.ShowPhoneVerification
-                    (
+                    
+                    Model.ShowPhoneVerification( // Navigate to phone verification dialog
                         verificationId: _verificationId,
                         phoneNumber: _phoneNumber.text.Replace(" ", string.Empty),
                         emailAddress: _inputEmail.text.Replace(" ", string.Empty),
                         password: _inputPassword.text,
-                        regExtra: regExtra
-                        
+                        regExtra: regExtraVN
                     );
-
-                    // Deprecated 
-                    // NavigateToWizard5();
                 }
                 catch (Exception e)
                 {
-
                     _wizardContinueButton.ToggleLoading(false);
-                    View.Q<Button>("WizardPrevTo3Button").RemoveFromClassList("hide");
-
-                    _log.Debug("OEG send verification code failed: " + e.Message);
-                    if (e is NoctuaException noctuaEx)
-                    {
-                        switch (noctuaEx.ErrorCode)
-                        {
-                            case 2061:
-                                _log.Debug("OEG send verification code failed: " + noctuaEx.Message);
-                                Model.ShowGeneralNotification(noctuaEx.Message, true);
-                                NavigateToWizard5();
-                                break;
-                            default:
-                                _log.Debug("OEG send verification code failed: " + noctuaEx.Message);
-                                Model.ShowGeneralNotification(noctuaEx.Message, false);
-                                NavigateToWizard4();
-                                break;
-                        }
+                    View.Q<Button>("WizardPrevTo3Button")?.RemoveFromClassList("hide");
+                    _log.Debug("OEG send verification code failed (VN): " + e.Message);
+                    if (e is NoctuaException noctuaEx) {
+                         Model.ShowGeneralNotification(noctuaEx.Message, false); // Default error notification
+                         // If ErrorCode 2061 (e.g., number already registered but unverified),
+                         // might want to proceed to OTP verification dialog or show a specific message.
+                         // For now, show general error and let user stay on KYC wizard.
+                         // NavigateToWizard4(); // Or an error wizard if available
+                    } else {
+                        Model.ShowGeneralNotification(e.Message, false);
                     }
                 }
-            } else {
-                _log.Debug("Continuing to registration");
-
-                OnContinueButtonClick(evt);
+            } else { // VN, but no OTP verification needed -> proceed to OnContinueButtonClick
+                _log.Debug("Continuing to final registration (VN without OTP)");
+                OnContinueButtonClick(evt); // Send all collected VN data
             }
         }
 
-        // Register button from phone number verification wizard
+        // Submit button from phone number verification wizard (if this wizard UI is part of this presenter)
+        // However, Model.ShowPhoneVerification typically handles its own UI.
+        // If this presenter *also* handles OTP UI (e.g., RegisterWizard5), then this is relevant.
         private async void OnWizard5ContinueButtonClick(PointerUpEvent evt)
         {
-            View.Q<Button>("WizardPrevTo4Button").AddToClassList("hide");
-            View.Q<Button>("WizardPrevTo3Button").AddToClassList("hide");
+            // This method might be unused if Model.ShowPhoneVerification is a separate dialog.
+            // If RegisterWizard5 is part of this presenter:
+            _wizard5ContinueButton.ToggleLoading(true);
+            View.Q<Button>("WizardPrevTo4Button")?.AddToClassList("hide"); // Or relevant back button
+            View.Q<Button>("WizardPrevTo3Button")?.AddToClassList("hide");
 
-            // Performs verification code / OTP check
             try
             {
+                // Assume _verificationId is already available from the previous step
+                // and _phoneNumberVerificationCode.text is the OTP entered by the user
                 var result = await Model.AuthService.RegisterWithEmailVerifyPhoneNumberAsync(_verificationId, _phoneNumberVerificationCode.text);
-
                 _wizard5ContinueButton.ToggleLoading(false);
-                View.Q<Button>("WizardPrevTo3Button").RemoveFromClassList("hide");
-                View.Q<Button>("WizardPrevTo4Button").RemoveFromClassList("hide");
+                // Show back buttons again if needed
+                // View.Q<Button>("WizardPrevTo...").RemoveFromClassList("hide"); 
                 
-                // If it passed, continue to the email registration
-                OnContinueButtonClick(evt);
+                // If OTP is correct, proceed to final email registration with all data
+                OnContinueButtonClick(evt); // This will send all data (including VN KYC)
             }
             catch (Exception e)
             {
-
                 _wizard5ContinueButton.ToggleLoading(false);
-                View.Q<Button>("WizardPrevTo3Button").RemoveFromClassList("hide");
-                View.Q<Button>("WizardPrevTo4Button").RemoveFromClassList("hide");
-
-                _log.Debug("OEG verification failed: " + e.Message);
-                if (e is NoctuaException noctuaEx)
-                {
-                    switch (noctuaEx.ErrorCode)
-                    {
-                        default:
-                            _log.Debug("OEG verification failed: " + noctuaEx.Message);
-                            Model.ShowGeneralNotification(noctuaEx.Message, false);
-                            NavigateToWizard5();
-                            break;
-                    }
-                }
+                // Show back buttons again
+                _log.Debug("OEG OTP verification failed (VN): " + e.Message);
+                 if (e is NoctuaException noctuaEx) {
+                    Model.ShowGeneralNotification(noctuaEx.Message, false);
+                 } else {
+                    Model.ShowGeneralNotification(e.Message, false);
+                 }
+                // Keep the user on the OTP wizard to try again or go back
+                // NavigateToWizard5(); // Might not be needed if already there
             }
-
         }
 
-        private bool validateForm()
+        private bool validateForm() // Validation for VN flow
         {
-            HideAllErrors();
+            HideAllErrors(); // Clear previous errors
 
-            _continueButton.ToggleLoading(true);
+            // Toggle loading for all submit buttons that might be active
+            _continueButton.ToggleLoading(true); 
             _wizardContinueButton.ToggleLoading(true);
-            _wizard5ContinueButton.ToggleLoading(true);
+            _wizard5ContinueButton.ToggleLoading(true); 
+            View.Q<Button>("WizardPrevTo3Button")?.AddToClassList("hide"); // Hide back button during validation
 
-            // Wizard            
-            View.Q<Button>("WizardPrevTo3Button").AddToClassList("hide");
+            bool isValid = true;
+            string firstErrorMessage = null; // To show the first encountered error
 
             var emailAddress = _inputEmail.text.Replace(" ", string.Empty);
             var password = _inputPassword.text;
             var rePassword = _inputRepassword.text;
 
-            // Validation
-            if (!string.IsNullOrEmpty(Utility.ValidateEmail(emailAddress)))
+            string emailError = Utility.ValidateEmail(emailAddress);
+            if (!string.IsNullOrEmpty(emailError))
             {
-                _continueButton.ToggleLoading(false);
-                _wizardContinueButton.ToggleLoading(false);
-                _wizard5ContinueButton.ToggleLoading(false);
-
-                //Wizard
-                View.Q<Button>("WizardPrevTo3Button").RemoveFromClassList("hide");
-
-                _inputEmail.Error(Utility.ValidateEmail(emailAddress));
-
-                // Show the error at the end of the wizard as well
-                if (IsVNLegalPurposeEnabled())
-                {
-                    Model.ShowGeneralNotification(_inputEmail.labelError.text, false);
-                }
-
-                return false;
+                _inputEmail.Error(emailError);
+                if (firstErrorMessage == null) firstErrorMessage = emailError;
+                isValid = false;
+            }
+            string passwordError = Utility.ValidatePassword(password);
+            if (!string.IsNullOrEmpty(passwordError))
+            {
+                _inputPassword.Error(passwordError);
+                 if (firstErrorMessage == null) firstErrorMessage = passwordError;
+                isValid = false;
+            }
+            string rePasswordError = Utility.ValidateReenterPassword(password, rePassword);
+            if (!string.IsNullOrEmpty(rePasswordError))
+            {
+                _inputRepassword.Error(rePasswordError);
+                if (firstErrorMessage == null) firstErrorMessage = rePasswordError;
+                isValid = false;
             }
 
-            if (!string.IsNullOrEmpty(Utility.ValidatePassword(password)))
+            // VN-specific field validation (always active if this is a VN-only class)
+            if (_gender.value == Locale.GetTranslation("Select.Gender")) // Assuming placeholder
             {
-                _continueButton.ToggleLoading(false);
-                _wizardContinueButton.ToggleLoading(false);
-                _wizard5ContinueButton.ToggleLoading(false);
-
-                //Wizard
-                View.Q<Button>("WizardPrevTo3Button").RemoveFromClassList("hide");
-
-                _inputPassword.Error(Utility.ValidatePassword(password));
-
-                // Show the error at the end of the wizard as well
-                if (IsVNLegalPurposeEnabled())
-                {
-                    Model.ShowGeneralNotification(_inputPassword.labelError.text, false);
-                }
-
-                return false;
+                _gender.ElementAt(1).AddToClassList("noctua-text-input-error"); // Style the dropdown input part
+                var genderErrorLabel = _gender.Q<Label>("error"); // Assuming an error label exists within the DropdownField's template
+                genderErrorLabel.text = Locale.GetTranslation("Error.SelectGender"); // Use Locale
+                genderErrorLabel.RemoveFromClassList("hide");
+                _gender.Q<VisualElement>("title").style.color = ColorModule.redError; // Style the title label
+                if (firstErrorMessage == null) firstErrorMessage = genderErrorLabel.text;
+                isValid = false;
             }
 
-            if (!string.IsNullOrEmpty(Utility.ValidateReenterPassword(password, rePassword)))
-            {
-                _continueButton.ToggleLoading(false);
-                _wizardContinueButton.ToggleLoading(false);
-                _wizard5ContinueButton.ToggleLoading(false);
-
-                //Wizard
-                View.Q<Button>("WizardPrevTo3Button").RemoveFromClassList("hide");
-
-                _inputRepassword.Error(Utility.ValidateReenterPassword(password, rePassword));
-
-                // Show the error at the end of the wizard as well
-                if (IsVNLegalPurposeEnabled())
-                {
-                    Model.ShowGeneralNotification(_inputRepassword.labelError.text, false);
-                }
-
-                return false;
-            }
-
-            if (IsVNLegalPurposeEnabled())
-            {
-                if (_gender.value == "Select Gender")
-                {
-                    _log.Debug("form validation: gender is empty");
-
-                    _continueButton.ToggleLoading(false);
-                    _wizardContinueButton.ToggleLoading(false);
-                    _wizard5ContinueButton.ToggleLoading(false);
-
-                    //Wizard
-                    View.Q<Button>("WizardPrevTo3Button").RemoveFromClassList("hide");
-
-                    _gender.ElementAt(1).AddToClassList("noctua-text-input-error");
-                    _gender.Q<Label>("error").RemoveFromClassList("hide");
-                    _gender.Q<Label>("error").text = "Please Select Gender!";
-                    _gender.Q<VisualElement>("title").style.color = ColorModule.redError;
-
-                    // Show the error at the end of the wizard as well
-                    if (IsVNLegalPurposeEnabled())
+            if (string.IsNullOrWhiteSpace(_birthDate.text)) {
+                _birthDate.Error(Locale.GetTranslation("Error.BirthdateRequired"));
+                if (firstErrorMessage == null) firstErrorMessage = Locale.GetTranslation("Error.BirthdateRequired");
+                isValid = false;
+            } else {
+                try {
+                    var birthDateVal = DateTime.ParseExact(_birthDate.text, "dd/MM/yyyy", CultureInfo.InvariantCulture).ToUniversalTime();
+                    if (birthDateVal.AddYears(18) > DateTime.UtcNow) // Age check
                     {
-                        Model.ShowGeneralNotification(_gender.Q<Label>("error").text, false);
+                        _birthDate.Error(Locale.GetTranslation("Error.MinAge18"));
+                        if (firstErrorMessage == null) firstErrorMessage = Locale.GetTranslation("Error.MinAge18");
+                        isValid = false;
                     }
-
-                    return false;
-                }
-
-                var birthDate = DateTime
-                    .ParseExact(_birthDate.text, "dd/MM/yyyy", CultureInfo.InvariantCulture)
-                    .ToUniversalTime();
-
-                if (birthDate.AddYears(18) > DateTime.UtcNow)
-                {
-                    _log.Debug("form validation: birthdate under 18");
-
-                    _continueButton.ToggleLoading(false);
-                    _wizardContinueButton.ToggleLoading(false);
-                    _wizard5ContinueButton.ToggleLoading(false);
-
-                    //Wizard
-                    View.Q<Button>("WizardPrevTo3Button").RemoveFromClassList("hide");
-
-                    _birthDate.Error("Minimum age is 18 years old");
-
-                    // Show the error at the end of the wizard as well
-                    if (IsVNLegalPurposeEnabled())
-                    {
-                        Model.ShowGeneralNotification(_birthDate.labelError.text, false);
-                    }
-
-                    return false;
-                }
-
-                if (_dateOfIssue.text == "")
-                {
-                    Model.ShowGeneralNotification("Date of issue should not be empty.", false);
-                    return false;
+                } catch (FormatException) {
+                    _birthDate.Error(Locale.GetTranslation("Error.InvalidDateFormat"));
+                     if (firstErrorMessage == null) firstErrorMessage = Locale.GetTranslation("Error.InvalidDateFormat");
+                    isValid = false;
                 }
             }
+            
+            if (string.IsNullOrWhiteSpace(_dateOfIssue.text))
+            {
+                _dateOfIssue.Error(Locale.GetTranslation("Error.DateOfIssueRequired")); // Create corresponding error message
+                 if (firstErrorMessage == null) firstErrorMessage = Locale.GetTranslation("Error.DateOfIssueRequired");
+                isValid = false;
+            } else {
+                 try {
+                    DateTime.ParseExact(_dateOfIssue.text, "dd/MM/yyyy", CultureInfo.InvariantCulture); // Just check parsability
+                } catch (FormatException) {
+                    _dateOfIssue.Error(Locale.GetTranslation("Error.InvalidDateFormat"));
+                     if (firstErrorMessage == null) firstErrorMessage = Locale.GetTranslation("Error.InvalidDateFormat");
+                    isValid = false;
+                }
+            }
+            
+            // Add validation for other VN fields (_fullname, _phoneNumber, _country, _idCard, _placeOfIssue, _address) as needed
+            // Example:
+            if (string.IsNullOrWhiteSpace(_fullname.text)) {
+                _fullname.Error(Locale.GetTranslation("Error.FullnameRequired"));
+                if (firstErrorMessage == null) firstErrorMessage = Locale.GetTranslation("Error.FullnameRequired");
+                isValid = false;
+            }
+            if (string.IsNullOrWhiteSpace(_phoneNumber.text)) {
+                _phoneNumber.Error(Locale.GetTranslation("Error.PhoneNumberRequired"));
+                if (firstErrorMessage == null) firstErrorMessage = Locale.GetTranslation("Error.PhoneNumberRequired");
+                isValid = false;
+            }
+             if (string.IsNullOrWhiteSpace(_country.text)) {
+                _country.Error(Locale.GetTranslation("Error.CountryRequired"));
+                if (firstErrorMessage == null) firstErrorMessage = Locale.GetTranslation("Error.CountryRequired");
+                isValid = false;
+            }
+            if (string.IsNullOrWhiteSpace(_idCard.text)) {
+                _idCard.Error(Locale.GetTranslation("Error.IDCardRequired"));
+                if (firstErrorMessage == null) firstErrorMessage = Locale.GetTranslation("Error.IDCardRequired");
+                isValid = false;
+            }
+            if (string.IsNullOrWhiteSpace(_placeOfIssue.text)) {
+                _placeOfIssue.Error(Locale.GetTranslation("Error.PlaceOfIssueRequired"));
+                if (firstErrorMessage == null) firstErrorMessage = Locale.GetTranslation("Error.PlaceOfIssueRequired");
+                isValid = false;
+            }
+            if (string.IsNullOrWhiteSpace(_address.text)) {
+                _address.Error(Locale.GetTranslation("Error.AddressRequired"));
+                if (firstErrorMessage == null) firstErrorMessage = Locale.GetTranslation("Error.AddressRequired");
+                isValid = false;
+            }
 
+
+            if (!isValid)
+            {
+                _continueButton.ToggleLoading(false); 
+                _wizardContinueButton.ToggleLoading(false);
+                _wizard5ContinueButton.ToggleLoading(false);
+                View.Q<Button>("WizardPrevTo3Button")?.RemoveFromClassList("hide"); // Show back button again
+                if(firstErrorMessage != null) Model.ShowGeneralNotification(firstErrorMessage, false); // Show the first encountered error
+                return false;
+            }
             return true;
         }
 
-        private async void OnContinueButtonClick(PointerUpEvent evt)
+        private async void OnContinueButtonClick(PointerUpEvent evt) // Final submit method for all VN flows
         {
-            _log.Debug("clicking continue button");
-
-            if (!validateForm()) {
+            // No need to validate form again if called from OnWizard...ButtonClick which already validated.
+            // But if called directly (e.g., VN without OTP), validation is needed.
+            // For consistency, validate here or ensure all callers have validated.
+            // If validateForm() is called here, ensure no conflicting loading states.
+            // Assume evt from wizard has passed validation. If evt is null (direct call), validate.
+            if (evt == null && !validateForm()) { // If called not from wizard (e.g., fallback simple VN path)
+                 _log.Debug("Direct OnContinueButtonClick validation failed");
                 return;
             }
+            _log.Debug("OnContinueButtonClick executing final registration for VN");
+
+            _continueButton.ToggleLoading(true); // This button might not be visible, but loading state can be useful
+            _wizardContinueButton.ToggleLoading(true); // If this is submit from KYC wizard
+            _wizard5ContinueButton.ToggleLoading(true); // If this is submit from OTP wizard
 
             var emailAddress = _inputEmail.text.Replace(" ", string.Empty);
             var password = _inputPassword.text;
-            var rePassword = _inputRepassword.text;
-
-            Dictionary<string, string> regExtra = null;
-
-            if (IsVNLegalPurposeEnabled())
-            {
-                _isDatePickerOpen = false;
-                
-                var birthDate = DateTime
-                    .ParseExact(_birthDate.text, "dd/MM/yyyy", CultureInfo.InvariantCulture)
-                    .ToUniversalTime();
-
-                var issueDate = DateTime
-                    .ParseExact(_dateOfIssue.text, "dd/MM/yyyy", CultureInfo.InvariantCulture)
-                    .ToUniversalTime();
-
-                regExtra = new Dictionary<string, string>()
-                {
-                    { "fullname", _fullname.text },
-                    { "phone_number", _phoneNumber.text},
-                    { "birth_date", birthDate.ToString() },
-                    { "country", _country.text},
-                    { "id_card", _idCard.text},
-                    { "place_of_issue", _placeOfIssue.text},
-                    { "date_of_issue", issueDate.ToString() },
-                    { "address", _address.text}
-                };
-
-                _log.Debug("Register extra: " + JsonConvert.SerializeObject(regExtra));
-            }
+            
+            // regExtra is always populated with VN data
+            _isDatePickerOpen = false; 
+            var birthDateVal = DateTime.ParseExact(_birthDate.text, "dd/MM/yyyy", CultureInfo.InvariantCulture).ToUniversalTime();
+            var issueDateVal = DateTime.ParseExact(_dateOfIssue.text, "dd/MM/yyyy", CultureInfo.InvariantCulture).ToUniversalTime();
+            var regExtra = new Dictionary<string, string>() {
+                { "fullname", _fullname.text }, { "phone_number", _phoneNumber.text},
+                { "birth_date", birthDateVal.ToString() }, { "country", _country.text},
+                { "id_card", _idCard.text}, { "place_of_issue", _placeOfIssue.text},
+                { "date_of_issue", issueDateVal.ToString() }, { "address", _address.text}
+            };
+            _log.Debug("Final Register extra (VN): " + JsonConvert.SerializeObject(regExtra));
 
             try {
                 CredentialVerification result;
-                
                 switch (Model.AuthIntention)
                 {
-                    case AuthIntention.None:
-                    case AuthIntention.Switch:
+                    case AuthIntention.None: case AuthIntention.Switch:
                         result = await Model.AuthService.RegisterWithEmailAsync(emailAddress, password, regExtra);
                         break;
-                    case AuthIntention.Link:
+                    case AuthIntention.Link: // Link with email, regExtra might not be used by Link service
                         result = await Model.AuthService.LinkWithEmailAsync(emailAddress, password);
                         break;
                     default:
                         throw new NoctuaException(NoctuaErrorCode.Authentication, $"Invalid AuthIntention {Model.AuthIntention}");
                 }
                 
-                Debug.Log("RegisterWithPassword verification ID: " + result.Id);
+                Debug.Log("RegisterWithPassword/LinkWithEmail verification ID (VN): " + result.Id);
+                Visible = false; // Hide registration dialog
 
-                Visible = false;
+                // Clear all fields after success
+                _inputEmail.Clear(); _inputPassword.Clear(); _inputRepassword.Clear();
+                _fullname.Clear(); _phoneNumber.Clear(); _birthDate.Clear();_gender.value = Locale.GetTranslation("Select.Gender"); // Reset dropdown
+                _country.Clear(); _idCard.Clear(); _placeOfIssue.Clear(); _dateOfIssue.Clear(); _address.Clear();
+                _phoneNumberVerificationCode.Clear();
 
-                _inputEmail.Clear();
-                _inputPassword.Clear();
-                _inputRepassword.Clear();
+                Model.ShowEmailVerification(emailAddress, password, result.Id, regExtra); // Navigate to email verification
 
-                if (IsVNLegalPurposeEnabled())
-                {
-                    _fullname.Clear();
-                    _birthDate.Clear();
-                    _country.Clear();
-                    _idCard.Clear();
-                    _placeOfIssue.Clear();
-                    _dateOfIssue.Clear();
-                    _address.Clear();
-                }
-
-                Model.ShowEmailVerification(emailAddress, password, result.Id, regExtra);
-
-                _continueButton.Clear();
-                _wizardContinueButton.Clear();
-                _wizard5ContinueButton.Clear();
-                // Wizard                
-                View.Q<Button>("WizardPrevTo3Button").RemoveFromClassList("hide");                
-                View.Q<Button>("WizardPrevTo4Button").RemoveFromClassList("hide");
-
+                _continueButton.Clear(); _wizardContinueButton.Clear(); _wizard5ContinueButton.Clear();
+                View.Q<Button>("WizardPrevTo3Button")?.RemoveFromClassList("hide");             
+                View.Q<Button>("WizardPrevTo4Button")?.RemoveFromClassList("hide");
             }
             catch (Exception e)
             {
-
+                _continueButton.ToggleLoading(false); 
+                _wizardContinueButton.ToggleLoading(false); 
                 _wizard5ContinueButton.ToggleLoading(false);
-                View.Q<Button>("WizardPrevTo3Button").RemoveFromClassList("hide");
-                View.Q<Button>("WizardPrevTo4Button").RemoveFromClassList("hide");
+                View.Q<Button>("WizardPrevTo3Button")?.RemoveFromClassList("hide");
+                View.Q<Button>("WizardPrevTo4Button")?.RemoveFromClassList("hide");
 
-                _log.Warning($"{e.Message}\n{e.StackTrace}");
-
-                if (e is NoctuaException noctuaEx)
-                {
-                    _continueButton.Error(noctuaEx.ErrorCode.ToString() + " : " + noctuaEx.Message);
-                    _wizardContinueButton.Error(noctuaEx.ErrorCode.ToString() + " : " + noctuaEx.Message);
-                    _wizard5ContinueButton.Error(noctuaEx.ErrorCode.ToString() + " : " + noctuaEx.Message);
+                _log.Warning($"VN Registration Final Step Error: {e.Message}\n{e.StackTrace}");
+                string errorMessageToShow = e.Message;
+                if (e is NoctuaException noctuaEx) {
+                    errorMessageToShow = noctuaEx.ErrorCode.ToString() + " : " + noctuaEx.Message;
                 }
-                else
-                {
-                    _continueButton.Error(e.Message);
-                    _wizardContinueButton.Error(e.Message);                    
-                    _wizard5ContinueButton.Error(e.Message);                    
-                }
-
-                _continueButton.ToggleLoading(false);
-                _wizardContinueButton.ToggleLoading(false);
-                _wizard5ContinueButton.ToggleLoading(false);
-                // Wizard                
-                View.Q<Button>("WizardPrevTo3Button").RemoveFromClassList("hide");
-                
-                if (IsVNLegalPurposeEnabled())
-                {
-                    Model.ShowGeneralNotification(_continueButton.labelError.text, false);
-                }
-                else
-                {
-                    View.Q<VisualElement>("AdditionalFooterContent").RemoveFromClassList("hide");
-                }
+                // Set error on the button that might be visible or relevant
+                 _wizardContinueButton.Error(errorMessageToShow); // If submitted from KYC wizard
+                // _wizard5ContinueButton.Error(errorMessageToShow); // If submitted from OTP wizard
+                // _continueButton.Error(errorMessageToShow); // If submitted from simple VN flow
+                Model.ShowGeneralNotification(errorMessageToShow, false); // Show general notification
             }
         }
 
         private void OnBackButtonClick(ClickEvent evt)
         {
-            _log.Debug("clicking back button");   
+            _log.Debug("clicking back button (VN wizard context)");    
+            _isDatePickerOpen = false;      
+            // Navigate back within VN wizard
+            if (_wizardPage == 5) { NavigateToWizard4(); return; } // Or relevant wizard before OTP
+            if (_wizardPage == 4) { NavigateToWizard3(null); return; } // Pass null or a new PointerUpEvent if method requires it
+            if (_wizardPage == 3) { NavigateToWizard2(null); return; }
+            if (_wizardPage == 2) { NavigateToWizard1(null); return; }
 
-            _isDatePickerOpen = false;         
-
-            if (_wizardPage == 4)
-            {
-                NavigateToWizard3();
-                return;
-            }
-            else if (_wizardPage == 3)
-            {
-                NavigateToWizard2();
-                return;
-            }
-            else if (_wizardPage == 2)
-            {
-                NavigateToWizard1();
-                return;
-            }
-
-            _continueButton.Clear();
-            _wizardContinueButton.Clear();
-            _wizard5ContinueButton.Clear();
-
+            // If on the first wizard page or not in wizard (simple VN flow)
+            _continueButton.Clear(); _wizardContinueButton.Clear(); _wizard5ContinueButton.Clear();
             Visible = false;
-
-            Model.NavigateBack();
+            Model.NavigateBack(); // Navigate to previous screen (e.g., login selection)
         }
 
         private void OnValueChanged(InputFieldNoctua input)
         {
             input.AdjustLabel();
-            Utility.UpdateButtonState(textFields, _continueButton.button);
+            // Update state for all buttons that might be active in various VN scenarios
+            Utility.UpdateButtonState(textFields, _continueButton.button); 
             Utility.UpdateButtonState(textFields, _wizardContinueButton.button);
             Utility.UpdateButtonState(textFields, _wizard5ContinueButton.button);
         }
 
-        private void HideAllErrors()
+        private void HideAllErrors() // Clear errors for all VN fields
         {
-            //Normalize border
-            _inputEmail.Reset();
-            _inputPassword.Reset();
-            _inputRepassword.Reset();
-            _country.Reset();
-            _birthDate.Reset();
+            _inputEmail.Reset(); _inputPassword.Reset(); _inputRepassword.Reset();
+            if (_fullname != null) _fullname.Reset(); if (_phoneNumber != null) _phoneNumber.Reset();
+            if (_birthDate != null) _birthDate.Reset();
+            if (_gender != null) {
+                _gender.ElementAt(1)?.RemoveFromClassList("noctua-text-input-error"); // Safely access element
+                _gender.Q<Label>("error")?.AddToClassList("hide"); // Safely access error label
+                var titleElement = _gender.Q<VisualElement>("title");
+                if (titleElement != null) titleElement.style.color = Color.white; // Reset title color safely
+            }
+            if (_country != null) _country.Reset(); if (_idCard != null) _idCard.Reset();
+            if (_placeOfIssue != null) _placeOfIssue.Reset(); if (_dateOfIssue != null) _dateOfIssue.Reset();
+            if (_address != null) _address.Reset();
+            if (_phoneNumberVerificationCode != null) _phoneNumberVerificationCode.Reset();
 
-            _gender.Children().ElementAt(1).RemoveFromClassList("noctua-text-input-error");
-            _gender.Q<Label>("error").AddToClassList("hide");
-
-            _continueButton.Clear();
-            _wizardContinueButton.Clear();
-            _wizard5ContinueButton.Clear();
+            _continueButton.Clear(); _wizardContinueButton.Clear(); _wizard5ContinueButton.Clear();
         }
 
-        private bool IsVNLegalPurposeEnabled()
-        {
-            return GetFeatureFlag("vnLegalPurposeEnabled");
-        }
-
-        private bool IsVNLegalPurposeFullKYCEnabled()
-        {
-            return GetFeatureFlag("vnLegalPurposeFullKYCEnabled");
-        }
-
-        private bool IsVNLegalPurposePhoneNumberVerificationEnabled()
-        {
-            return GetFeatureFlag("vnLegalPurposePhoneNumberVerificationEnabled");
-        }
-
+        // Feature flag methods are kept as they define variations within the VN flow itself
+        private bool IsVNLegalPurposeEnabled() { return GetFeatureFlag("vnLegalPurposeEnabled"); }
+        private bool IsVNLegalPurposeFullKYCEnabled() { return GetFeatureFlag("vnLegalPurposeFullKYCEnabled"); }
+        private bool IsVNLegalPurposePhoneNumberVerificationEnabled() { return GetFeatureFlag("vnLegalPurposePhoneNumberVerificationEnabled"); }
         private bool GetFeatureFlag(string key)
         {
             return _config?.Noctua?.RemoteFeatureFlags != null &&
-                _config.Noctua.RemoteFeatureFlags.TryGetValue(key, out var value) &&
-                value == true;
+                   _config.Noctua.RemoteFeatureFlags.TryGetValue(key, out var value) &&
+                   value == true;
         }
     }
 }
