@@ -142,6 +142,7 @@ namespace com.noctuagames.sdk
             _welcome.SetBehaviourWhitelabel(config);
             _emailLoginDialog.SetBehaviourWhitelabel(config);
             _emailRegisterDialog.SetBehaviourWhitelabel(config);
+            _emailRegisterVNDialog.SetBehaviourWhitelabel(config);
             _accountSelectionDialog.SetWhitelabel(config);
             _loginOptionsDialog.SetWhitelabel(config);
             _userCenter.SetWhitelabel(config);
