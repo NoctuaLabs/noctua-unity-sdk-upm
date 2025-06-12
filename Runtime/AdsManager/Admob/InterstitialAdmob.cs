@@ -22,8 +22,7 @@ namespace com.noctuagames.sdk.Admob
 
         private InterstitialAd _interstitialAd;
         private readonly long _timeoutThreshold = 5000; // milliseconds,
-        private Dictionary<string, IConvertible> _extraPayload = new();
-
+        
         public void SetInterstitialAdUnitID(string adUnitID)
         {
             if (adUnitID == null)
@@ -69,19 +68,11 @@ namespace com.noctuagames.sdk.Admob
 
                         long latencyMillis = loadedAdapterResponseInfo?.LatencyMillis ?? 0;
                         
-                        _extraPayload = new Dictionary<string, IConvertible>
-                        {
-                            { "latency_millis", latencyMillis },
-                            { "ad_unit_id", _adUnitIDInterstitial },
-                            { "ad_network", loadedAdapterResponseInfo?.AdSourceName ?? "unknown" },
-                            { "ntw", loadedAdapterResponseInfo?.AdapterClassName ?? "unknown" }
-                        };
-                        
                         if (latencyMillis > _timeoutThreshold)
                         {
                             _log.Warning($"Interstitial ad request took too long: {latencyMillis} ms, exceeding threshold of {_timeoutThreshold} ms.");
 
-                            TrackAdCustomEventInterstitial("wf_interstitial_request_adunit_timeout", _extraPayload);
+                            TrackAdCustomEventInterstitial("wf_interstitial_request_adunit_timeout");
                         }
                     }
 
@@ -107,9 +98,9 @@ namespace com.noctuagames.sdk.Admob
                     _log.Debug("Interstitial ad loaded with response : "
                                 + ad.GetResponseInfo());
 
-                    TrackAdCustomEventInterstitial("ad_loaded", _extraPayload);
-                    TrackAdCustomEventInterstitial("wf_interstitial_request_adunit_success", _extraPayload);
-                    TrackAdCustomEventInterstitial("wf_interstitial_request_finished_success", _extraPayload);
+                    TrackAdCustomEventInterstitial("ad_loaded");
+                    TrackAdCustomEventInterstitial("wf_interstitial_request_adunit_success");
+                    TrackAdCustomEventInterstitial("wf_interstitial_request_finished_success");
 
                     _interstitialAd = ad;
 
@@ -122,7 +113,7 @@ namespace com.noctuagames.sdk.Admob
         /// </summary>
         public void ShowInterstitialAd()
         {
-            TrackAdCustomEventInterstitial("wf_interstitial_started_playing", _extraPayload);
+            TrackAdCustomEventInterstitial("wf_interstitial_started_playing");
 
             if (_interstitialAd != null && _interstitialAd.CanShowAd())
             {
@@ -131,8 +122,8 @@ namespace com.noctuagames.sdk.Admob
             }
             else
             {
-                TrackAdCustomEventInterstitial("wf_interstitial_show_not_ready", _extraPayload);
-                TrackAdCustomEventInterstitial("wf_interstitial_show_failed_null", _extraPayload);
+                TrackAdCustomEventInterstitial("wf_interstitial_show_not_ready");
+                TrackAdCustomEventInterstitial("wf_interstitial_show_failed_null");
 
                 _log.Error("Interstitial ad is not ready yet.");
             }
@@ -154,8 +145,8 @@ namespace com.noctuagames.sdk.Admob
             interstitialAd.OnAdImpressionRecorded += () =>
             {
                 _log.Debug("Interstitial ad recorded an impression.");
-                TrackAdCustomEventInterstitial("ad_impression", _extraPayload);
-                TrackAdCustomEventInterstitial("ad_impression_interstitial", _extraPayload);
+                TrackAdCustomEventInterstitial("ad_impression");
+                TrackAdCustomEventInterstitial("ad_impression_interstitial");
 
                 InterstitialOnAdImpressionRecorded?.Invoke();
             };
@@ -164,8 +155,8 @@ namespace com.noctuagames.sdk.Admob
             {
                 _log.Debug("Interstitial ad was clicked.");
 
-                TrackAdCustomEventInterstitial("ad_clicked", _extraPayload);
-                TrackAdCustomEventInterstitial("wf_interstitial_clicked", _extraPayload);
+                TrackAdCustomEventInterstitial("ad_clicked");
+                TrackAdCustomEventInterstitial("wf_interstitial_clicked");
 
                 InterstitialOnAdClicked?.Invoke();
             };
@@ -174,8 +165,8 @@ namespace com.noctuagames.sdk.Admob
             {
                 _log.Debug("Interstitial ad full screen content opened.");
 
-                TrackAdCustomEventInterstitial("ad_shown", _extraPayload);
-                TrackAdCustomEventInterstitial("wf_interstitial_show_sdk", _extraPayload);
+                TrackAdCustomEventInterstitial("ad_shown");
+                TrackAdCustomEventInterstitial("wf_interstitial_show_sdk");
 
                 InterstitialOnAdDisplayed?.Invoke();
             };
@@ -186,8 +177,8 @@ namespace com.noctuagames.sdk.Admob
 
                 LoadInterstitialAd();
 
-                TrackAdCustomEventInterstitial("ad_closed", _extraPayload);
-                TrackAdCustomEventInterstitial("wf_interstitial_closed", _extraPayload);
+                TrackAdCustomEventInterstitial("ad_closed");
+                TrackAdCustomEventInterstitial("wf_interstitial_closed");
 
                 InterstitialOnAdClosed?.Invoke();
             };
@@ -244,8 +235,24 @@ namespace com.noctuagames.sdk.Admob
                     if (responseInfo != null)
                     {
                         AdapterResponseInfo loadedAdapterResponseInfo = responseInfo.GetLoadedAdapterResponseInfo();
-                        string adSourceName = loadedAdapterResponseInfo?.AdSourceName ?? "empty";
-                        extraPayload.Add("ad_network", adSourceName);
+                        if (loadedAdapterResponseInfo != null)
+                        {
+                            string adSourceName = "empty";
+                            string adapterClassName = "empty";
+                            long latencyMillis = 0;
+
+                            try { adSourceName = loadedAdapterResponseInfo.AdSourceName ?? "empty"; } catch {}
+                            try { adapterClassName = loadedAdapterResponseInfo.AdapterClassName ?? "empty"; } catch {}
+                            try { latencyMillis = loadedAdapterResponseInfo.LatencyMillis; } catch {}
+
+                            extraPayload.Add("ad_network", adSourceName);
+                            extraPayload.Add("ntw", adapterClassName);
+                            extraPayload.Add("latency_millis", latencyMillis);
+                        }
+                        else
+                        {
+                            extraPayload.Add("ad_network", "unknown");
+                        }
                     }
                     else
                     {
