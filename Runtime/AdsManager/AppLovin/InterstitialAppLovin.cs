@@ -18,6 +18,7 @@ namespace com.noctuagames.sdk.AppLovin
         public event Action InterstitialOnAdClicked;
         public event Action InterstitialOnAdClosed;
         public event Action<MaxSdkBase.AdInfo> InterstitialOnAdRevenuePaid;
+        private readonly long _timeoutThreshold = 5000; // 5 seconds
 
         public void SetInterstitialAdUnitID(string adUnitID)
         {
@@ -57,16 +58,27 @@ namespace com.noctuagames.sdk.AppLovin
 
         public void ShowInterstitial()
         {
-            if (MaxSdk.IsInterstitialReady(_adUnitIDInterstitial) )
+            TrackAdCustomEventInterstitial("wf_interstitial_started_playing");
+
+            if (MaxSdk.IsInterstitialReady(_adUnitIDInterstitial))
             {
                 MaxSdk.ShowInterstitial(_adUnitIDInterstitial);
 
                 _log.Debug("Showing interstitial ad for ad unit id : " + _adUnitIDInterstitial);
             }
+            else
+            {
+                _log.Error("Interstitial ad is not ready to be shown for ad unit id : " + _adUnitIDInterstitial);
+
+                TrackAdCustomEventInterstitial("wf_interstitial_show_not_ready");
+                TrackAdCustomEventInterstitial("wf_interstitial_show_failed_null");
+            }
         }
 
         private void LoadInterstitialInternal()
         {
+            TrackAdCustomEventInterstitial("wf_interstitial_request_start");
+
             MaxSdk.LoadInterstitial(_adUnitIDInterstitial);
 
             _log.Debug("Loading interstitial ad for ad unit id : " + _adUnitIDInterstitial);
@@ -83,6 +95,8 @@ namespace com.noctuagames.sdk.AppLovin
             
             // Track ad loaded event
             TrackAdCustomEventInterstitial("ad_loaded", adUnitId, adInfo);
+            TrackAdCustomEventInterstitial("wf_interstitial_request_adunit_success");
+            TrackAdCustomEventInterstitial("wf_interstitial_request_finished_success");
         }
 
         private void OnInterstitialLoadFailedEvent(string adUnitId, MaxSdkBase.ErrorInfo errorInfo)
@@ -99,9 +113,20 @@ namespace com.noctuagames.sdk.AppLovin
                 { "error_code", errorInfo.Code },
                 { "error_message", errorInfo.Message },
                 { "mediator_error_code", errorInfo.MediatedNetworkErrorCode },
-                { "mediator_error_message", errorInfo.MediatedNetworkErrorMessage }
+                { "mediator_error_message", errorInfo.MediatedNetworkErrorMessage },
+                { "latency_millis", errorInfo.LatencyMillis }
             };
+
+            if (errorInfo.LatencyMillis > _timeoutThreshold)
+            {
+                _log.Warning($"Interstitial ad request took too long: {errorInfo.LatencyMillis} ms, exceeding threshold of {_timeoutThreshold} ms.");
+
+                TrackAdCustomEventInterstitial("wf_interstitial_request_adunit_timeout", extraPayload: extraPayload);
+            }
+
             TrackAdCustomEventInterstitial("ad_load_failed", adUnitId, null, extraPayload);
+            TrackAdCustomEventInterstitial("wf_interstitial_request_adunit_failed", extraPayload: extraPayload);
+            TrackAdCustomEventInterstitial("wf_interstitial_request_finished_failed	", extraPayload: extraPayload);
         }
 
         // Async method handling the delay
@@ -123,6 +148,7 @@ namespace com.noctuagames.sdk.AppLovin
 
             // Track ad shown event
             TrackAdCustomEventInterstitial("ad_shown", adUnitId, adInfo);
+            TrackAdCustomEventInterstitial("wf_interstitial_show_sdk");
 
             InterstitialOnAdDisplayed?.Invoke();
         }
@@ -140,9 +166,12 @@ namespace com.noctuagames.sdk.AppLovin
                 { "error_code", errorInfo.Code },
                 { "error_message", errorInfo.Message },
                 { "mediator_error_code", errorInfo.MediatedNetworkErrorCode },
-                { "mediator_error_message", errorInfo.MediatedNetworkErrorMessage }
+                { "mediator_error_message", errorInfo.MediatedNetworkErrorMessage },
+                { "latency_millis", errorInfo.LatencyMillis }
             };
+            
             TrackAdCustomEventInterstitial("ad_shown_failed", adUnitId, adInfo, extraPayload);
+            TrackAdCustomEventInterstitial("wf_interstitial_show_sdk_failed", extraPayload: extraPayload);
 
             InterstitialOnAdFailedDisplayed?.Invoke();
         }
@@ -153,6 +182,7 @@ namespace com.noctuagames.sdk.AppLovin
 
             // Track ad clicked event
             TrackAdCustomEventInterstitial("ad_clicked", adUnitId, adInfo);
+            TrackAdCustomEventInterstitial("wf_interstitial_clicked");
 
             InterstitialOnAdClicked?.Invoke();
         }
@@ -166,6 +196,7 @@ namespace com.noctuagames.sdk.AppLovin
 
             // Track ad closed event
             TrackAdCustomEventInterstitial("ad_closed", adUnitId, adInfo);
+            TrackAdCustomEventInterstitial("wf_interstitial_closed");
 
             InterstitialOnAdClosed?.Invoke();
         }
@@ -183,10 +214,13 @@ namespace com.noctuagames.sdk.AppLovin
 
             _log.Debug("Interstitial ad revenue paid for ad unit id : " + adUnitId + " with revenue : " + revenue + " and country code : " + countryCode);
 
+            TrackAdCustomEventInterstitial("ad_impression");
+            TrackAdCustomEventInterstitial("ad_impression_interstitial");
+
             InterstitialOnAdRevenuePaid?.Invoke(adInfo);
         }
 
-        private void TrackAdCustomEventInterstitial(string eventName, string adUnitId, MaxSdkBase.AdInfo adInfo, Dictionary<string, IConvertible> extraPayload = null)
+        private void TrackAdCustomEventInterstitial(string eventName, string adUnitId = null, MaxSdkBase.AdInfo adInfo = null, Dictionary<string, IConvertible> extraPayload = null)
         {
             try
             {
@@ -198,13 +232,15 @@ namespace com.noctuagames.sdk.AppLovin
                 extraPayload.Add("ad_format", "interstitial");
                 extraPayload.Add("mediation_service", "applovin");
                 extraPayload.Add("ad_unit_id", adUnitId ?? _adUnitIDInterstitial ?? "unknown");
-                
+
                 // Add ad info if available
                 if (adInfo != null)
                 {
                     extraPayload.Add("ad_network", adInfo.NetworkName ?? "unknown");
                     extraPayload.Add("placement", adInfo.Placement ?? "unknown");
                     extraPayload.Add("network_placement", adInfo.NetworkPlacement ?? "unknown");
+                    extraPayload.Add("ntw", adInfo.WaterfallInfo.Name ?? "unknown");
+                    extraPayload.Add("latency_millis", adInfo.LatencyMillis);
                 }
                 else
                 {
@@ -224,7 +260,6 @@ namespace com.noctuagames.sdk.AppLovin
             catch (Exception ex)
             {
                 _log.Error($"Error tracking interstitial ad event '{eventName}': {ex.Message}\n{ex.StackTrace}");
-                // Continue execution - tracking errors shouldn't affect ad functionality
             }
         }
     }
