@@ -19,6 +19,7 @@ namespace com.noctuagames.sdk.AppLovin
         public event Action<MaxSdk.Reward> RewardedOnUserEarnedReward;
         public event Action RewardedOnAdClosed;
         public event Action<MaxSdkBase.AdInfo> RewardedOnAdRevenuePaid;
+        private readonly int _timeoutThreshold = 5000; // 5 seconds
 
         public void SetRewardedAdUnitID(string adUnitID)
         {
@@ -59,20 +60,31 @@ namespace com.noctuagames.sdk.AppLovin
 
         private void LoadRewardedAd()
         {
+            TrackAdCustomEventRewarded("wf_rewarded_request_start");
+
             MaxSdk.LoadRewardedAd(_adUnitIDRewarded);
 
             _log.Debug("Loading rewarded ad for ad unit id : " + _adUnitIDRewarded);
         }
         public void ShowRewardedAd()
         {
+            TrackAdCustomEventRewarded("wf_rewarded_started_playing");
+
             if (MaxSdk.IsRewardedAdReady(_adUnitIDRewarded))
             {
                 MaxSdk.ShowRewardedAd(_adUnitIDRewarded);
 
                 _log.Debug("Showing rewarded ad for ad unit id : " + _adUnitIDRewarded);
             }
+            else
+            {
+                _log.Warning("Rewarded ad is not ready to be shown for ad unit id : " + _adUnitIDRewarded);
+
+                TrackAdCustomEventRewarded("wf_rewarded_show_not_ready");
+                TrackAdCustomEventRewarded("wf_rewarded_show_failed_null");
+            }
         }
-        
+
 
         private void OnRewardedAdLoadedEvent(string adUnitId, MaxSdkBase.AdInfo adInfo)
         {
@@ -82,9 +94,11 @@ namespace com.noctuagames.sdk.AppLovin
             retryAttempt = 0;
 
             _log.Debug("Rewarded ad loaded for ad unit id : " + adUnitId);
-            
+
             // Track ad loaded event
             TrackAdCustomEventRewarded("ad_loaded", adUnitId, adInfo);
+            TrackAdCustomEventRewarded("wf_rewarded_request_adunit_success", adUnitId, adInfo);
+            TrackAdCustomEventRewarded("wf_rewarded_request_finished_success", adUnitId, adInfo);
         }
 
         private void OnRewardedAdLoadFailedEvent(string adUnitId, MaxSdkBase.ErrorInfo errorInfo)
@@ -108,7 +122,17 @@ namespace com.noctuagames.sdk.AppLovin
                 { "mediator_error_code", errorInfo.MediatedNetworkErrorCode },
                 { "mediator_error_message", errorInfo.MediatedNetworkErrorMessage }
             };
+
+            if (errorInfo.LatencyMillis > _timeoutThreshold)
+            {
+                _log.Warning($"Interstitial ad request took too long: {errorInfo.LatencyMillis} ms, exceeding threshold of {_timeoutThreshold} ms.");
+
+                TrackAdCustomEventRewarded("wf_rewarded_request_adunit_timeout");
+            }
+
             TrackAdCustomEventRewarded("ad_load_failed", adUnitId, null, extraPayload);
+            TrackAdCustomEventRewarded("wf_rewarded_request_adunit_failed", extraPayload: extraPayload);
+            TrackAdCustomEventRewarded("wf_rewarded_request_finished_failed	", extraPayload: extraPayload);
         }
 
         private async UniTaskVoid RetryLoadRewardedAsync()
@@ -130,6 +154,7 @@ namespace com.noctuagames.sdk.AppLovin
 
             // Track ad shown event
             TrackAdCustomEventRewarded("ad_shown", adUnitId, adInfo);
+            TrackAdCustomEventRewarded("wf_rewarded_show_sdk", adUnitId, adInfo);
 
             RewardedOnAdDisplayed?.Invoke();
         }
@@ -150,6 +175,7 @@ namespace com.noctuagames.sdk.AppLovin
                 { "mediator_error_message", errorInfo.MediatedNetworkErrorMessage }
             };
             TrackAdCustomEventRewarded("ad_shown_failed", adUnitId, adInfo, extraPayload);
+            TrackAdCustomEventRewarded("wf_rewarded_show_sdk_failed", adUnitId, adInfo, extraPayload);
 
             RewardedOnAdFailedDisplayed?.Invoke();
         }
@@ -159,6 +185,7 @@ namespace com.noctuagames.sdk.AppLovin
 
             // Track ad clicked event
             TrackAdCustomEventRewarded("ad_clicked", adUnitId, adInfo);
+            TrackAdCustomEventRewarded("wf_rewarded_clicked", adUnitId, adInfo: adInfo);
 
             RewardedOnAdClicked?.Invoke();
         }
@@ -172,6 +199,7 @@ namespace com.noctuagames.sdk.AppLovin
 
             // Track ad closed event
             TrackAdCustomEventRewarded("ad_closed", adUnitId, adInfo);
+            TrackAdCustomEventRewarded("wf_rewarded_closed", adUnitId, adInfo);
 
             RewardedOnAdClosed?.Invoke();
         }
@@ -198,11 +226,14 @@ namespace com.noctuagames.sdk.AppLovin
         {
             // Ad revenue paid. Use this callback to track user revenue.
             _log.Debug("Rewarded ad revenue paid for ad unit id : " + adUnitId);
+
+            TrackAdCustomEventRewarded("ad_impression", adUnitId: adUnitId, adInfo: adInfo);
+            TrackAdCustomEventRewarded("ad_impression_rewarded", adUnitId: adUnitId, adInfo: adInfo);
             
             RewardedOnAdRevenuePaid?.Invoke(adInfo);
         }
         
-        private void TrackAdCustomEventRewarded(string eventName, string adUnitId, MaxSdkBase.AdInfo adInfo, Dictionary<string, IConvertible> extraPayload = null)
+        private void TrackAdCustomEventRewarded(string eventName, string adUnitId = null, MaxSdkBase.AdInfo adInfo = null, Dictionary<string, IConvertible> extraPayload = null)
         {
             try
             {
@@ -214,13 +245,15 @@ namespace com.noctuagames.sdk.AppLovin
                 extraPayload.Add("ad_format", "rewarded");
                 extraPayload.Add("mediation_service", "applovin");
                 extraPayload.Add("ad_unit_id", adUnitId ?? _adUnitIDRewarded ?? "unknown");
-                
+
                 // Add ad info if available
                 if (adInfo != null)
                 {
                     extraPayload.Add("ad_network", adInfo.NetworkName ?? "unknown");
                     extraPayload.Add("placement", adInfo.Placement ?? "unknown");
                     extraPayload.Add("network_placement", adInfo.NetworkPlacement ?? "unknown");
+                    extraPayload.Add("ntw", adInfo.WaterfallInfo.Name ?? "unknown");
+                    extraPayload.Add("latency_millis", adInfo.LatencyMillis);
                 }
                 else
                 {
