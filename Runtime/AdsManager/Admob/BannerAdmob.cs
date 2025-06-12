@@ -22,7 +22,6 @@ namespace com.noctuagames.sdk.Admob
         public event Action BannerOnAdClosed;
         public event Action<AdValue, ResponseInfo> AdmobOnAdRevenuePaid;
         private readonly long _timeoutThreshold = 5000; // milliseconds,
-        private Dictionary<string, IConvertible> _extraPayload = new();
 
         public void SetAdUnitId(string adUnitId)
         {
@@ -101,10 +100,10 @@ namespace com.noctuagames.sdk.Admob
                 _log.Debug("Banner view loaded an ad with response : "
                     + _bannerView.GetResponseInfo());
 
-                TrackAdCustomEventBanner("ad_loaded", _extraPayload);
-                TrackAdCustomEventBanner("wf_banner_request_adunit_success", _extraPayload);
-                TrackAdCustomEventBanner("wf_banner_show_sdk", _extraPayload);
-                TrackAdCustomEventBanner("wf_banner_request_finished_success", _extraPayload);
+                TrackAdCustomEventBanner("ad_loaded");
+                TrackAdCustomEventBanner("wf_banner_request_adunit_success");
+                TrackAdCustomEventBanner("wf_banner_show_sdk");
+                TrackAdCustomEventBanner("wf_banner_request_finished_success");
                 
                 BannerOnAdDisplayed?.Invoke();
             };
@@ -131,19 +130,11 @@ namespace com.noctuagames.sdk.Admob
 
                     long latencyMillis = loadedAdapterResponseInfo?.LatencyMillis ?? 0;
 
-                    _extraPayload = new Dictionary<string, IConvertible>
-                    {
-                        { "latency_millis", latencyMillis },
-                        { "ad_unit_id", _adUnitIdBanner },
-                        { "ad_network", loadedAdapterResponseInfo?.AdSourceName ?? "unknown" },
-                        { "ntw", loadedAdapterResponseInfo?.AdapterClassName ?? "unknown" }
-                    };
-
                     if (latencyMillis > _timeoutThreshold)
                     {
                         _log.Warning($"Banner ad request took too long: {latencyMillis} ms, exceeding threshold of {_timeoutThreshold} ms.");
 
-                        TrackAdCustomEventBanner("wf_banner_request_adunit_timeout", _extraPayload);
+                        TrackAdCustomEventBanner("wf_banner_request_adunit_timeout");
                     }
                 }
                 
@@ -163,8 +154,8 @@ namespace com.noctuagames.sdk.Admob
             {
                 _log.Debug("Banner view recorded an impression.");
 
-                TrackAdCustomEventBanner("ad_impression", _extraPayload);
-                TrackAdCustomEventBanner("ad_impression_banner", _extraPayload);
+                TrackAdCustomEventBanner("ad_impression");
+                TrackAdCustomEventBanner("ad_impression_banner");
 
                 BannerOnAdImpressionRecorded?.Invoke();
             };
@@ -173,8 +164,8 @@ namespace com.noctuagames.sdk.Admob
             {
                 _log.Debug("Banner view was clicked.");
 
-                TrackAdCustomEventBanner("ad_clicked", _extraPayload);
-                TrackAdCustomEventBanner("wf_banner_clicked", _extraPayload);
+                TrackAdCustomEventBanner("ad_clicked");
+                TrackAdCustomEventBanner("wf_banner_clicked");
 
                 BannerOnAdClicked?.Invoke();
             };
@@ -183,7 +174,7 @@ namespace com.noctuagames.sdk.Admob
             {
                 _log.Debug("Banner view full screen content opened.");
 
-                TrackAdCustomEventBanner("ad_shown", _extraPayload);
+                TrackAdCustomEventBanner("ad_shown");
 
                 BannerOnAdDisplayed?.Invoke();
             };
@@ -192,8 +183,8 @@ namespace com.noctuagames.sdk.Admob
             {
                 _log.Debug("Banner view full screen content closed.");
 
-                TrackAdCustomEventBanner("ad_closed", _extraPayload);
-                TrackAdCustomEventBanner("wf_banner_closed", _extraPayload);
+                TrackAdCustomEventBanner("ad_closed");
+                TrackAdCustomEventBanner("wf_banner_closed");
 
                 BannerOnAdClosed?.Invoke();
             };
@@ -229,15 +220,29 @@ namespace com.noctuagames.sdk.Admob
                     if (responseInfo != null)
                     {
                         AdapterResponseInfo loadedAdapterResponseInfo = responseInfo.GetLoadedAdapterResponseInfo();
-                        string adSourceName = loadedAdapterResponseInfo?.AdSourceName ?? "empty";
-                        extraPayload.Add("ad_network", adSourceName);
+                        if (loadedAdapterResponseInfo != null)
+                        {
+                            string adSourceName = "empty";
+                            string adapterClassName = "empty";
+                            long latencyMillis = 0;
+
+                            try { adSourceName = loadedAdapterResponseInfo.AdSourceName ?? "empty"; } catch {}
+                            try { adapterClassName = loadedAdapterResponseInfo.AdapterClassName ?? "empty"; } catch {}
+                            try { latencyMillis = loadedAdapterResponseInfo.LatencyMillis; } catch {}
+
+                            extraPayload.Add("ad_network", adSourceName);
+                            extraPayload.Add("ntw", adapterClassName);
+                            extraPayload.Add("latency_millis", latencyMillis);
+                        }
+                        else
+                        {
+                            extraPayload.Add("ad_network", "unknown");
+                        }
                     }
                     else
                     {
                         extraPayload.Add("ad_network", "unknown");
                     }
-
-                    extraPayload.Add("ad_unit_id", _bannerView.GetAdUnitID());
                 }
                 else
                 {
@@ -258,7 +263,6 @@ namespace com.noctuagames.sdk.Admob
             catch (Exception ex)
             {
                 _log.Error($"Error tracking banner ad event '{eventName}': {ex.Message}\n{ex.StackTrace}");
-                // Continue execution - tracking errors shouldn't affect ad functionality
             }
         }
     }
