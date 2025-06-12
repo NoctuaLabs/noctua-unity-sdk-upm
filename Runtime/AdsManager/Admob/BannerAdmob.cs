@@ -21,10 +21,12 @@ namespace com.noctuagames.sdk.Admob
         public event Action BannerOnAdImpressionRecorded;
         public event Action BannerOnAdClosed;
         public event Action<AdValue, ResponseInfo> AdmobOnAdRevenuePaid;
+        private readonly long _timeoutThreshold = 5000; // milliseconds,
+        private Dictionary<string, IConvertible> _extraPayload = new();
 
         public void SetAdUnitId(string adUnitId)
         {
-            if(adUnitId == null)
+            if (adUnitId == null)
             {
                 _log.Error("Ad unit ID Banner is empty.");
                 return;
@@ -63,7 +65,9 @@ namespace com.noctuagames.sdk.Admob
         /// </summary>
         public void LoadAd()
         {
-            if(_adUnitIdBanner == null)
+            TrackAdCustomEventBanner("wf_banner_request_start");
+            
+            if (_adUnitIdBanner == null)
             {
                 _log.Error("Ad unit ID Banner is empty.");
                 return;
@@ -79,6 +83,8 @@ namespace com.noctuagames.sdk.Admob
 
             // send the request to load the ad.
             _log.Debug("Loading banner ad.");
+            TrackAdCustomEventBanner("wf_banner_started_playing");
+
             _bannerView.LoadAd(adRequest);
 
             ListenToAdEvents();
@@ -95,7 +101,10 @@ namespace com.noctuagames.sdk.Admob
                 _log.Debug("Banner view loaded an ad with response : "
                     + _bannerView.GetResponseInfo());
 
-                TrackAdCustomEventBanner("ad_loaded");
+                TrackAdCustomEventBanner("ad_loaded", _extraPayload);
+                TrackAdCustomEventBanner("wf_banner_request_adunit_success", _extraPayload);
+                TrackAdCustomEventBanner("wf_banner_show_sdk", _extraPayload);
+                TrackAdCustomEventBanner("wf_banner_request_finished_success", _extraPayload);
                 
                 BannerOnAdDisplayed?.Invoke();
             };
@@ -105,12 +114,38 @@ namespace com.noctuagames.sdk.Admob
                 _log.Error("Banner view failed to load an ad with error : "
                     + error);
 
-                TrackAdCustomEventBanner("ad_show_error", new Dictionary<string, IConvertible>()
+                var extraPayload = new Dictionary<string, IConvertible>
                 {
                     { "error_code", error.GetCode() },
                     { "error_message", error.GetMessage() },
                     { "domain", error.GetDomain() }
-                });
+                };
+
+                TrackAdCustomEventBanner("ad_show_failed", extraPayload);
+                TrackAdCustomEventBanner("wf_banner_request_adunit_failed", extraPayload);
+                TrackAdCustomEventBanner("wf_banner_show_sdk_failed	", extraPayload);
+
+                if (_bannerView.GetResponseInfo() != null)
+                {
+                    AdapterResponseInfo loadedAdapterResponseInfo = _bannerView.GetResponseInfo().GetLoadedAdapterResponseInfo();
+
+                    long latencyMillis = loadedAdapterResponseInfo?.LatencyMillis ?? 0;
+
+                    _extraPayload = new Dictionary<string, IConvertible>
+                    {
+                        { "latency_millis", latencyMillis },
+                        { "ad_unit_id", _adUnitIdBanner },
+                        { "ad_network", loadedAdapterResponseInfo?.AdSourceName ?? "unknown" },
+                        { "ntw", loadedAdapterResponseInfo?.AdapterClassName ?? "unknown" }
+                    };
+
+                    if (latencyMillis > _timeoutThreshold)
+                    {
+                        _log.Warning($"Banner ad request took too long: {latencyMillis} ms, exceeding threshold of {_timeoutThreshold} ms.");
+
+                        TrackAdCustomEventBanner("wf_banner_request_adunit_timeout", _extraPayload);
+                    }
+                }
                 
                 BannerOnAdFailedDisplayed?.Invoke();
             };
@@ -128,6 +163,9 @@ namespace com.noctuagames.sdk.Admob
             {
                 _log.Debug("Banner view recorded an impression.");
 
+                TrackAdCustomEventBanner("ad_impression", _extraPayload);
+                TrackAdCustomEventBanner("ad_impression_banner", _extraPayload);
+
                 BannerOnAdImpressionRecorded?.Invoke();
             };
             // Raised when a click is recorded for an ad.
@@ -135,7 +173,8 @@ namespace com.noctuagames.sdk.Admob
             {
                 _log.Debug("Banner view was clicked.");
 
-                TrackAdCustomEventBanner("ad_clicked");
+                TrackAdCustomEventBanner("ad_clicked", _extraPayload);
+                TrackAdCustomEventBanner("wf_banner_clicked", _extraPayload);
 
                 BannerOnAdClicked?.Invoke();
             };
@@ -144,7 +183,7 @@ namespace com.noctuagames.sdk.Admob
             {
                 _log.Debug("Banner view full screen content opened.");
 
-                TrackAdCustomEventBanner("ad_shown");
+                TrackAdCustomEventBanner("ad_shown", _extraPayload);
 
                 BannerOnAdDisplayed?.Invoke();
             };
@@ -153,7 +192,8 @@ namespace com.noctuagames.sdk.Admob
             {
                 _log.Debug("Banner view full screen content closed.");
 
-                TrackAdCustomEventBanner("ad_closed");
+                TrackAdCustomEventBanner("ad_closed", _extraPayload);
+                TrackAdCustomEventBanner("wf_banner_closed", _extraPayload);
 
                 BannerOnAdClosed?.Invoke();
             };
