@@ -404,17 +404,29 @@ namespace com.noctuagames.sdk.UI
 
                     _wizardContinueButton.ToggleLoading(false);
                     View.Q<Button>("WizardPrevTo3Button")?.RemoveFromClassList("hide");
-                    Visible = false; // Hide current dialog
 
                     var birthDateVal = DateTime.ParseExact(_birthDate.text, "dd/MM/yyyy", CultureInfo.InvariantCulture).ToUniversalTime();
-                    var issueDateVal = DateTime.ParseExact(_dateOfIssue.text, "dd/MM/yyyy", CultureInfo.InvariantCulture).ToUniversalTime();
-                    var regExtraVN = new Dictionary<string, string>() {
-                        { "fullname", _fullname.text }, { "phone_number", _phoneNumber.text},
-                        { "birth_date", birthDateVal.ToString() }, { "country", _country.text},
-                        { "id_card", _idCard.text}, { "place_of_issue", _placeOfIssue.text},
-                        { "date_of_issue", issueDateVal.ToString() }, { "address", _address.text}
+
+                    var regExtraVN = new Dictionary<string, string>
+                    {
+                        { "fullname", _fullname.text },
+                        { "phone_number", _phoneNumber.text},
+                        { "birth_date", birthDateVal.ToString() }
                     };
-                    
+
+                    if (IsVNLegalPurposeFullKYCEnabled())
+                    {
+                        var issueDateVal = DateTime.ParseExact(_dateOfIssue.text, "dd/MM/yyyy", CultureInfo.InvariantCulture).ToUniversalTime();
+
+                        regExtraVN.Add("country", _country.text);
+                        regExtraVN.Add("id_card", _idCard.text);
+                        regExtraVN.Add("place_of_issue", _placeOfIssue.text);
+                        regExtraVN.Add("date_of_issue", issueDateVal.ToString());
+                        regExtraVN.Add("address", _address.text);
+                    }
+
+                    _log.Debug("OEG regExtraVN (VN): " + JsonConvert.SerializeObject(regExtraVN));
+
                     Model.ShowPhoneVerification( // Navigate to phone verification dialog
                         verificationId: _verificationId,
                         phoneNumber: _phoneNumber.text.Replace(" ", string.Empty),
@@ -422,12 +434,16 @@ namespace com.noctuagames.sdk.UI
                         password: _inputPassword.text,
                         regExtra: regExtraVN
                     );
+                    
+                    Visible = false; // Hide current dialog
+
                 }
                 catch (Exception e)
                 {
                     _wizardContinueButton.ToggleLoading(false);
                     View.Q<Button>("WizardPrevTo3Button")?.RemoveFromClassList("hide");
                     _log.Debug("OEG send verification code failed (VN): " + e.Message);
+                    
                     if (e is NoctuaException noctuaEx) {
                          Model.ShowGeneralNotification(noctuaEx.Message, false); // Default error notification
                          // If ErrorCode 2061 (e.g., number already registered but unverified),
@@ -521,16 +537,19 @@ namespace com.noctuagames.sdk.UI
                 isValid = false;
             }
 
-            // VN-specific field validation (always active if this is a VN-only class)
-            if (_gender.value == Locale.GetTranslation("Select.Gender")) // Assuming placeholder
+            if (IsVNLegalPurposeFullKYCEnabled())
             {
-                _gender.ElementAt(1).AddToClassList("noctua-text-input-error"); // Style the dropdown input part
-                var genderErrorLabel = _gender.Q<Label>("error"); // Assuming an error label exists within the DropdownField's template
-                genderErrorLabel.text = Locale.GetTranslation("Error.SelectGender"); // Use Locale
-                genderErrorLabel.RemoveFromClassList("hide");
-                _gender.Q<VisualElement>("title").style.color = ColorModule.redError; // Style the title label
-                if (firstErrorMessage == null) firstErrorMessage = genderErrorLabel.text;
-                isValid = false;
+                // VN-specific field validation (always active if this is a VN-only class)
+                if (_gender.value == Locale.GetTranslation("Select.Gender")) // Assuming placeholder
+                {
+                    _gender.ElementAt(1).AddToClassList("noctua-text-input-error"); // Style the dropdown input part
+                    var genderErrorLabel = _gender.Q<Label>("error"); // Assuming an error label exists within the DropdownField's template
+                    genderErrorLabel.text = Locale.GetTranslation("Error.SelectGender"); // Use Locale
+                    genderErrorLabel.RemoveFromClassList("hide");
+                    _gender.Q<VisualElement>("title").style.color = ColorModule.redError; // Style the title label
+                    if (firstErrorMessage == null) firstErrorMessage = genderErrorLabel.text;
+                    isValid = false;
+                }
             }
 
             if (string.IsNullOrWhiteSpace(_birthDate.text)) {
@@ -552,21 +571,30 @@ namespace com.noctuagames.sdk.UI
                     isValid = false;
                 }
             }
-            
-            if (string.IsNullOrWhiteSpace(_dateOfIssue.text))
+
+            if (IsVNLegalPurposeFullKYCEnabled())
             {
-                _dateOfIssue.Error(Locale.GetTranslation("Error.DateOfIssueRequired")); // Create corresponding error message
-                 if (firstErrorMessage == null) firstErrorMessage = Locale.GetTranslation("Error.DateOfIssueRequired");
-                isValid = false;
-            } else {
-                 try {
-                    DateTime.ParseExact(_dateOfIssue.text, "dd/MM/yyyy", CultureInfo.InvariantCulture); // Just check parsability
-                } catch (FormatException) {
-                    _dateOfIssue.Error(Locale.GetTranslation("Error.InvalidDateFormat"));
-                     if (firstErrorMessage == null) firstErrorMessage = Locale.GetTranslation("Error.InvalidDateFormat");
+                if (string.IsNullOrWhiteSpace(_dateOfIssue.text))
+                {
+                    _dateOfIssue.Error(Locale.GetTranslation("Error.DateOfIssueRequired")); // Create corresponding error message
+                    if (firstErrorMessage == null) firstErrorMessage = Locale.GetTranslation("Error.DateOfIssueRequired");
                     isValid = false;
                 }
+                else
+                {
+                    try
+                    {
+                        DateTime.ParseExact(_dateOfIssue.text, "dd/MM/yyyy", CultureInfo.InvariantCulture); // Just check parsability
+                    }
+                    catch (FormatException)
+                    {
+                        _dateOfIssue.Error(Locale.GetTranslation("Error.InvalidDateFormat"));
+                        if (firstErrorMessage == null) firstErrorMessage = Locale.GetTranslation("Error.InvalidDateFormat");
+                        isValid = false;
+                    }
+                }
             }
+           
             
             // Add validation for other VN fields (_fullname, _phoneNumber, _country, _idCard, _placeOfIssue, _address) as needed
             // Example:
@@ -580,27 +608,35 @@ namespace com.noctuagames.sdk.UI
                 if (firstErrorMessage == null) firstErrorMessage = Locale.GetTranslation("Error.PhoneNumberRequired");
                 isValid = false;
             }
-             if (string.IsNullOrWhiteSpace(_country.text)) {
-                _country.Error(Locale.GetTranslation("Error.CountryRequired"));
-                if (firstErrorMessage == null) firstErrorMessage = Locale.GetTranslation("Error.CountryRequired");
-                isValid = false;
+            
+            if (IsVNLegalPurposeFullKYCEnabled())
+            {
+                if (string.IsNullOrWhiteSpace(_country.text))
+                {
+                    _country.Error(Locale.GetTranslation("Error.CountryRequired"));
+                    if (firstErrorMessage == null) firstErrorMessage = Locale.GetTranslation("Error.CountryRequired");
+                    isValid = false;
+                }
+                if (string.IsNullOrWhiteSpace(_idCard.text))
+                {
+                    _idCard.Error(Locale.GetTranslation("Error.IDCardRequired"));
+                    if (firstErrorMessage == null) firstErrorMessage = Locale.GetTranslation("Error.IDCardRequired");
+                    isValid = false;
+                }
+                if (string.IsNullOrWhiteSpace(_placeOfIssue.text))
+                {
+                    _placeOfIssue.Error(Locale.GetTranslation("Error.PlaceOfIssueRequired"));
+                    if (firstErrorMessage == null) firstErrorMessage = Locale.GetTranslation("Error.PlaceOfIssueRequired");
+                    isValid = false;
+                }
+                if (string.IsNullOrWhiteSpace(_address.text))
+                {
+                    _address.Error(Locale.GetTranslation("Error.AddressRequired"));
+                    if (firstErrorMessage == null) firstErrorMessage = Locale.GetTranslation("Error.AddressRequired");
+                    isValid = false;
+                }
             }
-            if (string.IsNullOrWhiteSpace(_idCard.text)) {
-                _idCard.Error(Locale.GetTranslation("Error.IDCardRequired"));
-                if (firstErrorMessage == null) firstErrorMessage = Locale.GetTranslation("Error.IDCardRequired");
-                isValid = false;
-            }
-            if (string.IsNullOrWhiteSpace(_placeOfIssue.text)) {
-                _placeOfIssue.Error(Locale.GetTranslation("Error.PlaceOfIssueRequired"));
-                if (firstErrorMessage == null) firstErrorMessage = Locale.GetTranslation("Error.PlaceOfIssueRequired");
-                isValid = false;
-            }
-            if (string.IsNullOrWhiteSpace(_address.text)) {
-                _address.Error(Locale.GetTranslation("Error.AddressRequired"));
-                if (firstErrorMessage == null) firstErrorMessage = Locale.GetTranslation("Error.AddressRequired");
-                isValid = false;
-            }
-
+            
 
             if (!isValid)
             {
