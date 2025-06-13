@@ -62,6 +62,13 @@
     "EmailRegisterVNDialogPresenter.WizardSpinner.Button.text": "Mendaftar...",
     "EmailRegisterVNDialogPresenter.AlreadyHaveAccount.Label.text": "Sudah punya akun?",
     "EmailRegisterVNDialogPresenter.ErrUnderage.Label.text": "Usia minimal 18 tahun",
+    "EmailRegisterVNDialogPresenter.ErrPhoneNumberEmpty.Label.text": "Nomor telepon wajib diisi",
+    "EmailRegisterVNDialogPresenter.ErrFullnameEmpty.Label.text": "Nama lengkap wajib diisi",
+    "EmailRegisterVNDialogPresenter.ErrBirthdateEmpty.Label.text": "Tanggal lahir wajib diisi",
+    "EmailRegisterVNDialogPresenter.ErrCountryEmpty.Label.text": "Negara wajib diisi",
+    "EmailRegisterVNDialogPresenter.ErrIDCardEmpty.Label.text": "Nomor KTP wajib diisi",
+    "EmailRegisterVNDialogPresenter.ErrPlaceOfIssueEmpty.Label.text": "Tempat penerbitan wajib diisi",
+    "EmailRegisterVNDialogPresenter.ErrAddressEmpty.Label.text": "Alamat wajib diisi",
 
     "AccountSelectionDialogPresenter.AccountSelectionInfo.Label.text": "Pilih Akun",
     "AccountSelectionDialogPresenter.GameAccountList.ListView.label": "Daftar Akun Game",

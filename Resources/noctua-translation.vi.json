@@ -62,6 +62,13 @@
     "EmailRegisterVNDialogPresenter.LoginLink.Label.text": "Đăng nhập",
     "EmailRegisterVNDialogPresenter.WizardSpinner.Button.text": "Đang đăng ký...",
     "EmailRegisterVNDialogPresenter.AlreadyHaveAccount.Label.text": "Đã có tài khoản?",
+    "EmailRegisterVNDialogPresenter.ErrPhoneNumberEmpty.Label.text": "Số điện thoại là bắt buộc",
+    "EmailRegisterVNDialogPresenter.ErrFullnameEmpty.Label.text": "Họ và tên là bắt buộc",
+    "EmailRegisterVNDialogPresenter.ErrBirthdateEmpty.Label.text": "Ngày sinh là bắt buộc",
+    "EmailRegisterVNDialogPresenter.ErrCountryEmpty.Label.text": "Quốc gia là bắt buộc",
+    "EmailRegisterVNDialogPresenter.ErrIDCardEmpty.Label.text": "Số CMND là bắt buộc",
+    "EmailRegisterVNDialogPresenter.ErrPlaceOfIssueEmpty.Label.text": "Nơi cấp là bắt buộc",
+    "EmailRegisterVNDialogPresenter.ErrAddressEmpty.Label.text": "Địa chỉ là bắt buộc",
 
     "AccountSelectionDialogPresenter.AccountSelectionInfo.Label.text": "Chọn tài khoản",
     "AccountSelectionDialogPresenter.GameAccountList.ListView.label": "Danh sách tài khoản game",
