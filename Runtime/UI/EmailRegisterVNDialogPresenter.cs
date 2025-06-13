@@ -669,13 +669,24 @@ namespace com.noctuagames.sdk.UI
             // regExtra is always populated with VN data
             _isDatePickerOpen = false; 
             var birthDateVal = DateTime.ParseExact(_birthDate.text, "dd/MM/yyyy", CultureInfo.InvariantCulture).ToUniversalTime();
-            var issueDateVal = DateTime.ParseExact(_dateOfIssue.text, "dd/MM/yyyy", CultureInfo.InvariantCulture).ToUniversalTime();
-            var regExtra = new Dictionary<string, string>() {
-                { "fullname", _fullname.text }, { "phone_number", _phoneNumber.text},
-                { "birth_date", birthDateVal.ToString() }, { "country", _country.text},
-                { "id_card", _idCard.text}, { "place_of_issue", _placeOfIssue.text},
-                { "date_of_issue", issueDateVal.ToString() }, { "address", _address.text}
+
+             var regExtra = new Dictionary<string, string>() {
+                { "fullname", _fullname.text },
+                { "phone_number", _phoneNumber.text},
+                { "birth_date", birthDateVal.ToString()}
             };
+
+            if (IsVNLegalPurposeFullKYCEnabled())
+            {
+                var issueDateVal = DateTime.ParseExact(_dateOfIssue.text, "dd/MM/yyyy", CultureInfo.InvariantCulture).ToUniversalTime();
+
+                regExtra.Add("country", _country.text);
+                regExtra.Add("id_card", _idCard.text);
+                regExtra.Add("place_of_issue", _placeOfIssue.text);
+                regExtra.Add("date_of_issue", issueDateVal.ToString());
+                regExtra.Add("address", _address.text);
+            }
+           
             _log.Debug("Final Register extra (VN): " + JsonConvert.SerializeObject(regExtra));
 
             try {
