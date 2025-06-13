@@ -526,7 +526,7 @@ namespace com.noctuagames.sdk.UI
             if (!string.IsNullOrEmpty(passwordError))
             {
                 _inputPassword.Error(passwordError);
-                 if (firstErrorMessage == null) firstErrorMessage = passwordError;
+                if (firstErrorMessage == null) firstErrorMessage = passwordError;
                 isValid = false;
             }
             string rePasswordError = Utility.ValidateReenterPassword(password, rePassword);
@@ -539,35 +539,34 @@ namespace com.noctuagames.sdk.UI
 
             if (IsVNLegalPurposeFullKYCEnabled())
             {
-                // VN-specific field validation (always active if this is a VN-only class)
-                if (_gender.value == Locale.GetTranslation("Select.Gender")) // Assuming placeholder
+                if (_gender.value == Locale.GetTranslation("EmailRegisterVNDialogPresenter.GenderTF.DropdownField.label")) // Assuming placeholder
                 {
-                    _gender.ElementAt(1).AddToClassList("noctua-text-input-error"); // Style the dropdown input part
-                    var genderErrorLabel = _gender.Q<Label>("error"); // Assuming an error label exists within the DropdownField's template
-                    genderErrorLabel.text = Locale.GetTranslation("Error.SelectGender"); // Use Locale
+                    _gender.ElementAt(1).AddToClassList("noctua-text-input-error");
+                    var genderErrorLabel = _gender.Q<Label>("error");
+                    genderErrorLabel.text = Locale.GetTranslation("EmailRegisterVNDialogPresenter.ErrGenderEmpty.Label.text"); // This key needs to exist in translations
                     genderErrorLabel.RemoveFromClassList("hide");
-                    _gender.Q<VisualElement>("title").style.color = ColorModule.redError; // Style the title label
+                    _gender.Q<VisualElement>("title").style.color = ColorModule.redError;
                     if (firstErrorMessage == null) firstErrorMessage = genderErrorLabel.text;
                     isValid = false;
                 }
             }
 
             if (string.IsNullOrWhiteSpace(_birthDate.text)) {
-                _birthDate.Error(Locale.GetTranslation("Error.BirthdateRequired"));
-                if (firstErrorMessage == null) firstErrorMessage = Locale.GetTranslation("Error.BirthdateRequired");
+                _birthDate.Error(Locale.GetTranslation("EmailRegisterVNDialogPresenter.ErrBirthdateEmpty.Label.text")); // Add this key to match system
+                if (firstErrorMessage == null) firstErrorMessage = Locale.GetTranslation("EmailRegisterVNDialogPresenter.ErrBirthdateEmpty.Label.text");
                 isValid = false;
             } else {
                 try {
                     var birthDateVal = DateTime.ParseExact(_birthDate.text, "dd/MM/yyyy", CultureInfo.InvariantCulture).ToUniversalTime();
                     if (birthDateVal.AddYears(18) > DateTime.UtcNow) // Age check
                     {
-                        _birthDate.Error(Locale.GetTranslation("Error.MinAge18"));
-                        if (firstErrorMessage == null) firstErrorMessage = Locale.GetTranslation("Error.MinAge18");
+                        _birthDate.Error(Locale.GetTranslation("EmailRegisterVNDialogPresenter.ErrUnderage.Label.text"));
+                        if (firstErrorMessage == null) firstErrorMessage = Locale.GetTranslation("EmailRegisterVNDialogPresenter.ErrUnderage.Label.text");
                         isValid = false;
                     }
                 } catch (FormatException) {
-                    _birthDate.Error(Locale.GetTranslation("Error.InvalidDateFormat"));
-                     if (firstErrorMessage == null) firstErrorMessage = Locale.GetTranslation("Error.InvalidDateFormat");
+                    _birthDate.Error(Locale.GetTranslation("EmailRegisterVNDialogPresenter.ErrInvalidDateFormat.Label.text")); // Ensure this exists
+                    if (firstErrorMessage == null) firstErrorMessage = Locale.GetTranslation("EmailRegisterVNDialogPresenter.ErrInvalidDateFormat.Label.text");
                     isValid = false;
                 }
             }
@@ -576,79 +575,76 @@ namespace com.noctuagames.sdk.UI
             {
                 if (string.IsNullOrWhiteSpace(_dateOfIssue.text))
                 {
-                    _dateOfIssue.Error(Locale.GetTranslation("Error.DateOfIssueRequired")); // Create corresponding error message
-                    if (firstErrorMessage == null) firstErrorMessage = Locale.GetTranslation("Error.DateOfIssueRequired");
+                    _dateOfIssue.Error(Locale.GetTranslation("EmailRegisterVNDialogPresenter.ErrDateOfIssueEmpty.Label.text")); // Ensure this key exists
+                    if (firstErrorMessage == null) firstErrorMessage = Locale.GetTranslation("EmailRegisterVNDialogPresenter.ErrDateOfIssueEmpty.Label.text");
                     isValid = false;
                 }
                 else
                 {
                     try
                     {
-                        DateTime.ParseExact(_dateOfIssue.text, "dd/MM/yyyy", CultureInfo.InvariantCulture); // Just check parsability
+                        DateTime.ParseExact(_dateOfIssue.text, "dd/MM/yyyy", CultureInfo.InvariantCulture);
                     }
                     catch (FormatException)
                     {
-                        _dateOfIssue.Error(Locale.GetTranslation("Error.InvalidDateFormat"));
-                        if (firstErrorMessage == null) firstErrorMessage = Locale.GetTranslation("Error.InvalidDateFormat");
+                        _dateOfIssue.Error(Locale.GetTranslation("EmailRegisterVNDialogPresenter.ErrInvalidDateFormat.Label.text"));
+                        if (firstErrorMessage == null) firstErrorMessage = Locale.GetTranslation("EmailRegisterVNDialogPresenter.ErrInvalidDateFormat.Label.text");
                         isValid = false;
                     }
                 }
             }
-           
-            
-            // Add validation for other VN fields (_fullname, _phoneNumber, _country, _idCard, _placeOfIssue, _address) as needed
-            // Example:
+
             if (string.IsNullOrWhiteSpace(_fullname.text)) {
-                _fullname.Error(Locale.GetTranslation("Error.FullnameRequired"));
-                if (firstErrorMessage == null) firstErrorMessage = Locale.GetTranslation("Error.FullnameRequired");
+                _fullname.Error(Locale.GetTranslation("EmailRegisterVNDialogPresenter.ErrFullnameEmpty.Label.text")); // Make sure this exists
+                if (firstErrorMessage == null) firstErrorMessage = Locale.GetTranslation("EmailRegisterVNDialogPresenter.ErrFullnameEmpty.Label.text");
                 isValid = false;
             }
             if (string.IsNullOrWhiteSpace(_phoneNumber.text)) {
-                _phoneNumber.Error(Locale.GetTranslation("Error.PhoneNumberRequired"));
-                if (firstErrorMessage == null) firstErrorMessage = Locale.GetTranslation("Error.PhoneNumberRequired");
+                _phoneNumber.Error(Locale.GetTranslation("EmailRegisterVNDialogPresenter.ErrPhoneNumberEmpty.Label.text")); // Make sure this exists
+                if (firstErrorMessage == null) firstErrorMessage = Locale.GetTranslation("EmailRegisterVNDialogPresenter.ErrPhoneNumberEmpty.Label.text");
                 isValid = false;
             }
-            
+
             if (IsVNLegalPurposeFullKYCEnabled())
             {
                 if (string.IsNullOrWhiteSpace(_country.text))
                 {
-                    _country.Error(Locale.GetTranslation("Error.CountryRequired"));
-                    if (firstErrorMessage == null) firstErrorMessage = Locale.GetTranslation("Error.CountryRequired");
+                    _country.Error(Locale.GetTranslation("EmailRegisterVNDialogPresenter.ErrCountryEmpty.Label.text")); // Make sure this exists
+                    if (firstErrorMessage == null) firstErrorMessage = Locale.GetTranslation("EmailRegisterVNDialogPresenter.ErrCountryEmpty.Label.text");
                     isValid = false;
                 }
                 if (string.IsNullOrWhiteSpace(_idCard.text))
                 {
-                    _idCard.Error(Locale.GetTranslation("Error.IDCardRequired"));
-                    if (firstErrorMessage == null) firstErrorMessage = Locale.GetTranslation("Error.IDCardRequired");
+                    _idCard.Error(Locale.GetTranslation("EmailRegisterVNDialogPresenter.ErrIDCardEmpty.Label.text")); // Make sure this exists
+                    if (firstErrorMessage == null) firstErrorMessage = Locale.GetTranslation("EmailRegisterVNDialogPresenter.ErrIDCardEmpty.Label.text");
                     isValid = false;
                 }
                 if (string.IsNullOrWhiteSpace(_placeOfIssue.text))
                 {
-                    _placeOfIssue.Error(Locale.GetTranslation("Error.PlaceOfIssueRequired"));
-                    if (firstErrorMessage == null) firstErrorMessage = Locale.GetTranslation("Error.PlaceOfIssueRequired");
+                    _placeOfIssue.Error(Locale.GetTranslation("EmailRegisterVNDialogPresenter.ErrPlaceOfIssueEmpty.Label.text")); // Make sure this exists
+                    if (firstErrorMessage == null) firstErrorMessage = Locale.GetTranslation("EmailRegisterVNDialogPresenter.ErrPlaceOfIssueEmpty.Label.text");
                     isValid = false;
                 }
                 if (string.IsNullOrWhiteSpace(_address.text))
                 {
-                    _address.Error(Locale.GetTranslation("Error.AddressRequired"));
-                    if (firstErrorMessage == null) firstErrorMessage = Locale.GetTranslation("Error.AddressRequired");
+                    _address.Error(Locale.GetTranslation("EmailRegisterVNDialogPresenter.ErrAddressEmpty.Label.text")); // Make sure this exists
+                    if (firstErrorMessage == null) firstErrorMessage = Locale.GetTranslation("EmailRegisterVNDialogPresenter.ErrAddressEmpty.Label.text");
                     isValid = false;
                 }
             }
-            
 
             if (!isValid)
             {
                 _continueButton.ToggleLoading(false); 
                 _wizardContinueButton.ToggleLoading(false);
                 _wizard5ContinueButton.ToggleLoading(false);
-                View.Q<Button>("WizardPrevTo3Button")?.RemoveFromClassList("hide"); // Show back button again
-                if(firstErrorMessage != null) Model.ShowGeneralNotification(firstErrorMessage, false); // Show the first encountered error
+                View.Q<Button>("WizardPrevTo3Button")?.RemoveFromClassList("hide");
+                if (firstErrorMessage != null) Model.ShowGeneralNotification(firstErrorMessage, false);
                 return false;
             }
             return true;
         }
+
 
         private async void OnContinueButtonClick(PointerUpEvent evt) // Final submit method for all VN flows
         {

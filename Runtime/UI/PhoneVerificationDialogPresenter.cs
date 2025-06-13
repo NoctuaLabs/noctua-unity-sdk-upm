@@ -23,7 +23,7 @@ namespace com.noctuagames.sdk.UI
 
         public void Show( string verificationId, string phoneNumber, string emailAddress, string password, Dictionary<string, string> regExtra)
         {
-            Debug.Log("EmailVerificationDialogPresenter.Show()");
+            Debug.Log("PhoneVerificationDialogPresenter.Show()");
             View.visible = true;
 
             _credVerifyId = verificationId;
