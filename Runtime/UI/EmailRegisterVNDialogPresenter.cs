@@ -214,6 +214,13 @@ namespace com.noctuagames.sdk.UI
 
         public void NavigateToWizard2(PointerUpEvent evt = null)
         {
+            // Validate all fields first, including email, password, and VN fields
+            if (!ValidateForm1())
+            {
+                _log.Debug("VN wizard validation failed");
+                _wizardContinueButton.ToggleLoading(false); // Ensure loading is reset if validation fails
+                return;
+            }
             _wizardPage = 2;
             View.Q<VisualElement>("footerContent").AddToClassList("hide"); // Hide general footer
             View.Q<VisualElement>("RegisterWizard1").AddToClassList("hide");
@@ -252,6 +259,7 @@ namespace com.noctuagames.sdk.UI
                 }
                 else
                 {
+
                     // Directly submit registration (simpler VN flow without full KYC & without OTP)
                     OnContinueButtonClick(evt);
                 }
@@ -498,14 +506,66 @@ namespace com.noctuagames.sdk.UI
             }
         }
 
+        private bool ValidateForm1()
+        {
+            HideAllErrors(); // Clear previous errors
+
+            // Toggle loading for all submit buttons that might be active
+            _continueButton.ToggleLoading(true);
+            _wizardContinueButton.ToggleLoading(true);
+            _wizard5ContinueButton.ToggleLoading(true);
+            View.Q<Button>("WizardPrevTo3Button")?.AddToClassList("hide"); // Hide back button during validation
+
+            bool isValid = true;
+            string firstErrorMessage = null; // To show the first encountered error
+
+            var emailAddress = _inputEmail.text.Replace(" ", string.Empty);
+            var password = _inputPassword.text;
+            var rePassword = _inputRepassword.text;
+
+            string emailError = Utility.ValidateEmail(emailAddress);
+            if (!string.IsNullOrEmpty(emailError))
+            {
+                _inputEmail.Error(emailError);
+                if (firstErrorMessage == null) firstErrorMessage = emailError;
+                isValid = false;
+            }
+            string passwordError = Utility.ValidatePassword(password);
+            if (!string.IsNullOrEmpty(passwordError))
+            {
+                _inputPassword.Error(passwordError);
+                if (firstErrorMessage == null) firstErrorMessage = passwordError;
+                isValid = false;
+            }
+            string rePasswordError = Utility.ValidateReenterPassword(password, rePassword);
+            if (!string.IsNullOrEmpty(rePasswordError))
+            {
+                _inputRepassword.Error(rePasswordError);
+                if (firstErrorMessage == null) firstErrorMessage = rePasswordError;
+                isValid = false;
+            }
+
+            if (!isValid)
+            {
+                _continueButton.ToggleLoading(false);
+                _wizardContinueButton.ToggleLoading(false);
+                _wizard5ContinueButton.ToggleLoading(false);
+                View.Q<Button>("WizardPrevTo3Button")?.RemoveFromClassList("hide");
+                if (firstErrorMessage != null) Model.ShowGeneralNotification(firstErrorMessage, false);
+                return false;
+            }
+
+            return true;
+        }
+
         private bool validateForm() // Validation for VN flow
         {
             HideAllErrors(); // Clear previous errors
 
             // Toggle loading for all submit buttons that might be active
-            _continueButton.ToggleLoading(true); 
+            _continueButton.ToggleLoading(true);
             _wizardContinueButton.ToggleLoading(true);
-            _wizard5ContinueButton.ToggleLoading(true); 
+            _wizard5ContinueButton.ToggleLoading(true);
             View.Q<Button>("WizardPrevTo3Button")?.AddToClassList("hide"); // Hide back button during validation
 
             bool isValid = true;
@@ -551,12 +611,16 @@ namespace com.noctuagames.sdk.UI
                 }
             }
 
-            if (string.IsNullOrWhiteSpace(_birthDate.text)) {
+            if (string.IsNullOrWhiteSpace(_birthDate.text))
+            {
                 _birthDate.Error(Locale.GetTranslation("EmailRegisterVNDialogPresenter.ErrBirthdateEmpty.Label.text")); // Add this key to match system
                 if (firstErrorMessage == null) firstErrorMessage = Locale.GetTranslation("EmailRegisterVNDialogPresenter.ErrBirthdateEmpty.Label.text");
                 isValid = false;
-            } else {
-                try {
+            }
+            else
+            {
+                try
+                {
                     var birthDateVal = DateTime.ParseExact(_birthDate.text, "dd/MM/yyyy", CultureInfo.InvariantCulture).ToUniversalTime();
                     if (birthDateVal.AddYears(18) > DateTime.UtcNow) // Age check
                     {
@@ -564,7 +628,9 @@ namespace com.noctuagames.sdk.UI
                         if (firstErrorMessage == null) firstErrorMessage = Locale.GetTranslation("EmailRegisterVNDialogPresenter.ErrUnderage.Label.text");
                         isValid = false;
                     }
-                } catch (FormatException) {
+                }
+                catch (FormatException)
+                {
                     _birthDate.Error(Locale.GetTranslation("EmailRegisterVNDialogPresenter.ErrInvalidDateFormat.Label.text")); // Ensure this exists
                     if (firstErrorMessage == null) firstErrorMessage = Locale.GetTranslation("EmailRegisterVNDialogPresenter.ErrInvalidDateFormat.Label.text");
                     isValid = false;
@@ -594,12 +660,14 @@ namespace com.noctuagames.sdk.UI
                 }
             }
 
-            if (string.IsNullOrWhiteSpace(_fullname.text)) {
+            if (string.IsNullOrWhiteSpace(_fullname.text))
+            {
                 _fullname.Error(Locale.GetTranslation("EmailRegisterVNDialogPresenter.ErrFullnameEmpty.Label.text")); // Make sure this exists
                 if (firstErrorMessage == null) firstErrorMessage = Locale.GetTranslation("EmailRegisterVNDialogPresenter.ErrFullnameEmpty.Label.text");
                 isValid = false;
             }
-            if (string.IsNullOrWhiteSpace(_phoneNumber.text)) {
+            if (string.IsNullOrWhiteSpace(_phoneNumber.text))
+            {
                 _phoneNumber.Error(Locale.GetTranslation("EmailRegisterVNDialogPresenter.ErrPhoneNumberEmpty.Label.text")); // Make sure this exists
                 if (firstErrorMessage == null) firstErrorMessage = Locale.GetTranslation("EmailRegisterVNDialogPresenter.ErrPhoneNumberEmpty.Label.text");
                 isValid = false;
@@ -635,13 +703,14 @@ namespace com.noctuagames.sdk.UI
 
             if (!isValid)
             {
-                _continueButton.ToggleLoading(false); 
+                _continueButton.ToggleLoading(false);
                 _wizardContinueButton.ToggleLoading(false);
                 _wizard5ContinueButton.ToggleLoading(false);
                 View.Q<Button>("WizardPrevTo3Button")?.RemoveFromClassList("hide");
                 if (firstErrorMessage != null) Model.ShowGeneralNotification(firstErrorMessage, false);
                 return false;
             }
+
             return true;
         }
 
@@ -653,10 +722,18 @@ namespace com.noctuagames.sdk.UI
             // For consistency, validate here or ensure all callers have validated.
             // If validateForm() is called here, ensure no conflicting loading states.
             // Assume evt from wizard has passed validation. If evt is null (direct call), validate.
-            if (evt == null && !validateForm()) { // If called not from wizard (e.g., fallback simple VN path)
+            if (evt == null) { // If called not from wizard (e.g., fallback simple VN path)
                  _log.Debug("Direct OnContinueButtonClick validation failed");
                 return;
             }
+
+            if (!validateForm()) // Validate all fields first, including email, password, and VN fields
+            {
+                _log.Debug("VN wizard validation failed");
+                _wizardContinueButton.ToggleLoading(false); // Ensure loading is reset if validation fails
+                return;
+            }
+
             _log.Debug("OnContinueButtonClick executing final registration for VN");
 
             _continueButton.ToggleLoading(true); // This button might not be visible, but loading state can be useful
