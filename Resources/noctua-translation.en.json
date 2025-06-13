@@ -62,6 +62,13 @@
     "EmailRegisterVNDialogPresenter.WizardSpinner.Button.text": "Registering...",
     "EmailRegisterVNDialogPresenter.AlreadyHaveAccount.Label.text": "Already have an account?",
     "EmailRegisterVNDialogPresenter.ErrUnderage.Label.text": "Minimum age is 18 years old",
+    "EmailRegisterVNDialogPresenter.ErrPhoneNumberEmpty.Label.text": "Phone number is required",
+    "EmailRegisterVNDialogPresenter.ErrFullnameEmpty.Label.text": "Full name is required",
+    "EmailRegisterVNDialogPresenter.ErrBirthdateEmpty.Label.text": "Birthdate is required",
+    "EmailRegisterVNDialogPresenter.ErrCountryEmpty.Label.text": "Country is required",
+    "EmailRegisterVNDialogPresenter.ErrIDCardEmpty.Label.text": "ID card number is required",
+    "EmailRegisterVNDialogPresenter.ErrPlaceOfIssueEmpty.Label.text": "Place of issue is required",
+    "EmailRegisterVNDialogPresenter.ErrAddressEmpty.Label.text": "Address is required",
 
     "AccountSelectionDialogPresenter.AccountSelectionInfo.Label.text": "Choose Account",
     "AccountSelectionDialogPresenter.GameAccountList.ListView.label": "Game Account List",
