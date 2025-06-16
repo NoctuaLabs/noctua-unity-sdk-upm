@@ -2,6 +2,22 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.42.0] - 2025-06-16
+
+### 🚀 Features
+
+- Built in event tracker iaa admob
+- Built in event tracker iaa applovin max
+
+### 🐛 Bug Fixes
+
+- Built in iaa event tracker not track properly admob
+- Vn full kyc when not enabled
+- Email register vn translation wording
+- Vn full kyc vn flow
+- Translation error not found on email register vn dialog
+- Validation form not working properly in email register vn dialog
+
 ## [0.41.0] - 2025-06-05
 
 ### 🚀 Features
