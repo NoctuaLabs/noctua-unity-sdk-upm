@@ -20,8 +20,8 @@ public static class IAAPreprocessor
 
         bool hasAdMob = Directory.Exists("Assets/GoogleMobileAds") ||
                         Directory.Exists("Packages/com.google.ads.mobile/GoogleMobileAds");
-        
-        bool hasAppLovin = Directory.Exists("Assets/MaxSdk");
+
+        bool hasAppLovin = Directory.Exists("Assets/MaxSdk") || Directory.Exists("Packages/com.applovin.mediation.ads");
 
         Debug.Log($"[{targetGroup}] AdMob SDK Exists: {hasAdMob}");
         Debug.Log($"[{targetGroup}] AppLovin SDK Exists: {hasAppLovin}");
@@ -50,5 +50,21 @@ public static class IAAPreprocessor
             Debug.Log($"Removed Define Symbol: {symbol}");
         }
     }
+
+    public static void RemoveDefineSymbol(string symbol, BuildTargetGroup targetGroup)
+    {
+        Debug.Log($"Removing define symbol: {symbol} for target group: {targetGroup}");
+
+        string defines = PlayerSettings.GetScriptingDefineSymbolsForGroup(targetGroup);
+        var defineList = defines.Split(';').Where(d => !string.IsNullOrWhiteSpace(d)).ToList();
+
+        if (defineList.Contains(symbol))
+        {
+            defineList.Remove(symbol);
+            PlayerSettings.SetScriptingDefineSymbolsForGroup(targetGroup, string.Join(";", defineList));
+            Debug.Log($"[{targetGroup}] Manually removed define symbol: {symbol}");
+        }
+    }
 }
+
 #endif
