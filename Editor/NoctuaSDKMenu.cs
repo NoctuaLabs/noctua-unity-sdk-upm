@@ -43,19 +43,19 @@ public class NoctuaIntegrationManagerWindow : EditorWindow
     {
         scrollPosition = EditorGUILayout.BeginScrollView(scrollPosition);
 
-        DrawHeader("Noctua Config Information");
-        if (config != null)
-        {
-            EditorGUILayout.BeginVertical("box");
-            DrawLabel("Client ID", config.ClientId);
-            EditorGUILayout.EndVertical();
-        }
-        else
-        {
-            EditorGUILayout.HelpBox("Failed to load noctuagg.json", MessageType.Warning);
-        }
+        // DrawHeader("Noctua Config Information");
+        // if (config != null)
+        // {
+        //     EditorGUILayout.BeginVertical("box");
+        //     DrawLabel("Client ID", config.ClientId);
+        //     EditorGUILayout.EndVertical();
+        // }
+        // else
+        // {
+        //     EditorGUILayout.HelpBox("Failed to load noctuagg.json", MessageType.Warning);
+        // }
 
-        EditorGUILayout.Space(10);
+        // EditorGUILayout.Space(10);
 
         DrawFoldoutSection("IAA Providers (UPM Only)", ref iaaFoldout, () =>
         {
