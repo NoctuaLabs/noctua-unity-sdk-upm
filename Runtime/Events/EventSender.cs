@@ -57,6 +57,7 @@ namespace com.noctuagames.sdk.Events
         private string _ipAddress;
         private bool? _isSandbox;
         private static bool _isQuitting = false;
+        private readonly object _queueLock = new();
 
         public void SetProperties(
             long? userId = 0,
@@ -214,7 +215,11 @@ namespace com.noctuagames.sdk.Events
             }
             _log.Info($"Total loaded events from PlayerPrefs: {events.Count}");
 
-            _eventQueue = new List<Dictionary<string, IConvertible>>(events);
+            lock (_queueLock)
+            {
+                _log.Debug("Locking the event queue to prevent concurrent access");
+                _eventQueue = new List<Dictionary<string, IConvertible>>(events);
+            }
 
             _log.Info($"Total loaded events from PlayerPrefs: {_eventQueue.Count}");
         }
@@ -274,12 +279,15 @@ namespace com.noctuagames.sdk.Events
 
                 _log.Info($"queued event '{LastEventTime:O}|{name}|{_deviceId}|{_sessionId}|{_userId}|{_playerId}'");
 
-                _eventQueue.Add(data);
+                lock (_queueLock)
+                {
+                    _eventQueue.Add(data);
 
-                PlayerPrefs.SetString("NoctuaEvents", JsonConvert.SerializeObject(_eventQueue));
-                PlayerPrefs.Save();
-                _log.Info($"{name} added to the queue. Current total event in queue: {_eventQueue.Count}");
-
+                    PlayerPrefs.SetString("NoctuaEvents", JsonConvert.SerializeObject(_eventQueue));
+                    PlayerPrefs.Save();
+                    _log.Info($"{name} added to the queue. Current total event in queue: {_eventQueue.Count}");
+                }
+              
                 // This check is used to maintain the offline state more frequent to update.
                 // This also prevent "offline" event flooding the queue
                 // by not sending another "offline" event if the event name is "offline"
@@ -352,10 +360,16 @@ namespace com.noctuagames.sdk.Events
 
             _log.Debug("On Flush called. " + $"Current total event in queue: {_eventQueue.Count}");
 
+            List<Dictionary<string, IConvertible>> snapshot;
+            lock (_queueLock)
+            {
+                snapshot = new List<Dictionary<string, IConvertible>>(_eventQueue);
+            }
+
             var request = new HttpRequest(HttpMethod.Post, $"{_config.BaseUrl}/events")
                 .WithHeader("X-CLIENT-ID", _config.ClientId)
                 .WithHeader("X-DEVICE-ID", SanitizeHeaderValue(_deviceId))
-                .WithNdjsonBody(_eventQueue);
+                .WithNdjsonBody(snapshot);
 
             UniTask.Void(async () =>
             {
@@ -366,7 +380,12 @@ namespace com.noctuagames.sdk.Events
                     // then it's safe to remove all items from PlayerPrefs
                     PlayerPrefs.SetString("NoctuaEvents", "[]");
                     PlayerPrefs.Save();
-                    _eventQueue.Clear();
+
+                    lock (_queueLock)
+                    {
+                        // Clear the event queue
+                        _eventQueue.Clear();
+                    }
                     _log.Info($"Sent {_eventQueue.Count} events. PlayerPrefs cleared.");
                 }
                 catch (Exception e)
@@ -438,14 +457,20 @@ namespace com.noctuagames.sdk.Events
 
                 // Dequeue to be sent to server
                 var events = new List<Dictionary<string, IConvertible>>();
-                if (_eventQueue.Count <= _config.MaxBatchSize)
+                lock (_queueLock)
                 {
-                    events = new List<Dictionary<string, IConvertible>>(_eventQueue);
-                    _eventQueue.Clear();
-                } else {
-                    events = _eventQueue.GetRange(0, _config.MaxBatchSize);
-                    _eventQueue.RemoveRange(0, _config.MaxBatchSize);
+                    if (_eventQueue.Count <= _config.MaxBatchSize)
+                    {
+                        events = new List<Dictionary<string, IConvertible>>(_eventQueue);
+                        _eventQueue.Clear();
+                    }
+                    else
+                    {
+                        events = _eventQueue.GetRange(0, _config.MaxBatchSize);
+                        _eventQueue.RemoveRange(0, _config.MaxBatchSize);
+                    }
                 }
+               
 
                 _log.Info($"Batch size: {_config.MaxBatchSize}, events to be send: {events.Count}, events in the queue: {_eventQueue.Count}");
 
@@ -462,8 +487,13 @@ namespace com.noctuagames.sdk.Events
                 catch (Exception e)
                 {
                     _log.Error($"Failed to send events to server: {e.Message}");
-                    // Re-enqueue all the events
-                    _eventQueue.AddRange(events);
+                    lock (_queueLock)
+                    {
+                        // If the request failed, we need to re-enqueue the events back to the queue
+                        _log.Info("Re-enqueueing events back to the queue due to failure");
+                         // Re-enqueue all the events
+                        _eventQueue.AddRange(events);
+                    }
                 }
             }
         }
