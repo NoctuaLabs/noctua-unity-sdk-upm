@@ -73,20 +73,13 @@ namespace com.noctuagames.sdk
         internal MediationManager(UIFactory uiFactory, IAA iAAResponse)
         {
             _uiFactory = uiFactory;
-            
+
             if (_iAAResponse != null)
             {
                 _log.Info("IAA response already set in MediationManager");
                 return;
             }
             _iAAResponse = iAAResponse;
-        }
-
-        public void SetIAAResponse(IAA iAAResponse)
-        {
-            _iAAResponse = iAAResponse;
-            
-            _log.Info("Set IAA response in MediationManager");
         }
 
         public void Initialize(Action initCompleteAction = null)

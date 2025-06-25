@@ -297,7 +297,21 @@ namespace com.noctuagames.sdk
                 },
                 _eventSender
             );
-            
+
+            // Initialize ui factory
+            var panelSettings = Resources.Load<PanelSettings>("NoctuaPanelSettings");
+            panelSettings.themeStyleSheet = Resources.Load<ThemeStyleSheet>("NoctuaTheme");            
+            var noctuaUIGameObject = new GameObject("NoctuaUI");
+            noctuaUIGameObject.AddComponent<PauseBehaviour>();
+            noctuaUIGameObject.AddComponent<GlobalExceptionLogger>();
+            var screenRotationMonitor = noctuaUIGameObject.AddComponent<ScreenRotationMonitor>();
+            screenRotationMonitor.PanelSettings = panelSettings;
+            Object.DontDestroyOnLoad(noctuaUIGameObject);
+            SceneManager.sceneLoaded += (_, _) => EventSystem.SetUITookitEventSystemOverride(EventSystem.current);
+            var sessionTrackerBehaviour = noctuaUIGameObject.AddComponent<SessionTrackerBehaviour>();
+            sessionTrackerBehaviour.SessionTracker = _sessionTracker;
+            _uiFactory = new UIFactory(noctuaUIGameObject, panelSettings, locale);
+
             _nativePlugin = GetNativePlugin();
             _log.Debug($"_nativePlugin type: {_nativePlugin?.GetType().FullName}");
 
@@ -323,47 +337,25 @@ namespace com.noctuagames.sdk
                     return;
                 }
 
-                // _iaa = new MediationManager(iAAResponse: _config.IAA, uiFactory: _uiFactory);
-                
-                Instance.Value._iaa._iAAResponse = _config.IAA;
+                _iaa = new MediationManager(iAAResponse: _config.IAA, uiFactory: _uiFactory);
 
-                #if UNITY_ADMOB || UNITY_APPLOVIN
+#if UNITY_ADMOB || UNITY_APPLOVIN
                 _iaa.Initialize(() =>
                 {
                     _log.Info("IAA SDK initialized from Local Config");
-                    
+
                     InitializeNativePlugin();
                 });
-                #else
+#else
                 InitializeNativePlugin();
                 _log.Info("Initialize nativePlugin while IAA is not enabled and UNITY_ADMOB or UNITY_APPLOVIN is not defined");
-                #endif
-
+#endif
             }
 
             _event = new NoctuaEventService(_nativePlugin, _eventSender);
             _event.SetProperties(isSandbox: _config.Noctua.IsSandbox);
             _eventSender.SetProperties(isSandbox: _config.Noctua.IsSandbox);
             _isOfflineFirst = _config.Noctua.IsOfflineFirst;
-            
-
-            var panelSettings = Resources.Load<PanelSettings>("NoctuaPanelSettings");
-            panelSettings.themeStyleSheet = Resources.Load<ThemeStyleSheet>("NoctuaTheme");            
-            
-            var noctuaUIGameObject = new GameObject("NoctuaUI");
-            noctuaUIGameObject.AddComponent<PauseBehaviour>();
-            noctuaUIGameObject.AddComponent<GlobalExceptionLogger>();
-            var screenRotationMonitor = noctuaUIGameObject.AddComponent<ScreenRotationMonitor>();
-            screenRotationMonitor.PanelSettings = panelSettings;
-            Object.DontDestroyOnLoad(noctuaUIGameObject);
-            
-            SceneManager.sceneLoaded += (_, _) => EventSystem.SetUITookitEventSystemOverride(EventSystem.current);
-            
-            var sessionTrackerBehaviour = noctuaUIGameObject.AddComponent<SessionTrackerBehaviour>();
-            
-            sessionTrackerBehaviour.SessionTracker = _sessionTracker;
-            
-            _uiFactory = new UIFactory(noctuaUIGameObject, panelSettings, locale);
             
             var authService = new NoctuaAuthenticationService(
                 baseUrl: _config.Noctua.BaseUrl, 
@@ -891,7 +883,7 @@ namespace com.noctuagames.sdk
                 log.Info("initializing IAA SDK from remote config : " + initResponse.RemoteConfigs.IAA.Mediation);
 
                 Instance.Value._iaa._iAAResponse = Instance.Value._config.IAA;
-                log.Debug("Noctua IAA condig replaced with remote config: " + JsonConvert.SerializeObject(Instance.Value._iaa._iAAResponse));
+                log.Debug("Noctua IAA config replaced with remote config: " + JsonConvert.SerializeObject(Instance.Value._iaa._iAAResponse));
 
                 Instance.Value._iaa.Initialize(() => {
 
