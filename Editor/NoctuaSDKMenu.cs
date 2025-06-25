@@ -14,8 +14,8 @@ public class NoctuaIntegrationManagerWindow : EditorWindow
 
     private readonly Dictionary<string, (string packageName, string version)> upmPackages = new()
     {
-        { "AdMob", ("com.google.ads.mobile", "-") },
-        { "AppLovin", ("com.applovin.mediation.ads", "-") }
+        { "AdMob", ("com.google.ads.mobile", "10.2.0") },
+        { "AppLovin", ("com.applovin.mediation.ads", "8.3.1") }
     };
 
     private Dictionary<string, (bool installed, string currentVersion, string latestVersion)> iaaProviders = new();
