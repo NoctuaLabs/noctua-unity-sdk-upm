@@ -18,6 +18,7 @@ namespace com.noctuagames.sdk
         private string _mediationType;
 
         // Private event handlers
+        private event Action _onInitialized;
         private event Action _onAdDisplayed;
         private event Action _onAdFailedDisplayed;
         private event Action _onAdClicked;
@@ -35,6 +36,7 @@ namespace com.noctuagames.sdk
 #endif
 
         // public event handlers
+        public event Action OnInitialized { add => _onInitialized += value; remove => _onInitialized -= value; }
         public event Action OnAdDisplayed { add => _onAdDisplayed += value; remove => _onAdDisplayed -= value; }
         public event Action OnAdFailedDisplayed { add => _onAdFailedDisplayed += value; remove => _onAdFailedDisplayed -= value; }
         public event Action OnAdClicked { add => _onAdClicked += value; remove => _onAdClicked -= value; }
@@ -66,18 +68,32 @@ namespace com.noctuagames.sdk
 
         private readonly UIFactory _uiFactory;
         private bool _hasClosedPlaceholder = false; // Track if the placeholder has been closed to prevent multiple closures
+        public IAA _iAAResponse;
 
-
-        internal MediationManager(UIFactory uiFactory)
+        internal MediationManager(UIFactory uiFactory, IAA iAAResponse)
         {
             _uiFactory = uiFactory;
+            
+            if (_iAAResponse != null)
+            {
+                _log.Info("IAA response already set in MediationManager");
+                return;
+            }
+            _iAAResponse = iAAResponse;
         }
 
-        public void Initialize(IAA iAAResponse, Action initCompleteAction)
+        public void SetIAAResponse(IAA iAAResponse)
+        {
+            _iAAResponse = iAAResponse;
+            
+            _log.Info("Set IAA response in MediationManager");
+        }
+
+        public void Initialize(Action initCompleteAction = null)
         {
             _log.Info("Initializing Ad Mediation");
 
-            _mediationType = iAAResponse.Mediation;
+            _mediationType = _iAAResponse.Mediation;
 
             if (string.IsNullOrEmpty(_mediationType))
             {
@@ -85,7 +101,7 @@ namespace com.noctuagames.sdk
                 return;
             }
 
-            switch (iAAResponse.Mediation)
+            switch (_iAAResponse.Mediation)
             {
                 case "admob":
                     InitializeAdmob();
@@ -96,7 +112,7 @@ namespace com.noctuagames.sdk
                     break;
 
                 default:
-                    _log.Info("No mediation found: " + iAAResponse.Mediation);
+                    _log.Info("No mediation found: " + _iAAResponse.Mediation);
                     break;
             }
 
@@ -105,10 +121,11 @@ namespace com.noctuagames.sdk
 
                 initCompleteAction?.Invoke();
 
-                _log.Info("Ad Mediation Initialized: " + iAAResponse.Mediation);
+                _log.Info("Ad Mediation Initialized: " + _iAAResponse.Mediation);
 
-                if (iAAResponse.AdFormat == null)
+                if (_iAAResponse.AdFormat == null)
                 {
+                    _log.Info("Ad Format is null in IAA response. Cannot proceed with ad unit ID setup.");
                     return;
                 }
 
@@ -118,7 +135,7 @@ namespace com.noctuagames.sdk
                     _preloadManager = AdmobAdPreloadManager.Instance;
 #endif
                 }
-                SetupAdUnitID(iAAResponse);
+                SetupAdUnitID(_iAAResponse);
             });
         }
 
@@ -311,6 +328,9 @@ namespace com.noctuagames.sdk
                 LoadInterstitialAd();
                 LoadRewardedAd();
             }
+
+            _onInitialized?.Invoke();
+            _log.Info("Ad Unit IDs set up for mediation type: " + _mediationType);
         }
 
         //Interstitial public functions

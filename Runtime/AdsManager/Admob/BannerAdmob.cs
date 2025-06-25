@@ -47,6 +47,15 @@ namespace com.noctuagames.sdk.Admob
                 return;
             }
 
+            if (adSize == null)
+            {
+                _log.Info("Ad size is null.");
+
+                adSize = AdSize.Banner; // Default to Banner size if not provided
+
+                _log.Debug("Defaulting to Banner ad size.");
+            }
+
             _adSize = adSize;
             _adPosition = adPosition;
 

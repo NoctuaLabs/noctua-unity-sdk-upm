@@ -310,29 +310,35 @@ namespace com.noctuagames.sdk
             // See the line that has this comment:
             // - Initialize IAA (In-App Advertising) SDK and prepare IAA to be ready for showing ads to the user.
             // Do not move or reorder this code since it follows a specific initialization flow.
-            if(!_config.Noctua.isIAAEnabled)
-            {              
+            if (!_config.Noctua.isIAAEnabled)
+            {
                 _log.Info("Initialize nativePlugin while IAA is not enabled");
                 InitializeNativePlugin();
             }
             else
             {
-                if(_config.IAA == null)
+                if (_config.IAA == null)
                 {
                     _log.Error("IAA local config is null, please check your config file");
                     return;
                 }
 
-                #if UNITY_ADMOB || UNITY_APPLOVIN
-                _iaa.Initialize(_config.IAA, () => {
-                    _log.Info("IAA SDK initialized from Local Config");
+                // _iaa = new MediationManager(iAAResponse: _config.IAA, uiFactory: _uiFactory);
+                
+                Instance.Value._iaa._iAAResponse = _config.IAA;
 
+                #if UNITY_ADMOB || UNITY_APPLOVIN
+                _iaa.Initialize(() =>
+                {
+                    _log.Info("IAA SDK initialized from Local Config");
+                    
                     InitializeNativePlugin();
                 });
                 #else
                 InitializeNativePlugin();
                 _log.Info("Initialize nativePlugin while IAA is not enabled and UNITY_ADMOB or UNITY_APPLOVIN is not defined");
                 #endif
+
             }
 
             _event = new NoctuaEventService(_nativePlugin, _eventSender);
@@ -397,8 +403,8 @@ namespace com.noctuagames.sdk
 
             _platform = new NoctuaPlatform(_config.Noctua, accessTokenProvider, _uiFactory, _eventSender);
 
-            _iaa = new MediationManager(uiFactory: _uiFactory);
-            
+            _iaa = new MediationManager(iAAResponse: _config.IAA, uiFactory: _uiFactory);
+                
             _log.Info("Noctua instance created");
         }
 
@@ -521,7 +527,6 @@ namespace com.noctuagames.sdk
             return !isConnected;
         }
 
-
         public static async UniTask InitAsync()
         {
             if (_initialized)
@@ -530,7 +535,7 @@ namespace com.noctuagames.sdk
 
                 return;
             }
-            
+
             var log = Instance.Value._log;
 
             // Init game, retries on intermittent network failure
@@ -553,7 +558,7 @@ namespace com.noctuagames.sdk
                 },
                 OfflineMode = true,
             };
-            
+
             try
             {
                 initResponse = await Utility.RetryAsyncTask(Instance.Value._game.InitGameAsync);
@@ -606,9 +611,9 @@ namespace com.noctuagames.sdk
                 Instance.Value._log.Info("InitAsync() offline mode is enabled.");
                 Instance.Value._eventSender.Send("offline");
             }
-            
+
             var iapReadyTimeout = DateTime.UtcNow.AddSeconds(5);
-            
+
             log.Debug($"IAP ready: {Instance.Value._iap.IsReady}");
 
             while (!Instance.Value._iap.IsReady && DateTime.UtcNow < iapReadyTimeout)
@@ -619,7 +624,7 @@ namespace com.noctuagames.sdk
                     UniTask.WaitUntil(() => Noctua.Instance.Value._iap.IsReady),
                     UniTask.Delay(1000)
                 );
-                
+
                 log.Debug($"IAP ready: {Instance.Value._iap.IsReady}");
 
                 if (completedTask == 0)
@@ -627,12 +632,12 @@ namespace com.noctuagames.sdk
                     break;
                 }
             }
-            
+
             if (!Instance.Value._iap.IsReady)
             {
                 log.Error("IAP is not ready after timeout");
             }
-            
+
             if (string.IsNullOrEmpty(initResponse.Country))
             {
                 try
@@ -645,7 +650,9 @@ namespace com.noctuagames.sdk
                     log.Info("Using country from default value: " + initResponse.Country);
                     initResponse.Country = "ID";
                 }
-            } else {
+            }
+            else
+            {
                 log.Info("Using country from geoIP: " + initResponse.Country);
             }
 
@@ -670,7 +677,7 @@ namespace com.noctuagames.sdk
                     if (!string.IsNullOrEmpty(activeCurrency))
                     {
                         log.Info("Found active currency: " + activeCurrency);
-                        if (initResponse.SupportedCurrencies != null && 
+                        if (initResponse.SupportedCurrencies != null &&
                         initResponse.SupportedCurrencies.Contains(activeCurrency))
                         {
                             log.Info("Active currency is supported: " + activeCurrency);
@@ -681,7 +688,9 @@ namespace com.noctuagames.sdk
                             log.Warning("Active currency is not supported. Fallback to USD.");
                             Instance.Value._platform.Locale.SetCurrency("USD");
                         }
-                    } else {
+                    }
+                    else
+                    {
                         log.Warning("Active currency is not found. Try to use country to currency map.");
                         if (initResponse.CountryToCurrencyMap != null &&
                         initResponse.CountryToCurrencyMap.ContainsKey(initResponse.Country))
@@ -720,7 +729,7 @@ namespace com.noctuagames.sdk
             }
 
             var enabledPaymentTypes = initResponse.RemoteConfigs.EnabledPaymentTypes;
-            
+
             // Override the client RemoteFeatureFlags if any
             log.Debug("Overriding RemoteFeatureFlags...");
 
@@ -755,7 +764,7 @@ namespace com.noctuagames.sdk
                     }
                 }
             }
-                        
+
             Noctua.Instance.Value._auth.SetFlag(Noctua.Instance.Value._config.Noctua.RemoteFeatureFlags);
 
             log.Debug("Final noctua config: " + JsonConvert.SerializeObject(Noctua.Instance.Value._config?.Noctua));
@@ -783,12 +792,12 @@ namespace com.noctuagames.sdk
             enabledPaymentTypes.Remove(PaymentType.appstore);
             enabledPaymentTypes.Remove(PaymentType.playstore);
 #endif
-            
+
             Instance.Value._iap.SetEnabledPaymentTypes(enabledPaymentTypes);
             Instance.Value._iap.SetDistributionPlatform(initResponse.DistributionPlatform);
 
             Instance.Value._eventSender.Send("init");
-            
+
             if (IsFirstOpen())
             {
                 Instance.Value._eventSender.Send("sdk_first_open");
@@ -878,10 +887,13 @@ namespace com.noctuagames.sdk
              if(initResponse.RemoteConfigs.IAA != null)
             {
                 #if UNITY_ADMOB || UNITY_APPLOVIN
-
+                
                 log.Info("initializing IAA SDK from remote config : " + initResponse.RemoteConfigs.IAA.Mediation);
 
-                Instance.Value._iaa.Initialize(initResponse.RemoteConfigs.IAA, () => {
+                Instance.Value._iaa._iAAResponse = Instance.Value._config.IAA;
+                log.Debug("Noctua IAA condig replaced with remote config: " + JsonConvert.SerializeObject(Instance.Value._iaa._iAAResponse));
+
+                Instance.Value._iaa.Initialize(() => {
 
                     log.Info("IAA SDK initialized from remote config");
 
