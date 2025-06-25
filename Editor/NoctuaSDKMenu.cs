@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.IO;
 using Newtonsoft.Json.Linq;
 using com.noctuagames.sdk;
+using System.Linq;
 
 public class NoctuaIntegrationManagerWindow : EditorWindow
 {
@@ -141,6 +142,41 @@ public class NoctuaIntegrationManagerWindow : EditorWindow
         JObject dependencies = (JObject)manifest["dependencies"];
 
         var (packageName, version) = upmPackages[provider];
+
+        // Add scoped registry if needed
+        if (manifest["scopedRegistries"] is not JArray scopedRegistries)
+        {
+            scopedRegistries = new JArray();
+            manifest["scopedRegistries"] = scopedRegistries;
+        }
+
+        if (provider == "AppLovin")
+        {
+            AddScopedRegistryIfMissing(
+                scopedRegistries,
+                "AppLovin MAX Unity",
+                "https://unity.packages.applovin.com/",
+                new[] {
+                    "com.applovin.mediation.ads",
+                    "com.applovin.mediation.adapters",
+                    "com.applovin.mediation.dsp"
+                }
+            );
+        }
+        else if (provider == "AdMob")
+        {
+            AddScopedRegistryIfMissing(
+                scopedRegistries,
+                "package.openupm.com",
+                "https://package.openupm.com",
+                new[] {
+                    "com.google.ads.mobile",
+                    "com.google.external-dependency-manager"
+                }
+            );
+        }
+
+        // Add dependency
         if (!dependencies.ContainsKey(packageName))
         {
             dependencies[packageName] = version;
@@ -168,36 +204,24 @@ public class NoctuaIntegrationManagerWindow : EditorWindow
             Debug.Log($"{provider} ({packageName}) removed from dependencies.");
         }
 
-        // Remove registry only if none of its scopes are still used
+        // Remove scoped registry if no packages from its scopes remain
         if (scopedRegistries != null)
         {
-            for (int i = scopedRegistries.Count - 1; i >= 0; i--)
+            if (provider == "AppLovin")
             {
-                var reg = scopedRegistries[i] as JObject;
-                if (reg == null) continue;
-
-                string registryName = reg["name"]?.ToString();
-                string url = reg["url"]?.ToString();
-                JArray scopes = reg["scopes"] as JArray;
-
-                if (scopes != null)
-                {
-                    bool stillUsed = false;
-                    foreach (var scope in scopes)
-                    {
-                        if (dependencies.ContainsKey(scope.ToString()))
-                        {
-                            stillUsed = true;
-                            break;
-                        }
-                    }
-
-                    if (!stillUsed)
-                    {
-                        scopedRegistries.RemoveAt(i);
-                        Debug.Log($"Scoped registry '{registryName}' removed.");
-                    }
-                }
+                RemoveUnusedScopedRegistry(
+                    scopedRegistries,
+                    dependencies,
+                    "https://unity.packages.applovin.com/"
+                );
+            }
+            else if (provider == "AdMob")
+            {
+                RemoveUnusedScopedRegistry(
+                    scopedRegistries,
+                    dependencies,
+                    "https://package.openupm.com"
+                );
             }
         }
 
@@ -213,8 +237,44 @@ public class NoctuaIntegrationManagerWindow : EditorWindow
         }
         else
         {
-            IAAPreprocessor.RemoveDefineSymbol("UNITY_ADMOB", BuildTargetGroup.iOS);
             IAAPreprocessor.RemoveDefineSymbol("UNITY_ADMOB", BuildTargetGroup.Android);
+            IAAPreprocessor.RemoveDefineSymbol("UNITY_ADMOB", BuildTargetGroup.iOS);
+        }
+    }
+
+    private void AddScopedRegistryIfMissing(JArray scopedRegistries, string name, string url, string[] scopes)
+    {
+        bool exists = scopedRegistries.Any(r => r["url"]?.ToString() == url);
+        if (!exists)
+        {
+            var newRegistry = new JObject
+            {
+                ["name"] = name,
+                ["url"] = url,
+                ["scopes"] = new JArray(scopes)
+            };
+
+            scopedRegistries.Add(newRegistry);
+            Debug.Log($"Scoped registry '{name}' added.");
+        }
+    }
+
+    private void RemoveUnusedScopedRegistry(JArray scopedRegistries, JObject dependencies, string url)
+    {
+        for (int i = scopedRegistries.Count - 1; i >= 0; i--)
+        {
+            var reg = scopedRegistries[i] as JObject;
+            if (reg == null || reg["url"]?.ToString() != url) continue;
+
+            JArray scopes = reg["scopes"] as JArray;
+            if (scopes == null) continue;
+
+            bool stillUsed = scopes.Any(scope => dependencies.Properties().Any(dep => dep.Name.StartsWith(scope.ToString())));
+            if (!stillUsed)
+            {
+                scopedRegistries.RemoveAt(i);
+                Debug.Log($"Scoped registry with URL '{url}' removed.");
+            }
         }
     }
 
