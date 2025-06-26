@@ -62,7 +62,7 @@ release:
   script:
     - git fetch --tags
     - git checkout $CI_COMMIT_BRANCH
-    - git pull
+    - git pull origin $CI_COMMIT_BRANCH
     - NEW_VERSION_TAG=$(git-cliff --bumped-version)
     - jq --arg version "$NEW_VERSION_TAG" '.version = $version' package.json > temp.json && mv temp.json package.json
     - git add package.json
