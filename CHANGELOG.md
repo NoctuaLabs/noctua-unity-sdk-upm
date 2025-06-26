@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.43.1] - 2025-06-26
+
+### 🐛 Bug Fixes
+
+- Remove space line
+
 ## [0.43.0] - 2025-06-26
 
 ### 🚀 Features
