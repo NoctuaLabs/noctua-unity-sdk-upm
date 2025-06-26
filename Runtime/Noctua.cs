@@ -981,7 +981,6 @@ namespace com.noctuagames.sdk
 #endif
         }
 
-        
         private class PauseBehaviour : MonoBehaviour
         {
             private void OnApplicationPause(bool pause)
