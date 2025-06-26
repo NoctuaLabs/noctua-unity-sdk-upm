@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.43.0] - 2025-06-26
+
+### 🚀 Features
+
+- Noctua menu for unity editor
+
+### 🐛 Bug Fixes
+
+- Issues collection was modified; enumeration operation may not execute on event sender
+- Improve init iaa
+- Version package not defined, noctua menu
+- Install and remove iaa sdk not working properly
+
 ## [0.42.0] - 2025-06-16
 
 ### 🚀 Features
