@@ -90,7 +90,7 @@ publish:
   script:
     - git fetch --tags
     - git checkout $CI_COMMIT_BRANCH
-    - git pull
+    - git pull origin $CI_COMMIT_BRANCH
     - curl -sS https://webi.sh/gh | sh
     - source ~/.config/envman/PATH.env
     - NEW_VERSION_TAG="$(jq -r '.version' package.json)"
