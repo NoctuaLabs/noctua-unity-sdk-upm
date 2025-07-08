@@ -262,7 +262,7 @@ using UnityEditor.Graphs;
             // Add the aps-environment entitlement for push notifications
             try
             {
-                entitlements.root.SetString("aps-environment", "development"); // Change to "production" when you're ready for production
+                entitlements.root.SetString("aps-environment", "production");
                 Log("Added aps-environment entitlement for Push Notifications.");
             }
             catch (Exception e)
