@@ -68,7 +68,7 @@ namespace com.noctuagames.sdk.UI
             // Show co-publisher logo (general, can be kept)
             if (!string.IsNullOrEmpty(_config?.CoPublisher?.CompanyName))
             {
-                var logo = Utility.GetCoPublisherLogo(_config.CoPublisher.CompanyName);
+                var logo = Utility.GetCoPublisherLogo(_config?.CoPublisher?.CompanyName);
                 var defaultLogo = Resources.Load<Texture2D>(logo);
                 View.Q<VisualElement>("NoctuaLogoWithText").style.backgroundImage = new StyleBackground(defaultLogo);
                 View.Q<VisualElement>("NoctuaLogoWithText").RemoveFromClassList("hide");
