@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Threading;
@@ -94,7 +94,7 @@ namespace com.noctuagames.sdk.UI
 
             if (string.IsNullOrEmpty(_config?.CoPublisher?.CompanyName)) return;
 
-            var logo = Utility.GetCoPublisherLogo(_config.CoPublisher.CompanyName);
+            var logo = Utility.GetCoPublisherLogo(_config?.CoPublisher?.CompanyName);
 
             var defaultLogo = Resources.Load<Texture2D>(logo);
             View.Q<VisualElement>("NoctuaLogoWithText").style.backgroundImage = new StyleBackground(defaultLogo);
@@ -226,7 +226,7 @@ namespace com.noctuagames.sdk.UI
 
         private bool IsVNLegalPurposeEnabled()
         {
-            return _config?.Noctua?.RemoteFeatureFlags?.ContainsKey("vnLegalPurposeEnabled") == true && _config.Noctua.RemoteFeatureFlags["vnLegalPurposeEnabled"] == true;
+            return _config?.Noctua?.RemoteFeatureFlags?.ContainsKey("vnLegalPurposeEnabled") == true && _config?.Noctua?.RemoteFeatureFlags?["vnLegalPurposeEnabled"] == true;
         }
     }
 }

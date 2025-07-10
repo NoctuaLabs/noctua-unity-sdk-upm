@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections;
 using UnityEngine;
 using UnityEngine.UIElements;
@@ -53,7 +53,7 @@ namespace com.noctuagames.sdk.UI
 
         public void Show(UserBundle userBundle)
         {
-            if(_config.Noctua.welcomeToastDisabled) {
+            if(_config?.Noctua?.welcomeToastDisabled == true) {
                 return;
             }
             
@@ -105,7 +105,7 @@ namespace com.noctuagames.sdk.UI
 
         private bool IsVNLegalPurposeEnabled()
         {
-            return _config.Noctua.RemoteFeatureFlags.ContainsKey("vnLegalPurposeEnabled") == true && _config.Noctua.RemoteFeatureFlags["vnLegalPurposeEnabled"] == true;
+            return _config?.Noctua?.RemoteFeatureFlags?.ContainsKey("vnLegalPurposeEnabled") == true && _config.Noctua.RemoteFeatureFlags["vnLegalPurposeEnabled"] == true;
         }
     }
 }
