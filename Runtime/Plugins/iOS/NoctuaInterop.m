@@ -1,4 +1,4 @@
-#import <NoctuaSDK/NoctuaSDK-Swift.h>
+@import NoctuaSDK;
 #import <UIKit/UIKit.h>
 
 void noctuaInitialize(void) {

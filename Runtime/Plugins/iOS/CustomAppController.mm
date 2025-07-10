@@ -1,7 +1,6 @@
 #import "UnityAppController.h"
-#import "FirebaseMessaging.h"
+#import "Firebase.h"
 #import "UserNotifications/UserNotifications.h"
-#import "FirebaseCore.h"
 
 @interface CustomAppController : UnityAppController <UNUserNotificationCenterDelegate, FIRMessagingDelegate>
 
