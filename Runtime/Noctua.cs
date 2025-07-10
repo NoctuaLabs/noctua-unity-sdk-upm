@@ -462,7 +462,7 @@ namespace com.noctuagames.sdk
 
         public static bool AdjustOfflineModeDisabled()
         {
-            if (Instance.Value._config.Noctua.RemoteFeatureFlags.TryGetValue("adjustOfflineModeDisabled", out var value) && value is bool flag && flag == true)
+            if (Instance.Value._config?.Noctua?.RemoteFeatureFlags?.TryGetValue("adjustOfflineModeDisabled", out var value) == true && value is bool flag && flag == true)
             {
                 Instance.Value._log.Debug("Adjust offline mode is disabled");
                 return true;
@@ -772,17 +772,26 @@ namespace com.noctuagames.sdk
 
             // Remove irrelevant payment by runtime platform
 #if !UNITY_ANDROID
-            enabledPaymentTypes.Remove(PaymentType.playstore);
+            if (enabledPaymentTypes != null)
+            {
+                enabledPaymentTypes.Remove(PaymentType.playstore);
+            }
 #endif
 
 #if !UNITY_IOS
-            enabledPaymentTypes.Remove(PaymentType.appstore);
+            if (enabledPaymentTypes != null)
+            {
+                enabledPaymentTypes.Remove(PaymentType.appstore);
+            }
 #endif
 
 #if UNITY_EDITOR
             // UNITY_ANDROID macro is not accurate in In-Editor
-            enabledPaymentTypes.Remove(PaymentType.appstore);
-            enabledPaymentTypes.Remove(PaymentType.playstore);
+            if (enabledPaymentTypes != null)
+            {
+                enabledPaymentTypes.Remove(PaymentType.appstore);
+                enabledPaymentTypes.Remove(PaymentType.playstore);
+            }
 #endif
 
             Instance.Value._iap.SetEnabledPaymentTypes(enabledPaymentTypes);

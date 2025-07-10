@@ -1380,12 +1380,12 @@ namespace com.noctuagames.sdk.UI
 
         public void SetFlag(Dictionary<string, bool> featureFlags)
         {
-            if (featureFlags.ContainsKey("ssoDisabled"))
+            if (featureFlags != null && featureFlags.ContainsKey("ssoDisabled"))
             {
                 _ssoDisabled = featureFlags["ssoDisabled"];
             }
 
-            if (featureFlags.ContainsKey("vnLegalPurposeEnabled"))
+            if (featureFlags != null && featureFlags.ContainsKey("vnLegalPurposeEnabled"))
             {
                 _vnLegalPurposeEnabled = featureFlags["vnLegalPurposeEnabled"];
             }
