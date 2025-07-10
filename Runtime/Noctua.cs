@@ -553,7 +553,7 @@ namespace com.noctuagames.sdk
 
             try
             {
-                initResponse = await Utility.RetryAsyncTask(Instance.Value._game.InitGameAsync);
+                initResponse = await Utility.RetryUntilSuccessAsync(Instance.Value._game.InitGameAsync, delaySeconds: 5);
 
                 if (Instance.Value._isOfflineFirst && initResponse == null)
                 {
@@ -593,6 +593,8 @@ namespace com.noctuagames.sdk
                     }
                 }
             }
+
+
             log.Debug("Initial noctua config: " + JsonConvert.SerializeObject(Noctua.Instance.Value._config?.Noctua));
 
             _offlineMode = initResponse.OfflineMode;

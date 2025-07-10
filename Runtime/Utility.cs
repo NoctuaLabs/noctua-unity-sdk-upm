@@ -358,6 +358,24 @@ namespace com.noctuagames.sdk
             return await task();
         }        
 
+        public static async UniTask<T> RetryUntilSuccessAsync<T>(Func<UniTask<T>> task, int delaySeconds)
+        {
+            while (true)
+            {
+                try
+                {
+                    var result = await task();
+                    if (result != null) return result;
+                }
+                catch (Exception e)
+                {
+                    throw;
+                }
+
+                await UniTask.Delay(TimeSpan.FromSeconds(delaySeconds));
+            }
+        }
+        
         private static void ApplyErrorTranslation(Dictionary<string, string> translations)
         {            
             errorEmailEmpty = GetTranslation(LocaleTextKey.ErrorEmailEmpty.ToString(), translations);
