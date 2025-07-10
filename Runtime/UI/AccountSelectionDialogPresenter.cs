@@ -226,7 +226,7 @@ namespace com.noctuagames.sdk.UI
 
         private bool IsVNLegalPurposeEnabled()
         {
-            return _config.Noctua.RemoteFeatureFlags.ContainsKey("vnLegalPurposeEnabled") == true && _config.Noctua.RemoteFeatureFlags["vnLegalPurposeEnabled"] == true;
+            return _config?.Noctua?.RemoteFeatureFlags?.ContainsKey("vnLegalPurposeEnabled") == true && _config.Noctua.RemoteFeatureFlags["vnLegalPurposeEnabled"] == true;
         }
     }
 }
