@@ -358,18 +358,18 @@ namespace com.noctuagames.sdk
             return await task();
         }        
 
-        public static async UniTask<T> RetryUntilSuccessAsync<T>(Func<UniTask<T>> task, int delaySeconds)
+        public static async UniTask RetryUntilSuccessAsync(Func<UniTask> task, int delaySeconds)
         {
             while (true)
             {
                 try
                 {
-                    var result = await task();
-                    if (result != null) return result;
+                    await task();
+                    return;
                 }
-                catch (Exception e)
+                catch
                 {
-                    throw;
+                    Debug.LogWarning("Retrying task due to failure...");
                 }
 
                 await UniTask.Delay(TimeSpan.FromSeconds(delaySeconds));

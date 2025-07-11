@@ -521,6 +521,11 @@ namespace com.noctuagames.sdk
 
         public static async UniTask InitAsync()
         {
+            await Utility.RetryUntilSuccessAsync(InitInternalAsync, delaySeconds: 5);
+        }
+        
+        public static async UniTask InitInternalAsync()
+        {
             if (_initialized)
             {
                 Instance.Value._log.Info("InitAsync() called but already initialized");
@@ -553,7 +558,7 @@ namespace com.noctuagames.sdk
 
             try
             {
-                initResponse = await Utility.RetryUntilSuccessAsync(Instance.Value._game.InitGameAsync, delaySeconds: 5);
+                initResponse = await Utility.RetryAsyncTask(Instance.Value._game.InitGameAsync);
 
                 if (Instance.Value._isOfflineFirst && initResponse == null)
                 {
