@@ -2,6 +2,23 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.44.0] - 2025-07-14
+
+### 🚀 Features
+
+- Improve VN legal purpose, do not allow user to exit KYC.
+- Add init callback
+
+### 🐛 Bug Fixes
+
+- Update aps-environment to production
+- Add more null check for lean noctuagg.json config.
+- Add more null check.
+
+### 🚜 Refactor
+
+- Change to use Swift Package Manager and remove Cocoapods
+
 ## [0.43.1] - 2025-06-26
 
 ### 🐛 Bug Fixes
