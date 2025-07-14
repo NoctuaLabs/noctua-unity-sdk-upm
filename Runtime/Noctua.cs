@@ -174,6 +174,7 @@ namespace com.noctuagames.sdk
         private static bool _offlineMode = false;
         private static bool _initialized = false;
         private bool _isNativePluginInitialized = false;
+        public static Action? OnInitSuccess;
 
         private Noctua()
         {
@@ -519,7 +520,7 @@ namespace com.noctuagames.sdk
             return !isConnected;
         }
 
-        public static async UniTask InitAsync()
+        public static async UniTask InitAsync(Func<UniTask>? onSuccess = null)
         {
             if (_initialized)
             {
@@ -825,6 +826,9 @@ namespace com.noctuagames.sdk
 #if UNITY_ANDROID
                 Instance.Value._iap.QueryPurchasesAsync();
 #endif
+                OnInitSuccess?.Invoke();
+                if (onSuccess != null) await onSuccess.Invoke();
+
             }
             else
             {
