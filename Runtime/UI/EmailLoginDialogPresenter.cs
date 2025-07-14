@@ -131,6 +131,18 @@ namespace com.noctuagames.sdk.UI
         private void OnBackButtonClick(ClickEvent evt)
         {
             Visible = false;
+
+            var isVNLegalPurposeEnabled = _config.Noctua.RemoteFeatureFlags?["vnLegalPurposeEnabled"] ?? false; _log.Debug($"IsVNLegalPurposeEnabled: {isVNLegalPurposeEnabled}");
+            if (isVNLegalPurposeEnabled)
+            {
+                if (Model.AuthService.RecentAccount != null && Model.AuthService.RecentAccount.IsGuest)
+                {
+                    _log.Debug($"NavigateBack abort in VNLegalPurpose");
+                    Model.ShowEmailLogin();
+                    return;
+                }
+            }
+
             Model.NavigateBack();
         }
 

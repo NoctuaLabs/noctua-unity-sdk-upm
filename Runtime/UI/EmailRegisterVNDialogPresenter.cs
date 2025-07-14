@@ -819,6 +819,7 @@ namespace com.noctuagames.sdk.UI
         private void OnBackButtonClick(ClickEvent evt)
         {
             _log.Debug("clicking back button (VN wizard context)");    
+
             _isDatePickerOpen = false;      
             // Navigate back within VN wizard
             if (_wizardPage == 5) { NavigateToWizard4(); return; } // Or relevant wizard before OTP
@@ -829,6 +830,15 @@ namespace com.noctuagames.sdk.UI
             // If on the first wizard page or not in wizard (simple VN flow)
             _continueButton.Clear(); _wizardContinueButton.Clear(); _wizard5ContinueButton.Clear();
             Visible = false;
+
+            var isVNLegalPurposeEnabled = _config.Noctua.RemoteFeatureFlags?["vnLegalPurposeEnabled"] ?? false; _log.Debug($"IsVNLegalPurposeEnabled: {isVNLegalPurposeEnabled}");
+            if (isVNLegalPurposeEnabled)
+            {
+                _log.Debug($"NavigateBack abort in VNLegalPurpose");
+                Model.ShowEmailLogin();
+                return;
+            }
+
             Model.NavigateBack(); // Navigate to previous screen (e.g., login selection)
         }
 
