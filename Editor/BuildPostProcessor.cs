@@ -11,12 +11,12 @@ using Newtonsoft.Json;
 using com.noctuagames.sdk;
 using UnityEngine;
 using UnityEngine.Networking;
-using UnityEditor.iOS.Xcode.Extensions;
 
 #if UNITY_IOS
 using UnityEditor;
 using UnityEditor.Callbacks;
 using UnityEditor.iOS.Xcode;
+using UnityEditor.iOS.Xcode.Extensions;
 #endif
 
 #if UNITY_ANDROID
