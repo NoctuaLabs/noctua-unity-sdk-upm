@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.44.1] - 2025-07-14
+
+### 🐛 Bug Fixes
+
+- Move Xcode.Extensions import inside UNITY_IOS preprocessor block
+
 ## [0.44.0] - 2025-07-14
 
 ### 🚀 Features
