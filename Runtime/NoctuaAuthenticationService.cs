@@ -534,7 +534,7 @@ namespace com.noctuagames.sdk
                     {
                         DeviceId = SystemInfo.deviceUniqueIdentifier,
                         BundleId = Application.identifier,
-                        DistributionPlatform = Utility.GetStoreName()
+                        DistributionPlatform = Utility.GetPlatformType()
                     }
                 );
 
@@ -555,7 +555,7 @@ namespace com.noctuagames.sdk
             {
                 NextBundleId = _bundleId,
                 InitPlayer = true,
-                NextDistributionPlatform = Utility.GetStoreName()
+                NextDistributionPlatform = Utility.GetPlatformType()
             };
 
             var request = new HttpRequest(HttpMethod.Post, $"{_baseUrl}/auth/token-exchange")

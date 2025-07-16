@@ -93,7 +93,7 @@ namespace com.noctuagames.sdk
             _request.SetRequestHeader("X-COUNTRY", Noctua.Platform.Locale.GetCountry());
             _request.SetRequestHeader("X-CURRENCY", Noctua.Platform.Locale.GetCurrency());
             _request.SetRequestHeader("X-DEVICE-ID", SystemInfo.deviceUniqueIdentifier);
-            _request.SetRequestHeader("X-PLATFORM", Utility.GetStoreName());
+            _request.SetRequestHeader("X-PLATFORM", Utility.GetPlatformType());
             _request.SetRequestHeader("X-OS-AGENT", SystemInfo.operatingSystem);
             _request.SetRequestHeader("X-OS", Application.platform.ToString().ToLower());
             
