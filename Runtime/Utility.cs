@@ -421,9 +421,10 @@ namespace com.noctuagames.sdk
             return string.Empty;
         }
 
-        public static string GetStoreName()
+        // Returns the platform type based on the installer name
+        public static string GetPlatformType()
         {
-           return Application.installerName switch
+            return Application.installerName switch
             {
                 "com.android.vending" => PaymentType.playstore.ToString(),
                 "com.apple.appstore" => PaymentType.appstore.ToString(),
