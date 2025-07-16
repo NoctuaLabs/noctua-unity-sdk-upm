@@ -529,6 +529,10 @@ namespace com.noctuagames.sdk
                 return;
             }
 
+            Instance.Value._eventSender.Send("game_platform_type", new Dictionary<string, IConvertible> {
+                { "platform_type", Utility.GetPlatformType() }
+            });
+
             var log = Instance.Value._log;
 
             // Init game, retries on intermittent network failure
