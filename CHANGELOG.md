@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.45.0] - 2025-07-22
+
+### 🚀 Features
+
+- Add internal event tracker game_platform_type on init sdk
+
+### 🐛 Bug Fixes
+
+- Update asset ad placeholder and make it random show ad placeholder per ad type
+- Add condition if iaa enabled equal false dont add the symbol
+
+### 🚜 Refactor
+
+- Change GetStoreName to GetPlatformType
+
 ## [0.44.1] - 2025-07-14
 
 ### 🐛 Bug Fixes
