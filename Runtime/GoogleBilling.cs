@@ -524,6 +524,83 @@ public class GoogleBilling
             }
         }
     }
+
+    public void GetPurchasedProductById(string productId, System.Action<PurchaseResult> callback)
+    {
+        _log.Debug($"GetPurchasedProductById: {productId}");
+
+        using (AndroidJavaClass queryPurchasesParamsClass = new AndroidJavaClass(
+            "com.android.billingclient.api.QueryPurchasesParams"))
+        {
+            AndroidJavaObject queryParams = queryPurchasesParamsClass
+                .CallStatic<AndroidJavaObject>("newBuilder")
+                .Call<AndroidJavaObject>("setProductType", "inapp")
+                .Call<AndroidJavaObject>("build");
+
+            billingClient.Call("queryPurchasesAsync", queryParams, new GetPurchaseByIdResponseListener(this, productId, callback));
+        }
+    }
+
+    private class GetPurchaseByIdResponseListener : AndroidJavaProxy
+    {
+        private readonly ILogger _log = new NoctuaLogger(typeof(GetPurchaseByIdResponseListener));
+        private readonly GoogleBilling googleBilling;
+        private readonly string targetProductId;
+        private readonly System.Action<PurchaseResult> callback;
+
+        public GetPurchaseByIdResponseListener(GoogleBilling parent, string productId, System.Action<PurchaseResult> callback)
+            : base("com.android.billingclient.api.PurchasesResponseListener")
+        {
+            this.googleBilling = parent;
+            this.targetProductId = productId;
+            this.callback = callback;
+        }
+
+        void onQueryPurchasesResponse(AndroidJavaObject billingResult, AndroidJavaObject purchaseList)
+        {
+            int responseCode = billingResult.Call<int>("getResponseCode");
+            _log.Debug($"onQueryPurchasesResponse responseCode: {(GoogleBilling.BillingErrorCode)responseCode}");
+
+            if (responseCode != 0)
+            {
+                _log.Error("Billing failed with code: " + responseCode);
+                callback?.Invoke(null);
+                return;
+            }
+
+            int size = purchaseList.Call<int>("size");
+            _log.Debug("Purchase list size: " + size);
+
+            for (int i = 0; i < size; i++)
+            {
+                AndroidJavaObject purchase = purchaseList.Call<AndroidJavaObject>("get", i);
+                AndroidJavaObject productList = purchase.Call<AndroidJavaObject>("getProducts");
+                string productId = productList.Call<string>("get", 0);
+
+                if (productId == targetProductId)
+                {
+                    string purchaseToken = purchase.Call<string>("getPurchaseToken");
+                    int purchaseState = purchase.Call<int>("getPurchaseState");
+                    string orderId = purchase.Call<string>("getOrderId");
+
+                    var result = new GoogleBilling.PurchaseResult
+                    {
+                        Success = true,
+                        ProductId = productId,
+                        PurchaseState = (GoogleBilling.PurchaseState)purchaseState,
+                        ReceiptId = orderId,
+                        ReceiptData = purchaseToken
+                    };
+
+                    callback?.Invoke(result);
+                    return;
+                }
+            }
+
+            _log.Debug("Product ID not found in purchases");
+            callback?.Invoke(null);
+        }
+    }
 }
 #endif
 

@@ -2260,6 +2260,25 @@ namespace com.noctuagames.sdk
             SavePurchaseHistory(newList.ToList());
         }
 
+        #if UNITY_ANDROID && !UNITY_EDITOR
+        public void CheckIfProductPurchased(string productId, System.Action<bool> callback)
+        {
+            GoogleBillingInstance.GetPurchasedProductById(productId, (purchase) =>
+            {
+                if (purchase != null && purchase.Success)
+                {
+                    Debug.Log($"[GoogleBilling] Product purchased: {purchase.ProductId}, State: {purchase.PurchaseState}");
+                    callback?.Invoke(true);
+                }
+                else
+                {
+                    Debug.Log($"[GoogleBilling] Product '{productId}' is not purchased or not found.");
+                    callback?.Invoke(false);
+                }
+            });
+        }
+        #endif
+
         [Preserve]
         internal class Config
         {
