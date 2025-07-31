@@ -24,6 +24,9 @@ namespace com.noctuagames.sdk
         private static extern void noctuaTrackCustomEvent(string eventName, string payloadJson);
 
         [DllImport("__Internal")]
+        private static extern void noctuaTrackCustomEventWithRevenue(string eventName, double amount, string currency, string payloadJson);
+
+        [DllImport("__Internal")]
         private static extern void noctuaPurchaseItem(string productId, CompletionDelegate callback);
 
         [DllImport("__Internal")]
@@ -77,6 +80,11 @@ namespace com.noctuagames.sdk
             noctuaTrackCustomEvent(eventName, JsonConvert.SerializeObject(payload));
 
             _log.Info($"forwarded event '{eventName}' to native tracker");
+        }
+
+        public void TrackCustomEventWithRevenue(string eventName, double revenue, string currency, Dictionary<string, IConvertible> payload)
+        {
+            noctuaTrackCustomEventWithRevenue(eventName, revenue, currency, JsonConvert.SerializeObject(payload));
         }
 
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]

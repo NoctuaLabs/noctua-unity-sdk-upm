@@ -153,7 +153,7 @@ using UnityEditor.Graphs;
             // Add the Noctua SDK Swift Package
             string packageGuid = pbxProject.AddRemotePackageReferenceAtVersion(
                 "https://github.com/NoctuaLabs/noctua-native-sdk-ios.git",
-                "0.4.0"
+                "0.5.0"
             );
 
             // Link NoctuaSDK to both Unity-iPhone and UnityFramework

@@ -89,6 +89,26 @@ namespace com.noctuagames.sdk.Events
             _nativeTracker?.TrackCustomEvent(name, extraPayload);
             _eventSender?.Send(name, extraPayload);
         }
+        
+        public void TrackCustomEventWithRevenue(string name, double revenue, string currency, Dictionary<string, IConvertible> extraPayload = null)
+        {
+            extraPayload ??= new Dictionary<string, IConvertible>();
+            AppendProperties(extraPayload);
+
+            string properties = "";
+            foreach (var (key, value) in extraPayload)
+            {
+                properties += $"{key}={value}, ";
+            }
+            _log.Debug($"Event name: {name}, Event properties: {properties}");
+
+            _nativeTracker?.TrackCustomEventWithRevenue(name, revenue, currency, extraPayload);
+
+            extraPayload.Add("revenue", revenue);
+            extraPayload.Add("currency", currency);
+
+            _eventSender?.Send(name, extraPayload);
+        }
 
         public void InternalTrackEvent(string eventName, Dictionary<string, IConvertible> extraPayload = null)
         {
@@ -100,7 +120,7 @@ namespace com.noctuagames.sdk.Events
             {
                 properties += $"{key}={value}, ";
             }
-            
+
             _log.Debug($"Event name: {eventName}, Event properties: {properties}");
 
             _eventSender?.Send(eventName, extraPayload);

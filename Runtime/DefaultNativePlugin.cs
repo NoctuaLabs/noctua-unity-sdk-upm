@@ -40,6 +40,10 @@ namespace com.noctuagames.sdk
         {
         }
 
+        public void TrackCustomEventWithRevenue(string name, double revenue, string currency, Dictionary<string, IConvertible> extraPayload = null)
+        {
+        }
+
         public void OnOnline()
         {
         }

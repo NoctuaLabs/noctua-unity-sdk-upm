@@ -68,6 +68,21 @@ namespace com.noctuagames.sdk
             _log.Info($"forwarded event '{name}' to native tracker");
         }
 
+        public void TrackCustomEventWithRevenue(
+            string name,
+            double revenue,
+            string currency,
+            Dictionary<string, IConvertible> extraPayload = null
+        )
+        {
+            using AndroidJavaObject javaPayload = ConvertToJavaHashMap(extraPayload);
+            using AndroidJavaObject noctua = new AndroidJavaObject("com.noctuagames.sdk.Noctua$Companion");
+
+            noctua.Call("trackCustomEventWithRevenue", name, revenue, currency, javaPayload);
+
+            _log.Info($"forwarded event '{name}' to native tracker");
+        }
+
         private static AndroidJavaObject ConvertToJavaHashMap(Dictionary<string, IConvertible> dictionary)
         {
             var hashMap = new AndroidJavaObject("java.util.HashMap");
