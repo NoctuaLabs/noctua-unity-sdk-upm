@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.46.0] - 2025-07-31
+
+### 🚀 Features
+
+- Add track event custom with revenue
+- Add check google product purchased
+
 ## [0.45.0] - 2025-07-22
 
 ### 🚀 Features
