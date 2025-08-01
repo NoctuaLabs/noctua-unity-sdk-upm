@@ -137,54 +137,54 @@ using UnityEditor.Graphs;
             }
         }
 
-        [PostProcessBuild(3)]
-        public static void AddNoctuaSPM(BuildTarget buildTarget, string pathToBuiltProject)
-        {
-            if (buildTarget != BuildTarget.iOS)
-                return;
+        // [PostProcessBuild(3)]
+        // public static void AddNoctuaSPM(BuildTarget buildTarget, string pathToBuiltProject)
+        // {
+        //     if (buildTarget != BuildTarget.iOS)
+        //         return;
 
-            string projectPath = PBXProject.GetPBXProjectPath(pathToBuiltProject);
-            PBXProject pbxProject = new();
-            pbxProject.ReadFromFile(projectPath);
+        //     string projectPath = PBXProject.GetPBXProjectPath(pathToBuiltProject);
+        //     PBXProject pbxProject = new();
+        //     pbxProject.ReadFromFile(projectPath);
 
-            string mainTargetGuid = pbxProject.GetUnityMainTargetGuid();           // Unity-iPhone
-            string unityFrameworkTargetGuid = pbxProject.GetUnityFrameworkTargetGuid(); // UnityFramework
+        //     string mainTargetGuid = pbxProject.GetUnityMainTargetGuid();           // Unity-iPhone
+        //     string unityFrameworkTargetGuid = pbxProject.GetUnityFrameworkTargetGuid(); // UnityFramework
 
-            // Add the Noctua SDK Swift Package
-            string packageGuid = pbxProject.AddRemotePackageReferenceAtVersion(
-                "https://github.com/NoctuaLabs/noctua-native-sdk-ios.git",
-                "0.5.0"
-            );
+        //     // Add the Noctua SDK Swift Package
+        //     string packageGuid = pbxProject.AddRemotePackageReferenceAtVersion(
+        //         "https://github.com/NoctuaLabs/noctua-native-sdk-ios.git",
+        //         "0.5.0"
+        //     );
 
-            // Link NoctuaSDK to both Unity-iPhone and UnityFramework
-            pbxProject.AddRemotePackageFrameworkToProject(mainTargetGuid, "NoctuaSDK", packageGuid, false);
-            pbxProject.AddRemotePackageFrameworkToProject(unityFrameworkTargetGuid, "NoctuaSDK", packageGuid, false);
+        //     // Link NoctuaSDK to both Unity-iPhone and UnityFramework
+        //     pbxProject.AddRemotePackageFrameworkToProject(mainTargetGuid, "NoctuaSDK", packageGuid, false);
+        //     pbxProject.AddRemotePackageFrameworkToProject(unityFrameworkTargetGuid, "NoctuaSDK", packageGuid, false);
             
-            // Note: This is not working as expected, so we are not using it for now. we need manual setting CodeSignOnCopy.
-            // // Find the Swift Package product file GUID
-            // string fileGuid = pbxProject.FindFileGuidByRealPath("NoctuaSDK");
+        //     // Note: This is not working as expected, so we are not using it for now. we need manual setting CodeSignOnCopy.
+        //     // // Find the Swift Package product file GUID
+        //     // string fileGuid = pbxProject.FindFileGuidByRealPath("NoctuaSDK");
             
-            // // Fallback: search all fileRefs if direct lookup fails
-            // if (!string.IsNullOrEmpty(fileGuid))
-            // {
-            //     Log($"File NoctuaSDK Found");
+        //     // // Fallback: search all fileRefs if direct lookup fails
+        //     // if (!string.IsNullOrEmpty(fileGuid))
+        //     // {
+        //     //     Log($"File NoctuaSDK Found");
 
-            //     pbxProject.AddFileToBuild(mainTargetGuid, fileGuid);
-            //     pbxProject.AddFileToEmbedFrameworks(mainTargetGuid, fileGuid);
-            //     pbxProject.SetCodeSignOnCopy(mainTargetGuid, fileGuid, true);
-            // }
-            // else
-            // {
-            //     LogError("NoctuaSDK file not found in project. Skipping file addition.");
-            // }
+        //     //     pbxProject.AddFileToBuild(mainTargetGuid, fileGuid);
+        //     //     pbxProject.AddFileToEmbedFrameworks(mainTargetGuid, fileGuid);
+        //     //     pbxProject.SetCodeSignOnCopy(mainTargetGuid, fileGuid, true);
+        //     // }
+        //     // else
+        //     // {
+        //     //     LogError("NoctuaSDK file not found in project. Skipping file addition.");
+        //     // }
 
-            // Set CLANG_ENABLE_MODULES = YES for UnityFramework target
-            pbxProject.SetBuildProperty(unityFrameworkTargetGuid, "CLANG_ENABLE_MODULES", "YES");
+        //     // Set CLANG_ENABLE_MODULES = YES for UnityFramework target
+        //     pbxProject.SetBuildProperty(unityFrameworkTargetGuid, "CLANG_ENABLE_MODULES", "YES");
             
-            pbxProject.WriteToFile(projectPath);
+        //     pbxProject.WriteToFile(projectPath);
 
-            Log("Added Noctua SPM to Unity-iPhone and UnityFramework.");
-        }
+        //     Log("Added Noctua SPM to Unity-iPhone and UnityFramework.");
+        // }
 
         [PostProcessBuild(4)]
         public static void EnableKeychainSharing(BuildTarget buildTarget, string pathToBuiltProject)
