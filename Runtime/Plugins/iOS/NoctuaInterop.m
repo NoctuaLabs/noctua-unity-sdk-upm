@@ -43,6 +43,17 @@ void noctuaTrackCustomEvent(const char* eventName, const char* payloadJson) {
     [Noctua trackCustomEvent:eventNameStr payload:payload];
 }
 
+void noctuaTrackCustomEventWithRevenue(const char* eventName, double revenue, const char* currency, const char* payloadJson) {
+    NSLog(@"eventName: %s, revenue: %f, currency: %s, payload: %s", eventName, revenue, currency, payloadJson);
+
+    NSString *eventNameStr = [NSString stringWithUTF8String:eventName];
+    NSString *currencyStr = [NSString stringWithUTF8String:currency];
+    NSString *payloadStr = [NSString stringWithUTF8String:payloadJson];
+    NSData *data = [payloadStr dataUsingEncoding:NSUTF8StringEncoding];
+    NSDictionary *payload = [NSJSONSerialization JSONObjectWithData:data options:0 error:nil];
+    [Noctua trackCustomEventWithRevenue:eventNameStr revenue:revenue currency:currencyStr payload:payload];
+}
+
 typedef void (*CompletionDelegate)(bool success, const char* message);
 
 void noctuaPurchaseItem(const char* productId, CompletionDelegate callback) {
