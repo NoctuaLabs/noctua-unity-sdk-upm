@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.46.2] - 2025-08-01
+
+### 🐛 Bug Fixes
+
+- Add custom event with revenue
+
 ## [0.46.1] - 2025-08-01
 
 ### 🐛 Bug Fixes
