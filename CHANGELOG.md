@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.46.3] - 2025-08-13
+
+### 🐛 Bug Fixes
+
+- Update edm with new version
+- Change built in event firebase ad revenue into ad impression
+
 ## [0.46.2] - 2025-08-01
 
 ### 🐛 Bug Fixes
