@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.46.4] - 2025-08-14
+
+### 🐛 Bug Fixes
+
+- Update native wrapper sdk
+
 ## [0.46.3] - 2025-08-13
 
 ### 🐛 Bug Fixes
