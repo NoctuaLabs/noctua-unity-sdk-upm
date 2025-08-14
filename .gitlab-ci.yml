@@ -25,6 +25,8 @@ trigger_job:
 bump-version:
   extends: .bump-version
   stage: bump-version
+  tags:
+    - local2
   rules:
     - if: $CI_COMMIT_BRANCH == "main"
       when: always
@@ -53,6 +55,8 @@ bump-version:
 release:
   extends: .bump-version
   stage: release
+  tags:
+    - local2
   rules:
     - if: $CI_COMMIT_BRANCH == "main"
       when: manual
@@ -82,6 +86,8 @@ release:
 publish:
   extends: .bump-version
   stage: publish
+  tags:
+    - local2
   rules:
     - if: $CI_COMMIT_BRANCH == "main"
   variables:
