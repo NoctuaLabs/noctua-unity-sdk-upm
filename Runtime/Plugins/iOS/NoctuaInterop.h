@@ -10,5 +10,9 @@ void noctuaOnOffline();
 
 typedef void (*PurchaseCompletionDelegate)(bool success, const char* message);
 void noctuaPurchaseItem(const char* productId, PurchaseCompletionDelegate callback);
+typedef void (*ProductPurchasedCompletionDelegate)(bool hasPurchased);
+void noctuaGetProductPurchasedById(const char* productId, ProductPurchasedCompletionDelegate callback);
+typedef void (*ReceiptCompletionDelegate)(const char* receipt);
+void noctuaGetReceiptProductPurchasedStoreKit1(const char* productId, ReceiptCompletionDelegate callback);
 
 }

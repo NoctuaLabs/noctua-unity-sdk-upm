@@ -2260,9 +2260,59 @@ namespace com.noctuagames.sdk
             SavePurchaseHistory(newList.ToList());
         }
 
-        #if UNITY_ANDROID && !UNITY_EDITOR
+        public async Task<bool> GetPurchaseStatusAsync(string productId)
+        {
+            try
+            {
+                bool result = await CheckIfProductPurchasedAsync(productId);
+                return result;
+            }
+            catch (NoctuaException e)
+            {
+                _log.Error("NoctuaIAPService.GetPurchaseStatusAsync failed: " + e);
+                return false;
+            }
+        }
+
+        // Get purchase status for a batch of product IDs
+        public async Task<List<string>> GetPurchasedProductsAsync(List<string> productIds)
+        {
+            var tasks = productIds.ToDictionary(
+                productId => productId,
+                productId => GetPurchaseStatusAsync(productId)
+            );
+
+            await Task.WhenAll(tasks.Values);
+
+            var purchased = new List<string>();
+            foreach (var kvp in tasks)
+            {
+                if (await kvp.Value) // true = purchased
+                {
+                    purchased.Add(kvp.Key);
+                }
+            }
+
+            return purchased;
+        }
+
+        private Task<bool> CheckIfProductPurchasedAsync(string productId)
+        {
+            var tcs = new TaskCompletionSource<bool>();
+
+            CheckIfProductPurchased(productId, (result) =>
+            {
+                Debug.Log("CheckIfProductPurchased result: " + result);
+                tcs.SetResult(result);
+            });
+
+            return tcs.Task;
+        }
+        
+        //Keep this method public for compatibility backwards
         public void CheckIfProductPurchased(string productId, System.Action<bool> callback)
         {
+            #if UNITY_ANDROID && !UNITY_EDITOR
             GoogleBillingInstance.GetPurchasedProductById(productId, (purchase) =>
             {
                 if (purchase != null && purchase.Success)
@@ -2276,8 +2326,17 @@ namespace com.noctuagames.sdk
                     callback?.Invoke(false);
                 }
             });
+            #elif UNITY_IOS && !UNITY_EDITOR
+            IosPlugin.GetProductPurchasedById(productId, (hasPurchased) =>
+            {
+                Debug.Log($"[IosPlugin] Product '{productId}' purchased: {hasPurchased}");
+                callback?.Invoke(hasPurchased);
+            });
+            #else
+            Debug.LogWarning("CheckIfProductPurchased is not supported on this platform.");
+            callback?.Invoke(false);
+            #endif
         }
-        #endif
 
         [Preserve]
         internal class Config

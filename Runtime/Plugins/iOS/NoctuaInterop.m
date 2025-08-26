@@ -117,6 +117,63 @@ void noctuaGetActiveCurrency(const char* productId, CompletionDelegate callback)
     }];
 }
 
+void noctuaGetProductPurchasedById(const char* productId, ProductPurchasedCompletionDelegate callback) {
+    NSLog(@"noctuaGetProductPurchasedById called with productId: %s", productId);
+
+    if (productId == NULL) {
+        NSLog(@"Product ID is null");
+        if (callback != NULL) {
+            callback(false);
+        }
+        return;
+    }
+
+    NSString *productIdStr = [NSString stringWithUTF8String:productId];
+    if (productIdStr.length == 0) {
+        NSLog(@"Product ID is empty");
+        if (callback != NULL) {
+            callback(false);
+        }
+        return;
+    }
+
+    [Noctua getProductPurchasedById:productIdStr completion:^(BOOL hasPurchased) {
+        NSLog(@"Noctua getProductPurchasedById completion called. HasPurchased: %d", hasPurchased);
+        if (callback != NULL) {
+            callback(hasPurchased);
+        }
+    }];
+}
+
+void noctuaGetReceiptProductPurchasedStoreKit1(const char* productId, ReceiptCompletionDelegate callback) {
+    NSLog(@"noctuaGetReceiptProductPurchasedStoreKit1 called with productId: %s", productId);
+
+    if (productId == NULL) {
+        NSLog(@"Product ID is null");
+        if (callback != NULL) {
+            callback(NULL);
+        }
+        return;
+    }
+
+    NSString *productIdStr = [NSString stringWithUTF8String:productId];
+    if (productIdStr.length == 0) {
+        NSLog(@"Product ID is empty");
+        if (callback != NULL) {
+            callback(NULL);
+        }
+        return;
+    }
+
+    [Noctua getReceiptProductPurchasedStoreKit1:productIdStr completion:^(NSString * _Nonnull receipt) {
+        NSLog(@"Noctua getReceiptProductPurchasedStoreKit1 completion called. Receipt: %@", receipt);
+        if (callback != NULL) {
+            const char* cReceipt = [receipt UTF8String];
+            callback(cReceipt);
+        }
+    }];
+}
+
 void noctuaPutAccount(int64_t gameId, int64_t playerId, const char* rawData) {
     NSString *rawDataStr = [NSString stringWithUTF8String:rawData];
     [Noctua putAccountWithGameId:gameId playerId:playerId rawData:rawDataStr];

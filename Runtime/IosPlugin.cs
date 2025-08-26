@@ -30,6 +30,12 @@ namespace com.noctuagames.sdk
         private static extern void noctuaPurchaseItem(string productId, CompletionDelegate callback);
 
         [DllImport("__Internal")]
+        private static extern void noctuaGetProductPurchasedById(string productId, CompletionProductPurchasedDelegate callback);
+
+        [DllImport("__Internal")]
+        private static extern void noctuaGetReceiptProductPurchasedStoreKit1(string productId, CompletionGetReceiptDelegate callback);
+
+        [DllImport("__Internal")]
         private static extern void noctuaGetActiveCurrency(string productId, CompletionDelegate callback);
 
         [DllImport("__Internal")]
@@ -90,6 +96,12 @@ namespace com.noctuagames.sdk
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
         private delegate void CompletionDelegate(bool success, IntPtr messagePtr);
 
+        [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+        private delegate void CompletionProductPurchasedDelegate(bool hasPurchased);
+
+        [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+        private delegate void CompletionGetReceiptDelegate(string receipt);
+
         [AOT.MonoPInvokeCallback(typeof(CompletionDelegate))]
         private static void CompletionCallback(bool success, IntPtr messagePtr)
         {
@@ -112,6 +124,44 @@ namespace com.noctuagames.sdk
             noctuaPurchaseItem(productId, new CompletionDelegate(CompletionCallback));
 
             _log.Debug("noctuaPurchaseItem called");
+        }
+
+        public void GetProductPurchasedById(string productId, Action<bool> completion)
+        {
+            if (string.IsNullOrEmpty(productId))
+            {
+                _log.Error("Product ID is null or empty");
+                completion?.Invoke(false);
+                return;
+            }
+
+            void InternalCallback(bool hasPurchased)
+            {
+                completion?.Invoke(hasPurchased);
+            }
+
+            noctuaGetProductPurchasedById(productId, new CompletionProductPurchasedDelegate(InternalCallback));
+
+            _log.Debug("noctuaGetProductPurchasedById called");
+        }
+
+        public void GetReceiptProductPurchasedStoreKit1(string productId, Action<string> completion)
+        {
+            if (string.IsNullOrEmpty(productId))
+            {
+                _log.Error("Product ID is null or empty");
+                completion?.Invoke(string.Empty);
+                return;
+            }
+
+            void InternalCallback(string receipt)
+            {
+                completion?.Invoke(receipt);
+            }
+
+            noctuaGetReceiptProductPurchasedStoreKit1(productId, new CompletionGetReceiptDelegate(InternalCallback));
+
+            _log.Debug("noctuaGetReceiptProductPurchasedStoreKit1 called");
         }
 
         public void GetActiveCurrency(string productId, Action<bool, string> completion)

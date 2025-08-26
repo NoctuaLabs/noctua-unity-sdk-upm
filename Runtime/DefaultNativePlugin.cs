@@ -62,11 +62,21 @@ namespace com.noctuagames.sdk
             throw new NotImplementedException();
         }
 
+        public void GetProductPurchasedById(string productId, Action<bool> callback)
+        {
+            throw new NotImplementedException();
+        }
+
+        public void GetReceiptProductPurchasedStoreKit1(string productId, Action<string> callback)
+        {
+            throw new NotImplementedException();
+        }
+
         public NativeAccount GetAccount(long userId, long gameId)
         {
             var rawAccounts = PlayerPrefs.GetString("NoctuaAccountContainer");
             var accounts = JsonConvert.DeserializeObject<List<NativeAccount>>(rawAccounts);
-            
+
             return accounts.Find(a => a.PlayerId == userId && a.GameId == gameId);
         }
 

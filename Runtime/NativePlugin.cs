@@ -26,11 +26,13 @@ namespace com.noctuagames.sdk
         void OnOnline();
         void OnOffline();
     }
-    
+
     public interface INativeIAP
     {
         void PurchaseItem(string productId, Action<bool, string> callback);
         void GetActiveCurrency(string productId, Action<bool, string> callback);
+        void GetProductPurchasedById(string productId, Action<bool> callback);
+        void GetReceiptProductPurchasedStoreKit1(string productId, Action<string> callback);
     }
     
     
