@@ -109,7 +109,21 @@ namespace com.noctuagames.sdk
             storedCompletion?.Invoke(success, message);
         }
 
+        [AOT.MonoPInvokeCallback(typeof(CompletionProductPurchasedDelegate))]
+        private static void CompletionHasPurchasedCallback(bool hasPurchased)
+        {
+            storedHasPurchasedCompletion?.Invoke(hasPurchased);
+        }
+
+        [AOT.MonoPInvokeCallback(typeof(CompletionGetReceiptDelegate))]
+        private static void CompletionGetReceiptCallback(string receipt)
+        {
+            storedGetReceiptCompletion?.Invoke(receipt);
+        } 
+
         private static Action<bool, string> storedCompletion;
+        private static Action<bool> storedHasPurchasedCompletion;
+        private static Action<string> storedGetReceiptCompletion;
 
         public void PurchaseItem(string productId, Action<bool, string> completion)
         {
@@ -135,12 +149,9 @@ namespace com.noctuagames.sdk
                 return;
             }
 
-            void InternalCallback(bool hasPurchased)
-            {
-                completion?.Invoke(hasPurchased);
-            }
-
-            noctuaGetProductPurchasedById(productId, new CompletionProductPurchasedDelegate(InternalCallback));
+            
+            storedHasPurchasedCompletion = completion;
+            noctuaGetProductPurchasedById(productId, new CompletionProductPurchasedDelegate(CompletionHasPurchasedCallback));
 
             _log.Debug("noctuaGetProductPurchasedById called");
         }
@@ -154,12 +165,8 @@ namespace com.noctuagames.sdk
                 return;
             }
 
-            void InternalCallback(string receipt)
-            {
-                completion?.Invoke(receipt);
-            }
-
-            noctuaGetReceiptProductPurchasedStoreKit1(productId, new CompletionGetReceiptDelegate(InternalCallback));
+            storedGetReceiptCompletion = completion;
+            noctuaGetReceiptProductPurchasedStoreKit1(productId, new CompletionGetReceiptDelegate(CompletionGetReceiptCallback));
 
             _log.Debug("noctuaGetReceiptProductPurchasedStoreKit1 called");
         }
