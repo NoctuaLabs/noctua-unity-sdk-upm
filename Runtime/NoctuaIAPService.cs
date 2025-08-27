@@ -2327,7 +2327,7 @@ namespace com.noctuagames.sdk
                 }
             });
             #elif UNITY_IOS && !UNITY_EDITOR
-            IosPlugin.GetProductPurchasedById(productId, (hasPurchased) =>
+            _nativePlugin.GetProductPurchasedById(productId, (hasPurchased) =>
             {
                 Debug.Log($"[IosPlugin] Product '{productId}' purchased: {hasPurchased}");
                 callback?.Invoke(hasPurchased);

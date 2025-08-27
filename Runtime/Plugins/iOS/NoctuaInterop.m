@@ -117,6 +117,7 @@ void noctuaGetActiveCurrency(const char* productId, CompletionDelegate callback)
     }];
 }
 
+typedef void (*ProductPurchasedCompletionDelegate)(bool success);
 void noctuaGetProductPurchasedById(const char* productId, ProductPurchasedCompletionDelegate callback) {
     NSLog(@"noctuaGetProductPurchasedById called with productId: %s", productId);
 
@@ -137,13 +138,17 @@ void noctuaGetProductPurchasedById(const char* productId, ProductPurchasedComple
         return;
     }
 
-    [Noctua getProductPurchasedById:productIdStr completion:^(BOOL hasPurchased) {
+    [Noctua getProductPurchasedByIdWithId:productIdStr completion:^(BOOL hasPurchased) {
         NSLog(@"Noctua getProductPurchasedById completion called. HasPurchased: %d", hasPurchased);
         if (callback != NULL) {
             callback(hasPurchased);
         }
+    } completionHandler:^ {
+        NSLog(@"Noctua get product purchased by id successfully!");
     }];
 }
+
+typedef void (*ReceiptCompletionDelegate)(const char* message);
 
 void noctuaGetReceiptProductPurchasedStoreKit1(const char* productId, ReceiptCompletionDelegate callback) {
     NSLog(@"noctuaGetReceiptProductPurchasedStoreKit1 called with productId: %s", productId);
@@ -165,7 +170,7 @@ void noctuaGetReceiptProductPurchasedStoreKit1(const char* productId, ReceiptCom
         return;
     }
 
-    [Noctua getReceiptProductPurchasedStoreKit1:productIdStr completion:^(NSString * _Nonnull receipt) {
+    [Noctua getReceiptProductPurchasedStoreKit1WithId:productIdStr completion:^(NSString * _Nonnull receipt) {
         NSLog(@"Noctua getReceiptProductPurchasedStoreKit1 completion called. Receipt: %@", receipt);
         if (callback != NULL) {
             const char* cReceipt = [receipt UTF8String];
