@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.47.0] - 2025-08-28
+
+### 🚀 Features
+
+- Update native wrapper sdk ios and android
+- Add check product if purchased ios
+- Completion delegate
+
 ## [0.46.4] - 2025-08-14
 
 ### 🐛 Bug Fixes
