@@ -1255,7 +1255,7 @@ namespace com.noctuagames.sdk
                     _log.Warning($"Purchase status IAPNotReady: {paymentResult.Status}, Message: {paymentResult.Message}");
                     _uiFactory.ShowError(LocaleTextKey.IAPNotReady);
 
-                    throw new NoctuaException(NoctuaErrorCode.Payment, $"payment status: {paymentResult.Status}, Message: {paymentResult.Message}");
+                    throw new NoctuaException(NoctuaErrorCode.PaymentStatusIapNotReady, $"payment status: {paymentResult.Status}, Message: {paymentResult.Message}");
                 default:
                     _log.Warning($"Purchase status IAPFailed: {paymentResult.Status}, Message: {paymentResult.Message}");
                     _uiFactory.ShowError(LocaleTextKey.IAPFailed);
