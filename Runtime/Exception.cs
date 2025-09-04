@@ -14,6 +14,9 @@ namespace com.noctuagames.sdk
         MissingCompletionHandler = 3005,
         Payment = 3006,
         AccountStorage = 3007,
+        PaymentStatusCanceled = 3008,
+        PaymentStatusItemAlreadyOwned = 3009,
+        PaymentStatusIapNotReady = 3010,
         UserBanned = 2202
     }
     
