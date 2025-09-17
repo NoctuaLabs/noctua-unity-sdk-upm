@@ -245,7 +245,7 @@ namespace com.noctuagames.sdk
             noctua.Call("getFirebaseInstallationID",  new AndroidCallback<string>(callback));
         }
 
-        public void GetFirabaseAnalyticsSessionID(Action<string> callback) {
+        public void GetFirebaseAnalyticsSessionID(Action<string> callback) {
             using var noctua = new AndroidJavaObject("com.noctuagames.sdk.Noctua$Companion");
             noctua.Call("getFirebaseAnalyticsSessionID",  new AndroidCallback<string>(callback));
         }

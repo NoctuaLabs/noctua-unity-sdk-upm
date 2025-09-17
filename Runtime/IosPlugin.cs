@@ -308,7 +308,7 @@ namespace com.noctuagames.sdk
             _log.Debug("noctuaGetFirebaseInstallationID called");
         }
 
-        public void GetFirabaseAnalyticsSessionID(Action<string> callback) 
+        public void GetFirebaseAnalyticsSessionID(Action<string> callback) 
         {
             storedFirebaseIdCompletion = callback;
             noctuaGetFirebaseAnalyticsSessionID(new GetFirebaseIDCallback(GetFirebaseIDCallback));

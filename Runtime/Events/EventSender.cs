@@ -21,6 +21,7 @@ namespace com.noctuagames.sdk.Events
         public int MaxBatchSize = 100;
         public uint BatchPeriodMs = 60_000; // 1 minute, in ms
         public int CycleDelay = 5000; // 5 sec, in ms
+        public FirebaseConfig FirebaseConfig = new FirebaseConfig();
     }
     
     [Preserve]
@@ -264,6 +265,26 @@ namespace com.noctuagames.sdk.Events
                 data.TryAdd("country", _locale.GetCountry());
                 data.TryAdd("ipAddress", _ipAddress);
                 data.TryAdd("is_sandbox", _isSandbox);
+
+                #if UNITY_ANDROID
+                if (!_config.FirebaseConfig.Android.CustomEventDisabled)
+                {
+                    var firebaseSessionId = await Noctua.GetFirebaseAnalyticsSessionID();
+                    var firebaseInstallationId = await Noctua.GetFirebaseInstallationID();
+
+                    data.TryAdd("firebase_analytics_session_id", firebaseSessionId);
+                    data.TryAdd("firebase_installation_id", firebaseInstallationId);
+                }
+                #elif UNITY_IOS
+                if (!_config.FirebaseConfig.Ios.CustomEventDisabled)
+                {
+                    var firebaseSessionId = await Noctua.GetFirebaseAnalyticsSessionID();
+                    var firebaseInstallationId = await Noctua.GetFirebaseInstallationID();
+
+                    data.TryAdd("firebase_analytics_session_id", firebaseSessionId);
+                    data.TryAdd("firebase_installation_id", firebaseInstallationId);
+                }
+                #endif
 
                 LastEventTime = _start.AddSeconds(Stopwatch.GetTimestamp() / (double)Stopwatch.Frequency);
                 data.TryAdd("timestamp", LastEventTime.ToString("O"));

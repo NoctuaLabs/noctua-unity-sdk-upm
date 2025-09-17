@@ -23,7 +23,7 @@ namespace com.noctuagames.sdk
            
         }
 
-        public void GetFirabaseAnalyticsSessionID(Action<string> callback) {
+        public void GetFirebaseAnalyticsSessionID(Action<string> callback) {
            
         }
 

@@ -96,8 +96,8 @@ namespace com.noctuagames.sdk
     [Preserve]
     public class FacebookConfig
     {
-	[JsonProperty("android"), JsonRequired] public FacebookAndroidConfig Android;
-	[JsonProperty("ios"), JsonRequired] public FacebookIosConfig Ios;
+        [JsonProperty("android"), JsonRequired] public FacebookAndroidConfig Android;
+        [JsonProperty("ios"), JsonRequired] public FacebookIosConfig Ios;
     }
 
     [Preserve]
@@ -117,6 +117,25 @@ namespace com.noctuagames.sdk
     }
 
     [Preserve]
+    public class FirebaseConfig
+    {
+        [JsonProperty("android"), JsonRequired] public FirebaseAndroidConfig Android;
+        [JsonProperty("ios"), JsonRequired] public FirebaseIosConfig Ios;
+    }
+
+    [Preserve]
+    public class FirebaseAndroidConfig
+    {
+        [JsonProperty("customEventDisabled"), JsonRequired] public bool CustomEventDisabled;
+    }
+
+    [Preserve]
+    public class FirebaseIosConfig
+    {
+        [JsonProperty("customEventDisabled"), JsonRequired] public bool CustomEventDisabled;
+    }
+
+    [Preserve]
     public class CoPublisherConfig
     {
         [JsonProperty("companyName"), JsonRequired] public string CompanyName;
@@ -133,6 +152,8 @@ namespace com.noctuagames.sdk
         [JsonProperty("adjust")] public AdjustConfig Adjust;
 
         [JsonProperty("facebook")] public FacebookConfig Facebook;
+        
+        [JsonProperty("firebase")] public FirebaseConfig Firebase;
 
         [JsonProperty("noctua")] public NoctuaConfig Noctua;
         
@@ -285,7 +306,8 @@ namespace com.noctuagames.sdk
                     ClientId = _config.ClientId,
                     BundleId = Application.identifier,
                     BatchSize = _config.Noctua.TrackerBatchSize,
-                    BatchPeriodMs = _config.Noctua.TrackerBatchPeriodMs
+                    BatchPeriodMs = _config.Noctua.TrackerBatchPeriodMs,
+                    FirebaseConfig = _config.Firebase,
                 },
                 locale
             );
@@ -963,6 +985,7 @@ namespace com.noctuagames.sdk
 
         public static Task<string> GetFirebaseInstallationID() 
         {
+            #if UNITY_ANDROID || UNITY_IOS
             var tcs = new TaskCompletionSource<string>();
 
             if (Instance.Value._nativePlugin != null) {
@@ -975,14 +998,18 @@ namespace com.noctuagames.sdk
             }
 
             return tcs.Task;
+            #else
+            return Task.FromResult("");
+            #endif
         }
 
-        public static Task<string> GetFirabaseAnalyticsSessionID() 
+        public static Task<string> GetFirebaseAnalyticsSessionID() 
         {
+            #if UNITY_ANDROID || UNITY_IOS
             var tcs = new TaskCompletionSource<string>();
 
             if (Instance.Value._nativePlugin != null) {
-                Instance.Value._nativePlugin.GetFirabaseAnalyticsSessionID((id) => {
+                Instance.Value._nativePlugin.GetFirebaseAnalyticsSessionID((id) => {
                     tcs.SetResult(id);
                 });
             } else {
@@ -991,6 +1018,10 @@ namespace com.noctuagames.sdk
             }
 
             return tcs.Task;
+
+            #else
+            return Task.FromResult("");
+            #endif
         }
 
         private static bool IsFirstOpen()
