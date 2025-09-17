@@ -522,6 +522,7 @@ namespace com.noctuagames.sdk
 
         public static async UniTask InitAsync(Func<UniTask>? onSuccess = null)
         {
+            Instance.Value._eventSender.Send("sdk_init_start");
             if (_initialized)
             {
                 Instance.Value._log.Info("InitAsync() called but already initialized");
@@ -556,14 +557,18 @@ namespace com.noctuagames.sdk
                 OfflineMode = true,
             };
 
+            Instance.Value._eventSender.Send("sdk_init_offline_mode_response_prepared");
+
             try
             {
                 initResponse = await Utility.RetryAsyncTask(Instance.Value._game.InitGameAsync);
 
                 if (Instance.Value._isOfflineFirst && initResponse == null)
                 {
+                    Instance.Value._eventSender.Send("sdk_init_response_with_offline_mode");
                     initResponse = offlineModeInitResponse;
                 }
+                Instance.Value._eventSender.Send("sdk_init_internal_success");
             }
             catch (Exception e)
             {
@@ -572,6 +577,7 @@ namespace com.noctuagames.sdk
                     e.Message.Contains("500")
                 ))
                 {
+                    Instance.Value._eventSender.Send("sdk_init_network_error");
                     log.Info($"{e.Message}");
                     // We are suppressing and returning a dummy offline mode
                     // response because:
@@ -584,16 +590,19 @@ namespace com.noctuagames.sdk
                 }
                 else
                 {
+                    Instance.Value._eventSender.Send("sdk_init_other_error");
                     log.Exception(e);
 
                     var errorMessage = e.Message ?? "An unexpected error occurred";
 
                     if (Instance.Value._uiFactory != null)
                     {
+                        Instance.Value._eventSender.Send("sdk_init_show_error_dialog");
                         await Instance.Value._uiFactory.ShowStartGameErrorDialog(errorMessage);
                     }
                     else
                     {
+                        Instance.Value._eventSender.Send("sdk_init_show_error_dialog_failed");
                         log.Warning($"_uiFactory is null, cannot show error dialog: {errorMessage}");
                     }
                 }
@@ -607,6 +616,7 @@ namespace com.noctuagames.sdk
             {
                 Instance.Value._log.Info("InitAsync() offline mode is enabled.");
                 Instance.Value._eventSender.Send("offline");
+                Instance.Value._eventSender.Send("sdk_init_offline_mode_enabled");
             }
 
             var iapReadyTimeout = DateTime.UtcNow.AddSeconds(5);
@@ -615,6 +625,7 @@ namespace com.noctuagames.sdk
 
             while (!Instance.Value._iap.IsReady && DateTime.UtcNow < iapReadyTimeout)
             {
+                Instance.Value._eventSender.Send("sdk_init_iap_init");
                 Instance.Value._iap.Init();
 
                 var completedTask = await UniTask.WhenAny(
@@ -632,7 +643,10 @@ namespace com.noctuagames.sdk
 
             if (!Instance.Value._iap.IsReady)
             {
+                Instance.Value._eventSender.Send("sdk_init_iap_init_not_ready_or_timeout");
                 log.Error("IAP is not ready after timeout");
+            } else {
+                Instance.Value._eventSender.Send("sdk_init_iap_init_success");
             }
 
             if (string.IsNullOrEmpty(initResponse.Country))
@@ -641,9 +655,11 @@ namespace com.noctuagames.sdk
                 {
                     initResponse.Country = await Instance.Value._game.GetCountryIDFromCloudflareTraceAsync();
                     log.Info("Using country from cloudflare: " + initResponse.Country);
+                    Instance.Value._eventSender.Send("sdk_init_get_country_from_cloudflare_success");
                 }
                 catch (Exception)
                 {
+                    Instance.Value._eventSender.Send("sdk_init_get_country_from_cloudflare_failed");
                     log.Info("Using country from default value: " + initResponse.Country);
                     initResponse.Country = "ID";
                 }
@@ -663,6 +679,7 @@ namespace com.noctuagames.sdk
             if (!string.IsNullOrEmpty(initResponse.Country))
             {
                 Instance.Value._platform.Locale.SetCountry(initResponse.Country);
+                Instance.Value._eventSender.Send("sdk_init_set_locale_success");
             }
 
             // Try to get active currency
@@ -671,6 +688,7 @@ namespace com.noctuagames.sdk
                 try
                 {
                     var activeCurrency = await Instance.Value._iap.GetActiveCurrencyAsync(initResponse.ActiveProductId);
+                    Instance.Value._eventSender.Send("sdk_init_get_active_currency_success");
                     if (!string.IsNullOrEmpty(activeCurrency))
                     {
                         log.Info("Found active currency: " + activeCurrency);
@@ -685,6 +703,7 @@ namespace com.noctuagames.sdk
                             log.Warning("Active currency is not supported. Fallback to USD.");
                             Instance.Value._platform.Locale.SetCurrency("USD");
                         }
+                        Instance.Value._eventSender.Send("sdk_init_set_currency_success");
                     }
                     else
                     {
@@ -701,10 +720,12 @@ namespace com.noctuagames.sdk
                             log.Warning("Currency not found in country map. Fallback to USD.");
                             Instance.Value._platform.Locale.SetCurrency("USD");
                         }
+                        Instance.Value._eventSender.Send("sdk_init_set_fallback_currency_success");
                     }
                 }
                 catch (Exception)
                 {
+                    Instance.Value._eventSender.Send("sdk_init_set_currency_failed");
                     log.Warning("Failed to get active currency. Try to use country to currency map.");
                     if (initResponse.CountryToCurrencyMap != null &&
                     initResponse.CountryToCurrencyMap.ContainsKey(initResponse.Country))
@@ -722,6 +743,7 @@ namespace com.noctuagames.sdk
                         log.Warning("Currency not found in country map. Fallback to USD.");
                         Instance.Value._platform.Locale.SetCurrency("USD");
                     }
+                    Instance.Value._eventSender.Send("sdk_init_set_fallback_currency_success");
                 }
             }
 
@@ -763,6 +785,7 @@ namespace com.noctuagames.sdk
             }
 
             Noctua.Instance.Value._auth.SetFlag(Noctua.Instance.Value._config.Noctua.RemoteFeatureFlags);
+            Instance.Value._eventSender.Send("sdk_init_set_remote_feature_flags_success");
 
             log.Debug("Final noctua config: " + JsonConvert.SerializeObject(Noctua.Instance.Value._config?.Noctua));
 
@@ -770,6 +793,7 @@ namespace com.noctuagames.sdk
             {
                 enabledPaymentTypes.Remove(PaymentType.appstore);
                 enabledPaymentTypes.Remove(PaymentType.playstore);
+                Instance.Value._eventSender.Send("sdk_init_remove_platform_payment_types");
             }
 
             log.Info("FeatureFlags: " + Noctua.Instance.Value._config.Noctua.RemoteFeatureFlags);
@@ -780,6 +804,7 @@ namespace com.noctuagames.sdk
             if (enabledPaymentTypes != null)
             {
                 enabledPaymentTypes.Remove(PaymentType.playstore);
+                Instance.Value._eventSender.Send("sdk_init_remove_irrelevant_payment_types");
             }
 #endif
 
@@ -787,6 +812,7 @@ namespace com.noctuagames.sdk
             if (enabledPaymentTypes != null)
             {
                 enabledPaymentTypes.Remove(PaymentType.appstore);
+                Instance.Value._eventSender.Send("sdk_init_remove_irrelevant_payment_types");
             }
 #endif
 
@@ -796,11 +822,14 @@ namespace com.noctuagames.sdk
             {
                 enabledPaymentTypes.Remove(PaymentType.appstore);
                 enabledPaymentTypes.Remove(PaymentType.playstore);
+                Instance.Value._eventSender.Send("sdk_init_remove_irrelevant_payment_types");
             }
 #endif
 
             Instance.Value._iap.SetEnabledPaymentTypes(enabledPaymentTypes);
+            Instance.Value._eventSender.Send("sdk_init_set_enabled_payment_types");
             Instance.Value._iap.SetDistributionPlatform(initResponse.DistributionPlatform);
+            Instance.Value._eventSender.Send("sdk_init_set_distribution_platform");
 
             Instance.Value._eventSender.Send("init");
 
@@ -811,6 +840,7 @@ namespace com.noctuagames.sdk
 
             // Initialize IAA (In-App Advertising) SDK and prepare IAA to be ready for showing ads to the user.
             InitMediationSDK(log, initResponse);
+            Instance.Value._eventSender.Send("sdk_init_mediation_init");
 
             log.Info("Noctua.InitAsync() completed");
 
@@ -828,16 +858,20 @@ namespace com.noctuagames.sdk
                 Instance.Value._iap.RetryPendingPurchasesAsync();
                 // Query purchases against Google Play Billing
 #if UNITY_ANDROID
+                Instance.Value._eventSender.Send("sdk_init_start_query_purchases");
                 Instance.Value._iap.QueryPurchasesAsync();
 #endif
+                Instance.Value._eventSender.Send("sdk_init_online_success");
                 OnInitSuccess?.Invoke();
                 if (onSuccess != null) await onSuccess.Invoke();
 
             }
             else
             {
+                Instance.Value._eventSender.Send("sdk_init_offline_success");
                 // Start the realtime check for internet connection
                 RealtimeCheckInternetConnectionAndRetryAuth().Forget();
+                Instance.Value._eventSender.Send("sdk_init_offline_mode_retry_conn");
             }
         }
 
