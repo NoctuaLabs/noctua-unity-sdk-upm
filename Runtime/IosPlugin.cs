@@ -62,6 +62,57 @@ namespace com.noctuagames.sdk
         [DllImport("__Internal")]
         private static extern void DismissDatePicker();
 
+        [DllImport("__Internal")]
+        private static extern void noctuaGetFirebaseInstallationID(GetFirebaseIDCallback callback);
+
+        [DllImport("__Internal")]
+        private static extern void noctuaGetFirebaseAnalyticsSessionID(GetFirebaseIDCallback callback);
+
+        // Store the callback to be used in the static methods
+        private static Action<bool, string> storedCompletion;
+        private static Action<bool> storedHasPurchasedCompletion;
+        private static Action<string> storedGetReceiptCompletion;
+        private static Action<string> storedFirebaseIdCompletion;
+
+        // Define delegates for the native callbacks
+        [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+        private delegate void CompletionDelegate(bool success, IntPtr messagePtr);
+
+        [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+        private delegate void CompletionProductPurchasedDelegate(bool hasPurchased);
+
+        [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+        private delegate void CompletionGetReceiptDelegate(string receipt);
+
+        [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+        private delegate void GetFirebaseIDCallback(string firebaseId);
+
+        //Delegate for methods returning string values
+        [AOT.MonoPInvokeCallback(typeof(CompletionDelegate))]
+        private static void CompletionCallback(bool success, IntPtr messagePtr)
+        {
+            string message = messagePtr != IntPtr.Zero ? Marshal.PtrToStringAnsi(messagePtr) : "Unknown error";
+            storedCompletion?.Invoke(success, message);
+        }
+
+        [AOT.MonoPInvokeCallback(typeof(CompletionProductPurchasedDelegate))]
+        private static void CompletionHasPurchasedCallback(bool hasPurchased)
+        {
+            storedHasPurchasedCompletion?.Invoke(hasPurchased);
+        }
+
+        [AOT.MonoPInvokeCallback(typeof(CompletionGetReceiptDelegate))]
+        private static void CompletionGetReceiptCallback(string receipt)
+        {
+            storedGetReceiptCompletion?.Invoke(receipt);
+        } 
+
+        [AOT.MonoPInvokeCallback(typeof(GetFirebaseIDCallback))]
+        public void GetFirebaseIDCallback(Action<string> callback) 
+        {
+            storedFirebaseIdCompletion?.Invoke(callback);
+        }
+
         public void Init(List<string> activeBundleIds)
         {
             noctuaInitialize();
@@ -92,38 +143,6 @@ namespace com.noctuagames.sdk
         {
             noctuaTrackCustomEventWithRevenue(eventName, revenue, currency, JsonConvert.SerializeObject(payload));
         }
-
-        [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-        private delegate void CompletionDelegate(bool success, IntPtr messagePtr);
-
-        [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-        private delegate void CompletionProductPurchasedDelegate(bool hasPurchased);
-
-        [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-        private delegate void CompletionGetReceiptDelegate(string receipt);
-
-        [AOT.MonoPInvokeCallback(typeof(CompletionDelegate))]
-        private static void CompletionCallback(bool success, IntPtr messagePtr)
-        {
-            string message = messagePtr != IntPtr.Zero ? Marshal.PtrToStringAnsi(messagePtr) : "Unknown error";
-            storedCompletion?.Invoke(success, message);
-        }
-
-        [AOT.MonoPInvokeCallback(typeof(CompletionProductPurchasedDelegate))]
-        private static void CompletionHasPurchasedCallback(bool hasPurchased)
-        {
-            storedHasPurchasedCompletion?.Invoke(hasPurchased);
-        }
-
-        [AOT.MonoPInvokeCallback(typeof(CompletionGetReceiptDelegate))]
-        private static void CompletionGetReceiptCallback(string receipt)
-        {
-            storedGetReceiptCompletion?.Invoke(receipt);
-        } 
-
-        private static Action<bool, string> storedCompletion;
-        private static Action<bool> storedHasPurchasedCompletion;
-        private static Action<string> storedGetReceiptCompletion;
 
         public void PurchaseItem(string productId, Action<bool, string> completion)
         {
@@ -279,6 +298,22 @@ namespace com.noctuagames.sdk
         {
             noctuaOnOffline();
             _log.Info($"trigger offline mode to native plugin");
+        }
+
+        public void GetFirebaseInstallationID(Action<string> callback) 
+        {
+            storedFirebaseIdCompletion = callback;
+            noctuaGetFirebaseInstallationID(new GetFirebaseIDCallback(GetFirebaseIDCallback));
+
+            _log.Debug("noctuaGetFirebaseInstallationID called");
+        }
+
+        public void GetFirabaseAnalyticsSessionID(Action<string> callback) 
+        {
+            storedFirebaseIdCompletion = callback;
+            noctuaGetFirebaseAnalyticsSessionID(new GetFirebaseIDCallback(GetFirebaseIDCallback));
+
+            _log.Debug("noctuaGetFirebaseAnalyticsSessionID called");
         }
     }
 #endif

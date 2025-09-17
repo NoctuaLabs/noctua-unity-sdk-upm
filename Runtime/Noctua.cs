@@ -961,6 +961,38 @@ namespace com.noctuagames.sdk
             }
         }
 
+        public static Task<string> GetFirebaseInstallationID() 
+        {
+            var tcs = new TaskCompletionSource<string>();
+
+            if (Instance.Value._nativePlugin != null) {
+                Instance.Value._nativePlugin.GetFirebaseInstallationID((id) => {
+                    tcs.SetResult(id);
+                });
+            } else {
+                Instance.Value._log.Error("Native plugin is null");
+                tcs.SetResult("");
+            }
+
+            return tcs.Task;
+        }
+
+        public static Task<string> GetFirabaseAnalyticsSessionID() 
+        {
+            var tcs = new TaskCompletionSource<string>();
+
+            if (Instance.Value._nativePlugin != null) {
+                Instance.Value._nativePlugin.GetFirabaseAnalyticsSessionID((id) => {
+                    tcs.SetResult(id);
+                });
+            } else {
+                Instance.Value._log.Error("Native plugin is null");
+                tcs.SetResult("");
+            }
+
+            return tcs.Task;
+        }
+
         private static bool IsFirstOpen()
         {
             var isFirstOpen = PlayerPrefs.GetInt("NoctuaFirstOpen", 1) == 1;

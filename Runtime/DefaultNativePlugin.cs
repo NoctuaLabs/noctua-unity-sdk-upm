@@ -19,6 +19,14 @@ namespace com.noctuagames.sdk
         {
         }
 
+        public void GetFirebaseInstallationID(Action<string> callback) {
+           
+        }
+
+        public void GetFirabaseAnalyticsSessionID(Action<string> callback) {
+           
+        }
+
         public void ShowDatePicker(int year, int month, int day, int id)
         {
             throw new NotImplementedException();

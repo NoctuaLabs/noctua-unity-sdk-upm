@@ -61,6 +61,10 @@ namespace com.noctuagames.sdk
         void Init(List<String> activeBundleIds);
 
         void OnApplicationPause(bool pause);
+
+        void GetFirebaseInstallationID(Action<string> callback);
+
+        void GetFirabaseAnalyticsSessionID(Action<string> callback);
     }
 
     public interface INativeDatePicker

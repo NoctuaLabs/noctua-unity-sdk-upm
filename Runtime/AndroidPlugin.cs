@@ -239,6 +239,55 @@ namespace com.noctuagames.sdk
                 _log.Warning("Failed to call onOffline method: " + e.Message);
             }
         }
+
+        public void GetFirebaseInstallationID(Action<string> callback) {
+            using var noctua = new AndroidJavaObject("com.noctuagames.sdk.Noctua$Companion");
+            noctua.Call("getFirebaseInstallationID",  new AndroidCallback<string>(callback));
+        }
+
+        public void GetFirabaseAnalyticsSessionID(Action<string> callback) {
+            using var noctua = new AndroidJavaObject("com.noctuagames.sdk.Noctua$Companion");
+            noctua.Call("getFirebaseAnalyticsSessionID",  new AndroidCallback<string>(callback));
+        }
+    }
+}
+
+public class AndroidCallback<T> : AndroidJavaProxy
+{
+    private readonly Action<T> _callback;
+
+    public AndroidCallback(Action<T> callback)
+        : base("kotlin.jvm.functions.Function1")
+    {
+        _callback = callback;
+    }
+
+    // Support Kotlin calling invoke(String)
+    public AndroidJavaObject invoke(string arg)
+    {
+        if (typeof(T) == typeof(string))
+            _callback?.Invoke((T)(object)arg);
+
+        return new AndroidJavaClass("kotlin.Unit").GetStatic<AndroidJavaObject>("INSTANCE");
+    }
+
+    // Fallback if Kotlin dispatches invoke(Object)
+    public AndroidJavaObject invoke(AndroidJavaObject arg)
+    {
+        object value = null;
+
+        if (typeof(T) == typeof(string))
+            value = arg?.Call<string>("toString");
+        else if (typeof(T) == typeof(int))
+            value = arg?.Call<int>("intValue");
+        else if (typeof(T) == typeof(bool))
+            value = arg?.Call<bool>("booleanValue");
+        else
+            value = arg;
+
+        _callback?.Invoke((T)value);
+
+        return new AndroidJavaClass("kotlin.Unit").GetStatic<AndroidJavaObject>("INSTANCE");
     }
 }
 #endif
