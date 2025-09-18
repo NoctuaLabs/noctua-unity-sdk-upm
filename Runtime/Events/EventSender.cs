@@ -266,15 +266,22 @@ namespace com.noctuagames.sdk.Events
                 data.TryAdd("ipAddress", _ipAddress);
                 data.TryAdd("is_sandbox", _isSandbox);
 
-                #if UNITY_ANDROID
-                if (!_config.FirebaseConfig.Android.CustomEventDisabled)
+                var activeExperiment = Noctua.GetActiveExperiment();
+                
+                if (!string.IsNullOrEmpty(activeExperiment))
                 {
-                    var firebaseSessionId = await Noctua.GetFirebaseAnalyticsSessionID();
-                    var firebaseInstallationId = await Noctua.GetFirebaseInstallationID();
-
-                    data.TryAdd("firebase_analytics_session_id", firebaseSessionId);
-                    data.TryAdd("firebase_installation_id", firebaseInstallationId);
+                    data.TryAdd("experiment", activeExperiment);
                 }
+
+                #if UNITY_ANDROID
+                    if (!_config.FirebaseConfig.Android.CustomEventDisabled)
+                    {
+                        var firebaseSessionId = await Noctua.GetFirebaseAnalyticsSessionID();
+                        var firebaseInstallationId = await Noctua.GetFirebaseInstallationID();
+
+                        data.TryAdd("firebase_analytics_session_id", firebaseSessionId);
+                        data.TryAdd("firebase_installation_id", firebaseInstallationId);
+                    }
                 #endif
 
                 #if UNITY_IOS

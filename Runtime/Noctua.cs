@@ -1078,6 +1078,16 @@ namespace com.noctuagames.sdk
             return isFirstOpen;
         }
 
+        public static void SetExperiment(string experimentName)
+        {
+            ExperimentManager.SetExperiment(experimentName);
+        }
+
+        public static string GetActiveExperiment()
+        {
+            return ExperimentManager.GetActiveExperiment();
+        }
+
         public static void ShowDatePicker(int year, int month, int day, int id)
         {
             var log = Instance.Value._log;
