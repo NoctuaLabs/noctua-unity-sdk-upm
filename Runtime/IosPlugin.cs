@@ -63,16 +63,17 @@ namespace com.noctuagames.sdk
         private static extern void DismissDatePicker();
 
         [DllImport("__Internal")]
-        private static extern void noctuaGetFirebaseInstallationID(GetFirebaseIDCallback callback);
+        private static extern void noctuaGetFirebaseInstallationID(GetFirebaseIDCallbackDelegate callback);
 
         [DllImport("__Internal")]
-        private static extern void noctuaGetFirebaseAnalyticsSessionID(GetFirebaseIDCallback callback);
+        private static extern void noctuaGetFirebaseAnalyticsSessionID(GetFirebaseSessionIDCallbackDelegate callback);
 
         // Store the callback to be used in the static methods
         private static Action<bool, string> storedCompletion;
         private static Action<bool> storedHasPurchasedCompletion;
         private static Action<string> storedGetReceiptCompletion;
-        private static Action<string> storedFirebaseIdCompletion;
+        private static Action<string> storedFirebaseInstallationIdCompletion;
+        private static Action<string> storedFirebaseSessionIdCompletion;
 
         // Define delegates for the native callbacks
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
@@ -85,7 +86,10 @@ namespace com.noctuagames.sdk
         private delegate void CompletionGetReceiptDelegate(string receipt);
 
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-        private delegate void GetFirebaseIDCallback(string firebaseId);
+        private delegate void GetFirebaseIDCallbackDelegate(string installationId);
+
+        [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+        private delegate void GetFirebaseSessionIDCallbackDelegate(string sessionId);
 
         //Delegate for methods returning string values
         [AOT.MonoPInvokeCallback(typeof(CompletionDelegate))]
@@ -107,10 +111,16 @@ namespace com.noctuagames.sdk
             storedGetReceiptCompletion?.Invoke(receipt);
         } 
 
-        [AOT.MonoPInvokeCallback(typeof(GetFirebaseIDCallback))]
-        public void GetFirebaseIDCallback(Action<string> callback) 
+        [AOT.MonoPInvokeCallback(typeof(GetFirebaseIDCallbackDelegate))]
+        private static void GetFirebaseInstallationIDCallback(string installationId) 
         {
-            storedFirebaseIdCompletion?.Invoke(callback);
+            storedFirebaseInstallationIdCompletion?.Invoke(installationId);
+        }
+
+        [AOT.MonoPInvokeCallback(typeof(GetFirebaseSessionIDCallbackDelegate))]
+        private static void GetFirebaseSessionIDCallback(string sessionId) 
+        {
+            storedFirebaseSessionIdCompletion?.Invoke(sessionId);
         }
 
         public void Init(List<string> activeBundleIds)
@@ -302,16 +312,16 @@ namespace com.noctuagames.sdk
 
         public void GetFirebaseInstallationID(Action<string> callback) 
         {
-            storedFirebaseIdCompletion = callback;
-            noctuaGetFirebaseInstallationID(new GetFirebaseIDCallback(GetFirebaseIDCallback));
+            storedFirebaseInstallationIdCompletion = callback;
+            noctuaGetFirebaseInstallationID(new GetFirebaseIDCallbackDelegate(GetFirebaseInstallationIDCallback));
 
             _log.Debug("noctuaGetFirebaseInstallationID called");
         }
 
         public void GetFirebaseAnalyticsSessionID(Action<string> callback) 
         {
-            storedFirebaseIdCompletion = callback;
-            noctuaGetFirebaseAnalyticsSessionID(new GetFirebaseIDCallback(GetFirebaseIDCallback));
+            storedFirebaseSessionIdCompletion = callback;
+            noctuaGetFirebaseAnalyticsSessionID(new GetFirebaseSessionIDCallbackDelegate(GetFirebaseSessionIDCallback));
 
             _log.Debug("noctuaGetFirebaseAnalyticsSessionID called");
         }

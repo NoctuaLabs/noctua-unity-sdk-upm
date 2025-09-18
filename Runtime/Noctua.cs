@@ -985,43 +985,67 @@ namespace com.noctuagames.sdk
 
         public static Task<string> GetFirebaseInstallationID() 
         {
-            #if UNITY_ANDROID || UNITY_IOS
+        #if UNITY_ANDROID || UNITY_IOS
             var tcs = new TaskCompletionSource<string>();
 
-            if (Instance.Value._nativePlugin != null) {
-                Instance.Value._nativePlugin.GetFirebaseInstallationID((id) => {
-                    tcs.SetResult(id);
-                });
-            } else {
-                Instance.Value._log.Error("Native plugin is null");
-                tcs.SetResult("");
+            try
+            {
+                if (Instance.Value._nativePlugin != null)
+                {
+                    Instance.Value._nativePlugin.GetFirebaseInstallationID((id) =>
+                    {
+                        // Normalize null to empty string
+                        var safeId = id ?? string.Empty;
+                        tcs.TrySetResult(safeId);
+                    });
+                }
+                else
+                {
+                    Instance.Value._log.Error("Native plugin is null");
+                    tcs.TrySetResult(string.Empty);
+                }
+            }
+            catch (Exception ex)
+            {
+                tcs.TrySetException(ex);
             }
 
             return tcs.Task;
-            #else
-            return Task.FromResult("");
-            #endif
+        #else
+            return Task.FromResult(string.Empty);
+        #endif
         }
 
         public static Task<string> GetFirebaseAnalyticsSessionID() 
         {
-            #if UNITY_ANDROID || UNITY_IOS
+        #if UNITY_ANDROID || UNITY_IOS
             var tcs = new TaskCompletionSource<string>();
 
-            if (Instance.Value._nativePlugin != null) {
-                Instance.Value._nativePlugin.GetFirebaseAnalyticsSessionID((id) => {
-                    tcs.SetResult(id);
-                });
-            } else {
-                Instance.Value._log.Error("Native plugin is null");
-                tcs.SetResult("");
+            try
+            {
+                if (Instance.Value._nativePlugin != null)
+                {
+                    Instance.Value._nativePlugin.GetFirebaseAnalyticsSessionID((id) =>
+                    {
+                        var safeId = id ?? string.Empty;
+                        tcs.TrySetResult(safeId);
+                    });
+                }
+                else
+                {
+                    Instance.Value._log.Error("Native plugin is null");
+                    tcs.TrySetResult(string.Empty);
+                }
+            }
+            catch (Exception ex)
+            {
+                tcs.TrySetException(ex);
             }
 
             return tcs.Task;
-
-            #else
-            return Task.FromResult("");
-            #endif
+        #else
+            return Task.FromResult(string.Empty);
+        #endif
         }
 
         private static bool IsFirstOpen()

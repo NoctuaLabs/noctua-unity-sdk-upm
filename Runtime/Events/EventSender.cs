@@ -275,7 +275,9 @@ namespace com.noctuagames.sdk.Events
                     data.TryAdd("firebase_analytics_session_id", firebaseSessionId);
                     data.TryAdd("firebase_installation_id", firebaseInstallationId);
                 }
-                #elif UNITY_IOS
+                #endif
+
+                #if UNITY_IOS
                 if (!_config.FirebaseConfig.Ios.CustomEventDisabled)
                 {
                     var firebaseSessionId = await Noctua.GetFirebaseAnalyticsSessionID();

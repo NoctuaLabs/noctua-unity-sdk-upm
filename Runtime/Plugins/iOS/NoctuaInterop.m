@@ -229,3 +229,22 @@ void noctuaOnOnline() {
 void noctuaOnOffline() {
     [Noctua onOffline];
 }
+
+typedef void (*GetFirebaseIDCallbackDelegate)(const char* firebaseId);
+void noctuaGetFirebaseInstallationID(GetFirebaseIDCallbackDelegate callback) {
+    [Noctua getFirebaseInstallationIDWithCompletion:^(NSString * _Nonnull fid) {
+        if (callback != NULL && fid != nil) {
+            callback([fid UTF8String]);
+        }
+    }];
+}
+
+typedef void (*GetFirebaseSessionIDCallbackDelegate)(const char* sessionId);
+void noctuaGetFirebaseAnalyticsSessionID(GetFirebaseSessionIDCallbackDelegate callback) {
+    [Noctua getFirebaseSessionIDWithCompletion:^(NSString * _Nonnull sessionId) {
+        if (callback != NULL && sessionId != nil) {
+            callback([sessionId UTF8String]);
+        }
+    }];
+}
+

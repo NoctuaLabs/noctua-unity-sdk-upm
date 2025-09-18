@@ -14,5 +14,9 @@ typedef void (*ProductPurchasedCompletionDelegate)(bool hasPurchased);
 void noctuaGetProductPurchasedById(const char* productId, ProductPurchasedCompletionDelegate callback);
 typedef void (*ReceiptCompletionDelegate)(const char* receipt);
 void noctuaGetReceiptProductPurchasedStoreKit1(const char* productId, ReceiptCompletionDelegate callback);
+typedef void (*GetFirebaseIDCallbackDelegate)(const char* firebaseId);
+void noctuaGetFirebaseInstallationID(GetFirebaseIDCallbackDelegate callback)
+typedef void (*GetFirebaseSessionIDCallbackDelegate)(const char* sessionId);
+void noctuaGetFirebaseAnalyticsSessionID(GetFirebaseSessionIDCallbackDelegate callback);
 
 }
