@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.49.0] - 2025-09-18
+
+### 🚀 Features
+
+- Update sdk native wrapper android version 0.13.0 to 0.14.0, ios version 0.17.0 to 0.18.0
+- Add get firebase analytics session id and installation id
+- Add firebase session id and installation id on internal tracker
+- Update noctua native wrapper iOS 0.18.0 to 0.19.0
+- Add get firebase installation id and session id
+- Enhance additional internal event tracker on init and authentication sdk
+- Add experiment manager
+
 ## [0.48.0] - 2025-09-04
 
 ### 🚀 Features
