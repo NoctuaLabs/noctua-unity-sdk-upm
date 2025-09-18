@@ -2,7 +2,7 @@ using System.Collections.Generic;
 
 public static class ExperimentManager
 {
-    private const string KEY_EXPERIMENT_ACTIVE = "experiment_active";
+    private const string KEY_CURRENT_EXPERIMENT = "current_experiment";
 
     private static Dictionary<string, object> _experimentFlags = new Dictionary<string, object>();
 
@@ -27,11 +27,11 @@ public static class ExperimentManager
 
     public static void SetExperiment(string experimentName)
     {
-        SetFlag(KEY_EXPERIMENT_ACTIVE, experimentName);
+        SetFlag(KEY_CURRENT_EXPERIMENT, experimentName);
     }
 
     public static string GetActiveExperiment()
     {
-        return GetFlag<string>(KEY_EXPERIMENT_ACTIVE, string.Empty);
+        return GetFlag<string>(KEY_CURRENT_EXPERIMENT, string.Empty);
     }
 }
