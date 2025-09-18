@@ -107,10 +107,10 @@ namespace com.noctuagames.sdk
         /// <returns>A UserBundle object representing the selected account.</returns>
         public async UniTask<UserBundle> AuthenticateAsync()
         {
-            Instance.Value._eventSender.Send("sdk_auth_start");
+            Noctua.Event.InternalTrackEvent("sdk_auth_start");
             if(!_enabled)
             {
-                Instance.Value._eventSender.Send("sdk_auth_not_enabled");
+                Noctua.Event.InternalTrackEvent("sdk_auth_not_enabled");
                 return UserBundle.Empty;
             }
             
@@ -119,12 +119,16 @@ namespace com.noctuagames.sdk
             try
             {
                 var userBundle = await _service.AuthenticateAsync();
-                Instance.Value._eventSender.Send("sdk_auth_success");
+                Noctua.Event.InternalTrackEvent("sdk_auth_success");
                 return userBundle;
             }
             catch (NoctuaException noctuaEx) when (noctuaEx.ErrorCode == (int)NoctuaErrorCode.UserBanned)
             {
-                Instance.Value._eventSender.Send("sdk_auth_banned");
+                Noctua.Event.InternalTrackEvent("sdk_auth_banned", new Dictionary<string, IConvertible>
+                {
+                    { "ban_reason", noctuaEx.Message }
+                });
+                
                 bool confirmed = await _uiFactory.ShowBannedConfirmationDialog();
 
                 if (confirmed)

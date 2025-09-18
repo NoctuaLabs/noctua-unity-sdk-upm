@@ -599,7 +599,11 @@ namespace com.noctuagames.sdk
                     e.Message.Contains("500")
                 ))
                 {
-                    Instance.Value._eventSender.Send("sdk_init_network_error");
+                    Instance.Value._eventSender.Send("sdk_init_network_error", new Dictionary<string, IConvertible>
+                    {
+                        { "error_message", e.Message }
+                    });
+
                     log.Info($"{e.Message}");
                     // We are suppressing and returning a dummy offline mode
                     // response because:
@@ -612,19 +616,29 @@ namespace com.noctuagames.sdk
                 }
                 else
                 {
-                    Instance.Value._eventSender.Send("sdk_init_other_error");
-                    log.Exception(e);
-
                     var errorMessage = e.Message ?? "An unexpected error occurred";
+
+                    Instance.Value._eventSender.Send("sdk_init_other_error", new Dictionary<string, IConvertible>
+                    {
+                        { "error_message", errorMessage }
+                    });
+
+                    log.Exception(e);
 
                     if (Instance.Value._uiFactory != null)
                     {
-                        Instance.Value._eventSender.Send("sdk_init_show_error_dialog");
+                        Instance.Value._eventSender.Send("sdk_init_show_error_dialog", new Dictionary<string, IConvertible>
+                        {
+                            { "error_message", errorMessage }
+                        });
                         await Instance.Value._uiFactory.ShowStartGameErrorDialog(errorMessage);
                     }
                     else
                     {
-                        Instance.Value._eventSender.Send("sdk_init_show_error_dialog_failed");
+                        Instance.Value._eventSender.Send("sdk_init_show_error_dialog_failed", new Dictionary<string, IConvertible>
+                        {
+                            { "error_message", errorMessage }
+                        });
                         log.Warning($"_uiFactory is null, cannot show error dialog: {errorMessage}");
                     }
                 }
@@ -747,8 +761,12 @@ namespace com.noctuagames.sdk
                 }
                 catch (Exception)
                 {
-                    Instance.Value._eventSender.Send("sdk_init_set_currency_failed");
-                    log.Warning("Failed to get active currency. Try to use country to currency map.");
+                    var errorMessage = "Failed to get active currency. Try to use country to currency map.";
+                    Instance.Value._eventSender.Send("sdk_init_set_currency_failed", new Dictionary<string, IConvertible>
+                    {
+                        { "error_message", errorMessage}
+                    });
+                    log.Warning(errorMessage);
                     if (initResponse.CountryToCurrencyMap != null &&
                     initResponse.CountryToCurrencyMap.ContainsKey(initResponse.Country))
                     {

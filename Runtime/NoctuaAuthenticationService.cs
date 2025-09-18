@@ -1127,6 +1127,7 @@ namespace com.noctuagames.sdk
 
             if (firstPlayer == null)
             {
+                SendEvent("no_player_account_found");
                 throw new NoctuaException(NoctuaErrorCode.Authentication, "No player account found");
             }
 
