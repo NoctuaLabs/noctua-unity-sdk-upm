@@ -163,7 +163,7 @@ namespace com.noctuagames.sdk
 
         public string GetCountry()
         {
-            return PlayerPrefs.GetString(PlayerPrefsKeyLocaleCountry, "ID"); // Default to Indonesia
+            return PlayerPrefs.GetString(PlayerPrefsKeyLocaleCountry, "XX"); // Default to Indonesia
         }
 
         public string GetCurrency()

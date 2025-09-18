@@ -697,7 +697,7 @@ namespace com.noctuagames.sdk
                 {
                     Instance.Value._eventSender.Send("sdk_init_get_country_from_cloudflare_failed");
                     log.Info("Using country from default value: " + initResponse.Country);
-                    initResponse.Country = "ID";
+                    initResponse.Country = "XX";
                 }
             }
             else
