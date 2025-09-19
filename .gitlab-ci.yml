@@ -28,13 +28,13 @@ bump-version:
   tags:
     - local2
   rules:
-    - if: $CI_COMMIT_BRANCH == "main"
+    - if: $CI_COMMIT_BRANCH == "main-icm"
       when: always
   variables:
     GIT_STRATEGY: fetch # reuse workspace
     GIT_DEPTH: 0 # avoid shallow clone to give cliff all the info it needs
   script:
-    - NEW_VERSION_TAG=$(git-cliff --bumped-version)
+    - NEW_VERSION_TAG="$(git-cliff --bumped-version)-icm"
     - jq --arg version "$NEW_VERSION_TAG" '.version = $version' package.json > temp.json && mv temp.json package.json
     - |
       cat <<EOF > Runtime/AssemblyInfo.cs
@@ -58,7 +58,7 @@ release:
   tags:
     - local2
   rules:
-    - if: $CI_COMMIT_BRANCH == "main"
+    - if: $CI_COMMIT_BRANCH == "main-icm"
       when: manual
   variables:
     GIT_STRATEGY: fetch # reuse workspace
@@ -67,7 +67,7 @@ release:
     - git fetch --tags
     - git checkout $CI_COMMIT_BRANCH
     - git pull origin $CI_COMMIT_BRANCH
-    - NEW_VERSION_TAG=$(git-cliff --bumped-version)
+    - NEW_VERSION_TAG="$(git-cliff --bumped-version)-icm"
     - jq --arg version "$NEW_VERSION_TAG" '.version = $version' package.json > temp.json && mv temp.json package.json
     - git add package.json
     - |
@@ -89,7 +89,7 @@ publish:
   tags:
     - local2
   rules:
-    - if: $CI_COMMIT_BRANCH == "main"
+    - if: $CI_COMMIT_BRANCH == "main-icm"
   variables:
     GIT_STRATEGY: fetch # reuse workspace
     GIT_DEPTH: 0 # avoid shallow clone to give cliff all the info it needs
