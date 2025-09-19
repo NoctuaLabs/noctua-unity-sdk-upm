@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.51.0] - 2025-09-19
+
+### 🚀 Features
+
+- Update noctua ios native sdk to support icm
+- Update native wrapper ios to support adjust v5
+- Update analytics sdk ios native wrapper to support icm
+
 ## [0.50.0] - 2025-09-18
 
 ### 🚀 Features
