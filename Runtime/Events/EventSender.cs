@@ -1,4 +1,4 @@
-﻿﻿using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -23,12 +23,27 @@ namespace com.noctuagames.sdk.Events
         public int CycleDelay = 5000; // 5 sec, in ms
         public FirebaseConfig FirebaseConfig = new FirebaseConfig();
     }
-    
+
     [Preserve]
     public class EventResponse
     {
         [JsonProperty("message")]
         public string Message;
+    }
+
+    [Preserve]
+    public class GeoIPData
+    {
+        [JsonProperty("country")]
+        public string Country;
+
+        [JsonProperty("ip_address")]
+        public string IpAddress;
+
+        public GeoIPData ShallowCopy()
+        {
+            return (GeoIPData)MemberwiseClone();
+        }
     }
 
     public class EventSender : IDisposable
@@ -268,7 +283,7 @@ namespace com.noctuagames.sdk.Events
                 string country = _locale.GetCountry();
                 if (String.IsNullOrEmpty(country))
                 {
-                    country = await GetCountryIDFromCloudflareTraceAsync();
+                    country = await GetCountryIDAsync();
                     _locale.SetCountry(country);
                 }
 
@@ -547,6 +562,43 @@ namespace com.noctuagames.sdk.Events
             }
             return sanitized;
         }
+
+        public async UniTask<string> GetCountryIDAsync()
+        {
+            string country = "";
+
+            country = await GetCountryIDFromGeoIPAsync();
+            if (string.IsNullOrEmpty(country))
+            {
+                country = await GetCountryIDFromCloudflareTraceAsync();
+            }
+            return country;
+        }
+
+        public async UniTask<string> GetCountryIDFromGeoIPAsync()
+        {
+            string country = "";
+
+            var request = new HttpRequest(HttpMethod.Post, "https://geoip.noctuaprojects.com/api/v1/geoip/country")
+                .WithJsonBody(
+                    new Dictionary<string, object>()
+                );
+
+
+            var response = await request.Send<GeoIPData>();
+
+            _log.Debug($"GeoIP response (inner data): {JsonConvert.SerializeObject(response)}");
+
+            if (response != null && !string.IsNullOrEmpty(response.Country))
+            {
+                country = response.Country;
+                return country;
+            }
+
+            _log.Warning($"Failed to get country from GeoIP response: {JsonConvert.SerializeObject(response)}");
+            return country;
+        }
+
 
         public async UniTask<string> GetCountryIDFromCloudflareTraceAsync()
         {

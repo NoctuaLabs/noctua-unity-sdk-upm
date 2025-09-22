@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using Cysharp.Threading.Tasks;
@@ -163,7 +163,9 @@ namespace com.noctuagames.sdk
 
         public string GetCountry()
         {
-            return PlayerPrefs.GetString(PlayerPrefsKeyLocaleCountry, "XX"); // Default to Indonesia
+            // Default to empty string, the consumer of this API
+            // should handle the case when the country is not set
+            return PlayerPrefs.GetString(PlayerPrefsKeyLocaleCountry, "");
         }
 
         public string GetCurrency()
