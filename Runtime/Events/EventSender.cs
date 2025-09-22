@@ -262,9 +262,17 @@ namespace com.noctuagames.sdk.Events
                 data.TryAdd("device_model", SystemInfo.deviceModel);
                 data.TryAdd("bundle_id", _config.BundleId);
                 data.TryAdd("game_version", Application.version);
-                data.TryAdd("country", _locale.GetCountry());
                 data.TryAdd("ipAddress", _ipAddress);
                 data.TryAdd("is_sandbox", _isSandbox);
+
+                string country = _locale.GetCountry();
+                if (String.IsNullOrEmpty(country))
+                {
+                    country = await GetCountryIDFromCloudflareTraceAsync();
+                    _locale.SetCountry(country);
+                }
+
+                data.TryAdd("country", country);
 
                 var activeExperiment = Noctua.GetActiveExperiment();
                 
@@ -273,7 +281,7 @@ namespace com.noctuagames.sdk.Events
                     data.TryAdd("experiment", activeExperiment);
                 }
 
-                #if UNITY_ANDROID
+                #if UNITY_ANDROID && !UNITY_EDITOR
                     if (!_config.FirebaseConfig.Android.CustomEventDisabled)
                     {
                         var firebaseSessionId = await Noctua.GetFirebaseAnalyticsSessionID();
@@ -284,7 +292,7 @@ namespace com.noctuagames.sdk.Events
                     }
                 #endif
 
-                #if UNITY_IOS
+                #if UNITY_IOS && !UNITY_EDITOR
                 if (!_config.FirebaseConfig.Ios.CustomEventDisabled)
                 {
                     var firebaseSessionId = await Noctua.GetFirebaseAnalyticsSessionID();
@@ -312,6 +320,7 @@ namespace com.noctuagames.sdk.Events
                 lock (_queueLock)
                 {
                     _eventQueue.Add(data);
+
 
                     PlayerPrefs.SetString("NoctuaEvents", JsonConvert.SerializeObject(_eventQueue));
                     PlayerPrefs.Save();
@@ -537,6 +546,32 @@ namespace com.noctuagames.sdk.Events
                 _log.Info($"Header value sanitized. Original: {value}, Sanitized: {sanitized}");
             }
             return sanitized;
+        }
+
+        public async UniTask<string> GetCountryIDFromCloudflareTraceAsync()
+        {
+            // Extract domain from baseUrl
+            string domain = "sdk-tracker.noctuaprojects.com";
+            _log.Debug($"Domain extracted from baseUrl: {domain}");
+            var request = new HttpRequest(HttpMethod.Get, $"https://{domain}/cdn-cgi/trace");
+
+            string responseText = await request.SendRaw();
+
+            // Parse the response to get the 'loc' value
+            string locValue = null;
+            string[] lines = responseText.Split('\n');
+            foreach (string line in lines)
+            {
+                if (line.StartsWith("loc="))
+                {
+                    locValue = line.Substring(4).Trim();
+                    break;
+                }
+            }
+
+            _log.Debug($"Location value: {locValue}");
+
+            return locValue;
         }
 
     }
