@@ -138,8 +138,10 @@ namespace com.noctuagames.sdk
 
         public async UniTask<InitGameResponse> InitGameAsync()
         {
+            Instance.Value._eventSender.Send("sdk_game_init_start");
             if (string.IsNullOrEmpty(Application.identifier))
             {
+                Instance.Value._eventSender.Send("sdk_game_init_app_id_empty");
                 throw new ApplicationException($"App id for platform {Application.platform} is not set");
             }
 
@@ -156,6 +158,7 @@ namespace com.noctuagames.sdk
             InitGameResponse response;
             response = await request.Send<InitGameResponse>();
 
+            Instance.Value._eventSender.Send("sdk_game_init_success");
             return response;
         }
 

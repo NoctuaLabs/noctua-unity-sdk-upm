@@ -330,22 +330,28 @@ namespace com.noctuagames.sdk
             double maxDelaySeconds = -1
         )
         {
+            Instance.Value._eventSender.Send("sdk_retry_async_start");
             var random = new System.Random();
             var delay = initialDelaySeconds;
             maxDelaySeconds = maxDelaySeconds > 0 ? maxDelaySeconds : initialDelaySeconds * Math.Pow(exponent, maxRetries - 1);
 
             for (int retry = 0; retry < maxRetries; retry++)
             {
+                Instance.Value._eventSender.Send("sdk_retry_async_attempt_" + retry);
                 try
                 {
                     return await task();
+                    Instance.Value._eventSender.Send("sdk_retry_async_success");
                 }
                 catch (NoctuaException e)
                 {
                     if ((NoctuaErrorCode)e.ErrorCode != NoctuaErrorCode.Networking)
                     {
+                        Instance.Value._eventSender.Send("sdk_retry_async_network_exception");
                         throw;
                     }
+
+                    Instance.Value._eventSender.Send("sdk_retry_async_exception");
 
                     var delayWithJitter = ((random.NextDouble() * 0.5) + 0.75) * delay;
                     await UniTask.Delay(TimeSpan.FromSeconds(delayWithJitter));
