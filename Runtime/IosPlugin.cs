@@ -316,16 +316,8 @@ namespace com.noctuagames.sdk
             {
                 storedFirebaseInstallationIdCompletion = callback;
 
-                if (noctuaGetFirebaseInstallationID != null)
-                {
-                    noctuaGetFirebaseInstallationID(new GetFirebaseIDCallbackDelegate(GetFirebaseInstallationIDCallback));
-                    _log.Debug("noctuaGetFirebaseInstallationID called");
-                }
-                else
-                {
-                    _log.Warning("noctuaGetFirebaseInstallationID function not found.");
-                    callback?.Invoke(string.Empty);
-                }
+                noctuaGetFirebaseInstallationID(new GetFirebaseIDCallbackDelegate(GetFirebaseInstallationIDCallback));
+                _log.Debug("noctuaGetFirebaseInstallationID called");
             }
             catch (Exception e)
             {
@@ -341,16 +333,8 @@ namespace com.noctuagames.sdk
             {
                 storedFirebaseSessionIdCompletion = callback;
 
-                if (noctuaGetFirebaseAnalyticsSessionID != null)
-                {
-                    noctuaGetFirebaseAnalyticsSessionID(new GetFirebaseSessionIDCallbackDelegate(GetFirebaseSessionIDCallback));
-                    _log.Debug("noctuaGetFirebaseAnalyticsSessionID called");
-                }
-                else
-                {
-                    _log.Warning("noctuaGetFirebaseAnalyticsSessionID function not found.");
-                    callback?.Invoke(string.Empty);
-                }
+                noctuaGetFirebaseAnalyticsSessionID(new GetFirebaseSessionIDCallbackDelegate(GetFirebaseSessionIDCallback));
+                _log.Debug("noctuaGetFirebaseAnalyticsSessionID called");
             }
             catch (Exception e)
             {
