@@ -241,13 +241,29 @@ namespace com.noctuagames.sdk
         }
 
         public void GetFirebaseInstallationID(Action<string> callback) {
-            using var noctua = new AndroidJavaObject("com.noctuagames.sdk.Noctua$Companion");
-            noctua.Call("getFirebaseInstallationID",  new AndroidCallback<string>(callback));
+            try
+            {
+                using var noctua = new AndroidJavaObject("com.noctuagames.sdk.Noctua$Companion");
+                noctua.Call("getFirebaseInstallationID", new AndroidCallback<string>(callback));
+            }
+            catch (Exception e)
+            {
+                _log.Warning($"[Noctua] Failed to get Firebase Installation ID: {e.Message}");
+                callback?.Invoke(string.Empty);
+            }
         }
 
         public void GetFirebaseAnalyticsSessionID(Action<string> callback) {
-            using var noctua = new AndroidJavaObject("com.noctuagames.sdk.Noctua$Companion");
-            noctua.Call("getFirebaseAnalyticsSessionID",  new AndroidCallback<string>(callback));
+            try
+            {
+                using var noctua = new AndroidJavaObject("com.noctuagames.sdk.Noctua$Companion");
+                noctua.Call("getFirebaseAnalyticsSessionID", new AndroidCallback<string>(callback));
+            }
+            catch (Exception e)
+            {
+                UnityEngine.Debug.LogWarning($"[Noctua] Failed to get Firebase Analytics Session ID: {e.Message}");
+                callback?.Invoke(string.Empty);
+            }
         }
     }
 }

@@ -312,18 +312,51 @@ namespace com.noctuagames.sdk
 
         public void GetFirebaseInstallationID(Action<string> callback) 
         {
-            storedFirebaseInstallationIdCompletion = callback;
-            noctuaGetFirebaseInstallationID(new GetFirebaseIDCallbackDelegate(GetFirebaseInstallationIDCallback));
+            try
+            {
+                storedFirebaseInstallationIdCompletion = callback;
 
-            _log.Debug("noctuaGetFirebaseInstallationID called");
+                if (noctuaGetFirebaseInstallationID != null)
+                {
+                    noctuaGetFirebaseInstallationID(new GetFirebaseIDCallbackDelegate(GetFirebaseInstallationIDCallback));
+                    _log.Debug("noctuaGetFirebaseInstallationID called");
+                }
+                else
+                {
+                    _log.Warning("noctuaGetFirebaseInstallationID function not found.");
+                    callback?.Invoke(string.Empty);
+                }
+            }
+            catch (Exception e)
+            {
+                _log.Warning($"GetFirebaseInstallationID failed: {e.Message}");
+                callback?.Invoke(string.Empty);
+            }
+
         }
 
         public void GetFirebaseAnalyticsSessionID(Action<string> callback) 
         {
-            storedFirebaseSessionIdCompletion = callback;
-            noctuaGetFirebaseAnalyticsSessionID(new GetFirebaseSessionIDCallbackDelegate(GetFirebaseSessionIDCallback));
+            try
+            {
+                storedFirebaseSessionIdCompletion = callback;
 
-            _log.Debug("noctuaGetFirebaseAnalyticsSessionID called");
+                if (noctuaGetFirebaseAnalyticsSessionID != null)
+                {
+                    noctuaGetFirebaseAnalyticsSessionID(new GetFirebaseSessionIDCallbackDelegate(GetFirebaseSessionIDCallback));
+                    _log.Debug("noctuaGetFirebaseAnalyticsSessionID called");
+                }
+                else
+                {
+                    _log.Warning("noctuaGetFirebaseAnalyticsSessionID function not found.");
+                    callback?.Invoke(string.Empty);
+                }
+            }
+            catch (Exception e)
+            {
+                _log.Warning($"GetFirebaseAnalyticsSessionID failed: {e.Message}");
+                callback?.Invoke(string.Empty);
+            }
         }
     }
 #endif
