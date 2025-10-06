@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.51.0] - 2025-10-06
+
+### 🚀 Features
+
+- Add exception guards for Firebase ID native calls
+- Prevent NullReferenceException when EventSystem is missing in scene
+
+### 💼 Other
+
+- Load country in tracker.
+- Determine country from geoIP first before call cloudflare API.
+
 ## [0.50.0] - 2025-09-18
 
 ### 🚀 Features
