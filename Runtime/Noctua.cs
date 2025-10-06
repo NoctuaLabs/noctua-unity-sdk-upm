@@ -330,7 +330,19 @@ namespace com.noctuagames.sdk
             var screenRotationMonitor = noctuaUIGameObject.AddComponent<ScreenRotationMonitor>();
             screenRotationMonitor.PanelSettings = panelSettings;
             Object.DontDestroyOnLoad(noctuaUIGameObject);
-            SceneManager.sceneLoaded += (_, _) => EventSystem.SetUITookitEventSystemOverride(EventSystem.current);
+
+            SceneManager.sceneLoaded += (_, _) =>
+            {
+                if (EventSystem.current == null)
+                {
+                    var eventSystem = new GameObject("EventSystem", typeof(EventSystem), typeof(StandaloneInputModule));
+                    Object.DontDestroyOnLoad(eventSystem);
+                    _log.Warning("Created missing EventSystem automatically.");
+                }
+
+                EventSystem.SetUITookitEventSystemOverride(EventSystem.current);
+            };
+
             var sessionTrackerBehaviour = noctuaUIGameObject.AddComponent<SessionTrackerBehaviour>();
             sessionTrackerBehaviour.SessionTracker = _sessionTracker;
             _uiFactory = new UIFactory(noctuaUIGameObject, panelSettings, locale);
@@ -1019,13 +1031,16 @@ namespace com.noctuagames.sdk
                 }
                 else
                 {
-                    Instance.Value._log.Error("Native plugin is null");
+                    Instance.Value._log.Warning("Native plugin is null");
                     tcs.TrySetResult(string.Empty);
                 }
             }
             catch (Exception ex)
             {
-                tcs.TrySetException(ex);
+                Instance.Value._log.Warning("exception: " + ex.Message);             
+                
+                tcs.TrySetResult(string.Empty);
+
             }
 
             return tcs.Task;
@@ -1051,13 +1066,15 @@ namespace com.noctuagames.sdk
                 }
                 else
                 {
-                    Instance.Value._log.Error("Native plugin is null");
+                    Instance.Value._log.Warning("Native plugin is null");
                     tcs.TrySetResult(string.Empty);
                 }
             }
             catch (Exception ex)
-            {
-                tcs.TrySetException(ex);
+            {       
+                Instance.Value._log.Warning("exception: " + ex.Message);             
+                
+                tcs.TrySetResult(string.Empty);
             }
 
             return tcs.Task;
