@@ -21,7 +21,6 @@ trigger_job:
     - apk add curl
     - git config --global user.email "gitlab-ci@noctua.gg"
     - git config --global user.name "Noctua Gitlab CI"
-    - git config --global pull.rebase false
 
 bump-version:
   extends: .bump-version
