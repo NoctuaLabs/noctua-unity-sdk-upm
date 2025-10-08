@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.52.0] - 2025-10-08
+
+### 🚀 Features
+
+- Update noctua ios native sdk to support icm
+- Update native wrapper ios to support adjust v5
+- Update analytics sdk ios native wrapper to support icm
+
 ## [0.51.0] - 2025-10-06
 
 ### 🚀 Features
@@ -13,13 +21,6 @@ All notable changes to this project will be documented in this file.
 
 - Load country in tracker.
 - Determine country from geoIP first before call cloudflare API.
-## [0.51.0-icm] - 2025-09-19
-
-### 🚀 Features
-
-- Update noctua ios native sdk to support icm
-- Update native wrapper ios to support adjust v5
-- Update analytics sdk ios native wrapper to support icm
 
 ## [0.50.0] - 2025-09-18
 
