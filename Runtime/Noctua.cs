@@ -594,8 +594,8 @@ namespace com.noctuagames.sdk
             Instance.Value._eventSender.Send("sdk_init_offline_mode_response_prepared");
 
             try
-            {
-                initResponse = await Utility.RetryAsyncTask(Instance.Value._game.InitGameAsync);
+            {                
+                initResponse = _offlineMode ? await Instance.Value._game.InitGameAsync() : await Utility.RetryAsyncTask(Instance.Value._game.InitGameAsync);
 
                 if (Instance.Value._isOfflineFirst && initResponse == null)
                 {
