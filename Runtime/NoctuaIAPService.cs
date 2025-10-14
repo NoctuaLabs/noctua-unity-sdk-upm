@@ -1446,7 +1446,9 @@ namespace com.noctuagames.sdk
                             if (e.Message.Contains("HTTP error"))
                             {
                                 shouldRetry = await _uiFactory.ShowRetryDialog($"{e.Message}. Please try again later.", "payment");
-                            } else {
+                            }
+                            else
+                            {
                                 shouldRetry = await _uiFactory.ShowRetryDialog("Please check your internet connection.", "payment");
                             }
                             break;
@@ -1484,7 +1486,11 @@ namespace com.noctuagames.sdk
             {
                 _log.Info("NoctuaIAPService.PurchaseItemAsync Find out the order ID pair...");
 
-                HandleUnpairedPurchase(result);
+                UniTask.Void(async () =>
+                {
+                    HandleUnpairedPurchase(result);
+
+                });
             } else
             {
                 _log.Info("NoctuaIAPService.PurchaseItemAsync paymentTcs (payment flow instance) is still exist, try to continue the payment flow");
@@ -1513,8 +1519,10 @@ namespace com.noctuagames.sdk
             _activeCurrencyTcs.TrySetResult(response.Currency);
         }
 
-        private void HandleUnpairedPurchase(GoogleBilling.PurchaseResult result)
+        private async void HandleUnpairedPurchase(GoogleBilling.PurchaseResult result)
         {
+            await UniTask.SwitchToMainThread();
+
             var productId = result.ProductId;
             _log.Info($"NoctuaIAPService.HandleUnpairedPurchase Try to find the purchase token in pending purchase first to avoid duplicate token {result.ReceiptData}.");
             var foundInPendingPurchases = false;
@@ -1675,7 +1683,11 @@ namespace com.noctuagames.sdk
 
             foreach (var result in results)
             {
-                HandleUnpairedPurchase(result);
+                UniTask.Void(async () =>
+                {
+                    HandleUnpairedPurchase(result);
+
+                });
             }
         }
 
