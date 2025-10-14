@@ -1541,7 +1541,7 @@ namespace com.noctuagames.sdk
                         pendingPurchase.AccessToken,
                         pendingPurchase.PlayerId,
                         false
-                    );
+                    ).Forget();
 
                     break;
                 }
@@ -1571,7 +1571,7 @@ namespace com.noctuagames.sdk
                         purchaseItem.AccessToken,
                         purchaseItem.PlayerId,
                         false
-                    );
+                    ).Forget();
 
                     break;
                 }
@@ -1617,21 +1617,14 @@ namespace com.noctuagames.sdk
                 _log.Info($"NoctuaIAPService.HandleUnpairedPurchase NoctuaUnpairedOrders: {JsonConvert.SerializeObject(unpairedOrders)}");
 
                 // Verify right now, don't wait
-                try {
-
-                    pendingPurchaseItem.VerifyOrderRequest.Trigger = VerifyOrderTrigger.payment_flow.ToString();
-                    VerifyOrderImplAsync(
-                        pendingPurchaseItem.OrderRequest,
-                        pendingPurchaseItem.VerifyOrderRequest,
-                        pendingPurchaseItem.AccessToken,
-                        pendingPurchaseItem.PlayerId,
-                        false
-                    );
-                }
-                catch (Exception e)
-                {
-                    _log.Error("NoctuaIAPService.HandleUnpairedPurchase verify failed: " + e);
-                }
+                pendingPurchaseItem.VerifyOrderRequest.Trigger = VerifyOrderTrigger.payment_flow.ToString();
+                VerifyOrderImplAsync(
+                    pendingPurchaseItem.OrderRequest,
+                    pendingPurchaseItem.VerifyOrderRequest,
+                    pendingPurchaseItem.AccessToken,
+                    pendingPurchaseItem.PlayerId,
+                    false
+                ).Forget();
             }
 
             if (!foundInPurchaseHistory && !foundInPurchaseHistory && !foundUnpairedOrder) {
