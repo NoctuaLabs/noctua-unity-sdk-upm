@@ -2,13 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
-## [0.52.0] - 2025-10-08
+## [0.52.0] - 2025-10-15
 
 ### 🚀 Features
 
-- Update noctua ios native sdk to support icm
-- Update native wrapper ios to support adjust v5
-- Update analytics sdk ios native wrapper to support icm
+- Enhance handler OnPurchaseDone by QueryPurchaseAsync
+- Enhance init while offline
 
 ## [0.51.0] - 2025-10-06
 
