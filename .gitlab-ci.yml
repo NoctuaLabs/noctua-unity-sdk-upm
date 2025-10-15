@@ -70,7 +70,9 @@ release:
     - git fetch --tags
     - git checkout $CI_COMMIT_BRANCH
     - git pull --rebase origin $CI_COMMIT_BRANCH # testing using flag rebase
-    - NEW_VERSION_TAG="$(git-cliff --bumped-version)-icm"
+    # - NEW_VERSION_TAG="$(git-cliff --bumped-version)-icm"
+    # Force version temporary
+    - NEW_VERSION_TAG="0.53.0-icm"
     - jq --arg version "$NEW_VERSION_TAG" '.version = $version' package.json > temp.json && mv temp.json package.json
     - git add package.json
     - |
