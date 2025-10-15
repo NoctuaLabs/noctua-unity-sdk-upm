@@ -10,6 +10,7 @@ All notable changes to this project will be documented in this file.
 - Enhance init while offline
 - Enhance the versioning
 - Improve versioning
+- Version sdk
 
 ## [0.52.0-icm] - 2025-10-08
 
