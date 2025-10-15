@@ -11,6 +11,7 @@ All notable changes to this project will be documented in this file.
 - Enhance the versioning
 - Improve versioning
 - Version sdk
+- Fix versioning
 
 ## [0.52.0-icm] - 2025-10-08
 
