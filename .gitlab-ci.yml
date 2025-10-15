@@ -34,9 +34,7 @@ bump-version:
     GIT_STRATEGY: fetch # reuse workspace
     GIT_DEPTH: 0 # avoid shallow clone to give cliff all the info it needs
   script:
-    - BASE_VERSION=$(git-cliff --bumped-version | cut -d'-' -f1)
-    - NEW_VERSION_TAG="${BASE_VERSION}-icm"
-    # - NEW_VERSION_TAG="$(git-cliff --bumped-version)-icm"
+    - NEW_VERSION_TAG="$(git-cliff --bump minor)-icm"
     - jq --arg version "$NEW_VERSION_TAG" '.version = $version' package.json > temp.json && mv temp.json package.json
     - |
       cat <<EOF > Runtime/AssemblyInfo.cs
