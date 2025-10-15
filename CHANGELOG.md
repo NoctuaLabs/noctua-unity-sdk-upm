@@ -13,6 +13,10 @@ All notable changes to this project will be documented in this file.
 - Version sdk
 - Fix versioning
 
+### 🐛 Bug Fixes
+
+- Force versioning
+
 ## [0.52.0-icm] - 2025-10-08
 
 ### 🚀 Features
