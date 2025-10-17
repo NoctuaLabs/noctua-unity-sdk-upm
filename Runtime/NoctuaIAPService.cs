@@ -18,14 +18,17 @@ using UnityEngine.UIElements;
 
 namespace com.noctuagames.sdk
 {
-    
+
     [Preserve]
     public class PaymentSettings
     {
         [JsonProperty("payment_type")]
         public PaymentType PaymentType;
     }
-
+    
+    /// <summary>
+    /// Product data model returned by product list API.
+    /// </summary>
     [Preserve]
     public class Product
     {
@@ -35,24 +38,31 @@ namespace com.noctuagames.sdk
         [JsonProperty("description")]
         public string Description;
 
+        /// <summary>Game ID owning this product.</summary>
         [JsonProperty("game_id")]
         public int GameId;
 
+        /// <summary>Enabled payment types for this product.</summary>
         [JsonProperty("enabled_payment_types")]
         public PaymentType[] EnabledPaymentTypes;
 
+        /// <summary>Price amount as decimal.</summary>
         [JsonProperty("price")]
         public decimal Price;
 
+        /// <summary>Currency ISO code.</summary>
         [JsonProperty("currency")]
         public string Currency;
 
+        /// <summary>Display price string (localized).</summary>
         [JsonProperty("display_price")]
         public string DisplayPrice;
 
+        /// <summary>Price expressed in USD (string for backward compatibility).</summary>
         [JsonProperty("price_in_usd")]
         public string PriceInUsd;
 
+        /// <summary>Platform identifier.</summary>
         [JsonProperty("platform")]
         public string Platform;
     }
@@ -62,13 +72,16 @@ namespace com.noctuagames.sdk
     {
     }
 
+    /// <summary>
+    /// Request payload to create an order on remote server.
+    /// </summary>
     [Preserve]
     public class OrderRequest
     {
         [JsonProperty("id")]
         public int Id;
 
-        [JsonProperty("payment_type")] 
+        [JsonProperty("payment_type")]
         public PaymentType PaymentType;
 
         [JsonProperty("product_id")]
@@ -86,18 +99,23 @@ namespace com.noctuagames.sdk
         [JsonProperty("role_id")]
         public string RoleId;
 
+        /// <summary>Server id that the player is on.</summary>
         [JsonProperty("server_id")]
         public string ServerId;
 
+        /// <summary>In-game item id.</summary>
         [JsonProperty("ingame_item_id")]
         public string IngameItemId;
 
+        /// <summary>In-game item name.</summary>
         [JsonProperty("ingame_item_name")]
         public string IngameItemName;
 
+        /// <summary>Extra metadata for the order.</summary>
         [JsonProperty("extra")]
         public Dictionary<string, string> Extra;
 
+        /// <summary>Timestamp (string) when the order was created.</summary>
         [JsonProperty("timestamp")]
         public string Timestamp;
 
@@ -105,6 +123,9 @@ namespace com.noctuagames.sdk
         public bool AllowPaymentTypeOverride = true;
     }
 
+    /// <summary>
+    /// Request payload for unpaired purchases (fallback receipts).
+    /// </summary>
     [Preserve]
     public class UnpairedPurchaseRequest
     {
@@ -124,6 +145,9 @@ namespace com.noctuagames.sdk
         public string Timestamp;
     }
 
+    /// <summary>
+    /// Response returned when creating an order on server.
+    /// </summary>
     [Preserve]
     public class OrderResponse
     {
@@ -140,13 +164,20 @@ namespace com.noctuagames.sdk
         public PaymentType PaymentType;
     }
 
+    /// <summary>
+    /// Response payload after unpaired purchase submission.
+    /// </summary>
     [Preserve]
     public class UnpairedPurchaseResponse
     {
+        /// <summary>Identifier of stored unpaired purchase record.</summary>
         [JsonProperty("id")]
         public int Id;
     }
-    
+
+    /// <summary>
+    /// Payment outcome enumeration.
+    /// </summary>
     public enum PaymentStatus
     {
         Successful,
@@ -159,7 +190,10 @@ namespace com.noctuagames.sdk
         PendingPurchaseOngoing,
         IapNotReady,
     }
-    
+
+    /// <summary>
+    /// Result of a local/native payment operation.
+    /// </summary>
     public class PaymentResult
     {
         public PaymentStatus Status;
@@ -168,6 +202,9 @@ namespace com.noctuagames.sdk
         public string Message;
     }
 
+    /// <summary>
+    /// Request payload used to verify an order on the server.
+    /// </summary>
     [Preserve]
     public class VerifyOrderRequest
     {
@@ -184,6 +221,9 @@ namespace com.noctuagames.sdk
         public string Trigger;
     }
 
+    /// <summary>
+    /// Order status reported by the server.
+    /// </summary>
     [Preserve]
     public enum OrderStatus
     {
@@ -202,6 +242,9 @@ namespace com.noctuagames.sdk
         fallback_to_native_payment
     }
 
+    /// <summary>
+    /// Response payload for order verification requests.
+    /// </summary>
     [Preserve]
     public class VerifyOrderResponse
     {
@@ -212,6 +255,9 @@ namespace com.noctuagames.sdk
         public OrderStatus Status;
     }
 
+    /// <summary>
+    /// Purchase request payload sent to server for regular orders.
+    /// </summary>
     [Preserve]
     public class PurchaseRequest
     {
@@ -238,22 +284,28 @@ namespace com.noctuagames.sdk
 
         [JsonProperty("extra")]
         public Dictionary<string, string> Extra;
-        
+
     }
-    
+
+    /// <summary>
+    /// Response returned after creating a purchase.
+    /// </summary>
     [Preserve]
     public class PurchaseResponse
     {
         [JsonProperty("order_id")]
         public int OrderId;
-        
+
         [JsonProperty("status")]
         public OrderStatus Status;
 
-        [JsonProperty("message")] 
+        [JsonProperty("message")]
         public string Message;
     }
 
+    /// <summary>
+    /// Noctua-specific gold/virtual currency data returned for player.
+    /// </summary>
     [Preserve]
     public class NoctuaGoldData
     {
@@ -265,14 +317,17 @@ namespace com.noctuagames.sdk
 
         [JsonProperty("bound_gold_amount")]
         public double BoundGoldAmount;
-        
+
         [JsonProperty("total_gold_amount")]
-        public double TotalGoldAmount; 
-        
+        public double TotalGoldAmount;
+
         [JsonProperty("eligible_gold_amount")]
         public double EligibleGoldAmount;
     }
-
+    
+    /// <summary>
+    /// Enumeration for what triggered a verify order attempt.
+    /// </summary>
     public enum VerifyOrderTrigger
     {
         payment_flow,
@@ -280,7 +335,9 @@ namespace com.noctuagames.sdk
         client_automatic_retry,
     }
 
-    
+    /// <summary>
+    /// In-app purchase service: handles product listing, purchases, pending receipts, and verification.
+    /// </summary>
     [Preserve]
     public class NoctuaIAPService
     {
@@ -289,6 +346,9 @@ namespace com.noctuagames.sdk
 
         private TaskCompletionSource<string> _activeCurrencyTcs;
 
+        /// <summary>
+        /// Fired when a purchase flow completes and an OrderRequest should be processed by game.
+        /// </summary>
         public event Action<OrderRequest> OnPurchaseDone;
 
         private readonly EventSender _eventSender;
@@ -316,7 +376,15 @@ namespace com.noctuagames.sdk
         private readonly UIFactory _uiFactory;
         private bool _enabled;
         private string _distributionPlaftorm;
-        
+
+        /// <summary>
+        /// Internal constructor for Noctua IAP service.
+        /// </summary>
+        /// <param name="config">IAP service configuration (clientId, flags).</param>
+        /// <param name="accessTokenProvider">Provider used to attach access tokens.</param>
+        /// <param name="uiFactory">UI factory for purchase dialogs.</param>
+        /// <param name="nativePlugin">Platform native plugin for store integration.</param>
+        /// <param name="eventSender">Optional event sender for telemetry.</param>
         internal NoctuaIAPService(
             Config config,
             AccessTokenProvider accessTokenProvider,
@@ -328,7 +396,7 @@ namespace com.noctuagames.sdk
             _config = config;
             _accessTokenProvider = accessTokenProvider;
             _eventSender = eventSender;
-            
+
             _uiFactory = uiFactory;
             _customPaymentCompleteDialog = _uiFactory.Create<CustomPaymentCompleteDialogPresenter, object>(new object());
             _failedPaymentDialog = _uiFactory.Create<FailedPaymentDialogPresenter, object>(new object());
@@ -341,6 +409,9 @@ namespace com.noctuagames.sdk
             _nativePlugin = nativePlugin;
         }
         
+        /// <summary>
+        /// Indicates whether the native IAP subsystem (e.g., Google Billing) is ready.
+        /// </summary>
         public bool IsReady
         {
             get
@@ -352,7 +423,10 @@ namespace com.noctuagames.sdk
 #endif
             }
         }
-        
+
+        /// <summary>
+        /// Initialize the underlying native billing system (no-op on non-Android platforms).
+        /// </summary>
         public void Init()
         {
 #if UNITY_ANDROID && !UNITY_EDITOR
@@ -361,24 +435,39 @@ namespace com.noctuagames.sdk
 #endif
         }
 
+        /// <summary>
+        /// Sets enabled payment types with order representing priority.
+        /// </summary>
+        /// <param name="enabledPaymentTypes">List of allowed payment types (priority first).</param>
         public void SetEnabledPaymentTypes(List<PaymentType> enabledPaymentTypes)
         {
             // The sequence represent the priority.
             _enabledPaymentTypes = enabledPaymentTypes;
         }
 
+        /// <summary>
+        /// Set distribution platform identifier (e.g., "google_play" or "direct").
+        /// </summary>
+        /// <param name="platform">Distribution platform string.</param>
         public void SetDistributionPlatform(string platform)
         {
             // The sequence represent the priority.
             _distributionPlaftorm = platform;
         }
 
+        /// <summary>
+        /// Fetch list of products available for purchase from server.
+        /// </summary>
+        /// <param name="currency">Optional currency to filter products. If null, uses platform locale currency.</param>
+        /// <param name="platformType">Optional platform type override (e.g., "playstore").</param>
+        /// <returns>List of products returned by server.</returns>
+        /// <exception cref="Exception">Thrown when player is not authenticated or game id missing.</exception>
         public async UniTask<ProductList> GetProductListAsync(string currency = null, string platformType = null)
         {
             EnsureEnabled();
-            
+
             _log.Debug("calling API");
-            
+
             var recentAccount = Noctua.Auth.RecentAccount;
 
             if (recentAccount?.Player?.GameId == null || recentAccount.Player.GameId <= 0)
@@ -392,7 +481,7 @@ namespace com.noctuagames.sdk
             {
                 currency = Noctua.Platform.Locale.GetCurrency();
             }
-            
+
             string enabledPaymentTypes = string.Join(",", _enabledPaymentTypes).ToLower();
 
             _log.Debug(_config.BaseUrl);
@@ -431,7 +520,8 @@ namespace com.noctuagames.sdk
 
             return response;
         }
-
+        
+        
         private async UniTask<OrderResponse> CreateOrderAsync(OrderRequest order)
         {
             var url = $"{_config.BaseUrl}/orders";
@@ -693,7 +783,12 @@ namespace com.noctuagames.sdk
 
                 return verifyOrderResponse;
         }
-
+        
+        /// <summary>
+        /// Get the active currency asynchronously. Will complete when active currency is available.
+        /// </summary>
+        /// <param name="productId">Product id to infer active currency from server.</param>
+        /// <returns>Active currency ISO code.</returns>
         public async UniTask<string> GetActiveCurrencyAsync(string productId)
         {
 #if UNITY_IOS && !UNITY_EDITOR
@@ -1477,6 +1572,9 @@ namespace com.noctuagames.sdk
             }
         }
 
+        /// <summary>
+        /// Handles query purchases result from Google Billing.
+        /// </summary>
 #if UNITY_ANDROID && !UNITY_EDITOR
         private void HandleGooglePurchaseDone(GoogleBilling.PurchaseResult result)
         {
@@ -1822,7 +1920,10 @@ namespace com.noctuagames.sdk
             };
         }
 #endif
-
+        /// <summary>
+        /// Save pending purchases list into PlayerPrefs.
+        /// </summary>
+        /// <param name="orders">List of pending purchases to save.</param>
         private void SavePendingPurchases(List<PurchaseItem> orders)
         {
             _log.Debug("save pending purchases to player prefs");
@@ -1834,6 +1935,10 @@ namespace com.noctuagames.sdk
             //GetPendingPurchases();
         }
 
+        /// <summary>
+        /// Retrieves pending purchases persisted locally.
+        /// </summary>
+        /// <returns>List of pending purchase items.</returns>
         public List<PurchaseItem> GetPendingPurchases()
         {
             _log.Info("Noctua.GetPendingPurchases");
@@ -1852,7 +1957,7 @@ namespace com.noctuagames.sdk
                 {
                     pendingPurchases = new List<PurchaseItem>();
                 }
-                
+
                 var list = pendingPurchases
                     .Where(p => p.VerifyOrderRequest != null && p.AccessToken != null)
                     .ToList();
@@ -1865,11 +1970,17 @@ namespace com.noctuagames.sdk
                 _log.Error("Failed to parse pending purchases: " + e);
 
                 PlayerPrefs.DeleteKey("NoctuaPendingPurchases");
-                
+
                 return new List<PurchaseItem>();
             }
         }
 
+        /// <summary>
+        /// Retrieves a single pending purchase by order id.
+        /// </summary>
+        /// <param name="orderId">Order id to search for.</param>
+        /// <returns>Found pending purchase item.</returns>
+        /// <exception cref="Exception">Throws if not found or malformed storage.</exception>
         public PurchaseItem GetPendingPurchaseByOrderId(int orderId)
         {
             _log.Info("Noctua.GetPendingPurchases");
@@ -1917,7 +2028,11 @@ namespace com.noctuagames.sdk
                 throw e;
             }
         }
-
+        
+        /// <summary>
+        /// Retry mechanism for pending purchases. This method iterates over locally stored pending purchases
+        /// and attempts to resume verification and delivery. It respects application quitting.
+        /// </summary>
         public async UniTask RetryPendingPurchasesAsync()
         {
             _log.Info("Starting pending purchases retry loop.");
@@ -2272,6 +2387,11 @@ namespace com.noctuagames.sdk
             SavePurchaseHistory(newList.ToList());
         }
 
+        /// <summary>
+        /// Get whether a product is purchased using native billing or server verification.
+        /// </summary>
+        /// <param name="productId">Product identifier.</param>
+        /// <returns>True when purchased; false otherwise.</returns>
         public async Task<bool> GetPurchaseStatusAsync(string productId)
         {
             try
@@ -2286,7 +2406,11 @@ namespace com.noctuagames.sdk
             }
         }
 
-        // Get purchase status for a batch of product IDs
+        /// <summary>
+        /// Batch check purchase state for multiple product ids.
+        /// </summary>
+        /// <param name="productIds">List of product ids to check.</param>
+        /// <returns>List of purchased product ids.</returns>
         public async Task<List<string>> GetPurchasedProductsAsync(List<string> productIds)
         {
             var tasks = productIds.ToDictionary(
@@ -2308,6 +2432,11 @@ namespace com.noctuagames.sdk
             return purchased;
         }
 
+        /// <summary>
+        /// Internal wrapper turning callback-based purchase check into Task.
+        /// </summary>
+        /// <param name="productId">Product id to check.</param>
+        /// <returns>Task that completes with boolean purchased state.</returns>
         private Task<bool> CheckIfProductPurchasedAsync(string productId)
         {
             var tcs = new TaskCompletionSource<bool>();
@@ -2321,7 +2450,11 @@ namespace com.noctuagames.sdk
             return tcs.Task;
         }
         
-        //Keep this method public for compatibility backwards
+        /// <summary>
+        /// Backwards-compatible API: checks if product is purchased and invokes callback.
+        /// </summary>
+        /// <param name="productId">Product id to check.</param>
+        /// <param name="callback">Callback invoked with result.</param>
         public void CheckIfProductPurchased(string productId, System.Action<bool> callback)
         {
             #if UNITY_ANDROID && !UNITY_EDITOR
