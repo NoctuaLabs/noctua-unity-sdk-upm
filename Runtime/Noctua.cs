@@ -166,14 +166,25 @@ namespace com.noctuagames.sdk
     {
 
         private static readonly Lazy<Noctua> Instance = new(() => new Noctua());
+
+        /// <summary>Access Noctua event service.</summary>
         public static NoctuaEventService Event => Instance.Value._event;
+
+        /// <summary>Access Noctua authentication service.</summary>
         public static NoctuaAuthentication Auth => Instance.Value._auth;
+
+        /// <summary>Access Noctua IAP service.</summary>
         public static NoctuaIAPService IAP => Instance.Value._iap;
+
+        /// <summary>Access platform utilities.</summary>
         public static NoctuaPlatform Platform => Instance.Value._platform;
+
+        /// <summary>Access mediation manager (IAA).</summary>
         public static MediationManager IAA => Instance.Value._iaa;
+        
+        /// <summary>Access loaded global configuration.</summary>
         public static GlobalConfig Config => Instance.Value._config;
 
-        public event Action<bool> OnInternetReachable;
         private readonly ILogger _log = new NoctuaLogger();
         private readonly EventSender _eventSender;
         private readonly SessionTracker _sessionTracker;
@@ -195,8 +206,15 @@ namespace com.noctuagames.sdk
         private static bool _offlineMode = false;
         private static bool _initialized = false;
         private bool _isNativePluginInitialized = false;
+
+        /// <summary>
+        /// Optional callback invoked when Noctua initialization completes successfully.
+        /// </summary>
         public static Action? OnInitSuccess;
 
+        /// <summary>
+        /// Private constructor - initializes Noctua SDK internals by reading <c>noctuagg.json</c> and preparing services.
+        /// </summary>
         private Noctua()
         {
             var configPath = Path.Combine(Application.streamingAssetsPath, "noctuagg.json");
@@ -435,9 +453,14 @@ namespace com.noctuagames.sdk
             _log.Info("Noctua instance created");
         }
 
+        /// <summary>
+        /// Initialize native plugin if not already initialized.
+        /// This calls <see cref="INativePlugin.Init(List{string})"/>.
+        /// </summary>
         private void InitializeNativePlugin()
         {
-            if (_isNativePluginInitialized) {
+            if (_isNativePluginInitialized)
+            {
                 _log.Debug("nativePlugin is already initialized");
                 return;
             }
@@ -447,6 +470,9 @@ namespace com.noctuagames.sdk
             _log.Debug("nativePlugin is initialized");
         }
 
+        /// <summary>
+        /// Enable runtime services (IAP and Auth).
+        /// </summary>
         private void Enable()
         {
             _iap.Enable();
@@ -454,37 +480,55 @@ namespace com.noctuagames.sdk
             _initialized = true;
         }
 
+        /// <summary>
+        /// Returns whether the SDK is running in offline mode.
+        /// </summary>
+        /// <returns><c>true</c> if offline mode is active; otherwise <c>false</c>.</returns>
         public static bool IsOfflineMode()
         {
             return _offlineMode;
         }
 
+        // <summary>
+        /// Returns whether the SDK was configured as "offline-first".
+        /// </summary>
+        /// <returns><c>true</c> if offline-first is enabled; otherwise <c>false</c>.</returns>
         public static bool IsOfflineFirst()
         {
             return Instance.Value._isOfflineFirst;
         }
 
+        /// <summary>
+        /// Returns whether the SDK has completed initialization.
+        /// </summary>
+        /// <returns><c>true</c> if initialized; otherwise <c>false</c>.</returns>
         public static bool IsInitialized()
         {
             return _initialized;
         }
 
+        /// <summary>
+        /// Notify native plugin that the app is online.
+        /// </summary>
         public static void OnOnline()
         {
-            if(AdjustOfflineModeDisabled())
+            if (AdjustOfflineModeDisabled())
             {
                 return;
             }
-            
+
             if (Instance.Value._nativePlugin != null)
             {
                 Instance.Value._nativePlugin.OnOnline();
             }
         }
 
+        /// <summary>
+        /// Notify native plugin that the app is offline.
+        /// </summary>
         public static void OnOffline()
         {
-            if(AdjustOfflineModeDisabled())
+            if (AdjustOfflineModeDisabled())
             {
                 return;
             }
@@ -495,6 +539,10 @@ namespace com.noctuagames.sdk
             }
         }
 
+        /// <summary>
+        /// Checks if Adjust offline mode handling is disabled via remote feature flags.
+        /// </summary>
+        /// <returns><c>true</c> if Adjust offline mode is disabled; otherwise <c>false</c>.</returns>
         public static bool AdjustOfflineModeDisabled()
         {
             if (Instance.Value._config?.Noctua?.RemoteFeatureFlags?.TryGetValue("adjustOfflineModeDisabled", out var value) == true && value is bool flag && flag == true)
@@ -506,6 +554,11 @@ namespace com.noctuagames.sdk
             return false;
         }
 
+        /// <summary>
+        /// Asynchronously checks internet connectivity and updates offline mode.
+        /// This will also call native plugin OnOnline/OnOffline when appropriate and send events.
+        /// </summary>
+        /// <returns><c>true</c> when offline; <c>false</c> when online.</returns>
         public static async UniTask<bool> IsOfflineAsync()
         {
             var log = Instance.Value._log;
@@ -526,7 +579,7 @@ namespace com.noctuagames.sdk
                 log.Debug("Internet is available.");
                 if (Instance.Value._nativePlugin != null)
                 {
-                    if(!AdjustOfflineModeDisabled())
+                    if (!AdjustOfflineModeDisabled())
                     {
                         Instance.Value._nativePlugin.OnOnline();
                     }
@@ -537,7 +590,7 @@ namespace com.noctuagames.sdk
                 log.Debug("No internet connection.");
                 if (Instance.Value._nativePlugin != null)
                 {
-                    if(!AdjustOfflineModeDisabled())
+                    if (!AdjustOfflineModeDisabled())
                     {
                         Instance.Value._nativePlugin.OnOffline();
                     }
@@ -550,10 +603,15 @@ namespace com.noctuagames.sdk
                     Instance.Value._eventSender.Send("offline");
                 }
             }
-            
+
             return !isConnected;
         }
 
+        /// <summary>
+        /// Initialize the Noctua SDK asynchronously, including IAP, auth, and mediation initialization.
+        /// </summary>
+        /// <param name="onSuccess">Optional callback invoked after successful initialization.</param>
+        /// <param name="OnInitSuccess">Optional callback invoked after successful initialization.</param>
         public static async UniTask InitAsync(Func<UniTask>? onSuccess = null)
         {
             Instance.Value._eventSender.Send("sdk_init_start");
@@ -594,7 +652,7 @@ namespace com.noctuagames.sdk
             Instance.Value._eventSender.Send("sdk_init_offline_mode_response_prepared");
 
             try
-            {                
+            {
                 initResponse = _offlineMode ? await Instance.Value._game.InitGameAsync() : await Utility.RetryAsyncTask(Instance.Value._game.InitGameAsync);
 
                 if (Instance.Value._isOfflineFirst && initResponse == null)
@@ -693,7 +751,9 @@ namespace com.noctuagames.sdk
             {
                 Instance.Value._eventSender.Send("sdk_init_iap_init_not_ready_or_timeout");
                 log.Error("IAP is not ready after timeout");
-            } else {
+            }
+            else
+            {
                 Instance.Value._eventSender.Send("sdk_init_iap_init_success");
             }
 
@@ -927,6 +987,10 @@ namespace com.noctuagames.sdk
             }
         }
 
+        /// <summary>
+        /// If offline mode is true, periodically checks connectivity and attempts initialization and authentication.
+        /// This method loops while offline until success or a non-network error occurs.
+        /// </summary>
         private static async UniTask RealtimeCheckInternetConnectionAndRetryAuth()
         {
             var log = Instance.Value._log;
@@ -951,7 +1015,7 @@ namespace com.noctuagames.sdk
                         }
 
                         await Instance.Value._auth.AuthenticateAsync();
-                    
+
                         log.Debug("Authentication succeeded from offline.");
 
                         loop = false;
@@ -959,7 +1023,7 @@ namespace com.noctuagames.sdk
                     catch (NoctuaException noctuaEx)
                     {
                         log.Info($"Auth or init failed: {noctuaEx.Message}");
-                        
+
 
                         if (noctuaEx.ErrorCode == (int)NoctuaErrorCode.Networking)
                         {
@@ -976,7 +1040,12 @@ namespace com.noctuagames.sdk
                 log.Debug("Reconnection loop exited.");
             }
         }
-
+        
+        /// <summary>
+        /// Initialize mediation SDKs based on <paramref name="initResponse"/> remote config.
+        /// If remote IAA config is present, use it to initialize the mediation manager and optionally initialize native plugin afterwards.
+        /// </summary>
+        /// <param name="initResponse">Init game response containing remote configs.</param>
         private static void InitMediationSDK(ILogger log, InitGameResponse initResponse)
         {
              if(initResponse.RemoteConfigs.IAA != null)
@@ -1012,7 +1081,11 @@ namespace com.noctuagames.sdk
                 #endif
             }
         }
-
+        
+        /// <summary>
+        /// Get Firebase Installation ID asynchronously using native plugin where supported.
+        /// </summary>
+        /// <returns>A task that resolves to the Firebase Installation ID or empty string when not available.</returns>
         public static Task<string> GetFirebaseInstallationID() 
         {
         #if UNITY_ANDROID || UNITY_IOS
@@ -1048,7 +1121,11 @@ namespace com.noctuagames.sdk
             return Task.FromResult(string.Empty);
         #endif
         }
-
+        
+        /// <summary>
+        /// Get Firebase Analytics session ID asynchronously using native plugin where supported.
+        /// </summary>
+        /// <returns>A task that resolves to the Firebase Analytics session ID or empty string when not available.</returns>
         public static Task<string> GetFirebaseAnalyticsSessionID() 
         {
         #if UNITY_ANDROID || UNITY_IOS
@@ -1082,7 +1159,11 @@ namespace com.noctuagames.sdk
             return Task.FromResult(string.Empty);
         #endif
         }
-
+        
+        /// <summary>
+        /// Returns whether this is the first open of the app (and sets the flag when it is).
+        /// </summary>
+        /// <returns><c>true</c> if first open; otherwise <c>false</c>.</returns>
         private static bool IsFirstOpen()
         {
             var isFirstOpen = PlayerPrefs.GetInt("NoctuaFirstOpen", 1) == 1;
@@ -1094,17 +1175,32 @@ namespace com.noctuagames.sdk
             
             return isFirstOpen;
         }
-
+        
+        /// <summary>
+        /// Set an experiment identifier to the experiment manager.
+        /// </summary>
+        /// <param name="experimentName">Experiment name.</param>
         public static void SetExperiment(string experimentName)
         {
             ExperimentManager.SetExperiment(experimentName);
         }
 
+        /// <summary>
+        /// Get currently active experiment identifier.
+        /// </summary>
+        /// <returns>Active experiment name or empty string.</returns>
         public static string GetActiveExperiment()
         {
             return ExperimentManager.GetActiveExperiment();
         }
 
+        // <summary>
+        /// Show a native date picker via the native plugin.
+        /// </summary>
+        /// <param name="year">Start year.</param>
+        /// <param name="month">Start month (1-12).</param>
+        /// <param name="day">Start day.</param>
+        /// <param name="id">Picker identifier.</param>
         public static void ShowDatePicker(int year, int month, int day, int id)
         {
             var log = Instance.Value._log;
@@ -1125,7 +1221,10 @@ namespace com.noctuagames.sdk
                 log.Error("Native plugin is null");
             }
         }
-
+        
+        /// <summary>
+        /// Close native date picker if the native plugin supports it.
+        /// </summary>
         public static void CloseDatePicker()
         {
             var log = Instance.Value._log;
@@ -1148,11 +1247,24 @@ namespace com.noctuagames.sdk
             }
         }
 
+        /// <summary>
+        /// Open a date picker UI implemented in managed code.
+        /// </summary>
+        /// <param name="year">Initial year.</param>
+        /// <param name="month">Initial month.</param>
+        /// <param name="day">Initial day.</param>
+        /// <param name="pickerId">Picker identifier.</param>
+        /// <param name="onChange">Callback when date changes.</param>
+        /// <param name="onClose">Callback when picker closes.</param>
         public static void OpenDatePicker(int year, int month, int day, int pickerId = 1, Action<DateTime> onChange = null, Action<DateTime> onClose = null)
         {
             MobileDateTimePicker.CreateDate(pickerId, year, month, day, onChange, onClose);
         }
 
+        /// <summary>
+        /// Get the appropriate native plugin implementation for the current platform.
+        /// </summary>
+        /// <returns>Platform specific <see cref="INativePlugin"/> implementation or a default plugin for editor/unsupported platforms.</returns>
         private static INativePlugin GetNativePlugin()
         {
 #if UNITY_ANDROID && !UNITY_EDITOR
@@ -1163,7 +1275,10 @@ namespace com.noctuagames.sdk
             return new DefaultNativePlugin();
 #endif
         }
-
+        
+        /// <summary>
+        /// A small MonoBehaviour used to hook into application pause/resume events.
+        /// </summary>
         private class PauseBehaviour : MonoBehaviour
         {
             private void OnApplicationPause(bool pause)
@@ -1191,9 +1306,14 @@ namespace com.noctuagames.sdk
             }
         }
 
+        /// <summary>
+        /// Backup selected PlayerPrefs keys into a key/value array for export/backup.
+        /// Keys that are integers are suffixed with ":int", strings with ":string".
+        /// </summary>
+        /// <returns>Array of key/value pairs representing backed up PlayerPrefs.</returns>
         public static KeyValuePair<string, string>[] BackupPlayerPrefs()
         {
-            KeyValuePair<string, string>[] keyValueArray = new KeyValuePair<string, string>[]{};
+            KeyValuePair<string, string>[] keyValueArray = new KeyValuePair<string, string>[] { };
 
             var IntegerKeys = new string[] {
                 "NoctuaFirstOpen",
@@ -1238,6 +1358,10 @@ namespace com.noctuagames.sdk
             return keyValueArray;
         }
 
+        /// <summary>
+        /// Restore PlayerPrefs from an array previously produced by <see cref="BackupPlayerPrefs"/>.
+        /// </summary>
+        /// <param name="keyValues">Array of key/value pairs containing PlayerPrefs data. Keys must have type suffix (":int" or ":string").</param>
         public static void RestorePlayerPrefs(KeyValuePair<string, string>[] keyValues)
         {
             foreach (var keyValue in keyValues)
@@ -1263,7 +1387,11 @@ namespace com.noctuagames.sdk
 
             PlayerPrefs.Save();
         }
-
+        
+        /// <summary>
+        /// Returns an array of PlayerPrefs keys used by Noctua.
+        /// </summary>
+        /// <returns>Array of keys.</returns>
         public static string[] GetPlayerPrefsKeys()
         {
             return new string[] {
