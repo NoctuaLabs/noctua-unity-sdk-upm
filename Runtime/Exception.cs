@@ -24,15 +24,18 @@ namespace com.noctuagames.sdk
     {
         public int ErrorCode { get; private set; }
 
-        public NoctuaException(NoctuaErrorCode errorCode, string message) 
+        public string Payload { get; private set; }
+
+        public NoctuaException(NoctuaErrorCode errorCode, string message, string payload = "")
             : base($"ErrorCode: {errorCode}, Message: \"{message}\"")
         {
             ErrorCode = (int)errorCode;
+            Payload = payload;
         }
         
         public override string ToString()
         {
-            return $"ErrorCode: {ErrorCode}, Message: {Message}";
+            return $"ErrorCode: {ErrorCode}, Message: {Message}, Payload: {Payload}";
         }
 
         /* These act as:

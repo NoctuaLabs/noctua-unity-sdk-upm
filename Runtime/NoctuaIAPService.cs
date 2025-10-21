@@ -350,6 +350,7 @@ namespace com.noctuagames.sdk
         /// Fired when a purchase flow completes and an OrderRequest should be processed by game.
         /// </summary>
         public event Action<OrderRequest> OnPurchaseDone;
+        public event Action<OrderRequest> OnPurchasePending;
 
         private readonly EventSender _eventSender;
         private readonly AccessTokenProvider _accessTokenProvider;
@@ -787,7 +788,12 @@ namespace com.noctuagames.sdk
                         message = "Your payment couldn’t be verified. Please retry later.";
                     }
 
-                    throw new NoctuaException(NoctuaErrorCode.Payment, $"{message} Status: {verifyOrderResponse.Status.ToString()}");
+                    OnPurchasePending?.Invoke(orderRequest);
+                    throw new NoctuaException(
+                        NoctuaErrorCode.Payment,
+                        $"{message} Status: {verifyOrderResponse.Status.ToString()}",
+                        verifyOrderRequest.Id.ToString()
+                    );
 
                 }
 
@@ -1337,7 +1343,7 @@ namespace com.noctuagames.sdk
                     _log.Warning($"Purchase status ItemAlreadyOwned: {paymentResult.Status}, Message: {paymentResult.Message}");
                     await _failedPaymentDialog.Show(paymentResult.Status);
                     
-                    throw new NoctuaException(NoctuaErrorCode.PaymentStatusItemAlreadyOwned, paymentResult.Message);
+                    throw new NoctuaException(NoctuaErrorCode.PaymentStatusItemAlreadyOwned, paymentResult.Message, orderId.ToString());
                 case PaymentStatus.Canceled:
                     _log.Warning($"Purchase status Canceled: {paymentResult.Status}, Message: {paymentResult.Message}");
                     _eventSender?.Send(
@@ -1355,17 +1361,17 @@ namespace com.noctuagames.sdk
 
                     _uiFactory.ShowError(LocaleTextKey.IAPCanceled);
                 
-                    throw new NoctuaException(NoctuaErrorCode.PaymentStatusCanceled, $"payment status: {paymentResult.Status}, Message: {paymentResult.Message}");
+                    throw new NoctuaException(NoctuaErrorCode.PaymentStatusCanceled, $"payment status: {paymentResult.Status}, Message: {paymentResult.Message}", orderId.ToString());
                 case PaymentStatus.IapNotReady:
                     _log.Warning($"Purchase status IAPNotReady: {paymentResult.Status}, Message: {paymentResult.Message}");
                     _uiFactory.ShowError(LocaleTextKey.IAPNotReady);
 
-                    throw new NoctuaException(NoctuaErrorCode.PaymentStatusIapNotReady, $"payment status: {paymentResult.Status}, Message: {paymentResult.Message}");
+                    throw new NoctuaException(NoctuaErrorCode.PaymentStatusIapNotReady, $"payment status: {paymentResult.Status}, Message: {paymentResult.Message}", orderId.ToString());
                 default:
                     _log.Warning($"Purchase status IAPFailed: {paymentResult.Status}, Message: {paymentResult.Message}");
                     _uiFactory.ShowError(LocaleTextKey.IAPFailed);
                 
-                    throw new NoctuaException(NoctuaErrorCode.Payment, $"payment status: {paymentResult.Status}, Message: {paymentResult.Message}");
+                    throw new NoctuaException(NoctuaErrorCode.Payment, $"payment status: {paymentResult.Status}, Message: {paymentResult.Message}", orderId.ToString());
             }
 
             _log.Info($"Verifying order: {verifyOrderRequest.Id} with receipt data: {verifyOrderRequest.ReceiptData}");
