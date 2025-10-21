@@ -2,6 +2,25 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.53.0] - 2025-10-21
+
+### 🚀 Features
+
+- Add xml documentation noctua public class
+- Add xml documentation noctua authentication class
+- Add xml documentation noctua iap class
+- Add xml documentation noctua platform class
+- Add xml documentation noctua event class
+- Allow game to retrieve purchase orderID via event and exception.
+
+### 🐛 Bug Fixes
+
+- Catch exceptions within event's geoIP.
+
+### 💼 Other
+
+- Bump version to v0.53.0.
+
 ## [0.52.0] - 2025-10-15
 
 ### 🚀 Features
