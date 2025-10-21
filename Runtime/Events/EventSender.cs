@@ -186,7 +186,7 @@ namespace com.noctuagames.sdk.Events
             catch (Exception e)
             {
                 events = new List<Dictionary<string, IConvertible>>();
-                _log.Error($"Failed to load events from PlayerPrefs: {e.Message}.");
+                _log.Warning($"Failed to load events from PlayerPrefs: {e.Message}.");
 
                 // If fail, try to parse to object.
                 // IConvertible cannot parse null value from JSON.
@@ -199,7 +199,7 @@ namespace com.noctuagames.sdk.Events
                 }
                 catch (Exception e2)
                 {
-                    _log.Error($"Failed to load events from PlayerPrefs: {e2.Message}");
+                    _log.Warning($"Failed to load events from PlayerPrefs: {e2.Message}");
                     objects = new List<Dictionary<string, object>>();
                 }
                 if (objects == null)
@@ -283,8 +283,15 @@ namespace com.noctuagames.sdk.Events
                 string country = _locale.GetCountry();
                 if (String.IsNullOrEmpty(country))
                 {
-                    country = await GetCountryIDAsync();
-                    _locale.SetCountry(country);
+                    try {
+                        country = await GetCountryIDAsync();
+                        if (!String.IsNullOrEmpty(country))
+                        {
+                            _locale.SetCountry(country);
+                        }
+                    } catch (Exception e) {
+                        _log.Warning($"Failed to get country ID: {e.Message}");
+                    }
                 }
 
                 data.TryAdd("country", country);
@@ -299,22 +306,30 @@ namespace com.noctuagames.sdk.Events
                 #if UNITY_ANDROID && !UNITY_EDITOR
                     if (!_config.FirebaseConfig.Android.CustomEventDisabled)
                     {
-                        var firebaseSessionId = await Noctua.GetFirebaseAnalyticsSessionID();
-                        var firebaseInstallationId = await Noctua.GetFirebaseInstallationID();
+                        try {
+                            var firebaseSessionId = await Noctua.GetFirebaseAnalyticsSessionID();
+                            var firebaseInstallationId = await Noctua.GetFirebaseInstallationID();
 
-                        data.TryAdd("firebase_analytics_session_id", firebaseSessionId);
-                        data.TryAdd("firebase_installation_id", firebaseInstallationId);
+                            data.TryAdd("firebase_analytics_session_id", firebaseSessionId);
+                            data.TryAdd("firebase_installation_id", firebaseInstallationId);
+                        } catch (Exception e) {
+                            _log.Warning($"Failed to get Firebase IDs: {e.Message}");
+                        }
                     }
                 #endif
 
                 #if UNITY_IOS && !UNITY_EDITOR
                 if (!_config.FirebaseConfig.Ios.CustomEventDisabled)
                 {
-                    var firebaseSessionId = await Noctua.GetFirebaseAnalyticsSessionID();
-                    var firebaseInstallationId = await Noctua.GetFirebaseInstallationID();
+                    try {
+                        var firebaseSessionId = await Noctua.GetFirebaseAnalyticsSessionID();
+                        var firebaseInstallationId = await Noctua.GetFirebaseInstallationID();
 
-                    data.TryAdd("firebase_analytics_session_id", firebaseSessionId);
-                    data.TryAdd("firebase_installation_id", firebaseInstallationId);
+                        data.TryAdd("firebase_analytics_session_id", firebaseSessionId);
+                        data.TryAdd("firebase_installation_id", firebaseInstallationId);
+                    } catch (Exception e) {
+                        _log.Warning($"Failed to get Firebase IDs: {e.Message}");
+                    }
                 }
                 #endif
 
@@ -567,11 +582,20 @@ namespace com.noctuagames.sdk.Events
         {
             string country = "";
 
-            country = await GetCountryIDFromGeoIPAsync();
-            if (string.IsNullOrEmpty(country))
+            try {
+                country = await GetCountryIDFromGeoIPAsync();
+                return country;
+            } catch (Exception e)
             {
-                country = await GetCountryIDFromCloudflareTraceAsync();
+                _log.Warning($"Failed to get country ID from GeoIP: {e.Message}");
             }
+            try {
+                country = await GetCountryIDFromCloudflareTraceAsync();
+                return country;
+            } catch (Exception e) {
+                _log.Warning($"Failed to get country ID from Cloudflare Trace: {e.Message}");
+            }
+
             return country;
         }
 

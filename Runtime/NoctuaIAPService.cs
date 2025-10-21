@@ -634,6 +634,16 @@ namespace com.noctuagames.sdk
                     _log.Debug("remove from pending queue because it has been completed");
                     RemoveFromRetryPendingPurchasesByOrderID(verifyOrderRequest.Id);
                     _log.Debug("add to purchase history");
+
+                    var existingCompleted = GetPurchaseHistory()
+                        .Any(item => item.OrderId == verifyOrderRequest.Id && item.Status == OrderStatus.completed.ToString());
+                    if (existingCompleted)
+                    {
+                        _log.Debug($"orderID {verifyOrderRequest.Id} already exists in purchase history with completed status. Skipping duplicate handling.");
+
+                        break;
+                    }
+
                     AddToPurchaseHistory(
                         new PurchaseItem
                         {
@@ -641,7 +651,7 @@ namespace com.noctuagames.sdk
                             OrderRequest = orderRequest,
                             VerifyOrderRequest = verifyOrderRequest,
                             AccessToken = _accessTokenProvider.AccessToken,
-                            Status = "refunded",
+                            Status = "completed",
                             PlayerId = Noctua.Auth.RecentAccount?.Player?.Id,
                         }
                     );
