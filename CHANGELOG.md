@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.53.1] - 2025-10-22
+
+### 💼 Other
+
+- Bump version to v0.53.1-icm
+
 ## [0.53.0] - 2025-10-21
 
 ### 🚀 Features
