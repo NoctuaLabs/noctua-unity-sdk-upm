@@ -2,7 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
-## [0.53.1-icm.1] - 2025-10-22
+## [0.53.2-icm.1] - 2025-10-23
+
+### 🐛 Bug Fixes
+
+- Remove dependencies included symbols
+
+### 💼 Other
+
+- Bump version to 0.53.3-icm
+
+## [0.53.2-icm] - 2025-10-22
 
 ### 🐛 Bug Fixes
 
