@@ -1,4 +1,4 @@
-﻿﻿<dependencies>
+﻿<dependencies>
     <androidPackages>
         <androidPackage spec="com.noctuagames.sdk:noctua-android-sdk:0.15.0"/>
         <androidPackage spec="com.android.billingclient:billing:7.0.0" />
