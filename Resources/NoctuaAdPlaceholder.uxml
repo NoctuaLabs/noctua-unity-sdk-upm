@@ -9,7 +9,7 @@
             <ui:VisualElement name="AdPlaceholder" class="noctua-ad-placeholder"/>
         </ui:VisualElement>
 
-        <ui:VisualElement name="BannerPlaceholder" class="ad-placeholder-banner banner-box hide"/>
+        <ui:VisualElement name="BannerPlaceholder" class="banner-box hide"/>
        
     </ui:VisualElement>
 </ui:UXML>
