@@ -58,6 +58,12 @@ namespace com.noctuagames.sdk.AppLovin
 
         public void ShowInterstitial()
         {
+            if (string.IsNullOrEmpty(_adUnitIDInterstitial))
+            {
+                _log.Info("Ad unit ID Interstitial is empty.");
+                return;
+            }
+
             TrackAdCustomEventInterstitial("wf_interstitial_started_playing");
 
             if (MaxSdk.IsInterstitialReady(_adUnitIDInterstitial))
@@ -95,8 +101,8 @@ namespace com.noctuagames.sdk.AppLovin
             
             // Track ad loaded event
             TrackAdCustomEventInterstitial("ad_loaded", adUnitId, adInfo);
-            TrackAdCustomEventInterstitial("wf_interstitial_request_adunit_success");
-            TrackAdCustomEventInterstitial("wf_interstitial_request_finished_success");
+            TrackAdCustomEventInterstitial("wf_interstitial_adunit_success");
+            TrackAdCustomEventInterstitial("wf_interstitial_finished_success");
         }
 
         private void OnInterstitialLoadFailedEvent(string adUnitId, MaxSdkBase.ErrorInfo errorInfo)

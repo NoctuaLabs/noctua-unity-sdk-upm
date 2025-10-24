@@ -10,6 +10,7 @@ namespace com.noctuagames.sdk
     public interface IAdNetwork
     {
         //Event handler
+        event Action OnInitialized { add{} remove{} }
         event Action OnAdDisplayed { add{} remove{} }
         event Action OnAdFailedDisplayed { add{} remove{} }
         event Action OnAdClicked { add{} remove{} }

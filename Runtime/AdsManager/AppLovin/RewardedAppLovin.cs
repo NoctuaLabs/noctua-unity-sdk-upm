@@ -68,6 +68,12 @@ namespace com.noctuagames.sdk.AppLovin
         }
         public void ShowRewardedAd()
         {
+            if (string.IsNullOrEmpty(_adUnitIDRewarded))
+            {
+                _log.Error("Ad unit ID rewarded is empty.");
+                return;
+            }
+            
             TrackAdCustomEventRewarded("wf_rewarded_started_playing");
 
             if (MaxSdk.IsRewardedAdReady(_adUnitIDRewarded))

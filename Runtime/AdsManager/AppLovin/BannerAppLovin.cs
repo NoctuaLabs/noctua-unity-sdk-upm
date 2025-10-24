@@ -56,6 +56,12 @@ namespace com.noctuagames.sdk.AppLovin
 
         public void ShowBanner()
         {
+            if (string.IsNullOrEmpty(_adUnitIDBanner))
+            {
+                _log.Error("Ad unit ID banner is empty.");
+                return;
+            }
+            
             MaxSdk.ShowBanner(_adUnitIDBanner);
 
             _log.Debug("Banner ad shown for ad unit id : " + _adUnitIDBanner);

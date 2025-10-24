@@ -74,19 +74,56 @@ namespace com.noctuagames.sdk
         {
             _uiFactory = uiFactory;
 
+            if (iAAResponse == null)
+            {
+                _log.Warning("Constructor received null IAA response. MediationManager will not be usable.");
+                return;
+            }
+
             if (_iAAResponse != null)
             {
                 _log.Info("IAA response already set in MediationManager");
                 return;
             }
+
+            #if UNITY_ADMOB
+                _adNetwork = new AdmobManager();
+            #endif
+
+            #if UNITY_APPLOVIN
+                _adNetwork = new AppLovinManager();
+                
+                if(_adNetwork == null) 
+                {
+                    _log.Error("Failed to create AppLovinManager instance.");
+                }
+            #endif
+            
             _iAAResponse = iAAResponse;
         }
 
         public void Initialize(Action initCompleteAction = null)
         {
-            _log.Info("Initializing Ad Mediation");
+            if (_iAAResponse == null)
+            {
+                _log.Error("Cannot initialize MediationManager: IAA response is null.");
+                return;
+            }
 
-            _mediationType = _iAAResponse.Mediation;
+            _log.Info("Initializing Ad Mediation : " + _iAAResponse.Mediation);
+
+            var mediationType =
+            #if UNITY_APPLOVIN
+                "applovin";
+            #elif UNITY_ADMOB
+                "admob";
+            #else
+                "unknown";
+            #endif
+
+            _mediationType = !string.IsNullOrEmpty(_iAAResponse.Mediation)
+                ? _iAAResponse.Mediation
+                : mediationType;
 
             if (string.IsNullOrEmpty(_mediationType))
             {
@@ -97,18 +134,22 @@ namespace com.noctuagames.sdk
             switch (_iAAResponse.Mediation)
             {
                 case "admob":
-                    InitializeAdmob();
+                    InitializeAdmob(initCompleteAction);
                     break;
 
                 case "applovin":
-                    InitializeAppLovin();
+                    InitializeAppLovin(initCompleteAction);
                     break;
 
                 default:
                     _log.Info("No mediation found: " + _iAAResponse.Mediation);
                     break;
             }
+        }
 
+        private void InitializeAdmob(Action initCompleteAction = null)
+        {
+#if UNITY_ADMOB
             _adNetwork.Initialize(() =>
             {
 
@@ -124,18 +165,16 @@ namespace com.noctuagames.sdk
 
                 if (IsAdmob())
                 {
-#if UNITY_ADMOB
                     _preloadManager = AdmobAdPreloadManager.Instance;
-#endif
                 }
                 SetupAdUnitID(_iAAResponse);
             });
-        }
 
-        private void InitializeAdmob()
-        {
-#if UNITY_ADMOB
-            _adNetwork = new AdmobManager();
+            if(_adNetwork == null) 
+            {
+                _log.Warning("Ad Network is not initialized. callback cannot be registered.");
+                return;
+            }
 
             _adNetwork.OnAdDisplayed += () =>
             {
@@ -203,10 +242,35 @@ namespace com.noctuagames.sdk
 #endif
         }
 
-        private void InitializeAppLovin()
+        private void InitializeAppLovin(Action initCompleteAction = null)
         {
 #if UNITY_APPLOVIN
-            _adNetwork = new AppLovinManager();
+            _adNetwork.Initialize(() =>
+            {
+                _log.Info("AppLovin SDK initialization callback invoked.");
+
+            });
+
+            _adNetwork.OnInitialized += () => {
+                _log.Info("Ad Mediation Initialized: " + _iAAResponse.Mediation);
+
+                if (_iAAResponse.AdFormat == null)
+                {
+                    _log.Info("Ad Format is null in IAA response. Cannot proceed with ad unit ID setup.");
+                    return;
+                }
+
+                SetupAdUnitID(_iAAResponse);
+
+                initCompleteAction?.Invoke();
+
+            };
+
+            if(_adNetwork == null) 
+            {
+                _log.Warning("Ad Network is not initialized. callback cannot be registered.");
+                return;
+            }
 
             _adNetwork.OnAdDisplayed += () => { 
 
@@ -257,28 +321,45 @@ namespace com.noctuagames.sdk
 
         public void SetupAdUnitID(IAA iAAResponse)
         {
+            
 #if UNITY_ANDROID
-            _interstitialAdUnitID = iAAResponse.AdFormat.Interstitial.Android.adUnitID;
+    _interstitialAdUnitID = string.IsNullOrEmpty(iAAResponse?.AdFormat?.Interstitial?.Android?.adUnitID)
+        ? "unknown"
+        : iAAResponse.AdFormat.Interstitial.Android.adUnitID;
 #elif UNITY_IPHONE
-            _interstitialAdUnitID = iAAResponse.AdFormat.Interstitial.IOS.adUnitID;
+    _interstitialAdUnitID = string.IsNullOrEmpty(iAAResponse?.AdFormat?.Interstitial?.IOS?.adUnitID)
+        ? "unknown"
+        : iAAResponse.AdFormat.Interstitial.IOS.adUnitID;
 #endif
 
 #if UNITY_ANDROID
-            _rewardedAdUnitID = iAAResponse.AdFormat.Rewarded.Android.adUnitID;
+    _rewardedAdUnitID = string.IsNullOrEmpty(iAAResponse?.AdFormat?.Rewarded?.Android?.adUnitID)
+        ? "unknown"
+        : iAAResponse.AdFormat.Rewarded.Android.adUnitID;
 #elif UNITY_IPHONE
-            _rewardedAdUnitID = iAAResponse.AdFormat.Rewarded.IOS.adUnitID;
+    _rewardedAdUnitID = string.IsNullOrEmpty(iAAResponse?.AdFormat?.Rewarded?.IOS?.adUnitID)
+        ? "unknown"
+        : iAAResponse.AdFormat.Rewarded.IOS.adUnitID;
+#endif
+
+#if UNITY_ANDROID && UNITY_ADMOB
+    _rewardedInterstitialAdUnitID = string.IsNullOrEmpty(iAAResponse?.AdFormat?.RewardedInterstitial?.Android?.adUnitID)
+        ? "unknown"
+        : iAAResponse.AdFormat.RewardedInterstitial.Android.adUnitID;
+#elif UNITY_IPHONE && UNITY_ADMOB
+    _rewardedInterstitialAdUnitID = string.IsNullOrEmpty(iAAResponse?.AdFormat?.RewardedInterstitial?.IOS?.adUnitID)
+        ? "unknown"
+        : iAAResponse.AdFormat.RewardedInterstitial.IOS.adUnitID;
 #endif
 
 #if UNITY_ANDROID
-            _rewardedInterstitialAdUnitID = iAAResponse.AdFormat.RewardedInterstitial.Android.adUnitID;
+    _bannerAdUnitID = string.IsNullOrEmpty(iAAResponse?.AdFormat?.Banner?.Android?.adUnitID)
+        ? "unknown"
+        : iAAResponse.AdFormat.Banner.Android.adUnitID;
 #elif UNITY_IPHONE
-            _rewardedInterstitialAdUnitID = iAAResponse.AdFormat.RewardedInterstitial.IOS.adUnitID;
-#endif
-
-#if UNITY_ANDROID
-            _bannerAdUnitID = iAAResponse.AdFormat.Banner.Android.adUnitID;
-#elif UNITY_IPHONE
-            _bannerAdUnitID = iAAResponse.AdFormat.Banner.IOS.adUnitID;
+    _bannerAdUnitID = string.IsNullOrEmpty(iAAResponse?.AdFormat?.Banner?.IOS?.adUnitID)
+        ? "unknown"
+        : iAAResponse.AdFormat.Banner.IOS.adUnitID;
 #endif
 
             SetBannerAdUnitId(_bannerAdUnitID);
@@ -327,17 +408,31 @@ namespace com.noctuagames.sdk
         }
 
         //Interstitial public functions
-        private void SetInterstitialAdUnitId(string adUnitID) => _adNetwork.SetInterstitialAdUnitID(adUnitID);
-        public void LoadInterstitialAd() => _adNetwork.LoadInterstitialAd();
+        private void SetInterstitialAdUnitId(string adUnitID) {
+            if(_adNetwork == null) 
+            {
+                _log.Warning("Ad Network is not initialized. Cannot set interstitial ad unit ID.");
+                return;
+            }
+            _adNetwork.SetInterstitialAdUnitID(adUnitID);
+        }
+        public void LoadInterstitialAd() {
+            if(_adNetwork == null) 
+            {
+                _log.Warning("Ad Network is not initialized. Cannot load interstitial ad.");
+                return;
+            } 
+            _adNetwork.LoadInterstitialAd(); 
+        }
         public void ShowInterstitial() {
-
-            _hasClosedPlaceholder = false;
-
-            ShowAdPlaceholder(AdPlaceholderType.Interstitial);
 
             if (IsAdmob())
             {
 #if UNITY_ADMOB
+                _hasClosedPlaceholder = false;
+
+                ShowAdPlaceholder(AdPlaceholderType.Interstitial);
+
                 // Check if the ad is available before showing
                 if (_preloadManager.IsAdAvailable(_interstitialAdUnitID, AdFormat.INTERSTITIAL))
                 {
@@ -359,6 +454,16 @@ namespace com.noctuagames.sdk
             }
             else
             {
+                if(_adNetwork == null) 
+                {
+                    _log.Warning("Ad Network is not initialized. Cannot show interstitial ad.");
+                    return;
+                }
+
+                _hasClosedPlaceholder = false;
+
+                ShowAdPlaceholder(AdPlaceholderType.Interstitial);
+
                 // For other networks, just show the ad
                 _adNetwork.ShowInterstitial();
             }
@@ -377,18 +482,33 @@ namespace com.noctuagames.sdk
         #endif
 
         //Rewarded public functions
-        private void SetRewardedAdUnitId(string adUnitID) => _adNetwork.SetRewardedAdUnitID(adUnitID);
-        public void LoadRewardedAd() => _adNetwork.LoadRewardedAd();
+        private void SetRewardedAdUnitId(string adUnitID) { 
+            if(_adNetwork == null) 
+            {
+                _log.Warning("Ad Network is not initialized. Cannot set rewarded ad unit ID.");
+                return;
+            }
+            _adNetwork.SetRewardedAdUnitID(adUnitID); 
+        }
+        public void LoadRewardedAd() {
+            if(_adNetwork == null)
+            {
+                _log.Warning("Ad Network is not initialized. Cannot load rewarded ad.");
+                return;
+            }
+            
+            _adNetwork.LoadRewardedAd();
+        }
         public void ShowRewardedAd()
         {
-            _hasClosedPlaceholder = false;
-
-            ShowAdPlaceholder(AdPlaceholderType.Rewarded);
-
             if (IsAdmob())
             {
 
 #if UNITY_ADMOB
+                _hasClosedPlaceholder = false;
+
+                ShowAdPlaceholder(AdPlaceholderType.Rewarded);
+
                 // Check if the ad is available before showing
                 if (_preloadManager.IsAdAvailable(_rewardedAdUnitID, AdFormat.REWARDED))
                 {
@@ -413,6 +533,16 @@ namespace com.noctuagames.sdk
             }
             else
             {
+                if (_adNetwork == null)
+                {
+                    _log.Warning("Ad Network is not initialized. Cannot show rewarded ad.");
+                    return;
+                }
+
+                _hasClosedPlaceholder = false;
+
+                ShowAdPlaceholder(AdPlaceholderType.Rewarded);
+
                 // For other networks, just show the ad
                 _adNetwork.ShowRewardedAd();
             }
@@ -436,12 +566,33 @@ namespace com.noctuagames.sdk
 
             if (!IsAdmob()) { return; }
 
+            if(_adNetwork == null) 
+            {
+                _log.Warning("Ad Network is not initialized. Cannot set rewarded interstitial ad unit ID.");
+                return;
+            }
+
             _adNetwork.SetRewardeInterstitialdAdUnitID(adUnitID);
         }
-        public void LoadRewardedInterstitialAd() => _adNetwork.LoadRewardedInterstitialAd();
+        public void LoadRewardedInterstitialAd() {
+
+            if(_adNetwork == null) 
+            {
+                _log.Warning("Ad Network is not initialized. Cannot load rewarded interstitial ad.");
+                return;
+            }
+            _adNetwork.LoadRewardedInterstitialAd();
+        }
+        
         public void ShowRewardedInterstitialAd()
         {
-             _hasClosedPlaceholder = false;
+            if(_adNetwork == null) 
+            {
+                _log.Warning("Ad Network is not initialized. Cannot show rewarded interstitial ad.");
+                return;
+            }
+
+            _hasClosedPlaceholder = false;
 
             ShowAdPlaceholder(AdPlaceholderType.Rewarded);
             
@@ -449,13 +600,26 @@ namespace com.noctuagames.sdk
         }
         #endif
 
-            //Banner public functions
-        private void SetBannerAdUnitId(string adUnitID) => _adNetwork.SetBannerAdUnitId(adUnitID);
+        //Banner public functions
+        private void SetBannerAdUnitId(string adUnitID) {
+            if(_adNetwork == null) 
+            {
+                _log.Warning("Ad Network is not initialized. Cannot set banner ad unit ID.");
+                return;
+            }
+            _adNetwork.SetBannerAdUnitId(adUnitID); 
+        }
         public void ShowBannerAd()
         {
-            _hasClosedPlaceholder = false;
+            if (_adNetwork == null)
+            {
+                _log.Warning("Ad Network is not initialized. Cannot show banner ad.");
+                return;
+            }
 
-            ShowAdPlaceholder(AdPlaceholderType.Banner);
+            // Disabled placeholder for banner ads for temporary
+            // _hasClosedPlaceholder = false;
+            // ShowAdPlaceholder(AdPlaceholderType.Banner);
 
             _adNetwork.ShowBannerAd();
         } 
@@ -464,6 +628,12 @@ namespace com.noctuagames.sdk
         public void CreateBannerViewAdAdmob(AdSize adSize, AdPosition adPosition)
         {
             if (!IsAdmob()) { return; }
+
+            if(_adNetwork == null) 
+            {
+                _log.Warning("Ad Network is not initialized. Cannot create banner ad.");
+                return;
+            }
 
             _adNetwork.CreateBannerViewAdAdmob(adSize, adPosition);
         }
@@ -475,11 +645,23 @@ namespace com.noctuagames.sdk
         {
             if(!IsAppLovin()) { return; }
 
+            if(_adNetwork == null) 
+            {
+                _log.Warning("Ad Network is not initialized. Cannot create banner ad.");
+                return;
+            }
+
             _adNetwork.CreateBannerViewAdAppLovin(color, bannerPosition);
         }
         public void HideAppLovinBanner() 
         {
             if(!IsAppLovin()) { return; }
+
+            if(_adNetwork == null) 
+            {
+                _log.Warning("Ad Network is not initialized. Cannot hide banner ad.");
+                return;
+            }
 
             _adNetwork.HideBannerAppLovin();
         } 
@@ -487,11 +669,23 @@ namespace com.noctuagames.sdk
         {
             if(!IsAppLovin()) { return; }
 
+            if(_adNetwork == null) 
+            {
+                _log.Warning("Ad Network is not initialized. Cannot destroy banner ad.");
+                return;
+            }
+
             _adNetwork.DestroyBannerAppLovin();
         }
         public void SetBannerWidth(int width)
         {
             if(!IsAppLovin()) { return; }
+
+            if(_adNetwork == null) 
+            {
+                _log.Warning("Ad Network is not initialized. Cannot set banner width.");
+                return;
+            }
 
             _adNetwork.SetBannerWidth(width);
         }
@@ -499,11 +693,23 @@ namespace com.noctuagames.sdk
         {
             if(!IsAppLovin()) { return new Rect(); }
 
+            if(_adNetwork == null) 
+            {
+                _log.Warning("Ad Network is not initialized. Cannot get banner position.");
+                return new Rect();
+            }
+
             return _adNetwork.GetBannerPosition();
         }
         public void StopBannerAutoRefresh()
         {
             if(!IsAppLovin()) { return; }
+
+            if(_adNetwork == null) 
+            {
+                _log.Warning("Ad Network is not initialized. Cannot stop banner auto refresh.");
+                return;
+            }
 
             _adNetwork.StopBannerAutoRefresh();
         }
@@ -511,17 +717,33 @@ namespace com.noctuagames.sdk
         {
             if(!IsAppLovin()) { return; }
 
+            if(_adNetwork == null) 
+            {
+                _log.Warning("Ad Network is not initialized. Cannot start banner auto refresh.");
+                return;
+            }
+
             _adNetwork.StartBannerAutoRefresh();
         }
         #endif
 
         public void ShowCreativeDebugger()
         {
+            if(_adNetwork == null) 
+            {
+                _log.Warning("Ad Network is not initialized. Cannot show creative debugger.");
+                return;
+            }
             _adNetwork.ShowCreativeDebugger();
         }
 
         public void ShowMediationDebugger()
         {
+            if(_adNetwork == null) 
+            {
+                _log.Warning("Ad Network is not initialized. Cannot show mediation debugger.");
+                return;
+            }
             _adNetwork.ShowMediationDebugger();
         }
         
@@ -529,6 +751,12 @@ namespace com.noctuagames.sdk
         public void ShowAdPlaceholder(AdPlaceholderType adType)
         {
             _log.Info($"Showing ad placeholder for type: {adType}");
+
+            if(_uiFactory == null) 
+            {
+                _log.Warning("UI Factory is not initialized. Cannot show ad placeholder.");
+                return;
+            }
 
             _uiFactory.ShowAdPlaceholder(adType);
         }
@@ -538,6 +766,12 @@ namespace com.noctuagames.sdk
             if (_hasClosedPlaceholder)
             {
                 _log.Info("Ad placeholder already closed. Skipping close action.");
+                return;
+            }
+            
+            if(_uiFactory == null) 
+            {
+                _log.Warning("UI Factory is not initialized. Cannot close ad placeholder.");
                 return;
             }
 

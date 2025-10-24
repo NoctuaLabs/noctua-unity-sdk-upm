@@ -15,7 +15,8 @@ namespace com.noctuagames.sdk
         private BannerAppLovin _bannerAppLovin;
 
         // Private event handlers
-         private event Action _onAdDisplayed;
+        private event Action _initCompleteAction;
+        private event Action _onAdDisplayed;
         private event Action _onAdFailedDisplayed;
         private event Action _onAdClicked;
         private event Action _onAdClosed;
@@ -23,19 +24,32 @@ namespace com.noctuagames.sdk
         private event Action<MaxSdkBase.AdInfo> _appLovinOnAdDisplayed;
 
         // public event handlers
+        public event Action OnInitialized { add => _initCompleteAction += value; remove => _initCompleteAction -= value; }
         public event Action OnAdDisplayed { add => _onAdDisplayed += value; remove => _onAdDisplayed -= value; }
         public event Action OnAdFailedDisplayed { add => _onAdFailedDisplayed += value; remove => _onAdFailedDisplayed -= value; } 
         public event Action OnAdClicked { add => _onAdClicked += value; remove => _onAdClicked -= value; }
         public event Action OnAdClosed { add => _onAdClosed += value; remove => _onAdClosed -= value; }
         public event Action<MaxSdk.Reward> OnUserEarnedReward { add => _onUserEarnedReward += value; remove => _onUserEarnedReward -= value; }        public event Action<MaxSdkBase.AdInfo> AppLovinOnAdDisplayed { add => _appLovinOnAdDisplayed += value; remove => _appLovinOnAdDisplayed -= value; }
 
-        public void Initialize(Action initCompleteAction) {
+        internal AppLovinManager()
+        {
+            _log.Debug("AppLovinManager constructor");
+
+            _interstitialAppLovin = new InterstitialAppLovin();
+            _rewardedAppLovin = new RewardedAppLovin();
+            _bannerAppLovin = new BannerAppLovin();
+
+        } 
+        public void Initialize(Action initCompleteAction)
+        {
             _log.Info("Initializing AppLovin SDK");
 
-            MaxSdkCallbacks.OnSdkInitializedEvent += (MaxSdkBase.SdkConfiguration sdkConfiguration) => {
+            MaxSdkCallbacks.OnSdkInitializedEvent += (MaxSdk.SdkConfiguration sdkConfiguration) =>
+            {
                 _log.Debug("AppLovin initialized");
 
                 initCompleteAction?.Invoke();
+                _initCompleteAction.Invoke();
             };
 
             MaxSdk.InitializeSdk();
@@ -43,8 +57,6 @@ namespace com.noctuagames.sdk
 
         public void SetInterstitialAdUnitID(string adUnitID)
         {
-            _interstitialAppLovin = new InterstitialAppLovin();
-
             _interstitialAppLovin.SetInterstitialAdUnitID(adUnitID);
 
             // Subscribe to events
@@ -67,9 +79,7 @@ namespace com.noctuagames.sdk
         }
 
         public void SetRewardedAdUnitID(string adUnitID)
-        {
-            _rewardedAppLovin = new RewardedAppLovin();
-            
+        {            
             _rewardedAppLovin.SetRewardedAdUnitID(adUnitID);
 
             // Subscribe to events
@@ -93,9 +103,14 @@ namespace com.noctuagames.sdk
 
         public void SetBannerAdUnitId(string adUnitID)
         {
-            _bannerAppLovin = new BannerAppLovin();
-
             _bannerAppLovin.SetBannerAdUnitId(adUnitID);
+
+            // Subscribe to events
+            _bannerAppLovin.BannerOnAdDisplayed += () => { _onAdDisplayed?.Invoke(); };
+            _bannerAppLovin.BannerOnAdFailedDisplayed += () => { _onAdFailedDisplayed?.Invoke(); };
+            _bannerAppLovin.BannerOnAdClicked += () => { _onAdClicked?.Invoke(); };
+            _bannerAppLovin.BannerOnAdClosed += () => { _onAdClosed?.Invoke(); };
+            _bannerAppLovin.BannerOnAdRevenuePaid += (adInfo) => { _appLovinOnAdDisplayed?.Invoke(adInfo); };
         }
 
         public void CreateBannerViewAdAppLovin(Color color, MaxSdkBase.BannerPosition bannerPosition)
