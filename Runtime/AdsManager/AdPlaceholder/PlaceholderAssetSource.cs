@@ -17,6 +17,7 @@ namespace com.noctuagames.sdk.AdPlaceholder
     public class PlaceholderAssetSource : MonoBehaviour
     {
         private static PlaceholderAssetSource _instance;
+        private readonly NoctuaLogger _log = new(typeof(PlaceholderAssetSource));
         public static PlaceholderAssetSource Instance
         {
             get
@@ -58,7 +59,7 @@ namespace com.noctuagames.sdk.AdPlaceholder
 
                 resourcePools[type] = paths;
 
-                Debug.Log($"[AdPlaceholder] Loaded {paths.Count} local assets for {type} in folder '{folderName}'");
+                _log.Debug($"[AdPlaceholder] Loaded {paths.Count} local assets for {type} in folder '{folderName}'");
             }
         }
 
@@ -86,11 +87,11 @@ namespace com.noctuagames.sdk.AdPlaceholder
                     yield break;
                 }
 
-                Debug.LogWarning($"[AdPlaceholder] Local texture failed to load from {randomPath}, trying remote.");
+                _log.Warning($"[AdPlaceholder] Local texture failed to load from {randomPath}, trying remote.");
             }
             else
             {
-                Debug.LogWarning($"[AdPlaceholder] No local resources found for {type}, trying remote.");
+                _log.Warning($"[AdPlaceholder] No local resources found for {type}, trying remote.");
             }
 
             // Remote fallback
@@ -106,7 +107,7 @@ namespace com.noctuagames.sdk.AdPlaceholder
                 }
                 else
                 {
-                    Debug.LogError($"[AdPlaceholder] Failed to load remote asset: {www.error}");
+                    _log.Warning($"[AdPlaceholder] Failed to load remote asset: {www.error}");
                     callback?.Invoke(null);
                 }
             }
