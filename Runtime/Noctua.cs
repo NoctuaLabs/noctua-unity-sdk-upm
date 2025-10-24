@@ -447,8 +447,6 @@ namespace com.noctuagames.sdk
             );
 
             _platform = new NoctuaPlatform(_config.Noctua, accessTokenProvider, _uiFactory, _eventSender);
-
-            _iaa = new MediationManager(iAAResponse: _config.IAA, uiFactory: _uiFactory);
                 
             _log.Info("Noctua instance created");
         }
@@ -951,7 +949,11 @@ namespace com.noctuagames.sdk
             }
 
             // Initialize IAA (In-App Advertising) SDK and prepare IAA to be ready for showing ads to the user.
-            InitMediationSDK(log, initResponse);
+            if (initResponse.RemoteConfigs.IAA != null)
+            {
+                InitMediationSDK(log, initResponse);
+            }
+
             Instance.Value._eventSender.Send("sdk_init_mediation_init");
 
             log.Info("Noctua.InitAsync() completed");
@@ -1048,7 +1050,7 @@ namespace com.noctuagames.sdk
         /// <param name="initResponse">Init game response containing remote configs.</param>
         private static void InitMediationSDK(ILogger log, InitGameResponse initResponse)
         {
-             if(initResponse.RemoteConfigs.IAA != null)
+            if(initResponse.RemoteConfigs.IAA != null)
             {
                 #if UNITY_ADMOB || UNITY_APPLOVIN
                 
