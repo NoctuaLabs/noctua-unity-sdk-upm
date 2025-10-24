@@ -997,6 +997,7 @@ namespace com.noctuagames.sdk
             // Instance.Value._eventSender.Send("sdk_init_mediation_init");
 
             log.Info("Noctua.InitAsync() completed");
+            var initOnlineCompleted = false;
 
             // If the SDK is in offline mode, the initialized flag remains
             // false so PurchaseAsync() and other online-relian API could
@@ -1004,6 +1005,8 @@ namespace com.noctuagames.sdk
             // Some feature like Retry Pending Purchase mechanism is also disabled
             if (!_offlineMode)
             {
+                initOnlineCompleted = true;
+
                 Instance.Value._iap.Enable();
                 Instance.Value._auth.Enable();
                 _initialized = true;
@@ -1025,6 +1028,7 @@ namespace com.noctuagames.sdk
             }
             else
             {
+                initOnlineCompleted = false;
                 // Disabled for production to reduce event noise
                 // Instance.Value._eventSender.Send("sdk_init_offline_success");
                 // Start the realtime check for internet connection
@@ -1033,6 +1037,11 @@ namespace com.noctuagames.sdk
                 // Disabled for production to reduce event noise
                 // Instance.Value._eventSender.Send("sdk_init_offline_mode_retry_conn");
             }
+
+            Instance.Value._eventSender.Send("sdk_init_complete", new Dictionary<string, IConvertible>
+            {
+                { "offline", initOnlineCompleted ? false : true }
+            });
         }
 
         /// <summary>
