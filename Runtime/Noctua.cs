@@ -1005,7 +1005,7 @@ namespace com.noctuagames.sdk
 
                 while (loop)
                 {
-                    await UniTask.Delay(TimeSpan.FromSeconds(5));
+                    await UniTask.Delay(TimeSpan.FromSeconds(10));
 
                     log.Debug("Checking internet connection...");
 
