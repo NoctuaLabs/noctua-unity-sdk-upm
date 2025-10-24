@@ -106,10 +106,6 @@ namespace com.noctuagames.sdk.Admob
 
                     // ad.SetServerSideVerificationOptions(options);
 
-                    TrackAdCustomEventRewarded("ad_loaded");
-                    TrackAdCustomEventRewarded("wf_rewarded_request_adunit_success");
-                    TrackAdCustomEventRewarded("wf_rewarded_request_finished_success");
-
                     _rewardedAd = ad;
                     RegisterEventHandlers(ad);
                 });

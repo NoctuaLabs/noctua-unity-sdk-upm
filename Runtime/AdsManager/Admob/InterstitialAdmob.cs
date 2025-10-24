@@ -90,17 +90,13 @@ namespace com.noctuagames.sdk.Admob
                             { "ad_unit_id", _adUnitIDInterstitial ?? "unknown" }
                         };
 
-                        TrackAdCustomEventInterstitial("wf_interstitial_request_adunit_failed", extraPayload);
-                        TrackAdCustomEventInterstitial("wf_interstitial_request_finished_failed	", extraPayload);
+                        TrackAdCustomEventInterstitial("wf_interstitial_adunit_failed", extraPayload);
+                        TrackAdCustomEventInterstitial("wf_interstitial_finished_failed	", extraPayload);
                         return;
                     }
 
                     _log.Debug("Interstitial ad loaded with response : "
                                 + ad.GetResponseInfo());
-
-                    TrackAdCustomEventInterstitial("ad_loaded");
-                    TrackAdCustomEventInterstitial("wf_interstitial_request_adunit_success");
-                    TrackAdCustomEventInterstitial("wf_interstitial_request_finished_success");
 
                     _interstitialAd = ad;
 

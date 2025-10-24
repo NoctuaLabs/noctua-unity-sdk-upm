@@ -17,6 +17,7 @@ namespace com.noctuagames.sdk
         private BannerAdmob _bannerAdmob;
 
         // Private event handlers
+        private event Action _initCompleteAction;
         private event Action _onAdDisplayed;
         private event Action _onAdFailedDisplayed;
         private event Action _onAdClicked;
@@ -27,6 +28,7 @@ namespace com.noctuagames.sdk
         private event Action<AdValue, ResponseInfo> _admobOnAdRevenuePaid;
 
         // public event handlers
+        public event Action OnInitialized { add => _initCompleteAction += value; remove => _initCompleteAction -= value; }
         public event Action OnAdDisplayed { add => _onAdDisplayed += value; remove => _onAdDisplayed -= value; }
         public event Action OnAdFailedDisplayed { add => _onAdFailedDisplayed += value; remove => _onAdFailedDisplayed -= value; } 
         public event Action OnAdClicked { add => _onAdClicked += value; remove => _onAdClicked -= value; }
@@ -44,6 +46,7 @@ namespace com.noctuagames.sdk
                 _log.Info("Admob initialized");
 
                 initCompleteAction?.Invoke();
+                _initCompleteAction?.Invoke();
 
                 Dictionary<string, AdapterStatus> map = initStatus.getAdapterStatusMap();
                 foreach (KeyValuePair<string, AdapterStatus> keyValuePair in map)

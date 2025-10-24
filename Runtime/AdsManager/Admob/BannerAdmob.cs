@@ -72,14 +72,15 @@ namespace com.noctuagames.sdk.Admob
         /// Creates the banner view and loads a banner ad.
         /// </summary>
         public void LoadAd()
-        {
-            TrackAdCustomEventBanner("wf_banner_request_start");
-            
+        {            
             if (_adUnitIdBanner == null)
             {
                 _log.Error("Ad unit ID Banner is empty.");
                 return;
             }
+
+            TrackAdCustomEventBanner("wf_banner_request_start");
+
             // create an instance of a banner view first.
             if(_bannerView == null)
             {
