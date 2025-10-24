@@ -2,6 +2,26 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.54.0] - 2025-10-24
+
+### 🚀 Features
+
+- Enhance initialization internal IAA
+- Remove doubled internal tracker on admob
+- Enhance applovin manager and prevent object null references
+- Enhance logger ad placeholder asset source
+- Increase SDK init retry delay to 10 seconds
+- Add internal event tracker sdk init complete
+
+### 🐛 Bug Fixes
+
+- Disabled internal tracker for debugger
+
+### 💼 Other
+
+- Bump version applovin sdk to 8.5.0
+- Remove ui toolkit class ad-placeholder-banner
+
 ## [0.53.0] - 2025-10-21
 
 ### 🚀 Features
