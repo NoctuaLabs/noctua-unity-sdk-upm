@@ -56,6 +56,24 @@ namespace com.noctuagames.sdk.Events
         }
 
         /// <summary>
+        /// Set a feature identifier to track TSPU.
+        /// </summary>
+        /// <param name="tagName">Tag name.</param>
+        public void SetSessionTag(string tagName)
+        {
+            ExperimentManager.SetSessionTag(tagName);
+        }
+
+        /// <summary>
+        /// Get currently active feature identifier for TSPU.
+        /// </summary>
+        /// <returns>Active tag name or empty string.</returns>
+        public string GetActiveSessionTag()
+        {
+            return ExperimentManager.GetActiveSessionTag();
+        }
+
+        /// <summary>
         /// Tracks an ad revenue event across both native trackers and Noctua analytics.
         /// </summary>
         /// <param name="source">The ad network source (e.g. "admob_sdk", "applovin_max_sdk").</param>

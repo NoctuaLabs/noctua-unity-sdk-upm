@@ -46,12 +46,12 @@ public static class ExperimentManager
         return GetFlag<string>(KEY_CURRENT_EXPERIMENT, string.Empty);
     }
 
-    public static void SetFeature(string featureName)
+    public static void SetSessionTag(string featureName)
     {
         SetFlag(KEY_CURRENT_FEATURE, featureName);
     }
 
-    public static string GetActiveFeature()
+    public static string GetActiveSessionTag()
     {
         return GetFlag<string>(KEY_CURRENT_FEATURE, string.Empty);
     }

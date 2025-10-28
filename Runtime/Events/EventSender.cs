@@ -303,7 +303,7 @@ namespace com.noctuagames.sdk.Events
                     data.TryAdd("experiment", activeExperiment);
                 }
 
-                var activeFeature = Noctua.GetActiveFeature();
+                var activeFeature = Noctua.Event.GetActiveSessionTag();
                 if (!string.IsNullOrEmpty(activeFeature) &&
                 name == "session_start" ||
                 name == "session_end" ||
@@ -373,6 +373,7 @@ namespace com.noctuagames.sdk.Events
                 // by not sending another "offline" event if the event name is "offline"
                 if (data.TryGetValue("event_name", out var eventName) && eventName.ToString() != "offline")
                 {
+                    _log.Debug("Checking internet connection status after sending event");
                     Noctua.IsOfflineAsync().ContinueWith((isOffline) =>
                     {
                         if (isOffline)
@@ -524,12 +525,12 @@ namespace com.noctuagames.sdk.Events
                 }
 
                 // The minimum delay time is 
-                var isOffline = await Noctua.IsOfflineAsync();
+                var isOffline = Noctua.IsOfflineMode();
                 if (isOffline)
                 {
                     Noctua.OnOffline();
 
-                    _log.Info($"Device is offline, continue to next cycle");
+                    _log.Info($"Device is offline = ${isOffline}, continue to next cycle");
                     continue;
                 }
                 
