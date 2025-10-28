@@ -51,7 +51,7 @@ public static class ExperimentManager
         SetFlag(KEY_CURRENT_FEATURE, featureName);
     }
 
-    public static string GetActiveSessionTag()
+    public static string GetSessionTag()
     {
         return GetFlag<string>(KEY_CURRENT_FEATURE, string.Empty);
     }

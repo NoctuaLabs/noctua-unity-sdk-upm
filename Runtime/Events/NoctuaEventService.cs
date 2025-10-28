@@ -68,9 +68,9 @@ namespace com.noctuagames.sdk.Events
         /// Get currently active feature identifier for TSPU.
         /// </summary>
         /// <returns>Active tag name or empty string.</returns>
-        public string GetActiveSessionTag()
+        public string GetSessionTag()
         {
-            return ExperimentManager.GetActiveSessionTag();
+            return ExperimentManager.GetSessionTag();
         }
 
         /// <summary>

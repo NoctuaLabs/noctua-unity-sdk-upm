@@ -303,7 +303,7 @@ namespace com.noctuagames.sdk.Events
                     data.TryAdd("experiment", activeExperiment);
                 }
 
-                var activeFeature = Noctua.Event.GetActiveSessionTag();
+                var activeFeature = Noctua.Event.GetSessionTag();
                 var sessionEvents = new HashSet<string>
                 {
                     "session_start",
