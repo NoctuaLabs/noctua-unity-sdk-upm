@@ -304,12 +304,16 @@ namespace com.noctuagames.sdk.Events
                 }
 
                 var activeFeature = Noctua.Event.GetActiveSessionTag();
-                if (!string.IsNullOrEmpty(activeFeature) &&
-                name == "session_start" ||
-                name == "session_end" ||
-                name == "session_pause" ||
-                name == "session_continue" ||
-                name == "session_heartbeat")
+                var sessionEvents = new HashSet<string>
+                {
+                    "session_start",
+                    "session_end",
+                    "session_pause",
+                    "session_continue",
+                    "session_heartbeat"
+                };
+
+                if (!string.IsNullOrEmpty(activeFeature) && sessionEvents.Contains(name))
                 {
                     data.TryAdd("tag", activeFeature);
                 }
