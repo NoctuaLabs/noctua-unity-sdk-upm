@@ -1032,7 +1032,7 @@ namespace com.noctuagames.sdk
                 // Disabled for production to reduce event noise
                 // Instance.Value._eventSender.Send("sdk_init_offline_success");
                 // Start the realtime check for internet connection
-                RealtimeCheckInternetConnectionAndRetryAuth().Forget();
+                RunReconnectionLoopAsync().Forget();
 
                 // Disabled for production to reduce event noise
                 // Instance.Value._eventSender.Send("sdk_init_offline_mode_retry_conn");
@@ -1045,10 +1045,35 @@ namespace com.noctuagames.sdk
         }
 
         /// <summary>
+        /// Internal method to check connection and perform init & authentication when offline mode is detected.
+        /// </summary>
+        private static async Task CheckConnectionAndReauthAsync()
+        {
+            var log = Instance.Value._log;
+            var isOffline = await IsOfflineAsync();
+
+            if (isOffline)
+            {
+                log.Debug("Still offline, will retry.");
+
+                throw new NoctuaException(NoctuaErrorCode.Networking, "Still offline");
+            }
+
+            if (!IsInitialized())
+            {
+                await InitAsync();
+            }
+
+            await Instance.Value._auth.AuthenticateAsync();
+
+            log.Debug("Authentication succeeded from offline.");
+        }
+
+        /// <summary>
         /// If offline mode is true, periodically checks connectivity and attempts initialization and authentication.
         /// This method loops while offline until success or a non-network error occurs.
         /// </summary>
-        private static async UniTask RealtimeCheckInternetConnectionAndRetryAuth()
+        private static async UniTask RunReconnectionLoopAsync()
         {
             var log = Instance.Value._log;
 
@@ -1066,14 +1091,7 @@ namespace com.noctuagames.sdk
 
                     try
                     {
-                        if (!IsInitialized())
-                        {
-                            await InitAsync();
-                        }
-
-                        await Instance.Value._auth.AuthenticateAsync();
-
-                        log.Debug("Authentication succeeded from offline.");
+                        await CheckConnectionAndReauthAsync();
 
                         loop = false;
                     }
@@ -1268,24 +1286,6 @@ namespace com.noctuagames.sdk
         public static string GetActiveExperiment()
         {
             return ExperimentManager.GetActiveExperiment();
-        }
-
-        /// <summary>
-        /// Set a feature identifier to track TSPU.
-        /// </summary>
-        /// <param name="featureName">Feature name.</param>
-        public static void SetFeature(string featureName)
-        {
-            ExperimentManager.SetFeature(featureName);
-        }
-
-        /// <summary>
-        /// Get currently active feature identifier for TSPU.
-        /// </summary>
-        /// <returns>Active feature name or empty string.</returns>
-        public static string GetActiveFeature()
-        {
-            return ExperimentManager.GetActiveFeature();
         }
 
         // <summary>
