@@ -297,10 +297,21 @@ namespace com.noctuagames.sdk.Events
                 data.TryAdd("country", country);
 
                 var activeExperiment = Noctua.GetActiveExperiment();
-                
+
                 if (!string.IsNullOrEmpty(activeExperiment))
                 {
                     data.TryAdd("experiment", activeExperiment);
+                }
+
+                var activeFeature = Noctua.GetActiveFeature();
+                if (!string.IsNullOrEmpty(activeFeature) &&
+                name == "session_start" ||
+                name == "session_end" ||
+                name == "session_pause" ||
+                name == "session_continue" ||
+                name == "session_heartbeat")
+                {
+                    data.TryAdd("tag", activeFeature);
                 }
 
                 #if UNITY_ANDROID && !UNITY_EDITOR

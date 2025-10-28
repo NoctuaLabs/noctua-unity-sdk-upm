@@ -1216,7 +1216,7 @@ namespace com.noctuagames.sdk
             return Task.FromResult(string.Empty);
         #endif
         }
-        
+
         /// <summary>
         /// Returns whether this is the first open of the app (and sets the flag when it is).
         /// </summary>
@@ -1224,13 +1224,32 @@ namespace com.noctuagames.sdk
         private static bool IsFirstOpen()
         {
             var isFirstOpen = PlayerPrefs.GetInt("NoctuaFirstOpen", 1) == 1;
-            
+
             if (isFirstOpen)
             {
                 PlayerPrefs.SetInt("NoctuaFirstOpen", 0);
             }
-            
+
             return isFirstOpen;
+        }
+
+        /// <summary>
+        /// Set a general experiment key/value pair to the experiment manager.
+        /// </summary>
+        /// <param name="key">Experiment key.</param>
+        /// <param name="value">Experiment value.</param>
+        public static void SetGeneralExperiment(string key, string value)
+        {
+            ExperimentManager.SetGeneralExperiment(key, value);
+        }
+        
+        /// <summary>
+        /// Get a general experiment value by key from the experiment manager.
+        /// </summary>
+        /// <param name="key">Experiment key.</param>
+        public static string GetGeneralExperiment(string key)
+        {
+            return ExperimentManager.GetGeneralExperiment(key);
         }
         
         /// <summary>
@@ -1249,6 +1268,24 @@ namespace com.noctuagames.sdk
         public static string GetActiveExperiment()
         {
             return ExperimentManager.GetActiveExperiment();
+        }
+
+        /// <summary>
+        /// Set a feature identifier to track TSPU.
+        /// </summary>
+        /// <param name="featureName">Feature name.</param>
+        public static void SetFeature(string featureName)
+        {
+            ExperimentManager.SetFeature(featureName);
+        }
+
+        /// <summary>
+        /// Get currently active feature identifier for TSPU.
+        /// </summary>
+        /// <returns>Active feature name or empty string.</returns>
+        public static string GetActiveFeature()
+        {
+            return ExperimentManager.GetActiveFeature();
         }
 
         // <summary>
