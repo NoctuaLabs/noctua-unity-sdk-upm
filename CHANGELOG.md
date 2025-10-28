@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.55.0] - 2025-10-28
+
+### 🚀 Features
+
+- Update noctua sdk native version android to 0.15.0, ios to 0.22.0
+- Add tag data to internal tracker for track TSPU
+- Enhance retry mechanism for SDK initialization and authentication while offline
+
 ## [0.54.0] - 2025-10-24
 
 ### 🚀 Features
