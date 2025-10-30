@@ -428,7 +428,7 @@ namespace com.noctuagames.sdk
         /// <summary>
         /// Initialize the underlying native billing system (no-op on non-Android platforms).
         /// </summary>
-        public void Init()
+        internal void Init()
         {
 #if UNITY_ANDROID && !UNITY_EDITOR
             GoogleBillingInstance.Init();
@@ -2527,7 +2527,7 @@ namespace com.noctuagames.sdk
             throw new NoctuaException(NoctuaErrorCode.Application, "Noctua IAP is not enabled due to initialization failure.");
         }
 
-        public void Enable()
+        internal void Enable()
         {
             _enabled = true;
         }
