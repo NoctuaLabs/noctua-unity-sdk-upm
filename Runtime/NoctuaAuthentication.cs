@@ -95,7 +95,7 @@ namespace com.noctuagames.sdk
         /// <summary>
         /// Enables the authentication service after SDK initialization.
         /// </summary>
-        public void Enable()
+        internal void Enable()
         {
             _log.Debug("calling API");
 
