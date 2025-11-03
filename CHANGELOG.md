@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.56.1] - 2025-11-03
+
+### 🐛 Bug Fixes
+
+- Remove dependencies included symbols
+
+### 💼 Other
+
+- Bump version to v0.53.1-icm
+- Bump version to 0.53.2-icm
+- Bump version to 0.53.3-icm
+- Bump version to 0.56.0-icm
+
 ## [0.56.0] - 2025-11-03
 
 ### 🚀 Features
