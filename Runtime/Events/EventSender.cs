@@ -281,7 +281,10 @@ namespace com.noctuagames.sdk.Events
                 data.TryAdd("is_sandbox", _isSandbox);
 
                 string country = _locale.GetCountry();
-                if (String.IsNullOrEmpty(country))
+                
+                var isOffline = Noctua.IsOfflineMode();
+
+                if (String.IsNullOrEmpty(country) && !isOffline)
                 {
                     try {
                         country = await GetCountryIDAsync();
