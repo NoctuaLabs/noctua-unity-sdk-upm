@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.56.0] - 2025-11-03
+
+### 🚀 Features
+
+- Prevent requests to server while offline
+
+### 💼 Other
+
+- Update readme
+
+### 🚜 Refactor
+
+- Restrict IAP Init() and enable visibility to internal for SDK-only access
+- Restrict authentication enable() visibility to internal for SDK-only access
+
 ## [0.55.0] - 2025-10-28
 
 ### 🚀 Features
