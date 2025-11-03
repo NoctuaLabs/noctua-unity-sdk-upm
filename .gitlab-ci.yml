@@ -35,7 +35,7 @@ bump-version:
     GIT_DEPTH: 0 # avoid shallow clone to give cliff all the info it needs
   script:
     # Force version temporary
-    - NEW_VERSION_TAG="0.53.3-icm"
+    - NEW_VERSION_TAG="0.56.0-icm"
 
     # - NEW_VERSION_TAG="$(git-cliff --bumped-version)"
     - jq --arg version "$NEW_VERSION_TAG" '.version = $version' package.json > temp.json && mv temp.json package.json
@@ -72,7 +72,7 @@ release:
     - git pull --rebase origin $CI_COMMIT_BRANCH # testing using flag rebase
     # - NEW_VERSION_TAG="$(git-cliff --bumped-version)-icm"
     # Force version temporary
-    - NEW_VERSION_TAG="0.53.3-icm"
+    - NEW_VERSION_TAG="0.56.0-icm"
     - jq --arg version "$NEW_VERSION_TAG" '.version = $version' package.json > temp.json && mv temp.json package.json
     - git add package.json
     - |
