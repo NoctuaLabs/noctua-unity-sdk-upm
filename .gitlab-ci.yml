@@ -59,7 +59,6 @@ bump-version:
 
 # Publish to github
 publish:
-  extends: .bump-version
   stage: publish
   tags:
     - local2
