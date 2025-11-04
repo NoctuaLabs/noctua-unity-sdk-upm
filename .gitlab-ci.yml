@@ -93,9 +93,7 @@ publish:
     - git tag $NEW_VERSION_TAG || true
     - git push github $NEW_VERSION_TAG || true
     # Release
-    - git-cliff --latest > GithubRelease.md
-    - [ "$(wc -l < GithubRelease.md)" -lt 2 ] && git-cliff | awk '/^## \[/{if (NR!=1) exit} {print}' > GithubRelease.md
-    - cat GithubRelease.md
+    - ./generate-release-note.sh
     - gh release create $NEW_VERSION_TAG --title $NEW_VERSION_TAG --notes-file GithubRelease.md
     - git remote remove github || true
 
@@ -145,8 +143,6 @@ publish-icm-version:
     # Push tag to github repo
     - git push github $NEW_VERSION_TAG-icm || true
     # Release
-    - git-cliff --latest > GithubRelease.md
-    - [ "$(wc -l < GithubRelease.md)" -lt 2 ] && git-cliff | awk '/^## \[/{if (NR!=1) exit} {print}' > GithubRelease.md
-    - cat GithubRelease.md
+    - ./generate-release-note.sh
     - gh release create $NEW_VERSION_TAG-icm --title $NEW_VERSION_TAG-icm --notes-file GithubRelease.md
     - git remote remove github || true
