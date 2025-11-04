@@ -1,3 +1,6 @@
+variables:
+  NATIVE_IOS_VERSION: "0.22.0"
+  NATIVE_IOS_ICM_VERSION: "0.21.1"
 stages:
   - trigger
   - bump-version-for-release # Bump version as tag
@@ -29,7 +32,6 @@ bump-version-for-release:
   rules:
     - if: $CI_COMMIT_BRANCH == "main"
       when: manual
-    - if: $CI_COMMIT_BRANCH == "ci"
   variables:
     GIT_STRATEGY: fetch # reuse workspace
     GIT_DEPTH: 0 # avoid shallow clone to give cliff all the info it needs
@@ -90,4 +92,48 @@ publish:
     - git-cliff --latest > GithubRelease.md
     #- gh auth status >/dev/null 2>&1 || echo "$GITHUB_ACCESS_TOKEN" | gh auth login -h github.com -s gist,read:org,repo,workflow
     - gh release create $NEW_VERSION_TAG --title $NEW_VERSION_TAG --notes-file GithubRelease.md
+    - git remote remove github || true
+
+# Publish ICM to github
+publish-icm-version:
+  stage: publish
+  tags:
+    - local-shell
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+      when: manual
+    - if: $CI_COMMIT_BRANCH == "ci"
+  variables:
+    GIT_STRATEGY: fetch # reuse workspace
+    GIT_DEPTH: 0 # avoid shallow clone to give cliff all the info it needs
+  needs: [bump-version-for-release]
+  script:
+    # Prepare GitHub CLI tool
+    #- curl -sS https://webi.sh/gh | sh # Already installed in local-shell runner
+    #- source ~/.config/envman/PATH.env
+    - gh auth status >/dev/null 2>&1 || echo "$GITHUB_ACCESS_TOKEN" | gh auth login --with-token
+    # Refresh
+    - git fetch origin
+    - git checkout $COMMIT_HASH
+    - git branch -D main-icm || true
+    # Modify the version
+    - sed -i -E '/Noctua/ s/(version="~>[[:space:]]*)[^"]+/\1'"$NATIVE_IOS_ICM_VERSION"'/' Editor/NativePluginDependencies.xml
+    - grep -q 'icm' Runtime/AssemblyInfo.cs || sed -i.bak 's/\(AssemblyVersion("\)\([^"]*\)\(")\)/\1\2-icm\3/' Runtime/AssemblyInfo.cs; grep -q 'icm' package.json || sed -i.bak 's/\("version": "\)\([^"]*\)\(".*\)/\1\2-icm\3/' package.json
+    - git add Editor/NativePluginDependencies.xml
+    - git add package.json;
+    - git add Runtime/AssemblyInfo.cs;
+    - git commit -m "bump version to $NEW_VERSION_TAG-icm [skip ci]";
+    - git tag $NEW_VERSION_TAG-icm
+    - git push "https://$GITLAB_BUILDER_USER:$GITLAB_BUILDER_ACCESS_TOKEN@gitlab.com/evosverse/noctua/noctua-sdk-unity-upm.git" origin $NEW_VERSION_TAG-icm -o ci.skip;
+    # Update main branch on github repo
+    - git checkout -b main-icm
+    - git remote add github https://github.com/NoctuaLabs/noctua-unity-sdk-upm.git || true
+    - gh auth setup-git
+    - git push github main-icm -f
+    # Push tag to github repo
+    - git push github $NEW_VERSION_TAG-icm
+    # Release
+    - git-cliff --latest > GithubRelease.md
+    #- gh auth status >/dev/null 2>&1 || echo "$GITHUB_ACCESS_TOKEN" | gh auth login -h github.com -s gist,read:org,repo,workflow
+    - gh release create $NEW_VERSION_TAG-icm --title $NEW_VERSION_TAG-icm --notes-file GithubRelease.md
     - git remote remove github || true
