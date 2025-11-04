@@ -1,8 +1,7 @@
 stages:
   - trigger
-  - bump-version
-  - release
-  - publish
+  - bump-version # Bump version as tag
+  - publish # Publish to github
 
 trigger_job:
   stage: trigger
@@ -29,12 +28,16 @@ bump-version:
     - local2
   rules:
     - if: $CI_COMMIT_BRANCH == "main"
-      when: always
+    - if: $CI_COMMIT_BRANCH == "ci"
+      when: manual
   variables:
     GIT_STRATEGY: fetch # reuse workspace
     GIT_DEPTH: 0 # avoid shallow clone to give cliff all the info it needs
+  artifacts:
+    reports:
+      dotenv: build.env
   script:
-    - NEW_VERSION_TAG=$(git-cliff --bumped-version)
+    - NEW_VERSION_TAG=$(git tag --list | sort -V | tail -n1 | awk '{v=$0; sub(/^[^0-9]*/, "", v); sub(/-.*/, "", v); split(v,a,"."); a[2]++; a[3]=0; printf "%d.%d.%d", a[1], a[2], a[3]}'); echo "$NEW_VERSION"
     - jq --arg version "$NEW_VERSION_TAG" '.version = $version' package.json > temp.json && mv temp.json package.json
     - |
       cat <<EOF > Runtime/AssemblyInfo.cs
@@ -51,38 +54,9 @@ bump-version:
       else
         echo "No version bump required";
       fi
+    - echo "NEW_VERSION_TAG=$NEW_VERSION_TAG" > build.env
 
-release:
-  extends: .bump-version
-  stage: release
-  tags:
-    - local2
-  rules:
-    - if: $CI_COMMIT_BRANCH == "main"
-      when: manual
-  variables:
-    GIT_STRATEGY: fetch # reuse workspace
-    GIT_DEPTH: 0 # avoid shallow clone to give cliff all the info it needs
-  script:
-    - git fetch --tags
-    - git checkout $CI_COMMIT_BRANCH
-    - git pull origin $CI_COMMIT_BRANCH
-    - NEW_VERSION_TAG=$(git-cliff --bumped-version)
-    - jq --arg version "$NEW_VERSION_TAG" '.version = $version' package.json > temp.json && mv temp.json package.json
-    - git add package.json
-    - |
-      cat <<EOF > Runtime/AssemblyInfo.cs
-      using System.Reflection;
-
-      [assembly: AssemblyVersion("$NEW_VERSION_TAG")]
-      EOF
-    - git add Runtime/AssemblyInfo.cs
-    - git-cliff --bump > CHANGELOG.md
-    - git add CHANGELOG.md
-    - git commit -m "Release $NEW_VERSION_TAG"
-    - git tag -a $NEW_VERSION_TAG -m "Release $NEW_VERSION_TAG"
-    - git push "https://$GITLAB_BUILDER_USER:$GITLAB_BUILDER_ACCESS_TOKEN@gitlab.com/evosverse/noctua/noctua-sdk-unity-upm.git" HEAD:$CI_COMMIT_BRANCH --follow-tags -o ci.skip
-
+# Publish to github
 publish:
   extends: .bump-version
   stage: publish
@@ -90,18 +64,22 @@ publish:
     - local2
   rules:
     - if: $CI_COMMIT_BRANCH == "main"
+    - if: $CI_COMMIT_BRANCH == "ci"
+      when: manual
   variables:
     GIT_STRATEGY: fetch # reuse workspace
     GIT_DEPTH: 0 # avoid shallow clone to give cliff all the info it needs
+  needs: [bump-version]
+  artifacts:
+    reports:
+      dotenv: build.env
   script:
     - git fetch --tags
-    - git checkout $CI_COMMIT_BRANCH
-    - git pull origin $CI_COMMIT_BRANCH
+    - git checkout $NEW_VERSION_TAG
     - curl -sS https://webi.sh/gh | sh
     - source ~/.config/envman/PATH.env
-    - NEW_VERSION_TAG="$(jq -r '.version' package.json)"
     - git-cliff --latest > GithubRelease.md
-    - echo $GITHUB_ACCESS_TOKEN | gh auth login --with-token
+    - gh auth status >/dev/null 2>&1 || echo "$GITHUB_ACCESS_TOKEN" | gh auth login --with-token
     - git remote add github https://github.com/NoctuaLabs/noctua-unity-sdk-upm.git
     - gh release create $NEW_VERSION_TAG --title $NEW_VERSION_TAG --notes-file GithubRelease.md
     - git remote remove github
