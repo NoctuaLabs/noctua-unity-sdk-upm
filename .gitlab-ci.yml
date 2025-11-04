@@ -72,6 +72,9 @@ publish:
     GIT_STRATEGY: fetch # reuse workspace
     GIT_DEPTH: 0 # avoid shallow clone to give cliff all the info it needs
   needs: [bump-version-for-release]
+  before_script:
+    - git config --global user.email "gitlab-ci@noctua.gg"
+    - git config --global user.name "Noctua Gitlab CI"
   script:
     # Prepare GitHub CLI tool
     #- curl -sS https://webi.sh/gh | sh # Already installed in local-shell runner
@@ -108,6 +111,9 @@ publish-icm-version:
     GIT_STRATEGY: fetch # reuse workspace
     GIT_DEPTH: 0 # avoid shallow clone to give cliff all the info it needs
   needs: [bump-version-for-release]
+  before_script:
+    - git config --global user.email "gitlab-ci@noctua.gg"
+    - git config --global user.name "Noctua Gitlab CI"
   script:
     # Prepare GitHub CLI tool
     #- curl -sS https://webi.sh/gh | sh # Already installed in local-shell runner
