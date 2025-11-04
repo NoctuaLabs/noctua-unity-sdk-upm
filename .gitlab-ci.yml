@@ -123,6 +123,7 @@ publish-icm-version:
     - git fetch origin
     - git checkout $COMMIT_HASH
     - git branch -D main-icm || true
+    - git checkout -b main-icm
     # Modify the version
     - sed -i -E '/Noctua/ s/(version="~>[[:space:]]*)[^"]+/\1'"$NATIVE_IOS_ICM_VERSION"'/' Editor/NativePluginDependencies.xml
     - ./icm-version-suffix.sh
@@ -130,10 +131,12 @@ publish-icm-version:
     - git add package.json;
     - git add Runtime/AssemblyInfo.cs;
     - git commit -m "bump version to $NEW_VERSION_TAG-icm [skip ci]";
+    # Tag
     - git tag $NEW_VERSION_TAG-icm
-    - git push "https://$GITLAB_BUILDER_USER:$GITLAB_BUILDER_ACCESS_TOKEN@gitlab.com/evosverse/noctua/noctua-sdk-unity-upm.git" origin $NEW_VERSION_TAG-icm -o ci.skip;
+    # Push
+    - git push "https://$GITLAB_BUILDER_USER:$GITLAB_BUILDER_ACCESS_TOKEN@gitlab.com/evosverse/noctua/noctua-sdk-unity-upm.git" origin main-icm -o ci.skip;
+    - git push "https://$GITLAB_BUILDER_USER:$GITLAB_BUILDER_ACCESS_TOKEN@gitlab.com/evosverse/noctua/noctua-sdk-unity-upm.git" origin "$NEW_VERSION_TAG-icm" -o ci.skip;
     # Update main branch on github repo
-    - git checkout -b main-icm
     - git remote add github https://github.com/NoctuaLabs/noctua-unity-sdk-upm.git || true
     - gh auth setup-git
     - git push github main-icm -f
