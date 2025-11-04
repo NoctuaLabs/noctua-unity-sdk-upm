@@ -133,9 +133,9 @@ publish-icm-version:
     # Tag
     - git tag $NEW_VERSION_TAG-icm || true
     # Push force to main-icm
-    - git push "https://$GITLAB_BUILDER_USER:$GITLAB_BUILDER_ACCESS_TOKEN@gitlab.com/evosverse/noctua/noctua-sdk-unity-upm.git" main-icm -o ci.skip -f; || true
+    - git push "https://$GITLAB_BUILDER_USER:$GITLAB_BUILDER_ACCESS_TOKEN@gitlab.com/evosverse/noctua/noctua-sdk-unity-upm.git" main-icm -o ci.skip -f || true
     # Push tag
-    - git push "https://$GITLAB_BUILDER_USER:$GITLAB_BUILDER_ACCESS_TOKEN@gitlab.com/evosverse/noctua/noctua-sdk-unity-upm.git" "$NEW_VERSION_TAG-icm" -o ci.skip; || true
+    - git push "https://$GITLAB_BUILDER_USER:$GITLAB_BUILDER_ACCESS_TOKEN@gitlab.com/evosverse/noctua/noctua-sdk-unity-upm.git" "$NEW_VERSION_TAG-icm" -o ci.skip || true
     # Update main branch on github repo
     - git remote add github https://github.com/NoctuaLabs/noctua-unity-sdk-upm.git || true
     - gh auth setup-git
