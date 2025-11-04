@@ -28,8 +28,8 @@ bump-version-for-release:
     - local2
   rules:
     - if: $CI_COMMIT_BRANCH == "main"
-    - if: $CI_COMMIT_BRANCH == "ci"
       when: manual
+    - if: $CI_COMMIT_BRANCH == "ci"
   variables:
     GIT_STRATEGY: fetch # reuse workspace
     GIT_DEPTH: 0 # avoid shallow clone to give cliff all the info it needs
@@ -77,10 +77,10 @@ publish:
     # Update main branch on github repo
     - git checkout -b main
     - git remote add github https://github.com/NoctuaLabs/noctua-unity-sdk-upm.git
+    - gh auth setup-git
     - git push github main
     # Push tag to github repo
     - git tag $NEW_VERSION_TAG
-    - gh auth setup-git
     - git push github $NEW_VERSION_TAG
     # Release
     - curl -sS https://webi.sh/gh | sh
