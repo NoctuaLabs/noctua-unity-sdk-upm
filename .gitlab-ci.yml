@@ -70,9 +70,6 @@ publish:
     GIT_STRATEGY: fetch # reuse workspace
     GIT_DEPTH: 0 # avoid shallow clone to give cliff all the info it needs
   needs: [bump-version-for-release]
-  artifacts:
-    reports:
-      dotenv: build.env
   script:
     - git fetch origin
     - git checkout $COMMIT_HASH
