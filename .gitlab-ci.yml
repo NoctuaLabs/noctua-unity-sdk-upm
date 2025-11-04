@@ -1,6 +1,6 @@
 stages:
   - trigger
-  - bump-version # Bump version as tag
+  - bump-version-for-release # Bump version as tag
   - publish # Publish to github
 
 trigger_job:
@@ -21,9 +21,9 @@ trigger_job:
     - git config --global user.email "gitlab-ci@noctua.gg"
     - git config --global user.name "Noctua Gitlab CI"
 
-bump-version:
+bump-version-for-release:
   extends: .bump-version
-  stage: bump-version
+  stage: bump-version-for-release
   tags:
     - local2
   rules:
@@ -69,7 +69,7 @@ publish:
   variables:
     GIT_STRATEGY: fetch # reuse workspace
     GIT_DEPTH: 0 # avoid shallow clone to give cliff all the info it needs
-  needs: [bump-version]
+  needs: [bump-version-for-release]
   artifacts:
     reports:
       dotenv: build.env
@@ -80,6 +80,7 @@ publish:
     - source ~/.config/envman/PATH.env
     - git-cliff --latest > GithubRelease.md
     - gh auth status >/dev/null 2>&1 || echo "$GITHUB_ACCESS_TOKEN" | gh auth login --with-token
+    - gh auth status --show-token 2>/dev/null | grep -q 'workflow' || gh auth refresh -h github.com -s workflow
     - git remote add github https://github.com/NoctuaLabs/noctua-unity-sdk-upm.git
     - gh release create $NEW_VERSION_TAG --title $NEW_VERSION_TAG --notes-file GithubRelease.md
     - git remote remove github
