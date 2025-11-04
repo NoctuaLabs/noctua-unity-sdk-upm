@@ -62,7 +62,7 @@ publish:
   stage: publish
   extends: .bump-version
   tags:
-    - local2
+    - local-shell
   rules:
     - if: $CI_COMMIT_BRANCH == "main"
     - if: $CI_COMMIT_BRANCH == "ci"
@@ -72,8 +72,8 @@ publish:
   needs: [bump-version-for-release]
   script:
     # Prepare GitHub CLI tool
-    - curl -sS https://webi.sh/gh | sh
-    - source ~/.config/envman/PATH.env
+    #- curl -sS https://webi.sh/gh | sh # Already installed in local-shell runner
+    #- source ~/.config/envman/PATH.env
     - echo $GITHUB_ACCESS_TOKEN | gh auth login --with-token
     # Refresh
     - git fetch origin
