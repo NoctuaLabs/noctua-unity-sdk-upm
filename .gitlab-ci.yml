@@ -60,7 +60,6 @@ bump-version-for-release:
 # Publish to github
 publish:
   stage: publish
-  extends: .bump-version
   tags:
     - local-shell
   rules:
