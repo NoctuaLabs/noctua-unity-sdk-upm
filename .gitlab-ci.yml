@@ -55,6 +55,7 @@ bump-version:
         echo "No version bump required";
       fi
     - echo "NEW_VERSION_TAG=$NEW_VERSION_TAG" > build.env
+    - echo "COMMIT_HASH=$(git rev-parse --short HEAD)" >> build.env
 
 # Publish to github
 publish:
@@ -65,7 +66,6 @@ publish:
   rules:
     - if: $CI_COMMIT_BRANCH == "main"
     - if: $CI_COMMIT_BRANCH == "ci"
-      when: manual
   variables:
     GIT_STRATEGY: fetch # reuse workspace
     GIT_DEPTH: 0 # avoid shallow clone to give cliff all the info it needs
@@ -74,8 +74,8 @@ publish:
     reports:
       dotenv: build.env
   script:
-    - git fetch --tags
-    - git checkout $NEW_VERSION_TAG
+    - git fetch origin
+    - git checkout $COMMIT_HASH
     - curl -sS https://webi.sh/gh | sh
     - source ~/.config/envman/PATH.env
     - git-cliff --latest > GithubRelease.md
