@@ -32,6 +32,7 @@ bump-version-for-release:
   rules:
     - if: $CI_COMMIT_BRANCH == "main"
       when: manual
+    - if: $CI_COMMIT_BRANCH == "ci"
   variables:
     GIT_STRATEGY: fetch # reuse workspace
     GIT_DEPTH: 0 # avoid shallow clone to give cliff all the info it needs
