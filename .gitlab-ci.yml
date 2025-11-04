@@ -75,7 +75,7 @@ publish:
   script:
     - git fetch origin
     - git checkout $COMMIT_HASH
-    - curl -sS https://webi.sh/gh | sh
+    - /usr/bin/curl -sS https://webi.sh/gh | sh
     - source ~/.config/envman/PATH.env
     - git-cliff --latest > GithubRelease.md
     - gh auth status >/dev/null 2>&1 || echo "$GITHUB_ACCESS_TOKEN" | gh auth login --with-token
