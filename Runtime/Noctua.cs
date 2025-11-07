@@ -148,6 +148,7 @@ namespace com.noctuagames.sdk
     public class GlobalConfig
     {
         [JsonProperty("clientId"), JsonRequired] public string ClientId;
+        [JsonProperty("gameId")] public long GameID = 0;
 
         [JsonProperty("adjust")] public AdjustConfig Adjust;
 
@@ -407,7 +408,7 @@ namespace com.noctuagames.sdk
 
             _event = new NoctuaEventService(_nativePlugin, _eventSender);
             _event.SetProperties(isSandbox: _config.Noctua.IsSandbox);
-            _eventSender.SetProperties(isSandbox: _config.Noctua.IsSandbox);
+            _eventSender.SetProperties(isSandbox: _config.Noctua.IsSandbox, gameId: _config.GameID);
             _isOfflineFirst = _config.Noctua.IsOfflineFirst;
             
             var authService = new NoctuaAuthenticationService(
