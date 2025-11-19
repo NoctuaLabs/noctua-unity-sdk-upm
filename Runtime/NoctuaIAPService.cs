@@ -146,6 +146,16 @@ namespace com.noctuagames.sdk
     }
 
     /// <summary>
+    /// Request payload for redeem order.
+    /// </summary>
+    [Preserve]
+    public class RedeemOrderRequest
+    {
+        [JsonProperty("product_id")]
+        public string ProductId;
+    }
+
+    /// <summary>
     /// Response returned when creating an order on server.
     /// </summary>
     [Preserve]
@@ -171,6 +181,17 @@ namespace com.noctuagames.sdk
     public class UnpairedPurchaseResponse
     {
         /// <summary>Identifier of stored unpaired purchase record.</summary>
+        [JsonProperty("id")]
+        public int Id;
+    }
+
+    /// <summary>
+    /// Response payload after redeem order submission.
+    /// </summary>
+    [Preserve]
+    public class RedeemOrderResponse
+    {
+        /// <summary>Identifier of stored redeem record.</summary>
         [JsonProperty("id")]
         public int Id;
     }
@@ -549,6 +570,21 @@ namespace com.noctuagames.sdk
                 .WithJsonBody(purchase);
 
             var response = await request.Send<UnpairedPurchaseResponse>();
+
+            return response;
+        }
+
+        private async UniTask<RedeemOrderResponse> CreateRedeemOrderAsync(RedeemOrderRequest purchase)
+        {
+            var url = $"{_config.BaseUrl}/redeem-order";
+
+            var request = new HttpRequest(HttpMethod.Post, url)
+                .WithHeader("X-CLIENT-ID", _config.ClientId)
+                .WithHeader("X-BUNDLE-ID", Application.identifier)
+                .WithHeader("Authorization", "Bearer " + _accessTokenProvider.AccessToken)
+                .WithJsonBody(purchase);
+
+            var response = await request.Send<RedeemOrderResponse>();
 
             return response;
         }
@@ -1639,6 +1675,36 @@ namespace com.noctuagames.sdk
 
             var productId = result.ProductId;
             _log.Info($"NoctuaIAPService.HandleUnpairedPurchase Try to find the purchase token in pending purchase first to avoid duplicate token {result.ReceiptData}.");
+            if (string.IsNullOrEmpty(result.ReceiptData)) {
+                _log.Info($"NoctuaIAPService.HandleUnpairedPurchase Receipt data is empty for product {result.ProductId}. This may come from a redeem code.");
+            
+                var orderRequest = new OrderRequest
+                {
+                    ProductId = productId,
+                    PriceInUSD = 0,
+                    Id = 0,
+                    Price = 0,
+                    Currency = "USD"
+                };
+
+
+                var redeemOrderRequest = new RedeemOrderRequest
+                {
+                    ProductId = result.ProductId,
+                };
+
+                try
+                {
+                    CreateRedeemOrderAsync(redeemOrderRequest); // Async, but don't wait.
+                }
+                catch (Exception e)
+                {
+                    _log.Error("NoctuaIAPService.HandleUnpairedPurchase failed to send redeem data: " + e);
+                    // Anyway, we will deliver the item via OnPurchaseDone.
+                }
+
+                OnPurchaseDone?.Invoke(orderRequest);
+            }
             var foundInPendingPurchases = false;
             var foundInPurchaseHistory = false;
             var foundUnpairedOrder = false;
