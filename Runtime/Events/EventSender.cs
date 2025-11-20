@@ -242,6 +242,7 @@ namespace com.noctuagames.sdk.Events
 
         public void Send(string name, Dictionary<string, IConvertible> data = null)
         {
+
             if (_eventQueue.Count > 1000)
             {
                 _log.Warning($"Event queue is full ({_eventQueue.Count}), ignore this event {name}");
@@ -253,6 +254,25 @@ namespace com.noctuagames.sdk.Events
             if (name == null)
             {
                 throw new ArgumentNullException(nameof(name));
+            }
+
+            var eventKeys = new HashSet<string>
+            {
+                "user_id",
+                "device_id",
+                "player_id",
+                "session_id",
+                "game_id"
+            };
+
+            var overriddenKeys = eventKeys.Where(k => data.ContainsKey(k)).ToList();
+
+            foreach (var key in overriddenKeys)
+            {
+                if (data.Remove(key))
+                {
+                    _log.Debug($"Removed reserved key '{key}' from event payload.");
+                }
             }
 
             var nullFields = data.Where(kv => kv.Value == null).Select(kv => kv.Key).ToList();
