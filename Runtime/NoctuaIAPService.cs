@@ -621,6 +621,7 @@ namespace com.noctuagames.sdk
 
                 var verifyOrderResponse = new VerifyOrderResponse();
                 verifyOrderResponse.Id = verifyOrderRequest.Id;
+                var verifyOrderErrorMessage = "";
                 try {
                 verifyOrderResponse = await VerifyOrderAsync(verifyOrderRequest, token);
                 }
@@ -634,21 +635,27 @@ namespace com.noctuagames.sdk
                         {
                         case 2043:
                             verifyOrderResponse.Status = OrderStatus.pending;
+                            verifyOrderErrorMessage = e.Message;
                             break;
                         case 2044:
                             verifyOrderResponse.Status = OrderStatus.verification_failed;
+                            verifyOrderErrorMessage = e.Message;
                             break;
                         case 2045:
                             verifyOrderResponse.Status = OrderStatus.delivery_callback_failed;
+                            verifyOrderErrorMessage = e.Message;
                             break;
                         case 2046:
                             verifyOrderResponse.Status = OrderStatus.canceled;
+                            verifyOrderErrorMessage = e.Message;
                             break;
                         case 2047:
                             verifyOrderResponse.Status = OrderStatus.refunded;
+                            verifyOrderErrorMessage = e.Message;
                             break;
                         case 2048:
                             verifyOrderResponse.Status = OrderStatus.voided;
+                            verifyOrderErrorMessage = e.Message;
                             break;
                         default:
                             break;
@@ -824,10 +831,25 @@ namespace com.noctuagames.sdk
                         message = "Your payment couldn’t be verified. Please retry later.";
                     }
 
+
+                    if (!string.IsNullOrEmpty(verifyOrderErrorMessage) && 
+                        verifyOrderErrorMessage.Contains("Message: \""))
+                    {
+                        var splitted = verifyOrderErrorMessage.Split("Message: \"");
+                        if (splitted.Length > 1)
+                        {
+                            var messageParts = splitted[1].Split('"');
+                            if (messageParts.Length > 0)
+                            {
+                                message = messageParts[0];
+                            }
+                        }
+                    }
+
                     OnPurchasePending?.Invoke(orderRequest);
                     throw new NoctuaException(
                         NoctuaErrorCode.Payment,
-                        $"{message} Status: {verifyOrderResponse.Status.ToString()}",
+                        $"{message}",
                         verifyOrderRequest.Id.ToString()
                     );
 
@@ -896,6 +918,21 @@ namespace com.noctuagames.sdk
                 await PurchaseItemAsync(purchaseRequest, tryToUseSecondaryPayment, enforcedPaymentType);
             }
         }
+
+        public async UniTask HandleUnpairedPurchaseDebugAsync(string productId, string receiptData)
+        {
+            await UniTask.SwitchToMainThread();
+
+#if UNITY_ANDROID && !UNITY_EDITOR
+            var result = new GoogleBilling.PurchaseResult
+            {
+                ProductId = productId,
+                ReceiptData = receiptData,
+            };
+            HandleUnpairedPurchase(result);
+#endif
+        }
+
 
         public async UniTask<PurchaseResponse> PurchaseItemAsync(PurchaseRequest purchaseRequest, bool tryToUseSecondaryPayment = false, PaymentType enforcedPaymentType = PaymentType.unknown)
         {
@@ -1674,42 +1711,16 @@ namespace com.noctuagames.sdk
             await UniTask.SwitchToMainThread();
 
             var productId = result.ProductId;
-            _log.Info($"NoctuaIAPService.HandleUnpairedPurchase Try to find the purchase token in pending purchase first to avoid duplicate token {result.ReceiptData}.");
-            if (string.IsNullOrEmpty(result.ReceiptData)) {
-                _log.Info($"NoctuaIAPService.HandleUnpairedPurchase Receipt data is empty for product {result.ProductId}. This may come from a redeem code.");
-            
-                var orderRequest = new OrderRequest
-                {
-                    ProductId = productId,
-                    PriceInUSD = 0,
-                    Id = 0,
-                    Price = 0,
-                    Currency = "USD"
-                };
-
-
-                var redeemOrderRequest = new RedeemOrderRequest
-                {
-                    ProductId = result.ProductId,
-                };
-
-                try
-                {
-                    CreateRedeemOrderAsync(redeemOrderRequest); // Async, but don't wait.
-                }
-                catch (Exception e)
-                {
-                    _log.Error("NoctuaIAPService.HandleUnpairedPurchase failed to send redeem data: " + e);
-                    // Anyway, we will deliver the item via OnPurchaseDone.
-                }
-
-                OnPurchaseDone?.Invoke(orderRequest);
-
-                return;
-            }
+            _log.Info($"NoctuaIAPService.HandleUnpairedPurchase Try to find the purchase token in pending purchase first to avoid duplicate token {result.ReceiptData} for product {productId}.");
             var foundInPendingPurchases = false;
             var foundInPurchaseHistory = false;
             var foundUnpairedOrder = false;
+
+            if (string.IsNullOrEmpty(result.ReceiptData)) {
+                _log.Warning($"NoctuaIAPService.HandleUnpairedPurchase Receipt data is empty for productId: {productId}. Skip it.");
+
+                return;
+            }
 
             var pendingPurchases = GetPendingPurchases().ToList();
             foreach (var pendingPurchase in pendingPurchases)
@@ -1825,22 +1836,66 @@ namespace com.noctuagames.sdk
             }
 
             if (!foundInPurchaseHistory && !foundInPurchaseHistory && !foundUnpairedOrder) {
-                _log.Warning($"NoctuaIAPService.HandleUnpairedPurchase No unpaired order or pending purchase found for receipt data {result.ReceiptData}. Store to backend.");
-                var unpairedPurchaseRequest = new UnpairedPurchaseRequest
+                _log.Warning($"NoctuaIAPService.HandleUnpairedPurchase No unpaired order or pending purchase found for receipt data {result.ReceiptData}. Treat it as redeem.");
+
+                var redeemOrderRequest = new RedeemOrderRequest
                 {
-                    ReceiptData = result.ReceiptData,
-                    PaymentType = PaymentType.playstore, // This is always about playstore
                     ProductId = result.ProductId,
-                    Currency = Noctua.Platform.Locale.GetCurrency(),
                 };
 
                 try
                 {
-                    CreateUnpairedPurchaseAsync(unpairedPurchaseRequest); // Async, but don't wait.
+                    var orderResponse = await CreateRedeemOrderAsync(redeemOrderRequest);
+                    var redeemOrderId = orderResponse.Id;
+
+                    _log.Info($"NoctuaIAPService.HandleUnpairedPurchase redeem order ID: {redeemOrderId}");
+
+                    var orderRequest = new OrderRequest
+                    {
+                        Id = redeemOrderId,
+                        ProductId = productId,
+                        PriceInUSD = 0,
+                        Price = 0,
+                        Currency = "USD"
+                    };
+
+                    var verifyOrderRequest = new VerifyOrderRequest
+                    {
+                        Id = orderRequest.Id,
+                        ReceiptId = result.ReceiptId,
+                        ReceiptData = result.ReceiptData,
+                    };
+
+                    await VerifyOrderImplAsync(
+                        orderRequest,
+                        verifyOrderRequest,
+                        _accessTokenProvider.AccessToken,
+                        Noctua.Auth.RecentAccount?.Player?.Id,
+                        false
+                    );
+
+                    OnPurchaseDone?.Invoke(orderRequest);
                 }
                 catch (Exception e)
                 {
-                    _log.Error("NoctuaIAPService.HandleUnpairedPurchase failed to create unpaired purchase: " + e);
+                    _log.Error("NoctuaIAPService.HandleUnpairedPurchase failed to verify redeem data: " + e);
+
+                    var unpairedPurchaseRequest = new UnpairedPurchaseRequest
+                    {
+                        ReceiptData = result.ReceiptData,
+                        PaymentType = PaymentType.playstore, // This is always about playstore
+                        ProductId = result.ProductId,
+                        Currency = Noctua.Platform.Locale.GetCurrency(),
+                    };
+
+                    try
+                    {
+                        CreateUnpairedPurchaseAsync(unpairedPurchaseRequest); // Async, but don't wait.
+                    }
+                    catch (Exception unpairedErr)
+                    {
+                        _log.Error("NoctuaIAPService.HandleUnpairedPurchase failed to create unpaired purchase: " + unpairedErr);
+                    }
                 }
             }
         }
