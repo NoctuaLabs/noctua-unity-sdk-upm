@@ -76,7 +76,7 @@ namespace com.noctuagames.sdk.Events
             else
             {
                 _sessionId = Guid.NewGuid().ToString();
-                _eventSender.SetProperties(sessionId: _sessionId);
+                ExperimentManager.SetSessionId(_sessionId);
                 _eventSender.Send("session_start");
             }
         }

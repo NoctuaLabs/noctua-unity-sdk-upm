@@ -380,7 +380,13 @@ namespace com.noctuagames.sdk.Events
                 if (_credentialProvider != null) data.TryAdd("credential_provider", _credentialProvider);
                 if (_gameId != null) data.TryAdd("game_id", _gameId);
                 if (_gamePlatformId != null) data.TryAdd("game_platform_id", _gamePlatformId);
-                if (_sessionId != null) data.TryAdd("session_id", _sessionId);
+                
+                var currentSessionId = ExperimentManager.GetSessionId();
+                if (!string.IsNullOrEmpty(currentSessionId))
+                {
+                    data.TryAdd("session_id", currentSessionId);
+                }
+
                 if (_uniqueId != null) data.TryAdd("unique_id", _uniqueId);
 
                 _log.Info($"queued event '{LastEventTime:O}|{name}|{_deviceId}|{_sessionId}|{_userId}|{_playerId}'");

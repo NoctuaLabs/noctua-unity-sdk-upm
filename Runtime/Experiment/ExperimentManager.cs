@@ -4,6 +4,7 @@ public static class ExperimentManager
 {
     private const string KEY_CURRENT_EXPERIMENT = "current_experiment";
     private const string KEY_CURRENT_FEATURE = "current_feature";
+    private const string KEY_CURRENT_SESSION_ID = "current_session_id";
 
     private static Dictionary<string, object> _experimentFlags = new Dictionary<string, object>();
 
@@ -24,6 +25,16 @@ public static class ExperimentManager
     public static void Clear()
     {
         _experimentFlags.Clear();
+    }
+
+    public static void SetSessionId(string sessionId)
+    {
+        SetFlag(KEY_CURRENT_SESSION_ID, sessionId);
+    }
+
+    public static string GetSessionId()
+    {
+        return GetFlag<string>(KEY_CURRENT_SESSION_ID, string.Empty);
     }
 
     public static void SetGeneralExperiment(string key, string value)
