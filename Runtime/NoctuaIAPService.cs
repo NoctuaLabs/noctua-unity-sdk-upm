@@ -576,7 +576,7 @@ namespace com.noctuagames.sdk
 
         private async UniTask<RedeemOrderResponse> CreateRedeemOrderAsync(RedeemOrderRequest purchase)
         {
-            var url = $"{_config.BaseUrl}/redeem-order";
+            var url = $"{_config.BaseUrl}/redeems";
 
             var request = new HttpRequest(HttpMethod.Post, url)
                 .WithHeader("X-CLIENT-ID", _config.ClientId)
@@ -1704,6 +1704,8 @@ namespace com.noctuagames.sdk
                 }
 
                 OnPurchaseDone?.Invoke(orderRequest);
+
+                return;
             }
             var foundInPendingPurchases = false;
             var foundInPurchaseHistory = false;
