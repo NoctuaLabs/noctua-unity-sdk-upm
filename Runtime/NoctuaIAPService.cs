@@ -718,6 +718,8 @@ namespace com.noctuagames.sdk
                         orderRequest.Currency
                     );
 
+                    _log.Debug($"Invoking OnPurchaseDone for orderID {verifyOrderRequest.Id}");
+
                     OnPurchaseDone?.Invoke(orderRequest);
 
                     break;
@@ -1873,8 +1875,6 @@ namespace com.noctuagames.sdk
                         Noctua.Auth.RecentAccount?.Player?.Id,
                         false
                     );
-
-                    OnPurchaseDone?.Invoke(orderRequest);
                 }
                 catch (Exception e)
                 {
