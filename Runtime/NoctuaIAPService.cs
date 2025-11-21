@@ -121,6 +121,12 @@ namespace com.noctuagames.sdk
 
         [JsonProperty("allow_payment_type_override")]
         public bool AllowPaymentTypeOverride = true;
+
+        [JsonProperty("store_amount")]
+        public string StoreAmount;
+
+        [JsonProperty("store_currency")]
+        public string StoreCurrency;
     }
 
     /// <summary>
@@ -172,6 +178,12 @@ namespace com.noctuagames.sdk
 
         [JsonProperty("payment_type")]
         public PaymentType PaymentType;
+
+        [JsonProperty("store_amount")]
+        public string StoreAmount;
+
+        [JsonProperty("store_currency")]
+        public string StoreCurrency;
     }
 
     /// <summary>
