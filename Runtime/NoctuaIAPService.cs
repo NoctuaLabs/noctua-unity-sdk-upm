@@ -122,6 +122,7 @@ namespace com.noctuagames.sdk
         [JsonProperty("allow_payment_type_override")]
         public bool AllowPaymentTypeOverride = true;
 
+        // store_amount and store_currency will serve as placeholder for OnPurchaseDone
         [JsonProperty("store_amount")]
         public string StoreAmount;
 
@@ -178,12 +179,6 @@ namespace com.noctuagames.sdk
 
         [JsonProperty("payment_type")]
         public PaymentType PaymentType;
-
-        [JsonProperty("store_amount")]
-        public string StoreAmount;
-
-        [JsonProperty("store_currency")]
-        public string StoreCurrency;
     }
 
     /// <summary>
@@ -286,6 +281,12 @@ namespace com.noctuagames.sdk
 
         [JsonProperty("order_status")]
         public OrderStatus Status;
+
+        [JsonProperty("store_amount")]
+        public string StoreAmount;
+
+        [JsonProperty("store_currency")]
+        public string StoreCurrency;
     }
 
     /// <summary>
@@ -730,7 +731,11 @@ namespace com.noctuagames.sdk
                         orderRequest.Currency
                     );
 
-                    _log.Debug($"Invoking OnPurchaseDone for orderID {verifyOrderRequest.Id}");
+                    // Assign store pricing
+                    orderRequest.StoreAmount = verifyOrderResponse.StoreAmount;
+                    orderRequest.StoreCurrency = verifyOrderResponse.StoreCurrency;
+
+                    _log.Debug($"Invoking OnPurchaseDone for orderID {orderRequest.Id} with store amount {orderRequest.StoreAmount} {orderRequest.StoreCurrency}");
 
                     OnPurchaseDone?.Invoke(orderRequest);
 
