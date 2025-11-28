@@ -24,7 +24,27 @@ namespace com.noctuagames.sdk
         }
 
         public void GetFirebaseAnalyticsSessionID(Action<string> callback) {
-           
+
+        }
+
+        public void GetFirebaseRemoteConfigString(string key, Action<string> callback)
+        {
+            callback?.Invoke(string.Empty);
+        }
+
+        public void GetFirebaseRemoteConfigBoolean(string key, Action<bool> callback)
+        {
+            callback?.Invoke(false);
+        }
+
+        public void GetFirebaseRemoteConfigDouble(string key, Action<double> callback)
+        {
+            callback?.Invoke(0.0);
+        }
+
+        public void GetFirebaseRemoteConfigLong(string key, Action<long> callback)
+        {
+            callback?.Invoke(0L);
         }
 
         public void ShowDatePicker(int year, int month, int day, int id)

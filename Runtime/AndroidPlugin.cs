@@ -265,6 +265,62 @@ namespace com.noctuagames.sdk
                 callback?.Invoke(string.Empty);
             }
         }
+
+        public void GetFirebaseRemoteConfigString(string key, Action<string> callback)
+        {
+            try
+            {
+                using var noctua = new AndroidJavaObject("com.noctuagames.sdk.Noctua$Companion");
+                noctua.Call("getFirebaseRemoteConfigString", key, new AndroidCallback<string>(callback));
+            }
+            catch (Exception e)
+            {
+                _log.Warning($"[Noctua] Failed to get Firebase Remote Config String for key '{key}': {e.Message}");
+                callback?.Invoke(string.Empty);
+            }
+        }
+
+        public void GetFirebaseRemoteConfigBoolean(string key, Action<bool> callback)
+        {
+            try
+            {
+                using var noctua = new AndroidJavaObject("com.noctuagames.sdk.Noctua$Companion");
+                noctua.Call("getFirebaseRemoteConfigBoolean", key, new AndroidCallback<bool>(callback));
+            }
+            catch (Exception e)
+            {
+                _log.Warning($"[Noctua] Failed to get Firebase Remote Config Boolean for key '{key}': {e.Message}");
+                callback?.Invoke(false);
+            }
+        }
+
+        public void GetFirebaseRemoteConfigDouble(string key, Action<double> callback)
+        {
+            try
+            {
+                using var noctua = new AndroidJavaObject("com.noctuagames.sdk.Noctua$Companion");
+                noctua.Call("getFirebaseRemoteConfigDouble", key, new AndroidCallback<double>(callback));
+            }
+            catch (Exception e)
+            {
+                _log.Warning($"[Noctua] Failed to get Firebase Remote Config Double for key '{key}': {e.Message}");
+                callback?.Invoke(0.0);
+            }
+        }
+
+        public void GetFirebaseRemoteConfigLong(string key, Action<long> callback)
+        {
+            try
+            {
+                using var noctua = new AndroidJavaObject("com.noctuagames.sdk.Noctua$Companion");
+                noctua.Call("getFirebaseRemoteConfigLong", key, new AndroidCallback<long>(callback));
+            }
+            catch (Exception e)
+            {
+                _log.Warning($"[Noctua] Failed to get Firebase Remote Config Long for key '{key}': {e.Message}");
+                callback?.Invoke(0L);
+            }
+        }
     }
 }
 
@@ -287,6 +343,33 @@ public class AndroidCallback<T> : AndroidJavaProxy
         return new AndroidJavaClass("kotlin.Unit").GetStatic<AndroidJavaObject>("INSTANCE");
     }
 
+    // Support Kotlin calling invoke(Boolean)
+    public AndroidJavaObject invoke(bool arg)
+    {
+        if (typeof(T) == typeof(bool))
+            _callback?.Invoke((T)(object)arg);
+
+        return new AndroidJavaClass("kotlin.Unit").GetStatic<AndroidJavaObject>("INSTANCE");
+    }
+
+    // Support Kotlin calling invoke(Double)
+    public AndroidJavaObject invoke(double arg)
+    {
+        if (typeof(T) == typeof(double))
+            _callback?.Invoke((T)(object)arg);
+
+        return new AndroidJavaClass("kotlin.Unit").GetStatic<AndroidJavaObject>("INSTANCE");
+    }
+
+    // Support Kotlin calling invoke(Long)
+    public AndroidJavaObject invoke(long arg)
+    {
+        if (typeof(T) == typeof(long))
+            _callback?.Invoke((T)(object)arg);
+
+        return new AndroidJavaClass("kotlin.Unit").GetStatic<AndroidJavaObject>("INSTANCE");
+    }
+
     // Fallback if Kotlin dispatches invoke(Object)
     public AndroidJavaObject invoke(AndroidJavaObject arg)
     {
@@ -298,6 +381,10 @@ public class AndroidCallback<T> : AndroidJavaProxy
             value = arg?.Call<int>("intValue");
         else if (typeof(T) == typeof(bool))
             value = arg?.Call<bool>("booleanValue");
+        else if (typeof(T) == typeof(double))
+            value = arg?.Call<double>("doubleValue");
+        else if (typeof(T) == typeof(long))
+            value = arg?.Call<long>("longValue");
         else
             value = arg;
 

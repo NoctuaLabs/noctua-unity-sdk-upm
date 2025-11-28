@@ -68,12 +68,28 @@ namespace com.noctuagames.sdk
         [DllImport("__Internal")]
         private static extern void noctuaGetFirebaseAnalyticsSessionID(GetFirebaseSessionIDCallbackDelegate callback);
 
+        [DllImport("__Internal")]
+        private static extern void noctuaGetFirebaseRemoteConfigString(string key, GetFirebaseRemoteConfigStringCallbackDelegate callback);
+
+        [DllImport("__Internal")]
+        private static extern void noctuaGetFirebaseRemoteConfigBoolean(string key, GetFirebaseRemoteConfigBooleanCallbackDelegate callback);
+
+        [DllImport("__Internal")]
+        private static extern void noctuaGetFirebaseRemoteConfigDouble(string key, GetFirebaseRemoteConfigDoubleCallbackDelegate callback);
+
+        [DllImport("__Internal")]
+        private static extern void noctuaGetFirebaseRemoteConfigLong(string key, GetFirebaseRemoteConfigLongCallbackDelegate callback);
+
         // Store the callback to be used in the static methods
         private static Action<bool, string> storedCompletion;
         private static Action<bool> storedHasPurchasedCompletion;
         private static Action<string> storedGetReceiptCompletion;
         private static Action<string> storedFirebaseInstallationIdCompletion;
         private static Action<string> storedFirebaseSessionIdCompletion;
+        private static Action<string> storedFirebaseRemoteConfigStringCompletion;
+        private static Action<bool> storedFirebaseRemoteConfigBooleanCompletion;
+        private static Action<double> storedFirebaseRemoteConfigDoubleCompletion;
+        private static Action<long> storedFirebaseRemoteConfigLongCompletion;
 
         // Define delegates for the native callbacks
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
@@ -90,6 +106,18 @@ namespace com.noctuagames.sdk
 
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
         private delegate void GetFirebaseSessionIDCallbackDelegate(string sessionId);
+
+        [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+        private delegate void GetFirebaseRemoteConfigStringCallbackDelegate(string value);
+
+        [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+        private delegate void GetFirebaseRemoteConfigBooleanCallbackDelegate(bool value);
+
+        [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+        private delegate void GetFirebaseRemoteConfigDoubleCallbackDelegate(double value);
+
+        [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+        private delegate void GetFirebaseRemoteConfigLongCallbackDelegate(long value);
 
         //Delegate for methods returning string values
         [AOT.MonoPInvokeCallback(typeof(CompletionDelegate))]
@@ -118,9 +146,33 @@ namespace com.noctuagames.sdk
         }
 
         [AOT.MonoPInvokeCallback(typeof(GetFirebaseSessionIDCallbackDelegate))]
-        private static void GetFirebaseSessionIDCallback(string sessionId) 
+        private static void GetFirebaseSessionIDCallback(string sessionId)
         {
             storedFirebaseSessionIdCompletion?.Invoke(sessionId);
+        }
+
+        [AOT.MonoPInvokeCallback(typeof(GetFirebaseRemoteConfigStringCallbackDelegate))]
+        private static void GetFirebaseRemoteConfigStringCallback(string value)
+        {
+            storedFirebaseRemoteConfigStringCompletion?.Invoke(value);
+        }
+
+        [AOT.MonoPInvokeCallback(typeof(GetFirebaseRemoteConfigBooleanCallbackDelegate))]
+        private static void GetFirebaseRemoteConfigBooleanCallback(bool value)
+        {
+            storedFirebaseRemoteConfigBooleanCompletion?.Invoke(value);
+        }
+
+        [AOT.MonoPInvokeCallback(typeof(GetFirebaseRemoteConfigDoubleCallbackDelegate))]
+        private static void GetFirebaseRemoteConfigDoubleCallback(double value)
+        {
+            storedFirebaseRemoteConfigDoubleCompletion?.Invoke(value);
+        }
+
+        [AOT.MonoPInvokeCallback(typeof(GetFirebaseRemoteConfigLongCallbackDelegate))]
+        private static void GetFirebaseRemoteConfigLongCallback(long value)
+        {
+            storedFirebaseRemoteConfigLongCompletion?.Invoke(value);
         }
 
         public void Init(List<string> activeBundleIds)
@@ -327,7 +379,7 @@ namespace com.noctuagames.sdk
 
         }
 
-        public void GetFirebaseAnalyticsSessionID(Action<string> callback) 
+        public void GetFirebaseAnalyticsSessionID(Action<string> callback)
         {
             try
             {
@@ -340,6 +392,70 @@ namespace com.noctuagames.sdk
             {
                 _log.Warning($"GetFirebaseAnalyticsSessionID failed: {e.Message}");
                 callback?.Invoke(string.Empty);
+            }
+        }
+
+        public void GetFirebaseRemoteConfigString(string key, Action<string> callback)
+        {
+            try
+            {
+                storedFirebaseRemoteConfigStringCompletion = callback;
+
+                noctuaGetFirebaseRemoteConfigString(key, new GetFirebaseRemoteConfigStringCallbackDelegate(GetFirebaseRemoteConfigStringCallback));
+                _log.Debug($"noctuaGetFirebaseRemoteConfigString called for key: {key}");
+            }
+            catch (Exception e)
+            {
+                _log.Warning($"GetFirebaseRemoteConfigString failed for key '{key}': {e.Message}");
+                callback?.Invoke(string.Empty);
+            }
+        }
+
+        public void GetFirebaseRemoteConfigBoolean(string key, Action<bool> callback)
+        {
+            try
+            {
+                storedFirebaseRemoteConfigBooleanCompletion = callback;
+
+                noctuaGetFirebaseRemoteConfigBoolean(key, new GetFirebaseRemoteConfigBooleanCallbackDelegate(GetFirebaseRemoteConfigBooleanCallback));
+                _log.Debug($"noctuaGetFirebaseRemoteConfigBoolean called for key: {key}");
+            }
+            catch (Exception e)
+            {
+                _log.Warning($"GetFirebaseRemoteConfigBoolean failed for key '{key}': {e.Message}");
+                callback?.Invoke(false);
+            }
+        }
+
+        public void GetFirebaseRemoteConfigDouble(string key, Action<double> callback)
+        {
+            try
+            {
+                storedFirebaseRemoteConfigDoubleCompletion = callback;
+
+                noctuaGetFirebaseRemoteConfigDouble(key, new GetFirebaseRemoteConfigDoubleCallbackDelegate(GetFirebaseRemoteConfigDoubleCallback));
+                _log.Debug($"noctuaGetFirebaseRemoteConfigDouble called for key: {key}");
+            }
+            catch (Exception e)
+            {
+                _log.Warning($"GetFirebaseRemoteConfigDouble failed for key '{key}': {e.Message}");
+                callback?.Invoke(0.0);
+            }
+        }
+
+        public void GetFirebaseRemoteConfigLong(string key, Action<long> callback)
+        {
+            try
+            {
+                storedFirebaseRemoteConfigLongCompletion = callback;
+
+                noctuaGetFirebaseRemoteConfigLong(key, new GetFirebaseRemoteConfigLongCallbackDelegate(GetFirebaseRemoteConfigLongCallback));
+                _log.Debug($"noctuaGetFirebaseRemoteConfigLong called for key: {key}");
+            }
+            catch (Exception e)
+            {
+                _log.Warning($"GetFirebaseRemoteConfigLong failed for key '{key}': {e.Message}");
+                callback?.Invoke(0L);
             }
         }
     }

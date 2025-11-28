@@ -65,6 +65,14 @@ namespace com.noctuagames.sdk
         void GetFirebaseInstallationID(Action<string> callback);
 
         void GetFirebaseAnalyticsSessionID(Action<string> callback);
+
+        void GetFirebaseRemoteConfigString(string key, Action<string> callback);
+
+        void GetFirebaseRemoteConfigBoolean(string key, Action<bool> callback);
+
+        void GetFirebaseRemoteConfigDouble(string key, Action<double> callback);
+
+        void GetFirebaseRemoteConfigLong(string key, Action<long> callback);
     }
 
     public interface INativeDatePicker
