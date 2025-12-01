@@ -149,7 +149,6 @@ void noctuaGetProductPurchasedById(const char* productId, ProductPurchasedComple
 }
 
 typedef void (*ReceiptCompletionDelegate)(const char* message);
-
 void noctuaGetReceiptProductPurchasedStoreKit1(const char* productId, ReceiptCompletionDelegate callback) {
     NSLog(@"noctuaGetReceiptProductPurchasedStoreKit1 called with productId: %s", productId);
 
@@ -247,4 +246,63 @@ void noctuaGetFirebaseAnalyticsSessionID(GetFirebaseSessionIDCallbackDelegate ca
         }
     }];
 }
+
+typedef void (*GetFirebaseRemoteConfigStringCallbackDelegate)(const char* configString);
+void noctuaGetFirebaseRemoteConfigString(const char* key, GetFirebaseRemoteConfigStringCallbackDelegate callback) {
+    
+    if (callback == NULL) {
+        return;
+    }
+
+    NSString* nsKey = [NSString stringWithUTF8String:key];
+    NSString* result = [Noctua getFirebaseRemoteConfigStringWithKey:nsKey];
+
+    if (result != nil) {
+        callback(result.UTF8String);
+    } else {
+        callback("");
+    }
+}
+
+typedef void (*GetFirebaseRemoteConfigBooleanCallbackDelegate)(const bool configBool);
+void noctuaGetFirebaseRemoteConfigBoolean(const char* key, GetFirebaseRemoteConfigBooleanCallbackDelegate callback) {
+    
+    if (callback == NULL) {
+        return;
+    }
+    
+    NSString* nsKey = [NSString stringWithUTF8String:key];
+    BOOL result = [Noctua getFirebaseRemoteConfigBooleanWithKey:nsKey];
+    
+    // Convert Objective-C BOOL → C bool
+    bool cppBool = (result == YES);
+    callback(cppBool);
+}
+
+typedef void (*GetFirebaseRemoteConfigDoubleCallbackDelegate)(const double configDouble);
+void noctuaGetFirebaseRemoteConfigDouble(const char* key, GetFirebaseRemoteConfigDoubleCallbackDelegate callback) {
+    
+    if (callback == NULL) {
+        return;
+    }
+
+    NSString* nsKey = [NSString stringWithUTF8String:key];
+    double result = [Noctua getFirebaseRemoteConfigDoubleWithKey:nsKey];
+    callback(result);
+}
+
+typedef void (*GetFirebaseRemoteConfigLongCallbackDelegate)(long long configLong);
+void noctuaGetFirebaseRemoteConfigLong(const char* key, GetFirebaseRemoteConfigLongCallbackDelegate callback) {
+    
+    if (callback == NULL) {
+        return;
+    }
+
+    NSString* nsKey = [NSString stringWithUTF8String:key];
+    long long result = [Noctua getFirebaseRemoteConfigLongWithKey:nsKey];
+    callback(result);
+}
+
+
+
 
