@@ -1,6 +1,6 @@
 variables:
-  NATIVE_IOS_VERSION: "0.22.0"
-  NATIVE_IOS_ICM_VERSION: "0.21.1"
+  NATIVE_IOS_VERSION: "0.24.0"
+  NATIVE_IOS_ICM_VERSION: "0.24.1"
 stages:
   - trigger
   - bump-version-for-release # Bump version as tag
