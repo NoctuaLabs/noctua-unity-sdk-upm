@@ -2401,7 +2401,11 @@ namespace com.noctuagames.sdk
             }
             if (item.PlayerId is null)
             {
-                throw new NoctuaException(NoctuaErrorCode.Application, "Missing parameter when enqueue retry pending purchase item: playerId");
+                item.PlayerId = Noctua.Auth.RecentAccount?.Player?.Id,
+                if (item.PlayerId is null)
+                {
+                    throw new NoctuaException(NoctuaErrorCode.Application, "Missing parameter when enqueue retry pending purchase item: playerId");
+                }
             }
 
             // Remove the existing if any.
