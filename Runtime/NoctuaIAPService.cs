@@ -2401,7 +2401,7 @@ namespace com.noctuagames.sdk
             }
             if (item.PlayerId is null)
             {
-                item.PlayerId = Noctua.Auth.RecentAccount?.Player?.Id,
+                item.PlayerId = Noctua.Auth.RecentAccount?.Player?.Id;
             }
 
             // Remove the existing if any.
@@ -2513,7 +2513,7 @@ namespace com.noctuagames.sdk
             }
             if (item.PlayerId is null)
             {
-                item.PlayerId = Noctua.Auth.RecentAccount?.Player?.Id,
+                item.PlayerId = Noctua.Auth.RecentAccount?.Player?.Id;
             }
 
             // Remove the existing if any.
