@@ -2543,6 +2543,29 @@ namespace com.noctuagames.sdk
             SavePurchaseHistory(newList.ToList());
         }
 
+        public async void DeliverPendingRedeemOrders(List<PendingNoctuaRedeemOrder> redeemOrders)
+        {
+            if (redeemOrders == null || redeemOrders.Count == 0)
+            {
+                _log.Info("No pending redeem orders to deliver");
+                return;
+            }
+
+            foreach (var item in redeemOrders)
+            {
+                _log.Info($"Deliver pending redeem order: {item.OrderId}");
+                var orderRequest = new OrderRequest();
+                var verifyOrderRequest = new VerifyOrderRequest();
+                var verifyOrderResponse = await VerifyOrderImplAsync(
+                    orderRequest,
+                    verifyOrderRequest,
+                    _accessTokenProvider.AccessToken,
+                    Noctua.Auth.RecentAccount?.Player?.Id,
+                    false
+                );
+            }
+        }
+
         /// <summary>
         /// Get whether a product is purchased using native billing or server verification.
         /// </summary>

@@ -653,6 +653,7 @@ namespace com.noctuagames.sdk
 
             try
             {
+                // This will call the backend API with automatic retry, except when offline.
                 initResponse = _offlineMode ? await Instance.Value._game.InitGameAsync() : await Utility.RetryAsyncTask(Instance.Value._game.InitGameAsync);
 
                 if (Instance.Value._isOfflineFirst && initResponse == null)
@@ -933,6 +934,12 @@ namespace com.noctuagames.sdk
 
                 // Disabled for production to reduce event noise
                 // Instance.Value._eventSender.Send("sdk_init_remove_platform_payment_types");
+            }
+
+            // If there is pending redeem orders, let's deliver it.
+            if (Instance.Value._iap.IsReady)
+            {
+                Instance.Value._iap.DeliverPendingRedeemOrders(initResponse.PendingNoctuaRedeemOrders);
             }
 
             log.Info("FeatureFlags: " + Noctua.Instance.Value._config.Noctua.RemoteFeatureFlags);

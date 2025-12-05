@@ -42,6 +42,25 @@ namespace com.noctuagames.sdk
 
         [JsonProperty("offline_mode")]
         public bool OfflineMode;
+
+        [JsonProperty("pending_noctua_redeem_orders")]
+        public List<PendingNoctuaRedeemOrder> PendingNoctuaRedeemOrders;
+    }
+
+    [Preserve]
+    public class PendingNoctuaRedeemOrder
+    {
+        [JsonProperty("order_id")]
+        public int OrderId;
+
+        [JsonProperty("payment_type")]
+        public PaymentType PaymentType;
+
+        [JsonProperty("status")]
+        public string Status;
+
+        [JsonProperty("product_id")]
+        public string ProductId;
     }
 
     [Preserve]
