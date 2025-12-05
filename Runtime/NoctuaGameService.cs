@@ -147,12 +147,14 @@ namespace com.noctuagames.sdk
         private readonly string _baseUrl;
         private readonly bool _isOfflineFirst;
         private readonly ILogger _log = new NoctuaLogger();
+        private readonly AccessTokenProvider _accessTokenProvider;
 
-        internal NoctuaGameService(Config config)
+        internal NoctuaGameService(Config config, AccessTokenProvider accessTokenProvider)
         {
             _clientId = config.ClientId;
             _baseUrl = config.BaseUrl;
             _isOfflineFirst = config.IsOfflineFirst;
+            _accessTokenProvider = accessTokenProvider;
         }
 
         public async UniTask<InitGameResponse> InitGameAsync()
@@ -171,6 +173,12 @@ namespace com.noctuagames.sdk
             var request = new HttpRequest(HttpMethod.Get, $"{_baseUrl}/games/init")
                 .WithHeader("X-CLIENT-ID", _clientId)
                 .WithHeader("X-BUNDLE-ID", Application.identifier);
+
+            // This is optional. If exist, it will be used to identify any user's related data
+            // in init process
+            if (!string.IsNullOrEmpty(_accessTokenProvider.AccessToken)) {
+                //request.WithHeader("Authorization", "Bearer " + _accessTokenProvider.AccessToken);
+            }
 
             InitGameResponse response;
             response = await request.Send<InitGameResponse>();

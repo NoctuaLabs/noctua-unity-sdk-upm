@@ -444,7 +444,8 @@ namespace com.noctuagames.sdk
                     BaseUrl = _config.Noctua.BaseUrl,
                     ClientId = _config.ClientId,
                     IsOfflineFirst = _config.Noctua.IsOfflineFirst,
-                }
+                },
+                accessTokenProvider
             );
 
             _platform = new NoctuaPlatform(_config.Noctua, accessTokenProvider, _uiFactory, _eventSender);
