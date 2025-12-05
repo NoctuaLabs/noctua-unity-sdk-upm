@@ -1575,6 +1575,7 @@ namespace com.noctuagames.sdk
                 "NoctuaUnpairedOrders",
                 "NoctuaPurchaseHistory",
                 "NoctuaEvents",
+                "NoctuaAccessToken",
             };
 
             foreach (var key in IntegerKeys)
@@ -1653,6 +1654,7 @@ namespace com.noctuagames.sdk
                 "NoctuaUnpairedOrders",
                 "NoctuaPurchaseHistory",
                 "NoctuaEvents",
+                "NoctuaAccessToken",
             };
         }
     }

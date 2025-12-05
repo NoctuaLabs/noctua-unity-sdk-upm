@@ -543,6 +543,8 @@ namespace com.noctuagames.sdk
 
             _accountContainer.UpdateRecentAccount(response);
 
+            PlayerPrefs.SetString("NoctuaAccessToken", response.AccessToken);
+
             SetEventProperties(response);
             SendEvent("account_authenticated");
 
@@ -568,6 +570,8 @@ namespace com.noctuagames.sdk
             var response = await request.Send<PlayerToken>();
 
             _accountContainer.UpdateRecentAccount(response);
+
+            PlayerPrefs.SetString("NoctuaAccessToken", response.AccessToken);
 
             return _accountContainer.RecentAccount;
         }

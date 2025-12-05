@@ -1,4 +1,6 @@
-﻿namespace com.noctuagames.sdk
+﻿using UnityEngine;
+
+namespace com.noctuagames.sdk
 {
     internal interface IAccessTokenProvider  
     {
@@ -9,6 +11,7 @@
     
     internal class AccessTokenProvider : IAccessTokenProvider
     {
+        private readonly ILogger _log = new NoctuaLogger(typeof(AccessTokenProvider));
         internal AccessTokenProvider(NoctuaAuthenticationService auth)
         {
             auth.OnAccountChanged += OnAccountChanged;
@@ -21,7 +24,16 @@
             {
                 if (string.IsNullOrEmpty(_accessToken))
                 {
-                    throw new NoctuaException(NoctuaErrorCode.Authentication, "User is not authenticated");
+                    _accessToken = PlayerPrefs.GetString("NoctuaAccessToken");
+
+                    if (string.IsNullOrEmpty(_accessToken))
+                    {
+                         throw new NoctuaException(NoctuaErrorCode.Authentication, "User is not authenticated");
+                    }
+
+                    _log.Info("AccessTokenProvider retrieved access token from PlayerPrefs");
+
+                    return _accessToken;
                 }
                 
                 return _accessToken;
