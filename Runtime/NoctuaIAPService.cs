@@ -204,6 +204,35 @@ namespace com.noctuagames.sdk
     }
 
     /// <summary>
+    /// Pending deliverables data model.
+    /// </summary>
+    [Preserve]
+    public class PendingDeliverables
+    {
+        [JsonProperty("order_id")]
+        public int OrderId;
+
+        [JsonProperty("payment_type")]
+        public PaymentType PaymentType;
+
+        [JsonProperty("status")]
+        public string Status;
+
+        [JsonProperty("product_id")]
+        public string ProductId;
+    }
+
+    /// <summary>
+    /// Pending deliverables response data (already unwrapped by HTTP library).
+    /// </summary>
+    [Preserve]
+    public class PendingDeliverablesData
+    {
+        [JsonProperty("pending_noctua_redeem_orders")]
+        public PendingDeliverables[] PendingNoctuaRedeemOrders;
+    }
+
+    /// <summary>
     /// Payment outcome enumeration.
     /// </summary>
     public enum PaymentStatus
@@ -367,6 +396,7 @@ namespace com.noctuagames.sdk
         payment_flow,
         manual_retry,
         client_automatic_retry,
+        pending_deliverable,
     }
 
     /// <summary>
@@ -2368,6 +2398,75 @@ namespace com.noctuagames.sdk
                 .WithHeader("Authorization", "Bearer " + _accessTokenProvider.AccessToken);
 
             return await request.Send<NoctuaGoldData>();
+        }
+
+        public async UniTask<PendingDeliverables[]> GetPendingDeliverables()
+        {
+            var request = new HttpRequest(HttpMethod.Get, $"{_config.BaseUrl}/pending-deliverables")
+                .WithHeader("X-CLIENT-ID", _config.ClientId)
+                .WithHeader("X-BUNDLE-ID", Application.identifier)
+                .WithHeader("Authorization", "Bearer " + _accessTokenProvider.AccessToken);
+
+            PendingDeliverablesData response = await request.Send<PendingDeliverablesData>();
+
+            return response?.PendingNoctuaRedeemOrders ?? new PendingDeliverables[0];
+        }
+
+        public async UniTask DeliverPendingDeliverablesAsync()
+        {
+            try
+            {
+                _log.Info("DeliverPendingDeliverablesAsync: Fetching pending deliverables from server");
+
+                var pendingDeliverables = await GetPendingDeliverables();
+
+                if (pendingDeliverables == null || pendingDeliverables.Length == 0)
+                {
+                    _log.Info("DeliverPendingDeliverablesAsync: No pending deliverables found");
+                    return;
+                }
+
+                _log.Info($"DeliverPendingDeliverablesAsync: Found {pendingDeliverables.Length} pending deliverables");
+
+                foreach (var deliverable in pendingDeliverables)
+                {
+                    _log.Info($"DeliverPendingDeliverablesAsync: Processing order {deliverable.OrderId} for product {deliverable.ProductId}");
+
+                    try
+                    {
+                        var orderRequest = new OrderRequest
+                        {
+                            Id = deliverable.OrderId,
+                            PaymentType = deliverable.PaymentType,
+                            ProductId = deliverable.ProductId
+                        };
+
+                        var verifyOrderRequest = new VerifyOrderRequest
+                        {
+                            Id = deliverable.OrderId,
+                            Trigger = VerifyOrderTrigger.pending_deliverable.ToString()
+                        };
+
+                        await VerifyOrderImplAsync(
+                            orderRequest,
+                            verifyOrderRequest,
+                            _accessTokenProvider.AccessToken,
+                            Noctua.Auth.RecentAccount?.Player?.Id,
+                            false
+                        );
+
+                        _log.Info($"DeliverPendingDeliverablesAsync: Successfully processed order {deliverable.OrderId}");
+                    }
+                    catch (Exception ex)
+                    {
+                        _log.Error($"DeliverPendingDeliverablesAsync: Error processing order {deliverable.OrderId}: {ex.Message}");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _log.Error($"DeliverPendingDeliverablesAsync: Error fetching pending deliverables: {ex.Message}");
+            }
         }
 
         private TimeSpan GetBackoffDelay(Random random, int retryCount)

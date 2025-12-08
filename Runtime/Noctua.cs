@@ -1014,6 +1014,8 @@ namespace com.noctuagames.sdk
 
                 // Trigger retry pending purchase after all module get enabled.
                 Instance.Value._iap.RetryPendingPurchasesAsync();
+                // Deliver pending deliverables from server
+                Instance.Value._iap.DeliverPendingDeliverablesAsync();
                 // Query purchases against Google Play Billing
 #if UNITY_ANDROID
 

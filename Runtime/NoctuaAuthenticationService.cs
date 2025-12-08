@@ -26,6 +26,7 @@ namespace com.noctuagames.sdk
         appstore,
         playstore,
         noctuastore,
+        noctuastore_redeem,
         direct
     }
 
