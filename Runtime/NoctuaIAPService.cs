@@ -2438,7 +2438,10 @@ namespace com.noctuagames.sdk
                         {
                             Id = deliverable.OrderId,
                             PaymentType = deliverable.PaymentType,
-                            ProductId = deliverable.ProductId
+                            ProductId = deliverable.ProductId,
+                            Currency = "USD",
+                            Price = 0,
+                            PriceInUSD = 0
                         };
 
                         var verifyOrderRequest = new VerifyOrderRequest
