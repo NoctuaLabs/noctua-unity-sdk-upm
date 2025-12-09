@@ -27,6 +27,51 @@ using UnityEditor.Graphs;
 #if UNITY_IOS
     public class NoctuaIosBuildProcessor : MonoBehaviour
     {
+        static readonly string[] SKAdNetworks = new string[]
+        {
+            "4fzdc2evr5.skadnetwork",
+            "3sh42y64q3.skadnetwork",
+            "qqp299437r.skadnetwork",
+            "cstr6suwn9.skadnetwork",
+            "v9wttpbfk9.skadnetwork",
+            "n6fk4nfna4.skadnetwork",
+            "7ug5zh24hu.skadnetwork",
+            "3qy4746246.skadnetwork",
+            "cg4yq2srnc.skadnetwork",
+            "578prtvx9j.skadnetwork",
+            "f7s53z58qe.skadnetwork",
+            "8s468mfl3y.skadnetwork",
+            "uvs5kahq4h.skadnetwork",
+            "4pfyvq9l8r.skadnetwork",
+            "9rd848q2bz.skadnetwork",
+            "p78axxw29g.skadnetwork",
+            "44jx6755aq.skadnetwork",
+            "t38b2kh725.skadnetwork",
+            "yclnxrl5pm.skadnetwork",
+            "gta9lk7p23.skadnetwork",
+            "mlmmfzh3r3.skadnetwork",
+            "glqzh8vgby.skadnetwork",
+            "5lm9lj6jb7.skadnetwork",
+            "9t245vhmpl.skadnetwork",
+            "2fnua5tdw4.skadnetwork",
+            "m8dbw4sv7c.skadnetwork",
+            "zq492l623r.skadnetwork",
+            "3rd42ekr43.skadnetwork",
+            "3qcr597p9d.skadnetwork",
+            "wg4vff78n3.skadnetwork",
+            "yclnxrl5pm.skadnetwork",
+            "737z793b9f.skadnetwork",
+            "f38h382jlk.skadnetwork",
+            "327lbhnc6z.skadnetwork",
+            "22mmun2rn8.skadnetwork",
+            "c6k4g5qg8m.skadnetwork",
+            "uw77j35x4d.skadnetwork",
+            "v72qych5uu.skadnetwork",
+            "bvpn9ufa9b.skadnetwork",
+            "crp8jc5d3p.skadnetwork",
+            "6p4ks3rnbw.skadnetwork",
+        };
+
         [PostProcessBuild(1)]
         public static void ExposeLogFiles(BuildTarget buildTarget, string pathToBuiltProject)
         {
@@ -38,6 +83,29 @@ using UnityEditor.Graphs;
             Log($"Expose log files to users by Info.plist");
             plist.root.SetBoolean("UIFileSharingEnabled", true);
             plist.root.SetBoolean("LSSupportsOpeningDocumentsInPlace", true);
+
+            // Add Adjust SKAdNetwork postbacks endpoint
+            const string adjustKey = "NSAdvertisingAttributionReportEndpoint";
+            const string adjustValue = "https://adjust-skadnetwork.com";
+
+            Log("Adding NSAdvertisingAttributionReportEndpoint for Adjust SKAdNetwork");
+            plist.root.SetString(adjustKey, adjustValue);
+
+            Log("[SKAdNetwork] Adding SKAdNetworkItems to Info.plist");
+
+            // Create or retrieve array SKAdNetworkItems
+            PlistElementArray arr;
+            if (plist.root.values.ContainsKey("SKAdNetworkItems"))
+                arr = plist.root["SKAdNetworkItems"].AsArray();
+            else
+                arr = plist.root.CreateArray("SKAdNetworkItems");
+
+            // Add network IDs
+            foreach (string id in SKAdNetworks)
+            {
+                PlistElementDict dict = arr.AddDict();
+                dict.SetString("SKAdNetworkIdentifier", id);
+            }
 
             Log($"Write changes to Info.plist");    
             plist.WriteToFile(plistPath);
