@@ -232,13 +232,13 @@ public class NoctuaIntegrationManagerWindow : EditorWindow
 
         if (provider == "AppLovin")
         {
-            IAAPreprocessor.RemoveDefineSymbol("UNITY_APPLOVIN", BuildTargetGroup.Android);
-            IAAPreprocessor.RemoveDefineSymbol("UNITY_APPLOVIN", BuildTargetGroup.iOS);
+            BuildPreprocessor.RemoveDefineSymbol("UNITY_APPLOVIN", BuildTargetGroup.Android);
+            BuildPreprocessor.RemoveDefineSymbol("UNITY_APPLOVIN", BuildTargetGroup.iOS);
         }
         else
         {
-            IAAPreprocessor.RemoveDefineSymbol("UNITY_ADMOB", BuildTargetGroup.Android);
-            IAAPreprocessor.RemoveDefineSymbol("UNITY_ADMOB", BuildTargetGroup.iOS);
+            BuildPreprocessor.RemoveDefineSymbol("UNITY_ADMOB", BuildTargetGroup.Android);
+            BuildPreprocessor.RemoveDefineSymbol("UNITY_ADMOB", BuildTargetGroup.iOS);
         }
     }
 

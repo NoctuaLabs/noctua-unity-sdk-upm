@@ -11,12 +11,11 @@ using System.Text;
 using System.Text.RegularExpressions;
 
 [InitializeOnLoad]
-public static class IAAPreprocessor
+public static class BuildPreprocessor
 {
-    private static readonly string configPath =
-        Path.Combine(Application.streamingAssetsPath, "noctuagg.json");
-
-    static IAAPreprocessor()
+    private static readonly string configPath = Path.Combine(Application.streamingAssetsPath, "noctuagg.json");
+    
+    static BuildPreprocessor()
     {
 
         var gradleVersion = GetGradleVersion(Directory.GetCurrentDirectory());
@@ -30,7 +29,7 @@ public static class IAAPreprocessor
 
         if (!iaaEnabled)
         {
-            Debug.Log("[IAAPreprocessor] iaaEnabled is false. No define symbols will be added.");
+            Debug.Log("[BuildPreprocessor] iaaEnabled is false. No define symbols will be added.");
             return; // Stop here if disabled
         }
 
@@ -41,13 +40,13 @@ public static class IAAPreprocessor
     private static bool LoadIAAFlag()
     {
         string configPath = Path.Combine(Application.streamingAssetsPath, "noctuagg.json");
-        Debug.Log($"[IAAPreprocessor] Loading config from: {configPath}");
+        Debug.Log($"[BuildPreprocessor] Loading config from: {configPath}");
 
         try
         {
             if (!File.Exists(configPath))
             {
-                Debug.LogWarning("[IAAPreprocessor] Config not found, defaulting iaaEnabled = false.");
+                Debug.LogWarning("[BuildPreprocessor] Config not found, defaulting iaaEnabled = false.");
                 return false;
             }
 
@@ -56,16 +55,16 @@ public static class IAAPreprocessor
 
             if (globalConfig?.Noctua == null)
             {
-                Debug.LogWarning("[IAAPreprocessor] Noctua section missing, defaulting iaaEnabled = false.");
+                Debug.LogWarning("[BuildPreprocessor] Noctua section missing, defaulting iaaEnabled = false.");
                 return false;
             }
 
-            Debug.Log($"[IAAPreprocessor] iaaEnabled: {globalConfig.Noctua.isIAAEnabled}");
+            Debug.Log($"[BuildPreprocessor] iaaEnabled: {globalConfig.Noctua.isIAAEnabled}");
             return globalConfig.Noctua.isIAAEnabled;
         }
         catch (Exception e)
         {
-            Debug.LogError($"[IAAPreprocessor] Failed to parse config: {e.Message}");
+            Debug.LogError($"[BuildPreprocessor] Failed to parse config: {e.Message}");
             return false; // fallback
         }
     }
