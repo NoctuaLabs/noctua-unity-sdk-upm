@@ -327,6 +327,64 @@ using UnityEditor.Graphs;
             Log("Successfully enabled Push Notification capability and updated entitlements.");
         }
 
+        [PostProcessBuild(int.MaxValue)]
+        private static void AddAdjustSignatureXCFramework(BuildTarget target, string pathToBuiltProject)
+        {
+            string projPath = Path.Combine(pathToBuiltProject, "Unity-iPhone.xcodeproj/project.pbxproj");
+
+            PBXProject project = new PBXProject();
+            project.ReadFromString(File.ReadAllText(projPath));
+
+    #if UNITY_2020_1_OR_NEWER
+            string unityMainTarget = project.GetUnityMainTargetGuid();
+            string unityFrameworkTarget = project.GetUnityFrameworkTargetGuid();
+    #else
+            string unityMainTarget = project.TargetGuidByName("Unity-iPhone");
+            string unityFrameworkTarget = unityMainTarget;
+    #endif
+
+            // Add Search Path
+            string xcframeworkDir = "Pods/AdjustSignature";  
+            string quotedPath = $"\"{xcframeworkDir}\"";
+            string xcframeworkName = "AdjustSigSdk.xcframework";
+            string relativeFrameworkPath = Path.Combine(xcframeworkDir, xcframeworkName);
+
+            // Path to the XCFramework folder
+            string absoluteFolderPath = Path.Combine(pathToBuiltProject, xcframeworkDir);
+
+            // Check folder exists
+            if (!Directory.Exists(absoluteFolderPath))
+            {
+                UnityEngine.Debug.LogWarning("[AdjustSignature] Folder not found, skipping setup: " + absoluteFolderPath);
+                return;
+            }
+
+            string searchPaths = project.GetBuildPropertyForAnyConfig(unityMainTarget, "FRAMEWORK_SEARCH_PATHS");
+
+            if (string.IsNullOrEmpty(searchPaths) || !searchPaths.Contains(xcframeworkDir))
+            {
+                project.AddBuildProperty(unityMainTarget, "FRAMEWORK_SEARCH_PATHS", quotedPath);
+                project.AddBuildProperty(unityFrameworkTarget, "FRAMEWORK_SEARCH_PATHS", quotedPath);
+                UnityEngine.Debug.Log("[AdjustSignature] Added framework search path: " + xcframeworkDir);
+            }
+
+            // Add file reference
+            string fileGuid = project.AddFile(relativeFrameworkPath, relativeFrameworkPath, PBXSourceTree.Source);
+
+            // Add to "Link Binary With Libraries"
+            project.AddFileToBuild(unityFrameworkTarget, fileGuid);
+
+            // Embed Framework (Required for dynamic XCFramework)
+            project.AddFileToEmbedFrameworks(unityMainTarget, fileGuid);
+            project.AddFileToEmbedFrameworks(unityFrameworkTarget, fileGuid);
+
+            UnityEngine.Debug.Log("[AdjustSignature] Embedded XCFramework: " + xcframeworkName);
+
+            // Save project
+            File.WriteAllText(projPath, project.WriteToString());
+            UnityEngine.Debug.Log("[AdjustSignature] Post-build complete.");
+
+        }
 
         private static void Log(string message)
         {
