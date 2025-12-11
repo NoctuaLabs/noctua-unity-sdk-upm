@@ -124,7 +124,7 @@ publish-icm-version:
     - git branch -D main-icm || true
     - git checkout -b main-icm
     # Modify the version
-    - sed -i -E '/Noctua/ s/(version="~>[[:space:]]*)[^"]+/\1'"$NATIVE_IOS_ICM_VERSION"'/' Editor/NativePluginDependencies.xml
+    - sed -i -E '/Noctua/ s/(version=")[^"]+/\1'"$NATIVE_IOS_ICM_VERSION"'/' Editor/NativePluginDependencies.xml
     - sed -i 's/minTargetSdk="14.0"/minTargetSdk="15.0"/' Editor/NativePluginDependencies.xml
     - ./icm-version-suffix.sh
     - git add Editor/NativePluginDependencies.xml
