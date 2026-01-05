@@ -144,5 +144,20 @@ namespace com.noctuagames.sdk
             PlayerPrefs.SetString("NoctuaAccountContainer", JsonConvert.SerializeObject(accounts));
             return 1;
         }
+
+        public void SaveEvents(string jsonString)
+        {
+            throw new NotImplementedException();
+        }
+
+        public void GetEvents(Action<List<string>> callback)
+        {
+            throw new NotImplementedException();
+        }
+
+        public void DeleteEvents()
+        {
+            throw new NotImplementedException();
+        }
     }
 }
