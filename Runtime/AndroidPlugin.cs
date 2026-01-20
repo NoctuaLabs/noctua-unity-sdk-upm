@@ -322,18 +322,12 @@ namespace com.noctuagames.sdk
             }
         }
 
-        private int saveEvents = 0;
-
         public void SaveEvents(string jsonString)
         {
             try
             {
                 using var noctua = new AndroidJavaObject("com.noctuagames.sdk.Noctua$Companion");
                 noctua.Call("saveEvents", jsonString);
-
-                saveEvents++;
-
-                Debug.Log($"[Noctua] Saved events: {saveEvents}");
             }
             catch (Exception e)
             {

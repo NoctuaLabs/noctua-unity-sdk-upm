@@ -153,106 +153,14 @@ namespace com.noctuagames.sdk.Events
             _uniqueId = null;
 #endif
 
-            // LoadEventsFromPlayerPrefs();
-
             UniTask.Void(async () =>
             {
                 await LoadEventsFromLocalStorageAsync();
             });
         }
 
-        // private void LoadEventsFromPlayerPrefs()
-        // {
-        //     _log.Info("Loading NoctuaEvents from PlayerPrefs to event queue");
-        //     var eventsJson = PlayerPrefs.GetString("NoctuaEvents", "[]");
-        //     if (eventsJson == null)
-        //     {
-        //         eventsJson = "[]";
-        //     }
-
-        //     if (eventsJson.Length > 800000) // Around 1000 events
-        //     {
-        //         _log.Info("NoctuaEvents is too large, clearing it");
-        //         PlayerPrefs.SetString("NoctuaEvents", "[]");
-        //         PlayerPrefs.Save();
-        //         eventsJson = "[]";
-        //     }
-            
-
-        //     // Try to parse into IConvertible first because it is
-        //     // the native type of the queue.
-        //     // There will be nested try catch to make it safe.
-        //     var events = new List<Dictionary<string, IConvertible>>();
-        //     //_log.Debug(eventsJson);
-        //     try
-        //     {
-        //         events = JsonConvert.DeserializeObject<List<Dictionary<string, IConvertible>>>(eventsJson);
-        //     }
-        //     catch (Exception e)
-        //     {
-        //         events = new List<Dictionary<string, IConvertible>>();
-        //         _log.Warning($"Failed to load events from PlayerPrefs: {e.Message}.");
-
-        //         // If fail, try to parse to object.
-        //         // IConvertible cannot parse null value from JSON.
-        //         // Load from PlayerPrefs and re-enqueue them all
-        //         _log.Info("Try to parse NoctuaEvents with object type");
-        //         var objects = new List<Dictionary<string, object>>();
-        //         try
-        //         {
-        //             objects = JsonConvert.DeserializeObject<List<Dictionary<string, object>>>(eventsJson);
-        //         }
-        //         catch (Exception e2)
-        //         {
-        //             _log.Warning($"Failed to load events from PlayerPrefs: {e2.Message}");
-        //             objects = new List<Dictionary<string, object>>();
-        //         }
-        //         if (objects == null)
-        //         {
-        //             objects = new List<Dictionary<string, object>>();
-        //         }
-        //         foreach (var evt in objects)
-        //         {
-        //             var dict = new Dictionary<string, IConvertible>();
-        //             foreach (var (key, val) in evt)
-        //             {
-        //                 if (val is IConvertible convertible)
-        //                 {
-        //                     dict[key] = convertible;
-        //                 }
-        //                 else
-        //                 {
-        //                     _log.Warning($"Event has non-convertible value for key {key} of value {val}");
-        //                 }
-        //             }
-
-        //             // Per object iteration, add the dict to events list
-        //             events.Add(dict);
-        //         }
-        //     }
-        //     if (events == null)
-        //     {
-        //         events = JsonConvert.DeserializeObject<List<Dictionary<string, IConvertible>>>(eventsJson);
-        //     }
-        //     _log.Info($"Total loaded events from PlayerPrefs: {events.Count}");
-
-        //     lock (_queueLock)
-        //     {
-        //         _log.Debug("Locking the event queue to prevent concurrent access");
-        //         _eventQueue = new List<Dictionary<string, IConvertible>>(events);
-        //     }
-
-        //     _log.Info($"Total loaded events from PlayerPrefs: {_eventQueue.Count}");
-        // }
-
         public void Send(string name, Dictionary<string, IConvertible> data = null)
         {
-
-            // if (_eventQueue.Count > 1000)
-            // {
-            //     _log.Warning($"Event queue is full ({_eventQueue.Count}), ignore this event {name}");
-            //     return;
-            // }
 
             data ??= new Dictionary<string, IConvertible>();
 
