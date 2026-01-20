@@ -548,8 +548,10 @@ namespace com.noctuagames.sdk
             }
             catch (Exception e)
             {
-                _log.Warning($"GetEvents failed: {e.Message}");
                 callback?.Invoke(new List<string>());
+                
+                if(e.Message.IsNullOrEmpty()) return;
+                _log.Warning($"GetEvents failed: {e.Message}");
             }
         }
 

@@ -152,17 +152,17 @@ namespace com.noctuagames.sdk
 
         public void SaveEvents(string jsonString)
         {
-            throw new NotImplementedException();
+            
         }
 
         public void GetEvents(Action<List<string>> callback)
         {
-            throw new NotImplementedException();
+            callback?.Invoke(new List<string>());
         }
 
         public void DeleteEvents()
         {
-            throw new NotImplementedException();
+           
         }
     }
 }
