@@ -162,12 +162,7 @@ namespace com.noctuagames.sdk.Events
         public void Send(string name, Dictionary<string, IConvertible> data = null)
         {
 
-            data ??= new Dictionary<string, IConvertible>();
-
-            if (name == null)
-            {
-                throw new ArgumentNullException(nameof(name));
-            }
+           if (string.IsNullOrEmpty(name)) { throw new ArgumentNullException(nameof(name)); }
 
             var eventKeys = new HashSet<string>
             {

@@ -331,6 +331,8 @@ namespace com.noctuagames.sdk
             }
             catch (Exception e)
             {
+                if(e.Message.IsNullOrEmpty()) return;
+                
                 _log.Warning($"[Noctua] Failed to save events: {e.Message}");
             }
         }
@@ -364,8 +366,10 @@ namespace com.noctuagames.sdk
             }
             catch (Exception e)
             {
-                _log.Warning($"[Noctua] Failed to get events: {e.Message}");
                 callback?.Invoke(new List<string>());
+
+                if(e.Message.IsNullOrEmpty()) return;
+                _log.Warning($"[Noctua] Failed to get events: {e.Message}");
             }
         }
 
@@ -382,6 +386,7 @@ namespace com.noctuagames.sdk
             }
             catch (Exception e)
             {
+                if(e.Message.IsNullOrEmpty()) return;
                 _log.Warning($"[Noctua] Failed to delete events: {e.Message}");
             }
         }
