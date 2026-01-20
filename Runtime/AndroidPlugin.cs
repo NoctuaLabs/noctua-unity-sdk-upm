@@ -322,31 +322,12 @@ namespace com.noctuagames.sdk
             }
         }
 
-        public void GetAdjustAttribution(Action<string> callback)
-        {
-            try
-            {
-                using var noctua = new AndroidJavaObject("com.noctuagames.sdk.Noctua$Companion");
-                noctua.Call("getAdjustAttribution", new AndroidCallback<string>(callback));
-            }
-            catch (Exception e)
-            {
-                _log.Warning($"[Noctua] Failed to get Adjust Attribution: {e.Message}");
-                callback?.Invoke(string.Empty);
-            }
-        }
-
-        private int saveEvents = 0;
         public void SaveEvents(string jsonString)
         {
             try
             {
                 using var noctua = new AndroidJavaObject("com.noctuagames.sdk.Noctua$Companion");
                 noctua.Call("saveEvents", jsonString);
-
-                saveEvents++;
-
-                Debug.Log($"[Noctua] Saved events: {saveEvents}");
             }
             catch (Exception e)
             {
