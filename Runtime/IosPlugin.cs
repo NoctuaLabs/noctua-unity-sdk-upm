@@ -550,7 +550,7 @@ namespace com.noctuagames.sdk
             {
                 callback?.Invoke(new List<string>());
                 
-                if(e.Message.IsNullOrEmpty()) return;
+                if(e.Message == null) return;
                 _log.Warning($"GetEvents failed: {e.Message}");
             }
         }

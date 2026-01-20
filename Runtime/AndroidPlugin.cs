@@ -331,7 +331,7 @@ namespace com.noctuagames.sdk
             }
             catch (Exception e)
             {
-                if(e.Message.IsNullOrEmpty()) return;
+                if(e.Message == null) return;
                 
                 _log.Warning($"[Noctua] Failed to save events: {e.Message}");
             }
@@ -368,7 +368,7 @@ namespace com.noctuagames.sdk
             {
                 callback?.Invoke(new List<string>());
 
-                if(e.Message.IsNullOrEmpty()) return;
+                if(e.Message == null) return;
                 _log.Warning($"[Noctua] Failed to get events: {e.Message}");
             }
         }
@@ -380,13 +380,12 @@ namespace com.noctuagames.sdk
                 using var noctua = new AndroidJavaObject("com.noctuagames.sdk.Noctua$Companion");
                 noctua.Call("deleteEvents");
 
-                Debug.Log($"[Noctua] Deleted all events " + saveEvents);
+                Debug.Log($"[Noctua] Deleted all events");
 
-                saveEvents = 0;
             }
             catch (Exception e)
             {
-                if(e.Message.IsNullOrEmpty()) return;
+                if(e.Message == null) return;
                 _log.Warning($"[Noctua] Failed to delete events: {e.Message}");
             }
         }
