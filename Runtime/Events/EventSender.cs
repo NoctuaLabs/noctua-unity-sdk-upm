@@ -164,6 +164,8 @@ namespace com.noctuagames.sdk.Events
 
            if (string.IsNullOrEmpty(name)) { throw new ArgumentNullException(nameof(name)); }
 
+           data ??= new Dictionary<string, IConvertible>();
+
             var eventKeys = new HashSet<string>
             {
                 "user_id",
