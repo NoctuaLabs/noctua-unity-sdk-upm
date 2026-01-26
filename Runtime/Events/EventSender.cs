@@ -303,6 +303,7 @@ namespace com.noctuagames.sdk.Events
                 string country = _locale.GetCountry();
                 
                 var isOffline = Noctua.IsOfflineMode();
+                data.TryAdd("offline_mode", isOffline);
 
                 if (String.IsNullOrEmpty(country) && !isOffline)
                 {
