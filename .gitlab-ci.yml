@@ -18,9 +18,9 @@ trigger_job:
     name: alpine/git
     entrypoint: [""]
   before_script:
-    - apk add git-cliff
-    - apk add jq
-    - apk add curl
+    # - apk add git-cliff
+    # - apk add jq
+    # - apk add curl
     - git config --global user.email "gitlab-ci@noctua.gg"
     - git config --global user.name "Noctua Gitlab CI"
 
