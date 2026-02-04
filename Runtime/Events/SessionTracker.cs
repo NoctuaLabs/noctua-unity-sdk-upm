@@ -24,6 +24,8 @@ namespace com.noctuagames.sdk.Events
         private readonly EventSender _eventSender;
         private readonly UniTask _heartbeatTask;
         private readonly CancellationTokenSource _cancelHeartbeatSource;
+        private  Dictionary<string, bool> _remoteFeatureFlags;
+
         
         private DateTime _nextHeartbeat;
         private DateTime _nextSessionTimeout;
@@ -32,11 +34,13 @@ namespace com.noctuagames.sdk.Events
         
         private string _sessionId;
 
-        public SessionTracker(SessionTrackerConfig config, EventSender eventSender)
+        public SessionTracker(SessionTrackerConfig config, EventSender eventSender, Dictionary<string, bool> remoteFeatureFlags = null)
         {
             _config = config ?? throw new ArgumentNullException(nameof(config));
             _eventSender = eventSender ?? throw new ArgumentNullException(nameof(eventSender));
-            
+
+            _remoteFeatureFlags = remoteFeatureFlags ?? new Dictionary<string, bool>();
+        
             _cancelHeartbeatSource = new CancellationTokenSource();
             _pauseStatus = true;
             _heartbeatTask = UniTask.Create(RunHeartbeat, _cancelHeartbeatSource.Token);
@@ -89,7 +93,12 @@ namespace com.noctuagames.sdk.Events
             }
             
             _eventSender.Send("session_end");
-            _eventSender.Flush();
+
+            if (_remoteFeatureFlags.TryGetValue("sendEventsOnFlushEnabled", out var enabled) && enabled)
+            {
+                _eventSender.Flush();
+            }
+
             _cancelHeartbeatSource.Cancel();
             _disposed = true;
         }

@@ -337,7 +337,8 @@ namespace com.noctuagames.sdk
                     HeartbeatPeriodMs = _config.Noctua.SessionHeartbeatPeriodMs,
                     SessionTimeoutMs = _config.Noctua.SessionTimeoutMs
                 },
-                _eventSender
+                _eventSender,
+                _config.Noctua.RemoteFeatureFlags
             );
 
             // Initialize ui factory
