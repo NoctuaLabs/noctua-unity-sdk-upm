@@ -2646,6 +2646,32 @@ namespace com.noctuagames.sdk
         }
 
         /// <summary>
+        /// Restore purchased products by checking their purchase status.
+        /// </summary>
+        /// <param name="productIds">List of product ids to restore.</param>
+        /// <returns>List of purchased product ids.</returns>
+        public async Task<List<string>> RestorePurchasedProducts(List<string> productIds)
+        {
+            var tasks = productIds.ToDictionary(
+                productId => productId,
+                productId => GetPurchaseStatusAsync(productId)
+            );
+
+            await Task.WhenAll(tasks.Values);
+
+            var purchased = new List<string>();
+            foreach (var kvp in tasks)
+            {
+                if (await kvp.Value) // true = purchased
+                {
+                    purchased.Add(kvp.Key);
+                }
+            }
+
+            return purchased;
+        }
+
+        /// <summary>
         /// Get whether a product is purchased using native billing or server verification.
         /// </summary>
         /// <param name="productId">Product identifier.</param>
