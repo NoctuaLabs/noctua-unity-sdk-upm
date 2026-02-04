@@ -8,7 +8,7 @@
                 <ui:VisualElement name="NoctuaLogoWithText" class="noctua-logo-with-text hide" style="position: absolute; right: 10px;" />
             </ui:VisualElement>
             <ui:VisualElement name="Content" class="dialog-content">
-                <ui:TextField label="Email Address" name="EmailTF" keyboard-type="EmailAddress" usage-hints="-1" class="noctua-text-input">
+                <ui:TextField label="Email Address" name="EmailTF" keyboard-type="EmailAddress" class="noctua-text-input">
                     <ui:Label tabindex="-1" text="Email address" parse-escape-sequences="true" display-tooltip-when-elided="true" name="title" class="hide" />
                     <ui:Label tabindex="-1" text="error" parse-escape-sequences="true" display-tooltip-when-elided="true" name="error" class="hide" />
                 </ui:TextField>
