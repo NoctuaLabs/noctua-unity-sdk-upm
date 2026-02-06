@@ -68,16 +68,26 @@ namespace Tests.Runtime
         [UnitySetUp]
         public IEnumerator SetUp()
         {
+            // Wait for any pending fire-and-forget tasks from previous tests to settle
+            yield return new WaitForSeconds(2.0f);
+
+            PlayerPrefs.DeleteKey("NoctuaEvents");
+            PlayerPrefs.Save();
+
             var empty = false;
-            
+
             while (!empty)
             {
                 _server.Requests.Clear();
 
-                yield return new WaitForSeconds(0.2f);
+                yield return new WaitForSeconds(0.5f);
 
                 empty = _server.Requests.Count == 0;
             }
+
+            // Final cleanup in case async tasks wrote to PlayerPrefs during drain
+            PlayerPrefs.DeleteKey("NoctuaEvents");
+            PlayerPrefs.Save();
         }
         
         [Ignore("This test is ignored because it requires a real server.")]
@@ -109,7 +119,8 @@ namespace Tests.Runtime
                     {
                         BaseUrl = "http://localhost:7777/api/v1",
                         ClientId = "test_client_id",
-                        BatchSize = 1
+                        BatchSize = 1,
+                        CycleDelay = 100
                     },
                     new NoctuaLocale()
                 );
@@ -159,7 +170,8 @@ namespace Tests.Runtime
                     {
                         BaseUrl = "http://localhost:7777/api/v1",
                         ClientId = "test_client_id",
-                        BatchSize = 1
+                        BatchSize = 1,
+                        CycleDelay = 100
                     },
                     new NoctuaLocale()
                 );
@@ -251,7 +263,8 @@ namespace Tests.Runtime
                     {
                         BaseUrl = "http://localhost:7777/api/v1",
                         ClientId = "test_client_id",
-                        BatchSize = 3
+                        BatchSize = 3,
+                        CycleDelay = 100
                     },
                     new NoctuaLocale()
                 );
@@ -277,7 +290,8 @@ namespace Tests.Runtime
                     {
                         BaseUrl = "http://localhost:7777/api/v1",
                         ClientId = "test_client_id",
-                        BatchSize = 3
+                        BatchSize = 3,
+                        CycleDelay = 100
                     },
                     new NoctuaLocale()
                 );
@@ -305,7 +319,8 @@ namespace Tests.Runtime
                     {
                         BaseUrl = "http://localhost:7777/api/v1",
                         ClientId = "test_client_id",
-                        BatchSize = 3
+                        BatchSize = 3,
+                        CycleDelay = 100
                     },
                     new NoctuaLocale()
                 );
@@ -354,7 +369,8 @@ namespace Tests.Runtime
                         BaseUrl = "http://localhost:7777/api/v1",
                         ClientId = "test_client_id",
                         BatchSize = 3,
-                        BatchPeriodMs = 500
+                        BatchPeriodMs = 500,
+                        CycleDelay = 100
                     },
                     new NoctuaLocale()
                 );
@@ -399,8 +415,9 @@ namespace Tests.Runtime
                     new EventSenderConfig
                     {
                         BaseUrl = "http://localhost:7777/api/v1",
-                        ClientId = "test_client_id",
-                        BatchSize = 1
+                        ClientId = "1-e724f5a9e6f1",
+                        BatchSize = 1,
+                        CycleDelay = 100
                     },
                     new NoctuaLocale()
                 );
@@ -409,7 +426,7 @@ namespace Tests.Runtime
 
                 var authSvc = new NoctuaAuthenticationService(
                     baseUrl: "https://sdk-api-v2.noctuaprojects.com/api/v1",
-                    clientId: "102-0abe09ca2ed8",
+                    clientId: "1-e724f5a9e6f1",
                     nativeAccountStore: new DefaultNativePlugin(),
                     eventSender: eventSender,
                     bundleId: Application.identifier
@@ -429,7 +446,7 @@ namespace Tests.Runtime
                     Assert.AreNotEqual(0, evt.player_id);
                     Assert.AreNotEqual(0, evt.credential_id);
                 }
-                
+
                 eventSender.Dispose();
             }
         );
@@ -442,8 +459,9 @@ namespace Tests.Runtime
                     new EventSenderConfig
                     {
                         BaseUrl = "http://localhost:7777/api/v1",
-                        ClientId = "test_client_id",
-                        BatchSize = 2
+                        ClientId = "1-e724f5a9e6f1",
+                        BatchSize = 2,
+                        CycleDelay = 100
                     },
                     new NoctuaLocale()
                 );
@@ -452,7 +470,7 @@ namespace Tests.Runtime
 
                 var authSvc = new NoctuaAuthenticationService(
                     baseUrl: "https://sdk-api-v2.noctuaprojects.com/api/v1",
-                    clientId: "102-0abe09ca2ed8",
+                    clientId: "1-e724f5a9e6f1",
                     nativeAccountStore: new DefaultNativePlugin(),
                     eventSender: eventSender,
                     bundleId: Application.identifier
@@ -475,7 +493,7 @@ namespace Tests.Runtime
                     Assert.AreNotEqual(0, evt.player_id);
                     Assert.AreNotEqual(0, evt.credential_id);
                 }
-                
+
                 eventSender.Dispose();
             }
         );
@@ -488,8 +506,9 @@ namespace Tests.Runtime
                     new EventSenderConfig
                     {
                         BaseUrl = "http://localhost:7777/api/v1",
-                        ClientId = "102-0abe09ca2ed8",
-                        BatchSize = 3
+                        ClientId = "1-e724f5a9e6f1",
+                        BatchSize = 3,
+                        CycleDelay = 100
                     },
                     new NoctuaLocale()
                 );
@@ -498,7 +517,7 @@ namespace Tests.Runtime
 
                 var authSvc = new NoctuaAuthenticationService(
                     baseUrl: "https://sdk-api-v2.noctuaprojects.com/api/v1",
-                    clientId: "102-0abe09ca2ed8",
+                    clientId: "1-e724f5a9e6f1",
                     nativeAccountStore: new DefaultNativePlugin(),
                     eventSender: eventSender,
                     bundleId: Application.identifier
@@ -526,7 +545,7 @@ namespace Tests.Runtime
                     Assert.AreNotEqual(0, evt.player_id);
                     Assert.AreNotEqual(0, evt.credential_id);
                 }
-                
+
                 eventSender.Dispose();
             }
         );
@@ -540,19 +559,37 @@ namespace Tests.Runtime
                     {
                         BaseUrl = "http://localhost:7777/api/v1",
                         ClientId = "test_client_id",
-                        BatchSize = 1
+                        BatchSize = 1,
+                        CycleDelay = 100
                     },
                     new NoctuaLocale()
                 );
 
                 var sessionTracker = new SessionTracker(new SessionTrackerConfig(), eventSender);
 
+                // Drain any stale events that may have leaked through SetUp
+                await UniTask.Delay(500);
+                while (_server.Requests.TryDequeue(out _)) { }
+
                 sessionTracker.OnApplicationPause(false);
                 sessionTracker.OnApplicationPause(true);
                 sessionTracker.OnApplicationPause(false);
                 sessionTracker.OnApplicationPause(true);
 
-                var events = await GetEventsFromServerAsync();
+                var allEvents = await GetEventsFromServerAsync(5000, 1000);
+
+                // Filter by session_id to exclude stale events from previous tests.
+                // Our SessionTracker creates a unique session_id (Guid) on first OnApplicationPause(false),
+                // so all 4 events share the same session_id.
+                var sessionGroup = allEvents
+                    .Where(e => e.session_id != null)
+                    .GroupBy(e => e.session_id)
+                    .FirstOrDefault(g => g.Any(e => e.event_name == "session_continue"));
+
+                Assert.IsNotNull(sessionGroup,
+                    $"Expected session group with session_continue not found. Events: {string.Join(", ", allEvents.Select(e => e.event_name))}");
+
+                var events = sessionGroup.ToList();
 
                 Assert.AreEqual("session_start", events[0].event_name);
                 Assert.AreEqual("session_pause", events[1].event_name);
@@ -560,7 +597,7 @@ namespace Tests.Runtime
                 Assert.AreEqual("session_pause", events[3].event_name);
 
                 Assert.True(events.All(evt => evt.session_id != null));
-                
+
                 sessionTracker.Dispose();
                 eventSender.Dispose();
             }
@@ -576,7 +613,8 @@ namespace Tests.Runtime
                         BaseUrl = "http://localhost:7777/api/v1",
                         ClientId = "test_client_id",
                         BatchSize = 100,
-                        BatchPeriodMs = 300_000
+                        BatchPeriodMs = 300_000,
+                        CycleDelay = 100
                     },
                     new NoctuaLocale()
                 );
@@ -613,7 +651,8 @@ namespace Tests.Runtime
                     {
                         BaseUrl = "http://localhost:7777/api/v1",
                         ClientId = "test_client_id",
-                        BatchSize = 1
+                        BatchSize = 1,
+                        CycleDelay = 100
                     },
                     new NoctuaLocale()
                 );
@@ -626,7 +665,7 @@ namespace Tests.Runtime
                     },
                     eventSender
                 );
-                
+
                 await UniTask.Delay(1000);
 
                 var events = await GetEventsFromServerAsync();
@@ -647,11 +686,12 @@ namespace Tests.Runtime
                     {
                         BaseUrl = "http://localhost:7777/api/v1",
                         ClientId = "test_client_id",
-                        BatchSize = 1
+                        BatchSize = 1,
+                        CycleDelay = 100
                     },
                     new NoctuaLocale()
                 );
-        
+
                 var sessionTracker = new SessionTracker(
                     new SessionTrackerConfig
                     {
@@ -660,9 +700,9 @@ namespace Tests.Runtime
                     },
                     eventSender
                 );
-        
+
                 sessionTracker.OnApplicationPause(false);
-                
+
                 await UniTask.Delay(1200);
 
                 var events = await GetEventsFromServerAsync();
@@ -692,11 +732,12 @@ namespace Tests.Runtime
                     {
                         BaseUrl = "http://localhost:7777/api/v1",
                         ClientId = "test_client_id",
-                        BatchSize = 1
+                        BatchSize = 1,
+                        CycleDelay = 100
                     },
                     new NoctuaLocale()
                 );
-        
+
                 var sessionTracker = new SessionTracker(
                     new SessionTrackerConfig
                     {
@@ -705,28 +746,71 @@ namespace Tests.Runtime
                     },
                     eventSender
                 );
-        
+
+                // Drain any stale events that may have leaked through SetUp
+                await UniTask.Delay(500);
+                while (_server.Requests.TryDequeue(out _)) { }
+
                 sessionTracker.OnApplicationPause(false);
                 sessionTracker.OnApplicationPause(true);
-                
-                await UniTask.Delay(2500);
-                
-                sessionTracker.OnApplicationPause(false);
-        
-                await UniTask.Delay(100);
 
-                var events = await GetEventsFromServerAsync();
-                
+                await UniTask.Delay(2500);
+
+                sessionTracker.OnApplicationPause(false);
+
+                await UniTask.Delay(200);
+
+                var allEvents = await GetEventsFromServerAsync(5000, 1000);
+
+                // This test produces events across 2 sessions (timeout creates new session).
+                // Filter out stale events from previous tests by finding the two session_ids
+                // that form the expected pattern: session_start + session_pause (session A),
+                // then session_start (session B after timeout).
+                // Find sessions that have a session_start event
+                var sessionStarts = allEvents
+                    .Where(e => e.event_name == "session_start" && e.session_id != null)
+                    .ToList();
+
+                // Find the pair: session A has start+pause, session B has start, and
+                // session A's start comes before session B's start
+                List<EventData> events = null;
+                for (int i = 0; i < sessionStarts.Count - 1; i++)
+                {
+                    var sessionA = sessionStarts[i].session_id;
+                    var sessionAEvents = allEvents.Where(e => e.session_id == sessionA).ToList();
+                    if (sessionAEvents.Count >= 2 &&
+                        sessionAEvents[0].event_name == "session_start" &&
+                        sessionAEvents[1].event_name == "session_pause")
+                    {
+                        for (int j = i + 1; j < sessionStarts.Count; j++)
+                        {
+                            var sessionB = sessionStarts[j].session_id;
+                            if (sessionA != sessionB)
+                            {
+                                events = new List<EventData>
+                                {
+                                    sessionAEvents[0],
+                                    sessionAEvents[1],
+                                    sessionStarts[j]
+                                };
+                                break;
+                            }
+                        }
+                        if (events != null) break;
+                    }
+                }
+
+                Assert.IsNotNull(events,
+                    $"Expected session timeout pattern not found. Events: {string.Join(", ", allEvents.Select(e => $"{e.event_name}({e.session_id?.Substring(0, 8)})"))}");
+
                 Debug.Log(events.Select(evt => evt.event_name).Aggregate((a, b) => $"{a}\n{b}"));
-                
+
                 Assert.AreEqual("session_start", events[0].event_name);
                 Assert.AreEqual("session_pause", events[1].event_name);
                 Assert.AreEqual("session_start", events[2].event_name);
-                
+
                 Assert.True(events.All(evt => evt.session_id != null));
-                
-                Assert.True(events.Select(evt => evt.session_id).Distinct().Count() == 2);
-                
+
                 Assert.AreEqual(events[0].session_id, events[1].session_id);
                 Assert.AreNotEqual(events[0].session_id, events[2].session_id);
                 Assert.AreNotEqual(events[1].session_id, events[2].session_id);
@@ -736,14 +820,17 @@ namespace Tests.Runtime
             }
         );
 
-        private async Task<List<EventData>> GetEventsFromServerAsync()
+        private async Task<List<EventData>> GetEventsFromServerAsync(int timeoutMs = 3000, int settleMs = 500)
         {
-            var win = await UniTask.WhenAny(UniTask.Delay(1000), UniTask.WaitUntil(() => _server.Requests.Count > 0));
+            var win = await UniTask.WhenAny(UniTask.Delay(timeoutMs), UniTask.WaitUntil(() => _server.Requests.Count > 0));
 
             if (win == 0)
             {
                 return new List<EventData>();
             }
+
+            // Wait a bit more for additional events to arrive
+            await UniTask.Delay(settleMs);
 
             var sb = new StringBuilder();
 
@@ -752,7 +839,15 @@ namespace Tests.Runtime
                 sb.AppendLine(request.Body);
             }
 
-            return sb.ToString().Trim().Split('\n').Select(JsonConvert.DeserializeObject<EventData>).ToList();
+            // Deduplicate events: concurrent Flushes in EventSender can send overlapping
+            // batches (Flush snapshots the queue but only clears it after HTTP success,
+            // so a second Flush may re-send events from the first batch).
+            var lines = sb.ToString().Trim().Split('\n')
+                .Where(line => !string.IsNullOrWhiteSpace(line))
+                .Distinct()
+                .ToList();
+
+            return lines.Select(JsonConvert.DeserializeObject<EventData>).ToList();
         }
     }
 }

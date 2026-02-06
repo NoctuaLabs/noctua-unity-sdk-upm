@@ -87,11 +87,14 @@ namespace com.noctuagames.sdk
             _request.method = method.ToString().ToUpper();
             _request.url = url;
 
-            // Inject locale data
-            _request.SetRequestHeader("Accept-Language", Noctua.Platform.Locale.GetLanguage());
-            _request.SetRequestHeader("X-LANGUAGE", Noctua.Platform.Locale.GetLanguage());
-            _request.SetRequestHeader("X-COUNTRY", Noctua.Platform.Locale.GetCountry());
-            _request.SetRequestHeader("X-CURRENCY", Noctua.Platform.Locale.GetCurrency());
+            // Inject locale data when Noctua is initialized
+            if (Noctua.IsInitialized())
+            {
+                _request.SetRequestHeader("Accept-Language", Noctua.Platform.Locale.GetLanguage());
+                _request.SetRequestHeader("X-LANGUAGE", Noctua.Platform.Locale.GetLanguage());
+                _request.SetRequestHeader("X-COUNTRY", Noctua.Platform.Locale.GetCountry());
+                _request.SetRequestHeader("X-CURRENCY", Noctua.Platform.Locale.GetCurrency());
+            }
             _request.SetRequestHeader("X-DEVICE-ID", SystemInfo.deviceUniqueIdentifier);
             _request.SetRequestHeader("X-PLATFORM", Utility.GetPlatformType());
             _request.SetRequestHeader("X-OS-AGENT", SystemInfo.operatingSystem);

@@ -270,7 +270,7 @@ namespace com.noctuagames.sdk
                 throw new NoctuaException(NoctuaErrorCode.Application, "Failed to parse config: " + e.Message);
             }
             
-            #elif UNITY_IOS || UNITY_EDITOR_OSX
+            #elif UNITY_IOS || UNITY_EDITOR_OSX || UNITY_EDITOR_LINUX
             
             Debug.Log("Loading streaming assets in IOS by using System.IO.File.ReadAllText: " + configPath);
 

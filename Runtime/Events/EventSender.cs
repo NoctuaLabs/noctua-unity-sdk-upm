@@ -181,7 +181,8 @@ namespace com.noctuagames.sdk.Events
             //_log.Debug(eventsJson);
             try
             {
-                events = JsonConvert.DeserializeObject<List<Dictionary<string, IConvertible>>>(eventsJson);
+                events = JsonConvert.DeserializeObject<List<Dictionary<string, IConvertible>>>(eventsJson)
+                    ?? new List<Dictionary<string, IConvertible>>();
             }
             catch (Exception e)
             {
@@ -227,7 +228,7 @@ namespace com.noctuagames.sdk.Events
             }
             if (events == null)
             {
-                events = JsonConvert.DeserializeObject<List<Dictionary<string, IConvertible>>>(eventsJson);
+                events = new List<Dictionary<string, IConvertible>>();
             }
             _log.Info($"Total loaded events from PlayerPrefs: {events.Count}");
 
@@ -326,19 +327,22 @@ namespace com.noctuagames.sdk.Events
                     data.TryAdd("experiment", activeExperiment);
                 }
 
-                var activeFeature = Noctua.Event.GetSessionTag();
-                var sessionEvents = new HashSet<string>
+                if (Noctua.IsInitialized())
                 {
-                    "session_start",
-                    "session_end",
-                    "session_pause",
-                    "session_continue",
-                    "session_heartbeat"
-                };
+                    var activeFeature = Noctua.Event.GetSessionTag();
+                    var sessionEvents = new HashSet<string>
+                    {
+                        "session_start",
+                        "session_end",
+                        "session_pause",
+                        "session_continue",
+                        "session_heartbeat"
+                    };
 
-                if (!string.IsNullOrEmpty(activeFeature) && sessionEvents.Contains(name))
-                {
-                    data.TryAdd("tag", activeFeature);
+                    if (!string.IsNullOrEmpty(activeFeature) && sessionEvents.Contains(name))
+                    {
+                        data.TryAdd("tag", activeFeature);
+                    }
                 }
 
                 #if UNITY_ANDROID && !UNITY_EDITOR
@@ -380,7 +384,8 @@ namespace com.noctuagames.sdk.Events
                 if (_credentialProvider != null) data.TryAdd("credential_provider", _credentialProvider);
                 if (_gameId != null) data.TryAdd("game_id", _gameId);
                 if (_gamePlatformId != null) data.TryAdd("game_platform_id", _gamePlatformId);
-                
+                if (_sessionId != null) data.TryAdd("session_id", _sessionId);
+
                 var currentSessionId = ExperimentManager.GetSessionId();
                 if (!string.IsNullOrEmpty(currentSessionId))
                 {
@@ -404,7 +409,7 @@ namespace com.noctuagames.sdk.Events
                 // This check is used to maintain the offline state more frequent to update.
                 // This also prevent "offline" event flooding the queue
                 // by not sending another "offline" event if the event name is "offline"
-                if (data.TryGetValue("event_name", out var eventName) && eventName.ToString() != "offline")
+                if (Noctua.IsInitialized() && data.TryGetValue("event_name", out var eventName) && eventName.ToString() != "offline")
                 {
                     _log.Debug("Checking internet connection status after sending event");
                     Noctua.IsOfflineAsync().ContinueWith((isOffline) =>
@@ -557,17 +562,17 @@ namespace com.noctuagames.sdk.Events
                     continue;
                 }
 
-                // The minimum delay time is 
+                // The minimum delay time is
                 var isOffline = Noctua.IsOfflineMode();
                 if (isOffline)
                 {
-                    Noctua.OnOffline();
+                    if (Noctua.IsInitialized()) Noctua.OnOffline();
 
                     _log.Info($"Device is offline = ${isOffline}, continue to next cycle");
                     continue;
                 }
-                
-                Noctua.OnOnline();
+
+                if (Noctua.IsInitialized()) Noctua.OnOnline();
 
                 // Dequeue to be sent to server
                 var events = new List<Dictionary<string, IConvertible>>();
