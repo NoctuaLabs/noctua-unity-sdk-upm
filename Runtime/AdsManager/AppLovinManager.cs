@@ -21,7 +21,7 @@ namespace com.noctuagames.sdk
         private event Action _onAdClicked;
         private event Action _onAdClosed;
         private event Action<MaxSdk.Reward> _onUserEarnedReward;
-        private event Action<MaxSdkBase.AdInfo> _appLovinOnAdDisplayed;
+        private event Action<MaxSdkBase.AdInfo> _appLovinOnAdRevenuePaid;
 
         // public event handlers
         public event Action OnInitialized { add => _initCompleteAction += value; remove => _initCompleteAction -= value; }
@@ -29,7 +29,8 @@ namespace com.noctuagames.sdk
         public event Action OnAdFailedDisplayed { add => _onAdFailedDisplayed += value; remove => _onAdFailedDisplayed -= value; } 
         public event Action OnAdClicked { add => _onAdClicked += value; remove => _onAdClicked -= value; }
         public event Action OnAdClosed { add => _onAdClosed += value; remove => _onAdClosed -= value; }
-        public event Action<MaxSdk.Reward> OnUserEarnedReward { add => _onUserEarnedReward += value; remove => _onUserEarnedReward -= value; }        public event Action<MaxSdkBase.AdInfo> AppLovinOnAdDisplayed { add => _appLovinOnAdDisplayed += value; remove => _appLovinOnAdDisplayed -= value; }
+        public event Action<MaxSdk.Reward> AppLovinOnUserEarnedReward { add => _onUserEarnedReward += value; remove => _onUserEarnedReward -= value; }
+        public event Action<MaxSdkBase.AdInfo> AppLovinOnAdRevenuePaid { add => _appLovinOnAdRevenuePaid += value; remove => _appLovinOnAdRevenuePaid -= value; }
 
         internal AppLovinManager()
         {
@@ -64,7 +65,7 @@ namespace com.noctuagames.sdk
             _interstitialAppLovin.InterstitialOnAdFailedDisplayed += () => { _onAdFailedDisplayed?.Invoke(); };
             _interstitialAppLovin.InterstitialOnAdClicked += () => { _onAdClicked?.Invoke(); };
             _interstitialAppLovin.InterstitialOnAdClosed += () => { _onAdClosed?.Invoke(); };
-            _interstitialAppLovin.InterstitialOnAdRevenuePaid += (adInfo) => { _appLovinOnAdDisplayed?.Invoke(adInfo); };
+            _interstitialAppLovin.InterstitialOnAdRevenuePaid += (adInfo) => { _appLovinOnAdRevenuePaid?.Invoke(adInfo); };
 
         }
 
@@ -88,7 +89,7 @@ namespace com.noctuagames.sdk
             _rewardedAppLovin.RewardedOnAdClicked += () => { _onAdClicked?.Invoke(); };
             _rewardedAppLovin.RewardedOnAdClosed += () => { _onAdClosed?.Invoke(); };
             _rewardedAppLovin.RewardedOnUserEarnedReward += (reward) => { _onUserEarnedReward?.Invoke(reward); };
-            _rewardedAppLovin.RewardedOnAdRevenuePaid += (adInfo) => { _appLovinOnAdDisplayed?.Invoke(adInfo); };
+            _rewardedAppLovin.RewardedOnAdRevenuePaid += (adInfo) => { _appLovinOnAdRevenuePaid?.Invoke(adInfo); };
         }
 
         public void LoadRewardedAd()
@@ -110,7 +111,7 @@ namespace com.noctuagames.sdk
             _bannerAppLovin.BannerOnAdFailedDisplayed += () => { _onAdFailedDisplayed?.Invoke(); };
             _bannerAppLovin.BannerOnAdClicked += () => { _onAdClicked?.Invoke(); };
             _bannerAppLovin.BannerOnAdClosed += () => { _onAdClosed?.Invoke(); };
-            _bannerAppLovin.BannerOnAdRevenuePaid += (adInfo) => { _appLovinOnAdDisplayed?.Invoke(adInfo); };
+            _bannerAppLovin.BannerOnAdRevenuePaid += (adInfo) => { _appLovinOnAdRevenuePaid?.Invoke(adInfo); };
         }
 
         public void CreateBannerViewAdAppLovin(Color color, MaxSdkBase.BannerPosition bannerPosition)

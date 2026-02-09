@@ -34,8 +34,19 @@ namespace com.noctuagames.sdk
         public event Action OnAdClicked { add => _onAdClicked += value; remove => _onAdClicked -= value; }
         public event Action OnAdImpressionRecorded { add => _onAdImpressionRecorded += value; remove => _onAdImpressionRecorded -= value; }
         public event Action OnAdClosed { add => _onAdClosed += value; remove => _onAdClosed -= value; }
-        public event Action<Reward> OnUserEarnedReward { add => _onUserEarnedReward += value; remove => _onUserEarnedReward -= value; }
+        public event Action<Reward> AdmobOnUserEarnedReward { add => _onUserEarnedReward += value; remove => _onUserEarnedReward -= value; }
         public event Action<AdValue, ResponseInfo> AdmobOnAdRevenuePaid { add => _admobOnAdRevenuePaid += value; remove => _admobOnAdRevenuePaid -= value; }
+
+        internal AdmobManager()
+        {
+            _log.Debug("AdmobManager constructor");
+
+            _bannerAdmob = new BannerAdmob();
+            _rewardedAdmob = new RewardedAdmob();
+            _interstitialAdmob = new InterstitialAdmob();
+            _rewardedInterstitialAdmob = new RewardedInterstitialAdmob();
+
+        }
 
         public void Initialize(Action initCompleteAction)
         {
@@ -69,9 +80,7 @@ namespace com.noctuagames.sdk
         }
 
         public void SetInterstitialAdUnitID(string adUnitID)
-        {
-            _interstitialAdmob = new InterstitialAdmob();
-            
+        {            
             _interstitialAdmob.SetInterstitialAdUnitID(adUnitID);
 
             // Subscribe to events
@@ -95,7 +104,6 @@ namespace com.noctuagames.sdk
 
         public void SetRewardedAdUnitID(string adUnitID)
         {
-            _rewardedAdmob = new RewardedAdmob();
             _rewardedAdmob.SetRewardedAdUnitID(adUnitID);
 
             // Subscribe to events
@@ -120,8 +128,6 @@ namespace com.noctuagames.sdk
 
         public void SetBannerAdUnitId(string adUnitID)
         {
-            _bannerAdmob = new BannerAdmob();
-
             _bannerAdmob.SetAdUnitId(adUnitID);
 
             // Subscribe to events
@@ -146,7 +152,6 @@ namespace com.noctuagames.sdk
 
         public void SetRewardeInterstitialdAdUnitID(string adUnitID)
         {
-            _rewardedInterstitialAdmob = new RewardedInterstitialAdmob();
             _rewardedInterstitialAdmob.SetRewardedInterstitialAdUnitID(adUnitID);
 
             // Subscribe to events
