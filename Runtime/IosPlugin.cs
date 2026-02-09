@@ -79,6 +79,10 @@ namespace com.noctuagames.sdk
 
         [DllImport("__Internal")]
         private static extern void noctuaGetFirebaseRemoteConfigLong(string key, GetFirebaseRemoteConfigLongCallbackDelegate callback);
+        
+        [DllImport("__Internal")]
+        private static extern void noctuaGetAdjustAttribution(GetAdjustAttributionCallbackDelegate callback);
+
 
         // Store the callback to be used in the static methods
         private static Action<bool, string> storedCompletion;
@@ -90,6 +94,7 @@ namespace com.noctuagames.sdk
         private static Action<bool> storedFirebaseRemoteConfigBooleanCompletion;
         private static Action<double> storedFirebaseRemoteConfigDoubleCompletion;
         private static Action<long> storedFirebaseRemoteConfigLongCompletion;
+        private static Action<NoctuaAdjustAttribution> storedAdjustAttributionCallback;
 
         // Define delegates for the native callbacks
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
@@ -118,6 +123,21 @@ namespace com.noctuagames.sdk
 
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
         private delegate void GetFirebaseRemoteConfigLongCallbackDelegate(long value);
+        
+        [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+        private delegate void GetAdjustAttributionCallbackDelegate(
+        string trackerToken,
+        string trackerName,
+        string network,
+        string campaign,
+        string adGroup,
+        string creative,
+        string clickLabel,
+        string costType,
+        double costAmount,
+        string costCurrency
+    );
+
 
         //Delegate for methods returning string values
         [AOT.MonoPInvokeCallback(typeof(CompletionDelegate))]
@@ -174,6 +194,39 @@ namespace com.noctuagames.sdk
         {
             storedFirebaseRemoteConfigLongCompletion?.Invoke(value);
         }
+
+        [AOT.MonoPInvokeCallback(typeof(GetAdjustAttributionCallbackDelegate))]
+        private static void GetAdjustAttributionCallback(
+            string trackerToken,
+            string trackerName,
+            string network,
+            string campaign,
+            string adGroup,
+            string creative,
+            string clickLabel,
+            string costType,
+            double costAmount,
+            string costCurrency
+        )
+        {
+            _storedAdjustAttributionCallback?.Invoke(new NoctuaAdjustAttribution
+            {
+                TrackerToken = trackerToken,
+                TrackerName = trackerName,
+                Network = network,
+                Campaign = campaign,
+                Adgroup = adGroup,
+                Creative = creative,
+                ClickLabel = clickLabel,
+                CostType = costType,
+                CostAmount = costAmount,
+                CostCurrency = costCurrency,
+                FbInstallReferrer = ""
+            });
+
+            _storedAdjustAttributionCallback = null;
+        }
+
 
         public void Init(List<string> activeBundleIds)
         {
@@ -456,6 +509,22 @@ namespace com.noctuagames.sdk
             {
                 _log.Warning($"GetFirebaseRemoteConfigLong failed for key '{key}': {e.Message}");
                 callback?.Invoke(0L);
+            }
+        }
+
+        public void GetAdjustAttribution(Action<string> callback) 
+        {
+            try
+            {
+                _storedAdjustAttributionCallback = callback;
+
+                noctuaGetAdjustAttribution(GetAdjustAttributionCallback);
+                _log.Debug("noctuaGetAdjustAttribution called");
+            }
+            catch (Exception e)
+            {
+                _log.Warning($"GetAdjustAttribution failed: {e.Message}");
+                callback?.Invoke(string.Empty);
             }
         }
     }
