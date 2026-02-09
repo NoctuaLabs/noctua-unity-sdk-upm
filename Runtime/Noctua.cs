@@ -626,6 +626,22 @@ namespace com.noctuagames.sdk
                 { "platform_type", Utility.GetPlatformType() }
             });
 
+            var attribution = await GetAdjustAttributionAsync();
+
+            Instance.Value._eventSender.Send("adjust_attribution", new Dictionary<string, IConvertible> {
+                { "tracker_token", attribution.TrackerToken ?? "" },
+                { "tracker_name", attribution.TrackerName ?? "" },
+                { "network", attribution.Network ?? "" },
+                { "campaign", attribution.Campaign ?? "" },
+                { "adgroup", attribution.Adgroup ?? "" },
+                { "creative", attribution.Creative ?? "" },
+                { "click_label", attribution.ClickLabel ?? "" },
+                { "adid", attribution.Adid ?? "" },
+                { "cost_type", attribution.CostType ?? "" },
+                { "cost_amount", attribution.CostAmount },
+                { "cost_currency", attribution.CostCurrency ?? "" }
+            });
+
             var log = Instance.Value._log;
 
             // Init game, retries on intermittent network failure
@@ -1387,6 +1403,44 @@ namespace com.noctuagames.sdk
             return Task.FromResult(0L);
         #endif
         }
+
+        
+        public static Task<NoctuaAdjustAttribution> GetAdjustAttributionAsync()
+        {
+        #if UNITY_ANDROID || UNITY_IOS
+            var tcs = new TaskCompletionSource<NoctuaAdjustAttribution>();
+
+            try
+            {
+                if (Instance.Value._nativePlugin != null)
+                {
+                    Instance.Value._nativePlugin.GetAdjustAttribution((result) =>
+                    {                        
+                        var attribution = NoctuaAdjustAttribution.FromJson(result);
+                        tcs.TrySetResult(attribution);
+                    });
+                }
+                else
+                {
+                    Instance.Value._log.Warning("Native plugin is null");
+                    tcs.TrySetResult(new NoctuaAdjustAttribution());
+                    return tcs.Task;
+                }
+            }
+            catch (Exception ex)
+            {
+                Instance.Value._log.Warning("exception: " + ex.Message);             
+                
+                tcs.TrySetResult(new NoctuaAdjustAttribution());
+                return tcs.Task;
+            }
+
+            return tcs.Task;
+        #else
+            return Task.FromResult(new NoctuaAdjustAttribution());
+        #endif
+        }
+
 
         /// <summary>
         /// Returns whether this is the first open of the app (and sets the flag when it is).

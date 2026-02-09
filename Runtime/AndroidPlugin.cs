@@ -321,6 +321,20 @@ namespace com.noctuagames.sdk
                 callback?.Invoke(0L);
             }
         }
+
+        public void GetAdjustAttribution(Action<string> callback)
+        {
+            try
+            {
+                using var noctua = new AndroidJavaObject("com.noctuagames.sdk.Noctua$Companion");
+                noctua.Call("getAdjustAttribution", new AndroidCallback<string>(callback));
+            }
+            catch (Exception e)
+            {
+                _log.Warning($"[Noctua] Failed to get Adjust Attribution: {e.Message}");
+                callback?.Invoke(string.Empty);
+            }
+        }
     }
 }
 
