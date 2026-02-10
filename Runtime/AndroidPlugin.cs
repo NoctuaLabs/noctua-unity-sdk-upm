@@ -322,6 +322,20 @@ namespace com.noctuagames.sdk
             }
         }
 
+        public void GetAdjustAttribution(Action<string> callback)
+        {
+            try
+            {
+                using var noctua = new AndroidJavaObject("com.noctuagames.sdk.Noctua$Companion");
+                noctua.Call("getAdjustAttribution", new AndroidCallback<string>(callback));
+            }
+            catch (Exception e)
+            {
+                _log.Warning($"[Noctua] Failed to get Adjust Attribution: {e.Message}");
+                callback?.Invoke(string.Empty);
+            }
+        }
+
         public void SaveEvents(string jsonString)
         {
             try
@@ -386,75 +400,6 @@ namespace com.noctuagames.sdk
             catch (Exception e)
             {
                 if(e.Message == null) return;
-                _log.Warning($"[Noctua] Failed to delete events: {e.Message}");
-            }
-        }
-
-        private int saveEvents = 0;
-        public void SaveEvents(string jsonString)
-        {
-            try
-            {
-                using var noctua = new AndroidJavaObject("com.noctuagames.sdk.Noctua$Companion");
-                noctua.Call("saveEvents", jsonString);
-
-                saveEvents++;
-
-                Debug.Log($"[Noctua] Saved events: {saveEvents}");
-            }
-            catch (Exception e)
-            {
-                _log.Warning($"[Noctua] Failed to save events: {e.Message}");
-            }
-        }
-
-        public void GetEvents(Action<List<string>> callback)
-        {
-            try
-            {
-                using var noctua = new AndroidJavaObject("com.noctuagames.sdk.Noctua$Companion");
-                
-                var androidCallback = new AndroidCallback<AndroidJavaObject>(result =>
-                {
-                    var list = new List<string>();
-
-                    int size = result.Call<int>("size");
-                    for (int i = 0; i < size; i++)
-                    {
-                        string item = result.Call<string>("get", i);
-
-                        Debug.Log($"[Noctua] Retrieved event: {i}");
-
-                        list.Add(item);
-                    }
-
-                    Debug.Log($"[Noctua] Total events retrieved: {list.Count}");
-
-                    callback?.Invoke(list);
-                });
-
-                noctua.Call("getEvents", androidCallback);
-            }
-            catch (Exception e)
-            {
-                _log.Warning($"[Noctua] Failed to get events: {e.Message}");
-                callback?.Invoke(new List<string>());
-            }
-        }
-
-        public void DeleteEvents()
-        {
-            try
-            {
-                using var noctua = new AndroidJavaObject("com.noctuagames.sdk.Noctua$Companion");
-                noctua.Call("deleteEvents");
-
-                Debug.Log($"[Noctua] Deleted all events " + saveEvents);
-
-                saveEvents = 0;
-            }
-            catch (Exception e)
-            {
                 _log.Warning($"[Noctua] Failed to delete events: {e.Message}");
             }
         }
