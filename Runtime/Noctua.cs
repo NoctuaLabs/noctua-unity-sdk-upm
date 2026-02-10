@@ -639,7 +639,8 @@ namespace com.noctuagames.sdk
                 { "adid", attribution.Adid ?? "" },
                 { "cost_type", attribution.CostType ?? "" },
                 { "cost_amount", attribution.CostAmount },
-                { "cost_currency", attribution.CostCurrency ?? "" }
+                { "cost_currency", attribution.CostCurrency ?? "" },
+                { "fb_install_referrer", attribution.FbInstallReferrer ?? "" }
             });
 
             var log = Instance.Value._log;
