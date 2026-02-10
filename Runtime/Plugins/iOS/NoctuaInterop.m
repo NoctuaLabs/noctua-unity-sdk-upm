@@ -303,6 +303,31 @@ void noctuaGetFirebaseRemoteConfigLong(const char* key, GetFirebaseRemoteConfigL
     callback(result);
 }
 
+typedef void (*AdjustAttributionCallbackDelegate)(const char* jsonString);
+void noctuaGetAdjustAttribution(AdjustAttributionCallbackDelegate callback) {
+    if (callback == NULL) {
+        return;
+    }
+
+    [Noctua getAdjustCurrentAttributionWithCompletion:^(NSDictionary<NSString *, id> * _Nonnull attribution) {
+
+        if (attribution == nil || attribution.count == 0) {
+            callback("{}");
+            return;
+        }
+
+        NSError *error = nil;
+        NSData *jsonData = [NSJSONSerialization dataWithJSONObject:attribution options:0 error:&error];
+
+        if (error || jsonData == nil) {
+            callback("{}");
+            return;
+        }
+
+        NSString *jsonString = [[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding];
+        callback([jsonString UTF8String]);
+    }];
+}
 
 
 

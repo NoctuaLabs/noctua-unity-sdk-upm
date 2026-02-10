@@ -26,4 +26,6 @@ typedef void (*GetFirebaseRemoteConfigDoubleCallbackDelegate)(const double confi
 void noctuaGetFirebaseRemoteConfigDouble(const char* key, GetFirebaseRemoteConfigDoubleCallbackDelegate callback);
 typedef void (*GetFirebaseRemoteConfigLongCallbackDelegate)(long long configLong);
 void noctuaGetFirebaseRemoteConfigLong(const char* key, GetFirebaseRemoteConfigLongCallbackDelegate callback);
+typedef void (*AdjustAttributionCallbackDelegate)(const char* jsonString);
+void noctuaGetAdjustAttribution(AdjustAttributionCallbackDelegate callback);
 }

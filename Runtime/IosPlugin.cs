@@ -81,7 +81,7 @@ namespace com.noctuagames.sdk
         private static extern void noctuaGetFirebaseRemoteConfigLong(string key, GetFirebaseRemoteConfigLongCallbackDelegate callback);
         
         [DllImport("__Internal")]
-        private static extern void noctuaGetAdjustAttribution(GetAdjustAttributionCallbackDelegate callback);
+        private static extern void noctuaGetAdjustAttribution(GetAdjustAttributionJsonCallbackDelegate callback);
 
 
         // Store the callback to be used in the static methods
@@ -94,7 +94,7 @@ namespace com.noctuagames.sdk
         private static Action<bool> storedFirebaseRemoteConfigBooleanCompletion;
         private static Action<double> storedFirebaseRemoteConfigDoubleCompletion;
         private static Action<long> storedFirebaseRemoteConfigLongCompletion;
-        private static Action<NoctuaAdjustAttribution> storedAdjustAttributionCallback;
+        private static Action<string> storedAdjustAttributionCallback;
 
         // Define delegates for the native callbacks
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
@@ -125,18 +125,7 @@ namespace com.noctuagames.sdk
         private delegate void GetFirebaseRemoteConfigLongCallbackDelegate(long value);
         
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-        private delegate void GetAdjustAttributionCallbackDelegate(
-        string trackerToken,
-        string trackerName,
-        string network,
-        string campaign,
-        string adGroup,
-        string creative,
-        string clickLabel,
-        string costType,
-        double costAmount,
-        string costCurrency
-    );
+        private delegate void GetAdjustAttributionJsonCallbackDelegate(string json);
 
 
         //Delegate for methods returning string values
@@ -195,36 +184,11 @@ namespace com.noctuagames.sdk
             storedFirebaseRemoteConfigLongCompletion?.Invoke(value);
         }
 
-        [AOT.MonoPInvokeCallback(typeof(GetAdjustAttributionCallbackDelegate))]
-        private static void GetAdjustAttributionCallback(
-            string trackerToken,
-            string trackerName,
-            string network,
-            string campaign,
-            string adGroup,
-            string creative,
-            string clickLabel,
-            string costType,
-            double costAmount,
-            string costCurrency
-        )
+        [AOT.MonoPInvokeCallback(typeof(GetAdjustAttributionJsonCallbackDelegate))]
+        private static void GetAdjustAttributionJsonCallback(string json)
         {
-            _storedAdjustAttributionCallback?.Invoke(new NoctuaAdjustAttribution
-            {
-                TrackerToken = trackerToken,
-                TrackerName = trackerName,
-                Network = network,
-                Campaign = campaign,
-                Adgroup = adGroup,
-                Creative = creative,
-                ClickLabel = clickLabel,
-                CostType = costType,
-                CostAmount = costAmount,
-                CostCurrency = costCurrency,
-                FbInstallReferrer = ""
-            });
-
-            _storedAdjustAttributionCallback = null;
+            storedAdjustAttributionCallback?.Invoke(json);
+            storedAdjustAttributionCallback = null;
         }
 
 
@@ -516,9 +480,9 @@ namespace com.noctuagames.sdk
         {
             try
             {
-                _storedAdjustAttributionCallback = callback;
-
-                noctuaGetAdjustAttribution(GetAdjustAttributionCallback);
+                storedAdjustAttributionCallback = callback;
+                noctuaGetAdjustAttribution(GetAdjustAttributionJsonCallback);
+                
                 _log.Debug("noctuaGetAdjustAttribution called");
             }
             catch (Exception e)
