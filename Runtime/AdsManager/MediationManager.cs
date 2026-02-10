@@ -641,6 +641,9 @@ namespace com.noctuagames.sdk
 
         //Banner public function for AppLovin
         #if UNITY_APPLOVIN
+        [Obsolete(
+            "This method is deprecated. Please use CreateBannerViewAdAppLovin(Color, MaxSdkBase.AdViewPosition) instead."
+        )]
         public void CreateBannerViewAdAppLovin(Color color, MaxSdkBase.BannerPosition bannerPosition) 
         {
             if(!IsAppLovin()) { return; }
@@ -653,6 +656,20 @@ namespace com.noctuagames.sdk
 
             _adNetwork.CreateBannerViewAdAppLovin(color, bannerPosition);
         }
+
+        public void CreateBannerViewAdAppLovin(Color color, MaxSdkBase.AdViewPosition bannerPosition) 
+        {
+            if(!IsAppLovin()) { return; }
+
+            if(_adNetwork == null) 
+            {
+                _log.Warning("Ad Network is not initialized. Cannot create banner ad.");
+                return;
+            }
+
+            _adNetwork.CreateBannerViewAdAppLovin(color, bannerPosition);
+        }
+
         public void HideAppLovinBanner() 
         {
             if(!IsAppLovin()) { return; }

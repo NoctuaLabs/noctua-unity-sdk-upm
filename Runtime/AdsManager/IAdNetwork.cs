@@ -57,7 +57,10 @@ namespace com.noctuagames.sdk
 
         //Banner AppLovin
         #if UNITY_APPLOVIN
+
+        [Obsolete("This method is deprecated. Please use CreateBannerViewAdAppLovin(Color, MaxSdkBase.AdViewPosition) instead.")]
         void CreateBannerViewAdAppLovin(Color color, MaxSdkBase.BannerPosition bannerPosition) { throw new NotImplementedException(); }
+        void CreateBannerViewAdAppLovin(Color color, MaxSdkBase.AdViewPosition bannerPosition) { throw new NotImplementedException(); }
         void HideBannerAppLovin() { throw new NotImplementedException(); }
         void DestroyBannerAppLovin() { throw new NotImplementedException(); }
         void SetBannerWidth(int width) { throw new NotImplementedException(); }

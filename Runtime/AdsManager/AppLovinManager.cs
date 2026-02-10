@@ -114,7 +114,13 @@ namespace com.noctuagames.sdk
             _bannerAppLovin.BannerOnAdRevenuePaid += (adInfo) => { _appLovinOnAdRevenuePaid?.Invoke(adInfo); };
         }
 
+        [Obsolete("This method is deprecated. Please use CreateBannerViewAdAppLovin(Color, MaxSdkBase.AdViewPosition) instead.")]
         public void CreateBannerViewAdAppLovin(Color color, MaxSdkBase.BannerPosition bannerPosition)
+        {
+            _bannerAppLovin.InitializeBannerAds(color, bannerPosition);
+        }
+
+        public void CreateBannerViewAdAppLovin(Color color, MaxSdkBase.AdViewPosition bannerPosition)
         {
             _bannerAppLovin.InitializeBannerAds(color, bannerPosition);
         }

@@ -33,14 +33,31 @@ namespace com.noctuagames.sdk.AppLovin
             _log.Debug("Banner ad loaded for ad unit id : " + adUnitIDBanner);
         }
 
+        [Obsolete(
+            "This method is deprecated. Please use InitializeBannerAds(Color, MaxSdk.AdViewPosition) instead."
+        )]
         public void InitializeBannerAds(Color color, MaxSdkBase.BannerPosition bannerPosition)
         {
             TrackAdCustomEventBanner("wf_banner_request_start");
-            // Banners are automatically sized to 320×50 on phones and 728×90 on tablets
-            // You may call the utility method MaxSdkUtils.isTablet() to help with view sizing adjustments
-            MaxSdk.CreateBanner(_adUnitIDBanner, bannerPosition);
 
-            // Set background color for banners to be fully functional
+            MaxSdk.CreateBanner(_adUnitIDBanner, bannerPosition);
+            MaxSdk.SetBannerBackgroundColor(_adUnitIDBanner, color);
+
+            MaxSdkCallbacks.Banner.OnAdLoadedEvent      += OnBannerAdLoadedEvent;
+            MaxSdkCallbacks.Banner.OnAdLoadFailedEvent  += OnBannerAdLoadFailedEvent;
+            MaxSdkCallbacks.Banner.OnAdClickedEvent     += OnBannerAdClickedEvent;
+            MaxSdkCallbacks.Banner.OnAdRevenuePaidEvent += OnBannerAdRevenuePaidEvent;
+            MaxSdkCallbacks.Banner.OnAdExpandedEvent    += OnBannerAdExpandedEvent;
+            MaxSdkCallbacks.Banner.OnAdCollapsedEvent   += OnBannerAdCollapsedEvent;
+
+            _log.Debug("Banner ad initialized for ad unit id : " + _adUnitIDBanner);
+            TrackAdCustomEventBanner("wf_banner_started_playing");
+        }
+
+        public void InitializeBannerAds(Color color, MaxSdk.AdViewPosition bannerPosition)
+        {
+            var adViewConfiguration = new MaxSdk.AdViewConfiguration(bannerPosition);
+            MaxSdk.CreateBanner(_adUnitIDBanner, adViewConfiguration);
             MaxSdk.SetBannerBackgroundColor(_adUnitIDBanner, color);
 
             MaxSdkCallbacks.Banner.OnAdLoadedEvent      += OnBannerAdLoadedEvent;
@@ -204,7 +221,6 @@ namespace com.noctuagames.sdk.AppLovin
                 extraPayload ??= new Dictionary<string, IConvertible>();
 
                 // Add basic information that doesn't require the ad info
-                extraPayload.Add("mediation_service", "applovin");
                 extraPayload.Add("ad_unit_id", adUnitId ?? _adUnitIDBanner ?? "unknown");
                 
                 // Add ad info if available
