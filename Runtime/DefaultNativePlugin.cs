@@ -153,6 +153,7 @@ namespace com.noctuagames.sdk
         public void SaveEvents(string jsonString)
         {
             
+            throw new NotImplementedException();
         }
 
         public void GetEvents(Action<List<string>> callback)
@@ -162,7 +163,7 @@ namespace com.noctuagames.sdk
 
         public void DeleteEvents()
         {
-           
+            throw new NotImplementedException();
         }
     }
 }
