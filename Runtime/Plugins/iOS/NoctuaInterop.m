@@ -329,5 +329,31 @@ void noctuaGetAdjustAttribution(AdjustAttributionCallbackDelegate callback) {
     }];
 }
 
+typedef void (*GetEventsCallbackDelegate)(const char* eventsJson);
+void noctuaGetEvents(GetEventsCallbackDelegate callback) {
+    [Noctua getEventsOnResult:^(NSArray<NSString *> * _Nonnull events)
+    {
+        NSError *error;
+        NSData *jsonData = [NSJSONSerialization dataWithJSONObject:events options:0 error:&error];
+        if (!jsonData) {
+            NSLog(@"Error serializing events to JSON: %@", error);
+            callback(NULL);
+            return;
+        }
+        NSString *jsonString = [[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding];
+        callback([jsonString UTF8String]);
+    }];
+}
+
+void noctuaSaveEvents(const char* eventsJson) {
+    NSString *eventsJsonStr = [NSString stringWithUTF8String:eventsJson];
+    [Noctua saveEventsWithJsonString:eventsJsonStr];
+}
+
+void noctuaDeleteEvents() {
+    [Noctua deleteEvents];
+}
+
+
 
 

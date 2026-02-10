@@ -83,6 +83,14 @@ namespace com.noctuagames.sdk
         [DllImport("__Internal")]
         private static extern void noctuaGetAdjustAttribution(GetAdjustAttributionJsonCallbackDelegate callback);
 
+        [DllImport("__Internal")]
+        private static extern void noctuaSaveEvents(string eventsJson);
+
+        [DllImport("__Internal")]
+        private static extern void noctuaGetEvents(GetEventsCallbackDelegate callback);
+
+        [DllImport("__Internal")]
+        private static extern void noctuaDeleteEvents();
 
         // Store the callback to be used in the static methods
         private static Action<bool, string> storedCompletion;
@@ -95,6 +103,7 @@ namespace com.noctuagames.sdk
         private static Action<double> storedFirebaseRemoteConfigDoubleCompletion;
         private static Action<long> storedFirebaseRemoteConfigLongCompletion;
         private static Action<string> storedAdjustAttributionCallback;
+        private static Action<List<string>> storedGetEventsCompletion;
 
         // Define delegates for the native callbacks
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
@@ -127,6 +136,9 @@ namespace com.noctuagames.sdk
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
         private delegate void GetAdjustAttributionJsonCallbackDelegate(string json);
 
+
+        [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+        private delegate void GetEventsCallbackDelegate(IntPtr eventsJson);
 
         //Delegate for methods returning string values
         [AOT.MonoPInvokeCallback(typeof(CompletionDelegate))]
@@ -191,6 +203,34 @@ namespace com.noctuagames.sdk
             storedAdjustAttributionCallback = null;
         }
 
+        [AOT.MonoPInvokeCallback(typeof(GetEventsCallbackDelegate))]
+        private static void GetEventsCallback(IntPtr eventsJsonPtr)
+        {
+            try
+            {
+                if (eventsJsonPtr == IntPtr.Zero)
+                {
+                    storedGetEventsCompletion?.Invoke(new List<string>());
+                    return;
+                }
+
+                string json = Marshal.PtrToStringUTF8(eventsJsonPtr);
+
+                if (string.IsNullOrEmpty(json))
+                {
+                    storedGetEventsCompletion?.Invoke(new List<string>());
+                    return;
+                }
+
+                var list = JsonUtilityHelper.FromJsonArray<string>(json);
+                storedGetEventsCompletion?.Invoke(list);
+            }
+            catch (Exception e)
+            {
+                Debug.LogWarning($"[Noctua] GetEvents callback failed: {e.Message}");
+                storedGetEventsCompletion?.Invoke(new List<string>());
+            }
+        }
 
         public void Init(List<string> activeBundleIds)
         {
@@ -491,6 +531,47 @@ namespace com.noctuagames.sdk
                 callback?.Invoke(string.Empty);
             }
         }
+        
+        public void SaveEvents(string eventsJson)
+        {
+            noctuaSaveEvents(eventsJson);
+        }
+
+        public void GetEvents(Action<List<string>> callback)
+        {
+            try
+            {
+                storedGetEventsCompletion = callback;
+
+                noctuaGetEvents(GetEventsCallback);
+                _log.Debug("noctuaGetEvents called");
+            }
+            catch (Exception e)
+            {
+                _log.Warning($"GetEvents failed: {e.Message}");
+                callback?.Invoke(new List<string>());
+            }
+        }
+
+        public void DeleteEvents()
+        {
+            noctuaDeleteEvents();
+        }
     }
 #endif
+}
+
+public static class JsonUtilityHelper
+{
+    [Serializable]
+    private class Wrapper<T>
+    {
+        public List<T> items;
+    }
+
+    public static List<T> FromJsonArray<T>(string json)
+    {
+        var wrapped = $"{{\"items\":{json}}}";
+        return JsonUtility.FromJson<Wrapper<T>>(wrapped)?.items ?? new List<T>();
+    }
 }

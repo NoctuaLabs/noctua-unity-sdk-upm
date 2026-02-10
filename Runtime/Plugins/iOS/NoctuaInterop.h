@@ -7,6 +7,8 @@ void noctuaTrackCustomEvent(const char* eventName, const char* payloadJson);
 void noctuaTrackCustomEventWithRevenue(const char* eventName, double revenue, const char* currency, const char* payloadJson);
 void noctuaOnOnline();
 void noctuaOnOffline();
+void noctuaSaveEvents(const char* eventsJson);
+void noctuaDeleteEvents();
 
 typedef void (*PurchaseCompletionDelegate)(bool success, const char* message);
 void noctuaPurchaseItem(const char* productId, PurchaseCompletionDelegate callback);
@@ -28,4 +30,7 @@ typedef void (*GetFirebaseRemoteConfigLongCallbackDelegate)(long long configLong
 void noctuaGetFirebaseRemoteConfigLong(const char* key, GetFirebaseRemoteConfigLongCallbackDelegate callback);
 typedef void (*AdjustAttributionCallbackDelegate)(const char* jsonString);
 void noctuaGetAdjustAttribution(AdjustAttributionCallbackDelegate callback);
+typedef void (*GetEventsCallbackDelegate)(const char* eventsJson);
+void noctuaGetEvents(GetEventsCallbackDelegate callback);
+
 }
