@@ -8,6 +8,7 @@ namespace Tests.Runtime
 {
     public class AuthenticationTest
     {
+        [Ignore("Requires full SDK resources (NoctuaPanelSettings) and a live backend server.")]
         [UnityTest]
         public IEnumerator AccountChanged_RaiseEvent() => UniTask.ToCoroutine(async () =>
         {
@@ -39,6 +40,7 @@ namespace Tests.Runtime
             }
         });
 
+        [Ignore("Requires full SDK resources (NoctuaPanelSettings) and a live backend server.")]
         [UnityTest]
         public IEnumerator ExistingUser_SetLanguageFromLocale_RaiseOnLanguageChanged() => UniTask.ToCoroutine(async () =>
         {
