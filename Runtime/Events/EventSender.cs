@@ -153,101 +153,106 @@ namespace com.noctuagames.sdk.Events
             _uniqueId = null;
 #endif
 
-            LoadEventsFromPlayerPrefs();
+            // LoadEventsFromPlayerPrefs();
+
+            UniTask.Void(async () =>
+            {
+                await LoadEventsFromLocalStorageAsync();
+            });
         }
 
-        private void LoadEventsFromPlayerPrefs()
-        {
-            _log.Info("Loading NoctuaEvents from PlayerPrefs to event queue");
-            var eventsJson = PlayerPrefs.GetString("NoctuaEvents", "[]");
-            if (eventsJson == null)
-            {
-                eventsJson = "[]";
-            }
+        // private void LoadEventsFromPlayerPrefs()
+        // {
+        //     _log.Info("Loading NoctuaEvents from PlayerPrefs to event queue");
+        //     var eventsJson = PlayerPrefs.GetString("NoctuaEvents", "[]");
+        //     if (eventsJson == null)
+        //     {
+        //         eventsJson = "[]";
+        //     }
 
-            if (eventsJson.Length > 800000) // Around 1000 events
-            {
-                _log.Info("NoctuaEvents is too large, clearing it");
-                PlayerPrefs.SetString("NoctuaEvents", "[]");
-                PlayerPrefs.Save();
-                eventsJson = "[]";
-            }
+        //     if (eventsJson.Length > 800000) // Around 1000 events
+        //     {
+        //         _log.Info("NoctuaEvents is too large, clearing it");
+        //         PlayerPrefs.SetString("NoctuaEvents", "[]");
+        //         PlayerPrefs.Save();
+        //         eventsJson = "[]";
+        //     }
             
 
-            // Try to parse into IConvertible first because it is
-            // the native type of the queue.
-            // There will be nested try catch to make it safe.
-            var events = new List<Dictionary<string, IConvertible>>();
-            //_log.Debug(eventsJson);
-            try
-            {
-                events = JsonConvert.DeserializeObject<List<Dictionary<string, IConvertible>>>(eventsJson);
-            }
-            catch (Exception e)
-            {
-                events = new List<Dictionary<string, IConvertible>>();
-                _log.Warning($"Failed to load events from PlayerPrefs: {e.Message}.");
+        //     // Try to parse into IConvertible first because it is
+        //     // the native type of the queue.
+        //     // There will be nested try catch to make it safe.
+        //     var events = new List<Dictionary<string, IConvertible>>();
+        //     //_log.Debug(eventsJson);
+        //     try
+        //     {
+        //         events = JsonConvert.DeserializeObject<List<Dictionary<string, IConvertible>>>(eventsJson);
+        //     }
+        //     catch (Exception e)
+        //     {
+        //         events = new List<Dictionary<string, IConvertible>>();
+        //         _log.Warning($"Failed to load events from PlayerPrefs: {e.Message}.");
 
-                // If fail, try to parse to object.
-                // IConvertible cannot parse null value from JSON.
-                // Load from PlayerPrefs and re-enqueue them all
-                _log.Info("Try to parse NoctuaEvents with object type");
-                var objects = new List<Dictionary<string, object>>();
-                try
-                {
-                    objects = JsonConvert.DeserializeObject<List<Dictionary<string, object>>>(eventsJson);
-                }
-                catch (Exception e2)
-                {
-                    _log.Warning($"Failed to load events from PlayerPrefs: {e2.Message}");
-                    objects = new List<Dictionary<string, object>>();
-                }
-                if (objects == null)
-                {
-                    objects = new List<Dictionary<string, object>>();
-                }
-                foreach (var evt in objects)
-                {
-                    var dict = new Dictionary<string, IConvertible>();
-                    foreach (var (key, val) in evt)
-                    {
-                        if (val is IConvertible convertible)
-                        {
-                            dict[key] = convertible;
-                        }
-                        else
-                        {
-                            _log.Warning($"Event has non-convertible value for key {key} of value {val}");
-                        }
-                    }
+        //         // If fail, try to parse to object.
+        //         // IConvertible cannot parse null value from JSON.
+        //         // Load from PlayerPrefs and re-enqueue them all
+        //         _log.Info("Try to parse NoctuaEvents with object type");
+        //         var objects = new List<Dictionary<string, object>>();
+        //         try
+        //         {
+        //             objects = JsonConvert.DeserializeObject<List<Dictionary<string, object>>>(eventsJson);
+        //         }
+        //         catch (Exception e2)
+        //         {
+        //             _log.Warning($"Failed to load events from PlayerPrefs: {e2.Message}");
+        //             objects = new List<Dictionary<string, object>>();
+        //         }
+        //         if (objects == null)
+        //         {
+        //             objects = new List<Dictionary<string, object>>();
+        //         }
+        //         foreach (var evt in objects)
+        //         {
+        //             var dict = new Dictionary<string, IConvertible>();
+        //             foreach (var (key, val) in evt)
+        //             {
+        //                 if (val is IConvertible convertible)
+        //                 {
+        //                     dict[key] = convertible;
+        //                 }
+        //                 else
+        //                 {
+        //                     _log.Warning($"Event has non-convertible value for key {key} of value {val}");
+        //                 }
+        //             }
 
-                    // Per object iteration, add the dict to events list
-                    events.Add(dict);
-                }
-            }
-            if (events == null)
-            {
-                events = JsonConvert.DeserializeObject<List<Dictionary<string, IConvertible>>>(eventsJson);
-            }
-            _log.Info($"Total loaded events from PlayerPrefs: {events.Count}");
+        //             // Per object iteration, add the dict to events list
+        //             events.Add(dict);
+        //         }
+        //     }
+        //     if (events == null)
+        //     {
+        //         events = JsonConvert.DeserializeObject<List<Dictionary<string, IConvertible>>>(eventsJson);
+        //     }
+        //     _log.Info($"Total loaded events from PlayerPrefs: {events.Count}");
 
-            lock (_queueLock)
-            {
-                _log.Debug("Locking the event queue to prevent concurrent access");
-                _eventQueue = new List<Dictionary<string, IConvertible>>(events);
-            }
+        //     lock (_queueLock)
+        //     {
+        //         _log.Debug("Locking the event queue to prevent concurrent access");
+        //         _eventQueue = new List<Dictionary<string, IConvertible>>(events);
+        //     }
 
-            _log.Info($"Total loaded events from PlayerPrefs: {_eventQueue.Count}");
-        }
+        //     _log.Info($"Total loaded events from PlayerPrefs: {_eventQueue.Count}");
+        // }
 
         public void Send(string name, Dictionary<string, IConvertible> data = null)
         {
 
-            if (_eventQueue.Count > 1000)
-            {
-                _log.Warning($"Event queue is full ({_eventQueue.Count}), ignore this event {name}");
-                return;
-            }
+            // if (_eventQueue.Count > 1000)
+            // {
+            //     _log.Warning($"Event queue is full ({_eventQueue.Count}), ignore this event {name}");
+            //     return;
+            // }
 
             data ??= new Dictionary<string, IConvertible>();
 
@@ -395,10 +400,10 @@ namespace com.noctuagames.sdk.Events
                 lock (_queueLock)
                 {
                     _eventQueue.Add(data);
+                    PersistQueueToLocalStorage();
 
-
-                    PlayerPrefs.SetString("NoctuaEvents", JsonConvert.SerializeObject(_eventQueue));
-                    PlayerPrefs.Save();
+                    // PlayerPrefs.SetString("NoctuaEvents", JsonConvert.SerializeObject(_eventQueue));
+                    // PlayerPrefs.Save();
                     _log.Info($"{name} added to the queue. Current total event in queue: {_eventQueue.Count}");
                 }
               
@@ -493,14 +498,17 @@ namespace com.noctuagames.sdk.Events
                     await request.Send<EventResponse>();
                     // All dequeued events is sent successfuly to server,
                     // then it's safe to remove all items from PlayerPrefs
-                    PlayerPrefs.SetString("NoctuaEvents", "[]");
-                    PlayerPrefs.Save();
+                    // PlayerPrefs.SetString("NoctuaEvents", "[]");
+                    // PlayerPrefs.Save();
 
                     lock (_queueLock)
                     {
                         // Clear the event queue
                         _eventQueue.Clear();
                     }
+
+                    ClearLocalStorage();
+
                     _log.Info($"Sent {_eventQueue.Count} events. PlayerPrefs cleared.");
                 }
                 catch (Exception e)
@@ -597,6 +605,12 @@ namespace com.noctuagames.sdk.Events
                         .WithNdjsonBody(events);
 
                     await request.Send<EventResponse>();
+                    
+                    lock (_queueLock)
+                    {
+                        PersistQueueToLocalStorage();
+                    }
+
                     _log.Info($"Sent {events.Count} events. Events in queue: {_eventQueue.Count}");
                 }
                 catch (Exception e)
@@ -608,6 +622,7 @@ namespace com.noctuagames.sdk.Events
                         _log.Info("Re-enqueueing events back to the queue due to failure");
                          // Re-enqueue all the events
                         _eventQueue.AddRange(events);
+                        PersistQueueToLocalStorage();
                     }
                 }
             }
@@ -696,5 +711,75 @@ namespace com.noctuagames.sdk.Events
             return locValue;
         }
 
+        private async UniTask LoadEventsFromLocalStorageAsync()
+        {
+            _log.Info("Loading NoctuaEvents from native local storage");
+
+            List<string> storedEvents;
+            try
+            {
+                storedEvents = await Noctua.GetEventsAsync();
+            }
+            catch (Exception e)
+            {
+                _log.Warning($"Failed to load events from local storage: {e.Message}");
+                storedEvents = new List<string>();
+            }
+
+            var events = new List<Dictionary<string, IConvertible>>();
+
+            foreach (var json in storedEvents)
+            {
+                try
+                {
+                    var evt = JsonConvert.DeserializeObject<Dictionary<string, IConvertible>>(json);
+                    if (evt != null)
+                    {
+                        events.Add(evt);
+                    }
+                }
+                catch (Exception e)
+                {
+                    _log.Warning($"Failed to parse stored event: {e.Message}");
+                }
+            }
+
+            lock (_queueLock)
+            {
+                _eventQueue = new List<Dictionary<string, IConvertible>>(events);
+            }
+
+            _log.Info($"Total loaded events from local storage: {_eventQueue.Count}");
+        }
+
+        private void PersistQueueToLocalStorage()
+        {
+            try
+            {
+                var jsonList = _eventQueue
+                    .Select(e => JsonConvert.SerializeObject(e))
+                    .ToList();
+
+                var payload = JsonConvert.SerializeObject(jsonList);
+                Noctua.SaveEvents(payload);
+            }
+            catch (Exception e)
+            {
+                _log.Warning($"Failed to persist events to local storage: {e.Message}");
+            }
+        }
+
+        private void ClearLocalStorage()
+        {
+            try
+            {
+                Noctua.DeleteEvents();
+            }
+            catch (Exception e)
+            {
+                _log.Warning($"Failed to clear local storage: {e.Message}");
+            }
+        }
     }
+    
 }

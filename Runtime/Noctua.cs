@@ -1444,6 +1444,60 @@ namespace com.noctuagames.sdk
 
 
         /// <summary>
+        /// Save events to native plugin where supported.
+        /// </summary>
+        public static void SaveEvents(string jsonString)
+        {
+           try
+           {
+              Instance.Value._nativePlugin.SaveEvents(jsonString);
+           }
+           catch (Exception ex)
+           {
+               Instance.Value._log.Warning("SaveEvents exception: " + ex.Message);
+           }
+        }
+
+        /// <summary>
+        /// Get saved events from native plugin asynchronously where supported.
+        /// </summary>
+        /// <returns>A task that resolves to the list of saved events.</returns>
+       public static Task<List<string>> GetEventsAsync()
+        {
+            var tcs = new TaskCompletionSource<List<string>>();
+
+            try
+            {
+                Instance.Value._nativePlugin.GetEvents(events =>
+                {
+                    tcs.SetResult(events);
+                });
+            }
+            catch (Exception ex)
+            {
+                Instance.Value._log.Warning("GetEvents exception: " + ex.Message);
+                tcs.SetResult(new List<string>());
+            }
+
+            return tcs.Task;
+        }
+
+        /// <summary>
+        /// Delete saved events from native plugin where supported.
+        /// </summary>
+        public static void DeleteEvents()
+        {
+           try
+           {
+              Instance.Value._nativePlugin.DeleteEvents();
+           }
+           catch (Exception ex)
+           {
+               Instance.Value._log.Warning("DeleteEvents exception: " + ex.Message);
+           }
+        }
+
+        /// <summary>
         /// Returns whether this is the first open of the app (and sets the flag when it is).
         /// </summary>
         /// <returns><c>true</c> if first open; otherwise <c>false</c>.</returns>

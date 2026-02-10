@@ -149,5 +149,20 @@ namespace com.noctuagames.sdk
         {
             callback?.Invoke(string.Empty);
         }
+
+        public void SaveEvents(string jsonString)
+        {
+            throw new NotImplementedException();
+        }
+
+        public void GetEvents(Action<List<string>> callback)
+        {
+            throw new NotImplementedException();
+        }
+
+        public void DeleteEvents()
+        {
+            throw new NotImplementedException();
+        }
     }
 }
