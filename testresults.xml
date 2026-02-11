@@ -1,0 +1,1175 @@
+<?xml version="1.0" encoding="utf-8"?>
+<test-run id="2" testcasecount="143" result="Skipped:Ignored" total="143" passed="119" failed="0" inconclusive="0" skipped="24" asserts="0" engine-version="3.5.0.0" clr-version="4.0.30319.42000" start-time="2026-02-11 07:51:15Z" end-time="2026-02-11 07:51:56Z" duration="40.856904">
+  <test-suite type="TestSuite" id="1163" name="noctua-sdk-test-project" fullname="noctua-sdk-test-project" runstate="Runnable" testcasecount="143" result="Skipped" label="Ignored" start-time="2026-02-11 07:51:15Z" end-time="2026-02-11 07:51:56Z" duration="40.856904" total="143" passed="119" failed="0" inconclusive="0" skipped="24" asserts="0">
+    <properties>
+      <property name="platform" value="PlayMode" />
+    </properties>
+    <reason>
+      <message><![CDATA[One or more child tests were ignored]]></message>
+    </reason>
+    <test-suite type="Assembly" id="1159" name="com.noctuagames.sdk.Tests.dll" fullname="/private/var/folders/lj/30_x0hd94hzcv_n20cbvrhb40000gn/T/tmp.cvcCk8OMdU/TestProject/Library/ScriptAssemblies/com.noctuagames.sdk.Tests.dll" runstate="Runnable" testcasecount="143" result="Skipped" label="Ignored" start-time="2026-02-11 07:51:15Z" end-time="2026-02-11 07:51:56Z" duration="40.852624" total="143" passed="119" failed="0" inconclusive="0" skipped="24" asserts="0">
+      <properties>
+        <property name="_PID" value="12443" />
+        <property name="_APPDOMAIN" value="Unity Child Domain" />
+        <property name="platform" value="PlayMode" />
+        <property name="EditorOnly" value="False" />
+      </properties>
+      <reason>
+        <message><![CDATA[One or more child tests were ignored]]></message>
+      </reason>
+      <test-suite type="TestFixture" id="1001" name="LoadEventsTests" fullname="LoadEventsTests" classname="LoadEventsTests" runstate="Runnable" testcasecount="4" result="Skipped" label="Ignored" start-time="2026-02-11 07:51:15Z" end-time="2026-02-11 07:51:35Z" duration="19.452145" total="4" passed="3" failed="0" inconclusive="0" skipped="1" asserts="0">
+        <properties />
+        <reason>
+          <message><![CDATA[One or more child tests were ignored]]></message>
+        </reason>
+        <test-suite type="ParameterizedMethod" id="1005" name="Test_LoadEvents_Performance" fullname="LoadEventsTests.Test_LoadEvents_Performance" classname="LoadEventsTests" runstate="Runnable" testcasecount="3" result="Passed" start-time="2026-02-11 07:51:15Z" end-time="2026-02-11 07:51:35Z" duration="19.448924" total="3" passed="3" failed="0" inconclusive="0" skipped="0" asserts="0">
+          <properties />
+          <test-case id="1002" name="Test_LoadEvents_Performance(100000)" fullname="LoadEventsTests.Test_LoadEvents_Performance(100000)" methodname="Test_LoadEvents_Performance" classname="LoadEventsTests" runstate="Runnable" seed="363779417" result="Passed" start-time="2026-02-11 07:51:15Z" end-time="2026-02-11 07:51:15Z" duration="0.185643" asserts="0">
+            <properties>
+              <property name="retryIteration" value="0" />
+              <property name="repeatIteration" value="0" />
+            </properties>
+            <output><![CDATA[--- Testing LoadEventsFromPlayerPrefs with 100,000 events ---
+LoadEventsFromPlayerPrefs finished in 0.01 seconds
+]]></output>
+          </test-case>
+          <test-case id="1003" name="Test_LoadEvents_Performance(1000000)" fullname="LoadEventsTests.Test_LoadEvents_Performance(1000000)" methodname="Test_LoadEvents_Performance" classname="LoadEventsTests" runstate="Runnable" seed="1692951398" result="Passed" start-time="2026-02-11 07:51:15Z" end-time="2026-02-11 07:51:17Z" duration="1.734588" asserts="0">
+            <properties>
+              <property name="retryIteration" value="0" />
+              <property name="repeatIteration" value="0" />
+            </properties>
+            <output><![CDATA[--- Testing LoadEventsFromPlayerPrefs with 1,000,000 events ---
+LoadEventsFromPlayerPrefs finished in 0.06 seconds
+]]></output>
+          </test-case>
+          <test-case id="1004" name="Test_LoadEvents_Performance(10000000)" fullname="LoadEventsTests.Test_LoadEvents_Performance(10000000)" methodname="Test_LoadEvents_Performance" classname="LoadEventsTests" runstate="Runnable" seed="2133843178" result="Passed" start-time="2026-02-11 07:51:17Z" end-time="2026-02-11 07:51:35Z" duration="17.513515" asserts="0">
+            <properties>
+              <property name="retryIteration" value="0" />
+              <property name="repeatIteration" value="0" />
+            </properties>
+            <output><![CDATA[--- Testing LoadEventsFromPlayerPrefs with 10,000,000 events ---
+LoadEventsFromPlayerPrefs finished in 0.53 seconds
+]]></output>
+          </test-case>
+        </test-suite>
+        <test-suite type="ParameterizedMethod" id="1007" name="Test_LoadEvents_Performance_Extreme" fullname="LoadEventsTests.Test_LoadEvents_Performance_Extreme" classname="LoadEventsTests" runstate="Ignored" testcasecount="1" result="Skipped" label="Ignored" site="SetUp" start-time="2026-02-11 07:51:35Z" end-time="2026-02-11 07:51:35Z" duration="0.001286" total="1" passed="0" failed="0" inconclusive="0" skipped="1" asserts="0">
+          <properties>
+            <property name="_SKIPREASON" value="Causes OutOfMemoryException - 1 billion events exceeds available test memory" />
+          </properties>
+          <reason>
+            <message><![CDATA[Causes OutOfMemoryException - 1 billion events exceeds available test memory]]></message>
+          </reason>
+          <test-case id="1006" name="Test_LoadEvents_Performance_Extreme(1000000000)" fullname="LoadEventsTests.Test_LoadEvents_Performance_Extreme(1000000000)" methodname="Test_LoadEvents_Performance_Extreme" classname="LoadEventsTests" runstate="Runnable" seed="1069319196" result="Skipped" label="Ignored" site="Parent" start-time="0001-01-01 00:00:00Z" end-time="0001-01-01 00:00:00Z" duration="0.000000" asserts="0">
+            <properties />
+            <reason>
+              <message><![CDATA[Causes OutOfMemoryException - 1 billion events exceeds available test memory]]></message>
+            </reason>
+          </test-case>
+        </test-suite>
+      </test-suite>
+      <test-suite type="TestFixture" id="1008" name="NoctuaEventStressTests" fullname="NoctuaEventStressTests" classname="NoctuaEventStressTests" runstate="Runnable" testcasecount="4" result="Skipped" label="Ignored" start-time="2026-02-11 07:51:35Z" end-time="2026-02-11 07:51:35Z" duration="0.010815" total="4" passed="0" failed="0" inconclusive="0" skipped="4" asserts="0">
+        <properties />
+        <reason>
+          <message><![CDATA[One or more child tests were ignored]]></message>
+        </reason>
+        <test-case id="1009" name="StressTest_1000_Events" fullname="NoctuaEventStressTests.StressTest_1000_Events" methodname="StressTest_1000_Events" classname="NoctuaEventStressTests" runstate="Ignored" seed="698350360" result="Skipped" label="Ignored" start-time="2026-02-11 07:51:35Z" end-time="2026-02-11 07:51:35Z" duration="0.000359" asserts="0">
+          <properties>
+            <property name="_JOINTYPE" value="UnityCombinatorial" />
+            <property name="_SKIPREASON" value="NullReferenceException in Setup - Noctua.InitAsync() doesn't fully initialize test dependencies" />
+          </properties>
+          <reason>
+            <message><![CDATA[NullReferenceException in Setup - Noctua.InitAsync() doesn't fully initialize test dependencies]]></message>
+          </reason>
+        </test-case>
+        <test-case id="1011" name="StressTest_10000_Events" fullname="NoctuaEventStressTests.StressTest_10000_Events" methodname="StressTest_10000_Events" classname="NoctuaEventStressTests" runstate="Ignored" seed="1969303468" result="Skipped" label="Ignored" start-time="2026-02-11 07:51:35Z" end-time="2026-02-11 07:51:35Z" duration="0.000003" asserts="0">
+          <properties>
+            <property name="_JOINTYPE" value="UnityCombinatorial" />
+            <property name="_SKIPREASON" value="NullReferenceException in Setup - Noctua.InitAsync() doesn't fully initialize test dependencies" />
+          </properties>
+          <reason>
+            <message><![CDATA[NullReferenceException in Setup - Noctua.InitAsync() doesn't fully initialize test dependencies]]></message>
+          </reason>
+        </test-case>
+        <test-case id="1012" name="StressTest_100000_Events" fullname="NoctuaEventStressTests.StressTest_100000_Events" methodname="StressTest_100000_Events" classname="NoctuaEventStressTests" runstate="Ignored" seed="873934015" result="Skipped" label="Ignored" start-time="2026-02-11 07:51:35Z" end-time="2026-02-11 07:51:35Z" duration="0.000009" asserts="0">
+          <properties>
+            <property name="_JOINTYPE" value="UnityCombinatorial" />
+            <property name="_SKIPREASON" value="NullReferenceException in Setup - Noctua.InitAsync() doesn't fully initialize test dependencies" />
+          </properties>
+          <reason>
+            <message><![CDATA[NullReferenceException in Setup - Noctua.InitAsync() doesn't fully initialize test dependencies]]></message>
+          </reason>
+        </test-case>
+        <test-case id="1010" name="StressTest_5000_Events" fullname="NoctuaEventStressTests.StressTest_5000_Events" methodname="StressTest_5000_Events" classname="NoctuaEventStressTests" runstate="Ignored" seed="1675199211" result="Skipped" label="Ignored" start-time="2026-02-11 07:51:35Z" end-time="2026-02-11 07:51:35Z" duration="0.000001" asserts="0">
+          <properties>
+            <property name="_JOINTYPE" value="UnityCombinatorial" />
+            <property name="_SKIPREASON" value="NullReferenceException in Setup - Noctua.InitAsync() doesn't fully initialize test dependencies" />
+          </properties>
+          <reason>
+            <message><![CDATA[NullReferenceException in Setup - Noctua.InitAsync() doesn't fully initialize test dependencies]]></message>
+          </reason>
+        </test-case>
+      </test-suite>
+      <test-suite type="TestSuite" id="1160" name="Tests" fullname="Tests" runstate="Runnable" testcasecount="135" result="Skipped" label="Ignored" start-time="2026-02-11 07:51:35Z" end-time="2026-02-11 07:51:56Z" duration="21.389027" total="135" passed="116" failed="0" inconclusive="0" skipped="19" asserts="0">
+        <properties />
+        <reason>
+          <message><![CDATA[One or more child tests were ignored]]></message>
+        </reason>
+        <test-suite type="TestSuite" id="1161" name="Runtime" fullname="Tests.Runtime" runstate="Runnable" testcasecount="135" result="Skipped" label="Ignored" start-time="2026-02-11 07:51:35Z" end-time="2026-02-11 07:51:56Z" duration="21.385593" total="135" passed="116" failed="0" inconclusive="0" skipped="19" asserts="0">
+          <properties />
+          <reason>
+            <message><![CDATA[One or more child tests were ignored]]></message>
+          </reason>
+          <test-suite type="TestFixture" id="1013" name="AccountContainerTest" fullname="Tests.Runtime.AccountContainerTest" classname="Tests.Runtime.AccountContainerTest" runstate="Runnable" testcasecount="14" result="Passed" start-time="2026-02-11 07:51:35Z" end-time="2026-02-11 07:51:35Z" duration="0.145944" total="14" passed="14" failed="0" inconclusive="0" skipped="0" asserts="0">
+            <properties />
+            <test-case id="1026" name="ContainerWithAccountsFromDifferentGames_LoadAccounts_SortedByLastUpdated" fullname="Tests.Runtime.AccountContainerTest.ContainerWithAccountsFromDifferentGames_LoadAccounts_SortedByLastUpdated" methodname="ContainerWithAccountsFromDifferentGames_LoadAccounts_SortedByLastUpdated" classname="Tests.Runtime.AccountContainerTest" runstate="Runnable" seed="27136896" result="Passed" start-time="2026-02-11 07:51:35Z" end-time="2026-02-11 07:51:35Z" duration="0.031073" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1024" name="ContainerWithAccountsFromDifferentGames_ResetAccounts_OnlyDeletesCurrentGameButClearsMemory" fullname="Tests.Runtime.AccountContainerTest.ContainerWithAccountsFromDifferentGames_ResetAccounts_OnlyDeletesCurrentGameButClearsMemory" methodname="ContainerWithAccountsFromDifferentGames_ResetAccounts_OnlyDeletesCurrentGameButClearsMemory" classname="Tests.Runtime.AccountContainerTest" runstate="Runnable" seed="586033675" result="Passed" start-time="2026-02-11 07:51:35Z" end-time="2026-02-11 07:51:35Z" duration="0.046820" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1027" name="ContainerWithAccountsFromTheSameUsers_LoadAccounts_UseLatestUserData" fullname="Tests.Runtime.AccountContainerTest.ContainerWithAccountsFromTheSameUsers_LoadAccounts_UseLatestUserData" methodname="ContainerWithAccountsFromTheSameUsers_LoadAccounts_UseLatestUserData" classname="Tests.Runtime.AccountContainerTest" runstate="Runnable" seed="2012745572" result="Passed" start-time="2026-02-11 07:51:35Z" end-time="2026-02-11 07:51:35Z" duration="0.000856" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1017" name="ContainerWithGuestAccount_AddAccountWithTheSamePlayer_GuestRemoved" fullname="Tests.Runtime.AccountContainerTest.ContainerWithGuestAccount_AddAccountWithTheSamePlayer_GuestRemoved" methodname="ContainerWithGuestAccount_AddAccountWithTheSamePlayer_GuestRemoved" classname="Tests.Runtime.AccountContainerTest" runstate="Runnable" seed="1615011041" result="Passed" start-time="2026-02-11 07:51:35Z" end-time="2026-02-11 07:51:35Z" duration="0.011557" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1025" name="ContainerWithGuestAccountsInDifferentGames_AccountIsNotLoaded" fullname="Tests.Runtime.AccountContainerTest.ContainerWithGuestAccountsInDifferentGames_AccountIsNotLoaded" methodname="ContainerWithGuestAccountsInDifferentGames_AccountIsNotLoaded" classname="Tests.Runtime.AccountContainerTest" runstate="Runnable" seed="23348076" result="Passed" start-time="2026-02-11 07:51:35Z" end-time="2026-02-11 07:51:35Z" duration="0.001563" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1020" name="ContainerWithRecentAccount_AddAccountFromThisGame_AccountIsRecent" fullname="Tests.Runtime.AccountContainerTest.ContainerWithRecentAccount_AddAccountFromThisGame_AccountIsRecent" methodname="ContainerWithRecentAccount_AddAccountFromThisGame_AccountIsRecent" classname="Tests.Runtime.AccountContainerTest" runstate="Runnable" seed="619739042" result="Passed" start-time="2026-02-11 07:51:35Z" end-time="2026-02-11 07:51:35Z" duration="0.010779" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1023" name="ContainerWithRecentAccount_AddGuestFromThisGame_AccountIsGuestAndRecent" fullname="Tests.Runtime.AccountContainerTest.ContainerWithRecentAccount_AddGuestFromThisGame_AccountIsGuestAndRecent" methodname="ContainerWithRecentAccount_AddGuestFromThisGame_AccountIsGuestAndRecent" classname="Tests.Runtime.AccountContainerTest" runstate="Runnable" seed="1415106290" result="Passed" start-time="2026-02-11 07:51:35Z" end-time="2026-02-11 07:51:35Z" duration="0.010797" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1021" name="ContainerWithRecentAccount_AddSameUserFromOtherGame_AddedToPlayerAccounts" fullname="Tests.Runtime.AccountContainerTest.ContainerWithRecentAccount_AddSameUserFromOtherGame_AddedToPlayerAccounts" methodname="ContainerWithRecentAccount_AddSameUserFromOtherGame_AddedToPlayerAccounts" classname="Tests.Runtime.AccountContainerTest" runstate="Runnable" seed="2011004582" result="Passed" start-time="2026-02-11 07:51:35Z" end-time="2026-02-11 07:51:35Z" duration="0.010860" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1022" name="ContainerWithRecentAccount_AddSameUserFromThisGame_PlayerUpdated" fullname="Tests.Runtime.AccountContainerTest.ContainerWithRecentAccount_AddSameUserFromThisGame_PlayerUpdated" methodname="ContainerWithRecentAccount_AddSameUserFromThisGame_PlayerUpdated" classname="Tests.Runtime.AccountContainerTest" runstate="Runnable" seed="1741779992" result="Passed" start-time="2026-02-11 07:51:35Z" end-time="2026-02-11 07:51:35Z" duration="0.010774" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1019" name="EmptyContainer_AddAccountFromOtherGame_AccountIsNotRecentAndPlayerIsNull" fullname="Tests.Runtime.AccountContainerTest.EmptyContainer_AddAccountFromOtherGame_AccountIsNotRecentAndPlayerIsNull" methodname="EmptyContainer_AddAccountFromOtherGame_AccountIsNotRecentAndPlayerIsNull" classname="Tests.Runtime.AccountContainerTest" runstate="Runnable" seed="515086868" result="Passed" start-time="2026-02-11 07:51:35Z" end-time="2026-02-11 07:51:35Z" duration="0.001036" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1018" name="EmptyContainer_AddAccountFromThisGame_AccountIsRecent" fullname="Tests.Runtime.AccountContainerTest.EmptyContainer_AddAccountFromThisGame_AccountIsRecent" methodname="EmptyContainer_AddAccountFromThisGame_AccountIsRecent" classname="Tests.Runtime.AccountContainerTest" runstate="Runnable" seed="1020832107" result="Passed" start-time="2026-02-11 07:51:35Z" end-time="2026-02-11 07:51:35Z" duration="0.000857" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1016" name="EmptyContainer_AddGuestAccount_AccountIsRecent" fullname="Tests.Runtime.AccountContainerTest.EmptyContainer_AddGuestAccount_AccountIsRecent" methodname="EmptyContainer_AddGuestAccount_AccountIsRecent" classname="Tests.Runtime.AccountContainerTest" runstate="Runnable" seed="925427082" result="Passed" start-time="2026-02-11 07:51:35Z" end-time="2026-02-11 07:51:35Z" duration="0.000896" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1015" name="EmptyContainer_LoadAccountsWithDuplicates_SkippedDuplicates" fullname="Tests.Runtime.AccountContainerTest.EmptyContainer_LoadAccountsWithDuplicates_SkippedDuplicates" methodname="EmptyContainer_LoadAccountsWithDuplicates_SkippedDuplicates" classname="Tests.Runtime.AccountContainerTest" runstate="Runnable" seed="1560982492" result="Passed" start-time="2026-02-11 07:51:35Z" end-time="2026-02-11 07:51:35Z" duration="0.000819" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1014" name="EmptyContainer_NoAccountsAndNoRecentAccount" fullname="Tests.Runtime.AccountContainerTest.EmptyContainer_NoAccountsAndNoRecentAccount" methodname="EmptyContainer_NoAccountsAndNoRecentAccount" classname="Tests.Runtime.AccountContainerTest" runstate="Runnable" seed="1747207044" result="Passed" start-time="2026-02-11 07:51:35Z" end-time="2026-02-11 07:51:35Z" duration="0.000821" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+          </test-suite>
+          <test-suite type="TestFixture" id="1028" name="AccountStoreWithFallbackTest" fullname="Tests.Runtime.AccountStoreWithFallbackTest" classname="Tests.Runtime.AccountStoreWithFallbackTest" runstate="Runnable" testcasecount="7" result="Skipped" label="Ignored" start-time="2026-02-11 07:51:35Z" end-time="2026-02-11 07:51:35Z" duration="0.347395" total="7" passed="6" failed="0" inconclusive="0" skipped="1" asserts="0">
+            <properties />
+            <reason>
+              <message><![CDATA[One or more child tests were ignored]]></message>
+            </reason>
+            <test-case id="1031" name="AccountStoreWithFallback_OnFail1x_DontSwitchToPlayerPrefs" fullname="Tests.Runtime.AccountStoreWithFallbackTest.AccountStoreWithFallback_OnFail1x_DontSwitchToPlayerPrefs" methodname="AccountStoreWithFallback_OnFail1x_DontSwitchToPlayerPrefs" classname="Tests.Runtime.AccountStoreWithFallbackTest" runstate="Runnable" seed="881386825" result="Passed" start-time="2026-02-11 07:51:35Z" end-time="2026-02-11 07:51:35Z" duration="0.001348" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1032" name="AccountStoreWithFallback_OnFail2x_SwitchToPlayerPrefs" fullname="Tests.Runtime.AccountStoreWithFallbackTest.AccountStoreWithFallback_OnFail2x_SwitchToPlayerPrefs" methodname="AccountStoreWithFallback_OnFail2x_SwitchToPlayerPrefs" classname="Tests.Runtime.AccountStoreWithFallbackTest" runstate="Runnable" seed="711718475" result="Passed" start-time="2026-02-11 07:51:35Z" end-time="2026-02-11 07:51:35Z" duration="0.112093" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1033" name="AccountStoreWithFallback_OnFail2xAfterSuccess_SwitchToPlayerPrefs" fullname="Tests.Runtime.AccountStoreWithFallbackTest.AccountStoreWithFallback_OnFail2xAfterSuccess_SwitchToPlayerPrefs" methodname="AccountStoreWithFallback_OnFail2xAfterSuccess_SwitchToPlayerPrefs" classname="Tests.Runtime.AccountStoreWithFallbackTest" runstate="Runnable" seed="969905891" result="Passed" start-time="2026-02-11 07:51:35Z" end-time="2026-02-11 07:51:35Z" duration="0.115112" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1029" name="AccountStoreWithFallback_OnThrowExceptionAtLoad_SwitchToPlayerPrefs" fullname="Tests.Runtime.AccountStoreWithFallbackTest.AccountStoreWithFallback_OnThrowExceptionAtLoad_SwitchToPlayerPrefs" methodname="AccountStoreWithFallback_OnThrowExceptionAtLoad_SwitchToPlayerPrefs" classname="Tests.Runtime.AccountStoreWithFallbackTest" runstate="Ignored" seed="1559907067" result="Skipped" label="Ignored" start-time="2026-02-11 07:51:35Z" end-time="2026-02-11 07:51:35Z" duration="0.000002" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="_SKIPREASON" value="Unhandled log message causes test failure - needs LogAssert.Expect for intentional error logs" />
+              </properties>
+              <reason>
+                <message><![CDATA[Unhandled log message causes test failure - needs LogAssert.Expect for intentional error logs]]></message>
+              </reason>
+            </test-case>
+            <test-case id="1030" name="AccountStoreWithFallback_OnThrowExceptionAtSave_SwitchToPlayerPrefs" fullname="Tests.Runtime.AccountStoreWithFallbackTest.AccountStoreWithFallback_OnThrowExceptionAtSave_SwitchToPlayerPrefs" methodname="AccountStoreWithFallback_OnThrowExceptionAtSave_SwitchToPlayerPrefs" classname="Tests.Runtime.AccountStoreWithFallbackTest" runstate="Runnable" seed="1007821365" result="Passed" start-time="2026-02-11 07:51:35Z" end-time="2026-02-11 07:51:35Z" duration="0.116074" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1035" name="AccountStoreWithFallback_UseFallbackAtStartup_NeverWritesToMainStore" fullname="Tests.Runtime.AccountStoreWithFallbackTest.AccountStoreWithFallback_UseFallbackAtStartup_NeverWritesToMainStore" methodname="AccountStoreWithFallback_UseFallbackAtStartup_NeverWritesToMainStore" classname="Tests.Runtime.AccountStoreWithFallbackTest" runstate="Runnable" seed="524252511" result="Passed" start-time="2026-02-11 07:51:35Z" end-time="2026-02-11 07:51:35Z" duration="0.000982" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1034" name="EmptyContainer_UpdatingPlayer_DontSwitchToFallback" fullname="Tests.Runtime.AccountStoreWithFallbackTest.EmptyContainer_UpdatingPlayer_DontSwitchToFallback" methodname="EmptyContainer_UpdatingPlayer_DontSwitchToFallback" classname="Tests.Runtime.AccountStoreWithFallbackTest" runstate="Runnable" seed="1188666454" result="Passed" start-time="2026-02-11 07:51:35Z" end-time="2026-02-11 07:51:35Z" duration="0.001027" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+          </test-suite>
+          <test-suite type="TestFixture" id="1036" name="AuthenticationTest" fullname="Tests.Runtime.AuthenticationTest" classname="Tests.Runtime.AuthenticationTest" runstate="Runnable" testcasecount="2" result="Skipped" label="Ignored" start-time="2026-02-11 07:51:35Z" end-time="2026-02-11 07:51:35Z" duration="0.000236" total="2" passed="0" failed="0" inconclusive="0" skipped="2" asserts="0">
+            <properties />
+            <reason>
+              <message><![CDATA[One or more child tests were ignored]]></message>
+            </reason>
+            <test-case id="1037" name="AccountChanged_RaiseEvent" fullname="Tests.Runtime.AuthenticationTest.AccountChanged_RaiseEvent" methodname="AccountChanged_RaiseEvent" classname="Tests.Runtime.AuthenticationTest" runstate="Ignored" seed="230627858" result="Skipped" label="Ignored" start-time="2026-02-11 07:51:35Z" end-time="2026-02-11 07:51:35Z" duration="0.000001" asserts="0">
+              <properties>
+                <property name="_SKIPREASON" value="Requires full SDK resources (NoctuaPanelSettings) and a live backend server." />
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+              </properties>
+              <reason>
+                <message><![CDATA[Requires full SDK resources (NoctuaPanelSettings) and a live backend server.]]></message>
+              </reason>
+            </test-case>
+            <test-case id="1038" name="ExistingUser_SetLanguageFromLocale_RaiseOnLanguageChanged" fullname="Tests.Runtime.AuthenticationTest.ExistingUser_SetLanguageFromLocale_RaiseOnLanguageChanged" methodname="ExistingUser_SetLanguageFromLocale_RaiseOnLanguageChanged" classname="Tests.Runtime.AuthenticationTest" runstate="Ignored" seed="612913511" result="Skipped" label="Ignored" start-time="2026-02-11 07:51:35Z" end-time="2026-02-11 07:51:35Z" duration="0.000001" asserts="0">
+              <properties>
+                <property name="_SKIPREASON" value="Requires full SDK resources (NoctuaPanelSettings) and a live backend server." />
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+              </properties>
+              <reason>
+                <message><![CDATA[Requires full SDK resources (NoctuaPanelSettings) and a live backend server.]]></message>
+              </reason>
+            </test-case>
+          </test-suite>
+          <test-suite type="TestFixture" id="1039" name="DefaultNativePluginTest" fullname="Tests.Runtime.DefaultNativePluginTest" classname="Tests.Runtime.DefaultNativePluginTest" runstate="Runnable" testcasecount="13" result="Skipped" label="Ignored" start-time="2026-02-11 07:51:35Z" end-time="2026-02-11 07:51:35Z" duration="0.011119" total="13" passed="12" failed="0" inconclusive="0" skipped="1" asserts="0">
+            <properties />
+            <reason>
+              <message><![CDATA[One or more child tests were ignored]]></message>
+            </reason>
+            <test-case id="1046" name="DeleteAccount_NonExistent_Returns1" fullname="Tests.Runtime.DefaultNativePluginTest.DeleteAccount_NonExistent_Returns1" methodname="DeleteAccount_NonExistent_Returns1" classname="Tests.Runtime.DefaultNativePluginTest" runstate="Runnable" seed="873688131" result="Passed" start-time="2026-02-11 07:51:35Z" end-time="2026-02-11 07:51:35Z" duration="0.000776" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1045" name="DeleteAccount_RemovesAccount" fullname="Tests.Runtime.DefaultNativePluginTest.DeleteAccount_RemovesAccount" methodname="DeleteAccount_RemovesAccount" classname="Tests.Runtime.DefaultNativePluginTest" runstate="Runnable" seed="1537657733" result="Passed" start-time="2026-02-11 07:51:35Z" end-time="2026-02-11 07:51:35Z" duration="0.000633" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1041" name="GetAccounts_CorruptJson_ReturnsEmptyList" fullname="Tests.Runtime.DefaultNativePluginTest.GetAccounts_CorruptJson_ReturnsEmptyList" methodname="GetAccounts_CorruptJson_ReturnsEmptyList" classname="Tests.Runtime.DefaultNativePluginTest" runstate="Ignored" seed="1724698681" result="Skipped" label="Ignored" start-time="2026-02-11 07:51:35Z" end-time="2026-02-11 07:51:35Z" duration="0.000001" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="_SKIPREASON" value="Unhandled log message causes test failure - needs LogAssert.Expect for intentional parse error logs" />
+              </properties>
+              <reason>
+                <message><![CDATA[Unhandled log message causes test failure - needs LogAssert.Expect for intentional parse error logs]]></message>
+              </reason>
+            </test-case>
+            <test-case id="1040" name="GetAccounts_Empty_ReturnsEmptyList" fullname="Tests.Runtime.DefaultNativePluginTest.GetAccounts_Empty_ReturnsEmptyList" methodname="GetAccounts_Empty_ReturnsEmptyList" classname="Tests.Runtime.DefaultNativePluginTest" runstate="Runnable" seed="148325994" result="Passed" start-time="2026-02-11 07:51:35Z" end-time="2026-02-11 07:51:35Z" duration="0.000646" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1051" name="GetAdjustAttribution_ReturnsEmpty" fullname="Tests.Runtime.DefaultNativePluginTest.GetAdjustAttribution_ReturnsEmpty" methodname="GetAdjustAttribution_ReturnsEmpty" classname="Tests.Runtime.DefaultNativePluginTest" runstate="Runnable" seed="1679178706" result="Passed" start-time="2026-02-11 07:51:35Z" end-time="2026-02-11 07:51:35Z" duration="0.000640" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1048" name="GetFirebaseRemoteConfigBoolean_ReturnsFalse" fullname="Tests.Runtime.DefaultNativePluginTest.GetFirebaseRemoteConfigBoolean_ReturnsFalse" methodname="GetFirebaseRemoteConfigBoolean_ReturnsFalse" classname="Tests.Runtime.DefaultNativePluginTest" runstate="Runnable" seed="1504606163" result="Passed" start-time="2026-02-11 07:51:35Z" end-time="2026-02-11 07:51:35Z" duration="0.001245" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1049" name="GetFirebaseRemoteConfigDouble_ReturnsZero" fullname="Tests.Runtime.DefaultNativePluginTest.GetFirebaseRemoteConfigDouble_ReturnsZero" methodname="GetFirebaseRemoteConfigDouble_ReturnsZero" classname="Tests.Runtime.DefaultNativePluginTest" runstate="Runnable" seed="1982427992" result="Passed" start-time="2026-02-11 07:51:35Z" end-time="2026-02-11 07:51:35Z" duration="0.000893" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1050" name="GetFirebaseRemoteConfigLong_ReturnsZero" fullname="Tests.Runtime.DefaultNativePluginTest.GetFirebaseRemoteConfigLong_ReturnsZero" methodname="GetFirebaseRemoteConfigLong_ReturnsZero" classname="Tests.Runtime.DefaultNativePluginTest" runstate="Runnable" seed="946812850" result="Passed" start-time="2026-02-11 07:51:35Z" end-time="2026-02-11 07:51:35Z" duration="0.000653" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1047" name="GetFirebaseRemoteConfigString_ReturnsEmpty" fullname="Tests.Runtime.DefaultNativePluginTest.GetFirebaseRemoteConfigString_ReturnsEmpty" methodname="GetFirebaseRemoteConfigString_ReturnsEmpty" classname="Tests.Runtime.DefaultNativePluginTest" runstate="Runnable" seed="1565654502" result="Passed" start-time="2026-02-11 07:51:35Z" end-time="2026-02-11 07:51:35Z" duration="0.000626" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1043" name="PutAccount_Duplicate_ReplacesExisting" fullname="Tests.Runtime.DefaultNativePluginTest.PutAccount_Duplicate_ReplacesExisting" methodname="PutAccount_Duplicate_ReplacesExisting" classname="Tests.Runtime.DefaultNativePluginTest" runstate="Runnable" seed="409244005" result="Passed" start-time="2026-02-11 07:51:35Z" end-time="2026-02-11 07:51:35Z" duration="0.000630" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1042" name="PutAccount_GetAccount_RoundTrip" fullname="Tests.Runtime.DefaultNativePluginTest.PutAccount_GetAccount_RoundTrip" methodname="PutAccount_GetAccount_RoundTrip" classname="Tests.Runtime.DefaultNativePluginTest" runstate="Runnable" seed="666362715" result="Passed" start-time="2026-02-11 07:51:35Z" end-time="2026-02-11 07:51:35Z" duration="0.001844" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1044" name="PutAccount_MultipleAccounts_AllStored" fullname="Tests.Runtime.DefaultNativePluginTest.PutAccount_MultipleAccounts_AllStored" methodname="PutAccount_MultipleAccounts_AllStored" classname="Tests.Runtime.DefaultNativePluginTest" runstate="Runnable" seed="639752511" result="Passed" start-time="2026-02-11 07:51:35Z" end-time="2026-02-11 07:51:35Z" duration="0.000663" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1052" name="ShowDatePicker_ThrowsNotImplementedException" fullname="Tests.Runtime.DefaultNativePluginTest.ShowDatePicker_ThrowsNotImplementedException" methodname="ShowDatePicker_ThrowsNotImplementedException" classname="Tests.Runtime.DefaultNativePluginTest" runstate="Runnable" seed="568756909" result="Passed" start-time="2026-02-11 07:51:35Z" end-time="2026-02-11 07:51:35Z" duration="0.000963" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+          </test-suite>
+          <test-suite type="TestFixture" id="1053" name="EventTest" fullname="Tests.Runtime.EventTest" classname="Tests.Runtime.EventTest" runstate="Runnable" testcasecount="15" result="Skipped" label="Ignored" start-time="2026-02-11 07:51:35Z" end-time="2026-02-11 07:51:35Z" duration="0.005245" total="15" passed="0" failed="0" inconclusive="0" skipped="15" asserts="0">
+            <properties />
+            <reason>
+              <message><![CDATA[One or more child tests were ignored]]></message>
+            </reason>
+            <output><![CDATA[HttpMockServer started.
+]]></output>
+            <test-case id="1061" name="LoginAsGuest_SendAuthenticatedEvent" fullname="Tests.Runtime.EventTest.LoginAsGuest_SendAuthenticatedEvent" methodname="LoginAsGuest_SendAuthenticatedEvent" classname="Tests.Runtime.EventTest" runstate="Ignored" seed="888420337" result="Skipped" label="Ignored" start-time="2026-02-11 07:51:35Z" end-time="2026-02-11 07:51:35Z" duration="0.000001" asserts="0">
+              <properties>
+                <property name="_SKIPREASON" value="NullReferenceException: NoctuaAuthenticationService API changed since tests were written" />
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+              </properties>
+              <reason>
+                <message><![CDATA[NullReferenceException: NoctuaAuthenticationService API changed since tests were written]]></message>
+              </reason>
+            </test-case>
+            <test-case id="1062" name="LoginAsGuest_ThenSendCustomEvent_UserIdAndPlayerIdAttached" fullname="Tests.Runtime.EventTest.LoginAsGuest_ThenSendCustomEvent_UserIdAndPlayerIdAttached" methodname="LoginAsGuest_ThenSendCustomEvent_UserIdAndPlayerIdAttached" classname="Tests.Runtime.EventTest" runstate="Ignored" seed="800189972" result="Skipped" label="Ignored" start-time="2026-02-11 07:51:35Z" end-time="2026-02-11 07:51:35Z" duration="0.000001" asserts="0">
+              <properties>
+                <property name="_SKIPREASON" value="NullReferenceException: NoctuaAuthenticationService API changed since tests were written" />
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+              </properties>
+              <reason>
+                <message><![CDATA[NullReferenceException: NoctuaAuthenticationService API changed since tests were written]]></message>
+              </reason>
+            </test-case>
+            <test-case id="1063" name="LoginWithEmailTwiceThenSwitch_SendThreeEvents" fullname="Tests.Runtime.EventTest.LoginWithEmailTwiceThenSwitch_SendThreeEvents" methodname="LoginWithEmailTwiceThenSwitch_SendThreeEvents" classname="Tests.Runtime.EventTest" runstate="Ignored" seed="974519124" result="Skipped" label="Ignored" start-time="2026-02-11 07:51:35Z" end-time="2026-02-11 07:51:35Z" duration="0.000001" asserts="0">
+              <properties>
+                <property name="_SKIPREASON" value="NullReferenceException: NoctuaAuthenticationService API changed since tests were written" />
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+              </properties>
+              <reason>
+                <message><![CDATA[NullReferenceException: NoctuaAuthenticationService API changed since tests were written]]></message>
+              </reason>
+            </test-case>
+            <test-case id="1054" name="SendAndEventToRealServer_ExpectSuccess" fullname="Tests.Runtime.EventTest.SendAndEventToRealServer_ExpectSuccess" methodname="SendAndEventToRealServer_ExpectSuccess" classname="Tests.Runtime.EventTest" runstate="Ignored" seed="494928259" result="Skipped" label="Ignored" start-time="2026-02-11 07:51:35Z" end-time="2026-02-11 07:51:35Z" duration="0.000001" asserts="0">
+              <properties>
+                <property name="_SKIPREASON" value="This test is ignored because it requires a real server." />
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+              </properties>
+              <reason>
+                <message><![CDATA[This test is ignored because it requires a real server.]]></message>
+              </reason>
+            </test-case>
+            <test-case id="1055" name="SendAnEvent_AllMandatoryFieldsAreIncluded" fullname="Tests.Runtime.EventTest.SendAnEvent_AllMandatoryFieldsAreIncluded" methodname="SendAnEvent_AllMandatoryFieldsAreIncluded" classname="Tests.Runtime.EventTest" runstate="Ignored" seed="2089947157" result="Skipped" label="Ignored" start-time="2026-02-11 07:51:35Z" end-time="2026-02-11 07:51:35Z" duration="0.000001" asserts="0">
+              <properties>
+                <property name="_SKIPREASON" value="NullReferenceException: EventSender API changed since tests were written" />
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+              </properties>
+              <reason>
+                <message><![CDATA[NullReferenceException: EventSender API changed since tests were written]]></message>
+              </reason>
+            </test-case>
+            <test-case id="1057" name="SendEvents_DontReachBatchingNumberThreshold_DontSendToServer" fullname="Tests.Runtime.EventTest.SendEvents_DontReachBatchingNumberThreshold_DontSendToServer" methodname="SendEvents_DontReachBatchingNumberThreshold_DontSendToServer" classname="Tests.Runtime.EventTest" runstate="Ignored" seed="940726132" result="Skipped" label="Ignored" start-time="2026-02-11 07:51:35Z" end-time="2026-02-11 07:51:35Z" duration="0.000001" asserts="0">
+              <properties>
+                <property name="_SKIPREASON" value="NullReferenceException: EventSender API changed since tests were written" />
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+              </properties>
+              <reason>
+                <message><![CDATA[NullReferenceException: EventSender API changed since tests were written]]></message>
+              </reason>
+            </test-case>
+            <test-case id="1058" name="SendEvents_DontReachBatchingNumberThresholdButFlushed_SendToServer" fullname="Tests.Runtime.EventTest.SendEvents_DontReachBatchingNumberThresholdButFlushed_SendToServer" methodname="SendEvents_DontReachBatchingNumberThresholdButFlushed_SendToServer" classname="Tests.Runtime.EventTest" runstate="Ignored" seed="970355869" result="Skipped" label="Ignored" start-time="2026-02-11 07:51:35Z" end-time="2026-02-11 07:51:35Z" duration="0.000001" asserts="0">
+              <properties>
+                <property name="_SKIPREASON" value="Flaky: event deduplication race condition causes count mismatch" />
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+              </properties>
+              <reason>
+                <message><![CDATA[Flaky: event deduplication race condition causes count mismatch]]></message>
+              </reason>
+            </test-case>
+            <test-case id="1059" name="SendEvents_ReachBatchingNumberThreshold_SendToServer" fullname="Tests.Runtime.EventTest.SendEvents_ReachBatchingNumberThreshold_SendToServer" methodname="SendEvents_ReachBatchingNumberThreshold_SendToServer" classname="Tests.Runtime.EventTest" runstate="Ignored" seed="2042456569" result="Skipped" label="Ignored" start-time="2026-02-11 07:51:35Z" end-time="2026-02-11 07:51:35Z" duration="0.000003" asserts="0">
+              <properties>
+                <property name="_SKIPREASON" value="Flaky: event deduplication race condition causes count mismatch" />
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+              </properties>
+              <reason>
+                <message><![CDATA[Flaky: event deduplication race condition causes count mismatch]]></message>
+              </reason>
+            </test-case>
+            <test-case id="1060" name="SendEvents_ReachBatchingTimeout_SendToServer" fullname="Tests.Runtime.EventTest.SendEvents_ReachBatchingTimeout_SendToServer" methodname="SendEvents_ReachBatchingTimeout_SendToServer" classname="Tests.Runtime.EventTest" runstate="Ignored" seed="388238315" result="Skipped" label="Ignored" start-time="2026-02-11 07:51:35Z" end-time="2026-02-11 07:51:35Z" duration="0.000001" asserts="0">
+              <properties>
+                <property name="_SKIPREASON" value="NullReferenceException: EventSender API changed since tests were written" />
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+              </properties>
+              <reason>
+                <message><![CDATA[NullReferenceException: EventSender API changed since tests were written]]></message>
+              </reason>
+            </test-case>
+            <test-case id="1065" name="SendEvents_SessionTrackerPaused_FlushedAndSendToServer" fullname="Tests.Runtime.EventTest.SendEvents_SessionTrackerPaused_FlushedAndSendToServer" methodname="SendEvents_SessionTrackerPaused_FlushedAndSendToServer" classname="Tests.Runtime.EventTest" runstate="Ignored" seed="1862397227" result="Skipped" label="Ignored" start-time="2026-02-11 07:51:35Z" end-time="2026-02-11 07:51:35Z" duration="0.000001" asserts="0">
+              <properties>
+                <property name="_SKIPREASON" value="NullReferenceException: EventSender API changed since tests were written" />
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+              </properties>
+              <reason>
+                <message><![CDATA[NullReferenceException: EventSender API changed since tests were written]]></message>
+              </reason>
+            </test-case>
+            <test-case id="1066" name="SessionTracker_NotStarted_NoEvents" fullname="Tests.Runtime.EventTest.SessionTracker_NotStarted_NoEvents" methodname="SessionTracker_NotStarted_NoEvents" classname="Tests.Runtime.EventTest" runstate="Ignored" seed="1765915300" result="Skipped" label="Ignored" start-time="2026-02-11 07:51:35Z" end-time="2026-02-11 07:51:35Z" duration="0.000001" asserts="0">
+              <properties>
+                <property name="_SKIPREASON" value="NullReferenceException: EventSender API changed since tests were written" />
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+              </properties>
+              <reason>
+                <message><![CDATA[NullReferenceException: EventSender API changed since tests were written]]></message>
+              </reason>
+            </test-case>
+            <test-case id="1067" name="SessionTracker_OnHeartbeatPeriod_SendHeartbeatEvent" fullname="Tests.Runtime.EventTest.SessionTracker_OnHeartbeatPeriod_SendHeartbeatEvent" methodname="SessionTracker_OnHeartbeatPeriod_SendHeartbeatEvent" classname="Tests.Runtime.EventTest" runstate="Ignored" seed="202971927" result="Skipped" label="Ignored" start-time="2026-02-11 07:51:35Z" end-time="2026-02-11 07:51:35Z" duration="0.000001" asserts="0">
+              <properties>
+                <property name="_SKIPREASON" value="NullReferenceException: EventSender API changed since tests were written" />
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+              </properties>
+              <reason>
+                <message><![CDATA[NullReferenceException: EventSender API changed since tests were written]]></message>
+              </reason>
+            </test-case>
+            <test-case id="1068" name="SessionTracker_OnSessionTimeout_EndSessionAndStartNewSession" fullname="Tests.Runtime.EventTest.SessionTracker_OnSessionTimeout_EndSessionAndStartNewSession" methodname="SessionTracker_OnSessionTimeout_EndSessionAndStartNewSession" classname="Tests.Runtime.EventTest" runstate="Ignored" seed="761578917" result="Skipped" label="Ignored" start-time="2026-02-11 07:51:35Z" end-time="2026-02-11 07:51:35Z" duration="0.000003" asserts="0">
+              <properties>
+                <property name="_SKIPREASON" value="NullReferenceException: EventSender API changed since tests were written" />
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+              </properties>
+              <reason>
+                <message><![CDATA[NullReferenceException: EventSender API changed since tests were written]]></message>
+              </reason>
+            </test-case>
+            <test-case id="1064" name="SessionTracker_OnStartPauseAndResume_SendStartPauseAndResumeEvents" fullname="Tests.Runtime.EventTest.SessionTracker_OnStartPauseAndResume_SendStartPauseAndResumeEvents" methodname="SessionTracker_OnStartPauseAndResume_SendStartPauseAndResumeEvents" classname="Tests.Runtime.EventTest" runstate="Ignored" seed="1654878585" result="Skipped" label="Ignored" start-time="2026-02-11 07:51:35Z" end-time="2026-02-11 07:51:35Z" duration="0.000001" asserts="0">
+              <properties>
+                <property name="_SKIPREASON" value="NullReferenceException: EventSender API changed since tests were written" />
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+              </properties>
+              <reason>
+                <message><![CDATA[NullReferenceException: EventSender API changed since tests were written]]></message>
+              </reason>
+            </test-case>
+            <test-case id="1056" name="SetAndClearProperties_EventPropertiesAffected" fullname="Tests.Runtime.EventTest.SetAndClearProperties_EventPropertiesAffected" methodname="SetAndClearProperties_EventPropertiesAffected" classname="Tests.Runtime.EventTest" runstate="Ignored" seed="1903059173" result="Skipped" label="Ignored" start-time="2026-02-11 07:51:35Z" end-time="2026-02-11 07:51:35Z" duration="0.000001" asserts="0">
+              <properties>
+                <property name="_SKIPREASON" value="NullReferenceException: EventSender API changed since tests were written" />
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+              </properties>
+              <reason>
+                <message><![CDATA[NullReferenceException: EventSender API changed since tests were written]]></message>
+              </reason>
+              <output><![CDATA[HttpMockServer stopped.
+]]></output>
+            </test-case>
+          </test-suite>
+          <test-suite type="TestFixture" id="1069" name="ExperimentManagerTest" fullname="Tests.Runtime.ExperimentManagerTest" classname="Tests.Runtime.ExperimentManagerTest" runstate="Runnable" testcasecount="15" result="Passed" start-time="2026-02-11 07:51:35Z" end-time="2026-02-11 07:51:35Z" duration="0.007846" total="15" passed="15" failed="0" inconclusive="0" skipped="0" asserts="0">
+            <properties />
+            <test-case id="1075" name="Clear_RemovesAllFlags" fullname="Tests.Runtime.ExperimentManagerTest.Clear_RemovesAllFlags" methodname="Clear_RemovesAllFlags" classname="Tests.Runtime.ExperimentManagerTest" runstate="Runnable" seed="103238137" result="Passed" start-time="2026-02-11 07:51:35Z" end-time="2026-02-11 07:51:35Z" duration="0.000923" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1079" name="GetActiveExperiment_Default_ReturnsEmpty" fullname="Tests.Runtime.ExperimentManagerTest.GetActiveExperiment_Default_ReturnsEmpty" methodname="GetActiveExperiment_Default_ReturnsEmpty" classname="Tests.Runtime.ExperimentManagerTest" runstate="Runnable" seed="1973668985" result="Passed" start-time="2026-02-11 07:51:35Z" end-time="2026-02-11 07:51:35Z" duration="0.000433" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1074" name="GetFlag_MissingKey_ReturnsCustomDefault" fullname="Tests.Runtime.ExperimentManagerTest.GetFlag_MissingKey_ReturnsCustomDefault" methodname="GetFlag_MissingKey_ReturnsCustomDefault" classname="Tests.Runtime.ExperimentManagerTest" runstate="Runnable" seed="1516764247" result="Passed" start-time="2026-02-11 07:51:35Z" end-time="2026-02-11 07:51:35Z" duration="0.000405" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1073" name="GetFlag_MissingKey_ReturnsDefault" fullname="Tests.Runtime.ExperimentManagerTest.GetFlag_MissingKey_ReturnsDefault" methodname="GetFlag_MissingKey_ReturnsDefault" classname="Tests.Runtime.ExperimentManagerTest" runstate="Runnable" seed="56190694" result="Passed" start-time="2026-02-11 07:51:35Z" end-time="2026-02-11 07:51:35Z" duration="0.000456" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1083" name="GetGeneralExperiment_MissingKey_ReturnsEmpty" fullname="Tests.Runtime.ExperimentManagerTest.GetGeneralExperiment_MissingKey_ReturnsEmpty" methodname="GetGeneralExperiment_MissingKey_ReturnsEmpty" classname="Tests.Runtime.ExperimentManagerTest" runstate="Runnable" seed="560448519" result="Passed" start-time="2026-02-11 07:51:35Z" end-time="2026-02-11 07:51:35Z" duration="0.000399" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1077" name="GetSessionId_Default_ReturnsEmpty" fullname="Tests.Runtime.ExperimentManagerTest.GetSessionId_Default_ReturnsEmpty" methodname="GetSessionId_Default_ReturnsEmpty" classname="Tests.Runtime.ExperimentManagerTest" runstate="Runnable" seed="1862600793" result="Passed" start-time="2026-02-11 07:51:35Z" end-time="2026-02-11 07:51:35Z" duration="0.000407" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1081" name="GetSessionTag_Default_ReturnsEmpty" fullname="Tests.Runtime.ExperimentManagerTest.GetSessionTag_Default_ReturnsEmpty" methodname="GetSessionTag_Default_ReturnsEmpty" classname="Tests.Runtime.ExperimentManagerTest" runstate="Runnable" seed="183709504" result="Passed" start-time="2026-02-11 07:51:35Z" end-time="2026-02-11 07:51:35Z" duration="0.000401" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1078" name="SetExperiment_GetActiveExperiment" fullname="Tests.Runtime.ExperimentManagerTest.SetExperiment_GetActiveExperiment" methodname="SetExperiment_GetActiveExperiment" classname="Tests.Runtime.ExperimentManagerTest" runstate="Runnable" seed="585453601" result="Passed" start-time="2026-02-11 07:51:35Z" end-time="2026-02-11 07:51:35Z" duration="0.000403" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1072" name="SetFlag_GetFlag_Bool" fullname="Tests.Runtime.ExperimentManagerTest.SetFlag_GetFlag_Bool" methodname="SetFlag_GetFlag_Bool" classname="Tests.Runtime.ExperimentManagerTest" runstate="Runnable" seed="1554812704" result="Passed" start-time="2026-02-11 07:51:35Z" end-time="2026-02-11 07:51:35Z" duration="0.000385" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1071" name="SetFlag_GetFlag_Int" fullname="Tests.Runtime.ExperimentManagerTest.SetFlag_GetFlag_Int" methodname="SetFlag_GetFlag_Int" classname="Tests.Runtime.ExperimentManagerTest" runstate="Runnable" seed="1363165650" result="Passed" start-time="2026-02-11 07:51:35Z" end-time="2026-02-11 07:51:35Z" duration="0.000386" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1070" name="SetFlag_GetFlag_String" fullname="Tests.Runtime.ExperimentManagerTest.SetFlag_GetFlag_String" methodname="SetFlag_GetFlag_String" classname="Tests.Runtime.ExperimentManagerTest" runstate="Runnable" seed="1554746083" result="Passed" start-time="2026-02-11 07:51:35Z" end-time="2026-02-11 07:51:35Z" duration="0.000395" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1084" name="SetFlag_OverwritesExistingKey" fullname="Tests.Runtime.ExperimentManagerTest.SetFlag_OverwritesExistingKey" methodname="SetFlag_OverwritesExistingKey" classname="Tests.Runtime.ExperimentManagerTest" runstate="Runnable" seed="371215509" result="Passed" start-time="2026-02-11 07:51:35Z" end-time="2026-02-11 07:51:35Z" duration="0.000397" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1082" name="SetGeneralExperiment_GetGeneralExperiment" fullname="Tests.Runtime.ExperimentManagerTest.SetGeneralExperiment_GetGeneralExperiment" methodname="SetGeneralExperiment_GetGeneralExperiment" classname="Tests.Runtime.ExperimentManagerTest" runstate="Runnable" seed="1332614609" result="Passed" start-time="2026-02-11 07:51:35Z" end-time="2026-02-11 07:51:35Z" duration="0.000384" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1076" name="SetSessionId_GetSessionId" fullname="Tests.Runtime.ExperimentManagerTest.SetSessionId_GetSessionId" methodname="SetSessionId_GetSessionId" classname="Tests.Runtime.ExperimentManagerTest" runstate="Runnable" seed="1712953717" result="Passed" start-time="2026-02-11 07:51:35Z" end-time="2026-02-11 07:51:35Z" duration="0.000382" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1080" name="SetSessionTag_GetSessionTag" fullname="Tests.Runtime.ExperimentManagerTest.SetSessionTag_GetSessionTag" methodname="SetSessionTag_GetSessionTag" classname="Tests.Runtime.ExperimentManagerTest" runstate="Runnable" seed="1689458784" result="Passed" start-time="2026-02-11 07:51:35Z" end-time="2026-02-11 07:51:35Z" duration="0.000401" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+          </test-suite>
+          <test-suite type="TestFixture" id="1085" name="NoctuaExceptionExtendedTest" fullname="Tests.Runtime.NoctuaExceptionExtendedTest" classname="Tests.Runtime.NoctuaExceptionExtendedTest" runstate="Runnable" testcasecount="6" result="Passed" start-time="2026-02-11 07:51:35Z" end-time="2026-02-11 07:51:35Z" duration="0.002983" total="6" passed="6" failed="0" inconclusive="0" skipped="0" asserts="0">
+            <properties />
+            <test-case id="1088" name="ErrorCode_Property_MatchesEnum" fullname="Tests.Runtime.NoctuaExceptionExtendedTest.ErrorCode_Property_MatchesEnum" methodname="ErrorCode_Property_MatchesEnum" classname="Tests.Runtime.NoctuaExceptionExtendedTest" runstate="Runnable" seed="1653417793" result="Passed" start-time="2026-02-11 07:51:35Z" end-time="2026-02-11 07:51:35Z" duration="0.000536" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1089" name="Payload_Default_IsEmptyString" fullname="Tests.Runtime.NoctuaExceptionExtendedTest.Payload_Default_IsEmptyString" methodname="Payload_Default_IsEmptyString" classname="Tests.Runtime.NoctuaExceptionExtendedTest" runstate="Runnable" seed="3474100" result="Passed" start-time="2026-02-11 07:51:35Z" end-time="2026-02-11 07:51:35Z" duration="0.000384" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1090" name="StaticInstances_HaveCorrectErrorCodes" fullname="Tests.Runtime.NoctuaExceptionExtendedTest.StaticInstances_HaveCorrectErrorCodes" methodname="StaticInstances_HaveCorrectErrorCodes" classname="Tests.Runtime.NoctuaExceptionExtendedTest" runstate="Runnable" seed="1536138724" result="Passed" start-time="2026-02-11 07:51:35Z" end-time="2026-02-11 07:51:35Z" duration="0.000442" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1091" name="StaticInstances_HaveCorrectMessages" fullname="Tests.Runtime.NoctuaExceptionExtendedTest.StaticInstances_HaveCorrectMessages" methodname="StaticInstances_HaveCorrectMessages" classname="Tests.Runtime.NoctuaExceptionExtendedTest" runstate="Runnable" seed="610021010" result="Passed" start-time="2026-02-11 07:51:35Z" end-time="2026-02-11 07:51:35Z" duration="0.000386" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1086" name="ToString_ContainsAllFields" fullname="Tests.Runtime.NoctuaExceptionExtendedTest.ToString_ContainsAllFields" methodname="ToString_ContainsAllFields" classname="Tests.Runtime.NoctuaExceptionExtendedTest" runstate="Runnable" seed="2046368893" result="Passed" start-time="2026-02-11 07:51:35Z" end-time="2026-02-11 07:51:35Z" duration="0.000403" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1087" name="ToString_EmptyPayload" fullname="Tests.Runtime.NoctuaExceptionExtendedTest.ToString_EmptyPayload" methodname="ToString_EmptyPayload" classname="Tests.Runtime.NoctuaExceptionExtendedTest" runstate="Runnable" seed="731637373" result="Passed" start-time="2026-02-11 07:51:35Z" end-time="2026-02-11 07:51:35Z" duration="0.000369" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+          </test-suite>
+          <test-suite type="TestFixture" id="1092" name="NoctuaLocaleExtendedTest" fullname="Tests.Runtime.NoctuaLocaleExtendedTest" classname="Tests.Runtime.NoctuaLocaleExtendedTest" runstate="Runnable" testcasecount="8" result="Passed" start-time="2026-02-11 07:51:35Z" end-time="2026-02-11 07:51:35Z" duration="0.012121" total="8" passed="8" failed="0" inconclusive="0" skipped="0" asserts="0">
+            <properties />
+            <test-case id="1094" name="GetCountry_Default_ReturnsEmpty" fullname="Tests.Runtime.NoctuaLocaleExtendedTest.GetCountry_Default_ReturnsEmpty" methodname="GetCountry_Default_ReturnsEmpty" classname="Tests.Runtime.NoctuaLocaleExtendedTest" runstate="Runnable" seed="644200766" result="Passed" start-time="2026-02-11 07:51:35Z" end-time="2026-02-11 07:51:35Z" duration="0.007000" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1096" name="GetCurrency_Default_ReturnsUSD" fullname="Tests.Runtime.NoctuaLocaleExtendedTest.GetCurrency_Default_ReturnsUSD" methodname="GetCurrency_Default_ReturnsUSD" classname="Tests.Runtime.NoctuaLocaleExtendedTest" runstate="Runnable" seed="823468763" result="Passed" start-time="2026-02-11 07:51:35Z" end-time="2026-02-11 07:51:35Z" duration="0.000643" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1099" name="GetLanguage_RegionTh_ReturnsTh" fullname="Tests.Runtime.NoctuaLocaleExtendedTest.GetLanguage_RegionTh_ReturnsTh" methodname="GetLanguage_RegionTh_ReturnsTh" classname="Tests.Runtime.NoctuaLocaleExtendedTest" runstate="Runnable" seed="100689800" result="Passed" start-time="2026-02-11 07:51:35Z" end-time="2026-02-11 07:51:35Z" duration="0.000665" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1098" name="OnLanguageChanged_DoesNotFire_WhenSameLanguage" fullname="Tests.Runtime.NoctuaLocaleExtendedTest.OnLanguageChanged_DoesNotFire_WhenSameLanguage" methodname="OnLanguageChanged_DoesNotFire_WhenSameLanguage" classname="Tests.Runtime.NoctuaLocaleExtendedTest" runstate="Runnable" seed="596994848" result="Passed" start-time="2026-02-11 07:51:35Z" end-time="2026-02-11 07:51:35Z" duration="0.000678" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1097" name="OnLanguageChanged_FiresWhenLanguageChanges" fullname="Tests.Runtime.NoctuaLocaleExtendedTest.OnLanguageChanged_FiresWhenLanguageChanges" methodname="OnLanguageChanged_FiresWhenLanguageChanges" classname="Tests.Runtime.NoctuaLocaleExtendedTest" runstate="Runnable" seed="237647163" result="Passed" start-time="2026-02-11 07:51:35Z" end-time="2026-02-11 07:51:35Z" duration="0.000636" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1093" name="SetCountry_GetCountry_UpperCase" fullname="Tests.Runtime.NoctuaLocaleExtendedTest.SetCountry_GetCountry_UpperCase" methodname="SetCountry_GetCountry_UpperCase" classname="Tests.Runtime.NoctuaLocaleExtendedTest" runstate="Runnable" seed="1515672799" result="Passed" start-time="2026-02-11 07:51:35Z" end-time="2026-02-11 07:51:35Z" duration="0.000639" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1095" name="SetCurrency_GetCurrency_UpperCase" fullname="Tests.Runtime.NoctuaLocaleExtendedTest.SetCurrency_GetCurrency_UpperCase" methodname="SetCurrency_GetCurrency_UpperCase" classname="Tests.Runtime.NoctuaLocaleExtendedTest" runstate="Runnable" seed="1679971651" result="Passed" start-time="2026-02-11 07:51:35Z" end-time="2026-02-11 07:51:35Z" duration="0.000617" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1100" name="SetUserPrefsLanguage_ClearWithEmpty_FallsBackToRegion" fullname="Tests.Runtime.NoctuaLocaleExtendedTest.SetUserPrefsLanguage_ClearWithEmpty_FallsBackToRegion" methodname="SetUserPrefsLanguage_ClearWithEmpty_FallsBackToRegion" classname="Tests.Runtime.NoctuaLocaleExtendedTest" runstate="Runnable" seed="1911025980" result="Passed" start-time="2026-02-11 07:51:35Z" end-time="2026-02-11 07:51:35Z" duration="0.000631" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+          </test-suite>
+          <test-suite type="TestFixture" id="1101" name="NoctuaLocaleTest" fullname="Tests.Runtime.NoctuaLocaleTest" classname="Tests.Runtime.NoctuaLocaleTest" runstate="Runnable" testcasecount="3" result="Passed" start-time="2026-02-11 07:51:35Z" end-time="2026-02-11 07:51:35Z" duration="0.001542" total="3" passed="3" failed="0" inconclusive="0" skipped="0" asserts="0">
+            <properties />
+            <test-case id="1102" name="GetLanguageByPriority_NoPrefsNoRegion" fullname="Tests.Runtime.NoctuaLocaleTest.GetLanguageByPriority_NoPrefsNoRegion" methodname="GetLanguageByPriority_NoPrefsNoRegion" classname="Tests.Runtime.NoctuaLocaleTest" runstate="Runnable" seed="1295364285" result="Passed" start-time="2026-02-11 07:51:35Z" end-time="2026-02-11 07:51:35Z" duration="0.000403" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1103" name="GetLanguageByPriority_NoPrefsRegionVietnam" fullname="Tests.Runtime.NoctuaLocaleTest.GetLanguageByPriority_NoPrefsRegionVietnam" methodname="GetLanguageByPriority_NoPrefsRegionVietnam" classname="Tests.Runtime.NoctuaLocaleTest" runstate="Runnable" seed="1887681224" result="Passed" start-time="2026-02-11 07:51:35Z" end-time="2026-02-11 07:51:35Z" duration="0.000397" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1104" name="GetLanguageByPriority_PrefsId" fullname="Tests.Runtime.NoctuaLocaleTest.GetLanguageByPriority_PrefsId" methodname="GetLanguageByPriority_PrefsId" classname="Tests.Runtime.NoctuaLocaleTest" runstate="Runnable" seed="336555336" result="Passed" start-time="2026-02-11 07:51:35Z" end-time="2026-02-11 07:51:35Z" duration="0.000407" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+          </test-suite>
+          <test-suite type="TestFixture" id="1105" name="UtilityTest" fullname="Tests.Runtime.UtilityTest" classname="Tests.Runtime.UtilityTest" runstate="Runnable" testcasecount="6" result="Passed" start-time="2026-02-11 07:51:35Z" end-time="2026-02-11 07:51:56Z" duration="20.823929" total="6" passed="6" failed="0" inconclusive="0" skipped="0" asserts="0">
+            <properties />
+            <test-case id="1111" name="RetryAsyncTask_MaxDelayReached" fullname="Tests.Runtime.UtilityTest.RetryAsyncTask_MaxDelayReached" methodname="RetryAsyncTask_MaxDelayReached" classname="Tests.Runtime.UtilityTest" runstate="Runnable" seed="986661047" result="Passed" start-time="2026-02-11 07:51:35Z" end-time="2026-02-11 07:51:51Z" duration="16.109593" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+              <output><![CDATA[Retry Attempt 1
+Retry Attempt 2
+Retry Attempt 3
+Retry Attempt 4
+Retry Attempt 5
+Retry Attempt 6
+Retry Attempt 7
+]]></output>
+            </test-case>
+            <test-case id="1110" name="RetryAsyncTask_MaxRetriesReached" fullname="Tests.Runtime.UtilityTest.RetryAsyncTask_MaxRetriesReached" methodname="RetryAsyncTask_MaxRetriesReached" classname="Tests.Runtime.UtilityTest" runstate="Runnable" seed="986515953" result="Passed" start-time="2026-02-11 07:51:51Z" end-time="2026-02-11 07:51:54Z" duration="3.052714" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1107" name="RetryAsyncTask_SuccessAfterRetries" fullname="Tests.Runtime.UtilityTest.RetryAsyncTask_SuccessAfterRetries" methodname="RetryAsyncTask_SuccessAfterRetries" classname="Tests.Runtime.UtilityTest" runstate="Runnable" seed="203786248" result="Passed" start-time="2026-02-11 07:51:54Z" end-time="2026-02-11 07:51:56Z" duration="1.658694" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1106" name="RetryAsyncTask_SuccessOnFirstTry" fullname="Tests.Runtime.UtilityTest.RetryAsyncTask_SuccessOnFirstTry" methodname="RetryAsyncTask_SuccessOnFirstTry" classname="Tests.Runtime.UtilityTest" runstate="Runnable" seed="1648239197" result="Passed" start-time="2026-02-11 07:51:56Z" end-time="2026-02-11 07:51:56Z" duration="0.000682" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1108" name="RetryAsyncTask_ThrowsNonNetworkingException" fullname="Tests.Runtime.UtilityTest.RetryAsyncTask_ThrowsNonNetworkingException" methodname="RetryAsyncTask_ThrowsNonNetworkingException" classname="Tests.Runtime.UtilityTest" runstate="Runnable" seed="980659245" result="Passed" start-time="2026-02-11 07:51:56Z" end-time="2026-02-11 07:51:56Z" duration="0.000597" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1109" name="RetryAsyncTask_ThrowsOtherNonNetworkingException" fullname="Tests.Runtime.UtilityTest.RetryAsyncTask_ThrowsOtherNonNetworkingException" methodname="RetryAsyncTask_ThrowsOtherNonNetworkingException" classname="Tests.Runtime.UtilityTest" runstate="Runnable" seed="1010759502" result="Passed" start-time="2026-02-11 07:51:56Z" end-time="2026-02-11 07:51:56Z" duration="0.000482" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+          </test-suite>
+          <test-suite type="TestFixture" id="1112" name="UtilityValidationTest" fullname="Tests.Runtime.UtilityValidationTest" classname="Tests.Runtime.UtilityValidationTest" runstate="Runnable" testcasecount="46" result="Passed" start-time="2026-02-11 07:51:56Z" end-time="2026-02-11 07:51:56Z" duration="0.023132" total="46" passed="46" failed="0" inconclusive="0" skipped="0" asserts="0">
+            <properties />
+            <test-case id="1136" name="ContainsFlag_Absent_ReturnsFalse" fullname="Tests.Runtime.UtilityValidationTest.ContainsFlag_Absent_ReturnsFalse" methodname="ContainsFlag_Absent_ReturnsFalse" classname="Tests.Runtime.UtilityValidationTest" runstate="Runnable" seed="371609305" result="Passed" start-time="2026-02-11 07:51:56Z" end-time="2026-02-11 07:51:56Z" duration="0.001288" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1137" name="ContainsFlag_CaseInsensitive" fullname="Tests.Runtime.UtilityValidationTest.ContainsFlag_CaseInsensitive" methodname="ContainsFlag_CaseInsensitive" classname="Tests.Runtime.UtilityValidationTest" runstate="Runnable" seed="1785244237" result="Passed" start-time="2026-02-11 07:51:56Z" end-time="2026-02-11 07:51:56Z" duration="0.000374" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1139" name="ContainsFlag_EmptyString_ReturnsFalse" fullname="Tests.Runtime.UtilityValidationTest.ContainsFlag_EmptyString_ReturnsFalse" methodname="ContainsFlag_EmptyString_ReturnsFalse" classname="Tests.Runtime.UtilityValidationTest" runstate="Runnable" seed="1075637175" result="Passed" start-time="2026-02-11 07:51:56Z" end-time="2026-02-11 07:51:56Z" duration="0.000356" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1138" name="ContainsFlag_NullInput_ReturnsFalse" fullname="Tests.Runtime.UtilityValidationTest.ContainsFlag_NullInput_ReturnsFalse" methodname="ContainsFlag_NullInput_ReturnsFalse" classname="Tests.Runtime.UtilityValidationTest" runstate="Runnable" seed="875660187" result="Passed" start-time="2026-02-11 07:51:56Z" end-time="2026-02-11 07:51:56Z" duration="0.000364" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1135" name="ContainsFlag_Present_ReturnsTrue" fullname="Tests.Runtime.UtilityValidationTest.ContainsFlag_Present_ReturnsTrue" methodname="ContainsFlag_Present_ReturnsTrue" classname="Tests.Runtime.UtilityValidationTest" runstate="Runnable" seed="834724488" result="Passed" start-time="2026-02-11 07:51:56Z" end-time="2026-02-11 07:51:56Z" duration="0.000341" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1140" name="ContainsFlag_WithSpaces_ReturnsTrue" fullname="Tests.Runtime.UtilityValidationTest.ContainsFlag_WithSpaces_ReturnsTrue" methodname="ContainsFlag_WithSpaces_ReturnsTrue" classname="Tests.Runtime.UtilityValidationTest" runstate="Runnable" seed="979420995" result="Passed" start-time="2026-02-11 07:51:56Z" end-time="2026-02-11 07:51:56Z" duration="0.000349" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1148" name="GetCoPublisherLogo_KnownCompany_ReturnsLogo" fullname="Tests.Runtime.UtilityValidationTest.GetCoPublisherLogo_KnownCompany_ReturnsLogo" methodname="GetCoPublisherLogo_KnownCompany_ReturnsLogo" classname="Tests.Runtime.UtilityValidationTest" runstate="Runnable" seed="1134935012" result="Passed" start-time="2026-02-11 07:51:56Z" end-time="2026-02-11 07:51:56Z" duration="0.000634" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1149" name="GetCoPublisherLogo_UnknownCompany_ReturnsDefault" fullname="Tests.Runtime.UtilityValidationTest.GetCoPublisherLogo_UnknownCompany_ReturnsDefault" methodname="GetCoPublisherLogo_UnknownCompany_ReturnsDefault" classname="Tests.Runtime.UtilityValidationTest" runstate="Runnable" seed="370547420" result="Passed" start-time="2026-02-11 07:51:56Z" end-time="2026-02-11 07:51:56Z" duration="0.000359" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1150" name="GetTranslation_KeyFound_ReturnsTranslation" fullname="Tests.Runtime.UtilityValidationTest.GetTranslation_KeyFound_ReturnsTranslation" methodname="GetTranslation_KeyFound_ReturnsTranslation" classname="Tests.Runtime.UtilityValidationTest" runstate="Runnable" seed="1173028553" result="Passed" start-time="2026-02-11 07:51:56Z" end-time="2026-02-11 07:51:56Z" duration="0.000406" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1151" name="GetTranslation_KeyNotFound_ReturnsKey" fullname="Tests.Runtime.UtilityValidationTest.GetTranslation_KeyNotFound_ReturnsKey" methodname="GetTranslation_KeyNotFound_ReturnsKey" classname="Tests.Runtime.UtilityValidationTest" runstate="Runnable" seed="1417170651" result="Passed" start-time="2026-02-11 07:51:56Z" end-time="2026-02-11 07:51:56Z" duration="0.000369" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1152" name="GetTranslation_NullTranslations_ReturnsKey" fullname="Tests.Runtime.UtilityValidationTest.GetTranslation_NullTranslations_ReturnsKey" methodname="GetTranslation_NullTranslations_ReturnsKey" classname="Tests.Runtime.UtilityValidationTest" runstate="Runnable" seed="1055748500" result="Passed" start-time="2026-02-11 07:51:56Z" end-time="2026-02-11 07:51:56Z" duration="0.000358" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1144" name="ParseBooleanFeatureFlag_False_ReturnsFalse" fullname="Tests.Runtime.UtilityValidationTest.ParseBooleanFeatureFlag_False_ReturnsFalse" methodname="ParseBooleanFeatureFlag_False_ReturnsFalse" classname="Tests.Runtime.UtilityValidationTest" runstate="Runnable" seed="1851103288" result="Passed" start-time="2026-02-11 07:51:56Z" end-time="2026-02-11 07:51:56Z" duration="0.000424" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1146" name="ParseBooleanFeatureFlag_MissingKey_ReturnsFalse" fullname="Tests.Runtime.UtilityValidationTest.ParseBooleanFeatureFlag_MissingKey_ReturnsFalse" methodname="ParseBooleanFeatureFlag_MissingKey_ReturnsFalse" classname="Tests.Runtime.UtilityValidationTest" runstate="Runnable" seed="894504403" result="Passed" start-time="2026-02-11 07:51:56Z" end-time="2026-02-11 07:51:56Z" duration="0.000356" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1147" name="ParseBooleanFeatureFlag_NullDict_ReturnsFalse" fullname="Tests.Runtime.UtilityValidationTest.ParseBooleanFeatureFlag_NullDict_ReturnsFalse" methodname="ParseBooleanFeatureFlag_NullDict_ReturnsFalse" classname="Tests.Runtime.UtilityValidationTest" runstate="Runnable" seed="1522859861" result="Passed" start-time="2026-02-11 07:51:56Z" end-time="2026-02-11 07:51:56Z" duration="0.000350" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1143" name="ParseBooleanFeatureFlag_On_ReturnsTrue" fullname="Tests.Runtime.UtilityValidationTest.ParseBooleanFeatureFlag_On_ReturnsTrue" methodname="ParseBooleanFeatureFlag_On_ReturnsTrue" classname="Tests.Runtime.UtilityValidationTest" runstate="Runnable" seed="1543546361" result="Passed" start-time="2026-02-11 07:51:56Z" end-time="2026-02-11 07:51:56Z" duration="0.000353" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1142" name="ParseBooleanFeatureFlag_One_ReturnsTrue" fullname="Tests.Runtime.UtilityValidationTest.ParseBooleanFeatureFlag_One_ReturnsTrue" methodname="ParseBooleanFeatureFlag_One_ReturnsTrue" classname="Tests.Runtime.UtilityValidationTest" runstate="Runnable" seed="1901821760" result="Passed" start-time="2026-02-11 07:51:56Z" end-time="2026-02-11 07:51:56Z" duration="0.000347" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1141" name="ParseBooleanFeatureFlag_True_ReturnsTrue" fullname="Tests.Runtime.UtilityValidationTest.ParseBooleanFeatureFlag_True_ReturnsTrue" methodname="ParseBooleanFeatureFlag_True_ReturnsTrue" classname="Tests.Runtime.UtilityValidationTest" runstate="Runnable" seed="934369255" result="Passed" start-time="2026-02-11 07:51:56Z" end-time="2026-02-11 07:51:56Z" duration="0.000366" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1145" name="ParseBooleanFeatureFlag_Zero_ReturnsFalse" fullname="Tests.Runtime.UtilityValidationTest.ParseBooleanFeatureFlag_Zero_ReturnsFalse" methodname="ParseBooleanFeatureFlag_Zero_ReturnsFalse" classname="Tests.Runtime.UtilityValidationTest" runstate="Runnable" seed="1886280728" result="Passed" start-time="2026-02-11 07:51:56Z" end-time="2026-02-11 07:51:56Z" duration="0.000353" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1131" name="ParseQueryString_EncodedChars" fullname="Tests.Runtime.UtilityValidationTest.ParseQueryString_EncodedChars" methodname="ParseQueryString_EncodedChars" classname="Tests.Runtime.UtilityValidationTest" runstate="Runnable" seed="239357059" result="Passed" start-time="2026-02-11 07:51:56Z" end-time="2026-02-11 07:51:56Z" duration="0.000545" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1134" name="ParseQueryString_FullUrl" fullname="Tests.Runtime.UtilityValidationTest.ParseQueryString_FullUrl" methodname="ParseQueryString_FullUrl" classname="Tests.Runtime.UtilityValidationTest" runstate="Runnable" seed="774618437" result="Passed" start-time="2026-02-11 07:51:56Z" end-time="2026-02-11 07:51:56Z" duration="0.000370" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1133" name="ParseQueryString_MissingEquals_Skipped" fullname="Tests.Runtime.UtilityValidationTest.ParseQueryString_MissingEquals_Skipped" methodname="ParseQueryString_MissingEquals_Skipped" classname="Tests.Runtime.UtilityValidationTest" runstate="Runnable" seed="332968174" result="Passed" start-time="2026-02-11 07:51:56Z" end-time="2026-02-11 07:51:56Z" duration="0.000374" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1132" name="ParseQueryString_MissingValue_Skipped" fullname="Tests.Runtime.UtilityValidationTest.ParseQueryString_MissingValue_Skipped" methodname="ParseQueryString_MissingValue_Skipped" classname="Tests.Runtime.UtilityValidationTest" runstate="Runnable" seed="1838429543" result="Passed" start-time="2026-02-11 07:51:56Z" end-time="2026-02-11 07:51:56Z" duration="0.000365" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1129" name="ParseQueryString_SimpleParams" fullname="Tests.Runtime.UtilityValidationTest.ParseQueryString_SimpleParams" methodname="ParseQueryString_SimpleParams" classname="Tests.Runtime.UtilityValidationTest" runstate="Runnable" seed="388713010" result="Passed" start-time="2026-02-11 07:51:56Z" end-time="2026-02-11 07:51:56Z" duration="0.000371" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1130" name="ParseQueryString_WithHashFragment" fullname="Tests.Runtime.UtilityValidationTest.ParseQueryString_WithHashFragment" methodname="ParseQueryString_WithHashFragment" classname="Tests.Runtime.UtilityValidationTest" runstate="Runnable" seed="2032211792" result="Passed" start-time="2026-02-11 07:51:56Z" end-time="2026-02-11 07:51:56Z" duration="0.000357" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1156" name="PrintFields_Array_ContainsItems" fullname="Tests.Runtime.UtilityValidationTest.PrintFields_Array_ContainsItems" methodname="PrintFields_Array_ContainsItems" classname="Tests.Runtime.UtilityValidationTest" runstate="Runnable" seed="426015663" result="Passed" start-time="2026-02-11 07:51:56Z" end-time="2026-02-11 07:51:56Z" duration="0.000958" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1158" name="PrintFields_Dictionary_ContainsKeyValues" fullname="Tests.Runtime.UtilityValidationTest.PrintFields_Dictionary_ContainsKeyValues" methodname="PrintFields_Dictionary_ContainsKeyValues" classname="Tests.Runtime.UtilityValidationTest" runstate="Runnable" seed="2080443482" result="Passed" start-time="2026-02-11 07:51:56Z" end-time="2026-02-11 07:51:56Z" duration="0.000611" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1157" name="PrintFields_List_ContainsItems" fullname="Tests.Runtime.UtilityValidationTest.PrintFields_List_ContainsItems" methodname="PrintFields_List_ContainsItems" classname="Tests.Runtime.UtilityValidationTest" runstate="Runnable" seed="1738384004" result="Passed" start-time="2026-02-11 07:51:56Z" end-time="2026-02-11 07:51:56Z" duration="0.000563" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1153" name="PrintFields_Null_ReturnsEmpty" fullname="Tests.Runtime.UtilityValidationTest.PrintFields_Null_ReturnsEmpty" methodname="PrintFields_Null_ReturnsEmpty" classname="Tests.Runtime.UtilityValidationTest" runstate="Runnable" seed="111939539" result="Passed" start-time="2026-02-11 07:51:56Z" end-time="2026-02-11 07:51:56Z" duration="0.000370" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1154" name="PrintFields_PrimitiveString_ReturnsEmpty" fullname="Tests.Runtime.UtilityValidationTest.PrintFields_PrimitiveString_ReturnsEmpty" methodname="PrintFields_PrimitiveString_ReturnsEmpty" classname="Tests.Runtime.UtilityValidationTest" runstate="Runnable" seed="102033189" result="Passed" start-time="2026-02-11 07:51:56Z" end-time="2026-02-11 07:51:56Z" duration="0.000359" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1155" name="PrintFields_SimpleObject_ContainsFieldNames" fullname="Tests.Runtime.UtilityValidationTest.PrintFields_SimpleObject_ContainsFieldNames" methodname="PrintFields_SimpleObject_ContainsFieldNames" classname="Tests.Runtime.UtilityValidationTest" runstate="Runnable" seed="145821121" result="Passed" start-time="2026-02-11 07:51:56Z" end-time="2026-02-11 07:51:56Z" duration="0.000397" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1113" name="ValidateEmail_Empty_ReturnsError" fullname="Tests.Runtime.UtilityValidationTest.ValidateEmail_Empty_ReturnsError" methodname="ValidateEmail_Empty_ReturnsError" classname="Tests.Runtime.UtilityValidationTest" runstate="Runnable" seed="1988040896" result="Passed" start-time="2026-02-11 07:51:56Z" end-time="2026-02-11 07:51:56Z" duration="0.000491" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1117" name="ValidateEmail_InvalidFormat_ReturnsError" fullname="Tests.Runtime.UtilityValidationTest.ValidateEmail_InvalidFormat_ReturnsError" methodname="ValidateEmail_InvalidFormat_ReturnsError" classname="Tests.Runtime.UtilityValidationTest" runstate="Runnable" seed="1857978588" result="Passed" start-time="2026-02-11 07:51:56Z" end-time="2026-02-11 07:51:56Z" duration="0.000872" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1118" name="ValidateEmail_MissingAtSign_ReturnsError" fullname="Tests.Runtime.UtilityValidationTest.ValidateEmail_MissingAtSign_ReturnsError" methodname="ValidateEmail_MissingAtSign_ReturnsError" classname="Tests.Runtime.UtilityValidationTest" runstate="Runnable" seed="449209075" result="Passed" start-time="2026-02-11 07:51:56Z" end-time="2026-02-11 07:51:56Z" duration="0.000363" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1119" name="ValidateEmail_MissingDomain_ReturnsError" fullname="Tests.Runtime.UtilityValidationTest.ValidateEmail_MissingDomain_ReturnsError" methodname="ValidateEmail_MissingDomain_ReturnsError" classname="Tests.Runtime.UtilityValidationTest" runstate="Runnable" seed="1115700669" result="Passed" start-time="2026-02-11 07:51:56Z" end-time="2026-02-11 07:51:56Z" duration="0.000370" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1115" name="ValidateEmail_Null_ReturnsError" fullname="Tests.Runtime.UtilityValidationTest.ValidateEmail_Null_ReturnsError" methodname="ValidateEmail_Null_ReturnsError" classname="Tests.Runtime.UtilityValidationTest" runstate="Runnable" seed="742962575" result="Passed" start-time="2026-02-11 07:51:56Z" end-time="2026-02-11 07:51:56Z" duration="0.000342" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1116" name="ValidateEmail_Valid_ReturnsEmpty" fullname="Tests.Runtime.UtilityValidationTest.ValidateEmail_Valid_ReturnsEmpty" methodname="ValidateEmail_Valid_ReturnsEmpty" classname="Tests.Runtime.UtilityValidationTest" runstate="Runnable" seed="568717515" result="Passed" start-time="2026-02-11 07:51:56Z" end-time="2026-02-11 07:51:56Z" duration="0.000731" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1114" name="ValidateEmail_Whitespace_ReturnsError" fullname="Tests.Runtime.UtilityValidationTest.ValidateEmail_Whitespace_ReturnsError" methodname="ValidateEmail_Whitespace_ReturnsError" classname="Tests.Runtime.UtilityValidationTest" runstate="Runnable" seed="1749346174" result="Passed" start-time="2026-02-11 07:51:56Z" end-time="2026-02-11 07:51:56Z" duration="0.000350" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1120" name="ValidatePassword_Empty_ReturnsError" fullname="Tests.Runtime.UtilityValidationTest.ValidatePassword_Empty_ReturnsError" methodname="ValidatePassword_Empty_ReturnsError" classname="Tests.Runtime.UtilityValidationTest" runstate="Runnable" seed="1194727687" result="Passed" start-time="2026-02-11 07:51:56Z" end-time="2026-02-11 07:51:56Z" duration="0.000375" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1123" name="ValidatePassword_ExactlyMinLength_ReturnsEmpty" fullname="Tests.Runtime.UtilityValidationTest.ValidatePassword_ExactlyMinLength_ReturnsEmpty" methodname="ValidatePassword_ExactlyMinLength_ReturnsEmpty" classname="Tests.Runtime.UtilityValidationTest" runstate="Runnable" seed="1192300684" result="Passed" start-time="2026-02-11 07:51:56Z" end-time="2026-02-11 07:51:56Z" duration="0.000344" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1124" name="ValidatePassword_LongPassword_ReturnsEmpty" fullname="Tests.Runtime.UtilityValidationTest.ValidatePassword_LongPassword_ReturnsEmpty" methodname="ValidatePassword_LongPassword_ReturnsEmpty" classname="Tests.Runtime.UtilityValidationTest" runstate="Runnable" seed="1881388321" result="Passed" start-time="2026-02-11 07:51:56Z" end-time="2026-02-11 07:51:56Z" duration="0.000343" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1121" name="ValidatePassword_Null_ReturnsError" fullname="Tests.Runtime.UtilityValidationTest.ValidatePassword_Null_ReturnsError" methodname="ValidatePassword_Null_ReturnsError" classname="Tests.Runtime.UtilityValidationTest" runstate="Runnable" seed="281591797" result="Passed" start-time="2026-02-11 07:51:56Z" end-time="2026-02-11 07:51:56Z" duration="0.000359" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1122" name="ValidatePassword_TooShort_ReturnsError" fullname="Tests.Runtime.UtilityValidationTest.ValidatePassword_TooShort_ReturnsError" methodname="ValidatePassword_TooShort_ReturnsError" classname="Tests.Runtime.UtilityValidationTest" runstate="Runnable" seed="1509232338" result="Passed" start-time="2026-02-11 07:51:56Z" end-time="2026-02-11 07:51:56Z" duration="0.000346" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1125" name="ValidateReenterPassword_Empty_ReturnsError" fullname="Tests.Runtime.UtilityValidationTest.ValidateReenterPassword_Empty_ReturnsError" methodname="ValidateReenterPassword_Empty_ReturnsError" classname="Tests.Runtime.UtilityValidationTest" runstate="Runnable" seed="838508034" result="Passed" start-time="2026-02-11 07:51:56Z" end-time="2026-02-11 07:51:56Z" duration="0.000387" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1127" name="ValidateReenterPassword_Matching_ReturnsEmpty" fullname="Tests.Runtime.UtilityValidationTest.ValidateReenterPassword_Matching_ReturnsEmpty" methodname="ValidateReenterPassword_Matching_ReturnsEmpty" classname="Tests.Runtime.UtilityValidationTest" runstate="Runnable" seed="1008389637" result="Passed" start-time="2026-02-11 07:51:56Z" end-time="2026-02-11 07:51:56Z" duration="0.000357" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1128" name="ValidateReenterPassword_NotMatching_ReturnsError" fullname="Tests.Runtime.UtilityValidationTest.ValidateReenterPassword_NotMatching_ReturnsError" methodname="ValidateReenterPassword_NotMatching_ReturnsError" classname="Tests.Runtime.UtilityValidationTest" runstate="Runnable" seed="1909160637" result="Passed" start-time="2026-02-11 07:51:56Z" end-time="2026-02-11 07:51:56Z" duration="0.000353" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1126" name="ValidateReenterPassword_Null_ReturnsError" fullname="Tests.Runtime.UtilityValidationTest.ValidateReenterPassword_Null_ReturnsError" methodname="ValidateReenterPassword_Null_ReturnsError" classname="Tests.Runtime.UtilityValidationTest" runstate="Runnable" seed="1502143747" result="Passed" start-time="2026-02-11 07:51:56Z" end-time="2026-02-11 07:51:56Z" duration="0.000347" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+              <output><![CDATA[[Code Coverage] Code Coverage results for visited sequence points were saved in /Users/herpiko/src/noctua-sdk-unity-upm/CodeCoverage/TestProject-opencov/PlayMode/TestCoverageResults_0001.xml
+[Code Coverage] Code Coverage requires Code Optimization to be set to debug mode in order to obtain accurate coverage information. Switch to debug mode in the Editor (bottom right corner, select the Bug icon > Switch to debug mode), using the CompilationPipeline api by setting 'CompilationPipeline.codeOptimization = CodeOptimization.Debug' or by passing '-debugCodeOptimization' to the command line in batchmode.
+[Code Coverage] Code Coverage Report was generated in /Users/herpiko/src/noctua-sdk-unity-upm/CodeCoverage/Report
+Included Assemblies: com.noctuagames.sdk
+Excluded Assemblies: <Not specified>
+Included Paths: <Not specified>
+Excluded Paths: <Not specified>
+Saving results to: /Users/herpiko/src/noctua-sdk-unity-upm/testresults.xml
+]]></output>
+            </test-case>
+          </test-suite>
+        </test-suite>
+      </test-suite>
+    </test-suite>
+  </test-suite>
+</test-run>
