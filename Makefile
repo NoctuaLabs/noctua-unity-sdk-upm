@@ -77,7 +77,7 @@ test: check-unity
 	m['dependencies']['com.noctuagames.sdk'] = 'file:$(SDK_ROOT)'; \
 	json.dump(m, open(p,'w'), indent=2); \
 	print('  patched OK')"
-	@echo "Running tests ..."
+	@echo "Running tests with code coverage ..."
 	@cd $(TMPDIR) && "$(UNITY)" \
 		-batchmode \
 		-nographics \
@@ -86,6 +86,9 @@ test: check-unity
 		-testPlatform PlayMode \
 		-testResults $(SDK_ROOT)/$(TEST_RESULTS) \
 		-logFile $(SDK_ROOT)/$(TEST_LOG) \
+		-enableCodeCoverage \
+		-coverageResultsPath $(COVERAGE_DIR) \
+		-coverageOptions "generateHtmlReport;generateBadgeReport;assemblyFilters:+com.noctuagames.sdk" \
 		; TEST_EXIT=$$?; \
 	echo ""; \
 	echo "=== Test Results ==="; \
@@ -95,6 +98,14 @@ test: check-unity
 	else \
 		echo "  WARNING: $(TEST_RESULTS) not found"; \
 		PARSE_EXIT=1; \
+	fi; \
+	echo ""; \
+	echo "=== Coverage Report ==="; \
+	if [ -f "$(COVERAGE_DIR)/Report/Summary.xml" ]; then \
+		echo "  HTML report: $(COVERAGE_DIR)/Report/index.html"; \
+		python3 -c "$$PARSE_COVERAGE_PY" "$(COVERAGE_DIR)/Report/Summary.xml"; \
+	else \
+		echo "  WARNING: Coverage Summary.xml not found"; \
 	fi; \
 	echo "Cleaning up $(TMPDIR) ..."; \
 	rm -rf $(TMPDIR); \
