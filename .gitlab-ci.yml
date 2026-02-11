@@ -2,9 +2,35 @@ variables:
   NATIVE_IOS_VERSION: "0.27.0"
   NATIVE_IOS_ICM_VERSION: "0.27.1"
 stages:
+  - test
   - trigger
   - bump-version-for-release # Bump version as tag
   - publish # Publish to github
+
+# Run tests on merge requests and main branch
+test:
+  stage: test
+  tags:
+    - local-shell  # Use runner with Unity installed (same as publish job)
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == "main"
+    - if: $CI_COMMIT_BRANCH == "dev"
+  variables:
+    GIT_STRATEGY: clone
+  artifacts:
+    when: always
+    paths:
+      - testresults.xml
+      - unity-test.log
+      - CodeCoverage/
+    reports:
+      junit: testresults.xml
+    expire_in: 30 days
+  script:
+    - echo "Running Unity tests with coverage..."
+    - make test
+  coverage: '/Line coverage:\s+(\d+\.\d+)%/'
 
 trigger_job:
   stage: trigger
