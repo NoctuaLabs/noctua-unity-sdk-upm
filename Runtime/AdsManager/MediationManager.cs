@@ -66,6 +66,11 @@ namespace com.noctuagames.sdk
         private string _rewardedInterstitialAdUnitID = "unused";
         private string _bannerAdUnitID = "unused";
 
+        public string InterstitialAdUnitID => _interstitialAdUnitID;
+        public string RewardedAdUnitID => _rewardedAdUnitID;
+        public string RewardedInterstitialAdUnitID => _rewardedInterstitialAdUnitID;
+        public string BannerAdUnitID => _bannerAdUnitID;
+
         private readonly UIFactory _uiFactory;
         private bool _hasClosedPlaceholder = false; // Track if the placeholder has been closed to prevent multiple closures
         public IAA _iAAResponse;
