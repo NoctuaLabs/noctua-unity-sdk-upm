@@ -1,5 +1,32 @@
 ﻿# Contribution Guidelines for Noctua SDK Developers
 
+## Development Workflow
+
+### Before Creating a Merge Request
+
+**Always run tests before creating a merge request:**
+
+```sh
+make test
+```
+
+This command will:
+- Run all Unity tests with code coverage enabled
+- Display test results summary (Passed/Failed/Skipped counts)
+- Show coverage report with line/method coverage percentages
+- Generate an HTML coverage report at `CodeCoverage/Report/index.html`
+
+All tests must pass (0 failures) before the merge request can be approved.
+
+### Creating a Merge Request
+
+1. Ensure all tests pass locally: `make test`
+2. Run the linter if available
+3. Create your merge request with a clear description
+4. Post the merge request link in the team channel
+
+**Note:** Tests will run automatically in GitLab CI/CD for all merge requests. The pipeline must pass before merging.
+
 ## Manual Release Guide
 
 ### Release
