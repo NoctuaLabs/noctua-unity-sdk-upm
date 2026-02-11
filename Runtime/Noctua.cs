@@ -626,23 +626,6 @@ namespace com.noctuagames.sdk
                 { "platform_type", Utility.GetPlatformType() }
             });
 
-            var attribution = await GetAdjustAttributionAsync();
-
-            Instance.Value._eventSender.Send("adjust_attribution", new Dictionary<string, IConvertible> {
-                { "tracker_token", attribution.TrackerToken ?? "" },
-                { "tracker_name", attribution.TrackerName ?? "" },
-                { "network", attribution.Network ?? "" },
-                { "campaign", attribution.Campaign ?? "" },
-                { "adgroup", attribution.Adgroup ?? "" },
-                { "creative", attribution.Creative ?? "" },
-                { "click_label", attribution.ClickLabel ?? "" },
-                { "adid", attribution.Adid ?? "" },
-                { "cost_type", attribution.CostType ?? "" },
-                { "cost_amount", attribution.CostAmount },
-                { "cost_currency", attribution.CostCurrency ?? "" },
-                { "fb_install_referrer", attribution.FbInstallReferrer ?? "" }
-            });
-
             var log = Instance.Value._log;
 
             // Init game, retries on intermittent network failure
@@ -1062,6 +1045,23 @@ namespace com.noctuagames.sdk
             Instance.Value._eventSender.Send("sdk_init_complete", new Dictionary<string, IConvertible>
             {
                 { "offline", initOnlineCompleted ? false : true }
+            });
+
+            var attribution = await GetAdjustAttributionAsync();
+
+            Instance.Value._eventSender.Send("adjust_attribution", new Dictionary<string, IConvertible> {
+                { "tracker_token", attribution.TrackerToken ?? "" },
+                { "tracker_name", attribution.TrackerName ?? "" },
+                { "network", attribution.Network ?? "" },
+                { "campaign", attribution.Campaign ?? "" },
+                { "adgroup", attribution.Adgroup ?? "" },
+                { "creative", attribution.Creative ?? "" },
+                { "click_label", attribution.ClickLabel ?? "" },
+                { "adid", attribution.Adid ?? "" },
+                { "cost_type", attribution.CostType ?? "" },
+                { "cost_amount", attribution.CostAmount },
+                { "cost_currency", attribution.CostCurrency ?? "" },
+                { "fb_install_referrer", attribution.FbInstallReferrer ?? "" }
             });
         }
 
