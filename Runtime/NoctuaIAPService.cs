@@ -153,6 +153,35 @@ namespace com.noctuagames.sdk
     }
 
     /// <summary>
+    /// Request payload for claiming a redeem code.
+    /// </summary>
+    [Preserve]
+    public class ClaimRedeemCodeRequest
+    {
+        [JsonProperty("code")]
+        public string Code;
+
+        [JsonProperty("user_id")]
+        public long UserId;
+    }
+
+    /// <summary>
+    /// Response payload after claiming a redeem code.
+    /// </summary>
+    [Preserve]
+    public class ClaimRedeemCodeResponse
+    {
+        [JsonProperty("success")]
+        public bool Success;
+
+        [JsonProperty("order_ids")]
+        public int[] OrderIds;
+
+        [JsonProperty("message")]
+        public string Message;
+    }
+
+    /// <summary>
     /// Request payload for redeem order.
     /// </summary>
     [Preserve]
@@ -2786,6 +2815,44 @@ namespace com.noctuagames.sdk
             public long? PlayerId;
         }
         
+        /// <summary>
+        /// Claims a redeem code for the current authenticated user.
+        /// </summary>
+        /// <param name="code">The redeem code to claim (e.g. "ABCD-EFGH-IJKL-MNOP").</param>
+        /// <returns>Response containing order IDs and a message.</returns>
+        public async UniTask<ClaimRedeemCodeResponse> ClaimRedeemAsync(string code)
+        {
+            EnsureEnabled();
+
+            if (string.IsNullOrWhiteSpace(code))
+            {
+                throw new NoctuaException(NoctuaErrorCode.Application, "Redeem code must not be empty.");
+            }
+
+            var recentAccount = Noctua.Auth.RecentAccount;
+
+            if (recentAccount?.User?.Id == null || recentAccount.User.Id <= 0)
+            {
+                throw new NoctuaException(NoctuaErrorCode.Authentication, "User not authenticated. Please authenticate first.");
+            }
+
+            var url = $"{_config.BaseUrl}/redeem-codes/claim";
+
+            var requestBody = new ClaimRedeemCodeRequest
+            {
+                Code = code,
+                UserId = recentAccount.User.Id
+            };
+
+            var request = new HttpRequest(HttpMethod.Post, url)
+                .WithHeader("X-CLIENT-ID", _config.ClientId)
+                .WithHeader("X-BUNDLE-ID", Application.identifier)
+                .WithHeader("Authorization", "Bearer " + _accessTokenProvider.AccessToken)
+                .WithJsonBody(requestBody);
+
+            return await request.Send<ClaimRedeemCodeResponse>();
+        }
+
         private void EnsureEnabled()
         {
             if (_enabled) return;
