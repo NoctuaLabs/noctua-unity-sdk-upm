@@ -2850,7 +2850,40 @@ namespace com.noctuagames.sdk
                 .WithHeader("Authorization", "Bearer " + _accessTokenProvider.AccessToken)
                 .WithJsonBody(requestBody);
 
-            return await request.Send<ClaimRedeemCodeResponse>();
+            try
+            {
+                return await request.Send<ClaimRedeemCodeResponse>();
+            }
+            catch (NoctuaException ex) when (ex.ErrorCode == (int)NoctuaErrorCode.Networking)
+            {
+                var match = System.Text.RegularExpressions.Regex.Match(ex.Message, @"Response:\s*'(.+)'");
+
+                if (match.Success)
+                {
+                    try
+                    {
+                        var errorResponse = JsonConvert.DeserializeObject<ErrorResponse>(match.Groups[1].Value);
+
+                        if (errorResponse?.ErrorCode > 0 && !string.IsNullOrEmpty(errorResponse.ErrorMessage))
+                        {
+                            throw new NoctuaException(
+                                (NoctuaErrorCode)errorResponse.ErrorCode,
+                                errorResponse.ErrorMessage
+                            );
+                        }
+                    }
+                    catch (NoctuaException)
+                    {
+                        throw;
+                    }
+                    catch (Exception)
+                    {
+                        // JSON parsing failed, fall through to rethrow original
+                    }
+                }
+
+                throw;
+            }
         }
 
         private void EnsureEnabled()
