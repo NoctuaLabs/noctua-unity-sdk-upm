@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading;
@@ -74,6 +75,10 @@ namespace Tests.Runtime
             PlayerPrefs.DeleteKey("NoctuaEvents");
             PlayerPrefs.Save();
 
+            // Clean up per-row event storage file to prevent leftover events between tests
+            var eventStorePath = Path.Combine(Application.persistentDataPath, "noctua_events.jsonl");
+            if (File.Exists(eventStorePath)) File.Delete(eventStorePath);
+
             ExperimentManager.Clear();
 
             var empty = false;
@@ -87,9 +92,12 @@ namespace Tests.Runtime
                 empty = _server.Requests.Count == 0;
             }
 
-            // Final cleanup in case async tasks wrote to PlayerPrefs during drain
+            // Final cleanup in case async tasks wrote to storage during drain
             PlayerPrefs.DeleteKey("NoctuaEvents");
             PlayerPrefs.Save();
+
+            // Also clean up JSONL file again in case it was recreated during drain
+            if (File.Exists(eventStorePath)) File.Delete(eventStorePath);
         }
 
         [UnityTest]
@@ -699,6 +707,7 @@ namespace Tests.Runtime
                         BatchSize = 1000,        // High to prevent auto-send
                         BatchPeriodMs = 300_000,  // Long to prevent timeout send
                         CycleDelay = 60_000,      // Long cycle delay to prevent send loop
+                        MaxStoredEvents = 5,      // Cap at 5 events for this test
                         NativePlugin = new DefaultNativePlugin()
                     },
                     new NoctuaLocale()
@@ -919,7 +928,8 @@ namespace Tests.Runtime
         public IEnumerator AppKillDuringSend_EventsSurvive() => UniTask.ToCoroutine(
             async () =>
             {
-                // Events are written to storage via write queue immediately after Send(), so they survive app kill
+                // Events are written to per-row storage immediately after Send(), so they survive app kill
+                var nativePlugin = new DefaultNativePlugin();
                 var sender = new EventSender(
                     new EventSenderConfig
                     {
@@ -928,7 +938,7 @@ namespace Tests.Runtime
                         BatchSize = 1000,
                         BatchPeriodMs = 300_000,
                         CycleDelay = 60_000,
-                        NativePlugin = new DefaultNativePlugin()
+                        NativePlugin = nativePlugin
                     },
                     new NoctuaLocale()
                 );
@@ -939,11 +949,12 @@ namespace Tests.Runtime
                 // Simulate app kill: just dispose without flush
                 sender.Dispose();
 
-                // Verify events are in local storage
-                var json = PlayerPrefs.GetString("NoctuaEvents", "[]");
-                var stored = JsonConvert.DeserializeObject<List<string>>(json);
-                Assert.IsTrue(stored.Any(s => s.Contains("survive_event")),
-                    "Event should be persisted to local storage immediately after Send()");
+                // Verify events are in per-row storage (not old PlayerPrefs blob)
+                var tcs = new TaskCompletionSource<List<NativeEvent>>();
+                nativePlugin.GetEventsBatch(100, 0, events => tcs.SetResult(events));
+                var stored = await tcs.Task;
+                Assert.IsTrue(stored.Any(e => e.EventJson.Contains("survive_event")),
+                    "Event should be persisted to per-row storage immediately after Send()");
             }
         );
 

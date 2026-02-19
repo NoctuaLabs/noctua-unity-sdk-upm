@@ -803,7 +803,10 @@ namespace com.noctuagames.sdk.Events
                         var count = await GetEventCountDirectAsync();
                         if (count > _config.MaxStoredEvents)
                         {
-                            var evictionSize = _config.MaxStoredEvents / 10; // Evict oldest 10%
+                            // Evict the excess plus 10% buffer to avoid frequent evictions
+                            var excess = count - _config.MaxStoredEvents;
+                            var buffer = Math.Max(1, _config.MaxStoredEvents / 10);
+                            var evictionSize = excess + buffer;
                             _log.Warning($"[Event Sender] Storage exceeded cap ({count}/{_config.MaxStoredEvents}). Evicting {evictionSize} oldest events.");
                             var oldest = await GetEventsBatchDirectAsync(evictionSize, 0);
                             if (oldest != null && oldest.Count > 0)
