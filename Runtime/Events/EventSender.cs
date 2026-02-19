@@ -1,9 +1,11 @@
-﻿using System;
+using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
 using System.Threading;
+using System.Threading.Tasks;
 using Cysharp.Threading.Tasks;
 using Newtonsoft.Json;
 using UnityEngine;
@@ -20,7 +22,9 @@ namespace com.noctuagames.sdk.Events
         public uint BatchSize = 20;
         public int MaxBatchSize = 100;
         public uint BatchPeriodMs = 60_000; // 1 minute, in ms
-        public int CycleDelay = 5000; // 5 sec, in ms
+        public int CycleDelay = 10000; // 10 sec, in ms
+        public int MaxStoredEvents = 100_000; // 100K events cap with FIFO eviction
+        public INativePlugin NativePlugin;
         public FirebaseConfig FirebaseConfig = new FirebaseConfig();
     }
 
@@ -53,7 +57,6 @@ namespace com.noctuagames.sdk.Events
         private readonly ILogger _log = new NoctuaLogger(typeof(EventSender));
         private readonly EventSenderConfig _config;
         private readonly NoctuaLocale _locale;
-        private List<Dictionary<string, IConvertible>> _eventQueue;
         private readonly UniTask _sendTask;
         private readonly CancellationTokenSource _cancelSendSource;
         private readonly DateTime _start;
@@ -73,7 +76,81 @@ namespace com.noctuagames.sdk.Events
         private string _ipAddress;
         private bool? _isSandbox;
         private static bool _isQuitting = false;
-        private readonly object _queueLock = new();
+        private volatile bool _isFlushing;
+        private DateTime _lastConnectivityCheck = DateTime.MinValue;
+        private static readonly TimeSpan ConnectivityCheckInterval = TimeSpan.FromSeconds(30);
+
+        // Write queue for burst-safe storage writes — each item is a serialized JSON string
+        private readonly ConcurrentQueue<string> _writeQueue = new();
+        private volatile bool _isProcessingWriteQueue;
+        private volatile bool _writeQueuePaused;
+
+        // --- Private helpers that call _config.NativePlugin directly ---
+        // EventSender is constructed inside the Noctua() constructor (which runs inside
+        // a Lazy<Noctua> factory). Calling Noctua.GetEventCountAsync() etc. from here
+        // would trigger Instance.Value re-entry and throw
+        // "ValueFactory attempted to access the Value property of this instance."
+        // These helpers avoid the circular dependency by calling the native plugin directly.
+
+        private Task<int> GetEventCountDirectAsync()
+        {
+            var tcs = new TaskCompletionSource<int>();
+            try
+            {
+                _config.NativePlugin.GetEventCount(count => tcs.TrySetResult(count));
+            }
+            catch (Exception ex)
+            {
+                _log.Warning($"[Event Sender] GetEventCount failed: {ex.Message}");
+                tcs.TrySetResult(0);
+            }
+            return tcs.Task;
+        }
+
+        private Task<List<NativeEvent>> GetEventsBatchDirectAsync(int limit, int offset)
+        {
+            var tcs = new TaskCompletionSource<List<NativeEvent>>();
+            try
+            {
+                _config.NativePlugin.GetEventsBatch(limit, offset, events => tcs.TrySetResult(events));
+            }
+            catch (Exception ex)
+            {
+                _log.Warning($"[Event Sender] GetEventsBatch failed: {ex.Message}");
+                tcs.TrySetResult(new List<NativeEvent>());
+            }
+            return tcs.Task;
+        }
+
+        private Task<int> DeleteEventsByIdsDirectAsync(long[] ids)
+        {
+            var tcs = new TaskCompletionSource<int>();
+            try
+            {
+                _config.NativePlugin.DeleteEventsByIds(ids, deletedCount => tcs.TrySetResult(deletedCount));
+            }
+            catch (Exception ex)
+            {
+                _log.Warning($"[Event Sender] DeleteEventsByIds failed: {ex.Message}");
+                tcs.TrySetResult(0);
+            }
+            return tcs.Task;
+        }
+
+        private Task<List<string>> GetEventsDirectAsync()
+        {
+            var tcs = new TaskCompletionSource<List<string>>();
+            try
+            {
+                _config.NativePlugin.GetEvents(events => tcs.TrySetResult(events));
+            }
+            catch (Exception ex)
+            {
+                _log.Warning($"[Event Sender] GetEvents failed: {ex.Message}");
+                tcs.TrySetResult(new List<string>());
+            }
+            return tcs.Task;
+        }
 
         public void SetProperties(
             long? userId = 0,
@@ -105,7 +182,7 @@ namespace com.noctuagames.sdk.Events
 
             if (isSandbox != null) _isSandbox = isSandbox;
 
-            _log.Debug($"Setting fields: " +
+            _log.Debug($"[Event Sender] Setting fields: " +
                 $"userId={userId}, " +
                 $"playerId={playerId}, " +
                 $"credentialId={credentialId}, " +
@@ -140,7 +217,6 @@ namespace com.noctuagames.sdk.Events
             _locale = locale ?? throw new ArgumentNullException(nameof(locale));
             _start = DateTime.UtcNow - TimeSpan.FromSeconds(Stopwatch.GetTimestamp() / (double)Stopwatch.Frequency);
             _cancelSendSource = new CancellationTokenSource();
-            _sendTask = UniTask.Create(SendEvents, _cancelSendSource.Token);
 
             _deviceId = SystemInfo.deviceUniqueIdentifier;
             _sdkVersion = Assembly.GetExecutingAssembly().GetName().Version.ToString();
@@ -153,10 +229,49 @@ namespace com.noctuagames.sdk.Events
             _uniqueId = null;
 #endif
 
+            // Start background send loop
+            _sendTask = UniTask.Create(SendEvents, _cancelSendSource.Token);
+
+            // Async: check per-row event count and migrate old blob if needed
             UniTask.Void(async () =>
             {
-                await LoadEventsFromLocalStorageAsync();
+                await MigrateOldBlobEventsIfNeeded();
+
+                var count = await GetEventCountDirectAsync();
+                _log.Debug($"[Event Sender] Initialized. {count} persisted events found in per-row storage.");
+                if (count > 0)
+                {
+                    Flush();
+                }
             });
+        }
+
+        /// <summary>
+        /// Migration safety net: if old blob-format events exist and per-row storage is empty,
+        /// migrate the blob events into per-row storage and clear the old blob.
+        /// </summary>
+        private async UniTask MigrateOldBlobEventsIfNeeded()
+        {
+            try
+            {
+                var newCount = await GetEventCountDirectAsync();
+                if (newCount > 0) return; // Per-row storage already has events, skip migration
+
+                var oldEvents = await GetEventsDirectAsync();
+                if (oldEvents == null || oldEvents.Count == 0) return;
+
+                _log.Info($"[Event Sender] Migrating {oldEvents.Count} events from old blob format to per-row storage");
+                foreach (var eventJson in oldEvents)
+                {
+                    _config.NativePlugin?.InsertEvent(eventJson);
+                }
+                _config.NativePlugin?.DeleteEvents(); // Clear old blob
+                _log.Info($"[Event Sender] Migration complete. {oldEvents.Count} events moved to per-row storage.");
+            }
+            catch (Exception e)
+            {
+                _log.Warning($"[Event Sender] Old blob migration failed (non-fatal): {e.Message}");
+            }
         }
 
         public void Send(string name, Dictionary<string, IConvertible> data = null)
@@ -181,7 +296,7 @@ namespace com.noctuagames.sdk.Events
             {
                 if (data.Remove(key))
                 {
-                    _log.Debug($"Removed reserved key '{key}' from event payload.");
+                    _log.Debug($"[Event Sender] Removed reserved key '{key}' from event payload.");
                 }
             }
 
@@ -211,7 +326,7 @@ namespace com.noctuagames.sdk.Events
                 data.TryAdd("is_sandbox", _isSandbox);
 
                 string country = _locale.GetCountry();
-                
+
                 var isOffline = Noctua.IsOfflineMode();
                 data.TryAdd("offline_mode", isOffline);
 
@@ -224,7 +339,7 @@ namespace com.noctuagames.sdk.Events
                             _locale.SetCountry(country);
                         }
                     } catch (Exception e) {
-                        _log.Warning($"Failed to get country ID: {e.Message}");
+                        _log.Warning($"[Event Sender] Failed to get country ID: {e.Message}");
                     }
                 }
 
@@ -237,7 +352,7 @@ namespace com.noctuagames.sdk.Events
                     data.TryAdd("experiment", activeExperiment);
                 }
 
-                var activeFeature = Noctua.Event.GetSessionTag();
+                var activeFeature = ExperimentManager.GetSessionTag();
                 var sessionEvents = new HashSet<string>
                 {
                     "session_start",
@@ -262,7 +377,7 @@ namespace com.noctuagames.sdk.Events
                             data.TryAdd("firebase_analytics_session_id", firebaseSessionId);
                             data.TryAdd("firebase_installation_id", firebaseInstallationId);
                         } catch (Exception e) {
-                            _log.Warning($"Failed to get Firebase IDs: {e.Message}");
+                            _log.Warning($"[Event Sender] Failed to get Firebase IDs: {e.Message}");
                         }
                     }
                 #endif
@@ -277,7 +392,7 @@ namespace com.noctuagames.sdk.Events
                         data.TryAdd("firebase_analytics_session_id", firebaseSessionId);
                         data.TryAdd("firebase_installation_id", firebaseInstallationId);
                     } catch (Exception e) {
-                        _log.Warning($"Failed to get Firebase IDs: {e.Message}");
+                        _log.Warning($"[Event Sender] Failed to get Firebase IDs: {e.Message}");
                     }
                 }
                 #endif
@@ -291,7 +406,7 @@ namespace com.noctuagames.sdk.Events
                 if (_credentialProvider != null) data.TryAdd("credential_provider", _credentialProvider);
                 if (_gameId != null) data.TryAdd("game_id", _gameId);
                 if (_gamePlatformId != null) data.TryAdd("game_platform_id", _gamePlatformId);
-                
+
                 var currentSessionId = ExperimentManager.GetSessionId();
                 if (!string.IsNullOrEmpty(currentSessionId))
                 {
@@ -300,35 +415,38 @@ namespace com.noctuagames.sdk.Events
 
                 if (_uniqueId != null) data.TryAdd("unique_id", _uniqueId);
 
-                _log.Info($"queued event '{LastEventTime:O}|{name}|{_deviceId}|{_sessionId}|{_userId}|{_playerId}'");
+                // Serialize to JSON and enqueue for per-row INSERT
+                var eventJson = JsonConvert.SerializeObject(
+                    data.ToDictionary(kv => kv.Key, kv => (object)kv.Value)
+                );
+                EnqueueEventForStorage(eventJson);
 
-                lock (_queueLock)
+                // Throttled connectivity check to avoid flooding with HTTP pings
+                if (data.TryGetValue("event_name", out var eventNameValue) && eventNameValue.ToString() != "offline")
                 {
-                    _eventQueue.Add(data);
-                    PersistQueueToLocalStorage();
-
-                    // PlayerPrefs.SetString("NoctuaEvents", JsonConvert.SerializeObject(_eventQueue));
-                    // PlayerPrefs.Save();
-                    _log.Info($"{name} added to the queue. Current total event in queue: {_eventQueue.Count}");
-                }
-              
-                // This check is used to maintain the offline state more frequent to update.
-                // This also prevent "offline" event flooding the queue
-                // by not sending another "offline" event if the event name is "offline"
-                if (data.TryGetValue("event_name", out var eventName) && eventName.ToString() != "offline")
-                {
-                    _log.Debug("Checking internet connection status after sending event");
-                    Noctua.IsOfflineAsync().ContinueWith((isOffline) =>
+                    if (DateTime.UtcNow - _lastConnectivityCheck >= ConnectivityCheckInterval)
                     {
-                        if (isOffline)
+                        _lastConnectivityCheck = DateTime.UtcNow;
+                        try
                         {
-                            Noctua.OnOffline();
+                            _log.Debug("[Event Sender] Checking internet connection status after sending event");
+                            Noctua.IsOfflineAsync().ContinueWith((isOfflineResult) =>
+                            {
+                                if (isOfflineResult)
+                                {
+                                    Noctua.OnOffline();
+                                }
+                                else
+                                {
+                                    Noctua.OnOnline();
+                                }
+                            });
                         }
-                        else
+                        catch (Exception e)
                         {
-                            Noctua.OnOnline();
+                            _log.Warning($"[Event Sender] Connectivity check skipped: {e.Message}");
                         }
-                    });
+                    }
                 }
             });
         }
@@ -356,9 +474,9 @@ namespace com.noctuagames.sdk.Events
             }
             catch (AndroidJavaException e)
             {
-                _log.Warning("Failed to get Google Advertising ID: " + e.Message);
+                _log.Warning("[Event Sender] Failed to get Google Advertising ID: " + e.Message);
             }
-            
+
             return null;
         }
 #endif
@@ -375,64 +493,79 @@ namespace com.noctuagames.sdk.Events
         public void Flush()
         {
 #if UNITY_IOS && !UNITY_EDITOR
-            // This patch only applied for IOS to cover Sortify specific crash
-            // where the HTTP request cause crash when the app is trying to quit
-            _log.Debug("On Flush called on IOS. Abort to avoid crash");
+            _log.Debug("[Event Sender] Flush skipped on iOS to avoid quit-time crash. Events will be sent on next launch.");
             return;
-
-            // No need to backup to PlayerPrefs. The latest backup from Send() is already sufficient
 #endif
 
-            _log.Debug("On Flush called. " + $"Current total event in queue: {_eventQueue.Count}");
-
-            List<Dictionary<string, IConvertible>> snapshot;
-            lock (_queueLock)
-            {
-                snapshot = new List<Dictionary<string, IConvertible>>(_eventQueue);
-            }
-
-            var request = new HttpRequest(HttpMethod.Post, $"{_config.BaseUrl}/events")
-                .WithHeader("X-CLIENT-ID", _config.ClientId)
-                .WithHeader("X-DEVICE-ID", SanitizeHeaderValue(_deviceId))
-                .WithNdjsonBody(snapshot);
+            if (_isFlushing) return;
+            _isFlushing = true;
 
             UniTask.Void(async () =>
             {
                 try
                 {
-                    await request.Send<EventResponse>();
-                    // All dequeued events is sent successfuly to server,
-                    // then it's safe to remove all items from PlayerPrefs
-                    // PlayerPrefs.SetString("NoctuaEvents", "[]");
-                    // PlayerPrefs.Save();
-
-                    lock (_queueLock)
+                    // Wait for any in-progress write queue to finish first
+                    while (_isProcessingWriteQueue)
                     {
-                        // Clear the event queue
-                        _eventQueue.Clear();
+                        await UniTask.Yield();
                     }
 
-                    ClearLocalStorage();
+                    // PAUSE write queue — new events stay in ConcurrentQueue during HTTP
+                    _writeQueuePaused = true;
 
-                    _log.Info($"Sent {_eventQueue.Count} events. PlayerPrefs cleared.");
+                    // Drain any remaining write queue items into storage first
+                    ProcessWriteQueue();
+
+                    // Paginated flush: read batch → HTTP → delete → repeat
+                    while (true)
+                    {
+                        var batch = await GetEventsBatchDirectAsync(_config.MaxBatchSize, 0);
+                        if (batch == null || batch.Count == 0)
+                        {
+                            _log.Debug("[Event Sender] Flush: no more events to send");
+                            break;
+                        }
+
+                        _log.Debug($"[Event Sender] Flush: sending batch of {batch.Count} events");
+
+                        var eventDicts = batch.Select(e =>
+                            JsonConvert.DeserializeObject<Dictionary<string, object>>(e.EventJson)
+                        ).Where(d => d != null).ToList();
+
+                        if (eventDicts.Count == 0) break;
+
+                        var request = new HttpRequest(HttpMethod.Post, $"{_config.BaseUrl}/events")
+                            .WithHeader("X-CLIENT-ID", _config.ClientId)
+                            .WithHeader("X-DEVICE-ID", SanitizeHeaderValue(_deviceId))
+                            .WithNdjsonBody(eventDicts);
+
+                        await request.Send<EventResponse>();
+
+                        // SUCCESS: delete sent events by ID
+                        var sentIds = batch.Select(e => e.Id).ToArray();
+                        await DeleteEventsByIdsDirectAsync(sentIds);
+
+                        _log.Info($"[Event Sender] Flushed {eventDicts.Count} events.");
+                    }
                 }
                 catch (Exception e)
                 {
-                    // No need to backup to PlayerPrefs. The latest backup from Send() is already sufficient.
-                    // No need to re-enqueue because the clearing queue part is on the success branch above
-                    // Simply print the error as warning
-                    _log.Warning("Failed to send events: " + e.Message);
+                    _log.Warning("[Event Sender] Failed to flush events: " + e.Message);
+                    // Remaining events stay in per-row storage for next attempt
+                }
+                finally
+                {
+                    _isFlushing = false;
+                    // RESUME write queue
+                    _writeQueuePaused = false;
+                    ProcessWriteQueue();
                 }
             });
         }
 
         public void Dispose()
         {
-            if (_disposed)
-            {
-                return;
-            }
-
+            if (_disposed) return;
             _cancelSendSource.Cancel();
             _disposed = true;
         }
@@ -446,100 +579,116 @@ namespace com.noctuagames.sdk.Events
         {
             while (!token.IsCancellationRequested)
             {
-                // For any early continue or next cycle, they will be guarded by this delay
                 await UniTask.Delay(_config.CycleDelay, cancellationToken: token);
 
-                // If the queue is empty, wait for another 1 sec
-                while (_eventQueue.Count == 0)
+                // Check event count from per-row storage (async)
+                int pendingCount;
+                try
                 {
-                    await UniTask.Delay(1000, cancellationToken: token);
+                    pendingCount = await GetEventCountDirectAsync();
                 }
-                var nextBatchSchedule = DateTime.UtcNow.AddMilliseconds(_config.BatchPeriodMs);
-                // If the queue length is less than batch size
-                while (_eventQueue.Count < _config.BatchSize &&
-                // or it is not reached the next batch schedule yet
-                DateTime.UtcNow < nextBatchSchedule)
+                catch
                 {
-                    // Then wait for another 1 sec.
-                    await UniTask.Delay(1000, cancellationToken: token);
-                }
-
-                if (_eventQueue.Count == 0)
-                {
-                    // If the queue is still empty, immediately return.
-                    // At this point, the maximum delay for a cycle is "CycleDelay" + 2 seconds = 7 seconds
                     continue;
                 }
 
-                // The minimum delay time is 
+                if (pendingCount == 0) continue;
+
+                // Wait for batch to fill or timeout
+                var nextBatchSchedule = DateTime.UtcNow.AddMilliseconds(_config.BatchPeriodMs);
+                while (pendingCount < _config.BatchSize && DateTime.UtcNow < nextBatchSchedule)
+                {
+                    await UniTask.Delay(1000, cancellationToken: token);
+                    try
+                    {
+                        pendingCount = await GetEventCountDirectAsync();
+                    }
+                    catch
+                    {
+                        break;
+                    }
+                }
+
+                if (pendingCount == 0) continue;
+
+                if (_isFlushing)
+                {
+                    _log.Debug("[Event Sender] Flush in progress, skipping send cycle");
+                    continue;
+                }
+
                 var isOffline = Noctua.IsOfflineMode();
                 if (isOffline)
                 {
-                    Noctua.OnOffline();
-
-                    _log.Info($"Device is offline = ${isOffline}, continue to next cycle");
+                    try { Noctua.OnOffline(); } catch (Exception) { /* Noctua not initialized */ }
+                    _log.Info("[Event Sender] Device is offline, continue to next cycle");
                     continue;
                 }
-                
-                Noctua.OnOnline();
 
-                // Dequeue to be sent to server
-                var events = new List<Dictionary<string, IConvertible>>();
-                lock (_queueLock)
-                {
-                    if (_eventQueue.Count <= _config.MaxBatchSize)
-                    {
-                        events = new List<Dictionary<string, IConvertible>>(_eventQueue);
-                        _eventQueue.Clear();
-                    }
-                    else
-                    {
-                        events = _eventQueue.GetRange(0, _config.MaxBatchSize);
-                        _eventQueue.RemoveRange(0, _config.MaxBatchSize);
-                    }
-                }
-               
+                try { Noctua.OnOnline(); } catch (Exception) { /* Noctua not initialized */ }
 
-                _log.Info($"Batch size: {_config.MaxBatchSize}, events to be send: {events.Count}, events in the queue: {_eventQueue.Count}");
-
+                // Read batch from per-row storage (always offset 0, we delete after send)
+                List<NativeEvent> batch;
                 try
                 {
-                    var request = new HttpRequest(HttpMethod.Post, $"{_config.BaseUrl}/events")
-                        .WithHeader("X-CLIENT-ID", _config.ClientId)
-                        .WithHeader("X-DEVICE-ID", SanitizeHeaderValue(_deviceId))
-                        .WithNdjsonBody(events);
-
-                    await request.Send<EventResponse>();
-                    
-                    lock (_queueLock)
-                    {
-                        PersistQueueToLocalStorage();
-                    }
-
-                    _log.Info($"Sent {events.Count} events. Events in queue: {_eventQueue.Count}");
+                    batch = await GetEventsBatchDirectAsync(_config.MaxBatchSize, 0);
                 }
                 catch (Exception e)
                 {
-                    _log.Error($"Failed to send events to server: {e.Message}");
-                    lock (_queueLock)
-                    {
-                        // If the request failed, we need to re-enqueue the events back to the queue
-                        _log.Info("Re-enqueueing events back to the queue due to failure");
-                         // Re-enqueue all the events
-                        _eventQueue.AddRange(events);
-                        PersistQueueToLocalStorage();
-                    }
+                    _log.Warning($"[Event Sender] Failed to read events batch: {e.Message}");
+                    continue;
+                }
+
+                if (batch == null || batch.Count == 0) continue;
+
+                var eventDicts = batch.Select(e =>
+                    JsonConvert.DeserializeObject<Dictionary<string, object>>(e.EventJson)
+                ).Where(d => d != null).ToList();
+
+                if (eventDicts.Count == 0) continue;
+
+                _log.Info($"[Event Sender] Sending batch: {eventDicts.Count} events");
+
+                try
+                {
+                    // PAUSE write queue during HTTP
+                    _writeQueuePaused = true;
+
+                    var request = new HttpRequest(HttpMethod.Post, $"{_config.BaseUrl}/events")
+                        .WithHeader("X-CLIENT-ID", _config.ClientId)
+                        .WithHeader("X-DEVICE-ID", SanitizeHeaderValue(_deviceId))
+                        .WithNdjsonBody(eventDicts);
+
+                    await request.Send<EventResponse>();
+
+                    // SUCCESS: delete only the sent events by their IDs
+                    var sentIds = batch.Select(e => e.Id).ToArray();
+                    var deletedCount = await DeleteEventsByIdsDirectAsync(sentIds);
+
+                    var remainingCount = await GetEventCountDirectAsync();
+                    _log.Info($"[Event Sender] Sent {eventDicts.Count} events, deleted {deletedCount}. {remainingCount} remaining.");
+                }
+                catch (Exception e)
+                {
+                    _log.Error($"[Event Sender] Failed to send events: {e.Message}");
+                    // Events remain in per-row storage for retry
+                }
+                finally
+                {
+                    // RESUME write queue
+                    _writeQueuePaused = false;
+                    ProcessWriteQueue();
                 }
             }
         }
-        
+
         private string SanitizeHeaderValue(string value)
         {
             if (string.IsNullOrEmpty(value)) return string.Empty;
             var sanitized = new string(value.Where(c => c >= 32 && c != 127).ToArray());
             if (sanitized != value)
             {
-                _log.Info($"Header value sanitized. Original: {value}, Sanitized: {sanitized}");
+                _log.Info($"[Event Sender] Header value sanitized. Original: {value}, Sanitized: {sanitized}");
             }
             return sanitized;
         }
@@ -553,13 +702,13 @@ namespace com.noctuagames.sdk.Events
                 return country;
             } catch (Exception e)
             {
-                _log.Warning($"Failed to get country ID from GeoIP: {e.Message}");
+                _log.Warning($"[Event Sender] Failed to get country ID from GeoIP: {e.Message}");
             }
             try {
                 country = await GetCountryIDFromCloudflareTraceAsync();
                 return country;
             } catch (Exception e) {
-                _log.Warning($"Failed to get country ID from Cloudflare Trace: {e.Message}");
+                _log.Warning($"[Event Sender] Failed to get country ID from Cloudflare Trace: {e.Message}");
             }
 
             return country;
@@ -577,7 +726,7 @@ namespace com.noctuagames.sdk.Events
 
             var response = await request.Send<GeoIPData>();
 
-            _log.Debug($"GeoIP response (inner data): {JsonConvert.SerializeObject(response)}");
+            _log.Debug($"[Event Sender] GeoIP response (inner data): {JsonConvert.SerializeObject(response)}");
 
             if (response != null && !string.IsNullOrEmpty(response.Country))
             {
@@ -585,7 +734,7 @@ namespace com.noctuagames.sdk.Events
                 return country;
             }
 
-            _log.Warning($"Failed to get country from GeoIP response: {JsonConvert.SerializeObject(response)}");
+            _log.Warning($"[Event Sender] Failed to get country from GeoIP response: {JsonConvert.SerializeObject(response)}");
             return country;
         }
 
@@ -594,7 +743,7 @@ namespace com.noctuagames.sdk.Events
         {
             // Extract domain from baseUrl
             string domain = "sdk-tracker.noctuaprojects.com";
-            _log.Debug($"Domain extracted from baseUrl: {domain}");
+            _log.Debug($"[Event Sender] Domain extracted from baseUrl: {domain}");
             var request = new HttpRequest(HttpMethod.Get, $"https://{domain}/cdn-cgi/trace");
 
             string responseText = await request.SendRaw();
@@ -611,80 +760,79 @@ namespace com.noctuagames.sdk.Events
                 }
             }
 
-            _log.Debug($"Location value: {locValue}");
+            _log.Debug($"[Event Sender] Location value: {locValue}");
 
             return locValue;
         }
 
-        private async UniTask LoadEventsFromLocalStorageAsync()
-        {
-            _log.Info("Loading NoctuaEvents from native local storage");
+        // ===== Storage Helper Methods =====
 
-            List<string> storedEvents;
+        /// <summary>
+        /// Enqueue a serialized event JSON for per-row INSERT.
+        /// The write queue processor will INSERT each event individually.
+        /// </summary>
+        private void EnqueueEventForStorage(string eventJson)
+        {
+            _writeQueue.Enqueue(eventJson);
+            ProcessWriteQueue();
+        }
+
+        /// <summary>
+        /// Drain the write queue: INSERT each event as an individual row in native storage.
+        /// O(1) per event — no full-replace, no serialize-all.
+        /// Also enforces the MaxStoredEvents cap with FIFO eviction.
+        /// </summary>
+        private void ProcessWriteQueue()
+        {
+            if (_isProcessingWriteQueue) return;
+            if (_writeQueuePaused) return;
+            _isProcessingWriteQueue = true;
+
             try
             {
-                storedEvents = await Noctua.GetEventsAsync();
-            }
-            catch (Exception e)
-            {
-                _log.Warning($"Failed to load events from local storage: {e.Message}");
-                storedEvents = new List<string>();
-            }
-
-            var events = new List<Dictionary<string, IConvertible>>();
-
-            foreach (var json in storedEvents)
-            {
-                try
+                while (_writeQueue.TryDequeue(out var eventJson))
                 {
-                    var evt = JsonConvert.DeserializeObject<Dictionary<string, IConvertible>>(json);
-                    if (evt != null)
+                    _config.NativePlugin?.InsertEvent(eventJson);
+                }
+
+                // Async eviction check — fire-and-forget
+                UniTask.Void(async () =>
+                {
+                    try
                     {
-                        events.Add(evt);
+                        var count = await GetEventCountDirectAsync();
+                        if (count > _config.MaxStoredEvents)
+                        {
+                            var evictionSize = _config.MaxStoredEvents / 10; // Evict oldest 10%
+                            _log.Warning($"[Event Sender] Storage exceeded cap ({count}/{_config.MaxStoredEvents}). Evicting {evictionSize} oldest events.");
+                            var oldest = await GetEventsBatchDirectAsync(evictionSize, 0);
+                            if (oldest != null && oldest.Count > 0)
+                            {
+                                var idsToDelete = oldest.Select(e => e.Id).ToArray();
+                                await DeleteEventsByIdsDirectAsync(idsToDelete);
+                            }
+                        }
                     }
-                }
-                catch (Exception e)
+                    catch (Exception e)
+                    {
+                        _log.Warning($"[Event Sender] Eviction check failed: {e.Message}");
+                    }
+                });
+            }
+            catch (Exception e)
+            {
+                _log.Warning($"[Event Sender] Write queue processing failed: {e.Message}");
+            }
+            finally
+            {
+                _isProcessingWriteQueue = false;
+
+                // If new events arrived during processing, process again
+                if (_writeQueue.Count > 0 && !_writeQueuePaused)
                 {
-                    _log.Warning($"Failed to parse stored event: {e.Message}");
+                    ProcessWriteQueue();
                 }
-            }
-
-            lock (_queueLock)
-            {
-                _eventQueue = new List<Dictionary<string, IConvertible>>(events);
-            }
-
-            _log.Info($"Total loaded events from local storage: {_eventQueue.Count}");
-        }
-
-        private void PersistQueueToLocalStorage()
-        {
-            try
-            {
-                var jsonList = _eventQueue
-                    .Select(e => JsonConvert.SerializeObject(e))
-                    .ToList();
-
-                var payload = JsonConvert.SerializeObject(jsonList);
-                Noctua.SaveEvents(payload);
-            }
-            catch (Exception e)
-            {
-                _log.Warning($"Failed to persist events to local storage: {e.Message}");
-            }
-        }
-
-        private void ClearLocalStorage()
-        {
-            try
-            {
-                Noctua.DeleteEvents();
-            }
-            catch (Exception e)
-            {
-                _log.Warning($"Failed to clear local storage: {e.Message}");
             }
         }
     }
-    
 }

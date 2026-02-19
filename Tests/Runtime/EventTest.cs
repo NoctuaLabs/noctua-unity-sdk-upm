@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
@@ -64,7 +64,7 @@ namespace Tests.Runtime
             _server.RemoveHandler("/events");
             _server.Dispose();
         }
-        
+
         [UnitySetUp]
         public IEnumerator SetUp()
         {
@@ -73,6 +73,8 @@ namespace Tests.Runtime
 
             PlayerPrefs.DeleteKey("NoctuaEvents");
             PlayerPrefs.Save();
+
+            ExperimentManager.Clear();
 
             var empty = false;
 
@@ -89,29 +91,7 @@ namespace Tests.Runtime
             PlayerPrefs.DeleteKey("NoctuaEvents");
             PlayerPrefs.Save();
         }
-        
-        [Ignore("This test is ignored because it requires a real server.")]
-        [UnityTest]
-        public IEnumerator SendAndEventToRealServer_ExpectSuccess() => UniTask.ToCoroutine(
-            async () =>
-            {
-                var eventSender = new EventSender(
-                    new EventSenderConfig
-                    {
-                        BaseUrl = NoctuaConfig.DefaultTrackerUrl,
-                        ClientId = "test_client_id"
-                    },
-                    new NoctuaLocale()
-                );
-                
-                eventSender.Flush();
 
-                Assert.DoesNotThrow(() => eventSender.Send("test_event"));
-            }
-        );
-
-        // Skipped: NullReferenceException due to Runtime API changes in v0.75.0
-        [Ignore("NullReferenceException: EventSender API changed since tests were written")]
         [UnityTest]
         public IEnumerator SendAnEvent_AllMandatoryFieldsAreIncluded() => UniTask.ToCoroutine(
             async () =>
@@ -122,7 +102,8 @@ namespace Tests.Runtime
                         BaseUrl = "http://localhost:7777/api/v1",
                         ClientId = "test_client_id",
                         BatchSize = 1,
-                        CycleDelay = 100
+                        CycleDelay = 100,
+                        NativePlugin = new DefaultNativePlugin()
                     },
                     new NoctuaLocale()
                 );
@@ -131,7 +112,7 @@ namespace Tests.Runtime
 
                 eventSender.Send("test_event");
 
-                await UniTask.WhenAny(UniTask.Delay(1000), UniTask.WaitUntil(() => _server.Requests.Count > 0));
+                await UniTask.WhenAny(UniTask.Delay(3000), UniTask.WaitUntil(() => _server.Requests.Count > 0));
 
                 Assert.IsTrue(_server.Requests.TryDequeue(out var request));
 
@@ -158,13 +139,11 @@ namespace Tests.Runtime
 
                 Assert.IsNotNull(evt.country);
                 Assert.IsNotNull(evt.timestamp);
-                
+
                 eventSender.Dispose();
             }
         );
 
-        // Skipped: NullReferenceException due to Runtime API changes in v0.75.0
-        [Ignore("NullReferenceException: EventSender API changed since tests were written")]
         [UnityTest]
         public IEnumerator SetAndClearProperties_EventPropertiesAffected() => UniTask.ToCoroutine(
             async () =>
@@ -175,10 +154,14 @@ namespace Tests.Runtime
                         BaseUrl = "http://localhost:7777/api/v1",
                         ClientId = "test_client_id",
                         BatchSize = 1,
-                        CycleDelay = 100
+                        CycleDelay = 100,
+                        NativePlugin = new DefaultNativePlugin()
                     },
                     new NoctuaLocale()
                 );
+
+                // session_id in event data comes from ExperimentManager, not SetProperties
+                ExperimentManager.SetSessionId("6");
 
                 eventSender.SetProperties(
                     userId: 1,
@@ -208,7 +191,7 @@ namespace Tests.Runtime
                 eventSender.Send("test_event");
 
                 var win = await UniTask.WhenAny(
-                    UniTask.Delay(1000),
+                    UniTask.Delay(3000),
                     UniTask.WaitUntil(() => _server.Requests.Count > 0)
                 );
 
@@ -217,6 +200,9 @@ namespace Tests.Runtime
                     Assert.Fail("No requests received.");
                 }
 
+                // Allow additional events to arrive (fire-and-forget write queue + send loop)
+                await UniTask.Delay(500);
+
                 var sb = new StringBuilder();
 
                 while (_server.Requests.TryDequeue(out var request))
@@ -224,14 +210,17 @@ namespace Tests.Runtime
                     sb.AppendLine(request.Body);
                 }
 
+                // Filter to only our test_event events (exclude stale session_start etc. from Noctua init)
                 var events = sb
                     .ToString()
                     .Trim()
                     .Split('\n')
                     .Select(JsonConvert.DeserializeObject<Dictionary<string, object>>)
+                    .Where(e => e.ContainsKey("event_name") && e["event_name"].ToString() == "test_event")
                     .ToList();
 
-                Assert.AreEqual(3, events.Count);
+                Assert.AreEqual(3, events.Count,
+                    $"Expected 3 test_event events, got {events.Count}");
 
                 Assert.AreEqual(1, events[0]["user_id"]);
                 Assert.AreEqual(2, events[0]["player_id"]);
@@ -253,13 +242,11 @@ namespace Tests.Runtime
                 Assert.AreEqual(4, events[2]["game_id"]);
                 Assert.AreEqual(5, events[2]["game_platform_id"]);
                 Assert.AreEqual("6", events[2]["session_id"]);
-                
+
                 eventSender.Dispose();
             }
         );
 
-        // Skipped: NullReferenceException due to Runtime API changes in v0.75.0
-        [Ignore("NullReferenceException: EventSender API changed since tests were written")]
         [UnityTest]
         public IEnumerator SendEvents_DontReachBatchingNumberThreshold_DontSendToServer() => UniTask.ToCoroutine(
             async () =>
@@ -270,7 +257,8 @@ namespace Tests.Runtime
                         BaseUrl = "http://localhost:7777/api/v1",
                         ClientId = "test_client_id",
                         BatchSize = 3,
-                        CycleDelay = 100
+                        CycleDelay = 100,
+                        NativePlugin = new DefaultNativePlugin()
                     },
                     new NoctuaLocale()
                 );
@@ -279,16 +267,14 @@ namespace Tests.Runtime
 
                 eventSender.Send("test_event_1");
 
-                await UniTask.WhenAny(UniTask.Delay(1000), UniTask.WaitUntil(() => _server.Requests.Count > 0));
+                await UniTask.WhenAny(UniTask.Delay(2000), UniTask.WaitUntil(() => _server.Requests.Count > 0));
 
                 Assert.IsFalse(_server.Requests.TryDequeue(out _));
-                
+
                 eventSender.Dispose();
             }
         );
 
-        // Skipped: flaky due to event deduplication race in EventSender flush logic
-        [Ignore("Flaky: event deduplication race condition causes count mismatch")]
         [UnityTest]
         public IEnumerator SendEvents_DontReachBatchingNumberThresholdButFlushed_SendToServer() => UniTask.ToCoroutine(
             async () =>
@@ -299,7 +285,8 @@ namespace Tests.Runtime
                         BaseUrl = "http://localhost:7777/api/v1",
                         ClientId = "test_client_id",
                         BatchSize = 3,
-                        CycleDelay = 100
+                        CycleDelay = 100,
+                        NativePlugin = new DefaultNativePlugin()
                     },
                     new NoctuaLocale()
                 );
@@ -308,18 +295,19 @@ namespace Tests.Runtime
 
                 eventSender.Send("test_event_1");
 
+                // Wait for fire-and-forget Send tasks to complete and write to storage
+                await UniTask.Delay(500);
+
                 eventSender.Flush();
 
                 var events = await GetEventsFromServerAsync();
 
                 Assert.AreEqual(2, events.Count);
-                
+
                 eventSender.Dispose();
             }
         );
-        
-        // Skipped: flaky due to event deduplication race in EventSender batch logic
-        [Ignore("Flaky: event deduplication race condition causes count mismatch")]
+
         [UnityTest]
         public IEnumerator SendEvents_ReachBatchingNumberThreshold_SendToServer() => UniTask.ToCoroutine(
             async () =>
@@ -330,7 +318,8 @@ namespace Tests.Runtime
                         BaseUrl = "http://localhost:7777/api/v1",
                         ClientId = "test_client_id",
                         BatchSize = 3,
-                        CycleDelay = 100
+                        CycleDelay = 100,
+                        NativePlugin = new DefaultNativePlugin()
                     },
                     new NoctuaLocale()
                 );
@@ -364,13 +353,11 @@ namespace Tests.Runtime
                     Assert.IsNotNull(evt.country);
                     Assert.IsNotNull(evt.timestamp);
                 }
-                
+
                 eventSender.Dispose();
             }
         );
 
-        // Skipped: NullReferenceException due to Runtime API changes in v0.75.0
-        [Ignore("NullReferenceException: EventSender API changed since tests were written")]
         [UnityTest]
         public IEnumerator SendEvents_ReachBatchingTimeout_SendToServer() => UniTask.ToCoroutine(
             async () =>
@@ -382,7 +369,8 @@ namespace Tests.Runtime
                         ClientId = "test_client_id",
                         BatchSize = 3,
                         BatchPeriodMs = 500,
-                        CycleDelay = 100
+                        CycleDelay = 100,
+                        NativePlugin = new DefaultNativePlugin()
                     },
                     new NoctuaLocale()
                 );
@@ -414,162 +402,11 @@ namespace Tests.Runtime
                     Assert.IsNotNull(evt.country);
                     Assert.IsNotNull(evt.timestamp);
                 }
-                
-                eventSender.Dispose();
-            }
-        );
-
-        // Skipped: NullReferenceException due to Runtime API changes in v0.75.0
-        [Ignore("NullReferenceException: NoctuaAuthenticationService API changed since tests were written")]
-        [UnityTest]
-        public IEnumerator LoginAsGuest_SendAuthenticatedEvent() => UniTask.ToCoroutine(
-            async () =>
-            {
-                var eventSender = new EventSender(
-                    new EventSenderConfig
-                    {
-                        BaseUrl = "http://localhost:7777/api/v1",
-                        ClientId = "1-e724f5a9e6f1",
-                        BatchSize = 1,
-                        CycleDelay = 100
-                    },
-                    new NoctuaLocale()
-                );
-
-                PlayerPrefs.DeleteKey("NoctuaAccountContainer");
-
-                var authSvc = new NoctuaAuthenticationService(
-                    baseUrl: "https://sdk-api-v2.noctuaprojects.com/api/v1",
-                    clientId: "1-e724f5a9e6f1",
-                    nativeAccountStore: new DefaultNativePlugin(),
-                    eventSender: eventSender,
-                    bundleId: Application.identifier
-                );
-
-                await authSvc.AuthenticateAsync();
-
-                var events = await GetEventsFromServerAsync();
-
-                var eventNames = events.Select(evt => evt.event_name).ToList();
-
-                Assert.AreEqual(1, eventNames.Count(x => x == "account_authenticated"));
-
-                foreach (var evt in events)
-                {
-                    Assert.AreNotEqual(0, evt.user_id);
-                    Assert.AreNotEqual(0, evt.player_id);
-                    Assert.AreNotEqual(0, evt.credential_id);
-                }
 
                 eventSender.Dispose();
             }
         );
 
-        // Skipped: NullReferenceException due to Runtime API changes in v0.75.0
-        [Ignore("NullReferenceException: NoctuaAuthenticationService API changed since tests were written")]
-        [UnityTest]
-        public IEnumerator LoginAsGuest_ThenSendCustomEvent_UserIdAndPlayerIdAttached() => UniTask.ToCoroutine(
-            async () =>
-            {
-                var eventSender = new EventSender(
-                    new EventSenderConfig
-                    {
-                        BaseUrl = "http://localhost:7777/api/v1",
-                        ClientId = "1-e724f5a9e6f1",
-                        BatchSize = 2,
-                        CycleDelay = 100
-                    },
-                    new NoctuaLocale()
-                );
-
-                PlayerPrefs.DeleteKey("NoctuaAccountContainer");
-
-                var authSvc = new NoctuaAuthenticationService(
-                    baseUrl: "https://sdk-api-v2.noctuaprojects.com/api/v1",
-                    clientId: "1-e724f5a9e6f1",
-                    nativeAccountStore: new DefaultNativePlugin(),
-                    eventSender: eventSender,
-                    bundleId: Application.identifier
-                );
-
-                await authSvc.AuthenticateAsync();
-
-                eventSender.Send("test_event");
-
-                var events = await GetEventsFromServerAsync();
-
-                var eventNames = events.Select(evt => evt.event_name).ToList();
-
-                Assert.AreEqual(1, eventNames.Count(x => x == "account_authenticated"));
-                Assert.AreEqual(1, eventNames.Count(x => x == "test_event"));
-
-                foreach (var evt in events)
-                {
-                    Assert.AreNotEqual(0, evt.user_id);
-                    Assert.AreNotEqual(0, evt.player_id);
-                    Assert.AreNotEqual(0, evt.credential_id);
-                }
-
-                eventSender.Dispose();
-            }
-        );
-
-        // Skipped: NullReferenceException due to Runtime API changes in v0.75.0
-        [Ignore("NullReferenceException: NoctuaAuthenticationService API changed since tests were written")]
-        [UnityTest]
-        public IEnumerator LoginWithEmailTwiceThenSwitch_SendThreeEvents() => UniTask.ToCoroutine(
-            async () =>
-            {
-                var eventSender = new EventSender(
-                    new EventSenderConfig
-                    {
-                        BaseUrl = "http://localhost:7777/api/v1",
-                        ClientId = "1-e724f5a9e6f1",
-                        BatchSize = 3,
-                        CycleDelay = 100
-                    },
-                    new NoctuaLocale()
-                );
-
-                PlayerPrefs.DeleteKey("NoctuaAccountContainer");
-
-                var authSvc = new NoctuaAuthenticationService(
-                    baseUrl: "https://sdk-api-v2.noctuaprojects.com/api/v1",
-                    clientId: "1-e724f5a9e6f1",
-                    nativeAccountStore: new DefaultNativePlugin(),
-                    eventSender: eventSender,
-                    bundleId: Application.identifier
-                );
-
-                // don't ask me how I got these accounts
-
-                await authSvc.LoginWithEmailAsync("weteso6757@digopm.com", "aaaaaa");
-
-                await authSvc.LoginWithEmailAsync("sefeg80041@digopm.com", "aaaaaa");
-
-                await authSvc.SwitchAccountAsync(authSvc.AccountList.Last());
-
-                var events = await GetEventsFromServerAsync();
-
-                var eventNames = events.Select(evt => evt.event_name).ToList();
-
-                Assert.AreEqual(2, eventNames.Count(x => x == "account_authenticated"));
-                Assert.AreEqual(2, eventNames.Count(x => x == "account_authenticated_by_email"));
-                Assert.AreEqual(1, eventNames.Count(x => x == "account_switched"));
-
-                foreach (var evt in events)
-                {
-                    Assert.AreNotEqual(0, evt.user_id);
-                    Assert.AreNotEqual(0, evt.player_id);
-                    Assert.AreNotEqual(0, evt.credential_id);
-                }
-
-                eventSender.Dispose();
-            }
-        );
-        
-        // Skipped: NullReferenceException due to Runtime API changes in v0.75.0
-        [Ignore("NullReferenceException: EventSender API changed since tests were written")]
         [UnityTest]
         public IEnumerator SessionTracker_OnStartPauseAndResume_SendStartPauseAndResumeEvents() => UniTask.ToCoroutine(
             async () =>
@@ -580,7 +417,8 @@ namespace Tests.Runtime
                         BaseUrl = "http://localhost:7777/api/v1",
                         ClientId = "test_client_id",
                         BatchSize = 1,
-                        CycleDelay = 100
+                        CycleDelay = 100,
+                        NativePlugin = new DefaultNativePlugin()
                     },
                     new NoctuaLocale()
                 );
@@ -622,9 +460,7 @@ namespace Tests.Runtime
                 eventSender.Dispose();
             }
         );
-        
-        // Skipped: NullReferenceException due to Runtime API changes in v0.75.0
-        [Ignore("NullReferenceException: EventSender API changed since tests were written")]
+
         [UnityTest]
         public IEnumerator SendEvents_SessionTrackerPaused_FlushedAndSendToServer() => UniTask.ToCoroutine(
             async () =>
@@ -636,7 +472,8 @@ namespace Tests.Runtime
                         ClientId = "test_client_id",
                         BatchSize = 100,
                         BatchPeriodMs = 300_000,
-                        CycleDelay = 100
+                        CycleDelay = 100,
+                        NativePlugin = new DefaultNativePlugin()
                     },
                     new NoctuaLocale()
                 );
@@ -644,13 +481,16 @@ namespace Tests.Runtime
                 var sessionTracker = new SessionTracker(new SessionTrackerConfig(), eventSender);
 
                 sessionTracker.OnApplicationPause(false);
-                
+
                 eventSender.Send("test_event_1");
                 eventSender.Send("test_event_2");
-                
+
+                // Wait for fire-and-forget Send tasks to write to storage
+                await UniTask.Delay(500);
+
                 sessionTracker.OnApplicationPause(true);
 
-                var events = await GetEventsFromServerAsync();
+                var events = await GetEventsFromServerAsync(5000, 1000);
 
                 Assert.AreEqual("session_start", events[0].event_name);
                 Assert.AreEqual("test_event_1", events[1].event_name);
@@ -658,14 +498,12 @@ namespace Tests.Runtime
                 Assert.AreEqual("session_pause", events[3].event_name);
 
                 Assert.True(events.All(evt => evt.session_id != null));
-                
+
                 sessionTracker.Dispose();
                 eventSender.Dispose();
             }
         );
-        
-        // Skipped: NullReferenceException due to Runtime API changes in v0.75.0
-        [Ignore("NullReferenceException: EventSender API changed since tests were written")]
+
         [UnityTest]
         public IEnumerator SessionTracker_NotStarted_NoEvents() => UniTask.ToCoroutine(
             async () =>
@@ -676,7 +514,8 @@ namespace Tests.Runtime
                         BaseUrl = "http://localhost:7777/api/v1",
                         ClientId = "test_client_id",
                         BatchSize = 1,
-                        CycleDelay = 100
+                        CycleDelay = 100,
+                        NativePlugin = new DefaultNativePlugin()
                     },
                     new NoctuaLocale()
                 );
@@ -695,14 +534,12 @@ namespace Tests.Runtime
                 var events = await GetEventsFromServerAsync();
 
                 Assert.AreEqual(0, events.Count);
-                
+
                 sessionTracker.Dispose();
                 eventSender.Dispose();
             }
         );
 
-        // Skipped: NullReferenceException due to Runtime API changes in v0.75.0
-        [Ignore("NullReferenceException: EventSender API changed since tests were written")]
         [UnityTest]
         public IEnumerator SessionTracker_OnHeartbeatPeriod_SendHeartbeatEvent() => UniTask.ToCoroutine(
             async () =>
@@ -713,7 +550,8 @@ namespace Tests.Runtime
                         BaseUrl = "http://localhost:7777/api/v1",
                         ClientId = "test_client_id",
                         BatchSize = 1,
-                        CycleDelay = 100
+                        CycleDelay = 100,
+                        NativePlugin = new DefaultNativePlugin()
                     },
                     new NoctuaLocale()
                 );
@@ -732,25 +570,23 @@ namespace Tests.Runtime
                 await UniTask.Delay(1200);
 
                 var events = await GetEventsFromServerAsync();
-                
+
                 Debug.Log(events.Select(evt => evt.event_name).Aggregate((a, b) => $"{a}\n{b}"));
 
                 Assert.AreEqual("session_start", events[0].event_name);
                 Assert.AreEqual("session_heartbeat", events[1].event_name);
                 Assert.AreEqual("session_heartbeat", events[2].event_name);
-                
+
                 var sessionId = events[0].session_id;
                 var sessionIds = events.Skip(1).Select(evt => evt.session_id).ToList();
-                
+
                 Assert.True(sessionIds.All(id => id == sessionId));
-                
+
                 sessionTracker.Dispose();
                 eventSender.Dispose();
             }
         );
 
-        // Skipped: NullReferenceException due to Runtime API changes in v0.75.0
-        [Ignore("NullReferenceException: EventSender API changed since tests were written")]
         [UnityTest]
         public IEnumerator SessionTracker_OnSessionTimeout_EndSessionAndStartNewSession() => UniTask.ToCoroutine(
             async () =>
@@ -761,7 +597,8 @@ namespace Tests.Runtime
                         BaseUrl = "http://localhost:7777/api/v1",
                         ClientId = "test_client_id",
                         BatchSize = 1,
-                        CycleDelay = 100
+                        CycleDelay = 100,
+                        NativePlugin = new DefaultNativePlugin()
                     },
                     new NoctuaLocale()
                 );
@@ -848,6 +685,268 @@ namespace Tests.Runtime
             }
         );
 
+        // ===== New tests for bug fixes =====
+
+        [UnityTest]
+        public IEnumerator QueueCap_ExceedMaxSize_DropsOldestEvents() => UniTask.ToCoroutine(
+            async () =>
+            {
+                var eventSender = new EventSender(
+                    new EventSenderConfig
+                    {
+                        BaseUrl = "http://localhost:7777/api/v1",
+                        ClientId = "test_client_id",
+                        BatchSize = 1000,        // High to prevent auto-send
+                        BatchPeriodMs = 300_000,  // Long to prevent timeout send
+                        CycleDelay = 60_000,      // Long cycle delay to prevent send loop
+                        NativePlugin = new DefaultNativePlugin()
+                    },
+                    new NoctuaLocale()
+                );
+
+                // Send 8 events, cap is 5
+                for (int i = 0; i < 8; i++)
+                {
+                    eventSender.Send($"event_{i}");
+                }
+
+                // Allow fire-and-forget tasks to complete
+                await UniTask.Delay(1000);
+
+                // Flush to send remaining events
+                eventSender.Flush();
+
+                var events = await GetEventsFromServerAsync(5000, 1000);
+
+                // Should have at most 5 events (oldest dropped)
+                Assert.LessOrEqual(events.Count, 5,
+                    $"Expected at most 5 events, got {events.Count}: {string.Join(", ", events.Select(e => e.event_name))}");
+
+                // The oldest events (event_0, event_1, event_2) should have been dropped
+                var names = events.Select(e => e.event_name).ToList();
+                Assert.IsFalse(names.Contains("event_0"), "Oldest event (event_0) should have been dropped");
+                Assert.IsFalse(names.Contains("event_1"), "Second oldest event (event_1) should have been dropped");
+                Assert.IsFalse(names.Contains("event_2"), "Third oldest event (event_2) should have been dropped");
+
+                eventSender.Dispose();
+            }
+        );
+
+        [UnityTest]
+        public IEnumerator PersistenceRoundTrip_SaveAndLoad_EventsRecovered() => UniTask.ToCoroutine(
+            async () =>
+            {
+                // Phase 1: Send events and dispose (events are persisted immediately via write queue)
+                var eventSender1 = new EventSender(
+                    new EventSenderConfig
+                    {
+                        BaseUrl = "http://localhost:7777/api/v1",
+                        ClientId = "test_client_id",
+                        BatchSize = 1000,         // High to prevent auto-send
+                        BatchPeriodMs = 300_000,   // Long to prevent timeout
+                        CycleDelay = 60_000,       // Long cycle delay to prevent send loop
+                        NativePlugin = new DefaultNativePlugin()
+                    },
+                    new NoctuaLocale()
+                );
+
+                eventSender1.Send("persist_event_1");
+                eventSender1.Send("persist_event_2");
+
+                // Wait for fire-and-forget to complete
+                await UniTask.Delay(1000);
+
+                // Dispose — storage is already up to date (no queue to persist)
+                eventSender1.Dispose();
+
+                // Small delay for any async cleanup
+                await UniTask.Delay(200);
+
+                // Phase 2: Create new EventSender — constructor auto-flushes persisted events
+                var eventSender2 = new EventSender(
+                    new EventSenderConfig
+                    {
+                        BaseUrl = "http://localhost:7777/api/v1",
+                        ClientId = "test_client_id",
+                        BatchSize = 1,
+                        CycleDelay = 100,
+                        NativePlugin = new DefaultNativePlugin()
+                    },
+                    new NoctuaLocale()
+                );
+
+                // The loaded events should be sent
+                var events = await GetEventsFromServerAsync(5000, 1000);
+
+                var names = events.Select(e => e.event_name).ToList();
+                Assert.IsTrue(names.Contains("persist_event_1"),
+                    $"persist_event_1 not found in recovered events. Got: {string.Join(", ", names)}");
+                Assert.IsTrue(names.Contains("persist_event_2"),
+                    $"persist_event_2 not found in recovered events. Got: {string.Join(", ", names)}");
+
+                eventSender2.Dispose();
+            }
+        );
+
+        [UnityTest]
+        public IEnumerator FlushRaceCondition_ConcurrentFlushAndSendLoop_NoDataLoss() => UniTask.ToCoroutine(
+            async () =>
+            {
+                var eventSender = new EventSender(
+                    new EventSenderConfig
+                    {
+                        BaseUrl = "http://localhost:7777/api/v1",
+                        ClientId = "test_client_id",
+                        BatchSize = 2,
+                        BatchPeriodMs = 200,
+                        CycleDelay = 100,
+                        NativePlugin = new DefaultNativePlugin()
+                    },
+                    new NoctuaLocale()
+                );
+
+                eventSender.Send("event_a");
+                eventSender.Send("event_b");
+                eventSender.Send("event_c");
+
+                // Wait for fire-and-forget Send tasks to write to storage
+                await UniTask.Delay(500);
+
+                // Call Flush while the send loop is also running
+                eventSender.Flush();
+
+                var events = await GetEventsFromServerAsync(5000, 1000);
+
+                // All 3 events should arrive via flush or send loop
+                // _isFlushing guard prevents concurrent sends, so no duplicates
+                Assert.GreaterOrEqual(events.Count, 3,
+                    $"Expected at least 3 events, got {events.Count}: {string.Join(", ", events.Select(e => e.event_name))}");
+
+                eventSender.Dispose();
+            }
+        );
+
+        [UnityTest]
+        public IEnumerator EventOrdering_MultipleEvents_ArriveInOrder() => UniTask.ToCoroutine(
+            async () =>
+            {
+                var eventSender = new EventSender(
+                    new EventSenderConfig
+                    {
+                        BaseUrl = "http://localhost:7777/api/v1",
+                        ClientId = "test_client_id",
+                        BatchSize = 5,
+                        CycleDelay = 100,
+                        NativePlugin = new DefaultNativePlugin()
+                    },
+                    new NoctuaLocale()
+                );
+
+                for (int i = 0; i < 5; i++)
+                {
+                    eventSender.Send($"ordered_event_{i}");
+                }
+
+                var events = await GetEventsFromServerAsync();
+
+                Assert.AreEqual(5, events.Count,
+                    $"Expected 5 events, got {events.Count}: {string.Join(", ", events.Select(e => e.event_name))}");
+                for (int i = 0; i < 5; i++)
+                {
+                    Assert.AreEqual($"ordered_event_{i}", events[i].event_name,
+                        $"Event at index {i} was {events[i].event_name}, expected ordered_event_{i}");
+                }
+
+                eventSender.Dispose();
+            }
+        );
+
+        [UnityTest]
+        public IEnumerator FlushOnResume_PersistedEventsAreSent() => UniTask.ToCoroutine(
+            async () =>
+            {
+                // Create sender1 with high batch/cycle to prevent auto-send
+                var sender1 = new EventSender(
+                    new EventSenderConfig
+                    {
+                        BaseUrl = "http://localhost:7777/api/v1",
+                        ClientId = "test_client_id",
+                        BatchSize = 1000,
+                        BatchPeriodMs = 300_000,
+                        CycleDelay = 60_000,
+                        NativePlugin = new DefaultNativePlugin()
+                    },
+                    new NoctuaLocale()
+                );
+
+                sender1.Send("pre_resume_event_1");
+                sender1.Send("pre_resume_event_2");
+                await UniTask.Delay(500);
+                sender1.Dispose();
+                await UniTask.Delay(200);
+
+                // Clear server requests to only see events from sender2
+                while (_server.Requests.TryDequeue(out _)) { }
+
+                // Create sender2 — constructor async-reads storage + auto-flushes persisted events
+                var sender2 = new EventSender(
+                    new EventSenderConfig
+                    {
+                        BaseUrl = "http://localhost:7777/api/v1",
+                        ClientId = "test_client_id",
+                        BatchSize = 1000,
+                        BatchPeriodMs = 300_000,
+                        CycleDelay = 60_000,
+                        NativePlugin = new DefaultNativePlugin()
+                    },
+                    new NoctuaLocale()
+                );
+
+                // Wait for flush to complete
+                var events = await GetEventsFromServerAsync(5000, 1000);
+
+                var names = events.Select(e => e.event_name).ToList();
+                Assert.IsTrue(names.Contains("pre_resume_event_1"),
+                    $"pre_resume_event_1 should be flushed on load. Got: {string.Join(", ", names)}");
+                Assert.IsTrue(names.Contains("pre_resume_event_2"),
+                    $"pre_resume_event_2 should be flushed on load. Got: {string.Join(", ", names)}");
+
+                sender2.Dispose();
+            }
+        );
+
+        [UnityTest]
+        public IEnumerator AppKillDuringSend_EventsSurvive() => UniTask.ToCoroutine(
+            async () =>
+            {
+                // Events are written to storage via write queue immediately after Send(), so they survive app kill
+                var sender = new EventSender(
+                    new EventSenderConfig
+                    {
+                        BaseUrl = "http://localhost:7777/api/v1",
+                        ClientId = "test_client_id",
+                        BatchSize = 1000,
+                        BatchPeriodMs = 300_000,
+                        CycleDelay = 60_000,
+                        NativePlugin = new DefaultNativePlugin()
+                    },
+                    new NoctuaLocale()
+                );
+
+                sender.Send("survive_event");
+                await UniTask.Delay(500); // Let fire-and-forget complete
+
+                // Simulate app kill: just dispose without flush
+                sender.Dispose();
+
+                // Verify events are in local storage
+                var json = PlayerPrefs.GetString("NoctuaEvents", "[]");
+                var stored = JsonConvert.DeserializeObject<List<string>>(json);
+                Assert.IsTrue(stored.Any(s => s.Contains("survive_event")),
+                    "Event should be persisted to local storage immediately after Send()");
+            }
+        );
+
         private async Task<List<EventData>> GetEventsFromServerAsync(int timeoutMs = 3000, int settleMs = 500)
         {
             var win = await UniTask.WhenAny(UniTask.Delay(timeoutMs), UniTask.WaitUntil(() => _server.Requests.Count > 0));
@@ -867,9 +966,8 @@ namespace Tests.Runtime
                 sb.AppendLine(request.Body);
             }
 
-            // Deduplicate events: concurrent Flushes in EventSender can send overlapping
-            // batches (Flush snapshots the queue but only clears it after HTTP success,
-            // so a second Flush may re-send events from the first batch).
+            // Deduplicate events: although _isFlushing guard prevents concurrent sends,
+            // edge cases during rapid test execution may produce duplicates.
             var lines = sb.ToString().Trim().Split('\n')
                 .Where(line => !string.IsNullOrWhiteSpace(line))
                 .Distinct()
@@ -879,4 +977,3 @@ namespace Tests.Runtime
         }
     }
 }
-

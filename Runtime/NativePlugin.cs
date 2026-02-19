@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using UnityEngine.Scripting;
 
 // For iOS, the bridging are managed on these files:
@@ -16,7 +17,46 @@ using UnityEngine.Scripting;
 
 namespace com.noctuagames.sdk
 {
-    
+    /// <summary>Mirrors com.noctuagames.sdk.models.ConsumableType (Android) / ConsumableType (iOS)</summary>
+    [Preserve]
+    public enum NoctuaConsumableType
+    {
+        Consumable = 0,
+        NonConsumable = 1,
+        Subscription = 2
+    }
+
+    /// <summary>Mirrors com.noctuagames.sdk.models.ProductType (Android) / ProductType (iOS)</summary>
+    [Preserve]
+    public enum NoctuaProductType
+    {
+        InApp = 0,
+        Subs = 1
+    }
+
+    /// <summary>
+    /// Converts a JSON object/value to its string representation, or passes through if already a string.
+    /// Used for fields where the native SDK may return a nested JSON object instead of an escaped string.
+    /// </summary>
+    [Preserve]
+    public class RawJsonStringConverter : JsonConverter<string>
+    {
+        public override string ReadJson(JsonReader reader, Type objectType, string existingValue, bool hasExistingValue, JsonSerializer serializer)
+        {
+            if (reader.TokenType == JsonToken.String)
+                return (string)reader.Value;
+            if (reader.TokenType == JsonToken.Null)
+                return null;
+            var token = JToken.Load(reader);
+            return token.ToString(Formatting.None);
+        }
+
+        public override void WriteJson(JsonWriter writer, string value, JsonSerializer serializer)
+        {
+            writer.WriteValue(value);
+        }
+    }
+
     public interface INativeTracker
     {
         void TrackAdRevenue(string source, double revenue, string currency, Dictionary<string, IConvertible> extraPayload = null);
@@ -95,6 +135,16 @@ namespace com.noctuagames.sdk
         int DeleteAccount(NativeAccount account);
     }
 
+    [Preserve]
+    public class NativeEvent
+    {
+        [JsonProperty("id")] public long Id;
+        [JsonProperty("eventJson")]
+        [JsonConverter(typeof(RawJsonStringConverter))]
+        public string EventJson;
+        [JsonProperty("createdAt")] public long CreatedAt;
+    }
+
     public interface INativePlugin : INativeTracker, INativeIAP, INativeAccountStore, INativeDatePicker
     {
         void Init(List<String> activeBundleIds);
@@ -114,12 +164,21 @@ namespace com.noctuagames.sdk
         void GetFirebaseRemoteConfigLong(string key, Action<long> callback);
 
         void GetAdjustAttribution(Action<string> callback);
-        
+
         void SaveEvents(string jsonString);
 
         void GetEvents(Action<List<string>> callback);
 
         void DeleteEvents();
+
+        // Per-row event storage for unlimited event tracking
+        void InsertEvent(string eventJson);
+
+        void GetEventsBatch(int limit, int offset, Action<List<NativeEvent>> callback);
+
+        void DeleteEventsByIds(long[] ids, Action<int> callback);
+
+        void GetEventCount(Action<int> callback);
     }
 
     public interface INativeDatePicker

@@ -10,7 +10,88 @@ namespace com.noctuagames.sdk
     public class DefaultNativePlugin : INativePlugin
     {
         private readonly ILogger _log = new NoctuaLogger(typeof(DefaultNativePlugin));
-        
+
+        // Per-row event storage (in-memory, backed by JSONL file for editor/tests)
+        private readonly List<NativeEvent> _eventStore = new();
+        private long _nextId = 1;
+        private readonly string _eventStorePath;
+
+        public DefaultNativePlugin()
+        {
+            _eventStorePath = Path.Combine(Application.persistentDataPath, "noctua_events.jsonl");
+            LoadEventStore();
+        }
+
+        private void LoadEventStore()
+        {
+            // Migrate old PlayerPrefs blob if present
+            var oldBlob = PlayerPrefs.GetString("NoctuaEvents", "");
+            if (!string.IsNullOrEmpty(oldBlob) && oldBlob != "[]")
+            {
+                try
+                {
+                    var oldEvents = JsonConvert.DeserializeObject<List<string>>(oldBlob);
+                    if (oldEvents != null)
+                    {
+                        foreach (var eventJson in oldEvents)
+                        {
+                            _eventStore.Add(new NativeEvent
+                            {
+                                Id = _nextId++,
+                                EventJson = eventJson,
+                                CreatedAt = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()
+                            });
+                        }
+
+                        SaveEventStoreToFile();
+                        PlayerPrefs.DeleteKey("NoctuaEvents");
+                        PlayerPrefs.Save();
+                    }
+                }
+                catch
+                {
+                    // Old blob corrupted, ignore
+                }
+            }
+
+            // Load from JSONL file if exists
+            if (!File.Exists(_eventStorePath)) return;
+
+            try
+            {
+                var lines = File.ReadAllLines(_eventStorePath);
+                foreach (var line in lines)
+                {
+                    if (string.IsNullOrWhiteSpace(line)) continue;
+                    var evt = JsonConvert.DeserializeObject<NativeEvent>(line);
+                    if (evt != null)
+                    {
+                        _eventStore.Add(evt);
+                        if (evt.Id >= _nextId) _nextId = evt.Id + 1;
+                    }
+                }
+            }
+            catch
+            {
+                // File corrupted, start fresh
+                _eventStore.Clear();
+                _nextId = 1;
+            }
+        }
+
+        private void SaveEventStoreToFile()
+        {
+            try
+            {
+                var lines = _eventStore.Select(e => JsonConvert.SerializeObject(e));
+                File.WriteAllLines(_eventStorePath, lines);
+            }
+            catch
+            {
+                // Ignore file write errors in editor
+            }
+        }
+
         public void Init(List<string> activeBundleIds)
         {
         }
@@ -152,18 +233,70 @@ namespace com.noctuagames.sdk
 
         public void SaveEvents(string jsonString)
         {
-            
-            throw new NotImplementedException();
+            PlayerPrefs.SetString("NoctuaEvents", jsonString);
+            PlayerPrefs.Save();
         }
 
         public void GetEvents(Action<List<string>> callback)
         {
-            callback?.Invoke(new List<string>());
+            var json = PlayerPrefs.GetString("NoctuaEvents", "[]");
+            try
+            {
+                var events = JsonConvert.DeserializeObject<List<string>>(json) ?? new List<string>();
+                callback?.Invoke(events);
+            }
+            catch
+            {
+                callback?.Invoke(new List<string>());
+            }
         }
 
         public void DeleteEvents()
         {
-            throw new NotImplementedException();
+            PlayerPrefs.DeleteKey("NoctuaEvents");
+            PlayerPrefs.Save();
+        }
+
+        // Per-row event storage for unlimited event tracking
+
+        public void InsertEvent(string eventJson)
+        {
+            var evt = new NativeEvent
+            {
+                Id = _nextId++,
+                EventJson = eventJson,
+                CreatedAt = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()
+            };
+            _eventStore.Add(evt);
+
+            // Append to JSONL file
+            try
+            {
+                File.AppendAllText(_eventStorePath, JsonConvert.SerializeObject(evt) + "\n");
+            }
+            catch
+            {
+                // Ignore file write errors in editor
+            }
+        }
+
+        public void GetEventsBatch(int limit, int offset, Action<List<NativeEvent>> callback)
+        {
+            var batch = _eventStore.Skip(offset).Take(limit).ToList();
+            callback?.Invoke(batch);
+        }
+
+        public void DeleteEventsByIds(long[] ids, Action<int> callback)
+        {
+            var idSet = new HashSet<long>(ids);
+            var removedCount = _eventStore.RemoveAll(e => idSet.Contains(e.Id));
+            SaveEventStoreToFile();
+            callback?.Invoke(removedCount);
+        }
+
+        public void GetEventCount(Action<int> callback)
+        {
+            callback?.Invoke(_eventStore.Count);
         }
     }
 }

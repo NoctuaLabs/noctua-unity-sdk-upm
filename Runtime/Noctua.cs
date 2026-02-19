@@ -204,7 +204,7 @@ namespace com.noctuagames.sdk
         private bool _isOfflineFirst = false;
         // Will be true if offline first is enabled AND
         // there is network issue on init attempt
-        private static bool _offlineMode = false;
+        private static volatile bool _offlineMode = false;
         private static bool _initialized = false;
         private bool _isNativePluginInitialized = false;
 
@@ -318,6 +318,9 @@ namespace com.noctuagames.sdk
                 _config.Noctua.BaseUrl = NoctuaConfig.DefaultSandboxBaseUrl;
             }
 
+            _nativePlugin = GetNativePlugin();
+            _log.Debug($"_nativePlugin type: {_nativePlugin?.GetType().FullName}");
+
             _eventSender = new EventSender(
                 new EventSenderConfig
                 {
@@ -326,6 +329,7 @@ namespace com.noctuagames.sdk
                     BundleId = Application.identifier,
                     BatchSize = _config.Noctua.TrackerBatchSize,
                     BatchPeriodMs = _config.Noctua.TrackerBatchPeriodMs,
+                    NativePlugin = _nativePlugin,
                     FirebaseConfig = _config.Firebase,
                 },
                 locale
@@ -366,9 +370,6 @@ namespace com.noctuagames.sdk
             var sessionTrackerBehaviour = noctuaUIGameObject.AddComponent<SessionTrackerBehaviour>();
             sessionTrackerBehaviour.SessionTracker = _sessionTracker;
             _uiFactory = new UIFactory(noctuaUIGameObject, panelSettings, locale);
-
-            _nativePlugin = GetNativePlugin();
-            _log.Debug($"_nativePlugin type: {_nativePlugin?.GetType().FullName}");
 
             // Initialize Analytics first when IAA (In-App Advertising) is not enabled.
             // Reason:
@@ -1101,12 +1102,15 @@ namespace com.noctuagames.sdk
             if (_offlineMode)
             {
                 bool loop = true;
+                int delaySeconds = 10;
+                const int maxDelaySeconds = 300; // 5 minutes 
 
                 log.Debug("Noctua: Offline mode is enabled, entering reconnection loop...");
 
                 while (loop)
                 {
-                    await UniTask.Delay(TimeSpan.FromSeconds(10));
+                    log.Debug($"Reconnection retry in {delaySeconds} seconds...");
+                    await UniTask.Delay(TimeSpan.FromSeconds(delaySeconds));
 
                     log.Debug("Checking internet connection...");
 
@@ -1120,11 +1124,11 @@ namespace com.noctuagames.sdk
                     {
                         log.Info($"Auth or init failed: {noctuaEx.Message}");
 
-
                         if (noctuaEx.ErrorCode == (int)NoctuaErrorCode.Networking)
                         {
                             log.Debug("Detected network-related failure, will retry.");
                             loop = true;
+                            delaySeconds = Math.Min(delaySeconds * 2, maxDelaySeconds);
                         }
                         else
                         {
@@ -1495,6 +1499,93 @@ namespace com.noctuagames.sdk
            {
                Instance.Value._log.Warning("DeleteEvents exception: " + ex.Message);
            }
+        }
+
+        // Per-row event storage async helpers
+
+        /// <summary>
+        /// Insert a single event into per-row native storage.
+        /// </summary>
+        public static void InsertEvent(string eventJson)
+        {
+            try
+            {
+                Instance.Value._nativePlugin.InsertEvent(eventJson);
+            }
+            catch (Exception ex)
+            {
+                Instance.Value._log.Warning("InsertEvent exception: " + ex.Message);
+            }
+        }
+
+        /// <summary>
+        /// Get a batch of events from per-row native storage asynchronously.
+        /// </summary>
+        public static Task<List<NativeEvent>> GetEventsBatchAsync(int limit, int offset)
+        {
+            var tcs = new TaskCompletionSource<List<NativeEvent>>();
+            try
+            {
+                Instance.Value._nativePlugin.GetEventsBatch(limit, offset, events =>
+                {
+                    tcs.SetResult(events);
+                });
+            }
+            catch (Exception ex)
+            {
+                Instance.Value._log.Warning("GetEventsBatch exception: " + ex.Message);
+                tcs.SetResult(new List<NativeEvent>());
+            }
+            return tcs.Task;
+        }
+
+        /// <summary>
+        /// Delete specific events by ID from per-row native storage asynchronously.
+        /// </summary>
+        public static Task<int> DeleteEventsByIdsAsync(long[] ids)
+        {
+            var tcs = new TaskCompletionSource<int>();
+            try
+            {
+                Instance.Value._nativePlugin.DeleteEventsByIds(ids, deletedCount =>
+                {
+                    tcs.SetResult(deletedCount);
+                });
+            }
+            catch (Exception ex)
+            {
+                Instance.Value._log.Warning("DeleteEventsByIds exception: " + ex.Message);
+                tcs.SetResult(0);
+            }
+            return tcs.Task;
+        }
+
+        /// <summary>
+        /// Get the total count of stored events asynchronously.
+        /// </summary>
+        public static async Task<int> GetEventCountAsync()
+        {
+            var tcs = new TaskCompletionSource<int>();
+            try
+            {
+                Instance.Value._nativePlugin.GetEventCount(count =>
+                {
+                    tcs.TrySetResult(count);
+                });
+
+                var completed = await Task.WhenAny(tcs.Task, Task.Delay(5000));
+                if (completed != tcs.Task)
+                {
+                    Instance.Value._log.Warning("GetEventCountAsync timed out after 5s");
+                    return 0;
+                }
+                return tcs.Task.Result;
+            }
+            catch (Exception ex)
+            {
+                Instance.Value._log.Warning("GetEventCount exception: " + ex.Message);
+                return 0;
+            }
         }
 
         /// <summary>

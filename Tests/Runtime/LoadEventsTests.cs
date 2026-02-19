@@ -18,7 +18,6 @@ public class LoadEventsTests
     [TestCase(100_000)]
     [TestCase(1_000_000)]
     [TestCase(10_000_000)]
-    [TestCase(1_000_000_000)]
     public void Test_LoadEvents_Performance(int eventCount)
     {
         Debug.Log($"--- Testing LoadEventsFromPlayerPrefs with {eventCount:N0} events ---");

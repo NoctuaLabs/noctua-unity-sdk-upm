@@ -92,6 +92,35 @@ namespace com.noctuagames.sdk
         [DllImport("__Internal")]
         private static extern void noctuaDeleteEvents();
 
+        // Additional StoreKit functions
+        [DllImport("__Internal")]
+        private static extern void noctuaRegisterProduct(string productId, int consumableType);
+
+        [DllImport("__Internal")]
+        private static extern void noctuaCompletePurchaseProcessing(string purchaseToken, int consumableType, bool verified, BoolCallbackDelegate callback);
+
+        [DllImport("__Internal")]
+        private static extern void noctuaRestorePurchases();
+
+        [DllImport("__Internal")]
+        private static extern void noctuaDisposeStoreKit();
+
+        [DllImport("__Internal")]
+        private static extern bool noctuaIsStoreKitReady();
+
+        // Per-row event storage
+        [DllImport("__Internal")]
+        private static extern void noctuaInsertEvent(string eventJson);
+
+        [DllImport("__Internal")]
+        private static extern void noctuaGetEventsBatch(int limit, int offset, GetEventsBatchCallbackDelegate callback);
+
+        [DllImport("__Internal")]
+        private static extern void noctuaDeleteEventsByIds(string idsJson, DeleteEventsByIdsCallbackDelegate callback);
+
+        [DllImport("__Internal")]
+        private static extern void noctuaGetEventCount(GetEventCountCallbackDelegate callback);
+
         // Store the callback to be used in the static methods
         private static Action<bool, string> storedCompletion;
         private static Action<bool> storedHasPurchasedCompletion;
@@ -104,6 +133,10 @@ namespace com.noctuagames.sdk
         private static Action<long> storedFirebaseRemoteConfigLongCompletion;
         private static Action<string> storedAdjustAttributionCallback;
         private static Action<List<string>> storedGetEventsCompletion;
+        private static Action<List<NativeEvent>> storedGetEventsBatchCompletion;
+        private static Action<int> storedDeleteEventsByIdsCompletion;
+        private static Action<int> storedGetEventCountCompletion;
+        private static Action<bool> storedCompletePurchaseProcessingCompletion;
 
         // Define delegates for the native callbacks
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
@@ -139,6 +172,20 @@ namespace com.noctuagames.sdk
 
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
         private delegate void GetEventsCallbackDelegate(IntPtr eventsJson);
+
+        // Bool callback delegate (for completePurchaseProcessing, etc.)
+        [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+        private delegate void BoolCallbackDelegate(bool success);
+
+        // Per-row event delegates
+        [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+        private delegate void GetEventsBatchCallbackDelegate(IntPtr eventsJson);
+
+        [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+        private delegate void DeleteEventsByIdsCallbackDelegate(int deletedCount);
+
+        [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+        private delegate void GetEventCountCallbackDelegate(int count);
 
         //Delegate for methods returning string values
         [AOT.MonoPInvokeCallback(typeof(CompletionDelegate))]
@@ -230,6 +277,12 @@ namespace com.noctuagames.sdk
                 Debug.LogWarning($"[Noctua] GetEvents callback failed: {e.Message}");
                 storedGetEventsCompletion?.Invoke(new List<string>());
             }
+        }
+
+        [AOT.MonoPInvokeCallback(typeof(BoolCallbackDelegate))]
+        private static void CompletePurchaseProcessingCallback(bool success)
+        {
+            storedCompletePurchaseProcessingCompletion?.Invoke(success);
         }
 
         public void Init(List<string> activeBundleIds)
@@ -558,6 +611,132 @@ namespace com.noctuagames.sdk
         public void DeleteEvents()
         {
             noctuaDeleteEvents();
+        }
+
+        // Per-row event storage for unlimited event tracking
+
+        [AOT.MonoPInvokeCallback(typeof(GetEventsBatchCallbackDelegate))]
+        private static void GetEventsBatchCallback(IntPtr eventsJsonPtr)
+        {
+            try
+            {
+                if (eventsJsonPtr == IntPtr.Zero)
+                {
+                    storedGetEventsBatchCompletion?.Invoke(new List<NativeEvent>());
+                    return;
+                }
+
+                string json = Marshal.PtrToStringUTF8(eventsJsonPtr);
+
+                if (string.IsNullOrEmpty(json))
+                {
+                    storedGetEventsBatchCompletion?.Invoke(new List<NativeEvent>());
+                    return;
+                }
+
+                var events = JsonConvert.DeserializeObject<List<NativeEvent>>(json) ?? new List<NativeEvent>();
+                storedGetEventsBatchCompletion?.Invoke(events);
+            }
+            catch (Exception e)
+            {
+                Debug.LogWarning($"[Noctua] GetEventsBatch callback failed: {e.Message}");
+                storedGetEventsBatchCompletion?.Invoke(new List<NativeEvent>());
+            }
+        }
+
+        [AOT.MonoPInvokeCallback(typeof(DeleteEventsByIdsCallbackDelegate))]
+        private static void DeleteEventsByIdsCallback(int deletedCount)
+        {
+            storedDeleteEventsByIdsCompletion?.Invoke(deletedCount);
+        }
+
+        [AOT.MonoPInvokeCallback(typeof(GetEventCountCallbackDelegate))]
+        private static void GetEventCountCallback(int count)
+        {
+            storedGetEventCountCompletion?.Invoke(count);
+        }
+
+        public void InsertEvent(string eventJson)
+        {
+            noctuaInsertEvent(eventJson);
+        }
+
+        public void GetEventsBatch(int limit, int offset, Action<List<NativeEvent>> callback)
+        {
+            try
+            {
+                storedGetEventsBatchCompletion = callback;
+                noctuaGetEventsBatch(limit, offset, GetEventsBatchCallback);
+            }
+            catch (Exception e)
+            {
+                callback?.Invoke(new List<NativeEvent>());
+                if (e.Message == null) return;
+                _log.Warning($"GetEventsBatch failed: {e.Message}");
+            }
+        }
+
+        public void DeleteEventsByIds(long[] ids, Action<int> callback)
+        {
+            try
+            {
+                storedDeleteEventsByIdsCompletion = callback;
+                var idsJson = "[" + string.Join(",", ids) + "]";
+                noctuaDeleteEventsByIds(idsJson, DeleteEventsByIdsCallback);
+            }
+            catch (Exception e)
+            {
+                callback?.Invoke(0);
+                if (e.Message == null) return;
+                _log.Warning($"DeleteEventsByIds failed: {e.Message}");
+            }
+        }
+
+        public void GetEventCount(Action<int> callback)
+        {
+            try
+            {
+                storedGetEventCountCompletion = callback;
+                noctuaGetEventCount(GetEventCountCallback);
+            }
+            catch (Exception e)
+            {
+                callback?.Invoke(0);
+                if (e.Message == null) return;
+                _log.Warning($"GetEventCount failed: {e.Message}");
+            }
+        }
+
+        // Additional StoreKit billing methods
+
+        public void RegisterProduct(string productId, NoctuaConsumableType consumableType)
+        {
+            _log.Debug($"IosPlugin.RegisterProduct: {productId}, type={consumableType}");
+            noctuaRegisterProduct(productId, (int)consumableType);
+        }
+
+        public void CompletePurchaseProcessing(string purchaseToken, NoctuaConsumableType consumableType, bool verified, Action<bool> callback)
+        {
+            _log.Debug($"IosPlugin.CompletePurchaseProcessing: token={purchaseToken}, type={consumableType}, verified={verified}");
+            storedCompletePurchaseProcessingCompletion = callback;
+            noctuaCompletePurchaseProcessing(purchaseToken, (int)consumableType, verified, CompletePurchaseProcessingCallback);
+        }
+
+        public void RestorePurchases()
+        {
+            _log.Debug("IosPlugin.RestorePurchases");
+            noctuaRestorePurchases();
+        }
+
+        public void DisposeStoreKit()
+        {
+            _log.Debug("IosPlugin.DisposeStoreKit");
+            noctuaDisposeStoreKit();
+        }
+
+        public bool IsStoreKitReady()
+        {
+            return noctuaIsStoreKitReady();
         }
     }
 #endif

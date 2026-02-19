@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Globalization;
 using UnityEngine;
+using Newtonsoft.Json;
 
 #if UNITY_ANDROID && !UNITY_EDITOR
 namespace com.noctuagames.sdk
@@ -17,15 +18,19 @@ namespace com.noctuagames.sdk
             var unityActivity = unityPlayer.GetStatic<AndroidJavaObject>("currentActivity");
 
             using var javaActiveBundleIds = new AndroidJavaObject("java.util.ArrayList");
-            
-            using var noctua = new AndroidJavaObject("com.noctuagames.sdk.Noctua$Companion");
-            noctua.Call("init", unityActivity, javaActiveBundleIds);
+
+            // Create NoctuaBillingConfig via Java helper to avoid Kotlin JNI boxing issues
+            using var helper = new AndroidJavaClass("com.noctuagames.sdk.NoctuaBillingConfigHelper");
+            var billingConfig = helper.CallStatic<AndroidJavaObject>("create", true, true, true);
+
+            using var noctua = new AndroidJavaClass("com.noctuagames.sdk.Noctua").GetStatic<AndroidJavaObject>("INSTANCE");
+            noctua.Call("init", unityActivity, javaActiveBundleIds, billingConfig);
             noctua.Call("onResume");
         }
 
         public void OnApplicationPause(bool pause)
         {
-            using AndroidJavaObject noctua = new AndroidJavaObject("com.noctuagames.sdk.Noctua$Companion");
+            using AndroidJavaObject noctua = new AndroidJavaClass("com.noctuagames.sdk.Noctua").GetStatic<AndroidJavaObject>("INSTANCE");
             noctua.Call(pause ? "onPause" : "onResume");
         }
 
@@ -37,7 +42,7 @@ namespace com.noctuagames.sdk
         )
         {
             using AndroidJavaObject javaPayload = ConvertToJavaHashMap(extraPayload);
-            using AndroidJavaObject noctua = new AndroidJavaObject("com.noctuagames.sdk.Noctua$Companion");
+            using AndroidJavaObject noctua = new AndroidJavaClass("com.noctuagames.sdk.Noctua").GetStatic<AndroidJavaObject>("INSTANCE");
 
             noctua.Call("trackAdRevenue", source, revenue, currency, javaPayload);
         }
@@ -50,7 +55,7 @@ namespace com.noctuagames.sdk
         )
         {
             using AndroidJavaObject javaPayload = ConvertToJavaHashMap(extraPayload);
-            using AndroidJavaObject noctua = new AndroidJavaObject("com.noctuagames.sdk.Noctua$Companion");
+            using AndroidJavaObject noctua = new AndroidJavaClass("com.noctuagames.sdk.Noctua").GetStatic<AndroidJavaObject>("INSTANCE");
 
             noctua.Call("trackPurchase", orderId, amount, currency, javaPayload);
         }
@@ -61,7 +66,7 @@ namespace com.noctuagames.sdk
         )
         {
             using AndroidJavaObject javaPayload = ConvertToJavaHashMap(extraPayload);
-            using AndroidJavaObject noctua = new AndroidJavaObject("com.noctuagames.sdk.Noctua$Companion");
+            using AndroidJavaObject noctua = new AndroidJavaClass("com.noctuagames.sdk.Noctua").GetStatic<AndroidJavaObject>("INSTANCE");
 
             noctua.Call("trackCustomEvent", name, javaPayload);
 
@@ -76,7 +81,7 @@ namespace com.noctuagames.sdk
         )
         {
             using AndroidJavaObject javaPayload = ConvertToJavaHashMap(extraPayload);
-            using AndroidJavaObject noctua = new AndroidJavaObject("com.noctuagames.sdk.Noctua$Companion");
+            using AndroidJavaObject noctua = new AndroidJavaClass("com.noctuagames.sdk.Noctua").GetStatic<AndroidJavaObject>("INSTANCE");
 
             noctua.Call("trackCustomEventWithRevenue", name, revenue, currency, javaPayload);
 
@@ -146,7 +151,7 @@ namespace com.noctuagames.sdk
 
         public NativeAccount GetAccount(long playerId, long gameId)
         {
-            using AndroidJavaObject noctua = new AndroidJavaObject("com.noctuagames.sdk.Noctua$Companion");
+            using AndroidJavaObject noctua = new AndroidJavaClass("com.noctuagames.sdk.Noctua").GetStatic<AndroidJavaObject>("INSTANCE");
             AndroidJavaObject javaAccount = noctua.Call<AndroidJavaObject>("getAccount", playerId, gameId);
             
             return new NativeAccount
@@ -160,7 +165,7 @@ namespace com.noctuagames.sdk
 
         public List<NativeAccount> GetAccounts()
         {
-            using var noctua = new AndroidJavaObject("com.noctuagames.sdk.Noctua$Companion");
+            using var noctua = new AndroidJavaClass("com.noctuagames.sdk.Noctua").GetStatic<AndroidJavaObject>("INSTANCE");
             var javaAccounts = noctua.Call<AndroidJavaObject>("getAccounts");
             var size = javaAccounts.Call<int>("size");
             
@@ -186,7 +191,7 @@ namespace com.noctuagames.sdk
 
         public void PutAccount(NativeAccount account)
         {
-            using var noctua = new AndroidJavaObject("com.noctuagames.sdk.Noctua$Companion");
+            using var noctua = new AndroidJavaClass("com.noctuagames.sdk.Noctua").GetStatic<AndroidJavaObject>("INSTANCE");
 
             using var javaAccount = new AndroidJavaObject(
                 "com.noctuagames.sdk.Account",
@@ -200,7 +205,7 @@ namespace com.noctuagames.sdk
 
         public int DeleteAccount(NativeAccount account)
         {
-            using var noctua = new AndroidJavaObject("com.noctuagames.sdk.Noctua$Companion");
+            using var noctua = new AndroidJavaClass("com.noctuagames.sdk.Noctua").GetStatic<AndroidJavaObject>("INSTANCE");
 
             using var javaAccount = new AndroidJavaObject(
                 "com.noctuagames.sdk.Account",
@@ -214,7 +219,7 @@ namespace com.noctuagames.sdk
 
         public void OnOnline()
         {
-            using var noctua = new AndroidJavaObject("com.noctuagames.sdk.Noctua$Companion");
+            using var noctua = new AndroidJavaClass("com.noctuagames.sdk.Noctua").GetStatic<AndroidJavaObject>("INSTANCE");
             try
             {
                 noctua.Call("onOnline");
@@ -228,7 +233,7 @@ namespace com.noctuagames.sdk
 
         public void OnOffline()
         {
-            using var noctua = new AndroidJavaObject("com.noctuagames.sdk.Noctua$Companion");
+            using var noctua = new AndroidJavaClass("com.noctuagames.sdk.Noctua").GetStatic<AndroidJavaObject>("INSTANCE");
             try
             {
                 noctua.Call("onOffline");
@@ -243,7 +248,7 @@ namespace com.noctuagames.sdk
         public void GetFirebaseInstallationID(Action<string> callback) {
             try
             {
-                using var noctua = new AndroidJavaObject("com.noctuagames.sdk.Noctua$Companion");
+                using var noctua = new AndroidJavaClass("com.noctuagames.sdk.Noctua").GetStatic<AndroidJavaObject>("INSTANCE");
                 noctua.Call("getFirebaseInstallationID", new AndroidCallback<string>(callback));
             }
             catch (Exception e)
@@ -256,7 +261,7 @@ namespace com.noctuagames.sdk
         public void GetFirebaseAnalyticsSessionID(Action<string> callback) {
             try
             {
-                using var noctua = new AndroidJavaObject("com.noctuagames.sdk.Noctua$Companion");
+                using var noctua = new AndroidJavaClass("com.noctuagames.sdk.Noctua").GetStatic<AndroidJavaObject>("INSTANCE");
                 noctua.Call("getFirebaseAnalyticsSessionID", new AndroidCallback<string>(callback));
             }
             catch (Exception e)
@@ -270,7 +275,7 @@ namespace com.noctuagames.sdk
         {
             try
             {
-                using var noctua = new AndroidJavaObject("com.noctuagames.sdk.Noctua$Companion");
+                using var noctua = new AndroidJavaClass("com.noctuagames.sdk.Noctua").GetStatic<AndroidJavaObject>("INSTANCE");
                 noctua.Call("getFirebaseRemoteConfigString", key, new AndroidCallback<string>(callback));
             }
             catch (Exception e)
@@ -284,7 +289,7 @@ namespace com.noctuagames.sdk
         {
             try
             {
-                using var noctua = new AndroidJavaObject("com.noctuagames.sdk.Noctua$Companion");
+                using var noctua = new AndroidJavaClass("com.noctuagames.sdk.Noctua").GetStatic<AndroidJavaObject>("INSTANCE");
                 noctua.Call("getFirebaseRemoteConfigBoolean", key, new AndroidCallback<bool>(callback));
             }
             catch (Exception e)
@@ -298,7 +303,7 @@ namespace com.noctuagames.sdk
         {
             try
             {
-                using var noctua = new AndroidJavaObject("com.noctuagames.sdk.Noctua$Companion");
+                using var noctua = new AndroidJavaClass("com.noctuagames.sdk.Noctua").GetStatic<AndroidJavaObject>("INSTANCE");
                 noctua.Call("getFirebaseRemoteConfigDouble", key, new AndroidCallback<double>(callback));
             }
             catch (Exception e)
@@ -312,7 +317,7 @@ namespace com.noctuagames.sdk
         {
             try
             {
-                using var noctua = new AndroidJavaObject("com.noctuagames.sdk.Noctua$Companion");
+                using var noctua = new AndroidJavaClass("com.noctuagames.sdk.Noctua").GetStatic<AndroidJavaObject>("INSTANCE");
                 noctua.Call("getFirebaseRemoteConfigLong", key, new AndroidCallback<long>(callback));
             }
             catch (Exception e)
@@ -326,7 +331,7 @@ namespace com.noctuagames.sdk
         {
             try
             {
-                using var noctua = new AndroidJavaObject("com.noctuagames.sdk.Noctua$Companion");
+                using var noctua = new AndroidJavaClass("com.noctuagames.sdk.Noctua").GetStatic<AndroidJavaObject>("INSTANCE");
                 noctua.Call("getAdjustAttribution", new AndroidCallback<string>(callback));
             }
             catch (Exception e)
@@ -340,7 +345,7 @@ namespace com.noctuagames.sdk
         {
             try
             {
-                using var noctua = new AndroidJavaObject("com.noctuagames.sdk.Noctua$Companion");
+                using var noctua = new AndroidJavaClass("com.noctuagames.sdk.Noctua").GetStatic<AndroidJavaObject>("INSTANCE");
                 noctua.Call("saveEvents", jsonString);
             }
             catch (Exception e)
@@ -355,7 +360,7 @@ namespace com.noctuagames.sdk
         {
             try
             {
-                using var noctua = new AndroidJavaObject("com.noctuagames.sdk.Noctua$Companion");
+                using var noctua = new AndroidJavaClass("com.noctuagames.sdk.Noctua").GetStatic<AndroidJavaObject>("INSTANCE");
                 
                 var androidCallback = new AndroidCallback<AndroidJavaObject>(result =>
                 {
@@ -366,12 +371,8 @@ namespace com.noctuagames.sdk
                     {
                         string item = result.Call<string>("get", i);
 
-                        Debug.Log($"[Noctua] Retrieved event: {i}");
-
                         list.Add(item);
                     }
-
-                    Debug.Log($"[Noctua] Total events retrieved: {list.Count}");
 
                     callback?.Invoke(list);
                 });
@@ -391,7 +392,7 @@ namespace com.noctuagames.sdk
         {
             try
             {
-                using var noctua = new AndroidJavaObject("com.noctuagames.sdk.Noctua$Companion");
+                using var noctua = new AndroidJavaClass("com.noctuagames.sdk.Noctua").GetStatic<AndroidJavaObject>("INSTANCE");
                 noctua.Call("deleteEvents");
 
                 Debug.Log($"[Noctua] Deleted all events");
@@ -401,6 +402,93 @@ namespace com.noctuagames.sdk
             {
                 if(e.Message == null) return;
                 _log.Warning($"[Noctua] Failed to delete events: {e.Message}");
+            }
+        }
+
+        // Per-row event storage for unlimited event tracking
+
+        public void InsertEvent(string eventJson)
+        {
+            try
+            {
+                using var noctua = new AndroidJavaClass("com.noctuagames.sdk.Noctua").GetStatic<AndroidJavaObject>("INSTANCE");
+                noctua.Call("insertEvent", eventJson);
+            }
+            catch (Exception e)
+            {
+                if (e.Message == null) return;
+                _log.Warning($"[Noctua] Failed to insert event: {e.Message}");
+            }
+        }
+
+        public void GetEventsBatch(int limit, int offset, Action<List<NativeEvent>> callback)
+        {
+            try
+            {
+                using var noctua = new AndroidJavaClass("com.noctuagames.sdk.Noctua").GetStatic<AndroidJavaObject>("INSTANCE");
+                var androidCallback = new AndroidCallback<string>(json =>
+                {
+                    try
+                    {
+                        var events = JsonConvert.DeserializeObject<List<NativeEvent>>(json) ?? new List<NativeEvent>();
+                        callback?.Invoke(events);
+                    }
+                    catch (Exception ex)
+                    {
+                        _log.Warning($"[Noctua] Failed to parse events batch: {ex.Message}");
+                        callback?.Invoke(new List<NativeEvent>());
+                    }
+                });
+
+                noctua.Call("getEventsBatch", limit, offset, androidCallback);
+            }
+            catch (Exception e)
+            {
+                callback?.Invoke(new List<NativeEvent>());
+                if (e.Message == null) return;
+                _log.Warning($"[Noctua] Failed to get events batch: {e.Message}");
+            }
+        }
+
+        public void DeleteEventsByIds(long[] ids, Action<int> callback)
+        {
+            try
+            {
+                using var noctua = new AndroidJavaClass("com.noctuagames.sdk.Noctua").GetStatic<AndroidJavaObject>("INSTANCE");
+                var idsJson = "[" + string.Join(",", ids) + "]";
+                var androidCallback = new AndroidCallback<int>(deletedCount =>
+                {
+                    callback?.Invoke(deletedCount);
+                });
+
+                noctua.Call("deleteEventsByIds", idsJson, androidCallback);
+            }
+            catch (Exception e)
+            {
+                callback?.Invoke(0);
+                if (e.Message == null) return;
+                _log.Warning($"[Noctua] Failed to delete events by IDs: {e.Message}");
+            }
+        }
+
+        public void GetEventCount(Action<int> callback)
+        {
+            _log.Debug($"Getting event count from native plugin...");
+            try
+            {
+                using var noctua = new AndroidJavaClass("com.noctuagames.sdk.Noctua").GetStatic<AndroidJavaObject>("INSTANCE");
+                var androidCallback = new AndroidCallback<int>(count =>
+                {
+                    callback?.Invoke(count);
+                });
+
+                noctua.Call("getEventCount", androidCallback);
+            }
+            catch (Exception e)
+            {
+                callback?.Invoke(0);
+                if (e.Message == null) return;
+                _log.Warning($"[Noctua] Failed to get event count: {e.Message}");
             }
         }
     }
@@ -452,6 +540,15 @@ public class AndroidCallback<T> : AndroidJavaProxy
         return new AndroidJavaClass("kotlin.Unit").GetStatic<AndroidJavaObject>("INSTANCE");
     }
 
+    // Support Kotlin calling invoke(Int)
+    public AndroidJavaObject invoke(int arg)
+    {
+        if (typeof(T) == typeof(int))
+            _callback?.Invoke((T)(object)arg);
+
+        return new AndroidJavaClass("kotlin.Unit").GetStatic<AndroidJavaObject>("INSTANCE");
+    }
+
     // Fallback if Kotlin dispatches invoke(Object)
     public AndroidJavaObject invoke(AndroidJavaObject arg)
     {
@@ -472,6 +569,29 @@ public class AndroidCallback<T> : AndroidJavaProxy
 
         _callback?.Invoke((T)value);
 
+        return new AndroidJavaClass("kotlin.Unit").GetStatic<AndroidJavaObject>("INSTANCE");
+    }
+}
+
+/// <summary>
+/// JNI proxy for Kotlin's Function2 (two-parameter lambdas).
+/// Used for native SDK callbacks like onBillingError(BillingErrorCode, String)
+/// and onServerVerificationRequired(NoctuaPurchaseResult, ConsumableType).
+/// </summary>
+public class AndroidCallback2 : AndroidJavaProxy
+{
+    private readonly Action<AndroidJavaObject, AndroidJavaObject> _callback;
+
+    public AndroidCallback2(Action<AndroidJavaObject, AndroidJavaObject> callback)
+        : base("kotlin.jvm.functions.Function2")
+    {
+        _callback = callback;
+    }
+
+    // Kotlin dispatches invoke(Object, Object) for Function2
+    public AndroidJavaObject invoke(AndroidJavaObject arg1, AndroidJavaObject arg2)
+    {
+        _callback?.Invoke(arg1, arg2);
         return new AndroidJavaClass("kotlin.Unit").GetStatic<AndroidJavaObject>("INSTANCE");
     }
 }
