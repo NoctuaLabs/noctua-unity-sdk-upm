@@ -429,6 +429,8 @@ namespace com.noctuagames.sdk.Events
                 );
                 EnqueueEventForStorage(eventJson);
 
+                _log.Debug($"[Event Sender] Event '{name}' enqueued");
+
                 // Throttled connectivity check to avoid flooding with HTTP pings
                 if (data.TryGetValue("event_name", out var eventNameValue) && eventNameValue.ToString() != "offline")
                 {
