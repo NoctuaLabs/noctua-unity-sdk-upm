@@ -349,10 +349,8 @@ using UnityEditor.Graphs;
 
             Log($"Loaded Xcode project at path: {pbxProjectPath}");
 
-            // Add Push Notification capability
-            Log("Adding Push Notification capability to Xcode project.");
-            pbxProject.AddCapability(targetGuid, PBXCapabilityType.PushNotifications);
-
+            // Resolve entitlements file FIRST — AddCapability requires the path
+            // to exist when the capability needs entitlements (e.g. PushNotifications).
             var entitlementsFile = pbxProject.GetBuildPropertyForAnyConfig(targetGuid, "CODE_SIGN_ENTITLEMENTS");
 
             if (string.IsNullOrEmpty(entitlementsFile))
@@ -360,7 +358,7 @@ using UnityEditor.Graphs;
                 Log($"No code sign entitlements file found. Creating new entitlements file.");
                 entitlementsFile = "Unity-iPhone.entitlements";
             }
-            
+
             var entitlementsFilePath = Path.Combine(pathToBuiltProject, entitlementsFile);
             Log($"Entitlements file path: {entitlementsFilePath}");
 
@@ -376,6 +374,10 @@ using UnityEditor.Graphs;
                 pbxProject.SetBuildProperty(targetGuid, "CODE_SIGN_ENTITLEMENTS", entitlementsFile);
                 Log($"Set project code sign entitlements to: {entitlementsFile}");
             }
+
+            // Add Push Notification capability with explicit entitlements path
+            Log("Adding Push Notification capability to Xcode project.");
+            pbxProject.AddCapability(targetGuid, PBXCapabilityType.PushNotifications, entitlementsFile);
 
             // Add the aps-environment entitlement for push notifications
             try
@@ -439,12 +441,8 @@ using UnityEditor.Graphs;
             // Add file reference
             string fileGuid = project.AddFile(relativeFrameworkPath, relativeFrameworkPath, PBXSourceTree.Source);
 
-            // Add to "Link Binary With Libraries"
-            project.AddFileToBuild(unityFrameworkTarget, fileGuid);
-
             // Embed Framework (Required for dynamic XCFramework)
             project.AddFileToEmbedFrameworks(unityMainTarget, fileGuid);
-            project.AddFileToEmbedFrameworks(unityFrameworkTarget, fileGuid);
 
             UnityEngine.Debug.Log("[AdjustSignature] Embedded XCFramework: " + xcframeworkName);
 
