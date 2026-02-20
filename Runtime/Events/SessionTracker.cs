@@ -91,16 +91,28 @@ namespace com.noctuagames.sdk.Events
             {
                 return;
             }
-            
+
+            _cancelHeartbeatSource.Cancel();
+            _disposed = true;
+
+            // Send session_end first so it gets persisted to local storage.
+            // Even if the HTTP flush below is skipped, the event won't be lost —
+            // it will be sent on next app launch.
             _eventSender.Send("session_end");
+
+            // Guard: when called from the GC finalizer thread, Flush() uses
+            // UniTask and UnityWebRequest which are main-thread-only and will
+            // crash. Skip Flush — the session_end event above is already queued
+            // for local storage and will be sent on next launch.
+            if (Thread.CurrentThread.ManagedThreadId != 1)
+            {
+                return;
+            }
 
             if (_remoteFeatureFlags.TryGetValue("sendEventsOnFlushEnabled", out var enabled) && enabled)
             {
                 _eventSender.Flush();
             }
-
-            _cancelHeartbeatSource.Cancel();
-            _disposed = true;
         }
 
         ~SessionTracker()

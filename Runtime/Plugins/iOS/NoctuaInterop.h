@@ -1,6 +1,6 @@
 extern "C" {
 
-void noctuaInitialize(void);
+void noctuaInitialize(bool verifyPurchasesOnServer);
 void noctuaTrackAdRevenue(const char* source, double revenue, const char* currency, const char* extraPayloadJson);
 void noctuaTrackPurchase(const char* orderId, double amount, const char* currency, const char* extraPayloadJson);
 void noctuaTrackCustomEvent(const char* eventName, const char* payloadJson);
@@ -34,6 +34,13 @@ typedef void (*AdjustAttributionCallbackDelegate)(const char* jsonString);
 void noctuaGetAdjustAttribution(AdjustAttributionCallbackDelegate callback);
 typedef void (*GetEventsCallbackDelegate)(const char* eventsJson);
 void noctuaGetEvents(GetEventsCallbackDelegate callback);
+
+// Account Management
+typedef void (*StringDelegate)(const char* result);
+void noctuaPutAccount(int64_t gameId, int64_t playerId, const char* rawData);
+void noctuaGetAllAccounts(StringDelegate callback);
+void noctuaGetSingleAccount(int64_t gameId, int64_t playerId, StringDelegate callback);
+void noctuaDeleteAccount(int64_t gameId, int64_t playerId);
 
 // Additional StoreKit Functions
 void noctuaRegisterProduct(const char* productId, int consumableType);

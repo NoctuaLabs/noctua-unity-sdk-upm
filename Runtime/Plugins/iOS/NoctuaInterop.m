@@ -3,9 +3,9 @@
 
 // MARK: - Initialization
 
-void noctuaInitialize(void) {
+void noctuaInitialize(bool verifyPurchasesOnServer) {
     NSError *error = nil;
-    [Noctua initNoctuaAndReturnError:&error];
+    [Noctua initNoctuaWithVerifyPurchasesOnServer:verifyPurchasesOnServer error:&error];
     if (error) {
         NSLog(@"Error initializing Noctua: %@", error);
     }
@@ -82,7 +82,7 @@ static void ensureStoreKitInitialized(void) {
     }
     _storeKitInitialized = YES;
 
-    [Noctua initializeStoreKitWithOnPurchaseCompleted:^(NoctuaPurchaseResult * _Nonnull result) {
+    [Noctua initializeStoreKitOnPurchaseCompleted:^(NoctuaPurchaseResult * _Nonnull result) {
         NSLog(@"StoreKit onPurchaseCompleted: success=%d, productId=%@", result.success, result.productId);
         if (_pendingPurchaseCallback != NULL) {
             CompletionDelegate callback = _pendingPurchaseCallback;
@@ -567,7 +567,7 @@ void noctuaGetEventCount(GetEventCountCallbackDelegate callback) {
     if (callback == NULL) {
         return;
     }
-    [Noctua getEventCountWithOnResult:^(int32_t count) {
+    [Noctua getEventCountOnResult:^(int32_t count) {
         callback((int)count);
     }];
 }

@@ -12,7 +12,7 @@ namespace com.noctuagames.sdk
         private readonly ILogger _log = new NoctuaLogger(typeof(IosPlugin));
 
         [DllImport("__Internal")]
-        private static extern void noctuaInitialize();
+        private static extern void noctuaInitialize(bool verifyPurchasesOnServer);
 
         [DllImport("__Internal")]
         private static extern void noctuaTrackAdRevenue(string source, double revenue, string currency, string extraPayloadJson);
@@ -287,7 +287,7 @@ namespace com.noctuagames.sdk
 
         public void Init(List<string> activeBundleIds)
         {
-            noctuaInitialize();
+            noctuaInitialize(true);
         }
 
         public void OnApplicationPause(bool pause)

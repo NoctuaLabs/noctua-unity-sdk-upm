@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -79,6 +79,12 @@ namespace com.noctuagames.sdk.Events
         private volatile bool _isFlushing;
         private DateTime _lastConnectivityCheck = DateTime.MinValue;
         private static readonly TimeSpan ConnectivityCheckInterval = TimeSpan.FromSeconds(30);
+
+        // Cached Firebase IDs — fetched once per session to avoid static callback overwriting
+        // on iOS when multiple async calls race (IosPlugin uses single static callback slots).
+        private string _cachedFirebaseSessionId;
+        private string _cachedFirebaseInstallationId;
+        private bool _firebaseIdsFetched;
 
         // Write queue for burst-safe storage writes — each item is a serialized JSON string
         private readonly ConcurrentQueue<string> _writeQueue = new();
@@ -367,33 +373,35 @@ namespace com.noctuagames.sdk.Events
                     data.TryAdd("tag", activeFeature);
                 }
 
-                #if UNITY_ANDROID && !UNITY_EDITOR
-                    if (!_config.FirebaseConfig.Android.CustomEventDisabled)
+                #if (UNITY_ANDROID || UNITY_IOS) && !UNITY_EDITOR
+                bool shouldFetchFirebaseIds = false;
+                #if UNITY_ANDROID
+                    shouldFetchFirebaseIds = !_config.FirebaseConfig.Android.CustomEventDisabled;
+                #elif UNITY_IOS
+                    shouldFetchFirebaseIds = !_config.FirebaseConfig.Ios.CustomEventDisabled;
+                #endif
+
+                if (shouldFetchFirebaseIds)
+                {
+                    // Cache Firebase IDs to avoid re-fetching per event.
+                    // On iOS, IosPlugin uses single static callback slots for Firebase ID calls.
+                    // Rapid concurrent calls overwrite the pending callback, causing all but the
+                    // last await to hang forever. Caching avoids this entirely.
+                    if (!_firebaseIdsFetched)
                     {
                         try {
-                            var firebaseSessionId = await Noctua.GetFirebaseAnalyticsSessionID();
-                            var firebaseInstallationId = await Noctua.GetFirebaseInstallationID();
-
-                            data.TryAdd("firebase_analytics_session_id", firebaseSessionId);
-                            data.TryAdd("firebase_installation_id", firebaseInstallationId);
+                            _cachedFirebaseSessionId = await Noctua.GetFirebaseAnalyticsSessionID();
+                            _cachedFirebaseInstallationId = await Noctua.GetFirebaseInstallationID();
+                            _firebaseIdsFetched = true;
                         } catch (Exception e) {
                             _log.Warning($"[Event Sender] Failed to get Firebase IDs: {e.Message}");
                         }
                     }
-                #endif
 
-                #if UNITY_IOS && !UNITY_EDITOR
-                if (!_config.FirebaseConfig.Ios.CustomEventDisabled)
-                {
-                    try {
-                        var firebaseSessionId = await Noctua.GetFirebaseAnalyticsSessionID();
-                        var firebaseInstallationId = await Noctua.GetFirebaseInstallationID();
-
-                        data.TryAdd("firebase_analytics_session_id", firebaseSessionId);
-                        data.TryAdd("firebase_installation_id", firebaseInstallationId);
-                    } catch (Exception e) {
-                        _log.Warning($"[Event Sender] Failed to get Firebase IDs: {e.Message}");
-                    }
+                    if (!string.IsNullOrEmpty(_cachedFirebaseSessionId))
+                        data.TryAdd("firebase_analytics_session_id", _cachedFirebaseSessionId);
+                    if (!string.IsNullOrEmpty(_cachedFirebaseInstallationId))
+                        data.TryAdd("firebase_installation_id", _cachedFirebaseInstallationId);
                 }
                 #endif
 
@@ -492,10 +500,23 @@ namespace com.noctuagames.sdk.Events
 
         public void Flush()
         {
-#if UNITY_IOS && !UNITY_EDITOR
-            _log.Debug("[Event Sender] Flush skipped on iOS to avoid quit-time crash. Events will be sent on next launch.");
-            return;
-#endif
+            // Guard: skip HTTP flush during app quit or when called from a non-main thread
+            // (e.g. GC finalizer). Events are already persisted in per-row storage and will
+            // be sent on the next app launch. Attempting async Unity operations (UniTask,
+            // UnityWebRequest, P/Invoke) during shutdown causes crashes because the Unity
+            // player loop and native plugins may already be torn down.
+            if (_isQuitting)
+            {
+                _log.Debug("[Event Sender] Flush skipped: app is quitting. Events will be sent on next launch.");
+                return;
+            }
+
+            if (!Thread.CurrentThread.IsBackground && Thread.CurrentThread.ManagedThreadId != 1)
+            {
+                // Extra safety: if somehow called from a non-main thread that isn't
+                // the background thread (e.g. finalizer), skip to avoid Unity API crashes.
+                return;
+            }
 
             if (_isFlushing) return;
             _isFlushing = true;
@@ -507,6 +528,7 @@ namespace com.noctuagames.sdk.Events
                     // Wait for any in-progress write queue to finish first
                     while (_isProcessingWriteQueue)
                     {
+                        if (_isQuitting) break;
                         await UniTask.Yield();
                     }
 
@@ -516,9 +538,15 @@ namespace com.noctuagames.sdk.Events
                     // Drain any remaining write queue items into storage first
                     ProcessWriteQueue();
 
-                    // Paginated flush: read batch → HTTP → delete → repeat
+                    // Paginated flush: read batch -> HTTP -> delete -> repeat
                     while (true)
                     {
+                        if (_isQuitting)
+                        {
+                            _log.Debug("[Event Sender] Flush aborted: app is quitting mid-flush.");
+                            break;
+                        }
+
                         var batch = await GetEventsBatchDirectAsync(_config.MaxBatchSize, 0);
                         if (batch == null || batch.Count == 0)
                         {
@@ -550,7 +578,10 @@ namespace com.noctuagames.sdk.Events
                 }
                 catch (Exception e)
                 {
-                    _log.Warning("[Event Sender] Failed to flush events: " + e.Message);
+                    if (!_isQuitting)
+                    {
+                        _log.Warning("[Event Sender] Failed to flush events: " + e.Message);
+                    }
                     // Remaining events stay in per-row storage for next attempt
                 }
                 finally
@@ -558,7 +589,10 @@ namespace com.noctuagames.sdk.Events
                     _isFlushing = false;
                     // RESUME write queue
                     _writeQueuePaused = false;
-                    ProcessWriteQueue();
+                    if (!_isQuitting)
+                    {
+                        ProcessWriteQueue();
+                    }
                 }
             });
         }
