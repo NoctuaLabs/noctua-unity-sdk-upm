@@ -1027,8 +1027,6 @@ namespace com.noctuagames.sdk
 #endif
                 // Disabled for production to reduce event noise
                 // Instance.Value._eventSender.Send("sdk_init_online_success");
-                OnInitSuccess?.Invoke();
-                if (onSuccess != null) await onSuccess.Invoke();
 
             }
             else
@@ -1047,6 +1045,9 @@ namespace com.noctuagames.sdk
             {
                 { "offline", initOnlineCompleted ? false : true }
             });
+
+            OnInitSuccess?.Invoke();
+            if (onSuccess != null) await onSuccess.Invoke();
 
             var attribution = await GetAdjustAttributionAsync();
 
