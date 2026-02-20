@@ -473,7 +473,6 @@ namespace com.noctuagames.sdk
 
         public void GetEventCount(Action<int> callback)
         {
-            _log.Debug($"Getting event count from native plugin...");
             try
             {
                 using var noctua = new AndroidJavaClass("com.noctuagames.sdk.Noctua").GetStatic<AndroidJavaObject>("INSTANCE");
