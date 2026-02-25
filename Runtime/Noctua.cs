@@ -207,6 +207,7 @@ namespace com.noctuagames.sdk
         private static bool _offlineMode = false;
         private static bool _initialized = false;
         private bool _isNativePluginInitialized = false;
+        private readonly TaskCompletionSource<bool> _nativePluginInitTcs = new TaskCompletionSource<bool>();
 
         /// <summary>
         /// Optional callback invoked when Noctua initialization completes successfully.
@@ -467,6 +468,7 @@ namespace com.noctuagames.sdk
 
             _nativePlugin?.Init(new List<string>());
             _isNativePluginInitialized = true;
+            _nativePluginInitTcs.TrySetResult(true);
             _log.Debug("nativePlugin is initialized");
         }
 
@@ -805,6 +807,9 @@ namespace com.noctuagames.sdk
                 // Disabled for production to reduce event noise
                 // Instance.Value._eventSender.Send("sdk_init_set_locale_success");
             }
+
+            // Wait for native plugin to be initialized (needed when IAA is enabled and init is async)
+            await Instance.Value._nativePluginInitTcs.Task;
 
             // Try to get active currency
             if (!string.IsNullOrEmpty(initResponse.ActiveProductId))
