@@ -203,7 +203,7 @@ namespace com.noctuagames.sdk
         // Not all game has this feature enabled.
         private bool _isOfflineFirst = false;
         // Will be true if offline first is enabled AND
-        // there is network issue on init attempt
+        // there is network issue on init attempt 
         private static bool _offlineMode = false;
         private static bool _initialized = false;
         private bool _isNativePluginInitialized = false;
@@ -808,6 +808,12 @@ namespace com.noctuagames.sdk
                 // Instance.Value._eventSender.Send("sdk_init_set_locale_success");
             }
 
+            // Initialize IAA (In-App Advertising) SDK and prepare IAA to be ready for showing ads to the user.
+            if (initResponse.RemoteConfigs.IAA != null)
+            {
+                InitMediationSDK(log, initResponse);
+            }
+
             // Wait for native plugin to be initialized (needed when IAA is enabled and init is async)
             await Instance.Value._nativePluginInitTcs.Task;
 
@@ -993,15 +999,6 @@ namespace com.noctuagames.sdk
             {
                 Instance.Value._eventSender.Send("sdk_first_open");
             }
-
-            // Initialize IAA (In-App Advertising) SDK and prepare IAA to be ready for showing ads to the user.
-            if (initResponse.RemoteConfigs.IAA != null)
-            {
-                InitMediationSDK(log, initResponse);
-            }
-
-            // Disabled for production to reduce event noise
-            // Instance.Value._eventSender.Send("sdk_init_mediation_init");
 
             log.Info("Noctua.InitAsync() completed");
             var initOnlineCompleted = false;
