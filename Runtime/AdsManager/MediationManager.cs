@@ -53,7 +53,7 @@ namespace com.noctuagames.sdk
 #endif
 
 #if UNITY_ADMOB
-        public static AdmobAdPreloadManager _preloadManager = new();
+        private static AdmobAdPreloadManager _preloadManager;
         private event Action<PreloadConfiguration> _onAdsAvailable;
         private event Action<PreloadConfiguration> _onAdExhausted;
 
@@ -73,7 +73,10 @@ namespace com.noctuagames.sdk
 
         private readonly UIFactory _uiFactory;
         private bool _hasClosedPlaceholder = false; // Track if the placeholder has been closed to prevent multiple closures
-        public IAA _iAAResponse;
+        private bool _adNetworkEventsSubscribed; // Guard against duplicate event subscriptions on re-init
+        private bool _preloadManagerEventsSubscribed; // Guard against duplicate preload event subscriptions
+
+        internal IAA IAAResponse { get; set; }
 
         internal MediationManager(UIFactory uiFactory, IAA iAAResponse)
         {
@@ -85,7 +88,7 @@ namespace com.noctuagames.sdk
                 return;
             }
 
-            if (_iAAResponse != null)
+            if (IAAResponse != null)
             {
                 _log.Info("IAA response already set in MediationManager");
                 return;
@@ -104,18 +107,18 @@ namespace com.noctuagames.sdk
                 }
             #endif
             
-            _iAAResponse = iAAResponse;
+            IAAResponse = iAAResponse;
         }
 
         public void Initialize(Action initCompleteAction = null)
         {
-            if (_iAAResponse == null)
+            if (IAAResponse == null)
             {
                 _log.Error("Cannot initialize MediationManager: IAA response is null.");
                 return;
             }
 
-            _log.Info("Initializing Ad Mediation : " + _iAAResponse.Mediation);
+            _log.Info("Initializing Ad Mediation : " + IAAResponse.Mediation);
 
             var mediationType =
             #if UNITY_APPLOVIN
@@ -126,8 +129,8 @@ namespace com.noctuagames.sdk
                 "unknown";
             #endif
 
-            _mediationType = !string.IsNullOrEmpty(_iAAResponse.Mediation)
-                ? _iAAResponse.Mediation
+            _mediationType = !string.IsNullOrEmpty(IAAResponse.Mediation)
+                ? IAAResponse.Mediation
                 : mediationType;
 
             if (string.IsNullOrEmpty(_mediationType))
@@ -136,7 +139,7 @@ namespace com.noctuagames.sdk
                 return;
             }
 
-            switch (_iAAResponse.Mediation)
+            switch (_mediationType)
             {
                 case "admob":
                     InitializeAdmob(initCompleteAction);
@@ -147,7 +150,7 @@ namespace com.noctuagames.sdk
                     break;
 
                 default:
-                    _log.Info("No mediation found: " + _iAAResponse.Mediation);
+                    _log.Info("No mediation found: " + _mediationType);
                     break;
             }
         }
@@ -160,9 +163,9 @@ namespace com.noctuagames.sdk
 
                 initCompleteAction?.Invoke();
 
-                _log.Info("Ad Mediation Initialized: " + _iAAResponse.Mediation);
+                _log.Info("Ad Mediation Initialized: " + IAAResponse.Mediation);
 
-                if (_iAAResponse.AdFormat == null)
+                if (IAAResponse.AdFormat == null)
                 {
                     _log.Info("Ad Format is null in IAA response. Cannot proceed with ad unit ID setup.");
                     return;
@@ -172,78 +175,87 @@ namespace com.noctuagames.sdk
                 {
                     _preloadManager = AdmobAdPreloadManager.Instance;
                 }
-                SetupAdUnitID(_iAAResponse);
+                SetupAdUnitID(IAAResponse);
             });
 
-            if(_adNetwork == null) 
+            if(_adNetwork == null)
             {
                 _log.Warning("Ad Network is not initialized. callback cannot be registered.");
                 return;
             }
 
-            _adNetwork.OnAdDisplayed += () =>
+            if (!_adNetworkEventsSubscribed)
             {
-                CloseAdPlaceholder();
+                _adNetworkEventsSubscribed = true;
 
-                _onAdDisplayed?.Invoke();
-            };
-            _adNetwork.OnAdFailedDisplayed += () => { _onAdFailedDisplayed?.Invoke(); };
-            _adNetwork.OnAdClicked += () => { _onAdClicked?.Invoke(); };
-            _adNetwork.OnAdImpressionRecorded += () => { _onAdImpressionRecorded?.Invoke(); };
-            _adNetwork.OnAdClosed += () => { _onAdClosed?.Invoke(); };
-            _adNetwork.AdmobOnUserEarnedReward += (reward) => { _admobOnUserEarnedReward?.Invoke(reward); };
-            _adNetwork.AdmobOnAdRevenuePaid += (adValue, responseInfo) => {
-
-                // Send the impression-level ad revenue information
-                long valueMicros = adValue.Value;
-                string currencyCode = adValue.CurrencyCode;
-                PrecisionType precision = adValue.Precision;
-
-                string responseId = responseInfo.GetResponseId();
-
-                AdapterResponseInfo loadedAdapterResponseInfo = responseInfo.GetLoadedAdapterResponseInfo();
-
-                string adSourceId = loadedAdapterResponseInfo?.AdSourceId ?? "empty";
-                string adSourceInstanceId = loadedAdapterResponseInfo?.AdSourceInstanceId ?? "empty";
-                string adSourceInstanceName = loadedAdapterResponseInfo?.AdSourceInstanceName ?? "empty";
-                string adSourceName = loadedAdapterResponseInfo?.AdSourceName ?? "empty";
-                string adapterClassName = loadedAdapterResponseInfo?.AdapterClassName ?? "empty";
-                long latencyMillis = loadedAdapterResponseInfo?.LatencyMillis ?? 0;
-                Dictionary<string, string> credentials = loadedAdapterResponseInfo?.AdUnitMapping;
-
-                Dictionary<string, string> extras = responseInfo.GetResponseExtras();
-                string mediationGroupName = extras != null && extras.ContainsKey("mediation_group_name") ? extras["mediation_group_name"] : "empty";
-                string mediationABTestName = extras != null && extras.ContainsKey("mediation_ab_test_name") ? extras["mediation_ab_test_name"] : "empty";
-                string mediationABTestVariant = extras != null && extras.ContainsKey("mediation_ab_test_variant") ? extras["mediation_ab_test_variant"] : "empty";
-
-                double revenue = valueMicros / 1_000_000.0;
-
-                _log.Debug($"Admob Ad Revenue Paid: value in micros: {adValue.Value} / converted micros: {revenue}, {adValue.CurrencyCode} " +
-                    $"Precision: {adValue.Precision} " +
-                    $"Response ID: {responseId} " +
-                    $"Ad Source ID: {adSourceId} " +
-                    $"Ad Source Instance ID: {adSourceInstanceId} " +
-                    $"Ad Source Instance Name: {adSourceInstanceName} " +
-                    $"Ad Source Name: {adSourceName} " +
-                    $"Adapter Class Name: {adapterClassName} " +
-                    $"Latency Millis: {latencyMillis}");
-
-                Noctua.Event.TrackAdRevenue("admob_sdk", revenue, currencyCode, new Dictionary<string, IConvertible>
+                _adNetwork.OnAdDisplayed += () =>
                 {
-                    { "ad_source_id", adSourceId },
-                    { "ad_source_instance_id", adSourceInstanceId },
-                    { "ad_source_instance_name", adSourceInstanceName },
-                    { "ad_source_name", adSourceName },
-                    { "adapter_class_name", adapterClassName },
-                    { "latency_millis", latencyMillis },
-                    { "response_id", responseId },
-                    { "mediation_group_name", mediationGroupName },
-                    { "mediation_ab_test_name", mediationABTestName },
-                    { "mediation_ab_test_variant", mediationABTestVariant }
-                });
+                    CloseAdPlaceholder();
 
-                _admobOnAdRevenuePaid?.Invoke(adValue, responseInfo);
-            };
+                    _onAdDisplayed?.Invoke();
+                };
+                _adNetwork.OnAdFailedDisplayed += () => {
+                    CloseAdPlaceholder();
+
+                    _onAdFailedDisplayed?.Invoke();
+                };
+                _adNetwork.OnAdClicked += () => { _onAdClicked?.Invoke(); };
+                _adNetwork.OnAdImpressionRecorded += () => { _onAdImpressionRecorded?.Invoke(); };
+                _adNetwork.OnAdClosed += () => { _onAdClosed?.Invoke(); };
+                _adNetwork.AdmobOnUserEarnedReward += (reward) => { _admobOnUserEarnedReward?.Invoke(reward); };
+                _adNetwork.AdmobOnAdRevenuePaid += (adValue, responseInfo) => {
+
+                    // Send the impression-level ad revenue information
+                    long valueMicros = adValue.Value;
+                    string currencyCode = adValue.CurrencyCode;
+                    PrecisionType precision = adValue.Precision;
+
+                    string responseId = responseInfo.GetResponseId();
+
+                    AdapterResponseInfo loadedAdapterResponseInfo = responseInfo.GetLoadedAdapterResponseInfo();
+
+                    string adSourceId = loadedAdapterResponseInfo?.AdSourceId ?? "empty";
+                    string adSourceInstanceId = loadedAdapterResponseInfo?.AdSourceInstanceId ?? "empty";
+                    string adSourceInstanceName = loadedAdapterResponseInfo?.AdSourceInstanceName ?? "empty";
+                    string adSourceName = loadedAdapterResponseInfo?.AdSourceName ?? "empty";
+                    string adapterClassName = loadedAdapterResponseInfo?.AdapterClassName ?? "empty";
+                    long latencyMillis = loadedAdapterResponseInfo?.LatencyMillis ?? 0;
+                    Dictionary<string, string> credentials = loadedAdapterResponseInfo?.AdUnitMapping;
+
+                    Dictionary<string, string> extras = responseInfo.GetResponseExtras();
+                    string mediationGroupName = extras != null && extras.ContainsKey("mediation_group_name") ? extras["mediation_group_name"] : "empty";
+                    string mediationABTestName = extras != null && extras.ContainsKey("mediation_ab_test_name") ? extras["mediation_ab_test_name"] : "empty";
+                    string mediationABTestVariant = extras != null && extras.ContainsKey("mediation_ab_test_variant") ? extras["mediation_ab_test_variant"] : "empty";
+
+                    double revenue = valueMicros / 1_000_000.0;
+
+                    _log.Debug($"Admob Ad Revenue Paid: value in micros: {adValue.Value} / converted micros: {revenue}, {adValue.CurrencyCode} " +
+                        $"Precision: {adValue.Precision} " +
+                        $"Response ID: {responseId} " +
+                        $"Ad Source ID: {adSourceId} " +
+                        $"Ad Source Instance ID: {adSourceInstanceId} " +
+                        $"Ad Source Instance Name: {adSourceInstanceName} " +
+                        $"Ad Source Name: {adSourceName} " +
+                        $"Adapter Class Name: {adapterClassName} " +
+                        $"Latency Millis: {latencyMillis}");
+
+                    Noctua.Event.TrackAdRevenue("admob_sdk", revenue, currencyCode, new Dictionary<string, IConvertible>
+                    {
+                        { "ad_source_id", adSourceId },
+                        { "ad_source_instance_id", adSourceInstanceId },
+                        { "ad_source_instance_name", adSourceInstanceName },
+                        { "ad_source_name", adSourceName },
+                        { "adapter_class_name", adapterClassName },
+                        { "latency_millis", latencyMillis },
+                        { "response_id", responseId },
+                        { "mediation_group_name", mediationGroupName },
+                        { "mediation_ab_test_name", mediationABTestName },
+                        { "mediation_ab_test_variant", mediationABTestVariant }
+                    });
+
+                    _admobOnAdRevenuePaid?.Invoke(adValue, responseInfo);
+                };
+            }
 #endif
         }
 
@@ -256,71 +268,79 @@ namespace com.noctuagames.sdk
 
             });
 
-            _adNetwork.OnInitialized += () => {
-                _log.Info("Ad Mediation Initialized: " + _iAAResponse.Mediation);
-
-                if (_iAAResponse.AdFormat == null)
-                {
-                    _log.Info("Ad Format is null in IAA response. Cannot proceed with ad unit ID setup.");
-                    return;
-                }
-
-                SetupAdUnitID(_iAAResponse);
-
-                initCompleteAction?.Invoke();
-
-            };
-
-            if(_adNetwork == null) 
+            if(_adNetwork == null)
             {
                 _log.Warning("Ad Network is not initialized. callback cannot be registered.");
                 return;
             }
 
-            _adNetwork.OnAdDisplayed += () => { 
+            if (!_adNetworkEventsSubscribed)
+            {
+                _adNetworkEventsSubscribed = true;
 
-                CloseAdPlaceholder();
+                _adNetwork.OnInitialized += () => {
+                    _log.Info("Ad Mediation Initialized: " + IAAResponse.Mediation);
 
-                _onAdDisplayed?.Invoke(); 
-            };
-            _adNetwork.OnAdFailedDisplayed += () => { _onAdFailedDisplayed?.Invoke(); };
-            _adNetwork.OnAdClicked += () => { _onAdClicked?.Invoke(); };
-            _adNetwork.OnAdImpressionRecorded += () => { _onAdImpressionRecorded?.Invoke(); };
-            _adNetwork.OnAdClosed += () => { _onAdClosed?.Invoke(); };
-            _adNetwork.AppLovinOnUserEarnedReward += (Reward) => { _appLovinOnUserEarnedReward?.Invoke(Reward); };
-            _adNetwork.AppLovinOnAdRevenuePaid += (adInfo) => { 
+                    if (IAAResponse.AdFormat == null)
+                    {
+                        _log.Info("Ad Format is null in IAA response. Cannot proceed with ad unit ID setup.");
+                        return;
+                    }
 
-                double revenue = adInfo.Revenue;
+                    SetupAdUnitID(IAAResponse);
 
-                // Miscellaneous data
-                string countryCode = MaxSdk.GetSdkConfiguration().CountryCode; // "US" for the United States, etc - Note: Do not confuse this with currency code which is "USD"
-                string networkName = adInfo.NetworkName; // Display name of the network that showed the ad
-                string adUnitIdentifier = adInfo.AdUnitIdentifier; // The MAX Ad Unit ID
-                string placement = adInfo.Placement; // The placement this ad's postbacks are tied to
-                string networkPlacement = adInfo.NetworkPlacement; // The placement ID from the network that showed the ad
-                string revenuePrecision = adInfo.RevenuePrecision;
+                    initCompleteAction?.Invoke();
+                };
 
-                _log.Debug($"AppLovin Ad Revenue Paid: revenue: {adInfo.Revenue}, " + 
-                    "currency: USD, " + 
-                    $"country code: {countryCode}, " + 
-                    $"network name: {networkName}, " + 
-                    $"ad unit identifier: {adUnitIdentifier}, " +
-                    $"placement: {placement}, " + 
-                    $"network placement: {networkPlacement}, " +
-                    $"revenue precision: {revenuePrecision}");
+                _adNetwork.OnAdDisplayed += () => {
 
-                Noctua.Event.TrackAdRevenue("applovin_max_sdk", revenue, "USD", new Dictionary<string, IConvertible>
-                {
-                    { "country_code", countryCode },
-                    { "network_name", networkName },
-                    { "ad_unit_identifier", adUnitIdentifier },
-                    { "placement", placement },
-                    { "network_placement", networkPlacement },
-                    { "revenue_precision", revenuePrecision }
-                });
-            
-                _appLovinOnAdRevenuePaid?.Invoke(adInfo); 
-            };
+                    CloseAdPlaceholder();
+
+                    _onAdDisplayed?.Invoke();
+                };
+                _adNetwork.OnAdFailedDisplayed += () => {
+                    CloseAdPlaceholder();
+
+                    _onAdFailedDisplayed?.Invoke();
+                };
+                _adNetwork.OnAdClicked += () => { _onAdClicked?.Invoke(); };
+                _adNetwork.OnAdImpressionRecorded += () => { _onAdImpressionRecorded?.Invoke(); };
+                _adNetwork.OnAdClosed += () => { _onAdClosed?.Invoke(); };
+                _adNetwork.AppLovinOnUserEarnedReward += (Reward) => { _appLovinOnUserEarnedReward?.Invoke(Reward); };
+                _adNetwork.AppLovinOnAdRevenuePaid += (adInfo) => {
+
+                    double revenue = adInfo.Revenue;
+
+                    // Miscellaneous data
+                    string countryCode = MaxSdk.GetSdkConfiguration().CountryCode; // "US" for the United States, etc - Note: Do not confuse this with currency code which is "USD"
+                    string networkName = adInfo.NetworkName; // Display name of the network that showed the ad
+                    string adUnitIdentifier = adInfo.AdUnitIdentifier; // The MAX Ad Unit ID
+                    string placement = adInfo.Placement; // The placement this ad's postbacks are tied to
+                    string networkPlacement = adInfo.NetworkPlacement; // The placement ID from the network that showed the ad
+                    string revenuePrecision = adInfo.RevenuePrecision;
+
+                    _log.Debug($"AppLovin Ad Revenue Paid: revenue: {adInfo.Revenue}, " +
+                        "currency: USD, " +
+                        $"country code: {countryCode}, " +
+                        $"network name: {networkName}, " +
+                        $"ad unit identifier: {adUnitIdentifier}, " +
+                        $"placement: {placement}, " +
+                        $"network placement: {networkPlacement}, " +
+                        $"revenue precision: {revenuePrecision}");
+
+                    Noctua.Event.TrackAdRevenue("applovin_max_sdk", revenue, "USD", new Dictionary<string, IConvertible>
+                    {
+                        { "country_code", countryCode },
+                        { "network_name", networkName },
+                        { "ad_unit_identifier", adUnitIdentifier },
+                        { "placement", placement },
+                        { "network_placement", networkPlacement },
+                        { "revenue_precision", revenuePrecision }
+                    });
+
+                    _appLovinOnAdRevenuePaid?.Invoke(adInfo);
+                };
+            }
 #endif
         }
 
@@ -373,6 +393,7 @@ namespace com.noctuagames.sdk
             {
 #if UNITY_ADMOB
                 SetRewardedInterstitialAdUnitId(_rewardedInterstitialAdUnitID);
+                LoadRewardedInterstitialAd();
 
                 var configs = new List<PreloadConfiguration>
                 {
@@ -380,20 +401,25 @@ namespace com.noctuagames.sdk
                     _preloadManager.CreateRewardedPreloadConfig(_rewardedAdUnitID)
                 };
 
-                // Subscribe to events
-                _preloadManager.OnAdsAvailable += (config) =>
+                // Subscribe to events (only once to prevent duplicate handlers)
+                if (!_preloadManagerEventsSubscribed)
                 {
-                    _log.Debug($"Ad available for {config.Format}");
+                    _preloadManagerEventsSubscribed = true;
 
-                    _onAdsAvailable?.Invoke(config);
-                };
+                    _preloadManager.OnAdsAvailable += (config) =>
+                    {
+                        _log.Debug($"Ad available for {config.Format}");
 
-                _preloadManager.OnAdExhausted += (config) =>
-                {
-                    _log.Debug($"Ad exhausted for {config.Format}");
+                        _onAdsAvailable?.Invoke(config);
+                    };
 
-                    _onAdExhausted?.Invoke(config);
-                };
+                    _preloadManager.OnAdExhausted += (config) =>
+                    {
+                        _log.Debug($"Ad exhausted for {config.Format}");
+
+                        _onAdExhausted?.Invoke(config);
+                    };
+                }
 
                 _preloadManager.StartPreloading(configs);
 #endif
@@ -438,28 +464,47 @@ namespace com.noctuagames.sdk
 
                 ShowAdPlaceholder(AdPlaceholderType.Interstitial);
 
+                if (_preloadManager == null)
+                {
+                    _log.Warning("Admob Preload Manager is not initialized. Cannot show interstitial ad.");
+                    CloseAdPlaceholder();
+                    return;
+                }
+
                 // Check if the ad is available before showing
                 if (_preloadManager.IsAdAvailable(_interstitialAdUnitID, AdFormat.INTERSTITIAL))
                 {
                     var ad = _preloadManager.PollInterstitialAd(_interstitialAdUnitID);
                     if (ad != null)
                     {
-                        _log.Info("Showing Admob Interstitial Ad");
-                        ad.Show();
-
-                        RegisterCallbackAdInterstitial(ad);
-
+                        try
+                        {
+                            _log.Info("Showing Admob Interstitial Ad");
+                            RegisterCallbackAdInterstitial(ad);
+                            ad.Show();
+                        }
+                        catch (Exception ex)
+                        {
+                            _log.Error($"Exception showing Admob Interstitial Ad: {ex.Message}\n{ex.StackTrace}");
+                            CloseAdPlaceholder();
+                        }
+                    }
+                    else
+                    {
+                        _log.Warning("Admob Interstitial Ad poll returned null");
+                        CloseAdPlaceholder();
                     }
                 }
                 else
                 {
                     _log.Info("Admob Interstitial Ad not available");
+                    CloseAdPlaceholder();
                 }
 #endif
             }
             else
             {
-                if(_adNetwork == null) 
+                if(_adNetwork == null)
                 {
                     _log.Warning("Ad Network is not initialized. Cannot show interstitial ad.");
                     return;
@@ -480,8 +525,33 @@ namespace com.noctuagames.sdk
             interstitialAd.OnAdFullScreenContentOpened += () =>
             {
                 CloseAdPlaceholder();
-
+                _onAdDisplayed?.Invoke();
                 _log.Info("Noctua Placeholder closed for Interstitial Ad");
+            };
+            interstitialAd.OnAdFullScreenContentFailed += (AdError error) =>
+            {
+                CloseAdPlaceholder();
+                _onAdFailedDisplayed?.Invoke();
+                _log.Warning("Interstitial Ad failed to show full screen content, placeholder closed. Error: " + error);
+            };
+            interstitialAd.OnAdFullScreenContentClosed += () =>
+            {
+                _onAdClosed?.Invoke();
+                _log.Debug("Preloaded Interstitial Ad closed");
+            };
+            interstitialAd.OnAdClicked += () =>
+            {
+                _onAdClicked?.Invoke();
+                _log.Debug("Preloaded Interstitial Ad clicked");
+            };
+            interstitialAd.OnAdImpressionRecorded += () =>
+            {
+                _onAdImpressionRecorded?.Invoke();
+                _log.Debug("Preloaded Interstitial Ad impression recorded");
+            };
+            interstitialAd.OnAdPaid += (AdValue adValue) =>
+            {
+                TrackPreloadedAdRevenue(adValue, interstitialAd.GetResponseInfo());
             };
         }
         #endif
@@ -508,11 +578,17 @@ namespace com.noctuagames.sdk
         {
             if (IsAdmob())
             {
-
 #if UNITY_ADMOB
                 _hasClosedPlaceholder = false;
 
                 ShowAdPlaceholder(AdPlaceholderType.Rewarded);
+
+                if (_preloadManager == null)
+                {
+                    _log.Warning("Admob Preload Manager is not initialized. Cannot show rewarded ad.");
+                    CloseAdPlaceholder();
+                    return;
+                }
 
                 // Check if the ad is available before showing
                 if (_preloadManager.IsAdAvailable(_rewardedAdUnitID, AdFormat.REWARDED))
@@ -520,19 +596,32 @@ namespace com.noctuagames.sdk
                     var ad = _preloadManager.PollRewardedAd(_rewardedAdUnitID);
                     if (ad != null)
                     {
-                        _log.Info("Showing Admob Rewarded Ad");
-
-                        ad.Show((Reward reward) =>
+                        try
                         {
-                            _log.Info("User earned reward from mediation manager : " + reward.Type + " - " + reward.Amount);
-                        });
-
-                        RegisterCallbackAdInterstitial(ad);
+                            _log.Info("Showing Admob Rewarded Ad");
+                            RegisterCallbackAdRewarded(ad);
+                            ad.Show((Reward reward) =>
+                            {
+                                _log.Info("User earned reward from mediation manager : " + reward.Type + " - " + reward.Amount);
+                                _admobOnUserEarnedReward?.Invoke(reward);
+                            });
+                        }
+                        catch (Exception ex)
+                        {
+                            _log.Error($"Exception showing Admob Rewarded Ad: {ex.Message}\n{ex.StackTrace}");
+                            CloseAdPlaceholder();
+                        }
+                    }
+                    else
+                    {
+                        _log.Warning("Admob Rewarded Ad poll returned null");
+                        CloseAdPlaceholder();
                     }
                 }
                 else
                 {
                     _log.Info("Admob Rewarded Ad not available");
+                    CloseAdPlaceholder();
                 }
 #endif
             }
@@ -554,13 +643,38 @@ namespace com.noctuagames.sdk
         }
 
         #if UNITY_ADMOB
-        private void RegisterCallbackAdInterstitial(RewardedAd rewardedAd)
+        private void RegisterCallbackAdRewarded(RewardedAd rewardedAd)
         {
             rewardedAd.OnAdFullScreenContentOpened += () =>
             {
                 CloseAdPlaceholder();
-
+                _onAdDisplayed?.Invoke();
                 _log.Info("Noctua Placeholder closed for Rewarded Ad");
+            };
+            rewardedAd.OnAdFullScreenContentFailed += (AdError error) =>
+            {
+                CloseAdPlaceholder();
+                _onAdFailedDisplayed?.Invoke();
+                _log.Warning("Rewarded Ad failed to show full screen content, placeholder closed. Error: " + error);
+            };
+            rewardedAd.OnAdFullScreenContentClosed += () =>
+            {
+                _onAdClosed?.Invoke();
+                _log.Debug("Preloaded Rewarded Ad closed");
+            };
+            rewardedAd.OnAdClicked += () =>
+            {
+                _onAdClicked?.Invoke();
+                _log.Debug("Preloaded Rewarded Ad clicked");
+            };
+            rewardedAd.OnAdImpressionRecorded += () =>
+            {
+                _onAdImpressionRecorded?.Invoke();
+                _log.Debug("Preloaded Rewarded Ad impression recorded");
+            };
+            rewardedAd.OnAdPaid += (AdValue adValue) =>
+            {
+                TrackPreloadedAdRevenue(adValue, rewardedAd.GetResponseInfo());
             };
         }
         #endif
@@ -577,7 +691,7 @@ namespace com.noctuagames.sdk
                 return;
             }
 
-            _adNetwork.SetRewardeInterstitialdAdUnitID(adUnitID);
+            _adNetwork.SetRewardedInterstitialAdUnitID(adUnitID);
         }
         public void LoadRewardedInterstitialAd() {
 
@@ -817,7 +931,7 @@ namespace com.noctuagames.sdk
             }
         }
 
-        private bool IsAdmob() 
+        private bool IsAdmob()
         {
             if (_mediationType == "admob")
             {
@@ -829,5 +943,62 @@ namespace com.noctuagames.sdk
                 return false;
             }
         }
+
+#if UNITY_ADMOB
+        /// <summary>
+        /// Tracks ad revenue for preloaded ads. Replicates the same logic as the
+        /// AdmobOnAdRevenuePaid handler in InitializeAdmob, ensuring preloaded ads
+        /// have full revenue attribution.
+        /// </summary>
+        private void TrackPreloadedAdRevenue(AdValue adValue, ResponseInfo responseInfo)
+        {
+            try
+            {
+                long valueMicros = adValue.Value;
+                string currencyCode = adValue.CurrencyCode;
+
+                string responseId = responseInfo?.GetResponseId() ?? "empty";
+
+                AdapterResponseInfo loadedAdapterResponseInfo = responseInfo?.GetLoadedAdapterResponseInfo();
+
+                string adSourceId = loadedAdapterResponseInfo?.AdSourceId ?? "empty";
+                string adSourceInstanceId = loadedAdapterResponseInfo?.AdSourceInstanceId ?? "empty";
+                string adSourceInstanceName = loadedAdapterResponseInfo?.AdSourceInstanceName ?? "empty";
+                string adSourceName = loadedAdapterResponseInfo?.AdSourceName ?? "empty";
+                string adapterClassName = loadedAdapterResponseInfo?.AdapterClassName ?? "empty";
+                long latencyMillis = loadedAdapterResponseInfo?.LatencyMillis ?? 0;
+
+                Dictionary<string, string> extras = responseInfo?.GetResponseExtras();
+                string mediationGroupName = extras != null && extras.ContainsKey("mediation_group_name") ? extras["mediation_group_name"] : "empty";
+                string mediationABTestName = extras != null && extras.ContainsKey("mediation_ab_test_name") ? extras["mediation_ab_test_name"] : "empty";
+                string mediationABTestVariant = extras != null && extras.ContainsKey("mediation_ab_test_variant") ? extras["mediation_ab_test_variant"] : "empty";
+
+                double revenue = valueMicros / 1_000_000.0;
+
+                _log.Debug($"Preloaded Ad Revenue Paid: value in micros: {adValue.Value} / converted: {revenue}, {currencyCode} " +
+                    $"Ad Source: {adSourceName}, Adapter: {adapterClassName}");
+
+                Noctua.Event.TrackAdRevenue("admob_sdk", revenue, currencyCode, new Dictionary<string, IConvertible>
+                {
+                    { "ad_source_id", adSourceId },
+                    { "ad_source_instance_id", adSourceInstanceId },
+                    { "ad_source_instance_name", adSourceInstanceName },
+                    { "ad_source_name", adSourceName },
+                    { "adapter_class_name", adapterClassName },
+                    { "latency_millis", latencyMillis },
+                    { "response_id", responseId },
+                    { "mediation_group_name", mediationGroupName },
+                    { "mediation_ab_test_name", mediationABTestName },
+                    { "mediation_ab_test_variant", mediationABTestVariant }
+                });
+
+                _admobOnAdRevenuePaid?.Invoke(adValue, responseInfo);
+            }
+            catch (Exception ex)
+            {
+                _log.Error($"Error tracking preloaded ad revenue: {ex.Message}\n{ex.StackTrace}");
+            }
+        }
+#endif
     }
 }

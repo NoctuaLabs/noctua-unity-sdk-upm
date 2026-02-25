@@ -21,19 +21,9 @@ namespace com.noctuagames.sdk
         public event Action<PreloadConfiguration> OnAdsAvailable;
         public event Action<PreloadConfiguration> OnAdExhausted;
         
-        // Singleton instance
-        private static AdmobAdPreloadManager _instance;
-        public static AdmobAdPreloadManager Instance
-        {
-            get
-            {
-                if (_instance == null)
-                {
-                    _instance = new AdmobAdPreloadManager();
-                }
-                return _instance;
-            }
-        }
+        // Thread-safe singleton instance
+        private static readonly Lazy<AdmobAdPreloadManager> _instance = new(() => new AdmobAdPreloadManager());
+        public static AdmobAdPreloadManager Instance => _instance.Value;
         
         /// <summary>
         /// Starts preloading ads with the specified configurations
@@ -272,15 +262,21 @@ namespace com.noctuagames.sdk
         }
         
         /// <summary>
-        /// Gets the response info for a preloaded ad
+        /// Gets the response info for a preloaded ad.
+        /// WARNING: This method CONSUMES the preloaded ad by calling Poll internally.
+        /// The ad will be removed from the preload buffer and cannot be shown afterwards.
+        /// Use IsAdAvailable() to check availability without consuming.
         /// </summary>
         /// <param name="adUnitId">Ad unit ID</param>
         /// <param name="adFormat">Ad format</param>
         /// <returns>ResponseInfo if available, null otherwise</returns>
+        [Obsolete("This method destructively consumes preloaded ads. Use IsAdAvailable() + PollAd() + GetResponseInfo() on the ad instance instead.")]
         public ResponseInfo GetResponseInfo(string adUnitId, AdFormat adFormat)
         {
+            _log.Warning($"GetResponseInfo is destructive — it consumes the preloaded ad for {adFormat}, unit: {adUnitId}");
+
             ResponseInfo responseInfo = null;
-            
+
             switch (adFormat)
             {
                 case AdFormat.INTERSTITIAL:
@@ -308,7 +304,7 @@ namespace com.noctuagames.sdk
                     _log.Error($"Unsupported ad format: {adFormat}");
                     break;
             }
-            
+
             return responseInfo;
         }
         

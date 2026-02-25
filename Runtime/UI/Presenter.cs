@@ -99,6 +99,14 @@ namespace com.noctuagames.sdk.UI
             Utility.ApplyTranslations(View, GetType().Name, Locale.GetTranslations());
         }
 
+        protected virtual void OnDestroy()
+        {
+            if (Locale != null)
+            {
+                Locale.OnLanguageChanged -= OnLanguageChanged;
+            }
+        }
+
         public class ButtonNoctua
         {
             public Button button { get; }

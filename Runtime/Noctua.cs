@@ -1152,21 +1152,26 @@ namespace com.noctuagames.sdk
             if(initResponse.RemoteConfigs.IAA != null)
             {
                 #if UNITY_ADMOB || UNITY_APPLOVIN
-                
+
+                if (Instance.Value._iaa == null)
+                {
+                    log.Warning("MediationManager is not initialized. Cannot apply remote IAA config. " +
+                        "Check that isIAAEnabled is true and local IAA config exists.");
+                    Instance.Value.InitializeNativePlugin();
+                    return;
+                }
+
                 log.Info("initializing IAA SDK from remote config : " + initResponse.RemoteConfigs.IAA.Mediation);
 
-                Instance.Value._iaa._iAAResponse = Instance.Value._config.IAA;
-                log.Debug("Noctua IAA config replaced with remote config: " + JsonConvert.SerializeObject(Instance.Value._iaa._iAAResponse));
+                Instance.Value._iaa.IAAResponse = initResponse.RemoteConfigs.IAA;
+                log.Debug("Noctua IAA config replaced with remote config: " + JsonConvert.SerializeObject(Instance.Value._iaa.IAAResponse));
 
                 Instance.Value._iaa.Initialize(() => {
 
                     log.Info("IAA SDK initialized from remote config");
 
-                    //Init analytics
-                    #if UNITY_ANDROID
                     Instance.Value.InitializeNativePlugin();
                     log.Info("nativePlugin initialized");
-                    #endif
                 });
                 #else
                 Instance.Value.InitializeNativePlugin();
@@ -1176,10 +1181,8 @@ namespace com.noctuagames.sdk
             else
             {
                 log.Info("Remote config IAA is not configured yet");
-                #if UNITY_ANDROID
                 Instance.Value.InitializeNativePlugin();
                 log.Info("nativePlugin initialized");
-                #endif
             }
         }
         

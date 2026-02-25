@@ -43,9 +43,9 @@ namespace com.noctuagames.sdk.Admob
         {
             TrackAdCustomEventInterstitial("wf_interstitial_request_start");
             
-            if (_adUnitIDInterstitial == null)
+            if (string.IsNullOrEmpty(_adUnitIDInterstitial) || _adUnitIDInterstitial == "unknown")
             {
-                _log.Error("Ad unit ID Interstitial is empty.");
+                _log.Error("Ad unit ID Interstitial is not configured.");
                 return;
             }
 
@@ -61,22 +61,7 @@ namespace com.noctuagames.sdk.Admob
             InterstitialAd.Load(_adUnitIDInterstitial, adRequest,
                 (InterstitialAd ad, LoadAdError error) =>
                 {
-
-                    if (ad.GetResponseInfo() != null)
-                    {
-                        AdapterResponseInfo loadedAdapterResponseInfo = ad.GetResponseInfo().GetLoadedAdapterResponseInfo();
-
-                        long latencyMillis = loadedAdapterResponseInfo?.LatencyMillis ?? 0;
-                        
-                        if (latencyMillis > _timeoutThreshold)
-                        {
-                            _log.Warning($"Interstitial ad request took too long: {latencyMillis} ms, exceeding threshold of {_timeoutThreshold} ms.");
-
-                            TrackAdCustomEventInterstitial("wf_interstitial_request_adunit_timeout");
-                        }
-                    }
-
-                    // if error is not null, the load request failed.
+                    // Check for error first to avoid NullReferenceException on ad
                     if (error != null || ad == null)
                     {
                         _log.Error("interstitial ad failed to load an ad " +
@@ -84,15 +69,29 @@ namespace com.noctuagames.sdk.Admob
 
                         var extraPayload = new Dictionary<string, IConvertible>
                         {
-                            { "error_code", error.GetCode() },
-                            { "error_message", error.GetMessage() },
-                            { "domain", error.GetDomain() },
+                            { "error_code", error?.GetCode() ?? -1 },
+                            { "error_message", error?.GetMessage() ?? "unknown" },
+                            { "domain", error?.GetDomain() ?? "unknown" },
                             { "ad_unit_id", _adUnitIDInterstitial ?? "unknown" }
                         };
 
                         TrackAdCustomEventInterstitial("wf_interstitial_adunit_failed", extraPayload);
-                        TrackAdCustomEventInterstitial("wf_interstitial_finished_failed	", extraPayload);
+                        TrackAdCustomEventInterstitial("wf_interstitial_finished_failed", extraPayload);
                         return;
+                    }
+
+                    if (ad.GetResponseInfo() != null)
+                    {
+                        AdapterResponseInfo loadedAdapterResponseInfo = ad.GetResponseInfo().GetLoadedAdapterResponseInfo();
+
+                        long latencyMillis = loadedAdapterResponseInfo?.LatencyMillis ?? 0;
+
+                        if (latencyMillis > _timeoutThreshold)
+                        {
+                            _log.Warning($"Interstitial ad request took too long: {latencyMillis} ms, exceeding threshold of {_timeoutThreshold} ms.");
+
+                            TrackAdCustomEventInterstitial("wf_interstitial_request_adunit_timeout");
+                        }
                     }
 
                     _log.Debug("Interstitial ad loaded with response : "
@@ -255,7 +254,7 @@ namespace com.noctuagames.sdk.Admob
                         extraPayload.Add("ad_network", "unknown");
                     }
 
-                    extraPayload.Add("ad_unit_id", _interstitialAd.GetAdUnitID());
+                    extraPayload.Add("ad_unit_id", _interstitialAd.GetAdUnitID() ?? "unknown");
                 }
                 else
                 {

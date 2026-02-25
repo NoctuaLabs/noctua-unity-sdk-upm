@@ -43,7 +43,7 @@ namespace com.noctuagames.sdk
 
         //Rewarded Interstitial Admob
         #if UNITY_ADMOB
-        void SetRewardeInterstitialdAdUnitID(string adUnitID) { throw new NotImplementedException(); }
+        void SetRewardedInterstitialAdUnitID(string adUnitID) { throw new NotImplementedException(); }
         void LoadRewardedInterstitialAd() { throw new NotImplementedException(); }
         void ShowRewardedInterstitialAd() { throw new NotImplementedException(); }
         #endif

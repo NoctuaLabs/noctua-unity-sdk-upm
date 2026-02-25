@@ -19,6 +19,7 @@ namespace com.noctuagames.sdk.AppLovin
         public event Action BannerOnAdClosed;
         public event Action<MaxSdkBase.AdInfo> BannerOnAdRevenuePaid;
         private readonly long _timeoutThreshold = 5000; // 5 seconds
+        private bool _callbacksRegistered;
 
         public void SetBannerAdUnitId(string adUnitIDBanner)
         {
@@ -30,7 +31,7 @@ namespace com.noctuagames.sdk.AppLovin
 
             _adUnitIDBanner = adUnitIDBanner;
 
-            _log.Debug("Banner ad loaded for ad unit id : " + adUnitIDBanner);
+            _log.Debug("Banner ad unit ID set to : " + adUnitIDBanner);
         }
 
         [Obsolete(
@@ -43,12 +44,7 @@ namespace com.noctuagames.sdk.AppLovin
             MaxSdk.CreateBanner(_adUnitIDBanner, bannerPosition);
             MaxSdk.SetBannerBackgroundColor(_adUnitIDBanner, color);
 
-            MaxSdkCallbacks.Banner.OnAdLoadedEvent      += OnBannerAdLoadedEvent;
-            MaxSdkCallbacks.Banner.OnAdLoadFailedEvent  += OnBannerAdLoadFailedEvent;
-            MaxSdkCallbacks.Banner.OnAdClickedEvent     += OnBannerAdClickedEvent;
-            MaxSdkCallbacks.Banner.OnAdRevenuePaidEvent += OnBannerAdRevenuePaidEvent;
-            MaxSdkCallbacks.Banner.OnAdExpandedEvent    += OnBannerAdExpandedEvent;
-            MaxSdkCallbacks.Banner.OnAdCollapsedEvent   += OnBannerAdCollapsedEvent;
+            RegisterCallbacks();
 
             _log.Debug("Banner ad initialized for ad unit id : " + _adUnitIDBanner);
             TrackAdCustomEventBanner("wf_banner_started_playing");
@@ -60,12 +56,7 @@ namespace com.noctuagames.sdk.AppLovin
             MaxSdk.CreateBanner(_adUnitIDBanner, adViewConfiguration);
             MaxSdk.SetBannerBackgroundColor(_adUnitIDBanner, color);
 
-            MaxSdkCallbacks.Banner.OnAdLoadedEvent      += OnBannerAdLoadedEvent;
-            MaxSdkCallbacks.Banner.OnAdLoadFailedEvent  += OnBannerAdLoadFailedEvent;
-            MaxSdkCallbacks.Banner.OnAdClickedEvent     += OnBannerAdClickedEvent;
-            MaxSdkCallbacks.Banner.OnAdRevenuePaidEvent += OnBannerAdRevenuePaidEvent;
-            MaxSdkCallbacks.Banner.OnAdExpandedEvent    += OnBannerAdExpandedEvent;
-            MaxSdkCallbacks.Banner.OnAdCollapsedEvent   += OnBannerAdCollapsedEvent;
+            RegisterCallbacks();
 
             _log.Debug("Banner ad initialized for ad unit id : " + _adUnitIDBanner);
             TrackAdCustomEventBanner("wf_banner_started_playing");
@@ -137,8 +128,22 @@ namespace com.noctuagames.sdk.AppLovin
         public void StartBannerAutoRefresh()
         {
             _log.Debug("Starting banner auto refresh for ad unit id : " + _adUnitIDBanner);
-            
+
             MaxSdk.StartBannerAutoRefresh(_adUnitIDBanner);
+        }
+
+        private void RegisterCallbacks()
+        {
+            if (!_callbacksRegistered)
+            {
+                _callbacksRegistered = true;
+                MaxSdkCallbacks.Banner.OnAdLoadedEvent      += OnBannerAdLoadedEvent;
+                MaxSdkCallbacks.Banner.OnAdLoadFailedEvent  += OnBannerAdLoadFailedEvent;
+                MaxSdkCallbacks.Banner.OnAdClickedEvent     += OnBannerAdClickedEvent;
+                MaxSdkCallbacks.Banner.OnAdRevenuePaidEvent += OnBannerAdRevenuePaidEvent;
+                MaxSdkCallbacks.Banner.OnAdExpandedEvent    += OnBannerAdExpandedEvent;
+                MaxSdkCallbacks.Banner.OnAdCollapsedEvent   += OnBannerAdCollapsedEvent;
+            }
         }
 
         private void OnBannerAdLoadedEvent(string adUnitId, MaxSdkBase.AdInfo adInfo) {
@@ -167,14 +172,14 @@ namespace com.noctuagames.sdk.AppLovin
 
             if (errorInfo.LatencyMillis > _timeoutThreshold)
             {
-                _log.Warning($"Interstitial ad request took too long: {errorInfo.LatencyMillis} ms, exceeding threshold of {_timeoutThreshold} ms.");
+                _log.Warning($"Banner ad request took too long: {errorInfo.LatencyMillis} ms, exceeding threshold of {_timeoutThreshold} ms.");
 
                 TrackAdCustomEventBanner("wf_banner_request_adunit_timeout", extraPayload: extraPayload);
             }
 
             TrackAdCustomEventBanner("ad_show_failed", adUnitId, null, extraPayload);
             TrackAdCustomEventBanner("wf_banner_request_adunit_failed", extraPayload: extraPayload);
-            TrackAdCustomEventBanner("wf_banner_show_sdk_failed	", extraPayload: extraPayload);
+            TrackAdCustomEventBanner("wf_banner_show_sdk_failed", extraPayload: extraPayload);
 
             BannerOnAdFailedDisplayed?.Invoke();
         }
@@ -221,14 +226,18 @@ namespace com.noctuagames.sdk.AppLovin
                 extraPayload ??= new Dictionary<string, IConvertible>();
 
                 // Add basic information that doesn't require the ad info
+                extraPayload.Add("ad_format", "banner");
+                extraPayload.Add("mediation_service", "applovin");
                 extraPayload.Add("ad_unit_id", adUnitId ?? _adUnitIDBanner ?? "unknown");
-                
+
                 // Add ad info if available
                 if (adInfo != null)
                 {
                     extraPayload.Add("ad_network", adInfo.NetworkName ?? "unknown");
                     extraPayload.Add("placement", adInfo.Placement ?? "unknown");
                     extraPayload.Add("network_placement", adInfo.NetworkPlacement ?? "unknown");
+                    extraPayload.Add("ntw", adInfo.WaterfallInfo.Name ?? "unknown");
+                    extraPayload.Add("latency_millis", adInfo.LatencyMillis);
                 }
                 else
                 {

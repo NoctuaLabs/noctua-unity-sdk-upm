@@ -9,7 +9,7 @@ namespace com.noctuagames.sdk.Admob
 {
     public class RewardedInterstitialAdmob
     {
-        private readonly NoctuaLogger _log = new(typeof(InterstitialAdmob));
+        private readonly NoctuaLogger _log = new(typeof(RewardedInterstitialAdmob));
         private string _adUnitIDRewarded;
 
         private RewardedInterstitialAd _rewardedAd;
@@ -22,7 +22,7 @@ namespace com.noctuagames.sdk.Admob
         public event Action RewardedOnAdClosed;
         public event Action<Reward> RewardedOnUserEarnedReward;
         public event Action<AdValue, ResponseInfo> AdmobOnAdRevenuePaid;
-        private readonly int _timeoutThreshold = 5000; // 5 seconds
+        private readonly long _timeoutThreshold = 5000; // 5 seconds
         
         public void SetRewardedInterstitialAdUnitID(string adUnitID)
         {
@@ -44,12 +44,12 @@ namespace com.noctuagames.sdk.Admob
         {
             TrackAdCustomEventRewardedInterstitial("wf_rewarded_interstitial_request_start");
 
-            if (_adUnitIDRewarded == null)
+            if (string.IsNullOrEmpty(_adUnitIDRewarded) || _adUnitIDRewarded == "unknown")
             {
-                _log.Error("Ad unit ID Rewarded Interstitial is empty.");
+                _log.Error("Ad unit ID Rewarded Interstitial is not configured.");
                 return;
             }
-            
+
             // Clean up the old ad before loading a new one.
             CleanupAd();
 
@@ -62,29 +62,37 @@ namespace com.noctuagames.sdk.Admob
             RewardedInterstitialAd.Load(_adUnitIDRewarded, adRequest,
                 (RewardedInterstitialAd ad, LoadAdError error) =>
                 {
-                    if (ad.GetResponseInfo() != null)
-                    {
-                        AdapterResponseInfo loadedAdapterResponseInfo = ad.GetResponseInfo().GetLoadedAdapterResponseInfo();
-
-                        long latencyMillis = loadedAdapterResponseInfo?.LatencyMillis ?? 0;
-                        
-                        if (latencyMillis > _timeoutThreshold)
-                        {
-                            _log.Warning($"Interstitial ad request took too long: {latencyMillis} ms, exceeding threshold of {_timeoutThreshold} ms.");
-
-                            TrackAdCustomEventRewardedInterstitial("wf_rewarded_interstitial_request_adunit_timeout");
-                        }
-                    }
-
-                    // if error is not null, the load request failed.
+                    // Check for error first to avoid NullReferenceException on ad
                     if (error != null || ad == null)
                     {
                         _log.Error("Rewarded Interstitial ad failed to load an ad " +
                                         "with error : " + error);
 
-                        TrackAdCustomEventRewardedInterstitial("wf_rewarded_interstitial_request_adunit_failed");
-                        TrackAdCustomEventRewardedInterstitial("wf_rewarded_interstitial_request_finished_failed");
+                        var extraPayload = new Dictionary<string, IConvertible>
+                        {
+                            { "error_code", error?.GetCode() ?? -1 },
+                            { "error_message", error?.GetMessage() ?? "unknown" },
+                            { "domain", error?.GetDomain() ?? "unknown" },
+                            { "ad_unit_id", _adUnitIDRewarded ?? "unknown" }
+                        };
+
+                        TrackAdCustomEventRewardedInterstitial("wf_rewarded_interstitial_request_adunit_failed", extraPayload);
+                        TrackAdCustomEventRewardedInterstitial("wf_rewarded_interstitial_request_finished_failed", extraPayload);
                         return;
+                    }
+
+                    if (ad.GetResponseInfo() != null)
+                    {
+                        AdapterResponseInfo loadedAdapterResponseInfo = ad.GetResponseInfo().GetLoadedAdapterResponseInfo();
+
+                        long latencyMillis = loadedAdapterResponseInfo?.LatencyMillis ?? 0;
+
+                        if (latencyMillis > _timeoutThreshold)
+                        {
+                            _log.Warning($"Rewarded interstitial ad request took too long: {latencyMillis} ms, exceeding threshold of {_timeoutThreshold} ms.");
+
+                            TrackAdCustomEventRewardedInterstitial("wf_rewarded_interstitial_request_adunit_timeout");
+                        }
                     }
 
                     _log.Debug("Rewarded Interstitial ad loaded with response : "
@@ -116,7 +124,7 @@ namespace com.noctuagames.sdk.Admob
                 {
                     // Called when the user should be rewarded.
 
-                    RewardedOnUserEarnedReward.Invoke(reward);
+                    RewardedOnUserEarnedReward?.Invoke(reward);
 
                     _log.Debug(String.Format(rewardMsg, reward.Type, reward.Amount));
 
@@ -200,7 +208,6 @@ namespace com.noctuagames.sdk.Admob
                     { "domain", error.GetDomain() }
                 });
 
-                TrackAdCustomEventRewardedInterstitial("ad_show_failed");
                 TrackAdCustomEventRewardedInterstitial("wf_rewarded_interstitial_show_sdk_failed");
 
                 RewardedOnAdFailedDisplayed?.Invoke();
@@ -260,7 +267,7 @@ namespace com.noctuagames.sdk.Admob
                         extraPayload.Add("ad_network", "unknown");
                     }
 
-                    extraPayload.Add("ad_unit_id", _rewardedAd.GetAdUnitID());
+                    extraPayload.Add("ad_unit_id", _rewardedAd.GetAdUnitID() ?? "unknown");
                 }
                 else
                 {
@@ -275,7 +282,7 @@ namespace com.noctuagames.sdk.Admob
                 }
 
                 _log.Debug($"Event name: {eventName}, Event properties: {properties}");
-            
+
                 Noctua.Event.TrackCustomEvent(eventName, extraPayload);
             }
             catch (Exception ex)

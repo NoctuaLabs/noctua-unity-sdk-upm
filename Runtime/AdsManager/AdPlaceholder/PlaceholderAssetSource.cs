@@ -34,6 +34,7 @@ namespace com.noctuagames.sdk.AdPlaceholder
 
         private readonly Dictionary<AdPlaceholderType, List<string>> resourcePools = new();
         private static readonly System.Random random = new();
+        private Coroutine _activeCoroutine;
 
         private void Awake()
         {
@@ -68,7 +69,14 @@ namespace com.noctuagames.sdk.AdPlaceholder
         /// </summary>
         public void GetAdAssetResource(AdPlaceholderType adType, Action<Texture2D> callback)
         {
-            StartCoroutine(LoadAdAsset(adType, callback));
+            // Cancel any active coroutine to prevent accumulation
+            if (_activeCoroutine != null)
+            {
+                StopCoroutine(_activeCoroutine);
+                _activeCoroutine = null;
+            }
+
+            _activeCoroutine = StartCoroutine(LoadAdAsset(adType, callback));
         }
 
         /// <summary>

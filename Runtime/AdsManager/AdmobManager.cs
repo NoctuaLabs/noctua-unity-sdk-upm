@@ -27,6 +27,12 @@ namespace com.noctuagames.sdk
 
         private event Action<AdValue, ResponseInfo> _admobOnAdRevenuePaid;
 
+        // Subscription guards to prevent duplicate event wiring on re-init
+        private bool _interstitialEventsSubscribed;
+        private bool _rewardedEventsSubscribed;
+        private bool _bannerEventsSubscribed;
+        private bool _rewardedInterstitialEventsSubscribed;
+
         // public event handlers
         public event Action OnInitialized { add => _initCompleteAction += value; remove => _initCompleteAction -= value; }
         public event Action OnAdDisplayed { add => _onAdDisplayed += value; remove => _onAdDisplayed -= value; }
@@ -80,16 +86,21 @@ namespace com.noctuagames.sdk
         }
 
         public void SetInterstitialAdUnitID(string adUnitID)
-        {            
+        {
             _interstitialAdmob.SetInterstitialAdUnitID(adUnitID);
 
-            // Subscribe to events
-            _interstitialAdmob.InterstitialOnAdDisplayed += () => { _onAdDisplayed?.Invoke(); };
-            _interstitialAdmob.InterstitialOnAdFailedDisplayed += () => { _onAdFailedDisplayed?.Invoke(); };
-            _interstitialAdmob.InterstitialOnAdClicked += () => { _onAdClicked?.Invoke(); };
-            _interstitialAdmob.InterstitialOnAdImpressionRecorded += () => { _onAdImpressionRecorded?.Invoke(); };
-            _interstitialAdmob.InterstitialOnAdClosed += () => { _onAdClosed?.Invoke(); };
-            _interstitialAdmob.AdmobOnAdRevenuePaid += (adValue, responseInfo) => { _admobOnAdRevenuePaid?.Invoke(adValue, responseInfo); };
+            if (!_interstitialEventsSubscribed)
+            {
+                _interstitialEventsSubscribed = true;
+
+                // Subscribe to events (only once)
+                _interstitialAdmob.InterstitialOnAdDisplayed += () => { _onAdDisplayed?.Invoke(); };
+                _interstitialAdmob.InterstitialOnAdFailedDisplayed += () => { _onAdFailedDisplayed?.Invoke(); };
+                _interstitialAdmob.InterstitialOnAdClicked += () => { _onAdClicked?.Invoke(); };
+                _interstitialAdmob.InterstitialOnAdImpressionRecorded += () => { _onAdImpressionRecorded?.Invoke(); };
+                _interstitialAdmob.InterstitialOnAdClosed += () => { _onAdClosed?.Invoke(); };
+                _interstitialAdmob.AdmobOnAdRevenuePaid += (adValue, responseInfo) => { _admobOnAdRevenuePaid?.Invoke(adValue, responseInfo); };
+            }
         }
 
         public void LoadInterstitialAd()
@@ -106,14 +117,19 @@ namespace com.noctuagames.sdk
         {
             _rewardedAdmob.SetRewardedAdUnitID(adUnitID);
 
-            // Subscribe to events
-            _rewardedAdmob.RewardedOnAdDisplayed += () => { _onAdDisplayed?.Invoke(); };
-            _rewardedAdmob.RewardedOnAdFailedDisplayed += () => { _onAdFailedDisplayed?.Invoke(); };
-            _rewardedAdmob.RewardedOnAdClicked += () => { _onAdClicked?.Invoke(); };
-            _rewardedAdmob.RewardedOnAdImpressionRecorded += () => { _onAdImpressionRecorded?.Invoke(); };
-            _rewardedAdmob.RewardedOnAdClosed += () => { _onAdClosed?.Invoke(); };
-            _rewardedAdmob.RewardedOnUserEarnedReward += (reward) => { _onUserEarnedReward?.Invoke(reward); };
-            _rewardedAdmob.AdmobOnAdRevenuePaid += (adValue, responseInfo) => { _admobOnAdRevenuePaid?.Invoke(adValue, responseInfo); };
+            if (!_rewardedEventsSubscribed)
+            {
+                _rewardedEventsSubscribed = true;
+
+                // Subscribe to events (only once)
+                _rewardedAdmob.RewardedOnAdDisplayed += () => { _onAdDisplayed?.Invoke(); };
+                _rewardedAdmob.RewardedOnAdFailedDisplayed += () => { _onAdFailedDisplayed?.Invoke(); };
+                _rewardedAdmob.RewardedOnAdClicked += () => { _onAdClicked?.Invoke(); };
+                _rewardedAdmob.RewardedOnAdImpressionRecorded += () => { _onAdImpressionRecorded?.Invoke(); };
+                _rewardedAdmob.RewardedOnAdClosed += () => { _onAdClosed?.Invoke(); };
+                _rewardedAdmob.RewardedOnUserEarnedReward += (reward) => { _onUserEarnedReward?.Invoke(reward); };
+                _rewardedAdmob.AdmobOnAdRevenuePaid += (adValue, responseInfo) => { _admobOnAdRevenuePaid?.Invoke(adValue, responseInfo); };
+            }
         }
 
         public void LoadRewardedAd()
@@ -130,14 +146,18 @@ namespace com.noctuagames.sdk
         {
             _bannerAdmob.SetAdUnitId(adUnitID);
 
-            // Subscribe to events
-            _bannerAdmob.BannerOnAdDisplayed += () => { _onAdDisplayed?.Invoke(); };
-            _bannerAdmob.BannerOnAdFailedDisplayed += () => { _onAdFailedDisplayed?.Invoke(); };
-            _bannerAdmob.BannerOnAdClicked += () => { _onAdClicked?.Invoke(); };
-            _bannerAdmob.BannerOnAdImpressionRecorded += () => { _onAdImpressionRecorded?.Invoke(); };
-            _bannerAdmob.BannerOnAdClosed += () => { _onAdClosed?.Invoke(); };
-            _bannerAdmob.AdmobOnAdRevenuePaid += (adValue, responseInfo) => { _admobOnAdRevenuePaid?.Invoke(adValue, responseInfo); };
-           
+            if (!_bannerEventsSubscribed)
+            {
+                _bannerEventsSubscribed = true;
+
+                // Subscribe to events (only once)
+                _bannerAdmob.BannerOnAdDisplayed += () => { _onAdDisplayed?.Invoke(); };
+                _bannerAdmob.BannerOnAdFailedDisplayed += () => { _onAdFailedDisplayed?.Invoke(); };
+                _bannerAdmob.BannerOnAdClicked += () => { _onAdClicked?.Invoke(); };
+                _bannerAdmob.BannerOnAdImpressionRecorded += () => { _onAdImpressionRecorded?.Invoke(); };
+                _bannerAdmob.BannerOnAdClosed += () => { _onAdClosed?.Invoke(); };
+                _bannerAdmob.AdmobOnAdRevenuePaid += (adValue, responseInfo) => { _admobOnAdRevenuePaid?.Invoke(adValue, responseInfo); };
+            }
         }
 
         public void CreateBannerViewAdAdmob(AdSize adSize, AdPosition adPosition)
@@ -150,19 +170,23 @@ namespace com.noctuagames.sdk
             _bannerAdmob.LoadAd();
         }
 
-        public void SetRewardeInterstitialdAdUnitID(string adUnitID)
+        public void SetRewardedInterstitialAdUnitID(string adUnitID)
         {
             _rewardedInterstitialAdmob.SetRewardedInterstitialAdUnitID(adUnitID);
 
-            // Subscribe to events
-            _rewardedInterstitialAdmob.RewardedOnAdDisplayed += () => { _onAdDisplayed?.Invoke(); };
-            _rewardedInterstitialAdmob.RewardedOnAdFailedDisplayed += () => { _onAdFailedDisplayed?.Invoke(); };
-            _rewardedInterstitialAdmob.RewardedOnAdClicked += () => { _onAdClicked?.Invoke(); };
-            _rewardedInterstitialAdmob.RewardedOnAdImpressionRecorded += () => { _onAdImpressionRecorded?.Invoke(); };
-            _rewardedInterstitialAdmob.RewardedOnAdClosed += () => { _onAdClosed?.Invoke(); };
-            _rewardedInterstitialAdmob.RewardedOnUserEarnedReward += (reward) => { _onUserEarnedReward?.Invoke(reward); };
-            _rewardedInterstitialAdmob.AdmobOnAdRevenuePaid += (adValue, responseInfo) => { _admobOnAdRevenuePaid?.Invoke(adValue, responseInfo); };
+            if (!_rewardedInterstitialEventsSubscribed)
+            {
+                _rewardedInterstitialEventsSubscribed = true;
 
+                // Subscribe to events (only once)
+                _rewardedInterstitialAdmob.RewardedOnAdDisplayed += () => { _onAdDisplayed?.Invoke(); };
+                _rewardedInterstitialAdmob.RewardedOnAdFailedDisplayed += () => { _onAdFailedDisplayed?.Invoke(); };
+                _rewardedInterstitialAdmob.RewardedOnAdClicked += () => { _onAdClicked?.Invoke(); };
+                _rewardedInterstitialAdmob.RewardedOnAdImpressionRecorded += () => { _onAdImpressionRecorded?.Invoke(); };
+                _rewardedInterstitialAdmob.RewardedOnAdClosed += () => { _onAdClosed?.Invoke(); };
+                _rewardedInterstitialAdmob.RewardedOnUserEarnedReward += (reward) => { _onUserEarnedReward?.Invoke(reward); };
+                _rewardedInterstitialAdmob.AdmobOnAdRevenuePaid += (adValue, responseInfo) => { _admobOnAdRevenuePaid?.Invoke(adValue, responseInfo); };
+            }
         }
         public void LoadRewardedInterstitialAd()
         {

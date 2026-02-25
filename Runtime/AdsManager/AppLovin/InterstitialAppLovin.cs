@@ -16,9 +16,11 @@ namespace com.noctuagames.sdk.AppLovin
         public event Action InterstitialOnAdDisplayed;
         public event Action InterstitialOnAdFailedDisplayed;
         public event Action InterstitialOnAdClicked;
+        public event Action InterstitialOnAdImpressionRecorded;
         public event Action InterstitialOnAdClosed;
         public event Action<MaxSdkBase.AdInfo> InterstitialOnAdRevenuePaid;
         private readonly long _timeoutThreshold = 5000; // 5 seconds
+        private bool _callbacksRegistered;
 
         public void SetInterstitialAdUnitID(string adUnitID)
         {
@@ -41,14 +43,18 @@ namespace com.noctuagames.sdk.AppLovin
                 return;
             }
 
-            // Attach callback
-            MaxSdkCallbacks.Interstitial.OnAdLoadedEvent += OnInterstitialLoadedEvent;
-            MaxSdkCallbacks.Interstitial.OnAdLoadFailedEvent += OnInterstitialLoadFailedEvent;
-            MaxSdkCallbacks.Interstitial.OnAdDisplayedEvent += OnInterstitialDisplayedEvent;
-            MaxSdkCallbacks.Interstitial.OnAdClickedEvent += OnInterstitialClickedEvent;
-            MaxSdkCallbacks.Interstitial.OnAdHiddenEvent += OnInterstitialHiddenEvent;
-            MaxSdkCallbacks.Interstitial.OnAdDisplayFailedEvent += OnInterstitialAdFailedToDisplayEvent;
-            MaxSdkCallbacks.Interstitial.OnAdRevenuePaidEvent += OnAdRevenuePaidEvent;
+            // Attach callback (only once to prevent duplicate subscriptions)
+            if (!_callbacksRegistered)
+            {
+                _callbacksRegistered = true;
+                MaxSdkCallbacks.Interstitial.OnAdLoadedEvent += OnInterstitialLoadedEvent;
+                MaxSdkCallbacks.Interstitial.OnAdLoadFailedEvent += OnInterstitialLoadFailedEvent;
+                MaxSdkCallbacks.Interstitial.OnAdDisplayedEvent += OnInterstitialDisplayedEvent;
+                MaxSdkCallbacks.Interstitial.OnAdClickedEvent += OnInterstitialClickedEvent;
+                MaxSdkCallbacks.Interstitial.OnAdHiddenEvent += OnInterstitialHiddenEvent;
+                MaxSdkCallbacks.Interstitial.OnAdDisplayFailedEvent += OnInterstitialAdFailedToDisplayEvent;
+                MaxSdkCallbacks.Interstitial.OnAdRevenuePaidEvent += OnAdRevenuePaidEvent;
+            }
 
             // Load the first interstitial
             LoadInterstitialInternal();
@@ -132,7 +138,7 @@ namespace com.noctuagames.sdk.AppLovin
 
             TrackAdCustomEventInterstitial("ad_load_failed", adUnitId, null, extraPayload);
             TrackAdCustomEventInterstitial("wf_interstitial_request_adunit_failed", extraPayload: extraPayload);
-            TrackAdCustomEventInterstitial("wf_interstitial_request_finished_failed	", extraPayload: extraPayload);
+            TrackAdCustomEventInterstitial("wf_interstitial_request_finished_failed", extraPayload: extraPayload);
         }
 
         // Async method handling the delay
@@ -223,6 +229,7 @@ namespace com.noctuagames.sdk.AppLovin
             TrackAdCustomEventInterstitial("ad_impression");
             TrackAdCustomEventInterstitial("ad_impression_interstitial");
 
+            InterstitialOnAdImpressionRecorded?.Invoke();
             InterstitialOnAdRevenuePaid?.Invoke(adInfo);
         }
 

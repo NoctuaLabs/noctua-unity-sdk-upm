@@ -22,6 +22,7 @@ namespace com.noctuagames.sdk.Admob
         public event Action BannerOnAdClosed;
         public event Action<AdValue, ResponseInfo> AdmobOnAdRevenuePaid;
         private readonly long _timeoutThreshold = 5000; // milliseconds,
+        private bool _bannerEventsRegistered;
 
         public void SetAdUnitId(string adUnitId)
         {
@@ -72,10 +73,10 @@ namespace com.noctuagames.sdk.Admob
         /// Creates the banner view and loads a banner ad.
         /// </summary>
         public void LoadAd()
-        {            
-            if (_adUnitIdBanner == null)
+        {
+            if (string.IsNullOrEmpty(_adUnitIdBanner) || _adUnitIdBanner == "unknown")
             {
-                _log.Error("Ad unit ID Banner is empty.");
+                _log.Error("Ad unit ID Banner is not configured.");
                 return;
             }
 
@@ -104,6 +105,9 @@ namespace com.noctuagames.sdk.Admob
         /// </summary>
         private void ListenToAdEvents()
         {
+            if (_bannerEventsRegistered) return;
+            _bannerEventsRegistered = true;
+
             // Raised when an ad is loaded into the banner view.
             _bannerView.OnBannerAdLoaded += () =>
             {
@@ -132,7 +136,7 @@ namespace com.noctuagames.sdk.Admob
 
                 TrackAdCustomEventBanner("ad_show_failed", extraPayload);
                 TrackAdCustomEventBanner("wf_banner_request_adunit_failed", extraPayload);
-                TrackAdCustomEventBanner("wf_banner_show_sdk_failed	", extraPayload);
+                TrackAdCustomEventBanner("wf_banner_show_sdk_failed", extraPayload);
 
                 if (_bannerView.GetResponseInfo() != null)
                 {
@@ -206,6 +210,7 @@ namespace com.noctuagames.sdk.Admob
             {
                 _bannerView.Destroy();
                 _bannerView = null;
+                _bannerEventsRegistered = false;
 
                 _log.Debug("Banner view cleaned up.");
             }

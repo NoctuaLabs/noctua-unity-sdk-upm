@@ -16,10 +16,12 @@ namespace com.noctuagames.sdk.AppLovin
         public event Action RewardedOnAdDisplayed;
         public event Action RewardedOnAdFailedDisplayed;
         public event Action RewardedOnAdClicked;
+        public event Action RewardedOnAdImpressionRecorded;
         public event Action<MaxSdk.Reward> RewardedOnUserEarnedReward;
         public event Action RewardedOnAdClosed;
         public event Action<MaxSdkBase.AdInfo> RewardedOnAdRevenuePaid;
-        private readonly int _timeoutThreshold = 5000; // 5 seconds
+        private readonly long _timeoutThreshold = 5000; // 5 seconds
+        private bool _callbacksRegistered;
 
         public void SetRewardedAdUnitID(string adUnitID)
         {
@@ -42,15 +44,19 @@ namespace com.noctuagames.sdk.AppLovin
                 return;
             }
 
-            // Attach callback
-            MaxSdkCallbacks.Rewarded.OnAdLoadedEvent += OnRewardedAdLoadedEvent;
-            MaxSdkCallbacks.Rewarded.OnAdLoadFailedEvent += OnRewardedAdLoadFailedEvent;
-            MaxSdkCallbacks.Rewarded.OnAdDisplayedEvent += OnRewardedAdDisplayedEvent;
-            MaxSdkCallbacks.Rewarded.OnAdClickedEvent += OnRewardedAdClickedEvent;
-            MaxSdkCallbacks.Rewarded.OnAdRevenuePaidEvent += OnRewardedAdRevenuePaidEvent;
-            MaxSdkCallbacks.Rewarded.OnAdHiddenEvent += OnRewardedAdHiddenEvent;
-            MaxSdkCallbacks.Rewarded.OnAdDisplayFailedEvent += OnRewardedAdFailedToDisplayEvent;
-            MaxSdkCallbacks.Rewarded.OnAdReceivedRewardEvent += OnRewardedAdReceivedRewardEvent;
+            // Attach callback (only once to prevent duplicate subscriptions)
+            if (!_callbacksRegistered)
+            {
+                _callbacksRegistered = true;
+                MaxSdkCallbacks.Rewarded.OnAdLoadedEvent += OnRewardedAdLoadedEvent;
+                MaxSdkCallbacks.Rewarded.OnAdLoadFailedEvent += OnRewardedAdLoadFailedEvent;
+                MaxSdkCallbacks.Rewarded.OnAdDisplayedEvent += OnRewardedAdDisplayedEvent;
+                MaxSdkCallbacks.Rewarded.OnAdClickedEvent += OnRewardedAdClickedEvent;
+                MaxSdkCallbacks.Rewarded.OnAdRevenuePaidEvent += OnRewardedAdRevenuePaidEvent;
+                MaxSdkCallbacks.Rewarded.OnAdHiddenEvent += OnRewardedAdHiddenEvent;
+                MaxSdkCallbacks.Rewarded.OnAdDisplayFailedEvent += OnRewardedAdFailedToDisplayEvent;
+                MaxSdkCallbacks.Rewarded.OnAdReceivedRewardEvent += OnRewardedAdReceivedRewardEvent;
+            }
 
             // Load the first rewarded ad
             LoadRewardedAd();
@@ -111,11 +117,6 @@ namespace com.noctuagames.sdk.AppLovin
         {
             // Rewarded ad failed to load
             // AppLovin recommends that you retry with exponentially higher delays, up to a maximum delay (in this case 64 seconds).
-
-            retryAttempt++;
-            double retryDelay = Math.Pow(2, Math.Min(6, retryAttempt));
-
-            // Invoke("LoadRewardedAd", (float) retryDelay);
             RetryLoadRewardedAsync().Forget();
 
             _log.Debug("Rewarded ad failed to load for ad unit id : " + adUnitId + " with error code : " + errorInfo.Code);
@@ -126,19 +127,20 @@ namespace com.noctuagames.sdk.AppLovin
                 { "error_code", errorInfo.Code },
                 { "error_message", errorInfo.Message },
                 { "mediator_error_code", errorInfo.MediatedNetworkErrorCode },
-                { "mediator_error_message", errorInfo.MediatedNetworkErrorMessage }
+                { "mediator_error_message", errorInfo.MediatedNetworkErrorMessage },
+                { "latency_millis", errorInfo.LatencyMillis }
             };
 
             if (errorInfo.LatencyMillis > _timeoutThreshold)
             {
-                _log.Warning($"Interstitial ad request took too long: {errorInfo.LatencyMillis} ms, exceeding threshold of {_timeoutThreshold} ms.");
+                _log.Warning($"Rewarded ad request took too long: {errorInfo.LatencyMillis} ms, exceeding threshold of {_timeoutThreshold} ms.");
 
                 TrackAdCustomEventRewarded("wf_rewarded_request_adunit_timeout");
             }
 
             TrackAdCustomEventRewarded("ad_load_failed", adUnitId, null, extraPayload);
             TrackAdCustomEventRewarded("wf_rewarded_request_adunit_failed", extraPayload: extraPayload);
-            TrackAdCustomEventRewarded("wf_rewarded_request_finished_failed	", extraPayload: extraPayload);
+            TrackAdCustomEventRewarded("wf_rewarded_request_finished_failed", extraPayload: extraPayload);
         }
 
         private async UniTaskVoid RetryLoadRewardedAsync()
@@ -149,7 +151,7 @@ namespace com.noctuagames.sdk.AppLovin
             await UniTask.Delay((int)(retryDelay * 1000));
             LoadRewardedAd();
 
-            _log.Debug("Retrying to load interstitial ad after " + retryDelay + " seconds");
+            _log.Debug("Retrying to load rewarded ad after " + retryDelay + " seconds");
         }
 
 
@@ -235,7 +237,8 @@ namespace com.noctuagames.sdk.AppLovin
 
             TrackAdCustomEventRewarded("ad_impression", adUnitId: adUnitId, adInfo: adInfo);
             TrackAdCustomEventRewarded("ad_impression_rewarded", adUnitId: adUnitId, adInfo: adInfo);
-            
+
+            RewardedOnAdImpressionRecorded?.Invoke();
             RewardedOnAdRevenuePaid?.Invoke(adInfo);
         }
         

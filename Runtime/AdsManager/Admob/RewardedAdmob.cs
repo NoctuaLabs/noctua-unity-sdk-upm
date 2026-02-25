@@ -9,7 +9,7 @@ namespace com.noctuagames.sdk.Admob
 {
     public class RewardedAdmob
     {
-        private readonly NoctuaLogger _log = new(typeof(InterstitialAdmob));
+        private readonly NoctuaLogger _log = new(typeof(RewardedAdmob));
         private string _adUnitIDRewarded;
 
         private RewardedAd _rewardedAd;
@@ -44,12 +44,12 @@ namespace com.noctuagames.sdk.Admob
         {
             TrackAdCustomEventRewarded("wf_rewarded_request_start");
 
-            if (_adUnitIDRewarded == null)
+            if (string.IsNullOrEmpty(_adUnitIDRewarded) || _adUnitIDRewarded == "unknown")
             {
-                _log.Error("Ad unit ID Rewarded is empty.");
+                _log.Error("Ad unit ID Rewarded is not configured.");
                 return;
             }
-            
+
             // Clean up the old ad before loading a new one.
             CleanupAd();
 
@@ -62,37 +62,37 @@ namespace com.noctuagames.sdk.Admob
             RewardedAd.Load(_adUnitIDRewarded, adRequest,
                 (RewardedAd ad, LoadAdError error) =>
                 {
-                    if (ad.GetResponseInfo() != null)
-                    {
-                        AdapterResponseInfo loadedAdapterResponseInfo = ad.GetResponseInfo().GetLoadedAdapterResponseInfo();
-
-                        long latencyMillis = loadedAdapterResponseInfo?.LatencyMillis ?? 0;
-                        
-                        if (latencyMillis > _timeoutThreshold)
-                        {
-                            _log.Warning($"Interstitial ad request took too long: {latencyMillis} ms, exceeding threshold of {_timeoutThreshold} ms.");
-
-                            TrackAdCustomEventRewarded("wf_rewarded_request_adunit_timeout");
-                        }
-                    }
-
-                    // if error is not null, the load request failed.
+                    // Check for error first to avoid NullReferenceException on ad
                     if (error != null || ad == null)
                     {
                         _log.Error("Rewarded ad failed to load an ad " +
                                         "with error : " + error);
 
-                         var extraPayload = new Dictionary<string, IConvertible>
+                        var extraPayload = new Dictionary<string, IConvertible>
                         {
-                            { "error_code", error.GetCode() },
-                            { "error_message", error.GetMessage() },
-                            { "domain", error.GetDomain() },
+                            { "error_code", error?.GetCode() ?? -1 },
+                            { "error_message", error?.GetMessage() ?? "unknown" },
+                            { "domain", error?.GetDomain() ?? "unknown" },
                             { "ad_unit_id", _adUnitIDRewarded ?? "unknown" }
                         };
 
                         TrackAdCustomEventRewarded("wf_rewarded_request_adunit_failed", extraPayload);
-                        TrackAdCustomEventRewarded("wf_rewarded_request_finished_failed	", extraPayload);
+                        TrackAdCustomEventRewarded("wf_rewarded_request_finished_failed", extraPayload);
                         return;
+                    }
+
+                    if (ad.GetResponseInfo() != null)
+                    {
+                        AdapterResponseInfo loadedAdapterResponseInfo = ad.GetResponseInfo().GetLoadedAdapterResponseInfo();
+
+                        long latencyMillis = loadedAdapterResponseInfo?.LatencyMillis ?? 0;
+
+                        if (latencyMillis > _timeoutThreshold)
+                        {
+                            _log.Warning($"Rewarded ad request took too long: {latencyMillis} ms, exceeding threshold of {_timeoutThreshold} ms.");
+
+                            TrackAdCustomEventRewarded("wf_rewarded_request_adunit_timeout");
+                        }
                     }
 
                     _log.Debug("Rewarded ad loaded with response : "
@@ -124,7 +124,7 @@ namespace com.noctuagames.sdk.Admob
                 {
                     // Called when the user should be rewarded.
 
-                    RewardedOnUserEarnedReward.Invoke(reward);
+                    RewardedOnUserEarnedReward?.Invoke(reward);
 
                     _log.Debug(String.Format(rewardMsg, reward.Type, reward.Amount));
 
@@ -201,15 +201,15 @@ namespace com.noctuagames.sdk.Admob
 
                 LoadRewardedAd();
 
-                TrackAdCustomEventRewarded("ad_shown_failed", new Dictionary<string, IConvertible>()
+                var showFailedPayload = new Dictionary<string, IConvertible>()
                 {
                     { "error_code", error.GetCode() },
                     { "error_message", error.GetMessage() },
                     { "domain", error.GetDomain() }
-                });
+                };
 
-                TrackAdCustomEventRewarded("ad_show_failed");
-                TrackAdCustomEventRewarded("wf_rewarded_show_sdk_failed");
+                TrackAdCustomEventRewarded("ad_show_failed", showFailedPayload);
+                TrackAdCustomEventRewarded("wf_rewarded_show_sdk_failed", showFailedPayload);
 
                 RewardedOnAdFailedDisplayed?.Invoke();
             };
@@ -269,7 +269,7 @@ namespace com.noctuagames.sdk.Admob
                         extraPayload.Add("ad_network", "unknown");
                     }
 
-                    extraPayload.Add("ad_unit_id", _rewardedAd.GetAdUnitID());
+                    extraPayload.Add("ad_unit_id", _rewardedAd.GetAdUnitID() ?? "unknown");
                 }
                 else
                 {
@@ -284,7 +284,7 @@ namespace com.noctuagames.sdk.Admob
                 }
 
                 _log.Debug($"Event name: {eventName}, Event properties: {properties}");
-            
+
                 Noctua.Event.TrackCustomEvent(eventName, extraPayload);
             }
             catch (Exception ex)

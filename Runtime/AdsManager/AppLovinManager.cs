@@ -19,15 +19,23 @@ namespace com.noctuagames.sdk
         private event Action _onAdDisplayed;
         private event Action _onAdFailedDisplayed;
         private event Action _onAdClicked;
+        private event Action _onAdImpressionRecorded;
         private event Action _onAdClosed;
         private event Action<MaxSdk.Reward> _onUserEarnedReward;
         private event Action<MaxSdkBase.AdInfo> _appLovinOnAdRevenuePaid;
 
+        // Subscription guards to prevent duplicate event wiring on re-init
+        private bool _interstitialEventsSubscribed;
+        private bool _rewardedEventsSubscribed;
+        private bool _bannerEventsSubscribed;
+        private bool _sdkInitCallbackSubscribed;
+
         // public event handlers
         public event Action OnInitialized { add => _initCompleteAction += value; remove => _initCompleteAction -= value; }
         public event Action OnAdDisplayed { add => _onAdDisplayed += value; remove => _onAdDisplayed -= value; }
-        public event Action OnAdFailedDisplayed { add => _onAdFailedDisplayed += value; remove => _onAdFailedDisplayed -= value; } 
+        public event Action OnAdFailedDisplayed { add => _onAdFailedDisplayed += value; remove => _onAdFailedDisplayed -= value; }
         public event Action OnAdClicked { add => _onAdClicked += value; remove => _onAdClicked -= value; }
+        public event Action OnAdImpressionRecorded { add => _onAdImpressionRecorded += value; remove => _onAdImpressionRecorded -= value; }
         public event Action OnAdClosed { add => _onAdClosed += value; remove => _onAdClosed -= value; }
         public event Action<MaxSdk.Reward> AppLovinOnUserEarnedReward { add => _onUserEarnedReward += value; remove => _onUserEarnedReward -= value; }
         public event Action<MaxSdkBase.AdInfo> AppLovinOnAdRevenuePaid { add => _appLovinOnAdRevenuePaid += value; remove => _appLovinOnAdRevenuePaid -= value; }
@@ -45,13 +53,17 @@ namespace com.noctuagames.sdk
         {
             _log.Info("Initializing AppLovin SDK");
 
-            MaxSdkCallbacks.OnSdkInitializedEvent += (MaxSdk.SdkConfiguration sdkConfiguration) =>
+            if (!_sdkInitCallbackSubscribed)
             {
-                _log.Debug("AppLovin initialized");
+                _sdkInitCallbackSubscribed = true;
+                MaxSdkCallbacks.OnSdkInitializedEvent += (MaxSdk.SdkConfiguration sdkConfiguration) =>
+                {
+                    _log.Debug("AppLovin initialized");
 
-                initCompleteAction?.Invoke();
-                _initCompleteAction.Invoke();
-            };
+                    initCompleteAction?.Invoke();
+                    _initCompleteAction?.Invoke();
+                };
+            }
 
             MaxSdk.InitializeSdk();
         }
@@ -60,13 +72,18 @@ namespace com.noctuagames.sdk
         {
             _interstitialAppLovin.SetInterstitialAdUnitID(adUnitID);
 
-            // Subscribe to events
-            _interstitialAppLovin.InterstitialOnAdDisplayed += () => { _onAdDisplayed?.Invoke(); };
-            _interstitialAppLovin.InterstitialOnAdFailedDisplayed += () => { _onAdFailedDisplayed?.Invoke(); };
-            _interstitialAppLovin.InterstitialOnAdClicked += () => { _onAdClicked?.Invoke(); };
-            _interstitialAppLovin.InterstitialOnAdClosed += () => { _onAdClosed?.Invoke(); };
-            _interstitialAppLovin.InterstitialOnAdRevenuePaid += (adInfo) => { _appLovinOnAdRevenuePaid?.Invoke(adInfo); };
+            if (!_interstitialEventsSubscribed)
+            {
+                _interstitialEventsSubscribed = true;
 
+                // Subscribe to events (only once)
+                _interstitialAppLovin.InterstitialOnAdDisplayed += () => { _onAdDisplayed?.Invoke(); };
+                _interstitialAppLovin.InterstitialOnAdFailedDisplayed += () => { _onAdFailedDisplayed?.Invoke(); };
+                _interstitialAppLovin.InterstitialOnAdClicked += () => { _onAdClicked?.Invoke(); };
+                _interstitialAppLovin.InterstitialOnAdImpressionRecorded += () => { _onAdImpressionRecorded?.Invoke(); };
+                _interstitialAppLovin.InterstitialOnAdClosed += () => { _onAdClosed?.Invoke(); };
+                _interstitialAppLovin.InterstitialOnAdRevenuePaid += (adInfo) => { _appLovinOnAdRevenuePaid?.Invoke(adInfo); };
+            }
         }
 
         public void LoadInterstitialAd()
@@ -80,16 +97,22 @@ namespace com.noctuagames.sdk
         }
 
         public void SetRewardedAdUnitID(string adUnitID)
-        {            
+        {
             _rewardedAppLovin.SetRewardedAdUnitID(adUnitID);
 
-            // Subscribe to events
-            _rewardedAppLovin.RewardedOnAdDisplayed += () => { _onAdDisplayed?.Invoke(); };
-            _rewardedAppLovin.RewardedOnAdFailedDisplayed += () => { _onAdFailedDisplayed?.Invoke(); };
-            _rewardedAppLovin.RewardedOnAdClicked += () => { _onAdClicked?.Invoke(); };
-            _rewardedAppLovin.RewardedOnAdClosed += () => { _onAdClosed?.Invoke(); };
-            _rewardedAppLovin.RewardedOnUserEarnedReward += (reward) => { _onUserEarnedReward?.Invoke(reward); };
-            _rewardedAppLovin.RewardedOnAdRevenuePaid += (adInfo) => { _appLovinOnAdRevenuePaid?.Invoke(adInfo); };
+            if (!_rewardedEventsSubscribed)
+            {
+                _rewardedEventsSubscribed = true;
+
+                // Subscribe to events (only once)
+                _rewardedAppLovin.RewardedOnAdDisplayed += () => { _onAdDisplayed?.Invoke(); };
+                _rewardedAppLovin.RewardedOnAdFailedDisplayed += () => { _onAdFailedDisplayed?.Invoke(); };
+                _rewardedAppLovin.RewardedOnAdClicked += () => { _onAdClicked?.Invoke(); };
+                _rewardedAppLovin.RewardedOnAdImpressionRecorded += () => { _onAdImpressionRecorded?.Invoke(); };
+                _rewardedAppLovin.RewardedOnAdClosed += () => { _onAdClosed?.Invoke(); };
+                _rewardedAppLovin.RewardedOnUserEarnedReward += (reward) => { _onUserEarnedReward?.Invoke(reward); };
+                _rewardedAppLovin.RewardedOnAdRevenuePaid += (adInfo) => { _appLovinOnAdRevenuePaid?.Invoke(adInfo); };
+            }
         }
 
         public void LoadRewardedAd()
@@ -106,12 +129,18 @@ namespace com.noctuagames.sdk
         {
             _bannerAppLovin.SetBannerAdUnitId(adUnitID);
 
-            // Subscribe to events
-            _bannerAppLovin.BannerOnAdDisplayed += () => { _onAdDisplayed?.Invoke(); };
-            _bannerAppLovin.BannerOnAdFailedDisplayed += () => { _onAdFailedDisplayed?.Invoke(); };
-            _bannerAppLovin.BannerOnAdClicked += () => { _onAdClicked?.Invoke(); };
-            _bannerAppLovin.BannerOnAdClosed += () => { _onAdClosed?.Invoke(); };
-            _bannerAppLovin.BannerOnAdRevenuePaid += (adInfo) => { _appLovinOnAdRevenuePaid?.Invoke(adInfo); };
+            if (!_bannerEventsSubscribed)
+            {
+                _bannerEventsSubscribed = true;
+
+                // Subscribe to events (only once)
+                _bannerAppLovin.BannerOnAdDisplayed += () => { _onAdDisplayed?.Invoke(); };
+                _bannerAppLovin.BannerOnAdFailedDisplayed += () => { _onAdFailedDisplayed?.Invoke(); };
+                _bannerAppLovin.BannerOnAdClicked += () => { _onAdClicked?.Invoke(); };
+                _bannerAppLovin.BannerOnAdImpressionRecorded += () => { _onAdImpressionRecorded?.Invoke(); };
+                _bannerAppLovin.BannerOnAdClosed += () => { _onAdClosed?.Invoke(); };
+                _bannerAppLovin.BannerOnAdRevenuePaid += (adInfo) => { _appLovinOnAdRevenuePaid?.Invoke(adInfo); };
+            }
         }
 
         [Obsolete("This method is deprecated. Please use CreateBannerViewAdAppLovin(Color, MaxSdkBase.AdViewPosition) instead.")]
