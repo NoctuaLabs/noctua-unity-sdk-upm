@@ -86,6 +86,7 @@ namespace com.noctuagames.sdk
 
         // Store the callback to be used in the static methods
         private static Action<bool, string> storedCompletion;
+        private static Action<bool, string> storedGetActiveCurrencyCompletion;
         private static Action<bool> storedHasPurchasedCompletion;
         private static Action<string> storedGetReceiptCompletion;
         private static Action<string> storedFirebaseInstallationIdCompletion;
@@ -134,6 +135,13 @@ namespace com.noctuagames.sdk
         {
             string message = messagePtr != IntPtr.Zero ? Marshal.PtrToStringAnsi(messagePtr) : "Unknown error";
             storedCompletion?.Invoke(success, message);
+        }
+
+        [AOT.MonoPInvokeCallback(typeof(CompletionDelegate))]
+        private static void GetActiveCurrencyCompletionCallback(bool success, IntPtr messagePtr)
+        {
+            string message = messagePtr != IntPtr.Zero ? Marshal.PtrToStringAnsi(messagePtr) : "Unknown error";
+            storedGetActiveCurrencyCompletion?.Invoke(success, message);
         }
 
         [AOT.MonoPInvokeCallback(typeof(CompletionProductPurchasedDelegate))]
@@ -278,8 +286,8 @@ namespace com.noctuagames.sdk
                 return;
             }
 
-            storedCompletion = completion;
-            noctuaGetActiveCurrency(productId, new CompletionDelegate(CompletionCallback));
+            storedGetActiveCurrencyCompletion = completion;
+            noctuaGetActiveCurrency(productId, new CompletionDelegate(GetActiveCurrencyCompletionCallback));
 
             _log.Debug("noctuaGetActiveCurrency called");
         }

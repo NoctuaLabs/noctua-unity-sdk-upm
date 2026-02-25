@@ -10,12 +10,14 @@ void noctuaOnOffline();
 
 typedef void (*PurchaseCompletionDelegate)(bool success, const char* message);
 void noctuaPurchaseItem(const char* productId, PurchaseCompletionDelegate callback);
+typedef void (*CurrencyCompletionDelegate)(bool success, const char* message);
+void noctuaGetActiveCurrency(const char* productId, CurrencyCompletionDelegate callback);
 typedef void (*ProductPurchasedCompletionDelegate)(bool hasPurchased);
 void noctuaGetProductPurchasedById(const char* productId, ProductPurchasedCompletionDelegate callback);
 typedef void (*ReceiptCompletionDelegate)(const char* receipt);
 void noctuaGetReceiptProductPurchasedStoreKit1(const char* productId, ReceiptCompletionDelegate callback);
 typedef void (*GetFirebaseIDCallbackDelegate)(const char* firebaseId);
-void noctuaGetFirebaseInstallationID(GetFirebaseIDCallbackDelegate callback)
+void noctuaGetFirebaseInstallationID(GetFirebaseIDCallbackDelegate callback);
 typedef void (*GetFirebaseSessionIDCallbackDelegate)(const char* sessionId);
 void noctuaGetFirebaseAnalyticsSessionID(GetFirebaseSessionIDCallbackDelegate callback);
 typedef void (*GetFirebaseRemoteConfigStringCallbackDelegate)(const char* configString);
