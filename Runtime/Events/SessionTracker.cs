@@ -25,6 +25,7 @@ namespace com.noctuagames.sdk.Events
         private readonly UniTask _heartbeatTask;
         private readonly CancellationTokenSource _cancelHeartbeatSource;
         private  Dictionary<string, bool> _remoteFeatureFlags;
+        private readonly ILogger _log = new NoctuaLogger(typeof(SessionTracker));
 
         
         private DateTime _nextHeartbeat;
@@ -50,6 +51,7 @@ namespace com.noctuagames.sdk.Events
         {
             if (_pauseStatus == pauseStatus)
             {
+                _log.Info($"[Session Tracker] Application pause status unchanged: {pauseStatus}");
                 return;
             }
             
@@ -58,6 +60,7 @@ namespace com.noctuagames.sdk.Events
             if (pauseStatus)
             {
                 _eventSender.Send("session_pause");
+                _log.Info($"[Session Tracker] Application paused, let's flush events");
                 _eventSender.Flush();
                 _nextSessionTimeout = DateTime.UtcNow.AddMilliseconds(_config.SessionTimeoutMs);
                 
@@ -75,10 +78,12 @@ namespace com.noctuagames.sdk.Events
 
             if (_sessionId != null)
             {
+            	_log.Info($"[Session Tracker] Application unpaused, resume session");
                 _eventSender.Send("session_continue");
             }
             else
             {
+            	_log.Info($"[Session Tracker] Application unpaused, start a new session");
                 _sessionId = Guid.NewGuid().ToString();
                 ExperimentManager.SetSessionId(_sessionId);
                 _eventSender.Send("session_start");
