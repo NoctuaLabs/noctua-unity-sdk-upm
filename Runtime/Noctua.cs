@@ -852,6 +852,7 @@ namespace com.noctuagames.sdk
             // Try to get active currency
             if (!string.IsNullOrEmpty(initResponse.ActiveProductId))
             {
+                log.Info("Active product id: " + initResponse.ActiveProductId);
                 try
                 {
                     var activeCurrency = await Instance.Value._iap.GetActiveCurrencyAsync(initResponse.ActiveProductId);
