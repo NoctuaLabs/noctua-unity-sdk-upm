@@ -2720,6 +2720,38 @@ namespace com.noctuagames.sdk
         }
 
         /// <summary>
+        /// Get full purchase status detail for a product, including subscription info.
+        /// Returns a <see cref="ProductPurchaseStatus"/> with fields like ExpiryTime, IsAutoRenewing, etc.
+        /// On iOS, ExpiryTime is populated from StoreKit 2 Transaction.expirationDate for auto-renewable subscriptions.
+        /// On Android, ExpiryTime is always 0 (not available client-side).
+        /// </summary>
+        /// <param name="productId">Product identifier.</param>
+        /// <returns>Full purchase status detail.</returns>
+        public Task<ProductPurchaseStatus> GetProductPurchaseStatusDetailAsync(string productId)
+        {
+            var tcs = new TaskCompletionSource<ProductPurchaseStatus>();
+
+            #if UNITY_ANDROID && !UNITY_EDITOR
+            GoogleBillingInstance.GetProductPurchaseStatusDetail(productId, (status) =>
+            {
+                Debug.Log($"[GoogleBilling] ProductPurchaseStatusDetail: {status.ProductId}, Purchased: {status.IsPurchased}, ExpiryTime: {status.ExpiryTime}");
+                tcs.SetResult(status);
+            });
+            #elif UNITY_IOS && !UNITY_EDITOR
+            _nativePlugin.GetProductPurchaseStatusDetail(productId, (status) =>
+            {
+                Debug.Log($"[IosPlugin] ProductPurchaseStatusDetail: {status.ProductId}, Purchased: {status.IsPurchased}, ExpiryTime: {status.ExpiryTime}");
+                tcs.SetResult(status);
+            });
+            #else
+            Debug.LogWarning("GetProductPurchaseStatusDetailAsync is not supported on this platform.");
+            tcs.SetResult(new ProductPurchaseStatus());
+            #endif
+
+            return tcs.Task;
+        }
+
+        /// <summary>
         /// Batch check purchase state for multiple product ids.
         /// </summary>
         /// <param name="productIds">List of product ids to check.</param>

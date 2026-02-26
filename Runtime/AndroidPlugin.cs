@@ -140,6 +140,11 @@ namespace com.noctuagames.sdk
             throw new NotImplementedException();
         }
 
+        public void GetProductPurchaseStatusDetail(string productId, Action<ProductPurchaseStatus> callback)
+        {
+            throw new NotImplementedException();
+        }
+
         public void ShowDatePicker(int year, int month, int day, int id)
         {
             AndroidJavaClass javaUnityClass = new AndroidJavaClass("com.pingak9.nativepopup.Bridge");

@@ -73,9 +73,25 @@ namespace com.noctuagames.sdk
         void GetActiveCurrency(string productId, Action<bool, string> callback);
         void GetProductPurchasedById(string productId, Action<bool> callback);
         void GetReceiptProductPurchasedStoreKit1(string productId, Action<string> callback);
+        void GetProductPurchaseStatusDetail(string productId, Action<ProductPurchaseStatus> callback);
     }
     
     
+    [Preserve]
+    public class ProductPurchaseStatus
+    {
+        public string ProductId;
+        public bool IsPurchased;
+        public bool IsAcknowledged;
+        public bool IsAutoRenewing;
+        public int PurchaseState;       // 0=Unspecified, 1=Purchased, 2=Pending
+        public string PurchaseToken;
+        public long PurchaseTime;       // ms since epoch
+        public long ExpiryTime;         // ms since epoch, 0 if N/A (always 0 on Android)
+        public string OrderId;
+        public string OriginalJson;
+    }
+
     [Preserve]
     public class NativeAccount
     {

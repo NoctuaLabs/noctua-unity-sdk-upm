@@ -76,6 +76,10 @@ static ProductPurchasedCompletionDelegate _pendingProductPurchasedCallback = NUL
 typedef void (*ReceiptCompletionDelegate)(const char* message);
 static ReceiptCompletionDelegate _pendingReceiptCallback = NULL;
 
+// Pending callback for full purchase status detail
+typedef void (*ProductPurchaseStatusDetailDelegate)(const char* statusJson);
+static ProductPurchaseStatusDetailDelegate _pendingPurchaseStatusDetailCallback = NULL;
+
 static void ensureStoreKitInitialized(void) {
     if (_storeKitInitialized) {
         return;
@@ -144,6 +148,32 @@ static void ensureStoreKitInitialized(void) {
                 callback(token ? token : "");
             } else {
                 callback(NULL);
+            }
+        }
+        if (_pendingPurchaseStatusDetailCallback != NULL) {
+            ProductPurchaseStatusDetailDelegate callback = _pendingPurchaseStatusDetailCallback;
+            _pendingPurchaseStatusDetailCallback = NULL;
+
+            NSDictionary *statusDict = @{
+                @"ProductId": status.productId ?: @"",
+                @"IsPurchased": @(status.isPurchased),
+                @"IsAcknowledged": @(status.isAcknowledged),
+                @"IsAutoRenewing": @(status.isAutoRenewing),
+                @"PurchaseState": @(status.purchaseState),
+                @"PurchaseToken": status.purchaseToken ?: @"",
+                @"PurchaseTime": @(status.purchaseTime),
+                @"ExpiryTime": @(status.expiryTime),
+                @"OrderId": status.orderId ?: @"",
+                @"OriginalJson": status.originalJson ?: @""
+            };
+
+            NSError *error = nil;
+            NSData *jsonData = [NSJSONSerialization dataWithJSONObject:statusDict options:0 error:&error];
+            if (jsonData) {
+                NSString *jsonString = [[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding];
+                callback([jsonString UTF8String]);
+            } else {
+                callback("{}");
             }
         }
     } onServerVerificationRequired:^(NoctuaPurchaseResult * _Nonnull result, enum ConsumableType consumableType) {
@@ -284,6 +314,33 @@ void noctuaGetReceiptProductPurchasedStoreKit1(const char* productId, ReceiptCom
     ensureStoreKitInitialized();
 
     _pendingReceiptCallback = callback;
+
+    [Noctua getProductPurchaseStatusWithProductId:productIdStr];
+}
+
+void noctuaGetProductPurchaseStatusDetail(const char* productId, ProductPurchaseStatusDetailDelegate callback) {
+    NSLog(@"noctuaGetProductPurchaseStatusDetail called with productId: %s", productId);
+
+    if (productId == NULL) {
+        NSLog(@"Product ID is null");
+        if (callback != NULL) {
+            callback("{}");
+        }
+        return;
+    }
+
+    NSString *productIdStr = [NSString stringWithUTF8String:productId];
+    if (productIdStr.length == 0) {
+        NSLog(@"Product ID is empty");
+        if (callback != NULL) {
+            callback("{}");
+        }
+        return;
+    }
+
+    ensureStoreKitInitialized();
+
+    _pendingPurchaseStatusDetailCallback = callback;
 
     [Noctua getProductPurchaseStatusWithProductId:productIdStr];
 }

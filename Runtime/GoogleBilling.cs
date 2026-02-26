@@ -12,6 +12,7 @@ public class GoogleBilling
     private AndroidJavaObject _activity;
     private bool _isPurchaseFlow;
     private System.Action<PurchaseResult> _pendingGetPurchasedCallback;
+    private System.Action<ProductPurchaseStatus> _pendingPurchaseStatusCallback;
 
     // Signals
     public delegate void PurchaseDone(PurchaseResult result);
@@ -187,15 +188,41 @@ public class GoogleBilling
         var onProductPurchaseStatusResult = new AndroidCallback<AndroidJavaObject>(javaStatus =>
         {
             _log.Debug("onProductPurchaseStatusResult callback received");
+
+            bool isPurchased = javaStatus.Call<bool>("getIsPurchased");
+            string productId = javaStatus.Call<string>("getProductId");
+            string purchaseToken = javaStatus.Call<string>("getPurchaseToken");
+            string orderId = javaStatus.Call<string>("getOrderId");
+            var javaPurchaseState = javaStatus.Call<AndroidJavaObject>("getPurchaseState");
+            int purchaseStateInt = javaPurchaseState.Call<int>("getState");
+            bool isAcknowledged = javaStatus.Call<bool>("getIsAcknowledged");
+            bool isAutoRenewing = javaStatus.Call<bool>("getIsAutoRenewing");
+            long purchaseTime = javaStatus.Call<long>("getPurchaseTime");
+            long expiryTime = javaStatus.Call<long>("getExpiryTime");
+            string originalJson = javaStatus.Call<string>("getOriginalJson");
+
+            // Full status callback (new API)
+            if (_pendingPurchaseStatusCallback != null)
+            {
+                _pendingPurchaseStatusCallback.Invoke(new ProductPurchaseStatus
+                {
+                    ProductId = productId,
+                    IsPurchased = isPurchased,
+                    IsAcknowledged = isAcknowledged,
+                    IsAutoRenewing = isAutoRenewing,
+                    PurchaseState = purchaseStateInt,
+                    PurchaseToken = purchaseToken,
+                    PurchaseTime = purchaseTime,
+                    ExpiryTime = expiryTime,
+                    OrderId = orderId ?? "",
+                    OriginalJson = originalJson ?? "",
+                });
+                _pendingPurchaseStatusCallback = null;
+            }
+
+            // Legacy bool callback (backward compat)
             if (_pendingGetPurchasedCallback != null)
             {
-                bool isPurchased = javaStatus.Call<bool>("getIsPurchased");
-                string productId = javaStatus.Call<string>("getProductId");
-                string purchaseToken = javaStatus.Call<string>("getPurchaseToken");
-                string orderId = javaStatus.Call<string>("getOrderId");
-                var javaPurchaseState = javaStatus.Call<AndroidJavaObject>("getPurchaseState");
-                int purchaseStateInt = javaPurchaseState.Call<int>("getState");
-
                 if (isPurchased)
                 {
                     _pendingGetPurchasedCallback.Invoke(new PurchaseResult
@@ -294,6 +321,13 @@ public class GoogleBilling
     {
         _log.Debug($"GetPurchasedProductById via native SDK: {productId}");
         _pendingGetPurchasedCallback = callback;
+        _noctua.Call("getProductPurchaseStatus", productId);
+    }
+
+    public void GetProductPurchaseStatusDetail(string productId, System.Action<ProductPurchaseStatus> callback)
+    {
+        _log.Debug($"GetProductPurchaseStatusDetail via native SDK: {productId}");
+        _pendingPurchaseStatusCallback = callback;
         _noctua.Call("getProductPurchaseStatus", productId);
     }
 

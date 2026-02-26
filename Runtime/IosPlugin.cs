@@ -39,6 +39,9 @@ namespace com.noctuagames.sdk
         private static extern void noctuaGetActiveCurrency(string productId, CompletionDelegate callback);
 
         [DllImport("__Internal")]
+        private static extern void noctuaGetProductPurchaseStatusDetail(string productId, ProductPurchaseStatusDetailDelegate callback);
+
+        [DllImport("__Internal")]
         private static extern void noctuaPutAccount(long gameId, long playerId, string rawData);
 
         [DllImport("__Internal")]
@@ -137,6 +140,7 @@ namespace com.noctuagames.sdk
         private static Action<int> storedDeleteEventsByIdsCompletion;
         private static Action<int> storedGetEventCountCompletion;
         private static Action<bool> storedCompletePurchaseProcessingCompletion;
+        private static Action<ProductPurchaseStatus> storedPurchaseStatusDetailCompletion;
 
         // Define delegates for the native callbacks
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
@@ -186,6 +190,9 @@ namespace com.noctuagames.sdk
 
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
         private delegate void GetEventCountCallbackDelegate(int count);
+
+        [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+        private delegate void ProductPurchaseStatusDetailDelegate(IntPtr statusJsonPtr);
 
         //Delegate for methods returning string values
         [AOT.MonoPInvokeCallback(typeof(CompletionDelegate))]
@@ -285,6 +292,35 @@ namespace com.noctuagames.sdk
             storedCompletePurchaseProcessingCompletion?.Invoke(success);
         }
 
+        [AOT.MonoPInvokeCallback(typeof(ProductPurchaseStatusDetailDelegate))]
+        private static void ProductPurchaseStatusDetailCallback(IntPtr statusJsonPtr)
+        {
+            try
+            {
+                if (statusJsonPtr == IntPtr.Zero)
+                {
+                    storedPurchaseStatusDetailCompletion?.Invoke(new ProductPurchaseStatus());
+                    return;
+                }
+
+                string json = Marshal.PtrToStringUTF8(statusJsonPtr);
+
+                if (string.IsNullOrEmpty(json) || json == "{}")
+                {
+                    storedPurchaseStatusDetailCompletion?.Invoke(new ProductPurchaseStatus());
+                    return;
+                }
+
+                var status = JsonConvert.DeserializeObject<ProductPurchaseStatus>(json) ?? new ProductPurchaseStatus();
+                storedPurchaseStatusDetailCompletion?.Invoke(status);
+            }
+            catch (Exception e)
+            {
+                Debug.LogWarning($"[Noctua] ProductPurchaseStatusDetail callback failed: {e.Message}");
+                storedPurchaseStatusDetailCompletion?.Invoke(new ProductPurchaseStatus());
+            }
+        }
+
         public void Init(List<string> activeBundleIds)
         {
             noctuaInitialize(true);
@@ -340,11 +376,26 @@ namespace com.noctuagames.sdk
                 return;
             }
 
-            
+
             storedHasPurchasedCompletion = completion;
             noctuaGetProductPurchasedById(productId, new CompletionProductPurchasedDelegate(CompletionHasPurchasedCallback));
 
             _log.Debug("noctuaGetProductPurchasedById called");
+        }
+
+        public void GetProductPurchaseStatusDetail(string productId, Action<ProductPurchaseStatus> callback)
+        {
+            if (string.IsNullOrEmpty(productId))
+            {
+                _log.Error("Product ID is null or empty");
+                callback?.Invoke(new ProductPurchaseStatus());
+                return;
+            }
+
+            storedPurchaseStatusDetailCompletion = callback;
+            noctuaGetProductPurchaseStatusDetail(productId, new ProductPurchaseStatusDetailDelegate(ProductPurchaseStatusDetailCallback));
+
+            _log.Debug("noctuaGetProductPurchaseStatusDetail called");
         }
 
         public void GetReceiptProductPurchasedStoreKit1(string productId, Action<string> completion)

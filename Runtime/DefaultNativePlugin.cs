@@ -181,6 +181,11 @@ namespace com.noctuagames.sdk
             throw new NotImplementedException();
         }
 
+        public void GetProductPurchaseStatusDetail(string productId, Action<ProductPurchaseStatus> callback)
+        {
+            callback?.Invoke(new ProductPurchaseStatus());
+        }
+
         public NativeAccount GetAccount(long userId, long gameId)
         {
             var rawAccounts = PlayerPrefs.GetString("NoctuaAccountContainer");
