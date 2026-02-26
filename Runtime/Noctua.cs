@@ -207,6 +207,7 @@ namespace com.noctuagames.sdk
         private static volatile bool _offlineMode = false;
         private static bool _initialized = false;
         private bool _isNativePluginInitialized = false;
+        private readonly UniTaskCompletionSource _nativePluginInitTcs = new UniTaskCompletionSource();
 
         /// <summary>
         /// Optional callback invoked when Noctua initialization completes successfully.
@@ -468,7 +469,34 @@ namespace com.noctuagames.sdk
 
             _nativePlugin?.Init(new List<string>());
             _isNativePluginInitialized = true;
+            _nativePluginInitTcs.TrySetResult();
             _log.Debug("nativePlugin is initialized");
+        }
+
+        /// <summary>
+        /// Waits for native plugin initialization to complete, with a timeout.
+        /// When IAA is not enabled, native plugin is initialized synchronously in the constructor,
+        /// so this returns immediately. When IAA is enabled, waits for the IAA SDK callback.
+        /// </summary>
+        private async UniTask WaitForNativePluginInitAsync(int timeoutMs = 10000)
+        {
+            if (_isNativePluginInitialized)
+            {
+                return;
+            }
+
+            _log.Info($"Waiting for native plugin initialization (timeout: {timeoutMs}ms)...");
+
+            var completedIndex = await UniTask.WhenAny(
+                _nativePluginInitTcs.Task,
+                UniTask.Delay(timeoutMs)
+            );
+
+            if (completedIndex == 1)
+            {
+                _log.Warning("Native plugin init timed out. Force-initializing.");
+                InitializeNativePlugin();
+            }
         }
 
         /// <summary>
@@ -735,6 +763,20 @@ namespace com.noctuagames.sdk
                 // Instance.Value._eventSender.Send("sdk_init_offline_mode_enabled");
             }
 
+            // Initialize IAA (In-App Advertising) SDK with remote config before IAP ready loop.
+            // When IAA is enabled, native plugin init is deferred to the IAA callback.
+            // This must happen BEFORE GetActiveCurrencyAsync and the IAP ready loop,
+            // which depend on the native plugin being initialized.
+            if (initResponse.RemoteConfigs?.IAA != null)
+            {
+                InitMediationSDK(log, initResponse);
+            }
+
+            // Wait for native plugin to be initialized.
+            // When IAA is not enabled, this returns immediately (initialized in constructor).
+            // When IAA is enabled, this waits for the IAA SDK callback to fire.
+            await Instance.Value.WaitForNativePluginInitAsync();
+
             var iapReadyTimeout = DateTime.UtcNow.AddSeconds(5);
 
             log.Debug($"IAP ready: {Instance.Value._iap.IsReady}");
@@ -989,15 +1031,6 @@ namespace com.noctuagames.sdk
             {
                 Instance.Value._eventSender.Send("sdk_first_open");
             }
-
-            // Initialize IAA (In-App Advertising) SDK and prepare IAA to be ready for showing ads to the user.
-            if (initResponse.RemoteConfigs.IAA != null)
-            {
-                InitMediationSDK(log, initResponse);
-            }
-
-            // Disabled for production to reduce event noise
-            // Instance.Value._eventSender.Send("sdk_init_mediation_init");
 
             log.Info("Noctua.InitAsync() completed");
             var initOnlineCompleted = false;
