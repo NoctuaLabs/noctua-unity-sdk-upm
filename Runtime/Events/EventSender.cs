@@ -21,8 +21,9 @@ namespace com.noctuagames.sdk.Events
         public string BundleId = Application.identifier;
         public uint BatchSize = 20;
         public int MaxBatchSize = 100;
+
         public uint BatchPeriodMs = 60_000; // 1 minute, in ms
-        public int CycleDelay = 10000; // 10 sec, in ms
+        public int CycleDelay = 10_000; // 10 sec, in ms
         public int MaxStoredEvents = 100_000; // 100K events cap with FIFO eviction
         public INativePlugin NativePlugin;
         public FirebaseConfig FirebaseConfig = new FirebaseConfig();
@@ -614,10 +615,10 @@ namespace com.noctuagames.sdk.Events
 
         private async UniTask SendEvents(CancellationToken token)
         {
-            _log.Debug("[Event Sender] Omama 1");
+            DateTime? batchStartTime = null;
+
             while (!token.IsCancellationRequested)
             {
-                _log.Debug("[Event Sender] Omama 2");
                 await UniTask.Delay(_config.CycleDelay, cancellationToken: token);
 
                 // Check event count from per-row storage (async)
@@ -628,40 +629,32 @@ namespace com.noctuagames.sdk.Events
                 }
                 catch
                 {
-                    _log.Debug("[Event Sender] Omama 3");
                     continue;
                 }
 
-                if (pendingCount == 0) {
-                    _log.Debug("[Event Sender] Omama 4");
-		    continue;
-		}
-
-                // Wait for batch to fill or timeout
-                var nextBatchSchedule = DateTime.UtcNow.AddMilliseconds(_config.BatchPeriodMs);
-                while (pendingCount < _config.BatchSize && DateTime.UtcNow < nextBatchSchedule)
+                if (pendingCount == 0)
                 {
-                    _log.Debug("[Event Sender] Omama 5");
-                    await UniTask.Delay(1000, cancellationToken: token);
-                    try
-                    {
-                        pendingCount = await GetEventCountDirectAsync();
-                    }
-                    catch
-                    {
-                        _log.Debug("[Event Sender] Omama 6");
-                        break;
-                    }
+                    batchStartTime = null;
+                    continue;
                 }
 
-                if (pendingCount == 0) {
-                    _log.Debug("[Event Sender] Omama 7");
-		    continue;
-		}
+                // Track when we first noticed pending events
+                batchStartTime ??= DateTime.UtcNow;
+
+                var batchAgeMs = (DateTime.UtcNow - batchStartTime.Value).TotalMilliseconds;
+                var batchFull = pendingCount >= _config.BatchSize;
+                var periodElapsed = batchAgeMs >= _config.BatchPeriodMs;
+
+                _log.Debug($"[Event Sender] pendingCount: {pendingCount}, batchFull: {batchFull}, periodElapsed: {periodElapsed}, batchAgeMs: {batchAgeMs:F0}, batchPeriodMs: {_config.BatchPeriodMs}");
+
+                if (!batchFull && !periodElapsed)
+                {
+                    continue;
+                }
 
                 if (_isFlushing)
                 {
-                    _log.Debug("[Event Sender] Flush in progress, skipping send cycle");
+                    _log.Debug("[Event Sender] flush in progress, skipping send cycle");
                     continue;
                 }
 
@@ -669,7 +662,7 @@ namespace com.noctuagames.sdk.Events
                 if (isOffline)
                 {
                     try { Noctua.OnOffline(); } catch (Exception) { /* Noctua not initialized */ }
-                    _log.Info("[Event Sender] Device is offline, continue to next cycle");
+                    _log.Debug("[Event Sender] device is offline, continue to next cycle");
                     continue;
                 }
 
@@ -683,25 +676,27 @@ namespace com.noctuagames.sdk.Events
                 }
                 catch (Exception e)
                 {
-                    _log.Warning($"[Event Sender] Failed to read events batch: {e.Message}");
+                    _log.Warning($"[Event Sender] failed to read events batch: {e.Message}");
                     continue;
                 }
 
-                if (batch == null || batch.Count == 0) {
-                    _log.Debug("[Event Sender] Omama 8");
-		    continue;
-		}
+                if (batch == null || batch.Count == 0)
+                {
+                    _log.Debug("[Event Sender] batch is null or empty");
+                    continue;
+                }
 
                 var eventDicts = batch.Select(e =>
                     JsonConvert.DeserializeObject<Dictionary<string, object>>(e.EventJson)
                 ).Where(d => d != null).ToList();
 
-                if (eventDicts.Count == 0) {
-                    _log.Debug("[Event Sender] Omama 9");
-		    continue;
-		}
+                if (eventDicts.Count == 0)
+                {
+                    _log.Debug("[Event Sender] eventDicts is empty after deserialization");
+                    continue;
+                }
 
-                _log.Info($"[Event Sender] Sending batch: {eventDicts.Count} events");
+                _log.Info($"[Event Sender] sending batch: {eventDicts.Count} events (batchFull={batchFull}, periodElapsed={periodElapsed})");
 
                 try
                 {
@@ -720,15 +715,17 @@ namespace com.noctuagames.sdk.Events
                     var deletedCount = await DeleteEventsByIdsDirectAsync(sentIds);
 
                     var remainingCount = await GetEventCountDirectAsync();
-                    _log.Info($"[Event Sender] Sent {eventDicts.Count} events, deleted {deletedCount}. {remainingCount} remaining.");
+                    _log.Info($"[Event Sender] sent {eventDicts.Count} events, deleted {deletedCount}. {remainingCount} remaining.");
                 }
                 catch (Exception e)
                 {
-                    _log.Error($"[Event Sender] Failed to send events: {e.Message}");
+                    _log.Error($"[Event Sender] failed to send events: {e.Message}");
                     // Events remain in per-row storage for retry
                 }
                 finally
                 {
+                    // Reset batch timer after send attempt (success or failure)
+                    batchStartTime = null;
                     // RESUME write queue
                     _writeQueuePaused = false;
                     ProcessWriteQueue();

@@ -72,7 +72,7 @@ namespace com.noctuagames.sdk
         [JsonProperty("sentryDsnUrl")] public string SentryDsnUrl = "";
 
         [JsonProperty("trackerBatchSize")] public uint TrackerBatchSize = 20;
-        [JsonProperty("trackerBatchPeriodMs")] public uint TrackerBatchPeriodMs = 300_000;
+        [JsonProperty("trackerBatchPeriodMs")] public uint TrackerBatchPeriodMs = 60_000;
         [JsonProperty("sessionHeartbeatPeriodMs")] public uint SessionHeartbeatPeriodMs = 60_000;
         [JsonProperty("sessionTimeoutMs")] public uint SessionTimeoutMs = 900_000;
 
