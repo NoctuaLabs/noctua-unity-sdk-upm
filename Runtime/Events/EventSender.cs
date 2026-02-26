@@ -243,13 +243,6 @@ namespace com.noctuagames.sdk.Events
             UniTask.Void(async () =>
             {
                 await MigrateOldBlobEventsIfNeeded();
-
-                var count = await GetEventCountDirectAsync();
-                _log.Debug($"[Event Sender] Initialized. {count} persisted events found in per-row storage.");
-                if (count > 0)
-                {
-                    Flush();
-                }
             });
         }
 
@@ -502,6 +495,7 @@ namespace com.noctuagames.sdk.Events
             };
         }
 
+	// This will be called in SessionTracker.cs
         public void Flush()
         {
             // Guard: skip HTTP flush during app quit or when called from a non-main thread
