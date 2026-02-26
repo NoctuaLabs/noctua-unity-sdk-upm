@@ -1030,6 +1030,7 @@ namespace com.noctuagames.sdk
             if (IsFirstOpen())
             {
                 Instance.Value._eventSender.Send("sdk_first_open");
+                Instance.Value._event.TrackCustomEvent("first_open");
             }
 
             log.Info("Noctua.InitAsync() completed");
