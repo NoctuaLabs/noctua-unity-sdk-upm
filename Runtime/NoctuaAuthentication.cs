@@ -454,6 +454,60 @@ namespace com.noctuagames.sdk
         }
         
         /// <summary>
+        /// Saves a game state value to the cloud under the given key.
+        /// </summary>
+        /// <param name="key">Slot key identifier. Must match ^[a-zA-Z0-9_\-\.]{1,128}$</param>
+        /// <param name="value">The string value to save.</param>
+        public async UniTask SaveGameState(string key, string value)
+        {
+            EnsureEnabled();
+
+            _log.Debug("calling API");
+
+            await _service.SaveGameStateAsync(key, value);
+        }
+
+        /// <summary>
+        /// Loads a game state value from the cloud for the given key.
+        /// </summary>
+        /// <param name="key">Slot key identifier.</param>
+        /// <returns>The saved string value.</returns>
+        public async UniTask<string> LoadGameState(string key)
+        {
+            EnsureEnabled();
+
+            _log.Debug("calling API");
+
+            return await _service.LoadGameStateAsync(key);
+        }
+
+        /// <summary>
+        /// Gets all game state slot keys for the current player and game.
+        /// </summary>
+        /// <returns>A list of slot key strings.</returns>
+        public async UniTask<List<string>> GetGameStateKeys()
+        {
+            EnsureEnabled();
+
+            _log.Debug("calling API");
+
+            return await _service.GetGameStateKeysAsync();
+        }
+
+        /// <summary>
+        /// Deletes a game state slot from the cloud.
+        /// </summary>
+        /// <param name="key">Slot key identifier to delete.</param>
+        public async UniTask DeleteGameState(string key)
+        {
+            EnsureEnabled();
+
+            _log.Debug("calling API");
+
+            await _service.DeleteGameStateAsync(key);
+        }
+
+        /// <summary>
         /// Applies feature flags received from remote configuration to authentication UI.
         /// </summary>
         public void SetFlag(Dictionary<string, bool> featureFlags)

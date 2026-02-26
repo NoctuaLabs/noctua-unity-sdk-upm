@@ -291,6 +291,38 @@ namespace com.noctuagames.sdk
     }
 
     [Preserve]
+    public class CloudSaveMetadata
+    {
+        [JsonProperty("slot_key")]
+        public string SlotKey;
+
+        [JsonProperty("content_type")]
+        public string ContentType;
+
+        [JsonProperty("size_bytes")]
+        public int SizeBytes;
+
+        [JsonProperty("checksum")]
+        public string Checksum;
+
+        [JsonProperty("created_at")]
+        public string CreatedAt;
+
+        [JsonProperty("updated_at")]
+        public string UpdatedAt;
+    }
+
+    [Preserve]
+    public class CloudSaveListResponse
+    {
+        [JsonProperty("saves")]
+        public List<CloudSaveMetadata> Saves;
+
+        [JsonProperty("total")]
+        public int Total;
+    }
+
+    [Preserve]
     public class SocialLoginRequest
     {
         [JsonProperty("code")]
@@ -1246,6 +1278,69 @@ namespace com.noctuagames.sdk
                 .WithHeader("Authorization", "Bearer " + RecentAccount.Player.AccessToken);
 
             return await request.Send<ProfileOptionData>();
+        }
+
+        public async UniTask SaveGameStateAsync(string key, string value)
+        {
+            if (string.IsNullOrEmpty(RecentAccount?.Player?.AccessToken))
+            {
+                throw NoctuaException.MissingAccessToken;
+            }
+
+            var request = new HttpRequest(HttpMethod.Put, $"{_baseUrl}/cloud-saves/{Uri.EscapeDataString(key)}")
+                .WithHeader("X-CLIENT-ID", _clientId)
+                .WithHeader("X-BUNDLE-ID", _bundleId)
+                .WithHeader("Authorization", "Bearer " + RecentAccount.Player.AccessToken)
+                .WithRawBody(System.Text.Encoding.UTF8.GetBytes(value));
+
+            await request.Send<CloudSaveMetadata>();
+        }
+
+        public async UniTask<string> LoadGameStateAsync(string key)
+        {
+            if (string.IsNullOrEmpty(RecentAccount?.Player?.AccessToken))
+            {
+                throw NoctuaException.MissingAccessToken;
+            }
+
+            var request = new HttpRequest(HttpMethod.Get, $"{_baseUrl}/cloud-saves/{Uri.EscapeDataString(key)}")
+                .WithHeader("X-CLIENT-ID", _clientId)
+                .WithHeader("X-BUNDLE-ID", _bundleId)
+                .WithHeader("Authorization", "Bearer " + RecentAccount.Player.AccessToken);
+
+            return await request.SendRaw();
+        }
+
+        public async UniTask<List<string>> GetGameStateKeysAsync()
+        {
+            if (string.IsNullOrEmpty(RecentAccount?.Player?.AccessToken))
+            {
+                throw NoctuaException.MissingAccessToken;
+            }
+
+            var request = new HttpRequest(HttpMethod.Get, $"{_baseUrl}/cloud-saves")
+                .WithHeader("X-CLIENT-ID", _clientId)
+                .WithHeader("X-BUNDLE-ID", _bundleId)
+                .WithHeader("Authorization", "Bearer " + RecentAccount.Player.AccessToken);
+
+            var response = await request.Send<CloudSaveListResponse>();
+
+            return response.Saves?.Select(s => s.SlotKey).ToList() ?? new List<string>();
+        }
+
+        public async UniTask DeleteGameStateAsync(string key)
+        {
+            if (string.IsNullOrEmpty(RecentAccount?.Player?.AccessToken))
+            {
+                throw NoctuaException.MissingAccessToken;
+            }
+
+            var request = new HttpRequest(HttpMethod.Delete, $"{_baseUrl}/cloud-saves/{Uri.EscapeDataString(key)}")
+                .WithHeader("X-CLIENT-ID", _clientId)
+                .WithHeader("X-BUNDLE-ID", _bundleId)
+                .WithHeader("Authorization", "Bearer " + RecentAccount.Player.AccessToken);
+
+            await request.Send<object>();
         }
 
         private void SetEventProperties(UserBundle newUser)
