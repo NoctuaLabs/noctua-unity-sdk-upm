@@ -614,8 +614,10 @@ namespace com.noctuagames.sdk.Events
 
         private async UniTask SendEvents(CancellationToken token)
         {
+            _log.Debug("[Event Sender] Omama 1");
             while (!token.IsCancellationRequested)
             {
+                _log.Debug("[Event Sender] Omama 2");
                 await UniTask.Delay(_config.CycleDelay, cancellationToken: token);
 
                 // Check event count from per-row storage (async)
@@ -626,15 +628,20 @@ namespace com.noctuagames.sdk.Events
                 }
                 catch
                 {
+                    _log.Debug("[Event Sender] Omama 3");
                     continue;
                 }
 
-                if (pendingCount == 0) continue;
+                if (pendingCount == 0) {
+                    _log.Debug("[Event Sender] Omama 4");
+		    continue;
+		}
 
                 // Wait for batch to fill or timeout
                 var nextBatchSchedule = DateTime.UtcNow.AddMilliseconds(_config.BatchPeriodMs);
                 while (pendingCount < _config.BatchSize && DateTime.UtcNow < nextBatchSchedule)
                 {
+                    _log.Debug("[Event Sender] Omama 5");
                     await UniTask.Delay(1000, cancellationToken: token);
                     try
                     {
@@ -642,11 +649,15 @@ namespace com.noctuagames.sdk.Events
                     }
                     catch
                     {
+                        _log.Debug("[Event Sender] Omama 6");
                         break;
                     }
                 }
 
-                if (pendingCount == 0) continue;
+                if (pendingCount == 0) {
+                    _log.Debug("[Event Sender] Omama 7");
+		    continue;
+		}
 
                 if (_isFlushing)
                 {
@@ -676,13 +687,19 @@ namespace com.noctuagames.sdk.Events
                     continue;
                 }
 
-                if (batch == null || batch.Count == 0) continue;
+                if (batch == null || batch.Count == 0) {
+                    _log.Debug("[Event Sender] Omama 8");
+		    continue;
+		}
 
                 var eventDicts = batch.Select(e =>
                     JsonConvert.DeserializeObject<Dictionary<string, object>>(e.EventJson)
                 ).Where(d => d != null).ToList();
 
-                if (eventDicts.Count == 0) continue;
+                if (eventDicts.Count == 0) {
+                    _log.Debug("[Event Sender] Omama 9");
+		    continue;
+		}
 
                 _log.Info($"[Event Sender] Sending batch: {eventDicts.Count} events");
 
