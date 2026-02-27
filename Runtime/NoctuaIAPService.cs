@@ -2734,17 +2734,17 @@ namespace com.noctuagames.sdk
             #if UNITY_ANDROID && !UNITY_EDITOR
             GoogleBillingInstance.GetProductPurchaseStatusDetail(productId, (status) =>
             {
-                Debug.Log($"[GoogleBilling] ProductPurchaseStatusDetail: {status.ProductId}, Purchased: {status.IsPurchased}, ExpiryTime: {status.ExpiryTime}");
+                _log.Debug($"[GoogleBilling] ProductPurchaseStatusDetail: {status.ProductId}, Purchased: {status.IsPurchased}, ExpiryTime: {status.ExpiryTime}");
                 tcs.SetResult(status);
             });
             #elif UNITY_IOS && !UNITY_EDITOR
             _nativePlugin.GetProductPurchaseStatusDetail(productId, (status) =>
             {
-                Debug.Log($"[IosPlugin] ProductPurchaseStatusDetail: {status.ProductId}, Purchased: {status.IsPurchased}, ExpiryTime: {status.ExpiryTime}");
+                _log.Debug($"[IosPlugin] ProductPurchaseStatusDetail: {status.ProductId}, Purchased: {status.IsPurchased}, ExpiryTime: {status.ExpiryTime}");
                 tcs.SetResult(status);
             });
             #else
-            Debug.LogWarning("GetProductPurchaseStatusDetailAsync is not supported on this platform.");
+            _log.Warning("GetProductPurchaseStatusDetailAsync is not supported on this platform.");
             tcs.SetResult(new ProductPurchaseStatus());
             #endif
 
@@ -2788,7 +2788,7 @@ namespace com.noctuagames.sdk
 
             CheckIfProductPurchased(productId, (result) =>
             {
-                Debug.Log("CheckIfProductPurchased result: " + result);
+                _log.Debug("CheckIfProductPurchased result: " + result);
                 tcs.SetResult(result);
             });
 
@@ -2807,23 +2807,23 @@ namespace com.noctuagames.sdk
             {
                 if (purchase != null && purchase.Success)
                 {
-                    Debug.Log($"[GoogleBilling] Product purchased: {purchase.ProductId}, State: {purchase.PurchaseState}");
+                    _log.Debug($"[GoogleBilling] Product purchased: {purchase.ProductId}, State: {purchase.PurchaseState}");
                     callback?.Invoke(true);
                 }
                 else
                 {
-                    Debug.Log($"[GoogleBilling] Product '{productId}' is not purchased or not found.");
+                    _log.Debug($"[GoogleBilling] Product '{productId}' is not purchased or not found.");
                     callback?.Invoke(false);
                 }
             });
             #elif UNITY_IOS && !UNITY_EDITOR
             _nativePlugin.GetProductPurchasedById(productId, (hasPurchased) =>
             {
-                Debug.Log($"[IosPlugin] Product '{productId}' purchased: {hasPurchased}");
+                _log.Debug($"[IosPlugin] Product '{productId}' purchased: {hasPurchased}");
                 callback?.Invoke(hasPurchased);
             });
             #else
-            Debug.LogWarning("CheckIfProductPurchased is not supported on this platform.");
+            _log.Warning("CheckIfProductPurchased is not supported on this platform.");
             callback?.Invoke(false);
             #endif
         }

@@ -10,6 +10,7 @@ namespace com.noctuagames.sdk
     internal class IosPlugin : INativePlugin
     {
         private readonly ILogger _log = new NoctuaLogger(typeof(IosPlugin));
+        private static readonly ILogger _sLog = new NoctuaLogger(typeof(IosPlugin));
 
         [DllImport("__Internal")]
         private static extern void noctuaInitialize(bool verifyPurchasesOnServer);
@@ -281,7 +282,7 @@ namespace com.noctuagames.sdk
             }
             catch (Exception e)
             {
-                Debug.LogWarning($"[Noctua] GetEvents callback failed: {e.Message}");
+                _sLog.Warning($"[Noctua] GetEvents callback failed: {e.Message}");
                 storedGetEventsCompletion?.Invoke(new List<string>());
             }
         }
@@ -316,7 +317,7 @@ namespace com.noctuagames.sdk
             }
             catch (Exception e)
             {
-                Debug.LogWarning($"[Noctua] ProductPurchaseStatusDetail callback failed: {e.Message}");
+                _sLog.Warning($"[Noctua] ProductPurchaseStatusDetail callback failed: {e.Message}");
                 storedPurchaseStatusDetailCompletion?.Invoke(new ProductPurchaseStatus());
             }
         }
@@ -690,7 +691,7 @@ namespace com.noctuagames.sdk
             }
             catch (Exception e)
             {
-                Debug.LogWarning($"[Noctua] GetEventsBatch callback failed: {e.Message}");
+                _sLog.Warning($"[Noctua] GetEventsBatch callback failed: {e.Message}");
                 storedGetEventsBatchCompletion?.Invoke(new List<NativeEvent>());
             }
         }
