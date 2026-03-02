@@ -54,6 +54,7 @@ namespace com.noctuagames.sdk
             { PaymentType.noctuastore };
 #endif
         private readonly IPaymentUI _paymentUI;
+        private readonly IAuthProvider _authProvider;
         private bool _enabled;
         private string _distributionPlaftorm;
 
@@ -70,7 +71,8 @@ namespace com.noctuagames.sdk
             AccessTokenProvider accessTokenProvider,
             IPaymentUI paymentUI,
             INativeIAP nativePlugin,
-            IEventSender eventSender = null
+            IEventSender eventSender = null,
+            IAuthProvider authProvider = null
         )
         {
             _config = config;
@@ -78,6 +80,7 @@ namespace com.noctuagames.sdk
             _eventSender = eventSender;
 
             _paymentUI = paymentUI;
+            _authProvider = authProvider;
 
 #if UNITY_ANDROID && !UNITY_EDITOR
             GoogleBillingInstance.OnProductDetailsDone += HandleGoogleProductDetails;
@@ -146,7 +149,7 @@ namespace com.noctuagames.sdk
 
             _log.Debug("calling API");
 
-            var recentAccount = Noctua.Auth.RecentAccount;
+            var recentAccount = _authProvider?.RecentAccount;
 
             if (recentAccount?.Player?.GameId == null || recentAccount.Player.GameId <= 0)
             {
@@ -352,7 +355,7 @@ namespace com.noctuagames.sdk
                             VerifyOrderRequest = verifyOrderRequest,
                             AccessToken = _accessTokenProvider.AccessToken,
                             Status = "completed",
-                            PlayerId = Noctua.Auth.RecentAccount?.Player?.Id,
+                            PlayerId = _authProvider?.PlayerId,
                         }
                     );
 
@@ -405,7 +408,7 @@ namespace com.noctuagames.sdk
                             VerifyOrderRequest = verifyOrderRequest,
                             AccessToken = _accessTokenProvider.AccessToken,
                             Status = "canceled",
-                            PlayerId = Noctua.Auth.RecentAccount?.Player?.Id,
+                            PlayerId = _authProvider?.PlayerId,
                         }
                     );
                     break;
@@ -430,7 +433,7 @@ namespace com.noctuagames.sdk
                             VerifyOrderRequest = verifyOrderRequest,
                             AccessToken = _accessTokenProvider.AccessToken,
                             Status = "refunded",
-                            PlayerId = Noctua.Auth.RecentAccount?.Player?.Id,
+                            PlayerId = _authProvider?.PlayerId,
                         }
                     );
                     break;
@@ -483,7 +486,7 @@ namespace com.noctuagames.sdk
                             VerifyOrderRequest = verifyOrderRequest,
                             AccessToken = _accessTokenProvider.AccessToken,
                             Status = "verification_failed",
-                            PlayerId = Noctua.Auth.RecentAccount?.Player?.Id,
+                            PlayerId = _authProvider?.PlayerId,
                         }
                     );
 
@@ -621,7 +624,7 @@ namespace com.noctuagames.sdk
                 {
                     await Noctua.InitAsync();
 
-                    await Noctua.Auth.AuthenticateAsync();
+                    await _authProvider.AuthenticateAsync();
 
                 } catch(Exception e)
                 {
@@ -748,7 +751,7 @@ namespace com.noctuagames.sdk
 
                 };
 
-                await Noctua.Auth.UpdatePlayerAccountAsync(playerData);
+                await _authProvider.UpdatePlayerAccountAsync(playerData);
                 
                 _log.Info($"updated player role: '{playerData.IngameRoleId}', server: '{playerData.IngameServerId}'");
                 
@@ -816,7 +819,7 @@ namespace com.noctuagames.sdk
                     OrderRequest = orderRequest,
                     VerifyOrderRequest = verifyOrderRequest,
                     AccessToken = _accessTokenProvider.AccessToken,
-                    PlayerId = Noctua.Auth.RecentAccount?.Player?.Id,
+                    PlayerId = _authProvider?.PlayerId,
                 };
 
                 // Store unpaired order.
@@ -955,7 +958,7 @@ namespace com.noctuagames.sdk
                                 orderRequest,
                                 verifyReq,
                                 _accessTokenProvider.AccessToken,
-                                Noctua.Auth.RecentAccount?.Player?.Id,
+                                _authProvider?.PlayerId,
                                 true
                             );
 
@@ -980,7 +983,7 @@ namespace com.noctuagames.sdk
                                     OrderRequest = orderRequest,
                                     VerifyOrderRequest = verifyReq,
                                     AccessToken = _accessTokenProvider.AccessToken,
-                                    PlayerId = Noctua.Auth.RecentAccount?.Player?.Id,
+                                    PlayerId = _authProvider?.PlayerId,
                                 }
                             );
                         }
@@ -1018,7 +1021,7 @@ namespace com.noctuagames.sdk
                                     OrderRequest = orderRequest,
                                     VerifyOrderRequest = verifyReq,
                                     AccessToken = _accessTokenProvider.AccessToken,
-                                    PlayerId = Noctua.Auth.RecentAccount?.Player?.Id,
+                                    PlayerId = _authProvider?.PlayerId,
                                 }
                             );
                         }
@@ -1058,7 +1061,7 @@ namespace com.noctuagames.sdk
             pendingPurchaseItem.OrderRequest = orderRequest;
             pendingPurchaseItem.VerifyOrderRequest = verifyOrderRequest;
             pendingPurchaseItem.AccessToken = _accessTokenProvider.AccessToken;
-            pendingPurchaseItem.PlayerId = Noctua.Auth.RecentAccount?.Player?.Id;
+            pendingPurchaseItem.PlayerId = _authProvider?.PlayerId;
 
             _log.Info($"Purchase process was done, whatever the status. Store the data to pending purchase early before verifying.  Order ID: {orderId}");
 
@@ -1121,7 +1124,7 @@ namespace com.noctuagames.sdk
                         orderRequest,
                         verifyOrderRequest,
                         _accessTokenProvider.AccessToken,
-                        Noctua.Auth.RecentAccount?.Player?.Id,
+                        _authProvider?.PlayerId,
                         true
                     )
                 );
@@ -1141,7 +1144,7 @@ namespace com.noctuagames.sdk
                             VerifyOrderRequest = verifyOrderRequest,
                             AccessToken = _accessTokenProvider.AccessToken,
                             Status = "Network error",
-                            PlayerId = Noctua.Auth.RecentAccount?.Player?.Id
+                            PlayerId = _authProvider?.PlayerId
                         }
                     );
                 }
@@ -1254,7 +1257,7 @@ namespace com.noctuagames.sdk
                         VerifyOrderRequest = item.VerifyOrderRequest,
                         AccessToken = item.AccessToken,
                         Status = "verification_failed",
-                        PlayerId = Noctua.Auth.RecentAccount?.Player?.Id
+                        PlayerId = _authProvider?.PlayerId
                     }
                 );
 
@@ -1532,7 +1535,7 @@ namespace com.noctuagames.sdk
                         orderRequest,
                         verifyOrderRequest,
                         _accessTokenProvider.AccessToken,
-                        Noctua.Auth.RecentAccount?.Player?.Id,
+                        _authProvider?.PlayerId,
                         false
                     );
                 }
@@ -1940,7 +1943,7 @@ namespace com.noctuagames.sdk
                                 VerifyOrderRequest = item.VerifyOrderRequest,
                                 AccessToken = item.AccessToken,
                                 Status = "verification_failed",
-                                PlayerId = Noctua.Auth.RecentAccount?.Player?.Id,
+                                PlayerId = _authProvider?.PlayerId,
                             }
                         );
 
@@ -2067,7 +2070,7 @@ namespace com.noctuagames.sdk
                             orderRequest,
                             verifyOrderRequest,
                             _accessTokenProvider.AccessToken,
-                            Noctua.Auth.RecentAccount?.Player?.Id,
+                            _authProvider?.PlayerId,
                             false
                         );
 
@@ -2116,7 +2119,7 @@ namespace com.noctuagames.sdk
             }
             if (item.PlayerId is null)
             {
-                item.PlayerId = Noctua.Auth.RecentAccount?.Player?.Id;
+                item.PlayerId = _authProvider?.PlayerId;
             }
 
             // Remove the existing if any.
@@ -2228,7 +2231,7 @@ namespace com.noctuagames.sdk
             }
             if (item.PlayerId is null)
             {
-                item.PlayerId = Noctua.Auth.RecentAccount?.Player?.Id;
+                item.PlayerId = _authProvider?.PlayerId;
             }
 
             // Remove the existing if any.
@@ -2445,7 +2448,7 @@ namespace com.noctuagames.sdk
                 throw new NoctuaException(NoctuaErrorCode.Application, "Redeem code must not be empty.");
             }
 
-            var recentAccount = Noctua.Auth.RecentAccount;
+            var recentAccount = _authProvider?.RecentAccount;
 
             if (recentAccount?.User?.Id == null || recentAccount.User.Id <= 0)
             {

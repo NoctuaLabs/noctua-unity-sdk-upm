@@ -231,6 +231,7 @@ namespace com.noctuagames.sdk
             var accessTokenProvider = new AccessTokenProvider(authService);
 
             var paymentUI = new PaymentUIAdapter(_uiFactory);
+            var lazyAuthProvider = new LazyAuthProvider();
 
             _iap = new NoctuaIAPService(
                 new NoctuaIAPService.Config
@@ -242,10 +243,12 @@ namespace com.noctuagames.sdk
                 accessTokenProvider,
                 paymentUI,
                 _nativePlugin,
-                _eventSender
+                _eventSender,
+                lazyAuthProvider
             );
 
             _auth = new NoctuaAuthentication(authService, _iap, _uiFactory, _config, _eventSender, locale);
+            lazyAuthProvider.SetAuth(_auth);
 
             _game = new NoctuaGameService(
                 new NoctuaGameService.Config
