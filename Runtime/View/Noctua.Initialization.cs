@@ -230,6 +230,8 @@ namespace com.noctuagames.sdk
 
             var accessTokenProvider = new AccessTokenProvider(authService);
 
+            var paymentUI = new PaymentUIAdapter(_uiFactory);
+
             _iap = new NoctuaIAPService(
                 new NoctuaIAPService.Config
                 {
@@ -238,7 +240,7 @@ namespace com.noctuagames.sdk
                     isIAPDisabled = _config.Noctua.isIAPDisabled,
                 },
                 accessTokenProvider,
-                _uiFactory,
+                paymentUI,
                 _nativePlugin,
                 _eventSender
             );

@@ -12,8 +12,6 @@ using Newtonsoft.Json.Converters;
 using Newtonsoft.Json.Serialization;
 using UnityEngine.Scripting;
 using Random = System.Random;
-using com.noctuagames.sdk.UI;
-using UnityEngine.UIElements;
 
 
 namespace com.noctuagames.sdk
@@ -40,8 +38,6 @@ namespace com.noctuagames.sdk
         private readonly Queue<PurchaseItem> _waitingPendingPurchases = new();
         private readonly INativeIAP _nativePlugin;
         private readonly ProductList _usdProducts = new();
-        private readonly CustomPaymentCompleteDialogPresenter _customPaymentCompleteDialog;
-        private readonly FailedPaymentDialogPresenter _failedPaymentDialog;
         private TaskCompletionSource<PaymentResult> _paymentTcs;
 
 #if UNITY_ANDROID && !UNITY_EDITOR
@@ -57,7 +53,7 @@ namespace com.noctuagames.sdk
         private List<PaymentType> _enabledPaymentTypes = new()
             { PaymentType.noctuastore };
 #endif
-        private readonly UIFactory _uiFactory;
+        private readonly IPaymentUI _paymentUI;
         private bool _enabled;
         private string _distributionPlaftorm;
 
@@ -72,7 +68,7 @@ namespace com.noctuagames.sdk
         internal NoctuaIAPService(
             Config config,
             AccessTokenProvider accessTokenProvider,
-            UIFactory uiFactory,
+            IPaymentUI paymentUI,
             INativeIAP nativePlugin,
             IEventSender eventSender = null
         )
@@ -81,9 +77,7 @@ namespace com.noctuagames.sdk
             _accessTokenProvider = accessTokenProvider;
             _eventSender = eventSender;
 
-            _uiFactory = uiFactory;
-            _customPaymentCompleteDialog = _uiFactory.Create<CustomPaymentCompleteDialogPresenter, object>(new object());
-            _failedPaymentDialog = _uiFactory.Create<FailedPaymentDialogPresenter, object>(new object());
+            _paymentUI = paymentUI;
 
 #if UNITY_ANDROID && !UNITY_EDITOR
             GoogleBillingInstance.OnProductDetailsDone += HandleGoogleProductDetails;
@@ -580,7 +574,7 @@ namespace com.noctuagames.sdk
         }
 
         private async Task HandlePurchaseRetryPopUpMessageAsync(string offlineModeMessage, PurchaseRequest purchaseRequest, bool tryToUseSecondaryPayment = false, PaymentType enforcedPaymentType = PaymentType.unknown) {
-            bool isRetry = await _uiFactory.ShowRetryDialog(offlineModeMessage, "offlineMode");
+            bool isRetry = await _paymentUI.ShowRetryDialog(offlineModeMessage, "offlineMode");
             if(isRetry)
             {
                 await PurchaseItemAsync(purchaseRequest, tryToUseSecondaryPayment, enforcedPaymentType);
@@ -607,7 +601,7 @@ namespace com.noctuagames.sdk
 
             if (_config.isIAPDisabled)
             {
-                _uiFactory.ShowError(LocaleTextKey.IAPDisabled);
+                _paymentUI.ShowError(LocaleTextKey.IAPDisabled);
 
                 _log.Warning($"IAP is being disabled by config");
                 throw new NoctuaException(NoctuaErrorCode.Unknown, "IAP is being disabled by config");
@@ -616,7 +610,7 @@ namespace com.noctuagames.sdk
 
 
             // Offline-first handler
-            _uiFactory.ShowLoadingProgress(true);
+            _paymentUI.ShowLoadingProgress(true);
             
             var offlineModeMessage = Noctua.Platform.Locale.GetTranslation(LocaleTextKey.OfflineModeMessage) + " [IAP]";
             var isOffline = await Noctua.IsOfflineAsync();
@@ -631,7 +625,7 @@ namespace com.noctuagames.sdk
 
                 } catch(Exception e)
                 {
-                    _uiFactory.ShowLoadingProgress(false);
+                    _paymentUI.ShowLoadingProgress(false);
 
                     await HandlePurchaseRetryPopUpMessageAsync(offlineModeMessage, purchaseRequest, tryToUseSecondaryPayment, enforcedPaymentType);
 
@@ -641,14 +635,14 @@ namespace com.noctuagames.sdk
 
             if (isOffline)
             {
-                _uiFactory.ShowLoadingProgress(false);
+                _paymentUI.ShowLoadingProgress(false);
 
                 await HandlePurchaseRetryPopUpMessageAsync(offlineModeMessage, purchaseRequest, tryToUseSecondaryPayment, enforcedPaymentType);
 
                 throw new NoctuaException(NoctuaErrorCode.Authentication, offlineModeMessage);
             }
 
-            _uiFactory.ShowLoadingProgress(false);
+            _paymentUI.ShowLoadingProgress(false);
 
             var iapReadyTimeout = DateTime.UtcNow.AddSeconds(5);
             while (!IsReady && DateTime.UtcNow < iapReadyTimeout)
@@ -693,7 +687,7 @@ namespace com.noctuagames.sdk
 
             if (!_accessTokenProvider.IsAuthenticated)
             {
-                _uiFactory.ShowError(LocaleTextKey.IAPRequiresAuthentication);
+                _paymentUI.ShowError(LocaleTextKey.IAPRequiresAuthentication);
 
                 _log.Warning($"Purchase requires user authentication");
                 throw new NoctuaException(NoctuaErrorCode.Authentication, "Purchase requires user authentication");
@@ -701,7 +695,7 @@ namespace com.noctuagames.sdk
             
             if (_enabledPaymentTypes.Count == 0)
             {
-                _uiFactory.ShowError(LocaleTextKey.IAPPaymentDisabled);
+                _paymentUI.ShowError(LocaleTextKey.IAPPaymentDisabled);
 
                 _log.Warning($"No payment types enabled");
                 throw new NoctuaException(NoctuaErrorCode.Payment, "no payment types enabled");
@@ -726,7 +720,7 @@ namespace com.noctuagames.sdk
                 _log.Info($"Fallback to enforced payment type: {paymentType}");
             }
 
-            _uiFactory.ShowLoadingProgress(true);
+            _paymentUI.ShowLoadingProgress(true);
             
             Product usdProduct;
             OrderRequest orderRequest;
@@ -869,14 +863,14 @@ namespace com.noctuagames.sdk
                 _log.Info("orderResponse.Id: "         + orderResponse.Id);
                 _log.Info("orderResponse.ProductId: " + orderResponse.ProductId);
 
-                _uiFactory.ShowLoadingProgress(false);
+                _paymentUI.ShowLoadingProgress(false);
             }
             catch (Exception e)
             {
                 _log.Warning($"Failed to prepare purchase: {e.Message}");
-                _uiFactory.ShowError(e.Message);
+                _paymentUI.ShowError(e.Message);
                 _log.Exception(e);
-                _uiFactory.ShowLoadingProgress(false);
+                _paymentUI.ShowLoadingProgress(false);
 
                 throw;
             }
@@ -942,7 +936,7 @@ namespace com.noctuagames.sdk
 
                     var nativePaymentButtonEnabled = _distributionPlaftorm != "direct";
 
-                    var completeDialogResult = await _customPaymentCompleteDialog.Show(nativePaymentButtonEnabled);
+                    var completeDialogResult = await _paymentUI.ShowCustomPaymentCompleteDialog(nativePaymentButtonEnabled);
                     _log.Info("NoctuaIAPService.PurchaseItemAsync user side payment flow completed (custom payment complete dialog), clear up _paymentTcs then continue the payment flow.");
 
                     if (completeDialogResult == "cancel") // Custom payment get canceled.
@@ -1082,7 +1076,7 @@ namespace com.noctuagames.sdk
                 case PaymentStatus.PendingPurchaseOngoing:
                 case PaymentStatus.ItemAlreadyOwned:
                     _log.Warning($"Purchase status ItemAlreadyOwned: {paymentResult.Status}, Message: {paymentResult.Message}");
-                    await _failedPaymentDialog.Show(paymentResult.Status);
+                    await _paymentUI.ShowFailedPaymentDialog(paymentResult.Status);
                     
                     throw new NoctuaException(NoctuaErrorCode.PaymentStatusItemAlreadyOwned, paymentResult.Message, orderId.ToString());
                 case PaymentStatus.Canceled:
@@ -1100,17 +1094,17 @@ namespace com.noctuagames.sdk
                         }
                     );
 
-                    _uiFactory.ShowError(LocaleTextKey.IAPCanceled);
+                    _paymentUI.ShowError(LocaleTextKey.IAPCanceled);
                 
                     throw new NoctuaException(NoctuaErrorCode.PaymentStatusCanceled, $"payment status: {paymentResult.Status}, Message: {paymentResult.Message}", orderId.ToString());
                 case PaymentStatus.IapNotReady:
                     _log.Warning($"Purchase status IAPNotReady: {paymentResult.Status}, Message: {paymentResult.Message}");
-                    _uiFactory.ShowError(LocaleTextKey.IAPNotReady);
+                    _paymentUI.ShowError(LocaleTextKey.IAPNotReady);
 
                     throw new NoctuaException(NoctuaErrorCode.PaymentStatusIapNotReady, $"payment status: {paymentResult.Status}, Message: {paymentResult.Message}", orderId.ToString());
                 default:
                     _log.Warning($"Purchase status IAPFailed: {paymentResult.Status}, Message: {paymentResult.Message}");
-                    _uiFactory.ShowError(LocaleTextKey.IAPFailed);
+                    _paymentUI.ShowError(LocaleTextKey.IAPFailed);
                 
                     throw new NoctuaException(NoctuaErrorCode.Payment, $"payment status: {paymentResult.Status}, Message: {paymentResult.Message}", orderId.ToString());
             }
@@ -1120,7 +1114,7 @@ namespace com.noctuagames.sdk
             VerifyOrderResponse verifyOrderResponse;
 
             try {
-                _uiFactory.ShowLoadingProgress(true);
+                _paymentUI.ShowLoadingProgress(true);
 
                 verifyOrderRequest.Trigger = VerifyOrderTrigger.payment_flow.ToString();
                 verifyOrderResponse = await RetryAsync(() => VerifyOrderImplAsync(
@@ -1132,7 +1126,7 @@ namespace com.noctuagames.sdk
                     )
                 );
 
-                _uiFactory.ShowLoadingProgress(false);
+                _paymentUI.ShowLoadingProgress(false);
             }
             catch (NoctuaException e)
             {
@@ -1162,16 +1156,16 @@ namespace com.noctuagames.sdk
                     _log.Info($"NoctuaUnpairedOrders: {JsonConvert.SerializeObject(unpairedOrders)}");
                 }
                 
-                _uiFactory.ShowLoadingProgress(false);
+                _paymentUI.ShowLoadingProgress(false);
                 _log.Exception(e);
-                _uiFactory.ShowError(e.Message);
+                _paymentUI.ShowError(e.Message);
 
                 throw;
             }
             catch (Exception e) 
             {
                 _log.Warning($"Failed to verify order: {e.Message}");
-                _uiFactory.ShowLoadingProgress(false);
+                _paymentUI.ShowLoadingProgress(false);
                 _log.Exception(e);
                 
                 throw;
@@ -1181,25 +1175,25 @@ namespace com.noctuagames.sdk
             switch (verifyOrderResponse.Status)
             {
                 case OrderStatus.canceled:
-                    _uiFactory.ShowGeneralNotification(
+                    _paymentUI.ShowGeneralNotification(
                         "Your purchase has been canceled. Please contact customer support for more details.",
                         false
                     );
                     break;
                 case OrderStatus.refunded:
-                    _uiFactory.ShowGeneralNotification(
+                    _paymentUI.ShowGeneralNotification(
                         "Your purchase has been refunded. Please contact customer support for more details.",
                         false
                     );
                     break;
                 case OrderStatus.voided:
-                    _uiFactory.ShowGeneralNotification(
+                    _paymentUI.ShowGeneralNotification(
                         "Your purchase has been voided. Please contact customer support for more details.",
                         false
                     );
                     break;
                 default:
-                    _uiFactory.ShowGeneralNotification("Purchase successful!", true);
+                    _paymentUI.ShowGeneralNotification("Purchase successful!", true);
                     break;
             }
 
@@ -1243,7 +1237,7 @@ namespace com.noctuagames.sdk
                     // Enqueue to player prefs for future read
                     item.Status = verifyOrderResponse.Status.ToString();
                     EnqueueToRetryPendingPurchases(item);
-                    _uiFactory.ShowGeneralNotification("Failed to verify the purchase. Status: " + verifyOrderResponse.Status.ToString(), false);
+                    _paymentUI.ShowGeneralNotification("Failed to verify the purchase. Status: " + verifyOrderResponse.Status.ToString(), false);
                 }
 
                 return verifyOrderResponse.Status;
@@ -1282,12 +1276,12 @@ namespace com.noctuagames.sdk
             {
                 try
                 {
-                    _uiFactory.ShowLoadingProgress(true);
+                    _paymentUI.ShowLoadingProgress(true);
                     return await action();
                 }
                 catch (NoctuaException e)
                 {
-                    _uiFactory.ShowLoadingProgress(false);
+                    _paymentUI.ShowLoadingProgress(false);
                     var errorCode = (NoctuaErrorCode)e.ErrorCode;
 
                     bool shouldRetry = false;
@@ -1297,16 +1291,16 @@ namespace com.noctuagames.sdk
                             _log.Exception(e);
                             if (e.Message.Contains("HTTP error"))
                             {
-                                shouldRetry = await _uiFactory.ShowRetryDialog($"{e.Message}. Please try again later.", "payment");
+                                shouldRetry = await _paymentUI.ShowRetryDialog($"{e.Message}. Please try again later.", "payment");
                             }
                             else
                             {
-                                shouldRetry = await _uiFactory.ShowRetryDialog("Please check your internet connection.", "payment");
+                                shouldRetry = await _paymentUI.ShowRetryDialog("Please check your internet connection.", "payment");
                             }
                             break;
                         default:
                             _log.Exception(e);
-                            shouldRetry = await _uiFactory.ShowRetryDialog(e.Message, "payment");
+                            shouldRetry = await _paymentUI.ShowRetryDialog(e.Message, "payment");
                             break;
                     }
 
@@ -1317,10 +1311,10 @@ namespace com.noctuagames.sdk
                 }
                 catch (Exception ex)
                 {
-                    _uiFactory.ShowLoadingProgress(false);
+                    _paymentUI.ShowLoadingProgress(false);
                     _log.Exception(ex);
 
-                    bool shouldRetry = await _uiFactory.ShowRetryDialog(ex.Message, "payment");
+                    bool shouldRetry = await _paymentUI.ShowRetryDialog(ex.Message, "payment");
                     if (!shouldRetry)
                     {
                         throw;
