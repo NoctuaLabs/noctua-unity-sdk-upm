@@ -36,7 +36,7 @@ namespace com.noctuagames.sdk
         private readonly IEventSender _eventSender;
         private readonly AccessTokenProvider _accessTokenProvider;
         private readonly Queue<PurchaseItem> _waitingPendingPurchases = new();
-        private readonly INativeIAP _nativePlugin;
+        private readonly INativePlugin _nativePlugin;
         private readonly ProductList _usdProducts = new();
         private TaskCompletionSource<PaymentResult> _paymentTcs;
 
@@ -70,7 +70,7 @@ namespace com.noctuagames.sdk
             Config config,
             AccessTokenProvider accessTokenProvider,
             IPaymentUI paymentUI,
-            INativeIAP nativePlugin,
+            INativePlugin nativePlugin,
             IEventSender eventSender = null,
             IAuthProvider authProvider = null
         )
