@@ -51,7 +51,7 @@ namespace com.noctuagames.sdk.Events
         }
     }
 
-    public class EventSender : IDisposable
+    public class EventSender : IDisposable, IEventSender
     {
         public DateTime LastEventTime { get; private set; }
 
