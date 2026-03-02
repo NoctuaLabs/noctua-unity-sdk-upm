@@ -33,45 +33,57 @@ namespace com.noctuagames.sdk
         int DeleteAccount(NativeAccount account);
     }
 
-    public interface INativePlugin : INativeTracker, INativeIAP, INativeAccountStore, INativeDatePicker
-    {
-        void Init(List<String> activeBundleIds);
-
-        void OnApplicationPause(bool pause);
-
-        void GetFirebaseInstallationID(Action<string> callback);
-
-        void GetFirebaseAnalyticsSessionID(Action<string> callback);
-
-        void GetFirebaseRemoteConfigString(string key, Action<string> callback);
-
-        void GetFirebaseRemoteConfigBoolean(string key, Action<bool> callback);
-
-        void GetFirebaseRemoteConfigDouble(string key, Action<double> callback);
-
-        void GetFirebaseRemoteConfigLong(string key, Action<long> callback);
-
-        void GetAdjustAttribution(Action<string> callback);
-
-        void SaveEvents(string jsonString);
-
-        void GetEvents(Action<List<string>> callback);
-
-        void DeleteEvents();
-
-        // Per-row event storage for unlimited event tracking
-        void InsertEvent(string eventJson);
-
-        void GetEventsBatch(int limit, int offset, Action<List<NativeEvent>> callback);
-
-        void DeleteEventsByIds(long[] ids, Action<int> callback);
-
-        void GetEventCount(Action<int> callback);
-    }
-
     public interface INativeDatePicker
     {
         void ShowDatePicker(int year, int month, int day, int id);
         void CloseDatePicker();
+    }
+
+    /// <summary>
+    /// Firebase and Adjust analytics bridge methods.
+    /// </summary>
+    public interface INativeFirebase
+    {
+        void GetFirebaseInstallationID(Action<string> callback);
+        void GetFirebaseAnalyticsSessionID(Action<string> callback);
+        void GetFirebaseRemoteConfigString(string key, Action<string> callback);
+        void GetFirebaseRemoteConfigBoolean(string key, Action<bool> callback);
+        void GetFirebaseRemoteConfigDouble(string key, Action<double> callback);
+        void GetFirebaseRemoteConfigLong(string key, Action<long> callback);
+        void GetAdjustAttribution(Action<string> callback);
+    }
+
+    /// <summary>
+    /// Native event persistence (save, retrieve, delete events).
+    /// </summary>
+    public interface INativeEventStorage
+    {
+        void SaveEvents(string jsonString);
+        void GetEvents(Action<List<string>> callback);
+        void DeleteEvents();
+
+        // Per-row event storage for unlimited event tracking
+        void InsertEvent(string eventJson);
+        void GetEventsBatch(int limit, int offset, Action<List<NativeEvent>> callback);
+        void DeleteEventsByIds(long[] ids, Action<int> callback);
+        void GetEventCount(Action<int> callback);
+    }
+
+    /// <summary>
+    /// Native plugin lifecycle (init, pause/resume).
+    /// </summary>
+    public interface INativeLifecycle
+    {
+        void Init(List<String> activeBundleIds);
+        void OnApplicationPause(bool pause);
+    }
+
+    /// <summary>
+    /// Aggregate native plugin interface — inherits all domain-specific sub-interfaces.
+    /// Platform implementations (AndroidPlugin, IosPlugin, DefaultNativePlugin) implement this.
+    /// </summary>
+    public interface INativePlugin : INativeTracker, INativeIAP, INativeAccountStore,
+        INativeDatePicker, INativeFirebase, INativeEventStorage, INativeLifecycle
+    {
     }
 }
