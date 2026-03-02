@@ -38,7 +38,7 @@ namespace com.noctuagames.sdk
         private readonly EventSender _eventSender;
         private readonly AccessTokenProvider _accessTokenProvider;
         private readonly Queue<PurchaseItem> _waitingPendingPurchases = new();
-        private readonly INativePlugin _nativePlugin;
+        private readonly INativeIAP _nativePlugin;
         private readonly ProductList _usdProducts = new();
         private readonly CustomPaymentCompleteDialogPresenter _customPaymentCompleteDialog;
         private readonly FailedPaymentDialogPresenter _failedPaymentDialog;
@@ -73,7 +73,7 @@ namespace com.noctuagames.sdk
             Config config,
             AccessTokenProvider accessTokenProvider,
             UIFactory uiFactory,
-            INativePlugin nativePlugin,
+            INativeIAP nativePlugin,
             EventSender eventSender = null
         )
         {

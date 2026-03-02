@@ -25,7 +25,7 @@ namespace com.noctuagames.sdk.Events
         public uint BatchPeriodMs = 60_000; // 1 minute, in ms
         public int CycleDelay = 10_000; // 10 sec, in ms
         public int MaxStoredEvents = 100_000; // 100K events cap with FIFO eviction
-        public INativePlugin NativePlugin;
+        public INativeEventStorage NativePlugin;
         public FirebaseConfig FirebaseConfig = new FirebaseConfig();
     }
 
