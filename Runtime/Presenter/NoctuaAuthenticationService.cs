@@ -38,7 +38,7 @@ namespace com.noctuagames.sdk
         private readonly string _bundleId;
         private readonly NoctuaLocale _locale;
         private readonly AccountContainer _accountContainer;
-        private readonly EventSender _eventSender;
+        private readonly IEventSender _eventSender;
         private OauthRedirectListener _oauthOauthRedirectListener;
 
         public NoctuaAuthenticationService(
@@ -47,7 +47,7 @@ namespace com.noctuagames.sdk
             INativeAccountStore nativeAccountStore,
             NoctuaLocale locale = null,
             string bundleId = null,
-            EventSender eventSender = null
+            IEventSender eventSender = null
         )
         {
             if (string.IsNullOrEmpty(baseUrl))

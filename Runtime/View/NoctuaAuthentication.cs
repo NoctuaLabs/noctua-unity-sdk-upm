@@ -81,7 +81,7 @@ namespace com.noctuagames.sdk
             NoctuaIAPService iapService,
             UIFactory uiFactory,
             GlobalConfig config,
-            EventSender eventSender = null,
+            IEventSender eventSender = null,
             NoctuaLocale locale = null
         )
         {

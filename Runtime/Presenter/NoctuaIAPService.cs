@@ -35,7 +35,7 @@ namespace com.noctuagames.sdk
         public event Action<OrderRequest> OnPurchaseDone;
         public event Action<OrderRequest> OnPurchasePending;
 
-        private readonly EventSender _eventSender;
+        private readonly IEventSender _eventSender;
         private readonly AccessTokenProvider _accessTokenProvider;
         private readonly Queue<PurchaseItem> _waitingPendingPurchases = new();
         private readonly INativeIAP _nativePlugin;
@@ -74,7 +74,7 @@ namespace com.noctuagames.sdk
             AccessTokenProvider accessTokenProvider,
             UIFactory uiFactory,
             INativeIAP nativePlugin,
-            EventSender eventSender = null
+            IEventSender eventSender = null
         )
         {
             _config = config;

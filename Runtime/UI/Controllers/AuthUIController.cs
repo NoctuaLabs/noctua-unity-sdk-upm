@@ -71,7 +71,7 @@ namespace com.noctuagames.sdk
             NoctuaAuthenticationService authService, 
             NoctuaIAPService iapService,
             GlobalConfig config,
-            EventSender eventSender = null,
+            IEventSender eventSender = null,
             NoctuaLocale locale = null
         )
         {

@@ -17,7 +17,7 @@ namespace com.noctuagames.sdk.UI
 {
     internal class UserCenterPresenter : Presenter<AuthUIController>
     {
-        public EventSender EventSender;
+        public IEventSender EventSender;
 
         private readonly ILogger _log = new NoctuaLogger();
 

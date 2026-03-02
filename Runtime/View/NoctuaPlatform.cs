@@ -13,7 +13,7 @@ namespace com.noctuagames.sdk
             NoctuaConfig config,
             AccessTokenProvider accessTokenProvider,
             UIFactory uiFactory,
-            EventSender eventSender = null
+            IEventSender eventSender = null
         )
         {
             Locale = new NoctuaLocale(config.Region);

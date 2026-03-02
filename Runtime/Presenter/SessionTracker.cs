@@ -21,7 +21,7 @@ namespace com.noctuagames.sdk.Events
     public class SessionTracker : IDisposable
     {
         private readonly SessionTrackerConfig _config;
-        private readonly EventSender _eventSender;
+        private readonly IEventSender _eventSender;
         private readonly UniTask _heartbeatTask;
         private readonly CancellationTokenSource _cancelHeartbeatSource;
         private  Dictionary<string, bool> _remoteFeatureFlags;
@@ -35,7 +35,7 @@ namespace com.noctuagames.sdk.Events
         
         private string _sessionId;
 
-        public SessionTracker(SessionTrackerConfig config, EventSender eventSender, Dictionary<string, bool> remoteFeatureFlags = null)
+        public SessionTracker(SessionTrackerConfig config, IEventSender eventSender, Dictionary<string, bool> remoteFeatureFlags = null)
         {
             _config = config ?? throw new ArgumentNullException(nameof(config));
             _eventSender = eventSender ?? throw new ArgumentNullException(nameof(eventSender));

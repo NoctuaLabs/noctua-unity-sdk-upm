@@ -53,13 +53,13 @@ namespace com.noctuagames.sdk
 
         private readonly UIFactory _uiFactory;
         private readonly WebContentPresenter _webView;
-        private readonly EventSender _eventSender;
+        private readonly IEventSender _eventSender;
 
         internal NoctuaWebContent(
             NoctuaWebContentConfig config,
             AccessTokenProvider accessTokenProvider,
             UIFactory uiFactory,
-            EventSender eventSender = null
+            IEventSender eventSender = null
         )
         {
             _uiFactory = uiFactory;
