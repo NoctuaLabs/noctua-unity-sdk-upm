@@ -22,5 +22,12 @@ namespace com.noctuagames.sdk.Events
             string ipAddress = "",
             bool? isSandbox = null
         );
+
+        /// <summary>
+        /// Flush queued events to the server immediately.
+        /// Used by <see cref="SessionTracker"/> on pause/dispose to ensure
+        /// session lifecycle events are delivered promptly.
+        /// </summary>
+        void Flush();
     }
 }
