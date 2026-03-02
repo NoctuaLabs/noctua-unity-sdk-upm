@@ -1,0 +1,902 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Net;
+using com.noctuagames.sdk.Events;
+using Cysharp.Threading.Tasks;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Converters;
+using Newtonsoft.Json.Serialization;
+using UnityEngine;
+using UnityEngine.Scripting;
+
+namespace com.noctuagames.sdk
+{
+    public class NoctuaAuthenticationService
+    {
+        public IReadOnlyList<UserBundle> AccountList => _accountContainer.Accounts;
+
+        public IReadOnlyList<UserBundle> CurrentGameAccountList => _accountContainer.CurrentGameAccounts;
+
+        public IReadOnlyList<UserBundle> OtherGamesAccountList => _accountContainer.OtherGamesAccounts;
+
+        public bool IsAuthenticated => !string.IsNullOrEmpty(_accountContainer.RecentAccount?.Player?.AccessToken);
+
+        public UserBundle RecentAccount => _accountContainer.RecentAccount;
+
+        public event Action<UserBundle> OnAccountChanged
+        {
+            add => _accountContainer.OnAccountChanged += value;
+            remove => _accountContainer.OnAccountChanged -= value;
+        }
+
+        public event Action<Player> OnAccountDeleted;
+
+        private readonly ILogger _log = new NoctuaLogger(typeof(NoctuaAuthenticationService));
+        private readonly string _clientId;
+        private readonly string _baseUrl;
+        private readonly string _bundleId;
+        private readonly NoctuaLocale _locale;
+        private readonly AccountContainer _accountContainer;
+        private readonly EventSender _eventSender;
+        private OauthRedirectListener _oauthOauthRedirectListener;
+
+        public NoctuaAuthenticationService(
+            string baseUrl,
+            string clientId,
+            INativeAccountStore nativeAccountStore,
+            NoctuaLocale locale = null,
+            string bundleId = null,
+            EventSender eventSender = null
+        )
+        {
+            if (string.IsNullOrEmpty(baseUrl))
+            {
+                throw new ArgumentNullException(nameof(baseUrl));
+            }
+
+            if (string.IsNullOrEmpty(clientId))
+            {
+                throw new ArgumentNullException(nameof(clientId));
+            }
+
+            if (string.IsNullOrEmpty(bundleId))
+            {
+                throw new ArgumentNullException(nameof(bundleId));
+            }
+
+            _clientId = clientId;
+            _baseUrl = baseUrl;
+            _locale = locale;
+            _bundleId = bundleId;
+            _eventSender = eventSender;
+            _accountContainer = new AccountContainer(nativeAccountStore, bundleId, _locale);
+        }
+
+        public async UniTask<UserBundle> LoginAsGuestAsync()
+        {
+            if (string.IsNullOrEmpty(Application.identifier))
+            {
+                throw new ApplicationException($"App id for platform {Application.platform} is not set");
+            }
+
+            var request = new HttpRequest(HttpMethod.Post, $"{_baseUrl}/auth/guest/login")
+                .WithHeader("X-CLIENT-ID", _clientId)
+                .WithHeader("X-BUNDLE-ID", _bundleId)
+                .WithJsonBody(
+                    new LoginAsGuestRequest
+                    {
+                        DeviceId = SystemInfo.deviceUniqueIdentifier,
+                        BundleId = Application.identifier,
+                        DistributionPlatform = Utility.GetPlatformType()
+                    }
+                );
+
+
+            var response = await request.Send<PlayerToken>();
+
+            _accountContainer.UpdateRecentAccount(response);
+
+            PlayerPrefs.SetString("NoctuaAccessToken", response.AccessToken);
+
+            SetEventProperties(response);
+            SendEvent("account_authenticated");
+
+            return _accountContainer.RecentAccount;
+        }
+
+        public async UniTask<UserBundle> ExchangeTokenAsync(string accessToken)
+        {
+            var exchangeToken = new ExchangeTokenRequest
+            {
+                NextBundleId = _bundleId,
+                InitPlayer = true,
+                NextDistributionPlatform = Utility.GetPlatformType()
+            };
+
+            var request = new HttpRequest(HttpMethod.Post, $"{_baseUrl}/auth/token-exchange")
+                .WithHeader("X-CLIENT-ID", _clientId)
+                .WithHeader("X-BUNDLE-ID", _bundleId)
+                .WithHeader("Authorization", "Bearer " + accessToken)
+                .WithJsonBody(exchangeToken);
+
+
+            var response = await request.Send<PlayerToken>();
+
+            _accountContainer.UpdateRecentAccount(response);
+
+            PlayerPrefs.SetString("NoctuaAccessToken", response.AccessToken);
+
+            return _accountContainer.RecentAccount;
+        }
+
+        public async UniTask<string> GetSocialAuthRedirectURLAsync(string provider, string redirectUri = "")
+        {
+            if (!string.IsNullOrEmpty(redirectUri))
+            {
+                redirectUri = $"?redirect_uri={WebUtility.UrlEncode(redirectUri)}";
+            }
+
+            var request = new HttpRequest(HttpMethod.Get, $"{_baseUrl}/auth/{provider}/login/redirect{redirectUri}")
+                .WithHeader("X-CLIENT-ID", _clientId)
+                .WithHeader("X-BUNDLE-ID", _bundleId);
+
+            var redirectUrlResponse = await request.Send<SocialRedirectUrlResponse>();
+
+            return redirectUrlResponse?.RedirectUrl;
+        }
+        public async UniTask<UserBundle> SocialLoginAsync(string provider, SocialLoginRequest payload)
+        {
+            var request = new HttpRequest(HttpMethod.Post, $"{_baseUrl}/auth/{provider}/login/callback")
+                .WithHeader("X-CLIENT-ID", _clientId)
+                .WithHeader("X-BUNDLE-ID", _bundleId)
+                .WithJsonBody(payload);
+
+            if (!string.IsNullOrEmpty(RecentAccount?.Player?.AccessToken) && RecentAccount.IsGuest)
+            {
+                request.WithHeader("Authorization", "Bearer " + RecentAccount.Player.AccessToken);
+            }
+
+            var response = await request.Send<PlayerToken>();
+
+            _accountContainer.UpdateRecentAccount(response);
+
+            SetEventProperties(response);
+            SendEvent("account_authenticated");
+            SendEvent("account_authenticated_by_sso");
+
+            return _accountContainer.RecentAccount;
+        }
+
+        // TODO: Add support for phone
+        public async UniTask<UserBundle> LoginWithEmailAsync(string email, string password)
+        {
+            var request = new HttpRequest(HttpMethod.Post, $"{_baseUrl}/auth/email/login")
+                .WithHeader("X-CLIENT-ID", _clientId)
+                .WithHeader("X-BUNDLE-ID", _bundleId)
+                .WithJsonBody(
+                    new CredPair
+                    {
+                        CredKey = email,
+                        CredSecret = password
+                    }
+                )
+                .NoVerboseLog();
+
+            var response = await request.Send<PlayerToken>();
+
+            _accountContainer.UpdateRecentAccount(response);
+
+
+            SetEventProperties(response);
+            SendEvent("account_authenticated");
+            SendEvent("account_authenticated_by_email");
+
+            return _accountContainer.RecentAccount;
+        }
+
+        // TODO: Add support for phone
+        public async UniTask<CredentialVerification> RegisterWithEmailAsync(string email, string password, Dictionary<string, string> regExtra)
+        {
+            _log.Debug("RegisterWithEmailAsync");
+
+            var request = new HttpRequest(HttpMethod.Post, $"{_baseUrl}/auth/email/register")
+                .WithHeader("X-CLIENT-ID", _clientId)
+                .WithHeader("X-BUNDLE-ID", _bundleId)
+                .WithJsonBody(
+                    new CredPair
+                    {
+                        CredKey = email,
+                        CredSecret = password,
+                        Provider = "email",
+                        RegExtra = regExtra
+                    }
+                )
+                .NoVerboseLog();
+
+            return await request.Send<CredentialVerification>();
+        }
+
+        // This API is a subset of email register to support VN legal purpose, not a full registration
+        // That is why it has RegisterWithEmail prefix. RegisterWithPhoneNumber will have its own API in the future.
+        public async UniTask<RegisterWithEmailSendPhoneNumberVerificationResponse> RegisterWithEmailSendPhoneNumberVerificationAsync(string phoneNumber)
+        {
+            _log.Debug("RegisterWithEmailSendPhoneNumberVerificationAsync");
+
+            var request = new HttpRequest(HttpMethod.Post, $"{_baseUrl}/auth/email/register-phone-number")
+                .WithHeader("X-CLIENT-ID", _clientId)
+                .WithHeader("X-BUNDLE-ID", _bundleId)
+                .WithJsonBody(
+                    new RegisterWithEmailSendPhoneNumberVerification
+                    {
+                        PhoneNumber = phoneNumber
+                    }
+                )
+                .NoVerboseLog();
+
+            return await request.Send<RegisterWithEmailSendPhoneNumberVerificationResponse>();
+        }
+
+        public async UniTask<RegisterWithEmailVerifyPhoneNumberVerificationResponse> RegisterWithEmailVerifyPhoneNumberAsync(string id, string code)
+        {
+            var request = new HttpRequest(HttpMethod.Post, $"{_baseUrl}/auth/email/verify-phone-number-registration")
+                .WithHeader("X-CLIENT-ID", _clientId)
+                .WithHeader("X-BUNDLE-ID", _bundleId)
+                .WithJsonBody(
+                    new RegisterWithEmailVerifyPhoneNumberVerification
+                    {
+                        VerificationId = id,
+                        Code = code
+                    }
+                )
+                .NoVerboseLog();
+
+            return await request.Send<RegisterWithEmailVerifyPhoneNumberVerificationResponse>();
+        }
+
+        public async UniTask<UserBundle> VerifyEmailRegistrationAsync(int id, string code)
+        {
+            var request = new HttpRequest(HttpMethod.Post, $"{_baseUrl}/auth/email/verify-registration")
+                .WithHeader("X-CLIENT-ID", _clientId)
+                .WithHeader("X-BUNDLE-ID", _bundleId)
+                .WithJsonBody(
+                    new CredentialVerification
+                    {
+                        Id = id,
+                        Code = code,
+                        NoBindGuest = true
+                    }
+                );
+
+            var response = await request.Send<PlayerToken>();
+
+            _accountContainer.UpdateRecentAccount(response);
+
+            SetEventProperties(response);
+            SendEvent("account_created");
+            SendEvent("account_created_by_email");
+
+            return _accountContainer.RecentAccount;
+        }
+
+        // TODO: Add support for phone
+
+        public async UniTask<CredentialVerification> RequestResetPasswordAsync(string email)
+        {
+            var request = new HttpRequest(HttpMethod.Post, $"{_baseUrl}/auth/email/reset-password")
+                .WithHeader("X-CLIENT-ID", _clientId)
+                .WithHeader("X-BUNDLE-ID", _bundleId)
+                .WithJsonBody(
+                    new CredPair
+                    {
+                        CredKey = email
+                    }
+                );
+
+            var response = await request.Send<CredentialVerification>();
+
+            SendEvent("reset_password_requested");
+
+            return response;
+        }
+
+        // TODO: Add support for phone
+
+        public async UniTask<PlayerToken> ConfirmResetPasswordAsync(int id, string code, string newPassword)
+        {
+            var request = new HttpRequest(HttpMethod.Post, $"{_baseUrl}/auth/email/verify-reset-password")
+                .WithHeader("X-CLIENT-ID", _clientId)
+                .WithHeader("X-BUNDLE-ID", _bundleId)
+                .WithJsonBody(
+                    new CredentialVerification
+                    {
+                        Id = id,
+                        Code = code,
+                        NewPassword = newPassword,
+                    }
+                )
+                .NoVerboseLog();
+
+            var response = await request.Send<PlayerToken>();
+
+            SendEvent("reset_password_completed");
+
+            return response;
+        }
+
+        public async UniTask<Credential> SocialLinkAsync(string provider, SocialLinkRequest payload)
+        {
+            _log.Debug("SocialLinkAsync");
+            if (string.IsNullOrEmpty(RecentAccount?.Player?.AccessToken))
+            {
+                throw NoctuaException.MissingAccessToken;
+            }
+
+            if (RecentAccount.IsGuest)
+            {
+                throw new NoctuaException(NoctuaErrorCode.Authentication, "Guest account cannot link email");
+            }
+
+            var request = new HttpRequest(HttpMethod.Post, $"{_baseUrl}/auth/{provider}/link/callback")
+                .WithHeader("X-CLIENT-ID", _clientId)
+                .WithHeader("X-BUNDLE-ID", _bundleId)
+                .WithHeader("Authorization", "Bearer " + RecentAccount.Player.AccessToken)
+                .WithJsonBody(payload);
+
+            var response = await request.Send<Credential>();
+
+            SendEvent(
+                "credential_added",
+                new()
+                {
+                    { "new_credential_provider", response.Provider },
+                    { "new_credential_id", response.Id }
+                }
+            );
+
+            return response;
+        }
+
+        // TODO: Add support for phone
+
+        public async UniTask<CredentialVerification> LinkWithEmailAsync(string email, string password)
+        {
+            _log.Debug("LinkWithEmailAsync");
+            if (string.IsNullOrEmpty(RecentAccount?.Player?.AccessToken))
+            {
+                throw NoctuaException.MissingAccessToken;
+            }
+
+            if (RecentAccount.IsGuest)
+            {
+                throw new NoctuaException(NoctuaErrorCode.Authentication, "Guest account cannot link email");
+            }
+
+            var request = new HttpRequest(HttpMethod.Post, $"{_baseUrl}/auth/email/link")
+                .WithHeader("X-CLIENT-ID", _clientId)
+                .WithHeader("X-BUNDLE-ID", Application.identifier)
+                .WithHeader("Authorization", "Bearer " + RecentAccount.Player.AccessToken)
+                .WithJsonBody(
+                    new CredPair
+                    {
+                        CredKey = email,
+                        CredSecret = password,
+                        Provider = "email"
+                    }
+                )
+                .NoVerboseLog();
+
+            return await request.Send<CredentialVerification>();
+        }
+
+        public async UniTask<Credential> VerifyEmailLinkingAsync(int id, string code)
+        {
+            if (string.IsNullOrEmpty(RecentAccount?.Player?.AccessToken))
+            {
+                throw NoctuaException.MissingAccessToken;
+            }
+
+            var request = new HttpRequest(HttpMethod.Post, $"{_baseUrl}/auth/email/verify-link")
+                .WithHeader("X-CLIENT-ID", _clientId)
+                .WithHeader("X-BUNDLE-ID", _bundleId)
+                .WithHeader("Authorization", "Bearer " + RecentAccount.Player.AccessToken)
+                .WithJsonBody(
+                    new CredentialVerification
+                    {
+                        Id = id,
+                        Code = code
+                    }
+                );
+
+            var response = await request.Send<Credential>();
+
+            SendEvent(
+                "credential_added",
+                new()
+                {
+                    { "new_credential_provider", response.Provider },
+                    { "new_credential_id", response.Id }
+                }
+            );
+
+            return response;
+        }
+
+        public async UniTask<PlayerToken> BeginVerifyEmailRegistrationAsync(int id, string code)
+        {
+            if (!RecentAccount.IsGuest)
+            {
+                throw new NoctuaException(NoctuaErrorCode.Authentication, "Account is not a guest account");
+            }
+
+            var request = new HttpRequest(HttpMethod.Post, $"{_baseUrl}/auth/email/verify-registration")
+                .WithHeader("X-CLIENT-ID", _clientId)
+                .WithHeader("X-BUNDLE-ID", _bundleId)
+                .WithJsonBody(
+                    new CredentialVerification
+                    {
+                        Id = id,
+                        Code = code,
+                        NoBindGuest = true
+                    }
+                );
+
+            request.WithHeader("Authorization", "Bearer " + RecentAccount.Player.AccessToken);
+
+            return await request.Send<PlayerToken>();
+        }
+
+        public async UniTask<PlayerToken> BeginVerifyEmailLinkingAsync(int id, string code)
+        {
+            if (!RecentAccount.IsGuest)
+            {
+                throw new NoctuaException(NoctuaErrorCode.Authentication, "Account is not a guest account");
+            }
+
+            var request = new HttpRequest(HttpMethod.Post, $"{_baseUrl}/auth/email/verify-link")
+                .WithHeader("X-CLIENT-ID", _clientId)
+                .WithHeader("X-BUNDLE-ID", _bundleId)
+                .WithJsonBody(
+                    new CredentialVerification
+                    {
+                        Id = id,
+                        Code = code,
+                        NoBindGuest = true
+                    }
+                );
+
+            request.WithHeader("Authorization", "Bearer " + RecentAccount.Player.AccessToken);
+
+            return await request.Send<PlayerToken>();
+        }
+
+        public async UniTask<PlayerToken> GetSocialLoginTokenAsync(string provider, SocialLoginRequest payload)
+        {
+            if (!RecentAccount.IsGuest)
+            {
+                throw new NoctuaException(NoctuaErrorCode.Authentication, "Account is not a guest account");
+            }
+
+            payload.NoBindGuest = true;
+
+            var request = new HttpRequest(HttpMethod.Post, $"{_baseUrl}/auth/{provider}/login/callback")
+                .WithHeader("X-CLIENT-ID", _clientId)
+                .WithHeader("X-BUNDLE-ID", _bundleId)
+                .WithJsonBody(payload);
+
+            request.WithHeader("Authorization", "Bearer " + RecentAccount.Player.AccessToken);
+
+            return await request.Send<PlayerToken>();
+        }
+
+        // TODO: Add support for phone
+        public async UniTask<PlayerToken> GetEmailLoginTokenAsync(string email, string password)
+        {
+            if (!RecentAccount.IsGuest)
+            {
+                throw new NoctuaException(NoctuaErrorCode.Authentication, "Account is not a guest account");
+            }
+
+            var request = new HttpRequest(HttpMethod.Post, $"{_baseUrl}/auth/email/login")
+                .WithHeader("X-CLIENT-ID", _clientId)
+                .WithHeader("X-BUNDLE-ID", _bundleId)
+                .WithJsonBody(
+                    new CredPair
+                    {
+                        CredKey = email,
+                        CredSecret = password,
+                        NoBindGuest = true
+                    }
+                )
+                .NoVerboseLog();
+
+            request.WithHeader("Authorization", "Bearer " + RecentAccount.Player.AccessToken);
+
+            return await request.Send<PlayerToken>();
+        }
+
+        public void LoginWithToken(PlayerToken playerToken)
+        {
+            _accountContainer.UpdateRecentAccount(playerToken);
+
+            SetEventProperties(playerToken);
+
+            SendEvent("account_authenticated");
+
+            var eventName = RecentAccount.Credential?.Provider switch
+            {
+                "email" => "account_authenticated_by_email",
+                "device_id" => "account_authenticated_by_guest",
+                _ => "account_authenticated_by_sso"
+            };
+
+            SendEvent(eventName);
+        }
+
+        public async UniTask<UserBundle> BindGuestAndLoginAsync(PlayerToken targetPlayer)
+        {
+            if (!RecentAccount.IsGuest)
+            {
+                throw new NoctuaException(NoctuaErrorCode.Authentication, "Account is not a guest account");
+            }
+
+            if (string.IsNullOrEmpty(RecentAccount?.Player?.AccessToken))
+            {
+                throw new NoctuaException(NoctuaErrorCode.Authentication, "origin access token is missing");
+            }
+
+            if (string.IsNullOrEmpty(targetPlayer?.AccessToken))
+            {
+                throw new NoctuaException(NoctuaErrorCode.Authentication, "target access token is missing");
+            }
+
+            var request = new HttpRequest(HttpMethod.Post, $"{_baseUrl}/auth/bind")
+                .WithHeader("X-CLIENT-ID", _clientId)
+                .WithHeader("X-BUNDLE-ID", Application.identifier)
+                .WithHeader("Authorization", "Bearer " + targetPlayer?.AccessToken)
+                .WithJsonBody(new BindRequest { GuestToken = RecentAccount.Player.AccessToken });
+
+            var response = await request.Send<PlayerToken>();
+
+            _accountContainer.UpdateRecentAccount(response);
+
+            SetEventProperties(response);
+
+            SendEvent("account_bound");
+
+            if (RecentAccount.Credential?.Provider == "email")
+            {
+                SendEvent("account_bound_by_email");
+            }
+            else if (RecentAccount.Credential?.Provider != "device_id")
+            {
+                SendEvent("account_bound_by_sso");
+            }
+
+            return _accountContainer.RecentAccount;
+        }
+
+        public async UniTask<UserBundle> LogoutAsync()
+        {
+            return await LoginAsGuestAsync(); // will always back to guest
+        }
+
+        public async UniTask<User> GetUserAsync()
+        {
+            if (string.IsNullOrEmpty(RecentAccount?.Player?.AccessToken))
+            {
+                throw NoctuaException.MissingAccessToken;
+            }
+
+            var request = new HttpRequest(HttpMethod.Get, $"{_baseUrl}/user/profile")
+                .WithHeader("X-CLIENT-ID", _clientId)
+                .WithHeader("X-BUNDLE-ID", _bundleId)
+                .WithHeader("Authorization", "Bearer " + RecentAccount.Player.AccessToken);
+
+            return await request.Send<User>();
+        }
+
+        public async UniTask UpdateUserAsync(UpdateUserRequest updateUserRequest)
+        {
+            if (string.IsNullOrEmpty(RecentAccount?.Player?.AccessToken))
+            {
+                throw NoctuaException.MissingAccessToken;
+            }
+
+            var request = new HttpRequest(HttpMethod.Post, $"{_baseUrl}/user/profile")
+                .WithHeader("X-CLIENT-ID", _clientId)
+                .WithHeader("X-BUNDLE-ID", _bundleId)
+                .WithHeader("Authorization", "Bearer " + RecentAccount.Player.AccessToken)
+                .WithJsonBody(updateUserRequest);
+
+            _ = await request.Send<object>();
+
+            await ExchangeTokenAsync(RecentAccount.Player.AccessToken);
+            // Update the user language in player prefs
+            // so user does not have to restart twice to load the translation
+            _locale?.SetUserPrefsLanguage(updateUserRequest.Language);
+
+            SendEvent(
+                "profile_updated",
+                new()
+                {
+                    { "new_country", updateUserRequest.Country },
+                    { "new_currency", updateUserRequest.Currency },
+                    { "new_language", updateUserRequest.Language },
+                }
+            );
+
+        }
+
+        /// <summary>
+        /// Authenticates the user and returns the user bundle.
+        /// 
+        /// After authentication, it will show a welcome toast for the user.
+        /// 
+        /// Returns the authenticated user bundle.
+        /// </summary>
+        /// <returns>A UserBundle object representing the selected account.</returns>
+        public async UniTask<UserBundle> AuthenticateAsync()
+        {
+            if (IsAuthenticated)
+            {
+                SetEventProperties(RecentAccount);
+                SendEvent("account_detected");
+
+                return RecentAccount;
+            }
+
+            // 3.b and 4.a.i.2: Invalid data will not be loaded
+
+            _accountContainer.Load();
+
+            // 2.a: If there is no account, login as guest
+
+            if (_accountContainer.Accounts.Count == 0)
+            {
+                await LoginAsGuestAsync();
+
+                SetEventProperties(RecentAccount);
+                SendEvent("account_detected");
+
+                return RecentAccount;
+            }
+
+            var firstUser = _accountContainer.Accounts.First();
+
+            // Recent accounts are accounts that have played the game, they always match this game
+            // 3.a: If there is already a recent account, reuse token
+
+            if (firstUser.Player != null)
+            {
+                await ExchangeTokenAsync(firstUser.Player.AccessToken);
+
+                SetEventProperties(RecentAccount);
+                SendEvent("account_detected");
+
+                return RecentAccount;
+            }
+
+            // Non recent accounts are accounts that have not played the game, they always don't match this game
+
+            var firstPlayer = firstUser.PlayerAccounts.FirstOrDefault();
+
+            // This isn't supposed to happen, because a user will at least have a player account
+
+            if (firstPlayer == null)
+            {
+                // Disabled for production to reduce noise
+                // SendEvent("no_player_account_found");
+                throw new NoctuaException(NoctuaErrorCode.Authentication, "No player account found");
+            }
+
+            // 4.a.i.2, 4.a.ii.1.b: If there is no recent account, exchange token 
+
+            await ExchangeTokenAsync(firstPlayer.AccessToken);
+
+            SetEventProperties(RecentAccount);
+            SendEvent("account_detected");
+
+            return RecentAccount;
+        }
+
+        public async UniTask SwitchAccountAsync(UserBundle user)
+        {
+            var targetUser = AccountList.FirstOrDefault(x => x.User.Id == user.User.Id);
+
+            if (targetUser == null)
+            {
+                throw new NoctuaException(NoctuaErrorCode.Authentication, $"User {user.User.Id} not found in account list");
+            }
+
+            await ExchangeTokenAsync(user.PlayerAccounts.First().AccessToken);
+
+            SetEventProperties(_accountContainer.RecentAccount);
+            SendEvent("account_switched");
+        }
+
+        public void ResetAccounts()
+        {
+            _accountContainer.ResetAccounts();
+        }
+
+        public async UniTask UpdatePlayerAccountAsync(PlayerAccountData playerAccountData)
+        {
+            var request = new HttpRequest(HttpMethod.Post, $"{_baseUrl}/players/sync")
+                .WithHeader("X-CLIENT-ID", _clientId)
+                .WithHeader("X-BUNDLE-ID", _bundleId)
+                .WithHeader("Authorization", "Bearer " + RecentAccount.Player.AccessToken)
+                .WithJsonBody(playerAccountData);
+
+            _ = await request.Send<object>();
+
+            SendEvent(
+                "role_updated",
+                new()
+                {
+                    { "ingame_username", playerAccountData.IngameUsername },
+                    { "ingame_server_id", playerAccountData.IngameServerId },
+                    { "ingame_role_id", playerAccountData.IngameRoleId }
+                }
+            );
+        }
+
+        public async UniTask DeletePlayerAccountAsync()
+        {
+            var currentPlayer = RecentAccount.Player;
+
+            var request = new HttpRequest(HttpMethod.Delete, $"{_baseUrl}/players/destroy")
+                .WithHeader("X-CLIENT-ID", _clientId)
+                .WithHeader("X-BUNDLE-ID", _bundleId)
+                .WithHeader("Authorization", "Bearer " + RecentAccount.Player.AccessToken);
+
+            _ = await request.Send<DeletePlayerAccountResponse>();
+
+            _accountContainer.DeleteRecentAccount();
+
+            SendEvent("account_deleted");
+
+            OnAccountDeleted?.Invoke(currentPlayer);
+        }
+
+        public async UniTask<string> FileUploader(string filePath)
+        {
+            if (string.IsNullOrEmpty(RecentAccount?.Player?.AccessToken))
+            {
+                throw NoctuaException.MissingAccessToken;
+            }
+
+            if (!System.IO.File.Exists(filePath))
+            {
+                throw new Exception($"File not found at {filePath}");
+            }
+
+            byte[] fileData = System.IO.File.ReadAllBytes(filePath);
+
+            var request = new HttpRequest(HttpMethod.Post, $"{_baseUrl}/user/profile-image")
+                .WithHeader("X-CLIENT-ID", _clientId)
+                .WithHeader("X-BUNDLE-ID", _bundleId)
+                .WithHeader("Authorization", "Bearer " + RecentAccount.Player.AccessToken)
+                .WithRawBody(fileData);
+
+            string response = await request.SendRaw();
+            Newtonsoft.Json.Linq.JObject jObject = Newtonsoft.Json.Linq.JObject.Parse(response);
+            string fileUrl = jObject["data"]?["url"]?.ToString();
+
+            return fileUrl;
+        }
+
+        public async UniTask<ProfileOptionData> GetProfileOptions()
+        {
+            if (string.IsNullOrEmpty(RecentAccount?.Player?.AccessToken))
+            {
+                throw NoctuaException.MissingAccessToken;
+            }
+
+            var request = new HttpRequest(HttpMethod.Get, $"{_baseUrl}/user/profile-options")
+                .WithHeader("X-CLIENT-ID", _clientId)
+                .WithHeader("X-BUNDLE-ID", _bundleId)
+                .WithHeader("Authorization", "Bearer " + RecentAccount.Player.AccessToken);
+
+            return await request.Send<ProfileOptionData>();
+        }
+
+        public async UniTask SaveGameStateAsync(string key, string value)
+        {
+            if (string.IsNullOrEmpty(RecentAccount?.Player?.AccessToken))
+            {
+                throw NoctuaException.MissingAccessToken;
+            }
+
+            var request = new HttpRequest(HttpMethod.Put, $"{_baseUrl}/cloud-saves/{Uri.EscapeDataString(key)}")
+                .WithHeader("X-CLIENT-ID", _clientId)
+                .WithHeader("X-BUNDLE-ID", _bundleId)
+                .WithHeader("Authorization", "Bearer " + RecentAccount.Player.AccessToken)
+                .WithRawBody(System.Text.Encoding.UTF8.GetBytes(value));
+
+            await request.Send<CloudSaveMetadata>();
+        }
+
+        public async UniTask<string> LoadGameStateAsync(string key)
+        {
+            if (string.IsNullOrEmpty(RecentAccount?.Player?.AccessToken))
+            {
+                throw NoctuaException.MissingAccessToken;
+            }
+
+            var request = new HttpRequest(HttpMethod.Get, $"{_baseUrl}/cloud-saves/{Uri.EscapeDataString(key)}")
+                .WithHeader("X-CLIENT-ID", _clientId)
+                .WithHeader("X-BUNDLE-ID", _bundleId)
+                .WithHeader("Authorization", "Bearer " + RecentAccount.Player.AccessToken);
+
+            return await request.SendRaw();
+        }
+
+        public async UniTask<List<string>> GetGameStateKeysAsync()
+        {
+            if (string.IsNullOrEmpty(RecentAccount?.Player?.AccessToken))
+            {
+                throw NoctuaException.MissingAccessToken;
+            }
+
+            var request = new HttpRequest(HttpMethod.Get, $"{_baseUrl}/cloud-saves")
+                .WithHeader("X-CLIENT-ID", _clientId)
+                .WithHeader("X-BUNDLE-ID", _bundleId)
+                .WithHeader("Authorization", "Bearer " + RecentAccount.Player.AccessToken);
+
+            var response = await request.Send<CloudSaveListResponse>();
+
+            return response.Saves?.Select(s => s.SlotKey).ToList() ?? new List<string>();
+        }
+
+        public async UniTask DeleteGameStateAsync(string key)
+        {
+            if (string.IsNullOrEmpty(RecentAccount?.Player?.AccessToken))
+            {
+                throw NoctuaException.MissingAccessToken;
+            }
+
+            var request = new HttpRequest(HttpMethod.Delete, $"{_baseUrl}/cloud-saves/{Uri.EscapeDataString(key)}")
+                .WithHeader("X-CLIENT-ID", _clientId)
+                .WithHeader("X-BUNDLE-ID", _bundleId)
+                .WithHeader("Authorization", "Bearer " + RecentAccount.Player.AccessToken);
+
+            await request.Send<object>();
+        }
+
+        private void SetEventProperties(UserBundle newUser)
+        {
+            _eventSender?.SetProperties(
+                userId: newUser.User?.Id,
+                playerId: newUser.Player?.Id,
+                credentialId: newUser.Credential?.Id,
+                credentialProvider: newUser.Credential?.Provider,
+                gameId: newUser.Player?.GameId,
+                gamePlatformId: newUser.Player?.GamePlatformId
+            );
+        }
+
+        private void SetEventProperties(PlayerToken newUser)
+        {
+            _eventSender?.SetProperties(
+                userId: newUser.User?.Id,
+                playerId: newUser.Player?.Id,
+                credentialId: newUser.Credential?.Id,
+                credentialProvider: newUser.Credential?.Provider,
+                gameId: newUser.Player?.GameId,
+                gamePlatformId: newUser.Player?.GamePlatformId
+            );
+        }
+
+        private void SendEvent(string eventName, Dictionary<string, IConvertible> data = null)
+        {
+            _eventSender?.Send(eventName, data ?? new Dictionary<string, IConvertible>());
+        }
+
+        internal class Config
+        {
+            public string BaseUrl;
+            public string ClientId;
+        }
+    }
+}
