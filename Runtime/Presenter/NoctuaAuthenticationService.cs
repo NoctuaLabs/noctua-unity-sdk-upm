@@ -12,7 +12,7 @@ using UnityEngine.Scripting;
 
 namespace com.noctuagames.sdk
 {
-    public class NoctuaAuthenticationService
+    public class NoctuaAuthenticationService : IAuthenticationService
     {
         public IReadOnlyList<UserBundle> AccountList => _accountContainer.Accounts;
 
