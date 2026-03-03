@@ -198,7 +198,7 @@ namespace com.noctuagames.sdk
                     return;
                 }
 
-                _iaa = new MediationManager(iAAResponse: _config.IAA, uiFactory: _uiFactory);
+                _iaa = new MediationManager(adPlaceholderUI: _uiFactory, iAAResponse: _config.IAA);
 
 #if UNITY_ADMOB || UNITY_APPLOVIN
                 _iaa.Initialize(() =>
@@ -215,6 +215,7 @@ namespace com.noctuagames.sdk
 
             _event = new NoctuaEventService(_nativePlugin, _eventSender);
             _event.SetProperties(isSandbox: _config.Noctua.IsSandbox);
+            _iaa?.SetAdRevenueTracker(_event);
             _eventSender.SetProperties(isSandbox: _config.Noctua.IsSandbox, gameId: _config.GameID);
             _isOfflineFirst = _config.Noctua.IsOfflineFirst;
 

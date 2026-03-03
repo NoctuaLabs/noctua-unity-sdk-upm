@@ -14,7 +14,7 @@ namespace com.noctuagames.sdk.Events
     /// This service provides a unified interface for tracking ad revenues, purchases, and custom events.
     /// Events are automatically enriched with contextual data (country, IP address, sandbox flag).
     /// </remarks>
-    public class NoctuaEventService
+    public class NoctuaEventService : IAdRevenueTracker
     {
         private readonly INativeTracker _nativeTracker;
         private readonly IEventSender _eventSender;

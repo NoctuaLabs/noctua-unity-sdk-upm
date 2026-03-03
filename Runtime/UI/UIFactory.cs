@@ -7,7 +7,7 @@ using com.noctuagames.sdk.AdPlaceholder;
 
 namespace com.noctuagames.sdk.UI
 {
-    internal class UIFactory
+    internal class UIFactory : IAdPlaceholderUI
     {
         private readonly GameObject _rootObject;
         private readonly PanelSettings _panelSettings;

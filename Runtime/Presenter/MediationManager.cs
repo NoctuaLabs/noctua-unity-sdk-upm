@@ -1,7 +1,6 @@
 using System;
 using UnityEngine;
 using System.Collections.Generic;
-using com.noctuagames.sdk.UI;
 using com.noctuagames.sdk.AdPlaceholder;
 
 #if UNITY_ADMOB
@@ -71,16 +70,19 @@ namespace com.noctuagames.sdk
         public string RewardedInterstitialAdUnitID => _rewardedInterstitialAdUnitID;
         public string BannerAdUnitID => _bannerAdUnitID;
 
-        private readonly UIFactory _uiFactory;
+        private readonly IAdPlaceholderUI _adPlaceholderUI;
+        private IAdRevenueTracker _adRevenueTracker;
         private bool _hasClosedPlaceholder = false; // Track if the placeholder has been closed to prevent multiple closures
         private bool _adNetworkEventsSubscribed; // Guard against duplicate event subscriptions on re-init
         private bool _preloadManagerEventsSubscribed; // Guard against duplicate preload event subscriptions
 
         internal IAA IAAResponse { get; set; }
 
-        internal MediationManager(UIFactory uiFactory, IAA iAAResponse)
+        internal void SetAdRevenueTracker(IAdRevenueTracker tracker) => _adRevenueTracker = tracker;
+
+        internal MediationManager(IAdPlaceholderUI adPlaceholderUI, IAA iAAResponse)
         {
-            _uiFactory = uiFactory;
+            _adPlaceholderUI = adPlaceholderUI;
 
             if (iAAResponse == null)
             {
@@ -239,7 +241,7 @@ namespace com.noctuagames.sdk
                         $"Adapter Class Name: {adapterClassName} " +
                         $"Latency Millis: {latencyMillis}");
 
-                    Noctua.Event.TrackAdRevenue("admob_sdk", revenue, currencyCode, new Dictionary<string, IConvertible>
+                    _adRevenueTracker?.TrackAdRevenue("admob_sdk", revenue, currencyCode, new Dictionary<string, IConvertible>
                     {
                         { "ad_source_id", adSourceId },
                         { "ad_source_instance_id", adSourceInstanceId },
@@ -328,7 +330,7 @@ namespace com.noctuagames.sdk
                         $"network placement: {networkPlacement}, " +
                         $"revenue precision: {revenuePrecision}");
 
-                    Noctua.Event.TrackAdRevenue("applovin_max_sdk", revenue, "USD", new Dictionary<string, IConvertible>
+                    _adRevenueTracker?.TrackAdRevenue("applovin_max_sdk", revenue, "USD", new Dictionary<string, IConvertible>
                     {
                         { "country_code", countryCode },
                         { "network_name", networkName },
@@ -888,13 +890,13 @@ namespace com.noctuagames.sdk
         {
             _log.Info($"Showing ad placeholder for type: {adType}");
 
-            if(_uiFactory == null) 
+            if(_adPlaceholderUI == null)
             {
-                _log.Warning("UI Factory is not initialized. Cannot show ad placeholder.");
+                _log.Warning("Ad placeholder UI is not initialized. Cannot show ad placeholder.");
                 return;
             }
 
-            _uiFactory.ShowAdPlaceholder(adType);
+            _adPlaceholderUI.ShowAdPlaceholder(adType);
         }
 
         public void CloseAdPlaceholder()
@@ -905,15 +907,15 @@ namespace com.noctuagames.sdk
                 return;
             }
             
-            if(_uiFactory == null) 
+            if(_adPlaceholderUI == null)
             {
-                _log.Warning("UI Factory is not initialized. Cannot close ad placeholder.");
+                _log.Warning("Ad placeholder UI is not initialized. Cannot close ad placeholder.");
                 return;
             }
 
             _log.Info("Closing ad placeholder");
 
-            _uiFactory.CloseAdPlaceholder();
+            _adPlaceholderUI.CloseAdPlaceholder();
 
             _hasClosedPlaceholder = true;
         }
@@ -978,7 +980,7 @@ namespace com.noctuagames.sdk
                 _log.Debug($"Preloaded Ad Revenue Paid: value in micros: {adValue.Value} / converted: {revenue}, {currencyCode} " +
                     $"Ad Source: {adSourceName}, Adapter: {adapterClassName}");
 
-                Noctua.Event.TrackAdRevenue("admob_sdk", revenue, currencyCode, new Dictionary<string, IConvertible>
+                _adRevenueTracker?.TrackAdRevenue("admob_sdk", revenue, currencyCode, new Dictionary<string, IConvertible>
                 {
                     { "ad_source_id", adSourceId },
                     { "ad_source_instance_id", adSourceInstanceId },
