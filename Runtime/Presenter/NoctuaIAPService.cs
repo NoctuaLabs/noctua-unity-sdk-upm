@@ -56,6 +56,7 @@ namespace com.noctuagames.sdk
         private readonly IPaymentUI _paymentUI;
         private readonly IAuthProvider _authProvider;
         private readonly ILocaleProvider _localeProvider;
+        private readonly IConnectivityProvider _connectivity;
         private bool _enabled;
         private string _distributionPlaftorm;
 
@@ -74,7 +75,8 @@ namespace com.noctuagames.sdk
             INativePlugin nativePlugin,
             IEventSender eventSender = null,
             IAuthProvider authProvider = null,
-            ILocaleProvider localeProvider = null
+            ILocaleProvider localeProvider = null,
+            IConnectivityProvider connectivity = null
         )
         {
             _config = config;
@@ -84,6 +86,7 @@ namespace com.noctuagames.sdk
             _paymentUI = paymentUI;
             _authProvider = authProvider;
             _localeProvider = localeProvider;
+            _connectivity = connectivity;
 
 #if UNITY_ANDROID && !UNITY_EDITOR
             GoogleBillingInstance.OnProductDetailsDone += HandleGoogleProductDetails;
@@ -619,13 +622,13 @@ namespace com.noctuagames.sdk
             _paymentUI.ShowLoadingProgress(true);
             
             var offlineModeMessage = _localeProvider.GetTranslation(LocaleTextKey.OfflineModeMessage) + " [IAP]";
-            var isOffline = await Noctua.IsOfflineAsync();
+            var isOffline = await _connectivity.IsOfflineAsync();
 
-            if(!isOffline && !Noctua.IsInitialized())
+            if(!isOffline && !_connectivity.IsInitialized())
             {
                 try
                 {
-                    await Noctua.InitAsync();
+                    await _connectivity.InitAsync();
 
                     await _authProvider.AuthenticateAsync();
 
