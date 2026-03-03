@@ -12,7 +12,7 @@ namespace com.noctuagames.sdk
     internal class AccessTokenProvider : IAccessTokenProvider
     {
         private readonly ILogger _log = new NoctuaLogger(typeof(AccessTokenProvider));
-        internal AccessTokenProvider(NoctuaAuthenticationService auth)
+        internal AccessTokenProvider(IAccountEvents auth)
         {
             auth.OnAccountChanged += OnAccountChanged;
             auth.OnAccountDeleted += OnAccountDeleted;
