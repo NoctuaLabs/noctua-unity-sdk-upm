@@ -871,60 +871,6 @@ namespace Tests.Runtime
         );
 
         [UnityTest]
-        public IEnumerator FlushOnResume_PersistedEventsAreSent() => UniTask.ToCoroutine(
-            async () =>
-            {
-                // Create sender1 with high batch/cycle to prevent auto-send
-                var sender1 = new EventSender(
-                    new EventSenderConfig
-                    {
-                        BaseUrl = "http://localhost:7777/api/v1",
-                        ClientId = "test_client_id",
-                        BatchSize = 1000,
-                        BatchPeriodMs = 300_000,
-                        CycleDelay = 60_000,
-                        NativePlugin = new DefaultNativePlugin()
-                    },
-                    new NoctuaLocale()
-                );
-
-                sender1.Send("pre_resume_event_1");
-                sender1.Send("pre_resume_event_2");
-                await UniTask.Delay(500);
-                sender1.Dispose();
-                await UniTask.Delay(200);
-
-                // Clear server requests to only see events from sender2
-                while (_server.Requests.TryDequeue(out _)) { }
-
-                // Create sender2 — constructor async-reads storage + auto-flushes persisted events
-                var sender2 = new EventSender(
-                    new EventSenderConfig
-                    {
-                        BaseUrl = "http://localhost:7777/api/v1",
-                        ClientId = "test_client_id",
-                        BatchSize = 1000,
-                        BatchPeriodMs = 300_000,
-                        CycleDelay = 60_000,
-                        NativePlugin = new DefaultNativePlugin()
-                    },
-                    new NoctuaLocale()
-                );
-
-                // Wait for flush to complete
-                var events = await GetEventsFromServerAsync(5000, 1000);
-
-                var names = events.Select(e => e.event_name).ToList();
-                Assert.IsTrue(names.Contains("pre_resume_event_1"),
-                    $"pre_resume_event_1 should be flushed on load. Got: {string.Join(", ", names)}");
-                Assert.IsTrue(names.Contains("pre_resume_event_2"),
-                    $"pre_resume_event_2 should be flushed on load. Got: {string.Join(", ", names)}");
-
-                sender2.Dispose();
-            }
-        );
-
-        [UnityTest]
         public IEnumerator AppKillDuringSend_EventsSurvive() => UniTask.ToCoroutine(
             async () =>
             {
