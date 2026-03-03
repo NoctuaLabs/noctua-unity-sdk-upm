@@ -780,7 +780,7 @@ namespace com.noctuagames.sdk.UI
                         throw new NoctuaException(NoctuaErrorCode.Authentication, $"Invalid AuthIntention {Model.AuthIntention}");
                 }
                 
-                Debug.Log("RegisterWithPassword/LinkWithEmail verification ID (VN): " + result.Id);
+                _log.Debug("RegisterWithPassword/LinkWithEmail verification ID (VN): " + result.Id);
                 Visible = false; // Hide registration dialog
 
                 // Clear all fields after success

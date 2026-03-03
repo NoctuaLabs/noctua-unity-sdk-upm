@@ -228,7 +228,7 @@ namespace com.noctuagames.sdk.UI
                         throw new NoctuaException(NoctuaErrorCode.Authentication, $"Invalid AuthIntention {Model.AuthIntention}");
                 }
 
-                Debug.Log("RegisterWithPassword verification ID: " + result.Id);
+                _log.Debug("RegisterWithPassword verification ID: " + result.Id);
 
                 Visible = false;
 

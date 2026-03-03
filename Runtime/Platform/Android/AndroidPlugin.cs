@@ -271,7 +271,7 @@ namespace com.noctuagames.sdk
             }
             catch (Exception e)
             {
-                UnityEngine.Debug.LogWarning($"[Noctua] Failed to get Firebase Analytics Session ID: {e.Message}");
+                _log.Warning($"Failed to get Firebase Analytics Session ID: {e.Message}");
                 callback?.Invoke(string.Empty);
             }
         }
@@ -400,7 +400,7 @@ namespace com.noctuagames.sdk
                 using var noctua = new AndroidJavaClass("com.noctuagames.sdk.Noctua").GetStatic<AndroidJavaObject>("INSTANCE");
                 noctua.Call("deleteEvents");
 
-                Debug.Log($"[Noctua] Deleted all events");
+                _log.Debug("Deleted all events");
 
             }
             catch (Exception e)

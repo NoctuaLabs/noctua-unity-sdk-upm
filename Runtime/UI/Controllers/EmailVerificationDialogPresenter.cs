@@ -26,7 +26,7 @@ namespace com.noctuagames.sdk.UI
 
         public void Show(string email, string password, int verificationId, Dictionary<string, string> extraData)
         {
-            Debug.Log("EmailVerificationDialogPresenter.Show()");
+            _log.Debug("EmailVerificationDialogPresenter.Show()");
             View.visible = true;
 
             _email = email;

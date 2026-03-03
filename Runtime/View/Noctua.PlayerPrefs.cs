@@ -6,6 +6,7 @@ namespace com.noctuagames.sdk
 {
     public partial class Noctua
     {
+        private static readonly ILogger _sLog = new NoctuaLogger(typeof(Noctua));
         /// <summary>
         /// Backup selected PlayerPrefs keys into a key/value array for export/backup.
         /// Keys that are integers are suffixed with ":int", strings with ":string".
@@ -37,7 +38,7 @@ namespace com.noctuagames.sdk
             foreach (var key in IntegerKeys)
             {
                 var value = PlayerPrefs.GetInt(key, 0).ToString();
-                Debug.Log($"Backing up playerPrefs {key}:{value}");
+                _sLog.Debug($"Backing up playerPrefs {key}:{value}");
                 Array.Resize(ref keyValueArray, keyValueArray.Length + 1);
                 keyValueArray[keyValueArray.Length - 1] = new KeyValuePair<string, string>(
                     $"{key}:int",
@@ -48,7 +49,7 @@ namespace com.noctuagames.sdk
             foreach (var key in StringKeys)
             {
                 var value = PlayerPrefs.GetString(key, string.Empty);
-                Debug.Log($"Backing up playerPrefs {key}:{value}");
+                _sLog.Debug($"Backing up playerPrefs {key}:{value}");
                 Array.Resize(ref keyValueArray, keyValueArray.Length + 1);
                 keyValueArray[keyValueArray.Length - 1] = new KeyValuePair<string, string>(
                     $"{key}:string",
@@ -75,13 +76,13 @@ namespace com.noctuagames.sdk
                 {
                     if (int.TryParse(keyValue.Value, out int value))
                     {
-                        Debug.Log($"Restoring playerPrefs {key}:{keyValue.Value}");
+                        _sLog.Debug($"Restoring playerPrefs {key}:{keyValue.Value}");
                         PlayerPrefs.SetInt(key, value);
                     }
                 }
                 else if (type == "string")
                 {
-                    Debug.Log($"Restoring playerPrefs {key}:{keyValue.Value}");
+                    _sLog.Debug($"Restoring playerPrefs {key}:{keyValue.Value}");
                     PlayerPrefs.SetString(key, keyValue.Value);
                 }
             }
