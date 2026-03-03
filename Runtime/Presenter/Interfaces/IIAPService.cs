@@ -8,12 +8,6 @@ namespace com.noctuagames.sdk
     /// Contract for the IAP presenter. Used by the View layer to interact
     /// with purchase functionality without depending on the concrete NoctuaIAPService.
     /// </summary>
-    /// <remarks>
-    /// Note: Methods that return <c>NoctuaIAPService.PurchaseItem</c> (nested type) are intentionally
-    /// excluded from this interface. They will be added once the nested type is extracted to a
-    /// standalone model class. In the meantime, consumers needing those methods (e.g., AuthUIController)
-    /// continue to reference the concrete NoctuaIAPService.
-    /// </remarks>
     public interface IIAPService
     {
         /// <summary>Fired when a purchase flow completes successfully.</summary>
@@ -30,5 +24,17 @@ namespace com.noctuagames.sdk
 
         /// <summary>Retry a specific pending purchase by its order ID.</summary>
         UniTask<OrderStatus> RetryPendingPurchaseByOrderId(int orderId);
+
+        /// <summary>Get all pending purchases awaiting retry.</summary>
+        List<InternalPurchaseItem> GetPendingPurchases();
+
+        /// <summary>Get a specific pending purchase by order ID.</summary>
+        InternalPurchaseItem GetPendingPurchaseByOrderId(int orderId);
+
+        /// <summary>Get the purchase history.</summary>
+        List<InternalPurchaseItem> GetPurchaseHistory();
+
+        /// <summary>Retry all pending purchases.</summary>
+        UniTask RetryPendingPurchasesAsync();
     }
 }

@@ -35,7 +35,7 @@ namespace com.noctuagames.sdk
 
         private readonly IEventSender _eventSender;
         private readonly AccessTokenProvider _accessTokenProvider;
-        private readonly Queue<PurchaseItem> _waitingPendingPurchases = new();
+        private readonly Queue<InternalPurchaseItem> _waitingPendingPurchases = new();
         private readonly INativePlugin _nativePlugin;
         private readonly ProductList _usdProducts = new();
         private TaskCompletionSource<PaymentResult> _paymentTcs;
@@ -348,7 +348,7 @@ namespace com.noctuagames.sdk
                     }
 
                     AddToPurchaseHistory(
-                        new PurchaseItem
+                        new InternalPurchaseItem
                         {
                             OrderId = verifyOrderRequest.Id,
                             OrderRequest = orderRequest,
@@ -401,7 +401,7 @@ namespace com.noctuagames.sdk
                     );
 
                     EnqueueToRetryPendingPurchases(
-                        new PurchaseItem
+                        new InternalPurchaseItem
                         {
                             OrderId = verifyOrderRequest.Id,
                             OrderRequest = orderRequest,
@@ -426,7 +426,7 @@ namespace com.noctuagames.sdk
                         }
                     );
                     EnqueueToRetryPendingPurchases(
-                        new PurchaseItem
+                        new InternalPurchaseItem
                         {
                             OrderId = verifyOrderRequest.Id,
                             OrderRequest = orderRequest,
@@ -479,7 +479,7 @@ namespace com.noctuagames.sdk
                     }
 
                     EnqueueToRetryPendingPurchases(
-                        new PurchaseItem
+                        new InternalPurchaseItem
                         {
                             OrderId = verifyOrderRequest.Id,
                             OrderRequest = orderRequest,
@@ -729,9 +729,9 @@ namespace com.noctuagames.sdk
             OrderRequest orderRequest;
             OrderResponse orderResponse;
 
-            var unpairedOrders = new Dictionary<string, PurchaseItem>();
+            var unpairedOrders = new Dictionary<string, InternalPurchaseItem>();
             var orderId = 0;
-            var pendingPurchaseItem = new PurchaseItem();
+            var pendingPurchaseItem = new InternalPurchaseItem();
             var verifyOrderRequest = new VerifyOrderRequest();
 
             try
@@ -813,7 +813,7 @@ namespace com.noctuagames.sdk
                     Id = orderId,
                     // But no receipt id or receipt data at this point
                 };
-                pendingPurchaseItem = new PurchaseItem
+                pendingPurchaseItem = new InternalPurchaseItem
                 {
                     OrderId = orderResponse.Id,
                     OrderRequest = orderRequest,
@@ -825,20 +825,20 @@ namespace com.noctuagames.sdk
                 // Store unpaired order.
                 _log.Info($"NoctuaIAPService.HandleUnpairedPurchase store unpaired order for order ID: {JsonConvert.SerializeObject(orderRequest)}");
                 _log.Info($"NoctuaIAPService.HandleUnpairedPurchase pending purchase item for unpaired order: {JsonConvert.SerializeObject(pendingPurchaseItem)}");
-                unpairedOrders = new Dictionary<string, PurchaseItem>();
+                unpairedOrders = new Dictionary<string, InternalPurchaseItem>();
                 var unpairedOrdersJson = PlayerPrefs.GetString("NoctuaUnpairedOrders", "{}");
                 try
                 {
-                    unpairedOrders = JsonConvert.DeserializeObject<Dictionary<string, PurchaseItem>>(unpairedOrdersJson);
+                    unpairedOrders = JsonConvert.DeserializeObject<Dictionary<string, InternalPurchaseItem>>(unpairedOrdersJson);
                     if (unpairedOrders == null)
                     {
-                        unpairedOrders = new Dictionary<string, PurchaseItem>();
+                        unpairedOrders = new Dictionary<string, InternalPurchaseItem>();
                     }
                 }
                 catch (Exception e)
                 {
                     _log.Warning($"Failed to parse existing unpaired orders: {e}");
-                    unpairedOrders = new Dictionary<string, PurchaseItem>();
+                    unpairedOrders = new Dictionary<string, InternalPurchaseItem>();
                 }
 
                 unpairedOrders[orderRequest.ProductId] = pendingPurchaseItem;
@@ -977,7 +977,7 @@ namespace com.noctuagames.sdk
                             // What if the user is accidentally tap the close button instead of complete?
                             _log.Exception(e);
                             EnqueueToRetryPendingPurchases(
-                                new PurchaseItem
+                                new InternalPurchaseItem
                                 {
                                     OrderId = orderResponse.Id,
                                     OrderRequest = orderRequest,
@@ -1015,7 +1015,7 @@ namespace com.noctuagames.sdk
                             // TODO Do we really need to retry the canceled purchase?
                             // What if the user is accidentally tap the close button instead of complete?
                             EnqueueToRetryPendingPurchases(
-                                new PurchaseItem
+                                new InternalPurchaseItem
                                 {
                                     OrderId = orderResponse.Id,
                                     OrderRequest = orderRequest,
@@ -1137,7 +1137,7 @@ namespace com.noctuagames.sdk
                 if ((NoctuaErrorCode)e.ErrorCode == NoctuaErrorCode.Networking)
                 {
                     EnqueueToRetryPendingPurchases(
-                        new PurchaseItem
+                        new InternalPurchaseItem
                         {
                             OrderId = orderResponse.Id,
                             OrderRequest = orderRequest,
@@ -1250,7 +1250,7 @@ namespace com.noctuagames.sdk
                 // Do not track purchase_verify_order_failed
                 // as we don't want it to flood our data.
                 EnqueueToRetryPendingPurchases(
-                    new PurchaseItem
+                    new InternalPurchaseItem
                     {
                         OrderId = item.OrderId,
                         OrderRequest = item.OrderRequest,
@@ -1451,20 +1451,20 @@ namespace com.noctuagames.sdk
             _log.Info($"NoctuaIAPService.HandleUnpairedPurchase Not found in pending purchase and purchase history, continue to try to find out the order ID pair for {productId}");
             var unpairedOrdersJson = PlayerPrefs.GetString("NoctuaUnpairedOrders", "{}");
             _log.Info($"NoctuaIAPService.HandleUnpairedPurchase unpaired orders: {unpairedOrdersJson}");
-            Dictionary<string, PurchaseItem> unpairedOrders;
+            Dictionary<string, InternalPurchaseItem> unpairedOrders;
             try
             {
-                unpairedOrders = JsonConvert.DeserializeObject<Dictionary<string, PurchaseItem>>(unpairedOrdersJson);
+                unpairedOrders = JsonConvert.DeserializeObject<Dictionary<string, InternalPurchaseItem>>(unpairedOrdersJson);
                 if (unpairedOrders == null)
                 {
-                    unpairedOrders = new Dictionary<string, PurchaseItem>();
+                    unpairedOrders = new Dictionary<string, InternalPurchaseItem>();
                 }
             }
             catch (Exception e)
             {
                 _log.Error($"NoctuaIAPService.HandleUnpairedPurchase Failed to parse unpaired orders: {e}");
                 _log.Info($"NoctuaIAPService.HandleUnpairedPurchase Create empty unpairedOrders array");
-                unpairedOrders = new Dictionary<string, PurchaseItem>();
+                unpairedOrders = new Dictionary<string, InternalPurchaseItem>();
             }
 
             if (unpairedOrders.TryGetValue(productId, out var pendingPurchaseItem))
@@ -1726,7 +1726,7 @@ namespace com.noctuagames.sdk
         /// Save pending purchases list into PlayerPrefs.
         /// </summary>
         /// <param name="orders">List of pending purchases to save.</param>
-        private void SavePendingPurchases(List<PurchaseItem> orders)
+        private void SavePendingPurchases(List<InternalPurchaseItem> orders)
         {
             _log.Debug("save pending purchases to player prefs");
             var updatedJson = JsonConvert.SerializeObject(orders);
@@ -1741,7 +1741,7 @@ namespace com.noctuagames.sdk
         /// Retrieves pending purchases persisted locally.
         /// </summary>
         /// <returns>List of pending purchase items.</returns>
-        public List<PurchaseItem> GetPendingPurchases()
+        public List<InternalPurchaseItem> GetPendingPurchases()
         {
             _log.Info("Noctua.GetPendingPurchases");
             var json = PlayerPrefs.GetString("NoctuaPendingPurchases", string.Empty);
@@ -1749,15 +1749,15 @@ namespace com.noctuagames.sdk
 
             if (string.IsNullOrEmpty(json))
             {
-                return new List<PurchaseItem>();
+                return new List<InternalPurchaseItem>();
             }
 
             try
             {
-                var pendingPurchases = JsonConvert.DeserializeObject<List<PurchaseItem>>(json);
+                var pendingPurchases = JsonConvert.DeserializeObject<List<InternalPurchaseItem>>(json);
                 if (pendingPurchases == null)
                 {
-                    pendingPurchases = new List<PurchaseItem>();
+                    pendingPurchases = new List<InternalPurchaseItem>();
                 }
 
                 var list = pendingPurchases
@@ -1773,7 +1773,7 @@ namespace com.noctuagames.sdk
 
                 PlayerPrefs.DeleteKey("NoctuaPendingPurchases");
 
-                return new List<PurchaseItem>();
+                return new List<InternalPurchaseItem>();
             }
         }
 
@@ -1783,7 +1783,7 @@ namespace com.noctuagames.sdk
         /// <param name="orderId">Order id to search for.</param>
         /// <returns>Found pending purchase item.</returns>
         /// <exception cref="Exception">Throws if not found or malformed storage.</exception>
-        public PurchaseItem GetPendingPurchaseByOrderId(int orderId)
+        public InternalPurchaseItem GetPendingPurchaseByOrderId(int orderId)
         {
             _log.Info("Noctua.GetPendingPurchases");
             var json = PlayerPrefs.GetString("NoctuaPendingPurchases", string.Empty);
@@ -1796,17 +1796,17 @@ namespace com.noctuagames.sdk
 
             try
             {
-                var pendingPurchases = JsonConvert.DeserializeObject<List<PurchaseItem>>(json);
+                var pendingPurchases = JsonConvert.DeserializeObject<List<InternalPurchaseItem>>(json);
                 if (pendingPurchases == null)
                 {
-                    pendingPurchases = new List<PurchaseItem>();
+                    pendingPurchases = new List<InternalPurchaseItem>();
                 }
 
                 var list = pendingPurchases
                     .Where(p => p.VerifyOrderRequest != null && p.AccessToken != null)
                     .ToList();
 
-                var result = new PurchaseItem();
+                var result = new InternalPurchaseItem();
                 var found = false;
                 foreach (var item in list)
                 {
@@ -1885,7 +1885,7 @@ namespace com.noctuagames.sdk
                 }
                 
                 // Retry pending purchases
-                var failedPendingPurchases = new List<PurchaseItem>();
+                var failedPendingPurchases = new List<InternalPurchaseItem>();
                 
                 foreach (var item in runningPendingPurchases)
                 {
@@ -1936,7 +1936,7 @@ namespace com.noctuagames.sdk
                         // as we don't want it to flood our data.
 
                         EnqueueToRetryPendingPurchases(
-                            new PurchaseItem
+                            new InternalPurchaseItem
                             {
                                 OrderId = item.OrderId,
                                 OrderRequest = item.OrderRequest,
@@ -2098,7 +2098,7 @@ namespace com.noctuagames.sdk
             return delay > maxDelay ? maxDelay : delay;
         }
 
-        private void EnqueueToRetryPendingPurchases(PurchaseItem item)
+        private void EnqueueToRetryPendingPurchases(InternalPurchaseItem item)
         {
 
             if (item.OrderId == 0)
@@ -2136,7 +2136,7 @@ namespace com.noctuagames.sdk
             SavePendingPurchases(_waitingPendingPurchases.ToList());
         }
 
-        public PurchaseItem GetThenRemoveFromRetryPendingPurchasesByOrderID(int orderId)
+        public InternalPurchaseItem GetThenRemoveFromRetryPendingPurchasesByOrderID(int orderId)
         {
             _log.Info($"Remove from retry pending purchase: {orderId}");
 
@@ -2144,10 +2144,10 @@ namespace com.noctuagames.sdk
             if (oldItem == null)
             {
                 _log.Warning($"No pending purchase found with order ID: {orderId}");
-                return new PurchaseItem();
+                return new InternalPurchaseItem();
             } else {
                 // Rebuild the queue excluding the item with the specified OrderID
-                var updatedQueue = new Queue<PurchaseItem>(
+                var updatedQueue = new Queue<InternalPurchaseItem>(
                     _waitingPendingPurchases.Where(item => item.OrderId != orderId));
                 _waitingPendingPurchases.Clear();
                 foreach (var item in updatedQueue)
@@ -2165,7 +2165,7 @@ namespace com.noctuagames.sdk
             _log.Info($"Remove from retry pending purchase: {orderId}");
 
             // Rebuild the queue excluding the item with the specified OrderID
-            var updatedQueue = new Queue<PurchaseItem>(
+            var updatedQueue = new Queue<InternalPurchaseItem>(
                 _waitingPendingPurchases.Where(item => item.OrderId != orderId));
 
             _waitingPendingPurchases.Clear();
@@ -2177,7 +2177,7 @@ namespace com.noctuagames.sdk
             SavePendingPurchases(_waitingPendingPurchases.ToList());
         }
 
-        public List<PurchaseItem> GetPurchaseHistory()
+        public List<InternalPurchaseItem> GetPurchaseHistory()
         {
             _log.Info("Noctua.GetPurchaseHistory");
             var json = PlayerPrefs.GetString("NoctuaPurchaseHistory", string.Empty);
@@ -2185,15 +2185,15 @@ namespace com.noctuagames.sdk
 
             if (string.IsNullOrEmpty(json))
             {
-                return new List<PurchaseItem>();
+                return new List<InternalPurchaseItem>();
             }
 
             try
             {
-                var purchaseHistory = JsonConvert.DeserializeObject<List<PurchaseItem>>(json);
+                var purchaseHistory = JsonConvert.DeserializeObject<List<InternalPurchaseItem>>(json);
                 if (purchaseHistory == null)
                 {
-                    purchaseHistory = new List<PurchaseItem>();
+                    purchaseHistory = new List<InternalPurchaseItem>();
                 }
                 var list = purchaseHistory
                     .Where(p => p.VerifyOrderRequest != null && p.AccessToken != null)
@@ -2206,11 +2206,11 @@ namespace com.noctuagames.sdk
             {
                 _log.Error("Failed to parse purchase history: " + e);
                 PlayerPrefs.DeleteKey("NoctuaPurchaseHistory");
-                return new List<PurchaseItem>();
+                return new List<InternalPurchaseItem>();
             }
         }
 
-        private void AddToPurchaseHistory(PurchaseItem item)
+        private void AddToPurchaseHistory(InternalPurchaseItem item)
         {
 
             if (item.OrderId == 0)
@@ -2241,7 +2241,7 @@ namespace com.noctuagames.sdk
             SavePurchaseHistory(list);
         }
 
-        private void SavePurchaseHistory(List<PurchaseItem> orders)
+        private void SavePurchaseHistory(List<InternalPurchaseItem> orders)
         {
             _log.Debug("save pending purchases to player prefs");
             var updatedJson = JsonConvert.SerializeObject(orders);
@@ -2423,16 +2423,6 @@ namespace com.noctuagames.sdk
             public bool isIAPDisabled;
         }
 
-        [Preserve]
-        public class PurchaseItem
-        {
-            public int OrderId;
-            public OrderRequest OrderRequest;
-            public VerifyOrderRequest VerifyOrderRequest;
-            public string AccessToken;
-            public string Status;
-            public long? PlayerId;
-        }
         
         /// <summary>
         /// Claims a redeem code for the current authenticated user.
