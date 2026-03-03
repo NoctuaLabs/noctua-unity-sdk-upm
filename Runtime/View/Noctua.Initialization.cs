@@ -246,7 +246,8 @@ namespace com.noctuagames.sdk
                 paymentUI,
                 _nativePlugin,
                 _eventSender,
-                lazyAuthProvider
+                lazyAuthProvider,
+                locale
             );
 
             _auth = new NoctuaAuthentication(authService, _iap, _uiFactory, _config, _eventSender, locale);

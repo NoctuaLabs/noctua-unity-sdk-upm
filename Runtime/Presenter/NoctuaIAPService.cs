@@ -55,6 +55,7 @@ namespace com.noctuagames.sdk
 #endif
         private readonly IPaymentUI _paymentUI;
         private readonly IAuthProvider _authProvider;
+        private readonly ILocaleProvider _localeProvider;
         private bool _enabled;
         private string _distributionPlaftorm;
 
@@ -72,7 +73,8 @@ namespace com.noctuagames.sdk
             IPaymentUI paymentUI,
             INativePlugin nativePlugin,
             IEventSender eventSender = null,
-            IAuthProvider authProvider = null
+            IAuthProvider authProvider = null,
+            ILocaleProvider localeProvider = null
         )
         {
             _config = config;
@@ -81,6 +83,7 @@ namespace com.noctuagames.sdk
 
             _paymentUI = paymentUI;
             _authProvider = authProvider;
+            _localeProvider = localeProvider;
 
 #if UNITY_ANDROID && !UNITY_EDITOR
             GoogleBillingInstance.OnProductDetailsDone += HandleGoogleProductDetails;
@@ -160,7 +163,7 @@ namespace com.noctuagames.sdk
 
             if (string.IsNullOrEmpty(currency))
             {
-                currency = Noctua.Platform.Locale.GetCurrency();
+                currency = _localeProvider?.GetCurrency() ?? "USD";
             }
 
             string enabledPaymentTypes = string.Join(",", _enabledPaymentTypes).ToLower();
@@ -490,7 +493,7 @@ namespace com.noctuagames.sdk
                         }
                     );
 
-                    var message = Utility.GetTranslation("CustomPaymentCompleteDialogPresenter.OrderVerificationFailedMessage",  Utility.LoadTranslations(Noctua.Platform.Locale.GetLanguage()));
+                    var message = Utility.GetTranslation("CustomPaymentCompleteDialogPresenter.OrderVerificationFailedMessage",  Utility.LoadTranslations(_localeProvider?.GetLanguage() ?? "en"));
                     if (message == "" || message == "CustomPaymentCompleteDialogPresenter.OrderVerificationFailedMessage")
                     {
                         message = "Your payment couldn’t be verified. Please retry later.";
@@ -770,7 +773,7 @@ namespace com.noctuagames.sdk
 
                 if (string.IsNullOrEmpty(orderRequest.Currency))
                 {
-                    orderRequest.Currency = Noctua.Platform.Locale.GetCurrency();
+                    orderRequest.Currency = _localeProvider?.GetCurrency() ?? "USD";
                 }
                 
                 usdProduct = _usdProducts.FirstOrDefault(p => p.Id == orderRequest.ProductId);
@@ -1548,7 +1551,7 @@ namespace com.noctuagames.sdk
                         ReceiptData = result.ReceiptData,
                         PaymentType = PaymentType.playstore, // This is always about playstore
                         ProductId = result.ProductId,
-                        Currency = Noctua.Platform.Locale.GetCurrency(),
+                        Currency = _localeProvider?.GetCurrency() ?? "USD",
                     };
 
                     try
