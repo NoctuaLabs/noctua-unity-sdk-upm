@@ -10,6 +10,10 @@ using Object = UnityEngine.Object;
 
 namespace com.noctuagames.sdk
 {
+    /// <summary>
+    /// Manages social authentication flows (Google, Facebook) using WebView on mobile
+    /// and a local HTTP redirect listener on desktop/editor platforms.
+    /// </summary>
     internal class SocialAuthenticationService
     {
         private readonly NoctuaAuthenticationService _authService;
@@ -22,6 +26,11 @@ namespace com.noctuagames.sdk
             _config = config;
         }
         
+        /// <summary>
+        /// Performs a full social login flow for the specified provider (opens WebView/browser, handles callback).
+        /// </summary>
+        /// <param name="provider">Social provider name (e.g. "google", "facebook").</param>
+        /// <returns>The authenticated user bundle.</returns>
         public async UniTask<UserBundle> SocialLoginAsync(string provider)
         {
             if(IsVNLegalPurposeEnabled())
@@ -46,6 +55,12 @@ namespace com.noctuagames.sdk
             return await _authService.SocialLoginAsync(provider, socialLoginRequest);
         }
         
+        /// <summary>
+        /// Gets a social login token without binding to a guest account.
+        /// Used during account conflict resolution.
+        /// </summary>
+        /// <param name="provider">Social provider name (e.g. "google", "facebook").</param>
+        /// <returns>The player token from the social login.</returns>
         public async UniTask<PlayerToken> GetSocialLoginTokenAsync(string provider)
         {
             if(IsVNLegalPurposeEnabled())
@@ -71,6 +86,11 @@ namespace com.noctuagames.sdk
             return await _authService.GetSocialLoginTokenAsync(provider, socialLoginRequest);
         }
 
+        /// <summary>
+        /// Links the current account with a social provider credential.
+        /// </summary>
+        /// <param name="provider">Social provider name (e.g. "google", "facebook").</param>
+        /// <returns>The linked credential.</returns>
         public async UniTask<Credential> SocialLinkAsync(string provider)
         {
             if (_authService == null)
@@ -273,14 +293,24 @@ namespace com.noctuagames.sdk
 
     }
    
+    /// <summary>
+    /// Local HTTP listener that handles OAuth redirect callbacks on desktop/editor platforms.
+    /// Listens on a random port in the 61000-61010 range.
+    /// </summary>
     internal class OauthRedirectListener
     {
         private readonly HttpListener _listener = new();
         private readonly ILogger _log = new NoctuaLogger();
 
+        /// <summary>The URL path component for the redirect listener.</summary>
         public string Path;
+        /// <summary>The port number the listener is bound to.</summary>
         public int Port;
 
+        /// <summary>
+        /// Creates a redirect listener on a random available port.
+        /// </summary>
+        /// <param name="path">Optional URL path for the redirect endpoint.</param>
         public OauthRedirectListener(string path = "")
         {
             Path = path;
@@ -290,6 +320,10 @@ namespace com.noctuagames.sdk
             _log.Debug($"HTTP Server started on port {Port} with path {Path}");
         }
         
+        /// <summary>
+        /// Starts listening and waits for an OAuth redirect callback (up to 180 seconds).
+        /// </summary>
+        /// <returns>The query string from the OAuth redirect.</returns>
         public async UniTask<string> ListenAsync()
         {
             _listener.Start();

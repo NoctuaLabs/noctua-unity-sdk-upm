@@ -17,12 +17,17 @@ namespace com.noctuagames.sdk
         // Dictionary to track preload configurations by ad format and ad unit ID
         private Dictionary<string, PreloadConfiguration> _preloadConfigurations = new Dictionary<string, PreloadConfiguration>();
         
-        // Event handlers for preloading notifications
+        /// <summary>Raised when preloaded ads become available for a given configuration.</summary>
         public event Action<PreloadConfiguration> OnAdsAvailable;
+
+        /// <summary>Raised when the preloaded ad buffer is exhausted for a given configuration.</summary>
         public event Action<PreloadConfiguration> OnAdExhausted;
         
-        // Thread-safe singleton instance
         private static readonly Lazy<AdmobAdPreloadManager> _instance = new(() => new AdmobAdPreloadManager());
+
+        /// <summary>
+        /// Gets the thread-safe singleton instance of the preload manager.
+        /// </summary>
         public static AdmobAdPreloadManager Instance => _instance.Value;
         
         /// <summary>

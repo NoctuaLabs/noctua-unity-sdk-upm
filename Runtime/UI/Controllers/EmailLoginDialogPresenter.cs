@@ -6,6 +6,9 @@ using UnityEngine.UIElements;
 
 namespace com.noctuagames.sdk.UI
 {
+    /// <summary>
+    /// Encapsulates the result of a login attempt, including success status, user data, and any error.
+    /// </summary>
     public class LoginResult
     {
         public bool Success { get; set; }
@@ -13,6 +16,9 @@ namespace com.noctuagames.sdk.UI
         public Exception Error { get; set; }
     }
 
+    /// <summary>
+    /// Presenter that manages the email login dialog UI, handling email/password input and authentication.
+    /// </summary>
     internal class EmailLoginDialogPresenter : Presenter<AuthUIController>
     {
         private readonly ILogger _log = new NoctuaLogger();
@@ -27,6 +33,10 @@ namespace com.noctuagames.sdk.UI
         private Action<UserBundle> _onLoginSuccess;
         private GlobalConfig _config;
         
+        /// <summary>
+        /// Displays the email login dialog and registers a callback for successful login.
+        /// </summary>
+        /// <param name="onLoginSuccess">Callback invoked with the authenticated user bundle on successful login.</param>
         public void Show(Action<UserBundle> onLoginSuccess)
         {
             Setup();
@@ -117,6 +127,10 @@ namespace com.noctuagames.sdk.UI
             }
         }
 
+        /// <summary>
+        /// Configures the dialog appearance and behavior based on the whitelabel global configuration.
+        /// </summary>
+        /// <param name="config">The global configuration containing co-publisher and feature flag settings.</param>
         public void SetBehaviourWhitelabel(GlobalConfig config)
         {
             _config = config;

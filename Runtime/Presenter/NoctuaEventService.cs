@@ -26,6 +26,12 @@ namespace com.noctuagames.sdk.Events
         
         private bool _isSandbox;
 
+        /// <summary>
+        /// Sets contextual properties (country, IP, sandbox flag) that are automatically appended to all tracked events.
+        /// </summary>
+        /// <param name="country">ISO country code (e.g., "US").</param>
+        /// <param name="ipAddress">Client IP address.</param>
+        /// <param name="isSandbox">Whether the current environment is a sandbox/test environment.</param>
         public void SetProperties(string country = "", string ipAddress = "", bool isSandbox = false)
         {
             if (country != "")

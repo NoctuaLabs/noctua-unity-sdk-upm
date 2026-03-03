@@ -13,6 +13,7 @@ namespace com.noctuagames.sdk
         private readonly FailedPaymentDialogPresenter _failedDialog;
         private readonly UIFactory _uiFactory;
 
+        /// <summary>Creates the adapter, pre-building payment dialog presenters.</summary>
         internal PaymentUIAdapter(UIFactory uiFactory)
         {
             _uiFactory = uiFactory;
@@ -20,24 +21,31 @@ namespace com.noctuagames.sdk
             _failedDialog = uiFactory.Create<FailedPaymentDialogPresenter, object>(new object());
         }
 
+        /// <inheritdoc />
         public UniTask<string> ShowCustomPaymentCompleteDialog(bool nativePaymentButtonEnabled)
             => _completeDialog.Show(nativePaymentButtonEnabled);
 
+        /// <inheritdoc />
         public UniTask<bool> ShowFailedPaymentDialog(PaymentStatus status)
             => _failedDialog.Show(status);
 
+        /// <inheritdoc />
         public void ShowLoadingProgress(bool show)
             => _uiFactory.ShowLoadingProgress(show);
 
+        /// <inheritdoc />
         public UniTask<bool> ShowRetryDialog(string message, string context = "general")
             => _uiFactory.ShowRetryDialog(message, context);
 
+        /// <inheritdoc />
         public void ShowError(string message)
             => _uiFactory.ShowError(message);
 
+        /// <inheritdoc />
         public void ShowError(LocaleTextKey textKey)
             => _uiFactory.ShowError(textKey);
 
+        /// <inheritdoc />
         public void ShowGeneralNotification(string message, bool isSuccess = false, uint durationMs = 3000)
             => _uiFactory.ShowGeneralNotification(message, isSuccess, durationMs);
     }

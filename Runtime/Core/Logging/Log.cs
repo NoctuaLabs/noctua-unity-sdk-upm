@@ -12,19 +12,54 @@ using UnityEngine;
 
 namespace com.noctuagames.sdk
 {
+    /// <summary>
+    /// SDK logging interface. All runtime SDK code should use this instead of
+    /// <c>UnityEngine.Debug.Log</c> to ensure consistent log formatting and
+    /// multi-sink output (file, Sentry, platform-native logcat/os_log).
+    /// </summary>
     public interface ILogger
     {
+        /// <summary>Logs a debug-level message (verbose, development only).</summary>
+        /// <param name="message">The log message.</param>
+        /// <param name="caller">Auto-populated caller member name.</param>
         void Debug(string message, [CallerMemberName] string caller = "");
+
+        /// <summary>Logs an informational message.</summary>
+        /// <param name="message">The log message.</param>
+        /// <param name="caller">Auto-populated caller member name.</param>
         void Info(string message, [CallerMemberName] string caller = "");
+
+        /// <summary>Logs a warning-level message.</summary>
+        /// <param name="message">The log message.</param>
+        /// <param name="caller">Auto-populated caller member name.</param>
         void Warning(string message, [CallerMemberName] string caller = "");
+
+        /// <summary>Logs an error-level message.</summary>
+        /// <param name="message">The log message.</param>
+        /// <param name="caller">Auto-populated caller member name.</param>
         void Error(string message, [CallerMemberName] string caller = "");
+
+        /// <summary>Logs an exception with full stack trace at error level.</summary>
+        /// <param name="exception">The exception to log.</param>
+        /// <param name="caller">Auto-populated caller member name.</param>
         void Exception(Exception exception, [CallerMemberName] string caller = "");
     }
     
+    /// <summary>
+    /// Default <see cref="ILogger"/> implementation that writes to Serilog sinks
+    /// (file, Sentry, and platform-native: Unity console / Android logcat / iOS os_log).
+    /// Each instance is scoped to a type name for structured log prefixes.
+    /// </summary>
     public class NoctuaLogger : ILogger
     {
         private readonly string _typeName;
-        
+
+        /// <summary>
+        /// Initializes the global Serilog logger pipeline with file output,
+        /// optional Sentry error reporting, and platform-specific sinks.
+        /// Called once during SDK initialization.
+        /// </summary>
+        /// <param name="globalConfig">The global configuration containing Sentry DSN and other settings.</param>
         public static void Init(GlobalConfig globalConfig)
         {
             var loggerConfig = new LoggerConfiguration();
@@ -60,6 +95,11 @@ namespace com.noctuagames.sdk
             Log.Logger = loggerConfig.CreateLogger();
         }
 
+        /// <summary>
+        /// Creates a new logger instance scoped to the specified type.
+        /// If <paramref name="type"/> is <c>null</c>, the declaring type of the caller is used.
+        /// </summary>
+        /// <param name="type">The type whose name will prefix all log messages. Defaults to the caller's declaring type.</param>
         public NoctuaLogger(Type type = null)
         {
             if (type == null)
@@ -110,6 +150,10 @@ namespace com.noctuagames.sdk
         }
     }
     
+    /// <summary>
+    /// Serilog sink that forwards log events to <c>UnityEngine.Debug.unityLogger</c>.
+    /// Used in the Unity Editor only.
+    /// </summary>
     public class UnityLogSink : ILogEventSink
     {
         public void Emit(LogEvent logEvent)
@@ -129,6 +173,10 @@ namespace com.noctuagames.sdk
     }
 
 #if UNITY_ANDROID && !UNITY_EDITOR
+    /// <summary>
+    /// Serilog sink that writes log events to Android logcat via <c>__android_log_write</c>.
+    /// Used on Android devices only.
+    /// </summary>
     public class AndroidLogSink : ILogEventSink
     {
         [DllImport("log")]
@@ -157,11 +205,16 @@ namespace com.noctuagames.sdk
 #endif
     
 #if UNITY_IOS && !UNITY_EDITOR
+    /// <summary>
+    /// Serilog sink that writes log events to the Apple unified logging system (os_log).
+    /// Used on iOS devices only.
+    /// </summary>
     public class IosLogSink : ILogEventSink
     {
         [DllImport("__Internal")]
         public static extern IntPtr os_log_create(string subsystem, string category);
 
+        /// <summary>Apple os_log severity levels.</summary>
         public enum OSLogType : byte
         {
             Default = 0,

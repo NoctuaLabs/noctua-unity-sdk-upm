@@ -8,12 +8,21 @@ using Toggle = UnityEngine.UIElements.Toggle;
 
 namespace com.noctuagames.sdk.UI
 {
+    /// <summary>
+    /// Defines the display mode for the web content presenter.
+    /// </summary>
     internal enum ScreenMode
     {
+        /// <summary>Web content fills the entire screen.</summary>
         FullScreen,
+
+        /// <summary>Web content is displayed in a windowed dialog.</summary>
         Windowed
     }
     
+    /// <summary>
+    /// Presenter that displays web content in an embedded UniWebView, supporting fullscreen and windowed modes with a close button and "do not show again" toggle.
+    /// </summary>
     internal class WebContentPresenter : Presenter<WebContentModel>
     {
         private readonly NoctuaLogger _log = new(typeof(WebContentPresenter));
@@ -35,6 +44,9 @@ namespace com.noctuagames.sdk.UI
             View.Q<VisualElement>("Root").style.justifyContent = Justify.Center;
         }
 
+        /// <summary>
+        /// Opens the web content URL in an embedded WebView (on mobile) or the system browser (in editor), and waits until the user closes it.
+        /// </summary>
         public async UniTask OpenAsync()
         {
 #if (UNITY_ANDROID || UNITY_IOS) && !UNITY_EDITOR

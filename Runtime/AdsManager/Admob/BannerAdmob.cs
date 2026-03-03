@@ -6,24 +6,43 @@ using Cysharp.Threading.Tasks;
 
 namespace com.noctuagames.sdk.Admob
 {
+    /// <summary>
+    /// Manages AdMob banner ad loading, display, and lifecycle events.
+    /// Handles creating banner views, loading ads, and tracking analytics events.
+    /// </summary>
     public class BannerAdmob
     {
         private readonly NoctuaLogger _log = new(typeof(BannerAdmob));
         private BannerView _bannerView;
         private AdSize _adSize;
         private AdPosition _adPosition;
-        
+
         private string _adUnitIdBanner;
 
+        /// <summary>Raised when a banner ad is successfully loaded and displayed.</summary>
         public event Action BannerOnAdDisplayed;
+
+        /// <summary>Raised when a banner ad fails to load or display.</summary>
         public event Action BannerOnAdFailedDisplayed;
+
+        /// <summary>Raised when the user clicks on the banner ad.</summary>
         public event Action BannerOnAdClicked;
+
+        /// <summary>Raised when a banner ad impression is recorded.</summary>
         public event Action BannerOnAdImpressionRecorded;
+
+        /// <summary>Raised when the banner ad's full-screen content is closed.</summary>
         public event Action BannerOnAdClosed;
+
+        /// <summary>Raised when banner ad revenue is recorded, providing the ad value and response info.</summary>
         public event Action<AdValue, ResponseInfo> AdmobOnAdRevenuePaid;
         private readonly long _timeoutThreshold = 5000; // milliseconds,
         private bool _bannerEventsRegistered;
 
+        /// <summary>
+        /// Sets the ad unit ID for the banner ad.
+        /// </summary>
+        /// <param name="adUnitId">The AdMob ad unit ID for banner ads.</param>
         public void SetAdUnitId(string adUnitId)
         {
             if (adUnitId == null)
@@ -204,6 +223,9 @@ namespace com.noctuagames.sdk.Admob
             };
         }
 
+        /// <summary>
+        /// Destroys the current banner view and releases its resources.
+        /// </summary>
         public void CleanupAd()
         {
             if (_bannerView != null)

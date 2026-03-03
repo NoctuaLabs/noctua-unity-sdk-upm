@@ -18,13 +18,11 @@ using Newtonsoft.Json.Serialization;
 
 namespace com.noctuagames.sdk
 {
-    /*
-    AuthUIController (formerly AuthUIController) purposes:
-    1. To allow our SDK instance (including UI) to be injected into the Scene
-    2. To allow a UI presenter call another UI presenter
-    3. To allow model layer (logic) to call a UI presenter
-    */
-
+    /// <summary>
+    /// Central controller for all authentication-related UI flows.
+    /// Coordinates navigation between login, registration, account selection, user center, and purchase dialogs.
+    /// Allows UI presenters to call each other and provides the model layer access to UI presenters.
+    /// </summary>
     internal class AuthUIController
     {
         private readonly ILogger _log = new NoctuaLogger();
@@ -60,9 +58,13 @@ namespace com.noctuagames.sdk
         
         private readonly Stack<Action> _navigationStack = new();
 
+        /// <summary>Gets the authentication service used by this controller.</summary>
         public NoctuaAuthenticationService AuthService => _authService;
+
+        /// <summary>Gets or sets the current authentication intention (none, switch, or link).</summary>
         public AuthIntention AuthIntention { get; set; } = AuthIntention.None;
 
+        /// <summary>Event raised when the active account changes after login, switch, or logout.</summary>
         internal event Action<UserBundle> OnAccountChanged;
 
 
@@ -124,6 +126,10 @@ namespace com.noctuagames.sdk
             _socialAuth = new SocialAuthenticationService(_authService, config);
         }
 
+        /// <summary>
+        /// Applies white-label branding configuration to all auth UI presenters.
+        /// </summary>
+        /// <param name="config">The global configuration containing co-publisher branding.</param>
         public void SetBehaviourWhitelabel(GlobalConfig config)
         {
             _welcome.SetBehaviourWhitelabel(config);
@@ -135,6 +141,10 @@ namespace com.noctuagames.sdk
         }
 
         
+        /// <summary>
+        /// Pushes a navigation action onto the back-navigation stack.
+        /// </summary>
+        /// <param name="action">The action to invoke when navigating back.</param>
         internal void PushNavigation(Action action)
         {
             if (action == null) return;
@@ -142,11 +152,17 @@ namespace com.noctuagames.sdk
             _navigationStack.Push(action);
         }
         
+        /// <summary>
+        /// Clears all entries from the back-navigation stack.
+        /// </summary>
         internal void ClearNavigation()
         {
             _navigationStack.Clear();
         }
         
+        /// <summary>
+        /// Pops and invokes the most recent back-navigation action from the stack.
+        /// </summary>
         internal void NavigateBack()
         {
             if (_navigationStack.Count > 0)
@@ -155,6 +171,10 @@ namespace com.noctuagames.sdk
             }
         }
 
+        /// <summary>
+        /// Shows a retry dialog for offline mode; if retried, re-opens account selection.
+        /// </summary>
+        /// <param name="offlineModeMessage">The offline mode error message to display.</param>
         public async Task HandleRetryAccountSelectionAsync(string offlineModeMessage) {
             bool isRetry = await _uiFactory.ShowRetryDialog(offlineModeMessage, "offlineMode");
             if(isRetry)
@@ -163,6 +183,9 @@ namespace com.noctuagames.sdk
             }
         }
 
+        /// <summary>
+        /// Opens the account selection dialog showing all available game and Noctua accounts.
+        /// </summary>
         public void ShowAccountSelection()
         {
             _accountSelectionDialog.Show();

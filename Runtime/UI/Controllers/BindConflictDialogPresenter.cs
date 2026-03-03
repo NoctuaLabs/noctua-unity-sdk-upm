@@ -2,6 +2,9 @@
 
 namespace com.noctuagames.sdk.UI
 {
+    /// <summary>
+    /// Presenter for the bind conflict dialog, shown when a guest account tries to link a credential that already belongs to another player, offering to switch accounts.
+    /// </summary>
     internal class BindConflictDialogPresenter : Presenter<AuthUIController>
     {
         private readonly ILogger _log = new NoctuaLogger();
@@ -34,6 +37,10 @@ namespace com.noctuagames.sdk.UI
             _cancelButton.RegisterCallback<PointerUpEvent>(_ => OnCancelButtonClicked());
         }
         
+        /// <summary>
+        /// Displays the bind conflict dialog showing the conflicting account's avatar and credential information.
+        /// </summary>
+        /// <param name="targetPlayer">The existing player token that conflicts with the current guest account.</param>
         public void Show(PlayerToken targetPlayer)
         {
             _targetPlayer = targetPlayer;

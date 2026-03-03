@@ -12,6 +12,13 @@ namespace com.noctuagames.sdk
     {
         private static readonly ILogger _sLog = new NoctuaLogger(typeof(UIUtility));
 
+        /// <summary>
+        /// Registers change callbacks on multiple named elements and enables/disables a button when any value differs from its initial state.
+        /// </summary>
+        /// <typeparam name="T">The value type of the bindable elements.</typeparam>
+        /// <param name="root">The root visual element containing the named elements.</param>
+        /// <param name="elementNames">The names of the bindable elements to monitor.</param>
+        /// <param name="buttonToEnable">The button to enable or disable based on value changes.</param>
         public static void RegisterForMultipleValueChanges<T>(
             VisualElement root,
             List<string> elementNames,
@@ -69,17 +76,33 @@ namespace com.noctuagames.sdk
             }
         }
 
+        /// <summary>
+        /// Enables the submit button only when all text fields have non-empty values.
+        /// </summary>
+        /// <param name="textFields">The list of text fields to validate.</param>
+        /// <param name="submitButton">The button to enable or disable.</param>
         public static void UpdateButtonState(List<TextField> textFields, Button submitButton)
         {
             UpdateButtonState(submitButton, !textFields.Any(textField => string.IsNullOrEmpty(textField.value)));
         }
 
+        /// <summary>
+        /// Sets a button's enabled state and picking mode based on the active flag.
+        /// </summary>
+        /// <param name="_submitButton">The button to update.</param>
+        /// <param name="_isActive"><c>true</c> to enable the button; <c>false</c> to disable it.</param>
         public static void UpdateButtonState(Button _submitButton, bool _isActive)
         {
             _submitButton.SetEnabled(_isActive);
             _submitButton.pickingMode = _isActive ? PickingMode.Position : PickingMode.Ignore;
         }
 
+        /// <summary>
+        /// Applies localized translations to all translatable elements in the visual tree and updates error translations.
+        /// </summary>
+        /// <param name="root">The root visual element to traverse.</param>
+        /// <param name="uxmlName">The UXML name prefix used to build translation keys.</param>
+        /// <param name="translations">The dictionary of translation key-value pairs.</param>
         public static void ApplyTranslations(VisualElement root, string uxmlName, Dictionary<string, string> translations)
         {
             ApplyTranslationsToElement(root, uxmlName, translations);

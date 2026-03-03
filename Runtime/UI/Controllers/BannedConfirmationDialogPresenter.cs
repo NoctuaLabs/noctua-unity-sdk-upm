@@ -7,6 +7,9 @@ using Cysharp.Threading.Tasks;
 
 namespace com.noctuagames.sdk.UI
 {
+    /// <summary>
+    /// Presenter for the banned user confirmation dialog, informing the user they have been banned and offering a link to customer service.
+    /// </summary>
     internal class BannedConfirmationDialogPresenter : Presenter<object>
     {
         private Button _btnOK;
@@ -33,6 +36,10 @@ namespace com.noctuagames.sdk.UI
             _btnOK.RegisterCallback<PointerUpEvent>(CloseDialog);
         }
 
+        /// <summary>
+        /// Displays the banned confirmation dialog and waits for the user to acknowledge or contact customer service.
+        /// </summary>
+        /// <returns><c>true</c> when the dialog is dismissed.</returns>
         public async UniTask<bool> Show()
         {
             _tcs = new UniTaskCompletionSource<bool>();

@@ -13,6 +13,9 @@ using Newtonsoft.Json.Serialization;
 
 namespace com.noctuagames.sdk.UI
 {
+    /// <summary>
+    /// Presenter for the purchase history dialog, displaying a scrollable list of completed purchases for the current player.
+    /// </summary>
     internal class PurchaseHistoryDialogPresenter : Presenter<AuthUIController>
     {
         private readonly ILogger _log = new NoctuaLogger();
@@ -46,6 +49,11 @@ namespace com.noctuagames.sdk.UI
             BindListView(_purchaseHistoryListView, _purchaseHistory);
         }
 
+        /// <summary>
+        /// Displays the purchase history dialog with the provided list of completed purchases.
+        /// </summary>
+        /// <param name="purchaseHistory">The list of purchase items to display.</param>
+        /// <returns><c>false</c> when the dialog is closed.</returns>
         public async UniTask<bool> Show(List<PurchaseItem> purchaseHistory)
         {            
             _log.Debug("Player ID from recent account: " + Model.AuthService.RecentAccount?.Player?.Id);

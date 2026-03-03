@@ -6,6 +6,9 @@ using UnityEngine.UIElements;
 
 namespace com.noctuagames.sdk.UI
 {
+    /// <summary>
+    /// Presenter for the login options dialog, allowing the user to choose between social login providers (Google, Facebook, Apple), email login, or email registration.
+    /// </summary>
     internal class LoginOptionsDialogPresenter : Presenter<AuthUIController>
     {
         private readonly ILogger _log = new NoctuaLogger();
@@ -44,6 +47,9 @@ namespace com.noctuagames.sdk.UI
 #endif
         };
 
+        /// <summary>
+        /// Displays the login options dialog, or redirects to email login if SSO is disabled.
+        /// </summary>
         public void Show()
         {
             if (_ssoDisabled)
@@ -97,11 +103,19 @@ namespace com.noctuagames.sdk.UI
             _backButton.RegisterCallback<PointerUpEvent>(_ => OnBackButtonClicked());
         }
         
+        /// <summary>
+        /// Configures white-label branding settings for the login options dialog.
+        /// </summary>
+        /// <param name="config">The global configuration containing co-publisher settings.</param>
         public void SetWhitelabel(GlobalConfig config)
         {
             _config = config;
         }
 
+        /// <summary>
+        /// Applies feature flags that control login behavior, such as disabling SSO.
+        /// </summary>
+        /// <param name="featureFlags">The feature flags dictionary.</param>
         public void SetFlag(Dictionary<string, bool> featureFlags)
         {
             if (featureFlags != null && featureFlags.ContainsKey("ssoDisabled") && featureFlags["ssoDisabled"])

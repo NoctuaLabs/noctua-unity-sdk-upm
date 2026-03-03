@@ -9,6 +9,9 @@ using Newtonsoft.Json;
 
 namespace com.noctuagames.sdk.UI
 {
+    /// <summary>
+    /// Presenter that manages the Vietnam-specific email registration dialog with additional KYC wizard fields.
+    /// </summary>
     internal class EmailRegisterVNDialogPresenter : Presenter<AuthUIController>
     {
         private readonly ILogger _log = new NoctuaLogger();
@@ -55,6 +58,11 @@ namespace com.noctuagames.sdk.UI
             HideAllErrors();
         }
 
+        /// <summary>
+        /// Displays the Vietnam registration dialog with the KYC wizard, optionally clearing the form.
+        /// </summary>
+        /// <param name="clearForm">Whether to reset all input fields to their default state.</param>
+        /// <param name="isRegisterOnly">When true, hides the additional footer content.</param>
         public void Show(bool clearForm, bool isRegisterOnly)
         {
             // Assume IsVNLegalPurposeEnabled() is always true for this component
@@ -81,6 +89,10 @@ namespace com.noctuagames.sdk.UI
             Visible = true;
         }
 
+        /// <summary>
+        /// Configures the dialog appearance and behavior based on the whitelabel global configuration.
+        /// </summary>
+        /// <param name="config">The global configuration containing co-publisher and feature flag settings.</param>
         public void SetBehaviourWhitelabel(GlobalConfig config)
         {
             _config = config;

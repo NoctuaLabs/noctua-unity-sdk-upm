@@ -5,6 +5,10 @@ using System.Collections.Generic;
 
 namespace com.noctuagames.sdk.AppLovin
 {
+    /// <summary>
+    /// Manages AppLovin MAX interstitial ad loading, display, and lifecycle events.
+    /// Handles full-screen interstitial ads with exponential backoff retry on load failure.
+    /// </summary>
     public class InterstitialAppLovin
     {
         private readonly NoctuaLogger _log = new(typeof(InterstitialAppLovin));
@@ -13,15 +17,30 @@ namespace com.noctuagames.sdk.AppLovin
 
         int retryAttempt;
 
+        /// <summary>Raised when the interstitial ad is successfully displayed.</summary>
         public event Action InterstitialOnAdDisplayed;
+
+        /// <summary>Raised when the interstitial ad fails to display.</summary>
         public event Action InterstitialOnAdFailedDisplayed;
+
+        /// <summary>Raised when the user clicks on the interstitial ad.</summary>
         public event Action InterstitialOnAdClicked;
+
+        /// <summary>Raised when an interstitial ad impression is recorded via revenue paid callback.</summary>
         public event Action InterstitialOnAdImpressionRecorded;
+
+        /// <summary>Raised when the interstitial ad is closed (hidden) by the user.</summary>
         public event Action InterstitialOnAdClosed;
+
+        /// <summary>Raised when interstitial ad revenue is recorded, providing the ad info with revenue data.</summary>
         public event Action<MaxSdkBase.AdInfo> InterstitialOnAdRevenuePaid;
         private readonly long _timeoutThreshold = 5000; // 5 seconds
         private bool _callbacksRegistered;
 
+        /// <summary>
+        /// Sets the ad unit ID for the interstitial ad.
+        /// </summary>
+        /// <param name="adUnitID">The AppLovin MAX ad unit ID for interstitial ads.</param>
         public void SetInterstitialAdUnitID(string adUnitID)
         {
             if (adUnitID == null)
@@ -35,6 +54,9 @@ namespace com.noctuagames.sdk.AppLovin
             _log.Debug("Ad unit ID Interstitial set to : " + _adUnitIDInterstitial);
         }
 
+        /// <summary>
+        /// Loads an interstitial ad and registers event callbacks (only once) for the ad lifecycle.
+        /// </summary>
         public void LoadInterstitial()
         {
             if (_adUnitIDInterstitial == null)
@@ -62,6 +84,9 @@ namespace com.noctuagames.sdk.AppLovin
             _log.Debug("Interstitial ad loaded for ad unit id : " + _adUnitIDInterstitial);
         }
 
+        /// <summary>
+        /// Shows a previously loaded interstitial ad if it is ready.
+        /// </summary>
         public void ShowInterstitial()
         {
             if (string.IsNullOrEmpty(_adUnitIDInterstitial))

@@ -15,23 +15,36 @@ using UnityEngine.Scripting;
 
 namespace com.noctuagames.sdk
 {
+    /// <summary>
+    /// Provides an HTTP Authorization header value for authenticating requests.
+    /// </summary>
     internal interface IHttpAuth
     {
+        /// <summary>Returns the full Authorization header value (e.g. "Basic ..." or "Bearer ...").</summary>
         string Get();
     }
 
 
+    /// <summary>
+    /// Generates a Base64-encoded HTTP Basic Authentication header from a username and password.
+    /// </summary>
     internal class BasicAuth : IHttpAuth
     {
         private readonly string _username;
         private readonly string _password;
 
+        /// <summary>
+        /// Initializes a new <see cref="BasicAuth"/> with the given credentials.
+        /// </summary>
+        /// <param name="username">The authentication username.</param>
+        /// <param name="password">The authentication password.</param>
         public BasicAuth(string username, string password)
         {
             _username = username;
             _password = password;
         }
 
+        /// <inheritdoc />
         public string Get()
         {
             return $"Basic {Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes($"{_username}:{_password}"))}";
@@ -39,15 +52,23 @@ namespace com.noctuagames.sdk
     }
 
 
+    /// <summary>
+    /// Generates an HTTP Bearer token Authentication header from an access token.
+    /// </summary>
     internal class BearerAuth : IHttpAuth
     {
         private readonly string _token;
 
+        /// <summary>
+        /// Initializes a new <see cref="BearerAuth"/> with the given token.
+        /// </summary>
+        /// <param name="token">The bearer access token.</param>
         public BearerAuth(string token)
         {
             _token = token;
         }
 
+        /// <inheritdoc />
         public string Get()
         {
             return $"Bearer {_token}";
@@ -55,18 +76,38 @@ namespace com.noctuagames.sdk
     }
 
 
+    /// <summary>
+    /// Supported HTTP methods for <see cref="HttpRequest"/>.
+    /// </summary>
     public enum HttpMethod
     {
+        /// <summary>HTTP GET method for retrieving resources.</summary>
         Get,
+        /// <summary>HTTP POST method for creating resources or submitting data.</summary>
         Post,
+        /// <summary>HTTP PUT method for replacing resources.</summary>
         Put,
+        /// <summary>HTTP DELETE method for removing resources.</summary>
         Delete,
+        /// <summary>HTTP PATCH method for partially updating resources.</summary>
         Patch
     }
 
+    /// <summary>
+    /// Fluent builder for constructing and sending HTTP requests via <see cref="UnityWebRequest"/>.
+    /// Automatically injects locale, device, and SDK version headers. Supports JSON, NDJSON,
+    /// form-encoded, and raw binary request bodies. Responses are deserialized from a
+    /// <c>{"data": ...}</c> JSON wrapper.
+    /// </summary>
     internal class HttpRequest : IDisposable
     {
         private static ILocaleProvider _localeProvider;
+
+        /// <summary>
+        /// Sets the static locale provider used by all <see cref="HttpRequest"/> instances
+        /// to populate locale-related headers (language, country, currency).
+        /// </summary>
+        /// <param name="provider">The locale provider to inject.</param>
         internal static void SetLocaleProvider(ILocaleProvider provider) => _localeProvider = provider;
 
         private readonly NoctuaLogger _log = new(typeof(HttpRequest));
@@ -84,6 +125,12 @@ namespace com.noctuagames.sdk
         
         private bool _noVerboseLog;
 
+        /// <summary>
+        /// Creates a new HTTP request with the specified method and URL, and injects default
+        /// headers for locale, device ID, platform, OS, and SDK version.
+        /// </summary>
+        /// <param name="method">The HTTP method (GET, POST, PUT, DELETE, PATCH).</param>
+        /// <param name="url">The full request URL.</param>
         internal HttpRequest(HttpMethod method, string url)
         {
             _jsonSettings.Converters.Add(new StringEnumConverter());
@@ -107,6 +154,12 @@ namespace com.noctuagames.sdk
 
         }
 
+        /// <summary>
+        /// Replaces a <c>{key}</c> placeholder in the URL with the URI-escaped value.
+        /// </summary>
+        /// <param name="key">The placeholder name (without braces).</param>
+        /// <param name="value">The value to substitute, which will be URI-escaped.</param>
+        /// <returns>This <see cref="HttpRequest"/> for method chaining.</returns>
         public HttpRequest WithPathParam(string key, string value)
         {
             if (string.IsNullOrEmpty(key))
@@ -124,6 +177,11 @@ namespace com.noctuagames.sdk
             return this;
         }
 
+        /// <summary>
+        /// Adds an Authorization header to the request using the provided authentication strategy.
+        /// </summary>
+        /// <param name="auth">The authentication provider (e.g. <see cref="BasicAuth"/> or <see cref="BearerAuth"/>).</param>
+        /// <returns>This <see cref="HttpRequest"/> for method chaining.</returns>
         public HttpRequest WithAuth(IHttpAuth auth)
         {
             _request.SetRequestHeader("Authorization", auth.Get());
@@ -131,6 +189,12 @@ namespace com.noctuagames.sdk
             return this;
         }
 
+        /// <summary>
+        /// Adds a custom HTTP header to the request.
+        /// </summary>
+        /// <param name="key">The header name.</param>
+        /// <param name="value">The header value.</param>
+        /// <returns>This <see cref="HttpRequest"/> for method chaining.</returns>
         public HttpRequest WithHeader(string key, string value)
         {
             _request.SetRequestHeader(key, value);
@@ -138,6 +202,11 @@ namespace com.noctuagames.sdk
             return this;
         }
 
+        /// <summary>
+        /// Sets the request body as URL-encoded form data with Content-Type <c>application/x-www-form-urlencoded</c>.
+        /// </summary>
+        /// <param name="body">Key-value pairs to encode as form fields.</param>
+        /// <returns>This <see cref="HttpRequest"/> for method chaining.</returns>
         public HttpRequest WithFormBody(Dictionary<string, string> body)
         {
             _request.SetRequestHeader("Content-Type", "application/x-www-form-urlencoded");
@@ -153,6 +222,12 @@ namespace com.noctuagames.sdk
             return this;
         }
 
+        /// <summary>
+        /// Serializes the body as JSON with snake_case naming and sets Content-Type to <c>application/json</c>.
+        /// </summary>
+        /// <typeparam name="T">The type of the request body object.</typeparam>
+        /// <param name="body">The object to serialize as the JSON request body.</param>
+        /// <returns>This <see cref="HttpRequest"/> for method chaining.</returns>
         public HttpRequest WithJsonBody<T>(T body)
         {
             _request.SetRequestHeader("Content-Type", "application/json");
@@ -164,6 +239,13 @@ namespace com.noctuagames.sdk
             return this;
         }
 
+        /// <summary>
+        /// Serializes a list of objects as newline-delimited JSON (NDJSON) and sets Content-Type
+        /// to <c>application/x-ndjson</c>. Each object is serialized on a separate line.
+        /// </summary>
+        /// <typeparam name="T">The type of each item in the list.</typeparam>
+        /// <param name="body">The list of objects to serialize as NDJSON.</param>
+        /// <returns>This <see cref="HttpRequest"/> for method chaining.</returns>
         public HttpRequest WithNdjsonBody<T>(IList<T> body)
         {
             _request.SetRequestHeader("Content-Type", "application/x-ndjson");
@@ -206,6 +288,11 @@ namespace com.noctuagames.sdk
             return this;
         }
 
+        /// <summary>
+        /// Sets the request body as raw binary data with Content-Type <c>application/octet-stream</c>.
+        /// </summary>
+        /// <param name="body">The raw byte array to send as the request body.</param>
+        /// <returns>This <see cref="HttpRequest"/> for method chaining.</returns>
         public HttpRequest WithRawBody(byte[] body)
         {
             _request.SetRequestHeader("Content-Type", "application/octet-stream");
@@ -214,6 +301,10 @@ namespace com.noctuagames.sdk
             return this;
         }
         
+        /// <summary>
+        /// Suppresses verbose request/response header logging, only logging the method and URL.
+        /// </summary>
+        /// <returns>This <see cref="HttpRequest"/> for method chaining.</returns>
         public HttpRequest NoVerboseLog()
         {
             _noVerboseLog = true;
@@ -228,6 +319,10 @@ namespace com.noctuagames.sdk
             public T Data;
         }
 
+        /// <summary>
+        /// Sends the request and returns the raw response body as a string without JSON deserialization.
+        /// </summary>
+        /// <returns>The raw response body text.</returns>
         public async UniTask<string> SendRaw()
         {
             _request.downloadHandler = new DownloadHandlerBuffer();
@@ -237,6 +332,13 @@ namespace com.noctuagames.sdk
             return _request.downloadHandler.text;
         }
 
+        /// <summary>
+        /// Sends the request and deserializes the JSON response from a <c>{"data": T}</c> wrapper.
+        /// Throws <see cref="NoctuaException"/> for HTTP errors (4xx/5xx) and deserialization failures.
+        /// </summary>
+        /// <typeparam name="T">The type to deserialize the response <c>data</c> field into.</typeparam>
+        /// <returns>The deserialized response data.</returns>
+        /// <exception cref="NoctuaException">Thrown on HTTP errors, connection failures, or parse errors.</exception>
         public async UniTask<T> Send<T>()
         {
             if (_request.url.Contains("{") || _request.url.Contains("}"))
@@ -387,6 +489,9 @@ namespace com.noctuagames.sdk
             Dispose();
         }
 
+        /// <summary>
+        /// Disposes the underlying upload and download handlers to release native resources.
+        /// </summary>
         public void Dispose()
         {
             _request.uploadHandler?.Dispose();

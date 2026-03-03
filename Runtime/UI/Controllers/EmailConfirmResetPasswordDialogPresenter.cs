@@ -7,6 +7,9 @@ using com.noctuagames.sdk.Events;
 
 namespace com.noctuagames.sdk.UI
 {
+    /// <summary>
+    /// Presenter that manages the password reset confirmation dialog, where users enter a verification code and new password.
+    /// </summary>
     internal class EmailConfirmResetPasswordDialogPresenter : Presenter<AuthUIController>
     {
         public IEventSender EventSender;
@@ -25,6 +28,10 @@ namespace com.noctuagames.sdk.UI
         private Button _showPasswordButton;
         private Button _showRePasswordButton;
 
+        /// <summary>
+        /// Displays the password reset confirmation dialog for the given credential verification ID.
+        /// </summary>
+        /// <param name="credVerifyId">The credential verification ID obtained from the reset password request.</param>
         public void Show(int credVerifyId)
         {
 

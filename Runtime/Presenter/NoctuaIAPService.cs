@@ -31,6 +31,9 @@ namespace com.noctuagames.sdk
         /// Fired when a purchase flow completes and an OrderRequest should be processed by game.
         /// </summary>
         public event Action<OrderRequest> OnPurchaseDone;
+        /// <summary>
+        /// Fired when a purchase verification fails and the order is placed in a pending state for retry.
+        /// </summary>
         public event Action<OrderRequest> OnPurchasePending;
 
         private readonly IEventSender _eventSender;
@@ -575,6 +578,9 @@ namespace com.noctuagames.sdk
 #endif
         }
 
+        /// <summary>
+        /// Queries the native store for existing purchases (Android only). Used to detect unpaired or pending purchases.
+        /// </summary>
         public void QueryPurchasesAsync()
         {
 #if UNITY_ANDROID && !UNITY_EDITOR
@@ -590,6 +596,11 @@ namespace com.noctuagames.sdk
             }
         }
 
+        /// <summary>
+        /// Debug helper to simulate an unpaired purchase on Android for testing purposes.
+        /// </summary>
+        /// <param name="productId">Product ID to simulate.</param>
+        /// <param name="receiptData">Receipt data to simulate.</param>
         public async UniTask HandleUnpairedPurchaseDebugAsync(string productId, string receiptData)
         {
             await UniTask.SwitchToMainThread();
@@ -605,6 +616,14 @@ namespace com.noctuagames.sdk
         }
 
 
+        /// <summary>
+        /// Initiates a purchase flow for the given product, handling connectivity checks, store readiness, and payment fallback.
+        /// </summary>
+        /// <param name="purchaseRequest">The purchase request containing product ID, price, and metadata.</param>
+        /// <param name="tryToUseSecondaryPayment">Whether to attempt the secondary payment type.</param>
+        /// <param name="enforcedPaymentType">Force a specific payment type, bypassing server override.</param>
+        /// <returns>The purchase response with order ID and status.</returns>
+        /// <exception cref="NoctuaException">Thrown when IAP is disabled, user is offline, or authentication fails.</exception>
         public async UniTask<PurchaseResponse> PurchaseItemAsync(PurchaseRequest purchaseRequest, bool tryToUseSecondaryPayment = false, PaymentType enforcedPaymentType = PaymentType.unknown)
         {
 
@@ -688,6 +707,14 @@ namespace com.noctuagames.sdk
             }
         }
 
+        /// <summary>
+        /// Internal purchase implementation that creates orders, handles payment flows, and verifies receipts.
+        /// </summary>
+        /// <param name="purchaseRequest">The purchase request containing product ID, price, and metadata.</param>
+        /// <param name="tryToUseSecondaryPayment">Whether to attempt the secondary payment type.</param>
+        /// <param name="enforcedPaymentType">Force a specific payment type, bypassing server override.</param>
+        /// <returns>The purchase response with order ID and verification status.</returns>
+        /// <exception cref="NoctuaException">Thrown on authentication, payment, or verification failure.</exception>
         public async UniTask<PurchaseResponse> PurchaseItemImplAsync(PurchaseRequest purchaseRequest, bool tryToUseSecondaryPayment = false, PaymentType enforcedPaymentType = PaymentType.unknown)
         {
             EnsureEnabled();
@@ -1215,6 +1242,11 @@ namespace com.noctuagames.sdk
             };
         }
 
+        /// <summary>
+        /// Manually retries verification for a single pending purchase identified by order ID.
+        /// </summary>
+        /// <param name="orderId">The order ID of the pending purchase to retry.</param>
+        /// <returns>The resulting order status after retry.</returns>
         public async UniTask<OrderStatus>  RetryPendingPurchaseByOrderId(int orderId)
         {
             var item = GetPendingPurchaseByOrderId(orderId);
@@ -2012,6 +2044,10 @@ namespace com.noctuagames.sdk
             SavePendingPurchases(_waitingPendingPurchases.ToList());
         }
 
+        /// <summary>
+        /// Retrieves the current user's Noctua Gold wallet balance from the server.
+        /// </summary>
+        /// <returns>The Noctua Gold balance data.</returns>
         public async UniTask<NoctuaGoldData> GetNoctuaGold()
         {
             var request = new HttpRequest(HttpMethod.Get, $"{_config.BaseUrl}/noctuastore/wallet")
@@ -2022,6 +2058,10 @@ namespace com.noctuagames.sdk
             return await request.Send<NoctuaGoldData>();
         }
 
+        /// <summary>
+        /// Fetches pending deliverables (e.g., Noctua redeem orders) from the server that need to be delivered to the player.
+        /// </summary>
+        /// <returns>An array of pending deliverable items.</returns>
         public async UniTask<PendingDeliverables[]> GetPendingDeliverables()
         {
             var request = new HttpRequest(HttpMethod.Get, $"{_config.BaseUrl}/pending-deliverables")
@@ -2034,6 +2074,9 @@ namespace com.noctuagames.sdk
             return response?.PendingNoctuaRedeemOrders ?? new PendingDeliverables[0];
         }
 
+        /// <summary>
+        /// Processes all pending deliverables by verifying each order and invoking <see cref="OnPurchaseDone"/> for completed ones.
+        /// </summary>
         public async UniTask DeliverPendingDeliverablesAsync()
         {
             try
@@ -2142,6 +2185,11 @@ namespace com.noctuagames.sdk
             SavePendingPurchases(_waitingPendingPurchases.ToList());
         }
 
+        /// <summary>
+        /// Finds and removes a pending purchase item by order ID, returning the removed item (or empty if not found).
+        /// </summary>
+        /// <param name="orderId">The order ID to find and remove.</param>
+        /// <returns>The removed purchase item, or an empty item if not found.</returns>
         public InternalPurchaseItem GetThenRemoveFromRetryPendingPurchasesByOrderID(int orderId)
         {
             _log.Info($"Remove from retry pending purchase: {orderId}");
@@ -2166,6 +2214,10 @@ namespace com.noctuagames.sdk
             return oldItem;
         }
 
+        /// <summary>
+        /// Removes a pending purchase from the retry queue by order ID and persists the updated list.
+        /// </summary>
+        /// <param name="orderId">The order ID to remove.</param>
         public void RemoveFromRetryPendingPurchasesByOrderID(int orderId)
         {
             _log.Info($"Remove from retry pending purchase: {orderId}");
@@ -2183,6 +2235,10 @@ namespace com.noctuagames.sdk
             SavePendingPurchases(_waitingPendingPurchases.ToList());
         }
 
+        /// <summary>
+        /// Retrieves the list of completed purchases from local storage.
+        /// </summary>
+        /// <returns>A sorted list of completed purchase items.</returns>
         public List<InternalPurchaseItem> GetPurchaseHistory()
         {
             _log.Info("Noctua.GetPurchaseHistory");
@@ -2258,6 +2314,10 @@ namespace com.noctuagames.sdk
             //GetPurchaseHistory();
         }
 
+        /// <summary>
+        /// Removes a purchase record from the local purchase history by order ID.
+        /// </summary>
+        /// <param name="orderId">The order ID to remove from history.</param>
         public void RemoveFromPurchaseHistoryByOrderID(int orderId)
         {
             _log.Info($"Remove from purchase history: {orderId}");

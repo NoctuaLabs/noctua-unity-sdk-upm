@@ -7,6 +7,9 @@ using Cysharp.Threading.Tasks;
 
 namespace com.noctuagames.sdk.UI
 {
+    /// <summary>
+    /// Presenter for the custom payment completion dialog, allowing the user to verify payment, switch to native payment, contact customer service, or cancel.
+    /// </summary>
     internal class CustomPaymentCompleteDialogPresenter : Presenter<object>
     {
         private Button _btnComplete;
@@ -39,6 +42,11 @@ namespace com.noctuagames.sdk.UI
             _btnCustomerService.RegisterCallback<PointerUpEvent>(OpenCS);
         }
 
+        /// <summary>
+        /// Displays the custom payment completion dialog and waits for the user's action.
+        /// </summary>
+        /// <param name="nativePaymentButtonEnabled">Whether to show the native payment (Play Store/App Store) button.</param>
+        /// <returns>A string action result: "continue_verify", "native_payment", "cancel", or "error".</returns>
         public async UniTask<string> Show(bool nativePaymentButtonEnabled)
         {            
             _tcs = new UniTaskCompletionSource<string>();

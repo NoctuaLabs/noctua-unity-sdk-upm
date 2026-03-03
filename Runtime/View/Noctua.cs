@@ -79,7 +79,7 @@ namespace com.noctuagames.sdk
             return _offlineMode;
         }
 
-        // <summary>
+        /// <summary>
         /// Returns whether the SDK was configured as "offline-first".
         /// </summary>
         /// <returns><c>true</c> if offline-first is enabled; otherwise <c>false</c>.</returns>
@@ -391,7 +391,7 @@ namespace com.noctuagames.sdk
             return ExperimentManager.GetActiveExperiment();
         }
 
-        // <summary>
+        /// <summary>
         /// Show a native date picker via the native plugin.
         /// </summary>
         /// <param name="year">Start year.</param>

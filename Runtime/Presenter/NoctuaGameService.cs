@@ -13,6 +13,9 @@ using UnityEngine.Scripting;
 
 namespace com.noctuagames.sdk
 {
+    /// <summary>
+    /// Handles game initialization and geo-IP detection by communicating with the Noctua backend API.
+    /// </summary>
     internal class NoctuaGameService
     {
         private readonly string _clientId;
@@ -27,6 +30,11 @@ namespace com.noctuagames.sdk
             _isOfflineFirst = config.IsOfflineFirst;
         }
 
+        /// <summary>
+        /// Initializes the game by calling the backend <c>/games/init</c> endpoint
+        /// to get game configuration, feature flags, and payment info.
+        /// </summary>
+        /// <returns>The server response containing game configuration data.</returns>
         public async UniTask<InitGameResponse> InitGameAsync()
         {
             if (string.IsNullOrEmpty(Application.identifier))
@@ -50,6 +58,10 @@ namespace com.noctuagames.sdk
             return response;
         }
 
+        /// <summary>
+        /// Detects the user's country code by querying the Cloudflare CDN trace endpoint.
+        /// </summary>
+        /// <returns>An ISO 3166-1 alpha-2 country code (e.g. "US", "ID"), or <c>null</c> if not found.</returns>
         public async UniTask<string> GetCountryIDFromCloudflareTraceAsync()
         {
             // Extract domain from baseUrl

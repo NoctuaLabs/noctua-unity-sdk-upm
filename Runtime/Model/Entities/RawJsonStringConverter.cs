@@ -12,6 +12,9 @@ namespace com.noctuagames.sdk
     [Preserve]
     public class RawJsonStringConverter : JsonConverter<string>
     {
+        /// <summary>
+        /// Reads a JSON token and returns it as a string, handling both string tokens and nested JSON objects/arrays.
+        /// </summary>
         public override string ReadJson(JsonReader reader, Type objectType, string existingValue, bool hasExistingValue, JsonSerializer serializer)
         {
             if (reader.TokenType == JsonToken.String)
@@ -22,6 +25,9 @@ namespace com.noctuagames.sdk
             return token.ToString(Formatting.None);
         }
 
+        /// <summary>
+        /// Writes the string value directly to the JSON output.
+        /// </summary>
         public override void WriteJson(JsonWriter writer, string value, JsonSerializer serializer)
         {
             writer.WriteValue(value);

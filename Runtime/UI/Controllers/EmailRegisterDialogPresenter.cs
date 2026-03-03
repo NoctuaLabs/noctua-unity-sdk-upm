@@ -6,6 +6,9 @@ using Newtonsoft.Json;
 
 namespace com.noctuagames.sdk.UI
 {
+    /// <summary>
+    /// Presenter that manages the email registration dialog UI, handling new account creation with email and password.
+    /// </summary>
     internal class EmailRegisterDialogPresenter : Presenter<AuthUIController>
     {
         private readonly ILogger _log = new NoctuaLogger();
@@ -30,6 +33,11 @@ namespace com.noctuagames.sdk.UI
             HideAllErrors();
         }
 
+        /// <summary>
+        /// Displays the email registration dialog, optionally clearing the form and hiding the login footer.
+        /// </summary>
+        /// <param name="clearForm">Whether to reset all input fields to their default state.</param>
+        /// <param name="isRegisterOnly">When true, hides the additional footer with the login link.</param>
         public void Show(bool clearForm, bool isRegisterOnly)
         {
             SetupInputFields(clearForm);
@@ -61,6 +69,10 @@ namespace com.noctuagames.sdk.UI
             Visible = true;
         }
 
+        /// <summary>
+        /// Configures the dialog appearance and behavior based on the whitelabel global configuration.
+        /// </summary>
+        /// <param name="config">The global configuration containing co-publisher and feature flag settings.</param>
         public void SetBehaviourWhitelabel(GlobalConfig config)
         {
             _config = config;

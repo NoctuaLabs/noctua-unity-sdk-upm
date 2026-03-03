@@ -6,18 +6,36 @@ using UnityEngine.Networking;
 
 namespace com.noctuagames.sdk.AdPlaceholder
 {
+    /// <summary>
+    /// Defines the types of ad placeholders that can be displayed when real ads are unavailable.
+    /// </summary>
     public enum AdPlaceholderType
     {
+        /// <summary>Full-screen interstitial ad placeholder.</summary>
         Interstitial,
+
+        /// <summary>Rewarded video ad placeholder.</summary>
         Rewarded,
+
+        /// <summary>Rewarded interstitial ad placeholder.</summary>
         RewardedInterstitial,
+
+        /// <summary>Banner ad placeholder.</summary>
         Banner
     }
 
+    /// <summary>
+    /// Singleton MonoBehaviour that manages loading and providing ad placeholder texture assets.
+    /// Loads textures from local Resources folders and falls back to remote URLs when local assets are unavailable.
+    /// </summary>
     public class PlaceholderAssetSource : MonoBehaviour
     {
         private static PlaceholderAssetSource _instance;
         private readonly NoctuaLogger _log = new(typeof(PlaceholderAssetSource));
+
+        /// <summary>
+        /// Gets the singleton instance, creating a persistent GameObject if one does not already exist.
+        /// </summary>
         public static PlaceholderAssetSource Instance
         {
             get
@@ -65,8 +83,11 @@ namespace com.noctuagames.sdk.AdPlaceholder
         }
 
         /// <summary>
-        /// Public method to retrieve an ad placeholder asset by type.
+        /// Retrieves an ad placeholder texture for the specified ad type, invoking the callback with the loaded texture.
+        /// Cancels any previously active asset loading coroutine before starting a new one.
         /// </summary>
+        /// <param name="adType">The type of ad placeholder to load.</param>
+        /// <param name="callback">Callback invoked with the loaded texture, or null if loading fails.</param>
         public void GetAdAssetResource(AdPlaceholderType adType, Action<Texture2D> callback)
         {
             // Cancel any active coroutine to prevent accumulation

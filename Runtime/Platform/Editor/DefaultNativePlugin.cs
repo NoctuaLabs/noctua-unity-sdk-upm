@@ -7,6 +7,10 @@ using UnityEngine;
 
 namespace com.noctuagames.sdk
 {
+    /// <summary>
+    /// Stub implementation of <see cref="INativePlugin"/> used in the Unity Editor and unsupported platforms.
+    /// Provides in-memory or PlayerPrefs-backed storage and no-op implementations for native-only features.
+    /// </summary>
     public class DefaultNativePlugin : INativePlugin
     {
         private readonly ILogger _log = new NoctuaLogger(typeof(DefaultNativePlugin));
@@ -16,6 +20,9 @@ namespace com.noctuagames.sdk
         private long _nextId = 1;
         private readonly string _eventStorePath;
 
+        /// <summary>
+        /// Initializes the default plugin with a JSONL-backed event store in the persistent data path.
+        /// </summary>
         public DefaultNativePlugin()
         {
             _eventStorePath = Path.Combine(Application.persistentDataPath, "noctua_events.jsonl");
@@ -92,100 +99,144 @@ namespace com.noctuagames.sdk
             }
         }
 
+        /// <inheritdoc />
         public void Init(List<string> activeBundleIds)
         {
         }
 
+        /// <inheritdoc />
         public void OnApplicationPause(bool pause)
         {
         }
 
+        /// <inheritdoc />
         public void GetFirebaseInstallationID(Action<string> callback) {
-           
+
         }
 
+        /// <inheritdoc />
         public void GetFirebaseAnalyticsSessionID(Action<string> callback) {
 
         }
 
+        /// <inheritdoc />
         public void GetFirebaseRemoteConfigString(string key, Action<string> callback)
         {
             callback?.Invoke(string.Empty);
         }
 
+        /// <inheritdoc />
         public void GetFirebaseRemoteConfigBoolean(string key, Action<bool> callback)
         {
             callback?.Invoke(false);
         }
 
+        /// <inheritdoc />
         public void GetFirebaseRemoteConfigDouble(string key, Action<double> callback)
         {
             callback?.Invoke(0.0);
         }
 
+        /// <inheritdoc />
         public void GetFirebaseRemoteConfigLong(string key, Action<long> callback)
         {
             callback?.Invoke(0L);
         }
 
+        /// <summary>
+        /// Not supported in the Editor. Always throws <see cref="NotImplementedException"/>.
+        /// </summary>
         public void ShowDatePicker(int year, int month, int day, int id)
         {
             throw new NotImplementedException();
         }
 
+        /// <inheritdoc />
         public void CloseDatePicker()
         {
         }
 
+        /// <summary>
+        /// No-op in the Editor; native trackers are unavailable.
+        /// </summary>
         public void TrackAdRevenue(string source, double revenue, string currency, Dictionary<string, IConvertible> extraPayload = null)
         {
         }
 
+        /// <summary>
+        /// No-op in the Editor; native trackers are unavailable.
+        /// </summary>
         public void TrackPurchase(string orderId, double amount, string currency, Dictionary<string, IConvertible> extraPayload = null)
         {
         }
 
+        /// <summary>
+        /// No-op in the Editor; native trackers are unavailable.
+        /// </summary>
         public void TrackCustomEvent(string name, Dictionary<string, IConvertible> extraPayload = null)
         {
         }
 
+        /// <summary>
+        /// No-op in the Editor; native trackers are unavailable.
+        /// </summary>
         public void TrackCustomEventWithRevenue(string name, double revenue, string currency, Dictionary<string, IConvertible> extraPayload = null)
         {
         }
 
+        /// <inheritdoc />
         public void OnOnline()
         {
         }
 
+        /// <inheritdoc />
         public void OnOffline()
         {
         }
 
+        /// <summary>
+        /// Not supported in the Editor. Always throws <see cref="NotImplementedException"/>.
+        /// </summary>
         public void PurchaseItem(string productId, Action<bool, string> callback)
         {
             throw new NotImplementedException();
         }
 
+        /// <summary>
+        /// Not supported in the Editor. Always throws <see cref="NotImplementedException"/>.
+        /// </summary>
         public void GetActiveCurrency(string productId, Action<bool, string> callback)
         {
             throw new NotImplementedException();
         }
 
+        /// <summary>
+        /// Not supported in the Editor. Always throws <see cref="NotImplementedException"/>.
+        /// </summary>
         public void GetProductPurchasedById(string productId, Action<bool> callback)
         {
             throw new NotImplementedException();
         }
 
+        /// <summary>
+        /// Not supported in the Editor. Always throws <see cref="NotImplementedException"/>.
+        /// </summary>
         public void GetReceiptProductPurchasedStoreKit1(string productId, Action<string> callback)
         {
             throw new NotImplementedException();
         }
 
+        /// <summary>
+        /// Returns an empty <see cref="ProductPurchaseStatus"/> in the Editor.
+        /// </summary>
         public void GetProductPurchaseStatusDetail(string productId, Action<ProductPurchaseStatus> callback)
         {
             callback?.Invoke(new ProductPurchaseStatus());
         }
 
+        /// <summary>
+        /// Retrieves a single account from PlayerPrefs-backed storage by player and game ID.
+        /// </summary>
         public NativeAccount GetAccount(long userId, long gameId)
         {
             var rawAccounts = PlayerPrefs.GetString("NoctuaAccountContainer");
@@ -194,6 +245,9 @@ namespace com.noctuagames.sdk
             return accounts.Find(a => a.PlayerId == userId && a.GameId == gameId);
         }
 
+        /// <summary>
+        /// Retrieves all accounts from PlayerPrefs-backed storage.
+        /// </summary>
         public List<NativeAccount> GetAccounts()
         {
             var rawAccounts = PlayerPrefs.GetString("NoctuaAccountContainer");
@@ -205,43 +259,58 @@ namespace com.noctuagames.sdk
             catch (Exception)
             {
                 _log.Error("Failed to parse account container");
-                
+
                 return new List<NativeAccount>();
             }
         }
 
+        /// <summary>
+        /// Inserts or updates an account in PlayerPrefs-backed storage.
+        /// </summary>
         public void PutAccount(NativeAccount account)
         {
             var accounts = GetAccounts();
-            
+
             accounts.RemoveAll(a => a.PlayerId == account.PlayerId && a.GameId == account.GameId);
             account.LastUpdated = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
             accounts.Add(account);
-            
+
             PlayerPrefs.SetString("NoctuaAccountContainer", JsonConvert.SerializeObject(accounts));
         }
 
+        /// <summary>
+        /// Deletes an account from PlayerPrefs-backed storage.
+        /// </summary>
         public int DeleteAccount(NativeAccount account)
         {
             var accounts = GetAccounts();
-            
+
             accounts.RemoveAll(a => a.PlayerId == account.PlayerId && a.GameId == account.GameId);
 
             PlayerPrefs.SetString("NoctuaAccountContainer", JsonConvert.SerializeObject(accounts));
             return 1;
         }
 
+        /// <summary>
+        /// Returns an empty string in the Editor; Adjust is not available.
+        /// </summary>
         public void GetAdjustAttribution(Action<string> callback)
         {
             callback?.Invoke(string.Empty);
         }
 
+        /// <summary>
+        /// Saves events as a JSON blob to PlayerPrefs (legacy blob API).
+        /// </summary>
         public void SaveEvents(string jsonString)
         {
             PlayerPrefs.SetString("NoctuaEvents", jsonString);
             PlayerPrefs.Save();
         }
 
+        /// <summary>
+        /// Retrieves events from PlayerPrefs (legacy blob API).
+        /// </summary>
         public void GetEvents(Action<List<string>> callback)
         {
             var json = PlayerPrefs.GetString("NoctuaEvents", "[]");
@@ -256,14 +325,18 @@ namespace com.noctuagames.sdk
             }
         }
 
+        /// <summary>
+        /// Deletes all events from PlayerPrefs (legacy blob API).
+        /// </summary>
         public void DeleteEvents()
         {
             PlayerPrefs.DeleteKey("NoctuaEvents");
             PlayerPrefs.Save();
         }
 
-        // Per-row event storage for unlimited event tracking
-
+        /// <summary>
+        /// Inserts a single event into the in-memory store and appends it to the JSONL file.
+        /// </summary>
         public void InsertEvent(string eventJson)
         {
             var evt = new NativeEvent
@@ -285,12 +358,18 @@ namespace com.noctuagames.sdk
             }
         }
 
+        /// <summary>
+        /// Retrieves a paginated batch of events from the in-memory store.
+        /// </summary>
         public void GetEventsBatch(int limit, int offset, Action<List<NativeEvent>> callback)
         {
             var batch = _eventStore.Skip(offset).Take(limit).ToList();
             callback?.Invoke(batch);
         }
 
+        /// <summary>
+        /// Deletes events by their IDs from the in-memory store and persists the change to file.
+        /// </summary>
         public void DeleteEventsByIds(long[] ids, Action<int> callback)
         {
             var idSet = new HashSet<long>(ids);
@@ -299,6 +378,9 @@ namespace com.noctuagames.sdk
             callback?.Invoke(removedCount);
         }
 
+        /// <summary>
+        /// Returns the total number of events currently held in the in-memory store.
+        /// </summary>
         public void GetEventCount(Action<int> callback)
         {
             callback?.Invoke(_eventStore.Count);

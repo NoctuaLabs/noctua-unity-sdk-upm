@@ -11,13 +11,21 @@ using Debug = UnityEngine.Debug;
 
 namespace com.noctuagames.sdk.Events
 {
+    /// <summary>
+    /// Configuration for <see cref="SessionTracker"/> heartbeat and session timeout intervals.
+    /// </summary>
     [Preserve]
     public class SessionTrackerConfig
     {
+        /// <summary>Interval in milliseconds between session heartbeat events. Default is 60 seconds.</summary>
         public uint HeartbeatPeriodMs = 60_000;
+        /// <summary>Duration in milliseconds after which a paused session is considered expired. Default is 5 minutes.</summary>
         public uint SessionTimeoutMs = 300_000;
     }
 
+    /// <summary>
+    /// Tracks user session lifecycle (start, pause, continue, heartbeat, end) and sends session events via an event sender.
+    /// </summary>
     public class SessionTracker : IDisposable
     {
         private readonly SessionTrackerConfig _config;
@@ -35,6 +43,12 @@ namespace com.noctuagames.sdk.Events
         
         private string _sessionId;
 
+        /// <summary>
+        /// Initializes a new session tracker and starts the heartbeat loop.
+        /// </summary>
+        /// <param name="config">Heartbeat and timeout configuration.</param>
+        /// <param name="eventSender">Event sender for dispatching session events.</param>
+        /// <param name="remoteFeatureFlags">Optional remote feature flags (e.g., flush-on-end toggle).</param>
         public SessionTracker(SessionTrackerConfig config, IEventSender eventSender, Dictionary<string, bool> remoteFeatureFlags = null)
         {
             _config = config ?? throw new ArgumentNullException(nameof(config));
@@ -47,6 +61,10 @@ namespace com.noctuagames.sdk.Events
             _heartbeatTask = UniTask.Create(RunHeartbeat, _cancelHeartbeatSource.Token);
         }
         
+        /// <summary>
+        /// Handles application pause/resume transitions, sending session_pause, session_continue, or session_start events as appropriate.
+        /// </summary>
+        /// <param name="pauseStatus">True when the application is pausing; false when resuming.</param>
         public void OnApplicationPause(bool pauseStatus)
         {
             if (_pauseStatus == pauseStatus)
@@ -90,6 +108,9 @@ namespace com.noctuagames.sdk.Events
             }
         }
         
+        /// <summary>
+        /// Ends the current session, sends a session_end event, cancels the heartbeat loop, and optionally flushes pending events.
+        /// </summary>
         public void Dispose()
         {
             if (_disposed)

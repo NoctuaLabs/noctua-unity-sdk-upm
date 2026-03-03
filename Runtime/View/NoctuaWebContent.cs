@@ -15,11 +15,18 @@ namespace com.noctuagames.sdk
         [JsonProperty("url")] public string Url;
     }
 
+    /// <summary>
+    /// Model representing the state of web content to be displayed in the web view presenter.
+    /// </summary>
     internal class WebContentModel
     {
+        /// <summary>The resolved URL of the web content to display.</summary>
         public string Url;
+        /// <summary>The display mode (windowed or full-screen) for the web content.</summary>
         public ScreenMode ScreenMode;
+        /// <summary>The title shown in the web view header.</summary>
         public string Title;
+        /// <summary>The timestamp when this content was last shown, used for cooldown logic.</summary>
         public DateTime? LastShown;
     }
     
@@ -420,14 +427,21 @@ namespace com.noctuagames.sdk
         }
     }
 
+    /// <summary>
+    /// Configuration holding base URLs for the various Noctua web content endpoints.
+    /// </summary>
     internal class NoctuaWebContentConfig
     {
+        /// <summary>Base URL for fetching in-game announcement content.</summary>
         public string AnnouncementBaseUrl;
 
+        /// <summary>Base URL for fetching reward center content.</summary>
         public string RewardBaseUrl;
 
+        /// <summary>Base URL for fetching customer service content.</summary>
         public string CustomerServiceBaseUrl;
 
+        /// <summary>Base URL for fetching social media content.</summary>
         public string SocialMediaBaseUrl;
     }
 }

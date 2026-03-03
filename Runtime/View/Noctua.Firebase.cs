@@ -234,6 +234,10 @@ namespace com.noctuagames.sdk
         }
 
 
+        /// <summary>
+        /// Gets the Adjust attribution data asynchronously using the native plugin.
+        /// </summary>
+        /// <returns>A task that resolves to the attribution data, or a default instance when not available.</returns>
         public static Task<NoctuaAdjustAttribution> GetAdjustAttributionAsync()
         {
         #if UNITY_ANDROID || UNITY_IOS

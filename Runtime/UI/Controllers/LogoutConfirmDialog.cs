@@ -3,9 +3,16 @@ using UnityEngine.UIElements;
 
 namespace com.noctuagames.sdk.UI
 {
+    /// <summary>
+    /// Presenter for the logout confirmation dialog, asking the user to confirm before logging out of their account.
+    /// </summary>
     internal class LogoutConfirmDialogPresenter : Presenter<AuthUIController>
     {
         private readonly ILogger _log = new NoctuaLogger();
+
+        /// <summary>
+        /// Displays the logout confirmation dialog with confirm and cancel options.
+        /// </summary>
         public void Show()
         {
             Visible = true;

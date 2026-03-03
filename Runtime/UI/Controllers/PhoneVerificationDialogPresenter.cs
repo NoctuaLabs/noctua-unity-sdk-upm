@@ -5,6 +5,9 @@ using UnityEngine.UIElements;
 
 namespace com.noctuagames.sdk.UI
 {
+    /// <summary>
+    /// Presenter that manages the phone number verification dialog for the Vietnam registration flow.
+    /// </summary>
     internal class PhoneVerificationDialogPresenter : Presenter<AuthUIController>
     {
         private readonly ILogger _log = new NoctuaLogger();
@@ -21,6 +24,14 @@ namespace com.noctuagames.sdk.UI
         protected override void Attach() { }
         protected override void Detach() { }
 
+        /// <summary>
+        /// Displays the phone verification dialog with the registration context for OTP verification.
+        /// </summary>
+        /// <param name="verificationId">The verification ID from the phone number verification request.</param>
+        /// <param name="phoneNumber">The phone number being verified.</param>
+        /// <param name="emailAddress">The email address associated with the registration.</param>
+        /// <param name="password">The password used during registration.</param>
+        /// <param name="regExtra">Optional extra registration data such as VN KYC fields.</param>
         public void Show( string verificationId, string phoneNumber, string emailAddress, string password, Dictionary<string, string> regExtra)
         {
             _log.Debug("PhoneVerificationDialogPresenter.Show()");

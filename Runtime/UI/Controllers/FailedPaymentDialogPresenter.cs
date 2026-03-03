@@ -7,6 +7,9 @@ using Cysharp.Threading.Tasks;
 
 namespace com.noctuagames.sdk.UI
 {
+    /// <summary>
+    /// Presenter for the failed payment dialog, showing an error message with options to retry, contact customer service, or exit.
+    /// </summary>
     internal class FailedPaymentDialogPresenter : Presenter<object>
     {
         private Button _okButton;
@@ -36,6 +39,11 @@ namespace com.noctuagames.sdk.UI
             _csButton.RegisterCallback<PointerUpEvent>(OnCSButton);
         }
 
+        /// <summary>
+        /// Displays the failed payment dialog with a localized message based on the payment status.
+        /// </summary>
+        /// <param name="status">The payment status that determines the error message displayed.</param>
+        /// <returns><c>true</c> if the user chose to retry; <c>false</c> if they exited.</returns>
         public async UniTask<bool> Show(PaymentStatus status)
         {            
             _tcs = new UniTaskCompletionSource<bool>();

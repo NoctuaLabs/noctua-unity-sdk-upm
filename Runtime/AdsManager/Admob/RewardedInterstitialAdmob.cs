@@ -7,6 +7,10 @@ using Cysharp.Threading.Tasks;
 
 namespace com.noctuagames.sdk.Admob
 {
+    /// <summary>
+    /// Manages AdMob rewarded interstitial ad loading, display, and lifecycle events.
+    /// Combines interstitial and rewarded ad behavior with user reward callbacks and automatic reload.
+    /// </summary>
     public class RewardedInterstitialAdmob
     {
         private readonly NoctuaLogger _log = new(typeof(RewardedInterstitialAdmob));
@@ -14,16 +18,32 @@ namespace com.noctuagames.sdk.Admob
 
         private RewardedInterstitialAd _rewardedAd;
 
-        //public event handler
+        /// <summary>Raised when the rewarded interstitial ad is successfully displayed.</summary>
         public event Action RewardedOnAdDisplayed;
+
+        /// <summary>Raised when the rewarded interstitial ad fails to display.</summary>
         public event Action RewardedOnAdFailedDisplayed;
+
+        /// <summary>Raised when the user clicks on the rewarded interstitial ad.</summary>
         public event Action RewardedOnAdClicked;
+
+        /// <summary>Raised when a rewarded interstitial ad impression is recorded.</summary>
         public event Action RewardedOnAdImpressionRecorded;
+
+        /// <summary>Raised when the rewarded interstitial ad is closed by the user.</summary>
         public event Action RewardedOnAdClosed;
+
+        /// <summary>Raised when the user earns a reward from watching the rewarded interstitial ad.</summary>
         public event Action<Reward> RewardedOnUserEarnedReward;
+
+        /// <summary>Raised when rewarded interstitial ad revenue is recorded, providing the ad value and response info.</summary>
         public event Action<AdValue, ResponseInfo> AdmobOnAdRevenuePaid;
         private readonly long _timeoutThreshold = 5000; // 5 seconds
         
+        /// <summary>
+        /// Sets the ad unit ID for the rewarded interstitial ad.
+        /// </summary>
+        /// <param name="adUnitID">The AdMob ad unit ID for rewarded interstitial ads.</param>
         public void SetRewardedInterstitialAdUnitID(string adUnitID)
         {
             if (adUnitID == null)
@@ -111,6 +131,9 @@ namespace com.noctuagames.sdk.Admob
                 });
         }
 
+        /// <summary>
+        /// Shows a previously loaded rewarded interstitial ad, invoking the reward callback when the user completes viewing.
+        /// </summary>
         public void ShowRewardedInterstitialAd()
         {
             const string rewardMsg =
@@ -214,6 +237,9 @@ namespace com.noctuagames.sdk.Admob
             };
         }
 
+        /// <summary>
+        /// Destroys the current rewarded interstitial ad instance and releases its resources.
+        /// </summary>
         public void CleanupAd()
         {
             if (_rewardedAd != null)

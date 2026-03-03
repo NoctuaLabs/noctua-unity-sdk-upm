@@ -15,6 +15,9 @@ using System.Xml.Linq;
 
 namespace com.noctuagames.sdk.UI
 {
+    /// <summary>
+    /// Presenter that manages the user center UI, providing profile editing, credential linking, and account management.
+    /// </summary>
     internal class UserCenterPresenter : Presenter<AuthUIController>
     {
         public IEventSender EventSender;

@@ -5,6 +5,9 @@ using UnityEngine.UIElements;
 
 namespace com.noctuagames.sdk.UI
 {
+    /// <summary>
+    /// Presenter for the welcome toast notification shown after a successful login, displaying the user's name and provider avatar.
+    /// </summary>
     internal class WelcomeNotificationPresenter : Presenter<AuthUIController>
     {
         private readonly ILogger _log = new NoctuaLogger(typeof(WelcomeNotificationPresenter));
@@ -51,6 +54,10 @@ namespace com.noctuagames.sdk.UI
             _playerAvatarImage = View.Q<VisualElement>("PlayerAvatarImage");
         }
 
+        /// <summary>
+        /// Displays the welcome toast notification for the given user, unless disabled by config.
+        /// </summary>
+        /// <param name="userBundle">The authenticated user information to display.</param>
         public void Show(UserBundle userBundle)
         {
             if(_config?.Noctua?.welcomeToastDisabled == true) {
@@ -62,12 +69,19 @@ namespace com.noctuagames.sdk.UI
             StartCoroutine(RunAnimation(userBundle));
         }
 
+        /// <summary>
+        /// Configures white-label branding behavior, hiding the Noctua logo when a co-publisher is set.
+        /// </summary>
+        /// <param name="config">The global configuration containing co-publisher settings.</param>
         public void SetBehaviourWhitelabel(GlobalConfig config)
         {
             _config = config;
             View.Q<VisualElement>("NoctuaLogo").EnableInClassList("hide", !string.IsNullOrEmpty(config?.CoPublisher?.CompanyName));
         }
 
+        /// <summary>
+        /// Coroutine that animates the welcome toast slide-in with the user's display name and provider avatar, then auto-hides.
+        /// </summary>
         public IEnumerator RunAnimation(UserBundle userBundle)
         {
             if (IsVNLegalPurposeEnabled() && userBundle.IsGuest)

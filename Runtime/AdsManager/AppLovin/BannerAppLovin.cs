@@ -6,21 +6,40 @@ using UnityEngine;
 
 namespace com.noctuagames.sdk.AppLovin
 {
+    /// <summary>
+    /// Manages AppLovin MAX banner ad creation, display, hiding, and lifecycle events.
+    /// Supports banner positioning, width configuration, and auto-refresh control.
+    /// </summary>
     public class BannerAppLovin
     {
         private readonly NoctuaLogger _log = new(typeof(BannerAppLovin));
 
         private string _adUnitIDBanner;
 
+        /// <summary>Raised when a banner ad is successfully loaded and displayed.</summary>
         public event Action BannerOnAdDisplayed;
+
+        /// <summary>Raised when a banner ad fails to load.</summary>
         public event Action BannerOnAdFailedDisplayed;
+
+        /// <summary>Raised when the user clicks on the banner ad.</summary>
         public event Action BannerOnAdClicked;
+
+        /// <summary>Raised when a banner ad impression is recorded.</summary>
         public event Action BannerOnAdImpressionRecorded;
+
+        /// <summary>Raised when the banner ad is closed or collapsed.</summary>
         public event Action BannerOnAdClosed;
+
+        /// <summary>Raised when banner ad revenue is recorded, providing the ad info with revenue data.</summary>
         public event Action<MaxSdkBase.AdInfo> BannerOnAdRevenuePaid;
         private readonly long _timeoutThreshold = 5000; // 5 seconds
         private bool _callbacksRegistered;
 
+        /// <summary>
+        /// Sets the ad unit ID for the banner ad.
+        /// </summary>
+        /// <param name="adUnitIDBanner">The AppLovin MAX ad unit ID for banner ads.</param>
         public void SetBannerAdUnitId(string adUnitIDBanner)
         {
             if (adUnitIDBanner == null)
@@ -34,6 +53,11 @@ namespace com.noctuagames.sdk.AppLovin
             _log.Debug("Banner ad unit ID set to : " + adUnitIDBanner);
         }
 
+        /// <summary>
+        /// Creates and initializes a banner ad with the specified background color and position (deprecated).
+        /// </summary>
+        /// <param name="color">The background color for the banner.</param>
+        /// <param name="bannerPosition">The screen position where the banner should be displayed.</param>
         [Obsolete(
             "This method is deprecated. Please use InitializeBannerAds(Color, MaxSdk.AdViewPosition) instead."
         )]
@@ -50,6 +74,11 @@ namespace com.noctuagames.sdk.AppLovin
             TrackAdCustomEventBanner("wf_banner_started_playing");
         }
 
+        /// <summary>
+        /// Creates and initializes a banner ad with the specified background color and position.
+        /// </summary>
+        /// <param name="color">The background color for the banner.</param>
+        /// <param name="bannerPosition">The screen position where the banner should be displayed.</param>
         public void InitializeBannerAds(Color color, MaxSdk.AdViewPosition bannerPosition)
         {
             var adViewConfiguration = new MaxSdk.AdViewConfiguration(bannerPosition);
@@ -62,6 +91,9 @@ namespace com.noctuagames.sdk.AppLovin
             TrackAdCustomEventBanner("wf_banner_started_playing");
         }
 
+        /// <summary>
+        /// Shows the banner ad for the configured ad unit ID.
+        /// </summary>
         public void ShowBanner()
         {
             if (string.IsNullOrEmpty(_adUnitIDBanner))
@@ -75,6 +107,9 @@ namespace com.noctuagames.sdk.AppLovin
             _log.Debug("Banner ad shown for ad unit id : " + _adUnitIDBanner);
         }
 
+        /// <summary>
+        /// Hides the banner ad without destroying it, allowing it to be shown again later.
+        /// </summary>
         public void HideBanner()
         {
             MaxSdk.HideBanner(_adUnitIDBanner);
@@ -84,10 +119,10 @@ namespace com.noctuagames.sdk.AppLovin
             TrackAdCustomEventBanner("wf_banner_closed");
         }
 
-        //Destroying Banners
-        // You may no longer need an ad instance (for example, if the user purchased ad removal). 
-        // If so, call the DestroyBanner() method to free resources. 
-        // Do not call DestroyBanner() if you use multiple ad instances with the same Ad Unit ID.
+        /// <summary>
+        /// Destroys the banner ad and frees its resources.
+        /// Do not call this if multiple ad instances share the same ad unit ID.
+        /// </summary>
         public void DestroyBanner()
         {
             MaxSdk.DestroyBanner(_adUnitIDBanner);
@@ -97,9 +132,10 @@ namespace com.noctuagames.sdk.AppLovin
             TrackAdCustomEventBanner("wf_banner_closed");
         }
 
-        //Setting Banner Width
-        // To manually set the banner’s width, call SetBannerWidth(). Set the width to a size larger than the minimum value (320 on phones, 728 on tablets).
-        //  Banners under this width may not be considered viewable by the advertiser, which will affect your revenue:
+        /// <summary>
+        /// Sets the banner width in pixels. Must be at least 320 on phones or 728 on tablets for viewability.
+        /// </summary>
+        /// <param name="width">The desired banner width in pixels.</param>
         public void SetBannerWidth(int width)
         {
             MaxSdk.SetBannerWidth(_adUnitIDBanner, width);
@@ -107,17 +143,19 @@ namespace com.noctuagames.sdk.AppLovin
             _log.Debug("Banner ad width set to : " + width + " for ad unit id : " + _adUnitIDBanner);
         }
 
-        // Getting Banner Position
-        // To get the banner’s position and size, call GetBannerLayout(). This uses the same Unity coordinate system as explained in Loading a Banner.
+        /// <summary>
+        /// Gets the current position and size of the banner ad in Unity screen coordinates.
+        /// </summary>
+        /// <returns>A <see cref="Rect"/> representing the banner’s layout position and dimensions.</returns>
         public Rect GetBannerPosition()
         {
             _log.Debug("Getting banner position for ad unit id : " + _adUnitIDBanner);
 
             return MaxSdk.GetBannerLayout(_adUnitIDBanner);
         }
-        // Stopping and Starting Auto-Refresh
-        // You may want to stop auto-refresh for an ad, for instance if you want to manually refresh banner ads. 
-        // To stop auto-refresh for a banner, use the following code:
+        /// <summary>
+        /// Stops automatic banner ad refresh, allowing manual refresh control.
+        /// </summary>
         public void StopBannerAutoRefresh()
         {
             _log.Debug("Stopping banner auto refresh for ad unit id : " + _adUnitIDBanner);
@@ -125,6 +163,9 @@ namespace com.noctuagames.sdk.AppLovin
             MaxSdk.StopBannerAutoRefresh(_adUnitIDBanner);
         }
 
+        /// <summary>
+        /// Resumes automatic banner ad refresh.
+        /// </summary>
         public void StartBannerAutoRefresh()
         {
             _log.Debug("Starting banner auto refresh for ad unit id : " + _adUnitIDBanner);

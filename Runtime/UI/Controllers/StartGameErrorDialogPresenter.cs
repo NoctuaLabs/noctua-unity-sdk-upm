@@ -7,6 +7,9 @@ using Cysharp.Threading.Tasks;
 
 namespace com.noctuagames.sdk.UI
 {
+    /// <summary>
+    /// Presenter for the fatal startup error dialog, displayed when the game cannot start and the application must quit.
+    /// </summary>
     internal class StartGameErrorDialogPresenter : Presenter<object>
     {
         private Button _quitButton;
@@ -35,6 +38,10 @@ namespace com.noctuagames.sdk.UI
             _csButton.RegisterCallback<PointerUpEvent>(OnCSButton);
         }
 
+        /// <summary>
+        /// Displays the startup error dialog with the given message and quits the application after acknowledgment.
+        /// </summary>
+        /// <param name="errorMessage">The error message describing the startup failure.</param>
         public async UniTask Show(string errorMessage)
         {
             _tcs = new UniTaskCompletionSource();

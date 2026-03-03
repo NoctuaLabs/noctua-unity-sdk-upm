@@ -8,6 +8,9 @@ using com.noctuagames.sdk.Events;
 
 namespace com.noctuagames.sdk.UI
 {
+    /// <summary>
+    /// Presenter that manages the email reset password dialog, allowing users to request a password reset via email.
+    /// </summary>
     internal class EmailResetPasswordDialogPresenter : Presenter<AuthUIController>
     {
         public IEventSender EventSender;
@@ -19,6 +22,10 @@ namespace com.noctuagames.sdk.UI
 
         private InputFieldNoctua _inputEmail;
 
+        /// <summary>
+        /// Displays the reset password dialog, optionally clearing the email input field.
+        /// </summary>
+        /// <param name="clearForm">Whether to reset the email input field to its default state.</param>
         public void Show(bool clearForm)
         {
             Visible = true;

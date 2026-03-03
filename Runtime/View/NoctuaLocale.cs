@@ -17,8 +17,16 @@ using UnityEngine.Scripting;
 
 namespace com.noctuagames.sdk
 {
+    /// <summary>
+    /// Provides locale information (language, country, currency) and translation services.
+    /// Implements <see cref="ILocaleProvider"/> for dependency injection into lower layers.
+    /// Language is resolved by priority: user preference > region config > system language.
+    /// </summary>
     public class NoctuaLocale : ILocaleProvider
     {
+        /// <summary>
+        /// Raised when the active language changes, passing the new language code.
+        /// </summary>
         public event Action<string> OnLanguageChanged;
         
         private readonly string _region;
@@ -77,6 +85,10 @@ namespace com.noctuagames.sdk
         private Dictionary<string,string> _translations;
         private readonly Dictionary<string,string> _defaultTranslations;
 
+        /// <summary>
+        /// Creates a new locale instance, loading translations for the resolved language.
+        /// </summary>
+        /// <param name="region">Optional region code override (e.g. "VN", "TH") for language resolution.</param>
         public NoctuaLocale(string region = "")
         {
             if (!string.IsNullOrEmpty(region))
@@ -88,6 +100,11 @@ namespace com.noctuagames.sdk
             _defaultTranslations = Utility.LoadTranslations("en") ?? new Dictionary<string, string>();
         }
 
+        /// <summary>
+        /// Gets the current language code, resolved by priority:
+        /// user preference > region config > system language.
+        /// </summary>
+        /// <returns>An ISO 639-1 language code (e.g. "en", "id", "vi", "th").</returns>
         public string GetLanguage()
         {
             // Determine by this priority: user pref, region, system
@@ -129,12 +146,21 @@ namespace com.noctuagames.sdk
             return _languageMapping.GetValueOrDefault(Application.systemLanguage, "en");
         }
 
+        /// <summary>
+        /// Persists the country code to PlayerPrefs (uppercased).
+        /// </summary>
+        /// <param name="country">An ISO 3166-1 alpha-2 country code (e.g. "US", "ID").</param>
         public void SetCountry(string country)
         {
             country = country.ToUpper();
             PlayerPrefs.SetString(PlayerPrefsKeyLocaleCountry, country);
         }
 
+        /// <summary>
+        /// Sets or clears the user-preferred language override. If the language actually changes,
+        /// reloads translations and raises <see cref="OnLanguageChanged"/>.
+        /// </summary>
+        /// <param name="language">The language code to set, or <c>null</c>/empty to clear the override.</param>
         public void SetUserPrefsLanguage(string language)
         {
             var oldLanguage = GetLanguage();
@@ -155,12 +181,20 @@ namespace com.noctuagames.sdk
             OnLanguageChanged?.Invoke(newLanguage);
         }
 
+        /// <summary>
+        /// Persists the currency code to PlayerPrefs (uppercased).
+        /// </summary>
+        /// <param name="currency">An ISO 4217 currency code (e.g. "USD", "IDR").</param>
         public void SetCurrency(string currency)
         {
             currency = currency.ToUpper();
             PlayerPrefs.SetString(PlayerPrefsKeyLocaleCurrency, currency);
         }
 
+        /// <summary>
+        /// Gets the persisted country code from PlayerPrefs.
+        /// </summary>
+        /// <returns>An ISO 3166-1 alpha-2 country code, or empty string if not set.</returns>
         public string GetCountry()
         {
             // Default to empty string, the consumer of this API
@@ -168,11 +202,21 @@ namespace com.noctuagames.sdk
             return PlayerPrefs.GetString(PlayerPrefsKeyLocaleCountry, "");
         }
 
+        /// <summary>
+        /// Gets the persisted currency code from PlayerPrefs.
+        /// </summary>
+        /// <returns>An ISO 4217 currency code. Defaults to "USD" if not set.</returns>
         public string GetCurrency()
         {
             return PlayerPrefs.GetString(PlayerPrefsKeyLocaleCurrency, "USD"); // Default to USD
         }
         
+        /// <summary>
+        /// Gets the localized translation for the specified string key.
+        /// Falls back to English if the current language has no translation.
+        /// </summary>
+        /// <param name="key">The translation key to look up.</param>
+        /// <returns>The translated string, or the key itself if no translation exists.</returns>
         public string GetTranslation(string key)
         {
             string translation = null;
@@ -186,6 +230,11 @@ namespace com.noctuagames.sdk
             return _defaultTranslations.GetValueOrDefault(key, key);
         }
         
+        /// <summary>
+        /// Gets the localized translation for the specified <see cref="LocaleTextKey"/>.
+        /// </summary>
+        /// <param name="textKey">The typed locale text key to look up.</param>
+        /// <returns>The translated string, or the key name if no translation exists.</returns>
         public string GetTranslation(LocaleTextKey textKey)
         {
             return GetTranslation(textKey.ToString());
@@ -197,12 +246,21 @@ namespace com.noctuagames.sdk
             public string ClientId;
         }
 
+        /// <summary>
+        /// Gets the full translation dictionary for the current language.
+        /// Falls back to the English dictionary if no translations are loaded.
+        /// </summary>
+        /// <returns>A dictionary mapping translation keys to localized strings.</returns>
         public Dictionary<string,string> GetTranslations()
         {
             return _translations ?? _defaultTranslations;
         }
     }
     
+    /// <summary>
+    /// Strongly-typed keys for SDK UI translation strings.
+    /// Each value corresponds to a key in the translation JSON files.
+    /// </summary>
     public enum LocaleTextKey
     {
         IAPCanceled,

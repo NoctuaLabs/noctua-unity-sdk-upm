@@ -7,6 +7,10 @@ using System.Collections.Generic;
 
 namespace com.noctuagames.sdk
 {
+    /// <summary>
+    /// AdMob implementation of <see cref="IAdNetwork"/> that manages interstitial, rewarded,
+    /// rewarded interstitial, and banner ads through the Google Mobile Ads SDK.
+    /// </summary>
     public class AdmobManager : IAdNetwork
     {
         private readonly NoctuaLogger _log = new(typeof(AdmobManager));
@@ -33,14 +37,28 @@ namespace com.noctuagames.sdk
         private bool _bannerEventsSubscribed;
         private bool _rewardedInterstitialEventsSubscribed;
 
-        // public event handlers
+        /// <summary>Raised when the AdMob SDK has completed initialization.</summary>
         public event Action OnInitialized { add => _initCompleteAction += value; remove => _initCompleteAction -= value; }
+
+        /// <summary>Raised when any ad format is successfully displayed to the user.</summary>
         public event Action OnAdDisplayed { add => _onAdDisplayed += value; remove => _onAdDisplayed -= value; }
-        public event Action OnAdFailedDisplayed { add => _onAdFailedDisplayed += value; remove => _onAdFailedDisplayed -= value; } 
+
+        /// <summary>Raised when any ad format fails to display.</summary>
+        public event Action OnAdFailedDisplayed { add => _onAdFailedDisplayed += value; remove => _onAdFailedDisplayed -= value; }
+
+        /// <summary>Raised when the user clicks on any displayed ad.</summary>
         public event Action OnAdClicked { add => _onAdClicked += value; remove => _onAdClicked -= value; }
+
+        /// <summary>Raised when an ad impression is recorded for any ad format.</summary>
         public event Action OnAdImpressionRecorded { add => _onAdImpressionRecorded += value; remove => _onAdImpressionRecorded -= value; }
+
+        /// <summary>Raised when any ad is closed by the user.</summary>
         public event Action OnAdClosed { add => _onAdClosed += value; remove => _onAdClosed -= value; }
+
+        /// <summary>Raised when the user earns a reward from watching a rewarded or rewarded interstitial ad.</summary>
         public event Action<Reward> AdmobOnUserEarnedReward { add => _onUserEarnedReward += value; remove => _onUserEarnedReward -= value; }
+
+        /// <summary>Raised when ad revenue is recorded, providing the ad value and response information.</summary>
         public event Action<AdValue, ResponseInfo> AdmobOnAdRevenuePaid { add => _admobOnAdRevenuePaid += value; remove => _admobOnAdRevenuePaid -= value; }
 
         internal AdmobManager()
@@ -54,6 +72,7 @@ namespace com.noctuagames.sdk
 
         }
 
+        /// <inheritdoc />
         public void Initialize(Action initCompleteAction)
         {
             _log.Info("Initializing Admob SDK");
@@ -85,6 +104,7 @@ namespace com.noctuagames.sdk
             });
         }
 
+        /// <inheritdoc />
         public void SetInterstitialAdUnitID(string adUnitID)
         {
             _interstitialAdmob.SetInterstitialAdUnitID(adUnitID);
@@ -103,16 +123,19 @@ namespace com.noctuagames.sdk
             }
         }
 
+        /// <inheritdoc />
         public void LoadInterstitialAd()
         {
             _interstitialAdmob.LoadInterstitialAd();
         }
 
+        /// <inheritdoc />
         public void ShowInterstitial()
         {
             _interstitialAdmob.ShowInterstitialAd();
         }
 
+        /// <inheritdoc />
         public void SetRewardedAdUnitID(string adUnitID)
         {
             _rewardedAdmob.SetRewardedAdUnitID(adUnitID);
@@ -132,16 +155,19 @@ namespace com.noctuagames.sdk
             }
         }
 
+        /// <inheritdoc />
         public void LoadRewardedAd()
         {
             _rewardedAdmob.LoadRewardedAd();
         }
 
+        /// <inheritdoc />
         public void ShowRewardedAd()
         {
             _rewardedAdmob.ShowRewardedAd();
         }
 
+        /// <inheritdoc />
         public void SetBannerAdUnitId(string adUnitID)
         {
             _bannerAdmob.SetAdUnitId(adUnitID);
@@ -160,16 +186,19 @@ namespace com.noctuagames.sdk
             }
         }
 
+        /// <inheritdoc />
         public void CreateBannerViewAdAdmob(AdSize adSize, AdPosition adPosition)
         {
             _bannerAdmob.CreateBannerView(adSize, adPosition);
         }
 
+        /// <inheritdoc />
         public void ShowBannerAd()
         {
             _bannerAdmob.LoadAd();
         }
 
+        /// <inheritdoc />
         public void SetRewardedInterstitialAdUnitID(string adUnitID)
         {
             _rewardedInterstitialAdmob.SetRewardedInterstitialAdUnitID(adUnitID);
@@ -188,15 +217,19 @@ namespace com.noctuagames.sdk
                 _rewardedInterstitialAdmob.AdmobOnAdRevenuePaid += (adValue, responseInfo) => { _admobOnAdRevenuePaid?.Invoke(adValue, responseInfo); };
             }
         }
+        /// <inheritdoc />
         public void LoadRewardedInterstitialAd()
         {
             _rewardedInterstitialAdmob.LoadRewardedInterstitialAd();
         }
+
+        /// <inheritdoc />
         public void ShowRewardedInterstitialAd()
         {
             _rewardedInterstitialAdmob.ShowRewardedInterstitialAd();
         }
 
+        /// <inheritdoc />
         public void ShowMediationDebugger()
         {
             _log.Info("Showing mediation debugger");

@@ -7,6 +7,11 @@ using UnityEngine;
 namespace com.noctuagames.sdk
 {
 #if UNITY_IOS
+    /// <summary>
+    /// iOS implementation of <see cref="INativePlugin"/> that bridges to the native Swift SDK via P/Invoke.
+    /// Uses <c>[DllImport("__Internal")]</c> for calling Objective-C/Swift interop functions and
+    /// <c>[MonoPInvokeCallback]</c> static delegates for receiving native callbacks.
+    /// </summary>
     internal class IosPlugin : INativePlugin
     {
         private readonly ILogger _log = new NoctuaLogger(typeof(IosPlugin));
@@ -322,25 +327,30 @@ namespace com.noctuagames.sdk
             }
         }
 
+        /// <inheritdoc />
         public void Init(List<string> activeBundleIds)
         {
             noctuaInitialize(true);
         }
 
+        /// <inheritdoc />
         public void OnApplicationPause(bool pause)
         {
         }
 
+        /// <inheritdoc />
         public void TrackAdRevenue(string source, double revenue, string currency, Dictionary<string, IConvertible> extraPayload)
         {
             noctuaTrackAdRevenue(source, revenue, currency, JsonConvert.SerializeObject(extraPayload));
         }
 
+        /// <inheritdoc />
         public void TrackPurchase(string orderId, double amount, string currency, Dictionary<string, IConvertible> extraPayload)
         {
             noctuaTrackPurchase(orderId, amount, currency, JsonConvert.SerializeObject(extraPayload));
         }
 
+        /// <inheritdoc />
         public void TrackCustomEvent(string eventName, Dictionary<string, IConvertible> payload)
         {
             noctuaTrackCustomEvent(eventName, JsonConvert.SerializeObject(payload));
@@ -348,11 +358,13 @@ namespace com.noctuagames.sdk
             _log.Info($"forwarded event '{eventName}' to native tracker");
         }
 
+        /// <inheritdoc />
         public void TrackCustomEventWithRevenue(string eventName, double revenue, string currency, Dictionary<string, IConvertible> payload)
         {
             noctuaTrackCustomEventWithRevenue(eventName, revenue, currency, JsonConvert.SerializeObject(payload));
         }
 
+        /// <inheritdoc />
         public void PurchaseItem(string productId, Action<bool, string> completion)
         {
             if (string.IsNullOrEmpty(productId))
@@ -368,6 +380,7 @@ namespace com.noctuagames.sdk
             _log.Debug("noctuaPurchaseItem called");
         }
 
+        /// <inheritdoc />
         public void GetProductPurchasedById(string productId, Action<bool> completion)
         {
             if (string.IsNullOrEmpty(productId))
@@ -384,6 +397,7 @@ namespace com.noctuagames.sdk
             _log.Debug("noctuaGetProductPurchasedById called");
         }
 
+        /// <inheritdoc />
         public void GetProductPurchaseStatusDetail(string productId, Action<ProductPurchaseStatus> callback)
         {
             if (string.IsNullOrEmpty(productId))
@@ -399,6 +413,7 @@ namespace com.noctuagames.sdk
             _log.Debug("noctuaGetProductPurchaseStatusDetail called");
         }
 
+        /// <inheritdoc />
         public void GetReceiptProductPurchasedStoreKit1(string productId, Action<string> completion)
         {
             if (string.IsNullOrEmpty(productId))
@@ -414,6 +429,7 @@ namespace com.noctuagames.sdk
             _log.Debug("noctuaGetReceiptProductPurchasedStoreKit1 called");
         }
 
+        /// <inheritdoc />
         public void GetActiveCurrency(string productId, Action<bool, string> completion)
         {
             if (string.IsNullOrEmpty(productId))
@@ -429,6 +445,7 @@ namespace com.noctuagames.sdk
             _log.Debug("noctuaGetActiveCurrency called");
         }
 
+        /// <inheritdoc />
         public void ShowDatePicker(int year, int month, int day, int id)
         {
             DateTime dateTime = new DateTime(year, month, day);
@@ -436,7 +453,7 @@ namespace com.noctuagames.sdk
             _TAG_ShowDatePicker(2, unix, id);
         }
 
-        // Closes the date picker by dismissing it from the user interface.
+        /// <inheritdoc />
         public void CloseDatePicker()
         {
             // Calls the method that contains the logic to hide or remove the date picker.
@@ -460,6 +477,7 @@ namespace com.noctuagames.sdk
             _nativeAccount = JsonConvert.DeserializeObject<NativeAccount>(rawAccount);
         }
 
+        /// <inheritdoc />
         public NativeAccount GetAccount(long playerId, long gameId)
         {
             noctuaGetSingleAccount(gameId, playerId, OnGetAccount);
@@ -485,6 +503,7 @@ namespace com.noctuagames.sdk
             _nativeAccounts = JsonConvert.DeserializeObject<List<NativeAccount>>(rawAccounts) ?? new();
         }
 
+        /// <inheritdoc />
         public List<NativeAccount> GetAccounts()
         {
             noctuaGetAllAccounts(OnGetAccounts);
@@ -500,11 +519,13 @@ namespace com.noctuagames.sdk
             return accounts;
         }
 
+        /// <inheritdoc />
         public void PutAccount(NativeAccount account)
         {
             noctuaPutAccount(account.GameId, account.PlayerId, account.RawData);
         }
 
+        /// <inheritdoc />
         public int DeleteAccount(NativeAccount account)
         {
             noctuaDeleteAccount(account.GameId, account.PlayerId);
@@ -512,19 +533,22 @@ namespace com.noctuagames.sdk
             return 1;
         }
 
+        /// <inheritdoc />
         public void OnOnline()
         {
             noctuaOnOnline();
             _log.Info($"trigger online mode to native plugin");
         }
 
+        /// <inheritdoc />
         public void OnOffline()
         {
             noctuaOnOffline();
             _log.Info($"trigger offline mode to native plugin");
         }
 
-        public void GetFirebaseInstallationID(Action<string> callback) 
+        /// <inheritdoc />
+        public void GetFirebaseInstallationID(Action<string> callback)
         {
             try
             {
@@ -541,6 +565,7 @@ namespace com.noctuagames.sdk
 
         }
 
+        /// <inheritdoc />
         public void GetFirebaseAnalyticsSessionID(Action<string> callback)
         {
             try
@@ -557,6 +582,7 @@ namespace com.noctuagames.sdk
             }
         }
 
+        /// <inheritdoc />
         public void GetFirebaseRemoteConfigString(string key, Action<string> callback)
         {
             try
@@ -573,6 +599,7 @@ namespace com.noctuagames.sdk
             }
         }
 
+        /// <inheritdoc />
         public void GetFirebaseRemoteConfigBoolean(string key, Action<bool> callback)
         {
             try
@@ -589,6 +616,7 @@ namespace com.noctuagames.sdk
             }
         }
 
+        /// <inheritdoc />
         public void GetFirebaseRemoteConfigDouble(string key, Action<double> callback)
         {
             try
@@ -605,6 +633,7 @@ namespace com.noctuagames.sdk
             }
         }
 
+        /// <inheritdoc />
         public void GetFirebaseRemoteConfigLong(string key, Action<long> callback)
         {
             try
@@ -621,7 +650,8 @@ namespace com.noctuagames.sdk
             }
         }
 
-        public void GetAdjustAttribution(Action<string> callback) 
+        /// <inheritdoc />
+        public void GetAdjustAttribution(Action<string> callback)
         {
             try
             {
@@ -637,11 +667,13 @@ namespace com.noctuagames.sdk
             }
         }
         
+        /// <inheritdoc />
         public void SaveEvents(string eventsJson)
         {
             noctuaSaveEvents(eventsJson);
         }
 
+        /// <inheritdoc />
         public void GetEvents(Action<List<string>> callback)
         {
             try
@@ -660,12 +692,11 @@ namespace com.noctuagames.sdk
             }
         }
 
+        /// <inheritdoc />
         public void DeleteEvents()
         {
             noctuaDeleteEvents();
         }
-
-        // Per-row event storage for unlimited event tracking
 
         [AOT.MonoPInvokeCallback(typeof(GetEventsBatchCallbackDelegate))]
         private static void GetEventsBatchCallback(IntPtr eventsJsonPtr)
@@ -708,11 +739,13 @@ namespace com.noctuagames.sdk
             storedGetEventCountCompletion?.Invoke(count);
         }
 
+        /// <inheritdoc />
         public void InsertEvent(string eventJson)
         {
             noctuaInsertEvent(eventJson);
         }
 
+        /// <inheritdoc />
         public void GetEventsBatch(int limit, int offset, Action<List<NativeEvent>> callback)
         {
             try
@@ -728,6 +761,7 @@ namespace com.noctuagames.sdk
             }
         }
 
+        /// <inheritdoc />
         public void DeleteEventsByIds(long[] ids, Action<int> callback)
         {
             try
@@ -744,6 +778,7 @@ namespace com.noctuagames.sdk
             }
         }
 
+        /// <inheritdoc />
         public void GetEventCount(Action<int> callback)
         {
             try
@@ -759,14 +794,24 @@ namespace com.noctuagames.sdk
             }
         }
 
-        // Additional StoreKit billing methods
-
+        /// <summary>
+        /// Registers a product with its consumable type in the native StoreKit layer.
+        /// </summary>
+        /// <param name="productId">The App Store product identifier.</param>
+        /// <param name="consumableType">The consumable type of the product.</param>
         public void RegisterProduct(string productId, NoctuaConsumableType consumableType)
         {
             _log.Debug($"IosPlugin.RegisterProduct: {productId}, type={consumableType}");
             noctuaRegisterProduct(productId, (int)consumableType);
         }
 
+        /// <summary>
+        /// Completes purchase processing in the native StoreKit layer after server verification.
+        /// </summary>
+        /// <param name="purchaseToken">The purchase token (transaction ID) to finalize.</param>
+        /// <param name="consumableType">The consumable type of the product.</param>
+        /// <param name="verified">Whether the server verification succeeded.</param>
+        /// <param name="callback">Callback with success status.</param>
         public void CompletePurchaseProcessing(string purchaseToken, NoctuaConsumableType consumableType, bool verified, Action<bool> callback)
         {
             _log.Debug($"IosPlugin.CompletePurchaseProcessing: token={purchaseToken}, type={consumableType}, verified={verified}");
@@ -774,18 +819,28 @@ namespace com.noctuagames.sdk
             noctuaCompletePurchaseProcessing(purchaseToken, (int)consumableType, verified, CompletePurchaseProcessingCallback);
         }
 
+        /// <summary>
+        /// Restores all previously completed purchases via the native StoreKit layer.
+        /// </summary>
         public void RestorePurchases()
         {
             _log.Debug("IosPlugin.RestorePurchases");
             noctuaRestorePurchases();
         }
 
+        /// <summary>
+        /// Disposes the native StoreKit service and releases resources.
+        /// </summary>
         public void DisposeStoreKit()
         {
             _log.Debug("IosPlugin.DisposeStoreKit");
             noctuaDisposeStoreKit();
         }
 
+        /// <summary>
+        /// Returns whether the native StoreKit service is initialized and ready for operations.
+        /// </summary>
+        /// <returns>True if StoreKit is ready, false otherwise.</returns>
         public bool IsStoreKitReady()
         {
             return noctuaIsStoreKitReady();
@@ -794,6 +849,10 @@ namespace com.noctuagames.sdk
 #endif
 }
 
+/// <summary>
+/// Helper for deserializing JSON arrays using Unity's <see cref="JsonUtility"/>,
+/// which does not natively support top-level arrays.
+/// </summary>
 public static class JsonUtilityHelper
 {
     [Serializable]
@@ -802,6 +861,12 @@ public static class JsonUtilityHelper
         public List<T> items;
     }
 
+    /// <summary>
+    /// Deserializes a JSON array string into a <see cref="List{T}"/> by wrapping it in an object.
+    /// </summary>
+    /// <typeparam name="T">The element type.</typeparam>
+    /// <param name="json">A JSON array string (e.g., <c>["a","b"]</c>).</param>
+    /// <returns>The deserialized list, or an empty list if parsing fails.</returns>
     public static List<T> FromJsonArray<T>(string json)
     {
         var wrapped = $"{{\"items\":{json}}}";

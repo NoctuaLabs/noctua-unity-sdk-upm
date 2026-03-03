@@ -7,22 +7,40 @@ using Cysharp.Threading.Tasks;
 
 namespace com.noctuagames.sdk.Admob
 {
-    public class InterstitialAdmob 
+    /// <summary>
+    /// Manages AdMob interstitial ad loading, display, and lifecycle events.
+    /// Handles full-screen interstitial ads with automatic reload on close or failure.
+    /// </summary>
+    public class InterstitialAdmob
     {
         private readonly NoctuaLogger _log = new(typeof(InterstitialAdmob));
         private string _adUnitIDInterstitial;
 
-        //public event handler
+        /// <summary>Raised when the interstitial ad is successfully displayed.</summary>
         public event Action InterstitialOnAdDisplayed;
+
+        /// <summary>Raised when the interstitial ad fails to display.</summary>
         public event Action InterstitialOnAdFailedDisplayed;
+
+        /// <summary>Raised when the user clicks on the interstitial ad.</summary>
         public event Action InterstitialOnAdClicked;
+
+        /// <summary>Raised when an interstitial ad impression is recorded.</summary>
         public event Action InterstitialOnAdImpressionRecorded;
+
+        /// <summary>Raised when the interstitial ad is closed by the user.</summary>
         public event Action InterstitialOnAdClosed;
+
+        /// <summary>Raised when interstitial ad revenue is recorded, providing the ad value and response info.</summary>
         public event Action<AdValue, ResponseInfo> AdmobOnAdRevenuePaid;
 
         private InterstitialAd _interstitialAd;
         private readonly long _timeoutThreshold = 5000; // milliseconds,
         
+        /// <summary>
+        /// Sets the ad unit ID for the interstitial ad.
+        /// </summary>
+        /// <param name="adUnitID">The AdMob ad unit ID for interstitial ads.</param>
         public void SetInterstitialAdUnitID(string adUnitID)
         {
             if (adUnitID == null)

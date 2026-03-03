@@ -4,6 +4,9 @@ using UnityEngine.UIElements;
 
 namespace com.noctuagames.sdk.UI
 {
+    /// <summary>
+    /// Presenter for the bind confirmation dialog, shown when a guest account is linking to a new credential, offering to connect or create a new account.
+    /// </summary>
     internal class BindConfirmationDialogPresenter : Presenter<AuthUIController>
     {
         private readonly ILogger _log = new NoctuaLogger();
@@ -84,6 +87,10 @@ namespace com.noctuagames.sdk.UI
             Visible = false;
         }
 
+        /// <summary>
+        /// Displays the bind confirmation dialog showing the guest player name and the target credential to link.
+        /// </summary>
+        /// <param name="bindTarget">The player token containing the credential to bind to the guest account.</param>
         public void Show(PlayerToken bindTarget)
         {
             _bindTarget = bindTarget;

@@ -36,21 +36,38 @@ namespace com.noctuagames.sdk
     /// </remarks>
     public class NoctuaAuthentication
     {
+        /// <summary>
+        /// URL keywords that trigger closing the SSO WebView after OAuth redirect.
+        /// </summary>
         public readonly List<string> SsoCloseWebViewKeywords = new() { "https://developers.google.com/identity/protocols/oauth2" };
 
-        // AccountList will be synced data from AccountContainer.Accounts
+        /// <summary>
+        /// Read-only list of all locally cached user accounts, synced from <see cref="AccountContainer"/>.
+        /// </summary>
         public IReadOnlyList<UserBundle> AccountList => _service.AccountList;
 
+        /// <summary>
+        /// Whether the user has been authenticated in the current session.
+        /// </summary>
         public bool IsAuthenticated => _service.IsAuthenticated;
 
+        /// <summary>
+        /// The most recently used user account.
+        /// </summary>
         public UserBundle RecentAccount => _service.RecentAccount;
 
+        /// <summary>
+        /// Raised when the active account changes (e.g. after login, logout, or account switch).
+        /// </summary>
         public event Action<UserBundle> OnAccountChanged
         {
             add => _service.OnAccountChanged += value;
             remove => _service.OnAccountChanged -= value;
         }
-        
+
+        /// <summary>
+        /// Raised when a player account is permanently deleted.
+        /// </summary>
         public event Action<Player> OnAccountDeleted
         {
             add => _service.OnAccountDeleted += value;

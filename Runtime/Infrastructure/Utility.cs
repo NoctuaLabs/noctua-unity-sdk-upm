@@ -12,17 +12,37 @@ using Newtonsoft.Json;
 
 namespace com.noctuagames.sdk
 {
+    /// <summary>
+    /// Static utility methods for validation, string parsing, translations, platform detection, and retry logic.
+    /// </summary>
     public static class Utility
     {
         private static readonly ILogger _sLog = new NoctuaLogger(typeof(Utility));
 
+        /// <summary>Localized error message for an empty email address.</summary>
         public static string errorEmailEmpty = "Email address should not be empty";
+
+        /// <summary>Localized error message for an invalid email address format.</summary>
         public static string errorEmailNotValid = "Email address is not valid";
+
+        /// <summary>Localized error message for an empty password.</summary>
         public static string errorPasswordEmpty = "Password should not be empty";
+
+        /// <summary>Localized error message for a password that is too short.</summary>
         public static string errorPasswordShort = "Password is too short. Minimum 6 character";
+
+        /// <summary>Localized error message for an empty re-enter password field.</summary>
         public static string errorRePasswordEmpty = "Re-Enter password should not be empty";
+
+        /// <summary>Localized error message when re-entered password does not match.</summary>
         public static string errorRePasswordNotMatch = "Password is not matched with repeated password";
 
+        /// <summary>
+        /// Extension method that recursively prints all public instance fields of an object into a formatted string.
+        /// </summary>
+        /// <typeparam name="T">The type of the object to inspect.</typeparam>
+        /// <param name="obj">The object whose fields to print.</param>
+        /// <returns>A multi-line string representation of the object's fields and nested values.</returns>
         public static string PrintFields<T>(this T obj)
         {
             var sb = new System.Text.StringBuilder();
@@ -97,6 +117,11 @@ namespace com.noctuagames.sdk
             }
         }
 
+        /// <summary>
+        /// Parses a URL query string into a dictionary of key-value pairs, handling URI unescaping.
+        /// </summary>
+        /// <param name="queryString">The query string to parse (with or without leading '?').</param>
+        /// <returns>A dictionary of decoded query parameter keys and values.</returns>
         public static Dictionary<string, string> ParseQueryString(string queryString)
         {
             var queryParameters = new Dictionary<string, string>();
@@ -121,6 +146,11 @@ namespace com.noctuagames.sdk
             return queryParameters;
         }
 
+        /// <summary>
+        /// Returns the resource name of the co-publisher logo for the given company, or the default Noctua logo.
+        /// </summary>
+        /// <param name="companyName">The company name to look up.</param>
+        /// <returns>The logo resource name string.</returns>
         public static string GetCoPublisherLogo(string companyName)
         {
             var logoMap = new Dictionary<string, string>
@@ -131,6 +161,12 @@ namespace com.noctuagames.sdk
             return logoMap.GetValueOrDefault(companyName, "NoctuaLogoWithText");
         }
 
+        /// <summary>
+        /// Checks whether a comma-separated flags string contains the specified flag (case-insensitive).
+        /// </summary>
+        /// <param name="flags">A comma-separated string of flags, or null.</param>
+        /// <param name="flagToCheck">The flag name to search for.</param>
+        /// <returns><c>true</c> if the flag is found; otherwise <c>false</c>.</returns>
         public static bool ContainsFlag(string flags, string flagToCheck)
         {
             return flags
@@ -141,6 +177,12 @@ namespace com.noctuagames.sdk
                 false;
         }
 
+        /// <summary>
+        /// Parses a boolean feature flag from a dictionary, treating "true", "1", or "on" as enabled.
+        /// </summary>
+        /// <param name="flags">The dictionary of feature flag key-value pairs.</param>
+        /// <param name="flag">The flag key to look up.</param>
+        /// <returns><c>true</c> if the flag exists and its value is "true", "1", or "on"; otherwise <c>false</c>.</returns>
         public static bool ParseBooleanFeatureFlag(Dictionary<string,string> flags, string flag)
         {
             var result = false;
@@ -165,6 +207,11 @@ namespace com.noctuagames.sdk
             };
         }
 
+        /// <summary>
+        /// Loads a JSON translation file from Unity Resources for the given ISO 639-1 language code.
+        /// </summary>
+        /// <param name="language">The ISO 639-1 language code (e.g. "en", "id", "vi").</param>
+        /// <returns>A dictionary of translation keys to localized strings, or null if loading fails.</returns>
         public static Dictionary<string, string> LoadTranslations(string language)
         {
             try
@@ -178,6 +225,12 @@ namespace com.noctuagames.sdk
             }
         }
 
+        /// <summary>
+        /// Retrieves a localized string from the translations dictionary, falling back to the key itself if not found.
+        /// </summary>
+        /// <param name="key">The translation key to look up.</param>
+        /// <param name="_translations">The translations dictionary, or null to return the key as-is.</param>
+        /// <returns>The localized string, or the key if no translation exists.</returns>
         public static string GetTranslation(string key, Dictionary<string, string> _translations)
         {
             if (_translations != null && _translations.TryGetValue(key, out string localizedText))
@@ -188,6 +241,10 @@ namespace com.noctuagames.sdk
             return key;
         }
 
+        /// <summary>
+        /// Applies localized translations to the static validation error message strings.
+        /// </summary>
+        /// <param name="translations">The translations dictionary to look up localized error messages from.</param>
         internal static void ApplyErrorTranslation(Dictionary<string, string> translations)
         {
             errorEmailEmpty = GetTranslation(LocaleTextKey.ErrorEmailEmpty.ToString(), translations);
@@ -198,6 +255,17 @@ namespace com.noctuagames.sdk
             errorRePasswordNotMatch = GetTranslation(LocaleTextKey.ErrorRePasswordNotMatch.ToString(), translations);
         }
 
+        /// <summary>
+        /// Retries an async task with exponential backoff and jitter on <see cref="NoctuaErrorCode.Networking"/> errors.
+        /// Non-networking errors are rethrown immediately without retry.
+        /// </summary>
+        /// <typeparam name="T">The return type of the async task.</typeparam>
+        /// <param name="task">The async task factory to invoke on each attempt.</param>
+        /// <param name="maxRetries">Maximum number of retry attempts before the final attempt. Defaults to 3.</param>
+        /// <param name="initialDelaySeconds">Delay in seconds before the first retry. Defaults to 0.5.</param>
+        /// <param name="exponent">Multiplier applied to the delay after each retry. Defaults to 2.0.</param>
+        /// <param name="maxDelaySeconds">Maximum delay cap in seconds. Defaults to the delay at the last retry.</param>
+        /// <returns>The result of the successful task invocation.</returns>
         public static async UniTask<T> RetryAsyncTask<T>(
             Func<UniTask<T>> task,
             int maxRetries = 3,
@@ -234,6 +302,11 @@ namespace com.noctuagames.sdk
             return await task();
         }
 
+        /// <summary>
+        /// Validates an email address format, supporting internationalized domain names.
+        /// </summary>
+        /// <param name="str">The email address string to validate.</param>
+        /// <returns>An empty string if valid; otherwise a localized error message.</returns>
         public static string ValidateEmail(string str)
         {
             if (string.IsNullOrWhiteSpace(str)) return errorEmailEmpty;
@@ -263,6 +336,11 @@ namespace com.noctuagames.sdk
             }
         }
 
+        /// <summary>
+        /// Validates that a password is non-empty and at least 6 characters long.
+        /// </summary>
+        /// <param name="str">The password string to validate.</param>
+        /// <returns>An empty string if valid; otherwise a localized error message.</returns>
         public static string ValidatePassword(string str)
         {
             if (string.IsNullOrEmpty(str)) return errorPasswordEmpty;
@@ -275,6 +353,12 @@ namespace com.noctuagames.sdk
             return string.Empty;
         }
 
+        /// <summary>
+        /// Validates that the re-entered password is non-empty and matches the original password.
+        /// </summary>
+        /// <param name="strPassword">The original password.</param>
+        /// <param name="strRePassword">The re-entered password to compare against.</param>
+        /// <returns>An empty string if the passwords match; otherwise a localized error message.</returns>
         public static string ValidateReenterPassword(string strPassword, string strRePassword)
         {
             if (string.IsNullOrEmpty(strRePassword)) return errorRePasswordEmpty;
@@ -287,7 +371,11 @@ namespace com.noctuagames.sdk
             return string.Empty;
         }
 
-        // Returns the platform type based on the installer name
+        /// <summary>
+        /// Returns the payment platform type string based on the application installer name
+        /// (e.g. "playstore", "appstore", or "direct").
+        /// </summary>
+        /// <returns>The platform type as a string matching <see cref="PaymentType"/> values.</returns>
         public static string GetPlatformType()
         {
             return Application.installerName switch

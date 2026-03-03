@@ -5,15 +5,28 @@ using System.Globalization;
 
 namespace com.noctuagames.sdk
 {
+    /// <summary>
+    /// Specifies the display mode for the iOS native date/time picker.
+    /// </summary>
     public enum IOSDateTimePickerMode
     {
-        Time = 1, // Displays hour, minute, and optionally AM/PM designation depending on the locale setting (e.g. 6 | 53 | PM)
-        Date = 2, // Displays month, day, and year depending on the locale setting (e.g. November | 15 | 2007)
+        /// <summary>Displays hour, minute, and optionally AM/PM designation depending on the locale setting (e.g. 6 | 53 | PM).</summary>
+        Time = 1,
+        /// <summary>Displays month, day, and year depending on the locale setting (e.g. November | 15 | 2007).</summary>
+        Date = 2,
     }
 
+    /// <summary>
+    /// Manages native mobile date picker dialogs on Android and iOS. Each picker instance is
+    /// tracked by a unique integer ID and destroyed automatically when the picker is closed.
+    /// The native display action is injected via <see cref="SetShowDatePickerAction"/> from the composition root.
+    /// </summary>
     public class MobileDateTimePicker : MonoBehaviour
     {
+        /// <summary>Callback invoked when the user changes the selected date in the picker.</summary>
         public Action<DateTime> OnDateChanged;
+
+        /// <summary>Callback invoked when the picker dialog is closed.</summary>
         public Action<DateTime> OnPickerClosed;
 
         private static Dictionary<int, MobileDateTimePicker> activePickers = new Dictionary<int, MobileDateTimePicker>();
@@ -29,6 +42,17 @@ namespace com.noctuagames.sdk
 
         #region PUBLIC_FUNCTIONS
 
+        /// <summary>
+        /// Creates and displays a native date picker dialog with the specified initial date.
+        /// If a picker with the same ID already exists, it is destroyed and replaced.
+        /// </summary>
+        /// <param name="id">A unique identifier for this picker instance.</param>
+        /// <param name="year">The initial year to display.</param>
+        /// <param name="month">The initial month to display (1-12).</param>
+        /// <param name="day">The initial day to display (1-31).</param>
+        /// <param name="onChange">Optional callback invoked when the user changes the selected date.</param>
+        /// <param name="onClose">Optional callback invoked when the picker is dismissed.</param>
+        /// <returns>The created <see cref="MobileDateTimePicker"/> component instance.</returns>
         public static MobileDateTimePicker CreateDate(int id, int year, int month, int day, Action<DateTime> onChange = null, Action<DateTime> onClose = null)
         {
             MobileDateTimePicker dialog = new GameObject($"MobileDateTimePicker_{id}").AddComponent<MobileDateTimePicker>();

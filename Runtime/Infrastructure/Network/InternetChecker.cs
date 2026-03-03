@@ -6,6 +6,9 @@ using UnityEngine.Networking;
 
 namespace com.noctuagames.sdk
 {
+    /// <summary>
+    /// Provides a lightweight asynchronous internet connectivity check by pinging the Noctua API.
+    /// </summary>
     public static class InternetChecker
     {
         private static readonly ILogger _sLog = new NoctuaLogger(typeof(InternetChecker));
@@ -18,6 +21,12 @@ namespace com.noctuagames.sdk
             Application.quitting += () => _isQuitting = true;
         }
 
+        /// <summary>
+        /// Sends an HTTP GET request to the Noctua ping endpoint to determine internet connectivity.
+        /// Must be called from the main thread. Skips the check if the application is quitting.
+        /// </summary>
+        /// <param name="onResult">Callback invoked with <c>true</c> if the ping succeeds, <c>false</c> otherwise.</param>
+        /// <param name="timeoutSeconds">Maximum seconds to wait for a response before treating as offline. Defaults to 5.</param>
         public static async UniTask CheckInternetConnectionAsync(Action<bool> onResult, int timeoutSeconds = 5)
         {
             if (_isQuitting || !Application.isPlaying)

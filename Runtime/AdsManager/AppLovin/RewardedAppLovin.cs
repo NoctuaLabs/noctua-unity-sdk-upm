@@ -5,6 +5,10 @@ using System.Collections.Generic;
 
 namespace com.noctuagames.sdk.AppLovin
 {
+    /// <summary>
+    /// Manages AppLovin MAX rewarded ad loading, display, and lifecycle events.
+    /// Handles rewarded ads with user reward callbacks and exponential backoff retry on load failure.
+    /// </summary>
     public class RewardedAppLovin
     {
         private readonly NoctuaLogger _log = new(typeof(RewardedAppLovin));
@@ -13,16 +17,33 @@ namespace com.noctuagames.sdk.AppLovin
 
         int retryAttempt;
 
+        /// <summary>Raised when the rewarded ad is successfully displayed.</summary>
         public event Action RewardedOnAdDisplayed;
+
+        /// <summary>Raised when the rewarded ad fails to display.</summary>
         public event Action RewardedOnAdFailedDisplayed;
+
+        /// <summary>Raised when the user clicks on the rewarded ad.</summary>
         public event Action RewardedOnAdClicked;
+
+        /// <summary>Raised when a rewarded ad impression is recorded via revenue paid callback.</summary>
         public event Action RewardedOnAdImpressionRecorded;
+
+        /// <summary>Raised when the user earns a reward from watching the ad.</summary>
         public event Action<MaxSdk.Reward> RewardedOnUserEarnedReward;
+
+        /// <summary>Raised when the rewarded ad is closed (hidden) by the user.</summary>
         public event Action RewardedOnAdClosed;
+
+        /// <summary>Raised when rewarded ad revenue is recorded, providing the ad info with revenue data.</summary>
         public event Action<MaxSdkBase.AdInfo> RewardedOnAdRevenuePaid;
         private readonly long _timeoutThreshold = 5000; // 5 seconds
         private bool _callbacksRegistered;
 
+        /// <summary>
+        /// Sets the ad unit ID for the rewarded ad.
+        /// </summary>
+        /// <param name="adUnitID">The AppLovin MAX ad unit ID for rewarded ads.</param>
         public void SetRewardedAdUnitID(string adUnitID)
         {
             if (adUnitID == null)
@@ -36,6 +57,9 @@ namespace com.noctuagames.sdk.AppLovin
             _log.Debug("Ad unit ID rewarded set to : " + _adUnitIDRewarded);
         }
 
+        /// <summary>
+        /// Loads a rewarded ad and registers event callbacks (only once) for the ad lifecycle.
+        /// </summary>
         public void LoadRewardedAds()
         {
             if(_adUnitIDRewarded == null)
@@ -72,6 +96,9 @@ namespace com.noctuagames.sdk.AppLovin
 
             _log.Debug("Loading rewarded ad for ad unit id : " + _adUnitIDRewarded);
         }
+        /// <summary>
+        /// Shows a previously loaded rewarded ad if it is ready.
+        /// </summary>
         public void ShowRewardedAd()
         {
             if (string.IsNullOrEmpty(_adUnitIDRewarded))

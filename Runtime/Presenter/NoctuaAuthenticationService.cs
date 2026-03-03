@@ -12,24 +12,48 @@ using UnityEngine.Scripting;
 
 namespace com.noctuagames.sdk
 {
+    /// <summary>
+    /// Core authentication service handling guest login, email/password auth, social login, token exchange, and account management.
+    /// </summary>
     public class NoctuaAuthenticationService : IAuthenticationService, IAccountEvents
     {
+        /// <summary>
+        /// Gets the list of all known user accounts across all games.
+        /// </summary>
         public IReadOnlyList<UserBundle> AccountList => _accountContainer.Accounts;
 
+        /// <summary>
+        /// Gets the list of user accounts that have player data for the current game.
+        /// </summary>
         public IReadOnlyList<UserBundle> CurrentGameAccountList => _accountContainer.CurrentGameAccounts;
 
+        /// <summary>
+        /// Gets the list of user accounts that only have player data for other games.
+        /// </summary>
         public IReadOnlyList<UserBundle> OtherGamesAccountList => _accountContainer.OtherGamesAccounts;
 
+        /// <summary>
+        /// Gets whether the current user has a valid access token.
+        /// </summary>
         public bool IsAuthenticated => !string.IsNullOrEmpty(_accountContainer.RecentAccount?.Player?.AccessToken);
 
+        /// <summary>
+        /// Gets the most recently authenticated user bundle for the current game.
+        /// </summary>
         public UserBundle RecentAccount => _accountContainer.RecentAccount;
 
+        /// <summary>
+        /// Fires when the active account changes (e.g., after login, switch, or logout).
+        /// </summary>
         public event Action<UserBundle> OnAccountChanged
         {
             add => _accountContainer.OnAccountChanged += value;
             remove => _accountContainer.OnAccountChanged -= value;
         }
 
+        /// <summary>
+        /// Fires when a player account is deleted from the server.
+        /// </summary>
         public event Action<Player> OnAccountDeleted;
 
         private readonly ILogger _log = new NoctuaLogger(typeof(NoctuaAuthenticationService));
@@ -41,6 +65,15 @@ namespace com.noctuagames.sdk
         private readonly IEventSender _eventSender;
         private OauthRedirectListener _oauthOauthRedirectListener;
 
+        /// <summary>
+        /// Initializes a new instance of the authentication service.
+        /// </summary>
+        /// <param name="baseUrl">Base URL for the Noctua authentication API.</param>
+        /// <param name="clientId">Client identifier for API requests.</param>
+        /// <param name="nativeAccountStore">Native platform account storage implementation.</param>
+        /// <param name="locale">Optional locale provider for language preferences.</param>
+        /// <param name="bundleId">Application bundle identifier.</param>
+        /// <param name="eventSender">Optional event sender for analytics.</param>
         public NoctuaAuthenticationService(
             string baseUrl,
             string clientId,
@@ -73,6 +106,11 @@ namespace com.noctuagames.sdk
             _accountContainer = new AccountContainer(nativeAccountStore, bundleId, _locale);
         }
 
+        /// <summary>
+        /// Creates or retrieves a guest account using the device identifier.
+        /// </summary>
+        /// <returns>The authenticated guest user bundle.</returns>
+        /// <exception cref="ApplicationException">Thrown when the application identifier is not set.</exception>
         public async UniTask<UserBundle> LoginAsGuestAsync()
         {
             if (string.IsNullOrEmpty(Application.identifier))
@@ -105,6 +143,11 @@ namespace com.noctuagames.sdk
             return _accountContainer.RecentAccount;
         }
 
+        /// <summary>
+        /// Exchanges an existing access token for a new one scoped to the current game.
+        /// </summary>
+        /// <param name="accessToken">The access token to exchange.</param>
+        /// <returns>The updated user bundle with the new token.</returns>
         public async UniTask<UserBundle> ExchangeTokenAsync(string accessToken)
         {
             var exchangeToken = new ExchangeTokenRequest
@@ -130,6 +173,12 @@ namespace com.noctuagames.sdk
             return _accountContainer.RecentAccount;
         }
 
+        /// <summary>
+        /// Gets the OAuth redirect URL for social login with the specified provider.
+        /// </summary>
+        /// <param name="provider">Social auth provider name (e.g., "google", "facebook").</param>
+        /// <param name="redirectUri">Optional custom redirect URI for desktop OAuth flows.</param>
+        /// <returns>The redirect URL to open in a browser or webview.</returns>
         public async UniTask<string> GetSocialAuthRedirectURLAsync(string provider, string redirectUri = "")
         {
             if (!string.IsNullOrEmpty(redirectUri))
@@ -145,6 +194,12 @@ namespace com.noctuagames.sdk
 
             return redirectUrlResponse?.RedirectUrl;
         }
+        /// <summary>
+        /// Authenticates the user via a social provider callback (OAuth code exchange).
+        /// </summary>
+        /// <param name="provider">Social auth provider name (e.g., "google", "facebook").</param>
+        /// <param name="payload">OAuth callback data containing code, state, and redirect URI.</param>
+        /// <returns>The authenticated user bundle.</returns>
         public async UniTask<UserBundle> SocialLoginAsync(string provider, SocialLoginRequest payload)
         {
             var request = new HttpRequest(HttpMethod.Post, $"{_baseUrl}/auth/{provider}/login/callback")
@@ -168,6 +223,12 @@ namespace com.noctuagames.sdk
             return _accountContainer.RecentAccount;
         }
 
+        /// <summary>
+        /// Authenticates the user with email and password credentials.
+        /// </summary>
+        /// <param name="email">User email address.</param>
+        /// <param name="password">User password.</param>
+        /// <returns>The authenticated user bundle.</returns>
         // TODO: Add support for phone
         public async UniTask<UserBundle> LoginWithEmailAsync(string email, string password)
         {
@@ -195,6 +256,13 @@ namespace com.noctuagames.sdk
             return _accountContainer.RecentAccount;
         }
 
+        /// <summary>
+        /// Registers a new account with email and password, returning a verification object for code confirmation.
+        /// </summary>
+        /// <param name="email">Email address for the new account.</param>
+        /// <param name="password">Password for the new account.</param>
+        /// <param name="regExtra">Additional registration data (e.g., marketing consent).</param>
+        /// <returns>A credential verification object containing the verification ID.</returns>
         // TODO: Add support for phone
         public async UniTask<CredentialVerification> RegisterWithEmailAsync(string email, string password, Dictionary<string, string> regExtra)
         {
@@ -217,6 +285,11 @@ namespace com.noctuagames.sdk
             return await request.Send<CredentialVerification>();
         }
 
+        /// <summary>
+        /// Sends a phone number verification SMS as part of the email registration flow (VN legal compliance).
+        /// </summary>
+        /// <param name="phoneNumber">Phone number to verify.</param>
+        /// <returns>Response containing the verification ID.</returns>
         // This API is a subset of email register to support VN legal purpose, not a full registration
         // That is why it has RegisterWithEmail prefix. RegisterWithPhoneNumber will have its own API in the future.
         public async UniTask<RegisterWithEmailSendPhoneNumberVerificationResponse> RegisterWithEmailSendPhoneNumberVerificationAsync(string phoneNumber)
@@ -237,6 +310,12 @@ namespace com.noctuagames.sdk
             return await request.Send<RegisterWithEmailSendPhoneNumberVerificationResponse>();
         }
 
+        /// <summary>
+        /// Verifies a phone number using the verification code sent via SMS during email registration.
+        /// </summary>
+        /// <param name="id">The verification ID from the send verification step.</param>
+        /// <param name="code">The SMS verification code entered by the user.</param>
+        /// <returns>Response indicating whether verification succeeded.</returns>
         public async UniTask<RegisterWithEmailVerifyPhoneNumberVerificationResponse> RegisterWithEmailVerifyPhoneNumberAsync(string id, string code)
         {
             var request = new HttpRequest(HttpMethod.Post, $"{_baseUrl}/auth/email/verify-phone-number-registration")
@@ -254,6 +333,12 @@ namespace com.noctuagames.sdk
             return await request.Send<RegisterWithEmailVerifyPhoneNumberVerificationResponse>();
         }
 
+        /// <summary>
+        /// Completes email registration by verifying the email confirmation code and authenticating the user.
+        /// </summary>
+        /// <param name="id">The verification ID from the registration step.</param>
+        /// <param name="code">The email verification code.</param>
+        /// <returns>The newly created and authenticated user bundle.</returns>
         public async UniTask<UserBundle> VerifyEmailRegistrationAsync(int id, string code)
         {
             var request = new HttpRequest(HttpMethod.Post, $"{_baseUrl}/auth/email/verify-registration")
@@ -281,6 +366,11 @@ namespace com.noctuagames.sdk
 
         // TODO: Add support for phone
 
+        /// <summary>
+        /// Initiates a password reset flow by sending a verification code to the given email.
+        /// </summary>
+        /// <param name="email">The email address to send the reset code to.</param>
+        /// <returns>A credential verification object containing the verification ID.</returns>
         public async UniTask<CredentialVerification> RequestResetPasswordAsync(string email)
         {
             var request = new HttpRequest(HttpMethod.Post, $"{_baseUrl}/auth/email/reset-password")
@@ -302,6 +392,13 @@ namespace com.noctuagames.sdk
 
         // TODO: Add support for phone
 
+        /// <summary>
+        /// Completes the password reset by verifying the code and setting a new password.
+        /// </summary>
+        /// <param name="id">The verification ID from the reset request.</param>
+        /// <param name="code">The verification code sent to the user's email.</param>
+        /// <param name="newPassword">The new password to set.</param>
+        /// <returns>A player token for the account with the reset password.</returns>
         public async UniTask<PlayerToken> ConfirmResetPasswordAsync(int id, string code, string newPassword)
         {
             var request = new HttpRequest(HttpMethod.Post, $"{_baseUrl}/auth/email/verify-reset-password")
@@ -324,6 +421,13 @@ namespace com.noctuagames.sdk
             return response;
         }
 
+        /// <summary>
+        /// Links a social provider credential to the current authenticated (non-guest) account.
+        /// </summary>
+        /// <param name="provider">Social auth provider name (e.g., "google", "facebook").</param>
+        /// <param name="payload">OAuth callback data for the social link.</param>
+        /// <returns>The newly linked credential.</returns>
+        /// <exception cref="NoctuaException">Thrown when not authenticated or account is a guest.</exception>
         public async UniTask<Credential> SocialLinkAsync(string provider, SocialLinkRequest payload)
         {
             _log.Debug("SocialLinkAsync");
@@ -359,6 +463,13 @@ namespace com.noctuagames.sdk
 
         // TODO: Add support for phone
 
+        /// <summary>
+        /// Links an email/password credential to the current authenticated (non-guest) account.
+        /// </summary>
+        /// <param name="email">Email address to link.</param>
+        /// <param name="password">Password for the email credential.</param>
+        /// <returns>A credential verification object requiring code confirmation.</returns>
+        /// <exception cref="NoctuaException">Thrown when not authenticated or account is a guest.</exception>
         public async UniTask<CredentialVerification> LinkWithEmailAsync(string email, string password)
         {
             _log.Debug("LinkWithEmailAsync");
@@ -389,6 +500,13 @@ namespace com.noctuagames.sdk
             return await request.Send<CredentialVerification>();
         }
 
+        /// <summary>
+        /// Completes email linking by verifying the confirmation code.
+        /// </summary>
+        /// <param name="id">The verification ID from the link request.</param>
+        /// <param name="code">The email verification code.</param>
+        /// <returns>The newly linked email credential.</returns>
+        /// <exception cref="NoctuaException">Thrown when the access token is missing.</exception>
         public async UniTask<Credential> VerifyEmailLinkingAsync(int id, string code)
         {
             if (string.IsNullOrEmpty(RecentAccount?.Player?.AccessToken))
@@ -422,6 +540,13 @@ namespace com.noctuagames.sdk
             return response;
         }
 
+        /// <summary>
+        /// Verifies email registration for a guest account without binding, returning a token for the new account.
+        /// </summary>
+        /// <param name="id">The verification ID from the registration step.</param>
+        /// <param name="code">The email verification code.</param>
+        /// <returns>A player token for the verified account (not yet bound to the guest).</returns>
+        /// <exception cref="NoctuaException">Thrown when the current account is not a guest.</exception>
         public async UniTask<PlayerToken> BeginVerifyEmailRegistrationAsync(int id, string code)
         {
             if (!RecentAccount.IsGuest)
@@ -446,6 +571,13 @@ namespace com.noctuagames.sdk
             return await request.Send<PlayerToken>();
         }
 
+        /// <summary>
+        /// Verifies email linking for a guest account without binding, returning a token for the linked account.
+        /// </summary>
+        /// <param name="id">The verification ID from the link step.</param>
+        /// <param name="code">The email verification code.</param>
+        /// <returns>A player token for the linked account (not yet bound to the guest).</returns>
+        /// <exception cref="NoctuaException">Thrown when the current account is not a guest.</exception>
         public async UniTask<PlayerToken> BeginVerifyEmailLinkingAsync(int id, string code)
         {
             if (!RecentAccount.IsGuest)
@@ -470,6 +602,13 @@ namespace com.noctuagames.sdk
             return await request.Send<PlayerToken>();
         }
 
+        /// <summary>
+        /// Gets a social login token for a guest account without binding the guest to the social account.
+        /// </summary>
+        /// <param name="provider">Social auth provider name (e.g., "google", "facebook").</param>
+        /// <param name="payload">OAuth callback data.</param>
+        /// <returns>A player token for the social account (not yet bound to the guest).</returns>
+        /// <exception cref="NoctuaException">Thrown when the current account is not a guest.</exception>
         public async UniTask<PlayerToken> GetSocialLoginTokenAsync(string provider, SocialLoginRequest payload)
         {
             if (!RecentAccount.IsGuest)
@@ -489,6 +628,13 @@ namespace com.noctuagames.sdk
             return await request.Send<PlayerToken>();
         }
 
+        /// <summary>
+        /// Gets an email login token for a guest account without binding the guest to the email account.
+        /// </summary>
+        /// <param name="email">Email address.</param>
+        /// <param name="password">Password.</param>
+        /// <returns>A player token for the email account (not yet bound to the guest).</returns>
+        /// <exception cref="NoctuaException">Thrown when the current account is not a guest.</exception>
         // TODO: Add support for phone
         public async UniTask<PlayerToken> GetEmailLoginTokenAsync(string email, string password)
         {
@@ -515,6 +661,10 @@ namespace com.noctuagames.sdk
             return await request.Send<PlayerToken>();
         }
 
+        /// <summary>
+        /// Logs in using a pre-obtained player token, updating the recent account and firing auth events.
+        /// </summary>
+        /// <param name="playerToken">The player token obtained from a prior authentication step.</param>
         public void LoginWithToken(PlayerToken playerToken)
         {
             _accountContainer.UpdateRecentAccount(playerToken);
@@ -533,6 +683,12 @@ namespace com.noctuagames.sdk
             SendEvent(eventName);
         }
 
+        /// <summary>
+        /// Binds the current guest account to a target player account and logs in as the target.
+        /// </summary>
+        /// <param name="targetPlayer">The target player token to bind the guest to.</param>
+        /// <returns>The authenticated user bundle after binding.</returns>
+        /// <exception cref="NoctuaException">Thrown when the current account is not a guest or tokens are missing.</exception>
         public async UniTask<UserBundle> BindGuestAndLoginAsync(PlayerToken targetPlayer)
         {
             if (!RecentAccount.IsGuest)
@@ -576,11 +732,20 @@ namespace com.noctuagames.sdk
             return _accountContainer.RecentAccount;
         }
 
+        /// <summary>
+        /// Logs out the current user by switching back to a guest account.
+        /// </summary>
+        /// <returns>The new guest user bundle.</returns>
         public async UniTask<UserBundle> LogoutAsync()
         {
             return await LoginAsGuestAsync(); // will always back to guest
         }
 
+        /// <summary>
+        /// Retrieves the current user's profile from the server.
+        /// </summary>
+        /// <returns>The user profile data.</returns>
+        /// <exception cref="NoctuaException">Thrown when the access token is missing.</exception>
         public async UniTask<User> GetUserAsync()
         {
             if (string.IsNullOrEmpty(RecentAccount?.Player?.AccessToken))
@@ -596,6 +761,11 @@ namespace com.noctuagames.sdk
             return await request.Send<User>();
         }
 
+        /// <summary>
+        /// Updates the user's profile (language, country, currency) on the server and refreshes the token.
+        /// </summary>
+        /// <param name="updateUserRequest">The profile fields to update.</param>
+        /// <exception cref="NoctuaException">Thrown when the access token is missing.</exception>
         public async UniTask UpdateUserAsync(UpdateUserRequest updateUserRequest)
         {
             if (string.IsNullOrEmpty(RecentAccount?.Player?.AccessToken))
@@ -700,6 +870,11 @@ namespace com.noctuagames.sdk
             return RecentAccount;
         }
 
+        /// <summary>
+        /// Switches the active account to a different user from the account list.
+        /// </summary>
+        /// <param name="user">The user bundle to switch to (must exist in the account list).</param>
+        /// <exception cref="NoctuaException">Thrown when the user is not found in the account list.</exception>
         public async UniTask SwitchAccountAsync(UserBundle user)
         {
             var targetUser = AccountList.FirstOrDefault(x => x.User.Id == user.User.Id);
@@ -715,11 +890,18 @@ namespace com.noctuagames.sdk
             SendEvent("account_switched");
         }
 
+        /// <summary>
+        /// Clears all stored accounts for the current game from native storage.
+        /// </summary>
         public void ResetAccounts()
         {
             _accountContainer.ResetAccounts();
         }
 
+        /// <summary>
+        /// Syncs in-game player account data (username, server, role) to the server.
+        /// </summary>
+        /// <param name="playerAccountData">The player account data to sync.</param>
         public async UniTask UpdatePlayerAccountAsync(PlayerAccountData playerAccountData)
         {
             var request = new HttpRequest(HttpMethod.Post, $"{_baseUrl}/players/sync")
@@ -741,6 +923,9 @@ namespace com.noctuagames.sdk
             );
         }
 
+        /// <summary>
+        /// Permanently deletes the current player account from the server and local storage.
+        /// </summary>
         public async UniTask DeletePlayerAccountAsync()
         {
             var currentPlayer = RecentAccount.Player;
@@ -759,6 +944,13 @@ namespace com.noctuagames.sdk
             OnAccountDeleted?.Invoke(currentPlayer);
         }
 
+        /// <summary>
+        /// Uploads a file (e.g., profile image) to the server and returns the resulting URL.
+        /// </summary>
+        /// <param name="filePath">Local file path to upload.</param>
+        /// <returns>The URL of the uploaded file.</returns>
+        /// <exception cref="NoctuaException">Thrown when the access token is missing.</exception>
+        /// <exception cref="Exception">Thrown when the file does not exist.</exception>
         public async UniTask<string> FileUploader(string filePath)
         {
             if (string.IsNullOrEmpty(RecentAccount?.Player?.AccessToken))
@@ -786,6 +978,11 @@ namespace com.noctuagames.sdk
             return fileUrl;
         }
 
+        /// <summary>
+        /// Retrieves available profile options (e.g., selectable countries, currencies) from the server.
+        /// </summary>
+        /// <returns>Profile option data for use in profile editing UI.</returns>
+        /// <exception cref="NoctuaException">Thrown when the access token is missing.</exception>
         public async UniTask<ProfileOptionData> GetProfileOptions()
         {
             if (string.IsNullOrEmpty(RecentAccount?.Player?.AccessToken))
@@ -801,6 +998,12 @@ namespace com.noctuagames.sdk
             return await request.Send<ProfileOptionData>();
         }
 
+        /// <summary>
+        /// Saves a key-value pair to the cloud save storage for the current player.
+        /// </summary>
+        /// <param name="key">The slot key to store data under.</param>
+        /// <param name="value">The data value to store.</param>
+        /// <exception cref="NoctuaException">Thrown when the access token is missing.</exception>
         public async UniTask SaveGameStateAsync(string key, string value)
         {
             if (string.IsNullOrEmpty(RecentAccount?.Player?.AccessToken))
@@ -817,6 +1020,12 @@ namespace com.noctuagames.sdk
             await request.Send<CloudSaveMetadata>();
         }
 
+        /// <summary>
+        /// Loads a previously saved value from cloud save storage by key.
+        /// </summary>
+        /// <param name="key">The slot key to retrieve data for.</param>
+        /// <returns>The raw string value stored under the given key.</returns>
+        /// <exception cref="NoctuaException">Thrown when the access token is missing.</exception>
         public async UniTask<string> LoadGameStateAsync(string key)
         {
             if (string.IsNullOrEmpty(RecentAccount?.Player?.AccessToken))
@@ -832,6 +1041,11 @@ namespace com.noctuagames.sdk
             return await request.SendRaw();
         }
 
+        /// <summary>
+        /// Gets all cloud save slot keys available for the current player.
+        /// </summary>
+        /// <returns>A list of slot key strings.</returns>
+        /// <exception cref="NoctuaException">Thrown when the access token is missing.</exception>
         public async UniTask<List<string>> GetGameStateKeysAsync()
         {
             if (string.IsNullOrEmpty(RecentAccount?.Player?.AccessToken))
@@ -849,6 +1063,11 @@ namespace com.noctuagames.sdk
             return response.Saves?.Select(s => s.SlotKey).ToList() ?? new List<string>();
         }
 
+        /// <summary>
+        /// Deletes a cloud save slot by key for the current player.
+        /// </summary>
+        /// <param name="key">The slot key to delete.</param>
+        /// <exception cref="NoctuaException">Thrown when the access token is missing.</exception>
         public async UniTask DeleteGameStateAsync(string key)
         {
             if (string.IsNullOrEmpty(RecentAccount?.Player?.AccessToken))

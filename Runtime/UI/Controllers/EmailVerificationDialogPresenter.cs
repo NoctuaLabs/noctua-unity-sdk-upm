@@ -8,6 +8,9 @@ using UnityEngine.UIElements;
 
 namespace com.noctuagames.sdk.UI
 {
+    /// <summary>
+    /// Presenter that manages the email verification dialog, where users enter a verification code after registration.
+    /// </summary>
     internal class EmailVerificationDialogPresenter : Presenter<AuthUIController>
     {
         private readonly ILogger _log = new NoctuaLogger();
@@ -24,6 +27,13 @@ namespace com.noctuagames.sdk.UI
         protected override void Attach() { }
         protected override void Detach() { }
 
+        /// <summary>
+        /// Displays the email verification dialog with the registration context for code verification.
+        /// </summary>
+        /// <param name="email">The email address being verified.</param>
+        /// <param name="password">The password used during registration.</param>
+        /// <param name="verificationId">The credential verification ID from the registration request.</param>
+        /// <param name="extraData">Optional extra registration data such as VN KYC fields.</param>
         public void Show(string email, string password, int verificationId, Dictionary<string, string> extraData)
         {
             _log.Debug("EmailVerificationDialogPresenter.Show()");

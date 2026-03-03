@@ -10,6 +10,10 @@ using static GoogleMobileAds.Api.AdValue;
 
 namespace com.noctuagames.sdk
 {
+    /// <summary>
+    /// Manages ad mediation across multiple ad networks (AdMob, AppLovin), handling initialization,
+    /// ad loading, display, and revenue tracking.
+    /// </summary>
     public class MediationManager
     {
         private readonly NoctuaLogger _log = new(typeof(MediationManager));
@@ -34,20 +38,29 @@ namespace com.noctuagames.sdk
         private event Action<MaxSdkBase.AdInfo> _appLovinOnAdRevenuePaid;
 #endif
 
-        // public event handlers
+        /// <summary>Fires when the ad mediation SDK finishes initialization.</summary>
         public event Action OnInitialized { add => _onInitialized += value; remove => _onInitialized -= value; }
+        /// <summary>Fires when an ad is successfully displayed to the user.</summary>
         public event Action OnAdDisplayed { add => _onAdDisplayed += value; remove => _onAdDisplayed -= value; }
+        /// <summary>Fires when an ad fails to display.</summary>
         public event Action OnAdFailedDisplayed { add => _onAdFailedDisplayed += value; remove => _onAdFailedDisplayed -= value; }
+        /// <summary>Fires when the user clicks on a displayed ad.</summary>
         public event Action OnAdClicked { add => _onAdClicked += value; remove => _onAdClicked -= value; }
+        /// <summary>Fires when an ad impression is recorded.</summary>
         public event Action OnAdImpressionRecorded { add => _onAdImpressionRecorded += value; remove => _onAdImpressionRecorded -= value; }
+        /// <summary>Fires when a displayed ad is closed by the user.</summary>
         public event Action OnAdClosed { add => _onAdClosed += value; remove => _onAdClosed -= value; }
 
 #if UNITY_ADMOB
+        /// <summary>Fires when the user earns a reward from an AdMob rewarded ad.</summary>
         public event Action<Reward> AdmobOnUserEarnedReward { add => _admobOnUserEarnedReward += value; remove => _admobOnUserEarnedReward -= value; }
+        /// <summary>Fires when AdMob reports impression-level ad revenue data.</summary>
         public event Action<AdValue, ResponseInfo> AdmobOnAdRevenuePaid { add => _admobOnAdRevenuePaid += value; remove => _admobOnAdRevenuePaid -= value; }
 #endif
 #if UNITY_APPLOVIN
+        /// <summary>Fires when the user earns a reward from an AppLovin rewarded ad.</summary>
         public event Action<MaxSdk.Reward> AppLovinOnUserEarnedReward { add => _appLovinOnUserEarnedReward += value; remove => _appLovinOnUserEarnedReward -= value; }
+        /// <summary>Fires when AppLovin reports impression-level ad revenue data.</summary>
         public event Action<MaxSdkBase.AdInfo> AppLovinOnAdRevenuePaid { add => _appLovinOnAdRevenuePaid += value; remove => _appLovinOnAdRevenuePaid -= value; }
 #endif
 
@@ -56,7 +69,9 @@ namespace com.noctuagames.sdk
         private event Action<PreloadConfiguration> _onAdsAvailable;
         private event Action<PreloadConfiguration> _onAdExhausted;
 
+        /// <summary>Fires when a preloaded ad becomes available for display.</summary>
         public event Action<PreloadConfiguration> OnAdsAvailable { add => _onAdsAvailable += value; remove => _onAdsAvailable -= value; }
+        /// <summary>Fires when all preloaded ads of a given configuration are exhausted.</summary>
         public event Action<PreloadConfiguration> OnAdExhausted { add => _onAdExhausted += value; remove => _onAdExhausted -= value; }
 #endif
 
@@ -65,9 +80,13 @@ namespace com.noctuagames.sdk
         private string _rewardedInterstitialAdUnitID = "unused";
         private string _bannerAdUnitID = "unused";
 
+        /// <summary>Gets the configured interstitial ad unit ID for the current platform.</summary>
         public string InterstitialAdUnitID => _interstitialAdUnitID;
+        /// <summary>Gets the configured rewarded ad unit ID for the current platform.</summary>
         public string RewardedAdUnitID => _rewardedAdUnitID;
+        /// <summary>Gets the configured rewarded interstitial ad unit ID for the current platform (AdMob only).</summary>
         public string RewardedInterstitialAdUnitID => _rewardedInterstitialAdUnitID;
+        /// <summary>Gets the configured banner ad unit ID for the current platform.</summary>
         public string BannerAdUnitID => _bannerAdUnitID;
 
         private readonly IAdPlaceholderUI _adPlaceholderUI;
@@ -112,6 +131,10 @@ namespace com.noctuagames.sdk
             IAAResponse = iAAResponse;
         }
 
+        /// <summary>
+        /// Initializes the ad mediation SDK based on the configured mediation type (AdMob or AppLovin).
+        /// </summary>
+        /// <param name="initCompleteAction">Optional callback invoked when initialization completes.</param>
         public void Initialize(Action initCompleteAction = null)
         {
             if (IAAResponse == null)
@@ -346,6 +369,10 @@ namespace com.noctuagames.sdk
 #endif
         }
 
+        /// <summary>
+        /// Configures ad unit IDs for all ad formats based on the IAA server response, then loads initial ads.
+        /// </summary>
+        /// <param name="iAAResponse">The IAA configuration response containing ad unit IDs per platform.</param>
         public void SetupAdUnitID(IAA iAAResponse)
         {
             
@@ -449,6 +476,9 @@ namespace com.noctuagames.sdk
             }
             _adNetwork.SetInterstitialAdUnitID(adUnitID);
         }
+        /// <summary>
+        /// Loads an interstitial ad from the ad network.
+        /// </summary>
         public void LoadInterstitialAd() {
             if(_adNetwork == null) 
             {
@@ -457,6 +487,9 @@ namespace com.noctuagames.sdk
             } 
             _adNetwork.LoadInterstitialAd(); 
         }
+        /// <summary>
+        /// Shows a full-screen interstitial ad with a placeholder overlay while loading.
+        /// </summary>
         public void ShowInterstitial() {
 
             if (IsAdmob())
@@ -567,6 +600,9 @@ namespace com.noctuagames.sdk
             }
             _adNetwork.SetRewardedAdUnitID(adUnitID); 
         }
+        /// <summary>
+        /// Loads a rewarded ad from the ad network.
+        /// </summary>
         public void LoadRewardedAd() {
             if(_adNetwork == null)
             {
@@ -576,6 +612,9 @@ namespace com.noctuagames.sdk
             
             _adNetwork.LoadRewardedAd();
         }
+        /// <summary>
+        /// Shows a rewarded ad with a placeholder overlay while loading.
+        /// </summary>
         public void ShowRewardedAd()
         {
             if (IsAdmob())
@@ -695,6 +734,9 @@ namespace com.noctuagames.sdk
 
             _adNetwork.SetRewardedInterstitialAdUnitID(adUnitID);
         }
+        /// <summary>
+        /// Loads a rewarded interstitial ad (AdMob only).
+        /// </summary>
         public void LoadRewardedInterstitialAd() {
 
             if(_adNetwork == null) 
@@ -705,6 +747,9 @@ namespace com.noctuagames.sdk
             _adNetwork.LoadRewardedInterstitialAd();
         }
         
+        /// <summary>
+        /// Shows a rewarded interstitial ad with a placeholder overlay (AdMob only).
+        /// </summary>
         public void ShowRewardedInterstitialAd()
         {
             if(_adNetwork == null) 
@@ -730,6 +775,9 @@ namespace com.noctuagames.sdk
             }
             _adNetwork.SetBannerAdUnitId(adUnitID); 
         }
+        /// <summary>
+        /// Shows a banner ad using the configured ad network.
+        /// </summary>
         public void ShowBannerAd()
         {
             if (_adNetwork == null)
@@ -746,6 +794,11 @@ namespace com.noctuagames.sdk
         } 
 
         #if UNITY_ADMOB
+        /// <summary>
+        /// Creates a banner ad view with specified size and position (AdMob only).
+        /// </summary>
+        /// <param name="adSize">The ad size for the banner.</param>
+        /// <param name="adPosition">The screen position for the banner.</param>
         public void CreateBannerViewAdAdmob(AdSize adSize, AdPosition adPosition)
         {
             if (!IsAdmob()) { return; }
@@ -762,6 +815,11 @@ namespace com.noctuagames.sdk
 
         //Banner public function for AppLovin
         #if UNITY_APPLOVIN
+        /// <summary>
+        /// Creates a banner ad view with specified background color and position (AppLovin only, deprecated).
+        /// </summary>
+        /// <param name="color">Background color for the banner.</param>
+        /// <param name="bannerPosition">The screen position for the banner.</param>
         [Obsolete(
             "This method is deprecated. Please use CreateBannerViewAdAppLovin(Color, MaxSdkBase.AdViewPosition) instead."
         )]
@@ -778,11 +836,16 @@ namespace com.noctuagames.sdk
             _adNetwork.CreateBannerViewAdAppLovin(color, bannerPosition);
         }
 
-        public void CreateBannerViewAdAppLovin(Color color, MaxSdkBase.AdViewPosition bannerPosition) 
+        /// <summary>
+        /// Creates a banner ad view with specified background color and position (AppLovin only).
+        /// </summary>
+        /// <param name="color">Background color for the banner.</param>
+        /// <param name="bannerPosition">The screen position for the banner.</param>
+        public void CreateBannerViewAdAppLovin(Color color, MaxSdkBase.AdViewPosition bannerPosition)
         {
             if(!IsAppLovin()) { return; }
 
-            if(_adNetwork == null) 
+            if(_adNetwork == null)
             {
                 _log.Warning("Ad Network is not initialized. Cannot create banner ad.");
                 return;
@@ -791,6 +854,9 @@ namespace com.noctuagames.sdk
             _adNetwork.CreateBannerViewAdAppLovin(color, bannerPosition);
         }
 
+        /// <summary>
+        /// Hides the currently displayed AppLovin banner ad.
+        /// </summary>
         public void HideAppLovinBanner() 
         {
             if(!IsAppLovin()) { return; }
@@ -803,6 +869,9 @@ namespace com.noctuagames.sdk
 
             _adNetwork.HideBannerAppLovin();
         } 
+        /// <summary>
+        /// Destroys the AppLovin banner ad view and releases resources.
+        /// </summary>
         public void DestroyBannerAppLovin() 
         {
             if(!IsAppLovin()) { return; }
@@ -815,6 +884,10 @@ namespace com.noctuagames.sdk
 
             _adNetwork.DestroyBannerAppLovin();
         }
+        /// <summary>
+        /// Sets the width of the AppLovin banner ad in pixels.
+        /// </summary>
+        /// <param name="width">Banner width in pixels.</param>
         public void SetBannerWidth(int width)
         {
             if(!IsAppLovin()) { return; }
@@ -827,6 +900,10 @@ namespace com.noctuagames.sdk
 
             _adNetwork.SetBannerWidth(width);
         }
+        /// <summary>
+        /// Gets the current screen position and size of the AppLovin banner ad.
+        /// </summary>
+        /// <returns>A Rect representing the banner's position and dimensions.</returns>
         public Rect GetBannerPosition() 
         {
             if(!IsAppLovin()) { return new Rect(); }
@@ -839,6 +916,9 @@ namespace com.noctuagames.sdk
 
             return _adNetwork.GetBannerPosition();
         }
+        /// <summary>
+        /// Stops automatic refresh of the AppLovin banner ad.
+        /// </summary>
         public void StopBannerAutoRefresh()
         {
             if(!IsAppLovin()) { return; }
@@ -851,6 +931,9 @@ namespace com.noctuagames.sdk
 
             _adNetwork.StopBannerAutoRefresh();
         }
+        /// <summary>
+        /// Starts automatic refresh of the AppLovin banner ad.
+        /// </summary>
         public void StartBannerAutoRefresh()
         {
             if(!IsAppLovin()) { return; }
@@ -865,6 +948,9 @@ namespace com.noctuagames.sdk
         }
         #endif
 
+        /// <summary>
+        /// Opens the ad network's creative debugger UI for inspecting loaded ad creatives.
+        /// </summary>
         public void ShowCreativeDebugger()
         {
             if(_adNetwork == null) 
@@ -875,6 +961,9 @@ namespace com.noctuagames.sdk
             _adNetwork.ShowCreativeDebugger();
         }
 
+        /// <summary>
+        /// Opens the ad network's mediation debugger UI for inspecting waterfall and ad source configuration.
+        /// </summary>
         public void ShowMediationDebugger()
         {
             if(_adNetwork == null) 
@@ -885,7 +974,10 @@ namespace com.noctuagames.sdk
             _adNetwork.ShowMediationDebugger();
         }
         
-        //Ad Placeholder public functions
+        /// <summary>
+        /// Shows a loading placeholder overlay while an ad is being prepared for display.
+        /// </summary>
+        /// <param name="adType">The type of ad placeholder to show (Interstitial, Rewarded, Banner).</param>
         public void ShowAdPlaceholder(AdPlaceholderType adType)
         {
             _log.Info($"Showing ad placeholder for type: {adType}");
@@ -899,6 +991,9 @@ namespace com.noctuagames.sdk
             _adPlaceholderUI.ShowAdPlaceholder(adType);
         }
 
+        /// <summary>
+        /// Closes the ad loading placeholder overlay. No-op if already closed.
+        /// </summary>
         public void CloseAdPlaceholder()
         {
             if (_hasClosedPlaceholder)

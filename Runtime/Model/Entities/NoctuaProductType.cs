@@ -6,7 +6,9 @@ namespace com.noctuagames.sdk
     [Preserve]
     public enum NoctuaProductType
     {
+        /// <summary>An in-app product (consumable or non-consumable).</summary>
         InApp = 0,
+        /// <summary>A subscription product.</summary>
         Subs = 1
     }
 }

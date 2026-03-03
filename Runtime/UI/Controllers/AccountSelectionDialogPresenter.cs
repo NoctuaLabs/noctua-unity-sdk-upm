@@ -11,6 +11,9 @@ using UnityEngine.UIElements;
 
 namespace com.noctuagames.sdk.UI
 {
+    /// <summary>
+    /// Presenter that manages the account selection dialog, displaying available game and Noctua accounts for switching.
+    /// </summary>
     internal class AccountSelectionDialogPresenter : Presenter<AuthUIController>
     {
         private VisualTreeAsset _itemTemplate;
@@ -33,6 +36,9 @@ namespace com.noctuagames.sdk.UI
         {
         }
 
+        /// <summary>
+        /// Loads account data and displays the account selection dialog, handling offline mode with retry.
+        /// </summary>
         public async void Show()
         {
 
@@ -88,6 +94,10 @@ namespace com.noctuagames.sdk.UI
             BindListView(_noctuaAccountListView, _noctuaUsers);
         }
 
+        /// <summary>
+        /// Configures the dialog appearance with co-publisher branding from the whitelabel configuration.
+        /// </summary>
+        /// <param name="config">The global configuration containing co-publisher logo settings.</param>
         public void SetWhitelabel(GlobalConfig config)
         {
             _config = config;

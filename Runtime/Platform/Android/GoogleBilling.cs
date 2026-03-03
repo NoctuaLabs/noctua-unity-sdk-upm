@@ -5,6 +5,9 @@ using UnityEngine.Scripting;
 using ILogger = com.noctuagames.sdk.ILogger;
 
 #if UNITY_ANDROID && !UNITY_EDITOR
+/// <summary>
+/// Wraps Google Play Billing via the Kotlin native SDK, handling purchases, product queries, and billing lifecycle.
+/// </summary>
 public class GoogleBilling
 {
     private readonly ILogger _log = new NoctuaLogger(typeof(GoogleBilling));
@@ -14,59 +17,121 @@ public class GoogleBilling
     private System.Action<PurchaseResult> _pendingGetPurchasedCallback;
     private System.Action<ProductPurchaseStatus> _pendingPurchaseStatusCallback;
 
-    // Signals
+    /// <summary>
+    /// Delegate invoked when a purchase flow completes (success or failure).
+    /// </summary>
     public delegate void PurchaseDone(PurchaseResult result);
+
+    /// <summary>
+    /// Delegate invoked when product details are loaded from Google Play.
+    /// </summary>
     public delegate void ProductDetailsDone(ProductDetailsResponse response);
+
+    /// <summary>
+    /// Delegate invoked when a query for existing purchases completes.
+    /// </summary>
     public delegate void QueryPurchasesDone(PurchaseResult[] results);
+
+    /// <summary>
+    /// Raised when a purchase flow completes or a billing error occurs.
+    /// </summary>
     public event PurchaseDone OnPurchaseDone;
+
+    /// <summary>
+    /// Raised when product details are successfully loaded from Google Play.
+    /// </summary>
     public event ProductDetailsDone OnProductDetailsDone;
+
+    /// <summary>
+    /// Raised when a query for existing purchases completes.
+    /// </summary>
     public event QueryPurchasesDone OnQueryPurchasesDone;
 
+    /// <summary>
+    /// Maps to Google Play Billing Library BillingResponseCode values.
+    /// </summary>
     [Preserve]
     public enum BillingErrorCode
     {
-        OK = 0, // Success
-        UserCanceled = 1, // Transaction was canceled by the user
-        ServiceUnavailable = 2, // The service is currently unavailable
-        BillingUnavailable = 3, // A user billing error occurred during processing
-        ItemUnavailable = 4, // The requested product is not available for purchase
-        DeveloperError = 5, // Error resulting from incorrect usage of the API
-        Error = 6, // Fatal error during the API action
-        ItemAlreadyOwned = 7, // The purchase failed because the item is already owned
-        ItemNotOwned = 8, // Requested action on the item failed since it is not owned by the user
-        NetworkError = 12, // A network error occurred during the operation
-        FeatureNotSupported = -2, // The requested feature is not supported by the Play Store on the current device
-        ServiceDisconnected = -1, // The app is not connected to the Play Store service via the Google Play Billing Library
-        ServiceTimeout = -3 // Deprecated: See ServiceUnavailable
+        /// <summary>Success.</summary>
+        OK = 0,
+        /// <summary>Transaction was canceled by the user.</summary>
+        UserCanceled = 1,
+        /// <summary>The service is currently unavailable.</summary>
+        ServiceUnavailable = 2,
+        /// <summary>A user billing error occurred during processing.</summary>
+        BillingUnavailable = 3,
+        /// <summary>The requested product is not available for purchase.</summary>
+        ItemUnavailable = 4,
+        /// <summary>Error resulting from incorrect usage of the API.</summary>
+        DeveloperError = 5,
+        /// <summary>Fatal error during the API action.</summary>
+        Error = 6,
+        /// <summary>The purchase failed because the item is already owned.</summary>
+        ItemAlreadyOwned = 7,
+        /// <summary>Requested action on the item failed since it is not owned by the user.</summary>
+        ItemNotOwned = 8,
+        /// <summary>A network error occurred during the operation.</summary>
+        NetworkError = 12,
+        /// <summary>The requested feature is not supported by the Play Store on the current device.</summary>
+        FeatureNotSupported = -2,
+        /// <summary>The app is not connected to the Play Store service via the Google Play Billing Library.</summary>
+        ServiceDisconnected = -1,
+        /// <summary>Deprecated. See <see cref="ServiceUnavailable"/>.</summary>
+        ServiceTimeout = -3
     }
 
+    /// <summary>
+    /// Maps to Google Play Billing Library PurchaseState values.
+    /// </summary>
     [Preserve]
     public enum PurchaseState
     {
-        Unspecified = 0, // The purchase state of the order is unspecified
-        Purchased = 1, // The order is purchased
-        Pending = 2 // The order is pending
+        /// <summary>The purchase state of the order is unspecified.</summary>
+        Unspecified = 0,
+        /// <summary>The order is purchased.</summary>
+        Purchased = 1,
+        /// <summary>The order is pending.</summary>
+        Pending = 2
     }
 
+    /// <summary>
+    /// Represents the result of a Google Play purchase or query operation.
+    /// </summary>
     [Preserve]
     public class PurchaseResult
     {
+        /// <summary>Whether the purchase completed successfully.</summary>
         public bool Success;
+        /// <summary>The billing error code if the purchase failed.</summary>
         public BillingErrorCode ErrorCode;
+        /// <summary>The current state of the purchase order.</summary>
         public PurchaseState PurchaseState;
+        /// <summary>The Google Play product identifier.</summary>
         public string ProductId;
+        /// <summary>The order ID (receipt identifier) from Google Play.</summary>
         public string ReceiptId;
+        /// <summary>The purchase token used for server verification and consumption.</summary>
         public string ReceiptData;
+        /// <summary>A human-readable message describing the result or error.</summary>
         public string Message;
     }
 
+    /// <summary>
+    /// Contains product details retrieved from Google Play for display or pricing purposes.
+    /// </summary>
     [Preserve]
     public class ProductDetailsResponse
     {
+        /// <summary>The Google Play product identifier.</summary>
         public string ProductId;
+        /// <summary>The localized product title.</summary>
         public string Title;
+        /// <summary>The localized product description.</summary>
         public string Description;
+        /// <summary>The formatted price string including currency symbol.</summary>
         public string Price;
+        /// <summary>The ISO 4217 currency code for the price.</summary>
         public string Currency;
     }
 
@@ -85,6 +150,9 @@ public class GoogleBilling
         OnQueryPurchasesDone?.Invoke(results);
     }
 
+    /// <summary>
+    /// Constructs the GoogleBilling wrapper and obtains references to the Unity activity and native SDK singleton.
+    /// </summary>
     public GoogleBilling()
     {
         using (AndroidJavaClass unityPlayer = new AndroidJavaClass("com.unity3d.player.UnityPlayer"))
@@ -98,6 +166,10 @@ public class GoogleBilling
         _log.Debug("GoogleBilling constructed with native SDK delegation");
     }
 
+    /// <summary>
+    /// Initializes the billing service by registering all native SDK callbacks for purchase, product details,
+    /// query, error, and server verification events.
+    /// </summary>
     public void Init()
     {
         _log.Debug("GoogleBilling.Init via native SDK");
@@ -280,8 +352,16 @@ public class GoogleBilling
         _log.Debug("GoogleBilling.Init complete");
     }
 
+    /// <summary>
+    /// Gets whether the billing client is connected and ready for operations.
+    /// </summary>
     public bool IsReady => _noctua.Call<bool>("isBillingReady");
 
+    /// <summary>
+    /// Initiates a purchase flow for the specified product ID by first querying product details,
+    /// then launching the billing flow.
+    /// </summary>
+    /// <param name="productId">The Google Play product identifier to purchase.</param>
     public void PurchaseItem(string productId)
     {
         _log.Debug("GoogleBilling.PurchaseItem via native SDK: " + productId);
@@ -296,6 +376,10 @@ public class GoogleBilling
         _noctua.Call("queryProductDetails", javaList, inapp);
     }
 
+    /// <summary>
+    /// Queries product details from Google Play for the specified product ID without initiating a purchase.
+    /// </summary>
+    /// <param name="productId">The Google Play product identifier to query.</param>
     public void QueryProductDetails(string productId)
     {
         _log.Debug("GoogleBilling.QueryProductDetails via native SDK: " + productId);
@@ -309,6 +393,10 @@ public class GoogleBilling
         _noctua.Call("queryProductDetails", javaList, inapp);
     }
 
+    /// <summary>
+    /// Queries all existing in-app purchases owned by the user from Google Play.
+    /// Results are delivered via <see cref="OnQueryPurchasesDone"/>.
+    /// </summary>
     public void QueryPurchasesAsync()
     {
         _log.Debug("GoogleBilling.QueryPurchasesAsync via native SDK");
@@ -317,6 +405,11 @@ public class GoogleBilling
         _noctua.Call("queryPurchases", inapp);
     }
 
+    /// <summary>
+    /// Retrieves the purchase result for a specific product by its ID from Google Play.
+    /// </summary>
+    /// <param name="productId">The Google Play product identifier to look up.</param>
+    /// <param name="callback">Callback with the <see cref="PurchaseResult"/>, or null if not purchased.</param>
     public void GetPurchasedProductById(string productId, System.Action<PurchaseResult> callback)
     {
         _log.Debug($"GetPurchasedProductById via native SDK: {productId}");
@@ -324,6 +417,11 @@ public class GoogleBilling
         _noctua.Call("getProductPurchaseStatus", productId);
     }
 
+    /// <summary>
+    /// Retrieves detailed purchase status for a product, including acknowledgment, renewal, and expiry state.
+    /// </summary>
+    /// <param name="productId">The Google Play product identifier to query.</param>
+    /// <param name="callback">Callback with the full <see cref="ProductPurchaseStatus"/> details.</param>
     public void GetProductPurchaseStatusDetail(string productId, System.Action<ProductPurchaseStatus> callback)
     {
         _log.Debug($"GetProductPurchaseStatusDetail via native SDK: {productId}");

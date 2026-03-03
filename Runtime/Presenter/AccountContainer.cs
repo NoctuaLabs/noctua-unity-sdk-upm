@@ -10,20 +10,36 @@ using UnityEngine.Scripting;
 
 namespace com.noctuagames.sdk
 {
-    public class AccountContainer // Used by account container prefs and account detection logic
+    /// <summary>
+    /// Manages local account storage, loading, and persistence. Tracks all known user accounts
+    /// and determines the most recent account for the current game.
+    /// </summary>
+    public class AccountContainer
     {
+        /// <summary>
+        /// Gets all known user accounts (current game and other games combined).
+        /// </summary>
         public IReadOnlyList<UserBundle> Accounts => _accounts;
-        
-        public IReadOnlyList<UserBundle> CurrentGameAccounts => 
+
+        /// <summary>
+        /// Gets accounts that have player data matching the current game's bundle ID.
+        /// </summary>
+        public IReadOnlyList<UserBundle> CurrentGameAccounts =>
             _accounts
                 .Where(x => x.PlayerAccounts.Any(y => y.BundleId == _bundleId))
                 .ToList();
 
-        public IReadOnlyList<UserBundle> OtherGamesAccounts => 
+        /// <summary>
+        /// Gets accounts that only have player data for other games (not the current game).
+        /// </summary>
+        public IReadOnlyList<UserBundle> OtherGamesAccounts =>
             _accounts
                 .Where(x => x.PlayerAccounts.All(y => y.BundleId != _bundleId))
                 .ToList();
 
+        /// <summary>
+        /// Gets or sets the most recently used account for the current game. Setting fires <see cref="OnAccountChanged"/> when the user or player changes.
+        /// </summary>
         public UserBundle RecentAccount
         {
             get => _recentAccount;
@@ -51,6 +67,12 @@ namespace com.noctuagames.sdk
         private UserBundle _recentAccount;
         private NoctuaLocale _locale;
 
+        /// <summary>
+        /// Initializes a new account container with native storage and fallback support.
+        /// </summary>
+        /// <param name="nativeAccountStore">Native platform account storage implementation.</param>
+        /// <param name="bundleId">The current game's bundle identifier.</param>
+        /// <param name="locale">Optional locale provider for language preferences.</param>
         public AccountContainer(INativeAccountStore nativeAccountStore, string bundleId, NoctuaLocale locale = null)
         {
             if (string.IsNullOrEmpty(bundleId))
@@ -65,8 +87,14 @@ namespace com.noctuagames.sdk
             _locale = locale;
         }
 
+        /// <summary>
+        /// Fires when the active account changes (user ID or player ID differs from previous).
+        /// </summary>
         public event Action<UserBundle> OnAccountChanged;
 
+        /// <summary>
+        /// Loads all accounts from native storage, clears the in-memory list, and sets the recent account.
+        /// </summary>
         public void Load()
         {
             var nativeAccounts = _accountStore.GetAccounts();
@@ -80,6 +108,10 @@ namespace com.noctuagames.sdk
             RecentAccount = Accounts.FirstOrDefault(x => x.IsRecent);
         }
 
+        /// <summary>
+        /// Updates the recent account from a player token response by transforming it to a user bundle.
+        /// </summary>
+        /// <param name="playerToken">The player token response from authentication.</param>
         public void UpdateRecentAccount(PlayerToken playerToken)
         {
             var userBundle = AccountContainer.TransformTokenResponseToUserBundle(playerToken);
@@ -87,6 +119,11 @@ namespace com.noctuagames.sdk
             UpdateRecentAccount(userBundle);
         }
 
+        /// <summary>
+        /// Persists the given user bundle as the recent account, with automatic retry and fallback to PlayerPrefs.
+        /// </summary>
+        /// <param name="newUser">The user bundle to save as the recent account.</param>
+        /// <exception cref="NoctuaException">Thrown when the account cannot be saved after all retry attempts.</exception>
         public void UpdateRecentAccount(UserBundle newUser)
         {
             if (newUser is null)
@@ -189,11 +226,17 @@ namespace com.noctuagames.sdk
             return userBundle;
         }
 
+        /// <summary>
+        /// Clears the recent account reference (sets it to null).
+        /// </summary>
         public void Logout()
         {
             RecentAccount = null;
         }
 
+        /// <summary>
+        /// Deletes all stored accounts for the current game from native storage and clears in-memory state.
+        /// </summary>
         public void ResetAccounts()
         {
             if (string.IsNullOrEmpty(_bundleId))
@@ -346,6 +389,9 @@ namespace com.noctuagames.sdk
             return currentGameUsers.Concat(otherGameUsers).ToList();
         }
 
+        /// <summary>
+        /// Deletes the most recent account from native storage and reloads the account list.
+        /// </summary>
         public void DeleteRecentAccount()
         {
             if (RecentAccount == null)

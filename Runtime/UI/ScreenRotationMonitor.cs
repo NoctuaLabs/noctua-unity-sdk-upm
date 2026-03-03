@@ -5,8 +5,12 @@ using UnityEngine.UIElements;
 
 namespace com.noctuagames.sdk.UI
 {
+    /// <summary>
+    /// Monitors screen orientation changes and adjusts the UI Toolkit panel settings to match portrait or landscape mode.
+    /// </summary>
     public class ScreenRotationMonitor : MonoBehaviour
     {
+        /// <summary>The panel settings to update when orientation changes.</summary>
         public PanelSettings PanelSettings;
         
         private void Update()

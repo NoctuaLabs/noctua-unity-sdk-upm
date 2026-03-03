@@ -7,6 +7,9 @@ using Cysharp.Threading.Tasks;
 
 namespace com.noctuagames.sdk.UI
 {
+    /// <summary>
+    /// Presenter for the retry dialog, displayed when an operation fails and the user can choose to retry, contact customer service, or dismiss.
+    /// </summary>
     internal class RetryDialogPresenter : Presenter<object>
     {
         private Button _btnRetry;
@@ -37,6 +40,12 @@ namespace com.noctuagames.sdk.UI
             _btnClose.RegisterCallback<PointerUpEvent>(CloseDialog);
         }
 
+        /// <summary>
+        /// Displays the retry dialog with the given error message and waits for the user's choice.
+        /// </summary>
+        /// <param name="message">The error message to display.</param>
+        /// <param name="context">The context identifier for customer service routing.</param>
+        /// <returns><c>true</c> if the user chose to retry; <c>false</c> if dismissed.</returns>
         public async UniTask<bool> Show(string message, string context = "general")
         {            
             _tcs = new UniTaskCompletionSource<bool>();

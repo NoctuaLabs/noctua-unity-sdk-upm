@@ -7,10 +7,14 @@ using Newtonsoft.Json;
 #if UNITY_ANDROID && !UNITY_EDITOR
 namespace com.noctuagames.sdk
 {
+    /// <summary>
+    /// Android implementation of <see cref="INativePlugin"/> that bridges to the Kotlin native SDK via JNI.
+    /// </summary>
     internal class AndroidPlugin : INativePlugin
     {
         private readonly ILogger _log = new NoctuaLogger(typeof(AndroidPlugin));
-        
+
+        /// <inheritdoc />
         public void Init(List<string> activeBundleIds)
         {
             _log.Info($"Initialize to nativePlugin");
@@ -28,12 +32,14 @@ namespace com.noctuagames.sdk
             noctua.Call("onResume");
         }
 
+        /// <inheritdoc />
         public void OnApplicationPause(bool pause)
         {
             using AndroidJavaObject noctua = new AndroidJavaClass("com.noctuagames.sdk.Noctua").GetStatic<AndroidJavaObject>("INSTANCE");
             noctua.Call(pause ? "onPause" : "onResume");
         }
 
+        /// <inheritdoc />
         public void TrackAdRevenue(
             string source,
             double revenue,
@@ -47,6 +53,7 @@ namespace com.noctuagames.sdk
             noctua.Call("trackAdRevenue", source, revenue, currency, javaPayload);
         }
 
+        /// <inheritdoc />
         public void TrackPurchase(
             string orderId,
             double amount,
@@ -60,6 +67,7 @@ namespace com.noctuagames.sdk
             noctua.Call("trackPurchase", orderId, amount, currency, javaPayload);
         }
 
+        /// <inheritdoc />
         public void TrackCustomEvent(
             string name,
             Dictionary<string, IConvertible> extraPayload = null
@@ -73,6 +81,7 @@ namespace com.noctuagames.sdk
             _log.Info($"forwarded event '{name}' to native tracker");
         }
 
+        /// <inheritdoc />
         public void TrackCustomEventWithRevenue(
             string name,
             double revenue,
@@ -88,6 +97,9 @@ namespace com.noctuagames.sdk
             _log.Info($"forwarded event '{name}' to native tracker");
         }
 
+        /// <summary>
+        /// Converts a C# dictionary to a Java HashMap for passing through JNI.
+        /// </summary>
         private static AndroidJavaObject ConvertToJavaHashMap(Dictionary<string, IConvertible> dictionary)
         {
             var hashMap = new AndroidJavaObject("java.util.HashMap");
@@ -120,40 +132,57 @@ namespace com.noctuagames.sdk
             return hashMap;
         }
 
+        /// <summary>
+        /// Not used on Android; purchasing is handled via <see cref="GoogleBilling"/>.
+        /// </summary>
         public void PurchaseItem(string productId, Action<bool, string> callback)
         {
             throw new NotImplementedException();
         }
 
+        /// <summary>
+        /// Not used on Android; currency queries are handled via <see cref="GoogleBilling"/>.
+        /// </summary>
         public void GetActiveCurrency(string productId, Action<bool, string> callback)
         {
             throw new NotImplementedException();
         }
 
+        /// <summary>
+        /// Not used on Android; purchase queries are handled via <see cref="GoogleBilling"/>.
+        /// </summary>
         public void GetProductPurchasedById(string productId, Action<bool> callback)
         {
             throw new NotImplementedException();
         }
 
+        /// <summary>
+        /// Not applicable on Android; StoreKit is iOS-only.
+        /// </summary>
         public void GetReceiptProductPurchasedStoreKit1(string productId, Action<string> callback)
         {
             throw new NotImplementedException();
         }
 
+        /// <summary>
+        /// Not used on Android; purchase status queries are handled via <see cref="GoogleBilling"/>.
+        /// </summary>
         public void GetProductPurchaseStatusDetail(string productId, Action<ProductPurchaseStatus> callback)
         {
             throw new NotImplementedException();
         }
 
+        /// <inheritdoc />
         public void ShowDatePicker(int year, int month, int day, int id)
         {
             AndroidJavaClass javaUnityClass = new AndroidJavaClass("com.pingak9.nativepopup.Bridge");
             javaUnityClass.CallStatic("ShowDatePicker", year, month, day, id);
         }
 
-        // Suppresses ReSharper warning for unused global parameter in CloseDatePicker method.
+        /// <inheritdoc />
         public void CloseDatePicker() {}
 
+        /// <inheritdoc />
         public NativeAccount GetAccount(long playerId, long gameId)
         {
             using AndroidJavaObject noctua = new AndroidJavaClass("com.noctuagames.sdk.Noctua").GetStatic<AndroidJavaObject>("INSTANCE");
@@ -168,6 +197,7 @@ namespace com.noctuagames.sdk
             };
         }
 
+        /// <inheritdoc />
         public List<NativeAccount> GetAccounts()
         {
             using var noctua = new AndroidJavaClass("com.noctuagames.sdk.Noctua").GetStatic<AndroidJavaObject>("INSTANCE");
@@ -194,6 +224,7 @@ namespace com.noctuagames.sdk
             return accounts;
         }
 
+        /// <inheritdoc />
         public void PutAccount(NativeAccount account)
         {
             using var noctua = new AndroidJavaClass("com.noctuagames.sdk.Noctua").GetStatic<AndroidJavaObject>("INSTANCE");
@@ -208,6 +239,7 @@ namespace com.noctuagames.sdk
             noctua.Call("putAccount", javaAccount);
         }
 
+        /// <inheritdoc />
         public int DeleteAccount(NativeAccount account)
         {
             using var noctua = new AndroidJavaClass("com.noctuagames.sdk.Noctua").GetStatic<AndroidJavaObject>("INSTANCE");
@@ -222,6 +254,7 @@ namespace com.noctuagames.sdk
             return noctua.Call<int>("deleteAccount", javaAccount);
         }
 
+        /// <inheritdoc />
         public void OnOnline()
         {
             using var noctua = new AndroidJavaClass("com.noctuagames.sdk.Noctua").GetStatic<AndroidJavaObject>("INSTANCE");
@@ -236,6 +269,7 @@ namespace com.noctuagames.sdk
             }
         }
 
+        /// <inheritdoc />
         public void OnOffline()
         {
             using var noctua = new AndroidJavaClass("com.noctuagames.sdk.Noctua").GetStatic<AndroidJavaObject>("INSTANCE");
@@ -250,6 +284,7 @@ namespace com.noctuagames.sdk
             }
         }
 
+        /// <inheritdoc />
         public void GetFirebaseInstallationID(Action<string> callback) {
             try
             {
@@ -263,6 +298,7 @@ namespace com.noctuagames.sdk
             }
         }
 
+        /// <inheritdoc />
         public void GetFirebaseAnalyticsSessionID(Action<string> callback) {
             try
             {
@@ -276,6 +312,7 @@ namespace com.noctuagames.sdk
             }
         }
 
+        /// <inheritdoc />
         public void GetFirebaseRemoteConfigString(string key, Action<string> callback)
         {
             try
@@ -290,6 +327,7 @@ namespace com.noctuagames.sdk
             }
         }
 
+        /// <inheritdoc />
         public void GetFirebaseRemoteConfigBoolean(string key, Action<bool> callback)
         {
             try
@@ -304,6 +342,7 @@ namespace com.noctuagames.sdk
             }
         }
 
+        /// <inheritdoc />
         public void GetFirebaseRemoteConfigDouble(string key, Action<double> callback)
         {
             try
@@ -318,6 +357,7 @@ namespace com.noctuagames.sdk
             }
         }
 
+        /// <inheritdoc />
         public void GetFirebaseRemoteConfigLong(string key, Action<long> callback)
         {
             try
@@ -332,6 +372,7 @@ namespace com.noctuagames.sdk
             }
         }
 
+        /// <inheritdoc />
         public void GetAdjustAttribution(Action<string> callback)
         {
             try
@@ -346,6 +387,7 @@ namespace com.noctuagames.sdk
             }
         }
 
+        /// <inheritdoc />
         public void SaveEvents(string jsonString)
         {
             try
@@ -361,6 +403,7 @@ namespace com.noctuagames.sdk
             }
         }
 
+        /// <inheritdoc />
         public void GetEvents(Action<List<string>> callback)
         {
             try
@@ -393,6 +436,7 @@ namespace com.noctuagames.sdk
             }
         }
 
+        /// <inheritdoc />
         public void DeleteEvents()
         {
             try
@@ -410,8 +454,7 @@ namespace com.noctuagames.sdk
             }
         }
 
-        // Per-row event storage for unlimited event tracking
-
+        /// <inheritdoc />
         public void InsertEvent(string eventJson)
         {
             try
@@ -426,6 +469,7 @@ namespace com.noctuagames.sdk
             }
         }
 
+        /// <inheritdoc />
         public void GetEventsBatch(int limit, int offset, Action<List<NativeEvent>> callback)
         {
             try
@@ -455,6 +499,7 @@ namespace com.noctuagames.sdk
             }
         }
 
+        /// <inheritdoc />
         public void DeleteEventsByIds(long[] ids, Action<int> callback)
         {
             try
@@ -476,6 +521,7 @@ namespace com.noctuagames.sdk
             }
         }
 
+        /// <inheritdoc />
         public void GetEventCount(Action<int> callback)
         {
             try
@@ -498,17 +544,28 @@ namespace com.noctuagames.sdk
     }
 }
 
+/// <summary>
+/// JNI proxy for Kotlin's Function1 (single-parameter lambdas).
+/// Converts typed Kotlin callback invocations to C# <see cref="Action{T}"/> delegates.
+/// </summary>
+/// <typeparam name="T">The expected callback parameter type (string, bool, int, long, double, or AndroidJavaObject).</typeparam>
 public class AndroidCallback<T> : AndroidJavaProxy
 {
     private readonly Action<T> _callback;
 
+    /// <summary>
+    /// Creates a new callback proxy that bridges Kotlin Function1 to the specified C# action.
+    /// </summary>
+    /// <param name="callback">The C# action to invoke when Kotlin calls the lambda.</param>
     public AndroidCallback(Action<T> callback)
         : base("kotlin.jvm.functions.Function1")
     {
         _callback = callback;
     }
 
-    // Support Kotlin calling invoke(String)
+    /// <summary>
+    /// Handles Kotlin invoking the lambda with a string argument.
+    /// </summary>
     public AndroidJavaObject invoke(string arg)
     {
         if (typeof(T) == typeof(string))
@@ -517,7 +574,9 @@ public class AndroidCallback<T> : AndroidJavaProxy
         return new AndroidJavaClass("kotlin.Unit").GetStatic<AndroidJavaObject>("INSTANCE");
     }
 
-    // Support Kotlin calling invoke(Boolean)
+    /// <summary>
+    /// Handles Kotlin invoking the lambda with a boolean argument.
+    /// </summary>
     public AndroidJavaObject invoke(bool arg)
     {
         if (typeof(T) == typeof(bool))
@@ -526,7 +585,9 @@ public class AndroidCallback<T> : AndroidJavaProxy
         return new AndroidJavaClass("kotlin.Unit").GetStatic<AndroidJavaObject>("INSTANCE");
     }
 
-    // Support Kotlin calling invoke(Double)
+    /// <summary>
+    /// Handles Kotlin invoking the lambda with a double argument.
+    /// </summary>
     public AndroidJavaObject invoke(double arg)
     {
         if (typeof(T) == typeof(double))
@@ -535,7 +596,9 @@ public class AndroidCallback<T> : AndroidJavaProxy
         return new AndroidJavaClass("kotlin.Unit").GetStatic<AndroidJavaObject>("INSTANCE");
     }
 
-    // Support Kotlin calling invoke(Long)
+    /// <summary>
+    /// Handles Kotlin invoking the lambda with a long argument.
+    /// </summary>
     public AndroidJavaObject invoke(long arg)
     {
         if (typeof(T) == typeof(long))
@@ -544,7 +607,9 @@ public class AndroidCallback<T> : AndroidJavaProxy
         return new AndroidJavaClass("kotlin.Unit").GetStatic<AndroidJavaObject>("INSTANCE");
     }
 
-    // Support Kotlin calling invoke(Int)
+    /// <summary>
+    /// Handles Kotlin invoking the lambda with an int argument.
+    /// </summary>
     public AndroidJavaObject invoke(int arg)
     {
         if (typeof(T) == typeof(int))
@@ -553,7 +618,10 @@ public class AndroidCallback<T> : AndroidJavaProxy
         return new AndroidJavaClass("kotlin.Unit").GetStatic<AndroidJavaObject>("INSTANCE");
     }
 
-    // Fallback if Kotlin dispatches invoke(Object)
+    /// <summary>
+    /// Fallback handler when Kotlin dispatches invoke with a boxed Object argument.
+    /// Attempts to unbox the value to the expected type <typeparamref name="T"/>.
+    /// </summary>
     public AndroidJavaObject invoke(AndroidJavaObject arg)
     {
         object value = null;
@@ -586,13 +654,19 @@ public class AndroidCallback2 : AndroidJavaProxy
 {
     private readonly Action<AndroidJavaObject, AndroidJavaObject> _callback;
 
+    /// <summary>
+    /// Creates a new callback proxy that bridges Kotlin Function2 to the specified C# action.
+    /// </summary>
+    /// <param name="callback">The C# action to invoke with both Kotlin arguments.</param>
     public AndroidCallback2(Action<AndroidJavaObject, AndroidJavaObject> callback)
         : base("kotlin.jvm.functions.Function2")
     {
         _callback = callback;
     }
 
-    // Kotlin dispatches invoke(Object, Object) for Function2
+    /// <summary>
+    /// Handles Kotlin invoking the Function2 lambda with two object arguments.
+    /// </summary>
     public AndroidJavaObject invoke(AndroidJavaObject arg1, AndroidJavaObject arg2)
     {
         _callback?.Invoke(arg1, arg2);

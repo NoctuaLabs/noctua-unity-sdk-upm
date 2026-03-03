@@ -13,50 +13,99 @@ using UnityEngine.Scripting;
 
 namespace com.noctuagames.sdk.Events
 {
+    /// <summary>
+    /// Configuration parameters for the <see cref="EventSender"/> background event batching and dispatch system.
+    /// </summary>
     [Preserve]
     public class EventSenderConfig
     {
+        /// <summary>The base URL of the event tracking API endpoint.</summary>
         public string BaseUrl;
+
+        /// <summary>The client identifier sent as an HTTP header with each event batch.</summary>
         public string ClientId;
+
+        /// <summary>The application bundle identifier, defaults to <see cref="Application.identifier"/>.</summary>
         public string BundleId = Application.identifier;
+
+        /// <summary>Number of events that triggers an immediate batch send. Defaults to 20.</summary>
         public uint BatchSize = 20;
+
+        /// <summary>Maximum number of events to include in a single HTTP request. Defaults to 100.</summary>
         public int MaxBatchSize = 100;
 
+        /// <summary>Maximum time in milliseconds to wait before sending a partial batch. Defaults to 60000 (1 minute).</summary>
         public uint BatchPeriodMs = 60_000; // 1 minute, in ms
+
+        /// <summary>Delay in milliseconds between background send loop cycles. Defaults to 10000 (10 seconds).</summary>
         public int CycleDelay = 10_000; // 10 sec, in ms
+
+        /// <summary>Maximum number of events to store locally before FIFO eviction. Defaults to 100000.</summary>
         public int MaxStoredEvents = 100_000; // 100K events cap with FIFO eviction
+
+        /// <summary>Native plugin providing per-row event storage operations (insert, query, delete).</summary>
         public INativeEventStorage NativePlugin;
+
+        /// <summary>Native plugin for retrieving Firebase analytics session and installation IDs.</summary>
         public INativeFirebase NativeFirebase;
+
+        /// <summary>Native plugin for notifying the tracker of online/offline state transitions.</summary>
         public INativeTracker NativeTracker;
+
+        /// <summary>Delegate that returns whether the SDK is currently in offline mode.</summary>
         public Func<bool> IsOfflineModeFunc;
+
+        /// <summary>Delegate that returns whether Adjust offline mode toggling is disabled.</summary>
         public Func<bool> AdjustOfflineModeDisabledFunc;
+
+        /// <summary>Firebase configuration controlling custom event tracking per platform.</summary>
         public FirebaseConfig FirebaseConfig = new FirebaseConfig();
     }
 
+    /// <summary>
+    /// Response returned by the event tracking API after a batch submission.
+    /// </summary>
     [Preserve]
     public class EventResponse
     {
+        /// <summary>The server response message confirming receipt of the event batch.</summary>
         [JsonProperty("message")]
         public string Message;
     }
 
+    /// <summary>
+    /// Data returned by the GeoIP service containing the user's country and IP address.
+    /// </summary>
     [Preserve]
     public class GeoIPData
     {
+        /// <summary>The ISO country code determined by the GeoIP service.</summary>
         [JsonProperty("country")]
         public string Country;
 
+        /// <summary>The public IP address of the requesting device.</summary>
         [JsonProperty("ip_address")]
         public string IpAddress;
 
+        /// <summary>
+        /// Creates a shallow copy of this <see cref="GeoIPData"/> instance.
+        /// </summary>
+        /// <returns>A new <see cref="GeoIPData"/> with the same field values.</returns>
         public GeoIPData ShallowCopy()
         {
             return (GeoIPData)MemberwiseClone();
         }
     }
 
+    /// <summary>
+    /// Queues analytics events into native per-row storage and sends them to the server in batches.
+    /// Events are batched by count (<see cref="EventSenderConfig.BatchSize"/>) or time
+    /// (<see cref="EventSenderConfig.BatchPeriodMs"/>), persisted locally for offline resilience,
+    /// and sent via NDJSON HTTP POST. Implements <see cref="IEventSender"/> and <see cref="IDisposable"/>.
+    /// </summary>
     public class EventSender : IDisposable, IEventSender
     {
+        /// <summary>The UTC timestamp of the most recently enqueued event.</summary>
         public DateTime LastEventTime { get; private set; }
 
         private readonly ILogger _log = new NoctuaLogger(typeof(EventSender));
@@ -163,6 +212,19 @@ namespace com.noctuagames.sdk.Events
             return tcs.Task;
         }
 
+        /// <summary>
+        /// Sets the user, player, credential, game, and session properties attached to subsequent events.
+        /// Pass the default value (0 for numeric, empty string for text) to leave a property unchanged.
+        /// </summary>
+        /// <param name="userId">The Noctua user ID, or 0 to keep the current value.</param>
+        /// <param name="playerId">The game-specific player ID, or 0 to keep the current value.</param>
+        /// <param name="credentialId">The credential ID used for authentication, or 0 to keep the current value.</param>
+        /// <param name="credentialProvider">The authentication provider name, or empty string to keep the current value.</param>
+        /// <param name="gameId">The game ID, or 0 to keep the current value.</param>
+        /// <param name="gamePlatformId">The game platform ID, or 0 to keep the current value.</param>
+        /// <param name="sessionId">The current session ID, or empty string to keep the current value.</param>
+        /// <param name="ipAddress">The device IP address, or empty string to keep the current value.</param>
+        /// <param name="isSandbox">Whether the environment is sandbox, or null to keep the current value.</param>
         public void SetProperties(
             long? userId = 0,
             long? playerId = 0,
@@ -206,6 +268,14 @@ namespace com.noctuagames.sdk.Events
             );
         }
 
+        /// <summary>
+        /// Initializes a new <see cref="EventSender"/>, validates the configuration, starts the
+        /// background send loop, and triggers migration of legacy blob-format events if needed.
+        /// </summary>
+        /// <param name="config">Configuration specifying the API endpoint, batching parameters, and native plugins.</param>
+        /// <param name="locale">Locale provider for country and language resolution.</param>
+        /// <exception cref="ArgumentNullException">Thrown when <paramref name="config"/> or <paramref name="locale"/> is null.</exception>
+        /// <exception cref="ArgumentException">Thrown when BaseUrl, ClientId, or BundleId is not set.</exception>
         public EventSender(EventSenderConfig config, NoctuaLocale locale)
         {
             _config = config ?? throw new ArgumentNullException(nameof(config));
@@ -278,6 +348,14 @@ namespace com.noctuagames.sdk.Events
             }
         }
 
+        /// <summary>
+        /// Enqueues an analytics event with the given name and optional data payload.
+        /// The event is enriched with device, session, and user metadata, serialized to JSON,
+        /// and persisted to native per-row storage for later batch transmission.
+        /// </summary>
+        /// <param name="name">The event name (e.g. "session_start", "purchase_complete").</param>
+        /// <param name="data">Optional key-value pairs of event-specific data. Reserved keys (user_id, device_id, etc.) are removed.</param>
+        /// <exception cref="ArgumentNullException">Thrown when <paramref name="name"/> is null or empty.</exception>
         public void Send(string name, Dictionary<string, IConvertible> data = null)
         {
 
@@ -519,6 +597,11 @@ namespace com.noctuagames.sdk.Events
             };
         }
 
+        /// <summary>
+        /// Immediately flushes all persisted events to the server in paginated batches.
+        /// Skips flushing if the application is quitting or a flush is already in progress.
+        /// Events that fail to send remain in storage for the next attempt.
+        /// </summary>
 	// This will be called in SessionTracker.cs
         public void Flush()
         {
@@ -619,6 +702,9 @@ namespace com.noctuagames.sdk.Events
             });
         }
 
+        /// <summary>
+        /// Cancels the background send loop and releases resources. Safe to call multiple times.
+        /// </summary>
         public void Dispose()
         {
             if (_disposed) return;
@@ -762,6 +848,11 @@ namespace com.noctuagames.sdk.Events
             return sanitized;
         }
 
+        /// <summary>
+        /// Resolves the user's ISO country code by querying the GeoIP service first,
+        /// then falling back to Cloudflare Trace if GeoIP fails.
+        /// </summary>
+        /// <returns>The ISO country code, or an empty string if both lookups fail.</returns>
         public async UniTask<string> GetCountryIDAsync()
         {
             string country = "";
@@ -783,6 +874,10 @@ namespace com.noctuagames.sdk.Events
             return country;
         }
 
+        /// <summary>
+        /// Retrieves the user's country code from the Noctua GeoIP API.
+        /// </summary>
+        /// <returns>The ISO country code from the GeoIP response.</returns>
         public async UniTask<string> GetCountryIDFromGeoIPAsync()
         {
             string country = "";
@@ -808,6 +903,10 @@ namespace com.noctuagames.sdk.Events
         }
 
 
+        /// <summary>
+        /// Retrieves the user's country code by parsing the Cloudflare CDN trace endpoint response.
+        /// </summary>
+        /// <returns>The ISO country code extracted from the "loc=" field in the trace response.</returns>
         public async UniTask<string> GetCountryIDFromCloudflareTraceAsync()
         {
             // Extract domain from baseUrl

@@ -13,6 +13,9 @@ using Newtonsoft.Json.Serialization;
 
 namespace com.noctuagames.sdk.UI
 {
+    /// <summary>
+    /// Presenter for the pending purchases dialog, displaying a scrollable list of unverified purchases with retry, copy receipt, and customer service options.
+    /// </summary>
     internal class PendingPurchasesDialogPresenter : Presenter<AuthUIController>
     {
         private readonly ILogger _log = new NoctuaLogger();
@@ -46,6 +49,11 @@ namespace com.noctuagames.sdk.UI
             BindListView(_pendingPurchasesListView, _pendingPurchases);
         }
 
+        /// <summary>
+        /// Displays the pending purchases dialog filtered to the current player's unverified purchases.
+        /// </summary>
+        /// <param name="pendingPurchases">The list of pending purchase items to display.</param>
+        /// <returns><c>false</c> when the dialog is closed.</returns>
         public async UniTask<bool> Show(List<PurchaseItem> pendingPurchases)
         {            
             _log.Debug("Player ID from recent account: " + Model.AuthService.RecentAccount?.Player?.Id);

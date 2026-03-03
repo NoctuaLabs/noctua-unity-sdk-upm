@@ -1,11 +1,25 @@
 using System.Collections.Generic;
 
+/// <summary>
+/// Represents a country with its ISO code, display name, and international phone dialing code.
+/// </summary>
 public class Country
 {
+    /// <summary>ISO 3166-1 alpha-2 country code (e.g., "US", "ID").</summary>
     public string Code { get; set; }
+
+    /// <summary>Human-readable country name in English.</summary>
     public string Name { get; set; }
+
+    /// <summary>International phone dialing code including the "+" prefix (e.g., "+1", "+62").</summary>
     public string PhoneCode { get; set; }
 
+    /// <summary>
+    /// Initializes a new Country instance.
+    /// </summary>
+    /// <param name="code">ISO 3166-1 alpha-2 country code.</param>
+    /// <param name="name">Country display name.</param>
+    /// <param name="phoneCode">International dialing code with "+" prefix.</param>
     public Country(string code, string name, string phoneCode)
     {
         Code = code;
@@ -14,8 +28,12 @@ public class Country
     }
 }
 
+/// <summary>
+/// Static lookup table of countries with their ISO codes and phone dialing codes, used for phone number input UI.
+/// </summary>
 public static class CountryData
 {
+    /// <summary>Pre-populated list of countries sorted by region (Asia first, then rest of world).</summary>
     public static List<Country> Countries = new List<Country>
     {
         new Country("AF", "Afghanistan", "+93"),

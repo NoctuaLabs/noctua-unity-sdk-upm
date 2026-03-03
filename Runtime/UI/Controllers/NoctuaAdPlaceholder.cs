@@ -6,6 +6,9 @@ using System.Threading;
 
 namespace com.noctuagames.sdk.UI
 {
+    /// <summary>
+    /// Presenter that displays a placeholder image while an ad is loading, with auto-close timeout and close button support.
+    /// </summary>
     internal class NoctuaAdPlaceholder : Presenter<object>
     {
         private VisualElement _closeBtn;
@@ -32,6 +35,10 @@ namespace com.noctuagames.sdk.UI
             _closeBtn.RegisterCallback<ClickEvent>(CloseDialog);
         }
 
+        /// <summary>
+        /// Displays the ad placeholder for the specified ad type, loading the appropriate placeholder image and starting an auto-close timeout.
+        /// </summary>
+        /// <param name="adType">The type of ad placeholder to display (banner, interstitial, or rewarded).</param>
         public void Show(AdPlaceholderType adType)
         {
             // Cancel any previous timeout
@@ -112,6 +119,9 @@ namespace com.noctuagames.sdk.UI
             _log.Info("Ad placeholder closed");
         }
 
+        /// <summary>
+        /// Programmatically closes the ad placeholder from an external caller, cancelling any pending timeout.
+        /// </summary>
         public void CloseAdPlaceholder()
         {
             CancelTimeout();
