@@ -8,7 +8,7 @@ namespace com.noctuagames.sdk
     /// with serialized (string) OrderRequest/VerifyOrderRequest fields.
     /// </summary>
     [Preserve]
-    internal class InternalPurchaseItem
+    public class InternalPurchaseItem
     {
         public int OrderId;
         public OrderRequest OrderRequest;
