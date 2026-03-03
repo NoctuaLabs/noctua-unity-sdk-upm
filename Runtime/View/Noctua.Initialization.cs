@@ -127,6 +127,8 @@ namespace com.noctuagames.sdk
             _nativePlugin = GetNativePlugin();
             _log.Debug($"_nativePlugin type: {_nativePlugin?.GetType().FullName}");
 
+            MobileDateTimePicker.SetShowDatePickerAction(ShowDatePicker);
+
             _eventSender = new EventSender(
                 new EventSenderConfig
                 {

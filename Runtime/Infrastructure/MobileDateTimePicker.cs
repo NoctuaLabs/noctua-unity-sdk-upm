@@ -17,6 +17,15 @@ namespace com.noctuagames.sdk
         public Action<DateTime> OnPickerClosed;
 
         private static Dictionary<int, MobileDateTimePicker> activePickers = new Dictionary<int, MobileDateTimePicker>();
+        private static Action<int, int, int, int> _showDatePickerAction;
+
+        /// <summary>
+        /// Sets the native date picker callback. Called once from the composition root.
+        /// </summary>
+        internal static void SetShowDatePickerAction(Action<int, int, int, int> action)
+        {
+            _showDatePickerAction = action;
+        }
 
         #region PUBLIC_FUNCTIONS
 
@@ -33,7 +42,7 @@ namespace com.noctuagames.sdk
             }
 
             activePickers[id] = dialog;
-            Noctua.ShowDatePicker(year, month, day, id);
+            _showDatePickerAction?.Invoke(year, month, day, id);
             return dialog;
         }
 
