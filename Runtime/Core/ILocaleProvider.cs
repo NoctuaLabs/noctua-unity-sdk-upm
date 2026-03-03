@@ -9,5 +9,6 @@ namespace com.noctuagames.sdk
         string GetLanguage();
         string GetCountry();
         string GetCurrency();
+        string GetTranslation(LocaleTextKey textKey);
     }
 }

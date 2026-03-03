@@ -342,7 +342,7 @@ namespace com.noctuagames.sdk.UI
                     if (e.Message.Contains("Networking"))
                     {
                         Model.ShowLoadingProgress(false);
-                        var offlineModeMessage = Noctua.Platform.Locale.GetTranslation(LocaleTextKey.OfflineModeMessage) + " [UserCenter]";
+                        var offlineModeMessage = Locale.GetTranslation(LocaleTextKey.OfflineModeMessage) + " [UserCenter]";
                         Model.HandleRetryUserCenterAsync(offlineModeMessage);
                         return;
                     }

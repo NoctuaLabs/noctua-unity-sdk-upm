@@ -41,7 +41,7 @@ namespace com.noctuagames.sdk.UI
             Model.ShowLoadingProgress(false);
             if (isOffline)
             {
-                var offlineModeMessage = Noctua.Platform.Locale.GetTranslation(LocaleTextKey.OfflineModeMessage) + " [AccountSelection]";
+                var offlineModeMessage = Locale.GetTranslation(LocaleTextKey.OfflineModeMessage) + " [AccountSelection]";
                 Model.HandleRetryAccountSelectionAsync(offlineModeMessage);
                 return;
             }
