@@ -139,6 +139,10 @@ namespace com.noctuagames.sdk
                     BatchPeriodMs = _config.Noctua.TrackerBatchPeriodMs,
                     NativePlugin = _nativePlugin,
                     FirebaseConfig = _config.Firebase,
+                    NativeFirebase = _nativePlugin,
+                    NativeTracker = _nativePlugin,
+                    IsOfflineModeFunc = () => _offlineMode,
+                    AdjustOfflineModeDisabledFunc = AdjustOfflineModeDisabled,
                 },
                 locale
             );

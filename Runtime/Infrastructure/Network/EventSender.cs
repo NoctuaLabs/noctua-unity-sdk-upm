@@ -26,6 +26,10 @@ namespace com.noctuagames.sdk.Events
         public int CycleDelay = 10_000; // 10 sec, in ms
         public int MaxStoredEvents = 100_000; // 100K events cap with FIFO eviction
         public INativeEventStorage NativePlugin;
+        public INativeFirebase NativeFirebase;
+        public INativeTracker NativeTracker;
+        public Func<bool> IsOfflineModeFunc;
+        public Func<bool> AdjustOfflineModeDisabledFunc;
         public FirebaseConfig FirebaseConfig = new FirebaseConfig();
     }
 
@@ -327,7 +331,7 @@ namespace com.noctuagames.sdk.Events
 
                 string country = _locale.GetCountry();
 
-                var isOffline = Noctua.IsOfflineMode();
+                var isOffline = _config.IsOfflineModeFunc?.Invoke() ?? false;
                 data.TryAdd("offline_mode", isOffline);
 
                 if (String.IsNullOrEmpty(country) && !isOffline)
@@ -345,7 +349,7 @@ namespace com.noctuagames.sdk.Events
 
                 data.TryAdd("country", country);
 
-                var activeExperiment = Noctua.GetActiveExperiment();
+                var activeExperiment = ExperimentManager.GetActiveExperiment();
 
                 if (!string.IsNullOrEmpty(activeExperiment))
                 {
@@ -384,8 +388,16 @@ namespace com.noctuagames.sdk.Events
                     if (!_firebaseIdsFetched)
                     {
                         try {
-                            _cachedFirebaseSessionId = await Noctua.GetFirebaseAnalyticsSessionID();
-                            _cachedFirebaseInstallationId = await Noctua.GetFirebaseInstallationID();
+                            if (_config.NativeFirebase != null)
+                            {
+                                var sessionTcs = new TaskCompletionSource<string>();
+                                _config.NativeFirebase.GetFirebaseAnalyticsSessionID(id => sessionTcs.TrySetResult(id ?? ""));
+                                _cachedFirebaseSessionId = await sessionTcs.Task;
+
+                                var installTcs = new TaskCompletionSource<string>();
+                                _config.NativeFirebase.GetFirebaseInstallationID(id => installTcs.TrySetResult(id ?? ""));
+                                _cachedFirebaseInstallationId = await installTcs.Task;
+                            }
                             _firebaseIdsFetched = true;
                         } catch (Exception e) {
                             _log.Warning($"[Event Sender] Failed to get Firebase IDs: {e.Message}");
@@ -435,17 +447,17 @@ namespace com.noctuagames.sdk.Events
                         try
                         {
                             _log.Debug("[Event Sender] Checking internet connection status after sending event");
-                            Noctua.IsOfflineAsync().ContinueWith((isOfflineResult) =>
+                            InternetChecker.CheckInternetConnectionAsync((isConnected) =>
                             {
-                                if (isOfflineResult)
+                                if (isConnected)
                                 {
-                                    Noctua.OnOffline();
+                                    NotifyOnline();
                                 }
                                 else
                                 {
-                                    Noctua.OnOnline();
+                                    NotifyOffline();
                                 }
-                            });
+                            }).Forget();
                         }
                         catch (Exception e)
                         {
@@ -454,6 +466,18 @@ namespace com.noctuagames.sdk.Events
                     }
                 }
             });
+        }
+
+        private void NotifyOnline()
+        {
+            if (_config.AdjustOfflineModeDisabledFunc?.Invoke() == true) return;
+            try { _config.NativeTracker?.OnOnline(); } catch (Exception) { }
+        }
+
+        private void NotifyOffline()
+        {
+            if (_config.AdjustOfflineModeDisabledFunc?.Invoke() == true) return;
+            try { _config.NativeTracker?.OnOffline(); } catch (Exception) { }
         }
 
 #if UNITY_ANDROID && !UNITY_EDITOR
@@ -652,15 +676,15 @@ namespace com.noctuagames.sdk.Events
                     continue;
                 }
 
-                var isOffline = Noctua.IsOfflineMode();
+                var isOffline = _config.IsOfflineModeFunc?.Invoke() ?? false;
                 if (isOffline)
                 {
-                    try { Noctua.OnOffline(); } catch (Exception) { /* Noctua not initialized */ }
+                    NotifyOffline();
                     _log.Debug("[Event Sender] device is offline, continue to next cycle");
                     continue;
                 }
 
-                try { Noctua.OnOnline(); } catch (Exception) { /* Noctua not initialized */ }
+                NotifyOnline();
 
                 // Read batch from per-row storage (always offset 0, we delete after send)
                 List<NativeEvent> batch;
