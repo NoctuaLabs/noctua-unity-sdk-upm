@@ -103,6 +103,7 @@ namespace com.noctuagames.sdk
             NoctuaLogger.Init(_config);
 
             var locale = new NoctuaLocale(_config.Noctua.Region);
+            HttpRequest.SetLocaleProvider(locale);
 
             _config.Noctua ??= new NoctuaConfig();
             _config.Adjust ??= new AdjustConfig();

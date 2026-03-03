@@ -17,7 +17,7 @@ using UnityEngine.Scripting;
 
 namespace com.noctuagames.sdk
 {
-    public class NoctuaLocale
+    public class NoctuaLocale : ILocaleProvider
     {
         public event Action<string> OnLanguageChanged;
         

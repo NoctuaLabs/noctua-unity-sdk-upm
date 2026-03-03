@@ -66,6 +66,9 @@ namespace com.noctuagames.sdk
 
     internal class HttpRequest : IDisposable
     {
+        private static ILocaleProvider _localeProvider;
+        internal static void SetLocaleProvider(ILocaleProvider provider) => _localeProvider = provider;
+
         private readonly NoctuaLogger _log = new(typeof(HttpRequest));
         private readonly UnityWebRequest _request = new();
 
@@ -87,11 +90,14 @@ namespace com.noctuagames.sdk
             _request.method = method.ToString().ToUpper();
             _request.url = url;
 
-            // Inject locale data
-            _request.SetRequestHeader("Accept-Language", Noctua.Platform.Locale.GetLanguage());
-            _request.SetRequestHeader("X-LANGUAGE", Noctua.Platform.Locale.GetLanguage());
-            _request.SetRequestHeader("X-COUNTRY", Noctua.Platform.Locale.GetCountry());
-            _request.SetRequestHeader("X-CURRENCY", Noctua.Platform.Locale.GetCurrency());
+            // Inject locale data via static provider (avoids Noctua singleton dependency)
+            var lang = _localeProvider?.GetLanguage() ?? "en";
+            var country = _localeProvider?.GetCountry() ?? "";
+            var currency = _localeProvider?.GetCurrency() ?? "";
+            _request.SetRequestHeader("Accept-Language", lang);
+            _request.SetRequestHeader("X-LANGUAGE", lang);
+            _request.SetRequestHeader("X-COUNTRY", country);
+            _request.SetRequestHeader("X-CURRENCY", currency);
             _request.SetRequestHeader("X-DEVICE-ID", SystemInfo.deviceUniqueIdentifier);
             _request.SetRequestHeader("X-PLATFORM", Utility.GetPlatformType());
             _request.SetRequestHeader("X-OS-AGENT", SystemInfo.operatingSystem);
