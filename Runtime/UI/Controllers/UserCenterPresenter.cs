@@ -518,7 +518,7 @@ namespace com.noctuagames.sdk.UI
                 (DateTime _date) =>
                 {
                     _birthDateTF.textField.value = _date.ToString("dd/MM/yyyy");
-                    Utility.UpdateButtonState(_saveButton.button, true);
+                    UIUtility.UpdateButtonState(_saveButton.button, true);
                     _isDatePickerOpen = false;
                 });
             });
@@ -548,7 +548,7 @@ namespace com.noctuagames.sdk.UI
             _changePictureButton = new ButtonNoctua(View.Q<Button>("ChangePictureButton"));
             _saveButton = new ButtonNoctua(View.Q<Button>("SaveButton"));
 
-            Utility.UpdateButtonState(_saveButton.button, false);
+            UIUtility.UpdateButtonState(_saveButton.button, false);
             _saveButton.button.RegisterCallback<ClickEvent>(_ => OnSaveEditProfile());
 
             var elementNames = new List<string>
@@ -559,7 +559,7 @@ namespace com.noctuagames.sdk.UI
                 "LanguageTF",
             };
 
-            Utility.RegisterForMultipleValueChanges<string>(View, elementNames, _saveButton.button);
+            UIUtility.RegisterForMultipleValueChanges<string>(View, elementNames, _saveButton.button);
 
             //Show mobile input
             _nicknameTF.textField.hideMobileInput = false;
@@ -702,7 +702,7 @@ namespace com.noctuagames.sdk.UI
                     if (isEditProfile)
                     {
                         _profileImage.style.backgroundImage = new StyleBackground(texture);
-                        Utility.UpdateButtonState(_saveButton.button, true);
+                        UIUtility.UpdateButtonState(_saveButton.button, true);
                     }
                     else
                     {
@@ -807,7 +807,7 @@ namespace com.noctuagames.sdk.UI
 
                 View.Q<Label>("TitleEditBack").text = Locale.GetTranslation("UserCenterPresenter.MenuEditProfile.Label.text");
 
-                Utility.UpdateButtonState(_saveButton.button, false);
+                UIUtility.UpdateButtonState(_saveButton.button, false);
 
                 if (!string.IsNullOrEmpty(_profileImageUrl))
                 {

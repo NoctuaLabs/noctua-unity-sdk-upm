@@ -96,7 +96,7 @@ namespace com.noctuagames.sdk.UI
 
         private void OnLanguageChanged(string language)
         {
-            Utility.ApplyTranslations(View, GetType().Name, Locale.GetTranslations());
+            UIUtility.ApplyTranslations(View, GetType().Name, Locale.GetTranslations());
         }
 
         protected virtual void OnDestroy()

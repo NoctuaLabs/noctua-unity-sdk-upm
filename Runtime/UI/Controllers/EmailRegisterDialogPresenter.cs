@@ -97,7 +97,7 @@ namespace com.noctuagames.sdk.UI
 
             };
 
-            Utility.UpdateButtonState(textFields, _continueButton.button);
+            UIUtility.UpdateButtonState(textFields, _continueButton.button);
             // Callbacks
             _continueButton.button.RegisterCallback<PointerUpEvent>(OnContinueButtonClick);
 
@@ -273,7 +273,7 @@ namespace com.noctuagames.sdk.UI
         private void OnValueChanged(InputFieldNoctua input)
         {
             input.AdjustLabel();
-            Utility.UpdateButtonState(textFields, _continueButton.button);
+            UIUtility.UpdateButtonState(textFields, _continueButton.button);
         }
 
         private void HideAllErrors()

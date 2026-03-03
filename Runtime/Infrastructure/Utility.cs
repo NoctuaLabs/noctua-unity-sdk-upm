@@ -6,7 +6,6 @@ using System.Text.RegularExpressions;
 using System.Globalization;
 
 using UnityEngine;
-using UnityEngine.UIElements;
 using System.Linq;
 using Cysharp.Threading.Tasks;
 using Newtonsoft.Json;
@@ -122,74 +121,6 @@ namespace com.noctuagames.sdk
             return queryParameters;
         }
 
-        public static void RegisterForMultipleValueChanges<T>(
-            VisualElement root,
-            List<string> elementNames,
-            Button buttonToEnable)
-        {
-            Dictionary<string, T> initialValues = new Dictionary<string, T>();
-
-            foreach (var elementName in elementNames)
-            {
-                var element = root.Q<BindableElement>(elementName);
-
-                if (element != null)
-                {
-                    var initialValue = (element as INotifyValueChanged<T>).value;
-                    initialValues[elementName] = initialValue;
-
-                    element.RegisterCallback<ChangeEvent<T>>(evt =>
-                    {
-                        bool anyChanged = false;
-                        foreach (var name in elementNames)
-                        {
-                            var currentElement = root.Q<BindableElement>(name);
-                            var currentValue = (currentElement as INotifyValueChanged<T>).value;
-
-                            if (currentValue == null && initialValues[name] == null)
-                            {
-                                continue;
-                            }
-
-                            if (currentValue == null && initialValues[name] != null)
-                            {
-                                anyChanged = true;
-                                break;
-                            }
-
-                            if (currentValue != null && initialValues[name] == null)
-                            {
-                                anyChanged = true;
-                                break;
-                            }
-
-                            if (!currentValue.Equals(initialValues[name]))
-                            {
-                                anyChanged = true;
-                                break;
-                            }
-                        }
-                        UpdateButtonState(buttonToEnable, anyChanged);
-                    });
-                }
-                else
-                {
-                    _sLog.Warning($"Element with name '{elementName}' not found.");
-                }
-            }
-        }
-
-        public static void UpdateButtonState(List<TextField> textFields, Button submitButton)
-        {
-            UpdateButtonState(submitButton, !textFields.Any(textField => string.IsNullOrEmpty(textField.value)));
-        }
-
-        public static void UpdateButtonState(Button _submitButton, bool _isActive)
-        {
-            _submitButton.SetEnabled(_isActive);
-            _submitButton.pickingMode = _isActive ? PickingMode.Position : PickingMode.Ignore;
-        }
-
         public static string GetCoPublisherLogo(string companyName)
         {
             var logoMap = new Dictionary<string, string>
@@ -257,71 +188,14 @@ namespace com.noctuagames.sdk
             return key;
         }
 
-        public static void ApplyTranslations(VisualElement root, string uxmlName, Dictionary<string, string> translations)
+        internal static void ApplyErrorTranslation(Dictionary<string, string> translations)
         {
-            ApplyTranslationsToElement(root, uxmlName, translations);
-            ApplyErrorTranslation(translations);
-        }
-
-        private static void ApplyTranslationsToElement(VisualElement element, string uxmlName, Dictionary<string, string> translations)
-        {
-            string elementName = element.name ?? string.Empty;
-            string elementType = element.GetType().Name;
-
-            switch (element)
-            {
-                case Label label:
-                    string labelKey = $"{uxmlName}.{elementName}.{elementType}.text";
-                    string labelTranslation = GetTranslation(labelKey, translations);
-
-                    if (labelTranslation != labelKey)
-                    {
-                        label.text = labelTranslation;
-                    }
-                    break;
-                case Button button:
-                    string buttonKey = $"{uxmlName}.{elementName}.{elementType}.text";
-                    string buttonTranslation = GetTranslation(buttonKey, translations);
-
-                    if (buttonTranslation != buttonKey)
-                    {
-                        button.text = buttonTranslation;
-                    }
-
-                    foreach (var child in button.Children())
-                    {
-                        ApplyTranslationsToElement(child, uxmlName, translations);
-                    }
-                    break;
-                case TextField textField:
-                    string textFieldKey = $"{uxmlName}.{elementName}.{elementType}.label";
-                    string textFieldTranslation = GetTranslation(textFieldKey, translations);
-                    textField.label = textFieldTranslation;
-
-                    Label textFieldTitle = textField.Q<Label>("title");
-
-                    if (textFieldTitle != null) textFieldTitle.text = textFieldTranslation;
-
-                    break;
-                case DropdownField dropdownField:
-                    string dropdownFieldKey = $"{uxmlName}.{elementName}.{elementType}.label";
-                    string dropdownFieldTranslation = GetTranslation(dropdownFieldKey, translations);
-                    dropdownField.label = dropdownFieldTranslation;
-
-                    Label dropdownTitle = dropdownField.Q<Label>("title");
-
-                    if (dropdownTitle != null) dropdownTitle.text = dropdownFieldTranslation;
-
-                    break;
-                case VisualElement visualElement:
-                    foreach (var child in visualElement.Children())
-                    {
-                        ApplyTranslationsToElement(child, uxmlName, translations);
-                    }
-                    break;
-                default:
-                    break;
-            }
+            errorEmailEmpty = GetTranslation(LocaleTextKey.ErrorEmailEmpty.ToString(), translations);
+            errorEmailNotValid = GetTranslation(LocaleTextKey.ErrorEmailNotValid.ToString(), translations);
+            errorPasswordEmpty = GetTranslation(LocaleTextKey.ErrorPasswordEmpty.ToString(), translations);
+            errorPasswordShort = GetTranslation(LocaleTextKey.ErrorPasswordShort.ToString(), translations);
+            errorRePasswordEmpty = GetTranslation(LocaleTextKey.ErrorRePasswordEmpty.ToString(), translations);
+            errorRePasswordNotMatch = GetTranslation(LocaleTextKey.ErrorRePasswordNotMatch.ToString(), translations);
         }
 
         public static async UniTask<T> RetryAsyncTask<T>(
@@ -352,22 +226,12 @@ namespace com.noctuagames.sdk
                     var delayWithJitter = ((random.NextDouble() * 0.5) + 0.75) * delay;
                     await UniTask.Delay(TimeSpan.FromSeconds(delayWithJitter));
                     delay *= exponent;
-                    
+
                     delay = Math.Min(delay, maxDelaySeconds);
                 }
             }
 
             return await task();
-        }        
-
-        private static void ApplyErrorTranslation(Dictionary<string, string> translations)
-        {            
-            errorEmailEmpty = GetTranslation(LocaleTextKey.ErrorEmailEmpty.ToString(), translations);
-            errorEmailNotValid = GetTranslation(LocaleTextKey.ErrorEmailNotValid.ToString(), translations);
-            errorPasswordEmpty = GetTranslation(LocaleTextKey.ErrorPasswordEmpty.ToString(), translations);
-            errorPasswordShort = GetTranslation(LocaleTextKey.ErrorPasswordShort.ToString(), translations);
-            errorRePasswordEmpty = GetTranslation(LocaleTextKey.ErrorRePasswordEmpty.ToString(), translations);
-            errorRePasswordNotMatch = GetTranslation(LocaleTextKey.ErrorRePasswordNotMatch.ToString(), translations);            
         }
 
         public static string ValidateEmail(string str)

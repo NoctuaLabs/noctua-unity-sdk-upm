@@ -56,7 +56,7 @@ namespace com.noctuagames.sdk.UI
                 _inputEmail.textField
             };
 
-            Utility.UpdateButtonState(_textFields, _submitButton.button);
+            UIUtility.UpdateButtonState(_textFields, _submitButton.button);
 
             _submitButton.button.RegisterCallback<PointerUpEvent>(OnContinueButtonClick);
             View.Q<Button>("BackButton").RegisterCallback<ClickEvent>(OnBackButtonClick);
@@ -65,7 +65,7 @@ namespace com.noctuagames.sdk.UI
         private void OnValueChanged(InputFieldNoctua input)
         {
             input.AdjustLabel();
-            Utility.UpdateButtonState(_textFields, _submitButton.button);
+            UIUtility.UpdateButtonState(_textFields, _submitButton.button);
         }
 
         private async void OnContinueButtonClick(PointerUpEvent evt)

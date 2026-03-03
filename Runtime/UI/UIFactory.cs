@@ -118,7 +118,7 @@ namespace com.noctuagames.sdk.UI
 
         private void ApplyLocalization(VisualElement root, string uxmlName, Dictionary<string, string> localization)
         {
-            Utility.ApplyTranslations(root, uxmlName, localization);
+            UIUtility.ApplyTranslations(root, uxmlName, localization);
         }
     }
 }

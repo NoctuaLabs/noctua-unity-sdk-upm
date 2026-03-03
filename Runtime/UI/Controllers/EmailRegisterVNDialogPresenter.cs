@@ -141,9 +141,9 @@ namespace com.noctuagames.sdk.UI
                 _address.textField
             };
             
-            Utility.UpdateButtonState(textFields, _continueButton.button); // For non-wizard VN paths
-            Utility.UpdateButtonState(textFields, _wizardContinueButton.button);
-            Utility.UpdateButtonState(textFields, _wizard5ContinueButton.button);
+            UIUtility.UpdateButtonState(textFields, _continueButton.button); // For non-wizard VN paths
+            UIUtility.UpdateButtonState(textFields, _wizardContinueButton.button);
+            UIUtility.UpdateButtonState(textFields, _wizard5ContinueButton.button);
 
             // Callbacks
             // If ContinueButton has a role in simpler VN flows (without full wizard), this callback is kept.
@@ -847,9 +847,9 @@ namespace com.noctuagames.sdk.UI
             input.AdjustLabel();
             _isDatePickerOpen = false;
             // Update state for all buttons that might be active in various VN scenarios
-            Utility.UpdateButtonState(textFields, _continueButton.button); 
-            Utility.UpdateButtonState(textFields, _wizardContinueButton.button);
-            Utility.UpdateButtonState(textFields, _wizard5ContinueButton.button);
+            UIUtility.UpdateButtonState(textFields, _continueButton.button); 
+            UIUtility.UpdateButtonState(textFields, _wizardContinueButton.button);
+            UIUtility.UpdateButtonState(textFields, _wizard5ContinueButton.button);
         }
 
         private void HideAllErrors() // Clear errors for all VN fields
