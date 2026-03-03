@@ -15,6 +15,8 @@ namespace com.noctuagames.sdk
 {
     public static class Utility
     {
+        private static readonly ILogger _sLog = new NoctuaLogger(typeof(Utility));
+
         public static string errorEmailEmpty = "Email address should not be empty";
         public static string errorEmailNotValid = "Email address is not valid";
         public static string errorPasswordEmpty = "Password should not be empty";
@@ -172,7 +174,7 @@ namespace com.noctuagames.sdk
                 }
                 else
                 {
-                    Debug.LogWarning($"Element with name '{elementName}' not found.");
+                    _sLog.Warning($"Element with name '{elementName}' not found.");
                 }
             }
         }

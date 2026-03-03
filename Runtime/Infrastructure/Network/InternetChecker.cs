@@ -8,6 +8,7 @@ namespace com.noctuagames.sdk
 {
     public static class InternetChecker
     {
+        private static readonly ILogger _sLog = new NoctuaLogger(typeof(InternetChecker));
         private static readonly string pingUrl = "https://sdk-api-v2.noctuaprojects.com/api/v1/games/ping";
         private static bool _isQuitting = false;
 
@@ -21,7 +22,7 @@ namespace com.noctuagames.sdk
         {
             if (_isQuitting || !Application.isPlaying)
             {
-                Debug.LogWarning("[InternetChecker] Skipped check: application is quitting or not playing.");
+                _sLog.Warning("[InternetChecker] Skipped check: application is quitting or not playing.");
                 return;
             }
 
@@ -36,7 +37,7 @@ namespace com.noctuagames.sdk
 
                 if (_isQuitting)
                 {
-                    Debug.LogWarning("[InternetChecker] App is quitting. Ignoring result.");
+                    _sLog.Warning("[InternetChecker] App is quitting. Ignoring result.");
                     return;
                 }
 
@@ -45,7 +46,7 @@ namespace com.noctuagames.sdk
             }
             catch (Exception e)
             {
-                Debug.LogWarning($"[InternetChecker] Exception: {e.Message}");
+                _sLog.Warning($"[InternetChecker] Exception: {e.Message}");
                 onResult?.Invoke(false);
             }
         }
