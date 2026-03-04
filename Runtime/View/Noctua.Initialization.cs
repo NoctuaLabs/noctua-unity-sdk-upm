@@ -779,6 +779,21 @@ namespace com.noctuagames.sdk
 
             var attribution = await GetAdjustAttributionAsync();
 
+            log.Info("Adjust Attribution: " +
+                $"tracker_token={attribution.TrackerToken}, " +
+                $"tracker_name={attribution.TrackerName}, " +
+                $"network={attribution.Network}, " +
+                $"campaign={attribution.Campaign}, " +
+                $"adgroup={attribution.Adgroup}, " +
+                $"creative={attribution.Creative}, " +
+                $"click_label={attribution.ClickLabel}, " +
+                $"adid={attribution.Adid}, " +
+                $"cost_type={attribution.CostType}, " +
+                $"cost_amount={attribution.CostAmount}, " +
+                $"cost_currency={attribution.CostCurrency}, " +
+                $"fb_install_referrer={attribution.FbInstallReferrer}"
+            );
+
             Instance.Value._eventSender.Send("adjust_attribution", new Dictionary<string, IConvertible> {
                 { "tracker_token", attribution.TrackerToken ?? "" },
                 { "tracker_name", attribution.TrackerName ?? "" },
