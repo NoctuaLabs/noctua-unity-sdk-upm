@@ -134,6 +134,12 @@ namespace com.noctuagames.sdk
         /// <summary>Store-reported currency code (populated after native store purchase).</summary>
         [JsonProperty("store_currency")]
         public string StoreCurrency;
+
+        /// <summary>Current stage level of the user.</summary>
+        [JsonProperty("current_stage_level")]
+        public string CurrentStageLevel;
+
+
     }
 
     /// <summary>
@@ -440,6 +446,10 @@ namespace com.noctuagames.sdk
         /// <summary>In-game item name being purchased.</summary>
         [JsonProperty("ingame_item_name")]
         public string IngameItemName;
+
+        /// <summary>Current stage level of the user.</summary>
+        [JsonProperty("current_stage_level")]
+        public string CurrentStageLevel;
 
         /// <summary>Additional key-value metadata for the purchase.</summary>
         [JsonProperty("extra")]

@@ -12,6 +12,7 @@ using Newtonsoft.Json.Converters;
 using Newtonsoft.Json.Serialization;
 using UnityEngine.Scripting;
 using Random = System.Random;
+using Sentry.Protocol;
 
 
 namespace com.noctuagames.sdk
@@ -219,6 +220,7 @@ namespace com.noctuagames.sdk
             var request = new HttpRequest(HttpMethod.Post, url)
                 .WithHeader("X-CLIENT-ID", _config.ClientId)
                 .WithHeader("X-BUNDLE-ID", Application.identifier)
+                .WithHeader("X-GAME-VERSION", Application.version)
                 .WithHeader("Authorization", "Bearer " + _accessTokenProvider.AccessToken)
                 .WithJsonBody(order);
 
@@ -798,6 +800,7 @@ namespace com.noctuagames.sdk
                     ServerId = purchaseRequest.ServerId,
                     IngameItemId = purchaseRequest.IngameItemId,
                     IngameItemName = purchaseRequest.IngameItemName,
+                    CurrentStageLevel = purchaseRequest.CurrentStageLevel,
                     Extra = purchaseRequest.Extra
                 };
 
