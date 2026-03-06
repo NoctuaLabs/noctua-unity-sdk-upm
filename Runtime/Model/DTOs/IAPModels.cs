@@ -329,6 +329,12 @@ namespace com.noctuagames.sdk
         public string ReceiptId;
         /// <summary>Raw receipt data for server-side verification.</summary>
         public string ReceiptData;
+        /// <summary>
+        /// Native purchase token used to finalize the transaction after server verification.
+        /// On iOS this is the SKPaymentTransaction.transactionIdentifier;
+        /// on Android this is the Google Play purchase token (same as ReceiptData).
+        /// </summary>
+        public string PurchaseToken;
         /// <summary>Human-readable message describing the payment result.</summary>
         public string Message;
     }

@@ -28,5 +28,7 @@ namespace com.noctuagames.sdk
         public string OrderId;
         /// <summary>Raw JSON string of the original purchase receipt from the native store.</summary>
         public string OriginalJson;
+        /// <summary>StoreKit 2 transaction JSON representation (base64-encoded), for future server-side use. Empty on Android.</summary>
+        public string TransactionJson;
     }
 }

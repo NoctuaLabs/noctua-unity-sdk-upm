@@ -40,6 +40,36 @@ namespace com.noctuagames.sdk
         }
 
         /// <inheritdoc />
+        public void DisposeStoreKit()
+        {
+            try
+            {
+                using var noctua = new AndroidJavaClass("com.noctuagames.sdk.Noctua").GetStatic<AndroidJavaObject>("INSTANCE");
+                noctua.Call("disposeBilling");
+                _log.Debug("AndroidPlugin.DisposeStoreKit (disposeBilling)");
+            }
+            catch (AndroidJavaException e)
+            {
+                _log.Warning("Failed to call disposeBilling: " + e.Message);
+            }
+        }
+
+        /// <inheritdoc />
+        public bool IsStoreKitReady()
+        {
+            try
+            {
+                using var noctua = new AndroidJavaClass("com.noctuagames.sdk.Noctua").GetStatic<AndroidJavaObject>("INSTANCE");
+                return noctua.Call<bool>("isBillingReady");
+            }
+            catch (AndroidJavaException e)
+            {
+                _log.Warning("Failed to call isBillingReady: " + e.Message);
+                return false;
+            }
+        }
+
+        /// <inheritdoc />
         public void TrackAdRevenue(
             string source,
             double revenue,
@@ -170,6 +200,38 @@ namespace com.noctuagames.sdk
         public void GetProductPurchaseStatusDetail(string productId, Action<ProductPurchaseStatus> callback)
         {
             throw new NotImplementedException();
+        }
+
+        /// <summary>
+        /// Completes purchase processing by delegating to the native Android SDK.
+        /// Consumes or acknowledges the Google Play purchase depending on consumable type.
+        /// </summary>
+        public void CompletePurchaseProcessing(string purchaseToken, NoctuaConsumableType consumableType, bool verified, Action<bool> callback)
+        {
+            _log.Debug($"AndroidPlugin.CompletePurchaseProcessing: token={purchaseToken}, type={consumableType}, verified={verified}");
+            try
+            {
+                using var noctua = new AndroidJavaClass("com.noctuagames.sdk.Noctua")
+                    .GetStatic<AndroidJavaObject>("INSTANCE");
+                using var javaConsumableType = new AndroidJavaClass("com.noctuagames.sdk.models.ConsumableType");
+                var values = javaConsumableType.CallStatic<AndroidJavaObject[]>("values");
+                var typeEnum = values[(int)consumableType];
+
+                if (callback != null)
+                {
+                    var javaCallback = new AndroidCallback<bool>(callback);
+                    noctua.Call("completePurchaseProcessing", purchaseToken, typeEnum, verified, javaCallback);
+                }
+                else
+                {
+                    noctua.Call("completePurchaseProcessing", purchaseToken, typeEnum, verified, null);
+                }
+            }
+            catch (AndroidJavaException e)
+            {
+                _log.Warning("Failed to call completePurchaseProcessing: " + e.Message);
+                callback?.Invoke(false);
+            }
         }
 
         /// <inheritdoc />

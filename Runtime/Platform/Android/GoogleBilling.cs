@@ -288,6 +288,7 @@ public class GoogleBilling
                     ExpiryTime = expiryTime,
                     OrderId = orderId ?? "",
                     OriginalJson = originalJson ?? "",
+                    TransactionJson = "",
                 });
                 _pendingPurchaseStatusCallback = null;
             }

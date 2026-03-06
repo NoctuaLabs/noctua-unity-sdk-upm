@@ -109,6 +109,21 @@ namespace com.noctuagames.sdk
         {
         }
 
+        /// <summary>
+        /// No-op in the Editor; native store services are unavailable.
+        /// </summary>
+        public void DisposeStoreKit()
+        {
+        }
+
+        /// <summary>
+        /// Always returns false in the Editor; native store services are unavailable.
+        /// </summary>
+        public bool IsStoreKitReady()
+        {
+            return false;
+        }
+
         /// <inheritdoc />
         public void GetFirebaseInstallationID(Action<string> callback) {
 
@@ -232,6 +247,14 @@ namespace com.noctuagames.sdk
         public void GetProductPurchaseStatusDetail(string productId, Action<ProductPurchaseStatus> callback)
         {
             callback?.Invoke(new ProductPurchaseStatus());
+        }
+
+        /// <summary>
+        /// No-op in the Editor; native store services are unavailable.
+        /// </summary>
+        public void CompletePurchaseProcessing(string purchaseToken, NoctuaConsumableType consumableType, bool verified, Action<bool> callback)
+        {
+            callback?.Invoke(true);
         }
 
         /// <summary>

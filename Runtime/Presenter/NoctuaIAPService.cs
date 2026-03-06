@@ -279,7 +279,8 @@ namespace com.noctuagames.sdk
             VerifyOrderRequest verifyOrderRequest,
             string token,
             long? playerId,
-            bool isTriggeredByIAP
+            bool isTriggeredByIAP,
+            string purchaseToken = null
         )
         {
                 _log.Debug($"Attempt to verify orderID {verifyOrderRequest.Id}, triggered by IAP: ${isTriggeredByIAP}");
@@ -395,6 +396,29 @@ namespace com.noctuagames.sdk
                     _log.Debug($"Invoking OnPurchaseDone for orderID {orderRequest.Id} with store amount {orderRequest.StoreAmount} {orderRequest.StoreCurrency}");
 
                     OnPurchaseDone?.Invoke(orderRequest);
+
+                    // Complete purchase processing on native iOS side
+                    // (finishes SK1 transaction via finishTransaction)
+                    // Android purchase completion is handled server-side, no client call needed.
+#if UNITY_IOS && !UNITY_EDITOR
+                    if (!string.IsNullOrEmpty(purchaseToken))
+                    {
+                        try
+                        {
+                            _log.Debug($"Calling CompletePurchaseProcessing for purchaseToken={purchaseToken}");
+                            _nativePlugin?.CompletePurchaseProcessing(
+                                purchaseToken,
+                                NoctuaConsumableType.Consumable,
+                                true,
+                                success => _log.Debug($"CompletePurchaseProcessing result: {success}")
+                            );
+                        }
+                        catch (Exception e)
+                        {
+                            _log.Warning($"CompletePurchaseProcessing failed: {e.Message}");
+                        }
+                    }
+#endif
 
                     break;
                 case OrderStatus.canceled:
@@ -935,6 +959,8 @@ namespace com.noctuagames.sdk
                     _log.Info("NoctuaIAPService.PurchaseItemAsync user side payment flow completed, clear up _paymentTcs then continue the payment flow.");
                     
                     paymentResult = _paymentTcs.Task.Result;
+
+                    _log.Info("[iOS DEBUG] Payment result ReceiptData: " + paymentResult.ReceiptData);
                     
                     _log.Info("NoctuaIAPService.PurchaseItemAsync PurchaseItem callback response: " + paymentResult);
                     break;
@@ -1098,6 +1124,7 @@ namespace com.noctuagames.sdk
             pendingPurchaseItem.VerifyOrderRequest = verifyOrderRequest;
             pendingPurchaseItem.AccessToken = _accessTokenProvider.AccessToken;
             pendingPurchaseItem.PlayerId = _authProvider?.PlayerId;
+            pendingPurchaseItem.PurchaseToken = paymentResult.PurchaseToken;
 
             _log.Info($"Purchase process was done, whatever the status. Store the data to pending purchase early before verifying.  Order ID: {orderId}");
 
@@ -1161,7 +1188,8 @@ namespace com.noctuagames.sdk
                         verifyOrderRequest,
                         _accessTokenProvider.AccessToken,
                         _authProvider?.PlayerId,
-                        true
+                        true,
+                        paymentResult.PurchaseToken
                     )
                 );
 
@@ -1270,7 +1298,8 @@ namespace com.noctuagames.sdk
                     item.VerifyOrderRequest,
                     item.AccessToken,
                     item.PlayerId,
-                    false
+                    false,
+                    item.PurchaseToken
                 );
 
                 if (verifyOrderResponse.Status != OrderStatus.completed &&
@@ -1447,7 +1476,8 @@ namespace com.noctuagames.sdk
                         pendingPurchase.VerifyOrderRequest,
                         pendingPurchase.AccessToken,
                         pendingPurchase.PlayerId,
-                        false
+                        false,
+                        pendingPurchase.PurchaseToken
                     );
 
                     break;
@@ -1477,7 +1507,8 @@ namespace com.noctuagames.sdk
                         purchaseItem.VerifyOrderRequest,
                         purchaseItem.AccessToken,
                         purchaseItem.PlayerId,
-                        false
+                        false,
+                        purchaseItem.PurchaseToken
                     );
 
                     break;
@@ -1532,7 +1563,8 @@ namespace com.noctuagames.sdk
                         pendingPurchaseItem.VerifyOrderRequest,
                         pendingPurchaseItem.AccessToken,
                         pendingPurchaseItem.PlayerId,
-                        false
+                        false,
+                        pendingPurchaseItem.PurchaseToken
                     );
                 }
                 catch (Exception e)
@@ -1577,7 +1609,8 @@ namespace com.noctuagames.sdk
                         verifyOrderRequest,
                         _accessTokenProvider.AccessToken,
                         _authProvider?.PlayerId,
-                        false
+                        false,
+                        result.ReceiptData // On Android, ReceiptData IS the purchase token
                     );
                 }
                 catch (Exception e)
@@ -1722,6 +1755,7 @@ namespace com.noctuagames.sdk
                 Message = $"Purchase '{result.ReceiptId}' successful",
                 ReceiptId = result.ReceiptId,
                 ReceiptData = result.ReceiptData,
+                PurchaseToken = result.ReceiptData, // On Android, ReceiptData IS the purchase token
             };
         }
 #endif
@@ -1756,6 +1790,33 @@ namespace com.noctuagames.sdk
                 };
             }
 
+            // Try to parse JSON format from new native SDK (contains receipt + purchaseToken + consumableType)
+            try
+            {
+                if (!string.IsNullOrEmpty(message) && message.TrimStart().StartsWith("{"))
+                {
+                    var data = JsonConvert.DeserializeObject<Dictionary<string, object>>(message);
+                    if (data != null)
+                    {
+                        var result = new PaymentResult
+                        {
+                            Status = PaymentStatus.Successful,
+                            ReceiptData = data.ContainsKey("receipt") ? data["receipt"]?.ToString() : message,
+                            PurchaseToken = data.ContainsKey("purchaseToken") ? data["purchaseToken"]?.ToString() : null
+                        };
+
+                        _log.Info($"Parsed iOS purchase JSON: ReceiptData.length={result.ReceiptData?.Length}, PurchaseToken={result.PurchaseToken}");
+
+                        return result;
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                _log.Warning($"Failed to parse iOS purchase JSON, falling back to legacy format: {e.Message}");
+            }
+
+            // Legacy format: message is raw receipt data
             return new PaymentResult
             {
                 Status = PaymentStatus.Successful,
@@ -1958,7 +2019,8 @@ namespace com.noctuagames.sdk
                             item.VerifyOrderRequest,
                             item.AccessToken,
                             item.PlayerId,
-                            false
+                            false,
+                            item.PurchaseToken
                         );
 
                         if (verifyOrderResponse.Status != OrderStatus.completed &&

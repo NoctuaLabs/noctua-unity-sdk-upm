@@ -3,9 +3,9 @@
 
 // MARK: - Initialization
 
-void noctuaInitialize(bool verifyPurchasesOnServer) {
+void noctuaInitialize(bool verifyPurchasesOnServer, bool useStoreKit1) {
     NSError *error = nil;
-    [Noctua initNoctuaWithVerifyPurchasesOnServer:verifyPurchasesOnServer error:&error];
+    [Noctua initNoctuaWithVerifyPurchasesOnServer:verifyPurchasesOnServer useStoreKit1:useStoreKit1 error:&error];
     if (error) {
         NSLog(@"Error initializing Noctua: %@", error);
     }
@@ -88,13 +88,16 @@ static void ensureStoreKitInitialized(void) {
 
     [Noctua initializeStoreKitOnPurchaseCompleted:^(NoctuaPurchaseResult * _Nonnull result) {
         NSLog(@"StoreKit onPurchaseCompleted: success=%d, productId=%@", result.success, result.productId);
+        NSLog(@"StoreKit onPurchaseCompleted detail: purchaseToken=%@, orderId=%@, errorCode=%ld, purchaseState=%ld, originalJson.length=%lu, message=%@",
+            result.purchaseToken, result.orderId, (long)result.errorCode, (long)result.purchaseState,
+            (unsigned long)result.originalJson.length, result.message);
         if (_pendingPurchaseCallback != NULL) {
             CompletionDelegate callback = _pendingPurchaseCallback;
             _pendingPurchaseCallback = NULL;
 
             if (result.success) {
-                const char* token = [result.purchaseToken UTF8String];
-                callback(true, token ? token : "");
+                const char* receipt = [result.originalJson UTF8String];
+                callback(true, receipt ? receipt : "");
             } else {
                 NSString *msg = result.message ?: @"Purchase failed";
                 callback(false, [msg UTF8String]);
@@ -102,14 +105,17 @@ static void ensureStoreKitInitialized(void) {
         }
     } onPurchaseUpdated:^(NoctuaPurchaseResult * _Nonnull result) {
         NSLog(@"StoreKit onPurchaseUpdated: success=%d, productId=%@", result.success, result.productId);
+        NSLog(@"StoreKit onPurchaseUpdated detail: purchaseToken=%@, orderId=%@, errorCode=%ld, purchaseState=%ld, originalJson.length=%lu, message=%@",
+            result.purchaseToken, result.orderId, (long)result.errorCode, (long)result.purchaseState,
+            (unsigned long)result.originalJson.length, result.message);
         // If purchase callback is still pending (e.g., for pending state updates), handle it
         if (_pendingPurchaseCallback != NULL) {
             CompletionDelegate callback = _pendingPurchaseCallback;
             _pendingPurchaseCallback = NULL;
 
             if (result.success) {
-                const char* token = [result.purchaseToken UTF8String];
-                callback(true, token ? token : "");
+                const char* receipt = [result.originalJson UTF8String];
+                callback(true, receipt ? receipt : "");
             } else {
                 NSString *msg = result.message ?: @"Purchase updated with failure";
                 callback(false, [msg UTF8String]);
@@ -135,6 +141,9 @@ static void ensureStoreKitInitialized(void) {
         NSLog(@"StoreKit onRestorePurchasesCompleted: count=%lu", (unsigned long)results.count);
     } onProductPurchaseStatusResult:^(NoctuaProductPurchaseStatus * _Nonnull status) {
         NSLog(@"StoreKit onProductPurchaseStatusResult: productId=%@, isPurchased=%d", status.productId, status.isPurchased);
+        NSLog(@"StoreKit onProductPurchaseStatusResult detail: purchaseToken=%@, orderId=%@, isAcknowledged=%d, isAutoRenewing=%d, purchaseTime=%lld, originalJson.length=%lu",
+            status.purchaseToken, status.orderId, status.isAcknowledged, status.isAutoRenewing,
+            status.purchaseTime, (unsigned long)status.originalJson.length);
         if (_pendingProductPurchasedCallback != NULL) {
             ProductPurchasedCompletionDelegate callback = _pendingProductPurchasedCallback;
             _pendingProductPurchasedCallback = NULL;
@@ -164,7 +173,8 @@ static void ensureStoreKitInitialized(void) {
                 @"PurchaseTime": @(status.purchaseTime),
                 @"ExpiryTime": @(status.expiryTime),
                 @"OrderId": status.orderId ?: @"",
-                @"OriginalJson": status.originalJson ?: @""
+                @"OriginalJson": status.originalJson ?: @"",
+                @"TransactionJson": status.transactionJson ?: @""
             };
 
             NSError *error = nil;
@@ -178,13 +188,25 @@ static void ensureStoreKitInitialized(void) {
         }
     } onServerVerificationRequired:^(NoctuaPurchaseResult * _Nonnull result, enum ConsumableType consumableType) {
         NSLog(@"StoreKit onServerVerificationRequired: productId=%@, success=%d", result.productId, result.success);
+        NSLog(@"StoreKit onServerVerificationRequired detail: purchaseToken=%@, orderId=%@, errorCode=%ld, purchaseState=%ld, originalJson.length=%lu, message=%@",
+            result.purchaseToken, result.orderId, (long)result.errorCode, (long)result.purchaseState,
+            (unsigned long)result.originalJson.length, result.message);
         // Forward to pending purchase callback so Unity can run its own VerifyOrderAsync
+        // Pass purchaseToken + consumableType alongside the receipt so Unity can call
+        // completePurchaseProcessing after server verification succeeds.
         if (_pendingPurchaseCallback != NULL) {
             CompletionDelegate callback = _pendingPurchaseCallback;
             _pendingPurchaseCallback = NULL;
             if (result.success) {
-                const char* token = [result.purchaseToken UTF8String];
-                callback(true, token ? token : "");
+                NSDictionary *callbackData = @{
+                    @"receipt": result.originalJson ?: @"",
+                    @"purchaseToken": result.purchaseToken ?: @"",
+                    @"consumableType": @(consumableType)
+                };
+                NSData *jsonData = [NSJSONSerialization dataWithJSONObject:callbackData options:0 error:nil];
+                NSString *jsonString = [[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding];
+                const char* msg = [jsonString UTF8String];
+                callback(true, msg ? msg : "");
             } else {
                 NSString *msg = result.message ?: @"Server verification required";
                 callback(false, [msg UTF8String]);

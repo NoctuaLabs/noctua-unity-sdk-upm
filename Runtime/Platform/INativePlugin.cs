@@ -92,6 +92,18 @@ namespace com.noctuagames.sdk
         /// <param name="productId">The store product identifier.</param>
         /// <param name="callback">Callback with the full <see cref="ProductPurchaseStatus"/> details.</param>
         void GetProductPurchaseStatusDetail(string productId, Action<ProductPurchaseStatus> callback);
+
+        /// <summary>
+        /// Completes purchase processing on the native side after server verification.
+        /// On iOS, this finishes the SKPaymentTransaction via <c>finishTransaction</c>.
+        /// On Android, this consumes or acknowledges the Google Play purchase.
+        /// Must be called after the server returns <c>OrderStatus.completed</c>.
+        /// </summary>
+        /// <param name="purchaseToken">The native purchase token (transaction ID on iOS, purchase token on Android).</param>
+        /// <param name="consumableType">The consumable type of the product.</param>
+        /// <param name="verified">Whether the server verification succeeded.</param>
+        /// <param name="callback">Optional callback with success status.</param>
+        void CompletePurchaseProcessing(string purchaseToken, NoctuaConsumableType consumableType, bool verified, Action<bool> callback);
     }
 
     /// <summary>
@@ -250,7 +262,7 @@ namespace com.noctuagames.sdk
     }
 
     /// <summary>
-    /// Native plugin lifecycle (init, pause/resume).
+    /// Native plugin lifecycle (init, pause/resume, dispose).
     /// </summary>
     public interface INativeLifecycle
     {
@@ -265,6 +277,18 @@ namespace com.noctuagames.sdk
         /// </summary>
         /// <param name="pause">True when the application is pausing, false when resuming.</param>
         void OnApplicationPause(bool pause);
+
+        /// <summary>
+        /// Disposes the native StoreKit/billing service and releases resources.
+        /// Called automatically on application quit.
+        /// </summary>
+        void DisposeStoreKit();
+
+        /// <summary>
+        /// Returns whether the native StoreKit/billing service is initialized and ready for operations.
+        /// </summary>
+        /// <returns>True if the store service is ready, false otherwise.</returns>
+        bool IsStoreKitReady();
     }
 
     /// <summary>

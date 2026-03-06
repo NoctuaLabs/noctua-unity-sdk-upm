@@ -16,5 +16,10 @@ namespace com.noctuagames.sdk
         public string AccessToken;
         public string Status;
         public long? PlayerId;
+        /// <summary>
+        /// Native purchase token used to finalize the transaction after server verification.
+        /// Persisted so retry flows can call CompletePurchaseProcessing.
+        /// </summary>
+        public string PurchaseToken;
     }
 }
