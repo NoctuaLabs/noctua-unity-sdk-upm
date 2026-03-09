@@ -453,10 +453,6 @@ namespace com.noctuagames.sdk
         [JsonProperty("ingame_item_name")]
         public string IngameItemName;
 
-        /// <summary>Current stage level of the user.</summary>
-        [JsonProperty("current_stage_level")]
-        public string CurrentStageLevel;
-
         /// <summary>Additional key-value metadata for the purchase.</summary>
         [JsonProperty("extra")]
         public Dictionary<string, string> Extra;

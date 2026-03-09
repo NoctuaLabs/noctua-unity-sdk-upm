@@ -508,6 +508,17 @@ namespace com.noctuagames.sdk.Events
 
                 if (_uniqueId != null) data.TryAdd("unique_id", _uniqueId);
 
+                // Persist current stage level from game_stage_complete for IAP enrichment
+                if (name == "game_stage_complete" && data.TryGetValue("level", out var levelValue))
+                {
+                    var levelStr = levelValue?.ToString();
+                    if (!string.IsNullOrEmpty(levelStr))
+                    {
+                        PlayerPrefs.SetString("NoctuaCurrentStageLevel", levelStr);
+                        PlayerPrefs.Save();
+                    }
+                }
+
                 // Serialize to JSON and enqueue for per-row INSERT
                 var eventJson = JsonConvert.SerializeObject(
                     data.ToDictionary(kv => kv.Key, kv => (object)kv.Value)

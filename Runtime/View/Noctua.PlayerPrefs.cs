@@ -33,6 +33,7 @@ namespace com.noctuagames.sdk
                 "NoctuaPurchaseHistory",
                 "NoctuaEvents",
                 "NoctuaAccessToken",
+                "NoctuaCurrentStageLevel",
             };
 
             foreach (var key in IntegerKeys)
@@ -112,6 +113,7 @@ namespace com.noctuagames.sdk
                 "NoctuaPurchaseHistory",
                 "NoctuaEvents",
                 "NoctuaAccessToken",
+                "NoctuaCurrentStageLevel",
             };
         }
     }
