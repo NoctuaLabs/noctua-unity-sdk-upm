@@ -441,7 +441,8 @@ namespace com.noctuagames.sdk.Events
                     "session_end",
                     "session_pause",
                     "session_continue",
-                    "session_heartbeat"
+                    "session_heartbeat",
+                    "noctua_user_engagement"
                 };
 
                 if (!string.IsNullOrEmpty(activeFeature) && sessionEvents.Contains(name))

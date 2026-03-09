@@ -457,12 +457,15 @@ namespace Tests.Runtime
 
                 var events = sessionGroup.ToList();
 
-                Assert.AreEqual("session_start", events[0].event_name);
-                Assert.AreEqual("session_pause", events[1].event_name);
-                Assert.AreEqual("session_continue", events[2].event_name);
-                Assert.AreEqual("session_pause", events[3].event_name);
+                // Filter out user_engagement events to verify existing session lifecycle unchanged
+                var sessionEvents = events.Where(e => e.event_name != "noctua_user_engagement").ToList();
 
-                Assert.True(events.All(evt => evt.session_id != null));
+                Assert.AreEqual("session_start", sessionEvents[0].event_name);
+                Assert.AreEqual("session_pause", sessionEvents[1].event_name);
+                Assert.AreEqual("session_continue", sessionEvents[2].event_name);
+                Assert.AreEqual("session_pause", sessionEvents[3].event_name);
+
+                Assert.True(sessionEvents.All(evt => evt.session_id != null));
 
                 sessionTracker.Dispose();
                 eventSender.Dispose();
@@ -500,12 +503,15 @@ namespace Tests.Runtime
 
                 var events = await GetEventsFromServerAsync(5000, 1000);
 
-                Assert.AreEqual("session_start", events[0].event_name);
-                Assert.AreEqual("test_event_1", events[1].event_name);
-                Assert.AreEqual("test_event_2", events[2].event_name);
-                Assert.AreEqual("session_pause", events[3].event_name);
+                // Filter out user_engagement events to verify existing event ordering unchanged
+                var nonEngagementEvents = events.Where(e => e.event_name != "noctua_user_engagement").ToList();
 
-                Assert.True(events.All(evt => evt.session_id != null));
+                Assert.AreEqual("session_start", nonEngagementEvents[0].event_name);
+                Assert.AreEqual("test_event_1", nonEngagementEvents[1].event_name);
+                Assert.AreEqual("test_event_2", nonEngagementEvents[2].event_name);
+                Assert.AreEqual("session_pause", nonEngagementEvents[3].event_name);
+
+                Assert.True(nonEngagementEvents.All(evt => evt.session_id != null));
 
                 sessionTracker.Dispose();
                 eventSender.Dispose();
@@ -581,12 +587,15 @@ namespace Tests.Runtime
 
                 Debug.Log(events.Select(evt => evt.event_name).Aggregate((a, b) => $"{a}\n{b}"));
 
-                Assert.AreEqual("session_start", events[0].event_name);
-                Assert.AreEqual("session_heartbeat", events[1].event_name);
-                Assert.AreEqual("session_heartbeat", events[2].event_name);
+                // Filter out user_engagement events to verify existing heartbeat behavior unchanged
+                var nonEngagementEvents = events.Where(e => e.event_name != "noctua_user_engagement").ToList();
 
-                var sessionId = events[0].session_id;
-                var sessionIds = events.Skip(1).Select(evt => evt.session_id).ToList();
+                Assert.AreEqual("session_start", nonEngagementEvents[0].event_name);
+                Assert.AreEqual("session_heartbeat", nonEngagementEvents[1].event_name);
+                Assert.AreEqual("session_heartbeat", nonEngagementEvents[2].event_name);
+
+                var sessionId = nonEngagementEvents[0].session_id;
+                var sessionIds = nonEngagementEvents.Skip(1).Select(evt => evt.session_id).ToList();
 
                 Assert.True(sessionIds.All(id => id == sessionId));
 
@@ -636,11 +645,11 @@ namespace Tests.Runtime
                 var allEvents = await GetEventsFromServerAsync(5000, 1000);
 
                 // This test produces events across 2 sessions (timeout creates new session).
-                // Filter out stale events from previous tests by finding the two session_ids
-                // that form the expected pattern: session_start + session_pause (session A),
-                // then session_start (session B after timeout).
+                // Filter out user_engagement events first, then find the expected pattern.
+                var nonEngagementEvents = allEvents.Where(e => e.event_name != "noctua_user_engagement").ToList();
+
                 // Find sessions that have a session_start event
-                var sessionStarts = allEvents
+                var sessionStarts = nonEngagementEvents
                     .Where(e => e.event_name == "session_start" && e.session_id != null)
                     .ToList();
 
@@ -650,7 +659,7 @@ namespace Tests.Runtime
                 for (int i = 0; i < sessionStarts.Count - 1; i++)
                 {
                     var sessionA = sessionStarts[i].session_id;
-                    var sessionAEvents = allEvents.Where(e => e.session_id == sessionA).ToList();
+                    var sessionAEvents = nonEngagementEvents.Where(e => e.session_id == sessionA).ToList();
                     if (sessionAEvents.Count >= 2 &&
                         sessionAEvents[0].event_name == "session_start" &&
                         sessionAEvents[1].event_name == "session_pause")
