@@ -511,12 +511,16 @@ namespace com.noctuagames.sdk.Events
                 // Persist current stage level and mode from game_stage_start
                 if (name == "game_stage_start")
                 {
+                    string levelStr = null;
+
                     if (data.TryGetValue("level", out var levelValue))
-                    {
-                        var levelStr = levelValue?.ToString();
-                        if (!string.IsNullOrEmpty(levelStr))
-                            PlayerPrefs.SetString("NoctuaCurrentStageLevel", levelStr);
-                    }
+                        levelStr = levelValue?.ToString();
+
+                    if (string.IsNullOrEmpty(levelStr) && data.TryGetValue("game_level", out var gameLevelValue))
+                        levelStr = gameLevelValue?.ToString();
+
+                    if (!string.IsNullOrEmpty(levelStr))
+                        PlayerPrefs.SetString("NoctuaCurrentStageLevel", levelStr);
 
                     if (data.TryGetValue("stage_mode", out var modeValue))
                     {
