@@ -343,6 +343,7 @@ namespace com.noctuagames.sdk
                     string placement = adInfo.Placement; // The placement this ad's postbacks are tied to
                     string networkPlacement = adInfo.NetworkPlacement; // The placement ID from the network that showed the ad
                     string revenuePrecision = adInfo.RevenuePrecision;
+                    string adFormat = adInfo.AdFormat;
 
                     _log.Debug($"AppLovin Ad Revenue Paid: revenue: {adInfo.Revenue}, " +
                         "currency: USD, " +
@@ -360,7 +361,8 @@ namespace com.noctuagames.sdk
                         { "ad_unit_identifier", adUnitIdentifier },
                         { "placement", placement },
                         { "network_placement", networkPlacement },
-                        { "revenue_precision", revenuePrecision }
+                        { "revenue_precision", revenuePrecision },
+                        { "ad_format", adFormat }
                     });
 
                     _appLovinOnAdRevenuePaid?.Invoke(adInfo);
