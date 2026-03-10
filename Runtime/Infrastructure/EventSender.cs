@@ -508,16 +508,34 @@ namespace com.noctuagames.sdk.Events
 
                 if (_uniqueId != null) data.TryAdd("unique_id", _uniqueId);
 
-                // Persist current stage level from game_stage_complete for IAP enrichment
-                if (name == "game_stage_complete" && data.TryGetValue("level", out var levelValue))
+                // Persist current stage level and mode from game_stage_start
+                if (name == "game_stage_start")
                 {
-                    var levelStr = levelValue?.ToString();
-                    if (!string.IsNullOrEmpty(levelStr))
+                    if (data.TryGetValue("level", out var levelValue))
                     {
-                        PlayerPrefs.SetString("NoctuaCurrentStageLevel", levelStr);
-                        PlayerPrefs.Save();
+                        var levelStr = levelValue?.ToString();
+                        if (!string.IsNullOrEmpty(levelStr))
+                            PlayerPrefs.SetString("NoctuaCurrentStageLevel", levelStr);
                     }
+
+                    if (data.TryGetValue("stage_mode", out var modeValue))
+                    {
+                        var modeStr = modeValue?.ToString();
+                        if (!string.IsNullOrEmpty(modeStr))
+                            PlayerPrefs.SetString("NoctuaCurrentStageMode", modeStr);
+                    }
+
+                    PlayerPrefs.Save();
                 }
+
+                // Enrich all events with current stage data from PlayerPrefs (if non-empty)
+                var currentStageLevel = PlayerPrefs.GetString("NoctuaCurrentStageLevel", "");
+                if (!string.IsNullOrEmpty(currentStageLevel))
+                    data.TryAdd("current_stage_level", currentStageLevel);
+
+                var currentStageMode = PlayerPrefs.GetString("NoctuaCurrentStageMode", "");
+                if (!string.IsNullOrEmpty(currentStageMode))
+                    data.TryAdd("current_stage_mode", currentStageMode);
 
                 // Serialize to JSON and enqueue for per-row INSERT
                 var eventJson = JsonConvert.SerializeObject(

@@ -34,6 +34,7 @@ namespace com.noctuagames.sdk
                 "NoctuaEvents",
                 "NoctuaAccessToken",
                 "NoctuaCurrentStageLevel",
+                "NoctuaCurrentStageMode",
             };
 
             foreach (var key in IntegerKeys)
@@ -114,6 +115,7 @@ namespace com.noctuagames.sdk
                 "NoctuaEvents",
                 "NoctuaAccessToken",
                 "NoctuaCurrentStageLevel",
+                "NoctuaCurrentStageMode",
             };
         }
     }
