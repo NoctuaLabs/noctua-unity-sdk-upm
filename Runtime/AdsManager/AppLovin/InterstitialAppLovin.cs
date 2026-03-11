@@ -112,6 +112,35 @@ namespace com.noctuagames.sdk.AppLovin
             }
         }
 
+        /// <summary>
+        /// Shows a previously loaded interstitial ad with a placement name for analytics segmentation.
+        /// </summary>
+        /// <param name="placement">The placement name for analytics.</param>
+        public void ShowInterstitial(string placement)
+        {
+            if (string.IsNullOrEmpty(_adUnitIDInterstitial))
+            {
+                _log.Info("Ad unit ID Interstitial is empty.");
+                return;
+            }
+
+            TrackAdCustomEventInterstitial("wf_interstitial_started_playing");
+
+            if (MaxSdk.IsInterstitialReady(_adUnitIDInterstitial))
+            {
+                MaxSdk.ShowInterstitial(_adUnitIDInterstitial, placement);
+
+                _log.Debug($"Showing interstitial ad for ad unit id : {_adUnitIDInterstitial} with placement : {placement}");
+            }
+            else
+            {
+                _log.Error("Interstitial ad is not ready to be shown for ad unit id : " + _adUnitIDInterstitial);
+
+                TrackAdCustomEventInterstitial("wf_interstitial_show_not_ready");
+                TrackAdCustomEventInterstitial("wf_interstitial_show_failed_null");
+            }
+        }
+
         private void LoadInterstitialInternal()
         {
             TrackAdCustomEventInterstitial("wf_interstitial_request_start");
@@ -129,7 +158,17 @@ namespace com.noctuagames.sdk.AppLovin
             retryAttempt = 0;
 
             _log.Debug("Interstitial ad loaded for ad unit id : " + adUnitId);
-            
+
+            // Log full waterfall response details
+            if (adInfo?.WaterfallInfo?.NetworkResponses != null)
+            {
+                foreach (var network in adInfo.WaterfallInfo.NetworkResponses)
+                {
+                    _log.Debug($"Waterfall: {network.MediatedNetwork?.Name ?? "unknown"} " +
+                        $"state={network.AdLoadState} latency={network.LatencyMillis}ms");
+                }
+            }
+
             // Track ad loaded event
             TrackAdCustomEventInterstitial("ad_loaded", adUnitId, adInfo);
             TrackAdCustomEventInterstitial("wf_interstitial_adunit_success");

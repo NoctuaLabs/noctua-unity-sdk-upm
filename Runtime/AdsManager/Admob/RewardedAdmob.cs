@@ -39,6 +39,7 @@ namespace com.noctuagames.sdk.Admob
         /// <summary>Raised when rewarded ad revenue is recorded, providing the ad value and response info.</summary>
         public event Action<AdValue, ResponseInfo> AdmobOnAdRevenuePaid;
         private readonly long _timeoutThreshold = 5000; // 5 seconds
+        private int _retryAttempt;
         
         /// <summary>
         /// Sets the ad unit ID for the rewarded ad.
@@ -96,10 +97,22 @@ namespace com.noctuagames.sdk.Admob
                             { "ad_unit_id", _adUnitIDRewarded ?? "unknown" }
                         };
 
+                        var responseInfo = error?.GetResponseInfo();
+                        if (responseInfo != null)
+                        {
+                            _log.Warning($"Response ID: {responseInfo.GetResponseId()}");
+                            _log.Warning($"Mediation adapter: {responseInfo.GetMediationAdapterClassName()}");
+                        }
+
                         TrackAdCustomEventRewarded("wf_rewarded_request_adunit_failed", extraPayload);
                         TrackAdCustomEventRewarded("wf_rewarded_request_finished_failed", extraPayload);
+
+                        RetryLoadRewardedAsync().Forget();
                         return;
                     }
+
+                    // Reset retry attempt on success
+                    _retryAttempt = 0;
 
                     if (ad.GetResponseInfo() != null)
                     {
@@ -118,13 +131,12 @@ namespace com.noctuagames.sdk.Admob
                     _log.Debug("Rewarded ad loaded with response : "
                                 + ad.GetResponseInfo());
 
-                    // // Create and pass the SSV options to the rewarded ad.
-                    // var options = new ServerSideVerificationOptions
-                    //                     .Builder()
-                    //                     .SetCustomData("SAMPLE_CUSTOM_DATA_STRING")
-                    //                     .Build();
+                    // Enable Server-Side Verification (SSV)
+                    var options = new ServerSideVerificationOptions
+                                        .Builder()
+                                        .Build();
 
-                    // ad.SetServerSideVerificationOptions(options);
+                    ad.SetServerSideVerificationOptions(options);
 
                     _rewardedAd = ad;
                     RegisterEventHandlers(ad);
@@ -236,6 +248,17 @@ namespace com.noctuagames.sdk.Admob
 
                 RewardedOnAdFailedDisplayed?.Invoke();
             };
+        }
+
+        private async UniTaskVoid RetryLoadRewardedAsync()
+        {
+            _retryAttempt++;
+            double retryDelay = Math.Pow(2, Math.Min(6, _retryAttempt));
+
+            _log.Debug($"Retrying to load rewarded ad after {retryDelay} seconds (attempt {_retryAttempt})");
+
+            await UniTask.Delay((int)(retryDelay * 1000));
+            LoadRewardedAd();
         }
 
         /// <summary>

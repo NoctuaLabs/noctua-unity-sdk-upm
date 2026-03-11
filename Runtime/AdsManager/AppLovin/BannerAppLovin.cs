@@ -173,6 +173,29 @@ namespace com.noctuagames.sdk.AppLovin
             MaxSdk.StartBannerAutoRefresh(_adUnitIDBanner);
         }
 
+        /// <summary>
+        /// Sets the placement name for the banner ad for analytics segmentation.
+        /// </summary>
+        /// <param name="placement">The placement name.</param>
+        public void SetPlacement(string placement)
+        {
+            MaxSdk.SetBannerPlacement(_adUnitIDBanner, placement);
+
+            _log.Debug($"Banner placement set to '{placement}' for ad unit id : {_adUnitIDBanner}");
+        }
+
+        /// <summary>
+        /// Sets the banner auto-refresh interval in seconds. Clamped to 10-120s per AppLovin requirements.
+        /// </summary>
+        /// <param name="seconds">Refresh interval in seconds (10-120).</param>
+        public void SetRefreshInterval(int seconds)
+        {
+            seconds = Math.Max(10, Math.Min(120, seconds));
+            MaxSdk.SetBannerExtraParameter(_adUnitIDBanner, "ad_refresh_seconds", seconds.ToString());
+
+            _log.Debug($"Banner refresh interval set to {seconds}s for ad unit id : {_adUnitIDBanner}");
+        }
+
         private void RegisterCallbacks()
         {
             if (!_callbacksRegistered)

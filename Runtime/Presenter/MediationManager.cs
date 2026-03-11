@@ -354,6 +354,8 @@ namespace com.noctuagames.sdk
                         $"network placement: {networkPlacement}, " +
                         $"revenue precision: {revenuePrecision}");
 
+                    string dspName = adInfo.DspName ?? "";
+
                     _adRevenueTracker?.TrackAdRevenue("applovin_max_sdk", revenue, "USD", new Dictionary<string, IConvertible>
                     {
                         { "country_code", countryCode },
@@ -362,7 +364,8 @@ namespace com.noctuagames.sdk
                         { "placement", placement },
                         { "network_placement", networkPlacement },
                         { "revenue_precision", revenuePrecision },
-                        { "ad_format", adFormat }
+                        { "ad_format", adFormat },
+                        { "dsp_name", dspName }
                     });
 
                     _appLovinOnAdRevenuePaid?.Invoke(adInfo);
@@ -947,6 +950,99 @@ namespace com.noctuagames.sdk
             }
 
             _adNetwork.StartBannerAutoRefresh();
+        }
+
+        /// <summary>
+        /// Mutes or unmutes ad audio (AppLovin only).
+        /// </summary>
+        /// <param name="muted">True to mute ad audio, false to unmute.</param>
+        public void SetMuted(bool muted)
+        {
+            if(!IsAppLovin()) { return; }
+
+            if(_adNetwork == null)
+            {
+                _log.Warning("Ad Network is not initialized. Cannot set muted.");
+                return;
+            }
+
+            _adNetwork.SetMuted(muted);
+        }
+
+        /// <summary>
+        /// Sets the placement name for the AppLovin banner ad for analytics segmentation.
+        /// </summary>
+        /// <param name="placement">The placement name.</param>
+        public void SetBannerPlacement(string placement)
+        {
+            if(!IsAppLovin()) { return; }
+
+            if(_adNetwork == null)
+            {
+                _log.Warning("Ad Network is not initialized. Cannot set banner placement.");
+                return;
+            }
+
+            _adNetwork.SetBannerPlacement(placement);
+        }
+
+        /// <summary>
+        /// Shows a previously loaded interstitial ad with a placement name (AppLovin only).
+        /// </summary>
+        /// <param name="placement">The placement name for analytics segmentation.</param>
+        public void ShowInterstitial(string placement)
+        {
+            if(!IsAppLovin()) { return; }
+
+            if(_adNetwork == null)
+            {
+                _log.Warning("Ad Network is not initialized. Cannot show interstitial ad.");
+                return;
+            }
+
+            _hasClosedPlaceholder = false;
+
+            ShowAdPlaceholder(AdPlaceholderType.Interstitial);
+
+            _adNetwork.ShowInterstitial(placement);
+        }
+
+        /// <summary>
+        /// Shows a previously loaded rewarded ad with a placement name (AppLovin only).
+        /// </summary>
+        /// <param name="placement">The placement name for analytics segmentation.</param>
+        public void ShowRewardedAd(string placement)
+        {
+            if(!IsAppLovin()) { return; }
+
+            if(_adNetwork == null)
+            {
+                _log.Warning("Ad Network is not initialized. Cannot show rewarded ad.");
+                return;
+            }
+
+            _hasClosedPlaceholder = false;
+
+            ShowAdPlaceholder(AdPlaceholderType.Rewarded);
+
+            _adNetwork.ShowRewardedAd(placement);
+        }
+
+        /// <summary>
+        /// Sets the banner auto-refresh interval in seconds (AppLovin only). Clamped to 10-120s.
+        /// </summary>
+        /// <param name="seconds">Refresh interval in seconds (10-120).</param>
+        public void SetBannerRefreshInterval(int seconds)
+        {
+            if(!IsAppLovin()) { return; }
+
+            if(_adNetwork == null)
+            {
+                _log.Warning("Ad Network is not initialized. Cannot set banner refresh interval.");
+                return;
+            }
+
+            _adNetwork.SetBannerRefreshInterval(seconds);
         }
         #endif
 

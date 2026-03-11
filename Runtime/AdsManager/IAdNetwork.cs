@@ -170,6 +170,36 @@ namespace com.noctuagames.sdk
         /// Resumes automatic banner ad refresh (AppLovin).
         /// </summary>
         void StartBannerAutoRefresh() { throw new NotImplementedException(); }
+
+        /// <summary>
+        /// Mutes or unmutes ad audio (AppLovin).
+        /// </summary>
+        /// <param name="muted">True to mute ad audio, false to unmute.</param>
+        void SetMuted(bool muted) { throw new NotImplementedException(); }
+
+        /// <summary>
+        /// Sets the placement name for the banner ad (AppLovin).
+        /// </summary>
+        /// <param name="placement">The placement name for analytics segmentation.</param>
+        void SetBannerPlacement(string placement) { throw new NotImplementedException(); }
+
+        /// <summary>
+        /// Shows a previously loaded interstitial ad with a placement name (AppLovin).
+        /// </summary>
+        /// <param name="placement">The placement name for analytics segmentation.</param>
+        void ShowInterstitial(string placement) { throw new NotImplementedException(); }
+
+        /// <summary>
+        /// Shows a previously loaded rewarded ad with a placement name (AppLovin).
+        /// </summary>
+        /// <param name="placement">The placement name for analytics segmentation.</param>
+        void ShowRewardedAd(string placement) { throw new NotImplementedException(); }
+
+        /// <summary>
+        /// Sets the banner auto-refresh interval in seconds (AppLovin). Clamped to 10-120s.
+        /// </summary>
+        /// <param name="seconds">Refresh interval in seconds (10-120).</param>
+        void SetBannerRefreshInterval(int seconds) { throw new NotImplementedException(); }
         #endif
 
         /// <summary>

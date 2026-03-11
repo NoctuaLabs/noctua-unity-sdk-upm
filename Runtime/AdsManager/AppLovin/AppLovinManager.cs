@@ -85,6 +85,10 @@ namespace com.noctuagames.sdk
                 };
             }
 
+            #if DEBUG || DEVELOPMENT_BUILD
+            MaxSdk.SetVerboseLogging(true);
+            #endif
+
             MaxSdk.InitializeSdk();
         }
 
@@ -120,6 +124,12 @@ namespace com.noctuagames.sdk
         }
 
         /// <inheritdoc />
+        public void ShowInterstitial(string placement)
+        {
+            _interstitialAppLovin.ShowInterstitial(placement);
+        }
+
+        /// <inheritdoc />
         public void SetRewardedAdUnitID(string adUnitID)
         {
             _rewardedAppLovin.SetRewardedAdUnitID(adUnitID);
@@ -149,6 +159,12 @@ namespace com.noctuagames.sdk
         public void ShowRewardedAd()
         {
            _rewardedAppLovin.ShowRewardedAd();
+        }
+
+        /// <inheritdoc />
+        public void ShowRewardedAd(string placement)
+        {
+           _rewardedAppLovin.ShowRewardedAd(placement);
         }
 
         /// <inheritdoc />
@@ -223,6 +239,24 @@ namespace com.noctuagames.sdk
         public void StartBannerAutoRefresh()
         {
             _bannerAppLovin.StartBannerAutoRefresh();
+        }
+
+        /// <inheritdoc />
+        public void SetMuted(bool muted)
+        {
+            MaxSdk.SetMuted(muted);
+        }
+
+        /// <inheritdoc />
+        public void SetBannerPlacement(string placement)
+        {
+            _bannerAppLovin.SetPlacement(placement);
+        }
+
+        /// <inheritdoc />
+        public void SetBannerRefreshInterval(int seconds)
+        {
+            _bannerAppLovin.SetRefreshInterval(seconds);
         }
 
         /// <inheritdoc />

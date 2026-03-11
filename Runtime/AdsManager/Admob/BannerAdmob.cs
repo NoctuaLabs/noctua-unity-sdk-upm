@@ -146,6 +146,13 @@ namespace com.noctuagames.sdk.Admob
                 _log.Error("Banner view failed to load an ad with error : "
                     + error);
 
+                var responseInfo = error.GetResponseInfo();
+                if (responseInfo != null)
+                {
+                    _log.Warning($"Response ID: {responseInfo.GetResponseId()}");
+                    _log.Warning($"Mediation adapter: {responseInfo.GetMediationAdapterClassName()}");
+                }
+
                 var extraPayload = new Dictionary<string, IConvertible>
                 {
                     { "error_code", error.GetCode() },

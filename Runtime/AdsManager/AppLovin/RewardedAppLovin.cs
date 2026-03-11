@@ -106,7 +106,7 @@ namespace com.noctuagames.sdk.AppLovin
                 _log.Error("Ad unit ID rewarded is empty.");
                 return;
             }
-            
+
             TrackAdCustomEventRewarded("wf_rewarded_started_playing");
 
             if (MaxSdk.IsRewardedAdReady(_adUnitIDRewarded))
@@ -114,6 +114,35 @@ namespace com.noctuagames.sdk.AppLovin
                 MaxSdk.ShowRewardedAd(_adUnitIDRewarded);
 
                 _log.Debug("Showing rewarded ad for ad unit id : " + _adUnitIDRewarded);
+            }
+            else
+            {
+                _log.Warning("Rewarded ad is not ready to be shown for ad unit id : " + _adUnitIDRewarded);
+
+                TrackAdCustomEventRewarded("wf_rewarded_show_not_ready");
+                TrackAdCustomEventRewarded("wf_rewarded_show_failed_null");
+            }
+        }
+
+        /// <summary>
+        /// Shows a previously loaded rewarded ad with a placement name for analytics segmentation.
+        /// </summary>
+        /// <param name="placement">The placement name for analytics.</param>
+        public void ShowRewardedAd(string placement)
+        {
+            if (string.IsNullOrEmpty(_adUnitIDRewarded))
+            {
+                _log.Error("Ad unit ID rewarded is empty.");
+                return;
+            }
+
+            TrackAdCustomEventRewarded("wf_rewarded_started_playing");
+
+            if (MaxSdk.IsRewardedAdReady(_adUnitIDRewarded))
+            {
+                MaxSdk.ShowRewardedAd(_adUnitIDRewarded, placement);
+
+                _log.Debug($"Showing rewarded ad for ad unit id : {_adUnitIDRewarded} with placement : {placement}");
             }
             else
             {
@@ -133,6 +162,16 @@ namespace com.noctuagames.sdk.AppLovin
             retryAttempt = 0;
 
             _log.Debug("Rewarded ad loaded for ad unit id : " + adUnitId);
+
+            // Log full waterfall response details
+            if (adInfo?.WaterfallInfo?.NetworkResponses != null)
+            {
+                foreach (var network in adInfo.WaterfallInfo.NetworkResponses)
+                {
+                    _log.Debug($"Waterfall: {network.MediatedNetwork?.Name ?? "unknown"} " +
+                        $"state={network.AdLoadState} latency={network.LatencyMillis}ms");
+                }
+            }
 
             // Track ad loaded event
             TrackAdCustomEventRewarded("ad_loaded", adUnitId, adInfo);

@@ -35,7 +35,8 @@ namespace com.noctuagames.sdk.Admob
         public event Action<AdValue, ResponseInfo> AdmobOnAdRevenuePaid;
 
         private InterstitialAd _interstitialAd;
-        private readonly long _timeoutThreshold = 5000; // milliseconds,
+        private readonly long _timeoutThreshold = 5000; // milliseconds
+        private int _retryAttempt;
         
         /// <summary>
         /// Sets the ad unit ID for the interstitial ad.
@@ -93,10 +94,22 @@ namespace com.noctuagames.sdk.Admob
                             { "ad_unit_id", _adUnitIDInterstitial ?? "unknown" }
                         };
 
+                        var responseInfo = error?.GetResponseInfo();
+                        if (responseInfo != null)
+                        {
+                            _log.Warning($"Response ID: {responseInfo.GetResponseId()}");
+                            _log.Warning($"Mediation adapter: {responseInfo.GetMediationAdapterClassName()}");
+                        }
+
                         TrackAdCustomEventInterstitial("wf_interstitial_adunit_failed", extraPayload);
                         TrackAdCustomEventInterstitial("wf_interstitial_finished_failed", extraPayload);
+
+                        RetryLoadInterstitialAsync().Forget();
                         return;
                     }
+
+                    // Reset retry attempt on success
+                    _retryAttempt = 0;
 
                     if (ad.GetResponseInfo() != null)
                     {
@@ -216,6 +229,17 @@ namespace com.noctuagames.sdk.Admob
 
                 InterstitialOnAdFailedDisplayed?.Invoke();
             };
+        }
+
+        private async UniTaskVoid RetryLoadInterstitialAsync()
+        {
+            _retryAttempt++;
+            double retryDelay = Math.Pow(2, Math.Min(6, _retryAttempt));
+
+            _log.Debug($"Retrying to load interstitial ad after {retryDelay} seconds (attempt {_retryAttempt})");
+
+            await UniTask.Delay((int)(retryDelay * 1000));
+            LoadInterstitialAd();
         }
 
         private void CleanupAd()
