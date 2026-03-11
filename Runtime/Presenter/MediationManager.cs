@@ -275,7 +275,8 @@ namespace com.noctuagames.sdk
                         { "response_id", responseId },
                         { "mediation_group_name", mediationGroupName },
                         { "mediation_ab_test_name", mediationABTestName },
-                        { "mediation_ab_test_variant", mediationABTestVariant }
+                        { "mediation_ab_test_variant", mediationABTestVariant },
+                        { "ad_user_id", SystemInfo.deviceUniqueIdentifier }
                     });
 
                     _admobOnAdRevenuePaid?.Invoke(adValue, responseInfo);
@@ -362,7 +363,8 @@ namespace com.noctuagames.sdk
                         { "placement", placement },
                         { "network_placement", networkPlacement },
                         { "revenue_precision", revenuePrecision },
-                        { "ad_format", adFormat }
+                        { "ad_format", adFormat },
+                        { "ad_user_id", SystemInfo.deviceUniqueIdentifier }
                     });
 
                     _appLovinOnAdRevenuePaid?.Invoke(adInfo);
