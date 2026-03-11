@@ -814,9 +814,12 @@ namespace com.noctuagames.sdk
                 
                 _log.Info($"updated player role: '{playerData.IngameRoleId}', server: '{playerData.IngameServerId}'");
                 
+                // Send "direct" to server when using editor mock payment
+                var serverPaymentType = paymentType == PaymentType.editor ? PaymentType.direct : paymentType;
+
                 orderRequest = new OrderRequest
                 {
-                    PaymentType = paymentType,
+                    PaymentType = serverPaymentType,
                     ProductId = purchaseRequest.ProductId,
                     Price = purchaseRequest.Price,
                     Currency = purchaseRequest.Currency,
@@ -865,6 +868,7 @@ namespace com.noctuagames.sdk
                 // 1. Noctuastore is prioritized above Playstore
                 // 2. The user have enough noctua gold
                 if (enforcedPaymentType == PaymentType.unknown
+                    && paymentType != PaymentType.editor // Keep editor type for mock payment
                 ) // It means that there is no enforce on payment type
                 {
                     paymentType = orderResponse.PaymentType;
