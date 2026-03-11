@@ -73,6 +73,8 @@ namespace com.noctuagames.sdk
         {
             _log.Info("Initializing AppLovin SDK");
 
+            MaxSdk.SetUserId(SystemInfo.deviceUniqueIdentifier);
+
             if (!_sdkInitCallbackSubscribed)
             {
                 _sdkInitCallbackSubscribed = true;
