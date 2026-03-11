@@ -34,7 +34,9 @@ namespace com.noctuagames.sdk
         /// <summary>Noctua store redeem code payment.</summary>
         noctuastore_redeem,
         /// <summary>Direct payment (server-to-server).</summary>
-        direct
+        direct,
+        /// <summary>Editor-only mock payment for development testing.</summary>
+        editor
     }
 
     /// <summary>

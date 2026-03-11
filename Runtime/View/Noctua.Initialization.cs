@@ -704,8 +704,17 @@ namespace com.noctuagames.sdk
                 enabledPaymentTypes.Remove(PaymentType.appstore);
                 enabledPaymentTypes.Remove(PaymentType.playstore);
 
-                // Disabled for production to reduce event noise
-                // Instance.Value._eventSender.Send("sdk_init_remove_irrelevant_payment_types");
+                // Ensure editor payment type is available for Editor mock IAP
+                if (!enabledPaymentTypes.Contains(PaymentType.editor))
+                {
+                    enabledPaymentTypes.Insert(0, PaymentType.editor);
+                }
+            }
+#else
+            // Remove editor payment type on device builds
+            if (enabledPaymentTypes != null)
+            {
+                enabledPaymentTypes.Remove(PaymentType.editor);
             }
 #endif
 

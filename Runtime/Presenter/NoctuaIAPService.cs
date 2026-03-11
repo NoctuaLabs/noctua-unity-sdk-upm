@@ -55,7 +55,7 @@ namespace com.noctuagames.sdk
             { PaymentType.appstore, PaymentType.noctuastore };
 #else
         private List<PaymentType> _enabledPaymentTypes = new()
-            { PaymentType.noctuastore };
+            { PaymentType.editor, PaymentType.noctuastore };
 #endif
         private readonly IPaymentUI _paymentUI;
         private readonly IAuthProvider _authProvider;
@@ -1109,6 +1109,89 @@ namespace com.noctuagames.sdk
                     paymentResult.ReceiptData = orderResponse.Id.ToString();
                     
                     break;
+                case PaymentType.editor:
+#if UNITY_EDITOR
+                {
+                    // Editor: show mock payment sheet instead of native store
+                    _log.Info("[Editor Mock] Showing editor payment sheet for order " + orderId);
+
+                    var purchased = await _paymentUI.ShowEditorPaymentSheet(
+                        orderRequest.ProductId,
+                        orderRequest.Price.ToString("F2"),
+                        orderRequest.Currency
+                    );
+
+                    if (purchased)
+                    {
+                        _log.Info("[Editor Mock] Purchase confirmed for order " + orderId);
+
+                        // --- VERIFY ORDER (uncomment when server is ready) ---
+                        // verifyOrderRequest.ReceiptData = orderId.ToString();
+                        // verifyOrderRequest.Trigger = VerifyOrderTrigger.payment_flow.ToString();
+                        // var verifyResponse = await RetryAsync(() => VerifyOrderImplAsync(
+                        //     orderRequest,
+                        //     verifyOrderRequest,
+                        //     _accessTokenProvider.AccessToken,
+                        //     _authProvider?.PlayerId,
+                        //     true
+                        // ));
+                        // return new PurchaseResponse
+                        // {
+                        //     OrderId = verifyResponse.Id,
+                        //     Status = verifyResponse.Status,
+                        //     Message = "Purchase " + verifyResponse.Status.ToString(),
+                        // };
+                        // --- END VERIFY ORDER ---
+
+                        // Direct completion (skip verify — server in progress)
+                        RemoveFromRetryPendingPurchasesByOrderID(orderId);
+
+                        AddToPurchaseHistory(new InternalPurchaseItem
+                        {
+                            OrderId = orderId,
+                            OrderRequest = orderRequest,
+                            VerifyOrderRequest = new VerifyOrderRequest { Id = orderId },
+                            AccessToken = _accessTokenProvider?.AccessToken,
+                            Status = "completed",
+                            PlayerId = _authProvider?.PlayerId,
+                        });
+
+                        _eventSender?.Send("purchase_completed", new()
+                        {
+                            { "product_id", orderRequest.ProductId },
+                            { "amount", orderRequest.PriceInUSD },
+                            { "currency", "USD" },
+                            { "order_id", orderRequest.Id },
+                            { "orig_amount", orderRequest.Price },
+                            { "orig_currency", orderRequest.Currency }
+                        });
+
+                        OnPurchaseDone?.Invoke(orderRequest);
+
+                        return new PurchaseResponse
+                        {
+                            OrderId = orderId,
+                            Status = OrderStatus.completed,
+                            Message = "Purchase completed (Editor Mock)"
+                        };
+                    }
+                    else
+                    {
+                        _log.Info("[Editor Mock] Purchase canceled");
+                        RemoveFromRetryPendingPurchasesByOrderID(orderId);
+
+                        return new PurchaseResponse
+                        {
+                            OrderId = orderId,
+                            Status = OrderStatus.canceled,
+                            Message = "Purchase canceled"
+                        };
+                    }
+                }
+#else
+                    throw new NoctuaException(NoctuaErrorCode.Payment,
+                        "Editor payment type is not supported on this platform");
+#endif
                 case PaymentType.unknown:
                     _log.Warning($"Unknown payment type");
                     throw new NoctuaException(NoctuaErrorCode.Payment, "Unknown payment type");

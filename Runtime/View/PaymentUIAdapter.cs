@@ -12,6 +12,9 @@ namespace com.noctuagames.sdk
         private readonly CustomPaymentCompleteDialogPresenter _completeDialog;
         private readonly FailedPaymentDialogPresenter _failedDialog;
         private readonly UIFactory _uiFactory;
+#if UNITY_EDITOR
+        private readonly EditorPaymentSheetPresenter _editorPaymentSheet;
+#endif
 
         /// <summary>Creates the adapter, pre-building payment dialog presenters.</summary>
         internal PaymentUIAdapter(UIFactory uiFactory)
@@ -19,6 +22,9 @@ namespace com.noctuagames.sdk
             _uiFactory = uiFactory;
             _completeDialog = uiFactory.Create<CustomPaymentCompleteDialogPresenter, object>(new object());
             _failedDialog = uiFactory.Create<FailedPaymentDialogPresenter, object>(new object());
+#if UNITY_EDITOR
+            _editorPaymentSheet = uiFactory.Create<EditorPaymentSheetPresenter, object>(new object());
+#endif
         }
 
         /// <inheritdoc />
@@ -48,5 +54,11 @@ namespace com.noctuagames.sdk
         /// <inheritdoc />
         public void ShowGeneralNotification(string message, bool isSuccess = false, uint durationMs = 3000)
             => _uiFactory.ShowGeneralNotification(message, isSuccess, durationMs);
+
+#if UNITY_EDITOR
+        /// <inheritdoc />
+        public UniTask<bool> ShowEditorPaymentSheet(string productId, string price, string currency)
+            => _editorPaymentSheet.Show(productId, price, currency);
+#endif
     }
 }

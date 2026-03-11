@@ -46,5 +46,16 @@ namespace com.noctuagames.sdk
         /// Show a general notification (success or failure).
         /// </summary>
         void ShowGeneralNotification(string message, bool isSuccess = false, uint durationMs = 3000);
+
+#if UNITY_EDITOR
+        /// <summary>
+        /// Shows a mock payment sheet in the Unity Editor that mimics Google Pay / StoreKit.
+        /// </summary>
+        /// <param name="productId">The product identifier to display.</param>
+        /// <param name="price">The formatted price string.</param>
+        /// <param name="currency">The currency code (e.g., "USD").</param>
+        /// <returns>true if the user clicked Pay, false if canceled.</returns>
+        UniTask<bool> ShowEditorPaymentSheet(string productId, string price, string currency);
+#endif
     }
 }
