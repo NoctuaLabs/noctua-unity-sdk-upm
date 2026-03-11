@@ -1,10 +1,17 @@
 .editor-payment-sheet {
     width: 320px;
     height: auto;
-    min-height: 350px;
     padding: 20px;
     flex-direction: column;
     justify-content: flex-start;
+    max-height: 95%;
+}
+
+/* Landscape: wider, shorter, compact spacing */
+.editor-payment-sheet.landscape {
+    width: 420px;
+    padding: 10px 20px;
+    flex-direction: column;
 }
 
 .eps-header {
@@ -15,10 +22,18 @@
     margin-bottom: 10px;
 }
 
+.eps-header.landscape {
+    margin-bottom: 4px;
+}
+
 .eps-title {
     font-size: 16px;
     color: rgb(234, 234, 234);
     -unity-font-style: bold;
+}
+
+.eps-title.landscape {
+    font-size: 14px;
 }
 
 .eps-divider {
@@ -29,11 +44,44 @@
     margin-bottom: 8px;
 }
 
+.eps-divider.landscape {
+    margin-top: 4px;
+    margin-bottom: 4px;
+}
+
+.eps-content {
+    flex-direction: column;
+    width: 100%;
+    flex-shrink: 1;
+}
+
+/* Landscape: content area laid out as two columns */
+.eps-content.landscape {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: flex-start;
+}
+
+.eps-info-column {
+    flex-direction: column;
+    width: 100%;
+}
+
+.eps-info-column.landscape {
+    width: 48%;
+}
+
 .eps-product-section {
     width: 100%;
     margin-top: 4px;
     margin-bottom: 4px;
     padding: 4px 0;
+}
+
+.eps-product-section.landscape {
+    margin-top: 2px;
+    margin-bottom: 2px;
+    padding: 2px 0;
 }
 
 .eps-price-section {
@@ -43,11 +91,23 @@
     padding: 4px 0;
 }
 
+.eps-price-section.landscape {
+    margin-top: 2px;
+    margin-bottom: 2px;
+    padding: 2px 0;
+}
+
 .eps-method-section {
     width: 100%;
     margin-top: 4px;
     margin-bottom: 4px;
     padding: 4px 0;
+}
+
+.eps-method-section.landscape {
+    margin-top: 2px;
+    margin-bottom: 2px;
+    padding: 2px 0;
 }
 
 .eps-section-label {
@@ -61,10 +121,18 @@
     color: rgb(234, 234, 234);
 }
 
+.eps-product-id.landscape {
+    font-size: 12px;
+}
+
 .eps-price {
     font-size: 22px;
     color: rgb(59, 130, 246);
     -unity-font-style: bold;
+}
+
+.eps-price.landscape {
+    font-size: 18px;
 }
 
 .eps-method-label {
@@ -79,6 +147,18 @@
     margin-top: 2px;
 }
 
+.eps-buttons {
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+}
+
+/* Landscape: buttons side by side */
+.eps-buttons.landscape {
+    flex-direction: row;
+    justify-content: center;
+}
+
 .eps-pay-button {
     width: 90%;
     margin-top: 12px;
@@ -87,9 +167,25 @@
     -unity-font-style: bold;
 }
 
+.eps-pay-button.landscape {
+    width: 45%;
+    margin-top: 6px;
+    height: 38px;
+    font-size: 14px;
+    margin-right: 4px;
+}
+
 .eps-cancel-button {
     width: 90%;
     margin-top: 6px;
     margin-bottom: 4px;
     height: 38px;
+}
+
+.eps-cancel-button.landscape {
+    width: 45%;
+    margin-top: 6px;
+    margin-bottom: 4px;
+    height: 38px;
+    margin-left: 4px;
 }

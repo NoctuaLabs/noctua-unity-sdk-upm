@@ -4,40 +4,49 @@
     <ui:VisualElement name="Root" class="root">
         <ui:VisualElement name="EditorPaymentSheet" class="base dialog-box editor-payment-sheet">
             <!-- Header -->
-            <ui:VisualElement class="eps-header">
-                <ui:Label text="Complete your purchase" class="eps-title" />
+            <ui:VisualElement name="EpsHeader" class="eps-header">
+                <ui:Label name="EpsTitle" text="Complete your purchase" class="eps-title" />
                 <ui:Button name="CloseButton" focusable="false" class="exit-button" />
             </ui:VisualElement>
 
             <!-- Divider -->
-            <ui:VisualElement class="eps-divider" />
+            <ui:VisualElement name="EpsDivider1" class="eps-divider" />
 
-            <!-- Product Info -->
-            <ui:VisualElement class="eps-product-section">
-                <ui:Label text="Product" class="eps-section-label" />
-                <ui:Label name="ProductId" text="product.id" class="eps-product-id" />
-            </ui:VisualElement>
+            <!-- Content area (becomes two-column in landscape) -->
+            <ui:VisualElement name="EpsContent" class="eps-content">
+                <!-- Left column: Product + Price -->
+                <ui:VisualElement name="EpsInfoLeft" class="eps-info-column">
+                    <!-- Product Info -->
+                    <ui:VisualElement name="EpsProductSection" class="eps-product-section">
+                        <ui:Label text="Product" class="eps-section-label" />
+                        <ui:Label name="ProductId" text="product.id" class="eps-product-id" />
+                    </ui:VisualElement>
 
-            <!-- Price -->
-            <ui:VisualElement class="eps-price-section">
-                <ui:Label text="Total" class="eps-section-label" />
-                <ui:Label name="Price" text="USD 0.99" class="eps-price" />
+                    <!-- Price -->
+                    <ui:VisualElement name="EpsPriceSection" class="eps-price-section">
+                        <ui:Label text="Total" class="eps-section-label" />
+                        <ui:Label name="Price" text="USD 0.99" class="eps-price" />
+                    </ui:VisualElement>
+                </ui:VisualElement>
+
+                <!-- Right column: Payment method (shown beside in landscape) -->
+                <ui:VisualElement name="EpsInfoRight" class="eps-info-column">
+                    <!-- Payment Method (mock) -->
+                    <ui:VisualElement name="EpsMethodSection" class="eps-method-section">
+                        <ui:Label text="Editor Mock Payment" class="eps-method-label" />
+                        <ui:Label text="No real charge will occur" class="eps-method-note" />
+                    </ui:VisualElement>
+                </ui:VisualElement>
             </ui:VisualElement>
 
             <!-- Divider -->
-            <ui:VisualElement class="eps-divider" />
+            <ui:VisualElement name="EpsDivider2" class="eps-divider" />
 
-            <!-- Payment Method (mock) -->
-            <ui:VisualElement class="eps-method-section">
-                <ui:Label text="Editor Mock Payment" class="eps-method-label" />
-                <ui:Label text="No real charge will occur" class="eps-method-note" />
+            <!-- Buttons -->
+            <ui:VisualElement name="EpsButtons" class="eps-buttons">
+                <ui:Button name="PayButton" text="Pay" class="dialog-button primary-button eps-pay-button" />
+                <ui:Button name="CancelButton" text="Cancel" class="dialog-button secondary-button eps-cancel-button" />
             </ui:VisualElement>
-
-            <!-- Pay Button -->
-            <ui:Button name="PayButton" text="Pay" class="dialog-button primary-button eps-pay-button" />
-
-            <!-- Cancel Button -->
-            <ui:Button name="CancelButton" text="Cancel" class="dialog-button secondary-button eps-cancel-button" />
         </ui:VisualElement>
     </ui:VisualElement>
 </ui:UXML>
