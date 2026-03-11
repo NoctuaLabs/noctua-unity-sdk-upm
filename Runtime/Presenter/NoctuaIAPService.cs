@@ -173,7 +173,9 @@ namespace com.noctuagames.sdk
                 currency = _localeProvider?.GetCurrency() ?? "USD";
             }
 
-            string enabledPaymentTypes = string.Join(",", _enabledPaymentTypes).ToLower();
+            // Filter out 'editor' — it's a local-only mock type, not recognized by the server
+            string enabledPaymentTypes = string.Join(",",
+                _enabledPaymentTypes.Where(pt => pt != PaymentType.editor)).ToLower();
 
             _log.Debug(_config.BaseUrl);
             _log.Debug(_config.ClientId);
