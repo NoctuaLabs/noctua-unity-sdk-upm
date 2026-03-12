@@ -1,6 +1,6 @@
 ﻿<dependencies>
     <androidPackages>
-        <androidPackage spec="com.noctuagames.sdk:noctua-android-sdk:0.27.0"/>
+        <androidPackage spec="com.noctuagames.sdk:noctua-android-sdk:0.27.1"/>
         <androidPackage spec="com.google.guava:guava:31.1-android" />
     </androidPackages>
     <iosPods>
