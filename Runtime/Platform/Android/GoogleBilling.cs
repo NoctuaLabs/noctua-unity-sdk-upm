@@ -167,47 +167,66 @@ public class GoogleBilling
     }
 
     /// <summary>
-    /// Initializes the billing service by registering all native SDK callbacks for purchase, product details,
-    /// query, error, and server verification events.
+    /// Initializes the billing service by registering a typed BillingEventListener proxy
+    /// with the native SDK, avoiding Kotlin Function1 type erasure issues.
     /// </summary>
     public void Init()
     {
         _log.Debug("GoogleBilling.Init via native SDK");
 
-        // onPurchaseCompleted callback
-        var onPurchaseCompleted = new AndroidCallback<AndroidJavaObject>(javaResult =>
+        var listener = new BillingEventListenerProxy(this);
+        _noctua.Call("initializeBilling", listener);
+
+        _log.Debug("GoogleBilling.Init complete");
+    }
+
+    /// <summary>
+    /// JNI proxy for the native SDK's BillingEventListener interface.
+    /// Using a concrete Java interface avoids Kotlin Function1 type erasure which causes
+    /// custom object parameters to appear as java.lang.Object to Unity's JNI bridge.
+    /// </summary>
+    private class BillingEventListenerProxy : AndroidJavaProxy
+    {
+        private readonly GoogleBilling _billing;
+        private readonly ILogger _log = new NoctuaLogger(typeof(BillingEventListenerProxy));
+
+        public BillingEventListenerProxy(GoogleBilling billing)
+            : base("com.noctuagames.sdk.services.BillingEventListener")
+        {
+            _billing = billing;
+        }
+
+        void onPurchaseCompleted(AndroidJavaObject result)
         {
             _log.Debug("onPurchaseCompleted callback received");
-            InvokeOnPurchaseDone(MapNoctuaPurchaseResult(javaResult));
-        });
+            _billing.InvokeOnPurchaseDone(_billing.MapNoctuaPurchaseResult(result));
+        }
 
-        // onPurchaseUpdated callback
-        var onPurchaseUpdated = new AndroidCallback<AndroidJavaObject>(javaResult =>
+        void onPurchaseUpdated(AndroidJavaObject result)
         {
             _log.Debug("onPurchaseUpdated callback received");
-            InvokeOnPurchaseDone(MapNoctuaPurchaseResult(javaResult));
-        });
+            _billing.InvokeOnPurchaseDone(_billing.MapNoctuaPurchaseResult(result));
+        }
 
-        // onProductDetailsLoaded callback
-        var onProductDetailsLoaded = new AndroidCallback<AndroidJavaObject>(javaList =>
+        void onProductDetailsLoaded(AndroidJavaObject products)
         {
             _log.Debug("onProductDetailsLoaded callback received");
-            int size = javaList.Call<int>("size");
+            int size = products.Call<int>("size");
 
-            if (_isPurchaseFlow)
+            if (_billing._isPurchaseFlow)
             {
-                _isPurchaseFlow = false;
+                _billing._isPurchaseFlow = false;
 
                 if (size > 0)
                 {
-                    var javaDetails = javaList.Call<AndroidJavaObject>("get", 0);
+                    var javaDetails = products.Call<AndroidJavaObject>("get", 0);
                     _log.Debug("Continuing purchase flow with launchBillingFlow");
-                    _noctua.Call("launchBillingFlow", _activity, javaDetails);
+                    _billing._noctua.Call("launchBillingFlow", _billing._activity, javaDetails);
                 }
                 else
                 {
                     _log.Error("No product details found for purchase flow");
-                    InvokeOnPurchaseDone(new PurchaseResult
+                    _billing.InvokeOnPurchaseDone(new PurchaseResult
                     {
                         Success = false,
                         Message = "product_not_found",
@@ -217,66 +236,64 @@ public class GoogleBilling
             }
             else
             {
-                // Regular product details query (e.g., for GetActiveCurrency)
                 if (size > 0)
                 {
-                    var javaDetails = javaList.Call<AndroidJavaObject>("get", 0);
-                    InvokeOnProductDetailsResponse(MapNoctuaProductDetails(javaDetails));
+                    var javaDetails = products.Call<AndroidJavaObject>("get", 0);
+                    _billing.InvokeOnProductDetailsResponse(_billing.MapNoctuaProductDetails(javaDetails));
                 }
                 else
                 {
                     _log.Error("No product details found");
-                    InvokeOnProductDetailsResponse(null);
+                    _billing.InvokeOnProductDetailsResponse(null);
                 }
             }
-        });
+        }
 
-        // onQueryPurchasesCompleted callback
-        var onQueryPurchasesCompleted = new AndroidCallback<AndroidJavaObject>(javaList =>
+        void onQueryPurchasesCompleted(AndroidJavaObject purchases)
         {
             _log.Debug("onQueryPurchasesCompleted callback received");
-            int size = javaList.Call<int>("size");
+            int size = purchases.Call<int>("size");
 
             if (size > 0)
             {
                 var results = new PurchaseResult[size];
                 for (int i = 0; i < size; i++)
                 {
-                    using var javaPurchase = javaList.Call<AndroidJavaObject>("get", i);
-                    results[i] = MapNoctuaPurchaseResult(javaPurchase);
+                    using var javaPurchase = purchases.Call<AndroidJavaObject>("get", i);
+                    results[i] = _billing.MapNoctuaPurchaseResult(javaPurchase);
                 }
-                InvokeOnQueryPurchasesDone(results);
+                _billing.InvokeOnQueryPurchasesDone(results);
             }
             else
             {
-                InvokeOnQueryPurchasesDone(null);
+                _billing.InvokeOnQueryPurchasesDone(null);
             }
-        });
+        }
 
-        // onRestorePurchasesCompleted (not used, no-op)
-        var onRestorePurchasesCompleted = new AndroidCallback<AndroidJavaObject>(_ => { });
+        void onRestorePurchasesCompleted(AndroidJavaObject purchases)
+        {
+            _log.Debug("onRestorePurchasesCompleted callback received");
+        }
 
-        // onProductPurchaseStatusResult callback
-        var onProductPurchaseStatusResult = new AndroidCallback<AndroidJavaObject>(javaStatus =>
+        void onProductPurchaseStatusResult(AndroidJavaObject status)
         {
             _log.Debug("onProductPurchaseStatusResult callback received");
 
-            bool isPurchased = javaStatus.Call<bool>("getIsPurchased");
-            string productId = javaStatus.Call<string>("getProductId");
-            string purchaseToken = javaStatus.Call<string>("getPurchaseToken");
-            string orderId = javaStatus.Call<string>("getOrderId");
-            var javaPurchaseState = javaStatus.Call<AndroidJavaObject>("getPurchaseState");
+            bool isPurchased = status.Call<bool>("isPurchased");
+            string productId = status.Call<string>("getProductId");
+            string purchaseToken = status.Call<string>("getPurchaseToken");
+            string orderId = status.Call<string>("getOrderId");
+            var javaPurchaseState = status.Call<AndroidJavaObject>("getPurchaseState");
             int purchaseStateInt = javaPurchaseState.Call<int>("getState");
-            bool isAcknowledged = javaStatus.Call<bool>("getIsAcknowledged");
-            bool isAutoRenewing = javaStatus.Call<bool>("getIsAutoRenewing");
-            long purchaseTime = javaStatus.Call<long>("getPurchaseTime");
-            long expiryTime = javaStatus.Call<long>("getExpiryTime");
-            string originalJson = javaStatus.Call<string>("getOriginalJson");
+            bool isAcknowledged = status.Call<bool>("isAcknowledged");
+            bool isAutoRenewing = status.Call<bool>("isAutoRenewing");
+            long purchaseTime = status.Call<long>("getPurchaseTime");
+            long expiryTime = status.Call<long>("getExpiryTime");
+            string originalJson = status.Call<string>("getOriginalJson");
 
-            // Full status callback (new API)
-            if (_pendingPurchaseStatusCallback != null)
+            if (_billing._pendingPurchaseStatusCallback != null)
             {
-                _pendingPurchaseStatusCallback.Invoke(new ProductPurchaseStatus
+                _billing._pendingPurchaseStatusCallback.Invoke(new ProductPurchaseStatus
                 {
                     ProductId = productId,
                     IsPurchased = isPurchased,
@@ -290,15 +307,14 @@ public class GoogleBilling
                     OriginalJson = originalJson ?? "",
                     TransactionJson = "",
                 });
-                _pendingPurchaseStatusCallback = null;
+                _billing._pendingPurchaseStatusCallback = null;
             }
 
-            // Legacy bool callback (backward compat)
-            if (_pendingGetPurchasedCallback != null)
+            if (_billing._pendingGetPurchasedCallback != null)
             {
                 if (isPurchased)
                 {
-                    _pendingGetPurchasedCallback.Invoke(new PurchaseResult
+                    _billing._pendingGetPurchasedCallback.Invoke(new PurchaseResult
                     {
                         Success = true,
                         ProductId = productId,
@@ -309,27 +325,24 @@ public class GoogleBilling
                 }
                 else
                 {
-                    _pendingGetPurchasedCallback.Invoke(null);
+                    _billing._pendingGetPurchasedCallback.Invoke(null);
                 }
-                _pendingGetPurchasedCallback = null;
+                _billing._pendingGetPurchasedCallback = null;
             }
-        });
+        }
 
-        // onServerVerificationRequired — forward purchase result so Unity can run its own VerifyOrderAsync
-        var onServerVerificationRequired = new AndroidCallback2((javaPurchaseResult, javaConsumableType) =>
+        void onServerVerificationRequired(AndroidJavaObject result, AndroidJavaObject consumableType)
         {
             _log.Debug("onServerVerificationRequired callback received");
-            var result = MapNoctuaPurchaseResult(javaPurchaseResult);
-            InvokeOnPurchaseDone(result);
-        });
+            var purchaseResult = _billing.MapNoctuaPurchaseResult(result);
+            _billing.InvokeOnPurchaseDone(purchaseResult);
+        }
 
-        // onBillingError callback
-        var onBillingError = new AndroidCallback2((javaErrorCode, javaMessage) =>
+        void onBillingError(AndroidJavaObject error, string message)
         {
             _log.Debug("onBillingError callback received");
-            int errorCodeInt = javaErrorCode.Call<int>("getCode");
-            string message = javaMessage.Call<string>("toString");
-            InvokeOnPurchaseDone(new PurchaseResult
+            int errorCodeInt = error.Call<int>("getCode");
+            _billing.InvokeOnPurchaseDone(new PurchaseResult
             {
                 Success = false,
                 ErrorCode = (BillingErrorCode)errorCodeInt,
@@ -337,20 +350,7 @@ public class GoogleBilling
                 Message = message,
                 ReceiptData = "",
             });
-        });
-
-        _noctua.Call("initializeBilling",
-            onPurchaseCompleted,
-            onPurchaseUpdated,
-            onProductDetailsLoaded,
-            onQueryPurchasesCompleted,
-            onRestorePurchasesCompleted,
-            onProductPurchaseStatusResult,
-            onServerVerificationRequired,
-            onBillingError
-        );
-
-        _log.Debug("GoogleBilling.Init complete");
+        }
     }
 
     /// <summary>
