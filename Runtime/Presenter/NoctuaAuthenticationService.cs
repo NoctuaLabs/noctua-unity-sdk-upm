@@ -1083,6 +1083,52 @@ namespace com.noctuagames.sdk
             await request.Send<object>();
         }
 
+        public async UniTask UpdateLeaderboardScoreAsync(string containerKey, int score)
+        {
+            if (string.IsNullOrEmpty(RecentAccount?.Player?.AccessToken))
+            {
+                throw NoctuaException.MissingAccessToken;
+            }
+
+            var request = new HttpRequest(HttpMethod.Post, $"{_baseUrl}/leaderboards/{Uri.EscapeDataString(containerKey)}/scores")
+                .WithHeader("X-CLIENT-ID", _clientId)
+                .WithHeader("X-BUNDLE-ID", _bundleId)
+                .WithHeader("Authorization", "Bearer " + RecentAccount.Player.AccessToken)
+                .WithJsonBody(new UpdateLeaderboardScoreRequest { Score = score });
+
+            await request.Send<object>();
+        }
+
+        public async UniTask<LeaderboardResponse> GetAllTimeLeaderboardAsync(string containerKey)
+        {
+            if (string.IsNullOrEmpty(RecentAccount?.Player?.AccessToken))
+            {
+                throw NoctuaException.MissingAccessToken;
+            }
+
+            var request = new HttpRequest(HttpMethod.Get, $"{_baseUrl}/leaderboards/{Uri.EscapeDataString(containerKey)}/rankings/alltime")
+                .WithHeader("X-CLIENT-ID", _clientId)
+                .WithHeader("X-BUNDLE-ID", _bundleId)
+                .WithHeader("Authorization", "Bearer " + RecentAccount.Player.AccessToken);
+
+            return await request.Send<LeaderboardResponse>();
+        }
+
+        public async UniTask<LeaderboardResponse> GetWeeklyLeaderboardAsync(string containerKey)
+        {
+            if (string.IsNullOrEmpty(RecentAccount?.Player?.AccessToken))
+            {
+                throw NoctuaException.MissingAccessToken;
+            }
+
+            var request = new HttpRequest(HttpMethod.Get, $"{_baseUrl}/leaderboards/{Uri.EscapeDataString(containerKey)}/rankings/weekly")
+                .WithHeader("X-CLIENT-ID", _clientId)
+                .WithHeader("X-BUNDLE-ID", _bundleId)
+                .WithHeader("Authorization", "Bearer " + RecentAccount.Player.AccessToken);
+
+            return await request.Send<LeaderboardResponse>();
+        }
+
         private void SetEventProperties(UserBundle newUser)
         {
             _eventSender?.SetProperties(

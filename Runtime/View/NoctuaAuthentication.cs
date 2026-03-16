@@ -525,6 +525,61 @@ namespace com.noctuagames.sdk
         }
 
         /// <summary>
+        /// Submits a score to the specified leaderboard container.
+        /// If the network is unavailable, the score is stored offline in PlayerPrefs
+        /// and will be synced automatically on the next successful initialization.
+        /// </summary>
+        /// <param name="containerKey">Leaderboard container identifier (e.g. "main-leaderboard").</param>
+        /// <param name="score">The score value to submit.</param>
+        public async UniTask UpdateLeaderboardScore(string containerKey, int score)
+        {
+            EnsureEnabled();
+
+            _log.Debug("calling API");
+
+            try
+            {
+                await _service.UpdateLeaderboardScoreAsync(containerKey, score);
+                PlayerPrefs.DeleteKey("NoctuaLeaderboard");
+                PlayerPrefs.Save();
+            }
+            catch (NoctuaException ex) when (ex.ErrorCode == (int)NoctuaErrorCode.Networking)
+            {
+                _log.Warning("Leaderboard update failed (offline). Storing in PlayerPrefs.");
+                PlayerPrefs.SetString("NoctuaLeaderboard", $"{containerKey}:{score}");
+                PlayerPrefs.Save();
+            }
+        }
+
+        /// <summary>
+        /// Retrieves the all-time leaderboard rankings for the specified container.
+        /// </summary>
+        /// <param name="containerKey">Leaderboard container identifier (e.g. "main-leaderboard").</param>
+        /// <returns>A <see cref="LeaderboardResponse"/> containing rankings and metadata.</returns>
+        public async UniTask<LeaderboardResponse> GetAllTimeLeaderboard(string containerKey)
+        {
+            EnsureEnabled();
+
+            _log.Debug("calling API");
+
+            return await _service.GetAllTimeLeaderboardAsync(containerKey);
+        }
+
+        /// <summary>
+        /// Retrieves the weekly leaderboard rankings for the specified container.
+        /// </summary>
+        /// <param name="containerKey">Leaderboard container identifier (e.g. "main-leaderboard").</param>
+        /// <returns>A <see cref="LeaderboardResponse"/> containing rankings and metadata.</returns>
+        public async UniTask<LeaderboardResponse> GetWeeklyLeaderboard(string containerKey)
+        {
+            EnsureEnabled();
+
+            _log.Debug("calling API");
+
+            return await _service.GetWeeklyLeaderboardAsync(containerKey);
+        }
+
+        /// <summary>
         /// Applies feature flags received from remote configuration to authentication UI.
         /// </summary>
         public void SetFlag(Dictionary<string, bool> featureFlags)

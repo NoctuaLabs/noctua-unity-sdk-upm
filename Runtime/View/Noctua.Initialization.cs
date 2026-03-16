@@ -765,6 +765,9 @@ namespace com.noctuagames.sdk
                 // Disabled for production to reduce event noise
                 // Instance.Value._eventSender.Send("sdk_init_online_success");
 
+                // Sync pending leaderboard score from offline storage
+                SyncPendingLeaderboardScoreAsync().Forget();
+
             }
             else
             {
@@ -842,6 +845,34 @@ namespace com.noctuagames.sdk
             await Instance.Value._auth.AuthenticateAsync();
 
             log.Debug("Authentication succeeded from offline.");
+        }
+
+        private static async UniTask SyncPendingLeaderboardScoreAsync()
+        {
+            var log = Instance.Value._log;
+            var pending = PlayerPrefs.GetString("NoctuaLeaderboard", "");
+            if (string.IsNullOrEmpty(pending)) return;
+
+            var separatorIndex = pending.IndexOf(':');
+            if (separatorIndex < 0 || !int.TryParse(pending.Substring(separatorIndex + 1), out var score))
+            {
+                log.Warning($"Invalid NoctuaLeaderboard PlayerPrefs value: {pending}");
+                PlayerPrefs.DeleteKey("NoctuaLeaderboard");
+                PlayerPrefs.Save();
+                return;
+            }
+
+            var containerKey = pending.Substring(0, separatorIndex);
+
+            try
+            {
+                await Instance.Value._auth.UpdateLeaderboardScore(containerKey, score);
+                log.Info("Pending leaderboard score synced successfully.");
+            }
+            catch (Exception e)
+            {
+                log.Warning($"Failed to sync pending leaderboard score: {e.Message}");
+            }
         }
 
         /// <summary>
