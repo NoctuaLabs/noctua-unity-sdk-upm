@@ -19,5 +19,12 @@ namespace com.noctuagames.sdk
         /// <param name="extraPayload">Optional additional key-value pairs for the event.</param>
         void TrackAdRevenue(string source, double revenue, string currency,
             Dictionary<string, IConvertible> extraPayload = null);
+
+        /// <summary>
+        /// Tracks a custom analytics event (e.g. Taichi tROAS threshold events).
+        /// </summary>
+        /// <param name="name">The event name (e.g. "Total_Ads_Revenue_001", "TenAdsShown").</param>
+        /// <param name="extraPayload">Optional additional key-value pairs for the event.</param>
+        void TrackCustomEvent(string name, Dictionary<string, IConvertible> extraPayload = null);
     }
 }

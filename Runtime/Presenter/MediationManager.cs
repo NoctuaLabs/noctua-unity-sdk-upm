@@ -95,6 +95,12 @@ namespace com.noctuagames.sdk
         private bool _adNetworkEventsSubscribed; // Guard against duplicate event subscriptions on re-init
         private bool _preloadManagerEventsSubscribed; // Guard against duplicate preload event subscriptions
 
+        // Taichi tROAS threshold tracking
+        private const string TroasCacheKey = "TroasCache";
+        private const string AdCountKey = "AdCount";
+        private const float TroasThreshold = 0.01f;
+        private const int AdCountThreshold = 10;
+
         internal IAA IAAResponse { get; set; }
 
         internal void SetAdRevenueTracker(IAdRevenueTracker tracker) => _adRevenueTracker = tracker;
@@ -280,6 +286,8 @@ namespace com.noctuagames.sdk
                     });
 
                     _admobOnAdRevenuePaid?.Invoke(adValue, responseInfo);
+
+                    ProcessTaichiThresholds(revenue);
                 };
             }
 #endif
@@ -371,6 +379,8 @@ namespace com.noctuagames.sdk
                     });
 
                     _appLovinOnAdRevenuePaid?.Invoke(adInfo);
+
+                    ProcessTaichiThresholds(revenue);
                 };
             }
 #endif
@@ -1190,6 +1200,8 @@ namespace com.noctuagames.sdk
                 });
 
                 _admobOnAdRevenuePaid?.Invoke(adValue, responseInfo);
+
+                ProcessTaichiThresholds(revenue);
             }
             catch (Exception ex)
             {
@@ -1197,5 +1209,52 @@ namespace com.noctuagames.sdk
             }
         }
 #endif
+
+        /// <summary>
+        /// Taichi tROAS: accumulates ad revenue and impression count in PlayerPrefs,
+        /// fires custom events when thresholds are crossed, then resets the counters.
+        /// </summary>
+        private void ProcessTaichiThresholds(double impressionRevenue)
+        {
+            float previousTroasCache = PlayerPrefs.GetFloat(TroasCacheKey, 0f);
+            int previousAdCount = PlayerPrefs.GetInt(AdCountKey, 0);
+
+            float currentTroasCache = previousTroasCache + (float)impressionRevenue;
+            int currentAdCount = previousAdCount + 1;
+
+            // Step 1: Revenue threshold → fire Total_Ads_Revenue_001
+            if (currentTroasCache >= TroasThreshold)
+            {
+                _log.Info($"Taichi revenue threshold crossed: {currentTroasCache:F4} >= {TroasThreshold}");
+                _adRevenueTracker?.TrackCustomEvent("Total_Ads_Revenue_001", new Dictionary<string, IConvertible>
+                {
+                    { "value", (double)currentTroasCache },
+                    { "currency", "USD" }
+                });
+                PlayerPrefs.SetFloat(TroasCacheKey, 0f);
+            }
+            else
+            {
+                PlayerPrefs.SetFloat(TroasCacheKey, currentTroasCache);
+            }
+
+            // Step 2: Ad count threshold → fire TenAdsShown
+            if (currentAdCount >= AdCountThreshold)
+            {
+                _log.Info($"Taichi ad count threshold crossed: {currentAdCount} >= {AdCountThreshold}");
+                _adRevenueTracker?.TrackCustomEvent("TenAdsShown", new Dictionary<string, IConvertible>
+                {
+                    { "value", (double)currentTroasCache },
+                    { "currency", "USD" }
+                });
+                PlayerPrefs.SetInt(AdCountKey, 0);
+            }
+            else
+            {
+                PlayerPrefs.SetInt(AdCountKey, currentAdCount);
+            }
+
+            PlayerPrefs.Save();
+        }
     }
 }
