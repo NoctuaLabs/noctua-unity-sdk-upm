@@ -131,13 +131,6 @@ namespace com.noctuagames.sdk.Admob
                     _log.Debug("Rewarded Interstitial ad loaded with response : "
                                 + ad.GetResponseInfo());
 
-                    // Enable Server-Side Verification (SSV)
-                    var options = new ServerSideVerificationOptions
-                                        .Builder()
-                                        .Build();
-
-                    ad.SetServerSideVerificationOptions(options);
-
                     _rewardedAd = ad;
                     RegisterEventHandlers(ad);
                 });
