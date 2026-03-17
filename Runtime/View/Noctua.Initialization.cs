@@ -272,6 +272,8 @@ namespace com.noctuagames.sdk
 
             _platform = new NoctuaPlatform(_config.Noctua, accessTokenProvider, _uiFactory, _eventSender);
 
+            _app = new NoctuaAppManager(_nativePlugin);
+
             _log.Info("Noctua instance created");
         }
 

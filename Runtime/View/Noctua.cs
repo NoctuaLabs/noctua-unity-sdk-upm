@@ -39,6 +39,9 @@ namespace com.noctuagames.sdk
         /// <summary>Access mediation manager (IAA).</summary>
         public static MediationManager IAA => Instance.Value._iaa;
 
+        /// <summary>Access in-app review and update manager.</summary>
+        public static NoctuaAppManager App => Instance.Value._app;
+
         /// <summary>Access loaded global configuration.</summary>
         public static GlobalConfig Config => Instance.Value._config;
 
@@ -52,6 +55,7 @@ namespace com.noctuagames.sdk
         private readonly NoctuaPlatform _platform;
         private readonly UIFactory _uiFactory;
         private readonly MediationManager _iaa;
+        private readonly NoctuaAppManager _app;
         private GlobalConfig _config;
 
         private readonly INativePlugin _nativePlugin;

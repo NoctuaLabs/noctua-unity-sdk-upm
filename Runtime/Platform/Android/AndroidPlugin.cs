@@ -603,6 +603,85 @@ namespace com.noctuagames.sdk
                 _log.Warning($"[Noctua] Failed to get event count: {e.Message}");
             }
         }
+
+        // ------------------------------------
+        // INativeAppManagement
+        // ------------------------------------
+
+        public void RequestInAppReview(Action<bool> callback)
+        {
+            try
+            {
+                using var unityPlayer = new AndroidJavaClass("com.unity3d.player.UnityPlayer");
+                var activity = unityPlayer.GetStatic<AndroidJavaObject>("currentActivity");
+                using var noctua = new AndroidJavaClass("com.noctuagames.sdk.Noctua").GetStatic<AndroidJavaObject>("INSTANCE");
+                noctua.Call("requestInAppReview", activity, new AndroidCallback<bool>(callback));
+            }
+            catch (Exception e)
+            {
+                _log.Warning($"[Noctua] Failed to request in-app review: {e.Message}");
+                callback?.Invoke(false);
+            }
+        }
+
+        public void CheckForUpdate(Action<string> callback)
+        {
+            try
+            {
+                using var noctua = new AndroidJavaClass("com.noctuagames.sdk.Noctua").GetStatic<AndroidJavaObject>("INSTANCE");
+                noctua.Call("checkForUpdate", new AndroidCallback<string>(callback));
+            }
+            catch (Exception e)
+            {
+                _log.Warning($"[Noctua] Failed to check for update: {e.Message}");
+                callback?.Invoke("{}");
+            }
+        }
+
+        public void StartImmediateUpdate(Action<int> callback)
+        {
+            try
+            {
+                using var unityPlayer = new AndroidJavaClass("com.unity3d.player.UnityPlayer");
+                var activity = unityPlayer.GetStatic<AndroidJavaObject>("currentActivity");
+                using var noctua = new AndroidJavaClass("com.noctuagames.sdk.Noctua").GetStatic<AndroidJavaObject>("INSTANCE");
+                noctua.Call("startImmediateUpdate", activity, new AndroidCallback<int>(callback));
+            }
+            catch (Exception e)
+            {
+                _log.Warning($"[Noctua] Failed to start immediate update: {e.Message}");
+                callback?.Invoke(2); // Failed
+            }
+        }
+
+        public void StartFlexibleUpdate(Action<float> onProgress, Action<int> onResult)
+        {
+            try
+            {
+                using var unityPlayer = new AndroidJavaClass("com.unity3d.player.UnityPlayer");
+                var activity = unityPlayer.GetStatic<AndroidJavaObject>("currentActivity");
+                using var noctua = new AndroidJavaClass("com.noctuagames.sdk.Noctua").GetStatic<AndroidJavaObject>("INSTANCE");
+                noctua.Call("startFlexibleUpdate", activity, new AndroidCallback<float>(onProgress), new AndroidCallback<int>(onResult));
+            }
+            catch (Exception e)
+            {
+                _log.Warning($"[Noctua] Failed to start flexible update: {e.Message}");
+                onResult?.Invoke(2); // Failed
+            }
+        }
+
+        public void CompleteUpdate()
+        {
+            try
+            {
+                using var noctua = new AndroidJavaClass("com.noctuagames.sdk.Noctua").GetStatic<AndroidJavaObject>("INSTANCE");
+                noctua.Call("completeUpdate");
+            }
+            catch (Exception e)
+            {
+                _log.Warning($"[Noctua] Failed to complete update: {e.Message}");
+            }
+        }
     }
 }
 
