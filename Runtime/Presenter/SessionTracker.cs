@@ -46,6 +46,7 @@ namespace com.noctuagames.sdk.Events
         // Engagement time tracking (Firebase-like user_engagement)
         private readonly Stopwatch _foregroundStopwatch = new Stopwatch();
         private long _accumulatedEngagementMs;
+        private long _cumulativeSessionEngagementMs;
 
         /// <summary>
         /// Initializes a new session tracker and starts the heartbeat loop.
@@ -66,10 +67,10 @@ namespace com.noctuagames.sdk.Events
         }
         
         /// <summary>
-        /// Harvests accumulated foreground time and sends a user_engagement event with engagement_time_msec.
-        /// Resets the accumulator after sending. Skips if no foreground time was accumulated.
+        /// Harvests accumulated foreground time and sends a user_engagement event with engagement_time_msec and lifecycle.
+        /// Resets the accumulator after sending. Skips if no foreground time was accumulated (except for lifecycle=start).
         /// </summary>
-        private void SendUserEngagementEvent()
+        private void SendUserEngagementEvent(string lifecycle)
         {
             var currentMs = _foregroundStopwatch.ElapsedMilliseconds;
             _foregroundStopwatch.Reset();
@@ -82,12 +83,29 @@ namespace com.noctuagames.sdk.Events
             var totalMs = _accumulatedEngagementMs + currentMs;
             _accumulatedEngagementMs = 0;
 
-            if (totalMs <= 0) return;
+            if (totalMs <= 0 && lifecycle != "start") return;
 
-            _log.Info($"[Session Tracker] Sending noctua_user_engagement: engagement_time_msec={totalMs}");
+            _cumulativeSessionEngagementMs += totalMs;
+
+            _log.Info($"[Session Tracker] Sending noctua_user_engagement: engagement_time_msec={totalMs}, lifecycle={lifecycle}");
             _eventSender.Send("noctua_user_engagement", new Dictionary<string, IConvertible>
             {
-                { "engagement_time_msec", totalMs }
+                { "engagement_time_msec", totalMs },
+                { "lifecycle", lifecycle }
+            });
+        }
+
+        /// <summary>
+        /// Sends a cumulative per-session engagement event. Skips if no foreground time was accumulated.
+        /// </summary>
+        private void SendPerSessionEngagementEvent()
+        {
+            if (_cumulativeSessionEngagementMs <= 0) return;
+
+            _log.Info($"[Session Tracker] Sending noctua_user_engagement_per_session: engagement_time_msec={_cumulativeSessionEngagementMs}");
+            _eventSender.Send("noctua_user_engagement_per_session", new Dictionary<string, IConvertible>
+            {
+                { "engagement_time_msec", _cumulativeSessionEngagementMs }
             });
         }
 
@@ -108,7 +126,7 @@ namespace com.noctuagames.sdk.Events
             if (pauseStatus)
             {
                 _foregroundStopwatch.Stop();
-                SendUserEngagementEvent();
+                SendUserEngagementEvent("pause");
 
                 _eventSender.Send("session_pause");
                 _log.Info($"[Session Tracker] Application paused, let's flush events");
@@ -120,14 +138,14 @@ namespace com.noctuagames.sdk.Events
             
             if (_sessionId != null && DateTime.UtcNow >= _nextSessionTimeout)
             {
-                // Sending session_end here seems makes sense, but the last event is already session_pause
-                // It also means we have to send two more events: session_continue and session_end with exact same
-                // timestamp, which is weird and waste of resources
+                // Send per-session event WHILE old session_id is still active
+                SendPerSessionEngagementEvent();
 
                 _accumulatedEngagementMs = 0;
+                _cumulativeSessionEngagementMs = 0;
                 _foregroundStopwatch.Reset();
-
                 _sessionId = null;
+                _eventSender.SetProperties(sessionId: null);
             }
 
             if (_sessionId != null)
@@ -140,8 +158,10 @@ namespace com.noctuagames.sdk.Events
             {
             	_log.Info($"[Session Tracker] Application unpaused, start a new session");
                 _sessionId = Guid.NewGuid().ToString();
-                ExperimentManager.SetSessionId(_sessionId);
+                _cumulativeSessionEngagementMs = 0;
+                _eventSender.SetProperties(sessionId: _sessionId);
                 _eventSender.Send("session_start");
+                SendUserEngagementEvent("start");
                 _foregroundStopwatch.Start();
             }
         }
@@ -161,7 +181,8 @@ namespace com.noctuagames.sdk.Events
 
             // Send final engagement time before session_end
             _foregroundStopwatch.Stop();
-            SendUserEngagementEvent();
+            SendUserEngagementEvent("end");
+            SendPerSessionEngagementEvent();
 
             // Send session_end so it gets persisted to local storage.
             // Even if the HTTP flush below is skipped, the event won't be lost —
@@ -201,7 +222,7 @@ namespace com.noctuagames.sdk.Events
                     continue;
                 }
 
-                SendUserEngagementEvent();
+                SendUserEngagementEvent("foreground");
                 _eventSender.Send("session_heartbeat");
                 _nextHeartbeat = DateTime.UtcNow.AddMilliseconds(_config.HeartbeatPeriodMs);
             }
