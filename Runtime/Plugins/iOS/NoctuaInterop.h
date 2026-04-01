@@ -61,4 +61,7 @@ void noctuaDeleteEventsByIds(const char* idsJson, DeleteEventsByIdsCallbackDeleg
 typedef void (*GetEventCountCallbackDelegate)(int count);
 void noctuaGetEventCount(GetEventCountCallbackDelegate callback);
 
+// In-App Review
+void noctuaRequestInAppReview(void);
+
 }

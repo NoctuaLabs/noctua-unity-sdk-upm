@@ -408,5 +408,20 @@ namespace com.noctuagames.sdk
         {
             callback?.Invoke(_eventStore.Count);
         }
+
+        // ------------------------------------
+        // INativeAppManagement
+        // ------------------------------------
+
+        public void RequestInAppReview(Action<bool> callback)
+        {
+            _log.Debug("In-App Review not available in Editor");
+            callback?.Invoke(false);
+        }
+
+        public void CheckForUpdate(Action<string> callback) => callback?.Invoke("{}");
+        public void StartImmediateUpdate(Action<int> callback) => callback?.Invoke(3); // NotAvailable
+        public void StartFlexibleUpdate(Action<float> onProgress, Action<int> onResult) => onResult?.Invoke(3);
+        public void CompleteUpdate() { }
     }
 }

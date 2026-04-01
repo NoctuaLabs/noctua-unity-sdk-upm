@@ -130,6 +130,10 @@ namespace com.noctuagames.sdk
         [DllImport("__Internal")]
         private static extern void noctuaGetEventCount(GetEventCountCallbackDelegate callback);
 
+        // In-App Review
+        [DllImport("__Internal")]
+        private static extern void noctuaRequestInAppReview();
+
         // Store the callback to be used in the static methods
         private static Action<bool, string> storedCompletion;
         private static Action<bool> storedHasPurchasedCompletion;
@@ -845,6 +849,31 @@ namespace com.noctuagames.sdk
         {
             return noctuaIsStoreKitReady();
         }
+
+        // ------------------------------------
+        // INativeAppManagement
+        // ------------------------------------
+
+        public void RequestInAppReview(Action<bool> callback)
+        {
+            try
+            {
+                noctuaRequestInAppReview();
+                // Fire-and-forget — iOS doesn't report whether the dialog was shown
+                callback?.Invoke(true);
+            }
+            catch (Exception e)
+            {
+                _log.Warning($"[Noctua] Failed to request in-app review: {e.Message}");
+                callback?.Invoke(false);
+            }
+        }
+
+        // In-App Updates not supported on iOS
+        public void CheckForUpdate(Action<string> callback) => callback?.Invoke("{}");
+        public void StartImmediateUpdate(Action<int> callback) => callback?.Invoke(3); // NotAvailable
+        public void StartFlexibleUpdate(Action<float> onProgress, Action<int> onResult) => onResult?.Invoke(3);
+        public void CompleteUpdate() { }
     }
 #endif
 }

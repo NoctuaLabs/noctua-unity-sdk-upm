@@ -292,11 +292,50 @@ namespace com.noctuagames.sdk
     }
 
     /// <summary>
+    /// Bridges in-app review and in-app update operations to native platform APIs
+    /// (Google Play Core on Android, StoreKit on iOS).
+    /// </summary>
+    public interface INativeAppManagement
+    {
+        /// <summary>
+        /// Requests the native in-app review dialog.
+        /// The OS decides whether to actually show the prompt (rate-limited).
+        /// </summary>
+        /// <param name="callback">Callback with true if the flow completed, false on failure.</param>
+        void RequestInAppReview(Action<bool> callback);
+
+        /// <summary>
+        /// Checks if an app update is available (Android only).
+        /// </summary>
+        /// <param name="callback">Callback with a JSON string containing update availability info.</param>
+        void CheckForUpdate(Action<string> callback);
+
+        /// <summary>
+        /// Starts an immediate (blocking) app update flow (Android only).
+        /// </summary>
+        /// <param name="callback">Callback with result code (0=Success, 1=Cancelled, 2=Failed, 3=NotAvailable).</param>
+        void StartImmediateUpdate(Action<int> callback);
+
+        /// <summary>
+        /// Starts a flexible (background download) app update (Android only).
+        /// </summary>
+        /// <param name="onProgress">Callback with download progress (0.0 to 1.0).</param>
+        /// <param name="onResult">Callback with result code when download completes or fails.</param>
+        void StartFlexibleUpdate(Action<float> onProgress, Action<int> onResult);
+
+        /// <summary>
+        /// Completes a previously downloaded flexible update by installing it.
+        /// The app will restart after this call.
+        /// </summary>
+        void CompleteUpdate();
+    }
+
+    /// <summary>
     /// Aggregate native plugin interface — inherits all domain-specific sub-interfaces.
     /// Platform implementations (AndroidPlugin, IosPlugin, DefaultNativePlugin) implement this.
     /// </summary>
     public interface INativePlugin : INativeTracker, INativeIAP, INativeAccountStore,
-        INativeDatePicker, INativeFirebase, INativeEventStorage, INativeLifecycle
+        INativeDatePicker, INativeFirebase, INativeEventStorage, INativeLifecycle, INativeAppManagement
     {
     }
 }

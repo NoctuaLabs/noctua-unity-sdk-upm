@@ -650,3 +650,7 @@ void noctuaGetEventCount(GetEventCountCallbackDelegate callback) {
         callback((int)count);
     }];
 }
+
+void noctuaRequestInAppReview(void) {
+    [Noctua requestInAppReview];
+}
