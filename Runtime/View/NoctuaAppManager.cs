@@ -1,4 +1,5 @@
 using System;
+using System.Threading;
 using Cysharp.Threading.Tasks;
 using Newtonsoft.Json;
 
@@ -8,10 +9,12 @@ namespace com.noctuagames.sdk
     {
         private readonly ILogger _log = new NoctuaLogger(typeof(NoctuaAppManager));
         private readonly INativePlugin _nativePlugin;
+        private readonly SynchronizationContext _mainThread;
 
         internal NoctuaAppManager(INativePlugin nativePlugin)
         {
             _nativePlugin = nativePlugin;
+            _mainThread = SynchronizationContext.Current;
         }
 
         /// <summary>
@@ -24,7 +27,7 @@ namespace com.noctuagames.sdk
 
             _nativePlugin.RequestInAppReview(success =>
             {
-                tcs.TrySetResult();
+                _mainThread.Post(_ => tcs.TrySetResult(), null);
             });
 
             return tcs.Task;
@@ -43,12 +46,12 @@ namespace com.noctuagames.sdk
                 try
                 {
                     var info = JsonConvert.DeserializeObject<AppUpdateInfo>(json) ?? new AppUpdateInfo();
-                    tcs.TrySetResult(info);
+                    _mainThread.Post(_ => tcs.TrySetResult(info), null);
                 }
                 catch (Exception e)
                 {
                     _log.Warning("Failed to parse update info: " + e.Message);
-                    tcs.TrySetResult(new AppUpdateInfo());
+                    _mainThread.Post(_ => tcs.TrySetResult(new AppUpdateInfo()), null);
                 }
             });
 
@@ -65,7 +68,7 @@ namespace com.noctuagames.sdk
 
             _nativePlugin.StartImmediateUpdate(resultCode =>
             {
-                tcs.TrySetResult((AppUpdateResult)resultCode);
+                _mainThread.Post(_ => tcs.TrySetResult((AppUpdateResult)resultCode), null);
             });
 
             return tcs.Task;
@@ -81,8 +84,8 @@ namespace com.noctuagames.sdk
             var tcs = new UniTaskCompletionSource<AppUpdateResult>();
 
             _nativePlugin.StartFlexibleUpdate(
-                progress => onProgress?.Invoke(progress),
-                resultCode => tcs.TrySetResult((AppUpdateResult)resultCode)
+                progress => _mainThread.Post(_ => onProgress?.Invoke(progress), null),
+                resultCode => _mainThread.Post(_ => tcs.TrySetResult((AppUpdateResult)resultCode), null)
             );
 
             return tcs.Task;
