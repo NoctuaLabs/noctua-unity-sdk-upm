@@ -36,11 +36,20 @@ public static class ExperimentManager
         _experimentFlags.Clear();
     }
 
+    /// <summary>
+    /// Stores the experiment session ID used for A/B testing and session tagging.
+    /// This is separate from the event-level session_id managed by EventSender.
+    /// </summary>
+    /// <param name="sessionId">The experiment session identifier.</param>
     public static void SetSessionId(string sessionId)
     {
         SetFlag(KEY_CURRENT_SESSION_ID, sessionId);
     }
 
+    /// <summary>
+    /// Gets the current experiment session ID used for A/B testing and session tagging.
+    /// </summary>
+    /// <returns>The experiment session ID, or empty string if not set.</returns>
     public static string GetSessionId()
     {
         return GetFlag<string>(KEY_CURRENT_SESSION_ID, string.Empty);
