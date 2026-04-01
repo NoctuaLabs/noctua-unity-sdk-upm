@@ -4,6 +4,8 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
+using System.Security.Cryptography;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Cysharp.Threading.Tasks;
@@ -108,6 +110,9 @@ namespace com.noctuagames.sdk.Events
         /// <summary>The UTC timestamp of the most recently enqueued event.</summary>
         public DateTime LastEventTime { get; private set; }
 
+        /// <inheritdoc />
+        public string PseudoUserId => _pseudoUserId;
+
         private readonly ILogger _log = new NoctuaLogger(typeof(EventSender));
         private readonly EventSenderConfig _config;
         private readonly NoctuaLocale _locale;
@@ -117,6 +122,7 @@ namespace com.noctuagames.sdk.Events
         private readonly string _sdkVersion;
         private readonly string _uniqueId;
         private readonly string _deviceId;
+        private readonly string _pseudoUserId;
 
         private bool _disposed;
 
@@ -300,6 +306,7 @@ namespace com.noctuagames.sdk.Events
             _cancelSendSource = new CancellationTokenSource();
 
             _deviceId = SystemInfo.deviceUniqueIdentifier;
+            _pseudoUserId = GeneratePseudoUserId(_deviceId, _config.BundleId);
             _sdkVersion = Assembly.GetExecutingAssembly().GetName().Version.ToString();
 
 #if UNITY_ANDROID && !UNITY_EDITOR
@@ -442,7 +449,8 @@ namespace com.noctuagames.sdk.Events
                     "session_pause",
                     "session_continue",
                     "session_heartbeat",
-                    "noctua_user_engagement"
+                    "noctua_user_engagement",
+                    "noctua_user_engagement_per_session"
                 };
 
                 if (!string.IsNullOrEmpty(activeFeature) && sessionEvents.Contains(name))
@@ -500,13 +508,13 @@ namespace com.noctuagames.sdk.Events
                 if (_gameId != null) data.TryAdd("game_id", _gameId);
                 if (_gamePlatformId != null) data.TryAdd("game_platform_id", _gamePlatformId);
 
-                var currentSessionId = ExperimentManager.GetSessionId();
-                if (!string.IsNullOrEmpty(currentSessionId))
+                if (!string.IsNullOrEmpty(_sessionId))
                 {
-                    data.TryAdd("session_id", currentSessionId);
+                    data.TryAdd("session_id", _sessionId);
                 }
 
                 if (_uniqueId != null) data.TryAdd("unique_id", _uniqueId);
+                data.TryAdd("pseudo_user_id", _pseudoUserId);
 
                 // Persist current stage level and mode from game_stage_start
                 if (name == "game_stage_start")
@@ -621,6 +629,13 @@ namespace com.noctuagames.sdk.Events
             return null;
         }
 #endif
+
+        private static string GeneratePseudoUserId(string deviceId, string bundleId)
+        {
+            using var sha256 = SHA256.Create();
+            var bytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(deviceId + bundleId));
+            return BitConverter.ToString(bytes).Replace("-", "").ToLowerInvariant().Substring(0, 32);
+        }
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
         private static void RegisterQuitHandler()
