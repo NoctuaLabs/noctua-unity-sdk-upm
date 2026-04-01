@@ -42,6 +42,8 @@ namespace Tests.Runtime
             FlushCount++;
         }
 
+        public string PseudoUserId => "mock-pseudo-user-id";
+
         public List<(string Name, Dictionary<string, IConvertible> Data)> GetEventsByName(string name)
         {
             return SentEvents.Where(e => e.Name == name).ToList();

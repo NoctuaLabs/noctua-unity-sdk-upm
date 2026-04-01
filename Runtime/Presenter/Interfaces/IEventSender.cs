@@ -47,5 +47,10 @@ namespace com.noctuagames.sdk.Events
         /// session lifecycle events are delivered promptly.
         /// </summary>
         void Flush();
+
+        /// <summary>
+        /// A deterministic anonymous user identifier derived from device identity.
+        /// </summary>
+        string PseudoUserId { get; }
     }
 }
