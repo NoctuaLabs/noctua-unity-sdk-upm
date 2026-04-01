@@ -36,11 +36,13 @@ public static class ExperimentManager
         _experimentFlags.Clear();
     }
 
+    [Obsolete("Session ID is now managed via EventSender.SetProperties. This method is no longer used.")]
     public static void SetSessionId(string sessionId)
     {
         SetFlag(KEY_CURRENT_SESSION_ID, sessionId);
     }
 
+    [Obsolete("Session ID is now managed via EventSender.SetProperties. This method is no longer used.")]
     public static string GetSessionId()
     {
         return GetFlag<string>(KEY_CURRENT_SESSION_ID, string.Empty);
