@@ -397,16 +397,6 @@ namespace com.noctuagames.sdk
         }
 
         /// <summary>
-        /// Get the deterministic pseudo user ID derived from device identity.
-        /// Survives app reinstalls. Scoped per app bundle.
-        /// </summary>
-        /// <returns>A 32-character lowercase hex string.</returns>
-        public static string GetPseudoUserId()
-        {
-            return Instance.Value._eventSender.PseudoUserId;
-        }
-
-        /// <summary>
         /// Internal accessor for native session tracker stats (used by sample app test button).
         /// </summary>
         internal static NativeSessionTracker NativeSessionTrackerInstance => Instance.Value._nativeSessionTracker;
