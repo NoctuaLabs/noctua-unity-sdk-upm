@@ -134,7 +134,12 @@ namespace com.noctuagames.sdk
         [DllImport("__Internal")]
         private static extern void noctuaRequestInAppReview();
 
+        // Native Lifecycle Callback
+        [DllImport("__Internal")]
+        private static extern void noctuaRegisterLifecycleCallback(NativeLifecycleCallbackDelegate callback);
+
         // Store the callback to be used in the static methods
+        private static Action<string> storedLifecycleCallback;
         private static Action<bool, string> storedCompletion;
         private static Action<bool> storedHasPurchasedCompletion;
         private static Action<string> storedGetReceiptCompletion;
@@ -183,6 +188,9 @@ namespace com.noctuagames.sdk
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
         private delegate void GetAdjustAttributionJsonCallbackDelegate(string json);
 
+
+        [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+        private delegate void NativeLifecycleCallbackDelegate(IntPtr lifecycleEventPtr);
 
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
         private delegate void GetEventsCallbackDelegate(IntPtr eventsJson);
@@ -848,6 +856,32 @@ namespace com.noctuagames.sdk
         public bool IsStoreKitReady()
         {
             return noctuaIsStoreKitReady();
+        }
+
+        // ------------------------------------
+        // Native Lifecycle Callback
+        // ------------------------------------
+
+        [AOT.MonoPInvokeCallback(typeof(NativeLifecycleCallbackDelegate))]
+        private static void NativeLifecycleCallback(IntPtr lifecycleEventPtr)
+        {
+            if (lifecycleEventPtr == IntPtr.Zero) return;
+            string lifecycleEvent = Marshal.PtrToStringAnsi(lifecycleEventPtr);
+            storedLifecycleCallback?.Invoke(lifecycleEvent);
+        }
+
+        /// <inheritdoc />
+        public void RegisterNativeLifecycleCallback(Action<string> callback)
+        {
+            storedLifecycleCallback = callback;
+            if (callback != null)
+            {
+                noctuaRegisterLifecycleCallback(NativeLifecycleCallback);
+            }
+            else
+            {
+                noctuaRegisterLifecycleCallback(null);
+            }
         }
 
         // ------------------------------------

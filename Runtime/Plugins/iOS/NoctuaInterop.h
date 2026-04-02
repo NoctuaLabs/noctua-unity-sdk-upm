@@ -64,4 +64,8 @@ void noctuaGetEventCount(GetEventCountCallbackDelegate callback);
 // In-App Review
 void noctuaRequestInAppReview(void);
 
+// Native Lifecycle Callback
+typedef void (*NativeLifecycleCallbackDelegate)(const char* lifecycleEvent);
+void noctuaRegisterLifecycleCallback(NativeLifecycleCallbackDelegate callback);
+
 }

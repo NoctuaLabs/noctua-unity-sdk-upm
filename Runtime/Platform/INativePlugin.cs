@@ -289,6 +289,13 @@ namespace com.noctuagames.sdk
         /// </summary>
         /// <returns>True if the store service is ready, false otherwise.</returns>
         bool IsStoreKitReady();
+
+        /// <summary>
+        /// Registers a callback that native code invokes on platform lifecycle transitions.
+        /// The callback receives "resume" when the app becomes active, "pause" when it resigns.
+        /// </summary>
+        /// <param name="callback">Action receiving "resume" or "pause". Pass null to unregister.</param>
+        void RegisterNativeLifecycleCallback(Action<string> callback);
     }
 
     /// <summary>

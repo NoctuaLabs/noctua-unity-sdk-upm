@@ -124,6 +124,13 @@ namespace com.noctuagames.sdk
             return false;
         }
 
+        /// <summary>
+        /// No-op in the Editor; native lifecycle callbacks are unavailable.
+        /// </summary>
+        public void RegisterNativeLifecycleCallback(Action<string> callback)
+        {
+        }
+
         /// <inheritdoc />
         public void GetFirebaseInstallationID(Action<string> callback) {
 

@@ -70,6 +70,29 @@ namespace com.noctuagames.sdk
         }
 
         /// <inheritdoc />
+        public void RegisterNativeLifecycleCallback(Action<string> callback)
+        {
+            try
+            {
+                using var noctua = new AndroidJavaClass("com.noctuagames.sdk.Noctua")
+                    .GetStatic<AndroidJavaObject>("INSTANCE");
+
+                if (callback != null)
+                {
+                    noctua.Call("registerLifecycleCallback", new AndroidCallback<string>(callback));
+                }
+                else
+                {
+                    noctua.Call("registerLifecycleCallback", (AndroidJavaObject)null);
+                }
+            }
+            catch (AndroidJavaException e)
+            {
+                _log.Warning("Failed to register native lifecycle callback: " + e.Message);
+            }
+        }
+
+        /// <inheritdoc />
         public void TrackAdRevenue(
             string source,
             double revenue,

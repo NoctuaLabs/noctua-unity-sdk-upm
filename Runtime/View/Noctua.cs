@@ -56,6 +56,7 @@ namespace com.noctuagames.sdk
         private readonly UIFactory _uiFactory;
         private readonly MediationManager _iaa;
         private readonly NoctuaAppManager _app;
+        private readonly NativeSessionTracker _nativeSessionTracker;
         private GlobalConfig _config;
 
         private readonly INativePlugin _nativePlugin;
@@ -394,6 +395,21 @@ namespace com.noctuagames.sdk
         {
             return ExperimentManager.GetActiveExperiment();
         }
+
+        /// <summary>
+        /// Get the deterministic pseudo user ID derived from device identity.
+        /// Survives app reinstalls. Scoped per app bundle.
+        /// </summary>
+        /// <returns>A 32-character lowercase hex string.</returns>
+        public static string GetPseudoUserId()
+        {
+            return Instance.Value._eventSender.PseudoUserId;
+        }
+
+        /// <summary>
+        /// Internal accessor for native session tracker stats (used by sample app test button).
+        /// </summary>
+        internal static NativeSessionTracker NativeSessionTrackerInstance => Instance.Value._nativeSessionTracker;
 
         /// <summary>
         /// Show a native date picker via the native plugin.

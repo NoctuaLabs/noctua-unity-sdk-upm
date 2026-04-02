@@ -157,6 +157,16 @@ namespace com.noctuagames.sdk
                 _config.Noctua.RemoteFeatureFlags
             );
 
+            _nativeSessionTracker = new NativeSessionTracker(
+                new SessionTrackerConfig
+                {
+                    HeartbeatPeriodMs = _config.Noctua.SessionHeartbeatPeriodMs,
+                    SessionTimeoutMs = _config.Noctua.SessionTimeoutMs
+                },
+                _eventSender,
+                _config.Noctua.RemoteFeatureFlags
+            );
+
             // Initialize ui factory
             var panelSettings = Resources.Load<PanelSettings>("NoctuaPanelSettings");
             panelSettings.themeStyleSheet = Resources.Load<ThemeStyleSheet>("NoctuaTheme");
@@ -181,6 +191,11 @@ namespace com.noctuagames.sdk
 
             var sessionTrackerBehaviour = noctuaUIGameObject.AddComponent<SessionTrackerBehaviour>();
             sessionTrackerBehaviour.SessionTracker = _sessionTracker;
+
+            var nativeSessionTrackerBehaviour = noctuaUIGameObject.AddComponent<NativeSessionTrackerBehaviour>();
+            nativeSessionTrackerBehaviour.NativeSessionTracker = _nativeSessionTracker;
+            nativeSessionTrackerBehaviour.NativeLifecycle = _nativePlugin;
+
             _uiFactory = new UIFactory(noctuaUIGameObject, panelSettings, locale);
 
             // Initialize Analytics first when IAA (In-App Advertising) is not enabled.

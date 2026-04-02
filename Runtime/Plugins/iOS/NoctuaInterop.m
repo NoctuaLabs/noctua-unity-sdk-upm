@@ -654,3 +654,20 @@ void noctuaGetEventCount(GetEventCountCallbackDelegate callback) {
 void noctuaRequestInAppReview(void) {
     [Noctua requestInAppReview];
 }
+
+// MARK: - Native Lifecycle Callback
+
+static NativeLifecycleCallbackDelegate _nativeLifecycleCallback = NULL;
+
+void noctuaRegisterLifecycleCallback(NativeLifecycleCallbackDelegate callback) {
+    _nativeLifecycleCallback = callback;
+    if (callback != NULL) {
+        [Noctua registerLifecycleCallbackWithCallback:^(NSString * _Nonnull event) {
+            if (_nativeLifecycleCallback != NULL) {
+                _nativeLifecycleCallback([event UTF8String]);
+            }
+        }];
+    } else {
+        [Noctua registerLifecycleCallbackWithCallback:nil];
+    }
+}
