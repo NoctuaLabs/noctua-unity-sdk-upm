@@ -1,12 +1,10 @@
 using System;
 using System.Collections.Generic;
-using System.Collections.Immutable;
 using Cysharp.Threading.Tasks;
 using UnityEngine;
 using Application = UnityEngine.Device.Application;
 using SystemInfo = UnityEngine.Device.SystemInfo;
 using Newtonsoft.Json;
-using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Threading;
@@ -33,7 +31,7 @@ namespace com.noctuagames.sdk
         private const string PlayerPrefsKeyUserPrefsLanguage = "NoctuaLocaleUserPrefsLanguage";
         private const string PlayerPrefsKeyLocaleCountry = "NoctuaLocaleCountry";
         private const string PlayerPrefsKeyLocaleCurrency = "NoctuaLocaleCurrency";
-        private readonly ImmutableDictionary<SystemLanguage, string> _languageMapping =
+        private readonly Dictionary<SystemLanguage, string> _languageMapping =
             new Dictionary<SystemLanguage, string>
             {
                 { SystemLanguage.Afrikaans, "af" },
@@ -79,7 +77,7 @@ namespace com.noctuagames.sdk
                 { SystemLanguage.ChineseSimplified, "zh-CN" },
                 { SystemLanguage.ChineseTraditional, "zh-TW" },
                 { SystemLanguage.Unknown, "en" }
-            }.ToImmutableDictionary();
+            };
 
         private readonly ILogger _log = new NoctuaLogger(typeof(NoctuaLocale));
         private Dictionary<string,string> _translations;
