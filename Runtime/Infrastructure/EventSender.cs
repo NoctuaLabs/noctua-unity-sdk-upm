@@ -151,6 +151,16 @@ namespace com.noctuagames.sdk.Events
         private volatile bool _isProcessingWriteQueue;
         private volatile bool _writeQueuePaused;
 
+        // Events that must be persisted to native storage immediately (synchronously, before any async await).
+        // This protects against process kill (SIGKILL/force-stop) during the async Firebase ID fetch (1–3s).
+        // The enriched version (with Firebase IDs, country, etc.) will be stored afterwards — server deduplicates
+        // by matching event_time + device_id + event_name.
+        private static readonly HashSet<string> _immediateEvents = new HashSet<string>
+        {
+            "session_start",
+            "noctua_user_engagement",
+        };
+
         // --- Private helpers that call _config.NativePlugin directly ---
         // EventSender is constructed inside the Noctua() constructor (which runs inside
         // a Lazy<Noctua> factory). Calling Noctua.GetEventCountAsync() etc. from here
@@ -400,6 +410,35 @@ namespace com.noctuagames.sdk.Events
             UniTask.Void(async () =>
             {
                 await UniTask.SwitchToMainThread();
+
+                // ── Phase 1: Synchronous minimal persist (before any async await) ────────────────
+                // For high-priority events, insert a minimal payload immediately so it survives
+                // a SIGKILL during the Firebase ID fetch (lines below can take 1–3s on first call).
+                // The enriched version stored in Phase 2 carries the same event_time so the server
+                // can deduplicate by (device_id, event_name, event_time) if needed.
+                if (_immediateEvents.Contains(name))
+                {
+                    var minimalPayload = new Dictionary<string, object>
+                    {
+                        { "event_name", name },
+                        { "event_time", DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() },
+                        { "device_id", _deviceId },
+                        { "immediate", true },
+                    };
+
+                    if (!string.IsNullOrEmpty(_sessionId))
+                        minimalPayload["session_id"] = _sessionId;
+
+                    // Include any event-specific data already available (e.g. engagement_time_msec, lifecycle)
+                    foreach (var kv in data)
+                        minimalPayload.TryAdd(kv.Key, kv.Value);
+
+                    var minimalJson = JsonConvert.SerializeObject(minimalPayload);
+                    _config.NativePlugin?.InsertEvent(minimalJson);
+
+                    _log.Debug($"[Event Sender] Immediate persist for '{name}' written to native storage.");
+                }
+                // ── End Phase 1 ──────────────────────────────────────────────────────────────────
 
                 data.TryAdd("event_version", 1);
                 data.TryAdd("event_name", name);

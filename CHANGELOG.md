@@ -2,6 +2,171 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Unreleased]
+
+### 🚀 Features
+
+- Add native lifecycle callback bridge for OS-level engagement tracking (`native_user_engagement`, `native_user_engagement_per_session`)
+- Add lifecycle param (`start`, `foreground`, `pause`, `end`) to `noctua_user_engagement` and `native_user_engagement` events
+- Add `noctua_user_engagement_per_session` — cumulative foreground time sent on session timeout/end
+- Add `pseudo_user_id` to all events for cross-device user stitching
+- Add `GetPseudoUserId()` public API; deprecate `ExperimentManager` session_id methods
+- Route `session_id` through `SetProperties` for consistent event enrichment
+- Add in-app review and in-app updates bridge (Google Play / App Store)
+
+### 🐛 Bug Fixes
+
+- Fix `session_end` / `noctua_user_engagement_per_session` never sent on force-kill (SIGKILL): persist session state to PlayerPrefs on every lifecycle event; recover orphaned sessions on next launch
+- Fix `session_start` lost when app is killed during Firebase ID fetch: immediate synchronous persist to native storage before async enrichment for `session_start` and `noctua_user_engagement` events
+- Remove `GetPseudoUserId()` accidentally leaked from unrelated branch
+
+### 💼 Other
+
+- Bump native SDKs and fix main thread marshalling for iOS callbacks
+- Add XML documentation to `ExperimentManager` session_id methods
+
+## [0.87.0] - 2026-03-17
+
+### 🐛 Bug Fixes
+
+- Remove unused SSV options from rewarded interstitial ad
+
+## [0.86.0] - 2026-03-17
+
+### 🚀 Features
+
+- Add Taichi tROAS ad impression threshold events
+
+## [0.85.0] - 2026-03-12
+
+### 🚀 Features
+
+- Add Editor mock IAP payment sheet for dev testing
+- Add landscape support for editor payment sheet UI
+- Skip create order for editor mock — show UI directly
+- Send payment type `direct` to server for editor mock orders
+- Add `ad_user_id` to ad revenue events and set AppLovin user ID
+- Add IAA improvements for AppLovin and AdMob
+
+### 🐛 Bug Fixes
+
+- Filter out editor payment type from product list API request
+- Use correct Kotlin JVM getter names for `is`-prefixed booleans
+
+### 💼 Other
+
+- Bump noctua-android-sdk to 0.27.1
+
+## [0.84.0] - 2026-03-10
+
+### 🐛 Bug Fixes
+
+- Fallback to `game_level` when level is empty in `game_stage_start`
+
+## [0.83.0] - 2026-03-10
+
+### 🚀 Features
+
+- Add `ad_format` to AppLovin ad revenue event
+
+## [0.82.0] - 2026-03-10
+
+### 🚀 Features
+
+- Enrich all events with `current_stage_level` and `current_stage_mode`
+
+## [0.81.0] - 2026-03-09
+
+### 🚀 Features
+
+- Auto-save `game_stage_complete` level and use for IAP `CurrentStageLevel`
+
+## [0.80.0] - 2026-03-09
+
+### 🚀 Features
+
+- Add `noctua_user_engagement` event for Firebase-like engagement time tracking (monotonic stopwatch, foreground-only, incremental)
+
+### 🐛 Bug Fixes
+
+- Wire `CompletePurchaseProcessing` to finish SK1 transactions after server verification
+- Fix CI publish pipeline — variable name, manual trigger, GitLab tag push, draft release
+
+## [0.79.0] - 2026-03-04
+
+### 💼 Other
+
+- Internal release — no user-facing changes
+
+## [0.78.0] - 2026-03-04
+
+### 🚀 Features
+
+- Add `GetProductPurchaseStatusDetailAsync` with full status model and expiry time
+- Implement Cloud Saves
+- Add ClaimRedeemAsync API
+- Track `first_open` custom event on initial app launch
+- Migrate Google Play Billing and iOS StoreKit to delegate to noctua-sdk-native
+- Add Firebase Remote Config bridge (Objective-C → C#)
+- Add Adjust attribution tracking (iOS + Android)
+- Add Facebook install referrer
+- Add `offline_mode` param to internal tracker
+- Add session id to all internal tracker events
+- Prevent reserved event keys from being overridden in internal tracker
+- Prevent game ID null while offline
+- Add `sendEventsOnFlushEnabled` remote config flag to prevent crash during flush
+- Expose ad unit ID
+- Pass store pricing amount and currency to `OnPurchaseDone`
+- Treat unpaired orders as redeems and verify normally
+- Add restore purchased products
+- Optimize iOS build process (Adjust attribution endpoint, SKAdNetwork items, AdjustSignature XCFramework)
+
+### 🐛 Bug Fixes
+
+- Cache Firebase IDs to prevent iOS event loss and guard against quit-time crashes
+- Resolve native plugin init race condition before `GetActiveCurrencyAsync`
+- Move `OnInitSuccess` callback after `sdk_init_complete` for offline support
+- Fix Adjust attribution tracking
+- Resolve push notification capability crash by providing entitlements path
+- Fix failing unit tests for per-row event storage migration
+- Persist access token in PlayerPrefs to avoid users becoming unauthenticated
+- Replace all `Debug.Log` / `Debug.LogWarning` with `NoctuaLogger` in runtime code
+- Fix AppLovin `onUserEarnedReward` callback not triggering
+- Revert `NoctuaIAPService` native plugin type to `INativePlugin`
+- Add `Flush()` to `IEventSender` interface
+- Fix comprehensive `AdsManager` bugs
+- Update google-services to 4.3.15 and crashlytics to 3.0.6
+
+### 🏗️ Architecture
+
+- Reorganize SDK into MVP + Platform Bridge architecture
+- Extract `IEventSender`, `IIAPService`, `IAuthenticationService`, `IPaymentUI`, `IAuthProvider` presenter interfaces
+- Extract `INativeFirebase`, `INativeEventStorage`, `INativeLifecycle` sub-interfaces from `INativePlugin`
+- Decouple `EventSender`, `MobileDateTimePicker`, `NoctuaIAPService`, `Http.cs`, `MediationManager` from static `Noctua.*` facade
+- Inject `IConnectivityProvider` into `NoctuaIAPService`
+- Move `EventSender` from `Network/` to `Infrastructure/` root
+- Move ad integrations from `Platform/` to `AdsManager/`
+- Extract UI utility methods to `UI/UIUtility.cs`
+- Add XML documentation comments across all SDK layers
+
+### 💼 Other
+
+- Bump native iOS SDK to 0.30.0, Android to 0.27.0
+- Increase unit test coverage from 3.7% to 5.9%
+- Add unit test infrastructure with Makefile and code coverage
+
+## [0.59.0] - 2025-11-04
+
+### 💼 Other
+
+- Improve GitLab CI pipeline
+
+## [0.57.0] - 2025-11-04
+
+### 💼 Other
+
+- Improve GitLab CI pipeline
+
 ## [0.56.0] - 2025-11-03
 
 ### 🚀 Features

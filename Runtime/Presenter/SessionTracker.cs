@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Threading;
@@ -25,9 +25,17 @@ namespace com.noctuagames.sdk.Events
 
     /// <summary>
     /// Tracks user session lifecycle (start, pause, continue, heartbeat, end) and sends session events via an event sender.
+    /// Also persists session state to PlayerPrefs so that orphaned sessions (terminated by SIGKILL before Dispose runs)
+    /// can be recovered and their end-of-session events sent on the next app launch.
     /// </summary>
     public class SessionTracker : IDisposable
     {
+        // PlayerPrefs keys for crash-recovery of orphaned sessions.
+        // Written on session_start, heartbeat, and pause; cleared on clean Dispose() or session timeout.
+        private const string KeyOrphanedSessionId          = "NoctuaOrphanedSessionId";
+        private const string KeyOrphanedSessionCumulativeMs = "NoctuaOrphanedSessionCumulativeMs";
+        private const string KeyOrphanedSessionLastTimestamp = "NoctuaOrphanedSessionLastTimestamp";
+
         private readonly SessionTrackerConfig _config;
         private readonly IEventSender _eventSender;
         private readonly UniTask _heartbeatTask;
@@ -35,12 +43,12 @@ namespace com.noctuagames.sdk.Events
         private  Dictionary<string, bool> _remoteFeatureFlags;
         private readonly ILogger _log = new NoctuaLogger(typeof(SessionTracker));
 
-        
+
         private DateTime _nextHeartbeat;
         private DateTime _nextSessionTimeout;
         private bool _pauseStatus;
         private bool _disposed;
-        
+
         private string _sessionId;
 
         // Engagement time tracking (Firebase-like user_engagement)
@@ -60,12 +68,12 @@ namespace com.noctuagames.sdk.Events
             _eventSender = eventSender ?? throw new ArgumentNullException(nameof(eventSender));
 
             _remoteFeatureFlags = remoteFeatureFlags ?? new Dictionary<string, bool>();
-        
+
             _cancelHeartbeatSource = new CancellationTokenSource();
             _pauseStatus = true;
             _heartbeatTask = UniTask.Create(RunHeartbeat, _cancelHeartbeatSource.Token);
         }
-        
+
         /// <summary>
         /// Harvests accumulated foreground time and sends a user_engagement event with engagement_time_msec and lifecycle.
         /// Resets the accumulator after sending. Skips if no foreground time was accumulated (except for lifecycle=start).
@@ -110,6 +118,76 @@ namespace com.noctuagames.sdk.Events
         }
 
         /// <summary>
+        /// Persists current session state to PlayerPrefs so it can be recovered on next launch if the process is killed.
+        /// Must be called from the main thread (PlayerPrefs is not thread-safe).
+        /// </summary>
+        private void SaveSessionState()
+        {
+            if (_sessionId == null) return;
+
+            PlayerPrefs.SetString(KeyOrphanedSessionId, _sessionId);
+            PlayerPrefs.SetString(KeyOrphanedSessionCumulativeMs, _cumulativeSessionEngagementMs.ToString());
+            PlayerPrefs.SetString(KeyOrphanedSessionLastTimestamp, DateTime.UtcNow.ToString("O"));
+            PlayerPrefs.Save();
+        }
+
+        /// <summary>
+        /// Removes orphaned session state from PlayerPrefs. Call on clean exit paths (Dispose, session timeout)
+        /// to prevent spurious recovery on the next launch.
+        /// </summary>
+        private void ClearSessionState()
+        {
+            PlayerPrefs.DeleteKey(KeyOrphanedSessionId);
+            PlayerPrefs.DeleteKey(KeyOrphanedSessionCumulativeMs);
+            PlayerPrefs.DeleteKey(KeyOrphanedSessionLastTimestamp);
+            PlayerPrefs.Save();
+        }
+
+        /// <summary>
+        /// Checks PlayerPrefs for an orphaned session left by a previous process that was force-killed.
+        /// If found, sends the missing end-of-session events (noctua_user_engagement, per_session, session_end)
+        /// tagged with the old session_id, then clears the stored state.
+        /// Must be called before the new session_start is sent.
+        /// </summary>
+        private void RecoverOrphanedSession()
+        {
+            var savedSessionId = PlayerPrefs.GetString(KeyOrphanedSessionId, null);
+            if (string.IsNullOrEmpty(savedSessionId)) return;
+
+            if (!long.TryParse(PlayerPrefs.GetString(KeyOrphanedSessionCumulativeMs, "0"), out var cumulativeMs))
+            {
+                cumulativeMs = 0;
+            }
+
+            _log.Info($"[Session Tracker] Recovering orphaned session {savedSessionId}, cumulativeMs={cumulativeMs}");
+
+            // Tag recovery events with the old session_id
+            _eventSender.SetProperties(sessionId: savedSessionId);
+
+            if (cumulativeMs > 0)
+            {
+                _eventSender.Send("noctua_user_engagement", new Dictionary<string, IConvertible>
+                {
+                    { "engagement_time_msec", cumulativeMs },
+                    { "lifecycle", "end" }
+                });
+
+                _eventSender.Send("noctua_user_engagement_per_session", new Dictionary<string, IConvertible>
+                {
+                    { "engagement_time_msec", cumulativeMs }
+                });
+            }
+
+            _eventSender.Send("session_end");
+
+            // Clear so we don't recover the same session twice
+            ClearSessionState();
+
+            // Reset session_id — the new session will assign its own
+            _eventSender.SetProperties(sessionId: null);
+        }
+
+        /// <summary>
         /// Handles application pause/resume transitions, sending session_pause, session_continue, or session_start events as appropriate.
         /// </summary>
         /// <param name="pauseStatus">True when the application is pausing; false when resuming.</param>
@@ -120,9 +198,9 @@ namespace com.noctuagames.sdk.Events
                 _log.Info($"[Session Tracker] Application pause status unchanged: {pauseStatus}");
                 return;
             }
-            
+
             _pauseStatus = pauseStatus;
-            
+
             if (pauseStatus)
             {
                 _foregroundStopwatch.Stop();
@@ -133,9 +211,12 @@ namespace com.noctuagames.sdk.Events
                 _eventSender.Flush();
                 _nextSessionTimeout = DateTime.UtcNow.AddMilliseconds(_config.SessionTimeoutMs);
 
+                // Persist state so a crash during background doesn't orphan this session
+                SaveSessionState();
+
                 return;
             }
-            
+
             if (_sessionId != null && DateTime.UtcNow >= _nextSessionTimeout)
             {
                 // Send per-session event WHILE old session_id is still active
@@ -146,6 +227,9 @@ namespace com.noctuagames.sdk.Events
                 _foregroundStopwatch.Reset();
                 _sessionId = null;
                 _eventSender.SetProperties(sessionId: null);
+
+                // per_session was sent cleanly — no orphan to recover
+                ClearSessionState();
             }
 
             if (_sessionId != null)
@@ -157,15 +241,24 @@ namespace com.noctuagames.sdk.Events
             else
             {
             	_log.Info($"[Session Tracker] Application unpaused, start a new session");
+
+                // Recover any session orphaned by a previous force-kill before starting the new one.
+                // This runs here (not in Noctua.Initialization) to guarantee ordering:
+                // recovery events fire before session_start, all on the main thread.
+                RecoverOrphanedSession();
+
                 _sessionId = Guid.NewGuid().ToString();
                 _cumulativeSessionEngagementMs = 0;
                 _eventSender.SetProperties(sessionId: _sessionId);
                 _eventSender.Send("session_start");
                 SendUserEngagementEvent("start");
                 _foregroundStopwatch.Start();
+
+                // Persist initial session state immediately after session_start
+                SaveSessionState();
             }
         }
-        
+
         /// <summary>
         /// Ends the current session, sends a session_end event, cancels the heartbeat loop, and optionally flushes pending events.
         /// </summary>
@@ -178,6 +271,9 @@ namespace com.noctuagames.sdk.Events
 
             _cancelHeartbeatSource.Cancel();
             _disposed = true;
+
+            // Clear orphan state — this is a clean exit; no recovery needed on next launch
+            ClearSessionState();
 
             // Send final engagement time before session_end
             _foregroundStopwatch.Stop();
@@ -208,7 +304,7 @@ namespace com.noctuagames.sdk.Events
         {
             Dispose();
         }
-        
+
         private async UniTask RunHeartbeat(CancellationToken token)
         {
             _nextHeartbeat = DateTime.UtcNow.AddMilliseconds(_config.HeartbeatPeriodMs);
@@ -218,13 +314,18 @@ namespace com.noctuagames.sdk.Events
                 if (_pauseStatus || DateTime.UtcNow < _nextHeartbeat)
                 {
                     await UniTask.Delay(100, cancellationToken: token);
-                    
+
                     continue;
                 }
 
                 SendUserEngagementEvent("foreground");
                 _eventSender.Send("session_heartbeat");
                 _nextHeartbeat = DateTime.UtcNow.AddMilliseconds(_config.HeartbeatPeriodMs);
+
+                // Save updated cumulative engagement time after each heartbeat.
+                // Must switch to main thread — PlayerPrefs is not thread-safe.
+                await UniTask.SwitchToMainThread(cancellationToken: token);
+                SaveSessionState();
             }
         }
     }

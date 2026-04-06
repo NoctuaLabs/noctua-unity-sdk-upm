@@ -35,6 +35,9 @@ namespace com.noctuagames.sdk
                 "NoctuaAccessToken",
                 "NoctuaCurrentStageLevel",
                 "NoctuaCurrentStageMode",
+                "NoctuaOrphanedSessionId",
+                "NoctuaOrphanedSessionCumulativeMs",
+                "NoctuaOrphanedSessionLastTimestamp",
             };
 
             foreach (var key in IntegerKeys)
@@ -116,6 +119,9 @@ namespace com.noctuagames.sdk
                 "NoctuaAccessToken",
                 "NoctuaCurrentStageLevel",
                 "NoctuaCurrentStageMode",
+                "NoctuaOrphanedSessionId",
+                "NoctuaOrphanedSessionCumulativeMs",
+                "NoctuaOrphanedSessionLastTimestamp",
             };
         }
     }
