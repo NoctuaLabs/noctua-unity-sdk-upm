@@ -57,6 +57,7 @@ namespace com.noctuagames.sdk
         private readonly MediationManager _iaa;
         private readonly NoctuaAppManager _app;
         private readonly NativeSessionTracker _nativeSessionTracker;
+        private NativeSessionTrackerBehaviour _nativeSessionTrackerBehaviour;
         private GlobalConfig _config;
 
         private readonly INativePlugin _nativePlugin;

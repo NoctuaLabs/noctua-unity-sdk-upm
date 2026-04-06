@@ -192,19 +192,12 @@ namespace com.noctuagames.sdk
             var sessionTrackerBehaviour = noctuaUIGameObject.AddComponent<SessionTrackerBehaviour>();
             sessionTrackerBehaviour.SessionTracker = _sessionTracker;
 
-            var nativeSessionTrackerBehaviour = noctuaUIGameObject.AddComponent<NativeSessionTrackerBehaviour>();
-            nativeSessionTrackerBehaviour.NativeSessionTracker = _nativeSessionTracker;
-            nativeSessionTrackerBehaviour.NativeLifecycle = _nativePlugin;
-            _nativePlugin?.RegisterNativeLifecycleCallback(nativeSessionTrackerBehaviour.OnNativeLifecycleEvent);
-            // Synthetic first-resume: the native onResume fires immediately at Activity start,
-            // well before Unity finishes initializing (~20s). By the time this line runs the
-            // callback registration is too late — the first resume was already missed.
-            // If the app is currently in the foreground, fire "resume" now so NativeSessionTracker
-            // starts tracking engagement from the correct point.
-            if (UnityEngine.Device.Application.isFocused)
-            {
-                nativeSessionTrackerBehaviour.OnNativeLifecycleEvent("resume");
-            }
+            _nativeSessionTrackerBehaviour = noctuaUIGameObject.AddComponent<NativeSessionTrackerBehaviour>();
+            _nativeSessionTrackerBehaviour.NativeSessionTracker = _nativeSessionTracker;
+            _nativeSessionTrackerBehaviour.NativeLifecycle = _nativePlugin;
+            // Registration is deferred to InitNativePlugin() which runs after _nativePlugin.Init().
+            // ensureInit() in Noctua.kt silently drops calls made before Init() — registering
+            // here would always be a no-op because presenter is not yet initialized.
 
             _uiFactory = new UIFactory(noctuaUIGameObject, panelSettings, locale);
 
@@ -318,6 +311,17 @@ namespace com.noctuagames.sdk
             _isNativePluginInitialized = true;
             _nativePluginInitTcs.TrySetResult();
             _log.Debug("nativePlugin is initialized");
+
+            // Register the native lifecycle callback now — AFTER Init() so the native
+            // presenter is initialized and ensureInit() won't drop the call.
+            if (_nativeSessionTrackerBehaviour != null)
+            {
+                _nativePlugin?.RegisterNativeLifecycleCallback(_nativeSessionTrackerBehaviour.OnNativeLifecycleEvent);
+                if (UnityEngine.Device.Application.isFocused)
+                {
+                    _nativeSessionTrackerBehaviour.OnNativeLifecycleEvent("resume");
+                }
+            }
         }
 
         /// <summary>
