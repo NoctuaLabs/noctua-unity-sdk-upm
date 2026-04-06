@@ -18,7 +18,7 @@ All notable changes to this project will be documented in this file.
 
 - Fix `session_end` / `noctua_user_engagement_per_session` never sent on force-kill (SIGKILL): persist session state to PlayerPrefs on every lifecycle event; recover orphaned sessions on next launch
 - Fix `session_start` lost when app is killed during Firebase ID fetch: immediate synchronous persist to native storage before async enrichment for `session_start` and `noctua_user_engagement` events
-- Fix recovery events (`session_end`, `noctua_user_engagement_per_session`) tagged with wrong session_id: bake old session_id into event data dict so async enrichment cannot overwrite it after `SetProperties(null)` resets the shared field
+- Fix recovery events (`session_end`, `noctua_user_engagement_per_session`) tagged with wrong session_id: `EventSender.Send()` strips `session_id` from caller data as a reserved key before the async task runs; fix by capturing `callerProvidedSessionId` before stripping and using it with priority over the shared `_sessionId` field in both Phase 1 and Phase 2; also add `session_end` and `noctua_user_engagement_per_session` to `_immediateEvents` for synchronous persist before Firebase ID fetch
 - Fix `native_user_engagement` never emitted: register native lifecycle callback after `Init()` so Kotlin's `ensureInit()` guard does not silently drop the call; fire synthetic first-resume when app is already in foreground at registration time
 - Fix clean-exit path leaving orphaned session in PlayerPrefs: call `SessionTracker.Dispose()` (which runs `ClearSessionState()`) inside `PauseBehaviour.OnApplicationQuit()` so graceful `Application.Quit()` exits clear the orphan keys
 - Remove `GetPseudoUserId()` accidentally leaked from unrelated branch

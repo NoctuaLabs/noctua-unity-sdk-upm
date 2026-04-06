@@ -159,6 +159,10 @@ namespace com.noctuagames.sdk.Events
         {
             "session_start",
             "noctua_user_engagement",
+            // Recovery events: stored immediately so a SIGKILL during RecoverOrphanedSession()
+            // doesn't leave them in-flight. The enriched Phase 2 version follows after Firebase fetch.
+            "session_end",
+            "noctua_user_engagement_per_session",
         };
 
         // --- Private helpers that call _config.NativePlugin directly ---
@@ -380,6 +384,16 @@ namespace com.noctuagames.sdk.Events
 
            data ??= new Dictionary<string, IConvertible>();
 
+            // Capture caller-provided session_id BEFORE reserved-key stripping.
+            // Recovery events (RecoverOrphanedSession) explicitly pass session_id so the
+            // enrichment task uses the orphaned session, not the new session that
+            // SetProperties() assigns synchronously afterward.
+            string callerProvidedSessionId = null;
+            if (data.TryGetValue("session_id", out var callerSidValue))
+            {
+                callerProvidedSessionId = callerSidValue?.ToString();
+            }
+
             var eventKeys = new HashSet<string>
             {
                 "user_id",
@@ -426,8 +440,13 @@ namespace com.noctuagames.sdk.Events
                         { "immediate", true },
                     };
 
-                    if (!string.IsNullOrEmpty(_sessionId))
-                        minimalPayload["session_id"] = _sessionId;
+                    // Prefer caller-provided session_id (e.g. recovery events bake the orphaned
+                    // session_id into extraData); fall back to the current instance field.
+                    var immediateSessionId = !string.IsNullOrEmpty(callerProvidedSessionId)
+                        ? callerProvidedSessionId
+                        : _sessionId;
+                    if (!string.IsNullOrEmpty(immediateSessionId))
+                        minimalPayload["session_id"] = immediateSessionId;
 
                     // Include any event-specific data already available (e.g. engagement_time_msec, lifecycle)
                     foreach (var kv in data)
@@ -549,9 +568,15 @@ namespace com.noctuagames.sdk.Events
                 if (_gameId != null) data.TryAdd("game_id", _gameId);
                 if (_gamePlatformId != null) data.TryAdd("game_platform_id", _gamePlatformId);
 
-                if (!string.IsNullOrEmpty(_sessionId))
+                // Prefer caller-provided session_id (recovery events bake the orphaned session_id
+                // into extraData so it survives the SetProperties(null) → SetProperties(newId)
+                // calls that happen synchronously before this async task resumes).
+                var effectiveSessionId = !string.IsNullOrEmpty(callerProvidedSessionId)
+                    ? callerProvidedSessionId
+                    : _sessionId;
+                if (!string.IsNullOrEmpty(effectiveSessionId))
                 {
-                    data.TryAdd("session_id", _sessionId);
+                    data.TryAdd("session_id", effectiveSessionId);
                 }
 
                 if (_uniqueId != null) data.TryAdd("unique_id", _uniqueId);
