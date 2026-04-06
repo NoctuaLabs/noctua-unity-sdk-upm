@@ -145,6 +145,10 @@ namespace com.noctuagames.sdk.Events
         private string _cachedFirebaseSessionId;
         private string _cachedFirebaseInstallationId;
         private bool _firebaseIdsFetched;
+        // Single-flight lock: prevents multiple concurrent tasks from all calling GetFirebaseAnalyticsSessionID
+        // simultaneously. Without this, recovery events spawned at ~300ms post-launch (before Firebase initializes)
+        // all enter the fetch block, overwrite the single static iOS callback slot, and hang forever.
+        private readonly SemaphoreSlim _firebaseFetchLock = new SemaphoreSlim(1, 1);
 
         // Write queue for burst-safe storage writes — each item is a serialized JSON string
         private readonly ConcurrentQueue<string> _writeQueue = new();
@@ -532,22 +536,47 @@ namespace com.noctuagames.sdk.Events
                     // On iOS, IosPlugin uses single static callback slots for Firebase ID calls.
                     // Rapid concurrent calls overwrite the pending callback, causing all but the
                     // last await to hang forever. Caching avoids this entirely.
+                    //
+                    // Single-flight pattern: only one async task fetches at a time.
+                    // Others wait on the lock; once the first sets _firebaseIdsFetched = true,
+                    // waiters re-check the flag and skip straight to using the cached values.
+                    // 5-second timeout prevents infinite hangs when Firebase SDK is not yet
+                    // initialized (common for recovery events spawned at ~300ms post-launch).
                     if (!_firebaseIdsFetched)
                     {
-                        try {
-                            if (_config.NativeFirebase != null)
+                        await _firebaseFetchLock.WaitAsync();
+                        try
+                        {
+                            // Re-check after acquiring lock — another waiter may have succeeded.
+                            if (!_firebaseIdsFetched && _config.NativeFirebase != null)
                             {
-                                var sessionTcs = new TaskCompletionSource<string>();
-                                _config.NativeFirebase.GetFirebaseAnalyticsSessionID(id => sessionTcs.TrySetResult(id ?? ""));
-                                _cachedFirebaseSessionId = await sessionTcs.Task;
+                                try
+                                {
+                                    var sessionTcs = new TaskCompletionSource<string>();
+                                    _config.NativeFirebase.GetFirebaseAnalyticsSessionID(id => sessionTcs.TrySetResult(id ?? ""));
+                                    var sessionResult = await Task.WhenAny(sessionTcs.Task, Task.Delay(5000));
+                                    _cachedFirebaseSessionId = sessionResult == sessionTcs.Task ? sessionTcs.Task.Result : "";
+                                    if (sessionResult != sessionTcs.Task)
+                                        _log.Warning("[Event Sender] GetFirebaseAnalyticsSessionID timed out after 5s");
 
-                                var installTcs = new TaskCompletionSource<string>();
-                                _config.NativeFirebase.GetFirebaseInstallationID(id => installTcs.TrySetResult(id ?? ""));
-                                _cachedFirebaseInstallationId = await installTcs.Task;
+                                    var installTcs = new TaskCompletionSource<string>();
+                                    _config.NativeFirebase.GetFirebaseInstallationID(id => installTcs.TrySetResult(id ?? ""));
+                                    var installResult = await Task.WhenAny(installTcs.Task, Task.Delay(5000));
+                                    _cachedFirebaseInstallationId = installResult == installTcs.Task ? installTcs.Task.Result : "";
+                                    if (installResult != installTcs.Task)
+                                        _log.Warning("[Event Sender] GetFirebaseInstallationID timed out after 5s");
+
+                                    _firebaseIdsFetched = true;
+                                }
+                                catch (Exception e)
+                                {
+                                    _log.Warning($"[Event Sender] Failed to get Firebase IDs: {e.Message}");
+                                }
                             }
-                            _firebaseIdsFetched = true;
-                        } catch (Exception e) {
-                            _log.Warning($"[Event Sender] Failed to get Firebase IDs: {e.Message}");
+                        }
+                        finally
+                        {
+                            _firebaseFetchLock.Release();
                         }
                     }
 
@@ -824,6 +853,7 @@ namespace com.noctuagames.sdk.Events
         {
             if (_disposed) return;
             _cancelSendSource.Cancel();
+            _firebaseFetchLock.Dispose();
             _disposed = true;
         }
 
