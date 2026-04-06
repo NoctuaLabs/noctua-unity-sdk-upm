@@ -161,7 +161,10 @@ namespace com.noctuagames.sdk.Events
 
             _log.Info($"[Session Tracker] Recovering orphaned session {savedSessionId}, cumulativeMs={cumulativeMs}");
 
-            // Tag recovery events with the old session_id
+            // Tag recovery events with the old session_id.
+            // session_id is also baked into each data dict so the async enrichment
+            // task in EventSender.Send() picks up the correct value even after
+            // SetProperties(null) resets the shared field before the task runs.
             _eventSender.SetProperties(sessionId: savedSessionId);
 
             if (cumulativeMs > 0)
@@ -169,16 +172,21 @@ namespace com.noctuagames.sdk.Events
                 _eventSender.Send("noctua_user_engagement", new Dictionary<string, IConvertible>
                 {
                     { "engagement_time_msec", cumulativeMs },
-                    { "lifecycle", "end" }
+                    { "lifecycle", "end" },
+                    { "session_id", savedSessionId }
                 });
 
                 _eventSender.Send("noctua_user_engagement_per_session", new Dictionary<string, IConvertible>
                 {
-                    { "engagement_time_msec", cumulativeMs }
+                    { "engagement_time_msec", cumulativeMs },
+                    { "session_id", savedSessionId }
                 });
             }
 
-            _eventSender.Send("session_end");
+            _eventSender.Send("session_end", new Dictionary<string, IConvertible>
+            {
+                { "session_id", savedSessionId }
+            });
 
             // Clear so we don't recover the same session twice
             ClearSessionState();

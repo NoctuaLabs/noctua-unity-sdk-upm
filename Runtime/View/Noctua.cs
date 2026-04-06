@@ -517,8 +517,9 @@ namespace com.noctuagames.sdk
                 try
                 {
                     var log = new NoctuaLogger();
-                    log.Info("NoctuaPauseBehaviour: OnApplicationQuit — disposing StoreKit");
+                    log.Info("NoctuaPauseBehaviour: OnApplicationQuit — disposing StoreKit and session tracker");
                     Noctua.Instance.Value._nativePlugin?.DisposeStoreKit();
+                    Noctua.Instance.Value._sessionTracker?.Dispose();
                 }
                 catch (Exception) { }
             }
