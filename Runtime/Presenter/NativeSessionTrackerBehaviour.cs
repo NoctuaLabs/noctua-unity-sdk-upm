@@ -4,19 +4,20 @@ namespace com.noctuagames.sdk.Events
 {
     /// <summary>
     /// MonoBehaviour that bridges native lifecycle callbacks to <see cref="NativeSessionTracker"/>.
-    /// Registers the native callback on Start and unregisters + disposes on Destroy.
+    /// The callback is registered externally by <c>Noctua.Initialization</c> immediately after
+    /// construction (not in Start/Awake) to avoid missing the first native onResume.
+    /// Unregisters and disposes on Destroy.
     /// </summary>
     internal class NativeSessionTrackerBehaviour : MonoBehaviour
     {
         internal NativeSessionTracker NativeSessionTracker;
         internal INativeLifecycle NativeLifecycle;
 
-        private void Start()
-        {
-            NativeLifecycle?.RegisterNativeLifecycleCallback(OnNativeLifecycleEvent);
-        }
+        // Registration is done externally (Noctua.Initialization.cs) immediately after
+        // both NativeSessionTracker and NativeLifecycle are assigned, so that the callback
+        // is registered before any native onResume/onPause fires.
 
-        private void OnNativeLifecycleEvent(string lifecycleEvent)
+        internal void OnNativeLifecycleEvent(string lifecycleEvent)
         {
             switch (lifecycleEvent)
             {

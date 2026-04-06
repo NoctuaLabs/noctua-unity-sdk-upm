@@ -195,6 +195,9 @@ namespace com.noctuagames.sdk
             var nativeSessionTrackerBehaviour = noctuaUIGameObject.AddComponent<NativeSessionTrackerBehaviour>();
             nativeSessionTrackerBehaviour.NativeSessionTracker = _nativeSessionTracker;
             nativeSessionTrackerBehaviour.NativeLifecycle = _nativePlugin;
+            // Register immediately (not in Start/Awake) so the callback is in place before
+            // the native onResume fires on first launch — avoiding the first-resume miss.
+            _nativePlugin?.RegisterNativeLifecycleCallback(nativeSessionTrackerBehaviour.OnNativeLifecycleEvent);
 
             _uiFactory = new UIFactory(noctuaUIGameObject, panelSettings, locale);
 
