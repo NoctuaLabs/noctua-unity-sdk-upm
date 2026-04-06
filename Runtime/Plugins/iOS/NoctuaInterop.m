@@ -657,6 +657,7 @@ void noctuaRequestInAppReview(void) {
 
 // MARK: - Native Lifecycle Callback
 
+typedef void (*NativeLifecycleCallbackDelegate)(const char* lifecycleEvent);
 static NativeLifecycleCallbackDelegate _nativeLifecycleCallback = NULL;
 
 void noctuaRegisterLifecycleCallback(NativeLifecycleCallbackDelegate callback) {
