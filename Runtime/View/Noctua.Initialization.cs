@@ -195,9 +195,16 @@ namespace com.noctuagames.sdk
             var nativeSessionTrackerBehaviour = noctuaUIGameObject.AddComponent<NativeSessionTrackerBehaviour>();
             nativeSessionTrackerBehaviour.NativeSessionTracker = _nativeSessionTracker;
             nativeSessionTrackerBehaviour.NativeLifecycle = _nativePlugin;
-            // Register immediately (not in Start/Awake) so the callback is in place before
-            // the native onResume fires on first launch — avoiding the first-resume miss.
             _nativePlugin?.RegisterNativeLifecycleCallback(nativeSessionTrackerBehaviour.OnNativeLifecycleEvent);
+            // Synthetic first-resume: the native onResume fires immediately at Activity start,
+            // well before Unity finishes initializing (~20s). By the time this line runs the
+            // callback registration is too late — the first resume was already missed.
+            // If the app is currently in the foreground, fire "resume" now so NativeSessionTracker
+            // starts tracking engagement from the correct point.
+            if (UnityEngine.Device.Application.isFocused)
+            {
+                nativeSessionTrackerBehaviour.OnNativeLifecycleEvent("resume");
+            }
 
             _uiFactory = new UIFactory(noctuaUIGameObject, panelSettings, locale);
 

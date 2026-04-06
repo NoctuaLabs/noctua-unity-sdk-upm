@@ -13,10 +13,6 @@ namespace com.noctuagames.sdk.Events
         internal NativeSessionTracker NativeSessionTracker;
         internal INativeLifecycle NativeLifecycle;
 
-        // Registration is done externally (Noctua.Initialization.cs) immediately after
-        // both NativeSessionTracker and NativeLifecycle are assigned, so that the callback
-        // is registered before any native onResume/onPause fires.
-
         internal void OnNativeLifecycleEvent(string lifecycleEvent)
         {
             switch (lifecycleEvent)
