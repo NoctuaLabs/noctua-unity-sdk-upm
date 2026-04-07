@@ -384,18 +384,24 @@ namespace com.noctuagames.sdk
             if (IsAdmob() && primary.NetworkName == "admob")
             {
 #if UNITY_ADMOB
-                primary.SetRewardedInterstitialAdUnitID(_rewardedInterstitialAdUnitID);
-                primary.LoadRewardedInterstitialAd();
+                // All AdMob fullscreen formats use the Preload API exclusively.
+                // Do NOT call primary.SetRewardedInterstitialAdUnitID() / LoadRewardedInterstitialAd()
+                // or AppOpenAd.Load() — mixing preload and legacy paths for the same ad unit
+                // causes race conditions per AdMob docs.
 
                 // _preloadManager already assigned in Initialize() callback; reuse the same singleton.
-                // Rewarded Interstitial uses the legacy RewardedInterstitialAd.Load() path below,
-                // so it must NOT be added here — mixing preload and legacy paths for the same ad unit
-                // causes race conditions per AdMob docs.
                 var configs = new List<PreloadConfiguration>
                 {
                     _preloadManager.CreateInterstitialPreloadConfig(_interstitialAdUnitID),
-                    _preloadManager.CreateRewardedPreloadConfig(_rewardedAdUnitID)
+                    _preloadManager.CreateRewardedPreloadConfig(_rewardedAdUnitID),
+                    _preloadManager.CreateRewardedInterstitialPreloadConfig(_rewardedInterstitialAdUnitID),
                 };
+
+                // App Open: buffer=1 is recommended (Google docs: app open shown once per foreground).
+                if (!string.IsNullOrEmpty(_appOpenAdUnitID) && _appOpenAdUnitID != "unknown")
+                {
+                    configs.Add(_preloadManager.CreateAppOpenPreloadConfig(_appOpenAdUnitID, bufferSize: 1));
+                }
 
                 if (!_preloadManagerEventsSubscribed)
                 {
@@ -826,17 +832,6 @@ namespace com.noctuagames.sdk
             };
         }
 
-        /// <summary>Loads a rewarded interstitial ad (AdMob only).</summary>
-        public void LoadRewardedInterstitialAd()
-        {
-            if (_orchestrator == null)
-            {
-                _log.Warning("Orchestrator not initialized. Cannot load rewarded interstitial ad.");
-                return;
-            }
-            _orchestrator.Primary.LoadRewardedInterstitialAd();
-        }
-
         /// <summary>Shows a rewarded interstitial ad with a placeholder overlay (AdMob only).</summary>
         public void ShowRewardedInterstitialAd()
         {
@@ -846,9 +841,97 @@ namespace com.noctuagames.sdk
                 return;
             }
 
+            if (IsAdmob())
+            {
+#if UNITY_ADMOB
+                ShowAdmobRewardedInterstitial();
+#endif
+            }
+            else
+            {
+                _hasClosedPlaceholder = false;
+                ShowAdPlaceholder(AdPlaceholderType.Rewarded);
+                _orchestrator.Primary.ShowRewardedInterstitialAd();
+            }
+        }
+
+#if UNITY_ADMOB
+        private void ShowAdmobRewardedInterstitial()
+        {
             _hasClosedPlaceholder = false;
             ShowAdPlaceholder(AdPlaceholderType.Rewarded);
-            _orchestrator.Primary.ShowRewardedInterstitialAd();
+
+            if (_preloadManager == null)
+            {
+                _log.Warning("Admob Preload Manager is not initialized. Cannot show rewarded interstitial ad.");
+                CloseAdPlaceholder();
+                return;
+            }
+
+            if (_preloadManager.IsAdAvailable(_rewardedInterstitialAdUnitID, AdFormat.REWARDED_INTERSTITIAL))
+            {
+                var ad = _preloadManager.PollRewardedInterstitialAd(_rewardedInterstitialAdUnitID);
+                if (ad != null)
+                {
+                    try
+                    {
+                        _log.Info("Showing Admob Rewarded Interstitial Ad");
+                        RegisterCallbackAdRewardedInterstitial(ad);
+                        ad.Show((Reward reward) =>
+                        {
+                            _log.Info("User earned reward: " + reward.Type + " - " + reward.Amount);
+                            _admobOnUserEarnedReward?.Invoke(reward);
+                        });
+                    }
+                    catch (Exception ex)
+                    {
+                        _log.Error($"Exception showing Admob Rewarded Interstitial Ad: {ex.Message}\n{ex.StackTrace}");
+                        CloseAdPlaceholder();
+                    }
+                }
+                else
+                {
+                    _log.Warning("Admob Rewarded Interstitial Ad poll returned null");
+                    CloseAdPlaceholder();
+                }
+            }
+            else
+            {
+                _log.Info("Admob Rewarded Interstitial Ad not available");
+                CloseAdPlaceholder();
+            }
+        }
+
+        private void RegisterCallbackAdRewardedInterstitial(RewardedInterstitialAd ad)
+        {
+            ad.OnAdFullScreenContentOpened += () =>
+            {
+                CloseAdPlaceholder();
+                _onAdDisplayed?.Invoke();
+            };
+            ad.OnAdFullScreenContentFailed += (AdError error) =>
+            {
+                CloseAdPlaceholder();
+                _onAdFailedDisplayed?.Invoke();
+                _log.Warning("Rewarded Interstitial Ad failed to show. Error: " + error);
+            };
+            ad.OnAdFullScreenContentClosed += () =>
+            {
+                _onAdClosed?.Invoke();
+            };
+            ad.OnAdClicked += () =>
+            {
+                _onAdClicked?.Invoke();
+            };
+            ad.OnAdImpressionRecorded += () =>
+            {
+                _onAdImpressionRecorded?.Invoke();
+            };
+            ad.OnAdPaid += (AdValue adValue) =>
+            {
+                _revenueTracker.ProcessAdmobRevenue(adValue, ad.GetResponseInfo());
+                _admobOnAdRevenuePaid?.Invoke(adValue, ad.GetResponseInfo());
+            };
         }
 #endif
 

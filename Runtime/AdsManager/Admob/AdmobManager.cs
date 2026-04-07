@@ -15,10 +15,14 @@ namespace com.noctuagames.sdk
     {
         private readonly NoctuaLogger _log = new(typeof(AdmobManager));
 
+        /// <inheritdoc />
+        public string NetworkName => "admob";
+
         private InterstitialAdmob _interstitialAdmob;
         private RewardedAdmob _rewardedAdmob;
         private RewardedInterstitialAdmob _rewardedInterstitialAdmob;
         private BannerAdmob _bannerAdmob;
+        private AppOpenAdmob _appOpenAdmob;
 
         // Private event handlers
         private event Action _initCompleteAction;
@@ -28,14 +32,17 @@ namespace com.noctuagames.sdk
         private event Action _onAdImpressionRecorded;
         private event Action _onAdClosed;
         private event Action<Reward> _onUserEarnedReward;
+        private event Action<double, string> _onUnifiedUserEarnedReward;
 
         private event Action<AdValue, ResponseInfo> _admobOnAdRevenuePaid;
+        private event Action<double, string, Dictionary<string, string>> _onUnifiedAdRevenuePaid;
 
         // Subscription guards to prevent duplicate event wiring on re-init
         private bool _interstitialEventsSubscribed;
         private bool _rewardedEventsSubscribed;
         private bool _bannerEventsSubscribed;
         private bool _rewardedInterstitialEventsSubscribed;
+        private bool _appOpenEventsSubscribed;
 
         /// <summary>Raised when the AdMob SDK has completed initialization.</summary>
         public event Action OnInitialized { add => _initCompleteAction += value; remove => _initCompleteAction -= value; }
@@ -61,6 +68,12 @@ namespace com.noctuagames.sdk
         /// <summary>Raised when ad revenue is recorded, providing the ad value and response information.</summary>
         public event Action<AdValue, ResponseInfo> AdmobOnAdRevenuePaid { add => _admobOnAdRevenuePaid += value; remove => _admobOnAdRevenuePaid -= value; }
 
+        /// <summary>Raised when the user earns a reward (network-agnostic). Parameters: (amount, type).</summary>
+        public event Action<double, string> OnUserEarnedReward { add => _onUnifiedUserEarnedReward += value; remove => _onUnifiedUserEarnedReward -= value; }
+
+        /// <summary>Raised when ad revenue is recorded (network-agnostic). Parameters: (revenue, currency, metadata).</summary>
+        public event Action<double, string, Dictionary<string, string>> OnAdRevenuePaid { add => _onUnifiedAdRevenuePaid += value; remove => _onUnifiedAdRevenuePaid -= value; }
+
         internal AdmobManager()
         {
             _log.Debug("AdmobManager constructor");
@@ -69,7 +82,37 @@ namespace com.noctuagames.sdk
             _rewardedAdmob = new RewardedAdmob();
             _interstitialAdmob = new InterstitialAdmob();
             _rewardedInterstitialAdmob = new RewardedInterstitialAdmob();
+            _appOpenAdmob = new AppOpenAdmob();
 
+            // Wire network-specific events to unified (network-agnostic) events
+            _onUserEarnedReward += (reward) =>
+            {
+                _onUnifiedUserEarnedReward?.Invoke(reward.Amount, reward.Type);
+            };
+
+            _admobOnAdRevenuePaid += (adValue, responseInfo) =>
+            {
+                double revenueUsd = adValue.Value / 1_000_000.0;
+                string currency = adValue.CurrencyCode ?? "USD";
+
+                var metadata = new Dictionary<string, string>
+                {
+                    { "network", "admob" },
+                    { "precision", adValue.Precision.ToString() }
+                };
+
+                if (responseInfo != null)
+                {
+                    var loaded = responseInfo.GetLoadedAdapterResponseInfo();
+                    if (loaded != null)
+                    {
+                        metadata["ad_source"] = loaded.AdSourceName ?? "unknown";
+                        metadata["adapter"] = loaded.AdapterClassName ?? "unknown";
+                    }
+                }
+
+                _onUnifiedAdRevenuePaid?.Invoke(revenueUsd, currency, metadata);
+            };
         }
 
         /// <inheritdoc />
@@ -230,13 +273,53 @@ namespace com.noctuagames.sdk
         }
 
         /// <inheritdoc />
+        public void SetAppOpenAdUnitID(string adUnitID)
+        {
+            _appOpenAdmob.SetAppOpenAdUnitID(adUnitID);
+
+            if (!_appOpenEventsSubscribed)
+            {
+                _appOpenEventsSubscribed = true;
+
+                _appOpenAdmob.AppOpenOnAdDisplayed += () => { _onAdDisplayed?.Invoke(); };
+                _appOpenAdmob.AppOpenOnAdFailedDisplayed += () => { _onAdFailedDisplayed?.Invoke(); };
+                _appOpenAdmob.AppOpenOnAdClicked += () => { _onAdClicked?.Invoke(); };
+                _appOpenAdmob.AppOpenOnAdImpressionRecorded += () => { _onAdImpressionRecorded?.Invoke(); };
+                _appOpenAdmob.AppOpenOnAdClosed += () => { _onAdClosed?.Invoke(); };
+                _appOpenAdmob.AdmobOnAdRevenuePaid += (adValue, responseInfo) => { _admobOnAdRevenuePaid?.Invoke(adValue, responseInfo); };
+            }
+        }
+
+        /// <inheritdoc />
+        /// <remarks>No-op — App Open loading is managed by <see cref="AdmobAdPreloadManager"/>.</remarks>
+        public void LoadAppOpenAd()
+        {
+            // Preload API manages loading automatically via MediationManager.SetupAdUnitID.
+            _log.Debug("LoadAppOpenAd: preload API manages loading automatically. No-op.");
+        }
+
+        /// <inheritdoc />
+        public void ShowAppOpenAd()
+        {
+            // AppOpenAdmob.ShowAppOpenAd() polls from AdmobAdPreloadManager internally.
+            _appOpenAdmob.ShowAppOpenAd();
+        }
+
+        /// <inheritdoc />
+        public bool IsAppOpenAdReady()
+        {
+            // AppOpenAdmob.IsAdReady() queries AdmobAdPreloadManager internally.
+            return _appOpenAdmob.IsAdReady();
+        }
+
+        /// <inheritdoc />
         public void ShowMediationDebugger()
         {
             _log.Info("Showing mediation debugger");
 
             MobileAds.OpenAdInspector((AdInspectorError error) =>
             {
-                _log.Error("Admob mediation debugger closed with error: " + error);                
+                _log.Error("Admob mediation debugger closed with error: " + error);
             });
         }
     }
