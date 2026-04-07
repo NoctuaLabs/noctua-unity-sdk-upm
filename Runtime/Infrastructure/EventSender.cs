@@ -139,6 +139,7 @@ namespace com.noctuagames.sdk.Events
         private volatile bool _isFlushing;
         private DateTime _lastConnectivityCheck = DateTime.MinValue;
         private static readonly TimeSpan ConnectivityCheckInterval = TimeSpan.FromSeconds(30);
+        private readonly Stopwatch _stageStopwatch = new Stopwatch();
 
         // Cached Firebase IDs — fetched once per session to avoid static callback overwriting
         // on iOS when multiple async calls race (IosPlugin uses single static callback slots).
@@ -633,6 +634,30 @@ namespace com.noctuagames.sdk.Events
                     }
 
                     PlayerPrefs.Save();
+                    _stageStopwatch.Restart();
+                }
+
+                if (name == "game_stage_complete")
+                {
+                    if (_stageStopwatch.IsRunning)
+                    {
+                        data.TryAdd("stage_time_msec", _stageStopwatch.ElapsedMilliseconds);
+                        _stageStopwatch.Reset();
+                    }
+
+                    string completeLevelStr = null;
+
+                    if (data.TryGetValue("level", out var completeLevelValue))
+                        completeLevelStr = completeLevelValue?.ToString();
+
+                    if (string.IsNullOrEmpty(completeLevelStr) && data.TryGetValue("game_level", out var completeGameLevelValue))
+                        completeLevelStr = completeGameLevelValue?.ToString();
+
+                    if (!string.IsNullOrEmpty(completeLevelStr))
+                    {
+                        PlayerPrefs.SetString("NoctuaCurrentStageLevel", completeLevelStr);
+                        PlayerPrefs.Save();
+                    }
                 }
 
                 // Enrich all events with current stage data from PlayerPrefs (if non-empty)
