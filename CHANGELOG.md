@@ -4,10 +4,36 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.91.0] - 2026-04-07
+
+### 🚀 Features
+
+- Add `feature_engagement` event with time tracking and visit ID per game feature interaction
+- Add `stage_time_msec` auto-injection into `game_stage_complete` events (measured via stopwatch from `game_stage_start`)
+
+### 🐛 Bug Fixes
+
+- Fix element-wise batch parse recovery for corrupted event batches on Android and iOS — falls back to per-element deserialization when full-batch parse fails
+- Fix null/empty event name: log error and return instead of throwing, preventing unhandled exceptions
+
+## [0.90.0] - 2026-04-07
+
+### 🐛 Bug Fixes
+
+- Make `NativeSessionTracker` fields and properties public to resolve CS1061 build errors in consuming assemblies
+
+## [0.89.0] - 2026-04-07
+
+### 🐛 Bug Fixes
+
+- Make `NativeSessionTracker` class `public` to resolve CS0122 build errors in consuming assemblies
+
+## [0.88.0] - 2026-04-06
+
 ### 🚀 Features
 
 - Add native lifecycle callback bridge for OS-level engagement tracking (`native_user_engagement`, `native_user_engagement_per_session`)
-- Add lifecycle param (`start`, `foreground`, `pause`, `end`) to `noctua_user_engagement` and `native_user_engagement` events
+- Add `lifecycle` param (`start`, `foreground`, `pause`, `end`) to `noctua_user_engagement` and `native_user_engagement` events
 - Add `noctua_user_engagement_per_session` — cumulative foreground time sent on session timeout/end
 - Add `pseudo_user_id` to all events for cross-device user stitching
 - Add `GetPseudoUserId()` public API; deprecate `ExperimentManager` session_id methods
@@ -18,10 +44,11 @@ All notable changes to this project will be documented in this file.
 
 - Fix `session_end` / `noctua_user_engagement_per_session` never sent on force-kill (SIGKILL): persist session state to PlayerPrefs on every lifecycle event; recover orphaned sessions on next launch
 - Fix `session_start` lost when app is killed during Firebase ID fetch: immediate synchronous persist to native storage before async enrichment for `session_start` and `noctua_user_engagement` events
-- Fix recovery events (`session_end`, `noctua_user_engagement_per_session`) tagged with wrong session_id: `EventSender.Send()` strips `session_id` from caller data as a reserved key before the async task runs; fix by capturing `callerProvidedSessionId` before stripping and using it with priority over the shared `_sessionId` field in both Phase 1 and Phase 2; also add `session_end` and `noctua_user_engagement_per_session` to `_immediateEvents` for synchronous persist before Firebase ID fetch
-- Fix recovery events' Phase 2 async tasks hanging indefinitely when Firebase SDK is not yet initialized at recovery time (~300ms post-launch): add 5-second timeout (`Task.WhenAny`) to `GetFirebaseAnalyticsSessionID` and `GetFirebaseInstallationID` calls; add single-flight `SemaphoreSlim` so concurrent recovery tasks don't all overwrite the iOS static callback slot simultaneously
+- Fix recovery events (`session_end`, `noctua_user_engagement_per_session`) tagged with wrong `session_id`: capture `callerProvidedSessionId` before reserved-key strip in `EventSender.Send()`; add `session_end` and `noctua_user_engagement_per_session` to `_immediateEvents` for synchronous persist before Firebase ID fetch
+- Fix recovery events' async tasks hanging indefinitely when Firebase SDK is not yet initialized: add 5-second `Task.WhenAny` timeout to `GetFirebaseAnalyticsSessionID` / `GetFirebaseInstallationID`; add single-flight `SemaphoreSlim` so concurrent recovery tasks don't overwrite the iOS static callback slot
 - Fix `native_user_engagement` never emitted: register native lifecycle callback after `Init()` so Kotlin's `ensureInit()` guard does not silently drop the call; fire synthetic first-resume when app is already in foreground at registration time
-- Fix clean-exit path leaving orphaned session in PlayerPrefs: call `SessionTracker.Dispose()` (which runs `ClearSessionState()`) inside `PauseBehaviour.OnApplicationQuit()` so graceful `Application.Quit()` exits clear the orphan keys
+- Fix clean-exit leaving orphaned session in PlayerPrefs: call `SessionTracker.Dispose()` inside `PauseBehaviour.OnApplicationQuit()` so graceful `Application.Quit()` clears orphan keys
+- Fix `NoctuaLocale` CS0122 build error: replace `ImmutableDictionary` with `Dictionary`
 - Remove `GetPseudoUserId()` accidentally leaked from unrelated branch
 
 ### 💼 Other

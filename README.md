@@ -1,6 +1,6 @@
 # Noctua SDK for Unity
 
-**Version:** 0.87.0 | **Unity:** 2021.3+ | **Platforms:** Android, iOS
+**Version:** 0.91.0 | **Unity:** 2021.3+ | **Platforms:** Android, iOS
 
 For full integration details and usage guides, visit the official documentation: https://docs.noctua.gg
 
@@ -24,7 +24,7 @@ Add to `Packages/manifest.json`:
 ```json
 {
   "dependencies": {
-    "com.noctuagames.sdk": "https://github.com/noctuagames/noctua-sdk-unity-upm.git#0.87.0"
+    "com.noctuagames.sdk": "https://github.com/noctuagames/noctua-sdk-unity-upm.git#0.91.0"
   }
 }
 ```
@@ -77,6 +77,9 @@ Parallel tracker driven by native platform callbacks (iOS `UIApplication`, Andro
 
 ### `noctua_user_engagement_per_session`
 Cumulative foreground time for the entire session. Fires on session timeout resume or graceful app quit.
+
+### `feature_engagement` (feature-level engagement)
+Tracks time spent on individual game features. Call `Noctua.Event.TrackCustomEvent("feature_engagement_start", ...)` and `feature_engagement_end` to bracket feature interactions; the SDK computes `time_msec` and attaches a `visit_id` for grouping related start/end pairs.
 
 ### Session Timeout
 Default: **15 minutes** (`sessionTimeoutMs: 900000` in `NoctuaConfig`). On timeout, the old session is closed without `session_end` (force-kill limitation) and a new session begins.
