@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using UnityEngine;
 
 namespace com.noctuagames.sdk
@@ -713,6 +714,8 @@ namespace com.noctuagames.sdk
         [AOT.MonoPInvokeCallback(typeof(GetEventsBatchCallbackDelegate))]
         private static void GetEventsBatchCallback(IntPtr eventsJsonPtr)
         {
+            string json = null;
+
             try
             {
                 if (eventsJsonPtr == IntPtr.Zero)
@@ -721,7 +724,7 @@ namespace com.noctuagames.sdk
                     return;
                 }
 
-                string json = Marshal.PtrToStringUTF8(eventsJsonPtr);
+                json = Marshal.PtrToStringUTF8(eventsJsonPtr);
 
                 if (string.IsNullOrEmpty(json))
                 {
@@ -734,9 +737,45 @@ namespace com.noctuagames.sdk
             }
             catch (Exception e)
             {
-                _sLog.Warning($"[Noctua] GetEventsBatch callback failed: {e.Message}");
-                storedGetEventsBatchCompletion?.Invoke(new List<NativeEvent>());
+                _sLog.Warning($"[Noctua] Failed to parse events batch, attempting element-wise recovery: {e.Message}");
+                storedGetEventsBatchCompletion?.Invoke(ParseEventsBatchSafe(json));
             }
+        }
+
+        /// Attempts to parse a JSON array of <see cref="NativeEvent"/> element by element,
+        /// skipping any entries whose <c>eventJson</c> field is malformed.
+        /// This prevents a single corrupted row from blocking the entire flush batch.
+        private static List<NativeEvent> ParseEventsBatchSafe(string json)
+        {
+            var result = new List<NativeEvent>();
+
+            try
+            {
+                var array = JArray.Parse(json);
+
+                foreach (var token in array)
+                {
+                    try
+                    {
+                        var evt = token.ToObject<NativeEvent>(JsonSerializer.CreateDefault());
+
+                        if (evt != null)
+                            result.Add(evt);
+                    }
+                    catch (Exception elemEx)
+                    {
+                        var id = token["id"]?.Value<long>() ?? -1;
+                        _sLog.Warning($"[Noctua] Skipping corrupted event id={id} in batch: {elemEx.Message}");
+                    }
+                }
+            }
+            catch (Exception parseEx)
+            {
+                _sLog.Warning($"[Noctua] Could not parse batch as JSON array during recovery: {parseEx.Message}");
+            }
+
+            _sLog.Info($"[Noctua] Element-wise recovery completed: {result.Count} events recovered");
+            return result;
         }
 
         [AOT.MonoPInvokeCallback(typeof(DeleteEventsByIdsCallbackDelegate))]

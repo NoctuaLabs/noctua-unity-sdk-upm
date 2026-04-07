@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using UnityEngine;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
 #if UNITY_ANDROID && !UNITY_EDITOR
 namespace com.noctuagames.sdk
@@ -569,8 +570,8 @@ namespace com.noctuagames.sdk
                     }
                     catch (Exception ex)
                     {
-                        _log.Warning($"[Noctua] Failed to parse events batch: {ex.Message}");
-                        callback?.Invoke(new List<NativeEvent>());
+                        _log.Warning($"[Noctua] Failed to parse events batch, attempting element-wise recovery: {ex.Message}");
+                        callback?.Invoke(ParseEventsBatchSafe(json));
                     }
                 });
 
@@ -582,6 +583,42 @@ namespace com.noctuagames.sdk
                 if (e.Message == null) return;
                 _log.Warning($"[Noctua] Failed to get events batch: {e.Message}");
             }
+        }
+
+        /// Attempts to parse a JSON array of <see cref="NativeEvent"/> element by element,
+        /// skipping any entries whose <c>eventJson</c> field is malformed.
+        /// This prevents a single corrupted row from blocking the entire flush batch.
+        private List<NativeEvent> ParseEventsBatchSafe(string json)
+        {
+            var result = new List<NativeEvent>();
+
+            try
+            {
+                var array = JArray.Parse(json);
+
+                foreach (var token in array)
+                {
+                    try
+                    {
+                        var evt = token.ToObject<NativeEvent>(JsonSerializer.CreateDefault());
+
+                        if (evt != null)
+                            result.Add(evt);
+                    }
+                    catch (Exception elemEx)
+                    {
+                        var id = token["id"]?.Value<long>() ?? -1;
+                        _log.Warning($"[Noctua] Skipping corrupted event id={id} in batch: {elemEx.Message}");
+                    }
+                }
+            }
+            catch (Exception parseEx)
+            {
+                _log.Warning($"[Noctua] Could not parse batch as JSON array during recovery: {parseEx.Message}");
+            }
+
+            _log.Info($"[Noctua] Element-wise recovery completed: {result.Count} events recovered");
+            return result;
         }
 
         /// <inheritdoc />
