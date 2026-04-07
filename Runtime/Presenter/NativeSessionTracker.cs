@@ -31,9 +31,9 @@ namespace com.noctuagames.sdk.Events
         private long _cumulativeSessionEngagementMs;
 
         // Read-only stats for test button
-        internal long CumulativeSessionEngagementMs => _cumulativeSessionEngagementMs;
-        internal bool IsInForeground => !_pauseStatus;
-        internal long CurrentForegroundMs => _foregroundStopwatch.ElapsedMilliseconds + _accumulatedEngagementMs;
+        public long CumulativeSessionEngagementMs => _cumulativeSessionEngagementMs;
+        public bool IsInForeground => !_pauseStatus;
+        public long CurrentForegroundMs => _foregroundStopwatch.ElapsedMilliseconds + _accumulatedEngagementMs;
 
         public NativeSessionTracker(SessionTrackerConfig config, IEventSender eventSender,
             Dictionary<string, bool> remoteFeatureFlags = null)
@@ -48,7 +48,7 @@ namespace com.noctuagames.sdk.Events
         /// <summary>
         /// Called when native platform reports the app has resumed (become active).
         /// </summary>
-        internal void OnNativeResume()
+        public void OnNativeResume()
         {
             if (!_pauseStatus)
             {
@@ -86,7 +86,7 @@ namespace com.noctuagames.sdk.Events
         /// <summary>
         /// Called when native platform reports the app has paused (resigned active).
         /// </summary>
-        internal void OnNativePause()
+        public void OnNativePause()
         {
             if (_pauseStatus)
             {
