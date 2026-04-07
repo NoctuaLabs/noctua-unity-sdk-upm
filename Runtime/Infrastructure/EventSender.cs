@@ -504,24 +504,6 @@ namespace com.noctuagames.sdk.Events
                     data.TryAdd("experiment", activeExperiment);
                 }
 
-                var activeFeature = ExperimentManager.GetSessionTag();
-                var sessionEvents = new HashSet<string>
-                {
-                    "session_start",
-                    "session_end",
-                    "session_pause",
-                    "session_continue",
-                    "session_heartbeat",
-                    "noctua_user_engagement",
-                    "noctua_user_engagement_per_session",
-                    "native_user_engagement",
-                    "native_user_engagement_per_session"
-                };
-
-                if (!string.IsNullOrEmpty(activeFeature) && sessionEvents.Contains(name))
-                {
-                    data.TryAdd("tag", activeFeature);
-                }
 
                 #if (UNITY_ANDROID || UNITY_IOS) && !UNITY_EDITOR
                 bool shouldFetchFirebaseIds = false;

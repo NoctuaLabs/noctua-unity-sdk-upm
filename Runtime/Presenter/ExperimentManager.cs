@@ -75,12 +75,12 @@ public static class ExperimentManager
         return GetFlag<string>(KEY_CURRENT_EXPERIMENT, string.Empty);
     }
 
-    public static void SetSessionTag(string featureName)
+    public static void SetCurrentFeature(string featureName)
     {
         SetFlag(KEY_CURRENT_FEATURE, featureName);
     }
 
-    public static string GetSessionTag()
+    public static string GetCurrentFeature()
     {
         return GetFlag<string>(KEY_CURRENT_FEATURE, string.Empty);
     }

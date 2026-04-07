@@ -110,17 +110,17 @@ namespace Tests.Runtime
         }
 
         [UnityTest]
-        public IEnumerator SetSessionTag_GetSessionTag()
+        public IEnumerator SetCurrentFeature_GetCurrentFeature()
         {
-            ExperimentManager.SetSessionTag("feature-x");
-            Assert.AreEqual("feature-x", ExperimentManager.GetSessionTag());
+            ExperimentManager.SetCurrentFeature("feature-x");
+            Assert.AreEqual("feature-x", ExperimentManager.GetCurrentFeature());
             yield return null;
         }
 
         [UnityTest]
-        public IEnumerator GetSessionTag_Default_ReturnsEmpty()
+        public IEnumerator GetCurrentFeature_Default_ReturnsEmpty()
         {
-            Assert.AreEqual(string.Empty, ExperimentManager.GetSessionTag());
+            Assert.AreEqual(string.Empty, ExperimentManager.GetCurrentFeature());
             yield return null;
         }
 

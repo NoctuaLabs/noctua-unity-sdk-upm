@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using UnityEngine.Scripting;
 using System.Collections;
 using UnityEngine;
@@ -21,10 +22,10 @@ namespace com.noctuagames.sdk.Events
         private readonly ILogger _log = new NoctuaLogger(typeof(NoctuaEventService));
 
         private string _country;
-
         private string _ipAddress;
-        
         private bool _isSandbox;
+        private readonly Stopwatch _featureStopwatch = new Stopwatch();
+        private string _currentFeatureVisitId;
 
         /// <summary>
         /// Sets contextual properties (country, IP, sandbox flag) that are automatically appended to all tracked events.
@@ -62,21 +63,51 @@ namespace com.noctuagames.sdk.Events
         }
 
         /// <summary>
-        /// Set a feature identifier to track TSPU.
+        /// Sets the current feature/screen the player is on. Automatically sends a
+        /// <c>feature_engagement</c> event for the previous feature (if any) with the
+        /// elapsed time and a unique visit ID.
         /// </summary>
-        /// <param name="tagName">Tag name.</param>
-        public void SetSessionTag(string tagName)
+        /// <param name="featureName">Feature or screen name. Pass empty string to clear.</param>
+        public void SetCurrentFeature(string featureName)
         {
-            ExperimentManager.SetSessionTag(tagName);
+            var previousTag = ExperimentManager.GetCurrentFeature();
+
+            if (!string.IsNullOrEmpty(previousTag) && _featureStopwatch.IsRunning)
+            {
+                var elapsedMs = _featureStopwatch.ElapsedMilliseconds;
+                _log.Info($"[Feature] Leaving '{previousTag}' after {elapsedMs}ms (visit_id={_currentFeatureVisitId}), sending feature_engagement");
+
+                _eventSender?.Send("feature_engagement", new Dictionary<string, IConvertible>
+                {
+                    { "feature_tag", previousTag },
+                    { "feature_time_msec", elapsedMs },
+                    { "feature_visit_id", _currentFeatureVisitId }
+                });
+            }
+
+            ExperimentManager.SetCurrentFeature(featureName);
+
+            if (!string.IsNullOrEmpty(featureName))
+            {
+                _currentFeatureVisitId = Guid.NewGuid().ToString();
+                _featureStopwatch.Restart();
+                _log.Info($"[Feature] Entering '{featureName}' (visit_id={_currentFeatureVisitId})");
+            }
+            else
+            {
+                _currentFeatureVisitId = null;
+                _featureStopwatch.Reset();
+                _log.Info("[Feature] Cleared current feature");
+            }
         }
 
         /// <summary>
-        /// Get currently active feature identifier for TSPU.
+        /// Gets the currently active feature/screen name.
         /// </summary>
-        /// <returns>Active tag name or empty string.</returns>
-        public string GetSessionTag()
+        /// <returns>Active feature name or empty string.</returns>
+        public string GetCurrentFeature()
         {
-            return ExperimentManager.GetSessionTag();
+            return ExperimentManager.GetCurrentFeature();
         }
 
         /// <summary>
