@@ -260,28 +260,41 @@ namespace com.noctuagames.sdk
             SubscribeToOrchestratorEvents();
             SubscribeToNetworkSpecificEvents();
 
-            // Use orchestrator to initialize both networks
-            _orchestrator.Initialize(() =>
-            {
-                _log.Info("Primary network initialized: " + _orchestrator.Primary.NetworkName);
-
-                if (IAAResponse.AdFormat == null && (IAAResponse.Networks == null || IAAResponse.Networks.Count == 0))
+            // Use orchestrator to initialize both networks concurrently.
+            // Primary callback fires when primary SDK is ready → load primary ads.
+            // Secondary callback fires when secondary SDK is ready → load secondary ads.
+            // Never call Load on a network before its own init callback fires (per AdMob and AppLovin docs).
+            _orchestrator.Initialize(
+                onPrimaryReady: () =>
                 {
-                    _log.Info("No ad format config. Cannot proceed with ad unit ID setup.");
-                    initCompleteAction?.Invoke();
-                    return;
-                }
+                    _log.Info("Primary network initialized: " + _orchestrator.Primary.NetworkName);
 
-                if (IsAdmob())
-                {
+                    if (IAAResponse.AdFormat == null && (IAAResponse.Networks == null || IAAResponse.Networks.Count == 0))
+                    {
+                        _log.Info("No ad format config. Cannot proceed with ad unit ID setup.");
+                        initCompleteAction?.Invoke();
+                        return;
+                    }
+
+                    if (IsAdmob())
+                    {
 #if UNITY_ADMOB
-                    _preloadManager = AdmobAdPreloadManager.Instance;
+                        _preloadManager = AdmobAdPreloadManager.Instance;
 #endif
-                }
+                    }
 
-                SetupAdUnitID(IAAResponse);
-                initCompleteAction?.Invoke();
-            });
+                    SetupAdUnitID(IAAResponse);
+                    initCompleteAction?.Invoke();
+                },
+                onSecondaryReady: () =>
+                {
+                    var secondary = _orchestrator.Secondary;
+                    if (secondary == null || IAAResponse == null) return;
+
+                    _log.Info("Secondary network initialized: " + secondary.NetworkName);
+                    SetupSecondaryAdUnits(IAAResponse, secondary);
+                    SetupSecondaryAppOpen(IAAResponse, secondary);
+                });
         }
 
         private void SubscribeToOrchestratorEvents()
@@ -374,8 +387,10 @@ namespace com.noctuagames.sdk
                 primary.SetRewardedInterstitialAdUnitID(_rewardedInterstitialAdUnitID);
                 primary.LoadRewardedInterstitialAd();
 
-                _preloadManager = AdmobAdPreloadManager.Instance;
-
+                // _preloadManager already assigned in Initialize() callback; reuse the same singleton.
+                // Rewarded Interstitial uses the legacy RewardedInterstitialAd.Load() path below,
+                // so it must NOT be added here — mixing preload and legacy paths for the same ad unit
+                // causes race conditions per AdMob docs.
                 var configs = new List<PreloadConfiguration>
                 {
                     _preloadManager.CreateInterstitialPreloadConfig(_interstitialAdUnitID),
@@ -410,13 +425,11 @@ namespace com.noctuagames.sdk
                 primary.LoadRewardedAd();
             }
 
-            // Configure secondary network ad units if hybrid
-            if (secondary != null)
-            {
-                SetupSecondaryAdUnits(iAAResponse, secondary);
-            }
+            // NOTE: Secondary ad units are NOT loaded here.
+            // They are loaded in the onSecondaryReady callback in Initialize(),
+            // which only fires after the secondary SDK has fully initialized.
 
-            // Configure App Open ads
+            // Configure App Open ads (primary only; secondary added in SetupSecondaryAppOpen)
             SetupAppOpenAds(iAAResponse);
 
             _onInitialized?.Invoke();
@@ -447,16 +460,17 @@ namespace com.noctuagames.sdk
             }
         }
 
+        /// <summary>
+        /// Sets up App Open ads on the primary network only.
+        /// Secondary App Open is wired later in <see cref="SetupSecondaryAppOpen"/> once the secondary SDK is ready.
+        /// </summary>
         private void SetupAppOpenAds(IAA iAAResponse)
         {
             string primaryAppOpenId = ResolveAdUnitIdForNetwork(iAAResponse, _orchestrator.Primary.NetworkName, "app_open");
-            string secondaryAppOpenId = _orchestrator.Secondary != null
-                ? ResolveAdUnitIdForNetwork(iAAResponse, _orchestrator.Secondary.NetworkName, "app_open")
-                : null;
 
-            if (primaryAppOpenId == "unknown" && (secondaryAppOpenId == null || secondaryAppOpenId == "unknown"))
+            if (string.IsNullOrEmpty(primaryAppOpenId) || primaryAppOpenId == "unknown")
             {
-                _log.Debug("No app open ad unit IDs configured.");
+                _log.Debug("No primary app open ad unit ID configured.");
                 return;
             }
 
@@ -468,7 +482,23 @@ namespace com.noctuagames.sdk
                 cooldownSeconds: iAAResponse.AppOpenCooldownSeconds > 0 ? iAAResponse.AppOpenCooldownSeconds : 30
             );
 
-            _appOpenAdManager.Configure(primaryAppOpenId, secondaryAppOpenId);
+            // Only pass primary here; secondary will be added in SetupSecondaryAppOpen after secondary SDK is ready
+            _appOpenAdManager.Configure(primaryAppOpenId, null);
+        }
+
+        /// <summary>
+        /// Adds secondary App Open ad support after the secondary SDK has finished initialization.
+        /// Safe to call only from the onSecondaryReady callback.
+        /// </summary>
+        private void SetupSecondaryAppOpen(IAA iAAResponse, IAdNetwork secondary)
+        {
+            if (_appOpenAdManager == null) return;
+
+            string secondaryAppOpenId = ResolveAdUnitIdForNetwork(iAAResponse, secondary.NetworkName, "app_open");
+            if (!string.IsNullOrEmpty(secondaryAppOpenId) && secondaryAppOpenId != "unknown")
+            {
+                _appOpenAdManager.ConfigureSecondary(secondaryAppOpenId);
+            }
         }
 
         private void ResolveAdUnitIDs(IAA iAAResponse, string networkName)
