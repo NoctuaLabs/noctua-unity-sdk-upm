@@ -12,12 +12,16 @@ namespace com.noctuagames.sdk
 {
     /// <summary>
     /// Manages ad mediation across multiple ad networks (AdMob, AppLovin), handling initialization,
-    /// ad loading, display, and revenue tracking.
+    /// ad loading, display, revenue tracking, and hybrid fallback orchestration.
     /// </summary>
     public class MediationManager
     {
         private readonly NoctuaLogger _log = new(typeof(MediationManager));
-        private IAdNetwork _adNetwork;
+        private HybridAdOrchestrator _orchestrator;
+        private AdRevenueTrackingManager _revenueTracker;
+        private AdFrequencyManager _frequencyManager;
+        private AppOpenAdManager _appOpenAdManager;
+        private AdNetworkPerformanceTracker _performanceTracker;
         private string _mediationType;
 
         // Private event handlers
@@ -79,6 +83,7 @@ namespace com.noctuagames.sdk
         private string _rewardedAdUnitID = "unused";
         private string _rewardedInterstitialAdUnitID = "unused";
         private string _bannerAdUnitID = "unused";
+        private string _appOpenAdUnitID = "unused";
 
         /// <summary>Gets the configured interstitial ad unit ID for the current platform.</summary>
         public string InterstitialAdUnitID => _interstitialAdUnitID;
@@ -91,19 +96,41 @@ namespace com.noctuagames.sdk
 
         private readonly IAdPlaceholderUI _adPlaceholderUI;
         private IAdRevenueTracker _adRevenueTracker;
-        private bool _hasClosedPlaceholder = false; // Track if the placeholder has been closed to prevent multiple closures
-        private bool _adNetworkEventsSubscribed; // Guard against duplicate event subscriptions on re-init
-        private bool _preloadManagerEventsSubscribed; // Guard against duplicate preload event subscriptions
+        private bool _hasClosedPlaceholder;
+        private bool _adNetworkEventsSubscribed;
+        private bool _preloadManagerEventsSubscribed;
 
-        // Taichi tROAS threshold tracking
-        private const string TroasCacheKey = "TroasCache";
-        private const string AdCountKey = "AdCount";
-        private const float TroasThreshold = 0.01f;
-        private const int AdCountThreshold = 10;
+        private IAA _iaaResponse;
 
-        internal IAA IAAResponse { get; set; }
+        internal IAA IAAResponse
+        {
+            get => _iaaResponse;
+            set
+            {
+                _iaaResponse = value;
+                if (value != null)
+                {
+                    _adNetworkEventsSubscribed = false;
+                    _preloadManagerEventsSubscribed = false;
+                    CreateNetworks(value);
+                }
+            }
+        }
 
-        internal void SetAdRevenueTracker(IAdRevenueTracker tracker) => _adRevenueTracker = tracker;
+        /// <summary>Returns the App Open ad manager for foreground auto-show control.</summary>
+        public AppOpenAdManager AppOpenManager => _appOpenAdManager;
+
+        /// <summary>Returns true if running in hybrid mode (both networks active).</summary>
+        public bool IsHybridMode => _orchestrator?.IsHybridMode ?? false;
+
+        /// <summary>Returns the active mediation type string.</summary>
+        public string MediationType => _mediationType;
+
+        internal void SetAdRevenueTracker(IAdRevenueTracker tracker)
+        {
+            _adRevenueTracker = tracker;
+            _revenueTracker?.SetAdRevenueTracker(tracker);
+        }
 
         internal MediationManager(IAdPlaceholderUI adPlaceholderUI, IAA iAAResponse)
         {
@@ -121,31 +148,91 @@ namespace com.noctuagames.sdk
                 return;
             }
 
-            #if UNITY_ADMOB
-                _adNetwork = new AdmobManager();
-            #endif
-
-            #if UNITY_APPLOVIN
-                _adNetwork = new AppLovinManager();
-                
-                if(_adNetwork == null) 
-                {
-                    _log.Error("Failed to create AppLovinManager instance.");
-                }
-            #endif
-            
             IAAResponse = iAAResponse;
         }
 
+        private void CreateNetworks(IAA iaaConfig)
+        {
+            IAdNetwork primary = null;
+            IAdNetwork secondary = null;
+
+            #if UNITY_ADMOB
+            primary = new AdmobManager();
+            #endif
+
+            #if UNITY_APPLOVIN
+            // If ADMOB is also defined and secondary_mediation is set, AppLovin becomes secondary
+            #if UNITY_ADMOB
+            if (!string.IsNullOrEmpty(iaaConfig.SecondaryMediation) &&
+                iaaConfig.SecondaryMediation == "applovin")
+            {
+                secondary = new AppLovinManager();
+            }
+            #else
+            primary = new AppLovinManager();
+            #endif
+            #endif
+
+            // If no primary was set (no defines), log error
+            if (primary == null)
+            {
+                #if UNITY_APPLOVIN
+                // AppLovin is primary when ADMOB is not defined
+                #else
+                _log.Error("No ad network SDK is available. Define UNITY_ADMOB or UNITY_APPLOVIN.");
+                return;
+                #endif
+            }
+
+            // Check for secondary in the reverse direction: primary is applovin, secondary is admob
+            #if UNITY_APPLOVIN && UNITY_ADMOB
+            if (primary is AppLovinManager && !string.IsNullOrEmpty(iaaConfig.SecondaryMediation) &&
+                iaaConfig.SecondaryMediation == "admob")
+            {
+                secondary = new AdmobManager();
+            }
+            #endif
+
+            // Create supporting managers
+            _frequencyManager = new AdFrequencyManager(
+                iaaConfig.FrequencyCaps,
+                iaaConfig.CooldownSeconds,
+                iaaConfig.EnabledFormats
+            );
+
+            _revenueTracker = new AdRevenueTrackingManager(_adRevenueTracker, iaaConfig.Taichi);
+
+            _performanceTracker = iaaConfig.DynamicOptimization
+                ? new AdNetworkPerformanceTracker()
+                : null;
+
+            _orchestrator = new HybridAdOrchestrator(
+                primary: primary,
+                secondary: secondary,
+                adFormatOverrides: iaaConfig.AdFormatOverrides,
+                performanceTracker: _performanceTracker,
+                dynamicOptimization: iaaConfig.DynamicOptimization
+            );
+
+            _log.Info($"Networks created. Primary: {primary.NetworkName}" +
+                (secondary != null ? $", Secondary: {secondary.NetworkName}" : "") +
+                $", Hybrid: {_orchestrator.IsHybridMode}");
+        }
+
         /// <summary>
-        /// Initializes the ad mediation SDK based on the configured mediation type (AdMob or AppLovin).
+        /// Initializes the ad mediation SDK based on the configured mediation type.
         /// </summary>
-        /// <param name="initCompleteAction">Optional callback invoked when initialization completes.</param>
         public void Initialize(Action initCompleteAction = null)
         {
             if (IAAResponse == null)
             {
                 _log.Error("Cannot initialize MediationManager: IAA response is null.");
+                return;
+            }
+
+            if (_orchestrator == null)
+            {
+                _log.Error("Cannot initialize MediationManager: orchestrator not created.");
                 return;
             }
 
@@ -170,276 +257,124 @@ namespace com.noctuagames.sdk
                 return;
             }
 
-            switch (_mediationType)
+            SubscribeToOrchestratorEvents();
+            SubscribeToNetworkSpecificEvents();
+
+            // Use orchestrator to initialize both networks
+            _orchestrator.Initialize(() =>
             {
-                case "admob":
-                    InitializeAdmob(initCompleteAction);
-                    break;
+                _log.Info("Primary network initialized: " + _orchestrator.Primary.NetworkName);
 
-                case "applovin":
-                    InitializeAppLovin(initCompleteAction);
-                    break;
-
-                default:
-                    _log.Info("No mediation found: " + _mediationType);
-                    break;
-            }
-        }
-
-        private void InitializeAdmob(Action initCompleteAction = null)
-        {
-#if UNITY_ADMOB
-            _adNetwork.Initialize(() =>
-            {
-
-                initCompleteAction?.Invoke();
-
-                _log.Info("Ad Mediation Initialized: " + IAAResponse.Mediation);
-
-                if (IAAResponse.AdFormat == null)
+                if (IAAResponse.AdFormat == null && (IAAResponse.Networks == null || IAAResponse.Networks.Count == 0))
                 {
-                    _log.Info("Ad Format is null in IAA response. Cannot proceed with ad unit ID setup.");
+                    _log.Info("No ad format config. Cannot proceed with ad unit ID setup.");
+                    initCompleteAction?.Invoke();
                     return;
                 }
 
                 if (IsAdmob())
                 {
+#if UNITY_ADMOB
                     _preloadManager = AdmobAdPreloadManager.Instance;
+#endif
                 }
+
                 SetupAdUnitID(IAAResponse);
+                initCompleteAction?.Invoke();
             });
-
-            if(_adNetwork == null)
-            {
-                _log.Warning("Ad Network is not initialized. callback cannot be registered.");
-                return;
-            }
-
-            if (!_adNetworkEventsSubscribed)
-            {
-                _adNetworkEventsSubscribed = true;
-
-                _adNetwork.OnAdDisplayed += () =>
-                {
-                    CloseAdPlaceholder();
-
-                    _onAdDisplayed?.Invoke();
-                };
-                _adNetwork.OnAdFailedDisplayed += () => {
-                    CloseAdPlaceholder();
-
-                    _onAdFailedDisplayed?.Invoke();
-                };
-                _adNetwork.OnAdClicked += () => { _onAdClicked?.Invoke(); };
-                _adNetwork.OnAdImpressionRecorded += () => { _onAdImpressionRecorded?.Invoke(); };
-                _adNetwork.OnAdClosed += () => { _onAdClosed?.Invoke(); };
-                _adNetwork.AdmobOnUserEarnedReward += (reward) => { _admobOnUserEarnedReward?.Invoke(reward); };
-                _adNetwork.AdmobOnAdRevenuePaid += (adValue, responseInfo) => {
-
-                    // Send the impression-level ad revenue information
-                    long valueMicros = adValue.Value;
-                    string currencyCode = adValue.CurrencyCode;
-                    PrecisionType precision = adValue.Precision;
-
-                    string responseId = responseInfo.GetResponseId();
-
-                    AdapterResponseInfo loadedAdapterResponseInfo = responseInfo.GetLoadedAdapterResponseInfo();
-
-                    string adSourceId = loadedAdapterResponseInfo?.AdSourceId ?? "empty";
-                    string adSourceInstanceId = loadedAdapterResponseInfo?.AdSourceInstanceId ?? "empty";
-                    string adSourceInstanceName = loadedAdapterResponseInfo?.AdSourceInstanceName ?? "empty";
-                    string adSourceName = loadedAdapterResponseInfo?.AdSourceName ?? "empty";
-                    string adapterClassName = loadedAdapterResponseInfo?.AdapterClassName ?? "empty";
-                    long latencyMillis = loadedAdapterResponseInfo?.LatencyMillis ?? 0;
-                    Dictionary<string, string> credentials = loadedAdapterResponseInfo?.AdUnitMapping;
-
-                    Dictionary<string, string> extras = responseInfo.GetResponseExtras();
-                    string mediationGroupName = extras != null && extras.ContainsKey("mediation_group_name") ? extras["mediation_group_name"] : "empty";
-                    string mediationABTestName = extras != null && extras.ContainsKey("mediation_ab_test_name") ? extras["mediation_ab_test_name"] : "empty";
-                    string mediationABTestVariant = extras != null && extras.ContainsKey("mediation_ab_test_variant") ? extras["mediation_ab_test_variant"] : "empty";
-
-                    double revenue = valueMicros / 1_000_000.0;
-
-                    _log.Debug($"Admob Ad Revenue Paid: value in micros: {adValue.Value} / converted micros: {revenue}, {adValue.CurrencyCode} " +
-                        $"Precision: {adValue.Precision} " +
-                        $"Response ID: {responseId} " +
-                        $"Ad Source ID: {adSourceId} " +
-                        $"Ad Source Instance ID: {adSourceInstanceId} " +
-                        $"Ad Source Instance Name: {adSourceInstanceName} " +
-                        $"Ad Source Name: {adSourceName} " +
-                        $"Adapter Class Name: {adapterClassName} " +
-                        $"Latency Millis: {latencyMillis}");
-
-                    _adRevenueTracker?.TrackAdRevenue("admob_sdk", revenue, currencyCode, new Dictionary<string, IConvertible>
-                    {
-                        { "ad_source_id", adSourceId },
-                        { "ad_source_instance_id", adSourceInstanceId },
-                        { "ad_source_instance_name", adSourceInstanceName },
-                        { "ad_source_name", adSourceName },
-                        { "adapter_class_name", adapterClassName },
-                        { "latency_millis", latencyMillis },
-                        { "response_id", responseId },
-                        { "mediation_group_name", mediationGroupName },
-                        { "mediation_ab_test_name", mediationABTestName },
-                        { "mediation_ab_test_variant", mediationABTestVariant },
-                        { "ad_user_id", SystemInfo.deviceUniqueIdentifier }
-                    });
-
-                    _admobOnAdRevenuePaid?.Invoke(adValue, responseInfo);
-
-                    ProcessTaichiThresholds(revenue);
-                };
-            }
-#endif
         }
 
-        private void InitializeAppLovin(Action initCompleteAction = null)
+        private void SubscribeToOrchestratorEvents()
         {
+            if (_adNetworkEventsSubscribed) return;
+            _adNetworkEventsSubscribed = true;
+
+            _orchestrator.OnAdDisplayed += () =>
+            {
+                CloseAdPlaceholder();
+                _appOpenAdManager?.SetFullscreenAdShowing(true);
+                _onAdDisplayed?.Invoke();
+            };
+
+            _orchestrator.OnAdFailedDisplayed += () =>
+            {
+                CloseAdPlaceholder();
+                _onAdFailedDisplayed?.Invoke();
+            };
+
+            _orchestrator.OnAdClicked += () => _onAdClicked?.Invoke();
+            _orchestrator.OnAdImpressionRecorded += () => _onAdImpressionRecorded?.Invoke();
+
+            _orchestrator.OnAdClosed += () =>
+            {
+                _appOpenAdManager?.SetFullscreenAdShowing(false);
+                _onAdClosed?.Invoke();
+            };
+        }
+
+        private void SubscribeToNetworkSpecificEvents()
+        {
+            var primary = _orchestrator.Primary;
+            var secondary = _orchestrator.Secondary;
+
+#if UNITY_ADMOB
+            SubscribeAdmobRevenueEvents(primary);
+            if (secondary != null) SubscribeAdmobRevenueEvents(secondary);
+#endif
+
 #if UNITY_APPLOVIN
-            _adNetwork.Initialize(() =>
-            {
-                _log.Info("AppLovin SDK initialization callback invoked.");
-
-            });
-
-            if(_adNetwork == null)
-            {
-                _log.Warning("Ad Network is not initialized. callback cannot be registered.");
-                return;
-            }
-
-            if (!_adNetworkEventsSubscribed)
-            {
-                _adNetworkEventsSubscribed = true;
-
-                _adNetwork.OnInitialized += () => {
-                    _log.Info("Ad Mediation Initialized: " + IAAResponse.Mediation);
-
-                    if (IAAResponse.AdFormat == null)
-                    {
-                        _log.Info("Ad Format is null in IAA response. Cannot proceed with ad unit ID setup.");
-                        return;
-                    }
-
-                    SetupAdUnitID(IAAResponse);
-
-                    initCompleteAction?.Invoke();
-                };
-
-                _adNetwork.OnAdDisplayed += () => {
-
-                    CloseAdPlaceholder();
-
-                    _onAdDisplayed?.Invoke();
-                };
-                _adNetwork.OnAdFailedDisplayed += () => {
-                    CloseAdPlaceholder();
-
-                    _onAdFailedDisplayed?.Invoke();
-                };
-                _adNetwork.OnAdClicked += () => { _onAdClicked?.Invoke(); };
-                _adNetwork.OnAdImpressionRecorded += () => { _onAdImpressionRecorded?.Invoke(); };
-                _adNetwork.OnAdClosed += () => { _onAdClosed?.Invoke(); };
-                _adNetwork.AppLovinOnUserEarnedReward += (Reward) => { _appLovinOnUserEarnedReward?.Invoke(Reward); };
-                _adNetwork.AppLovinOnAdRevenuePaid += (adInfo) => {
-
-                    double revenue = adInfo.Revenue;
-
-                    // Miscellaneous data
-                    string countryCode = MaxSdk.GetSdkConfiguration().CountryCode; // "US" for the United States, etc - Note: Do not confuse this with currency code which is "USD"
-                    string networkName = adInfo.NetworkName; // Display name of the network that showed the ad
-                    string adUnitIdentifier = adInfo.AdUnitIdentifier; // The MAX Ad Unit ID
-                    string placement = adInfo.Placement; // The placement this ad's postbacks are tied to
-                    string networkPlacement = adInfo.NetworkPlacement; // The placement ID from the network that showed the ad
-                    string revenuePrecision = adInfo.RevenuePrecision;
-                    string adFormat = adInfo.AdFormat;
-
-                    _log.Debug($"AppLovin Ad Revenue Paid: revenue: {adInfo.Revenue}, " +
-                        "currency: USD, " +
-                        $"country code: {countryCode}, " +
-                        $"network name: {networkName}, " +
-                        $"ad unit identifier: {adUnitIdentifier}, " +
-                        $"placement: {placement}, " +
-                        $"network placement: {networkPlacement}, " +
-                        $"revenue precision: {revenuePrecision}");
-
-                    string dspName = adInfo.DspName ?? "";
-
-                    _adRevenueTracker?.TrackAdRevenue("applovin_max_sdk", revenue, "USD", new Dictionary<string, IConvertible>
-                    {
-                        { "country_code", countryCode },
-                        { "network_name", networkName },
-                        { "ad_unit_identifier", adUnitIdentifier },
-                        { "placement", placement },
-                        { "network_placement", networkPlacement },
-                        { "revenue_precision", revenuePrecision },
-                        { "ad_format", adFormat },
-                        { "dsp_name", dspName },
-                        { "ad_user_id", SystemInfo.deviceUniqueIdentifier }
-                    });
-
-                    _appLovinOnAdRevenuePaid?.Invoke(adInfo);
-
-                    ProcessTaichiThresholds(revenue);
-                };
-            }
+            SubscribeAppLovinRevenueEvents(primary);
+            if (secondary != null) SubscribeAppLovinRevenueEvents(secondary);
 #endif
         }
+
+#if UNITY_ADMOB
+        private void SubscribeAdmobRevenueEvents(IAdNetwork network)
+        {
+            if (network.NetworkName != "admob") return;
+
+            network.AdmobOnUserEarnedReward += (reward) => _admobOnUserEarnedReward?.Invoke(reward);
+            network.AdmobOnAdRevenuePaid += (adValue, responseInfo) =>
+            {
+                _revenueTracker.ProcessAdmobRevenue(adValue, responseInfo);
+                _admobOnAdRevenuePaid?.Invoke(adValue, responseInfo);
+            };
+        }
+#endif
+
+#if UNITY_APPLOVIN
+        private void SubscribeAppLovinRevenueEvents(IAdNetwork network)
+        {
+            if (network.NetworkName != "applovin") return;
+
+            network.AppLovinOnUserEarnedReward += (reward) => _appLovinOnUserEarnedReward?.Invoke(reward);
+            network.AppLovinOnAdRevenuePaid += (adInfo) =>
+            {
+                _revenueTracker.ProcessAppLovinRevenue(adInfo);
+                _appLovinOnAdRevenuePaid?.Invoke(adInfo);
+            };
+        }
+#endif
 
         /// <summary>
         /// Configures ad unit IDs for all ad formats based on the IAA server response, then loads initial ads.
         /// </summary>
-        /// <param name="iAAResponse">The IAA configuration response containing ad unit IDs per platform.</param>
         public void SetupAdUnitID(IAA iAAResponse)
         {
-            
-#if UNITY_ANDROID
-    _interstitialAdUnitID = string.IsNullOrEmpty(iAAResponse?.AdFormat?.Interstitial?.Android?.adUnitID)
-        ? "unknown"
-        : iAAResponse.AdFormat.Interstitial.Android.adUnitID;
-#elif UNITY_IPHONE
-    _interstitialAdUnitID = string.IsNullOrEmpty(iAAResponse?.AdFormat?.Interstitial?.IOS?.adUnitID)
-        ? "unknown"
-        : iAAResponse.AdFormat.Interstitial.IOS.adUnitID;
-#endif
+            var primary = _orchestrator.Primary;
+            var secondary = _orchestrator.Secondary;
 
-#if UNITY_ANDROID
-    _rewardedAdUnitID = string.IsNullOrEmpty(iAAResponse?.AdFormat?.Rewarded?.Android?.adUnitID)
-        ? "unknown"
-        : iAAResponse.AdFormat.Rewarded.Android.adUnitID;
-#elif UNITY_IPHONE
-    _rewardedAdUnitID = string.IsNullOrEmpty(iAAResponse?.AdFormat?.Rewarded?.IOS?.adUnitID)
-        ? "unknown"
-        : iAAResponse.AdFormat.Rewarded.IOS.adUnitID;
-#endif
+            ResolveAdUnitIDs(iAAResponse, primary.NetworkName);
 
-#if UNITY_ANDROID && UNITY_ADMOB
-    _rewardedInterstitialAdUnitID = string.IsNullOrEmpty(iAAResponse?.AdFormat?.RewardedInterstitial?.Android?.adUnitID)
-        ? "unknown"
-        : iAAResponse.AdFormat.RewardedInterstitial.Android.adUnitID;
-#elif UNITY_IPHONE && UNITY_ADMOB
-    _rewardedInterstitialAdUnitID = string.IsNullOrEmpty(iAAResponse?.AdFormat?.RewardedInterstitial?.IOS?.adUnitID)
-        ? "unknown"
-        : iAAResponse.AdFormat.RewardedInterstitial.IOS.adUnitID;
-#endif
+            primary.SetBannerAdUnitId(_bannerAdUnitID);
 
-#if UNITY_ANDROID
-    _bannerAdUnitID = string.IsNullOrEmpty(iAAResponse?.AdFormat?.Banner?.Android?.adUnitID)
-        ? "unknown"
-        : iAAResponse.AdFormat.Banner.Android.adUnitID;
-#elif UNITY_IPHONE
-    _bannerAdUnitID = string.IsNullOrEmpty(iAAResponse?.AdFormat?.Banner?.IOS?.adUnitID)
-        ? "unknown"
-        : iAAResponse.AdFormat.Banner.IOS.adUnitID;
-#endif
-
-            SetBannerAdUnitId(_bannerAdUnitID);
-
-            if (IsAdmob())
+            if (IsAdmob() && primary.NetworkName == "admob")
             {
 #if UNITY_ADMOB
-                SetRewardedInterstitialAdUnitId(_rewardedInterstitialAdUnitID);
-                LoadRewardedInterstitialAd();
+                primary.SetRewardedInterstitialAdUnitID(_rewardedInterstitialAdUnitID);
+                primary.LoadRewardedInterstitialAd();
+
+                _preloadManager = AdmobAdPreloadManager.Instance;
 
                 var configs = new List<PreloadConfiguration>
                 {
@@ -447,7 +382,6 @@ namespace com.noctuagames.sdk
                     _preloadManager.CreateRewardedPreloadConfig(_rewardedAdUnitID)
                 };
 
-                // Subscribe to events (only once to prevent duplicate handlers)
                 if (!_preloadManagerEventsSubscribed)
                 {
                     _preloadManagerEventsSubscribed = true;
@@ -455,14 +389,12 @@ namespace com.noctuagames.sdk
                     _preloadManager.OnAdsAvailable += (config) =>
                     {
                         _log.Debug($"Ad available for {config.Format}");
-
                         _onAdsAvailable?.Invoke(config);
                     };
 
                     _preloadManager.OnAdExhausted += (config) =>
                     {
                         _log.Debug($"Ad exhausted for {config.Format}");
-
                         _onAdExhausted?.Invoke(config);
                     };
                 }
@@ -472,789 +404,629 @@ namespace com.noctuagames.sdk
             }
             else
             {
-                SetInterstitialAdUnitId(_interstitialAdUnitID);
-                SetRewardedAdUnitId(_rewardedAdUnitID);
-
-                //Prepare the ads
-                LoadInterstitialAd();
-                LoadRewardedAd();
+                primary.SetInterstitialAdUnitID(_interstitialAdUnitID);
+                primary.SetRewardedAdUnitID(_rewardedAdUnitID);
+                primary.LoadInterstitialAd();
+                primary.LoadRewardedAd();
             }
+
+            // Configure secondary network ad units if hybrid
+            if (secondary != null)
+            {
+                SetupSecondaryAdUnits(iAAResponse, secondary);
+            }
+
+            // Configure App Open ads
+            SetupAppOpenAds(iAAResponse);
 
             _onInitialized?.Invoke();
             _log.Info("Ad Unit IDs set up for mediation type: " + _mediationType);
         }
 
-        //Interstitial public functions
-        private void SetInterstitialAdUnitId(string adUnitID) {
-            if(_adNetwork == null) 
+        private void SetupSecondaryAdUnits(IAA iAAResponse, IAdNetwork secondary)
+        {
+            string secondaryInterstitial = ResolveAdUnitIdForNetwork(iAAResponse, secondary.NetworkName, "interstitial");
+            string secondaryRewarded = ResolveAdUnitIdForNetwork(iAAResponse, secondary.NetworkName, "rewarded");
+            string secondaryBanner = ResolveAdUnitIdForNetwork(iAAResponse, secondary.NetworkName, "banner");
+
+            if (secondaryInterstitial != "unknown")
             {
-                _log.Warning("Ad Network is not initialized. Cannot set interstitial ad unit ID.");
+                secondary.SetInterstitialAdUnitID(secondaryInterstitial);
+                secondary.LoadInterstitialAd();
+            }
+
+            if (secondaryRewarded != "unknown")
+            {
+                secondary.SetRewardedAdUnitID(secondaryRewarded);
+                secondary.LoadRewardedAd();
+            }
+
+            if (secondaryBanner != "unknown")
+            {
+                secondary.SetBannerAdUnitId(secondaryBanner);
+            }
+        }
+
+        private void SetupAppOpenAds(IAA iAAResponse)
+        {
+            string primaryAppOpenId = ResolveAdUnitIdForNetwork(iAAResponse, _orchestrator.Primary.NetworkName, "app_open");
+            string secondaryAppOpenId = _orchestrator.Secondary != null
+                ? ResolveAdUnitIdForNetwork(iAAResponse, _orchestrator.Secondary.NetworkName, "app_open")
+                : null;
+
+            if (primaryAppOpenId == "unknown" && (secondaryAppOpenId == null || secondaryAppOpenId == "unknown"))
+            {
+                _log.Debug("No app open ad unit IDs configured.");
                 return;
             }
-            _adNetwork.SetInterstitialAdUnitID(adUnitID);
+
+            _appOpenAdManager = new AppOpenAdManager(
+                primaryNetwork: _orchestrator.Primary,
+                secondaryNetwork: _orchestrator.Secondary,
+                frequencyManager: _frequencyManager,
+                autoShowOnForeground: iAAResponse.AppOpenAutoShow,
+                cooldownSeconds: iAAResponse.AppOpenCooldownSeconds > 0 ? iAAResponse.AppOpenCooldownSeconds : 30
+            );
+
+            _appOpenAdManager.Configure(primaryAppOpenId, secondaryAppOpenId);
         }
+
+        private void ResolveAdUnitIDs(IAA iAAResponse, string networkName)
+        {
+            _interstitialAdUnitID = ResolveAdUnitIdForNetwork(iAAResponse, networkName, "interstitial");
+            _rewardedAdUnitID = ResolveAdUnitIdForNetwork(iAAResponse, networkName, "rewarded");
+            _rewardedInterstitialAdUnitID = ResolveAdUnitIdForNetwork(iAAResponse, networkName, "rewarded_interstitial");
+            _bannerAdUnitID = ResolveAdUnitIdForNetwork(iAAResponse, networkName, "banner");
+            _appOpenAdUnitID = ResolveAdUnitIdForNetwork(iAAResponse, networkName, "app_open");
+        }
+
         /// <summary>
-        /// Loads an interstitial ad from the ad network.
+        /// Resolves ad unit ID for a given network and format.
+        /// Priority: test mode → networks block → flat ad_formats → "unknown".
         /// </summary>
-        public void LoadInterstitialAd() {
-            if(_adNetwork == null) 
+        private string ResolveAdUnitIdForNetwork(IAA iAAResponse, string networkName, string format)
+        {
+            // Test mode: use AdMob test IDs
+            if (iAAResponse.TestMode)
             {
-                _log.Warning("Ad Network is not initialized. Cannot load interstitial ad.");
-                return;
-            } 
-            _adNetwork.LoadInterstitialAd(); 
+                string testId = AdTestUnitIds.GetTestAdUnitId(format, Application.platform);
+                if (!string.IsNullOrEmpty(testId))
+                {
+                    return testId;
+                }
+            }
+
+            // Try networks block first
+            if (iAAResponse.Networks != null &&
+                iAAResponse.Networks.TryGetValue(networkName, out var networkConfig) &&
+                networkConfig?.AdFormat != null)
+            {
+                string id = GetAdUnitIdFromFormat(networkConfig.AdFormat, format);
+                if (!string.IsNullOrEmpty(id) && id != "unknown")
+                {
+                    return id;
+                }
+            }
+
+            // Fallback to flat ad_formats (backward compat)
+            if (iAAResponse.AdFormat != null)
+            {
+                string id = GetAdUnitIdFromFormat(iAAResponse.AdFormat, format);
+                if (!string.IsNullOrEmpty(id))
+                {
+                    return id;
+                }
+            }
+
+            return "unknown";
         }
-        /// <summary>
-        /// Shows a full-screen interstitial ad with a placeholder overlay while loading.
-        /// </summary>
-        public void ShowInterstitial() {
+
+        private string GetAdUnitIdFromFormat(AdFormatNoctua adFormat, string format)
+        {
+            AdUnit adUnit = null;
+
+            switch (format)
+            {
+                case "interstitial":
+                    adUnit = adFormat.Interstitial;
+                    break;
+                case "rewarded":
+                    adUnit = adFormat.Rewarded;
+                    break;
+                case "rewarded_interstitial":
+                    adUnit = adFormat.RewardedInterstitial;
+                    break;
+                case "banner":
+                    adUnit = adFormat.Banner;
+                    break;
+                case "app_open":
+                    adUnit = adFormat.AppOpen;
+                    break;
+            }
+
+            if (adUnit == null) return "unknown";
+
+#if UNITY_ANDROID
+            return string.IsNullOrEmpty(adUnit.Android?.adUnitID) ? "unknown" : adUnit.Android.adUnitID;
+#elif UNITY_IPHONE
+            return string.IsNullOrEmpty(adUnit.IOS?.adUnitID) ? "unknown" : adUnit.IOS.adUnitID;
+#else
+            return "unknown";
+#endif
+        }
+
+        // --- Public ad show methods ---
+
+        /// <summary>Loads an interstitial ad from the ad network.</summary>
+        public void LoadInterstitialAd()
+        {
+            if (_orchestrator == null)
+            {
+                _log.Warning("Orchestrator not initialized. Cannot load interstitial ad.");
+                return;
+            }
+            _orchestrator.Primary.LoadInterstitialAd();
+        }
+
+        /// <summary>Shows a full-screen interstitial ad with a placeholder overlay while loading.</summary>
+        public void ShowInterstitial()
+        {
+            if (_orchestrator == null)
+            {
+                _log.Warning("Orchestrator not initialized. Cannot show interstitial ad.");
+                return;
+            }
+
+            if (_frequencyManager != null && !_frequencyManager.CanShowAd("interstitial"))
+            {
+                _log.Info("Interstitial ad blocked by frequency manager.");
+                return;
+            }
 
             if (IsAdmob())
             {
 #if UNITY_ADMOB
+                ShowAdmobInterstitial();
+#endif
+            }
+            else
+            {
                 _hasClosedPlaceholder = false;
-
                 ShowAdPlaceholder(AdPlaceholderType.Interstitial);
+                _orchestrator.Primary.ShowInterstitial();
+            }
 
-                if (_preloadManager == null)
-                {
-                    _log.Warning("Admob Preload Manager is not initialized. Cannot show interstitial ad.");
-                    CloseAdPlaceholder();
-                    return;
-                }
+            _frequencyManager?.RecordImpression("interstitial");
+        }
 
-                // Check if the ad is available before showing
-                if (_preloadManager.IsAdAvailable(_interstitialAdUnitID, AdFormat.INTERSTITIAL))
+#if UNITY_ADMOB
+        private void ShowAdmobInterstitial()
+        {
+            _hasClosedPlaceholder = false;
+            ShowAdPlaceholder(AdPlaceholderType.Interstitial);
+
+            if (_preloadManager == null)
+            {
+                _log.Warning("Admob Preload Manager is not initialized. Cannot show interstitial ad.");
+                CloseAdPlaceholder();
+                return;
+            }
+
+            if (_preloadManager.IsAdAvailable(_interstitialAdUnitID, AdFormat.INTERSTITIAL))
+            {
+                var ad = _preloadManager.PollInterstitialAd(_interstitialAdUnitID);
+                if (ad != null)
                 {
-                    var ad = _preloadManager.PollInterstitialAd(_interstitialAdUnitID);
-                    if (ad != null)
+                    try
                     {
-                        try
-                        {
-                            _log.Info("Showing Admob Interstitial Ad");
-                            RegisterCallbackAdInterstitial(ad);
-                            ad.Show();
-                        }
-                        catch (Exception ex)
-                        {
-                            _log.Error($"Exception showing Admob Interstitial Ad: {ex.Message}\n{ex.StackTrace}");
-                            CloseAdPlaceholder();
-                        }
+                        _log.Info("Showing Admob Interstitial Ad");
+                        RegisterCallbackAdInterstitial(ad);
+                        ad.Show();
                     }
-                    else
+                    catch (Exception ex)
                     {
-                        _log.Warning("Admob Interstitial Ad poll returned null");
+                        _log.Error($"Exception showing Admob Interstitial Ad: {ex.Message}\n{ex.StackTrace}");
                         CloseAdPlaceholder();
                     }
                 }
                 else
                 {
-                    _log.Info("Admob Interstitial Ad not available");
+                    _log.Warning("Admob Interstitial Ad poll returned null");
                     CloseAdPlaceholder();
                 }
-#endif
             }
             else
             {
-                if(_adNetwork == null)
-                {
-                    _log.Warning("Ad Network is not initialized. Cannot show interstitial ad.");
-                    return;
-                }
-
-                _hasClosedPlaceholder = false;
-
-                ShowAdPlaceholder(AdPlaceholderType.Interstitial);
-
-                // For other networks, just show the ad
-                _adNetwork.ShowInterstitial();
+                _log.Info("Admob Interstitial Ad not available");
+                CloseAdPlaceholder();
             }
         }
 
-        #if UNITY_ADMOB
         private void RegisterCallbackAdInterstitial(InterstitialAd interstitialAd)
         {
             interstitialAd.OnAdFullScreenContentOpened += () =>
             {
                 CloseAdPlaceholder();
                 _onAdDisplayed?.Invoke();
-                _log.Info("Noctua Placeholder closed for Interstitial Ad");
             };
             interstitialAd.OnAdFullScreenContentFailed += (AdError error) =>
             {
                 CloseAdPlaceholder();
                 _onAdFailedDisplayed?.Invoke();
-                _log.Warning("Interstitial Ad failed to show full screen content, placeholder closed. Error: " + error);
+                _log.Warning("Interstitial Ad failed to show. Error: " + error);
             };
             interstitialAd.OnAdFullScreenContentClosed += () =>
             {
                 _onAdClosed?.Invoke();
-                _log.Debug("Preloaded Interstitial Ad closed");
             };
             interstitialAd.OnAdClicked += () =>
             {
                 _onAdClicked?.Invoke();
-                _log.Debug("Preloaded Interstitial Ad clicked");
             };
             interstitialAd.OnAdImpressionRecorded += () =>
             {
                 _onAdImpressionRecorded?.Invoke();
-                _log.Debug("Preloaded Interstitial Ad impression recorded");
             };
             interstitialAd.OnAdPaid += (AdValue adValue) =>
             {
-                TrackPreloadedAdRevenue(adValue, interstitialAd.GetResponseInfo());
+                _revenueTracker.ProcessAdmobInterstitialRevenue(adValue, interstitialAd.GetResponseInfo());
+                _admobOnAdRevenuePaid?.Invoke(adValue, interstitialAd.GetResponseInfo());
             };
         }
-        #endif
+#endif
 
-        //Rewarded public functions
-        private void SetRewardedAdUnitId(string adUnitID) { 
-            if(_adNetwork == null) 
+        /// <summary>Loads a rewarded ad from the ad network.</summary>
+        public void LoadRewardedAd()
+        {
+            if (_orchestrator == null)
             {
-                _log.Warning("Ad Network is not initialized. Cannot set rewarded ad unit ID.");
+                _log.Warning("Orchestrator not initialized. Cannot load rewarded ad.");
                 return;
             }
-            _adNetwork.SetRewardedAdUnitID(adUnitID); 
+            _orchestrator.Primary.LoadRewardedAd();
         }
-        /// <summary>
-        /// Loads a rewarded ad from the ad network.
-        /// </summary>
-        public void LoadRewardedAd() {
-            if(_adNetwork == null)
-            {
-                _log.Warning("Ad Network is not initialized. Cannot load rewarded ad.");
-                return;
-            }
-            
-            _adNetwork.LoadRewardedAd();
-        }
-        /// <summary>
-        /// Shows a rewarded ad with a placeholder overlay while loading.
-        /// </summary>
+
+        /// <summary>Shows a rewarded ad with a placeholder overlay while loading.</summary>
         public void ShowRewardedAd()
         {
+            if (_orchestrator == null)
+            {
+                _log.Warning("Orchestrator not initialized. Cannot show rewarded ad.");
+                return;
+            }
+
+            if (_frequencyManager != null && !_frequencyManager.CanShowAd("rewarded"))
+            {
+                _log.Info("Rewarded ad blocked by frequency manager.");
+                return;
+            }
+
             if (IsAdmob())
             {
 #if UNITY_ADMOB
+                ShowAdmobRewarded();
+#endif
+            }
+            else
+            {
                 _hasClosedPlaceholder = false;
-
                 ShowAdPlaceholder(AdPlaceholderType.Rewarded);
+                _orchestrator.Primary.ShowRewardedAd();
+            }
 
-                if (_preloadManager == null)
-                {
-                    _log.Warning("Admob Preload Manager is not initialized. Cannot show rewarded ad.");
-                    CloseAdPlaceholder();
-                    return;
-                }
+            _frequencyManager?.RecordImpression("rewarded");
+        }
 
-                // Check if the ad is available before showing
-                if (_preloadManager.IsAdAvailable(_rewardedAdUnitID, AdFormat.REWARDED))
+#if UNITY_ADMOB
+        private void ShowAdmobRewarded()
+        {
+            _hasClosedPlaceholder = false;
+            ShowAdPlaceholder(AdPlaceholderType.Rewarded);
+
+            if (_preloadManager == null)
+            {
+                _log.Warning("Admob Preload Manager is not initialized. Cannot show rewarded ad.");
+                CloseAdPlaceholder();
+                return;
+            }
+
+            if (_preloadManager.IsAdAvailable(_rewardedAdUnitID, AdFormat.REWARDED))
+            {
+                var ad = _preloadManager.PollRewardedAd(_rewardedAdUnitID);
+                if (ad != null)
                 {
-                    var ad = _preloadManager.PollRewardedAd(_rewardedAdUnitID);
-                    if (ad != null)
+                    try
                     {
-                        try
+                        _log.Info("Showing Admob Rewarded Ad");
+                        RegisterCallbackAdRewarded(ad);
+                        ad.Show((Reward reward) =>
                         {
-                            _log.Info("Showing Admob Rewarded Ad");
-                            RegisterCallbackAdRewarded(ad);
-                            ad.Show((Reward reward) =>
-                            {
-                                _log.Info("User earned reward from mediation manager : " + reward.Type + " - " + reward.Amount);
-                                _admobOnUserEarnedReward?.Invoke(reward);
-                            });
-                        }
-                        catch (Exception ex)
-                        {
-                            _log.Error($"Exception showing Admob Rewarded Ad: {ex.Message}\n{ex.StackTrace}");
-                            CloseAdPlaceholder();
-                        }
+                            _log.Info("User earned reward: " + reward.Type + " - " + reward.Amount);
+                            _admobOnUserEarnedReward?.Invoke(reward);
+                        });
                     }
-                    else
+                    catch (Exception ex)
                     {
-                        _log.Warning("Admob Rewarded Ad poll returned null");
+                        _log.Error($"Exception showing Admob Rewarded Ad: {ex.Message}\n{ex.StackTrace}");
                         CloseAdPlaceholder();
                     }
                 }
                 else
                 {
-                    _log.Info("Admob Rewarded Ad not available");
+                    _log.Warning("Admob Rewarded Ad poll returned null");
                     CloseAdPlaceholder();
                 }
-#endif
             }
             else
             {
-                if (_adNetwork == null)
-                {
-                    _log.Warning("Ad Network is not initialized. Cannot show rewarded ad.");
-                    return;
-                }
-
-                _hasClosedPlaceholder = false;
-
-                ShowAdPlaceholder(AdPlaceholderType.Rewarded);
-
-                // For other networks, just show the ad
-                _adNetwork.ShowRewardedAd();
+                _log.Info("Admob Rewarded Ad not available");
+                CloseAdPlaceholder();
             }
         }
 
-        #if UNITY_ADMOB
         private void RegisterCallbackAdRewarded(RewardedAd rewardedAd)
         {
             rewardedAd.OnAdFullScreenContentOpened += () =>
             {
                 CloseAdPlaceholder();
                 _onAdDisplayed?.Invoke();
-                _log.Info("Noctua Placeholder closed for Rewarded Ad");
             };
             rewardedAd.OnAdFullScreenContentFailed += (AdError error) =>
             {
                 CloseAdPlaceholder();
                 _onAdFailedDisplayed?.Invoke();
-                _log.Warning("Rewarded Ad failed to show full screen content, placeholder closed. Error: " + error);
+                _log.Warning("Rewarded Ad failed to show. Error: " + error);
             };
             rewardedAd.OnAdFullScreenContentClosed += () =>
             {
                 _onAdClosed?.Invoke();
-                _log.Debug("Preloaded Rewarded Ad closed");
             };
             rewardedAd.OnAdClicked += () =>
             {
                 _onAdClicked?.Invoke();
-                _log.Debug("Preloaded Rewarded Ad clicked");
             };
             rewardedAd.OnAdImpressionRecorded += () =>
             {
                 _onAdImpressionRecorded?.Invoke();
-                _log.Debug("Preloaded Rewarded Ad impression recorded");
             };
             rewardedAd.OnAdPaid += (AdValue adValue) =>
             {
-                TrackPreloadedAdRevenue(adValue, rewardedAd.GetResponseInfo());
+                _revenueTracker.ProcessAdmobRewardedRevenue(adValue, rewardedAd.GetResponseInfo());
+                _admobOnAdRevenuePaid?.Invoke(adValue, rewardedAd.GetResponseInfo());
             };
         }
-        #endif
 
-        //Rewarded Interstitial public functions for Admob
-        #if UNITY_ADMOB
-        private void SetRewardedInterstitialAdUnitId(string adUnitID) {
-
-            if (!IsAdmob()) { return; }
-
-            if(_adNetwork == null) 
+        /// <summary>Loads a rewarded interstitial ad (AdMob only).</summary>
+        public void LoadRewardedInterstitialAd()
+        {
+            if (_orchestrator == null)
             {
-                _log.Warning("Ad Network is not initialized. Cannot set rewarded interstitial ad unit ID.");
+                _log.Warning("Orchestrator not initialized. Cannot load rewarded interstitial ad.");
                 return;
             }
-
-            _adNetwork.SetRewardedInterstitialAdUnitID(adUnitID);
+            _orchestrator.Primary.LoadRewardedInterstitialAd();
         }
-        /// <summary>
-        /// Loads a rewarded interstitial ad (AdMob only).
-        /// </summary>
-        public void LoadRewardedInterstitialAd() {
 
-            if(_adNetwork == null) 
-            {
-                _log.Warning("Ad Network is not initialized. Cannot load rewarded interstitial ad.");
-                return;
-            }
-            _adNetwork.LoadRewardedInterstitialAd();
-        }
-        
-        /// <summary>
-        /// Shows a rewarded interstitial ad with a placeholder overlay (AdMob only).
-        /// </summary>
+        /// <summary>Shows a rewarded interstitial ad with a placeholder overlay (AdMob only).</summary>
         public void ShowRewardedInterstitialAd()
         {
-            if(_adNetwork == null) 
+            if (_orchestrator == null)
             {
-                _log.Warning("Ad Network is not initialized. Cannot show rewarded interstitial ad.");
+                _log.Warning("Orchestrator not initialized. Cannot show rewarded interstitial ad.");
                 return;
             }
 
             _hasClosedPlaceholder = false;
-
             ShowAdPlaceholder(AdPlaceholderType.Rewarded);
-            
-            _adNetwork.ShowRewardedInterstitialAd();
+            _orchestrator.Primary.ShowRewardedInterstitialAd();
         }
-        #endif
+#endif
 
-        //Banner public functions
-        private void SetBannerAdUnitId(string adUnitID) {
-            if(_adNetwork == null) 
-            {
-                _log.Warning("Ad Network is not initialized. Cannot set banner ad unit ID.");
-                return;
-            }
-            _adNetwork.SetBannerAdUnitId(adUnitID); 
-        }
-        /// <summary>
-        /// Shows a banner ad using the configured ad network.
-        /// </summary>
+        /// <summary>Shows a banner ad using the configured ad network.</summary>
         public void ShowBannerAd()
         {
-            if (_adNetwork == null)
+            if (_orchestrator == null)
             {
-                _log.Warning("Ad Network is not initialized. Cannot show banner ad.");
+                _log.Warning("Orchestrator not initialized. Cannot show banner ad.");
                 return;
             }
+            _orchestrator.Primary.ShowBannerAd();
+        }
 
-            // Disabled placeholder for banner ads for temporary
-            // _hasClosedPlaceholder = false;
-            // ShowAdPlaceholder(AdPlaceholderType.Banner);
-
-            _adNetwork.ShowBannerAd();
-        } 
-
-        #if UNITY_ADMOB
-        /// <summary>
-        /// Creates a banner ad view with specified size and position (AdMob only).
-        /// </summary>
-        /// <param name="adSize">The ad size for the banner.</param>
-        /// <param name="adPosition">The screen position for the banner.</param>
+#if UNITY_ADMOB
+        /// <summary>Creates a banner ad view with specified size and position (AdMob only).</summary>
         public void CreateBannerViewAdAdmob(AdSize adSize, AdPosition adPosition)
         {
-            if (!IsAdmob()) { return; }
-
-            if(_adNetwork == null) 
-            {
-                _log.Warning("Ad Network is not initialized. Cannot create banner ad.");
-                return;
-            }
-
-            _adNetwork.CreateBannerViewAdAdmob(adSize, adPosition);
+            if (!IsAdmob() || _orchestrator == null) return;
+            _orchestrator.Primary.CreateBannerViewAdAdmob(adSize, adPosition);
         }
-        #endif
+#endif
 
-        //Banner public function for AppLovin
-        #if UNITY_APPLOVIN
-        /// <summary>
-        /// Creates a banner ad view with specified background color and position (AppLovin only, deprecated).
-        /// </summary>
-        /// <param name="color">Background color for the banner.</param>
-        /// <param name="bannerPosition">The screen position for the banner.</param>
-        [Obsolete(
-            "This method is deprecated. Please use CreateBannerViewAdAppLovin(Color, MaxSdkBase.AdViewPosition) instead."
-        )]
-        public void CreateBannerViewAdAppLovin(Color color, MaxSdkBase.BannerPosition bannerPosition) 
+#if UNITY_APPLOVIN
+        /// <summary>Creates a banner ad view (AppLovin, deprecated).</summary>
+        [Obsolete("Use CreateBannerViewAdAppLovin(Color, MaxSdkBase.AdViewPosition) instead.")]
+        public void CreateBannerViewAdAppLovin(Color color, MaxSdkBase.BannerPosition bannerPosition)
         {
-            if(!IsAppLovin()) { return; }
-
-            if(_adNetwork == null) 
-            {
-                _log.Warning("Ad Network is not initialized. Cannot create banner ad.");
-                return;
-            }
-
-            _adNetwork.CreateBannerViewAdAppLovin(color, bannerPosition);
+            if (!IsAppLovin() || _orchestrator == null) return;
+            _orchestrator.Primary.CreateBannerViewAdAppLovin(color, bannerPosition);
         }
 
-        /// <summary>
-        /// Creates a banner ad view with specified background color and position (AppLovin only).
-        /// </summary>
-        /// <param name="color">Background color for the banner.</param>
-        /// <param name="bannerPosition">The screen position for the banner.</param>
+        /// <summary>Creates a banner ad view with specified background color and position (AppLovin).</summary>
         public void CreateBannerViewAdAppLovin(Color color, MaxSdkBase.AdViewPosition bannerPosition)
         {
-            if(!IsAppLovin()) { return; }
-
-            if(_adNetwork == null)
-            {
-                _log.Warning("Ad Network is not initialized. Cannot create banner ad.");
-                return;
-            }
-
-            _adNetwork.CreateBannerViewAdAppLovin(color, bannerPosition);
+            if (!IsAppLovin() || _orchestrator == null) return;
+            _orchestrator.Primary.CreateBannerViewAdAppLovin(color, bannerPosition);
         }
 
-        /// <summary>
-        /// Hides the currently displayed AppLovin banner ad.
-        /// </summary>
-        public void HideAppLovinBanner() 
+        /// <summary>Hides the currently displayed AppLovin banner ad.</summary>
+        public void HideAppLovinBanner()
         {
-            if(!IsAppLovin()) { return; }
-
-            if(_adNetwork == null) 
-            {
-                _log.Warning("Ad Network is not initialized. Cannot hide banner ad.");
-                return;
-            }
-
-            _adNetwork.HideBannerAppLovin();
-        } 
-        /// <summary>
-        /// Destroys the AppLovin banner ad view and releases resources.
-        /// </summary>
-        public void DestroyBannerAppLovin() 
-        {
-            if(!IsAppLovin()) { return; }
-
-            if(_adNetwork == null) 
-            {
-                _log.Warning("Ad Network is not initialized. Cannot destroy banner ad.");
-                return;
-            }
-
-            _adNetwork.DestroyBannerAppLovin();
+            if (!IsAppLovin() || _orchestrator == null) return;
+            _orchestrator.Primary.HideBannerAppLovin();
         }
-        /// <summary>
-        /// Sets the width of the AppLovin banner ad in pixels.
-        /// </summary>
-        /// <param name="width">Banner width in pixels.</param>
+
+        /// <summary>Destroys the AppLovin banner ad view and releases resources.</summary>
+        public void DestroyBannerAppLovin()
+        {
+            if (!IsAppLovin() || _orchestrator == null) return;
+            _orchestrator.Primary.DestroyBannerAppLovin();
+        }
+
+        /// <summary>Sets the width of the AppLovin banner ad in pixels.</summary>
         public void SetBannerWidth(int width)
         {
-            if(!IsAppLovin()) { return; }
-
-            if(_adNetwork == null) 
-            {
-                _log.Warning("Ad Network is not initialized. Cannot set banner width.");
-                return;
-            }
-
-            _adNetwork.SetBannerWidth(width);
+            if (!IsAppLovin() || _orchestrator == null) return;
+            _orchestrator.Primary.SetBannerWidth(width);
         }
-        /// <summary>
-        /// Gets the current screen position and size of the AppLovin banner ad.
-        /// </summary>
-        /// <returns>A Rect representing the banner's position and dimensions.</returns>
-        public Rect GetBannerPosition() 
+
+        /// <summary>Gets the current screen position and size of the AppLovin banner ad.</summary>
+        public Rect GetBannerPosition()
         {
-            if(!IsAppLovin()) { return new Rect(); }
-
-            if(_adNetwork == null) 
-            {
-                _log.Warning("Ad Network is not initialized. Cannot get banner position.");
-                return new Rect();
-            }
-
-            return _adNetwork.GetBannerPosition();
+            if (!IsAppLovin() || _orchestrator == null) return new Rect();
+            return _orchestrator.Primary.GetBannerPosition();
         }
-        /// <summary>
-        /// Stops automatic refresh of the AppLovin banner ad.
-        /// </summary>
+
+        /// <summary>Stops automatic refresh of the AppLovin banner ad.</summary>
         public void StopBannerAutoRefresh()
         {
-            if(!IsAppLovin()) { return; }
-
-            if(_adNetwork == null) 
-            {
-                _log.Warning("Ad Network is not initialized. Cannot stop banner auto refresh.");
-                return;
-            }
-
-            _adNetwork.StopBannerAutoRefresh();
+            if (!IsAppLovin() || _orchestrator == null) return;
+            _orchestrator.Primary.StopBannerAutoRefresh();
         }
-        /// <summary>
-        /// Starts automatic refresh of the AppLovin banner ad.
-        /// </summary>
+
+        /// <summary>Starts automatic refresh of the AppLovin banner ad.</summary>
         public void StartBannerAutoRefresh()
         {
-            if(!IsAppLovin()) { return; }
-
-            if(_adNetwork == null) 
-            {
-                _log.Warning("Ad Network is not initialized. Cannot start banner auto refresh.");
-                return;
-            }
-
-            _adNetwork.StartBannerAutoRefresh();
+            if (!IsAppLovin() || _orchestrator == null) return;
+            _orchestrator.Primary.StartBannerAutoRefresh();
         }
 
-        /// <summary>
-        /// Mutes or unmutes ad audio (AppLovin only).
-        /// </summary>
-        /// <param name="muted">True to mute ad audio, false to unmute.</param>
+        /// <summary>Mutes or unmutes ad audio (AppLovin only).</summary>
         public void SetMuted(bool muted)
         {
-            if(!IsAppLovin()) { return; }
-
-            if(_adNetwork == null)
-            {
-                _log.Warning("Ad Network is not initialized. Cannot set muted.");
-                return;
-            }
-
-            _adNetwork.SetMuted(muted);
+            if (!IsAppLovin() || _orchestrator == null) return;
+            _orchestrator.Primary.SetMuted(muted);
         }
 
-        /// <summary>
-        /// Sets the placement name for the AppLovin banner ad for analytics segmentation.
-        /// </summary>
-        /// <param name="placement">The placement name.</param>
+        /// <summary>Sets the placement name for the AppLovin banner ad.</summary>
         public void SetBannerPlacement(string placement)
         {
-            if(!IsAppLovin()) { return; }
-
-            if(_adNetwork == null)
-            {
-                _log.Warning("Ad Network is not initialized. Cannot set banner placement.");
-                return;
-            }
-
-            _adNetwork.SetBannerPlacement(placement);
+            if (!IsAppLovin() || _orchestrator == null) return;
+            _orchestrator.Primary.SetBannerPlacement(placement);
         }
 
-        /// <summary>
-        /// Shows a previously loaded interstitial ad with a placement name (AppLovin only).
-        /// </summary>
-        /// <param name="placement">The placement name for analytics segmentation.</param>
+        /// <summary>Shows a previously loaded interstitial ad with a placement name (AppLovin).</summary>
         public void ShowInterstitial(string placement)
         {
-            if(!IsAppLovin()) { return; }
-
-            if(_adNetwork == null)
-            {
-                _log.Warning("Ad Network is not initialized. Cannot show interstitial ad.");
-                return;
-            }
-
+            if (!IsAppLovin() || _orchestrator == null) return;
             _hasClosedPlaceholder = false;
-
             ShowAdPlaceholder(AdPlaceholderType.Interstitial);
-
-            _adNetwork.ShowInterstitial(placement);
+            _orchestrator.Primary.ShowInterstitial(placement);
         }
 
-        /// <summary>
-        /// Shows a previously loaded rewarded ad with a placement name (AppLovin only).
-        /// </summary>
-        /// <param name="placement">The placement name for analytics segmentation.</param>
+        /// <summary>Shows a previously loaded rewarded ad with a placement name (AppLovin).</summary>
         public void ShowRewardedAd(string placement)
         {
-            if(!IsAppLovin()) { return; }
-
-            if(_adNetwork == null)
-            {
-                _log.Warning("Ad Network is not initialized. Cannot show rewarded ad.");
-                return;
-            }
-
+            if (!IsAppLovin() || _orchestrator == null) return;
             _hasClosedPlaceholder = false;
-
             ShowAdPlaceholder(AdPlaceholderType.Rewarded);
-
-            _adNetwork.ShowRewardedAd(placement);
+            _orchestrator.Primary.ShowRewardedAd(placement);
         }
 
-        /// <summary>
-        /// Sets the banner auto-refresh interval in seconds (AppLovin only). Clamped to 10-120s.
-        /// </summary>
-        /// <param name="seconds">Refresh interval in seconds (10-120).</param>
+        /// <summary>Sets the banner auto-refresh interval in seconds (AppLovin). Clamped to 10-120s.</summary>
         public void SetBannerRefreshInterval(int seconds)
         {
-            if(!IsAppLovin()) { return; }
+            if (!IsAppLovin() || _orchestrator == null) return;
+            _orchestrator.Primary.SetBannerRefreshInterval(seconds);
+        }
+#endif
 
-            if(_adNetwork == null)
+        // --- App Open Ad public methods ---
+
+        /// <summary>Shows an app open ad (tries primary then secondary network).</summary>
+        public void ShowAppOpenAd()
+        {
+            if (_appOpenAdManager == null)
             {
-                _log.Warning("Ad Network is not initialized. Cannot set banner refresh interval.");
+                _log.Warning("App Open ad manager not configured.");
                 return;
             }
-
-            _adNetwork.SetBannerRefreshInterval(seconds);
+            _appOpenAdManager.ShowAppOpenAd();
         }
-        #endif
 
-        /// <summary>
-        /// Opens the ad network's creative debugger UI for inspecting loaded ad creatives.
-        /// </summary>
+        /// <summary>Returns whether an app open ad is ready on any network.</summary>
+        public bool IsAppOpenAdReady()
+        {
+            return _appOpenAdManager?.IsAppOpenAdReady() ?? false;
+        }
+
+        /// <summary>Handles app foreground transitions for app open ad auto-show.</summary>
+        public void OnApplicationForeground()
+        {
+            _appOpenAdManager?.OnApplicationForeground();
+        }
+
+        // --- Debugger methods ---
+
+        /// <summary>Opens the ad network's creative debugger UI.</summary>
         public void ShowCreativeDebugger()
         {
-            if(_adNetwork == null) 
-            {
-                _log.Warning("Ad Network is not initialized. Cannot show creative debugger.");
-                return;
-            }
-            _adNetwork.ShowCreativeDebugger();
+            if (_orchestrator == null) return;
+            _orchestrator.Primary.ShowCreativeDebugger();
         }
 
-        /// <summary>
-        /// Opens the ad network's mediation debugger UI for inspecting waterfall and ad source configuration.
-        /// </summary>
+        /// <summary>Opens the ad network's mediation debugger UI.</summary>
         public void ShowMediationDebugger()
         {
-            if(_adNetwork == null) 
-            {
-                _log.Warning("Ad Network is not initialized. Cannot show mediation debugger.");
-                return;
-            }
-            _adNetwork.ShowMediationDebugger();
+            if (_orchestrator == null) return;
+            _orchestrator.Primary.ShowMediationDebugger();
         }
-        
-        /// <summary>
-        /// Shows a loading placeholder overlay while an ad is being prepared for display.
-        /// </summary>
-        /// <param name="adType">The type of ad placeholder to show (Interstitial, Rewarded, Banner).</param>
+
+        // --- Placeholder methods ---
+
+        /// <summary>Shows a loading placeholder overlay while an ad is being prepared.</summary>
         public void ShowAdPlaceholder(AdPlaceholderType adType)
         {
             _log.Info($"Showing ad placeholder for type: {adType}");
 
-            if(_adPlaceholderUI == null)
+            if (_adPlaceholderUI == null)
             {
-                _log.Warning("Ad placeholder UI is not initialized. Cannot show ad placeholder.");
+                _log.Warning("Ad placeholder UI is not initialized.");
                 return;
             }
 
             _adPlaceholderUI.ShowAdPlaceholder(adType);
         }
 
-        /// <summary>
-        /// Closes the ad loading placeholder overlay. No-op if already closed.
-        /// </summary>
+        /// <summary>Closes the ad loading placeholder overlay. No-op if already closed.</summary>
         public void CloseAdPlaceholder()
         {
-            if (_hasClosedPlaceholder)
+            if (_hasClosedPlaceholder) return;
+
+            if (_adPlaceholderUI == null)
             {
-                _log.Info("Ad placeholder already closed. Skipping close action.");
-                return;
-            }
-            
-            if(_adPlaceholderUI == null)
-            {
-                _log.Warning("Ad placeholder UI is not initialized. Cannot close ad placeholder.");
+                _log.Warning("Ad placeholder UI is not initialized.");
                 return;
             }
 
             _log.Info("Closing ad placeholder");
-
             _adPlaceholderUI.CloseAdPlaceholder();
-
             _hasClosedPlaceholder = true;
         }
 
         private bool IsAppLovin()
         {
-            if (_mediationType == "applovin")
-            {
-                return true;
-            }
-            else
-            {
-                _log.Info("Mediation type is not AppLovin. Cannot perform AppLovin specific actions. " + "current mediation is : " + _mediationType);
-                return false;
-            }
+            if (_mediationType == "applovin") return true;
+
+            _log.Info("Mediation type is not AppLovin. Current: " + _mediationType);
+            return false;
         }
 
         private bool IsAdmob()
         {
-            if (_mediationType == "admob")
-            {
-                return true;
-            }
-            else
-            {
-                _log.Info("Mediation type is not Admob. Cannot perform Admob specific actions." + "current mediation is : " + _mediationType);
-                return false;
-            }
-        }
+            if (_mediationType == "admob") return true;
 
-#if UNITY_ADMOB
-        /// <summary>
-        /// Tracks ad revenue for preloaded ads. Replicates the same logic as the
-        /// AdmobOnAdRevenuePaid handler in InitializeAdmob, ensuring preloaded ads
-        /// have full revenue attribution.
-        /// </summary>
-        private void TrackPreloadedAdRevenue(AdValue adValue, ResponseInfo responseInfo)
-        {
-            try
-            {
-                long valueMicros = adValue.Value;
-                string currencyCode = adValue.CurrencyCode;
-
-                string responseId = responseInfo?.GetResponseId() ?? "empty";
-
-                AdapterResponseInfo loadedAdapterResponseInfo = responseInfo?.GetLoadedAdapterResponseInfo();
-
-                string adSourceId = loadedAdapterResponseInfo?.AdSourceId ?? "empty";
-                string adSourceInstanceId = loadedAdapterResponseInfo?.AdSourceInstanceId ?? "empty";
-                string adSourceInstanceName = loadedAdapterResponseInfo?.AdSourceInstanceName ?? "empty";
-                string adSourceName = loadedAdapterResponseInfo?.AdSourceName ?? "empty";
-                string adapterClassName = loadedAdapterResponseInfo?.AdapterClassName ?? "empty";
-                long latencyMillis = loadedAdapterResponseInfo?.LatencyMillis ?? 0;
-
-                Dictionary<string, string> extras = responseInfo?.GetResponseExtras();
-                string mediationGroupName = extras != null && extras.ContainsKey("mediation_group_name") ? extras["mediation_group_name"] : "empty";
-                string mediationABTestName = extras != null && extras.ContainsKey("mediation_ab_test_name") ? extras["mediation_ab_test_name"] : "empty";
-                string mediationABTestVariant = extras != null && extras.ContainsKey("mediation_ab_test_variant") ? extras["mediation_ab_test_variant"] : "empty";
-
-                double revenue = valueMicros / 1_000_000.0;
-
-                _log.Debug($"Preloaded Ad Revenue Paid: value in micros: {adValue.Value} / converted: {revenue}, {currencyCode} " +
-                    $"Ad Source: {adSourceName}, Adapter: {adapterClassName}");
-
-                _adRevenueTracker?.TrackAdRevenue("admob_sdk", revenue, currencyCode, new Dictionary<string, IConvertible>
-                {
-                    { "ad_source_id", adSourceId },
-                    { "ad_source_instance_id", adSourceInstanceId },
-                    { "ad_source_instance_name", adSourceInstanceName },
-                    { "ad_source_name", adSourceName },
-                    { "adapter_class_name", adapterClassName },
-                    { "latency_millis", latencyMillis },
-                    { "response_id", responseId },
-                    { "mediation_group_name", mediationGroupName },
-                    { "mediation_ab_test_name", mediationABTestName },
-                    { "mediation_ab_test_variant", mediationABTestVariant }
-                });
-
-                _admobOnAdRevenuePaid?.Invoke(adValue, responseInfo);
-
-                ProcessTaichiThresholds(revenue);
-            }
-            catch (Exception ex)
-            {
-                _log.Error($"Error tracking preloaded ad revenue: {ex.Message}\n{ex.StackTrace}");
-            }
-        }
-#endif
-
-        /// <summary>
-        /// Taichi tROAS: accumulates ad revenue and impression count in PlayerPrefs,
-        /// fires custom events when thresholds are crossed, then resets the counters.
-        /// </summary>
-        private void ProcessTaichiThresholds(double impressionRevenue)
-        {
-            float previousTroasCache = PlayerPrefs.GetFloat(TroasCacheKey, 0f);
-            int previousAdCount = PlayerPrefs.GetInt(AdCountKey, 0);
-
-            float currentTroasCache = previousTroasCache + (float)impressionRevenue;
-            int currentAdCount = previousAdCount + 1;
-
-            // Step 1: Revenue threshold → fire Total_Ads_Revenue_001
-            if (currentTroasCache >= TroasThreshold)
-            {
-                _log.Info($"Taichi revenue threshold crossed: {currentTroasCache:F4} >= {TroasThreshold}");
-                _adRevenueTracker?.TrackCustomEvent("Total_Ads_Revenue_001", new Dictionary<string, IConvertible>
-                {
-                    { "value", (double)currentTroasCache },
-                    { "currency", "USD" }
-                });
-                PlayerPrefs.SetFloat(TroasCacheKey, 0f);
-            }
-            else
-            {
-                PlayerPrefs.SetFloat(TroasCacheKey, currentTroasCache);
-            }
-
-            // Step 2: Ad count threshold → fire TenAdsShown
-            if (currentAdCount >= AdCountThreshold)
-            {
-                _log.Info($"Taichi ad count threshold crossed: {currentAdCount} >= {AdCountThreshold}");
-                _adRevenueTracker?.TrackCustomEvent("TenAdsShown", new Dictionary<string, IConvertible>
-                {
-                    { "value", (double)currentTroasCache },
-                    { "currency", "USD" }
-                });
-                PlayerPrefs.SetInt(AdCountKey, 0);
-            }
-            else
-            {
-                PlayerPrefs.SetInt(AdCountKey, currentAdCount);
-            }
-
-            PlayerPrefs.Save();
+            _log.Info("Mediation type is not Admob. Current: " + _mediationType);
+            return false;
         }
     }
 }

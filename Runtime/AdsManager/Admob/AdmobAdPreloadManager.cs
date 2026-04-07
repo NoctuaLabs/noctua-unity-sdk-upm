@@ -105,23 +105,31 @@ namespace com.noctuagames.sdk
             }
             
             bool isAvailable = false;
-            
-            switch (adFormat)
+
+            try
             {
-                case AdFormat.INTERSTITIAL:
-                    isAvailable = InterstitialAd.IsAdAvailable(adUnitId);
-                    break;
-                case AdFormat.REWARDED:
-                    isAvailable = RewardedAd.IsAdAvailable(adUnitId);
-                    break;
-                case AdFormat.APP_OPEN_AD:
-                    isAvailable = AppOpenAd.IsAdAvailable(adUnitId);
-                    break;
-                default:
-                    _log.Error($"Unsupported ad format: {adFormat}");
-                    break;
+                switch (adFormat)
+                {
+                    case AdFormat.INTERSTITIAL:
+                        isAvailable = InterstitialAd.IsAdAvailable(adUnitId);
+                        break;
+                    case AdFormat.REWARDED:
+                        isAvailable = RewardedAd.IsAdAvailable(adUnitId);
+                        break;
+                    case AdFormat.APP_OPEN_AD:
+                        isAvailable = AppOpenAd.IsAdAvailable(adUnitId);
+                        break;
+                    default:
+                        _log.Error($"Unsupported ad format: {adFormat}");
+                        break;
+                }
             }
-            
+            catch (Exception e)
+            {
+                _log.Warning($"IsAdAvailable threw for {adFormat} ({adUnitId}): {e.Message}. Treating as not available.");
+                return false;
+            }
+
             return isAvailable;
         }
         
@@ -138,12 +146,20 @@ namespace com.noctuagames.sdk
                 return null;
             }
             
-            if (!InterstitialAd.IsAdAvailable(adUnitId))
+            try
             {
-                _log.Warning($"No preloaded interstitial ad available for ad unit ID: {adUnitId}");
+                if (!InterstitialAd.IsAdAvailable(adUnitId))
+                {
+                    _log.Warning($"No preloaded interstitial ad available for ad unit ID: {adUnitId}");
+                    return null;
+                }
+            }
+            catch (Exception e)
+            {
+                _log.Warning($"InterstitialAd.IsAdAvailable threw for {adUnitId}: {e.Message}. Returning null.");
                 return null;
             }
-            
+
             _log.Info($"Polling interstitial ad for ad unit ID: {adUnitId}");
             return InterstitialAd.PollAd(adUnitId);
         }
@@ -161,12 +177,20 @@ namespace com.noctuagames.sdk
                 return null;
             }
             
-            if (!RewardedAd.IsAdAvailable(adUnitId))
+            try
             {
-                _log.Warning($"No preloaded rewarded ad available for ad unit ID: {adUnitId}");
+                if (!RewardedAd.IsAdAvailable(adUnitId))
+                {
+                    _log.Warning($"No preloaded rewarded ad available for ad unit ID: {adUnitId}");
+                    return null;
+                }
+            }
+            catch (Exception e)
+            {
+                _log.Warning($"RewardedAd.IsAdAvailable threw for {adUnitId}: {e.Message}. Returning null.");
                 return null;
             }
-            
+
             _log.Info($"Polling rewarded ad for ad unit ID: {adUnitId}");
             return RewardedAd.PollAd(adUnitId);
         }
@@ -184,12 +208,20 @@ namespace com.noctuagames.sdk
                 return null;
             }
             
-            if (!AppOpenAd.IsAdAvailable(adUnitId))
+            try
             {
-                _log.Warning($"No preloaded app open ad available for ad unit ID: {adUnitId}");
+                if (!AppOpenAd.IsAdAvailable(adUnitId))
+                {
+                    _log.Warning($"No preloaded app open ad available for ad unit ID: {adUnitId}");
+                    return null;
+                }
+            }
+            catch (Exception e)
+            {
+                _log.Warning($"AppOpenAd.IsAdAvailable threw for {adUnitId}: {e.Message}. Returning null.");
                 return null;
             }
-            
+
             _log.Info($"Polling app open ad for ad unit ID: {adUnitId}");
             return AppOpenAd.PollAd(adUnitId);
         }
