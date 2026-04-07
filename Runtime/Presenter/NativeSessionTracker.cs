@@ -11,7 +11,7 @@ namespace com.noctuagames.sdk.Events
     /// Sends <c>native_user_engagement</c> and <c>native_user_engagement_per_session</c> events.
     /// This is a parallel tracker to <see cref="SessionTracker"/>, which is driven by Unity's OnApplicationPause.
     /// </summary>
-    internal class NativeSessionTracker : IDisposable
+    public class NativeSessionTracker : IDisposable
     {
         private readonly SessionTrackerConfig _config;
         private readonly IEventSender _eventSender;
