@@ -1,5 +1,6 @@
 #if UNITY_APPLOVIN
 using System;
+using System.Collections.Generic;
 using com.noctuagames.sdk.AppLovin;
 using UnityEngine;
 
@@ -14,9 +15,13 @@ namespace com.noctuagames.sdk
 
         private readonly NoctuaLogger _log = new(typeof(AppLovinManager));
 
+        /// <inheritdoc />
+        public string NetworkName => AdNetworkName.AppLovin;
+
         private InterstitialAppLovin _interstitialAppLovin;
         private RewardedAppLovin _rewardedAppLovin;
         private BannerAppLovin _bannerAppLovin;
+        private AppOpenAppLovin _appOpenAppLovin;
 
         // Private event handlers
         private event Action _initCompleteAction;
@@ -27,11 +32,14 @@ namespace com.noctuagames.sdk
         private event Action _onAdClosed;
         private event Action<MaxSdk.Reward> _onUserEarnedReward;
         private event Action<MaxSdkBase.AdInfo> _appLovinOnAdRevenuePaid;
+        private event Action<double, string> _onUnifiedUserEarnedReward;
+        private event Action<double, string, Dictionary<string, string>> _onUnifiedAdRevenuePaid;
 
         // Subscription guards to prevent duplicate event wiring on re-init
         private bool _interstitialEventsSubscribed;
         private bool _rewardedEventsSubscribed;
         private bool _bannerEventsSubscribed;
+        private bool _appOpenEventsSubscribed;
         private bool _sdkInitCallbackSubscribed;
 
         /// <summary>Raised when the AppLovin MAX SDK has completed initialization.</summary>
@@ -58,6 +66,12 @@ namespace com.noctuagames.sdk
         /// <summary>Raised when ad revenue is recorded, providing the ad info with revenue data.</summary>
         public event Action<MaxSdkBase.AdInfo> AppLovinOnAdRevenuePaid { add => _appLovinOnAdRevenuePaid += value; remove => _appLovinOnAdRevenuePaid -= value; }
 
+        /// <summary>Raised when the user earns a reward (network-agnostic). Parameters: (amount, type).</summary>
+        public event Action<double, string> OnUserEarnedReward { add => _onUnifiedUserEarnedReward += value; remove => _onUnifiedUserEarnedReward -= value; }
+
+        /// <summary>Raised when ad revenue is recorded (network-agnostic). Parameters: (revenue, currency, metadata).</summary>
+        public event Action<double, string, Dictionary<string, string>> OnAdRevenuePaid { add => _onUnifiedAdRevenuePaid += value; remove => _onUnifiedAdRevenuePaid -= value; }
+
         internal AppLovinManager()
         {
             _log.Debug("AppLovinManager constructor");
@@ -65,7 +79,30 @@ namespace com.noctuagames.sdk
             _interstitialAppLovin = new InterstitialAppLovin();
             _rewardedAppLovin = new RewardedAppLovin();
             _bannerAppLovin = new BannerAppLovin();
+            _appOpenAppLovin = new AppOpenAppLovin();
 
+            // Wire network-specific events to unified (network-agnostic) events
+            _onUserEarnedReward += (reward) =>
+            {
+                _onUnifiedUserEarnedReward?.Invoke(reward.Amount, reward.Label);
+            };
+
+            _appLovinOnAdRevenuePaid += (adInfo) =>
+            {
+                double revenue = adInfo.Revenue;
+                string currency = "USD";
+
+                var metadata = new Dictionary<string, string>
+                {
+                    { "network", adInfo.NetworkName ?? "unknown" },
+                    { "placement", adInfo.Placement ?? "unknown" },
+                    { "network_placement", adInfo.NetworkPlacement ?? "unknown" },
+                    { "creative_id", adInfo.CreativeIdentifier ?? "unknown" },
+                    { "precision", adInfo.RevenuePrecision ?? "unknown" }
+                };
+
+                _onUnifiedAdRevenuePaid?.Invoke(revenue, currency, metadata);
+            };
         }
 
         /// <inheritdoc />
@@ -259,6 +296,42 @@ namespace com.noctuagames.sdk
         public void SetBannerRefreshInterval(int seconds)
         {
             _bannerAppLovin.SetRefreshInterval(seconds);
+        }
+
+        /// <inheritdoc />
+        public void SetAppOpenAdUnitID(string adUnitID)
+        {
+            _appOpenAppLovin.SetAppOpenAdUnitID(adUnitID);
+
+            if (!_appOpenEventsSubscribed)
+            {
+                _appOpenEventsSubscribed = true;
+
+                _appOpenAppLovin.AppOpenOnAdDisplayed += () => { _onAdDisplayed?.Invoke(); };
+                _appOpenAppLovin.AppOpenOnAdFailedDisplayed += () => { _onAdFailedDisplayed?.Invoke(); };
+                _appOpenAppLovin.AppOpenOnAdClicked += () => { _onAdClicked?.Invoke(); };
+                _appOpenAppLovin.AppOpenOnAdImpressionRecorded += () => { _onAdImpressionRecorded?.Invoke(); };
+                _appOpenAppLovin.AppOpenOnAdClosed += () => { _onAdClosed?.Invoke(); };
+                _appOpenAppLovin.AppOpenOnAdRevenuePaid += (adInfo) => { _appLovinOnAdRevenuePaid?.Invoke(adInfo); };
+            }
+        }
+
+        /// <inheritdoc />
+        public void LoadAppOpenAd()
+        {
+            _appOpenAppLovin.LoadAppOpenAd();
+        }
+
+        /// <inheritdoc />
+        public void ShowAppOpenAd()
+        {
+            _appOpenAppLovin.ShowAppOpenAd();
+        }
+
+        /// <inheritdoc />
+        public bool IsAppOpenAdReady()
+        {
+            return _appOpenAppLovin.IsAdReady();
         }
 
         /// <inheritdoc />

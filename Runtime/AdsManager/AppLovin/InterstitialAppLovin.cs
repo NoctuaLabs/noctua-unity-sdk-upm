@@ -306,8 +306,8 @@ namespace com.noctuagames.sdk.AppLovin
                 extraPayload ??= new Dictionary<string, IConvertible>();
 
                 // Add basic information that doesn't require the ad info
-                extraPayload.Add("ad_format", "interstitial");
-                extraPayload.Add("mediation_service", "applovin");
+                extraPayload.Add("ad_format", AdFormatKey.Interstitial);
+                extraPayload.Add("mediation_service", AdNetworkName.AppLovin);
                 extraPayload.Add("ad_unit_id", adUnitId ?? _adUnitIDInterstitial ?? "unknown");
 
                 // Add ad info if available

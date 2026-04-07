@@ -164,7 +164,7 @@ namespace com.noctuagames.sdk
             // If ADMOB is also defined and secondary_mediation is set, AppLovin becomes secondary
             #if UNITY_ADMOB
             if (!string.IsNullOrEmpty(iaaConfig.SecondaryMediation) &&
-                iaaConfig.SecondaryMediation == "applovin")
+                iaaConfig.SecondaryMediation == AdNetworkName.AppLovin)
             {
                 secondary = new AppLovinManager();
             }
@@ -187,7 +187,7 @@ namespace com.noctuagames.sdk
             // Check for secondary in the reverse direction: primary is applovin, secondary is admob
             #if UNITY_APPLOVIN && UNITY_ADMOB
             if (primary is AppLovinManager && !string.IsNullOrEmpty(iaaConfig.SecondaryMediation) &&
-                iaaConfig.SecondaryMediation == "admob")
+                iaaConfig.SecondaryMediation == AdNetworkName.Admob)
             {
                 secondary = new AdmobManager();
             }
@@ -240,9 +240,9 @@ namespace com.noctuagames.sdk
 
             var mediationType =
             #if UNITY_APPLOVIN
-                "applovin";
+                AdNetworkName.AppLovin;
             #elif UNITY_ADMOB
-                "admob";
+                AdNetworkName.Admob;
             #else
                 "unknown";
             #endif
@@ -344,7 +344,7 @@ namespace com.noctuagames.sdk
 #if UNITY_ADMOB
         private void SubscribeAdmobRevenueEvents(IAdNetwork network)
         {
-            if (network.NetworkName != "admob") return;
+            if (network.NetworkName != AdNetworkName.Admob) return;
 
             network.AdmobOnUserEarnedReward += (reward) => _admobOnUserEarnedReward?.Invoke(reward);
             network.AdmobOnAdRevenuePaid += (adValue, responseInfo) =>
@@ -358,7 +358,7 @@ namespace com.noctuagames.sdk
 #if UNITY_APPLOVIN
         private void SubscribeAppLovinRevenueEvents(IAdNetwork network)
         {
-            if (network.NetworkName != "applovin") return;
+            if (network.NetworkName != AdNetworkName.AppLovin) return;
 
             network.AppLovinOnUserEarnedReward += (reward) => _appLovinOnUserEarnedReward?.Invoke(reward);
             network.AppLovinOnAdRevenuePaid += (adInfo) =>
@@ -381,7 +381,7 @@ namespace com.noctuagames.sdk
 
             primary.SetBannerAdUnitId(_bannerAdUnitID);
 
-            if (IsAdmob() && primary.NetworkName == "admob")
+            if (IsAdmob() && primary.NetworkName == AdNetworkName.Admob)
             {
 #if UNITY_ADMOB
                 // All AdMob fullscreen formats use the Preload API exclusively.
@@ -444,9 +444,9 @@ namespace com.noctuagames.sdk
 
         private void SetupSecondaryAdUnits(IAA iAAResponse, IAdNetwork secondary)
         {
-            string secondaryInterstitial = ResolveAdUnitIdForNetwork(iAAResponse, secondary.NetworkName, "interstitial");
-            string secondaryRewarded = ResolveAdUnitIdForNetwork(iAAResponse, secondary.NetworkName, "rewarded");
-            string secondaryBanner = ResolveAdUnitIdForNetwork(iAAResponse, secondary.NetworkName, "banner");
+            string secondaryInterstitial = ResolveAdUnitIdForNetwork(iAAResponse, secondary.NetworkName, AdFormatKey.Interstitial);
+            string secondaryRewarded = ResolveAdUnitIdForNetwork(iAAResponse, secondary.NetworkName, AdFormatKey.Rewarded);
+            string secondaryBanner = ResolveAdUnitIdForNetwork(iAAResponse, secondary.NetworkName, AdFormatKey.Banner);
 
             if (secondaryInterstitial != "unknown")
             {
@@ -472,7 +472,7 @@ namespace com.noctuagames.sdk
         /// </summary>
         private void SetupAppOpenAds(IAA iAAResponse)
         {
-            string primaryAppOpenId = ResolveAdUnitIdForNetwork(iAAResponse, _orchestrator.Primary.NetworkName, "app_open");
+            string primaryAppOpenId = ResolveAdUnitIdForNetwork(iAAResponse, _orchestrator.Primary.NetworkName, AdFormatKey.AppOpen);
 
             if (string.IsNullOrEmpty(primaryAppOpenId) || primaryAppOpenId == "unknown")
             {
@@ -480,12 +480,17 @@ namespace com.noctuagames.sdk
                 return;
             }
 
+            // Resolve preferred network from format overrides (null = primary first, default behaviour).
+            string preferredAppOpenNetwork = null;
+            iAAResponse.AdFormatOverrides?.TryGetValue(AdFormatKey.AppOpen, out preferredAppOpenNetwork);
+
             _appOpenAdManager = new AppOpenAdManager(
                 primaryNetwork: _orchestrator.Primary,
                 secondaryNetwork: _orchestrator.Secondary,
                 frequencyManager: _frequencyManager,
                 autoShowOnForeground: iAAResponse.AppOpenAutoShow,
-                cooldownSeconds: iAAResponse.AppOpenCooldownSeconds > 0 ? iAAResponse.AppOpenCooldownSeconds : 30
+                cooldownSeconds: iAAResponse.AppOpenCooldownSeconds > 0 ? iAAResponse.AppOpenCooldownSeconds : 30,
+                preferredNetworkName: preferredAppOpenNetwork
             );
 
             // Only pass primary here; secondary will be added in SetupSecondaryAppOpen after secondary SDK is ready
@@ -500,7 +505,7 @@ namespace com.noctuagames.sdk
         {
             if (_appOpenAdManager == null) return;
 
-            string secondaryAppOpenId = ResolveAdUnitIdForNetwork(iAAResponse, secondary.NetworkName, "app_open");
+            string secondaryAppOpenId = ResolveAdUnitIdForNetwork(iAAResponse, secondary.NetworkName, AdFormatKey.AppOpen);
             if (!string.IsNullOrEmpty(secondaryAppOpenId) && secondaryAppOpenId != "unknown")
             {
                 _appOpenAdManager.ConfigureSecondary(secondaryAppOpenId);
@@ -509,11 +514,11 @@ namespace com.noctuagames.sdk
 
         private void ResolveAdUnitIDs(IAA iAAResponse, string networkName)
         {
-            _interstitialAdUnitID = ResolveAdUnitIdForNetwork(iAAResponse, networkName, "interstitial");
-            _rewardedAdUnitID = ResolveAdUnitIdForNetwork(iAAResponse, networkName, "rewarded");
-            _rewardedInterstitialAdUnitID = ResolveAdUnitIdForNetwork(iAAResponse, networkName, "rewarded_interstitial");
-            _bannerAdUnitID = ResolveAdUnitIdForNetwork(iAAResponse, networkName, "banner");
-            _appOpenAdUnitID = ResolveAdUnitIdForNetwork(iAAResponse, networkName, "app_open");
+            _interstitialAdUnitID = ResolveAdUnitIdForNetwork(iAAResponse, networkName, AdFormatKey.Interstitial);
+            _rewardedAdUnitID = ResolveAdUnitIdForNetwork(iAAResponse, networkName, AdFormatKey.Rewarded);
+            _rewardedInterstitialAdUnitID = ResolveAdUnitIdForNetwork(iAAResponse, networkName, AdFormatKey.RewardedInterstitial);
+            _bannerAdUnitID = ResolveAdUnitIdForNetwork(iAAResponse, networkName, AdFormatKey.Banner);
+            _appOpenAdUnitID = ResolveAdUnitIdForNetwork(iAAResponse, networkName, AdFormatKey.AppOpen);
         }
 
         /// <summary>
@@ -563,19 +568,19 @@ namespace com.noctuagames.sdk
 
             switch (format)
             {
-                case "interstitial":
+                case AdFormatKey.Interstitial:
                     adUnit = adFormat.Interstitial;
                     break;
-                case "rewarded":
+                case AdFormatKey.Rewarded:
                     adUnit = adFormat.Rewarded;
                     break;
-                case "rewarded_interstitial":
+                case AdFormatKey.RewardedInterstitial:
                     adUnit = adFormat.RewardedInterstitial;
                     break;
-                case "banner":
+                case AdFormatKey.Banner:
                     adUnit = adFormat.Banner;
                     break;
-                case "app_open":
+                case AdFormatKey.AppOpen:
                     adUnit = adFormat.AppOpen;
                     break;
             }
@@ -607,36 +612,11 @@ namespace com.noctuagames.sdk
         /// <summary>Shows a full-screen interstitial ad with a placeholder overlay while loading.</summary>
         public void ShowInterstitial()
         {
-            if (_orchestrator == null)
-            {
-                _log.Warning("Orchestrator not initialized. Cannot show interstitial ad.");
-                return;
-            }
-
-            if (_frequencyManager != null && !_frequencyManager.CanShowAd("interstitial"))
-            {
-                _log.Info("Interstitial ad blocked by frequency manager.");
-                return;
-            }
-
-            if (IsAdmob())
-            {
-#if UNITY_ADMOB
-                ShowAdmobInterstitial();
-#endif
-            }
-            else
-            {
-                _hasClosedPlaceholder = false;
-                ShowAdPlaceholder(AdPlaceholderType.Interstitial);
-                _orchestrator.Primary.ShowInterstitial();
-            }
-
-            _frequencyManager?.RecordImpression("interstitial");
+            ShowInterstitial(null);
         }
 
 #if UNITY_ADMOB
-        private void ShowAdmobInterstitial()
+        private void ShowAdmobInterstitial(string placement = null)
         {
             _hasClosedPlaceholder = false;
             ShowAdPlaceholder(AdPlaceholderType.Interstitial);
@@ -655,7 +635,9 @@ namespace com.noctuagames.sdk
                 {
                     try
                     {
-                        _log.Info("Showing Admob Interstitial Ad");
+                        _log.Info(placement != null
+                            ? $"Showing Admob Interstitial Ad (placement: {placement})"
+                            : "Showing Admob Interstitial Ad");
                         RegisterCallbackAdInterstitial(ad);
                         ad.Show();
                     }
@@ -725,36 +707,11 @@ namespace com.noctuagames.sdk
         /// <summary>Shows a rewarded ad with a placeholder overlay while loading.</summary>
         public void ShowRewardedAd()
         {
-            if (_orchestrator == null)
-            {
-                _log.Warning("Orchestrator not initialized. Cannot show rewarded ad.");
-                return;
-            }
-
-            if (_frequencyManager != null && !_frequencyManager.CanShowAd("rewarded"))
-            {
-                _log.Info("Rewarded ad blocked by frequency manager.");
-                return;
-            }
-
-            if (IsAdmob())
-            {
-#if UNITY_ADMOB
-                ShowAdmobRewarded();
-#endif
-            }
-            else
-            {
-                _hasClosedPlaceholder = false;
-                ShowAdPlaceholder(AdPlaceholderType.Rewarded);
-                _orchestrator.Primary.ShowRewardedAd();
-            }
-
-            _frequencyManager?.RecordImpression("rewarded");
+            ShowRewardedAd(null);
         }
 
 #if UNITY_ADMOB
-        private void ShowAdmobRewarded()
+        private void ShowAdmobRewarded(string placement = null)
         {
             _hasClosedPlaceholder = false;
             ShowAdPlaceholder(AdPlaceholderType.Rewarded);
@@ -773,7 +730,9 @@ namespace com.noctuagames.sdk
                 {
                     try
                     {
-                        _log.Info("Showing Admob Rewarded Ad");
+                        _log.Info(placement != null
+                            ? $"Showing Admob Rewarded Ad (placement: {placement})"
+                            : "Showing Admob Rewarded Ad");
                         RegisterCallbackAdRewarded(ad);
                         ad.Show((Reward reward) =>
                         {
@@ -841,18 +800,17 @@ namespace com.noctuagames.sdk
                 return;
             }
 
-            if (IsAdmob())
+            // rewarded_interstitial is AdMob-only. Warn and skip if mistakenly overridden to AppLovin.
+            var riNetwork = _orchestrator.GetNetworkForFormat(AdFormatKey.RewardedInterstitial);
+            if (!IsAdmobNetwork(riNetwork))
             {
+                _log.Warning($"rewarded_interstitial is AdMob-only; ignoring override to {riNetwork.NetworkName}. Routing to AdMob.");
+            }
 #if UNITY_ADMOB
-                ShowAdmobRewardedInterstitial();
+            ShowAdmobRewardedInterstitial();
+#else
+            _log.Warning("rewarded_interstitial requires UNITY_ADMOB define.");
 #endif
-            }
-            else
-            {
-                _hasClosedPlaceholder = false;
-                ShowAdPlaceholder(AdPlaceholderType.Rewarded);
-                _orchestrator.Primary.ShowRewardedInterstitialAd();
-            }
         }
 
 #if UNITY_ADMOB
@@ -943,7 +901,8 @@ namespace com.noctuagames.sdk
                 _log.Warning("Orchestrator not initialized. Cannot show banner ad.");
                 return;
             }
-            _orchestrator.Primary.ShowBannerAd();
+            var bannerNetwork = _orchestrator.GetNetworkForFormat(AdFormatKey.Banner);
+            bannerNetwork.ShowBannerAd();
         }
 
 #if UNITY_ADMOB
@@ -1027,22 +986,84 @@ namespace com.noctuagames.sdk
             _orchestrator.Primary.SetBannerPlacement(placement);
         }
 
-        /// <summary>Shows a previously loaded interstitial ad with a placement name (AppLovin).</summary>
+        /// <summary>
+        /// Shows an interstitial ad with an optional placement name for analytics segmentation.
+        /// For AppLovin the placement is passed natively to MAX SDK.
+        /// For AdMob the placement is included in custom event tracking only.
+        /// Passing <c>null</c> is identical to calling <see cref="ShowInterstitial()"/>.
+        /// </summary>
         public void ShowInterstitial(string placement)
         {
-            if (!IsAppLovin() || _orchestrator == null) return;
-            _hasClosedPlaceholder = false;
-            ShowAdPlaceholder(AdPlaceholderType.Interstitial);
-            _orchestrator.Primary.ShowInterstitial(placement);
+            if (_orchestrator == null)
+            {
+                _log.Warning("Orchestrator not initialized. Cannot show interstitial ad.");
+                return;
+            }
+
+            if (_frequencyManager != null && !_frequencyManager.CanShowAd(AdFormatKey.Interstitial))
+            {
+                _log.Info("Interstitial ad blocked by frequency manager.");
+                return;
+            }
+
+            var network = _orchestrator.GetNetworkForFormat(AdFormatKey.Interstitial);
+            if (IsAdmobNetwork(network))
+            {
+#if UNITY_ADMOB
+                ShowAdmobInterstitial(placement);
+#endif
+            }
+            else
+            {
+                _hasClosedPlaceholder = false;
+                ShowAdPlaceholder(AdPlaceholderType.Interstitial);
+                if (placement != null)
+                    network.ShowInterstitial(placement);
+                else
+                    network.ShowInterstitial();
+            }
+
+            _frequencyManager?.RecordImpression(AdFormatKey.Interstitial);
         }
 
-        /// <summary>Shows a previously loaded rewarded ad with a placement name (AppLovin).</summary>
+        /// <summary>
+        /// Shows a rewarded ad with an optional placement name for analytics segmentation.
+        /// For AppLovin the placement is passed natively to MAX SDK.
+        /// For AdMob the placement is included in custom event tracking only.
+        /// Passing <c>null</c> is identical to calling <see cref="ShowRewardedAd()"/>.
+        /// </summary>
         public void ShowRewardedAd(string placement)
         {
-            if (!IsAppLovin() || _orchestrator == null) return;
-            _hasClosedPlaceholder = false;
-            ShowAdPlaceholder(AdPlaceholderType.Rewarded);
-            _orchestrator.Primary.ShowRewardedAd(placement);
+            if (_orchestrator == null)
+            {
+                _log.Warning("Orchestrator not initialized. Cannot show rewarded ad.");
+                return;
+            }
+
+            if (_frequencyManager != null && !_frequencyManager.CanShowAd(AdFormatKey.Rewarded))
+            {
+                _log.Info("Rewarded ad blocked by frequency manager.");
+                return;
+            }
+
+            var network = _orchestrator.GetNetworkForFormat(AdFormatKey.Rewarded);
+            if (IsAdmobNetwork(network))
+            {
+#if UNITY_ADMOB
+                ShowAdmobRewarded(placement);
+#endif
+            }
+            else
+            {
+                _hasClosedPlaceholder = false;
+                ShowAdPlaceholder(AdPlaceholderType.Rewarded);
+                if (placement != null)
+                    network.ShowRewardedAd(placement);
+                else
+                    network.ShowRewardedAd();
+            }
+
+            _frequencyManager?.RecordImpression(AdFormatKey.Rewarded);
         }
 
         /// <summary>Sets the banner auto-refresh interval in seconds (AppLovin). Clamped to 10-120s.</summary>
@@ -1128,7 +1149,7 @@ namespace com.noctuagames.sdk
 
         private bool IsAppLovin()
         {
-            if (_mediationType == "applovin") return true;
+            if (_mediationType == AdNetworkName.AppLovin) return true;
 
             _log.Info("Mediation type is not AppLovin. Current: " + _mediationType);
             return false;
@@ -1136,10 +1157,13 @@ namespace com.noctuagames.sdk
 
         private bool IsAdmob()
         {
-            if (_mediationType == "admob") return true;
+            if (_mediationType == AdNetworkName.Admob) return true;
 
             _log.Info("Mediation type is not Admob. Current: " + _mediationType);
             return false;
         }
+
+        /// <summary>Returns true if the given network instance is AdMob.</summary>
+        private bool IsAdmobNetwork(IAdNetwork network) => network.NetworkName == AdNetworkName.Admob;
     }
 }

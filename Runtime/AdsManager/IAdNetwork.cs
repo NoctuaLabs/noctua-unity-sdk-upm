@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 
 #if UNITY_ADMOB
@@ -9,10 +10,13 @@ namespace com.noctuagames.sdk
 {
     /// <summary>
     /// Defines the contract for an ad network implementation, providing methods and events for managing
-    /// interstitial, rewarded, rewarded interstitial, and banner ads across different ad mediation platforms.
+    /// interstitial, rewarded, rewarded interstitial, banner, and app open ads across different ad mediation platforms.
     /// </summary>
     public interface IAdNetwork
     {
+        /// <summary>Returns the network identifier (e.g., "admob" or "applovin").</summary>
+        string NetworkName { get; }
+
         /// <summary>Raised when the ad network SDK has completed initialization.</summary>
         event Action OnInitialized { add{} remove{} }
 
@@ -30,6 +34,12 @@ namespace com.noctuagames.sdk
 
         /// <summary>Raised when an ad is closed by the user.</summary>
         event Action OnAdClosed { add{} remove{} }
+
+        /// <summary>Raised when the user earns a reward (network-agnostic). Parameters: (amount, type).</summary>
+        event Action<double, string> OnUserEarnedReward { add{} remove{} }
+
+        /// <summary>Raised when ad revenue is recorded (network-agnostic). Parameters: (revenue, currency, metadata).</summary>
+        event Action<double, string, Dictionary<string, string>> OnAdRevenuePaid { add{} remove{} }
 
         #if UNITY_ADMOB
         /// <summary>Raised when the user earns a reward from watching a rewarded ad (AdMob).</summary>
@@ -184,23 +194,50 @@ namespace com.noctuagames.sdk
         void SetBannerPlacement(string placement) { throw new NotImplementedException(); }
 
         /// <summary>
-        /// Shows a previously loaded interstitial ad with a placement name (AppLovin).
-        /// </summary>
-        /// <param name="placement">The placement name for analytics segmentation.</param>
-        void ShowInterstitial(string placement) { throw new NotImplementedException(); }
-
-        /// <summary>
-        /// Shows a previously loaded rewarded ad with a placement name (AppLovin).
-        /// </summary>
-        /// <param name="placement">The placement name for analytics segmentation.</param>
-        void ShowRewardedAd(string placement) { throw new NotImplementedException(); }
-
-        /// <summary>
         /// Sets the banner auto-refresh interval in seconds (AppLovin). Clamped to 10-120s.
         /// </summary>
         /// <param name="seconds">Refresh interval in seconds (10-120).</param>
         void SetBannerRefreshInterval(int seconds) { throw new NotImplementedException(); }
         #endif
+
+        /// <summary>
+        /// Shows a previously loaded interstitial ad with an optional placement name.
+        /// For AppLovin the placement is passed natively to MAX SDK.
+        /// For AdMob the placement is recorded in custom event analytics only.
+        /// Defaults to the no-placement overload when not overridden.
+        /// </summary>
+        /// <param name="placement">The placement name for analytics segmentation, or null for no placement.</param>
+        void ShowInterstitial(string placement) { ShowInterstitial(); }
+
+        /// <summary>
+        /// Shows a previously loaded rewarded ad with an optional placement name.
+        /// For AppLovin the placement is passed natively to MAX SDK.
+        /// For AdMob the placement is recorded in custom event analytics only.
+        /// Defaults to the no-placement overload when not overridden.
+        /// </summary>
+        /// <param name="placement">The placement name for analytics segmentation, or null for no placement.</param>
+        void ShowRewardedAd(string placement) { ShowRewardedAd(); }
+
+        /// <summary>
+        /// Sets the ad unit ID for app open ads.
+        /// </summary>
+        /// <param name="adUnitID">The ad unit ID assigned by the ad network for app open ads.</param>
+        void SetAppOpenAdUnitID(string adUnitID) { throw new NotImplementedException(); }
+
+        /// <summary>
+        /// Loads an app open ad into memory so it is ready to be displayed.
+        /// </summary>
+        void LoadAppOpenAd() { throw new NotImplementedException(); }
+
+        /// <summary>
+        /// Shows a previously loaded app open ad to the user.
+        /// </summary>
+        void ShowAppOpenAd() { throw new NotImplementedException(); }
+
+        /// <summary>
+        /// Returns whether an app open ad is loaded and ready to show.
+        /// </summary>
+        bool IsAppOpenAdReady() { return false; }
 
         /// <summary>
         /// Opens the creative debugger tool for inspecting ad creatives.

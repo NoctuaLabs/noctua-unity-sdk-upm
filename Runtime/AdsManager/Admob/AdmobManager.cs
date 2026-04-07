@@ -16,7 +16,7 @@ namespace com.noctuagames.sdk
         private readonly NoctuaLogger _log = new(typeof(AdmobManager));
 
         /// <inheritdoc />
-        public string NetworkName => "admob";
+        public string NetworkName => AdNetworkName.Admob;
 
         private InterstitialAdmob _interstitialAdmob;
         private RewardedAdmob _rewardedAdmob;
@@ -97,7 +97,7 @@ namespace com.noctuagames.sdk
 
                 var metadata = new Dictionary<string, string>
                 {
-                    { "network", "admob" },
+                    { "network", AdNetworkName.Admob },
                     { "precision", adValue.Precision.ToString() }
                 };
 

@@ -182,8 +182,8 @@ namespace com.noctuagames.sdk.Admob
 
                 extraPayload ??= new Dictionary<string, IConvertible>();
 
-                extraPayload.Add("ad_format", "app_open");
-                extraPayload.Add("mediation_service", "admob");
+                extraPayload.Add("ad_format", AdFormatKey.AppOpen);
+                extraPayload.Add("mediation_service", AdNetworkName.Admob);
                 extraPayload.Add("ad_unit_id", _adUnitIDAppOpen ?? "unknown");
 
                 // Best-effort: try to get adapter info from preload manager availability check.

@@ -506,9 +506,10 @@ namespace com.noctuagames.sdk
 
                 Noctua.Instance.Value._nativePlugin?.OnApplicationPause(pause);
 
-                if (!pause) // If resumed from background, try to fetch purchases data
+                if (!pause) // If resumed from background
                 {
                     Noctua.Instance.Value._iap?.QueryPurchasesAsync();
+                    Noctua.Instance.Value._iaa?.OnApplicationForeground();
                 }
             }
 

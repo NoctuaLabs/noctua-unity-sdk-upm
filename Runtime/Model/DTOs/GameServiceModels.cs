@@ -86,14 +86,214 @@ namespace com.noctuagames.sdk
     [Preserve]
     public class IAA
     {
-        /// <summary>Mediation provider name (e.g., "applovin", "admob").</summary>
+        /// <summary>Primary mediation provider name (e.g., "applovin", "admob").</summary>
         [JsonProperty("mediation")]
         public string Mediation;
 
-        /// <summary>Ad format definitions with per-platform ad unit IDs.</summary>
+        /// <summary>Secondary mediation provider for hybrid fallback. When non-null, enables hybrid mode.</summary>
+        [JsonProperty("secondary_mediation")]
+        public string SecondaryMediation;
+
+        /// <summary>Per-network ad unit configurations keyed by network name (e.g., "admob", "applovin").</summary>
+        [JsonProperty("networks")]
+        public Dictionary<string, NetworkConfig> Networks;
+
+        /// <summary>Per-format network overrides (e.g., {"interstitial":"admob","rewarded":"applovin"}).</summary>
+        [JsonProperty("ad_format_overrides")]
+        public Dictionary<string, string> AdFormatOverrides;
+
+        /// <summary>Ad format definitions with per-platform ad unit IDs (flat, backward compat).</summary>
         [JsonProperty("ad_formats")]
         public AdFormatNoctua AdFormat;
 
+        /// <summary>Per-format frequency cap configuration.</summary>
+        [JsonProperty("frequency_caps")]
+        public FrequencyCapConfig FrequencyCaps;
+
+        /// <summary>Per-format minimum seconds between ad impressions.</summary>
+        [JsonProperty("cooldown_seconds")]
+        public CooldownConfig CooldownSeconds;
+
+        /// <summary>Per-format feature flags for enabling/disabling ad formats.</summary>
+        [JsonProperty("enabled_formats")]
+        public EnabledFormatsConfig EnabledFormats;
+
+        /// <summary>When true, overrides all ad unit IDs with AdMob test ad unit IDs.</summary>
+        [JsonProperty("test_mode")]
+        public bool TestMode;
+
+        /// <summary>When true, enables performance-based dynamic network routing.</summary>
+        [JsonProperty("dynamic_optimization")]
+        public bool DynamicOptimization;
+
+        /// <summary>When true, automatically shows an app open ad on each foreground transition.</summary>
+        [JsonProperty("app_open_auto_show")]
+        public bool AppOpenAutoShow;
+
+        /// <summary>Minimum seconds between app open ad impressions (default 30).</summary>
+        [JsonProperty("app_open_cooldown_seconds")]
+        public int AppOpenCooldownSeconds;
+
+        /// <summary>Taichi tROAS integration thresholds. When null, Taichi tracking is disabled.</summary>
+        [JsonProperty("taichi")]
+        public TaichiConfig Taichi;
+    }
+
+    /// <summary>
+    /// Taichi tROAS (Target Return On Ad Spend) tracking configuration.
+    /// Controls revenue and impression thresholds for Taichi custom events.
+    /// </summary>
+    [Preserve]
+    public class TaichiConfig
+    {
+        /// <summary>
+        /// Total ad revenue threshold in USD. Fires Total_Ads_Revenue_001 when cumulative revenue crosses this value.
+        /// Default: 0.01
+        /// </summary>
+        [JsonProperty("revenue_threshold")]
+        public float RevenueThreshold = 0.01f;
+
+        /// <summary>
+        /// Total ad impression threshold. Fires TenAdsShown when combined impression count crosses this value.
+        /// Default: 10
+        /// </summary>
+        [JsonProperty("ad_count_threshold")]
+        public int AdCountThreshold = 10;
+
+        /// <summary>
+        /// Combined interstitial + rewarded impression threshold. Fires taichi_total_ad_impression.
+        /// Default: 10
+        /// </summary>
+        [JsonProperty("total_impression_threshold")]
+        public int TotalImpressionThreshold = 10;
+
+        /// <summary>
+        /// Interstitial-only impression threshold. Fires taichi_interstitial_ad_impression.
+        /// Default: 10
+        /// </summary>
+        [JsonProperty("interstitial_count_threshold")]
+        public int InterstitialCountThreshold = 10;
+
+        /// <summary>
+        /// Rewarded-only impression threshold. Fires taichi_rewarded_ad_impression.
+        /// Default: 10
+        /// </summary>
+        [JsonProperty("rewarded_count_threshold")]
+        public int RewardedCountThreshold = 10;
+
+        /// <summary>
+        /// Rewarded-only revenue threshold in USD. Fires taichi_rewarded_ad_revenue.
+        /// Default: 0.01
+        /// </summary>
+        [JsonProperty("rewarded_revenue_threshold")]
+        public float RewardedRevenueThreshold = 0.01f;
+    }
+
+    /// <summary>
+    /// Per-network ad configuration containing ad format definitions.
+    /// </summary>
+    [Preserve]
+    public class NetworkConfig
+    {
+        /// <summary>Ad format definitions with per-platform ad unit IDs for this network.</summary>
+        [JsonProperty("ad_formats")]
+        public AdFormatNoctua AdFormat;
+    }
+
+    /// <summary>
+    /// Per-format frequency cap configuration specifying maximum impressions within a time window.
+    /// </summary>
+    [Preserve]
+    public class FrequencyCapConfig
+    {
+        /// <summary>Frequency cap for interstitial ads.</summary>
+        [JsonProperty("interstitial")]
+        public FrequencyCapEntry Interstitial;
+
+        /// <summary>Frequency cap for rewarded ads.</summary>
+        [JsonProperty("rewarded")]
+        public FrequencyCapEntry Rewarded;
+
+        /// <summary>Frequency cap for rewarded interstitial ads.</summary>
+        [JsonProperty("rewarded_interstitial")]
+        public FrequencyCapEntry RewardedInterstitial;
+
+        /// <summary>Frequency cap for banner ads.</summary>
+        [JsonProperty("banner")]
+        public FrequencyCapEntry Banner;
+
+        /// <summary>Frequency cap for app open ads.</summary>
+        [JsonProperty("app_open")]
+        public FrequencyCapEntry AppOpen;
+    }
+
+    /// <summary>
+    /// A single frequency cap entry specifying maximum impressions within a time window.
+    /// </summary>
+    [Preserve]
+    public class FrequencyCapEntry
+    {
+        /// <summary>Maximum number of impressions allowed within the time window.</summary>
+        [JsonProperty("max_impressions")]
+        public int MaxImpressions;
+
+        /// <summary>Time window in seconds for the frequency cap.</summary>
+        [JsonProperty("window_seconds")]
+        public int WindowSeconds;
+    }
+
+    /// <summary>
+    /// Per-format minimum cooldown seconds between consecutive ad impressions.
+    /// </summary>
+    [Preserve]
+    public class CooldownConfig
+    {
+        /// <summary>Cooldown seconds for interstitial ads.</summary>
+        [JsonProperty("interstitial")]
+        public int Interstitial;
+
+        /// <summary>Cooldown seconds for rewarded ads.</summary>
+        [JsonProperty("rewarded")]
+        public int Rewarded;
+
+        /// <summary>Cooldown seconds for rewarded interstitial ads.</summary>
+        [JsonProperty("rewarded_interstitial")]
+        public int RewardedInterstitial;
+
+        /// <summary>Cooldown seconds for banner ads.</summary>
+        [JsonProperty("banner")]
+        public int Banner;
+
+        /// <summary>Cooldown seconds for app open ads.</summary>
+        [JsonProperty("app_open")]
+        public int AppOpen;
+    }
+
+    /// <summary>
+    /// Per-format feature flags for enabling or disabling individual ad formats.
+    /// </summary>
+    [Preserve]
+    public class EnabledFormatsConfig
+    {
+        /// <summary>Whether interstitial ads are enabled (default true).</summary>
+        [JsonProperty("interstitial")]
+        public bool Interstitial = true;
+
+        /// <summary>Whether rewarded ads are enabled (default true).</summary>
+        [JsonProperty("rewarded")]
+        public bool Rewarded = true;
+
+        /// <summary>Whether rewarded interstitial ads are enabled (default true).</summary>
+        [JsonProperty("rewarded_interstitial")]
+        public bool RewardedInterstitial = true;
+
+        /// <summary>Whether banner ads are enabled (default true).</summary>
+        [JsonProperty("banner")]
+        public bool Banner = true;
+
+        /// <summary>Whether app open ads are enabled (default true).</summary>
+        [JsonProperty("app_open")]
+        public bool AppOpen = true;
     }
 
     /// <summary>

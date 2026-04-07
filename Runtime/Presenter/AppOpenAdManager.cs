@@ -17,6 +17,12 @@ namespace com.noctuagames.sdk
         private readonly bool _autoShowOnForeground;
         private readonly int _cooldownSeconds;
 
+        /// <summary>
+        /// Optional network name override from <see cref="IAA.AdFormatOverrides"/> for "app_open".
+        /// When set, <see cref="ShowAppOpenAd"/> tries this network first instead of primary.
+        /// </summary>
+        private readonly string _preferredNetworkName;
+
         private DateTime _lastShowTime = DateTime.MinValue;
         private bool _isFullscreenAdShowing;
         private bool _appOpenAdUnitConfigured;
@@ -29,18 +35,24 @@ namespace com.noctuagames.sdk
         /// <param name="frequencyManager">The frequency manager for enforcing caps.</param>
         /// <param name="autoShowOnForeground">Whether to auto-show on app foreground.</param>
         /// <param name="cooldownSeconds">Minimum seconds between app open ad impressions.</param>
+        /// <param name="preferredNetworkName">
+        /// Optional network name from <see cref="IAA.AdFormatOverrides"/> for the "app_open" format.
+        /// When set, that network is tried first on show. Defaults to null (primary always first).
+        /// </param>
         public AppOpenAdManager(
             IAdNetwork primaryNetwork,
             IAdNetwork secondaryNetwork = null,
             AdFrequencyManager frequencyManager = null,
             bool autoShowOnForeground = false,
-            int cooldownSeconds = 30)
+            int cooldownSeconds = 30,
+            string preferredNetworkName = null)
         {
             _primaryNetwork = primaryNetwork;
             _secondaryNetwork = secondaryNetwork;
             _frequencyManager = frequencyManager;
             _autoShowOnForeground = autoShowOnForeground;
             _cooldownSeconds = cooldownSeconds > 0 ? cooldownSeconds : 30;
+            _preferredNetworkName = preferredNetworkName;
         }
 
         /// <summary>
@@ -104,28 +116,42 @@ namespace com.noctuagames.sdk
         }
 
         /// <summary>
-        /// Manually shows an app open ad, trying primary first then secondary.
+        /// Manually shows an app open ad.
+        /// If <see cref="_preferredNetworkName"/> is set (from <see cref="IAA.AdFormatOverrides"/>),
+        /// that network is tried first; otherwise primary is tried first.
         /// </summary>
         public void ShowAppOpenAd()
         {
-            if (_frequencyManager != null && !_frequencyManager.CanShowAd("app_open"))
+            if (_frequencyManager != null && !_frequencyManager.CanShowAd(AdFormatKey.AppOpen))
             {
                 _log.Info("App open ad blocked by frequency manager.");
                 return;
             }
 
-            if (_primaryNetwork.IsAppOpenAdReady())
+            // Resolve preferred vs fallback networks based on format override.
+            IAdNetwork preferred = _primaryNetwork;
+            IAdNetwork fallback = _secondaryNetwork;
+
+            if (_preferredNetworkName != null &&
+                _secondaryNetwork != null &&
+                _preferredNetworkName == _secondaryNetwork.NetworkName)
             {
-                _log.Info($"Showing app open ad from primary network ({_primaryNetwork.NetworkName}).");
-                _primaryNetwork.ShowAppOpenAd();
+                preferred = _secondaryNetwork;
+                fallback = _primaryNetwork;
+            }
+
+            if (preferred.IsAppOpenAdReady())
+            {
+                _log.Info($"Showing app open ad from preferred network ({preferred.NetworkName}).");
+                preferred.ShowAppOpenAd();
                 RecordShow();
                 return;
             }
 
-            if (_secondaryNetwork != null && _secondaryNetwork.IsAppOpenAdReady())
+            if (fallback != null && fallback.IsAppOpenAdReady())
             {
-                _log.Info($"Primary not ready. Showing app open ad from secondary network ({_secondaryNetwork.NetworkName}).");
-                _secondaryNetwork.ShowAppOpenAd();
+                _log.Info($"Preferred not ready. Showing app open ad from fallback network ({fallback.NetworkName}).");
+                fallback.ShowAppOpenAd();
                 RecordShow();
                 return;
             }
@@ -196,7 +222,7 @@ namespace com.noctuagames.sdk
                 return false;
             }
 
-            if (_frequencyManager != null && !_frequencyManager.CanShowAd("app_open"))
+            if (_frequencyManager != null && !_frequencyManager.CanShowAd(AdFormatKey.AppOpen))
             {
                 return false;
             }
@@ -207,7 +233,7 @@ namespace com.noctuagames.sdk
         private void RecordShow()
         {
             _lastShowTime = DateTime.UtcNow;
-            _frequencyManager?.RecordImpression("app_open");
+            _frequencyManager?.RecordImpression(AdFormatKey.AppOpen);
         }
     }
 }

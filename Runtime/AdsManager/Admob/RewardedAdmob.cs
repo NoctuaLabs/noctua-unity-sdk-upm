@@ -277,8 +277,8 @@ namespace com.noctuagames.sdk.Admob
                 extraPayload ??= new Dictionary<string, IConvertible>();
 
                 // Add basic information that doesn't require the ad instance
-                extraPayload.Add("ad_format", "rewarded");
-                extraPayload.Add("mediation_service", "admob");
+                extraPayload.Add("ad_format", AdFormatKey.Rewarded);
+                extraPayload.Add("mediation_service", AdNetworkName.Admob);
                 
                 // Only add ad-specific information if the ad instance exists
                 if (_rewardedAd != null)
