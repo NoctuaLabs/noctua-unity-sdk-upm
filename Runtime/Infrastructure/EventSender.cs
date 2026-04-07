@@ -385,7 +385,11 @@ namespace com.noctuagames.sdk.Events
         public void Send(string name, Dictionary<string, IConvertible> data = null)
         {
 
-           if (string.IsNullOrEmpty(name)) { throw new ArgumentNullException(nameof(name)); }
+           if (string.IsNullOrEmpty(name))
+           {
+               _log.Error("[Event Sender] Send called with null or empty event name — skipping event.");
+               return;
+           }
 
            data ??= new Dictionary<string, IConvertible>();
 
