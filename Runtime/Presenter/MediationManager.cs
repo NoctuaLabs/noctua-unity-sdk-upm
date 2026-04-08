@@ -547,18 +547,6 @@ namespace com.noctuagames.sdk
         /// </summary>
         private string ResolveAdUnitIdForNetwork(IAA iAAResponse, string networkName, string format)
         {
-            // Test mode: use AdMob test IDs only for AdMob.
-            // AppLovin MAX has no "test ad unit IDs" — it shows test ads via registered test devices.
-            // Giving AppLovin an AdMob unit ID causes an "invalid ad unit ID" error.
-            if (iAAResponse.TestMode && networkName == AdNetworkName.Admob)
-            {
-                string testId = AdTestUnitIds.GetTestAdUnitId(format, Application.platform);
-                if (!string.IsNullOrEmpty(testId))
-                {
-                    return testId;
-                }
-            }
-
             // Try networks block first
             if (iAAResponse.Networks != null &&
                 iAAResponse.Networks.TryGetValue(networkName, out var networkConfig) &&

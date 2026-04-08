@@ -118,10 +118,6 @@ namespace com.noctuagames.sdk
         [JsonProperty("enabled_formats")]
         public EnabledFormatsConfig EnabledFormats;
 
-        /// <summary>When true, overrides all ad unit IDs with AdMob test ad unit IDs.</summary>
-        [JsonProperty("test_mode")]
-        public bool TestMode;
-
         /// <summary>When true, enables performance-based dynamic network routing.</summary>
         [JsonProperty("dynamic_optimization")]
         public bool DynamicOptimization;
