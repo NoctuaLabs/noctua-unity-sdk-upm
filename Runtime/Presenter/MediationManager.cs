@@ -790,6 +790,7 @@ namespace com.noctuagames.sdk
                 _admobOnAdRevenuePaid?.Invoke(adValue, rewardedAd.GetResponseInfo());
             };
         }
+#endif
 
         /// <summary>Shows a rewarded interstitial ad with a placeholder overlay (AdMob only).</summary>
         public void ShowRewardedInterstitialAd()
@@ -986,6 +987,14 @@ namespace com.noctuagames.sdk
             _orchestrator.Primary.SetBannerPlacement(placement);
         }
 
+        /// <summary>Sets the banner auto-refresh interval in seconds (AppLovin). Clamped to 10-120s.</summary>
+        public void SetBannerRefreshInterval(int seconds)
+        {
+            if (!IsAppLovin() || _orchestrator == null) return;
+            _orchestrator.Primary.SetBannerRefreshInterval(seconds);
+        }
+#endif
+
         /// <summary>
         /// Shows an interstitial ad with an optional placement name for analytics segmentation.
         /// For AppLovin the placement is passed natively to MAX SDK.
@@ -1065,14 +1074,6 @@ namespace com.noctuagames.sdk
 
             _frequencyManager?.RecordImpression(AdFormatKey.Rewarded);
         }
-
-        /// <summary>Sets the banner auto-refresh interval in seconds (AppLovin). Clamped to 10-120s.</summary>
-        public void SetBannerRefreshInterval(int seconds)
-        {
-            if (!IsAppLovin() || _orchestrator == null) return;
-            _orchestrator.Primary.SetBannerRefreshInterval(seconds);
-        }
-#endif
 
         // --- App Open Ad public methods ---
 
