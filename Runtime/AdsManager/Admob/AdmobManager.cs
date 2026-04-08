@@ -4,6 +4,7 @@ using UnityEngine;
 using System;
 using com.noctuagames.sdk.Admob;
 using System.Collections.Generic;
+using Cysharp.Threading.Tasks;
 
 namespace com.noctuagames.sdk
 {
@@ -120,9 +121,15 @@ namespace com.noctuagames.sdk
         {
             _log.Info("Initializing Admob SDK");
 
-            MobileAds.Initialize(initStatus =>
+            MobileAds.Initialize(async initStatus =>
             {
                 _log.Info("Admob initialized");
+
+                // MobileAds.Initialize() callback fires on a background thread on Android.
+                // MobileAds.Preload() (called inside initCompleteAction) MUST run on the Unity
+                // main thread — calling it from a background thread causes a NullPointerException
+                // inside the AdMob GMS client's internal zzck reference.
+                await UniTask.SwitchToMainThread();
 
                 initCompleteAction?.Invoke();
                 _initCompleteAction?.Invoke();
@@ -135,11 +142,9 @@ namespace com.noctuagames.sdk
                     switch (status.InitializationState)
                     {
                     case AdapterState.NotReady:
-                        // The adapter initialization did not complete.
                         _log.Info("Adapter: " + className + " not ready.");
                         break;
                     case AdapterState.Ready:
-                        // The adapter was successfully initialized.
                         _log.Info("Adapter: " + className + " is initialized.");
                         break;
                     }
