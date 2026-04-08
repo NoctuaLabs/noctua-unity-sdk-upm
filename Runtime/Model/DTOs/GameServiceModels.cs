@@ -126,10 +126,6 @@ namespace com.noctuagames.sdk
         [JsonProperty("app_open_auto_show")]
         public bool AppOpenAutoShow;
 
-        /// <summary>Minimum seconds between app open ad impressions (default 30).</summary>
-        [JsonProperty("app_open_cooldown_seconds")]
-        public int AppOpenCooldownSeconds;
-
         /// <summary>Taichi tROAS integration thresholds. When null, Taichi tracking is disabled.</summary>
         [JsonProperty("taichi")]
         public TaichiConfig Taichi;

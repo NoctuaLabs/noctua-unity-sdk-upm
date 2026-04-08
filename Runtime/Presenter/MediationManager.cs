@@ -205,15 +205,11 @@ namespace com.noctuagames.sdk
             }
             #endif
 
-            // Merge app_open_cooldown_seconds (top-level) into CooldownConfig.AppOpen so that
-            // AdFrequencyManager is the single authority for all cooldowns including app open.
-            // Priority: cooldown_seconds.app_open > app_open_cooldown_seconds > default 30s.
+            // Ensure AppOpen cooldown has a sensible default when not set in cooldown_seconds.
             var mergedCooldowns = iaaConfig.CooldownSeconds ?? new CooldownConfig();
             if (mergedCooldowns.AppOpen <= 0)
             {
-                mergedCooldowns.AppOpen = iaaConfig.AppOpenCooldownSeconds > 0
-                    ? iaaConfig.AppOpenCooldownSeconds
-                    : 30;
+                mergedCooldowns.AppOpen = 30;
             }
 
             // Create supporting managers
