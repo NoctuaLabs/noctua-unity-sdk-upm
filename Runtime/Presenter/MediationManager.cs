@@ -6,6 +6,7 @@ using com.noctuagames.sdk.AdPlaceholder;
 #if UNITY_ADMOB
 using GoogleMobileAds.Api;
 using static GoogleMobileAds.Api.AdValue;
+using com.noctuagames.sdk.Admob;
 #endif
 
 namespace com.noctuagames.sdk
