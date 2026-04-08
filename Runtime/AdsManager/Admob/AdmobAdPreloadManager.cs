@@ -41,20 +41,18 @@ namespace com.noctuagames.sdk
                 _log.Warning("No preload configurations provided. Preloading will not start.");
                 return;
             }
-            
+
             _log.Info($"Starting preloading for {preloadConfigs.Count} ad configurations");
-            
-            // Store configurations for later reference
+
             foreach (var config in preloadConfigs)
             {
-                string key = GetConfigKey(config);
-                _preloadConfigurations[key] = config;
+                _preloadConfigurations[GetConfigKey(config)] = config;
             }
-            
-            // Start preloading
-            MobileAds.Preload(preloadConfigs, OnAdsAvailableHandler, OnAdExhaustedHandler);
+
+            RunOnAndroidUiThread(() =>
+                MobileAds.Preload(preloadConfigs, OnAdsAvailableHandler, OnAdExhaustedHandler));
         }
-        
+
         /// <summary>
         /// Modifies existing preload configurations or adds new ones
         /// </summary>
@@ -66,28 +64,46 @@ namespace com.noctuagames.sdk
                 _log.Warning("No preload configurations provided for modification.");
                 return;
             }
-            
+
             _log.Info($"Modifying preloading for {preloadConfigs.Count} ad configurations");
-            
-            // Update stored configurations
+
             foreach (var config in preloadConfigs)
             {
-                string key = GetConfigKey(config);
-                _preloadConfigurations[key] = config;
+                _preloadConfigurations[GetConfigKey(config)] = config;
             }
-            
-            // Update preloading
-            MobileAds.Preload(preloadConfigs, OnAdsAvailableHandler, OnAdExhaustedHandler);
+
+            RunOnAndroidUiThread(() =>
+                MobileAds.Preload(preloadConfigs, OnAdsAvailableHandler, OnAdExhaustedHandler));
         }
-        
+
         /// <summary>
         /// Stops preloading for all ad configurations
         /// </summary>
         public void StopPreloading()
         {
             _log.Info("Stopping all ad preloading");
-            MobileAds.Preload(new List<PreloadConfiguration>(), null, null);
             _preloadConfigurations.Clear();
+            RunOnAndroidUiThread(() =>
+                MobileAds.Preload(new List<PreloadConfiguration>(), null, null));
+        }
+
+        /// <summary>
+        /// Dispatches <paramref name="action"/> on the Android UI thread on device,
+        /// or runs it inline in the Editor/other platforms.
+        /// MobileAds.Preload() internally calls GMS Java APIs that must be invoked
+        /// from the Android UI thread (TID == PID). Unity's scripting thread is a
+        /// separate worker thread — calling Preload() from there causes an NPE inside
+        /// the GMS zzck interface.
+        /// </summary>
+        private void RunOnAndroidUiThread(Action action)
+        {
+#if UNITY_ANDROID && !UNITY_EDITOR
+            using var unityPlayer = new AndroidJavaClass("com.unity3d.player.UnityPlayer");
+            using var activity = unityPlayer.GetStatic<AndroidJavaObject>("currentActivity");
+            activity.Call("runOnUiThread", new AndroidJavaRunnable(action));
+#else
+            action();
+#endif
         }
         
         /// <summary>
