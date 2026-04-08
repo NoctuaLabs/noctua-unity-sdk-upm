@@ -119,9 +119,6 @@ namespace com.noctuagames.sdk
                     case AdFormat.APP_OPEN_AD:
                         isAvailable = AppOpenAd.IsAdAvailable(adUnitId);
                         break;
-                    case AdFormat.REWARDED_INTERSTITIAL:
-                        isAvailable = RewardedInterstitialAd.IsAdAvailable(adUnitId);
-                        break;
                     default:
                         _log.Error($"Unsupported ad format: {adFormat}");
                         break;
@@ -266,24 +263,6 @@ namespace com.noctuagames.sdk
         }
         
         /// <summary>
-        /// Creates a preload configuration for a rewarded interstitial ad
-        /// </summary>
-        /// <param name="adUnitId">Ad unit ID</param>
-        /// <param name="bufferSize">Optional buffer size (default: 2)</param>
-        /// <param name="adRequest">Optional custom ad request</param>
-        /// <returns>PreloadConfiguration for rewarded interstitial ad</returns>
-        public PreloadConfiguration CreateRewardedInterstitialPreloadConfig(string adUnitId, uint bufferSize = 3, AdRequest adRequest = null)
-        {
-            return new PreloadConfiguration
-            {
-                Format = AdFormat.REWARDED_INTERSTITIAL,
-                AdUnitId = adUnitId,
-                BufferSize = bufferSize,
-                Request = adRequest
-            };
-        }
-        
-        /// <summary>
         /// Creates a preload configuration for an app open ad
         /// </summary>
         /// <param name="adUnitId">Ad unit ID</param>
@@ -301,37 +280,6 @@ namespace com.noctuagames.sdk
             };
         }
         
-        /// <summary>
-        /// Polls for and returns a preloaded rewarded interstitial ad
-        /// </summary>
-        /// <param name="adUnitId">Ad unit ID to poll</param>
-        /// <returns>RewardedInterstitialAd if available, null otherwise</returns>
-        public RewardedInterstitialAd PollRewardedInterstitialAd(string adUnitId)
-        {
-            if (string.IsNullOrEmpty(adUnitId))
-            {
-                _log.Error("Ad unit ID is null or empty");
-                return null;
-            }
-
-            try
-            {
-                if (!RewardedInterstitialAd.IsAdAvailable(adUnitId))
-                {
-                    _log.Warning($"No preloaded rewarded interstitial ad available for ad unit ID: {adUnitId}");
-                    return null;
-                }
-            }
-            catch (Exception e)
-            {
-                _log.Warning($"RewardedInterstitialAd.IsAdAvailable threw for {adUnitId}: {e.Message}. Returning null.");
-                return null;
-            }
-
-            _log.Info($"Polling rewarded interstitial ad for ad unit ID: {adUnitId}");
-            return RewardedInterstitialAd.PollAd(adUnitId);
-        }
-
         /// <summary>
         /// Gets the response info for a preloaded ad.
         /// WARNING: This method CONSUMES the preloaded ad by calling Poll internally.

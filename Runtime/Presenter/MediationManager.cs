@@ -70,6 +70,7 @@ namespace com.noctuagames.sdk
 
 #if UNITY_ADMOB
         private static AdmobAdPreloadManager _preloadManager;
+        private RewardedInterstitialAdmob _rewardedInterstitialAdmob;
         private event Action<PreloadConfiguration> _onAdsAvailable;
         private event Action<PreloadConfiguration> _onAdExhausted;
 
@@ -390,11 +391,29 @@ namespace com.noctuagames.sdk
                 // causes race conditions per AdMob docs.
 
                 // _preloadManager already assigned in Initialize() callback; reuse the same singleton.
+                // RewardedInterstitialAd does NOT support the Preload API — use legacy Load() path.
+                if (!string.IsNullOrEmpty(_rewardedInterstitialAdUnitID) && _rewardedInterstitialAdUnitID != "unknown")
+                {
+                    _rewardedInterstitialAdmob = new RewardedInterstitialAdmob();
+                    _rewardedInterstitialAdmob.SetRewardedInterstitialAdUnitID(_rewardedInterstitialAdUnitID);
+                    _rewardedInterstitialAdmob.RewardedOnAdDisplayed += () => { CloseAdPlaceholder(); _onAdDisplayed?.Invoke(); };
+                    _rewardedInterstitialAdmob.RewardedOnAdFailedDisplayed += () => { CloseAdPlaceholder(); _onAdFailedDisplayed?.Invoke(); };
+                    _rewardedInterstitialAdmob.RewardedOnAdClosed += () => _onAdClosed?.Invoke();
+                    _rewardedInterstitialAdmob.RewardedOnAdClicked += () => _onAdClicked?.Invoke();
+                    _rewardedInterstitialAdmob.RewardedOnAdImpressionRecorded += () => _onAdImpressionRecorded?.Invoke();
+                    _rewardedInterstitialAdmob.RewardedOnUserEarnedReward += reward => _admobOnUserEarnedReward?.Invoke(reward);
+                    _rewardedInterstitialAdmob.AdmobOnAdRevenuePaid += (adValue, responseInfo) =>
+                    {
+                        _revenueTracker.ProcessAdmobRevenue(adValue, responseInfo);
+                        _admobOnAdRevenuePaid?.Invoke(adValue, responseInfo);
+                    };
+                    _rewardedInterstitialAdmob.LoadRewardedInterstitialAd();
+                }
+
                 var configs = new List<PreloadConfiguration>
                 {
                     _preloadManager.CreateInterstitialPreloadConfig(_interstitialAdUnitID),
                     _preloadManager.CreateRewardedPreloadConfig(_rewardedAdUnitID),
-                    _preloadManager.CreateRewardedInterstitialPreloadConfig(_rewardedInterstitialAdUnitID),
                 };
 
                 // App Open: buffer=1 is recommended (Google docs: app open shown once per foreground).
@@ -817,80 +836,17 @@ namespace com.noctuagames.sdk
 #if UNITY_ADMOB
         private void ShowAdmobRewardedInterstitial()
         {
-            _hasClosedPlaceholder = false;
-            ShowAdPlaceholder(AdPlaceholderType.Rewarded);
-
-            if (_preloadManager == null)
+            if (_rewardedInterstitialAdmob == null)
             {
-                _log.Warning("Admob Preload Manager is not initialized. Cannot show rewarded interstitial ad.");
-                CloseAdPlaceholder();
+                _log.Warning("Rewarded interstitial ad not initialized (ad unit ID may be missing). Cannot show.");
                 return;
             }
 
-            if (_preloadManager.IsAdAvailable(_rewardedInterstitialAdUnitID, AdFormat.REWARDED_INTERSTITIAL))
-            {
-                var ad = _preloadManager.PollRewardedInterstitialAd(_rewardedInterstitialAdUnitID);
-                if (ad != null)
-                {
-                    try
-                    {
-                        _log.Info("Showing Admob Rewarded Interstitial Ad");
-                        RegisterCallbackAdRewardedInterstitial(ad);
-                        ad.Show((Reward reward) =>
-                        {
-                            _log.Info("User earned reward: " + reward.Type + " - " + reward.Amount);
-                            _admobOnUserEarnedReward?.Invoke(reward);
-                        });
-                    }
-                    catch (Exception ex)
-                    {
-                        _log.Error($"Exception showing Admob Rewarded Interstitial Ad: {ex.Message}\n{ex.StackTrace}");
-                        CloseAdPlaceholder();
-                    }
-                }
-                else
-                {
-                    _log.Warning("Admob Rewarded Interstitial Ad poll returned null");
-                    CloseAdPlaceholder();
-                }
-            }
-            else
-            {
-                _log.Info("Admob Rewarded Interstitial Ad not available");
-                CloseAdPlaceholder();
-            }
-        }
-
-        private void RegisterCallbackAdRewardedInterstitial(RewardedInterstitialAd ad)
-        {
-            ad.OnAdFullScreenContentOpened += () =>
-            {
-                CloseAdPlaceholder();
-                _onAdDisplayed?.Invoke();
-            };
-            ad.OnAdFullScreenContentFailed += (AdError error) =>
-            {
-                CloseAdPlaceholder();
-                _onAdFailedDisplayed?.Invoke();
-                _log.Warning("Rewarded Interstitial Ad failed to show. Error: " + error);
-            };
-            ad.OnAdFullScreenContentClosed += () =>
-            {
-                _onAdClosed?.Invoke();
-            };
-            ad.OnAdClicked += () =>
-            {
-                _onAdClicked?.Invoke();
-            };
-            ad.OnAdImpressionRecorded += () =>
-            {
-                _onAdImpressionRecorded?.Invoke();
-            };
-            ad.OnAdPaid += (AdValue adValue) =>
-            {
-                _revenueTracker.ProcessAdmobRevenue(adValue, ad.GetResponseInfo());
-                _admobOnAdRevenuePaid?.Invoke(adValue, ad.GetResponseInfo());
-            };
+            _hasClosedPlaceholder = false;
+            ShowAdPlaceholder(AdPlaceholderType.Rewarded);
+            // Placeholder is closed via RewardedOnAdDisplayed / RewardedOnAdFailedDisplayed events
+            // wired during SetupAdUnitID. RewardedInterstitialAdmob manages its own reload lifecycle.
+            _rewardedInterstitialAdmob.ShowRewardedInterstitialAd();
         }
 #endif
 
