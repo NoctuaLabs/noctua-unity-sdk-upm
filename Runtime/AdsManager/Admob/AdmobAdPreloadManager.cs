@@ -50,7 +50,16 @@ namespace com.noctuagames.sdk
             }
 
             RunOnAndroidUiThread(() =>
-                MobileAds.Preload(preloadConfigs, OnAdsAvailableHandler, OnAdExhaustedHandler));
+            {
+                try
+                {
+                    MobileAds.Preload(preloadConfigs, OnAdsAvailableHandler, OnAdExhaustedHandler);
+                }
+                catch (Exception e)
+                {
+                    _log.Warning($"MobileAds.Preload failed (GMS compatibility issue — preloading unavailable): {e.Message}");
+                }
+            });
         }
 
         /// <summary>
@@ -73,7 +82,16 @@ namespace com.noctuagames.sdk
             }
 
             RunOnAndroidUiThread(() =>
-                MobileAds.Preload(preloadConfigs, OnAdsAvailableHandler, OnAdExhaustedHandler));
+            {
+                try
+                {
+                    MobileAds.Preload(preloadConfigs, OnAdsAvailableHandler, OnAdExhaustedHandler);
+                }
+                catch (Exception e)
+                {
+                    _log.Warning($"MobileAds.Preload (modify) failed (GMS compatibility issue): {e.Message}");
+                }
+            });
         }
 
         /// <summary>
@@ -84,7 +102,16 @@ namespace com.noctuagames.sdk
             _log.Info("Stopping all ad preloading");
             _preloadConfigurations.Clear();
             RunOnAndroidUiThread(() =>
-                MobileAds.Preload(new List<PreloadConfiguration>(), null, null));
+            {
+                try
+                {
+                    MobileAds.Preload(new List<PreloadConfiguration>(), null, null);
+                }
+                catch (Exception e)
+                {
+                    _log.Warning($"MobileAds.Preload (stop) failed (GMS compatibility issue): {e.Message}");
+                }
+            });
         }
 
         /// <summary>
