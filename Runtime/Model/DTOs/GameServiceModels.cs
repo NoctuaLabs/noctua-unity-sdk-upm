@@ -120,15 +120,57 @@ namespace com.noctuagames.sdk
 
         /// <summary>When true, enables performance-based dynamic network routing.</summary>
         [JsonProperty("dynamic_optimization")]
-        public bool DynamicOptimization;
+        public bool? DynamicOptimization;
 
         /// <summary>When true, automatically shows an app open ad on each foreground transition.</summary>
         [JsonProperty("app_open_auto_show")]
-        public bool AppOpenAutoShow;
+        public bool? AppOpenAutoShow;
 
         /// <summary>Taichi tROAS integration thresholds. When null, Taichi tracking is disabled.</summary>
         [JsonProperty("taichi")]
         public TaichiConfig Taichi;
+
+        /// <summary>
+        /// Returns a new IAA config where fields from <paramref name="remote"/> override
+        /// only when they are non-null. Fields absent in the remote response retain their
+        /// local values, so game developers can set defaults in noctuagg.json that survive
+        /// a partial remote config.
+        /// </summary>
+        public IAA MergeWith(IAA remote)
+        {
+            if (remote == null) return this;
+
+            return new IAA
+            {
+                Mediation           = remote.Mediation           ?? Mediation,
+                SecondaryMediation  = remote.SecondaryMediation  ?? SecondaryMediation,
+                Networks            = remote.Networks            ?? Networks,
+                AdFormatOverrides   = remote.AdFormatOverrides   ?? AdFormatOverrides,
+                AdFormat            = remote.AdFormat            ?? AdFormat,
+                FrequencyCaps       = remote.FrequencyCaps       ?? FrequencyCaps,
+                CooldownSeconds     = remote.CooldownSeconds     ?? CooldownSeconds,
+                EnabledFormats      = MergeEnabledFormats(EnabledFormats, remote.EnabledFormats),
+                DynamicOptimization = remote.DynamicOptimization ?? DynamicOptimization,
+                AppOpenAutoShow     = remote.AppOpenAutoShow     ?? AppOpenAutoShow,
+                Taichi              = remote.Taichi              ?? Taichi,
+            };
+        }
+
+        private static EnabledFormatsConfig MergeEnabledFormats(
+            EnabledFormatsConfig local, EnabledFormatsConfig remote)
+        {
+            if (remote == null) return local ?? new EnabledFormatsConfig();
+            var base_ = local ?? new EnabledFormatsConfig();
+
+            return new EnabledFormatsConfig
+            {
+                Interstitial         = remote.Interstitial         ?? base_.Interstitial,
+                Rewarded             = remote.Rewarded             ?? base_.Rewarded,
+                RewardedInterstitial = remote.RewardedInterstitial ?? base_.RewardedInterstitial,
+                Banner               = remote.Banner               ?? base_.Banner,
+                AppOpen              = remote.AppOpen              ?? base_.AppOpen,
+            };
+        }
     }
 
     /// <summary>
@@ -267,25 +309,25 @@ namespace com.noctuagames.sdk
     [Preserve]
     public class EnabledFormatsConfig
     {
-        /// <summary>Whether interstitial ads are enabled (default true).</summary>
+        /// <summary>Whether interstitial ads are enabled. Null means "not specified" (defaults to true at usage site).</summary>
         [JsonProperty("interstitial")]
-        public bool Interstitial = true;
+        public bool? Interstitial;
 
-        /// <summary>Whether rewarded ads are enabled (default true).</summary>
+        /// <summary>Whether rewarded ads are enabled. Null means "not specified" (defaults to true at usage site).</summary>
         [JsonProperty("rewarded")]
-        public bool Rewarded = true;
+        public bool? Rewarded;
 
-        /// <summary>Whether rewarded interstitial ads are enabled (default true).</summary>
+        /// <summary>Whether rewarded interstitial ads are enabled. Null means "not specified" (defaults to true at usage site).</summary>
         [JsonProperty("rewarded_interstitial")]
-        public bool RewardedInterstitial = true;
+        public bool? RewardedInterstitial;
 
-        /// <summary>Whether banner ads are enabled (default true).</summary>
+        /// <summary>Whether banner ads are enabled. Null means "not specified" (defaults to true at usage site).</summary>
         [JsonProperty("banner")]
-        public bool Banner = true;
+        public bool? Banner;
 
-        /// <summary>Whether app open ads are enabled (default true).</summary>
+        /// <summary>Whether app open ads are enabled. Null means "not specified" (defaults to true at usage site).</summary>
         [JsonProperty("app_open")]
-        public bool AppOpen = true;
+        public bool? AppOpen;
     }
 
     /// <summary>

@@ -56,6 +56,18 @@ namespace com.noctuagames.sdk
         /// <summary>Fires when a displayed ad is closed by the user.</summary>
         public event Action OnAdClosed { add => _onAdClosed += value; remove => _onAdClosed -= value; }
 
+        private event Action<string> _onAdNotAvailable;
+
+        /// <summary>
+        /// Fired when a Show method is called but cannot display an ad because:
+        /// the ad network has no fill, a frequency cap is active, a cooldown is active,
+        /// or the format is disabled. The <c>string</c> argument is the ad format key
+        /// (e.g., <c>"interstitial"</c>, <c>"rewarded"</c>, <c>"app_open"</c>).
+        /// Subscribe to this event to update your UI (e.g. hide a "Watch Ad" button)
+        /// or implement retry logic.
+        /// </summary>
+        public event Action<string> OnAdNotAvailable { add => _onAdNotAvailable += value; remove => _onAdNotAvailable -= value; }
+
 #if UNITY_ADMOB
         /// <summary>Fires when the user earns a reward from an AdMob rewarded ad.</summary>
         public event Action<Reward> AdmobOnUserEarnedReward { add => _admobOnUserEarnedReward += value; remove => _admobOnUserEarnedReward -= value; }
@@ -221,7 +233,7 @@ namespace com.noctuagames.sdk
 
             _revenueTracker = new AdRevenueTrackingManager(_adRevenueTracker, iaaConfig.Taichi);
 
-            _performanceTracker = iaaConfig.DynamicOptimization
+            _performanceTracker = (iaaConfig.DynamicOptimization ?? false)
                 ? new AdNetworkPerformanceTracker()
                 : null;
 
@@ -230,7 +242,7 @@ namespace com.noctuagames.sdk
                 secondary: secondary,
                 adFormatOverrides: iaaConfig.AdFormatOverrides,
                 performanceTracker: _performanceTracker,
-                dynamicOptimization: iaaConfig.DynamicOptimization
+                dynamicOptimization: iaaConfig.DynamicOptimization ?? false
             );
 
             _log.Info($"Networks created. Primary: {primary.NetworkName}" +
@@ -557,7 +569,7 @@ namespace com.noctuagames.sdk
                 primaryNetwork: _orchestrator.Primary,
                 secondaryNetwork: _orchestrator.Secondary,
                 frequencyManager: _frequencyManager,
-                autoShowOnForeground: iAAResponse.AppOpenAutoShow,
+                autoShowOnForeground: iAAResponse.AppOpenAutoShow ?? false,
                 preferredNetworkName: preferredAppOpenNetwork
             );
 
@@ -713,6 +725,7 @@ namespace com.noctuagames.sdk
                     _log.Warning("Admob Interstitial Ad poll returned null");
                     _performanceTracker?.RecordFillAttempt(AdNetworkName.Admob, AdFormatKey.Interstitial, false);
                     CloseAdPlaceholder();
+                    _onAdNotAvailable?.Invoke(AdFormatKey.Interstitial);
                 }
             }
             else
@@ -720,6 +733,7 @@ namespace com.noctuagames.sdk
                 _log.Info("Admob Interstitial Ad not available");
                 _performanceTracker?.RecordFillAttempt(AdNetworkName.Admob, AdFormatKey.Interstitial, false);
                 CloseAdPlaceholder();
+                _onAdNotAvailable?.Invoke(AdFormatKey.Interstitial);
             }
         }
 
@@ -818,6 +832,7 @@ namespace com.noctuagames.sdk
                     _log.Warning("Admob Rewarded Ad poll returned null");
                     _performanceTracker?.RecordFillAttempt(AdNetworkName.Admob, AdFormatKey.Rewarded, false);
                     CloseAdPlaceholder();
+                    _onAdNotAvailable?.Invoke(AdFormatKey.Rewarded);
                 }
             }
             else
@@ -825,6 +840,7 @@ namespace com.noctuagames.sdk
                 _log.Info("Admob Rewarded Ad not available");
                 _performanceTracker?.RecordFillAttempt(AdNetworkName.Admob, AdFormatKey.Rewarded, false);
                 CloseAdPlaceholder();
+                _onAdNotAvailable?.Invoke(AdFormatKey.Rewarded);
             }
         }
 
@@ -874,6 +890,7 @@ namespace com.noctuagames.sdk
             if (_frequencyManager != null && !_frequencyManager.CanShowAd(AdFormatKey.RewardedInterstitial))
             {
                 _log.Info("Rewarded interstitial ad blocked by frequency manager.");
+                _onAdNotAvailable?.Invoke(AdFormatKey.RewardedInterstitial);
                 return;
             }
 
@@ -919,6 +936,7 @@ namespace com.noctuagames.sdk
             if (_frequencyManager != null && !_frequencyManager.CanShowAd(AdFormatKey.Banner))
             {
                 _log.Info("Banner ad blocked by frequency/enabled config.");
+                _onAdNotAvailable?.Invoke(AdFormatKey.Banner);
                 return;
             }
 
@@ -1032,6 +1050,7 @@ namespace com.noctuagames.sdk
             if (_frequencyManager != null && !_frequencyManager.CanShowAd(AdFormatKey.Interstitial))
             {
                 _log.Info("Interstitial ad blocked by frequency manager.");
+                _onAdNotAvailable?.Invoke(AdFormatKey.Interstitial);
                 return;
             }
 
@@ -1051,6 +1070,7 @@ namespace com.noctuagames.sdk
                 if (!filled)
                 {
                     _log.Info($"{network.NetworkName} interstitial ad not ready. Skipping show.");
+                    _onAdNotAvailable?.Invoke(AdFormatKey.Interstitial);
                     return;
                 }
 
@@ -1082,6 +1102,7 @@ namespace com.noctuagames.sdk
             if (_frequencyManager != null && !_frequencyManager.CanShowAd(AdFormatKey.Rewarded))
             {
                 _log.Info("Rewarded ad blocked by frequency manager.");
+                _onAdNotAvailable?.Invoke(AdFormatKey.Rewarded);
                 return;
             }
 
@@ -1101,6 +1122,7 @@ namespace com.noctuagames.sdk
                 if (!filled)
                 {
                     _log.Info($"{network.NetworkName} rewarded ad not ready. Skipping show.");
+                    _onAdNotAvailable?.Invoke(AdFormatKey.Rewarded);
                     return;
                 }
 
@@ -1132,6 +1154,40 @@ namespace com.noctuagames.sdk
         public bool IsAppOpenAdReady()
         {
             return _appOpenAdManager?.IsAppOpenAdReady() ?? false;
+        }
+
+        /// <summary>
+        /// Returns <c>true</c> if an interstitial ad is loaded and ready to display,
+        /// and the current frequency cap and cooldown allow showing it.
+        /// Use this to conditionally show UI elements like "Watch Ad" buttons.
+        /// </summary>
+        public bool IsInterstitialReady()
+        {
+            if (_orchestrator == null) return false;
+            if (_frequencyManager != null && !_frequencyManager.CanShowAd(AdFormatKey.Interstitial)) return false;
+            var network = _orchestrator.GetNetworkForFormat(AdFormatKey.Interstitial);
+#if UNITY_ADMOB
+            if (IsAdmobNetwork(network))
+                return _preloadManager?.IsAdAvailable(_interstitialAdUnitID, AdFormat.INTERSTITIAL) ?? false;
+#endif
+            return network.IsInterstitialReady();
+        }
+
+        /// <summary>
+        /// Returns <c>true</c> if a rewarded ad is loaded and ready to display,
+        /// and the current frequency cap and cooldown allow showing it.
+        /// Use this to conditionally show UI elements like "Watch Ad" buttons.
+        /// </summary>
+        public bool IsRewardedAdReady()
+        {
+            if (_orchestrator == null) return false;
+            if (_frequencyManager != null && !_frequencyManager.CanShowAd(AdFormatKey.Rewarded)) return false;
+            var network = _orchestrator.GetNetworkForFormat(AdFormatKey.Rewarded);
+#if UNITY_ADMOB
+            if (IsAdmobNetwork(network))
+                return _preloadManager?.IsAdAvailable(_rewardedAdUnitID, AdFormat.REWARDED) ?? false;
+#endif
+            return network.IsRewardedAdReady();
         }
 
         /// <summary>Handles app foreground transitions for app open ad auto-show.</summary>

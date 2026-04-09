@@ -946,8 +946,11 @@ namespace com.noctuagames.sdk
 
                 log.Info("initializing IAA SDK from remote config : " + initResponse.RemoteConfigs.IAA.Mediation);
 
-                Instance.Value._iaa.IAAResponse = initResponse.RemoteConfigs.IAA;
-                log.Debug("Noctua IAA config replaced with remote config: " + JsonConvert.SerializeObject(Instance.Value._iaa.IAAResponse));
+                var localIaa = Instance.Value._config.IAA;
+                Instance.Value._iaa.IAAResponse = localIaa != null
+                    ? localIaa.MergeWith(initResponse.RemoteConfigs.IAA)
+                    : initResponse.RemoteConfigs.IAA;
+                log.Debug("Noctua IAA config merged with remote config: " + JsonConvert.SerializeObject(Instance.Value._iaa.IAAResponse));
 
                 Instance.Value._iaa.Initialize(() => {
 
