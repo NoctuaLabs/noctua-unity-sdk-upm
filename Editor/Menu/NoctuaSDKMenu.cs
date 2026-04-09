@@ -221,21 +221,21 @@ public class NoctuaIntegrationManagerWindow : EditorWindow
 
         bool allGood = needsWork == 0;
 
-        // Explanation banner
+        // Explanation banner — always Info, never Warning (updating packages is not an error)
         EditorGUILayout.HelpBox(
-            "This combination runs AppLovin MAX and AdMob demand on BOTH Android and iOS without conflicts.\n\n" +
-            "Android: Google Play Services Ads 25.1.0 is compatible with AppLovin MAX 13.6.2 adapters.\n" +
-            "iOS:     AdMob SDK 11.0.0 pins GMA iOS ~> 13.0.0 — fully satisfied by the AppLovin Google adapter's requirement of GMA iOS 13.2.0.\n\n" +
-            "AppLovin MAX acts as the mediation layer. AdMob demand flows through AppLovin's Google adapter, so only one dependency tree exists — no version fighting.",
-            allGood ? MessageType.Info : MessageType.Warning);
+            "Runs AppLovin MAX and AdMob demand on BOTH Android and iOS without conflicts.\n" +
+            "Android: GMA 25.1.0 compatible with AppLovin MAX 13.6.2 adapters.\n" +
+            "iOS:     AdMob 11.0.0 pins GMA iOS ~> 13.0.0 — satisfied by AppLovin Google adapter (13.2.0).\n" +
+            "AppLovin MAX mediates AdMob demand via the Google adapter — one dependency tree, no version conflicts.",
+            MessageType.Info);
 
-        EditorGUILayout.Space(6);
+        EditorGUILayout.Space(4);
 
-        // Overall status + Install All button
-        EditorGUILayout.BeginHorizontal();
+        // Overall status row + Install All button
+        EditorGUILayout.BeginHorizontal(EditorStyles.helpBox);
 
         string statusText = allGood
-            ? Colored("✓  All packages installed at recommended versions", ColorStable)
+            ? Colored("✓  All packages at recommended versions", ColorStable)
             : Colored($"⚠  {needsWork} of {total} package(s) need attention", ColorOutdated);
         GUILayout.Label(statusText, RichLabel, GUILayout.ExpandWidth(true));
 
@@ -249,14 +249,14 @@ public class NoctuaIntegrationManagerWindow : EditorWindow
         }
         EditorGUILayout.EndHorizontal();
 
-        EditorGUILayout.Space(6);
+        EditorGUILayout.Space(4);
 
         // Per-package table
         EditorGUILayout.BeginHorizontal(EditorStyles.helpBox);
-        GUILayout.Label("Package",             EditorStyles.boldLabel, GUILayout.ExpandWidth(true), GUILayout.MinWidth(MinNameW));
-        GUILayout.Label("Installed",           EditorStyles.boldLabel, GUILayout.Width(VerW));
-        GUILayout.Label("★ Recommended",       EditorStyles.boldLabel, GUILayout.Width(VerW));
-        GUILayout.Label("Notes",               EditorStyles.boldLabel, GUILayout.ExpandWidth(true), GUILayout.MinWidth(120f));
+        GUILayout.Label("Package",         EditorStyles.boldLabel, GUILayout.ExpandWidth(true), GUILayout.MinWidth(MinNameW));
+        GUILayout.Label("Installed",       EditorStyles.boldLabel, GUILayout.Width(VerW));
+        GUILayout.Label("★ Recommended",   EditorStyles.boldLabel, GUILayout.Width(VerW));
+        GUILayout.Label("Note",            EditorStyles.boldLabel, GUILayout.Width(200f));
         EditorGUILayout.EndHorizontal();
 
         foreach (var item in recommendedSetup)
@@ -266,26 +266,28 @@ public class NoctuaIntegrationManagerWindow : EditorWindow
             bool outdated  = installed && IsUpdateAvailable(cur, item.ver);
 
             string installedLabel   = installed
-                ? Colored(cur,      outdated ? ColorOutdated : ColorStable)
-                : Colored("–",      ColorMuted);
+                ? Colored(cur, outdated ? ColorOutdated : ColorStable)
+                : Colored("–", ColorMuted);
             string recommendedLabel = Colored($"★ {item.ver}", ColorStable);
-            string noteLabel        = installed && !outdated
+
+            // Keep notes short: only show detail when up-to-date
+            string noteLabel = installed && !outdated
                 ? Colored("✓ " + item.note, ColorStable)
                 : (installed
-                    ? Colored("↑ Update available — " + item.note, ColorOutdated)
-                    : Colored("Not installed — " + item.note, ColorMuted));
+                    ? Colored("↑ Update available", ColorOutdated)
+                    : Colored("Not installed", ColorMuted));
 
             EditorGUILayout.BeginHorizontal();
-            GUILayout.Label(item.name,      GUILayout.ExpandWidth(true), GUILayout.MinWidth(MinNameW));
+            GUILayout.Label(item.name,        GUILayout.ExpandWidth(true), GUILayout.MinWidth(MinNameW));
             GUILayout.Label(installedLabel,   RichLabel, GUILayout.Width(VerW));
             GUILayout.Label(recommendedLabel, RichLabel, GUILayout.Width(VerW));
-            GUILayout.Label(noteLabel,        RichLabel, GUILayout.ExpandWidth(true), GUILayout.MinWidth(120f));
+            GUILayout.Label(noteLabel,        RichLabel, GUILayout.Width(200f));
             EditorGUILayout.EndHorizontal();
         }
 
         EditorGUILayout.Space(4);
         EditorGUILayout.HelpBox(
-            "After installation, switch build target to iOS and run  Noctua > iOS > Fix CocoaPods Conflicts  if any CocoaPods version warning appears in the Console.",
+            "After installation, switch build target to iOS and run  Noctua > iOS > Fix CocoaPods Conflicts  if any CocoaPods warning appears in the Console.",
             MessageType.None);
     }
 
