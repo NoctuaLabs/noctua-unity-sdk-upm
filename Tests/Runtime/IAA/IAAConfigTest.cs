@@ -123,7 +123,7 @@ namespace com.noctuagames.sdk.Tests.IAA
 
             var result = local.MergeWith(remote);
 
-            Assert.IsTrue(result.DynamicOptimization);
+            Assert.IsTrue(result.DynamicOptimization == true);
         }
 
         [Test]
@@ -134,7 +134,7 @@ namespace com.noctuagames.sdk.Tests.IAA
 
             var result = local.MergeWith(remote);
 
-            Assert.IsTrue(result.DynamicOptimization);
+            Assert.IsTrue(result.DynamicOptimization == true);
         }
 
         [Test]
@@ -145,7 +145,7 @@ namespace com.noctuagames.sdk.Tests.IAA
 
             var result = local.MergeWith(remote);
 
-            Assert.IsTrue(result.AppOpenAutoShow);
+            Assert.IsTrue(result.AppOpenAutoShow == true);
         }
 
         [Test]
@@ -293,8 +293,8 @@ namespace com.noctuagames.sdk.Tests.IAA
             var result = local.MergeWith(remote);
 
             // Server-provided fields
-            Assert.IsFalse(result.AppOpenAutoShow,                    "Server override applied");
-            Assert.IsTrue(result.EnabledFormats.RewardedInterstitial, "Server re-enabled RI");
+            Assert.IsTrue(result.AppOpenAutoShow == false,            "Server override applied");
+            Assert.IsTrue(result.EnabledFormats.RewardedInterstitial == true, "Server re-enabled RI");
 
             // Local fields preserved
             Assert.AreEqual("admob",    result.Mediation);

@@ -47,6 +47,32 @@ namespace com.noctuagames.sdk.Tests.IAA
             RewardedRevenueThreshold   = 0.01f,
         };
 
+        // ─── SetAdRevenueTracker ──────────────────────────────────────────────
+
+        [Test]
+        public void SetAdRevenueTracker_NewTrackerReceivesEvents()
+        {
+            var tracker1 = new MockAdRevenueTracker();
+            var tracker2 = new MockAdRevenueTracker();
+            var mgr      = new AdRevenueTrackingManager(tracker1, DefaultConfig());
+
+            mgr.SetAdRevenueTracker(tracker2);
+            mgr.ProcessAllFormatsThresholds(0.01); // crosses threshold → fires event
+
+            Assert.AreEqual(0, tracker1.Events.Count, "Original tracker must not receive events after replacement");
+            Assert.IsTrue(tracker2.WasFired("Total_Ads_Revenue_001"), "New tracker must receive events");
+        }
+
+        [Test]
+        public void SetAdRevenueTracker_NullTrackerSilentlyDropsEvents()
+        {
+            var mgr = new AdRevenueTrackingManager(_tracker, DefaultConfig());
+            mgr.SetAdRevenueTracker(null);
+
+            Assert.DoesNotThrow(() => mgr.ProcessAllFormatsThresholds(0.01),
+                "Should not throw when tracker is null");
+        }
+
         // ─── No config guard ──────────────────────────────────────────────────
 
         [Test]

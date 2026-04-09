@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using NUnit.Framework;
+using UnityEngine;
 
 namespace com.noctuagames.sdk.Tests.IAA
 {
@@ -19,6 +20,16 @@ namespace com.noctuagames.sdk.Tests.IAA
         {
             _primary   = new MockAdNetwork { NetworkName = "admob" };
             _secondary = new MockAdNetwork { NetworkName = "applovin" };
+
+            // Clear AdNetworkPerformanceTracker PlayerPrefs to prevent cross-test pollution
+            foreach (var network in new[] { "admob", "applovin" })
+            foreach (var format  in new[] { AdFormatKey.Interstitial, AdFormatKey.Rewarded,
+                                             AdFormatKey.Banner,       AdFormatKey.AppOpen })
+            {
+                PlayerPrefs.DeleteKey($"NoctuaAdPerf_fill_{network}_{format}");
+                PlayerPrefs.DeleteKey($"NoctuaAdPerf_rev_{network}_{format}");
+            }
+            PlayerPrefs.Save();
         }
 
         // ─── Constructor / IsHybridMode ───────────────────────────────────────
