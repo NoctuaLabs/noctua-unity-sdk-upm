@@ -136,12 +136,24 @@ namespace com.noctuagames.sdk.Tests.IAA
             => _onAdRevenuePaid?.Invoke(revenue, currency, meta);
     }
 
-    /// <summary>Fake IAdRevenueTracker that records all TrackCustomEvent calls.</summary>
+    /// <summary>Fake IAdRevenueTracker that records all TrackCustomEvent and TrackAdRevenue calls.</summary>
     public class MockAdRevenueTracker : IAdRevenueTracker
     {
         public List<(string EventName, Dictionary<string, IConvertible> Params)> Events { get; } = new();
 
-        public void TrackCustomEvent(string eventName, Dictionary<string, IConvertible> eventParams)
+        public void TrackAdRevenue(string source, double revenue, string currency,
+            Dictionary<string, IConvertible> extraPayload = null)
+        {
+            var p = extraPayload != null
+                ? new Dictionary<string, IConvertible>(extraPayload)
+                : new Dictionary<string, IConvertible>();
+            p["source"]   = source;
+            p["revenue"]  = revenue;
+            p["currency"] = currency;
+            Events.Add(("ad_revenue", p));
+        }
+
+        public void TrackCustomEvent(string eventName, Dictionary<string, IConvertible> eventParams = null)
         {
             Events.Add((eventName, eventParams != null
                 ? new Dictionary<string, IConvertible>(eventParams)
