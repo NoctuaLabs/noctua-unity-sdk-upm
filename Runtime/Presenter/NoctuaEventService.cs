@@ -129,16 +129,20 @@ namespace com.noctuagames.sdk.Events
             Dictionary<string, IConvertible> extraPayload = null
         )
         {
-            extraPayload ??= new Dictionary<string, IConvertible>();
-            AppendProperties(extraPayload);
+            // Copy to avoid mutating the caller's dictionary — the same dict reference is
+            // sometimes passed to multiple tracking calls, and AppendProperties/Send enrich it.
+            var payload = extraPayload != null
+                ? new Dictionary<string, IConvertible>(extraPayload)
+                : new Dictionary<string, IConvertible>();
+            AppendProperties(payload);
 
-            _nativeTracker?.TrackAdRevenue(source, revenue, currency, extraPayload);
+            _nativeTracker?.TrackAdRevenue(source, revenue, currency, payload);
 
-            extraPayload.Add("source", source);
-            extraPayload.Add("revenue", revenue);
-            extraPayload.Add("currency", currency);
+            payload["source"] = source;
+            payload["revenue"] = revenue;
+            payload["currency"] = currency;
 
-            _eventSender?.Send("ad_revenue", extraPayload);
+            _eventSender?.Send("ad_revenue", payload);
         }
 
         /// <summary>
@@ -160,10 +164,13 @@ namespace com.noctuagames.sdk.Events
             Dictionary<string, IConvertible> extraPayload = null
         )
         {
-            extraPayload ??= new Dictionary<string, IConvertible>();
-            AppendProperties(extraPayload);
+            // Copy to avoid mutating the caller's dictionary.
+            var payload = extraPayload != null
+                ? new Dictionary<string, IConvertible>(extraPayload)
+                : new Dictionary<string, IConvertible>();
+            AppendProperties(payload);
 
-            _nativeTracker?.TrackPurchase(orderId, amount, currency, extraPayload);
+            _nativeTracker?.TrackPurchase(orderId, amount, currency, payload);
         }
 
         /// <summary>
@@ -182,18 +189,23 @@ namespace com.noctuagames.sdk.Events
         /// </example>
         public void TrackCustomEvent(string name, Dictionary<string, IConvertible> extraPayload = null)
         {
-            extraPayload ??= new Dictionary<string, IConvertible>();
-            AppendProperties(extraPayload);
+            // Copy to avoid mutating the caller's dictionary — the same dict reference is
+            // sometimes passed to multiple sequential TrackCustomEvent calls (e.g. from ad
+            // event handlers), and AppendProperties enriches the dict in-place.
+            var payload = extraPayload != null
+                ? new Dictionary<string, IConvertible>(extraPayload)
+                : new Dictionary<string, IConvertible>();
+            AppendProperties(payload);
 
             string properties = "";
-            foreach (var (key, value) in extraPayload)
+            foreach (var (key, value) in payload)
             {
                 properties += $"{key}={value}, ";
             }
             _log.Debug($"Event name: {name}, Event properties: {properties}");
 
-            _nativeTracker?.TrackCustomEvent(name, extraPayload);
-            _eventSender?.Send(name, extraPayload);
+            _nativeTracker?.TrackCustomEvent(name, payload);
+            _eventSender?.Send(name, payload);
         }
 
         /// <summary>
@@ -210,22 +222,25 @@ namespace com.noctuagames.sdk.Events
         /// </example>
         public void TrackCustomEventWithRevenue(string name, double revenue, string currency, Dictionary<string, IConvertible> extraPayload = null)
         {
-            extraPayload ??= new Dictionary<string, IConvertible>();
-            AppendProperties(extraPayload);
+            // Copy to avoid mutating the caller's dictionary.
+            var payload = extraPayload != null
+                ? new Dictionary<string, IConvertible>(extraPayload)
+                : new Dictionary<string, IConvertible>();
+            AppendProperties(payload);
 
             string properties = "";
-            foreach (var (key, value) in extraPayload)
+            foreach (var (key, value) in payload)
             {
                 properties += $"{key}={value}, ";
             }
             _log.Debug($"Event name: {name}, Event properties: {properties}");
 
-            _nativeTracker?.TrackCustomEventWithRevenue(name, revenue, currency, extraPayload);
+            _nativeTracker?.TrackCustomEventWithRevenue(name, revenue, currency, payload);
 
-            extraPayload.Add("revenue", revenue);
-            extraPayload.Add("currency", currency);
+            payload["revenue"] = revenue;
+            payload["currency"] = currency;
 
-            _eventSender?.Send(name, extraPayload);
+            _eventSender?.Send(name, payload);
         }
 
         /// <summary>
@@ -238,18 +253,21 @@ namespace com.noctuagames.sdk.Events
         /// </remarks>
         public void InternalTrackEvent(string eventName, Dictionary<string, IConvertible> extraPayload = null)
         {
-            extraPayload ??= new Dictionary<string, IConvertible>();
-            AppendProperties(extraPayload);
+            // Copy to avoid mutating the caller's dictionary.
+            var payload = extraPayload != null
+                ? new Dictionary<string, IConvertible>(extraPayload)
+                : new Dictionary<string, IConvertible>();
+            AppendProperties(payload);
 
             string properties = "";
-            foreach (var (key, value) in extraPayload)
+            foreach (var (key, value) in payload)
             {
                 properties += $"{key}={value}, ";
             }
 
             _log.Debug($"Event name: {eventName}, Event properties: {properties}");
 
-            _eventSender?.Send(eventName, extraPayload);
+            _eventSender?.Send(eventName, payload);
         }
         
         /// <summary>
@@ -261,19 +279,19 @@ namespace com.noctuagames.sdk.Events
             if (!string.IsNullOrEmpty(_country))
             {
                 _log.Debug("Add country to event's extra payload: " + _country);
-                extraPayload.Add("country", _country);
+                extraPayload["country"] = _country;
             }
 
             if (!string.IsNullOrEmpty(_ipAddress))
             {
                 _log.Debug("Add ip_address to event's extra payload: " + _ipAddress);
-                extraPayload.Add("ip_address", _ipAddress);
+                extraPayload["ip_address"] = _ipAddress;
             }
-            
+
             if (_isSandbox)
             {
                 _log.Debug("Add sandbox to event's extra payload: " + _isSandbox);
-                extraPayload.Add("is_sandbox", _isSandbox);
+                extraPayload["is_sandbox"] = _isSandbox;
             }
         }
     }

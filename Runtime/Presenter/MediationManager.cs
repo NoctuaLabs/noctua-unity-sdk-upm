@@ -570,7 +570,8 @@ namespace com.noctuagames.sdk
                 secondaryNetwork: _orchestrator.Secondary,
                 frequencyManager: _frequencyManager,
                 autoShowOnForeground: iAAResponse.AppOpenAutoShow ?? false,
-                preferredNetworkName: preferredAppOpenNetwork
+                preferredNetworkName: preferredAppOpenNetwork,
+                onAdNotAvailable: format => _onAdNotAvailable?.Invoke(format)
             );
 
             // Only pass primary here; secondary will be added in SetupSecondaryAppOpen after secondary SDK is ready

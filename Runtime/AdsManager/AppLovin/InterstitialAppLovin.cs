@@ -85,6 +85,11 @@ namespace com.noctuagames.sdk.AppLovin
         }
 
         /// <summary>
+        /// Returns whether an interstitial ad is loaded and ready to show.
+        /// </summary>
+        public bool IsReady() => !string.IsNullOrEmpty(_adUnitIDInterstitial) && MaxSdk.IsInterstitialReady(_adUnitIDInterstitial);
+
+        /// <summary>
         /// Shows a previously loaded interstitial ad if it is ready.
         /// </summary>
         public void ShowInterstitial()
@@ -139,6 +144,27 @@ namespace com.noctuagames.sdk.AppLovin
                 TrackAdCustomEventInterstitial("wf_interstitial_show_not_ready");
                 TrackAdCustomEventInterstitial("wf_interstitial_show_failed_null");
             }
+        }
+
+        /// <summary>
+        /// Removes all registered callbacks from the static MaxSdkCallbacks events.
+        /// Must be called when this instance is being replaced or discarded to prevent
+        /// duplicate callbacks if a new InterstitialAppLovin instance is created.
+        /// </summary>
+        public void UnregisterCallbacks()
+        {
+            if (!_callbacksRegistered) return;
+
+            MaxSdkCallbacks.Interstitial.OnAdLoadedEvent -= OnInterstitialLoadedEvent;
+            MaxSdkCallbacks.Interstitial.OnAdLoadFailedEvent -= OnInterstitialLoadFailedEvent;
+            MaxSdkCallbacks.Interstitial.OnAdDisplayedEvent -= OnInterstitialDisplayedEvent;
+            MaxSdkCallbacks.Interstitial.OnAdClickedEvent -= OnInterstitialClickedEvent;
+            MaxSdkCallbacks.Interstitial.OnAdHiddenEvent -= OnInterstitialHiddenEvent;
+            MaxSdkCallbacks.Interstitial.OnAdDisplayFailedEvent -= OnInterstitialAdFailedToDisplayEvent;
+            MaxSdkCallbacks.Interstitial.OnAdRevenuePaidEvent -= OnAdRevenuePaidEvent;
+
+            _callbacksRegistered = false;
+            _log.Debug("Interstitial callbacks unregistered.");
         }
 
         private void LoadInterstitialInternal()
@@ -197,12 +223,12 @@ namespace com.noctuagames.sdk.AppLovin
             {
                 _log.Warning($"Interstitial ad request took too long: {errorInfo.LatencyMillis} ms, exceeding threshold of {_timeoutThreshold} ms.");
 
-                TrackAdCustomEventInterstitial("wf_interstitial_request_adunit_timeout", extraPayload: extraPayload);
+                TrackAdCustomEventInterstitial("wf_inter_request_adunit_timeout", extraPayload: extraPayload);
             }
 
             TrackAdCustomEventInterstitial("ad_load_failed", adUnitId, null, extraPayload);
             TrackAdCustomEventInterstitial("wf_interstitial_request_adunit_failed", extraPayload: extraPayload);
-            TrackAdCustomEventInterstitial("wf_interstitial_request_finished_failed", extraPayload: extraPayload);
+            TrackAdCustomEventInterstitial("wf_inter_request_finished_failed", extraPayload: extraPayload);
         }
 
         // Async method handling the delay
@@ -303,36 +329,39 @@ namespace com.noctuagames.sdk.AppLovin
             {
                 _log.Debug("Tracking custom event for interstitial ad: " + eventName);
 
-                extraPayload ??= new Dictionary<string, IConvertible>();
+                // Copy so we never mutate the caller's dictionary — the same dict is often
+                // passed to multiple sequential TrackAdCustomEventInterstitial calls.
+                var payload = extraPayload != null
+                    ? new Dictionary<string, IConvertible>(extraPayload)
+                    : new Dictionary<string, IConvertible>();
 
-                // Add basic information that doesn't require the ad info
-                extraPayload.Add("ad_format", AdFormatKey.Interstitial);
-                extraPayload.Add("mediation_service", AdNetworkName.AppLovin);
-                extraPayload.Add("ad_unit_id", adUnitId ?? _adUnitIDInterstitial ?? "unknown");
+                payload["ad_format"] = AdFormatKey.Interstitial;
+                payload["mediation_service"] = AdNetworkName.AppLovin;
+                payload["ad_unit_id"] = adUnitId ?? _adUnitIDInterstitial ?? "unknown";
 
                 // Add ad info if available
                 if (adInfo != null)
                 {
-                    extraPayload.Add("ad_network", adInfo.NetworkName ?? "unknown");
-                    extraPayload.Add("placement", adInfo.Placement ?? "unknown");
-                    extraPayload.Add("network_placement", adInfo.NetworkPlacement ?? "unknown");
-                    extraPayload.Add("ntw", adInfo.WaterfallInfo.Name ?? "unknown");
-                    extraPayload.Add("latency_millis", adInfo.LatencyMillis);
+                    payload["ad_network"] = adInfo.NetworkName ?? "unknown";
+                    payload["placement"] = adInfo.Placement ?? "unknown";
+                    payload["network_placement"] = adInfo.NetworkPlacement ?? "unknown";
+                    payload["ntw"] = adInfo.WaterfallInfo.Name ?? "unknown";
+                    payload["latency_millis"] = adInfo.LatencyMillis;
                 }
                 else
                 {
-                    extraPayload.Add("ad_network", "unknown");
+                    payload["ad_network"] = "unknown";
                 }
 
                 string properties = "";
-                foreach (var (key, value) in extraPayload)
+                foreach (var (key, value) in payload)
                 {
                     properties += $"{key}={value}, ";
                 }
 
                 _log.Debug($"Event name: {eventName}, Event properties: {properties}");
-            
-                Noctua.Event.TrackCustomEvent(eventName, extraPayload);
+
+                Noctua.Event.TrackCustomEvent(eventName, payload);
             }
             catch (Exception ex)
             {

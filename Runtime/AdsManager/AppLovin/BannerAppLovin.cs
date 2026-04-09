@@ -116,7 +116,10 @@ namespace com.noctuagames.sdk.AppLovin
 
             _log.Debug("Banner ad hidden for ad unit id : " + _adUnitIDBanner);
 
-            TrackAdCustomEventBanner("wf_banner_closed");
+            // Use wf_banner_hidden (not wf_banner_closed) to distinguish a temporary hide
+            // from a permanent DestroyBanner(). Both previously emitted wf_banner_closed,
+            // making it impossible to differentiate hide vs destroy in analytics.
+            TrackAdCustomEventBanner("wf_banner_hidden");
         }
 
         /// <summary>
@@ -196,6 +199,26 @@ namespace com.noctuagames.sdk.AppLovin
             _log.Debug($"Banner refresh interval set to {seconds}s for ad unit id : {_adUnitIDBanner}");
         }
 
+        /// <summary>
+        /// Removes all registered callbacks from the static MaxSdkCallbacks events.
+        /// Must be called when this instance is being replaced or discarded to prevent
+        /// duplicate callbacks if a new BannerAppLovin instance is created.
+        /// </summary>
+        public void UnregisterCallbacks()
+        {
+            if (!_callbacksRegistered) return;
+
+            MaxSdkCallbacks.Banner.OnAdLoadedEvent      -= OnBannerAdLoadedEvent;
+            MaxSdkCallbacks.Banner.OnAdLoadFailedEvent  -= OnBannerAdLoadFailedEvent;
+            MaxSdkCallbacks.Banner.OnAdClickedEvent     -= OnBannerAdClickedEvent;
+            MaxSdkCallbacks.Banner.OnAdRevenuePaidEvent -= OnBannerAdRevenuePaidEvent;
+            MaxSdkCallbacks.Banner.OnAdExpandedEvent    -= OnBannerAdExpandedEvent;
+            MaxSdkCallbacks.Banner.OnAdCollapsedEvent   -= OnBannerAdCollapsedEvent;
+
+            _callbacksRegistered = false;
+            _log.Debug("Banner callbacks unregistered.");
+        }
+
         private void RegisterCallbacks()
         {
             if (!_callbacksRegistered)
@@ -264,6 +287,7 @@ namespace com.noctuagames.sdk.AppLovin
             TrackAdCustomEventBanner("ad_impression");
             TrackAdCustomEventBanner("ad_impression_banner");
 
+            BannerOnAdImpressionRecorded?.Invoke();
             BannerOnAdRevenuePaid?.Invoke(adInfo);
         }
 
@@ -287,36 +311,39 @@ namespace com.noctuagames.sdk.AppLovin
             {
                 _log.Debug("Tracking custom event for banner ad: " + eventName);
 
-                extraPayload ??= new Dictionary<string, IConvertible>();
+                // Copy so we never mutate the caller's dictionary — the same dict is often
+                // passed to multiple sequential TrackAdCustomEventBanner calls.
+                var payload = extraPayload != null
+                    ? new Dictionary<string, IConvertible>(extraPayload)
+                    : new Dictionary<string, IConvertible>();
 
-                // Add basic information that doesn't require the ad info
-                extraPayload.Add("ad_format", AdFormatKey.Banner);
-                extraPayload.Add("mediation_service", AdNetworkName.AppLovin);
-                extraPayload.Add("ad_unit_id", adUnitId ?? _adUnitIDBanner ?? "unknown");
+                payload["ad_format"] = AdFormatKey.Banner;
+                payload["mediation_service"] = AdNetworkName.AppLovin;
+                payload["ad_unit_id"] = adUnitId ?? _adUnitIDBanner ?? "unknown";
 
                 // Add ad info if available
                 if (adInfo != null)
                 {
-                    extraPayload.Add("ad_network", adInfo.NetworkName ?? "unknown");
-                    extraPayload.Add("placement", adInfo.Placement ?? "unknown");
-                    extraPayload.Add("network_placement", adInfo.NetworkPlacement ?? "unknown");
-                    extraPayload.Add("ntw", adInfo.WaterfallInfo.Name ?? "unknown");
-                    extraPayload.Add("latency_millis", adInfo.LatencyMillis);
+                    payload["ad_network"] = adInfo.NetworkName ?? "unknown";
+                    payload["placement"] = adInfo.Placement ?? "unknown";
+                    payload["network_placement"] = adInfo.NetworkPlacement ?? "unknown";
+                    payload["ntw"] = adInfo.WaterfallInfo.Name ?? "unknown";
+                    payload["latency_millis"] = adInfo.LatencyMillis;
                 }
                 else
                 {
-                    extraPayload.Add("ad_network", "unknown");
+                    payload["ad_network"] = "unknown";
                 }
 
                 string properties = "";
-                foreach (var (key, value) in extraPayload)
+                foreach (var (key, value) in payload)
                 {
                     properties += $"{key}={value}, ";
                 }
 
                 _log.Debug($"Event name: {eventName}, Event properties: {properties}");
-            
-                Noctua.Event.TrackCustomEvent(eventName, extraPayload);
+
+                Noctua.Event.TrackCustomEvent(eventName, payload);
             }
             catch (Exception ex)
             {

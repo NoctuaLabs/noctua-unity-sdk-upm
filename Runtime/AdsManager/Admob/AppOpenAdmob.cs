@@ -16,6 +16,7 @@ namespace com.noctuagames.sdk.Admob
     {
         private readonly NoctuaLogger _log = new(typeof(AppOpenAdmob));
         private string _adUnitIDAppOpen;
+        private AppOpenAd _legacyAppOpenAd;
 
         /// <summary>Raised when the app open ad is successfully displayed.</summary>
         public event Action AppOpenOnAdDisplayed;
@@ -52,16 +53,50 @@ namespace com.noctuagames.sdk.Admob
         }
 
         /// <summary>
-        /// No-op — the Preload API manages loading automatically.
-        /// Loading is initiated by <see cref="MediationManager"/> via <see cref="AdmobAdPreloadManager.StartPreloading"/>.
+        /// Attempts to load an app open ad. If the Preload API has ads available, this is a no-op.
+        /// Otherwise falls back to legacy <see cref="AppOpenAd.Load"/> for environments where
+        /// the Preload API is unavailable (e.g. emulator without GMS Dynamite module).
         /// </summary>
         public void LoadAppOpenAd()
         {
-            _log.Debug("LoadAppOpenAd: preload API manages loading automatically. No-op.");
+            if (string.IsNullOrEmpty(_adUnitIDAppOpen) || _adUnitIDAppOpen == "unknown")
+            {
+                _log.Warning("Cannot load app open ad — unit ID not configured.");
+                return;
+            }
+
+            // Check if Preload API has ads available. If so, no manual load needed.
+            try
+            {
+                if (AdmobAdPreloadManager.Instance.IsAdAvailable(_adUnitIDAppOpen, AdFormat.APP_OPEN_AD))
+                {
+                    _log.Debug("LoadAppOpenAd: preloaded ad already available. No manual load needed.");
+                    return;
+                }
+            }
+            catch (Exception)
+            {
+                // IsAdAvailable may throw on emulator — fall through to legacy load
+            }
+
+            // Legacy fallback: load via AppOpenAd.Load() when Preload API is unavailable
+            _log.Info("LoadAppOpenAd: Preload buffer empty or unavailable. Using legacy AppOpenAd.Load() fallback.");
+            var adRequest = new AdRequest();
+            AppOpenAd.Load(_adUnitIDAppOpen, adRequest, (AppOpenAd ad, LoadAdError error) =>
+            {
+                if (error != null)
+                {
+                    _log.Warning($"Legacy app open ad load failed: {error.GetMessage()}");
+                    return;
+                }
+
+                _log.Info("Legacy app open ad loaded successfully.");
+                _legacyAppOpenAd = ad;
+            });
         }
 
         /// <summary>
-        /// Shows the app open ad by polling a preloaded instance from <see cref="AdmobAdPreloadManager"/>.
+        /// Shows the app open ad. Tries legacy-loaded ad first, then falls back to the Preload API.
         /// </summary>
         public void ShowAppOpenAd()
         {
@@ -72,6 +107,39 @@ namespace com.noctuagames.sdk.Admob
                 return;
             }
 
+            // Try legacy loaded ad first
+            if (_legacyAppOpenAd != null)
+            {
+                if (!_legacyAppOpenAd.CanShowAd())
+                {
+                    _log.Warning("Legacy app open ad loaded but CanShowAd() returned false. Discarding stale ad.");
+                    _legacyAppOpenAd.Destroy();
+                    _legacyAppOpenAd = null;
+                    TrackAdCustomEvent("wf_app_open_show_not_ready");
+                    // Fall through to try preload path
+                }
+                else
+                {
+                    try
+                    {
+                        _log.Debug("Showing legacy-loaded app open ad.");
+                        TrackAdCustomEvent("wf_app_open_started_playing");
+                        RegisterEventHandlers(_legacyAppOpenAd);
+                        _legacyAppOpenAd.Show();
+                        _legacyAppOpenAd = null; // Consumed
+                        return;
+                    }
+                    catch (Exception ex)
+                    {
+                        _log.Error($"Exception showing legacy app open ad: {ex.Message}");
+                        _legacyAppOpenAd = null;
+                        AppOpenOnAdFailedDisplayed?.Invoke();
+                        // Fall through to try preload path
+                    }
+                }
+            }
+
+            // Preload path
             var preload = AdmobAdPreloadManager.Instance;
 
             if (!preload.IsAdAvailable(_adUnitIDAppOpen, AdFormat.APP_OPEN_AD))
@@ -104,14 +172,24 @@ namespace com.noctuagames.sdk.Admob
         }
 
         /// <summary>
-        /// Returns whether a preloaded app open ad is available.
+        /// Returns whether an app open ad is available (legacy-loaded or preloaded).
         /// </summary>
         public bool IsAdReady()
         {
+            // Check legacy loaded ad first
+            if (_legacyAppOpenAd != null) return true;
+
             if (string.IsNullOrEmpty(_adUnitIDAppOpen) || _adUnitIDAppOpen == "unknown")
                 return false;
 
-            return AdmobAdPreloadManager.Instance.IsAdAvailable(_adUnitIDAppOpen, AdFormat.APP_OPEN_AD);
+            try
+            {
+                return AdmobAdPreloadManager.Instance.IsAdAvailable(_adUnitIDAppOpen, AdFormat.APP_OPEN_AD);
+            }
+            catch (Exception)
+            {
+                return false;
+            }
         }
 
         private void RegisterEventHandlers(AppOpenAd ad)
@@ -152,7 +230,8 @@ namespace com.noctuagames.sdk.Admob
                 TrackAdCustomEvent("ad_closed");
                 TrackAdCustomEvent("wf_app_open_closed");
                 AppOpenOnAdClosed?.Invoke();
-                // No manual reload — preload API auto-refills the buffer after Poll.
+                // Reload for next show (legacy path; preload API auto-refills after Poll)
+                LoadAppOpenAd();
             };
 
             ad.OnAdFullScreenContentFailed += (AdError error) =>
@@ -180,18 +259,22 @@ namespace com.noctuagames.sdk.Admob
             {
                 _log.Debug("Tracking custom event for app open ad: " + eventName);
 
-                extraPayload ??= new Dictionary<string, IConvertible>();
+                // Copy so we never mutate the caller's dictionary — the same dict is often
+                // passed to multiple sequential TrackAdCustomEvent calls.
+                var payload = extraPayload != null
+                    ? new Dictionary<string, IConvertible>(extraPayload)
+                    : new Dictionary<string, IConvertible>();
 
-                extraPayload.Add("ad_format", AdFormatKey.AppOpen);
-                extraPayload.Add("mediation_service", AdNetworkName.Admob);
-                extraPayload.Add("ad_unit_id", _adUnitIDAppOpen ?? "unknown");
+                payload["ad_format"] = AdFormatKey.AppOpen;
+                payload["mediation_service"] = AdNetworkName.Admob;
+                payload["ad_unit_id"] = _adUnitIDAppOpen ?? "unknown";
 
                 // Best-effort: try to get adapter info from preload manager availability check.
                 // We do not hold a reference to the current ad instance outside Show() to avoid
                 // keeping a polled (consumed) ad alive beyond its show window.
-                extraPayload.Add("ad_network", "unknown");
+                payload["ad_network"] = "unknown";
 
-                Noctua.Event.TrackCustomEvent(eventName, extraPayload);
+                Noctua.Event.TrackCustomEvent(eventName, payload);
             }
             catch (Exception ex)
             {

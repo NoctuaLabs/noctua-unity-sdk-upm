@@ -201,6 +201,16 @@ namespace com.noctuagames.sdk
         #endif
 
         /// <summary>
+        /// Returns whether an interstitial ad is loaded and ready to show.
+        /// </summary>
+        bool IsInterstitialReady() { return false; }
+
+        /// <summary>
+        /// Returns whether a rewarded ad is loaded and ready to show.
+        /// </summary>
+        bool IsRewardedAdReady() { return false; }
+
+        /// <summary>
         /// Shows a previously loaded interstitial ad with an optional placement name.
         /// For AppLovin the placement is passed natively to MAX SDK.
         /// For AdMob the placement is recorded in custom event analytics only.
@@ -248,12 +258,11 @@ namespace com.noctuagames.sdk
         /// Opens the mediation debugger tool for inspecting ad network mediation status.
         /// </summary>
         void ShowMediationDebugger() { throw new NotImplementedException(); }
-        // void SetTestDeviceId(string testDeviceId) { throw new NotImplementedException(); }
-        // void SetTestDeviceIds(string[] testDeviceIds) { throw new NotImplementedException(); }
-        // void SetTagForChildDirectedTreatment(bool tagForChildDirectedTreatment) { throw new NotImplementedException(); }
-        // void SetTagForUnderAgeOfConsent(bool tagForUnderAgeOfConsent) { throw new NotImplementedException(); }
-        // void SetRequestConfiguration(RequestConfiguration requestConfiguration) { throw new NotImplementedException(); }
-        // void SetMaxAdContentRating(MaxAdContentRating maxAdContentRating) { throw new NotImplementedException(); }
+        /// <summary>
+        /// Registers test device IDs with the ad network for receiving test ads.
+        /// </summary>
+        /// <param name="testDeviceIds">List of device IDs to register as test devices.</param>
+        void SetTestDeviceIds(List<string> testDeviceIds) { }
 
     }
 }

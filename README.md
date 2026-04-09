@@ -13,7 +13,7 @@ The Noctua SDK provides a unified set of services for mobile game development:
 | `Noctua.Auth` | Authentication — guest, social login, account switching |
 | `Noctua.IAP` | In-app purchases — products, purchase flow, pending deliverables, redeems |
 | `Noctua.Event` | Analytics — custom events, session tracking, engagement time |
-| `Noctua.IAA` | Ad mediation — banner, interstitial, rewarded ads |
+| `Noctua.IAA` | Ad mediation — banner, interstitial, rewarded, app open ads ([docs](docs/IAA.md) · [advanced](docs/IAA-Advanced.md)) |
 | `Noctua.Platform` | Platform features — announcements, customer service, rewards, social media |
 | `Noctua.Platform.Locale` | Locale — language, country, currency |
 

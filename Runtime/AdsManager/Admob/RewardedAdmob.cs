@@ -274,12 +274,15 @@ namespace com.noctuagames.sdk.Admob
             {
                 _log.Debug("Tracking custom event for rewarded ad: " + eventName);
 
-                extraPayload ??= new Dictionary<string, IConvertible>();
+                // Copy so we never mutate the caller's dictionary — the same dict is often
+                // passed to multiple sequential TrackAdCustomEventRewarded calls.
+                var payload = extraPayload != null
+                    ? new Dictionary<string, IConvertible>(extraPayload)
+                    : new Dictionary<string, IConvertible>();
 
-                // Add basic information that doesn't require the ad instance
-                extraPayload.Add("ad_format", AdFormatKey.Rewarded);
-                extraPayload.Add("mediation_service", AdNetworkName.Admob);
-                
+                payload["ad_format"] = AdFormatKey.Rewarded;
+                payload["mediation_service"] = AdNetworkName.Admob;
+
                 // Only add ad-specific information if the ad instance exists
                 if (_rewardedAd != null)
                 {
@@ -297,37 +300,37 @@ namespace com.noctuagames.sdk.Admob
                             try { adapterClassName = loadedAdapterResponseInfo.AdapterClassName ?? "empty"; } catch {}
                             try { latencyMillis = loadedAdapterResponseInfo.LatencyMillis; } catch {}
 
-                            extraPayload.Add("ad_network", adSourceName);
-                            extraPayload.Add("ntw", adapterClassName);
-                            extraPayload.Add("latency_millis", latencyMillis);
+                            payload["ad_network"] = adSourceName;
+                            payload["ntw"] = adapterClassName;
+                            payload["latency_millis"] = latencyMillis;
                         }
                         else
                         {
-                            extraPayload.Add("ad_network", "unknown");
+                            payload["ad_network"] = "unknown";
                         }
                     }
                     else
                     {
-                        extraPayload.Add("ad_network", "unknown");
+                        payload["ad_network"] = "unknown";
                     }
 
-                    extraPayload.Add("ad_unit_id", _rewardedAd.GetAdUnitID() ?? "unknown");
+                    payload["ad_unit_id"] = _rewardedAd.GetAdUnitID() ?? "unknown";
                 }
                 else
                 {
-                    extraPayload.Add("ad_network", "unknown");
-                    extraPayload.Add("ad_unit_id", _adUnitIDRewarded ?? "unknown");
+                    payload["ad_network"] = "unknown";
+                    payload["ad_unit_id"] = _adUnitIDRewarded ?? "unknown";
                 }
 
                 string properties = "";
-                foreach (var (key, value) in extraPayload)
+                foreach (var (key, value) in payload)
                 {
                     properties += $"{key}={value}, ";
                 }
 
                 _log.Debug($"Event name: {eventName}, Event properties: {properties}");
 
-                Noctua.Event.TrackCustomEvent(eventName, extraPayload);
+                Noctua.Event.TrackCustomEvent(eventName, payload);
             }
             catch (Exception ex)
             {

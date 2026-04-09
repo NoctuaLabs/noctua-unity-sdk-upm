@@ -6,6 +6,12 @@ namespace com.noctuagames.sdk
     /// <summary>
     /// Manages App Open ad lifecycle: loading, foreground auto-show with cooldown,
     /// and coordination with the ad frequency manager to prevent conflicts with other fullscreen ads.
+    ///
+    /// All cooldown and frequency-cap decisions are delegated exclusively to
+    /// <see cref="AdFrequencyManager"/> (keyed by <see cref="AdFormatKey.AppOpen"/>).
+    /// The app-open-specific cooldown is merged into <see cref="CooldownConfig.AppOpen"/>
+    /// by <see cref="MediationManager"/> before the frequency manager is constructed,
+    /// so there is no dual-source conflict.
     /// </summary>
     public class AppOpenAdManager
     {
@@ -15,7 +21,6 @@ namespace com.noctuagames.sdk
         private readonly IAdNetwork _secondaryNetwork;
         private readonly AdFrequencyManager _frequencyManager;
         private readonly bool _autoShowOnForeground;
-        private readonly int _cooldownSeconds;
 
         /// <summary>
         /// Optional network name override from <see cref="IAA.AdFormatOverrides"/> for "app_open".
@@ -23,7 +28,8 @@ namespace com.noctuagames.sdk
         /// </summary>
         private readonly string _preferredNetworkName;
 
-        private DateTime _lastShowTime = DateTime.MinValue;
+        private readonly Action<string> _onAdNotAvailable;
+
         private bool _isFullscreenAdShowing;
         private bool _appOpenAdUnitConfigured;
 
@@ -32,27 +38,34 @@ namespace com.noctuagames.sdk
         /// </summary>
         /// <param name="primaryNetwork">The primary ad network for app open ads.</param>
         /// <param name="secondaryNetwork">Optional secondary ad network for fallback.</param>
-        /// <param name="frequencyManager">The frequency manager for enforcing caps.</param>
+        /// <param name="frequencyManager">
+        /// The frequency manager for enforcing caps and cooldowns.
+        /// Its <see cref="CooldownConfig.AppOpen"/> must already include the desired
+        /// minimum seconds between impressions (set by <see cref="MediationManager"/>).
+        /// </param>
         /// <param name="autoShowOnForeground">Whether to auto-show on app foreground.</param>
-        /// <param name="cooldownSeconds">Minimum seconds between app open ad impressions.</param>
         /// <param name="preferredNetworkName">
         /// Optional network name from <see cref="IAA.AdFormatOverrides"/> for the "app_open" format.
         /// When set, that network is tried first on show. Defaults to null (primary always first).
+        /// </param>
+        /// <param name="onAdNotAvailable">
+        /// Optional callback invoked with <see cref="AdFormatKey.AppOpen"/> when a show request is
+        /// silently dropped (cooldown active, frequency cap reached, or no inventory on any network).
         /// </param>
         public AppOpenAdManager(
             IAdNetwork primaryNetwork,
             IAdNetwork secondaryNetwork = null,
             AdFrequencyManager frequencyManager = null,
             bool autoShowOnForeground = false,
-            int cooldownSeconds = 30,
-            string preferredNetworkName = null)
+            string preferredNetworkName = null,
+            Action<string> onAdNotAvailable = null)
         {
             _primaryNetwork = primaryNetwork;
             _secondaryNetwork = secondaryNetwork;
             _frequencyManager = frequencyManager;
             _autoShowOnForeground = autoShowOnForeground;
-            _cooldownSeconds = cooldownSeconds > 0 ? cooldownSeconds : 30;
             _preferredNetworkName = preferredNetworkName;
+            _onAdNotAvailable = onAdNotAvailable;
         }
 
         /// <summary>
@@ -108,7 +121,7 @@ namespace com.noctuagames.sdk
 
             if (!IsReadyToShow())
             {
-                _log.Debug("App open ad is not ready to show (cooldown or frequency cap).");
+                _log.Debug("App open ad is not ready to show (cooldown, frequency cap, or no inventory).");
                 return;
             }
 
@@ -117,6 +130,7 @@ namespace com.noctuagames.sdk
 
         /// <summary>
         /// Manually shows an app open ad.
+        /// Cooldown and frequency caps are enforced by <see cref="AdFrequencyManager"/>.
         /// If <see cref="_preferredNetworkName"/> is set (from <see cref="IAA.AdFormatOverrides"/>),
         /// that network is tried first; otherwise primary is tried first.
         /// </summary>
@@ -124,7 +138,8 @@ namespace com.noctuagames.sdk
         {
             if (_frequencyManager != null && !_frequencyManager.CanShowAd(AdFormatKey.AppOpen))
             {
-                _log.Info("App open ad blocked by frequency manager.");
+                _log.Info("App open ad blocked by frequency/cooldown manager.");
+                _onAdNotAvailable?.Invoke(AdFormatKey.AppOpen);
                 return;
             }
 
@@ -157,13 +172,18 @@ namespace com.noctuagames.sdk
             }
 
             _log.Warning("No app open ad is ready on any network.");
+            _onAdNotAvailable?.Invoke(AdFormatKey.AppOpen);
         }
 
         /// <summary>
-        /// Returns whether an app open ad is loaded and ready on any network.
+        /// Returns whether an app open ad is ready to show: inventory loaded on at least one network
+        /// AND frequency cap / cooldown allow it. Consistent with <see cref="MediationManager.IsInterstitialReady"/>.
         /// </summary>
         public bool IsAppOpenAdReady()
         {
+            if (_frequencyManager != null && !_frequencyManager.CanShowAd(AdFormatKey.AppOpen))
+                return false;
+
             return _primaryNetwork.IsAppOpenAdReady() ||
                    (_secondaryNetwork != null && _secondaryNetwork.IsAppOpenAdReady());
         }
@@ -213,26 +233,15 @@ namespace com.noctuagames.sdk
             _isFullscreenAdShowing = isShowing;
         }
 
-        private bool IsReadyToShow()
-        {
-            double elapsed = (DateTime.UtcNow - _lastShowTime).TotalSeconds;
-            if (elapsed < _cooldownSeconds)
-            {
-                _log.Debug($"App open ad cooldown active: {elapsed:F0}s / {_cooldownSeconds}s.");
-                return false;
-            }
+        // ─────────────────────────────────────────────────────────
+        // Private helpers
+        // ─────────────────────────────────────────────────────────
 
-            if (_frequencyManager != null && !_frequencyManager.CanShowAd(AdFormatKey.AppOpen))
-            {
-                return false;
-            }
-
-            return IsAppOpenAdReady();
-        }
+        // Delegates to IsAppOpenAdReady(), which already includes the frequency/cooldown check.
+        private bool IsReadyToShow() => IsAppOpenAdReady();
 
         private void RecordShow()
         {
-            _lastShowTime = DateTime.UtcNow;
             _frequencyManager?.RecordImpression(AdFormatKey.AppOpen);
         }
     }

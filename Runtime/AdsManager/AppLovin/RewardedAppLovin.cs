@@ -88,6 +88,28 @@ namespace com.noctuagames.sdk.AppLovin
             _log.Debug("Rewarded ad loaded for ad unit id : " + _adUnitIDRewarded);
         }
 
+        /// <summary>
+        /// Removes all registered callbacks from the static MaxSdkCallbacks events.
+        /// Must be called when this instance is being replaced or discarded to prevent
+        /// duplicate callbacks if a new RewardedAppLovin instance is created.
+        /// </summary>
+        public void UnregisterCallbacks()
+        {
+            if (!_callbacksRegistered) return;
+
+            MaxSdkCallbacks.Rewarded.OnAdLoadedEvent -= OnRewardedAdLoadedEvent;
+            MaxSdkCallbacks.Rewarded.OnAdLoadFailedEvent -= OnRewardedAdLoadFailedEvent;
+            MaxSdkCallbacks.Rewarded.OnAdDisplayedEvent -= OnRewardedAdDisplayedEvent;
+            MaxSdkCallbacks.Rewarded.OnAdClickedEvent -= OnRewardedAdClickedEvent;
+            MaxSdkCallbacks.Rewarded.OnAdRevenuePaidEvent -= OnRewardedAdRevenuePaidEvent;
+            MaxSdkCallbacks.Rewarded.OnAdHiddenEvent -= OnRewardedAdHiddenEvent;
+            MaxSdkCallbacks.Rewarded.OnAdDisplayFailedEvent -= OnRewardedAdFailedToDisplayEvent;
+            MaxSdkCallbacks.Rewarded.OnAdReceivedRewardEvent -= OnRewardedAdReceivedRewardEvent;
+
+            _callbacksRegistered = false;
+            _log.Debug("Rewarded callbacks unregistered.");
+        }
+
         private void LoadRewardedAd()
         {
             TrackAdCustomEventRewarded("wf_rewarded_request_start");
@@ -96,6 +118,11 @@ namespace com.noctuagames.sdk.AppLovin
 
             _log.Debug("Loading rewarded ad for ad unit id : " + _adUnitIDRewarded);
         }
+        /// <summary>
+        /// Returns whether a rewarded ad is loaded and ready to show.
+        /// </summary>
+        public bool IsReady() => !string.IsNullOrEmpty(_adUnitIDRewarded) && MaxSdk.IsRewardedAdReady(_adUnitIDRewarded);
+
         /// <summary>
         /// Shows a previously loaded rewarded ad if it is ready.
         /// </summary>
@@ -314,36 +341,39 @@ namespace com.noctuagames.sdk.AppLovin
             {
                 _log.Debug("Tracking custom event for rewarded ad: " + eventName);
 
-                extraPayload ??= new Dictionary<string, IConvertible>();
+                // Copy so we never mutate the caller's dictionary — the same dict is often
+                // passed to multiple sequential TrackAdCustomEventRewarded calls.
+                var payload = extraPayload != null
+                    ? new Dictionary<string, IConvertible>(extraPayload)
+                    : new Dictionary<string, IConvertible>();
 
-                // Add basic information that doesn't require the ad info
-                extraPayload.Add("ad_format", AdFormatKey.Rewarded);
-                extraPayload.Add("mediation_service", AdNetworkName.AppLovin);
-                extraPayload.Add("ad_unit_id", adUnitId ?? _adUnitIDRewarded ?? "unknown");
+                payload["ad_format"] = AdFormatKey.Rewarded;
+                payload["mediation_service"] = AdNetworkName.AppLovin;
+                payload["ad_unit_id"] = adUnitId ?? _adUnitIDRewarded ?? "unknown";
 
                 // Add ad info if available
                 if (adInfo != null)
                 {
-                    extraPayload.Add("ad_network", adInfo.NetworkName ?? "unknown");
-                    extraPayload.Add("placement", adInfo.Placement ?? "unknown");
-                    extraPayload.Add("network_placement", adInfo.NetworkPlacement ?? "unknown");
-                    extraPayload.Add("ntw", adInfo.WaterfallInfo.Name ?? "unknown");
-                    extraPayload.Add("latency_millis", adInfo.LatencyMillis);
+                    payload["ad_network"] = adInfo.NetworkName ?? "unknown";
+                    payload["placement"] = adInfo.Placement ?? "unknown";
+                    payload["network_placement"] = adInfo.NetworkPlacement ?? "unknown";
+                    payload["ntw"] = adInfo.WaterfallInfo.Name ?? "unknown";
+                    payload["latency_millis"] = adInfo.LatencyMillis;
                 }
                 else
                 {
-                    extraPayload.Add("ad_network", "unknown");
+                    payload["ad_network"] = "unknown";
                 }
 
                 string properties = "";
-                foreach (var (key, value) in extraPayload)
+                foreach (var (key, value) in payload)
                 {
                     properties += $"{key}={value}, ";
                 }
 
                 _log.Debug($"Event name: {eventName}, Event properties: {properties}");
-            
-                Noctua.Event.TrackCustomEvent(eventName, extraPayload);
+
+                Noctua.Event.TrackCustomEvent(eventName, payload);
             }
             catch (Exception ex)
             {

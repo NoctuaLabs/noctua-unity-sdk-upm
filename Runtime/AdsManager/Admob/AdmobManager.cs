@@ -289,11 +289,10 @@ namespace com.noctuagames.sdk
         }
 
         /// <inheritdoc />
-        /// <remarks>No-op — App Open loading is managed by <see cref="AdmobAdPreloadManager"/>.</remarks>
+        /// <remarks>Delegates to AppOpenAdmob which tries preload first, then legacy fallback.</remarks>
         public void LoadAppOpenAd()
         {
-            // Preload API manages loading automatically via MediationManager.SetupAdUnitID.
-            _log.Debug("LoadAppOpenAd: preload API manages loading automatically. No-op.");
+            _appOpenAdmob.LoadAppOpenAd();
         }
 
         /// <inheritdoc />
@@ -319,6 +318,24 @@ namespace com.noctuagames.sdk
             {
                 _log.Error("Admob mediation debugger closed with error: " + error);
             });
+        }
+
+        /// <inheritdoc />
+        public void SetTestDeviceIds(List<string> testDeviceIds)
+        {
+            if (testDeviceIds == null || testDeviceIds.Count == 0)
+            {
+                _log.Debug("No test device IDs to set for AdMob.");
+                return;
+            }
+
+            _log.Info($"Setting {testDeviceIds.Count} AdMob test device ID(s).");
+
+            var requestConfiguration = new RequestConfiguration
+            {
+                TestDeviceIds = testDeviceIds
+            };
+            MobileAds.SetRequestConfiguration(requestConfiguration);
         }
     }
 }

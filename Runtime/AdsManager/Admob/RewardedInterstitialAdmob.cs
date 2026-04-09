@@ -63,7 +63,7 @@ namespace com.noctuagames.sdk.Admob
         /// </summary>
         public void LoadRewardedInterstitialAd()
         {
-            TrackAdCustomEventRewardedInterstitial("wf_rewarded_interstitial_request_start");
+            TrackAdCustomEventRewardedInterstitial("wf_ri_request_start");
 
             if (string.IsNullOrEmpty(_adUnitIDRewarded) || _adUnitIDRewarded == "unknown")
             {
@@ -104,8 +104,8 @@ namespace com.noctuagames.sdk.Admob
                             _log.Warning($"Mediation adapter: {responseInfo.GetMediationAdapterClassName()}");
                         }
 
-                        TrackAdCustomEventRewardedInterstitial("wf_rewarded_interstitial_request_adunit_failed", extraPayload);
-                        TrackAdCustomEventRewardedInterstitial("wf_rewarded_interstitial_request_finished_failed", extraPayload);
+                        TrackAdCustomEventRewardedInterstitial("wf_ri_request_adunit_failed", extraPayload);
+                        TrackAdCustomEventRewardedInterstitial("wf_ri_request_finished_failed", extraPayload);
 
                         RetryLoadRewardedInterstitialAsync().Forget();
                         return;
@@ -124,7 +124,7 @@ namespace com.noctuagames.sdk.Admob
                         {
                             _log.Warning($"Rewarded interstitial ad request took too long: {latencyMillis} ms, exceeding threshold of {_timeoutThreshold} ms.");
 
-                            TrackAdCustomEventRewardedInterstitial("wf_rewarded_interstitial_request_adunit_timeout");
+                            TrackAdCustomEventRewardedInterstitial("wf_ri_request_adunit_timeout");
                         }
                     }
 
@@ -144,7 +144,7 @@ namespace com.noctuagames.sdk.Admob
             const string rewardMsg =
                 "Rewarded Interstitial ad rewarded the user. Type: {0}, amount: {1}.";
 
-            TrackAdCustomEventRewardedInterstitial("wf_rewarded_interstitial_started_playing");
+            TrackAdCustomEventRewardedInterstitial("wf_ri_started_playing");
 
             if (_rewardedAd != null && _rewardedAd.CanShowAd())
             {
@@ -161,8 +161,8 @@ namespace com.noctuagames.sdk.Admob
             }
             else
             {
-                TrackAdCustomEventRewardedInterstitial("wf_rewarded_interstitial_show_not_ready");
-                TrackAdCustomEventRewardedInterstitial("wf_rewarded_interstitial_show_failed_null");
+                TrackAdCustomEventRewardedInterstitial("wf_ri_show_not_ready");
+                TrackAdCustomEventRewardedInterstitial("wf_ri_show_failed_null");
 
                 _log.Error("Rewarded Interstitial ad is not ready to be shown.");
             }
@@ -195,7 +195,7 @@ namespace com.noctuagames.sdk.Admob
                 _log.Debug("Rewarded Interstitial ad was clicked.");
 
                 TrackAdCustomEventRewardedInterstitial("ad_clicked");
-                TrackAdCustomEventRewardedInterstitial("wf_rewarded_interstitial_clicked");
+                TrackAdCustomEventRewardedInterstitial("wf_ri_clicked");
 
                 RewardedOnAdClicked?.Invoke();
             };
@@ -205,7 +205,7 @@ namespace com.noctuagames.sdk.Admob
                 _log.Debug("Rewarded Interstitial ad full screen content opened.");
 
                 TrackAdCustomEventRewardedInterstitial("ad_shown");
-                TrackAdCustomEventRewardedInterstitial("wf_rewarded_interstitial_show_sdk");
+                TrackAdCustomEventRewardedInterstitial("wf_ri_show_sdk");
 
                 RewardedOnAdDisplayed?.Invoke();
             };
@@ -217,7 +217,7 @@ namespace com.noctuagames.sdk.Admob
                 LoadRewardedInterstitialAd();
 
                 TrackAdCustomEventRewardedInterstitial("ad_closed");
-                TrackAdCustomEventRewardedInterstitial("wf_rewarded_interstitial_closed");
+                TrackAdCustomEventRewardedInterstitial("wf_ri_closed");
 
                 RewardedOnAdClosed?.Invoke();
             };
@@ -236,7 +236,7 @@ namespace com.noctuagames.sdk.Admob
                     { "domain", error.GetDomain() }
                 });
 
-                TrackAdCustomEventRewardedInterstitial("wf_rewarded_interstitial_show_sdk_failed");
+                TrackAdCustomEventRewardedInterstitial("wf_ri_show_sdk_failed");
 
                 RewardedOnAdFailedDisplayed?.Invoke();
             };
@@ -327,7 +327,7 @@ namespace com.noctuagames.sdk.Admob
 
                 _log.Debug($"Event name: {eventName}, Event properties: {properties}");
 
-                Noctua.Event.TrackCustomEvent(eventName, payload);
+                Noctua.Event.TrackCustomEvent(eventName, new Dictionary<string, IConvertible>(payload));
             }
             catch (Exception ex)
             {

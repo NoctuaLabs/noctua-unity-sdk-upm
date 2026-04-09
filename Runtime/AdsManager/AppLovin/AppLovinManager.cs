@@ -157,6 +157,9 @@ namespace com.noctuagames.sdk
         }
 
         /// <inheritdoc />
+        public bool IsInterstitialReady() => _interstitialAppLovin.IsReady();
+
+        /// <inheritdoc />
         public void ShowInterstitial()
         {
             _interstitialAppLovin.ShowInterstitial();
@@ -193,6 +196,9 @@ namespace com.noctuagames.sdk
         {
             _rewardedAppLovin.LoadRewardedAds();
         }
+
+        /// <inheritdoc />
+        public bool IsRewardedAdReady() => _rewardedAppLovin.IsReady();
 
         /// <inheritdoc />
         public void ShowRewardedAd()
@@ -345,6 +351,41 @@ namespace com.noctuagames.sdk
         {
             MaxSdk.ShowMediationDebugger();
         }
+
+        /// <inheritdoc />
+        public void SetTestDeviceIds(List<string> testDeviceIds)
+        {
+            if (testDeviceIds == null || testDeviceIds.Count == 0)
+            {
+                _log.Debug("No test device IDs to set for AppLovin.");
+                return;
+            }
+
+            _log.Info($"Setting {testDeviceIds.Count} AppLovin test device advertising ID(s).");
+            MaxSdk.SetTestDeviceAdvertisingIdentifiers(testDeviceIds.ToArray());
+        }
+
+        /// <summary>
+        /// Unregisters all static MaxSdkCallbacks subscriptions held by the inner ad classes.
+        /// Call this before discarding an AppLovinManager instance to prevent stale callback
+        /// accumulation on the static MaxSdkCallbacks events (which persist for the app lifetime).
+        /// </summary>
+        public void Cleanup()
+        {
+            _interstitialAppLovin?.UnregisterCallbacks();
+            _rewardedAppLovin?.UnregisterCallbacks();
+            _bannerAppLovin?.UnregisterCallbacks();
+            _appOpenAppLovin?.UnregisterCallbacks();
+
+            // Reset subscription guards so a new instance can re-subscribe cleanly.
+            _interstitialEventsSubscribed = false;
+            _rewardedEventsSubscribed = false;
+            _bannerEventsSubscribed = false;
+            _appOpenEventsSubscribed = false;
+
+            _log.Debug("AppLovinManager cleanup complete — all MaxSdkCallbacks unregistered.");
+        }
     }
 }
+
 #endif

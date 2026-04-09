@@ -112,6 +112,27 @@ namespace com.noctuagames.sdk.AppLovin
             return !string.IsNullOrEmpty(_adUnitIDAppOpen) && MaxSdk.IsAppOpenAdReady(_adUnitIDAppOpen);
         }
 
+        /// <summary>
+        /// Removes all registered callbacks from the static MaxSdkCallbacks events.
+        /// Must be called when this instance is being replaced or discarded to prevent
+        /// duplicate callbacks if a new AppOpenAppLovin instance is created.
+        /// </summary>
+        public void UnregisterCallbacks()
+        {
+            if (!_callbacksRegistered) return;
+
+            MaxSdkCallbacks.AppOpen.OnAdLoadedEvent -= OnAdLoadedEvent;
+            MaxSdkCallbacks.AppOpen.OnAdLoadFailedEvent -= OnAdLoadFailedEvent;
+            MaxSdkCallbacks.AppOpen.OnAdDisplayedEvent -= OnAdDisplayedEvent;
+            MaxSdkCallbacks.AppOpen.OnAdClickedEvent -= OnAdClickedEvent;
+            MaxSdkCallbacks.AppOpen.OnAdHiddenEvent -= OnAdHiddenEvent;
+            MaxSdkCallbacks.AppOpen.OnAdDisplayFailedEvent -= OnAdDisplayFailedEvent;
+            MaxSdkCallbacks.AppOpen.OnAdRevenuePaidEvent -= OnAdRevenuePaidEvent;
+
+            _callbacksRegistered = false;
+            _log.Debug("AppOpen callbacks unregistered.");
+        }
+
         private void LoadAppOpenAdInternal()
         {
             TrackAdCustomEvent("wf_app_open_request_start");
@@ -223,26 +244,30 @@ namespace com.noctuagames.sdk.AppLovin
             {
                 _log.Debug("Tracking custom event for app open ad: " + eventName);
 
-                extraPayload ??= new Dictionary<string, IConvertible>();
+                // Copy so we never mutate the caller's dictionary — the same dict is often
+                // passed to multiple sequential TrackAdCustomEvent calls.
+                var payload = extraPayload != null
+                    ? new Dictionary<string, IConvertible>(extraPayload)
+                    : new Dictionary<string, IConvertible>();
 
-                extraPayload.Add("ad_format", AdFormatKey.AppOpen);
-                extraPayload.Add("mediation_service", AdNetworkName.AppLovin);
-                extraPayload.Add("ad_unit_id", adUnitId ?? _adUnitIDAppOpen ?? "unknown");
+                payload["ad_format"] = AdFormatKey.AppOpen;
+                payload["mediation_service"] = AdNetworkName.AppLovin;
+                payload["ad_unit_id"] = adUnitId ?? _adUnitIDAppOpen ?? "unknown";
 
                 if (adInfo != null)
                 {
-                    extraPayload.Add("ad_network", adInfo.NetworkName ?? "unknown");
-                    extraPayload.Add("placement", adInfo.Placement ?? "unknown");
-                    extraPayload.Add("network_placement", adInfo.NetworkPlacement ?? "unknown");
-                    extraPayload.Add("ntw", adInfo.WaterfallInfo?.Name ?? "unknown");
-                    extraPayload.Add("latency_millis", adInfo.LatencyMillis);
+                    payload["ad_network"] = adInfo.NetworkName ?? "unknown";
+                    payload["placement"] = adInfo.Placement ?? "unknown";
+                    payload["network_placement"] = adInfo.NetworkPlacement ?? "unknown";
+                    payload["ntw"] = adInfo.WaterfallInfo?.Name ?? "unknown";
+                    payload["latency_millis"] = adInfo.LatencyMillis;
                 }
                 else
                 {
-                    extraPayload.Add("ad_network", "unknown");
+                    payload["ad_network"] = "unknown";
                 }
 
-                Noctua.Event.TrackCustomEvent(eventName, extraPayload);
+                Noctua.Event.TrackCustomEvent(eventName, payload);
             }
             catch (Exception ex)
             {
