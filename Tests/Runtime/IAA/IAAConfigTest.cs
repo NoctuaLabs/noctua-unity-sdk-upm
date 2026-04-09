@@ -1,10 +1,11 @@
 using System.Collections.Generic;
 using NUnit.Framework;
+using IAAModel = com.noctuagames.sdk.IAA;
 
 namespace com.noctuagames.sdk.Tests.IAA
 {
     /// <summary>
-    /// Unit tests for <see cref="IAA.MergeWith"/> and <see cref="EnabledFormatsConfig"/> merging.
+    /// Unit tests for <see cref="IAAModel.MergeWith"/> and <see cref="EnabledFormatsConfig"/> merging.
     /// Verifies field-level merge semantics: remote non-null fields override local,
     /// local fields are preserved when remote is null.
     /// </summary>
@@ -16,7 +17,7 @@ namespace com.noctuagames.sdk.Tests.IAA
         [Test]
         public void MergeWith_NullRemote_ReturnsSelf()
         {
-            var local = new IAA { Mediation = "admob" };
+            var local = new IAAModel { Mediation = "admob" };
             var result = local.MergeWith(null);
 
             Assert.AreSame(local, result);
@@ -27,8 +28,8 @@ namespace com.noctuagames.sdk.Tests.IAA
         [Test]
         public void MergeWith_RemoteMediation_OverridesLocal()
         {
-            var local  = new IAA { Mediation = "admob" };
-            var remote = new IAA { Mediation = "applovin" };
+            var local  = new IAAModel { Mediation = "admob" };
+            var remote = new IAAModel { Mediation = "applovin" };
 
             var result = local.MergeWith(remote);
 
@@ -38,8 +39,8 @@ namespace com.noctuagames.sdk.Tests.IAA
         [Test]
         public void MergeWith_RemoteMediationNull_LocalPreserved()
         {
-            var local  = new IAA { Mediation = "admob" };
-            var remote = new IAA { Mediation = null };
+            var local  = new IAAModel { Mediation = "admob" };
+            var remote = new IAAModel { Mediation = null };
 
             var result = local.MergeWith(remote);
 
@@ -50,8 +51,8 @@ namespace com.noctuagames.sdk.Tests.IAA
         [Test]
         public void MergeWith_RemoteSecondaryMediation_OverridesLocal()
         {
-            var local  = new IAA { SecondaryMediation = "applovin" };
-            var remote = new IAA { SecondaryMediation = "chartboost" };
+            var local  = new IAAModel { SecondaryMediation = "applovin" };
+            var remote = new IAAModel { SecondaryMediation = "chartboost" };
 
             var result = local.MergeWith(remote);
 
@@ -61,8 +62,8 @@ namespace com.noctuagames.sdk.Tests.IAA
         [Test]
         public void MergeWith_RemoteAdFormatOverrides_OverridesLocal()
         {
-            var local  = new IAA { AdFormatOverrides = new Dictionary<string, string> { ["interstitial"] = "admob" } };
-            var remote = new IAA { AdFormatOverrides = new Dictionary<string, string> { ["interstitial"] = "applovin" } };
+            var local  = new IAAModel { AdFormatOverrides = new Dictionary<string, string> { ["interstitial"] = "admob" } };
+            var remote = new IAAModel { AdFormatOverrides = new Dictionary<string, string> { ["interstitial"] = "applovin" } };
 
             var result = local.MergeWith(remote);
 
@@ -72,11 +73,11 @@ namespace com.noctuagames.sdk.Tests.IAA
         [Test]
         public void MergeWith_RemoteFrequencyCaps_OverridesLocal()
         {
-            var local  = new IAA { FrequencyCaps = new FrequencyCapConfig
+            var local  = new IAAModel { FrequencyCaps = new FrequencyCapConfig
             {
                 Interstitial = new FrequencyCapEntry { MaxImpressions = 5, WindowSeconds = 3600 }
             }};
-            var remote = new IAA { FrequencyCaps = new FrequencyCapConfig
+            var remote = new IAAModel { FrequencyCaps = new FrequencyCapConfig
             {
                 Interstitial = new FrequencyCapEntry { MaxImpressions = 10, WindowSeconds = 7200 }
             }};
@@ -90,11 +91,11 @@ namespace com.noctuagames.sdk.Tests.IAA
         [Test]
         public void MergeWith_RemoteFrequencyCapsNull_LocalPreserved()
         {
-            var local  = new IAA { FrequencyCaps = new FrequencyCapConfig
+            var local  = new IAAModel { FrequencyCaps = new FrequencyCapConfig
             {
                 AppOpen = new FrequencyCapEntry { MaxImpressions = 3, WindowSeconds = 3600 }
             }};
-            var remote = new IAA { FrequencyCaps = null };
+            var remote = new IAAModel { FrequencyCaps = null };
 
             var result = local.MergeWith(remote);
 
@@ -106,8 +107,8 @@ namespace com.noctuagames.sdk.Tests.IAA
         [Test]
         public void MergeWith_RemoteCooldownSeconds_OverridesLocal()
         {
-            var local  = new IAA { CooldownSeconds = new CooldownConfig { Interstitial = 15 } };
-            var remote = new IAA { CooldownSeconds = new CooldownConfig { Interstitial = 30 } };
+            var local  = new IAAModel { CooldownSeconds = new CooldownConfig { Interstitial = 15 } };
+            var remote = new IAAModel { CooldownSeconds = new CooldownConfig { Interstitial = 30 } };
 
             var result = local.MergeWith(remote);
 
@@ -117,8 +118,8 @@ namespace com.noctuagames.sdk.Tests.IAA
         [Test]
         public void MergeWith_RemoteDynamicOptimization_OverridesLocal()
         {
-            var local  = new IAA { DynamicOptimization = false };
-            var remote = new IAA { DynamicOptimization = true };
+            var local  = new IAAModel { DynamicOptimization = false };
+            var remote = new IAAModel { DynamicOptimization = true };
 
             var result = local.MergeWith(remote);
 
@@ -128,8 +129,8 @@ namespace com.noctuagames.sdk.Tests.IAA
         [Test]
         public void MergeWith_RemoteDynamicOptimizationNull_LocalPreserved()
         {
-            var local  = new IAA { DynamicOptimization = true };
-            var remote = new IAA { DynamicOptimization = null };
+            var local  = new IAAModel { DynamicOptimization = true };
+            var remote = new IAAModel { DynamicOptimization = null };
 
             var result = local.MergeWith(remote);
 
@@ -139,8 +140,8 @@ namespace com.noctuagames.sdk.Tests.IAA
         [Test]
         public void MergeWith_RemoteAppOpenAutoShow_OverridesLocal()
         {
-            var local  = new IAA { AppOpenAutoShow = false };
-            var remote = new IAA { AppOpenAutoShow = true };
+            var local  = new IAAModel { AppOpenAutoShow = false };
+            var remote = new IAAModel { AppOpenAutoShow = true };
 
             var result = local.MergeWith(remote);
 
@@ -150,8 +151,8 @@ namespace com.noctuagames.sdk.Tests.IAA
         [Test]
         public void MergeWith_RemoteTaichi_OverridesLocal()
         {
-            var local  = new IAA { Taichi = new TaichiConfig { RevenueThreshold = 0.01f } };
-            var remote = new IAA { Taichi = new TaichiConfig { RevenueThreshold = 0.05f } };
+            var local  = new IAAModel { Taichi = new TaichiConfig { RevenueThreshold = 0.01f } };
+            var remote = new IAAModel { Taichi = new TaichiConfig { RevenueThreshold = 0.05f } };
 
             var result = local.MergeWith(remote);
 
@@ -161,8 +162,8 @@ namespace com.noctuagames.sdk.Tests.IAA
         [Test]
         public void MergeWith_ProducesNewInstance_DoesNotMutateLocal()
         {
-            var local  = new IAA { Mediation = "admob" };
-            var remote = new IAA { Mediation = "applovin" };
+            var local  = new IAAModel { Mediation = "admob" };
+            var remote = new IAAModel { Mediation = "applovin" };
 
             var result = local.MergeWith(remote);
 
@@ -175,7 +176,7 @@ namespace com.noctuagames.sdk.Tests.IAA
         [Test]
         public void MergeWith_EnabledFormats_FieldLevelMerge_RemoteFieldOverridesLocal()
         {
-            var local  = new IAA
+            var local  = new IAAModel
             {
                 EnabledFormats = new EnabledFormatsConfig
                 {
@@ -187,7 +188,7 @@ namespace com.noctuagames.sdk.Tests.IAA
                 }
             };
 
-            var remote = new IAA
+            var remote = new IAAModel
             {
                 EnabledFormats = new EnabledFormatsConfig
                 {
@@ -208,7 +209,7 @@ namespace com.noctuagames.sdk.Tests.IAA
         [Test]
         public void MergeWith_EnabledFormatsRemoteNull_LocalPreserved()
         {
-            var local = new IAA
+            var local = new IAAModel
             {
                 EnabledFormats = new EnabledFormatsConfig
                 {
@@ -216,7 +217,7 @@ namespace com.noctuagames.sdk.Tests.IAA
                     Rewarded     = true,
                 }
             };
-            var remote = new IAA { EnabledFormats = null };
+            var remote = new IAAModel { EnabledFormats = null };
 
             var result = local.MergeWith(remote);
 
@@ -227,8 +228,8 @@ namespace com.noctuagames.sdk.Tests.IAA
         [Test]
         public void MergeWith_EnabledFormatsLocalNull_RemoteApplied()
         {
-            var local  = new IAA { EnabledFormats = null };
-            var remote = new IAA
+            var local  = new IAAModel { EnabledFormats = null };
+            var remote = new IAAModel
             {
                 EnabledFormats = new EnabledFormatsConfig { Interstitial = false }
             };
@@ -243,8 +244,8 @@ namespace com.noctuagames.sdk.Tests.IAA
         [Test]
         public void MergeWith_BothEnabledFormatsNull_ResultIsEmptyNotNull()
         {
-            var local  = new IAA { EnabledFormats = null };
-            var remote = new IAA { EnabledFormats = null };
+            var local  = new IAAModel { EnabledFormats = null };
+            var remote = new IAAModel { EnabledFormats = null };
 
             var result = local.MergeWith(remote);
 
@@ -258,7 +259,7 @@ namespace com.noctuagames.sdk.Tests.IAA
         [Test]
         public void MergeWith_ServerSendsPartialConfig_LocalDefaultsPreserved()
         {
-            var local = new IAA
+            var local = new IAAModel
             {
                 Mediation          = "admob",
                 SecondaryMediation = "applovin",
@@ -280,7 +281,7 @@ namespace com.noctuagames.sdk.Tests.IAA
             };
 
             // Server only overrides AppOpen auto-show and disables rewarded_interstitial
-            var remote = new IAA
+            var remote = new IAAModel
             {
                 AppOpenAutoShow = false,
                 EnabledFormats  = new EnabledFormatsConfig
