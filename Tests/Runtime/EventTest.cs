@@ -40,6 +40,12 @@ namespace Tests.Runtime
         public long? player_id;
         public long? credential_id;
         public string credential_provider;
+        /// <summary>
+        /// Set to <c>true</c> on Phase 1 (minimal/immediate) entries written by EventSender
+        /// for crash-survival before GeoIP completes. Phase 2 (full enriched) entries do NOT
+        /// have this field. Tests filter these out to see canonical Phase 2 events only.
+        /// </summary>
+        public bool? immediate;
     }
 
     public class EventTest
@@ -73,6 +79,9 @@ namespace Tests.Runtime
             yield return new WaitForSeconds(2.0f);
 
             PlayerPrefs.DeleteKey("NoctuaEvents");
+            PlayerPrefs.DeleteKey("NoctuaOrphanedSessionId");
+            PlayerPrefs.DeleteKey("NoctuaOrphanedSessionCumulativeMs");
+            PlayerPrefs.DeleteKey("NoctuaOrphanedSessionLastTimestamp");
             PlayerPrefs.Save();
 
             // Clean up per-row event storage file to prevent leftover events between tests
@@ -94,6 +103,9 @@ namespace Tests.Runtime
 
             // Final cleanup in case async tasks wrote to storage during drain
             PlayerPrefs.DeleteKey("NoctuaEvents");
+            PlayerPrefs.DeleteKey("NoctuaOrphanedSessionId");
+            PlayerPrefs.DeleteKey("NoctuaOrphanedSessionCumulativeMs");
+            PlayerPrefs.DeleteKey("NoctuaOrphanedSessionLastTimestamp");
             PlayerPrefs.Save();
 
             // Also clean up JSONL file again in case it was recreated during drain
@@ -339,6 +351,10 @@ namespace Tests.Runtime
                 eventSender.Send("test_event_1");
                 eventSender.Send("test_event_1");
 
+                // Wait for all GeoIP enrichment fire-and-forget tasks to complete before the
+                // batch timer fires — otherwise some events may not yet be written to storage
+                await UniTask.Delay(2000);
+
                 var events = await GetEventsFromServerAsync();
 
                 Assert.GreaterOrEqual(events.Count, 3);
@@ -387,6 +403,10 @@ namespace Tests.Runtime
 
                 eventSender.Send("test_event_1");
                 eventSender.Send("test_event_1");
+
+                // Wait for all GeoIP enrichment fire-and-forget tasks to complete before the
+                // batch timeout fires — otherwise some events may not yet be written to storage
+                await UniTask.Delay(2000);
 
                 var events = await GetEventsFromServerAsync();
 
@@ -504,7 +524,10 @@ namespace Tests.Runtime
                 var events = await GetEventsFromServerAsync(5000, 1000);
 
                 // Filter out user_engagement events to verify existing event ordering unchanged
-                var nonEngagementEvents = events.Where(e => e.event_name != "noctua_user_engagement").ToList();
+                // Also filter noctua_user_engagement_per_session (sent at session end/pause)
+                var nonEngagementEvents = events.Where(e =>
+                    e.event_name != "noctua_user_engagement" &&
+                    e.event_name != "noctua_user_engagement_per_session").ToList();
 
                 Assert.AreEqual("session_start", nonEngagementEvents[0].event_name);
                 Assert.AreEqual("test_event_1", nonEngagementEvents[1].event_name);
@@ -646,7 +669,10 @@ namespace Tests.Runtime
 
                 // This test produces events across 2 sessions (timeout creates new session).
                 // Filter out user_engagement events first, then find the expected pattern.
-                var nonEngagementEvents = allEvents.Where(e => e.event_name != "noctua_user_engagement").ToList();
+                // Also filter noctua_user_engagement_per_session (sent at session end/pause/timeout)
+                var nonEngagementEvents = allEvents.Where(e =>
+                    e.event_name != "noctua_user_engagement" &&
+                    e.event_name != "noctua_user_engagement_per_session").ToList();
 
                 // Find sessions that have a session_start event
                 var sessionStarts = nonEngagementEvents
@@ -859,7 +885,7 @@ namespace Tests.Runtime
                         BatchSize = 5,
                         CycleDelay = 100,
                         NativePlugin = new DefaultNativePlugin(),
-                        IsOfflineModeFunc = () => true // Skip GeoIP for deterministic ordering
+                        IsOfflineModeFunc = () => true // Skip GeoIP so writes complete synchronously fast
                     },
                     new NoctuaLocale()
                 );
@@ -868,6 +894,12 @@ namespace Tests.Runtime
                 {
                     eventSender.Send($"ordered_event_{i}");
                 }
+
+                // Wait for all 5 fire-and-forget tasks to write to storage.
+                // IsOfflineModeFunc=true blocks the send loop (RunSendLoop skips when offline),
+                // so we call Flush() explicitly which bypasses the offline check.
+                await UniTask.Delay(1000);
+                eventSender.Flush();
 
                 var events = await GetEventsFromServerAsync();
 
@@ -944,7 +976,15 @@ namespace Tests.Runtime
                 .Distinct()
                 .ToList();
 
-            return lines.Select(JsonConvert.DeserializeObject<EventData>).ToList();
+            var allEvents = lines.Select(JsonConvert.DeserializeObject<EventData>).ToList();
+
+            // Filter out Phase 1 (immediate/minimal) entries. EventSender writes two storage rows
+            // for events in _immediateEvents (session_start, session_end, noctua_user_engagement,
+            // noctua_user_engagement_per_session): a minimal {"immediate":true,...} crash-survival
+            // entry immediately (Phase 1) and the full enriched entry after GeoIP (Phase 2).
+            // Tests should only see the canonical Phase 2 entries; Phase 1 has no sdk_version,
+            // device fields, or country and would break assertion on mandatory field presence.
+            return allEvents.Where(e => e.immediate != true).ToList();
         }
     }
 }

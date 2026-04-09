@@ -72,7 +72,7 @@ namespace com.noctuagames.sdk
         /// <param name="uiFactory">UI factory for purchase dialogs.</param>
         /// <param name="nativePlugin">Platform native plugin for store integration.</param>
         /// <param name="eventSender">Optional event sender for telemetry.</param>
-        internal NoctuaIAPService(
+        public NoctuaIAPService(
             Config config,
             AccessTokenProvider accessTokenProvider,
             IPaymentUI paymentUI,
@@ -2671,7 +2671,7 @@ namespace com.noctuagames.sdk
         }
 
         [Preserve]
-        internal class Config
+        public class Config
         {
             public string BaseUrl;
             public string ClientId;

@@ -5,7 +5,7 @@ namespace com.noctuagames.sdk
     /// <summary>
     /// Provides access to the current user's authentication token and authentication status.
     /// </summary>
-    internal interface IAccessTokenProvider
+    public interface IAccessTokenProvider
     {
         /// <summary>Gets the current access token. Throws if the user is not authenticated.</summary>
         public string AccessToken { get; }
@@ -19,7 +19,7 @@ namespace com.noctuagames.sdk
     /// account change or deletion events are raised via <see cref="IAccountEvents"/>.
     /// Falls back to <see cref="PlayerPrefs"/> if the in-memory token is not set.
     /// </summary>
-    internal class AccessTokenProvider : IAccessTokenProvider
+    public class AccessTokenProvider : IAccessTokenProvider
     {
         private readonly ILogger _log = new NoctuaLogger(typeof(AccessTokenProvider));
 
@@ -27,7 +27,7 @@ namespace com.noctuagames.sdk
         /// Initializes the provider and subscribes to account changed/deleted events.
         /// </summary>
         /// <param name="auth">The account events source to subscribe to for token updates.</param>
-        internal AccessTokenProvider(IAccountEvents auth)
+        public AccessTokenProvider(IAccountEvents auth)
         {
             auth.OnAccountChanged += OnAccountChanged;
             auth.OnAccountDeleted += OnAccountDeleted;
