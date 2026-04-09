@@ -25,6 +25,9 @@ namespace com.noctuagames.sdk
         private AdNetworkPerformanceTracker _performanceTracker;
         private string _mediationType;
 
+        // Cached secondary app open unit ID for when secondary inits before primary (e.g. iOS: AppLovin before AdMob)
+        private string _pendingSecondaryAppOpenId;
+
         // Private event handlers
         private event Action _onInitialized;
         private event Action _onAdDisplayed;
@@ -548,8 +551,10 @@ namespace com.noctuagames.sdk
         }
 
         /// <summary>
-        /// Sets up App Open ads on the primary network only.
-        /// Secondary App Open is wired later in <see cref="SetupSecondaryAppOpen"/> once the secondary SDK is ready.
+        /// Sets up App Open ads on the primary network.
+        /// Secondary App Open is normally wired in <see cref="SetupSecondaryAppOpen"/> once the secondary SDK is ready.
+        /// If secondary initialized before primary (e.g. iOS AppLovin before AdMob), the cached
+        /// <c>_pendingSecondaryAppOpenId</c> is applied immediately after the manager is created.
         /// </summary>
         private void SetupAppOpenAds(IAA iAAResponse)
         {
@@ -574,8 +579,17 @@ namespace com.noctuagames.sdk
                 onAdNotAvailable: format => _onAdNotAvailable?.Invoke(format)
             );
 
-            // Only pass primary here; secondary will be added in SetupSecondaryAppOpen after secondary SDK is ready
+            // Only pass primary here; secondary will be added in SetupSecondaryAppOpen after secondary SDK is ready.
+            // Exception: if secondary already initialized before primary (e.g. iOS AppLovin before AdMob),
+            // _pendingSecondaryAppOpenId was cached in SetupSecondaryAppOpen — apply it now.
             _appOpenAdManager.Configure(primaryAppOpenId, null);
+
+            if (!string.IsNullOrEmpty(_pendingSecondaryAppOpenId))
+            {
+                _log.Info($"Applying cached secondary App Open unit: {_pendingSecondaryAppOpenId}");
+                _appOpenAdManager.ConfigureSecondary(_pendingSecondaryAppOpenId);
+                _pendingSecondaryAppOpenId = null;
+            }
         }
 
         /// <summary>
@@ -584,13 +598,21 @@ namespace com.noctuagames.sdk
         /// </summary>
         private void SetupSecondaryAppOpen(IAA iAAResponse, IAdNetwork secondary)
         {
-            if (_appOpenAdManager == null) return;
-
             string secondaryAppOpenId = ResolveAdUnitIdForNetwork(iAAResponse, secondary.NetworkName, AdFormatKey.AppOpen);
-            if (!string.IsNullOrEmpty(secondaryAppOpenId) && secondaryAppOpenId != "unknown")
+
+            if (string.IsNullOrEmpty(secondaryAppOpenId) || secondaryAppOpenId == "unknown")
+                return;
+
+            if (_appOpenAdManager == null)
             {
-                _appOpenAdManager.ConfigureSecondary(secondaryAppOpenId);
+                // Secondary initialized before primary (e.g. iOS: AppLovin before AdMob).
+                // Cache the ID so SetupAppOpenAds() can apply it once the manager is created.
+                _log.Info($"App Open secondary unit cached (manager not ready yet): {secondaryAppOpenId}");
+                _pendingSecondaryAppOpenId = secondaryAppOpenId;
+                return;
             }
+
+            _appOpenAdManager.ConfigureSecondary(secondaryAppOpenId);
         }
 
         private void ResolveAdUnitIDs(IAA iAAResponse, string networkName)
