@@ -90,7 +90,7 @@ public class NoctuaIntegrationManagerWindow : EditorWindow
         // Tier 1
         { "Google / AdMob",        ("com.applovin.mediation.adapters.google.android",           "25010000.0.0",  "com.applovin.mediation.adapters.google.ios",           "13020000.0.0") },
         { "Google Ad Manager",     ("com.applovin.mediation.adapters.googleadmanager.android",  "25010000.0.0",  "com.applovin.mediation.adapters.googleadmanager.ios",  "13020000.0.0") },
-        { "Meta Audience Network", ("com.applovin.mediation.adapters.facebook.android",         "6210000.0.0",   "com.applovin.mediation.adapters.facebook.ios",         "6210100.0.0")  },
+        { "Meta Audience Network", ("com.applovin.mediation.adapters.facebook.android",         "6200000.0.0",   "com.applovin.mediation.adapters.facebook.ios",         "6210100.0.0")  }, // Android 6.21.0 has Gradle 8 build failure (#563); use 6.20.0 until fixed
         { "IronSource",            ("com.applovin.mediation.adapters.ironsource.android",       "904000000.0.0", "com.applovin.mediation.adapters.ironsource.ios",       "904000000.0.0")},
         { "Unity Ads",             ("com.applovin.mediation.adapters.unityads.android",         "4170000.0.0",   "com.applovin.mediation.adapters.unityads.ios",         "4170000.0.0")  },
         // Tier 2
