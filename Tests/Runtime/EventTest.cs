@@ -713,11 +713,12 @@ namespace Tests.Runtime
                     {
                         BaseUrl = "http://localhost:7777/api/v1",
                         ClientId = "test_client_id",
-                        BatchSize = 1000,        // High to prevent auto-send
-                        BatchPeriodMs = 300_000,  // Long to prevent timeout send
-                        CycleDelay = 60_000,      // Long cycle delay to prevent send loop
-                        MaxStoredEvents = 5,      // Cap at 5 events for this test
-                        NativePlugin = new DefaultNativePlugin()
+                        BatchSize = 1000,            // High to prevent auto-send
+                        BatchPeriodMs = 300_000,      // Long to prevent timeout send
+                        CycleDelay = 60_000,          // Long cycle delay to prevent send loop
+                        MaxStoredEvents = 5,          // Cap at 5 events for this test
+                        NativePlugin = new DefaultNativePlugin(),
+                        IsOfflineModeFunc = () => true // Skip GeoIP; makes Send() complete synchronously fast
                     },
                     new NoctuaLocale()
                 );
@@ -728,8 +729,8 @@ namespace Tests.Runtime
                     eventSender.Send($"event_{i}");
                 }
 
-                // Allow fire-and-forget tasks to complete
-                await UniTask.Delay(1000);
+                // Allow fire-and-forget tasks to complete and eviction to run
+                await UniTask.Delay(2000);
 
                 // Flush to send remaining events
                 eventSender.Flush();
@@ -760,10 +761,11 @@ namespace Tests.Runtime
                     {
                         BaseUrl = "http://localhost:7777/api/v1",
                         ClientId = "test_client_id",
-                        BatchSize = 1000,         // High to prevent auto-send
-                        BatchPeriodMs = 300_000,   // Long to prevent timeout
-                        CycleDelay = 60_000,       // Long cycle delay to prevent send loop
-                        NativePlugin = new DefaultNativePlugin()
+                        BatchSize = 1000,           // High to prevent auto-send
+                        BatchPeriodMs = 300_000,     // Long to prevent timeout
+                        CycleDelay = 60_000,         // Long cycle delay to prevent send loop
+                        NativePlugin = new DefaultNativePlugin(),
+                        IsOfflineModeFunc = () => true // Skip GeoIP so Send() writes to storage fast
                     },
                     new NoctuaLocale()
                 );
@@ -771,8 +773,8 @@ namespace Tests.Runtime
                 eventSender1.Send("persist_event_1");
                 eventSender1.Send("persist_event_2");
 
-                // Wait for fire-and-forget to complete
-                await UniTask.Delay(1000);
+                // Wait for fire-and-forget tasks to write to per-row storage
+                await UniTask.Delay(2000);
 
                 // Dispose — storage is already up to date (no queue to persist)
                 eventSender1.Dispose();
@@ -818,7 +820,8 @@ namespace Tests.Runtime
                         BatchSize = 2,
                         BatchPeriodMs = 200,
                         CycleDelay = 100,
-                        NativePlugin = new DefaultNativePlugin()
+                        NativePlugin = new DefaultNativePlugin(),
+                        IsOfflineModeFunc = () => true // Skip GeoIP so Send() writes to storage fast
                     },
                     new NoctuaLocale()
                 );
@@ -828,7 +831,7 @@ namespace Tests.Runtime
                 eventSender.Send("event_c");
 
                 // Wait for fire-and-forget Send tasks to write to storage
-                await UniTask.Delay(500);
+                await UniTask.Delay(1000);
 
                 // Call Flush while the send loop is also running
                 eventSender.Flush();
@@ -855,7 +858,8 @@ namespace Tests.Runtime
                         ClientId = "test_client_id",
                         BatchSize = 5,
                         CycleDelay = 100,
-                        NativePlugin = new DefaultNativePlugin()
+                        NativePlugin = new DefaultNativePlugin(),
+                        IsOfflineModeFunc = () => true // Skip GeoIP for deterministic ordering
                     },
                     new NoctuaLocale()
                 );
@@ -893,13 +897,14 @@ namespace Tests.Runtime
                         BatchSize = 1000,
                         BatchPeriodMs = 300_000,
                         CycleDelay = 60_000,
-                        NativePlugin = nativePlugin
+                        NativePlugin = nativePlugin,
+                        IsOfflineModeFunc = () => true // Skip GeoIP so Send() writes to storage fast
                     },
                     new NoctuaLocale()
                 );
 
                 sender.Send("survive_event");
-                await UniTask.Delay(500); // Let fire-and-forget complete
+                await UniTask.Delay(1000); // Let fire-and-forget complete
 
                 // Simulate app kill: just dispose without flush
                 sender.Dispose();

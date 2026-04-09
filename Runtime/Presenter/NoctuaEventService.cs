@@ -56,7 +56,7 @@ namespace com.noctuagames.sdk.Events
         /// </summary>
         /// <param name="nativeTracker">The platform-specific native tracker (e.g., Adjust SDK).</param>
         /// <param name="eventSender">The Noctua event sender responsible for server communication.</param>
-        internal NoctuaEventService(INativeTracker nativeTracker, IEventSender eventSender = null)
+        public NoctuaEventService(INativeTracker nativeTracker, IEventSender eventSender = null)
         {
             _nativeTracker = nativeTracker;
             _eventSender = eventSender;
