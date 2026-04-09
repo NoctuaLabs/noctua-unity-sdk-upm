@@ -1,4 +1,5 @@
 using UnityEditor;
+using UnityEditor.PackageManager;
 using UnityEngine;
 using System;
 using System.Collections.Generic;
@@ -541,7 +542,6 @@ public class NoctuaIntegrationManagerWindow : EditorWindow
         {
             WriteManifest(manifest);
             Debug.Log("[NoctuaSDK] Recommended conflict-free setup installed/updated.");
-            AssetDatabase.Refresh();
         }
         else
         {
@@ -585,7 +585,6 @@ public class NoctuaIntegrationManagerWindow : EditorWindow
         {
             WriteManifest(manifest);
             Debug.Log($"[NoctuaSDK] {provider} ({packageName}) → {version}");
-            AssetDatabase.Refresh();
         }
     }
 
@@ -609,7 +608,6 @@ public class NoctuaIntegrationManagerWindow : EditorWindow
         }
 
         if (changed) WriteManifest(manifest);
-        AssetDatabase.Refresh();
 
         if (provider == "AppLovin")
         {
@@ -639,7 +637,6 @@ public class NoctuaIntegrationManagerWindow : EditorWindow
         {
             WriteManifest(manifest);
             Debug.Log($"[NoctuaSDK] AppLovin MAX adapter '{name}' → {androidVer} / {iosVer}");
-            AssetDatabase.Refresh();
         }
         CheckMaxAdapterInstallStates();
     }
@@ -659,7 +656,6 @@ public class NoctuaIntegrationManagerWindow : EditorWindow
             if (manifest["scopedRegistries"] is JArray regs)
                 RemoveUnusedScopedRegistry(regs, deps, "https://unity.packages.applovin.com/");
             WriteManifest(manifest);
-            AssetDatabase.Refresh();
         }
         CheckMaxAdapterInstallStates();
     }
@@ -680,7 +676,6 @@ public class NoctuaIntegrationManagerWindow : EditorWindow
         {
             WriteManifest(manifest);
             Debug.Log($"[NoctuaSDK] AdMob adapter '{name}' ({pkg}) → {ver}");
-            AssetDatabase.Refresh();
         }
         CheckAdmobAdapterInstallStates();
     }
@@ -698,7 +693,6 @@ public class NoctuaIntegrationManagerWindow : EditorWindow
             RemoveUnusedScopedRegistry(regs, deps, "https://package.openupm.com");
 
         WriteManifest(manifest);
-        AssetDatabase.Refresh();
         CheckAdmobAdapterInstallStates();
     }
 
@@ -718,8 +712,13 @@ public class NoctuaIntegrationManagerWindow : EditorWindow
         return true;
     }
 
-    private static void WriteManifest(JObject manifest) =>
+    private static void WriteManifest(JObject manifest)
+    {
         File.WriteAllText(ManifestPath(), manifest.ToString(Newtonsoft.Json.Formatting.Indented));
+        // Tell UPM to re-read manifest.json and resolve packages immediately —
+        // this is equivalent to the Editor auto-detecting the file change.
+        Client.Resolve();
+    }
 
     /// <summary>Sets <paramref name="pkg"/> to <paramref name="ver"/> in deps.
     /// Returns true if the value actually changed.</summary>
