@@ -221,62 +221,59 @@ using UnityEditor.Graphs;
         }
 
         /// <summary>
-        /// Appends a CocoaPods <c>post_install</c> hook to the generated Podfile that sets
-        /// <c>BUILD_LIBRARY_FOR_DISTRIBUTION = NO</c> for Swift-based adapter targets.
+        /// Sets <c>BUILD_LIBRARY_FOR_DISTRIBUTION = NO</c> on the <c>AppMetricaLibraryAdapter</c>
+        /// target directly inside <c>Pods/Pods.xcodeproj</c>, fixing the
+        /// "Undefined symbol: …unsafeMutableAddressor" linker error that appears when using the
+        /// Yandex ad network adapter on Unity 6000.3+.
         ///
-        /// Background: Unity 6000.3+ no longer writes this flag into CocoaPods targets.
-        /// AppMetricaLibraryAdapter (Yandex) uses Swift stored-property singletons; without
-        /// the flag the linker dead-strips singleton symbols and reports undefined-symbol errors.
+        /// Background: Unity 6000.3+ stopped writing <c>BUILD_LIBRARY_FOR_DISTRIBUTION = NO</c>
+        /// into CocoaPods targets. AppMetricaLibraryAdapter uses a Swift stored-property singleton
+        /// (<c>AppMetricaLibraryAdapter.shared</c>); without this flag the Swift ABI treats the
+        /// pod as a distribution module and changes how global accessors are exported, causing
+        /// the linker to report an undefined symbol.
         ///
-        /// This runs at order 50 so it executes after EDM4U's IOSResolver (order ~40) has
-        /// already written the Podfile. The hook is idempotent — a second build will not add it twice.
+        /// This replaces the earlier Podfile <c>post_install</c> approach (which broke CI because
+        /// CocoaPods only allows one <c>post_install</c> block). Using <c>PBXProject</c> directly
+        /// on <c>Pods.xcodeproj</c> is CI-safe: it runs at <c>int.MaxValue - 2</c>, after
+        /// EDM4U's pod install (~40) has already written the file.
+        ///
+        /// If <c>Pods.xcodeproj</c> does not yet exist (first-time export before pod install),
+        /// the method logs a warning and skips — rebuild in Append mode after running pod install.
         ///
         /// Reference: https://github.com/cleveradssolutions/CAS-Unity/issues/19
         /// </summary>
-        [PostProcessBuild(50)]
-        public static void PatchPodfileForSwiftAdapters(BuildTarget buildTarget, string pathToBuiltProject)
+        [PostProcessBuild(int.MaxValue - 2)]
+        public static void FixPodsLibraryDistributionFlag(BuildTarget buildTarget, string pathToBuiltProject)
         {
             if (buildTarget != BuildTarget.iOS) return;
             if (!ManifestContainsSwiftAdapter()) return;
 
-            var podfilePath = Path.Combine(pathToBuiltProject, "Podfile");
-
-            if (!File.Exists(podfilePath))
+            var podsProjPath = Path.Combine(pathToBuiltProject, "Pods/Pods.xcodeproj/project.pbxproj");
+            if (!File.Exists(podsProjPath))
             {
-                LogWarning("Podfile not found — skipping BUILD_LIBRARY_FOR_DISTRIBUTION patch.");
+                LogWarning("Pods.xcodeproj not found — BUILD_LIBRARY_FOR_DISTRIBUTION fix skipped. " +
+                           "Run pod install, then rebuild (Append mode) to apply.");
                 return;
             }
 
-            var podfileContent = File.ReadAllText(podfilePath);
+            var proj = new PBXProject();
+            proj.ReadFromString(File.ReadAllText(podsProjPath));
 
-            // Idempotency guard — skip if already patched
-            const string marker = "# Noctua: BUILD_LIBRARY_FOR_DISTRIBUTION fix";
-            if (podfileContent.Contains(marker))
+            const string targetName = "AppMetricaLibraryAdapter";
+            var targetGuid = proj.TargetGuidByName(targetName);
+
+            if (string.IsNullOrEmpty(targetGuid))
             {
-                Log("Podfile already patched for BUILD_LIBRARY_FOR_DISTRIBUTION — skipping.");
+                Log($"Target '{targetName}' not found in Pods.xcodeproj — skipping " +
+                    "(Yandex adapter may not be installed).");
                 return;
             }
 
-            var postInstallHook =
-                "\n" +
-                marker + "\n" +
-                "# Unity 6000.3+ omits BUILD_LIBRARY_FOR_DISTRIBUTION=NO from CocoaPods targets.\n" +
-                "# AppMetricaLibraryAdapter (Yandex) uses Swift stored-property singletons that\n" +
-                "# require this flag to be NO; otherwise the linker reports undefined symbols.\n" +
-                "# See: https://github.com/cleveradssolutions/CAS-Unity/issues/19\n" +
-                "post_install do |installer|\n" +
-                "  installer.pods_project.targets.each do |target|\n" +
-                "    if target.name == 'AppMetricaLibraryAdapter'\n" +
-                "      target.build_configurations.each do |config|\n" +
-                "        config.build_settings['BUILD_LIBRARY_FOR_DISTRIBUTION'] = 'NO'\n" +
-                "      end\n" +
-                "    end\n" +
-                "  end\n" +
-                "end\n";
+            // SetBuildProperty applies to all build configurations (Debug + Release).
+            proj.SetBuildProperty(targetGuid, "BUILD_LIBRARY_FOR_DISTRIBUTION", "NO");
+            File.WriteAllText(podsProjPath, proj.WriteToString());
 
-            File.AppendAllText(podfilePath, postInstallHook);
-
-            Log("Patched Podfile: added post_install hook to set BUILD_LIBRARY_FOR_DISTRIBUTION=NO for AppMetricaLibraryAdapter.");
+            Log($"Set BUILD_LIBRARY_FOR_DISTRIBUTION=NO for '{targetName}' in Pods.xcodeproj.");
         }
 
         /// <summary>
