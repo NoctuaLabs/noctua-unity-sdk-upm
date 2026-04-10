@@ -1,6 +1,8 @@
 #if UNITY_EDITOR
 using System;
+using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 using UnityEditor;
@@ -125,6 +127,19 @@ public static class CocoaPodsConflictFixer
             results.AppendLine("– BidMachine: no conflict (no change)");
         }
 
+        // ── Fix 5: Other cross-catalog adapter version conflicts ─────────
+        foreach (var pair in s_crossCatalogPairs)
+        {
+            var (maxVer, admobVer) = DetectCrossCatalogConflict(pair);
+            if (!IsCrossCatalogVersionMismatch(maxVer, admobVer)) continue;
+
+            bool patched = PatchManifestAdapterVersion(pair.AppLovinIosPkg, maxVer, admobVer);
+            results.AppendLine(patched
+                ? $"✓ Updated {pair.Network} iOS adapter → aligned to AdMob native SDK version"
+                : $"⚠ {pair.Network} conflict (MAX={maxVer}, AdMob={admobVer}) — update via Integration Manager");
+            if (patched) anyPatched = true;
+        }
+
         if (anyPatched)
         {
             results.AppendLine();
@@ -161,7 +176,18 @@ public static class CocoaPodsConflictFixer
                                   !string.IsNullOrEmpty(admobBidMachineVer) &&
                                   maxBidMachineVer != admobBidMachineVer;
 
-        bool anyConflict = gmaConflict || applovinConflict || hasDuplicateRepo || bidMachineConflict;
+        // compute cross-catalog conflict results up front for use in both anyConflict and sb
+        var otherConflictResults = new List<(string network, string maxVer, string admobVer, bool conflict)>();
+        foreach (var pair in s_crossCatalogPairs)
+        {
+            var (maxVer, admobVer) = DetectCrossCatalogConflict(pair);
+            bool conflict = IsCrossCatalogVersionMismatch(maxVer, admobVer);
+            if (!string.IsNullOrEmpty(maxVer) && !string.IsNullOrEmpty(admobVer))
+                otherConflictResults.Add((pair.Network, maxVer, admobVer, conflict));
+        }
+        bool anyOtherConflict = otherConflictResults.Any(r => r.conflict);
+
+        bool anyConflict = gmaConflict || applovinConflict || hasDuplicateRepo || bidMachineConflict || anyOtherConflict;
 
         var sb = new StringBuilder();
 
@@ -185,6 +211,14 @@ public static class CocoaPodsConflictFixer
         sb.AppendLine($"AppLovin MAX needs  :  {(string.IsNullOrEmpty(maxBidMachineVer) ? "(AppLovin BidMachine adapter not installed)" : "BidMachine = " + maxBidMachineVer)}");
         sb.AppendLine($"AdMob adapter needs :  {(string.IsNullOrEmpty(admobBidMachineVer) ? "(AdMob BidMachine adapter not installed)" : "BidMachine = " + admobBidMachineVer)}");
         sb.AppendLine($"Status              :  {(bidMachineConflict ? "⚠  CONFLICT" : "✓  OK")}");
+
+        if (otherConflictResults.Count > 0)
+        {
+            sb.AppendLine();
+            sb.AppendLine("── Other cross-catalog adapter conflicts ────────────────");
+            foreach (var (network, maxVer, admobVer, conflict) in otherConflictResults)
+                sb.AppendLine($"{network,-22}:  MAX={maxVer}  AdMob={admobVer}  {(conflict ? "⚠  CONFLICT" : "✓  OK")}");
+        }
 
         if (anyConflict)
         {
@@ -236,6 +270,19 @@ public static class CocoaPodsConflictFixer
                 $"BidMachine = {maxBidMachineVer} but AdMob BidMachine adapter requires " +
                 $"BidMachine = {admobBidMachineVer}. " +
                 "Run  Noctua > iOS > Fix CocoaPods Conflicts  to resolve.");
+        }
+
+        foreach (var pair in s_crossCatalogPairs)
+        {
+            var (maxVer, admobVer) = DetectCrossCatalogConflict(pair);
+            if (IsCrossCatalogVersionMismatch(maxVer, admobVer))
+            {
+                UnityEngine.Debug.LogWarning(
+                    $"[NoctuaSDK] CocoaPods conflict: AppLovin MAX {pair.Network} adapter " +
+                    $"({pair.AppLovinPodName} {maxVer}) and AdMob {pair.Network} adapter " +
+                    $"({pair.AdmobPodName} {admobVer}) require different native SDK versions. " +
+                    "Run  Noctua > iOS > Fix CocoaPods Conflicts  to resolve.");
+            }
         }
     }
 
@@ -343,6 +390,54 @@ public static class CocoaPodsConflictFixer
         return (admobPath, maxSdkVersion, adapterSdkVersion);
     }
 
+    // ── Cross-catalog adapter pairs (AppLovin MAX ↔ AdMob) ─────────────
+    // Each entry: network display name, AppLovin iOS UPM pkg prefix,
+    // AppLovin iosPod element name, AdMob UPM pkg prefix, AdMob Dependencies.xml
+    // wildcard search pattern, AdMob iosPod element name.
+    private readonly struct CrossCatalogPair
+    {
+        public readonly string Network;
+        public readonly string AppLovinIosPkg;
+        public readonly string AppLovinPodName;
+        public readonly string AdmobPkg;
+        public readonly string AdmobPodPattern;
+        public readonly string AdmobPodName;
+
+        public CrossCatalogPair(string network,
+            string maxPkg, string maxPod,
+            string admobPkg, string admobPattern, string admobPod)
+        {
+            Network         = network;
+            AppLovinIosPkg  = maxPkg;
+            AppLovinPodName = maxPod;
+            AdmobPkg        = admobPkg;
+            AdmobPodPattern = admobPattern;
+            AdmobPodName    = admobPod;
+        }
+    }
+
+    private static readonly CrossCatalogPair[] s_crossCatalogPairs =
+    {
+        new CrossCatalogPair("PubMatic",
+            "com.applovin.mediation.adapters.pubmatic.ios",   "AppLovinMediationPubMaticAdapter",
+            "com.google.ads.mobile.mediation.pubmatic",       "*PubMatic*Dependencies.xml",     "GoogleMobileAdsMediationPubMatic"),
+        new CrossCatalogPair("IronSource",
+            "com.applovin.mediation.adapters.ironsource.ios", "AppLovinMediationIronSourceAdapter",
+            "com.google.ads.mobile.mediation.ironsource",     "*IronSource*Dependencies.xml",   "GoogleMobileAdsMediationIronSource"),
+        new CrossCatalogPair("Pangle / ByteDance",
+            "com.applovin.mediation.adapters.bytedance.ios",  "AppLovinMediationByteDanceAdapter",
+            "com.google.ads.mobile.mediation.pangle",         "*Pangle*Dependencies.xml",       "GoogleMobileAdsMediationPangle"),
+        new CrossCatalogPair("Mintegral",
+            "com.applovin.mediation.adapters.mintegral.ios",  "AppLovinMediationMintegralAdapter",
+            "com.google.ads.mobile.mediation.mintegral",      "*Mintegral*Dependencies.xml",    "GoogleMobileAdsMediationMintegral"),
+        new CrossCatalogPair("DT Exchange / Fyber",
+            "com.applovin.mediation.adapters.fyber.ios",      "AppLovinMediationFyberAdapter",
+            "com.google.ads.mobile.mediation.dtexchange",     "*DTExchange*Dependencies.xml",   "GoogleMobileAdsMediationFyber"),
+        new CrossCatalogPair("Moloco",
+            "com.applovin.mediation.adapters.moloco.ios",     "AppLovinMediationMolocoAdapter",
+            "com.google.ads.mobile.mediation.moloco",         "*Moloco*Dependencies.xml",       "GoogleMobileAdsMediationMoloco"),
+    };
+
     /// <summary>
     /// Detects a version conflict between the AppLovin MAX BidMachine iOS adapter and the
     /// AdMob BidMachine mediation adapter. Both transitively pin the BidMachine CocoaPod to
@@ -379,6 +474,47 @@ public static class CocoaPodsConflictFixer
         var admobBidMachineVer = admobMatch.Groups[1].Value; // e.g. "3.5.1"
 
         return (maxBidMachineVer, admobBidMachineVer);
+    }
+
+    /// <summary>
+    /// Detects whether the AppLovin MAX and AdMob adapters for the given network wrap
+    /// different versions of the same underlying CocoaPod. Conflict is determined by
+    /// comparing the first three version components (major.minor.patch) of each adapter.
+    /// Returns (appLovinAdapterVer, admobAdapterVer) — null if either package is not installed.
+    /// </summary>
+    static (string appLovinVer, string admobVer) DetectCrossCatalogConflict(CrossCatalogPair pair)
+    {
+        var maxDepsPath = FindPackageCacheFile(
+            pair.AppLovinIosPkg, Path.Combine("Editor", "Dependencies.xml"));
+        if (string.IsNullOrEmpty(maxDepsPath)) return (null, null);
+
+        var maxContent = File.ReadAllText(maxDepsPath);
+        var maxMatch = Regex.Match(maxContent,
+            $@"<iosPod\s+name=""{Regex.Escape(pair.AppLovinPodName)}""\s+version=""([^""]+)""");
+        if (!maxMatch.Success) return (null, null);
+        var appLovinVer = maxMatch.Groups[1].Value.Trim();
+
+        var admobDepsPath = FindPackageCacheFileWild(pair.AdmobPkg, pair.AdmobPodPattern);
+        if (string.IsNullOrEmpty(admobDepsPath)) return (appLovinVer, null);
+
+        var admobContent = File.ReadAllText(admobDepsPath);
+        var admobMatch = Regex.Match(admobContent,
+            $@"<iosPod\s+name=""{Regex.Escape(pair.AdmobPodName)}""\s+version=""[=\s]*([^""]+)""");
+        if (!admobMatch.Success) return (appLovinVer, null);
+        var admobVer = admobMatch.Groups[1].Value.Trim();
+
+        return (appLovinVer, admobVer);
+    }
+
+    /// <summary>
+    /// Returns true when the first three version components (native SDK version) of
+    /// <paramref name="appLovinVer"/> and <paramref name="admobVer"/> differ.
+    /// </summary>
+    static bool IsCrossCatalogVersionMismatch(string appLovinVer, string admobVer)
+    {
+        if (string.IsNullOrEmpty(appLovinVer) || string.IsNullOrEmpty(admobVer))
+            return false;
+        return GetFirstThreeComponents(appLovinVer) != GetFirstThreeComponents(admobVer);
     }
 
     // ── Conflict logic ──────────────────────────────────────────────────
@@ -518,6 +654,61 @@ public static class CocoaPodsConflictFixer
     }
 
     /// <summary>
+    /// Updates the AppLovin iOS adapter version in manifest.json so that it targets the
+    /// same native SDK version as the corresponding AdMob adapter.
+    ///
+    /// AppLovin UPM version encoding:
+    ///   4-component adapters (X.Y.Z.W): UPM = X*10^6 + Y*10^4 + Z*10^2 + W
+    ///   5-component adapters (X.Y.Z.W.V): UPM = X*10^8 + Y*10^6 + Z*10^4 + W*10^2 + V
+    ///
+    /// Target version is built from the first three components of <paramref name="admobAdapterVer"/>
+    /// (the native SDK version) with the remaining components set to zero.
+    ///
+    /// Returns true if manifest.json was modified.
+    /// </summary>
+    static bool PatchManifestAdapterVersion(string appLovinIosPkg,
+        string currentAppLovinVer, string admobAdapterVer)
+    {
+        // Determine native SDK version from AdMob adapter (first 3 components)
+        var admobParts = admobAdapterVer.TrimStart('=', ' ').Split('.');
+        if (admobParts.Length < 3 ||
+            !int.TryParse(admobParts[0], out var major) ||
+            !int.TryParse(admobParts[1], out var minor) ||
+            !int.TryParse(admobParts[2], out var patch))
+            return false;
+
+        // Use the same number of version components as the current AppLovin version
+        var currentParts = currentAppLovinVer.TrimStart('=', ' ').Split('.');
+        long targetUpm;
+        if (currentParts.Length >= 5)
+            targetUpm = (long)major * 100000000L + minor * 1000000L + patch * 10000L;
+        else
+            targetUpm = (long)major * 1000000L + minor * 10000L + patch * 100L;
+
+        var targetUpmVer = $"{targetUpm}.0.0";
+
+        var manifestPath = Path.Combine(
+            Path.GetDirectoryName(Application.dataPath), "Packages", "manifest.json");
+        if (!File.Exists(manifestPath)) return false;
+
+        var content = File.ReadAllText(manifestPath);
+        var escaped = Regex.Escape(appLovinIosPkg);
+        var patched = Regex.Replace(
+            content,
+            $@"(""{escaped}""\s*:\s*"")([^""]+)("")",
+            $"${{1}}{targetUpmVer}$3");
+
+        if (patched == content) return false;
+
+        File.WriteAllText(manifestPath, patched);
+        UnityEngine.Debug.Log(
+            $"[NoctuaSDK] Updated {appLovinIosPkg} in manifest.json → {targetUpmVer} " +
+            $"(aligned to AdMob adapter native SDK {major}.{minor}.{patch}).\n" +
+            "Unity will auto-resolve the updated package.");
+        return true;
+    }
+
+    /// <summary>
     /// Removes the legacy ~/.cocoapods/repos/cocoapods git mirror (introduced before the CDN trunk
     /// source was available). Its presence causes "Found multiple specifications" warnings for every
     /// pod that is also indexed on trunk. Returns true if the repo was removed.
@@ -549,6 +740,12 @@ public static class CocoaPodsConflictFixer
     }
 
     // ── Utility ─────────────────────────────────────────────────────────
+
+    static string GetFirstThreeComponents(string version)
+    {
+        var parts = version.TrimStart('=', ' ').Split('.');
+        return parts.Length >= 3 ? $"{parts[0]}.{parts[1]}.{parts[2]}" : version;
+    }
 
     /// <summary>
     /// Finds the first file at <paramref name="relativePath"/> inside any directory in
