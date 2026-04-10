@@ -175,13 +175,19 @@ using UnityEditor.Graphs;
 
             var targetGuid = proj.GetUnityMainTargetGuid();
 
-            // Some ad-network adapters pull in Swift frameworks (e.g. Yandex → AppMetricaLibraryAdapter).
-            // Only embed Swift standard libraries when such an adapter is actually installed;
-            // unconditionally setting YES bloats the binary when no Swift frameworks are present.
+            // Some iOS ad-network adapters (e.g. Yandex → AppMetricaLibraryAdapter) ship Swift
+            // frameworks that use stored-property singletons. Without Swift build settings Unity's
+            // exported Xcode project omits SWIFT_VERSION and ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES,
+            // causing "Undefined symbol: …unsafeMutableAddressor" linker errors.
+            //
+            // Note: EDM4U (Google External Dependency Manager) already injects a Dummy.swift into
+            // the Unity-iPhone target to activate the Swift toolchain. We only need to ensure the
+            // two build properties are set correctly alongside it.
             if (ManifestContainsSwiftAdapter())
             {
+                proj.SetBuildProperty(targetGuid, "SWIFT_VERSION", "5.0");
                 proj.SetBuildProperty(targetGuid, "ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES", "YES");
-                Log("Set ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES (Swift-based ad adapter detected).");
+                Log("Swift adapter detected: set SWIFT_VERSION=5.0, ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES=YES.");
             }
 
             if (firebaseEnabled)
