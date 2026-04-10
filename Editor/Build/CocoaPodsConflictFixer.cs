@@ -4,6 +4,8 @@ using System.IO;
 using System.Text;
 using System.Text.RegularExpressions;
 using UnityEditor;
+using UnityEditor.Build;
+using UnityEditor.Build.Reporting;
 using UnityEngine;
 
 /// <summary>
@@ -107,6 +109,22 @@ public static class CocoaPodsConflictFixer
             ? "✓ Removed legacy ~/.cocoapods/repos/cocoapods"
             : "– Legacy cocoapods repo not present (nothing to remove)");
 
+        // ── Fix 4: BidMachine cross-catalog version conflict ─────────────────────────────
+        var (maxBmVer, admobBmVer) = FindBidMachineConflict();
+        if (!string.IsNullOrEmpty(maxBmVer) && !string.IsNullOrEmpty(admobBmVer) &&
+            maxBmVer != admobBmVer)
+        {
+            bool bmPatched = PatchManifestBidMachineVersion(admobBmVer);
+            results.AppendLine(bmPatched
+                ? $"✓ Updated AppLovin BidMachine iOS in manifest.json → BidMachine {admobBmVer} (matching AdMob)"
+                : $"⚠ BidMachine conflict (MAX={maxBmVer}, AdMob={admobBmVer}) — update via Noctua > Integration Manager");
+            if (bmPatched) anyPatched = true;
+        }
+        else
+        {
+            results.AppendLine("– BidMachine: no conflict (no change)");
+        }
+
         if (anyPatched)
         {
             results.AppendLine();
@@ -138,7 +156,12 @@ public static class CocoaPodsConflictFixer
             ".cocoapods", "repos", "cocoapods");
         bool hasDuplicateRepo = Directory.Exists(repoPath);
 
-        bool anyConflict = gmaConflict || applovinConflict || hasDuplicateRepo;
+        var (maxBidMachineVer, admobBidMachineVer) = FindBidMachineConflict();
+        bool bidMachineConflict = !string.IsNullOrEmpty(maxBidMachineVer) &&
+                                  !string.IsNullOrEmpty(admobBidMachineVer) &&
+                                  maxBidMachineVer != admobBidMachineVer;
+
+        bool anyConflict = gmaConflict || applovinConflict || hasDuplicateRepo || bidMachineConflict;
 
         var sb = new StringBuilder();
 
@@ -156,6 +179,12 @@ public static class CocoaPodsConflictFixer
         sb.AppendLine();
         sb.AppendLine("── Duplicate CocoaPods repo ────────────────────────────");
         sb.AppendLine($"~/.cocoapods/repos/cocoapods  :  {(hasDuplicateRepo ? "⚠  EXISTS (causes duplicate specs)" : "✓  Not present")}");
+
+        sb.AppendLine();
+        sb.AppendLine("── BidMachine (AppLovin MAX ↔ AdMob adapter) ───────────");
+        sb.AppendLine($"AppLovin MAX needs  :  {(string.IsNullOrEmpty(maxBidMachineVer) ? "(AppLovin BidMachine adapter not installed)" : "BidMachine = " + maxBidMachineVer)}");
+        sb.AppendLine($"AdMob adapter needs :  {(string.IsNullOrEmpty(admobBidMachineVer) ? "(AdMob BidMachine adapter not installed)" : "BidMachine = " + admobBidMachineVer)}");
+        sb.AppendLine($"Status              :  {(bidMachineConflict ? "⚠  CONFLICT" : "✓  OK")}");
 
         if (anyConflict)
         {
@@ -195,6 +224,17 @@ public static class CocoaPodsConflictFixer
             UnityEngine.Debug.LogWarning(
                 $"[NoctuaSDK] CocoaPods conflict: AppLovin MAX SDK requires AppLovinSDK = {maxSdkVer} " +
                 $"but the AdMob AppLovin mediation adapter targets AppLovinSDK = {adapterSdkVer}. " +
+                "Run  Noctua > iOS > Fix CocoaPods Conflicts  to resolve.");
+        }
+
+        var (maxBidMachineVer, admobBidMachineVer) = FindBidMachineConflict();
+        if (!string.IsNullOrEmpty(maxBidMachineVer) && !string.IsNullOrEmpty(admobBidMachineVer) &&
+            maxBidMachineVer != admobBidMachineVer)
+        {
+            UnityEngine.Debug.LogWarning(
+                $"[NoctuaSDK] CocoaPods conflict: AppLovin MAX BidMachine adapter requires " +
+                $"BidMachine = {maxBidMachineVer} but AdMob BidMachine adapter requires " +
+                $"BidMachine = {admobBidMachineVer}. " +
                 "Run  Noctua > iOS > Fix CocoaPods Conflicts  to resolve.");
         }
     }
@@ -303,6 +343,44 @@ public static class CocoaPodsConflictFixer
         return (admobPath, maxSdkVersion, adapterSdkVersion);
     }
 
+    /// <summary>
+    /// Detects a version conflict between the AppLovin MAX BidMachine iOS adapter and the
+    /// AdMob BidMachine mediation adapter. Both transitively pin the BidMachine CocoaPod to
+    /// an exact version; if those versions differ, pod install fails.
+    /// Returns (maxBidMachineVersion, admobBidMachineVersion) — null strings if not installed.
+    /// </summary>
+    static (string maxBidMachineVer, string admobBidMachineVer) FindBidMachineConflict()
+    {
+        // 1. AppLovin MAX BidMachine iOS adapter
+        var maxDepsPath = FindPackageCacheFile(
+            "com.applovin.mediation.adapters.bidmachine.ios",
+            Path.Combine("Editor", "Dependencies.xml"));
+
+        if (string.IsNullOrEmpty(maxDepsPath)) return (null, null);
+
+        var maxContent = File.ReadAllText(maxDepsPath);
+        // e.g. <iosPod name="AppLovinMediationBidMachineAdapter" version="3.6.1.0.0">
+        var maxMatch = Regex.Match(maxContent,
+            @"<iosPod\s+name=""AppLovinMediationBidMachineAdapter""\s+version=""(\d+\.\d+\.\d+)\.\d+");
+        if (!maxMatch.Success) return (null, null);
+        var maxBidMachineVer = maxMatch.Groups[1].Value; // e.g. "3.6.1"
+
+        // 2. AdMob BidMachine adapter — search package dir for its Dependencies.xml
+        var admobDepsPath = FindPackageCacheFileWild(
+            "com.google.ads.mobile.mediation.bidmachine",
+            "*BidMachine*Dependencies.xml");
+        if (string.IsNullOrEmpty(admobDepsPath)) return (maxBidMachineVer, null);
+
+        var admobContent = File.ReadAllText(admobDepsPath);
+        // e.g. <iosPod name="GoogleMobileAdsMediationBidMachine" version="= 3.5.1.2">
+        var admobMatch = Regex.Match(admobContent,
+            @"<iosPod\s+name=""GoogleMobileAdsMediationBidMachine""\s+version=""[=\s]*(\d+\.\d+\.\d+)\.\d+");
+        if (!admobMatch.Success) return (maxBidMachineVer, null);
+        var admobBidMachineVer = admobMatch.Groups[1].Value; // e.g. "3.5.1"
+
+        return (maxBidMachineVer, admobBidMachineVer);
+    }
+
     // ── Conflict logic ──────────────────────────────────────────────────
 
     /// <summary>
@@ -402,11 +480,49 @@ public static class CocoaPodsConflictFixer
     }
 
     /// <summary>
+    /// Updates the AppLovin BidMachine iOS adapter version in manifest.json to the version
+    /// that wraps the same BidMachine native SDK version required by the AdMob adapter.
+    /// AppLovin UPM version encoding: BidMachine X.Y.Z → (X*100000000 + Y*1000000 + Z*10000).0.0
+    /// Returns true if manifest.json was actually modified.
+    /// </summary>
+    static bool PatchManifestBidMachineVersion(string admobBidMachineVer)
+    {
+        var parts = admobBidMachineVer.Split('.');
+        if (parts.Length < 3 ||
+            !int.TryParse(parts[0], out var major) ||
+            !int.TryParse(parts[1], out var minor) ||
+            !int.TryParse(parts[2], out var patch))
+            return false;
+
+        // Encode: X.Y.Z → X0Y0Z0000.0.0  (same scheme AppLovin uses for all adapter UPM versions)
+        var targetUpmVer = $"{(long)major * 100000000 + minor * 1000000 + patch * 10000}.0.0";
+
+        var manifestPath = Path.Combine(
+            Path.GetDirectoryName(Application.dataPath), "Packages", "manifest.json");
+        if (!File.Exists(manifestPath)) return false;
+
+        var content = File.ReadAllText(manifestPath);
+        var patched = Regex.Replace(
+            content,
+            @"(""com\.applovin\.mediation\.adapters\.bidmachine\.ios""\s*:\s*"")([^""]+)("")",
+            $"${{1}}{targetUpmVer}$3");
+
+        if (patched == content) return false;
+
+        File.WriteAllText(manifestPath, patched);
+        UnityEngine.Debug.Log(
+            $"[NoctuaSDK] Updated AppLovin BidMachine iOS in manifest.json → {targetUpmVer} " +
+            $"(aligned with AdMob BidMachine {admobBidMachineVer}).\n" +
+            "Unity will auto-resolve the updated package.");
+        return true;
+    }
+
+    /// <summary>
     /// Removes the legacy ~/.cocoapods/repos/cocoapods git mirror (introduced before the CDN trunk
     /// source was available). Its presence causes "Found multiple specifications" warnings for every
     /// pod that is also indexed on trunk. Returns true if the repo was removed.
     /// </summary>
-    static bool RemoveDuplicateCocoapodsRepo()
+    internal static bool RemoveDuplicateCocoapodsRepo()
     {
         var repoPath = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
@@ -452,6 +568,45 @@ public static class CocoaPodsConflictFixer
         }
 
         return null;
+    }
+
+    /// <summary>
+    /// Like <see cref="FindPackageCacheFile"/> but searches recursively for any file matching
+    /// <paramref name="searchPattern"/> (supports wildcards) inside the package directory.
+    /// </summary>
+    static string FindPackageCacheFileWild(string packagePrefix, string searchPattern)
+    {
+        var projectPath = Path.GetDirectoryName(Application.dataPath);
+        var cacheDir    = Path.Combine(projectPath, "Library", "PackageCache");
+        if (!Directory.Exists(cacheDir)) return null;
+        foreach (var dir in Directory.GetDirectories(cacheDir, packagePrefix + "@*"))
+        {
+            var files = Directory.GetFiles(dir, searchPattern, SearchOption.AllDirectories);
+            if (files.Length > 0) return files[0];
+        }
+        return null;
+    }
+}
+
+/// <summary>
+/// Runs before every iOS build to delete the legacy ~/.cocoapods/repos/cocoapods directory.
+/// This directory is sometimes re-created by `pod repo update` and causes "Found multiple
+/// specifications" warnings for every pod during pod install.
+/// </summary>
+public class CocoaPodsPreBuildProcessor : IPreprocessBuildWithReport
+{
+    public int callbackOrder => 0;
+
+    public void OnPreprocessBuild(BuildReport report)
+    {
+        if (report.summary.platform != BuildTarget.iOS)
+            return;
+
+        bool removed = CocoaPodsConflictFixer.RemoveDuplicateCocoapodsRepo();
+        if (removed)
+            UnityEngine.Debug.Log(
+                "[NoctuaSDK] Pre-build: Removed legacy ~/.cocoapods/repos/cocoapods " +
+                "to prevent duplicate specifications warnings during pod install.");
     }
 }
 #endif

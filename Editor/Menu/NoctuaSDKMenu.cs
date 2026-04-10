@@ -100,7 +100,7 @@ public class NoctuaIntegrationManagerWindow : EditorWindow
         { "InMobi",                ("com.applovin.mediation.adapters.inmobi.android",           "11020000.0.0",  "com.applovin.mediation.adapters.inmobi.ios",           "11010100.0.0") },
         { "Mintegral",             ("com.applovin.mediation.adapters.mintegral.android",        "17011100.0.0",  "com.applovin.mediation.adapters.mintegral.ios",        "801000000.0.0")},
         { "ByteDance / Pangle",    ("com.applovin.mediation.adapters.bytedance.android",        "709010300.0.0", "com.applovin.mediation.adapters.bytedance.ios",        "709010100.0.0")},
-        { "BidMachine",            ("com.applovin.mediation.adapters.bidmachine.android",       "3060100.0.0",   "com.applovin.mediation.adapters.bidmachine.ios",       "306010000.0.0")},
+        { "BidMachine",            ("com.applovin.mediation.adapters.bidmachine.android",       "3060100.0.0",   "com.applovin.mediation.adapters.bidmachine.ios",       "305010000.0.0")},
         // Tier 3
         { "Yandex",                ("com.applovin.mediation.adapters.yandex.android",           "7180500.0.0",   "com.applovin.mediation.adapters.yandex.ios",           "7180400.0.0")  },
         { "Fyber / DT Exchange",   ("com.applovin.mediation.adapters.fyber.android",            "8040400.0.0",   "com.applovin.mediation.adapters.fyber.ios",            "8040600.0.0")  },
