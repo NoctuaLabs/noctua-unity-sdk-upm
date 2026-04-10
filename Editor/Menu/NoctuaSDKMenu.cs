@@ -435,12 +435,15 @@ public class NoctuaIntegrationManagerWindow : EditorWindow
 
     // ── Shared draw primitive ─────────────────────────────────────────────
 
-    private static void DrawButton(string label, Color color, float width, Action onClick)
+    private void DrawButton(string label, Color color, float width, Action onClick)
     {
         var prev = GUI.backgroundColor;
         GUI.backgroundColor = color;
         if (GUILayout.Button(label, GUILayout.Width(width)))
+        {
             onClick?.Invoke();
+            Repaint();  // force window redraw so version labels update immediately
+        }
         GUI.backgroundColor = prev;
     }
 
