@@ -280,103 +280,146 @@ using UnityEditor.Graphs;
         }
 
         /// <summary>
-        /// Appends a CocoaPods <c>post_install</c> hook that automatically detects and embeds
-        /// every dynamic vendored xcframework that CocoaPods omits from Unity-iPhone's
-        /// Embed Frameworks phase when <c>use_frameworks! :linkage => :static</c> is active.
+        /// Scans the Pods directory for dynamic XCFrameworks that CocoaPods did not embed in
+        /// Unity-iPhone's Embed Frameworks phase and adds them via <c>PBXProject</c> — the same
+        /// mechanism used for AdjustSigSdk (<see cref="AddAdjustSignatureXCFramework"/>).
         ///
-        /// Root cause: CocoaPods compiles pod targets as static archives but ships some underlying
-        /// SDKs (e.g. BigoADS, Smaato, Moloco, PAGAdSDK …) as pre-compiled dynamic XCFrameworks.
-        /// CocoaPods generates an <c>*-xcframeworks.sh</c> script to copy them into the pod
-        /// target's build output, but that output is merged statically — the dynamic binary never
-        /// reaches <c>app.ipa/Frameworks/</c>. dyld then fails to load the binary at launch with
-        /// "Library not loaded: @rpath/&lt;Name&gt;.framework/&lt;Name&gt;".
+        /// Root cause: ad-network SDKs (BigoADS, Smaato, PAGAdSDK, MolocoSDK …) ship as
+        /// pre-compiled dynamic XCFrameworks inside their CocoaPods. With
+        /// <c>use_frameworks! :linkage => :static</c>, CocoaPods processes them via
+        /// <c>*-xcframeworks.sh</c> scripts but does <b>not</b> embed the dynamic binaries in
+        /// the app bundle. At launch dyld fails with:
+        ///   "Library not loaded: @rpath/BigoADS.framework/BigoADS"
         ///
-        /// The hook inspects every vendored xcframework reachable through the aggregate targets,
-        /// checks whether the ios-arm64 slice is a Mach-O dynamic library, and if so adds it to
-        /// Unity-iPhone's "Embed Frameworks" build phase with CodeSignOnCopy enabled.
-        /// Already-embedded frameworks are skipped (idempotent).
-        ///
-        /// Runs at order 51 — after EDM4U (~40) and the BUILD_LIBRARY_FOR_DISTRIBUTION patch (50).
+        /// This method runs at <c>int.MaxValue - 1</c> — after EDM4U's pod install (~40) has
+        /// populated the Pods directory. If Pods does not exist yet (first-time export before any
+        /// pod install), it logs a warning; rebuilding in Append mode after running pod install
+        /// will embed all missing frameworks.
         /// </summary>
-        [PostProcessBuild(51)]
-        public static void PatchPodfileForDynamicFrameworks(BuildTarget buildTarget, string pathToBuiltProject)
+        [PostProcessBuild(int.MaxValue - 1)]
+        public static void EmbedDynamicPodsFrameworks(BuildTarget buildTarget, string pathToBuiltProject)
         {
             if (buildTarget != BuildTarget.iOS) return;
 
-            var podfilePath = Path.Combine(pathToBuiltProject, "Podfile");
-
-            if (!File.Exists(podfilePath))
+            var podsDir = Path.Combine(pathToBuiltProject, "Pods");
+            if (!Directory.Exists(podsDir))
             {
-                LogWarning("Podfile not found — skipping dynamic framework embed patch.");
+                LogWarning("Pods directory not found — dynamic XCFramework auto-embed skipped. " +
+                           "Run pod install, then rebuild (Append mode) to apply.");
                 return;
             }
 
-            var podfileContent = File.ReadAllText(podfilePath);
+            var projPath = Path.Combine(pathToBuiltProject, "Unity-iPhone.xcodeproj/project.pbxproj");
+            var proj = new PBXProject();
+            proj.ReadFromString(File.ReadAllText(projPath));
+            var targetGuid = proj.GetUnityMainTargetGuid();
 
-            // Idempotency guard
-            const string marker = "# Noctua: embed dynamic xcframeworks fix";
-            if (podfileContent.Contains(marker))
+            // Track names already processed to skip duplicates (same xcframework appearing
+            // under multiple pod directories — e.g. transitive deps copied to several pods).
+            var processed = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var changed = false;
+
+            foreach (var xcfwAbsPath in Directory.EnumerateDirectories(
+                         podsDir, "*.xcframework", SearchOption.AllDirectories))
             {
-                Log("Podfile already patched for dynamic xcframework embedding — skipping.");
-                return;
+                var xcfwName = Path.GetFileName(xcfwAbsPath);
+                if (!processed.Add(xcfwName)) continue;         // already handled
+                if (!IsDynamicXcframework(xcfwAbsPath)) continue; // static — skip
+
+                // Project-relative path e.g. "Pods/BigoADS/BigoADS/BigoADS.xcframework"
+                var relPath = xcfwAbsPath
+                    .Substring(pathToBuiltProject.Length)
+                    .TrimStart(Path.DirectorySeparatorChar, '/');
+
+                // Idempotency: skip if this file reference already exists in the project.
+                // (AddFileToEmbedFrameworks would create a duplicate entry otherwise.)
+                if (proj.FindFileGuidByProjectPath(relPath) != null)
+                {
+                    Log($"Dynamic XCFramework '{xcfwName}' already in project — skipping.");
+                    continue;
+                }
+
+                var fileGuid = proj.AddFile(relPath, relPath, PBXSourceTree.Source);
+                proj.AddFileToEmbedFrameworks(targetGuid, fileGuid);
+                Log($"Embedded dynamic XCFramework '{xcfwName}' in Unity-iPhone.");
+                changed = true;
             }
 
-            // Ruby post_install hook — uses Xcodeproj (always available with CocoaPods) to:
-            //   1. Walk every pod target reachable from the aggregate targets
-            //   2. For each vendored xcframework, check if the ios-arm64 slice is a dynamic lib
-            //   3. If dynamic AND not already in Unity-iPhone's Embed Frameworks, add it
-            var postInstallHook =
-                "\n" +
-                marker + "\n" +
-                "# Some ad-network SDKs ship as dynamic XCFrameworks inside their CocoaPods.\n" +
-                "# With use_frameworks! :linkage => :static these are processed via\n" +
-                "# *-xcframeworks.sh but are never embedded in the app bundle, causing\n" +
-                "# 'Library not loaded: @rpath/<Name>.framework/<Name>' at launch.\n" +
-                "post_install do |installer|\n" +
-                "  installer.aggregate_targets.each do |aggregate_target|\n" +
-                "    user_project = aggregate_target.user_project\n" +
-                "    next unless user_project\n" +
-                "\n" +
-                "    unity_target = user_project.targets.find { |t| t.name == 'Unity-iPhone' }\n" +
-                "    next unless unity_target\n" +
-                "\n" +
-                "    embed_phase = unity_target.copy_files_build_phases.find { |p| p.name == 'Embed Frameworks' }\n" +
-                "    next unless embed_phase\n" +
-                "\n" +
-                "    already_embedded = embed_phase.files.map { |f| f.file_ref&.path }.compact\n" +
-                "\n" +
-                "    aggregate_target.pod_targets.each do |pod_target|\n" +
-                "      pod_target.file_accessors.each do |accessor|\n" +
-                "        accessor.vendored_xcframeworks.each do |xcfw_path|\n" +
-                "          xcfw_name = File.basename(xcfw_path.to_s)\n" +
-                "          next if already_embedded.any? { |p| p.end_with?(xcfw_name) }\n" +
-                "\n" +
-                "          arm64_dir = Dir[\"#{xcfw_path}/ios-arm64/*.framework\"].first\n" +
-                "          next unless arm64_dir\n" +
-                "\n" +
-                "          binary = File.join(arm64_dir, File.basename(arm64_dir, '.framework'))\n" +
-                "          next unless File.exist?(binary)\n" +
-                "          next unless `file '#{binary}'`.include?('dynamically linked')\n" +
-                "\n" +
-                "          rel_path = xcfw_path.relative_path_from(user_project.project_dir).to_s\n" +
-                "          file_ref = user_project.files.find { |f| f.path&.end_with?(xcfw_name) }\n" +
-                "          file_ref ||= user_project.new_file(rel_path, :project)\n" +
-                "\n" +
-                "          build_file = embed_phase.add_file_reference(file_ref)\n" +
-                "          build_file.settings = { 'ATTRIBUTES' => ['CodeSignOnCopy', 'RemoveHeadersOnCopy'] }\n" +
-                "          already_embedded << xcfw_name\n" +
-                "          puts \"Noctua: Embedded dynamic xcframework '#{xcfw_name}' in Unity-iPhone\"\n" +
-                "        end\n" +
-                "      end\n" +
-                "    end\n" +
-                "\n" +
-                "    user_project.save\n" +
-                "  end\n" +
-                "end\n";
+            if (changed)
+                File.WriteAllText(projPath, proj.WriteToString());
+        }
 
-            File.AppendAllText(podfilePath, postInstallHook);
+        /// <summary>
+        /// Returns true when the xcframework's <c>ios-arm64</c> slice contains a Mach-O
+        /// dynamic library (filetype MH_DYLIB = 0x6). Static archives (.a inside .xcframework)
+        /// return false and are not embedded.
+        /// </summary>
+        private static bool IsDynamicXcframework(string xcfwPath)
+        {
+            var arm64Dir = Path.Combine(xcfwPath, "ios-arm64");
+            if (!Directory.Exists(arm64Dir)) return false;
 
-            Log("Patched Podfile: added post_install hook to auto-embed dynamic xcframeworks in Unity-iPhone.");
+            var frameworkDirs = Directory.GetDirectories(arm64Dir, "*.framework");
+            if (frameworkDirs.Length == 0) return false;
+
+            var binaryPath = Path.Combine(
+                frameworkDirs[0],
+                Path.GetFileNameWithoutExtension(frameworkDirs[0]));
+
+            return File.Exists(binaryPath) && IsMachODynamicLibrary(binaryPath);
+        }
+
+        /// <summary>
+        /// Reads the Mach-O (or FAT) header and returns true when the file type is
+        /// MH_DYLIB (0x6). Handles little-endian and big-endian variants, and FAT
+        /// binaries by inspecting the first architecture's header.
+        /// </summary>
+        private static bool IsMachODynamicLibrary(string binaryPath)
+        {
+            try
+            {
+                using var stream = File.OpenRead(binaryPath);
+                using var reader = new BinaryReader(stream);
+                if (stream.Length < 16) return false;
+
+                var magic = reader.ReadUInt32();
+
+                // FAT binary — jump to the first architecture's Mach-O header.
+                // FAT header is always big-endian: magic(4) nfat_arch(4) [fat_arch …]
+                // fat_arch: cputype(4) cpusubtype(4) offset(4) size(4) align(4)
+                if (magic == 0xCAFEBABE || magic == 0xBEBAFECA)
+                {
+                    var isFatLE = magic == 0xBEBAFECA;
+                    var nArch = ReadU32(reader, !isFatLE); // FAT nfat_arch
+                    if (nArch == 0 || nArch > 64) return false;
+                    reader.ReadBytes(8);                   // skip cputype + cpusubtype
+                    var archOffset = ReadU32(reader, !isFatLE);
+                    stream.Seek(archOffset, SeekOrigin.Begin);
+                    magic = reader.ReadUInt32();
+                }
+
+                bool le;
+                switch (magic)
+                {
+                    case 0xFEEDFACF: le = true;  break; // Mach-O 64-bit LE
+                    case 0xCFFAEDFE: le = false; break; // Mach-O 64-bit BE
+                    case 0xFEEDFACE: le = true;  break; // Mach-O 32-bit LE
+                    case 0xCEFAEDFE: le = false; break; // Mach-O 32-bit BE
+                    default: return false;
+                }
+
+                reader.ReadBytes(8);                // skip cputype + cpusubtype
+                var fileType = ReadU32(reader, le);
+                return fileType == 6;               // MH_DYLIB
+            }
+            catch { return false; }
+        }
+
+        private static uint ReadU32(BinaryReader r, bool littleEndian)
+        {
+            var b = r.ReadBytes(4);
+            if (littleEndian != BitConverter.IsLittleEndian) Array.Reverse(b);
+            return BitConverter.ToUInt32(b, 0);
         }
 
         // [PostProcessBuild(3)]
