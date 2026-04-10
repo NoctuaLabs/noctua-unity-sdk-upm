@@ -175,6 +175,12 @@ using UnityEditor.Graphs;
 
             var targetGuid = proj.GetUnityMainTargetGuid();
 
+            // Swift pods (e.g. AppMetricaLibraryAdapter from Yandex adapter) require Swift
+            // standard libraries to be embedded in the main app binary. Without this the
+            // linker produces "Undefined symbol: …AppMetricaLibraryAdapter.shared…" errors.
+            proj.SetBuildProperty(targetGuid, "ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES", "YES");
+            Log("Set ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES on Unity-iPhone target.");
+
             if (firebaseEnabled)
             {
                 proj.AddFileToBuild(targetGuid, proj.AddFile("GoogleService-Info.plist", "GoogleService-Info.plist"));
