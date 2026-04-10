@@ -220,6 +220,65 @@ using UnityEditor.Graphs;
             }
         }
 
+        /// <summary>
+        /// Appends a CocoaPods <c>post_install</c> hook to the generated Podfile that sets
+        /// <c>BUILD_LIBRARY_FOR_DISTRIBUTION = NO</c> for Swift-based adapter targets.
+        ///
+        /// Background: Unity 6000.3+ no longer writes this flag into CocoaPods targets.
+        /// AppMetricaLibraryAdapter (Yandex) uses Swift stored-property singletons; without
+        /// the flag the linker dead-strips singleton symbols and reports undefined-symbol errors.
+        ///
+        /// This runs at order 50 so it executes after EDM4U's IOSResolver (order ~40) has
+        /// already written the Podfile. The hook is idempotent — a second build will not add it twice.
+        ///
+        /// Reference: https://github.com/cleveradssolutions/CAS-Unity/issues/19
+        /// </summary>
+        [PostProcessBuild(50)]
+        public static void PatchPodfileForSwiftAdapters(BuildTarget buildTarget, string pathToBuiltProject)
+        {
+            if (buildTarget != BuildTarget.iOS) return;
+            if (!ManifestContainsSwiftAdapter()) return;
+
+            var podfilePath = Path.Combine(pathToBuiltProject, "Podfile");
+
+            if (!File.Exists(podfilePath))
+            {
+                LogWarning("Podfile not found — skipping BUILD_LIBRARY_FOR_DISTRIBUTION patch.");
+                return;
+            }
+
+            var podfileContent = File.ReadAllText(podfilePath);
+
+            // Idempotency guard — skip if already patched
+            const string marker = "# Noctua: BUILD_LIBRARY_FOR_DISTRIBUTION fix";
+            if (podfileContent.Contains(marker))
+            {
+                Log("Podfile already patched for BUILD_LIBRARY_FOR_DISTRIBUTION — skipping.");
+                return;
+            }
+
+            var postInstallHook =
+                "\n" +
+                marker + "\n" +
+                "# Unity 6000.3+ omits BUILD_LIBRARY_FOR_DISTRIBUTION=NO from CocoaPods targets.\n" +
+                "# AppMetricaLibraryAdapter (Yandex) uses Swift stored-property singletons that\n" +
+                "# require this flag to be NO; otherwise the linker reports undefined symbols.\n" +
+                "# See: https://github.com/cleveradssolutions/CAS-Unity/issues/19\n" +
+                "post_install do |installer|\n" +
+                "  installer.pods_project.targets.each do |target|\n" +
+                "    if target.name == 'AppMetricaLibraryAdapter'\n" +
+                "      target.build_configurations.each do |config|\n" +
+                "        config.build_settings['BUILD_LIBRARY_FOR_DISTRIBUTION'] = 'NO'\n" +
+                "      end\n" +
+                "    end\n" +
+                "  end\n" +
+                "end\n";
+
+            File.AppendAllText(podfilePath, postInstallHook);
+
+            Log("Patched Podfile: added post_install hook to set BUILD_LIBRARY_FOR_DISTRIBUTION=NO for AppMetricaLibraryAdapter.");
+        }
+
         // [PostProcessBuild(3)]
         // public static void AddNoctuaSPM(BuildTarget buildTarget, string pathToBuiltProject)
         // {
