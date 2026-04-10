@@ -344,13 +344,36 @@ public class NoctuaIntegrationManagerWindow : EditorWindow
             var pkg = maxAdapterPackages[name];
             bool anyInstalled = s.androidInstalled || s.iosInstalled;
 
-            string displayCurrent = (s.androidInstalled && s.iosInstalled)
-                ? OlderVersion(s.curAndroidVer, s.curIosVer)
-                : (s.androidInstalled ? s.curAndroidVer : s.curIosVer);
+            // Compare each platform against its own recommended version.
+            // Android (e.g. 25010000.0.0) and iOS (e.g. 13020000.0.0) use independent
+            // version schemes — cross-comparing them always looks outdated.
+            bool androidNeedsUpdate = s.androidInstalled && IsUpdateAvailable(s.curAndroidVer, pkg.androidVer);
+            bool iosNeedsUpdate     = s.iosInstalled     && IsUpdateAvailable(s.curIosVer,     pkg.iosVer);
+
+            // Pass the outdated platform's versions so IsUpdateAvailable inside DrawPackageRow
+            // compares apples-to-apples (android vs android, or iOS vs iOS).
+            string displayCurrent;
+            string displayRecommended;
+            if (androidNeedsUpdate)
+            {
+                displayCurrent     = s.curAndroidVer;
+                displayRecommended = pkg.androidVer;
+            }
+            else if (iosNeedsUpdate)
+            {
+                displayCurrent     = s.curIosVer;
+                displayRecommended = pkg.iosVer;
+            }
+            else
+            {
+                // Both at stable (or not installed) — show android state for display
+                displayCurrent     = s.androidInstalled ? s.curAndroidVer : s.curIosVer;
+                displayRecommended = pkg.androidVer;
+            }
 
             DrawPackageRow(
                 name,
-                anyInstalled, displayCurrent, pkg.androidVer,
+                anyInstalled, displayCurrent, displayRecommended,
                 onInstall: () => AddMaxAdapterToManifest(name),
                 onUpdate:  () => AddMaxAdapterToManifest(name),
                 onRemove:  () => RemoveMaxAdapterFromManifest(name));
