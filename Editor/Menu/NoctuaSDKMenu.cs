@@ -328,12 +328,14 @@ public class NoctuaIntegrationManagerWindow : EditorWindow
             MessageType.None);
         EditorGUILayout.Space(2);
 
-        // Header
+        // Header — separate Android / iOS columns
         EditorGUILayout.BeginHorizontal(EditorStyles.helpBox);
-        GUILayout.Label("Network",             EditorStyles.boldLabel, GUILayout.ExpandWidth(true), GUILayout.MinWidth(MinNameW));
-        GUILayout.Label("Installed",           EditorStyles.boldLabel, GUILayout.Width(VerW));
-        GUILayout.Label("★ Recommended",       EditorStyles.boldLabel, GUILayout.Width(VerW));
-        GUILayout.Label("Action",              EditorStyles.boldLabel, GUILayout.Width(ActionW * 2 + 4));
+        GUILayout.Label("Network",         EditorStyles.boldLabel, GUILayout.ExpandWidth(true), GUILayout.MinWidth(MinNameW));
+        GUILayout.Label("Android",         EditorStyles.boldLabel, GUILayout.Width(VerW));
+        GUILayout.Label("★ Rec (Andr)",    EditorStyles.boldLabel, GUILayout.Width(VerW));
+        GUILayout.Label("iOS",             EditorStyles.boldLabel, GUILayout.Width(VerW));
+        GUILayout.Label("★ Rec (iOS)",     EditorStyles.boldLabel, GUILayout.Width(VerW));
+        GUILayout.Label("Action",          EditorStyles.boldLabel, GUILayout.Width(ActionW * 2 + 4));
         EditorGUILayout.EndHorizontal();
 
         foreach (var name in new List<string>(maxAdapterPackages.Keys))
@@ -342,42 +344,59 @@ public class NoctuaIntegrationManagerWindow : EditorWindow
                 s = (false, false, null, null);
 
             var pkg = maxAdapterPackages[name];
-            bool anyInstalled = s.androidInstalled || s.iosInstalled;
-
-            // Compare each platform against its own recommended version.
-            // Android (e.g. 25010000.0.0) and iOS (e.g. 13020000.0.0) use independent
-            // version schemes — cross-comparing them always looks outdated.
-            bool androidNeedsUpdate = s.androidInstalled && IsUpdateAvailable(s.curAndroidVer, pkg.androidVer);
-            bool iosNeedsUpdate     = s.iosInstalled     && IsUpdateAvailable(s.curIosVer,     pkg.iosVer);
-
-            // Pass the outdated platform's versions so IsUpdateAvailable inside DrawPackageRow
-            // compares apples-to-apples (android vs android, or iOS vs iOS).
-            string displayCurrent;
-            string displayRecommended;
-            if (androidNeedsUpdate)
-            {
-                displayCurrent     = s.curAndroidVer;
-                displayRecommended = pkg.androidVer;
-            }
-            else if (iosNeedsUpdate)
-            {
-                displayCurrent     = s.curIosVer;
-                displayRecommended = pkg.iosVer;
-            }
-            else
-            {
-                // Both at stable (or not installed) — show android state for display
-                displayCurrent     = s.androidInstalled ? s.curAndroidVer : s.curIosVer;
-                displayRecommended = pkg.androidVer;
-            }
-
-            DrawPackageRow(
+            DrawMaxAdapterRow(
                 name,
-                anyInstalled, displayCurrent, displayRecommended,
+                s.androidInstalled, s.curAndroidVer, pkg.androidVer,
+                s.iosInstalled,     s.curIosVer,     pkg.iosVer,
                 onInstall: () => AddMaxAdapterToManifest(name),
                 onUpdate:  () => AddMaxAdapterToManifest(name),
                 onRemove:  () => RemoveMaxAdapterFromManifest(name));
         }
+    }
+
+    private void DrawMaxAdapterRow(
+        string label,
+        bool androidInstalled, string curAndroidVer, string recAndroidVer,
+        bool iosInstalled,     string curIosVer,     string recIosVer,
+        Action onInstall, Action onUpdate, Action onRemove)
+    {
+        bool androidNeedsUpdate = androidInstalled && IsUpdateAvailable(curAndroidVer, recAndroidVer);
+        bool iosNeedsUpdate     = iosInstalled     && IsUpdateAvailable(curIosVer,     recIosVer);
+        bool anyInstalled       = androidInstalled || iosInstalled;
+        bool anyNeedsUpdate     = androidNeedsUpdate || iosNeedsUpdate;
+
+        string androidLabel = androidInstalled
+            ? Colored(curAndroidVer ?? "-", androidNeedsUpdate ? ColorOutdated : ColorStable)
+            : Colored("–", ColorMuted);
+        string iosLabel = iosInstalled
+            ? Colored(curIosVer ?? "-", iosNeedsUpdate ? ColorOutdated : ColorStable)
+            : Colored("–", ColorMuted);
+        string recAndroidLabel = Colored($"★ {recAndroidVer}", ColorStable);
+        string recIosLabel     = Colored($"★ {recIosVer}",     ColorStable);
+
+        EditorGUILayout.BeginHorizontal();
+        GUILayout.Label(label,          GUILayout.ExpandWidth(true), GUILayout.MinWidth(MinNameW));
+        GUILayout.Label(androidLabel,   RichLabel, GUILayout.Width(VerW));
+        GUILayout.Label(recAndroidLabel,RichLabel, GUILayout.Width(VerW));
+        GUILayout.Label(iosLabel,       RichLabel, GUILayout.Width(VerW));
+        GUILayout.Label(recIosLabel,    RichLabel, GUILayout.Width(VerW));
+
+        if (!anyInstalled)
+        {
+            DrawButton("Install",   InstallColor, ActionW, onInstall);
+            GUILayout.Space(ActionW + 4);
+        }
+        else if (anyNeedsUpdate)
+        {
+            DrawButton("→ Stable", UpdateColor, ActionW, onUpdate);
+            DrawButton("Remove",   RemoveColor, ActionW, onRemove);
+        }
+        else
+        {
+            GUILayout.Space(ActionW + 4);
+            DrawButton("Remove",   RemoveColor, ActionW, onRemove);
+        }
+        EditorGUILayout.EndHorizontal();
     }
 
     private void DrawAdmobAdaptersSection()
@@ -800,11 +819,4 @@ public class NoctuaIntegrationManagerWindow : EditorWindow
         return false;
     }
 
-    /// <summary>Returns the older of two version strings (for display when two platforms installed).</summary>
-    private static string OlderVersion(string a, string b)
-    {
-        if (string.IsNullOrEmpty(a)) return b;
-        if (string.IsNullOrEmpty(b)) return a;
-        return IsUpdateAvailable(a, b) ? a : b;
-    }
 }
