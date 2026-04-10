@@ -91,7 +91,7 @@ public class NoctuaIntegrationManagerWindow : EditorWindow
         // Tier 1
         { "Google / AdMob",        ("com.applovin.mediation.adapters.google.android",           "25010000.0.0",  "com.applovin.mediation.adapters.google.ios",           "13020000.0.0") },
         { "Google Ad Manager",     ("com.applovin.mediation.adapters.googleadmanager.android",  "25010000.0.0",  "com.applovin.mediation.adapters.googleadmanager.ios",  "13020000.0.0") },
-        { "Meta Audience Network", ("com.applovin.mediation.adapters.facebook.android",         "6200000.0.0",   "com.applovin.mediation.adapters.facebook.ios",         "6210100.0.0")  }, // Android 6.21.0 has Gradle 8 build failure (#563); use 6.20.0 until fixed
+        { "Meta Audience Network", ("com.applovin.mediation.adapters.facebook.android",         "6210000.0.0",   "com.applovin.mediation.adapters.facebook.ios",         "6210100.0.0")  },
         { "IronSource",            ("com.applovin.mediation.adapters.ironsource.android",       "904000000.0.0", "com.applovin.mediation.adapters.ironsource.ios",       "904000000.0.0")},
         { "Unity Ads",             ("com.applovin.mediation.adapters.unityads.android",         "4170000.0.0",   "com.applovin.mediation.adapters.unityads.ios",         "4170000.0.0")  },
         // Tier 2
@@ -135,9 +135,43 @@ public class NoctuaIntegrationManagerWindow : EditorWindow
         { "PubMatic",               ("com.google.ads.mobile.mediation.pubmatic",            "1.5.0")  },
         { "BidMachine",             ("com.google.ads.mobile.mediation.bidmachine",          "1.0.2")  },
         { "LINE",                   ("com.google.ads.mobile.mediation.line",                "2.0.2")  },
-        { "Maio",                   ("com.google.ads.mobile.mediation.maio",                "3.1.6")  },
+        { "Maio",                   ("com.google.ads.mobile.mediation.maio",                "3.0.1")  },
         { "i-mobile",               ("com.google.ads.mobile.mediation.imobile",             "1.3.9")  },
     };
+
+    // ── Cross-catalog conflict mapping ─────────────────────────────────
+    // Maps AdMob adapter package → corresponding AppLovin MAX adapter display name.
+    // Used to show warnings when the same network is installed from both catalogs.
+    private static readonly Dictionary<string, string> AdmobToMaxConflict = new()
+    {
+        { "com.google.ads.mobile.mediation.applovin",            "Google / AdMob"        },
+        { "com.google.ads.mobile.mediation.unity",               "Unity Ads"             },
+        { "com.google.ads.mobile.mediation.ironsource",          "IronSource"            },
+        { "com.google.ads.mobile.mediation.chartboost",          "Chartboost"            },
+        { "com.google.ads.mobile.mediation.metaaudiencenetwork", "Meta Audience Network" },
+        { "com.google.ads.mobile.mediation.liftoffmonetize",     "Vungle / LiftOff"     },
+        { "com.google.ads.mobile.mediation.pangle",              "ByteDance / Pangle"    },
+        { "com.google.ads.mobile.mediation.mintegral",           "Mintegral"             },
+        { "com.google.ads.mobile.mediation.dtexchange",          "Fyber / DT Exchange"   },
+        { "com.google.ads.mobile.mediation.inmobi",              "InMobi"                },
+        { "com.google.ads.mobile.mediation.moloco",              "Moloco"                },
+        { "com.google.ads.mobile.mediation.pubmatic",            "PubMatic"              },
+        { "com.google.ads.mobile.mediation.bidmachine",          "BidMachine"            },
+        { "com.google.ads.mobile.mediation.line",                "LINE"                  },
+        { "com.google.ads.mobile.mediation.maio",                "Maio"                  },
+    };
+
+    // Reverse map: MAX adapter display name → AdMob adapter package name
+    private static readonly Dictionary<string, string> MaxToAdmobConflict;
+
+    static NoctuaIntegrationManagerWindow()
+    {
+        MaxToAdmobConflict = new Dictionary<string, string>();
+        foreach (var kv in AdmobToMaxConflict)
+        {
+            MaxToAdmobConflict[kv.Value] = kv.Key;
+        }
+    }
 
     // ── Runtime state (includes current installed versions) ───────────────
     private Dictionary<string, (bool installed, string currentVersion, string latestVersion)> iaaProviders = new();
@@ -156,6 +190,72 @@ public class NoctuaIntegrationManagerWindow : EditorWindow
         var window = GetWindow<NoctuaIntegrationManagerWindow>(false, "Noctua Integration Manager", true);
         window.minSize = new Vector2(600, 500);
     }
+
+    // ── Android > Fix Gradle Duplicate Dependencies ───────────────────────
+
+    [MenuItem("Noctua/Android/Fix Gradle Duplicate Dependencies", false, 200)]
+    public static void FixGradleDuplicateDependencies()
+    {
+        var templatePath = Path.Combine(Application.dataPath, "Plugins", "Android", "mainTemplate.gradle");
+
+        if (!File.Exists(templatePath))
+        {
+            EditorUtility.DisplayDialog(
+                "Fix Gradle Duplicate Dependencies",
+                "mainTemplate.gradle not found.\n\nEnable Custom Main Gradle Template under:\n" +
+                "Project Settings → Player → Android → Publishing Settings → Custom Main Gradle Template",
+                "OK");
+            return;
+        }
+
+        var content = File.ReadAllText(templatePath);
+
+        if (content.Contains(GradleDuplicateFixMarker))
+        {
+            EditorUtility.DisplayDialog(
+                "Fix Gradle Duplicate Dependencies",
+                "Fix already applied — mainTemplate.gradle already contains the duplicate dependency fix.",
+                "OK");
+            return;
+        }
+
+        // Root cause: imobile-maio.github.io/maven publishes com.maio:android-sdk-v2 in BOTH
+        // .aar AND .jar formats. When AppLovin MAX and AdMob Maio adapters are both installed,
+        // one requests @aar and the other gets the default (@jar), so Gradle downloads both
+        // formats from the same repo → CheckDuplicatesRunnable fails.
+        //
+        // Fix: configurations.all.exclude strips ALL transitive resolutions of android-sdk-v2
+        // (both AAR and JAR). Then implementation '@aar' re-adds it as a single direct AAR
+        // dependency. Gradle exclude rules only affect transitive deps — direct implementations
+        // are NOT excluded — so only the AAR ends up on the classpath.
+        const string fixBlock =
+            "\n// Noctua SDK: Duplicate fix — resolves AAR+JAR dual-packaging conflict\n" +
+            "// imobile-maio.github.io/maven publishes android-sdk-v2 in both .aar and .jar.\n" +
+            "// Exclude strips all transitive copies; @aar re-adds only the canonical AAR.\n" +
+            "configurations.all {\n" +
+            "    exclude group: 'com.maio', module: 'android-sdk-v2'\n" +
+            "}\n" +
+            "dependencies {\n" +
+            "    implementation 'com.maio:android-sdk-v2:2.0.4@aar'\n" +
+            "}\n";
+
+        File.WriteAllText(templatePath, content + fixBlock);
+        AssetDatabase.Refresh();
+
+        EditorUtility.DisplayDialog(
+            "Fix Gradle Duplicate Dependencies",
+            "✓ Applied fix to mainTemplate.gradle.\n\n" +
+            "configurations.all { exclude } strips all transitive AAR+JAR copies of Maio SDK.\n" +
+            "implementation '@aar' re-adds only the single canonical AAR.\n\n" +
+            "Rebuild Android to verify the duplicate class error is gone.",
+            "OK");
+
+        Debug.Log("[NoctuaSDK] Applied Gradle duplicate dependency fix to mainTemplate.gradle.");
+    }
+
+    [MenuItem("Noctua/Android/Fix Gradle Duplicate Dependencies", true)]
+    public static bool FixGradleDuplicateDependencies_Validate() =>
+        EditorUserBuildSettings.activeBuildTarget == BuildTarget.Android;
 
     // ── Lifecycle ─────────────────────────────────────────────────────────
 
@@ -326,6 +426,12 @@ public class NoctuaIntegrationManagerWindow : EditorWindow
             "★ Recommended versions are tested with AppLovin MAX SDK 8.6.2. " +
             "Install or update to recommended to prevent CocoaPods conflicts and ad-fill issues.",
             MessageType.None);
+
+        if (HasCrossCatalogOverlap())
+        {
+            DrawCrossCatalogOverlapWarning();
+        }
+
         EditorGUILayout.Space(2);
 
         // Header — separate Android / iOS columns
@@ -374,8 +480,19 @@ public class NoctuaIntegrationManagerWindow : EditorWindow
         string recAndroidLabel = Colored($"★ {recAndroidVer}", ColorStable);
         string recIosLabel     = Colored($"★ {recIosVer}",     ColorStable);
 
+        // Check if this MAX adapter has a corresponding AdMob adapter installed
+        bool hasAdmobOverlap = MaxToAdmobConflict.TryGetValue(label, out var admobPkg)
+                               && admobAdapterStates.TryGetValue(
+                                   admobAdapterPackages.FirstOrDefault(kv => kv.Value.pkg == admobPkg).Key ?? "",
+                                   out var admobState)
+                               && admobState.installed;
+
+        string displayLabel = hasAdmobOverlap
+            ? label + Colored("  \u26a0 Also in AdMob", ColorOutdated)
+            : label;
+
         EditorGUILayout.BeginHorizontal();
-        GUILayout.Label(label,          GUILayout.ExpandWidth(true), GUILayout.MinWidth(MinNameW));
+        GUILayout.Label(displayLabel,   RichLabel, GUILayout.ExpandWidth(true), GUILayout.MinWidth(MinNameW));
         GUILayout.Label(androidLabel,   RichLabel, GUILayout.Width(VerW));
         GUILayout.Label(recAndroidLabel,RichLabel, GUILayout.Width(VerW));
         GUILayout.Label(iosLabel,       RichLabel, GUILayout.Width(VerW));
@@ -405,6 +522,12 @@ public class NoctuaIntegrationManagerWindow : EditorWindow
             "★ Recommended versions are tested with AdMob SDK 11.0.0 (GMA iOS 13.0 / Android 25.0). " +
             "Update to recommended to avoid mediation errors and rejected store submissions.",
             MessageType.None);
+
+        if (HasCrossCatalogOverlap())
+        {
+            DrawCrossCatalogOverlapWarning();
+        }
+
         EditorGUILayout.Space(2);
 
         // Header
@@ -420,8 +543,18 @@ public class NoctuaIntegrationManagerWindow : EditorWindow
             if (!admobAdapterStates.TryGetValue(name, out var s))
                 s = (false, null);
 
+            // Check if corresponding MAX adapter is installed
+            var admobPkg = admobAdapterPackages[name].pkg;
+            bool hasMaxOverlap = AdmobToMaxConflict.TryGetValue(admobPkg, out var maxName)
+                                 && maxAdapterStates.TryGetValue(maxName, out var maxState)
+                                 && (maxState.androidInstalled || maxState.iosInstalled);
+
+            string displayName = hasMaxOverlap
+                ? name + Colored("  \u26a0 Also in AppLovin MAX", ColorOutdated)
+                : name;
+
             DrawPackageRow(
-                name,
+                displayName,
                 s.installed, s.currentVersion, admobAdapterPackages[name].ver,
                 onInstall: () => AddAdmobAdapterToManifest(name),
                 onUpdate:  () => AddAdmobAdapterToManifest(name),
@@ -452,7 +585,7 @@ public class NoctuaIntegrationManagerWindow : EditorWindow
         string recommendedLabel = Colored($"★ {recommendedVer ?? "-"}", ColorStable);
 
         EditorGUILayout.BeginHorizontal();
-        GUILayout.Label(label, GUILayout.ExpandWidth(true), GUILayout.MinWidth(MinNameW));
+        GUILayout.Label(label, RichLabel, GUILayout.ExpandWidth(true), GUILayout.MinWidth(MinNameW));
 
         GUILayout.Label(installedLabel,   RichLabel, GUILayout.Width(VerW));
         GUILayout.Label(recommendedLabel, RichLabel, GUILayout.Width(VerW));
@@ -492,6 +625,71 @@ public class NoctuaIntegrationManagerWindow : EditorWindow
     /// <summary>Wraps <paramref name="text"/> in a Unity rich-text color tag.</summary>
     private static string Colored(string text, string hexColor) =>
         $"<color={hexColor}>{text}</color>";
+
+    // Marker shared with BuildPostProcessor — both inject the same marker string
+    private const string GradleDuplicateFixMarker = "// Noctua SDK: Duplicate fix";
+
+    private static bool IsGradleDuplicateFixApplied()
+    {
+        var templatePath = Path.Combine(Application.dataPath, "Plugins", "Android", "mainTemplate.gradle");
+        return File.Exists(templatePath) && File.ReadAllText(templatePath).Contains(GradleDuplicateFixMarker);
+    }
+
+    private static void DrawCrossCatalogOverlapWarning()
+    {
+        bool fixApplied = IsGradleDuplicateFixApplied();
+
+        if (fixApplied)
+        {
+            EditorGUILayout.HelpBox(
+                "Some networks have adapters installed from both AppLovin MAX and AdMob catalogs. " +
+                "Gradle duplicate dependency fix is applied — Android builds should work correctly.",
+                MessageType.Info);
+        }
+        else
+        {
+            EditorGUILayout.HelpBox(
+                "⚠  Some networks have adapters installed from both AppLovin MAX and AdMob catalogs. " +
+                "This causes Android duplicate class errors without a Gradle fix.",
+                MessageType.Warning);
+
+            EditorGUILayout.BeginHorizontal();
+            GUILayout.FlexibleSpace();
+            var prev = GUI.backgroundColor;
+            GUI.backgroundColor = new Color(1f, 0.6f, 0.2f);
+            if (GUILayout.Button("Fix Android Gradle Now", GUILayout.Width(200)))
+                FixGradleDuplicateDependencies();
+            GUI.backgroundColor = prev;
+            EditorGUILayout.EndHorizontal();
+        }
+    }
+
+    /// <summary>
+    /// Returns true if any network has adapters installed from both AppLovin MAX and AdMob catalogs.
+    /// </summary>
+    private bool HasCrossCatalogOverlap()
+    {
+        foreach (var kv in AdmobToMaxConflict)
+        {
+            var admobPkg = kv.Key;
+            var maxName  = kv.Value;
+
+            // Check if the AdMob adapter is installed
+            var admobEntry = admobAdapterPackages.FirstOrDefault(a => a.Value.pkg == admobPkg);
+            if (admobEntry.Key == null) continue;
+            if (!admobAdapterStates.TryGetValue(admobEntry.Key, out var admobState) || !admobState.installed)
+                continue;
+
+            // Check if the corresponding MAX adapter is installed
+            if (maxAdapterStates.TryGetValue(maxName, out var maxState) &&
+                (maxState.androidInstalled || maxState.iosInstalled))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
 
     private void DrawFoldoutSection(string title, ref bool state, Action content)
     {

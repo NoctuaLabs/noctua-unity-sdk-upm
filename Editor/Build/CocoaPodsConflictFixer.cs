@@ -1,6 +1,5 @@
 #if UNITY_EDITOR
 using System;
-using System.Diagnostics;
 using System.IO;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -8,17 +7,23 @@ using UnityEditor;
 using UnityEngine;
 
 /// <summary>
-/// Detects and repairs CocoaPods version conflicts that arise when both the Google Mobile Ads
-/// Unity plugin and AppLovin MAX mediation adapters are installed in the same project.
+/// Detects and repairs CocoaPods conflicts that arise from common iOS ad SDK combinations.
 ///
-/// Root cause:
-///   - com.google.ads.mobile pins  Google-Mobile-Ads-SDK to a specific minor constraint (e.g. ~> 12.11.0)
-///   - AppLovin Google/AdManager adapters require a newer exact version       (e.g. = 13.2.0)
-///   - CocoaPods cannot reconcile the two → pod install fails
+/// Conflict 1 — GMA SDK version mismatch:
+///   com.google.ads.mobile pins Google-Mobile-Ads-SDK to a specific minor constraint (e.g. ~> 12.11.0)
+///   while AppLovin Google/AdManager adapters require a newer exact version (e.g. = 13.2.0).
+///   Fix: patch GoogleMobileAdsDependencies.xml to match the AppLovin adapter requirement.
 ///
-/// Fix:
-///   - Patch GoogleMobileAdsDependencies.xml to use the constraint required by the AppLovin adapter
-///   - Remove the legacy ~/.cocoapods/repos/cocoapods repository that causes duplicate-spec warnings
+/// Conflict 2 — AppLovin SDK version mismatch:
+///   com.applovin.mediation.ads (AppLovin MAX) pins AppLovinSDK to a specific version (e.g. = 13.6.2)
+///   while com.google.ads.mobile.mediation.applovin (AdMob AppLovin adapter) references a different
+///   version of GoogleMobileAdsMediationAppLovin that internally requires a different AppLovinSDK
+///   (e.g. = 13.6.1). CocoaPods cannot reconcile the two.
+///   Fix: patch the AdMob AppLovin adapter Dependencies.xml to reference the matching CocoaPod version.
+///
+/// Conflict 3 — Duplicate CocoaPods repo:
+///   ~/.cocoapods/repos/cocoapods duplicates trunk and causes "Found multiple specifications" warnings.
+///   Fix: delete the legacy directory directly.
 ///
 /// Menu items are only active when the active Unity build target is iOS.
 /// </summary>
@@ -45,66 +50,118 @@ public static class CocoaPodsConflictFixer
     [MenuItem("Noctua/iOS/Fix CocoaPods Conflicts", false, 300)]
     public static void FixAll()
     {
-        var (xmlPath, _) = FindCurrentGmaConstraint();
-        var requiredVersion = FindAppLovinRequiredGmaVersion();
-
         var results = new StringBuilder();
+        bool anyPatched = false;
 
-        bool xmlPatched = false;
-        if (!string.IsNullOrEmpty(xmlPath) && !string.IsNullOrEmpty(requiredVersion))
+        // ── Fix 1: GMA SDK constraint mismatch ──────────────────────────
+        var (gmaXmlPath, _)   = FindCurrentGmaConstraint();
+        var requiredGmaVer    = FindAppLovinRequiredGmaVersion();
+
+        if (!string.IsNullOrEmpty(gmaXmlPath) && !string.IsNullOrEmpty(requiredGmaVer))
         {
-            xmlPatched = PatchGmaDepsXml(xmlPath, requiredVersion);
-            results.AppendLine(xmlPatched
-                ? $"✓ Patched GoogleMobileAdsDependencies.xml → ~> {requiredVersion}"
+            bool patched = PatchGmaDepsXml(gmaXmlPath, requiredGmaVer);
+            results.AppendLine(patched
+                ? $"✓ Patched GoogleMobileAdsDependencies.xml → ~> {requiredGmaVer}"
                 : "– GoogleMobileAdsDependencies.xml already has the correct version (no change)");
+            if (patched) anyPatched = true;
         }
-        else if (string.IsNullOrEmpty(xmlPath))
+        else if (string.IsNullOrEmpty(gmaXmlPath))
         {
             results.AppendLine("– GoogleMobileAdsDependencies.xml not found (com.google.ads.mobile not installed?)");
         }
         else
         {
-            results.AppendLine("– AppLovin Google adapter not installed — no target version to patch to");
+            results.AppendLine("– AppLovin Google adapter not installed — no GMA constraint to patch");
         }
 
+        // ── Fix 2: AppLovin SDK version mismatch ────────────────────────
+        var (admobApplovinXmlPath, maxSdkVer, adapterSdkVer) = FindAppLovinSdkConflict();
+
+        if (!string.IsNullOrEmpty(admobApplovinXmlPath) &&
+            !string.IsNullOrEmpty(maxSdkVer) &&
+            !string.IsNullOrEmpty(adapterSdkVer) &&
+            maxSdkVer != adapterSdkVer)
+        {
+            bool patched = PatchAdmobApplovinDepsXml(admobApplovinXmlPath, maxSdkVer);
+            results.AppendLine(patched
+                ? $"✓ Patched GoogleMobileAdsMediationAppLovin → {maxSdkVer}.0"
+                : "– AdMob AppLovin adapter already compatible (no change)");
+            if (patched) anyPatched = true;
+        }
+        else if (string.IsNullOrEmpty(maxSdkVer))
+        {
+            results.AppendLine("– AppLovin MAX SDK not installed — AppLovin SDK conflict check skipped");
+        }
+        else if (string.IsNullOrEmpty(admobApplovinXmlPath))
+        {
+            results.AppendLine("– AdMob AppLovin adapter not installed — no AppLovin SDK conflict possible");
+        }
+        else
+        {
+            results.AppendLine("– AppLovin SDK versions are already compatible (no change)");
+        }
+
+        // ── Fix 3: Duplicate CocoaPods repo ─────────────────────────────
         bool repoRemoved = RemoveDuplicateCocoapodsRepo();
         results.AppendLine(repoRemoved
             ? "✓ Removed legacy ~/.cocoapods/repos/cocoapods"
             : "– Legacy cocoapods repo not present (nothing to remove)");
 
-        if (xmlPatched)
+        if (anyPatched)
         {
             results.AppendLine();
-            results.AppendLine("⚠ The XML patch is inside Library/PackageCache and will be lost if");
-            results.AppendLine("  the package cache is cleared. To make it permanent, upgrade");
-            results.AppendLine("  com.google.ads.mobile to 11.0.0+ in the IAA Providers section.");
+            results.AppendLine("⚠ XML patches are inside Library/PackageCache and will be lost if");
+            results.AppendLine("  the package cache is cleared. To make fixes permanent, upgrade");
+            results.AppendLine("  packages to compatible versions in the IAA Providers section.");
         }
 
         EditorUtility.DisplayDialog("CocoaPods Conflict Fixer", results.ToString().Trim(), "OK");
 
-        if (xmlPatched)
+        if (anyPatched)
             AssetDatabase.Refresh();
     }
 
     [MenuItem("Noctua/iOS/Check CocoaPods Versions", false, 301)]
     public static void CheckVersions()
     {
-        var (_, currentConstraint) = FindCurrentGmaConstraint();
-        var requiredVersion = FindAppLovinRequiredGmaVersion();
+        var (_, currentGmaConstraint)    = FindCurrentGmaConstraint();
+        var requiredGmaVer               = FindAppLovinRequiredGmaVersion();
+        bool gmaConflict                 = IsConflicting(currentGmaConstraint, requiredGmaVer);
 
-        bool hasConflict = IsConflicting(currentConstraint, requiredVersion);
-        string statusLine = hasConflict ? "⚠  CONFLICT DETECTED" : "✓  No conflict";
+        var (_, maxSdkVer, adapterSdkVer) = FindAppLovinSdkConflict();
+        bool applovinConflict            = !string.IsNullOrEmpty(maxSdkVer) &&
+                                           !string.IsNullOrEmpty(adapterSdkVer) &&
+                                           maxSdkVer != adapterSdkVer;
+
+        var repoPath = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
+            ".cocoapods", "repos", "cocoapods");
+        bool hasDuplicateRepo = Directory.Exists(repoPath);
+
+        bool anyConflict = gmaConflict || applovinConflict || hasDuplicateRepo;
 
         var sb = new StringBuilder();
-        sb.AppendLine("Google-Mobile-Ads-SDK (iOS CocoaPod)");
-        sb.AppendLine();
-        sb.AppendLine($"Current constraint  :  {currentConstraint ?? "(com.google.ads.mobile not installed)"}");
-        sb.AppendLine($"AppLovin requires   :  {(string.IsNullOrEmpty(requiredVersion) ? "(AppLovin Google adapter not installed)" : "~> " + requiredVersion)}");
-        sb.AppendLine();
-        sb.AppendLine($"Status: {statusLine}");
 
-        if (hasConflict)
-            sb.AppendLine("\nRun  Noctua > iOS > Fix CocoaPods Conflicts  to resolve.");
+        sb.AppendLine("── Google-Mobile-Ads-SDK ───────────────────────────────");
+        sb.AppendLine($"Current constraint  :  {currentGmaConstraint ?? "(com.google.ads.mobile not installed)"}");
+        sb.AppendLine($"AppLovin requires   :  {(string.IsNullOrEmpty(requiredGmaVer) ? "(AppLovin Google adapter not installed)" : "~> " + requiredGmaVer)}");
+        sb.AppendLine($"Status              :  {(gmaConflict ? "⚠  CONFLICT" : "✓  OK")}");
+
+        sb.AppendLine();
+        sb.AppendLine("── AppLovin SDK (MAX ↔ AdMob adapter) ──────────────────");
+        sb.AppendLine($"AppLovin MAX SDK    :  {(string.IsNullOrEmpty(maxSdkVer) ? "(not installed)" : "AppLovinSDK = " + maxSdkVer)}");
+        sb.AppendLine($"AdMob adapter needs :  {(string.IsNullOrEmpty(adapterSdkVer) ? "(AdMob AppLovin adapter not installed)" : "AppLovinSDK = " + adapterSdkVer)}");
+        sb.AppendLine($"Status              :  {(applovinConflict ? "⚠  CONFLICT" : "✓  OK")}");
+
+        sb.AppendLine();
+        sb.AppendLine("── Duplicate CocoaPods repo ────────────────────────────");
+        sb.AppendLine($"~/.cocoapods/repos/cocoapods  :  {(hasDuplicateRepo ? "⚠  EXISTS (causes duplicate specs)" : "✓  Not present")}");
+
+        if (anyConflict)
+        {
+            sb.AppendLine();
+            sb.AppendLine("Run  Noctua > iOS > Fix CocoaPods Conflicts  to resolve.");
+        }
 
         EditorUtility.DisplayDialog("CocoaPods Version Check", sb.ToString().Trim(), "OK");
     }
@@ -113,21 +170,31 @@ public static class CocoaPodsConflictFixer
 
     /// <summary>
     /// Called via <see cref="EditorApplication.delayCall"/> on every Editor startup.
-    /// Only logs a warning when the active build target is iOS and a conflict is detected.
+    /// Only logs warnings when the active build target is iOS and a conflict is detected.
     /// </summary>
     internal static void CheckAndWarn()
     {
         if (EditorUserBuildSettings.activeBuildTarget != BuildTarget.iOS)
             return;
 
-        var (_, currentConstraint) = FindCurrentGmaConstraint();
-        var requiredVersion = FindAppLovinRequiredGmaVersion();
+        var (_, currentGmaConstraint) = FindCurrentGmaConstraint();
+        var requiredGmaVer            = FindAppLovinRequiredGmaVersion();
 
-        if (IsConflicting(currentConstraint, requiredVersion))
+        if (IsConflicting(currentGmaConstraint, requiredGmaVer))
         {
             UnityEngine.Debug.LogWarning(
-                $"[NoctuaSDK] CocoaPods conflict detected: Google-Mobile-Ads-SDK is constrained to " +
-                $"'{currentConstraint}' but the installed AppLovin Google adapter requires '~> {requiredVersion}'. " +
+                $"[NoctuaSDK] CocoaPods conflict: Google-Mobile-Ads-SDK is constrained to " +
+                $"'{currentGmaConstraint}' but the AppLovin Google adapter requires '~> {requiredGmaVer}'. " +
+                "Run  Noctua > iOS > Fix CocoaPods Conflicts  to resolve.");
+        }
+
+        var (_, maxSdkVer, adapterSdkVer) = FindAppLovinSdkConflict();
+        if (!string.IsNullOrEmpty(maxSdkVer) && !string.IsNullOrEmpty(adapterSdkVer) &&
+            maxSdkVer != adapterSdkVer)
+        {
+            UnityEngine.Debug.LogWarning(
+                $"[NoctuaSDK] CocoaPods conflict: AppLovin MAX SDK requires AppLovinSDK = {maxSdkVer} " +
+                $"but the AdMob AppLovin mediation adapter targets AppLovinSDK = {adapterSdkVer}. " +
                 "Run  Noctua > iOS > Fix CocoaPods Conflicts  to resolve.");
         }
     }
@@ -182,6 +249,58 @@ public static class CocoaPodsConflictFixer
         }
 
         return null;
+    }
+
+    /// <summary>
+    /// Detects a version conflict between AppLovin MAX SDK and the AdMob AppLovin mediation adapter.
+    ///
+    /// AppLovin MAX SDK (com.applovin.mediation.ads) pins AppLovinSDK to an exact version (e.g. = 13.6.2).
+    /// The AdMob AppLovin mediation adapter (com.google.ads.mobile.mediation.applovin) references a
+    /// CocoaPod (GoogleMobileAdsMediationAppLovin) that internally requires a specific AppLovinSDK version.
+    /// If the two differ, CocoaPods cannot reconcile them.
+    ///
+    /// Returns (admobAdapterXmlPath, maxSdkVersion, adapterSdkVersion).
+    /// adapterSdkVersion is derived from the CocoaPod version: "13.6.1.0" → "13.6.1".
+    /// </summary>
+    static (string admobAdapterXmlPath, string maxSdkVersion, string adapterSdkVersion) FindAppLovinSdkConflict()
+    {
+        // 1. Find AppLovin MAX SDK's AppLovinSDK version
+        var maxDepsPath = FindPackageCacheFile(
+            "com.applovin.mediation.ads",
+            Path.Combine("AppLovin", "Editor", "Dependencies.xml"));
+
+        if (string.IsNullOrEmpty(maxDepsPath))
+            return (null, null, null);
+
+        var maxContent = File.ReadAllText(maxDepsPath);
+        // e.g. <iosPod name="AppLovinSDK" version="= 13.6.2" ...> or version="13.6.2"
+        var maxMatch = Regex.Match(maxContent,
+            @"<iosPod\s+name=""AppLovinSDK""\s+version=""[=\s]*(\d+\.\d+\.\d+)");
+        if (!maxMatch.Success)
+            return (null, null, null);
+
+        var maxSdkVersion = maxMatch.Groups[1].Value; // e.g. "13.6.2"
+
+        // 2. Find AdMob AppLovin mediation adapter Dependencies.xml
+        var admobPath = FindPackageCacheFile(
+            "com.google.ads.mobile.mediation.applovin",
+            Path.Combine("source", "plugin", "Assets", "GoogleMobileAds", "Mediation",
+                         "AppLovin", "Editor", "AppLovinMediationDependencies.xml"));
+
+        if (string.IsNullOrEmpty(admobPath))
+            return (null, maxSdkVersion, null);
+
+        var admobContent = File.ReadAllText(admobPath);
+        // e.g. <iosPod name="GoogleMobileAdsMediationAppLovin" version="= 13.6.1.0">
+        // Extract first 3 components: "13.6.1"
+        var adapterMatch = Regex.Match(admobContent,
+            @"<iosPod\s+name=""GoogleMobileAdsMediationAppLovin""\s+version=""[=\s]*(\d+\.\d+\.\d+)\.\d+""");
+        if (!adapterMatch.Success)
+            return (admobPath, maxSdkVersion, null);
+
+        var adapterSdkVersion = adapterMatch.Groups[1].Value; // e.g. "13.6.1"
+
+        return (admobPath, maxSdkVersion, adapterSdkVersion);
     }
 
     // ── Conflict logic ──────────────────────────────────────────────────
@@ -256,6 +375,33 @@ public static class CocoaPodsConflictFixer
     }
 
     /// <summary>
+    /// Patches the AdMob AppLovin mediation adapter Dependencies.xml so that the
+    /// GoogleMobileAdsMediationAppLovin CocoaPod version matches the AppLovin MAX SDK's
+    /// AppLovinSDK requirement. For example, if AppLovin MAX requires AppLovinSDK = 13.6.2,
+    /// this changes GoogleMobileAdsMediationAppLovin version to = 13.6.2.0.
+    /// Returns true if the file was actually modified.
+    /// </summary>
+    static bool PatchAdmobApplovinDepsXml(string xmlPath, string requiredSdkVersion)
+    {
+        var content = File.ReadAllText(xmlPath);
+
+        // Replace: version="13.6.1.0" (or any 4-component version) with version="X.Y.Z.0"
+        var patched = Regex.Replace(
+            content,
+            @"(<iosPod\s+name=""GoogleMobileAdsMediationAppLovin""\s+version="")[^""]+("")",
+            $"$1{requiredSdkVersion}.0$2");
+
+        if (patched == content)
+            return false;
+
+        File.WriteAllText(xmlPath, patched);
+        UnityEngine.Debug.Log(
+            $"[NoctuaSDK] Patched GoogleMobileAdsMediationAppLovin → '{requiredSdkVersion}.0' in\n{xmlPath}\n" +
+            "NOTE: This file is inside Library/PackageCache and will be reset if the package cache is cleared.");
+        return true;
+    }
+
+    /// <summary>
     /// Removes the legacy ~/.cocoapods/repos/cocoapods git mirror (introduced before the CDN trunk
     /// source was available). Its presence causes "Found multiple specifications" warnings for every
     /// pod that is also indexed on trunk. Returns true if the repo was removed.
@@ -271,33 +417,17 @@ public static class CocoaPodsConflictFixer
 
         try
         {
-            // `pod` is typically at /usr/local/bin/pod or /usr/bin/pod; use login shell to find it.
-            // Do NOT redirect stdout/stderr — if pipes are not drained the child process deadlocks.
-            var psi = new ProcessStartInfo("/bin/bash", "-lc \"pod repo remove cocoapods\"")
-            {
-                RedirectStandardOutput = false,
-                RedirectStandardError  = false,
-                UseShellExecute        = false,
-                CreateNoWindow         = true
-            };
-
-            using var proc = Process.Start(psi);
-            if (proc == null) return false;
-            proc.WaitForExit(30_000); // 30-second timeout
-
-            bool removed = !Directory.Exists(repoPath);
-            if (removed)
-                UnityEngine.Debug.Log("[NoctuaSDK] Removed legacy ~/.cocoapods/repos/cocoapods.");
-            else
-                UnityEngine.Debug.LogWarning(
-                    "[NoctuaSDK] 'pod repo remove cocoapods' ran but the directory still exists. " +
-                    "You may need to delete ~/.cocoapods/repos/cocoapods manually.");
-
-            return removed;
+            // Delete the directory directly — more reliable than shelling out to `pod repo remove`
+            // which can fail if `pod` is not on the shell PATH inside a Unity Editor process.
+            Directory.Delete(repoPath, recursive: true);
+            UnityEngine.Debug.Log("[NoctuaSDK] Removed legacy ~/.cocoapods/repos/cocoapods.");
+            return true;
         }
         catch (Exception ex)
         {
-            UnityEngine.Debug.LogError($"[NoctuaSDK] Failed to run 'pod repo remove': {ex.Message}");
+            UnityEngine.Debug.LogError(
+                $"[NoctuaSDK] Failed to delete ~/.cocoapods/repos/cocoapods: {ex.Message}\n" +
+                "Delete it manually:  rm -rf ~/.cocoapods/repos/cocoapods");
             return false;
         }
     }

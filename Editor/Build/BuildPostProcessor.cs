@@ -739,6 +739,7 @@ using UnityEditor.Graphs;
             ModifyRootBuildGradle(rootAndroidProjectPath, noctuaConfig);
             ModifyLauncherBuildGradle(rootAndroidProjectPath, noctuaConfig);
             CopyOrRemoveGoogleServicesJson(rootAndroidProjectPath, noctuaConfig);
+            InjectGradleDuplicateDepsFix(path);
         }
 
         private static void ModifyAndroidManifest(string path, GlobalConfig noctuaConfig)
@@ -1187,19 +1188,116 @@ using UnityEditor.Graphs;
             return new Version(7, 0); // Default to Gradle 7.0 if parsing fails
         }
         
+        // Maps (AppLovin MAX adapter package prefix, AdMob adapter package) to a conflict entry.
+        // When both adapters for the same network are installed, their shared transitive native SDK
+        // is published in BOTH AAR and JAR formats from different Maven repos. Gradle downloads both
+        // packaging variants even when versions match → CheckDuplicatesRunnable fails.
+        //
+        // Fix: exclude the artifact from ALL transitive chains, then re-add it as a single direct
+        // implementation dependency. Direct deps are NOT affected by configurations.all.exclude,
+        // so Gradle resolves it exactly once from one repo in one format.
+        private static readonly List<(string maxPkg, string admobPkg, string excludeGroup, string excludeModule, string directDep)> GradleDuplicateFixSpecs = new()
+        {
+            // Maio SDK is served as both AAR (imobile-maio.github.io) and JAR (maven central)
+            (
+                "com.applovin.mediation.adapters.maio",
+                "com.google.ads.mobile.mediation.maio",
+                "com.maio",
+                "android-sdk-v2",
+                "com.maio:android-sdk-v2:2.0.4"
+            ),
+        };
+
+        private static void InjectGradleDuplicateDepsFix(string unityLibraryPath)
+        {
+            var manifestPath = Path.Combine(Application.dataPath, "..", "Packages", "manifest.json");
+
+            if (!File.Exists(manifestPath))
+            {
+                LogWarning("Packages/manifest.json not found — skipping Gradle duplicate dependency fix.");
+                return;
+            }
+
+            var manifestContent = File.ReadAllText(manifestPath);
+            var manifest = Newtonsoft.Json.Linq.JObject.Parse(manifestContent);
+            var deps = manifest["dependencies"] as Newtonsoft.Json.Linq.JObject;
+
+            if (deps == null)
+            {
+                LogWarning("manifest.json has no 'dependencies' — skipping Gradle duplicate dependency fix.");
+                return;
+            }
+
+            var matched = new List<(string excludeGroup, string excludeModule, string directDep)>();
+
+            foreach (var (maxPkg, admobPkg, excludeGroup, excludeModule, directDep) in GradleDuplicateFixSpecs)
+            {
+                bool hasMax = deps.ContainsKey(maxPkg + ".android")
+                           || deps.ContainsKey(maxPkg + ".ios");
+                bool hasAdmob = deps.ContainsKey(admobPkg);
+
+                if (hasMax && hasAdmob)
+                    matched.Add((excludeGroup, excludeModule, directDep));
+            }
+
+            if (matched.Count == 0)
+                return;
+
+            var buildGradlePath = Path.Combine(unityLibraryPath, "build.gradle");
+
+            if (!File.Exists(buildGradlePath))
+            {
+                LogWarning($"unityLibrary/build.gradle not found at {buildGradlePath}");
+                return;
+            }
+
+            var gradleContent = File.ReadAllText(buildGradlePath);
+
+            if (gradleContent.Contains("// Noctua SDK: Duplicate fix"))
+            {
+                Log("Gradle duplicate dependency fix already present — skipping.");
+                return;
+            }
+
+            // Root cause: some repos (e.g. imobile-maio.github.io) publish the same artifact in
+            // BOTH .aar and .jar formats. When two adapters request different types, Gradle downloads
+            // both → CheckDuplicatesRunnable fails.
+            //
+            // Fix: configurations.all.exclude strips ALL transitive resolutions (both AAR and JAR).
+            // Then implementation '@aar' re-adds only the canonical AAR as a direct dep.
+            // Gradle exclude rules only affect transitive deps — direct implementation is NOT excluded.
+            var excludeRules = matched.ConvertAll(m => $"    exclude group: '{m.excludeGroup}', module: '{m.excludeModule}'");
+            var directDeps   = matched.ConvertAll(m => $"    implementation '{m.directDep}@aar'");
+
+            var fixBlock = "\n// Noctua SDK: Duplicate fix — resolves AAR+JAR dual-packaging conflict\n"
+                         + "// Auto-injected when both AppLovin MAX and AdMob adapters for the same network are installed.\n"
+                         + "configurations.all {\n"
+                         + string.Join("\n", excludeRules) + "\n"
+                         + "}\n"
+                         + "dependencies {\n"
+                         + string.Join("\n", directDeps) + "\n"
+                         + "}\n";
+
+            gradleContent += fixBlock;
+            File.WriteAllText(buildGradlePath, gradleContent);
+
+            var names = string.Join(", ", matched.ConvertAll(m => m.directDep));
+            Log($"Injected Gradle duplicate dependency fix for: {names}");
+        }
+
         private static void Log(string message, [CallerMemberName] string caller = "")
         {
-            Debug.Log($"{nameof(NoctuaAndroidBuildProcessor)}.{caller}: {message}");
+            Debug.Log($"[NoctuaSDK] {nameof(NoctuaAndroidBuildProcessor)}.{caller}: {message}");
         }
-        
+
         private static void LogError(string message, [CallerMemberName] string caller = "")
         {
-            Debug.LogError($"{nameof(NoctuaAndroidBuildProcessor)}.{caller}: {message}");
+            Debug.LogError($"[NoctuaSDK] {nameof(NoctuaAndroidBuildProcessor)}.{caller}: {message}");
         }
-        
+
         private static void LogWarning(string message, [CallerMemberName] string caller = "")
         {
-            Debug.LogWarning($"{nameof(NoctuaAndroidBuildProcessor)}.{caller}: {message}");
+            Debug.LogWarning($"[NoctuaSDK] {nameof(NoctuaAndroidBuildProcessor)}.{caller}: {message}");
         }
     }
 #endif
