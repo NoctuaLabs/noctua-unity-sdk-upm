@@ -4,6 +4,24 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.92.0] - 2026-04-10
+
+### 🚀 Features
+
+- Add **Noctua Integration Manager** (`Noctua > Noctua Integration Manager`) — Unity Editor window for browsing and installing ad network adapter UPM packages
+  - Recommended Setup section: pre-validated 6-package combination (AppLovin MAX + AdMob) that runs on both Android and iOS without CocoaPods or Gradle version conflicts
+  - AppLovin MAX — Ad Network Adapters: 22 adapters with Install / → Stable / Remove buttons; version color-coded (green = up-to-date, amber = outdated)
+  - AdMob — Mediation Adapters: 17 unified packages from OpenUPM
+  - Adaptive layout — name columns expand to window width; all adapter versions pre-populated to verified-stable releases
+  - Clicking Install/Update/Remove auto-resolves UPM packages immediately via `Client.Resolve()`
+- Add **CocoaPods Conflict Fixer** (`Noctua > iOS > Fix CocoaPods Conflicts`) — auto-detects and patches `Google-Mobile-Ads-SDK` version conflicts between `com.google.ads.mobile` and AppLovin MAX Google adapter
+  - Menu items greyed out unless active build target is iOS
+  - Dynamic version detection from `Library/PackageCache` — stays correct as packages update
+
+### 🐛 Bug Fixes
+
+- Downgrade Meta/Facebook Android MAX adapter to `6.20.0` — version `6.21.0` has a documented `D8: NullPointerException` build failure with Gradle 8 / AGP 7.x (AppLovin issue #563)
+
 ## [0.91.0] - 2026-04-07
 
 ### 🚀 Features

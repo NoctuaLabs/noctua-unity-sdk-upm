@@ -1,6 +1,6 @@
 # Noctua SDK for Unity
 
-**Version:** 0.91.0 | **Unity:** 2021.3+ | **Platforms:** Android, iOS
+**Version:** 0.92.0 | **Unity:** 2021.3+ | **Platforms:** Android, iOS
 
 For full integration details and usage guides, visit the official documentation: https://docs.noctua.gg
 
@@ -24,7 +24,7 @@ Add to `Packages/manifest.json`:
 ```json
 {
   "dependencies": {
-    "com.noctuagames.sdk": "https://github.com/noctuagames/noctua-sdk-unity-upm.git#0.91.0"
+    "com.noctuagames.sdk": "https://github.com/noctuagames/noctua-sdk-unity-upm.git#0.92.0"
   }
 }
 ```
@@ -49,6 +49,36 @@ Noctua.Event.TrackCustomEvent("level_complete", new Dictionary<string, object> {
 // Purchase
 var result = await Noctua.IAP.PurchaseItemAsync(productId);
 ```
+
+## Ad Network Setup (Integration Manager)
+
+Open **Noctua > Noctua Integration Manager** in the Unity menu bar.
+
+### Recommended Setup
+
+One-click install of a pre-validated combination that runs AppLovin MAX and AdMob demand on both Android and iOS without version conflicts:
+
+| Package | Version | Notes |
+|---------|---------|-------|
+| AppLovin MAX SDK | 8.6.2 | Wraps MAX SDK 13.6.2 |
+| AdMob / GMA SDK | 11.0.0 | GMA iOS ~> 13.0.0, Android 25.0.0 |
+| AppLovin → Google Android | 25010000.0.0 | Routes AdMob demand (Android) |
+| AppLovin → Google iOS | 13020000.0.0 | Routes AdMob demand (iOS) |
+| AppLovin → Ad Manager Android | 25010000.0.0 | Routes Ad Manager demand (Android) |
+| AppLovin → Ad Manager iOS | 13020000.0.0 | Routes Ad Manager demand (iOS) |
+
+**Why no conflict:** `com.google.ads.mobile` 11.0.0 pins GMA iOS `~> 13.0.0` (allows any 13.x). AppLovin's Google adapter requires GMA iOS 13.2.0 — fully satisfied. On Android, GMA 25.1.0 is resolved via Gradle from the 25.x-compatible adapter, backward-compatible with AdMob SDK's declared 25.0.0 baseline.
+
+### CocoaPods Conflict Fixer (iOS only)
+
+**Noctua > iOS > Fix CocoaPods Conflicts** — patches `GoogleMobileAdsDependencies.xml` and removes the legacy `~/.cocoapods/repos/cocoapods` repo that causes version-conflict errors. Menu items are greyed out when build target is not iOS.
+
+### Ad Network Adapters
+
+- **AppLovin MAX — Ad Network Adapters**: 22 adapters from `unity.packages.applovin.com`
+- **AdMob — Mediation Adapters**: 17 adapters from `package.openupm.com`
+
+Version column is color-coded: green = at recommended, amber = update available. Click **→ Stable** to update to the verified version. Install/Update/Remove triggers `Client.Resolve()` automatically — no manual editor refresh needed.
 
 ## Session & Engagement Tracking
 
