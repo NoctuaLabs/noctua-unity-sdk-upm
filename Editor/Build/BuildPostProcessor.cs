@@ -175,11 +175,14 @@ using UnityEditor.Graphs;
 
             var targetGuid = proj.GetUnityMainTargetGuid();
 
-            // Swift pods (e.g. AppMetricaLibraryAdapter from Yandex adapter) require Swift
-            // standard libraries to be embedded in the main app binary. Without this the
-            // linker produces "Undefined symbol: …AppMetricaLibraryAdapter.shared…" errors.
-            proj.SetBuildProperty(targetGuid, "ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES", "YES");
-            Log("Set ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES on Unity-iPhone target.");
+            // Some ad-network adapters pull in Swift frameworks (e.g. Yandex → AppMetricaLibraryAdapter).
+            // Only embed Swift standard libraries when such an adapter is actually installed;
+            // unconditionally setting YES bloats the binary when no Swift frameworks are present.
+            if (ManifestContainsSwiftAdapter())
+            {
+                proj.SetBuildProperty(targetGuid, "ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES", "YES");
+                Log("Set ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES (Swift-based ad adapter detected).");
+            }
 
             if (firebaseEnabled)
             {
@@ -456,6 +459,31 @@ using UnityEditor.Graphs;
             File.WriteAllText(projPath, project.WriteToString());
             UnityEngine.Debug.Log("[AdjustSignature] Post-build complete.");
 
+        }
+
+        /// <summary>
+        /// Returns true when manifest.json contains any ad-network adapter whose iOS SDK
+        /// is implemented in Swift and therefore requires ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES.
+        /// Extend this list as new Swift-based adapters are added to the Integration Manager.
+        /// </summary>
+        private static bool ManifestContainsSwiftAdapter()
+        {
+            var manifestPath = Path.Combine(Application.dataPath, "../Packages/manifest.json");
+            if (!File.Exists(manifestPath)) return false;
+
+            var manifest = File.ReadAllText(manifestPath);
+
+            // Known iOS adapters that ship Swift frameworks:
+            //   Yandex → AppMetricaLibraryAdapter (Swift singleton causes undefined symbol)
+            var swiftAdapterPackages = new[]
+            {
+                "com.applovin.mediation.adapters.yandex.ios",
+            };
+
+            foreach (var pkg in swiftAdapterPackages)
+                if (manifest.Contains(pkg)) return true;
+
+            return false;
         }
 
         private static void Log(string message)
