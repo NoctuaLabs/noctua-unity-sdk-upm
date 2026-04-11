@@ -99,7 +99,7 @@ public class NoctuaIntegrationManagerWindow : EditorWindow
         { "Chartboost",            ("com.applovin.mediation.adapters.chartboost.android",       "9110100.0.0",   "com.applovin.mediation.adapters.chartboost.ios",       "9110000.0.0")  },
         { "InMobi",                ("com.applovin.mediation.adapters.inmobi.android",           "11020000.0.0",  "com.applovin.mediation.adapters.inmobi.ios",           "11010100.0.0") },
         { "Mintegral",             ("com.applovin.mediation.adapters.mintegral.android",        "17011100.0.0",  "com.applovin.mediation.adapters.mintegral.ios",        "800080000.0.0")},
-        { "ByteDance / Pangle",    ("com.applovin.mediation.adapters.bytedance.android",        "709010300.0.0", "com.applovin.mediation.adapters.bytedance.ios",        "709000000.0.0")},
+        { "ByteDance / Pangle",    ("com.applovin.mediation.adapters.bytedance.android",        "709010300.0.0", "com.applovin.mediation.adapters.bytedance.ios",        "709010100.0.0")},
         { "BidMachine",            ("com.applovin.mediation.adapters.bidmachine.android",       "3060100.0.0",   "com.applovin.mediation.adapters.bidmachine.ios",       "305010000.0.0")},
         // Tier 3
         { "Yandex",                ("com.applovin.mediation.adapters.yandex.android",           "7180500.0.0",   "com.applovin.mediation.adapters.yandex.ios",           "7180400.0.0")  },
@@ -126,7 +126,7 @@ public class NoctuaIntegrationManagerWindow : EditorWindow
         { "Chartboost",             ("com.google.ads.mobile.mediation.chartboost",          "4.11.2") },
         { "Meta Audience Network",  ("com.google.ads.mobile.mediation.metaaudiencenetwork", "3.18.3") },
         { "Liftoff / Vungle",       ("com.google.ads.mobile.mediation.liftoffmonetize",     "5.7.1")  },
-        { "Pangle / ByteDance",     ("com.google.ads.mobile.mediation.pangle",              "5.9.0")  },
+        { "Pangle / ByteDance",     ("com.google.ads.mobile.mediation.pangle",              "5.9.1")  },
         { "Mintegral",              ("com.google.ads.mobile.mediation.mintegral",           "2.0.6")  },
         { "DT Exchange / Fyber",    ("com.google.ads.mobile.mediation.dtexchange",          "3.5.6")  },
         { "InMobi",                 ("com.google.ads.mobile.mediation.inmobi",              "5.0.2")  },

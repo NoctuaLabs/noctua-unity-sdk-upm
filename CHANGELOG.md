@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### 🐛 Bug Fixes
+
+- Remove Phase 1 immediate-persist from `EventSender.Send()` — minimal event was stored synchronously before Firebase ID fetch, causing a duplicate event row alongside the enriched Phase 2 event. Server received two `session_start` / `noctua_user_engagement` events per trigger (double-tracking). Removed `_immediateEvents` HashSet and Phase 1 block entirely.
+- Fix Bloblang processing error (`parsing time "1775805644" as RFC3339`) — Phase 1 payload included `event_time` as Unix milliseconds integer without a `timestamp` ISO 8601 field; server pipeline failed to parse it. Resolved by removing Phase 1.
+- Fix `is_sandbox` null serialization — `_isSandbox` (`bool?`) was unconditionally added to event payloads, serializing as JSON `null` when not set. Now only added when explicitly configured via `SetProperties(isSandbox: ...)`.
+- Fix ByteDance / Pangle iOS adapter version: `com.applovin.mediation.adapters.bytedance.ios` corrected from `709000000.0.0` (non-existent) to `709010100.0.0` (only available registry version). Fixes `Package cannot be found` UPM resolution error.
+- Bump AdMob Pangle adapter (`com.google.ads.mobile.mediation.pangle`) from `5.9.0` to `5.9.1`.
+
 ## [0.92.0] - 2026-04-10
 
 ### 🚀 Features

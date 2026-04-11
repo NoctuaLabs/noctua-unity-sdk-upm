@@ -40,12 +40,7 @@ namespace Tests.Runtime
         public long? player_id;
         public long? credential_id;
         public string credential_provider;
-        /// <summary>
-        /// Set to <c>true</c> on Phase 1 (minimal/immediate) entries written by EventSender
-        /// for crash-survival before GeoIP completes. Phase 2 (full enriched) entries do NOT
-        /// have this field. Tests filter these out to see canonical Phase 2 events only.
-        /// </summary>
-        public bool? immediate;
+        public bool? is_sandbox;
     }
 
     public class EventTest
@@ -976,15 +971,111 @@ namespace Tests.Runtime
                 .Distinct()
                 .ToList();
 
-            var allEvents = lines.Select(JsonConvert.DeserializeObject<EventData>).ToList();
-
-            // Filter out Phase 1 (immediate/minimal) entries. EventSender writes two storage rows
-            // for events in _immediateEvents (session_start, session_end, noctua_user_engagement,
-            // noctua_user_engagement_per_session): a minimal {"immediate":true,...} crash-survival
-            // entry immediately (Phase 1) and the full enriched entry after GeoIP (Phase 2).
-            // Tests should only see the canonical Phase 2 entries; Phase 1 has no sdk_version,
-            // device fields, or country and would break assertion on mandatory field presence.
-            return allEvents.Where(e => e.immediate != true).ToList();
+            return lines.Select(JsonConvert.DeserializeObject<EventData>).ToList();
         }
+
+        [UnityTest]
+        public IEnumerator SessionStart_SendsExactlyOnce_NoDoubleTracking() => UniTask.ToCoroutine(
+            async () =>
+            {
+                var eventSender = new EventSender(
+                    new EventSenderConfig
+                    {
+                        BaseUrl = "http://localhost:7777/api/v1",
+                        ClientId = "test_client_id",
+                        BatchSize = 1,
+                        CycleDelay = 100,
+                        NativePlugin = new DefaultNativePlugin()
+                    },
+                    new NoctuaLocale()
+                );
+
+                eventSender.Send("session_start");
+
+                // Wait for enrichment async task and batch send loop
+                await UniTask.Delay(3000);
+                eventSender.Flush();
+                await UniTask.Delay(500);
+
+                var sb = new StringBuilder();
+                while (_server.Requests.TryDequeue(out var req))
+                    sb.AppendLine(req.Body);
+
+                var sessionStartEvents = sb.ToString().Trim()
+                    .Split('\n')
+                    .Where(line => !string.IsNullOrWhiteSpace(line))
+                    .Select(JsonConvert.DeserializeObject<Dictionary<string, object>>)
+                    .Where(e => e != null && e.ContainsKey("event_name") && e["event_name"].ToString() == "session_start")
+                    .ToList();
+
+                Assert.AreEqual(1, sessionStartEvents.Count,
+                    $"Expected exactly 1 session_start event, got {sessionStartEvents.Count}. " +
+                    "Double-tracking detected — Phase 1 immediate persist must be removed.");
+
+                eventSender.Dispose();
+            }
+        );
+
+        [UnityTest]
+        public IEnumerator IsSandbox_NotIncludedWhenNotSet() => UniTask.ToCoroutine(
+            async () =>
+            {
+                var eventSender = new EventSender(
+                    new EventSenderConfig
+                    {
+                        BaseUrl = "http://localhost:7777/api/v1",
+                        ClientId = "test_client_id",
+                        BatchSize = 1,
+                        CycleDelay = 100,
+                        NativePlugin = new DefaultNativePlugin()
+                    },
+                    new NoctuaLocale()
+                );
+
+                // Do NOT call SetProperties(isSandbox: ...) — leave it unset (null)
+                eventSender.Send("test_event");
+
+                var events = await GetEventsFromServerAsync();
+
+                Assert.AreEqual(1, events.Count,
+                    $"Expected 1 event, got {events.Count}");
+                Assert.IsNull(events[0].is_sandbox,
+                    "is_sandbox must be absent (null) in the event payload when not explicitly set");
+
+                eventSender.Dispose();
+            }
+        );
+
+        [UnityTest]
+        public IEnumerator IsSandbox_IncludedWhenExplicitlySet() => UniTask.ToCoroutine(
+            async () =>
+            {
+                var eventSender = new EventSender(
+                    new EventSenderConfig
+                    {
+                        BaseUrl = "http://localhost:7777/api/v1",
+                        ClientId = "test_client_id",
+                        BatchSize = 1,
+                        CycleDelay = 100,
+                        NativePlugin = new DefaultNativePlugin()
+                    },
+                    new NoctuaLocale()
+                );
+
+                eventSender.SetProperties(isSandbox: true);
+                eventSender.Send("test_event");
+
+                var events = await GetEventsFromServerAsync();
+
+                Assert.AreEqual(1, events.Count,
+                    $"Expected 1 event, got {events.Count}");
+                Assert.IsNotNull(events[0].is_sandbox,
+                    "is_sandbox must be present in the event payload when explicitly set");
+                Assert.AreEqual(true, events[0].is_sandbox,
+                    "is_sandbox must be true when SetProperties(isSandbox: true) was called");
+
+                eventSender.Dispose();
+            }
+        );
     }
 }
