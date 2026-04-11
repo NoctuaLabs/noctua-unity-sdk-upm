@@ -74,11 +74,8 @@ public static class BuildPreprocessor
         string defines = PlayerSettings.GetScriptingDefineSymbolsForGroup(targetGroup);
         var defineList = defines.Split(';').Where(d => !string.IsNullOrWhiteSpace(d)).ToList();
 
-        bool hasAdMob = Directory.Exists("Assets/GoogleMobileAds") ||
-                        Directory.Exists("Packages/com.google.ads.mobile/GoogleMobileAds");
-
-        bool hasAppLovin = Directory.Exists("Assets/MaxSdk") ||
-                           Directory.Exists("Packages/com.applovin.mediation.ads");
+        bool hasAdMob = IsPackageInstalled("Assets/GoogleMobileAds", "com.google.ads.mobile");
+        bool hasAppLovin = IsPackageInstalled("Assets/MaxSdk", "com.applovin.mediation.ads");
 
         Debug.Log($"[{targetGroup}] AdMob SDK Exists: {hasAdMob}");
         Debug.Log($"[{targetGroup}] AppLovin SDK Exists: {hasAppLovin}");
@@ -92,6 +89,23 @@ public static class BuildPreprocessor
             PlayerSettings.SetScriptingDefineSymbolsForGroup(targetGroup, newDefines);
             Debug.Log($"[{targetGroup}] Updated Preprocessor Symbols: {newDefines}");
         }
+    }
+
+    /// <summary>
+    /// Returns true if the SDK is installed either as a legacy asset folder
+    /// (e.g. Assets/MaxSdk from a .unitypackage import) or as a UPM registry
+    /// package (Library/PackageCache/&lt;packageId&gt;@*).
+    /// </summary>
+    private static bool IsPackageInstalled(string legacyAssetsPath, string upmPackageId)
+    {
+        if (Directory.Exists(legacyAssetsPath))
+            return true;
+
+        var cacheDir = Path.Combine("Library", "PackageCache");
+        if (!Directory.Exists(cacheDir))
+            return false;
+
+        return Directory.GetDirectories(cacheDir, upmPackageId + "@*").Length > 0;
     }
 
     private static void UpdateDefineSymbol(List<string> defineList, string symbol, bool shouldExist)
@@ -108,10 +122,21 @@ public static class BuildPreprocessor
         }
     }
 
+    public static void AddDefineSymbol(string symbol, BuildTargetGroup targetGroup)
+    {
+        string defines = PlayerSettings.GetScriptingDefineSymbolsForGroup(targetGroup);
+        var defineList = defines.Split(';').Where(d => !string.IsNullOrWhiteSpace(d)).ToList();
+
+        if (!defineList.Contains(symbol))
+        {
+            defineList.Add(symbol);
+            PlayerSettings.SetScriptingDefineSymbolsForGroup(targetGroup, string.Join(";", defineList));
+            Debug.Log($"[{targetGroup}] Added define symbol: {symbol}");
+        }
+    }
+
     public static void RemoveDefineSymbol(string symbol, BuildTargetGroup targetGroup)
     {
-        Debug.Log($"Removing define symbol: {symbol} for target group: {targetGroup}");
-
         string defines = PlayerSettings.GetScriptingDefineSymbolsForGroup(targetGroup);
         var defineList = defines.Split(';').Where(d => !string.IsNullOrWhiteSpace(d)).ToList();
 
@@ -119,7 +144,7 @@ public static class BuildPreprocessor
         {
             defineList.Remove(symbol);
             PlayerSettings.SetScriptingDefineSymbolsForGroup(targetGroup, string.Join(";", defineList));
-            Debug.Log($"[{targetGroup}] Manually removed define symbol: {symbol}");
+            Debug.Log($"[{targetGroup}] Removed define symbol: {symbol}");
         }
     }
 

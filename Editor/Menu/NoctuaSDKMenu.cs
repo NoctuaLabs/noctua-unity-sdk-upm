@@ -790,6 +790,13 @@ public class NoctuaIntegrationManagerWindow : EditorWindow
         {
             Debug.Log("[NoctuaSDK] Recommended setup already up to date — no changes made.");
         }
+
+        // Recommended setup always includes both AppLovin MAX and AdMob — ensure both
+        // define symbols are present regardless of whether manifest actually changed.
+        BuildPreprocessor.AddDefineSymbol("UNITY_APPLOVIN", BuildTargetGroup.Android);
+        BuildPreprocessor.AddDefineSymbol("UNITY_APPLOVIN", BuildTargetGroup.iOS);
+        BuildPreprocessor.AddDefineSymbol("UNITY_ADMOB", BuildTargetGroup.Android);
+        BuildPreprocessor.AddDefineSymbol("UNITY_ADMOB", BuildTargetGroup.iOS);
     }
 
     // ── Manifest operations ───────────────────────────────────────────────
@@ -828,6 +835,20 @@ public class NoctuaIntegrationManagerWindow : EditorWindow
         {
             WriteManifest(manifest);
             Debug.Log($"[NoctuaSDK] {provider} ({packageName}) → {version}");
+        }
+
+        // Always ensure the define symbol is present — WriteManifest triggers Client.Resolve()
+        // but domain reload may not happen immediately (e.g. on version-only updates), so
+        // set the symbol explicitly here rather than waiting for [InitializeOnLoad] to re-run.
+        if (provider == "AppLovin")
+        {
+            BuildPreprocessor.AddDefineSymbol("UNITY_APPLOVIN", BuildTargetGroup.Android);
+            BuildPreprocessor.AddDefineSymbol("UNITY_APPLOVIN", BuildTargetGroup.iOS);
+        }
+        else if (provider == "AdMob")
+        {
+            BuildPreprocessor.AddDefineSymbol("UNITY_ADMOB", BuildTargetGroup.Android);
+            BuildPreprocessor.AddDefineSymbol("UNITY_ADMOB", BuildTargetGroup.iOS);
         }
     }
 
