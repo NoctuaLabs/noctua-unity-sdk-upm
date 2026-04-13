@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using NUnit.Framework;
 using Tests.Runtime;
 using UnityEngine;
+using IAAModel = com.noctuagames.sdk.IAA;
 
 namespace com.noctuagames.sdk.Tests.IAA
 {
@@ -66,7 +67,7 @@ namespace com.noctuagames.sdk.Tests.IAA
                 Variants        = variants ?? new List<AdVariantConfig>
                 {
                     new AdVariantConfig { VariantId = "control",   Weight = 50, IaaOverride = null },
-                    new AdVariantConfig { VariantId = "treatment", Weight = 50, IaaOverride = new IAA
+                    new AdVariantConfig { VariantId = "treatment", Weight = 50, IaaOverride = new IAAModel
                     {
                         CooldownSeconds = new CooldownConfig { Interstitial = 10 }
                     }}
@@ -84,7 +85,7 @@ namespace com.noctuagames.sdk.Tests.IAA
         [Test]
         public void ApplyExperiments_NullExperiments_ReturnsBaseConfig()
         {
-            var baseConfig = new IAA { Mediation = "admob" };
+            var baseConfig = new IAAModel { Mediation = "admob" };
             var mgr        = MakeManager(null);
 
             var result = mgr.ApplyExperiments(baseConfig, "US");
@@ -95,7 +96,7 @@ namespace com.noctuagames.sdk.Tests.IAA
         [Test]
         public void ApplyExperiments_EmptyExperiments_ReturnsBaseConfig()
         {
-            var baseConfig = new IAA { Mediation = "admob" };
+            var baseConfig = new IAAModel { Mediation = "admob" };
             var mgr        = MakeManager(new List<AdExperimentConfig>());
 
             var result = mgr.ApplyExperiments(baseConfig, "US");
@@ -111,7 +112,7 @@ namespace com.noctuagames.sdk.Tests.IAA
             // Force control assignment by persisting the variant
             PlayerPrefs.SetString($"{PrefsPrefix}exp_test_a_variant", "control");
 
-            var baseConfig = new IAA { CooldownSeconds = new CooldownConfig { Interstitial = 30 } };
+            var baseConfig = new IAAModel { CooldownSeconds = new CooldownConfig { Interstitial = 30 } };
             var mgr        = MakeManager(new List<AdExperimentConfig> { MakeExperiment("exp_test_a") });
 
             var result = mgr.ApplyExperiments(baseConfig, "US");
@@ -128,7 +129,7 @@ namespace com.noctuagames.sdk.Tests.IAA
         {
             PlayerPrefs.SetString($"{PrefsPrefix}exp_test_a_variant", "treatment");
 
-            var baseConfig = new IAA { CooldownSeconds = new CooldownConfig { Interstitial = 30 } };
+            var baseConfig = new IAAModel { CooldownSeconds = new CooldownConfig { Interstitial = 30 } };
             var mgr        = MakeManager(new List<AdExperimentConfig> { MakeExperiment("exp_test_a") });
 
             var result = mgr.ApplyExperiments(baseConfig, "US");
@@ -201,7 +202,7 @@ namespace com.noctuagames.sdk.Tests.IAA
             var experiment = MakeExperiment("exp_seg_filter",
                 segmentFilters: new List<string> { "t1", "t2" });
 
-            var baseConfig = new IAA { CooldownSeconds = new CooldownConfig { Interstitial = 30 } };
+            var baseConfig = new IAAModel { CooldownSeconds = new CooldownConfig { Interstitial = 30 } };
             var mgr        = MakeManager(new List<AdExperimentConfig> { experiment });
 
             // T3 country → tier = "t3" → experiment filtered out
@@ -218,7 +219,7 @@ namespace com.noctuagames.sdk.Tests.IAA
             var experiment = MakeExperiment("exp_seg_filter",
                 segmentFilters: new List<string>()); // empty = all tiers
 
-            var baseConfig = new IAA { CooldownSeconds = new CooldownConfig { Interstitial = 30 } };
+            var baseConfig = new IAAModel { CooldownSeconds = new CooldownConfig { Interstitial = 30 } };
             var mgr        = MakeManager(new List<AdExperimentConfig> { experiment });
 
             var result = mgr.ApplyExperiments(baseConfig, "VN"); // T3 country
@@ -234,7 +235,7 @@ namespace com.noctuagames.sdk.Tests.IAA
             PlayerPrefs.SetString($"{PrefsPrefix}exp_test_a_variant", "treatment");
 
             var experiment = MakeExperiment("exp_test_a", enabled: false);
-            var baseConfig = new IAA { CooldownSeconds = new CooldownConfig { Interstitial = 30 } };
+            var baseConfig = new IAAModel { CooldownSeconds = new CooldownConfig { Interstitial = 30 } };
             var mgr        = MakeManager(new List<AdExperimentConfig> { experiment });
 
             var result = mgr.ApplyExperiments(baseConfig, "US");
@@ -258,7 +259,7 @@ namespace com.noctuagames.sdk.Tests.IAA
                 Variants = new List<AdVariantConfig>
                 {
                     new AdVariantConfig { VariantId = "control",   Weight = 50, IaaOverride = null },
-                    new AdVariantConfig { VariantId = "treatment", Weight = 50, IaaOverride = new IAA
+                    new AdVariantConfig { VariantId = "treatment", Weight = 50, IaaOverride = new IAAModel
                     {
                         CooldownSeconds = new CooldownConfig { Interstitial = 10, Rewarded = 60, AppOpen = 30 }
                     }}
@@ -273,7 +274,7 @@ namespace com.noctuagames.sdk.Tests.IAA
                 Variants = new List<AdVariantConfig>
                 {
                     new AdVariantConfig { VariantId = "control",   Weight = 50, IaaOverride = null },
-                    new AdVariantConfig { VariantId = "treatment", Weight = 50, IaaOverride = new IAA
+                    new AdVariantConfig { VariantId = "treatment", Weight = 50, IaaOverride = new IAAModel
                     {
                         FrequencyCaps = new FrequencyCapConfig
                         {
@@ -284,7 +285,7 @@ namespace com.noctuagames.sdk.Tests.IAA
                 }
             };
 
-            var baseConfig = new IAA
+            var baseConfig = new IAAModel
             {
                 CooldownSeconds = new CooldownConfig { Interstitial = 30 },
                 FrequencyCaps   = new FrequencyCapConfig
@@ -307,7 +308,7 @@ namespace com.noctuagames.sdk.Tests.IAA
         {
             var experiment = MakeExperiment("exp_test_a");
             var mgr        = MakeManager(new List<AdExperimentConfig> { experiment });
-            var baseConfig = new IAA();
+            var baseConfig = new IAAModel();
 
             // First call — should track the event
             mgr.ApplyExperiments(baseConfig, "US");
@@ -328,7 +329,7 @@ namespace com.noctuagames.sdk.Tests.IAA
             var experiment = MakeExperiment("exp_test_a");
             var mgr        = MakeManager(new List<AdExperimentConfig> { experiment });
 
-            mgr.ApplyExperiments(new IAA(), "US");
+            mgr.ApplyExperiments(new IAAModel(), "US");
 
             var events = _eventSender.GetEventsByName("ad_experiment_assigned");
             Assert.AreEqual(1, events.Count);
