@@ -18,6 +18,8 @@ namespace com.noctuagames.sdk
         private readonly Dictionary<string, string> _adFormatOverrides;
         private readonly AdNetworkPerformanceTracker _performanceTracker;
         private readonly bool _dynamicOptimization;
+        private CpmFloorManager _cpmFloorManager;
+        private string _segmentKey;
 
         private bool _primaryInitialized;
         private bool _secondaryInitialized;
@@ -67,24 +69,42 @@ namespace com.noctuagames.sdk
         /// <param name="adFormatOverrides">Per-format network preference overrides.</param>
         /// <param name="performanceTracker">Optional tracker for dynamic optimization.</param>
         /// <param name="dynamicOptimization">Whether to use performance-based routing.</param>
+        /// <param name="cpmFloorManager">Optional CPM floor manager for floor enforcement.</param>
+        /// <param name="segmentKey">Composite user segment key for floor resolution (e.g. "t1_nonpayer_loyal_d30plus").</param>
         public HybridAdOrchestrator(
             IAdNetwork primary,
             IAdNetwork secondary = null,
             Dictionary<string, string> adFormatOverrides = null,
             AdNetworkPerformanceTracker performanceTracker = null,
-            bool dynamicOptimization = false)
+            bool dynamicOptimization = false,
+            CpmFloorManager cpmFloorManager = null,
+            string segmentKey = null)
         {
             _primary = primary ?? throw new ArgumentNullException(nameof(primary));
             _secondary = secondary;
             _adFormatOverrides = adFormatOverrides ?? new Dictionary<string, string>();
             _performanceTracker = performanceTracker;
             _dynamicOptimization = dynamicOptimization;
+            _cpmFloorManager = cpmFloorManager;
+            _segmentKey = segmentKey ?? "";
 
             SubscribeToNetworkEvents(_primary);
             if (_secondary != null)
             {
                 SubscribeToNetworkEvents(_secondary);
             }
+        }
+
+        /// <summary>Updates the cached composite segment key used for CPM floor resolution.</summary>
+        internal void UpdateSegmentKey(string segmentKey)
+        {
+            _segmentKey = segmentKey ?? "";
+        }
+
+        /// <summary>Updates the CPM floor manager (called when experiment overrides are applied).</summary>
+        internal void UpdateCpmFloorManager(CpmFloorManager cpmFloorManager)
+        {
+            _cpmFloorManager = cpmFloorManager;
         }
 
         /// <summary>
@@ -149,6 +169,11 @@ namespace com.noctuagames.sdk
 
         /// <summary>
         /// Attempts to show an ad using the preferred network, falling back to the other on failure.
+        /// CPM floor checks are applied when a <see cref="CpmFloorManager"/> and
+        /// <see cref="AdNetworkPerformanceTracker"/> are configured:
+        ///   - HardFail on preferred → skip to fallback.
+        ///   - HardFail on both → fire OnAdFailedDisplayed immediately.
+        ///   - SoftFail → log warning, proceed with the network anyway.
         /// </summary>
         /// <param name="format">The ad format being shown (for routing).</param>
         /// <param name="showAction">Action that takes a network and shows the ad.</param>
@@ -158,7 +183,9 @@ namespace com.noctuagames.sdk
             var preferred = GetNetworkForFormat(format);
             var fallback = preferred == _primary ? _secondary : _primary;
 
-            if (isReady == null || isReady(preferred))
+            bool preferredFloorPassed = EvaluateCpmFloor(preferred, format);
+
+            if (preferredFloorPassed && (isReady == null || isReady(preferred)))
             {
                 _log.Debug($"Showing {format} ad from preferred network: {preferred.NetworkName}");
                 _isAdShowing = true;
@@ -166,16 +193,41 @@ namespace com.noctuagames.sdk
                 return;
             }
 
-            if (fallback != null && (isReady == null || isReady(fallback)))
+            if (fallback != null)
             {
-                _log.Info($"Preferred network ({preferred.NetworkName}) not ready for {format}. Falling back to {fallback.NetworkName}.");
-                _isAdShowing = true;
-                showAction(fallback);
-                return;
+                bool fallbackFloorPassed = EvaluateCpmFloor(fallback, format);
+
+                if (fallbackFloorPassed && (isReady == null || isReady(fallback)))
+                {
+                    string reason = !preferredFloorPassed
+                        ? $"Preferred network ({preferred.NetworkName}) hard-floor blocked"
+                        : $"Preferred network ({preferred.NetworkName}) not ready";
+                    _log.Info($"{reason} for {format}. Falling back to {fallback.NetworkName}.");
+                    _isAdShowing = true;
+                    showAction(fallback);
+                    return;
+                }
             }
 
-            _log.Warning($"No network has a ready {format} ad.");
+            _log.Warning($"No network has a ready {format} ad (floor or availability check failed).");
             _onAdFailedDisplayed?.Invoke();
+        }
+
+        /// <summary>
+        /// Evaluates CPM floor for the given network and format.
+        /// Returns true if the network passes (or no floor is configured).
+        /// Returns false on HardFail. SoftFail returns true (logged as warning in CpmFloorManager).
+        /// </summary>
+        private bool EvaluateCpmFloor(IAdNetwork network, string format)
+        {
+            if (_cpmFloorManager == null || _performanceTracker == null)
+                return true;
+
+            double avgCpm = _performanceTracker.GetAverageCpm(network.NetworkName, format);
+            int samples   = _performanceTracker.GetSampleCount(network.NetworkName, format);
+            var result    = _cpmFloorManager.EvaluateFloor(network.NetworkName, format, avgCpm, samples, _segmentKey);
+
+            return result != CpmFloorResult.HardFail;
         }
 
         private void SubscribeToNetworkEvents(IAdNetwork network)

@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using Newtonsoft.Json;
 using UnityEngine.Scripting;
+using System;
 
 namespace com.noctuagames.sdk
 {
@@ -130,6 +131,18 @@ namespace com.noctuagames.sdk
         [JsonProperty("taichi")]
         public TaichiConfig Taichi;
 
+        /// <summary>CPM floor bidding configuration. When null or disabled, no floor enforcement is applied.</summary>
+        [JsonProperty("cpm_floors")]
+        public CpmFloorConfig CpmFloors;
+
+        /// <summary>
+        /// A/B experiment configurations for IAA. Experiments are chained in order; each active
+        /// variant's iaa_override is merged on top of the base config. Local experiments are used as
+        /// the default; server-provided experiments (via remote_configs.iaa.ad_experiments) override them.
+        /// </summary>
+        [JsonProperty("ad_experiments")]
+        public List<AdExperimentConfig> AdExperiments;
+
         /// <summary>
         /// Returns a new IAA config where fields from <paramref name="remote"/> override
         /// only when they are non-null. Fields absent in the remote response retain their
@@ -153,6 +166,8 @@ namespace com.noctuagames.sdk
                 DynamicOptimization = remote.DynamicOptimization ?? DynamicOptimization,
                 AppOpenAutoShow     = remote.AppOpenAutoShow     ?? AppOpenAutoShow,
                 Taichi              = remote.Taichi              ?? Taichi,
+                CpmFloors           = remote.CpmFloors           ?? CpmFloors,
+                AdExperiments       = remote.AdExperiments       ?? AdExperiments,
             };
         }
 
@@ -386,5 +401,107 @@ namespace com.noctuagames.sdk
         /// <summary>The mediation network ad unit identifier string.</summary>
         [JsonProperty("ad_unit_id")]
         public string adUnitID;
+    }
+
+    /// <summary>
+    /// CPM floor bidding configuration. Floors are enforced per ad format and country tier,
+    /// with optional overrides per composite user segment.
+    /// </summary>
+    [Preserve]
+    public class CpmFloorConfig
+    {
+        /// <summary>When false (or null), floor evaluation is skipped entirely.</summary>
+        [JsonProperty("enabled")]
+        public bool? Enabled;
+
+        /// <summary>
+        /// Minimum number of revenue impressions required per network/format before floors are enforced.
+        /// Prevents cold-start blocking when no historical CPM data is available. Default: 10.
+        /// </summary>
+        [JsonProperty("min_samples")]
+        public int? MinSamples;
+
+        /// <summary>
+        /// Per-format, per-country-tier floor entries.
+        /// Outer key: ad format ("interstitial", "rewarded", "banner", "app_open").
+        /// Inner key: country tier ("t1", "t2", "t3").
+        /// </summary>
+        [JsonProperty("floors")]
+        public Dictionary<string, Dictionary<string, CpmFloorEntry>> Floors;
+
+        /// <summary>
+        /// Per-composite-segment, per-format floor overrides.
+        /// Key: composite segment string (e.g. "t1_highspender_loyal_d30plus").
+        /// Value: format-keyed floor entries that override the tier-based floors above.
+        /// </summary>
+        [JsonProperty("segment_overrides")]
+        public Dictionary<string, Dictionary<string, CpmFloorEntry>> SegmentOverrides;
+    }
+
+    /// <summary>
+    /// A single CPM floor entry with a soft floor (warn but proceed) and a hard floor (block network).
+    /// </summary>
+    [Preserve]
+    public class CpmFloorEntry
+    {
+        /// <summary>Soft floor in USD CPM. If avg CPM is below this, log a warning but still try the network.</summary>
+        [JsonProperty("soft")]
+        public double Soft;
+
+        /// <summary>Hard floor in USD CPM. If avg CPM is below this, skip the network entirely.</summary>
+        [JsonProperty("hard")]
+        public double Hard;
+    }
+
+    /// <summary>
+    /// A/B experiment configuration for IAA. Each experiment assigns users to a variant deterministically
+    /// and applies the variant's IAA override on top of the base config.
+    /// </summary>
+    [Preserve]
+    public class AdExperimentConfig
+    {
+        /// <summary>Unique identifier for this experiment (e.g., "exp_rewarded_freq_q2_2026").</summary>
+        [JsonProperty("experiment_id")]
+        public string ExperimentId;
+
+        /// <summary>When false, this experiment is inactive and all users receive control.</summary>
+        [JsonProperty("enabled")]
+        public bool Enabled;
+
+        /// <summary>
+        /// Country tiers that participate in this experiment ("t1", "t2", "t3").
+        /// Null or empty means all users participate regardless of country tier.
+        /// </summary>
+        [JsonProperty("segment_filters")]
+        public List<string> SegmentFilters;
+
+        /// <summary>Variants for this experiment. Weights must sum to 100.</summary>
+        [JsonProperty("variants")]
+        public List<AdVariantConfig> Variants;
+    }
+
+    /// <summary>
+    /// A single variant within an A/B experiment.
+    /// </summary>
+    [Preserve]
+    public class AdVariantConfig
+    {
+        /// <summary>Unique variant identifier within the experiment (e.g., "control", "high_cap").</summary>
+        [JsonProperty("variant_id")]
+        public string VariantId;
+
+        /// <summary>
+        /// Integer weight for weighted random assignment (0–100). All variant weights within
+        /// an experiment must sum to 100.
+        /// </summary>
+        [JsonProperty("weight")]
+        public int Weight;
+
+        /// <summary>
+        /// Partial IAA override applied when this variant is active. Null means no override (control group).
+        /// Uses IAA.MergeWith semantics: only non-null fields override the base config.
+        /// </summary>
+        [JsonProperty("iaa_override")]
+        public IAA IaaOverride;
     }
 }

@@ -25,6 +25,11 @@ namespace com.noctuagames.sdk
         private AdNetworkPerformanceTracker _performanceTracker;
         private string _mediationType;
 
+        // CPM floor + segmentation (preserved across CreateNetworks calls)
+        private UserSegmentManager _segmentManager;
+        private CpmFloorManager _cpmFloorManager;
+        private string _cachedCountryCode;
+
         // Cached secondary app open unit ID for when secondary inits before primary (e.g. iOS: AppLovin before AdMob)
         private string _pendingSecondaryAppOpenId;
 
@@ -143,10 +148,139 @@ namespace com.noctuagames.sdk
         /// <summary>Returns the active mediation type string.</summary>
         public string MediationType => _mediationType;
 
+        // ── Diagnostic APIs (for sample app / debug use) ──────────────────────────
+
+        /// <summary>
+        /// Returns the current composite user segment key (e.g. "t1_nonpayer_loyal_d30plus").
+        /// Returns "not initialized" if the segment manager has not been created yet.
+        /// </summary>
+        public string GetSegmentKey()
+        {
+            if (_segmentManager == null) return "not initialized";
+            return _segmentManager.GetCompositeSegment(_cachedCountryCode);
+        }
+
+        /// <summary>
+        /// Returns a dictionary mapping each configured experiment ID to the assigned variant ID.
+        /// Reads from persisted PlayerPrefs so results are stable across sessions.
+        /// Returns an empty dictionary if no experiments are configured.
+        /// </summary>
+        public Dictionary<string, string> GetExperimentAssignments()
+        {
+            var result = new Dictionary<string, string>();
+            var experiments = IAAResponse?.AdExperiments;
+            if (experiments == null || experiments.Count == 0) return result;
+
+            foreach (var exp in experiments)
+            {
+                string variantKey = $"NoctuaExp_{exp.ExperimentId}_variant";
+                string variant = PlayerPrefs.GetString(variantKey, "unassigned");
+                result[exp.ExperimentId] = exp.Enabled ? variant : $"{variant} [off]";
+            }
+            return result;
+        }
+
+        /// <summary>
+        /// Returns CPM floor evaluation results for each format and active network.
+        /// Returns a status entry of "CPM floors disabled" if no floor manager is active.
+        /// </summary>
+        public Dictionary<string, string> GetCpmFloorStatus()
+        {
+            var result = new Dictionary<string, string>();
+
+            if (_cpmFloorManager == null)
+            {
+                result["status"] = "CPM floors disabled";
+                return result;
+            }
+
+            string segmentKey = _segmentManager?.GetCompositeSegment(_cachedCountryCode) ?? "";
+            string[] formats = { "interstitial", "rewarded", "banner", "app_open" };
+
+            foreach (string format in formats)
+            {
+                if (_orchestrator?.Primary != null)
+                {
+                    string network = _orchestrator.Primary.NetworkName;
+                    double avgCpm = _performanceTracker?.GetAverageCpm(network, format) ?? 0;
+                    int samples   = _performanceTracker?.GetSampleCount(network, format) ?? 0;
+                    var floor     = _cpmFloorManager.EvaluateFloor(network, format, avgCpm, samples, segmentKey);
+                    result[$"{format}/{network}"] = $"{floor} (cpm={avgCpm:F4}, n={samples})";
+                }
+
+                if (_orchestrator?.Secondary != null)
+                {
+                    string network = _orchestrator.Secondary.NetworkName;
+                    double avgCpm = _performanceTracker?.GetAverageCpm(network, format) ?? 0;
+                    int samples   = _performanceTracker?.GetSampleCount(network, format) ?? 0;
+                    var floor     = _cpmFloorManager.EvaluateFloor(network, format, avgCpm, samples, segmentKey);
+                    result[$"{format}/{network}"] = $"{floor} (cpm={avgCpm:F4}, n={samples})";
+                }
+            }
+
+            return result;
+        }
+
         internal void SetAdRevenueTracker(IAdRevenueTracker tracker)
         {
             _adRevenueTracker = tracker;
             _revenueTracker?.SetAdRevenueTracker(tracker);
+        }
+
+        /// <summary>
+        /// Sets the resolved country code so CPM floor and segmentation can use the correct tier.
+        /// Call this after the country is resolved in Noctua.Initialization.cs (before or after
+        /// IAAResponse is set — the orchestrator's segment key is updated either way).
+        /// </summary>
+        internal void SetCountryCode(string countryCode)
+        {
+            _cachedCountryCode = countryCode;
+            string segmentKey = _segmentManager?.GetCompositeSegment(countryCode) ?? "";
+            _orchestrator?.UpdateSegmentKey(segmentKey);
+            _log.Debug($"Country code set to '{countryCode}', segment key: '{segmentKey}'");
+        }
+
+        /// <summary>
+        /// Records a purchase for the current user, updating the payer tier in PlayerPrefs.
+        /// Should be called from the IAP purchase completion callback.
+        /// </summary>
+        internal void RecordPurchase() => _segmentManager?.RecordPurchase();
+
+        /// <summary>
+        /// Returns the segment manager instance (used by Noctua.Initialization.cs to pass
+        /// to AdExperimentManager without requiring a static reference).
+        /// </summary>
+        internal UserSegmentManager GetSegmentManager() => _segmentManager;
+
+        /// <summary>
+        /// Applies experiment overrides by updating only the frequency manager and CPM floor manager
+        /// with the new effective config — without restarting ad networks.
+        /// Called from Noctua.Initialization.cs after country is resolved and experiments are evaluated.
+        /// </summary>
+        internal void ApplyExperimentOverride(IAA effectiveIaa)
+        {
+            if (effectiveIaa == null) return;
+
+            // Ensure AppOpen cooldown has a sensible default
+            var mergedCooldowns = effectiveIaa.CooldownSeconds ?? new CooldownConfig();
+            if (mergedCooldowns.AppOpen <= 0) mergedCooldowns.AppOpen = 30;
+
+            // Recreate frequency manager with experiment-overridden config
+            _frequencyManager = new AdFrequencyManager(
+                effectiveIaa.FrequencyCaps,
+                mergedCooldowns,
+                effectiveIaa.EnabledFormats
+            );
+
+            // Recreate CPM floor manager with experiment-overridden config
+            _cpmFloorManager = (effectiveIaa.CpmFloors?.Enabled == true)
+                ? new CpmFloorManager(effectiveIaa.CpmFloors)
+                : null;
+
+            // Push new floor manager to the existing orchestrator (no network restart)
+            _orchestrator?.UpdateCpmFloorManager(_cpmFloorManager);
+
+            _log.Info("Experiment overrides applied: frequency caps and CPM floors updated.");
         }
 
         internal MediationManager(IAdPlaceholderUI adPlaceholderUI, IAA iAAResponse)
@@ -240,17 +374,31 @@ namespace com.noctuagames.sdk
                 ? new AdNetworkPerformanceTracker()
                 : null;
 
+            // Preserve the segment manager across CreateNetworks calls so session/install state
+            // accumulated in PlayerPrefs is not lost when the config is reapplied.
+            _segmentManager ??= new UserSegmentManager();
+
+            _cpmFloorManager = (iaaConfig.CpmFloors?.Enabled == true)
+                ? new CpmFloorManager(iaaConfig.CpmFloors)
+                : null;
+
+            string segmentKey = _segmentManager.GetCompositeSegment(_cachedCountryCode);
+
             _orchestrator = new HybridAdOrchestrator(
                 primary: primary,
                 secondary: secondary,
                 adFormatOverrides: iaaConfig.AdFormatOverrides,
                 performanceTracker: _performanceTracker,
-                dynamicOptimization: iaaConfig.DynamicOptimization ?? false
+                dynamicOptimization: iaaConfig.DynamicOptimization ?? false,
+                cpmFloorManager: _cpmFloorManager,
+                segmentKey: segmentKey
             );
 
             _log.Info($"Networks created. Primary: {primary.NetworkName}" +
                 (secondary != null ? $", Secondary: {secondary.NetworkName}" : "") +
-                $", Hybrid: {_orchestrator.IsHybridMode}");
+                $", Hybrid: {_orchestrator.IsHybridMode}" +
+                $", CpmFloors: {(_cpmFloorManager != null ? "enabled" : "disabled")}" +
+                $", Segment: {segmentKey}");
         }
 
         /// <summary>

@@ -117,6 +117,25 @@ namespace com.noctuagames.sdk
         }
 
         /// <summary>
+        /// Alias for <see cref="GetAverageRevenue"/> with semantically clear naming for CPM floor checks.
+        /// Returns the average USD CPM for the given network and format.
+        /// </summary>
+        public double GetAverageCpm(string networkName, string format)
+            => GetAverageRevenue(networkName, format);
+
+        /// <summary>
+        /// Returns the number of revenue impression samples tracked for the given network and format.
+        /// Used by <see cref="CpmFloorManager"/> to enforce the min_samples cold-start guard.
+        /// </summary>
+        public int GetSampleCount(string networkName, string format)
+        {
+            string key = $"{networkName}_{format}";
+            if (_revenueHistory.TryGetValue(key, out var queue))
+                return queue.Count;
+            return 0;
+        }
+
+        /// <summary>
         /// Returns the preferred network name for the given format based on
         /// the composite score (fillRate * avgRevenue). Returns null if insufficient data.
         /// </summary>

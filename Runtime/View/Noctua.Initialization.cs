@@ -30,9 +30,19 @@ namespace com.noctuagames.sdk
             // For Android
             #if UNITY_ANDROID || UNITY_EDITOR_WIN
 
-            _log.Debug("Loading streaming assets in Android by using UnityWebRequest: " + configPath);
+            // In any Editor environment, Application.streamingAssetsPath is a bare filesystem path.
+            // UnityWebRequest needs a proper file:// URI or it treats the path as a network URL.
+            // On Android device, streamingAssetsPath is already "jar:file://..." so no change needed.
+            // new Uri() correctly produces file:///C:/... on Windows and file:///Users/... on macOS.
+            #if UNITY_EDITOR
+            var requestUri = new System.Uri(configPath).AbsoluteUri;
+            #else
+            var requestUri = configPath;
+            #endif
 
-            var configLoadRequest = UnityWebRequest.Get(configPath);
+            _log.Debug("Loading streaming assets in Android by using UnityWebRequest: " + requestUri);
+
+            var configLoadRequest = UnityWebRequest.Get(requestUri);
             var now = DateTime.UtcNow;
             var timeout = now.AddSeconds(5);
             configLoadRequest.SendWebRequest();
@@ -534,6 +544,14 @@ namespace com.noctuagames.sdk
             {
                 // Disabled for production to reduce event noise
                 // Instance.Value._eventSender.Send("sdk_init_iap_init_success");
+
+                // Hook IAP purchase completion into payer-tier tracking for CPM floor segmentation.
+#if UNITY_ADMOB || UNITY_APPLOVIN
+                if (Instance.Value._iaa != null)
+                {
+                    Instance.Value._iap.OnPurchaseDone += _ => Instance.Value._iaa?.RecordPurchase();
+                }
+#endif
             }
 
             if (string.IsNullOrEmpty(initResponse.Country))
@@ -563,6 +581,17 @@ namespace com.noctuagames.sdk
                 Instance.Value._event.SetProperties(initResponse.Country, initResponse.IpAddress);
                 Instance.Value._eventSender.SetProperties(ipAddress: initResponse.IpAddress);
             }
+
+            // Apply country-aware IAA features now that the country code is resolved:
+            //   1. Pass country code to MediationManager so CPM floor segment key is correct.
+            //   2. Evaluate A/B experiments (segment-filtered) and apply overrides without restarting networks.
+#if UNITY_ADMOB || UNITY_APPLOVIN
+            if (Instance.Value._iaa != null)
+            {
+                Instance.Value._iaa.SetCountryCode(initResponse.Country);
+                ApplyIAAExperiments(log, initResponse.Country);
+            }
+#endif
 
             // Set locale values
             if (!string.IsNullOrEmpty(initResponse.Country))
@@ -923,6 +952,48 @@ namespace com.noctuagames.sdk
                 }
                 log.Debug("Reconnection loop exited.");
             }
+        }
+
+        /// <summary>
+        /// Evaluates active A/B experiments from the merged IAA config and applies their overrides
+        /// to frequency caps and CPM floors — without restarting the ad networks.
+        /// Called after the country code is resolved so segment filters can be applied correctly.
+        /// </summary>
+        private static void ApplyIAAExperiments(ILogger log, string countryCode)
+        {
+#if UNITY_ADMOB || UNITY_APPLOVIN
+            var iaa = Instance.Value._iaa;
+            if (iaa == null) return;
+
+            var currentIaa = iaa.IAAResponse;
+            if (currentIaa?.AdExperiments == null || currentIaa.AdExperiments.Count == 0)
+            {
+                log.Debug("No IAA experiments configured. Skipping experiment override.");
+                return;
+            }
+
+            var segmentManager = iaa.GetSegmentManager();
+            var eventSender    = Instance.Value._eventSender;
+
+            var experimentManager = new AdExperimentManager(
+                currentIaa.AdExperiments,
+                segmentManager,
+                eventSender
+            );
+
+            var effectiveIaa = experimentManager.ApplyExperiments(currentIaa, countryCode);
+
+            // Only update managers if the experiment actually changed any config
+            if (!ReferenceEquals(effectiveIaa, currentIaa))
+            {
+                iaa.ApplyExperimentOverride(effectiveIaa);
+                log.Info("IAA experiment overrides applied for country: " + countryCode);
+            }
+            else
+            {
+                log.Debug("IAA experiments evaluated — no overrides applied (control for all).");
+            }
+#endif
         }
 
         /// <summary>
