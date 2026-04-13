@@ -254,6 +254,79 @@ namespace com.noctuagames.sdk.Tests.IAA
                 "Result should be an empty EnabledFormatsConfig, not null");
         }
 
+        // ─── CpmFloors merge ──────────────────────────────────────────────────
+
+        [Test]
+        public void MergeWith_RemoteCpmFloors_OverridesLocal()
+        {
+            var local  = new IAAModel { CpmFloors = new CpmFloorConfig { Enabled = false } };
+            var remote = new IAAModel { CpmFloors = new CpmFloorConfig { Enabled = true, MinSamples = 5 } };
+
+            var result = local.MergeWith(remote);
+
+            Assert.IsTrue(result.CpmFloors.Enabled == true);
+            Assert.AreEqual(5, result.CpmFloors.MinSamples);
+        }
+
+        [Test]
+        public void MergeWith_RemoteCpmFloorsNull_LocalPreserved()
+        {
+            var local  = new IAAModel { CpmFloors = new CpmFloorConfig { Enabled = true, MinSamples = 10 } };
+            var remote = new IAAModel { CpmFloors = null };
+
+            var result = local.MergeWith(remote);
+
+            Assert.IsNotNull(result.CpmFloors);
+            Assert.IsTrue(result.CpmFloors.Enabled == true, "Local CpmFloors preserved when remote is null");
+            Assert.AreEqual(10, result.CpmFloors.MinSamples);
+        }
+
+        // ─── AdExperiments merge ───────────────────────────────────────────────
+
+        [Test]
+        public void MergeWith_RemoteAdExperiments_OverridesLocal()
+        {
+            var local = new IAAModel
+            {
+                AdExperiments = new System.Collections.Generic.List<AdExperimentConfig>
+                {
+                    new AdExperimentConfig { ExperimentId = "local_exp", Enabled = true }
+                }
+            };
+            var remote = new IAAModel
+            {
+                AdExperiments = new System.Collections.Generic.List<AdExperimentConfig>
+                {
+                    new AdExperimentConfig { ExperimentId = "remote_exp", Enabled = true }
+                }
+            };
+
+            var result = local.MergeWith(remote);
+
+            Assert.AreEqual(1, result.AdExperiments.Count);
+            Assert.AreEqual("remote_exp", result.AdExperiments[0].ExperimentId);
+        }
+
+        [Test]
+        public void MergeWith_RemoteAdExperimentsNull_LocalPreserved()
+        {
+            var local = new IAAModel
+            {
+                AdExperiments = new System.Collections.Generic.List<AdExperimentConfig>
+                {
+                    new AdExperimentConfig { ExperimentId = "local_exp", Enabled = true }
+                }
+            };
+            var remote = new IAAModel { AdExperiments = null };
+
+            var result = local.MergeWith(remote);
+
+            Assert.IsNotNull(result.AdExperiments);
+            Assert.AreEqual(1, result.AdExperiments.Count);
+            Assert.AreEqual("local_exp", result.AdExperiments[0].ExperimentId,
+                "Local AdExperiments preserved when remote is null");
+        }
+
         // ─── Full merge scenario: simulated server partial override ───────────
 
         [Test]

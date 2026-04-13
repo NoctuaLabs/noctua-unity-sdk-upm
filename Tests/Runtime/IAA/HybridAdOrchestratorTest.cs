@@ -412,5 +412,122 @@ namespace com.noctuagames.sdk.Tests.IAA
 
             Assert.AreEqual(2, impressions);
         }
+
+        // ─── CPM Floor integration ────────────────────────────────────────────
+
+        private static CpmFloorManager MakeFloorManager(double soft, double hard, int minSamples = 0)
+        {
+            return new CpmFloorManager(new CpmFloorConfig
+            {
+                Enabled    = true,
+                MinSamples = minSamples,
+                Floors = new Dictionary<string, Dictionary<string, CpmFloorEntry>>
+                {
+                    [AdFormatKey.Interstitial] = new Dictionary<string, CpmFloorEntry>
+                    {
+                        ["t1"] = new CpmFloorEntry { Soft = soft, Hard = hard }
+                    }
+                },
+                SegmentOverrides = new Dictionary<string, Dictionary<string, CpmFloorEntry>>()
+            });
+        }
+
+        [Test]
+        public void ShowWithFallback_PreferredHardBlocked_FallsBackToSecondary()
+        {
+            _primary.InterstitialReady   = true;
+            _secondary.InterstitialReady = true;
+
+            var tracker = new AdNetworkPerformanceTracker();
+            // Primary has very low CPM → will hard-fail
+            tracker.RecordRevenue("admob",    AdFormatKey.Interstitial, 0.01);
+            // Secondary has high CPM → will pass
+            tracker.RecordRevenue("applovin", AdFormatKey.Interstitial, 1.00);
+
+            // hard=0.50 → primary(0.01) < hard → HardFail
+            var floorMgr = MakeFloorManager(soft: 1.00, hard: 0.50, minSamples: 1);
+
+            IAdNetwork shown = null;
+            var orc = new HybridAdOrchestrator(
+                _primary, _secondary,
+                performanceTracker: tracker,
+                cpmFloorManager:    floorMgr,
+                segmentKey:         "t1_nonpayer_new_d0d1"
+            );
+
+            orc.ShowWithFallback(AdFormatKey.Interstitial, net => shown = net,
+                isReady: net => net.IsInterstitialReady());
+
+            Assert.AreSame(_secondary, shown, "Hard-blocked preferred should fall back to secondary");
+        }
+
+        [Test]
+        public void ShowWithFallback_BothHardBlocked_FiresOnAdFailedDisplayed()
+        {
+            _primary.InterstitialReady   = true;
+            _secondary.InterstitialReady = true;
+
+            var tracker = new AdNetworkPerformanceTracker();
+            tracker.RecordRevenue("admob",    AdFormatKey.Interstitial, 0.01);
+            tracker.RecordRevenue("applovin", AdFormatKey.Interstitial, 0.01);
+
+            var floorMgr = MakeFloorManager(soft: 1.00, hard: 0.50, minSamples: 1);
+
+            bool failed = false;
+            var orc = new HybridAdOrchestrator(
+                _primary, _secondary,
+                performanceTracker: tracker,
+                cpmFloorManager:    floorMgr,
+                segmentKey:         "t1_nonpayer_new_d0d1"
+            );
+            orc.OnAdFailedDisplayed += () => failed = true;
+
+            orc.ShowWithFallback(AdFormatKey.Interstitial, _ => { },
+                isReady: net => net.IsInterstitialReady());
+
+            Assert.IsTrue(failed, "Both networks hard-blocked must fire OnAdFailedDisplayed");
+        }
+
+        [Test]
+        public void ShowWithFallback_SoftFail_ProceedsWithPreferred()
+        {
+            _primary.InterstitialReady = true;
+
+            var tracker = new AdNetworkPerformanceTracker();
+            // CPM between hard and soft → SoftFail → proceed anyway
+            tracker.RecordRevenue("admob", AdFormatKey.Interstitial, 0.30);
+
+            // soft=0.50, hard=0.20 → 0.30 is SoftFail → still shows
+            var floorMgr = MakeFloorManager(soft: 0.50, hard: 0.20, minSamples: 1);
+
+            IAdNetwork shown = null;
+            var orc = new HybridAdOrchestrator(
+                _primary,
+                performanceTracker: tracker,
+                cpmFloorManager:    floorMgr,
+                segmentKey:         "t1_nonpayer_new_d0d1"
+            );
+
+            orc.ShowWithFallback(AdFormatKey.Interstitial, net => shown = net,
+                isReady: net => net.IsInterstitialReady());
+
+            Assert.AreSame(_primary, shown, "SoftFail must not block the ad — just a warning");
+        }
+
+        [Test]
+        public void ShowWithFallback_NoFloorManager_BehavesAsOriginal()
+        {
+            _primary.InterstitialReady   = false;
+            _secondary.InterstitialReady = true;
+
+            IAdNetwork shown = null;
+            // No cpmFloorManager passed → original fallback logic unchanged
+            var orc = new HybridAdOrchestrator(_primary, _secondary);
+
+            orc.ShowWithFallback(AdFormatKey.Interstitial, net => shown = net,
+                isReady: net => net.IsInterstitialReady());
+
+            Assert.AreSame(_secondary, shown, "Without floor manager, normal readiness fallback applies");
+        }
     }
 }
