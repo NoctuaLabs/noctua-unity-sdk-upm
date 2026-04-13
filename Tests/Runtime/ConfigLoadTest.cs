@@ -79,7 +79,7 @@ namespace com.noctuagames.sdk.Tests
         {
             var config = ParseAndApplyDefaults(MinimalValidJson);
 
-            Assert.IsNull(config.Adjust?.AppToken,    "Adjust should be null when absent");
+            Assert.IsNull(config.Adjust?.Android,     "Adjust.Android should be null when absent");
             Assert.IsNull(config.Facebook,             "Facebook should be null when absent");
             Assert.IsNull(config.Firebase,             "Firebase should be null when absent");
             Assert.IsNull(config.IAA,                  "IAA should be null when absent");
