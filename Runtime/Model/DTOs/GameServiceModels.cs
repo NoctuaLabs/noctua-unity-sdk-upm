@@ -160,8 +160,8 @@ namespace com.noctuagames.sdk
                 Networks            = remote.Networks            ?? Networks,
                 AdFormatOverrides   = remote.AdFormatOverrides   ?? AdFormatOverrides,
                 AdFormat            = remote.AdFormat            ?? AdFormat,
-                FrequencyCaps       = remote.FrequencyCaps       ?? FrequencyCaps,
-                CooldownSeconds     = remote.CooldownSeconds     ?? CooldownSeconds,
+                FrequencyCaps       = MergeFrequencyCaps(FrequencyCaps, remote.FrequencyCaps),
+                CooldownSeconds     = MergeCooldownSeconds(CooldownSeconds, remote.CooldownSeconds),
                 EnabledFormats      = MergeEnabledFormats(EnabledFormats, remote.EnabledFormats),
                 DynamicOptimization = remote.DynamicOptimization ?? DynamicOptimization,
                 AppOpenAutoShow     = remote.AppOpenAutoShow     ?? AppOpenAutoShow,
@@ -184,6 +184,48 @@ namespace com.noctuagames.sdk
                 RewardedInterstitial = remote.RewardedInterstitial ?? base_.RewardedInterstitial,
                 Banner               = remote.Banner               ?? base_.Banner,
                 AppOpen              = remote.AppOpen              ?? base_.AppOpen,
+            };
+        }
+
+        /// <summary>
+        /// Merges frequency cap configs field-by-field. A null entry in <paramref name="remote"/>
+        /// means that format was not specified in the override — the base value is kept.
+        /// An explicit entry in <paramref name="remote"/> always wins, even if the base has one too.
+        /// </summary>
+        private static FrequencyCapConfig MergeFrequencyCaps(
+            FrequencyCapConfig local, FrequencyCapConfig remote)
+        {
+            if (remote == null) return local;
+            var base_ = local ?? new FrequencyCapConfig();
+
+            return new FrequencyCapConfig
+            {
+                Interstitial         = remote.Interstitial         ?? base_.Interstitial,
+                Rewarded             = remote.Rewarded             ?? base_.Rewarded,
+                RewardedInterstitial = remote.RewardedInterstitial ?? base_.RewardedInterstitial,
+                Banner               = remote.Banner               ?? base_.Banner,
+                AppOpen              = remote.AppOpen              ?? base_.AppOpen,
+            };
+        }
+
+        /// <summary>
+        /// Merges cooldown configs field-by-field. Because cooldown fields are <c>int</c> (non-nullable),
+        /// a value of 0 in <paramref name="remote"/> is treated as "not specified" and the base value
+        /// is kept. Use a positive value in the override to explicitly set or clear a cooldown.
+        /// </summary>
+        private static CooldownConfig MergeCooldownSeconds(
+            CooldownConfig local, CooldownConfig remote)
+        {
+            if (remote == null) return local;
+            var base_ = local ?? new CooldownConfig();
+
+            return new CooldownConfig
+            {
+                Interstitial         = remote.Interstitial         > 0 ? remote.Interstitial         : base_.Interstitial,
+                Rewarded             = remote.Rewarded             > 0 ? remote.Rewarded             : base_.Rewarded,
+                RewardedInterstitial = remote.RewardedInterstitial > 0 ? remote.RewardedInterstitial : base_.RewardedInterstitial,
+                Banner               = remote.Banner               > 0 ? remote.Banner               : base_.Banner,
+                AppOpen              = remote.AppOpen              > 0 ? remote.AppOpen              : base_.AppOpen,
             };
         }
     }
