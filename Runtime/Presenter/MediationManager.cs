@@ -631,6 +631,8 @@ namespace com.noctuagames.sdk
                     _rewardedInterstitialAdmob.LoadRewardedInterstitialAd();
                 }
 
+#if !UNITY_EDITOR
+                // Device only: AdMob Preload API. Not supported in the Unity Editor.
                 var configs = new List<PreloadConfiguration>
                 {
                     _preloadManager.CreateInterstitialPreloadConfig(_interstitialAdUnitID),
@@ -661,15 +663,10 @@ namespace com.noctuagames.sdk
                 }
 
                 _preloadManager.StartPreloading(configs);
-
-                // Editor: preload API is not supported in the Unity Editor, so the preload
-                // paths in ShowAdmobInterstitial / ShowAdmobRewarded are guarded by
-                // #if !UNITY_EDITOR and will never fire. Set up the legacy InterstitialAdmob /
-                // RewardedAdmob instances and trigger an initial load so that IsInterstitialReady()
-                // and IsRewardedAdReady() return true once the (simulated) load completes,
-                // and ShowAdmobInterstitial / ShowAdmobRewarded can show the ad without
-                // immediately falling back to the secondary network.
-#if UNITY_EDITOR
+#else
+                // Editor: Preload API not supported. Use the legacy load path so
+                // IsInterstitialReady() / IsRewardedAdReady() can return true and
+                // ShowAdmobInterstitial / ShowAdmobRewarded can show the ad.
                 primary.SetInterstitialAdUnitID(_interstitialAdUnitID);
                 primary.SetRewardedAdUnitID(_rewardedAdUnitID);
                 primary.LoadInterstitialAd();
