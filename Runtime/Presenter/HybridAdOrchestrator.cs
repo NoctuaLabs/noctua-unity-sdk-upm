@@ -158,6 +158,7 @@ namespace com.noctuagames.sdk
             {
                 if (_secondary != null && preferredNetwork == _secondary.NetworkName)
                 {
+                    _log.Debug($"GetNetworkForFormat({format}): override='{preferredNetwork}' → secondary ({_secondary.NetworkName})");
                     return _secondary;
                 }
 
@@ -169,6 +170,7 @@ namespace com.noctuagames.sdk
                         $"but that network is not available. Falling back to primary ({_primary.NetworkName}).");
                 }
 
+                _log.Debug($"GetNetworkForFormat({format}): override='{preferredNetwork}' → primary ({_primary.NetworkName})");
                 return _primary;
             }
 
@@ -178,10 +180,12 @@ namespace com.noctuagames.sdk
                 string best = _performanceTracker.GetPreferredNetwork(format);
                 if (best != null && _secondary != null && best == _secondary.NetworkName)
                 {
+                    _log.Debug($"GetNetworkForFormat({format}): dynamic-opt picked secondary ({_secondary.NetworkName})");
                     return _secondary;
                 }
             }
 
+            _log.Debug($"GetNetworkForFormat({format}): no override, no dynamic-opt → primary ({_primary.NetworkName})");
             return _primary;
         }
 

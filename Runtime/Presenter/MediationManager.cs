@@ -540,18 +540,23 @@ namespace com.noctuagames.sdk
             network.AdmobOnUserEarnedReward += (reward) => _admobOnUserEarnedReward?.Invoke(reward);
             network.AdmobOnAdRevenuePaid += (adValue, responseInfo) =>
             {
-                _revenueTracker.ProcessAdmobRevenue(adValue, responseInfo);
-                _admobOnAdRevenuePaid?.Invoke(adValue, responseInfo);
-
-                // Feed dynamic-optimization tracker with banner revenue.
-                // This handler fires from AdmobManager's banner OnAdPaid callback only.
-                // Interstitial and rewarded revenue are tracked with the correct format key
-                // directly in RegisterCallbackAdInterstitial / RegisterCallbackAdRewarded.
-                if (_performanceTracker != null)
+                // Banner OnAdPaid fires on the GMA JNI thread — same as interstitial/rewarded.
+                // PlayerPrefs and other Unity APIs inside ProcessAdmobRevenue require the main thread.
+                PostToMainThread(() =>
                 {
-                    double revenue = adValue.Value / 1_000_000.0;
-                    _performanceTracker.RecordRevenue(AdNetworkName.Admob, AdFormatKey.Banner, revenue);
-                }
+                    _revenueTracker.ProcessAdmobRevenue(adValue, responseInfo);
+                    _admobOnAdRevenuePaid?.Invoke(adValue, responseInfo);
+
+                    // Feed dynamic-optimization tracker with banner revenue.
+                    // This handler fires from AdmobManager's banner OnAdPaid callback only.
+                    // Interstitial and rewarded revenue are tracked with the correct format key
+                    // directly in RegisterCallbackAdInterstitial / RegisterCallbackAdRewarded.
+                    if (_performanceTracker != null)
+                    {
+                        double revenue = adValue.Value / 1_000_000.0;
+                        _performanceTracker.RecordRevenue(AdNetworkName.Admob, AdFormatKey.Banner, revenue);
+                    }
+                });
             };
         }
 #endif
