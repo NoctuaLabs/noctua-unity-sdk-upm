@@ -44,6 +44,9 @@ namespace com.noctuagames.sdk
         private bool _rewardedInterstitialEventsSubscribed;
         private bool _appOpenEventsSubscribed;
 
+        // Tracks whether a banner ad unit ID has been configured
+        private bool _bannerAdUnitSet;
+
         /// <summary>Raised when the AdMob SDK has completed initialization.</summary>
         public event Action OnInitialized { add => _initCompleteAction += value; remove => _initCompleteAction -= value; }
 
@@ -209,8 +212,18 @@ namespace com.noctuagames.sdk
         }
 
         /// <inheritdoc />
+        public bool HasBannerAdUnit() => _bannerAdUnitSet;
+
+        /// <inheritdoc />
+        public bool IsInterstitialReady() => _interstitialAdmob.IsReady();
+
+        /// <inheritdoc />
+        public bool IsRewardedAdReady() => _rewardedAdmob.IsReady();
+
+        /// <inheritdoc />
         public void SetBannerAdUnitId(string adUnitID)
         {
+            _bannerAdUnitSet = true;
             _bannerAdmob.SetAdUnitId(adUnitID);
 
             if (!_bannerEventsSubscribed)

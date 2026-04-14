@@ -151,6 +151,15 @@ namespace com.noctuagames.sdk
                 {
                     return _secondary;
                 }
+
+                // Override target requested a network that isn't available (e.g. secondary not
+                // initialized or wrong name). Fall back to primary and warn so it's not silent.
+                if (preferredNetwork != _primary.NetworkName)
+                {
+                    _log.Warning($"Ad format override for '{format}' targets '{preferredNetwork}' " +
+                        $"but that network is not available. Falling back to primary ({_primary.NetworkName}).");
+                }
+
                 return _primary;
             }
 

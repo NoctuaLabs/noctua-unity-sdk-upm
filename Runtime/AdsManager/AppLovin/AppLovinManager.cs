@@ -42,6 +42,9 @@ namespace com.noctuagames.sdk
         private bool _appOpenEventsSubscribed;
         private bool _sdkInitCallbackSubscribed;
 
+        // Tracks whether a banner ad unit ID has been configured
+        private bool _bannerAdUnitSet;
+
         /// <summary>Raised when the AppLovin MAX SDK has completed initialization.</summary>
         public event Action OnInitialized { add => _initCompleteAction += value; remove => _initCompleteAction -= value; }
 
@@ -213,8 +216,12 @@ namespace com.noctuagames.sdk
         }
 
         /// <inheritdoc />
+        public bool HasBannerAdUnit() => _bannerAdUnitSet;
+
+        /// <inheritdoc />
         public void SetBannerAdUnitId(string adUnitID)
         {
+            _bannerAdUnitSet = true;
             _bannerAppLovin.SetBannerAdUnitId(adUnitID);
 
             if (!_bannerEventsSubscribed)

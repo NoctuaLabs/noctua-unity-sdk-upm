@@ -653,6 +653,20 @@ namespace com.noctuagames.sdk
                 }
 
                 _preloadManager.StartPreloading(configs);
+
+                // Editor: preload API is not supported in the Unity Editor, so the preload
+                // paths in ShowAdmobInterstitial / ShowAdmobRewarded are guarded by
+                // #if !UNITY_EDITOR and will never fire. Set up the legacy InterstitialAdmob /
+                // RewardedAdmob instances and trigger an initial load so that IsInterstitialReady()
+                // and IsRewardedAdReady() return true once the (simulated) load completes,
+                // and ShowAdmobInterstitial / ShowAdmobRewarded can show the ad without
+                // immediately falling back to the secondary network.
+#if UNITY_EDITOR
+                primary.SetInterstitialAdUnitID(_interstitialAdUnitID);
+                primary.SetRewardedAdUnitID(_rewardedAdUnitID);
+                primary.LoadInterstitialAd();
+                primary.LoadRewardedAd();
+#endif
 #endif
             }
             else
@@ -857,53 +871,118 @@ namespace com.noctuagames.sdk
         }
 
 #if UNITY_ADMOB
-        private void ShowAdmobInterstitial(string placement = null)
+        // isFallback=true means AdMob is the secondary network; on failure fire OnAdNotAvailable
+        // rather than recursing back to TryInterstitialFallback.
+        private void ShowAdmobInterstitial(IAdNetwork admobNetwork, string placement = null, bool isFallback = false)
         {
             _hasClosedPlaceholder = false;
             ShowAdPlaceholder(AdPlaceholderType.Interstitial);
 
-            if (_preloadManager == null)
+#if !UNITY_EDITOR
+            // Device: use preload manager only when it was initialized (AdMob is primary).
+            // When AdMob is secondary, _preloadManager is null and we fall through to the legacy path.
+            if (_preloadManager != null)
             {
-                _log.Warning("Admob Preload Manager is not initialized. Cannot show interstitial ad.");
-                CloseAdPlaceholder();
-                return;
-            }
-
-            if (_preloadManager.IsAdAvailable(_interstitialAdUnitID, AdFormat.INTERSTITIAL))
-            {
-                var ad = _preloadManager.PollInterstitialAd(_interstitialAdUnitID);
-                if (ad != null)
+                if (_preloadManager.IsAdAvailable(_interstitialAdUnitID, AdFormat.INTERSTITIAL))
                 {
-                    _performanceTracker?.RecordFillAttempt(AdNetworkName.Admob, AdFormatKey.Interstitial, true);
-                    try
+                    var ad = _preloadManager.PollInterstitialAd(_interstitialAdUnitID);
+                    if (ad != null)
                     {
-                        _log.Info(placement != null
-                            ? $"Showing Admob Interstitial Ad (placement: {placement})"
-                            : "Showing Admob Interstitial Ad");
-                        RegisterCallbackAdInterstitial(ad);
-                        ad.Show();
-                        // Record impression only after a successful show attempt (ad was available and shown).
-                        _frequencyManager?.RecordImpression(AdFormatKey.Interstitial);
+                        _performanceTracker?.RecordFillAttempt(AdNetworkName.Admob, AdFormatKey.Interstitial, true);
+                        try
+                        {
+                            _log.Info(placement != null
+                                ? $"Showing Admob Interstitial Ad (placement: {placement})"
+                                : "Showing Admob Interstitial Ad");
+                            RegisterCallbackAdInterstitial(ad);
+                            ad.Show();
+                            // Record impression only after a successful show attempt.
+                            _frequencyManager?.RecordImpression(AdFormatKey.Interstitial);
+                        }
+                        catch (Exception ex)
+                        {
+                            _log.Error($"Exception showing Admob Interstitial Ad: {ex.Message}\n{ex.StackTrace}");
+                            CloseAdPlaceholder();
+                        }
+                        return;
                     }
-                    catch (Exception ex)
+                    else
                     {
-                        _log.Error($"Exception showing Admob Interstitial Ad: {ex.Message}\n{ex.StackTrace}");
+                        _log.Warning("Admob Interstitial Ad poll returned null");
+                        _performanceTracker?.RecordFillAttempt(AdNetworkName.Admob, AdFormatKey.Interstitial, false);
                         CloseAdPlaceholder();
                     }
                 }
                 else
                 {
-                    _log.Warning("Admob Interstitial Ad poll returned null");
+                    _log.Info("Admob Interstitial Ad not available");
                     _performanceTracker?.RecordFillAttempt(AdNetworkName.Admob, AdFormatKey.Interstitial, false);
                     CloseAdPlaceholder();
-                    _onAdNotAvailable?.Invoke(AdFormatKey.Interstitial);
                 }
+
+                // Preload path failed — try secondary or fire not-available.
+                if (!isFallback) TryInterstitialFallback(admobNetwork, placement);
+                else _onAdNotAvailable?.Invoke(AdFormatKey.Interstitial);
+                return;
+            }
+#endif
+
+            // Legacy path: Unity Editor (preload API not supported) OR AdMob as secondary (no preload manager).
+            bool filled = admobNetwork.IsInterstitialReady();
+            _performanceTracker?.RecordFillAttempt(AdNetworkName.Admob, AdFormatKey.Interstitial, filled);
+            if (filled)
+            {
+                _log.Info(placement != null
+                    ? $"Showing Admob Interstitial Ad via legacy path (placement: {placement})"
+                    : "Showing Admob Interstitial Ad via legacy path");
+                if (placement != null) admobNetwork.ShowInterstitial(placement);
+                else admobNetwork.ShowInterstitial();
+                _frequencyManager?.RecordImpression(AdFormatKey.Interstitial);
             }
             else
             {
-                _log.Info("Admob Interstitial Ad not available");
-                _performanceTracker?.RecordFillAttempt(AdNetworkName.Admob, AdFormatKey.Interstitial, false);
+                _log.Info("Admob Interstitial Ad not ready (legacy path)");
                 CloseAdPlaceholder();
+                if (!isFallback) TryInterstitialFallback(admobNetwork, placement);
+                else _onAdNotAvailable?.Invoke(AdFormatKey.Interstitial);
+            }
+        }
+
+        private void TryInterstitialFallback(IAdNetwork failedNetwork, string placement)
+        {
+            var fallback = failedNetwork == _orchestrator.Primary
+                ? _orchestrator.Secondary
+                : _orchestrator.Primary;
+
+            if (fallback == null)
+            {
+                _log.Info("Interstitial: no secondary network to fall back to.");
+                _onAdNotAvailable?.Invoke(AdFormatKey.Interstitial);
+                return;
+            }
+
+            _log.Info($"{failedNetwork.NetworkName} interstitial not available. Falling back to {fallback.NetworkName}.");
+
+            if (IsAdmobNetwork(fallback))
+            {
+                ShowAdmobInterstitial(fallback, placement, isFallback: true);
+                return;
+            }
+
+            // Fallback is AppLovin
+            bool filled = fallback.IsInterstitialReady();
+            _performanceTracker?.RecordFillAttempt(fallback.NetworkName, AdFormatKey.Interstitial, filled);
+            if (filled)
+            {
+                _hasClosedPlaceholder = false;
+                ShowAdPlaceholder(AdPlaceholderType.Interstitial);
+                if (placement != null) fallback.ShowInterstitial(placement);
+                else fallback.ShowInterstitial();
+                _frequencyManager?.RecordImpression(AdFormatKey.Interstitial);
+            }
+            else
+            {
+                _log.Info($"{fallback.NetworkName} interstitial also not ready. No ad available.");
                 _onAdNotAvailable?.Invoke(AdFormatKey.Interstitial);
             }
         }
@@ -960,57 +1039,121 @@ namespace com.noctuagames.sdk
         }
 
 #if UNITY_ADMOB
-        private void ShowAdmobRewarded(string placement = null)
+        // isFallback=true means AdMob is the secondary network; on failure fire OnAdNotAvailable
+        // rather than recursing back to TryRewardedFallback.
+        private void ShowAdmobRewarded(IAdNetwork admobNetwork, string placement = null, bool isFallback = false)
         {
             _hasClosedPlaceholder = false;
             ShowAdPlaceholder(AdPlaceholderType.Rewarded);
 
-            if (_preloadManager == null)
+#if !UNITY_EDITOR
+            // Device: use preload manager only when it was initialized (AdMob is primary).
+            if (_preloadManager != null)
             {
-                _log.Warning("Admob Preload Manager is not initialized. Cannot show rewarded ad.");
-                CloseAdPlaceholder();
-                return;
-            }
-
-            if (_preloadManager.IsAdAvailable(_rewardedAdUnitID, AdFormat.REWARDED))
-            {
-                var ad = _preloadManager.PollRewardedAd(_rewardedAdUnitID);
-                if (ad != null)
+                if (_preloadManager.IsAdAvailable(_rewardedAdUnitID, AdFormat.REWARDED))
                 {
-                    _performanceTracker?.RecordFillAttempt(AdNetworkName.Admob, AdFormatKey.Rewarded, true);
-                    try
+                    var ad = _preloadManager.PollRewardedAd(_rewardedAdUnitID);
+                    if (ad != null)
                     {
-                        _log.Info(placement != null
-                            ? $"Showing Admob Rewarded Ad (placement: {placement})"
-                            : "Showing Admob Rewarded Ad");
-                        RegisterCallbackAdRewarded(ad);
-                        ad.Show((Reward reward) =>
+                        _performanceTracker?.RecordFillAttempt(AdNetworkName.Admob, AdFormatKey.Rewarded, true);
+                        try
                         {
-                            _log.Info("User earned reward: " + reward.Type + " - " + reward.Amount);
-                            _admobOnUserEarnedReward?.Invoke(reward);
-                        });
-                        // Record impression only after a successful show attempt (ad was available and shown).
-                        _frequencyManager?.RecordImpression(AdFormatKey.Rewarded);
+                            _log.Info(placement != null
+                                ? $"Showing Admob Rewarded Ad (placement: {placement})"
+                                : "Showing Admob Rewarded Ad");
+                            RegisterCallbackAdRewarded(ad);
+                            ad.Show((Reward reward) =>
+                            {
+                                _log.Info("User earned reward: " + reward.Type + " - " + reward.Amount);
+                                _admobOnUserEarnedReward?.Invoke(reward);
+                            });
+                            // Record impression only after a successful show attempt.
+                            _frequencyManager?.RecordImpression(AdFormatKey.Rewarded);
+                        }
+                        catch (Exception ex)
+                        {
+                            _log.Error($"Exception showing Admob Rewarded Ad: {ex.Message}\n{ex.StackTrace}");
+                            CloseAdPlaceholder();
+                        }
+                        return;
                     }
-                    catch (Exception ex)
+                    else
                     {
-                        _log.Error($"Exception showing Admob Rewarded Ad: {ex.Message}\n{ex.StackTrace}");
+                        _log.Warning("Admob Rewarded Ad poll returned null");
+                        _performanceTracker?.RecordFillAttempt(AdNetworkName.Admob, AdFormatKey.Rewarded, false);
                         CloseAdPlaceholder();
                     }
                 }
                 else
                 {
-                    _log.Warning("Admob Rewarded Ad poll returned null");
+                    _log.Info("Admob Rewarded Ad not available");
                     _performanceTracker?.RecordFillAttempt(AdNetworkName.Admob, AdFormatKey.Rewarded, false);
                     CloseAdPlaceholder();
-                    _onAdNotAvailable?.Invoke(AdFormatKey.Rewarded);
                 }
+
+                // Preload path failed — try secondary or fire not-available.
+                if (!isFallback) TryRewardedFallback(admobNetwork, placement);
+                else _onAdNotAvailable?.Invoke(AdFormatKey.Rewarded);
+                return;
+            }
+#endif
+
+            // Legacy path: Unity Editor (preload API not supported) OR AdMob as secondary (no preload manager).
+            bool filled = admobNetwork.IsRewardedAdReady();
+            _performanceTracker?.RecordFillAttempt(AdNetworkName.Admob, AdFormatKey.Rewarded, filled);
+            if (filled)
+            {
+                _log.Info(placement != null
+                    ? $"Showing Admob Rewarded Ad via legacy path (placement: {placement})"
+                    : "Showing Admob Rewarded Ad via legacy path");
+                if (placement != null) admobNetwork.ShowRewardedAd(placement);
+                else admobNetwork.ShowRewardedAd();
+                _frequencyManager?.RecordImpression(AdFormatKey.Rewarded);
             }
             else
             {
-                _log.Info("Admob Rewarded Ad not available");
-                _performanceTracker?.RecordFillAttempt(AdNetworkName.Admob, AdFormatKey.Rewarded, false);
+                _log.Info("Admob Rewarded Ad not ready (legacy path)");
                 CloseAdPlaceholder();
+                if (!isFallback) TryRewardedFallback(admobNetwork, placement);
+                else _onAdNotAvailable?.Invoke(AdFormatKey.Rewarded);
+            }
+        }
+
+        private void TryRewardedFallback(IAdNetwork failedNetwork, string placement)
+        {
+            var fallback = failedNetwork == _orchestrator.Primary
+                ? _orchestrator.Secondary
+                : _orchestrator.Primary;
+
+            if (fallback == null)
+            {
+                _log.Info("Rewarded: no secondary network to fall back to.");
+                _onAdNotAvailable?.Invoke(AdFormatKey.Rewarded);
+                return;
+            }
+
+            _log.Info($"{failedNetwork.NetworkName} rewarded not available. Falling back to {fallback.NetworkName}.");
+
+            if (IsAdmobNetwork(fallback))
+            {
+                ShowAdmobRewarded(fallback, placement, isFallback: true);
+                return;
+            }
+
+            // Fallback is AppLovin
+            bool filled = fallback.IsRewardedAdReady();
+            _performanceTracker?.RecordFillAttempt(fallback.NetworkName, AdFormatKey.Rewarded, filled);
+            if (filled)
+            {
+                _hasClosedPlaceholder = false;
+                ShowAdPlaceholder(AdPlaceholderType.Rewarded);
+                if (placement != null) fallback.ShowRewardedAd(placement);
+                else fallback.ShowRewardedAd();
+                _frequencyManager?.RecordImpression(AdFormatKey.Rewarded);
+            }
+            else
+            {
+                _log.Info($"{fallback.NetworkName} rewarded also not ready. No ad available.");
                 _onAdNotAvailable?.Invoke(AdFormatKey.Rewarded);
             }
         }
@@ -1095,7 +1238,7 @@ namespace com.noctuagames.sdk
         }
 #endif
 
-        /// <summary>Shows a banner ad using the configured ad network.</summary>
+        /// <summary>Shows a banner ad using the configured ad network, falling back to secondary if needed.</summary>
         public void ShowBannerAd()
         {
             if (_orchestrator == null)
@@ -1111,8 +1254,23 @@ namespace com.noctuagames.sdk
                 return;
             }
 
-            var bannerNetwork = _orchestrator.GetNetworkForFormat(AdFormatKey.Banner);
-            bannerNetwork.ShowBannerAd();
+            var preferred = _orchestrator.GetNetworkForFormat(AdFormatKey.Banner);
+            if (preferred.HasBannerAdUnit())
+            {
+                preferred.ShowBannerAd();
+                return;
+            }
+
+            var fallback = preferred == _orchestrator.Primary ? _orchestrator.Secondary : _orchestrator.Primary;
+            if (fallback != null && fallback.HasBannerAdUnit())
+            {
+                _log.Info($"{preferred.NetworkName} has no banner unit. Falling back to {fallback.NetworkName}.");
+                fallback.ShowBannerAd();
+                return;
+            }
+
+            _log.Warning("No banner ad unit configured on any network.");
+            _onAdNotAvailable?.Invoke(AdFormatKey.Banner);
         }
 
 #if UNITY_ADMOB
@@ -1229,22 +1387,18 @@ namespace com.noctuagames.sdk
             if (IsAdmobNetwork(network))
             {
 #if UNITY_ADMOB
-                ShowAdmobInterstitial(placement);
+                ShowAdmobInterstitial(network, placement, isFallback: false);
                 // RecordImpression is called inside ShowAdmobInterstitial only when the ad is actually shown.
 #endif
+                return;
             }
-            else
+
+            // Non-AdMob (AppLovin) path
+            bool filled = network.IsInterstitialReady();
+            _performanceTracker?.RecordFillAttempt(network.NetworkName, AdFormatKey.Interstitial, filled);
+
+            if (filled)
             {
-                bool filled = network.IsInterstitialReady();
-                _performanceTracker?.RecordFillAttempt(network.NetworkName, AdFormatKey.Interstitial, filled);
-
-                if (!filled)
-                {
-                    _log.Info($"{network.NetworkName} interstitial ad not ready. Skipping show.");
-                    _onAdNotAvailable?.Invoke(AdFormatKey.Interstitial);
-                    return;
-                }
-
                 _hasClosedPlaceholder = false;
                 ShowAdPlaceholder(AdPlaceholderType.Interstitial);
                 if (placement != null)
@@ -1253,6 +1407,10 @@ namespace com.noctuagames.sdk
                     network.ShowInterstitial();
 
                 _frequencyManager?.RecordImpression(AdFormatKey.Interstitial);
+            }
+            else
+            {
+                TryInterstitialFallback(network, placement);
             }
         }
 
@@ -1281,22 +1439,18 @@ namespace com.noctuagames.sdk
             if (IsAdmobNetwork(network))
             {
 #if UNITY_ADMOB
-                ShowAdmobRewarded(placement);
+                ShowAdmobRewarded(network, placement, isFallback: false);
                 // RecordImpression is called inside ShowAdmobRewarded only when the ad is actually shown.
 #endif
+                return;
             }
-            else
+
+            // Non-AdMob (AppLovin) path
+            bool filled = network.IsRewardedAdReady();
+            _performanceTracker?.RecordFillAttempt(network.NetworkName, AdFormatKey.Rewarded, filled);
+
+            if (filled)
             {
-                bool filled = network.IsRewardedAdReady();
-                _performanceTracker?.RecordFillAttempt(network.NetworkName, AdFormatKey.Rewarded, filled);
-
-                if (!filled)
-                {
-                    _log.Info($"{network.NetworkName} rewarded ad not ready. Skipping show.");
-                    _onAdNotAvailable?.Invoke(AdFormatKey.Rewarded);
-                    return;
-                }
-
                 _hasClosedPlaceholder = false;
                 ShowAdPlaceholder(AdPlaceholderType.Rewarded);
                 if (placement != null)
@@ -1305,6 +1459,10 @@ namespace com.noctuagames.sdk
                     network.ShowRewardedAd();
 
                 _frequencyManager?.RecordImpression(AdFormatKey.Rewarded);
+            }
+            else
+            {
+                TryRewardedFallback(network, placement);
             }
         }
 
@@ -1336,10 +1494,20 @@ namespace com.noctuagames.sdk
         {
             if (_orchestrator == null) return false;
             if (_frequencyManager != null && !_frequencyManager.CanShowAd(AdFormatKey.Interstitial)) return false;
-            var network = _orchestrator.GetNetworkForFormat(AdFormatKey.Interstitial);
-#if UNITY_ADMOB
-            if (IsAdmobNetwork(network))
-                return _preloadManager?.IsAdAvailable(_interstitialAdUnitID, AdFormat.INTERSTITIAL) ?? false;
+
+            var preferred = _orchestrator.GetNetworkForFormat(AdFormatKey.Interstitial);
+            if (IsInterstitialReadyOnNetwork(preferred)) return true;
+
+            // Also check secondary so games show "Watch Ad" buttons when only secondary has fill.
+            var secondary = _orchestrator.Secondary;
+            return secondary != null && IsInterstitialReadyOnNetwork(secondary);
+        }
+
+        private bool IsInterstitialReadyOnNetwork(IAdNetwork network)
+        {
+#if UNITY_ADMOB && !UNITY_EDITOR
+            if (IsAdmobNetwork(network) && _preloadManager != null)
+                return _preloadManager.IsAdAvailable(_interstitialAdUnitID, AdFormat.INTERSTITIAL);
 #endif
             return network.IsInterstitialReady();
         }
@@ -1353,10 +1521,20 @@ namespace com.noctuagames.sdk
         {
             if (_orchestrator == null) return false;
             if (_frequencyManager != null && !_frequencyManager.CanShowAd(AdFormatKey.Rewarded)) return false;
-            var network = _orchestrator.GetNetworkForFormat(AdFormatKey.Rewarded);
-#if UNITY_ADMOB
-            if (IsAdmobNetwork(network))
-                return _preloadManager?.IsAdAvailable(_rewardedAdUnitID, AdFormat.REWARDED) ?? false;
+
+            var preferred = _orchestrator.GetNetworkForFormat(AdFormatKey.Rewarded);
+            if (IsRewardedReadyOnNetwork(preferred)) return true;
+
+            // Also check secondary so games show "Watch Ad" buttons when only secondary has fill.
+            var secondary = _orchestrator.Secondary;
+            return secondary != null && IsRewardedReadyOnNetwork(secondary);
+        }
+
+        private bool IsRewardedReadyOnNetwork(IAdNetwork network)
+        {
+#if UNITY_ADMOB && !UNITY_EDITOR
+            if (IsAdmobNetwork(network) && _preloadManager != null)
+                return _preloadManager.IsAdAvailable(_rewardedAdUnitID, AdFormat.REWARDED);
 #endif
             return network.IsRewardedAdReady();
         }

@@ -171,9 +171,9 @@ namespace com.noctuagames.sdk.Tests.IAA
                 };
             var mgr = new CpmFloorManager(config);
 
-            // avgCpm=0.80 is above t1 tier floor (soft=1.00) but below segment override soft=2.00
+            // avgCpm=1.20 is above t1 tier floor (soft=1.00) but below segment override soft=2.00
             // Without override: Allow. With override: SoftFail.
-            var result = mgr.EvaluateFloor("admob", "rewarded", avgCpm: 0.80, sampleCount: 20,
+            var result = mgr.EvaluateFloor("admob", "rewarded", avgCpm: 1.20, sampleCount: 20,
                 segmentKey: "t1_highspender_loyal_d30plus");
 
             Assert.AreEqual(CpmFloorResult.SoftFail, result,

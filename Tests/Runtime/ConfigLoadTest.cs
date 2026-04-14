@@ -108,8 +108,9 @@ namespace com.noctuagames.sdk.Tests
         [Test]
         public void Parse_InvalidJson_ThrowsException()
         {
-            Assert.Throws<JsonException>(() =>
-                JsonConvert.DeserializeObject<GlobalConfig>("{ invalid json"));
+            Assert.That(
+                () => JsonConvert.DeserializeObject<GlobalConfig>("{ invalid json"),
+                Throws.InstanceOf<JsonException>());
         }
 
         // ── Post-load URL defaults ─────────────────────────────────────────────────

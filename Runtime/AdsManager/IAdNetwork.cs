@@ -201,6 +201,12 @@ namespace com.noctuagames.sdk
         #endif
 
         /// <summary>
+        /// Returns true if a banner ad unit ID has been configured on this network.
+        /// Used to select which network to show the banner from when falling back.
+        /// </summary>
+        bool HasBannerAdUnit() { return false; }
+
+        /// <summary>
         /// Returns whether an interstitial ad is loaded and ready to show.
         /// </summary>
         bool IsInterstitialReady() { return false; }

@@ -28,6 +28,10 @@ namespace com.noctuagames.sdk
         private IAdRevenueTracker _adRevenueTracker;
         private TaichiConfig _taichiConfig;
 
+        // Cached on the main thread at construction time — SystemInfo.deviceUniqueIdentifier
+        // cannot be called from background threads (AdMob revenue callbacks fire from JNI thread).
+        private readonly string _deviceId;
+
         // PlayerPrefs keys — prefixed to avoid collisions
         private const string KeyTotalRevenue          = "Noctua_Taichi_TotalRevenue";
         private const string KeyTotalAdCount          = "Noctua_Taichi_TotalAdCount";
@@ -47,6 +51,7 @@ namespace com.noctuagames.sdk
         {
             _adRevenueTracker = adRevenueTracker;
             _taichiConfig = taichiConfig;
+            _deviceId = SystemInfo.deviceUniqueIdentifier;
         }
 
         /// <summary>
@@ -134,7 +139,7 @@ namespace com.noctuagames.sdk
                 { "mediation_group_name",     mediationGroupName },
                 { "mediation_ab_test_name",   mediationABTestName },
                 { "mediation_ab_test_variant",mediationABTestVariant },
-                { "ad_user_id",               SystemInfo.deviceUniqueIdentifier }
+                { "ad_user_id",               _deviceId }
             });
 
             return revenue;
@@ -190,7 +195,7 @@ namespace com.noctuagames.sdk
                 { "revenue_precision", revenuePrecision },
                 { "ad_format",         adFormat },
                 { "dsp_name",          dspName },
-                { "ad_user_id",        SystemInfo.deviceUniqueIdentifier }
+                { "ad_user_id",        _deviceId }
             });
 
             return revenue;

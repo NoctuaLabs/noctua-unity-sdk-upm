@@ -15,12 +15,19 @@ namespace com.noctuagames.sdk.Tests.IAA
         public bool RewardedReady      { get; set; } = true;
         public bool AppOpenReady       { get; set; } = true;
 
+        /// <summary>
+        /// Controls what <see cref="HasBannerAdUnit"/> returns.
+        /// Also set to <c>true</c> automatically by <see cref="SetBannerAdUnitId"/>.
+        /// </summary>
+        public bool BannerAdUnitSet    { get; set; } = false;
+
         // ── Call tracking ─────────────────────────────────────────────────
         public int  InitializeCallCount          { get; private set; }
         public int  LoadInterstitialCallCount     { get; private set; }
         public int  ShowInterstitialCallCount     { get; private set; }
         public int  LoadRewardedCallCount         { get; private set; }
         public int  ShowRewardedCallCount         { get; private set; }
+        public int  ShowBannerCallCount           { get; private set; }
         public int  LoadAppOpenCallCount          { get; private set; }
         public int  ShowAppOpenCallCount          { get; private set; }
         public int  SetAppOpenAdUnitCallCount     { get; private set; }
@@ -107,8 +114,9 @@ namespace com.noctuagames.sdk.Tests.IAA
         public void LoadRewardedAd()  => LoadRewardedCallCount++;
         public void ShowRewardedAd()  => ShowRewardedCallCount++;
 
-        public void SetBannerAdUnitId(string adUnitID) { }
-        public void ShowBannerAd() { }
+        public void SetBannerAdUnitId(string adUnitID) { BannerAdUnitSet = true; }
+        public bool HasBannerAdUnit() => BannerAdUnitSet;
+        public void ShowBannerAd() => ShowBannerCallCount++;
 
         public void SetAppOpenAdUnitID(string adUnitID)
         {

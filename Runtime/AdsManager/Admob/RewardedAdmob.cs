@@ -137,6 +137,12 @@ namespace com.noctuagames.sdk.Admob
         }
 
         /// <summary>
+        /// Returns true if a legacy-loaded rewarded ad is ready to show.
+        /// Used by the Editor fallback path and secondary-network checks.
+        /// </summary>
+        public bool IsReady() => _rewardedAd != null && _rewardedAd.CanShowAd();
+
+        /// <summary>
         /// Shows a previously loaded rewarded ad, invoking the reward callback when the user completes viewing.
         /// </summary>
         public void ShowRewardedAd()
