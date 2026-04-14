@@ -62,6 +62,15 @@ namespace com.noctuagames.sdk
         public bool IsHybridMode => _secondary != null;
 
         /// <summary>
+        /// Returns true if the given ad format has an explicit network override in
+        /// <c>ad_format_overrides</c>. When true, <see cref="GetNetworkForFormat"/> always
+        /// routes to the overridden network; secondary readiness should not be treated as a
+        /// signal that this format is available from the intended source.
+        /// </summary>
+        public bool HasFormatOverride(string format)
+            => _adFormatOverrides.ContainsKey(format);
+
+        /// <summary>
         /// Creates a new HybridAdOrchestrator.
         /// </summary>
         /// <param name="primary">The primary ad network (required).</param>

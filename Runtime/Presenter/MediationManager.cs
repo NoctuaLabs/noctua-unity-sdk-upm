@@ -1519,7 +1519,15 @@ namespace com.noctuagames.sdk
             var preferred = _orchestrator.GetNetworkForFormat(AdFormatKey.Interstitial);
             if (IsInterstitialReadyOnNetwork(preferred)) return true;
 
-            // Also check secondary so games show "Watch Ad" buttons when only secondary has fill.
+            // When ad_format_overrides explicitly pins interstitial to a network, only that
+            // network's readiness counts — the secondary is a last-resort fallback, not the
+            // intended source. Returning secondary-ready here would make IsInterstitialReady()
+            // return true and then ShowInterstitial() silently fall back to the secondary network,
+            // which is confusing (e.g. MAX ad shown when config says admob).
+            if (_orchestrator.HasFormatOverride(AdFormatKey.Interstitial)) return false;
+
+            // No override → check secondary so "Watch Ad" buttons stay enabled when only
+            // secondary has fill and the primary is temporarily dry.
             var secondary = _orchestrator.Secondary;
             return secondary != null && IsInterstitialReadyOnNetwork(secondary);
         }
@@ -1546,7 +1554,13 @@ namespace com.noctuagames.sdk
             var preferred = _orchestrator.GetNetworkForFormat(AdFormatKey.Rewarded);
             if (IsRewardedReadyOnNetwork(preferred)) return true;
 
-            // Also check secondary so games show "Watch Ad" buttons when only secondary has fill.
+            // Same reasoning as IsInterstitialReady: an explicit override pins the format to
+            // one network; secondary readiness would cause ShowRewardedAd() to silently serve
+            // from the wrong network.
+            if (_orchestrator.HasFormatOverride(AdFormatKey.Rewarded)) return false;
+
+            // No override → check secondary so "Watch Ad" buttons stay enabled when only
+            // secondary has fill and the primary is temporarily dry.
             var secondary = _orchestrator.Secondary;
             return secondary != null && IsRewardedReadyOnNetwork(secondary);
         }
