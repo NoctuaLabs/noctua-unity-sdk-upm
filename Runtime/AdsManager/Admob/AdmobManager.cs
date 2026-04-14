@@ -2,6 +2,7 @@
 using GoogleMobileAds.Api;
 using UnityEngine;
 using System;
+using System.Threading;
 using com.noctuagames.sdk.Admob;
 using System.Collections.Generic;
 
@@ -47,6 +48,12 @@ namespace com.noctuagames.sdk
         // Tracks whether a banner ad unit ID has been configured
         private bool _bannerAdUnitSet;
 
+        // Captured Unity main-thread SynchronizationContext. GMA fires its
+        // initialization completion callback on the Android JNI thread, so any
+        // Unity API access (Application.isFocused, PlayerPrefs, etc.) must be
+        // marshaled back to the main thread.
+        private readonly SynchronizationContext _mainThreadContext;
+
         /// <summary>Raised when the AdMob SDK has completed initialization.</summary>
         public event Action OnInitialized { add => _initCompleteAction += value; remove => _initCompleteAction -= value; }
 
@@ -80,6 +87,9 @@ namespace com.noctuagames.sdk
         internal AdmobManager()
         {
             _log.Debug("AdmobManager constructor");
+
+            // Capture Unity main-thread SynchronizationContext for marshaling JNI callbacks.
+            _mainThreadContext = SynchronizationContext.Current;
 
             _bannerAdmob = new BannerAdmob();
             _rewardedAdmob = new RewardedAdmob();
@@ -125,27 +135,49 @@ namespace com.noctuagames.sdk
 
             MobileAds.Initialize(initStatus =>
             {
-                _log.Info("Admob initialized");
-
-                initCompleteAction?.Invoke();
-                _initCompleteAction?.Invoke();
-
-                Dictionary<string, AdapterStatus> map = initStatus.getAdapterStatusMap();
-                foreach (KeyValuePair<string, AdapterStatus> keyValuePair in map)
+                // GMA Android invokes this completion callback on the JNI thread.
+                // Downstream listeners (e.g. Noctua.InitializeNativePlugin) call
+                // Unity APIs such as Application.isFocused and PlayerPrefs which
+                // are main-thread-only. Marshal back to the Unity main thread.
+                PostToMainThread(() =>
                 {
-                    string className = keyValuePair.Key;
-                    AdapterStatus status = keyValuePair.Value;
-                    switch (status.InitializationState)
+                    _log.Info("Admob initialized");
+
+                    initCompleteAction?.Invoke();
+                    _initCompleteAction?.Invoke();
+
+                    Dictionary<string, AdapterStatus> map = initStatus.getAdapterStatusMap();
+                    foreach (KeyValuePair<string, AdapterStatus> keyValuePair in map)
                     {
-                    case AdapterState.NotReady:
-                        _log.Info("Adapter: " + className + " not ready.");
-                        break;
-                    case AdapterState.Ready:
-                        _log.Info("Adapter: " + className + " is initialized.");
-                        break;
+                        string className = keyValuePair.Key;
+                        AdapterStatus status = keyValuePair.Value;
+                        switch (status.InitializationState)
+                        {
+                        case AdapterState.NotReady:
+                            _log.Info("Adapter: " + className + " not ready.");
+                            break;
+                        case AdapterState.Ready:
+                            _log.Info("Adapter: " + className + " is initialized.");
+                            break;
+                        }
                     }
-                }
+                });
             });
+        }
+
+        private void PostToMainThread(Action action)
+        {
+            if (action == null) return;
+            if (_mainThreadContext != null)
+            {
+                _mainThreadContext.Post(_ => action(), null);
+            }
+            else
+            {
+                // Fallback: if we couldn't capture a context (shouldn't happen
+                // when constructed on the main thread), invoke synchronously.
+                action();
+            }
         }
 
         /// <inheritdoc />
