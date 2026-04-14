@@ -1,4 +1,5 @@
 using System;
+using System.Threading;
 using UnityEngine;
 using System.Collections.Generic;
 using com.noctuagames.sdk.AdPlaceholder;
@@ -18,6 +19,11 @@ namespace com.noctuagames.sdk
     public class MediationManager
     {
         private readonly NoctuaLogger _log = new(typeof(MediationManager));
+
+        // Captured on the main thread in the constructor; used to dispatch AdMob preload
+        // callbacks (which fire on the GMA JNI thread) back to Unity's main thread.
+        private readonly SynchronizationContext _mainThreadContext;
+
         private HybridAdOrchestrator _orchestrator;
         private AdRevenueTrackingManager _revenueTracker;
         private AdFrequencyManager _frequencyManager;
@@ -285,6 +291,8 @@ namespace com.noctuagames.sdk
 
         internal MediationManager(IAdPlaceholderUI adPlaceholderUI, IAA iAAResponse)
         {
+            // Must be called from Unity's main thread (it is — Noctua() ctor runs on main thread).
+            _mainThreadContext = SynchronizationContext.Current;
             _adPlaceholderUI = adPlaceholderUI;
 
             if (iAAResponse == null)
@@ -987,37 +995,50 @@ namespace com.noctuagames.sdk
             }
         }
 
+        /// <summary>
+        /// Dispatches <paramref name="action"/> to Unity's main thread.
+        /// AdMob preloaded-ad callbacks fire on the GMA JNI thread; running Unity API
+        /// calls (UI updates, AudioSource, etc.) directly from that thread crashes.
+        /// </summary>
+        private void PostToMainThread(Action action)
+        {
+            if (_mainThreadContext != null)
+                _mainThreadContext.Post(_ => action(), null);
+            else
+                action(); // fallback: already on main thread (Editor / tests)
+        }
+
         private void RegisterCallbackAdInterstitial(InterstitialAd interstitialAd)
         {
-            interstitialAd.OnAdFullScreenContentOpened += () =>
+            interstitialAd.OnAdFullScreenContentOpened += () => PostToMainThread(() =>
             {
                 CloseAdPlaceholder();
                 _onAdDisplayed?.Invoke();
-            };
-            interstitialAd.OnAdFullScreenContentFailed += (AdError error) =>
+            });
+            interstitialAd.OnAdFullScreenContentFailed += (AdError error) => PostToMainThread(() =>
             {
                 CloseAdPlaceholder();
                 _onAdFailedDisplayed?.Invoke();
                 _log.Warning("Interstitial Ad failed to show. Error: " + error);
-            };
-            interstitialAd.OnAdFullScreenContentClosed += () =>
+            });
+            interstitialAd.OnAdFullScreenContentClosed += () => PostToMainThread(() =>
             {
                 _onAdClosed?.Invoke();
-            };
-            interstitialAd.OnAdClicked += () =>
+            });
+            interstitialAd.OnAdClicked += () => PostToMainThread(() =>
             {
                 _onAdClicked?.Invoke();
-            };
-            interstitialAd.OnAdImpressionRecorded += () =>
+            });
+            interstitialAd.OnAdImpressionRecorded += () => PostToMainThread(() =>
             {
                 _onAdImpressionRecorded?.Invoke();
-            };
-            interstitialAd.OnAdPaid += (AdValue adValue) =>
+            });
+            interstitialAd.OnAdPaid += (AdValue adValue) => PostToMainThread(() =>
             {
                 _revenueTracker.ProcessAdmobInterstitialRevenue(adValue, interstitialAd.GetResponseInfo());
                 _admobOnAdRevenuePaid?.Invoke(adValue, interstitialAd.GetResponseInfo());
                 _performanceTracker?.RecordRevenue(AdNetworkName.Admob, AdFormatKey.Interstitial, adValue.Value / 1_000_000.0);
-            };
+            });
         }
 #endif
 
@@ -1062,11 +1083,11 @@ namespace com.noctuagames.sdk
                                 ? $"Showing Admob Rewarded Ad (placement: {placement})"
                                 : "Showing Admob Rewarded Ad");
                             RegisterCallbackAdRewarded(ad);
-                            ad.Show((Reward reward) =>
+                            ad.Show((Reward reward) => PostToMainThread(() =>
                             {
                                 _log.Info("User earned reward: " + reward.Type + " - " + reward.Amount);
                                 _admobOnUserEarnedReward?.Invoke(reward);
-                            });
+                            }));
                             // Record impression only after a successful show attempt.
                             _frequencyManager?.RecordImpression(AdFormatKey.Rewarded);
                         }
@@ -1160,35 +1181,35 @@ namespace com.noctuagames.sdk
 
         private void RegisterCallbackAdRewarded(RewardedAd rewardedAd)
         {
-            rewardedAd.OnAdFullScreenContentOpened += () =>
+            rewardedAd.OnAdFullScreenContentOpened += () => PostToMainThread(() =>
             {
                 CloseAdPlaceholder();
                 _onAdDisplayed?.Invoke();
-            };
-            rewardedAd.OnAdFullScreenContentFailed += (AdError error) =>
+            });
+            rewardedAd.OnAdFullScreenContentFailed += (AdError error) => PostToMainThread(() =>
             {
                 CloseAdPlaceholder();
                 _onAdFailedDisplayed?.Invoke();
                 _log.Warning("Rewarded Ad failed to show. Error: " + error);
-            };
-            rewardedAd.OnAdFullScreenContentClosed += () =>
+            });
+            rewardedAd.OnAdFullScreenContentClosed += () => PostToMainThread(() =>
             {
                 _onAdClosed?.Invoke();
-            };
-            rewardedAd.OnAdClicked += () =>
+            });
+            rewardedAd.OnAdClicked += () => PostToMainThread(() =>
             {
                 _onAdClicked?.Invoke();
-            };
-            rewardedAd.OnAdImpressionRecorded += () =>
+            });
+            rewardedAd.OnAdImpressionRecorded += () => PostToMainThread(() =>
             {
                 _onAdImpressionRecorded?.Invoke();
-            };
-            rewardedAd.OnAdPaid += (AdValue adValue) =>
+            });
+            rewardedAd.OnAdPaid += (AdValue adValue) => PostToMainThread(() =>
             {
                 _revenueTracker.ProcessAdmobRewardedRevenue(adValue, rewardedAd.GetResponseInfo());
                 _admobOnAdRevenuePaid?.Invoke(adValue, rewardedAd.GetResponseInfo());
                 _performanceTracker?.RecordRevenue(AdNetworkName.Admob, AdFormatKey.Rewarded, adValue.Value / 1_000_000.0);
-            };
+            });
         }
 #endif
 
