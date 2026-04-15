@@ -538,26 +538,107 @@ namespace com.noctuagames.sdk
             if (network.NetworkName != AdNetworkName.Admob) return;
 
             network.AdmobOnUserEarnedReward += (reward) => _admobOnUserEarnedReward?.Invoke(reward);
-            network.AdmobOnAdRevenuePaid += (adValue, responseInfo) =>
-            {
-                // Banner OnAdPaid fires on the GMA JNI thread — same as interstitial/rewarded.
-                // PlayerPrefs and other Unity APIs inside ProcessAdmobRevenue require the main thread.
-                PostToMainThread(() =>
-                {
-                    _revenueTracker.ProcessAdmobRevenue(adValue, responseInfo);
-                    _admobOnAdRevenuePaid?.Invoke(adValue, responseInfo);
 
-                    // Feed dynamic-optimization tracker with banner revenue.
-                    // This handler fires from AdmobManager's banner OnAdPaid callback only.
-                    // Interstitial and rewarded revenue are tracked with the correct format key
-                    // directly in RegisterCallbackAdInterstitial / RegisterCallbackAdRewarded.
-                    if (_performanceTracker != null)
+            // Per-format routing: the aggregate AdmobOnAdRevenuePaid event does not carry
+            // format info, so Taichi counters and performance tracker would be misattributed
+            // (everything was previously counted as banner). AdmobManager now exposes
+            // per-format revenue events; subscribe to each and route to the correct
+            // Process*Thresholds / RecordRevenue call.
+            //
+            // Note: the preload path for interstitial/rewarded uses a raw AdMob ad object
+            // (not _interstitialAdmob/_rewardedAdmob), so OnAdPaid is wired directly in
+            // RegisterCallbackAdInterstitial / RegisterCallbackAdRewarded. The per-format
+            // events below fire for the legacy (non-preload) paths, including when AdMob
+            // is the secondary network.
+            if (network is AdmobManager admobManager)
+            {
+                admobManager.AdmobOnBannerRevenuePaid += (adValue, responseInfo) =>
+                {
+                    PostToMainThread(() =>
                     {
-                        double revenue = adValue.Value / 1_000_000.0;
-                        _performanceTracker.RecordRevenue(AdNetworkName.Admob, AdFormatKey.Banner, revenue);
-                    }
-                });
-            };
+                        _revenueTracker.ProcessAdmobRevenue(adValue, responseInfo);
+                        _admobOnAdRevenuePaid?.Invoke(adValue, responseInfo);
+                        if (_performanceTracker != null)
+                        {
+                            double revenue = adValue.Value / 1_000_000.0;
+                            _performanceTracker.RecordRevenue(AdNetworkName.Admob, AdFormatKey.Banner, revenue);
+                        }
+                    });
+                };
+
+                admobManager.AdmobOnInterstitialRevenuePaid += (adValue, responseInfo) =>
+                {
+                    PostToMainThread(() =>
+                    {
+                        _revenueTracker.ProcessAdmobInterstitialRevenue(adValue, responseInfo);
+                        _admobOnAdRevenuePaid?.Invoke(adValue, responseInfo);
+                        if (_performanceTracker != null)
+                        {
+                            double revenue = adValue.Value / 1_000_000.0;
+                            _performanceTracker.RecordRevenue(AdNetworkName.Admob, AdFormatKey.Interstitial, revenue);
+                        }
+                    });
+                };
+
+                admobManager.AdmobOnRewardedRevenuePaid += (adValue, responseInfo) =>
+                {
+                    PostToMainThread(() =>
+                    {
+                        _revenueTracker.ProcessAdmobRewardedRevenue(adValue, responseInfo);
+                        _admobOnAdRevenuePaid?.Invoke(adValue, responseInfo);
+                        if (_performanceTracker != null)
+                        {
+                            double revenue = adValue.Value / 1_000_000.0;
+                            _performanceTracker.RecordRevenue(AdNetworkName.Admob, AdFormatKey.Rewarded, revenue);
+                        }
+                    });
+                };
+
+                admobManager.AdmobOnRewardedInterstitialRevenuePaid += (adValue, responseInfo) =>
+                {
+                    PostToMainThread(() =>
+                    {
+                        // Rewarded interstitial is counted under the all-formats path only
+                        // (not Step 3/5/6) — matches the existing behavior at line ~631.
+                        _revenueTracker.ProcessAdmobRevenue(adValue, responseInfo);
+                        _admobOnAdRevenuePaid?.Invoke(adValue, responseInfo);
+                        if (_performanceTracker != null)
+                        {
+                            double revenue = adValue.Value / 1_000_000.0;
+                            _performanceTracker.RecordRevenue(AdNetworkName.Admob, AdFormatKey.RewardedInterstitial, revenue);
+                        }
+                    });
+                };
+
+                admobManager.AdmobOnAppOpenRevenuePaid += (adValue, responseInfo) =>
+                {
+                    PostToMainThread(() =>
+                    {
+                        _revenueTracker.ProcessAdmobRevenue(adValue, responseInfo);
+                        _admobOnAdRevenuePaid?.Invoke(adValue, responseInfo);
+                        if (_performanceTracker != null)
+                        {
+                            double revenue = adValue.Value / 1_000_000.0;
+                            _performanceTracker.RecordRevenue(AdNetworkName.Admob, AdFormatKey.AppOpen, revenue);
+                        }
+                    });
+                };
+            }
+            else
+            {
+                // Fallback — if the network isn't AdmobManager (e.g. a test double),
+                // keep the legacy aggregate wiring so revenue still flows to external
+                // subscribers, but skip Taichi/performance attribution since we can't
+                // identify the format.
+                network.AdmobOnAdRevenuePaid += (adValue, responseInfo) =>
+                {
+                    PostToMainThread(() =>
+                    {
+                        _revenueTracker.ProcessAdmobRevenue(adValue, responseInfo);
+                        _admobOnAdRevenuePaid?.Invoke(adValue, responseInfo);
+                    });
+                };
+            }
         }
 #endif
 

@@ -36,6 +36,11 @@ namespace com.noctuagames.sdk
         private event Action<double, string> _onUnifiedUserEarnedReward;
 
         private event Action<AdValue, ResponseInfo> _admobOnAdRevenuePaid;
+        private event Action<AdValue, ResponseInfo> _admobOnBannerRevenuePaid;
+        private event Action<AdValue, ResponseInfo> _admobOnInterstitialRevenuePaid;
+        private event Action<AdValue, ResponseInfo> _admobOnRewardedRevenuePaid;
+        private event Action<AdValue, ResponseInfo> _admobOnRewardedInterstitialRevenuePaid;
+        private event Action<AdValue, ResponseInfo> _admobOnAppOpenRevenuePaid;
         private event Action<double, string, Dictionary<string, string>> _onUnifiedAdRevenuePaid;
 
         // Subscription guards to prevent duplicate event wiring on re-init
@@ -77,6 +82,21 @@ namespace com.noctuagames.sdk
 
         /// <summary>Raised when ad revenue is recorded, providing the ad value and response information.</summary>
         public event Action<AdValue, ResponseInfo> AdmobOnAdRevenuePaid { add => _admobOnAdRevenuePaid += value; remove => _admobOnAdRevenuePaid -= value; }
+
+        /// <summary>Raised when banner ad revenue is recorded.</summary>
+        public event Action<AdValue, ResponseInfo> AdmobOnBannerRevenuePaid { add => _admobOnBannerRevenuePaid += value; remove => _admobOnBannerRevenuePaid -= value; }
+
+        /// <summary>Raised when interstitial ad revenue is recorded.</summary>
+        public event Action<AdValue, ResponseInfo> AdmobOnInterstitialRevenuePaid { add => _admobOnInterstitialRevenuePaid += value; remove => _admobOnInterstitialRevenuePaid -= value; }
+
+        /// <summary>Raised when rewarded ad revenue is recorded.</summary>
+        public event Action<AdValue, ResponseInfo> AdmobOnRewardedRevenuePaid { add => _admobOnRewardedRevenuePaid += value; remove => _admobOnRewardedRevenuePaid -= value; }
+
+        /// <summary>Raised when rewarded interstitial ad revenue is recorded.</summary>
+        public event Action<AdValue, ResponseInfo> AdmobOnRewardedInterstitialRevenuePaid { add => _admobOnRewardedInterstitialRevenuePaid += value; remove => _admobOnRewardedInterstitialRevenuePaid -= value; }
+
+        /// <summary>Raised when app open ad revenue is recorded.</summary>
+        public event Action<AdValue, ResponseInfo> AdmobOnAppOpenRevenuePaid { add => _admobOnAppOpenRevenuePaid += value; remove => _admobOnAppOpenRevenuePaid -= value; }
 
         /// <summary>Raised when the user earns a reward (network-agnostic). Parameters: (amount, type).</summary>
         public event Action<double, string> OnUserEarnedReward { add => _onUnifiedUserEarnedReward += value; remove => _onUnifiedUserEarnedReward -= value; }
@@ -195,7 +215,11 @@ namespace com.noctuagames.sdk
                 _interstitialAdmob.InterstitialOnAdClicked += () => { _onAdClicked?.Invoke(); };
                 _interstitialAdmob.InterstitialOnAdImpressionRecorded += () => { _onAdImpressionRecorded?.Invoke(); };
                 _interstitialAdmob.InterstitialOnAdClosed += () => { _onAdClosed?.Invoke(); };
-                _interstitialAdmob.AdmobOnAdRevenuePaid += (adValue, responseInfo) => { _admobOnAdRevenuePaid?.Invoke(adValue, responseInfo); };
+                _interstitialAdmob.AdmobOnAdRevenuePaid += (adValue, responseInfo) =>
+                {
+                    _admobOnInterstitialRevenuePaid?.Invoke(adValue, responseInfo);
+                    _admobOnAdRevenuePaid?.Invoke(adValue, responseInfo);
+                };
             }
         }
 
@@ -227,7 +251,11 @@ namespace com.noctuagames.sdk
                 _rewardedAdmob.RewardedOnAdImpressionRecorded += () => { _onAdImpressionRecorded?.Invoke(); };
                 _rewardedAdmob.RewardedOnAdClosed += () => { _onAdClosed?.Invoke(); };
                 _rewardedAdmob.RewardedOnUserEarnedReward += (reward) => { _onUserEarnedReward?.Invoke(reward); };
-                _rewardedAdmob.AdmobOnAdRevenuePaid += (adValue, responseInfo) => { _admobOnAdRevenuePaid?.Invoke(adValue, responseInfo); };
+                _rewardedAdmob.AdmobOnAdRevenuePaid += (adValue, responseInfo) =>
+                {
+                    _admobOnRewardedRevenuePaid?.Invoke(adValue, responseInfo);
+                    _admobOnAdRevenuePaid?.Invoke(adValue, responseInfo);
+                };
             }
         }
 
@@ -268,7 +296,11 @@ namespace com.noctuagames.sdk
                 _bannerAdmob.BannerOnAdClicked += () => { _onAdClicked?.Invoke(); };
                 _bannerAdmob.BannerOnAdImpressionRecorded += () => { _onAdImpressionRecorded?.Invoke(); };
                 _bannerAdmob.BannerOnAdClosed += () => { _onAdClosed?.Invoke(); };
-                _bannerAdmob.AdmobOnAdRevenuePaid += (adValue, responseInfo) => { _admobOnAdRevenuePaid?.Invoke(adValue, responseInfo); };
+                _bannerAdmob.AdmobOnAdRevenuePaid += (adValue, responseInfo) =>
+                {
+                    _admobOnBannerRevenuePaid?.Invoke(adValue, responseInfo);
+                    _admobOnAdRevenuePaid?.Invoke(adValue, responseInfo);
+                };
             }
         }
 
@@ -300,7 +332,11 @@ namespace com.noctuagames.sdk
                 _rewardedInterstitialAdmob.RewardedOnAdImpressionRecorded += () => { _onAdImpressionRecorded?.Invoke(); };
                 _rewardedInterstitialAdmob.RewardedOnAdClosed += () => { _onAdClosed?.Invoke(); };
                 _rewardedInterstitialAdmob.RewardedOnUserEarnedReward += (reward) => { _onUserEarnedReward?.Invoke(reward); };
-                _rewardedInterstitialAdmob.AdmobOnAdRevenuePaid += (adValue, responseInfo) => { _admobOnAdRevenuePaid?.Invoke(adValue, responseInfo); };
+                _rewardedInterstitialAdmob.AdmobOnAdRevenuePaid += (adValue, responseInfo) =>
+                {
+                    _admobOnRewardedInterstitialRevenuePaid?.Invoke(adValue, responseInfo);
+                    _admobOnAdRevenuePaid?.Invoke(adValue, responseInfo);
+                };
             }
         }
         /// <inheritdoc />
@@ -329,7 +365,11 @@ namespace com.noctuagames.sdk
                 _appOpenAdmob.AppOpenOnAdClicked += () => { _onAdClicked?.Invoke(); };
                 _appOpenAdmob.AppOpenOnAdImpressionRecorded += () => { _onAdImpressionRecorded?.Invoke(); };
                 _appOpenAdmob.AppOpenOnAdClosed += () => { _onAdClosed?.Invoke(); };
-                _appOpenAdmob.AdmobOnAdRevenuePaid += (adValue, responseInfo) => { _admobOnAdRevenuePaid?.Invoke(adValue, responseInfo); };
+                _appOpenAdmob.AdmobOnAdRevenuePaid += (adValue, responseInfo) =>
+                {
+                    _admobOnAppOpenRevenuePaid?.Invoke(adValue, responseInfo);
+                    _admobOnAdRevenuePaid?.Invoke(adValue, responseInfo);
+                };
             }
         }
 
