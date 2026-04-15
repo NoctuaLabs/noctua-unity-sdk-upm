@@ -3,6 +3,7 @@ using GoogleMobileAds.Api;
 using UnityEngine;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 
 namespace com.noctuagames.sdk.Admob
 {
@@ -17,6 +18,8 @@ namespace com.noctuagames.sdk.Admob
         private readonly NoctuaLogger _log = new(typeof(AppOpenAdmob));
         private string _adUnitIDAppOpen;
         private AppOpenAd _legacyAppOpenAd;
+        private AdValue _lastAdValue;
+        private readonly Stopwatch _showStopwatch = new();
 
         /// <summary>Raised when the app open ad is successfully displayed.</summary>
         public event Action AppOpenOnAdDisplayed;
@@ -81,17 +84,49 @@ namespace com.noctuagames.sdk.Admob
 
             // Legacy fallback: load via AppOpenAd.Load() when Preload API is unavailable
             _log.Info("LoadAppOpenAd: Preload buffer empty or unavailable. Using legacy AppOpenAd.Load() fallback.");
+            TrackAdCustomEvent("wf_app_open_request_start");
             var adRequest = new AdRequest();
             AppOpenAd.Load(_adUnitIDAppOpen, adRequest, (AppOpenAd ad, LoadAdError error) =>
             {
-                if (error != null)
+                if (error != null || ad == null)
                 {
-                    _log.Warning($"Legacy app open ad load failed: {error.GetMessage()}");
+                    _log.Warning($"Legacy app open ad load failed: {error?.GetMessage()}");
+
+                    // Canonical ad_load_failed (was missing entirely on AdMob AO)
+                    EmitCanonical(IAAEventNames.AdLoadFailed, IAAPayloadBuilder.BuildAdLoadFailed(
+                        adFormat:   AdFormatKey.AppOpen,
+                        adPlatform: AdNetworkName.Admob,
+                        adUnitName: _adUnitIDAppOpen,
+                        error:      IAAPayloadBuilder.FormatError(
+                            error?.GetCode() ?? -1,
+                            error?.GetMessage(),
+                            error?.GetDomain())
+                    ));
+
+                    TrackAdCustomEvent("wf_app_open_request_adunit_failed");
+                    TrackAdCustomEvent("wf_app_open_request_finished_failed");
                     return;
                 }
 
                 _log.Info("Legacy app open ad loaded successfully.");
                 _legacyAppOpenAd = ad;
+
+                var loadedAdapter = ad.GetResponseInfo()?.GetLoadedAdapterResponseInfo();
+                string adSource = null;
+                try { adSource = loadedAdapter?.AdSourceName; } catch {}
+
+                EmitCanonical(IAAEventNames.AdLoaded, IAAPayloadBuilder.BuildAdLoaded(
+                    placement:  null,
+                    adType:     AdFormatKey.AppOpen,
+                    adUnitId:   _adUnitIDAppOpen,
+                    adUnitName: _adUnitIDAppOpen,
+                    adSize:     IAAAdSize.Fullscreen,
+                    adSource:   adSource,
+                    adPlatform: AdNetworkName.Admob
+                ));
+
+                TrackAdCustomEvent("wf_app_open_adunit_success");
+                TrackAdCustomEvent("wf_app_open_request_finished_success");
             });
         }
 
@@ -104,6 +139,7 @@ namespace com.noctuagames.sdk.Admob
             {
                 _log.Warning("App open ad unit ID not configured.");
                 TrackAdCustomEvent("wf_app_open_show_not_ready");
+                TrackAdCustomEvent("wf_app_open_show_failed_null");
                 return;
             }
 
@@ -116,6 +152,7 @@ namespace com.noctuagames.sdk.Admob
                     _legacyAppOpenAd.Destroy();
                     _legacyAppOpenAd = null;
                     TrackAdCustomEvent("wf_app_open_show_not_ready");
+                TrackAdCustomEvent("wf_app_open_show_failed_null");
                     // Fall through to try preload path
                 }
                 else
@@ -125,6 +162,7 @@ namespace com.noctuagames.sdk.Admob
                         _log.Debug("Showing legacy-loaded app open ad.");
                         TrackAdCustomEvent("wf_app_open_started_playing");
                         RegisterEventHandlers(_legacyAppOpenAd);
+                        _showStopwatch.Restart();
                         _legacyAppOpenAd.Show();
                         _legacyAppOpenAd = null; // Consumed
                         return;
@@ -146,6 +184,7 @@ namespace com.noctuagames.sdk.Admob
             {
                 _log.Warning("App open ad is not ready yet (preload buffer empty).");
                 TrackAdCustomEvent("wf_app_open_show_not_ready");
+                TrackAdCustomEvent("wf_app_open_show_failed_null");
                 return;
             }
 
@@ -154,6 +193,7 @@ namespace com.noctuagames.sdk.Admob
             {
                 _log.Warning("App open ad poll returned null.");
                 TrackAdCustomEvent("wf_app_open_show_not_ready");
+                TrackAdCustomEvent("wf_app_open_show_failed_null");
                 return;
             }
 
@@ -162,6 +202,7 @@ namespace com.noctuagames.sdk.Admob
                 _log.Debug("Showing app open ad.");
                 TrackAdCustomEvent("wf_app_open_started_playing");
                 RegisterEventHandlers(ad);
+                _showStopwatch.Restart();
                 ad.Show();
             }
             catch (Exception ex)
@@ -197,13 +238,38 @@ namespace com.noctuagames.sdk.Admob
             ad.OnAdPaid += (AdValue adValue) =>
             {
                 _log.Debug($"App open ad paid {adValue.Value} {adValue.CurrencyCode}.");
+                _lastAdValue = adValue;
                 AdmobOnAdRevenuePaid?.Invoke(adValue, ad.GetResponseInfo());
             };
 
             ad.OnAdImpressionRecorded += () =>
             {
                 _log.Debug("App open ad recorded an impression.");
-                TrackAdCustomEvent("ad_impression");
+
+                var engagementMs = _showStopwatch.IsRunning ? _showStopwatch.ElapsedMilliseconds : 0L;
+                _showStopwatch.Reset();
+
+                var valueMicros = _lastAdValue?.Value ?? 0L;
+                var value       = valueMicros / 1_000_000d;
+                var valueUsd    = value;
+
+                var loadedAdapter = ad.GetResponseInfo()?.GetLoadedAdapterResponseInfo();
+                string adSource = null;
+                try { adSource = loadedAdapter?.AdSourceName; } catch {}
+
+                EmitCanonical(IAAEventNames.AdImpression, IAAPayloadBuilder.BuildAdImpression(
+                    placement:        null,
+                    adType:           AdFormatKey.AppOpen,
+                    adUnitId:         _adUnitIDAppOpen,
+                    adUnitName:       _adUnitIDAppOpen,
+                    value:            value,
+                    valueUsd:         valueUsd,
+                    adSize:           IAAAdSize.Fullscreen,
+                    adSource:         adSource,
+                    adPlatform:       AdNetworkName.Admob,
+                    engagementTimeMs: engagementMs
+                ));
+
                 TrackAdCustomEvent("ad_impression_app_open");
                 AppOpenOnAdImpressionRecorded?.Invoke();
             };
@@ -211,7 +277,21 @@ namespace com.noctuagames.sdk.Admob
             ad.OnAdClicked += () =>
             {
                 _log.Debug("App open ad was clicked.");
-                TrackAdCustomEvent("ad_clicked");
+
+                var loadedAdapter = ad.GetResponseInfo()?.GetLoadedAdapterResponseInfo();
+                string adSource = null;
+                try { adSource = loadedAdapter?.AdSourceName; } catch {}
+
+                EmitCanonical(IAAEventNames.AdClicked, IAAPayloadBuilder.BuildAdClicked(
+                    placement:  null,
+                    adType:     AdFormatKey.AppOpen,
+                    adUnitId:   _adUnitIDAppOpen,
+                    adUnitName: _adUnitIDAppOpen,
+                    adSize:     IAAAdSize.Fullscreen,
+                    adSource:   adSource,
+                    adPlatform: AdNetworkName.Admob
+                ));
+
                 TrackAdCustomEvent("wf_app_open_clicked");
                 AppOpenOnAdClicked?.Invoke();
             };
@@ -219,7 +299,21 @@ namespace com.noctuagames.sdk.Admob
             ad.OnAdFullScreenContentOpened += () =>
             {
                 _log.Debug("App open ad full screen content opened.");
-                TrackAdCustomEvent("ad_shown");
+
+                var loadedAdapter = ad.GetResponseInfo()?.GetLoadedAdapterResponseInfo();
+                string adSource = null;
+                try { adSource = loadedAdapter?.AdSourceName; } catch {}
+
+                EmitCanonical(IAAEventNames.AdShown, IAAPayloadBuilder.BuildAdLoaded(
+                    placement:  null,
+                    adType:     AdFormatKey.AppOpen,
+                    adUnitId:   _adUnitIDAppOpen,
+                    adUnitName: _adUnitIDAppOpen,
+                    adSize:     IAAAdSize.Fullscreen,
+                    adSource:   adSource,
+                    adPlatform: AdNetworkName.Admob
+                ));
+
                 TrackAdCustomEvent("wf_app_open_show_sdk");
                 AppOpenOnAdDisplayed?.Invoke();
             };
@@ -246,11 +340,32 @@ namespace com.noctuagames.sdk.Admob
                     { "ad_unit_id", _adUnitIDAppOpen ?? "unknown" }
                 };
 
-                TrackAdCustomEvent("ad_show_failed", extraPayload);
+                EmitCanonical(IAAEventNames.AdShowFailed, IAAPayloadBuilder.BuildAdShowFailed(
+                    adFormat:   AdFormatKey.AppOpen,
+                    adPlatform: AdNetworkName.Admob,
+                    adUnitName: _adUnitIDAppOpen,
+                    error:      IAAPayloadBuilder.FormatError(
+                        error.GetCode(), error.GetMessage(), error.GetDomain())
+                ));
+
                 TrackAdCustomEvent("wf_app_open_show_sdk_failed", extraPayload);
                 AppOpenOnAdFailedDisplayed?.Invoke();
                 // No manual reload — preload API auto-refills the buffer after Poll.
             };
+        }
+
+        // Routes a canonical IAA event payload through Noctua.Event. Wrapped in try/catch
+        // so analytics failures never break ad delivery.
+        private void EmitCanonical(string eventName, Dictionary<string, IConvertible> payload)
+        {
+            try
+            {
+                Noctua.Event.TrackCustomEvent(eventName, payload);
+            }
+            catch (Exception ex)
+            {
+                _log.Error($"Error emitting canonical AO event '{eventName}': {ex.Message}");
+            }
         }
 
         private void TrackAdCustomEvent(string eventName, Dictionary<string, IConvertible> extraPayload = null)

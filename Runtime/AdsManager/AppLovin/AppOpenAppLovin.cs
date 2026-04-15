@@ -2,6 +2,7 @@
 using Cysharp.Threading.Tasks;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 
 namespace com.noctuagames.sdk.AppLovin
 {
@@ -16,6 +17,8 @@ namespace com.noctuagames.sdk.AppLovin
         private string _adUnitIDAppOpen;
         private int _retryAttempt;
         private bool _callbacksRegistered;
+        // Monotonic clock — used to compute engagement_time (ms between Show() and impression callback).
+        private readonly Stopwatch _showStopwatch = new();
 
         /// <summary>Raised when the app open ad is successfully displayed.</summary>
         public event Action AppOpenOnAdDisplayed;
@@ -94,6 +97,7 @@ namespace com.noctuagames.sdk.AppLovin
 
             if (MaxSdk.IsAppOpenAdReady(_adUnitIDAppOpen))
             {
+                _showStopwatch.Restart();
                 MaxSdk.ShowAppOpenAd(_adUnitIDAppOpen);
                 _log.Debug("Showing app open ad for ad unit id: " + _adUnitIDAppOpen);
             }
@@ -101,6 +105,7 @@ namespace com.noctuagames.sdk.AppLovin
             {
                 _log.Error("App open ad is not ready to be shown for ad unit id: " + _adUnitIDAppOpen);
                 TrackAdCustomEvent("wf_app_open_show_not_ready");
+                TrackAdCustomEvent("wf_app_open_show_failed_null");
             }
         }
 
@@ -144,8 +149,19 @@ namespace com.noctuagames.sdk.AppLovin
         {
             _retryAttempt = 0;
             _log.Debug("App open ad loaded for ad unit id: " + adUnitId);
-            TrackAdCustomEvent("ad_loaded", adUnitId, adInfo);
+
+            EmitCanonical(IAAEventNames.AdLoaded, IAAPayloadBuilder.BuildAdLoaded(
+                placement:  adInfo?.Placement,
+                adType:     AdFormatKey.AppOpen,
+                adUnitId:   adUnitId,
+                adUnitName: adUnitId,
+                adSize:     IAAAdSize.Fullscreen,
+                adSource:   adInfo?.NetworkName,
+                adPlatform: AdNetworkName.AppLovin
+            ));
+
             TrackAdCustomEvent("wf_app_open_adunit_success");
+            TrackAdCustomEvent("wf_app_open_request_finished_success");
         }
 
         private void OnAdLoadFailedEvent(string adUnitId, MaxSdkBase.ErrorInfo errorInfo)
@@ -162,8 +178,17 @@ namespace com.noctuagames.sdk.AppLovin
                 { "latency_millis", errorInfo.LatencyMillis }
             };
 
-            TrackAdCustomEvent("ad_load_failed", adUnitId, null, extraPayload);
+            EmitCanonical(IAAEventNames.AdLoadFailed, IAAPayloadBuilder.BuildAdLoadFailed(
+                adFormat:   AdFormatKey.AppOpen,
+                adPlatform: AdNetworkName.AppLovin,
+                adUnitName: adUnitId,
+                error:      IAAPayloadBuilder.FormatError(
+                    (int)errorInfo.Code, errorInfo.Message,
+                    errorInfo.MediatedNetworkErrorCode, errorInfo.MediatedNetworkErrorMessage)
+            ));
+
             TrackAdCustomEvent("wf_app_open_request_adunit_failed", extraPayload: extraPayload);
+            TrackAdCustomEvent("wf_app_open_request_finished_failed", extraPayload: extraPayload);
 
             RetryLoadAsync().Forget();
         }
@@ -182,7 +207,17 @@ namespace com.noctuagames.sdk.AppLovin
         private void OnAdDisplayedEvent(string adUnitId, MaxSdkBase.AdInfo adInfo)
         {
             _log.Debug("App open ad displayed for ad unit id: " + adUnitId);
-            TrackAdCustomEvent("ad_shown", adUnitId, adInfo);
+
+            EmitCanonical(IAAEventNames.AdShown, IAAPayloadBuilder.BuildAdLoaded(
+                placement:  adInfo?.Placement,
+                adType:     AdFormatKey.AppOpen,
+                adUnitId:   adUnitId,
+                adUnitName: adUnitId,
+                adSize:     IAAAdSize.Fullscreen,
+                adSource:   adInfo?.NetworkName,
+                adPlatform: AdNetworkName.AppLovin
+            ));
+
             TrackAdCustomEvent("wf_app_open_show_sdk");
             AppOpenOnAdDisplayed?.Invoke();
         }
@@ -203,7 +238,17 @@ namespace com.noctuagames.sdk.AppLovin
                 { "latency_millis", errorInfo.LatencyMillis }
             };
 
-            TrackAdCustomEvent("ad_shown_failed", adUnitId, adInfo, extraPayload);
+            // Canonical: ad_show_failed (replaces deprecated ad_shown_failed)
+            EmitCanonical(IAAEventNames.AdShowFailed, IAAPayloadBuilder.BuildAdShowFailed(
+                adFormat:   AdFormatKey.AppOpen,
+                adPlatform: AdNetworkName.AppLovin,
+                adUnitName: adUnitId,
+                error:      IAAPayloadBuilder.FormatError(
+                    (int)errorInfo.Code, errorInfo.Message,
+                    errorInfo.MediatedNetworkErrorCode, errorInfo.MediatedNetworkErrorMessage)
+            ));
+            // Deprecated alias kept one release for dashboard back-compat.
+            TrackAdCustomEvent(IAAEventNames.AdShownFailedLegacy, adUnitId, adInfo, extraPayload);
             TrackAdCustomEvent("wf_app_open_show_sdk_failed", extraPayload: extraPayload);
             AppOpenOnAdFailedDisplayed?.Invoke();
         }
@@ -211,7 +256,17 @@ namespace com.noctuagames.sdk.AppLovin
         private void OnAdClickedEvent(string adUnitId, MaxSdkBase.AdInfo adInfo)
         {
             _log.Debug("App open ad clicked for ad unit id: " + adUnitId);
-            TrackAdCustomEvent("ad_clicked", adUnitId, adInfo);
+
+            EmitCanonical(IAAEventNames.AdClicked, IAAPayloadBuilder.BuildAdClicked(
+                placement:  adInfo?.Placement,
+                adType:     AdFormatKey.AppOpen,
+                adUnitId:   adUnitId,
+                adUnitName: adUnitId,
+                adSize:     IAAAdSize.Fullscreen,
+                adSource:   adInfo?.NetworkName,
+                adPlatform: AdNetworkName.AppLovin
+            ));
+
             TrackAdCustomEvent("wf_app_open_clicked");
             AppOpenOnAdClicked?.Invoke();
         }
@@ -231,10 +286,44 @@ namespace com.noctuagames.sdk.AppLovin
             _log.Debug("App open ad revenue paid for ad unit id: " + adUnitId +
                 " with revenue: " + adInfo.Revenue);
 
-            TrackAdCustomEvent("ad_impression");
+            // Snapshot stopwatch BEFORE clearing — engagement_time = ms since Show().
+            var engagementMs = _showStopwatch.IsRunning ? _showStopwatch.ElapsedMilliseconds : 0L;
+            _showStopwatch.Reset();
+
+            // AppLovin MAX revenue values are reported in USD per AppLovin docs.
+            var revenueUsd = adInfo?.Revenue ?? 0d;
+
+            EmitCanonical(IAAEventNames.AdImpression, IAAPayloadBuilder.BuildAdImpression(
+                placement:        adInfo?.Placement,
+                adType:           AdFormatKey.AppOpen,
+                adUnitId:         adUnitId,
+                adUnitName:       adUnitId,
+                value:            revenueUsd,
+                valueUsd:         revenueUsd,
+                adSize:           IAAAdSize.Fullscreen,
+                adSource:         adInfo?.NetworkName,
+                adPlatform:       AdNetworkName.AppLovin,
+                engagementTimeMs: engagementMs
+            ));
+
+            // Keep legacy AO-specific impression marker for one release for dashboard back-compat.
             TrackAdCustomEvent("ad_impression_app_open");
             AppOpenOnAdImpressionRecorded?.Invoke();
             AppOpenOnAdRevenuePaid?.Invoke(adInfo);
+        }
+
+        // Routes a canonical IAA event payload through Noctua.Event. Wrapped in try/catch
+        // so analytics failures never break ad delivery.
+        private void EmitCanonical(string eventName, Dictionary<string, IConvertible> payload)
+        {
+            try
+            {
+                Noctua.Event.TrackCustomEvent(eventName, payload);
+            }
+            catch (Exception ex)
+            {
+                _log.Error($"Error emitting canonical app open event '{eventName}': {ex.Message}");
+            }
         }
 
         private void TrackAdCustomEvent(string eventName, string adUnitId = null,

@@ -251,6 +251,11 @@ namespace com.noctuagames.sdk
             _event = new NoctuaEventService(_nativePlugin, _eventSender);
             _event.SetProperties(isSandbox: _config.Noctua.IsSandbox);
             _iaa?.SetAdRevenueTracker(_event);
+
+            // Install the watch-count milestone tracker. Mediations call
+            // AdWatchMilestoneTracker.Default.RecordWatch(adType) on rewarded reward / interstitial close.
+            new AdWatchMilestoneTracker((eventName, payload) => _eventSender.Send(eventName, payload))
+                .InstallAsDefault();
             _eventSender.SetProperties(isSandbox: _config.Noctua.IsSandbox, gameId: _config.GameID);
             _isOfflineFirst = _config.Noctua.IsOfflineFirst;
 

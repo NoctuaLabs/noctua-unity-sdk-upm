@@ -3,6 +3,7 @@ using GoogleMobileAds.Api;
 using UnityEngine;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using Cysharp.Threading.Tasks;
 
 namespace com.noctuagames.sdk.Admob
@@ -40,6 +41,10 @@ namespace com.noctuagames.sdk.Admob
         public event Action<AdValue, ResponseInfo> AdmobOnAdRevenuePaid;
         private readonly long _timeoutThreshold = 5000; // 5 seconds
         private int _retryAttempt;
+        // Last AdValue from OnAdPaid — captured so OnAdImpressionRecorded can emit canonical revenue.
+        private AdValue _lastAdValue;
+        // Monotonic clock — engagement_time = ms between Show() and impression callback.
+        private readonly Stopwatch _showStopwatch = new();
         
         /// <summary>
         /// Sets the ad unit ID for the rewarded ad.
@@ -104,6 +109,17 @@ namespace com.noctuagames.sdk.Admob
                             _log.Warning($"Mediation adapter: {responseInfo.GetMediationAdapterClassName()}");
                         }
 
+                        // Canonical ad_load_failed (was missing entirely on AdMob)
+                        EmitCanonical(IAAEventNames.AdLoadFailed, IAAPayloadBuilder.BuildAdLoadFailed(
+                            adFormat:   AdFormatKey.Rewarded,
+                            adPlatform: AdNetworkName.Admob,
+                            adUnitName: _adUnitIDRewarded,
+                            error:      IAAPayloadBuilder.FormatError(
+                                error?.GetCode() ?? -1,
+                                error?.GetMessage(),
+                                error?.GetDomain())
+                        ));
+
                         TrackAdCustomEventRewarded("wf_rewarded_request_adunit_failed", extraPayload);
                         TrackAdCustomEventRewarded("wf_rewarded_request_finished_failed", extraPayload);
 
@@ -132,6 +148,25 @@ namespace com.noctuagames.sdk.Admob
                                 + ad.GetResponseInfo());
 
                     _rewardedAd = ad;
+
+                    // Canonical ad_loaded (was missing entirely on AdMob)
+                    var loadedAdapter = ad.GetResponseInfo()?.GetLoadedAdapterResponseInfo();
+                    string adSource = null;
+                    try { adSource = loadedAdapter?.AdSourceName; } catch {}
+
+                    EmitCanonical(IAAEventNames.AdLoaded, IAAPayloadBuilder.BuildAdLoaded(
+                        placement:  null,
+                        adType:     AdFormatKey.Rewarded,
+                        adUnitId:   _adUnitIDRewarded,
+                        adUnitName: _adUnitIDRewarded,
+                        adSize:     IAAAdSize.Fullscreen,
+                        adSource:   adSource,
+                        adPlatform: AdNetworkName.Admob
+                    ));
+
+                    TrackAdCustomEventRewarded("wf_rewarded_request_adunit_success");
+                    TrackAdCustomEventRewarded("wf_rewarded_request_finished_success");
+
                     RegisterEventHandlers(ad);
                 });
         }
@@ -154,6 +189,7 @@ namespace com.noctuagames.sdk.Admob
 
             if (_rewardedAd != null && _rewardedAd.CanShowAd())
             {
+                _showStopwatch.Restart();
                 _rewardedAd.Show((Reward reward) =>
                 {
                     // Called when the user should be rewarded.
@@ -161,6 +197,9 @@ namespace com.noctuagames.sdk.Admob
                     RewardedOnUserEarnedReward?.Invoke(reward);
 
                     _log.Debug(String.Format(rewardMsg, reward.Type, reward.Amount));
+
+                    // Rewarded counts as one watched ad on reward callback (user finished video).
+                    AdWatchMilestoneTracker.Default?.RecordWatch(AdFormatKey.Rewarded);
 
                     _log.Debug("Rewarded ad shown.");
                 });
@@ -182,7 +221,8 @@ namespace com.noctuagames.sdk.Admob
                 _log.Debug(String.Format("Rewarded ad paid {0} {1}.",
                     adValue.Value,
                     adValue.CurrencyCode));
-                
+
+                _lastAdValue = adValue;
                 AdmobOnAdRevenuePaid?.Invoke(adValue, ad.GetResponseInfo());
             };
             // Raised when an impression is recorded for an ad.
@@ -190,7 +230,30 @@ namespace com.noctuagames.sdk.Admob
             {
                 _log.Debug("Rewarded ad recorded an impression.");
 
-                TrackAdCustomEventRewarded("ad_impression");
+                var engagementMs = _showStopwatch.IsRunning ? _showStopwatch.ElapsedMilliseconds : 0L;
+                _showStopwatch.Reset();
+
+                var valueMicros = _lastAdValue?.Value ?? 0L;
+                var value       = valueMicros / 1_000_000d;
+                var valueUsd    = value;
+
+                var loadedAdapter = ad.GetResponseInfo()?.GetLoadedAdapterResponseInfo();
+                string adSource = null;
+                try { adSource = loadedAdapter?.AdSourceName; } catch {}
+
+                EmitCanonical(IAAEventNames.AdImpression, IAAPayloadBuilder.BuildAdImpression(
+                    placement:        null,
+                    adType:           AdFormatKey.Rewarded,
+                    adUnitId:         _adUnitIDRewarded,
+                    adUnitName:       _adUnitIDRewarded,
+                    value:            value,
+                    valueUsd:         valueUsd,
+                    adSize:           IAAAdSize.Fullscreen,
+                    adSource:         adSource,
+                    adPlatform:       AdNetworkName.Admob,
+                    engagementTimeMs: engagementMs
+                ));
+
                 TrackAdCustomEventRewarded("ad_impression_rewarded");
 
                 RewardedOnAdImpressionRecorded?.Invoke();
@@ -200,7 +263,20 @@ namespace com.noctuagames.sdk.Admob
             {
                 _log.Debug("Rewarded ad was clicked.");
 
-                TrackAdCustomEventRewarded("ad_clicked");
+                var loadedAdapter = ad.GetResponseInfo()?.GetLoadedAdapterResponseInfo();
+                string adSource = null;
+                try { adSource = loadedAdapter?.AdSourceName; } catch {}
+
+                EmitCanonical(IAAEventNames.AdClicked, IAAPayloadBuilder.BuildAdClicked(
+                    placement:  null,
+                    adType:     AdFormatKey.Rewarded,
+                    adUnitId:   _adUnitIDRewarded,
+                    adUnitName: _adUnitIDRewarded,
+                    adSize:     IAAAdSize.Fullscreen,
+                    adSource:   adSource,
+                    adPlatform: AdNetworkName.Admob
+                ));
+
                 TrackAdCustomEventRewarded("wf_rewarded_clicked");
 
                 RewardedOnAdClicked?.Invoke();
@@ -210,7 +286,20 @@ namespace com.noctuagames.sdk.Admob
             {
                 _log.Debug("Rewarded ad full screen content opened.");
 
-                TrackAdCustomEventRewarded("ad_shown");
+                var loadedAdapter = ad.GetResponseInfo()?.GetLoadedAdapterResponseInfo();
+                string adSource = null;
+                try { adSource = loadedAdapter?.AdSourceName; } catch {}
+
+                EmitCanonical(IAAEventNames.AdShown, IAAPayloadBuilder.BuildAdLoaded(
+                    placement:  null,
+                    adType:     AdFormatKey.Rewarded,
+                    adUnitId:   _adUnitIDRewarded,
+                    adUnitName: _adUnitIDRewarded,
+                    adSize:     IAAAdSize.Fullscreen,
+                    adSource:   adSource,
+                    adPlatform: AdNetworkName.Admob
+                ));
+
                 TrackAdCustomEventRewarded("wf_rewarded_show_sdk");
 
                 RewardedOnAdDisplayed?.Invoke();
@@ -242,7 +331,14 @@ namespace com.noctuagames.sdk.Admob
                     { "domain", error.GetDomain() }
                 };
 
-                TrackAdCustomEventRewarded("ad_show_failed", showFailedPayload);
+                EmitCanonical(IAAEventNames.AdShowFailed, IAAPayloadBuilder.BuildAdShowFailed(
+                    adFormat:   AdFormatKey.Rewarded,
+                    adPlatform: AdNetworkName.Admob,
+                    adUnitName: _adUnitIDRewarded,
+                    error:      IAAPayloadBuilder.FormatError(
+                        error.GetCode(), error.GetMessage(), error.GetDomain())
+                ));
+
                 TrackAdCustomEventRewarded("wf_rewarded_show_sdk_failed", showFailedPayload);
 
                 RewardedOnAdFailedDisplayed?.Invoke();
@@ -341,6 +437,20 @@ namespace com.noctuagames.sdk.Admob
             catch (Exception ex)
             {
                 _log.Error($"Error tracking rewarded ad event '{eventName}': {ex.Message}\n{ex.StackTrace}");
+            }
+        }
+
+        // Routes a canonical IAA event payload through Noctua.Event. Wrapped in try/catch
+        // so analytics failures never break ad delivery.
+        private void EmitCanonical(string eventName, Dictionary<string, IConvertible> payload)
+        {
+            try
+            {
+                Noctua.Event.TrackCustomEvent(eventName, payload);
+            }
+            catch (Exception ex)
+            {
+                _log.Error($"Error emitting canonical rewarded event '{eventName}': {ex.Message}");
             }
         }
     }

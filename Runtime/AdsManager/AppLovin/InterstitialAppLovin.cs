@@ -2,6 +2,7 @@
 using Cysharp.Threading.Tasks;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 
 namespace com.noctuagames.sdk.AppLovin
 {
@@ -36,6 +37,9 @@ namespace com.noctuagames.sdk.AppLovin
         public event Action<MaxSdkBase.AdInfo> InterstitialOnAdRevenuePaid;
         private readonly long _timeoutThreshold = 5000; // 5 seconds
         private bool _callbacksRegistered;
+        // Per-show stopwatch, used to populate `engagement_time` on ad_impression.
+        // Restarted on every Show() call; read on the impression callback.
+        private readonly Stopwatch _showStopwatch = new();
 
         /// <summary>
         /// Sets the ad unit ID for the interstitial ad.
@@ -104,6 +108,7 @@ namespace com.noctuagames.sdk.AppLovin
 
             if (MaxSdk.IsInterstitialReady(_adUnitIDInterstitial))
             {
+                _showStopwatch.Restart();
                 MaxSdk.ShowInterstitial(_adUnitIDInterstitial);
 
                 _log.Debug("Showing interstitial ad for ad unit id : " + _adUnitIDInterstitial);
@@ -133,6 +138,7 @@ namespace com.noctuagames.sdk.AppLovin
 
             if (MaxSdk.IsInterstitialReady(_adUnitIDInterstitial))
             {
+                _showStopwatch.Restart();
                 MaxSdk.ShowInterstitial(_adUnitIDInterstitial, placement);
 
                 _log.Debug($"Showing interstitial ad for ad unit id : {_adUnitIDInterstitial} with placement : {placement}");
@@ -195,8 +201,16 @@ namespace com.noctuagames.sdk.AppLovin
                 }
             }
 
-            // Track ad loaded event
-            TrackAdCustomEventInterstitial("ad_loaded", adUnitId, adInfo);
+            // Canonical ad_loaded event (full canonical key set, no waterfall fields).
+            EmitCanonical(IAAEventNames.AdLoaded, IAAPayloadBuilder.BuildAdLoaded(
+                placement:  adInfo?.Placement,
+                adType:     AdFormatKey.Interstitial,
+                adUnitId:   adUnitId ?? _adUnitIDInterstitial,
+                adUnitName: _adUnitIDInterstitial,
+                adSize:     IAAAdSize.Fullscreen,
+                adSource:   adInfo?.NetworkName,
+                adPlatform: AdNetworkName.AppLovin
+            ));
             TrackAdCustomEventInterstitial("wf_interstitial_adunit_success");
             TrackAdCustomEventInterstitial("wf_interstitial_finished_success");
         }
@@ -226,7 +240,15 @@ namespace com.noctuagames.sdk.AppLovin
                 TrackAdCustomEventInterstitial("wf_inter_request_adunit_timeout", extraPayload: extraPayload);
             }
 
-            TrackAdCustomEventInterstitial("ad_load_failed", adUnitId, null, extraPayload);
+            // Canonical ad_load_failed: collapses code+message+mediator into single `error` string.
+            EmitCanonical(IAAEventNames.AdLoadFailed, IAAPayloadBuilder.BuildAdLoadFailed(
+                adFormat:   AdFormatKey.Interstitial,
+                adPlatform: AdNetworkName.AppLovin,
+                adUnitName: adUnitId ?? _adUnitIDInterstitial,
+                error:      IAAPayloadBuilder.FormatError(
+                    (int)errorInfo.Code, errorInfo.Message,
+                    errorInfo.MediatedNetworkErrorCode, errorInfo.MediatedNetworkErrorMessage)
+            ));
             TrackAdCustomEventInterstitial("wf_interstitial_request_adunit_failed", extraPayload: extraPayload);
             TrackAdCustomEventInterstitial("wf_inter_request_finished_failed", extraPayload: extraPayload);
         }
@@ -248,8 +270,16 @@ namespace com.noctuagames.sdk.AppLovin
 
             _log.Debug("Interstitial ad displayed for ad unit id : " + adUnitId);
 
-            // Track ad shown event
-            TrackAdCustomEventInterstitial("ad_shown", adUnitId, adInfo);
+            // ad_shown carries the same canonical key set as ad_loaded (no revenue yet).
+            EmitCanonical(IAAEventNames.AdShown, IAAPayloadBuilder.BuildAdLoaded(
+                placement:  adInfo?.Placement,
+                adType:     AdFormatKey.Interstitial,
+                adUnitId:   adUnitId ?? _adUnitIDInterstitial,
+                adUnitName: _adUnitIDInterstitial,
+                adSize:     IAAAdSize.Fullscreen,
+                adSource:   adInfo?.NetworkName,
+                adPlatform: AdNetworkName.AppLovin
+            ));
             TrackAdCustomEventInterstitial("wf_interstitial_show_sdk");
 
             InterstitialOnAdDisplayed?.Invoke();
@@ -272,7 +302,17 @@ namespace com.noctuagames.sdk.AppLovin
                 { "latency_millis", errorInfo.LatencyMillis }
             };
             
-            TrackAdCustomEventInterstitial("ad_shown_failed", adUnitId, adInfo, extraPayload);
+            // Canonical ad_show_failed (single `error` string).
+            var canonicalShowFailedPayload = IAAPayloadBuilder.BuildAdShowFailed(
+                adFormat:   AdFormatKey.Interstitial,
+                adPlatform: AdNetworkName.AppLovin,
+                adUnitName: adUnitId ?? _adUnitIDInterstitial,
+                error:      IAAPayloadBuilder.FormatError(
+                    (int)errorInfo.Code, errorInfo.Message,
+                    errorInfo.MediatedNetworkErrorCode, errorInfo.MediatedNetworkErrorMessage));
+            EmitCanonical(IAAEventNames.AdShowFailed, canonicalShowFailedPayload);
+            // Deprecated alias — kept one release for dashboard back-compat.
+            EmitCanonical(IAAEventNames.AdShownFailedLegacy, canonicalShowFailedPayload);
             TrackAdCustomEventInterstitial("wf_interstitial_show_sdk_failed", extraPayload: extraPayload);
 
             InterstitialOnAdFailedDisplayed?.Invoke();
@@ -282,8 +322,16 @@ namespace com.noctuagames.sdk.AppLovin
 
             _log.Debug("Interstitial ad clicked for ad unit id : " + adUnitId);
 
-            // Track ad clicked event
-            TrackAdCustomEventInterstitial("ad_clicked", adUnitId, adInfo);
+            // Canonical ad_clicked.
+            EmitCanonical(IAAEventNames.AdClicked, IAAPayloadBuilder.BuildAdClicked(
+                placement:  adInfo?.Placement,
+                adType:     AdFormatKey.Interstitial,
+                adUnitId:   adUnitId ?? _adUnitIDInterstitial,
+                adUnitName: _adUnitIDInterstitial,
+                adSize:     IAAAdSize.Fullscreen,
+                adSource:   adInfo?.NetworkName,
+                adPlatform: AdNetworkName.AppLovin
+            ));
             TrackAdCustomEventInterstitial("wf_interstitial_clicked");
 
             InterstitialOnAdClicked?.Invoke();
@@ -299,6 +347,10 @@ namespace com.noctuagames.sdk.AppLovin
             // Track ad closed event
             TrackAdCustomEventInterstitial("ad_closed", adUnitId, adInfo);
             TrackAdCustomEventInterstitial("wf_interstitial_closed");
+
+            // A successful interstitial close counts as one ad-watch.
+            // Fires watch_ads_5x/10x/25x/50x at thresholds (rewarded + interstitial only).
+            AdWatchMilestoneTracker.Default?.RecordWatch(AdFormatKey.Interstitial);
 
             InterstitialOnAdClosed?.Invoke();
         }
@@ -316,7 +368,23 @@ namespace com.noctuagames.sdk.AppLovin
 
             _log.Debug("Interstitial ad revenue paid for ad unit id : " + adUnitId + " with revenue : " + revenue + " and country code : " + countryCode);
 
-            TrackAdCustomEventInterstitial("ad_impression");
+            // Canonical ad_impression: AppLovin reports `Revenue` in USD per docs,
+            // so value == value_usd. Engagement = ms between Show() and impression callback.
+            var engagementMs = _showStopwatch.IsRunning ? _showStopwatch.ElapsedMilliseconds : 0;
+            EmitCanonical(IAAEventNames.AdImpression, IAAPayloadBuilder.BuildAdImpression(
+                placement:        placement,
+                adType:           AdFormatKey.Interstitial,
+                adUnitId:         adUnitIdentifier ?? _adUnitIDInterstitial,
+                adUnitName:       _adUnitIDInterstitial,
+                value:            revenue,
+                valueUsd:         revenue,
+                adSize:           IAAAdSize.Fullscreen,
+                adSource:         networkName,
+                adPlatform:       AdNetworkName.AppLovin,
+                engagementTimeMs: engagementMs
+            ));
+            _showStopwatch.Reset();
+            // Keep the legacy per-format alias for one release.
             TrackAdCustomEventInterstitial("ad_impression_interstitial");
 
             InterstitialOnAdImpressionRecorded?.Invoke();
@@ -366,6 +434,21 @@ namespace com.noctuagames.sdk.AppLovin
             catch (Exception ex)
             {
                 _log.Error($"Error tracking interstitial ad event '{eventName}': {ex.Message}\n{ex.StackTrace}");
+            }
+        }
+
+        // Emits a canonical IAA event (ad_impression / ad_loaded / ad_load_failed /
+        // ad_show_failed / ad_clicked / ad_shown). Payload must already be canonical —
+        // use IAAPayloadBuilder.* to build it. Never adds waterfall/legacy fields.
+        private void EmitCanonical(string eventName, Dictionary<string, IConvertible> payload)
+        {
+            try
+            {
+                Noctua.Event.TrackCustomEvent(eventName, payload);
+            }
+            catch (Exception ex)
+            {
+                _log.Error($"Error tracking canonical event '{eventName}': {ex.Message}");
             }
         }
     }

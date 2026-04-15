@@ -16,6 +16,13 @@ namespace com.noctuagames.sdk.AppLovin
 
         private string _adUnitIDBanner;
 
+        // Creation state — MaxSdk.CreateBanner must be called before MaxSdk.ShowBanner.
+        // We store the last-used color + position so ShowBanner can auto-create if the caller
+        // never called InitializeBannerAds explicitly.
+        private bool _bannerCreated;
+        private Color _lastColor = Color.black;
+        private MaxSdk.AdViewPosition _lastPosition = MaxSdk.AdViewPosition.BottomCenter;
+
         /// <summary>Raised when a banner ad is successfully loaded and displayed.</summary>
         public event Action BannerOnAdDisplayed;
 
@@ -67,6 +74,7 @@ namespace com.noctuagames.sdk.AppLovin
 
             MaxSdk.CreateBanner(_adUnitIDBanner, bannerPosition);
             MaxSdk.SetBannerBackgroundColor(_adUnitIDBanner, color);
+            _bannerCreated = true;
 
             RegisterCallbacks();
 
@@ -81,9 +89,13 @@ namespace com.noctuagames.sdk.AppLovin
         /// <param name="bannerPosition">The screen position where the banner should be displayed.</param>
         public void InitializeBannerAds(Color color, MaxSdk.AdViewPosition bannerPosition)
         {
+            _lastColor    = color;
+            _lastPosition = bannerPosition;
+
             var adViewConfiguration = new MaxSdk.AdViewConfiguration(bannerPosition);
             MaxSdk.CreateBanner(_adUnitIDBanner, adViewConfiguration);
             MaxSdk.SetBannerBackgroundColor(_adUnitIDBanner, color);
+            _bannerCreated = true;
 
             RegisterCallbacks();
 
@@ -101,10 +113,31 @@ namespace com.noctuagames.sdk.AppLovin
                 _log.Error("Ad unit ID banner is empty.");
                 return;
             }
-            
+
+            // Auto-create the banner if InitializeBannerAds was never called.
+            // This handles callers that call ShowBannerAd() directly without an explicit
+            // CreateBannerViewAdAppLovin() step (e.g. the MediationScene sample app).
+            if (!_bannerCreated)
+            {
+                _log.Warning("Banner not yet created — auto-creating with defaults before show.");
+                InitializeBannerAds(_lastColor, _lastPosition);
+            }
+
             MaxSdk.ShowBanner(_adUnitIDBanner);
 
             _log.Debug("Banner ad shown for ad unit id : " + _adUnitIDBanner);
+
+            // Banner has no native display callback in MAX — emit ad_shown here so
+            // analytics parity with Interstitial/Rewarded/AppOpen is maintained.
+            EmitCanonical(IAAEventNames.AdShown, IAAPayloadBuilder.BuildAdLoaded(
+                placement:  null,
+                adType:     AdFormatKey.Banner,
+                adUnitId:   _adUnitIDBanner,
+                adUnitName: _adUnitIDBanner,
+                adSize:     IAAAdSize.Banner320,
+                adSource:   null,
+                adPlatform: AdNetworkName.AppLovin
+            ));
         }
 
         /// <summary>
@@ -129,6 +162,7 @@ namespace com.noctuagames.sdk.AppLovin
         public void DestroyBanner()
         {
             MaxSdk.DestroyBanner(_adUnitIDBanner);
+            _bannerCreated = false;
 
             _log.Debug("Banner ad destroyed for ad unit id : " + _adUnitIDBanner);
 
@@ -236,8 +270,17 @@ namespace com.noctuagames.sdk.AppLovin
         private void OnBannerAdLoadedEvent(string adUnitId, MaxSdkBase.AdInfo adInfo) {
             _log.Debug("Banner ad loaded for ad unit id : " + adUnitId);
 
-            // Track ad loaded event
-            TrackAdCustomEventBanner("ad_loaded", adUnitId, adInfo);
+            // Canonical ad_loaded — see IAAEventNames / IAAPayloadBuilder
+            EmitCanonical(IAAEventNames.AdLoaded, IAAPayloadBuilder.BuildAdLoaded(
+                placement:  adInfo?.Placement,
+                adType:     AdFormatKey.Banner,
+                adUnitId:   adUnitId,
+                adUnitName: adUnitId,
+                adSize:     IAAAdSize.Banner320,
+                adSource:   adInfo?.NetworkName,
+                adPlatform: AdNetworkName.AppLovin
+            ));
+
             TrackAdCustomEventBanner("wf_banner_request_adunit_success");
             TrackAdCustomEventBanner("wf_banner_show_sdk");
             TrackAdCustomEventBanner("wf_banner_request_finished_success");
@@ -264,7 +307,18 @@ namespace com.noctuagames.sdk.AppLovin
                 TrackAdCustomEventBanner("wf_banner_request_adunit_timeout", extraPayload: extraPayload);
             }
 
-            TrackAdCustomEventBanner("ad_show_failed", adUnitId, null, extraPayload);
+            // Canonical ad_load_failed (banner load failure — there is no separate banner show callback)
+            var error = IAAPayloadBuilder.FormatError(
+                (int)errorInfo.Code, errorInfo.Message,
+                errorInfo.MediatedNetworkErrorCode, errorInfo.MediatedNetworkErrorMessage);
+
+            EmitCanonical(IAAEventNames.AdLoadFailed, IAAPayloadBuilder.BuildAdLoadFailed(
+                adFormat:   AdFormatKey.Banner,
+                adPlatform: AdNetworkName.AppLovin,
+                adUnitName: adUnitId,
+                error:      error
+            ));
+
             TrackAdCustomEventBanner("wf_banner_request_adunit_failed", extraPayload: extraPayload);
             TrackAdCustomEventBanner("wf_banner_show_sdk_failed", extraPayload: extraPayload);
 
@@ -274,8 +328,17 @@ namespace com.noctuagames.sdk.AppLovin
         private void OnBannerAdClickedEvent(string adUnitId, MaxSdkBase.AdInfo adInfo) {
             _log.Debug("Banner ad clicked for ad unit id : " + adUnitId);
 
-            // Track ad clicked event
-            TrackAdCustomEventBanner("ad_clicked", adUnitId, adInfo);
+            // Canonical ad_clicked
+            EmitCanonical(IAAEventNames.AdClicked, IAAPayloadBuilder.BuildAdClicked(
+                placement:  adInfo?.Placement,
+                adType:     AdFormatKey.Banner,
+                adUnitId:   adUnitId,
+                adUnitName: adUnitId,
+                adSize:     IAAAdSize.Banner320,
+                adSource:   adInfo?.NetworkName,
+                adPlatform: AdNetworkName.AppLovin
+            ));
+
             TrackAdCustomEventBanner("wf_banner_clicked");
 
             BannerOnAdClicked?.Invoke();
@@ -284,7 +347,23 @@ namespace com.noctuagames.sdk.AppLovin
         private void OnBannerAdRevenuePaidEvent(string adUnitId, MaxSdkBase.AdInfo adInfo) {
             _log.Debug("Banner ad revenue paid for ad unit id : " + adUnitId);
 
-            TrackAdCustomEventBanner("ad_impression");
+            // AppLovin MAX revenue values are reported in USD per AppLovin docs.
+            var revenueUsd = adInfo?.Revenue ?? 0d;
+
+            EmitCanonical(IAAEventNames.AdImpression, IAAPayloadBuilder.BuildAdImpression(
+                placement:        adInfo?.Placement,
+                adType:           AdFormatKey.Banner,
+                adUnitId:         adUnitId,
+                adUnitName:       adUnitId,
+                value:            revenueUsd,
+                valueUsd:         revenueUsd,
+                adSize:           IAAAdSize.Banner320,
+                adSource:         adInfo?.NetworkName,
+                adPlatform:       AdNetworkName.AppLovin,
+                engagementTimeMs: adInfo?.LatencyMillis ?? 0L
+            ));
+
+            // Keep legacy banner-specific impression marker for one release for dashboard back-compat.
             TrackAdCustomEventBanner("ad_impression_banner");
 
             BannerOnAdImpressionRecorded?.Invoke();
@@ -293,16 +372,44 @@ namespace com.noctuagames.sdk.AppLovin
 
         private void OnBannerAdExpandedEvent(string adUnitId, MaxSdkBase.AdInfo adInfo)  {
             _log.Debug("Banner ad expanded for ad unit id : " + adUnitId);
-            
-            // Track ad expanded event
-            TrackAdCustomEventBanner("ad_expanded", adUnitId, adInfo);
+
+            EmitCanonical(IAAEventNames.AdExpanded, IAAPayloadBuilder.BuildAdLoaded(
+                placement:  adInfo?.Placement,
+                adType:     AdFormatKey.Banner,
+                adUnitId:   adUnitId,
+                adUnitName: adUnitId,
+                adSize:     IAAAdSize.Banner320,
+                adSource:   adInfo?.NetworkName,
+                adPlatform: AdNetworkName.AppLovin
+            ));
         }
 
         private void OnBannerAdCollapsedEvent(string adUnitId, MaxSdkBase.AdInfo adInfo) {
             _log.Debug("Banner ad collapsed for ad unit id : " + adUnitId);
-            
-            // Track ad collapsed event
-            TrackAdCustomEventBanner("ad_collapsed", adUnitId, adInfo);
+
+            EmitCanonical(IAAEventNames.AdCollapsed, IAAPayloadBuilder.BuildAdLoaded(
+                placement:  adInfo?.Placement,
+                adType:     AdFormatKey.Banner,
+                adUnitId:   adUnitId,
+                adUnitName: adUnitId,
+                adSize:     IAAAdSize.Banner320,
+                adSource:   adInfo?.NetworkName,
+                adPlatform: AdNetworkName.AppLovin
+            ));
+        }
+
+        // Routes a canonical IAA event payload through Noctua.Event. Wrapped in try/catch
+        // so analytics failures never break ad delivery.
+        private void EmitCanonical(string eventName, Dictionary<string, IConvertible> payload)
+        {
+            try
+            {
+                Noctua.Event.TrackCustomEvent(eventName, payload);
+            }
+            catch (Exception ex)
+            {
+                _log.Error($"Error emitting canonical banner event '{eventName}': {ex.Message}");
+            }
         }
         
         private void TrackAdCustomEventBanner(string eventName, string adUnitId = null, MaxSdkBase.AdInfo adInfo = null, Dictionary<string, IConvertible> extraPayload = null)
