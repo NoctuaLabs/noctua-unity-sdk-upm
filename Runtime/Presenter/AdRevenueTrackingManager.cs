@@ -285,7 +285,17 @@ namespace com.noctuagames.sdk
         /// </summary>
         public void ProcessInterstitialThresholds(double impressionRevenue)
         {
-            if (_taichiConfig == null) return;
+            if (_taichiConfig == null)
+            {
+                _log.Info("Taichi: ProcessInterstitialThresholds skipped — TaichiConfig is null");
+                return;
+            }
+
+            int currentTotal        = PlayerPrefs.GetInt(KeyTotalImpressions, 0);
+            int currentInterstitial = PlayerPrefs.GetInt(KeyInterstitialCount, 0);
+            _log.Info($"Taichi: ProcessInterstitialThresholds called — impressionRevenue={impressionRevenue:F6} USD | " +
+                $"Step 3 total {currentTotal}/{_taichiConfig.TotalImpressionThreshold} | " +
+                $"Step 4 interstitial {currentInterstitial}/{_taichiConfig.InterstitialCountThreshold}");
 
             // Step 3: taichi_total_ad_impression (shared interstitial+rewarded counter)
             IncrementAndFireIfReady(
@@ -314,7 +324,19 @@ namespace com.noctuagames.sdk
         /// </summary>
         public void ProcessRewardedThresholds(double impressionRevenue)
         {
-            if (_taichiConfig == null) return;
+            if (_taichiConfig == null)
+            {
+                _log.Info("Taichi: ProcessRewardedThresholds skipped — TaichiConfig is null");
+                return;
+            }
+
+            int   currentTotal           = PlayerPrefs.GetInt(KeyTotalImpressions, 0);
+            int   currentRewarded        = PlayerPrefs.GetInt(KeyRewardedCount, 0);
+            float currentRewardedRevenue = PlayerPrefs.GetFloat(KeyRewardedRevenue, 0f);
+            _log.Info($"Taichi: ProcessRewardedThresholds called — impressionRevenue={impressionRevenue:F6} USD | " +
+                $"Step 3 total {currentTotal}/{_taichiConfig.TotalImpressionThreshold} | " +
+                $"Step 5 rewarded {currentRewarded}/{_taichiConfig.RewardedCountThreshold} | " +
+                $"Step 6 revenue {currentRewardedRevenue:F4}/{_taichiConfig.RewardedRevenueThreshold}");
 
             // Step 3: taichi_total_ad_impression (shared interstitial+rewarded counter)
             IncrementAndFireIfReady(
@@ -335,7 +357,7 @@ namespace com.noctuagames.sdk
             );
 
             // Step 6: taichi_rewarded_ad_revenue
-            float prevRewardedRevenue    = PlayerPrefs.GetFloat(KeyRewardedRevenue, 0f);
+            float prevRewardedRevenue    = currentRewardedRevenue;
             float updatedRewardedRevenue = prevRewardedRevenue + (float)impressionRevenue;
 
             if (updatedRewardedRevenue >= _taichiConfig.RewardedRevenueThreshold)
@@ -351,6 +373,7 @@ namespace com.noctuagames.sdk
             else
             {
                 PlayerPrefs.SetFloat(KeyRewardedRevenue, updatedRewardedRevenue);
+                _log.Info($"Taichi Step 6: taichi_rewarded_ad_revenue progress {updatedRewardedRevenue:F4}/{_taichiConfig.RewardedRevenueThreshold} USD (not fired)");
             }
 
             PlayerPrefs.Save();
@@ -374,6 +397,7 @@ namespace com.noctuagames.sdk
             else
             {
                 PlayerPrefs.SetInt(key, updated);
+                _log.Info($"{logLabel}: {eventName} progress {updated}/{threshold} (not fired)");
             }
         }
     }
