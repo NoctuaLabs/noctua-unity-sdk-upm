@@ -224,10 +224,20 @@ namespace com.noctuagames.sdk
         /// </summary>
         public void ProcessAllFormatsThresholds(double impressionRevenue)
         {
-            if (_taichiConfig == null) return;
+            if (_taichiConfig == null)
+            {
+                _log.Info("Taichi: ProcessAllFormatsThresholds skipped — TaichiConfig is null");
+                return;
+            }
+
+            float currentRevenue = PlayerPrefs.GetFloat(KeyTotalRevenue, 0f);
+            int   currentCount   = PlayerPrefs.GetInt(KeyTotalAdCount, 0);
+            _log.Info($"Taichi: ProcessAllFormatsThresholds called — impressionRevenue={impressionRevenue:F6} USD | " +
+                $"Step 1 revenue {currentRevenue:F4}/{_taichiConfig.RevenueThreshold} | " +
+                $"Step 2 count {currentCount}/{_taichiConfig.AdCountThreshold}");
 
             // Step 1: Total_Ads_Revenue_001
-            float prevRevenue     = PlayerPrefs.GetFloat(KeyTotalRevenue, 0f);
+            float prevRevenue     = currentRevenue;
             float updatedRevenue  = prevRevenue + (float)impressionRevenue;
 
             if (updatedRevenue >= _taichiConfig.RevenueThreshold)
@@ -243,10 +253,11 @@ namespace com.noctuagames.sdk
             else
             {
                 PlayerPrefs.SetFloat(KeyTotalRevenue, updatedRevenue);
+                _log.Info($"Taichi Step 1: Total_Ads_Revenue_001 progress {updatedRevenue:F4}/{_taichiConfig.RevenueThreshold} USD (not fired)");
             }
 
             // Step 2: TenAdsShown
-            int prevCount    = PlayerPrefs.GetInt(KeyTotalAdCount, 0);
+            int prevCount    = currentCount;
             int updatedCount = prevCount + 1;
 
             if (updatedCount >= _taichiConfig.AdCountThreshold)
@@ -262,6 +273,7 @@ namespace com.noctuagames.sdk
             else
             {
                 PlayerPrefs.SetInt(KeyTotalAdCount, updatedCount);
+                _log.Info($"Taichi Step 2: TenAdsShown progress {updatedCount}/{_taichiConfig.AdCountThreshold} (not fired)");
             }
 
             PlayerPrefs.Save();
