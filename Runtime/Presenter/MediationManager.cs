@@ -1377,6 +1377,27 @@ namespace com.noctuagames.sdk
             _onAdNotAvailable?.Invoke(AdFormatKey.Banner);
         }
 
+        /// <summary>
+        /// Network-agnostic banner hide. Hides the currently displayed banner on both
+        /// Primary and Secondary networks (whichever one is actually showing it), without
+        /// destroying the underlying banner instance. Prefer this over
+        /// <see cref="HideAppLovinBanner"/> when you want mediation-agnostic behavior,
+        /// e.g. after a successful "remove ads" IAP on a game that may run either AdMob
+        /// or AppLovin as its primary network.
+        /// Safe no-op when the orchestrator is not yet initialized.
+        /// </summary>
+        public void HideBannerAd()
+        {
+            if (_orchestrator == null)
+            {
+                _log.Warning("Orchestrator not initialized. Cannot hide banner ad.");
+                return;
+            }
+
+            _orchestrator.Primary?.HideBannerAd();
+            _orchestrator.Secondary?.HideBannerAd();
+        }
+
 #if UNITY_ADMOB
         /// <summary>Creates a banner ad view with specified size and position (AdMob only).</summary>
         public void CreateBannerViewAdAdmob(AdSize adSize, AdPosition adPosition)

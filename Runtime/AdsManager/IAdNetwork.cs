@@ -96,21 +96,29 @@ namespace com.noctuagames.sdk
         void ShowRewardedAd();
 
         #if UNITY_ADMOB
+        // NOTE: The following AdMob-specific methods default to no-ops so that
+        // non-AdMob implementations (e.g. AppLovinManager) can be called through an
+        // IAdNetwork reference without crashing. Callers should prefer the guarded
+        // MediationManager wrappers (which check IsAdmob()), but direct calls on a
+        // non-AdMob primary silently no-op instead of throwing
+        // NotImplementedException. Only AdmobManager overrides these with real
+        // behavior.
+
         /// <summary>
         /// Sets the ad unit ID for rewarded interstitial ads (AdMob only).
         /// </summary>
         /// <param name="adUnitID">The ad unit ID assigned by AdMob for rewarded interstitial ads.</param>
-        void SetRewardedInterstitialAdUnitID(string adUnitID) { throw new NotImplementedException(); }
+        void SetRewardedInterstitialAdUnitID(string adUnitID) { }
 
         /// <summary>
         /// Loads a rewarded interstitial ad into memory (AdMob only).
         /// </summary>
-        void LoadRewardedInterstitialAd() { throw new NotImplementedException(); }
+        void LoadRewardedInterstitialAd() { }
 
         /// <summary>
         /// Shows a previously loaded rewarded interstitial ad (AdMob only).
         /// </summary>
-        void ShowRewardedInterstitialAd() { throw new NotImplementedException(); }
+        void ShowRewardedInterstitialAd() { }
         #endif
 
         /// <summary>
@@ -124,80 +132,97 @@ namespace com.noctuagames.sdk
         /// </summary>
         void ShowBannerAd();
 
+        /// <summary>
+        /// Network-agnostic hide: hides the currently displayed banner ad without destroying it.
+        /// No-op when no banner is displayed or the implementation does not support hiding.
+        /// Safe to call regardless of which ad network (AdMob/AppLovin) is primary —
+        /// prefer this over <c>HideBannerAppLovin</c> when you want cross-network behavior.
+        /// </summary>
+        void HideBannerAd() { }
+
         #if UNITY_ADMOB
         /// <summary>
         /// Creates a banner view with the specified size and position (AdMob only).
+        /// No-op on non-AdMob implementations so cross-network calls do not throw.
         /// </summary>
         /// <param name="adSize">The size of the banner ad.</param>
         /// <param name="adPosition">The screen position where the banner should be displayed.</param>
-        void CreateBannerViewAdAdmob(AdSize adSize, AdPosition adPosition) { throw new NotImplementedException(); }
+        void CreateBannerViewAdAdmob(AdSize adSize, AdPosition adPosition) { }
         #endif
 
         #if UNITY_APPLOVIN
+        // NOTE: The following AppLovin-specific methods default to no-ops so that
+        // non-AppLovin implementations (e.g. AdmobManager) can be called through an
+        // IAdNetwork reference without crashing. Callers should prefer the guarded
+        // MediationManager wrappers (which check IsAppLovin()), but direct calls on
+        // a non-AppLovin primary silently no-op instead of throwing
+        // NotImplementedException. Only AppLovinManager overrides these with real
+        // behavior.
+
         /// <summary>
         /// Creates a banner view with the specified background color and position (AppLovin, deprecated).
         /// </summary>
         /// <param name="color">The background color for the banner.</param>
         /// <param name="bannerPosition">The screen position where the banner should be displayed.</param>
         [Obsolete("This method is deprecated. Please use CreateBannerViewAdAppLovin(Color, MaxSdkBase.AdViewPosition) instead.")]
-        void CreateBannerViewAdAppLovin(Color color, MaxSdkBase.BannerPosition bannerPosition) { throw new NotImplementedException(); }
+        void CreateBannerViewAdAppLovin(Color color, MaxSdkBase.BannerPosition bannerPosition) { }
 
         /// <summary>
         /// Creates a banner view with the specified background color and position (AppLovin).
         /// </summary>
         /// <param name="color">The background color for the banner.</param>
         /// <param name="bannerPosition">The screen position where the banner should be displayed.</param>
-        void CreateBannerViewAdAppLovin(Color color, MaxSdkBase.AdViewPosition bannerPosition) { throw new NotImplementedException(); }
+        void CreateBannerViewAdAppLovin(Color color, MaxSdkBase.AdViewPosition bannerPosition) { }
 
         /// <summary>
         /// Hides the currently displayed AppLovin banner ad without destroying it.
         /// </summary>
-        void HideBannerAppLovin() { throw new NotImplementedException(); }
+        void HideBannerAppLovin() { }
 
         /// <summary>
         /// Destroys the AppLovin banner ad instance and frees its resources.
         /// </summary>
-        void DestroyBannerAppLovin() { throw new NotImplementedException(); }
+        void DestroyBannerAppLovin() { }
 
         /// <summary>
         /// Sets the banner width in pixels (AppLovin). Must be at least 320 on phones or 728 on tablets.
         /// </summary>
         /// <param name="width">The desired banner width in pixels.</param>
-        void SetBannerWidth(int width) { throw new NotImplementedException(); }
+        void SetBannerWidth(int width) { }
 
         /// <summary>
         /// Gets the current position and size of the AppLovin banner ad.
         /// </summary>
-        /// <returns>A <see cref="Rect"/> representing the banner's position and dimensions.</returns>
-        Rect GetBannerPosition() { throw new NotImplementedException(); }
+        /// <returns>A <see cref="Rect"/> representing the banner's position and dimensions. Returns an empty Rect when not implemented.</returns>
+        Rect GetBannerPosition() { return new Rect(); }
 
         /// <summary>
         /// Stops automatic banner ad refresh (AppLovin), allowing manual refresh control.
         /// </summary>
-        void StopBannerAutoRefresh() { throw new NotImplementedException(); }
+        void StopBannerAutoRefresh() { }
 
         /// <summary>
         /// Resumes automatic banner ad refresh (AppLovin).
         /// </summary>
-        void StartBannerAutoRefresh() { throw new NotImplementedException(); }
+        void StartBannerAutoRefresh() { }
 
         /// <summary>
         /// Mutes or unmutes ad audio (AppLovin).
         /// </summary>
         /// <param name="muted">True to mute ad audio, false to unmute.</param>
-        void SetMuted(bool muted) { throw new NotImplementedException(); }
+        void SetMuted(bool muted) { }
 
         /// <summary>
         /// Sets the placement name for the banner ad (AppLovin).
         /// </summary>
         /// <param name="placement">The placement name for analytics segmentation.</param>
-        void SetBannerPlacement(string placement) { throw new NotImplementedException(); }
+        void SetBannerPlacement(string placement) { }
 
         /// <summary>
         /// Sets the banner auto-refresh interval in seconds (AppLovin). Clamped to 10-120s.
         /// </summary>
         /// <param name="seconds">Refresh interval in seconds (10-120).</param>
-        void SetBannerRefreshInterval(int seconds) { throw new NotImplementedException(); }
+        void SetBannerRefreshInterval(int seconds) { }
         #endif
 
         /// <summary>
@@ -235,20 +260,20 @@ namespace com.noctuagames.sdk
         void ShowRewardedAd(string placement) { ShowRewardedAd(); }
 
         /// <summary>
-        /// Sets the ad unit ID for app open ads.
+        /// Sets the ad unit ID for app open ads. No-op when the implementation does not support app open ads.
         /// </summary>
         /// <param name="adUnitID">The ad unit ID assigned by the ad network for app open ads.</param>
-        void SetAppOpenAdUnitID(string adUnitID) { throw new NotImplementedException(); }
+        void SetAppOpenAdUnitID(string adUnitID) { }
 
         /// <summary>
-        /// Loads an app open ad into memory so it is ready to be displayed.
+        /// Loads an app open ad into memory so it is ready to be displayed. No-op when unsupported.
         /// </summary>
-        void LoadAppOpenAd() { throw new NotImplementedException(); }
+        void LoadAppOpenAd() { }
 
         /// <summary>
-        /// Shows a previously loaded app open ad to the user.
+        /// Shows a previously loaded app open ad to the user. No-op when unsupported.
         /// </summary>
-        void ShowAppOpenAd() { throw new NotImplementedException(); }
+        void ShowAppOpenAd() { }
 
         /// <summary>
         /// Returns whether an app open ad is loaded and ready to show.
@@ -256,14 +281,14 @@ namespace com.noctuagames.sdk
         bool IsAppOpenAdReady() { return false; }
 
         /// <summary>
-        /// Opens the creative debugger tool for inspecting ad creatives.
+        /// Opens the creative debugger tool for inspecting ad creatives. No-op when unsupported (AdMob does not expose one).
         /// </summary>
-        void ShowCreativeDebugger() { throw new NotImplementedException(); }
+        void ShowCreativeDebugger() { }
 
         /// <summary>
-        /// Opens the mediation debugger tool for inspecting ad network mediation status.
+        /// Opens the mediation debugger tool for inspecting ad network mediation status. No-op when unsupported.
         /// </summary>
-        void ShowMediationDebugger() { throw new NotImplementedException(); }
+        void ShowMediationDebugger() { }
         /// <summary>
         /// Registers test device IDs with the ad network for receiving test ads.
         /// </summary>

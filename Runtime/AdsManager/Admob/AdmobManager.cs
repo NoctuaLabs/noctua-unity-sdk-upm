@@ -317,6 +317,13 @@ namespace com.noctuagames.sdk
         }
 
         /// <inheritdoc />
+        public void HideBannerAd()
+        {
+            // BannerAdmob.HideBanner() is internally null-safe.
+            _bannerAdmob?.HideBanner();
+        }
+
+        /// <inheritdoc />
         public void SetRewardedInterstitialAdUnitID(string adUnitID)
         {
             _rewardedInterstitialAdmob.SetRewardedInterstitialAdUnitID(adUnitID);

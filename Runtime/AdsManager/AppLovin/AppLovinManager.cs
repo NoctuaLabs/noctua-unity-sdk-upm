@@ -258,6 +258,12 @@ namespace com.noctuagames.sdk
         }
 
         /// <inheritdoc />
+        public void HideBannerAd()
+        {
+            _bannerAppLovin.HideBanner();
+        }
+
+        /// <inheritdoc />
         public void HideBannerAppLovin()
         {
             _bannerAppLovin.HideBanner();

@@ -4,8 +4,14 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### 🚀 Features
+
+- Add **network-agnostic `Noctua.IAA.HideBannerAd()`** — routes through the orchestrator to both Primary and Secondary networks so game code can hide the banner from a single call site (e.g. on a successful "remove ads" IAP) regardless of whether AdMob or AppLovin is the active mediation. Safe no-op when IAA is uninitialized or the selected network has no active banner. Legacy `HideAppLovinBanner` / `DestroyBannerAppLovin` / `HideBannerAppLovin` remain for fine-grained control.
+
 ### 🐛 Bug Fixes
 
+- **Prevent `NotImplementedException` crash from `IAdNetwork` default methods** — all 20 default interface methods (`DestroyBannerAppLovin`, `HideBannerAppLovin`, `CreateBannerViewAdAppLovin`, `CreateBannerViewAdAdmob`, `SetAppOpenAdUnitID`, `ShowMediationDebugger`, etc.) are now **safe no-ops** instead of throwing. Previously, calling an AppLovin-only helper while AdMob was the active primary — which is exactly what happens in an IAP "remove ads" flow — fell through to the default method body and crashed the IAP completion callback. `AppLovinManager` and `AdmobManager` still override their respective implementations with real behavior; only the cross-network fallback path changed.
+- Add `AdmobManager.HideBannerAd()` and `AppLovinManager.HideBannerAd()` overrides so each network hides its own banner when invoked through the network-agnostic orchestrator path.
 - Resolve **Maio vs AppLovin GAM `Google-Mobile-Ads-SDK` 13.x pod conflict** — `com.google.ads.mobile.mediation.maio 3.0.1` wraps `GoogleMobileAdsMediationMaio 2.1.6.1` which pins GMA `~> 12.0`; incompatible with AppLovin GAM adapter `13.2.0.0` pinning GMA `= 13.2.0`. Integration Manager now detects this plus the deeper **mutual exclusion** between AppLovin Maio (`MaioSDK-v2 = 2.1.6`) and AdMob Maio 3.1.6 (`MaioSDK-v2 = 2.2.1`) — these two adapters cannot coexist at any version. Editor startup warning fires when both are installed; `Fix CocoaPods Conflicts` reports `⚠ MUTUALLY EXCLUSIVE — remove one` and intentionally skips auto-patch.
 
 ## [0.101.0] - 2026-04-16
