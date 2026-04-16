@@ -235,6 +235,15 @@ namespace com.noctuagames.sdk
 
                 _iaa = new MediationManager(adPlaceholderUI: _uiFactory, iAAResponse: _config.IAA);
 
+                // Wire the revenue tracker BEFORE Initialize() so no ad impression can fire
+                // with a null tracker. NoctuaEventService only stores references here — native
+                // plugin Init() is called inside the Initialize() callback, so there is no
+                // ordering problem.
+                _event = new NoctuaEventService(_nativePlugin, _eventSender);
+                _event.SetProperties(isSandbox: _config.Noctua.IsSandbox);
+                _iaa.SetAdRevenueTracker(_event);
+                _log.Info("Ad revenue tracker wired before IAA Initialize()");
+
 #if UNITY_ADMOB || UNITY_APPLOVIN
                 _iaa.Initialize(() =>
                 {
@@ -248,9 +257,13 @@ namespace com.noctuagames.sdk
 #endif
             }
 
-            _event = new NoctuaEventService(_nativePlugin, _eventSender);
-            _event.SetProperties(isSandbox: _config.Noctua.IsSandbox);
-            _iaa?.SetAdRevenueTracker(_event);
+            // _event is already created above in the IAA-enabled branch.
+            // Create it here only for the IAA-disabled path.
+            if (_event == null)
+            {
+                _event = new NoctuaEventService(_nativePlugin, _eventSender);
+                _event.SetProperties(isSandbox: _config.Noctua.IsSandbox);
+            }
 
             // Install the watch-count milestone tracker. Mediations call
             // AdWatchMilestoneTracker.Default.RecordWatch(adType) on rewarded reward / interstitial close.
@@ -1027,6 +1040,12 @@ namespace com.noctuagames.sdk
                     ? localIaa.MergeWith(initResponse.RemoteConfigs.IAA)
                     : initResponse.RemoteConfigs.IAA;
                 log.Debug("Noctua IAA config merged with remote config: " + JsonConvert.SerializeObject(Instance.Value._iaa.IAAResponse));
+
+                // Re-wire revenue tracker after IAAResponse assignment (which calls CreateNetworks
+                // and creates a new AdRevenueTrackingManager). Defense-in-depth: ensures tracker
+                // is always set even if initialization order changes in future.
+                Instance.Value._iaa.SetAdRevenueTracker(Instance.Value._event);
+                log.Info("Ad revenue tracker re-wired before IAA Initialize() from remote config");
 
                 Instance.Value._iaa.Initialize(() => {
 

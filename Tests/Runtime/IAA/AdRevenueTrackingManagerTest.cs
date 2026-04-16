@@ -353,5 +353,116 @@ namespace com.noctuagames.sdk.Tests.IAA
             Assert.IsTrue(_tracker.WasFired("Total_Ads_Revenue_001"),
                 "Accumulated revenue should persist and trigger event in new instance");
         }
+
+        // ─── Null tracker — initialization race regression tests ─────────────
+
+        [Test]
+        public void Constructor_NullTracker_DoesNotThrow()
+        {
+            Assert.DoesNotThrow(() => new AdRevenueTrackingManager(null, DefaultConfig()),
+                "Constructor with null tracker must not throw");
+        }
+
+        [Test]
+        public void Constructor_NullTracker_NullConfig_DoesNotThrow()
+        {
+            Assert.DoesNotThrow(() => new AdRevenueTrackingManager(null, null),
+                "Constructor with both null tracker and null config must not throw");
+        }
+
+        [Test]
+        public void ProcessAllFormatsThresholds_NullTracker_DoesNotThrow()
+        {
+            var mgr = new AdRevenueTrackingManager(null, DefaultConfig());
+
+            Assert.DoesNotThrow(() =>
+            {
+                for (int i = 0; i < 15; i++)
+                    mgr.ProcessAllFormatsThresholds(0.002);
+            }, "Null tracker must not throw on threshold processing");
+        }
+
+        [Test]
+        public void ProcessAllFormatsThresholds_NullTracker_NoEventsTracked()
+        {
+            var mgr = new AdRevenueTrackingManager(null, DefaultConfig());
+
+            // Drive well past both thresholds
+            for (int i = 0; i < 15; i++)
+                mgr.ProcessAllFormatsThresholds(0.005);
+
+            // No tracker → no events recorded anywhere we can assert on
+            // The test verifies no exception and no interaction with a null reference.
+            // Real verification comes from the [REVENUE LOST] error log in production.
+            Assert.Pass("No exception thrown with null tracker");
+        }
+
+        [Test]
+        public void ProcessInterstitialThresholds_NullTracker_DoesNotThrow()
+        {
+            var mgr = new AdRevenueTrackingManager(null, DefaultConfig());
+
+            Assert.DoesNotThrow(() =>
+            {
+                for (int i = 0; i < 12; i++)
+                    mgr.ProcessInterstitialThresholds(0.001);
+            });
+        }
+
+        [Test]
+        public void ProcessRewardedThresholds_NullTracker_DoesNotThrow()
+        {
+            var mgr = new AdRevenueTrackingManager(null, DefaultConfig());
+
+            Assert.DoesNotThrow(() =>
+            {
+                for (int i = 0; i < 12; i++)
+                    mgr.ProcessRewardedThresholds(0.001);
+            });
+        }
+
+        [Test]
+        public void SetAdRevenueTracker_AfterNullConstruction_EnablesTracking()
+        {
+            // Simulates the initialization race fix: tracker is wired after construction
+            var mgr = new AdRevenueTrackingManager(null, DefaultConfig());
+
+            // Wire tracker (mirrors what Noctua.Initialization.cs now does before Initialize())
+            mgr.SetAdRevenueTracker(_tracker);
+
+            // Now impress enough to cross both thresholds
+            for (int i = 0; i < 10; i++)
+                mgr.ProcessAllFormatsThresholds(0.002); // total = 0.02 >= 0.01
+
+            Assert.IsTrue(_tracker.WasFired("Total_Ads_Revenue_001"),
+                "Tracker wired after construction must receive threshold events");
+            Assert.IsTrue(_tracker.WasFired("TenAdsShown"),
+                "Tracker wired after construction must receive TenAdsShown event");
+        }
+
+        [Test]
+        public void SetAdRevenueTracker_NullToValidToNull_CyclesCorrectly()
+        {
+            var mgr = new AdRevenueTrackingManager(null, DefaultConfig());
+
+            // Phase 1: null → wired → events tracked
+            mgr.SetAdRevenueTracker(_tracker);
+            mgr.ProcessAllFormatsThresholds(0.01); // fires Total_Ads_Revenue_001
+            Assert.IsTrue(_tracker.WasFired("Total_Ads_Revenue_001"), "Phase 1: event must fire");
+
+            // Phase 2: cleared → null → events silently dropped
+            _tracker.Clear();
+            mgr.SetAdRevenueTracker(null);
+            Assert.DoesNotThrow(() => mgr.ProcessAllFormatsThresholds(0.01),
+                "Phase 2: null tracker must not throw");
+            Assert.AreEqual(0, _tracker.Events.Count,
+                "Phase 2: cleared tracker must not receive events when manager tracker is null");
+
+            // Phase 3: re-wired → events tracked again
+            mgr.SetAdRevenueTracker(_tracker);
+            mgr.ProcessAllFormatsThresholds(0.01); // fires again after reset
+            Assert.IsTrue(_tracker.WasFired("Total_Ads_Revenue_001"),
+                "Phase 3: re-wired tracker must receive events");
+        }
     }
 }

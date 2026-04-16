@@ -32,6 +32,9 @@ namespace com.noctuagames.sdk
         // cannot be called from background threads (AdMob revenue callbacks fire from JNI thread).
         private readonly string _deviceId;
 
+        // Counts events dropped because _adRevenueTracker was null — visible in logs as [REVENUE LOST #N].
+        private int _droppedEventCount;
+
         // PlayerPrefs keys — prefixed to avoid collisions
         private const string KeyTotalRevenue          = "Noctua_Taichi_TotalRevenue";
         private const string KeyTotalAdCount          = "Noctua_Taichi_TotalAdCount";
@@ -52,6 +55,16 @@ namespace com.noctuagames.sdk
             _adRevenueTracker = adRevenueTracker;
             _taichiConfig = taichiConfig;
             _deviceId = SystemInfo.deviceUniqueIdentifier;
+
+            if (_adRevenueTracker == null)
+                _log.Warning("AdRevenueTrackingManager created with null tracker — ad revenue will not be tracked until SetAdRevenueTracker() is called");
+            else
+                _log.Info("AdRevenueTrackingManager created with tracker wired");
+
+            if (_taichiConfig == null)
+                _log.Info("Taichi config is null — Taichi threshold tracking disabled");
+            else
+                _log.Info($"Taichi config: revenueThreshold={_taichiConfig.RevenueThreshold} adCount={_taichiConfig.AdCountThreshold} totalImpressions={_taichiConfig.TotalImpressionThreshold}");
         }
 
         /// <summary>
@@ -59,6 +72,16 @@ namespace com.noctuagames.sdk
         /// </summary>
         public void SetAdRevenueTracker(IAdRevenueTracker tracker)
         {
+            bool wasNull = _adRevenueTracker == null;
+            bool isNull  = tracker == null;
+
+            if (isNull)
+                _log.Warning("SetAdRevenueTracker(null) called — future ad revenue will not be tracked");
+            else if (wasNull)
+                _log.Info("SetAdRevenueTracker: tracker successfully wired (was previously null)");
+            else
+                _log.Info("SetAdRevenueTracker: tracker replaced");
+
             _adRevenueTracker = tracker;
         }
 
@@ -127,20 +150,30 @@ namespace com.noctuagames.sdk
             _log.Debug($"Admob Ad Revenue: value micros: {adValue.Value} / converted: {revenue}, {currencyCode} " +
                 $"Precision: {precision} Ad Source: {adSourceName}, Adapter: {adapterClassName}");
 
-            _adRevenueTracker?.TrackAdRevenue("admob_sdk", revenue, currencyCode, new Dictionary<string, IConvertible>
+            if (_adRevenueTracker == null)
             {
-                { "ad_source_id",             adSourceId },
-                { "ad_source_instance_id",    adSourceInstanceId },
-                { "ad_source_instance_name",  adSourceInstanceName },
-                { "ad_source_name",           adSourceName },
-                { "adapter_class_name",       adapterClassName },
-                { "latency_millis",           latencyMillis },
-                { "response_id",              responseId },
-                { "mediation_group_name",     mediationGroupName },
-                { "mediation_ab_test_name",   mediationABTestName },
-                { "mediation_ab_test_variant",mediationABTestVariant },
-                { "ad_user_id",               _deviceId }
-            });
+                _droppedEventCount++;
+                _log.Error($"[REVENUE LOST #{_droppedEventCount}] AdRevenueTracker is null — dropping AdMob revenue: {revenue} {currencyCode} " +
+                    $"(source: {adSourceName}, adapter: {adapterClassName}). Call SetAdRevenueTracker() before ads are shown.");
+            }
+            else
+            {
+                _log.Info($"Tracking AdMob revenue: {revenue:F6} {currencyCode} source={adSourceName} adapter={adapterClassName}");
+                _adRevenueTracker.TrackAdRevenue("admob_sdk", revenue, currencyCode, new Dictionary<string, IConvertible>
+                {
+                    { "ad_source_id",             adSourceId },
+                    { "ad_source_instance_id",    adSourceInstanceId },
+                    { "ad_source_instance_name",  adSourceInstanceName },
+                    { "ad_source_name",           adSourceName },
+                    { "adapter_class_name",       adapterClassName },
+                    { "latency_millis",           latencyMillis },
+                    { "response_id",              responseId },
+                    { "mediation_group_name",     mediationGroupName },
+                    { "mediation_ab_test_name",   mediationABTestName },
+                    { "mediation_ab_test_variant",mediationABTestVariant },
+                    { "ad_user_id",               _deviceId }
+                });
+            }
 
             return revenue;
         }
@@ -185,18 +218,28 @@ namespace com.noctuagames.sdk
                 $"country: {countryCode}, network: {networkName}, format: {adFormat}, " +
                 $"ad unit: {adUnitIdentifier}, placement: {placement}");
 
-            _adRevenueTracker?.TrackAdRevenue("applovin_max_sdk", revenue, "USD", new Dictionary<string, IConvertible>
+            if (_adRevenueTracker == null)
             {
-                { "country_code",      countryCode },
-                { "network_name",      networkName },
-                { "ad_unit_identifier",adUnitIdentifier },
-                { "placement",         placement },
-                { "network_placement", networkPlacement },
-                { "revenue_precision", revenuePrecision },
-                { "ad_format",         adFormat },
-                { "dsp_name",          dspName },
-                { "ad_user_id",        _deviceId }
-            });
+                _droppedEventCount++;
+                _log.Error($"[REVENUE LOST #{_droppedEventCount}] AdRevenueTracker is null — dropping AppLovin revenue: {revenue:F6} USD " +
+                    $"(network: {networkName}, format: {adFormat}, placement: {placement}). Call SetAdRevenueTracker() before ads are shown.");
+            }
+            else
+            {
+                _log.Info($"Tracking AppLovin revenue: {revenue:F6} USD network={networkName} format={adFormat} placement={placement}");
+                _adRevenueTracker.TrackAdRevenue("applovin_max_sdk", revenue, "USD", new Dictionary<string, IConvertible>
+                {
+                    { "country_code",      countryCode },
+                    { "network_name",      networkName },
+                    { "ad_unit_identifier",adUnitIdentifier },
+                    { "placement",         placement },
+                    { "network_placement", networkPlacement },
+                    { "revenue_precision", revenuePrecision },
+                    { "ad_format",         adFormat },
+                    { "dsp_name",          dspName },
+                    { "ad_user_id",        _deviceId }
+                });
+            }
 
             return revenue;
         }
