@@ -133,6 +133,17 @@ public static class CocoaPodsConflictFixer
             var (maxVer, admobVer) = DetectCrossCatalogConflict(pair);
             if (!IsCrossCatalogVersionMismatch(maxVer, admobVer)) continue;
 
+            if (pair.MutuallyExclusive)
+            {
+                // Cannot auto-patch — the two adapters pin incompatible exact versions of
+                // the same native pod, and no aligned AppLovin release exists. The user
+                // must remove one adapter via the Integration Manager.
+                results.AppendLine(
+                    $"⚠ {pair.Network} mutually exclusive (MAX={maxVer}, AdMob={admobVer}) — " +
+                    $"remove one adapter via Noctua > Noctua Integration Manager");
+                continue;
+            }
+
             bool patched = PatchManifestAdapterVersion(pair.AppLovinIosPkg, maxVer, admobVer);
             results.AppendLine(patched
                 ? $"✓ Updated {pair.Network} iOS adapter → aligned to AdMob native SDK version"
@@ -177,13 +188,13 @@ public static class CocoaPodsConflictFixer
                                   maxBidMachineVer != admobBidMachineVer;
 
         // compute cross-catalog conflict results up front for use in both anyConflict and sb
-        var otherConflictResults = new List<(string network, string maxVer, string admobVer, bool conflict)>();
+        var otherConflictResults = new List<(string network, string maxVer, string admobVer, bool conflict, bool mutuallyExclusive)>();
         foreach (var pair in s_crossCatalogPairs)
         {
             var (maxVer, admobVer) = DetectCrossCatalogConflict(pair);
             bool conflict = IsCrossCatalogVersionMismatch(maxVer, admobVer);
             if (!string.IsNullOrEmpty(maxVer) && !string.IsNullOrEmpty(admobVer))
-                otherConflictResults.Add((pair.Network, maxVer, admobVer, conflict));
+                otherConflictResults.Add((pair.Network, maxVer, admobVer, conflict, pair.MutuallyExclusive));
         }
         bool anyOtherConflict = otherConflictResults.Any(r => r.conflict);
 
@@ -216,8 +227,13 @@ public static class CocoaPodsConflictFixer
         {
             sb.AppendLine();
             sb.AppendLine("── Other cross-catalog adapter conflicts ────────────────");
-            foreach (var (network, maxVer, admobVer, conflict) in otherConflictResults)
-                sb.AppendLine($"{network,-22}:  MAX={maxVer}  AdMob={admobVer}  {(conflict ? "⚠  CONFLICT" : "✓  OK")}");
+            foreach (var (network, maxVer, admobVer, conflict, mutuallyExclusive) in otherConflictResults)
+            {
+                string status = conflict
+                    ? (mutuallyExclusive ? "⚠  MUTUALLY EXCLUSIVE — remove one" : "⚠  CONFLICT")
+                    : "✓  OK";
+                sb.AppendLine($"{network,-22}:  MAX={maxVer}  AdMob={admobVer}  {status}");
+            }
         }
 
         if (anyConflict)
@@ -275,14 +291,23 @@ public static class CocoaPodsConflictFixer
         foreach (var pair in s_crossCatalogPairs)
         {
             var (maxVer, admobVer) = DetectCrossCatalogConflict(pair);
-            if (IsCrossCatalogVersionMismatch(maxVer, admobVer))
+            if (!IsCrossCatalogVersionMismatch(maxVer, admobVer)) continue;
+
+            if (pair.MutuallyExclusive)
             {
                 UnityEngine.Debug.LogWarning(
-                    $"[NoctuaSDK] CocoaPods conflict: AppLovin MAX {pair.Network} adapter " +
+                    $"[NoctuaSDK] CocoaPods MUTUAL EXCLUSION: AppLovin MAX {pair.Network} adapter " +
                     $"({pair.AppLovinPodName} {maxVer}) and AdMob {pair.Network} adapter " +
-                    $"({pair.AdmobPodName} {admobVer}) require different native SDK versions. " +
-                    "Run  Noctua > iOS > Fix CocoaPods Conflicts  to resolve.");
+                    $"({pair.AdmobPodName} {admobVer}) pin the same native pod to different exact " +
+                    "versions and cannot coexist. Remove one adapter via Noctua > Noctua Integration Manager.");
+                continue;
             }
+
+            UnityEngine.Debug.LogWarning(
+                $"[NoctuaSDK] CocoaPods conflict: AppLovin MAX {pair.Network} adapter " +
+                $"({pair.AppLovinPodName} {maxVer}) and AdMob {pair.Network} adapter " +
+                $"({pair.AdmobPodName} {admobVer}) require different native SDK versions. " +
+                "Run  Noctua > iOS > Fix CocoaPods Conflicts  to resolve.");
         }
     }
 
@@ -402,17 +427,26 @@ public static class CocoaPodsConflictFixer
         public readonly string AdmobPkg;
         public readonly string AdmobPodPattern;
         public readonly string AdmobPodName;
+        /// <summary>
+        /// When true, the two adapters cannot coexist at any version pair (e.g. both pin the
+        /// same underlying native SDK to different exact versions, and no AppLovin release
+        /// exists that aligns with the AdMob adapter's native SDK). The fixer will NOT attempt
+        /// to auto-patch — it only warns and instructs the user to remove one adapter.
+        /// </summary>
+        public readonly bool MutuallyExclusive;
 
         public CrossCatalogPair(string network,
             string maxPkg, string maxPod,
-            string admobPkg, string admobPattern, string admobPod)
+            string admobPkg, string admobPattern, string admobPod,
+            bool mutuallyExclusive = false)
         {
-            Network         = network;
-            AppLovinIosPkg  = maxPkg;
-            AppLovinPodName = maxPod;
-            AdmobPkg        = admobPkg;
-            AdmobPodPattern = admobPattern;
-            AdmobPodName    = admobPod;
+            Network           = network;
+            AppLovinIosPkg    = maxPkg;
+            AppLovinPodName   = maxPod;
+            AdmobPkg          = admobPkg;
+            AdmobPodPattern   = admobPattern;
+            AdmobPodName      = admobPod;
+            MutuallyExclusive = mutuallyExclusive;
         }
     }
 
@@ -436,6 +470,14 @@ public static class CocoaPodsConflictFixer
         new CrossCatalogPair("Moloco",
             "com.applovin.mediation.adapters.moloco.ios",     "AppLovinMediationMolocoAdapter",
             "com.google.ads.mobile.mediation.moloco",         "*Moloco*Dependencies.xml",       "GoogleMobileAdsMediationMoloco"),
+        // Maio is mutually exclusive: AppLovin's Maio iOS adapter (latest 2.1.6.0) pins
+        // MaioSDK-v2 = 2.1.6 (exact). AdMob's Maio adapter from 2.2.0.0 onward pins
+        // MaioSDK-v2 = 2.2.x (exact). CocoaPods cannot reconcile two exact pins of the same pod,
+        // and AppLovin has not published a 2.2.x-compatible adapter. Users must pick one catalog.
+        new CrossCatalogPair("Maio",
+            "com.applovin.mediation.adapters.maio.ios",       "AppLovinMediationMaioAdapter",
+            "com.google.ads.mobile.mediation.maio",           "*Maio*Dependencies.xml",         "GoogleMobileAdsMediationMaio",
+            mutuallyExclusive: true),
     };
 
     /// <summary>

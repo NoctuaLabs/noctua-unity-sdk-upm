@@ -135,7 +135,13 @@ public class NoctuaIntegrationManagerWindow : EditorWindow
         { "PubMatic",               ("com.google.ads.mobile.mediation.pubmatic",            "1.5.0")  },
         { "BidMachine",             ("com.google.ads.mobile.mediation.bidmachine",          "1.0.2")  },
         { "LINE",                   ("com.google.ads.mobile.mediation.line",                "2.0.2")  },
-        { "Maio",                   ("com.google.ads.mobile.mediation.maio",                "3.0.1")  },
+        // Maio 3.1.6 bumps the underlying GoogleMobileAdsMediationMaio iOS pod to 2.2.1.0 which
+        // depends on Google-Mobile-Ads-SDK ~> 13.0 (compatible with AppLovin Google adapter 13.2.0.0).
+        // The earlier 3.0.1 wrapped pod 2.1.6.1 → GMA ~> 12.0, which conflicts with GMA 13.x.
+        // ⚠ MaioSDK mutual exclusion: AdMob Maio 3.1.6 pins MaioSDK-v2 = 2.2.1 (exact); the AppLovin MAX
+        //   Maio adapter (latest 2.1.6.0) pins MaioSDK-v2 = 2.1.6 (exact). The two cannot coexist — pick
+        //   one catalog for Maio, never both. See the cross-catalog overlap warning in the UI.
+        { "Maio",                   ("com.google.ads.mobile.mediation.maio",                "3.1.6")  },
         { "i-mobile",               ("com.google.ads.mobile.mediation.imobile",             "1.3.9")  },
     };
 
@@ -635,8 +641,62 @@ public class NoctuaIntegrationManagerWindow : EditorWindow
         return File.Exists(templatePath) && File.ReadAllText(templatePath).Contains(GradleDuplicateFixMarker);
     }
 
-    private static void DrawCrossCatalogOverlapWarning()
+    // Networks for which the AdMob and AppLovin MAX adapters pin the same underlying
+    // native iOS SDK to different EXACT versions, and no adapter release exists that aligns
+    // them. Installing both catalogs' adapters causes an unresolvable CocoaPods conflict
+    // that cannot be auto-patched — the user must remove one adapter.
+    //
+    // Maio: AppLovin MAX Maio adapter (latest 2.1.6.0) pins MaioSDK-v2 = 2.1.6; AdMob Maio
+    //       from 3.1.0 onward pins MaioSDK-v2 = 2.2.x. The two cannot coexist.
+    private static readonly HashSet<string> MutuallyExclusiveNetworks = new()
     {
+        "Maio",
+    };
+
+    /// <summary>
+    /// Returns the subset of overlapping networks that are mutually exclusive (iOS pod pin clash
+    /// that cannot be auto-patched). Used to upgrade the warning severity and include a
+    /// clear "remove one" instruction in the UI.
+    /// </summary>
+    private List<string> GetMutuallyExclusiveOverlaps()
+    {
+        var hits = new List<string>();
+        foreach (var kv in AdmobToMaxConflict)
+        {
+            var admobPkg = kv.Key;
+            var maxName  = kv.Value;
+            if (!MutuallyExclusiveNetworks.Contains(maxName)) continue;
+
+            var admobEntry = admobAdapterPackages.FirstOrDefault(a => a.Value.pkg == admobPkg);
+            if (admobEntry.Key == null) continue;
+            if (!admobAdapterStates.TryGetValue(admobEntry.Key, out var admobState) || !admobState.installed)
+                continue;
+
+            if (maxAdapterStates.TryGetValue(maxName, out var maxState) &&
+                (maxState.androidInstalled || maxState.iosInstalled))
+            {
+                hits.Add(maxName);
+            }
+        }
+        return hits;
+    }
+
+    private void DrawCrossCatalogOverlapWarning()
+    {
+        var mutuallyExclusive = GetMutuallyExclusiveOverlaps();
+        if (mutuallyExclusive.Count > 0)
+        {
+            EditorGUILayout.HelpBox(
+                "⛔  Mutually exclusive adapters installed from BOTH catalogs: " +
+                string.Join(", ", mutuallyExclusive) + ".\n\n" +
+                "These networks pin the same native iOS pod to different exact versions. " +
+                "pod install will fail until you remove the adapter from ONE catalog.\n\n" +
+                "Recommendation: keep AppLovin MAX (primary mediator) and remove the AdMob adapter — " +
+                "AppLovin MAX will still serve this network's demand.",
+                MessageType.Error);
+            EditorGUILayout.Space(2);
+        }
+
         bool fixApplied = IsGradleDuplicateFixApplied();
 
         if (fixApplied)
