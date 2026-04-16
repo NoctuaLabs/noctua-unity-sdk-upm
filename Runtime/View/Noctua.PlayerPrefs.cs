@@ -18,6 +18,7 @@ namespace com.noctuagames.sdk
 
             var IntegerKeys = new string[] {
                 "NoctuaFirstOpen",
+                "NoctuaFirstPurchase",
                 "NoctuaAccountContainer.UseFallback",
                 "NativeGalleryPermission",
             };
@@ -104,6 +105,7 @@ namespace com.noctuagames.sdk
             return new string[] {
                 // Integer
                 "NoctuaFirstOpen",
+                "NoctuaFirstPurchase",
                 "NoctuaAccountContainer.UseFallback",
                 "NativeGalleryPermission",
                 // String

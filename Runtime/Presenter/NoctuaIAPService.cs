@@ -385,6 +385,9 @@ namespace com.noctuagames.sdk
                             { "orig_currency", orderRequest.Currency }
                         }
                     );
+
+                    SendFirstPurchaseEventIfFirstTime(orderRequest);
+
                     _nativePlugin?.TrackPurchase(
                         verifyOrderRequest.Id.ToString(),
                         (double)orderRequest.Price,
@@ -876,6 +879,8 @@ namespace com.noctuagames.sdk
                         { "orig_amount", purchaseRequest.Price },
                         { "orig_currency", editorCurrency }
                     });
+
+                    SendFirstPurchaseEventIfFirstTime(editorOrderRequest);
 
                     OnPurchaseDone?.Invoke(editorOrderRequest);
 
@@ -2422,6 +2427,61 @@ namespace com.noctuagames.sdk
             }
             
             SavePendingPurchases(_waitingPendingPurchases.ToList());
+        }
+
+        // PlayerPrefs flag: 0 = no completed purchase recorded yet, 1 = first purchase already reported.
+        // Scoped per device/install (matches NoctuaFirstOpen). Survives reinstalls via BackupPlayerPrefs.
+        private const string FirstPurchasePrefKey = "NoctuaFirstPurchase";
+
+        /// <summary>
+        /// Fires the <c>first_purchase</c> event exactly once per device, the first time a
+        /// purchase completes. Idempotent — no-op on subsequent completions. Game devs do not
+        /// need to implement this themselves.
+        /// </summary>
+        /// <remarks>
+        /// Forwards to <see cref="INativeTracker.TrackCustomEvent"/> so native third-party trackers
+        /// (Adjust, Firebase, Facebook, AppsFlyer, etc.) receive the event. Amount/currency travel
+        /// inside the payload dictionary.
+        /// </remarks>
+        /// <param name="orderRequest">The completed order. Payload mirrors <c>purchase_completed</c>.</param>
+        private void SendFirstPurchaseEventIfFirstTime(OrderRequest orderRequest)
+        {
+            if (orderRequest == null)
+            {
+                return;
+            }
+
+            try
+            {
+                if (PlayerPrefs.GetInt(FirstPurchasePrefKey, 0) == 1)
+                {
+                    return;
+                }
+
+                var payload = new Dictionary<string, IConvertible>
+                {
+                    { "product_id", orderRequest.ProductId },
+                    { "amount", orderRequest.PriceInUSD },
+                    { "currency", "USD" },
+                    { "order_id", orderRequest.Id },
+                    { "orig_amount", orderRequest.Price },
+                    { "orig_currency", orderRequest.Currency }
+                };
+
+                // Third-party native trackers (Adjust, Firebase, Facebook, AppsFlyer, etc.).
+                // Amount/currency travel inside the payload dictionary.
+                _nativePlugin?.TrackCustomEvent("first_purchase", payload);
+
+                PlayerPrefs.SetInt(FirstPurchasePrefKey, 1);
+                PlayerPrefs.Save();
+
+                _log.Info($"first_purchase event sent for orderID {orderRequest.Id}, productID {orderRequest.ProductId}");
+            }
+            catch (Exception e)
+            {
+                // Never let first_purchase tracking disrupt the purchase flow.
+                _log.Warning($"Failed to send first_purchase event: {e.Message}");
+            }
         }
 
         /// <summary>
