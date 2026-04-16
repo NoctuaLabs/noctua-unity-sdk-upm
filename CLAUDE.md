@@ -2,7 +2,7 @@
 
 SDK package at `Packages/com.noctuagames.sdk/`. All runtime code under `Runtime/`, Editor tooling under `Editor/`, tests under `Tests/`.
 
-- **Version:** 0.92.0
+- **Version:** 0.101.0
 - **Repo:** `gitlab.com/evosverse/noctua/noctua-sdk-unity-upm`
 - **Namespace:** `com.noctuagames.sdk`
 
@@ -157,9 +157,25 @@ Menu: **Noctua > iOS > Fix CocoaPods Conflicts** (greyed out unless build target
 - Patches `GoogleMobileAdsDependencies.xml` in `Library/PackageCache` to align constraint with installed adapter version
 - Removes duplicate `~/.cocoapods/repos/cocoapods` repo that causes pod install failures
 - Dynamic detection: reads adapter versions from `Library/PackageCache` — no hardcoded versions
+- Detects **7+ cross-catalog conflicts** (AppLovin, BidMachine, Vungle, Mintegral, UnityAds, Fyber, Verve) via `IsConflicting()` pessimistic-constraint comparison
 - **Warning:** `Library/PackageCache` patches are ephemeral — cleared on package cache refresh. Root fix: upgrade `com.google.ads.mobile` to 11.0.0+ (use Integration Manager).
 
 **`IsConflicting()` logic:** Checks CocoaPods pessimistic constraint `~> X.Y.Z` against required version. Three-component constraint pins minor+patch; two-component (`~> X.Y`) allows all `X.*`.
+
+### Mutually Exclusive Adapter Pairs
+
+Some adapter pairs cannot coexist because they pin the **same native pod** to **different exact versions** — no XML patch can reconcile this, only uninstalling one adapter resolves it.
+
+| Adapter A | Adapter B | Shared pod | A pins | B pins |
+|-----------|-----------|------------|--------|--------|
+| `com.applovin.mediation.adapters.maio.ios 2.1.6.0` | `com.google.ads.mobile.mediation.maio 3.1.6` | `MaioSDK-v2` | `= 2.1.6` | `= 2.2.1` |
+
+`CocoaPodsConflictFixer` treats these specially:
+- Startup warning fires when both are detected in `Library/PackageCache`
+- `Fix CocoaPods Conflicts` reports `⚠ MUTUALLY EXCLUSIVE — remove one` and **intentionally skips auto-patch**
+- Recommendation: keep Maio installed only via AppLovin MAX (primary mediator) — it continues to serve Maio demand without the AdMob adapter
+
+Additionally, `com.google.ads.mobile.mediation.maio 3.0.1` wraps `GoogleMobileAdsMediationMaio 2.1.6.1` which pins GMA `~> 12.0` — incompatible with AppLovin GAM adapter `13.2.0.0` that pins GMA `= 13.2.0`. Bumping to 3.1.6 resolves the GMA version conflict but triggers the `MaioSDK-v2` mutual exclusion above.
 
 ## Engagement Tracking Architecture
 

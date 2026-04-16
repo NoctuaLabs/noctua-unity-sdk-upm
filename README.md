@@ -1,6 +1,6 @@
 # Noctua SDK for Unity
 
-**Version:** 0.92.0 | **Unity:** 2021.3+ | **Platforms:** Android, iOS
+**Version:** 0.101.0 | **Unity:** 2021.3+ | **Platforms:** Android, iOS
 
 For full integration details and usage guides, visit the official documentation: https://docs.noctua.gg
 
@@ -24,7 +24,7 @@ Add to `Packages/manifest.json`:
 ```json
 {
   "dependencies": {
-    "com.noctuagames.sdk": "https://github.com/noctuagames/noctua-sdk-unity-upm.git#0.92.0"
+    "com.noctuagames.sdk": "https://github.com/noctuagames/noctua-sdk-unity-upm.git#0.101.0"
   }
 }
 ```
@@ -71,7 +71,9 @@ One-click install of a pre-validated combination that runs AppLovin MAX and AdMo
 
 ### CocoaPods Conflict Fixer (iOS only)
 
-**Noctua > iOS > Fix CocoaPods Conflicts** — patches `GoogleMobileAdsDependencies.xml` and removes the legacy `~/.cocoapods/repos/cocoapods` repo that causes version-conflict errors. Menu items are greyed out when build target is not iOS.
+**Noctua > iOS > Fix CocoaPods Conflicts** — patches `GoogleMobileAdsDependencies.xml` and removes the legacy `~/.cocoapods/repos/cocoapods` repo that causes version-conflict errors. Menu items are greyed out when build target is not iOS. Auto-detects 7+ cross-catalog conflicts (AppLovin, BidMachine, Vungle, Mintegral, UnityAds, Fyber, Verve).
+
+> **Maio is mutually exclusive.** Install Maio from **either** AppLovin MAX **or** AdMob — never both. `com.applovin.mediation.adapters.maio.ios 2.1.6.0` pins `MaioSDK-v2 = 2.1.6`; `com.google.ads.mobile.mediation.maio 3.1.6` pins `MaioSDK-v2 = 2.2.1`. The two adapters cannot coexist at any version. Fix CocoaPods Conflicts reports `⚠ MUTUALLY EXCLUSIVE — remove one` and intentionally skips auto-patch — uninstall one in Integration Manager. AppLovin MAX is the primary mediator in the Recommended Setup, so installing Maio only via AppLovin MAX is the safest choice (it continues to serve Maio demand without the AdMob adapter). See [docs.noctua.gg troubleshooting guide](https://docs.noctua.gg/troubleshoot/cocoapods-maio-gma-13-conflict) for details.
 
 ### Ad Network Adapters
 

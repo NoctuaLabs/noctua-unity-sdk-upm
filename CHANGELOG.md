@@ -6,11 +6,97 @@ All notable changes to this project will be documented in this file.
 
 ### 🐛 Bug Fixes
 
+- Resolve **Maio vs AppLovin GAM `Google-Mobile-Ads-SDK` 13.x pod conflict** — `com.google.ads.mobile.mediation.maio 3.0.1` wraps `GoogleMobileAdsMediationMaio 2.1.6.1` which pins GMA `~> 12.0`; incompatible with AppLovin GAM adapter `13.2.0.0` pinning GMA `= 13.2.0`. Integration Manager now detects this plus the deeper **mutual exclusion** between AppLovin Maio (`MaioSDK-v2 = 2.1.6`) and AdMob Maio 3.1.6 (`MaioSDK-v2 = 2.2.1`) — these two adapters cannot coexist at any version. Editor startup warning fires when both are installed; `Fix CocoaPods Conflicts` reports `⚠ MUTUALLY EXCLUSIVE — remove one` and intentionally skips auto-patch.
+
+## [0.101.0] - 2026-04-16
+
+### 🐛 Bug Fixes
+
+- Route AdMob ad revenue to the **correct Taichi Process method per format** — interstitial/rewarded/appopen now call their dedicated `ProcessXxxThresholds` path instead of the banner-only method. Added progress logs for Taichi Steps 3–6 and `ProcessAllFormatsThresholds` for traceability.
+
+### 🧪 Testing
+
+- Add unit tests for AdMob per-format Taichi routing
+
+## [0.100.0] - 2026-04-15
+
+### 🚀 Features
+
+- Add **canonical IAA event tracking** with ad-watch milestones — unified schema for ad impression lifecycle (load, show, click, complete, milestones) across AppLovin MAX and AdMob. Enables server-side IAA funnel analysis without mediator-specific shims.
+
+## [0.99.0] - 2026-04-14
+
+### 🐛 Bug Fixes
+
+- **Main-thread marshalling** for AdMob callbacks: `MobileAds.Initialize` completion, banner revenue callbacks, and preloaded-ad callbacks now dispatched to Unity main thread (previously fired on Google SDK worker threads, causing Unity API `Must be on main thread` exceptions).
+- Guard AdMob preload setup behind `#if !UNITY_EDITOR` — prevents editor-time initialization crashes when AdMob native bridge is unavailable.
+- Skip secondary readiness check when `ad_format_overrides` pins the format — avoids double-check that blocked fallback waterfall when a single network is hard-pinned per format.
+- Add `GetNetworkForFormat` debug logs for banner ad revenue routing.
+
+## [0.98.0] - 2026-04-14
+
+### 🐛 Bug Fixes
+
+- Add **secondary network fallback** for banner / interstitial / rewarded — when primary mediator (AppLovin MAX or AdMob) is unavailable or returns no fill, SDK now automatically attempts the configured secondary mediator. Also restores Editor legacy code path for MediationScene so development builds work without native bridges.
+- **Field-by-field merge** for `FrequencyCaps` and `CooldownSeconds` in `IAA.MergeWith` — previously the entire nested object was replaced wholesale, dropping unset fields from the remote config when a local override was partial.
+- `CreateBannerViewAdAdmob` / `CreateBannerViewAdAppLovin` now wired with platform-conditional (`#if UNITY_ADMOB` / `#if UNITY_APPLOVIN`) gating in `MediationScript.SetupBanner()` (sample app).
+
+## [0.97.0] - 2026-04-13
+
+### 🚀 Features
+
+- Add **CPM floor bidding**, **A/B experiment segmentation**, and **IAA diagnostics** — runtime config for per-format CPM floors, user segment A/B test assignment via `UserSegmentManager` / `AdExperimentManager`, and inspection APIs surfaced in the sample app's IAA diagnostics buttons (Show Segment, Show Experiments, Show CPM Floors).
+
+### 🧪 Testing
+
+- Add unit tests for `CpmFloorManager`, `UserSegmentManager`, `AdExperimentManager`
+- Fix IAA namespace ambiguity in `ConfigLoadTest`
+
+## [0.96.0] - 2026-04-12
+
+### 🐛 Bug Fixes
+
+- Scripting define symbols (`UNITY_ADMOB`, `UNITY_APPLOVIN`) not being added when installing/updating ad SDKs — Integration Manager now runs define refresh after every install/update action, so platform-conditional ad code compiles on first reload.
+
+## [0.95.0] - 2026-04-12
+
+### 🐛 Bug Fixes
+
 - Remove Phase 1 immediate-persist from `EventSender.Send()` — minimal event was stored synchronously before Firebase ID fetch, causing a duplicate event row alongside the enriched Phase 2 event. Server received two `session_start` / `noctua_user_engagement` events per trigger (double-tracking). Removed `_immediateEvents` HashSet and Phase 1 block entirely.
 - Fix Bloblang processing error (`parsing time "1775805644" as RFC3339`) — Phase 1 payload included `event_time` as Unix milliseconds integer without a `timestamp` ISO 8601 field; server pipeline failed to parse it. Resolved by removing Phase 1.
 - Fix `is_sandbox` null serialization — `_isSandbox` (`bool?`) was unconditionally added to event payloads, serializing as JSON `null` when not set. Now only added when explicitly configured via `SetProperties(isSandbox: ...)`.
 - Fix ByteDance / Pangle iOS adapter version: `com.applovin.mediation.adapters.bytedance.ios` corrected from `709000000.0.0` (non-existent) to `709010100.0.0` (only available registry version). Fixes `Package cannot be found` UPM resolution error.
 - Bump AdMob Pangle adapter (`com.google.ads.mobile.mediation.pangle`) from `5.9.0` to `5.9.1`.
+
+## [0.94.0] - 2026-04-11
+
+### ⚙️ Miscellaneous Tasks
+
+- Add missing `CLAUDE.md.meta` to silence Unity immutable-folder warning
+
+## [0.93.0] - 2026-04-11
+
+### 🚀 Features
+
+- Auto-fix **Android duplicate dependencies** and **iOS CocoaPods conflicts** via Noctua menu — one-click patching for common cross-catalog version drifts in `GoogleMobileAdsDependencies.xml` and adjacent adapter XMLs.
+
+### 🐛 Bug Fixes
+
+- Detect and auto-fix **BidMachine** cross-catalog iOS version conflict (AppLovin adapter vs AdMob adapter pin different BidMachine CocoaPod versions).
+- Detect and auto-fix **6 additional cross-catalog iOS CocoaPods version conflicts** (Vungle, Mintegral, UnityAds, Fyber/DT Exchange, Verve/Hybid, AppLovin).
+- Move `BUILD_LIBRARY_FOR_DISTRIBUTION` fix from `Podfile` to `PBXProject` on `Pods.xcodeproj` — avoids Podfile post_install clobber after subsequent pod install.
+- Replace `Podfile` `post_install` hook with `PBXProject` embed for dynamic xcframeworks — more reliable than shell script patching.
+- Auto-embed dynamic xcframeworks in `Unity-iPhone` via `Podfile` `post_install` hook (superseded by PBXProject embed above; kept as fallback).
+- Patch `Podfile` `post_install` to set `BUILD_LIBRARY_FOR_DISTRIBUTION=NO` for `AppMetricaLibraryAdapter` (Yandex adapter Swift distribution conflict).
+- Remove redundant Swift dummy file injection — EDM4U already provides `Dummy.swift`.
+- Conditionally embed Swift runtime only when Swift adapter is installed.
+- Set `ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES=YES` in iOS post-build.
+
+### 💼 Other
+
+- Show separate Android and iOS version columns in MAX adapter table (Integration Manager UI).
+- Compare MAX adapter versions **per-platform**, not cross-platform — green/amber badges now reflect the platform being built.
+- Repaint Integration Manager window immediately after Install/Update/Remove click.
 
 ## [0.92.0] - 2026-04-10
 
