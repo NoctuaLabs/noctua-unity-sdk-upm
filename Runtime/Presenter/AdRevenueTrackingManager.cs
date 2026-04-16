@@ -35,6 +35,13 @@ namespace com.noctuagames.sdk
         // Counts events dropped because _adRevenueTracker was null — visible in logs as [REVENUE LOST #N].
         private int _droppedEventCount;
 
+        /// <summary>
+        /// Number of ad revenue events dropped because <see cref="SetAdRevenueTracker"/> had not
+        /// been called when the impression callback fired. Non-zero means revenue data was lost.
+        /// Resets to zero when a valid tracker is wired via <see cref="SetAdRevenueTracker"/>.
+        /// </summary>
+        public int DroppedEventCount => _droppedEventCount;
+
         // PlayerPrefs keys — prefixed to avoid collisions
         private const string KeyTotalRevenue          = "Noctua_Taichi_TotalRevenue";
         private const string KeyTotalAdCount          = "Noctua_Taichi_TotalAdCount";
@@ -78,7 +85,10 @@ namespace com.noctuagames.sdk
             if (isNull)
                 _log.Warning("SetAdRevenueTracker(null) called — future ad revenue will not be tracked");
             else if (wasNull)
-                _log.Info("SetAdRevenueTracker: tracker successfully wired (was previously null)");
+            {
+                _log.Info($"SetAdRevenueTracker: tracker successfully wired (was previously null; {_droppedEventCount} events were dropped)");
+                _droppedEventCount = 0;
+            }
             else
                 _log.Info("SetAdRevenueTracker: tracker replaced");
 
