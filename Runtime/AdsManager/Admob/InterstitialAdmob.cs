@@ -162,7 +162,7 @@ namespace com.noctuagames.sdk.Admob
                     try { adSource = loadedAdapter?.AdSourceName; } catch {}
 
                     EmitCanonical(IAAEventNames.AdLoaded, IAAPayloadBuilder.BuildAdLoaded(
-                        placement:  null,
+                        placement:  _lastPlacement,
                         adType:     AdFormatKey.Interstitial,
                         adUnitId:   _adUnitIDInterstitial,
                         adUnitName: _adUnitIDInterstitial,

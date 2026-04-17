@@ -130,7 +130,7 @@ namespace com.noctuagames.sdk.AppLovin
             // Banner has no native display callback in MAX — emit ad_shown here so
             // analytics parity with Interstitial/Rewarded/AppOpen is maintained.
             EmitCanonical(IAAEventNames.AdShown, IAAPayloadBuilder.BuildAdLoaded(
-                placement:  null,
+                placement:  _lastPlacement,
                 adType:     AdFormatKey.Banner,
                 adUnitId:   _adUnitIDBanner,
                 adUnitName: _adUnitIDBanner,
@@ -210,12 +210,17 @@ namespace com.noctuagames.sdk.AppLovin
             MaxSdk.StartBannerAutoRefresh(_adUnitIDBanner);
         }
 
+        // Placement cached locally so the synchronous ad_shown emission (no adInfo yet) can fill the canonical payload.
+        // AdInfo-driven emissions (impression / click / revenue) continue to use adInfo?.Placement directly.
+        private string _lastPlacement;
+
         /// <summary>
         /// Sets the placement name for the banner ad for analytics segmentation.
         /// </summary>
         /// <param name="placement">The placement name.</param>
         public void SetPlacement(string placement)
         {
+            _lastPlacement = placement;
             MaxSdk.SetBannerPlacement(_adUnitIDBanner, placement);
 
             _log.Debug($"Banner placement set to '{placement}' for ad unit id : {_adUnitIDBanner}");

@@ -268,7 +268,63 @@ public class NoctuaIntegrationManagerWindow : EditorWindow
     private void OnEnable()
     {
         LoadConfig();
+        AutoHealBrokenAdapterVersions();
         RefreshAllStates();
+    }
+
+    /// <summary>
+    /// Adapter iOS packages published by AppLovin to their UPM registry are occasionally
+    /// unpublished / retagged (e.g. ByteDance iOS 709000000.0.0 was replaced by
+    /// 709010100.0.0). Games that installed the adapter on an older Noctua SDK version
+    /// have the broken pin persisted in <c>Packages/manifest.json</c>. Updating the
+    /// Noctua SDK alone is not enough — UPM still fails to resolve because the pinned
+    /// version no longer exists in the registry.
+    ///
+    /// On Integration Manager open, detect any MAX / AdMob adapter whose manifest pin
+    /// points to a version known to be missing from the registry and rewrite it to the
+    /// current catalog version. Safe because we only ever overwrite versions present
+    /// in <see cref="BrokenAdapterPins"/> — intentional pinning is preserved.
+    /// </summary>
+    private static readonly Dictionary<string, string> BrokenAdapterPins = new()
+    {
+        // ByteDance / Pangle iOS — 709000000.0.0 was unpublished by AppLovin and replaced by 709010100.0.0.
+        // Games that installed ByteDance on Noctua SDK < 0.103 have the broken pin in manifest.json.
+        { "com.applovin.mediation.adapters.bytedance.ios@709000000.0.0", "709010100.0.0" },
+    };
+
+    private void AutoHealBrokenAdapterVersions()
+    {
+        if (!TryLoadManifest(out var manifest, out var deps)) return;
+
+        bool changed = false;
+        foreach (var kvp in maxAdapterPackages)
+        {
+            changed |= TryHealPin(deps, kvp.Value.androidPkg, kvp.Value.androidVer);
+            changed |= TryHealPin(deps, kvp.Value.iosPkg,     kvp.Value.iosVer);
+        }
+
+        if (changed)
+        {
+            WriteManifest(manifest);
+            Debug.LogWarning("[NoctuaSDK] Auto-healed broken adapter pins in Packages/manifest.json. " +
+                             "Close and reopen any open Xcode/Gradle projects so UPM can resolve.");
+        }
+    }
+
+    private static bool TryHealPin(JObject deps, string pkg, string catalogVer)
+    {
+        if (deps == null || pkg == null) return false;
+        if (!deps.TryGetValue(pkg, out var pinned)) return false;
+
+        var pinnedVer = pinned?.ToString();
+        if (string.IsNullOrEmpty(pinnedVer)) return false;
+
+        var key = $"{pkg}@{pinnedVer}";
+        if (!BrokenAdapterPins.ContainsKey(key)) return false;
+
+        deps[pkg] = catalogVer;
+        Debug.Log($"[NoctuaSDK] Migrated broken pin {key} → {catalogVer}.");
+        return true;
     }
 
     private void RefreshAllStates()
