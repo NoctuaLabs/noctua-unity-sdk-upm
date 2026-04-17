@@ -58,10 +58,38 @@ static NoctuaPushStringCallback _noctuaOnRemoteNotificationReceived = NULL;
 static NoctuaPushStringCallback _noctuaOnNotificationTapped         = NULL;
 static NoctuaPushStringCallback _noctuaOnFcmTokenRefresh            = NULL;
 
-// Exposed C entry points — called by Unity at startup after init.
-void noctuaSetRemoteNotificationCallback(NoctuaPushStringCallback cb) { _noctuaOnRemoteNotificationReceived = cb; }
-void noctuaSetNotificationTappedCallback(NoctuaPushStringCallback cb) { _noctuaOnNotificationTapped         = cb; }
-void noctuaSetFcmTokenRefreshCallback(NoctuaPushStringCallback cb)    { _noctuaOnFcmTokenRefresh            = cb; }
+// Cold-start buffers: iOS delivers the 'user tapped a notification to launch the app'
+// payload to the delegate during didFinishLaunching — BEFORE Unity finishes booting and
+// Noctua.InitAsync registers the managed handler. Buffer the most recent payload so we
+// can flush it the instant Unity wires up the callback.
+static NSString *_bufferedTappedJson   = nil;
+static NSString *_bufferedReceivedJson = nil;
+static NSString *_bufferedFcmToken     = nil;
+
+// Exposed C entry points — called by Unity at startup after init. Flush any buffered
+// cold-start payload the instant the handler is attached so the game sees the tap
+// that launched the app.
+void noctuaSetRemoteNotificationCallback(NoctuaPushStringCallback cb) {
+    _noctuaOnRemoteNotificationReceived = cb;
+    if (cb != NULL && _bufferedReceivedJson != nil) {
+        cb([_bufferedReceivedJson UTF8String]);
+        _bufferedReceivedJson = nil;
+    }
+}
+void noctuaSetNotificationTappedCallback(NoctuaPushStringCallback cb) {
+    _noctuaOnNotificationTapped = cb;
+    if (cb != NULL && _bufferedTappedJson != nil) {
+        cb([_bufferedTappedJson UTF8String]);
+        _bufferedTappedJson = nil;
+    }
+}
+void noctuaSetFcmTokenRefreshCallback(NoctuaPushStringCallback cb) {
+    _noctuaOnFcmTokenRefresh = cb;
+    if (cb != NULL && _bufferedFcmToken != nil) {
+        cb([_bufferedFcmToken UTF8String]);
+        _bufferedFcmToken = nil;
+    }
+}
 
 // Converts an NSDictionary userInfo payload into a UTF-8 JSON string the managed
 // side can parse. Returns nil on serialization failure. Caller retains ownership
@@ -173,11 +201,13 @@ NSString *const kGCMMessageIDKey = @"gcm.message_id";
     [[NSNotificationCenter defaultCenter] postNotificationName:@"FCMToken" object:nil userInfo:dataDict];
 
     // Forward to managed side so game code can react to token rotation (e.g. re-register
-    // with backend push service). Empty string passed when token is nil so subscribers
-    // always receive a valid call.
+    // with backend push service). Buffer when Unity has not yet registered the handler —
+    // the first subscribe call flushes the pending token.
+    NSString *safeToken = fcmToken != nil ? fcmToken : @"";
     if (_noctuaOnFcmTokenRefresh != NULL) {
-        const char *utf8 = fcmToken != nil ? [fcmToken UTF8String] : "";
-        _noctuaOnFcmTokenRefresh(utf8);
+        _noctuaOnFcmTokenRefresh([safeToken UTF8String]);
+    } else {
+        _bufferedFcmToken = safeToken;
     }
 }
 
@@ -194,10 +224,12 @@ NSString *const kGCMMessageIDKey = @"gcm.message_id";
     // Forward the raw APS + custom payload to managed code so game can react
     // (show in-game banner, update unread counter, etc.). Delivered BEFORE the
     // system banner is presented — game code should not block the completion
-    // handler call below.
+    // handler call below. Buffer when Unity is not yet ready.
+    NSString *foregroundJson = NoctuaPayloadToJson(userInfo);
     if (_noctuaOnRemoteNotificationReceived != NULL) {
-        NSString *json = NoctuaPayloadToJson(userInfo);
-        _noctuaOnRemoteNotificationReceived([json UTF8String]);
+        _noctuaOnRemoteNotificationReceived([foregroundJson UTF8String]);
+    } else {
+        _bufferedReceivedJson = foregroundJson;
     }
 
     completionHandler(UNNotificationPresentationOptionBadge |
@@ -219,10 +251,14 @@ NSString *const kGCMMessageIDKey = @"gcm.message_id";
 
     // Primary hook for deep-link handling: game reads a custom field (e.g.
     // "deeplink" or "noctua_deeplink") from the forwarded payload and routes
-    // to the appropriate in-game scene.
+    // to the appropriate in-game scene. Buffered when Unity is not yet ready so
+    // cold-start taps (user tapped to launch the app, arriving during
+    // didFinishLaunching before Noctua.InitAsync completes) are not lost.
+    NSString *tappedJson = NoctuaPayloadToJson(userInfo);
     if (_noctuaOnNotificationTapped != NULL) {
-        NSString *json = NoctuaPayloadToJson(userInfo);
-        _noctuaOnNotificationTapped([json UTF8String]);
+        _noctuaOnNotificationTapped([tappedJson UTF8String]);
+    } else {
+        _bufferedTappedJson = tappedJson;
     }
 
     completionHandler();
@@ -236,9 +272,11 @@ NSString *const kGCMMessageIDKey = @"gcm.message_id";
     [[FIRMessaging messaging] appDidReceiveMessage:userInfo];
     NSLog(@"[Noctua][CustomAppController] Remote notification received: %@", userInfo);
 
+    NSString *silentJson = NoctuaPayloadToJson(userInfo);
     if (_noctuaOnRemoteNotificationReceived != NULL) {
-        NSString *json = NoctuaPayloadToJson(userInfo);
-        _noctuaOnRemoteNotificationReceived([json UTF8String]);
+        _noctuaOnRemoteNotificationReceived([silentJson UTF8String]);
+    } else {
+        _bufferedReceivedJson = silentJson;
     }
 
     completionHandler(UIBackgroundFetchResultNewData);
