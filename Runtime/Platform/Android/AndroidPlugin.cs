@@ -399,6 +399,81 @@ namespace com.noctuagames.sdk
         }
 
         /// <inheritdoc />
+        public void GetFirebaseMessagingToken(Action<string> callback)
+        {
+            // Directly call FirebaseMessaging.getInstance().getToken() via JNI instead of
+            // routing through the native Noctua Android SDK — avoids requiring a matching
+            // native SDK method and works on any game that already links the Firebase
+            // Messaging Android library (required by the Firebase dependency declared in
+            // NativePluginDependencies.xml).
+            try
+            {
+                using var firebaseMessaging = new AndroidJavaClass("com.google.firebase.messaging.FirebaseMessaging");
+                using var messagingInstance = firebaseMessaging.CallStatic<AndroidJavaObject>("getInstance");
+                using var task = messagingInstance.Call<AndroidJavaObject>("getToken");
+
+                // AndroidCallback<> is already used for the other Firebase getters; here we
+                // adapt Google Play Services' OnCompleteListener to the same Action<string> contract.
+                var listener = new FirebaseTokenTaskListener((token, error) =>
+                {
+                    if (error != null)
+                    {
+                        _log.Warning($"FirebaseMessaging.getToken() failed: {error}");
+                        callback?.Invoke(string.Empty);
+                        return;
+                    }
+                    callback?.Invoke(token ?? string.Empty);
+                });
+
+                task.Call<AndroidJavaObject>("addOnCompleteListener", listener).Dispose();
+            }
+            catch (Exception e)
+            {
+                _log.Warning($"Failed to get Firebase Messaging token: {e.Message}");
+                callback?.Invoke(string.Empty);
+            }
+        }
+
+        /// <summary>
+        /// JNI proxy for Google Play Services <c>OnCompleteListener&lt;String&gt;</c>. Bridges a
+        /// Firebase Task result (FCM token) back to a C# <c>Action&lt;string,string&gt;</c>
+        /// (token, error).
+        /// </summary>
+        private class FirebaseTokenTaskListener : AndroidJavaProxy
+        {
+            private readonly Action<string, string> _onComplete;
+
+            public FirebaseTokenTaskListener(Action<string, string> onComplete)
+                : base("com.google.android.gms.tasks.OnCompleteListener")
+            {
+                _onComplete = onComplete;
+            }
+
+            public void onComplete(AndroidJavaObject task)
+            {
+                try
+                {
+                    bool successful = task.Call<bool>("isSuccessful");
+                    if (successful)
+                    {
+                        var token = task.Call<string>("getResult");
+                        _onComplete?.Invoke(token, null);
+                    }
+                    else
+                    {
+                        using var ex = task.Call<AndroidJavaObject>("getException");
+                        var msg = ex?.Call<string>("getMessage") ?? "unknown";
+                        _onComplete?.Invoke(null, msg);
+                    }
+                }
+                catch (Exception e)
+                {
+                    _onComplete?.Invoke(null, e.Message);
+                }
+            }
+        }
+
+        /// <inheritdoc />
         public void GetFirebaseRemoteConfigString(string key, Action<string> callback)
         {
             try

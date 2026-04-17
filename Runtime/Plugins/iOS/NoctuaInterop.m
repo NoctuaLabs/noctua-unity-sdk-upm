@@ -493,6 +493,51 @@ void noctuaGetFirebaseAnalyticsSessionID(GetFirebaseSessionIDCallbackDelegate ca
     }];
 }
 
+// Returns the current Firebase Cloud Messaging (FCM) registration token. Empty string when
+// the APNs ↔ FCM handshake has not completed yet (call again after the
+// messaging:didReceiveRegistrationToken: delegate fires — see CustomAppController.mm).
+typedef void (*GetFirebaseMessagingTokenCallbackDelegate)(const char* token);
+void noctuaGetFirebaseMessagingToken(GetFirebaseMessagingTokenCallbackDelegate callback) {
+    if (callback == NULL) return;
+
+    Class firMessagingCls = NSClassFromString(@"FIRMessaging");
+    if (firMessagingCls == nil) {
+        NSLog(@"[Noctua] FIRMessaging class not found — Firebase Messaging framework not linked");
+        callback("");
+        return;
+    }
+
+    id messagingInstance = [firMessagingCls performSelector:@selector(messaging)];
+    if (messagingInstance == nil) {
+        callback("");
+        return;
+    }
+
+    // Dispatch [FIRMessaging tokenWithCompletion:^(NSString *token, NSError *error)] via runtime
+    // so this translation unit does not require a hard link against FirebaseMessaging.
+    SEL tokenSel = NSSelectorFromString(@"tokenWithCompletion:");
+    if (![messagingInstance respondsToSelector:tokenSel]) {
+        callback("");
+        return;
+    }
+
+    void (^completion)(NSString *, NSError *) = ^(NSString *token, NSError *error) {
+        if (error != nil) {
+            NSLog(@"[Noctua] FCM token fetch failed: %@", error);
+            callback("");
+            return;
+        }
+        callback(token != nil ? [token UTF8String] : "");
+    };
+
+    NSMethodSignature *sig = [messagingInstance methodSignatureForSelector:tokenSel];
+    NSInvocation *inv = [NSInvocation invocationWithMethodSignature:sig];
+    [inv setTarget:messagingInstance];
+    [inv setSelector:tokenSel];
+    [inv setArgument:&completion atIndex:2];
+    [inv invoke];
+}
+
 typedef void (*GetFirebaseRemoteConfigStringCallbackDelegate)(const char* configString);
 void noctuaGetFirebaseRemoteConfigString(const char* key, GetFirebaseRemoteConfigStringCallbackDelegate callback) {
 

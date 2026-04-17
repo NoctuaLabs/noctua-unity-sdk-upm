@@ -79,6 +79,9 @@ namespace com.noctuagames.sdk
         private static extern void noctuaGetFirebaseAnalyticsSessionID(GetFirebaseSessionIDCallbackDelegate callback);
 
         [DllImport("__Internal")]
+        private static extern void noctuaGetFirebaseMessagingToken(GetFirebaseMessagingTokenCallbackDelegate callback);
+
+        [DllImport("__Internal")]
         private static extern void noctuaGetFirebaseRemoteConfigString(string key, GetFirebaseRemoteConfigStringCallbackDelegate callback);
 
         [DllImport("__Internal")]
@@ -146,6 +149,7 @@ namespace com.noctuagames.sdk
         private static Action<string> storedGetReceiptCompletion;
         private static Action<string> storedFirebaseInstallationIdCompletion;
         private static Action<string> storedFirebaseSessionIdCompletion;
+        private static Action<string> storedFirebaseMessagingTokenCompletion;
         private static Action<string> storedFirebaseRemoteConfigStringCompletion;
         private static Action<bool> storedFirebaseRemoteConfigBooleanCompletion;
         private static Action<double> storedFirebaseRemoteConfigDoubleCompletion;
@@ -173,6 +177,8 @@ namespace com.noctuagames.sdk
 
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
         private delegate void GetFirebaseSessionIDCallbackDelegate(string sessionId);
+
+        private delegate void GetFirebaseMessagingTokenCallbackDelegate(string token);
 
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
         private delegate void GetFirebaseRemoteConfigStringCallbackDelegate(string value);
@@ -243,6 +249,12 @@ namespace com.noctuagames.sdk
         private static void GetFirebaseSessionIDCallback(string sessionId)
         {
             storedFirebaseSessionIdCompletion?.Invoke(sessionId);
+        }
+
+        [AOT.MonoPInvokeCallback(typeof(GetFirebaseMessagingTokenCallbackDelegate))]
+        private static void GetFirebaseMessagingTokenCallback(string token)
+        {
+            storedFirebaseMessagingTokenCompletion?.Invoke(token ?? string.Empty);
         }
 
         [AOT.MonoPInvokeCallback(typeof(GetFirebaseRemoteConfigStringCallbackDelegate))]
@@ -591,6 +603,23 @@ namespace com.noctuagames.sdk
             catch (Exception e)
             {
                 _log.Warning($"GetFirebaseAnalyticsSessionID failed: {e.Message}");
+                callback?.Invoke(string.Empty);
+            }
+        }
+
+        /// <inheritdoc />
+        public void GetFirebaseMessagingToken(Action<string> callback)
+        {
+            try
+            {
+                storedFirebaseMessagingTokenCompletion = callback;
+
+                noctuaGetFirebaseMessagingToken(new GetFirebaseMessagingTokenCallbackDelegate(GetFirebaseMessagingTokenCallback));
+                _log.Debug("noctuaGetFirebaseMessagingToken called");
+            }
+            catch (Exception e)
+            {
+                _log.Warning($"GetFirebaseMessagingToken failed: {e.Message}");
                 callback?.Invoke(string.Empty);
             }
         }

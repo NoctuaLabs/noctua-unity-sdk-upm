@@ -24,6 +24,8 @@ typedef void (*GetFirebaseIDCallbackDelegate)(const char* firebaseId);
 void noctuaGetFirebaseInstallationID(GetFirebaseIDCallbackDelegate callback);
 typedef void (*GetFirebaseSessionIDCallbackDelegate)(const char* sessionId);
 void noctuaGetFirebaseAnalyticsSessionID(GetFirebaseSessionIDCallbackDelegate callback);
+typedef void (*GetFirebaseMessagingTokenCallbackDelegate)(const char* token);
+void noctuaGetFirebaseMessagingToken(GetFirebaseMessagingTokenCallbackDelegate callback);
 typedef void (*GetFirebaseRemoteConfigStringCallbackDelegate)(const char* configString);
 void noctuaGetFirebaseRemoteConfigString(const char* key, GetFirebaseRemoteConfigStringCallbackDelegate callback);
 typedef void (*GetFirebaseRemoteConfigBooleanCallbackDelegate)(const bool configBool);

@@ -177,6 +177,15 @@ namespace com.noctuagames.sdk
         void GetFirebaseAnalyticsSessionID(Action<string> callback);
 
         /// <summary>
+        /// Retrieves the current Firebase Cloud Messaging (FCM) registration token from the native SDK.
+        /// The token is minted once the APNs (iOS) / FCM registration handshake completes — callers
+        /// may receive an empty string if invoked too early after SDK init. Recommended pattern:
+        /// retry once after a short delay, or subscribe to the per-platform token-refresh event.
+        /// </summary>
+        /// <param name="callback">Callback with the FCM token string, or empty on failure.</param>
+        void GetFirebaseMessagingToken(Action<string> callback) { callback?.Invoke(string.Empty); }
+
+        /// <summary>
         /// Fetches a string value from Firebase Remote Config via the native SDK.
         /// </summary>
         /// <param name="key">The Remote Config parameter key.</param>

@@ -142,6 +142,13 @@ namespace com.noctuagames.sdk
         }
 
         /// <inheritdoc />
+        public void GetFirebaseMessagingToken(Action<string> callback)
+        {
+            // Editor has no Firebase runtime — return empty synchronously.
+            callback?.Invoke(string.Empty);
+        }
+
+        /// <inheritdoc />
         public void GetFirebaseRemoteConfigString(string key, Action<string> callback)
         {
             callback?.Invoke(string.Empty);

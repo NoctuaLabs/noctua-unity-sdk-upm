@@ -85,6 +85,61 @@ namespace com.noctuagames.sdk
         }
 
         /// <summary>
+        /// Get the current Firebase Cloud Messaging (FCM) registration token asynchronously.
+        /// </summary>
+        /// <remarks>
+        /// The token is minted once the APNs (iOS) / Firebase registration handshake completes.
+        /// Calling this too early after <c>Noctua.InitAsync()</c> may return an empty string —
+        /// on iOS the token is available only after the delegate callback
+        /// <c>messaging:didReceiveRegistrationToken:</c> fires, which in turn requires the user
+        /// to grant notification permission and the APNs device token to be forwarded
+        /// (handled automatically by <c>CustomAppController</c>).
+        /// Recommended pattern for game code:
+        /// <code>
+        /// var token = await Noctua.GetFirebaseMessagingToken();
+        /// if (string.IsNullOrEmpty(token))
+        /// {
+        ///     // Retry after a short delay — the APNs handshake usually finishes within
+        ///     // a few seconds of the user granting notification permission.
+        /// }
+        /// </code>
+        /// On Android the token is typically available immediately after SDK init.
+        /// On Editor / unsupported platforms returns an empty string.
+        /// </remarks>
+        /// <returns>A task that resolves to the FCM token, or empty string when unavailable.</returns>
+        public static Task<string> GetFirebaseMessagingToken()
+        {
+        #if UNITY_ANDROID || UNITY_IOS
+            var tcs = new TaskCompletionSource<string>();
+
+            try
+            {
+                if (Instance.Value._nativePlugin != null)
+                {
+                    Instance.Value._nativePlugin.GetFirebaseMessagingToken((token) =>
+                    {
+                        tcs.TrySetResult(token ?? string.Empty);
+                    });
+                }
+                else
+                {
+                    Instance.Value._log.Warning("Native plugin is null");
+                    tcs.TrySetResult(string.Empty);
+                }
+            }
+            catch (Exception ex)
+            {
+                Instance.Value._log.Warning($"GetFirebaseMessagingToken exception: {ex.Message}");
+                tcs.TrySetResult(string.Empty);
+            }
+
+            return tcs.Task;
+        #else
+            return Task.FromResult(string.Empty);
+        #endif
+        }
+
+        /// <summary>
         /// Get a string value from Firebase Remote Config asynchronously using native plugin where supported.
         /// </summary>
         /// <param name="key">The Remote Config key to retrieve.</param>
