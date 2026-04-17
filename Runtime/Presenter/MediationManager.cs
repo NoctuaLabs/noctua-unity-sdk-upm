@@ -985,6 +985,21 @@ namespace com.noctuagames.sdk
                             _log.Info(placement != null
                                 ? $"Showing Admob Interstitial Ad (placement: {placement})"
                                 : "Showing Admob Interstitial Ad");
+
+                            // Canonical ad_loaded on preload path — fires once per preloaded ad
+                            // consumed from the buffer. Parity with the legacy path which emits
+                            // ad_loaded from InterstitialAd.Load success callback.
+                            string loadedAdSource = null;
+                            try { loadedAdSource = ad.GetResponseInfo()?.GetLoadedAdapterResponseInfo()?.AdSourceName; } catch {}
+                            EmitCanonicalIaa(IAAEventNames.AdLoaded, IAAPayloadBuilder.BuildAdLoaded(
+                                placement:  placement,
+                                adType:     AdFormatKey.Interstitial,
+                                adUnitId:   _interstitialAdUnitID,
+                                adUnitName: _interstitialAdUnitID,
+                                adSize:     IAAAdSize.Fullscreen,
+                                adSource:   loadedAdSource,
+                                adPlatform: AdNetworkName.Admob));
+
                             RegisterCallbackAdInterstitial(ad, placement);
                             ad.Show();
                             // Record impression only after a successful show attempt.
@@ -1133,6 +1148,9 @@ namespace com.noctuagames.sdk
             });
             interstitialAd.OnAdFullScreenContentClosed += () => PostToMainThread(() =>
             {
+                // Parity with the legacy path's OnAdFullScreenContentClosed handler:
+                // an interstitial close counts as one watched ad for the watch-milestone tracker.
+                AdWatchMilestoneTracker.Default?.RecordWatch(AdFormatKey.Interstitial);
                 _onAdClosed?.Invoke();
             });
             interstitialAd.OnAdClicked += () => PostToMainThread(() =>
@@ -1219,6 +1237,18 @@ namespace com.noctuagames.sdk
                             _log.Info(placement != null
                                 ? $"Showing Admob Rewarded Ad (placement: {placement})"
                                 : "Showing Admob Rewarded Ad");
+                            // Canonical ad_loaded on preload path — parity with legacy Load callback.
+                            string loadedAdSourceR = null;
+                            try { loadedAdSourceR = ad.GetResponseInfo()?.GetLoadedAdapterResponseInfo()?.AdSourceName; } catch {}
+                            EmitCanonicalIaa(IAAEventNames.AdLoaded, IAAPayloadBuilder.BuildAdLoaded(
+                                placement:  placement,
+                                adType:     AdFormatKey.Rewarded,
+                                adUnitId:   _rewardedAdUnitID,
+                                adUnitName: _rewardedAdUnitID,
+                                adSize:     IAAAdSize.Fullscreen,
+                                adSource:   loadedAdSourceR,
+                                adPlatform: AdNetworkName.Admob));
+
                             RegisterCallbackAdRewarded(ad, placement);
                             ad.Show((Reward reward) => PostToMainThread(() =>
                             {
@@ -1356,6 +1386,9 @@ namespace com.noctuagames.sdk
             });
             rewardedAd.OnAdFullScreenContentClosed += () => PostToMainThread(() =>
             {
+                // Parity with the legacy path: a rewarded close counts as one watched ad for
+                // the watch-milestone tracker (fires watch_ads_5x/10x/25x/50x).
+                AdWatchMilestoneTracker.Default?.RecordWatch(AdFormatKey.Rewarded);
                 _onAdClosed?.Invoke();
             });
             rewardedAd.OnAdClicked += () => PostToMainThread(() =>
