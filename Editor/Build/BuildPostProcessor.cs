@@ -292,6 +292,11 @@ using UnityEditor.Graphs;
         /// populated the Pods directory. If Pods does not exist yet (first-time export before any
         /// pod install), it logs a warning; rebuilding in Append mode after running pod install
         /// will embed all missing frameworks.
+        ///
+        /// Guard: only runs when Podfile declares <c>:linkage =&gt; :static</c>. With default dynamic
+        /// <c>use_frameworks!</c>, CocoaPods already embeds dynamic XCFrameworks via its
+        /// <c>[CP] Embed Pods Frameworks</c> script phase; re-embedding them here causes
+        /// "Multiple commands produce" build errors.
         /// </summary>
         [PostProcessBuild(int.MaxValue - 1)]
         public static void EmbedDynamicPodsFrameworks(BuildTarget buildTarget, string pathToBuiltProject)
@@ -303,6 +308,16 @@ using UnityEditor.Graphs;
             {
                 LogWarning("Pods directory not found — dynamic XCFramework auto-embed skipped. " +
                            "Run pod install, then rebuild (Append mode) to apply.");
+                return;
+            }
+
+            // Skip when Podfile uses dynamic linkage — CocoaPods' [CP] Embed Pods Frameworks
+            // phase already embeds dynamic XCFrameworks. Re-embedding causes duplicate build
+            // commands and "Multiple commands produce" errors.
+            if (!IsPodfileStaticLinkage(pathToBuiltProject))
+            {
+                Log("Podfile uses dynamic linkage — CocoaPods handles embedding; skipping " +
+                    "EmbedDynamicPodsFrameworks to avoid duplicate framework embeds.");
                 return;
             }
 
@@ -344,6 +359,47 @@ using UnityEditor.Graphs;
 
             if (changed)
                 File.WriteAllText(projPath, proj.WriteToString());
+        }
+
+        /// <summary>
+        /// Returns true when the Podfile declares static framework linkage
+        /// (<c>use_frameworks! :linkage =&gt; :static</c>). With static linkage CocoaPods
+        /// does not embed dynamic XCFrameworks, so Noctua's post-processor must do it.
+        /// With the default dynamic linkage, CocoaPods' <c>[CP] Embed Pods Frameworks</c>
+        /// script already embeds them — re-embedding causes duplicate-build errors.
+        ///
+        /// Missing Podfile (pre-pod-install export) returns false so embedding is skipped.
+        /// </summary>
+        private static bool IsPodfileStaticLinkage(string pathToBuiltProject)
+        {
+            var podfilePath = Path.Combine(pathToBuiltProject, "Podfile");
+            if (!File.Exists(podfilePath))
+            {
+                Log("Podfile not found — assuming dynamic linkage (skip auto-embed).");
+                return false;
+            }
+
+            try
+            {
+                var contents = File.ReadAllText(podfilePath);
+
+                // Strip comment lines so `# :linkage => :static` doesn't register as active config.
+                var active = string.Join("\n", contents
+                    .Split('\n')
+                    .Select(l => {
+                        var idx = l.IndexOf('#');
+                        return idx >= 0 ? l.Substring(0, idx) : l;
+                    }));
+
+                // Match both hash-rocket (`:linkage => :static`) and shorthand (`linkage: :static`) forms.
+                return Regex.IsMatch(active, @":linkage\s*=>\s*:static")
+                    || Regex.IsMatch(active, @"\blinkage\s*:\s*:static\b");
+            }
+            catch (Exception e)
+            {
+                LogWarning($"Failed to read Podfile ({e.Message}) — assuming dynamic linkage (skip auto-embed).");
+                return false;
+            }
         }
 
         /// <summary>
