@@ -898,6 +898,12 @@ namespace com.noctuagames.sdk
                 { "fb_install_referrer", attribution.FbInstallReferrer ?? "" }
             });
 
+            // Register push-notification bridges with the native plugin so game code can
+            // subscribe to Noctua.OnRemoteNotificationReceived / OnNotificationTapped /
+            // OnFirebaseMessagingTokenRefresh. Deferred until init completes so the native
+            // plugin is guaranteed to be constructed.
+            RegisterPushHandlers();
+
             // Sandbox-only convenience: log the FCM token to Unity console so QA can copy it
             // for backend push testing without writing extra game code. Production builds
             // (isSandbox = false) skip this — prevents accidental token leakage in release

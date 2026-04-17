@@ -186,6 +186,29 @@ namespace com.noctuagames.sdk
         void GetFirebaseMessagingToken(Action<string> callback) { callback?.Invoke(string.Empty); }
 
         /// <summary>
+        /// Registers a delegate that fires whenever a remote push notification arrives (foreground or background).
+        /// Payload arrives as a JSON string representing the full APS + custom dictionary.
+        /// Call once during SDK init; replaces any previously registered handler.
+        /// </summary>
+        void SetRemoteNotificationReceivedHandler(Action<string> handler) { }
+
+        /// <summary>
+        /// Registers a delegate that fires when the user taps a notification (primary deeplink hook).
+        /// Payload arrives as a JSON string — game code should parse the expected custom fields
+        /// (e.g. "deeplink", "route", "noctua_deeplink") and route to the appropriate screen.
+        /// Call once during SDK init.
+        /// </summary>
+        void SetNotificationTappedHandler(Action<string> handler) { }
+
+        /// <summary>
+        /// Registers a delegate that fires when Firebase Cloud Messaging rotates the FCM
+        /// registration token (reinstall, app-data clear, device restore, periodic refresh).
+        /// Game code should re-register the new token with their backend push service.
+        /// Call once during SDK init.
+        /// </summary>
+        void SetFirebaseMessagingTokenRefreshHandler(Action<string> handler) { }
+
+        /// <summary>
         /// Fetches a string value from Firebase Remote Config via the native SDK.
         /// </summary>
         /// <param name="key">The Remote Config parameter key.</param>

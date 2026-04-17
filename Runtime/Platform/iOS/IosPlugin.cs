@@ -82,6 +82,15 @@ namespace com.noctuagames.sdk
         private static extern void noctuaGetFirebaseMessagingToken(GetFirebaseMessagingTokenCallbackDelegate callback);
 
         [DllImport("__Internal")]
+        private static extern void noctuaSetRemoteNotificationCallback(NoctuaPushStringCallbackDelegate callback);
+
+        [DllImport("__Internal")]
+        private static extern void noctuaSetNotificationTappedCallback(NoctuaPushStringCallbackDelegate callback);
+
+        [DllImport("__Internal")]
+        private static extern void noctuaSetFcmTokenRefreshCallback(NoctuaPushStringCallbackDelegate callback);
+
+        [DllImport("__Internal")]
         private static extern void noctuaGetFirebaseRemoteConfigString(string key, GetFirebaseRemoteConfigStringCallbackDelegate callback);
 
         [DllImport("__Internal")]
@@ -150,6 +159,13 @@ namespace com.noctuagames.sdk
         private static Action<string> storedFirebaseInstallationIdCompletion;
         private static Action<string> storedFirebaseSessionIdCompletion;
         private static Action<string> storedFirebaseMessagingTokenCompletion;
+
+        // Push-notification handlers. Static because the native callback trampoline must be
+        // a plain function (see [AOT.MonoPInvokeCallback] methods below) — instance fields
+        // would be inaccessible from the P/Invoke entry point.
+        private static Action<string> storedRemoteNotificationHandler;
+        private static Action<string> storedNotificationTappedHandler;
+        private static Action<string> storedFcmTokenRefreshHandler;
         private static Action<string> storedFirebaseRemoteConfigStringCompletion;
         private static Action<bool> storedFirebaseRemoteConfigBooleanCompletion;
         private static Action<double> storedFirebaseRemoteConfigDoubleCompletion;
@@ -179,6 +195,8 @@ namespace com.noctuagames.sdk
         private delegate void GetFirebaseSessionIDCallbackDelegate(string sessionId);
 
         private delegate void GetFirebaseMessagingTokenCallbackDelegate(string token);
+
+        private delegate void NoctuaPushStringCallbackDelegate(string json);
 
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
         private delegate void GetFirebaseRemoteConfigStringCallbackDelegate(string value);
@@ -255,6 +273,24 @@ namespace com.noctuagames.sdk
         private static void GetFirebaseMessagingTokenCallback(string token)
         {
             storedFirebaseMessagingTokenCompletion?.Invoke(token ?? string.Empty);
+        }
+
+        [AOT.MonoPInvokeCallback(typeof(NoctuaPushStringCallbackDelegate))]
+        private static void RemoteNotificationReceivedCallback(string json)
+        {
+            storedRemoteNotificationHandler?.Invoke(json ?? "{}");
+        }
+
+        [AOT.MonoPInvokeCallback(typeof(NoctuaPushStringCallbackDelegate))]
+        private static void NotificationTappedCallback(string json)
+        {
+            storedNotificationTappedHandler?.Invoke(json ?? "{}");
+        }
+
+        [AOT.MonoPInvokeCallback(typeof(NoctuaPushStringCallbackDelegate))]
+        private static void FcmTokenRefreshCallback(string token)
+        {
+            storedFcmTokenRefreshHandler?.Invoke(token ?? string.Empty);
         }
 
         [AOT.MonoPInvokeCallback(typeof(GetFirebaseRemoteConfigStringCallbackDelegate))]
@@ -621,6 +657,48 @@ namespace com.noctuagames.sdk
             {
                 _log.Warning($"GetFirebaseMessagingToken failed: {e.Message}");
                 callback?.Invoke(string.Empty);
+            }
+        }
+
+        /// <inheritdoc />
+        public void SetRemoteNotificationReceivedHandler(Action<string> handler)
+        {
+            try
+            {
+                storedRemoteNotificationHandler = handler;
+                noctuaSetRemoteNotificationCallback(new NoctuaPushStringCallbackDelegate(RemoteNotificationReceivedCallback));
+            }
+            catch (Exception e)
+            {
+                _log.Warning($"SetRemoteNotificationReceivedHandler failed: {e.Message}");
+            }
+        }
+
+        /// <inheritdoc />
+        public void SetNotificationTappedHandler(Action<string> handler)
+        {
+            try
+            {
+                storedNotificationTappedHandler = handler;
+                noctuaSetNotificationTappedCallback(new NoctuaPushStringCallbackDelegate(NotificationTappedCallback));
+            }
+            catch (Exception e)
+            {
+                _log.Warning($"SetNotificationTappedHandler failed: {e.Message}");
+            }
+        }
+
+        /// <inheritdoc />
+        public void SetFirebaseMessagingTokenRefreshHandler(Action<string> handler)
+        {
+            try
+            {
+                storedFcmTokenRefreshHandler = handler;
+                noctuaSetFcmTokenRefreshCallback(new NoctuaPushStringCallbackDelegate(FcmTokenRefreshCallback));
+            }
+            catch (Exception e)
+            {
+                _log.Warning($"SetFirebaseMessagingTokenRefreshHandler failed: {e.Message}");
             }
         }
 

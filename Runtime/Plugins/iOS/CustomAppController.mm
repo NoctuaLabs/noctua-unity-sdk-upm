@@ -49,6 +49,35 @@
 @interface CustomAppController : NOCTUA_APP_CONTROLLER_PARENT <UNUserNotificationCenterDelegate, FIRMessagingDelegate>
 @end
 
+// C function pointers set from Unity (IosPlugin.cs) so ObjC delegate callbacks can
+// forward to managed code without linking against Unity internals. Payloads are
+// marshalled as JSON strings because NSDictionary → Unity marshalling via P/Invoke
+// is fragile; Unity deserialises with Newtonsoft.Json on the managed side.
+typedef void (*NoctuaPushStringCallback)(const char* json);
+static NoctuaPushStringCallback _noctuaOnRemoteNotificationReceived = NULL;
+static NoctuaPushStringCallback _noctuaOnNotificationTapped         = NULL;
+static NoctuaPushStringCallback _noctuaOnFcmTokenRefresh            = NULL;
+
+// Exposed C entry points — called by Unity at startup after init.
+void noctuaSetRemoteNotificationCallback(NoctuaPushStringCallback cb) { _noctuaOnRemoteNotificationReceived = cb; }
+void noctuaSetNotificationTappedCallback(NoctuaPushStringCallback cb) { _noctuaOnNotificationTapped         = cb; }
+void noctuaSetFcmTokenRefreshCallback(NoctuaPushStringCallback cb)    { _noctuaOnFcmTokenRefresh            = cb; }
+
+// Converts an NSDictionary userInfo payload into a UTF-8 JSON string the managed
+// side can parse. Returns nil on serialization failure. Caller retains ownership
+// of the NSString (autorelease pool). The C string returned via UTF8String is
+// valid for the duration of the block.
+static NSString* NoctuaPayloadToJson(NSDictionary *userInfo) {
+    if (userInfo == nil) return @"{}";
+    NSError *err = nil;
+    NSData *data = [NSJSONSerialization dataWithJSONObject:userInfo options:0 error:&err];
+    if (err != nil || data == nil) {
+        NSLog(@"[Noctua][CustomAppController] Failed to serialize push payload to JSON: %@", err);
+        return @"{}";
+    }
+    return [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding];
+}
+
 @implementation CustomAppController
 
 NSString *const kGCMMessageIDKey = @"gcm.message_id";
@@ -142,6 +171,14 @@ NSString *const kGCMMessageIDKey = @"gcm.message_id";
 
     NSDictionary *dataDict = fcmToken ? @{@"token": fcmToken} : @{};
     [[NSNotificationCenter defaultCenter] postNotificationName:@"FCMToken" object:nil userInfo:dataDict];
+
+    // Forward to managed side so game code can react to token rotation (e.g. re-register
+    // with backend push service). Empty string passed when token is nil so subscribers
+    // always receive a valid call.
+    if (_noctuaOnFcmTokenRefresh != NULL) {
+        const char *utf8 = fcmToken != nil ? [fcmToken UTF8String] : "";
+        _noctuaOnFcmTokenRefresh(utf8);
+    }
 }
 
 #pragma mark - UNUserNotificationCenter callbacks
@@ -153,6 +190,15 @@ NSString *const kGCMMessageIDKey = @"gcm.message_id";
     NSDictionary *userInfo = notification.request.content.userInfo;
     [[FIRMessaging messaging] appDidReceiveMessage:userInfo];
     NSLog(@"[Noctua][CustomAppController] Foreground notification: %@", userInfo);
+
+    // Forward the raw APS + custom payload to managed code so game can react
+    // (show in-game banner, update unread counter, etc.). Delivered BEFORE the
+    // system banner is presented — game code should not block the completion
+    // handler call below.
+    if (_noctuaOnRemoteNotificationReceived != NULL) {
+        NSString *json = NoctuaPayloadToJson(userInfo);
+        _noctuaOnRemoteNotificationReceived([json UTF8String]);
+    }
 
     completionHandler(UNNotificationPresentationOptionBadge |
                       UNNotificationPresentationOptionSound |
@@ -170,6 +216,15 @@ NSString *const kGCMMessageIDKey = @"gcm.message_id";
     }
     [[FIRMessaging messaging] appDidReceiveMessage:userInfo];
     NSLog(@"[Noctua][CustomAppController] Notification response userInfo: %@", userInfo);
+
+    // Primary hook for deep-link handling: game reads a custom field (e.g.
+    // "deeplink" or "noctua_deeplink") from the forwarded payload and routes
+    // to the appropriate in-game scene.
+    if (_noctuaOnNotificationTapped != NULL) {
+        NSString *json = NoctuaPayloadToJson(userInfo);
+        _noctuaOnNotificationTapped([json UTF8String]);
+    }
+
     completionHandler();
 }
 
@@ -180,6 +235,12 @@ NSString *const kGCMMessageIDKey = @"gcm.message_id";
             fetchCompletionHandler:(void (^)(UIBackgroundFetchResult))completionHandler {
     [[FIRMessaging messaging] appDidReceiveMessage:userInfo];
     NSLog(@"[Noctua][CustomAppController] Remote notification received: %@", userInfo);
+
+    if (_noctuaOnRemoteNotificationReceived != NULL) {
+        NSString *json = NoctuaPayloadToJson(userInfo);
+        _noctuaOnRemoteNotificationReceived([json UTF8String]);
+    }
+
     completionHandler(UIBackgroundFetchResultNewData);
 }
 

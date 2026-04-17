@@ -26,6 +26,15 @@ typedef void (*GetFirebaseSessionIDCallbackDelegate)(const char* sessionId);
 void noctuaGetFirebaseAnalyticsSessionID(GetFirebaseSessionIDCallbackDelegate callback);
 typedef void (*GetFirebaseMessagingTokenCallbackDelegate)(const char* token);
 void noctuaGetFirebaseMessagingToken(GetFirebaseMessagingTokenCallbackDelegate callback);
+
+// Push-notification callback registration. Unity passes function pointers; the
+// CustomAppController calls them when the matching ObjC delegate methods fire.
+// Payloads arrive as UTF-8 JSON strings (NSDictionary userInfo serialised by
+// NSJSONSerialization).
+typedef void (*NoctuaPushStringCallback)(const char* json);
+void noctuaSetRemoteNotificationCallback(NoctuaPushStringCallback callback);
+void noctuaSetNotificationTappedCallback(NoctuaPushStringCallback callback);
+void noctuaSetFcmTokenRefreshCallback(NoctuaPushStringCallback callback);
 typedef void (*GetFirebaseRemoteConfigStringCallbackDelegate)(const char* configString);
 void noctuaGetFirebaseRemoteConfigString(const char* key, GetFirebaseRemoteConfigStringCallbackDelegate callback);
 typedef void (*GetFirebaseRemoteConfigBooleanCallbackDelegate)(const bool configBool);

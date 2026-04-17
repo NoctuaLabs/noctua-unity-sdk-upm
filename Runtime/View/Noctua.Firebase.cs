@@ -1,9 +1,106 @@
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
 namespace com.noctuagames.sdk
 {
+    /// <summary>
+    /// Parsed remote-push payload delivered to <see cref="Noctua.OnRemoteNotificationReceived"/>
+    /// and <see cref="Noctua.OnNotificationTapped"/>. Wraps the raw JSON string that comes from
+    /// the iOS <c>userInfo</c> dictionary (and the equivalent Android <c>RemoteMessage</c> data)
+    /// with convenience accessors for the common fields (title, body, deeplink, custom data).
+    /// </summary>
+    public class NoctuaNotificationPayload
+    {
+        /// <summary>Raw JSON string of the full push payload.</summary>
+        public string RawJson { get; private set; }
+
+        /// <summary>Top-level <c>aps</c> dictionary on iOS. <c>null</c> on Android.</summary>
+        public JObject Aps { get; private set; }
+
+        /// <summary>Custom fields outside the <c>aps</c>/<c>notification</c> envelope.</summary>
+        public JObject Custom { get; private set; }
+
+        /// <summary>Convenience: APS <c>alert.title</c> (iOS) or notification title (Android).</summary>
+        public string Title { get; private set; }
+
+        /// <summary>Convenience: APS <c>alert.body</c> (iOS) or notification body (Android).</summary>
+        public string Body { get; private set; }
+
+        /// <summary>
+        /// Convenience: reads a custom deeplink URL from the most common field names
+        /// (<c>deeplink</c>, <c>noctua_deeplink</c>, <c>route</c>). Empty string when absent.
+        /// Games that use a different field name should read <see cref="Custom"/> directly.
+        /// </summary>
+        public string Deeplink { get; private set; }
+
+        /// <summary>
+        /// Reads a custom string field by name. Returns empty string when missing.
+        /// </summary>
+        public string GetCustomString(string key)
+        {
+            if (Custom == null || !Custom.TryGetValue(key, out var token)) return string.Empty;
+            return token?.ToString() ?? string.Empty;
+        }
+
+        internal static NoctuaNotificationPayload FromJson(string json)
+        {
+            var payload = new NoctuaNotificationPayload { RawJson = json ?? "{}", Custom = new JObject() };
+            if (string.IsNullOrEmpty(json)) return payload;
+
+            try
+            {
+                var root = JObject.Parse(json);
+
+                // iOS: { "aps": {"alert": {"title":..., "body":...}, ...}, "deeplink": ... }
+                if (root["aps"] is JObject aps)
+                {
+                    payload.Aps = aps;
+                    if (aps["alert"] is JObject alert)
+                    {
+                        payload.Title = alert["title"]?.ToString() ?? string.Empty;
+                        payload.Body  = alert["body"]?.ToString()  ?? string.Empty;
+                    }
+                    else if (aps["alert"] is JValue alertString)
+                    {
+                        // iOS simple alert form: "aps": {"alert": "hello"}
+                        payload.Body = alertString.ToString();
+                    }
+                }
+
+                // Android FCM: { "notification": {"title":..., "body":...}, "data": {...} }
+                if (string.IsNullOrEmpty(payload.Title) && root["notification"] is JObject notif)
+                {
+                    payload.Title = notif["title"]?.ToString() ?? string.Empty;
+                    payload.Body  = notif["body"]?.ToString()  ?? string.Empty;
+                }
+
+                // Collect remaining top-level keys into Custom (excludes aps / notification envelopes).
+                foreach (var prop in root.Properties())
+                {
+                    if (prop.Name == "aps" || prop.Name == "notification") continue;
+                    payload.Custom[prop.Name] = prop.Value;
+                }
+
+                // Well-known deeplink fields — first non-empty match wins.
+                foreach (var key in new[] { "deeplink", "noctua_deeplink", "route", "link", "url" })
+                {
+                    var value = payload.GetCustomString(key);
+                    if (!string.IsNullOrEmpty(value)) { payload.Deeplink = value; break; }
+                }
+                payload.Deeplink ??= string.Empty;
+            }
+            catch (Exception)
+            {
+                // Malformed JSON — preserve RawJson for debugging; callers still get a valid object.
+            }
+
+            return payload;
+        }
+    }
+
     public partial class Noctua
     {
         /// <summary>
@@ -107,6 +204,88 @@ namespace com.noctuagames.sdk
         /// On Editor / unsupported platforms returns an empty string.
         /// </remarks>
         /// <returns>A task that resolves to the FCM token, or empty string when unavailable.</returns>
+        /// <summary>
+        /// Fires when a remote push notification arrives (foreground OR background).
+        /// The delivered <see cref="NoctuaNotificationPayload"/> exposes parsed
+        /// title/body + custom deeplink field + raw JSON. Subscribe once during SDK init.
+        /// </summary>
+        public static event Action<NoctuaNotificationPayload> OnRemoteNotificationReceived
+        {
+            add    => _pushHandlers.OnReceived += value;
+            remove => _pushHandlers.OnReceived -= value;
+        }
+
+        /// <summary>
+        /// Fires when the user taps a notification — primary deeplink hook. Inspect
+        /// <see cref="NoctuaNotificationPayload.Deeplink"/> or
+        /// <see cref="NoctuaNotificationPayload.GetCustomString(string)"/> to read the
+        /// game-specific route field and navigate to the matching scene.
+        /// </summary>
+        public static event Action<NoctuaNotificationPayload> OnNotificationTapped
+        {
+            add    => _pushHandlers.OnTapped += value;
+            remove => _pushHandlers.OnTapped -= value;
+        }
+
+        /// <summary>
+        /// Fires when Firebase Cloud Messaging rotates the FCM registration token
+        /// (reinstall, app-data clear, device restore, periodic refresh). Re-register
+        /// the new value with your backend push service.
+        /// </summary>
+        public static event Action<string> OnFirebaseMessagingTokenRefresh
+        {
+            add    => _pushHandlers.OnTokenRefresh += value;
+            remove => _pushHandlers.OnTokenRefresh -= value;
+        }
+
+        // Single shared handlers container so we register with the native plugin exactly once
+        // regardless of how many managed subscribers attach to the events above.
+        private static readonly PushHandlers _pushHandlers = new PushHandlers();
+
+        private class PushHandlers
+        {
+            private bool _registered;
+            public event Action<NoctuaNotificationPayload> OnReceived;
+            public event Action<NoctuaNotificationPayload> OnTapped;
+            public event Action<string>                    OnTokenRefresh;
+
+            public PushHandlers()
+            {
+                // Lazy-register on first subscriber attach via EnsureRegistered() — but we
+                // also support the pattern where Noctua.InitAsync() already completed and a
+                // subscriber attaches later. Hooking the native side eagerly at construction
+                // would force the static field to run before InitAsync — risky — so we defer.
+            }
+
+            private void EnsureRegistered()
+            {
+                if (_registered) return;
+                _registered = true;
+
+                try
+                {
+                    if (Instance.Value?._nativePlugin == null) { _registered = false; return; }
+
+                    Instance.Value._nativePlugin.SetRemoteNotificationReceivedHandler(json =>
+                        OnReceived?.Invoke(NoctuaNotificationPayload.FromJson(json)));
+                    Instance.Value._nativePlugin.SetNotificationTappedHandler(json =>
+                        OnTapped?.Invoke(NoctuaNotificationPayload.FromJson(json)));
+                    Instance.Value._nativePlugin.SetFirebaseMessagingTokenRefreshHandler(token =>
+                        OnTokenRefresh?.Invoke(token ?? string.Empty));
+                }
+                catch (Exception ex)
+                {
+                    Instance.Value?._log?.Warning($"PushHandlers registration failed: {ex.Message}");
+                    _registered = false;
+                }
+            }
+
+            public static void Poke(PushHandlers self) => self.EnsureRegistered();
+        }
+
+        /// <summary>Internal hook — call after InitAsync to register the native push bridges.</summary>
+        internal static void RegisterPushHandlers() => PushHandlers.Poke(_pushHandlers);
+
         public static Task<string> GetFirebaseMessagingToken()
         {
         #if UNITY_ANDROID || UNITY_IOS
