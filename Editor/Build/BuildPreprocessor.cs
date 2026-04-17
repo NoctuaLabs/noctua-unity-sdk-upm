@@ -24,6 +24,13 @@ public static class BuildPreprocessor
             ModifyMainTemplate(Directory.GetCurrentDirectory());
         }
 
+        // iOS: when com.unity.mobile.notifications is installed, bridge Noctua's
+        // CustomAppController parent class to LocalNotificationAppController so both
+        // Noctua's FCM wiring AND Unity's local-notification delivery stay active
+        // (avoids the sibling IMPL_APP_CONTROLLER_SUBCLASS conflict that would
+        // otherwise pick one controller arbitrarily and silently drop the other).
+        SyncLocalNotificationParentDefine();
+
         // Load iaaEnabled flag
         bool iaaEnabled = LoadIAAFlag();
 
@@ -233,6 +240,49 @@ public static class BuildPreprocessor
         }
 
         return new Version(7, 0); // Default to Gradle 7.0 if parsing fails
+    }
+
+    private const string LocalNotificationParentSymbol = "NOCTUA_USE_LOCAL_NOTIFICATION_PARENT";
+    private const string MobileNotificationsPackage    = "com.unity.mobile.notifications";
+
+    /// <summary>
+    /// Keeps the <c>NOCTUA_USE_LOCAL_NOTIFICATION_PARENT</c> iOS scripting define in sync with
+    /// the presence of <c>com.unity.mobile.notifications</c> in <c>Packages/manifest.json</c>.
+    /// When the package is installed, CustomAppController inherits from
+    /// <c>LocalNotificationAppController</c> (chained above Unity's local-notification handler)
+    /// instead of direct <c>UnityAppController</c>, preventing the sibling subclass conflict.
+    /// Runs on every editor load — idempotent, safe to re-run.
+    /// </summary>
+    private static void SyncLocalNotificationParentDefine()
+    {
+        try
+        {
+            var manifestPath = Path.Combine(Application.dataPath, "../Packages/manifest.json");
+            if (!File.Exists(manifestPath))
+            {
+                RemoveDefineSymbol(LocalNotificationParentSymbol, BuildTargetGroup.iOS);
+                return;
+            }
+
+            var manifestText = File.ReadAllText(manifestPath);
+            bool hasMobileNotifications = manifestText.Contains(MobileNotificationsPackage);
+
+            if (hasMobileNotifications)
+            {
+                AddDefineSymbol(LocalNotificationParentSymbol, BuildTargetGroup.iOS);
+                Debug.Log($"[BuildPreprocessor] {MobileNotificationsPackage} detected — " +
+                          $"added {LocalNotificationParentSymbol} to iOS defines so " +
+                          "CustomAppController bridges to LocalNotificationAppController.");
+            }
+            else
+            {
+                RemoveDefineSymbol(LocalNotificationParentSymbol, BuildTargetGroup.iOS);
+            }
+        }
+        catch (Exception e)
+        {
+            Debug.LogWarning($"[BuildPreprocessor] SyncLocalNotificationParentDefine failed: {e.Message}");
+        }
     }
 }
 

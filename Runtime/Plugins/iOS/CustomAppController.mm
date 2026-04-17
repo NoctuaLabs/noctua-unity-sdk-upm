@@ -28,8 +28,25 @@
 #import "UserNotifications/UserNotifications.h"
 #import "FirebaseCore.h"
 #import "FirebaseMessaging.h"
+#import <objc/runtime.h>
 
-@interface CustomAppController : UnityAppController <UNUserNotificationCenterDelegate, FIRMessagingDelegate>
+// Parent class selection:
+// - Default: UnityAppController (universally available — safe baseline).
+// - When com.unity.mobile.notifications is installed, Noctua's Unity Editor
+//   BuildPreprocessor auto-injects NOCTUA_USE_LOCAL_NOTIFICATION_PARENT=1 so
+//   CustomAppController inherits from LocalNotificationAppController instead.
+//   That keeps both Noctua's FCM wiring AND Unity's local-notification
+//   delivery running via standard ObjC super dispatch — no sibling
+//   IMPL_APP_CONTROLLER_SUBCLASS conflict.
+#if NOCTUA_USE_LOCAL_NOTIFICATION_PARENT
+@interface LocalNotificationAppController : UnityAppController
+@end
+#define NOCTUA_APP_CONTROLLER_PARENT LocalNotificationAppController
+#else
+#define NOCTUA_APP_CONTROLLER_PARENT UnityAppController
+#endif
+
+@interface CustomAppController : NOCTUA_APP_CONTROLLER_PARENT <UNUserNotificationCenterDelegate, FIRMessagingDelegate>
 @end
 
 @implementation CustomAppController
@@ -173,9 +190,72 @@ NSString *const kGCMMessageIDKey = @"gcm.message_id";
 // (or a deeper ancestor), the game's subclass wins and all logic above still
 // runs via normal Objective-C super dispatch. If a game ships a SIBLING
 // subclass (also direct child of UnityAppController), selection is
-// implementation-defined; those games should define
-// NOCTUA_DISABLE_CUSTOM_APP_CONTROLLER=1 and re-implement the APNs + FIRMessaging
-// wiring on their side.
+// implementation-defined; see the runtime sibling detector below — it logs a
+// clear warning so the issue isn't silent.
 IMPL_APP_CONTROLLER_SUBCLASS(CustomAppController)
+
+#pragma mark - Sibling-subclass conflict detector
+
+// Runs at image-load time (before main). Walks the ObjC class list and counts
+// every direct or indirect subclass of UnityAppController. If more than one
+// LEAF subclass is registered (i.e. multiple candidates that no one else
+// inherits from) we have a sibling IMPL_APP_CONTROLLER_SUBCLASS conflict —
+// Unity's selection becomes link-order dependent, one controller's logic
+// silently loses. Log a loud warning so the game dev notices and fixes it by
+// chaining the controllers (MyAppController : CustomAppController) or setting
+// NOCTUA_DISABLE_CUSTOM_APP_CONTROLLER=1.
+__attribute__((constructor))
+static void NoctuaDetectAppControllerConflicts(void) {
+    Class unityAppController = NSClassFromString(@"UnityAppController");
+    if (!unityAppController) return;
+
+    int numClasses = objc_getClassList(NULL, 0);
+    if (numClasses <= 0) return;
+
+    Class *classes = (Class *)malloc(sizeof(Class) * (size_t)numClasses);
+    numClasses = objc_getClassList(classes, numClasses);
+
+    NSMutableArray<NSString *> *leafCandidates = [NSMutableArray array];
+
+    // First pass: collect every subclass of UnityAppController.
+    NSMutableSet<Class> *subclasses = [NSMutableSet set];
+    for (int i = 0; i < numClasses; i++) {
+        Class cls = classes[i];
+        for (Class parent = class_getSuperclass(cls); parent; parent = class_getSuperclass(parent)) {
+            if (parent == unityAppController) { [subclasses addObject:cls]; break; }
+        }
+    }
+
+    // Second pass: keep only leaves (no other class in the set inherits from it).
+    for (Class cls in subclasses) {
+        BOOL isLeaf = YES;
+        for (Class other in subclasses) {
+            if (other == cls) continue;
+            if (class_getSuperclass(other) == cls) { isLeaf = NO; break; }
+        }
+        if (isLeaf) [leafCandidates addObject:NSStringFromClass(cls)];
+    }
+
+    free(classes);
+
+    if (leafCandidates.count > 1) {
+        NSLog(@"╔══════════════════════════════════════════════════════════════════════╗");
+        NSLog(@"║ [Noctua][CustomAppController] SIBLING SUBCLASS CONFLICT DETECTED    ║");
+        NSLog(@"║ Multiple UnityAppController subclasses are competing for selection: ║");
+        for (NSString *name in leafCandidates) {
+            NSLog(@"║   • %@", name);
+        }
+        NSLog(@"║ Unity picks one at link order — one controller's logic will NOT    ║");
+        NSLog(@"║ run (push notifications or local notifications may silently break).║");
+        NSLog(@"║ Resolution options:                                                 ║");
+        NSLog(@"║  1. Chain subclasses: MyAppController : CustomAppController         ║");
+        NSLog(@"║  2. Define NOCTUA_DISABLE_CUSTOM_APP_CONTROLLER=1 and implement     ║");
+        NSLog(@"║     APNs + FIRMessaging wiring inside your own controller.         ║");
+        NSLog(@"║ See docs/troubleshoot/app-controller-conflict for details.          ║");
+        NSLog(@"╚══════════════════════════════════════════════════════════════════════╝");
+    } else if (leafCandidates.count == 1) {
+        NSLog(@"[Noctua][CustomAppController] App controller selection healthy — active leaf: %@", leafCandidates.firstObject);
+    }
+}
 
 #endif // NOCTUA_DISABLE_CUSTOM_APP_CONTROLLER
