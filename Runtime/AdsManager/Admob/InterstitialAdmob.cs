@@ -16,6 +16,16 @@ namespace com.noctuagames.sdk.Admob
     {
         private readonly NoctuaLogger _log = new(typeof(InterstitialAdmob));
         private string _adUnitIDInterstitial;
+        // Placement captured on Show(placement). Forwarded to the canonical ad_impression /
+        // ad_shown / ad_clicked payloads so dashboards can segment by in-game placement.
+        private string _lastPlacement;
+
+        /// <summary>
+        /// Records the placement name to attach to subsequent canonical IAA events
+        /// (ad_shown, ad_impression, ad_clicked, ad_closed). Call immediately before
+        /// <see cref="ShowInterstitialAd"/>.
+        /// </summary>
+        public void SetPlacement(string placement) => _lastPlacement = placement;
 
         /// <summary>Raised when the interstitial ad is successfully displayed.</summary>
         public event Action InterstitialOnAdDisplayed;
@@ -221,17 +231,18 @@ namespace com.noctuagames.sdk.Admob
                 // AdValue.Value is reported in micros of the currency unit.
                 var valueMicros = _lastAdValue?.Value ?? 0L;
                 var value       = valueMicros / 1_000_000d;
-                // Treat as USD per AdMob dashboard reporting convention. If AdMob reports
-                // a non-USD currency the dashboard already converts; we record the raw value
-                // and the same amount in value_usd to keep parity with AppLovin (already USD).
-                var valueUsd    = value;
+                // value_usd only populated when AdMob reports USD. Otherwise 0 so the
+                // dashboard knows to apply FX conversion server-side instead of trusting
+                // a potentially wrong raw figure.
+                var currency    = _lastAdValue?.CurrencyCode;
+                var valueUsd    = currency == "USD" ? value : 0d;
 
                 var loadedAdapter = interstitialAd.GetResponseInfo()?.GetLoadedAdapterResponseInfo();
                 string adSource = null;
                 try { adSource = loadedAdapter?.AdSourceName; } catch {}
 
                 EmitCanonical(IAAEventNames.AdImpression, IAAPayloadBuilder.BuildAdImpression(
-                    placement:        null,
+                    placement:        _lastPlacement,
                     adType:           AdFormatKey.Interstitial,
                     adUnitId:         _adUnitIDInterstitial,
                     adUnitName:       _adUnitIDInterstitial,
@@ -258,7 +269,7 @@ namespace com.noctuagames.sdk.Admob
                 try { adSource = loadedAdapter?.AdSourceName; } catch {}
 
                 EmitCanonical(IAAEventNames.AdClicked, IAAPayloadBuilder.BuildAdClicked(
-                    placement:  null,
+                    placement:  _lastPlacement,
                     adType:     AdFormatKey.Interstitial,
                     adUnitId:   _adUnitIDInterstitial,
                     adUnitName: _adUnitIDInterstitial,
@@ -281,7 +292,7 @@ namespace com.noctuagames.sdk.Admob
                 try { adSource = loadedAdapter?.AdSourceName; } catch {}
 
                 EmitCanonical(IAAEventNames.AdShown, IAAPayloadBuilder.BuildAdLoaded(
-                    placement:  null,
+                    placement:  _lastPlacement,
                     adType:     AdFormatKey.Interstitial,
                     adUnitId:   _adUnitIDInterstitial,
                     adUnitName: _adUnitIDInterstitial,

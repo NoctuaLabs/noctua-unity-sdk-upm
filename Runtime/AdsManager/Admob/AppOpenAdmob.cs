@@ -17,6 +17,11 @@ namespace com.noctuagames.sdk.Admob
     {
         private readonly NoctuaLogger _log = new(typeof(AppOpenAdmob));
         private string _adUnitIDAppOpen;
+        // Placement captured on Show(placement). Forwarded to canonical IAA events.
+        private string _lastPlacement;
+
+        /// <summary>Records the placement name to attach to subsequent canonical IAA events.</summary>
+        public void SetPlacement(string placement) => _lastPlacement = placement;
         private AppOpenAd _legacyAppOpenAd;
         private AdValue _lastAdValue;
         private readonly Stopwatch _showStopwatch = new();
@@ -116,7 +121,7 @@ namespace com.noctuagames.sdk.Admob
                 try { adSource = loadedAdapter?.AdSourceName; } catch {}
 
                 EmitCanonical(IAAEventNames.AdLoaded, IAAPayloadBuilder.BuildAdLoaded(
-                    placement:  null,
+                    placement:  _lastPlacement,
                     adType:     AdFormatKey.AppOpen,
                     adUnitId:   _adUnitIDAppOpen,
                     adUnitName: _adUnitIDAppOpen,
@@ -251,14 +256,15 @@ namespace com.noctuagames.sdk.Admob
 
                 var valueMicros = _lastAdValue?.Value ?? 0L;
                 var value       = valueMicros / 1_000_000d;
-                var valueUsd    = value;
+                var currency    = _lastAdValue?.CurrencyCode;
+                var valueUsd    = currency == "USD" ? value : 0d;
 
                 var loadedAdapter = ad.GetResponseInfo()?.GetLoadedAdapterResponseInfo();
                 string adSource = null;
                 try { adSource = loadedAdapter?.AdSourceName; } catch {}
 
                 EmitCanonical(IAAEventNames.AdImpression, IAAPayloadBuilder.BuildAdImpression(
-                    placement:        null,
+                    placement:        _lastPlacement,
                     adType:           AdFormatKey.AppOpen,
                     adUnitId:         _adUnitIDAppOpen,
                     adUnitName:       _adUnitIDAppOpen,
@@ -283,7 +289,7 @@ namespace com.noctuagames.sdk.Admob
                 try { adSource = loadedAdapter?.AdSourceName; } catch {}
 
                 EmitCanonical(IAAEventNames.AdClicked, IAAPayloadBuilder.BuildAdClicked(
-                    placement:  null,
+                    placement:  _lastPlacement,
                     adType:     AdFormatKey.AppOpen,
                     adUnitId:   _adUnitIDAppOpen,
                     adUnitName: _adUnitIDAppOpen,
@@ -305,7 +311,7 @@ namespace com.noctuagames.sdk.Admob
                 try { adSource = loadedAdapter?.AdSourceName; } catch {}
 
                 EmitCanonical(IAAEventNames.AdShown, IAAPayloadBuilder.BuildAdLoaded(
-                    placement:  null,
+                    placement:  _lastPlacement,
                     adType:     AdFormatKey.AppOpen,
                     adUnitId:   _adUnitIDAppOpen,
                     adUnitName: _adUnitIDAppOpen,

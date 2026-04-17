@@ -236,6 +236,13 @@ namespace com.noctuagames.sdk
         }
 
         /// <inheritdoc />
+        public void ShowInterstitial(string placement)
+        {
+            _interstitialAdmob.SetPlacement(placement);
+            _interstitialAdmob.ShowInterstitialAd();
+        }
+
+        /// <inheritdoc />
         public void SetRewardedAdUnitID(string adUnitID)
         {
             _rewardedAdmob.SetRewardedAdUnitID(adUnitID);
@@ -268,6 +275,13 @@ namespace com.noctuagames.sdk
         /// <inheritdoc />
         public void ShowRewardedAd()
         {
+            _rewardedAdmob.ShowRewardedAd();
+        }
+
+        /// <inheritdoc />
+        public void ShowRewardedAd(string placement)
+        {
+            _rewardedAdmob.SetPlacement(placement);
             _rewardedAdmob.ShowRewardedAd();
         }
 
@@ -317,6 +331,12 @@ namespace com.noctuagames.sdk
         }
 
         /// <inheritdoc />
+        public void SetBannerPlacement(string placement)
+        {
+            _bannerAdmob.SetPlacement(placement);
+        }
+
+        /// <inheritdoc />
         public void HideBannerAd()
         {
             // BannerAdmob.HideBanner() is internally null-safe.
@@ -359,6 +379,13 @@ namespace com.noctuagames.sdk
         }
 
         /// <inheritdoc />
+        public void ShowRewardedInterstitialAd(string placement)
+        {
+            _rewardedInterstitialAdmob.SetPlacement(placement);
+            _rewardedInterstitialAdmob.ShowRewardedInterstitialAd();
+        }
+
+        /// <inheritdoc />
         public void SetAppOpenAdUnitID(string adUnitID)
         {
             _appOpenAdmob.SetAppOpenAdUnitID(adUnitID);
@@ -391,6 +418,13 @@ namespace com.noctuagames.sdk
         public void ShowAppOpenAd()
         {
             // AppOpenAdmob.ShowAppOpenAd() polls from AdmobAdPreloadManager internally.
+            _appOpenAdmob.ShowAppOpenAd();
+        }
+
+        /// <inheritdoc />
+        public void ShowAppOpenAd(string placement)
+        {
+            _appOpenAdmob.SetPlacement(placement);
             _appOpenAdmob.ShowAppOpenAd();
         }
 

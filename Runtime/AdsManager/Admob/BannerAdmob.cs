@@ -40,6 +40,11 @@ namespace com.noctuagames.sdk.Admob
         private bool _bannerEventsRegistered;
         // Cached AdValue from OnAdPaid for canonical ad_impression payload.
         private AdValue _lastAdValue;
+        // Placement captured via SetPlacement. Forwarded to canonical IAA events.
+        private string _lastPlacement;
+
+        /// <summary>Records the placement name to attach to subsequent canonical IAA events.</summary>
+        public void SetPlacement(string placement) => _lastPlacement = placement;
 
         /// <summary>
         /// Sets the ad unit ID for the banner ad.
@@ -140,7 +145,7 @@ namespace com.noctuagames.sdk.Admob
                 try { adSource = loadedAdapter?.AdSourceName; } catch {}
 
                 EmitCanonical(IAAEventNames.AdLoaded, IAAPayloadBuilder.BuildAdLoaded(
-                    placement:  null,
+                    placement:  _lastPlacement,
                     adType:     AdFormatKey.Banner,
                     adUnitId:   _adUnitIdBanner,
                     adUnitName: _adUnitIdBanner,
@@ -152,7 +157,7 @@ namespace com.noctuagames.sdk.Admob
                 // Banner has no native display callback in AdMob — emit ad_shown here so
                 // analytics parity with AppLovin / Interstitial / Rewarded is maintained.
                 EmitCanonical(IAAEventNames.AdShown, IAAPayloadBuilder.BuildAdLoaded(
-                    placement:  null,
+                    placement:  _lastPlacement,
                     adType:     AdFormatKey.Banner,
                     adUnitId:   _adUnitIdBanner,
                     adUnitName: _adUnitIdBanner,
@@ -235,16 +240,15 @@ namespace com.noctuagames.sdk.Admob
 
                 var valueMicros = _lastAdValue?.Value ?? 0L;
                 var value       = valueMicros / 1_000_000d;
-                var valueUsd    = value;
+                var currency    = _lastAdValue?.CurrencyCode;
+                var valueUsd    = currency == "USD" ? value : 0d;
 
                 var loadedAdapter = _bannerView?.GetResponseInfo()?.GetLoadedAdapterResponseInfo();
                 string adSource = null;
-                long latency = 0;
                 try { adSource = loadedAdapter?.AdSourceName; } catch {}
-                try { latency = loadedAdapter?.LatencyMillis ?? 0; } catch {}
 
                 EmitCanonical(IAAEventNames.AdImpression, IAAPayloadBuilder.BuildAdImpression(
-                    placement:        null,
+                    placement:        _lastPlacement,
                     adType:           AdFormatKey.Banner,
                     adUnitId:         _adUnitIdBanner,
                     adUnitName:       _adUnitIdBanner,
@@ -253,7 +257,9 @@ namespace com.noctuagames.sdk.Admob
                     adSize:           IAAAdSize.Banner320,
                     adSource:         adSource,
                     adPlatform:       AdNetworkName.Admob,
-                    engagementTimeMs: latency
+                    // Banner has no close event → engagement time per impression is not meaningful.
+                    // Send 0 rather than load-latency (which was semantically incorrect).
+                    engagementTimeMs: 0
                 ));
 
                 // Keep legacy banner-specific impression marker for one release.
@@ -271,7 +277,7 @@ namespace com.noctuagames.sdk.Admob
                 try { adSource = loadedAdapter?.AdSourceName; } catch {}
 
                 EmitCanonical(IAAEventNames.AdClicked, IAAPayloadBuilder.BuildAdClicked(
-                    placement:  null,
+                    placement:  _lastPlacement,
                     adType:     AdFormatKey.Banner,
                     adUnitId:   _adUnitIdBanner,
                     adUnitName: _adUnitIdBanner,
@@ -290,7 +296,7 @@ namespace com.noctuagames.sdk.Admob
                 _log.Debug("Banner view full screen content opened.");
 
                 EmitCanonical(IAAEventNames.AdExpanded, IAAPayloadBuilder.BuildAdLoaded(
-                    placement:  null,
+                    placement:  _lastPlacement,
                     adType:     AdFormatKey.Banner,
                     adUnitId:   _adUnitIdBanner,
                     adUnitName: _adUnitIdBanner,
@@ -307,7 +313,7 @@ namespace com.noctuagames.sdk.Admob
                 _log.Debug("Banner view full screen content closed.");
 
                 EmitCanonical(IAAEventNames.AdCollapsed, IAAPayloadBuilder.BuildAdLoaded(
-                    placement:  null,
+                    placement:  _lastPlacement,
                     adType:     AdFormatKey.Banner,
                     adUnitId:   _adUnitIdBanner,
                     adUnitName: _adUnitIdBanner,
