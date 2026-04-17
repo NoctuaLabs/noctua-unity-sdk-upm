@@ -267,7 +267,9 @@ namespace com.noctuagames.sdk
 
             // Install the watch-count milestone tracker. Mediations call
             // AdWatchMilestoneTracker.Default.RecordWatch(adType) on rewarded reward / interstitial close.
-            new AdWatchMilestoneTracker((eventName, payload) => _eventSender.Send(eventName, payload))
+            // Route through NoctuaEventService.TrackCustomEvent so milestones reach Noctua Analytics
+            // AND third-party trackers (Adjust / Firebase / Facebook) via the unified dispatch path.
+            new AdWatchMilestoneTracker((eventName, payload) => _event.TrackCustomEvent(eventName, payload))
                 .InstallAsDefault();
             _eventSender.SetProperties(isSandbox: _config.Noctua.IsSandbox, gameId: _config.GameID);
             _isOfflineFirst = _config.Noctua.IsOfflineFirst;
