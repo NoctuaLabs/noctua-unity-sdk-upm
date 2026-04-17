@@ -897,6 +897,54 @@ namespace com.noctuagames.sdk
                 { "cost_currency", attribution.CostCurrency ?? "" },
                 { "fb_install_referrer", attribution.FbInstallReferrer ?? "" }
             });
+
+            // Sandbox-only convenience: log the FCM token to Unity console so QA can copy it
+            // for backend push testing without writing extra game code. Production builds
+            // (isSandbox = false) skip this — prevents accidental token leakage in release
+            // logs that could be scraped by third-party log collectors.
+            if (Instance.Value._config?.Noctua?.IsSandbox == true)
+            {
+                LogFirebaseMessagingTokenForSandbox().Forget();
+            }
+        }
+
+        /// <summary>
+        /// Fires inside a short retry loop after init completes on sandbox builds. The iOS
+        /// APNs ↔ FCM handshake typically finishes within a few seconds of init when the
+        /// user has previously granted notification permission; on Android the token is
+        /// usually available immediately. The loop caps at ~12 s (6 attempts × 2 s) so a
+        /// permanently-unavailable token never becomes a long-lived background task.
+        /// </summary>
+        private static async UniTaskVoid LogFirebaseMessagingTokenForSandbox()
+        {
+            var log = Instance.Value._log;
+            const int maxAttempts = 6;
+            const int retryDelayMs = 2000;
+
+            for (int attempt = 1; attempt <= maxAttempts; attempt++)
+            {
+                try
+                {
+                    var token = await GetFirebaseMessagingToken();
+                    if (!string.IsNullOrEmpty(token))
+                    {
+                        log.Info($"[sandbox] FCM token: {token}");
+                        return;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    log.Warning($"[sandbox] FCM token fetch attempt {attempt} failed: {ex.Message}");
+                }
+
+                if (attempt < maxAttempts)
+                {
+                    await UniTask.Delay(retryDelayMs);
+                }
+            }
+
+            log.Warning("[sandbox] FCM token still unavailable after retries — " +
+                        "check notification permission grant, APNs entitlement, or Firebase Messaging library link.");
         }
 
         /// <summary>
