@@ -33,6 +33,15 @@ namespace com.noctuagames.sdk
         private bool _isFullscreenAdShowing;
         private bool _appOpenAdUnitConfigured;
 
+        // Timestamp (seconds since app start) of the most recent fullscreen-ad close
+        // (interstitial / rewarded / rewarded interstitial). Blocks app-open auto-show
+        // for <see cref="FullscreenCloseGraceSeconds"/> after close — prevents the race
+        // where Unity's OnApplicationPause(false) fires AFTER OnAdClosed has already
+        // cleared _isFullscreenAdShowing, causing app-open to pop immediately after
+        // every rewarded / interstitial ad.
+        private float _lastFullscreenClosedAtRealtime = -1f;
+        private const float FullscreenCloseGraceSeconds = 3f;
+
         /// <summary>
         /// Creates a new AppOpenAdManager.
         /// </summary>
@@ -119,6 +128,13 @@ namespace com.noctuagames.sdk
                 return;
             }
 
+            if (IsInFullscreenCloseGrace())
+            {
+                _log.Info($"Fullscreen ad closed < {FullscreenCloseGraceSeconds}s ago. " +
+                          "Skipping app-open auto-show to avoid stacking on top of a just-closed rewarded/interstitial.");
+                return;
+            }
+
             if (!IsReadyToShow())
             {
                 _log.Debug("App open ad is not ready to show (cooldown, frequency cap, or no inventory).");
@@ -136,6 +152,21 @@ namespace com.noctuagames.sdk
         /// </summary>
         public void ShowAppOpenAd()
         {
+            if (_isFullscreenAdShowing)
+            {
+                _log.Info("Another fullscreen ad is currently showing. Skipping app open ad.");
+                _onAdNotAvailable?.Invoke(AdFormatKey.AppOpen);
+                return;
+            }
+
+            if (IsInFullscreenCloseGrace())
+            {
+                _log.Info($"Fullscreen ad closed < {FullscreenCloseGraceSeconds}s ago. " +
+                          "Skipping app-open show to avoid stacking on a just-closed rewarded/interstitial.");
+                _onAdNotAvailable?.Invoke(AdFormatKey.AppOpen);
+                return;
+            }
+
             if (_frequencyManager != null && !_frequencyManager.CanShowAd(AdFormatKey.AppOpen))
             {
                 _log.Info("App open ad blocked by frequency/cooldown manager.");
@@ -231,6 +262,25 @@ namespace com.noctuagames.sdk
         public void SetFullscreenAdShowing(bool isShowing)
         {
             _isFullscreenAdShowing = isShowing;
+            if (!isShowing)
+            {
+                // Capture close time so OnApplicationForeground / ShowAppOpenAd can block
+                // the auto-pop race for a short grace window.
+                _lastFullscreenClosedAtRealtime = Time.realtimeSinceStartup;
+            }
+        }
+
+        /// <summary>
+        /// Returns true when a fullscreen ad closed less than
+        /// <see cref="FullscreenCloseGraceSeconds"/> ago. Used to block the race where
+        /// Unity's OnApplicationPause(false) fires after OnAdClosed has already cleared
+        /// <see cref="_isFullscreenAdShowing"/>, causing app-open to pop instantly after
+        /// every rewarded / interstitial.
+        /// </summary>
+        private bool IsInFullscreenCloseGrace()
+        {
+            if (_lastFullscreenClosedAtRealtime < 0f) return false;
+            return Time.realtimeSinceStartup - _lastFullscreenClosedAtRealtime < FullscreenCloseGraceSeconds;
         }
 
         // ─────────────────────────────────────────────────────────
