@@ -311,17 +311,23 @@ using UnityEditor.Graphs;
                 return;
             }
 
+            var projPath = Path.Combine(pathToBuiltProject, "Unity-iPhone.xcodeproj/project.pbxproj");
+
             // Skip when Podfile uses dynamic linkage — CocoaPods' [CP] Embed Pods Frameworks
             // phase already embeds dynamic XCFrameworks. Re-embedding causes duplicate build
             // commands and "Multiple commands produce" errors.
+            //
+            // Additionally, run a self-healing cleanup: on upgrade from older SDK versions that
+            // unconditionally embedded Pods/*.xcframework entries, the stale PBX file references
+            // persist in Unity-iPhone.xcodeproj from previous Append builds. Remove them so the
+            // next build is clean without requiring a fresh Replace export.
             if (!IsPodfileStaticLinkage(pathToBuiltProject))
             {
                 Log("Podfile uses dynamic linkage — CocoaPods handles embedding; skipping " +
                     "EmbedDynamicPodsFrameworks to avoid duplicate framework embeds.");
+                CleanupStalePodsXcframeworkEmbeds(pathToBuiltProject, projPath);
                 return;
             }
-
-            var projPath = Path.Combine(pathToBuiltProject, "Unity-iPhone.xcodeproj/project.pbxproj");
             var proj = new PBXProject();
             proj.ReadFromString(File.ReadAllText(projPath));
             var targetGuid = proj.GetUnityMainTargetGuid();
@@ -359,6 +365,59 @@ using UnityEditor.Graphs;
 
             if (changed)
                 File.WriteAllText(projPath, proj.WriteToString());
+        }
+
+        /// <summary>
+        /// Removes stale <c>Pods/*.xcframework</c> entries previously added to
+        /// <c>Unity-iPhone</c>'s project by older SDK versions that embedded Pods frameworks
+        /// unconditionally. With dynamic Podfile linkage, CocoaPods embeds these frameworks
+        /// via the <c>[CP] Embed Pods Frameworks</c> script phase, so the Pbx-level entries
+        /// are redundant and cause "Multiple commands produce" collisions.
+        ///
+        /// <see cref="PBXProject.RemoveFile"/> cleans the file reference and its entries in
+        /// every build phase, including Embed Frameworks. CocoaPods' script phase is unaffected
+        /// because it embeds via its own <c>Pods-*-frameworks.sh</c>, not via PBX file refs.
+        /// </summary>
+        private static void CleanupStalePodsXcframeworkEmbeds(string pathToBuiltProject, string projPath)
+        {
+            if (!File.Exists(projPath)) return;
+
+            try
+            {
+                var proj = new PBXProject();
+                proj.ReadFromString(File.ReadAllText(projPath));
+
+                var podsDir = Path.Combine(pathToBuiltProject, "Pods");
+                if (!Directory.Exists(podsDir)) return;
+
+                var removed = 0;
+
+                foreach (var xcfwAbsPath in Directory.EnumerateDirectories(
+                             podsDir, "*.xcframework", SearchOption.AllDirectories))
+                {
+                    var relPath = xcfwAbsPath
+                        .Substring(pathToBuiltProject.Length)
+                        .TrimStart(Path.DirectorySeparatorChar, '/');
+
+                    var fileGuid = proj.FindFileGuidByProjectPath(relPath);
+                    if (string.IsNullOrEmpty(fileGuid)) continue;
+
+                    proj.RemoveFile(fileGuid);
+                    Log($"Cleanup: removed stale Pods xcframework entry '{Path.GetFileName(xcfwAbsPath)}' " +
+                        "from Unity-iPhone (CocoaPods embeds it via [CP] Embed Pods Frameworks).");
+                    removed++;
+                }
+
+                if (removed > 0)
+                {
+                    File.WriteAllText(projPath, proj.WriteToString());
+                    Log($"Cleanup: removed {removed} stale Pods xcframework embed entries from Unity-iPhone.");
+                }
+            }
+            catch (Exception e)
+            {
+                LogWarning($"Cleanup of stale Pods xcframework embeds failed: {e.Message}");
+            }
         }
 
         /// <summary>
