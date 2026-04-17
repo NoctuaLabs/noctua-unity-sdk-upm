@@ -228,12 +228,17 @@ namespace com.noctuagames.sdk
             {
                 _bannerEventsSubscribed = true;
 
-                // Subscribe to events (only once)
-                _bannerAppLovin.BannerOnAdDisplayed += () => { _onAdDisplayed?.Invoke(); };
+                // Subscribe to events (only once).
+                // Banner's Displayed/Closed intentionally NOT forwarded to the shared
+                // _onAdDisplayed / _onAdClosed channels — banner is non-fullscreen and fires
+                // Displayed on every auto-refresh / load. Routing through shared channels
+                // would toggle MediationManager._isFullscreenAdShowing on every banner refresh,
+                // incorrectly blocking app-open auto-show and polluting the fullscreen-close
+                // grace window used to prevent rewarded→app-open races. See AdmobManager for
+                // matching fix.
                 _bannerAppLovin.BannerOnAdFailedDisplayed += () => { _onAdFailedDisplayed?.Invoke(); };
                 _bannerAppLovin.BannerOnAdClicked += () => { _onAdClicked?.Invoke(); };
                 _bannerAppLovin.BannerOnAdImpressionRecorded += () => { _onAdImpressionRecorded?.Invoke(); };
-                _bannerAppLovin.BannerOnAdClosed += () => { _onAdClosed?.Invoke(); };
                 _bannerAppLovin.BannerOnAdRevenuePaid += (adInfo) => { _appLovinOnAdRevenuePaid?.Invoke(adInfo); };
             }
         }
