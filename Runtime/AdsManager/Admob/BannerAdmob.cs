@@ -388,22 +388,27 @@ namespace com.noctuagames.sdk.Admob
                             try { latencyMillis = loadedAdapterResponseInfo.LatencyMillis; } catch {}
 
                             payload["ad_network"] = adSourceName;
+
+                            payload["ad_source"] = payload["ad_network"];
                             payload["ntw"] = adapterClassName;
                             payload["latency_millis"] = latencyMillis;
                         }
                         else
                         {
                             payload["ad_network"] = "unknown";
+                            payload["ad_source"] = payload["ad_network"];
                         }
                     }
                     else
                     {
                         payload["ad_network"] = "unknown";
+                        payload["ad_source"] = payload["ad_network"];
                     }
                 }
                 else
                 {
                     payload["ad_network"] = "unknown";
+                    payload["ad_source"] = payload["ad_network"];
                     payload["ad_unit_id"] = _adUnitIdBanner ?? "unknown";
                 }
 

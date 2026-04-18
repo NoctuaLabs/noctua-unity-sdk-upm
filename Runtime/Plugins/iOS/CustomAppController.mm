@@ -22,6 +22,60 @@
 // the FIRMessaging delegate BEFORE calling [super didFinishLaunching...]
 // and called registerForRemoteNotifications synchronously (before the
 // user granted permission) — both are races. This file corrects both.
+
+// ─── C-bridge symbols are ALWAYS compiled ──────────────────────────────
+// IosPlugin.cs P/Invokes the three noctuaSet*Callback entry points below
+// regardless of whether the game opts out. If we guarded them with
+// NOCTUA_DISABLE_CUSTOM_APP_CONTROLLER the opt-out path would strip the
+// symbols and cause a linker / dyld failure the moment Unity tries to
+// resolve them. The setters are harmless when the opt-out is active:
+// the callback pointers remain NULL, no ObjC delegate code runs, and
+// any buffered payload simply never arrives (as expected — the game
+// has taken responsibility for its own push wiring).
+#import <Foundation/Foundation.h>
+
+typedef void (*NoctuaPushStringCallback)(const char* json);
+static NoctuaPushStringCallback _noctuaOnRemoteNotificationReceived = NULL;
+static NoctuaPushStringCallback _noctuaOnNotificationTapped         = NULL;
+static NoctuaPushStringCallback _noctuaOnFcmTokenRefresh            = NULL;
+
+static NSString *_bufferedTappedJson   = nil;
+static NSString *_bufferedReceivedJson = nil;
+static NSString *_bufferedFcmToken     = nil;
+
+void noctuaSetRemoteNotificationCallback(NoctuaPushStringCallback cb) {
+    _noctuaOnRemoteNotificationReceived = cb;
+    if (cb != NULL && _bufferedReceivedJson != nil) {
+        cb([_bufferedReceivedJson UTF8String]);
+        _bufferedReceivedJson = nil;
+    }
+}
+void noctuaSetNotificationTappedCallback(NoctuaPushStringCallback cb) {
+    _noctuaOnNotificationTapped = cb;
+    if (cb != NULL && _bufferedTappedJson != nil) {
+        cb([_bufferedTappedJson UTF8String]);
+        _bufferedTappedJson = nil;
+    }
+}
+void noctuaSetFcmTokenRefreshCallback(NoctuaPushStringCallback cb) {
+    _noctuaOnFcmTokenRefresh = cb;
+    if (cb != NULL && _bufferedFcmToken != nil) {
+        cb([_bufferedFcmToken UTF8String]);
+        _bufferedFcmToken = nil;
+    }
+}
+
+static NSString* NoctuaPayloadToJson(NSDictionary *userInfo) {
+    if (userInfo == nil) return @"{}";
+    NSError *err = nil;
+    NSData *data = [NSJSONSerialization dataWithJSONObject:userInfo options:0 error:&err];
+    if (err != nil || data == nil) {
+        NSLog(@"[Noctua][CustomAppController] Failed to serialize push payload to JSON: %@", err);
+        return @"{}";
+    }
+    return [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding];
+}
+
 #ifndef NOCTUA_DISABLE_CUSTOM_APP_CONTROLLER
 
 #import "UnityAppController.h"
@@ -53,59 +107,6 @@
 // forward to managed code without linking against Unity internals. Payloads are
 // marshalled as JSON strings because NSDictionary → Unity marshalling via P/Invoke
 // is fragile; Unity deserialises with Newtonsoft.Json on the managed side.
-typedef void (*NoctuaPushStringCallback)(const char* json);
-static NoctuaPushStringCallback _noctuaOnRemoteNotificationReceived = NULL;
-static NoctuaPushStringCallback _noctuaOnNotificationTapped         = NULL;
-static NoctuaPushStringCallback _noctuaOnFcmTokenRefresh            = NULL;
-
-// Cold-start buffers: iOS delivers the 'user tapped a notification to launch the app'
-// payload to the delegate during didFinishLaunching — BEFORE Unity finishes booting and
-// Noctua.InitAsync registers the managed handler. Buffer the most recent payload so we
-// can flush it the instant Unity wires up the callback.
-static NSString *_bufferedTappedJson   = nil;
-static NSString *_bufferedReceivedJson = nil;
-static NSString *_bufferedFcmToken     = nil;
-
-// Exposed C entry points — called by Unity at startup after init. Flush any buffered
-// cold-start payload the instant the handler is attached so the game sees the tap
-// that launched the app.
-void noctuaSetRemoteNotificationCallback(NoctuaPushStringCallback cb) {
-    _noctuaOnRemoteNotificationReceived = cb;
-    if (cb != NULL && _bufferedReceivedJson != nil) {
-        cb([_bufferedReceivedJson UTF8String]);
-        _bufferedReceivedJson = nil;
-    }
-}
-void noctuaSetNotificationTappedCallback(NoctuaPushStringCallback cb) {
-    _noctuaOnNotificationTapped = cb;
-    if (cb != NULL && _bufferedTappedJson != nil) {
-        cb([_bufferedTappedJson UTF8String]);
-        _bufferedTappedJson = nil;
-    }
-}
-void noctuaSetFcmTokenRefreshCallback(NoctuaPushStringCallback cb) {
-    _noctuaOnFcmTokenRefresh = cb;
-    if (cb != NULL && _bufferedFcmToken != nil) {
-        cb([_bufferedFcmToken UTF8String]);
-        _bufferedFcmToken = nil;
-    }
-}
-
-// Converts an NSDictionary userInfo payload into a UTF-8 JSON string the managed
-// side can parse. Returns nil on serialization failure. Caller retains ownership
-// of the NSString (autorelease pool). The C string returned via UTF8String is
-// valid for the duration of the block.
-static NSString* NoctuaPayloadToJson(NSDictionary *userInfo) {
-    if (userInfo == nil) return @"{}";
-    NSError *err = nil;
-    NSData *data = [NSJSONSerialization dataWithJSONObject:userInfo options:0 error:&err];
-    if (err != nil || data == nil) {
-        NSLog(@"[Noctua][CustomAppController] Failed to serialize push payload to JSON: %@", err);
-        return @"{}";
-    }
-    return [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding];
-}
-
 @implementation CustomAppController
 
 NSString *const kGCMMessageIDKey = @"gcm.message_id";

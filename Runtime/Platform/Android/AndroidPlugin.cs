@@ -399,6 +399,50 @@ namespace com.noctuagames.sdk
         }
 
         /// <inheritdoc />
+        /// <remarks>
+        /// Remote-message + tap callbacks on Android require a native
+        /// <c>FirebaseMessagingService</c> subclass in the Noctua Android SDK. That work
+        /// is scheduled for a forthcoming native release; until then the three setters
+        /// below accept the managed handler (no crash) but no events will fire on
+        /// Android. Subscribers still get token-refresh events, since the token path
+        /// uses <c>FirebaseMessaging.getToken()</c> directly (see
+        /// <see cref="GetFirebaseMessagingToken"/>).
+        /// </remarks>
+        public void SetRemoteNotificationReceivedHandler(Action<string> handler)
+        {
+            if (handler != null)
+            {
+                _log.Warning("[Noctua] OnRemoteNotificationReceived subscribed on Android — this " +
+                             "callback is not yet wired on the native Android side and will never fire. " +
+                             "Use GetFirebaseMessagingToken() for token registration; tap + receive " +
+                             "callbacks are iOS-only until the next native Android SDK release.");
+            }
+        }
+
+        /// <inheritdoc />
+        public void SetNotificationTappedHandler(Action<string> handler)
+        {
+            if (handler != null)
+            {
+                _log.Warning("[Noctua] OnNotificationTapped subscribed on Android — this callback " +
+                             "is not yet wired on the native Android side and will never fire. " +
+                             "Use an Android intent deeplink (activity launchMode=singleTask + " +
+                             "Intent.getData()) in your native Activity for cold-start taps until " +
+                             "the next native Android SDK release.");
+            }
+        }
+
+        /// <inheritdoc />
+        public void SetFirebaseMessagingTokenRefreshHandler(Action<string> handler)
+        {
+            // Android token refresh relies on FirebaseMessagingService.onNewToken in the
+            // native SDK. Until that bridges to Unity, subscribers will only see the
+            // current-token value from GetFirebaseMessagingToken() — not proactive
+            // refresh notifications. No loud warning here because the common usage
+            // (fetch once on init + re-fetch periodically) still works.
+        }
+
+        /// <inheritdoc />
         public void GetFirebaseMessagingToken(Action<string> callback)
         {
             // Directly call FirebaseMessaging.getInstance().getToken() via JNI instead of

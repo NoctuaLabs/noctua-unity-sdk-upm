@@ -394,6 +394,7 @@ namespace com.noctuagames.sdk.Admob
                 // We do not hold a reference to the current ad instance outside Show() to avoid
                 // keeping a polled (consumed) ad alive beyond its show window.
                 payload["ad_network"] = "unknown";
+                payload["ad_source"] = payload["ad_network"];
 
                 Noctua.Event.TrackCustomEvent(eventName, payload);
             }
