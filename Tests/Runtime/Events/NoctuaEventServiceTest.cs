@@ -1,9 +1,12 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using com.noctuagames.sdk;
 using com.noctuagames.sdk.Events;
+using Cysharp.Threading.Tasks;
 using NUnit.Framework;
+using UnityEngine.TestTools;
 
 namespace Tests.Runtime.Events
 {
@@ -299,6 +302,36 @@ namespace Tests.Runtime.Events
         }
 
         [Test]
+        public void SetProperties_MultipleCalls_BothPropertiesAccumulate()
+        {
+            var svc = new NoctuaEventService(_nativeTracker, _eventSender);
+            svc.SetProperties(country: "ID");
+            svc.SetProperties(ipAddress: "1.2.3.4");
+
+            svc.TrackCustomEvent("test_event");
+
+            var evt = _eventSender.GetEvents("test_event").First();
+            Assert.AreEqual("ID",      evt["country"],    "country set in first call should persist");
+            Assert.AreEqual("1.2.3.4", evt["ip_address"], "ip_address set in second call should also appear");
+        }
+
+        [UnityTest]
+        public IEnumerator SetCurrentFeature_AfterDelay_FeatureTimeMsecIsPositive() => UniTask.ToCoroutine(async () =>
+        {
+            var svc = new NoctuaEventService(_nativeTracker, _eventSender);
+            svc.SetCurrentFeature("lobby");
+
+            await UniTask.Delay(150);
+
+            svc.SetCurrentFeature("battle");
+
+            var evt = _eventSender.GetEvents("feature_engagement").First();
+            var timeMsec = Convert.ToInt64(evt["feature_time_msec"]);
+            Assert.GreaterOrEqual(timeMsec, 100L,
+                "feature_time_msec should be at least 100ms when leaving a feature after a delay");
+        });
+
+        [Test]
         public void SetCurrentFeature_ClearWithEmpty_StopsTracking()
         {
             var svc = new NoctuaEventService(_nativeTracker, _eventSender);
@@ -314,6 +347,19 @@ namespace Tests.Runtime.Events
             svc.SetCurrentFeature("home");
             Assert.IsFalse(_eventSender.HasEvent("feature_engagement"),
                 "No feature_engagement should fire for empty → next feature transition");
+        }
+
+        [Test]
+        public void SetCurrentFeature_DoubleClear_DoesNotThrow()
+        {
+            var svc = new NoctuaEventService(_nativeTracker, _eventSender);
+            svc.SetCurrentFeature("store");
+            svc.SetCurrentFeature(""); // first clear — fires feature_engagement for "store"
+
+            _eventSender.Clear();
+            Assert.DoesNotThrow(() => svc.SetCurrentFeature(""), "Second clear on empty feature must not throw");
+            Assert.IsFalse(_eventSender.HasEvent("feature_engagement"),
+                "No feature_engagement should fire for empty → empty transition");
         }
     }
 

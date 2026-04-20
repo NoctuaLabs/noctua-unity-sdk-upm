@@ -99,7 +99,7 @@ namespace com.noctuagames.sdk
     /// form-encoded, and raw binary request bodies. Responses are deserialized from a
     /// <c>{"data": ...}</c> JSON wrapper.
     /// </summary>
-    internal class HttpRequest : IDisposable
+    public class HttpRequest : IDisposable
     {
         private static ILocaleProvider _localeProvider;
 
@@ -108,7 +108,7 @@ namespace com.noctuagames.sdk
         /// to populate locale-related headers (language, country, currency).
         /// </summary>
         /// <param name="provider">The locale provider to inject.</param>
-        internal static void SetLocaleProvider(ILocaleProvider provider) => _localeProvider = provider;
+        public static void SetLocaleProvider(ILocaleProvider provider) => _localeProvider = provider;
 
         private readonly NoctuaLogger _log = new(typeof(HttpRequest));
         private readonly UnityWebRequest _request = new();
@@ -131,7 +131,7 @@ namespace com.noctuagames.sdk
         /// </summary>
         /// <param name="method">The HTTP method (GET, POST, PUT, DELETE, PATCH).</param>
         /// <param name="url">The full request URL.</param>
-        internal HttpRequest(HttpMethod method, string url)
+        public HttpRequest(HttpMethod method, string url)
         {
             _jsonSettings.Converters.Add(new StringEnumConverter());
             _request.method = method.ToString().ToUpper();

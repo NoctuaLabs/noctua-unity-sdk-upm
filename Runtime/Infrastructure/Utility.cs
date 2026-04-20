@@ -245,7 +245,7 @@ namespace com.noctuagames.sdk
         /// Applies localized translations to the static validation error message strings.
         /// </summary>
         /// <param name="translations">The translations dictionary to look up localized error messages from.</param>
-        internal static void ApplyErrorTranslation(Dictionary<string, string> translations)
+        public static void ApplyErrorTranslation(Dictionary<string, string> translations)
         {
             errorEmailEmpty = GetTranslation(LocaleTextKey.ErrorEmailEmpty.ToString(), translations);
             errorEmailNotValid = GetTranslation(LocaleTextKey.ErrorEmailNotValid.ToString(), translations);

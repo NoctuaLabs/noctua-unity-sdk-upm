@@ -25,6 +25,7 @@ namespace Tests.Runtime
         private readonly HttpListener _listener;
         private readonly string _basePath;
         private readonly Dictionary<string, Func<HttpListenerRequest, string>> _handlers;
+        private readonly Dictionary<string, Func<HttpListenerRequest, (int StatusCode, string Body)>> _statusHandlers = new();
 
         public HttpMockServer(string prefix)
         {
@@ -42,6 +43,16 @@ namespace Tests.Runtime
         public void RemoveHandler(string path)
         {
             _handlers.Remove($"{_basePath}{path[1..]}");
+        }
+
+        public void AddHandlerWithStatus(string path, Func<HttpListenerRequest, (int StatusCode, string Body)> handler)
+        {
+            _statusHandlers[$"{_basePath}{path[1..]}"] = handler;
+        }
+
+        public void RemoveHandlerWithStatus(string path)
+        {
+            _statusHandlers.Remove($"{_basePath}{path[1..]}");
         }
 
         public void Start()
@@ -63,10 +74,22 @@ namespace Tests.Runtime
                 using var response = context.Response;
 
                 // Find the handler for the requested path
-                if (_handlers.TryGetValue(request.Url.AbsolutePath, out var handler))
-                {
-                    var responseString = handler(request);
+                string responseString = null;
+                int responseStatus = (int)HttpStatusCode.OK;
 
+                if (_statusHandlers.TryGetValue(request.Url.AbsolutePath, out var statusHandler))
+                {
+                    var (code, body) = statusHandler(request);
+                    responseStatus = code;
+                    responseString = body;
+                }
+                else if (_handlers.TryGetValue(request.Url.AbsolutePath, out var handler))
+                {
+                    responseString = handler(request);
+                }
+
+                if (responseString != null)
+                {
                     try
                     {
                         using var reader = new StreamReader(request.InputStream);
@@ -84,14 +107,12 @@ namespace Tests.Runtime
 
                         var buffer = Encoding.UTF8.GetBytes(responseString);
                         response.ContentLength64 = buffer.Length;
-                        
-                        response.StatusCode = (int)HttpStatusCode.OK;
+                        response.StatusCode = responseStatus;
 
                         await response.OutputStream.WriteAsync(buffer, 0, buffer.Length);
-                        
                         response.OutputStream.Close();
                     }
-                    catch (Exception ex)
+                    catch (Exception)
                     {
                         response.StatusCode = (int)HttpStatusCode.InternalServerError;
                     }

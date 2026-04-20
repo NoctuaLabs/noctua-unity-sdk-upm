@@ -6,6 +6,7 @@ using com.noctuagames.sdk;
 using com.noctuagames.sdk.Events;
 using Cysharp.Threading.Tasks;
 using NUnit.Framework;
+using UnityEngine;
 using UnityEngine.TestTools;
 
 namespace Tests.Runtime
@@ -349,6 +350,51 @@ namespace Tests.Runtime
                 tracker.Dispose();
             }
         );
+
+        [UnityTest]
+        public IEnumerator RecoverOrphanedSession_StalePlayerPrefs_SendsRecoveryEventsBeforeSessionStart()
+            => UniTask.ToCoroutine(async () =>
+        {
+            const string orphanedId = "orphaned-session-abc123";
+            const long orphanedMs  = 12345L;
+
+            PlayerPrefs.SetString("NoctuaOrphanedSessionId",           orphanedId);
+            PlayerPrefs.SetString("NoctuaOrphanedSessionCumulativeMs", orphanedMs.ToString());
+            PlayerPrefs.Save();
+
+            try
+            {
+                var tracker = new SessionTracker(_config, _mockSender);
+                tracker.OnApplicationPause(false); // triggers RecoverOrphanedSession then session_start
+
+                var names = _mockSender.SentEvents.Select(e => e.Name).ToList();
+                var sessionStartIdx = names.IndexOf("session_start");
+                var sessionEndIdx   = names.IndexOf("session_end");
+
+                Assert.IsTrue(sessionStartIdx >= 0, "session_start should be present");
+                Assert.IsTrue(sessionEndIdx >= 0,   "recovery session_end should be present");
+                Assert.Less(sessionEndIdx, sessionStartIdx,
+                    "recovery session_end must precede the new session_start");
+
+                // Recovery engagement event carries the orphaned session_id and cumulative ms
+                var recoveryEngagement = _mockSender.SentEvents.FirstOrDefault(e =>
+                    e.Name == "noctua_user_engagement" &&
+                    e.Data != null && e.Data.ContainsKey("session_id") &&
+                    e.Data["session_id"].ToString() == orphanedId);
+
+                Assert.IsNotNull(recoveryEngagement, "Should recover noctua_user_engagement with orphaned session_id");
+                Assert.AreEqual(orphanedMs,
+                    Convert.ToInt64(recoveryEngagement.Data["engagement_time_msec"]),
+                    "Recovered engagement_time_msec should equal the stored cumulative ms");
+
+                tracker.Dispose();
+            }
+            finally
+            {
+                PlayerPrefs.DeleteAll();
+                PlayerPrefs.Save();
+            }
+        });
 
         [UnityTest]
         public IEnumerator LifecycleParam_AllFourValues() => UniTask.ToCoroutine(

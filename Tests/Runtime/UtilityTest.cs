@@ -6,6 +6,7 @@ using Cysharp.Threading.Tasks;
 using UnityEngine.TestTools;
 using com.noctuagames.sdk;
 using NUnit.Framework;
+using UnityEngine;
 
 namespace Tests.Runtime
 {
@@ -131,6 +132,70 @@ namespace Tests.Runtime
             }
         );
         
+        // ─── ApplyErrorTranslation ────────────────────────────────────────────
+
+        [Test]
+        public void ApplyErrorTranslation_WithTranslations_UpdatesAllSixFields()
+        {
+            var translations = new Dictionary<string, string>
+            {
+                { "ErrorEmailEmpty",       "Email kosong" },
+                { "ErrorEmailNotValid",    "Email tidak valid" },
+                { "ErrorPasswordEmpty",    "Password kosong" },
+                { "ErrorPasswordShort",    "Password terlalu pendek" },
+                { "ErrorRePasswordEmpty",  "Ulangi password kosong" },
+                { "ErrorRePasswordNotMatch", "Password tidak cocok" },
+            };
+
+            Utility.ApplyErrorTranslation(translations);
+
+            Assert.AreEqual("Email kosong",           Utility.errorEmailEmpty);
+            Assert.AreEqual("Email tidak valid",      Utility.errorEmailNotValid);
+            Assert.AreEqual("Password kosong",        Utility.errorPasswordEmpty);
+            Assert.AreEqual("Password terlalu pendek", Utility.errorPasswordShort);
+            Assert.AreEqual("Ulangi password kosong", Utility.errorRePasswordEmpty);
+            Assert.AreEqual("Password tidak cocok",   Utility.errorRePasswordNotMatch);
+        }
+
+        [Test]
+        public void ApplyErrorTranslation_NullDict_FallsBackToKey()
+        {
+            // Reset to a known state first
+            Utility.ApplyErrorTranslation(new Dictionary<string, string>());
+            // With null translations, GetTranslation returns the key itself
+            Utility.ApplyErrorTranslation(null);
+
+            // All fields should now be the enum key names
+            Assert.AreEqual("ErrorEmailEmpty",        Utility.errorEmailEmpty);
+            Assert.AreEqual("ErrorEmailNotValid",     Utility.errorEmailNotValid);
+            Assert.AreEqual("ErrorPasswordEmpty",     Utility.errorPasswordEmpty);
+            Assert.AreEqual("ErrorPasswordShort",     Utility.errorPasswordShort);
+            Assert.AreEqual("ErrorRePasswordEmpty",   Utility.errorRePasswordEmpty);
+            Assert.AreEqual("ErrorRePasswordNotMatch", Utility.errorRePasswordNotMatch);
+        }
+
+        // ─── GetPlatformType ──────────────────────────────────────────────────
+
+        [Test]
+        public void GetPlatformType_InTestEnvironment_ReturnsDirect()
+        {
+            // In editor/test runtime Application.installerName is neither
+            // "com.android.vending" nor "com.apple.appstore" → hits the fallback
+            var result = Utility.GetPlatformType();
+            Assert.AreEqual(PaymentType.direct.ToString(), result);
+        }
+
+        // ─── LoadTranslations ─────────────────────────────────────────────────
+
+        [Test]
+        public void LoadTranslations_DoesNotThrow()
+        {
+            // Resource may or may not exist in test environment — only verify no crash
+            Dictionary<string, string> result = null;
+            Assert.DoesNotThrow(() => result = Utility.LoadTranslations("en"));
+            // result is either null (resource missing) or a valid dict — both acceptable
+        }
+
         [UnityTest]
         public IEnumerator RetryAsyncTask_MaxDelayReached() => UniTask.ToCoroutine(
             async () =>
