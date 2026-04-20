@@ -3,7 +3,7 @@ using com.noctuagames.sdk;
 using NUnit.Framework;
 using UnityEngine;
 
-namespace com.noctuagames.sdk.Tests.IAA
+namespace com.noctuagames.sdk.Tests.Mediation
 {
     /// <summary>
     /// Tests MediationManager pure-logic paths that don't require native ad network SDKs.

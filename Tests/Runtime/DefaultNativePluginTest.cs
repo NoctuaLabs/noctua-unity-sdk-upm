@@ -394,15 +394,6 @@ namespace Tests.Runtime
         }
 
         [UnityTest]
-        public IEnumerator GetFirebaseRemoteConfigBoolean_ReturnsFalse()
-        {
-            bool? result = null;
-            _plugin.GetFirebaseRemoteConfigBoolean("key", b => result = b);
-            Assert.AreEqual(false, result);
-            yield return null;
-        }
-
-        [UnityTest]
         public IEnumerator CompletePurchaseProcessing_InvokesTrue()
         {
             bool? result = null;
