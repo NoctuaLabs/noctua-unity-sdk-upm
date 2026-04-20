@@ -140,6 +140,7 @@ namespace com.noctuagames.sdk.Events
         private DateTime _lastConnectivityCheck = DateTime.MinValue;
         private static readonly TimeSpan ConnectivityCheckInterval = TimeSpan.FromSeconds(30);
         private readonly Stopwatch _stageStopwatch = new Stopwatch();
+        private string _stageSessionId;
 
         // Cached Firebase IDs — fetched once per session to avoid static callback overwriting
         // on iOS when multiple async calls race (IosPlugin uses single static callback slots).
@@ -573,6 +574,8 @@ namespace com.noctuagames.sdk.Events
 
                     PlayerPrefs.Save();
                     _stageStopwatch.Restart();
+                    _stageSessionId = Guid.NewGuid().ToString("N");
+                    data.TryAdd("stage_session_id", _stageSessionId);
                 }
 
                 if (name == "game_stage_complete")
@@ -580,7 +583,9 @@ namespace com.noctuagames.sdk.Events
                     if (_stageStopwatch.IsRunning)
                     {
                         data.TryAdd("stage_time_msec", _stageStopwatch.ElapsedMilliseconds);
+                        data.TryAdd("stage_session_id", _stageSessionId);
                         _stageStopwatch.Reset();
+                        _stageSessionId = null;
                     }
 
                     string completeLevelStr = null;
@@ -595,6 +600,21 @@ namespace com.noctuagames.sdk.Events
                     {
                         PlayerPrefs.SetString("NoctuaCurrentStageLevel", completeLevelStr);
                         PlayerPrefs.Save();
+                    }
+                }
+
+                if (name == "game_stage_failed")
+                {
+                    if (_stageStopwatch.IsRunning)
+                    {
+                        data.TryAdd("stage_time_msec", _stageStopwatch.ElapsedMilliseconds);
+                        _stageStopwatch.Reset();
+                    }
+
+                    if (_stageSessionId != null)
+                    {
+                        data.TryAdd("stage_session_id", _stageSessionId);
+                        _stageSessionId = null;
                     }
                 }
 
