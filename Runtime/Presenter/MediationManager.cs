@@ -130,7 +130,7 @@ namespace com.noctuagames.sdk
 
         private IAA _iaaResponse;
 
-        internal IAA IAAResponse
+        public IAA IAAResponse
         {
             get => _iaaResponse;
             set
@@ -227,7 +227,7 @@ namespace com.noctuagames.sdk
             return result;
         }
 
-        internal void SetAdRevenueTracker(IAdRevenueTracker tracker)
+        public void SetAdRevenueTracker(IAdRevenueTracker tracker)
         {
             _adRevenueTracker = tracker;
             _revenueTracker?.SetAdRevenueTracker(tracker);
@@ -238,7 +238,7 @@ namespace com.noctuagames.sdk
         /// Call this after the country is resolved in Noctua.Initialization.cs (before or after
         /// IAAResponse is set — the orchestrator's segment key is updated either way).
         /// </summary>
-        internal void SetCountryCode(string countryCode)
+        public void SetCountryCode(string countryCode)
         {
             _cachedCountryCode = countryCode;
             string segmentKey = _segmentManager?.GetCompositeSegment(countryCode) ?? "";
@@ -250,20 +250,20 @@ namespace com.noctuagames.sdk
         /// Records a purchase for the current user, updating the payer tier in PlayerPrefs.
         /// Should be called from the IAP purchase completion callback.
         /// </summary>
-        internal void RecordPurchase() => _segmentManager?.RecordPurchase();
+        public void RecordPurchase() => _segmentManager?.RecordPurchase();
 
         /// <summary>
         /// Returns the segment manager instance (used by Noctua.Initialization.cs to pass
         /// to AdExperimentManager without requiring a static reference).
         /// </summary>
-        internal UserSegmentManager GetSegmentManager() => _segmentManager;
+        public UserSegmentManager GetSegmentManager() => _segmentManager;
 
         /// <summary>
         /// Applies experiment overrides by updating only the frequency manager and CPM floor manager
         /// with the new effective config — without restarting ad networks.
         /// Called from Noctua.Initialization.cs after country is resolved and experiments are evaluated.
         /// </summary>
-        internal void ApplyExperimentOverride(IAA effectiveIaa)
+        public void ApplyExperimentOverride(IAA effectiveIaa)
         {
             if (effectiveIaa == null) return;
 
@@ -289,7 +289,7 @@ namespace com.noctuagames.sdk
             _log.Info("Experiment overrides applied: frequency caps and CPM floors updated.");
         }
 
-        internal MediationManager(IAdPlaceholderUI adPlaceholderUI, IAA iAAResponse)
+        public MediationManager(IAdPlaceholderUI adPlaceholderUI, IAA iAAResponse)
         {
             // Must be called from Unity's main thread (it is — Noctua() ctor runs on main thread).
             _mainThreadContext = SynchronizationContext.Current;
