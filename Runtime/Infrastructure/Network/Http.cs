@@ -18,7 +18,7 @@ namespace com.noctuagames.sdk
     /// <summary>
     /// Provides an HTTP Authorization header value for authenticating requests.
     /// </summary>
-    internal interface IHttpAuth
+    public interface IHttpAuth
     {
         /// <summary>Returns the full Authorization header value (e.g. "Basic ..." or "Bearer ...").</summary>
         string Get();
@@ -28,7 +28,7 @@ namespace com.noctuagames.sdk
     /// <summary>
     /// Generates a Base64-encoded HTTP Basic Authentication header from a username and password.
     /// </summary>
-    internal class BasicAuth : IHttpAuth
+    public class BasicAuth : IHttpAuth
     {
         private readonly string _username;
         private readonly string _password;
@@ -55,7 +55,7 @@ namespace com.noctuagames.sdk
     /// <summary>
     /// Generates an HTTP Bearer token Authentication header from an access token.
     /// </summary>
-    internal class BearerAuth : IHttpAuth
+    public class BearerAuth : IHttpAuth
     {
         private readonly string _token;
 
