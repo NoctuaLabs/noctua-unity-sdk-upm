@@ -233,7 +233,7 @@ namespace com.noctuagames.sdk.Tests.Mediation
         {
             var mgr = new MediationManager(new NullAdPlaceholderUI(), MakeIAA());
             var overrideIaa = MakeIAA();
-            overrideIaa.FrequencyCaps = new FrequencyCapConfig { Interstitial = 5 };
+            overrideIaa.FrequencyCaps = new FrequencyCapConfig { Interstitial = new FrequencyCapEntry { MaxImpressions = 5, WindowSeconds = 60 } };
             Assert.DoesNotThrow(() => mgr.ApplyExperimentOverride(overrideIaa));
         }
 
