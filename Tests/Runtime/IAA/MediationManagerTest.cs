@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using com.noctuagames.sdk;
 using NUnit.Framework;
 using UnityEngine;
+using IAAConfig = com.noctuagames.sdk.IAA;
 
 namespace com.noctuagames.sdk.Tests.Mediation
 {
@@ -19,7 +20,7 @@ namespace com.noctuagames.sdk.Tests.Mediation
             public void CloseAdPlaceholder() { }
         }
 
-        private static IAA MakeIAA(string mediation = "applovin") => new IAA
+        private static IAAConfig MakeIAA(string mediation = "applovin") => new IAAConfig
         {
             Mediation = mediation,
             FrequencyCaps = new FrequencyCapConfig(),
@@ -123,7 +124,7 @@ namespace com.noctuagames.sdk.Tests.Mediation
         public void GetExperimentAssignments_WithExperiments_ReadsPlayerPrefs()
         {
             var iaa = MakeIAA();
-            iaa.AdExperiments = new List<AdExperiment>
+            iaa.AdExperiments = new List<AdExperimentConfig>
             {
                 new AdExperimentConfig { ExperimentId = "exp_001", Enabled = true }
             };
@@ -142,7 +143,7 @@ namespace com.noctuagames.sdk.Tests.Mediation
         public void GetExperimentAssignments_DisabledExperiment_AppendsOffSuffix()
         {
             var iaa = MakeIAA();
-            iaa.AdExperiments = new List<AdExperiment>
+            iaa.AdExperiments = new List<AdExperimentConfig>
             {
                 new AdExperimentConfig { ExperimentId = "exp_002", Enabled = false }
             };
@@ -160,7 +161,7 @@ namespace com.noctuagames.sdk.Tests.Mediation
         public void GetExperimentAssignments_MissingPlayerPrefsKey_UsesUnassigned()
         {
             var iaa = MakeIAA();
-            iaa.AdExperiments = new List<AdExperiment>
+            iaa.AdExperiments = new List<AdExperimentConfig>
             {
                 new AdExperimentConfig { ExperimentId = "exp_new", Enabled = true }
             };
