@@ -380,6 +380,22 @@ namespace com.noctuagames.sdk.Events
 
            data ??= new Dictionary<string, IConvertible>();
 
+           // Noctua Inspector — surface every internal EventSender dispatch as
+           // a `Noctua` provider row alongside Firebase/Adjust/Facebook native
+           // emissions. Zero-cost when the observer registry is empty
+           // (production builds with sandboxEnabled=false).
+           if (TrackerObserverRegistry.HasObservers)
+           {
+               var snapshot = new Dictionary<string, object>(data.Count);
+               foreach (var kv in data) snapshot[kv.Key] = kv.Value;
+               TrackerObserverRegistry.Emit(
+                   provider: "Noctua",
+                   eventName: name,
+                   payload: snapshot,
+                   extraParams: null,
+                   phase: TrackerEventPhase.Queued);
+           }
+
             // Capture caller-provided session_id BEFORE reserved-key stripping.
             // Recovery events (RecoverOrphanedSession) explicitly pass session_id so the
             // enrichment task uses the orphaned session, not the new session that

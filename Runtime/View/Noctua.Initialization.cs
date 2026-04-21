@@ -132,6 +132,28 @@ namespace com.noctuagames.sdk
             if (_config.Noctua.IsSandbox)
             {
                 _config.Noctua.BaseUrl = NoctuaConfig.DefaultSandboxBaseUrl;
+
+                // Noctua Inspector — sandbox-only, zero work in production.
+                // HttpInspectorLog subscribes to the static HttpRequest observer
+                // list; TrackerDebugMonitor subscribes to the static tracker
+                // registry which also receives native-bridge emissions from
+                // the iOS / Android SDKs.
+                _httpLog = new HttpInspectorLog();
+                _debugMonitor = new TrackerDebugMonitor();
+                HttpInspectorHooks.RegisterObserver(_httpLog);
+                TrackerObserverRegistry.Register(_debugMonitor);
+
+                // Auto-spawn the on-device overlay. Runs on any platform that
+                // supports UIElements runtime — Editor, iOS, Android, desktop.
+                try
+                {
+                    _inspector = com.noctuagames.sdk.Inspector.NoctuaInspectorController.Install(_httpLog, _debugMonitor);
+                    _log.Info("Noctua Inspector enabled (sandboxEnabled=true) — shake 3× / 4-finger tap to open");
+                }
+                catch (Exception e)
+                {
+                    _log.Warning($"Failed to spawn Noctua Inspector overlay: {e.Message}");
+                }
             }
 
             _nativePlugin = GetNativePlugin();
@@ -341,6 +363,22 @@ namespace com.noctuagames.sdk
             _isNativePluginInitialized = true;
             _nativePluginInitTcs.TrySetResult();
             _log.Debug("nativePlugin is initialized");
+
+            // Wire native-bridge emission callbacks to the Unity-side
+            // TrackerObserverRegistry. Runs only when sandbox is on —
+            // the native SDK self-gates on `config.sandboxEnabled` anyway,
+            // but installing the callback needlessly in production would
+            // still allocate a JavaProxy / function pointer.
+            if (_config.Noctua.IsSandbox)
+            {
+#if UNITY_IOS && !UNITY_EDITOR
+                try { IosPlugin.InstallInspectorBridge(); }
+                catch (Exception e) { _log.Warning($"InstallInspectorBridge (iOS) failed: {e.Message}"); }
+#elif UNITY_ANDROID && !UNITY_EDITOR
+                try { AndroidPlugin.InstallInspectorBridge(); }
+                catch (Exception e) { _log.Warning($"InstallInspectorBridge (Android) failed: {e.Message}"); }
+#endif
+            }
 
             // Register the native lifecycle callback now — AFTER Init() so the native
             // presenter is initialized and ensureInit() won't drop the call.

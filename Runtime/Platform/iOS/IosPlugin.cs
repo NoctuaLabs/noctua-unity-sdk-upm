@@ -1054,6 +1054,46 @@ namespace com.noctuagames.sdk
         public void StartImmediateUpdate(Action<int> callback) => callback?.Invoke(3); // NotAvailable
         public void StartFlexibleUpdate(Action<float> onProgress, Action<int> onResult) => onResult?.Invoke(3);
         public void CompleteUpdate() { }
+
+        // ----- Inspector tracker emission bridge -----
+
+        [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+        private delegate void TrackerEmissionCallbackDelegate(
+            string provider, string eventName, string payloadJson, string extraParamsJson, int phase);
+
+        [DllImport("__Internal")]
+        private static extern void noctuaSetTrackerEmissionCallback(TrackerEmissionCallbackDelegate callback);
+
+        [DllImport("__Internal")]
+        private static extern void noctuaInspectorSetEnabled(int enabled);
+
+        [AOT.MonoPInvokeCallback(typeof(TrackerEmissionCallbackDelegate))]
+        private static void TrackerEmissionTrampoline(string provider, string eventName, string payloadJson, string extraParamsJson, int phase)
+        {
+            try
+            {
+                var payload = InspectorJson.Deserialize(payloadJson);
+                var extra = InspectorJson.Deserialize(extraParamsJson);
+                TrackerObserverRegistry.Emit(
+                    provider ?? "", eventName ?? "",
+                    payload, extra,
+                    TrackerEventPhaseEx.FromRaw(phase));
+            }
+            catch (Exception e)
+            {
+                _sLog.Warning($"TrackerEmissionTrampoline failed: {e.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Install the native-side emission callback trampoline. Called once
+        /// from <c>Noctua.Initialization</c> when sandbox is enabled.
+        /// </summary>
+        public static void InstallInspectorBridge()
+        {
+            noctuaSetTrackerEmissionCallback(TrackerEmissionTrampoline);
+            noctuaInspectorSetEnabled(1);
+        }
     }
 #endif
 }

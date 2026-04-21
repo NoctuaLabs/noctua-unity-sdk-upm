@@ -14,6 +14,57 @@ namespace com.noctuagames.sdk
     internal class AndroidPlugin : INativePlugin
     {
         private readonly ILogger _log = new NoctuaLogger(typeof(AndroidPlugin));
+        private static readonly ILogger _sLog = new NoctuaLogger(typeof(AndroidPlugin));
+
+        /// <summary>
+        /// JNI proxy implementing <c>com.noctuagames.sdk.inspector.TrackerEmissionCallback</c>.
+        /// Native SDK invokes <c>onEmission(...)</c> on the JNI worker thread;
+        /// we fan out to the Unity-side <see cref="TrackerObserverRegistry"/>
+        /// which enqueues main-thread work via <see cref="TrackerDebugMonitor"/>.
+        /// </summary>
+        private class TrackerEmissionProxy : AndroidJavaProxy
+        {
+            public TrackerEmissionProxy()
+                : base("com.noctuagames.sdk.inspector.TrackerEmissionCallback") { }
+
+            public void onEmission(string provider, string eventName, string payloadJson, string extraParamsJson, int phase)
+            {
+                try
+                {
+                    var payload = InspectorJson.Deserialize(payloadJson);
+                    var extra   = InspectorJson.Deserialize(extraParamsJson);
+                    TrackerObserverRegistry.Emit(
+                        provider ?? "", eventName ?? "",
+                        payload, extra,
+                        TrackerEventPhaseEx.FromRaw(phase));
+                }
+                catch (Exception e)
+                {
+                    _sLog.Warning($"TrackerEmissionProxy.onEmission failed: {e.Message}");
+                }
+            }
+        }
+
+        private static TrackerEmissionProxy _installedInspectorProxy;
+
+        /// <summary>
+        /// Install the native emission callback proxy + force-enable the bus.
+        /// Called once from the composition root when sandbox is enabled.
+        /// </summary>
+        public static void InstallInspectorBridge()
+        {
+            try
+            {
+                using var inspector = new AndroidJavaClass("com.noctuagames.sdk.inspector.NoctuaInspector");
+                _installedInspectorProxy ??= new TrackerEmissionProxy();
+                inspector.CallStatic("setTrackerEmissionCallback", _installedInspectorProxy);
+                inspector.CallStatic("setEnabled", true);
+            }
+            catch (Exception e)
+            {
+                _sLog.Warning($"InstallInspectorBridge failed: {e.Message}");
+            }
+        }
 
         /// <inheritdoc />
         public void Init(List<string> activeBundleIds)

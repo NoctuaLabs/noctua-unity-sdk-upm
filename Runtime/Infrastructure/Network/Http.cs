@@ -351,6 +351,16 @@ namespace com.noctuagames.sdk
             _request.downloadHandler = new DownloadHandlerBuffer();
             var response = "";
 
+            // Inspector hook — zero-cost when no observer registered.
+            HttpExchange exchange = null;
+            System.Diagnostics.Stopwatch sw = null;
+            if (HttpInspectorHooks.HasObservers)
+            {
+                exchange = BuildExchangeSnapshot();
+                sw = System.Diagnostics.Stopwatch.StartNew();
+                HttpInspectorHooks.FireStart(exchange);
+            }
+
             var auth = !string.IsNullOrEmpty(_request.GetRequestHeader("Authorization")) ? "Authorization: Bearer" : "";
 
             if (_noVerboseLog)
@@ -383,20 +393,26 @@ namespace com.noctuagames.sdk
             try
             {
                 _request.timeout = 20;
+                if (exchange != null) HttpInspectorHooks.FireStateChange(exchange.Id, HttpExchangeState.Sending);
                 await _request.SendWebRequest();
                 response = _request.downloadHandler.text;
             }
             catch (Exception e)
             {
                 _log.Exception(e);
-                
+
+                if (exchange != null) exchange.Error = e.Message;
+
                 switch (_request.result)
                 {
                     case UnityWebRequest.Result.ConnectionError:
+                        FireEndIfObserved(exchange, sw, response, HttpExchangeState.Failed);
                         throw NoctuaException.RequestConnectionError;
                     case UnityWebRequest.Result.DataProcessingError:
+                        FireEndIfObserved(exchange, sw, response, HttpExchangeState.Failed);
                         throw NoctuaException.RequestDataProcessingError;
                     case UnityWebRequest.Result.InProgress:
+                        FireEndIfObserved(exchange, sw, response, HttpExchangeState.Failed);
                         throw NoctuaException.RequestInProgress;
                     case UnityWebRequest.Result.ProtocolError: // HTTP statuses >= 400
                     case UnityWebRequest.Result.Success: // HTTP statuses < 400
@@ -437,20 +453,20 @@ namespace com.noctuagames.sdk
                 catch (Exception)
                 {
                     _log.Error($"HTTP error {_request.responseCode}, response: '{response}'");
-                    
+                    FireEndIfObserved(exchange, sw, response, HttpExchangeState.Failed);
                     throw new NoctuaException(
                         NoctuaErrorCode.Application,
                             $"HTTP error {_request.responseCode}: {((HttpStatusCode)_request.responseCode).ToString()}"
                         );
                 }
-                
+
                 _log.Error($"Noctua error {errorResponse.ErrorCode}: {errorResponse.ErrorMessage}");
-                
+                FireEndIfObserved(exchange, sw, response, HttpExchangeState.Failed);
                 throw new NoctuaException((NoctuaErrorCode)errorResponse.ErrorCode, errorResponse.ErrorMessage);
             }
             else if ((int)_request.responseCode > 408) // Including 5XX
             {
-                // Retryable HTTP status codes are treated as networking error:           
+                // Retryable HTTP status codes are treated as networking error:
                 // 408 Request Timeout
                 // 425 Too Early
                 // 429 Too Many Requests
@@ -461,7 +477,7 @@ namespace com.noctuagames.sdk
                 // 522 Bad Gateway
                 response = response[..Math.Min(1000, response.Length)]; // Limit the response to 1000 characters
                 _log.Error($"HTTP error {_request.responseCode}, response: '{response}'");
-
+                FireEndIfObserved(exchange, sw, response, HttpExchangeState.Failed);
                 throw new NoctuaException(
                     NoctuaErrorCode.Networking,
                         $"HTTP error {_request.responseCode}: {((HttpStatusCode)_request.responseCode)}," +
@@ -470,18 +486,93 @@ namespace com.noctuagames.sdk
             } else {
                 try
                 {
-                    return JsonConvert.DeserializeObject<DataWrapper<T>>(response, _jsonSettings).Data;
+                    var data = JsonConvert.DeserializeObject<DataWrapper<T>>(response, _jsonSettings).Data;
+                    FireEndIfObserved(exchange, sw, response, HttpExchangeState.Complete);
+                    return data;
                 }
                 catch (Exception e)
                 {
                     _log.Exception(e);
 
+                    if (exchange != null) exchange.Error = e.Message;
+                    FireEndIfObserved(exchange, sw, response, HttpExchangeState.Failed);
                     throw new NoctuaException(
                         NoctuaErrorCode.Application,
                         $"Failed to parse response as {typeof(T).Name}: {response}. Error: {e.Message}"
                     );
                 }
             }
+        }
+
+        // ---- Inspector helpers (active only when an observer is registered) ----
+
+        private const int InspectorBodyCapBytes = 64 * 1024;
+
+        private HttpExchange BuildExchangeSnapshot()
+        {
+            var ex = new HttpExchange
+            {
+                Id = Guid.NewGuid(),
+                Method = _request.method,
+                Url = _request.url,
+                StartUtc = DateTime.UtcNow,
+                State = HttpExchangeState.Building,
+            };
+
+            // Redact sensitive headers — same deny-list on request + response.
+            foreach (var key in new[] {
+                "Content-Type", "X-CLIENT-ID", "X-BUNDLE-ID", "X-LANGUAGE", "X-COUNTRY",
+                "X-CURRENCY", "X-DEVICE-ID", "X-PLATFORM", "X-OS", "X-OS-AGENT",
+                "X-SDK-VERSION", "Authorization", "X-Access-Token",
+            })
+            {
+                var val = _request.GetRequestHeader(key);
+                if (!string.IsNullOrEmpty(val))
+                {
+                    ex.RequestHeaders[key] = IsSensitiveHeader(key) ? "••••" : val;
+                }
+            }
+
+            var body = Encoding.UTF8.GetString(_request.uploadHandler?.data ?? Array.Empty<byte>());
+            ex.RequestBody = TruncateForInspector(body);
+            return ex;
+        }
+
+        private void FireEndIfObserved(HttpExchange exchange, System.Diagnostics.Stopwatch sw, string response, HttpExchangeState state)
+        {
+            if (exchange == null) return;
+            exchange.Status = (int)_request.responseCode;
+            exchange.ResponseBody = TruncateForInspector(response);
+            try
+            {
+                var headers = _request.GetResponseHeaders();
+                if (headers != null)
+                {
+                    foreach (var kv in headers)
+                    {
+                        exchange.ResponseHeaders[kv.Key] = IsSensitiveHeader(kv.Key) ? "••••" : kv.Value;
+                    }
+                }
+            }
+            catch { /* response not available on some error paths */ }
+            exchange.ElapsedMs = sw?.ElapsedMilliseconds ?? 0;
+            exchange.State = state;
+            HttpInspectorHooks.FireEnd(exchange);
+        }
+
+        private static bool IsSensitiveHeader(string key)
+        {
+            return key.Equals("Authorization",  StringComparison.OrdinalIgnoreCase)
+                || key.Equals("X-Access-Token", StringComparison.OrdinalIgnoreCase)
+                || key.Equals("Cookie",         StringComparison.OrdinalIgnoreCase)
+                || key.Equals("Set-Cookie",     StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static string TruncateForInspector(string body)
+        {
+            if (string.IsNullOrEmpty(body)) return body ?? "";
+            if (body.Length <= InspectorBodyCapBytes) return body;
+            return body.Substring(0, InspectorBodyCapBytes) + "…[truncated]";
         }
 
         ~HttpRequest()

@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.IO;
 using Newtonsoft.Json.Linq;
 using com.noctuagames.sdk;
+using com.noctuagames.sdk.Editor.Build;
 using System.Linq;
 
 public class NoctuaIntegrationManagerWindow : EditorWindow
@@ -77,73 +78,24 @@ public class NoctuaIntegrationManagerWindow : EditorWindow
     // Installed version per recommended package (null = not installed)
     private Dictionary<string, string> _recInstalledVer = new();
 
-    // ── IAA provider catalog ─────────────────────────────────────────────
-    private readonly Dictionary<string, (string packageName, string version)> upmPackages = new()
-    {
-        { "AdMob",    ("com.google.ads.mobile",      "11.0.0") },  // wraps GMA iOS 13.0.0 + Android 25.0.0
-        { "AppLovin", ("com.applovin.mediation.ads", "8.6.2")  },  // wraps MAX SDK 13.6.2
-    };
+    // ── Shared catalog source of truth ───────────────────────────────────
+    // The dictionaries below are proxies onto `NoctuaAdapterCatalog`, which
+    // is the single file both this window and `NoctuaAdapterStabilizer`
+    // read from. When AppLovin / Google retag a version on the UPM registry,
+    // bump it in NoctuaAdapterCatalog.cs — install flows, status checks,
+    // and auto-heal all pick it up on the next compile.
+    private Dictionary<string, (string packageName, string version)> upmPackages =>
+        com.noctuagames.sdk.Editor.NoctuaAdapterCatalog.IaaProviders;
 
     // ── AppLovin MAX mediation adapter catalog ───────────────────────────
-    // Versions verified stable from unity.packages.applovin.com (April 2026).
-    private readonly Dictionary<string, (string androidPkg, string androidVer, string iosPkg, string iosVer)> maxAdapterPackages = new()
-    {
-        // Tier 1
-        { "Google / AdMob",        ("com.applovin.mediation.adapters.google.android",           "25010000.0.0",  "com.applovin.mediation.adapters.google.ios",           "13020000.0.0") },
-        { "Google Ad Manager",     ("com.applovin.mediation.adapters.googleadmanager.android",  "25010000.0.0",  "com.applovin.mediation.adapters.googleadmanager.ios",  "13020000.0.0") },
-        { "Meta Audience Network", ("com.applovin.mediation.adapters.facebook.android",         "6210000.0.0",   "com.applovin.mediation.adapters.facebook.ios",         "6210100.0.0")  },
-        { "IronSource",            ("com.applovin.mediation.adapters.ironsource.android",       "904000000.0.0", "com.applovin.mediation.adapters.ironsource.ios",       "903000000.0.0")},
-        { "Unity Ads",             ("com.applovin.mediation.adapters.unityads.android",         "4170000.0.0",   "com.applovin.mediation.adapters.unityads.ios",         "4170000.0.0")  },
-        // Tier 2
-        { "Vungle / LiftOff",      ("com.applovin.mediation.adapters.vungle.android",           "7070100.0.0",   "com.applovin.mediation.adapters.vungle.ios",           "7070100.0.0")  },
-        { "Chartboost",            ("com.applovin.mediation.adapters.chartboost.android",       "9110100.0.0",   "com.applovin.mediation.adapters.chartboost.ios",       "9110000.0.0")  },
-        { "InMobi",                ("com.applovin.mediation.adapters.inmobi.android",           "11020000.0.0",  "com.applovin.mediation.adapters.inmobi.ios",           "11010100.0.0") },
-        { "Mintegral",             ("com.applovin.mediation.adapters.mintegral.android",        "17011100.0.0",  "com.applovin.mediation.adapters.mintegral.ios",        "800080000.0.0")},
-        { "ByteDance / Pangle",    ("com.applovin.mediation.adapters.bytedance.android",        "709010300.0.0", "com.applovin.mediation.adapters.bytedance.ios",        "709010100.0.0")},
-        { "BidMachine",            ("com.applovin.mediation.adapters.bidmachine.android",       "3060100.0.0",   "com.applovin.mediation.adapters.bidmachine.ios",       "305010000.0.0")},
-        // Tier 3
-        { "Yandex",                ("com.applovin.mediation.adapters.yandex.android",           "7180500.0.0",   "com.applovin.mediation.adapters.yandex.ios",           "7180400.0.0")  },
-        { "Fyber / DT Exchange",   ("com.applovin.mediation.adapters.fyber.android",            "8040400.0.0",   "com.applovin.mediation.adapters.fyber.ios",            "8040500.0.0")  },
-        { "Smaato",                ("com.applovin.mediation.adapters.smaato.android",           "23000100.0.0",  "com.applovin.mediation.adapters.smaato.ios",           "23000100.0.0") },
-        { "Verve",                 ("com.applovin.mediation.adapters.verve.android",            "3070100.0.0",   "com.applovin.mediation.adapters.verve.ios",            "3070100.0.0")  },
-        { "HyprMX",                ("com.applovin.mediation.adapters.hyprmx.android",           "6040203.0.0",   "com.applovin.mediation.adapters.hyprmx.ios",           "604020000.0.0")},
-        { "LINE",                  ("com.applovin.mediation.adapters.line.android",             "300000010.0.0", "com.applovin.mediation.adapters.line.ios",             "3000100.0.0")  },
-        { "Moloco",                ("com.applovin.mediation.adapters.moloco.android",           "4070000.0.0",   "com.applovin.mediation.adapters.moloco.ios",           "4040100.0.0")  },
-        { "PubMatic",              ("com.applovin.mediation.adapters.pubmatic.android",         "5000000.0.0",   "com.applovin.mediation.adapters.pubmatic.ios",         "4120000.0.0")  },
-        { "Ogury Presage",         ("com.applovin.mediation.adapters.ogurypresage.android",     "6020200.0.0",   "com.applovin.mediation.adapters.ogurypresage.ios",     "5020100.0.0")  },
-        { "MobileFuse",            ("com.applovin.mediation.adapters.mobilefuse.android",       "1110000.0.0",   "com.applovin.mediation.adapters.mobilefuse.ios",       "1110000.0.0")  },
-        { "BigO Ads",              ("com.applovin.mediation.adapters.bigoads.android",          "5070100.0.0",   "com.applovin.mediation.adapters.bigoads.ios",          "5010200.0.0")  },
-        { "Maio",                  ("com.applovin.mediation.adapters.maio.android",             "2000400.0.0",   "com.applovin.mediation.adapters.maio.ios",             "2010600.0.0")  },
-    };
+    // Source of truth: NoctuaAdapterCatalog. Bump versions there, not here.
+    private Dictionary<string, (string androidPkg, string androidVer, string iosPkg, string iosVer)> maxAdapterPackages =>
+        com.noctuagames.sdk.Editor.NoctuaAdapterCatalog.MaxAdapters;
 
     // ── AdMob mediation adapter catalog ──────────────────────────────────
-    // Versions verified stable from package.openupm.com (April 2026).
-    private readonly Dictionary<string, (string pkg, string ver)> admobAdapterPackages = new()
-    {
-        { "AppLovin",               ("com.google.ads.mobile.mediation.applovin",            "8.7.1")  },
-        { "Unity Ads",              ("com.google.ads.mobile.mediation.unity",               "3.17.0") },
-        { "IronSource / LevelPlay", ("com.google.ads.mobile.mediation.ironsource",          "4.4.1")  },
-        { "Chartboost",             ("com.google.ads.mobile.mediation.chartboost",          "4.11.2") },
-        { "Meta Audience Network",  ("com.google.ads.mobile.mediation.metaaudiencenetwork", "3.18.3") },
-        { "Liftoff / Vungle",       ("com.google.ads.mobile.mediation.liftoffmonetize",     "5.7.1")  },
-        { "Pangle / ByteDance",     ("com.google.ads.mobile.mediation.pangle",              "5.9.1")  },
-        { "Mintegral",              ("com.google.ads.mobile.mediation.mintegral",           "2.0.6")  },
-        { "DT Exchange / Fyber",    ("com.google.ads.mobile.mediation.dtexchange",          "3.5.6")  },
-        { "InMobi",                 ("com.google.ads.mobile.mediation.inmobi",              "5.0.2")  },
-        { "myTarget",               ("com.google.ads.mobile.mediation.mytarget",            "3.35.0") },
-        { "Moloco",                 ("com.google.ads.mobile.mediation.moloco",              "3.4.1")  },
-        { "PubMatic",               ("com.google.ads.mobile.mediation.pubmatic",            "1.5.0")  },
-        { "BidMachine",             ("com.google.ads.mobile.mediation.bidmachine",          "1.0.2")  },
-        { "LINE",                   ("com.google.ads.mobile.mediation.line",                "2.0.2")  },
-        // Maio 3.1.6 bumps the underlying GoogleMobileAdsMediationMaio iOS pod to 2.2.1.0 which
-        // depends on Google-Mobile-Ads-SDK ~> 13.0 (compatible with AppLovin Google adapter 13.2.0.0).
-        // The earlier 3.0.1 wrapped pod 2.1.6.1 → GMA ~> 12.0, which conflicts with GMA 13.x.
-        // ⚠ MaioSDK mutual exclusion: AdMob Maio 3.1.6 pins MaioSDK-v2 = 2.2.1 (exact); the AppLovin MAX
-        //   Maio adapter (latest 2.1.6.0) pins MaioSDK-v2 = 2.1.6 (exact). The two cannot coexist — pick
-        //   one catalog for Maio, never both. See the cross-catalog overlap warning in the UI.
-        { "Maio",                   ("com.google.ads.mobile.mediation.maio",                "3.1.6")  },
-        { "i-mobile",               ("com.google.ads.mobile.mediation.imobile",             "1.3.9")  },
-    };
+    // Source of truth: NoctuaAdapterCatalog. Bump versions there, not here.
+    private Dictionary<string, (string pkg, string ver)> admobAdapterPackages =>
+        com.noctuagames.sdk.Editor.NoctuaAdapterCatalog.AdmobAdapters;
 
     // ── Cross-catalog conflict mapping ─────────────────────────────────
     // Maps AdMob adapter package → corresponding AppLovin MAX adapter display name.
@@ -268,63 +220,13 @@ public class NoctuaIntegrationManagerWindow : EditorWindow
     private void OnEnable()
     {
         LoadConfig();
-        AutoHealBrokenAdapterVersions();
+        // Broken-pin / force-heal handled by NoctuaAdapterStabilizer — single
+        // source of truth for all manifest auto-fix logic. The stabilizer also
+        // runs on Editor startup and pre-iOS-build; invoking here covers the
+        // case where the user opens the Integration Manager after Editor load
+        // but before any build.
+        NoctuaAdapterStabilizer.RunSilent("integration-manager-open");
         RefreshAllStates();
-    }
-
-    /// <summary>
-    /// Adapter iOS packages published by AppLovin to their UPM registry are occasionally
-    /// unpublished / retagged (e.g. ByteDance iOS 709000000.0.0 was replaced by
-    /// 709010100.0.0). Games that installed the adapter on an older Noctua SDK version
-    /// have the broken pin persisted in <c>Packages/manifest.json</c>. Updating the
-    /// Noctua SDK alone is not enough — UPM still fails to resolve because the pinned
-    /// version no longer exists in the registry.
-    ///
-    /// On Integration Manager open, detect any MAX / AdMob adapter whose manifest pin
-    /// points to a version known to be missing from the registry and rewrite it to the
-    /// current catalog version. Safe because we only ever overwrite versions present
-    /// in <see cref="BrokenAdapterPins"/> — intentional pinning is preserved.
-    /// </summary>
-    private static readonly Dictionary<string, string> BrokenAdapterPins = new()
-    {
-        // ByteDance / Pangle iOS — 709000000.0.0 was unpublished by AppLovin and replaced by 709010100.0.0.
-        // Games that installed ByteDance on Noctua SDK < 0.103 have the broken pin in manifest.json.
-        { "com.applovin.mediation.adapters.bytedance.ios@709000000.0.0", "709010100.0.0" },
-    };
-
-    private void AutoHealBrokenAdapterVersions()
-    {
-        if (!TryLoadManifest(out var manifest, out var deps)) return;
-
-        bool changed = false;
-        foreach (var kvp in maxAdapterPackages)
-        {
-            changed |= TryHealPin(deps, kvp.Value.androidPkg, kvp.Value.androidVer);
-            changed |= TryHealPin(deps, kvp.Value.iosPkg,     kvp.Value.iosVer);
-        }
-
-        if (changed)
-        {
-            WriteManifest(manifest);
-            Debug.LogWarning("[NoctuaSDK] Auto-healed broken adapter pins in Packages/manifest.json. " +
-                             "Close and reopen any open Xcode/Gradle projects so UPM can resolve.");
-        }
-    }
-
-    private static bool TryHealPin(JObject deps, string pkg, string catalogVer)
-    {
-        if (deps == null || pkg == null) return false;
-        if (!deps.TryGetValue(pkg, out var pinned)) return false;
-
-        var pinnedVer = pinned?.ToString();
-        if (string.IsNullOrEmpty(pinnedVer)) return false;
-
-        var key = $"{pkg}@{pinnedVer}";
-        if (!BrokenAdapterPins.ContainsKey(key)) return false;
-
-        deps[pkg] = catalogVer;
-        Debug.Log($"[NoctuaSDK] Migrated broken pin {key} → {catalogVer}.");
-        return true;
     }
 
     private void RefreshAllStates()

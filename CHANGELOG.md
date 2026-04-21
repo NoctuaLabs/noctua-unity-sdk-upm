@@ -4,8 +4,17 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### ⚠️ Breaking / Action Required
+
+- **Remove manual emission of `watch_ads_Nx`, `taichi_*`, and `first_purchase` events from your game.** From this release the SDK auto-emits these events and forwards them to Noctua Analytics, Adjust, Firebase, and Facebook. If your game code still calls `Noctua.Event.TrackCustomEvent(...)` for any of them, every firing will be **double-counted** across every analytics dashboard:
+    - `watch_ads_0`, `watch_ads_1x`, `watch_ads_5x`, `watch_ads_10x`, `watch_ads_25x`, `watch_ads_50x` — driven by `AdWatchMilestoneTracker`
+    - All `taichi_*` events (`taichi_total_ad_impression`, `taichi_interstitial_ad_impression`, `taichi_rewarded_ad_impression`, `taichi_rewarded_ad_revenue`, …) — driven by the Taichi pipeline
+    - `first_purchase` — emitted by `NoctuaIAPService` on first verified purchase **per device** (PlayerPrefs-guarded); manual calls bypass the guard
+  See [Built-in Analytics](https://docs.noctuaprojects.com/docs/unity/tracking/built-in-analytics) for the canonical schema after removal.
+
 ### 🚀 Features
 
+- Add **Noctua Inspector (Beta)** — in-app debug overlay bundled with the SDK that surfaces every Noctua SDK HTTP request, tracker event, and the Firebase / Adjust / Facebook lifecycle (Queued → Emitted → Acknowledged) on-device, without attaching Xcode or `adb logcat`. Auto-spawns when `noctuagg.json` has `sandboxEnabled: true`; zero runtime cost in production. Open via 3× device shake, 4-finger tap, or `Noctua.ShowInspector()`. See [Noctua Inspector docs](https://docs.noctuaprojects.com/docs/unity/debug-and-testing/noctua-inspector).
 - Add **network-agnostic `Noctua.IAA.HideBannerAd()`** — routes through the orchestrator to both Primary and Secondary networks so game code can hide the banner from a single call site (e.g. on a successful "remove ads" IAP) regardless of whether AdMob or AppLovin is the active mediation. Safe no-op when IAA is uninitialized or the selected network has no active banner. Legacy `HideAppLovinBanner` / `DestroyBannerAppLovin` / `HideBannerAppLovin` remain for fine-grained control.
 
 ### 🐛 Bug Fixes

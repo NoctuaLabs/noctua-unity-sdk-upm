@@ -43,6 +43,12 @@ static NSString *_bufferedTappedJson   = nil;
 static NSString *_bufferedReceivedJson = nil;
 static NSString *_bufferedFcmToken     = nil;
 
+// This file is Objective-C++ (.mm) — without `extern "C"` the three
+// setters below get C++ name-mangled, so IL2CPP's `DllImport("__Internal")`
+// P/Invokes resolve to "undefined symbol _noctuaSet…Callback" at link time.
+// Keep this wrapper whenever you add a new C-bridge symbol here.
+extern "C" {
+
 void noctuaSetRemoteNotificationCallback(NoctuaPushStringCallback cb) {
     _noctuaOnRemoteNotificationReceived = cb;
     if (cb != NULL && _bufferedReceivedJson != nil) {
@@ -64,6 +70,8 @@ void noctuaSetFcmTokenRefreshCallback(NoctuaPushStringCallback cb) {
         _bufferedFcmToken = nil;
     }
 }
+
+} // extern "C"
 
 static NSString* NoctuaPayloadToJson(NSDictionary *userInfo) {
     if (userInfo == nil) return @"{}";

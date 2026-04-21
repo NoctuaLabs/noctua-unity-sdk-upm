@@ -45,8 +45,52 @@ namespace com.noctuagames.sdk
         /// <summary>Access loaded global configuration.</summary>
         public static GlobalConfig Config => Instance.Value._config;
 
+        /// <summary>
+        /// Ring-buffered log of recent SDK HTTP exchanges, populated only when
+        /// <c>noctuagg.json</c> has <c>sandboxEnabled: true</c>. <c>null</c> in
+        /// production builds.
+        /// </summary>
+        public static HttpInspectorLog HttpLog => Instance.Value._httpLog;
+
+        /// <summary>
+        /// Ring-buffered log of recent tracker emissions (Firebase, Adjust,
+        /// Facebook), populated only when sandbox is enabled. <c>null</c> in
+        /// production builds.
+        /// </summary>
+        public static TrackerDebugMonitor DebugMonitor => Instance.Value._debugMonitor;
+
+        /// <summary>
+        /// True iff SDK was initialized with <c>sandboxEnabled: true</c>. Used
+        /// by the Inspector bootstrap to decide whether to auto-spawn the
+        /// on-device overlay.
+        /// </summary>
+        public static bool IsSandbox()
+        {
+            var cfg = Instance.Value._config;
+            return cfg?.Noctua?.IsSandbox == true;
+        }
+
+        /// <summary>
+        /// Handle to the auto-spawned Inspector overlay. Non-null only when
+        /// <see cref="IsSandbox"/> is true (the overlay is never instantiated
+        /// in production builds). Game code that wants a programmatic open
+        /// button — e.g. a sample-app debug menu — can call
+        /// <c>Noctua.Inspector?.Show()</c> directly.
+        /// </summary>
+        public static com.noctuagames.sdk.Inspector.NoctuaInspectorController Inspector => Instance.Value._inspector;
+
+        /// <summary>Convenience: open the Inspector overlay if sandbox is on; no-op otherwise.</summary>
+        public static void ShowInspector()   => Instance.Value._inspector?.Show();
+        /// <summary>Convenience: hide the Inspector overlay. Safe to call any time.</summary>
+        public static void HideInspector()   => Instance.Value._inspector?.Hide();
+        /// <summary>Convenience: toggle the Inspector overlay. Safe to call any time.</summary>
+        public static void ToggleInspector() => Instance.Value._inspector?.Toggle();
+
         private readonly ILogger _log = new NoctuaLogger();
         private readonly EventSender _eventSender;
+        private HttpInspectorLog _httpLog;
+        private TrackerDebugMonitor _debugMonitor;
+        private com.noctuagames.sdk.Inspector.NoctuaInspectorController _inspector;
         private readonly SessionTracker _sessionTracker;
         private readonly NoctuaEventService _event;
         private readonly NoctuaAuthentication _auth;
