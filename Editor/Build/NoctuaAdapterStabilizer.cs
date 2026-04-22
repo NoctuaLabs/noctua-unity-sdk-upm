@@ -46,6 +46,13 @@ namespace com.noctuagames.sdk.Editor.Build
             // ByteDance / Pangle iOS: the 709000000.0.0 release was unpublished
             // by AppLovin. Heal to whatever the catalog currently points at.
             { "com.applovin.mediation.adapters.bytedance.ios@709000000.0.0", "@catalog" },
+
+            // ── AdMob — Maio vs GMA 13.x hard conflict ──
+            // AdMob Maio 3.0.1 wraps native pod GoogleMobileAdsMediationMaio 2.1.6.1
+            // which pins Google-Mobile-Ads-SDK ~> 12.0, conflicting with AppLovin
+            // Google adapter 13.2.0.0 (GMA = 13.2.0). Heal to catalog (3.1.6 or
+            // whatever the next safe bump is).
+            { "com.google.ads.mobile.mediation.maio@3.0.1", "@catalog" },
         };
 
         // Exposed for unit tests / diagnostics only — the real force-heal set
