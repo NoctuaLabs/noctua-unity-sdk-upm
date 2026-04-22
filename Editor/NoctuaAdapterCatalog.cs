@@ -78,8 +78,8 @@ namespace com.noctuagames.sdk.Editor
             // ByteDance / Pangle — asymmetric versions because the two
             // platforms have INDEPENDENT adapter trajectories:
             //
-            //   iOS  MAX ByteDance 7.9.0.6.0 (709000600.0.0) → Ads-Global 7.9.0.6
-            //   iOS  AdMob Pangle 5.9.1                      → Ads-Global 7.9.0.6 (via GoogleMobileAdsMediationPangle 7.9.0.6.0)
+            //   iOS  MAX ByteDance 7.9.1.1.0 (709010100.0.0) → Ads-Global 7.9.1.1
+            //   iOS  AdMob Pangle 5.9.1                      → Ads-Global 7.9.1.x (via GoogleMobileAdsMediationPangle)
             //
             //   Android MAX ByteDance 7.9.1.3.0 (709010300.0.0) — latest
             //   Android AdMob Pangle  5.9.1 — Gradle resolves independently
@@ -93,7 +93,7 @@ namespace com.noctuagames.sdk.Editor
             // When bumping iOS, verify the new MAX version pulls the same
             // `Ads-Global` pod as the current AdMob Pangle version — see
             // the adapter's iOS podspec on unity.packages.applovin.com.
-            { "ByteDance / Pangle",    ("com.applovin.mediation.adapters.bytedance.android",        "709010300.0.0", "com.applovin.mediation.adapters.bytedance.ios",        "709000600.0.0")},
+            { "ByteDance / Pangle",    ("com.applovin.mediation.adapters.bytedance.android",        "709010300.0.0", "com.applovin.mediation.adapters.bytedance.ios",        "709010100.0.0")},
             { "BidMachine",            ("com.applovin.mediation.adapters.bidmachine.android",       "3060100.0.0",   "com.applovin.mediation.adapters.bidmachine.ios",       "305010000.0.0")},
             // Tier 3
             { "Yandex",                ("com.applovin.mediation.adapters.yandex.android",           "7180500.0.0",   "com.applovin.mediation.adapters.yandex.ios",           "7180400.0.0")  },
@@ -128,7 +128,7 @@ namespace com.noctuagames.sdk.Editor
             { "PubMatic",                ("com.google.ads.mobile.mediation.pubmatic",            "1.5.0")  },
             { "BidMachine",              ("com.google.ads.mobile.mediation.bidmachine",          "1.0.2")  },
             { "LINE",                    ("com.google.ads.mobile.mediation.line",                "2.0.2")  },
-            { "Maio",                    ("com.google.ads.mobile.mediation.maio",                "3.1.6")  },
+            { "Maio",                    ("com.google.ads.mobile.mediation.maio",                "3.0.1")  },
             { "i-mobile",                ("com.google.ads.mobile.mediation.imobile",             "1.3.9")  },
         };
 
@@ -149,9 +149,11 @@ namespace com.noctuagames.sdk.Editor
                 yield return (bd.iosPkg,     bd.iosVer);
                 yield return (bd.androidPkg, bd.androidVer);
             }
-            // AdMob Maio: the old 3.0.1 pin pulls in GMA ~> 12.0 and breaks
-            // CocoaPods when the AppLovin Google adapter (GMA = 13.2.0) is
-            // also installed. 3.1.6 resolves the conflict.
+            // AdMob Maio: catalog pinned to 3.0.1 so MaioSDK-v2 = 2.1.6 lines
+            // up with AppLovin MAX Maio adapter 2.1.6.0 (allows both catalogs
+            // to coexist). Trade-off: 3.0.1 pulls GMA ~> 12.0, so projects on
+            // AppLovin MAX GAM/Google 13.x must drop one Maio adapter or pin
+            // GAM to a 12.x-compatible release.
             if (AdmobAdapters.TryGetValue("Maio", out var maio))
             {
                 yield return (maio.pkg, maio.ver);

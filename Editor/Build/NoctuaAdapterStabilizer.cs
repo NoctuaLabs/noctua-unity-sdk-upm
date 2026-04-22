@@ -46,13 +46,6 @@ namespace com.noctuagames.sdk.Editor.Build
             // ByteDance / Pangle iOS: the 709000000.0.0 release was unpublished
             // by AppLovin. Heal to whatever the catalog currently points at.
             { "com.applovin.mediation.adapters.bytedance.ios@709000000.0.0", "@catalog" },
-
-            // ── AdMob — Maio vs GMA 13.x hard conflict ──
-            // AdMob Maio 3.0.1 wraps native pod GoogleMobileAdsMediationMaio 2.1.6.1
-            // which pins Google-Mobile-Ads-SDK ~> 12.0, conflicting with AppLovin
-            // Google adapter 13.2.0.0 (GMA = 13.2.0). Heal to catalog (3.1.6 or
-            // whatever the next safe bump is).
-            { "com.google.ads.mobile.mediation.maio@3.0.1", "@catalog" },
         };
 
         // Exposed for unit tests / diagnostics only — the real force-heal set
@@ -206,33 +199,6 @@ namespace com.noctuagames.sdk.Editor.Build
         [MenuItem("Noctua/iOS/Auto-Stabilize Now", true)]
         public static bool MenuRunStabilizerNow_Validate() =>
             EditorUserBuildSettings.activeBuildTarget == BuildTarget.iOS;
-
-        /// <summary>
-        /// User-facing "I hit the UPM error, fix it" button. Always visible
-        /// (not gated on iOS build target) because the broken pin blocks
-        /// package resolution on every platform, not just during iOS build.
-        /// </summary>
-        [MenuItem("Noctua/Fix Broken Adapter Pins", false, 310)]
-        public static void MenuFixBrokenAdapterPins()
-        {
-            var report = new StringBuilder();
-            int changed = RunInternal(report);
-            if (changed == 0)
-            {
-                EditorUtility.DisplayDialog(
-                    "Noctua Adapter Stabilizer",
-                    "No broken adapter pins detected. Manifest is clean.\n\n" +
-                    "If Unity's Package Manager is still showing a \"Package cannot be found\" error, " +
-                    "try Assets > Reimport All, or restart the Editor.",
-                    "OK");
-                return;
-            }
-            EditorUtility.DisplayDialog(
-                "Noctua Adapter Stabilizer",
-                $"Healed {changed} adapter pin(s):\n\n{report}\n" +
-                "UPM is re-resolving now — the previous \"Package cannot be found\" error should disappear.",
-                "OK");
-        }
 
         // ── Silent entry points (startup / pre-build) ─────────────────────
 
