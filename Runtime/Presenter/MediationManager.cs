@@ -492,28 +492,28 @@ namespace com.noctuagames.sdk
             if (_adNetworkEventsSubscribed) return;
             _adNetworkEventsSubscribed = true;
 
-            _orchestrator.OnAdDisplayed += () =>
+            _orchestrator.OnAdDisplayed += () => PostToMainThread(() =>
             {
                 CloseAdPlaceholder();
                 _appOpenAdManager?.SetFullscreenAdShowing(true);
                 _onAdDisplayed?.Invoke();
-            };
+            });
 
-            _orchestrator.OnAdFailedDisplayed += () =>
+            _orchestrator.OnAdFailedDisplayed += () => PostToMainThread(() =>
             {
                 CloseAdPlaceholder();
                 _appOpenAdManager?.SetFullscreenAdShowing(false);
                 _onAdFailedDisplayed?.Invoke();
-            };
+            });
 
-            _orchestrator.OnAdClicked += () => _onAdClicked?.Invoke();
-            _orchestrator.OnAdImpressionRecorded += () => _onAdImpressionRecorded?.Invoke();
+            _orchestrator.OnAdClicked += () => PostToMainThread(() => _onAdClicked?.Invoke());
+            _orchestrator.OnAdImpressionRecorded += () => PostToMainThread(() => _onAdImpressionRecorded?.Invoke());
 
-            _orchestrator.OnAdClosed += () =>
+            _orchestrator.OnAdClosed += () => PostToMainThread(() =>
             {
                 _appOpenAdManager?.SetFullscreenAdShowing(false);
                 _onAdClosed?.Invoke();
-            };
+            });
         }
 
         private void SubscribeToNetworkSpecificEvents()
