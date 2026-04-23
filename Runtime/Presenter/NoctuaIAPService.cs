@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Concurrent;
+using System.Runtime.CompilerServices;
 using Cysharp.Threading.Tasks;
 using UnityEngine;
 using System.Threading.Tasks;
@@ -282,10 +283,11 @@ namespace com.noctuagames.sdk
             string token,
             long? playerId,
             bool isTriggeredByIAP,
-            string purchaseToken = null
+            string purchaseToken = null,
+            [CallerMemberName] string callerMember = ""
         )
         {
-                _log.Debug($"Attempt to verify orderID {verifyOrderRequest.Id}, triggered by IAP: ${isTriggeredByIAP}");
+                _log.Debug($"Attempt to verify orderID {verifyOrderRequest.Id}, triggered by IAP: {isTriggeredByIAP}, caller: {callerMember}, trigger: {verifyOrderRequest?.Trigger}");
 
                 if (orderRequest.Id == 0)
                 {
@@ -334,7 +336,8 @@ namespace com.noctuagames.sdk
                             break;
                         }
                     } else {
-                        throw e;
+                        _log.Warning($"VerifyOrderImplAsync failed. orderID={verifyOrderRequest.Id}, caller={callerMember}, trigger={verifyOrderRequest?.Trigger}, isTriggeredByIAP={isTriggeredByIAP}, error={e.Message}");
+                        throw;
                     }
                 }
 
@@ -552,6 +555,7 @@ namespace com.noctuagames.sdk
                     }
 
                     OnPurchasePending?.Invoke(orderRequest);
+                    _log.Warning($"VerifyOrderImplAsync throwing Payment error. orderID={verifyOrderRequest.Id}, caller={callerMember}, trigger={verifyOrderRequest?.Trigger}, isTriggeredByIAP={isTriggeredByIAP}, status={verifyOrderResponse.Status}, message={message}");
                     throw new NoctuaException(
                         NoctuaErrorCode.Payment,
                         $"{message}",
@@ -1607,7 +1611,7 @@ namespace com.noctuagames.sdk
                         pendingPurchase.PlayerId,
                         false,
                         pendingPurchase.PurchaseToken
-                    );
+                    ).Forget(e => _log.Warning($"HandleUnpairedPurchase(pending) verify failed: {e.Message}"));
 
                     break;
                 }
@@ -1638,7 +1642,7 @@ namespace com.noctuagames.sdk
                         purchaseItem.PlayerId,
                         false,
                         purchaseItem.PurchaseToken
-                    );
+                    ).Forget(e => _log.Warning($"HandleUnpairedPurchase(history) verify failed: {e.Message}"));
 
                     break;
                 }
@@ -1684,22 +1688,15 @@ namespace com.noctuagames.sdk
                 _log.Info($"NoctuaIAPService.HandleUnpairedPurchase NoctuaUnpairedOrders: {JsonConvert.SerializeObject(unpairedOrders)}");
 
                 // Verify right now, don't wait
-                try {
-
-                    pendingPurchaseItem.VerifyOrderRequest.Trigger = VerifyOrderTrigger.payment_flow.ToString();
-                    VerifyOrderImplAsync(
-                        pendingPurchaseItem.OrderRequest,
-                        pendingPurchaseItem.VerifyOrderRequest,
-                        pendingPurchaseItem.AccessToken,
-                        pendingPurchaseItem.PlayerId,
-                        false,
-                        pendingPurchaseItem.PurchaseToken
-                    );
-                }
-                catch (Exception e)
-                {
-                    _log.Error("NoctuaIAPService.HandleUnpairedPurchase verify failed: " + e);
-                }
+                pendingPurchaseItem.VerifyOrderRequest.Trigger = VerifyOrderTrigger.payment_flow.ToString();
+                VerifyOrderImplAsync(
+                    pendingPurchaseItem.OrderRequest,
+                    pendingPurchaseItem.VerifyOrderRequest,
+                    pendingPurchaseItem.AccessToken,
+                    pendingPurchaseItem.PlayerId,
+                    false,
+                    pendingPurchaseItem.PurchaseToken
+                ).Forget(e => _log.Warning($"HandleUnpairedPurchase(unpaired) verify failed: {e.Message}"));
             }
 
             if (!foundInPurchaseHistory && !foundInPurchaseHistory && !foundUnpairedOrder) {
