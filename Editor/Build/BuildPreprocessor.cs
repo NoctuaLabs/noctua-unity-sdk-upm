@@ -243,35 +243,36 @@ public static class BuildPreprocessor
     }
 
     private const string LocalNotificationParentSymbol = "NOCTUA_USE_LOCAL_NOTIFICATION_PARENT";
-    private const string MobileNotificationsPackage    = "com.unity.mobile.notifications";
+    private const string LocalNotificationSubclassMarker =
+        "IMPL_APP_CONTROLLER_SUBCLASS(LocalNotificationAppController)";
+    private static readonly string[] AppControllerScanRoots =
+    {
+        "Library/PackageCache",
+        "Packages",
+        "Assets",
+    };
 
     /// <summary>
     /// Keeps the <c>NOCTUA_USE_LOCAL_NOTIFICATION_PARENT</c> iOS scripting define in sync with
-    /// the presence of <c>com.unity.mobile.notifications</c> in <c>Packages/manifest.json</c>.
-    /// When the package is installed, CustomAppController inherits from
-    /// <c>LocalNotificationAppController</c> (chained above Unity's local-notification handler)
-    /// instead of direct <c>UnityAppController</c>, preventing the sibling subclass conflict.
-    /// Runs on every editor load — idempotent, safe to re-run.
+    /// an actual sibling-subclass conflict on <c>UnityAppController</c>. We scan the project
+    /// for any <c>.mm</c> file (excluding our own CustomAppController) that declares
+    /// <c>IMPL_APP_CONTROLLER_SUBCLASS(LocalNotificationAppController)</c>. When a sibling
+    /// is found, CustomAppController inherits from <c>LocalNotificationAppController</c>
+    /// instead of <c>UnityAppController</c> directly, preventing Unity from arbitrarily
+    /// dropping one of the two subclasses. Runs on every editor load — idempotent.
     /// </summary>
     private static void SyncLocalNotificationParentDefine()
     {
         try
         {
-            var manifestPath = Path.Combine(Application.dataPath, "../Packages/manifest.json");
-            if (!File.Exists(manifestPath))
-            {
-                RemoveDefineSymbol(LocalNotificationParentSymbol, BuildTargetGroup.iOS);
-                return;
-            }
+            bool siblingConflictDetected = DetectLocalNotificationSibling();
 
-            var manifestText = File.ReadAllText(manifestPath);
-            bool hasMobileNotifications = manifestText.Contains(MobileNotificationsPackage);
-
-            if (hasMobileNotifications)
+            if (siblingConflictDetected)
             {
                 AddDefineSymbol(LocalNotificationParentSymbol, BuildTargetGroup.iOS);
-                Debug.Log($"[BuildPreprocessor] {MobileNotificationsPackage} detected — " +
-                          $"added {LocalNotificationParentSymbol} to iOS defines so " +
+                Debug.Log($"[BuildPreprocessor] Sibling IMPL_APP_CONTROLLER_SUBCLASS " +
+                          $"(LocalNotificationAppController) detected — added " +
+                          $"{LocalNotificationParentSymbol} to iOS defines so " +
                           "CustomAppController bridges to LocalNotificationAppController.");
             }
             else
@@ -283,6 +284,49 @@ public static class BuildPreprocessor
         {
             Debug.LogWarning($"[BuildPreprocessor] SyncLocalNotificationParentDefine failed: {e.Message}");
         }
+    }
+
+    private static bool DetectLocalNotificationSibling()
+    {
+        var projectRoot = Path.GetFullPath(Path.Combine(Application.dataPath, ".."));
+        var ownController = Path.GetFullPath(Path.Combine(
+            projectRoot,
+            "Packages/com.noctuagames.sdk/Runtime/Plugins/iOS/CustomAppController.mm"));
+
+        foreach (var relativeRoot in AppControllerScanRoots)
+        {
+            var root = Path.Combine(projectRoot, relativeRoot);
+            if (!Directory.Exists(root)) continue;
+
+            IEnumerable<string> mmFiles;
+            try
+            {
+                mmFiles = Directory.EnumerateFiles(root, "*.mm", SearchOption.AllDirectories);
+            }
+            catch (Exception e)
+            {
+                Debug.LogWarning($"[BuildPreprocessor] Skipped scanning '{root}': {e.Message}");
+                continue;
+            }
+
+            foreach (var file in mmFiles)
+            {
+                if (string.Equals(Path.GetFullPath(file), ownController, StringComparison.OrdinalIgnoreCase))
+                    continue;
+
+                try
+                {
+                    if (File.ReadAllText(file).Contains(LocalNotificationSubclassMarker))
+                        return true;
+                }
+                catch (Exception e)
+                {
+                    Debug.LogWarning($"[BuildPreprocessor] Skipped reading '{file}': {e.Message}");
+                }
+            }
+        }
+
+        return false;
     }
 }
 
