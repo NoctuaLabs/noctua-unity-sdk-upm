@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Threading;
 using com.noctuagames.sdk.Events;
 using Cysharp.Threading.Tasks;
@@ -138,10 +139,14 @@ namespace com.noctuagames.sdk
         }
 
         /// <summary>
-        /// Public for test invocation. Builds a <c>client_error</c> payload
-        /// from an Android ApplicationExitInfo record and sends it via the
-        /// injected <see cref="IEventSender"/>.
+        /// Internal-by-intent: public only because SDK policy forbids
+        /// <c>InternalsVisibleTo</c> (see <c>CLAUDE.md</c> Class Visibility
+        /// Rule). Builds a <c>client_error</c> payload from an Android
+        /// ApplicationExitInfo record. External callers should not invoke
+        /// this — it's the dispatch target for the Android poll loop and
+        /// unit tests. Hidden from IntelliSense.
         /// </summary>
+        [EditorBrowsable(EditorBrowsableState.Never)]
         public void ForwardAndroidRecord(AndroidNativeCrashReporter.NativeCrashRecord r)
         {
             var payload = new Dictionary<string, IConvertible>
@@ -210,10 +215,13 @@ namespace com.noctuagames.sdk
         }
 
         /// <summary>
-        /// Public for test invocation. Parses an MetricKit payload JSON string
-        /// (same shape emitted by <c>NoctuaCrashReporter.m</c>), dedups against
+        /// Internal-by-intent (see <see cref="ForwardAndroidRecord"/> for
+        /// rationale). Parses a MetricKit payload JSON string (same shape
+        /// emitted by <c>NoctuaCrashReporter.m</c>), dedups against
         /// PlayerPrefs-stored IDs, and forwards as <c>client_error</c>.
+        /// Hidden from IntelliSense.
         /// </summary>
+        [EditorBrowsable(EditorBrowsableState.Never)]
         public void OnIosCrashPayload(string json)
         {
             if (string.IsNullOrEmpty(json)) return;
@@ -264,7 +272,11 @@ namespace com.noctuagames.sdk
             {
                 var stored = PlayerPrefs.GetString(PrefKeyIosSeenReportIds, "");
                 if (string.IsNullOrEmpty(stored)) return false;
-                // Comma-separated; cheap O(n) check is fine at n ≤ 64.
+                // Invariant: iOS os_report_id uses '|' as its internal field
+                // separator (see NoctuaCrashReporter.m serializeCrash:) so
+                // ',' is safe as the PlayerPrefs list separator here. If the
+                // ObjC-side format ever changes, BOTH sides must change.
+                // Cheap O(n) scan is fine at n ≤ MaxStoredIosIds.
                 var parts = stored.Split(',');
                 foreach (var p in parts) if (p == id) return true;
             }

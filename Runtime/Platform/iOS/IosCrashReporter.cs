@@ -30,7 +30,12 @@ namespace com.noctuagames.sdk
 
         /// <summary>
         /// Registers the MetricKit subscriber. Safe to call multiple times —
-        /// later calls replace the managed callback.
+        /// <b>each call replaces the previously-registered managed callback</b>.
+        /// Only one subscriber can receive diagnostics at a time (the ObjC
+        /// bridge keeps a single static function pointer). In this SDK the
+        /// subscriber is always <see cref="NativeCrashForwarder"/>; multiple
+        /// registrations without an intervening <see cref="Stop"/> silently
+        /// drop earlier callbacks.
         /// </summary>
         public static void Start(NativeCrashCallbackDelegate managedCallback)
         {

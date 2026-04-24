@@ -82,8 +82,13 @@ namespace com.noctuagames.sdk
 
                 string packageName = context.Call<string>("getPackageName");
 
-                // Query last 50 exits — most crash storms collapse into a few
-                // unique records after dedup. 0 = all available.
+                // Cap at the 50 most-recent exits. That's plenty of headroom
+                // for crash storms that collapse into a handful of unique
+                // records after dedup, and keeps the JNI round-trip cheap.
+                // (The Android ApplicationExitInfo API also supports
+                // `maxNum=0` meaning "all available", but we don't want that
+                // — 50 is the upper bound we're willing to process on
+                // launch.) Args: pid=0 → query for our own process.
                 using var exitInfoList = activityManager.Call<AndroidJavaObject>(
                     "getHistoricalProcessExitReasons", packageName, 0, 50);
                 if (exitInfoList == null) return results;

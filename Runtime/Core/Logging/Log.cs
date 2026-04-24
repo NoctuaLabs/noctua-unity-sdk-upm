@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
 using System.Runtime.CompilerServices;
@@ -327,8 +328,12 @@ namespace com.noctuagames.sdk
         }
 
         /// <summary>
-        /// Public for test invocation. Normally wired to <see cref="Application.logMessageReceived"/>.
+        /// Internal-by-intent: public only because SDK policy forbids
+        /// <c>InternalsVisibleTo</c> (see <c>Packages/com.noctuagames.sdk/CLAUDE.md</c>
+        /// &ldquo;Class Visibility Rule&rdquo;). The event dispatcher calls
+        /// this; external callers should not. Hidden from IntelliSense.
         /// </summary>
+        [EditorBrowsable(EditorBrowsableState.Never)]
         public void HandleLog(string logString, string stackTrace, LogType type)
         {
             // Guard set at handler entry so that `_log.Error` below — which in
@@ -358,8 +363,10 @@ namespace com.noctuagames.sdk
         }
 
         /// <summary>
-        /// Public for test invocation. Normally wired to <see cref="Application.logMessageReceivedThreaded"/>.
+        /// Internal-by-intent (see <see cref="HandleLog"/> for rationale).
+        /// Wired to <see cref="Application.logMessageReceivedThreaded"/>.
         /// </summary>
+        [EditorBrowsable(EditorBrowsableState.Never)]
         public void HandleLogThreaded(string logString, string stackTrace, LogType type)
         {
             if (_suppressForwarding) return;
@@ -386,8 +393,10 @@ namespace com.noctuagames.sdk
         }
 
         /// <summary>
-        /// Public for test invocation. Normally wired to <see cref="AppDomain.UnhandledException"/>.
+        /// Internal-by-intent (see <see cref="HandleLog"/> for rationale).
+        /// Wired to <see cref="AppDomain.UnhandledException"/>.
         /// </summary>
+        [EditorBrowsable(EditorBrowsableState.Never)]
         public void HandleUnhandledException(object sender, UnhandledExceptionEventArgs e)
         {
             if (_suppressForwarding) return;
@@ -446,7 +455,15 @@ namespace com.noctuagames.sdk
 
             var nowMs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
 
-            // Sliding 60s rate-limit window
+            // Sliding 60s rate-limit window.
+            //
+            // Race window: the two Exchange calls below are not atomic as a
+            // pair, so between them another thread can Increment _windowCount
+            // against the fresh _windowStartMs with the stale pre-reset count.
+            // Drift is bounded to ≤1 extra increment per concurrent hit, well
+            // under the 30/min cap — accepting this in exchange for lock-free
+            // fast-path cost. A CAS loop would fix it at the price of retries
+            // during exception storms, which is the path we want cheapest.
             var windowStart = Interlocked.Read(ref _windowStartMs);
             if (nowMs - windowStart > 60_000)
             {
@@ -460,7 +477,16 @@ namespace com.noctuagames.sdk
                 return;
             }
 
-            // Dedup by (errorType, message, stack-head) within a 60s window
+            // Dedup by (errorType, message, stack-head) within a 60s window.
+            //
+            // Eviction is intentionally blunt: on overflow we wipe the whole
+            // dict, which means a subsequent crash-storm with >256 distinct
+            // error signatures loses dedup state for the recently-seen subset
+            // and re-emits each once more. That's acceptable here because the
+            // 30/min rate-limit above is the dominant throttle — a true LRU
+            // would add bookkeeping cost to the hot path for a scenario
+            // rate-limit already bounds. Revisit if observed event volume
+            // during storms exceeds the rate-limit cap.
             if (_dedup.Count > MaxDedupEntries) _dedup.Clear();
 
             var stack = stackTrace ?? "";
