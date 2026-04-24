@@ -86,12 +86,36 @@ namespace com.noctuagames.sdk
         /// <summary>Convenience: toggle the Inspector overlay. Safe to call any time.</summary>
         public static void ToggleInspector() => Instance.Value._inspector?.Toggle();
 
+#if UNITY_EDITOR
+        /// <summary>
+        /// Editor-only test hook: injects a fake iOS MetricKit payload into the
+        /// <see cref="NativeCrashForwarder"/> so dashboard schema iteration
+        /// doesn't require a real device crash. Strips at build time — not
+        /// shipped in Android/iOS builds.
+        /// </summary>
+        public static void DebugInjectFakeNativeCrash(string iosLikeJsonPayload = null)
+        {
+            var json = iosLikeJsonPayload ?? Newtonsoft.Json.JsonConvert.SerializeObject(new
+            {
+                error_type = "SIGSEGV",
+                message = "Editor-injected fake crash",
+                stack_trace = "0 libfake 0x0 simulate()\n1 Game 0x0 Update()",
+                timestamp_utc = DateTime.UtcNow.ToString("o"),
+                os_report_id = "editor-fake-" + Guid.NewGuid().ToString("N"),
+                signal = 11
+            });
+
+            Instance.Value._nativeCrashForwarder?.OnIosCrashPayload(json);
+        }
+#endif
+
         private readonly ILogger _log = new NoctuaLogger();
         private readonly EventSender _eventSender;
         private HttpInspectorLog _httpLog;
         private TrackerDebugMonitor _debugMonitor;
         private com.noctuagames.sdk.Inspector.NoctuaInspectorController _inspector;
         private readonly SessionTracker _sessionTracker;
+        private NativeCrashForwarder _nativeCrashForwarder;
         private readonly NoctuaEventService _event;
         private readonly NoctuaAuthentication _auth;
         private readonly NoctuaIAPService _iap;

@@ -1,14 +1,19 @@
 ﻿using System;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Threading;
 using System.Xml;
+using com.noctuagames.sdk.Events;
 using Serilog;
 using Serilog.Core;
 using Serilog.Events;
 using UnityEditor;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 namespace com.noctuagames.sdk
 {
@@ -248,37 +253,64 @@ namespace com.noctuagames.sdk
     }
 #endif
 
-    internal class GlobalExceptionLogger : MonoBehaviour
+    /// <summary>
+    /// Subscribes to Unity's exception hooks (main + threaded log messages and
+    /// <see cref="AppDomain.UnhandledException"/>) and forwards Warning/Error/Exception
+    /// logs to the Noctua event pipeline as a single <c>client_error</c> event.
+    /// Also logs exceptions via <see cref="ILogger"/> for Serilog/Sentry sinks.
+    /// Safe to call from any thread — forwarding is allocation-light, rate-limited,
+    /// deduplicated, and never rethrows.
+    /// </summary>
+    public class GlobalExceptionLogger : MonoBehaviour
     {
-        private readonly ILogger _log = new NoctuaLogger();
+        private readonly ILogger _log = new NoctuaLogger(typeof(GlobalExceptionLogger));
+        private IEventSender _eventSender;
+
+        // Dedup + rate-limit state
+        private readonly ConcurrentDictionary<string, DedupEntry> _dedup = new();
+        private long _windowStartMs;
+        private int _windowCount;
+        private int _suppressedCounter;
+
+        // Cached main-thread-only values for use from background threads
+        private string _cachedScene = "";
+        private string _cachedPlatform = "";
+        private string _cachedAppVersion = "";
+
+        [ThreadStatic] private static bool _suppressForwarding;
+
+        private const int RateLimitPerMinute = 30;
+        private const int DedupWindowMs = 60_000;
+        private const int MaxDedupEntries = 256;
+        private const int MaxMessageChars = 500;
+        private const int MaxStackTraceChars = 4000;
+        private const int StackHeadForKey = 200;
+
+        private sealed class DedupEntry
+        {
+            public long LastSeenMs;
+            public int Count;
+        }
+
+        /// <summary>
+        /// Sets the event sender used to forward errors. Pass <c>null</c> to
+        /// disable forwarding (useful as a runtime kill-switch).
+        /// </summary>
+        public void SetEventSender(IEventSender eventSender)
+        {
+            _eventSender = eventSender;
+        }
 
         void Awake()
         {
+            _cachedScene = SceneManager.GetActiveScene().name;
+            _cachedPlatform = Application.platform.ToString();
+            _cachedAppVersion = Application.version;
+
             Application.logMessageReceived += HandleLog;
             AppDomain.CurrentDomain.UnhandledException += HandleUnhandledException;
             Application.logMessageReceivedThreaded += HandleLogThreaded;
-        }
-
-        private void HandleLog(string logString, string stackTrace, LogType type)
-        {
-            if (type == LogType.Exception)
-            {
-                _log.Error($"{logString}\n{stackTrace}");
-            }
-        }
-
-        private void HandleUnhandledException(object sender, UnhandledExceptionEventArgs e)
-        {
-            Exception ex = (Exception)e.ExceptionObject;
-            _log.Exception(ex);
-        }
-
-        private void HandleLogThreaded(string logString, string stackTrace, LogType type)
-        {
-            if (type == LogType.Exception)
-            {
-                _log.Error($"{logString}\n{stackTrace}");
-            }
+            SceneManager.sceneLoaded += HandleSceneLoaded;
         }
 
         void OnDestroy()
@@ -286,6 +318,247 @@ namespace com.noctuagames.sdk
             Application.logMessageReceived -= HandleLog;
             AppDomain.CurrentDomain.UnhandledException -= HandleUnhandledException;
             Application.logMessageReceivedThreaded -= HandleLogThreaded;
+            SceneManager.sceneLoaded -= HandleSceneLoaded;
+        }
+
+        private void HandleSceneLoaded(Scene scene, LoadSceneMode mode)
+        {
+            _cachedScene = scene.name;
+        }
+
+        /// <summary>
+        /// Public for test invocation. Normally wired to <see cref="Application.logMessageReceived"/>.
+        /// </summary>
+        public void HandleLog(string logString, string stackTrace, LogType type)
+        {
+            // Guard set at handler entry so that `_log.Error` below — which in
+            // the Editor re-enters `Application.logMessageReceived` via
+            // UnityLogSink — can't recurse into another forward.
+            if (_suppressForwarding) return;
+            _suppressForwarding = true;
+            try
+            {
+                if (!ShouldForward(type)) return;
+
+                if (type == LogType.Exception)
+                {
+                    _log.Error($"{logString}\n{stackTrace}");
+                }
+
+                ForwardToEvents(
+                    errorType: ExtractType(logString, type),
+                    message: logString,
+                    stackTrace: stackTrace,
+                    severity: SeverityOf(type),
+                    thread: "main",
+                    scene: SceneManager.GetActiveScene().name);
+            }
+            catch { /* never rethrow into Unity's logger */ }
+            finally { _suppressForwarding = false; }
+        }
+
+        /// <summary>
+        /// Public for test invocation. Normally wired to <see cref="Application.logMessageReceivedThreaded"/>.
+        /// </summary>
+        public void HandleLogThreaded(string logString, string stackTrace, LogType type)
+        {
+            if (_suppressForwarding) return;
+            _suppressForwarding = true;
+            try
+            {
+                if (!ShouldForward(type)) return;
+
+                if (type == LogType.Exception)
+                {
+                    _log.Error($"{logString}\n{stackTrace}");
+                }
+
+                ForwardToEvents(
+                    errorType: ExtractType(logString, type),
+                    message: logString,
+                    stackTrace: stackTrace,
+                    severity: SeverityOf(type),
+                    thread: "background",
+                    scene: _cachedScene);
+            }
+            catch { /* never rethrow */ }
+            finally { _suppressForwarding = false; }
+        }
+
+        /// <summary>
+        /// Public for test invocation. Normally wired to <see cref="AppDomain.UnhandledException"/>.
+        /// </summary>
+        public void HandleUnhandledException(object sender, UnhandledExceptionEventArgs e)
+        {
+            if (_suppressForwarding) return;
+            _suppressForwarding = true;
+            try
+            {
+                var ex = e.ExceptionObject as Exception;
+                if (ex == null) return;
+
+                _log.Exception(ex);
+
+                ForwardToEvents(
+                    errorType: ex.GetType().Name,
+                    message: ex.Message,
+                    stackTrace: ex.StackTrace,
+                    severity: "error",
+                    thread: "unhandled",
+                    scene: _cachedScene);
+            }
+            catch { /* never rethrow */ }
+            finally { _suppressForwarding = false; }
+        }
+
+        private static bool ShouldForward(LogType type)
+        {
+            return type == LogType.Exception
+                || type == LogType.Error
+                || type == LogType.Warning;
+        }
+
+        private static string SeverityOf(LogType type)
+        {
+            switch (type)
+            {
+                case LogType.Exception: return "exception";
+                case LogType.Error:     return "error";
+                case LogType.Warning:   return "warning";
+                default:                return "error";
+            }
+        }
+
+        private void ForwardToEvents(
+            string errorType,
+            string message,
+            string stackTrace,
+            string severity,
+            string thread,
+            string scene)
+        {
+            if (_eventSender == null) return;
+            // Note: re-entrancy guard is applied at the handler entry
+            // (HandleLog / HandleLogThreaded / HandleUnhandledException), not
+            // here. That way, the handler's own `_log.Error(...)` — which in
+            // the Editor re-enters logMessageReceived via UnityLogSink — is
+            // also suppressed.
+
+            var nowMs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+
+            // Sliding 60s rate-limit window
+            var windowStart = Interlocked.Read(ref _windowStartMs);
+            if (nowMs - windowStart > 60_000)
+            {
+                Interlocked.Exchange(ref _windowStartMs, nowMs);
+                Interlocked.Exchange(ref _windowCount, 0);
+            }
+
+            if (Interlocked.Increment(ref _windowCount) > RateLimitPerMinute)
+            {
+                Interlocked.Increment(ref _suppressedCounter);
+                return;
+            }
+
+            // Dedup by (errorType, message, stack-head) within a 60s window
+            if (_dedup.Count > MaxDedupEntries) _dedup.Clear();
+
+            var stack = stackTrace ?? "";
+            var keyStackHead = stack.Length <= StackHeadForKey
+                ? stack
+                : stack.Substring(0, StackHeadForKey);
+            var key = errorType + "|" + message + "|" + keyStackHead;
+
+            var dedupCountOnFirst = 1;
+            var isFirstInWindow = false;
+            _dedup.AddOrUpdate(
+                key,
+                _ =>
+                {
+                    isFirstInWindow = true;
+                    return new DedupEntry { LastSeenMs = nowMs, Count = 1 };
+                },
+                (_, existing) =>
+                {
+                    if (nowMs - existing.LastSeenMs < DedupWindowMs)
+                    {
+                        existing.Count++;
+                        existing.LastSeenMs = nowMs;
+                        return existing;
+                    }
+
+                    // Window expired — the accumulated count from the previous
+                    // window is reported on this emission, and the entry resets.
+                    isFirstInWindow = true;
+                    dedupCountOnFirst = existing.Count;
+                    existing.LastSeenMs = nowMs;
+                    existing.Count = 1;
+                    return existing;
+                });
+
+            if (!isFirstInWindow) return;
+
+            var suppressed = Interlocked.Exchange(ref _suppressedCounter, 0);
+
+            var payload = new Dictionary<string, IConvertible>
+            {
+                { "source", "managed" },
+                { "error_type", errorType ?? "Unknown" },
+                { "message", Truncate(message, MaxMessageChars) },
+                { "stack_trace", Truncate(stack, MaxStackTraceChars) },
+                { "severity", severity },
+                { "thread", thread },
+                { "scene", scene ?? "" },
+                { "platform", _cachedPlatform },
+                { "app_version", _cachedAppVersion },
+                { "timestamp_utc", DateTime.UtcNow.ToString("o") },
+                { "dedup_count", dedupCountOnFirst },
+                { "suppressed_count", suppressed }
+            };
+
+            try
+            {
+                _eventSender.Send("client_error", payload);
+            }
+            catch (Exception sendEx)
+            {
+                // Use Debug-level to avoid re-entering logMessageReceived via
+                // an error-level log.
+                _log.Debug("Failed to forward client_error event: " + sendEx.Message);
+            }
+        }
+
+        /// <summary>
+        /// Extracts the exception class name from Unity's exception log format.
+        /// Example: <c>"NullReferenceException: Object reference..."</c>
+        /// → <c>"NullReferenceException"</c>. Falls back to the LogType name.
+        /// </summary>
+        private static string ExtractType(string logString, LogType type)
+        {
+            if (type == LogType.Exception && !string.IsNullOrEmpty(logString))
+            {
+                var colonIdx = logString.IndexOf(':');
+                if (colonIdx > 0 && colonIdx < 128)
+                {
+                    var head = logString.Substring(0, colonIdx);
+                    // Guard: reject multi-word heads (likely not a type name)
+                    if (!head.Contains(" ")) return head;
+                }
+            }
+
+            switch (type)
+            {
+                case LogType.Exception: return "Exception";
+                case LogType.Error:     return "Error";
+                case LogType.Warning:   return "Warning";
+                default:                return "Log";
+            }
+        }
+
+        private static string Truncate(string s, int max)
+        {
+            if (string.IsNullOrEmpty(s)) return "";
+            return s.Length <= max ? s : s.Substring(0, max);
         }
     }
 }

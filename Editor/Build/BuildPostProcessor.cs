@@ -190,6 +190,12 @@ using UnityEditor.Graphs;
                 Log("Swift adapter detected: set SWIFT_VERSION=5.0, ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES=YES.");
             }
 
+            // MetricKit powers `client_error source=native` crash forwarding
+            // (iOS 14+). Weak-linked so builds targeting older OS still run,
+            // just without native crash capture.
+            proj.AddFrameworkToProject(targetGuid, "MetricKit.framework", weak: true);
+            Log("Added MetricKit.framework (weak) for native crash reporting.");
+
             if (firebaseEnabled)
             {
                 proj.AddFileToBuild(targetGuid, proj.AddFile("GoogleService-Info.plist", "GoogleService-Info.plist"));

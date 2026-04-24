@@ -204,7 +204,21 @@ namespace com.noctuagames.sdk
             panelSettings.themeStyleSheet = Resources.Load<ThemeStyleSheet>("NoctuaTheme");
             var noctuaUIGameObject = new GameObject("NoctuaUI");
             noctuaUIGameObject.AddComponent<PauseBehaviour>();
-            noctuaUIGameObject.AddComponent<GlobalExceptionLogger>();
+            var globalExceptionLogger = noctuaUIGameObject.AddComponent<GlobalExceptionLogger>();
+            globalExceptionLogger.SetEventSender(_eventSender);
+
+            // Native crash forwarder — OS-reported crashes (iOS MetricKit,
+            // Android ApplicationExitInfo) surface as client_error with
+            // source=native on the NEXT launch after the crash.
+            try
+            {
+                _nativeCrashForwarder = new NativeCrashForwarder(_eventSender);
+                _nativeCrashForwarder.Start();
+            }
+            catch (Exception ex)
+            {
+                _log.Warning($"NativeCrashForwarder init failed: {ex.Message}");
+            }
             var screenRotationMonitor = noctuaUIGameObject.AddComponent<ScreenRotationMonitor>();
             screenRotationMonitor.PanelSettings = panelSettings;
             Object.DontDestroyOnLoad(noctuaUIGameObject);
