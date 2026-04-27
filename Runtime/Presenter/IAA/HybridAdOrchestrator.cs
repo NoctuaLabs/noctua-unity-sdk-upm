@@ -117,11 +117,16 @@ namespace com.noctuagames.sdk
         }
 
         /// <summary>
-        /// Initializes both ad networks.
+        /// Initializes both ad networks sequentially: primary first, then secondary after the
+        /// primary's init callback fires.
         /// <para><paramref name="onPrimaryReady"/> fires when the primary network is ready — safe to load primary ads.</para>
         /// <para><paramref name="onSecondaryReady"/> fires when the secondary network is ready — safe to load secondary ads.
         /// Never fires when there is no secondary network.</para>
-        /// Both initializations run concurrently; always wait for each callback before calling Load on that network.
+        /// Sequential ordering avoids a race when one network's mediation adapter calls into the
+        /// other network's SDK while the standalone init of that other network is also in flight
+        /// (e.g. AdMob's AppLovin adapter racing standalone MaxSdk.InitializeSdk → one of the
+        /// init callbacks may never fire, leaving the adapter in a half-initialized state).
+        /// Always wait for each callback before calling Load on that network.
         /// </summary>
         public void Initialize(Action onPrimaryReady, Action onSecondaryReady = null)
         {
@@ -133,17 +138,18 @@ namespace com.noctuagames.sdk
                 _primaryInitialized = true;
                 _log.Info($"Primary network ({_primary.NetworkName}) initialized.");
                 onPrimaryReady?.Invoke();
-            });
 
-            if (_secondary != null)
-            {
-                _secondary.Initialize(() =>
+                if (_secondary != null)
                 {
-                    _secondaryInitialized = true;
-                    _log.Info($"Secondary network ({_secondary.NetworkName}) initialized.");
-                    onSecondaryReady?.Invoke();
-                });
-            }
+                    _log.Info($"Primary ready — starting secondary network init: {_secondary.NetworkName}");
+                    _secondary.Initialize(() =>
+                    {
+                        _secondaryInitialized = true;
+                        _log.Info($"Secondary network ({_secondary.NetworkName}) initialized.");
+                        onSecondaryReady?.Invoke();
+                    });
+                }
+            });
         }
 
         /// <summary>
