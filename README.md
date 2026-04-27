@@ -60,7 +60,7 @@ One-click install of a pre-validated combination that runs AppLovin MAX and AdMo
 
 | Package | Version | Notes |
 |---------|---------|-------|
-| AppLovin MAX SDK | 8.6.2 | Wraps MAX SDK 13.6.2 |
+| AppLovin MAX SDK | 8.6.1 | Wraps MAX SDK 13.6.1 (pinned to avoid GMA conflict with AdMob AppLovin adapter) |
 | AdMob / GMA SDK | 11.0.0 | GMA iOS ~> 13.0.0, Android 25.0.0 |
 | AppLovin → Google Android | 25010000.0.0 | Routes AdMob demand (Android) |
 | AppLovin → Google iOS | 13020000.0.0 | Routes AdMob demand (iOS) |

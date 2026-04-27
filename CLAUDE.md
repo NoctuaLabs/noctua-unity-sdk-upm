@@ -140,7 +140,7 @@ Open via **Noctua > Noctua Integration Manager**. Manages ad SDK UPM packages di
 
 **Adding a new adapter to the catalog:**
 1. Add entry to `maxAdapterPackages` (Android + iOS pkg/ver tuple) or `admobAdapterPackages`
-2. Version must be verified stable against current MAX SDK (8.6.2) or AdMob SDK (11.0.0)
+2. Version must be verified stable against current MAX SDK (8.6.1) or AdMob SDK (11.0.0)
 3. For AppLovin adapters: versions come from `unity.packages.applovin.com/-/all`
 4. For AdMob adapters: versions come from `package.openupm.com`
 

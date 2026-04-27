@@ -67,7 +67,7 @@ public class NoctuaIntegrationManagerWindow : EditorWindow
     // registry: "applovin" | "openupm"
     private readonly List<(string name, string pkg, string ver, string note, string registry)> recommendedSetup = new()
     {
-        ( "AppLovin MAX SDK",           "com.applovin.mediation.ads",                          "8.6.2",         "Primary mediation — wraps MAX SDK 13.6.2",            "applovin" ),
+        ( "AppLovin MAX SDK",           "com.applovin.mediation.ads",                          "8.6.1",         "Primary mediation — wraps MAX SDK 13.6.1 (pinned to avoid GMA conflict with AdMob AppLovin adapter)", "applovin" ),
         ( "AdMob / GMA SDK",            "com.google.ads.mobile",                               "11.0.0",        "Compatible: GMA iOS ~> 13.0.0, Android 25.0.0",       "openupm"  ),
         ( "AppLovin → Google (Android)","com.applovin.mediation.adapters.google.android",       "25010000.0.0",  "Routes AdMob demand through AppLovin MAX (Android)",   "applovin" ),
         ( "AppLovin → Google (iOS)",    "com.applovin.mediation.adapters.google.ios",           "13020000.0.0",  "Routes AdMob demand through AppLovin MAX (iOS)",       "applovin" ),
@@ -289,7 +289,7 @@ public class NoctuaIntegrationManagerWindow : EditorWindow
         // Explanation banner — always Info, never Warning (updating packages is not an error)
         EditorGUILayout.HelpBox(
             "Runs AppLovin MAX and AdMob demand on BOTH Android and iOS without conflicts.\n" +
-            "Android: GMA 25.1.0 compatible with AppLovin MAX 13.6.2 adapters.\n" +
+            "Android: GMA 25.1.0 compatible with AppLovin MAX 13.6.1 adapters.\n" +
             "iOS:     AdMob 11.0.0 pins GMA iOS ~> 13.0.0 — satisfied by AppLovin Google adapter (13.2.0).\n" +
             "AppLovin MAX mediates AdMob demand via the Google adapter — one dependency tree, no version conflicts.",
             MessageType.Info);
@@ -387,7 +387,7 @@ public class NoctuaIntegrationManagerWindow : EditorWindow
     private void DrawMaxAdaptersSection()
     {
         EditorGUILayout.HelpBox(
-            "★ Recommended versions are tested with AppLovin MAX SDK 8.6.2. " +
+            "★ Recommended versions are tested with AppLovin MAX SDK 8.6.1. " +
             "Install or update to recommended to prevent CocoaPods conflicts and ad-fill issues.",
             MessageType.None);
 
