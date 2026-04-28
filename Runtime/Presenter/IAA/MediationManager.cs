@@ -1053,6 +1053,7 @@ namespace com.noctuagames.sdk
                 else _onAdNotAvailable?.Invoke(AdFormatKey.Interstitial);
             }
         }
+#endif
 
         private void TryInterstitialFallback(IAdNetwork failedNetwork, string placement)
         {
@@ -1071,7 +1072,9 @@ namespace com.noctuagames.sdk
 
             if (IsAdmobNetwork(fallback))
             {
+#if UNITY_ADMOB
                 ShowAdmobInterstitial(fallback, placement, isFallback: true);
+#endif
                 return;
             }
 
@@ -1106,6 +1109,7 @@ namespace com.noctuagames.sdk
                 action(); // fallback: already on main thread (Editor / tests)
         }
 
+#if UNITY_ADMOB
         private void RegisterCallbackAdInterstitial(InterstitialAd interstitialAd, string placement = null)
         {
             // Preload path needs to emit canonical IAA events (ad_shown / ad_impression /
@@ -1306,6 +1310,7 @@ namespace com.noctuagames.sdk
                 else _onAdNotAvailable?.Invoke(AdFormatKey.Rewarded);
             }
         }
+#endif
 
         private void TryRewardedFallback(IAdNetwork failedNetwork, string placement)
         {
@@ -1324,7 +1329,9 @@ namespace com.noctuagames.sdk
 
             if (IsAdmobNetwork(fallback))
             {
+#if UNITY_ADMOB
                 ShowAdmobRewarded(fallback, placement, isFallback: true);
+#endif
                 return;
             }
 
@@ -1346,6 +1353,7 @@ namespace com.noctuagames.sdk
             }
         }
 
+#if UNITY_ADMOB
         private void RegisterCallbackAdRewarded(RewardedAd rewardedAd, string placement = null)
         {
             // See comment in RegisterCallbackAdInterstitial — canonical IAA events must be
