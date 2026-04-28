@@ -260,7 +260,7 @@ namespace com.noctuagames.sdk.AppLovin
         private async UniTaskVoid RetryLoadRewardedAsync()
         {
             retryAttempt++;
-            double retryDelay = retryAttempt * 10;
+            double retryDelay = Math.Pow(2, Math.Min(6, retryAttempt));
 
             await UniTask.Delay((int)(retryDelay * 1000));
             LoadRewardedAd();

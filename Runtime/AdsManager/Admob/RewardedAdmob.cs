@@ -354,7 +354,7 @@ namespace com.noctuagames.sdk.Admob
         private async UniTaskVoid RetryLoadRewardedAsync()
         {
             _retryAttempt++;
-            double retryDelay = _retryAttempt * 10;
+            double retryDelay = Math.Pow(2, Math.Min(6, _retryAttempt));
 
             _log.Debug($"Retrying to load rewarded ad after {retryDelay} seconds (attempt {_retryAttempt})");
 

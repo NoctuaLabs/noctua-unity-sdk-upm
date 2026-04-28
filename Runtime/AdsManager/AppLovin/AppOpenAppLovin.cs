@@ -196,7 +196,7 @@ namespace com.noctuagames.sdk.AppLovin
         private async UniTaskVoid RetryLoadAsync()
         {
             _retryAttempt++;
-            double retryDelay = _retryAttempt * 10;
+            double retryDelay = Math.Pow(2, Math.Min(6, _retryAttempt));
 
             await UniTask.Delay((int)(retryDelay * 1000));
             LoadAppOpenAdInternal();
