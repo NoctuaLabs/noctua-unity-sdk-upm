@@ -1117,6 +1117,13 @@ namespace com.noctuagames.sdk
                 return;
             }
 
+            if (!IsCpmFloorAcceptable(fallback, AdFormatKey.Interstitial))
+            {
+                _log.Info($"Interstitial fallback to {fallback.NetworkName} blocked by CPM hard floor. No ad available.");
+                _onAdNotAvailable?.Invoke(AdFormatKey.Interstitial);
+                return;
+            }
+
             _log.Info($"{failedNetwork.NetworkName} interstitial not available. Falling back to {fallback.NetworkName}.");
 
             if (IsAdmobNetwork(fallback))
@@ -1370,6 +1377,13 @@ namespace com.noctuagames.sdk
             if (fallback == null)
             {
                 _log.Info("Rewarded: no secondary network to fall back to.");
+                _onAdNotAvailable?.Invoke(AdFormatKey.Rewarded);
+                return;
+            }
+
+            if (!IsCpmFloorAcceptable(fallback, AdFormatKey.Rewarded))
+            {
+                _log.Info($"Rewarded fallback to {fallback.NetworkName} blocked by CPM hard floor. No ad available.");
                 _onAdNotAvailable?.Invoke(AdFormatKey.Rewarded);
                 return;
             }
@@ -1722,6 +1736,14 @@ namespace com.noctuagames.sdk
             }
 
             var network = _orchestrator.GetNetworkForFormat(AdFormatKey.Interstitial);
+
+            if (!IsCpmFloorAcceptable(network, AdFormatKey.Interstitial))
+            {
+                _log.Info($"Preferred network {network.NetworkName} interstitial blocked by CPM hard floor. Trying fallback.");
+                TryInterstitialFallback(network, placement);
+                return;
+            }
+
             if (IsAdmobNetwork(network))
             {
 #if UNITY_ADMOB
@@ -1774,6 +1796,14 @@ namespace com.noctuagames.sdk
             }
 
             var network = _orchestrator.GetNetworkForFormat(AdFormatKey.Rewarded);
+
+            if (!IsCpmFloorAcceptable(network, AdFormatKey.Rewarded))
+            {
+                _log.Info($"Preferred network {network.NetworkName} rewarded blocked by CPM hard floor. Trying fallback.");
+                TryRewardedFallback(network, placement);
+                return;
+            }
+
             if (IsAdmobNetwork(network))
             {
 #if UNITY_ADMOB
@@ -2041,5 +2071,23 @@ namespace com.noctuagames.sdk
 
         /// <summary>Returns true if the given network instance is AdMob.</summary>
         private bool IsAdmobNetwork(IAdNetwork network) => network.NetworkName == AdNetworkName.Admob;
+
+        /// <summary>
+        /// Returns false when the network's recent CPM is below the configured hard floor for the
+        /// given format (mirrors HybridAdOrchestrator.EvaluateCpmFloor). Returns true when no floor
+        /// is configured, when the performance tracker has no data, or on SoftFail/Allow.
+        /// </summary>
+        private bool IsCpmFloorAcceptable(IAdNetwork network, string format)
+        {
+            if (_cpmFloorManager == null || _performanceTracker == null) return true;
+            if (network == null) return true;
+
+            string segmentKey = _segmentManager?.GetCompositeSegment(_cachedCountryCode) ?? "";
+            double avgCpm = _performanceTracker.GetAverageCpm(network.NetworkName, format);
+            int samples   = _performanceTracker.GetSampleCount(network.NetworkName, format);
+            var result    = _cpmFloorManager.EvaluateFloor(network.NetworkName, format, avgCpm, samples, segmentKey);
+
+            return result != CpmFloorResult.HardFail;
+        }
     }
 }
