@@ -687,7 +687,14 @@ namespace com.noctuagames.sdk
 
             ResolveAdUnitIDs(iAAResponse, primary.NetworkName);
 
-            primary.SetBannerAdUnitId(_bannerAdUnitID);
+            if (!string.IsNullOrEmpty(_bannerAdUnitID) && _bannerAdUnitID != "unknown")
+            {
+                primary.SetBannerAdUnitId(_bannerAdUnitID);
+            }
+            else
+            {
+                _log.Info($"Banner ad unit ID is missing for {primary.NetworkName}; skipping banner setup.");
+            }
 
             if (IsAdmob() && primary.NetworkName == AdNetworkName.Admob)
             {
@@ -719,11 +726,25 @@ namespace com.noctuagames.sdk
 
 #if !UNITY_EDITOR
                 // Device only: AdMob Preload API. Not supported in the Unity Editor.
-                var configs = new List<PreloadConfiguration>
+                var configs = new List<PreloadConfiguration>();
+
+                if (!string.IsNullOrEmpty(_interstitialAdUnitID) && _interstitialAdUnitID != "unknown")
                 {
-                    _preloadManager.CreateInterstitialPreloadConfig(_interstitialAdUnitID),
-                    _preloadManager.CreateRewardedPreloadConfig(_rewardedAdUnitID),
-                };
+                    configs.Add(_preloadManager.CreateInterstitialPreloadConfig(_interstitialAdUnitID));
+                }
+                else
+                {
+                    _log.Info("Interstitial ad unit ID is missing for AdMob; skipping interstitial preload.");
+                }
+
+                if (!string.IsNullOrEmpty(_rewardedAdUnitID) && _rewardedAdUnitID != "unknown")
+                {
+                    configs.Add(_preloadManager.CreateRewardedPreloadConfig(_rewardedAdUnitID));
+                }
+                else
+                {
+                    _log.Info("Rewarded ad unit ID is missing for AdMob; skipping rewarded preload.");
+                }
 
                 // App Open: buffer=1 is recommended (Google docs: app open shown once per foreground).
                 if (!string.IsNullOrEmpty(_appOpenAdUnitID) && _appOpenAdUnitID != "unknown")
@@ -748,24 +769,52 @@ namespace com.noctuagames.sdk
                     };
                 }
 
-                _preloadManager.StartPreloading(configs);
+                if (configs.Count > 0)
+                {
+                    _preloadManager.StartPreloading(configs);
+                }
+                else
+                {
+                    _log.Warning("No AdMob fullscreen ad unit IDs configured; skipping preload.");
+                }
 #else
                 // Editor: Preload API not supported. Use the legacy load path so
                 // IsInterstitialReady() / IsRewardedAdReady() can return true and
                 // ShowAdmobInterstitial / ShowAdmobRewarded can show the ad.
-                primary.SetInterstitialAdUnitID(_interstitialAdUnitID);
-                primary.SetRewardedAdUnitID(_rewardedAdUnitID);
-                primary.LoadInterstitialAd();
-                primary.LoadRewardedAd();
+                if (!string.IsNullOrEmpty(_interstitialAdUnitID) && _interstitialAdUnitID != "unknown")
+                {
+                    primary.SetInterstitialAdUnitID(_interstitialAdUnitID);
+                    primary.LoadInterstitialAd();
+                }
+                if (!string.IsNullOrEmpty(_rewardedAdUnitID) && _rewardedAdUnitID != "unknown")
+                {
+                    primary.SetRewardedAdUnitID(_rewardedAdUnitID);
+                    primary.LoadRewardedAd();
+                }
 #endif
 #endif
             }
             else
             {
-                primary.SetInterstitialAdUnitID(_interstitialAdUnitID);
-                primary.SetRewardedAdUnitID(_rewardedAdUnitID);
-                primary.LoadInterstitialAd();
-                primary.LoadRewardedAd();
+                if (!string.IsNullOrEmpty(_interstitialAdUnitID) && _interstitialAdUnitID != "unknown")
+                {
+                    primary.SetInterstitialAdUnitID(_interstitialAdUnitID);
+                    primary.LoadInterstitialAd();
+                }
+                else
+                {
+                    _log.Info($"Interstitial ad unit ID is missing for {primary.NetworkName}; skipping interstitial load.");
+                }
+
+                if (!string.IsNullOrEmpty(_rewardedAdUnitID) && _rewardedAdUnitID != "unknown")
+                {
+                    primary.SetRewardedAdUnitID(_rewardedAdUnitID);
+                    primary.LoadRewardedAd();
+                }
+                else
+                {
+                    _log.Info($"Rewarded ad unit ID is missing for {primary.NetworkName}; skipping rewarded load.");
+                }
             }
 
             // NOTE: Secondary ad units are NOT loaded here.
