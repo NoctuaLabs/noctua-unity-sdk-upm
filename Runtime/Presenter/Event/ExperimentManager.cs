@@ -37,6 +37,18 @@ public static class ExperimentManager
     }
 
     /// <summary>
+    /// Returns a copy of every flag currently set. Used by the
+    /// Inspector "Build" tab's experiment override section so the UI
+    /// can render and inline-edit. Copy returned so the caller can
+    /// iterate without holding a lock; the underlying dictionary
+    /// isn't intentionally thread-safe but copies are safe to read.
+    /// </summary>
+    public static System.Collections.Generic.IReadOnlyDictionary<string, object> Snapshot()
+    {
+        return new Dictionary<string, object>(_experimentFlags);
+    }
+
+    /// <summary>
     /// Stores the experiment session ID used for A/B testing and session tagging.
     /// This is separate from the event-level session_id managed by EventSender.
     /// </summary>
