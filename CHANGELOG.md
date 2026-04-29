@@ -2,6 +2,31 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.114.0]
+
+### 🚀 Phase 2 power features for the Inspector
+
+- *(build-tab)* New 7th tab. Read-only sanity panel with three sections (SDK / Build, Config, Platform) plus an Adjust event-map and an experiment overrides section. Surfaces every "is this build configured correctly?" answer in one view: Unity SDK / native plugin versions, bundle ID + app version, sandbox flag, region, `noctuagg.json` SHA-256, masked Adjust app token (last 6 chars), Firebase project ID, GoogleServices presence, SKAdNetworks count (iOS) / permissions count (Android). Tap any row to copy `<label>: <value>` to the system clipboard.
+- *(bug-report)* "Export bug report" button bundles the last 500 logs + 50 events + 20 HTTP exchanges + build sanity + device info + screenshot into a timestamped `.zip` under `Application.persistentDataPath`. Captured at `WaitForEndOfFrame` so the screenshot matches the frame the user sees.
+- *(event-replay)* "Re-fire" button on every Trackers tab row replays the captured event through the live pipeline (Adjust + Firebase + Facebook + Noctua + Inspector observers). Lets QA repro side effects without restarting the game. Composition root injects `EventReplayHandler` so the Inspector keeps zero direct references to the View layer or `EventSender`.
+- *(network-sim)* New "Net:" strip at the top of the HTTP tab — Normal / Slow 3G / Offline / Drop 30%. Pure Unity-side fault injection in `NetworkConditioner` between `HttpRequest.Send` and `UnityWebRequest.SendWebRequest()`. Production fast-path is one enum read (`Mode == Normal → return`). Synthetic failures surface as the same `RequestConnectionError` real network failures throw, so existing error-handling paths test cleanly.
+- *(experiments)* New "Experiments & feature flags" section on the Build tab. Lists every key in `ExperimentManager` with inline-editable values; "+ Add" form below appends new keys. Edits commit on focus loss (`BlurEvent`) so we don't burn a write per keystroke.
+- *(adjust-mapping)* New "Adjust event mapping" section. Walks the platform-active `eventMap` and renders `game_event_name → adjust_token · last seen: PHASE @ HH:mm:ss` per row. Indexes the live tracker monitor for emissions where `Provider=Adjust` and `ExtraParams["adjustToken"]` matches.
+
+### 🚀 Other
+- New `INativeBuildInfo` and `INativeMaintenance` sub-interfaces on `INativePlugin`. iOS via 4 new C-ABI exports; Android via `NoctuaInspector` facade methods.
+
+### 📦 Native plugin deps
+
+- `noctua-android-sdk` 0.32.0 (unchanged)
+- `NoctuaSDK` (iOS pod) 0.36.0 (unchanged)
+
+### 🔭 Deferred to follow-up PRs
+
+- HTTP mock injection (needs synthesised response path because `UnityWebRequest.responseCode` is read-only).
+- IAP sandbox panel (simulate-purchase / refund / pending).
+- Account switcher (cached accounts dropdown, force-token-expiry).
+
 ## [0.113.0]
 
 ### 🚀 Features
