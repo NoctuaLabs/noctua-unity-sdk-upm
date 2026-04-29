@@ -73,6 +73,15 @@ namespace com.noctuagames.sdk.Inspector
         public System.Action<bool> NativeLogStreamToggle;
 
         /// <summary>
+        /// Optional hook for "Trackers → Re-fire" event replay.
+        /// Composition root injects this with a closure over
+        /// <c>_eventSender.Send</c> so the Inspector can replay an event
+        /// without taking a hard reference on the View layer or
+        /// <c>EventSender</c> directly. Null = replay button is hidden.
+        /// </summary>
+        public System.Action<string, System.Collections.Generic.IReadOnlyDictionary<string, object>> EventReplayHandler;
+
+        /// <summary>
         /// Install the Inspector onto a freshly-spawned GameObject.
         /// Called by the composition root after SDK init.
         /// </summary>
@@ -885,6 +894,28 @@ namespace com.noctuagames.sdk.Inspector
                 evt.StopPropagation();
             });
             trackerToolbar.Add(copySummary);
+
+            // Re-fire — replays the exact event through the same pipeline.
+            // Only visible when the composition root injected a handler;
+            // otherwise the Inspector has no path to EventSender.
+            if (EventReplayHandler != null)
+            {
+                var refire = MakeTextButton("Re-fire", AccentTracker);
+                refire.RegisterCallback<ClickEvent>(evt =>
+                {
+                    try
+                    {
+                        EventReplayHandler.Invoke(em.EventName, em.Payload);
+                        FlashStatus($"Re-fired '{em.EventName}'");
+                    }
+                    catch (Exception e)
+                    {
+                        FlashStatus($"Re-fire failed: {e.Message}");
+                    }
+                    evt.StopPropagation();
+                });
+                trackerToolbar.Add(refire);
+            }
 
             detail.Add(trackerToolbar);
 

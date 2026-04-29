@@ -448,6 +448,37 @@ namespace com.noctuagames.sdk
                         try { _nativePlugin?.SetLogStreamEnabled(enabled); }
                         catch (Exception e) { _log.Warning($"SetLogStreamEnabled failed: {e.Message}"); }
                     };
+
+                    // Trackers tab "Re-fire" button — replays the exact event
+                    // through the same pipeline (Adjust + Firebase + Facebook
+                    // + Noctua) so QA can repro side effects without restarting
+                    // the game. Coerces IReadOnlyDictionary<string, object> →
+                    // Dictionary<string, IConvertible> at the boundary; values
+                    // that aren't IConvertible (rare, mostly nested dicts) are
+                    // coerced via ToString().
+                    var senderRef = _eventSender;
+                    if (senderRef != null)
+                    {
+                        _inspector.EventReplayHandler = (name, payload) =>
+                        {
+                            try
+                            {
+                                Dictionary<string, IConvertible> coerced = null;
+                                if (payload != null && payload.Count > 0)
+                                {
+                                    coerced = new Dictionary<string, IConvertible>(payload.Count);
+                                    foreach (var kv in payload)
+                                    {
+                                        coerced[kv.Key] = kv.Value is IConvertible ic
+                                            ? ic
+                                            : kv.Value?.ToString() ?? "";
+                                    }
+                                }
+                                senderRef.Send(name, coerced);
+                            }
+                            catch (Exception e) { _log.Warning($"Event replay failed for {name}: {e.Message}"); }
+                        };
+                    }
                 }
             }
 
