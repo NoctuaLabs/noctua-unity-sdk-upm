@@ -79,4 +79,41 @@ void noctuaRequestInAppReview(void);
 typedef void (*NativeLifecycleCallbackDelegate)(const char* lifecycleEvent);
 void noctuaRegisterLifecycleCallback(NativeLifecycleCallbackDelegate callback);
 
+// ===================================================================
+// Inspector — sandbox-only debugging surface. All exports below are
+// no-ops in production builds (the native bus self-gates on
+// `sandboxEnabled` from noctuagg.json) and the Unity SDK only invokes
+// them when `Noctua.IsSandbox()` returns true.
+// ===================================================================
+
+// Tracker emission bus (Inspector "Trackers" tab) — already shipped.
+typedef void (*NoctuaTrackerEmissionCallback)(const char* provider,
+                                              const char* eventName,
+                                              const char* payloadJson,
+                                              const char* extraParamsJson,
+                                              int phase);
+void noctuaSetTrackerEmissionCallback(NoctuaTrackerEmissionCallback callback);
+void noctuaInspectorSetEnabled(int enabled);
+
+// Verbose log stream (Inspector "Logs" tab). `level` follows logcat
+// priority numbering (Verbose=2..Error=6); `timestampMillisUtc` is the
+// log entry timestamp. Pass NULL callback to unregister.
+typedef void (*NoctuaLogStreamCallback)(int level,
+                                        const char* source,
+                                        const char* tag,
+                                        const char* message,
+                                        long long timestampMillisUtc);
+void noctuaSetLogStreamCallback(NoctuaLogStreamCallback callback);
+void noctuaSetLogStreamEnabled(int enabled);
+
+// Device metrics snapshot (Inspector "Memory" tab). Returns 0 on
+// success; out-pointers are populated atomically. Sentinel -1 in
+// numeric fields means "platform does not expose this metric".
+//   thermal: -1 unknown, 0 nominal, 1 fair, 2 serious, 3 critical
+int noctuaSnapshotDeviceMetrics(long long* outPhysFootprint,
+                                long long* outAvailable,
+                                long long* outSystemTotal,
+                                int* outLowMemory,
+                                int* outThermal);
+
 }

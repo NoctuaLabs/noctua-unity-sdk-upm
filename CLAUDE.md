@@ -2,7 +2,7 @@
 
 SDK package at `Packages/com.noctuagames.sdk/`. All runtime code under `Runtime/`, Editor tooling under `Editor/`, tests under `Tests/`.
 
-- **Version:** 0.101.0
+- **Version:** 0.113.0
 - **Repo:** `gitlab.com/evosverse/noctua/noctua-sdk-unity-upm`
 - **Namespace:** `com.noctuagames.sdk`
 
@@ -76,7 +76,7 @@ Runtime/
 | `Runtime/Infrastructure/Network/InternetChecker.cs` | Infra | Connectivity ping check |
 | `Runtime/Infrastructure/Utility.cs` | Infra | Validation, parsing, retry helpers |
 | `Runtime/Infrastructure/MobileDateTimePicker.cs` | Infra | Date picker bridge (static delegate) |
-| `Runtime/Platform/INativePlugin.cs` | Platform | All native sub-interfaces |
+| `Runtime/Platform/INativePlugin.cs` | Platform | All native sub-interfaces (incl. `INativeLogStream`, `INativeDeviceMetrics` for Inspector Logs/Memory tabs) |
 | `Runtime/Platform/iOS/IosPlugin.cs` | Platform | iOS P/Invoke declarations |
 | `Runtime/Platform/Android/AndroidPlugin.cs` | Platform | Android JNI bridge |
 | `Editor/Menu/NoctuaSDKMenu.cs` | Editor | Integration Manager window |
@@ -176,6 +176,40 @@ Some adapter pairs cannot coexist because they pin the **same native pod** to **
 - Recommendation: keep Maio installed only via AppLovin MAX (primary mediator) — it continues to serve Maio demand without the AdMob adapter
 
 Additionally, `com.google.ads.mobile.mediation.maio 3.0.1` wraps `GoogleMobileAdsMediationMaio 2.1.6.1` which pins GMA `~> 12.0` — incompatible with AppLovin GAM adapter `13.2.0.0` that pins GMA `= 13.2.0`. Bumping to 3.1.6 resolves the GMA version conflict but triggers the `MaioSDK-v2` mutual exclusion above.
+
+## Noctua Inspector — sandbox-only debug overlay
+
+Auto-spawned in-game overlay for development / QA. **Single guardrail:** the
+existing `_config.Noctua.IsSandbox` flag (`sandboxEnabled: true` in
+`noctuagg.json`). Production builds spawn no `GameObject`, allocate no
+buffers, register no native callbacks; all `Noctua.*` accessors return null.
+
+Never add a separate `NOCTUA_INSPECTOR` define or `DEVELOPMENT_BUILD`
+check — pile new debug surfaces onto this same gate.
+
+| Tab | Source | Backing class |
+|---|---|---|
+| Timeline | combined HTTP + Trackers | `NoctuaInspectorController.cs` |
+| HTTP | `HttpInspectorLog` ring buffer (100 cap) | `Runtime/Infrastructure/Debug/HttpInspectorLog.cs` |
+| Trackers | `TrackerDebugMonitor` ring buffer (200 cap) | `Runtime/Presenter/Debug/TrackerDebugMonitor.cs` |
+| Logs | Unity `Application.logMessageReceivedThreaded` + native bus | `Runtime/Infrastructure/Debug/LogInspectorLedger.cs` (5,000 cap), `UnityLogStream.cs` |
+| Perf | `PerformanceMonitor` MonoBehaviour, per-frame | `Runtime/Presenter/Debug/PerformanceMonitor.cs` |
+| Memory | `MemoryMonitor` MonoBehaviour, 1 Hz, + native bridge | `Runtime/Presenter/Debug/MemoryMonitor.cs` |
+
+**Static accessors on `Noctua` (View facade):** `HttpLog`, `DebugMonitor`,
+`LogLedger`, `PerfMonitor`, `MemMonitor`, `Inspector`. Each is null-safe
+when sandbox is off. UI rendering is split across partial classes
+(`NoctuaInspectorController.{Logs,Performance,Memory}.cs`) so adding a
+new tab means: extend `Tab` enum + new partial file with `RenderXxx`.
+
+**Native bridge contracts** (Platform layer):
+- `INativeLogStream` — `SetLogStreamEnabled(bool)` + `RegisterNativeLogCallback(Action<int level, string source, string tag, string message, long tsMs>)`. iOS: `noctuaSetLogStreamCallback` / `noctuaSetLogStreamEnabled` C exports. Android: `NoctuaInspector.setLogStreamCallback` + `setLogStreamEnabled` (Kotlin). Native bus self-gates on its own `isLogStreamEnabled()` flag — toggling from the Logs tab is the only way it flips on.
+- `INativeDeviceMetrics` — `SnapshotDeviceMetrics()` returns `DeviceMetricsSnapshot` (phys footprint, available, system total, low-mem, thermal). iOS: `noctuaSnapshotDeviceMetrics` (5 out-pointers). Android: `NoctuaInspector.snapshotDeviceMetricsTuple` returns shared `long[5]` (avoids GC churn at 1 Hz).
+
+**Adapter lives in View layer** — `NoctuaDeviceMetricsAdapter`
+(`Runtime/View/Common/`) wraps `INativePlugin` to satisfy
+`IDeviceMetricsProvider` (Presenter); keeps `MemoryMonitor` free of any
+Platform-layer reference.
 
 ## Engagement Tracking Architecture
 

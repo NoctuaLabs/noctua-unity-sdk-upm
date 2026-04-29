@@ -2,6 +2,27 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.113.0]
+
+### 🚀 Features
+
+- Add **Noctua Inspector — Logs / Performance / Memory tabs** (sandbox-only debug overlay). All three new tabs are gated behind the existing `sandboxEnabled: true` flag in `noctuagg.json` — production builds spawn no `GameObject`, allocate no buffers, and `Noctua.LogLedger` / `Noctua.PerfMonitor` / `Noctua.MemMonitor` return `null`.
+    - **Logs** — verbose log viewer over Unity logs (`Application.logMessageReceivedThreaded`) and native iOS / Android logs (opt-in toggle via "Native: ON" chip; the native bus stays dormant by default to avoid the high-volume os_log / logcat traffic). Filters: level (V/D/I/W/E), source (Unity / iOS / Android / Firebase / Adjust / Facebook / Noctua), free-text. Pause / Resume / Clear / Native-toggle. 5,000-entry ring buffer.
+    - **Performance** — instant FPS, 1s and 5s rolling averages, p95 frame time over a 60s sliding window, dropped-frame counters at 16.7ms (60Hz) and 33.3ms (30Hz) thresholds. Sparkline + numeric readouts + dropped-frame reset. Zero per-frame allocations once warm (pre-allocated buffers, in-place sort).
+    - **Memory** — Mono used / heap, Unity native allocated / reserved, GC view, asset cache, plus native phys footprint, available memory, low-memory flag, and thermal pressure (iOS `task_vm_info` + `os_proc_available_memory` + `ProcessInfo.thermalState`; Android PSS + `ActivityManager.MemoryInfo` + `PowerManager.currentThermalStatus` API 29+). Action panel: Force GC, Unload Unused Assets, Clear Asset Cache, Wipe PlayerPrefs (2-tap confirm).
+- Add **`INativeLogStream` and `INativeDeviceMetrics`** sub-interfaces on `INativePlugin` — bridge the Logs and Memory tabs to platform metrics. Implementations: iOS via P/Invoke to `noctuaSetLogStreamCallback` / `noctuaSnapshotDeviceMetrics`; Android via JNI to `NoctuaInspector.setLogStreamCallback` and `NoctuaInspector.snapshotDeviceMetricsTuple` (returns shared `long[5]` to avoid GC churn at 1Hz). Editor stub returns `DeviceMetricsSnapshot.Empty`.
+
+### 🐛 Bug Fixes
+
+- *(inspector)* Firebase Analytics 12.x log format — log-tail regex now captures the event name from the new `Logging event: origin, name, params: app, <name>, {…}` shape (previously matched the literal `origin` field).
+- *(inspector)* Adjust on iOS — Adjust SDK uses `NSLog(@"[Adjust]d: …")` which routes through the app's default subsystem, not `com.adjust.sdk`. Added content-match so its lines are picked up.
+- *(inspector)* Android — added `FirebaseService:V` to the logcat tag filter so Noctua's Firebase wrapper logs (`'<eventName>' (custom) tracked: payload: {…}`) are surfaced as `EMITTED` (or standalone `ACKNOWLEDGED`) on the Trackers tab even when Firebase Analytics' verbose logging is off.
+
+### 📦 Native plugin deps
+
+- `noctua-android-sdk` 0.31.0 → **0.32.0**
+- `NoctuaSDK` (iOS pod) 0.35.0 → **0.36.0**
+
 ## [Unreleased]
 
 ### ⚠️ Breaking / Action Required
