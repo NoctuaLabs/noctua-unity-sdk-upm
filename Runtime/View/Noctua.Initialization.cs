@@ -140,14 +140,19 @@ namespace com.noctuagames.sdk
                 // the iOS / Android SDKs.
                 _httpLog = new HttpInspectorLog();
                 _debugMonitor = new TrackerDebugMonitor();
+                _logLedger = new LogInspectorLedger();
+                _unityLogStream = new UnityLogStream();
                 HttpInspectorHooks.RegisterObserver(_httpLog);
                 TrackerObserverRegistry.Register(_debugMonitor);
+                LogInspectorHooks.RegisterObserver(_logLedger);
+                _unityLogStream.Start();
 
                 // Auto-spawn the on-device overlay. Runs on any platform that
                 // supports UIElements runtime — Editor, iOS, Android, desktop.
                 try
                 {
-                    _inspector = com.noctuagames.sdk.Inspector.NoctuaInspectorController.Install(_httpLog, _debugMonitor);
+                    _inspector = com.noctuagames.sdk.Inspector.NoctuaInspectorController.Install(
+                        _httpLog, _debugMonitor, _logLedger);
                     _log.Info("Noctua Inspector enabled (sandboxEnabled=true) — shake 3× / 4-finger tap to open");
                 }
                 catch (Exception e)
@@ -392,6 +397,48 @@ namespace com.noctuagames.sdk
                 try { AndroidPlugin.InstallInspectorBridge(); }
                 catch (Exception e) { _log.Warning($"InstallInspectorBridge (Android) failed: {e.Message}"); }
 #endif
+                // Wire native device-metrics provider to MemoryMonitor.
+                // Adapter sits between Platform (INativeDeviceMetrics) and
+                // Presenter (IDeviceMetricsProvider) — keeps MemoryMonitor
+                // free of any Platform-layer reference.
+                try
+                {
+                    if (_inspector?.MemoryMonitorComponent != null && _nativePlugin != null)
+                    {
+                        _inspector.MemoryMonitorComponent.SetNativeMetricsProvider(
+                            new NoctuaDeviceMetricsAdapter(_nativePlugin));
+                    }
+                }
+                catch (Exception e) { _log.Warning($"Wire MemoryMonitor native bridge failed: {e.Message}"); }
+
+                // Wire native log-stream callback. The native side stays
+                // dormant until the Inspector "Logs" tab toggles it on, so
+                // registering the callback here is cheap.
+                try
+                {
+                    _nativePlugin?.RegisterNativeLogCallback((level, source, tag, message, tsMs) =>
+                    {
+                        if (!LogInspectorHooks.HasObservers) return;
+                        var ts = DateTimeOffset.FromUnixTimeMilliseconds(tsMs).UtcDateTime;
+                        // Native priorities follow logcat (Verbose=2…Error=6);
+                        // anything outside the enum range falls back to Info.
+                        var lvl = level >= 2 && level <= 6 ? (LogLevel)level : LogLevel.Info;
+                        LogInspectorHooks.Emit(new LogEntry(ts, lvl, source, tag, message));
+                    });
+                }
+                catch (Exception e) { _log.Warning($"RegisterNativeLogCallback failed: {e.Message}"); }
+
+                // Hook the Inspector "Logs → Native: on/off" chip so the
+                // controller can toggle the native stream without taking a
+                // Platform-layer dependency. _nativePlugin captured by closure.
+                if (_inspector != null)
+                {
+                    _inspector.NativeLogStreamToggle = enabled =>
+                    {
+                        try { _nativePlugin?.SetLogStreamEnabled(enabled); }
+                        catch (Exception e) { _log.Warning($"SetLogStreamEnabled failed: {e.Message}"); }
+                    };
+                }
             }
 
             // Register the native lifecycle callback now — AFTER Init() so the native

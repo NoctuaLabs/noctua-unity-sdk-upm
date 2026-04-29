@@ -370,11 +370,51 @@ namespace com.noctuagames.sdk
     }
 
     /// <summary>
+    /// Inspector-only — bridges native logcat / os_log streams to the Unity
+    /// "Logs" tab. Implementations gate themselves on
+    /// <c>NoctuaInspectorBus.isEnabled()</c>; the bus is only flipped on by
+    /// the Unity-side controller, which itself only spawns when sandbox
+    /// mode is enabled. Production builds therefore see no callbacks.
+    /// </summary>
+    public interface INativeLogStream
+    {
+        /// <summary>
+        /// Toggles the native log stream. When false the native side stops
+        /// reading logcat / OSLogStore and stops invoking the callback.
+        /// Defaults off — the volume is high enough that we want explicit
+        /// user opt-in from the Inspector "Logs" tab.
+        /// </summary>
+        void SetLogStreamEnabled(bool enabled);
+
+        /// <summary>
+        /// Registers a callback for each captured native log line.
+        /// Parameters: (level 2..6 logcat priority, source "iOS"/"Android"/SDK name, tag, message, timestampMillisUtc).
+        /// Pass null to unregister.
+        /// </summary>
+        void RegisterNativeLogCallback(Action<int, string, string, string, long> callback);
+    }
+
+    /// <summary>
+    /// Inspector-only — exposes native device metrics that Unity cannot read
+    /// directly (iOS phys_footprint, Android PSS, thermal pressure). Polled
+    /// at 1Hz from <see cref="MemoryMonitor"/>.
+    ///
+    /// Implementations must return <see cref="DeviceMetricsSnapshot.Empty"/>
+    /// for any field the platform does not expose, never throw, and never
+    /// block — the call is on the Unity main thread and runs every second.
+    /// </summary>
+    public interface INativeDeviceMetrics
+    {
+        DeviceMetricsSnapshot SnapshotDeviceMetrics();
+    }
+
+    /// <summary>
     /// Aggregate native plugin interface — inherits all domain-specific sub-interfaces.
     /// Platform implementations (AndroidPlugin, IosPlugin, DefaultNativePlugin) implement this.
     /// </summary>
     public interface INativePlugin : INativeTracker, INativeIAP, INativeAccountStore,
-        INativeDatePicker, INativeFirebase, INativeEventStorage, INativeLifecycle, INativeAppManagement
+        INativeDatePicker, INativeFirebase, INativeEventStorage, INativeLifecycle,
+        INativeAppManagement, INativeLogStream, INativeDeviceMetrics
     {
     }
 }

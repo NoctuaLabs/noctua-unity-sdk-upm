@@ -1094,6 +1094,72 @@ namespace com.noctuagames.sdk
             noctuaSetTrackerEmissionCallback(TrackerEmissionTrampoline);
             noctuaInspectorSetEnabled(1);
         }
+
+        // ------------------------------------
+        // INativeLogStream — verbose log stream bridge
+        // ------------------------------------
+
+        [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+        private delegate void LogStreamCallbackDelegate(
+            int level, string source, string tag, string message, long timestampMillisUtc);
+
+        [DllImport("__Internal")]
+        private static extern void noctuaSetLogStreamCallback(LogStreamCallbackDelegate callback);
+
+        [DllImport("__Internal")]
+        private static extern void noctuaSetLogStreamEnabled(int enabled);
+
+        // Stored to avoid GC-collecting the user's delegate before native
+        // releases it. Native bridge holds a single callback at a time
+        // (single-callback pattern, see `storedFirebaseSessionIdCompletion`).
+        private static Action<int, string, string, string, long> _storedLogStreamUserCallback;
+
+        [AOT.MonoPInvokeCallback(typeof(LogStreamCallbackDelegate))]
+        private static void LogStreamTrampoline(int level, string source, string tag, string message, long timestampMillisUtc)
+        {
+            try { _storedLogStreamUserCallback?.Invoke(level, source, tag, message, timestampMillisUtc); }
+            catch (Exception e) { _sLog.Warning($"LogStreamTrampoline failed: {e.Message}"); }
+        }
+
+        public void SetLogStreamEnabled(bool enabled) =>
+            noctuaSetLogStreamEnabled(enabled ? 1 : 0);
+
+        public void RegisterNativeLogCallback(Action<int, string, string, string, long> callback)
+        {
+            _storedLogStreamUserCallback = callback;
+            noctuaSetLogStreamCallback(callback != null ? LogStreamTrampoline : null);
+        }
+
+        // ------------------------------------
+        // INativeDeviceMetrics — Memory tab device snapshot
+        // ------------------------------------
+
+        [DllImport("__Internal")]
+        private static extern int noctuaSnapshotDeviceMetrics(
+            out long physFootprint, out long available, out long systemTotal,
+            out int lowMemory, out int thermal);
+
+        public DeviceMetricsSnapshot SnapshotDeviceMetrics()
+        {
+            try
+            {
+                int rc = noctuaSnapshotDeviceMetrics(
+                    out long phys, out long avail, out long total, out int low, out int thermal);
+                if (rc != 0) return DeviceMetricsSnapshot.Empty(DateTime.UtcNow);
+                return new DeviceMetricsSnapshot(
+                    timestampUtc:       DateTime.UtcNow,
+                    physFootprintBytes: phys,
+                    availableBytes:     avail,
+                    systemTotalBytes:   total,
+                    lowMemory:          low != 0,
+                    thermal:            (ThermalState)thermal);
+            }
+            catch (Exception e)
+            {
+                _sLog.Warning($"noctuaSnapshotDeviceMetrics failed: {e.Message}");
+                return DeviceMetricsSnapshot.Empty(DateTime.UtcNow);
+            }
+        }
     }
 #endif
 }

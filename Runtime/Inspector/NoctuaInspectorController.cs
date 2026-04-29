@@ -15,7 +15,7 @@ namespace com.noctuagames.sdk.Inspector
     /// in production. All UI built programmatically (no UXML/USS resources
     /// required), so the SDK ships as-is without extra asset files.
     /// </summary>
-    public class NoctuaInspectorController : MonoBehaviour
+    public partial class NoctuaInspectorController : MonoBehaviour
     {
         // ----- theme tokens (kept centrally; matches plan's USS palette) -----
         private static readonly Color Bg0 = new(0x0F / 255f, 0x11 / 255f, 0x15 / 255f, 0.97f);
@@ -31,13 +31,17 @@ namespace com.noctuagames.sdk.Inspector
         private static readonly Color AccentHttp = new(0x3B / 255f, 0x82 / 255f, 0xF6 / 255f, 1f);
         private static readonly Color AccentTracker = new(0xA8 / 255f, 0x5F / 255f, 0xF7 / 255f, 1f);
 
-        private enum Tab { Timeline, Http, Trackers }
+        private enum Tab { Timeline, Http, Trackers, Logs, Perf, Memory }
 
         private UIDocument _doc;
         private PanelSettings _panelSettings;
         private InspectorTrigger _trigger;
         private HttpInspectorLog _httpLog;
         private TrackerDebugMonitor _monitor;
+        private LogInspectorLedger _logLedger;
+        private UnityLogStream _unityLogStream;
+        private PerformanceMonitor _perfMonitor;
+        private MemoryMonitor _memMonitor;
         private bool _visible;
         private bool _dirty;
         private bool _editorBannerDismissed;
@@ -48,8 +52,25 @@ namespace com.noctuagames.sdk.Inspector
         private VisualElement _listContainer;
         private VisualElement _filterBar;
         private readonly Dictionary<string, Label> _filterChips = new();
-        private Label _tabTimelineBtn, _tabHttpBtn, _tabTrackersBtn;
+        private Label _tabTimelineBtn, _tabHttpBtn, _tabTrackersBtn, _tabLogsBtn, _tabPerfBtn, _tabMemoryBtn;
         private Label _statusBar;
+
+        /// <summary>Exposed for the composition root to wire the native metrics provider after init.</summary>
+        public MemoryMonitor MemoryMonitorComponent => _memMonitor;
+
+        /// <summary>Exposed for the composition root and tests.</summary>
+        public LogInspectorLedger LogLedger => _logLedger;
+        /// <summary>Exposed for the composition root and tests.</summary>
+        public PerformanceMonitor PerformanceMonitorComponent => _perfMonitor;
+
+        /// <summary>
+        /// Optional hook for "Logs → Native: ON/off" toggle. Composition
+        /// root injects this so the controller doesn't reach into the
+        /// View layer or hold a Platform-layer reference. Safe to call
+        /// when null — toggle still updates the Unity-side flag, the
+        /// native stream simply stays where it is.
+        /// </summary>
+        public System.Action<bool> NativeLogStreamToggle;
 
         /// <summary>
         /// Install the Inspector onto a freshly-spawned GameObject.
@@ -57,18 +78,53 @@ namespace com.noctuagames.sdk.Inspector
         /// </summary>
         public static NoctuaInspectorController Install(HttpInspectorLog httpLog, TrackerDebugMonitor monitor)
         {
+            return Install(httpLog, monitor, logLedger: null);
+        }
+
+        /// <summary>
+        /// Extended <see cref="Install(HttpInspectorLog, TrackerDebugMonitor)"/>
+        /// that also wires the Logs/Performance/Memory monitors. Performance
+        /// and Memory monitors are <see cref="MonoBehaviour"/>s and are
+        /// AddComponent'd onto the Inspector host GameObject so they share
+        /// its lifecycle (DontDestroyOnLoad, OnDestroy cleanup).
+        ///
+        /// The composition root constructs the Unity log stream + ledger and
+        /// passes them in so this method stays free of <see cref="Noctua"/>
+        /// references (Inspector lives in the SDK; static View facade does
+        /// not flow into MonoBehaviour land).
+        /// </summary>
+        public static NoctuaInspectorController Install(
+            HttpInspectorLog httpLog,
+            TrackerDebugMonitor monitor,
+            LogInspectorLedger logLedger)
+        {
             var go = new GameObject("__NoctuaInspector");
             DontDestroyOnLoad(go);
             go.hideFlags = HideFlags.DontSaveInEditor | HideFlags.DontSaveInBuild;
             var ctrl = go.AddComponent<NoctuaInspectorController>();
             ctrl._httpLog = httpLog;
             ctrl._monitor = monitor;
+            ctrl._logLedger = logLedger;
+            ctrl._perfMonitor = go.AddComponent<PerformanceMonitor>();
+            ctrl._memMonitor = go.AddComponent<MemoryMonitor>();
             ctrl._trigger = go.AddComponent<InspectorTrigger>();
             ctrl._trigger.OnTrigger += ctrl.Toggle;
             // Mark dirty on every new entry so RenderList refreshes on
             // change instead of every frame.
             if (httpLog != null) httpLog.OnExchange += _ => ctrl._dirty = true;
             if (monitor != null) monitor.OnEmission += _ => ctrl._dirty = true;
+            if (logLedger != null) logLedger.OnEntry += _ => ctrl._dirty = true;
+            // Performance fires per-frame — only flip dirty when the perf
+            // tab is visible to avoid pointless re-render of HTTP / Tracker.
+            // Memory fires at 1Hz — always dirty (cheap).
+            if (ctrl._perfMonitor != null) ctrl._perfMonitor.OnSample += _ =>
+            {
+                if (ctrl._tab == Tab.Perf) ctrl._dirty = true;
+            };
+            if (ctrl._memMonitor != null) ctrl._memMonitor.OnSample += _ =>
+            {
+                if (ctrl._tab == Tab.Memory) ctrl._dirty = true;
+            };
             return ctrl;
         }
 
@@ -89,6 +145,7 @@ namespace com.noctuagames.sdk.Inspector
         {
             _httpLog?.Pump();
             _monitor?.Pump();
+            _logLedger?.Pump();
             if (_visible && _dirty)
             {
                 RenderList();
@@ -204,9 +261,15 @@ namespace com.noctuagames.sdk.Inspector
             _tabTimelineBtn = MakeTab("Timeline", () => { _tab = Tab.Timeline; UpdateTabChrome(); UpdateFilterBarVisibility(); RenderList(); });
             _tabHttpBtn     = MakeTab("HTTP",     () => { _tab = Tab.Http;     UpdateTabChrome(); UpdateFilterBarVisibility(); RenderList(); });
             _tabTrackersBtn = MakeTab("Trackers", () => { _tab = Tab.Trackers; UpdateTabChrome(); UpdateFilterBarVisibility(); RenderList(); });
+            _tabLogsBtn     = MakeTab("Logs",     () => { _tab = Tab.Logs;     UpdateTabChrome(); UpdateFilterBarVisibility(); RenderList(); });
+            _tabPerfBtn     = MakeTab("Perf",     () => { _tab = Tab.Perf;     UpdateTabChrome(); UpdateFilterBarVisibility(); RenderList(); });
+            _tabMemoryBtn   = MakeTab("Memory",   () => { _tab = Tab.Memory;   UpdateTabChrome(); UpdateFilterBarVisibility(); RenderList(); });
             tabs.Add(_tabTimelineBtn);
             tabs.Add(_tabHttpBtn);
             tabs.Add(_tabTrackersBtn);
+            tabs.Add(_tabLogsBtn);
+            tabs.Add(_tabPerfBtn);
+            tabs.Add(_tabMemoryBtn);
             _root.Add(tabs);
             UpdateTabChrome();
 
@@ -331,6 +394,9 @@ namespace com.noctuagames.sdk.Inspector
             SetActive(_tabTimelineBtn, _tab == Tab.Timeline);
             SetActive(_tabHttpBtn,     _tab == Tab.Http);
             SetActive(_tabTrackersBtn, _tab == Tab.Trackers);
+            SetActive(_tabLogsBtn,     _tab == Tab.Logs);
+            SetActive(_tabPerfBtn,     _tab == Tab.Perf);
+            SetActive(_tabMemoryBtn,   _tab == Tab.Memory);
         }
 
         private VisualElement MakeFilterBar()
@@ -457,6 +523,15 @@ namespace com.noctuagames.sdk.Inspector
                     break;
                 case Tab.Trackers:
                     RenderTrackers(ref ok, ref failing, ref inflight);
+                    break;
+                case Tab.Logs:
+                    RenderLogs(ref ok, ref failing, ref inflight);
+                    break;
+                case Tab.Perf:
+                    RenderPerformance(ref ok, ref failing, ref inflight);
+                    break;
+                case Tab.Memory:
+                    RenderMemory(ref ok, ref failing, ref inflight);
                     break;
             }
             _statusBar.text = $"{ok} ok  ·  {failing} failing  ·  {inflight} in-flight";

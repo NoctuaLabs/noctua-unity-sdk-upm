@@ -60,6 +60,29 @@ namespace com.noctuagames.sdk
         public static TrackerDebugMonitor DebugMonitor => Instance.Value._debugMonitor;
 
         /// <summary>
+        /// Ring-buffered log lines from Unity + native sources, populated
+        /// only when sandbox is enabled. <c>null</c> in production builds.
+        /// </summary>
+        public static LogInspectorLedger LogLedger => Instance.Value._logLedger;
+
+        /// <summary>
+        /// FPS / frame-time monitor. <c>null</c> in production builds (no
+        /// Inspector host GameObject is spawned, so the MonoBehaviour does
+        /// not exist).
+        /// </summary>
+        public static PerformanceMonitor PerfMonitor => Instance.Value._inspector != null
+            ? Instance.Value._inspector.PerformanceMonitorComponent
+            : null;
+
+        /// <summary>
+        /// Memory monitor (Mono heap, Unity native, OS-level footprint).
+        /// <c>null</c> in production builds.
+        /// </summary>
+        public static MemoryMonitor MemMonitor => Instance.Value._inspector != null
+            ? Instance.Value._inspector.MemoryMonitorComponent
+            : null;
+
+        /// <summary>
         /// True iff SDK was initialized with <c>sandboxEnabled: true</c>. Used
         /// by the Inspector bootstrap to decide whether to auto-spawn the
         /// on-device overlay.
@@ -113,6 +136,8 @@ namespace com.noctuagames.sdk
         private readonly EventSender _eventSender;
         private HttpInspectorLog _httpLog;
         private TrackerDebugMonitor _debugMonitor;
+        private LogInspectorLedger _logLedger;
+        private UnityLogStream _unityLogStream;
         private com.noctuagames.sdk.Inspector.NoctuaInspectorController _inspector;
         private readonly SessionTracker _sessionTracker;
         private NativeCrashForwarder _nativeCrashForwarder;

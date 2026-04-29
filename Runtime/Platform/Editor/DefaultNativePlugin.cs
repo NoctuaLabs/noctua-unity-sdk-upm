@@ -437,5 +437,19 @@ namespace com.noctuagames.sdk
         public void StartImmediateUpdate(Action<int> callback) => callback?.Invoke(3); // NotAvailable
         public void StartFlexibleUpdate(Action<float> onProgress, Action<int> onResult) => onResult?.Invoke(3);
         public void CompleteUpdate() { }
+
+        // ------------------------------------
+        // INativeLogStream / INativeDeviceMetrics — Inspector debug bridges.
+        // No-ops in Editor: Unity logs are captured via UnityLogStream, and
+        // Editor doesn't expose iOS phys_footprint / Android PSS so an
+        // empty snapshot is the truthful answer.
+        // ------------------------------------
+
+        public void SetLogStreamEnabled(bool enabled) { }
+
+        public void RegisterNativeLogCallback(Action<int, string, string, string, long> callback) { }
+
+        public DeviceMetricsSnapshot SnapshotDeviceMetrics() =>
+            DeviceMetricsSnapshot.Empty(DateTime.UtcNow);
     }
 }

@@ -59,6 +59,22 @@ namespace com.noctuagames.sdk
                 _installedInspectorProxy ??= new TrackerEmissionProxy();
                 inspector.CallStatic("setTrackerEmissionCallback", _installedInspectorProxy);
                 inspector.CallStatic("setEnabled", true);
+
+                // Hand application context to the Inspector so the Memory
+                // tab's `DeviceMetricsProvider` can read PSS / availMem /
+                // thermal status. Setting once here avoids a per-poll JNI
+                // round-trip from `SnapshotDeviceMetrics`.
+                try
+                {
+                    using var unityPlayer = new AndroidJavaClass("com.unity3d.player.UnityPlayer");
+                    var activity = unityPlayer.GetStatic<AndroidJavaObject>("currentActivity");
+                    if (activity != null)
+                    {
+                        using var ctx = activity.Call<AndroidJavaObject>("getApplicationContext");
+                        inspector.CallStatic("setApplicationContext", ctx);
+                    }
+                }
+                catch (Exception e) { _sLog.Warning($"setApplicationContext failed: {e.Message}"); }
             }
             catch (Exception e)
             {
@@ -910,6 +926,84 @@ namespace com.noctuagames.sdk
             catch (Exception e)
             {
                 _log.Warning($"[Noctua] Failed to complete update: {e.Message}");
+            }
+        }
+
+        // ------------------------------------
+        // INativeLogStream — verbose log stream bridge.
+        // Backed by `com.noctuagames.sdk.inspector.NoctuaInspector` static
+        // methods + `LogStreamCallback` SAM proxy.
+        // ------------------------------------
+
+        private class LogStreamProxy : AndroidJavaProxy
+        {
+            public LogStreamProxy()
+                : base("com.noctuagames.sdk.inspector.LogStreamCallback") { }
+
+            public void onLogLine(int level, string source, string tagOrEmpty, string message, long timestampMillisUtc)
+            {
+                try { _logUserCallback?.Invoke(level, source ?? "", tagOrEmpty ?? "", message ?? "", timestampMillisUtc); }
+                catch (Exception e) { _sLog.Warning($"LogStreamProxy.onLogLine failed: {e.Message}"); }
+            }
+        }
+
+        private static LogStreamProxy _logProxy;
+        private static Action<int, string, string, string, long> _logUserCallback;
+
+        public void SetLogStreamEnabled(bool enabled)
+        {
+            try
+            {
+                using var inspector = new AndroidJavaClass("com.noctuagames.sdk.inspector.NoctuaInspector");
+                inspector.CallStatic("setLogStreamEnabled", enabled);
+            }
+            catch (Exception e) { _log.Warning($"setLogStreamEnabled failed: {e.Message}"); }
+        }
+
+        public void RegisterNativeLogCallback(Action<int, string, string, string, long> callback)
+        {
+            _logUserCallback = callback;
+            try
+            {
+                using var inspector = new AndroidJavaClass("com.noctuagames.sdk.inspector.NoctuaInspector");
+                if (callback == null)
+                {
+                    inspector.CallStatic("setLogStreamCallback", (AndroidJavaProxy)null);
+                    return;
+                }
+                _logProxy ??= new LogStreamProxy();
+                inspector.CallStatic("setLogStreamCallback", _logProxy);
+            }
+            catch (Exception e) { _log.Warning($"RegisterNativeLogCallback failed: {e.Message}"); }
+        }
+
+        // ------------------------------------
+        // INativeDeviceMetrics — Memory tab device snapshot
+        // ------------------------------------
+
+        public DeviceMetricsSnapshot SnapshotDeviceMetrics()
+        {
+            try
+            {
+                // Application context is wired once in `InstallInspectorBridge`
+                // — `snapshotDeviceMetricsTuple` returns Empty if it's missing,
+                // so this poll path stays a single JNI round-trip.
+                using var inspector = new AndroidJavaClass("com.noctuagames.sdk.inspector.NoctuaInspector");
+                var arr = inspector.CallStatic<long[]>("snapshotDeviceMetricsTuple");
+                if (arr == null || arr.Length < 5)
+                    return DeviceMetricsSnapshot.Empty(DateTime.UtcNow);
+                return new DeviceMetricsSnapshot(
+                    timestampUtc:       DateTime.UtcNow,
+                    physFootprintBytes: arr[0],
+                    availableBytes:     arr[1],
+                    systemTotalBytes:   arr[2],
+                    lowMemory:          arr[3] != 0,
+                    thermal:            (ThermalState)arr[4]);
+            }
+            catch (Exception e)
+            {
+                _log.Warning($"snapshotDeviceMetrics failed: {e.Message}");
+                return DeviceMetricsSnapshot.Empty(DateTime.UtcNow);
             }
         }
     }
