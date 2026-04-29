@@ -327,6 +327,10 @@ namespace com.noctuagames.sdk
         {
             _request.downloadHandler = new DownloadHandlerBuffer();
             _request.timeout = 60;
+            // Inspector network conditioner — sandbox-only fault injection.
+            // No-op in production (Mode defaults to Normal, single read).
+            try { await NetworkConditioner.ApplyAsync(); }
+            catch (NetworkConditionerException) { throw NoctuaException.RequestConnectionError; }
             await _request.SendWebRequest();
 
             return _request.downloadHandler.text;
@@ -394,6 +398,16 @@ namespace com.noctuagames.sdk
             {
                 _request.timeout = 20;
                 if (exchange != null) HttpInspectorHooks.FireStateChange(exchange.Id, HttpExchangeState.Sending);
+                // Inspector network conditioner — sandbox-only fault injection
+                // applied between Sending state-change and the actual network
+                // call so the Inspector still records the attempt.
+                try { await NetworkConditioner.ApplyAsync(); }
+                catch (NetworkConditionerException ncex)
+                {
+                    if (exchange != null) exchange.Error = ncex.Message;
+                    FireEndIfObserved(exchange, sw, response, HttpExchangeState.Failed);
+                    throw NoctuaException.RequestConnectionError;
+                }
                 await _request.SendWebRequest();
                 response = _request.downloadHandler.text;
             }

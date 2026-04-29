@@ -586,6 +586,9 @@ namespace com.noctuagames.sdk.Inspector
 
         private void RenderHttp(ref int ok, ref int failing, ref int inflight)
         {
+            // Network conditioner controls — always visible on the HTTP tab.
+            _listContainer.Add(BuildNetworkConditionerStrip());
+
             if (_httpLog == null)
             {
                 _listContainer.Add(Placeholder("No requests yet. Network calls made by the game will appear here."));
@@ -632,6 +635,60 @@ namespace com.noctuagames.sdk.Inspector
                 else if (em.Phase == TrackerEventPhase.Acknowledged) ok++;
                 else inflight++;
             }
+        }
+
+        /// <summary>
+        /// Network condition simulator strip — sits at the top of the HTTP
+        /// tab. Lets QA force offline / slow-3G / packet-loss modes without
+        /// real network manipulation. Pure Unity-side fault injection in
+        /// `NetworkConditioner`; production builds never hit this code.
+        /// </summary>
+        private VisualElement BuildNetworkConditionerStrip()
+        {
+            var bar = new VisualElement();
+            bar.style.flexDirection = FlexDirection.Row;
+            bar.style.flexWrap = Wrap.Wrap;
+            bar.style.flexShrink = 0;
+            bar.style.paddingLeft = 8; bar.style.paddingRight = 8;
+            bar.style.paddingTop = 6; bar.style.paddingBottom = 6;
+            bar.style.backgroundColor = Bg1;
+            bar.style.borderBottomWidth = 1;
+            bar.style.borderBottomColor = Stroke;
+
+            var label = new Label("Net:");
+            label.style.color = TextMid; label.style.fontSize = 10;
+            label.style.marginRight = 8;
+            label.style.alignSelf = Align.Center;
+            bar.Add(label);
+
+            void AddModeChip(string text, NetworkMode mode)
+            {
+                var chip = new Label(text);
+                bool active = NetworkConditioner.Mode == mode;
+                chip.style.paddingLeft = 10; chip.style.paddingRight = 10;
+                chip.style.paddingTop = 4; chip.style.paddingBottom = 4;
+                chip.style.marginRight = 4; chip.style.marginBottom = 4;
+                chip.style.borderTopLeftRadius = 12; chip.style.borderTopRightRadius = 12;
+                chip.style.borderBottomLeftRadius = 12; chip.style.borderBottomRightRadius = 12;
+                chip.style.fontSize = 11;
+                // Off = green, fault modes = red so the active fault is loud.
+                Color color = !active ? Bg2 : (mode == NetworkMode.Normal ? Ok : Err);
+                chip.style.backgroundColor = color;
+                chip.style.color = active ? Color.white : TextMid;
+                chip.RegisterCallback<ClickEvent>(_ =>
+                {
+                    NetworkConditioner.Mode = mode;
+                    _dirty = true;
+                });
+                bar.Add(chip);
+            }
+
+            AddModeChip("Normal",  NetworkMode.Normal);
+            AddModeChip("Slow 3G", NetworkMode.Slow3G);
+            AddModeChip("Offline", NetworkMode.Offline);
+            AddModeChip($"Drop {NetworkConditioner.PacketLossPercent}%", NetworkMode.PacketLoss);
+
+            return bar;
         }
 
         private VisualElement Placeholder(string text)
