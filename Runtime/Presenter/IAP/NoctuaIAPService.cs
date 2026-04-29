@@ -454,7 +454,7 @@ namespace com.noctuagames.sdk
                     break;
                 case OrderStatus.canceled:
                     _eventSender?.Send(
-                        "purchase_canceled",
+                        "purchase_cancelled",
                         new()
                         {
                             { "product_id", orderRequest.ProductId },
