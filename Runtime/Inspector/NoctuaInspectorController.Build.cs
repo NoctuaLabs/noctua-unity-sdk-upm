@@ -46,6 +46,31 @@ namespace com.noctuagames.sdk.Inspector
                 ("Permissions (Android)",  info.AndroidPermissionsCount< 0 ? "—" : info.AndroidPermissionsCount.ToString(), false),
             }));
 
+            // Action row — bug-report export.
+            var actions = new VisualElement();
+            actions.style.flexDirection = FlexDirection.Row;
+            actions.style.flexWrap = Wrap.Wrap;
+            actions.style.paddingLeft = 12; actions.style.paddingRight = 12;
+            actions.style.paddingTop = 12; actions.style.paddingBottom = 12;
+
+            actions.Add(MakeButton(_bugReportInFlight ? "Exporting…" : "Export bug report", () =>
+            {
+                if (_bugReportInFlight) return;
+                _bugReportInFlight = true;
+                _dirty = true;
+                StartCoroutine(BugReportExporter.Export(
+                    _logLedger, _monitor, _httpLog, info,
+                    path =>
+                    {
+                        _bugReportInFlight = false;
+                        if (string.IsNullOrEmpty(path))
+                            ShowToast("Bug-report export failed");
+                        else
+                            ShowToast($"Bug report → {path}");
+                    }));
+            }));
+            _listContainer.Add(actions);
+
             // Lightweight scoring — flag obvious omissions in the status bar.
             if (string.IsNullOrEmpty(info.NativeSdkVersion))     failing++;
             if (string.IsNullOrEmpty(info.AdjustAppTokenMasked)) failing++;
@@ -54,6 +79,10 @@ namespace com.noctuagames.sdk.Inspector
             if (info.SkAdNetworksCount == 0 && Application.platform == RuntimePlatform.IPhonePlayer) failing++;
             if (failing == 0) ok++;
         }
+
+        // Tracks whether a bug-report export is currently running so the
+        // button label flips to "Exporting…" and re-tap is suppressed.
+        private bool _bugReportInFlight;
 
         private VisualElement BuildSection(string title, (string label, string value, bool warn)[] rows)
         {
