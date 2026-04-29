@@ -376,6 +376,29 @@ namespace com.noctuagames.sdk
                         }
                     );
 
+                    // Refund-tracking probe: GetPurchaseStatusAsync returns true only for
+                    // non-consumables, so we use it to auto-detect product type. Consumables
+                    // never make it into NoctuaRefundTracking and are never flagged refunded.
+                    if (orderRequest != null && !string.IsNullOrEmpty(orderRequest.ProductId))
+                    {
+                        try
+                        {
+                            bool isNonConsumable = await GetPurchaseStatusAsync(orderRequest.ProductId);
+                            if (isNonConsumable)
+                            {
+                                SaveRefundTrackingEntry(orderRequest.ProductId, orderRequest.PaymentType);
+                            }
+                            else
+                            {
+                                _log.Debug($"Refund-tracking probe: GetPurchaseStatusAsync('{orderRequest.ProductId}') returned false; treating as consumable, not tracking.");
+                            }
+                        }
+                        catch (Exception e)
+                        {
+                            _log.Warning($"Refund-tracking probe failed for '{orderRequest.ProductId}': {e.Message}");
+                        }
+                    }
+
                     _eventSender?.Send(
                         "purchase_completed",
                         new()
@@ -661,7 +684,6 @@ namespace com.noctuagames.sdk
         /// <exception cref="NoctuaException">Thrown when IAP is disabled, user is offline, or authentication fails.</exception>
         public async UniTask<PurchaseResponse> PurchaseItemAsync(PurchaseRequest purchaseRequest, bool tryToUseSecondaryPayment = false, PaymentType enforcedPaymentType = PaymentType.unknown)
         {
-
             if (_config.isIAPDisabled)
             {
                 _paymentUI.ShowError(LocaleTextKey.IAPDisabled);
@@ -2674,6 +2696,111 @@ namespace com.noctuagames.sdk
             }
 
             return purchased;
+        }
+
+        // PlayerPrefs key for the refund-tracking store (separate from NoctuaPurchaseHistory).
+        // Each entry is a RefundTrackingEntry persisted on every successful purchase.
+        private const string RefundTrackingPrefsKey = "NoctuaRefundTracking";
+
+        /// <summary>
+        /// Reads the refund-tracking store from PlayerPrefs. Returns an empty list on first run
+        /// or when the persisted JSON is malformed. Public so tests and tooling can inspect the
+        /// store without going through reflection.
+        /// </summary>
+        public List<RefundTrackingEntry> GetRefundTrackingEntries()
+        {
+            var json = PlayerPrefs.GetString(RefundTrackingPrefsKey, string.Empty);
+            if (string.IsNullOrEmpty(json)) return new List<RefundTrackingEntry>();
+
+            try
+            {
+                return JsonConvert.DeserializeObject<List<RefundTrackingEntry>>(json)
+                    ?? new List<RefundTrackingEntry>();
+            }
+            catch (Exception e)
+            {
+                _log.Error("Failed to parse refund tracking store: " + e);
+                PlayerPrefs.DeleteKey(RefundTrackingPrefsKey);
+                return new List<RefundTrackingEntry>();
+            }
+        }
+
+        /// <summary>
+        /// Persists a confirmed non-consumable product into the refund-tracking store. Replaces
+        /// any existing entry for the same productId (newest write wins). Called from the
+        /// successful-purchase path after a positive <see cref="GetPurchaseStatusAsync"/> probe.
+        /// </summary>
+        private void SaveRefundTrackingEntry(string productId, PaymentType paymentType)
+        {
+            if (string.IsNullOrEmpty(productId)) return;
+
+            var entries = GetRefundTrackingEntries();
+            entries.RemoveAll(e => e?.ProductId == productId);
+            entries.Add(new RefundTrackingEntry
+            {
+                ProductId = productId,
+                PaymentType = paymentType,
+                Timestamp = DateTime.UtcNow,
+            });
+
+            try
+            {
+                PlayerPrefs.SetString(RefundTrackingPrefsKey, JsonConvert.SerializeObject(entries));
+                PlayerPrefs.Save();
+            }
+            catch (Exception e)
+            {
+                _log.Error("Failed to persist refund tracking store: " + e);
+            }
+        }
+
+        /// <summary>
+        /// Returns true when a non-consumable product the player previously purchased is no longer
+        /// reported as purchased by the native store and is therefore eligible to be removed from
+        /// the player's inventory due to a refund. The SDK looks up the most recent matching
+        /// <see cref="RefundTrackingEntry"/> in <c>NoctuaRefundTracking</c> (PlayerPrefs) and
+        /// applies the three remaining conditions:
+        ///   - the stored payment type is "playstore" or "appstore"
+        ///   - the stored timestamp is older than <paramref name="minAgeDays"/> days
+        ///   - <see cref="GetPurchaseStatusAsync"/> reports the product is no longer purchased
+        ///
+        /// Consumables never enter the tracking store (they always return <c>false</c> from
+        /// <see cref="GetPurchaseStatusAsync"/> right after purchase, which is how the SDK
+        /// auto-detects them) so the game does not need to declare a consumable type — just call
+        /// <c>Noctua.IAP.IsRefundedAsync(productId)</c>.
+        ///
+        /// Returns <c>false</c> conservatively when no matching record is found (legacy purchases,
+        /// fresh installs, products never bought through the SDK) so the SDK never tells the game
+        /// to remove an item it has no record of.
+        /// </summary>
+        /// <param name="productId">Product identifier to check.</param>
+        /// <param name="minAgeDays">Minimum age in days before a missing purchase is considered refunded. Default 2.</param>
+        /// <returns>True when the item is eligible to be removed from the player's inventory.</returns>
+        public async Task<bool> IsRefundedAsync(string productId, int minAgeDays = 2)
+        {
+            if (string.IsNullOrEmpty(productId)) return false;
+
+            var entry = GetRefundTrackingEntries()
+                .Where(e => e != null && e.ProductId == productId)
+                .OrderByDescending(e => e.Timestamp)
+                .FirstOrDefault();
+
+            if (entry == null)
+            {
+                _log.Debug($"IsRefundedAsync: no refund-tracking entry for '{productId}', returning false");
+                return false;
+            }
+
+            if (entry.PaymentType != PaymentType.playstore && entry.PaymentType != PaymentType.appstore) return false;
+
+            var ts = entry.Timestamp.Kind == DateTimeKind.Utc ? entry.Timestamp : entry.Timestamp.ToUniversalTime();
+            if (ts >= DateTime.UtcNow.AddDays(-minAgeDays)) return false;
+
+            bool isStillPurchased = await GetPurchaseStatusAsync(productId);
+            if (isStillPurchased) return false;
+
+            _log.Debug($"IsRefundedAsync: '{productId}' flagged refunded (paymentType={entry.PaymentType}, purchasedAt={ts:o})");
+            return true;
         }
 
         /// <summary>
