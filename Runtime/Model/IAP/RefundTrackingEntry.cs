@@ -9,7 +9,7 @@ namespace com.noctuagames.sdk
     /// non-consumable product is purchased successfully. The SDK detects non-consumability by
     /// probing <c>GetPurchaseStatusAsync</c> right after purchase — consumables always return
     /// <c>false</c>, so only confirmed non-consumables land in this store. Used exclusively by
-    /// <see cref="NoctuaIAPService.IsRefundedAsync"/>.
+    /// <see cref="NoctuaIAPService.IsRefundEligibleAsync"/>.
     /// Kept separate from <see cref="InternalPurchaseItem"/> so the refund-tracking store can
     /// evolve independently of the pending-purchase / retry pipeline.
     /// </summary>

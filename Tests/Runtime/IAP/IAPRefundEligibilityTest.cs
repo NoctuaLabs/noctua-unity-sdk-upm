@@ -7,12 +7,12 @@ using UnityEngine;
 namespace com.noctuagames.sdk.Tests.IAP
 {
     /// <summary>
-    /// Unit tests for the offline branches of <see cref="NoctuaIAPService.IsRefundedAsync"/>.
+    /// Unit tests for the offline branches of <see cref="NoctuaIAPService.IsRefundEligibleAsync"/>.
     ///
     /// Seeds the <c>NoctuaRefundTracking</c> PlayerPrefs key directly with
     /// <see cref="RefundTrackingEntry"/> records and verifies the JSON shape and the
     /// three-condition decision logic (consumability is auto-detected at purchase time, so it is
-    /// not part of the IsRefundedAsync filter).
+    /// not part of the IsRefundEligibleAsync filter).
     ///
     /// The async store call (<c>GetPurchaseStatusAsync</c>) is platform-specific and not
     /// exercised here; instead a shadow implementation of the offline conditions matches the
@@ -131,7 +131,7 @@ namespace com.noctuagames.sdk.Tests.IAP
 
         // ---- helpers ----------------------------------------------------------
 
-        // Mirrors the offline branches inside NoctuaIAPService.IsRefundedAsync. Kept here as a
+        // Mirrors the offline branches inside NoctuaIAPService.IsRefundEligibleAsync. Kept here as a
         // shadow implementation so the test fails loudly if the production logic drifts.
         private static bool EvaluateOffline(
             PaymentType paymentType, int daysAgo, bool isStillPurchased)
