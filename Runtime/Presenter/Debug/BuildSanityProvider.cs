@@ -42,8 +42,9 @@ namespace com.noctuagames.sdk
 
             // Adjust app token masking — show only last 6 chars so the
             // Inspector reveals "this build is using token ending …4f7q"
-            // without exposing the full secret.
-            var token = config?.Adjust?.AppToken;
+            // without exposing the full secret. AdjustConfig has separate
+            // Android / iOS sub-configs; pick the platform-active one.
+            var token = ResolveAdjustAppToken(config);
             info.AdjustAppTokenMasked = string.IsNullOrEmpty(token)
                 ? ""
                 : (token.Length <= 6 ? "…" + token : "…" + token.Substring(token.Length - 6));
@@ -83,6 +84,48 @@ namespace com.noctuagames.sdk
             catch { info.ConfigChecksum = ""; }
 
             return info;
+        }
+
+        /// <summary>
+        /// Returns the Adjust app token for the active platform — Android
+        /// when running on Android, iOS when running on iOS, and prefers
+        /// whichever is non-empty in Editor builds. AdjustConfig stores
+        /// platform-specific tokens because Android and iOS are different
+        /// apps in Adjust's data model.
+        /// </summary>
+        public static string ResolveAdjustAppToken(GlobalConfig config)
+        {
+            if (config?.Adjust == null) return "";
+#if UNITY_ANDROID && !UNITY_EDITOR
+            return config.Adjust.Android?.AppToken ?? "";
+#elif UNITY_IOS && !UNITY_EDITOR
+            return config.Adjust.Ios?.AppToken ?? "";
+#else
+            // Editor — show whichever is configured. Prefer Android since
+            // most game studios bundle that token first; fall back to iOS.
+            return string.IsNullOrEmpty(config.Adjust.Android?.AppToken)
+                ? (config.Adjust.Ios?.AppToken ?? "")
+                : config.Adjust.Android.AppToken;
+#endif
+        }
+
+        /// <summary>
+        /// Returns the Adjust event map for the active platform. Used by
+        /// the Inspector "Adjust event mapping" panel to surface the
+        /// game-event-name → Adjust-callback-token relationship.
+        /// </summary>
+        public static System.Collections.Generic.Dictionary<string, string> ResolveAdjustEventMap(GlobalConfig config)
+        {
+            if (config?.Adjust == null) return null;
+#if UNITY_ANDROID && !UNITY_EDITOR
+            return config.Adjust.Android?.EventMap;
+#elif UNITY_IOS && !UNITY_EDITOR
+            return config.Adjust.Ios?.EventMap;
+#else
+            return config.Adjust.Android?.EventMap?.Count > 0
+                ? config.Adjust.Android.EventMap
+                : config.Adjust.Ios?.EventMap;
+#endif
         }
 
         private static string ReadUnitySdkVersion()

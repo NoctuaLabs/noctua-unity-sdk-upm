@@ -46,6 +46,10 @@ namespace com.noctuagames.sdk.Inspector
                 ("Permissions (Android)",  info.AndroidPermissionsCount< 0 ? "—" : info.AndroidPermissionsCount.ToString(), false),
             }));
 
+            // Adjust event mapping — game-event-name → callback-token,
+            // with last-seen status pulled from the live tracker monitor.
+            _listContainer.Add(BuildAdjustEventMapSection());
+
             // Experiment / feature flag overrides — sandbox-only, mutable.
             _listContainer.Add(BuildExperimentSection());
 
@@ -156,6 +160,119 @@ namespace com.noctuagames.sdk.Inspector
             }));
             box.Add(form);
             return box;
+        }
+
+        /// <summary>
+        /// Adjust event-map section. For every entry in the platform-
+        /// active <c>eventMap</c>, displays
+        ///   game_event_name  →  adjust_token  ·  last seen: PHASE @ HH:mm:ss
+        /// where the "last seen" reads the most recent
+        /// <see cref="TrackerEmission"/> with matching token from the
+        /// tracker monitor's snapshot. Helps diagnose "I tracked X but
+        /// nothing showed up in Adjust" by surfacing whether the SDK ever
+        /// fired the corresponding token.
+        /// </summary>
+        private VisualElement BuildAdjustEventMapSection()
+        {
+            var box = new VisualElement();
+            box.style.paddingLeft = 12; box.style.paddingRight = 12;
+            box.style.paddingTop = 12; box.style.paddingBottom = 4;
+
+            var head = new Label("Adjust event mapping");
+            head.style.color = TextLo; head.style.fontSize = 10;
+            head.style.paddingBottom = 6;
+            box.Add(head);
+
+            var map = BuildSanityProvider.ResolveAdjustEventMap(Noctua.Config);
+            if (map == null || map.Count == 0)
+            {
+                var muted = new Label("(no Adjust eventMap configured for this platform)");
+                muted.style.color = TextMid; muted.style.fontSize = 11;
+                muted.style.whiteSpace = WhiteSpace.Normal;
+                box.Add(muted);
+                return box;
+            }
+
+            // Index Adjust emissions by token for cheap lookup. The
+            // adjust callback token surfaces in TrackerEmission.ExtraParams
+            // under the key "adjustToken" (set by both the iOS and Android
+            // log tailers once the SDK observes a successful emission).
+            var lastSeen = IndexLastSeenAdjustTokens();
+
+            foreach (var kv in map)
+            {
+                box.Add(BuildAdjustEventMapRow(kv.Key, kv.Value, lastSeen));
+            }
+            return box;
+        }
+
+        private System.Collections.Generic.Dictionary<string, TrackerEmission> IndexLastSeenAdjustTokens()
+        {
+            var result = new System.Collections.Generic.Dictionary<string, TrackerEmission>();
+            if (_monitor == null) return result;
+            foreach (var em in _monitor.Snapshot())
+            {
+                if (em.Provider != "Adjust" || em.ExtraParams == null) continue;
+                if (!em.ExtraParams.TryGetValue("adjustToken", out var rawToken)) continue;
+                var token = rawToken?.ToString();
+                if (string.IsNullOrEmpty(token)) continue;
+                // Snapshot is oldest-first; later writes overwrite, so the
+                // dict ends with the most recent observation per token.
+                result[token] = em;
+            }
+            return result;
+        }
+
+        private VisualElement BuildAdjustEventMapRow(
+            string eventName,
+            string token,
+            System.Collections.Generic.Dictionary<string, TrackerEmission> lastSeen)
+        {
+            var row = new VisualElement();
+            row.style.flexDirection = FlexDirection.Row;
+            row.style.alignItems = Align.Center;
+            row.style.paddingTop = 3; row.style.paddingBottom = 3;
+            row.style.borderBottomWidth = 1;
+            row.style.borderBottomColor = Stroke;
+
+            var name = new Label(eventName);
+            name.style.color = TextHi; name.style.fontSize = 11;
+            name.style.flexGrow = 1; name.style.flexShrink = 1;
+            row.Add(name);
+
+            var arrow = new Label("→");
+            arrow.style.color = TextLo; arrow.style.fontSize = 10;
+            arrow.style.marginLeft = 6; arrow.style.marginRight = 6;
+            row.Add(arrow);
+
+            var tok = new Label(string.IsNullOrEmpty(token) ? "(empty)" : token);
+            tok.style.color = string.IsNullOrEmpty(token) ? Err : TextHi;
+            tok.style.fontSize = 11;
+            tok.style.unityFontStyleAndWeight = FontStyle.Bold;
+            tok.style.marginRight = 8;
+            row.Add(tok);
+
+            // Last-seen badge.
+            string status;
+            Color color;
+            if (lastSeen.TryGetValue(token ?? "", out var em))
+            {
+                status = $"{em.Phase} @ {em.CreatedUtc.ToLocalTime():HH:mm:ss}";
+                color  = em.Phase == TrackerEventPhase.Acknowledged ? Ok
+                       : em.Phase == TrackerEventPhase.Failed       ? Err
+                       : Warn;
+            }
+            else
+            {
+                status = "never seen";
+                color  = TextLo;
+            }
+            var badge = new Label(status);
+            badge.style.color = color;
+            badge.style.fontSize = 10;
+            row.Add(badge);
+
+            return row;
         }
 
         private VisualElement BuildExperimentRow(string key, string currentValue)
