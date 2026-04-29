@@ -1006,6 +1006,20 @@ namespace com.noctuagames.sdk
                 return DeviceMetricsSnapshot.Empty(DateTime.UtcNow);
             }
         }
+
+        // ------------------------------------
+        // INativeMaintenance — clear native HTTP cache
+        // ------------------------------------
+
+        public void ClearNativeHttpCache()
+        {
+            try
+            {
+                using var inspector = new AndroidJavaClass("com.noctuagames.sdk.inspector.NoctuaInspector");
+                inspector.CallStatic("clearNativeHttpCache");
+            }
+            catch (Exception e) { _log.Warning($"clearNativeHttpCache failed: {e.Message}"); }
+        }
     }
 }
 

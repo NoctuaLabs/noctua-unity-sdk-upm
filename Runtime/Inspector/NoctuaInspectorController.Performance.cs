@@ -17,6 +17,9 @@ namespace com.noctuagames.sdk.Inspector
     public partial class NoctuaInspectorController
     {
         private const int PerfSparklineBars = 60;
+        private bool _perfHudVisible;
+        private VisualElement _perfHud;
+        private Label _perfHudLabel;
 
         private void RenderPerformance(ref int ok, ref int failing, ref int inflight)
         {
@@ -34,16 +37,33 @@ namespace com.noctuagames.sdk.Inspector
             // Counters
             _listContainer.Add(BuildPerfCounters(latest));
 
-            // Reset button
-            var resetBtn = MakeButton("Reset dropped-frame counters", () =>
+            // GPU / CPU split — only render when FrameTimingManager
+            // returned real numbers (sentinels are <0).
+            if (latest.GpuFrameTimeMs >= 0f || latest.CpuMainThreadMs >= 0f)
+            {
+                _listContainer.Add(BuildPerfFrameTimings(latest));
+            }
+
+            var btnRow = new VisualElement();
+            btnRow.style.flexDirection = FlexDirection.Row;
+            btnRow.style.flexWrap = Wrap.Wrap;
+            btnRow.style.paddingLeft = 12; btnRow.style.paddingTop = 8;
+            btnRow.Add(MakeButton("Reset dropped-frame counters", () =>
             {
                 _perfMonitor.ResetCounters();
                 _dirty = true;
-            });
-            var btnRow = new VisualElement();
-            btnRow.style.flexDirection = FlexDirection.Row;
-            btnRow.style.paddingLeft = 12; btnRow.style.paddingTop = 8;
-            btnRow.Add(resetBtn);
+            }));
+            // Permanent HUD overlay — visible even when the Inspector is
+            // closed, so devs can watch FPS during free-roam testing
+            // without re-opening the panel.
+            btnRow.Add(MakeButton(_perfHudVisible ? "Hide HUD" : "Show HUD", () =>
+            {
+                _perfHudVisible = !_perfHudVisible;
+                EnsurePerfHud();
+                if (_perfHud != null)
+                    _perfHud.style.display = _perfHudVisible ? DisplayStyle.Flex : DisplayStyle.None;
+                _dirty = true;
+            }));
             _listContainer.Add(btnRow);
 
             // Status bar contribution: treat <55fps as "failing" hint.
@@ -154,6 +174,90 @@ namespace com.noctuagames.sdk.Inspector
             if (ms <= 17f)  return Ok;
             if (ms <= 33.4f) return Warn;
             return Err;
+        }
+
+        private VisualElement BuildPerfFrameTimings(PerformanceSample s)
+        {
+            var box = new VisualElement();
+            box.style.paddingLeft = 12; box.style.paddingRight = 12;
+            box.style.paddingTop = 8; box.style.paddingBottom = 8;
+
+            var caption = new Label("Frame timings (FrameTimingManager)");
+            caption.style.color = TextLo; caption.style.fontSize = 10;
+            box.Add(caption);
+
+            void AddRow(string label, float ms)
+            {
+                var r = new VisualElement();
+                r.style.flexDirection = FlexDirection.Row;
+                r.style.paddingTop = 2; r.style.paddingBottom = 2;
+                var l = new Label(label);
+                l.style.color = TextMid; l.style.fontSize = 11;
+                l.style.flexGrow = 1;
+                var v = new Label(ms < 0f ? "—" : $"{ms:F2} ms");
+                v.style.color = ms < 0f ? TextMid : FrameColor(ms);
+                v.style.fontSize = 11;
+                v.style.unityFontStyleAndWeight = FontStyle.Bold;
+                r.Add(l); r.Add(v);
+                box.Add(r);
+            }
+
+            AddRow("GPU frame time",       s.GpuFrameTimeMs);
+            AddRow("CPU main thread",      s.CpuMainThreadMs);
+            AddRow("CPU render thread",    s.CpuRenderThreadMs);
+            return box;
+        }
+
+        /// <summary>
+        /// Lazy-create a fixed HUD overlay attached to the root panel —
+        /// visible regardless of whether the Inspector overlay is open.
+        /// Updates each frame from <see cref="_perfMonitor.OnSample"/>.
+        /// Cheap: a single Label re-text per frame, zero allocations
+        /// once warm thanks to UI Toolkit's text-rendering buffer reuse.
+        /// </summary>
+        private void EnsurePerfHud()
+        {
+            if (_perfHud != null) return;
+            // Attach to the document's rootVisualElement so the HUD lives
+            // even when _root.style.display = None (Inspector closed).
+            var docRoot = _doc?.rootVisualElement;
+            if (docRoot == null) return;
+
+            _perfHud = new VisualElement();
+            _perfHud.style.position = Position.Absolute;
+            _perfHud.style.top = 8; _perfHud.style.right = 8;
+            _perfHud.style.paddingLeft = 8; _perfHud.style.paddingRight = 8;
+            _perfHud.style.paddingTop = 4; _perfHud.style.paddingBottom = 4;
+            _perfHud.style.backgroundColor = new Color(0, 0, 0, 0.6f);
+            _perfHud.style.borderTopLeftRadius = 4; _perfHud.style.borderTopRightRadius = 4;
+            _perfHud.style.borderBottomLeftRadius = 4; _perfHud.style.borderBottomRightRadius = 4;
+            // pickingMode = Ignore so the HUD never absorbs game touches.
+            _perfHud.pickingMode = PickingMode.Ignore;
+            _perfHud.style.display = DisplayStyle.None;
+
+            _perfHudLabel = new Label("--");
+            _perfHudLabel.style.color = Color.white;
+            _perfHudLabel.style.fontSize = 11;
+            _perfHudLabel.style.unityFontStyleAndWeight = FontStyle.Bold;
+            _perfHudLabel.pickingMode = PickingMode.Ignore;
+            _perfHud.Add(_perfHudLabel);
+
+            docRoot.Add(_perfHud);
+
+            if (_perfMonitor != null)
+            {
+                _perfMonitor.OnSample += UpdatePerfHud;
+            }
+        }
+
+        private void UpdatePerfHud(PerformanceSample s)
+        {
+            if (_perfHudLabel == null || !_perfHudVisible) return;
+            // Compact one-line readout. Format kept stable so devs can
+            // grep screenshots / video recordings later.
+            _perfHudLabel.text = s.GpuFrameTimeMs >= 0f
+                ? $"FPS {s.FpsAvg1s:F0}  ms {s.FrameTimeMs:F1}  gpu {s.GpuFrameTimeMs:F1}"
+                : $"FPS {s.FpsAvg1s:F0}  ms {s.FrameTimeMs:F1}";
         }
     }
 }

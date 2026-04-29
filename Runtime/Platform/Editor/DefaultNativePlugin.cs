@@ -451,5 +451,10 @@ namespace com.noctuagames.sdk
 
         public DeviceMetricsSnapshot SnapshotDeviceMetrics() =>
             DeviceMetricsSnapshot.Empty(DateTime.UtcNow);
+
+        public void ClearNativeHttpCache()
+        {
+            // Editor has no NSURLCache / WebView cache — no-op.
+        }
     }
 }

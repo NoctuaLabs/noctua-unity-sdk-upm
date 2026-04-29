@@ -1,15 +1,16 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
+using System.Text;
+using System.Text.RegularExpressions;
 using UnityEngine;
 using UnityEngine.UIElements;
 
 namespace com.noctuagames.sdk.Inspector
 {
     /// <summary>
-    /// "Logs" tab — verbose log viewer with level/source/text filters.
-    /// Pulls entries from <see cref="LogInspectorLedger"/> (already drained
-    /// on the main thread by <c>Update</c>'s <c>Pump</c> call) and renders
-    /// the most recent <see cref="LogTabRowBudget"/> rows.
+    /// "Logs" tab — verbose log viewer with level/source/text filters,
+    /// regex support, copy-row, and export-to-file.
     ///
     /// Performance budget: rendering all 5,000 entries every frame is
     /// untenable; the controller only re-renders on dirty (new entry
@@ -23,9 +24,19 @@ namespace com.noctuagames.sdk.Inspector
 
         // UI control state — kept here so this partial owns the Logs tab.
         private LogLevel _logLevelFloor = LogLevel.Verbose;
-        private string _logSourceFilter = "All"; // All | Unity | iOS | Android | Firebase | Adjust | Facebook | Noctua
+        // Multi-select sources. Empty => "All". Stored as set for cheap membership.
+        private readonly HashSet<string> _logSourceFilter = new();
         private string _logTextFilter = "";
+        private Regex _logTextFilterRegex;       // non-null when `re:` prefix is set
         private bool _logPaused;
+        // Toast banner for "Copied to clipboard" / "Exported to: …" feedback.
+        // Lives as a child of _listContainer so it reuses the controller's
+        // dirty-flag re-render path without polling on Update.
+        private Label _logToastEl;
+
+        // The chips below the level — must match BuildLogControlStrip's iteration.
+        private static readonly string[] LogSourceChips =
+            { "Unity", "iOS", "Android", "Firebase", "Adjust", "Facebook", "Noctua" };
 
         private void RenderLogs(ref int ok, ref int failing, ref int inflight)
         {
@@ -36,6 +47,14 @@ namespace com.noctuagames.sdk.Inspector
             {
                 _listContainer.Add(MakeMutedLabel("Logs ledger not initialized — sandboxEnabled may be false."));
                 return;
+            }
+
+            // Toast banner (if active). Re-attached on every render so it
+            // lives above the log rows. Auto-hides via UI Toolkit's
+            // VisualElement.schedule API — see ShowToast.
+            if (_logToastEl != null && _logToastEl.style.display.value != DisplayStyle.None)
+            {
+                _listContainer.Add(_logToastEl);
             }
 
             var snapshot = _logLedger.Snapshot();
@@ -67,11 +86,18 @@ namespace com.noctuagames.sdk.Inspector
         private bool PassesLogFilter(LogEntry e)
         {
             if (e.Level < _logLevelFloor) return false;
-            if (_logSourceFilter != "All" && !string.Equals(e.Source, _logSourceFilter, StringComparison.OrdinalIgnoreCase))
+            // Empty set means "All" — pass everything.
+            if (_logSourceFilter.Count > 0 && !_logSourceFilter.Contains(e.Source))
                 return false;
-            if (!string.IsNullOrEmpty(_logTextFilter))
+            if (_logTextFilterRegex != null)
             {
-                if (e.Message?.IndexOf(_logTextFilter, StringComparison.OrdinalIgnoreCase) < 0 &&
+                if (!_logTextFilterRegex.IsMatch(e.Message ?? "") &&
+                    !_logTextFilterRegex.IsMatch(e.Tag ?? ""))
+                    return false;
+            }
+            else if (!string.IsNullOrEmpty(_logTextFilter))
+            {
+                if ((e.Message?.IndexOf(_logTextFilter, StringComparison.OrdinalIgnoreCase) ?? -1) < 0 &&
                     (e.Tag?.IndexOf(_logTextFilter, StringComparison.OrdinalIgnoreCase) ?? -1) < 0)
                     return false;
             }
@@ -98,33 +124,47 @@ namespace com.noctuagames.sdk.Inspector
             });
             bar.Add(levelLabel);
 
-            // Source chips
-            foreach (var s in new[] { "All", "Unity", "iOS", "Android", "Firebase", "Adjust", "Facebook", "Noctua" })
+            // Multi-select source chips. Empty set = "All". Tapping "All" clears
+            // the set; tapping a specific chip toggles its membership.
+            var allChip = new Label("All");
+            bool allActive = _logSourceFilter.Count == 0;
+            StyleChipText(allChip, accent: allActive ? AccentTracker : Bg2);
+            allChip.style.color = allActive ? Color.white : TextMid;
+            allChip.RegisterCallback<ClickEvent>(_ =>
+            {
+                _logSourceFilter.Clear();
+                _dirty = true;
+            });
+            bar.Add(allChip);
+
+            foreach (var s in LogSourceChips)
             {
                 var chip = new Label(s);
-                bool active = _logSourceFilter == s;
+                bool active = _logSourceFilter.Contains(s);
                 StyleChipText(chip, accent: active ? AccentTracker : Bg2);
                 chip.style.color = active ? Color.white : TextMid;
                 chip.RegisterCallback<ClickEvent>(_ =>
                 {
-                    _logSourceFilter = s;
+                    if (!_logSourceFilter.Add(s)) _logSourceFilter.Remove(s);
                     _dirty = true;
                 });
                 bar.Add(chip);
             }
 
-            // Text filter
+            // Text filter — supports `re:<pattern>` for regex; plain substring otherwise.
             var textField = new TextField { value = _logTextFilter };
-            textField.style.minWidth = 120;
+            textField.style.minWidth = 140;
             textField.style.marginLeft = 4; textField.style.marginRight = 4;
+            textField.tooltip = "Plain substring; prefix `re:` for regex (e.g. `re:^GET .* 5\\d\\d`)";
             textField.RegisterValueChangedCallback(evt =>
             {
                 _logTextFilter = evt.newValue ?? "";
+                CompileTextFilter();
                 _dirty = true;
             });
             bar.Add(textField);
 
-            // Pause / Clear / Native toggle
+            // Pause / Clear / Native toggle / Export / Copy-all
             bar.Add(MakeButton(_logPaused ? "▶ Resume" : "⏸ Pause", () =>
             {
                 _logPaused = !_logPaused;
@@ -147,7 +187,43 @@ namespace com.noctuagames.sdk.Inspector
                     }));
             }
 
+            // Export filtered view to a timestamped .txt under persistentDataPath.
+            // Game devs / QA hand the file off via Files-app share / `adb pull`.
+            bar.Add(MakeButton("Export", ExportFilteredLogs));
+
+            // Copy-all: dumps the filtered view to the system clipboard.
+            // For a single row, devs tap the row itself (BuildLogRow registers a
+            // ClickEvent that copies that row alone).
+            bar.Add(MakeButton("Copy", CopyFilteredLogsToClipboard));
+
             return bar;
+        }
+
+        private void CompileTextFilter()
+        {
+            const string prefix = "re:";
+            if (_logTextFilter != null &&
+                _logTextFilter.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+            {
+                var pattern = _logTextFilter.Substring(prefix.Length);
+                try
+                {
+                    _logTextFilterRegex = string.IsNullOrEmpty(pattern)
+                        ? null
+                        : new Regex(pattern, RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+                }
+                catch (ArgumentException)
+                {
+                    // Malformed pattern — fall back to substring against the full
+                    // string (including the `re:` prefix) so the user sees nothing
+                    // matches and knows the regex didn't compile.
+                    _logTextFilterRegex = null;
+                }
+            }
+            else
+            {
+                _logTextFilterRegex = null;
+            }
         }
 
         private VisualElement BuildLogRow(LogEntry e)
@@ -158,6 +234,13 @@ namespace com.noctuagames.sdk.Inspector
             row.style.paddingTop = 4; row.style.paddingBottom = 4;
             row.style.borderBottomWidth = 1;
             row.style.borderBottomColor = Stroke;
+
+            // Tap-to-copy single row. Cheap: single string allocation per copy.
+            row.RegisterCallback<ClickEvent>(_ =>
+            {
+                GUIUtility.systemCopyBuffer = FormatLogLine(e);
+                ShowToast($"Copied row at {e.TimestampUtc.ToLocalTime():HH:mm:ss}");
+            });
 
             // 8-char timestamp HH:mm:ss
             var ts = new Label(e.TimestampUtc.ToLocalTime().ToString("HH:mm:ss"));
@@ -192,6 +275,90 @@ namespace com.noctuagames.sdk.Inspector
             row.Add(msg);
 
             return row;
+        }
+
+        private void CopyFilteredLogsToClipboard()
+        {
+            if (_logLedger == null) return;
+            var sb = new StringBuilder(64 * 1024);
+            int n = AppendFilteredLogs(sb);
+            GUIUtility.systemCopyBuffer = sb.ToString();
+            ShowToast(n > 0 ? $"Copied {n} rows to clipboard" : "No rows match the filter");
+        }
+
+        private void ExportFilteredLogs()
+        {
+            if (_logLedger == null) return;
+            try
+            {
+                var sb = new StringBuilder(64 * 1024);
+                int n = AppendFilteredLogs(sb);
+                var ts = DateTime.UtcNow.ToString("yyyyMMdd-HHmmss");
+                var path = Path.Combine(Application.persistentDataPath, $"noctua-logs-{ts}.txt");
+                File.WriteAllText(path, sb.ToString());
+                ShowToast(n > 0 ? $"Exported {n} rows → {path}" : $"Exported empty file → {path}");
+            }
+            catch (Exception ex)
+            {
+                ShowToast("Export failed: " + ex.Message);
+            }
+        }
+
+        /// <summary>
+        /// Walks the filtered set newest-first and appends formatted lines.
+        /// Returns the number of rows appended.
+        /// </summary>
+        private int AppendFilteredLogs(StringBuilder sb)
+        {
+            var snapshot = _logLedger.Snapshot();
+            int n = 0;
+            for (int i = snapshot.Count - 1; i >= 0; i--)
+            {
+                var e = snapshot[i];
+                if (!PassesLogFilter(e)) continue;
+                sb.AppendLine(FormatLogLine(e));
+                n++;
+            }
+            return n;
+        }
+
+        private static string FormatLogLine(LogEntry e)
+        {
+            // Same shape as logcat threadtime — tooling-friendly.
+            return $"{e.TimestampUtc:yyyy-MM-dd HH:mm:ss.fff} {LevelGlyph(e.Level)} {e.Source}/{e.Tag}: {e.Message}";
+        }
+
+        private void ShowToast(string text, float seconds = 2.5f)
+        {
+            // Lazy-create the toast Label on first use so it can host its own
+            // schedule.Execute timer (UI Toolkit's idiomatic delayed callback).
+            if (_logToastEl == null)
+            {
+                _logToastEl = new Label();
+                _logToastEl.style.backgroundColor = Bg2;
+                _logToastEl.style.color = TextHi;
+                _logToastEl.style.paddingLeft = 12; _logToastEl.style.paddingRight = 12;
+                _logToastEl.style.paddingTop = 6; _logToastEl.style.paddingBottom = 6;
+                _logToastEl.style.marginLeft = 8; _logToastEl.style.marginRight = 8;
+                _logToastEl.style.marginTop = 4; _logToastEl.style.marginBottom = 4;
+                _logToastEl.style.borderTopLeftRadius = 4; _logToastEl.style.borderTopRightRadius = 4;
+                _logToastEl.style.borderBottomLeftRadius = 4; _logToastEl.style.borderBottomRightRadius = 4;
+                _logToastEl.style.fontSize = 11;
+                _logToastEl.style.whiteSpace = WhiteSpace.Normal;
+            }
+            _logToastEl.text = text;
+            _logToastEl.style.display = DisplayStyle.Flex;
+            _dirty = true;
+
+            // UI Toolkit's schedule API — single delayed callback on the
+            // panel's update loop. Avoids burning a coroutine or MonoBehaviour
+            // Update tick just to fade a toast.
+            _logToastEl.schedule.Execute(() =>
+            {
+                if (_logToastEl == null) return;
+                _logToastEl.style.display = DisplayStyle.None;
+                _dirty = true;
+            }).StartingIn((long)(seconds * 1000));
         }
 
         private static LogLevel NextLevel(LogLevel current) => current switch

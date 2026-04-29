@@ -21,6 +21,12 @@ namespace com.noctuagames.sdk
         public float    FrameTimeP95Ms { get; }  // 95th percentile, 60s window
         public int      DroppedFrames30Hz { get; } // cumulative since session
         public int      DroppedFrames60Hz { get; }
+        // GPU / CPU split via FrameTimingManager.GetLatestTimings(). Both
+        // are -1 when the platform / graphics API doesn't expose timings
+        // (e.g. WebGL, some Editor configs). Numbers are in milliseconds.
+        public float    GpuFrameTimeMs { get; }
+        public float    CpuMainThreadMs { get; }
+        public float    CpuRenderThreadMs { get; }
 
         public PerformanceSample(
             DateTime timestampUtc,
@@ -31,7 +37,10 @@ namespace com.noctuagames.sdk
             float frameTimeMs,
             float frameTimeP95Ms,
             int droppedFrames30Hz,
-            int droppedFrames60Hz)
+            int droppedFrames60Hz,
+            float gpuFrameTimeMs = -1f,
+            float cpuMainThreadMs = -1f,
+            float cpuRenderThreadMs = -1f)
         {
             TimestampUtc      = timestampUtc;
             DeltaSeconds      = deltaSeconds;
@@ -42,6 +51,9 @@ namespace com.noctuagames.sdk
             FrameTimeP95Ms    = frameTimeP95Ms;
             DroppedFrames30Hz = droppedFrames30Hz;
             DroppedFrames60Hz = droppedFrames60Hz;
+            GpuFrameTimeMs    = gpuFrameTimeMs;
+            CpuMainThreadMs   = cpuMainThreadMs;
+            CpuRenderThreadMs = cpuRenderThreadMs;
         }
     }
 }

@@ -407,6 +407,11 @@ namespace com.noctuagames.sdk
                     {
                         _inspector.MemoryMonitorComponent.SetNativeMetricsProvider(
                             new NoctuaDeviceMetricsAdapter(_nativePlugin));
+                        // Same indirection rationale: pass a delegate so
+                        // MemoryMonitor doesn't need an INativeMaintenance ref.
+                        var pluginRef = _nativePlugin;
+                        _inspector.MemoryMonitorComponent.SetClearNativeHttpCacheAction(
+                            () => pluginRef.ClearNativeHttpCache());
                     }
                 }
                 catch (Exception e) { _log.Warning($"Wire MemoryMonitor native bridge failed: {e.Message}"); }

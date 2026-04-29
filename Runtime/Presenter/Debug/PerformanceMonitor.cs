@@ -94,6 +94,11 @@ namespace com.noctuagames.sdk
             }
         }
 
+        // FrameTimingManager scratch buffer — single-element since we only
+        // care about the latest timing each frame. Pre-allocated to avoid
+        // per-frame allocations in a hot path.
+        private readonly UnityEngine.FrameTiming[] _frameTimingBuf = new UnityEngine.FrameTiming[1];
+
         private void Update()
         {
             float dt = Time.unscaledDeltaTime;
@@ -101,6 +106,24 @@ namespace com.noctuagames.sdk
 
             float frameTimeMs = dt * 1000f;
             float fpsInstant  = 1f / dt;
+
+            // GPU / CPU split via FrameTimingManager. Skips silently on
+            // platforms where timings aren't enabled (WebGL, some Editor
+            // configs) — the sentinels propagate as -1f to the UI.
+            float gpuMs = -1f, cpuMainMs = -1f, cpuRenderMs = -1f;
+            try
+            {
+                UnityEngine.FrameTimingManager.CaptureFrameTimings();
+                uint count = UnityEngine.FrameTimingManager.GetLatestTimings(1, _frameTimingBuf);
+                if (count >= 1)
+                {
+                    var t = _frameTimingBuf[0];
+                    gpuMs       = (float)t.gpuFrameTime;
+                    cpuMainMs   = (float)t.cpuMainThreadFrameTime;
+                    cpuRenderMs = (float)t.cpuRenderThreadFrameTime;
+                }
+            }
+            catch { /* swallow — frame timings are optional */ }
 
             // 1s rolling avg
             UpdateRolling(_delta1s, ref _delta1sHead, ref _delta1sSum, ref _delta1sCount, dt);
@@ -132,7 +155,10 @@ namespace com.noctuagames.sdk
                 frameTimeMs:       frameTimeMs,
                 frameTimeP95Ms:    p95,
                 droppedFrames30Hz: _droppedFrames30Hz,
-                droppedFrames60Hz: _droppedFrames60Hz);
+                droppedFrames60Hz: _droppedFrames60Hz,
+                gpuFrameTimeMs:    gpuMs,
+                cpuMainThreadMs:   cpuMainMs,
+                cpuRenderThreadMs: cpuRenderMs);
 
             lock (_lock)
             {

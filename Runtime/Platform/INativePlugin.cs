@@ -409,12 +409,32 @@ namespace com.noctuagames.sdk
     }
 
     /// <summary>
+    /// Inspector-only — destructive maintenance actions exposed by the
+    /// "Memory" tab's Action Panel. Implementations are no-ops in
+    /// production builds (the actions are only invoked through the
+    /// sandbox-gated Inspector UI).
+    /// </summary>
+    public interface INativeMaintenance
+    {
+        /// <summary>
+        /// Wipes platform HTTP caches:
+        ///   * iOS — <c>URLCache.shared.removeAllCachedResponses()</c> and
+        ///     <c>WKWebsiteDataStore.default().removeData(...)</c> for disk cache.
+        ///   * Android — <c>WebView(activity).clearCache(true)</c> and
+        ///     recursive delete of <c>context.cacheDir</c> contents.
+        /// Always synchronous and never throws — failures are logged on the
+        /// native side and surfaced as a no-op return.
+        /// </summary>
+        void ClearNativeHttpCache();
+    }
+
+    /// <summary>
     /// Aggregate native plugin interface — inherits all domain-specific sub-interfaces.
     /// Platform implementations (AndroidPlugin, IosPlugin, DefaultNativePlugin) implement this.
     /// </summary>
     public interface INativePlugin : INativeTracker, INativeIAP, INativeAccountStore,
         INativeDatePicker, INativeFirebase, INativeEventStorage, INativeLifecycle,
-        INativeAppManagement, INativeLogStream, INativeDeviceMetrics
+        INativeAppManagement, INativeLogStream, INativeDeviceMetrics, INativeMaintenance
     {
     }
 }

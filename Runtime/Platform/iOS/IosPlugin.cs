@@ -1160,6 +1160,19 @@ namespace com.noctuagames.sdk
                 return DeviceMetricsSnapshot.Empty(DateTime.UtcNow);
             }
         }
+
+        // ------------------------------------
+        // INativeMaintenance — clear native HTTP cache
+        // ------------------------------------
+
+        [DllImport("__Internal")]
+        private static extern void noctuaClearNativeHttpCache();
+
+        public void ClearNativeHttpCache()
+        {
+            try { noctuaClearNativeHttpCache(); }
+            catch (Exception e) { _sLog.Warning($"noctuaClearNativeHttpCache failed: {e.Message}"); }
+        }
     }
 #endif
 }

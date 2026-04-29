@@ -28,6 +28,11 @@ namespace com.noctuagames.sdk
 
         private IDeviceMetricsProvider _nativeMetrics;
 
+        // Optional bridge to the native maintenance API (clear HTTP cache,
+        // future: clear cookies, etc). Composition root injects this when
+        // sandbox is enabled; null otherwise so the action button no-ops.
+        private System.Action _clearNativeHttpCacheAction;
+
         /// <summary>
         /// Fires after each sample is admitted. Always main-thread.
         /// </summary>
@@ -41,6 +46,27 @@ namespace com.noctuagames.sdk
         public void SetNativeMetricsProvider(IDeviceMetricsProvider provider)
         {
             _nativeMetrics = provider;
+        }
+
+        /// <summary>
+        /// Inject the "clear native HTTP cache" hook from the composition
+        /// root (kept as a delegate so MemoryMonitor stays in the Presenter
+        /// layer without referencing INativeMaintenance from Platform).
+        /// </summary>
+        public void SetClearNativeHttpCacheAction(System.Action action)
+        {
+            _clearNativeHttpCacheAction = action;
+        }
+
+        /// <summary>
+        /// Wipes platform-managed HTTP caches (URLCache + WKWebView on
+        /// iOS, WebView + cacheDir on Android). No-op when no native
+        /// bridge is installed (Editor / production).
+        /// </summary>
+        public void ClearNativeHttpCache()
+        {
+            try { _clearNativeHttpCacheAction?.Invoke(); }
+            catch { /* swallow — action panel surfaces no error UI */ }
         }
 
         public IReadOnlyList<MemorySample> Snapshot()
