@@ -92,7 +92,7 @@ namespace com.noctuagames.sdk
 
         private static void WriteText(ZipArchive zip, string name, string text)
         {
-            var entry = zip.CreateEntry(name, CompressionLevel.Optimal);
+            var entry = zip.CreateEntry(name, System.IO.Compression.CompressionLevel.Optimal);
             using var stream = entry.Open();
             var bytes = Encoding.UTF8.GetBytes(text ?? "");
             stream.Write(bytes, 0, bytes.Length);
@@ -100,7 +100,7 @@ namespace com.noctuagames.sdk
 
         private static void WriteBytes(ZipArchive zip, string name, byte[] data)
         {
-            var entry = zip.CreateEntry(name, CompressionLevel.Optimal);
+            var entry = zip.CreateEntry(name, System.IO.Compression.CompressionLevel.Optimal);
             using var stream = entry.Open();
             stream.Write(data, 0, data.Length);
         }
