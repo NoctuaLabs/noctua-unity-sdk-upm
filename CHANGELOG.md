@@ -18,6 +18,22 @@ All notable changes to this project will be documented in this file.
 - *(inspector)* Adjust on iOS — Adjust SDK uses `NSLog(@"[Adjust]d: …")` which routes through the app's default subsystem, not `com.adjust.sdk`. Added content-match so its lines are picked up.
 - *(inspector)* Android — added `FirebaseService:V` to the logcat tag filter so Noctua's Firebase wrapper logs (`'<eventName>' (custom) tracked: payload: {…}`) are surfaced as `EMITTED` (or standalone `ACKNOWLEDGED`) on the Trackers tab even when Firebase Analytics' verbose logging is off.
 
+### ✨ Inspector polish (rolled into the same release)
+
+- *(logs)* **Multi-select source chips** — "All" clears the set, individual chips toggle membership.
+- *(logs)* **`re:` regex prefix** in the text filter — case-insensitive; malformed patterns silently fall back to "no match".
+- *(logs)* **Tap a row to copy** its formatted line to the system clipboard (logcat-shape: `YYYY-MM-DD HH:mm:ss.fff L Source/Tag: msg`). New `Copy` button copies the entire filtered view; new `Export` button writes to `{persistentDataPath}/noctua-logs-{ts}.txt`. Toast banner surfaces row count + path.
+- *(memory)* **`Clear Native HTTP Cache` button** — wires through the new `INativeMaintenance` bridge (URLCache + WKWebsiteDataStore on iOS; WebView.clearCache + cacheDir wipe on Android).
+- *(memory)* **Two-tap confirm** for `Clear Asset Cache` and `Clear Native HTTP Cache`.
+- *(memory)* **Hold-to-confirm 3 s** for `Wipe PlayerPrefs` (PointerDown + UI Toolkit scheduler; PointerUp / PointerLeave / PointerCancel cancel).
+- *(memory)* **10-min time-series chart** of mono / Unity-allocated / native phys-footprint, drawn via `generateVisualContent` + Painter2D — no per-frame allocations once realised. Skips native series when bridge sentinels report -1.
+- *(perf)* **GPU / CPU split** via `FrameTimingManager.GetLatestTimings()` — added `GpuFrameTimeMs`, `CpuMainThreadMs`, `CpuRenderThreadMs` to `PerformanceSample`. Sentinels -1 when the platform / graphics API doesn't expose timings.
+- *(perf)* **`Show HUD` toggle** — top-right always-on overlay (DontDestroyOnLoad-rooted, `PickingMode.Ignore` so it never absorbs game touches). Visible even when the Inspector overlay is closed.
+
+### 🐛 Bug Fixes (rolled in)
+
+- *(iap)* iOS — `StoreKit1Service.getProductPurchaseStatus` now returns `true` for previously-purchased non-consumables. The old impl only checked the in-flight `pendingTransactions` queue, which is wiped by `finishTransaction` during the original purchase. Fixed by falling through to `Transaction.currentEntitlements` (StoreKit 2, available alongside SK1 since iOS 15) when no in-flight match is found. Repro: buy a non-consumable, restart, call `Noctua.IAP.GetPurchaseStatusAsync(...)` — was `false`, now `true`.
+
 ### 📦 Native plugin deps
 
 - `noctua-android-sdk` 0.31.0 → **0.32.0**

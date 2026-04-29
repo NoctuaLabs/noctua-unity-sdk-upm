@@ -116,4 +116,10 @@ int noctuaSnapshotDeviceMetrics(long long* outPhysFootprint,
                                 int* outLowMemory,
                                 int* outThermal);
 
+// Clear native HTTP caches (Inspector "Memory" tab Action Panel).
+// Wipes URLCache.shared synchronously and WKWebsiteDataStore disk +
+// memory caches asynchronously (cookies preserved). Best-effort —
+// failures are logged on the native side and surface as a no-op.
+void noctuaClearNativeHttpCache(void);
+
 }
