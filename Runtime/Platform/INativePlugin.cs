@@ -414,6 +414,30 @@ namespace com.noctuagames.sdk
     /// production builds (the actions are only invoked through the
     /// sandbox-gated Inspector UI).
     /// </summary>
+    /// <summary>
+    /// Inspector-only — read-only build/config metadata exposed for the
+    /// "Build" sanity panel. All getters return safe defaults (empty
+    /// string / -1 / false) when the platform doesn't expose the metric.
+    /// </summary>
+    public interface INativeBuildInfo
+    {
+        /// <summary>Native SDK version string (e.g. "0.36.0").</summary>
+        string GetNativeSdkVersion();
+
+        /// <summary>
+        /// Firebase project ID from `GoogleService-Info.plist` (iOS) or
+        /// `FirebaseApp.options.projectId` (Android). Empty when Firebase
+        /// isn't configured.
+        /// </summary>
+        string GetFirebaseProjectId();
+
+        /// <summary>iOS: count of `SKAdNetworkItems` in Info.plist. -1 elsewhere.</summary>
+        int GetSkAdNetworksCount();
+
+        /// <summary>Android: count of requested permissions. -1 elsewhere.</summary>
+        int GetAndroidPermissionsCount();
+    }
+
     public interface INativeMaintenance
     {
         /// <summary>
@@ -434,7 +458,8 @@ namespace com.noctuagames.sdk
     /// </summary>
     public interface INativePlugin : INativeTracker, INativeIAP, INativeAccountStore,
         INativeDatePicker, INativeFirebase, INativeEventStorage, INativeLifecycle,
-        INativeAppManagement, INativeLogStream, INativeDeviceMetrics, INativeMaintenance
+        INativeAppManagement, INativeLogStream, INativeDeviceMetrics,
+        INativeMaintenance, INativeBuildInfo
     {
     }
 }

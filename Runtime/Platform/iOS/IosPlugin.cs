@@ -1173,6 +1173,39 @@ namespace com.noctuagames.sdk
             try { noctuaClearNativeHttpCache(); }
             catch (Exception e) { _sLog.Warning($"noctuaClearNativeHttpCache failed: {e.Message}"); }
         }
+
+        // ------------------------------------
+        // INativeBuildInfo — read-only build/config metadata
+        // ------------------------------------
+
+        [DllImport("__Internal", CharSet = CharSet.Ansi)]
+        private static extern IntPtr noctuaGetNativeSdkVersion();
+
+        [DllImport("__Internal", CharSet = CharSet.Ansi)]
+        private static extern IntPtr noctuaGetFirebaseProjectId();
+
+        [DllImport("__Internal")]
+        private static extern int noctuaGetSkAdNetworksCount();
+
+        public string GetNativeSdkVersion()
+        {
+            try { return Marshal.PtrToStringAnsi(noctuaGetNativeSdkVersion()) ?? ""; }
+            catch (Exception e) { _sLog.Warning($"noctuaGetNativeSdkVersion failed: {e.Message}"); return ""; }
+        }
+
+        public string GetFirebaseProjectId()
+        {
+            try { return Marshal.PtrToStringAnsi(noctuaGetFirebaseProjectId()) ?? ""; }
+            catch (Exception e) { _sLog.Warning($"noctuaGetFirebaseProjectId failed: {e.Message}"); return ""; }
+        }
+
+        public int GetSkAdNetworksCount()
+        {
+            try { return noctuaGetSkAdNetworksCount(); }
+            catch (Exception e) { _sLog.Warning($"noctuaGetSkAdNetworksCount failed: {e.Message}"); return -1; }
+        }
+
+        public int GetAndroidPermissionsCount() => -1; // not applicable on iOS
     }
 #endif
 }

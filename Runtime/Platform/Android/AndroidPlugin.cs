@@ -1020,6 +1020,42 @@ namespace com.noctuagames.sdk
             }
             catch (Exception e) { _log.Warning($"clearNativeHttpCache failed: {e.Message}"); }
         }
+
+        // ------------------------------------
+        // INativeBuildInfo — read-only build/config metadata
+        // ------------------------------------
+
+        public string GetNativeSdkVersion()
+        {
+            try
+            {
+                using var inspector = new AndroidJavaClass("com.noctuagames.sdk.inspector.NoctuaInspector");
+                return inspector.CallStatic<string>("getNativeSdkVersion") ?? "";
+            }
+            catch (Exception e) { _log.Warning($"getNativeSdkVersion failed: {e.Message}"); return ""; }
+        }
+
+        public string GetFirebaseProjectId()
+        {
+            try
+            {
+                using var inspector = new AndroidJavaClass("com.noctuagames.sdk.inspector.NoctuaInspector");
+                return inspector.CallStatic<string>("getFirebaseProjectId") ?? "";
+            }
+            catch (Exception e) { _log.Warning($"getFirebaseProjectId failed: {e.Message}"); return ""; }
+        }
+
+        public int GetSkAdNetworksCount() => -1; // not applicable on Android
+
+        public int GetAndroidPermissionsCount()
+        {
+            try
+            {
+                using var inspector = new AndroidJavaClass("com.noctuagames.sdk.inspector.NoctuaInspector");
+                return inspector.CallStatic<int>("getPermissionsCount");
+            }
+            catch (Exception e) { _log.Warning($"getPermissionsCount failed: {e.Message}"); return -1; }
+        }
     }
 }
 

@@ -133,6 +133,11 @@ namespace com.noctuagames.sdk
             {
                 _config.Noctua.BaseUrl = NoctuaConfig.DefaultSandboxBaseUrl;
 
+                // Capture raw config text for the Build sanity panel's
+                // SHA-256 checksum. Kept only when sandbox is on so
+                // production builds don't retain the text in memory.
+                _rawConfigJson = jsonConfig;
+
                 // Noctua Inspector — sandbox-only, zero work in production.
                 // HttpInspectorLog subscribes to the static HttpRequest observer
                 // list; TrackerDebugMonitor subscribes to the static tracker

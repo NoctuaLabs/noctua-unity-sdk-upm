@@ -456,5 +456,11 @@ namespace com.noctuagames.sdk
         {
             // Editor has no NSURLCache / WebView cache — no-op.
         }
+
+        // INativeBuildInfo — Editor has no native SDK version or Info.plist.
+        public string GetNativeSdkVersion() => "n/a (Editor)";
+        public string GetFirebaseProjectId() => "";
+        public int GetSkAdNetworksCount() => -1;
+        public int GetAndroidPermissionsCount() => -1;
     }
 }

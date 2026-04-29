@@ -83,6 +83,22 @@ namespace com.noctuagames.sdk
             : null;
 
         /// <summary>
+        /// Build sanity snapshot (Inspector "Build" tab data source).
+        /// Computes a fresh <see cref="BuildSanityInfo"/> on each call —
+        /// returns an empty record outside sandbox mode so production
+        /// callers never accidentally surface config metadata.
+        /// </summary>
+        public static BuildSanityInfo BuildSanity()
+        {
+            var inst = Instance.Value;
+            if (inst._config?.Noctua?.IsSandbox != true) return new BuildSanityInfo();
+            return BuildSanityProvider.Snapshot(
+                config:        inst._config,
+                rawConfigJson: inst._rawConfigJson,
+                buildInfo:     inst._nativePlugin);
+        }
+
+        /// <summary>
         /// True iff SDK was initialized with <c>sandboxEnabled: true</c>. Used
         /// by the Inspector bootstrap to decide whether to auto-spawn the
         /// on-device overlay.
@@ -139,6 +155,11 @@ namespace com.noctuagames.sdk
         private LogInspectorLedger _logLedger;
         private UnityLogStream _unityLogStream;
         private com.noctuagames.sdk.Inspector.NoctuaInspectorController _inspector;
+        // Raw `noctuagg.json` text captured at load time. Kept only when
+        // sandbox is enabled — the Build sanity panel uses it to compute
+        // a SHA-256 checksum without re-reading StreamingAssets (which
+        // is not a regular filesystem path on Android device builds).
+        private string _rawConfigJson;
         private readonly SessionTracker _sessionTracker;
         private NativeCrashForwarder _nativeCrashForwarder;
         private readonly NoctuaEventService _event;
