@@ -45,6 +45,7 @@ namespace com.noctuagames.sdk.Inspector
             }
 
             var btnRow = new VisualElement();
+            btnRow.style.flexShrink = 0;
             btnRow.style.flexDirection = FlexDirection.Row;
             btnRow.style.flexWrap = Wrap.Wrap;
             btnRow.style.paddingLeft = 12; btnRow.style.paddingTop = 8;
@@ -74,6 +75,7 @@ namespace com.noctuagames.sdk.Inspector
         private VisualElement BuildPerfReadout(PerformanceSample s)
         {
             var box = new VisualElement();
+            box.style.flexShrink = 0;
             box.style.flexDirection = FlexDirection.Row;
             box.style.paddingLeft = 12; box.style.paddingRight = 12;
             box.style.paddingTop = 12; box.style.paddingBottom = 8;
@@ -81,6 +83,7 @@ namespace com.noctuagames.sdk.Inspector
             void AddCol(string label, string value, Color valueColor)
             {
                 var col = new VisualElement();
+                col.style.flexShrink = 0;
                 col.style.flexDirection = FlexDirection.Column;
                 col.style.flexGrow = 1;
 
@@ -106,6 +109,7 @@ namespace com.noctuagames.sdk.Inspector
         private VisualElement BuildPerfSparkline()
         {
             var wrap = new VisualElement();
+            wrap.style.flexShrink = 0;
             wrap.style.paddingLeft = 12; wrap.style.paddingRight = 12;
             wrap.style.paddingTop = 8; wrap.style.paddingBottom = 8;
 
@@ -114,6 +118,7 @@ namespace com.noctuagames.sdk.Inspector
             wrap.Add(caption);
 
             var bars = new VisualElement();
+            bars.style.flexShrink = 0;
             bars.style.flexDirection = FlexDirection.Row;
             bars.style.height = 40;
             bars.style.alignItems = Align.FlexEnd;
@@ -126,6 +131,7 @@ namespace com.noctuagames.sdk.Inspector
                 var s = samples[i];
                 float h = Mathf.Clamp01(s.FpsInstant / 60f) * 40f;
                 var bar = new VisualElement();
+                bar.style.flexShrink = 0;
                 bar.style.width = 4;
                 bar.style.marginRight = 1;
                 bar.style.height = Mathf.Max(1f, h);
@@ -139,12 +145,14 @@ namespace com.noctuagames.sdk.Inspector
         private VisualElement BuildPerfCounters(PerformanceSample s)
         {
             var box = new VisualElement();
+            box.style.flexShrink = 0;
             box.style.paddingLeft = 12; box.style.paddingRight = 12;
             box.style.paddingTop = 8; box.style.paddingBottom = 8;
 
             void AddRow(string label, string value)
             {
                 var r = new VisualElement();
+                r.style.flexShrink = 0;
                 r.style.flexDirection = FlexDirection.Row;
                 r.style.paddingTop = 5; r.style.paddingBottom = 5;
                 var l = new Label(label);
@@ -179,6 +187,7 @@ namespace com.noctuagames.sdk.Inspector
         private VisualElement BuildPerfFrameTimings(PerformanceSample s)
         {
             var box = new VisualElement();
+            box.style.flexShrink = 0;
             box.style.paddingLeft = 12; box.style.paddingRight = 12;
             box.style.paddingTop = 8; box.style.paddingBottom = 8;
 
@@ -189,6 +198,7 @@ namespace com.noctuagames.sdk.Inspector
             void AddRow(string label, float ms)
             {
                 var r = new VisualElement();
+                r.style.flexShrink = 0;
                 r.style.flexDirection = FlexDirection.Row;
                 r.style.paddingTop = 5; r.style.paddingBottom = 5;
                 var l = new Label(label);

@@ -48,6 +48,7 @@ namespace com.noctuagames.sdk.Inspector
         private VisualElement BuildMemChart()
         {
             var wrap = new VisualElement();
+            wrap.style.flexShrink = 0;
             wrap.style.paddingLeft = 12; wrap.style.paddingRight = 12;
             wrap.style.paddingTop = 12; wrap.style.paddingBottom = 4;
 
@@ -56,12 +57,14 @@ namespace com.noctuagames.sdk.Inspector
             wrap.Add(caption);
 
             var canvas = new VisualElement();
+            canvas.style.flexShrink = 0;
             canvas.style.height = 80;
             canvas.style.backgroundColor = Bg2;
             canvas.generateVisualContent += DrawMemChart;
             wrap.Add(canvas);
 
             var legend = new VisualElement();
+            legend.style.flexShrink = 0;
             legend.style.flexDirection = FlexDirection.Row;
             legend.style.paddingTop = 4;
             legend.Add(MakeLegendDot(Color.yellow,    "Mono"));
@@ -75,10 +78,12 @@ namespace com.noctuagames.sdk.Inspector
         private static VisualElement MakeLegendDot(Color color, string label)
         {
             var row = new VisualElement();
+            row.style.flexShrink = 0;
             row.style.flexDirection = FlexDirection.Row;
             row.style.alignItems = Align.Center;
             row.style.marginRight = 12;
             var dot = new VisualElement();
+            dot.style.flexShrink = 0;
             dot.style.width = 8; dot.style.height = 8;
             dot.style.backgroundColor = color;
             dot.style.borderTopLeftRadius = 4; dot.style.borderTopRightRadius = 4;
@@ -147,12 +152,14 @@ namespace com.noctuagames.sdk.Inspector
         private VisualElement BuildMemReadout(MemorySample s)
         {
             var box = new VisualElement();
+            box.style.flexShrink = 0;
             box.style.paddingLeft = 12; box.style.paddingRight = 12;
             box.style.paddingTop = 12; box.style.paddingBottom = 8;
 
             void AddRow(string label, string value, Color color)
             {
                 var r = new VisualElement();
+                r.style.flexShrink = 0;
                 r.style.flexDirection = FlexDirection.Row;
                 r.style.paddingTop = 6; r.style.paddingBottom = 6;
                 var l = new Label(label);
@@ -189,6 +196,7 @@ namespace com.noctuagames.sdk.Inspector
         private VisualElement BuildMemActions()
         {
             var wrap = new VisualElement();
+            wrap.style.flexShrink = 0;
             wrap.style.paddingLeft = 12; wrap.style.paddingRight = 12;
             wrap.style.paddingTop = 12; wrap.style.paddingBottom = 12;
 
@@ -199,6 +207,7 @@ namespace com.noctuagames.sdk.Inspector
 
             // Buttons in a flex row that wraps on narrow viewports.
             var row = new VisualElement();
+            row.style.flexShrink = 0;
             row.style.flexDirection = FlexDirection.Row;
             row.style.flexWrap = Wrap.Wrap;
 

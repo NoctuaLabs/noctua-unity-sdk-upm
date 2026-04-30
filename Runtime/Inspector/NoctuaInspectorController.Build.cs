@@ -55,6 +55,7 @@ namespace com.noctuagames.sdk.Inspector
 
             // Action row — bug-report export.
             var actions = new VisualElement();
+            actions.style.flexShrink = 0;
             actions.style.flexDirection = FlexDirection.Row;
             actions.style.flexWrap = Wrap.Wrap;
             actions.style.paddingLeft = 12; actions.style.paddingRight = 12;
@@ -108,6 +109,7 @@ namespace com.noctuagames.sdk.Inspector
         private VisualElement BuildExperimentSection()
         {
             var box = new VisualElement();
+            box.style.flexShrink = 0;
             box.style.paddingLeft = 12; box.style.paddingRight = 12;
             box.style.paddingTop = 12; box.style.paddingBottom = 4;
 
@@ -134,6 +136,7 @@ namespace com.noctuagames.sdk.Inspector
 
             // "+ Add" form. Two text fields + a submit button.
             var form = new VisualElement();
+            form.style.flexShrink = 0;
             form.style.flexDirection = FlexDirection.Row;
             form.style.flexWrap = Wrap.Wrap;
             form.style.paddingTop = 6;
@@ -175,6 +178,7 @@ namespace com.noctuagames.sdk.Inspector
         private VisualElement BuildAdjustEventMapSection()
         {
             var box = new VisualElement();
+            box.style.flexShrink = 0;
             box.style.paddingLeft = 12; box.style.paddingRight = 12;
             box.style.paddingTop = 12; box.style.paddingBottom = 4;
 
@@ -229,6 +233,7 @@ namespace com.noctuagames.sdk.Inspector
             System.Collections.Generic.Dictionary<string, TrackerEmission> lastSeen)
         {
             var row = new VisualElement();
+            row.style.flexShrink = 0;
             row.style.flexDirection = FlexDirection.Row;
             row.style.alignItems = Align.Center;
             row.style.paddingTop = 6; row.style.paddingBottom = 6;
@@ -278,6 +283,7 @@ namespace com.noctuagames.sdk.Inspector
         private VisualElement BuildExperimentRow(string key, string currentValue)
         {
             var row = new VisualElement();
+            row.style.flexShrink = 0;
             row.style.flexDirection = FlexDirection.Row;
             row.style.alignItems = Align.Center;
             row.style.paddingTop = 6; row.style.paddingBottom = 6;
@@ -311,6 +317,7 @@ namespace com.noctuagames.sdk.Inspector
         private VisualElement BuildSection(string title, (string label, string value, bool warn)[] rows)
         {
             var box = new VisualElement();
+            box.style.flexShrink = 0;
             box.style.paddingLeft = 12; box.style.paddingRight = 12;
             box.style.paddingTop = 12; box.style.paddingBottom = 4;
 
@@ -335,6 +342,7 @@ namespace com.noctuagames.sdk.Inspector
         private VisualElement BuildBuildRow(string label, string value, bool warn)
         {
             var row = new VisualElement();
+            row.style.flexShrink = 0;
             row.style.flexDirection = FlexDirection.Row;
             row.style.paddingTop = 6; row.style.paddingBottom = 6;
             row.style.borderBottomWidth = 1;
