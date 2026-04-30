@@ -46,6 +46,11 @@ namespace com.noctuagames.sdk.Inspector
                 ("Permissions (Android)",  info.AndroidPermissionsCount< 0 ? "—" : info.AndroidPermissionsCount.ToString(), false),
             }));
 
+            // Full noctuagg.json — surfaced verbatim so devs can verify
+            // every field (game ID, base URLs, tracker eventMaps, Firebase
+            // / Facebook configs) without leaving the Inspector.
+            _listContainer.Add(BuildRawConfigSection(info));
+
             // Adjust event mapping — game-event-name → callback-token,
             // with last-seen status pulled from the live tracker monitor.
             _listContainer.Add(BuildAdjustEventMapSection());
@@ -106,6 +111,110 @@ namespace com.noctuagames.sdk.Inspector
         /// — same code path the SDK uses internally — so the override
         /// is identical to a real experiment assignment from the server.
         /// </summary>
+        // Tracks whether the noctuagg.json section is expanded (full JSON
+        // visible) or collapsed (header-only). Default collapsed because the
+        // pretty-printed JSON is hundreds of lines tall and would push every
+        // other section below the fold on a portrait phone.
+        private bool _rawConfigExpanded;
+
+        /// <summary>
+        /// Renders the full <c>noctuagg.json</c> contents as a code-block.
+        /// Tap-to-expand keeps the dense Build tab navigable; once
+        /// expanded, devs see every field (game ID, base URLs, IAP /
+        /// Firebase / Facebook configs, tracker eventMaps, etc.) in one
+        /// pane and can copy the whole blob to clipboard for pasting
+        /// into a bug report.
+        /// </summary>
+        private VisualElement BuildRawConfigSection(BuildSanityInfo info)
+        {
+            var box = new VisualElement();
+            box.style.flexShrink = 0;
+            box.style.paddingLeft = 12; box.style.paddingRight = 12;
+            box.style.paddingTop = 12; box.style.paddingBottom = 4;
+
+            // Header row: section title + length hint + chevron
+            var headerRow = new VisualElement();
+            headerRow.style.flexShrink = 0;
+            headerRow.style.flexDirection = FlexDirection.Row;
+            headerRow.style.alignItems = Align.Center;
+            headerRow.style.paddingTop = 6; headerRow.style.paddingBottom = 6;
+            headerRow.RegisterCallback<ClickEvent>(_ =>
+            {
+                _rawConfigExpanded = !_rawConfigExpanded;
+                _dirty = true;
+            });
+
+            var head = new Label("noctuagg.json");
+            head.style.color = TextLo; head.style.fontSize = 12;
+            head.style.flexGrow = 1;
+            headerRow.Add(head);
+
+            var hint = new Label(string.IsNullOrEmpty(info.RawConfigJson)
+                ? "(unavailable — sandbox not enabled at init)"
+                : $"{info.RawConfigJson.Length} chars");
+            hint.style.color = TextMid; hint.style.fontSize = 11;
+            hint.style.marginRight = 8;
+            headerRow.Add(hint);
+
+            if (!string.IsNullOrEmpty(info.RawConfigJson))
+            {
+                var chev = new Label(_rawConfigExpanded ? "▼" : "▶");
+                chev.style.color = TextLo; chev.style.fontSize = 12;
+                chev.style.flexShrink = 0;
+                headerRow.Add(chev);
+            }
+
+            box.Add(headerRow);
+
+            if (string.IsNullOrEmpty(info.RawConfigJson) || !_rawConfigExpanded)
+            {
+                return box;
+            }
+
+            // Code-block style: monospace-ish on dark surface so the JSON
+            // is readable as a single contiguous blob. UI Toolkit doesn't
+            // ship a monospace font; we rely on the inherited LegacyRuntime
+            // font and its decent fixed-letterspacing for digits / braces.
+            var codeWrap = new VisualElement();
+            codeWrap.style.flexShrink = 0;
+            codeWrap.style.backgroundColor = Bg2;
+            codeWrap.style.paddingLeft = 12; codeWrap.style.paddingRight = 12;
+            codeWrap.style.paddingTop = 10; codeWrap.style.paddingBottom = 10;
+            codeWrap.style.marginTop = 4;
+            codeWrap.style.borderTopLeftRadius = 6; codeWrap.style.borderTopRightRadius = 6;
+            codeWrap.style.borderBottomLeftRadius = 6; codeWrap.style.borderBottomRightRadius = 6;
+
+            var code = new Label(info.RawConfigJson);
+            code.style.color = TextHi;
+            code.style.fontSize = 12;
+            code.style.whiteSpace = WhiteSpace.Normal;
+            code.style.flexShrink = 0;
+            codeWrap.Add(code);
+
+            box.Add(codeWrap);
+
+            // Copy button — same affordance pattern as the Logs row.
+            var copy = new Label("Copy noctuagg.json");
+            copy.style.color = TextHi;
+            copy.style.backgroundColor = Bg2;
+            copy.style.paddingLeft = 14; copy.style.paddingRight = 14;
+            copy.style.paddingTop = 8; copy.style.paddingBottom = 8;
+            copy.style.marginTop = 8;
+            copy.style.fontSize = 12;
+            copy.style.borderTopLeftRadius = 6; copy.style.borderTopRightRadius = 6;
+            copy.style.borderBottomLeftRadius = 6; copy.style.borderBottomRightRadius = 6;
+            copy.style.alignSelf = Align.FlexStart;
+            copy.RegisterCallback<ClickEvent>(evt =>
+            {
+                GUIUtility.systemCopyBuffer = info.RawConfigJson;
+                ShowToast($"Copied {info.RawConfigJson.Length} chars");
+                evt.StopPropagation();
+            });
+            box.Add(copy);
+
+            return box;
+        }
+
         private VisualElement BuildExperimentSection()
         {
             var box = new VisualElement();

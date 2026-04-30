@@ -40,5 +40,15 @@ namespace com.noctuagames.sdk
 
         public bool   IsSandbox              { get; set; }
         public string Region                 { get; set; } = "";
+
+        /// <summary>
+        /// Pretty-printed full <c>noctuagg.json</c> contents. Empty string
+        /// outside sandbox mode (the composition root only retains the raw
+        /// JSON when sandbox is enabled, to avoid keeping secrets resident
+        /// in production memory). The Build tab renders this verbatim so
+        /// devs can verify every config field — game ID, base URLs, tracker
+        /// configs, eventMaps, Firebase project IDs — at a glance.
+        /// </summary>
+        public string RawConfigJson          { get; set; } = "";
     }
 }

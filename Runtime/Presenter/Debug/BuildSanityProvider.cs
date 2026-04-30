@@ -83,7 +83,38 @@ namespace com.noctuagames.sdk
             }
             catch { info.ConfigChecksum = ""; }
 
+            // Raw config text — pretty-printed for the Build tab's
+            // "noctuagg.json" section. Trade-off: doing this on every
+            // BuildSanity() call costs a JSON parse + serialize, but the
+            // Build tab is sandbox-only and rendered at most a few times
+            // per session, so it's not on a hot path. If the caller didn't
+            // pass raw text, leave empty (the tab just hides the section).
+            try
+            {
+                info.RawConfigJson = PrettyPrintJson(rawConfigJson);
+            }
+            catch { info.RawConfigJson = rawConfigJson ?? ""; }
+
             return info;
+        }
+
+        /// <summary>
+        /// Round-trips raw JSON through Newtonsoft to indent it with
+        /// 2-space nesting. Returns the input verbatim if it's empty
+        /// or fails to parse — better to show the raw blob than nothing.
+        /// </summary>
+        private static string PrettyPrintJson(string raw)
+        {
+            if (string.IsNullOrWhiteSpace(raw)) return "";
+            try
+            {
+                var parsed = Newtonsoft.Json.Linq.JToken.Parse(raw);
+                return parsed.ToString(Newtonsoft.Json.Formatting.Indented);
+            }
+            catch
+            {
+                return raw;
+            }
         }
 
         /// <summary>
