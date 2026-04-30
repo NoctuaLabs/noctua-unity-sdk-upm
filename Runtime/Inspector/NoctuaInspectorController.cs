@@ -18,7 +18,11 @@ namespace com.noctuagames.sdk.Inspector
     public partial class NoctuaInspectorController : MonoBehaviour
     {
         // ----- theme tokens (kept centrally; matches plan's USS palette) -----
-        private static readonly Color Bg0 = new(0x0F / 255f, 0x11 / 255f, 0x15 / 255f, 0.97f);
+        // Fully opaque (alpha 1.0) — alpha 0.97 was letting the game's UI
+        // bleed through the Inspector overlay, especially noticeable on
+        // emulator + bright backgrounds where the 3% transparency was
+        // clearly visible.
+        private static readonly Color Bg0 = new(0x0F / 255f, 0x11 / 255f, 0x15 / 255f, 1f);
         private static readonly Color Bg1 = new(0x1F / 255f, 0x22 / 255f, 0x27 / 255f, 1f);
         private static readonly Color Bg2 = new(0x25 / 255f, 0x28 / 255f, 0x2E / 255f, 1f);
         private static readonly Color Stroke = new(0x35 / 255f, 0x3A / 255f, 0x42 / 255f, 1f);
@@ -373,6 +377,13 @@ namespace com.noctuagames.sdk.Inspector
             lbl.style.paddingLeft = 18; lbl.style.paddingRight = 18;
             lbl.style.paddingTop = 14; lbl.style.paddingBottom = 14;
             lbl.style.fontSize = 15;
+            // NoWrap + flexShrink:0 — UI Toolkit's default whiteSpace=Normal
+            // wraps "Timeline" into "Ti me li ne" (one char per line) when
+            // the parent flex container squeezes the tab to a tiny width.
+            // The horizontal tabsScroll lets long strips slide off-screen
+            // instead of compressing each tab.
+            lbl.style.whiteSpace = WhiteSpace.NoWrap;
+            lbl.style.flexShrink = 0;
             lbl.RegisterCallback<ClickEvent>(_ => onClick());
             return lbl;
         }
