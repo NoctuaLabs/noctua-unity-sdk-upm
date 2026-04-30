@@ -234,6 +234,23 @@ namespace com.noctuagames.sdk.Inspector
             var font = LoadBuiltinFont();
             if (font != null) _root.style.unityFont = font;
 
+            // Outer scroll context — wraps the header / tab strip / filter
+            // bar / content so they all scroll TOGETHER. Pattern adopted by
+            // every modern mobile app (Twitter / GitHub / Slack): chrome
+            // scrolls off the top to give content the full viewport, status
+            // bar stays anchored at the bottom for at-a-glance state.
+            //
+            // We don't nest a vertical ScrollView inside this one — content
+            // rows are added directly to _listContainer (a regular
+            // VisualElement now). The horizontal tabsScroll is fine
+            // because it scrolls on a different axis.
+            var outerScroll = new ScrollView(ScrollViewMode.Vertical);
+            outerScroll.style.flexGrow = 1;
+            outerScroll.style.flexShrink = 1;
+            outerScroll.style.minHeight = 0;
+            outerScroll.verticalScrollerVisibility = ScrollerVisibility.Auto;
+            outerScroll.horizontalScrollerVisibility = ScrollerVisibility.Hidden;
+
             var header = new VisualElement();
             header.style.flexDirection = FlexDirection.Row;
             header.style.alignItems = Align.Center;
@@ -281,7 +298,7 @@ namespace com.noctuagames.sdk.Inspector
             close.style.borderTopLeftRadius = 6; close.style.borderTopRightRadius = 6;
             close.style.borderBottomLeftRadius = 6; close.style.borderBottomRightRadius = 6;
             header.Add(close);
-            _root.Add(header);
+            outerScroll.Add(header);
 
             // Tab strip — wrapped in a horizontal ScrollView so 7 tabs work on
             // portrait phones without overflowing the screen edge. Vertical
@@ -314,23 +331,27 @@ namespace com.noctuagames.sdk.Inspector
             tabs.Add(_tabMemoryBtn);
             tabs.Add(_tabBuildBtn);
             tabsScroll.Add(tabs);
-            _root.Add(tabsScroll);
+            outerScroll.Add(tabsScroll);
             UpdateTabChrome();
 
             // Filter bar (tracker tab only)
             _filterBar = MakeFilterBar();
-            _root.Add(_filterBar);
+            outerScroll.Add(_filterBar);
             UpdateFilterBarVisibility();
 
-            // List container
-            _listContainer = new ScrollView(ScrollViewMode.Vertical);
-            _listContainer.style.flexGrow = 1;
-            _listContainer.style.flexShrink = 1;
-            _listContainer.style.minHeight = 0;        // crucial — lets flex-grow shrink children
+            // List container — plain VisualElement now (the outer ScrollView
+            // owns the scrolling). Keeps RenderList()'s `_listContainer.Clear()`
+            // / Add() calls intact; only the type changed.
+            _listContainer = new VisualElement();
+            _listContainer.style.flexShrink = 0;
             _listContainer.style.paddingTop = 4;
-            _root.Add(_listContainer);
+            outerScroll.Add(_listContainer);
 
-            // Status bar — bumped padding + font for readability on phone DPIs.
+            // Now mount the outer scroller into the root.
+            _root.Add(outerScroll);
+
+            // Status bar — pinned at the bottom (sibling of outerScroll
+            // inside _root). Stays visible while content scrolls.
             _statusBar = new Label("0 events");
             _statusBar.style.color = TextMid;
             _statusBar.style.flexShrink = 0;
