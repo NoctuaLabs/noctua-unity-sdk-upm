@@ -230,8 +230,19 @@ namespace com.noctuagames.sdk.Inspector
         {
             var row = new VisualElement();
             row.style.flexDirection = FlexDirection.Row;
-            row.style.paddingLeft = 12; row.style.paddingRight = 12;
-            row.style.paddingTop = 4; row.style.paddingBottom = 4;
+            // flexShrink=0 — without this the parent ScrollView can compress
+            // multi-line rows when there are hundreds of them, causing the
+            // "tertumpuk" (stacked / overlapping) bug where a long-message
+            // row's lower lines paint over the next row's timestamp column.
+            row.style.flexShrink = 0;
+            // align-items=FlexStart — siblings (timestamp / level / source /
+            // tag) are single-line, the message is multi-line wrapped. Default
+            // align-items=stretch would vertically stretch the short columns
+            // to match the message's height; FlexStart keeps every column
+            // top-aligned at the row's first baseline.
+            row.style.alignItems = Align.FlexStart;
+            row.style.paddingLeft = 16; row.style.paddingRight = 16;
+            row.style.paddingTop = 8; row.style.paddingBottom = 8;
             row.style.borderBottomWidth = 1;
             row.style.borderBottomColor = Stroke;
 
@@ -242,34 +253,39 @@ namespace com.noctuagames.sdk.Inspector
                 ShowToast($"Copied row at {e.TimestampUtc.ToLocalTime():HH:mm:ss}");
             });
 
-            // 8-char timestamp HH:mm:ss
+            // 8-char timestamp HH:mm:ss. fontSize 12 = readable on phone DPI;
+            // 10pt was below iOS HIG's 11pt minimum and unreadable in sun.
             var ts = new Label(e.TimestampUtc.ToLocalTime().ToString("HH:mm:ss"));
-            ts.style.color = TextLo; ts.style.fontSize = 10;
-            ts.style.minWidth = 64; ts.style.flexShrink = 0;
+            ts.style.color = TextLo; ts.style.fontSize = 12;
+            ts.style.minWidth = 72; ts.style.flexShrink = 0;
+            ts.style.marginRight = 8;
             row.Add(ts);
 
             var lvl = new Label(LevelGlyph(e.Level));
             lvl.style.color = LevelColor(e.Level);
-            lvl.style.minWidth = 18; lvl.style.flexShrink = 0;
-            lvl.style.fontSize = 10;
+            lvl.style.minWidth = 20; lvl.style.flexShrink = 0;
+            lvl.style.fontSize = 12;
             lvl.style.unityFontStyleAndWeight = FontStyle.Bold;
+            lvl.style.marginRight = 8;
             row.Add(lvl);
 
             var src = new Label(e.Source);
-            src.style.color = TextMid; src.style.fontSize = 10;
-            src.style.minWidth = 60; src.style.flexShrink = 0;
+            src.style.color = TextMid; src.style.fontSize = 12;
+            src.style.minWidth = 64; src.style.flexShrink = 0;
+            src.style.marginRight = 8;
             row.Add(src);
 
             if (!string.IsNullOrEmpty(e.Tag))
             {
                 var tag = new Label(e.Tag);
-                tag.style.color = TextMid; tag.style.fontSize = 10;
-                tag.style.minWidth = 60; tag.style.flexShrink = 0;
+                tag.style.color = TextMid; tag.style.fontSize = 12;
+                tag.style.minWidth = 64; tag.style.flexShrink = 0;
+                tag.style.marginRight = 8;
                 row.Add(tag);
             }
 
             var msg = new Label(e.Message);
-            msg.style.color = TextHi; msg.style.fontSize = 11;
+            msg.style.color = TextHi; msg.style.fontSize = 13;
             msg.style.flexGrow = 1; msg.style.flexShrink = 1;
             msg.style.whiteSpace = WhiteSpace.Normal;
             row.Add(msg);

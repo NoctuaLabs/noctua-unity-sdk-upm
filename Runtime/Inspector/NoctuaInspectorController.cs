@@ -142,6 +142,19 @@ namespace com.noctuagames.sdk.Inspector
             _panelSettings = ScriptableObject.CreateInstance<PanelSettings>();
             _panelSettings.sortingOrder = 32767;
             _panelSettings.scaleMode = PanelScaleMode.ConstantPhysicalSize;
+            // ConstantPhysicalSize divides Screen.dpi by referenceDpi to pick
+            // the px-per-pt scale. The default 96 is correct for real
+            // devices (a 320dpi phone yields 320/96 = 3.3x, so a 14pt label
+            // renders ~46px and looks about right physically). In Unity's
+            // Editor / Game-view the host monitor reports 96-110dpi, so the
+            // panel renders almost 1:1 and 14pt feels tiny.
+            //
+            // Drop referenceDpi to 64 in the Editor only so 14pt becomes
+            // ~21px in the Game view — comfortable to read while iterating
+            // without having to launch on device. Player builds keep 96.
+            int referenceDpi = Application.isEditor ? 64 : 96;
+            _panelSettings.referenceDpi = referenceDpi;
+            _panelSettings.fallbackDpi  = referenceDpi;
 
             _doc = gameObject.AddComponent<UIDocument>();
             _doc.panelSettings = _panelSettings;
