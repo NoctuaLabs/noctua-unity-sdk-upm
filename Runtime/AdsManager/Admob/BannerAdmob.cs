@@ -14,8 +14,21 @@ namespace com.noctuagames.sdk.Admob
     {
         private readonly NoctuaLogger _log = new(typeof(BannerAdmob));
         private BannerView _bannerView;
-        private AdSize _adSize;
-        private AdPosition _adPosition;
+        // Cached banner config. Initialised to mobile-game-conventional
+        // defaults (320x50 banner at the bottom edge) so that any code
+        // path that reaches LoadAd() before CreateBannerView(...) does
+        // NOT silently fall through to AdPosition.Top — which is
+        // `default(AdPosition)` because Top is the first enum value.
+        // Without these initialisers a race between CreateBannerView
+        // and ShowBannerAd / LoadAd surfaces as "I asked for Bottom
+        // but the banner is at Top sometimes".
+        private AdSize _adSize = AdSize.Banner;
+        private AdPosition _adPosition = AdPosition.Bottom;
+        // Set by CreateBannerView, read by LoadAd. When false LoadAd
+        // logs a warning explaining the auto-fallback path the caller
+        // just took — callers that *do* want the default can ignore it,
+        // callers that hit this by accident get a clear breadcrumb.
+        private bool _bannerConfigured;
 
         private string _adUnitIdBanner;
 
@@ -85,13 +98,13 @@ namespace com.noctuagames.sdk.Admob
 
             _adSize = adSize;
             _adPosition = adPosition;
+            _bannerConfigured = true;
 
-            _log.Debug("Creating banner view");
+            _log.Debug($"Creating banner view at position {adPosition} with size {adSize}");
 
             // If we already have a banner, destroy the old one.
             CleanupAd();
 
-            // Create a 320x50 banner at top of the screen
             _bannerView = new BannerView(_adUnitIdBanner, adSize, adPosition);
         }
 
@@ -109,8 +122,20 @@ namespace com.noctuagames.sdk.Admob
             TrackAdCustomEventBanner("wf_banner_request_start");
 
             // create an instance of a banner view first.
-            if(_bannerView == null)
+            if (_bannerView == null)
             {
+                if (!_bannerConfigured)
+                {
+                    // Caller skipped CreateBannerView — auto-create with the
+                    // initialised defaults (320x50 banner at Bottom). Surface
+                    // a warning so accidental races don't silently land at the
+                    // wrong edge of the screen; explicit callers see this once
+                    // per session and can ignore it.
+                    _log.Warning(
+                        "LoadAd called before CreateBannerView — falling back to defaults " +
+                        $"(size {_adSize}, position {_adPosition}). " +
+                        "If you want a different position, call Noctua.IAA.CreateBannerViewAdAdmob(...) first.");
+                }
                 CreateBannerView(adSize: _adSize, adPosition: _adPosition);
             }
 
