@@ -33,7 +33,6 @@ namespace com.noctuagames.sdk.Inspector
             // Config section
             _listContainer.Add(BuildSection("Config", new[]
             {
-                ("noctuagg.json SHA-256",  string.IsNullOrEmpty(info.ConfigChecksum) ? "—" : info.ConfigChecksum, false),
                 ("Adjust app token",       string.IsNullOrEmpty(info.AdjustAppTokenMasked) ? "(unset)" : info.AdjustAppTokenMasked, false),
             }));
 
@@ -475,28 +474,35 @@ namespace com.noctuagames.sdk.Inspector
         /// </summary>
         private VisualElement BuildBuildRow(string label, string value, bool warn)
         {
+            // Column layout — label compact on top, value full-width below.
+            // Beats the previous side-by-side layout on narrow screens
+            // where long values (Bundle ID 'com.noctuagames.android.x' ~36
+            // chars, app tokens, version strings) used to truncate with an
+            // ellipsis. Now every value gets the full row width to wrap or
+            // display without clipping. Short values like 'ENABLED' or
+            // '1.0.1' still look fine — the label-then-value pattern is
+            // uniform and predictable across all rows.
             var row = new VisualElement();
             row.style.flexShrink = 0;
-            row.style.flexDirection = FlexDirection.Row;
-            row.style.paddingTop = 6; row.style.paddingBottom = 6;
+            row.style.flexDirection = FlexDirection.Column;
+            row.style.paddingTop = 8; row.style.paddingBottom = 8;
             row.style.borderBottomWidth = 1;
             row.style.borderBottomColor = Stroke;
 
             var l = new Label(label);
-            l.style.color = TextMid; l.style.fontSize = 13;
-            l.style.flexGrow = 1; l.style.flexShrink = 1;
+            l.style.color = TextMid; l.style.fontSize = 12;
+            l.style.flexShrink = 0;
+            l.style.marginBottom = 2;
             row.Add(l);
 
             var v = new Label(value);
             v.style.color = warn ? Err : TextHi;
-            v.style.fontSize = 13;
+            v.style.fontSize = 14;
             v.style.unityFontStyleAndWeight = FontStyle.Bold;
             v.style.flexShrink = 0;
-            v.style.maxWidth = 220;
-            v.style.whiteSpace = WhiteSpace.NoWrap;
-            v.style.overflow = Overflow.Hidden;
-            v.style.unityTextOverflowPosition = TextOverflowPosition.Start;
-            v.style.textOverflow = TextOverflow.Ellipsis;
+            // whiteSpace=Normal so long values (Bundle ID, full URLs)
+            // wrap to subsequent lines instead of being clipped.
+            v.style.whiteSpace = WhiteSpace.Normal;
             row.Add(v);
 
             row.RegisterCallback<ClickEvent>(_ =>
