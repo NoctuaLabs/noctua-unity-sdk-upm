@@ -21,6 +21,15 @@ namespace com.noctuagames.sdk.Inspector
     public partial class NoctuaInspectorController
     {
         private const int LogTabRowBudget = 300;
+        // Single-message display cap. Long unbroken JSON strings have no
+        // whitespace for UI Toolkit's word-wrap to break on, so a 5000-char
+        // event payload would overflow horizontally OR paint into the next
+        // row. Truncate to ~600 chars for display; the row's tap-to-copy
+        // handler still surfaces the full message via the system clipboard.
+        // 600 picked empirically — a typical Noctua event JSON pretty-prints
+        // to ~400-500 chars, so most messages render in full and only
+        // verbose multi-event batches get the ellipsis.
+        private const int LogMessageDisplayCap = 600;
 
         // UI control state — kept here so this partial owns the Logs tab.
         private LogLevel _logLevelFloor = LogLevel.Verbose;
@@ -29,6 +38,12 @@ namespace com.noctuagames.sdk.Inspector
         private string _logTextFilter = "";
         private Regex _logTextFilterRegex;       // non-null when `re:` prefix is set
         private bool _logPaused;
+        // Set of entry IDs the user has tapped to expand. When the row is
+        // re-rendered (every dirty tick) we look up the entry's Id here to
+        // decide whether to render the full message + Copy button or the
+        // truncated preview. Cleared by the Clear-rows button so the next
+        // session starts collapsed.
+        private readonly HashSet<Guid> _logExpandedIds = new();
         // Toast banner for "Copied to clipboard" / "Exported to: …" feedback.
         // Lives as a child of _listContainer so it reuses the controller's
         // dirty-flag re-render path without polling on Update.
@@ -172,7 +187,12 @@ namespace com.noctuagames.sdk.Inspector
                 else LogInspectorHooks.RegisterObserver(_logLedger);
                 _dirty = true;
             }));
-            bar.Add(MakeButton("Clear", () => { _logLedger?.Clear(); _dirty = true; }));
+            bar.Add(MakeButton("Clear", () =>
+            {
+                _logLedger?.Clear();
+                _logExpandedIds.Clear();
+                _dirty = true;
+            }));
 
             if (_logLedger != null)
             {
@@ -228,41 +248,44 @@ namespace com.noctuagames.sdk.Inspector
 
         private VisualElement BuildLogRow(LogEntry e)
         {
-            // Two-line row layout — header line (timestamp / level / source /
-            // tag, all single-line) + body line (full-width wrapped message).
-            //
-            // Why not the previous one-row layout? UI Toolkit's flex-row
-            // height measurement does NOT propagate a wrapping Label's
-            // measured height back to the row container when the Label has
-            // flexGrow=1 + whiteSpace=Normal. The row stays at single-line
-            // height and the wrapped message paints into the next row's
-            // space — that's the "tertumpuk" (stacked) bug. Putting the
-            // message on its own line under a fixed-height header avoids
-            // the broken measurement entirely.
+            bool expanded = _logExpandedIds.Contains(e.Id);
+            string fullMsg = e.Message ?? "";
+            bool isLong = fullMsg.Length > LogMessageDisplayCap;
+
+            // Outer row: column layout. flex-shrink:0 keeps each row at its
+            // measured height; overflow:Hidden is a safety net for any
+            // unbroken-string overflow (long base64 / JSON without
+            // whitespace) that UI Toolkit's word-wrap can't break.
             var row = new VisualElement();
             row.style.flexDirection = FlexDirection.Column;
             row.style.flexShrink = 0;
+            row.style.overflow = Overflow.Hidden;
             row.style.paddingLeft = 16; row.style.paddingRight = 16;
-            row.style.paddingTop = 8; row.style.paddingBottom = 8;
+            row.style.paddingTop = 10; row.style.paddingBottom = 10;
             row.style.borderBottomWidth = 1;
             row.style.borderBottomColor = Stroke;
+            // Subtle background tint when expanded so it's visually obvious
+            // which row is open — important on dense lists.
+            if (expanded) row.style.backgroundColor = Bg1;
 
-            // Tap-to-copy single row. Cheap: single string allocation per copy.
+            // Tap row → toggle expanded/collapsed. Long-message rows that the
+            // user wants to copy can use the Copy button surfaced when
+            // expanded; we removed tap-to-copy because it conflicted with
+            // the more useful tap-to-expand affordance.
             row.RegisterCallback<ClickEvent>(_ =>
             {
-                GUIUtility.systemCopyBuffer = FormatLogLine(e);
-                ShowToast($"Copied row at {e.TimestampUtc.ToLocalTime():HH:mm:ss}");
+                if (_logExpandedIds.Contains(e.Id)) _logExpandedIds.Remove(e.Id);
+                else                                _logExpandedIds.Add(e.Id);
+                _dirty = true;
             });
 
-            // ----- header line (single-line metadata) -----
+            // ----- header line (single-line metadata + chevron) -----
             var head = new VisualElement();
             head.style.flexDirection = FlexDirection.Row;
             head.style.flexShrink = 0;
             head.style.alignItems = Align.Center;
-            head.style.marginBottom = 4;
+            head.style.marginBottom = 6;
 
-            // 8-char timestamp HH:mm:ss. fontSize 12 = readable on phone DPI;
-            // 10pt was below iOS HIG's 11pt minimum and unreadable in sun.
             var ts = new Label(e.TimestampUtc.ToLocalTime().ToString("HH:mm:ss"));
             ts.style.color = TextLo; ts.style.fontSize = 12;
             ts.style.flexShrink = 0;
@@ -293,18 +316,89 @@ namespace com.noctuagames.sdk.Inspector
                 head.Add(tag);
             }
 
+            // Spacer + chevron (▼/▶). Only shown when the row is expandable
+            // (long messages); short messages don't need an indicator since
+            // tap still toggles but there's nothing more to reveal.
+            var spacer = new VisualElement();
+            spacer.style.flexGrow = 1;
+            head.Add(spacer);
+
+            if (isLong)
+            {
+                var chev = new Label(expanded ? "▼" : "▶");
+                chev.style.color = TextLo;
+                chev.style.fontSize = 12;
+                chev.style.flexShrink = 0;
+                chev.style.marginLeft = 8;
+                head.Add(chev);
+            }
+
             row.Add(head);
 
-            // ----- body line (full-width wrapped message) -----
-            var msg = new Label(e.Message);
+            // ----- body (truncated or full) -----
+            string displayMsg;
+            if (expanded || !isLong)
+            {
+                displayMsg = fullMsg;
+            }
+            else
+            {
+                int more = fullMsg.Length - LogMessageDisplayCap;
+                displayMsg = fullMsg.Substring(0, LogMessageDisplayCap) +
+                             $"…  ({more} more chars — tap to expand)";
+            }
+
+            var msg = new Label(displayMsg);
             msg.style.color = TextHi; msg.style.fontSize = 13;
             msg.style.whiteSpace = WhiteSpace.Normal;
-            // No flex-grow — the message takes the row's full width naturally
-            // because the parent (row) is flex-direction column and Labels
-            // span the cross-axis. flex-shrink=0 + width measurement is now
-            // straightforward because there's no row-axis fight with siblings.
             msg.style.flexShrink = 0;
             row.Add(msg);
+
+            // ----- expanded state: Copy button -----
+            // Surfaced only when expanded so the collapsed list stays tight.
+            // Same placement (below message) as Charles Proxy / Logcat.
+            if (expanded)
+            {
+                var actions = new VisualElement();
+                actions.style.flexDirection = FlexDirection.Row;
+                actions.style.marginTop = 8;
+                actions.style.flexShrink = 0;
+
+                var copyBtn = new Label("Copy");
+                copyBtn.style.color = TextHi;
+                copyBtn.style.backgroundColor = Bg2;
+                copyBtn.style.paddingLeft = 14; copyBtn.style.paddingRight = 14;
+                copyBtn.style.paddingTop = 8; copyBtn.style.paddingBottom = 8;
+                copyBtn.style.borderTopLeftRadius = 6; copyBtn.style.borderTopRightRadius = 6;
+                copyBtn.style.borderBottomLeftRadius = 6; copyBtn.style.borderBottomRightRadius = 6;
+                copyBtn.style.fontSize = 12;
+                copyBtn.style.marginRight = 8;
+                copyBtn.RegisterCallback<ClickEvent>(evt =>
+                {
+                    GUIUtility.systemCopyBuffer = FormatLogLine(e);
+                    ShowToast($"Copied row at {e.TimestampUtc.ToLocalTime():HH:mm:ss}");
+                    // Stop propagation so the parent row's click (which
+                    // toggles expand/collapse) doesn't fire after the copy.
+                    evt.StopPropagation();
+                });
+                actions.Add(copyBtn);
+
+                if (!string.IsNullOrEmpty(e.StackTrace))
+                {
+                    // Stack-trace inline so devs don't need a separate copy
+                    // button just to see it. Mono-spaced, slightly muted.
+                    var st = new Label(e.StackTrace);
+                    st.style.color = TextMid;
+                    st.style.fontSize = 11;
+                    st.style.whiteSpace = WhiteSpace.Normal;
+                    st.style.marginTop = 8;
+                    st.style.flexShrink = 0;
+                    row.Add(actions);
+                    row.Add(st);
+                    return row;
+                }
+                row.Add(actions);
+            }
 
             return row;
         }
