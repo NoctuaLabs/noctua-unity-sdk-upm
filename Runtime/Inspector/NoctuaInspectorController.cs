@@ -506,9 +506,14 @@ namespace com.noctuagames.sdk.Inspector
         {
             var lbl = new Label(text);
             lbl.style.color = fg;
-            lbl.style.marginLeft = 8;
-            lbl.style.paddingTop = 3; lbl.style.paddingBottom = 3;
-            lbl.style.fontSize = 11;
+            lbl.style.marginLeft = 12;
+            // Mobile-friendly: 8pt vertical + 8pt horizontal padding + 13pt
+            // font ≈ 30pt+ tap target. Inline toolbar action label, sits
+            // alongside the row's tap-to-expand handler — the row itself
+            // is the primary affordance, the toolbar is secondary.
+            lbl.style.paddingLeft = 8; lbl.style.paddingRight = 8;
+            lbl.style.paddingTop = 8; lbl.style.paddingBottom = 8;
+            lbl.style.fontSize = 13;
             return lbl;
         }
 
@@ -808,16 +813,18 @@ namespace com.noctuagames.sdk.Inspector
             headerLine.style.flexDirection = FlexDirection.Row;
             headerLine.style.alignItems = Align.FlexStart;
             headerLine.style.flexShrink = 0;
-            headerLine.style.paddingLeft = 10; headerLine.style.paddingRight = 10;
-            headerLine.style.paddingTop = 6; headerLine.style.paddingBottom = 6;
+            // Mobile-friendly: 16/10 padding gives a ≥44pt tap target with
+            // the bumped 14pt header font below.
+            headerLine.style.paddingLeft = 16; headerLine.style.paddingRight = 16;
+            headerLine.style.paddingTop = 10; headerLine.style.paddingBottom = 10;
             row.Add(headerLine);
 
             var dot = new VisualElement();
-            dot.style.width = 8; dot.style.height = 8;
-            dot.style.marginRight = 8; dot.style.marginTop = 4;
+            dot.style.width = 10; dot.style.height = 10;
+            dot.style.marginRight = 10; dot.style.marginTop = 5;
             dot.style.flexShrink = 0;
-            dot.style.borderTopLeftRadius = 4; dot.style.borderTopRightRadius = 4;
-            dot.style.borderBottomLeftRadius = 4; dot.style.borderBottomRightRadius = 4;
+            dot.style.borderTopLeftRadius = 5; dot.style.borderTopRightRadius = 5;
+            dot.style.borderBottomLeftRadius = 5; dot.style.borderBottomRightRadius = 5;
             dot.style.backgroundColor = ex.State == HttpExchangeState.Failed ? Err
                                      : ex.State == HttpExchangeState.Complete ? Ok
                                      : Warn;
@@ -828,14 +835,14 @@ namespace com.noctuagames.sdk.Inspector
             body.style.flexDirection = FlexDirection.Column;
             var head = new Label($"↗ {ex.Method}  {Shorten(ex.Url, 50)}");
             head.style.color = TextHi;
-            head.style.fontSize = 12;
+            head.style.fontSize = 14;
             body.Add(head);
 
             var sub = new Label(ex.State == HttpExchangeState.Complete || ex.State == HttpExchangeState.Failed
                 ? $"{ex.Status}  ·  {ex.ElapsedMs}ms  ·  {ex.StartUtc.ToLocalTime():HH:mm:ss.fff}"
                 : $"{StateLabel(ex.State)}  ·  {ex.StartUtc.ToLocalTime():HH:mm:ss.fff}");
             sub.style.color = TextMid;
-            sub.style.fontSize = 10;
+            sub.style.fontSize = 12;
             body.Add(sub);
 
             headerLine.Add(body);
@@ -846,8 +853,8 @@ namespace com.noctuagames.sdk.Inspector
             detail.style.display = DisplayStyle.None;
             detail.style.backgroundColor = Bg1;
             detail.style.flexShrink = 0;
-            detail.style.paddingLeft = 12; detail.style.paddingRight = 12;
-            detail.style.paddingTop = 6; detail.style.paddingBottom = 6;
+            detail.style.paddingLeft = 16; detail.style.paddingRight = 16;
+            detail.style.paddingTop = 10; detail.style.paddingBottom = 10;
             detail.Add(MakeMono($"=> {ex.Method} {ex.Url}\n{HeadersToString(ex.RequestHeaders)}\n\n{Shorten(ex.RequestBody, 1000)}"));
             detail.Add(MakeMono($"<= {ex.Status}\n{HeadersToString(ex.ResponseHeaders)}\n\n{Shorten(ex.ResponseBody, 1000)}"));
             if (!string.IsNullOrEmpty(ex.Error))
@@ -903,16 +910,18 @@ namespace com.noctuagames.sdk.Inspector
             headerLine.style.flexDirection = FlexDirection.Row;
             headerLine.style.alignItems = Align.FlexStart;
             headerLine.style.flexShrink = 0;
-            headerLine.style.paddingLeft = 10; headerLine.style.paddingRight = 10;
-            headerLine.style.paddingTop = 6; headerLine.style.paddingBottom = 6;
+            // Mobile-friendly: 16/10 padding gives a ≥44pt tap target with
+            // the bumped 14pt header font below.
+            headerLine.style.paddingLeft = 16; headerLine.style.paddingRight = 16;
+            headerLine.style.paddingTop = 10; headerLine.style.paddingBottom = 10;
             row.Add(headerLine);
 
             var dot = new VisualElement();
-            dot.style.width = 8; dot.style.height = 8;
-            dot.style.marginRight = 8; dot.style.marginTop = 4;
+            dot.style.width = 10; dot.style.height = 10;
+            dot.style.marginRight = 10; dot.style.marginTop = 5;
             dot.style.flexShrink = 0;
-            dot.style.borderTopLeftRadius = 4; dot.style.borderTopRightRadius = 4;
-            dot.style.borderBottomLeftRadius = 4; dot.style.borderBottomRightRadius = 4;
+            dot.style.borderTopLeftRadius = 5; dot.style.borderTopRightRadius = 5;
+            dot.style.borderBottomLeftRadius = 5; dot.style.borderBottomRightRadius = 5;
             dot.style.backgroundColor = PhaseColor(em.Phase);
             headerLine.Add(dot);
 
@@ -921,12 +930,12 @@ namespace com.noctuagames.sdk.Inspector
             body.style.flexDirection = FlexDirection.Column;
             var head = new Label($"◉ {em.Provider}  ·  {em.EventName}");
             head.style.color = TextHi;
-            head.style.fontSize = 12;
+            head.style.fontSize = 14;
             body.Add(head);
 
             var sub = new Label($"{em.Phase}  ·  {em.CreatedUtc.ToLocalTime():HH:mm:ss.fff}");
             sub.style.color = TextMid;
-            sub.style.fontSize = 10;
+            sub.style.fontSize = 12;
             body.Add(sub);
             headerLine.Add(body);
 
@@ -935,15 +944,15 @@ namespace com.noctuagames.sdk.Inspector
             detail.style.display = DisplayStyle.None;
             detail.style.backgroundColor = Bg1;
             detail.style.flexShrink = 0;
-            detail.style.paddingLeft = 12; detail.style.paddingRight = 12;
-            detail.style.paddingTop = 6; detail.style.paddingBottom = 6;
+            detail.style.paddingLeft = 16; detail.style.paddingRight = 16;
+            detail.style.paddingTop = 10; detail.style.paddingBottom = 10;
             if (em.History != null)
             {
                 foreach (var tr in em.History)
                 {
                     var h = new Label($"{tr.Phase,-13}  {tr.AtUtc.ToLocalTime():HH:mm:ss.fff}");
                     h.style.color = TextMid;
-                    h.style.fontSize = 10;
+                    h.style.fontSize = 12;
                     detail.Add(h);
                 }
             }
@@ -1024,9 +1033,13 @@ namespace com.noctuagames.sdk.Inspector
         {
             var l = new Label(text);
             l.style.color = TextHi;
-            l.style.fontSize = 10;
+            // 12pt minimum for body-text monospace dumps on phone DPI.
+            // Lower than the inline label sizes (13-14pt) because mono
+            // dumps benefit from tighter letterspacing — but never below
+            // iOS HIG's 11pt readability floor.
+            l.style.fontSize = 12;
             l.style.whiteSpace = WhiteSpace.Normal;
-            l.style.marginBottom = 6;
+            l.style.marginBottom = 8;
             return l;
         }
 

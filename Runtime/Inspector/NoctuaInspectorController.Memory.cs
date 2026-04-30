@@ -52,7 +52,7 @@ namespace com.noctuagames.sdk.Inspector
             wrap.style.paddingTop = 12; wrap.style.paddingBottom = 4;
 
             var caption = new Label("Memory — last 10 min (1Hz)");
-            caption.style.color = TextLo; caption.style.fontSize = 10;
+            caption.style.color = TextLo; caption.style.fontSize = 12;
             wrap.Add(caption);
 
             var canvas = new VisualElement();
@@ -87,7 +87,7 @@ namespace com.noctuagames.sdk.Inspector
             row.Add(dot);
             var lbl = new Label(label);
             lbl.style.color = new Color(0xA0 / 255f, 0xA3 / 255f, 0xA7 / 255f, 1f);
-            lbl.style.fontSize = 10;
+            lbl.style.fontSize = 12;
             row.Add(lbl);
             return row;
         }
@@ -154,9 +154,9 @@ namespace com.noctuagames.sdk.Inspector
             {
                 var r = new VisualElement();
                 r.style.flexDirection = FlexDirection.Row;
-                r.style.paddingTop = 3; r.style.paddingBottom = 3;
+                r.style.paddingTop = 6; r.style.paddingBottom = 6;
                 var l = new Label(label);
-                l.style.color = TextMid; l.style.fontSize = 11;
+                l.style.color = TextMid; l.style.fontSize = 13;
                 l.style.flexGrow = 1;
                 var v = new Label(value);
                 v.style.color = color; v.style.fontSize = 12;
@@ -174,7 +174,7 @@ namespace com.noctuagames.sdk.Inspector
 
             // Native section
             var divider = new Label("Native");
-            divider.style.color = TextLo; divider.style.fontSize = 10;
+            divider.style.color = TextLo; divider.style.fontSize = 12;
             divider.style.paddingTop = 8; divider.style.paddingBottom = 4;
             box.Add(divider);
 
@@ -193,7 +193,7 @@ namespace com.noctuagames.sdk.Inspector
             wrap.style.paddingTop = 12; wrap.style.paddingBottom = 12;
 
             var head = new Label("Actions");
-            head.style.color = TextMid; head.style.fontSize = 10;
+            head.style.color = TextMid; head.style.fontSize = 12;
             head.style.paddingBottom = 6;
             wrap.Add(head);
 
@@ -279,7 +279,7 @@ namespace com.noctuagames.sdk.Inspector
             btn.style.paddingLeft = 12; btn.style.paddingRight = 12;
             btn.style.paddingTop = 8; btn.style.paddingBottom = 8;
             btn.style.marginRight = 6; btn.style.marginBottom = 6;
-            btn.style.fontSize = 11;
+            btn.style.fontSize = 13;
             btn.style.unityFontStyleAndWeight = FontStyle.Bold;
             btn.style.borderTopLeftRadius = 4; btn.style.borderTopRightRadius = 4;
             btn.style.borderBottomLeftRadius = 4; btn.style.borderBottomRightRadius = 4;
@@ -327,7 +327,7 @@ namespace com.noctuagames.sdk.Inspector
             btn.style.paddingLeft = 12; btn.style.paddingRight = 12;
             btn.style.paddingTop = 8; btn.style.paddingBottom = 8;
             btn.style.marginRight = 6; btn.style.marginBottom = 6;
-            btn.style.fontSize = 11;
+            btn.style.fontSize = 13;
             btn.style.borderTopLeftRadius = 4; btn.style.borderTopRightRadius = 4;
             btn.style.borderBottomLeftRadius = 4; btn.style.borderBottomRightRadius = 4;
             btn.RegisterCallback<ClickEvent>(_ => onClick());

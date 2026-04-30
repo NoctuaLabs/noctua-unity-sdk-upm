@@ -85,7 +85,7 @@ namespace com.noctuagames.sdk.Inspector
                 col.style.flexGrow = 1;
 
                 var l = new Label(label);
-                l.style.color = TextMid; l.style.fontSize = 10;
+                l.style.color = TextMid; l.style.fontSize = 12;
                 col.Add(l);
 
                 var v = new Label(value);
@@ -110,7 +110,7 @@ namespace com.noctuagames.sdk.Inspector
             wrap.style.paddingTop = 8; wrap.style.paddingBottom = 8;
 
             var caption = new Label("FPS — last 60 samples");
-            caption.style.color = TextLo; caption.style.fontSize = 10;
+            caption.style.color = TextLo; caption.style.fontSize = 12;
             wrap.Add(caption);
 
             var bars = new VisualElement();
@@ -146,12 +146,12 @@ namespace com.noctuagames.sdk.Inspector
             {
                 var r = new VisualElement();
                 r.style.flexDirection = FlexDirection.Row;
-                r.style.paddingTop = 2; r.style.paddingBottom = 2;
+                r.style.paddingTop = 5; r.style.paddingBottom = 5;
                 var l = new Label(label);
-                l.style.color = TextMid; l.style.fontSize = 11;
+                l.style.color = TextMid; l.style.fontSize = 13;
                 l.style.flexGrow = 1;
                 var v = new Label(value);
-                v.style.color = TextHi; v.style.fontSize = 11;
+                v.style.color = TextHi; v.style.fontSize = 13;
                 v.style.unityFontStyleAndWeight = FontStyle.Bold;
                 r.Add(l); r.Add(v);
                 box.Add(r);
@@ -183,20 +183,20 @@ namespace com.noctuagames.sdk.Inspector
             box.style.paddingTop = 8; box.style.paddingBottom = 8;
 
             var caption = new Label("Frame timings (FrameTimingManager)");
-            caption.style.color = TextLo; caption.style.fontSize = 10;
+            caption.style.color = TextLo; caption.style.fontSize = 12;
             box.Add(caption);
 
             void AddRow(string label, float ms)
             {
                 var r = new VisualElement();
                 r.style.flexDirection = FlexDirection.Row;
-                r.style.paddingTop = 2; r.style.paddingBottom = 2;
+                r.style.paddingTop = 5; r.style.paddingBottom = 5;
                 var l = new Label(label);
-                l.style.color = TextMid; l.style.fontSize = 11;
+                l.style.color = TextMid; l.style.fontSize = 13;
                 l.style.flexGrow = 1;
                 var v = new Label(ms < 0f ? "—" : $"{ms:F2} ms");
                 v.style.color = ms < 0f ? TextMid : FrameColor(ms);
-                v.style.fontSize = 11;
+                v.style.fontSize = 13;
                 v.style.unityFontStyleAndWeight = FontStyle.Bold;
                 r.Add(l); r.Add(v);
                 box.Add(r);
@@ -237,7 +237,7 @@ namespace com.noctuagames.sdk.Inspector
 
             _perfHudLabel = new Label("--");
             _perfHudLabel.style.color = Color.white;
-            _perfHudLabel.style.fontSize = 11;
+            _perfHudLabel.style.fontSize = 13;
             _perfHudLabel.style.unityFontStyleAndWeight = FontStyle.Bold;
             _perfHudLabel.pickingMode = PickingMode.Ignore;
             _perfHud.Add(_perfHudLabel);

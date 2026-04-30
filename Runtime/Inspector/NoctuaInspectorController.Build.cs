@@ -112,7 +112,7 @@ namespace com.noctuagames.sdk.Inspector
             box.style.paddingTop = 12; box.style.paddingBottom = 4;
 
             var head = new Label("Experiments & feature flags");
-            head.style.color = TextLo; head.style.fontSize = 10;
+            head.style.color = TextLo; head.style.fontSize = 12;
             head.style.paddingBottom = 6;
             box.Add(head);
 
@@ -120,7 +120,7 @@ namespace com.noctuagames.sdk.Inspector
             if (snapshot.Count == 0)
             {
                 var muted = new Label("(no flags set)");
-                muted.style.color = TextMid; muted.style.fontSize = 11;
+                muted.style.color = TextMid; muted.style.fontSize = 13;
                 muted.style.paddingBottom = 6;
                 box.Add(muted);
             }
@@ -179,7 +179,7 @@ namespace com.noctuagames.sdk.Inspector
             box.style.paddingTop = 12; box.style.paddingBottom = 4;
 
             var head = new Label("Adjust event mapping");
-            head.style.color = TextLo; head.style.fontSize = 10;
+            head.style.color = TextLo; head.style.fontSize = 12;
             head.style.paddingBottom = 6;
             box.Add(head);
 
@@ -187,7 +187,7 @@ namespace com.noctuagames.sdk.Inspector
             if (map == null || map.Count == 0)
             {
                 var muted = new Label("(no Adjust eventMap configured for this platform)");
-                muted.style.color = TextMid; muted.style.fontSize = 11;
+                muted.style.color = TextMid; muted.style.fontSize = 13;
                 muted.style.whiteSpace = WhiteSpace.Normal;
                 box.Add(muted);
                 return box;
@@ -231,23 +231,23 @@ namespace com.noctuagames.sdk.Inspector
             var row = new VisualElement();
             row.style.flexDirection = FlexDirection.Row;
             row.style.alignItems = Align.Center;
-            row.style.paddingTop = 3; row.style.paddingBottom = 3;
+            row.style.paddingTop = 6; row.style.paddingBottom = 6;
             row.style.borderBottomWidth = 1;
             row.style.borderBottomColor = Stroke;
 
             var name = new Label(eventName);
-            name.style.color = TextHi; name.style.fontSize = 11;
+            name.style.color = TextHi; name.style.fontSize = 13;
             name.style.flexGrow = 1; name.style.flexShrink = 1;
             row.Add(name);
 
             var arrow = new Label("→");
-            arrow.style.color = TextLo; arrow.style.fontSize = 10;
+            arrow.style.color = TextLo; arrow.style.fontSize = 12;
             arrow.style.marginLeft = 6; arrow.style.marginRight = 6;
             row.Add(arrow);
 
             var tok = new Label(string.IsNullOrEmpty(token) ? "(empty)" : token);
             tok.style.color = string.IsNullOrEmpty(token) ? Err : TextHi;
-            tok.style.fontSize = 11;
+            tok.style.fontSize = 13;
             tok.style.unityFontStyleAndWeight = FontStyle.Bold;
             tok.style.marginRight = 8;
             row.Add(tok);
@@ -269,7 +269,7 @@ namespace com.noctuagames.sdk.Inspector
             }
             var badge = new Label(status);
             badge.style.color = color;
-            badge.style.fontSize = 10;
+            badge.style.fontSize = 12;
             row.Add(badge);
 
             return row;
@@ -280,12 +280,12 @@ namespace com.noctuagames.sdk.Inspector
             var row = new VisualElement();
             row.style.flexDirection = FlexDirection.Row;
             row.style.alignItems = Align.Center;
-            row.style.paddingTop = 3; row.style.paddingBottom = 3;
+            row.style.paddingTop = 6; row.style.paddingBottom = 6;
             row.style.borderBottomWidth = 1;
             row.style.borderBottomColor = Stroke;
 
             var k = new Label(key);
-            k.style.color = TextMid; k.style.fontSize = 11;
+            k.style.color = TextMid; k.style.fontSize = 13;
             k.style.minWidth = 140; k.style.flexShrink = 0;
             row.Add(k);
 
@@ -294,7 +294,7 @@ namespace com.noctuagames.sdk.Inspector
             // keystroke into the underlying dictionary.
             var v = new TextField { value = currentValue };
             v.style.flexGrow = 1; v.style.flexShrink = 1;
-            v.style.fontSize = 11;
+            v.style.fontSize = 13;
             v.RegisterCallback<BlurEvent>(_ =>
             {
                 if (v.value != currentValue)
@@ -315,7 +315,7 @@ namespace com.noctuagames.sdk.Inspector
             box.style.paddingTop = 12; box.style.paddingBottom = 4;
 
             var head = new Label(title);
-            head.style.color = TextLo; head.style.fontSize = 10;
+            head.style.color = TextLo; head.style.fontSize = 12;
             head.style.paddingBottom = 6;
             box.Add(head);
 
@@ -336,18 +336,18 @@ namespace com.noctuagames.sdk.Inspector
         {
             var row = new VisualElement();
             row.style.flexDirection = FlexDirection.Row;
-            row.style.paddingTop = 3; row.style.paddingBottom = 3;
+            row.style.paddingTop = 6; row.style.paddingBottom = 6;
             row.style.borderBottomWidth = 1;
             row.style.borderBottomColor = Stroke;
 
             var l = new Label(label);
-            l.style.color = TextMid; l.style.fontSize = 11;
+            l.style.color = TextMid; l.style.fontSize = 13;
             l.style.flexGrow = 1; l.style.flexShrink = 1;
             row.Add(l);
 
             var v = new Label(value);
             v.style.color = warn ? Err : TextHi;
-            v.style.fontSize = 11;
+            v.style.fontSize = 13;
             v.style.unityFontStyleAndWeight = FontStyle.Bold;
             v.style.flexShrink = 0;
             v.style.maxWidth = 220;
