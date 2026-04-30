@@ -228,19 +228,20 @@ namespace com.noctuagames.sdk.Inspector
 
         private VisualElement BuildLogRow(LogEntry e)
         {
+            // Two-line row layout — header line (timestamp / level / source /
+            // tag, all single-line) + body line (full-width wrapped message).
+            //
+            // Why not the previous one-row layout? UI Toolkit's flex-row
+            // height measurement does NOT propagate a wrapping Label's
+            // measured height back to the row container when the Label has
+            // flexGrow=1 + whiteSpace=Normal. The row stays at single-line
+            // height and the wrapped message paints into the next row's
+            // space — that's the "tertumpuk" (stacked) bug. Putting the
+            // message on its own line under a fixed-height header avoids
+            // the broken measurement entirely.
             var row = new VisualElement();
-            row.style.flexDirection = FlexDirection.Row;
-            // flexShrink=0 — without this the parent ScrollView can compress
-            // multi-line rows when there are hundreds of them, causing the
-            // "tertumpuk" (stacked / overlapping) bug where a long-message
-            // row's lower lines paint over the next row's timestamp column.
+            row.style.flexDirection = FlexDirection.Column;
             row.style.flexShrink = 0;
-            // align-items=FlexStart — siblings (timestamp / level / source /
-            // tag) are single-line, the message is multi-line wrapped. Default
-            // align-items=stretch would vertically stretch the short columns
-            // to match the message's height; FlexStart keeps every column
-            // top-aligned at the row's first baseline.
-            row.style.alignItems = Align.FlexStart;
             row.style.paddingLeft = 16; row.style.paddingRight = 16;
             row.style.paddingTop = 8; row.style.paddingBottom = 8;
             row.style.borderBottomWidth = 1;
@@ -253,41 +254,56 @@ namespace com.noctuagames.sdk.Inspector
                 ShowToast($"Copied row at {e.TimestampUtc.ToLocalTime():HH:mm:ss}");
             });
 
+            // ----- header line (single-line metadata) -----
+            var head = new VisualElement();
+            head.style.flexDirection = FlexDirection.Row;
+            head.style.flexShrink = 0;
+            head.style.alignItems = Align.Center;
+            head.style.marginBottom = 4;
+
             // 8-char timestamp HH:mm:ss. fontSize 12 = readable on phone DPI;
             // 10pt was below iOS HIG's 11pt minimum and unreadable in sun.
             var ts = new Label(e.TimestampUtc.ToLocalTime().ToString("HH:mm:ss"));
             ts.style.color = TextLo; ts.style.fontSize = 12;
-            ts.style.minWidth = 72; ts.style.flexShrink = 0;
-            ts.style.marginRight = 8;
-            row.Add(ts);
+            ts.style.flexShrink = 0;
+            ts.style.marginRight = 10;
+            head.Add(ts);
 
             var lvl = new Label(LevelGlyph(e.Level));
             lvl.style.color = LevelColor(e.Level);
-            lvl.style.minWidth = 20; lvl.style.flexShrink = 0;
+            lvl.style.flexShrink = 0;
             lvl.style.fontSize = 12;
             lvl.style.unityFontStyleAndWeight = FontStyle.Bold;
-            lvl.style.marginRight = 8;
-            row.Add(lvl);
+            lvl.style.marginRight = 10;
+            head.Add(lvl);
 
             var src = new Label(e.Source);
             src.style.color = TextMid; src.style.fontSize = 12;
-            src.style.minWidth = 64; src.style.flexShrink = 0;
-            src.style.marginRight = 8;
-            row.Add(src);
+            src.style.flexShrink = 0;
+            src.style.marginRight = 10;
+            head.Add(src);
 
             if (!string.IsNullOrEmpty(e.Tag))
             {
-                var tag = new Label(e.Tag);
+                var tag = new Label("/" + e.Tag);
                 tag.style.color = TextMid; tag.style.fontSize = 12;
-                tag.style.minWidth = 64; tag.style.flexShrink = 0;
-                tag.style.marginRight = 8;
-                row.Add(tag);
+                tag.style.flexShrink = 1;
+                tag.style.overflow = Overflow.Hidden;
+                tag.style.textOverflow = TextOverflow.Ellipsis;
+                head.Add(tag);
             }
 
+            row.Add(head);
+
+            // ----- body line (full-width wrapped message) -----
             var msg = new Label(e.Message);
             msg.style.color = TextHi; msg.style.fontSize = 13;
-            msg.style.flexGrow = 1; msg.style.flexShrink = 1;
             msg.style.whiteSpace = WhiteSpace.Normal;
+            // No flex-grow — the message takes the row's full width naturally
+            // because the parent (row) is flex-direction column and Labels
+            // span the cross-axis. flex-shrink=0 + width measurement is now
+            // straightforward because there's no row-axis fight with siblings.
+            msg.style.flexShrink = 0;
             row.Add(msg);
 
             return row;
