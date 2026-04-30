@@ -171,12 +171,20 @@ namespace com.noctuagames.sdk.Inspector
                 return box;
             }
 
-            // Code-block style: monospace-ish on dark surface so the JSON
-            // is readable as a single contiguous blob. UI Toolkit doesn't
-            // ship a monospace font; we rely on the inherited LegacyRuntime
-            // font and its decent fixed-letterspacing for digits / braces.
+            // Code-block style: dark surface, rendered as one Label per
+            // line. UI Toolkit's Label has a height-measurement bug when
+            // a single Label holds thousands of characters — the wrapped
+            // height isn't propagated correctly to the parent column,
+            // and the rendered text overlaps the next section. Splitting
+            // by '\n' so each Label holds a single JSON line lets each
+            // one wrap (or not) independently, and the parent column
+            // sums per-line heights cleanly. ~100 Labels for a typical
+            // 4000-char config is well below UI Toolkit's element-count
+            // ceiling.
             var codeWrap = new VisualElement();
             codeWrap.style.flexShrink = 0;
+            codeWrap.style.flexDirection = FlexDirection.Column;
+            codeWrap.style.overflow = Overflow.Hidden;
             codeWrap.style.backgroundColor = Bg2;
             codeWrap.style.paddingLeft = 12; codeWrap.style.paddingRight = 12;
             codeWrap.style.paddingTop = 10; codeWrap.style.paddingBottom = 10;
@@ -184,12 +192,33 @@ namespace com.noctuagames.sdk.Inspector
             codeWrap.style.borderTopLeftRadius = 6; codeWrap.style.borderTopRightRadius = 6;
             codeWrap.style.borderBottomLeftRadius = 6; codeWrap.style.borderBottomRightRadius = 6;
 
-            var code = new Label(info.RawConfigJson);
-            code.style.color = TextHi;
-            code.style.fontSize = 12;
-            code.style.whiteSpace = WhiteSpace.Normal;
-            code.style.flexShrink = 0;
-            codeWrap.Add(code);
+            // Cap displayed lines to keep extreme configs from blowing the
+            // layout budget. 500 lines covers every realistic noctuagg.json
+            // with eventMaps and per-platform configs; if a real-world file
+            // exceeds this, the Copy button still gives the full content.
+            const int maxLines = 500;
+            var lines = info.RawConfigJson.Split('\n');
+            int rendered = 0;
+            for (int i = 0; i < lines.Length && rendered < maxLines; i++, rendered++)
+            {
+                var line = lines[i];
+                var l = new Label(string.IsNullOrEmpty(line) ? " " : line);
+                l.style.color = TextHi;
+                l.style.fontSize = 12;
+                l.style.whiteSpace = WhiteSpace.Normal;
+                l.style.flexShrink = 0;
+                codeWrap.Add(l);
+            }
+            if (rendered < lines.Length)
+            {
+                var more = new Label($"… ({lines.Length - rendered} more lines — use Copy to see all)");
+                more.style.color = TextMid;
+                more.style.fontSize = 11;
+                more.style.unityFontStyleAndWeight = FontStyle.Italic;
+                more.style.marginTop = 4;
+                more.style.flexShrink = 0;
+                codeWrap.Add(more);
+            }
 
             box.Add(codeWrap);
 
