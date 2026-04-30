@@ -205,6 +205,14 @@ namespace com.noctuagames.sdk.Inspector
             _root.style.flexDirection = FlexDirection.Column;
             _root.style.flexShrink = 0;
 
+            // Mobile safe-area: pad away from the notch (top), home-indicator
+            // (bottom), and rotated-landscape side cutouts. ConstantPhysicalSize
+            // keeps the values in pt-equivalent so this works across DPIs.
+            // We sample Screen.safeArea once at Awake — rotation isn't handled
+            // here because the Inspector is a one-off debug surface and
+            // re-applying on every render would cost more than it's worth.
+            ApplySafeAreaInsets(_root);
+
             // PanelSettings created via ScriptableObject.CreateInstance has no
             // default theme assigned, so text glyphs render as empty. Assign
             // Unity's built-in runtime font (LegacyRuntime.ttf on 2022.2+,
@@ -217,15 +225,17 @@ namespace com.noctuagames.sdk.Inspector
             header.style.flexDirection = FlexDirection.Row;
             header.style.alignItems = Align.Center;
             header.style.flexShrink = 0;
-            header.style.paddingLeft = 12; header.style.paddingRight = 12;
-            header.style.paddingTop = 8; header.style.paddingBottom = 8;
+            // Mobile-friendly header — 16pt horizontal padding, 12pt vertical
+            // gives the close button a 44pt+ tap target once fontSize is 14pt+.
+            header.style.paddingLeft = 16; header.style.paddingRight = 16;
+            header.style.paddingTop = 12; header.style.paddingBottom = 12;
             header.style.borderBottomWidth = 1;
             header.style.borderBottomColor = Stroke;
             header.style.backgroundColor = Bg1;
 
             var logo = new VisualElement();
-            logo.style.width = 18; logo.style.height = 18;
-            logo.style.marginRight = 8;
+            logo.style.width = 22; logo.style.height = 22;
+            logo.style.marginRight = 10;
             var logoTex = Resources.Load<Texture2D>("NoctuaLogo");
             if (logoTex != null)
             {
@@ -237,35 +247,44 @@ namespace com.noctuagames.sdk.Inspector
             var title = new Label("Noctua Inspector");
             title.style.color = TextHi;
             title.style.unityFontStyleAndWeight = FontStyle.Bold;
-            title.style.fontSize = 14;
+            title.style.fontSize = 16;
             title.style.flexGrow = 1;
             header.Add(title);
 
-            // Use a real Button instead of a clickable Label so touch hit
-            // area is reliable on mobile. Plain "X" glyph (not ✕) so it
-            // renders in every fallback font.
+            // Mobile close button — 14pt label + 10/18 padding = ~44pt tap
+            // target. Plain "Close" string (not glyph ×/✕) so every fallback
+            // font renders it without hunting for a bundled icon font.
             var close = new Button(() => Toggle()) { text = "Close" };
             close.style.color = TextHi;
             close.style.backgroundColor = Bg2;
             close.style.borderTopWidth = 0; close.style.borderBottomWidth = 0;
             close.style.borderLeftWidth = 0; close.style.borderRightWidth = 0;
-            close.style.paddingLeft = 14; close.style.paddingRight = 14;
-            close.style.paddingTop = 6; close.style.paddingBottom = 6;
+            close.style.paddingLeft = 18; close.style.paddingRight = 18;
+            close.style.paddingTop = 10; close.style.paddingBottom = 10;
             close.style.marginLeft = 4; close.style.marginRight = 0;
-            close.style.fontSize = 12;
-            close.style.minWidth = 56;
-            close.style.borderTopLeftRadius = 4; close.style.borderTopRightRadius = 4;
-            close.style.borderBottomLeftRadius = 4; close.style.borderBottomRightRadius = 4;
+            close.style.fontSize = 14;
+            close.style.minWidth = 72;
+            close.style.minHeight = 44;
+            close.style.borderTopLeftRadius = 6; close.style.borderTopRightRadius = 6;
+            close.style.borderBottomLeftRadius = 6; close.style.borderBottomRightRadius = 6;
             header.Add(close);
             _root.Add(header);
 
-            // Tab strip
+            // Tab strip — wrapped in a horizontal ScrollView so 7 tabs work on
+            // portrait phones without overflowing the screen edge. Vertical
+            // scrolling is disabled to keep the strip a single row; the user
+            // swipes horizontally to reach Build / Memory on narrow viewports.
+            var tabsScroll = new ScrollView(ScrollViewMode.Horizontal);
+            tabsScroll.style.flexShrink = 0;
+            tabsScroll.style.backgroundColor = Bg1;
+            tabsScroll.style.borderBottomWidth = 1;
+            tabsScroll.style.borderBottomColor = Stroke;
+            tabsScroll.horizontalScrollerVisibility = ScrollerVisibility.Hidden;
+            tabsScroll.verticalScrollerVisibility = ScrollerVisibility.Hidden;
+
             var tabs = new VisualElement();
             tabs.style.flexDirection = FlexDirection.Row;
             tabs.style.flexShrink = 0;
-            tabs.style.backgroundColor = Bg1;
-            tabs.style.borderBottomWidth = 1;
-            tabs.style.borderBottomColor = Stroke;
 
             _tabTimelineBtn = MakeTab("Timeline", () => { _tab = Tab.Timeline; UpdateTabChrome(); UpdateFilterBarVisibility(); RenderList(); });
             _tabHttpBtn     = MakeTab("HTTP",     () => { _tab = Tab.Http;     UpdateTabChrome(); UpdateFilterBarVisibility(); RenderList(); });
@@ -281,7 +300,8 @@ namespace com.noctuagames.sdk.Inspector
             tabs.Add(_tabPerfBtn);
             tabs.Add(_tabMemoryBtn);
             tabs.Add(_tabBuildBtn);
-            _root.Add(tabs);
+            tabsScroll.Add(tabs);
+            _root.Add(tabsScroll);
             UpdateTabChrome();
 
             // Filter bar (tracker tab only)
@@ -297,16 +317,16 @@ namespace com.noctuagames.sdk.Inspector
             _listContainer.style.paddingTop = 4;
             _root.Add(_listContainer);
 
-            // Status bar
+            // Status bar — bumped padding + font for readability on phone DPIs.
             _statusBar = new Label("0 events");
             _statusBar.style.color = TextMid;
             _statusBar.style.flexShrink = 0;
-            _statusBar.style.paddingLeft = 12; _statusBar.style.paddingRight = 12;
-            _statusBar.style.paddingTop = 6; _statusBar.style.paddingBottom = 6;
+            _statusBar.style.paddingLeft = 16; _statusBar.style.paddingRight = 16;
+            _statusBar.style.paddingTop = 10; _statusBar.style.paddingBottom = 10;
             _statusBar.style.borderTopWidth = 1;
             _statusBar.style.borderTopColor = Stroke;
             _statusBar.style.backgroundColor = Bg1;
-            _statusBar.style.fontSize = 11;
+            _statusBar.style.fontSize = 13;
             _root.Add(_statusBar);
         }
 
@@ -314,9 +334,11 @@ namespace com.noctuagames.sdk.Inspector
         {
             var lbl = new Label(label);
             lbl.style.color = TextMid;
-            lbl.style.paddingLeft = 14; lbl.style.paddingRight = 14;
-            lbl.style.paddingTop = 10; lbl.style.paddingBottom = 10;
-            lbl.style.fontSize = 13;
+            // 18/14 padding + 15pt font ≈ 44pt tap target — meets Apple HIG
+            // and Material guidelines without making the strip overwhelming.
+            lbl.style.paddingLeft = 18; lbl.style.paddingRight = 18;
+            lbl.style.paddingTop = 14; lbl.style.paddingBottom = 14;
+            lbl.style.fontSize = 15;
             lbl.RegisterCallback<ClickEvent>(_ => onClick());
             return lbl;
         }
@@ -1041,6 +1063,56 @@ namespace com.noctuagames.sdk.Inspector
             if (string.IsNullOrEmpty(s)) return "";
             if (s.Length <= max) return s;
             return s.Substring(0, max) + "…";
+        }
+
+        /// <summary>
+        /// Pads <paramref name="root"/> by <see cref="Screen.safeArea"/> so the
+        /// header doesn't collide with the iOS notch / Dynamic Island and the
+        /// status bar doesn't sit under the home-indicator bar. <c>safeArea</c>
+        /// is in screen pixels; we convert to design pixels via the panel's
+        /// reference DPI (96) to keep parity with <c>ConstantPhysicalSize</c>.
+        ///
+        /// Sampled once at <c>Awake</c>; rotation isn't re-applied because the
+        /// Inspector is a one-off debug surface and re-laying-out the root on
+        /// orientation change would cost more frames than it's worth. Devs
+        /// expecting landscape/portrait flips should re-open the Inspector.
+        /// </summary>
+        private static void ApplySafeAreaInsets(VisualElement root)
+        {
+            try
+            {
+                var safe = Screen.safeArea;
+                int screenW = Screen.width;
+                int screenH = Screen.height;
+                if (screenW <= 0 || screenH <= 0) return;
+
+                // Distance from each screen edge to the safe-area rectangle,
+                // in screen pixels. Unity's coordinate origin is bottom-left,
+                // hence the inverted top calc.
+                float leftPx   = safe.xMin;
+                float rightPx  = screenW - safe.xMax;
+                float bottomPx = safe.yMin;
+                float topPx    = screenH - safe.yMax;
+
+                // Convert screen px → design pt for ConstantPhysicalSize. The
+                // panel's reference is 96 DPI; if Screen.dpi reports 0 (some
+                // editors / desktop builds) we leave the values in pixels —
+                // the difference is invisible because the desktop preview has
+                // no notch to step around.
+                float dpi = Screen.dpi;
+                float scale = dpi > 0f ? 96f / dpi : 1f;
+
+                root.style.paddingLeft   = leftPx   * scale;
+                root.style.paddingRight  = rightPx  * scale;
+                root.style.paddingTop    = topPx    * scale;
+                root.style.paddingBottom = bottomPx * scale;
+            }
+            catch
+            {
+                // Screen.safeArea is well-supported on all real devices. Any
+                // throw here is an Editor / standalone-build oddity; skip
+                // padding rather than break the overlay.
+            }
         }
 
         private static Font LoadBuiltinFont()
