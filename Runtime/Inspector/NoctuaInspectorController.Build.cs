@@ -35,8 +35,6 @@ namespace com.noctuagames.sdk.Inspector
             {
                 ("noctuagg.json SHA-256",  string.IsNullOrEmpty(info.ConfigChecksum) ? "—" : info.ConfigChecksum, false),
                 ("Adjust app token",       string.IsNullOrEmpty(info.AdjustAppTokenMasked) ? "(unset)" : info.AdjustAppTokenMasked, false),
-                ("Firebase project ID",    string.IsNullOrEmpty(info.FirebaseProjectId) ? "(unset)" : info.FirebaseProjectId,       false),
-                ("GoogleServices file",    info.GoogleServicesPresent ? "present" : "MISSING",       !info.GoogleServicesPresent),
             }));
 
             // Platform section
@@ -87,8 +85,6 @@ namespace com.noctuagames.sdk.Inspector
             // Lightweight scoring — flag obvious omissions in the status bar.
             if (string.IsNullOrEmpty(info.NativeSdkVersion))     failing++;
             if (string.IsNullOrEmpty(info.AdjustAppTokenMasked)) failing++;
-            if (string.IsNullOrEmpty(info.FirebaseProjectId))    failing++;
-            if (!info.GoogleServicesPresent)                     failing++;
             if (info.SkAdNetworksCount == 0 && Application.platform == RuntimePlatform.IPhonePlayer) failing++;
             if (failing == 0) ok++;
         }
