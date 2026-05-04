@@ -353,8 +353,31 @@ namespace com.noctuagames.sdk
             // do NOT override the config's intent. If the requested primary's
             // SDK isn't compiled in but the secondary's is, the secondary is
             // promoted to primary so the game still gets ads.
-            IAdNetwork primary   = TryCreateNetwork(iaaConfig.Mediation);
-            IAdNetwork secondary = TryCreateNetwork(iaaConfig.SecondaryMediation);
+
+            string primaryRequested   = NormalizeMediationName(iaaConfig.Mediation);
+            string secondaryRequested = NormalizeMediationName(iaaConfig.SecondaryMediation);
+
+            // Diagnose typos / unsupported names early — without this, an
+            // unrecognised name would silently fall through to the "no SDK
+            // available" error even when the SDK is actually compiled in.
+            WarnIfUnknownMediationName("mediation",           iaaConfig.Mediation);
+            WarnIfUnknownMediationName("secondary_mediation", iaaConfig.SecondaryMediation);
+
+            // Reject identical primary/secondary so we don't end up with two
+            // managers wired to the same static SDK callbacks (would double-
+            // count revenue and impressions).
+            if (!string.IsNullOrEmpty(primaryRequested) &&
+                primaryRequested == secondaryRequested)
+            {
+                _log.Warning(
+                    $"iaa.mediation and iaa.secondary_mediation are both '{primaryRequested}'. " +
+                    "Treating as single-network — secondary is ignored. " +
+                    "Set them to different networks to enable hybrid mode.");
+                secondaryRequested = null;
+            }
+
+            IAdNetwork primary   = TryCreateNetwork(primaryRequested);
+            IAdNetwork secondary = TryCreateNetwork(secondaryRequested);
 
             if (primary == null && secondary != null)
             {
@@ -365,7 +388,7 @@ namespace com.noctuagames.sdk
                 secondary = null;
             }
             else if (primary != null && secondary == null &&
-                     !string.IsNullOrEmpty(iaaConfig.SecondaryMediation))
+                     !string.IsNullOrEmpty(secondaryRequested))
             {
                 _log.Warning(
                     $"Secondary mediation '{iaaConfig.SecondaryMediation}' requested but its SDK is not compiled in. " +
@@ -379,6 +402,10 @@ namespace com.noctuagames.sdk
                     $"(mediation='{iaaConfig.Mediation}', secondary_mediation='{iaaConfig.SecondaryMediation}'). " +
                     "Define UNITY_ADMOB or UNITY_APPLOVIN, or set iaa.mediation in noctuagg.json " +
                     "to a network whose SDK is integrated.");
+                // Drop the prior orchestrator reference — its AppLovin handlers
+                // were already Cleanup()'d at the top of this method, so leaving
+                // it in place would expose half-dead state to subsequent calls.
+                _orchestrator = null;
                 return;
             }
 
@@ -430,10 +457,44 @@ namespace com.noctuagames.sdk
         }
 
         /// <summary>
+        /// Lower-cases and trims a raw mediation name so noctuagg.json can use
+        /// any casing (e.g. "AdMob", "ADMOB", "AppLovin") without breaking the
+        /// equality-based dispatch in <see cref="TryCreateNetwork"/>.
+        /// Returns null for null/empty input so callers can short-circuit.
+        /// </summary>
+        private static string NormalizeMediationName(string raw)
+        {
+            if (string.IsNullOrWhiteSpace(raw)) return null;
+            return raw.Trim().ToLowerInvariant();
+        }
+
+        /// <summary>
+        /// Logs a warning when a non-empty mediation name doesn't match any
+        /// supported network. Helps surface typos in noctuagg.json instead of
+        /// letting them fall through to the generic "no SDK available" error.
+        /// </summary>
+        private void WarnIfUnknownMediationName(string field, string raw)
+        {
+            string normalized = NormalizeMediationName(raw);
+            if (string.IsNullOrEmpty(normalized)) return;
+
+            if (normalized != AdNetworkName.Admob &&
+                normalized != AdNetworkName.AppLovin)
+            {
+                _log.Warning(
+                    $"Unknown iaa.{field} value '{raw}' in noctuagg.json. " +
+                    $"Supported: '{AdNetworkName.Admob}', '{AdNetworkName.AppLovin}'. " +
+                    "This entry will be ignored.");
+            }
+        }
+
+        /// <summary>
         /// Pure factory: returns an <see cref="IAdNetwork"/> for the given mediation
         /// name, or <c>null</c> when the name is empty or the corresponding SDK is
         /// not compiled in. Used by <see cref="CreateNetworks"/> so primary/secondary
         /// selection follows the config rather than the build's SDK defines.
+        /// Caller is expected to pass an already-normalised name (see
+        /// <see cref="NormalizeMediationName"/>).
         /// </summary>
         private static IAdNetwork TryCreateNetwork(string mediationName)
         {
