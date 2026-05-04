@@ -59,6 +59,12 @@ namespace com.noctuagames.sdk.Tests.IAA
             // Unity's Debug.unityLogger, where LogAssert can observe it.
             NoctuaLogger.Init(config);
 
+            // The SDK-availability summary fires unconditionally at the top of
+            // CreateNetworks. Match either status so the test is portable across
+            // build configurations.
+            LogAssert.Expect(LogType.Log,
+                new Regex(@"MediationManager\.CreateNetworks: IAA SDK availability: AdMob=(integrated|missing), AppLovin=(integrated|missing)\. Requested in noctuagg\.json"));
+
 #if UNITY_ADMOB || UNITY_APPLOVIN
             // CreateNetworks emits exactly one "Networks created..." line summarising
             // primary/secondary/hybrid/cpm/segment. Match it loosely so we don't
@@ -96,8 +102,11 @@ namespace com.noctuagames.sdk.Tests.IAA
                 "With only UNITY_APPLOVIN compiled in, no secondary can exist — hybrid must be false");
 #endif
 #else
-            // No ad SDK defines compiled in — CreateNetworks logs an error and
-            // bails out without creating an orchestrator.
+            // No ad SDK defines compiled in — CreateNetworks emits the
+            // game-dev-facing warning, then logs an error and bails out
+            // without creating an orchestrator.
+            LogAssert.Expect(LogType.Warning,
+                new Regex(@"MediationManager\.CreateNetworks: No ad mediation SDK is integrated in this build"));
             LogAssert.Expect(LogType.Error,
                 new Regex(@"MediationManager\.CreateNetworks: No ad network SDK is available for the requested config"));
 

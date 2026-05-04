@@ -120,7 +120,11 @@ namespace com.noctuagames.sdk
                 _sdkInitCallbackSubscribed = true;
                 MaxSdkCallbacks.OnSdkInitializedEvent += (MaxSdk.SdkConfiguration sdkConfiguration) =>
                 {
-                    _log.Debug("AppLovin initialized");
+                    // Info-level so the AppLovin init checkpoint is visible in
+                    // production logs alongside AdMob's "Admob initialized" line.
+                    _log.Info(
+                        $"AppLovin SDK initialized. country={sdkConfiguration.CountryCode}, " +
+                        $"consentDialogState={sdkConfiguration.ConsentDialogState}");
 
                     initCompleteAction?.Invoke();
                     _initCompleteAction?.Invoke();

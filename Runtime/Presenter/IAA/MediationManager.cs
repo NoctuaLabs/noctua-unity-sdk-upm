@@ -312,6 +312,31 @@ namespace com.noctuagames.sdk
 
         private void CreateNetworks(IAA iaaConfig)
         {
+            // ── Compiled-in SDK availability check ─────────────────────────────
+            // Surfaces which mediation SDKs the build was compiled against so
+            // game devs can spot a missing UPM package (or unset scripting
+            // define) early in the log instead of debugging silent ad failures.
+            string admobStatus    = "missing";
+            string applovinStatus = "missing";
+#if UNITY_ADMOB
+            admobStatus = "integrated";
+#endif
+#if UNITY_APPLOVIN
+            applovinStatus = "integrated";
+#endif
+            _log.Info($"IAA SDK availability: AdMob={admobStatus}, AppLovin={applovinStatus}. " +
+                $"Requested in noctuagg.json — mediation='{iaaConfig.Mediation}', " +
+                $"secondary_mediation='{iaaConfig.SecondaryMediation}'.");
+
+#if !UNITY_ADMOB && !UNITY_APPLOVIN
+            _log.Warning(
+                "No ad mediation SDK is integrated in this build. Install AppLovin MAX " +
+                "and/or Google Mobile Ads via the Noctua Integration Manager " +
+                "(menu: Noctua → Noctua Integration Manager) and ensure UNITY_APPLOVIN / " +
+                "UNITY_ADMOB scripting defines are set in Player Settings. Without one of " +
+                "these, no ads can be shown and iaa.mediation in noctuagg.json has no effect.");
+#endif
+
             // Clean up existing AppLovin instances before replacing them so that stale
             // handlers are unregistered from the static MaxSdkCallbacks events.
 #if UNITY_APPLOVIN
