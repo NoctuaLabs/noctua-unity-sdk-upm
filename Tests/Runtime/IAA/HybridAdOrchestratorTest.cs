@@ -1,6 +1,11 @@
 using System.Collections.Generic;
+using System.IO;
+using System.Text;
+using System.Text.RegularExpressions;
+using Newtonsoft.Json;
 using NUnit.Framework;
 using UnityEngine;
+using UnityEngine.TestTools;
 
 namespace com.noctuagames.sdk.Tests.IAA
 {
@@ -528,6 +533,76 @@ namespace com.noctuagames.sdk.Tests.IAA
                 isReady: net => net.IsInterstitialReady());
 
             Assert.AreSame(_secondary, shown, "Without floor manager, normal readiness fallback applies");
+        }
+
+        // ─── Real noctuagg.json hybrid init smoke test ────────────────────────
+        //
+        // Drives HybridAdOrchestrator.Initialize using the primary/secondary
+        // mediation values straight out of the project's actual noctuagg.json
+        // (Assets/StreamingAssets/noctuagg.json). Verifies that the init log
+        // lines fire in the expected order and with the expected network names,
+        // and that both Initialize callbacks are invoked.
+
+        private static GlobalConfig LoadActualNoctuaggJson()
+        {
+            string path = Path.Combine(Application.streamingAssetsPath, "noctuagg.json");
+            Assume.That(File.Exists(path), $"noctuagg.json not found at: {path}");
+
+            string json = File.ReadAllText(path, Encoding.UTF8);
+            return JsonConvert.DeserializeObject<GlobalConfig>(json);
+        }
+
+        [Test]
+        public void Initialize_FromRealNoctuaggJson_LogsHybridFlowAndFiresBothCallbacks()
+        {
+            var config = LoadActualNoctuaggJson();
+            Assume.That(config?.IAA != null, "IAA section missing in noctuagg.json — skipping");
+            Assume.That(!string.IsNullOrEmpty(config.IAA.Mediation),
+                "iaa.mediation must be set for hybrid init");
+            Assume.That(!string.IsNullOrEmpty(config.IAA.SecondaryMediation),
+                "iaa.secondary_mediation must be set to exercise hybrid path");
+
+            string primaryName   = config.IAA.Mediation;
+            string secondaryName = config.IAA.SecondaryMediation;
+
+            // Wire Serilog -> UnityLogSink so HybridAdOrchestrator's _log.Info()
+            // calls reach Unity's Debug.unityLogger, where LogAssert can observe
+            // them. Without this the global Serilog logger is a silent no-op.
+            NoctuaLogger.Init(config);
+
+            var primary   = new MockAdNetwork { NetworkName = primaryName };
+            var secondary = new MockAdNetwork { NetworkName = secondaryName };
+            var orc       = new HybridAdOrchestrator(primary, secondary);
+
+            // NoctuaLogger format is "{ClassName}.{MemberName}: {message}".
+            // LogAssert.Expect treats its second arg as a regex.
+            string esc(string s) => Regex.Escape(s);
+            LogAssert.Expect(LogType.Log,
+                new Regex($"HybridAdOrchestrator\\.Initialize: Initializing orchestrator\\. Primary: {esc(primaryName)}, Secondary: {esc(secondaryName)}"));
+            LogAssert.Expect(LogType.Log,
+                new Regex($"HybridAdOrchestrator\\.Initialize: Primary network \\({esc(primaryName)}\\) initialized\\."));
+            LogAssert.Expect(LogType.Log,
+                new Regex($"HybridAdOrchestrator\\.Initialize: Primary ready — starting secondary network init: {esc(secondaryName)}"));
+            LogAssert.Expect(LogType.Log,
+                new Regex($"HybridAdOrchestrator\\.Initialize: Secondary network \\({esc(secondaryName)}\\) initialized\\."));
+
+            bool primaryReady   = false;
+            bool secondaryReady = false;
+            orc.Initialize(
+                onPrimaryReady:   () => primaryReady = true,
+                onSecondaryReady: () => secondaryReady = true
+            );
+
+            Assert.IsTrue(orc.IsHybridMode,
+                $"Hybrid mode must be active when both '{primaryName}' and '{secondaryName}' are configured");
+            Assert.AreEqual(primaryName,   orc.Primary.NetworkName);
+            Assert.AreEqual(secondaryName, orc.Secondary.NetworkName);
+            Assert.IsTrue(primaryReady,    "Primary onReady callback must fire");
+            Assert.IsTrue(secondaryReady,  "Secondary onReady callback must fire after primary");
+            Assert.AreEqual(1, primary.InitializeCallCount,
+                "Primary network must be initialized exactly once");
+            Assert.AreEqual(1, secondary.InitializeCallCount,
+                "Secondary network must be initialized exactly once");
         }
     }
 }
