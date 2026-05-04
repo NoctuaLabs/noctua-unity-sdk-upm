@@ -83,11 +83,14 @@ namespace com.noctuagames.sdk.Tests.IAA
 #if UNITY_ADMOB && UNITY_APPLOVIN
             // Both SDKs compiled in: primary follows iaa.mediation, secondary
             // follows iaa.secondary_mediation. Hybrid iff both configured AND
-            // they're different networks.
+            // they're different networks. Comparison is case-insensitive to
+            // match MediationManager.NormalizeMediationName.
             bool expectHybrid =
                 !string.IsNullOrEmpty(config.IAA.Mediation) &&
                 !string.IsNullOrEmpty(config.IAA.SecondaryMediation) &&
-                config.IAA.Mediation != config.IAA.SecondaryMediation;
+                !string.Equals(config.IAA.Mediation,
+                               config.IAA.SecondaryMediation,
+                               System.StringComparison.OrdinalIgnoreCase);
             Assert.AreEqual(expectHybrid, mgr.IsHybridMode,
                 $"With both SDKs compiled in and mediation='{config.IAA.Mediation}', " +
                 $"secondary_mediation='{config.IAA.SecondaryMediation}', " +
