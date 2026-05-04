@@ -647,8 +647,12 @@ namespace com.noctuagames.sdk
         {
             if (network.NetworkName != AdNetworkName.AppLovin) return;
 
-            network.AppLovinOnUserEarnedReward += (reward) => _appLovinOnUserEarnedReward?.Invoke(reward);
-            network.AppLovinOnAdRevenuePaid += (adInfo) =>
+            network.AppLovinOnUserEarnedReward += (reward) => PostToMainThread(() => _appLovinOnUserEarnedReward?.Invoke(reward));
+            // AppLovin MAX delivers OnAdRevenuePaidEvent on a background thread
+            // (MaxSdkBase.HandleBackgroundCallback). ProcessAppLovinRevenue reads
+            // PlayerPrefs via the Taichi threshold helpers, which is main-thread-only
+            // — without this hop the impression throws and revenue is lost.
+            network.AppLovinOnAdRevenuePaid += (adInfo) => PostToMainThread(() =>
             {
                 _revenueTracker.ProcessAppLovinRevenue(adInfo);
                 _appLovinOnAdRevenuePaid?.Invoke(adInfo);
@@ -660,7 +664,7 @@ namespace com.noctuagames.sdk
                     string format = MapAppLovinFormatToKey(rawFormat);
                     _performanceTracker.RecordRevenue(AdNetworkName.AppLovin, format, adInfo.Revenue);
                 }
-            };
+            });
         }
 
         /// <summary>Maps AppLovin AdInfo.AdFormat strings to <see cref="AdFormatKey"/> constants.</summary>
@@ -716,11 +720,11 @@ namespace com.noctuagames.sdk
                     _rewardedInterstitialAdmob.RewardedOnAdClicked += () => _onAdClicked?.Invoke();
                     _rewardedInterstitialAdmob.RewardedOnAdImpressionRecorded += () => _onAdImpressionRecorded?.Invoke();
                     _rewardedInterstitialAdmob.RewardedOnUserEarnedReward += reward => _admobOnUserEarnedReward?.Invoke(reward);
-                    _rewardedInterstitialAdmob.AdmobOnAdRevenuePaid += (adValue, responseInfo) =>
+                    _rewardedInterstitialAdmob.AdmobOnAdRevenuePaid += (adValue, responseInfo) => PostToMainThread(() =>
                     {
                         _revenueTracker.ProcessAdmobRevenue(adValue, responseInfo);
                         _admobOnAdRevenuePaid?.Invoke(adValue, responseInfo);
-                    };
+                    });
                     _rewardedInterstitialAdmob.LoadRewardedInterstitialAd();
                 }
 
