@@ -289,7 +289,7 @@ namespace com.noctuagames.sdk
             _log.Info("Experiment overrides applied: frequency caps and CPM floors updated.");
         }
 
-        internal MediationManager(IAdPlaceholderUI adPlaceholderUI, IAA iAAResponse)
+        public MediationManager(IAdPlaceholderUI adPlaceholderUI, IAA iAAResponse)
         {
             // Must be called from Unity's main thread (it is — Noctua() ctor runs on main thread).
             _mainThreadContext = SynchronizationContext.Current;
