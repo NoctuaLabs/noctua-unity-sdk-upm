@@ -3,6 +3,7 @@ using System.Threading;
 using UnityEngine;
 using System.Collections.Generic;
 using com.noctuagames.sdk.AdPlaceholder;
+using com.noctuagames.sdk.Events;
 
 #if UNITY_ADMOB
 using GoogleMobileAds.Api;
@@ -227,10 +228,18 @@ namespace com.noctuagames.sdk
             return result;
         }
 
-        internal void SetAdRevenueTracker(IAdRevenueTracker tracker)
+        // Stashed applied_iaa_config payload from the first CreateNetworks call —
+        // CreateNetworks runs inside the MediationManager constructor (via the
+        // IAAResponse setter), which itself is inside Noctua's Lazy<T> factory.
+        // The event tracker isn't injected until SetAdRevenueTracker fires later
+        // in the composition root, so we defer the emission to that hand-off.
+        private Dictionary<string, IConvertible> _pendingAppliedIaaConfigPayload;
+
+        public void SetAdRevenueTracker(IAdRevenueTracker tracker)
         {
             _adRevenueTracker = tracker;
             _revenueTracker?.SetAdRevenueTracker(tracker);
+            FlushPendingAppliedIaaConfigEvent();
         }
 
         /// <summary>
@@ -484,6 +493,78 @@ namespace com.noctuagames.sdk
                 $", Hybrid: {_orchestrator.IsHybridMode}" +
                 $", CpmFloors: {(_cpmFloorManager != null ? "enabled" : "disabled")}" +
                 $", Segment: {segmentKey}");
+
+            EmitAppliedIaaConfigEvent(
+                primary:           primary.NetworkName,
+                secondary:         secondary?.NetworkName,
+                hybrid:            _orchestrator.IsHybridMode,
+                cpmFloorsEnabled:  _cpmFloorManager != null,
+                segmentKey:        segmentKey);
+        }
+
+        /// <summary>
+        /// Builds the <c>applied_iaa_config</c> payload mirroring the "Networks
+        /// created" Info log and routes it through the injected NoctuaEventService.
+        /// If the tracker isn't yet wired (first CreateNetworks call from the
+        /// constructor), the payload is stashed and replayed by
+        /// <see cref="FlushPendingAppliedIaaConfigEvent"/> when SetAdRevenueTracker
+        /// fires.
+        /// </summary>
+        private void EmitAppliedIaaConfigEvent(
+            string primary,
+            string secondary,
+            bool   hybrid,
+            bool   cpmFloorsEnabled,
+            string segmentKey)
+        {
+            var payload = new Dictionary<string, IConvertible>
+            {
+                { "primary",          primary   ?? "" },
+                { "secondary",        secondary ?? "" },
+                { "hybrid",           hybrid },
+                { "cpm_floors",       cpmFloorsEnabled ? "enabled" : "disabled" },
+                { "segment",          segmentKey ?? "" },
+            };
+
+            if (_adRevenueTracker is NoctuaEventService eventService)
+            {
+                try
+                {
+                    eventService.TrackCustomEvent("applied_iaa_config", payload);
+                }
+                catch (Exception ex)
+                {
+                    _log.Error($"Error emitting applied_iaa_config event: {ex.Message}");
+                }
+            }
+            else
+            {
+                // Most recent payload wins — if CreateNetworks runs again before
+                // the tracker is wired, we want the latest snapshot, not a stale one.
+                _pendingAppliedIaaConfigPayload = payload;
+                _log.Debug("applied_iaa_config queued — will emit after event tracker is wired.");
+            }
+        }
+
+        /// <summary>
+        /// Replays a deferred <c>applied_iaa_config</c> event the moment a tracker
+        /// becomes available. Called from <see cref="SetAdRevenueTracker"/>.
+        /// </summary>
+        private void FlushPendingAppliedIaaConfigEvent()
+        {
+            if (_pendingAppliedIaaConfigPayload == null) return;
+            if (_adRevenueTracker is NoctuaEventService eventService)
+            {
+                try
+                {
+                    eventService.TrackCustomEvent("applied_iaa_config", _pendingAppliedIaaConfigPayload);
+                }
+                catch (Exception ex)
+                {
+                    _log.Error($"Error emitting deferred applied_iaa_config event: {ex.Message}");
+                }
+                _pendingAppliedIaaConfigPayload = null;
+            }
         }
 
         /// <summary>
