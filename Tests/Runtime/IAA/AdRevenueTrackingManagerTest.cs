@@ -1,4 +1,6 @@
+using System;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using NUnit.Framework;
 using UnityEngine;
 
@@ -71,6 +73,53 @@ namespace com.noctuagames.sdk.Tests.IAA
 
             Assert.DoesNotThrow(() => mgr.ProcessAllFormatsThresholds(0.01),
                 "Should not throw when tracker is null");
+        }
+
+        // ─── Threading contract ───────────────────────────────────────────────
+        //
+        // Regression for AppLovin background-thread revenue-loss bug.
+        //
+        // AppLovin MAX delivers OnAdRevenuePaidEvent from a background thread
+        // (MaxSdkBase.HandleBackgroundCallback). ProcessAllFormatsThresholds
+        // and the per-format threshold helpers read PlayerPrefs, which is
+        // main-thread-only. Before the fix, every AppLovin revenue impression
+        // was throwing UnityException("GetFloat can only be called from the
+        // main thread") and getting swallowed by MAX as a publisher-event
+        // exception — TrackAdRevenue never ran.
+        //
+        // These tests lock in the threading contract: the Process* methods
+        // are NOT thread-safe, so callers (MediationManager) MUST marshal
+        // the invocation to the main thread (PostToMainThread).
+        //
+        // If anyone ever makes Process* thread-safe (e.g. swaps PlayerPrefs
+        // for a thread-safe store), these tests will start failing — that's
+        // the cue to also remove PostToMainThread wrappers around revenue
+        // handlers in MediationManager.SubscribeAppLovinRevenueEvents and
+        // SetupAdUnitID's RewardedInterstitialAdmob handler.
+
+        [Test]
+        public void ProcessAllFormatsThresholds_FromBackgroundThread_Throws()
+        {
+            var mgr = new AdRevenueTrackingManager(_tracker, DefaultConfig());
+
+            var ex = Assert.Throws<AggregateException>(() =>
+                Task.Run(() => mgr.ProcessAllFormatsThresholds(0.01)).Wait());
+
+            Assert.IsInstanceOf<UnityException>(ex.InnerException,
+                $"Expected UnityException (PlayerPrefs not main-thread), got {ex.InnerException?.GetType().Name}");
+            StringAssert.Contains("main thread", ex.InnerException.Message,
+                "PlayerPrefs threading violation message expected");
+        }
+
+        [Test]
+        public void ProcessAllFormatsThresholds_FromMainThread_DoesNotThrow()
+        {
+            var mgr = new AdRevenueTrackingManager(_tracker, DefaultConfig());
+
+            // Sanity check: same call on the main thread must succeed.
+            // This is what MediationManager guarantees by wrapping the
+            // AppLovin OnAdRevenuePaid handler in PostToMainThread.
+            Assert.DoesNotThrow(() => mgr.ProcessAllFormatsThresholds(0.01));
         }
 
         // ─── No config guard ──────────────────────────────────────────────────
