@@ -135,11 +135,13 @@ namespace com.noctuagames.sdk
         // to "local" so the constructor's direct assignment (from noctuagg.json)
         // is correctly attributed even when callers don't go through
         // ApplyIaaConfigFromRemote. Surfaced in the applied_iaa_config event
-        // payload as the "source" field.
-        public const string IaaConfigSourceLocal          = "local";
-        public const string IaaConfigSourceRemoteOverride = "remote_override";
+        // payload as the "config_origin" field. (Named "config_origin" rather
+        // than "source" to avoid collision with TrackAdRevenue's "source"
+        // field, which carries the SDK provider name.)
+        public const string IaaConfigOriginLocal          = "local";
+        public const string IaaConfigOriginRemoteOverride = "remote_override";
 
-        private string _nextConfigSource = IaaConfigSourceLocal;
+        private string _nextConfigOrigin = IaaConfigOriginLocal;
 
         internal IAA IAAResponse
         {
@@ -153,8 +155,8 @@ namespace com.noctuagames.sdk
                     _preloadManagerEventsSubscribed = false;
                     CreateNetworks(value);
                     // Reset back to the default so the next assignment that
-                    // doesn't pre-declare its source isn't mis-tagged.
-                    _nextConfigSource = IaaConfigSourceLocal;
+                    // doesn't pre-declare its origin isn't mis-tagged.
+                    _nextConfigOrigin = IaaConfigOriginLocal;
                 }
             }
         }
@@ -164,11 +166,11 @@ namespace com.noctuagames.sdk
         /// response (typically the local noctuagg.json merged with
         /// initResponse.RemoteConfigs.IAA). The next applied_iaa_config event
         /// emitted by CreateNetworks will be tagged with
-        /// <see cref="IaaConfigSourceRemoteOverride"/>.
+        /// <see cref="IaaConfigOriginRemoteOverride"/>.
         /// </summary>
         public void ApplyIaaConfigFromRemote(IAA mergedConfig)
         {
-            _nextConfigSource = IaaConfigSourceRemoteOverride;
+            _nextConfigOrigin = IaaConfigOriginRemoteOverride;
             IAAResponse       = mergedConfig;
         }
 
@@ -526,7 +528,7 @@ namespace com.noctuagames.sdk
                 hybrid:            _orchestrator.IsHybridMode,
                 cpmFloorsEnabled:  _cpmFloorManager != null,
                 segmentKey:        segmentKey,
-                source:            _nextConfigSource);
+                configOrigin:      _nextConfigOrigin);
         }
 
         /// <summary>
@@ -543,7 +545,7 @@ namespace com.noctuagames.sdk
             bool   hybrid,
             bool   cpmFloorsEnabled,
             string segmentKey,
-            string source)
+            string configOrigin)
         {
             var payload = new Dictionary<string, IConvertible>
             {
@@ -552,7 +554,7 @@ namespace com.noctuagames.sdk
                 { "hybrid",           hybrid },
                 { "cpm_floors",       cpmFloorsEnabled ? "enabled" : "disabled" },
                 { "segment",          segmentKey ?? "" },
-                { "source",           source ?? IaaConfigSourceLocal },
+                { "config_origin",    configOrigin ?? IaaConfigOriginLocal },
             };
 
             if (_adRevenueTracker is NoctuaEventService eventService)
