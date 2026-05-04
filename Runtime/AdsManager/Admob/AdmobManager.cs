@@ -104,7 +104,7 @@ namespace com.noctuagames.sdk
         /// <summary>Raised when ad revenue is recorded (network-agnostic). Parameters: (revenue, currency, metadata).</summary>
         public event Action<double, string, Dictionary<string, string>> OnAdRevenuePaid { add => _onUnifiedAdRevenuePaid += value; remove => _onUnifiedAdRevenuePaid -= value; }
 
-        internal AdmobManager()
+        public AdmobManager()
         {
             _log.Debug("AdmobManager constructor");
 

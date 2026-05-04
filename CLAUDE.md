@@ -238,6 +238,25 @@ Key test files:
 
 **Coverage target:** 80%+ per class.
 
+### Code Coverage settings (committed)
+
+The Unity Code Coverage window settings are persisted in `ProjectSettings/Packages/com.unity.testtools.codecoverage/Settings.json` and **committed to the consumer repo** (not the SDK submodule). Current configuration:
+
+- **Included Assemblies:** `com.noctuagames.sdk` only — drops third-party (`NativeGallery.*`, `StompyRobot.*`) and the test/editor assemblies (`com.noctuagames.sdk.Tests`, `com.noctuagames.sdk.Editor`) from the report.
+- **Excluded Paths** (set via Window → Analysis → Code Coverage → Path Filters → Excluded Paths, then re-save the json):
+  ```
+  **/Runtime/Plugins/**
+  **/Runtime/Platform/iOS/**
+  **/Runtime/Platform/Android/**
+  **/Runtime/UI/Controllers/**
+  **/Runtime/Inspector/**
+  ```
+  These folders are structurally untestable in EditMode (P/Invoke / JNI bridges, runtime UI presenters, debug overlays, vendored third-party plugins) and would otherwise inflate the denominator.
+
+  **Note:** `AdsManager/AppLovin/**` and `AdsManager/Admob/**` are intentionally **not** excluded — they have tests in `Tests/Runtime/IAA/AppLovinManagerTests.cs` and `AdmobManagerTests.cs`. These tests are wrapped in `#if UNITY_APPLOVIN` / `#if UNITY_ADMOB` and only compile when the respective UPM packages are installed. SDK-calling paths (`Initialize`, `Load*`, `Show*`, ad callbacks) cannot be exercised in EditMode without a real device, so partial coverage of these files is expected.
+
+After changing either, re-run the EditMode test suite and click **Generate from Last** in the Code Coverage window to refresh `CodeCoverage/Report/index.html`.
+
 ## Git Workflow
 
 Branch naming: `feat/name`, `fix/name`, `chore/name`  
