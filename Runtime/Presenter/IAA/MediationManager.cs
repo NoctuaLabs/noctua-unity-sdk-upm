@@ -131,6 +131,16 @@ namespace com.noctuagames.sdk
 
         private IAA _iaaResponse;
 
+        // Tracks where the next CreateNetworks pass was triggered from. Defaults
+        // to "local" so the constructor's direct assignment (from noctuagg.json)
+        // is correctly attributed even when callers don't go through
+        // ApplyIaaConfigFromRemote. Surfaced in the applied_iaa_config event
+        // payload as the "source" field.
+        public const string IaaConfigSourceLocal          = "local";
+        public const string IaaConfigSourceRemoteOverride = "remote_override";
+
+        private string _nextConfigSource = IaaConfigSourceLocal;
+
         internal IAA IAAResponse
         {
             get => _iaaResponse;
@@ -142,8 +152,24 @@ namespace com.noctuagames.sdk
                     _adNetworkEventsSubscribed = false;
                     _preloadManagerEventsSubscribed = false;
                     CreateNetworks(value);
+                    // Reset back to the default so the next assignment that
+                    // doesn't pre-declare its source isn't mis-tagged.
+                    _nextConfigSource = IaaConfigSourceLocal;
                 }
             }
+        }
+
+        /// <summary>
+        /// Replaces the active IAA config with one derived from a remote/server
+        /// response (typically the local noctuagg.json merged with
+        /// initResponse.RemoteConfigs.IAA). The next applied_iaa_config event
+        /// emitted by CreateNetworks will be tagged with
+        /// <see cref="IaaConfigSourceRemoteOverride"/>.
+        /// </summary>
+        public void ApplyIaaConfigFromRemote(IAA mergedConfig)
+        {
+            _nextConfigSource = IaaConfigSourceRemoteOverride;
+            IAAResponse       = mergedConfig;
         }
 
         /// <summary>Returns the App Open ad manager for foreground auto-show control.</summary>
@@ -499,7 +525,8 @@ namespace com.noctuagames.sdk
                 secondary:         secondary?.NetworkName,
                 hybrid:            _orchestrator.IsHybridMode,
                 cpmFloorsEnabled:  _cpmFloorManager != null,
-                segmentKey:        segmentKey);
+                segmentKey:        segmentKey,
+                source:            _nextConfigSource);
         }
 
         /// <summary>
@@ -515,7 +542,8 @@ namespace com.noctuagames.sdk
             string secondary,
             bool   hybrid,
             bool   cpmFloorsEnabled,
-            string segmentKey)
+            string segmentKey,
+            string source)
         {
             var payload = new Dictionary<string, IConvertible>
             {
@@ -524,6 +552,7 @@ namespace com.noctuagames.sdk
                 { "hybrid",           hybrid },
                 { "cpm_floors",       cpmFloorsEnabled ? "enabled" : "disabled" },
                 { "segment",          segmentKey ?? "" },
+                { "source",           source ?? IaaConfigSourceLocal },
             };
 
             if (_adRevenueTracker is NoctuaEventService eventService)

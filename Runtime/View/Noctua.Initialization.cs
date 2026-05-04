@@ -1232,9 +1232,12 @@ namespace com.noctuagames.sdk
                 log.Info("initializing IAA SDK from remote config : " + initResponse.RemoteConfigs.IAA.Mediation);
 
                 var localIaa = Instance.Value._config.IAA;
-                Instance.Value._iaa.IAAResponse = localIaa != null
+                var mergedIaa = localIaa != null
                     ? localIaa.MergeWith(initResponse.RemoteConfigs.IAA)
                     : initResponse.RemoteConfigs.IAA;
+                // Tag the upcoming applied_iaa_config event so analytics can
+                // distinguish remote-served configs from the initial local load.
+                Instance.Value._iaa.ApplyIaaConfigFromRemote(mergedIaa);
                 log.Debug("Noctua IAA config merged with remote config: " + JsonConvert.SerializeObject(Instance.Value._iaa.IAAResponse));
 
                 // Re-wire revenue tracker after IAAResponse assignment (which calls CreateNetworks
