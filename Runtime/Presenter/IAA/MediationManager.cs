@@ -354,46 +354,76 @@ namespace com.noctuagames.sdk
             // SDK isn't compiled in but the secondary's is, the secondary is
             // promoted to primary so the game still gets ads.
 
-            string primaryRequested   = NormalizeMediationName(iaaConfig.Mediation);
-            string secondaryRequested = NormalizeMediationName(iaaConfig.SecondaryMediation);
-
             // Diagnose typos / unsupported names early — without this, an
             // unrecognised name would silently fall through to the "no SDK
             // available" error even when the SDK is actually compiled in.
             WarnIfUnknownMediationName("mediation",           iaaConfig.Mediation);
             WarnIfUnknownMediationName("secondary_mediation", iaaConfig.SecondaryMediation);
 
-            // Reject identical primary/secondary so we don't end up with two
-            // managers wired to the same static SDK callbacks (would double-
-            // count revenue and impressions).
-            if (!string.IsNullOrEmpty(primaryRequested) &&
-                primaryRequested == secondaryRequested)
+            // Compile-time SDK availability. Hoisted into local bools so the
+            // pure policy function ResolveMediationSelection can be unit-tested
+            // without compile-define gymnastics — see MediationSelectionMatrixTest.
+            bool admobAvailable    = false;
+            bool applovinAvailable = false;
+#if UNITY_ADMOB
+            admobAvailable = true;
+#endif
+#if UNITY_APPLOVIN
+            applovinAvailable = true;
+#endif
+
+            string primaryRequested   = NormalizeMediationName(iaaConfig.Mediation);
+            string secondaryRequested = NormalizeMediationName(iaaConfig.SecondaryMediation);
+
+            // Detect diagnostic conditions BEFORE selection so warnings fire
+            // with the original config intent intact.
+            bool isDuplicate =
+                !string.IsNullOrEmpty(primaryRequested) &&
+                primaryRequested == secondaryRequested;
+
+            var (selectedPrimary, selectedSecondary) = ResolveMediationSelection(
+                iaaConfig.Mediation, iaaConfig.SecondaryMediation,
+                admobAvailable, applovinAvailable);
+
+            if (isDuplicate)
             {
                 _log.Warning(
                     $"iaa.mediation and iaa.secondary_mediation are both '{primaryRequested}'. " +
                     "Treating as single-network — secondary is ignored. " +
                     "Set them to different networks to enable hybrid mode.");
-                secondaryRequested = null;
             }
 
-            IAdNetwork primary   = TryCreateNetwork(primaryRequested);
-            IAdNetwork secondary = TryCreateNetwork(secondaryRequested);
-
-            if (primary == null && secondary != null)
+            // Promotion fired when primary's SDK is missing but secondary's exists.
+            bool wasPromoted =
+                !isDuplicate &&
+                !string.IsNullOrEmpty(primaryRequested) &&
+                IsRecognisedMediationName(primaryRequested) &&
+                !IsAvailable(primaryRequested, admobAvailable, applovinAvailable) &&
+                selectedPrimary != null;
+            if (wasPromoted)
             {
                 _log.Warning(
                     $"Primary mediation '{iaaConfig.Mediation}' requested but its SDK is not compiled in. " +
                     $"Promoting secondary '{iaaConfig.SecondaryMediation}' to primary.");
-                primary   = secondary;
-                secondary = null;
             }
-            else if (primary != null && secondary == null &&
-                     !string.IsNullOrEmpty(secondaryRequested))
+
+            // Secondary requested but its SDK isn't compiled in (and no promotion).
+            bool secondaryUnavailable =
+                !isDuplicate &&
+                !wasPromoted &&
+                !string.IsNullOrEmpty(secondaryRequested) &&
+                IsRecognisedMediationName(secondaryRequested) &&
+                !IsAvailable(secondaryRequested, admobAvailable, applovinAvailable) &&
+                selectedPrimary != null;
+            if (secondaryUnavailable)
             {
                 _log.Warning(
                     $"Secondary mediation '{iaaConfig.SecondaryMediation}' requested but its SDK is not compiled in. " +
-                    $"Continuing in single-network mode with primary '{primary.NetworkName}'.");
+                    $"Continuing in single-network mode with primary '{selectedPrimary}'.");
             }
+
+            IAdNetwork primary   = TryCreateNetwork(selectedPrimary);
+            IAdNetwork secondary = TryCreateNetwork(selectedSecondary);
 
             if (primary == null)
             {
@@ -462,10 +492,75 @@ namespace com.noctuagames.sdk
         /// equality-based dispatch in <see cref="TryCreateNetwork"/>.
         /// Returns null for null/empty input so callers can short-circuit.
         /// </summary>
-        private static string NormalizeMediationName(string raw)
+        public static string NormalizeMediationName(string raw)
         {
             if (string.IsNullOrWhiteSpace(raw)) return null;
             return raw.Trim().ToLowerInvariant();
+        }
+
+        /// <summary>True iff <paramref name="normalized"/> is one of the supported network names.</summary>
+        public static bool IsRecognisedMediationName(string normalized)
+        {
+            return normalized == AdNetworkName.Admob
+                || normalized == AdNetworkName.AppLovin;
+        }
+
+        /// <summary>
+        /// True iff the (already-normalised) mediation name's SDK is compiled in
+        /// per the supplied availability flags.
+        /// </summary>
+        public static bool IsAvailable(string normalized, bool admobAvailable, bool applovinAvailable)
+        {
+            if (string.IsNullOrEmpty(normalized)) return false;
+            if (normalized == AdNetworkName.Admob)    return admobAvailable;
+            if (normalized == AdNetworkName.AppLovin) return applovinAvailable;
+            return false;
+        }
+
+        /// <summary>
+        /// Pure selection policy for <c>iaa.mediation</c> / <c>iaa.secondary_mediation</c>.
+        /// Returns the (primary, secondary) network names (lower-case "admob" /
+        /// "applovin", or null) that the orchestrator should be wired with,
+        /// given the requested config and the SDK availability flags.
+        ///
+        /// Rules, in order:
+        ///   1. Normalise both names (lower-case, trim).
+        ///   2. If primary == secondary → secondary dropped (dedup).
+        ///   3. Each name resolves to itself when its SDK is available, else null.
+        ///   4. If primary resolved to null but secondary did not → secondary
+        ///      promoted to primary, secondary becomes null.
+        ///
+        /// This function emits no logs and has no side effects — diagnostic
+        /// warnings are emitted by <see cref="CreateNetworks"/> based on the
+        /// difference between input and output.
+        /// </summary>
+        public static (string primary, string secondary) ResolveMediationSelection(
+            string primaryRaw,
+            string secondaryRaw,
+            bool admobAvailable,
+            bool applovinAvailable)
+        {
+            string p = NormalizeMediationName(primaryRaw);
+            string s = NormalizeMediationName(secondaryRaw);
+
+            // Dedup — identical names collapse to single-network.
+            if (!string.IsNullOrEmpty(p) && p == s)
+            {
+                s = null;
+            }
+
+            string resolvedPrimary   = IsAvailable(p, admobAvailable, applovinAvailable) ? p : null;
+            string resolvedSecondary = IsAvailable(s, admobAvailable, applovinAvailable) ? s : null;
+
+            // Promote — fall back to whichever SDK is actually available so the
+            // game still gets ads when the configured primary is missing.
+            if (resolvedPrimary == null && resolvedSecondary != null)
+            {
+                resolvedPrimary   = resolvedSecondary;
+                resolvedSecondary = null;
+            }
+
+            return (resolvedPrimary, resolvedSecondary);
         }
 
         /// <summary>
