@@ -322,45 +322,40 @@ namespace com.noctuagames.sdk
             }
 #endif
 
-            IAdNetwork primary = null;
-            IAdNetwork secondary = null;
+            // Network selection is config-driven: iaa.mediation picks primary,
+            // iaa.secondary_mediation picks secondary. The compiled-in SDK
+            // defines (UNITY_ADMOB / UNITY_APPLOVIN) gate availability — they
+            // do NOT override the config's intent. If the requested primary's
+            // SDK isn't compiled in but the secondary's is, the secondary is
+            // promoted to primary so the game still gets ads.
+            IAdNetwork primary   = TryCreateNetwork(iaaConfig.Mediation);
+            IAdNetwork secondary = TryCreateNetwork(iaaConfig.SecondaryMediation);
 
-            #if UNITY_ADMOB
-            primary = new AdmobManager();
-            #endif
-
-            #if UNITY_APPLOVIN
-            // If ADMOB is also defined and secondary_mediation is set, AppLovin becomes secondary
-            #if UNITY_ADMOB
-            if (!string.IsNullOrEmpty(iaaConfig.SecondaryMediation) &&
-                iaaConfig.SecondaryMediation == AdNetworkName.AppLovin)
+            if (primary == null && secondary != null)
             {
-                secondary = new AppLovinManager();
+                _log.Warning(
+                    $"Primary mediation '{iaaConfig.Mediation}' requested but its SDK is not compiled in. " +
+                    $"Promoting secondary '{iaaConfig.SecondaryMediation}' to primary.");
+                primary   = secondary;
+                secondary = null;
             }
-            #else
-            primary = new AppLovinManager();
-            #endif
-            #endif
+            else if (primary != null && secondary == null &&
+                     !string.IsNullOrEmpty(iaaConfig.SecondaryMediation))
+            {
+                _log.Warning(
+                    $"Secondary mediation '{iaaConfig.SecondaryMediation}' requested but its SDK is not compiled in. " +
+                    $"Continuing in single-network mode with primary '{primary.NetworkName}'.");
+            }
 
-            // If no primary was set (no defines), log error
             if (primary == null)
             {
-                #if UNITY_APPLOVIN
-                // AppLovin is primary when ADMOB is not defined
-                #else
-                _log.Error("No ad network SDK is available. Define UNITY_ADMOB or UNITY_APPLOVIN.");
+                _log.Error(
+                    $"No ad network SDK is available for the requested config " +
+                    $"(mediation='{iaaConfig.Mediation}', secondary_mediation='{iaaConfig.SecondaryMediation}'). " +
+                    "Define UNITY_ADMOB or UNITY_APPLOVIN, or set iaa.mediation in noctuagg.json " +
+                    "to a network whose SDK is integrated.");
                 return;
-                #endif
             }
-
-            // Check for secondary in the reverse direction: primary is applovin, secondary is admob
-            #if UNITY_APPLOVIN && UNITY_ADMOB
-            if (primary is AppLovinManager && !string.IsNullOrEmpty(iaaConfig.SecondaryMediation) &&
-                iaaConfig.SecondaryMediation == AdNetworkName.Admob)
-            {
-                secondary = new AdmobManager();
-            }
-            #endif
 
             // Ensure AppOpen cooldown has a sensible default when not set in cooldown_seconds.
             var mergedCooldowns = iaaConfig.CooldownSeconds ?? new CooldownConfig();
@@ -407,6 +402,37 @@ namespace com.noctuagames.sdk
                 $", Hybrid: {_orchestrator.IsHybridMode}" +
                 $", CpmFloors: {(_cpmFloorManager != null ? "enabled" : "disabled")}" +
                 $", Segment: {segmentKey}");
+        }
+
+        /// <summary>
+        /// Pure factory: returns an <see cref="IAdNetwork"/> for the given mediation
+        /// name, or <c>null</c> when the name is empty or the corresponding SDK is
+        /// not compiled in. Used by <see cref="CreateNetworks"/> so primary/secondary
+        /// selection follows the config rather than the build's SDK defines.
+        /// </summary>
+        private static IAdNetwork TryCreateNetwork(string mediationName)
+        {
+            if (string.IsNullOrEmpty(mediationName)) return null;
+
+            if (mediationName == AdNetworkName.Admob)
+            {
+#if UNITY_ADMOB
+                return new AdmobManager();
+#else
+                return null;
+#endif
+            }
+
+            if (mediationName == AdNetworkName.AppLovin)
+            {
+#if UNITY_APPLOVIN
+                return new AppLovinManager();
+#else
+                return null;
+#endif
+            }
+
+            return null;
         }
 
         /// <summary>

@@ -19,11 +19,17 @@ namespace com.noctuagames.sdk.Tests.IAA
     /// "Networks created. ..." log line with hybrid / CPM-floors / segment
     /// fields populated.
     ///
-    /// Behavior is conditional on which ad SDK defines are set in the build:
-    ///   - UNITY_ADMOB only      → primary admob,    no secondary
-    ///   - UNITY_APPLOVIN only   → primary applovin, no secondary
-    ///   - both                  → primary admob,    secondary applovin if config says so
-    ///   - neither               → CreateNetworks logs an error and returns early
+    /// Behavior is config-driven (post-fix): iaa.mediation picks primary,
+    /// iaa.secondary_mediation picks secondary. The build's UNITY_ADMOB /
+    /// UNITY_APPLOVIN defines only gate availability — they do NOT override
+    /// what the config requested.
+    ///
+    ///   - both defines compiled in → primary = iaa.mediation,
+    ///                                secondary = iaa.secondary_mediation,
+    ///                                hybrid iff secondary present
+    ///   - only the primary's SDK   → primary = iaa.mediation, no secondary
+    ///   - only the secondary's SDK → secondary promoted to primary (warning logged)
+    ///   - neither                  → CreateNetworks logs an error and returns
     /// </summary>
     [TestFixture]
     public class MediationManagerCreateNetworksTest
@@ -69,25 +75,31 @@ namespace com.noctuagames.sdk.Tests.IAA
                 "cpm_floors.enabled flipped off — re-baseline this test");
 
 #if UNITY_ADMOB && UNITY_APPLOVIN
-            // CreateNetworks hardcodes primary = AdmobManager when UNITY_ADMOB is
-            // defined, regardless of iaa.mediation. Secondary tracks
-            // secondary_mediation only when it equals "applovin".
-            bool expectHybrid = config.IAA.SecondaryMediation == AdNetworkName.AppLovin;
+            // Both SDKs compiled in: primary follows iaa.mediation, secondary
+            // follows iaa.secondary_mediation. Hybrid iff both configured AND
+            // they're different networks.
+            bool expectHybrid =
+                !string.IsNullOrEmpty(config.IAA.Mediation) &&
+                !string.IsNullOrEmpty(config.IAA.SecondaryMediation) &&
+                config.IAA.Mediation != config.IAA.SecondaryMediation;
             Assert.AreEqual(expectHybrid, mgr.IsHybridMode,
-                $"With both SDKs defined and secondary_mediation='{config.IAA.SecondaryMediation}', " +
+                $"With both SDKs compiled in and mediation='{config.IAA.Mediation}', " +
+                $"secondary_mediation='{config.IAA.SecondaryMediation}', " +
                 $"hybrid mode should be {expectHybrid}");
 #elif UNITY_ADMOB
+            // Only UNITY_ADMOB compiled in: secondary is dropped (or primary
+            // promoted from secondary). Either way no hybrid.
             Assert.IsFalse(mgr.IsHybridMode,
-                "With only UNITY_ADMOB defined, secondary cannot be created — hybrid must be false");
+                "With only UNITY_ADMOB compiled in, no secondary can exist — hybrid must be false");
 #elif UNITY_APPLOVIN
             Assert.IsFalse(mgr.IsHybridMode,
-                "With only UNITY_APPLOVIN defined, the reverse-direction secondary branch is unreachable — hybrid must be false");
+                "With only UNITY_APPLOVIN compiled in, no secondary can exist — hybrid must be false");
 #endif
 #else
             // No ad SDK defines compiled in — CreateNetworks logs an error and
             // bails out without creating an orchestrator.
             LogAssert.Expect(LogType.Error,
-                new Regex(@"MediationManager\.CreateNetworks: No ad network SDK is available\. Define UNITY_ADMOB or UNITY_APPLOVIN\."));
+                new Regex(@"MediationManager\.CreateNetworks: No ad network SDK is available for the requested config"));
 
             var mgr = new MediationManager(new NoopAdPlaceholderUI(), config.IAA);
 
