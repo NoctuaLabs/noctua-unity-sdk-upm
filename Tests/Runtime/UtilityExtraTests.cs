@@ -180,4 +180,149 @@ namespace Tests.Runtime
             public string Name;
         }
     }
+
+    public class UtilityEdgeCaseTests
+    {
+        // ParseQueryString edge cases
+
+        [Test]
+        public void ParseQueryString_ValueContainsEquals_SplitsOnFirstEqualsOnly()
+        {
+            // token=abc=def — only the first '=' is the delimiter
+            var result = Utility.ParseQueryString("?token=abc=def");
+            Assert.IsTrue(result.ContainsKey("token"));
+            Assert.AreEqual("abc=def", result["token"]);
+        }
+
+        [Test]
+        public void ParseQueryString_UnicodeEncodedValue_DecodesCorrectly()
+        {
+            // %E4%B8%AD%E6%96%87 = "中文" in UTF-8 percent-encoding
+            var result = Utility.ParseQueryString("?lang=%E4%B8%AD%E6%96%87");
+            Assert.IsTrue(result.ContainsKey("lang"));
+            Assert.AreEqual("中文", result["lang"]);
+        }
+
+        [Test]
+        public void ParseQueryString_MultipleEquals_NoKeyBeforeFirstEquals_Skipped()
+        {
+            // "=val" — splitIndex is 0, which is < 1, so it is skipped
+            var result = Utility.ParseQueryString("?=val&valid=yes");
+            Assert.IsFalse(result.ContainsKey(""));
+            Assert.AreEqual("yes", result["valid"]);
+        }
+
+        // GetCoPublisherLogo edge cases
+
+        [Test]
+        public void GetCoPublisherLogo_EmptyString_ReturnsFallback()
+        {
+            Assert.AreEqual("NoctuaLogoWithText", Utility.GetCoPublisherLogo(""));
+        }
+
+        // ContainsFlag edge cases
+
+        [Test]
+        public void ContainsFlag_SingleFlagNoComma_ExactMatch_ReturnsTrue()
+        {
+            Assert.IsTrue(Utility.ContainsFlag("alpha", "alpha"));
+        }
+
+        [Test]
+        public void ContainsFlag_FlagIsPrefixOfAnother_ReturnsFalse()
+        {
+            // "ab" must NOT match "abc" — flags are whole tokens
+            Assert.IsFalse(Utility.ContainsFlag("abc,abcd", "ab"));
+        }
+
+        [Test]
+        public void ContainsFlag_FlagWithLeadingTrailingSpaces_StillMatches()
+        {
+            Assert.IsTrue(Utility.ContainsFlag("  alpha  ,  beta  ", "beta"));
+        }
+
+        // ValidateEmail edge cases
+
+        [Test]
+        public void ValidateEmail_SubdomainAddress_ReturnsEmpty()
+        {
+            Assert.AreEqual(string.Empty, Utility.ValidateEmail("user@sub.example.com"));
+        }
+
+        [Test]
+        public void ValidateEmail_PlusAddressing_ReturnsEmpty()
+        {
+            Assert.AreEqual(string.Empty, Utility.ValidateEmail("user+tag@example.com"));
+        }
+
+        // ValidatePassword boundary values
+
+        [Test]
+        public void ValidatePassword_FiveChars_ReturnsTooShortError()
+        {
+            // Exactly 5 chars — one below the 6-char minimum
+            Assert.AreEqual(Utility.errorPasswordShort, Utility.ValidatePassword("abcde"));
+        }
+
+        [Test]
+        public void ValidatePassword_SixChars_ReturnsEmpty()
+        {
+            // Exactly 6 chars — at the minimum boundary
+            Assert.AreEqual(string.Empty, Utility.ValidatePassword("abcdef"));
+        }
+
+        // ValidateReenterPassword edge cases
+
+        [Test]
+        public void ValidateReenterPassword_BothEmpty_ReturnsRePasswordEmptyError()
+        {
+            Assert.AreEqual(Utility.errorRePasswordEmpty, Utility.ValidateReenterPassword("", ""));
+        }
+
+        // GetTranslation edge cases
+
+        [Test]
+        public void GetTranslation_EmptyKey_NullDict_ReturnsEmptyKey()
+        {
+            Assert.AreEqual("", Utility.GetTranslation("", null));
+        }
+
+        [Test]
+        public void GetTranslation_EmptyKey_EmptyDict_ReturnsEmptyKey()
+        {
+            Assert.AreEqual("", Utility.GetTranslation("", new System.Collections.Generic.Dictionary<string, string>()));
+        }
+
+        // LoadTranslations edge cases
+
+        [Test]
+        public void LoadTranslations_NullLanguage_DoesNotThrow()
+        {
+            // A null language is passed to GetTranslationByLanguage; switch falls through to default "en".
+            // Resources.Load will succeed or fail gracefully — either way no unhandled exception.
+            Assert.DoesNotThrow(() => Utility.LoadTranslations(null));
+        }
+
+        // PrintFields edge cases
+
+        [Test]
+        public void PrintFields_ObjectWithNullField_DoesNotThrow()
+        {
+            var obj = new SampleWithNullable { Id = 1, Name = null };
+            Assert.DoesNotThrow(() => obj.PrintFields());
+        }
+
+        [Test]
+        public void PrintFields_EmptyList_DoesNotThrow()
+        {
+            var list = new System.Collections.Generic.List<SampleWithNullable>();
+            Assert.DoesNotThrow(() => list.PrintFields());
+        }
+
+        private class SampleWithNullable
+        {
+            public int Id;
+            public string Name;
+        }
+    }
 }

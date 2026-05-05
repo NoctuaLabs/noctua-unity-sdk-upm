@@ -279,4 +279,199 @@ namespace Tests.Runtime
             public string PseudoUserId => "reentrant-mock";
         }
     }
+
+    public class GlobalExceptionLoggerEdgeCaseTests
+    {
+        private GameObject _host;
+        private GlobalExceptionLogger _logger;
+        private MockEventSender _mock;
+
+        [SetUp]
+        public void SetUp()
+        {
+            _host = new GameObject("GlobalExceptionLoggerEdgeCaseHost");
+            _logger = _host.AddComponent<GlobalExceptionLogger>();
+            _mock = new MockEventSender();
+            _logger.SetEventSender(_mock);
+        }
+
+        [TearDown]
+        public void TearDown()
+        {
+            if (_host != null) UnityEngine.Object.DestroyImmediate(_host);
+        }
+
+        private static IConvertible Get(Dictionary<string, IConvertible> d, string k)
+        {
+            return d != null && d.TryGetValue(k, out var v) ? v : null;
+        }
+
+        // ExtractType edge cases
+
+        [Test]
+        public void HandleLog_ExceptionWithNoColon_ErrorTypeFallsBackToException()
+        {
+            // Log string has no colon, so ExtractType cannot extract a type name
+            _logger.HandleLog("ExceptionWithNoColonInMessage", "stack", LogType.Exception);
+
+            var events = _mock.GetEventsByName("client_error");
+            Assert.AreEqual(1, events.Count);
+            Assert.AreEqual("Exception", Get(events[0].Data, "error_type").ToString());
+        }
+
+        [Test]
+        public void HandleLog_ExceptionWhereColonBeyond128_ErrorTypeFallsBackToException()
+        {
+            // Colon is at position > 128, so ExtractType guard rejects it
+            var longPrefix = new string('A', 130);
+            _logger.HandleLog($"{longPrefix}: message", "stack", LogType.Exception);
+
+            var events = _mock.GetEventsByName("client_error");
+            Assert.AreEqual(1, events.Count);
+            Assert.AreEqual("Exception", Get(events[0].Data, "error_type").ToString());
+        }
+
+        [Test]
+        public void HandleLog_ExceptionTypeHeadContainsSpace_FallsBackToException()
+        {
+            // "My Exception: boom" — head before colon is "My Exception" which has a space
+            _logger.HandleLog("My Exception: boom", "stack", LogType.Exception);
+
+            var events = _mock.GetEventsByName("client_error");
+            Assert.AreEqual(1, events.Count);
+            Assert.AreEqual("Exception", Get(events[0].Data, "error_type").ToString());
+        }
+
+        // Null / empty input guards
+
+        [Test]
+        public void HandleLog_NullStackTrace_DoesNotThrow()
+        {
+            Assert.DoesNotThrow(() =>
+                _logger.HandleLog("Exception: test", null, LogType.Exception));
+
+            var events = _mock.GetEventsByName("client_error");
+            Assert.AreEqual(1, events.Count);
+            Assert.AreEqual("", Get(events[0].Data, "stack_trace").ToString());
+        }
+
+        [Test]
+        public void HandleLog_EmptyLogString_DoesNotThrow()
+        {
+            Assert.DoesNotThrow(() =>
+                _logger.HandleLog("", "stack", LogType.Exception));
+
+            // Empty string — ExtractType finds no colon, falls back to "Exception"
+            var events = _mock.GetEventsByName("client_error");
+            Assert.AreEqual(1, events.Count);
+        }
+
+        // Long message truncation
+
+        [Test]
+        public void LongMessage_IsTruncatedTo500Chars()
+        {
+            var longMsg = "Exception: " + new string('x', 1000);
+            _logger.HandleLog(longMsg, "stack", LogType.Exception);
+
+            var events = _mock.GetEventsByName("client_error");
+            Assert.AreEqual(1, events.Count);
+            Assert.LessOrEqual(Get(events[0].Data, "message").ToString().Length, 500);
+        }
+
+        // Payload field presence
+
+        [Test]
+        public void HandleLog_Payload_ContainsSuppressedCountField()
+        {
+            _logger.HandleLog("Exception: first", "stack1", LogType.Exception);
+
+            var events = _mock.GetEventsByName("client_error");
+            Assert.AreEqual(1, events.Count);
+            Assert.IsNotNull(Get(events[0].Data, "suppressed_count"),
+                "suppressed_count must be present in payload");
+        }
+
+        [Test]
+        public void HandleLog_Payload_ContainsDedupCountField()
+        {
+            _logger.HandleLog("Exception: check", "stackcheck", LogType.Exception);
+
+            var events = _mock.GetEventsByName("client_error");
+            Assert.AreEqual(1, events.Count);
+            Assert.IsNotNull(Get(events[0].Data, "dedup_count"),
+                "dedup_count must be present in payload");
+            Assert.AreEqual("1", Get(events[0].Data, "dedup_count").ToString());
+        }
+
+        [Test]
+        public void HandleLog_Payload_ContainsSceneField()
+        {
+            _logger.HandleLog("Exception: scene", "stack", LogType.Exception);
+
+            var events = _mock.GetEventsByName("client_error");
+            Assert.AreEqual(1, events.Count);
+            Assert.IsNotNull(Get(events[0].Data, "scene"),
+                "scene field must be present in payload");
+        }
+
+        // Warning severity forwarding
+
+        [Test]
+        public void HandleLog_Warning_Payload_HasSeverityWarningAndTypeWarning()
+        {
+            _logger.HandleLog("something deprecated", "deprecation stack", LogType.Warning);
+
+            var events = _mock.GetEventsByName("client_error");
+            Assert.AreEqual(1, events.Count);
+            Assert.AreEqual("warning", Get(events[0].Data, "severity").ToString());
+            Assert.AreEqual("Warning", Get(events[0].Data, "error_type").ToString());
+        }
+
+        // SetEventSender can be swapped mid-stream
+
+        [Test]
+        public void SetEventSender_SwapMidStream_SubsequentCallsUseNewSender()
+        {
+            _logger.HandleLog("Exception: first", "stack1", LogType.Exception);
+            Assert.AreEqual(1, _mock.GetEventsByName("client_error").Count);
+
+            var newMock = new MockEventSender();
+            _logger.SetEventSender(newMock);
+
+            _logger.HandleLog("Exception: second", "stack2", LogType.Exception);
+            Assert.AreEqual(0, _mock.GetEventsByName("client_error").Count,
+                "old sender should not receive events after swap");
+            Assert.AreEqual(1, newMock.GetEventsByName("client_error").Count,
+                "new sender should receive the swapped-in event");
+        }
+
+        // HandleUnhandledException with non-Exception object (null cast)
+
+        [Test]
+        public void HandleUnhandledException_NonExceptionObject_IsNoOp()
+        {
+            // ExceptionObject is a string, not an Exception — cast returns null, method should return silently
+            Assert.DoesNotThrow(() =>
+                _logger.HandleUnhandledException(
+                    this,
+                    new UnhandledExceptionEventArgs("not an exception", false)));
+
+            Assert.AreEqual(0, _mock.GetEventsByName("client_error").Count);
+        }
+
+        // Multiple distinct exceptions in sequence — each gets its own event
+
+        [Test]
+        public void HandleLog_MultipleDistinctErrors_EachSendsOneEvent()
+        {
+            _logger.HandleLog("Exception: alpha", "stack_alpha", LogType.Exception);
+            _logger.HandleLog("Exception: beta", "stack_beta", LogType.Exception);
+            _logger.HandleLog("Exception: gamma", "stack_gamma", LogType.Exception);
+
+            var events = _mock.GetEventsByName("client_error");
+            Assert.AreEqual(3, events.Count,
+                "Three distinct exceptions should each produce one client_error event");
+        }
+    }
 }

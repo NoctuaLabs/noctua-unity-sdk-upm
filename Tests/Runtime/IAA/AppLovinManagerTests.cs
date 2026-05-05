@@ -515,6 +515,77 @@ namespace Tests.Runtime.IAA
             var banner = new BannerAppLovin();
             Assert.DoesNotThrow(() => banner.UnregisterCallbacks());
         }
+
+        // ── New tests ────────────────────────────────────────────────────────────
+
+        [Test]
+        public void SetBannerAdUnitId_Null_DoesNotCrash()
+        {
+            // Null guard: SetBannerAdUnitId(null) must log an error and not throw.
+            var banner = new BannerAppLovin();
+            LogAssert.ignoreFailingMessages = true;
+            Assert.DoesNotThrow(() => banner.SetBannerAdUnitId(null));
+        }
+
+        [Test]
+        public void ShowBanner_WithoutUnit_DoesNotThrow()
+        {
+            // ShowBanner must bail out silently when no ad unit ID has been set.
+            var banner = new BannerAppLovin();
+            LogAssert.ignoreFailingMessages = true;
+            Assert.DoesNotThrow(() => banner.ShowBanner());
+        }
+
+        [Test]
+        public void HideBanner_AfterSetUnit_DoesNotThrow()
+        {
+            var banner = new BannerAppLovin();
+            banner.SetBannerAdUnitId(AppLovinAdUnits.Banner);
+            LogAssert.ignoreFailingMessages = true;
+            Assert.DoesNotThrow(() => banner.HideBanner());
+        }
+
+        [Test]
+        public void DestroyBanner_AfterSetUnit_DoesNotThrow()
+        {
+            var banner = new BannerAppLovin();
+            banner.SetBannerAdUnitId(AppLovinAdUnits.Banner);
+            LogAssert.ignoreFailingMessages = true;
+            Assert.DoesNotThrow(() => banner.DestroyBanner());
+        }
+
+        [Test]
+        public void StopBannerAutoRefresh_AfterSetUnit_DoesNotThrow()
+        {
+            var banner = new BannerAppLovin();
+            banner.SetBannerAdUnitId(AppLovinAdUnits.Banner);
+            LogAssert.ignoreFailingMessages = true;
+            Assert.DoesNotThrow(() => banner.StopBannerAutoRefresh());
+        }
+
+        [Test]
+        public void StartBannerAutoRefresh_AfterSetUnit_DoesNotThrow()
+        {
+            var banner = new BannerAppLovin();
+            banner.SetBannerAdUnitId(AppLovinAdUnits.Banner);
+            LogAssert.ignoreFailingMessages = true;
+            Assert.DoesNotThrow(() => banner.StartBannerAutoRefresh());
+        }
+
+        [Test]
+        public void UnregisterCallbacks_AfterRegisterViaInitialize_DoesNotThrow()
+        {
+            // InitializeBannerAds registers callbacks; UnregisterCallbacks must cleanly remove them.
+            var banner = new BannerAppLovin();
+            banner.SetBannerAdUnitId(AppLovinAdUnits.Banner);
+            LogAssert.ignoreFailingMessages = true;
+            // InitializeBannerAds triggers MaxSdk.CreateBanner which is a no-op in the Editor stub.
+            Assert.DoesNotThrow(() =>
+            {
+                banner.InitializeBannerAds(UnityEngine.Color.black, MaxSdk.AdViewPosition.BottomCenter);
+                banner.UnregisterCallbacks();
+            });
+        }
     }
 
     /// <summary>Tests for InterstitialAppLovin inner class state methods.</summary>
@@ -572,6 +643,88 @@ namespace Tests.Runtime.IAA
         {
             var interstitial = new InterstitialAppLovin();
             Assert.DoesNotThrow(() => interstitial.UnregisterCallbacks());
+        }
+
+        // ── New tests ────────────────────────────────────────────────────────────
+
+        [Test]
+        public void SetInterstitialAdUnitID_Null_DoesNotCrash()
+        {
+            // Null guard: the method must log an error and not throw.
+            var interstitial = new InterstitialAppLovin();
+            LogAssert.ignoreFailingMessages = true;
+            Assert.DoesNotThrow(() => interstitial.SetInterstitialAdUnitID(null));
+        }
+
+        [Test]
+        public void LoadInterstitial_WithUnit_DoesNotThrow()
+        {
+            // LoadInterstitial with a unit ID set must not throw even in the Editor stub.
+            var interstitial = new InterstitialAppLovin();
+            interstitial.SetInterstitialAdUnitID(AppLovinAdUnits.Interstitial);
+            LogAssert.ignoreFailingMessages = true;
+            Assert.DoesNotThrow(() => interstitial.LoadInterstitial());
+        }
+
+        [Test]
+        public void UnregisterCallbacks_AfterLoad_DoesNotThrow()
+        {
+            // Load registers callbacks; UnregisterCallbacks must cleanly remove them.
+            var interstitial = new InterstitialAppLovin();
+            interstitial.SetInterstitialAdUnitID(AppLovinAdUnits.Interstitial);
+            LogAssert.ignoreFailingMessages = true;
+            interstitial.LoadInterstitial();
+            Assert.DoesNotThrow(() => interstitial.UnregisterCallbacks());
+        }
+
+        [Test]
+        public void IsReady_ReturnsFalseAfterUnregister()
+        {
+            // After UnregisterCallbacks the unit ID is still set; IsReady must remain false
+            // in the Editor stub (MaxSdk.IsInterstitialReady always returns false in Editor).
+            var interstitial = new InterstitialAppLovin();
+            interstitial.SetInterstitialAdUnitID(AppLovinAdUnits.Interstitial);
+            LogAssert.ignoreFailingMessages = true;
+            interstitial.LoadInterstitial();
+            interstitial.UnregisterCallbacks();
+            Assert.IsFalse(interstitial.IsReady());
+        }
+
+        [Test]
+        public void ShowInterstitial_NoPlacement_WithUnit_WhenNotReady_DoesNotThrow()
+        {
+            // No-placement overload — ad not ready path must not throw.
+            var interstitial = new InterstitialAppLovin();
+            interstitial.SetInterstitialAdUnitID(AppLovinAdUnits.Interstitial);
+            LogAssert.ignoreFailingMessages = true;
+            Assert.DoesNotThrow(() => interstitial.ShowInterstitial());
+        }
+
+        [Test]
+        public void SetInterstitialAdUnitID_Idempotent_DoesNotThrow()
+        {
+            // Calling SetInterstitialAdUnitID a second time must not throw or corrupt state.
+            var interstitial = new InterstitialAppLovin();
+            Assert.DoesNotThrow(() =>
+            {
+                interstitial.SetInterstitialAdUnitID(AppLovinAdUnits.Interstitial);
+                interstitial.SetInterstitialAdUnitID(AppLovinAdUnits.Interstitial);
+            });
+        }
+
+        [Test]
+        public void LoadInterstitial_CalledTwice_DoesNotDoubleSubscribe()
+        {
+            // The _callbacksRegistered guard prevents duplicate event subscriptions.
+            // Calling LoadInterstitial twice with the same unit ID must not throw.
+            var interstitial = new InterstitialAppLovin();
+            interstitial.SetInterstitialAdUnitID(AppLovinAdUnits.Interstitial);
+            LogAssert.ignoreFailingMessages = true;
+            Assert.DoesNotThrow(() =>
+            {
+                interstitial.LoadInterstitial();
+                interstitial.LoadInterstitial();
+            });
         }
     }
 
@@ -632,6 +785,82 @@ namespace Tests.Runtime.IAA
             var rewarded = new RewardedAppLovin();
             Assert.DoesNotThrow(() => rewarded.UnregisterCallbacks());
         }
+
+        // ── New tests ────────────────────────────────────────────────────────────
+
+        [Test]
+        public void SetRewardedAdUnitID_Null_DoesNotCrash()
+        {
+            // Null guard: SetRewardedAdUnitID(null) must log an error and not throw.
+            var rewarded = new RewardedAppLovin();
+            LogAssert.ignoreFailingMessages = true;
+            Assert.DoesNotThrow(() => rewarded.SetRewardedAdUnitID(null));
+        }
+
+        [Test]
+        public void LoadRewardedAds_WithUnit_DoesNotThrow()
+        {
+            // LoadRewardedAds with a unit ID set must not throw even in the Editor stub.
+            var rewarded = new RewardedAppLovin();
+            rewarded.SetRewardedAdUnitID(AppLovinAdUnits.Rewarded);
+            LogAssert.ignoreFailingMessages = true;
+            Assert.DoesNotThrow(() => rewarded.LoadRewardedAds());
+        }
+
+        [Test]
+        public void UnregisterCallbacks_AfterLoad_DoesNotThrow()
+        {
+            // LoadRewardedAds registers callbacks; UnregisterCallbacks must cleanly remove them.
+            var rewarded = new RewardedAppLovin();
+            rewarded.SetRewardedAdUnitID(AppLovinAdUnits.Rewarded);
+            LogAssert.ignoreFailingMessages = true;
+            rewarded.LoadRewardedAds();
+            Assert.DoesNotThrow(() => rewarded.UnregisterCallbacks());
+        }
+
+        [Test]
+        public void IsReady_ReturnsFalseAfterUnregister()
+        {
+            // After UnregisterCallbacks the unit ID is still set; IsReady must remain false
+            // in the Editor stub (MaxSdk.IsRewardedAdReady always returns false in Editor).
+            var rewarded = new RewardedAppLovin();
+            rewarded.SetRewardedAdUnitID(AppLovinAdUnits.Rewarded);
+            LogAssert.ignoreFailingMessages = true;
+            rewarded.LoadRewardedAds();
+            rewarded.UnregisterCallbacks();
+            Assert.IsFalse(rewarded.IsReady());
+        }
+
+        [Test]
+        public void ShowRewardedAd_NoPlacement_WithUnit_WhenNotReady_DoesNotThrow()
+        {
+            // No-placement overload — ad not ready path must not throw.
+            var rewarded = new RewardedAppLovin();
+            rewarded.SetRewardedAdUnitID(AppLovinAdUnits.Rewarded);
+            LogAssert.ignoreFailingMessages = true;
+            Assert.DoesNotThrow(() => rewarded.ShowRewardedAd());
+        }
+
+        [Test]
+        public void SetRewardedAdUnitID_Idempotent_DoesNotThrow()
+        {
+            // Calling SetRewardedAdUnitID a second time must not throw or corrupt state.
+            var rewarded = new RewardedAppLovin();
+            Assert.DoesNotThrow(() =>
+            {
+                rewarded.SetRewardedAdUnitID(AppLovinAdUnits.Rewarded);
+                rewarded.SetRewardedAdUnitID(AppLovinAdUnits.Rewarded);
+            });
+        }
+
+        [Test]
+        public void ShowRewardedAdWithPlacement_WithoutUnit_DoesNotThrow()
+        {
+            // Placement overload without a unit ID set must bail out silently.
+            var rewarded = new RewardedAppLovin();
+            LogAssert.ignoreFailingMessages = true;
+            Assert.DoesNotThrow(() => rewarded.ShowRewardedAd("placement-without-unit"));
+        }
     }
 
     /// <summary>Tests for AppOpenAppLovin inner class state methods.</summary>
@@ -681,6 +910,87 @@ namespace Tests.Runtime.IAA
         {
             var appOpen = new AppOpenAppLovin();
             Assert.DoesNotThrow(() => appOpen.UnregisterCallbacks());
+        }
+
+        // ── New tests ────────────────────────────────────────────────────────────
+
+        [Test]
+        public void SetAppOpenAdUnitID_Null_DoesNotCrash()
+        {
+            // Null guard: SetAppOpenAdUnitID(null) must log an error and not throw.
+            var appOpen = new AppOpenAppLovin();
+            LogAssert.ignoreFailingMessages = true;
+            Assert.DoesNotThrow(() => appOpen.SetAppOpenAdUnitID(null));
+        }
+
+        [Test]
+        public void LoadAppOpenAd_WithUnit_DoesNotThrow()
+        {
+            // LoadAppOpenAd with a unit ID set must not throw even in the Editor stub.
+            var appOpen = new AppOpenAppLovin();
+            appOpen.SetAppOpenAdUnitID(AppLovinAdUnits.AppOpen);
+            LogAssert.ignoreFailingMessages = true;
+            Assert.DoesNotThrow(() => appOpen.LoadAppOpenAd());
+        }
+
+        [Test]
+        public void UnregisterCallbacks_AfterLoad_DoesNotThrow()
+        {
+            // LoadAppOpenAd registers callbacks; UnregisterCallbacks must cleanly remove them.
+            var appOpen = new AppOpenAppLovin();
+            appOpen.SetAppOpenAdUnitID(AppLovinAdUnits.AppOpen);
+            LogAssert.ignoreFailingMessages = true;
+            appOpen.LoadAppOpenAd();
+            Assert.DoesNotThrow(() => appOpen.UnregisterCallbacks());
+        }
+
+        [Test]
+        public void IsAdReady_ReturnsFalseAfterUnregister()
+        {
+            // After UnregisterCallbacks the unit ID is still set; IsAdReady must remain false
+            // in the Editor stub (MaxSdk.IsAppOpenAdReady always returns false in Editor).
+            var appOpen = new AppOpenAppLovin();
+            appOpen.SetAppOpenAdUnitID(AppLovinAdUnits.AppOpen);
+            LogAssert.ignoreFailingMessages = true;
+            appOpen.LoadAppOpenAd();
+            appOpen.UnregisterCallbacks();
+            Assert.IsFalse(appOpen.IsAdReady());
+        }
+
+        [Test]
+        public void ShowAppOpenAd_WithoutUnit_DoesNotThrow()
+        {
+            // ShowAppOpenAd must bail out silently when no ad unit ID has been set.
+            var appOpen = new AppOpenAppLovin();
+            LogAssert.ignoreFailingMessages = true;
+            Assert.DoesNotThrow(() => appOpen.ShowAppOpenAd());
+        }
+
+        [Test]
+        public void SetAppOpenAdUnitID_Idempotent_DoesNotThrow()
+        {
+            // Calling SetAppOpenAdUnitID a second time must not throw or corrupt state.
+            var appOpen = new AppOpenAppLovin();
+            Assert.DoesNotThrow(() =>
+            {
+                appOpen.SetAppOpenAdUnitID(AppLovinAdUnits.AppOpen);
+                appOpen.SetAppOpenAdUnitID(AppLovinAdUnits.AppOpen);
+            });
+        }
+
+        [Test]
+        public void LoadAppOpenAd_CalledTwice_DoesNotDoubleSubscribe()
+        {
+            // The _callbacksRegistered guard prevents duplicate event subscriptions.
+            // Calling LoadAppOpenAd twice with the same unit ID must not throw.
+            var appOpen = new AppOpenAppLovin();
+            appOpen.SetAppOpenAdUnitID(AppLovinAdUnits.AppOpen);
+            LogAssert.ignoreFailingMessages = true;
+            Assert.DoesNotThrow(() =>
+            {
+                appOpen.LoadAppOpenAd();
+                appOpen.LoadAppOpenAd();
+            });
         }
     }
 }
