@@ -1222,7 +1222,7 @@ namespace Tests.Runtime
         {
             var mock = new MockEventSender();
             var locale = new NoctuaLocale();
-            var tracker = new SessionTracker(new SessionTrackerConfig { EventSender = mock }, locale, null);
+            var tracker = new SessionTracker(new SessionTrackerConfig(), mock, null);
 
             // Resume (foreground) then pause to trigger both engagement + session_pause
             tracker.OnApplicationPause(false);
