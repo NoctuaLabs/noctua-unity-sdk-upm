@@ -717,7 +717,7 @@ namespace com.noctuagames.sdk.Tests.Auth
             // The call returns immediately without any HTTP — run it synchronously
             // via GetAwaiter so the test stays [Test] (no [UnityTest] needed).
             var task = svc.AuthenticateAsync().AsTask();
-            task.Wait(timeoutMilliseconds: 500);
+            task.Wait(500);
 
             Assert.IsTrue(task.IsCompleted, "AuthenticateAsync should complete synchronously when already authenticated");
             Assert.IsNotNull(task.Result, "Returned UserBundle must not be null");

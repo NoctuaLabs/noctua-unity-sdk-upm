@@ -1128,7 +1128,7 @@ namespace Tests.Runtime
                 {
                     BaseUrl       = $"http://localhost:{port}/api/v1",
                     ClientId      = "test_client_id",
-                    BatchSize     = batchSize,
+                    BatchSize     = (uint)batchSize,
                     CycleDelay    = cycleDelay,
                     NativePlugin  = new DefaultNativePlugin(),
                     IsOfflineModeFunc = () => offline,
@@ -1222,7 +1222,7 @@ namespace Tests.Runtime
         {
             var mock = new MockEventSender();
             var locale = new NoctuaLocale();
-            var tracker = new SessionTracker(mock, locale, null);
+            var tracker = new SessionTracker(new SessionTrackerConfig { EventSender = mock }, locale, null);
 
             // Resume (foreground) then pause to trigger both engagement + session_pause
             tracker.OnApplicationPause(false);

@@ -838,7 +838,7 @@ namespace com.noctuagames.sdk.Tests.IAA
             Assert.DoesNotThrow(() =>
             {
                 mgr.ApplyIaaConfigFromRemote(null);
-                mgr.ApplyIaaConfigFromRemote(new IAA { Mediation = "admob" });
+                mgr.ApplyIaaConfigFromRemote(new IAAConfig { Mediation = "admob" });
                 mgr.ApplyIaaConfigFromRemote(null);
             },
             "ApplyIaaConfigFromRemote must not throw regardless of how many times it is called or what is passed");
