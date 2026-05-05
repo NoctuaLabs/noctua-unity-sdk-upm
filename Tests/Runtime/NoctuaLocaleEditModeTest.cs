@@ -348,5 +348,39 @@ namespace Tests.Runtime
                 Assert.IsNotEmpty(str, $"LocaleTextKey.{key} ToString() must be non-empty");
             }
         }
+
+        // ─── OnLanguageChanged — unsubscribe ──────────────────────────────────
+
+        [Test]
+        public void OnLanguageChanged_Unsubscribe_DoesNotFireAfterHandlerRemoved()
+        {
+            var locale = new NoctuaLocale(region: "");
+            locale.SetUserPrefsLanguage("");  // start with no override
+
+            bool fired = false;
+            System.Action<string> handler = _ => fired = true;
+            locale.OnLanguageChanged += handler;
+            locale.OnLanguageChanged -= handler;
+
+            // Should NOT fire after unsubscription
+            locale.SetUserPrefsLanguage("vi");
+            Assert.IsFalse(fired,
+                "OnLanguageChanged must NOT fire after the handler is unsubscribed");
+        }
+
+        [Test]
+        public void SetUserPrefsLanguage_MultipleSubscribers_AllReceiveEvent()
+        {
+            var locale = new NoctuaLocale(region: "th");  // initial language "th"
+
+            int callCount = 0;
+            locale.OnLanguageChanged += _ => callCount++;
+            locale.OnLanguageChanged += _ => callCount++;
+
+            locale.SetUserPrefsLanguage("id");
+
+            Assert.AreEqual(2, callCount,
+                "Both subscribers must be called when language changes");
+        }
     }
 }
