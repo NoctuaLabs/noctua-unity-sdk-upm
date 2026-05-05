@@ -2,6 +2,9 @@ using System.Collections.Generic;
 using com.noctuagames.sdk;
 using Newtonsoft.Json;
 using NUnit.Framework;
+// Alias needed because Tests.Runtime.IAA (a sibling namespace used by AppLovin/AdMob manager tests)
+// shadows the com.noctuagames.sdk.IAA class when referenced unqualified inside Tests.Runtime.
+using IAA = com.noctuagames.sdk.IAA;
 
 namespace Tests.Runtime
 {
