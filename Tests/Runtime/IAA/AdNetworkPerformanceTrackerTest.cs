@@ -219,5 +219,79 @@ namespace com.noctuagames.sdk.Tests.IAA
             // Querying Interstitial when only Rewarded has data → null
             Assert.IsNull(tracker.GetPreferredNetwork(Inter));
         }
+
+        // ─── Additional tests ─────────────────────────────────────────────────
+
+        [Test]
+        public void GetAverageCpm_IsSameAsGetAverageRevenue()
+        {
+            var tracker = new AdNetworkPerformanceTracker();
+            tracker.RecordRevenue(Admob, Inter, 0.05);
+            tracker.RecordRevenue(Admob, Inter, 0.15);
+
+            double avgRevenue = tracker.GetAverageRevenue(Admob, Inter);
+            double avgCpm     = tracker.GetAverageCpm(Admob, Inter);
+
+            Assert.AreEqual(avgRevenue, avgCpm, delta: 0.00001,
+                "GetAverageCpm must return the same value as GetAverageRevenue");
+        }
+
+        [Test]
+        public void GetSampleCount_NoData_ReturnsZero()
+        {
+            var tracker = new AdNetworkPerformanceTracker();
+
+            Assert.AreEqual(0, tracker.GetSampleCount(Admob, Rewarded),
+                "Fresh tracker must report 0 revenue samples");
+        }
+
+        [Test]
+        public void GetSampleCount_AfterRecordRevenue_ReturnsOne()
+        {
+            var tracker = new AdNetworkPerformanceTracker();
+            tracker.RecordRevenue(Admob, Rewarded, 0.07);
+
+            Assert.AreEqual(1, tracker.GetSampleCount(Admob, Rewarded),
+                "After one RecordRevenue call the sample count must be 1");
+        }
+
+        [Test]
+        public void RecordRevenue_DifferentFormatsTrackedSeparately()
+        {
+            var tracker = new AdNetworkPerformanceTracker();
+            tracker.RecordRevenue(Admob, Rewarded, 0.01);
+            tracker.RecordRevenue(Admob, Inter,    0.10);
+
+            Assert.AreEqual(0.01, tracker.GetAverageRevenue(Admob, Rewarded), delta: 0.0001,
+                "Rewarded average should reflect only rewarded revenue");
+            Assert.AreEqual(0.10, tracker.GetAverageRevenue(Admob, Inter),    delta: 0.0001,
+                "Interstitial average should reflect only interstitial revenue");
+        }
+
+        [Test]
+        public void RecordRevenue_DifferentNetworksTrackedSeparately()
+        {
+            var tracker = new AdNetworkPerformanceTracker();
+            tracker.RecordRevenue(Admob,    Inter, 0.01);
+            tracker.RecordRevenue(AppLovin, Inter, 0.10);
+
+            Assert.AreEqual(0.01, tracker.GetAverageRevenue(Admob,    Inter), delta: 0.0001,
+                "AdMob average should be independent of AppLovin's data");
+            Assert.AreEqual(0.10, tracker.GetAverageRevenue(AppLovin, Inter), delta: 0.0001,
+                "AppLovin average should be independent of AdMob's data");
+        }
+
+        [Test]
+        public void GetPreferredNetwork_NoData_ReturnsNullForGivenCandidates()
+        {
+            // Fresh tracker — no fill history at all — GetPreferredNetwork iterates _fillHistory
+            // which is empty, so it returns null regardless of which networks we care about.
+            var tracker = new AdNetworkPerformanceTracker();
+
+            string preferred = tracker.GetPreferredNetwork(Rewarded);
+
+            Assert.IsNull(preferred,
+                "GetPreferredNetwork must return null when no fill data has been recorded");
+        }
     }
 }

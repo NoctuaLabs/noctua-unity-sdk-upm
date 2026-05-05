@@ -340,5 +340,133 @@ namespace com.noctuagames.sdk.Tests.IAA
             mgr.RecordImpression(Rewarded);
             Assert.IsFalse(mgr.CanShowAd(Rewarded), "10 == 10 cap, should block");
         }
+
+        // ─── Additional tests ─────────────────────────────────────────────────
+
+        [Test]
+        public void CanShowAd_RewardedCooldown_BlocksRewarded_NotInterstitial()
+        {
+            var mgr = new AdFrequencyManager(
+                cooldowns: new CooldownConfig { Rewarded = 60, Interstitial = 0 }
+            );
+
+            mgr.RecordImpression(Rewarded);
+
+            Assert.IsFalse(mgr.CanShowAd(Rewarded),      "Rewarded should be in cooldown after impression");
+            Assert.IsTrue(mgr.CanShowAd(Interstitial),   "Interstitial has 0s cooldown, should not be blocked");
+        }
+
+        [Test]
+        public void CanShowAd_FrequencyCap_Rewarded_AtCap_ReturnsFalse()
+        {
+            const int cap = 4;
+            var mgr = new AdFrequencyManager(
+                frequencyCaps: new FrequencyCapConfig
+                {
+                    Rewarded = new FrequencyCapEntry { MaxImpressions = cap, WindowSeconds = 3600 }
+                }
+            );
+
+            for (int i = 0; i < cap; i++)
+                mgr.RecordImpression(Rewarded);
+
+            Assert.IsFalse(mgr.CanShowAd(Rewarded), "Rewarded should be blocked after reaching MaxImpressions");
+        }
+
+        [Test]
+        public void CanShowAd_FrequencyCap_AppOpen_BelowCap_ReturnsTrue()
+        {
+            var mgr = new AdFrequencyManager(
+                frequencyCaps: new FrequencyCapConfig
+                {
+                    AppOpen = new FrequencyCapEntry { MaxImpressions = 5, WindowSeconds = 3600 }
+                }
+            );
+
+            for (int i = 0; i < 3; i++)
+                mgr.RecordImpression(AppOpen);
+
+            Assert.IsTrue(mgr.CanShowAd(AppOpen), "3 < 5 cap, AppOpen should still be allowed");
+        }
+
+        [Test]
+        public void RecordImpression_MultipleFormats_DoNotInterfere()
+        {
+            var mgr = new AdFrequencyManager(
+                frequencyCaps: new FrequencyCapConfig
+                {
+                    Rewarded     = new FrequencyCapEntry { MaxImpressions = 1, WindowSeconds = 3600 },
+                    Interstitial = new FrequencyCapEntry { MaxImpressions = 5, WindowSeconds = 3600 }
+                }
+            );
+
+            mgr.RecordImpression(Rewarded);
+
+            Assert.IsFalse(mgr.CanShowAd(Rewarded),    "Rewarded cap exhausted after 1 impression");
+            Assert.IsTrue(mgr.CanShowAd(Interstitial),  "Interstitial cap unaffected by rewarded impression");
+        }
+
+        [Test]
+        public void CanShowAd_CooldownZero_NeverBlocksByCooldown()
+        {
+            var mgr = new AdFrequencyManager(
+                cooldowns: new CooldownConfig { Interstitial = 0 }
+            );
+
+            mgr.RecordImpression(Interstitial);
+
+            // 0s cooldown should never block — checked immediately after impression
+            Assert.IsTrue(mgr.CanShowAd(Interstitial), "Zero cooldown must never block");
+        }
+
+        [Test]
+        public void CanShowAd_AllFormatsDisabledViaConfig_ReturnsFalse()
+        {
+            var mgr = new AdFrequencyManager(
+                enabledFormats: new EnabledFormatsConfig
+                {
+                    Interstitial         = false,
+                    Rewarded             = false,
+                    RewardedInterstitial = false,
+                    Banner               = false,
+                    AppOpen              = false,
+                }
+            );
+
+            Assert.IsFalse(mgr.CanShowAd(Interstitial),                 "Interstitial must be disabled");
+            Assert.IsFalse(mgr.CanShowAd(Rewarded),                     "Rewarded must be disabled");
+            Assert.IsFalse(mgr.CanShowAd(AdFormatKey.RewardedInterstitial), "RewardedInterstitial must be disabled");
+            Assert.IsFalse(mgr.CanShowAd(Banner),                       "Banner must be disabled");
+            Assert.IsFalse(mgr.CanShowAd(AppOpen),                      "AppOpen must be disabled");
+        }
+
+        [Test]
+        public void CanShowAd_BannerNotInEnabledFormats_ReturnsFalse()
+        {
+            // Only interstitial, rewarded, and app_open are enabled; banner is explicitly false
+            var mgr = new AdFrequencyManager(
+                enabledFormats: new EnabledFormatsConfig
+                {
+                    Interstitial = true,
+                    Rewarded     = true,
+                    AppOpen      = true,
+                    Banner       = false,
+                }
+            );
+
+            Assert.IsTrue(mgr.CanShowAd(Interstitial), "Interstitial should be enabled");
+            Assert.IsTrue(mgr.CanShowAd(Rewarded),     "Rewarded should be enabled");
+            Assert.IsTrue(mgr.CanShowAd(AppOpen),      "AppOpen should be enabled");
+            Assert.IsFalse(mgr.CanShowAd(Banner),      "Banner should be disabled");
+        }
+
+        [Test]
+        public void RecordImpression_DoesNotThrow_ForUnknownFormat()
+        {
+            var mgr = new AdFrequencyManager();
+
+            Assert.DoesNotThrow(() => mgr.RecordImpression("native"),
+                "RecordImpression should not throw for an unknown format");
+        }
     }
 }

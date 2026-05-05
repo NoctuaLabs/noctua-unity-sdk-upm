@@ -340,4 +340,175 @@ namespace com.noctuagames.sdk.Tests.IAA
             Assert.IsTrue(data.ContainsKey("segment_key"), "segment_key must be present in event payload");
         }
     }
+
+    /// <summary>
+    /// Additional edge-case tests for <see cref="AdExperimentManager"/>:
+    /// disabled experiments, null/empty variants, determinism, and null-safe argument handling.
+    /// </summary>
+    [TestFixture]
+    public class AdExperimentManagerEdgeCaseTest
+    {
+        private const string PrefsPrefix = "NoctuaExp_";
+
+        private MockEventSender    _eventSender;
+        private UserSegmentManager _segmentManager;
+
+        [SetUp]
+        public void SetUp()
+        {
+            _eventSender    = new MockEventSender();
+            _segmentManager = new UserSegmentManager();
+
+            foreach (var id in new[] { "exp_edge_disabled", "exp_edge_null", "exp_edge_empty", "exp_edge_det" })
+            {
+                PlayerPrefs.DeleteKey($"{PrefsPrefix}{id}_variant");
+                PlayerPrefs.DeleteKey($"{PrefsPrefix}{id}_fired");
+            }
+
+            PlayerPrefs.Save();
+        }
+
+        [TearDown]
+        public void TearDown()
+        {
+            foreach (var id in new[] { "exp_edge_disabled", "exp_edge_null", "exp_edge_empty", "exp_edge_det" })
+            {
+                PlayerPrefs.DeleteKey($"{PrefsPrefix}{id}_variant");
+                PlayerPrefs.DeleteKey($"{PrefsPrefix}{id}_fired");
+            }
+
+            PlayerPrefs.Save();
+        }
+
+        private AdExperimentManager MakeManager(List<AdExperimentConfig> experiments)
+        {
+            return new AdExperimentManager(experiments, _segmentManager, _eventSender);
+        }
+
+        [Test]
+        public void GetAssignedVariant_DisabledExperiment_ReturnsNull()
+        {
+            var experiment = new AdExperimentConfig
+            {
+                ExperimentId = "exp_edge_disabled",
+                Enabled      = false,
+                Variants     = new List<AdVariantConfig>
+                {
+                    new AdVariantConfig { VariantId = "control",   Weight = 50 },
+                    new AdVariantConfig { VariantId = "treatment", Weight = 50 }
+                }
+            };
+
+            var mgr    = MakeManager(new List<AdExperimentConfig> { experiment });
+            string v   = mgr.GetAssignedVariant(experiment, "t1_nonpayer_new_d0d1", "user-disabled");
+
+            Assert.IsNull(v, "Disabled experiment must return null from GetAssignedVariant");
+        }
+
+        [Test]
+        public void GetAssignedVariant_NullVariants_ReturnsNull()
+        {
+            var experiment = new AdExperimentConfig
+            {
+                ExperimentId = "exp_edge_null",
+                Enabled      = true,
+                Variants     = null
+            };
+
+            var mgr  = MakeManager(new List<AdExperimentConfig> { experiment });
+            string v = mgr.GetAssignedVariant(experiment, "t1_nonpayer_new_d0d1", "user-nullvariants");
+
+            Assert.IsNull(v, "Null Variants list must return null");
+        }
+
+        [Test]
+        public void GetAssignedVariant_EmptyVariants_ReturnsNull()
+        {
+            var experiment = new AdExperimentConfig
+            {
+                ExperimentId = "exp_edge_empty",
+                Enabled      = true,
+                Variants     = new List<AdVariantConfig>()
+            };
+
+            var mgr  = MakeManager(new List<AdExperimentConfig> { experiment });
+            string v = mgr.GetAssignedVariant(experiment, "t1_nonpayer_new_d0d1", "user-emptyvariants");
+
+            Assert.IsNull(v, "Empty Variants list must return null");
+        }
+
+        [Test]
+        public void GetAssignedVariant_SameInputAlwaysSameVariant()
+        {
+            var experiment = new AdExperimentConfig
+            {
+                ExperimentId = "exp_edge_det",
+                Enabled      = true,
+                Variants     = new List<AdVariantConfig>
+                {
+                    new AdVariantConfig { VariantId = "control",   Weight = 50 },
+                    new AdVariantConfig { VariantId = "treatment", Weight = 50 }
+                }
+            };
+
+            var mgr = MakeManager(new List<AdExperimentConfig> { experiment });
+
+            string v1 = mgr.GetAssignedVariant(experiment, "t1_nonpayer_new_d0d1", "user-deterministic");
+
+            // Clear persisted variant to force re-computation from hash
+            PlayerPrefs.DeleteKey($"{PrefsPrefix}exp_edge_det_variant");
+            PlayerPrefs.Save();
+
+            string v2 = mgr.GetAssignedVariant(experiment, "t1_nonpayer_new_d0d1", "user-deterministic");
+
+            Assert.AreEqual(v1, v2, "Same userId + experimentId must always yield the same variant (deterministic hash)");
+        }
+
+        [Test]
+        public void ApplyExperiments_NullCountryCode_DoesNotThrow()
+        {
+            var experiments = new List<AdExperimentConfig>
+            {
+                new AdExperimentConfig
+                {
+                    ExperimentId = "exp_edge_disabled",
+                    Enabled      = true,
+                    Variants     = new List<AdVariantConfig>
+                    {
+                        new AdVariantConfig { VariantId = "control", Weight = 100 }
+                    }
+                }
+            };
+
+            var mgr        = MakeManager(experiments);
+            var baseConfig = new IAAModel();
+
+            Assert.DoesNotThrow(() => mgr.ApplyExperiments(baseConfig, null),
+                "ApplyExperiments must not throw when countryCode is null");
+        }
+
+        [Test]
+        public void ApplyExperiments_NullEventSender_DoesNotThrow()
+        {
+            var experiments = new List<AdExperimentConfig>
+            {
+                new AdExperimentConfig
+                {
+                    ExperimentId = "exp_edge_disabled",
+                    Enabled      = true,
+                    Variants     = new List<AdVariantConfig>
+                    {
+                        new AdVariantConfig { VariantId = "control", Weight = 100 }
+                    }
+                }
+            };
+
+            // Pass null eventSender directly to constructor
+            var mgr        = new AdExperimentManager(experiments, _segmentManager, null);
+            var baseConfig = new IAAModel();
+
+            Assert.DoesNotThrow(() => mgr.ApplyExperiments(baseConfig, "US"),
+                "ApplyExperiments must not throw when eventSender is null");
+        }
+    }
 }
