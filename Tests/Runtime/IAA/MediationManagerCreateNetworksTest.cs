@@ -7,6 +7,7 @@ using Newtonsoft.Json;
 using NUnit.Framework;
 using UnityEngine;
 using UnityEngine.TestTools;
+using IAAConfig = com.noctuagames.sdk.IAA;
 
 namespace com.noctuagames.sdk.Tests.IAA
 {
@@ -296,8 +297,8 @@ namespace com.noctuagames.sdk.Tests.IAA
             public void CloseAdPlaceholder() { }
         }
 
-        private static IAA MinimalIaa(string mediation = "admob") =>
-            new IAA { Mediation = mediation };
+        private static IAAConfig MinimalIaa(string mediation = "admob") =>
+            new IAAConfig { Mediation = mediation };
 
         // ── Constructor safety ────────────────────────────────────────────────────
 
