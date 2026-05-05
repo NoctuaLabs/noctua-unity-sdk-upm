@@ -368,5 +368,54 @@ namespace Tests.Runtime
         {
             Assert.AreEqual(2, Enum.GetValues(typeof(NoctuaProductType)).Length);
         }
+
+        // ─── GeoIPData ────────────────────────────────────────────────────────
+
+        [Test]
+        public void GeoIPData_DefaultValues_AreNull()
+        {
+            var geo = new GeoIPData();
+            Assert.IsNull(geo.Country);
+            Assert.IsNull(geo.IpAddress);
+        }
+
+        [Test]
+        public void GeoIPData_FieldAssignment_RoundTrips()
+        {
+            var geo = new GeoIPData { Country = "ID", IpAddress = "1.2.3.4" };
+            Assert.AreEqual("ID",      geo.Country);
+            Assert.AreEqual("1.2.3.4", geo.IpAddress);
+        }
+
+        [Test]
+        public void GeoIPData_ShallowCopy_ReturnsNewInstance()
+        {
+            var original = new GeoIPData { Country = "SG", IpAddress = "5.6.7.8" };
+            var copy = original.ShallowCopy();
+
+            Assert.AreNotSame(original, copy, "ShallowCopy must return a new object");
+        }
+
+        [Test]
+        public void GeoIPData_ShallowCopy_PreservesFieldValues()
+        {
+            var original = new GeoIPData { Country = "VN", IpAddress = "10.0.0.1" };
+            var copy = original.ShallowCopy();
+
+            Assert.AreEqual(original.Country,   copy.Country);
+            Assert.AreEqual(original.IpAddress, copy.IpAddress);
+        }
+
+        [Test]
+        public void GeoIPData_ShallowCopy_IsIndependent()
+        {
+            var original = new GeoIPData { Country = "TH", IpAddress = "192.168.1.1" };
+            var copy = original.ShallowCopy();
+            copy.Country = "MY";
+
+            // Mutating the copy must not affect the original
+            Assert.AreEqual("TH", original.Country,
+                "ShallowCopy must be independent — mutating copy must not affect original");
+        }
     }
 }
