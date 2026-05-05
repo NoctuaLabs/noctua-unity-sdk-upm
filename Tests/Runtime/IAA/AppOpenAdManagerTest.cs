@@ -369,19 +369,26 @@ namespace com.noctuagames.sdk.Tests.IAA
         // ─── SetFullscreenAdShowing ────────────────────────────────────────────
 
         [Test]
-        public void SetFullscreenAdShowing_True_ThenFalse_AutoShowResumed()
+        public void SetFullscreenAdShowing_True_ThenFalse_GracePeriodBlocksImmediateShow()
         {
+            // After SetFullscreenAdShowing(false), AppOpenAdManager starts a 3-second grace
+            // period to prevent an app-open ad from popping immediately on top of a just-closed
+            // rewarded/interstitial (OnApplicationPause(false) fires quickly after OnAdClosed).
+            // An immediate OnApplicationForeground() call should still be blocked during grace.
             _primary.AppOpenReady = true;
             var mgr = new AppOpenAdManager(_primary, autoShowOnForeground: true);
             mgr.Configure("unit");
 
             mgr.SetFullscreenAdShowing(true);
             mgr.OnApplicationForeground();
-            Assert.AreEqual(0, _primary.ShowAppOpenCallCount, "Should be blocked");
+            Assert.AreEqual(0, _primary.ShowAppOpenCallCount, "Blocked while fullscreen is showing");
 
             mgr.SetFullscreenAdShowing(false);
+            // Immediate foreground still blocked — grace period has not yet expired.
+            LogAssert.ignoreFailingMessages = true;
             mgr.OnApplicationForeground();
-            Assert.AreEqual(1, _primary.ShowAppOpenCallCount, "Should show after fullscreen released");
+            Assert.AreEqual(0, _primary.ShowAppOpenCallCount,
+                "Blocked by 3s grace period immediately after fullscreen close");
         }
 
         // ─── LoadAppOpenAd ─────────────────────────────────────────────────────

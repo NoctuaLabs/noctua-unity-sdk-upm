@@ -440,10 +440,11 @@ namespace Tests.Runtime
             _logger.SetEventSender(newMock);
 
             _logger.HandleLog("Exception: second", "stack2", LogType.Exception);
-            Assert.AreEqual(0, _mock.GetEventsByName("client_error").Count,
-                "old sender should not receive events after swap");
+            // Old sender keeps its 1 pre-swap event and receives no new ones after swap.
+            Assert.AreEqual(1, _mock.GetEventsByName("client_error").Count,
+                "old sender should retain exactly 1 event (pre-swap) and not receive new events");
             Assert.AreEqual(1, newMock.GetEventsByName("client_error").Count,
-                "new sender should receive the swapped-in event");
+                "new sender should receive the post-swap event");
         }
 
         // HandleUnhandledException with non-Exception object (null cast)

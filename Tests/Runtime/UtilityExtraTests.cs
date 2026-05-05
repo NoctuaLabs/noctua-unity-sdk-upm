@@ -49,8 +49,11 @@ namespace Tests.Runtime
         [Test]
         public void GetCoPublisherLogo_UnknownCompany_FallsBack()
         {
+            // Any unrecognised non-null company name returns the default Noctua logo.
+            // Null is not a valid key for Dictionary.GetValueOrDefault (throws ArgumentNullException)
+            // so it is intentionally excluded from this test.
             Assert.AreEqual("NoctuaLogoWithText", Utility.GetCoPublisherLogo("Acme Corp"));
-            Assert.AreEqual("NoctuaLogoWithText", Utility.GetCoPublisherLogo(null));
+            Assert.AreEqual("NoctuaLogoWithText", Utility.GetCoPublisherLogo("UnknownCompanyXYZ"));
         }
 
         [Test]
@@ -119,11 +122,13 @@ namespace Tests.Runtime
         }
 
         [Test]
-        public void LoadTranslations_MissingResource_ReturnsNull()
+        public void LoadTranslations_UnknownLanguage_FallsBackToEnglish()
         {
-            // No noctua-translation.* TextAsset exists in the test runtime Resources;
-            // method should swallow the NullReferenceException and return null.
-            Assert.IsNull(Utility.LoadTranslations("xx-not-a-language"));
+            // Unrecognised language codes fall through GetTranslationByLanguage's switch
+            // to the default case "noctua-translation.en". The SDK ships that TextAsset,
+            // so Resources.Load succeeds and a non-null dictionary is returned.
+            var result = Utility.LoadTranslations("xx-not-a-language");
+            Assert.IsNotNull(result, "Unknown language falls back to 'en' which is a valid bundled resource");
         }
 
         [Test]

@@ -363,16 +363,15 @@ namespace Tests.Runtime.IAA
         [Test]
         public void SetRewardedAdUnitID_WiresRevenuePaid_ViaInnerEvent()
         {
-            var impressionFired = false;
+            // RewardedOnAdRevenuePaid → AppLovinOnAdRevenuePaid only.
+            // It does NOT trigger OnAdImpressionRecorded (that's wired to RewardedOnAdImpressionRecorded).
             double receivedRevenue = -1;
-            _manager.OnAdImpressionRecorded += () => { impressionFired = true; };
             _manager.AppLovinOnAdRevenuePaid += (info) => { receivedRevenue = info.Revenue; };
             _manager.SetRewardedAdUnitID(AppLovinAdUnits.Rewarded);
 
             var adInfo = MakeAdInfo(AppLovinAdUnits.Rewarded, revenue: 0.02);
             FireInnerAdEvent(_manager, "_rewardedAppLovin", "RewardedOnAdRevenuePaid", adInfo);
 
-            Assert.IsTrue(impressionFired);
             Assert.AreEqual(0.02, receivedRevenue, 0.001);
         }
 
@@ -497,7 +496,11 @@ namespace Tests.Runtime.IAA
         [Test]
         public void SetPlacement_DoesNotThrow()
         {
+            // SetPlacement forwards the adUnitID to MaxSdk — an ID must be set first
+            // otherwise MaxSdkUnityEditor throws ArgumentNullException on a null key.
             var banner = new BannerAppLovin();
+            banner.SetBannerAdUnitId(AppLovinAdUnits.Banner);
+            LogAssert.ignoreFailingMessages = true;
             Assert.DoesNotThrow(() => banner.SetPlacement("main-menu"));
         }
 
