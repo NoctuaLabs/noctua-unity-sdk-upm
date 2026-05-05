@@ -134,4 +134,298 @@ namespace Tests.Runtime
             public string Raw;
         }
     }
+
+    /// <summary>
+    /// Extended model serialization and construction tests covering
+    /// <see cref="NoctuaException"/>, <see cref="NoctuaConfig"/>, auth models
+    /// (<see cref="UserBundle"/>, <see cref="NativeAccount"/>), IAP models
+    /// (<see cref="PurchaseItem"/>, <see cref="Product"/>), and
+    /// <see cref="RawJsonStringConverter"/> edge cases.
+    /// </summary>
+    public class ModelSerializationExtendedTests
+    {
+        // ── NoctuaException ──────────────────────────────────────────────────
+
+        [Test]
+        public void NoctuaException_Ctor_SetsErrorCode()
+        {
+            var ex = new NoctuaException(NoctuaErrorCode.Authentication, "bad token");
+            Assert.AreEqual((int)NoctuaErrorCode.Authentication, ex.ErrorCode);
+        }
+
+        [Test]
+        public void NoctuaException_Ctor_SetsMessage()
+        {
+            var ex = new NoctuaException(NoctuaErrorCode.Networking, "timeout occurred");
+            StringAssert.Contains("timeout occurred", ex.Message);
+        }
+
+        [Test]
+        public void NoctuaException_Ctor_SetsPayload()
+        {
+            var ex = new NoctuaException(NoctuaErrorCode.Payment, "declined", "{\"reason\":\"insufficient\"}");
+            Assert.AreEqual("{\"reason\":\"insufficient\"}", ex.Payload);
+        }
+
+        [Test]
+        public void NoctuaException_ToString_ContainsErrorCodeAndMessage()
+        {
+            var ex = new NoctuaException(NoctuaErrorCode.Application, "missing config", "some-payload");
+            var str = ex.ToString();
+            StringAssert.Contains(((int)NoctuaErrorCode.Application).ToString(), str);
+            StringAssert.Contains("missing config", str);
+        }
+
+        [Test]
+        public void NoctuaException_EmptyPayload_DoesNotThrow()
+        {
+            // Omitting the optional payload argument must not throw.
+            Assert.DoesNotThrow(() =>
+            {
+                var ex = new NoctuaException(NoctuaErrorCode.Unknown, "no payload");
+                _ = ex.Payload;
+            });
+        }
+
+        [Test]
+        public void NoctuaException_StaticSentinels_HaveCorrectErrorCode()
+        {
+            Assert.AreEqual((int)NoctuaErrorCode.Networking,              NoctuaException.OtherWebRequestError.ErrorCode);
+            Assert.AreEqual((int)NoctuaErrorCode.Authentication,          NoctuaException.MissingAccessToken.ErrorCode);
+            Assert.AreEqual((int)NoctuaErrorCode.MissingCompletionHandler, NoctuaException.MissingCompletionHandler.ErrorCode);
+        }
+
+        // ── NoctuaConfig — JSON round-trip ────────────────────────────────────
+
+        [Test]
+        public void NoctuaConfig_JsonRoundTrip_PreservesTrackerUrl()
+        {
+            var config = new NoctuaConfig { TrackerUrl = "https://custom.tracker.test/api" };
+            var json   = JsonConvert.SerializeObject(config);
+            var back   = JsonConvert.DeserializeObject<NoctuaConfig>(json);
+
+            Assert.AreEqual("https://custom.tracker.test/api", back.TrackerUrl);
+        }
+
+        [Test]
+        public void NoctuaConfig_JsonRoundTrip_PreservesBatchSize()
+        {
+            var config = new NoctuaConfig { TrackerBatchSize = 42 };
+            var json   = JsonConvert.SerializeObject(config);
+            var back   = JsonConvert.DeserializeObject<NoctuaConfig>(json);
+
+            Assert.AreEqual(42u, back.TrackerBatchSize);
+        }
+
+        [Test]
+        public void NoctuaConfig_JsonRoundTrip_PreservesSandboxFlag()
+        {
+            var config = new NoctuaConfig { IsSandbox = true };
+            var json   = JsonConvert.SerializeObject(config);
+            var back   = JsonConvert.DeserializeObject<NoctuaConfig>(json);
+
+            Assert.IsTrue(back.IsSandbox);
+        }
+
+        [Test]
+        public void NoctuaConfig_Defaults_AreNonNull()
+        {
+            var config = new NoctuaConfig();
+
+            Assert.IsNotNull(config.TrackerUrl);
+            Assert.IsNotNull(config.BaseUrl);
+            Assert.AreEqual(NoctuaConfig.DefaultTrackerUrl, config.TrackerUrl);
+            Assert.AreEqual(NoctuaConfig.DefaultBaseUrl,    config.BaseUrl);
+        }
+
+        // ── Auth models ───────────────────────────────────────────────────────
+
+        [Test]
+        public void UserBundle_Empty_HasNullUserAndCredential()
+        {
+            var bundle = UserBundle.Empty;
+
+            Assert.IsNull(bundle.User);
+            Assert.IsNull(bundle.Credential);
+            Assert.IsNull(bundle.Player);
+            Assert.IsNotNull(bundle.PlayerAccounts);
+            Assert.AreEqual(0, bundle.PlayerAccounts.Count);
+        }
+
+        [Test]
+        public void UserBundle_IsGuest_TrueWhenUserIsGuest()
+        {
+            var bundle = new UserBundle
+            {
+                User       = new User { IsGuest = true },
+                Credential = new Credential { Provider = "device_id" }
+            };
+
+            Assert.IsTrue(bundle.IsGuest);
+        }
+
+        [Test]
+        public void UserBundle_IsGuest_FalseWhenUserIsNotGuest()
+        {
+            var bundle = new UserBundle
+            {
+                User       = new User { IsGuest = false },
+                Credential = new Credential { Provider = "google" }
+            };
+
+            Assert.IsFalse(bundle.IsGuest);
+        }
+
+        [Test]
+        public void UserBundle_DisplayName_UsesNicknameWhenPresent()
+        {
+            var bundle = new UserBundle
+            {
+                User       = new User { Nickname = "HeroPlayer" },
+                Credential = new Credential { Provider = "email", DisplayText = "hero@example.com" }
+            };
+
+            Assert.AreEqual("HeroPlayer", bundle.DisplayName);
+        }
+
+        [Test]
+        public void UserBundle_Deserialization_SamplePayload()
+        {
+            const string json = @"{
+                ""user"": { ""id"": 1001, ""nickname"": ""Tester"", ""is_guest"": false },
+                ""credential"": { ""id"": 5, ""provider"": ""email"", ""display_text"": ""t@t.com"" },
+                ""player_accounts"": [],
+                ""is_recent"": true
+            }";
+
+            var bundle = JsonConvert.DeserializeObject<UserBundle>(json);
+
+            Assert.IsNotNull(bundle);
+            Assert.AreEqual(1001L,   bundle.User.Id);
+            Assert.AreEqual("Tester", bundle.User.Nickname);
+            Assert.AreEqual("email",  bundle.Credential.Provider);
+            Assert.IsTrue(bundle.IsRecent);
+        }
+
+        [Test]
+        public void NativeAccount_Deserialization_SamplePayload()
+        {
+            const string json = @"{
+                ""playerId"": 9999,
+                ""gameId"":   7,
+                ""rawData"":  ""{}"",
+                ""lastUpdated"": 1700000000000
+            }";
+
+            var account = JsonConvert.DeserializeObject<NativeAccount>(json);
+
+            Assert.IsNotNull(account);
+            Assert.AreEqual(9999L,          account.PlayerId);
+            Assert.AreEqual(7L,             account.GameId);
+            Assert.AreEqual("{}",           account.RawData);
+            Assert.AreEqual(1700000000000L, account.LastUpdated);
+        }
+
+        // ── IAP models ────────────────────────────────────────────────────────
+
+        [Test]
+        public void PurchaseItem_PartiallyPopulated_NullSafeAccess()
+        {
+            var item = new PurchaseItem { OrderId = 42 };
+
+            // These fields default to null — accessing them must not throw.
+            Assert.DoesNotThrow(() =>
+            {
+                _ = item.PaymentType;
+                _ = item.Status;
+                _ = item.PurchaseItemName;
+                _ = item.Timestamp;
+                _ = item.OrderRequest;
+                _ = item.VerifyOrderRequest;
+                _ = item.PlayerId;
+            });
+
+            Assert.AreEqual(42, item.OrderId);
+        }
+
+        [Test]
+        public void Product_Deserialization_SamplePayload()
+        {
+            const string json = @"{
+                ""id"": ""gold_100"",
+                ""description"": ""100 Gold Coins"",
+                ""game_id"": 3,
+                ""price"": 0.99,
+                ""currency"": ""USD"",
+                ""display_price"": ""$0.99"",
+                ""platform"": ""google""
+            }";
+
+            var product = JsonConvert.DeserializeObject<Product>(json);
+
+            Assert.IsNotNull(product);
+            Assert.AreEqual("gold_100",      product.Id);
+            Assert.AreEqual("100 Gold Coins", product.Description);
+            Assert.AreEqual(3,               product.GameId);
+            Assert.AreEqual(0.99m,           product.Price);
+            Assert.AreEqual("USD",           product.Currency);
+            Assert.AreEqual("$0.99",         product.DisplayPrice);
+            Assert.AreEqual("google",        product.Platform);
+        }
+
+        [Test]
+        public void PurchaseResponse_Deserialization_SamplePayload()
+        {
+            const string json = @"{
+                ""order_id"": 88,
+                ""status"": ""completed"",
+                ""message"": ""ok""
+            }";
+
+            var resp = JsonConvert.DeserializeObject<PurchaseResponse>(json);
+
+            Assert.AreEqual(88,              resp.OrderId);
+            Assert.AreEqual(OrderStatus.completed, resp.Status);
+            Assert.AreEqual("ok",            resp.Message);
+        }
+
+        // ── RawJsonStringConverter extended cases ─────────────────────────────
+
+        [Test]
+        public void RawJsonStringConverter_ArrayInlinedAsString()
+        {
+            var json   = "{\"raw\":[1,2,3]}";
+            var holder = JsonConvert.DeserializeObject<RawHolder>(json);
+
+            Assert.AreEqual("[1,2,3]", holder.Raw);
+        }
+
+        [Test]
+        public void RawJsonStringConverter_NestedObjectPreservesStructure()
+        {
+            var json   = "{\"raw\":{\"x\":true,\"y\":null}}";
+            var holder = JsonConvert.DeserializeObject<RawHolder>(json);
+
+            // Exact compact JSON is preserved.
+            Assert.AreEqual("{\"x\":true,\"y\":null}", holder.Raw);
+        }
+
+        [Test]
+        public void RawJsonStringConverter_NumberPassThrough()
+        {
+            // Numbers in a field decorated with [JsonConverter(typeof(RawJsonStringConverter))]
+            // should be returned as their string representation.
+            var json   = "{\"raw\":42}";
+            var holder = JsonConvert.DeserializeObject<RawHolder>(json);
+
+            Assert.AreEqual("42", holder.Raw);
+        }
+
+        private class RawHolder
+        {
+            [JsonProperty("raw")]
+            [JsonConverter(typeof(RawJsonStringConverter))]
+            public string Raw;
+        }
+    }
 }

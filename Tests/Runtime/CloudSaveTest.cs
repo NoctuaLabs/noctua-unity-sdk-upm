@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using com.noctuagames.sdk;
@@ -5,6 +6,7 @@ using Cysharp.Threading.Tasks;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
 using NUnit.Framework;
+using UnityEngine;
 using UnityEngine.TestTools;
 
 namespace Tests.Runtime
@@ -341,5 +343,195 @@ namespace Tests.Runtime
             [JsonProperty("data")]
             public T Data;
         }
+    }
+
+    /// <summary>
+    /// Tests for CloudSave guard clauses on NoctuaAuthenticationService.
+    /// All methods throw NoctuaException (Authentication error code) when no access token is set.
+    /// </summary>
+    [TestFixture]
+    public class CloudSaveUnauthenticatedGuardTest
+    {
+        private NoctuaAuthenticationService _authService;
+
+        [UnitySetUp]
+        public IEnumerator SetUp()
+        {
+            LogAssert.ignoreFailingMessages = true;
+            PlayerPrefs.DeleteKey("NoctuaAccountContainer");
+
+            // Construct auth service with DefaultNativePlugin (Editor stub) and no account loaded —
+            // RecentAccount will be null so all CloudSave methods throw MissingAccessToken.
+            _authService = new NoctuaAuthenticationService(
+                baseUrl: "https://sdk-test.noctuaprojects.com",
+                clientId: "test-client-id",
+                nativeAccountStore: new DefaultNativePlugin(),
+                locale: null,
+                bundleId: "com.test.cloudsave",
+                eventSender: null
+            );
+
+            yield return null;
+        }
+
+        [UnityTearDown]
+        public IEnumerator TearDown()
+        {
+            LogAssert.ignoreFailingMessages = false;
+            PlayerPrefs.DeleteKey("NoctuaAccountContainer");
+            yield return null;
+        }
+
+        // 1. SaveGameStateAsync throws NoctuaException when not authenticated
+        [UnityTest]
+        public IEnumerator SaveGameStateAsync_NotAuthenticated_ThrowsNoctuaException()
+            => UniTask.ToCoroutine(async () =>
+        {
+            NoctuaException caught = null;
+            try
+            {
+                await _authService.SaveGameStateAsync("slot-key", "value");
+            }
+            catch (NoctuaException ex)
+            {
+                caught = ex;
+            }
+            Assert.IsNotNull(caught, "Expected NoctuaException to be thrown");
+            Assert.AreEqual(NoctuaErrorCode.Authentication, (NoctuaErrorCode)caught.ErrorCode);
+        });
+
+        // 2. LoadGameStateAsync throws NoctuaException when not authenticated
+        [UnityTest]
+        public IEnumerator LoadGameStateAsync_NotAuthenticated_ThrowsNoctuaException()
+            => UniTask.ToCoroutine(async () =>
+        {
+            NoctuaException caught = null;
+            try
+            {
+                await _authService.LoadGameStateAsync("slot-key");
+            }
+            catch (NoctuaException ex)
+            {
+                caught = ex;
+            }
+            Assert.IsNotNull(caught, "Expected NoctuaException to be thrown");
+            Assert.AreEqual(NoctuaErrorCode.Authentication, (NoctuaErrorCode)caught.ErrorCode);
+        });
+
+        // 3. GetGameStateKeysAsync throws NoctuaException when not authenticated
+        [UnityTest]
+        public IEnumerator GetGameStateKeysAsync_NotAuthenticated_ThrowsNoctuaException()
+            => UniTask.ToCoroutine(async () =>
+        {
+            NoctuaException caught = null;
+            try
+            {
+                await _authService.GetGameStateKeysAsync();
+            }
+            catch (NoctuaException ex)
+            {
+                caught = ex;
+            }
+            Assert.IsNotNull(caught, "Expected NoctuaException to be thrown");
+            Assert.AreEqual(NoctuaErrorCode.Authentication, (NoctuaErrorCode)caught.ErrorCode);
+        });
+
+        // 4. DeleteGameStateAsync throws NoctuaException when not authenticated
+        [UnityTest]
+        public IEnumerator DeleteGameStateAsync_NotAuthenticated_ThrowsNoctuaException()
+            => UniTask.ToCoroutine(async () =>
+        {
+            NoctuaException caught = null;
+            try
+            {
+                await _authService.DeleteGameStateAsync("slot-key");
+            }
+            catch (NoctuaException ex)
+            {
+                caught = ex;
+            }
+            Assert.IsNotNull(caught, "Expected NoctuaException to be thrown");
+            Assert.AreEqual(NoctuaErrorCode.Authentication, (NoctuaErrorCode)caught.ErrorCode);
+        });
+
+        // 5. SaveGameStateAsync error message matches "Missing access token"
+        [UnityTest]
+        public IEnumerator SaveGameStateAsync_NotAuthenticated_ExceptionMessageContainsMissingAccessToken()
+            => UniTask.ToCoroutine(async () =>
+        {
+            NoctuaException caught = null;
+            try
+            {
+                await _authService.SaveGameStateAsync("k", "v");
+            }
+            catch (NoctuaException ex)
+            {
+                caught = ex;
+            }
+            Assert.IsNotNull(caught);
+            StringAssert.Contains("access token", caught.Message.ToLower());
+        });
+
+        // 6. All four guard checks fire synchronously — IsAuthenticated is false on fresh service
+        [UnityTest]
+        public IEnumerator IsAuthenticated_FreshService_ReturnsFalse()
+        {
+            Assert.IsFalse(_authService.IsAuthenticated);
+            yield return null;
+        }
+
+        // 7. RecentAccount is null on fresh service (no stored accounts)
+        [UnityTest]
+        public IEnumerator RecentAccount_FreshService_IsNull()
+        {
+            Assert.IsNull(_authService.RecentAccount);
+            yield return null;
+        }
+
+        // 8. CloudSaveMetadata defaults — new instance has sensible zero-values
+        [UnityTest]
+        public IEnumerator CloudSaveMetadata_DefaultInstance_FieldsAreNullOrZero()
+        {
+            var metadata = new CloudSaveMetadata();
+            Assert.IsNull(metadata.SlotKey);
+            Assert.IsNull(metadata.ContentType);
+            Assert.AreEqual(0, metadata.SizeBytes);
+            Assert.IsNull(metadata.Checksum);
+            Assert.IsNull(metadata.CreatedAt);
+            Assert.IsNull(metadata.UpdatedAt);
+            yield return null;
+        }
+
+        // 9. CloudSaveListResponse defaults — Saves is null/empty and Total is 0
+        [UnityTest]
+        public IEnumerator CloudSaveListResponse_DefaultInstance_SavesNullAndTotalZero()
+        {
+            var response = new CloudSaveListResponse();
+            Assert.AreEqual(0, response.Total);
+            // Saves may be null on default-constructed object (no initializer in the class)
+            Assert.IsTrue(response.Saves == null || response.Saves.Count == 0);
+            yield return null;
+        }
+
+        // 10. Multiple guard calls in sequence all throw (guards are stateless)
+        [UnityTest]
+        public IEnumerator MultipleGuardCalls_AllThrowNoctuaException()
+            => UniTask.ToCoroutine(async () =>
+        {
+            int throwCount = 0;
+
+            async UniTask TryCall(Func<UniTask> call)
+            {
+                try { await call(); }
+                catch (NoctuaException) { throwCount++; }
+            }
+
+            await TryCall(() => _authService.SaveGameStateAsync("k", "v"));
+            await TryCall(() => _authService.LoadGameStateAsync("k"));
+            await TryCall(() => _authService.GetGameStateKeysAsync());
+            await TryCall(() => _authService.DeleteGameStateAsync("k"));
+
+            Assert.AreEqual(4, throwCount, "All four guard checks should have thrown");
+        });
     }
 }

@@ -258,4 +258,248 @@ namespace Tests.Runtime
             return Newtonsoft.Json.JsonConvert.SerializeObject(dict);
         }
     }
+
+    /// <summary>
+    /// Extended tests for <see cref="NativeCrashForwarder"/> covering constructor
+    /// edge cases, payload field correctness, multi-send isolation, and sender swap.
+    /// </summary>
+    public class NativeCrashForwarderExtendedTest
+    {
+        private MockEventSender _mock;
+        private NativeCrashForwarder _forwarder;
+
+        private const string PrefKeyIosSeenReportIds = "noctua.nativecrash.ios.seenIds";
+        private const string PrefKeyAndroidLastTsMs  = "noctua.nativecrash.android.lastTsMs";
+
+        [SetUp]
+        public void SetUp()
+        {
+            _mock     = new MockEventSender();
+            _forwarder = new NativeCrashForwarder(_mock);
+
+            UnityEngine.PlayerPrefs.DeleteKey(PrefKeyIosSeenReportIds);
+            UnityEngine.PlayerPrefs.DeleteKey(PrefKeyAndroidLastTsMs);
+            UnityEngine.PlayerPrefs.Save();
+        }
+
+        [TearDown]
+        public void TearDown()
+        {
+            UnityEngine.PlayerPrefs.DeleteKey(PrefKeyIosSeenReportIds);
+            UnityEngine.PlayerPrefs.DeleteKey(PrefKeyAndroidLastTsMs);
+            UnityEngine.PlayerPrefs.Save();
+        }
+
+        private static IConvertible Get(Dictionary<string, IConvertible> d, string k)
+            => d != null && d.TryGetValue(k, out var v) ? v : null;
+
+        // ── Constructor ──────────────────────────────────────────────────────
+
+        [Test]
+        public void Ctor_ValidEventSender_DoesNotThrow()
+        {
+            Assert.DoesNotThrow(() => new NativeCrashForwarder(_mock));
+        }
+
+        // ── ForwardAndroidRecord — field correctness ──────────────────────────
+
+        [Test]
+        public void ForwardAndroidRecord_EventName_IsClientError()
+        {
+            _forwarder.ForwardAndroidRecord(new AndroidNativeCrashReporter.NativeCrashRecord
+            {
+                ErrorType   = "CRASH_NATIVE",
+                TimestampMs = 1L,
+                OsReportId  = "x"
+            });
+
+            Assert.AreEqual(1, _mock.GetEventsByName("client_error").Count);
+            Assert.AreEqual(0, _mock.GetEventsByName("session_start").Count);
+        }
+
+        [Test]
+        public void ForwardAndroidRecord_ReportedAtLaunch_IsAlwaysTrue()
+        {
+            _forwarder.ForwardAndroidRecord(new AndroidNativeCrashReporter.NativeCrashRecord
+            {
+                ErrorType   = "ANR",
+                TimestampMs = 1L,
+                OsReportId  = "y"
+            });
+
+            var d = _mock.SentEvents[0].Data;
+            Assert.IsTrue(Convert.ToBoolean(Get(d, "reported_at_launch")));
+        }
+
+        [Test]
+        public void ForwardAndroidRecord_DedupCount_IsOne()
+        {
+            _forwarder.ForwardAndroidRecord(new AndroidNativeCrashReporter.NativeCrashRecord
+            {
+                ErrorType   = "CRASH_NATIVE",
+                TimestampMs = 1L,
+                OsReportId  = "z"
+            });
+
+            var d = _mock.SentEvents[0].Data;
+            Assert.AreEqual(1, Convert.ToInt32(Get(d, "dedup_count")));
+            Assert.AreEqual(0, Convert.ToInt32(Get(d, "suppressed_count")));
+        }
+
+        [Test]
+        public void ForwardAndroidRecord_Thread_IsNative()
+        {
+            _forwarder.ForwardAndroidRecord(new AndroidNativeCrashReporter.NativeCrashRecord
+            {
+                ErrorType   = "CRASH_NATIVE",
+                TimestampMs = 1L,
+                OsReportId  = "t"
+            });
+
+            var d = _mock.SentEvents[0].Data;
+            Assert.AreEqual("native", Get(d, "thread").ToString());
+        }
+
+        [Test]
+        public void ForwardAndroidRecord_Severity_IsCrash()
+        {
+            _forwarder.ForwardAndroidRecord(new AndroidNativeCrashReporter.NativeCrashRecord
+            {
+                ErrorType   = "SIGABRT",
+                TimestampMs = 1L,
+                OsReportId  = "sev"
+            });
+
+            Assert.AreEqual("crash", Get(_mock.SentEvents[0].Data, "severity").ToString());
+        }
+
+        // ── ForwardAndroidRecord — multiple independent sends ─────────────────
+
+        [Test]
+        public void ForwardAndroidRecord_MultipleCalls_EachSendsIndependentEvent()
+        {
+            for (int i = 0; i < 5; i++)
+            {
+                _forwarder.ForwardAndroidRecord(new AndroidNativeCrashReporter.NativeCrashRecord
+                {
+                    ErrorType   = $"CRASH_{i}",
+                    Message     = $"msg-{i}",
+                    TimestampMs = 1000L + i,
+                    OsReportId  = $"rec-{i}"
+                });
+            }
+
+            Assert.AreEqual(5, _mock.SentEvents.Count);
+
+            for (int i = 0; i < 5; i++)
+            {
+                Assert.AreEqual($"rec-{i}", Get(_mock.SentEvents[i].Data, "os_report_id").ToString());
+                Assert.AreEqual($"CRASH_{i}", Get(_mock.SentEvents[i].Data, "error_type").ToString());
+            }
+        }
+
+        // ── iOS — empty stack trace still produces an event ───────────────────
+
+        [Test]
+        public void OnIosCrashPayload_EmptyStackTrace_StillForwardsEvent()
+        {
+            var json = BuildIosPayload(
+                reportId:  "empty-stack-1",
+                errorType: "SIGSEGV",
+                stack:     "");
+
+            _forwarder.OnIosCrashPayload(json);
+
+            var events = _mock.GetEventsByName("client_error");
+            Assert.AreEqual(1, events.Count);
+            Assert.AreEqual("", Get(events[0].Data, "stack_trace").ToString());
+        }
+
+        // ── iOS — all required payload fields are present and correct ─────────
+
+        [Test]
+        public void OnIosCrashPayload_AllFieldsPresent_CorrectValues()
+        {
+            var json = BuildIosPayload(
+                reportId:  "fields-check-1",
+                errorType: "SIGILL",
+                message:   "illegal instruction",
+                stack:     "frame0\nframe1",
+                signal:    4);
+
+            _forwarder.OnIosCrashPayload(json);
+
+            Assert.AreEqual(1, _mock.SentEvents.Count);
+            var d = _mock.SentEvents[0].Data;
+
+            Assert.AreEqual("native",              Get(d, "source").ToString());
+            Assert.AreEqual("crash",               Get(d, "severity").ToString());
+            Assert.AreEqual("SIGILL",              Get(d, "error_type").ToString());
+            Assert.AreEqual("illegal instruction", Get(d, "message").ToString());
+            Assert.AreEqual("frame0\nframe1",      Get(d, "stack_trace").ToString());
+            Assert.AreEqual("native",              Get(d, "thread").ToString());
+            Assert.AreEqual("fields-check-1",      Get(d, "os_report_id").ToString());
+            Assert.AreEqual(4,                     Convert.ToInt32(Get(d, "native_signal")));
+            Assert.IsTrue(Convert.ToBoolean(Get(d, "reported_at_launch")));
+        }
+
+        // ── Stop() — must not throw even when never started ───────────────────
+
+        [Test]
+        public void Stop_WithoutStart_DoesNotThrow()
+        {
+            Assert.DoesNotThrow(() => _forwarder.Stop());
+        }
+
+        [Test]
+        public void Stop_CalledTwice_DoesNotThrow()
+        {
+            Assert.DoesNotThrow(() =>
+            {
+                _forwarder.Stop();
+                _forwarder.Stop();
+            });
+        }
+
+        // ── Start() idempotency — event sender is still the original ──────────
+
+        [Test]
+        public void ForwardAndroidRecord_AfterStop_SenderStillReceivesEvents()
+        {
+            // Stop does NOT null out the sender; forwarding still works.
+            _forwarder.Stop();
+
+            _forwarder.ForwardAndroidRecord(new AndroidNativeCrashReporter.NativeCrashRecord
+            {
+                ErrorType   = "ANR",
+                TimestampMs = 1L,
+                OsReportId  = "post-stop"
+            });
+
+            Assert.AreEqual(1, _mock.SentEvents.Count,
+                "ForwardAndroidRecord should still deliver events after Stop()");
+        }
+
+        // ── Helpers ───────────────────────────────────────────────────────────
+
+        private static string BuildIosPayload(
+            string reportId,
+            string errorType,
+            string message = "",
+            string stack   = "",
+            int?   signal  = null)
+        {
+            var dict = new Dictionary<string, object>
+            {
+                { "error_type",    errorType },
+                { "message",       message },
+                { "stack_trace",   stack },
+                { "timestamp_utc", "2026-04-23T00:00:00Z" }
+            };
+            if (reportId != null) dict["os_report_id"] = reportId;
+            if (signal.HasValue) dict["signal"]        = signal.Value;
+
+            return Newtonsoft.Json.JsonConvert.SerializeObject(dict);
+        }
+    }
 }
