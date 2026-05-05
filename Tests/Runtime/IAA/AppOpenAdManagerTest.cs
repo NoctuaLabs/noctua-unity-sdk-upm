@@ -385,7 +385,6 @@ namespace com.noctuagames.sdk.Tests.IAA
 
             mgr.SetFullscreenAdShowing(false);
             // Immediate foreground still blocked — grace period has not yet expired.
-            LogAssert.ignoreFailingMessages = true;
             mgr.OnApplicationForeground();
             Assert.AreEqual(0, _primary.ShowAppOpenCallCount,
                 "Blocked by 3s grace period immediately after fullscreen close");
