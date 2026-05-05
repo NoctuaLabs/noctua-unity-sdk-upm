@@ -514,4 +514,294 @@ namespace com.noctuagames.sdk.Tests.IAA
                 "Phase 3: re-wired tracker must receive events");
         }
     }
+
+    /// <summary>
+    /// Extended unit tests for <see cref="AdRevenueTrackingManager"/>.
+    /// Covers: multi-tracker swap scenarios, format-specific event routing,
+    /// revenue value forwarding, multiple-event sequences, and DroppedEventCount edge cases.
+    /// </summary>
+    [TestFixture]
+    public class AdRevenueTrackingManagerExtendedTest
+    {
+        private const string KeyTotalRevenue      = "Noctua_Taichi_TotalRevenue";
+        private const string KeyTotalAdCount      = "Noctua_Taichi_TotalAdCount";
+        private const string KeyTotalImpressions  = "Noctua_Taichi_TotalImpressions";
+        private const string KeyInterstitialCount = "Noctua_Taichi_InterstitialCount";
+        private const string KeyRewardedCount     = "Noctua_Taichi_RewardedCount";
+        private const string KeyRewardedRevenue   = "Noctua_Taichi_RewardedRevenue";
+
+        private MockAdRevenueTracker _tracker;
+
+        [SetUp]
+        public void SetUp()
+        {
+            _tracker = new MockAdRevenueTracker();
+
+            PlayerPrefs.DeleteKey(KeyTotalRevenue);
+            PlayerPrefs.DeleteKey(KeyTotalAdCount);
+            PlayerPrefs.DeleteKey(KeyTotalImpressions);
+            PlayerPrefs.DeleteKey(KeyInterstitialCount);
+            PlayerPrefs.DeleteKey(KeyRewardedCount);
+            PlayerPrefs.DeleteKey(KeyRewardedRevenue);
+            PlayerPrefs.Save();
+
+            // Suppress expected warning logs for tests that deliberately pass null trackers
+            // or trigger SetAdRevenueTracker(null) paths.
+            UnityEngine.TestTools.LogAssert.ignoreFailingMessages = true;
+        }
+
+        [TearDown]
+        public void TearDown()
+        {
+            UnityEngine.TestTools.LogAssert.ignoreFailingMessages = false;
+        }
+
+        private TaichiConfig DefaultConfig() => new TaichiConfig
+        {
+            RevenueThreshold           = 0.01f,
+            AdCountThreshold           = 10,
+            TotalImpressionThreshold   = 10,
+            InterstitialCountThreshold = 5,
+            RewardedCountThreshold     = 5,
+            RewardedRevenueThreshold   = 0.01f,
+        };
+
+        private TaichiConfig ThresholdOneConfig() => new TaichiConfig
+        {
+            RevenueThreshold           = 0.001f,
+            AdCountThreshold           = 1,
+            TotalImpressionThreshold   = 1,
+            InterstitialCountThreshold = 1,
+            RewardedCountThreshold     = 1,
+            RewardedRevenueThreshold   = 0.001f,
+        };
+
+        // ─── Multi-tracker swap: only the active tracker receives events ─────
+
+        [Test]
+        public void TrackRevenue_WithSequentialTrackers_OnlyLastReceivesEvents()
+        {
+            // Wire tracker1, accumulate but don't cross threshold yet
+            var tracker1 = new MockAdRevenueTracker();
+            var tracker2 = new MockAdRevenueTracker();
+            var tracker3 = new MockAdRevenueTracker();
+            var mgr = new AdRevenueTrackingManager(tracker1, DefaultConfig());
+
+            mgr.ProcessAllFormatsThresholds(0.002); // tracker1 active — no threshold crossed
+
+            mgr.SetAdRevenueTracker(tracker2);
+            mgr.ProcessAllFormatsThresholds(0.002); // tracker2 active — still below 0.01
+
+            mgr.SetAdRevenueTracker(tracker3);
+            mgr.ProcessAllFormatsThresholds(0.01); // 0.002+0.002+0.01 = 0.014 >= 0.01 — fires on tracker3
+
+            Assert.AreEqual(0, tracker1.Events.Count, "tracker1 must receive no threshold events");
+            Assert.AreEqual(0, tracker2.Events.Count, "tracker2 must receive no threshold events");
+            Assert.IsTrue(tracker3.WasFired("Total_Ads_Revenue_001"),
+                "Only tracker3 (the active tracker) must receive the threshold event");
+        }
+
+        [Test]
+        public void TrackRevenue_AfterTrackerSetToNull_RemovedTrackerNotCalled()
+        {
+            // Accumulate below threshold with a real tracker, then null it, then cross threshold
+            var mgr = new AdRevenueTrackingManager(_tracker, DefaultConfig());
+
+            mgr.ProcessAllFormatsThresholds(0.005); // below 0.01 — no event yet
+            Assert.AreEqual(0, _tracker.Events.Count, "No event fired below threshold");
+
+            mgr.SetAdRevenueTracker(null); // remove tracker
+
+            mgr.ProcessAllFormatsThresholds(0.006); // 0.005+0.006 = 0.011 >= 0.01 — threshold crossed
+
+            Assert.AreEqual(0, _tracker.Events.Count,
+                "Original tracker must not receive events after being replaced with null");
+        }
+
+        // ─── Null tracker — no crash guarantees ──────────────────────────────
+
+        [Test]
+        public void TrackRevenue_NullTrackerFromStart_DoesNotThrow()
+        {
+            var mgr = new AdRevenueTrackingManager(null, DefaultConfig());
+
+            Assert.DoesNotThrow(() =>
+            {
+                mgr.ProcessAllFormatsThresholds(0.01);
+                mgr.ProcessInterstitialThresholds(0.01);
+                mgr.ProcessRewardedThresholds(0.01);
+            }, "All threshold methods must be safe when tracker is null");
+        }
+
+        [Test]
+        public void TrackRevenue_EmptyTrackerList_DoesNotThrow()
+        {
+            // "Empty tracker list" in this API means null tracker — verify no crash on every code path
+            var mgr = new AdRevenueTrackingManager(null, DefaultConfig());
+
+            Assert.DoesNotThrow(() =>
+            {
+                for (int i = 0; i < 20; i++)
+                {
+                    mgr.ProcessAllFormatsThresholds(0.01);
+                    mgr.ProcessInterstitialThresholds(0.01);
+                    mgr.ProcessRewardedThresholds(0.01);
+                }
+            }, "No exceptions must be thrown with no tracker registered across many events");
+        }
+
+        // ─── Format-specific event routing ────────────────────────────────────
+
+        [Test]
+        public void TrackRevenue_InterstitialFormat_CorrectEventsFired()
+        {
+            // ProcessInterstitialThresholds fires Step 3 (taichi_total_ad_impression)
+            // and Step 4 (taichi_interstitial_ad_impression), NOT rewarded events.
+            var mgr = new AdRevenueTrackingManager(_tracker, ThresholdOneConfig());
+
+            mgr.ProcessInterstitialThresholds(0.001); // crosses all thresholds with threshold=1
+
+            Assert.IsTrue(_tracker.WasFired("taichi_total_ad_impression"),
+                "Interstitial path must fire Step 3 (total impression)");
+            Assert.IsTrue(_tracker.WasFired("taichi_interstitial_ad_impression"),
+                "Interstitial path must fire Step 4 (interstitial impression)");
+            Assert.IsFalse(_tracker.WasFired("taichi_rewarded_ad_impression"),
+                "Interstitial path must NOT fire Step 5 (rewarded impression)");
+            Assert.IsFalse(_tracker.WasFired("taichi_rewarded_ad_revenue"),
+                "Interstitial path must NOT fire Step 6 (rewarded revenue)");
+        }
+
+        [Test]
+        public void TrackRevenue_RewardedFormat_CorrectEventsFired()
+        {
+            // ProcessRewardedThresholds fires Step 3, Step 5, and Step 6, NOT interstitial events.
+            var mgr = new AdRevenueTrackingManager(_tracker, ThresholdOneConfig());
+
+            mgr.ProcessRewardedThresholds(0.001); // crosses all thresholds with threshold=1
+
+            Assert.IsTrue(_tracker.WasFired("taichi_total_ad_impression"),
+                "Rewarded path must fire Step 3 (total impression)");
+            Assert.IsTrue(_tracker.WasFired("taichi_rewarded_ad_impression"),
+                "Rewarded path must fire Step 5 (rewarded impression)");
+            Assert.IsTrue(_tracker.WasFired("taichi_rewarded_ad_revenue"),
+                "Rewarded path must fire Step 6 (rewarded revenue)");
+            Assert.IsFalse(_tracker.WasFired("taichi_interstitial_ad_impression"),
+                "Rewarded path must NOT fire Step 4 (interstitial impression)");
+        }
+
+        // ─── Revenue value forwarding ─────────────────────────────────────────
+
+        [Test]
+        public void TrackRevenue_CorrectRevenue_PassedThroughToEventPayload()
+        {
+            // Verify the 'value' field in the fired Taichi event matches accumulated revenue
+            var mgr = new AdRevenueTrackingManager(_tracker, DefaultConfig());
+
+            // Feed 0.012 total, crossing the 0.01 threshold — payload value should be ~0.012
+            mgr.ProcessAllFormatsThresholds(0.007);
+            mgr.ProcessAllFormatsThresholds(0.005); // 0.007+0.005 = 0.012 >= 0.01
+
+            var ev = _tracker.Events.Find(e => e.EventName == "Total_Ads_Revenue_001");
+            Assert.IsNotNull(ev.Params, "Fired event must carry a params dict");
+            Assert.IsTrue(ev.Params.ContainsKey("value"), "Event payload must contain 'value' key");
+
+            double value = (double)ev.Params["value"];
+            Assert.Greater(value, 0.01, "Payload value must exceed the threshold");
+            Assert.Less(value, 0.02,    "Payload value must not exceed sum of inputs");
+        }
+
+        [Test]
+        public void TrackRevenue_CorrectNetworkEventPayload_ContainsCurrencyUSD()
+        {
+            // All Taichi custom events carry currency=USD in their payloads
+            var mgr = new AdRevenueTrackingManager(_tracker, ThresholdOneConfig());
+
+            mgr.ProcessAllFormatsThresholds(0.001);
+
+            var totalRevenueEv = _tracker.Events.Find(e => e.EventName == "Total_Ads_Revenue_001");
+            var adCountEv      = _tracker.Events.Find(e => e.EventName == "TenAdsShown");
+
+            Assert.AreEqual("USD", (string)totalRevenueEv.Params["currency"],
+                "Total_Ads_Revenue_001 must carry currency=USD");
+            Assert.AreEqual("USD", (string)adCountEv.Params["currency"],
+                "TenAdsShown must carry currency=USD");
+        }
+
+        // ─── SetAdRevenueTracker injection pattern ────────────────────────────
+
+        [Test]
+        public void TrackRevenue_AfterSetAdRevenueTracker_CallsTracker()
+        {
+            // Mirrors the initialization race fix: tracker wired after construction
+            var mgr = new AdRevenueTrackingManager(null, DefaultConfig());
+
+            // Wire tracker after construction (the setter injection pattern)
+            mgr.SetAdRevenueTracker(_tracker);
+
+            // Now cross both thresholds
+            for (int i = 0; i < 10; i++)
+                mgr.ProcessAllFormatsThresholds(0.002); // 10 impressions × 0.002 = 0.02 >= 0.01
+
+            Assert.IsTrue(_tracker.WasFired("Total_Ads_Revenue_001"),
+                "Tracker wired via SetAdRevenueTracker must receive revenue threshold events");
+            Assert.IsTrue(_tracker.WasFired("TenAdsShown"),
+                "Tracker wired via SetAdRevenueTracker must receive ad-count threshold events");
+        }
+
+        // ─── Multiple events all forwarded ────────────────────────────────────
+
+        [Test]
+        public void TrackRevenue_MultipleEvents_AllForwardedToTracker()
+        {
+            // Use threshold=1 config so each call fires an event; send 5 calls → 5 events
+            var config = new TaichiConfig
+            {
+                RevenueThreshold           = 0.001f,
+                AdCountThreshold           = 1,
+                TotalImpressionThreshold   = 1000, // high — won't fire
+                InterstitialCountThreshold = 1000,
+                RewardedCountThreshold     = 1000,
+                RewardedRevenueThreshold   = 1.0f,
+            };
+            var mgr = new AdRevenueTrackingManager(_tracker, config);
+
+            // Each ProcessAllFormatsThresholds call fires Total_Ads_Revenue_001 AND TenAdsShown
+            for (int i = 0; i < 5; i++)
+                mgr.ProcessAllFormatsThresholds(0.001);
+
+            Assert.AreEqual(5, _tracker.CountFired("Total_Ads_Revenue_001"),
+                "All 5 revenue threshold crossings must be forwarded to tracker");
+            Assert.AreEqual(5, _tracker.CountFired("TenAdsShown"),
+                "All 5 ad-count threshold crossings must be forwarded to tracker");
+        }
+
+        // ─── DroppedEventCount edge cases ─────────────────────────────────────
+
+        [Test]
+        public void DroppedEventCount_AfterNullThenRewire_ResetsToZero()
+        {
+            // Construct with valid tracker → set null (DroppedEventCount doesn't change via Taichi paths)
+            // → rewire → DroppedEventCount must be 0
+            var mgr = new AdRevenueTrackingManager(_tracker, DefaultConfig());
+            Assert.AreEqual(0, mgr.DroppedEventCount, "Starts at zero with valid tracker");
+
+            mgr.SetAdRevenueTracker(null);
+            // DroppedEventCount only increments via TrackAdmobRevenue / TrackAppLovinRevenue
+            // (platform-conditional code). Taichi paths use ?. operator and don't increment.
+            Assert.AreEqual(0, mgr.DroppedEventCount,
+                "DroppedEventCount does not increment from Taichi threshold paths");
+
+            mgr.SetAdRevenueTracker(_tracker); // rewire
+            Assert.AreEqual(0, mgr.DroppedEventCount,
+                "DroppedEventCount must be 0 after rewiring (was already 0)");
+        }
+
+        [Test]
+        public void DroppedEventCount_NullConstructorNullConfig_AlwaysZero()
+        {
+            var mgr = new AdRevenueTrackingManager(null, null);
+            Assert.AreEqual(0, mgr.DroppedEventCount,
+                "DroppedEventCount must be 0 when both tracker and config are null");
+        }
+    }
 }

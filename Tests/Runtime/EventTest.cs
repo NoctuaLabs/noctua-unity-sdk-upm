@@ -1078,4 +1078,222 @@ namespace Tests.Runtime
             }
         );
     }
+
+    public class EventSenderExtendedTest
+    {
+        private HttpMockServer _server;
+
+        [OneTimeSetUp]
+        public void OneTimeSetup()
+        {
+            _server = new HttpMockServer("http://localhost:7779/api/v1/");
+            _server.AddHandler("/events", _ => @"{""success"":""true"",""data"":{""message"":""events tracked""}}");
+            _server.Start();
+        }
+
+        [OneTimeTearDown]
+        public void OneTimeTearDown()
+        {
+            _server.RemoveHandler("/events");
+            _server.Dispose();
+        }
+
+        [UnitySetUp]
+        public IEnumerator SetUp()
+        {
+            yield return new WaitForSeconds(2.0f);
+
+            PlayerPrefs.DeleteKey("NoctuaEvents");
+            PlayerPrefs.Save();
+
+            var eventStorePath = Path.Combine(Application.persistentDataPath, "noctua_events.jsonl");
+            if (File.Exists(eventStorePath)) File.Delete(eventStorePath);
+
+            ExperimentManager.Clear();
+            LogAssert.ignoreFailingMessages = true;
+
+            while (_server.Requests.Count > 0)
+            {
+                _server.Requests.Clear();
+                yield return new WaitForSeconds(0.3f);
+            }
+
+            if (File.Exists(eventStorePath)) File.Delete(eventStorePath);
+        }
+
+        private EventSender MakeSender(int batchSize = 1, int cycleDelay = 100, bool offline = false, string port = "7779")
+        {
+            return new EventSender(
+                new EventSenderConfig
+                {
+                    BaseUrl       = $"http://localhost:{port}/api/v1",
+                    ClientId      = "test_client_id",
+                    BatchSize     = batchSize,
+                    CycleDelay    = cycleDelay,
+                    NativePlugin  = new DefaultNativePlugin(),
+                    IsOfflineModeFunc = () => offline,
+                },
+                new NoctuaLocale()
+            );
+        }
+
+        private async Task<List<EventData>> CollectAsync(int timeoutMs = 6000, int settleMs = 1000)
+        {
+            await UniTask.WhenAny(
+                UniTask.Delay(timeoutMs),
+                UniTask.WaitUntil(() => _server.Requests.Count > 0));
+
+            await UniTask.Delay(settleMs);
+
+            var sb = new StringBuilder();
+            while (_server.Requests.TryDequeue(out var req))
+                sb.AppendLine(req.Body);
+
+            return sb.ToString().Trim()
+                .Split('\n')
+                .Where(l => !string.IsNullOrWhiteSpace(l))
+                .Distinct()
+                .Select(JsonConvert.DeserializeObject<EventData>)
+                .ToList();
+        }
+
+        // Queuing more events than the batch size drains completely via multiple HTTP trips.
+        [UnityTest]
+        public IEnumerator EventsExceedingBatchSize_AreFlushedInMultipleBatches() => UniTask.ToCoroutine(async () =>
+        {
+            var sender = MakeSender(batchSize: 3, cycleDelay: 100, offline: true);
+
+            for (var i = 0; i < 7; i++)
+                sender.Send($"test_event_{i}");
+
+            await UniTask.Delay(1500); // let writes settle
+            sender.Flush();
+
+            var events = await CollectAsync(timeoutMs: 8000, settleMs: 1500);
+            Assert.GreaterOrEqual(events.Count, 7, $"Expected ≥7 events across multiple batches, got {events.Count}");
+
+            sender.Dispose();
+        });
+
+        // Offline mode prevents the background send loop from flushing to HTTP.
+        [UnityTest]
+        public IEnumerator OfflineMode_EventsStoredNotFlushed() => UniTask.ToCoroutine(async () =>
+        {
+            var sender = MakeSender(batchSize: 1, cycleDelay: 100, offline: true);
+
+            sender.Send("offline_event_a");
+            sender.Send("offline_event_b");
+
+            await UniTask.Delay(2500); // long enough for the send loop to attempt
+
+            Assert.AreEqual(0, _server.Requests.Count,
+                "No HTTP requests should be made while offline mode is active");
+
+            sender.Dispose();
+        });
+
+        // Experiment name set via ExperimentManager is injected into every event payload.
+        [UnityTest]
+        public IEnumerator ExperimentName_IsInjectedIntoEventPayload() => UniTask.ToCoroutine(async () =>
+        {
+            ExperimentManager.SetExperiment("test_experiment_abc");
+
+            var sender = MakeSender(batchSize: 1, cycleDelay: 100);
+            sender.Send("probe_event");
+
+            await UniTask.WhenAny(
+                UniTask.Delay(4000),
+                UniTask.WaitUntil(() => _server.Requests.Count > 0));
+
+            Assert.IsTrue(_server.Requests.TryDequeue(out var req), "Expected at least one HTTP request");
+            var body = req.Body.Trim().Split('\n').First(l => !string.IsNullOrWhiteSpace(l));
+            var raw = JsonConvert.DeserializeObject<Dictionary<string, object>>(body);
+
+            Assert.IsTrue(raw.ContainsKey("experiment"),
+                "Event payload must contain 'experiment' field when ExperimentManager has an active experiment");
+            Assert.AreEqual("test_experiment_abc", raw["experiment"]?.ToString());
+
+            sender.Dispose();
+        });
+
+        // noctua_user_engagement fires before the paired session_pause event.
+        [UnityTest]
+        public IEnumerator UserEngagement_FiresBeforePairedSessionEvent() => UniTask.ToCoroutine(async () =>
+        {
+            var mock = new MockEventSender();
+            var locale = new NoctuaLocale();
+            var tracker = new SessionTracker(mock, locale, null);
+
+            // Resume (foreground) then pause to trigger both engagement + session_pause
+            tracker.OnApplicationPause(false);
+            await UniTask.Delay(50);
+            tracker.OnApplicationPause(true);
+            await UniTask.Delay(200);
+
+            var names = mock.SentEvents.Select(e => e.Name).ToList();
+            var engIdx  = names.IndexOf("noctua_user_engagement");
+            var pauseIdx = names.LastIndexOf("session_pause");
+
+            Assert.IsTrue(engIdx >= 0,   "noctua_user_engagement must be sent");
+            Assert.IsTrue(pauseIdx >= 0,  "session_pause must be sent");
+            Assert.Less(engIdx, pauseIdx, "noctua_user_engagement must precede session_pause");
+
+            tracker.Dispose();
+        });
+
+        // 200 events enqueued all arrive at the server after Flush().
+        [UnityTest]
+        public IEnumerator LargeQueue_200Events_FlushedCompletely() => UniTask.ToCoroutine(async () =>
+        {
+            var sender = MakeSender(batchSize: 50, cycleDelay: 200, offline: true);
+
+            for (var i = 0; i < 200; i++)
+                sender.Send($"bulk_event_{i}");
+
+            await UniTask.Delay(3000); // let all writes land in storage
+            sender.Flush();
+
+            var events = await CollectAsync(timeoutMs: 15000, settleMs: 2000);
+            Assert.AreEqual(200, events.Count, $"Expected exactly 200 events, got {events.Count}");
+
+            sender.Dispose();
+        });
+
+        // After Dispose(), the background loop stops and no HTTP calls are made for subsequent Sends.
+        [UnityTest]
+        public IEnumerator Stop_PreventsAutoSend_AfterDispose() => UniTask.ToCoroutine(async () =>
+        {
+            var sender = MakeSender(batchSize: 1, cycleDelay: 100);
+            sender.Dispose(); // stop the background loop immediately
+
+            await UniTask.Delay(200);
+            sender.Send("post_dispose_event");
+
+            await UniTask.Delay(2000);
+
+            Assert.AreEqual(0, _server.Requests.Count,
+                "No HTTP requests should be made after Dispose()");
+        });
+
+        // Calling Flush() drains queued events before Dispose() stops the loop.
+        [UnityTest]
+        public IEnumerator Flush_ThenDispose_SendsRemainingEvents() => UniTask.ToCoroutine(async () =>
+        {
+            var sender = MakeSender(batchSize: 100, cycleDelay: 300_000, offline: true);
+
+            sender.Send("flush_event_1");
+            sender.Send("flush_event_2");
+            sender.Send("flush_event_3");
+
+            await UniTask.Delay(1500); // let writes settle
+
+            sender.Flush();
+            await UniTask.Delay(500);
+            sender.Dispose();
+
+            var events = await CollectAsync(timeoutMs: 6000, settleMs: 1000);
+            Assert.GreaterOrEqual(events.Count, 3,
+                $"Flush before Dispose must send all queued events, got {events.Count}");
+        });
+    }
 }

@@ -605,4 +605,279 @@ namespace com.noctuagames.sdk.Tests.IAA
                 "Secondary network must be initialized exactly once");
         }
     }
+
+    /// <summary>
+    /// Edge-case tests for <see cref="HybridAdOrchestrator"/>.
+    /// Focuses on uncovered branches: primary-only GetNetworkForFormat paths for all formats,
+    /// unknown override targets, HasFormatOverride, dynamic optimization with null tracker,
+    /// and IsHybridMode with various configurations.
+    /// </summary>
+    [TestFixture]
+    public class HybridAdOrchestratorEdgeCaseTest
+    {
+        private MockAdNetwork _primary;
+        private MockAdNetwork _secondary;
+
+        [SetUp]
+        public void SetUp()
+        {
+            _primary   = new MockAdNetwork { NetworkName = "admob" };
+            _secondary = new MockAdNetwork { NetworkName = "applovin" };
+
+            // Clear AdNetworkPerformanceTracker PlayerPrefs to prevent cross-test pollution
+            foreach (var network in new[] { "admob", "applovin" })
+            foreach (var format  in new[] { AdFormatKey.Interstitial, AdFormatKey.Rewarded,
+                                             AdFormatKey.Banner,       AdFormatKey.AppOpen })
+            {
+                PlayerPrefs.DeleteKey($"NoctuaAdPerf_fill_{network}_{format}");
+                PlayerPrefs.DeleteKey($"NoctuaAdPerf_rev_{network}_{format}");
+            }
+            PlayerPrefs.Save();
+
+            // Suppress warning logs for tests that deliberately use unknown override targets
+            LogAssert.ignoreFailingMessages = true;
+        }
+
+        [TearDown]
+        public void TearDown()
+        {
+            LogAssert.ignoreFailingMessages = false;
+        }
+
+        // ─── GetNetworkForFormat — primary-only (no secondary) ────────────────
+
+        [Test]
+        public void GetNetworkForFormat_PrimaryOnlyNoOverride_ReturnsPrimary()
+        {
+            var orc = new HybridAdOrchestrator(_primary);
+            // No secondary, no overrides — must always return primary
+            var net = orc.GetNetworkForFormat(AdFormatKey.Interstitial);
+            Assert.AreSame(_primary, net);
+        }
+
+        [Test]
+        public void GetNetworkForFormat_Banner_UsesPrimaryNetwork()
+        {
+            // Banner format with no override → primary
+            var orc = new HybridAdOrchestrator(_primary, _secondary);
+            var net = orc.GetNetworkForFormat(AdFormatKey.Banner);
+            Assert.AreSame(_primary, net,
+                "Banner format with no override must route to primary");
+        }
+
+        [Test]
+        public void GetNetworkForFormat_Interstitial_UsesPrimaryByDefault()
+        {
+            // Default routing (no overrides, no dynamic opt) → primary for interstitial
+            var orc = new HybridAdOrchestrator(_primary, _secondary);
+            var net = orc.GetNetworkForFormat(AdFormatKey.Interstitial);
+            Assert.AreSame(_primary, net,
+                "Interstitial with no override must route to primary by default");
+        }
+
+        [Test]
+        public void GetNetworkForFormat_AppOpen_UsesPrimaryNetwork()
+        {
+            // AppOpen format with no override → primary
+            var orc = new HybridAdOrchestrator(_primary, _secondary);
+            var net = orc.GetNetworkForFormat(AdFormatKey.AppOpen);
+            Assert.AreSame(_primary, net,
+                "AppOpen format with no override must route to primary");
+        }
+
+        // ─── GetNetworkForFormat — override to unknown network ────────────────
+
+        [Test]
+        public void GetNetworkForFormat_OverrideToUnknownNetwork_FallsBackToPrimary()
+        {
+            // Override points to a network name that matches neither primary nor secondary
+            var overrides = new Dictionary<string, string>
+            {
+                [AdFormatKey.Interstitial] = "unknown_network"
+            };
+            var orc = new HybridAdOrchestrator(_primary, _secondary, overrides);
+
+            // unknown_network != secondary.NetworkName ("applovin") AND != primary.NetworkName ("admob")
+            // → falls back to primary with a warning
+            var net = orc.GetNetworkForFormat(AdFormatKey.Interstitial);
+
+            Assert.AreSame(_primary, net,
+                "Override targeting an unknown network must fall back to primary");
+        }
+
+        [Test]
+        public void GetNetworkForFormat_OverrideForOtherFormat_NoOverrideForQueried_ReturnsPrimary()
+        {
+            // Override is set for Banner only; querying Interstitial (no override) → primary
+            var overrides = new Dictionary<string, string>
+            {
+                [AdFormatKey.Banner] = "applovin"
+            };
+            var orc = new HybridAdOrchestrator(_primary, _secondary, overrides);
+
+            var net = orc.GetNetworkForFormat(AdFormatKey.Interstitial);
+
+            Assert.AreSame(_primary, net,
+                "Format without an override must always route to primary");
+        }
+
+        [Test]
+        public void GetNetworkForFormat_WithOverride_UsesOverrideNetwork()
+        {
+            // Explicit override to secondary for Rewarded; no override for Banner → primary
+            var overrides = new Dictionary<string, string>
+            {
+                [AdFormatKey.Rewarded] = "applovin"
+            };
+            var orc = new HybridAdOrchestrator(_primary, _secondary, overrides);
+
+            Assert.AreSame(_secondary, orc.GetNetworkForFormat(AdFormatKey.Rewarded),
+                "Rewarded with override=applovin must return secondary");
+            Assert.AreSame(_primary, orc.GetNetworkForFormat(AdFormatKey.Banner),
+                "Banner without override must still return primary");
+        }
+
+        [Test]
+        public void GetNetworkForFormat_OverrideNetworkNull_SecondaryNull_FallsBackToPrimary()
+        {
+            // Override targets secondary name but secondary is not provided
+            var overrides = new Dictionary<string, string>
+            {
+                [AdFormatKey.Rewarded] = "applovin"  // secondary name, but secondary is null
+            };
+            var orc = new HybridAdOrchestrator(_primary, null, overrides);
+
+            var net = orc.GetNetworkForFormat(AdFormatKey.Rewarded);
+
+            Assert.AreSame(_primary, net,
+                "Override targeting secondary name when secondary is null must fall back to primary");
+        }
+
+        // ─── GetNetworkForFormat — dynamic optimization with no tracker ────────
+
+        [Test]
+        public void GetNetworkForFormat_DynamicOptimizationOn_NullTracker_ReturnsPrimary()
+        {
+            // dynamicOptimization=true but performanceTracker is null → guard in source → primary
+            var orc = new HybridAdOrchestrator(
+                _primary, _secondary,
+                performanceTracker: null,
+                dynamicOptimization: true
+            );
+
+            var net = orc.GetNetworkForFormat(AdFormatKey.Interstitial);
+
+            Assert.AreSame(_primary, net,
+                "Dynamic optimization with null tracker must default to primary");
+        }
+
+        // ─── HasFormatOverride ────────────────────────────────────────────────
+
+        [Test]
+        public void HasFormatOverride_WithOverrideForFormat_ReturnsTrue()
+        {
+            var overrides = new Dictionary<string, string>
+            {
+                [AdFormatKey.Interstitial] = "admob"
+            };
+            var orc = new HybridAdOrchestrator(_primary, _secondary, overrides);
+
+            Assert.IsTrue(orc.HasFormatOverride(AdFormatKey.Interstitial),
+                "HasFormatOverride must return true when an override is registered for the format");
+        }
+
+        [Test]
+        public void HasFormatOverride_WithoutOverrideForFormat_ReturnsFalse()
+        {
+            var overrides = new Dictionary<string, string>
+            {
+                [AdFormatKey.Banner] = "admob"
+            };
+            var orc = new HybridAdOrchestrator(_primary, _secondary, overrides);
+
+            Assert.IsFalse(orc.HasFormatOverride(AdFormatKey.Interstitial),
+                "HasFormatOverride must return false when no override is registered for the queried format");
+        }
+
+        [Test]
+        public void HasFormatOverride_NoOverridesAtAll_ReturnsFalse()
+        {
+            // No overrides dictionary passed → empty internal dict
+            var orc = new HybridAdOrchestrator(_primary, _secondary);
+
+            Assert.IsFalse(orc.HasFormatOverride(AdFormatKey.Interstitial));
+            Assert.IsFalse(orc.HasFormatOverride(AdFormatKey.Banner));
+            Assert.IsFalse(orc.HasFormatOverride(AdFormatKey.Rewarded));
+            Assert.IsFalse(orc.HasFormatOverride(AdFormatKey.AppOpen));
+        }
+
+        // ─── IsHybridMode with various configurations ─────────────────────────
+
+        [Test]
+        public void IsHybridMode_WithBothNetworks_ReturnsTrue()
+        {
+            var orc = new HybridAdOrchestrator(_primary, _secondary);
+            Assert.IsTrue(orc.IsHybridMode,
+                "IsHybridMode must be true when both primary and secondary networks are configured");
+        }
+
+        [Test]
+        public void IsHybridMode_WithOneNetwork_ReturnsFalse()
+        {
+            var orc = new HybridAdOrchestrator(_primary);
+            Assert.IsFalse(orc.IsHybridMode,
+                "IsHybridMode must be false when only the primary network is configured");
+        }
+
+        // ─── GetNetworkForFormat — WhenPrimaryAndSecondaryBothNull branch ──────
+        //
+        // Constructor rejects null primary (ArgumentNullException), so a truly
+        // null primary is impossible at runtime. The closest testable analogue is
+        // a single-network orchestrator where GetNetworkForFormat always returns
+        // primary regardless of the format key.
+
+        [Test]
+        public void GetNetworkForFormat_WhenNoSecondary_AllFormatsReturnPrimary()
+        {
+            var orc = new HybridAdOrchestrator(_primary); // no secondary
+
+            Assert.AreSame(_primary, orc.GetNetworkForFormat(AdFormatKey.Interstitial),
+                "Interstitial with no secondary must return primary");
+            Assert.AreSame(_primary, orc.GetNetworkForFormat(AdFormatKey.Rewarded),
+                "Rewarded with no secondary must return primary");
+            Assert.AreSame(_primary, orc.GetNetworkForFormat(AdFormatKey.Banner),
+                "Banner with no secondary must return primary");
+            Assert.AreSame(_primary, orc.GetNetworkForFormat(AdFormatKey.AppOpen),
+                "AppOpen with no secondary must return primary");
+        }
+
+        // ─── SetPreferredNetwork via dynamic optimization ─────────────────────
+
+        [Test]
+        public void SetPreferredNetwork_ThenGetNetworkForFormat_ReturnsPreferred()
+        {
+            // Seed the performance tracker so secondary scores higher than primary
+            var tracker = new AdNetworkPerformanceTracker();
+            // Give secondary a perfect fill rate and good revenue
+            for (int i = 0; i < 5; i++)
+            {
+                tracker.RecordFillAttempt("applovin", AdFormatKey.Rewarded, filled: true);
+                tracker.RecordRevenue("applovin", AdFormatKey.Rewarded, 0.05);
+            }
+            // Primary has zero fills
+            for (int i = 0; i < 5; i++)
+                tracker.RecordFillAttempt("admob", AdFormatKey.Rewarded, filled: false);
+
+            var orc = new HybridAdOrchestrator(
+                _primary, _secondary,
+                performanceTracker: tracker,
+                dynamicOptimization: true
+            );
+
+            var net = orc.GetNetworkForFormat(AdFormatKey.Rewarded);
+
+            Assert.AreSame(_secondary, net,
+                "After seeding tracker with better secondary performance, dynamic opt must prefer secondary");
+        }
+    }
 }
