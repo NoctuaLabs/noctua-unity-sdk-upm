@@ -166,5 +166,60 @@ namespace Tests.Runtime
             ExperimentManager.SetFlag("key", "updated");
             Assert.AreEqual("updated", ExperimentManager.GetFlag<string>("key"));
         }
+
+        // ─── Snapshot ─────────────────────────────────────────────────────────
+
+        [Test]
+        public void Snapshot_EmptyManager_ReturnsEmptyDictionary()
+        {
+            var snap = ExperimentManager.Snapshot();
+            Assert.IsNotNull(snap);
+            Assert.AreEqual(0, snap.Count);
+        }
+
+        [Test]
+        public void Snapshot_WithFlags_ReturnsAllFlags()
+        {
+            ExperimentManager.SetFlag("a", "1");
+            ExperimentManager.SetFlag("b", 42);
+            var snap = ExperimentManager.Snapshot();
+
+            Assert.AreEqual(2, snap.Count);
+            Assert.AreEqual("1", snap["a"]);
+            Assert.AreEqual(42, snap["b"]);
+        }
+
+        [Test]
+        public void Snapshot_ReturnsIndependentCopy_MutatingOriginalDoesNotAffectSnap()
+        {
+            ExperimentManager.SetFlag("x", "first");
+            var snap = ExperimentManager.Snapshot();
+
+            // Modify the live state after taking the snapshot
+            ExperimentManager.SetFlag("x", "second");
+
+            // Snapshot must still reflect the old value
+            Assert.AreEqual("first", snap["x"],
+                "Snapshot must return an independent copy — live changes must not affect it");
+        }
+
+        [Test]
+        public void Snapshot_AfterClear_ReturnsEmptyDictionary()
+        {
+            ExperimentManager.SetFlag("p", "q");
+            ExperimentManager.Clear();
+            var snap = ExperimentManager.Snapshot();
+            Assert.AreEqual(0, snap.Count);
+        }
+
+        // ─── SetGeneralExperiment — overwrite ────────────────────────────────
+
+        [Test]
+        public void SetGeneralExperiment_OverwritesExistingKey()
+        {
+            ExperimentManager.SetGeneralExperiment("custom_key", "v1");
+            ExperimentManager.SetGeneralExperiment("custom_key", "v2");
+            Assert.AreEqual("v2", ExperimentManager.GetGeneralExperiment("custom_key"));
+        }
     }
 }
