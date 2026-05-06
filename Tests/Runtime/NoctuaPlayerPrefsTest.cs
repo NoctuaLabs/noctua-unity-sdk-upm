@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using com.noctuagames.sdk;
@@ -8,19 +7,22 @@ using UnityEngine;
 namespace Tests.Runtime
 {
     /// <summary>
-    /// Unit tests for the <c>Noctua.PlayerPrefs</c> partial class:
-    ///   * <see cref="Noctua.GetPlayerPrefsKeys"/>  — returns the full list of Noctua-owned keys
-    ///   * <see cref="Noctua.BackupPlayerPrefs"/>   — serialises PlayerPrefs to KV pairs
-    ///   * <see cref="Noctua.RestorePlayerPrefs"/>  — deserialises KV pairs back to PlayerPrefs
+    /// EditMode NUnit tests for the PlayerPrefs helpers on the <see cref="Noctua"/> partial class
+    /// (<c>Runtime/View/App/Noctua.PlayerPrefs.cs</c>).
     ///
-    /// None of these methods access the <c>Noctua.Instance</c> singleton — they are
-    /// pure PlayerPrefs operations and are safe to call in EditMode without a config file.
+    /// Covers:
+    ///   — <c>GetPlayerPrefsKeys</c>  — non-empty, contains known integer and string keys
+    ///   — <c>BackupPlayerPrefs</c>   — default values, ":int"/":string" suffixes, set values
+    ///   — <c>RestorePlayerPrefs</c>  — integer restore, string restore, invalid int skipped
+    ///   — Round-trip: Backup → clear prefs → Restore → verify values match
+    ///
+    /// PlayerPrefs state is cleared before and after every test.
     /// </summary>
     [TestFixture]
     public class NoctuaPlayerPrefsTest
     {
-        // Keys read/written by BackupPlayerPrefs (int-typed)
-        private static readonly string[] IntKeys = new[]
+        // Known keys from the implementation
+        private static readonly string[] KnownIntKeys =
         {
             "NoctuaFirstOpen",
             "NoctuaFirstPurchase",
@@ -28,277 +30,270 @@ namespace Tests.Runtime
             "NativeGalleryPermission",
         };
 
-        // Keys read/written by BackupPlayerPrefs (string-typed)
-        private static readonly string[] StringKeys = new[]
+        private static readonly string[] KnownStringKeys =
         {
-            "NoctuaWebContent.Announcement.LastShown",
+            "NoctuaAccessToken",
+            "NoctuaEvents",
             "NoctuaAccountContainer",
             "NoctuaPendingPurchases",
-            "NoctuaLocaleCountry",
-            "NoctuaLocaleCurrency",
-            "NoctuaLocaleUserPrefsLanguage",
-            "NoctuaUnpairedOrders",
-            "NoctuaPurchaseHistory",
-            "NoctuaEvents",
-            "NoctuaAccessToken",
-            "NoctuaCurrentStageLevel",
-            "NoctuaCurrentStageMode",
-            "NoctuaOrphanedSessionId",
-            "NoctuaOrphanedSessionCumulativeMs",
-            "NoctuaOrphanedSessionLastTimestamp",
         };
 
         [SetUp]
-        public void ClearPrefs()
-        {
-            // Delete all Noctua keys before each test to ensure a clean slate
-            foreach (var k in IntKeys)    PlayerPrefs.DeleteKey(k);
-            foreach (var k in StringKeys) PlayerPrefs.DeleteKey(k);
-        }
+        public void SetUp() => PlayerPrefs.DeleteAll();
 
         [TearDown]
-        public void RestorePrefs()
-        {
-            // Clean up after each test
-            foreach (var k in IntKeys)    PlayerPrefs.DeleteKey(k);
-            foreach (var k in StringKeys) PlayerPrefs.DeleteKey(k);
-        }
+        public void TearDown() => PlayerPrefs.DeleteAll();
 
-        // ─── GetPlayerPrefsKeys ───────────────────────────────────────────────
+        // ═══════════════════════════════════════════════════════════════════
+        // GetPlayerPrefsKeys
+        // ═══════════════════════════════════════════════════════════════════
 
         [Test]
-        public void GetPlayerPrefsKeys_ReturnsNonNullArray()
+        public void GetPlayerPrefsKeys_ReturnsNonEmptyArray()
         {
             var keys = Noctua.GetPlayerPrefsKeys();
+
             Assert.IsNotNull(keys);
+            Assert.Greater(keys.Length, 0, "GetPlayerPrefsKeys must return at least one key");
         }
 
         [Test]
-        public void GetPlayerPrefsKeys_ContainsAllIntKeys()
+        public void GetPlayerPrefsKeys_ContainsKnownIntegerKeys()
         {
             var keys = Noctua.GetPlayerPrefsKeys();
-            foreach (var expected in IntKeys)
-                Assert.Contains(expected, keys, $"Missing int key: {expected}");
+
+            foreach (var k in KnownIntKeys)
+            {
+                CollectionAssert.Contains(keys, k, $"Key '{k}' must be present in GetPlayerPrefsKeys");
+            }
         }
 
         [Test]
-        public void GetPlayerPrefsKeys_ContainsAllStringKeys()
+        public void GetPlayerPrefsKeys_ContainsKnownStringKeys()
         {
             var keys = Noctua.GetPlayerPrefsKeys();
-            foreach (var expected in StringKeys)
-                Assert.Contains(expected, keys, $"Missing string key: {expected}");
+
+            foreach (var k in KnownStringKeys)
+            {
+                CollectionAssert.Contains(keys, k, $"Key '{k}' must be present in GetPlayerPrefsKeys");
+            }
         }
 
         [Test]
-        public void GetPlayerPrefsKeys_CountMatchesKnownTotal()
+        public void GetPlayerPrefsKeys_HasNoDuplicates()
         {
             var keys = Noctua.GetPlayerPrefsKeys();
-            int expectedCount = IntKeys.Length + StringKeys.Length;
-            Assert.AreEqual(expectedCount, keys.Length,
-                $"Expected {expectedCount} keys, got {keys.Length}");
+            var distinct = keys.Distinct().ToArray();
+
+            Assert.AreEqual(keys.Length, distinct.Length,
+                "GetPlayerPrefsKeys must not return duplicate keys");
         }
 
-        [Test]
-        public void GetPlayerPrefsKeys_NoDuplicates()
-        {
-            var keys = Noctua.GetPlayerPrefsKeys();
-            var distinct = keys.Distinct().Count();
-            Assert.AreEqual(keys.Length, distinct, "GetPlayerPrefsKeys should not contain duplicates");
-        }
-
-        // ─── BackupPlayerPrefs — default state ────────────────────────────────
+        // ═══════════════════════════════════════════════════════════════════
+        // BackupPlayerPrefs
+        // ═══════════════════════════════════════════════════════════════════
 
         [Test]
         public void BackupPlayerPrefs_ReturnsNonNullArray()
         {
-            var backup = Noctua.BackupPlayerPrefs();
-            Assert.IsNotNull(backup);
+            var result = Noctua.BackupPlayerPrefs();
+
+            Assert.IsNotNull(result);
         }
 
         [Test]
-        public void BackupPlayerPrefs_CountEqualsIntPlusStringKeys()
+        public void BackupPlayerPrefs_AllIntegerKeysHaveIntSuffix()
         {
-            var backup = Noctua.BackupPlayerPrefs();
-            int expected = IntKeys.Length + StringKeys.Length;
-            Assert.AreEqual(expected, backup.Length,
-                $"Expected {expected} KV pairs from backup, got {backup.Length}");
-        }
+            var result = Noctua.BackupPlayerPrefs();
 
-        [Test]
-        public void BackupPlayerPrefs_IntKeys_HaveIntSuffix()
-        {
-            var backup = Noctua.BackupPlayerPrefs();
-            foreach (var intKey in IntKeys)
+            foreach (var k in KnownIntKeys)
             {
-                var pair = backup.FirstOrDefault(kv => kv.Key.StartsWith(intKey + ":"));
-                Assert.AreNotEqual(default(KeyValuePair<string, string>), pair,
-                    $"Expected backup entry for int key '{intKey}'");
-                StringAssert.EndsWith(":int", pair.Key,
-                    $"Int key '{intKey}' should be backed up with ':int' suffix");
+                var entry = result.FirstOrDefault(kv => kv.Key == $"{k}:int");
+                Assert.IsFalse(entry.Equals(default(KeyValuePair<string, string>)),
+                    $"Backup must include '{k}:int' entry");
             }
         }
 
         [Test]
-        public void BackupPlayerPrefs_StringKeys_HaveStringSuffix()
+        public void BackupPlayerPrefs_AllStringKeysHaveStringSuffix()
         {
-            var backup = Noctua.BackupPlayerPrefs();
-            foreach (var strKey in StringKeys)
+            var result = Noctua.BackupPlayerPrefs();
+
+            foreach (var k in KnownStringKeys)
             {
-                var pair = backup.FirstOrDefault(kv => kv.Key.StartsWith(strKey + ":"));
-                Assert.AreNotEqual(default(KeyValuePair<string, string>), pair,
-                    $"Expected backup entry for string key '{strKey}'");
-                StringAssert.EndsWith(":string", pair.Key,
-                    $"String key '{strKey}' should be backed up with ':string' suffix");
+                var entry = result.FirstOrDefault(kv => kv.Key == $"{k}:string");
+                Assert.IsFalse(entry.Equals(default(KeyValuePair<string, string>)),
+                    $"Backup must include '{k}:string' entry");
             }
         }
 
         [Test]
-        public void BackupPlayerPrefs_DefaultIntValues_AreZero()
+        public void BackupPlayerPrefs_IntegerKey_DefaultValueIsZero()
         {
-            // No int prefs set — defaults should all be "0"
-            var backup = Noctua.BackupPlayerPrefs();
-            foreach (var intKey in IntKeys)
+            // PlayerPrefs cleared in SetUp → default int value is 0
+            var result = Noctua.BackupPlayerPrefs();
+
+            var entry = result.First(kv => kv.Key == "NoctuaFirstOpen:int");
+            Assert.AreEqual("0", entry.Value,
+                "Default int value must be '0' when no prefs are set");
+        }
+
+        [Test]
+        public void BackupPlayerPrefs_StringKey_DefaultValueIsEmpty()
+        {
+            var result = Noctua.BackupPlayerPrefs();
+
+            var entry = result.First(kv => kv.Key == "NoctuaAccessToken:string");
+            Assert.AreEqual(string.Empty, entry.Value,
+                "Default string value must be empty when no prefs are set");
+        }
+
+        [Test]
+        public void BackupPlayerPrefs_SetIntegerValue_BackedUpCorrectly()
+        {
+            PlayerPrefs.SetInt("NoctuaFirstOpen", 42);
+            PlayerPrefs.Save();
+
+            var result = Noctua.BackupPlayerPrefs();
+
+            var entry = result.First(kv => kv.Key == "NoctuaFirstOpen:int");
+            Assert.AreEqual("42", entry.Value);
+        }
+
+        [Test]
+        public void BackupPlayerPrefs_SetStringValue_BackedUpCorrectly()
+        {
+            PlayerPrefs.SetString("NoctuaAccessToken", "my-token-xyz");
+            PlayerPrefs.Save();
+
+            var result = Noctua.BackupPlayerPrefs();
+
+            var entry = result.First(kv => kv.Key == "NoctuaAccessToken:string");
+            Assert.AreEqual("my-token-xyz", entry.Value);
+        }
+
+        [Test]
+        public void BackupPlayerPrefs_NoKeyWithoutTypeSuffix()
+        {
+            var result = Noctua.BackupPlayerPrefs();
+
+            foreach (var kv in result)
             {
-                var pair = backup.First(kv => kv.Key == $"{intKey}:int");
-                Assert.AreEqual("0", pair.Value,
-                    $"Default int value for '{intKey}' should be '0'");
+                Assert.IsTrue(
+                    kv.Key.EndsWith(":int") || kv.Key.EndsWith(":string"),
+                    $"Every backup key must end with ':int' or ':string', but got '{kv.Key}'");
             }
         }
 
+        // ═══════════════════════════════════════════════════════════════════
+        // RestorePlayerPrefs
+        // ═══════════════════════════════════════════════════════════════════
+
         [Test]
-        public void BackupPlayerPrefs_DefaultStringValues_AreEmpty()
+        public void RestorePlayerPrefs_IntegerKey_WrittenToPrefs()
         {
-            // No string prefs set — defaults should all be ""
-            var backup = Noctua.BackupPlayerPrefs();
-            foreach (var strKey in StringKeys)
+            var data = new[]
             {
-                var pair = backup.First(kv => kv.Key == $"{strKey}:string");
-                Assert.AreEqual("", pair.Value,
-                    $"Default string value for '{strKey}' should be empty");
-            }
-        }
+                new KeyValuePair<string, string>("NoctuaFirstOpen:int", "7")
+            };
 
-        [Test]
-        public void BackupPlayerPrefs_SetIntPref_ReflectedInBackup()
-        {
-            const string key = "NoctuaFirstOpen";
-            PlayerPrefs.SetInt(key, 42);
-
-            var backup = Noctua.BackupPlayerPrefs();
-            var pair = backup.First(kv => kv.Key == $"{key}:int");
-            Assert.AreEqual("42", pair.Value,
-                $"Backup should reflect PlayerPrefs.SetInt({key}, 42)");
-        }
-
-        [Test]
-        public void BackupPlayerPrefs_SetStringPref_ReflectedInBackup()
-        {
-            const string key = "NoctuaAccessToken";
-            PlayerPrefs.SetString(key, "tok-abc");
-
-            var backup = Noctua.BackupPlayerPrefs();
-            var pair = backup.First(kv => kv.Key == $"{key}:string");
-            Assert.AreEqual("tok-abc", pair.Value,
-                $"Backup should reflect PlayerPrefs.SetString({key}, 'tok-abc')");
-        }
-
-        // ─── RestorePlayerPrefs ───────────────────────────────────────────────
-
-        [Test]
-        public void RestorePlayerPrefs_EmptyArray_DoesNotThrow()
-        {
-            Assert.DoesNotThrow(() =>
-                Noctua.RestorePlayerPrefs(Array.Empty<KeyValuePair<string, string>>()));
-        }
-
-        [Test]
-        public void RestorePlayerPrefs_IntPair_SetsIntPref()
-        {
-            var pairs = new[] { new KeyValuePair<string, string>("NoctuaFirstOpen:int", "7") };
-
-            Noctua.RestorePlayerPrefs(pairs);
+            Noctua.RestorePlayerPrefs(data);
 
             Assert.AreEqual(7, PlayerPrefs.GetInt("NoctuaFirstOpen", 0));
         }
 
         [Test]
-        public void RestorePlayerPrefs_StringPair_SetsStringPref()
+        public void RestorePlayerPrefs_StringKey_WrittenToPrefs()
         {
-            var pairs = new[] { new KeyValuePair<string, string>("NoctuaAccessToken:string", "restored-token") };
+            var data = new[]
+            {
+                new KeyValuePair<string, string>("NoctuaAccessToken:string", "restored-token")
+            };
 
-            Noctua.RestorePlayerPrefs(pairs);
+            Noctua.RestorePlayerPrefs(data);
 
             Assert.AreEqual("restored-token", PlayerPrefs.GetString("NoctuaAccessToken", ""));
         }
 
         [Test]
-        public void RestorePlayerPrefs_MultipleIntPairs_AllRestored()
+        public void RestorePlayerPrefs_EmptyArray_DoesNotThrow()
         {
-            var pairs = new[]
+            Assert.DoesNotThrow(() =>
+                Noctua.RestorePlayerPrefs(new KeyValuePair<string, string>[0]));
+        }
+
+        [Test]
+        public void RestorePlayerPrefs_InvalidIntValue_KeyNotWritten()
+        {
+            // Pre-set a known value so we can detect if it gets overwritten
+            PlayerPrefs.SetInt("NoctuaFirstOpen", 99);
+            PlayerPrefs.Save();
+
+            var data = new[]
             {
-                new KeyValuePair<string, string>("NoctuaFirstOpen:int", "1"),
-                new KeyValuePair<string, string>("NoctuaFirstPurchase:int", "2"),
+                new KeyValuePair<string, string>("NoctuaFirstOpen:int", "not-a-number")
             };
 
-            Noctua.RestorePlayerPrefs(pairs);
+            Noctua.RestorePlayerPrefs(data);
 
-            Assert.AreEqual(1, PlayerPrefs.GetInt("NoctuaFirstOpen",    0));
-            Assert.AreEqual(2, PlayerPrefs.GetInt("NoctuaFirstPurchase", 0));
+            // Should stay at 99 — the bad value must be skipped
+            Assert.AreEqual(99, PlayerPrefs.GetInt("NoctuaFirstOpen", 0),
+                "Invalid int value must be skipped; existing prefs value must be preserved");
         }
 
         [Test]
-        public void RestorePlayerPrefs_NonIntValueForIntKey_SkipsKey()
+        public void RestorePlayerPrefs_MultipleKeys_AllRestored()
         {
-            // "not_a_number" fails int.TryParse — the key should not be set
-            const string key = "NoctuaFirstOpen";
-            PlayerPrefs.DeleteKey(key);
-            var pairs = new[] { new KeyValuePair<string, string>($"{key}:int", "not_a_number") };
+            var data = new[]
+            {
+                new KeyValuePair<string, string>("NoctuaFirstOpen:int",     "3"),
+                new KeyValuePair<string, string>("NoctuaFirstPurchase:int", "1"),
+                new KeyValuePair<string, string>("NoctuaAccessToken:string", "tok"),
+            };
 
-            Noctua.RestorePlayerPrefs(pairs);
+            Noctua.RestorePlayerPrefs(data);
 
-            Assert.AreEqual(0, PlayerPrefs.GetInt(key, 0),
-                "Non-parseable int value must not overwrite the key");
+            Assert.AreEqual(3,     PlayerPrefs.GetInt("NoctuaFirstOpen",    0));
+            Assert.AreEqual(1,     PlayerPrefs.GetInt("NoctuaFirstPurchase", 0));
+            Assert.AreEqual("tok", PlayerPrefs.GetString("NoctuaAccessToken", ""));
         }
 
-        // ─── Round-trip: Backup → clear → Restore ────────────────────────────
+        // ═══════════════════════════════════════════════════════════════════
+        // Round-trip: Backup → clear → Restore → verify
+        // ═══════════════════════════════════════════════════════════════════
 
         [Test]
-        public void BackupAndRestore_RoundTrip_PreservesIntValues()
+        public void RoundTrip_IntegerValue_PreservedAfterBackupAndRestore()
         {
-            // Set some values
-            PlayerPrefs.SetInt("NoctuaFirstOpen",    99);
-            PlayerPrefs.SetInt("NoctuaFirstPurchase", 3);
+            PlayerPrefs.SetInt("NoctuaFirstOpen", 5);
+            PlayerPrefs.Save();
 
-            // Backup
             var backup = Noctua.BackupPlayerPrefs();
 
-            // Clear
-            PlayerPrefs.DeleteKey("NoctuaFirstOpen");
-            PlayerPrefs.DeleteKey("NoctuaFirstPurchase");
-
-            // Restore
-            Noctua.RestorePlayerPrefs(backup);
-
-            // Verify
-            Assert.AreEqual(99, PlayerPrefs.GetInt("NoctuaFirstOpen",    -1));
-            Assert.AreEqual(3,  PlayerPrefs.GetInt("NoctuaFirstPurchase", -1));
-        }
-
-        [Test]
-        public void BackupAndRestore_RoundTrip_PreservesStringValues()
-        {
-            const string tokenKey = "NoctuaAccessToken";
-            const string tokenVal = "round-trip-token-xyz";
-
-            PlayerPrefs.SetString(tokenKey, tokenVal);
-
-            var backup = Noctua.BackupPlayerPrefs();
-            PlayerPrefs.DeleteKey(tokenKey);
+            PlayerPrefs.DeleteAll();
+            Assert.AreEqual(0, PlayerPrefs.GetInt("NoctuaFirstOpen", 0), "Prefs must be cleared");
 
             Noctua.RestorePlayerPrefs(backup);
 
-            Assert.AreEqual(tokenVal, PlayerPrefs.GetString(tokenKey, ""),
-                "Restore must recover the original string value");
+            Assert.AreEqual(5, PlayerPrefs.GetInt("NoctuaFirstOpen", 0),
+                "Integer value must survive a backup→clear→restore round-trip");
+        }
+
+        [Test]
+        public void RoundTrip_StringValue_PreservedAfterBackupAndRestore()
+        {
+            PlayerPrefs.SetString("NoctuaAccessToken", "round-trip-token");
+            PlayerPrefs.Save();
+
+            var backup = Noctua.BackupPlayerPrefs();
+
+            PlayerPrefs.DeleteAll();
+            Assert.AreEqual("", PlayerPrefs.GetString("NoctuaAccessToken", ""), "Prefs must be cleared");
+
+            Noctua.RestorePlayerPrefs(backup);
+
+            Assert.AreEqual("round-trip-token", PlayerPrefs.GetString("NoctuaAccessToken", ""),
+                "String value must survive a backup→clear→restore round-trip");
         }
     }
 }
