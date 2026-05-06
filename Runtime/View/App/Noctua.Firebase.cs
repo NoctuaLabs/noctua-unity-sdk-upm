@@ -45,7 +45,7 @@ namespace com.noctuagames.sdk
             return token?.ToString() ?? string.Empty;
         }
 
-        internal static NoctuaNotificationPayload FromJson(string json)
+        public static NoctuaNotificationPayload FromJson(string json)
         {
             var payload = new NoctuaNotificationPayload { RawJson = json ?? "{}", Custom = new JObject() };
             if (string.IsNullOrEmpty(json)) return payload;
