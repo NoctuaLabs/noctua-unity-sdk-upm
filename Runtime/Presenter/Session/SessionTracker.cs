@@ -82,7 +82,9 @@ namespace com.noctuagames.sdk.Events
 
         /// <summary>
         /// Harvests accumulated foreground time and sends a user_engagement event with engagement_time_msec and lifecycle.
-        /// Resets the accumulator after sending. Skips if no foreground time was accumulated (except for lifecycle=start).
+        /// Resets the accumulator after sending.
+        /// Always sends for lifecycle=start, pause, and end (even 0ms) to record state transitions for short sessions.
+        /// Skips lifecycle=foreground (heartbeat) when 0ms to avoid spamming zero-value heartbeats.
         /// </summary>
         private void SendUserEngagementEvent(string lifecycle)
         {
@@ -97,7 +99,10 @@ namespace com.noctuagames.sdk.Events
             var totalMs = _accumulatedEngagementMs + currentMs;
             _accumulatedEngagementMs = 0;
 
-            if (totalMs <= 0 && lifecycle != "start") return;
+            // Skip 0ms heartbeat events — they are noise immediately after a stopwatch reset.
+            // Always emit start/pause/end so that sub-millisecond sessions still produce
+            // trackable engagement events (fixing zero timespent for short sessions).
+            if (totalMs <= 0 && lifecycle == "foreground") return;
 
             _cumulativeSessionEngagementMs += totalMs;
 

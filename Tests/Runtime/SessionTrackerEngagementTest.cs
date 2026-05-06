@@ -243,30 +243,30 @@ namespace Tests.Runtime
         );
 
         [UnityTest]
-        public IEnumerator NoForegroundTime_NoEngagementEventSent() => UniTask.ToCoroutine(
+        public IEnumerator NoForegroundTime_EngagementEventSentWithZeroMs() => UniTask.ToCoroutine(
             async () =>
             {
                 var tracker = new SessionTracker(_config, _mockSender);
 
-                // Start and immediately pause
+                // Start and immediately pause — no measurable foreground time
                 tracker.OnApplicationPause(false);
                 tracker.OnApplicationPause(true);
 
                 // lifecycle=start always fires with 0ms
-                // lifecycle=pause may or may not fire depending on stopwatch resolution
                 var engagements = _mockSender.GetEventsByName("noctua_user_engagement");
                 Assert.GreaterOrEqual(engagements.Count, 1, "At least lifecycle=start should fire");
                 Assert.AreEqual("start", engagements[0].Data["lifecycle"].ToString());
+                Assert.AreEqual(0L, Convert.ToInt64(engagements[0].Data["engagement_time_msec"]));
 
-                // If pause engagement was sent, it should have very small time
+                // lifecycle=pause must now always fire (even with 0ms) so short sessions are
+                // recorded. Previously it was conditionally skipped, causing zero timespent.
                 var pauseEngagements = engagements
                     .Where(e => e.Data["lifecycle"].ToString() == "pause")
                     .ToList();
-                if (pauseEngagements.Count > 0)
-                {
-                    var msec = Convert.ToInt64(pauseEngagements[0].Data["engagement_time_msec"]);
-                    Assert.LessOrEqual(msec, 100, "Near-instant pause should have very small engagement time");
-                }
+                Assert.AreEqual(1, pauseEngagements.Count,
+                    "lifecycle=pause must fire even with 0ms foreground time (fixes zero timespent for short sessions)");
+                var msec = Convert.ToInt64(pauseEngagements[0].Data["engagement_time_msec"]);
+                Assert.LessOrEqual(msec, 100, "Near-instant pause should have very small engagement time");
 
                 tracker.Dispose();
             }
@@ -355,6 +355,37 @@ namespace Tests.Runtime
                 Assert.GreaterOrEqual(cumulativeMs, 100, "Should have accumulated foreground time from session 1");
 
                 tracker.Dispose();
+            }
+        );
+
+        // ─── 0ms engagement for short sessions ───────────────────────────────────
+
+        [UnityTest]
+        public IEnumerator ShortSession_PauseAndEnd_Always_SendEngagementEvenAtZeroMs() => UniTask.ToCoroutine(
+            async () =>
+            {
+                // Verifies the fix for zero timespent: lifecycle=pause and lifecycle=end must
+                // always send, even when no foreground time was accumulated (0ms). Previously
+                // these were dropped by the guard, making sub-millisecond sessions invisible.
+                var tracker = new SessionTracker(_config, _mockSender);
+
+                tracker.OnApplicationPause(false); // session_start → lifecycle=start (0ms)
+                // Immediately pause (simulating Hamster Jump's rapid session cycling)
+                tracker.OnApplicationPause(true);  // should send lifecycle=pause even at 0ms
+
+                var engagements = _mockSender.GetEventsByName("noctua_user_engagement");
+                var lifecycles  = engagements.Select(e => e.Data["lifecycle"].ToString()).ToList();
+
+                Assert.Contains("pause", lifecycles,
+                    "lifecycle=pause must fire even with 0ms foreground time");
+
+                _mockSender.Clear();
+                tracker.Dispose(); // should send lifecycle=end even at 0ms (session is paused)
+
+                var disposeEngagements = _mockSender.GetEventsByName("noctua_user_engagement");
+                Assert.AreEqual(1, disposeEngagements.Count,
+                    "lifecycle=end must fire on Dispose even with 0ms foreground time since last pause");
+                Assert.AreEqual("end", disposeEngagements[0].Data["lifecycle"].ToString());
             }
         );
 
