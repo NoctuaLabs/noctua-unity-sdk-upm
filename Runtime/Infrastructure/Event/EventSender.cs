@@ -312,7 +312,12 @@ namespace com.noctuagames.sdk.Events
             _cancelSendSource = new CancellationTokenSource();
 
             _deviceId = SystemInfo.deviceUniqueIdentifier;
-            _pseudoUserId = GeneratePseudoUserId(_deviceId, _config.BundleId);
+            // Use a PlayerPrefs-backed UUID instead of SHA256(ANDROID_ID) so the identifier
+            // survives app reinstalls via Android Auto Backup / iCloud Backup — mirroring how
+            // Firebase persists app_instance_id. On first launch a new UUID is generated and
+            // stored; on reinstall the OS backup layer restores it, so returning users are not
+            // counted as new devices.
+            _pseudoUserId = GetOrCreatePersistentDeviceId();
             _sdkVersion = Assembly.GetExecutingAssembly().GetName().Version.ToString();
 
 #if UNITY_ANDROID && !UNITY_EDITOR
@@ -478,71 +483,8 @@ namespace com.noctuagames.sdk.Events
                 }
 
 
-                #if (UNITY_ANDROID || UNITY_IOS) && !UNITY_EDITOR
-                bool shouldFetchFirebaseIds = false;
-                #if UNITY_ANDROID
-                    shouldFetchFirebaseIds = !_config.FirebaseConfig.Android.CustomEventDisabled;
-                #elif UNITY_IOS
-                    shouldFetchFirebaseIds = !_config.FirebaseConfig.Ios.CustomEventDisabled;
-                #endif
-
-                if (shouldFetchFirebaseIds)
-                {
-                    // Cache Firebase IDs to avoid re-fetching per event.
-                    // On iOS, IosPlugin uses single static callback slots for Firebase ID calls.
-                    // Rapid concurrent calls overwrite the pending callback, causing all but the
-                    // last await to hang forever. Caching avoids this entirely.
-                    //
-                    // Single-flight pattern: only one async task fetches at a time.
-                    // Others wait on the lock; once the first sets _firebaseIdsFetched = true,
-                    // waiters re-check the flag and skip straight to using the cached values.
-                    // 5-second timeout prevents infinite hangs when Firebase SDK is not yet
-                    // initialized (common for recovery events spawned at ~300ms post-launch).
-                    if (!_firebaseIdsFetched)
-                    {
-                        await _firebaseFetchLock.WaitAsync();
-                        try
-                        {
-                            // Re-check after acquiring lock — another waiter may have succeeded.
-                            if (!_firebaseIdsFetched && _config.NativeFirebase != null)
-                            {
-                                try
-                                {
-                                    var sessionTcs = new TaskCompletionSource<string>();
-                                    _config.NativeFirebase.GetFirebaseAnalyticsSessionID(id => sessionTcs.TrySetResult(id ?? ""));
-                                    var sessionResult = await Task.WhenAny(sessionTcs.Task, Task.Delay(5000));
-                                    _cachedFirebaseSessionId = sessionResult == sessionTcs.Task ? sessionTcs.Task.Result : "";
-                                    if (sessionResult != sessionTcs.Task)
-                                        _log.Warning("[Event Sender] GetFirebaseAnalyticsSessionID timed out after 5s");
-
-                                    var installTcs = new TaskCompletionSource<string>();
-                                    _config.NativeFirebase.GetFirebaseInstallationID(id => installTcs.TrySetResult(id ?? ""));
-                                    var installResult = await Task.WhenAny(installTcs.Task, Task.Delay(5000));
-                                    _cachedFirebaseInstallationId = installResult == installTcs.Task ? installTcs.Task.Result : "";
-                                    if (installResult != installTcs.Task)
-                                        _log.Warning("[Event Sender] GetFirebaseInstallationID timed out after 5s");
-
-                                    _firebaseIdsFetched = true;
-                                }
-                                catch (Exception e)
-                                {
-                                    _log.Warning($"[Event Sender] Failed to get Firebase IDs: {e.Message}");
-                                }
-                            }
-                        }
-                        finally
-                        {
-                            _firebaseFetchLock.Release();
-                        }
-                    }
-
-                    if (!string.IsNullOrEmpty(_cachedFirebaseSessionId))
-                        data.TryAdd("firebase_analytics_session_id", _cachedFirebaseSessionId);
-                    if (!string.IsNullOrEmpty(_cachedFirebaseInstallationId))
-                        data.TryAdd("firebase_installation_id", _cachedFirebaseInstallationId);
-                }
-                #endif
-
+                // Enrich with timestamp, user identity, and stage data BEFORE the async
+                // Firebase ID fetch so all core fields are present in the pre-persisted copy.
                 LastEventTime = _start.AddSeconds(Stopwatch.GetTimestamp() / (double)Stopwatch.Frequency);
                 data.TryAdd("timestamp", LastEventTime.ToString("O"));
 
@@ -643,11 +585,100 @@ namespace com.noctuagames.sdk.Events
                 if (!string.IsNullOrEmpty(currentStageMode))
                     data.TryAdd("current_stage_mode", currentStageMode);
 
-                // Serialize to JSON and enqueue for per-row INSERT
-                var eventJson = JsonConvert.SerializeObject(
-                    data.ToDictionary(kv => kv.Key, kv => (object)kv.Value)
-                );
-                EnqueueEventForStorage(eventJson);
+                // Pre-persist the event immediately — before the async Firebase ID fetch —
+                // to prevent event loss if the app is killed during the up-to-5 s lookup.
+                // This only applies the first time (while !_firebaseIdsFetched). Pre-persisted
+                // events lack firebase_analytics_session_id / firebase_installation_id; that
+                // is an acceptable trade-off since all core analytics fields are already set.
+                // After _firebaseIdsFetched = true every subsequent call skips this path.
+                var prePersisted = false;
+
+                #if (UNITY_ANDROID || UNITY_IOS) && !UNITY_EDITOR
+                bool shouldFetchFirebaseIds = false;
+                #if UNITY_ANDROID
+                    shouldFetchFirebaseIds = !_config.FirebaseConfig.Android.CustomEventDisabled;
+                #elif UNITY_IOS
+                    shouldFetchFirebaseIds = !_config.FirebaseConfig.Ios.CustomEventDisabled;
+                #endif
+
+                if (shouldFetchFirebaseIds && !_firebaseIdsFetched)
+                {
+                    // Persist now — before yielding for the Firebase lookup.
+                    // If the process is killed during the awaits below, storage already
+                    // has the event. prePersisted prevents a second write after the fetch.
+                    var preJson = JsonConvert.SerializeObject(
+                        data.ToDictionary(kv => kv.Key, kv => (object)kv.Value)
+                    );
+                    EnqueueEventForStorage(preJson);
+                    prePersisted = true;
+                }
+
+                if (shouldFetchFirebaseIds)
+                {
+                    // Cache Firebase IDs to avoid re-fetching per event.
+                    // On iOS, IosPlugin uses single static callback slots for Firebase ID calls.
+                    // Rapid concurrent calls overwrite the pending callback, causing all but the
+                    // last await to hang forever. Caching avoids this entirely.
+                    //
+                    // Single-flight pattern: only one async task fetches at a time.
+                    // Others wait on the lock; once the first sets _firebaseIdsFetched = true,
+                    // waiters re-check the flag and skip straight to using the cached values.
+                    // 5-second timeout prevents infinite hangs when Firebase SDK is not yet
+                    // initialized (common for recovery events spawned at ~300ms post-launch).
+                    if (!_firebaseIdsFetched)
+                    {
+                        await _firebaseFetchLock.WaitAsync();
+                        try
+                        {
+                            // Re-check after acquiring lock — another waiter may have succeeded.
+                            if (!_firebaseIdsFetched && _config.NativeFirebase != null)
+                            {
+                                try
+                                {
+                                    var sessionTcs = new TaskCompletionSource<string>();
+                                    _config.NativeFirebase.GetFirebaseAnalyticsSessionID(id => sessionTcs.TrySetResult(id ?? ""));
+                                    var sessionResult = await Task.WhenAny(sessionTcs.Task, Task.Delay(5000));
+                                    _cachedFirebaseSessionId = sessionResult == sessionTcs.Task ? sessionTcs.Task.Result : "";
+                                    if (sessionResult != sessionTcs.Task)
+                                        _log.Warning("[Event Sender] GetFirebaseAnalyticsSessionID timed out after 5s");
+
+                                    var installTcs = new TaskCompletionSource<string>();
+                                    _config.NativeFirebase.GetFirebaseInstallationID(id => installTcs.TrySetResult(id ?? ""));
+                                    var installResult = await Task.WhenAny(installTcs.Task, Task.Delay(5000));
+                                    _cachedFirebaseInstallationId = installResult == installTcs.Task ? installTcs.Task.Result : "";
+                                    if (installResult != installTcs.Task)
+                                        _log.Warning("[Event Sender] GetFirebaseInstallationID timed out after 5s");
+
+                                    _firebaseIdsFetched = true;
+                                }
+                                catch (Exception e)
+                                {
+                                    _log.Warning($"[Event Sender] Failed to get Firebase IDs: {e.Message}");
+                                }
+                            }
+                        }
+                        finally
+                        {
+                            _firebaseFetchLock.Release();
+                        }
+                    }
+
+                    if (!string.IsNullOrEmpty(_cachedFirebaseSessionId))
+                        data.TryAdd("firebase_analytics_session_id", _cachedFirebaseSessionId);
+                    if (!string.IsNullOrEmpty(_cachedFirebaseInstallationId))
+                        data.TryAdd("firebase_installation_id", _cachedFirebaseInstallationId);
+                }
+                #endif
+
+                // Serialize to JSON and enqueue for per-row INSERT.
+                // Skipped when already pre-persisted above to avoid storing the event twice.
+                if (!prePersisted)
+                {
+                    var eventJson = JsonConvert.SerializeObject(
+                        data.ToDictionary(kv => kv.Key, kv => (object)kv.Value)
+                    );
+                    EnqueueEventForStorage(eventJson);
+                }
 
                 var count = await GetEventCountDirectAsync();
                 _log.Debug($"[Event Sender] Event '{name}' enqueued, current queue length: {count}");
@@ -724,6 +755,33 @@ namespace com.noctuagames.sdk.Events
         }
 #endif
 
+        /// <summary>
+        /// Returns a persistent device UUID stored in PlayerPrefs.
+        /// On the first launch a new UUID is generated and saved under
+        /// <c>NoctuaPersistentDeviceId</c>. On Android, Unity's PlayerPrefs maps to
+        /// SharedPreferences which is included in Android Auto Backup (API 23+), so the
+        /// UUID survives app reinstalls when the user has a Google account with backup
+        /// enabled. On iOS, PlayerPrefs is backed up via iCloud. This mirrors how Firebase
+        /// keeps <c>app_instance_id</c> stable across reinstalls, reducing DNU/DAU inflation
+        /// from returning users being counted as new devices.
+        /// Must be called from the main thread (PlayerPrefs is not thread-safe).
+        /// </summary>
+        private static string GetOrCreatePersistentDeviceId()
+        {
+            const string key = "NoctuaPersistentDeviceId";
+            var stored = PlayerPrefs.GetString(key, "");
+            if (!string.IsNullOrEmpty(stored)) return stored;
+
+            var newId = Guid.NewGuid().ToString("N"); // 32-char lowercase hex, no dashes
+            PlayerPrefs.SetString(key, newId);
+            PlayerPrefs.Save();
+            return newId;
+        }
+
+        /// <summary>
+        /// Legacy SHA-256 hash of deviceId + bundleId. Kept for reference; no longer used
+        /// for pseudo_user_id — replaced by <see cref="GetOrCreatePersistentDeviceId"/>.
+        /// </summary>
         private static string GeneratePseudoUserId(string deviceId, string bundleId)
         {
             using var sha256 = SHA256.Create();
