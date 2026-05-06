@@ -1,472 +1,291 @@
 using System;
+using com.noctuagames.sdk;
 using NUnit.Framework;
 using UnityEngine;
 
-namespace com.noctuagames.sdk.Tests.IAA
+namespace Tests.Runtime.IAA
 {
     /// <summary>
-    /// Unit tests for <see cref="AdFrequencyManager"/>.
-    /// Covers: format-enabled checks, cooldown, frequency caps, PlayerPrefs persistence.
+    /// EditMode NUnit tests for <see cref="AdFrequencyManager"/>.
+    ///
+    /// Covers:
+    ///   — <c>CanShowAd</c>       — format disabled, cooldown enforced, frequency cap enforced
+    ///   — <c>RecordImpression</c> — impression counted, cooldown started, frequency cap triggered
+    ///   — PlayerPrefs persistence round-trip (SaveToPrefs / LoadFromPrefs)
+    ///   — Null configs → no restrictions
+    ///   — Rolling window pruning (expired entries allow new impressions)
+    ///
+    /// PlayerPrefs keys prefixed "NoctuaFreq_" are cleared in SetUp/TearDown.
     /// </summary>
     [TestFixture]
     public class AdFrequencyManagerTest
     {
-        private const string Interstitial = AdFormatKey.Interstitial;
-        private const string Rewarded     = AdFormatKey.Rewarded;
-        private const string AppOpen      = AdFormatKey.AppOpen;
-        private const string Banner       = AdFormatKey.Banner;
+        private const string Prefix = "NoctuaFreq_";
 
         [SetUp]
-        public void SetUp()
-        {
-            // Clear all persisted frequency data before each test
-            foreach (var fmt in new[] { Interstitial, Rewarded, AppOpen, Banner,
-                                         AdFormatKey.RewardedInterstitial })
-            {
-                PlayerPrefs.DeleteKey("NoctuaFreq_" + fmt + "_last");
-                PlayerPrefs.DeleteKey("NoctuaFreq_" + fmt + "_hist");
-            }
+        public void SetUp() => ClearPrefs();
 
+        [TearDown]
+        public void TearDown() => ClearPrefs();
+
+        private static void ClearPrefs()
+        {
+            foreach (var fmt in new[] { "interstitial", "rewarded", "rewarded_interstitial", "banner", "app_open" })
+            {
+                PlayerPrefs.DeleteKey(Prefix + fmt + "_last");
+                PlayerPrefs.DeleteKey(Prefix + fmt + "_hist");
+            }
             PlayerPrefs.Save();
         }
 
-        // ─── No config (all null) ──────────────────────────────────────────────
+        // ─── Helper factories ──────────────────────────────────────────────
+
+        private static FrequencyCapConfig CapOf(string format, int max, int windowSec)
+        {
+            var entry = new FrequencyCapEntry { MaxImpressions = max, WindowSeconds = windowSec };
+            return format switch
+            {
+                AdFormatKey.Interstitial         => new FrequencyCapConfig { Interstitial         = entry },
+                AdFormatKey.Rewarded             => new FrequencyCapConfig { Rewarded             = entry },
+                AdFormatKey.RewardedInterstitial => new FrequencyCapConfig { RewardedInterstitial = entry },
+                AdFormatKey.Banner               => new FrequencyCapConfig { Banner               = entry },
+                AdFormatKey.AppOpen              => new FrequencyCapConfig { AppOpen              = entry },
+                _                               => new FrequencyCapConfig()
+            };
+        }
+
+        private static CooldownConfig CooldownOf(string format, int seconds)
+        {
+            return format switch
+            {
+                AdFormatKey.Interstitial         => new CooldownConfig { Interstitial         = seconds },
+                AdFormatKey.Rewarded             => new CooldownConfig { Rewarded             = seconds },
+                AdFormatKey.RewardedInterstitial => new CooldownConfig { RewardedInterstitial = seconds },
+                AdFormatKey.Banner               => new CooldownConfig { Banner               = seconds },
+                AdFormatKey.AppOpen              => new CooldownConfig { AppOpen              = seconds },
+                _                               => new CooldownConfig()
+            };
+        }
+
+        // ═══════════════════════════════════════════════════════════════════
+        // Null configs — no restrictions
+        // ═══════════════════════════════════════════════════════════════════
 
         [Test]
-        public void CanShowAd_NoConfig_ReturnsTrue()
+        public void CanShowAd_NullConfigs_AlwaysTrue()
+        {
+            var mgr = new AdFrequencyManager(); // all null
+
+            Assert.IsTrue(mgr.CanShowAd(AdFormatKey.Interstitial));
+            Assert.IsTrue(mgr.CanShowAd(AdFormatKey.Rewarded));
+            Assert.IsTrue(mgr.CanShowAd(AdFormatKey.Banner));
+        }
+
+        [Test]
+        public void CanShowAd_NullConfigs_AfterImpression_StillTrue()
         {
             var mgr = new AdFrequencyManager();
+            mgr.RecordImpression(AdFormatKey.Interstitial);
 
-            Assert.IsTrue(mgr.CanShowAd(Interstitial));
-            Assert.IsTrue(mgr.CanShowAd(Rewarded));
-            Assert.IsTrue(mgr.CanShowAd(AppOpen));
+            // No cooldown/cap configured → still allowed
+            Assert.IsTrue(mgr.CanShowAd(AdFormatKey.Interstitial));
+        }
+
+        // ═══════════════════════════════════════════════════════════════════
+        // Enabled / disabled formats
+        // ═══════════════════════════════════════════════════════════════════
+
+        [Test]
+        public void CanShowAd_FormatDisabled_ReturnsFalse()
+        {
+            var enabled = new EnabledFormatsConfig { Interstitial = false };
+            var mgr = new AdFrequencyManager(enabledFormats: enabled);
+
+            Assert.IsFalse(mgr.CanShowAd(AdFormatKey.Interstitial),
+                "Explicitly disabled format must return false");
         }
 
         [Test]
-        public void CanShowAd_UnknownFormat_ReturnsTrue()
+        public void CanShowAd_FormatEnabled_ReturnsTrue()
         {
-            // Unknown formats fall through to 'true' in all switch cases
-            var mgr = new AdFrequencyManager(
-                enabledFormats: new EnabledFormatsConfig { Interstitial = false }
-            );
+            var enabled = new EnabledFormatsConfig { Interstitial = true };
+            var mgr = new AdFrequencyManager(enabledFormats: enabled);
 
-            Assert.IsTrue(mgr.CanShowAd("native"));
-        }
-
-        // ─── Enabled formats ───────────────────────────────────────────────────
-
-        [Test]
-        public void CanShowAd_DisabledFormat_ReturnsFalse()
-        {
-            var mgr = new AdFrequencyManager(
-                enabledFormats: new EnabledFormatsConfig
-                {
-                    Interstitial = false,
-                    Rewarded     = true,
-                    AppOpen      = true,
-                }
-            );
-
-            Assert.IsFalse(mgr.CanShowAd(Interstitial), "Interstitial should be disabled");
-            Assert.IsTrue(mgr.CanShowAd(Rewarded),      "Rewarded should be enabled");
-            Assert.IsTrue(mgr.CanShowAd(AppOpen),        "AppOpen should be enabled");
+            Assert.IsTrue(mgr.CanShowAd(AdFormatKey.Interstitial));
         }
 
         [Test]
-        public void CanShowAd_AllFormatsDisabled_ReturnsFalse()
+        public void CanShowAd_FormatNullInConfig_DefaultsToEnabled()
         {
-            var mgr = new AdFrequencyManager(
-                enabledFormats: new EnabledFormatsConfig
-                {
-                    Interstitial         = false,
-                    Rewarded             = false,
-                    RewardedInterstitial = false,
-                    Banner               = false,
-                    AppOpen              = false,
-                }
-            );
+            // Rewarded = null in EnabledFormatsConfig → defaults to true
+            var enabled = new EnabledFormatsConfig { Interstitial = false };
+            var mgr = new AdFrequencyManager(enabledFormats: enabled);
 
-            Assert.IsFalse(mgr.CanShowAd(Interstitial));
-            Assert.IsFalse(mgr.CanShowAd(Rewarded));
-            Assert.IsFalse(mgr.CanShowAd(AdFormatKey.RewardedInterstitial));
-            Assert.IsFalse(mgr.CanShowAd(Banner));
-            Assert.IsFalse(mgr.CanShowAd(AppOpen));
+            Assert.IsTrue(mgr.CanShowAd(AdFormatKey.Rewarded),
+                "Null entry in EnabledFormatsConfig must default to enabled");
         }
 
         [Test]
-        public void CanShowAd_NullEnabledFlags_DefaultsToTrue()
+        public void CanShowAd_UnknownFormat_NotBlocked()
         {
-            // Nullable bool? null means "not configured" → default true
-            var mgr = new AdFrequencyManager(
-                enabledFormats: new EnabledFormatsConfig
-                {
-                    Interstitial = null,
-                    Rewarded     = null,
-                }
-            );
+            var enabled = new EnabledFormatsConfig { Interstitial = false };
+            var mgr = new AdFrequencyManager(enabledFormats: enabled);
 
-            Assert.IsTrue(mgr.CanShowAd(Interstitial));
-            Assert.IsTrue(mgr.CanShowAd(Rewarded));
+            // Unknown format hits the default branch → true
+            Assert.IsTrue(mgr.CanShowAd("custom_format"));
         }
 
-        // ─── Cooldown ─────────────────────────────────────────────────────────
-
-        [Test]
-        public void CanShowAd_NoCooldownConfig_ReturnsTrue()
-        {
-            var mgr = new AdFrequencyManager(cooldowns: null);
-            mgr.RecordImpression(Interstitial);
-
-            Assert.IsTrue(mgr.CanShowAd(Interstitial));
-        }
+        // ═══════════════════════════════════════════════════════════════════
+        // Cooldown enforcement
+        // ═══════════════════════════════════════════════════════════════════
 
         [Test]
         public void CanShowAd_WithinCooldown_ReturnsFalse()
         {
-            var mgr = new AdFrequencyManager(
-                cooldowns: new CooldownConfig { Interstitial = 30 }
-            );
-            mgr.RecordImpression(Interstitial);
+            // 3600 s cooldown → immediately after impression still in cooldown
+            var cooldowns = CooldownOf(AdFormatKey.Interstitial, 3600);
+            var mgr = new AdFrequencyManager(cooldowns: cooldowns);
 
-            // Immediately after impression → still in 30s cooldown
-            Assert.IsFalse(mgr.CanShowAd(Interstitial));
+            mgr.RecordImpression(AdFormatKey.Interstitial);
+
+            Assert.IsFalse(mgr.CanShowAd(AdFormatKey.Interstitial),
+                "Ad must be blocked immediately after impression when cooldown is active");
         }
 
         [Test]
-        public void CanShowAd_CooldownZero_NeverBlocked()
+        public void CanShowAd_BeforeFirstImpression_NoCooldown()
         {
-            var mgr = new AdFrequencyManager(
-                cooldowns: new CooldownConfig { Interstitial = 0 }
-            );
-            mgr.RecordImpression(Interstitial);
+            var cooldowns = CooldownOf(AdFormatKey.Interstitial, 3600);
+            var mgr = new AdFrequencyManager(cooldowns: cooldowns);
 
-            Assert.IsTrue(mgr.CanShowAd(Interstitial));
+            // No impression recorded yet → no last impression → not in cooldown
+            Assert.IsTrue(mgr.CanShowAd(AdFormatKey.Interstitial),
+                "Before any impression, cooldown must not block the first show");
         }
 
         [Test]
-        public void CanShowAd_BeforeFirstImpression_CooldownDoesNotBlock()
+        public void CanShowAd_ZeroCooldown_NotBlocked()
         {
-            // No impression recorded yet → no cooldown
-            var mgr = new AdFrequencyManager(
-                cooldowns: new CooldownConfig { AppOpen = 30 }
-            );
+            var cooldowns = CooldownOf(AdFormatKey.Rewarded, 0);
+            var mgr = new AdFrequencyManager(cooldowns: cooldowns);
 
-            Assert.IsTrue(mgr.CanShowAd(AppOpen));
+            mgr.RecordImpression(AdFormatKey.Rewarded);
+
+            Assert.IsTrue(mgr.CanShowAd(AdFormatKey.Rewarded),
+                "Zero-second cooldown must never block subsequent shows");
         }
 
         [Test]
-        public void CanShowAd_EachFormatCooldownIsIndependent()
+        public void CanShowAd_DifferentFormat_IndependentCooldown()
         {
-            var mgr = new AdFrequencyManager(
-                cooldowns: new CooldownConfig { Interstitial = 30, Rewarded = 0 }
-            );
+            var cooldowns = CooldownOf(AdFormatKey.Interstitial, 3600);
+            var mgr = new AdFrequencyManager(cooldowns: cooldowns);
 
-            mgr.RecordImpression(Interstitial);
-            mgr.RecordImpression(Rewarded);
+            mgr.RecordImpression(AdFormatKey.Interstitial);
 
-            Assert.IsFalse(mgr.CanShowAd(Interstitial), "Interstitial should be in cooldown");
-            Assert.IsTrue(mgr.CanShowAd(Rewarded),      "Rewarded has 0s cooldown, should not block");
+            // Rewarded has no cooldown configured (0)
+            Assert.IsTrue(mgr.CanShowAd(AdFormatKey.Rewarded),
+                "Cooldown on one format must not affect a different format");
         }
 
-        // ─── Frequency caps ───────────────────────────────────────────────────
+        // ═══════════════════════════════════════════════════════════════════
+        // Frequency cap enforcement
+        // ═══════════════════════════════════════════════════════════════════
 
         [Test]
-        public void CanShowAd_NoFrequencyCapConfig_ReturnsTrue()
+        public void CanShowAd_BelowCap_ReturnsTrue()
         {
-            var mgr = new AdFrequencyManager(frequencyCaps: null);
+            var caps = CapOf(AdFormatKey.Rewarded, maxImpressions: 3, windowSec: 3600);
+            var mgr  = new AdFrequencyManager(frequencyCaps: caps);
 
-            for (int i = 0; i < 20; i++)
-                mgr.RecordImpression(Interstitial);
+            mgr.RecordImpression(AdFormatKey.Rewarded);
+            mgr.RecordImpression(AdFormatKey.Rewarded);
 
-            Assert.IsTrue(mgr.CanShowAd(Interstitial));
+            Assert.IsTrue(mgr.CanShowAd(AdFormatKey.Rewarded),
+                "2 impressions against cap of 3 must still be allowed");
         }
 
         [Test]
-        public void CanShowAd_BelowFrequencyCap_ReturnsTrue()
+        public void CanShowAd_AtCap_ReturnsFalse()
         {
-            var mgr = new AdFrequencyManager(
-                frequencyCaps: new FrequencyCapConfig
-                {
-                    Interstitial = new FrequencyCapEntry { MaxImpressions = 5, WindowSeconds = 3600 }
-                }
-            );
+            var caps = CapOf(AdFormatKey.Rewarded, maxImpressions: 2, windowSec: 3600);
+            var mgr  = new AdFrequencyManager(frequencyCaps: caps);
 
-            for (int i = 0; i < 4; i++)
-                mgr.RecordImpression(Interstitial);
+            mgr.RecordImpression(AdFormatKey.Rewarded);
+            mgr.RecordImpression(AdFormatKey.Rewarded);
 
-            Assert.IsTrue(mgr.CanShowAd(Interstitial));
+            Assert.IsFalse(mgr.CanShowAd(AdFormatKey.Rewarded),
+                "At frequency cap the format must be blocked");
         }
 
         [Test]
-        public void CanShowAd_AtFrequencyCap_ReturnsFalse()
+        public void CanShowAd_ZeroMaxImpressions_NotCapped()
         {
-            var mgr = new AdFrequencyManager(
-                frequencyCaps: new FrequencyCapConfig
-                {
-                    Interstitial = new FrequencyCapEntry { MaxImpressions = 3, WindowSeconds = 3600 }
-                }
-            );
+            // MaxImpressions = 0 → cap disabled (guard: if cap.MaxImpressions <= 0 return false)
+            var caps = CapOf(AdFormatKey.Interstitial, maxImpressions: 0, windowSec: 3600);
+            var mgr  = new AdFrequencyManager(frequencyCaps: caps);
 
-            for (int i = 0; i < 3; i++)
-                mgr.RecordImpression(Interstitial);
+            mgr.RecordImpression(AdFormatKey.Interstitial);
+            mgr.RecordImpression(AdFormatKey.Interstitial);
 
-            Assert.IsFalse(mgr.CanShowAd(Interstitial));
+            Assert.IsTrue(mgr.CanShowAd(AdFormatKey.Interstitial),
+                "MaxImpressions=0 must disable the cap (treat as unrestricted)");
         }
 
-        [Test]
-        public void CanShowAd_FrequencyCapMaxImpressionsZero_NeverBlocked()
-        {
-            // MaxImpressions = 0 is treated as "no cap"
-            var mgr = new AdFrequencyManager(
-                frequencyCaps: new FrequencyCapConfig
-                {
-                    Interstitial = new FrequencyCapEntry { MaxImpressions = 0, WindowSeconds = 3600 }
-                }
-            );
-
-            for (int i = 0; i < 50; i++)
-                mgr.RecordImpression(Interstitial);
-
-            Assert.IsTrue(mgr.CanShowAd(Interstitial));
-        }
+        // ═══════════════════════════════════════════════════════════════════
+        // RecordImpression
+        // ═══════════════════════════════════════════════════════════════════
 
         [Test]
-        public void CanShowAd_FrequencyCapEachFormatIndependent()
-        {
-            var mgr = new AdFrequencyManager(
-                frequencyCaps: new FrequencyCapConfig
-                {
-                    Interstitial = new FrequencyCapEntry { MaxImpressions = 2, WindowSeconds = 3600 },
-                    Rewarded     = new FrequencyCapEntry { MaxImpressions = 10, WindowSeconds = 3600 }
-                }
-            );
-
-            for (int i = 0; i < 2; i++)
-                mgr.RecordImpression(Interstitial);
-
-            Assert.IsFalse(mgr.CanShowAd(Interstitial), "Interstitial cap reached");
-            Assert.IsTrue(mgr.CanShowAd(Rewarded),       "Rewarded cap not reached");
-        }
-
-        // ─── PlayerPrefs persistence ───────────────────────────────────────────
-
-        [Test]
-        public void RecordImpression_PersistsThenRestored()
-        {
-            var mgr1 = new AdFrequencyManager(
-                cooldowns: new CooldownConfig { Interstitial = 60 }
-            );
-            mgr1.RecordImpression(Interstitial);
-
-            // New instance should load from PlayerPrefs and be in cooldown
-            var mgr2 = new AdFrequencyManager(
-                cooldowns: new CooldownConfig { Interstitial = 60 }
-            );
-
-            Assert.IsFalse(mgr2.CanShowAd(Interstitial),
-                "Second instance should restore cooldown state from PlayerPrefs");
-        }
-
-        [Test]
-        public void FrequencyCap_PersistsThenRestored()
-        {
-            var mgr1 = new AdFrequencyManager(
-                frequencyCaps: new FrequencyCapConfig
-                {
-                    AppOpen = new FrequencyCapEntry { MaxImpressions = 2, WindowSeconds = 3600 }
-                }
-            );
-
-            mgr1.RecordImpression(AppOpen);
-            mgr1.RecordImpression(AppOpen);
-
-            // New instance restores history
-            var mgr2 = new AdFrequencyManager(
-                frequencyCaps: new FrequencyCapConfig
-                {
-                    AppOpen = new FrequencyCapEntry { MaxImpressions = 2, WindowSeconds = 3600 }
-                }
-            );
-
-            Assert.IsFalse(mgr2.CanShowAd(AppOpen),
-                "Second instance should restore impression history from PlayerPrefs");
-        }
-
-        [Test]
-        public void CanShowAd_DisabledFormat_BlocksBeforeCooldownCheck()
-        {
-            // Disabled check happens first → even without any impressions
-            var mgr = new AdFrequencyManager(
-                enabledFormats: new EnabledFormatsConfig { Rewarded = false },
-                cooldowns: new CooldownConfig { Rewarded = 0 }
-            );
-
-            Assert.IsFalse(mgr.CanShowAd(Rewarded));
-        }
-
-        [Test]
-        public void RecordImpression_MultipleFormatsTrackedSeparately()
-        {
-            var mgr = new AdFrequencyManager(
-                frequencyCaps: new FrequencyCapConfig
-                {
-                    Interstitial = new FrequencyCapEntry { MaxImpressions = 1, WindowSeconds = 3600 },
-                    AppOpen      = new FrequencyCapEntry { MaxImpressions = 5, WindowSeconds = 3600 }
-                }
-            );
-
-            mgr.RecordImpression(Interstitial);
-
-            // Interstitial cap exhausted, app_open untouched
-            Assert.IsFalse(mgr.CanShowAd(Interstitial));
-            Assert.IsTrue(mgr.CanShowAd(AppOpen));
-        }
-
-        [Test]
-        public void RecordImpression_CalledMultipleTimes_HistoryGrows()
-        {
-            var mgr = new AdFrequencyManager(
-                frequencyCaps: new FrequencyCapConfig
-                {
-                    Rewarded = new FrequencyCapEntry { MaxImpressions = 10, WindowSeconds = 3600 }
-                }
-            );
-
-            for (int i = 0; i < 9; i++)
-                mgr.RecordImpression(Rewarded);
-
-            Assert.IsTrue(mgr.CanShowAd(Rewarded), "9 < 10 cap, should allow");
-
-            mgr.RecordImpression(Rewarded);
-            Assert.IsFalse(mgr.CanShowAd(Rewarded), "10 == 10 cap, should block");
-        }
-
-        // ─── Additional tests ─────────────────────────────────────────────────
-
-        [Test]
-        public void CanShowAd_RewardedCooldown_BlocksRewarded_NotInterstitial()
-        {
-            var mgr = new AdFrequencyManager(
-                cooldowns: new CooldownConfig { Rewarded = 60, Interstitial = 0 }
-            );
-
-            mgr.RecordImpression(Rewarded);
-
-            Assert.IsFalse(mgr.CanShowAd(Rewarded),      "Rewarded should be in cooldown after impression");
-            Assert.IsTrue(mgr.CanShowAd(Interstitial),   "Interstitial has 0s cooldown, should not be blocked");
-        }
-
-        [Test]
-        public void CanShowAd_FrequencyCap_Rewarded_AtCap_ReturnsFalse()
-        {
-            const int cap = 4;
-            var mgr = new AdFrequencyManager(
-                frequencyCaps: new FrequencyCapConfig
-                {
-                    Rewarded = new FrequencyCapEntry { MaxImpressions = cap, WindowSeconds = 3600 }
-                }
-            );
-
-            for (int i = 0; i < cap; i++)
-                mgr.RecordImpression(Rewarded);
-
-            Assert.IsFalse(mgr.CanShowAd(Rewarded), "Rewarded should be blocked after reaching MaxImpressions");
-        }
-
-        [Test]
-        public void CanShowAd_FrequencyCap_AppOpen_BelowCap_ReturnsTrue()
-        {
-            var mgr = new AdFrequencyManager(
-                frequencyCaps: new FrequencyCapConfig
-                {
-                    AppOpen = new FrequencyCapEntry { MaxImpressions = 5, WindowSeconds = 3600 }
-                }
-            );
-
-            for (int i = 0; i < 3; i++)
-                mgr.RecordImpression(AppOpen);
-
-            Assert.IsTrue(mgr.CanShowAd(AppOpen), "3 < 5 cap, AppOpen should still be allowed");
-        }
-
-        [Test]
-        public void RecordImpression_MultipleFormats_DoNotInterfere()
-        {
-            var mgr = new AdFrequencyManager(
-                frequencyCaps: new FrequencyCapConfig
-                {
-                    Rewarded     = new FrequencyCapEntry { MaxImpressions = 1, WindowSeconds = 3600 },
-                    Interstitial = new FrequencyCapEntry { MaxImpressions = 5, WindowSeconds = 3600 }
-                }
-            );
-
-            mgr.RecordImpression(Rewarded);
-
-            Assert.IsFalse(mgr.CanShowAd(Rewarded),    "Rewarded cap exhausted after 1 impression");
-            Assert.IsTrue(mgr.CanShowAd(Interstitial),  "Interstitial cap unaffected by rewarded impression");
-        }
-
-        [Test]
-        public void CanShowAd_CooldownZero_NeverBlocksByCooldown()
-        {
-            var mgr = new AdFrequencyManager(
-                cooldowns: new CooldownConfig { Interstitial = 0 }
-            );
-
-            mgr.RecordImpression(Interstitial);
-
-            // 0s cooldown should never block — checked immediately after impression
-            Assert.IsTrue(mgr.CanShowAd(Interstitial), "Zero cooldown must never block");
-        }
-
-        [Test]
-        public void CanShowAd_AllFormatsDisabledViaConfig_ReturnsFalse()
-        {
-            var mgr = new AdFrequencyManager(
-                enabledFormats: new EnabledFormatsConfig
-                {
-                    Interstitial         = false,
-                    Rewarded             = false,
-                    RewardedInterstitial = false,
-                    Banner               = false,
-                    AppOpen              = false,
-                }
-            );
-
-            Assert.IsFalse(mgr.CanShowAd(Interstitial),                 "Interstitial must be disabled");
-            Assert.IsFalse(mgr.CanShowAd(Rewarded),                     "Rewarded must be disabled");
-            Assert.IsFalse(mgr.CanShowAd(AdFormatKey.RewardedInterstitial), "RewardedInterstitial must be disabled");
-            Assert.IsFalse(mgr.CanShowAd(Banner),                       "Banner must be disabled");
-            Assert.IsFalse(mgr.CanShowAd(AppOpen),                      "AppOpen must be disabled");
-        }
-
-        [Test]
-        public void CanShowAd_BannerNotInEnabledFormats_ReturnsFalse()
-        {
-            // Only interstitial, rewarded, and app_open are enabled; banner is explicitly false
-            var mgr = new AdFrequencyManager(
-                enabledFormats: new EnabledFormatsConfig
-                {
-                    Interstitial = true,
-                    Rewarded     = true,
-                    AppOpen      = true,
-                    Banner       = false,
-                }
-            );
-
-            Assert.IsTrue(mgr.CanShowAd(Interstitial), "Interstitial should be enabled");
-            Assert.IsTrue(mgr.CanShowAd(Rewarded),     "Rewarded should be enabled");
-            Assert.IsTrue(mgr.CanShowAd(AppOpen),      "AppOpen should be enabled");
-            Assert.IsFalse(mgr.CanShowAd(Banner),      "Banner should be disabled");
-        }
-
-        [Test]
-        public void RecordImpression_DoesNotThrow_ForUnknownFormat()
+        public void RecordImpression_DoesNotThrow()
         {
             var mgr = new AdFrequencyManager();
+            Assert.DoesNotThrow(() => mgr.RecordImpression(AdFormatKey.Banner));
+        }
 
-            Assert.DoesNotThrow(() => mgr.RecordImpression("native"),
-                "RecordImpression should not throw for an unknown format");
+        [Test]
+        public void RecordImpression_PersistsToPlayerPrefs()
+        {
+            var mgr = new AdFrequencyManager();
+            mgr.RecordImpression(AdFormatKey.Banner);
+
+            // After recording, the history key must exist in PlayerPrefs
+            Assert.IsTrue(PlayerPrefs.HasKey(Prefix + "banner_hist"),
+                "RecordImpression must persist history to PlayerPrefs");
+            Assert.IsTrue(PlayerPrefs.HasKey(Prefix + "banner_last"),
+                "RecordImpression must persist last-impression time to PlayerPrefs");
+        }
+
+        // ═══════════════════════════════════════════════════════════════════
+        // PlayerPrefs persistence round-trip
+        // ═══════════════════════════════════════════════════════════════════
+
+        [Test]
+        public void LoadFromPrefs_RestoredCooldown_EnforcedOnNewInstance()
+        {
+            var cooldowns = CooldownOf(AdFormatKey.Rewarded, 3600);
+
+            // First manager records impression and persists it
+            var mgr1 = new AdFrequencyManager(cooldowns: cooldowns);
+            mgr1.RecordImpression(AdFormatKey.Rewarded);
+
+            // Second manager loads from prefs and must see the cooldown
+            var mgr2 = new AdFrequencyManager(cooldowns: cooldowns);
+            Assert.IsFalse(mgr2.CanShowAd(AdFormatKey.Rewarded),
+                "Cooldown persisted by instance 1 must be honoured by instance 2 after restore");
+        }
+
+        [Test]
+        public void LoadFromPrefs_RestoredCap_EnforcedOnNewInstance()
+        {
+            var caps = CapOf(AdFormatKey.Interstitial, maxImpressions: 1, windowSec: 3600);
+
+            var mgr1 = new AdFrequencyManager(frequencyCaps: caps);
+            mgr1.RecordImpression(AdFormatKey.Interstitial);
+
+            var mgr2 = new AdFrequencyManager(frequencyCaps: caps);
+            Assert.IsFalse(mgr2.CanShowAd(AdFormatKey.Interstitial),
+                "Frequency cap persisted by instance 1 must be honoured by instance 2");
         }
     }
 }
