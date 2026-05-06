@@ -365,7 +365,8 @@ namespace com.noctuagames.sdk.Tests.IAA
             {
                 // null segmentKey → ExtractCountryTier returns "t3"
                 var result = mgr.EvaluateFloor("admob", Interstitial, avgCpm: 0.10, sampleCount: 20, segmentKey: null);
-                Assert.AreEqual(CpmFloorResult.HardFail, result, "Null segmentKey should fall back to t3 (soft=0.05, hard=0.02); 0.10 > 0.05 → Allow... wait, t3 soft=0.05, 0.10 >= 0.05 → Allow");
+                // t3: soft=0.05, hard=0.02. avgCpm=0.10 > soft=0.05 → Allow
+                Assert.AreEqual(CpmFloorResult.Allow, result, "Null segmentKey falls back to t3; avgCpm 0.10 > soft 0.05 → Allow");
             });
         }
 

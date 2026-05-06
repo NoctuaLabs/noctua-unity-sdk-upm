@@ -321,7 +321,7 @@ namespace com.noctuagames.sdk
 
         /// <summary>Returns true if this account is a guest (device-id based) account.</summary>
         [JsonIgnore]
-        public bool IsGuest => User?.IsGuest ?? Credential?.Provider == "device_id";
+        public bool IsGuest => (User?.IsGuest == true) || (Credential?.Provider == "device_id");
 
         /// <summary>Human-readable display name derived from nickname, credential, or fallback text.</summary>
         [JsonIgnore]

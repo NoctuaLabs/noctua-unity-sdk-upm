@@ -474,6 +474,17 @@ namespace com.noctuagames.sdk
                         );
                 }
 
+                // DeserializeObject returns null when the response body is empty
+                // or is the JSON literal "null". Guard before member access.
+                if (errorResponse == null)
+                {
+                    _log.Error($"HTTP error {_request.responseCode}, empty/null error body: '{response}'");
+                    FireEndIfObserved(exchange, sw, response, HttpExchangeState.Failed);
+                    throw new NoctuaException(
+                        NoctuaErrorCode.Application,
+                        $"HTTP error {_request.responseCode}: {responseCodeString}");
+                }
+
                 _log.Error($"Noctua error {errorResponse.ErrorCode}: {errorResponse.ErrorMessage}");
                 FireEndIfObserved(exchange, sw, response, HttpExchangeState.Failed);
                 throw new NoctuaException((NoctuaErrorCode)errorResponse.ErrorCode, errorResponse.ErrorMessage);

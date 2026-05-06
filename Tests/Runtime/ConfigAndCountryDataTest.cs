@@ -218,7 +218,7 @@ namespace Tests.Runtime
             const string json = @"{
                 ""clientId"": ""game-client-123"",
                 ""gameId"": 42,
-                ""noctua"": { ""isSandbox"": true }
+                ""noctua"": { ""sandboxEnabled"": true }
             }";
 
             var config = JsonConvert.DeserializeObject<GlobalConfig>(json);
