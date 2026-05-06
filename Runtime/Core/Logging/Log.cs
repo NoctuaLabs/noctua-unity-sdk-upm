@@ -345,18 +345,22 @@ namespace com.noctuagames.sdk
             {
                 if (!ShouldForward(type)) return;
 
-                if (type == LogType.Exception)
-                {
-                    _log.Error($"{logString}\n{stackTrace}");
-                }
-
-                ForwardToEvents(
+                // ForwardToEvents returns true only for the first-in-dedup-window
+                // event. _log.Error is gated on that so it doesn't fire for every
+                // deduplicated repeat (which would spam the console on crash storms
+                // and cause microbench / allocation pressure in tests).
+                var forwarded = ForwardToEvents(
                     errorType: ExtractType(logString, type),
                     message: logString,
                     stackTrace: stackTrace,
                     severity: SeverityOf(type),
                     thread: "main",
                     scene: SceneManager.GetActiveScene().name);
+
+                if (forwarded && type == LogType.Exception)
+                {
+                    _log.Error($"{logString}\n{stackTrace}");
+                }
             }
             catch { /* never rethrow into Unity's logger */ }
             finally { _suppressForwarding = false; }
@@ -375,18 +379,18 @@ namespace com.noctuagames.sdk
             {
                 if (!ShouldForward(type)) return;
 
-                if (type == LogType.Exception)
-                {
-                    _log.Error($"{logString}\n{stackTrace}");
-                }
-
-                ForwardToEvents(
+                var forwarded = ForwardToEvents(
                     errorType: ExtractType(logString, type),
                     message: logString,
                     stackTrace: stackTrace,
                     severity: SeverityOf(type),
                     thread: "background",
                     scene: _cachedScene);
+
+                if (forwarded && type == LogType.Exception)
+                {
+                    _log.Error($"{logString}\n{stackTrace}");
+                }
             }
             catch { /* never rethrow */ }
             finally { _suppressForwarding = false; }
@@ -406,15 +410,18 @@ namespace com.noctuagames.sdk
                 var ex = e.ExceptionObject as Exception;
                 if (ex == null) return;
 
-                _log.Exception(ex);
-
-                ForwardToEvents(
+                var forwarded = ForwardToEvents(
                     errorType: ex.GetType().Name,
                     message: ex.Message,
                     stackTrace: ex.StackTrace,
                     severity: "error",
                     thread: "unhandled",
                     scene: _cachedScene);
+
+                if (forwarded)
+                {
+                    _log.Exception(ex);
+                }
             }
             catch { /* never rethrow */ }
             finally { _suppressForwarding = false; }
@@ -438,7 +445,13 @@ namespace com.noctuagames.sdk
             }
         }
 
-        private void ForwardToEvents(
+        /// <returns>
+        /// <c>true</c> when the event was actually sent (first-in-dedup-window,
+        /// within rate limit); <c>false</c> when suppressed by dedup or rate limit.
+        /// Callers use this to gate their own <c>_log.Error</c>/<c>_log.Exception</c>
+        /// calls so those don't fire for every deduplicated repeat.
+        /// </returns>
+        private bool ForwardToEvents(
             string errorType,
             string message,
             string stackTrace,
@@ -446,7 +459,7 @@ namespace com.noctuagames.sdk
             string thread,
             string scene)
         {
-            if (_eventSender == null) return;
+            if (_eventSender == null) return false;
             // Note: re-entrancy guard is applied at the handler entry
             // (HandleLog / HandleLogThreaded / HandleUnhandledException), not
             // here. That way, the handler's own `_log.Error(...)` — which in
@@ -474,7 +487,7 @@ namespace com.noctuagames.sdk
             if (Interlocked.Increment(ref _windowCount) > RateLimitPerMinute)
             {
                 Interlocked.Increment(ref _suppressedCounter);
-                return;
+                return false;
             }
 
             // Dedup by (errorType, message, stack-head) within a 60s window.
@@ -522,7 +535,7 @@ namespace com.noctuagames.sdk
                     return existing;
                 });
 
-            if (!isFirstInWindow) return;
+            if (!isFirstInWindow) return false;
 
             var suppressed = Interlocked.Exchange(ref _suppressedCounter, 0);
 
@@ -552,6 +565,8 @@ namespace com.noctuagames.sdk
                 // an error-level log.
                 _log.Debug("Failed to forward client_error event: " + sendEx.Message);
             }
+
+            return true;
         }
 
         /// <summary>
