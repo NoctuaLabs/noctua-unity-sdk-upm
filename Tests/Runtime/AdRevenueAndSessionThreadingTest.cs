@@ -5,6 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using com.noctuagames.sdk;
 using com.noctuagames.sdk.AdPlaceholder;
+using com.noctuagames.sdk.Events;
 using Cysharp.Threading.Tasks;
 using NUnit.Framework;
 using Tests.Runtime.IAA;
