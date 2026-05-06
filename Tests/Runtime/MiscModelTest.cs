@@ -1,5 +1,6 @@
 using System;
 using com.noctuagames.sdk;
+using com.noctuagames.sdk.Events; // GeoIPData
 using Newtonsoft.Json;
 using NUnit.Framework;
 
@@ -153,7 +154,7 @@ namespace Tests.Runtime
             var entry = new RefundTrackingEntry
             {
                 ProductId   = "com.example.gold500",
-                PaymentType = PaymentType.PlayStore,
+                PaymentType = PaymentType.playstore,
                 Timestamp   = timestamp,
             };
 
@@ -161,14 +162,14 @@ namespace Tests.Runtime
             var back = JsonConvert.DeserializeObject<RefundTrackingEntry>(json);
 
             Assert.AreEqual("com.example.gold500", back.ProductId);
-            Assert.AreEqual(PaymentType.PlayStore,  back.PaymentType);
+            Assert.AreEqual(PaymentType.playstore,  back.PaymentType);
             Assert.AreEqual(timestamp,              back.Timestamp);
         }
 
         [Test]
         public void RefundTrackingEntry_JsonKeys_AreSnakeCase()
         {
-            var entry = new RefundTrackingEntry { ProductId = "x", PaymentType = PaymentType.None };
+            var entry = new RefundTrackingEntry { ProductId = "x", PaymentType = PaymentType.unknown };
             var json  = JsonConvert.SerializeObject(entry);
 
             StringAssert.Contains("\"product_id\"",   json);
