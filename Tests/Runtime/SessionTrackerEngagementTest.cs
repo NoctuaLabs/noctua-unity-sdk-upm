@@ -6,6 +6,7 @@ using com.noctuagames.sdk;
 using com.noctuagames.sdk.Events;
 using Cysharp.Threading.Tasks;
 using NUnit.Framework;
+using UnityEngine;
 using UnityEngine.TestTools;
 
 namespace Tests.Runtime
