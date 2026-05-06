@@ -126,6 +126,7 @@ namespace com.noctuagames.sdk
 
         public void Info(string message, [CallerMemberName] string memberName = "")
         {
+            message ??= "";
             if (message.Length > 800)
             {
                 for (int i = 0; i < message.Length; i += 800)

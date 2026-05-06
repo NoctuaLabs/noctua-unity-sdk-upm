@@ -803,7 +803,7 @@ namespace com.noctuagames.sdk.Tests.IAP
             }
             catch (NoctuaException ex)
             {
-                Assert.AreEqual(NoctuaErrorCode.Application, ex.ErrorCode,
+                Assert.AreEqual((int)NoctuaErrorCode.Application, ex.ErrorCode,
                     "EnsureEnabled guard must throw NoctuaException with Application error code");
             }
         }
@@ -819,7 +819,7 @@ namespace com.noctuagames.sdk.Tests.IAP
             }
             catch (NoctuaException ex)
             {
-                Assert.AreEqual(NoctuaErrorCode.Application, ex.ErrorCode);
+                Assert.AreEqual((int)NoctuaErrorCode.Application, ex.ErrorCode);
             }
         }
 
@@ -834,7 +834,7 @@ namespace com.noctuagames.sdk.Tests.IAP
             }
             catch (NoctuaException ex)
             {
-                Assert.AreEqual(NoctuaErrorCode.Application, ex.ErrorCode);
+                Assert.AreEqual((int)NoctuaErrorCode.Application, ex.ErrorCode);
             }
         }
     }
