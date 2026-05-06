@@ -614,5 +614,202 @@ namespace Tests.Runtime
                 }
             }
         );
+
+        // ─── Dispose idempotency ─────────────────────────────────────────────
+
+        [UnityTest]
+        public IEnumerator Dispose_IsIdempotent_DoesNotThrowOrDoubleSessionEnd() => UniTask.ToCoroutine(
+            async () =>
+            {
+                var tracker = new SessionTracker(_config, _mockSender);
+                tracker.OnApplicationPause(false);
+                await UniTask.Delay(50);
+
+                tracker.Dispose();
+                var countAfterFirst = _mockSender.GetEventsByName("session_end").Count;
+
+                Assert.DoesNotThrow(() => tracker.Dispose(),
+                    "Second Dispose() call must not throw");
+                Assert.AreEqual(countAfterFirst, _mockSender.GetEventsByName("session_end").Count,
+                    "Second Dispose() must not emit a second session_end");
+            }
+        );
+
+        // ─── OnApplicationPause same-status guard ────────────────────────────
+
+        [UnityTest]
+        public IEnumerator OnApplicationPause_SameStatus_IsIgnored() => UniTask.ToCoroutine(
+            async () =>
+            {
+                var tracker = new SessionTracker(_config, _mockSender);
+                tracker.OnApplicationPause(false); // start session
+
+                int countAfterStart = _mockSender.SentEvents.Count;
+                tracker.OnApplicationPause(false); // same status — must be no-op
+
+                Assert.AreEqual(countAfterStart, _mockSender.SentEvents.Count,
+                    "Calling OnApplicationPause with the same status must emit no new events");
+
+                // Pause twice — second must be no-op too
+                tracker.OnApplicationPause(true);
+                int countAfterPause = _mockSender.SentEvents.Count;
+                tracker.OnApplicationPause(true);
+                Assert.AreEqual(countAfterPause, _mockSender.SentEvents.Count,
+                    "Calling OnApplicationPause(true) again must emit no new events");
+
+                tracker.Dispose();
+                await UniTask.Yield();
+            }
+        );
+
+        // ─── Session continue ────────────────────────────────────────────────
+
+        [UnityTest]
+        public IEnumerator SessionContinue_ResumeWithinTimeout_SendsContinue() => UniTask.ToCoroutine(
+            async () =>
+            {
+                var config = new SessionTrackerConfig
+                {
+                    HeartbeatPeriodMs = 60_000,
+                    SessionTimeoutMs  = 5_000 // 5s timeout — won't expire in this test
+                };
+                var tracker = new SessionTracker(config, _mockSender);
+
+                tracker.OnApplicationPause(false); // session_start
+                await UniTask.Delay(50);
+                tracker.OnApplicationPause(true);  // session_pause
+                await UniTask.Delay(50);
+                tracker.OnApplicationPause(false); // resume within timeout → session_continue
+
+                var eventNames = _mockSender.SentEvents.Select(e => e.Name).ToList();
+                Assert.Contains("session_continue", eventNames,
+                    "Resuming within timeout must emit session_continue, not session_start");
+                Assert.AreEqual(1, _mockSender.GetEventsByName("session_start").Count,
+                    "session_start must not fire again on resume within timeout");
+
+                tracker.Dispose();
+            }
+        );
+
+        // ─── Remote feature flags ────────────────────────────────────────────
+
+        [UnityTest]
+        public IEnumerator RemoteFeatureFlags_FlushEnabled_CallsFlushOnDispose() => UniTask.ToCoroutine(
+            async () =>
+            {
+                var flags = new Dictionary<string, bool> { { "sendEventsOnFlushEnabled", true } };
+                var tracker = new SessionTracker(_config, _mockSender, flags);
+                tracker.OnApplicationPause(false);
+                await UniTask.Delay(50);
+
+                var flushBefore = _mockSender.FlushCount;
+                tracker.Dispose();
+
+                Assert.Greater(_mockSender.FlushCount, flushBefore,
+                    "Dispose must call Flush when sendEventsOnFlushEnabled = true");
+            }
+        );
+
+        [UnityTest]
+        public IEnumerator RemoteFeatureFlags_FlushDisabled_DoesNotCallFlushOnDispose() => UniTask.ToCoroutine(
+            async () =>
+            {
+                var flags = new Dictionary<string, bool> { { "sendEventsOnFlushEnabled", false } };
+                var tracker = new SessionTracker(_config, _mockSender, flags);
+                tracker.OnApplicationPause(false);
+                await UniTask.Delay(50);
+
+                _mockSender.Clear(); // reset flush count
+                tracker.Dispose();
+
+                Assert.AreEqual(0, _mockSender.FlushCount,
+                    "Dispose must NOT call Flush when sendEventsOnFlushEnabled = false");
+            }
+        );
+
+        [UnityTest]
+        public IEnumerator RemoteFeatureFlags_Null_DoesNotCallFlushOnDispose() => UniTask.ToCoroutine(
+            async () =>
+            {
+                // null flags dict → defaults to no-flush on dispose
+                var tracker = new SessionTracker(_config, _mockSender, remoteFeatureFlags: null);
+                tracker.OnApplicationPause(false);
+                await UniTask.Delay(50);
+
+                _mockSender.Clear();
+                tracker.Dispose();
+
+                Assert.AreEqual(0, _mockSender.FlushCount,
+                    "Dispose with null remoteFeatureFlags must NOT call Flush");
+            }
+        );
+
+        // ─── Session timeout ─────────────────────────────────────────────────
+
+        [UnityTest]
+        public IEnumerator SessionTimeout_PerSessionEngagement_SentBeforeNewSession() => UniTask.ToCoroutine(
+            async () =>
+            {
+                var config = new SessionTrackerConfig
+                {
+                    HeartbeatPeriodMs = 60_000,
+                    SessionTimeoutMs  = 100  // very short timeout
+                };
+                var tracker = new SessionTracker(config, _mockSender);
+
+                tracker.OnApplicationPause(false); // session 1
+                string session1Id = _mockSender.GetEventsByName("session_start")
+                    .Last().Data?.GetValueOrDefault("session_id")?.ToString();
+
+                await UniTask.Delay(50);
+                tracker.OnApplicationPause(true);
+                await UniTask.Delay(200); // let timeout expire
+
+                // Re-gap guard means session 2 start may be suppressed; wait past 10s gap is
+                // impractical in unit test — just verify per_session fires on timeout path
+                tracker.OnApplicationPause(false);
+
+                var perSessionEvents = _mockSender.GetEventsByName("noctua_user_engagement_per_session");
+                Assert.GreaterOrEqual(perSessionEvents.Count, 1,
+                    "noctua_user_engagement_per_session must fire when session times out");
+
+                tracker.Dispose();
+            }
+        );
+
+        // ─── SaveSessionState when no session ────────────────────────────────
+
+        [Test]
+        public void SaveSessionState_WithNoActiveSession_DoesNotWritePlayerPrefs()
+        {
+            // SessionTracker with no OnApplicationPause(false) call — _sessionId is null.
+            // SaveSessionState() must return early without touching PlayerPrefs.
+            PlayerPrefs.DeleteKey("NoctuaOrphanedSessionId");
+
+            var tracker = new SessionTracker(_config, _mockSender);
+            // Never started — _sessionId is null; heartbeat task never writes PlayerPrefs.
+            // Dispose also calls ClearSessionState() which is safe when keys don't exist.
+            tracker.Dispose();
+
+            var saved = PlayerPrefs.GetString("NoctuaOrphanedSessionId", "");
+            Assert.IsEmpty(saved,
+                "NoctuaOrphanedSessionId must not be written when session was never started");
+        }
+
+        // ─── Constructor validation ──────────────────────────────────────────
+
+        [Test]
+        public void Constructor_NullConfig_ThrowsArgumentNullException()
+        {
+            Assert.Throws<ArgumentNullException>(() =>
+                new SessionTracker(null, _mockSender));
+        }
+
+        [Test]
+        public void Constructor_NullEventSender_ThrowsArgumentNullException()
+        {
+            Assert.Throws<ArgumentNullException>(() =>
+                new SessionTracker(_config, null));
+        }
     }
 }

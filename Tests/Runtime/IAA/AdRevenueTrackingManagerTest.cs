@@ -804,5 +804,183 @@ namespace Tests.Runtime.IAA
             Assert.AreEqual(0, mgr.DroppedEventCount,
                 "DroppedEventCount must be 0 when both tracker and config are null");
         }
+
+        // ─── Null config guard on all threshold methods ───────────────────────
+
+        [Test]
+        public void ProcessAllFormatsThresholds_NullConfig_SkipsSilently()
+        {
+            var mgr = new AdRevenueTrackingManager(_tracker, null); // no config
+            Assert.DoesNotThrow(() => mgr.ProcessAllFormatsThresholds(999.99),
+                "ProcessAllFormatsThresholds with null config must not throw");
+            Assert.AreEqual(0, _tracker.Events.Count,
+                "No events must be fired when TaichiConfig is null");
+        }
+
+        [Test]
+        public void ProcessInterstitialThresholds_NullConfig_SkipsSilently()
+        {
+            var mgr = new AdRevenueTrackingManager(_tracker, null);
+            Assert.DoesNotThrow(() => mgr.ProcessInterstitialThresholds(999.99));
+            Assert.AreEqual(0, _tracker.Events.Count);
+        }
+
+        [Test]
+        public void ProcessRewardedThresholds_NullConfig_SkipsSilently()
+        {
+            var mgr = new AdRevenueTrackingManager(_tracker, null);
+            Assert.DoesNotThrow(() => mgr.ProcessRewardedThresholds(999.99));
+            Assert.AreEqual(0, _tracker.Events.Count);
+        }
+
+        // ─── SetTaichiConfig late-wiring ──────────────────────────────────────
+
+        [Test]
+        public void SetTaichiConfig_AfterNullConfig_EnablesThresholdFiring()
+        {
+            var mgr = new AdRevenueTrackingManager(_tracker, null); // starts with null config
+            mgr.ProcessAllFormatsThresholds(0.01); // should silently skip
+            Assert.AreEqual(0, _tracker.Events.Count, "No events before config is set");
+
+            mgr.SetTaichiConfig(DefaultConfig()); // wire up config
+            mgr.ProcessAllFormatsThresholds(0.01); // now should fire Step 1
+
+            Assert.IsTrue(_tracker.WasFired("Total_Ads_Revenue_001"),
+                "Step 1 must fire after SetTaichiConfig() wires config");
+        }
+
+        [Test]
+        public void SetTaichiConfig_Null_SilencesSubsequentCalls()
+        {
+            var mgr = new AdRevenueTrackingManager(_tracker, DefaultConfig());
+            mgr.SetTaichiConfig(null); // clear config
+            mgr.ProcessAllFormatsThresholds(999.99); // should skip silently
+            Assert.AreEqual(0, _tracker.Events.Count,
+                "No events must fire after SetTaichiConfig(null)");
+        }
+
+        // ─── Zero / near-zero revenue ─────────────────────────────────────────
+
+        [Test]
+        public void ProcessAllFormatsThresholds_ZeroRevenue_OnlyCountAdvances()
+        {
+            // Revenue stays at 0 → Step 1 never fires; count increments → Step 2 may fire
+            var config = new TaichiConfig
+            {
+                RevenueThreshold           = 100f,   // high threshold, won't be crossed
+                AdCountThreshold           = 1,      // fires immediately on first impression
+                TotalImpressionThreshold   = 1,
+                InterstitialCountThreshold = 10,
+                RewardedCountThreshold     = 10,
+                RewardedRevenueThreshold   = 100f,
+            };
+            var mgr = new AdRevenueTrackingManager(_tracker, config);
+            mgr.ProcessAllFormatsThresholds(0.0);
+
+            Assert.IsFalse(_tracker.WasFired("Total_Ads_Revenue_001"),
+                "Step 1 must not fire when revenue is 0");
+            Assert.IsTrue(_tracker.WasFired("Total_Ads_Ad_Count_002"),
+                "Step 2 (count) must fire even with 0 revenue when count threshold is met");
+        }
+
+        [Test]
+        public void ProcessAllFormatsThresholds_LargeRevenueJump_FiresOnceNotMultipleTimes()
+        {
+            // Revenue jumps to 1000× the threshold in a single call.
+            // Step 1 fires exactly once — there's no repeated firing per threshold multiple.
+            var mgr = new AdRevenueTrackingManager(_tracker, DefaultConfig());
+            mgr.ProcessAllFormatsThresholds(100.0); // threshold is 0.01 — way over
+
+            var step1Count = _tracker.Events.Count(e => e.EventName == "Total_Ads_Revenue_001");
+            Assert.AreEqual(1, step1Count,
+                "Step 1 must fire exactly once regardless of how far revenue exceeds threshold");
+        }
+
+        // ─── Threshold boundary: exact match ─────────────────────────────────
+
+        [Test]
+        public void ProcessAllFormatsThresholds_ExactThresholdMatch_Fires()
+        {
+            var mgr = new AdRevenueTrackingManager(_tracker, DefaultConfig());
+            mgr.ProcessAllFormatsThresholds(0.01); // exactly equals RevenueThreshold = 0.01
+
+            Assert.IsTrue(_tracker.WasFired("Total_Ads_Revenue_001"),
+                "Step 1 must fire when revenue exactly equals threshold");
+        }
+
+        // ─── Cumulative accumulation across calls ─────────────────────────────
+
+        [Test]
+        public void ProcessRewardedThresholds_AccumulatesAcrossCalls_FiresOnCrossing()
+        {
+            var config = new TaichiConfig
+            {
+                RevenueThreshold           = 1000f,
+                AdCountThreshold           = 1000,
+                TotalImpressionThreshold   = 1000,
+                InterstitialCountThreshold = 1000,
+                RewardedCountThreshold     = 3,      // fires on 3rd rewarded impression
+                RewardedRevenueThreshold   = 1000f,
+            };
+            var mgr = new AdRevenueTrackingManager(_tracker, config);
+
+            mgr.ProcessRewardedThresholds(0.01);
+            mgr.ProcessRewardedThresholds(0.01);
+            Assert.IsFalse(_tracker.WasFired("Total_Rewarded_Count_005"),
+                "Step 5 must not fire before threshold is crossed");
+
+            mgr.ProcessRewardedThresholds(0.01); // 3rd call crosses count=3
+            Assert.IsTrue(_tracker.WasFired("Total_Rewarded_Count_005"),
+                "Step 5 must fire on 3rd rewarded impression when threshold=3");
+        }
+
+        [Test]
+        public void ProcessInterstitialThresholds_AccumulatesAcrossCalls_FiresOnCrossing()
+        {
+            var config = new TaichiConfig
+            {
+                RevenueThreshold           = 1000f,
+                AdCountThreshold           = 1000,
+                TotalImpressionThreshold   = 1000,
+                InterstitialCountThreshold = 2,      // fires on 2nd interstitial
+                RewardedCountThreshold     = 1000,
+                RewardedRevenueThreshold   = 1000f,
+            };
+            var mgr = new AdRevenueTrackingManager(_tracker, config);
+
+            mgr.ProcessInterstitialThresholds(0.01);
+            Assert.IsFalse(_tracker.WasFired("Total_Interstitial_Count_004"),
+                "Step 4 must not fire after 1 interstitial when threshold=2");
+
+            mgr.ProcessInterstitialThresholds(0.01);
+            Assert.IsTrue(_tracker.WasFired("Total_Interstitial_Count_004"),
+                "Step 4 must fire on 2nd interstitial when threshold=2");
+        }
+
+        // ─── PlayerPrefs persistence across instances ─────────────────────────
+
+        [Test]
+        public void PlayerPrefs_ProgressPersistedAcrossInstances()
+        {
+            // Instance 1: accumulate some revenue but don't cross threshold
+            var config = new TaichiConfig
+            {
+                RevenueThreshold           = 0.05f, // 5 cents
+                AdCountThreshold           = 1000,
+                TotalImpressionThreshold   = 1000,
+                InterstitialCountThreshold = 1000,
+                RewardedCountThreshold     = 1000,
+                RewardedRevenueThreshold   = 1000f,
+            };
+            var mgr1 = new AdRevenueTrackingManager(_tracker, config);
+            mgr1.ProcessAllFormatsThresholds(0.03); // 3 cents — below threshold, persisted
+            Assert.AreEqual(0, _tracker.Events.Count, "Not yet at threshold after instance 1");
+
+            // Instance 2 picks up the 3 cents from PlayerPrefs
+            var mgr2 = new AdRevenueTrackingManager(_tracker, config);
+            mgr2.ProcessAllFormatsThresholds(0.03); // 3 more cents → total 6 cents, crosses 5 cent threshold
+            Assert.IsTrue(_tracker.WasFired("Total_Ads_Revenue_001"),
+                "Step 1 must fire when second instance adds enough to cross threshold");
+        }
     }
 }
