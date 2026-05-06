@@ -4,7 +4,7 @@ using NUnit.Framework;
 using UnityEngine;
 using UnityEngine.TestTools;
 
-namespace com.noctuagames.sdk.Tests
+namespace Tests.Runtime
 {
     /// <summary>
     /// Tests for <see cref="MobileDateTimePicker"/>.

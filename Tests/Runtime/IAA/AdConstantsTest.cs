@@ -2,7 +2,7 @@ using com.noctuagames.sdk;
 using NUnit.Framework;
 using UnityEngine;
 
-namespace com.noctuagames.sdk.Tests.IAA
+namespace Tests.Runtime.IAA
 {
     /// <summary>
     /// Unit tests for ad-format and ad-network constant classes, and <see cref="AdTestUnitIds"/>:

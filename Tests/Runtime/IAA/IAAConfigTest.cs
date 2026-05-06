@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using NUnit.Framework;
 using IAAModel = com.noctuagames.sdk.IAA;
 
-namespace com.noctuagames.sdk.Tests.IAA
+namespace Tests.Runtime.IAA
 {
     /// <summary>
     /// Unit tests for <see cref="IAAModel.MergeWith"/> and <see cref="EnabledFormatsConfig"/> merging.

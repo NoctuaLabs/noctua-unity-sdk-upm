@@ -4,7 +4,7 @@ using Newtonsoft.Json;
 using NUnit.Framework;
 using UnityEngine;
 
-namespace com.noctuagames.sdk.Tests.IAP
+namespace Tests.Runtime.IAP
 {
     /// <summary>
     /// Unit tests for the offline branches of <see cref="NoctuaIAPService.IsRefundEligibleAsync"/>.

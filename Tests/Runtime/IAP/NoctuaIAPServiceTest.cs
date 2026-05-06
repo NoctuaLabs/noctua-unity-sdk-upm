@@ -7,7 +7,7 @@ using NUnit.Framework;
 using UnityEngine;
 using UnityEngine.TestTools;
 
-namespace com.noctuagames.sdk.Tests.IAP
+namespace Tests.Runtime.IAP
 {
     /// <summary>
     /// Unit tests for <see cref="NoctuaIAPService"/>.

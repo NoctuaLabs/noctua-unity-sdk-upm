@@ -6,7 +6,7 @@ using NUnit.Framework;
 using Tests.Runtime;
 using UnityEngine.TestTools;
 
-namespace com.noctuagames.sdk.Tests.Auth
+namespace Tests.Runtime.Auth
 {
     /// <summary>
     /// Unit tests for <see cref="NoctuaAuthenticationService"/>.

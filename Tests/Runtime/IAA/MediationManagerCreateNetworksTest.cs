@@ -9,7 +9,7 @@ using UnityEngine;
 using UnityEngine.TestTools;
 using IAAConfig = com.noctuagames.sdk.IAA;
 
-namespace com.noctuagames.sdk.Tests.IAA
+namespace Tests.Runtime.IAA
 {
     /// <summary>
     /// Smoke test for <see cref="MediationManager.CreateNetworks"/> driven by

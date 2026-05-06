@@ -6,7 +6,7 @@ using Newtonsoft.Json;
 using NUnit.Framework;
 using UnityEngine;
 
-namespace com.noctuagames.sdk.Tests
+namespace Tests.Runtime
 {
     /// <summary>
     /// Unit and integration tests for GlobalConfig JSON deserialization.

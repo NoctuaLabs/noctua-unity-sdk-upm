@@ -1,6 +1,6 @@
 using NUnit.Framework;
 
-namespace com.noctuagames.sdk.Tests
+namespace Tests.Runtime
 {
     /// <summary>
     /// Tests for <see cref="InternetChecker"/>.

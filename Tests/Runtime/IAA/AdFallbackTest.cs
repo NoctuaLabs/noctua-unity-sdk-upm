@@ -1,6 +1,6 @@
 using NUnit.Framework;
 
-namespace com.noctuagames.sdk.Tests.IAA
+namespace Tests.Runtime.IAA
 {
     /// <summary>
     /// Unit tests for ad fallback and secondary-network logic introduced in the

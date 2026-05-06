@@ -4,7 +4,7 @@ using Tests.Runtime;
 using UnityEngine;
 using IAAModel = com.noctuagames.sdk.IAA;
 
-namespace com.noctuagames.sdk.Tests.IAA
+namespace Tests.Runtime.IAA
 {
     /// <summary>
     /// Unit tests for <see cref="AdExperimentManager"/>.

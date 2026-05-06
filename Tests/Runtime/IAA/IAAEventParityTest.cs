@@ -3,7 +3,7 @@ using System.IO;
 using NUnit.Framework;
 using UnityEngine;
 
-namespace com.noctuagames.sdk.Tests.IAA
+namespace Tests.Runtime.IAA
 {
     /// <summary>
     /// Drift-prevention parity test for canonical IAA event names.

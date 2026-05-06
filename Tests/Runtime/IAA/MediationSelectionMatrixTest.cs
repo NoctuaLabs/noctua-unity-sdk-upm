@@ -1,6 +1,6 @@
 using NUnit.Framework;
 
-namespace com.noctuagames.sdk.Tests.IAA
+namespace Tests.Runtime.IAA
 {
     /// <summary>
     /// Exhaustive 16-case matrix covering <see cref="MediationManager.ResolveMediationSelection"/>
