@@ -1,297 +1,283 @@
+using com.noctuagames.sdk;
 using NUnit.Framework;
 using UnityEngine;
 
-namespace com.noctuagames.sdk.Tests.IAA
+namespace Tests.Runtime.IAA
 {
     /// <summary>
-    /// Unit tests for <see cref="AdNetworkPerformanceTracker"/>.
-    /// Covers: fill rate recording, revenue averaging, preferred network scoring,
-    /// history queue overflow, and PlayerPrefs persistence fallback.
+    /// EditMode NUnit tests for <see cref="AdNetworkPerformanceTracker"/>.
+    ///
+    /// Covers:
+    ///   — <c>RecordFillAttempt</c> / <c>GetFillRate</c>  — rolling average, 100-sample cap
+    ///   — <c>RecordRevenue</c>     / <c>GetAverageRevenue</c> — rolling average, 50-sample cap
+    ///   — <c>GetAverageCpm</c>     — alias for GetAverageRevenue
+    ///   — <c>GetSampleCount</c>    — cold-start guard
+    ///   — <c>GetPreferredNetwork</c> — highest score (fillRate × avgRevenue) wins
+    ///   — PlayerPrefs fallback when no in-memory data
+    ///
+    /// PlayerPrefs keys prefixed "NoctuaAdPerf_" are cleared in SetUp/TearDown.
     /// </summary>
     [TestFixture]
     public class AdNetworkPerformanceTrackerTest
     {
-        private const string Admob    = "admob";
-        private const string AppLovin = "applovin";
-        private const string Inter    = AdFormatKey.Interstitial;
-        private const string Rewarded = AdFormatKey.Rewarded;
+        private const string Prefix  = "NoctuaAdPerf_";
+        private const string Network = "admob";
+        private const string Format  = AdFormatKey.Rewarded;
 
         [SetUp]
-        public void SetUp()
-        {
-            // Clear all performance prefs before each test
-            foreach (var network in new[] { Admob, AppLovin })
-            foreach (var format  in new[] { Inter, Rewarded, AdFormatKey.Banner, AdFormatKey.AppOpen })
-            {
-                PlayerPrefs.DeleteKey($"NoctuaAdPerf_fill_{network}_{format}");
-                PlayerPrefs.DeleteKey($"NoctuaAdPerf_rev_{network}_{format}");
-            }
-            PlayerPrefs.Save();
-        }
+        public void SetUp() => PlayerPrefs.DeleteAll();
 
-        // ─── RecordFillAttempt / GetFillRate ─────────────────────────────────
+        [TearDown]
+        public void TearDown() => PlayerPrefs.DeleteAll();
+
+        // ═══════════════════════════════════════════════════════════════════
+        // GetFillRate
+        // ═══════════════════════════════════════════════════════════════════
 
         [Test]
-        public void GetFillRate_AllFilled_Returns1()
+        public void GetFillRate_NoData_ReturnsPersisted_DefaultHalf()
         {
             var tracker = new AdNetworkPerformanceTracker();
-            for (int i = 0; i < 5; i++)
-                tracker.RecordFillAttempt(Admob, Inter, filled: true);
 
-            Assert.AreEqual(1.0, tracker.GetFillRate(Admob, Inter), delta: 0.001);
+            // No PlayerPrefs set → default 0.5f
+            double rate = tracker.GetFillRate(Network, Format);
+
+            Assert.AreEqual(0.5, rate, delta: 0.001,
+                "Without data or persisted value, GetFillRate must return 0.5 (PlayerPrefs default)");
         }
 
         [Test]
-        public void GetFillRate_NoneFilled_Returns0()
+        public void GetFillRate_AllFilled_ReturnsOne()
         {
             var tracker = new AdNetworkPerformanceTracker();
-            for (int i = 0; i < 5; i++)
-                tracker.RecordFillAttempt(Admob, Inter, filled: false);
+            for (int i = 0; i < 10; i++)
+                tracker.RecordFillAttempt(Network, Format, filled: true);
 
-            Assert.AreEqual(0.0, tracker.GetFillRate(Admob, Inter), delta: 0.001);
+            Assert.AreEqual(1.0, tracker.GetFillRate(Network, Format), delta: 0.001);
         }
 
         [Test]
-        public void GetFillRate_HalfFilled_Returns05()
+        public void GetFillRate_NoneFilled_ReturnsZero()
         {
             var tracker = new AdNetworkPerformanceTracker();
-            for (int i = 0; i < 4; i++)
-                tracker.RecordFillAttempt(Admob, Inter, filled: i % 2 == 0);
+            for (int i = 0; i < 10; i++)
+                tracker.RecordFillAttempt(Network, Format, filled: false);
 
-            Assert.AreEqual(0.5, tracker.GetFillRate(Admob, Inter), delta: 0.001);
+            Assert.AreEqual(0.0, tracker.GetFillRate(Network, Format), delta: 0.001);
         }
 
         [Test]
-        public void GetFillRate_NoDataInMemory_ReturnsPersistedDefault()
+        public void GetFillRate_HalfFilled_ReturnsHalf()
         {
-            // When no in-memory data, falls back to PlayerPrefs (default 0.5f)
             var tracker = new AdNetworkPerformanceTracker();
-            double rate = tracker.GetFillRate(Admob, Inter);
+            for (int i = 0; i < 5; i++) tracker.RecordFillAttempt(Network, Format, true);
+            for (int i = 0; i < 5; i++) tracker.RecordFillAttempt(Network, Format, false);
 
-            Assert.AreEqual(0.5, rate, delta: 0.001, "Default from PlayerPrefs.GetFloat(..., 0.5f)");
+            Assert.AreEqual(0.5, tracker.GetFillRate(Network, Format), delta: 0.01);
         }
 
         [Test]
-        public void RecordFillAttempt_QueueOverflow_OldestEvicted()
+        public void GetFillRate_ExceedsMaxSamples_OldestDropped()
         {
-            // MaxFillSamples = 100 — after 100 fills add 1 more non-fill
             var tracker = new AdNetworkPerformanceTracker();
+
+            // Fill 100 failures
             for (int i = 0; i < 100; i++)
-                tracker.RecordFillAttempt(Admob, Inter, filled: true);
+                tracker.RecordFillAttempt(Network, Format, filled: false);
 
-            // Add one failed fill — after eviction: 99 filled + 1 failed = 99%
-            tracker.RecordFillAttempt(Admob, Inter, filled: false);
+            // Add 100 successes — rolling window keeps only last 100 (all successes)
+            for (int i = 0; i < 100; i++)
+                tracker.RecordFillAttempt(Network, Format, filled: true);
 
-            double rate = tracker.GetFillRate(Admob, Inter);
-            Assert.AreEqual(0.99, rate, delta: 0.001, "Queue should cap at 100 and evict oldest");
+            Assert.AreEqual(1.0, tracker.GetFillRate(Network, Format), delta: 0.001,
+                "After rolling 100 successes, rate must converge to 1.0");
+        }
+
+        // ═══════════════════════════════════════════════════════════════════
+        // GetAverageRevenue / GetAverageCpm
+        // ═══════════════════════════════════════════════════════════════════
+
+        [Test]
+        public void GetAverageRevenue_NoData_ReturnsPersisted_DefaultZero()
+        {
+            var tracker = new AdNetworkPerformanceTracker();
+
+            double rev = tracker.GetAverageRevenue(Network, Format);
+
+            Assert.AreEqual(0.0, rev, delta: 0.001,
+                "Without data or persisted value, GetAverageRevenue must return 0.0");
         }
 
         [Test]
-        public void RecordFillAttempt_DifferentFormatsTrackedSeparately()
+        public void GetAverageRevenue_TwoSamples_ReturnsAverage()
         {
             var tracker = new AdNetworkPerformanceTracker();
-            for (int i = 0; i < 4; i++)
-                tracker.RecordFillAttempt(Admob, Inter,    filled: true);
-            for (int i = 0; i < 4; i++)
-                tracker.RecordFillAttempt(Admob, Rewarded, filled: false);
+            tracker.RecordRevenue(Network, Format, 1.0);
+            tracker.RecordRevenue(Network, Format, 3.0);
 
-            Assert.AreEqual(1.0, tracker.GetFillRate(Admob, Inter),    delta: 0.001);
-            Assert.AreEqual(0.0, tracker.GetFillRate(Admob, Rewarded), delta: 0.001);
+            Assert.AreEqual(2.0, tracker.GetAverageRevenue(Network, Format), delta: 0.001);
         }
 
         [Test]
-        public void RecordFillAttempt_DifferentNetworksTrackedSeparately()
+        public void GetAverageCpm_DelegatesToGetAverageRevenue()
         {
             var tracker = new AdNetworkPerformanceTracker();
-            for (int i = 0; i < 4; i++)
-                tracker.RecordFillAttempt(Admob,    Inter, filled: true);
-            for (int i = 0; i < 4; i++)
-                tracker.RecordFillAttempt(AppLovin, Inter, filled: false);
+            tracker.RecordRevenue(Network, Format, 4.0);
 
-            Assert.AreEqual(1.0, tracker.GetFillRate(Admob,    Inter), delta: 0.001);
-            Assert.AreEqual(0.0, tracker.GetFillRate(AppLovin, Inter), delta: 0.001);
-        }
-
-        // ─── RecordRevenue / GetAverageRevenue ────────────────────────────────
-
-        [Test]
-        public void GetAverageRevenue_SingleSample_ReturnsExact()
-        {
-            var tracker = new AdNetworkPerformanceTracker();
-            tracker.RecordRevenue(Admob, Inter, 0.05);
-
-            Assert.AreEqual(0.05, tracker.GetAverageRevenue(Admob, Inter), delta: 0.0001);
+            Assert.AreEqual(
+                tracker.GetAverageRevenue(Network, Format),
+                tracker.GetAverageCpm(Network, Format),
+                delta: 0.001,
+                "GetAverageCpm must return the same value as GetAverageRevenue");
         }
 
         [Test]
-        public void GetAverageRevenue_MultipleSamples_ReturnsAverage()
+        public void GetAverageRevenue_ExceedsMaxRevenueSamples_OldDropped()
         {
             var tracker = new AdNetworkPerformanceTracker();
-            tracker.RecordRevenue(Admob, Inter, 0.01);
-            tracker.RecordRevenue(Admob, Inter, 0.03);
 
-            Assert.AreEqual(0.02, tracker.GetAverageRevenue(Admob, Inter), delta: 0.0001);
-        }
-
-        [Test]
-        public void GetAverageRevenue_NoDataInMemory_ReturnsPersistedDefault()
-        {
-            var tracker = new AdNetworkPerformanceTracker();
-            // Default PlayerPrefs.GetFloat = 0f
-            Assert.AreEqual(0.0, tracker.GetAverageRevenue(Admob, Inter), delta: 0.0001);
-        }
-
-        [Test]
-        public void RecordRevenue_QueueOverflow_OldestEvicted()
-        {
-            // MaxRevenueSamples = 50 — fill 50 with 0.02 then add 0.00
-            var tracker = new AdNetworkPerformanceTracker();
+            // Record 50 zeros — fills the 50-sample cap
             for (int i = 0; i < 50; i++)
-                tracker.RecordRevenue(Admob, Inter, 0.02);
+                tracker.RecordRevenue(Network, Format, 0.0);
 
-            // 51st sample → evicts first 0.02, adds 0.00
-            tracker.RecordRevenue(Admob, Inter, 0.00);
+            // Add one more: oldest zero drops, replaced by 5.0
+            tracker.RecordRevenue(Network, Format, 5.0);
 
-            // 49 × 0.02 + 1 × 0.00 = 0.98 / 50 = 0.0196
-            double avg = tracker.GetAverageRevenue(Admob, Inter);
-            Assert.AreEqual(49 * 0.02 / 50, avg, delta: 0.0001);
+            // Window = [0×49 + 5×1] → avg = 5/50 = 0.1
+            double avg = tracker.GetAverageRevenue(Network, Format);
+            Assert.AreEqual(0.1, avg, delta: 0.01,
+                "After overflow, oldest entry must be dequeued and average must update");
         }
 
-        // ─── GetPreferredNetwork ──────────────────────────────────────────────
+        // ═══════════════════════════════════════════════════════════════════
+        // GetSampleCount
+        // ═══════════════════════════════════════════════════════════════════
+
+        [Test]
+        public void GetSampleCount_NoRecords_ReturnsZero()
+        {
+            var tracker = new AdNetworkPerformanceTracker();
+            Assert.AreEqual(0, tracker.GetSampleCount(Network, Format));
+        }
+
+        [Test]
+        public void GetSampleCount_AfterThreeRecords_ReturnsThree()
+        {
+            var tracker = new AdNetworkPerformanceTracker();
+            tracker.RecordRevenue(Network, Format, 1.0);
+            tracker.RecordRevenue(Network, Format, 2.0);
+            tracker.RecordRevenue(Network, Format, 3.0);
+
+            Assert.AreEqual(3, tracker.GetSampleCount(Network, Format));
+        }
+
+        [Test]
+        public void GetSampleCount_CappedAt50()
+        {
+            var tracker = new AdNetworkPerformanceTracker();
+            for (int i = 0; i < 75; i++)
+                tracker.RecordRevenue(Network, Format, 1.0);
+
+            Assert.AreEqual(50, tracker.GetSampleCount(Network, Format),
+                "Revenue sample count must be capped at 50");
+        }
+
+        // ═══════════════════════════════════════════════════════════════════
+        // GetPreferredNetwork
+        // ═══════════════════════════════════════════════════════════════════
 
         [Test]
         public void GetPreferredNetwork_NoData_ReturnsNull()
         {
             var tracker = new AdNetworkPerformanceTracker();
-            Assert.IsNull(tracker.GetPreferredNetwork(Inter));
+
+            Assert.IsNull(tracker.GetPreferredNetwork(Format),
+                "With no fill data, GetPreferredNetwork must return null");
         }
 
         [Test]
-        public void GetPreferredNetwork_OnlyOneNetwork_ReturnsThatNetwork()
+        public void GetPreferredNetwork_OneNetwork_ReturnsThat()
         {
             var tracker = new AdNetworkPerformanceTracker();
-            tracker.RecordFillAttempt(Admob, Inter, true);
-            tracker.RecordRevenue(Admob, Inter, 0.01);
+            tracker.RecordFillAttempt("applovin", Format, true);
+            tracker.RecordRevenue("applovin", Format, 2.0);
 
-            Assert.AreEqual(Admob, tracker.GetPreferredNetwork(Inter));
+            Assert.AreEqual("applovin", tracker.GetPreferredNetwork(Format));
         }
 
         [Test]
-        public void GetPreferredNetwork_HigherScoreWins()
+        public void GetPreferredNetwork_TwoNetworks_HigherScoreWins()
         {
             var tracker = new AdNetworkPerformanceTracker();
 
-            // admob: fillRate=0.5, avgRevenue=0.01 → score=0.005
-            tracker.RecordFillAttempt(Admob, Inter, true);
-            tracker.RecordFillAttempt(Admob, Inter, false);
-            tracker.RecordRevenue(Admob, Inter, 0.01);
+            // admob: fillRate=1.0, avgRevenue=1.0 → score=1.0
+            tracker.RecordFillAttempt("admob", Format, true);
+            tracker.RecordRevenue("admob", Format, 1.0);
 
-            // applovin: fillRate=1.0, avgRevenue=0.02 → score=0.02
-            tracker.RecordFillAttempt(AppLovin, Inter, true);
-            tracker.RecordRevenue(AppLovin, Inter, 0.02);
+            // applovin: fillRate=1.0, avgRevenue=2.0 → score=2.0
+            tracker.RecordFillAttempt("applovin", Format, true);
+            tracker.RecordRevenue("applovin", Format, 2.0);
 
-            Assert.AreEqual(AppLovin, tracker.GetPreferredNetwork(Inter),
-                "AppLovin has higher composite score (fillRate * avgRevenue)");
+            Assert.AreEqual("applovin", tracker.GetPreferredNetwork(Format),
+                "Network with higher fillRate × avgRevenue must be preferred");
         }
 
         [Test]
-        public void GetPreferredNetwork_ZeroRevenueBoth_ReturnsANetworkOrNull()
+        public void GetPreferredNetwork_HighFillLowRevenue_VsLowFillHighRevenue()
         {
             var tracker = new AdNetworkPerformanceTracker();
 
-            // Both have fill but zero revenue → score = 0
-            tracker.RecordFillAttempt(Admob,    Inter, true);
-            tracker.RecordFillAttempt(AppLovin, Inter, true);
+            // admob: fillRate=0.1, avgRevenue=10.0 → score=1.0
+            for (int i = 0; i < 9; i++)  tracker.RecordFillAttempt("admob", Format, false);
+            tracker.RecordFillAttempt("admob", Format, true);
+            tracker.RecordRevenue("admob", Format, 10.0);
 
-            // Score = 0 for both; bestScore stays -1 for the second if both are 0
-            // (first one found wins when score ties at 0 > -1)
-            string preferred = tracker.GetPreferredNetwork(Inter);
-            // Just verify it doesn't throw and returns one of the known networks
-            Assert.IsTrue(preferred == Admob || preferred == AppLovin || preferred == null);
+            // applovin: fillRate=1.0, avgRevenue=0.5 → score=0.5
+            tracker.RecordFillAttempt("applovin", Format, true);
+            tracker.RecordRevenue("applovin", Format, 0.5);
+
+            Assert.AreEqual("admob", tracker.GetPreferredNetwork(Format),
+                "admob score 1.0 must beat applovin score 0.5");
         }
 
         [Test]
-        public void GetPreferredNetwork_DataOnlyForAnotherFormat_ReturnsNull()
+        public void GetPreferredNetwork_DifferentFormat_NotInfluenced()
         {
             var tracker = new AdNetworkPerformanceTracker();
-            tracker.RecordFillAttempt(Admob, Rewarded, true);
 
-            // Querying Interstitial when only Rewarded has data → null
-            Assert.IsNull(tracker.GetPreferredNetwork(Inter));
+            // Record interstitial data for admob
+            tracker.RecordFillAttempt("admob", AdFormatKey.Interstitial, true);
+            tracker.RecordRevenue("admob", AdFormatKey.Interstitial, 5.0);
+
+            // Querying rewarded format — no fill data → null
+            Assert.IsNull(tracker.GetPreferredNetwork(AdFormatKey.Rewarded),
+                "Fill history for interstitial must not influence rewarded queries");
         }
 
-        // ─── Additional tests ─────────────────────────────────────────────────
+        // ═══════════════════════════════════════════════════════════════════
+        // PlayerPrefs persistence
+        // ═══════════════════════════════════════════════════════════════════
 
         [Test]
-        public void GetAverageCpm_IsSameAsGetAverageRevenue()
+        public void RecordFillAttempt_PersistsFillRateToPlayerPrefs()
         {
             var tracker = new AdNetworkPerformanceTracker();
-            tracker.RecordRevenue(Admob, Inter, 0.05);
-            tracker.RecordRevenue(Admob, Inter, 0.15);
+            tracker.RecordFillAttempt(Network, Format, true);
 
-            double avgRevenue = tracker.GetAverageRevenue(Admob, Inter);
-            double avgCpm     = tracker.GetAverageCpm(Admob, Inter);
-
-            Assert.AreEqual(avgRevenue, avgCpm, delta: 0.00001,
-                "GetAverageCpm must return the same value as GetAverageRevenue");
-        }
-
-        [Test]
-        public void GetSampleCount_NoData_ReturnsZero()
-        {
-            var tracker = new AdNetworkPerformanceTracker();
-
-            Assert.AreEqual(0, tracker.GetSampleCount(Admob, Rewarded),
-                "Fresh tracker must report 0 revenue samples");
+            string key = Prefix + $"fill_{Network}_{Format}";
+            Assert.IsTrue(PlayerPrefs.HasKey(key),
+                "RecordFillAttempt must persist fill rate to PlayerPrefs");
         }
 
         [Test]
-        public void GetSampleCount_AfterRecordRevenue_ReturnsOne()
+        public void RecordRevenue_PersistsAvgRevenueToPlayerPrefs()
         {
             var tracker = new AdNetworkPerformanceTracker();
-            tracker.RecordRevenue(Admob, Rewarded, 0.07);
+            tracker.RecordRevenue(Network, Format, 3.0);
 
-            Assert.AreEqual(1, tracker.GetSampleCount(Admob, Rewarded),
-                "After one RecordRevenue call the sample count must be 1");
-        }
-
-        [Test]
-        public void RecordRevenue_DifferentFormatsTrackedSeparately()
-        {
-            var tracker = new AdNetworkPerformanceTracker();
-            tracker.RecordRevenue(Admob, Rewarded, 0.01);
-            tracker.RecordRevenue(Admob, Inter,    0.10);
-
-            Assert.AreEqual(0.01, tracker.GetAverageRevenue(Admob, Rewarded), delta: 0.0001,
-                "Rewarded average should reflect only rewarded revenue");
-            Assert.AreEqual(0.10, tracker.GetAverageRevenue(Admob, Inter),    delta: 0.0001,
-                "Interstitial average should reflect only interstitial revenue");
-        }
-
-        [Test]
-        public void RecordRevenue_DifferentNetworksTrackedSeparately()
-        {
-            var tracker = new AdNetworkPerformanceTracker();
-            tracker.RecordRevenue(Admob,    Inter, 0.01);
-            tracker.RecordRevenue(AppLovin, Inter, 0.10);
-
-            Assert.AreEqual(0.01, tracker.GetAverageRevenue(Admob,    Inter), delta: 0.0001,
-                "AdMob average should be independent of AppLovin's data");
-            Assert.AreEqual(0.10, tracker.GetAverageRevenue(AppLovin, Inter), delta: 0.0001,
-                "AppLovin average should be independent of AdMob's data");
-        }
-
-        [Test]
-        public void GetPreferredNetwork_NoData_ReturnsNullForGivenCandidates()
-        {
-            // Fresh tracker — no fill history at all — GetPreferredNetwork iterates _fillHistory
-            // which is empty, so it returns null regardless of which networks we care about.
-            var tracker = new AdNetworkPerformanceTracker();
-
-            string preferred = tracker.GetPreferredNetwork(Rewarded);
-
-            Assert.IsNull(preferred,
-                "GetPreferredNetwork must return null when no fill data has been recorded");
+            string key = Prefix + $"rev_{Network}_{Format}";
+            Assert.IsTrue(PlayerPrefs.HasKey(key),
+                "RecordRevenue must persist average revenue to PlayerPrefs");
         }
     }
 }
