@@ -270,6 +270,32 @@ namespace com.noctuagames.sdk.Tests.Auth
         [Ignore("Requires live backend: two authenticated accounts in native store")]
         public void SwitchAccountAsync_ChangesRecentAccount() { }
 
+        // ─── SwitchAccountAsync guard ──────────────────────────────────────────
+
+        [Test]
+        public void SwitchAccountAsync_UserNotInAccountList_ThrowsNoctuaException()
+        {
+            var svc = CreateService();
+
+            // Fresh service has empty AccountList — user will not be found.
+            var fakeUser = new UserBundle
+            {
+                User           = new User { Id = 999 },
+                PlayerAccounts = new System.Collections.Generic.List<Player>()
+            };
+
+            // SwitchAccountAsync throws NoctuaException BEFORE its first await when
+            // the target user is absent from AccountList, so GetAwaiter().GetResult()
+            // resolves synchronously without entering the UniTask scheduler.
+            var ex = Assert.Throws<NoctuaException>(() =>
+                svc.SwitchAccountAsync(fakeUser).GetAwaiter().GetResult());
+
+            Assert.AreEqual(
+                (int)NoctuaErrorCode.Authentication,
+                ex.ErrorCode,
+                "SwitchAccountAsync must throw Authentication error when user is not in AccountList");
+        }
+
         // ─── Helpers ───────────────────────────────────────────────────────────
 
         private NoctuaAuthenticationService CreateService()
