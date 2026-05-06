@@ -4,13 +4,14 @@ using Newtonsoft.Json;
 using NUnit.Framework;
 // Alias needed because Tests.Runtime.IAA (a sibling namespace used by AppLovin/AdMob manager tests)
 // shadows the com.noctuagames.sdk.IAA class when referenced unqualified inside Tests.Runtime.
-using IAA = com.noctuagames.sdk.IAA;
+// Named IAAModel (not IAA) to avoid CS0118: the alias name must not match the conflicting namespace.
+using IAAModel = com.noctuagames.sdk.IAA;
 
 namespace Tests.Runtime
 {
     /// <summary>
     /// Unit tests for <see cref="GameServiceModels"/>:
-    ///   * <see cref="IAA.MergeWith"/> — merge semantics (null-remote, field override, immutability)
+    ///   * <see cref="IAAModel.MergeWith"/> — merge semantics (null-remote, field override, immutability)
     ///   * <see cref="TaichiConfig"/> default field values
     ///   * <see cref="InitGameResponse"/> / <see cref="RemoteConfigs"/> JSON deserialization
     ///   * Supporting value types: <see cref="FrequencyCapEntry"/>, <see cref="FrequencyCapConfig"/>,
@@ -22,13 +23,13 @@ namespace Tests.Runtime
     {
         // ─── Helpers ──────────────────────────────────────────────────────────
 
-        private static IAA BaseIaa(
+        private static IAAModel BaseIaa(
             string mediation = "applovin",
             string secondary = null,
             int interstitialCooldown = 30,
             int rewardedCooldown = 10)
         {
-            return new IAA
+            return new IAAModel
             {
                 Mediation          = mediation,
                 SecondaryMediation = secondary,
@@ -67,7 +68,7 @@ namespace Tests.Runtime
         public void MergeWith_RemoteSetsMedation_OverridesLocal()
         {
             var base_  = BaseIaa(mediation: "applovin");
-            var remote = new IAA { Mediation = "admob" };
+            var remote = new IAAModel { Mediation = "admob" };
 
             var merged = base_.MergeWith(remote);
 
@@ -78,7 +79,7 @@ namespace Tests.Runtime
         public void MergeWith_RemoteMediationNull_KeepsLocal()
         {
             var base_  = BaseIaa(mediation: "applovin");
-            var remote = new IAA { Mediation = null };   // not specified
+            var remote = new IAAModel { Mediation = null };   // not specified
 
             var merged = base_.MergeWith(remote);
 
@@ -89,7 +90,7 @@ namespace Tests.Runtime
         public void MergeWith_RemoteSetsSecondaryMediation_OverridesLocal()
         {
             var base_  = BaseIaa(secondary: null);
-            var remote = new IAA { SecondaryMediation = "admob" };
+            var remote = new IAAModel { SecondaryMediation = "admob" };
 
             var merged = base_.MergeWith(remote);
 
@@ -101,7 +102,7 @@ namespace Tests.Runtime
         {
             var base_  = BaseIaa();
             base_.DynamicOptimization = false;
-            var remote = new IAA { DynamicOptimization = true };
+            var remote = new IAAModel { DynamicOptimization = true };
 
             var merged = base_.MergeWith(remote);
 
@@ -114,11 +115,11 @@ namespace Tests.Runtime
         public void MergeWith_NonNullRemote_ReturnsNewInstance()
         {
             var base_  = BaseIaa();
-            var remote = new IAA { Mediation = "admob" };
+            var remote = new IAAModel { Mediation = "admob" };
 
             var merged = base_.MergeWith(remote);
 
-            Assert.AreNotSame(base_,  merged, "MergeWith should return a new IAA, not mutate the base");
+            Assert.AreNotSame(base_,  merged, "MergeWith should return a new IAAModel, not mutate the base");
             Assert.AreNotSame(remote, merged);
         }
 
@@ -126,7 +127,7 @@ namespace Tests.Runtime
         public void MergeWith_NonNullRemote_DoesNotMutateBase()
         {
             var base_  = BaseIaa(mediation: "applovin");
-            var remote = new IAA { Mediation = "admob" };
+            var remote = new IAAModel { Mediation = "admob" };
 
             base_.MergeWith(remote);
 
@@ -139,7 +140,7 @@ namespace Tests.Runtime
         public void MergeWith_CooldownRemotePositive_OverridesBase()
         {
             var base_  = BaseIaa(interstitialCooldown: 30, rewardedCooldown: 10);
-            var remote = new IAA
+            var remote = new IAAModel
             {
                 CooldownSeconds = new CooldownConfig { Interstitial = 60, Rewarded = 20 }
             };
@@ -155,7 +156,7 @@ namespace Tests.Runtime
         {
             // CooldownConfig int fields: 0 means "not specified", not "clear the cooldown"
             var base_  = BaseIaa(interstitialCooldown: 30, rewardedCooldown: 10);
-            var remote = new IAA
+            var remote = new IAAModel
             {
                 CooldownSeconds = new CooldownConfig { Interstitial = 0, Rewarded = 0 }
             };
@@ -171,8 +172,8 @@ namespace Tests.Runtime
         public void MergeWith_CooldownRemoteNull_ReturnsBaseConfig()
         {
             var baseCooldown = new CooldownConfig { Interstitial = 45 };
-            var base_        = new IAA { Mediation = "applovin", CooldownSeconds = baseCooldown };
-            var remote       = new IAA { CooldownSeconds = null };
+            var base_        = new IAAModel { Mediation = "applovin", CooldownSeconds = baseCooldown };
+            var remote       = new IAAModel { CooldownSeconds = null };
 
             var merged = base_.MergeWith(remote);
 
@@ -183,8 +184,8 @@ namespace Tests.Runtime
         [Test]
         public void MergeWith_CooldownBaseNullRemotePositive_UsesRemoteValue()
         {
-            var base_  = new IAA { Mediation = "applovin", CooldownSeconds = null };
-            var remote = new IAA { CooldownSeconds = new CooldownConfig { Interstitial = 15 } };
+            var base_  = new IAAModel { Mediation = "applovin", CooldownSeconds = null };
+            var remote = new IAAModel { CooldownSeconds = new CooldownConfig { Interstitial = 15 } };
 
             var merged = base_.MergeWith(remote);
 
@@ -201,8 +202,8 @@ namespace Tests.Runtime
             {
                 Interstitial = new FrequencyCapEntry { MaxImpressions = 3, WindowSeconds = 3600 }
             };
-            var base_  = new IAA { Mediation = "applovin", FrequencyCaps = baseCap };
-            var remote = new IAA { FrequencyCaps = null };
+            var base_  = new IAAModel { Mediation = "applovin", FrequencyCaps = baseCap };
+            var remote = new IAAModel { FrequencyCaps = null };
 
             var merged = base_.MergeWith(remote);
 
@@ -214,7 +215,7 @@ namespace Tests.Runtime
         [Test]
         public void MergeWith_FrequencyCapsRemoteEntry_OverridesBase()
         {
-            var base_  = new IAA
+            var base_  = new IAAModel
             {
                 Mediation     = "applovin",
                 FrequencyCaps = new FrequencyCapConfig
@@ -222,7 +223,7 @@ namespace Tests.Runtime
                     Interstitial = new FrequencyCapEntry { MaxImpressions = 3, WindowSeconds = 3600 }
                 }
             };
-            var remote = new IAA
+            var remote = new IAAModel
             {
                 FrequencyCaps = new FrequencyCapConfig
                 {
@@ -239,7 +240,7 @@ namespace Tests.Runtime
         [Test]
         public void MergeWith_FrequencyCapsRemoteEntryNull_KeepsBaseEntry()
         {
-            var base_  = new IAA
+            var base_  = new IAAModel
             {
                 Mediation     = "applovin",
                 FrequencyCaps = new FrequencyCapConfig
@@ -249,7 +250,7 @@ namespace Tests.Runtime
                 }
             };
             // Remote only overrides Rewarded, leaves Interstitial null
-            var remote = new IAA
+            var remote = new IAAModel
             {
                 FrequencyCaps = new FrequencyCapConfig
                 {
@@ -272,12 +273,12 @@ namespace Tests.Runtime
         [Test]
         public void MergeWith_EnabledFormatsRemoteNull_KeepsBase()
         {
-            var base_  = new IAA
+            var base_  = new IAAModel
             {
                 Mediation      = "applovin",
                 EnabledFormats = new EnabledFormatsConfig { Interstitial = true, Rewarded = false }
             };
-            var remote = new IAA { EnabledFormats = null };
+            var remote = new IAAModel { EnabledFormats = null };
 
             var merged = base_.MergeWith(remote);
 
@@ -289,7 +290,7 @@ namespace Tests.Runtime
         [Test]
         public void MergeWith_EnabledFormatsRemoteOverrides_NonNullFields()
         {
-            var base_  = new IAA
+            var base_  = new IAAModel
             {
                 Mediation      = "applovin",
                 EnabledFormats = new EnabledFormatsConfig
@@ -299,7 +300,7 @@ namespace Tests.Runtime
                     Banner       = false,
                 }
             };
-            var remote = new IAA
+            var remote = new IAAModel
             {
                 EnabledFormats = new EnabledFormatsConfig
                 {
@@ -319,8 +320,8 @@ namespace Tests.Runtime
         [Test]
         public void MergeWith_EnabledFormatsBaseNullRemoteNonNull_UsesNewConfig()
         {
-            var base_  = new IAA { Mediation = "applovin", EnabledFormats = null };
-            var remote = new IAA
+            var base_  = new IAAModel { Mediation = "applovin", EnabledFormats = null };
+            var remote = new IAAModel
             {
                 EnabledFormats = new EnabledFormatsConfig { AppOpen = false }
             };
@@ -487,7 +488,7 @@ namespace Tests.Runtime
                     {
                         VariantId   = "high_cap",
                         Weight      = 50,
-                        IaaOverride = new IAA
+                        IaaOverride = new IAAModel
                         {
                             FrequencyCaps = new FrequencyCapConfig
                             {
