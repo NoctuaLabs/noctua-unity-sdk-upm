@@ -195,7 +195,7 @@ namespace Tests.Runtime.IAA
         [Test]
         public void CanShowAd_BelowCap_ReturnsTrue()
         {
-            var caps = CapOf(AdFormatKey.Rewarded, maxImpressions: 3, windowSec: 3600);
+            var caps = CapOf(AdFormatKey.Rewarded, max: 3, windowSec: 3600);
             var mgr  = new AdFrequencyManager(frequencyCaps: caps);
 
             mgr.RecordImpression(AdFormatKey.Rewarded);
@@ -208,7 +208,7 @@ namespace Tests.Runtime.IAA
         [Test]
         public void CanShowAd_AtCap_ReturnsFalse()
         {
-            var caps = CapOf(AdFormatKey.Rewarded, maxImpressions: 2, windowSec: 3600);
+            var caps = CapOf(AdFormatKey.Rewarded, max: 2, windowSec: 3600);
             var mgr  = new AdFrequencyManager(frequencyCaps: caps);
 
             mgr.RecordImpression(AdFormatKey.Rewarded);
@@ -222,7 +222,7 @@ namespace Tests.Runtime.IAA
         public void CanShowAd_ZeroMaxImpressions_NotCapped()
         {
             // MaxImpressions = 0 → cap disabled (guard: if cap.MaxImpressions <= 0 return false)
-            var caps = CapOf(AdFormatKey.Interstitial, maxImpressions: 0, windowSec: 3600);
+            var caps = CapOf(AdFormatKey.Interstitial, max: 0, windowSec: 3600);
             var mgr  = new AdFrequencyManager(frequencyCaps: caps);
 
             mgr.RecordImpression(AdFormatKey.Interstitial);
@@ -278,7 +278,7 @@ namespace Tests.Runtime.IAA
         [Test]
         public void LoadFromPrefs_RestoredCap_EnforcedOnNewInstance()
         {
-            var caps = CapOf(AdFormatKey.Interstitial, maxImpressions: 1, windowSec: 3600);
+            var caps = CapOf(AdFormatKey.Interstitial, max: 1, windowSec: 3600);
 
             var mgr1 = new AdFrequencyManager(frequencyCaps: caps);
             mgr1.RecordImpression(AdFormatKey.Interstitial);

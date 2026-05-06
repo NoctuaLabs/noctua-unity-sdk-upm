@@ -139,13 +139,13 @@ namespace Tests.Runtime
         public void FormatLogs_WithEntries_ContainsMessageAndSource()
         {
             var ledger = new LogInspectorLedger();
-            ledger.Write(new LogEntry(
-                level:       LogLevel.Warning,
-                source:      "MyClass",
-                tag:         "MyTag",
-                message:     "Hello world",
-                stackTrace:  null,
-                timestampUtc: DateTime.UtcNow));
+            ledger.OnLog(new LogEntry(
+                timestampUtc: DateTime.UtcNow,
+                level:        LogLevel.Warning,
+                source:       "MyClass",
+                tag:          "MyTag",
+                message:      "Hello world",
+                stackTrace:   null));
             ledger.Pump();
 
             var result = Invoke<string>("FormatLogs", ledger);
@@ -160,13 +160,13 @@ namespace Tests.Runtime
         public void FormatLogs_EntryWithStackTrace_ContainsStackTrace()
         {
             var ledger = new LogInspectorLedger();
-            ledger.Write(new LogEntry(
-                level:       LogLevel.Error,
-                source:      "Src",
-                tag:         "Tag",
-                message:     "Crash",
-                stackTrace:  "at Foo.Bar()",
-                timestampUtc: DateTime.UtcNow));
+            ledger.OnLog(new LogEntry(
+                timestampUtc: DateTime.UtcNow,
+                level:        LogLevel.Error,
+                source:       "Src",
+                tag:          "Tag",
+                message:      "Crash",
+                stackTrace:   "at Foo.Bar()"));
             ledger.Pump();
 
             var result = Invoke<string>("FormatLogs", ledger);
