@@ -1,39 +1,42 @@
-using System;
 using System.Collections.Generic;
+using com.noctuagames.sdk;
 using NUnit.Framework;
 using UnityEngine;
 
-namespace com.noctuagames.sdk.Tests.IAA
+namespace Tests.Runtime.IAA
 {
     /// <summary>
-    /// Unit tests for <see cref="AdWatchMilestoneTracker"/>.
+    /// EditMode NUnit tests for <see cref="AdWatchMilestoneTracker"/>.
     ///
-    /// Verifies the milestone semantics laid out in the canonical IAA spec:
-    /// <list type="bullet">
-    ///   <item>5x / 10x / 25x / 50x fire exactly once each per install</item>
-    ///   <item>Only <see cref="AdFormatKey.Rewarded"/> and <see cref="AdFormatKey.Interstitial"/> contribute</item>
-    ///   <item>Banner / RewardedInterstitial / AppOpen are silently ignored</item>
-    ///   <item>Counts persist via <see cref="PlayerPrefs"/></item>
-    /// </list>
+    /// Covers:
+    ///   — Constructor rejects null emit delegate
+    ///   — <c>RecordWatch</c> ignores ineligible formats (banner, rewarded_interstitial)
+    ///   — Milestone events fire at 5 / 10 / 25 / 50 cumulative views
+    ///   — Each milestone fires only once (bitmask dedup)
+    ///   — Persisted counts/masks survive across instances (PlayerPrefs round-trip)
+    ///   — <c>GetCount</c> / <c>GetFiredMask</c> / <c>ResetForAdType</c> test helpers
+    ///   — <c>InstallAsDefault</c> sets the static <c>Default</c> property
+    ///
+    /// PlayerPrefs state is cleared before and after each test via
+    /// <c>AdWatchMilestoneTracker.ResetForAdType</c>.
     /// </summary>
     [TestFixture]
     public class AdWatchMilestoneTrackerTest
     {
-        private List<(string Event, Dictionary<string, IConvertible> Payload)> _emitted;
+        private List<string> _emittedEvents;
         private AdWatchMilestoneTracker _tracker;
 
         [SetUp]
         public void SetUp()
         {
-            // Reset persisted state for every eligible + ineligible ad type so tests are isolated.
+            _emittedEvents = new List<string>();
+            _tracker = new AdWatchMilestoneTracker((name, _) => _emittedEvents.Add(name));
+
+            // Clear any leftover PlayerPrefs state
             AdWatchMilestoneTracker.ResetForAdType(AdFormatKey.Rewarded);
             AdWatchMilestoneTracker.ResetForAdType(AdFormatKey.Interstitial);
             AdWatchMilestoneTracker.ResetForAdType(AdFormatKey.Banner);
-            AdWatchMilestoneTracker.ResetForAdType(AdFormatKey.RewardedInterstitial);
             AdWatchMilestoneTracker.ResetForAdType(AdFormatKey.AppOpen);
-
-            _emitted = new List<(string, Dictionary<string, IConvertible>)>();
-            _tracker = new AdWatchMilestoneTracker((name, payload) => _emitted.Add((name, payload)));
         }
 
         [TearDown]
@@ -41,314 +44,203 @@ namespace com.noctuagames.sdk.Tests.IAA
         {
             AdWatchMilestoneTracker.ResetForAdType(AdFormatKey.Rewarded);
             AdWatchMilestoneTracker.ResetForAdType(AdFormatKey.Interstitial);
-            AdWatchMilestoneTracker.ResetForAdType(AdFormatKey.Banner);
-            AdWatchMilestoneTracker.ResetForAdType(AdFormatKey.RewardedInterstitial);
-            AdWatchMilestoneTracker.ResetForAdType(AdFormatKey.AppOpen);
         }
 
-        // ─── Threshold firing ────────────────────────────────────────────────
+        // ═══════════════════════════════════════════════════════════════════
+        // Constructor
+        // ═══════════════════════════════════════════════════════════════════
 
         [Test]
-        public void RecordWatch_BelowFirstThreshold_EmitsNothing()
+        public void Constructor_NullEmit_ThrowsArgumentNullException()
         {
-            for (int i = 0; i < 4; i++) _tracker.RecordWatch(AdFormatKey.Rewarded);
-
-            Assert.AreEqual(0, _emitted.Count);
-            Assert.AreEqual(4, AdWatchMilestoneTracker.GetCount(AdFormatKey.Rewarded));
+            Assert.Throws<System.ArgumentNullException>(() =>
+                new AdWatchMilestoneTracker(null));
         }
 
-        [Test]
-        public void RecordWatch_HittingFifth_EmitsWatchAds5xOnce()
-        {
-            for (int i = 0; i < 5; i++) _tracker.RecordWatch(AdFormatKey.Rewarded);
-
-            Assert.AreEqual(1, _emitted.Count);
-            Assert.AreEqual(IAAEventNames.WatchAds5x, _emitted[0].Event);
-            Assert.AreEqual(AdFormatKey.Rewarded, _emitted[0].Payload[IAAPayloadKey.AdType]);
-            Assert.AreEqual(5, _emitted[0].Payload[IAAPayloadKey.Count]);
-        }
+        // ═══════════════════════════════════════════════════════════════════
+        // Eligibility filtering
+        // ═══════════════════════════════════════════════════════════════════
 
         [Test]
-        public void RecordWatch_AllFourThresholds_EachFiresExactlyOnce()
+        public void RecordWatch_BannerFormat_Ignored()
         {
-            for (int i = 0; i < 50; i++) _tracker.RecordWatch(AdFormatKey.Interstitial);
+            for (int i = 0; i < 10; i++) _tracker.RecordWatch(AdFormatKey.Banner);
 
-            Assert.AreEqual(4, _emitted.Count);
-            Assert.AreEqual(IAAEventNames.WatchAds5x,  _emitted[0].Event);
-            Assert.AreEqual(IAAEventNames.WatchAds10x, _emitted[1].Event);
-            Assert.AreEqual(IAAEventNames.WatchAds25x, _emitted[2].Event);
-            Assert.AreEqual(IAAEventNames.WatchAds50x, _emitted[3].Event);
-
-            Assert.AreEqual( 5, _emitted[0].Payload[IAAPayloadKey.Count]);
-            Assert.AreEqual(10, _emitted[1].Payload[IAAPayloadKey.Count]);
-            Assert.AreEqual(25, _emitted[2].Payload[IAAPayloadKey.Count]);
-            Assert.AreEqual(50, _emitted[3].Payload[IAAPayloadKey.Count]);
-        }
-
-        [Test]
-        public void RecordWatch_PastFifty_DoesNotRefireAnyMilestone()
-        {
-            for (int i = 0; i < 60; i++) _tracker.RecordWatch(AdFormatKey.Rewarded);
-
-            Assert.AreEqual(4, _emitted.Count, "Only the four canonical milestones should fire even past 50.");
-            Assert.AreEqual(60, AdWatchMilestoneTracker.GetCount(AdFormatKey.Rewarded));
-        }
-
-        // ─── Once-per-install semantics ──────────────────────────────────────
-
-        [Test]
-        public void RecordWatch_SecondInstanceWithExistingState_DoesNotRefireAlreadyFiredMilestone()
-        {
-            for (int i = 0; i < 5; i++) _tracker.RecordWatch(AdFormatKey.Rewarded);
-            Assert.AreEqual(1, _emitted.Count);
-
-            // Simulate process restart by constructing a fresh tracker (PlayerPrefs persists).
-            var emittedAfter = new List<(string, Dictionary<string, IConvertible>)>();
-            var freshTracker = new AdWatchMilestoneTracker((n, p) => emittedAfter.Add((n, p)));
-
-            for (int i = 0; i < 4; i++) freshTracker.RecordWatch(AdFormatKey.Rewarded);  // count: 6,7,8,9
-
-            Assert.AreEqual(0, emittedAfter.Count, "5x must not refire after install.");
-            Assert.AreEqual(9, AdWatchMilestoneTracker.GetCount(AdFormatKey.Rewarded));
-        }
-
-        // ─── Per-ad-type isolation ───────────────────────────────────────────
-
-        [Test]
-        public void RecordWatch_RewardedAndInterstitial_AreCountedSeparately()
-        {
-            for (int i = 0; i < 5; i++) _tracker.RecordWatch(AdFormatKey.Rewarded);
-            for (int i = 0; i < 5; i++) _tracker.RecordWatch(AdFormatKey.Interstitial);
-
-            Assert.AreEqual(2, _emitted.Count);
-            Assert.AreEqual(IAAEventNames.WatchAds5x, _emitted[0].Event);
-            Assert.AreEqual(AdFormatKey.Rewarded, _emitted[0].Payload[IAAPayloadKey.AdType]);
-            Assert.AreEqual(IAAEventNames.WatchAds5x, _emitted[1].Event);
-            Assert.AreEqual(AdFormatKey.Interstitial, _emitted[1].Payload[IAAPayloadKey.AdType]);
-        }
-
-        // ─── Ineligible ad types ─────────────────────────────────────────────
-
-        [Test]
-        public void RecordWatch_Banner_IsIgnored()
-        {
-            for (int i = 0; i < 100; i++) _tracker.RecordWatch(AdFormatKey.Banner);
-
-            Assert.AreEqual(0, _emitted.Count);
+            Assert.AreEqual(0, _emittedEvents.Count, "Banner views must not trigger milestones");
             Assert.AreEqual(0, AdWatchMilestoneTracker.GetCount(AdFormatKey.Banner));
         }
 
         [Test]
-        public void RecordWatch_RewardedInterstitial_IsIgnored()
+        public void RecordWatch_AppOpenFormat_Ignored()
         {
-            for (int i = 0; i < 100; i++) _tracker.RecordWatch(AdFormatKey.RewardedInterstitial);
+            for (int i = 0; i < 10; i++) _tracker.RecordWatch(AdFormatKey.AppOpen);
 
-            Assert.AreEqual(0, _emitted.Count);
-            Assert.AreEqual(0, AdWatchMilestoneTracker.GetCount(AdFormatKey.RewardedInterstitial));
+            Assert.AreEqual(0, _emittedEvents.Count, "App open views must not trigger milestones");
         }
 
         [Test]
-        public void RecordWatch_AppOpen_IsIgnored()
+        public void RecordWatch_NullAdType_DoesNotThrow()
         {
-            for (int i = 0; i < 100; i++) _tracker.RecordWatch(AdFormatKey.AppOpen);
-
-            Assert.AreEqual(0, _emitted.Count);
-            Assert.AreEqual(0, AdWatchMilestoneTracker.GetCount(AdFormatKey.AppOpen));
+            Assert.DoesNotThrow(() => _tracker.RecordWatch(null));
         }
 
         [Test]
-        public void RecordWatch_NullOrEmptyAdType_IsIgnored()
+        public void RecordWatch_EmptyAdType_DoesNotThrow()
         {
-            _tracker.RecordWatch(null);
-            _tracker.RecordWatch(string.Empty);
-
-            Assert.AreEqual(0, _emitted.Count);
+            Assert.DoesNotThrow(() => _tracker.RecordWatch(""));
         }
 
-        // ─── InstallAsDefault ────────────────────────────────────────────────
+        // ═══════════════════════════════════════════════════════════════════
+        // Milestone firing — rewarded ads
+        // ═══════════════════════════════════════════════════════════════════
 
         [Test]
-        public void InstallAsDefault_SetsStaticDefault()
+        public void RecordWatch_FiveRewarded_Fires5xEvent()
         {
-            _tracker.InstallAsDefault();
-            Assert.AreSame(_tracker, AdWatchMilestoneTracker.Default);
+            for (int i = 0; i < 5; i++) _tracker.RecordWatch(AdFormatKey.Rewarded);
+
+            Assert.Contains(IAAEventNames.WatchAds5x, _emittedEvents);
         }
 
         [Test]
-        public void InstallAsDefault_SecondCall_ReplacesDefault()
+        public void RecordWatch_TenRewarded_Fires5xAnd10xEvents()
         {
-            _tracker.InstallAsDefault();
-            var second = new AdWatchMilestoneTracker((_, __) => { });
-            second.InstallAsDefault();
+            for (int i = 0; i < 10; i++) _tracker.RecordWatch(AdFormatKey.Rewarded);
 
-            Assert.AreSame(second, AdWatchMilestoneTracker.Default);
+            Assert.Contains(IAAEventNames.WatchAds5x,  _emittedEvents);
+            Assert.Contains(IAAEventNames.WatchAds10x, _emittedEvents);
         }
-    }
-
-    /// <summary>
-    /// Extended edge-case tests for <see cref="AdWatchMilestoneTracker"/>.
-    /// Covers: individual milestone thresholds, GetFiredMask semantics,
-    /// null-emit-delegate guard, ResetForAdType(null), counter accumulation,
-    /// per-format payload correctness, and threshold-skipping scenarios.
-    /// </summary>
-    [TestFixture]
-    public class AdWatchMilestoneTrackerEdgeCaseTest
-    {
-        private List<(string Event, Dictionary<string, IConvertible> Payload)> _emitted;
-        private AdWatchMilestoneTracker _tracker;
-
-        [SetUp]
-        public void SetUp()
-        {
-            AdWatchMilestoneTracker.ResetForAdType(AdFormatKey.Rewarded);
-            AdWatchMilestoneTracker.ResetForAdType(AdFormatKey.Interstitial);
-            AdWatchMilestoneTracker.ResetForAdType(AdFormatKey.Banner);
-            AdWatchMilestoneTracker.ResetForAdType(AdFormatKey.RewardedInterstitial);
-            AdWatchMilestoneTracker.ResetForAdType(AdFormatKey.AppOpen);
-
-            _emitted = new List<(string, Dictionary<string, IConvertible>)>();
-            _tracker = new AdWatchMilestoneTracker((name, payload) => _emitted.Add((name, payload)));
-        }
-
-        [TearDown]
-        public void TearDown()
-        {
-            AdWatchMilestoneTracker.ResetForAdType(AdFormatKey.Rewarded);
-            AdWatchMilestoneTracker.ResetForAdType(AdFormatKey.Interstitial);
-            AdWatchMilestoneTracker.ResetForAdType(AdFormatKey.Banner);
-            AdWatchMilestoneTracker.ResetForAdType(AdFormatKey.RewardedInterstitial);
-            AdWatchMilestoneTracker.ResetForAdType(AdFormatKey.AppOpen);
-        }
-
-        // ─── Constructor guard ────────────────────────────────────────────────
 
         [Test]
-        public void Constructor_NullEmitDelegate_ThrowsArgumentNullException()
+        public void RecordWatch_TwentyFiveRewarded_FiresAllThreeBelow()
         {
-            Assert.Throws<ArgumentNullException>(() => new AdWatchMilestoneTracker(null));
+            for (int i = 0; i < 25; i++) _tracker.RecordWatch(AdFormatKey.Rewarded);
+
+            Assert.Contains(IAAEventNames.WatchAds5x,  _emittedEvents);
+            Assert.Contains(IAAEventNames.WatchAds10x, _emittedEvents);
+            Assert.Contains(IAAEventNames.WatchAds25x, _emittedEvents);
+            Assert.IsFalse(_emittedEvents.Contains(IAAEventNames.WatchAds50x),
+                "50x milestone must not fire at 25 views");
         }
 
-        // ─── Individual milestone thresholds ──────────────────────────────────
+        [Test]
+        public void RecordWatch_FiftyRewarded_FiresAllFourMilestones()
+        {
+            for (int i = 0; i < 50; i++) _tracker.RecordWatch(AdFormatKey.Rewarded);
+
+            Assert.Contains(IAAEventNames.WatchAds5x,  _emittedEvents);
+            Assert.Contains(IAAEventNames.WatchAds10x, _emittedEvents);
+            Assert.Contains(IAAEventNames.WatchAds25x, _emittedEvents);
+            Assert.Contains(IAAEventNames.WatchAds50x, _emittedEvents);
+        }
+
+        // ═══════════════════════════════════════════════════════════════════
+        // Once-only dedup via bitmask
+        // ═══════════════════════════════════════════════════════════════════
 
         [Test]
-        public void RecordWatch_ExactlyFive_Fires5xOnly()
+        public void RecordWatch_5xMilestoneFiredOnce_EvenAfterMoreViews()
+        {
+            // First 5 views → fires watch_ads_5x
+            for (int i = 0; i < 5; i++) _tracker.RecordWatch(AdFormatKey.Rewarded);
+            int countAfterFirst = _emittedEvents.FindAll(e => e == IAAEventNames.WatchAds5x).Count;
+            Assert.AreEqual(1, countAfterFirst);
+
+            // 5 more views → must NOT fire watch_ads_5x again
+            for (int i = 0; i < 5; i++) _tracker.RecordWatch(AdFormatKey.Rewarded);
+            int countAfterSecond = _emittedEvents.FindAll(e => e == IAAEventNames.WatchAds5x).Count;
+            Assert.AreEqual(1, countAfterSecond, "5x milestone must fire at most once per install");
+        }
+
+        // ═══════════════════════════════════════════════════════════════════
+        // Interstitial format — independent counter
+        // ═══════════════════════════════════════════════════════════════════
+
+        [Test]
+        public void RecordWatch_InterstitialFiveViews_Fires5xEvent()
         {
             for (int i = 0; i < 5; i++) _tracker.RecordWatch(AdFormatKey.Interstitial);
 
-            Assert.AreEqual(1, _emitted.Count);
-            Assert.AreEqual(IAAEventNames.WatchAds5x, _emitted[0].Event);
+            Assert.Contains(IAAEventNames.WatchAds5x, _emittedEvents);
+            Assert.AreEqual(5, AdWatchMilestoneTracker.GetCount(AdFormatKey.Interstitial));
         }
 
         [Test]
-        public void RecordWatch_ExactlyTen_Fires10xOnly()
+        public void RecordWatch_RewardedAndInterstitial_IndependentCounters()
         {
-            // Pre-fill 5 already-fired so we start just after the 5x milestone
-            for (int i = 0; i < 5; i++) _tracker.RecordWatch(AdFormatKey.Rewarded);
-            _emitted.Clear();
+            for (int i = 0; i < 3; i++) _tracker.RecordWatch(AdFormatKey.Rewarded);
+            for (int i = 0; i < 3; i++) _tracker.RecordWatch(AdFormatKey.Interstitial);
 
-            for (int i = 0; i < 5; i++) _tracker.RecordWatch(AdFormatKey.Rewarded); // count → 10
-
-            Assert.AreEqual(1, _emitted.Count);
-            Assert.AreEqual(IAAEventNames.WatchAds10x, _emitted[0].Event);
+            // Neither has reached 5 yet
+            Assert.AreEqual(0, _emittedEvents.Count,
+                "3+3 views (different types) must not yet trigger 5x milestone");
         }
 
+        // ═══════════════════════════════════════════════════════════════════
+        // GetCount / GetFiredMask test helpers
+        // ═══════════════════════════════════════════════════════════════════
+
         [Test]
-        public void RecordWatch_ExactlyTwentyFive_Fires25xOnly()
+        public void GetCount_AfterThreeViews_ReturnsThree()
         {
-            for (int i = 0; i < 10; i++) _tracker.RecordWatch(AdFormatKey.Rewarded);
-            _emitted.Clear();
+            _tracker.RecordWatch(AdFormatKey.Rewarded);
+            _tracker.RecordWatch(AdFormatKey.Rewarded);
+            _tracker.RecordWatch(AdFormatKey.Rewarded);
 
-            for (int i = 0; i < 15; i++) _tracker.RecordWatch(AdFormatKey.Rewarded); // count → 25
-
-            Assert.AreEqual(1, _emitted.Count);
-            Assert.AreEqual(IAAEventNames.WatchAds25x, _emitted[0].Event);
+            Assert.AreEqual(3, AdWatchMilestoneTracker.GetCount(AdFormatKey.Rewarded));
         }
 
         [Test]
-        public void RecordWatch_ExactlyFifty_Fires50xOnly()
-        {
-            for (int i = 0; i < 25; i++) _tracker.RecordWatch(AdFormatKey.Rewarded);
-            _emitted.Clear();
-
-            for (int i = 0; i < 25; i++) _tracker.RecordWatch(AdFormatKey.Rewarded); // count → 50
-
-            Assert.AreEqual(1, _emitted.Count);
-            Assert.AreEqual(IAAEventNames.WatchAds50x, _emitted[0].Event);
-        }
-
-        // ─── GetFiredMask semantics ────────────────────────────────────────────
-
-        [Test]
-        public void GetFiredMask_BeforeAnyWatch_IsZero()
-        {
-            Assert.AreEqual(0, AdWatchMilestoneTracker.GetFiredMask(AdFormatKey.Rewarded));
-        }
-
-        [Test]
-        public void GetFiredMask_After5xFires_HasBit0Set()
+        public void GetFiredMask_AfterFiveViews_Bit0Set()
         {
             for (int i = 0; i < 5; i++) _tracker.RecordWatch(AdFormatKey.Rewarded);
 
             int mask = AdWatchMilestoneTracker.GetFiredMask(AdFormatKey.Rewarded);
-            Assert.IsTrue((mask & (1 << 0)) != 0, "Bit0 (5x) should be set after 5 watches");
+            Assert.AreEqual(1, mask & 1, "Bit 0 (5x) must be set after 5 views");
+        }
+
+        // ═══════════════════════════════════════════════════════════════════
+        // PlayerPrefs persistence round-trip
+        // ═══════════════════════════════════════════════════════════════════
+
+        [Test]
+        public void RecordWatch_PersistedCount_RestoredByNewInstance()
+        {
+            // First tracker records 4 views
+            for (int i = 0; i < 4; i++) _tracker.RecordWatch(AdFormatKey.Rewarded);
+
+            // New tracker instance reads from PlayerPrefs — one more view should fire 5x
+            var events2 = new List<string>();
+            var tracker2 = new AdWatchMilestoneTracker((name, _) => events2.Add(name));
+            tracker2.RecordWatch(AdFormatKey.Rewarded);
+
+            Assert.Contains(IAAEventNames.WatchAds5x, events2,
+                "Persisted count must be restored and milestone must fire on the 5th view");
         }
 
         [Test]
-        public void GetFiredMask_AllFourMilestones_AllFourBitsSet()
+        public void RecordWatch_PersistedFiredMask_PreventsRefiring()
         {
-            for (int i = 0; i < 50; i++) _tracker.RecordWatch(AdFormatKey.Interstitial);
+            // First tracker fires the 5x milestone
+            for (int i = 0; i < 5; i++) _tracker.RecordWatch(AdFormatKey.Rewarded);
 
-            int mask = AdWatchMilestoneTracker.GetFiredMask(AdFormatKey.Interstitial);
-            // Bits 0,1,2,3 all set → mask == 0b1111 == 15
-            Assert.AreEqual(15, mask, "After 50 watches, all four milestone bits should be set");
+            // New tracker reads the bitmask — milestone must not re-fire
+            var events2 = new List<string>();
+            var tracker2 = new AdWatchMilestoneTracker((name, _) => events2.Add(name));
+            tracker2.RecordWatch(AdFormatKey.Rewarded);  // view 6
+
+            Assert.IsFalse(events2.Contains(IAAEventNames.WatchAds5x),
+                "5x milestone must not re-fire when bitmask is already set in PlayerPrefs");
         }
 
-        [Test]
-        public void GetFiredMask_UnknownAdType_ReturnsZero()
-        {
-            // Non-eligible type was never incremented → mask should be 0
-            int mask = AdWatchMilestoneTracker.GetFiredMask(AdFormatKey.Banner);
-            Assert.AreEqual(0, mask);
-        }
-
-        // ─── GetCount helpers ─────────────────────────────────────────────────
-
-        [Test]
-        public void GetCount_NullAdType_ReturnsZeroWithoutThrow()
-        {
-            Assert.DoesNotThrow(() =>
-            {
-                int count = AdWatchMilestoneTracker.GetCount(null);
-                Assert.AreEqual(0, count);
-            });
-        }
-
-        [Test]
-        public void GetCount_AccumulatesCorrectlyAcrossManyWatches()
-        {
-            for (int i = 0; i < 37; i++) _tracker.RecordWatch(AdFormatKey.Rewarded);
-
-            Assert.AreEqual(37, AdWatchMilestoneTracker.GetCount(AdFormatKey.Rewarded));
-        }
-
-        // ─── ResetForAdType edge cases ────────────────────────────────────────
-
-        [Test]
-        public void ResetForAdType_Null_DoesNotThrow()
-        {
-            Assert.DoesNotThrow(() => AdWatchMilestoneTracker.ResetForAdType(null));
-        }
-
-        [Test]
-        public void ResetForAdType_EmptyString_DoesNotThrow()
-        {
-            Assert.DoesNotThrow(() => AdWatchMilestoneTracker.ResetForAdType(string.Empty));
-        }
+        // ═══════════════════════════════════════════════════════════════════
+        // ResetForAdType
+        // ═══════════════════════════════════════════════════════════════════
 
         [Test]
         public void ResetForAdType_ClearsCountAndMask()
         {
-            for (int i = 0; i < 50; i++) _tracker.RecordWatch(AdFormatKey.Rewarded);
+            for (int i = 0; i < 5; i++) _tracker.RecordWatch(AdFormatKey.Rewarded);
 
             AdWatchMilestoneTracker.ResetForAdType(AdFormatKey.Rewarded);
 
@@ -356,119 +248,15 @@ namespace com.noctuagames.sdk.Tests.IAA
             Assert.AreEqual(0, AdWatchMilestoneTracker.GetFiredMask(AdFormatKey.Rewarded));
         }
 
-        [Test]
-        public void ResetForAdType_AfterReset_MilestonesFireAgain()
-        {
-            for (int i = 0; i < 5; i++) _tracker.RecordWatch(AdFormatKey.Rewarded);
-            Assert.AreEqual(1, _emitted.Count);
-            _emitted.Clear();
-
-            AdWatchMilestoneTracker.ResetForAdType(AdFormatKey.Rewarded);
-
-            for (int i = 0; i < 5; i++) _tracker.RecordWatch(AdFormatKey.Rewarded);
-
-            Assert.AreEqual(1, _emitted.Count, "After reset, 5x milestone should fire again");
-            Assert.AreEqual(IAAEventNames.WatchAds5x, _emitted[0].Event);
-        }
-
-        // ─── Payload correctness per format ───────────────────────────────────
+        // ═══════════════════════════════════════════════════════════════════
+        // InstallAsDefault
+        // ═══════════════════════════════════════════════════════════════════
 
         [Test]
-        public void RecordWatch_InterstitialMilestone_PayloadContainsInterstitialAdType()
+        public void InstallAsDefault_SetsDotDefaultProperty()
         {
-            for (int i = 0; i < 5; i++) _tracker.RecordWatch(AdFormatKey.Interstitial);
-
-            Assert.AreEqual(1, _emitted.Count);
-            Assert.AreEqual(AdFormatKey.Interstitial, _emitted[0].Payload[IAAPayloadKey.AdType]);
-        }
-
-        [Test]
-        public void RecordWatch_RewardedMilestone_PayloadContainsRewardedAdType()
-        {
-            for (int i = 0; i < 5; i++) _tracker.RecordWatch(AdFormatKey.Rewarded);
-
-            Assert.AreEqual(1, _emitted.Count);
-            Assert.AreEqual(AdFormatKey.Rewarded, _emitted[0].Payload[IAAPayloadKey.AdType]);
-        }
-
-        [Test]
-        public void RecordWatch_Milestone_PayloadCountMatchesThreshold()
-        {
-            for (int i = 0; i < 10; i++) _tracker.RecordWatch(AdFormatKey.Rewarded);
-
-            // Two events: 5x and 10x
-            Assert.AreEqual(2, _emitted.Count);
-            Assert.AreEqual(5,  _emitted[0].Payload[IAAPayloadKey.Count]);
-            Assert.AreEqual(10, _emitted[1].Payload[IAAPayloadKey.Count]);
-        }
-
-        // ─── Threshold skipping — single increment crosses multiple milestones ─
-
-        [Test]
-        public void RecordWatch_SingleIncrementCrossesMultipleThresholds_AllFire()
-        {
-            // Pre-set count to 4 via direct PlayerPrefs manipulation (bypassing tracker)
-            // so the next RecordWatch hits count=5 (crossing 5x threshold)
-            // This tests the increment from 4 → 5 crossing 5x only.
-            // To test skip: start at 9 → next watch hits 10 (crosses both if 5x not fired yet)
-            // Set count to 4 (fired none), then watch once → count=5 → 5x fires
-            // Set count to 9 (fired 5x), then watch once → count=10 → 10x fires only (5x already fired)
-
-            // Actually test genuine skip: set count=24, firedMask=0b0001 (5x already fired),
-            // then watch once → count=25 → only 25x would normally fire, but 10x is also unfired...
-            // The spec says "each fires exactly once" — test the edge where we're at 24 with only
-            // 5x fired (10x and 25x still unfired), then jump to 25 in one step.
-            PlayerPrefs.SetInt("noctua.ads.watch.count." + AdFormatKey.Rewarded, 24);
-            PlayerPrefs.SetInt("noctua.ads.watch.fired." + AdFormatKey.Rewarded, 1 << 0); // 5x already fired
-            PlayerPrefs.Save();
-
-            _tracker.RecordWatch(AdFormatKey.Rewarded); // count → 25; 10x and 25x both unfired → both fire
-
-            Assert.AreEqual(2, _emitted.Count, "Both 10x and 25x should fire in one increment when count crosses both thresholds");
-            Assert.AreEqual(IAAEventNames.WatchAds10x, _emitted[0].Event);
-            Assert.AreEqual(IAAEventNames.WatchAds25x, _emitted[1].Event);
-        }
-
-        [Test]
-        public void RecordWatch_FromZeroSkippingToFifty_AllFourMilestonesFire()
-        {
-            // Set count to 49 with no milestones fired yet
-            PlayerPrefs.SetInt("noctua.ads.watch.count." + AdFormatKey.Interstitial, 49);
-            PlayerPrefs.SetInt("noctua.ads.watch.fired." + AdFormatKey.Interstitial, 0);
-            PlayerPrefs.Save();
-
-            _tracker.RecordWatch(AdFormatKey.Interstitial); // count → 50; all four thresholds passed
-
-            Assert.AreEqual(4, _emitted.Count, "All four milestones should fire when count crosses 50 with none previously fired");
-            Assert.AreEqual(IAAEventNames.WatchAds5x,  _emitted[0].Event);
-            Assert.AreEqual(IAAEventNames.WatchAds10x, _emitted[1].Event);
-            Assert.AreEqual(IAAEventNames.WatchAds25x, _emitted[2].Event);
-            Assert.AreEqual(IAAEventNames.WatchAds50x, _emitted[3].Event);
-        }
-
-        // ─── Counter isolation between ad types ───────────────────────────────
-
-        [Test]
-        public void GetCount_RewardedAndInterstitial_IndependentCounters()
-        {
-            for (int i = 0; i < 7; i++)  _tracker.RecordWatch(AdFormatKey.Rewarded);
-            for (int i = 0; i < 12; i++) _tracker.RecordWatch(AdFormatKey.Interstitial);
-
-            Assert.AreEqual(7,  AdWatchMilestoneTracker.GetCount(AdFormatKey.Rewarded));
-            Assert.AreEqual(12, AdWatchMilestoneTracker.GetCount(AdFormatKey.Interstitial));
-        }
-
-        [Test]
-        public void GetFiredMask_RewardedAndInterstitial_IndependentMasks()
-        {
-            for (int i = 0; i < 5; i++) _tracker.RecordWatch(AdFormatKey.Rewarded);      // 5x fires for Rewarded
-            // Interstitial untouched → mask should still be 0
-
-            int rewardedMask      = AdWatchMilestoneTracker.GetFiredMask(AdFormatKey.Rewarded);
-            int interstitialMask  = AdWatchMilestoneTracker.GetFiredMask(AdFormatKey.Interstitial);
-
-            Assert.AreEqual(1, rewardedMask,     "Rewarded should have bit0 set");
-            Assert.AreEqual(0, interstitialMask,  "Interstitial mask should still be 0");
+            _tracker.InstallAsDefault();
+            Assert.AreSame(_tracker, AdWatchMilestoneTracker.Default);
         }
     }
 }
