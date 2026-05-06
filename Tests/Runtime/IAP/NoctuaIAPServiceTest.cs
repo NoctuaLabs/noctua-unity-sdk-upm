@@ -1,6 +1,7 @@
 using System;
 using com.noctuagames.sdk;
 using System.Collections.Generic;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Cysharp.Threading.Tasks;
 using Newtonsoft.Json;
@@ -100,7 +101,8 @@ namespace Tests.Runtime.IAP
             PlayerPrefs.SetString(PendingPurchasesKey, "not-valid-json{{{");
             PlayerPrefs.Save();
 
-            var svc    = CreateService();
+            var svc = CreateService();
+            LogAssert.Expect(LogType.Error, new Regex(@"NoctuaIAPService\.GetPendingPurchases: Failed to parse pending purchases"));
             var result = svc.GetPendingPurchases();
 
             Assert.IsNotNull(result);
@@ -127,7 +129,8 @@ namespace Tests.Runtime.IAP
             PlayerPrefs.SetString(PurchaseHistoryKey, "{malformed}");
             PlayerPrefs.Save();
 
-            var svc    = CreateService();
+            var svc = CreateService();
+            LogAssert.Expect(LogType.Error, new Regex(@"NoctuaIAPService\.GetPurchaseHistory: Failed to parse purchase history"));
             var result = svc.GetPurchaseHistory();
 
             Assert.IsNotNull(result);
@@ -313,6 +316,7 @@ namespace Tests.Runtime.IAP
         [TearDown]
         public void TearDown()
         {
+            LogAssert.ignoreFailingMessages = false;
             PlayerPrefs.DeleteKey("NoctuaPendingPurchases");
             PlayerPrefs.DeleteKey("NoctuaPurchaseHistory");
             PlayerPrefs.DeleteKey("NoctuaRefundTracking");
@@ -414,6 +418,7 @@ namespace Tests.Runtime.IAP
         {
             IAPTestHelpers.StorePending(IAPTestHelpers.MakePendingItemJson(5));
             var svc = IAPTestHelpers.CreateService();
+            LogAssert.Expect(LogType.Error, new Regex(@"NoctuaIAPService\.GetPendingPurchaseByOrderId: Failed to parse pending purchases"));
             Assert.Throws<Exception>(() => svc.GetPendingPurchaseByOrderId(999),
                 "Should throw when order ID is not in the stored list");
         }
@@ -539,6 +544,7 @@ namespace Tests.Runtime.IAP
         [TearDown]
         public void TearDown()
         {
+            LogAssert.ignoreFailingMessages = false;
             PlayerPrefs.DeleteKey(RefundTrackingKey);
             PlayerPrefs.Save();
         }
@@ -557,7 +563,8 @@ namespace Tests.Runtime.IAP
         {
             PlayerPrefs.SetString(RefundTrackingKey, "{{bad-json}}");
             PlayerPrefs.Save();
-            var svc    = IAPTestHelpers.CreateService();
+            var svc = IAPTestHelpers.CreateService();
+            LogAssert.Expect(LogType.Error, new Regex(@"NoctuaIAPService\.GetRefundTrackingEntries: Failed to parse refund tracking store"));
             var result = svc.GetRefundTrackingEntries();
             Assert.IsNotNull(result);
             Assert.AreEqual(0, result.Count, "Malformed JSON should gracefully return empty list");
@@ -704,6 +711,12 @@ namespace Tests.Runtime.IAP
         public void SetUp()
         {
             LogAssert.ignoreFailingMessages = true;
+        }
+
+        [TearDown]
+        public void TearDown()
+        {
+            LogAssert.ignoreFailingMessages = false;
         }
 
         [Test]
@@ -857,6 +870,12 @@ namespace Tests.Runtime.IAP
         public void SetUp()
         {
             LogAssert.ignoreFailingMessages = true;
+        }
+
+        [TearDown]
+        public void TearDown()
+        {
+            LogAssert.ignoreFailingMessages = false;
         }
 
         [Test]

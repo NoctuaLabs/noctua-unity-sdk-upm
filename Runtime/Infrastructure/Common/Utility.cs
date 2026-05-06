@@ -153,6 +153,9 @@ namespace com.noctuagames.sdk
         /// <returns>The logo resource name string.</returns>
         public static string GetCoPublisherLogo(string companyName)
         {
+            // Dictionary<string,string> does not support null keys; treat null as "unknown".
+            if (companyName == null) return "NoctuaLogoWithText";
+
             var logoMap = new Dictionary<string, string>
             {
                 { "OEG JSC", "OegWhiteLogo" }

@@ -346,11 +346,10 @@ namespace Tests.Runtime
                 eventSender.Send("test_event_1");
                 eventSender.Send("test_event_1");
 
-                // Wait for all GeoIP enrichment fire-and-forget tasks to complete before the
-                // batch timer fires — otherwise some events may not yet be written to storage
-                await UniTask.Delay(2000);
-
-                var events = await GetEventsFromServerAsync();
+                // GeoIP enrichment fire-and-forget tasks write events to storage asynchronously.
+                // Use a generous timeout+settle so every batch cycle the EventSender runs
+                // after enrichment completes has time to deliver all events to the server.
+                var events = await GetEventsFromServerAsync(5000, 2000);
 
                 Assert.GreaterOrEqual(events.Count, 3);
 
