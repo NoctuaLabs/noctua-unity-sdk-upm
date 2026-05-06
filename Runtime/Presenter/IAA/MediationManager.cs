@@ -1483,7 +1483,17 @@ namespace com.noctuagames.sdk
         private void PostToMainThread(Action action)
         {
             if (_mainThreadContext != null)
-                _mainThreadContext.Post(_ => action(), null);
+            {
+                try
+                {
+                    _mainThreadContext.Post(_ => action(), null);
+                }
+                catch (Exception ex)
+                {
+                    _log.Error($"[MediationManager] PostToMainThread failed ({ex.GetType().Name}: {ex.Message}). Executing inline as fallback.");
+                    action();
+                }
+            }
             else
                 action(); // fallback: already on main thread (Editor / tests)
         }

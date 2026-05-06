@@ -32,9 +32,14 @@ namespace com.noctuagames.sdk.Events
     {
         // PlayerPrefs keys for crash-recovery of orphaned sessions.
         // Written on session_start, heartbeat, and pause; cleared on clean Dispose() or session timeout.
-        private const string KeyOrphanedSessionId          = "NoctuaOrphanedSessionId";
+        private const string KeyOrphanedSessionId           = "NoctuaOrphanedSessionId";
         private const string KeyOrphanedSessionCumulativeMs = "NoctuaOrphanedSessionCumulativeMs";
+        private const string KeyOrphanedSessionUnsentMs     = "NoctuaOrphanedSessionUnsentMs";
         private const string KeyOrphanedSessionLastTimestamp = "NoctuaOrphanedSessionLastTimestamp";
+
+        // Minimum gap between session_start events. Guards against session explosion caused
+        // by rapid OnApplicationPause(false) calls (e.g. ad SDK or game-loop init cycles).
+        private const long SessionMinGapMs = 10_000;
 
         private readonly SessionTrackerConfig _config;
         private readonly IEventSender _eventSender;
@@ -50,6 +55,7 @@ namespace com.noctuagames.sdk.Events
         private bool _disposed;
 
         private string _sessionId;
+        private DateTime _lastSessionStartTime = DateTime.MinValue;
 
         // Engagement time tracking (Firebase-like user_engagement)
         private readonly Stopwatch _foregroundStopwatch = new Stopwatch();
@@ -119,14 +125,21 @@ namespace com.noctuagames.sdk.Events
 
         /// <summary>
         /// Persists current session state to PlayerPrefs so it can be recovered on next launch if the process is killed.
+        /// Saves both the full cumulative total (for per_session) and the unsent portion since the last heartbeat/pause
+        /// (for the incremental noctua_user_engagement recovery event).
         /// Must be called from the main thread (PlayerPrefs is not thread-safe).
         /// </summary>
         private void SaveSessionState()
         {
             if (_sessionId == null) return;
 
+            // Unsent portion = any accumulated ms + stopwatch time since last send.
+            // _foregroundStopwatch.ElapsedMilliseconds is 0 when stopped/reset (after pause).
+            var unsentMs = _accumulatedEngagementMs + _foregroundStopwatch.ElapsedMilliseconds;
+
             PlayerPrefs.SetString(KeyOrphanedSessionId, _sessionId);
             PlayerPrefs.SetString(KeyOrphanedSessionCumulativeMs, _cumulativeSessionEngagementMs.ToString());
+            PlayerPrefs.SetString(KeyOrphanedSessionUnsentMs, unsentMs.ToString());
             PlayerPrefs.SetString(KeyOrphanedSessionLastTimestamp, DateTime.UtcNow.ToString("O"));
             PlayerPrefs.Save();
         }
@@ -139,6 +152,7 @@ namespace com.noctuagames.sdk.Events
         {
             PlayerPrefs.DeleteKey(KeyOrphanedSessionId);
             PlayerPrefs.DeleteKey(KeyOrphanedSessionCumulativeMs);
+            PlayerPrefs.DeleteKey(KeyOrphanedSessionUnsentMs);
             PlayerPrefs.DeleteKey(KeyOrphanedSessionLastTimestamp);
             PlayerPrefs.Save();
         }
@@ -155,11 +169,14 @@ namespace com.noctuagames.sdk.Events
             if (string.IsNullOrEmpty(savedSessionId)) return;
 
             if (!long.TryParse(PlayerPrefs.GetString(KeyOrphanedSessionCumulativeMs, "0"), out var cumulativeMs))
-            {
                 cumulativeMs = 0;
-            }
 
-            _log.Info($"[Session Tracker] Recovering orphaned session {savedSessionId}, cumulativeMs={cumulativeMs}");
+            // Unsent portion: time accumulated since the last heartbeat/pause save.
+            // In the old schema this key won't exist → defaults to 0, which is safe.
+            if (!long.TryParse(PlayerPrefs.GetString(KeyOrphanedSessionUnsentMs, "0"), out var unsentMs))
+                unsentMs = 0;
+
+            _log.Info($"[Session Tracker] Recovering orphaned session {savedSessionId}, cumulativeMs={cumulativeMs}, unsentMs={unsentMs}");
 
             // Tag recovery events with the old session_id.
             // session_id is also baked into each data dict so the async enrichment
@@ -167,18 +184,27 @@ namespace com.noctuagames.sdk.Events
             // SetProperties(null) resets the shared field before the task runs.
             _eventSender.SetProperties(sessionId: savedSessionId);
 
-            if (cumulativeMs > 0)
+            // Send only the UNSENT portion as noctua_user_engagement (lifecycle=end).
+            // Using the full cumulativeMs here would double-count all heartbeat chunks
+            // that were already sent during the session (confirmed overcount: ~2× in production).
+            if (unsentMs > 0)
             {
                 _eventSender.Send("noctua_user_engagement", new Dictionary<string, IConvertible>
                 {
-                    { "engagement_time_msec", cumulativeMs },
+                    { "engagement_time_msec", unsentMs },
                     { "lifecycle", "end" },
                     { "session_id", savedSessionId }
                 });
+            }
 
+            // Per-session event should carry the full session total:
+            // already-sent heartbeat chunks + the unsent remainder.
+            long perSessionMs = cumulativeMs + unsentMs;
+            if (perSessionMs > 0)
+            {
                 _eventSender.Send("noctua_user_engagement_per_session", new Dictionary<string, IConvertible>
                 {
-                    { "engagement_time_msec", cumulativeMs },
+                    { "engagement_time_msec", perSessionMs },
                     { "session_id", savedSessionId }
                 });
             }
@@ -248,6 +274,16 @@ namespace com.noctuagames.sdk.Events
             }
             else
             {
+                // Minimum gap guard: suppress session_start if a session was started too recently.
+                // Guards against session explosion from rapid OnApplicationPause(false) calls
+                // (e.g. ad SDK background threads or game-loop InitAsync cycles).
+                var msSinceLastStart = (DateTime.UtcNow - _lastSessionStartTime).TotalMilliseconds;
+                if (msSinceLastStart < SessionMinGapMs)
+                {
+                    _log.Warning($"[Session Tracker] Rapid session_start suppressed: {msSinceLastStart:F0}ms since last session_start (min gap: {SessionMinGapMs}ms). Foreground time during this window will not be tracked.");
+                    return;
+                }
+
             	_log.Info($"[Session Tracker] Application unpaused, start a new session");
 
                 // Recover any session orphaned by a previous force-kill before starting the new one.
@@ -256,6 +292,7 @@ namespace com.noctuagames.sdk.Events
                 RecoverOrphanedSession();
 
                 _sessionId = Guid.NewGuid().ToString();
+                _lastSessionStartTime = DateTime.UtcNow;
                 _cumulativeSessionEngagementMs = 0;
                 _eventSender.SetProperties(sessionId: _sessionId);
                 _eventSender.Send("session_start");
@@ -319,7 +356,7 @@ namespace com.noctuagames.sdk.Events
 
             while (!token.IsCancellationRequested)
             {
-                if (_pauseStatus || DateTime.UtcNow < _nextHeartbeat)
+                if (_pauseStatus || _sessionId == null || DateTime.UtcNow < _nextHeartbeat)
                 {
                     await UniTask.Delay(100, cancellationToken: token);
 
