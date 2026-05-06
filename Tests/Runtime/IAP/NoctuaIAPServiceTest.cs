@@ -787,16 +787,16 @@ namespace Tests.Runtime.IAP
     [TestFixture]
     public class NoctuaIAPServiceNotEnabledTest
     {
-        [SetUp]
-        public void SetUp()
-        {
-            LogAssert.ignoreFailingMessages = true;
-        }
+        // Exact message emitted by NoctuaLogger inside EnsureEnabled() when the
+        // service was never Enable()-d. Declared once so all three tests share it.
+        private const string EnsureEnabledError =
+            "NoctuaIAPService.EnsureEnabled: Noctua IAP is not enabled due to initialization failure.";
 
         [Test]
         public async Task GetProductListAsync_WhenNotEnabled_ThrowsNoctuaException()
         {
             var svc = IAPTestHelpers.CreateService();
+            LogAssert.Expect(LogType.Error, EnsureEnabledError);
             try
             {
                 await svc.GetProductListAsync().AsTask();
@@ -813,6 +813,7 @@ namespace Tests.Runtime.IAP
         public async Task ClaimRedeemAsync_WhenNotEnabled_ThrowsNoctuaException()
         {
             var svc = IAPTestHelpers.CreateService();
+            LogAssert.Expect(LogType.Error, EnsureEnabledError);
             try
             {
                 await svc.ClaimRedeemAsync("ABCD-EFGH").AsTask();
@@ -828,6 +829,7 @@ namespace Tests.Runtime.IAP
         public async Task PurchaseItemImplAsync_WhenNotEnabled_ThrowsNoctuaException()
         {
             var svc = IAPTestHelpers.CreateService();
+            LogAssert.Expect(LogType.Error, EnsureEnabledError);
             try
             {
                 await svc.PurchaseItemImplAsync(new PurchaseRequest { ProductId = "p1" }).AsTask();
