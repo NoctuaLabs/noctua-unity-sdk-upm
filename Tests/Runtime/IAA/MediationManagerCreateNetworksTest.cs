@@ -1,7 +1,10 @@
+using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Reflection;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Threading;
 using com.noctuagames.sdk;
 using com.noctuagames.sdk.AdPlaceholder;
 using Newtonsoft.Json;
@@ -933,6 +936,89 @@ namespace Tests.Runtime.IAA
         {
             Assert.AreEqual("local",           MediationManager.IaaConfigOriginLocal);
             Assert.AreEqual("remote_override", MediationManager.IaaConfigOriginRemoteOverride);
+        }
+
+        // ── PostToMainThread — null-context and try/catch fallback ────────────
+        //
+        // PostToMainThread is private. In EditMode, SynchronizationContext.Current
+        // is null, so _mainThreadContext captured in the constructor is null.
+        // The method executes action() inline in that case.
+        // We verify both the null-context path and the try/catch fallback using
+        // reflection (accessing private members is acceptable for critical safety nets).
+        //
+        // Structure of PostToMainThread:
+        //   if (_mainThreadContext != null) {
+        //       try { _mainThreadContext.Post(_ => action(), null); }
+        //       catch { log; action(); }  ← try/catch fallback
+        //   } else {
+        //       action();  ← null-context inline fallback
+        //   }
+
+        private static readonly MethodInfo PostToMainThreadMethod =
+            typeof(MediationManager).GetMethod(
+                "PostToMainThread",
+                BindingFlags.NonPublic | BindingFlags.Instance);
+
+        private static readonly FieldInfo MainThreadContextField =
+            typeof(MediationManager).GetField(
+                "_mainThreadContext",
+                BindingFlags.NonPublic | BindingFlags.Instance);
+
+        /// <summary>
+        /// SynchronizationContext that always throws on Post() to trigger the try/catch
+        /// fallback inside PostToMainThread.
+        /// </summary>
+        private class ThrowingOnPostContext : SynchronizationContext
+        {
+            public override void Post(SendOrPostCallback d, object state)
+                => throw new InvalidOperationException("Simulated context.Post failure");
+        }
+
+        [Test]
+        public void PostToMainThread_NullContext_ExecutesActionInline()
+        {
+            // In EditMode, SynchronizationContext.Current is null → _mainThreadContext
+            // is null at construction → the else-branch runs action() inline.
+            LogAssert.ignoreFailingMessages = true;
+            var mgr = NullIaaManager();
+
+            int callCount = 0;
+            PostToMainThreadMethod.Invoke(mgr, new object[] { (Action)(() => callCount++) });
+
+            Assert.AreEqual(1, callCount,
+                "PostToMainThread with null _mainThreadContext must execute action inline");
+        }
+
+        [Test]
+        public void PostToMainThread_ContextThrows_ExecutesActionAsFallback()
+        {
+            // Inject a SynchronizationContext whose Post() throws, then invoke
+            // PostToMainThread to verify the catch-branch executes action() as a fallback.
+            LogAssert.ignoreFailingMessages = true;
+            var mgr = NullIaaManager();
+
+            // Inject the throwing context via reflection
+            MainThreadContextField.SetValue(mgr, new ThrowingOnPostContext());
+
+            int callCount = 0;
+            PostToMainThreadMethod.Invoke(mgr, new object[] { (Action)(() => callCount++) });
+
+            Assert.AreEqual(1, callCount,
+                "PostToMainThread must execute action as fallback when context.Post throws");
+        }
+
+        [Test]
+        public void PostToMainThread_NullAction_ThrowsOrIsHandled()
+        {
+            // Passing null as the action should throw ArgumentNullException when invoked.
+            // This tests that the method doesn't silently swallow a programmer error.
+            LogAssert.ignoreFailingMessages = true;
+            var mgr = NullIaaManager();
+
+            var ex = Assert.Throws<TargetInvocationException>(() =>
+                PostToMainThreadMethod.Invoke(mgr, new object[] { (Action)null }));
+            Assert.IsInstanceOf<NullReferenceException>(ex.InnerException,
+                "Invoking PostToMainThread with a null action must throw NullReferenceException");
         }
     }
 }
