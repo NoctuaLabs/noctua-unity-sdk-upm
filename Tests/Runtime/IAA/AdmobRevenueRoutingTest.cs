@@ -1,4 +1,5 @@
 using NUnit.Framework;
+using com.noctuagames.sdk;
 using UnityEngine;
 
 namespace Tests.Runtime.IAA

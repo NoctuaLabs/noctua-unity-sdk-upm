@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Text;
 using System.Text.RegularExpressions;
+using com.noctuagames.sdk;
 using Newtonsoft.Json;
 using NUnit.Framework;
 using UnityEngine;
