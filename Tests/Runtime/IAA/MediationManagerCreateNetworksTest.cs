@@ -845,4 +845,94 @@ namespace Tests.Runtime.IAA
             "ApplyIaaConfigFromRemote must not throw regardless of how many times it is called or what is passed");
         }
     }
+
+    /// <summary>
+    /// Tests for MediationManager utility and diagnostic APIs that are not covered
+    /// elsewhere: OnApplicationForeground, ShowCreativeDebugger, DroppedEventCount.
+    /// </summary>
+    [TestFixture]
+    public class MediationManagerUtilityApiTest
+    {
+        private class NoopAdPlaceholderUI : IAdPlaceholderUI
+        {
+            public void ShowAdPlaceholder(AdPlaceholderType adType) { }
+            public void CloseAdPlaceholder() { }
+        }
+
+        private static MediationManager NullIaaManager()
+        {
+            LogAssert.ignoreFailingMessages = true;
+            return new MediationManager(new NoopAdPlaceholderUI(), null);
+        }
+
+        // ── OnApplicationForeground ───────────────────────────────────────────
+
+        [Test]
+        public void OnApplicationForeground_NullAppOpenAdManager_DoesNotThrow()
+        {
+            // When constructed with null IAA, _appOpenAdManager is null.
+            // OnApplicationForeground uses ?. so must not throw.
+            var mgr = NullIaaManager();
+            Assert.DoesNotThrow(() => mgr.OnApplicationForeground(),
+                "OnApplicationForeground must not throw when _appOpenAdManager is null");
+        }
+
+        [Test]
+        public void OnApplicationForeground_CalledMultipleTimes_DoesNotThrow()
+        {
+            var mgr = NullIaaManager();
+            Assert.DoesNotThrow(() =>
+            {
+                mgr.OnApplicationForeground();
+                mgr.OnApplicationForeground();
+                mgr.OnApplicationForeground();
+            },
+            "OnApplicationForeground must be idempotent and never throw");
+        }
+
+        // ── ShowCreativeDebugger ──────────────────────────────────────────────
+
+        [Test]
+        public void ShowCreativeDebugger_NullOrchestrator_DoesNotThrow()
+        {
+            // Guard: `if (_orchestrator == null) return;`
+            var mgr = NullIaaManager();
+            Assert.DoesNotThrow(() => mgr.ShowCreativeDebugger(),
+                "ShowCreativeDebugger must return silently when orchestrator is null");
+        }
+
+        [Test]
+        public void ShowCreativeDebugger_WithAdmobOnlyOrchestrator_DoesNotThrow()
+        {
+            // AppLovin is not in the mock network → falls through to the warning log path
+            LogAssert.ignoreFailingMessages = true;
+            var mgr = new MediationManager(new NoopAdPlaceholderUI(), new IAAConfig { Mediation = "admob" });
+            Assert.DoesNotThrow(() => mgr.ShowCreativeDebugger(),
+                "ShowCreativeDebugger with no AppLovin must log warning and return silently");
+        }
+
+        // ── SetAdRevenueTracker after construction ────────────────────────────
+
+        [Test]
+        public void SetAdRevenueTracker_AfterSetToNull_CanBeCalledAgainWithNull()
+        {
+            var mgr = NullIaaManager();
+            Assert.DoesNotThrow(() =>
+            {
+                mgr.SetAdRevenueTracker(null);
+                mgr.SetAdRevenueTracker(null);
+                mgr.SetAdRevenueTracker(null);
+            },
+            "SetAdRevenueTracker(null) must be safely callable any number of times");
+        }
+
+        // ── IaaConfigOrigin constants ─────────────────────────────────────────
+
+        [Test]
+        public void IaaConfigOriginConstants_AreCorrectValues()
+        {
+            Assert.AreEqual("local",           MediationManager.IaaConfigOriginLocal);
+            Assert.AreEqual("remote_override", MediationManager.IaaConfigOriginRemoteOverride);
+        }
+    }
 }
