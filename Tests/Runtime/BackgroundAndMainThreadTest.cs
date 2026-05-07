@@ -447,24 +447,40 @@ namespace Tests.Runtime
                     await Task.Run(() => sender.Send("sysinfo_probe"));
                     await WaitForStorageFile("sysinfo_probe");
 
+                    // Extra frame yield to ensure ProcessWriteQueue drain is fully committed
+                    await UniTask.NextFrame();
+
                     var path = Path.Combine(Application.persistentDataPath, "noctua_events.jsonl");
                     Assert.IsTrue(File.Exists(path), "JSONL file must exist");
 
                     var line = File.ReadAllLines(path)
                         .FirstOrDefault(l => l.Contains("sysinfo_probe"));
-                    Assert.IsNotNull(line, "sysinfo_probe event not found in JSONL");
+                    Assert.IsNotNull(line, $"sysinfo_probe event not found in JSONL (file contents: {(File.Exists(path) ? File.ReadAllText(path) : "<missing>")})");
 
-                    // DefaultNativePlugin.InsertEvent wraps the event in a NativeEvent object
-                    // and double-serializes to JSONL: {"Id":N,"EventJson":"{\"device_os\":...}","CreatedAt":...}
-                    // Inner JSON quotes are escaped as \" in the raw file, so searching for
-                    // "device_os" (literal quote) would fail — the actual pattern is \"device_os\".
-                    // Use the C# escaped form \\\"key\\\" which matches that raw pattern.
-                    Assert.IsTrue(line.Contains("\\\"device_os\\\""),
-                        "device_os must be present — requires main-thread SwitchToMainThread()");
-                    Assert.IsTrue(line.Contains("\\\"device_model\\\""),
-                        "device_model must be present — requires main-thread SwitchToMainThread()");
-                    Assert.IsTrue(line.Contains("\\\"device_type\\\""),
-                        "device_type must be present — requires main-thread SwitchToMainThread()");
+                    // Deserialize the NativeEvent wrapper and then parse the inner JSON payload.
+                    // This is more robust than raw byte-pattern matching because it handles
+                    // any escaping differences across platforms (Editor, Android, iOS).
+                    //
+                    // DefaultNativePlugin.InsertEvent stores:
+                    //   NativeEvent { id, eventJson: "<inner-json-string>", createdAt }
+                    // The inner eventJson is the event payload dictionary.
+                    var nativeEvent = Newtonsoft.Json.JsonConvert.DeserializeObject<NativeEvent>(line);
+                    Assert.IsNotNull(nativeEvent?.EventJson,
+                        $"NativeEvent.EventJson must not be null. Raw line: {line}");
+
+                    var innerData = Newtonsoft.Json.JsonConvert.DeserializeObject<
+                        System.Collections.Generic.Dictionary<string, object>>(nativeEvent.EventJson);
+                    Assert.IsNotNull(innerData,
+                        $"Inner event JSON must deserialize to a dictionary. EventJson: {nativeEvent.EventJson}");
+
+                    // device_os, device_model, device_type are added AFTER await UniTask.SwitchToMainThread().
+                    // Their presence in the stored event proves the main-thread switch succeeded.
+                    Assert.IsTrue(innerData.ContainsKey("device_os"),
+                        $"device_os must be present — requires UniTask.SwitchToMainThread() to succeed. Keys found: {string.Join(", ", innerData.Keys)}");
+                    Assert.IsTrue(innerData.ContainsKey("device_model"),
+                        $"device_model must be present — requires UniTask.SwitchToMainThread() to succeed. Keys found: {string.Join(", ", innerData.Keys)}");
+                    Assert.IsTrue(innerData.ContainsKey("device_type"),
+                        $"device_type must be present — requires UniTask.SwitchToMainThread() to succeed. Keys found: {string.Join(", ", innerData.Keys)}");
                 }
                 finally
                 {
