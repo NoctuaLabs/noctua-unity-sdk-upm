@@ -484,11 +484,17 @@ namespace Tests.Runtime
         // ─── Min session gap guard ────────────────────────────────────────────────
 
         [UnityTest]
-        public IEnumerator MinSessionGap_SuppressesRapidSessionStart_AfterTimeout() => UniTask.ToCoroutine(
+        public IEnumerator MinSessionGap_AllowsSessionStart_AfterTimeout() => UniTask.ToCoroutine(
             async () =>
             {
-                // Use a very short timeout so the session expires quickly, then verify the guard
-                // prevents a new session_start within the 10-second minimum gap window.
+                // After a session TIMES OUT, the next resume must always create a new session —
+                // even if the time since the previous session_start is less than SessionMinGapMs.
+                //
+                // Rationale: the min-gap guard exists to prevent session inflation from rapid
+                // OnApplicationPause(false) bursts fired by ad SDKs (milliseconds apart). It is
+                // NOT intended to suppress legitimate new sessions after a genuine timeout.
+                // When a timeout occurs, SessionTracker resets _lastSessionStartTime to
+                // DateTime.MinValue, giving the next resume an effectively infinite gap.
                 var config = new SessionTrackerConfig
                 {
                     HeartbeatPeriodMs = 60_000,
@@ -505,15 +511,17 @@ namespace Tests.Runtime
                 await UniTask.Delay(50);
                 tracker.OnApplicationPause(true);
 
-                // Resume after timeout fires — gap from T0 is ~300ms < 10,000ms → must be suppressed
+                // Resume after timeout fires (300ms elapsed > 100ms timeout).
+                // Despite being within the 10s min-gap window, _lastSessionStartTime was reset to
+                // DateTime.MinValue on timeout → gap appears infinite → session_start is NOT suppressed.
                 await UniTask.Delay(250);
                 _mockSender.Clear();
                 tracker.OnApplicationPause(false);
 
-                Assert.AreEqual(0, _mockSender.GetEventsByName("session_start").Count,
-                    "session_start within 10s gap must be suppressed to prevent session inflation");
+                Assert.AreEqual(1, _mockSender.GetEventsByName("session_start").Count,
+                    "session_start after a genuine timeout must NOT be suppressed by the min-gap guard");
                 Assert.AreEqual(0, _mockSender.GetEventsByName("session_continue").Count,
-                    "session_continue must not fire when no active session exists");
+                    "session_continue must not fire — this is a fresh session, not a resume of an active one");
 
                 tracker.Dispose();
             }
@@ -542,32 +550,28 @@ namespace Tests.Runtime
         );
 
         [UnityTest]
-        public IEnumerator Heartbeat_DoesNotFire_WhenSessionIdIsNull() => UniTask.ToCoroutine(
+        public IEnumerator Heartbeat_DoesNotFire_BeforeSessionStarts() => UniTask.ToCoroutine(
             async () =>
             {
-                // When the min gap guard suppresses a session_start, _sessionId stays null.
-                // The heartbeat loop must skip in that state (no session to heartbeat).
+                // The heartbeat loop guards on `_sessionId == null` — no events should be
+                // emitted until a session is actually started via OnApplicationPause(false).
+                // This verifies the guard is effective from the very first frame, before any
+                // session lifecycle transition has occurred.
                 var config = new SessionTrackerConfig
                 {
-                    HeartbeatPeriodMs = 200, // short period so we'd notice if it fired
-                    SessionTimeoutMs  = 100
+                    HeartbeatPeriodMs = 200, // short so we'd notice within the wait window
+                    SessionTimeoutMs  = 60_000
                 };
                 var tracker = new SessionTracker(config, _mockSender);
 
-                tracker.OnApplicationPause(false); // session 1 starts
-                await UniTask.Delay(50);
-                tracker.OnApplicationPause(true);  // pause (timeout = now + 100ms)
-                await UniTask.Delay(200);           // let timeout expire
-
-                // Resume: timeout fires, _sessionId = null, gap guard suppresses session_start
-                tracker.OnApplicationPause(false);
-                _mockSender.Clear();
-
-                // Wait well past heartbeatPeriodMs — heartbeat must NOT fire without a session
+                // Never call OnApplicationPause(false) → _sessionId remains null
+                // Wait well past heartbeatPeriodMs — heartbeat must NOT fire
                 await UniTask.Delay(500);
 
                 Assert.AreEqual(0, _mockSender.GetEventsByName("session_heartbeat").Count,
-                    "session_heartbeat must not fire when _sessionId is null (no active session)");
+                    "session_heartbeat must not fire when _sessionId is null — no session has started");
+                Assert.AreEqual(0, _mockSender.GetEventsByName("session_start").Count,
+                    "session_start must not fire without an OnApplicationPause(false) call");
 
                 tracker.Dispose();
             }

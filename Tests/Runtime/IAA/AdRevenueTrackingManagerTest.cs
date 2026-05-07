@@ -927,11 +927,11 @@ namespace Tests.Runtime.IAA
 
             mgr.ProcessRewardedThresholds(0.01);
             mgr.ProcessRewardedThresholds(0.01);
-            Assert.IsFalse(_tracker.WasFired("Total_Rewarded_Count_005"),
+            Assert.IsFalse(_tracker.WasFired("taichi_rewarded_ad_impression"),
                 "Step 5 must not fire before threshold is crossed");
 
             mgr.ProcessRewardedThresholds(0.01); // 3rd call crosses count=3
-            Assert.IsTrue(_tracker.WasFired("Total_Rewarded_Count_005"),
+            Assert.IsTrue(_tracker.WasFired("taichi_rewarded_ad_impression"),
                 "Step 5 must fire on 3rd rewarded impression when threshold=3");
         }
 
@@ -950,11 +950,11 @@ namespace Tests.Runtime.IAA
             var mgr = new AdRevenueTrackingManager(_tracker, config);
 
             mgr.ProcessInterstitialThresholds(0.01);
-            Assert.IsFalse(_tracker.WasFired("Total_Interstitial_Count_004"),
+            Assert.IsFalse(_tracker.WasFired("taichi_interstitial_ad_impression"),
                 "Step 4 must not fire after 1 interstitial when threshold=2");
 
             mgr.ProcessInterstitialThresholds(0.01);
-            Assert.IsTrue(_tracker.WasFired("Total_Interstitial_Count_004"),
+            Assert.IsTrue(_tracker.WasFired("taichi_interstitial_ad_impression"),
                 "Step 4 must fire on 2nd interstitial when threshold=2");
         }
 

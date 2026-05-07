@@ -977,10 +977,12 @@ namespace Tests.Runtime.IAA
         [Test]
         public void PostToMainThread_NullContext_ExecutesActionInline()
         {
-            // In EditMode, SynchronizationContext.Current is null → _mainThreadContext
-            // is null at construction → the else-branch runs action() inline.
+            // Force _mainThreadContext to null so the else-branch executes action() inline.
+            // In EditMode SynchronizationContext.Current is NOT null at construction time,
+            // so we use reflection to simulate the null-context fallback path explicitly.
             LogAssert.ignoreFailingMessages = true;
             var mgr = NullIaaManager();
+            MainThreadContextField.SetValue(mgr, null);
 
             int callCount = 0;
             PostToMainThreadMethod.Invoke(mgr, new object[] { (Action)(() => callCount++) });
@@ -1010,10 +1012,13 @@ namespace Tests.Runtime.IAA
         [Test]
         public void PostToMainThread_NullAction_ThrowsOrIsHandled()
         {
-            // Passing null as the action should throw ArgumentNullException when invoked.
-            // This tests that the method doesn't silently swallow a programmer error.
+            // Force _mainThreadContext to null so action() executes inline, making the null
+            // invocation throw immediately (NullReferenceException wrapped by reflection into
+            // TargetInvocationException). With a live SynchronizationContext, the Post() call
+            // defers execution so the exception never reaches this thread.
             LogAssert.ignoreFailingMessages = true;
             var mgr = NullIaaManager();
+            MainThreadContextField.SetValue(mgr, null);
 
             var ex = Assert.Throws<TargetInvocationException>(() =>
                 PostToMainThreadMethod.Invoke(mgr, new object[] { (Action)null }));
