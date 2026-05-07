@@ -112,6 +112,11 @@ namespace Tests.Runtime
                 "PostToMainThread",
                 BindingFlags.NonPublic | BindingFlags.Instance);
 
+        private static readonly FieldInfo MainThreadContextField =
+            typeof(MediationManager).GetField(
+                "_mainThreadContext",
+                BindingFlags.NonPublic | BindingFlags.Instance);
+
         private static readonly FieldInfo PauseStatusField =
             typeof(SessionTracker).GetField(
                 "_pauseStatus",
@@ -266,35 +271,39 @@ namespace Tests.Runtime
         // ════════════════════════════════════════════════════════════════════════
 
         /// <summary>
-        /// C1 — In EditMode, <c>_mainThreadContext</c> is null (because
-        /// <c>SynchronizationContext.Current</c> is null at construction time).
-        /// <c>PostToMainThread()</c> therefore executes the wrapped action inline on
-        /// the caller thread. When the caller is the Unity main thread (as it is in
-        /// NUnit EditMode), the revenue action succeeds — PlayerPrefs is accessible.
+        /// C1 — In EditMode, <c>SynchronizationContext.Current</c> is the NUnit test runner's
+        /// real synchronization context (not null). <c>PostToMainThread()</c> therefore calls
+        /// <c>_mainThreadContext.Post(_ =&gt; action(), null)</c>, which queues the action
+        /// asynchronously for the next context pump rather than executing it inline.
         ///
-        /// This simulates the production path where:
-        ///   AppLovin BG callback → PostToMainThread → queued to main thread → ProcessRevenue OK
+        /// This test yields a frame so the queued action executes before asserting, mirroring
+        /// the production path:
+        ///   AppLovin BG callback → PostToMainThread → SyncContext.Post → pumped next frame → ProcessRevenue OK
         ///
-        /// In EditMode the queue is replaced by inline execution, but the caller IS the
-        /// main thread so the result is equivalent.
+        /// The caller IS the main/test thread, so PlayerPrefs is accessible once the action runs.
         /// </summary>
-        [Test]
-        public void PostToMainThread_NullContext_MainThread_RevenueProcessed()
-        {
-            var mgr             = NullIaaManager();
-            var revenueTracker  = new MockAdRevenueTracker();
-            var revenueManager  = new AdRevenueTrackingManager(revenueTracker, DefaultTaichiConfig());
+        [UnityTest]
+        public IEnumerator PostToMainThread_MainThread_RevenueProcessed() =>
+            UniTask.ToCoroutine(async () =>
+            {
+                var mgr            = NullIaaManager();
+                var revenueTracker = new MockAdRevenueTracker();
+                var revenueManager = new AdRevenueTrackingManager(revenueTracker, DefaultTaichiConfig());
 
-            Assert.DoesNotThrow(() =>
+                // Queues action via SynchronizationContext.Post — does not execute inline
                 PostToMainThreadMethod.Invoke(mgr, new object[]
                 {
                     (Action)(() => revenueManager.ProcessAllFormatsThresholds(0.01))
-                }),
-                "PostToMainThread wrapping ProcessAllFormatsThresholds must succeed on the main thread");
+                });
 
-            Assert.IsTrue(revenueTracker.WasFired("Total_Ads_Revenue_001"),
-                "Revenue threshold event must fire after PostToMainThread executes inline on main thread");
-        }
+                // Yield two frames so the SynchronizationContext pumps the queued action
+                await UniTask.NextFrame();
+                await UniTask.NextFrame();
+
+                Assert.IsTrue(revenueTracker.WasFired("Total_Ads_Revenue_001"),
+                    "Revenue threshold event must fire after PostToMainThread queues and the " +
+                    "SynchronizationContext pumps the action on the next frame");
+            });
 
         /// <summary>
         /// C2 — Documents the broken path: when <c>_mainThreadContext</c> is null AND
@@ -306,9 +315,10 @@ namespace Tests.Runtime
         /// <see cref="System.Threading.SynchronizationContext"/> at construction time.
         /// If it were somehow null (e.g. destroyed SyncContext), the inline fallback would
         /// expose the underlying BG-thread PlayerPrefs constraint — making revenue
-        /// callbacks fail silently where they previously succeeded.
+        /// callbacks fail where they previously queued safely.
         ///
-        /// This test locks in the contract: null context + BG thread + revenue action = throw.
+        /// This test forces the null-context scenario via reflection to lock in the
+        /// contract: null context + BG thread + revenue action = throw.
         /// Any future change that makes the Process* methods thread-safe (e.g. a thread-safe
         /// store replacing PlayerPrefs) should update or remove this test accordingly.
         /// </summary>
@@ -316,6 +326,13 @@ namespace Tests.Runtime
         public void PostToMainThread_NullContext_BackgroundThread_ProcessRevenueThrows()
         {
             var mgr            = NullIaaManager();
+
+            // Force _mainThreadContext to null so PostToMainThread falls back to inline
+            // execution on the calling thread (the BG thread in Task.Run below).
+            // Without this, EditMode has a real SynchronizationContext and Post() would
+            // queue the action to the main thread rather than executing it inline on BG.
+            MainThreadContextField?.SetValue(mgr, null);
+
             var revenueTracker = new MockAdRevenueTracker();
             var revenueManager = new AdRevenueTrackingManager(revenueTracker, DefaultTaichiConfig());
 

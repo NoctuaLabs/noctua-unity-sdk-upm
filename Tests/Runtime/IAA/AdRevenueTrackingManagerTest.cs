@@ -880,7 +880,7 @@ namespace Tests.Runtime.IAA
 
             Assert.IsFalse(_tracker.WasFired("Total_Ads_Revenue_001"),
                 "Step 1 must not fire when revenue is 0");
-            Assert.IsTrue(_tracker.WasFired("Total_Ads_Ad_Count_002"),
+            Assert.IsTrue(_tracker.WasFired("TenAdsShown"),
                 "Step 2 (count) must fire even with 0 revenue when count threshold is met");
         }
 

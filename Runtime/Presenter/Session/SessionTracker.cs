@@ -265,6 +265,13 @@ namespace com.noctuagames.sdk.Events
                 _cumulativeSessionEngagementMs = 0;
                 _foregroundStopwatch.Reset();
                 _sessionId = null;
+
+                // Reset the min-gap timer so the immediately-following new session start
+                // is not suppressed. Without this, the 10s guard would block the new
+                // session because _lastSessionStartTime still holds the timed-out session's
+                // start time, causing a false positive on the rapid-resume check.
+                _lastSessionStartTime = DateTime.MinValue;
+
                 _eventSender.SetProperties(sessionId: null);
 
                 // per_session was sent cleanly — no orphan to recover
@@ -322,9 +329,6 @@ namespace com.noctuagames.sdk.Events
             _cancelHeartbeatSource.Cancel();
             _disposed = true;
 
-            // Clear orphan state — this is a clean exit; no recovery needed on next launch
-            ClearSessionState();
-
             // Send final engagement time before session_end
             _foregroundStopwatch.Stop();
             SendUserEngagementEvent("end");
@@ -335,14 +339,20 @@ namespace com.noctuagames.sdk.Events
             // it will be sent on next app launch.
             _eventSender.Send("session_end");
 
-            // Guard: when called from the GC finalizer thread, Flush() uses
-            // UniTask and UnityWebRequest which are main-thread-only and will
-            // crash. Skip Flush — the session_end event above is already queued
-            // for local storage and will be sent on next launch.
+            // Guard: when called from the GC finalizer thread or any background thread,
+            // PlayerPrefs (ClearSessionState) and UniTask/UnityWebRequest (Flush) are
+            // main-thread-only and will crash. Skip both — session_end is already queued
+            // for local storage and will be sent on next launch. The orphaned-session
+            // PlayerPrefs entry will be recovered on next launch, but since session_end
+            // was already sent this is a benign duplicate that the pipeline deduplicates.
             if (Thread.CurrentThread.ManagedThreadId != 1)
             {
                 return;
             }
+
+            // Clear orphan state — this is a clean exit; no recovery needed on next launch.
+            // Must run after the main-thread guard: PlayerPrefs.DeleteKey is main-thread-only.
+            ClearSessionState();
 
             if (_remoteFeatureFlags.TryGetValue("sendEventsOnFlushEnabled", out var enabled) && enabled)
             {
