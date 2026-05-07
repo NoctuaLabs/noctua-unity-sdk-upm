@@ -51,8 +51,9 @@ namespace Tests.Runtime.IAA
             _primary   = new MockAdNetwork { NetworkName = "primary" };
             _secondary = new MockAdNetwork { NetworkName = "secondary" };
 
-            // Clear AdNetworkPerformanceTracker PlayerPrefs to avoid cross-test pollution
-            foreach (var net in new[] { "primary", "secondary" })
+            // Clear AdNetworkPerformanceTracker PlayerPrefs to avoid cross-test pollution.
+            // Use the actual NetworkName fields so the keys match if names are ever changed.
+            foreach (var net in new[] { _primary.NetworkName, _secondary.NetworkName })
             foreach (var fmt in new[] { AdFormatKey.Interstitial, AdFormatKey.Rewarded,
                                         AdFormatKey.Banner, AdFormatKey.AppOpen })
             {
@@ -100,8 +101,11 @@ namespace Tests.Runtime.IAA
         }
 
         /// <summary>
-        /// I3: With primary-only orchestrator, onSecondaryReady is never invoked and secondary
-        ///     network's Initialize() is never called.
+        /// I3: With primary-only orchestrator, onSecondaryReady is never invoked.
+        ///     The field-level <c>_secondary</c> mock is never passed to the orchestrator, so
+        ///     testing its <c>InitializeCallCount</c> would be tautological (the orchestrator has
+        ///     no reference to it).  The meaningful invariant is that <c>onSecondaryReady</c> does
+        ///     not fire — that is what this test verifies.
         /// </summary>
         [Test]
         public void I3_Initialize_PrimaryOnly_SecondaryReadyNeverFires()
@@ -114,15 +118,16 @@ namespace Tests.Runtime.IAA
                 onSecondaryReady: () => secondaryReadyFired = true);
 
             Assert.IsFalse(secondaryReadyFired, "onSecondaryReady must NOT fire when secondary network is absent");
-            Assert.AreEqual(0, _secondary.InitializeCallCount, "Secondary network must NOT be initialized");
         }
 
         /// <summary>
-        /// I4: onPrimaryReady and onSecondaryReady both receive exactly one invocation even when
-        ///     multiple Initialize() calls are made (guard against double-init).
+        /// I4: With a single Initialize() call, each callback fires exactly once.
+        ///     (Note: <see cref="HybridAdOrchestrator.Initialize"/> has no idempotency guard —
+        ///     calling it twice would double-init both networks.  This test only validates the
+        ///     single-call contract.)
         /// </summary>
         [Test]
-        public void I4_Initialize_CalledOnce_EachCallbackFiresExactlyOnce()
+        public void I4_Initialize_SingleCall_EachCallbackFiresExactlyOnce()
         {
             var orc = new HybridAdOrchestrator(_primary, _secondary);
 
@@ -133,8 +138,26 @@ namespace Tests.Runtime.IAA
                 onPrimaryReady:   () => primaryCount++,
                 onSecondaryReady: () => secondaryCount++);
 
-            Assert.AreEqual(1, primaryCount,   "onPrimaryReady must fire exactly once per Initialize call");
-            Assert.AreEqual(1, secondaryCount, "onSecondaryReady must fire exactly once per Initialize call");
+            Assert.AreEqual(1, primaryCount,   "onPrimaryReady must fire exactly once");
+            Assert.AreEqual(1, secondaryCount, "onSecondaryReady must fire exactly once");
+        }
+
+        /// <summary>
+        /// I5: Initialize() with null callbacks does not throw — both callback params are optional
+        ///     and the implementation guards with <c>?.Invoke()</c>.
+        /// </summary>
+        [Test]
+        public void I5_Initialize_NullCallbacks_DoesNotThrow()
+        {
+            var orc = new HybridAdOrchestrator(_primary, _secondary);
+
+            Assert.DoesNotThrow(
+                () => orc.Initialize(onPrimaryReady: null, onSecondaryReady: null),
+                "Initialize must not throw when callbacks are null");
+
+            // Both networks still initialize (the null guards only protect the callbacks, not init)
+            Assert.AreEqual(1, _primary.InitializeCallCount,   "Primary must initialize even with null callback");
+            Assert.AreEqual(1, _secondary.InitializeCallCount, "Secondary must initialize even with null callback");
         }
 
         // ─── Group H — Per-event handler forwarding ───────────────────────────
@@ -478,7 +501,7 @@ namespace Tests.Runtime.IAA
         {
             var orc = new HybridAdOrchestrator(_primary, _secondary);
             int count = 0;
-            orc.OnUserEarnedReward += (_, __) => Interlocked.Increment(ref count);
+            orc.OnUserEarnedReward += (_, _amount) => Interlocked.Increment(ref count);
 
             var t1 = Task.Run(() => _primary.TriggerUserEarnedReward(10, "coins"));
             var t2 = Task.Run(() => _secondary.TriggerUserEarnedReward(20, "gems"));
@@ -498,7 +521,7 @@ namespace Tests.Runtime.IAA
         {
             var orc = new HybridAdOrchestrator(_primary, _secondary);
             int count = 0;
-            orc.OnAdRevenuePaid += (_, __, ___) => Interlocked.Increment(ref count);
+            orc.OnAdRevenuePaid += (_, _cur, _meta) => Interlocked.Increment(ref count);
 
             var t1 = Task.Run(() => _primary.TriggerAdRevenuePaid(0.01, "USD", null));
             var t2 = Task.Run(() => _secondary.TriggerAdRevenuePaid(0.02, "USD", null));
@@ -526,9 +549,14 @@ namespace Tests.Runtime.IAA
             orc.OnAdClicked            += () =>           Interlocked.Increment(ref clicked);
             orc.OnAdImpressionRecorded += () =>           Interlocked.Increment(ref impression);
             orc.OnAdClosed             += () =>           Interlocked.Increment(ref closed);
-            orc.OnUserEarnedReward     += (_, __) =>      Interlocked.Increment(ref reward);
-            orc.OnAdRevenuePaid        += (_, __, ___) => Interlocked.Increment(ref revenue);
+            orc.OnUserEarnedReward     += (_, _t) =>       Interlocked.Increment(ref reward);
+            orc.OnAdRevenuePaid        += (_, _c, _m) =>  Interlocked.Increment(ref revenue);
 
+            // Synthetic stress test: firing OnAdDisplayed and OnAdFailedDisplayed from the same
+            // network simultaneously is operationally impossible in production (they are mutually
+            // exclusive per ad slot), but tests thread safety of the delegate chain and
+            // IsAdShowing under maximum concurrent load.  IsAdShowing is NOT asserted in R8
+            // because the outcome is non-deterministic (last-write-wins between conflicting writers).
             // Fire all 7 events from BOTH networks at the same time
             var tasks = new[]
             {
@@ -632,17 +660,20 @@ namespace Tests.Runtime.IAA
             for (int i = 0; i < 2; i++)
             {
                 int idx = i; // capture for lambda
-                orc.OnAdDisplayed          += () =>           displayed[idx]++;
-                orc.OnAdFailedDisplayed    += () =>           failed[idx]++;
-                orc.OnAdClicked            += () =>           clicked[idx]++;
-                orc.OnAdImpressionRecorded += () =>           impression[idx]++;
-                orc.OnAdClosed             += () =>           closed[idx]++;
-                orc.OnUserEarnedReward     += (_, __) =>      reward[idx]++;
-                orc.OnAdRevenuePaid        += (_, __, ___) => revenue[idx]++;
+                orc.OnAdDisplayed          += () =>            displayed[idx]++;
+                orc.OnAdFailedDisplayed    += () =>            failed[idx]++;
+                orc.OnAdClicked            += () =>            clicked[idx]++;
+                orc.OnAdImpressionRecorded += () =>            impression[idx]++;
+                orc.OnAdClosed             += () =>            closed[idx]++;
+                // Sequential — non-atomic array[idx]++ is safe here (see comment below)
+                orc.OnUserEarnedReward     += (_, _t) =>       reward[idx]++;
+                orc.OnAdRevenuePaid        += (_, _c, _m) =>   revenue[idx]++;
             }
 
-            // Fire each event from both networks (sequential — this test focuses on multi-subscriber
-            // correctness, not thread safety; use Group R tests for concurrency)
+            // Fire each event from both networks SEQUENTIALLY — this test focuses on
+            // multi-subscriber routing correctness, not thread safety.  Non-atomic array[idx]++
+            // is safe because all triggers run on the calling (main) thread.
+            // For concurrent multi-subscriber correctness see M4.
             _primary.TriggerAdDisplayed();        _secondary.TriggerAdDisplayed();
             _primary.TriggerAdFailedDisplayed();  _secondary.TriggerAdFailedDisplayed();
             _primary.TriggerAdClicked();          _secondary.TriggerAdClicked();
@@ -709,25 +740,26 @@ namespace Tests.Runtime.IAA
         // ─── Helpers ──────────────────────────────────────────────────────────
 
         /// <summary>
-        /// Waits for all tasks to reach a terminal state (completed, faulted, or cancelled).
-        /// Returns true if all tasks finished within <see cref="RaceTimeoutMs"/>.
-        /// Swallows <see cref="AggregateException"/> from faulted tasks so the caller can
-        /// assert independently.
+        /// Waits for all tasks to complete successfully within <see cref="RaceTimeoutMs"/>.
+        ///
+        /// Returns <c>true</c> when all tasks finish within the timeout (no deadlock).
+        /// Returns <c>false</c> on genuine timeout (tasks still running — deadlock suspected).
+        /// Rethrows <see cref="AggregateException"/> if any task faults, surfacing real errors
+        /// immediately rather than masking them behind a confusing count mismatch.
+        ///
+        /// Contrast with the sibling file <c>MediationCallbackRaceTest.cs</c>, which swallows
+        /// faults in tests that explicitly expect <c>UnityException</c> from background threads.
+        /// The tasks in this file are not expected to fault — if they do, it is a real bug.
         /// </summary>
         private static bool WaitAll(params Task[] tasks)
         {
-            var all = Task.WhenAll(tasks);
-            try
-            {
-                all.Wait(RaceTimeoutMs);
-            }
-            catch (AggregateException)
-            {
-                // Some tasks may have faulted — that's acceptable in race tests
-                // that document expected exceptions.  We only care that no task hangs.
-            }
-
-            return all.IsCompleted;
+            // Task.WhenAll(tasks).Wait(timeout):
+            //   • Returns true  — all tasks ran to completion within timeout
+            //   • Returns false — timeout, tasks may still be running (deadlock)
+            //   • Throws AggregateException — tasks faulted (completed with errors)
+            // We let AggregateException propagate so the test fails with the actual exception
+            // rather than silently passing the "no deadlock" assertion with a hidden fault.
+            return Task.WhenAll(tasks).Wait(RaceTimeoutMs);
         }
     }
 }
