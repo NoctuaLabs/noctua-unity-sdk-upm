@@ -396,10 +396,21 @@ namespace Tests.Runtime.IAA
             var t1 = Task.Run(() => mgr.ProcessAllFormatsThresholds(0.01));
             var t2 = Task.Run(() => mgr.ProcessAllFormatsThresholds(0.01));
 
-            // A faulted task throws immediately from WhenAll — the 3000ms is a deadlock guard.
-            bool completed = Task.WhenAll(t1, t2).Wait(3000); // deadlock guard — faulted tasks throw immediately
-            Assert.IsTrue(completed, "Both background threads must complete within 3 seconds (no deadlock)");
+            // Task.Wait() throws AggregateException when the task is faulted, so we cannot
+            // use its bool return value to check for deadlock. Catch the expected exception
+            // and separately verify both tasks reached a terminal state within the timeout.
+            var whenAll = Task.WhenAll(t1, t2);
+            try
+            {
+                whenAll.Wait(3000); // deadlock guard — faulted tasks complete (and throw) immediately
+            }
+            catch (AggregateException)
+            {
+                // expected — both tasks threw UnityException from PlayerPrefs
+            }
 
+            Assert.IsTrue(whenAll.IsCompleted,
+                "Both background threads must reach a terminal state within 3 seconds (no deadlock)");
             Assert.IsTrue(t1.IsFaulted, "t1 (AppLovin callback sim) must have faulted with UnityException");
             Assert.IsTrue(t2.IsFaulted, "t2 (AdMob callback sim) must have faulted with UnityException");
 
