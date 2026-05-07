@@ -315,7 +315,6 @@ namespace Tests.Runtime.Events
             Assert.IsFalse(_eventSender.HasEvent("feature_engagement"),
                 "No feature_engagement should fire for empty → next feature transition");
         }
-    }
 
         // ─── SetProperties — additional edge cases ────────────────────────────
 
@@ -783,6 +782,7 @@ namespace Tests.Runtime.Events
             Assert.IsFalse(_eventSender.HasEvent("feature_engagement"),
                 "No feature_engagement must fire when transitioning from empty feature to a named one");
         }
+    }
 
     // ─── MockNativeTracker ────────────────────────────────────────────────────
 
