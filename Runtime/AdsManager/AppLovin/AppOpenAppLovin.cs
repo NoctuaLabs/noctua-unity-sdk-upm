@@ -67,7 +67,6 @@ namespace com.noctuagames.sdk.AppLovin
 
             if (!_callbacksRegistered)
             {
-                _callbacksRegistered = true;
                 MaxSdkCallbacks.AppOpen.OnAdLoadedEvent += OnAdLoadedEvent;
                 MaxSdkCallbacks.AppOpen.OnAdLoadFailedEvent += OnAdLoadFailedEvent;
                 MaxSdkCallbacks.AppOpen.OnAdDisplayedEvent += OnAdDisplayedEvent;
@@ -75,6 +74,7 @@ namespace com.noctuagames.sdk.AppLovin
                 MaxSdkCallbacks.AppOpen.OnAdHiddenEvent += OnAdHiddenEvent;
                 MaxSdkCallbacks.AppOpen.OnAdDisplayFailedEvent += OnAdDisplayFailedEvent;
                 MaxSdkCallbacks.AppOpen.OnAdRevenuePaidEvent += OnAdRevenuePaidEvent;
+                _callbacksRegistered = true;
             }
 
             LoadAppOpenAdInternal();

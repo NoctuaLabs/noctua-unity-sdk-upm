@@ -207,8 +207,6 @@ namespace com.noctuagames.sdk
 
             if (!_interstitialEventsSubscribed)
             {
-                _interstitialEventsSubscribed = true;
-
                 // Subscribe to events (only once)
                 _interstitialAdmob.InterstitialOnAdDisplayed += () => { _onAdDisplayed?.Invoke(); };
                 _interstitialAdmob.InterstitialOnAdFailedDisplayed += () => { _onAdFailedDisplayed?.Invoke(); };
@@ -220,6 +218,7 @@ namespace com.noctuagames.sdk
                     _admobOnInterstitialRevenuePaid?.Invoke(adValue, responseInfo);
                     _admobOnAdRevenuePaid?.Invoke(adValue, responseInfo);
                 };
+                _interstitialEventsSubscribed = true;
             }
         }
 
@@ -249,8 +248,6 @@ namespace com.noctuagames.sdk
 
             if (!_rewardedEventsSubscribed)
             {
-                _rewardedEventsSubscribed = true;
-
                 // Subscribe to events (only once)
                 _rewardedAdmob.RewardedOnAdDisplayed += () => { _onAdDisplayed?.Invoke(); };
                 _rewardedAdmob.RewardedOnAdFailedDisplayed += () => { _onAdFailedDisplayed?.Invoke(); };
@@ -263,6 +260,7 @@ namespace com.noctuagames.sdk
                     _admobOnRewardedRevenuePaid?.Invoke(adValue, responseInfo);
                     _admobOnAdRevenuePaid?.Invoke(adValue, responseInfo);
                 };
+                _rewardedEventsSubscribed = true;
             }
         }
 
@@ -302,8 +300,6 @@ namespace com.noctuagames.sdk
 
             if (!_bannerEventsSubscribed)
             {
-                _bannerEventsSubscribed = true;
-
                 // Subscribe to events (only once).
                 // NOTE: Banner's Displayed/Closed are intentionally NOT forwarded to the shared
                 // _onAdDisplayed / _onAdClosed channels. Banner is non-fullscreen and its
@@ -322,6 +318,7 @@ namespace com.noctuagames.sdk
                     _admobOnBannerRevenuePaid?.Invoke(adValue, responseInfo);
                     _admobOnAdRevenuePaid?.Invoke(adValue, responseInfo);
                 };
+                _bannerEventsSubscribed = true;
             }
         }
 
@@ -357,8 +354,6 @@ namespace com.noctuagames.sdk
 
             if (!_rewardedInterstitialEventsSubscribed)
             {
-                _rewardedInterstitialEventsSubscribed = true;
-
                 // Subscribe to events (only once)
                 _rewardedInterstitialAdmob.RewardedOnAdDisplayed += () => { _onAdDisplayed?.Invoke(); };
                 _rewardedInterstitialAdmob.RewardedOnAdFailedDisplayed += () => { _onAdFailedDisplayed?.Invoke(); };
@@ -371,6 +366,7 @@ namespace com.noctuagames.sdk
                     _admobOnRewardedInterstitialRevenuePaid?.Invoke(adValue, responseInfo);
                     _admobOnAdRevenuePaid?.Invoke(adValue, responseInfo);
                 };
+                _rewardedInterstitialEventsSubscribed = true;
             }
         }
         /// <inheritdoc />
@@ -399,8 +395,6 @@ namespace com.noctuagames.sdk
 
             if (!_appOpenEventsSubscribed)
             {
-                _appOpenEventsSubscribed = true;
-
                 _appOpenAdmob.AppOpenOnAdDisplayed += () => { _onAdDisplayed?.Invoke(); };
                 _appOpenAdmob.AppOpenOnAdFailedDisplayed += () => { _onAdFailedDisplayed?.Invoke(); };
                 _appOpenAdmob.AppOpenOnAdClicked += () => { _onAdClicked?.Invoke(); };
@@ -411,6 +405,7 @@ namespace com.noctuagames.sdk
                     _admobOnAppOpenRevenuePaid?.Invoke(adValue, responseInfo);
                     _admobOnAdRevenuePaid?.Invoke(adValue, responseInfo);
                 };
+                _appOpenEventsSubscribed = true;
             }
         }
 

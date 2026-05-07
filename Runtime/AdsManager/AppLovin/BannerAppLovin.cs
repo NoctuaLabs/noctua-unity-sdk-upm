@@ -262,13 +262,13 @@ namespace com.noctuagames.sdk.AppLovin
         {
             if (!_callbacksRegistered)
             {
-                _callbacksRegistered = true;
                 MaxSdkCallbacks.Banner.OnAdLoadedEvent      += OnBannerAdLoadedEvent;
                 MaxSdkCallbacks.Banner.OnAdLoadFailedEvent  += OnBannerAdLoadFailedEvent;
                 MaxSdkCallbacks.Banner.OnAdClickedEvent     += OnBannerAdClickedEvent;
                 MaxSdkCallbacks.Banner.OnAdRevenuePaidEvent += OnBannerAdRevenuePaidEvent;
                 MaxSdkCallbacks.Banner.OnAdExpandedEvent    += OnBannerAdExpandedEvent;
                 MaxSdkCallbacks.Banner.OnAdCollapsedEvent   += OnBannerAdCollapsedEvent;
+                _callbacksRegistered = true;
             }
         }
 

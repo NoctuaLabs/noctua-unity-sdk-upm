@@ -11,7 +11,7 @@ namespace Tests.Runtime
     /// not yet exercised by <c>ModelSerializationExtendedTests</c>:
     ///   — the five remaining <c>Default*</c> URL constants
     ///   — <c>AnnouncementBaseUrl</c>, <c>RewardBaseUrl</c>, <c>SocialMediaBaseUrl</c>,
-    ///     <c>CustomerServiceBaseUrl</c>, <c>SentryDsnUrl</c>
+    ///     <c>CustomerServiceBaseUrl</c>
     ///   — <c>TrackerBatchPeriodMs</c>, <c>SessionHeartbeatPeriodMs</c>, <c>SessionTimeoutMs</c>
     ///   — all four client-side feature flags
     ///   — <c>Region</c> and <c>RemoteFeatureFlags</c>
@@ -84,13 +84,6 @@ namespace Tests.Runtime
         {
             var config = new NoctuaConfig();
             Assert.AreEqual(NoctuaConfig.DefaultCustomerServiceBaseUrl, config.CustomerServiceBaseUrl);
-        }
-
-        [Test]
-        public void NewInstance_SentryDsnUrl_IsEmptyString()
-        {
-            var config = new NoctuaConfig();
-            Assert.AreEqual("", config.SentryDsnUrl);
         }
 
         [Test]
@@ -194,15 +187,6 @@ namespace Tests.Runtime
             var config = new NoctuaConfig { CustomerServiceBaseUrl = url };
             var back = JsonConvert.DeserializeObject<NoctuaConfig>(JsonConvert.SerializeObject(config));
             Assert.AreEqual(url, back.CustomerServiceBaseUrl);
-        }
-
-        [Test]
-        public void JsonRoundTrip_SentryDsnUrl_Preserved()
-        {
-            const string dsn = "https://key@sentry.io/12345";
-            var config = new NoctuaConfig { SentryDsnUrl = dsn };
-            var back = JsonConvert.DeserializeObject<NoctuaConfig>(JsonConvert.SerializeObject(config));
-            Assert.AreEqual(dsn, back.SentryDsnUrl);
         }
 
         // ─── JSON round-trip — numeric / timing fields ─────────────────────────
@@ -354,7 +338,6 @@ namespace Tests.Runtime
                 ""rewardBaseUrl"":           ""https://rew.test/api"",
                 ""socialMediaBaseUrl"":      ""https://soc.test/api"",
                 ""customerServiceBaseUrl"":  ""https://cs.test/api"",
-                ""sentryDsnUrl"":            ""https://key@sentry.io/99"",
                 ""trackerBatchSize"":        50,
                 ""trackerBatchPeriodMs"":    30000,
                 ""sessionHeartbeatPeriodMs"":45000,
@@ -376,7 +359,6 @@ namespace Tests.Runtime
             Assert.AreEqual("https://rew.test/api",    config.RewardBaseUrl);
             Assert.AreEqual("https://soc.test/api",    config.SocialMediaBaseUrl);
             Assert.AreEqual("https://cs.test/api",     config.CustomerServiceBaseUrl);
-            Assert.AreEqual("https://key@sentry.io/99", config.SentryDsnUrl);
             Assert.AreEqual(50u,                        config.TrackerBatchSize);
             Assert.AreEqual(30_000u,                    config.TrackerBatchPeriodMs);
             Assert.AreEqual(45_000u,                    config.SessionHeartbeatPeriodMs);

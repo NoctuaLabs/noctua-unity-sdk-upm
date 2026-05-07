@@ -74,7 +74,6 @@ namespace com.noctuagames.sdk.AppLovin
             // Attach callback (only once to prevent duplicate subscriptions)
             if (!_callbacksRegistered)
             {
-                _callbacksRegistered = true;
                 MaxSdkCallbacks.Rewarded.OnAdLoadedEvent += OnRewardedAdLoadedEvent;
                 MaxSdkCallbacks.Rewarded.OnAdLoadFailedEvent += OnRewardedAdLoadFailedEvent;
                 MaxSdkCallbacks.Rewarded.OnAdDisplayedEvent += OnRewardedAdDisplayedEvent;
@@ -83,6 +82,7 @@ namespace com.noctuagames.sdk.AppLovin
                 MaxSdkCallbacks.Rewarded.OnAdHiddenEvent += OnRewardedAdHiddenEvent;
                 MaxSdkCallbacks.Rewarded.OnAdDisplayFailedEvent += OnRewardedAdFailedToDisplayEvent;
                 MaxSdkCallbacks.Rewarded.OnAdReceivedRewardEvent += OnRewardedAdReceivedRewardEvent;
+                _callbacksRegistered = true;
             }
 
             // Load the first rewarded ad

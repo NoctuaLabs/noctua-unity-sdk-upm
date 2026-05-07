@@ -21,7 +21,7 @@ namespace com.noctuagames.sdk
     /// <summary>
     /// SDK logging interface. All runtime SDK code should use this instead of
     /// <c>UnityEngine.Debug.Log</c> to ensure consistent log formatting and
-    /// multi-sink output (file, Sentry, platform-native logcat/os_log).
+    /// multi-sink output (file, platform-native logcat/os_log).
     /// </summary>
     public interface ILogger
     {
@@ -53,7 +53,7 @@ namespace com.noctuagames.sdk
     
     /// <summary>
     /// Default <see cref="ILogger"/> implementation that writes to Serilog sinks
-    /// (file, Sentry, and platform-native: Unity console / Android logcat / iOS os_log).
+    /// (file and platform-native: Unity console / Android logcat / iOS os_log).
     /// Each instance is scoped to a type name for structured log prefixes.
     /// </summary>
     public class NoctuaLogger : ILogger
@@ -61,23 +61,13 @@ namespace com.noctuagames.sdk
         private readonly string _typeName;
 
         /// <summary>
-        /// Initializes the global Serilog logger pipeline with file output,
-        /// optional Sentry error reporting, and platform-specific sinks.
-        /// Called once during SDK initialization.
+        /// Initializes the global Serilog logger pipeline with file output and
+        /// platform-specific sinks. Called once during SDK initialization.
         /// </summary>
-        /// <param name="globalConfig">The global configuration containing Sentry DSN and other settings.</param>
+        /// <param name="globalConfig">The global configuration.</param>
         public static void Init(GlobalConfig globalConfig)
         {
             var loggerConfig = new LoggerConfiguration();
-
-            if (!string.IsNullOrEmpty(globalConfig?.Noctua?.SentryDsnUrl))
-            {
-                loggerConfig.WriteTo.Sentry(o =>
-                {
-                    o.Dsn = globalConfig.Noctua.SentryDsnUrl;
-                    o.MinimumEventLevel = LogEventLevel.Error;
-                });
-            }
 
             loggerConfig
                 .MinimumLevel.Debug()
@@ -259,7 +249,7 @@ namespace com.noctuagames.sdk
     /// Subscribes to Unity's exception hooks (main + threaded log messages and
     /// <see cref="AppDomain.UnhandledException"/>) and forwards Warning/Error/Exception
     /// logs to the Noctua event pipeline as a single <c>client_error</c> event.
-    /// Also logs exceptions via <see cref="ILogger"/> for Serilog/Sentry sinks.
+    /// Also logs exceptions via <see cref="ILogger"/> for Serilog sinks.
     /// Safe to call from any thread — forwarding is allocation-light, rate-limited,
     /// deduplicated, and never rethrows.
     /// </summary>
@@ -542,7 +532,7 @@ namespace com.noctuagames.sdk
 
             var payload = new Dictionary<string, IConvertible>
             {
-                { "source", "managed" },
+                { "source", DetermineSource(stack) },
                 { "error_type", errorType ?? "Unknown" },
                 { "message", Truncate(message, MaxMessageChars) },
                 { "stack_trace", Truncate(stack, MaxStackTraceChars) },
@@ -568,6 +558,27 @@ namespace com.noctuagames.sdk
             }
 
             return true;
+        }
+
+        /// <summary>
+        /// Inspects the first meaningful frame of a stack trace to determine whether the error
+        /// originated in Noctua SDK code (<c>"sdk"</c>) or game/third-party code (<c>"game"</c>).
+        /// Skips <c>System.*</c> and <c>UnityEngine.*</c> frames which are noise.
+        /// Returns <c>"game"</c> as a safe default when the stack is empty or unclassifiable.
+        /// </summary>
+        private static string DetermineSource(string stackTrace)
+        {
+            if (string.IsNullOrEmpty(stackTrace)) return "game";
+
+            foreach (var line in stackTrace.Split('\n'))
+            {
+                var trimmed = line.Trim();
+                if (string.IsNullOrEmpty(trimmed)) continue;
+                if (trimmed.StartsWith("at System.") || trimmed.StartsWith("at UnityEngine.")) continue;
+                return trimmed.Contains("com.noctuagames.sdk") ? "sdk" : "game";
+            }
+
+            return "game";
         }
 
         /// <summary>

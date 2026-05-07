@@ -42,9 +42,6 @@ namespace com.noctuagames.sdk
 
         /// <summary>Base URL for the customer service API.</summary>
         [JsonProperty("customerServiceBaseUrl")] public string CustomerServiceBaseUrl = DefaultCustomerServiceBaseUrl;
-        /// <summary>Sentry DSN URL for error reporting (empty string to disable).</summary>
-        [JsonProperty("sentryDsnUrl")] public string SentryDsnUrl = "";
-
         /// <summary>Maximum number of events to batch before flushing to the tracker.</summary>
         [JsonProperty("trackerBatchSize")] public uint TrackerBatchSize = 20;
         /// <summary>Maximum time in milliseconds between tracker batch flushes.</summary>

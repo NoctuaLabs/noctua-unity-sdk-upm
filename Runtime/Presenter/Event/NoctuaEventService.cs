@@ -272,6 +272,65 @@ namespace com.noctuagames.sdk.Events
         }
 
         /// <summary>
+        /// Reports an error to the Noctua error pipeline as a <c>client_error</c> event.
+        /// Use this to explicitly surface handled failures from game logic or SDK integration
+        /// code in the Noctua dashboard. Auto-caught unhandled exceptions are forwarded
+        /// automatically by the SDK — only call this for errors you want to report intentionally.
+        /// </summary>
+        /// <param name="message">
+        /// Human-readable description of the error. Keep under 500 characters.
+        /// Example: <c>"Player save failed: disk full"</c>
+        /// </param>
+        /// <param name="errorType">
+        /// Short identifier for the error category used for grouping in the dashboard.
+        /// Use PascalCase with no spaces. Example: <c>"SaveError"</c>, <c>"NetworkTimeout"</c>.
+        /// Pass <c>null</c> to omit the field.
+        /// </param>
+        /// <param name="severity">
+        /// How severe the error is. Defaults to <see cref="ClientErrorSeverity.Error"/>.
+        /// </param>
+        /// <param name="source">
+        /// Which part of the stack produced the error. Defaults to <see cref="ClientErrorSource.Game"/>.
+        /// Use <see cref="ClientErrorSource.Sdk"/> when reporting errors from SDK wrapper or
+        /// integration code rather than pure game logic.
+        /// </param>
+        /// <example>
+        /// <code>
+        /// // Simple game-side error
+        /// Noctua.Event.ReportError("Player save failed", "SaveError");
+        ///
+        /// // SDK integration error with explicit severity
+        /// Noctua.Event.ReportError("Ad network init failed", "AdInitError",
+        ///     ClientErrorSeverity.Warning, ClientErrorSource.Sdk);
+        /// </code>
+        /// </example>
+        public void ReportError(
+            string message,
+            string errorType             = null,
+            ClientErrorSeverity severity = ClientErrorSeverity.Error,
+            ClientErrorSource source     = ClientErrorSource.Game)
+        {
+            var payload = new Dictionary<string, IConvertible>
+            {
+                { "source",      source.ToString().ToLower() },
+                { "severity",    severity.ToString().ToLower() },
+                { "message",     message ?? "" },
+                { "app_version", Application.version },
+                { "platform",    Application.platform.ToString() },
+                { "timestamp_utc", DateTime.UtcNow.ToString("o") }
+            };
+
+            if (!string.IsNullOrEmpty(errorType))
+                payload["error_type"] = errorType;
+
+            AppendProperties(payload);
+
+            _log.Debug($"[Event] ReportError source={source} severity={severity} type={errorType ?? "null"} msg={message}");
+
+            _eventSender?.Send("client_error", payload);
+        }
+
+        /// <summary>
         /// Tracks internal SDK-level events that should not be logged to native trackers.
         /// </summary>
         /// <param name="eventName">Internal event name (e.g., "sdk_init_success").</param>

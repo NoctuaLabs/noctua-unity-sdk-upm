@@ -72,7 +72,6 @@ namespace com.noctuagames.sdk.AppLovin
             // Attach callback (only once to prevent duplicate subscriptions)
             if (!_callbacksRegistered)
             {
-                _callbacksRegistered = true;
                 MaxSdkCallbacks.Interstitial.OnAdLoadedEvent += OnInterstitialLoadedEvent;
                 MaxSdkCallbacks.Interstitial.OnAdLoadFailedEvent += OnInterstitialLoadFailedEvent;
                 MaxSdkCallbacks.Interstitial.OnAdDisplayedEvent += OnInterstitialDisplayedEvent;
@@ -80,6 +79,7 @@ namespace com.noctuagames.sdk.AppLovin
                 MaxSdkCallbacks.Interstitial.OnAdHiddenEvent += OnInterstitialHiddenEvent;
                 MaxSdkCallbacks.Interstitial.OnAdDisplayFailedEvent += OnInterstitialAdFailedToDisplayEvent;
                 MaxSdkCallbacks.Interstitial.OnAdRevenuePaidEvent += OnAdRevenuePaidEvent;
+                _callbacksRegistered = true;
             }
 
             // Load the first interstitial

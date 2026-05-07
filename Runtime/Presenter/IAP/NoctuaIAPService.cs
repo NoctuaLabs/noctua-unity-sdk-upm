@@ -13,7 +13,6 @@ using Newtonsoft.Json.Converters;
 using Newtonsoft.Json.Serialization;
 using UnityEngine.Scripting;
 using Random = System.Random;
-using Sentry.Protocol;
 
 
 namespace com.noctuagames.sdk
@@ -2767,7 +2766,7 @@ namespace com.noctuagames.sdk
         /// Consumables never enter the tracking store (they always return <c>false</c> from
         /// <see cref="GetPurchaseStatusAsync"/> right after purchase, which is how the SDK
         /// auto-detects them) so the game does not need to declare a consumable type — just call
-        /// <c>Noctua.IAP.IsRefundEligibleAsync(productId)</c>.
+        /// <c>Noctua.IAP.CheckRefundEligibilityAsync(productId)</c>.
         ///
         /// Returns <c>false</c> conservatively when no matching record is found (legacy purchases,
         /// fresh installs, products never bought through the SDK) so the SDK never tells the game
@@ -2776,7 +2775,7 @@ namespace com.noctuagames.sdk
         /// <param name="productId">Product identifier to check.</param>
         /// <param name="minAgeDays">Minimum age in days before a missing purchase is considered refunded. Default 2.</param>
         /// <returns>True when the item is eligible to be removed from the player's inventory.</returns>
-        public async Task<bool> IsRefundEligibleAsync(string productId, int minAgeDays = 2)
+        public async Task<bool> CheckRefundEligibilityAsync(string productId, int minAgeDays = 2)
         {
             if (string.IsNullOrEmpty(productId)) return false;
 
@@ -2787,7 +2786,7 @@ namespace com.noctuagames.sdk
 
             if (entry == null)
             {
-                _log.Debug($"IsRefundEligibleAsync: no refund-tracking entry for '{productId}', returning false");
+                _log.Debug($"CheckRefundEligibilityAsync: no refund-tracking entry for '{productId}', returning false");
                 return false;
             }
 
@@ -2799,7 +2798,7 @@ namespace com.noctuagames.sdk
             bool isStillPurchased = await GetPurchaseStatusAsync(productId);
             if (isStillPurchased) return false;
 
-            _log.Debug($"IsRefundEligibleAsync: '{productId}' flagged refunded (paymentType={entry.PaymentType}, purchasedAt={ts:o})");
+            _log.Debug($"CheckRefundEligibilityAsync: '{productId}' flagged refunded (paymentType={entry.PaymentType}, purchasedAt={ts:o})");
             return true;
         }
 

@@ -530,7 +530,7 @@ namespace Tests.Runtime.IAP
 
     /// <summary>
     /// Tests for <see cref="NoctuaIAPService.GetRefundTrackingEntries"/> and
-    /// <see cref="NoctuaIAPService.IsRefundEligibleAsync"/>.
+    /// <see cref="NoctuaIAPService.CheckRefundEligibilityAsync"/>.
     /// </summary>
     [TestFixture]
     public class NoctuaIAPServiceRefundTrackingTest
@@ -594,29 +594,29 @@ namespace Tests.Runtime.IAP
         }
 
         [Test]
-        public async Task IsRefundEligibleAsync_NoEntry_ReturnsFalse()
+        public async Task CheckRefundEligibilityAsync_NoEntry_ReturnsFalse()
         {
             var svc = IAPTestHelpers.CreateService();
-            var result = await svc.IsRefundEligibleAsync("prod_with_no_history");
+            var result = await svc.CheckRefundEligibilityAsync("prod_with_no_history");
             Assert.IsFalse(result, "No refund-tracking entry → should not be flagged refunded");
         }
 
         [Test]
-        public async Task IsRefundEligibleAsync_EmptyProductId_ReturnsFalse()
+        public async Task CheckRefundEligibilityAsync_EmptyProductId_ReturnsFalse()
         {
             var svc = IAPTestHelpers.CreateService();
-            Assert.IsFalse(await svc.IsRefundEligibleAsync(""));
+            Assert.IsFalse(await svc.CheckRefundEligibilityAsync(""));
         }
 
         [Test]
-        public async Task IsRefundEligibleAsync_NullProductId_ReturnsFalse()
+        public async Task CheckRefundEligibilityAsync_NullProductId_ReturnsFalse()
         {
             var svc = IAPTestHelpers.CreateService();
-            Assert.IsFalse(await svc.IsRefundEligibleAsync(null));
+            Assert.IsFalse(await svc.CheckRefundEligibilityAsync(null));
         }
 
         [Test]
-        public async Task IsRefundEligibleAsync_EditorPaymentType_ReturnsFalse()
+        public async Task CheckRefundEligibilityAsync_EditorPaymentType_ReturnsFalse()
         {
             // Only playstore/appstore qualify for refund detection
             var entries = new List<RefundTrackingEntry>
@@ -630,12 +630,12 @@ namespace Tests.Runtime.IAP
             };
             IAPTestHelpers.StoreRefundEntries(entries);
             var svc = IAPTestHelpers.CreateService();
-            Assert.IsFalse(await svc.IsRefundEligibleAsync("editor_prod"),
+            Assert.IsFalse(await svc.CheckRefundEligibilityAsync("editor_prod"),
                 "PaymentType.editor must never be flagged as refunded");
         }
 
         [Test]
-        public async Task IsRefundEligibleAsync_NoctuastorePaymentType_ReturnsFalse()
+        public async Task CheckRefundEligibilityAsync_NoctuastorePaymentType_ReturnsFalse()
         {
             var entries = new List<RefundTrackingEntry>
             {
@@ -648,12 +648,12 @@ namespace Tests.Runtime.IAP
             };
             IAPTestHelpers.StoreRefundEntries(entries);
             var svc = IAPTestHelpers.CreateService();
-            Assert.IsFalse(await svc.IsRefundEligibleAsync("noctua_prod"),
+            Assert.IsFalse(await svc.CheckRefundEligibilityAsync("noctua_prod"),
                 "PaymentType.noctuastore must never be flagged as refunded");
         }
 
         [Test]
-        public async Task IsRefundEligibleAsync_TooRecentTimestamp_ReturnsFalse()
+        public async Task CheckRefundEligibilityAsync_TooRecentTimestamp_ReturnsFalse()
         {
             // Timestamp is only 1 day old but minAgeDays defaults to 2 → not eligible
             var entries = new List<RefundTrackingEntry>
@@ -667,12 +667,12 @@ namespace Tests.Runtime.IAP
             };
             IAPTestHelpers.StoreRefundEntries(entries);
             var svc = IAPTestHelpers.CreateService();
-            Assert.IsFalse(await svc.IsRefundEligibleAsync("recent_prod"),
+            Assert.IsFalse(await svc.CheckRefundEligibilityAsync("recent_prod"),
                 "Purchase too recent for the default 2-day window must not be flagged");
         }
 
         [Test]
-        public async Task IsRefundEligibleAsync_PlaystoreOldEnough_EditorFallback_ReturnsFalse()
+        public async Task CheckRefundEligibilityAsync_PlaystoreOldEnough_EditorFallback_ReturnsFalse()
         {
             // In the Unity Editor, CheckIfProductPurchased always returns false via the #else branch,
             // which means isStillPurchased == false. A product that is old enough + playstore +
@@ -692,7 +692,7 @@ namespace Tests.Runtime.IAP
             IAPTestHelpers.StoreRefundEntries(entries);
             var svc = IAPTestHelpers.CreateService();
             // Editor: CheckIfProductPurchased → false (not still purchased) → eligible = true
-            var result = await svc.IsRefundEligibleAsync("old_prod");
+            var result = await svc.CheckRefundEligibilityAsync("old_prod");
             Assert.IsTrue(result,
                 "In editor, native query returns false (not owned), so an old playstore entry must be flagged eligible");
         }

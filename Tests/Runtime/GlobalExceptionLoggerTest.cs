@@ -474,5 +474,59 @@ namespace Tests.Runtime
             Assert.AreEqual(3, events.Count,
                 "Three distinct exceptions should each produce one client_error event");
         }
+
+        // ── Source auto-detection (DetermineSource) ──────────────────────────────
+
+        [Test]
+        public void HandleLog_GameFrame_SourceIsGame()
+        {
+            const string gameStack = "at GameManager.Update () (at Assets/Scripts/GameManager.cs:42)";
+            _logger.HandleLog("Exception: game error", gameStack, LogType.Exception);
+
+            var events = _mock.GetEventsByName("client_error");
+            Assert.AreEqual(1, events.Count);
+            Assert.AreEqual("game", Get(events[0].Data, "source").ToString(),
+                "Stack with no SDK namespace frame must produce source=game");
+        }
+
+        [Test]
+        public void HandleLog_SdkFrame_SourceIsSdk()
+        {
+            const string sdkStack =
+                "at com.noctuagames.sdk.NoctuaIAPService.PurchaseItemAsync () (at Runtime/Presenter/IAP/NoctuaIAPService.cs:123)\n" +
+                "at GameManager.BuyItem ()";
+            _logger.HandleLog("Exception: sdk error", sdkStack, LogType.Exception);
+
+            var events = _mock.GetEventsByName("client_error");
+            Assert.AreEqual(1, events.Count);
+            Assert.AreEqual("sdk", Get(events[0].Data, "source").ToString(),
+                "Stack whose first non-system frame is inside com.noctuagames.sdk must produce source=sdk");
+        }
+
+        [Test]
+        public void HandleLog_EmptyStack_SourceIsGame()
+        {
+            _logger.HandleLog("Exception: no stack", "", LogType.Exception);
+
+            var events = _mock.GetEventsByName("client_error");
+            Assert.AreEqual(1, events.Count);
+            Assert.AreEqual("game", Get(events[0].Data, "source").ToString(),
+                "Empty stack trace must default to source=game");
+        }
+
+        [Test]
+        public void HandleLog_SystemFramesThenGameFrame_SourceIsGame()
+        {
+            const string stack =
+                "at System.Threading.Tasks.Task.ThrowIfExceptional (bool)\n" +
+                "at UnityEngine.Debug.LogException (Exception)\n" +
+                "at GameManager.OnError ()";
+            _logger.HandleLog("Exception: system frames first", stack, LogType.Exception);
+
+            var events = _mock.GetEventsByName("client_error");
+            Assert.AreEqual(1, events.Count);
+            Assert.AreEqual("game", Get(events[0].Data, "source").ToString(),
+                "System/UnityEngine frames must be skipped; first game frame resolves to source=game");
+        }
     }
 }
