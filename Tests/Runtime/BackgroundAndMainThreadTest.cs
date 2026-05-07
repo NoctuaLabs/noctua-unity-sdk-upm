@@ -454,12 +454,16 @@ namespace Tests.Runtime
                         .FirstOrDefault(l => l.Contains("sysinfo_probe"));
                     Assert.IsNotNull(line, "sysinfo_probe event not found in JSONL");
 
-                    // These fields are only populated after SwitchToMainThread()
-                    Assert.IsTrue(line.Contains("\"device_os\""),
+                    // DefaultNativePlugin.InsertEvent wraps the event in a NativeEvent object
+                    // and double-serializes to JSONL: {"Id":N,"EventJson":"{\"device_os\":...}","CreatedAt":...}
+                    // Inner JSON quotes are escaped as \" in the raw file, so searching for
+                    // "device_os" (literal quote) would fail — the actual pattern is \"device_os\".
+                    // Use the C# escaped form \\\"key\\\" which matches that raw pattern.
+                    Assert.IsTrue(line.Contains("\\\"device_os\\\""),
                         "device_os must be present — requires main-thread SwitchToMainThread()");
-                    Assert.IsTrue(line.Contains("\"device_model\""),
+                    Assert.IsTrue(line.Contains("\\\"device_model\\\""),
                         "device_model must be present — requires main-thread SwitchToMainThread()");
-                    Assert.IsTrue(line.Contains("\"device_type\""),
+                    Assert.IsTrue(line.Contains("\\\"device_type\\\""),
                         "device_type must be present — requires main-thread SwitchToMainThread()");
                 }
                 finally
