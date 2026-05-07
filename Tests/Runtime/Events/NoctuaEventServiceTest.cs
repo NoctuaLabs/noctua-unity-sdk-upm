@@ -763,8 +763,9 @@ namespace Tests.Runtime.Events
 
             svc.SetCurrentFeature(null); // null treated same as empty by IsNullOrEmpty check
 
-            Assert.AreEqual("", svc.GetCurrentFeature(),
-                "null feature name must clear the current feature (same as empty string)");
+            // ExperimentManager stores null as-is; both null and "" mean "no active feature".
+            Assert.IsTrue(string.IsNullOrEmpty(svc.GetCurrentFeature()),
+                "null feature name must clear the current feature (GetCurrentFeature returns null or empty)");
         }
 
         [Test]
