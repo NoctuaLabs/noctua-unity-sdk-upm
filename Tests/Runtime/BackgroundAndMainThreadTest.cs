@@ -517,5 +517,168 @@ namespace Tests.Runtime
 
                 tracker.Dispose();
             });
+
+        // ═══════════════════════════════════════════════════════════════════════
+        // Group D — EventSender survivability under stress
+        // ═══════════════════════════════════════════════════════════════════════
+
+        /// <summary>
+        /// D1 — Calling Send() concurrently with Dispose() must not throw from either
+        /// the Send caller or the Dispose caller. EventSender guards _disposed with a
+        /// flag; this test stresses the window between the check and the action.
+        /// </summary>
+        [UnityTest]
+        public IEnumerator Send_ConcurrentWithDispose_DoesNotThrow() =>
+            UniTask.ToCoroutine(async () =>
+            {
+                var sender = MakeOfflineSender();
+                Exception sendEx    = null;
+                Exception disposeEx = null;
+
+                // Fire both racing operations simultaneously
+                var disposeTask = Task.Run(() =>
+                {
+                    try { sender.Dispose(); }
+                    catch (Exception e) { disposeEx = e; }
+                });
+
+                var sendTask = Task.Run(() =>
+                {
+                    try { sender.Send("dispose_race_event"); }
+                    catch (Exception e) { sendEx = e; }
+                });
+
+                await Task.WhenAll(disposeTask, sendTask);
+                await UniTask.NextFrame(); // let any queued UniTask.Void continuations settle
+
+                Assert.IsNull(sendEx,
+                    $"Send() during Dispose() must not throw. Got: {sendEx}");
+                Assert.IsNull(disposeEx,
+                    $"Dispose() during concurrent Send() must not throw. Got: {disposeEx}");
+            });
+
+        /// <summary>
+        /// D2 — SetProperties() writes multiple fields (userId, gameId, sessionId…)
+        /// that the UniTask.Void block reads without a lock. Interleaving SetProperties
+        /// with rapid Send() calls must not deadlock or corrupt field state (no throw).
+        /// </summary>
+        [UnityTest]
+        public IEnumerator SetProperties_ConcurrentWithSend_NoDeadlockNoThrow() =>
+            UniTask.ToCoroutine(async () =>
+            {
+                var sender  = MakeOfflineSender();
+                var cts     = new CancellationTokenSource();
+                Exception caught = null;
+
+                try
+                {
+                    // Background: set properties in a tight loop
+                    var propTask = Task.Run(async () =>
+                    {
+                        int seq = 0;
+                        while (!cts.Token.IsCancellationRequested)
+                        {
+                            try
+                            {
+                                sender.SetProperties(userId: seq % 2 == 0 ? 100 : 0,
+                                                     sessionId: seq % 3 == 0 ? "s-abc" : "");
+                            }
+                            catch (Exception e) { caught = e; }
+                            seq++;
+                            await Task.Delay(2, cts.Token).ContinueWith(_ => { });
+                        }
+                    });
+
+                    // Main: fire 30 sends
+                    for (int i = 0; i < 30; i++)
+                    {
+                        try { sender.Send($"prop_race_{i}"); }
+                        catch (Exception e) { caught = e; }
+                    }
+
+                    // Give everything time to settle before cancelling
+                    await UniTask.Delay(300);
+                    cts.Cancel();
+                    await propTask;
+                }
+                finally
+                {
+                    sender.Dispose();
+                }
+
+                Assert.IsNull(caught,
+                    $"Concurrent SetProperties + Send must not throw. Got: {caught}");
+            });
+
+        /// <summary>
+        /// D3 — Multiple threads calling Flush() simultaneously must not throw.
+        /// Flush() can be triggered from any thread (e.g. from OnApplicationFocus,
+        /// OnApplicationPause, and network callbacks all at once).
+        /// </summary>
+        [UnityTest]
+        public IEnumerator Flush_ConcurrentFromMultipleThreads_DoesNotThrow() =>
+            UniTask.ToCoroutine(async () =>
+            {
+                var sender = MakeOfflineSender();
+                var errors = new System.Collections.Concurrent.ConcurrentBag<Exception>();
+
+                try
+                {
+                    // Send a few events so the flush queue is non-empty
+                    for (int i = 0; i < 5; i++) sender.Send($"pre_flush_{i}");
+                    await UniTask.Delay(200); // let writes settle
+
+                    // Five concurrent flushes
+                    var tasks = Enumerable.Range(0, 5)
+                        .Select(_ => Task.Run(() =>
+                        {
+                            try { sender.Flush(); }
+                            catch (Exception e) { errors.Add(e); }
+                        }))
+                        .ToArray();
+
+                    await Task.WhenAll(tasks);
+                }
+                finally
+                {
+                    sender.Dispose();
+                }
+
+                Assert.AreEqual(0, errors.Count,
+                    $"Concurrent Flush() calls must not throw. Errors: {string.Join("; ", errors.Select(e => e.Message))}");
+            });
+
+        /// <summary>
+        /// D4 — Send() called after Dispose() must be silently swallowed (no throw,
+        /// no unhandled exception). EventSender checks _disposed early and returns.
+        /// </summary>
+        [Test]
+        public void Send_AfterDispose_IsSilentlyIgnored()
+        {
+            var sender = MakeOfflineSender();
+            sender.Dispose();
+
+            Assert.DoesNotThrow(() =>
+            {
+                sender.Send("post_dispose_event");
+                sender.Send("post_dispose_event_2");
+            }, "Send() after Dispose() must be silently swallowed, not throw");
+        }
+
+        /// <summary>
+        /// D5 — Dispose() called multiple times from the same thread must be idempotent
+        /// (no double-free, no double session_end, no throw on second call).
+        /// </summary>
+        [Test]
+        public void Dispose_CalledTwice_IsIdempotentNoThrow()
+        {
+            var sender = MakeOfflineSender();
+
+            Assert.DoesNotThrow(() =>
+            {
+                sender.Dispose();
+                sender.Dispose(); // second call must be silently ignored
+            }, "Dispose() must be idempotent — second call must not throw");
+        }
     }
 }

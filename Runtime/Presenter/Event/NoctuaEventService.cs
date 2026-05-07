@@ -136,7 +136,16 @@ namespace com.noctuagames.sdk.Events
                 : new Dictionary<string, IConvertible>();
             AppendProperties(payload);
 
-            _nativeTracker?.TrackAdRevenue(source, revenue, currency, payload);
+            // Native tracker is best-effort: if it throws (SDK not initialized, ad network error,
+            // etc.) we must still send the ad_revenue event to EventSender so revenue is not lost.
+            try
+            {
+                _nativeTracker?.TrackAdRevenue(source, revenue, currency, payload);
+            }
+            catch (Exception e)
+            {
+                _log.Warning($"[Event] Native tracker threw during TrackAdRevenue: {e.Message}");
+            }
 
             payload["source"] = source;
             payload["revenue"] = revenue;
@@ -204,7 +213,17 @@ namespace com.noctuagames.sdk.Events
             }
             _log.Debug($"Event name: {name}, Event properties: {properties}");
 
-            _nativeTracker?.TrackCustomEvent(name, payload);
+            // Native tracker is best-effort: a throw must not prevent EventSender from
+            // receiving the event (e.g. Adjust SDK not initialized, network-level error).
+            try
+            {
+                _nativeTracker?.TrackCustomEvent(name, payload);
+            }
+            catch (Exception e)
+            {
+                _log.Warning($"[Event] Native tracker threw during TrackCustomEvent('{name}'): {e.Message}");
+            }
+
             _eventSender?.Send(name, payload);
         }
 
@@ -235,7 +254,16 @@ namespace com.noctuagames.sdk.Events
             }
             _log.Debug($"Event name: {name}, Event properties: {properties}");
 
-            _nativeTracker?.TrackCustomEventWithRevenue(name, revenue, currency, payload);
+            // Native tracker is best-effort: a throw must not prevent EventSender from
+            // receiving the event so revenue reporting is not silently dropped.
+            try
+            {
+                _nativeTracker?.TrackCustomEventWithRevenue(name, revenue, currency, payload);
+            }
+            catch (Exception e)
+            {
+                _log.Warning($"[Event] Native tracker threw during TrackCustomEventWithRevenue('{name}'): {e.Message}");
+            }
 
             payload["revenue"] = revenue;
             payload["currency"] = currency;
