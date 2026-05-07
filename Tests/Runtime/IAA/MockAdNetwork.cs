@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using com.noctuagames.sdk;
 using UnityEngine;
 
@@ -209,7 +210,7 @@ namespace Tests.Runtime.IAA
             _events.Add(eventName);
         }
 
-        public bool WasFired(string eventName) => _events.Contains(eventName);
+        public bool WasFired(string eventName) => _events.Any(e => e == eventName);
 
         public int CountFired(string eventName)
         {
