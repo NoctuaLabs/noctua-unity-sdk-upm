@@ -177,4 +177,52 @@ namespace Tests.Runtime.IAA
 
         public void Clear() => Events.Clear();
     }
+
+    /// <summary>
+    /// Thread-safe <see cref="IAdRevenueTracker"/> for race-condition tests.
+    ///
+    /// Backed by <see cref="System.Collections.Concurrent.ConcurrentBag{T}"/> so
+    /// concurrent background threads can write without data corruption. Use this
+    /// instead of <see cref="MockAdRevenueTracker"/> whenever the test fires
+    /// callbacks from multiple threads or tasks simultaneously.
+    /// </summary>
+    public class ConcurrentMockTracker : IAdRevenueTracker
+    {
+        private readonly System.Collections.Concurrent.ConcurrentBag<string> _events
+            = new System.Collections.Concurrent.ConcurrentBag<string>();
+
+        public int TotalEventCount => _events.Count;
+
+        public void TrackAdRevenue(
+            string source,
+            double revenue,
+            string currency,
+            Dictionary<string, IConvertible> extraPayload = null)
+        {
+            _events.Add("ad_revenue");
+        }
+
+        public void TrackCustomEvent(
+            string eventName,
+            Dictionary<string, IConvertible> eventParams = null)
+        {
+            _events.Add(eventName);
+        }
+
+        public bool WasFired(string eventName) => _events.Contains(eventName);
+
+        public int CountFired(string eventName)
+        {
+            int count = 0;
+            foreach (string e in _events)
+                if (e == eventName) count++;
+            return count;
+        }
+
+        /// <summary>
+        /// Clears all recorded events. Thread-safe: <c>ConcurrentBag.Clear()</c>
+        /// is atomic on .NET Standard 2.1+.
+        /// </summary>
+        public void Clear() => _events.Clear();
+    }
 }
