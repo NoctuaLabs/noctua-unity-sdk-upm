@@ -504,6 +504,22 @@ namespace Tests.Runtime
         }
 
         [Test]
+        public void HandleLog_ObfuscatedOctuaFrame_SourceIsNoctuaSdk()
+        {
+            // "octua" substring catches obfuscated or partially-qualified Noctua type names
+            // that don't carry the full "com.noctuagames.sdk" namespace.
+            const string obfuscatedStack =
+                "at NoctuaAuthenticationService.LoginAsync () (at Runtime/Presenter/Auth/NoctuaAuthenticationService.cs:55)\n" +
+                "at GameManager.DoLogin ()";
+            _logger.HandleLog("Exception: obfuscated sdk error", obfuscatedStack, LogType.Exception);
+
+            var events = _mock.GetEventsByName("client_error");
+            Assert.AreEqual(1, events.Count);
+            Assert.AreEqual("noctua_sdk", Get(events[0].Data, "source").ToString(),
+                "Frame containing 'octua' (without N) must be treated as noctua_sdk");
+        }
+
+        [Test]
         public void HandleLog_EmptyStack_SourceIsGame()
         {
             _logger.HandleLog("Exception: no stack", "", LogType.Exception);
