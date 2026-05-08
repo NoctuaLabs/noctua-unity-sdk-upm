@@ -490,7 +490,7 @@ namespace Tests.Runtime
         }
 
         [Test]
-        public void HandleLog_SdkFrame_SourceIsSdk()
+        public void HandleLog_SdkFrame_SourceIsNoctuaSdk()
         {
             const string sdkStack =
                 "at com.noctuagames.sdk.NoctuaIAPService.PurchaseItemAsync () (at Runtime/Presenter/IAP/NoctuaIAPService.cs:123)\n" +
@@ -499,8 +499,8 @@ namespace Tests.Runtime
 
             var events = _mock.GetEventsByName("client_error");
             Assert.AreEqual(1, events.Count);
-            Assert.AreEqual("sdk", Get(events[0].Data, "source").ToString(),
-                "Stack whose first non-system frame is inside com.noctuagames.sdk must produce source=sdk");
+            Assert.AreEqual("noctua_sdk", Get(events[0].Data, "source").ToString(),
+                "Stack whose first non-system frame is inside com.noctuagames.sdk must produce source=noctua_sdk");
         }
 
         [Test]

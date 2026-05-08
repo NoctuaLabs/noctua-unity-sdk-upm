@@ -291,7 +291,7 @@ namespace com.noctuagames.sdk.Events
         /// </param>
         /// <param name="source">
         /// Which part of the stack produced the error. Defaults to <see cref="ClientErrorSource.Game"/>.
-        /// Use <see cref="ClientErrorSource.Sdk"/> when reporting errors from SDK wrapper or
+        /// Use <see cref="ClientErrorSource.NoctuaSdk"/> when reporting errors from SDK wrapper or
         /// integration code rather than pure game logic.
         /// </param>
         /// <example>
@@ -301,7 +301,7 @@ namespace com.noctuagames.sdk.Events
         ///
         /// // SDK integration error with explicit severity
         /// Noctua.Event.ReportError("Ad network init failed", "AdInitError",
-        ///     ClientErrorSeverity.Warning, ClientErrorSource.Sdk);
+        ///     ClientErrorSeverity.Warning, ClientErrorSource.NoctuaSdk);
         /// </code>
         /// </example>
         public void ReportError(

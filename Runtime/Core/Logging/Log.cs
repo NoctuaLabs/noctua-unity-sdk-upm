@@ -562,7 +562,7 @@ namespace com.noctuagames.sdk
 
         /// <summary>
         /// Inspects the first meaningful frame of a stack trace to determine whether the error
-        /// originated in Noctua SDK code (<c>"sdk"</c>) or game/third-party code (<c>"game"</c>).
+        /// originated in Noctua SDK code (<c>"noctua_sdk"</c>) or game/third-party code (<c>"game"</c>).
         /// Skips <c>System.*</c> and <c>UnityEngine.*</c> frames which are noise.
         /// Returns <c>"game"</c> as a safe default when the stack is empty or unclassifiable.
         /// </summary>
@@ -575,7 +575,7 @@ namespace com.noctuagames.sdk
                 var trimmed = line.Trim();
                 if (string.IsNullOrEmpty(trimmed)) continue;
                 if (trimmed.StartsWith("at System.") || trimmed.StartsWith("at UnityEngine.")) continue;
-                return trimmed.Contains("com.noctuagames.sdk") ? "sdk" : "game";
+                return trimmed.Contains("com.noctuagames.sdk") ? "noctua_sdk" : "game";
             }
 
             return "game";

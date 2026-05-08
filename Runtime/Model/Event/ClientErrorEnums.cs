@@ -14,9 +14,10 @@ namespace com.noctuagames.sdk
 
         /// <summary>
         /// Error originated inside the Noctua SDK itself.
+        /// Serializes to <c>"noctua_sdk"</c> in the event payload.
         /// Use this when reporting errors from SDK wrapper or integration code.
         /// </summary>
-        Sdk,
+        NoctuaSdk,
 
         /// <summary>
         /// Error originated in native (C++/Obj-C/Kotlin) code outside the Unity runtime.

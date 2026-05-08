@@ -279,16 +279,17 @@ namespace com.noctuagames.sdk
                     return;
                 }
 
-                _iaa = new MediationManager(adPlaceholderUI: _uiFactory, iAAResponse: _config.IAA);
-
-                // Wire the revenue tracker BEFORE Initialize() so no ad impression can fire
-                // with a null tracker. NoctuaEventService only stores references here — native
-                // plugin Init() is called inside the Initialize() callback, so there is no
-                // ordering problem.
+                // Create NoctuaEventService FIRST so the tracker can be injected directly into
+                // MediationManager's constructor. This ensures CreateNetworks() — called inside
+                // the constructor via the IAAResponse property setter — receives a non-null
+                // IAdRevenueTracker from the start, eliminating the "created with null tracker"
+                // startup warning. NoctuaEventService only stores references at this point;
+                // native plugin Init() is called later inside the Initialize() callback.
                 _event = new NoctuaEventService(_nativePlugin, _eventSender);
                 _event.SetProperties(isSandbox: _config.Noctua.IsSandbox);
-                _iaa.SetAdRevenueTracker(_event);
-                _log.Info("Ad revenue tracker wired before IAA Initialize()");
+
+                _iaa = new MediationManager(adPlaceholderUI: _uiFactory, iAAResponse: _config.IAA, adRevenueTracker: _event);
+                _log.Info("Ad revenue tracker wired at MediationManager construction");
 
 #if UNITY_ADMOB || UNITY_APPLOVIN
                 _iaa.Initialize(() =>
