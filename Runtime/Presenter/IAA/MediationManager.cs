@@ -861,7 +861,16 @@ namespace com.noctuagames.sdk
         {
             if (network.NetworkName != AdNetworkName.Admob) return;
 
-            network.AdmobOnUserEarnedReward += (reward) => _admobOnUserEarnedReward?.Invoke(reward);
+            network.AdmobOnUserEarnedReward += (reward) =>
+            {
+                _adRevenueTracker?.TrackCustomEvent("ad_rewarded_complete", new Dictionary<string, IConvertible>
+                {
+                    { "network",       "admob" },
+                    { "reward_amount", reward.Amount },
+                    { "reward_type",   reward.Type ?? "" }
+                });
+                _admobOnUserEarnedReward?.Invoke(reward);
+            };
 
             // Per-format routing: the aggregate AdmobOnAdRevenuePaid event does not carry
             // format info, so Taichi counters and performance tracker would be misattributed
@@ -971,7 +980,16 @@ namespace com.noctuagames.sdk
         {
             if (network.NetworkName != AdNetworkName.AppLovin) return;
 
-            network.AppLovinOnUserEarnedReward += (reward) => PostToMainThread(() => _appLovinOnUserEarnedReward?.Invoke(reward));
+            network.AppLovinOnUserEarnedReward += (reward) => PostToMainThread(() =>
+            {
+                _adRevenueTracker?.TrackCustomEvent("ad_rewarded_complete", new Dictionary<string, IConvertible>
+                {
+                    { "network",       "applovin" },
+                    { "reward_amount", reward.Amount },
+                    { "reward_type",   reward.Label ?? "" }
+                });
+                _appLovinOnUserEarnedReward?.Invoke(reward);
+            });
             // AppLovin MAX delivers OnAdRevenuePaidEvent on a background thread
             // (MaxSdkBase.HandleBackgroundCallback). ProcessAppLovinRevenue reads
             // PlayerPrefs via the Taichi threshold helpers, which is main-thread-only
