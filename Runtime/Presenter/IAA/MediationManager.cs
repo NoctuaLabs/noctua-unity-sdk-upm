@@ -845,6 +845,11 @@ namespace com.noctuagames.sdk
             var primary = _orchestrator.Primary;
             var secondary = _orchestrator.Secondary;
 
+            // Platform-agnostic reward-completion tracking — not gated by #if so it works
+            // in Editor tests and covers both mediation networks with a single subscription.
+            SubscribeRewardCompletionEvent(primary);
+            if (secondary != null) SubscribeRewardCompletionEvent(secondary);
+
 #if UNITY_ADMOB
             SubscribeAdmobRevenueEvents(primary);
             if (secondary != null) SubscribeAdmobRevenueEvents(secondary);
@@ -856,21 +861,30 @@ namespace com.noctuagames.sdk
 #endif
         }
 
+        /// <summary>
+        /// Subscribes to the platform-agnostic <see cref="IAdNetwork.OnUserEarnedReward"/> event and
+        /// emits an <c>ad_rewarded_complete</c> analytics event. Dispatches to the main thread because
+        /// both AppLovin MAX (background thread) and AdMob may fire the callback off the Unity thread.
+        /// </summary>
+        private void SubscribeRewardCompletionEvent(IAdNetwork network)
+        {
+            network.OnUserEarnedReward += (amount, type) => PostToMainThread(() =>
+            {
+                _adRevenueTracker?.TrackCustomEvent("ad_rewarded_complete", new Dictionary<string, IConvertible>
+                {
+                    { "network",       network.NetworkName },
+                    { "reward_amount", amount },
+                    { "reward_type",   type ?? "" }
+                });
+            });
+        }
+
 #if UNITY_ADMOB
         private void SubscribeAdmobRevenueEvents(IAdNetwork network)
         {
             if (network.NetworkName != AdNetworkName.Admob) return;
 
-            network.AdmobOnUserEarnedReward += (reward) =>
-            {
-                _adRevenueTracker?.TrackCustomEvent("ad_rewarded_complete", new Dictionary<string, IConvertible>
-                {
-                    { "network",       "admob" },
-                    { "reward_amount", reward.Amount },
-                    { "reward_type",   reward.Type ?? "" }
-                });
-                _admobOnUserEarnedReward?.Invoke(reward);
-            };
+            network.AdmobOnUserEarnedReward += (reward) => _admobOnUserEarnedReward?.Invoke(reward);
 
             // Per-format routing: the aggregate AdmobOnAdRevenuePaid event does not carry
             // format info, so Taichi counters and performance tracker would be misattributed
@@ -980,16 +994,7 @@ namespace com.noctuagames.sdk
         {
             if (network.NetworkName != AdNetworkName.AppLovin) return;
 
-            network.AppLovinOnUserEarnedReward += (reward) => PostToMainThread(() =>
-            {
-                _adRevenueTracker?.TrackCustomEvent("ad_rewarded_complete", new Dictionary<string, IConvertible>
-                {
-                    { "network",       "applovin" },
-                    { "reward_amount", reward.Amount },
-                    { "reward_type",   reward.Label ?? "" }
-                });
-                _appLovinOnUserEarnedReward?.Invoke(reward);
-            });
+            network.AppLovinOnUserEarnedReward += (reward) => PostToMainThread(() => _appLovinOnUserEarnedReward?.Invoke(reward));
             // AppLovin MAX delivers OnAdRevenuePaidEvent on a background thread
             // (MaxSdkBase.HandleBackgroundCallback). ProcessAppLovinRevenue reads
             // PlayerPrefs via the Taichi threshold helpers, which is main-thread-only
