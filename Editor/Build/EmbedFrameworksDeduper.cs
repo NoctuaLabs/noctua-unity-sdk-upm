@@ -11,26 +11,32 @@ using UnityEngine;
 namespace com.noctuagames.sdk.Editor.Build
 {
     /// <summary>
-    /// Post-build iOS pass that removes duplicate <c>Embed Frameworks</c>
-    /// entries for a curated list of vendored native SDKs (currently
-    /// <c>InMobiSDK.framework</c> and <c>MolocoSDK.framework</c>).
+    /// Post-build iOS pass that eliminates two distinct "Multiple commands produce
+    /// '…/YourApp.app/Frameworks/&lt;Name&gt;.framework'" Xcode errors that arise when
+    /// both AppLovin MAX and AdMob adapters for the same mediation network are installed.
     ///
-    /// These native SDKs are bundled as <c>vendored_frameworks</c> inside
-    /// BOTH the AppLovin MAX adapter and the AdMob adapter for the same
-    /// network. CocoaPods installs the pods fine, but Xcode's "Embed Pods
-    /// Frameworks" phase ends up with two <c>PBXBuildFile</c> entries
-    /// referencing the same filename, which triggers:
+    /// ── Conflict pattern A — duplicate PBXBuildFile entries ────────────────────
+    /// Both adapters register the same xcframework as a <c>PBXBuildFile</c> in
+    /// the <em>same</em> "Embed Pods Frameworks" / "Embed Frameworks" phase.  The
+    /// deduper keeps the first entry and removes every subsequent one.
     ///
-    ///   "Multiple commands produce '…/YourApp.app/Frameworks/&lt;Name&gt;.framework'"
+    /// ── Conflict pattern B — AppLovin embed vs CocoaPods script ────────────────
+    /// AppLovin MAX's <c>EmbedDynamicLibrariesIfNeeded</c> ([PostProcessBuild 90])
+    /// calls <c>PBXProject.AddFileToEmbedFrameworks</c>, adding the xcframework to
+    /// the Unity-iPhone target's "Embed Frameworks" <c>PBXCopyFilesBuildPhase</c>.
+    /// CocoaPods' <c>[CP] Embed Pods Frameworks</c> shell-script phase independently
+    /// copies the same framework slice to
+    /// <c>${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/&lt;Name&gt;.framework</c>.
+    /// Both produce the same output path → Xcode error.
     ///
-    /// The deduper parses <c>project.pbxproj</c>, keeps the first
-    /// <c>PBXBuildFile</c> per framework name in the Embed phase, and drops
-    /// subsequent duplicates (both the entry itself and its UUID in the
-    /// phase's <c>files = (...)</c> list). Result: both AppLovin MAX and
-    /// AdMob mediation adapters coexist at runtime without breaking Xcode.
+    /// The deduper detects whether the <c>[CP] Embed Pods Frameworks</c> script
+    /// already handles a given framework (by checking its <c>outputPaths</c>) and,
+    /// if so, removes the redundant <c>PBXCopyFilesBuildPhase</c> entry that
+    /// AppLovin added, leaving the CocoaPods script as the sole embedder.
     ///
-    /// Callback order 1000 — after Unity's default iOS post-processors and
-    /// after EDM4U / CocoaPods integration (which runs at order ≤ 700).
+    /// Callback order 1000 — after Unity's default iOS post-processors,
+    /// after AppLovin MAX ([PostProcessBuild 90]), and after EDM4U / CocoaPods
+    /// integration (which runs at order 45).
     /// </summary>
     public static class EmbedFrameworksDeduper
     {
@@ -55,42 +61,48 @@ namespace com.noctuagames.sdk.Editor.Build
 
             foreach (var fw in NoctuaAdapterStabilizer.CollidingFrameworkNames)
             {
+                // Pattern A — two PBXBuildFile entries in the same embed phase
                 int count = DedupeBuildFileEntries(ref content, fw);
                 if (count > 0)
                 {
                     totalRemoved += count;
-                    removedFrameworks.Add($"{fw} ×{count}");
+                    removedFrameworks.Add($"{fw} (deduped ×{count})");
+                }
+
+                // Pattern B — one AppLovin PBXCopyFilesBuildPhase entry conflicts
+                //             with the [CP] Embed Pods Frameworks shell-script output
+                count = RemovePodsEmbedConflicts(ref content, fw);
+                if (count > 0)
+                {
+                    totalRemoved += count;
+                    removedFrameworks.Add($"{fw} (removed AppLovin embed, kept CocoaPods script)");
                 }
             }
 
             if (totalRemoved > 0 && content != original)
             {
                 File.WriteAllText(projPath, content);
-                Debug.Log($"[NoctuaSDK] EmbedFrameworksDeduper: removed {totalRemoved} duplicate Embed Frameworks entries — {string.Join(", ", removedFrameworks)}. " +
+                Debug.Log($"[NoctuaSDK] EmbedFrameworksDeduper: resolved {totalRemoved} embed conflict(s) — " +
+                          $"{string.Join(", ", removedFrameworks)}. " +
                           "Both MAX and AdMob adapters now coexist in this build.");
             }
         }
 
-        /// <summary>
-        /// Removes every PBXBuildFile entry referencing
-        /// <paramref name="frameworkName"/> in the Embed phase EXCEPT the
-        /// first, and strips the orphan UUIDs from any <c>files = (...)</c>
-        /// list that referenced them.
-        /// </summary>
+        // ─────────────────────────────────────────────────────────────────────────
+        // Pattern A
+        // Removes every PBXBuildFile entry referencing <paramref name="frameworkName"/>
+        // in any Embed phase EXCEPT the first, and strips orphan UUIDs from the
+        // corresponding files = (...) list.
+        // ─────────────────────────────────────────────────────────────────────────
         internal static int DedupeBuildFileEntries(ref string pbx, string frameworkName)
         {
-            // PBXBuildFile lines for the embed phase look like:
+            // PBXBuildFile lines look like:
             //   UUID /* FrameworkName in Embed Pods Frameworks */ = {isa = PBXBuildFile; fileRef = OTHER /* FrameworkName */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
             //
             // The settings block contains NESTED braces — `[^}]*` stops at the
-            // first inner `}` and never matches the full line.  Using `.*` instead
-            // lets the greedy engine consume everything and backtrack to the last
-            // `};` that terminates the entry.  Because this is Multiline mode,
-            // `.` never spans newlines, so there is no risk of over-matching into
-            // the next PBXBuildFile entry.
-            //
-            // We match any "in <Embed …> Frameworks" variant to be robust across CocoaPods
-            // versions (Embed Pods Frameworks, Embed Frameworks, etc.).
+            // first inner `}` and never matches the full line.  `.*` lets the
+            // greedy engine consume everything and backtrack to the last `};`.
+            // Because this is Multiline mode, `.` never spans newlines.
             var escaped = Regex.Escape(frameworkName);
             var pattern = new Regex(
                 @"^\s*(?<uuid>[0-9A-F]{24,})\s*/\*\s*" + escaped +
@@ -100,22 +112,17 @@ namespace com.noctuagames.sdk.Editor.Build
             var matches = pattern.Matches(pbx).Cast<Match>().ToList();
             if (matches.Count <= 1) return 0;
 
-            // Keep the first UUID; every later UUID is a duplicate we'll strip.
             var duplicateUuids = matches.Skip(1).Select(m => m.Groups["uuid"].Value).ToList();
 
-            // 1. Delete the duplicate PBXBuildFile lines (walk in reverse so
-            //    earlier offsets stay valid).
+            // 1. Delete duplicate PBXBuildFile lines (reverse order preserves offsets)
             foreach (var m in matches.Skip(1).OrderByDescending(m => m.Index))
             {
-                // Trim trailing newline with the line for cleanliness
                 int end = m.Index + m.Length;
                 if (end < pbx.Length && pbx[end] == '\n') end++;
                 pbx = pbx.Remove(m.Index, end - m.Index);
             }
 
-            // 2. Strip each duplicate UUID from every `files = (...)` list it
-            //    appears in (Embed phase files list). Match the entire line:
-            //      UUID /* FrameworkName in Embed Pods Frameworks */,
+            // 2. Strip each duplicate UUID from every `files = (...)` list
             foreach (var uuid in duplicateUuids)
             {
                 var refPattern = new Regex(
@@ -126,6 +133,69 @@ namespace com.noctuagames.sdk.Editor.Build
             }
 
             return duplicateUuids.Count;
+        }
+
+        // ─────────────────────────────────────────────────────────────────────────
+        // Pattern B
+        // Removes the "in Embed Frameworks" PBXCopyFilesBuildPhase entry that
+        // AppLovin MAX's EmbedDynamicLibrariesIfNeeded added when the
+        // [CP] Embed Pods Frameworks CocoaPods script phase ALREADY outputs the
+        // same framework — making the AppLovin embed entry redundant and conflicting.
+        //
+        // Only removes entries whose fileRef points to a Pods/ path (i.e. they
+        // are CocoaPods-managed, not a first-party Unity framework).
+        // ─────────────────────────────────────────────────────────────────────────
+        internal static int RemovePodsEmbedConflicts(ref string pbx, string frameworkName)
+        {
+            // Quick guard: does [CP] Embed Pods Frameworks output this framework?
+            // Output path format: "${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/MolocoSDK.framework"
+            if (!pbx.Contains("FRAMEWORKS_FOLDER_PATH}/" + frameworkName))
+                return 0;
+
+            // Strip extension to match both .framework and .xcframework variants
+            // that AppLovin may have registered (e.g. MolocoSDK.xcframework).
+            var baseName    = Path.GetFileNameWithoutExtension(frameworkName); // "MolocoSDK"
+            var escapedBase = Regex.Escape(baseName);
+
+            // Match: UUID /* MolocoSDK.xcframework in Embed Frameworks */ = { ... fileRef = UUID ... };
+            // Note: "Embed Frameworks" only — not "Embed Pods Frameworks" (that's Pattern A).
+            var buildFilePattern = new Regex(
+                @"^\s*(?<uuid>[0-9A-F]{24,})\s*/\*\s*" + escapedBase +
+                @"(?:\.xcframework|\.framework)\s+in\s+Embed\s+Frameworks\s*\*/\s*=\s*\{.*fileRef\s*=\s*(?<ref>[0-9A-F]{24,}).*\};\s*$",
+                RegexOptions.Multiline);
+
+            var matches = buildFilePattern.Matches(pbx).Cast<Match>().ToList();
+            if (matches.Count == 0) return 0;
+
+            int removed = 0;
+            foreach (var m in matches.OrderByDescending(match => match.Index))
+            {
+                var fileRefUuid = m.Groups["ref"].Value;
+
+                // Confirm the referenced file lives inside Pods/ (CocoaPods-managed).
+                // PBXFileReference line: UUID /* MolocoSDK.xcframework */ = { ... path = Pods/... };
+                var fileRefCheck = new Regex(
+                    Regex.Escape(fileRefUuid) + @"[^;]{0,300}path\s*=\s*Pods/",
+                    RegexOptions.Singleline);
+                if (!fileRefCheck.IsMatch(pbx)) continue;
+
+                var buildFileUuid = m.Groups["uuid"].Value;
+
+                // Remove the PBXBuildFile line
+                int end = m.Index + m.Length;
+                if (end < pbx.Length && pbx[end] == '\n') end++;
+                pbx = pbx.Remove(m.Index, end - m.Index);
+
+                // Remove UUID reference from any `files = (...)` list
+                var refPattern = new Regex(
+                    @"^\s*" + Regex.Escape(buildFileUuid) + @"\s*/\*[^*]*\*/\s*,\s*\r?\n",
+                    RegexOptions.Multiline);
+                pbx = refPattern.Replace(pbx, string.Empty);
+
+                removed++;
+            }
+
+            return removed;
         }
     }
 }
