@@ -30,7 +30,6 @@ namespace Tests.Runtime
         [Timeout(5000)]
         public async Task OnResumePause_SendsNativeUserEngagement()
         {
-            {
                 var tracker = new NativeSessionTracker(_config, _mockSender);
 
                 tracker.OnNativeResume();
@@ -54,13 +53,11 @@ namespace Tests.Runtime
                 Assert.LessOrEqual(msec, 5000);
 
                 tracker.Dispose();
-            }
-        );
-
+        }
         [Test]
         [Timeout(5000)]
         public async Task OnHeartbeat_SendsNativeUserEngagement()
-            {
+        {
                 var tracker = new NativeSessionTracker(_config, _mockSender);
 
                 tracker.OnNativeResume();
@@ -80,13 +77,11 @@ namespace Tests.Runtime
                 Assert.GreaterOrEqual(foregroundEvents.Count, 1);
 
                 tracker.Dispose();
-            }
-        );
-
+        }
         [Test]
         [Timeout(5000)]
         public async Task OnDispose_SendsEndAndPerSession()
-            {
+        {
                 var tracker = new NativeSessionTracker(_config, _mockSender);
 
                 tracker.OnNativeResume();
@@ -101,13 +96,11 @@ namespace Tests.Runtime
                 Assert.AreEqual("native_user_engagement_per_session", eventNames[1]);
 
                 Assert.AreEqual("end", _mockSender.SentEvents[0].Data["lifecycle"].ToString());
-            }
-        );
-
+        }
         [Test]
         [Timeout(5000)]
         public async Task EngagementTime_IsIncremental()
-            {
+        {
                 var config = new SessionTrackerConfig
                 {
                     HeartbeatPeriodMs = 60_000,
@@ -137,13 +130,11 @@ namespace Tests.Runtime
                 Assert.LessOrEqual(secondMs, 5000);
 
                 tracker.Dispose();
-            }
-        );
-
+        }
         [Test]
         [Timeout(5000)]
         public async Task SessionTimeout_ResetsAndSendsPerSession()
-            {
+        {
                 var tracker = new NativeSessionTracker(_config, _mockSender);
 
                 tracker.OnNativeResume();
@@ -165,13 +156,11 @@ namespace Tests.Runtime
                 Assert.AreEqual(0L, Convert.ToInt64(startEvt.Data["engagement_time_msec"]));
 
                 tracker.Dispose();
-            }
-        );
-
+        }
         [Test]
         [Timeout(5000)]
         public async Task PerSessionEngagement_CumulativeTotal()
-            {
+        {
                 var config = new SessionTrackerConfig
                 {
                     HeartbeatPeriodMs = 60_000,
@@ -196,13 +185,11 @@ namespace Tests.Runtime
                 var cumulativeMs = Convert.ToInt64(perSession[0].Data["engagement_time_msec"]);
                 Assert.GreaterOrEqual(cumulativeMs, 400);
                 Assert.LessOrEqual(cumulativeMs, 10000);
-            }
-        );
-
+        }
         [Test]
         [Timeout(5000)]
         public async Task NoSessionEvents_AreSent()
-            {
+        {
                 var tracker = new NativeSessionTracker(_config, _mockSender);
 
                 tracker.OnNativeResume();
@@ -219,7 +206,5 @@ namespace Tests.Runtime
                     .ToList();
 
                 Assert.AreEqual(0, sessionEvents.Count, "NativeSessionTracker must not send session events");
-            }
-        );
-    }
+        }
 }

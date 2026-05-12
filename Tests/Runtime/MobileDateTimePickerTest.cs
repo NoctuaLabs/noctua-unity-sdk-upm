@@ -28,8 +28,7 @@ namespace Tests.Runtime
         // ─── DateChangedEvent ────────────────────────────────────────────────
 
         [Test]
-        [Timeout(5000)]
-        public IEnumerator DateChangedEvent_ValidDateString_InvokesOnDateChangedCallback()
+        public void DateChangedEvent_ValidDateString_InvokesOnDateChangedCallback()
         {
             // Use ID 1001 — unique to this test to avoid cross-test static state collision
             DateTime received = DateTime.MinValue;
@@ -52,25 +51,21 @@ namespace Tests.Runtime
 
             // Clean up via PickerClosedEvent — removes from activePickers and destroys GameObject
             picker.PickerClosedEvent("2024-08-20 10:30:00");
-            yield return null;
         }
 
         [Test]
-        [Timeout(5000)]
-        public IEnumerator DateChangedEvent_UnknownId_DoesNotThrow()
+        public void DateChangedEvent_UnknownId_DoesNotThrow()
         {
             // ID 9999 has no registered picker — should be a safe no-op
             Assert.DoesNotThrow(() =>
                 MobileDateTimePicker.DateChangedEvent("2024-01-01 00:00:00", 9999)
             );
-            yield return null;
         }
 
         // ─── PickerClosedEvent ────────────────────────────────────────────────
 
         [Test]
-        [Timeout(5000)]
-        public IEnumerator PickerClosedEvent_ValidDateString_InvokesOnPickerClosedCallback()
+        public void PickerClosedEvent_ValidDateString_InvokesOnPickerClosedCallback()
         {
             // Use ID 1002 — unique to this test
             DateTime closed = DateTime.MinValue;
@@ -83,7 +78,6 @@ namespace Tests.Runtime
                 onClose:  dt => closed = dt
             );
 
-            yield return null;
 
             // Simulate iOS native bridge calling PickerClosedEvent on the instance.
             // PickerClosedEvent also removes the entry from activePickers and destroys the GameObject.
@@ -96,8 +90,7 @@ namespace Tests.Runtime
         }
 
         [Test]
-        [Timeout(5000)]
-        public IEnumerator CreateDate_DuplicateId_DestroysOldPickerAndRegistersNew()
+        public void CreateDate_DuplicateId_DestroysOldPickerAndRegistersNew()
         {
             // Use ID 1003 — unique to this test
             int firstCallCount  = 0;
@@ -108,7 +101,6 @@ namespace Tests.Runtime
                 onChange: _ => firstCallCount++
             );
 
-            yield return null;
 
             // Creating a second picker with the same ID should replace the first
             MobileDateTimePicker second = MobileDateTimePicker.CreateDate(
@@ -116,7 +108,6 @@ namespace Tests.Runtime
                 onChange: _ => secondCallCount++
             );
 
-            yield return null;
 
             // Fire event — should go to the second picker only
             MobileDateTimePicker.DateChangedEvent("2024-07-04 00:00:00", 1003);
@@ -126,7 +117,6 @@ namespace Tests.Runtime
 
             // Clean up via PickerClosedEvent
             second.PickerClosedEvent("2024-07-04 00:00:00");
-            yield return null;
         }
 
         // ─── Native picker (Ignore) ────────────────────────────────────────────

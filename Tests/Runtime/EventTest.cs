@@ -111,7 +111,6 @@ namespace Tests.Runtime
         [Timeout(5000)]
         public async Task SendAnEvent_AllMandatoryFieldsAreIncluded()
         {
-            {
                 var eventSender = new EventSender(
                     new EventSenderConfig
                     {
@@ -157,13 +156,11 @@ namespace Tests.Runtime
                 Assert.IsNotNull(evt.timestamp);
 
                 eventSender.Dispose();
-            }
-        );
-
+        }
         [Test]
         [Timeout(5000)]
         public async Task SetAndClearProperties_EventPropertiesAffected()
-            {
+        {
                 var eventSender = new EventSender(
                     new EventSenderConfig
                     {
@@ -260,13 +257,11 @@ namespace Tests.Runtime
                 Assert.AreEqual("6", events[2]["session_id"]);
 
                 eventSender.Dispose();
-            }
-        );
-
+        }
         [Test]
         [Timeout(5000)]
         public async Task SendEvents_DontReachBatchingNumberThreshold_DontSendToServer()
-            {
+        {
                 var eventSender = new EventSender(
                     new EventSenderConfig
                     {
@@ -288,13 +283,11 @@ namespace Tests.Runtime
                 Assert.IsFalse(_server.Requests.TryDequeue(out _));
 
                 eventSender.Dispose();
-            }
-        );
-
+        }
         [Test]
         [Timeout(5000)]
         public async Task SendEvents_DontReachBatchingNumberThresholdButFlushed_SendToServer()
-            {
+        {
                 var eventSender = new EventSender(
                     new EventSenderConfig
                     {
@@ -321,13 +314,11 @@ namespace Tests.Runtime
                 Assert.AreEqual(2, events.Count);
 
                 eventSender.Dispose();
-            }
-        );
-
+        }
         [Test]
         [Timeout(5000)]
         public async Task SendEvents_ReachBatchingNumberThreshold_SendToServer()
-            {
+        {
                 var eventSender = new EventSender(
                     new EventSenderConfig
                     {
@@ -374,13 +365,11 @@ namespace Tests.Runtime
                 }
 
                 eventSender.Dispose();
-            }
-        );
-
+        }
         [Test]
         [Timeout(5000)]
         public async Task SendEvents_ReachBatchingTimeout_SendToServer()
-            {
+        {
                 var eventSender = new EventSender(
                     new EventSenderConfig
                     {
@@ -427,13 +416,11 @@ namespace Tests.Runtime
                 }
 
                 eventSender.Dispose();
-            }
-        );
-
+        }
         [Test]
         [Timeout(5000)]
         public async Task SessionTracker_OnStartPauseAndResume_SendStartPauseAndResumeEvents()
-            {
+        {
                 var eventSender = new EventSender(
                     new EventSenderConfig
                     {
@@ -484,13 +471,11 @@ namespace Tests.Runtime
 
                 sessionTracker.Dispose();
                 eventSender.Dispose();
-            }
-        );
-
+        }
         [Test]
         [Timeout(5000)]
         public async Task SendEvents_SessionTrackerPaused_FlushedAndSendToServer()
-            {
+        {
                 var eventSender = new EventSender(
                     new EventSenderConfig
                     {
@@ -533,13 +518,11 @@ namespace Tests.Runtime
 
                 sessionTracker.Dispose();
                 eventSender.Dispose();
-            }
-        );
-
+        }
         [Test]
         [Timeout(5000)]
         public async Task SessionTracker_NotStarted_NoEvents()
-            {
+        {
                 var eventSender = new EventSender(
                     new EventSenderConfig
                     {
@@ -569,13 +552,11 @@ namespace Tests.Runtime
 
                 sessionTracker.Dispose();
                 eventSender.Dispose();
-            }
-        );
-
+        }
         [Test]
         [Timeout(5000)]
         public async Task SessionTracker_OnHeartbeatPeriod_SendHeartbeatEvent()
-            {
+        {
                 var eventSender = new EventSender(
                     new EventSenderConfig
                     {
@@ -619,13 +600,11 @@ namespace Tests.Runtime
 
                 sessionTracker.Dispose();
                 eventSender.Dispose();
-            }
-        );
-
+        }
         [Test]
         [Timeout(5000)]
         public async Task SessionTracker_OnSessionTimeout_EndSessionAndStartNewSession()
-            {
+        {
                 var eventSender = new EventSender(
                     new EventSenderConfig
                     {
@@ -720,15 +699,13 @@ namespace Tests.Runtime
 
                 sessionTracker.Dispose();
                 eventSender.Dispose();
-            }
-        );
-
+        }
         // ===== New tests for bug fixes =====
 
         [Test]
         [Timeout(5000)]
         public async Task QueueCap_ExceedMaxSize_DropsOldestEvents()
-            {
+        {
                 var eventSender = new EventSender(
                     new EventSenderConfig
                     {
@@ -769,13 +746,11 @@ namespace Tests.Runtime
                 Assert.IsFalse(names.Contains("event_2"), "Third oldest event (event_2) should have been dropped");
 
                 eventSender.Dispose();
-            }
-        );
-
+        }
         [Test]
         [Timeout(5000)]
         public async Task PersistenceRoundTrip_SaveAndLoad_EventsRecovered()
-            {
+        {
                 // Phase 1: Send events and dispose (events are persisted immediately via write queue)
                 var eventSender1 = new EventSender(
                     new EventSenderConfig
@@ -826,13 +801,11 @@ namespace Tests.Runtime
                     $"persist_event_2 not found in recovered events. Got: {string.Join(", ", names)}");
 
                 eventSender2.Dispose();
-            }
-        );
-
+        }
         [Test]
         [Timeout(5000)]
         public async Task FlushRaceCondition_ConcurrentFlushAndSendLoop_NoDataLoss()
-            {
+        {
                 var eventSender = new EventSender(
                     new EventSenderConfig
                     {
@@ -865,13 +838,11 @@ namespace Tests.Runtime
                     $"Expected at least 3 events, got {events.Count}: {string.Join(", ", events.Select(e => e.event_name))}");
 
                 eventSender.Dispose();
-            }
-        );
-
+        }
         [Test]
         [Timeout(5000)]
         public async Task EventOrdering_MultipleEvents_ArriveInOrder()
-            {
+        {
                 var eventSender = new EventSender(
                     new EventSenderConfig
                     {
@@ -907,13 +878,11 @@ namespace Tests.Runtime
                 }
 
                 eventSender.Dispose();
-            }
-        );
-
+        }
         [Test]
         [Timeout(5000)]
         public async Task AppKillDuringSend_EventsSurvive()
-            {
+        {
                 // Events are written to per-row storage immediately after Send(), so they survive app kill
                 var nativePlugin = new DefaultNativePlugin();
                 var sender = new EventSender(
@@ -942,9 +911,7 @@ namespace Tests.Runtime
                 var stored = await tcs.Task;
                 Assert.IsTrue(stored.Any(e => e.EventJson.Contains("survive_event")),
                     "Event should be persisted to per-row storage immediately after Send()");
-            }
-        );
-
+        }
         private async Task<List<EventData>> GetEventsFromServerAsync(int timeoutMs = 3000, int settleMs = 500)
         {
             var win = await UniTask.WhenAny(UniTask.Delay(timeoutMs), UniTask.WaitUntil(() => _server.Requests.Count > 0));
@@ -977,7 +944,7 @@ namespace Tests.Runtime
         [Test]
         [Timeout(5000)]
         public async Task SessionStart_SendsExactlyOnce_NoDoubleTracking()
-            {
+        {
                 var eventSender = new EventSender(
                     new EventSenderConfig
                     {
@@ -1013,13 +980,11 @@ namespace Tests.Runtime
                     "Double-tracking detected — Phase 1 immediate persist must be removed.");
 
                 eventSender.Dispose();
-            }
-        );
-
+        }
         [Test]
         [Timeout(5000)]
         public async Task IsSandbox_NotIncludedWhenNotSet()
-            {
+        {
                 var eventSender = new EventSender(
                     new EventSenderConfig
                     {
@@ -1043,13 +1008,11 @@ namespace Tests.Runtime
                     "is_sandbox must be absent (null) in the event payload when not explicitly set");
 
                 eventSender.Dispose();
-            }
-        );
-
+        }
         [Test]
         [Timeout(5000)]
         public async Task IsSandbox_IncludedWhenExplicitlySet()
-            {
+        {
                 var eventSender = new EventSender(
                     new EventSenderConfig
                     {
@@ -1075,9 +1038,7 @@ namespace Tests.Runtime
                     "is_sandbox must be true when SetProperties(isSandbox: true) was called");
 
                 eventSender.Dispose();
-            }
-        );
-    }
+        }
 
     public class EventSenderExtendedTest
     {

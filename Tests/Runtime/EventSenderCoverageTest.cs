@@ -288,12 +288,12 @@ namespace Tests.Runtime
                 {
                     { "level", "1-1" },
                     { "stage_mode", "normal" },
-                }
+                });
                 await UniTask.Delay(150);
                 sender.Send("game_stage_complete", new Dictionary<string, IConvertible>
                 {
                     { "level", "1-1" },
-                }
+                });
                 await UniTask.Delay(500);
 
                 var start = FindEvent("game_stage_start");
@@ -325,7 +325,7 @@ namespace Tests.Runtime
                 sender.Send("game_stage_start", new Dictionary<string, IConvertible>
                 {
                     { "game_level", "2-3" },
-                }
+                });
                 await UniTask.Delay(400);
 
                 Assert.AreEqual("2-3", PlayerPrefs.GetString("NoctuaCurrentStageLevel", ""),
@@ -653,7 +653,7 @@ namespace Tests.Runtime
                 {
                     try { sender.Send("bg_thread_event"); }
                     catch (Exception e) { caught = e; }
-                }
+                });
 
                 Assert.IsNull(caught, "Send from background thread must not throw");
                 // Send uses UniTask.SwitchToMainThread internally → enrichment happens on main.
@@ -837,7 +837,7 @@ namespace Tests.Runtime
                     },
                     new NoctuaLocale());
                 sender.Dispose();
-            }
+            });
         }
 
         // ═══════════════════════════════════════════════════════════════════════
@@ -981,7 +981,7 @@ namespace Tests.Runtime
                 sender.Send("game_stage_start", new Dictionary<string, IConvertible>
                 {
                     { "level", "3-1" },
-                }
+                });
                 await UniTask.Delay(600);
 
                 var ev = FindEvent("game_stage_start");
@@ -1009,7 +1009,7 @@ namespace Tests.Runtime
                 sender.Send("game_stage_complete", new Dictionary<string, IConvertible>
                 {
                     { "level", "5-2" },
-                }
+                });
                 await UniTask.Delay(600);
 
                 var ev = FindEvent("game_stage_complete");
@@ -1104,7 +1104,7 @@ namespace Tests.Runtime
                 {
                     { "session_id", "explicit-caller-session" },
                     { "custom_field", "value" },
-                }
+                });
                 await UniTask.Delay(800);
 
                 var ev = FindEvent("caller_session_override");

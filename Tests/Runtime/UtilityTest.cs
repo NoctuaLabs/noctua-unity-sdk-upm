@@ -317,19 +317,17 @@ namespace Tests.Runtime
         [Timeout(5000)]
         public async Task RetryAsyncTask_SuccessOnFirstTry()
         {
-            {
                 var result = await Utility.RetryAsyncTask(async () => await UniTask.FromResult("Success"));
                 Assert.AreEqual("Success", result);
-            }
-        );
-
+        }
         [Test]
         [Timeout(5000)]
         public async Task RetryAsyncTask_SuccessAfterRetries()
-            {
+        {
                 int attempt = 0;
 
                 var result = await Utility.RetryAsyncTask(
+                    async () =>
                     {
                         if (attempt < 2)
                         {
@@ -344,13 +342,11 @@ namespace Tests.Runtime
 
                 Assert.AreEqual("Success", result);
                 Assert.AreEqual(2, attempt);
-            }
-        );
-
+        }
         [Test]
         [Timeout(5000)]
         public async Task RetryAsyncTask_ThrowsNonNetworkingException()
-            {
+        {
                 bool exceptionThrown = false;
 
                 try
@@ -366,13 +362,11 @@ namespace Tests.Runtime
                 }
 
                 Assert.IsTrue(exceptionThrown);
-            }
-        );
-
+        }
         [Test]
         [Timeout(5000)]
         public async Task RetryAsyncTask_ThrowsOtherNonNetworkingException()
-            {
+        {
                 bool exceptionThrown = false;
 
                 try
@@ -385,13 +379,11 @@ namespace Tests.Runtime
                 }
 
                 Assert.IsTrue(exceptionThrown);
-            }
-        );
-
+        }
         [Test]
         [Timeout(5000)]
         public async Task RetryAsyncTask_MaxRetriesReached()
-            {
+        {
                 int attempt = 0;
                 double initialDelay = 0.5;
                 double exponent = 2.0;
@@ -404,6 +396,7 @@ namespace Tests.Runtime
                     stopwatch.Start();
 
                     await Utility.RetryAsyncTask<object>(
+                        async () =>
                         {
                             delays.Add(stopwatch.Elapsed.TotalSeconds);
                             stopwatch.Restart();
@@ -429,13 +422,11 @@ namespace Tests.Runtime
                 Assert.AreEqual(initialDelay, delays[1], 0.5);
                 Assert.AreEqual(initialDelay * exponent, delays[2], 0.5 * exponent);
                 Assert.AreEqual(initialDelay * exponent * exponent, delays[3], 0.5 * exponent * exponent);
-            }
-        );
-        
+        }
         [Test]
         [Timeout(5000)]
         public async Task RetryAsyncTask_MaxDelayReached()
-            {
+        {
                 int attempt = 0;
 
                 Stopwatch stopwatch = new Stopwatch();
@@ -446,6 +437,7 @@ namespace Tests.Runtime
                     stopwatch.Start();
 
                     await Utility.RetryAsyncTask<object>(
+                        async () =>
                         {
                             delays.Add(stopwatch.Elapsed.TotalSeconds);
                             stopwatch.Restart();
@@ -472,7 +464,5 @@ namespace Tests.Runtime
                 {
                     Assert.AreEqual(4.0, delays[i], 1);
                 }
-            }
-        );
-    }
+        }
 }

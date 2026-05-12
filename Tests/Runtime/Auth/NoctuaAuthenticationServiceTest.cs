@@ -928,7 +928,7 @@ namespace Tests.Runtime.Auth
                     Code        = "auth-code",
                     State       = "state",
                     RedirectUri = "https://callback.example.com"
-                }
+                });
                 Assert.IsNotNull(result);
                 Assert.AreEqual("google-token", result.Player?.AccessToken);
             }
@@ -1075,7 +1075,7 @@ namespace Tests.Runtime.Auth
                     IngameUsername = "Hero",
                     IngameServerId = "S1",
                     IngameRoleId   = "R1"
-                }
+                });
             }
             finally
             {
@@ -1320,7 +1320,7 @@ namespace Tests.Runtime.Auth
                     Language = "en",
                     Country  = "US",
                     Currency = "USD"
-                }
+                });
 
                 // If no exception, the update chain succeeded
                 Assert.IsTrue(svc.IsAuthenticated);
@@ -1769,7 +1769,7 @@ namespace Tests.Runtime.Auth
                     Code        = "oauth-code",
                     State       = "state",
                     RedirectUri = "https://callback.example.com"
-                }
+                });
 
                 // Verify that the social login request contained an Authorization header
                 bool authHeaderFound = false;
@@ -2640,7 +2640,7 @@ namespace Tests.Runtime.Auth
                 Assert.DoesNotThrow(() =>
                 {
                     result = svc.RegisterWithEmailAsync("extra@test.com", "pass", regExtra).GetAwaiter().GetResult();
-                }
+                });
 
                 Assert.IsNotNull(result);
             }
@@ -3250,7 +3250,7 @@ namespace Tests.Runtime.Auth
                     Language = "en",
                     Country  = "US",
                     Currency = "USD"
-                }
+                });
 
                 Assert.IsTrue(sender.GetEventsByName("profile_updated").Count > 0,
                     "profile_updated event must fire after UpdateUserAsync");
@@ -3624,7 +3624,7 @@ namespace Tests.Runtime.Auth
                     IngameUsername = "TestPlayer",
                     IngameServerId = "server-1",
                     IngameRoleId   = "role-warrior"
-                }
+                });
 
                 Assert.IsTrue(sender.GetEventsByName("role_updated").Count > 0,
                     "role_updated event must fire after UpdatePlayerAccountAsync");

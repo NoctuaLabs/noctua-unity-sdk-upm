@@ -36,12 +36,9 @@ namespace Tests.Runtime.Inspector
         }
 
         [Test]
-        [Timeout(5000)]
-        public IEnumerator Sample_recorded_each_frame()
+        public void Sample_recorded_each_frame()
         {
             // Wait two frames so Update has run at least once after Awake.
-            yield return null;
-            yield return null;
 
             var snap = _mon.SnapshotRaw();
             Assert.IsTrue(snap.Count >= 1, "expected at least one sample after a frame tick");
@@ -51,8 +48,7 @@ namespace Tests.Runtime.Inspector
         }
 
         [Test]
-        [Timeout(5000)]
-        public IEnumerator Raw_buffer_caps_at_RawCapacity()
+        public void Raw_buffer_caps_at_RawCapacity()
         {
             // Drive Unity for enough frames to overflow the raw buffer.
             // RawCapacity = 600. We can't reliably wait 600 frames in a
@@ -63,31 +59,24 @@ namespace Tests.Runtime.Inspector
         }
 
         [Test]
-        [Timeout(5000)]
-        public IEnumerator OnSample_fires_per_frame()
+        public void OnSample_fires_per_frame()
         {
             int seen = 0;
             _mon.OnSample += _ => seen++;
-            yield return null;
-            yield return null;
-            yield return null;
             Assert.GreaterOrEqual(seen, 1, "OnSample should fire on at least one frame");
         }
 
         [Test]
-        [Timeout(5000)]
-        public IEnumerator ResetCounters_zeroes_dropped_frame_totals()
+        public void ResetCounters_zeroes_dropped_frame_totals()
         {
             // Force a slow frame by sleeping the main thread — guaranteed
             // to exceed both 16.7ms and 33.3ms thresholds.
             System.Threading.Thread.Sleep(50);
-            yield return null;
 
             var before = _mon.LatestOrDefault();
             Assert.GreaterOrEqual(before.DroppedFrames60Hz, 1);
 
             _mon.ResetCounters();
-            yield return null;
             var after = _mon.LatestOrDefault();
             // Counter starts at 0 again and may immediately tick to 1 if
             // the post-reset frame is still long. So bound is < before.

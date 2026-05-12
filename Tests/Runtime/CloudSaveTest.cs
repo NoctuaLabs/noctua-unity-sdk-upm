@@ -25,8 +25,7 @@ namespace Tests.Runtime
         // --- CloudSaveMetadata deserialization tests ---
 
         [Test]
-        [Timeout(5000)]
-        public IEnumerator CloudSaveMetadata_Deserialization_Success()
+        public void CloudSaveMetadata_Deserialization_Success()
         {
             var json = @"{
                 ""slot_key"": ""profile"",
@@ -46,12 +45,10 @@ namespace Tests.Runtime
             Assert.AreEqual("2026-02-18T12:00:00Z", metadata.CreatedAt);
             Assert.AreEqual("2026-02-18T12:05:00Z", metadata.UpdatedAt);
 
-            yield return null;
         }
 
         [Test]
-        [Timeout(5000)]
-        public IEnumerator CloudSaveMetadata_Deserialization_WithDataEnvelope()
+        public void CloudSaveMetadata_Deserialization_WithDataEnvelope()
         {
             var json = @"{
                 ""data"": {
@@ -72,14 +69,12 @@ namespace Tests.Runtime
             Assert.AreEqual(1024, wrapper.Data.SizeBytes);
             Assert.AreEqual("abc123def456", wrapper.Data.Checksum);
 
-            yield return null;
         }
 
         // --- CloudSaveListResponse deserialization tests ---
 
         [Test]
-        [Timeout(5000)]
-        public IEnumerator CloudSaveListResponse_Deserialization_MultipleSaves()
+        public void CloudSaveListResponse_Deserialization_MultipleSaves()
         {
             var json = @"{
                 ""saves"": [
@@ -112,12 +107,10 @@ namespace Tests.Runtime
             Assert.AreEqual(1024, response.Saves[0].SizeBytes);
             Assert.AreEqual(62, response.Saves[1].SizeBytes);
 
-            yield return null;
         }
 
         [Test]
-        [Timeout(5000)]
-        public IEnumerator CloudSaveListResponse_Deserialization_EmptySaves()
+        public void CloudSaveListResponse_Deserialization_EmptySaves()
         {
             var json = @"{
                 ""saves"": [],
@@ -130,12 +123,10 @@ namespace Tests.Runtime
             Assert.IsNotNull(response.Saves);
             Assert.AreEqual(0, response.Saves.Count);
 
-            yield return null;
         }
 
         [Test]
-        [Timeout(5000)]
-        public IEnumerator CloudSaveListResponse_Deserialization_WithDataEnvelope()
+        public void CloudSaveListResponse_Deserialization_WithDataEnvelope()
         {
             var json = @"{
                 ""data"": {
@@ -160,12 +151,10 @@ namespace Tests.Runtime
             Assert.AreEqual(1, wrapper.Data.Saves.Count);
             Assert.AreEqual("progress", wrapper.Data.Saves[0].SlotKey);
 
-            yield return null;
         }
 
         [Test]
-        [Timeout(5000)]
-        public IEnumerator CloudSaveListResponse_ExtractKeys_ReturnsSlotKeys()
+        public void CloudSaveListResponse_ExtractKeys_ReturnsSlotKeys()
         {
             var json = @"{
                 ""saves"": [
@@ -209,14 +198,12 @@ namespace Tests.Runtime
             Assert.Contains("profile", keys);
             Assert.Contains("settings", keys);
 
-            yield return null;
         }
 
         // --- Error response deserialization tests ---
 
         [Test]
-        [Timeout(5000)]
-        public IEnumerator ErrorResponse_Deserialization_InvalidSlotKey()
+        public void ErrorResponse_Deserialization_InvalidSlotKey()
         {
             var json = @"{
                 ""success"": false,
@@ -230,12 +217,10 @@ namespace Tests.Runtime
             Assert.AreEqual(2064, response.ErrorCode);
             Assert.AreEqual("Cloud save slot key is invalid", response.ErrorMessage);
 
-            yield return null;
         }
 
         [Test]
-        [Timeout(5000)]
-        public IEnumerator ErrorResponse_Deserialization_DataTooLarge()
+        public void ErrorResponse_Deserialization_DataTooLarge()
         {
             var json = @"{
                 ""success"": false,
@@ -249,12 +234,10 @@ namespace Tests.Runtime
             Assert.AreEqual(2065, response.ErrorCode);
             Assert.AreEqual("Cloud save data exceeds maximum size", response.ErrorMessage);
 
-            yield return null;
         }
 
         [Test]
-        [Timeout(5000)]
-        public IEnumerator ErrorResponse_Deserialization_SaveNotFound()
+        public void ErrorResponse_Deserialization_SaveNotFound()
         {
             var json = @"{
                 ""success"": false,
@@ -268,12 +251,10 @@ namespace Tests.Runtime
             Assert.AreEqual(2306, response.ErrorCode);
             Assert.AreEqual("Cloud save not found", response.ErrorMessage);
 
-            yield return null;
         }
 
         [Test]
-        [Timeout(5000)]
-        public IEnumerator ErrorResponse_Deserialization_Unauthorized()
+        public void ErrorResponse_Deserialization_Unauthorized()
         {
             var json = @"{
                 ""success"": false,
@@ -287,7 +268,6 @@ namespace Tests.Runtime
             Assert.AreEqual(2100, response.ErrorCode);
             Assert.AreEqual("Unauthorized", response.ErrorMessage);
 
-            yield return null;
         }
 
         // --- Integration tests (requires full SDK init + backend) ---
@@ -384,7 +364,6 @@ namespace Tests.Runtime
                 eventSender: null
             );
 
-            yield return null;
         }
 
         [UnityTearDown]
@@ -392,7 +371,6 @@ namespace Tests.Runtime
         {
             LogAssert.ignoreFailingMessages = false;
             PlayerPrefs.DeleteKey("NoctuaAccountContainer");
-            yield return null;
         }
 
         // 1. SaveGameStateAsync throws NoctuaException when not authenticated
@@ -487,26 +465,21 @@ namespace Tests.Runtime
 
         // 6. All four guard checks fire synchronously — IsAuthenticated is false on fresh service
         [Test]
-        [Timeout(5000)]
-        public IEnumerator IsAuthenticated_FreshService_ReturnsFalse()
+        public void IsAuthenticated_FreshService_ReturnsFalse()
         {
             Assert.IsFalse(_authService.IsAuthenticated);
-            yield return null;
         }
 
         // 7. RecentAccount is null on fresh service (no stored accounts)
         [Test]
-        [Timeout(5000)]
-        public IEnumerator RecentAccount_FreshService_IsNull()
+        public void RecentAccount_FreshService_IsNull()
         {
             Assert.IsNull(_authService.RecentAccount);
-            yield return null;
         }
 
         // 8. CloudSaveMetadata defaults — new instance has sensible zero-values
         [Test]
-        [Timeout(5000)]
-        public IEnumerator CloudSaveMetadata_DefaultInstance_FieldsAreNullOrZero()
+        public void CloudSaveMetadata_DefaultInstance_FieldsAreNullOrZero()
         {
             var metadata = new CloudSaveMetadata();
             Assert.IsNull(metadata.SlotKey);
@@ -515,19 +488,16 @@ namespace Tests.Runtime
             Assert.IsNull(metadata.Checksum);
             Assert.IsNull(metadata.CreatedAt);
             Assert.IsNull(metadata.UpdatedAt);
-            yield return null;
         }
 
         // 9. CloudSaveListResponse defaults — Saves is null/empty and Total is 0
         [Test]
-        [Timeout(5000)]
-        public IEnumerator CloudSaveListResponse_DefaultInstance_SavesNullAndTotalZero()
+        public void CloudSaveListResponse_DefaultInstance_SavesNullAndTotalZero()
         {
             var response = new CloudSaveListResponse();
             Assert.AreEqual(0, response.Total);
             // Saves may be null on default-constructed object (no initializer in the class)
             Assert.IsTrue(response.Saves == null || response.Saves.Count == 0);
-            yield return null;
         }
 
         // 10. Multiple guard calls in sequence all throw (guards are stateless)

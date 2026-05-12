@@ -85,7 +85,6 @@ namespace Tests.Runtime
         [Timeout(5000)]
         public async Task OnPause_SendsUserEngagementBeforeSessionPause()
         {
-            {
                 var tracker = new SessionTracker(_config, _mockSender);
 
                 tracker.OnApplicationPause(false); // Start session
@@ -113,13 +112,11 @@ namespace Tests.Runtime
                 Assert.LessOrEqual(msec, 5000, "engagement_time_msec should not exceed 5000ms");
 
                 tracker.Dispose();
-            }
-        );
-
+        }
         [Test]
         [Timeout(5000)]
         public async Task OnHeartbeat_SendsUserEngagementBeforeHeartbeat()
-            {
+        {
                 var tracker = new SessionTracker(_config, _mockSender);
 
                 tracker.OnApplicationPause(false); // Start session
@@ -143,13 +140,11 @@ namespace Tests.Runtime
                 Assert.AreEqual("foreground", heartbeatEngagement.Data["lifecycle"].ToString());
 
                 tracker.Dispose();
-            }
-        );
-
+        }
         [Test]
         [Timeout(5000)]
         public async Task OnDispose_SendsUserEngagementBeforeSessionEnd()
-            {
+        {
                 var tracker = new SessionTracker(_config, _mockSender);
 
                 tracker.OnApplicationPause(false); // Start session
@@ -167,13 +162,11 @@ namespace Tests.Runtime
 
                 // Verify lifecycle=end
                 Assert.AreEqual("end", _mockSender.SentEvents[0].Data["lifecycle"].ToString());
-            }
-        );
-
+        }
         [Test]
         [Timeout(5000)]
         public async Task EngagementTime_IsIncremental_ResetsAfterEachSend()
-            {
+        {
                 var config = new SessionTrackerConfig
                 {
                     HeartbeatPeriodMs = 60_000,
@@ -209,13 +202,11 @@ namespace Tests.Runtime
                 Assert.LessOrEqual(secondMs, 5000);
 
                 tracker.Dispose();
-            }
-        );
-
+        }
         [Test]
         [Timeout(5000)]
         public async Task SessionTimeout_DiscardsAccumulatedEngagementTime()
-            {
+        {
                 var tracker = new SessionTracker(_config, _mockSender);
 
                 tracker.OnApplicationPause(false); // Start session
@@ -241,13 +232,11 @@ namespace Tests.Runtime
                 Assert.AreEqual(0L, Convert.ToInt64(startEngagement.Data["engagement_time_msec"]));
 
                 tracker.Dispose();
-            }
-        );
-
+        }
         [Test]
         [Timeout(5000)]
         public async Task NoForegroundTime_EngagementEventSentWithZeroMs()
-            {
+        {
                 var tracker = new SessionTracker(_config, _mockSender);
 
                 // Start and immediately pause — no measurable foreground time
@@ -271,13 +260,11 @@ namespace Tests.Runtime
                 Assert.LessOrEqual(msec, 100, "Near-instant pause should have very small engagement time");
 
                 tracker.Dispose();
-            }
-        );
-
+        }
         [Test]
         [Timeout(5000)]
         public async Task ExistingSessionEvents_RemainUnchanged()
-            {
+        {
                 var tracker = new SessionTracker(_config, _mockSender);
 
                 tracker.OnApplicationPause(false); // session_start
@@ -299,13 +286,11 @@ namespace Tests.Runtime
                 Assert.AreEqual("session_pause", sessionEvents[3]);
 
                 tracker.Dispose();
-            }
-        );
-
+        }
         [Test]
         [Timeout(5000)]
         public async Task PerSessionEngagement_CumulativeTotal_AtDispose()
-            {
+        {
                 var config = new SessionTrackerConfig
                 {
                     HeartbeatPeriodMs = 60_000,
@@ -328,13 +313,11 @@ namespace Tests.Runtime
                 var cumulativeMs = Convert.ToInt64(perSession[0].Data["engagement_time_msec"]);
                 Assert.GreaterOrEqual(cumulativeMs, 400, "Cumulative should be at least 400ms (2x ~300ms minus overhead)");
                 Assert.LessOrEqual(cumulativeMs, 10000, "Cumulative should not exceed 10s");
-            }
-        );
-
+        }
         [Test]
         [Timeout(5000)]
         public async Task PerSessionEngagement_SentOnSessionTimeout()
-            {
+        {
                 var tracker = new SessionTracker(_config, _mockSender);
 
                 tracker.OnApplicationPause(false); // Start session 1
@@ -357,15 +340,13 @@ namespace Tests.Runtime
                 Assert.GreaterOrEqual(cumulativeMs, 100, "Should have accumulated foreground time from session 1");
 
                 tracker.Dispose();
-            }
-        );
-
+        }
         // ─── 0ms engagement for short sessions ───────────────────────────────────
 
         [Test]
         [Timeout(5000)]
         public async Task ShortSession_PauseAndEnd_Always_SendEngagementEvenAtZeroMs()
-            {
+        {
                 // Verifies the fix for zero timespent: lifecycle=pause and lifecycle=end must
                 // always send, even when no foreground time was accumulated (0ms). Previously
                 // these were dropped by the guard, making sub-millisecond sessions invisible.
@@ -388,15 +369,13 @@ namespace Tests.Runtime
                 Assert.AreEqual(1, disposeEngagements.Count,
                     "lifecycle=end must fire on Dispose even with 0ms foreground time since last pause");
                 Assert.AreEqual("end", disposeEngagements[0].Data["lifecycle"].ToString());
-            }
-        );
-
+        }
         // ─── Recovery double-counting fix ────────────────────────────────────────
 
         [Test]
         [Timeout(5000)]
         public async Task RecoveryEvent_SendsOnlyUnsentPortion_NotFullCumulative()
-            {
+        {
                 // Simulate a crashed session that had already sent heartbeats.
                 // Before the fix, the full cumulativeMs was re-sent as noctua_user_engagement,
                 // double-counting all heartbeat chunks. After the fix only unsentMs is sent.
@@ -440,13 +419,11 @@ namespace Tests.Runtime
                     "Per-session recovery must carry the full total (cumulative + unsent)");
 
                 tracker.Dispose();
-            }
-        );
-
+        }
         [Test]
         [Timeout(5000)]
         public async Task RecoveryEvent_OldSchema_NoUnsentKey_SendsZeroEngagementAndCorrectPerSession()
-            {
+        {
                 // Devices upgrading from an old SDK that did not persist unsentMs.
                 // The key is absent → defaults to 0 → no noctua_user_engagement recovery event,
                 // but noctua_user_engagement_per_session still fires with the cumulative total.
@@ -479,15 +456,13 @@ namespace Tests.Runtime
                     "Old-schema per-session must carry cumulativeMs (unsentMs defaults to 0)");
 
                 tracker.Dispose();
-            }
-        );
-
+        }
         // ─── Min session gap guard ────────────────────────────────────────────────
 
         [Test]
         [Timeout(5000)]
         public async Task MinSessionGap_AllowsSessionStart_AfterTimeout()
-            {
+        {
                 // After a session TIMES OUT, the next resume must always create a new session —
                 // even if the time since the previous session_start is less than SessionMinGapMs.
                 //
@@ -525,13 +500,11 @@ namespace Tests.Runtime
                     "session_continue must not fire — this is a fresh session, not a resume of an active one");
 
                 tracker.Dispose();
-            }
-        );
-
+        }
         [Test]
         [Timeout(5000)]
         public async Task MinSessionGap_AllowsSessionStart_AfterGapExpires()
-            {
+        {
                 // Verify that session start is NOT suppressed when invoked fresh (gap is infinite
                 // from DateTime.MinValue) — normal first-launch behavior must be unaffected.
                 var config = new SessionTrackerConfig
@@ -547,13 +520,11 @@ namespace Tests.Runtime
                     "First-ever session start must not be suppressed by the gap guard");
 
                 tracker.Dispose();
-            }
-        );
-
+        }
         [Test]
         [Timeout(5000)]
         public async Task Heartbeat_DoesNotFire_BeforeSessionStarts()
-            {
+        {
                 // The heartbeat loop guards on `_sessionId == null` — no events should be
                 // emitted until a session is actually started via OnApplicationPause(false).
                 // This verifies the guard is effective from the very first frame, before any
@@ -575,13 +546,11 @@ namespace Tests.Runtime
                     "session_start must not fire without an OnApplicationPause(false) call");
 
                 tracker.Dispose();
-            }
-        );
-
+        }
         [Test]
         [Timeout(5000)]
         public async Task LifecycleParam_AllFourValues()
-            {
+        {
                 var config = new SessionTrackerConfig
                 {
                     HeartbeatPeriodMs = 300,
@@ -617,15 +586,13 @@ namespace Tests.Runtime
                     Assert.Greater(Convert.ToInt64(evt.Data["engagement_time_msec"]), 0,
                         $"lifecycle={lc} should have positive engagement_time_msec");
                 }
-            }
-        );
-
+        }
         // ─── Dispose idempotency ─────────────────────────────────────────────
 
         [Test]
         [Timeout(5000)]
         public async Task Dispose_IsIdempotent_DoesNotThrowOrDoubleSessionEnd()
-            {
+        {
                 var tracker = new SessionTracker(_config, _mockSender);
                 tracker.OnApplicationPause(false);
                 await UniTask.Delay(50);
@@ -637,15 +604,13 @@ namespace Tests.Runtime
                     "Second Dispose() call must not throw");
                 Assert.AreEqual(countAfterFirst, _mockSender.GetEventsByName("session_end").Count,
                     "Second Dispose() must not emit a second session_end");
-            }
-        );
-
+        }
         // ─── OnApplicationPause same-status guard ────────────────────────────
 
         [Test]
         [Timeout(5000)]
         public async Task OnApplicationPause_SameStatus_IsIgnored()
-            {
+        {
                 var tracker = new SessionTracker(_config, _mockSender);
                 tracker.OnApplicationPause(false); // start session
 
@@ -664,15 +629,13 @@ namespace Tests.Runtime
 
                 tracker.Dispose();
                 await UniTask.Yield();
-            }
-        );
-
+        }
         // ─── Session continue ────────────────────────────────────────────────
 
         [Test]
         [Timeout(5000)]
         public async Task SessionContinue_ResumeWithinTimeout_SendsContinue()
-            {
+        {
                 var config = new SessionTrackerConfig
                 {
                     HeartbeatPeriodMs = 60_000,
@@ -693,15 +656,13 @@ namespace Tests.Runtime
                     "session_start must not fire again on resume within timeout");
 
                 tracker.Dispose();
-            }
-        );
-
+        }
         // ─── Remote feature flags ────────────────────────────────────────────
 
         [Test]
         [Timeout(5000)]
         public async Task RemoteFeatureFlags_FlushEnabled_CallsFlushOnDispose()
-            {
+        {
                 var flags = new Dictionary<string, bool> { { "sendEventsOnFlushEnabled", true } };
                 var tracker = new SessionTracker(_config, _mockSender, flags);
                 tracker.OnApplicationPause(false);
@@ -712,13 +673,11 @@ namespace Tests.Runtime
 
                 Assert.Greater(_mockSender.FlushCount, flushBefore,
                     "Dispose must call Flush when sendEventsOnFlushEnabled = true");
-            }
-        );
-
+        }
         [Test]
         [Timeout(5000)]
         public async Task RemoteFeatureFlags_FlushDisabled_DoesNotCallFlushOnDispose()
-            {
+        {
                 var flags = new Dictionary<string, bool> { { "sendEventsOnFlushEnabled", false } };
                 var tracker = new SessionTracker(_config, _mockSender, flags);
                 tracker.OnApplicationPause(false);
@@ -729,13 +688,11 @@ namespace Tests.Runtime
 
                 Assert.AreEqual(0, _mockSender.FlushCount,
                     "Dispose must NOT call Flush when sendEventsOnFlushEnabled = false");
-            }
-        );
-
+        }
         [Test]
         [Timeout(5000)]
         public async Task RemoteFeatureFlags_Null_DoesNotCallFlushOnDispose()
-            {
+        {
                 // null flags dict → defaults to no-flush on dispose
                 var tracker = new SessionTracker(_config, _mockSender, remoteFeatureFlags: null);
                 tracker.OnApplicationPause(false);
@@ -746,15 +703,13 @@ namespace Tests.Runtime
 
                 Assert.AreEqual(0, _mockSender.FlushCount,
                     "Dispose with null remoteFeatureFlags must NOT call Flush");
-            }
-        );
-
+        }
         // ─── Session timeout ─────────────────────────────────────────────────
 
         [Test]
         [Timeout(5000)]
         public async Task SessionTimeout_PerSessionEngagement_SentBeforeNewSession()
-            {
+        {
                 var config = new SessionTrackerConfig
                 {
                     HeartbeatPeriodMs = 60_000,
@@ -779,9 +734,7 @@ namespace Tests.Runtime
                     "noctua_user_engagement_per_session must fire when session times out");
 
                 tracker.Dispose();
-            }
-        );
-
+        }
         // ─── SaveSessionState when no session ────────────────────────────────
 
         [Test]
@@ -822,7 +775,7 @@ namespace Tests.Runtime
         [Test]
         [Timeout(5000)]
         public async Task MinSessionGap_RapidResume_SuppressesSecondSessionStart()
-            {
+        {
                 // The min-gap guard (10s) must suppress a second session_start fired
                 // immediately after the first one — simulating the rapid
                 // OnApplicationPause(false) bursts emitted by ad SDK init cycles.
@@ -853,13 +806,11 @@ namespace Tests.Runtime
                     "session_continue should fire on within-timeout resume");
 
                 tracker.Dispose();
-            }
-        );
-
+        }
         [Test]
         [Timeout(5000)]
         public async Task MinSessionGap_RapidSessionAfterTimeout_IsSuppressedWithinGap()
-            {
+        {
                 // After a session ends via timeout, if a second timeout+resume pair fires
                 // before 10s have elapsed since the FIRST session_start, the new session is
                 // suppressed by the min-gap guard. This covers lines 293-297 in SessionTracker.
@@ -887,15 +838,13 @@ namespace Tests.Runtime
                     "Session 2 must start after timeout because _lastSessionStartTime is reset to MinValue");
 
                 tracker.Dispose();
-            }
-        );
-
+        }
         // ─── Orphan recovery — both cumulative and unsent are zero ───────────
 
         [Test]
         [Timeout(5000)]
         public async Task RecoveryEvent_ZeroCumulativeAndUnsent_SendsOnlySessionEnd()
-            {
+        {
                 // Orphaned session with 0 cumulative and 0 unsent (e.g. crash before any
                 // foreground time was accumulated). The recovery should skip both engagement
                 // events (guarded by > 0) but still emit session_end.
@@ -934,15 +883,13 @@ namespace Tests.Runtime
 
                 tracker.Dispose();
                 await UniTask.Yield();
-            }
-        );
-
+        }
         // ─── Orphan recovery — PlayerPrefs cleared after recovery ────────────
 
         [Test]
         [Timeout(5000)]
         public async Task RecoveryEvent_ClearsPlayerPrefsAfterRecovery()
-            {
+        {
                 // After RecoverOrphanedSession() runs, all four PlayerPrefs keys must be deleted
                 // so the same orphaned session is not recovered twice on subsequent launches.
                 PlayerPrefs.SetString("NoctuaOrphanedSessionId",           "cleanup-test-session");
@@ -966,15 +913,13 @@ namespace Tests.Runtime
 
                 tracker.Dispose();
                 await UniTask.Yield();
-            }
-        );
-
+        }
         // ─── HeartbeatTask SaveSessionState — main thread path ───────────────
 
         [Test]
         [Timeout(5000)]
         public async Task Heartbeat_SavesSessionState_AfterFiring()
-            {
+        {
                 // After a heartbeat fires, SaveSessionState() writes PlayerPrefs on the main
                 // thread (via UniTask.SwitchToMainThread). Verify the key is present after
                 // a heartbeat period elapses — covers the SaveSessionState call in RunHeartbeat.
@@ -998,7 +943,5 @@ namespace Tests.Runtime
                     "NoctuaOrphanedSessionId must persist the same session ID after heartbeat");
 
                 tracker.Dispose();
-            }
-        );
-    }
+        }
 }

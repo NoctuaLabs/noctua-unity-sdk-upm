@@ -989,9 +989,8 @@ namespace Tests.Runtime.IAP
     ///   <see cref="UserBundle"/>.
     /// - The service must be Enable()-d (internal method, called via reflection) before any method
     ///   guarded by EnsureEnabled() can run.
-    /// - All tests use <c>[Test]</c> + <c>async Task</c> with <c>[Timeout(5000)]</c> — the correct
-    ///   EditMode pattern. <c>UniTask.ToCoroutine()</c> hangs in EditMode because the PlayerLoop
-    ///   coroutine scheduler does not tick.
+    /// - All tests are <c>[UnityTest]</c> + <c>UniTask.ToCoroutine()</c> to satisfy the Unity Test
+    ///   Framework's requirement for coroutine-based async tests in PlayMode/RuntimeMode.
     /// </summary>
     [TestFixture]
     public class NoctuaIAPServiceHttpTest

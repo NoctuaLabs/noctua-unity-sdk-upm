@@ -237,8 +237,6 @@ namespace Tests.Runtime
         [Timeout(5000)]
         public async Task HandleLogThreaded_FromBackgroundThread_DoesNotThrow()
         {
-            async () =>
-            {
                 Exception caught = null;
                 await Task.Run(() =>
                 {

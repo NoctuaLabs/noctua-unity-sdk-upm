@@ -382,7 +382,7 @@ namespace Tests.Runtime
             {
                 callbackInvoked = true;
                 await UniTask.Yield();
-            }
+            });
 
             Assert.IsTrue(callbackInvoked,
                 "onSuccess callback must be invoked after InitAsync completes");
@@ -712,7 +712,7 @@ namespace Tests.Runtime
                     enabled_payment_types = new[] { "editor" },
                     feature_flags         = featureFlags ?? new Dictionary<string, string>()
                 }
-            }
+            });
         }
 
         /// <summary>

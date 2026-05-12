@@ -51,7 +51,6 @@ namespace Tests.Runtime
             PlayerPrefs.DeleteKey("NoctuaAccountContainer");
             PlayerPrefs.DeleteKey("NoctuaAccountContainer.UseFallback");
 
-            yield return null;
         }
 
         [UnityTearDown]
@@ -60,12 +59,10 @@ namespace Tests.Runtime
             PlayerPrefs.DeleteKey("NoctuaAccountContainer");
             PlayerPrefs.DeleteKey("NoctuaAccountContainer.UseFallback");
 
-            yield return null;
         }
 
         [Test]
-        [Timeout(5000)]
-        public IEnumerator EmptyContainer_NoAccountsAndNoRecentAccount()
+        public void EmptyContainer_NoAccountsAndNoRecentAccount()
         {
             var mockStore = new MockNativeAccountStore();
             var accountContainer = new AccountContainer(mockStore, Application.identifier);
@@ -76,12 +73,10 @@ namespace Tests.Runtime
             Assert.IsNull(accountContainer.RecentAccount);
             Assert.IsFalse(accounts.Any(a => a.IsRecent));
 
-            yield return null;
         }
 
         [Test]
-        [Timeout(5000)]
-        public IEnumerator EmptyContainer_LoadAccountsWithDuplicates_SkippedDuplicates()
+        public void EmptyContainer_LoadAccountsWithDuplicates_SkippedDuplicates()
         {
             var mockStore = new MockNativeAccountStore();
 
@@ -143,12 +138,10 @@ namespace Tests.Runtime
             Assert.AreEqual(1, accounts.Count(a => a.Player.Id == 1));
             Assert.AreEqual(1, accounts.Count(a => a.Player.Id == 2));
 
-            yield return null;
         }
 
         [Test]
-        [Timeout(5000)]
-        public IEnumerator EmptyContainer_AddGuestAccount_AccountIsRecent()
+        public void EmptyContainer_AddGuestAccount_AccountIsRecent()
         {
             var mockStore = new MockNativeAccountStore();
             var accountContainer = new AccountContainer(mockStore, Application.identifier);
@@ -221,13 +214,11 @@ namespace Tests.Runtime
             Assert.AreEqual(1, accountsFromStore.Count);
             Assert.AreEqual(playerToken.User.Id, accountsFromStore.First().PlayerId);
 
-            yield return null;
         }
 
 
         [Test]
-        [Timeout(5000)]
-        public IEnumerator ContainerWithGuestAccount_AddAccountWithTheSamePlayer_GuestRemoved()
+        public void ContainerWithGuestAccount_AddAccountWithTheSamePlayer_GuestRemoved()
         {
             var mockStore = new MockNativeAccountStore();
             var accountContainer = new AccountContainer(mockStore, Application.identifier);
@@ -336,12 +327,10 @@ namespace Tests.Runtime
 
             Assert.IsTrue(accounts.First().IsRecent);
 
-            yield return null;
         }
 
         [Test]
-        [Timeout(5000)]
-        public IEnumerator EmptyContainer_AddAccountFromThisGame_AccountIsRecent()
+        public void EmptyContainer_AddAccountFromThisGame_AccountIsRecent()
         {
             var mockStore = new MockNativeAccountStore();
             var accountContainer = new AccountContainer(mockStore, Application.identifier);
@@ -404,12 +393,10 @@ namespace Tests.Runtime
                 accountContainer.RecentAccount.User.Nickname
             );
 
-            yield return null;
         }
 
         [Test]
-        [Timeout(5000)]
-        public IEnumerator EmptyContainer_AddAccountFromOtherGame_AccountIsNotRecentAndPlayerIsNull()
+        public void EmptyContainer_AddAccountFromOtherGame_AccountIsNotRecentAndPlayerIsNull()
         {
             var mockStore = new MockNativeAccountStore();
             var accountContainer = new AccountContainer(mockStore, Application.identifier);
@@ -466,12 +453,10 @@ namespace Tests.Runtime
 
             Assert.IsFalse(accounts.First().IsRecent);
 
-            yield return null;
         }
 
         [Test]
-        [Timeout(5000)]
-        public IEnumerator ContainerWithRecentAccount_AddAccountFromThisGame_AccountIsRecent()
+        public void ContainerWithRecentAccount_AddAccountFromThisGame_AccountIsRecent()
         {
             var mockStore = new MockNativeAccountStore();
             var accountContainer = new AccountContainer(mockStore, Application.identifier);
@@ -571,12 +556,10 @@ namespace Tests.Runtime
                 accountContainer.Accounts[1].User.Nickname
             );
 
-            yield return null;
         }
 
         [Test]
-        [Timeout(5000)]
-        public IEnumerator ContainerWithRecentAccount_AddSameUserFromOtherGame_AddedToPlayerAccounts()
+        public void ContainerWithRecentAccount_AddSameUserFromOtherGame_AddedToPlayerAccounts()
         {
             var mockStore = new MockNativeAccountStore();
             var accountContainer = new AccountContainer(mockStore, Application.identifier);
@@ -692,12 +675,10 @@ namespace Tests.Runtime
             );
 
 
-            yield return null;
         }
 
         [Test]
-        [Timeout(5000)]
-        public IEnumerator ContainerWithRecentAccount_AddSameUserFromThisGame_PlayerUpdated()
+        public void ContainerWithRecentAccount_AddSameUserFromThisGame_PlayerUpdated()
         {
             var mockStore = new MockNativeAccountStore();
             var accountContainer = new AccountContainer(mockStore, Application.identifier);
@@ -797,12 +778,10 @@ namespace Tests.Runtime
                 accountContainer.Accounts[0].User.Nickname
             );
 
-            yield return null;
         }
 
         [Test]
-        [Timeout(5000)]
-        public IEnumerator ContainerWithRecentAccount_AddGuestFromThisGame_AccountIsGuestAndRecent()
+        public void ContainerWithRecentAccount_AddGuestFromThisGame_AccountIsGuestAndRecent()
         {
             var mockStore = new MockNativeAccountStore();
             var accountContainer = new AccountContainer(mockStore, Application.identifier);
@@ -905,12 +884,10 @@ namespace Tests.Runtime
                 accountContainer.Accounts[1].User.Nickname
             );
 
-            yield return null;
         }
 
         [Test]
-        [Timeout(5000)]
-        public IEnumerator ContainerWithAccountsFromDifferentGames_ResetAccounts_OnlyDeletesCurrentGameButClearsMemory()
+        public void ContainerWithAccountsFromDifferentGames_ResetAccounts_OnlyDeletesCurrentGameButClearsMemory()
         {
             var mockStore = new MockNativeAccountStore();
             var accountContainer = new AccountContainer(mockStore, Application.identifier);
@@ -1070,12 +1047,10 @@ namespace Tests.Runtime
             Assert.Contains(2, accountsFromStore.Select(a => a.PlayerId).ToList());
             Assert.Contains(3, accountsFromStore.Select(a => a.PlayerId).ToList());
 
-            yield return null;
         }
 
         [Test]
-        [Timeout(5000)]
-        public IEnumerator ContainerWithGuestAccountsInDifferentGames_AccountIsNotLoaded()
+        public void ContainerWithGuestAccountsInDifferentGames_AccountIsNotLoaded()
         {
             var mockStore = new MockNativeAccountStore();
             var accountContainer = new AccountContainer(mockStore, Application.identifier);
@@ -1198,12 +1173,10 @@ namespace Tests.Runtime
             Assert.AreEqual(playerToken3.User.Id, accounts[0].User.Id);
             Assert.AreEqual(playerToken3.User.Nickname, accounts[0].User.Nickname);
 
-            yield return null;
         }
         
         [Test]
-        [Timeout(5000)]
-        public IEnumerator ContainerWithAccountsFromDifferentGames_LoadAccounts_SortedByLastUpdated()
+        public void ContainerWithAccountsFromDifferentGames_LoadAccounts_SortedByLastUpdated()
         {
             var now = 1736140000000;
             var mockStore = new MockNativeAccountStore();
@@ -1293,12 +1266,10 @@ namespace Tests.Runtime
             Assert.AreEqual("google", accountContainer.RecentAccount.Credential.Provider);
             Assert.AreEqual(3, accountContainer.RecentAccount.Player.Id);
 
-            yield return null;
         }
         
         [Test]
-        [Timeout(5000)]
-        public IEnumerator ContainerWithAccountsFromTheSameUsers_LoadAccounts_UseLatestUserData()
+        public void ContainerWithAccountsFromTheSameUsers_LoadAccounts_UseLatestUserData()
         {
             var now = 1736140000000;
             var mockStore = new MockNativeAccountStore();
@@ -1387,7 +1358,6 @@ namespace Tests.Runtime
             Assert.AreEqual(4, accountContainer.RecentAccount.Player.Id);
             Assert.AreEqual("User2 new", accountContainer.RecentAccount.User.Nickname);
 
-            yield return null;
         }
     }
 
@@ -1475,7 +1445,6 @@ namespace Tests.Runtime
             PlayerPrefs.DeleteKey("NoctuaAccountContainer");
             PlayerPrefs.DeleteKey("NoctuaAccountContainer.UseFallback");
 
-            yield return null;
         }
 
         [UnityTearDown]
@@ -1484,12 +1453,10 @@ namespace Tests.Runtime
             PlayerPrefs.DeleteKey("NoctuaAccountContainer");
             PlayerPrefs.DeleteKey("NoctuaAccountContainer.UseFallback");
 
-            yield return null;
         }
 
         [Test]
-        [Timeout(5000)]
-        public IEnumerator AccountStoreWithFallback_OnThrowExceptionAtLoad_SwitchToPlayerPrefs()
+        public void AccountStoreWithFallback_OnThrowExceptionAtLoad_SwitchToPlayerPrefs()
         {
             var mockStore = new FaultyMockNativeAccountStore();
             var accountContainer = new AccountContainer(mockStore, Application.identifier);
@@ -1540,12 +1507,10 @@ namespace Tests.Runtime
             Assert.AreEqual(1, mockStore.FailedLoadCount);
             Assert.AreEqual(1, useFallback);
             
-            yield return null;
         }
         
         [Test]
-        [Timeout(5000)]
-        public IEnumerator AccountStoreWithFallback_OnThrowExceptionAtSave_SwitchToPlayerPrefs()
+        public void AccountStoreWithFallback_OnThrowExceptionAtSave_SwitchToPlayerPrefs()
         {
             var mockStore = new FaultyMockNativeAccountStore();
             var accountContainer = new AccountContainer(mockStore, Application.identifier);
@@ -1595,13 +1560,11 @@ namespace Tests.Runtime
             Assert.AreEqual(1, mockStore.FailedSaveCount);
             Assert.AreEqual(1, useFallback);
             
-            yield return null;
         }
         
 
         [Test]
-        [Timeout(5000)]
-        public IEnumerator AccountStoreWithFallback_OnFail1x_DontSwitchToPlayerPrefs()
+        public void AccountStoreWithFallback_OnFail1x_DontSwitchToPlayerPrefs()
         {
             var mockStore = new FaultyMockNativeAccountStore();
             var accountContainer = new AccountContainer(mockStore, Application.identifier);
@@ -1650,12 +1613,10 @@ namespace Tests.Runtime
             Assert.AreEqual(1, mockStore.FailedSaveCount);
             Assert.AreEqual(0, useFallback);
             
-            yield return null;
         }
         
         [Test]
-        [Timeout(5000)]
-        public IEnumerator AccountStoreWithFallback_OnFail2x_SwitchToPlayerPrefs()
+        public void AccountStoreWithFallback_OnFail2x_SwitchToPlayerPrefs()
         {
             PlayerPrefs.DeleteKey("NoctuaAccountContainer.UseFallback");
             PlayerPrefs.DeleteKey("NoctuaAccountContainer");
@@ -1707,12 +1668,10 @@ namespace Tests.Runtime
             Assert.AreEqual(2, mockStore.FailedSaveCount);
             Assert.AreEqual(1, useFallback);
             
-            yield return null;
         }
         
         [Test]
-        [Timeout(5000)]
-        public IEnumerator AccountStoreWithFallback_OnFail2xAfterSuccess_SwitchToPlayerPrefs()
+        public void AccountStoreWithFallback_OnFail2xAfterSuccess_SwitchToPlayerPrefs()
         {
             var mockStore = new FaultyMockNativeAccountStore();
             var accountContainer = new AccountContainer(mockStore, Application.identifier);
@@ -1799,12 +1758,10 @@ namespace Tests.Runtime
             Assert.AreEqual(2, mockStore.FailedSaveCount);
             Assert.AreEqual(1, useFallback);
             
-            yield return null;
         }
         
         [Test]
-        [Timeout(5000)]
-        public IEnumerator EmptyContainer_UpdatingPlayer_DontSwitchToFallback()
+        public void EmptyContainer_UpdatingPlayer_DontSwitchToFallback()
         {
             var mockStore = new FaultyMockNativeAccountStore();
             var accountContainer = new AccountContainer(mockStore, Application.identifier);
@@ -1887,12 +1844,10 @@ namespace Tests.Runtime
             Assert.AreEqual(2, accounts.First().PlayerAccounts.Count);
             Assert.AreEqual(0, useFallback);
             
-            yield return null;
         }
         
         [Test]
-        [Timeout(5000)]
-        public IEnumerator AccountStoreWithFallback_UseFallbackAtStartup_NeverWritesToMainStore()
+        public void AccountStoreWithFallback_UseFallbackAtStartup_NeverWritesToMainStore()
         {
             PlayerPrefs.SetInt("NoctuaAccountContainer.UseFallback", 1);
                 
@@ -1940,7 +1895,6 @@ namespace Tests.Runtime
             Assert.AreEqual(0, mockStore.FailedSaveCount);
             Assert.AreEqual(0, mockStore.GetAccounts().Count);
 
-            yield return null;
         }
     }
 
@@ -1952,7 +1906,6 @@ namespace Tests.Runtime
             PlayerPrefs.DeleteKey("NoctuaAccountContainer");
             PlayerPrefs.DeleteKey("NoctuaAccountContainer.UseFallback");
 
-            yield return null;
         }
 
         [UnityTearDown]
@@ -1961,7 +1914,6 @@ namespace Tests.Runtime
             PlayerPrefs.DeleteKey("NoctuaAccountContainer");
             PlayerPrefs.DeleteKey("NoctuaAccountContainer.UseFallback");
 
-            yield return null;
         }
 
         [Test]
@@ -2044,7 +1996,6 @@ namespace Tests.Runtime
             PlayerPrefs.DeleteKey("NoctuaAccountContainer");
             PlayerPrefs.DeleteKey("NoctuaAccountContainer.UseFallback");
 
-            yield return null;
         }
 
         [UnityTearDown]
@@ -2053,7 +2004,6 @@ namespace Tests.Runtime
             PlayerPrefs.DeleteKey("NoctuaAccountContainer");
             PlayerPrefs.DeleteKey("NoctuaAccountContainer.UseFallback");
 
-            yield return null;
         }
 
         private static PlayerToken MakePlayerToken(
@@ -2078,8 +2028,7 @@ namespace Tests.Runtime
         // ── UpdateRecentAccount(UserBundle) — guard branches ─────────────────
 
         [Test]
-        [Timeout(5000)]
-        public IEnumerator UpdateRecentAccount_NullUserBundle_ReturnsEarlyNoAccountAdded()
+        public void UpdateRecentAccount_NullUserBundle_ReturnsEarlyNoAccountAdded()
         {
             var mockStore = new MockNativeAccountStore();
             var container = new AccountContainer(mockStore, Application.identifier);
@@ -2089,12 +2038,10 @@ namespace Tests.Runtime
             Assert.IsEmpty(container.Accounts, "Null user bundle must not add an account");
             Assert.IsNull(container.RecentAccount);
 
-            yield return null;
         }
 
         [Test]
-        [Timeout(5000)]
-        public IEnumerator UpdateRecentAccount_WrongBundleId_ReturnsEarlyNoAccountAdded()
+        public void UpdateRecentAccount_WrongBundleId_ReturnsEarlyNoAccountAdded()
         {
             var mockStore = new MockNativeAccountStore();
             var container = new AccountContainer(mockStore, Application.identifier);
@@ -2112,7 +2059,6 @@ namespace Tests.Runtime
             Assert.IsEmpty(container.Accounts, "Account with wrong bundle ID must not be added");
             Assert.IsNull(container.RecentAccount);
 
-            yield return null;
         }
 
         // ── UpdateRecentAccount(PlayerToken) — null argument guards ──────────
@@ -2177,8 +2123,7 @@ namespace Tests.Runtime
         // ── Logout ────────────────────────────────────────────────────────────
 
         [Test]
-        [Timeout(5000)]
-        public IEnumerator Logout_WithRecentAccount_SetsRecentAccountToNull()
+        public void Logout_WithRecentAccount_SetsRecentAccountToNull()
         {
             var mockStore = new MockNativeAccountStore();
             var container = new AccountContainer(mockStore, Application.identifier);
@@ -2190,12 +2135,10 @@ namespace Tests.Runtime
 
             Assert.IsNull(container.RecentAccount, "Logout must clear the recent account");
 
-            yield return null;
         }
 
         [Test]
-        [Timeout(5000)]
-        public IEnumerator Logout_AccountsRemainsInMemory()
+        public void Logout_AccountsRemainsInMemory()
         {
             var mockStore = new MockNativeAccountStore();
             var container = new AccountContainer(mockStore, Application.identifier);
@@ -2207,12 +2150,10 @@ namespace Tests.Runtime
             Assert.AreEqual(1, container.Accounts.Count,
                 "Logout must not clear the in-memory accounts list");
 
-            yield return null;
         }
 
         [Test]
-        [Timeout(5000)]
-        public IEnumerator Logout_FiresOnAccountChangedEvent()
+        public void Logout_FiresOnAccountChangedEvent()
         {
             var mockStore = new MockNativeAccountStore();
             var container = new AccountContainer(mockStore, Application.identifier);
@@ -2232,8 +2173,7 @@ namespace Tests.Runtime
         // ── DeleteRecentAccount ───────────────────────────────────────────────
 
         [Test]
-        [Timeout(5000)]
-        public IEnumerator DeleteRecentAccount_WhenRecentAccountIsNull_DoesNotThrow()
+        public void DeleteRecentAccount_WhenRecentAccountIsNull_DoesNotThrow()
         {
             var mockStore = new MockNativeAccountStore();
             var container = new AccountContainer(mockStore, Application.identifier);
@@ -2243,12 +2183,10 @@ namespace Tests.Runtime
             Assert.DoesNotThrow(() => container.DeleteRecentAccount(),
                 "DeleteRecentAccount with no recent account must not throw");
 
-            yield return null;
         }
 
         [Test]
-        [Timeout(5000)]
-        public IEnumerator DeleteRecentAccount_WithRecentAccount_RemovesItAndReloads()
+        public void DeleteRecentAccount_WithRecentAccount_RemovesItAndReloads()
         {
             var mockStore = new MockNativeAccountStore();
             var container = new AccountContainer(mockStore, Application.identifier);
@@ -2268,14 +2206,12 @@ namespace Tests.Runtime
                 "Deleted player must not appear in accounts after DeleteRecentAccount"
             );
 
-            yield return null;
         }
 
         // ── CurrentGameAccounts / OtherGamesAccounts properties ──────────────
 
         [Test]
-        [Timeout(5000)]
-        public IEnumerator CurrentGameAccounts_ReturnsOnlyAccountsForCurrentGame()
+        public void CurrentGameAccounts_ReturnsOnlyAccountsForCurrentGame()
         {
             var mockStore = new MockNativeAccountStore();
             var container1 = new AccountContainer(mockStore, Application.identifier);
@@ -2296,14 +2232,12 @@ namespace Tests.Runtime
                 "OtherGamesAccounts must include only accounts NOT matching current bundle ID");
             Assert.AreEqual(1, currentGame[0].User.Id);
 
-            yield return null;
         }
 
         // ── OnAccountChanged event wiring ─────────────────────────────────────
 
         [Test]
-        [Timeout(5000)]
-        public IEnumerator UpdateRecentAccount_FiresOnAccountChangedWhenUserChanges()
+        public void UpdateRecentAccount_FiresOnAccountChangedWhenUserChanges()
         {
             var mockStore = new MockNativeAccountStore();
             var container = new AccountContainer(mockStore, Application.identifier);
@@ -2321,8 +2255,7 @@ namespace Tests.Runtime
         }
 
         [Test]
-        [Timeout(5000)]
-        public IEnumerator UpdateRecentAccount_SameUserAndPlayer_DoesNotFireOnAccountChanged()
+        public void UpdateRecentAccount_SameUserAndPlayer_DoesNotFireOnAccountChanged()
         {
             var mockStore = new MockNativeAccountStore();
             var container = new AccountContainer(mockStore, Application.identifier);
@@ -2346,8 +2279,7 @@ namespace Tests.Runtime
         // ── FromNativeAccounts — malformed / incomplete raw data skipped ──────
 
         [Test]
-        [Timeout(5000)]
-        public IEnumerator Load_MalformedJsonInRawData_SkipsEntryAndLoadsRest()
+        public void Load_MalformedJsonInRawData_SkipsEntryAndLoadsRest()
         {
             var mockStore = new MockNativeAccountStore();
 
@@ -2357,7 +2289,7 @@ namespace Tests.Runtime
                 GameId = 1,
                 RawData = "NOT VALID JSON {{{",
                 LastUpdated = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()
-            }
+            });
 
             mockStore._accounts.Add(new NativeAccount
             {
@@ -2370,7 +2302,7 @@ namespace Tests.Runtime
                     ""credential"": { ""id"": 2, ""provider"": ""email"", ""display_text"": ""good@example.com"" }
                 }",
                 LastUpdated = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()
-            }
+            });
 
             var container = new AccountContainer(mockStore, Application.identifier);
             container.Load();
@@ -2379,12 +2311,10 @@ namespace Tests.Runtime
                 "Malformed JSON entry must be skipped; valid entry must still load");
             Assert.AreEqual(2L, container.Accounts[0].User.Id);
 
-            yield return null;
         }
 
         [Test]
-        [Timeout(5000)]
-        public IEnumerator Load_NullUserInParsedData_SkipsEntry()
+        public void Load_NullUserInParsedData_SkipsEntry()
         {
             var mockStore = new MockNativeAccountStore();
 
@@ -2399,7 +2329,7 @@ namespace Tests.Runtime
                     ""credential"": { ""id"": 1, ""provider"": ""email"", ""display_text"": ""x"" }
                 }",
                 LastUpdated = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()
-            }
+            });
 
             var container = new AccountContainer(mockStore, Application.identifier);
             container.Load();
@@ -2407,7 +2337,6 @@ namespace Tests.Runtime
             Assert.IsEmpty(container.Accounts,
                 "Entry with null user in parsed data must be skipped");
 
-            yield return null;
         }
     }
 }
