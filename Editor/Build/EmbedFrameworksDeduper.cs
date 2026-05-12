@@ -80,13 +80,21 @@ namespace com.noctuagames.sdk.Editor.Build
         internal static int DedupeBuildFileEntries(ref string pbx, string frameworkName)
         {
             // PBXBuildFile lines for the embed phase look like:
-            //   UUID /* FrameworkName in Embed Pods Frameworks */ = {isa = PBXBuildFile; fileRef = OTHER /* FrameworkName */; settings = {...}; };
+            //   UUID /* FrameworkName in Embed Pods Frameworks */ = {isa = PBXBuildFile; fileRef = OTHER /* FrameworkName */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+            //
+            // The settings block contains NESTED braces — `[^}]*` stops at the
+            // first inner `}` and never matches the full line.  Using `.*` instead
+            // lets the greedy engine consume everything and backtrack to the last
+            // `};` that terminates the entry.  Because this is Multiline mode,
+            // `.` never spans newlines, so there is no risk of over-matching into
+            // the next PBXBuildFile entry.
+            //
             // We match any "in <Embed …> Frameworks" variant to be robust across CocoaPods
             // versions (Embed Pods Frameworks, Embed Frameworks, etc.).
             var escaped = Regex.Escape(frameworkName);
             var pattern = new Regex(
                 @"^\s*(?<uuid>[0-9A-F]{24,})\s*/\*\s*" + escaped +
-                @"\s+in\s+(?:Embed[^\*]*Frameworks)\s*\*/\s*=\s*\{[^}]*\};\s*$",
+                @"\s+in\s+(?:Embed[^\*]*Frameworks)\s*\*/\s*=\s*\{.*\};\s*$",
                 RegexOptions.Multiline);
 
             var matches = pattern.Matches(pbx).Cast<Match>().ToList();
