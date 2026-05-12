@@ -233,10 +233,10 @@ namespace Tests.Runtime
             Assert.AreEqual(1, reentrant.SendCount);
         }
 
-        [Test]
-        [Timeout(5000)]
-        public async Task HandleLogThreaded_FromBackgroundThread_DoesNotThrow()
-        {
+        [UnityTest]
+        public IEnumerator HandleLogThreaded_FromBackgroundThread_DoesNotThrow() => UniTask.ToCoroutine(
+            async () =>
+            {
                 Exception caught = null;
                 await Task.Run(() =>
                 {
@@ -252,7 +252,7 @@ namespace Tests.Runtime
 
                 Assert.IsNull(caught, caught?.ToString());
                 Assert.AreEqual(1, _mock.GetEventsByName("client_error").Count);
-        }
+            });
 
         private sealed class ReentrantMockSender : IEventSender
         {

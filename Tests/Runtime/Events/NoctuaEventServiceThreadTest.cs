@@ -56,10 +56,10 @@ namespace Tests.Runtime.Events
         /// Ad event handlers fire on AppLovin / AdMob background threads, so this must
         /// not throw regardless of the calling thread.
         /// </summary>
-        [Test]
-        [Timeout(5000)]
-        public async Task TrackCustomEvent_FromBackgroundThread_DoesNotThrow()
-        {
+        [UnityTest]
+        public IEnumerator TrackCustomEvent_FromBackgroundThread_DoesNotThrow() =>
+            UniTask.ToCoroutine(async () =>
+            {
                 var svc = new NoctuaEventService(_nativeTracker, _eventSender);
                 Exception caught = null;
 
@@ -73,16 +73,16 @@ namespace Tests.Runtime.Events
                     $"TrackCustomEvent from background thread must not throw. Got: {caught}");
                 Assert.IsTrue(_eventSender.HasEvent("bg_custom_event"),
                     "TrackCustomEvent from background thread must still send the event");
-        }
+            });
 
         /// <summary>
         /// T2 — TrackAdRevenue is safe to call from a Task.Run background thread.
         /// Revenue callbacks from AppLovin arrive on Unity's background render thread.
         /// </summary>
-        [Test]
-        [Timeout(5000)]
-        public async Task TrackAdRevenue_FromBackgroundThread_DoesNotThrow()
-        {
+        [UnityTest]
+        public IEnumerator TrackAdRevenue_FromBackgroundThread_DoesNotThrow() =>
+            UniTask.ToCoroutine(async () =>
+            {
                 var svc = new NoctuaEventService(_nativeTracker, _eventSender);
                 Exception caught = null;
 
@@ -96,7 +96,7 @@ namespace Tests.Runtime.Events
                     $"TrackAdRevenue from background thread must not throw. Got: {caught}");
                 Assert.IsTrue(_eventSender.HasEvent("ad_revenue"),
                     "ad_revenue event must be sent even when called from background thread");
-        }
+            });
 
         /// <summary>
         /// T3 — 10 concurrent Task.Run threads each call TrackCustomEvent once.
@@ -104,10 +104,10 @@ namespace Tests.Runtime.Events
         /// This exercises the payload-copy immutability guarantee and MockEventSenderTs
         /// ConcurrentBag safety.
         /// </summary>
-        [Test]
-        [Timeout(5000)]
-        public async Task TrackCustomEvent_ConcurrentFromTenThreads_AllEventsDelivered()
-        {
+        [UnityTest]
+        public IEnumerator TrackCustomEvent_ConcurrentFromTenThreads_AllEventsDelivered() =>
+            UniTask.ToCoroutine(async () =>
+            {
                 const int threadCount = 10;
                 var svc  = new NoctuaEventService(_nativeTracker, _eventSender);
                 var tasks = Enumerable.Range(0, threadCount)
@@ -120,17 +120,17 @@ namespace Tests.Runtime.Events
 
                 Assert.AreEqual(threadCount, _eventSender.CountByName("concurrent_event"),
                     $"All {threadCount} concurrent TrackCustomEvent calls must reach the event sender");
-        }
+            });
 
         /// <summary>
         /// T4 — Concurrent SetProperties (background) + TrackCustomEvent (multiple callers).
         /// SetProperties writes _country/_ipAddress/_isSandbox fields that AppendProperties reads.
         /// Verifies no deadlock, no throw, and all track events are delivered.
         /// </summary>
-        [Test]
-        [Timeout(5000)]
-        public async Task SetProperties_ConcurrentWithTrackCustomEvent_NoDeadlockOrCorruption()
-        {
+        [UnityTest]
+        public IEnumerator SetProperties_ConcurrentWithTrackCustomEvent_NoDeadlockOrCorruption() =>
+            UniTask.ToCoroutine(async () =>
+            {
                 const int trackCount = 20;
                 var svc   = new NoctuaEventService(_nativeTracker, _eventSender);
                 var cts   = new CancellationTokenSource();
@@ -159,17 +159,17 @@ namespace Tests.Runtime.Events
 
                 Assert.AreEqual(trackCount, _eventSender.CountByName("prop_race_event"),
                     "All events must reach the sender despite concurrent SetProperties calls");
-        }
+            });
 
         /// <summary>
         /// T5 — SetCurrentFeature from a background thread must not throw.
         /// The game may call SetCurrentFeature in a non-main-thread callback (e.g. game
         /// state machine driven by networking).
         /// </summary>
-        [Test]
-        [Timeout(5000)]
-        public async Task SetCurrentFeature_FromBackgroundThread_DoesNotThrow()
-        {
+        [UnityTest]
+        public IEnumerator SetCurrentFeature_FromBackgroundThread_DoesNotThrow() =>
+            UniTask.ToCoroutine(async () =>
+            {
                 var svc   = new NoctuaEventService(_nativeTracker, _eventSender);
                 Exception caught = null;
 
@@ -188,7 +188,7 @@ namespace Tests.Runtime.Events
 
                 Assert.IsNull(caught,
                     $"SetCurrentFeature from background thread must not throw. Got: {caught}");
-        }
+            });
 
         // ═══════════════════════════════════════════════════════════════════════
         // Group S — Survivability / edge cases

@@ -1,5 +1,4 @@
 using System.Collections;
-using System.Threading.Tasks;
 using com.noctuagames.sdk;
 using NUnit.Framework;
 using UnityEngine;
@@ -36,10 +35,12 @@ namespace Tests.Runtime.Inspector
             if (_go != null) Object.DestroyImmediate(_go);
         }
 
-        [Test]
-        public void Sample_recorded_each_frame()
+        [UnityTest]
+        public IEnumerator Sample_recorded_each_frame()
         {
             // Wait two frames so Update has run at least once after Awake.
+            yield return null;
+            yield return null;
 
             var snap = _mon.SnapshotRaw();
             Assert.IsTrue(snap.Count >= 1, "expected at least one sample after a frame tick");
@@ -48,36 +49,41 @@ namespace Tests.Runtime.Inspector
             Assert.Greater(s.FrameTimeMs, 0f, "FrameTimeMs should be positive");
         }
 
-        [Test]
-        public async Task Raw_buffer_caps_at_RawCapacity()
+        [UnityTest]
+        public IEnumerator Raw_buffer_caps_at_RawCapacity()
         {
             // Drive Unity for enough frames to overflow the raw buffer.
             // RawCapacity = 600. We can't reliably wait 600 frames in a
             // unit test, so we lower the bar: just confirm the count
             // does not exceed the cap after a longer-than-trivial run.
-
+            for (int i = 0; i < 50; i++) yield return null;
             Assert.LessOrEqual(_mon.SnapshotRaw().Count, PerformanceMonitor.RawCapacity);
         }
 
-        [Test]
-        public void OnSample_fires_per_frame()
+        [UnityTest]
+        public IEnumerator OnSample_fires_per_frame()
         {
             int seen = 0;
             _mon.OnSample += _ => seen++;
+            yield return null;
+            yield return null;
+            yield return null;
             Assert.GreaterOrEqual(seen, 1, "OnSample should fire on at least one frame");
         }
 
-        [Test]
-        public void ResetCounters_zeroes_dropped_frame_totals()
+        [UnityTest]
+        public IEnumerator ResetCounters_zeroes_dropped_frame_totals()
         {
             // Force a slow frame by sleeping the main thread — guaranteed
             // to exceed both 16.7ms and 33.3ms thresholds.
             System.Threading.Thread.Sleep(50);
+            yield return null;
 
             var before = _mon.LatestOrDefault();
             Assert.GreaterOrEqual(before.DroppedFrames60Hz, 1);
 
             _mon.ResetCounters();
+            yield return null;
             var after = _mon.LatestOrDefault();
             // Counter starts at 0 again and may immediately tick to 1 if
             // the post-reset frame is still long. So bound is < before.

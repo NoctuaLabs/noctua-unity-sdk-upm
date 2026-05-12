@@ -24,18 +24,16 @@ namespace Tests.Runtime
             NetworkConditioner.Mode = NetworkMode.Normal;
         }
 
-        [Test]
-        [Timeout(5000)]
-        public async Task NormalMode_ApplyAsync_DoesNotThrow()
+        [UnityTest]
+        public IEnumerator NormalMode_ApplyAsync_DoesNotThrow() => UniTask.ToCoroutine(async () =>
         {
             NetworkConditioner.Mode = NetworkMode.Normal;
             Assert.DoesNotThrow(() => NetworkConditioner.ApplyAsync().Forget());
             await UniTask.Yield();
-        }
+        });
 
-        [Test]
-        [Timeout(5000)]
-        public async Task OfflineMode_ApplyAsync_ThrowsNetworkConditionerException()
+        [UnityTest]
+        public IEnumerator OfflineMode_ApplyAsync_ThrowsNetworkConditionerException() => UniTask.ToCoroutine(async () =>
         {
             NetworkConditioner.Mode = NetworkMode.Offline;
             var threw = false;
@@ -48,11 +46,10 @@ namespace Tests.Runtime
                 threw = true;
             }
             Assert.IsTrue(threw, "Offline mode must throw NetworkConditionerException");
-        }
+        });
 
-        [Test]
-        [Timeout(5000)]
-        public async Task PacketLoss_100Percent_AlwaysThrows()
+        [UnityTest]
+        public IEnumerator PacketLoss_100Percent_AlwaysThrows() => UniTask.ToCoroutine(async () =>
         {
             NetworkConditioner.Mode = NetworkMode.PacketLoss;
             NetworkConditioner.PacketLossPercent = 100;
@@ -66,11 +63,10 @@ namespace Tests.Runtime
                 threw = true;
             }
             Assert.IsTrue(threw, "100% packet loss must always throw");
-        }
+        });
 
-        [Test]
-        [Timeout(5000)]
-        public async Task PacketLoss_0Percent_NeverThrows()
+        [UnityTest]
+        public IEnumerator PacketLoss_0Percent_NeverThrows() => UniTask.ToCoroutine(async () =>
         {
             NetworkConditioner.Mode = NetworkMode.PacketLoss;
             NetworkConditioner.PacketLossPercent = 0;
@@ -79,11 +75,10 @@ namespace Tests.Runtime
                 Assert.DoesNotThrowAsync(async () => await NetworkConditioner.ApplyAsync());
             }
             await UniTask.Yield();
-        }
+        });
 
-        [Test]
-        [Timeout(5000)]
-        public async Task Slow3G_ZeroLatency_CompletesWithoutDelay()
+        [UnityTest]
+        public IEnumerator Slow3G_ZeroLatency_CompletesWithoutDelay() => UniTask.ToCoroutine(async () =>
         {
             NetworkConditioner.Mode = NetworkMode.Slow3G;
             NetworkConditioner.Slow3GLatencyMs = 0;
@@ -97,7 +92,7 @@ namespace Tests.Runtime
                 threw = true;
             }
             Assert.IsFalse(threw, "Slow3G with 0ms latency must not throw");
-        }
+        });
 
         [Test]
         public void NetworkMode_EnumValues_Stable()

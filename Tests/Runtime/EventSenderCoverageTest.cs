@@ -154,9 +154,8 @@ namespace Tests.Runtime
             finally { sender.Dispose(); }
         }
 
-        [Test]
-        [Timeout(5000)]
-        public async Task Send_ReservedKeys_AreStripped()
+        [UnityTest]
+        public IEnumerator Send_ReservedKeys_AreStripped() => UniTask.ToCoroutine(async () =>
         {
             var sender = MakeOfflineSender();
             try
@@ -184,11 +183,10 @@ namespace Tests.Runtime
                     Assert.AreNotEqual("RESERVED_OVERRIDE", ev["device_id"]?.ToString());
             }
             finally { sender.Dispose(); }
-        }
+        });
 
-        [Test]
-        [Timeout(5000)]
-        public async Task Send_NullDataValues_AreStripped()
+        [UnityTest]
+        public IEnumerator Send_NullDataValues_AreStripped() => UniTask.ToCoroutine(async () =>
         {
             var sender = MakeOfflineSender();
             try
@@ -208,15 +206,14 @@ namespace Tests.Runtime
                 Assert.AreEqual("yes", ev["kept_value"]?.ToString());
             }
             finally { sender.Dispose(); }
-        }
+        });
 
         // ═══════════════════════════════════════════════════════════════════════
         // Group G — Caller-provided session_id, sandbox propagation
         // ═══════════════════════════════════════════════════════════════════════
 
-        [Test]
-        [Timeout(5000)]
-        public async Task Send_WithCallerProvidedSessionId_IsPreserved()
+        [UnityTest]
+        public IEnumerator Send_WithCallerProvidedSessionId_IsPreserved() => UniTask.ToCoroutine(async () =>
         {
             var sender = MakeOfflineSender();
             try
@@ -235,11 +232,10 @@ namespace Tests.Runtime
                     "Caller-provided session_id must override the EventSender's stored one");
             }
             finally { sender.Dispose(); }
-        }
+        });
 
-        [Test]
-        [Timeout(5000)]
-        public async Task Send_WithSetProperties_AllPropertiesEnriched()
+        [UnityTest]
+        public IEnumerator Send_WithSetProperties_AllPropertiesEnriched() => UniTask.ToCoroutine(async () =>
         {
             var sender = MakeOfflineSender();
             try
@@ -271,15 +267,14 @@ namespace Tests.Runtime
                 Assert.AreEqual(true, ev["is_sandbox"]);
             }
             finally { sender.Dispose(); }
-        }
+        });
 
         // ═══════════════════════════════════════════════════════════════════════
         // Group H — Game-stage stopwatch
         // ═══════════════════════════════════════════════════════════════════════
 
-        [Test]
-        [Timeout(5000)]
-        public async Task Send_GameStageStart_ThenComplete_RecordsStageTime()
+        [UnityTest]
+        public IEnumerator Send_GameStageStart_ThenComplete_RecordsStageTime() => UniTask.ToCoroutine(async () =>
         {
             var sender = MakeOfflineSender();
             try
@@ -312,11 +307,10 @@ namespace Tests.Runtime
                     "game_stage_complete must include the stage_session_id from the matching start");
             }
             finally { sender.Dispose(); }
-        }
+        });
 
-        [Test]
-        [Timeout(5000)]
-        public async Task Send_GameStageStart_FallsBackToGameLevel()
+        [UnityTest]
+        public IEnumerator Send_GameStageStart_FallsBackToGameLevel() => UniTask.ToCoroutine(async () =>
         {
             var sender = MakeOfflineSender();
             try
@@ -332,11 +326,10 @@ namespace Tests.Runtime
                     "game_level should be used as a fallback for level");
             }
             finally { sender.Dispose(); }
-        }
+        });
 
-        [Test]
-        [Timeout(5000)]
-        public async Task Send_GameStageFailed_RecordsStageTimeAndResetsStopwatch()
+        [UnityTest]
+        public IEnumerator Send_GameStageFailed_RecordsStageTimeAndResetsStopwatch() => UniTask.ToCoroutine(async () =>
         {
             var sender = MakeOfflineSender();
             try
@@ -353,11 +346,10 @@ namespace Tests.Runtime
                 Assert.IsTrue(failed.ContainsKey("stage_session_id"));
             }
             finally { sender.Dispose(); }
-        }
+        });
 
-        [Test]
-        [Timeout(5000)]
-        public async Task Send_CurrentStageLevelAndMode_EnrichSubsequentEvents()
+        [UnityTest]
+        public IEnumerator Send_CurrentStageLevelAndMode_EnrichSubsequentEvents() => UniTask.ToCoroutine(async () =>
         {
             PlayerPrefs.SetString("NoctuaCurrentStageLevel", "saved-level");
             PlayerPrefs.SetString("NoctuaCurrentStageMode", "saved-mode");
@@ -375,15 +367,14 @@ namespace Tests.Runtime
                 Assert.AreEqual("saved-mode",  ev["current_stage_mode"]?.ToString());
             }
             finally { sender.Dispose(); }
-        }
+        });
 
         // ═══════════════════════════════════════════════════════════════════════
         // Group I — Connectivity check bypass for "offline" event
         // ═══════════════════════════════════════════════════════════════════════
 
-        [Test]
-        [Timeout(5000)]
-        public async Task Send_OfflineEvent_DoesNotTriggerConnectivityCheck()
+        [UnityTest]
+        public IEnumerator Send_OfflineEvent_DoesNotTriggerConnectivityCheck() => UniTask.ToCoroutine(async () =>
         {
             var sender = MakeOfflineSender();
             try
@@ -402,15 +393,14 @@ namespace Tests.Runtime
                     "Event name 'offline' must NOT update _lastConnectivityCheck");
             }
             finally { sender.Dispose(); }
-        }
+        });
 
         // ═══════════════════════════════════════════════════════════════════════
         // Group J — Native-plugin exception paths
         // ═══════════════════════════════════════════════════════════════════════
 
-        [Test]
-        [Timeout(5000)]
-        public async Task StorageHelpers_SwallowNativePluginExceptions()
+        [UnityTest]
+        public IEnumerator StorageHelpers_SwallowNativePluginExceptions() => UniTask.ToCoroutine(async () =>
         {
             var throwing = new ThrowingNativePlugin();
             var sender = MakeOfflineSender(storage: throwing);
@@ -443,15 +433,14 @@ namespace Tests.Runtime
                 Assert.AreEqual(0, allTask.Result.Count);
             }
             finally { sender.Dispose(); }
-        }
+        });
 
         // ═══════════════════════════════════════════════════════════════════════
         // Group K — Eviction path (MaxStoredEvents cap)
         // ═══════════════════════════════════════════════════════════════════════
 
-        [Test]
-        [Timeout(5000)]
-        public async Task ProcessWriteQueue_EnforcesMaxStoredEventsCap()
+        [UnityTest]
+        public IEnumerator ProcessWriteQueue_EnforcesMaxStoredEventsCap() => UniTask.ToCoroutine(async () =>
         {
             var storage = new DefaultNativePlugin();
             var sender = new EventSender(
@@ -485,7 +474,7 @@ namespace Tests.Runtime
                     "After racing inserts + evictions the residual should be near MaxStoredEvents, not the full insert count");
             }
             finally { sender.Dispose(); }
-        }
+        });
 
         // ═══════════════════════════════════════════════════════════════════════
         // Group L — Notify helpers
@@ -573,9 +562,8 @@ namespace Tests.Runtime
         // Group N — Flush guards
         // ═══════════════════════════════════════════════════════════════════════
 
-        [Test]
-        [Timeout(5000)]
-        public async Task Flush_WhileAlreadyFlushing_IsNoOp()
+        [UnityTest]
+        public IEnumerator Flush_WhileAlreadyFlushing_IsNoOp() => UniTask.ToCoroutine(async () =>
         {
             var sender = MakeOfflineSender();
             try
@@ -589,7 +577,7 @@ namespace Tests.Runtime
                 Set(sender, "_isFlushing", false);
             }
             finally { sender.Dispose(); }
-        }
+        });
 
         [Test]
         public void Flush_WhenQuitting_IsNoOp()
@@ -615,9 +603,8 @@ namespace Tests.Runtime
         // Group O — GetCountryIDAsync fallback
         // ═══════════════════════════════════════════════════════════════════════
 
-        [Test]
-        [Timeout(5000)]
-        public async Task GetCountryIDAsync_FallsThroughToEmptyOnAllFailures()
+        [UnityTest]
+        public IEnumerator GetCountryIDAsync_FallsThroughToEmptyOnAllFailures() => UniTask.ToCoroutine(async () =>
         {
             var sender = MakeOfflineSender();
             try
@@ -635,15 +622,14 @@ namespace Tests.Runtime
                 Assert.IsNotNull(country, "GetCountryIDAsync must return a string (possibly empty)");
             }
             finally { sender.Dispose(); }
-        }
+        });
 
         // ═══════════════════════════════════════════════════════════════════════
         // Group P — Threading: background-thread Send & concurrent Send/Flush
         // ═══════════════════════════════════════════════════════════════════════
 
-        [Test]
-        [Timeout(5000)]
-        public async Task Send_FromBackgroundThread_DoesNotThrow_AndPersists()
+        [UnityTest]
+        public IEnumerator Send_FromBackgroundThread_DoesNotThrow_AndPersists() => UniTask.ToCoroutine(async () =>
         {
             var sender = MakeOfflineSender();
             try
@@ -663,11 +649,10 @@ namespace Tests.Runtime
                 Assert.IsNotNull(ev, "Background-thread Send must still persist the event");
             }
             finally { sender.Dispose(); }
-        }
+        });
 
-        [Test]
-        [Timeout(5000)]
-        public async Task ConcurrentSendCalls_AllPersist()
+        [UnityTest]
+        public IEnumerator ConcurrentSendCalls_AllPersist() => UniTask.ToCoroutine(async () =>
         {
             var sender = MakeOfflineSender();
             try
@@ -691,7 +676,7 @@ namespace Tests.Runtime
                     "All concurrently-sent events must be persisted (no drops, no exceptions)");
             }
             finally { sender.Dispose(); }
-        }
+        });
 
         // ─── Test doubles ────────────────────────────────────────────────────
 
@@ -844,9 +829,9 @@ namespace Tests.Runtime
         // Group U — Send with empty current stage (PlayerPrefs branch)
         // ═══════════════════════════════════════════════════════════════════════
 
-        [Test]
-        [Timeout(5000)]
-        public async Task Send_EmptyStageLevelInPrefs_DoesNotEnrichStageFields()
+        [UnityTest]
+        public IEnumerator Send_EmptyStageLevelInPrefs_DoesNotEnrichStageFields()
+            => UniTask.ToCoroutine(async () =>
         {
             PlayerPrefs.DeleteKey("NoctuaCurrentStageLevel");
             PlayerPrefs.DeleteKey("NoctuaCurrentStageMode");
@@ -864,7 +849,7 @@ namespace Tests.Runtime
                     "current_stage_level must NOT be added when PlayerPrefs key is empty");
             }
             finally { sender.Dispose(); }
-        }
+        });
 
         // ═══════════════════════════════════════════════════════════════════════
         // Group V — SanitizeHeaderValue precise edge cases
@@ -968,9 +953,9 @@ namespace Tests.Runtime
         // Group W — Game-stage stopwatch edge cases
         // ═══════════════════════════════════════════════════════════════════════
 
-        [Test]
-        [Timeout(5000)]
-        public async Task Send_GameStageStart_Alone_DoesNotIncludeStageTimeMsec()
+        [UnityTest]
+        public IEnumerator Send_GameStageStart_Alone_DoesNotIncludeStageTimeMsec()
+            => UniTask.ToCoroutine(async () =>
         {
             // game_stage_start by itself must NOT include stage_time_msec in its payload.
             // stage_time_msec only appears on game_stage_complete / game_stage_failed
@@ -992,11 +977,11 @@ namespace Tests.Runtime
                     "game_stage_start must include a stage_session_id");
             }
             finally { sender.Dispose(); }
-        }
+        });
 
-        [Test]
-        [Timeout(5000)]
-        public async Task Send_GameStageComplete_WithoutPriorStart_IsHandledGracefully()
+        [UnityTest]
+        public IEnumerator Send_GameStageComplete_WithoutPriorStart_IsHandledGracefully()
+            => UniTask.ToCoroutine(async () =>
         {
             // If game_stage_complete fires without a preceding game_stage_start,
             // the stopwatch is not running (_stageStopwatch.IsRunning == false).
@@ -1018,11 +1003,11 @@ namespace Tests.Runtime
                     "game_stage_complete without prior start must NOT include stage_time_msec");
             }
             finally { sender.Dispose(); }
-        }
+        });
 
-        [Test]
-        [Timeout(5000)]
-        public async Task Send_GameStageFailed_WithoutPriorStart_IsHandledGracefully()
+        [UnityTest]
+        public IEnumerator Send_GameStageFailed_WithoutPriorStart_IsHandledGracefully()
+            => UniTask.ToCoroutine(async () =>
         {
             // Same as above but for game_stage_failed.
             var sender = MakeOfflineSender();
@@ -1037,15 +1022,15 @@ namespace Tests.Runtime
                     "game_stage_failed without prior start must NOT include stage_time_msec");
             }
             finally { sender.Dispose(); }
-        }
+        });
 
         // ═══════════════════════════════════════════════════════════════════════
         // Group X — Send() with explicit null data argument
         // ═══════════════════════════════════════════════════════════════════════
 
-        [Test]
-        [Timeout(5000)]
-        public async Task Send_WithNullDataArgument_DoesNotThrow_AndPersistsEvent()
+        [UnityTest]
+        public IEnumerator Send_WithNullDataArgument_DoesNotThrow_AndPersistsEvent()
+            => UniTask.ToCoroutine(async () =>
         {
             // Send(name, null) is valid — `data ??= new Dictionary<string, IConvertible>()`
             // inside Send() replaces null with an empty dict. The event must be persisted.
@@ -1062,7 +1047,7 @@ namespace Tests.Runtime
                 Assert.AreEqual("null_data_event", ev["event_name"]?.ToString());
             }
             finally { sender.Dispose(); }
-        }
+        });
 
         [Test]
         public void Send_WithEmptyStringName_ReturnsEarly_NoEventStored()
@@ -1088,9 +1073,9 @@ namespace Tests.Runtime
         // Group Y — Explicit caller session_id is preserved (pre-strip capture)
         // ═══════════════════════════════════════════════════════════════════════
 
-        [Test]
-        [Timeout(5000)]
-        public async Task Send_ExplicitSessionIdInData_OverridesSetPropertiesSessionId()
+        [UnityTest]
+        public IEnumerator Send_ExplicitSessionIdInData_OverridesSetPropertiesSessionId()
+            => UniTask.ToCoroutine(async () =>
         {
             // When data contains "session_id", EventSender captures it BEFORE stripping
             // reserved keys and uses it as the effective session_id in the persisted payload.
@@ -1115,7 +1100,7 @@ namespace Tests.Runtime
                     "Non-reserved fields must survive");
             }
             finally { sender.Dispose(); }
-        }
+        });
 
         // ═══════════════════════════════════════════════════════════════════════
         // Group Z — NotifyOnline / NotifyOffline direct invocation post-construction

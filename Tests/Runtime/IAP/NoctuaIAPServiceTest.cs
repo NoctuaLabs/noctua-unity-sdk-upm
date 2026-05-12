@@ -1167,9 +1167,9 @@ namespace Tests.Runtime.IAP
         // GetNoctuaGold
         // ══════════════════════════════════════════════════════════════════════
 
-        [Test]
-        [Timeout(5000)]
-        public async Task GetNoctuaGold_ValidResponse_ReturnsGoldData()
+        [UnityTest]
+        public IEnumerator GetNoctuaGold_ValidResponse_ReturnsGoldData()
+            => UniTask.ToCoroutine(async () =>
         {
             _server.AddHandler("/noctuastore/wallet", _ => NoctuaGoldJson(200.0, 75.0));
             try
@@ -1187,11 +1187,11 @@ namespace Tests.Runtime.IAP
             {
                 _server.RemoveHandler("/noctuastore/wallet");
             }
-        }
+        });
 
-        [Test]
-        [Timeout(5000)]
-        public async Task GetNoctuaGold_ZeroBalance_ReturnsZeroGoldData()
+        [UnityTest]
+        public IEnumerator GetNoctuaGold_ZeroBalance_ReturnsZeroGoldData()
+            => UniTask.ToCoroutine(async () =>
         {
             _server.AddHandler("/noctuastore/wallet", _ => NoctuaGoldJson(0.0, 0.0));
             try
@@ -1207,11 +1207,11 @@ namespace Tests.Runtime.IAP
             {
                 _server.RemoveHandler("/noctuastore/wallet");
             }
-        }
+        });
 
-        [Test]
-        [Timeout(5000)]
-        public async Task GetNoctuaGold_ServerReturnsNull_ThrowsNoctuaException()
+        [UnityTest]
+        public IEnumerator GetNoctuaGold_ServerReturnsNull_ThrowsNoctuaException()
+            => UniTask.ToCoroutine(async () =>
         {
             // Null handler = HTTP 500
             _server.AddHandler("/noctuastore/wallet", _ => null);
@@ -1233,11 +1233,11 @@ namespace Tests.Runtime.IAP
             {
                 _server.RemoveHandler("/noctuastore/wallet");
             }
-        }
+        });
 
-        [Test]
-        [Timeout(5000)]
-        public async Task GetNoctuaGold_RequestContainsBearerToken()
+        [UnityTest]
+        public IEnumerator GetNoctuaGold_RequestContainsBearerToken()
+            => UniTask.ToCoroutine(async () =>
         {
             _server.AddHandler("/noctuastore/wallet", _ => NoctuaGoldJson());
             try
@@ -1256,15 +1256,15 @@ namespace Tests.Runtime.IAP
             {
                 _server.RemoveHandler("/noctuastore/wallet");
             }
-        }
+        });
 
         // ══════════════════════════════════════════════════════════════════════
         // GetPendingDeliverables
         // ══════════════════════════════════════════════════════════════════════
 
-        [Test]
-        [Timeout(5000)]
-        public async Task GetPendingDeliverables_EmptyList_ReturnsEmptyArray()
+        [UnityTest]
+        public IEnumerator GetPendingDeliverables_EmptyList_ReturnsEmptyArray()
+            => UniTask.ToCoroutine(async () =>
         {
             _server.AddHandler("/pending-deliverables", _ => PendingDeliverablesJson(0));
             try
@@ -1279,11 +1279,11 @@ namespace Tests.Runtime.IAP
             {
                 _server.RemoveHandler("/pending-deliverables");
             }
-        }
+        });
 
-        [Test]
-        [Timeout(5000)]
-        public async Task GetPendingDeliverables_TwoItems_ReturnsBothDeliverables()
+        [UnityTest]
+        public IEnumerator GetPendingDeliverables_TwoItems_ReturnsBothDeliverables()
+            => UniTask.ToCoroutine(async () =>
         {
             _server.AddHandler("/pending-deliverables", _ => PendingDeliverablesJson(2));
             try
@@ -1301,11 +1301,11 @@ namespace Tests.Runtime.IAP
             {
                 _server.RemoveHandler("/pending-deliverables");
             }
-        }
+        });
 
-        [Test]
-        [Timeout(5000)]
-        public async Task GetPendingDeliverables_NullPendingOrders_ReturnsEmptyArray()
+        [UnityTest]
+        public IEnumerator GetPendingDeliverables_NullPendingOrders_ReturnsEmptyArray()
+            => UniTask.ToCoroutine(async () =>
         {
             // Server returns data envelope with null pending orders field
             _server.AddHandler("/pending-deliverables", _ => DataEnvelope("{\"pending_noctua_redeem_orders\":null}"));
@@ -1322,11 +1322,11 @@ namespace Tests.Runtime.IAP
             {
                 _server.RemoveHandler("/pending-deliverables");
             }
-        }
+        });
 
-        [Test]
-        [Timeout(5000)]
-        public async Task GetPendingDeliverables_ServerError_ThrowsNoctuaException()
+        [UnityTest]
+        public IEnumerator GetPendingDeliverables_ServerError_ThrowsNoctuaException()
+            => UniTask.ToCoroutine(async () =>
         {
             _server.AddHandler("/pending-deliverables", _ => null);
             try
@@ -1346,11 +1346,11 @@ namespace Tests.Runtime.IAP
             {
                 _server.RemoveHandler("/pending-deliverables");
             }
-        }
+        });
 
-        [Test]
-        [Timeout(5000)]
-        public async Task GetPendingDeliverables_RequestCarriesClientIdHeader()
+        [UnityTest]
+        public IEnumerator GetPendingDeliverables_RequestCarriesClientIdHeader()
+            => UniTask.ToCoroutine(async () =>
         {
             _server.AddHandler("/pending-deliverables", _ => PendingDeliverablesJson(0));
             try
@@ -1366,15 +1366,15 @@ namespace Tests.Runtime.IAP
             {
                 _server.RemoveHandler("/pending-deliverables");
             }
-        }
+        });
 
         // ══════════════════════════════════════════════════════════════════════
         // DeliverPendingDeliverablesAsync — drives GetPendingDeliverables + verify loop
         // ══════════════════════════════════════════════════════════════════════
 
-        [Test]
-        [Timeout(5000)]
-        public async Task DeliverPendingDeliverablesAsync_NoPendingItems_DoesNotCallVerifyOrder()
+        [UnityTest]
+        public IEnumerator DeliverPendingDeliverablesAsync_NoPendingItems_DoesNotCallVerifyOrder()
+            => UniTask.ToCoroutine(async () =>
         {
             _server.AddHandler("/pending-deliverables", _ => PendingDeliverablesJson(0));
             try
@@ -1396,33 +1396,33 @@ namespace Tests.Runtime.IAP
             {
                 _server.RemoveHandler("/pending-deliverables");
             }
-        }
+        });
 
-        [Test]
-        [Timeout(5000)]
-        public async Task DeliverPendingDeliverablesAsync_ServerError_DoesNotThrow()
+        [UnityTest]
+        public IEnumerator DeliverPendingDeliverablesAsync_ServerError_DoesNotThrow()
+            => UniTask.ToCoroutine(async () =>
         {
             // Simulate GET /pending-deliverables returning HTTP 500
             _server.AddHandler("/pending-deliverables", _ => null);
             try
             {
                 var svc = CreateEnabledService();
-                // DeliverPendingDeliverablesAsync wraps errors internally — no exception escapes
-                await svc.DeliverPendingDeliverablesAsync();
+                // DeliverPendingDeliverablesAsync wraps errors internally — must NOT re-throw
+                Assert.DoesNotThrow(() => svc.DeliverPendingDeliverablesAsync().Forget());
             }
             finally
             {
                 _server.RemoveHandler("/pending-deliverables");
             }
-        }
+        });
 
         // ══════════════════════════════════════════════════════════════════════
         // ClaimRedeemAsync
         // ══════════════════════════════════════════════════════════════════════
 
-        [Test]
-        [Timeout(5000)]
-        public async Task ClaimRedeemAsync_ValidCode_ReturnsSuccessResponse()
+        [UnityTest]
+        public IEnumerator ClaimRedeemAsync_ValidCode_ReturnsSuccessResponse()
+            => UniTask.ToCoroutine(async () =>
         {
             _server.AddHandler("/redeem-codes/claim", _ => ClaimRedeemResponseJson(true, "Code claimed successfully"));
             try
@@ -1443,11 +1443,11 @@ namespace Tests.Runtime.IAP
             {
                 _server.RemoveHandler("/redeem-codes/claim");
             }
-        }
+        });
 
-        [Test]
-        [Timeout(5000)]
-        public async Task ClaimRedeemAsync_RequestBodyContainsCodeAndUserId()
+        [UnityTest]
+        public IEnumerator ClaimRedeemAsync_RequestBodyContainsCodeAndUserId()
+            => UniTask.ToCoroutine(async () =>
         {
             _server.AddHandler("/redeem-codes/claim", _ => ClaimRedeemResponseJson());
             try
@@ -1468,11 +1468,11 @@ namespace Tests.Runtime.IAP
             {
                 _server.RemoveHandler("/redeem-codes/claim");
             }
-        }
+        });
 
-        [Test]
-        [Timeout(5000)]
-        public async Task ClaimRedeemAsync_EmptyCode_ThrowsNoctuaException()
+        [UnityTest]
+        public IEnumerator ClaimRedeemAsync_EmptyCode_ThrowsNoctuaException()
+            => UniTask.ToCoroutine(async () =>
         {
             var auth = new StubAuthProvider(MakeUserBundle(userId: 5, gameId: 100));
             var svc  = CreateEnabledService(authProvider: auth);
@@ -1487,11 +1487,11 @@ namespace Tests.Runtime.IAP
                 Assert.AreEqual((int)NoctuaErrorCode.Application, ex.ErrorCode,
                     "Empty code must throw NoctuaException with Application error code");
             }
-        }
+        });
 
-        [Test]
-        [Timeout(5000)]
-        public async Task ClaimRedeemAsync_WhitespaceCode_ThrowsNoctuaException()
+        [UnityTest]
+        public IEnumerator ClaimRedeemAsync_WhitespaceCode_ThrowsNoctuaException()
+            => UniTask.ToCoroutine(async () =>
         {
             var auth = new StubAuthProvider(MakeUserBundle(userId: 5, gameId: 100));
             var svc  = CreateEnabledService(authProvider: auth);
@@ -1505,11 +1505,11 @@ namespace Tests.Runtime.IAP
             {
                 Assert.AreEqual((int)NoctuaErrorCode.Application, ex.ErrorCode);
             }
-        }
+        });
 
-        [Test]
-        [Timeout(5000)]
-        public async Task ClaimRedeemAsync_UnauthenticatedUser_ThrowsNoctuaException()
+        [UnityTest]
+        public IEnumerator ClaimRedeemAsync_UnauthenticatedUser_ThrowsNoctuaException()
+            => UniTask.ToCoroutine(async () =>
         {
             // authProvider returns a bundle with User.Id == 0 (unauthenticated guard in ClaimRedeemAsync)
             var emptyBundle = new UserBundle
@@ -1530,11 +1530,11 @@ namespace Tests.Runtime.IAP
                 Assert.AreEqual((int)NoctuaErrorCode.Authentication, ex.ErrorCode,
                     "Unauthenticated user must trigger Authentication error code");
             }
-        }
+        });
 
-        [Test]
-        [Timeout(5000)]
-        public async Task ClaimRedeemAsync_NullAuthProvider_ThrowsNoctuaException()
+        [UnityTest]
+        public IEnumerator ClaimRedeemAsync_NullAuthProvider_ThrowsNoctuaException()
+            => UniTask.ToCoroutine(async () =>
         {
             // No auth provider at all → RecentAccount returns null → guard triggers
             var svc = CreateEnabledService(authProvider: null);
@@ -1548,11 +1548,11 @@ namespace Tests.Runtime.IAP
             {
                 Assert.AreEqual((int)NoctuaErrorCode.Authentication, ex.ErrorCode);
             }
-        }
+        });
 
-        [Test]
-        [Timeout(5000)]
-        public async Task ClaimRedeemAsync_ServerReturnsHttp500_ThrowsNoctuaException()
+        [UnityTest]
+        public IEnumerator ClaimRedeemAsync_ServerReturnsHttp500_ThrowsNoctuaException()
+            => UniTask.ToCoroutine(async () =>
         {
             _server.AddHandler("/redeem-codes/claim", _ => null);
             try
@@ -1574,11 +1574,11 @@ namespace Tests.Runtime.IAP
             {
                 _server.RemoveHandler("/redeem-codes/claim");
             }
-        }
+        });
 
-        [Test]
-        [Timeout(5000)]
-        public async Task ClaimRedeemAsync_ServerReturnsStructuredError_RethrowsWithServerErrorCode()
+        [UnityTest]
+        public IEnumerator ClaimRedeemAsync_ServerReturnsStructuredError_RethrowsWithServerErrorCode()
+            => UniTask.ToCoroutine(async () =>
         {
             // Server returns HTTP 500 but with a structured error body that ClaimRedeemAsync parses
             var structuredError =
@@ -1611,15 +1611,15 @@ namespace Tests.Runtime.IAP
             {
                 _server.RemoveHandler("/redeem-codes/claim");
             }
-        }
+        });
 
         // ══════════════════════════════════════════════════════════════════════
         // GetNoctuaGold — request-level header assertions
         // ══════════════════════════════════════════════════════════════════════
 
-        [Test]
-        [Timeout(5000)]
-        public async Task GetNoctuaGold_RequestContainsClientIdHeader()
+        [UnityTest]
+        public IEnumerator GetNoctuaGold_RequestContainsClientIdHeader()
+            => UniTask.ToCoroutine(async () =>
         {
             _server.AddHandler("/noctuastore/wallet", _ => NoctuaGoldJson());
             try
@@ -1634,11 +1634,11 @@ namespace Tests.Runtime.IAP
             {
                 _server.RemoveHandler("/noctuastore/wallet");
             }
-        }
+        });
 
-        [Test]
-        [Timeout(5000)]
-        public async Task GetNoctuaGold_RequestUsesGetMethod()
+        [UnityTest]
+        public IEnumerator GetNoctuaGold_RequestUsesGetMethod()
+            => UniTask.ToCoroutine(async () =>
         {
             _server.AddHandler("/noctuastore/wallet", _ => NoctuaGoldJson());
             try
@@ -1653,15 +1653,15 @@ namespace Tests.Runtime.IAP
             {
                 _server.RemoveHandler("/noctuastore/wallet");
             }
-        }
+        });
 
         // ══════════════════════════════════════════════════════════════════════
         // GetPendingDeliverables — additional HTTP verb / header checks
         // ══════════════════════════════════════════════════════════════════════
 
-        [Test]
-        [Timeout(5000)]
-        public async Task GetPendingDeliverables_RequestUsesGetMethod()
+        [UnityTest]
+        public IEnumerator GetPendingDeliverables_RequestUsesGetMethod()
+            => UniTask.ToCoroutine(async () =>
         {
             _server.AddHandler("/pending-deliverables", _ => PendingDeliverablesJson(0));
             try
@@ -1676,11 +1676,11 @@ namespace Tests.Runtime.IAP
             {
                 _server.RemoveHandler("/pending-deliverables");
             }
-        }
+        });
 
-        [Test]
-        [Timeout(5000)]
-        public async Task GetPendingDeliverables_RequestContainsBearerToken()
+        [UnityTest]
+        public IEnumerator GetPendingDeliverables_RequestContainsBearerToken()
+            => UniTask.ToCoroutine(async () =>
         {
             _server.AddHandler("/pending-deliverables", _ => PendingDeliverablesJson(0));
             try
@@ -1697,15 +1697,15 @@ namespace Tests.Runtime.IAP
             {
                 _server.RemoveHandler("/pending-deliverables");
             }
-        }
+        });
 
         // ══════════════════════════════════════════════════════════════════════
         // GetProductListAsync — requires EnabledService + StubAuthProvider with valid GameId
         // ══════════════════════════════════════════════════════════════════════
 
-        [Test]
-        [Timeout(5000)]
-        public async Task GetProductListAsync_ValidGameId_ReturnsProductList()
+        [UnityTest]
+        public IEnumerator GetProductListAsync_ValidGameId_ReturnsProductList()
+            => UniTask.ToCoroutine(async () =>
         {
             _server.AddHandler("/products", _ => ProductListJson(2));
             try
@@ -1724,11 +1724,11 @@ namespace Tests.Runtime.IAP
             {
                 _server.RemoveHandler("/products");
             }
-        }
+        });
 
-        [Test]
-        [Timeout(5000)]
-        public async Task GetProductListAsync_EmptyProductList_ReturnsEmptyList()
+        [UnityTest]
+        public IEnumerator GetProductListAsync_EmptyProductList_ReturnsEmptyList()
+            => UniTask.ToCoroutine(async () =>
         {
             _server.AddHandler("/products", _ => DataEnvelope("[]"));
             try
@@ -1745,11 +1745,11 @@ namespace Tests.Runtime.IAP
             {
                 _server.RemoveHandler("/products");
             }
-        }
+        });
 
-        [Test]
-        [Timeout(5000)]
-        public async Task GetProductListAsync_NoGameId_ThrowsException()
+        [UnityTest]
+        public IEnumerator GetProductListAsync_NoGameId_ThrowsException()
+            => UniTask.ToCoroutine(async () =>
         {
             // No auth provider → RecentAccount == null → GameId guard fires
             var svc = CreateEnabledService(authProvider: null);
@@ -1764,11 +1764,11 @@ namespace Tests.Runtime.IAP
                 Assert.IsTrue(ex.Message.Contains("Game ID") || ex.Message.Contains("authenticate"),
                     "Exception message must indicate missing GameId or authentication requirement");
             }
-        }
+        });
 
-        [Test]
-        [Timeout(5000)]
-        public async Task GetProductListAsync_ZeroGameId_ThrowsException()
+        [UnityTest]
+        public IEnumerator GetProductListAsync_ZeroGameId_ThrowsException()
+            => UniTask.ToCoroutine(async () =>
         {
             var bundleWithZeroGameId = new UserBundle
             {
@@ -1788,11 +1788,11 @@ namespace Tests.Runtime.IAP
                 Assert.IsTrue(ex.Message.Contains("Game ID") || ex.Message.Contains("invalid"),
                     "Exception message must indicate invalid Game ID");
             }
-        }
+        });
 
-        [Test]
-        [Timeout(5000)]
-        public async Task GetProductListAsync_RequestContainsGameIdQueryParam()
+        [UnityTest]
+        public IEnumerator GetProductListAsync_RequestContainsGameIdQueryParam()
+            => UniTask.ToCoroutine(async () =>
         {
             _server.AddHandler("/products", _ => DataEnvelope("[]"));
             try
@@ -1811,11 +1811,11 @@ namespace Tests.Runtime.IAP
             {
                 _server.RemoveHandler("/products");
             }
-        }
+        });
 
-        [Test]
-        [Timeout(5000)]
-        public async Task GetProductListAsync_ServerError_ThrowsNoctuaException()
+        [UnityTest]
+        public IEnumerator GetProductListAsync_ServerError_ThrowsNoctuaException()
+            => UniTask.ToCoroutine(async () =>
         {
             _server.AddHandler("/products", _ => null);
             try
@@ -1837,15 +1837,15 @@ namespace Tests.Runtime.IAP
             {
                 _server.RemoveHandler("/products");
             }
-        }
+        });
 
         // ══════════════════════════════════════════════════════════════════════
         // EnsureEnabled guard — repeated from class 4 but with HTTP context
         // ══════════════════════════════════════════════════════════════════════
 
-        [Test]
-        [Timeout(5000)]
-        public async Task GetProductListAsync_WhenNotEnabled_ThrowsBeforeHttpCall()
+        [UnityTest]
+        public IEnumerator GetProductListAsync_WhenNotEnabled_ThrowsBeforeHttpCall()
+            => UniTask.ToCoroutine(async () =>
         {
             // Build a NOT-enabled service (no reflection call to Enable())
             var config = new NoctuaIAPService.Config { BaseUrl = BaseUrl, ClientId = "c" };
@@ -1871,7 +1871,7 @@ namespace Tests.Runtime.IAP
             // Confirm no HTTP request was made (the guard fires before the network call)
             Assert.AreEqual(requestsBefore, _server.Requests.Count,
                 "EnsureEnabled must throw before making any HTTP request");
-        }
+        });
     }
 
     // ══════════════════════════════════════════════════════════════════════════════
@@ -2055,9 +2055,9 @@ namespace Tests.Runtime.IAP
         // GetProductListAsync — tests that live alongside the DeliverPending tests
         // ══════════════════════════════════════════════════════════════════════
 
-        [Test]
-        [Timeout(5000)]
-        public async Task GetProductListAsync_ValidAuthAndResponse_ReturnsNonNullList()
+        [UnityTest]
+        public IEnumerator GetProductListAsync_ValidAuthAndResponse_ReturnsNonNullList()
+            => UniTask.ToCoroutine(async () =>
         {
             _server.AddHandler("/products", _ => ProductListJson(2));
             try
@@ -2073,11 +2073,11 @@ namespace Tests.Runtime.IAP
             {
                 _server.RemoveHandler("/products");
             }
-        }
+        });
 
-        [Test]
-        [Timeout(5000)]
-        public async Task GetProductListAsync_EmptyProductList_ReturnsEmptyList()
+        [UnityTest]
+        public IEnumerator GetProductListAsync_EmptyProductList_ReturnsEmptyList()
+            => UniTask.ToCoroutine(async () =>
         {
             _server.AddHandler("/products", _ => DataEnvelope("[]"));
             try
@@ -2094,11 +2094,11 @@ namespace Tests.Runtime.IAP
             {
                 _server.RemoveHandler("/products");
             }
-        }
+        });
 
-        [Test]
-        [Timeout(5000)]
-        public async Task GetProductListAsync_NullAuthProvider_ThrowsException()
+        [UnityTest]
+        public IEnumerator GetProductListAsync_NullAuthProvider_ThrowsException()
+            => UniTask.ToCoroutine(async () =>
         {
             var svc = CreateEnabledService(auth: null);  // auth provider is null
             try
@@ -2110,11 +2110,11 @@ namespace Tests.Runtime.IAP
             {
                 // Expected: "Game ID not found or invalid"
             }
-        }
+        });
 
-        [Test]
-        [Timeout(5000)]
-        public async Task GetProductListAsync_ZeroGameId_ThrowsException()
+        [UnityTest]
+        public IEnumerator GetProductListAsync_ZeroGameId_ThrowsException()
+            => UniTask.ToCoroutine(async () =>
         {
             var auth = new StubAuthProvider(MakeUserBundle(userId: 1, gameId: 0)); // zero GameId
             var svc  = CreateEnabledService(auth: auth);
@@ -2127,11 +2127,11 @@ namespace Tests.Runtime.IAP
             {
                 // Expected
             }
-        }
+        });
 
-        [Test]
-        [Timeout(5000)]
-        public async Task GetProductListAsync_RequestCarriesClientIdHeader()
+        [UnityTest]
+        public IEnumerator GetProductListAsync_RequestCarriesClientIdHeader()
+            => UniTask.ToCoroutine(async () =>
         {
             _server.AddHandler("/products", _ => ProductListJson(1));
             try
@@ -2148,15 +2148,15 @@ namespace Tests.Runtime.IAP
             {
                 _server.RemoveHandler("/products");
             }
-        }
+        });
 
         // ══════════════════════════════════════════════════════════════════════
         // VerifyOrderImplAsync — status variants via DeliverPendingDeliverablesAsync
         // ══════════════════════════════════════════════════════════════════════
 
-        [Test]
-        [Timeout(5000)]
-        public async Task DeliverPendingDeliverablesAsync_CanceledStatus_EnqueuesForRetry()
+        [UnityTest]
+        public IEnumerator DeliverPendingDeliverablesAsync_CanceledStatus_EnqueuesForRetry()
+            => UniTask.ToCoroutine(async () =>
         {
             _server.AddHandler("/pending-deliverables", _ => SingleDeliverableJson(101));
             _server.AddHandler("/verify-order",         _ => VerifyOrderJson(101, "canceled"));
@@ -2180,11 +2180,11 @@ namespace Tests.Runtime.IAP
                 _server.RemoveHandler("/pending-deliverables");
                 _server.RemoveHandler("/verify-order");
             }
-        }
+        });
 
-        [Test]
-        [Timeout(5000)]
-        public async Task DeliverPendingDeliverablesAsync_RefundedStatus_EnqueuesForRetry()
+        [UnityTest]
+        public IEnumerator DeliverPendingDeliverablesAsync_RefundedStatus_EnqueuesForRetry()
+            => UniTask.ToCoroutine(async () =>
         {
             _server.AddHandler("/pending-deliverables", _ => SingleDeliverableJson(102));
             _server.AddHandler("/verify-order",         _ => VerifyOrderJson(102, "refunded"));
@@ -2200,11 +2200,11 @@ namespace Tests.Runtime.IAP
                 _server.RemoveHandler("/pending-deliverables");
                 _server.RemoveHandler("/verify-order");
             }
-        }
+        });
 
-        [Test]
-        [Timeout(5000)]
-        public async Task DeliverPendingDeliverablesAsync_VoidedStatus_RemovesFromRetry()
+        [UnityTest]
+        public IEnumerator DeliverPendingDeliverablesAsync_VoidedStatus_RemovesFromRetry()
+            => UniTask.ToCoroutine(async () =>
         {
             _server.AddHandler("/pending-deliverables", _ => SingleDeliverableJson(103));
             _server.AddHandler("/verify-order",         _ => VerifyOrderJson(103, "voided"));
@@ -2220,11 +2220,11 @@ namespace Tests.Runtime.IAP
                 _server.RemoveHandler("/pending-deliverables");
                 _server.RemoveHandler("/verify-order");
             }
-        }
+        });
 
-        [Test]
-        [Timeout(5000)]
-        public async Task DeliverPendingDeliverablesAsync_PendingStatus_CaughtInnerException()
+        [UnityTest]
+        public IEnumerator DeliverPendingDeliverablesAsync_PendingStatus_CaughtInnerException()
+            => UniTask.ToCoroutine(async () =>
         {
             // "pending" is a non-terminal status → VerifyOrderImplAsync throws NoctuaException
             // DeliverPendingDeliverablesAsync catches it per-deliverable and continues
@@ -2243,11 +2243,11 @@ namespace Tests.Runtime.IAP
                 _server.RemoveHandler("/pending-deliverables");
                 _server.RemoveHandler("/verify-order");
             }
-        }
+        });
 
-        [Test]
-        [Timeout(5000)]
-        public async Task DeliverPendingDeliverablesAsync_MultipleDeliverables_ProcessesAll()
+        [UnityTest]
+        public IEnumerator DeliverPendingDeliverablesAsync_MultipleDeliverables_ProcessesAll()
+            => UniTask.ToCoroutine(async () =>
         {
             _server.AddHandler("/pending-deliverables", _ => PendingDeliverablesJson(3));
             _server.AddHandler("/verify-order",         _ => VerifyOrderJson(0, "completed")); // id in body will vary
@@ -2261,15 +2261,15 @@ namespace Tests.Runtime.IAP
                 _server.RemoveHandler("/pending-deliverables");
                 _server.RemoveHandler("/verify-order");
             }
-        }
+        });
 
         // ══════════════════════════════════════════════════════════════════════
         // DeliverPendingDeliverablesAsync
         // ══════════════════════════════════════════════════════════════════════
 
-        [Test]
-        [Timeout(5000)]
-        public async Task DeliverPendingDeliverablesAsync_NoPendingDeliverables_DoesNotFireOnPurchaseDone()
+        [UnityTest]
+        public IEnumerator DeliverPendingDeliverablesAsync_NoPendingDeliverables_DoesNotFireOnPurchaseDone()
+            => UniTask.ToCoroutine(async () =>
         {
             _server.AddHandler("/pending-deliverables", _ => PendingDeliverablesJson(0));
             try
@@ -2286,11 +2286,11 @@ namespace Tests.Runtime.IAP
             {
                 _server.RemoveHandler("/pending-deliverables");
             }
-        }
+        });
 
-        [Test]
-        [Timeout(5000)]
-        public async Task DeliverPendingDeliverablesAsync_OneCompletedDeliverable_FiresOnPurchaseDone()
+        [UnityTest]
+        public IEnumerator DeliverPendingDeliverablesAsync_OneCompletedDeliverable_FiresOnPurchaseDone()
+            => UniTask.ToCoroutine(async () =>
         {
             _server.AddHandler("/pending-deliverables", _ => PendingDeliverablesJson(1));
             _server.AddHandler("/verify-order",         _ => VerifyOrderJson(1, "completed"));
@@ -2309,11 +2309,11 @@ namespace Tests.Runtime.IAP
                 _server.RemoveHandler("/pending-deliverables");
                 _server.RemoveHandler("/verify-order");
             }
-        }
+        });
 
-        [Test]
-        [Timeout(5000)]
-        public async Task DeliverPendingDeliverablesAsync_CanceledDeliverable_DoesNotFireOnPurchaseDone()
+        [UnityTest]
+        public IEnumerator DeliverPendingDeliverablesAsync_CanceledDeliverable_DoesNotFireOnPurchaseDone()
+            => UniTask.ToCoroutine(async () =>
         {
             _server.AddHandler("/pending-deliverables", _ => PendingDeliverablesJson(1));
             _server.AddHandler("/verify-order",         _ => VerifyOrderJson(1, "canceled"));
@@ -2332,11 +2332,11 @@ namespace Tests.Runtime.IAP
                 _server.RemoveHandler("/pending-deliverables");
                 _server.RemoveHandler("/verify-order");
             }
-        }
+        });
 
-        [Test]
-        [Timeout(5000)]
-        public async Task DeliverPendingDeliverablesAsync_RefundedDeliverable_DoesNotFireOnPurchaseDone()
+        [UnityTest]
+        public IEnumerator DeliverPendingDeliverablesAsync_RefundedDeliverable_DoesNotFireOnPurchaseDone()
+            => UniTask.ToCoroutine(async () =>
         {
             _server.AddHandler("/pending-deliverables", _ => PendingDeliverablesJson(1));
             _server.AddHandler("/verify-order",         _ => VerifyOrderJson(1, "refunded"));
@@ -2355,11 +2355,11 @@ namespace Tests.Runtime.IAP
                 _server.RemoveHandler("/pending-deliverables");
                 _server.RemoveHandler("/verify-order");
             }
-        }
+        });
 
-        [Test]
-        [Timeout(5000)]
-        public async Task DeliverPendingDeliverablesAsync_VoidedDeliverable_DoesNotFireOnPurchaseDone()
+        [UnityTest]
+        public IEnumerator DeliverPendingDeliverablesAsync_VoidedDeliverable_DoesNotFireOnPurchaseDone()
+            => UniTask.ToCoroutine(async () =>
         {
             _server.AddHandler("/pending-deliverables", _ => PendingDeliverablesJson(1));
             _server.AddHandler("/verify-order",         _ => VerifyOrderJson(1, "voided"));
@@ -2378,11 +2378,11 @@ namespace Tests.Runtime.IAP
                 _server.RemoveHandler("/pending-deliverables");
                 _server.RemoveHandler("/verify-order");
             }
-        }
+        });
 
-        [Test]
-        [Timeout(5000)]
-        public async Task DeliverPendingDeliverablesAsync_PendingDeliverable_DoesNotFireOnPurchaseDone()
+        [UnityTest]
+        public IEnumerator DeliverPendingDeliverablesAsync_PendingDeliverable_DoesNotFireOnPurchaseDone()
+            => UniTask.ToCoroutine(async () =>
         {
             _server.AddHandler("/pending-deliverables", _ => PendingDeliverablesJson(1));
             _server.AddHandler("/verify-order",         _ => VerifyOrderJson(1, "pending"));
@@ -2401,29 +2401,32 @@ namespace Tests.Runtime.IAP
                 _server.RemoveHandler("/pending-deliverables");
                 _server.RemoveHandler("/verify-order");
             }
-        }
+        });
 
-        [Test]
-        [Timeout(5000)]
-        public async Task DeliverPendingDeliverablesAsync_GetDeliverablesServerError_DoesNotThrow()
+        [UnityTest]
+        public IEnumerator DeliverPendingDeliverablesAsync_GetDeliverablesServerError_DoesNotThrow()
+            => UniTask.ToCoroutine(async () =>
         {
-            // null → HTTP 500, outer catch swallows it — await directly; no exception propagates
+            // null → HTTP 500, outer catch swallows it
             _server.AddHandler("/pending-deliverables", _ => null);
             try
             {
                 var svc = CreateEnabledService();
-                // DeliverPendingDeliverablesAsync has an outer try/catch — no exception escapes
-                await svc.DeliverPendingDeliverablesAsync();
+                // Should NOT propagate — the method has an outer try/catch
+                Assert.DoesNotThrow(() =>
+                    svc.DeliverPendingDeliverablesAsync()
+                       .Forget(ex => Assert.Fail("Unexpected exception: " + ex)));
+                await UniTask.Delay(200);
             }
             finally
             {
                 _server.RemoveHandler("/pending-deliverables");
             }
-        }
+        });
 
-        [Test]
-        [Timeout(5000)]
-        public async Task DeliverPendingDeliverablesAsync_VerifyOrderServerError_DoesNotPropagateException()
+        [UnityTest]
+        public IEnumerator DeliverPendingDeliverablesAsync_VerifyOrderServerError_DoesNotPropagateException()
+            => UniTask.ToCoroutine(async () =>
         {
             _server.AddHandler("/pending-deliverables", _ => PendingDeliverablesJson(1));
             _server.AddHandler("/verify-order",         _ => null); // 500 on verify
@@ -2447,11 +2450,11 @@ namespace Tests.Runtime.IAP
                 _server.RemoveHandler("/pending-deliverables");
                 _server.RemoveHandler("/verify-order");
             }
-        }
+        });
 
-        [Test]
-        [Timeout(5000)]
-        public async Task DeliverPendingDeliverablesAsync_MultipleDeliverables_AllProcessed()
+        [UnityTest]
+        public IEnumerator DeliverPendingDeliverablesAsync_MultipleDeliverables_AllProcessed()
+            => UniTask.ToCoroutine(async () =>
         {
             _server.AddHandler("/pending-deliverables", _ => PendingDeliverablesJson(3));
             int verifyCallCount = 0;
@@ -2475,11 +2478,11 @@ namespace Tests.Runtime.IAP
                 _server.RemoveHandler("/pending-deliverables");
                 _server.RemoveHandler("/verify-order");
             }
-        }
+        });
 
-        [Test]
-        [Timeout(5000)]
-        public async Task DeliverPendingDeliverablesAsync_CompletedDeliverable_AddsToHistory()
+        [UnityTest]
+        public IEnumerator DeliverPendingDeliverablesAsync_CompletedDeliverable_AddsToHistory()
+            => UniTask.ToCoroutine(async () =>
         {
             _server.AddHandler("/pending-deliverables", _ => PendingDeliverablesJson(1));
             _server.AddHandler("/verify-order",         _ => VerifyOrderJson(1, "completed"));
@@ -2498,7 +2501,7 @@ namespace Tests.Runtime.IAP
                 _server.RemoveHandler("/pending-deliverables");
                 _server.RemoveHandler("/verify-order");
             }
-        }
+        });
 
         // ══════════════════════════════════════════════════════════════════════
         // RetryPendingPurchaseByOrderId
@@ -2520,9 +2523,9 @@ namespace Tests.Runtime.IAP
             }
         }
 
-        [Test]
-        [Timeout(5000)]
-        public async Task RetryPendingPurchaseByOrderId_CompletedResponse_ReturnsCompleted()
+        [UnityTest]
+        public IEnumerator RetryPendingPurchaseByOrderId_CompletedResponse_ReturnsCompleted()
+            => UniTask.ToCoroutine(async () =>
         {
             // Store a valid pending item
             IAPTestHelpers.StorePending(IAPTestHelpers.MakePendingItemJson(42, "stub-token"));
@@ -2544,11 +2547,11 @@ namespace Tests.Runtime.IAP
             {
                 _server.RemoveHandler("/verify-order");
             }
-        }
+        });
 
-        [Test]
-        [Timeout(5000)]
-        public async Task RetryPendingPurchaseByOrderId_ServerError_ReturnsError()
+        [UnityTest]
+        public IEnumerator RetryPendingPurchaseByOrderId_ServerError_ReturnsError()
+            => UniTask.ToCoroutine(async () =>
         {
             IAPTestHelpers.StorePending(IAPTestHelpers.MakePendingItemJson(43, "stub-token"));
 
@@ -2567,11 +2570,11 @@ namespace Tests.Runtime.IAP
             {
                 _server.RemoveHandler("/verify-order");
             }
-        }
+        });
 
-        [Test]
-        [Timeout(5000)]
-        public async Task RetryPendingPurchaseByOrderId_PendingResponse_EnqueuesForRetry()
+        [UnityTest]
+        public IEnumerator RetryPendingPurchaseByOrderId_PendingResponse_EnqueuesForRetry()
+            => UniTask.ToCoroutine(async () =>
         {
             IAPTestHelpers.StorePending(IAPTestHelpers.MakePendingItemJson(44, "stub-token"));
 
@@ -2590,7 +2593,7 @@ namespace Tests.Runtime.IAP
             {
                 _server.RemoveHandler("/verify-order");
             }
-        }
+        });
 
         // ══════════════════════════════════════════════════════════════════════
         // EnqueueToRetryPendingPurchases — validation guards

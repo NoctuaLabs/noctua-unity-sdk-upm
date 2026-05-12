@@ -3,7 +3,6 @@ using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
-using System.Threading.Tasks;
 using com.noctuagames.sdk;
 using com.noctuagames.sdk.Events;
 using Cysharp.Threading.Tasks;
@@ -330,10 +329,10 @@ namespace Tests.Runtime
             return null;
         }
 
-        [Test]
-        [Timeout(5000)]
-        public async Task SetProperties_ZeroUserId_DoesNotClearPreviousValue()
-        {
+        [UnityTest]
+        public IEnumerator SetProperties_ZeroUserId_DoesNotClearPreviousValue() =>
+            UniTask.ToCoroutine(async () =>
+            {
                 var sender = MakePropSender();
                 try
                 {
@@ -350,12 +349,12 @@ namespace Tests.Runtime
                 {
                     sender.Dispose();
                 }
-        }
+            });
 
-        [Test]
-        [Timeout(5000)]
-        public async Task SetProperties_NullUserId_ClearsPreviousValue()
-        {
+        [UnityTest]
+        public IEnumerator SetProperties_NullUserId_ClearsPreviousValue() =>
+            UniTask.ToCoroutine(async () =>
+            {
                 var sender = MakePropSender();
                 try
                 {
@@ -371,12 +370,12 @@ namespace Tests.Runtime
                 {
                     sender.Dispose();
                 }
-        }
+            });
 
-        [Test]
-        [Timeout(5000)]
-        public async Task SetProperties_ZeroGameId_DoesNotClearPreviousValue()
-        {
+        [UnityTest]
+        public IEnumerator SetProperties_ZeroGameId_DoesNotClearPreviousValue() =>
+            UniTask.ToCoroutine(async () =>
+            {
                 var sender = MakePropSender();
                 try
                 {
@@ -393,12 +392,12 @@ namespace Tests.Runtime
                 {
                     sender.Dispose();
                 }
-        }
+            });
 
-        [Test]
-        [Timeout(5000)]
-        public async Task SetProperties_EmptySessionId_DoesNotClearPreviousValue()
-        {
+        [UnityTest]
+        public IEnumerator SetProperties_EmptySessionId_DoesNotClearPreviousValue() =>
+            UniTask.ToCoroutine(async () =>
+            {
                 var sender = MakePropSender();
                 try
                 {
@@ -417,12 +416,12 @@ namespace Tests.Runtime
                 {
                     sender.Dispose();
                 }
-        }
+            });
 
-        [Test]
-        [Timeout(5000)]
-        public async Task SetProperties_IsSandboxFalse_UpdatesField()
-        {
+        [UnityTest]
+        public IEnumerator SetProperties_IsSandboxFalse_UpdatesField() =>
+            UniTask.ToCoroutine(async () =>
+            {
                 var sender = MakePropSender();
                 try
                 {
@@ -440,12 +439,12 @@ namespace Tests.Runtime
                 {
                     sender.Dispose();
                 }
-        }
+            });
 
-        [Test]
-        [Timeout(5000)]
-        public async Task SetProperties_NullIsSandbox_DoesNotClearPreviousValue()
-        {
+        [UnityTest]
+        public IEnumerator SetProperties_NullIsSandbox_DoesNotClearPreviousValue() =>
+            UniTask.ToCoroutine(async () =>
+            {
                 var sender = MakePropSender();
                 try
                 {
@@ -462,7 +461,7 @@ namespace Tests.Runtime
                 {
                     sender.Dispose();
                 }
-        }
+            });
 
         // ═══════════════════════════════════════════════════════════════════════
         // Group D — Flush and Dispose smoke tests
@@ -507,10 +506,10 @@ namespace Tests.Runtime
         // Group E — Pre-persist path: events persisted before Firebase fetch
         // ═══════════════════════════════════════════════════════════════════════
 
-        [Test]
-        [Timeout(5000)]
-        public async Task PrePersist_EventSentBeforeFirebaseFetch_IsWrittenToStorage()
-        {
+        [UnityTest]
+        public IEnumerator PrePersist_EventSentBeforeFirebaseFetch_IsWrittenToStorage() =>
+            UniTask.ToCoroutine(async () =>
+            {
                 // Offline sender so no HTTP flush happens — we only test storage write
                 var sender = MakeMinimalSender(offline: true);
                 try
@@ -544,6 +543,6 @@ namespace Tests.Runtime
                 {
                     sender.Dispose();
                 }
-        }
+            });
     }
 }

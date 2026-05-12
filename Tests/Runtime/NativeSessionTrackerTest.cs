@@ -2,7 +2,6 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading.Tasks;
 using com.noctuagames.sdk;
 using com.noctuagames.sdk.Events;
 using Cysharp.Threading.Tasks;
@@ -27,10 +26,10 @@ namespace Tests.Runtime
             };
         }
 
-        [Test]
-        [Timeout(5000)]
-        public async Task OnResumePause_SendsNativeUserEngagement()
-        {
+        [UnityTest]
+        public IEnumerator OnResumePause_SendsNativeUserEngagement() => UniTask.ToCoroutine(
+            async () =>
+            {
                 var tracker = new NativeSessionTracker(_config, _mockSender);
 
                 tracker.OnNativeResume();
@@ -54,11 +53,13 @@ namespace Tests.Runtime
                 Assert.LessOrEqual(msec, 5000);
 
                 tracker.Dispose();
-        }
-        [Test]
-        [Timeout(5000)]
-        public async Task OnHeartbeat_SendsNativeUserEngagement()
-        {
+            }
+        );
+
+        [UnityTest]
+        public IEnumerator OnHeartbeat_SendsNativeUserEngagement() => UniTask.ToCoroutine(
+            async () =>
+            {
                 var tracker = new NativeSessionTracker(_config, _mockSender);
 
                 tracker.OnNativeResume();
@@ -78,11 +79,13 @@ namespace Tests.Runtime
                 Assert.GreaterOrEqual(foregroundEvents.Count, 1);
 
                 tracker.Dispose();
-        }
-        [Test]
-        [Timeout(5000)]
-        public async Task OnDispose_SendsEndAndPerSession()
-        {
+            }
+        );
+
+        [UnityTest]
+        public IEnumerator OnDispose_SendsEndAndPerSession() => UniTask.ToCoroutine(
+            async () =>
+            {
                 var tracker = new NativeSessionTracker(_config, _mockSender);
 
                 tracker.OnNativeResume();
@@ -97,11 +100,13 @@ namespace Tests.Runtime
                 Assert.AreEqual("native_user_engagement_per_session", eventNames[1]);
 
                 Assert.AreEqual("end", _mockSender.SentEvents[0].Data["lifecycle"].ToString());
-        }
-        [Test]
-        [Timeout(5000)]
-        public async Task EngagementTime_IsIncremental()
-        {
+            }
+        );
+
+        [UnityTest]
+        public IEnumerator EngagementTime_IsIncremental() => UniTask.ToCoroutine(
+            async () =>
+            {
                 var config = new SessionTrackerConfig
                 {
                     HeartbeatPeriodMs = 60_000,
@@ -131,11 +136,13 @@ namespace Tests.Runtime
                 Assert.LessOrEqual(secondMs, 5000);
 
                 tracker.Dispose();
-        }
-        [Test]
-        [Timeout(5000)]
-        public async Task SessionTimeout_ResetsAndSendsPerSession()
-        {
+            }
+        );
+
+        [UnityTest]
+        public IEnumerator SessionTimeout_ResetsAndSendsPerSession() => UniTask.ToCoroutine(
+            async () =>
+            {
                 var tracker = new NativeSessionTracker(_config, _mockSender);
 
                 tracker.OnNativeResume();
@@ -157,11 +164,13 @@ namespace Tests.Runtime
                 Assert.AreEqual(0L, Convert.ToInt64(startEvt.Data["engagement_time_msec"]));
 
                 tracker.Dispose();
-        }
-        [Test]
-        [Timeout(5000)]
-        public async Task PerSessionEngagement_CumulativeTotal()
-        {
+            }
+        );
+
+        [UnityTest]
+        public IEnumerator PerSessionEngagement_CumulativeTotal() => UniTask.ToCoroutine(
+            async () =>
+            {
                 var config = new SessionTrackerConfig
                 {
                     HeartbeatPeriodMs = 60_000,
@@ -186,11 +195,13 @@ namespace Tests.Runtime
                 var cumulativeMs = Convert.ToInt64(perSession[0].Data["engagement_time_msec"]);
                 Assert.GreaterOrEqual(cumulativeMs, 400);
                 Assert.LessOrEqual(cumulativeMs, 10000);
-        }
-        [Test]
-        [Timeout(5000)]
-        public async Task NoSessionEvents_AreSent()
-        {
+            }
+        );
+
+        [UnityTest]
+        public IEnumerator NoSessionEvents_AreSent() => UniTask.ToCoroutine(
+            async () =>
+            {
                 var tracker = new NativeSessionTracker(_config, _mockSender);
 
                 tracker.OnNativeResume();
@@ -207,6 +218,7 @@ namespace Tests.Runtime
                     .ToList();
 
                 Assert.AreEqual(0, sessionEvents.Count, "NativeSessionTracker must not send session events");
-        }
+            }
+        );
     }
 }

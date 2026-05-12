@@ -2,7 +2,6 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Threading.Tasks;
 using Cysharp.Threading.Tasks;
 using UnityEngine.TestTools;
 using com.noctuagames.sdk;
@@ -314,17 +313,19 @@ namespace Tests.Runtime
         }
 
 
-        [Test]
-        [Timeout(5000)]
-        public async Task RetryAsyncTask_SuccessOnFirstTry()
-        {
+        [UnityTest]
+        public IEnumerator RetryAsyncTask_SuccessOnFirstTry() => UniTask.ToCoroutine(
+            async () =>
+            {
                 var result = await Utility.RetryAsyncTask(async () => await UniTask.FromResult("Success"));
                 Assert.AreEqual("Success", result);
-        }
-        [Test]
-        [Timeout(5000)]
-        public async Task RetryAsyncTask_SuccessAfterRetries()
-        {
+            }
+        );
+
+        [UnityTest]
+        public IEnumerator RetryAsyncTask_SuccessAfterRetries() => UniTask.ToCoroutine(
+            async () =>
+            {
                 int attempt = 0;
 
                 var result = await Utility.RetryAsyncTask(
@@ -343,11 +344,13 @@ namespace Tests.Runtime
 
                 Assert.AreEqual("Success", result);
                 Assert.AreEqual(2, attempt);
-        }
-        [Test]
-        [Timeout(5000)]
-        public async Task RetryAsyncTask_ThrowsNonNetworkingException()
-        {
+            }
+        );
+
+        [UnityTest]
+        public IEnumerator RetryAsyncTask_ThrowsNonNetworkingException() => UniTask.ToCoroutine(
+            async () =>
+            {
                 bool exceptionThrown = false;
 
                 try
@@ -363,11 +366,13 @@ namespace Tests.Runtime
                 }
 
                 Assert.IsTrue(exceptionThrown);
-        }
-        [Test]
-        [Timeout(5000)]
-        public async Task RetryAsyncTask_ThrowsOtherNonNetworkingException()
-        {
+            }
+        );
+
+        [UnityTest]
+        public IEnumerator RetryAsyncTask_ThrowsOtherNonNetworkingException() => UniTask.ToCoroutine(
+            async () =>
+            {
                 bool exceptionThrown = false;
 
                 try
@@ -380,11 +385,13 @@ namespace Tests.Runtime
                 }
 
                 Assert.IsTrue(exceptionThrown);
-        }
-        [Test]
-        [Timeout(5000)]
-        public async Task RetryAsyncTask_MaxRetriesReached()
-        {
+            }
+        );
+
+        [UnityTest]
+        public IEnumerator RetryAsyncTask_MaxRetriesReached() => UniTask.ToCoroutine(
+            async () =>
+            {
                 int attempt = 0;
                 double initialDelay = 0.5;
                 double exponent = 2.0;
@@ -423,11 +430,13 @@ namespace Tests.Runtime
                 Assert.AreEqual(initialDelay, delays[1], 0.5);
                 Assert.AreEqual(initialDelay * exponent, delays[2], 0.5 * exponent);
                 Assert.AreEqual(initialDelay * exponent * exponent, delays[3], 0.5 * exponent * exponent);
-        }
-        [Test]
-        [Timeout(5000)]
-        public async Task RetryAsyncTask_MaxDelayReached()
-        {
+            }
+        );
+        
+        [UnityTest]
+        public IEnumerator RetryAsyncTask_MaxDelayReached() => UniTask.ToCoroutine(
+            async () =>
+            {
                 int attempt = 0;
 
                 Stopwatch stopwatch = new Stopwatch();
@@ -465,6 +474,7 @@ namespace Tests.Runtime
                 {
                     Assert.AreEqual(4.0, delays[i], 1);
                 }
-        }
+            }
+        );
     }
 }

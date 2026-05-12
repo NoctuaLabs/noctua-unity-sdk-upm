@@ -20,32 +20,35 @@ namespace Tests.Runtime
             ExperimentManager.Clear();
         }
 
-        [Test]
-        public void SetFlag_GetFlag_String()
+        [UnityTest]
+        public IEnumerator SetFlag_GetFlag_String()
         {
             ExperimentManager.SetFlag("key1", "value1");
             var result = ExperimentManager.GetFlag<string>("key1");
             Assert.AreEqual("value1", result);
+            yield return null;
         }
 
-        [Test]
-        public void SetFlag_GetFlag_Int()
+        [UnityTest]
+        public IEnumerator SetFlag_GetFlag_Int()
         {
             ExperimentManager.SetFlag("intKey", 42);
             var result = ExperimentManager.GetFlag<int>("intKey");
             Assert.AreEqual(42, result);
+            yield return null;
         }
 
-        [Test]
-        public void SetFlag_GetFlag_Bool()
+        [UnityTest]
+        public IEnumerator SetFlag_GetFlag_Bool()
         {
             ExperimentManager.SetFlag("boolKey", true);
             var result = ExperimentManager.GetFlag<bool>("boolKey");
             Assert.IsTrue(result);
+            yield return null;
         }
 
-        [Test]
-        public void GetFlag_MissingKey_ReturnsDefault()
+        [UnityTest]
+        public IEnumerator GetFlag_MissingKey_ReturnsDefault()
         {
             var stringResult = ExperimentManager.GetFlag<string>("missing");
             Assert.IsNull(stringResult);
@@ -55,17 +58,19 @@ namespace Tests.Runtime
 
             var boolResult = ExperimentManager.GetFlag<bool>("missing");
             Assert.IsFalse(boolResult);
+            yield return null;
         }
 
-        [Test]
-        public void GetFlag_MissingKey_ReturnsCustomDefault()
+        [UnityTest]
+        public IEnumerator GetFlag_MissingKey_ReturnsCustomDefault()
         {
             var result = ExperimentManager.GetFlag("missing", "fallback");
             Assert.AreEqual("fallback", result);
+            yield return null;
         }
 
-        [Test]
-        public void Clear_RemovesAllFlags()
+        [UnityTest]
+        public IEnumerator Clear_RemovesAllFlags()
         {
             ExperimentManager.SetFlag("a", "1");
             ExperimentManager.SetFlag("b", "2");
@@ -73,66 +78,76 @@ namespace Tests.Runtime
 
             Assert.IsNull(ExperimentManager.GetFlag<string>("a"));
             Assert.IsNull(ExperimentManager.GetFlag<string>("b"));
+            yield return null;
         }
 
-        [Test]
-        public void SetSessionId_GetSessionId()
+        [UnityTest]
+        public IEnumerator SetSessionId_GetSessionId()
         {
             ExperimentManager.SetSessionId("session-123");
             Assert.AreEqual("session-123", ExperimentManager.GetSessionId());
+            yield return null;
         }
 
-        [Test]
-        public void GetSessionId_Default_ReturnsEmpty()
+        [UnityTest]
+        public IEnumerator GetSessionId_Default_ReturnsEmpty()
         {
             Assert.AreEqual(string.Empty, ExperimentManager.GetSessionId());
+            yield return null;
         }
 
-        [Test]
-        public void SetExperiment_GetActiveExperiment()
+        [UnityTest]
+        public IEnumerator SetExperiment_GetActiveExperiment()
         {
             ExperimentManager.SetExperiment("exp-abc");
             Assert.AreEqual("exp-abc", ExperimentManager.GetActiveExperiment());
+            yield return null;
         }
 
-        [Test]
-        public void GetActiveExperiment_Default_ReturnsEmpty()
+        [UnityTest]
+        public IEnumerator GetActiveExperiment_Default_ReturnsEmpty()
         {
             Assert.AreEqual(string.Empty, ExperimentManager.GetActiveExperiment());
+            yield return null;
         }
 
-        [Test]
-        public void SetCurrentFeature_GetCurrentFeature()
+        [UnityTest]
+        public IEnumerator SetCurrentFeature_GetCurrentFeature()
         {
             ExperimentManager.SetCurrentFeature("feature-x");
             Assert.AreEqual("feature-x", ExperimentManager.GetCurrentFeature());
+            yield return null;
         }
 
-        [Test]
-        public void GetCurrentFeature_Default_ReturnsEmpty()
+        [UnityTest]
+        public IEnumerator GetCurrentFeature_Default_ReturnsEmpty()
         {
             Assert.AreEqual(string.Empty, ExperimentManager.GetCurrentFeature());
+            yield return null;
         }
 
-        [Test]
-        public void SetGeneralExperiment_GetGeneralExperiment()
+        [UnityTest]
+        public IEnumerator SetGeneralExperiment_GetGeneralExperiment()
         {
             ExperimentManager.SetGeneralExperiment("custom_key", "custom_value");
             Assert.AreEqual("custom_value", ExperimentManager.GetGeneralExperiment("custom_key"));
+            yield return null;
         }
 
-        [Test]
-        public void GetGeneralExperiment_MissingKey_ReturnsEmpty()
+        [UnityTest]
+        public IEnumerator GetGeneralExperiment_MissingKey_ReturnsEmpty()
         {
             Assert.AreEqual(string.Empty, ExperimentManager.GetGeneralExperiment("nonexistent"));
+            yield return null;
         }
 
-        [Test]
-        public void SetFlag_OverwritesExistingKey()
+        [UnityTest]
+        public IEnumerator SetFlag_OverwritesExistingKey()
         {
             ExperimentManager.SetFlag("key", "old");
             ExperimentManager.SetFlag("key", "new");
             Assert.AreEqual("new", ExperimentManager.GetFlag<string>("key"));
+            yield return null;
         }
     }
 

@@ -1,5 +1,4 @@
 using System.Collections;
-using System.Threading.Tasks;
 using com.noctuagames.sdk;
 using Cysharp.Threading.Tasks;
 using Newtonsoft.Json;
@@ -22,8 +21,8 @@ namespace Tests.Runtime
 
         // --- Request serialization tests ---
 
-        [Test]
-        public void Request_Serialization_CorrectJsonKeys()
+        [UnityTest]
+        public IEnumerator Request_Serialization_CorrectJsonKeys()
         {
             var request = new ClaimRedeemCodeRequest
             {
@@ -38,10 +37,11 @@ namespace Tests.Runtime
             Assert.IsTrue(json.Contains("ABCD-EFGH-IJKL-MNOP"));
             Assert.IsTrue(json.Contains("12345"));
 
+            yield return null;
         }
 
-        [Test]
-        public void Request_Deserialization_RoundTrip()
+        [UnityTest]
+        public IEnumerator Request_Deserialization_RoundTrip()
         {
             var original = new ClaimRedeemCodeRequest
             {
@@ -55,12 +55,13 @@ namespace Tests.Runtime
             Assert.AreEqual(original.Code, deserialized.Code);
             Assert.AreEqual(original.UserId, deserialized.UserId);
 
+            yield return null;
         }
 
         // --- Response deserialization tests ---
 
-        [Test]
-        public void Response_Deserialization_Success()
+        [UnityTest]
+        public IEnumerator Response_Deserialization_Success()
         {
             var json = @"{
                 ""success"": true,
@@ -76,10 +77,11 @@ namespace Tests.Runtime
             Assert.AreEqual(1002, response.OrderIds[1]);
             Assert.AreEqual("Code redeemed successfully", response.Message);
 
+            yield return null;
         }
 
-        [Test]
-        public void Response_Deserialization_EmptyOrderIds()
+        [UnityTest]
+        public IEnumerator Response_Deserialization_EmptyOrderIds()
         {
             var json = @"{
                 ""success"": true,
@@ -93,10 +95,11 @@ namespace Tests.Runtime
             Assert.IsNotNull(response.OrderIds);
             Assert.AreEqual(0, response.OrderIds.Length);
 
+            yield return null;
         }
 
-        [Test]
-        public void Response_Deserialization_NullMessage()
+        [UnityTest]
+        public IEnumerator Response_Deserialization_NullMessage()
         {
             var json = @"{
                 ""success"": true,
@@ -110,10 +113,11 @@ namespace Tests.Runtime
             Assert.AreEqual(5001, response.OrderIds[0]);
             Assert.IsNull(response.Message);
 
+            yield return null;
         }
 
-        [Test]
-        public void Response_Deserialization_FailureResponse()
+        [UnityTest]
+        public IEnumerator Response_Deserialization_FailureResponse()
         {
             var json = @"{
                 ""success"": false,
@@ -125,12 +129,13 @@ namespace Tests.Runtime
 
             Assert.IsFalse(response.Success);
 
+            yield return null;
         }
 
         // --- Error response deserialization tests ---
 
-        [Test]
-        public void ErrorResponse_Deserialization_CodeNotFound()
+        [UnityTest]
+        public IEnumerator ErrorResponse_Deserialization_CodeNotFound()
         {
             var json = @"{
                 ""success"": false,
@@ -144,10 +149,11 @@ namespace Tests.Runtime
             Assert.AreEqual(3050, response.ErrorCode);
             Assert.AreEqual("Redeem code not found", response.ErrorMessage);
 
+            yield return null;
         }
 
-        [Test]
-        public void ErrorResponse_Deserialization_AlreadyClaimed()
+        [UnityTest]
+        public IEnumerator ErrorResponse_Deserialization_AlreadyClaimed()
         {
             var json = @"{
                 ""success"": false,
@@ -161,10 +167,11 @@ namespace Tests.Runtime
             Assert.AreEqual(3051, response.ErrorCode);
             Assert.AreEqual("Redeem code has already been claimed", response.ErrorMessage);
 
+            yield return null;
         }
 
-        [Test]
-        public void ErrorResponse_Deserialization_Expired()
+        [UnityTest]
+        public IEnumerator ErrorResponse_Deserialization_Expired()
         {
             var json = @"{
                 ""success"": false,
@@ -178,10 +185,11 @@ namespace Tests.Runtime
             Assert.AreEqual(3052, response.ErrorCode);
             Assert.AreEqual("Redeem code has expired", response.ErrorMessage);
 
+            yield return null;
         }
 
-        [Test]
-        public void ErrorResponse_Deserialization_Revoked()
+        [UnityTest]
+        public IEnumerator ErrorResponse_Deserialization_Revoked()
         {
             var json = @"{
                 ""success"": false,
@@ -195,10 +203,11 @@ namespace Tests.Runtime
             Assert.AreEqual(3053, response.ErrorCode);
             Assert.AreEqual("Redeem code has been revoked", response.ErrorMessage);
 
+            yield return null;
         }
 
-        [Test]
-        public void ErrorResponse_Deserialization_UserRestricted()
+        [UnityTest]
+        public IEnumerator ErrorResponse_Deserialization_UserRestricted()
         {
             var json = @"{
                 ""success"": false,
@@ -212,12 +221,13 @@ namespace Tests.Runtime
             Assert.AreEqual(3054, response.ErrorCode);
             Assert.AreEqual("Redeem code is restricted to a specific user", response.ErrorMessage);
 
+            yield return null;
         }
 
         // --- DataWrapper deserialization (simulating HTTP layer envelope unwrap) ---
 
-        [Test]
-        public void Response_Deserialization_WithDataEnvelope()
+        [UnityTest]
+        public IEnumerator Response_Deserialization_WithDataEnvelope()
         {
             var json = @"{
                 ""data"": {
@@ -236,14 +246,14 @@ namespace Tests.Runtime
             Assert.AreEqual(2003, wrapper.Data.OrderIds[2]);
             Assert.AreEqual("Code redeemed successfully", wrapper.Data.Message);
 
+            yield return null;
         }
 
         // --- Integration test (requires full SDK init + backend) ---
 
         [Ignore("Requires full SDK resources and a live backend server.")]
-        [Test]
-        [Timeout(5000)]
-        public async Task ClaimRedeem_ValidCode_ReturnsOrderIds()
+        [UnityTest]
+        public IEnumerator ClaimRedeem_ValidCode_ReturnsOrderIds() => UniTask.ToCoroutine(async () =>
         {
             await Noctua.InitAsync();
             await Noctua.Auth.AuthenticateAsync();
@@ -254,7 +264,7 @@ namespace Tests.Runtime
             Assert.IsTrue(response.Success);
             Assert.IsNotNull(response.OrderIds);
             Assert.Greater(response.OrderIds.Length, 0);
-        }
+        });
 
         // Helper class to simulate the HTTP layer data envelope unwrap
         private class DataWrapper<T>

@@ -1,6 +1,5 @@
 ﻿using System.Collections;
 using com.noctuagames.sdk;
-using System.Threading.Tasks;
 using Cysharp.Threading.Tasks;
 using NUnit.Framework;
 using UnityEngine.TestTools;
@@ -10,9 +9,8 @@ namespace Tests.Runtime
     public class AuthenticationTest
     {
         [Ignore("Requires full SDK resources (NoctuaPanelSettings) and a live backend server.")]
-        [Test]
-        [Timeout(5000)]
-        public async Task AccountChanged_RaiseEvent()
+        [UnityTest]
+        public IEnumerator AccountChanged_RaiseEvent() => UniTask.ToCoroutine(async () =>
         {
             try
             {
@@ -40,12 +38,11 @@ namespace Tests.Runtime
             {
                 Assert.Fail($"Failed to login as guest: {e.Message}");
             }
-        }
+        });
 
         [Ignore("Requires full SDK resources (NoctuaPanelSettings) and a live backend server.")]
-        [Test]
-        [Timeout(5000)]
-        public async Task ExistingUser_SetLanguageFromLocale_RaiseOnLanguageChanged()
+        [UnityTest]
+        public IEnumerator ExistingUser_SetLanguageFromLocale_RaiseOnLanguageChanged() => UniTask.ToCoroutine(async () =>
         {
             await Noctua.InitAsync();
             await Noctua.Auth.AuthenticateAsync();
@@ -64,6 +61,6 @@ namespace Tests.Runtime
             Noctua.Platform.Locale.SetUserPrefsLanguage(newLang);
             
             Assert.AreEqual(newLang, changedLang);
-        }
+        });
     }
 }

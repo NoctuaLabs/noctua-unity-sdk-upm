@@ -8,54 +8,60 @@ namespace Tests.Runtime
 {
     public class NoctuaLocaleExtendedTest
     {
-        [SetUp]
-        public void SetUp()
+        [UnitySetUp]
+        public IEnumerator SetUp()
         {
             PlayerPrefs.DeleteKey("NoctuaLocaleUserPrefsLanguage");
             PlayerPrefs.DeleteKey("NoctuaLocaleCountry");
             PlayerPrefs.DeleteKey("NoctuaLocaleCurrency");
+            yield return null;
         }
 
-        [TearDown]
-        public void TearDown()
+        [UnityTearDown]
+        public IEnumerator TearDown()
         {
             PlayerPrefs.DeleteKey("NoctuaLocaleUserPrefsLanguage");
             PlayerPrefs.DeleteKey("NoctuaLocaleCountry");
             PlayerPrefs.DeleteKey("NoctuaLocaleCurrency");
+            yield return null;
         }
 
-        [Test]
-        public void SetCountry_GetCountry_UpperCase()
+        [UnityTest]
+        public IEnumerator SetCountry_GetCountry_UpperCase()
         {
             var locale = new NoctuaLocale("");
             locale.SetCountry("id");
             Assert.AreEqual("ID", locale.GetCountry());
+            yield return null;
         }
 
-        [Test]
-        public void GetCountry_Default_ReturnsEmpty()
+        [UnityTest]
+        public IEnumerator GetCountry_Default_ReturnsEmpty()
         {
             var locale = new NoctuaLocale("");
             Assert.AreEqual("", locale.GetCountry());
+            yield return null;
         }
 
-        [Test]
-        public void SetCurrency_GetCurrency_UpperCase()
+        [UnityTest]
+        public IEnumerator SetCurrency_GetCurrency_UpperCase()
         {
             var locale = new NoctuaLocale("");
             locale.SetCurrency("idr");
             Assert.AreEqual("IDR", locale.GetCurrency());
+            yield return null;
         }
 
-        [Test]
-        public void GetCurrency_Default_ReturnsUSD()
+        [UnityTest]
+        public IEnumerator GetCurrency_Default_ReturnsUSD()
         {
             var locale = new NoctuaLocale("");
             Assert.AreEqual("USD", locale.GetCurrency());
+            yield return null;
         }
 
-        [Test]
-        public void OnLanguageChanged_FiresWhenLanguageChanges()
+        [UnityTest]
+        public IEnumerator OnLanguageChanged_FiresWhenLanguageChanges()
         {
             var locale = new NoctuaLocale("");
             locale.SetUserPrefsLanguage("");
@@ -65,10 +71,11 @@ namespace Tests.Runtime
 
             locale.SetUserPrefsLanguage("vi");
             Assert.AreEqual("vi", receivedLanguage);
+            yield return null;
         }
 
-        [Test]
-        public void OnLanguageChanged_DoesNotFire_WhenSameLanguage()
+        [UnityTest]
+        public IEnumerator OnLanguageChanged_DoesNotFire_WhenSameLanguage()
         {
             var locale = new NoctuaLocale("");
             locale.SetUserPrefsLanguage("id");
@@ -78,18 +85,20 @@ namespace Tests.Runtime
 
             locale.SetUserPrefsLanguage("id");
             Assert.IsFalse(fired);
+            yield return null;
         }
 
-        [Test]
-        public void GetLanguage_RegionTh_ReturnsTh()
+        [UnityTest]
+        public IEnumerator GetLanguage_RegionTh_ReturnsTh()
         {
             var locale = new NoctuaLocale("th");
             locale.SetUserPrefsLanguage("");
             Assert.AreEqual("th", locale.GetLanguage());
+            yield return null;
         }
 
-        [Test]
-        public void SetUserPrefsLanguage_ClearWithEmpty_FallsBackToRegion()
+        [UnityTest]
+        public IEnumerator SetUserPrefsLanguage_ClearWithEmpty_FallsBackToRegion()
         {
             var locale = new NoctuaLocale("vn");
             locale.SetUserPrefsLanguage("id");
@@ -97,39 +106,43 @@ namespace Tests.Runtime
 
             locale.SetUserPrefsLanguage("");
             Assert.AreEqual("vi", locale.GetLanguage());
+            yield return null;
         }
     }
 
     public class NoctuaLocaleEdgeCaseTests
     {
-        [SetUp]
-        public void SetUp()
+        [UnitySetUp]
+        public IEnumerator SetUp()
         {
             PlayerPrefs.DeleteKey("NoctuaLocaleUserPrefsLanguage");
             PlayerPrefs.DeleteKey("NoctuaLocaleCountry");
             PlayerPrefs.DeleteKey("NoctuaLocaleCurrency");
+            yield return null;
         }
 
-        [TearDown]
-        public void TearDown()
+        [UnityTearDown]
+        public IEnumerator TearDown()
         {
             PlayerPrefs.DeleteKey("NoctuaLocaleUserPrefsLanguage");
             PlayerPrefs.DeleteKey("NoctuaLocaleCountry");
             PlayerPrefs.DeleteKey("NoctuaLocaleCurrency");
+            yield return null;
         }
 
-        [Test]
-        public void GetLanguage_NoRegionNoPrefs_ReturnsFallbackString()
+        [UnityTest]
+        public IEnumerator GetLanguage_NoRegionNoPrefs_ReturnsFallbackString()
         {
             var locale = new NoctuaLocale("");
             var lang = locale.GetLanguage();
             // In Editor, system language maps to something — just confirm it is non-null and non-empty
             Assert.IsNotNull(lang);
             Assert.IsNotEmpty(lang);
+            yield return null;
         }
 
-        [Test]
-        public void SetUserPrefsLanguage_Null_ClearsOverrideAndFallsBackToRegion()
+        [UnityTest]
+        public IEnumerator SetUserPrefsLanguage_Null_ClearsOverrideAndFallsBackToRegion()
         {
             var locale = new NoctuaLocale("th");
             locale.SetUserPrefsLanguage("id");
@@ -138,72 +151,80 @@ namespace Tests.Runtime
             // null behaves like empty — should clear the user pref
             locale.SetUserPrefsLanguage(null);
             Assert.AreEqual("th", locale.GetLanguage());
+            yield return null;
         }
 
-        [Test]
-        public void GetLanguage_UnknownRegion_FallsBackToSystemLanguage()
+        [UnityTest]
+        public IEnumerator GetLanguage_UnknownRegion_FallsBackToSystemLanguage()
         {
             var locale = new NoctuaLocale("xx");
             locale.SetUserPrefsLanguage("");
             var lang = locale.GetLanguage();
             // Unknown region is not matched by the switch, so it falls through to system language
             Assert.IsNotNull(lang);
+            yield return null;
         }
 
-        [Test]
-        public void SetCountry_AlreadyUppercase_RoundTripsCorrectly()
+        [UnityTest]
+        public IEnumerator SetCountry_AlreadyUppercase_RoundTripsCorrectly()
         {
             var locale = new NoctuaLocale("");
             locale.SetCountry("US");
             Assert.AreEqual("US", locale.GetCountry());
+            yield return null;
         }
 
-        [Test]
-        public void SetCurrency_AlreadyUppercase_RoundTripsCorrectly()
+        [UnityTest]
+        public IEnumerator SetCurrency_AlreadyUppercase_RoundTripsCorrectly()
         {
             var locale = new NoctuaLocale("");
             locale.SetCurrency("USD");
             Assert.AreEqual("USD", locale.GetCurrency());
+            yield return null;
         }
 
-        [Test]
-        public void SetCountry_MultipleTimes_LastOneWins()
+        [UnityTest]
+        public IEnumerator SetCountry_MultipleTimes_LastOneWins()
         {
             var locale = new NoctuaLocale("");
             locale.SetCountry("id");
             locale.SetCountry("sg");
             Assert.AreEqual("SG", locale.GetCountry());
+            yield return null;
         }
 
-        [Test]
-        public void GetTranslation_StringKey_UnknownKey_ReturnsKey()
+        [UnityTest]
+        public IEnumerator GetTranslation_StringKey_UnknownKey_ReturnsKey()
         {
             // NoctuaLocale.GetTranslation(string) returns the key itself when no translation is found
             var locale = new NoctuaLocale("");
             var result = locale.GetTranslation("this_key_does_not_exist_anywhere");
             Assert.AreEqual("this_key_does_not_exist_anywhere", result);
+            yield return null;
         }
 
-        [Test]
-        public void GetTranslation_LocaleTextKey_DelegatesToStringOverload()
+        [UnityTest]
+        public IEnumerator GetTranslation_LocaleTextKey_DelegatesToStringOverload()
         {
             // GetTranslation(LocaleTextKey) must call GetTranslation(key.ToString())
             var locale = new NoctuaLocale("");
             var fromEnum = locale.GetTranslation(LocaleTextKey.IAPCanceled);
             var fromString = locale.GetTranslation(LocaleTextKey.IAPCanceled.ToString());
             Assert.AreEqual(fromString, fromEnum);
+            yield return null;
         }
 
-        [Test]
-        public void GetTranslations_ReturnsNonNullDictionary()
+        [UnityTest]
+        public IEnumerator GetTranslations_ReturnsNonNullDictionary()
         {
             var locale = new NoctuaLocale("");
             var dict = locale.GetTranslations();
             Assert.IsNotNull(dict);
+            yield return null;
         }
 
-        [Test]
-        public void OnLanguageChanged_Unsubscribe_NoFireAfterRemoval()
+        [UnityTest]
+        public IEnumerator OnLanguageChanged_Unsubscribe_NoFireAfterRemoval()
         {
             var locale = new NoctuaLocale("");
             locale.SetUserPrefsLanguage("");
@@ -215,6 +236,7 @@ namespace Tests.Runtime
 
             locale.SetUserPrefsLanguage("vi");
             Assert.IsFalse(fired);
+            yield return null;
         }
     }
 }

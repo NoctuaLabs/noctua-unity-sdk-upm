@@ -3,7 +3,6 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Reflection;
 using System.Runtime.CompilerServices;
-using System.Threading.Tasks;
 using com.noctuagames.sdk;
 using Cysharp.Threading.Tasks;
 using Newtonsoft.Json;
@@ -129,9 +128,9 @@ namespace Tests.Runtime
         /// When _initialized is already true, InitAsync() exits at the guard
         /// without making any HTTP request. Verifies the idempotency branch.
         /// </summary>
-        [Test]
-        [Timeout(5000)]
-        public async Task InitAsync_AlreadyInitialized_ReturnsWithoutHttp()
+        [UnityTest]
+        public IEnumerator InitAsync_AlreadyInitialized_ReturnsWithoutHttp()
+            => UniTask.ToCoroutine(async () =>
         {
             RequireInit();
 
@@ -143,7 +142,7 @@ namespace Tests.Runtime
                 "IsInitialized must remain true");
             Assert.AreEqual(0, _server.Requests.Count,
                 "No HTTP requests should be made when already initialized");
-        }
+        });
 
         // ─────────────────────────────────────────────────────────────────────
         // Group B — Happy path (online mode, country from response)
@@ -153,9 +152,9 @@ namespace Tests.Runtime
         /// Full online initialization: mock returns a valid response, so
         /// InitAsync() sets _initialized = true and _offlineMode = false.
         /// </summary>
-        [Test]
-        [Timeout(5000)]
-        public async Task InitAsync_OnlineResponse_SetsInitializedTrueAndOfflineFalse()
+        [UnityTest]
+        public IEnumerator InitAsync_OnlineResponse_SetsInitializedTrueAndOfflineFalse()
+            => UniTask.ToCoroutine(async () =>
         {
             RequireInit();
 
@@ -165,14 +164,14 @@ namespace Tests.Runtime
                 "IsInitialized must be true after successful online init");
             Assert.IsFalse(Noctua.IsOfflineMode(),
                 "IsOfflineMode must be false after successful online init");
-        }
+        });
 
         /// <summary>
         /// Verifies that at least one HTTP request reaches the mock /games/init handler.
         /// </summary>
-        [Test]
-        [Timeout(5000)]
-        public async Task InitAsync_OnlineResponse_MakesInitGameHttpRequest()
+        [UnityTest]
+        public IEnumerator InitAsync_OnlineResponse_MakesInitGameHttpRequest()
+            => UniTask.ToCoroutine(async () =>
         {
             RequireInit();
 
@@ -180,15 +179,15 @@ namespace Tests.Runtime
 
             Assert.Greater(_server.Requests.Count, 0,
                 "At least one HTTP request must reach the mock server");
-        }
+        });
 
         /// <summary>
         /// Non-empty country from server response is used directly; no Cloudflare
         /// fallback runs. Covers the "country from geoIP" log branch.
         /// </summary>
-        [Test]
-        [Timeout(5000)]
-        public async Task InitAsync_WithCountryInResponse_CompletesOnline()
+        [UnityTest]
+        public IEnumerator InitAsync_WithCountryInResponse_CompletesOnline()
+            => UniTask.ToCoroutine(async () =>
         {
             RequireInit();
 
@@ -197,7 +196,7 @@ namespace Tests.Runtime
 
             Assert.IsTrue(Noctua.IsInitialized(),
                 "Online init with explicit country must complete successfully");
-        }
+        });
 
         // ─────────────────────────────────────────────────────────────────────
         // Group C — Server returns offline_mode = true
@@ -210,9 +209,9 @@ namespace Tests.Runtime
         /// RunReconnectionLoopAsync() is fire-and-forget with a 10 s initial
         /// delay, so it cannot interfere within this test's lifetime.
         /// </summary>
-        [Test]
-        [Timeout(5000)]
-        public async Task InitAsync_ServerReturnsOfflineMode_KeepsInitializedFalse()
+        [UnityTest]
+        public IEnumerator InitAsync_ServerReturnsOfflineMode_KeepsInitializedFalse()
+            => UniTask.ToCoroutine(async () =>
         {
             RequireInit();
 
@@ -225,7 +224,7 @@ namespace Tests.Runtime
                 "IsInitialized must remain false in offline mode (Enable() deferred)");
             Assert.IsTrue(Noctua.IsOfflineMode(),
                 "IsOfflineMode must be true when server returns offline_mode=true");
-        }
+        });
 
         // ─────────────────────────────────────────────────────────────────────
         // Group D — Feature-flag parsing branches
@@ -235,9 +234,9 @@ namespace Tests.Runtime
         /// Valid boolean feature flag ("true") is parsed by bool.TryParse and
         /// applied to _config.Noctua.RemoteFeatureFlags. Covers the success branch.
         /// </summary>
-        [Test]
-        [Timeout(5000)]
-        public async Task InitAsync_WithValidBoolFeatureFlag_AppliesFlag()
+        [UnityTest]
+        public IEnumerator InitAsync_WithValidBoolFeatureFlag_AppliesFlag()
+            => UniTask.ToCoroutine(async () =>
         {
             RequireInit();
 
@@ -248,15 +247,15 @@ namespace Tests.Runtime
 
             Assert.IsTrue(Noctua.IsInitialized(),
                 "Online init with valid feature flag must complete");
-        }
+        });
 
         /// <summary>
         /// Invalid boolean value in a feature flag logs "Invalid boolean flag" warning
         /// and skips the entry. InitAsync() must complete normally.
         /// </summary>
-        [Test]
-        [Timeout(5000)]
-        public async Task InitAsync_WithInvalidBoolFeatureFlag_CompletesNormally()
+        [UnityTest]
+        public IEnumerator InitAsync_WithInvalidBoolFeatureFlag_CompletesNormally()
+            => UniTask.ToCoroutine(async () =>
         {
             RequireInit();
 
@@ -267,15 +266,15 @@ namespace Tests.Runtime
 
             Assert.IsTrue(Noctua.IsInitialized(),
                 "Online init must complete even with an unparseable feature flag");
-        }
+        });
 
         /// <summary>
         /// Empty-string key in feature flags triggers "Empty key found" warning
         /// and the entry is skipped. InitAsync() completes normally.
         /// </summary>
-        [Test]
-        [Timeout(5000)]
-        public async Task InitAsync_WithEmptyKeyFeatureFlag_SkipsAndCompletes()
+        [UnityTest]
+        public IEnumerator InitAsync_WithEmptyKeyFeatureFlag_SkipsAndCompletes()
+            => UniTask.ToCoroutine(async () =>
         {
             RequireInit();
 
@@ -286,16 +285,16 @@ namespace Tests.Runtime
 
             Assert.IsTrue(Noctua.IsInitialized(),
                 "Online init must complete even with an empty feature-flag key");
-        }
+        });
 
         /// <summary>
         /// Null RemoteFeatureFlags (feature_flags absent from JSON) logs
         /// "RemoteFeatureFlags is null" warning. The loop is skipped and init
         /// completes normally.
         /// </summary>
-        [Test]
-        [Timeout(5000)]
-        public async Task InitAsync_WithNullFeatureFlags_LogsWarningAndCompletes()
+        [UnityTest]
+        public IEnumerator InitAsync_WithNullFeatureFlags_LogsWarningAndCompletes()
+            => UniTask.ToCoroutine(async () =>
         {
             RequireInit();
 
@@ -315,15 +314,15 @@ namespace Tests.Runtime
             await Noctua.InitAsync();
 
             Assert.IsTrue(Noctua.IsInitialized());
-        }
+        });
 
         /// <summary>
         /// Multiple valid feature flags — the foreach loop iterates all of them.
         /// Covers the multi-iteration path of the flag-application loop.
         /// </summary>
-        [Test]
-        [Timeout(5000)]
-        public async Task InitAsync_WithMultipleValidFlags_AppliesAllFlags()
+        [UnityTest]
+        public IEnumerator InitAsync_WithMultipleValidFlags_AppliesAllFlags()
+            => UniTask.ToCoroutine(async () =>
         {
             RequireInit();
 
@@ -338,7 +337,7 @@ namespace Tests.Runtime
             await Noctua.InitAsync();
 
             Assert.IsTrue(Noctua.IsInitialized());
-        }
+        });
 
         // ─────────────────────────────────────────────────────────────────────
         // Group E — Empty country → Cloudflare fallback → "XX" sentinel
@@ -349,9 +348,9 @@ namespace Tests.Runtime
         /// The mock server does not serve the cloudflare endpoint, so the catch block
         /// sets country = "XX". InitAsync() must still reach IsInitialized = true.
         /// </summary>
-        [Test]
-        [Timeout(5000)]
-        public async Task InitAsync_WithEmptyCountry_FallsBackToXXAndCompletes()
+        [UnityTest]
+        public IEnumerator InitAsync_WithEmptyCountry_FallsBackToXXAndCompletes()
+            => UniTask.ToCoroutine(async () =>
         {
             RequireInit();
 
@@ -361,7 +360,7 @@ namespace Tests.Runtime
 
             // Country falls back to "XX" via the catch block; init still succeeds.
             Assert.IsTrue(Noctua.IsInitialized());
-        }
+        });
 
         // ─────────────────────────────────────────────────────────────────────
         // Group F — onSuccess callback + OnInitSuccess event
@@ -371,9 +370,9 @@ namespace Tests.Runtime
         /// The optional onSuccess UniTask delegate is awaited after initialization.
         /// Verifies the delegate invocation path at the end of InitAsync.
         /// </summary>
-        [Test]
-        [Timeout(5000)]
-        public async Task InitAsync_WithOnSuccessCallback_InvokesCallback()
+        [UnityTest]
+        public IEnumerator InitAsync_WithOnSuccessCallback_InvokesCallback()
+            => UniTask.ToCoroutine(async () =>
         {
             RequireInit();
 
@@ -387,15 +386,15 @@ namespace Tests.Runtime
 
             Assert.IsTrue(callbackInvoked,
                 "onSuccess callback must be invoked after InitAsync completes");
-        }
+        });
 
         /// <summary>
         /// The static OnInitSuccess event fires at the end of InitAsync().
         /// Verifies the event dispatch path.
         /// </summary>
-        [Test]
-        [Timeout(5000)]
-        public async Task InitAsync_WithOnInitSuccessSubscriber_InvokesEvent()
+        [UnityTest]
+        public IEnumerator InitAsync_WithOnInitSuccessSubscriber_InvokesEvent()
+            => UniTask.ToCoroutine(async () =>
         {
             RequireInit();
 
@@ -414,16 +413,16 @@ namespace Tests.Runtime
 
             Assert.IsTrue(eventFired,
                 "OnInitSuccess event must fire after successful InitAsync()");
-        }
+        });
 
         /// <summary>
         /// Calling InitAsync() a second time with _initialized=true hits the early-
         /// return guard before the OnInitSuccess dispatch site, so the event fires
         /// exactly once.
         /// </summary>
-        [Test]
-        [Timeout(5000)]
-        public async Task InitAsync_CalledTwice_OnInitSuccessFiresOnce()
+        [UnityTest]
+        public IEnumerator InitAsync_CalledTwice_OnInitSuccessFiresOnce()
+            => UniTask.ToCoroutine(async () =>
         {
             RequireInit();
 
@@ -443,7 +442,7 @@ namespace Tests.Runtime
 
             Assert.AreEqual(1, fireCount,
                 "OnInitSuccess must fire exactly once even when InitAsync is called twice");
-        }
+        });
 
         // ─────────────────────────────────────────────────────────────────────
         // Group G — Network failure on offline-first → silent fallback
@@ -462,9 +461,9 @@ namespace Tests.Runtime
         ///
         /// We set _offlineMode=true beforehand to bypass RetryAsyncTask delays.
         /// </summary>
-        [Test]
-        [Timeout(5000)]
-        public async Task InitAsync_NetworkFailureWithOfflineFirst_EntersOfflineMode()
+        [UnityTest]
+        public IEnumerator InitAsync_NetworkFailureWithOfflineFirst_EntersOfflineMode()
+            => UniTask.ToCoroutine(async () =>
         {
             RequireInit();
 
@@ -496,7 +495,7 @@ namespace Tests.Runtime
                 "IsOfflineMode must be true after network failure on offline-first init");
             Assert.IsFalse(Noctua.IsInitialized(),
                 "IsInitialized must be false when offline mode is active (Enable() not called)");
-        }
+        });
 
         // ─────────────────────────────────────────────────────────────────────
         // Group H — Remote IAA config absent → non-IAA native-plugin init path
@@ -507,9 +506,9 @@ namespace Tests.Runtime
         /// The "Remote config IAA is not configured yet" log branch executes,
         /// and native plugin is initialized via the non-IAA path.
         /// </summary>
-        [Test]
-        [Timeout(5000)]
-        public async Task InitAsync_WithNoRemoteIaaConfig_CompletesNormally()
+        [UnityTest]
+        public IEnumerator InitAsync_WithNoRemoteIaaConfig_CompletesNormally()
+            => UniTask.ToCoroutine(async () =>
         {
             RequireInit();
 
@@ -517,7 +516,7 @@ namespace Tests.Runtime
             await Noctua.InitAsync();
 
             Assert.IsTrue(Noctua.IsInitialized());
-        }
+        });
 
         // ─────────────────────────────────────────────────────────────────────
         // Group I — Currency / distribution-platform response fields
@@ -528,9 +527,9 @@ namespace Tests.Runtime
         /// the currency-lookup block is skipped (the guard on active_product_id
         /// fails). InitAsync() still reaches IsInitialized = true.
         /// </summary>
-        [Test]
-        [Timeout(5000)]
-        public async Task InitAsync_WithCurrencyMapButNoActiveProduct_Completes()
+        [UnityTest]
+        public IEnumerator InitAsync_WithCurrencyMapButNoActiveProduct_Completes()
+            => UniTask.ToCoroutine(async () =>
         {
             RequireInit();
 
@@ -551,15 +550,15 @@ namespace Tests.Runtime
             await Noctua.InitAsync();
 
             Assert.IsTrue(Noctua.IsInitialized());
-        }
+        });
 
         /// <summary>
         /// distribution_platform from the server response is passed to
         /// _iap.SetDistributionPlatform(). Verifies that code path is reached.
         /// </summary>
-        [Test]
-        [Timeout(5000)]
-        public async Task InitAsync_WithDistributionPlatform_SetsWithoutException()
+        [UnityTest]
+        public IEnumerator InitAsync_WithDistributionPlatform_SetsWithoutException()
+            => UniTask.ToCoroutine(async () =>
         {
             RequireInit();
 
@@ -579,15 +578,15 @@ namespace Tests.Runtime
             await Noctua.InitAsync();
 
             Assert.IsTrue(Noctua.IsInitialized());
-        }
+        });
 
         /// <summary>
         /// Multiple feature flags combined with a non-empty country and
         /// distribution_platform exercises several downstream branches together.
         /// </summary>
-        [Test]
-        [Timeout(5000)]
-        public async Task InitAsync_FullyPopulatedResponse_CompletesSuccessfully()
+        [UnityTest]
+        public IEnumerator InitAsync_FullyPopulatedResponse_CompletesSuccessfully()
+            => UniTask.ToCoroutine(async () =>
         {
             RequireInit();
 
@@ -614,7 +613,7 @@ namespace Tests.Runtime
 
             Assert.IsTrue(Noctua.IsInitialized());
             Assert.IsFalse(Noctua.IsOfflineMode());
-        }
+        });
 
         // ─────────────────────────────────────────────────────────────────────
         // Helpers

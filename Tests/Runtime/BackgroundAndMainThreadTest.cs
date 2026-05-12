@@ -94,10 +94,10 @@ namespace Tests.Runtime
         /// to marshal all SystemInfo / PlayerPrefs access back to the Unity main thread.
         /// The caller thread only enqueues the fire-and-forget; no Unity API is touched there.
         /// </summary>
-        [Test]
-        [Timeout(5000)]
-        public async Task Send_FromBackgroundThread_DoesNotThrow()
-        {
+        [UnityTest]
+        public IEnumerator Send_FromBackgroundThread_DoesNotThrow() =>
+            UniTask.ToCoroutine(async () =>
+            {
                 var sender = MakeOfflineSender();
                 try
                 {
@@ -129,17 +129,17 @@ namespace Tests.Runtime
                 {
                     sender.Dispose();
                 }
-        }
+            });
 
         /// <summary>
         /// A2 — Send() concurrent from multiple threads — no events are lost and
         /// the ConcurrentQueue never throws under concurrent access.
         /// All N×M events must appear in the JSONL file within the timeout.
         /// </summary>
-        [Test]
-        [Timeout(5000)]
-        public async Task Send_ConcurrentFromMultipleThreads_AllEventsStored()
-        {
+        [UnityTest]
+        public IEnumerator Send_ConcurrentFromMultipleThreads_AllEventsStored() =>
+            UniTask.ToCoroutine(async () =>
+            {
                 const int threadCount    = 5;
                 const int eventsPerThread = 8;
                 var sender = MakeOfflineSender();
@@ -192,7 +192,7 @@ namespace Tests.Runtime
                 {
                     sender.Dispose();
                 }
-        }
+            });
 
         /// <summary>
         /// A3 — Flush() is callable from a background thread (IsBackground = true).
@@ -263,10 +263,10 @@ namespace Tests.Runtime
         /// the write queue. Each event is a distinct JSON string; after the burst all
         /// events must appear in storage exactly once.
         /// </summary>
-        [Test]
-        [Timeout(5000)]
-        public async Task Send_BurstFromMainThread_WritesAllEventsWithoutDuplication()
-        {
+        [UnityTest]
+        public IEnumerator Send_BurstFromMainThread_WritesAllEventsWithoutDuplication() =>
+            UniTask.ToCoroutine(async () =>
+            {
                 const int eventCount = 50;
                 var sender = MakeOfflineSender();
                 try
@@ -291,7 +291,7 @@ namespace Tests.Runtime
                 {
                     sender.Dispose();
                 }
-        }
+            });
 
         // ═══════════════════════════════════════════════════════════════════════
         // Group B — SessionTracker background-thread safety
@@ -329,10 +329,10 @@ namespace Tests.Runtime
         /// Only the Flush() call is guarded to the main thread; the event Send() calls
         /// (session_end, noctua_user_engagement) execute regardless of calling thread.
         /// </summary>
-        [Test]
-        [Timeout(5000)]
-        public async Task SessionTracker_Dispose_FromBackgroundThread_SendsSessionEnd()
-        {
+        [UnityTest]
+        public IEnumerator SessionTracker_Dispose_FromBackgroundThread_SendsSessionEnd() =>
+            UniTask.ToCoroutine(async () =>
+            {
                 var mock    = new MockEventSender();
                 var tracker = new SessionTracker(new SessionTrackerConfig(), mock, null);
                 tracker.OnApplicationPause(false);
@@ -346,7 +346,7 @@ namespace Tests.Runtime
 
                 Assert.IsTrue(mock.SentEvents.Any(e => e.Name == "session_end"),
                     "session_end must be sent even when Dispose() is called from a background thread");
-        }
+            });
 
         /// <summary>
         /// B3 — Dispose() from a background thread skips the Flush() call.
@@ -354,10 +354,10 @@ namespace Tests.Runtime
         /// This verifies the `if (Thread.CurrentThread.ManagedThreadId != 1) return;`
         /// guard inside Dispose() is working.
         /// </summary>
-        [Test]
-        [Timeout(5000)]
-        public async Task SessionTracker_Dispose_FromBackgroundThread_SkipsFlush()
-        {
+        [UnityTest]
+        public IEnumerator SessionTracker_Dispose_FromBackgroundThread_SkipsFlush() =>
+            UniTask.ToCoroutine(async () =>
+            {
                 var mock = new MockEventSender();
                 // Enable flush-on-dispose via remote flag
                 var flags = new Dictionary<string, bool> { { "sendEventsOnFlushEnabled", true } };
@@ -374,7 +374,7 @@ namespace Tests.Runtime
                 Assert.AreEqual(0, mock.FlushCount,
                     "Flush() must NOT be called when Dispose() runs on a background thread " +
                     "(Unity APIs like UnityWebRequest crash from non-main threads)");
-        }
+            });
 
         /// <summary>
         /// B4 — Rapid OnApplicationPause(false) calls from a simulated "background burst"
@@ -385,10 +385,10 @@ namespace Tests.Runtime
         /// This test runs everything on the main thread to avoid Unity API restrictions,
         /// but simulates the burst pattern that ad SDKs cause.
         /// </summary>
-        [Test]
-        [Timeout(5000)]
-        public async Task SessionTracker_RapidResumeBurst_MinGapGuardSuppressesInflation()
-        {
+        [UnityTest]
+        public IEnumerator SessionTracker_RapidResumeBurst_MinGapGuardSuppressesInflation() =>
+            UniTask.ToCoroutine(async () =>
+            {
                 var mock    = new MockEventSender();
                 var tracker = new SessionTracker(new SessionTrackerConfig(), mock, null);
 
@@ -425,7 +425,7 @@ namespace Tests.Runtime
                     $"Expected ≤2 session_starts for 5 rapid resumes, got {sessionStartCount}");
 
                 tracker.Dispose();
-        }
+            });
 
         // ═══════════════════════════════════════════════════════════════════════
         // Group C — Main-thread enrichment verification
@@ -437,10 +437,10 @@ namespace Tests.Runtime
         /// EventSender.Send() marshals to main thread via `await UniTask.SwitchToMainThread()`
         /// before reading them. If the switch doesn't happen, the fields would be missing/null.
         /// </summary>
-        [Test]
-        [Timeout(5000)]
-        public async Task Send_FromBackgroundThread_EventContainsSystemInfoFields()
-        {
+        [UnityTest]
+        public IEnumerator Send_FromBackgroundThread_EventContainsSystemInfoFields() =>
+            UniTask.ToCoroutine(async () =>
+            {
                 var sender = MakeOfflineSender();
                 try
                 {
@@ -486,7 +486,7 @@ namespace Tests.Runtime
                 {
                     sender.Dispose();
                 }
-        }
+            });
 
         /// <summary>
         /// C2 — RunHeartbeat uses `await UniTask.SwitchToMainThread()` before
@@ -494,10 +494,10 @@ namespace Tests.Runtime
         /// This test verifies that after a heartbeat fires the orphaned session
         /// PlayerPrefs key is correctly written (only possible on main thread).
         /// </summary>
-        [Test]
-        [Timeout(5000)]
-        public async Task RunHeartbeat_WritesToPlayerPrefs_OnMainThread()
-        {
+        [UnityTest]
+        public IEnumerator RunHeartbeat_WritesToPlayerPrefs_OnMainThread() =>
+            UniTask.ToCoroutine(async () =>
+            {
                 var mock = new MockEventSender();
                 // Use a very short heartbeat period so we don't have to wait 60s
                 var config = new SessionTrackerConfig { HeartbeatPeriodMs = 200 };
@@ -516,7 +516,7 @@ namespace Tests.Runtime
                     "(confirms RunHeartbeat switched to main thread before SaveSessionState)");
 
                 tracker.Dispose();
-        }
+            });
 
         // ═══════════════════════════════════════════════════════════════════════
         // Group D — EventSender survivability under stress
@@ -527,10 +527,10 @@ namespace Tests.Runtime
         /// the Send caller or the Dispose caller. EventSender guards _disposed with a
         /// flag; this test stresses the window between the check and the action.
         /// </summary>
-        [Test]
-        [Timeout(5000)]
-        public async Task Send_ConcurrentWithDispose_DoesNotThrow()
-        {
+        [UnityTest]
+        public IEnumerator Send_ConcurrentWithDispose_DoesNotThrow() =>
+            UniTask.ToCoroutine(async () =>
+            {
                 var sender = MakeOfflineSender();
                 Exception sendEx    = null;
                 Exception disposeEx = null;
@@ -555,17 +555,17 @@ namespace Tests.Runtime
                     $"Send() during Dispose() must not throw. Got: {sendEx}");
                 Assert.IsNull(disposeEx,
                     $"Dispose() during concurrent Send() must not throw. Got: {disposeEx}");
-        }
+            });
 
         /// <summary>
         /// D2 — SetProperties() writes multiple fields (userId, gameId, sessionId…)
         /// that the UniTask.Void block reads without a lock. Interleaving SetProperties
         /// with rapid Send() calls must not deadlock or corrupt field state (no throw).
         /// </summary>
-        [Test]
-        [Timeout(5000)]
-        public async Task SetProperties_ConcurrentWithSend_NoDeadlockNoThrow()
-        {
+        [UnityTest]
+        public IEnumerator SetProperties_ConcurrentWithSend_NoDeadlockNoThrow() =>
+            UniTask.ToCoroutine(async () =>
+            {
                 var sender  = MakeOfflineSender();
                 var cts     = new CancellationTokenSource();
                 Exception caught = null;
@@ -608,17 +608,17 @@ namespace Tests.Runtime
 
                 Assert.IsNull(caught,
                     $"Concurrent SetProperties + Send must not throw. Got: {caught}");
-        }
+            });
 
         /// <summary>
         /// D3 — Multiple threads calling Flush() simultaneously must not throw.
         /// Flush() can be triggered from any thread (e.g. from OnApplicationFocus,
         /// OnApplicationPause, and network callbacks all at once).
         /// </summary>
-        [Test]
-        [Timeout(5000)]
-        public async Task Flush_ConcurrentFromMultipleThreads_DoesNotThrow()
-        {
+        [UnityTest]
+        public IEnumerator Flush_ConcurrentFromMultipleThreads_DoesNotThrow() =>
+            UniTask.ToCoroutine(async () =>
+            {
                 var sender = MakeOfflineSender();
                 var errors = new System.Collections.Concurrent.ConcurrentBag<Exception>();
 
@@ -646,7 +646,7 @@ namespace Tests.Runtime
 
                 Assert.AreEqual(0, errors.Count,
                     $"Concurrent Flush() calls must not throw. Errors: {string.Join("; ", errors.Select(e => e.Message))}");
-        }
+            });
 
         /// <summary>
         /// D4 — Send() called after Dispose() must be silently swallowed (no throw,
