@@ -173,10 +173,13 @@ namespace com.noctuagames.sdk.Editor.Build
                 var fileRefUuid = m.Groups["ref"].Value;
 
                 // Confirm the referenced file lives inside Pods/ (CocoaPods-managed).
-                // PBXFileReference line: UUID /* MolocoSDK.xcframework */ = { ... path = Pods/... };
+                // PBXFileReference lines are single-line and contain multiple semicolons
+                // before reaching "path = Pods/...". Use [^\n]* (no-newline wildcard)
+                // instead of [^;]* so semicolons within the same line are allowed.
+                // Example: UUID /* MolocoSDK.xcframework */ = {isa = PBXFileReference; ...; path = Pods/...};
                 var fileRefCheck = new Regex(
-                    Regex.Escape(fileRefUuid) + @"[^;]{0,300}path\s*=\s*Pods/",
-                    RegexOptions.Singleline);
+                    Regex.Escape(fileRefUuid) + @"[^\n]*path\s*=\s*Pods/",
+                    RegexOptions.None);
                 if (!fileRefCheck.IsMatch(pbx)) continue;
 
                 var buildFileUuid = m.Groups["uuid"].Value;
