@@ -944,4 +944,5 @@ namespace Tests.Runtime
 
                 tracker.Dispose();
         }
+    }
 }

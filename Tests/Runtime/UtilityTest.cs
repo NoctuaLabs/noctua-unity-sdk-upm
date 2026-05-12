@@ -465,4 +465,5 @@ namespace Tests.Runtime
                     Assert.AreEqual(4.0, delays[i], 1);
                 }
         }
+    }
 }

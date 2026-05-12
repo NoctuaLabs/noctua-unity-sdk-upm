@@ -207,4 +207,5 @@ namespace Tests.Runtime
 
                 Assert.AreEqual(0, sessionEvents.Count, "NativeSessionTracker must not send session events");
         }
+    }
 }

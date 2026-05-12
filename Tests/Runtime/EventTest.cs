@@ -1039,6 +1039,7 @@ namespace Tests.Runtime
 
                 eventSender.Dispose();
         }
+    }
 
     public class EventSenderExtendedTest
     {
