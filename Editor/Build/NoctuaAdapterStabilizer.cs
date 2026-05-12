@@ -97,16 +97,10 @@ namespace com.noctuagames.sdk.Editor.Build
         // (networkName, admobPkg, maxAndroidPkg, maxIosPkg, reason)
         private static readonly (string Network, string AdmobPkg, string MaxAndroid, string MaxIos, string Reason)[] FrameworkConflictChecks =
         {
-            // InMobi: AppLovinMediationInMobiAdapter vendors InMobiSDK.xcframework
-            // and GoogleMobileAdsMediationInMobi depends on InMobiSDK pod, which
-            // also installs the same framework — Xcode sees two copies.
-            ("InMobi",
-             "com.google.ads.mobile.mediation.inmobi",
-             "com.applovin.mediation.adapters.inmobi.android",
-             "com.applovin.mediation.adapters.inmobi.ios",
-             "Xcode: two copies of InMobiSDK.framework in Embed Frameworks"),
-
-            // Moloco: identical pattern to InMobi — both adapters embed MolocoSDK.framework.
+            // Moloco: AppLovinMediationMolocoAdapter vendors MolocoSDK.xcframework via
+            // EmbedDynamicLibrariesIfNeeded, and GoogleMobileAdsMediationMoloco's CocoaPods
+            // [CP] Embed Pods Frameworks script also embeds MolocoSDK.framework —
+            // both produce the same output path → Xcode "Multiple commands produce" error.
             ("Moloco",
              "com.google.ads.mobile.mediation.moloco",
              "com.applovin.mediation.adapters.moloco.android",
@@ -251,7 +245,6 @@ namespace com.noctuagames.sdk.Editor.Build
         /// </summary>
         internal static readonly string[] CollidingFrameworkNames =
         {
-            "InMobiSDK.framework",
             "MolocoSDK.framework",
         };
 
