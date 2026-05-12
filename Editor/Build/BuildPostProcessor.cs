@@ -350,6 +350,27 @@ using UnityEditor.Graphs;
                 if (!processed.Add(xcfwName)) continue;         // already handled
                 if (!IsDynamicXcframework(xcfwAbsPath)) continue; // static — skip
 
+                // Preventive: skip frameworks already embedded by CocoaPods' [CP] Embed Pods
+                // Frameworks shell-script phase (listed in NoctuaAdapterStabilizer.CollidingFrameworkNames).
+                // Re-embedding them here duplicates the CocoaPods script's output and causes
+                // "Multiple commands produce '…/<Name>.framework'" Xcode errors.
+                //
+                // Name-based skip (not FindFileGuidByProjectPath) because AppLovin's PBXFileReference
+                // uses sourceTree = SOURCE_ROOT and the project-path key doesn't always match the
+                // idempotency lookup, which lets this loop re-add the entry after the deduper at
+                // order 1000 has already removed AppLovin's original.
+                var xcfwBase = Path.GetFileNameWithoutExtension(xcfwName); // "MolocoSDK"
+                bool isCocoaPodsManaged = com.noctuagames.sdk.Editor.Build.NoctuaAdapterStabilizer
+                    .CollidingFrameworkNames
+                    .Any(fw => string.Equals(Path.GetFileNameWithoutExtension(fw), xcfwBase,
+                                              StringComparison.OrdinalIgnoreCase));
+                if (isCocoaPodsManaged)
+                {
+                    Log($"Skipping '{xcfwName}' from Noctua auto-embed — CocoaPods [CP] Embed Pods " +
+                        "Frameworks already embeds it. Avoids 'Multiple commands produce' Xcode error.");
+                    continue;
+                }
+
                 // Project-relative path e.g. "Pods/BigoADS/BigoADS/BigoADS.xcframework"
                 var relPath = xcfwAbsPath
                     .Substring(pathToBuiltProject.Length)
