@@ -82,14 +82,26 @@ namespace Tests.Runtime
                             }
                         );
 
-                        var buffer = Encoding.UTF8.GetBytes(responseString);
-                        response.ContentLength64 = buffer.Length;
-                        
-                        response.StatusCode = (int)HttpStatusCode.OK;
-
-                        await response.OutputStream.WriteAsync(buffer, 0, buffer.Length);
-                        
-                        response.OutputStream.Close();
+                        if (responseString == null)
+                        {
+                            // Null return: convention for "send HTTP 500 with empty body".
+                            // Explicitly close the OutputStream so the full HTTP response
+                            // (status line + headers + empty body) is flushed before the
+                            // connection is released. Without this, HttpListenerResponse.Dispose()
+                            // may close the socket without a proper HTTP terminator, causing
+                            // UnityWebRequest to throw rather than return result=ProtocolError.
+                            response.StatusCode = (int)HttpStatusCode.InternalServerError;
+                            response.ContentLength64 = 0;
+                            response.OutputStream.Close();
+                        }
+                        else
+                        {
+                            var buffer = Encoding.UTF8.GetBytes(responseString);
+                            response.ContentLength64 = buffer.Length;
+                            response.StatusCode = (int)HttpStatusCode.OK;
+                            await response.OutputStream.WriteAsync(buffer, 0, buffer.Length);
+                            response.OutputStream.Close();
+                        }
                     }
                     catch (Exception ex)
                     {

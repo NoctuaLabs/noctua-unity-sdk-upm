@@ -613,5 +613,133 @@ namespace Tests.Runtime.IAA
                 Assert.AreEqual(CpmFloorResult.Allow, result);
             });
         }
+
+        // ─── ExtractCountryTier — leading underscore (underscore at position 0) ─
+
+        [Test]
+        public void EvaluateFloor_SegmentKeyLeadingUnderscore_FallsBackToT3()
+        {
+            var mgr = new CpmFloorManager(DefaultConfig());
+
+            // "_nonpayer_new_d0d1" → IndexOf('_') == 0 → ExtractCountryTier returns "t3"
+            // t3 interstitial: soft=0.05, hard=0.02; avgCpm=0.10 >= soft → Allow
+            var result = mgr.EvaluateFloor("admob", Interstitial, avgCpm: 0.10, sampleCount: 20, segmentKey: "_nonpayer_new_d0d1");
+
+            Assert.AreEqual(CpmFloorResult.Allow, result,
+                "segmentKey starting with '_' must fall back to t3 floor");
+        }
+
+        // ─── SegmentOverride present for segment+format but entry value is null ─
+
+        [Test]
+        public void EvaluateFloor_SegmentOverrideNullEntry_FallsThroughToTierFloor()
+        {
+            var config = DefaultConfig();
+            // The segment key exists in overrides, the format key exists, but the CpmFloorEntry is null.
+            // ResolveFloor: segFloor == null after TryGetValue → falls through to tier floor.
+            config.SegmentOverrides["t1_nonpayer_new_d0d1"] = new Dictionary<string, CpmFloorEntry>
+            {
+                [Interstitial] = null
+            };
+            var mgr = new CpmFloorManager(config);
+
+            // Falls back to t1 tier floor: soft=0.50, hard=0.20; avgCpm=0.60 >= soft → Allow
+            var result = mgr.EvaluateFloor("admob", Interstitial, avgCpm: 0.60, sampleCount: 20, segmentKey: "t1_nonpayer_new_d0d1");
+
+            Assert.AreEqual(CpmFloorResult.Allow, result,
+                "Null CpmFloorEntry in segment override must fall through to tier floor");
+        }
+
+        // ─── t3 tier exact match, no fallback needed ───────────────────────────
+
+        [Test]
+        public void EvaluateFloor_T3TierSegmentKey_UsesT3FloorDirectly()
+        {
+            var mgr = new CpmFloorManager(DefaultConfig());
+
+            // t3 rewarded: soft=0.10, hard=0.04; avgCpm=0.15 >= soft → Allow
+            var result = mgr.EvaluateFloor("applovin", Rewarded, avgCpm: 0.15, sampleCount: 15, segmentKey: "t3_nonpayer_new_d0d1");
+
+            Assert.AreEqual(CpmFloorResult.Allow, result,
+                "t3 segmentKey must use t3 floor directly without fallback");
+        }
+
+        [Test]
+        public void EvaluateFloor_T3TierSegmentKey_HardFail()
+        {
+            var mgr = new CpmFloorManager(DefaultConfig());
+
+            // t3 rewarded: hard=0.04; avgCpm=0.02 < hard → HardFail
+            var result = mgr.EvaluateFloor("applovin", Rewarded, avgCpm: 0.02, sampleCount: 15, segmentKey: "t3_nonpayer_new_d0d1");
+
+            Assert.AreEqual(CpmFloorResult.HardFail, result);
+        }
+
+        // ─── t3 tier missing — no t3 fallback (tier is already t3) ───────────
+
+        [Test]
+        public void EvaluateFloor_T3FloorMissingAndTierIsT3_ReturnsAllow()
+        {
+            var config = DefaultConfig();
+            config.Floors[Interstitial].Remove("t3");
+            var mgr = new CpmFloorManager(config);
+
+            // segmentKey tier is "t3"; t3 floor missing; the code only attempts t3 fallback
+            // when tier != "t3", so with tier == "t3" and t3 missing → ResolveFloor returns null → Allow
+            var result = mgr.EvaluateFloor("admob", Interstitial, avgCpm: 0.00, sampleCount: 20, segmentKey: "t3_nonpayer_new_d0d1");
+
+            Assert.AreEqual(CpmFloorResult.Allow, result,
+                "When tier is t3 and t3 floor is missing, no fallback applies — must return Allow");
+        }
+
+        // ─── MinSamples exactly at boundary (sampleCount == minSamples) ────────
+
+        [Test]
+        public void EvaluateFloor_SampleCountExactlyAtMinSamples_AppliesFloor()
+        {
+            var config = DefaultConfig();
+            config.MinSamples = 5;
+            var mgr = new CpmFloorManager(config);
+
+            // sampleCount == minSamples (5): cold-start guard does NOT fire → floor applied
+            // t1 interstitial: soft=0.50; avgCpm=0.30 → SoftFail
+            var result = mgr.EvaluateFloor("admob", Interstitial, avgCpm: 0.30, sampleCount: 5, segmentKey: "t1_nonpayer_new_d0d1");
+
+            Assert.AreEqual(CpmFloorResult.SoftFail, result,
+                "sampleCount equal to minSamples must apply the floor (not cold-start Allow)");
+        }
+
+        // ─── HasFloor — null format argument ──────────────────────────────────
+
+        [Test]
+        public void HasFloor_NullFormat_ReturnsFalse()
+        {
+            var mgr = new CpmFloorManager(DefaultConfig());
+
+            // Dictionary.ContainsKey(null) returns false without throwing for Dictionary<string,...>
+            Assert.DoesNotThrow(() =>
+            {
+                bool has = mgr.HasFloor(null);
+                Assert.IsFalse(has, "HasFloor(null) must return false");
+            });
+        }
+
+        // ─── Segment override: segment key present, inner dict is null ─────────
+
+        [Test]
+        public void EvaluateFloor_SegmentOverrideNullInnerDict_FallsThroughToTierFloor()
+        {
+            var config = DefaultConfig();
+            // TryGetValue for segmentKey succeeds but segOverride itself is null
+            config.SegmentOverrides["t1_nonpayer_new_d0d1"] = null;
+            var mgr = new CpmFloorManager(config);
+
+            // segOverride == null → skips segment override → falls through to t1 tier floor
+            // t1 interstitial: soft=0.50; avgCpm=0.60 → Allow
+            var result = mgr.EvaluateFloor("admob", Interstitial, avgCpm: 0.60, sampleCount: 20, segmentKey: "t1_nonpayer_new_d0d1");
+
+            Assert.AreEqual(CpmFloorResult.Allow, result,
+                "Null inner dict in segment override must fall through to tier floor");
+        }
     }
 }

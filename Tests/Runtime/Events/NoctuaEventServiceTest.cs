@@ -783,6 +783,230 @@ namespace Tests.Runtime.Events
             Assert.IsFalse(_eventSender.HasEvent("feature_engagement"),
                 "No feature_engagement must fire when transitioning from empty feature to a named one");
         }
+
+        // ─── ReportError ──────────────────────────────────────────────────────
+
+        [Test]
+        public void ReportError_SendsClientErrorEventToEventSender()
+        {
+            var svc = new NoctuaEventService(_nativeTracker, _eventSender);
+
+            svc.ReportError("Save failed");
+
+            Assert.IsTrue(_eventSender.HasEvent("client_error"),
+                "ReportError must send a 'client_error' event via the event sender");
+        }
+
+        [Test]
+        public void ReportError_DefaultParameters_PayloadContainsStandardFields()
+        {
+            var svc = new NoctuaEventService(_nativeTracker, _eventSender);
+
+            svc.ReportError("Something broke");
+
+            var evt = _eventSender.GetEvents("client_error").First();
+            Assert.IsTrue(evt.ContainsKey("source"),       "client_error must contain 'source'");
+            Assert.IsTrue(evt.ContainsKey("severity"),     "client_error must contain 'severity'");
+            Assert.IsTrue(evt.ContainsKey("message"),      "client_error must contain 'message'");
+            Assert.IsTrue(evt.ContainsKey("app_version"),  "client_error must contain 'app_version'");
+            Assert.IsTrue(evt.ContainsKey("platform"),     "client_error must contain 'platform'");
+            Assert.IsTrue(evt.ContainsKey("timestamp_utc"),"client_error must contain 'timestamp_utc'");
+        }
+
+        [Test]
+        public void ReportError_DefaultParameters_SourceIsGameAndSeverityIsError()
+        {
+            var svc = new NoctuaEventService(_nativeTracker, _eventSender);
+
+            svc.ReportError("msg");
+
+            var evt = _eventSender.GetEvents("client_error").First();
+            Assert.AreEqual("game",  evt["source"].ToString(),   "Default source must be 'game'");
+            Assert.AreEqual("error", evt["severity"].ToString(), "Default severity must be 'error'");
+        }
+
+        [Test]
+        public void ReportError_WithErrorType_IncludesErrorTypeInPayload()
+        {
+            var svc = new NoctuaEventService(_nativeTracker, _eventSender);
+
+            svc.ReportError("disk full", errorType: "SaveError");
+
+            var evt = _eventSender.GetEvents("client_error").First();
+            Assert.IsTrue(evt.ContainsKey("error_type"),
+                "Non-null errorType must be included in the payload");
+            Assert.AreEqual("SaveError", evt["error_type"].ToString());
+        }
+
+        [Test]
+        public void ReportError_NullErrorType_OmitsErrorTypeFromPayload()
+        {
+            var svc = new NoctuaEventService(_nativeTracker, _eventSender);
+
+            svc.ReportError("timeout", errorType: null);
+
+            var evt = _eventSender.GetEvents("client_error").First();
+            Assert.IsFalse(evt.ContainsKey("error_type"),
+                "null errorType must not appear in the payload");
+        }
+
+        [Test]
+        public void ReportError_CustomSeverityAndSource_AppearsInPayload()
+        {
+            var svc = new NoctuaEventService(_nativeTracker, _eventSender);
+
+            svc.ReportError("ad init failed", severity: ClientErrorSeverity.Warning,
+                source: ClientErrorSource.NoctuaSdk);
+
+            var evt = _eventSender.GetEvents("client_error").First();
+            Assert.AreEqual("warning",   evt["severity"].ToString(), "Custom severity must be lowercased in payload");
+            Assert.AreEqual("noctuasdk", evt["source"].ToString(),   "Custom source must be lowercased in payload");
+        }
+
+        [Test]
+        public void ReportError_NullMessage_TreatedAsEmptyString()
+        {
+            var svc = new NoctuaEventService(_nativeTracker, _eventSender);
+
+            Assert.DoesNotThrow(() => svc.ReportError(null),
+                "null message must not throw");
+            var evt = _eventSender.GetEvents("client_error").First();
+            Assert.AreEqual("", evt["message"].ToString(),
+                "null message must be stored as empty string");
+        }
+
+        [Test]
+        public void ReportError_NullEventSender_DoesNotThrow()
+        {
+            var svc = new NoctuaEventService(_nativeTracker, null);
+
+            Assert.DoesNotThrow(() => svc.ReportError("crash"),
+                "ReportError with null event sender must not throw");
+        }
+
+        [Test]
+        public void ReportError_ContextPropertiesAppearedInPayload()
+        {
+            var svc = new NoctuaEventService(_nativeTracker, _eventSender);
+            svc.SetProperties(country: "SG", ipAddress: "1.2.3.4", isSandbox: true);
+
+            svc.ReportError("bad state");
+
+            var evt = _eventSender.GetEvents("client_error").First();
+            Assert.AreEqual("SG",     evt["country"].ToString(),    "country must be injected into ReportError payload");
+            Assert.AreEqual("1.2.3.4",evt["ip_address"].ToString(), "ip_address must be injected into ReportError payload");
+            Assert.AreEqual(true,     evt["is_sandbox"],            "is_sandbox must be injected into ReportError payload");
+        }
+
+        [Test]
+        public void ReportError_DoesNotCallNativeTracker()
+        {
+            var svc = new NoctuaEventService(_nativeTracker, _eventSender);
+
+            svc.ReportError("error");
+
+            Assert.AreEqual(0, _nativeTracker.CalledMethods.Count,
+                "ReportError must NOT forward to the native tracker");
+        }
+
+        // ─── Native-tracker-throws best-effort paths ──────────────────────────
+
+        [Test]
+        public void TrackAdRevenue_NativeTrackerThrows_StillSendsAdRevenueEvent()
+        {
+            var throwing = new ThrowingNativeTracker();
+            var svc = new NoctuaEventService(throwing, _eventSender);
+
+            Assert.DoesNotThrow(() => svc.TrackAdRevenue("admob", 0.01, "USD"),
+                "Exception from native tracker must be swallowed");
+            Assert.IsTrue(_eventSender.HasEvent("ad_revenue"),
+                "ad_revenue must still reach EventSender even when native tracker throws");
+        }
+
+        [Test]
+        public void TrackCustomEvent_NativeTrackerThrows_StillSendsEvent()
+        {
+            var throwing = new ThrowingNativeTracker();
+            var svc = new NoctuaEventService(throwing, _eventSender);
+
+            Assert.DoesNotThrow(() => svc.TrackCustomEvent("game_start"),
+                "Exception from native tracker must be swallowed in TrackCustomEvent");
+            Assert.IsTrue(_eventSender.HasEvent("game_start"),
+                "game_start must still reach EventSender even when native tracker throws");
+        }
+
+        [Test]
+        public void TrackCustomEventWithRevenue_NativeTrackerThrows_StillSendsEvent()
+        {
+            var throwing = new ThrowingNativeTracker();
+            var svc = new NoctuaEventService(throwing, _eventSender);
+
+            Assert.DoesNotThrow(() => svc.TrackCustomEventWithRevenue("revenue_event", 1.99, "USD"),
+                "Exception from native tracker must be swallowed in TrackCustomEventWithRevenue");
+            Assert.IsTrue(_eventSender.HasEvent("revenue_event"),
+                "revenue_event must still reach EventSender even when native tracker throws");
+        }
+
+        // ─── TrackCustomEventWithRevenue — context in native tracker payload ──
+
+        [Test]
+        public void TrackCustomEventWithRevenue_ContextPropertiesForwardedToNativeTracker()
+        {
+            var capturing = new CapturingNativeTracker();
+            var svc = new NoctuaEventService(capturing, _eventSender);
+            svc.SetProperties(country: "PH");
+
+            svc.TrackCustomEventWithRevenue("store_evt", 0.99, "USD");
+
+            var call = capturing.CustomEventRevenueCalls.First();
+            Assert.IsTrue(call.Payload.ContainsKey("country"),
+                "Native tracker must receive country context in TrackCustomEventWithRevenue payload");
+            Assert.AreEqual("PH", call.Payload["country"]);
+        }
+
+        // ─── TrackAdRevenue — context in native tracker payload ───────────────
+
+        [Test]
+        public void TrackAdRevenue_ContextPropertiesForwardedToNativeTracker()
+        {
+            var capturing = new CapturingNativeTracker();
+            var svc = new NoctuaEventService(capturing, _eventSender);
+            svc.SetProperties(country: "TH");
+
+            svc.TrackAdRevenue("applovin", 0.03, "USD");
+
+            var call = capturing.AdRevenueCalls.First();
+            Assert.IsTrue(call.Payload.ContainsKey("country"),
+                "Native tracker must receive country context in TrackAdRevenue payload");
+            Assert.AreEqual("TH", call.Payload["country"]);
+        }
+    }
+
+    // ─── ThrowingNativeTracker ────────────────────────────────────────────────
+
+    /// <summary>
+    /// INativeTracker that throws on every call — used to verify best-effort exception
+    /// handling in NoctuaEventService (native tracker failures must not propagate).
+    /// </summary>
+    public class ThrowingNativeTracker : INativeTracker
+    {
+        public void TrackAdRevenue(string source, double revenue, string currency,
+            Dictionary<string, IConvertible> extraPayload = null)
+            => throw new Exception("native TrackAdRevenue failed");
+
+        public void TrackPurchase(string orderId, double amount, string currency,
+            Dictionary<string, IConvertible> extraPayload = null)
+            => throw new Exception("native TrackPurchase failed");
+
+        public void TrackCustomEvent(string name, Dictionary<string, IConvertible> extraPayload = null)
+            => throw new Exception("native TrackCustomEvent failed");
+
+        public void TrackCustomEventWithRevenue(string name, double revenue, string currency,
+            Dictionary<string, IConvertible> extraPayload = null)
+            => throw new Exception("native TrackCustomEventWithRevenue failed");
+
+        public void OnOnline()  { }
+        public void OnOffline() { }
     }
 
     // ─── MockNativeTracker ────────────────────────────────────────────────────

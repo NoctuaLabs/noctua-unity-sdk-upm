@@ -382,5 +382,94 @@ namespace Tests.Runtime
             Assert.AreEqual(2, callCount,
                 "Both subscribers must be called when language changes");
         }
+
+        // ─── Constructor with non-empty region ───────────────────────────────
+
+        [Test]
+        public void Constructor_WithEmptyRegion_DoesNotStoreRegion()
+        {
+            // When region is empty, the constructor path that guards with
+            // !string.IsNullOrEmpty(region) is NOT taken — region stays null/default.
+            // GetLanguage() falls through to system language (no region override).
+            var locale = new NoctuaLocale(region: "");
+            var lang = locale.GetLanguage();
+            // No region override — "th" and "vn" should NOT be returned unless system language maps there
+            Assert.IsNotNull(lang);
+            Assert.IsNotEmpty(lang);
+        }
+
+        [Test]
+        public void Constructor_WithNonMappedRegion_FallsBackToSystemLanguage()
+        {
+            // Regions not in the switch (e.g. "sg") fall through to system language mapping.
+            // Covers the default branch of the switch statement in GetLanguage().
+            var locale = new NoctuaLocale(region: "sg");
+            var lang = locale.GetLanguage();
+            Assert.IsNotNull(lang);
+            Assert.IsNotEmpty(lang);
+            // "sg" is not mapped to any region language — should NOT be "th" or "vi"
+            Assert.AreNotEqual("th", lang);
+            Assert.AreNotEqual("vi", lang);
+        }
+
+        // ─── SetCountry / SetCurrency — NullReferenceException guard ─────────
+
+        [Test]
+        public void SetCountry_NullInput_ThrowsException()
+        {
+            // SetCountry calls country.ToUpper() — null input throws NullReferenceException.
+            // This verifies that callers must pass a non-null string.
+            var locale = new NoctuaLocale();
+            Assert.Throws<NullReferenceException>(() => locale.SetCountry(null));
+        }
+
+        [Test]
+        public void SetCurrency_NullInput_ThrowsException()
+        {
+            // SetCurrency calls currency.ToUpper() — null input throws NullReferenceException.
+            var locale = new NoctuaLocale();
+            Assert.Throws<NullReferenceException>(() => locale.SetCurrency(null));
+        }
+
+        // ─── GetTranslations — _translations null fallback ────────────────────
+
+        [Test]
+        public void GetTranslations_AfterSettingUnknownLanguage_ReturnsNonNull()
+        {
+            // When an unknown language code is set, LoadTranslations may return null for
+            // _translations. GetTranslations() should then fall back to _defaultTranslations.
+            var locale = new NoctuaLocale();
+            locale.SetUserPrefsLanguage("xx-ZZ-unknown-lang-code");
+            // _translations may be null for unknown language — GetTranslations() should return _defaultTranslations
+            var dict = locale.GetTranslations();
+            Assert.IsNotNull(dict, "GetTranslations() must never return null — falls back to _defaultTranslations");
+        }
+
+        // ─── GetTranslation with known and unknown keys ───────────────────────
+
+        [Test]
+        public void GetTranslation_KnownEnumKey_ReturnsNonEmpty()
+        {
+            // Constructs with "en" region fallback — translations for "en" should load.
+            // Covers the _translations?.TryGetValue path when key is found.
+            var locale = new NoctuaLocale();
+            locale.SetUserPrefsLanguage("en");
+            var result = locale.GetTranslation(LocaleTextKey.OfflineModeMessage);
+            Assert.IsNotNull(result);
+            Assert.IsNotEmpty(result);
+        }
+
+        [Test]
+        public void GetTranslation_StringKey_WhenTranslationsAreNull_ReturnsDefaultOrKey()
+        {
+            // Force _translations to be null by using an unknown language.
+            // GetTranslation should fall back to _defaultTranslations and then to the key itself.
+            var locale = new NoctuaLocale();
+            locale.SetUserPrefsLanguage("xx-ZZ-unknown-lang-code");
+            // _translations is likely null; _defaultTranslations may have "en" entries
+            var result = locale.GetTranslation("SomeKeyThatDefinitelyDoesNotExistEver_abc123");
+            // Fallback: key itself is returned when not in _defaultTranslations either
+            Assert.AreEqual("SomeKeyThatDefinitelyDoesNotExistEver_abc123", result);
+        }
     }
 }

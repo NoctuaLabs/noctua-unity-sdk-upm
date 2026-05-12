@@ -8,12 +8,12 @@ namespace com.noctuagames.sdk.Events
     /// construction (not in Start/Awake) to avoid missing the first native onResume.
     /// Unregisters and disposes on Destroy.
     /// </summary>
-    internal class NativeSessionTrackerBehaviour : MonoBehaviour
+    public class NativeSessionTrackerBehaviour : MonoBehaviour
     {
-        internal NativeSessionTracker NativeSessionTracker;
-        internal INativeLifecycle NativeLifecycle;
+        public NativeSessionTracker NativeSessionTracker;
+        public INativeLifecycle NativeLifecycle;
 
-        internal void OnNativeLifecycleEvent(string lifecycleEvent)
+        public void OnNativeLifecycleEvent(string lifecycleEvent)
         {
             switch (lifecycleEvent)
             {

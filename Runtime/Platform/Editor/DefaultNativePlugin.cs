@@ -132,13 +132,17 @@ namespace com.noctuagames.sdk
         }
 
         /// <inheritdoc />
-        public void GetFirebaseInstallationID(Action<string> callback) {
-
+        public void GetFirebaseInstallationID(Action<string> callback)
+        {
+            // Editor has no Firebase runtime — return empty synchronously.
+            callback?.Invoke(string.Empty);
         }
 
         /// <inheritdoc />
-        public void GetFirebaseAnalyticsSessionID(Action<string> callback) {
-
+        public void GetFirebaseAnalyticsSessionID(Action<string> callback)
+        {
+            // Editor has no Firebase runtime — return empty synchronously.
+            callback?.Invoke(string.Empty);
         }
 
         /// <inheritdoc />

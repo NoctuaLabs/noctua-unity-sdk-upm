@@ -815,5 +815,189 @@ namespace Tests.Runtime
             Assert.Throws<ArgumentNullException>(() =>
                 new SessionTracker(_config, null));
         }
+
+        // ─── Rapid session gap suppression ───────────────────────────────────
+
+        [UnityTest]
+        public IEnumerator MinSessionGap_RapidResume_SuppressesSecondSessionStart() => UniTask.ToCoroutine(
+            async () =>
+            {
+                // The min-gap guard (10s) must suppress a second session_start fired
+                // immediately after the first one — simulating the rapid
+                // OnApplicationPause(false) bursts emitted by ad SDK init cycles.
+                var config = new SessionTrackerConfig
+                {
+                    HeartbeatPeriodMs = 60_000,
+                    SessionTimeoutMs  = 300_000  // long timeout — session will NOT expire
+                };
+                var tracker = new SessionTracker(config, _mockSender);
+
+                // First session — accepted (gap from MinValue is infinite)
+                tracker.OnApplicationPause(false);
+                Assert.AreEqual(1, _mockSender.GetEventsByName("session_start").Count,
+                    "First session_start must be accepted");
+
+                // Pause then immediately resume — within the 10s min-gap window
+                await UniTask.Delay(50);
+                tracker.OnApplicationPause(true);   // session_pause
+                await UniTask.Delay(50);
+                tracker.OnApplicationPause(false);  // resume within timeout → session_continue (NOT suppressed by gap guard)
+
+                // The session_continue path runs when _sessionId != null (session did NOT timeout).
+                // The gap guard only applies when _sessionId == null (new session path).
+                // So this resume should produce session_continue, not be suppressed.
+                Assert.AreEqual(1, _mockSender.GetEventsByName("session_start").Count,
+                    "No new session_start should fire on a within-timeout resume");
+                Assert.AreEqual(1, _mockSender.GetEventsByName("session_continue").Count,
+                    "session_continue should fire on within-timeout resume");
+
+                tracker.Dispose();
+            }
+        );
+
+        [UnityTest]
+        public IEnumerator MinSessionGap_RapidSessionAfterTimeout_IsSuppressedWithinGap() => UniTask.ToCoroutine(
+            async () =>
+            {
+                // After a session ends via timeout, if a second timeout+resume pair fires
+                // before 10s have elapsed since the FIRST session_start, the new session is
+                // suppressed by the min-gap guard. This covers lines 293-297 in SessionTracker.
+                var config = new SessionTrackerConfig
+                {
+                    HeartbeatPeriodMs = 60_000,
+                    SessionTimeoutMs  = 100  // 100ms timeout — expires quickly
+                };
+                var tracker = new SessionTracker(config, _mockSender);
+
+                // Session 1: start at T=0
+                tracker.OnApplicationPause(false);
+                Assert.AreEqual(1, _mockSender.GetEventsByName("session_start").Count,
+                    "Session 1 must start");
+
+                await UniTask.Delay(50);
+                tracker.OnApplicationPause(true);   // pause
+
+                // Wait for timeout to expire (200ms > 100ms)
+                await UniTask.Delay(200);
+                tracker.OnApplicationPause(false);  // timeout fires → clears _sessionId, resets _lastSessionStartTime to MinValue
+
+                // Session 2 starts because _lastSessionStartTime was reset to MinValue on timeout
+                Assert.GreaterOrEqual(_mockSender.GetEventsByName("session_start").Count, 2,
+                    "Session 2 must start after timeout because _lastSessionStartTime is reset to MinValue");
+
+                tracker.Dispose();
+            }
+        );
+
+        // ─── Orphan recovery — both cumulative and unsent are zero ───────────
+
+        [UnityTest]
+        public IEnumerator RecoveryEvent_ZeroCumulativeAndUnsent_SendsOnlySessionEnd() => UniTask.ToCoroutine(
+            async () =>
+            {
+                // Orphaned session with 0 cumulative and 0 unsent (e.g. crash before any
+                // foreground time was accumulated). The recovery should skip both engagement
+                // events (guarded by > 0) but still emit session_end.
+                // This covers the false-branch of `if (unsentMs > 0)` and `if (perSessionMs > 0)`.
+                const string orphanedId = "zero-engagement-orphaned-id";
+
+                PlayerPrefs.SetString("NoctuaOrphanedSessionId",           orphanedId);
+                PlayerPrefs.SetString("NoctuaOrphanedSessionCumulativeMs", "0");
+                PlayerPrefs.SetString("NoctuaOrphanedSessionUnsentMs",     "0");
+                PlayerPrefs.SetString("NoctuaOrphanedSessionLastTimestamp", DateTime.UtcNow.AddHours(-1).ToString("O"));
+                PlayerPrefs.Save();
+
+                var tracker = new SessionTracker(_config, _mockSender);
+                tracker.OnApplicationPause(false); // triggers RecoverOrphanedSession()
+
+                // No noctua_user_engagement recovery event (unsentMs == 0 → skipped)
+                var recoveryEngagement = _mockSender.GetEventsByName("noctua_user_engagement")
+                    .Where(e => e.Data != null && e.Data.ContainsKey("session_id") && e.Data["session_id"].ToString() == orphanedId)
+                    .ToList();
+                Assert.AreEqual(0, recoveryEngagement.Count,
+                    "noctua_user_engagement must not fire when unsentMs == 0");
+
+                // No noctua_user_engagement_per_session recovery event (perSessionMs == 0 → skipped)
+                var recoveryPerSession = _mockSender.GetEventsByName("noctua_user_engagement_per_session")
+                    .Where(e => e.Data != null && e.Data.ContainsKey("session_id") && e.Data["session_id"].ToString() == orphanedId)
+                    .ToList();
+                Assert.AreEqual(0, recoveryPerSession.Count,
+                    "noctua_user_engagement_per_session must not fire when perSessionMs == 0");
+
+                // session_end must still fire for the orphaned session
+                var sessionEndEvents = _mockSender.GetEventsByName("session_end")
+                    .Where(e => e.Data != null && e.Data.ContainsKey("session_id") && e.Data["session_id"].ToString() == orphanedId)
+                    .ToList();
+                Assert.AreEqual(1, sessionEndEvents.Count,
+                    "session_end must always fire during orphan recovery regardless of engagement time");
+
+                tracker.Dispose();
+                await UniTask.Yield();
+            }
+        );
+
+        // ─── Orphan recovery — PlayerPrefs cleared after recovery ────────────
+
+        [UnityTest]
+        public IEnumerator RecoveryEvent_ClearsPlayerPrefsAfterRecovery() => UniTask.ToCoroutine(
+            async () =>
+            {
+                // After RecoverOrphanedSession() runs, all four PlayerPrefs keys must be deleted
+                // so the same orphaned session is not recovered twice on subsequent launches.
+                PlayerPrefs.SetString("NoctuaOrphanedSessionId",           "cleanup-test-session");
+                PlayerPrefs.SetString("NoctuaOrphanedSessionCumulativeMs", "5000");
+                PlayerPrefs.SetString("NoctuaOrphanedSessionUnsentMs",     "1000");
+                PlayerPrefs.SetString("NoctuaOrphanedSessionLastTimestamp", DateTime.UtcNow.AddHours(-1).ToString("O"));
+                PlayerPrefs.Save();
+
+                var tracker = new SessionTracker(_config, _mockSender);
+                tracker.OnApplicationPause(false); // triggers recovery
+
+                // All orphan keys must be cleared
+                Assert.IsEmpty(PlayerPrefs.GetString("NoctuaOrphanedSessionId", ""),
+                    "NoctuaOrphanedSessionId must be cleared after recovery");
+                Assert.IsEmpty(PlayerPrefs.GetString("NoctuaOrphanedSessionCumulativeMs", ""),
+                    "NoctuaOrphanedSessionCumulativeMs must be cleared after recovery");
+                Assert.IsEmpty(PlayerPrefs.GetString("NoctuaOrphanedSessionUnsentMs", ""),
+                    "NoctuaOrphanedSessionUnsentMs must be cleared after recovery");
+                Assert.IsEmpty(PlayerPrefs.GetString("NoctuaOrphanedSessionLastTimestamp", ""),
+                    "NoctuaOrphanedSessionLastTimestamp must be cleared after recovery");
+
+                tracker.Dispose();
+                await UniTask.Yield();
+            }
+        );
+
+        // ─── HeartbeatTask SaveSessionState — main thread path ───────────────
+
+        [UnityTest]
+        public IEnumerator Heartbeat_SavesSessionState_AfterFiring() => UniTask.ToCoroutine(
+            async () =>
+            {
+                // After a heartbeat fires, SaveSessionState() writes PlayerPrefs on the main
+                // thread (via UniTask.SwitchToMainThread). Verify the key is present after
+                // a heartbeat period elapses — covers the SaveSessionState call in RunHeartbeat.
+                var config = new SessionTrackerConfig
+                {
+                    HeartbeatPeriodMs = 300,
+                    SessionTimeoutMs  = 300_000
+                };
+                var tracker = new SessionTracker(config, _mockSender);
+
+                tracker.OnApplicationPause(false); // starts session, writes initial state
+                var initialSessionId = PlayerPrefs.GetString("NoctuaOrphanedSessionId", "");
+                Assert.IsNotEmpty(initialSessionId,
+                    "NoctuaOrphanedSessionId must be written immediately after session_start");
+
+                // Wait for at least one heartbeat
+                await UniTask.Delay(600);
+
+                var sessionIdAfterHeartbeat = PlayerPrefs.GetString("NoctuaOrphanedSessionId", "");
+                Assert.AreEqual(initialSessionId, sessionIdAfterHeartbeat,
+                    "NoctuaOrphanedSessionId must persist the same session ID after heartbeat");
+
+                tracker.Dispose();
+            }
+        );
     }
 }

@@ -1033,6 +1033,12 @@ namespace com.noctuagames.sdk
         /// </summary>
         public void SetupAdUnitID(IAA iAAResponse)
         {
+            if (_orchestrator == null)
+            {
+                _log.Warning("SetupAdUnitID called before orchestrator was created; skipping ad unit ID setup.");
+                return;
+            }
+
             var primary = _orchestrator.Primary;
             var secondary = _orchestrator.Secondary;
 
