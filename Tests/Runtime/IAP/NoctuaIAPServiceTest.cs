@@ -1407,8 +1407,8 @@ namespace Tests.Runtime.IAP
             try
             {
                 var svc = CreateEnabledService();
-                // DeliverPendingDeliverablesAsync wraps errors internally — must NOT re-throw
-                Assert.DoesNotThrow(() => svc.DeliverPendingDeliverablesAsync().Forget());
+                // DeliverPendingDeliverablesAsync wraps errors internally — no exception escapes
+                await svc.DeliverPendingDeliverablesAsync();
             }
             finally
             {
@@ -2407,16 +2407,13 @@ namespace Tests.Runtime.IAP
         [Timeout(5000)]
         public async Task DeliverPendingDeliverablesAsync_GetDeliverablesServerError_DoesNotThrow()
         {
-            // null → HTTP 500, outer catch swallows it
+            // null → HTTP 500, outer catch swallows it — await directly; no exception propagates
             _server.AddHandler("/pending-deliverables", _ => null);
             try
             {
                 var svc = CreateEnabledService();
-                // Should NOT propagate — the method has an outer try/catch
-                Assert.DoesNotThrow(() =>
-                    svc.DeliverPendingDeliverablesAsync()
-                       .Forget(ex => Assert.Fail("Unexpected exception: " + ex)));
-                await UniTask.Delay(200);
+                // DeliverPendingDeliverablesAsync has an outer try/catch — no exception escapes
+                await svc.DeliverPendingDeliverablesAsync();
             }
             finally
             {
