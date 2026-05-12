@@ -127,7 +127,6 @@ namespace Tests.Runtime
             int callCount = 0;
             Assert.Throws<NoctuaException>(() =>
                 Utility.RetryAsyncTask<object>(
-                    async () =>
                     {
                         callCount++;
                         throw new NoctuaException(NoctuaErrorCode.Networking, "network error");

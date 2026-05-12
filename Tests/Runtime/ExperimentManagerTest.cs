@@ -20,7 +20,8 @@ namespace Tests.Runtime
             ExperimentManager.Clear();
         }
 
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator SetFlag_GetFlag_String()
         {
             ExperimentManager.SetFlag("key1", "value1");
@@ -29,7 +30,8 @@ namespace Tests.Runtime
             yield return null;
         }
 
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator SetFlag_GetFlag_Int()
         {
             ExperimentManager.SetFlag("intKey", 42);
@@ -38,7 +40,8 @@ namespace Tests.Runtime
             yield return null;
         }
 
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator SetFlag_GetFlag_Bool()
         {
             ExperimentManager.SetFlag("boolKey", true);
@@ -47,7 +50,8 @@ namespace Tests.Runtime
             yield return null;
         }
 
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator GetFlag_MissingKey_ReturnsDefault()
         {
             var stringResult = ExperimentManager.GetFlag<string>("missing");
@@ -61,7 +65,8 @@ namespace Tests.Runtime
             yield return null;
         }
 
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator GetFlag_MissingKey_ReturnsCustomDefault()
         {
             var result = ExperimentManager.GetFlag("missing", "fallback");
@@ -69,7 +74,8 @@ namespace Tests.Runtime
             yield return null;
         }
 
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator Clear_RemovesAllFlags()
         {
             ExperimentManager.SetFlag("a", "1");
@@ -81,7 +87,8 @@ namespace Tests.Runtime
             yield return null;
         }
 
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator SetSessionId_GetSessionId()
         {
             ExperimentManager.SetSessionId("session-123");
@@ -89,14 +96,16 @@ namespace Tests.Runtime
             yield return null;
         }
 
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator GetSessionId_Default_ReturnsEmpty()
         {
             Assert.AreEqual(string.Empty, ExperimentManager.GetSessionId());
             yield return null;
         }
 
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator SetExperiment_GetActiveExperiment()
         {
             ExperimentManager.SetExperiment("exp-abc");
@@ -104,14 +113,16 @@ namespace Tests.Runtime
             yield return null;
         }
 
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator GetActiveExperiment_Default_ReturnsEmpty()
         {
             Assert.AreEqual(string.Empty, ExperimentManager.GetActiveExperiment());
             yield return null;
         }
 
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator SetCurrentFeature_GetCurrentFeature()
         {
             ExperimentManager.SetCurrentFeature("feature-x");
@@ -119,14 +130,16 @@ namespace Tests.Runtime
             yield return null;
         }
 
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator GetCurrentFeature_Default_ReturnsEmpty()
         {
             Assert.AreEqual(string.Empty, ExperimentManager.GetCurrentFeature());
             yield return null;
         }
 
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator SetGeneralExperiment_GetGeneralExperiment()
         {
             ExperimentManager.SetGeneralExperiment("custom_key", "custom_value");
@@ -134,14 +147,16 @@ namespace Tests.Runtime
             yield return null;
         }
 
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator GetGeneralExperiment_MissingKey_ReturnsEmpty()
         {
             Assert.AreEqual(string.Empty, ExperimentManager.GetGeneralExperiment("nonexistent"));
             yield return null;
         }
 
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator SetFlag_OverwritesExistingKey()
         {
             ExperimentManager.SetFlag("key", "old");

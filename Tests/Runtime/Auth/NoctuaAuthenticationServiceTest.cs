@@ -840,9 +840,9 @@ namespace Tests.Runtime.Auth
 
         // ─── LoginWithEmailAsync ───────────────────────────────────────────────
 
-        [UnityTest]
-        public IEnumerator LoginWithEmailAsync_ValidResponse_SetsIsAuthenticated()
-            => UniTask.ToCoroutine(async () =>
+        [Test]
+        [Timeout(5000)]
+        public async Task LoginWithEmailAsync_ValidResponse_SetsIsAuthenticated()
         {
             _server.AddHandler("/auth/email/login", _ => PlayerTokenJson("login-email-token"));
             try
@@ -855,11 +855,11 @@ namespace Tests.Runtime.Auth
             {
                 _server.RemoveHandler("/auth/email/login");
             }
-        });
+        }
 
-        [UnityTest]
-        public IEnumerator LoginWithEmailAsync_ValidResponse_ReturnsUserBundleWithMatchingToken()
-            => UniTask.ToCoroutine(async () =>
+        [Test]
+        [Timeout(5000)]
+        public async Task LoginWithEmailAsync_ValidResponse_ReturnsUserBundleWithMatchingToken()
         {
             _server.AddHandler("/auth/email/login", _ => PlayerTokenJson("login-email-token-2"));
             try
@@ -873,11 +873,11 @@ namespace Tests.Runtime.Auth
             {
                 _server.RemoveHandler("/auth/email/login");
             }
-        });
+        }
 
-        [UnityTest]
-        public IEnumerator LoginWithEmailAsync_ValidResponse_FiresOnAccountChanged()
-            => UniTask.ToCoroutine(async () =>
+        [Test]
+        [Timeout(5000)]
+        public async Task LoginWithEmailAsync_ValidResponse_FiresOnAccountChanged()
         {
             _server.AddHandler("/auth/email/login", _ => PlayerTokenJson("event-fire-token"));
             try
@@ -894,11 +894,11 @@ namespace Tests.Runtime.Auth
             {
                 _server.RemoveHandler("/auth/email/login");
             }
-        });
+        }
 
-        [UnityTest]
-        public IEnumerator LoginWithEmailAsync_NoHandler_ThrowsNoctuaException()
-            => UniTask.ToCoroutine(async () =>
+        [Test]
+        [Timeout(5000)]
+        public async Task LoginWithEmailAsync_NoHandler_ThrowsNoctuaException()
         {
             // No handler for /auth/email/login → server returns 404 → NoctuaException
             var svc = CreateService();
@@ -911,13 +911,13 @@ namespace Tests.Runtime.Auth
             {
                 // Expected — 404 produces an Application or Networking NoctuaException
             }
-        });
+        }
 
         // ─── SocialLoginAsync ──────────────────────────────────────────────────
 
-        [UnityTest]
-        public IEnumerator SocialLoginAsync_ValidResponse_ReturnsUserBundle()
-            => UniTask.ToCoroutine(async () =>
+        [Test]
+        [Timeout(5000)]
+        public async Task SocialLoginAsync_ValidResponse_ReturnsUserBundle()
         {
             _server.AddHandler("/auth/google/login/callback", _ => PlayerTokenJson("google-token"));
             try
@@ -928,7 +928,7 @@ namespace Tests.Runtime.Auth
                     Code        = "auth-code",
                     State       = "state",
                     RedirectUri = "https://callback.example.com"
-                });
+                }
                 Assert.IsNotNull(result);
                 Assert.AreEqual("google-token", result.Player?.AccessToken);
             }
@@ -936,13 +936,13 @@ namespace Tests.Runtime.Auth
             {
                 _server.RemoveHandler("/auth/google/login/callback");
             }
-        });
+        }
 
         // ─── GetSocialAuthRedirectURLAsync ─────────────────────────────────────
 
-        [UnityTest]
-        public IEnumerator GetSocialAuthRedirectURLAsync_ValidResponse_ReturnsUrl()
-            => UniTask.ToCoroutine(async () =>
+        [Test]
+        [Timeout(5000)]
+        public async Task GetSocialAuthRedirectURLAsync_ValidResponse_ReturnsUrl()
         {
             _server.AddHandler("/auth/google/login/redirect",
                 _ => @"{""data"":{""redirect_url"":""https://accounts.google.com/oauth""}}");
@@ -956,13 +956,13 @@ namespace Tests.Runtime.Auth
             {
                 _server.RemoveHandler("/auth/google/login/redirect");
             }
-        });
+        }
 
         // ─── ExchangeTokenAsync ────────────────────────────────────────────────
 
-        [UnityTest]
-        public IEnumerator ExchangeTokenAsync_ValidResponse_ReturnsUserBundle()
-            => UniTask.ToCoroutine(async () =>
+        [Test]
+        [Timeout(5000)]
+        public async Task ExchangeTokenAsync_ValidResponse_ReturnsUserBundle()
         {
             _server.AddHandler("/auth/token-exchange", _ => PlayerTokenJson("exchanged-token"));
             try
@@ -976,11 +976,11 @@ namespace Tests.Runtime.Auth
             {
                 _server.RemoveHandler("/auth/token-exchange");
             }
-        });
+        }
 
-        [UnityTest]
-        public IEnumerator ExchangeTokenAsync_NoHandler_ThrowsNoctuaException()
-            => UniTask.ToCoroutine(async () =>
+        [Test]
+        [Timeout(5000)]
+        public async Task ExchangeTokenAsync_NoHandler_ThrowsNoctuaException()
         {
             var svc = CreateService();
             try
@@ -992,13 +992,13 @@ namespace Tests.Runtime.Auth
             {
                 // Expected
             }
-        });
+        }
 
         // ─── RegisterWithEmailAsync ────────────────────────────────────────────
 
-        [UnityTest]
-        public IEnumerator RegisterWithEmailAsync_ValidResponse_ReturnsCredentialVerification()
-            => UniTask.ToCoroutine(async () =>
+        [Test]
+        [Timeout(5000)]
+        public async Task RegisterWithEmailAsync_ValidResponse_ReturnsCredentialVerification()
         {
             _server.AddHandler("/auth/email/register",
                 _ => @"{""data"":{""id"":42,""code"":""000000""}}");
@@ -1014,13 +1014,13 @@ namespace Tests.Runtime.Auth
             {
                 _server.RemoveHandler("/auth/email/register");
             }
-        });
+        }
 
         // ─── RequestResetPasswordAsync ─────────────────────────────────────────
 
-        [UnityTest]
-        public IEnumerator RequestResetPasswordAsync_ValidResponse_ReturnsVerification()
-            => UniTask.ToCoroutine(async () =>
+        [Test]
+        [Timeout(5000)]
+        public async Task RequestResetPasswordAsync_ValidResponse_ReturnsVerification()
         {
             _server.AddHandler("/auth/email/reset-password",
                 _ => @"{""data"":{""id"":7,""code"":""000000""}}");
@@ -1035,13 +1035,13 @@ namespace Tests.Runtime.Auth
             {
                 _server.RemoveHandler("/auth/email/reset-password");
             }
-        });
+        }
 
         // ─── VerifyEmailRegistrationAsync ─────────────────────────────────────
 
-        [UnityTest]
-        public IEnumerator VerifyEmailRegistrationAsync_ValidResponse_ReturnsUserBundle()
-            => UniTask.ToCoroutine(async () =>
+        [Test]
+        [Timeout(5000)]
+        public async Task VerifyEmailRegistrationAsync_ValidResponse_ReturnsUserBundle()
         {
             _server.AddHandler("/auth/email/verify-registration", _ => PlayerTokenJson("verified-token"));
             try
@@ -1055,13 +1055,13 @@ namespace Tests.Runtime.Auth
             {
                 _server.RemoveHandler("/auth/email/verify-registration");
             }
-        });
+        }
 
         // ─── UpdatePlayerAccountAsync ──────────────────────────────────────────
 
-        [UnityTest]
-        public IEnumerator UpdatePlayerAccountAsync_ValidResponse_DoesNotThrow()
-            => UniTask.ToCoroutine(async () =>
+        [Test]
+        [Timeout(5000)]
+        public async Task UpdatePlayerAccountAsync_ValidResponse_DoesNotThrow()
         {
             _server.AddHandler("/auth/email/login", _ => PlayerTokenJson("sync-token"));
             _server.AddHandler("/players/sync", _ => @"{""data"":{}}");
@@ -1075,20 +1075,20 @@ namespace Tests.Runtime.Auth
                     IngameUsername = "Hero",
                     IngameServerId = "S1",
                     IngameRoleId   = "R1"
-                });
+                }
             }
             finally
             {
                 _server.RemoveHandler("/auth/email/login");
                 _server.RemoveHandler("/players/sync");
             }
-        });
+        }
 
         // ─── DeletePlayerAccountAsync ──────────────────────────────────────────
 
-        [UnityTest]
-        public IEnumerator DeletePlayerAccountAsync_ValidResponse_RecentAccountBecomesNull()
-            => UniTask.ToCoroutine(async () =>
+        [Test]
+        [Timeout(5000)]
+        public async Task DeletePlayerAccountAsync_ValidResponse_RecentAccountBecomesNull()
         {
             _server.AddHandler("/auth/email/login",  _ => PlayerTokenJson("del-token", userId: 55));
             _server.AddHandler("/players/destroy",   _ => @"{""data"":{""player_id"":55}}");
@@ -1107,13 +1107,13 @@ namespace Tests.Runtime.Auth
                 _server.RemoveHandler("/auth/email/login");
                 _server.RemoveHandler("/players/destroy");
             }
-        });
+        }
 
         // ─── DeletePlayerAccountAsync fires OnAccountDeleted event ────────────
 
-        [UnityTest]
-        public IEnumerator DeletePlayerAccountAsync_ValidResponse_FiresOnAccountDeletedEvent()
-            => UniTask.ToCoroutine(async () =>
+        [Test]
+        [Timeout(5000)]
+        public async Task DeletePlayerAccountAsync_ValidResponse_FiresOnAccountDeletedEvent()
         {
             _server.AddHandler("/auth/email/login",  _ => PlayerTokenJson("del-event-token", userId: 66));
             _server.AddHandler("/players/destroy",   _ => @"{""data"":{""player_id"":66}}");
@@ -1135,7 +1135,7 @@ namespace Tests.Runtime.Auth
                 _server.RemoveHandler("/auth/email/login");
                 _server.RemoveHandler("/players/destroy");
             }
-        });
+        }
     }
 
     // ─── NoctuaAuthenticationServiceHttpExtendedTest ──────────────────────────
@@ -1221,9 +1221,9 @@ namespace Tests.Runtime.Auth
         /// We mock that endpoint with a guest token so the call succeeds.
         /// After logout the service is still "authenticated" as a guest.
         /// </summary>
-        [UnityTest]
-        public IEnumerator LogoutAsync_WhileAuthenticated_ReturnsGuestBundle()
-            => UniTask.ToCoroutine(async () =>
+        [Test]
+        [Timeout(5000)]
+        public async Task LogoutAsync_WhileAuthenticated_ReturnsGuestBundle()
         {
             _server.AddHandler("/auth/email/login",
                 _ => PlayerTokenJson("pre-logout-token", userId: 10, provider: "email"));
@@ -1245,13 +1245,13 @@ namespace Tests.Runtime.Auth
                 _server.RemoveHandler("/auth/email/login");
                 _server.RemoveHandler("/auth/guest/login");
             }
-        });
+        }
 
         // ─── GetUserAsync ──────────────────────────────────────────────────────
 
-        [UnityTest]
-        public IEnumerator GetUserAsync_WhenAuthenticated_ReturnsUser()
-            => UniTask.ToCoroutine(async () =>
+        [Test]
+        [Timeout(5000)]
+        public async Task GetUserAsync_WhenAuthenticated_ReturnsUser()
         {
             _server.AddHandler("/auth/email/login", _ => PlayerTokenJson("user-token", userId: 7));
             _server.AddHandler("/user/profile",
@@ -1272,11 +1272,11 @@ namespace Tests.Runtime.Auth
                 _server.RemoveHandler("/auth/email/login");
                 _server.RemoveHandler("/user/profile");
             }
-        });
+        }
 
-        [UnityTest]
-        public IEnumerator GetUserAsync_NoHandler_ThrowsNoctuaException()
-            => UniTask.ToCoroutine(async () =>
+        [Test]
+        [Timeout(5000)]
+        public async Task GetUserAsync_NoHandler_ThrowsNoctuaException()
         {
             _server.AddHandler("/auth/email/login", _ => PlayerTokenJson("user-err-token", userId: 8));
             try
@@ -1298,13 +1298,13 @@ namespace Tests.Runtime.Auth
             {
                 _server.RemoveHandler("/auth/email/login");
             }
-        });
+        }
 
         // ─── UpdateUserAsync ───────────────────────────────────────────────────
 
-        [UnityTest]
-        public IEnumerator UpdateUserAsync_ValidResponse_DoesNotThrow()
-            => UniTask.ToCoroutine(async () =>
+        [Test]
+        [Timeout(5000)]
+        public async Task UpdateUserAsync_ValidResponse_DoesNotThrow()
         {
             _server.AddHandler("/auth/email/login",   _ => PlayerTokenJson("upd-token", userId: 20));
             _server.AddHandler("/user/profile",       _ => @"{""data"":{}}");
@@ -1320,7 +1320,7 @@ namespace Tests.Runtime.Auth
                     Language = "en",
                     Country  = "US",
                     Currency = "USD"
-                });
+                }
 
                 // If no exception, the update chain succeeded
                 Assert.IsTrue(svc.IsAuthenticated);
@@ -1331,11 +1331,11 @@ namespace Tests.Runtime.Auth
                 _server.RemoveHandler("/user/profile");
                 _server.RemoveHandler("/auth/token-exchange");
             }
-        });
+        }
 
-        [UnityTest]
-        public IEnumerator UpdateUserAsync_SetsLocalePreference_SendsRequest()
-            => UniTask.ToCoroutine(async () =>
+        [Test]
+        [Timeout(5000)]
+        public async Task UpdateUserAsync_SetsLocalePreference_SendsRequest()
         {
             _server.AddHandler("/auth/email/login",   _ => PlayerTokenJson("locale-token", userId: 21));
             _server.AddHandler("/user/profile",       _ => @"{""data"":{}}");
@@ -1364,13 +1364,13 @@ namespace Tests.Runtime.Auth
                 _server.RemoveHandler("/user/profile");
                 _server.RemoveHandler("/auth/token-exchange");
             }
-        });
+        }
 
         // ─── GetProfileOptions ─────────────────────────────────────────────────
 
-        [UnityTest]
-        public IEnumerator GetProfileOptions_WhenAuthenticated_ReturnsProfileOptionData()
-            => UniTask.ToCoroutine(async () =>
+        [Test]
+        [Timeout(5000)]
+        public async Task GetProfileOptions_WhenAuthenticated_ReturnsProfileOptionData()
         {
             _server.AddHandler("/auth/email/login", _ => PlayerTokenJson("profile-opt-token", userId: 30));
             _server.AddHandler("/user/profile-options",
@@ -1400,13 +1400,13 @@ namespace Tests.Runtime.Auth
                 _server.RemoveHandler("/auth/email/login");
                 _server.RemoveHandler("/user/profile-options");
             }
-        });
+        }
 
         // ─── SaveGameStateAsync ────────────────────────────────────────────────
 
-        [UnityTest]
-        public IEnumerator SaveGameStateAsync_ValidResponse_DoesNotThrow()
-            => UniTask.ToCoroutine(async () =>
+        [Test]
+        [Timeout(5000)]
+        public async Task SaveGameStateAsync_ValidResponse_DoesNotThrow()
         {
             _server.AddHandler("/auth/email/login", _ => PlayerTokenJson("save-token", userId: 40));
             _server.AddHandler("/cloud-saves/slot1",
@@ -1424,11 +1424,11 @@ namespace Tests.Runtime.Auth
                 _server.RemoveHandler("/auth/email/login");
                 _server.RemoveHandler("/cloud-saves/slot1");
             }
-        });
+        }
 
-        [UnityTest]
-        public IEnumerator SaveGameStateAsync_SendsPutRequest()
-            => UniTask.ToCoroutine(async () =>
+        [Test]
+        [Timeout(5000)]
+        public async Task SaveGameStateAsync_SendsPutRequest()
         {
             _server.AddHandler("/auth/email/login", _ => PlayerTokenJson("save-req-token", userId: 41));
             _server.AddHandler("/cloud-saves/mykey",
@@ -1455,13 +1455,13 @@ namespace Tests.Runtime.Auth
                 _server.RemoveHandler("/auth/email/login");
                 _server.RemoveHandler("/cloud-saves/mykey");
             }
-        });
+        }
 
         // ─── LoadGameStateAsync ────────────────────────────────────────────────
 
-        [UnityTest]
-        public IEnumerator LoadGameStateAsync_ValidResponse_ReturnsRawValue()
-            => UniTask.ToCoroutine(async () =>
+        [Test]
+        [Timeout(5000)]
+        public async Task LoadGameStateAsync_ValidResponse_ReturnsRawValue()
         {
             const string savedData = "my-game-state-data";
             _server.AddHandler("/auth/email/login", _ => PlayerTokenJson("load-token", userId: 50));
@@ -1480,11 +1480,11 @@ namespace Tests.Runtime.Auth
                 _server.RemoveHandler("/auth/email/login");
                 _server.RemoveHandler("/cloud-saves/slot2");
             }
-        });
+        }
 
-        [UnityTest]
-        public IEnumerator LoadGameStateAsync_NoHandler_ThrowsNoctuaException()
-            => UniTask.ToCoroutine(async () =>
+        [Test]
+        [Timeout(5000)]
+        public async Task LoadGameStateAsync_NoHandler_ThrowsNoctuaException()
         {
             _server.AddHandler("/auth/email/login", _ => PlayerTokenJson("load-err-token", userId: 51));
             try
@@ -1506,13 +1506,13 @@ namespace Tests.Runtime.Auth
             {
                 _server.RemoveHandler("/auth/email/login");
             }
-        });
+        }
 
         // ─── GetGameStateKeysAsync ─────────────────────────────────────────────
 
-        [UnityTest]
-        public IEnumerator GetGameStateKeysAsync_ValidResponse_ReturnsSlotKeys()
-            => UniTask.ToCoroutine(async () =>
+        [Test]
+        [Timeout(5000)]
+        public async Task GetGameStateKeysAsync_ValidResponse_ReturnsSlotKeys()
         {
             _server.AddHandler("/auth/email/login", _ => PlayerTokenJson("keys-token", userId: 60));
             _server.AddHandler("/cloud-saves",
@@ -1539,11 +1539,11 @@ namespace Tests.Runtime.Auth
                 _server.RemoveHandler("/auth/email/login");
                 _server.RemoveHandler("/cloud-saves");
             }
-        });
+        }
 
-        [UnityTest]
-        public IEnumerator GetGameStateKeysAsync_EmptySaves_ReturnsEmptyList()
-            => UniTask.ToCoroutine(async () =>
+        [Test]
+        [Timeout(5000)]
+        public async Task GetGameStateKeysAsync_EmptySaves_ReturnsEmptyList()
         {
             _server.AddHandler("/auth/email/login", _ => PlayerTokenJson("keys-empty-token", userId: 61));
             _server.AddHandler("/cloud-saves",
@@ -1563,13 +1563,13 @@ namespace Tests.Runtime.Auth
                 _server.RemoveHandler("/auth/email/login");
                 _server.RemoveHandler("/cloud-saves");
             }
-        });
+        }
 
         // ─── DeleteGameStateAsync ──────────────────────────────────────────────
 
-        [UnityTest]
-        public IEnumerator DeleteGameStateAsync_ValidResponse_DoesNotThrow()
-            => UniTask.ToCoroutine(async () =>
+        [Test]
+        [Timeout(5000)]
+        public async Task DeleteGameStateAsync_ValidResponse_DoesNotThrow()
         {
             _server.AddHandler("/auth/email/login", _ => PlayerTokenJson("del-gs-token", userId: 70));
             _server.AddHandler("/cloud-saves/old-slot", _ => @"{""data"":{}}");
@@ -1586,11 +1586,11 @@ namespace Tests.Runtime.Auth
                 _server.RemoveHandler("/auth/email/login");
                 _server.RemoveHandler("/cloud-saves/old-slot");
             }
-        });
+        }
 
-        [UnityTest]
-        public IEnumerator DeleteGameStateAsync_SendsDeleteRequest()
-            => UniTask.ToCoroutine(async () =>
+        [Test]
+        [Timeout(5000)]
+        public async Task DeleteGameStateAsync_SendsDeleteRequest()
         {
             _server.AddHandler("/auth/email/login", _ => PlayerTokenJson("del-req-token", userId: 71));
             _server.AddHandler("/cloud-saves/to-delete", _ => @"{""data"":{}}");
@@ -1616,13 +1616,13 @@ namespace Tests.Runtime.Auth
                 _server.RemoveHandler("/auth/email/login");
                 _server.RemoveHandler("/cloud-saves/to-delete");
             }
-        });
+        }
 
         // ─── VerifyEmailLinkingAsync ───────────────────────────────────────────
 
-        [UnityTest]
-        public IEnumerator VerifyEmailLinkingAsync_WhenAuthenticated_ReturnsCredential()
-            => UniTask.ToCoroutine(async () =>
+        [Test]
+        [Timeout(5000)]
+        public async Task VerifyEmailLinkingAsync_WhenAuthenticated_ReturnsCredential()
         {
             _server.AddHandler("/auth/email/login", _ => PlayerTokenJson("link-token", userId: 80, provider: "email", isGuest: false));
             _server.AddHandler("/auth/email/verify-link",
@@ -1642,13 +1642,13 @@ namespace Tests.Runtime.Auth
                 _server.RemoveHandler("/auth/email/login");
                 _server.RemoveHandler("/auth/email/verify-link");
             }
-        });
+        }
 
         // ─── ConfirmResetPasswordAsync ─────────────────────────────────────────
 
-        [UnityTest]
-        public IEnumerator ConfirmResetPasswordAsync_ValidResponse_ReturnsPlayerToken()
-            => UniTask.ToCoroutine(async () =>
+        [Test]
+        [Timeout(5000)]
+        public async Task ConfirmResetPasswordAsync_ValidResponse_ReturnsPlayerToken()
         {
             _server.AddHandler("/auth/email/verify-reset-password",
                 _ => PlayerTokenJson("reset-confirmed-token", userId: 90));
@@ -1665,13 +1665,13 @@ namespace Tests.Runtime.Auth
             {
                 _server.RemoveHandler("/auth/email/verify-reset-password");
             }
-        });
+        }
 
         // ─── RegisterWithEmailSendPhoneNumberVerificationAsync ─────────────────
 
-        [UnityTest]
-        public IEnumerator RegisterWithEmailSendPhoneNumberVerificationAsync_ValidResponse_ReturnsVerificationId()
-            => UniTask.ToCoroutine(async () =>
+        [Test]
+        [Timeout(5000)]
+        public async Task RegisterWithEmailSendPhoneNumberVerificationAsync_ValidResponse_ReturnsVerificationId()
         {
             _server.AddHandler("/auth/email/register-phone-number",
                 _ => @"{""data"":{""id"":""vn-verify-id-123""}}");
@@ -1688,13 +1688,13 @@ namespace Tests.Runtime.Auth
             {
                 _server.RemoveHandler("/auth/email/register-phone-number");
             }
-        });
+        }
 
         // ─── RegisterWithEmailVerifyPhoneNumberAsync ───────────────────────────
 
-        [UnityTest]
-        public IEnumerator RegisterWithEmailVerifyPhoneNumberAsync_ValidResponse_DoesNotThrow()
-            => UniTask.ToCoroutine(async () =>
+        [Test]
+        [Timeout(5000)]
+        public async Task RegisterWithEmailVerifyPhoneNumberAsync_ValidResponse_DoesNotThrow()
         {
             _server.AddHandler("/auth/email/verify-phone-number-registration",
                 _ => @"{""data"":{}}");
@@ -1710,13 +1710,13 @@ namespace Tests.Runtime.Auth
             {
                 _server.RemoveHandler("/auth/email/verify-phone-number-registration");
             }
-        });
+        }
 
         // ─── SwitchAccountAsync ────────────────────────────────────────────────
 
-        [UnityTest]
-        public IEnumerator SwitchAccountAsync_ValidSecondAccount_ExchangesToken()
-            => UniTask.ToCoroutine(async () =>
+        [Test]
+        [Timeout(5000)]
+        public async Task SwitchAccountAsync_ValidSecondAccount_ExchangesToken()
         {
             // Login first account
             _server.AddHandler("/auth/email/login", _ => PlayerTokenJson("first-token", userId: 100));
@@ -1744,13 +1744,13 @@ namespace Tests.Runtime.Auth
             {
                 _server.RemoveHandler("/auth/token-exchange");
             }
-        });
+        }
 
         // ─── SocialLoginAsync with Authorization header when guest ─────────────
 
-        [UnityTest]
-        public IEnumerator SocialLoginAsync_WhenCurrentlyGuest_SendsAuthorizationHeader()
-            => UniTask.ToCoroutine(async () =>
+        [Test]
+        [Timeout(5000)]
+        public async Task SocialLoginAsync_WhenCurrentlyGuest_SendsAuthorizationHeader()
         {
             // First login as "guest"
             _server.AddHandler("/auth/email/login",
@@ -1769,7 +1769,7 @@ namespace Tests.Runtime.Auth
                     Code        = "oauth-code",
                     State       = "state",
                     RedirectUri = "https://callback.example.com"
-                });
+                }
 
                 // Verify that the social login request contained an Authorization header
                 bool authHeaderFound = false;
@@ -1791,13 +1791,13 @@ namespace Tests.Runtime.Auth
                 _server.RemoveHandler("/auth/email/login");
                 _server.RemoveHandler("/auth/google/login/callback");
             }
-        });
+        }
 
         // ─── Request headers — X-CLIENT-ID / X-BUNDLE-ID ──────────────────────
 
-        [UnityTest]
-        public IEnumerator LoginWithEmailAsync_SetsRequiredHeaders()
-            => UniTask.ToCoroutine(async () =>
+        [Test]
+        [Timeout(5000)]
+        public async Task LoginWithEmailAsync_SetsRequiredHeaders()
         {
             _server.AddHandler("/auth/email/login", _ => PlayerTokenJson("hdr-token", userId: 120));
             try
@@ -1826,13 +1826,13 @@ namespace Tests.Runtime.Auth
             {
                 _server.RemoveHandler("/auth/email/login");
             }
-        });
+        }
 
         // ─── VerifyEmailRegistrationAsync with Authorization ──────────────────
 
-        [UnityTest]
-        public IEnumerator BeginVerifyEmailRegistrationAsync_WhenGuest_HitsVerifyRegistrationEndpoint()
-            => UniTask.ToCoroutine(async () =>
+        [Test]
+        [Timeout(5000)]
+        public async Task BeginVerifyEmailRegistrationAsync_WhenGuest_HitsVerifyRegistrationEndpoint()
         {
             // Use "device_id" provider + isGuest=true so IsGuest == true
             _server.AddHandler("/auth/email/login",
@@ -1854,13 +1854,13 @@ namespace Tests.Runtime.Auth
                 _server.RemoveHandler("/auth/email/login");
                 _server.RemoveHandler("/auth/email/verify-registration");
             }
-        });
+        }
 
         // ─── BeginVerifyEmailLinkingAsync ──────────────────────────────────────
 
-        [UnityTest]
-        public IEnumerator BeginVerifyEmailLinkingAsync_WhenGuest_HitsVerifyLinkEndpoint()
-            => UniTask.ToCoroutine(async () =>
+        [Test]
+        [Timeout(5000)]
+        public async Task BeginVerifyEmailLinkingAsync_WhenGuest_HitsVerifyLinkEndpoint()
         {
             _server.AddHandler("/auth/email/login",
                 _ => PlayerTokenJson("guest-link-token", userId: 140, provider: "device_id", isGuest: true));
@@ -1881,13 +1881,13 @@ namespace Tests.Runtime.Auth
                 _server.RemoveHandler("/auth/email/login");
                 _server.RemoveHandler("/auth/email/verify-link");
             }
-        });
+        }
 
         // ─── GetEmailLoginTokenAsync ───────────────────────────────────────────
 
-        [UnityTest]
-        public IEnumerator GetEmailLoginTokenAsync_WhenGuest_ReturnsPlayerToken()
-            => UniTask.ToCoroutine(async () =>
+        [Test]
+        [Timeout(5000)]
+        public async Task GetEmailLoginTokenAsync_WhenGuest_ReturnsPlayerToken()
         {
             _server.AddHandler("/auth/email/login",
                 _ => PlayerTokenJson("guest-email-tok", userId: 150, provider: "device_id", isGuest: true));
@@ -1911,13 +1911,13 @@ namespace Tests.Runtime.Auth
             {
                 _server.RemoveHandler("/auth/email/login");
             }
-        });
+        }
 
         // ─── OnAccountChanged fires on email login (event analytics path) ──────
 
-        [UnityTest]
-        public IEnumerator LoginWithEmailAsync_AccountChangedEventBundleMatchesToken()
-            => UniTask.ToCoroutine(async () =>
+        [Test]
+        [Timeout(5000)]
+        public async Task LoginWithEmailAsync_AccountChangedEventBundleMatchesToken()
         {
             _server.AddHandler("/auth/email/login", _ => PlayerTokenJson("evt-match-token", userId: 160));
             try
@@ -1936,7 +1936,7 @@ namespace Tests.Runtime.Auth
             {
                 _server.RemoveHandler("/auth/email/login");
             }
-        });
+        }
     }
 
     // ─── NoctuaAuthenticationGuardsExtendedTest ───────────────────────────────
@@ -2224,9 +2224,9 @@ namespace Tests.Runtime.Auth
 
         // ─── LoginAsGuestAsync ────────────────────────────────────────────────
 
-        [UnityTest]
-        public IEnumerator LoginAsGuestAsync_ValidResponse_UpdatesAccountContainer()
-            => UniTask.ToCoroutine(async () =>
+        [Test]
+        [Timeout(5000)]
+        public async Task LoginAsGuestAsync_ValidResponse_UpdatesAccountContainer()
         {
             _server.AddHandler("/auth/guest/login", _ => GuestTokenJson("guest-tok-1"));
             try
@@ -2242,11 +2242,11 @@ namespace Tests.Runtime.Auth
             {
                 _server.RemoveHandler("/auth/guest/login");
             }
-        });
+        }
 
-        [UnityTest]
-        public IEnumerator LoginAsGuestAsync_ValidResponse_RecentAccountIsGuest()
-            => UniTask.ToCoroutine(async () =>
+        [Test]
+        [Timeout(5000)]
+        public async Task LoginAsGuestAsync_ValidResponse_RecentAccountIsGuest()
         {
             _server.AddHandler("/auth/guest/login", _ => GuestTokenJson("guest-tok-2", userId: 50));
             try
@@ -2261,11 +2261,11 @@ namespace Tests.Runtime.Auth
             {
                 _server.RemoveHandler("/auth/guest/login");
             }
-        });
+        }
 
-        [UnityTest]
-        public IEnumerator LoginAsGuestAsync_ValidResponse_FiresOnAccountChanged()
-            => UniTask.ToCoroutine(async () =>
+        [Test]
+        [Timeout(5000)]
+        public async Task LoginAsGuestAsync_ValidResponse_FiresOnAccountChanged()
         {
             _server.AddHandler("/auth/guest/login", _ => GuestTokenJson("guest-event-tok"));
             try
@@ -2282,11 +2282,11 @@ namespace Tests.Runtime.Auth
             {
                 _server.RemoveHandler("/auth/guest/login");
             }
-        });
+        }
 
-        [UnityTest]
-        public IEnumerator LoginAsGuestAsync_NoHandler_ThrowsNoctuaException()
-            => UniTask.ToCoroutine(async () =>
+        [Test]
+        [Timeout(5000)]
+        public async Task LoginAsGuestAsync_NoHandler_ThrowsNoctuaException()
         {
             var svc = CreateService();
             try
@@ -2298,11 +2298,11 @@ namespace Tests.Runtime.Auth
             {
                 // Expected — 404 from missing handler
             }
-        });
+        }
 
-        [UnityTest]
-        public IEnumerator LoginAsGuestAsync_SendsPostToGuestLoginEndpoint()
-            => UniTask.ToCoroutine(async () =>
+        [Test]
+        [Timeout(5000)]
+        public async Task LoginAsGuestAsync_SendsPostToGuestLoginEndpoint()
         {
             _server.AddHandler("/auth/guest/login", _ => GuestTokenJson("guest-req-tok"));
             try
@@ -2323,13 +2323,13 @@ namespace Tests.Runtime.Auth
             {
                 _server.RemoveHandler("/auth/guest/login");
             }
-        });
+        }
 
         // ─── ExchangeTokenAsync ───────────────────────────────────────────────
 
-        [UnityTest]
-        public IEnumerator ExchangeTokenAsync_ValidResponse_UpdatesAccountContainer()
-            => UniTask.ToCoroutine(async () =>
+        [Test]
+        [Timeout(5000)]
+        public async Task ExchangeTokenAsync_ValidResponse_UpdatesAccountContainer()
         {
             _server.AddHandler("/auth/token-exchange", _ => PlayerTokenJson("exchanged-tok", userId: 10));
             try
@@ -2345,11 +2345,11 @@ namespace Tests.Runtime.Auth
             {
                 _server.RemoveHandler("/auth/token-exchange");
             }
-        });
+        }
 
-        [UnityTest]
-        public IEnumerator ExchangeTokenAsync_SetsAuthorizationHeader()
-            => UniTask.ToCoroutine(async () =>
+        [Test]
+        [Timeout(5000)]
+        public async Task ExchangeTokenAsync_SetsAuthorizationHeader()
         {
             _server.AddHandler("/auth/token-exchange", _ => PlayerTokenJson("exchanged-tok-2", userId: 11));
             try
@@ -2375,11 +2375,11 @@ namespace Tests.Runtime.Auth
             {
                 _server.RemoveHandler("/auth/token-exchange");
             }
-        });
+        }
 
-        [UnityTest]
-        public IEnumerator ExchangeTokenAsync_NoHandler_ThrowsNoctuaException()
-            => UniTask.ToCoroutine(async () =>
+        [Test]
+        [Timeout(5000)]
+        public async Task ExchangeTokenAsync_NoHandler_ThrowsNoctuaException()
         {
             var svc = CreateService();
             try
@@ -2391,13 +2391,13 @@ namespace Tests.Runtime.Auth
             {
                 // Expected
             }
-        });
+        }
 
         // ─── GetSocialAuthRedirectURLAsync ────────────────────────────────────
 
-        [UnityTest]
-        public IEnumerator GetSocialAuthRedirectURLAsync_WithoutRedirectUri_SendsGetRequest()
-            => UniTask.ToCoroutine(async () =>
+        [Test]
+        [Timeout(5000)]
+        public async Task GetSocialAuthRedirectURLAsync_WithoutRedirectUri_SendsGetRequest()
         {
             _server.AddHandler("/auth/google/login/redirect", _ => SocialRedirectJson());
             try
@@ -2418,11 +2418,11 @@ namespace Tests.Runtime.Auth
             {
                 _server.RemoveHandler("/auth/google/login/redirect");
             }
-        });
+        }
 
-        [UnityTest]
-        public IEnumerator GetSocialAuthRedirectURLAsync_ReturnsRedirectUrl()
-            => UniTask.ToCoroutine(async () =>
+        [Test]
+        [Timeout(5000)]
+        public async Task GetSocialAuthRedirectURLAsync_ReturnsRedirectUrl()
         {
             const string expectedUrl = "https://auth.noctua.gg/google/oauth";
             _server.AddHandler("/auth/google/login/redirect", _ => SocialRedirectJson(expectedUrl));
@@ -2437,11 +2437,11 @@ namespace Tests.Runtime.Auth
             {
                 _server.RemoveHandler("/auth/google/login/redirect");
             }
-        });
+        }
 
-        [UnityTest]
-        public IEnumerator GetSocialAuthRedirectURLAsync_WithRedirectUri_EncodesItInQuery()
-            => UniTask.ToCoroutine(async () =>
+        [Test]
+        [Timeout(5000)]
+        public async Task GetSocialAuthRedirectURLAsync_WithRedirectUri_EncodesItInQuery()
         {
             // The handler needs to match the path prefix; the query string is appended by the SDK
             _server.AddHandler("/auth/facebook/login/redirect", _ => SocialRedirectJson("https://fb.example.com"));
@@ -2466,11 +2466,11 @@ namespace Tests.Runtime.Auth
             {
                 _server.RemoveHandler("/auth/facebook/login/redirect");
             }
-        });
+        }
 
-        [UnityTest]
-        public IEnumerator GetSocialAuthRedirectURLAsync_NoHandler_ThrowsNoctuaException()
-            => UniTask.ToCoroutine(async () =>
+        [Test]
+        [Timeout(5000)]
+        public async Task GetSocialAuthRedirectURLAsync_NoHandler_ThrowsNoctuaException()
         {
             var svc = CreateService();
             try
@@ -2482,13 +2482,13 @@ namespace Tests.Runtime.Auth
             {
                 // Expected
             }
-        });
+        }
 
         // ─── SocialLoginAsync ─────────────────────────────────────────────────
 
-        [UnityTest]
-        public IEnumerator SocialLoginAsync_AsNonGuest_NoAuthorizationHeader()
-            => UniTask.ToCoroutine(async () =>
+        [Test]
+        [Timeout(5000)]
+        public async Task SocialLoginAsync_AsNonGuest_NoAuthorizationHeader()
         {
             _server.AddHandler("/auth/google/login/callback",
                 _ => PlayerTokenJson("social-non-guest-tok", userId: 20, provider: "google"));
@@ -2515,11 +2515,11 @@ namespace Tests.Runtime.Auth
             {
                 _server.RemoveHandler("/auth/google/login/callback");
             }
-        });
+        }
 
-        [UnityTest]
-        public IEnumerator SocialLoginAsync_AsGuest_SendsAuthorizationHeader()
-            => UniTask.ToCoroutine(async () =>
+        [Test]
+        [Timeout(5000)]
+        public async Task SocialLoginAsync_AsGuest_SendsAuthorizationHeader()
         {
             _server.AddHandler("/auth/guest/login",           _ => GuestTokenJson("guest-pre-social", userId: 21));
             _server.AddHandler("/auth/google/login/callback",
@@ -2552,11 +2552,11 @@ namespace Tests.Runtime.Auth
                 _server.RemoveHandler("/auth/guest/login");
                 _server.RemoveHandler("/auth/google/login/callback");
             }
-        });
+        }
 
-        [UnityTest]
-        public IEnumerator SocialLoginAsync_ValidResponse_UpdatesAccountContainer()
-            => UniTask.ToCoroutine(async () =>
+        [Test]
+        [Timeout(5000)]
+        public async Task SocialLoginAsync_ValidResponse_UpdatesAccountContainer()
         {
             _server.AddHandler("/auth/google/login/callback",
                 _ => PlayerTokenJson("social-result-tok", userId: 22, provider: "google"));
@@ -2574,11 +2574,11 @@ namespace Tests.Runtime.Auth
             {
                 _server.RemoveHandler("/auth/google/login/callback");
             }
-        });
+        }
 
-        [UnityTest]
-        public IEnumerator SocialLoginAsync_FiresAccountAuthenticatedEvents()
-            => UniTask.ToCoroutine(async () =>
+        [Test]
+        [Timeout(5000)]
+        public async Task SocialLoginAsync_FiresAccountAuthenticatedEvents()
         {
             _server.AddHandler("/auth/google/login/callback",
                 _ => PlayerTokenJson("social-event-tok", userId: 23, provider: "google"));
@@ -2599,13 +2599,13 @@ namespace Tests.Runtime.Auth
             {
                 _server.RemoveHandler("/auth/google/login/callback");
             }
-        });
+        }
 
         // ─── RegisterWithEmailAsync ───────────────────────────────────────────
 
-        [UnityTest]
-        public IEnumerator RegisterWithEmailAsync_ValidResponse_ReturnsVerification()
-            => UniTask.ToCoroutine(async () =>
+        [Test]
+        [Timeout(5000)]
+        public async Task RegisterWithEmailAsync_ValidResponse_ReturnsVerification()
         {
             _server.AddHandler("/auth/email/register", _ => CredentialVerificationJson(789, userId: 30));
             try
@@ -2620,11 +2620,11 @@ namespace Tests.Runtime.Auth
             {
                 _server.RemoveHandler("/auth/email/register");
             }
-        });
+        }
 
-        [UnityTest]
-        public IEnumerator RegisterWithEmailAsync_WithRegExtra_DoesNotThrow()
-            => UniTask.ToCoroutine(async () =>
+        [Test]
+        [Timeout(5000)]
+        public async Task RegisterWithEmailAsync_WithRegExtra_DoesNotThrow()
         {
             _server.AddHandler("/auth/email/register", _ => CredentialVerificationJson(111));
             try
@@ -2640,7 +2640,7 @@ namespace Tests.Runtime.Auth
                 Assert.DoesNotThrow(() =>
                 {
                     result = svc.RegisterWithEmailAsync("extra@test.com", "pass", regExtra).GetAwaiter().GetResult();
-                });
+                }
 
                 Assert.IsNotNull(result);
             }
@@ -2648,11 +2648,11 @@ namespace Tests.Runtime.Auth
             {
                 _server.RemoveHandler("/auth/email/register");
             }
-        });
+        }
 
-        [UnityTest]
-        public IEnumerator RegisterWithEmailAsync_NoHandler_ThrowsNoctuaException()
-            => UniTask.ToCoroutine(async () =>
+        [Test]
+        [Timeout(5000)]
+        public async Task RegisterWithEmailAsync_NoHandler_ThrowsNoctuaException()
         {
             var svc = CreateService();
             try
@@ -2664,11 +2664,11 @@ namespace Tests.Runtime.Auth
             {
                 // Expected
             }
-        });
+        }
 
-        [UnityTest]
-        public IEnumerator RegisterWithEmailAsync_SendsPostToRegisterEndpoint()
-            => UniTask.ToCoroutine(async () =>
+        [Test]
+        [Timeout(5000)]
+        public async Task RegisterWithEmailAsync_SendsPostToRegisterEndpoint()
         {
             _server.AddHandler("/auth/email/register", _ => CredentialVerificationJson(222));
             try
@@ -2689,13 +2689,13 @@ namespace Tests.Runtime.Auth
             {
                 _server.RemoveHandler("/auth/email/register");
             }
-        });
+        }
 
         // ─── RegisterWithEmailSendPhoneNumberVerificationAsync ────────────────
 
-        [UnityTest]
-        public IEnumerator RegisterWithEmailSendPhoneNumberVerificationAsync_ValidResponse_ReturnsRequestId()
-            => UniTask.ToCoroutine(async () =>
+        [Test]
+        [Timeout(5000)]
+        public async Task RegisterWithEmailSendPhoneNumberVerificationAsync_ValidResponse_ReturnsRequestId()
         {
             _server.AddHandler("/auth/email/register-phone-number", _ => PhoneVerificationJson("phone-req-001"));
             try
@@ -2710,11 +2710,11 @@ namespace Tests.Runtime.Auth
             {
                 _server.RemoveHandler("/auth/email/register-phone-number");
             }
-        });
+        }
 
-        [UnityTest]
-        public IEnumerator RegisterWithEmailSendPhoneNumberVerificationAsync_NoHandler_ThrowsNoctuaException()
-            => UniTask.ToCoroutine(async () =>
+        [Test]
+        [Timeout(5000)]
+        public async Task RegisterWithEmailSendPhoneNumberVerificationAsync_NoHandler_ThrowsNoctuaException()
         {
             var svc = CreateService();
             try
@@ -2726,13 +2726,13 @@ namespace Tests.Runtime.Auth
             {
                 // Expected
             }
-        });
+        }
 
         // ─── BeginVerifyEmailRegistrationAsync ────────────────────────────────
 
-        [UnityTest]
-        public IEnumerator BeginVerifyEmailRegistrationAsync_AsGuest_ReturnsPlayerToken()
-            => UniTask.ToCoroutine(async () =>
+        [Test]
+        [Timeout(5000)]
+        public async Task BeginVerifyEmailRegistrationAsync_AsGuest_ReturnsPlayerToken()
         {
             _server.AddHandler("/auth/guest/login",              _ => GuestTokenJson("guest-verify", userId: 40));
             _server.AddHandler("/auth/email/verify-registration", _ => PlayerTokenJson("verify-reg-tok", userId: 40));
@@ -2751,11 +2751,11 @@ namespace Tests.Runtime.Auth
                 _server.RemoveHandler("/auth/guest/login");
                 _server.RemoveHandler("/auth/email/verify-registration");
             }
-        });
+        }
 
-        [UnityTest]
-        public IEnumerator BeginVerifyEmailRegistrationAsync_AsNonGuest_ThrowsNoctuaException()
-            => UniTask.ToCoroutine(async () =>
+        [Test]
+        [Timeout(5000)]
+        public async Task BeginVerifyEmailRegistrationAsync_AsNonGuest_ThrowsNoctuaException()
         {
             _server.AddHandler("/auth/email/login", _ => PlayerTokenJson("non-guest-tok", userId: 41, provider: "email"));
             try
@@ -2777,13 +2777,13 @@ namespace Tests.Runtime.Auth
             {
                 _server.RemoveHandler("/auth/email/login");
             }
-        });
+        }
 
         // ─── VerifyEmailRegistrationAsync ─────────────────────────────────────
 
-        [UnityTest]
-        public IEnumerator VerifyEmailRegistrationAsync_ValidResponse_UpdatesAccountContainer()
-            => UniTask.ToCoroutine(async () =>
+        [Test]
+        [Timeout(5000)]
+        public async Task VerifyEmailRegistrationAsync_ValidResponse_UpdatesAccountContainer()
         {
             _server.AddHandler("/auth/email/verify-registration", _ => PlayerTokenJson("verified-email-tok", userId: 50));
             try
@@ -2799,11 +2799,11 @@ namespace Tests.Runtime.Auth
             {
                 _server.RemoveHandler("/auth/email/verify-registration");
             }
-        });
+        }
 
-        [UnityTest]
-        public IEnumerator VerifyEmailRegistrationAsync_FiresAccountCreatedEvents()
-            => UniTask.ToCoroutine(async () =>
+        [Test]
+        [Timeout(5000)]
+        public async Task VerifyEmailRegistrationAsync_FiresAccountCreatedEvents()
         {
             _server.AddHandler("/auth/email/verify-registration",
                 _ => PlayerTokenJson("created-email-tok", userId: 51));
@@ -2823,7 +2823,7 @@ namespace Tests.Runtime.Auth
             {
                 _server.RemoveHandler("/auth/email/verify-registration");
             }
-        });
+        }
     }
 
     // ══════════════════════════════════════════════════════════════════════════════
@@ -2912,9 +2912,9 @@ namespace Tests.Runtime.Auth
 
         // ── LoginWithEmailAsync ───────────────────────────────────────────────
 
-        [UnityTest]
-        public IEnumerator LoginWithEmailAsync_ValidResponse_UpdatesAccountContainer()
-            => UniTask.ToCoroutine(async () =>
+        [Test]
+        [Timeout(5000)]
+        public async Task LoginWithEmailAsync_ValidResponse_UpdatesAccountContainer()
         {
             _server.AddHandler("/auth/email/login", _ => PlayerTokenJson("email-tok-1", userId: 10));
             try
@@ -2930,11 +2930,11 @@ namespace Tests.Runtime.Auth
             {
                 _server.RemoveHandler("/auth/email/login");
             }
-        });
+        }
 
-        [UnityTest]
-        public IEnumerator LoginWithEmailAsync_FiresAuthenticatedEvents()
-            => UniTask.ToCoroutine(async () =>
+        [Test]
+        [Timeout(5000)]
+        public async Task LoginWithEmailAsync_FiresAuthenticatedEvents()
         {
             _server.AddHandler("/auth/email/login", _ => PlayerTokenJson("email-tok-2", userId: 11));
             try
@@ -2952,11 +2952,11 @@ namespace Tests.Runtime.Auth
             {
                 _server.RemoveHandler("/auth/email/login");
             }
-        });
+        }
 
-        [UnityTest]
-        public IEnumerator LoginWithEmailAsync_ServerError_ThrowsNoctuaException()
-            => UniTask.ToCoroutine(async () =>
+        [Test]
+        [Timeout(5000)]
+        public async Task LoginWithEmailAsync_ServerError_ThrowsNoctuaException()
         {
             _server.AddHandler("/auth/email/login", _ => null);
             try
@@ -2976,11 +2976,11 @@ namespace Tests.Runtime.Auth
             {
                 _server.RemoveHandler("/auth/email/login");
             }
-        });
+        }
 
-        [UnityTest]
-        public IEnumerator LoginWithEmailAsync_SendsPostRequest()
-            => UniTask.ToCoroutine(async () =>
+        [Test]
+        [Timeout(5000)]
+        public async Task LoginWithEmailAsync_SendsPostRequest()
         {
             _server.AddHandler("/auth/email/login", _ => PlayerTokenJson("email-tok-3"));
             try
@@ -2995,13 +2995,13 @@ namespace Tests.Runtime.Auth
             {
                 _server.RemoveHandler("/auth/email/login");
             }
-        });
+        }
 
         // ── RequestResetPasswordAsync ─────────────────────────────────────────
 
-        [UnityTest]
-        public IEnumerator RequestResetPasswordAsync_ValidResponse_ReturnsVerification()
-            => UniTask.ToCoroutine(async () =>
+        [Test]
+        [Timeout(5000)]
+        public async Task RequestResetPasswordAsync_ValidResponse_ReturnsVerification()
         {
             _server.AddHandler("/auth/email/reset-password", _ => CredentialVerificationJson(777));
             try
@@ -3016,11 +3016,11 @@ namespace Tests.Runtime.Auth
             {
                 _server.RemoveHandler("/auth/email/reset-password");
             }
-        });
+        }
 
-        [UnityTest]
-        public IEnumerator RequestResetPasswordAsync_FiresResetRequestedEvent()
-            => UniTask.ToCoroutine(async () =>
+        [Test]
+        [Timeout(5000)]
+        public async Task RequestResetPasswordAsync_FiresResetRequestedEvent()
         {
             _server.AddHandler("/auth/email/reset-password", _ => CredentialVerificationJson(888));
             try
@@ -3036,11 +3036,11 @@ namespace Tests.Runtime.Auth
             {
                 _server.RemoveHandler("/auth/email/reset-password");
             }
-        });
+        }
 
-        [UnityTest]
-        public IEnumerator RequestResetPasswordAsync_ServerError_ThrowsNoctuaException()
-            => UniTask.ToCoroutine(async () =>
+        [Test]
+        [Timeout(5000)]
+        public async Task RequestResetPasswordAsync_ServerError_ThrowsNoctuaException()
         {
             _server.AddHandler("/auth/email/reset-password", _ => null);
             try
@@ -3060,13 +3060,13 @@ namespace Tests.Runtime.Auth
             {
                 _server.RemoveHandler("/auth/email/reset-password");
             }
-        });
+        }
 
         // ── ConfirmResetPasswordAsync ─────────────────────────────────────────
 
-        [UnityTest]
-        public IEnumerator ConfirmResetPasswordAsync_ValidResponse_ReturnsPlayerToken()
-            => UniTask.ToCoroutine(async () =>
+        [Test]
+        [Timeout(5000)]
+        public async Task ConfirmResetPasswordAsync_ValidResponse_ReturnsPlayerToken()
         {
             _server.AddHandler("/auth/email/verify-reset-password", _ => PlayerTokenJson("reset-tok-1"));
             try
@@ -3081,11 +3081,11 @@ namespace Tests.Runtime.Auth
             {
                 _server.RemoveHandler("/auth/email/verify-reset-password");
             }
-        });
+        }
 
-        [UnityTest]
-        public IEnumerator ConfirmResetPasswordAsync_FiresResetCompletedEvent()
-            => UniTask.ToCoroutine(async () =>
+        [Test]
+        [Timeout(5000)]
+        public async Task ConfirmResetPasswordAsync_FiresResetCompletedEvent()
         {
             _server.AddHandler("/auth/email/verify-reset-password", _ => PlayerTokenJson("reset-tok-2"));
             try
@@ -3101,13 +3101,13 @@ namespace Tests.Runtime.Auth
             {
                 _server.RemoveHandler("/auth/email/verify-reset-password");
             }
-        });
+        }
 
         // ── RegisterWithEmailVerifyPhoneNumberAsync ───────────────────────────
 
-        [UnityTest]
-        public IEnumerator RegisterWithEmailVerifyPhoneNumberAsync_ValidResponse_ReturnsVerification()
-            => UniTask.ToCoroutine(async () =>
+        [Test]
+        [Timeout(5000)]
+        public async Task RegisterWithEmailVerifyPhoneNumberAsync_ValidResponse_ReturnsVerification()
         {
             _server.AddHandler("/auth/email/verify-phone-number-registration",
                 _ => PhoneVerifyResponseJson(true));
@@ -3122,11 +3122,11 @@ namespace Tests.Runtime.Auth
             {
                 _server.RemoveHandler("/auth/email/verify-phone-number-registration");
             }
-        });
+        }
 
-        [UnityTest]
-        public IEnumerator RegisterWithEmailVerifyPhoneNumberAsync_ServerError_ThrowsNoctuaException()
-            => UniTask.ToCoroutine(async () =>
+        [Test]
+        [Timeout(5000)]
+        public async Task RegisterWithEmailVerifyPhoneNumberAsync_ServerError_ThrowsNoctuaException()
         {
             _server.AddHandler("/auth/email/verify-phone-number-registration", _ => null);
             try
@@ -3146,13 +3146,13 @@ namespace Tests.Runtime.Auth
             {
                 _server.RemoveHandler("/auth/email/verify-phone-number-registration");
             }
-        });
+        }
 
         // ── LogoutAsync ───────────────────────────────────────────────────────
 
-        [UnityTest]
-        public IEnumerator LogoutAsync_DelegatesToLoginAsGuestAsync()
-            => UniTask.ToCoroutine(async () =>
+        [Test]
+        [Timeout(5000)]
+        public async Task LogoutAsync_DelegatesToLoginAsGuestAsync()
         {
             // LogoutAsync internally calls LoginAsGuestAsync
             _server.AddHandler("/auth/guest/login", _ => GuestTokenJson("logout-guest-tok"));
@@ -3168,7 +3168,7 @@ namespace Tests.Runtime.Auth
             {
                 _server.RemoveHandler("/auth/guest/login");
             }
-        });
+        }
 
         // ── GetUserAsync ──────────────────────────────────────────────────────
 
@@ -3188,9 +3188,9 @@ namespace Tests.Runtime.Auth
             }
         }
 
-        [UnityTest]
-        public IEnumerator GetUserAsync_WithToken_ReturnsUser()
-            => UniTask.ToCoroutine(async () =>
+        [Test]
+        [Timeout(5000)]
+        public async Task GetUserAsync_WithToken_ReturnsUser()
         {
             // First authenticate to get a token
             _server.AddHandler("/auth/guest/login", _ => PlayerTokenJson("user-profile-tok", userId: 20));
@@ -3210,13 +3210,13 @@ namespace Tests.Runtime.Auth
                 _server.RemoveHandler("/auth/guest/login");
                 _server.RemoveHandler("/user/profile");
             }
-        });
+        }
 
         // ── UpdateUserAsync ───────────────────────────────────────────────────
 
-        [UnityTest]
-        public IEnumerator UpdateUserAsync_NoAccessToken_ThrowsMissingAccessToken()
-            => UniTask.ToCoroutine(async () =>
+        [Test]
+        [Timeout(5000)]
+        public async Task UpdateUserAsync_NoAccessToken_ThrowsMissingAccessToken()
         {
             var svc = CreateService();
             try
@@ -3229,11 +3229,11 @@ namespace Tests.Runtime.Auth
                 Assert.AreEqual((int)NoctuaErrorCode.Authentication, ex.ErrorCode,
                     "Missing token must throw Authentication error");
             }
-        });
+        }
 
-        [UnityTest]
-        public IEnumerator UpdateUserAsync_WithToken_FiresProfileUpdatedEvent()
-            => UniTask.ToCoroutine(async () =>
+        [Test]
+        [Timeout(5000)]
+        public async Task UpdateUserAsync_WithToken_FiresProfileUpdatedEvent()
         {
             _server.AddHandler("/auth/guest/login", _ => PlayerTokenJson("update-tok", userId: 25));
             _server.AddHandler("/user/profile",     _ => EmptyObjectJson());
@@ -3250,7 +3250,7 @@ namespace Tests.Runtime.Auth
                     Language = "en",
                     Country  = "US",
                     Currency = "USD"
-                });
+                }
 
                 Assert.IsTrue(sender.GetEventsByName("profile_updated").Count > 0,
                     "profile_updated event must fire after UpdateUserAsync");
@@ -3261,7 +3261,7 @@ namespace Tests.Runtime.Auth
                 _server.RemoveHandler("/user/profile");
                 _server.RemoveHandler("/auth/token-exchange");
             }
-        });
+        }
     }
 
     // ══════════════════════════════════════════════════════════════════════════════
@@ -3368,9 +3368,9 @@ namespace Tests.Runtime.Auth
             }
         }
 
-        [UnityTest]
-        public IEnumerator SaveGameStateAsync_WithToken_SendsPutRequest()
-            => UniTask.ToCoroutine(async () =>
+        [Test]
+        [Timeout(5000)]
+        public async Task SaveGameStateAsync_WithToken_SendsPutRequest()
         {
             _server.AddHandler("/auth/guest/login", _ => PlayerTokenJson());
             _server.AddHandler("/cloud-saves/level", _ => DataEnvelope("{\"slot_key\":\"level\",\"size_bytes\":1}"));
@@ -3399,7 +3399,7 @@ namespace Tests.Runtime.Auth
                 _server.RemoveHandler("/auth/guest/login");
                 _server.RemoveHandler("/cloud-saves/level");
             }
-        });
+        }
 
         // ══════════════════════════════════════════════════════════════════════
         // LoadGameStateAsync
@@ -3420,9 +3420,9 @@ namespace Tests.Runtime.Auth
             }
         }
 
-        [UnityTest]
-        public IEnumerator LoadGameStateAsync_WithToken_ReturnsRawValue()
-            => UniTask.ToCoroutine(async () =>
+        [Test]
+        [Timeout(5000)]
+        public async Task LoadGameStateAsync_WithToken_ReturnsRawValue()
         {
             _server.AddHandler("/auth/guest/login", _ => PlayerTokenJson());
             _server.AddHandler("/cloud-saves/mykey", _ => "hello-world");
@@ -3441,7 +3441,7 @@ namespace Tests.Runtime.Auth
                 _server.RemoveHandler("/auth/guest/login");
                 _server.RemoveHandler("/cloud-saves/mykey");
             }
-        });
+        }
 
         // ══════════════════════════════════════════════════════════════════════
         // GetGameStateKeysAsync
@@ -3462,9 +3462,9 @@ namespace Tests.Runtime.Auth
             }
         }
 
-        [UnityTest]
-        public IEnumerator GetGameStateKeysAsync_WithToken_ReturnsKeys()
-            => UniTask.ToCoroutine(async () =>
+        [Test]
+        [Timeout(5000)]
+        public async Task GetGameStateKeysAsync_WithToken_ReturnsKeys()
         {
             _server.AddHandler("/auth/guest/login", _ => PlayerTokenJson());
             _server.AddHandler("/cloud-saves", _ => CloudSaveListJson("slot1", "slot2", "slot3"));
@@ -3485,11 +3485,11 @@ namespace Tests.Runtime.Auth
                 _server.RemoveHandler("/auth/guest/login");
                 _server.RemoveHandler("/cloud-saves");
             }
-        });
+        }
 
-        [UnityTest]
-        public IEnumerator GetGameStateKeysAsync_EmptyList_ReturnsEmptyList()
-            => UniTask.ToCoroutine(async () =>
+        [Test]
+        [Timeout(5000)]
+        public async Task GetGameStateKeysAsync_EmptyList_ReturnsEmptyList()
         {
             _server.AddHandler("/auth/guest/login", _ => PlayerTokenJson());
             _server.AddHandler("/cloud-saves", _ => DataEnvelope("{\"saves\":null,\"total\":0}"));
@@ -3508,7 +3508,7 @@ namespace Tests.Runtime.Auth
                 _server.RemoveHandler("/auth/guest/login");
                 _server.RemoveHandler("/cloud-saves");
             }
-        });
+        }
 
         // ══════════════════════════════════════════════════════════════════════
         // DeleteGameStateAsync
@@ -3529,9 +3529,9 @@ namespace Tests.Runtime.Auth
             }
         }
 
-        [UnityTest]
-        public IEnumerator DeleteGameStateAsync_WithToken_SendsDeleteRequest()
-            => UniTask.ToCoroutine(async () =>
+        [Test]
+        [Timeout(5000)]
+        public async Task DeleteGameStateAsync_WithToken_SendsDeleteRequest()
         {
             _server.AddHandler("/auth/guest/login", _ => PlayerTokenJson());
             _server.AddHandler("/cloud-saves/myslot", _ => DataEnvelope("null"));
@@ -3558,7 +3558,7 @@ namespace Tests.Runtime.Auth
                 _server.RemoveHandler("/auth/guest/login");
                 _server.RemoveHandler("/cloud-saves/myslot");
             }
-        });
+        }
 
         // ══════════════════════════════════════════════════════════════════════
         // GetProfileOptions
@@ -3579,9 +3579,9 @@ namespace Tests.Runtime.Auth
             }
         }
 
-        [UnityTest]
-        public IEnumerator GetProfileOptions_WithToken_ReturnsData()
-            => UniTask.ToCoroutine(async () =>
+        [Test]
+        [Timeout(5000)]
+        public async Task GetProfileOptions_WithToken_ReturnsData()
         {
             _server.AddHandler("/auth/guest/login",     _ => PlayerTokenJson());
             _server.AddHandler("/user/profile-options", _ => ProfileOptionsJson());
@@ -3601,15 +3601,15 @@ namespace Tests.Runtime.Auth
                 _server.RemoveHandler("/auth/guest/login");
                 _server.RemoveHandler("/user/profile-options");
             }
-        });
+        }
 
         // ══════════════════════════════════════════════════════════════════════
         // UpdatePlayerAccountAsync
         // ══════════════════════════════════════════════════════════════════════
 
-        [UnityTest]
-        public IEnumerator UpdatePlayerAccountAsync_WithToken_FiresRoleUpdatedEvent()
-            => UniTask.ToCoroutine(async () =>
+        [Test]
+        [Timeout(5000)]
+        public async Task UpdatePlayerAccountAsync_WithToken_FiresRoleUpdatedEvent()
         {
             _server.AddHandler("/auth/guest/login", _ => PlayerTokenJson());
             _server.AddHandler("/players/sync",     _ => PlayerSyncJson());
@@ -3624,7 +3624,7 @@ namespace Tests.Runtime.Auth
                     IngameUsername = "TestPlayer",
                     IngameServerId = "server-1",
                     IngameRoleId   = "role-warrior"
-                });
+                }
 
                 Assert.IsTrue(sender.GetEventsByName("role_updated").Count > 0,
                     "role_updated event must fire after UpdatePlayerAccountAsync");
@@ -3634,15 +3634,15 @@ namespace Tests.Runtime.Auth
                 _server.RemoveHandler("/auth/guest/login");
                 _server.RemoveHandler("/players/sync");
             }
-        });
+        }
 
         // ══════════════════════════════════════════════════════════════════════
         // DeletePlayerAccountAsync
         // ══════════════════════════════════════════════════════════════════════
 
-        [UnityTest]
-        public IEnumerator DeletePlayerAccountAsync_WithToken_FiresAccountDeletedEvent()
-            => UniTask.ToCoroutine(async () =>
+        [Test]
+        [Timeout(5000)]
+        public async Task DeletePlayerAccountAsync_WithToken_FiresAccountDeletedEvent()
         {
             _server.AddHandler("/auth/guest/login",  _ => PlayerTokenJson());
             _server.AddHandler("/players/destroy",   _ => DeleteAccountJson());
@@ -3662,7 +3662,7 @@ namespace Tests.Runtime.Auth
                 _server.RemoveHandler("/auth/guest/login");
                 _server.RemoveHandler("/players/destroy");
             }
-        });
+        }
 
         // ══════════════════════════════════════════════════════════════════════
         // ResetAccounts

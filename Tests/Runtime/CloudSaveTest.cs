@@ -24,7 +24,8 @@ namespace Tests.Runtime
 
         // --- CloudSaveMetadata deserialization tests ---
 
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator CloudSaveMetadata_Deserialization_Success()
         {
             var json = @"{
@@ -48,7 +49,8 @@ namespace Tests.Runtime
             yield return null;
         }
 
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator CloudSaveMetadata_Deserialization_WithDataEnvelope()
         {
             var json = @"{
@@ -75,7 +77,8 @@ namespace Tests.Runtime
 
         // --- CloudSaveListResponse deserialization tests ---
 
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator CloudSaveListResponse_Deserialization_MultipleSaves()
         {
             var json = @"{
@@ -112,7 +115,8 @@ namespace Tests.Runtime
             yield return null;
         }
 
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator CloudSaveListResponse_Deserialization_EmptySaves()
         {
             var json = @"{
@@ -129,7 +133,8 @@ namespace Tests.Runtime
             yield return null;
         }
 
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator CloudSaveListResponse_Deserialization_WithDataEnvelope()
         {
             var json = @"{
@@ -158,7 +163,8 @@ namespace Tests.Runtime
             yield return null;
         }
 
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator CloudSaveListResponse_ExtractKeys_ReturnsSlotKeys()
         {
             var json = @"{
@@ -208,7 +214,8 @@ namespace Tests.Runtime
 
         // --- Error response deserialization tests ---
 
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator ErrorResponse_Deserialization_InvalidSlotKey()
         {
             var json = @"{
@@ -226,7 +233,8 @@ namespace Tests.Runtime
             yield return null;
         }
 
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator ErrorResponse_Deserialization_DataTooLarge()
         {
             var json = @"{
@@ -244,7 +252,8 @@ namespace Tests.Runtime
             yield return null;
         }
 
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator ErrorResponse_Deserialization_SaveNotFound()
         {
             var json = @"{
@@ -262,7 +271,8 @@ namespace Tests.Runtime
             yield return null;
         }
 
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator ErrorResponse_Deserialization_Unauthorized()
         {
             var json = @"{
@@ -283,8 +293,9 @@ namespace Tests.Runtime
         // --- Integration tests (requires full SDK init + backend) ---
 
         [Ignore("Requires full SDK resources and a live backend server.")]
-        [UnityTest]
-        public IEnumerator SaveAndLoadGameState_RoundTrip() => UniTask.ToCoroutine(async () =>
+        [Test]
+        [Timeout(5000)]
+        public async Task SaveAndLoadGameState_RoundTrip()
         {
             await Noctua.InitAsync();
             await Noctua.Auth.AuthenticateAsync();
@@ -299,11 +310,12 @@ namespace Tests.Runtime
             Assert.AreEqual(testValue, loaded);
 
             await Noctua.Auth.DeleteGameState(testKey);
-        });
+        }
 
         [Ignore("Requires full SDK resources and a live backend server.")]
-        [UnityTest]
-        public IEnumerator GetGameStateKeys_ReturnsKeys() => UniTask.ToCoroutine(async () =>
+        [Test]
+        [Timeout(5000)]
+        public async Task GetGameStateKeys_ReturnsKeys()
         {
             await Noctua.InitAsync();
             await Noctua.Auth.AuthenticateAsync();
@@ -319,11 +331,12 @@ namespace Tests.Runtime
 
             await Noctua.Auth.DeleteGameState("key-a");
             await Noctua.Auth.DeleteGameState("key-b");
-        });
+        }
 
         [Ignore("Requires full SDK resources and a live backend server.")]
-        [UnityTest]
-        public IEnumerator DeleteGameState_RemovesKey() => UniTask.ToCoroutine(async () =>
+        [Test]
+        [Timeout(5000)]
+        public async Task DeleteGameState_RemovesKey()
         {
             await Noctua.InitAsync();
             await Noctua.Auth.AuthenticateAsync();
@@ -335,7 +348,7 @@ namespace Tests.Runtime
             var keys = await Noctua.Auth.GetGameStateKeys();
 
             Assert.IsFalse(keys.Contains("to-delete"));
-        });
+        }
 
         // Helper class to simulate the HTTP layer data envelope unwrap
         private class DataWrapper<T>
@@ -383,9 +396,9 @@ namespace Tests.Runtime
         }
 
         // 1. SaveGameStateAsync throws NoctuaException when not authenticated
-        [UnityTest]
-        public IEnumerator SaveGameStateAsync_NotAuthenticated_ThrowsNoctuaException()
-            => UniTask.ToCoroutine(async () =>
+        [Test]
+        [Timeout(5000)]
+        public async Task SaveGameStateAsync_NotAuthenticated_ThrowsNoctuaException()
         {
             NoctuaException caught = null;
             try
@@ -398,12 +411,12 @@ namespace Tests.Runtime
             }
             Assert.IsNotNull(caught, "Expected NoctuaException to be thrown");
             Assert.AreEqual(NoctuaErrorCode.Authentication, (NoctuaErrorCode)caught.ErrorCode);
-        });
+        }
 
         // 2. LoadGameStateAsync throws NoctuaException when not authenticated
-        [UnityTest]
-        public IEnumerator LoadGameStateAsync_NotAuthenticated_ThrowsNoctuaException()
-            => UniTask.ToCoroutine(async () =>
+        [Test]
+        [Timeout(5000)]
+        public async Task LoadGameStateAsync_NotAuthenticated_ThrowsNoctuaException()
         {
             NoctuaException caught = null;
             try
@@ -416,12 +429,12 @@ namespace Tests.Runtime
             }
             Assert.IsNotNull(caught, "Expected NoctuaException to be thrown");
             Assert.AreEqual(NoctuaErrorCode.Authentication, (NoctuaErrorCode)caught.ErrorCode);
-        });
+        }
 
         // 3. GetGameStateKeysAsync throws NoctuaException when not authenticated
-        [UnityTest]
-        public IEnumerator GetGameStateKeysAsync_NotAuthenticated_ThrowsNoctuaException()
-            => UniTask.ToCoroutine(async () =>
+        [Test]
+        [Timeout(5000)]
+        public async Task GetGameStateKeysAsync_NotAuthenticated_ThrowsNoctuaException()
         {
             NoctuaException caught = null;
             try
@@ -434,12 +447,12 @@ namespace Tests.Runtime
             }
             Assert.IsNotNull(caught, "Expected NoctuaException to be thrown");
             Assert.AreEqual(NoctuaErrorCode.Authentication, (NoctuaErrorCode)caught.ErrorCode);
-        });
+        }
 
         // 4. DeleteGameStateAsync throws NoctuaException when not authenticated
-        [UnityTest]
-        public IEnumerator DeleteGameStateAsync_NotAuthenticated_ThrowsNoctuaException()
-            => UniTask.ToCoroutine(async () =>
+        [Test]
+        [Timeout(5000)]
+        public async Task DeleteGameStateAsync_NotAuthenticated_ThrowsNoctuaException()
         {
             NoctuaException caught = null;
             try
@@ -452,12 +465,12 @@ namespace Tests.Runtime
             }
             Assert.IsNotNull(caught, "Expected NoctuaException to be thrown");
             Assert.AreEqual(NoctuaErrorCode.Authentication, (NoctuaErrorCode)caught.ErrorCode);
-        });
+        }
 
         // 5. SaveGameStateAsync error message matches "Missing access token"
-        [UnityTest]
-        public IEnumerator SaveGameStateAsync_NotAuthenticated_ExceptionMessageContainsMissingAccessToken()
-            => UniTask.ToCoroutine(async () =>
+        [Test]
+        [Timeout(5000)]
+        public async Task SaveGameStateAsync_NotAuthenticated_ExceptionMessageContainsMissingAccessToken()
         {
             NoctuaException caught = null;
             try
@@ -470,10 +483,11 @@ namespace Tests.Runtime
             }
             Assert.IsNotNull(caught);
             StringAssert.Contains("access token", caught.Message.ToLower());
-        });
+        }
 
         // 6. All four guard checks fire synchronously — IsAuthenticated is false on fresh service
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator IsAuthenticated_FreshService_ReturnsFalse()
         {
             Assert.IsFalse(_authService.IsAuthenticated);
@@ -481,7 +495,8 @@ namespace Tests.Runtime
         }
 
         // 7. RecentAccount is null on fresh service (no stored accounts)
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator RecentAccount_FreshService_IsNull()
         {
             Assert.IsNull(_authService.RecentAccount);
@@ -489,7 +504,8 @@ namespace Tests.Runtime
         }
 
         // 8. CloudSaveMetadata defaults — new instance has sensible zero-values
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator CloudSaveMetadata_DefaultInstance_FieldsAreNullOrZero()
         {
             var metadata = new CloudSaveMetadata();
@@ -503,7 +519,8 @@ namespace Tests.Runtime
         }
 
         // 9. CloudSaveListResponse defaults — Saves is null/empty and Total is 0
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator CloudSaveListResponse_DefaultInstance_SavesNullAndTotalZero()
         {
             var response = new CloudSaveListResponse();
@@ -514,9 +531,9 @@ namespace Tests.Runtime
         }
 
         // 10. Multiple guard calls in sequence all throw (guards are stateless)
-        [UnityTest]
-        public IEnumerator MultipleGuardCalls_AllThrowNoctuaException()
-            => UniTask.ToCoroutine(async () =>
+        [Test]
+        [Timeout(5000)]
+        public async Task MultipleGuardCalls_AllThrowNoctuaException()
         {
             int throwCount = 0;
 
@@ -532,6 +549,6 @@ namespace Tests.Runtime
             await TryCall(() => _authService.DeleteGameStateAsync("k"));
 
             Assert.AreEqual(4, throwCount, "All four guard checks should have thrown");
-        });
+        }
     }
 }

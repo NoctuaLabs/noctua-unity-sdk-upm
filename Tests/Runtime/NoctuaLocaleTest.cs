@@ -11,7 +11,8 @@ namespace Tests.Runtime
 {
     public class NoctuaLocaleTest
     {
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator GetLanguageByPriority_NoPrefsNoRegion()
         {
             // No user preferences and no region
@@ -24,7 +25,8 @@ namespace Tests.Runtime
             yield return null;
         }
 
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator GetLanguageByPriority_NoPrefsRegionVietnam()
         {
             // No user preferences and region set to Vietnam
@@ -37,7 +39,8 @@ namespace Tests.Runtime
             yield return null;
         }
 
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator GetLanguageByPriority_PrefsId()
         {
             // User preferences set to id
@@ -73,7 +76,8 @@ namespace Tests.Runtime
         }
 
         // 1. GetLanguage() — returns non-null, non-empty string in edit mode
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator GetLanguage_EditMode_ReturnsNonNullNonEmptyString()
         {
             var locale = new NoctuaLocale("");
@@ -84,7 +88,8 @@ namespace Tests.Runtime
         }
 
         // 2. GetCountry() — returns non-null string (may be empty if not set)
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator GetCountry_WhenNotSet_ReturnsNonNullString()
         {
             var locale = new NoctuaLocale("");
@@ -94,7 +99,8 @@ namespace Tests.Runtime
         }
 
         // 3. GetCurrency() — returns non-null string; defaults to "USD"
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator GetCurrency_WhenNotSet_ReturnsNonNullStringDefaultUsd()
         {
             var locale = new NoctuaLocale("");
@@ -105,7 +111,8 @@ namespace Tests.Runtime
         }
 
         // 4. SetUserPrefsLanguage("id") then GetLanguage() — returns "id"
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator SetUserPrefsLanguage_Id_GetLanguage_ReturnsId()
         {
             var locale = new NoctuaLocale("");
@@ -115,7 +122,8 @@ namespace Tests.Runtime
         }
 
         // 5. SetUserPrefsLanguage(null) — does not throw, clears override (falls back to region/system)
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator SetUserPrefsLanguage_Null_DoesNotThrow()
         {
             var locale = new NoctuaLocale("vn");
@@ -127,7 +135,8 @@ namespace Tests.Runtime
         }
 
         // 6. GetTranslation(key) for a known LocaleTextKey — returns a non-null, non-empty string
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator GetTranslation_KnownLocaleTextKey_ReturnsNonEmptyString()
         {
             var locale = new NoctuaLocale("");
@@ -139,7 +148,8 @@ namespace Tests.Runtime
         }
 
         // 7. GetTranslation(unknownKey) — returns the key itself as fallback
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator GetTranslation_UnknownStringKey_ReturnsKeyAsFallback()
         {
             var locale = new NoctuaLocale("");
@@ -150,7 +160,8 @@ namespace Tests.Runtime
         }
 
         // 8. OnLanguageChanged event — fires when language changes from one code to another
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator OnLanguageChanged_FiresWithNewLanguage_WhenLanguageChanges()
         {
             var locale = new NoctuaLocale("");
@@ -167,7 +178,8 @@ namespace Tests.Runtime
         }
 
         // 9. GetTranslations() — returns non-null dictionary
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator GetTranslations_ReturnsNonNullDictionary()
         {
             var locale = new NoctuaLocale("");
@@ -177,7 +189,8 @@ namespace Tests.Runtime
         }
 
         // 10. Country/currency consistency for a known locale (ID)
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator SetCountryAndCurrency_ForIndonesia_GetBothMatchExpected()
         {
             var locale = new NoctuaLocale("");
@@ -190,7 +203,8 @@ namespace Tests.Runtime
         }
 
         // 11. SetUserPrefsLanguage with a custom code — GetLanguage honours it
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator SetUserPrefsLanguage_CustomCode_GetLanguage_ReturnsCustomCode()
         {
             var locale = new NoctuaLocale("vn"); // region would give "vi"
@@ -200,7 +214,8 @@ namespace Tests.Runtime
         }
 
         // 12. GetTranslation(LocaleTextKey) delegates to string overload — results are equal
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator GetTranslation_LocaleTextKey_EqualsStringOverload()
         {
             var locale = new NoctuaLocale("en");

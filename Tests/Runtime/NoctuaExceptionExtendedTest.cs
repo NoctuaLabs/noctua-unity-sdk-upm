@@ -7,7 +7,8 @@ namespace Tests.Runtime
 {
     public class NoctuaExceptionExtendedTest
     {
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator ToString_ContainsAllFields()
         {
             var ex = new NoctuaException(NoctuaErrorCode.Application, "test message", "payload-data");
@@ -19,7 +20,8 @@ namespace Tests.Runtime
             yield return null;
         }
 
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator ToString_EmptyPayload()
         {
             var ex = new NoctuaException(NoctuaErrorCode.Networking, "net error");
@@ -31,7 +33,8 @@ namespace Tests.Runtime
             yield return null;
         }
 
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator ErrorCode_Property_MatchesEnum()
         {
             var ex = new NoctuaException(NoctuaErrorCode.Payment, "pay error");
@@ -39,7 +42,8 @@ namespace Tests.Runtime
             yield return null;
         }
 
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator Payload_Default_IsEmptyString()
         {
             var ex = new NoctuaException(NoctuaErrorCode.Unknown, "msg");
@@ -47,7 +51,8 @@ namespace Tests.Runtime
             yield return null;
         }
 
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator StaticInstances_HaveCorrectErrorCodes()
         {
             Assert.AreEqual((int)NoctuaErrorCode.Networking, NoctuaException.OtherWebRequestError.ErrorCode);
@@ -62,7 +67,8 @@ namespace Tests.Runtime
             yield return null;
         }
 
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator StaticInstances_HaveCorrectMessages()
         {
             Assert.IsTrue(NoctuaException.OtherWebRequestError.Message.Contains("Other web request error"));

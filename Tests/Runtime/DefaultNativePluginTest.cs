@@ -29,7 +29,8 @@ namespace Tests.Runtime
 
         // GetAccounts tests
 
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator GetAccounts_Empty_ReturnsEmptyList()
         {
             var accounts = _plugin.GetAccounts();
@@ -38,7 +39,8 @@ namespace Tests.Runtime
             yield return null;
         }
 
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator GetAccounts_CorruptJson_ReturnsEmptyList()
         {
             PlayerPrefs.SetString("NoctuaAccountContainer", "not valid json{{{");
@@ -50,7 +52,8 @@ namespace Tests.Runtime
 
         // PutAccount / GetAccount tests
 
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator PutAccount_GetAccount_RoundTrip()
         {
             var account = new NativeAccount
@@ -71,7 +74,8 @@ namespace Tests.Runtime
             yield return null;
         }
 
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator PutAccount_Duplicate_ReplacesExisting()
         {
             var account1 = new NativeAccount
@@ -97,7 +101,8 @@ namespace Tests.Runtime
             yield return null;
         }
 
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator PutAccount_MultipleAccounts_AllStored()
         {
             _plugin.PutAccount(new NativeAccount { PlayerId = 1, GameId = 100, RawData = "{}" });
@@ -111,7 +116,8 @@ namespace Tests.Runtime
 
         // DeleteAccount tests
 
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator DeleteAccount_RemovesAccount()
         {
             var account = new NativeAccount { PlayerId = 1, GameId = 100, RawData = "{}" };
@@ -125,7 +131,8 @@ namespace Tests.Runtime
             yield return null;
         }
 
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator DeleteAccount_NonExistent_Returns1()
         {
             var account = new NativeAccount { PlayerId = 999, GameId = 999, RawData = "{}" };
@@ -136,63 +143,72 @@ namespace Tests.Runtime
 
         // Init / lifecycle no-op tests
 
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator Init_WithEmptyList_DoesNotThrow()
         {
             Assert.DoesNotThrow(() => _plugin.Init(new System.Collections.Generic.List<string>()));
             yield return null;
         }
 
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator OnApplicationPause_True_DoesNotThrow()
         {
             Assert.DoesNotThrow(() => _plugin.OnApplicationPause(true));
             yield return null;
         }
 
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator OnApplicationPause_False_DoesNotThrow()
         {
             Assert.DoesNotThrow(() => _plugin.OnApplicationPause(false));
             yield return null;
         }
 
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator DisposeStoreKit_DoesNotThrow()
         {
             Assert.DoesNotThrow(() => _plugin.DisposeStoreKit());
             yield return null;
         }
 
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator IsStoreKitReady_ReturnsFalse()
         {
             Assert.IsFalse(_plugin.IsStoreKitReady());
             yield return null;
         }
 
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator RegisterNativeLifecycleCallback_DoesNotThrow()
         {
             Assert.DoesNotThrow(() => _plugin.RegisterNativeLifecycleCallback(_ => { }));
             yield return null;
         }
 
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator CloseDatePicker_DoesNotThrow()
         {
             Assert.DoesNotThrow(() => _plugin.CloseDatePicker());
             yield return null;
         }
 
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator ClearNativeHttpCache_DoesNotThrow()
         {
             Assert.DoesNotThrow(() => _plugin.ClearNativeHttpCache());
             yield return null;
         }
 
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator CompleteUpdate_DoesNotThrow()
         {
             Assert.DoesNotThrow(() => _plugin.CompleteUpdate());
@@ -201,7 +217,8 @@ namespace Tests.Runtime
 
         // TrackAdRevenue / TrackPurchase / TrackCustomEvent / TrackCustomEventWithRevenue
 
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator TrackAdRevenue_DoesNotThrow()
         {
             Assert.DoesNotThrow(() => _plugin.TrackAdRevenue(
@@ -210,28 +227,32 @@ namespace Tests.Runtime
             yield return null;
         }
 
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator TrackAdRevenue_NullPayload_DoesNotThrow()
         {
             Assert.DoesNotThrow(() => _plugin.TrackAdRevenue("applovin", 0.0, "USD", null));
             yield return null;
         }
 
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator TrackPurchase_DoesNotThrow()
         {
             Assert.DoesNotThrow(() => _plugin.TrackPurchase("order-123", 9.99, "USD", null));
             yield return null;
         }
 
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator TrackCustomEvent_DoesNotThrow()
         {
             Assert.DoesNotThrow(() => _plugin.TrackCustomEvent("level_complete", null));
             yield return null;
         }
 
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator TrackCustomEventWithRevenue_DoesNotThrow()
         {
             Assert.DoesNotThrow(() => _plugin.TrackCustomEventWithRevenue("purchase_done", 4.99, "USD", null));
@@ -240,7 +261,8 @@ namespace Tests.Runtime
 
         // GetFirebaseInstallationID / GetFirebaseAnalyticsSessionID — now call callback synchronously with string.Empty
 
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator GetFirebaseInstallationID_CallbackInvokedWithEmpty()
         {
             bool called = false;
@@ -249,7 +271,8 @@ namespace Tests.Runtime
             yield return null;
         }
 
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator GetFirebaseAnalyticsSessionID_CallbackInvokedWithEmpty()
         {
             bool called = false;
@@ -260,7 +283,8 @@ namespace Tests.Runtime
 
         // GetFirebaseMessagingToken — does call callback with string.Empty
 
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator GetFirebaseMessagingToken_CallsCallbackWithEmpty()
         {
             string result = "not_called";
@@ -271,14 +295,16 @@ namespace Tests.Runtime
 
         // OnOnline / OnOffline
 
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator OnOnline_DoesNotThrow()
         {
             Assert.DoesNotThrow(() => _plugin.OnOnline());
             yield return null;
         }
 
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator OnOffline_DoesNotThrow()
         {
             Assert.DoesNotThrow(() => _plugin.OnOffline());
@@ -287,28 +313,32 @@ namespace Tests.Runtime
 
         // INativeLogStream / INativeDeviceMetrics
 
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator SetLogStreamEnabled_True_DoesNotThrow()
         {
             Assert.DoesNotThrow(() => _plugin.SetLogStreamEnabled(true));
             yield return null;
         }
 
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator SetLogStreamEnabled_False_DoesNotThrow()
         {
             Assert.DoesNotThrow(() => _plugin.SetLogStreamEnabled(false));
             yield return null;
         }
 
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator RegisterNativeLogCallback_DoesNotThrow()
         {
             Assert.DoesNotThrow(() => _plugin.RegisterNativeLogCallback((level, source, tag, msg, ts) => { }));
             yield return null;
         }
 
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator SnapshotDeviceMetrics_DoesNotThrow()
         {
             Assert.DoesNotThrow(() => _plugin.SnapshotDeviceMetrics());
@@ -317,28 +347,32 @@ namespace Tests.Runtime
 
         // StoreKit methods that throw NotImplementedException
 
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator PurchaseItem_ThrowsNotImplementedException()
         {
             Assert.Throws<NotImplementedException>(() => _plugin.PurchaseItem("product_1", (ok, msg) => { }));
             yield return null;
         }
 
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator GetActiveCurrency_ThrowsNotImplementedException()
         {
             Assert.Throws<NotImplementedException>(() => _plugin.GetActiveCurrency("product_1", (ok, msg) => { }));
             yield return null;
         }
 
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator GetProductPurchasedById_ThrowsNotImplementedException()
         {
             Assert.Throws<NotImplementedException>(() => _plugin.GetProductPurchasedById("product_1", _ => { }));
             yield return null;
         }
 
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator GetReceiptProductPurchasedStoreKit1_ThrowsNotImplementedException()
         {
             Assert.Throws<NotImplementedException>(() =>
@@ -348,7 +382,8 @@ namespace Tests.Runtime
 
         // GetProductPurchaseStatusDetail — calls callback with empty status
 
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator GetProductPurchaseStatusDetail_CallsCallbackWithEmptyStatus()
         {
             ProductPurchaseStatus result = null;
@@ -359,7 +394,8 @@ namespace Tests.Runtime
 
         // CompletePurchaseProcessing — calls callback with true
 
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator CompletePurchaseProcessing_CallsCallbackWithTrue()
         {
             bool? result = null;
@@ -370,7 +406,8 @@ namespace Tests.Runtime
 
         // App management callbacks
 
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator RequestInAppReview_CallsCallbackWithFalse()
         {
             bool? result = null;
@@ -379,7 +416,8 @@ namespace Tests.Runtime
             yield return null;
         }
 
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator CheckForUpdate_CallsCallbackWithEmptyJson()
         {
             string result = null;
@@ -388,7 +426,8 @@ namespace Tests.Runtime
             yield return null;
         }
 
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator StartImmediateUpdate_CallsCallbackWith3()
         {
             int? result = null;
@@ -397,7 +436,8 @@ namespace Tests.Runtime
             yield return null;
         }
 
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator StartFlexibleUpdate_CallsOnResultWith3()
         {
             int? resultCode = null;
@@ -408,28 +448,32 @@ namespace Tests.Runtime
 
         // INativeBuildInfo properties
 
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator GetNativeSdkVersion_ReturnsEditorString()
         {
             Assert.AreEqual("n/a (Editor)", _plugin.GetNativeSdkVersion());
             yield return null;
         }
 
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator GetFirebaseProjectId_ReturnsEmpty()
         {
             Assert.AreEqual("", _plugin.GetFirebaseProjectId());
             yield return null;
         }
 
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator GetSkAdNetworksCount_ReturnsMinusOne()
         {
             Assert.AreEqual(-1, _plugin.GetSkAdNetworksCount());
             yield return null;
         }
 
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator GetAndroidPermissionsCount_ReturnsMinusOne()
         {
             Assert.AreEqual(-1, _plugin.GetAndroidPermissionsCount());
@@ -438,7 +482,8 @@ namespace Tests.Runtime
 
         // Legacy event storage (PlayerPrefs-backed)
 
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator SaveEvents_GetEvents_RoundTrip()
         {
             var json = "[\"event1\",\"event2\"]";
@@ -454,7 +499,8 @@ namespace Tests.Runtime
             yield return null;
         }
 
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator DeleteEvents_ClearsStorage()
         {
             _plugin.SaveEvents("[\"event1\"]");
@@ -468,7 +514,8 @@ namespace Tests.Runtime
             yield return null;
         }
 
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator GetEvents_WithCorruptJson_ReturnsEmptyList()
         {
             PlayerPrefs.SetString("NoctuaEvents", "not_valid_json");
@@ -481,7 +528,8 @@ namespace Tests.Runtime
 
         // Per-row event storage (in-memory JSONL-backed)
 
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator InsertEvent_GetEventCount_IncreasesCount()
         {
             int? count = null;
@@ -495,7 +543,8 @@ namespace Tests.Runtime
             yield return null;
         }
 
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator GetEventsBatch_LimitAndOffset_ReturnsCorrectSlice()
         {
             _plugin.InsertEvent("{\"event_name\":\"e1\"}");
@@ -509,7 +558,8 @@ namespace Tests.Runtime
             yield return null;
         }
 
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator DeleteEventsByIds_RemovesMatchingEvents()
         {
             _plugin.InsertEvent("{\"event_name\":\"to_delete\"}");
@@ -533,7 +583,8 @@ namespace Tests.Runtime
 
         // GetFirebaseRemoteConfig* tests
 
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator GetFirebaseRemoteConfigString_ReturnsEmpty()
         {
             string result = null;
@@ -542,7 +593,8 @@ namespace Tests.Runtime
             yield return null;
         }
 
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator GetFirebaseRemoteConfigBoolean_ReturnsFalse()
         {
             bool? result = null;
@@ -551,7 +603,8 @@ namespace Tests.Runtime
             yield return null;
         }
 
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator GetFirebaseRemoteConfigDouble_ReturnsZero()
         {
             double? result = null;
@@ -560,7 +613,8 @@ namespace Tests.Runtime
             yield return null;
         }
 
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator GetFirebaseRemoteConfigLong_ReturnsZero()
         {
             long? result = null;
@@ -571,7 +625,8 @@ namespace Tests.Runtime
 
         // GetAdjustAttribution test
 
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator GetAdjustAttribution_ReturnsEmpty()
         {
             string result = null;
@@ -582,7 +637,8 @@ namespace Tests.Runtime
 
         // ShowDatePicker test
 
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator ShowDatePicker_ThrowsNotImplementedException()
         {
             Assert.Throws<NotImplementedException>(() => _plugin.ShowDatePicker(2024, 1, 1, 0));
@@ -594,7 +650,8 @@ namespace Tests.Runtime
         // The earlier tests in this file assert IsFalse(called) which no longer matches
         // the implementation. These tests document and verify the current behaviour.
 
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator GetFirebaseInstallationID_InvokesCallbackWithEmptyString()
         {
             string received = "sentinel";
@@ -604,7 +661,8 @@ namespace Tests.Runtime
             yield return null;
         }
 
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator GetFirebaseAnalyticsSessionID_InvokesCallbackWithEmptyString()
         {
             string received = "sentinel";
@@ -616,35 +674,40 @@ namespace Tests.Runtime
 
         // ── Null-callback safety ─────────────────────────────────────────────────
 
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator GetFirebaseInstallationID_NullCallback_DoesNotThrow()
         {
             Assert.DoesNotThrow(() => _plugin.GetFirebaseInstallationID(null));
             yield return null;
         }
 
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator GetFirebaseAnalyticsSessionID_NullCallback_DoesNotThrow()
         {
             Assert.DoesNotThrow(() => _plugin.GetFirebaseAnalyticsSessionID(null));
             yield return null;
         }
 
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator GetFirebaseMessagingToken_NullCallback_DoesNotThrow()
         {
             Assert.DoesNotThrow(() => _plugin.GetFirebaseMessagingToken(null));
             yield return null;
         }
 
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator GetProductPurchaseStatusDetail_NullCallback_DoesNotThrow()
         {
             Assert.DoesNotThrow(() => _plugin.GetProductPurchaseStatusDetail("product_1", null));
             yield return null;
         }
 
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator CompletePurchaseProcessing_NullCallback_DoesNotThrow()
         {
             Assert.DoesNotThrow(() =>
@@ -652,35 +715,40 @@ namespace Tests.Runtime
             yield return null;
         }
 
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator GetAdjustAttribution_NullCallback_DoesNotThrow()
         {
             Assert.DoesNotThrow(() => _plugin.GetAdjustAttribution(null));
             yield return null;
         }
 
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator GetEvents_NullCallback_DoesNotThrow()
         {
             Assert.DoesNotThrow(() => _plugin.GetEvents(null));
             yield return null;
         }
 
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator GetEventCount_NullCallback_DoesNotThrow()
         {
             Assert.DoesNotThrow(() => _plugin.GetEventCount(null));
             yield return null;
         }
 
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator GetEventsBatch_NullCallback_DoesNotThrow()
         {
             Assert.DoesNotThrow(() => _plugin.GetEventsBatch(10, 0, null));
             yield return null;
         }
 
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator DeleteEventsByIds_NullCallback_DoesNotThrow()
         {
             Assert.DoesNotThrow(() => _plugin.DeleteEventsByIds(new long[0], null));
@@ -689,7 +757,8 @@ namespace Tests.Runtime
 
         // ── GetAccount edge cases ────────────────────────────────────────────────
 
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator GetAccount_WhenNoMatchingAccount_ReturnsNull()
         {
             _plugin.PutAccount(new NativeAccount { PlayerId = 1, GameId = 100, RawData = "{}" });
@@ -698,7 +767,8 @@ namespace Tests.Runtime
             yield return null;
         }
 
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator GetAccount_MatchesByBothPlayerIdAndGameId()
         {
             _plugin.PutAccount(new NativeAccount { PlayerId = 1, GameId = 100, RawData = "{\"a\":1}" });
@@ -712,7 +782,8 @@ namespace Tests.Runtime
 
         // ── SnapshotDeviceMetrics returns non-null ────────────────────────────────
 
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator SnapshotDeviceMetrics_ReturnsNonNull()
         {
             var snapshot = _plugin.SnapshotDeviceMetrics();
@@ -722,7 +793,8 @@ namespace Tests.Runtime
 
         // ── StartFlexibleUpdate with onProgress callback ──────────────────────────
 
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator StartFlexibleUpdate_WithOnProgressCallback_DoesNotThrow()
         {
             float? progress = null;
@@ -735,7 +807,8 @@ namespace Tests.Runtime
 
         // ── GetEventsBatch with non-zero offset ───────────────────────────────────
 
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator GetEventsBatch_WithOffset_SkipsEvents()
         {
             _plugin.InsertEvent("{\"event_name\":\"e1\"}");
@@ -755,7 +828,8 @@ namespace Tests.Runtime
 
         // ── DeleteEventsByIds with empty array ────────────────────────────────────
 
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator DeleteEventsByIds_EmptyArray_RemovesZeroEvents()
         {
             _plugin.InsertEvent("{\"event_name\":\"keep_me\"}");
@@ -775,7 +849,8 @@ namespace Tests.Runtime
         // LoadEventStore migrates old NoctuaEvents blob from PlayerPrefs into the
         // in-memory store on first construction.
 
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator Constructor_WithLegacyPlayerPrefsBlobPresent_MigratesEventsToStore()
         {
             // Arrange: write a legacy blob before constructing a new plugin instance
@@ -795,7 +870,8 @@ namespace Tests.Runtime
             yield return null;
         }
 
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator Constructor_WithCorruptLegacyPlayerPrefsBlob_DoesNotThrow()
         {
             PlayerPrefs.SetString("NoctuaEvents", "{ not valid json [[[");
@@ -809,7 +885,8 @@ namespace Tests.Runtime
 
         // ── CompletePurchaseProcessing with verified=false ────────────────────────
 
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator CompletePurchaseProcessing_UnverifiedPurchase_StillCallsCallbackWithTrue()
         {
             bool? result = null;
@@ -821,7 +898,8 @@ namespace Tests.Runtime
 
         // ── RequestInAppReview null-callback safety ───────────────────────────────
 
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator RequestInAppReview_NullCallback_DoesNotThrow()
         {
             Assert.DoesNotThrow(() => _plugin.RequestInAppReview(null));
@@ -830,21 +908,24 @@ namespace Tests.Runtime
 
         // ── CheckForUpdate / StartImmediateUpdate / StartFlexibleUpdate null-safety
 
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator CheckForUpdate_NullCallback_DoesNotThrow()
         {
             Assert.DoesNotThrow(() => _plugin.CheckForUpdate(null));
             yield return null;
         }
 
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator StartImmediateUpdate_NullCallback_DoesNotThrow()
         {
             Assert.DoesNotThrow(() => _plugin.StartImmediateUpdate(null));
             yield return null;
         }
 
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator StartFlexibleUpdate_NullCallbacks_DoesNotThrow()
         {
             Assert.DoesNotThrow(() => _plugin.StartFlexibleUpdate(null, null));

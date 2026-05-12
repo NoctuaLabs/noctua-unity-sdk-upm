@@ -10,7 +10,8 @@ namespace Tests.Runtime
     {
         // ValidateEmail tests
 
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator ValidateEmail_Empty_ReturnsError()
         {
             var result = Utility.ValidateEmail("");
@@ -18,7 +19,8 @@ namespace Tests.Runtime
             yield return null;
         }
 
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator ValidateEmail_Whitespace_ReturnsError()
         {
             var result = Utility.ValidateEmail("   ");
@@ -26,7 +28,8 @@ namespace Tests.Runtime
             yield return null;
         }
 
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator ValidateEmail_Null_ReturnsError()
         {
             var result = Utility.ValidateEmail(null);
@@ -34,7 +37,8 @@ namespace Tests.Runtime
             yield return null;
         }
 
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator ValidateEmail_Valid_ReturnsEmpty()
         {
             var result = Utility.ValidateEmail("user@example.com");
@@ -42,7 +46,8 @@ namespace Tests.Runtime
             yield return null;
         }
 
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator ValidateEmail_InvalidFormat_ReturnsError()
         {
             var result = Utility.ValidateEmail("notanemail");
@@ -50,7 +55,8 @@ namespace Tests.Runtime
             yield return null;
         }
 
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator ValidateEmail_MissingAtSign_ReturnsError()
         {
             var result = Utility.ValidateEmail("user.example.com");
@@ -58,7 +64,8 @@ namespace Tests.Runtime
             yield return null;
         }
 
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator ValidateEmail_MissingDomain_ReturnsError()
         {
             var result = Utility.ValidateEmail("user@");
@@ -68,7 +75,8 @@ namespace Tests.Runtime
 
         // ValidatePassword tests
 
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator ValidatePassword_Empty_ReturnsError()
         {
             var result = Utility.ValidatePassword("");
@@ -76,7 +84,8 @@ namespace Tests.Runtime
             yield return null;
         }
 
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator ValidatePassword_Null_ReturnsError()
         {
             var result = Utility.ValidatePassword(null);
@@ -84,7 +93,8 @@ namespace Tests.Runtime
             yield return null;
         }
 
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator ValidatePassword_TooShort_ReturnsError()
         {
             var result = Utility.ValidatePassword("abc");
@@ -92,7 +102,8 @@ namespace Tests.Runtime
             yield return null;
         }
 
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator ValidatePassword_ExactlyMinLength_ReturnsEmpty()
         {
             var result = Utility.ValidatePassword("abcdef");
@@ -100,7 +111,8 @@ namespace Tests.Runtime
             yield return null;
         }
 
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator ValidatePassword_LongPassword_ReturnsEmpty()
         {
             var result = Utility.ValidatePassword("a_very_long_password_123");
@@ -110,7 +122,8 @@ namespace Tests.Runtime
 
         // ValidateReenterPassword tests
 
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator ValidateReenterPassword_Empty_ReturnsError()
         {
             var result = Utility.ValidateReenterPassword("password", "");
@@ -118,7 +131,8 @@ namespace Tests.Runtime
             yield return null;
         }
 
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator ValidateReenterPassword_Null_ReturnsError()
         {
             var result = Utility.ValidateReenterPassword("password", null);
@@ -126,7 +140,8 @@ namespace Tests.Runtime
             yield return null;
         }
 
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator ValidateReenterPassword_Matching_ReturnsEmpty()
         {
             var result = Utility.ValidateReenterPassword("password", "password");
@@ -134,7 +149,8 @@ namespace Tests.Runtime
             yield return null;
         }
 
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator ValidateReenterPassword_NotMatching_ReturnsError()
         {
             var result = Utility.ValidateReenterPassword("password", "different");
@@ -144,7 +160,8 @@ namespace Tests.Runtime
 
         // ParseQueryString tests
 
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator ParseQueryString_SimpleParams()
         {
             var result = Utility.ParseQueryString("?key=val&key2=val2");
@@ -153,7 +170,8 @@ namespace Tests.Runtime
             yield return null;
         }
 
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator ParseQueryString_WithHashFragment()
         {
             var result = Utility.ParseQueryString("?key=val#fragment");
@@ -162,7 +180,8 @@ namespace Tests.Runtime
             yield return null;
         }
 
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator ParseQueryString_EncodedChars()
         {
             var result = Utility.ParseQueryString("?name=hello%20world");
@@ -170,7 +189,8 @@ namespace Tests.Runtime
             yield return null;
         }
 
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator ParseQueryString_MissingValue_Skipped()
         {
             var result = Utility.ParseQueryString("?key=&valid=yes");
@@ -179,7 +199,8 @@ namespace Tests.Runtime
             yield return null;
         }
 
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator ParseQueryString_MissingEquals_Skipped()
         {
             var result = Utility.ParseQueryString("?noequals&valid=yes");
@@ -188,7 +209,8 @@ namespace Tests.Runtime
             yield return null;
         }
 
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator ParseQueryString_FullUrl()
         {
             var result = Utility.ParseQueryString("https://example.com/path?a=1&b=2");
@@ -199,42 +221,48 @@ namespace Tests.Runtime
 
         // ContainsFlag tests
 
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator ContainsFlag_Present_ReturnsTrue()
         {
             Assert.IsTrue(Utility.ContainsFlag("alpha,beta,gamma", "beta"));
             yield return null;
         }
 
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator ContainsFlag_Absent_ReturnsFalse()
         {
             Assert.IsFalse(Utility.ContainsFlag("alpha,beta", "gamma"));
             yield return null;
         }
 
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator ContainsFlag_CaseInsensitive()
         {
             Assert.IsTrue(Utility.ContainsFlag("Alpha,Beta", "alpha"));
             yield return null;
         }
 
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator ContainsFlag_NullInput_ReturnsFalse()
         {
             Assert.IsFalse(Utility.ContainsFlag(null, "flag"));
             yield return null;
         }
 
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator ContainsFlag_EmptyString_ReturnsFalse()
         {
             Assert.IsFalse(Utility.ContainsFlag("", "flag"));
             yield return null;
         }
 
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator ContainsFlag_WithSpaces_ReturnsTrue()
         {
             Assert.IsTrue(Utility.ContainsFlag("alpha, beta , gamma", "beta"));
@@ -243,7 +271,8 @@ namespace Tests.Runtime
 
         // ParseBooleanFeatureFlag tests
 
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator ParseBooleanFeatureFlag_True_ReturnsTrue()
         {
             var flags = new Dictionary<string, string> { { "feature", "true" } };
@@ -251,7 +280,8 @@ namespace Tests.Runtime
             yield return null;
         }
 
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator ParseBooleanFeatureFlag_One_ReturnsTrue()
         {
             var flags = new Dictionary<string, string> { { "feature", "1" } };
@@ -259,7 +289,8 @@ namespace Tests.Runtime
             yield return null;
         }
 
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator ParseBooleanFeatureFlag_On_ReturnsTrue()
         {
             var flags = new Dictionary<string, string> { { "feature", "on" } };
@@ -267,7 +298,8 @@ namespace Tests.Runtime
             yield return null;
         }
 
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator ParseBooleanFeatureFlag_False_ReturnsFalse()
         {
             var flags = new Dictionary<string, string> { { "feature", "false" } };
@@ -275,7 +307,8 @@ namespace Tests.Runtime
             yield return null;
         }
 
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator ParseBooleanFeatureFlag_Zero_ReturnsFalse()
         {
             var flags = new Dictionary<string, string> { { "feature", "0" } };
@@ -283,7 +316,8 @@ namespace Tests.Runtime
             yield return null;
         }
 
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator ParseBooleanFeatureFlag_MissingKey_ReturnsFalse()
         {
             var flags = new Dictionary<string, string> { { "other", "true" } };
@@ -291,7 +325,8 @@ namespace Tests.Runtime
             yield return null;
         }
 
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator ParseBooleanFeatureFlag_NullDict_ReturnsFalse()
         {
             Assert.IsFalse(Utility.ParseBooleanFeatureFlag(null, "feature"));
@@ -300,7 +335,8 @@ namespace Tests.Runtime
 
         // GetCoPublisherLogo tests
 
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator GetCoPublisherLogo_KnownCompany_ReturnsLogo()
         {
             var result = Utility.GetCoPublisherLogo("OEG JSC");
@@ -308,7 +344,8 @@ namespace Tests.Runtime
             yield return null;
         }
 
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator GetCoPublisherLogo_UnknownCompany_ReturnsDefault()
         {
             var result = Utility.GetCoPublisherLogo("Unknown Corp");
@@ -318,7 +355,8 @@ namespace Tests.Runtime
 
         // GetTranslation (static Utility method) tests
 
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator GetTranslation_KeyFound_ReturnsTranslation()
         {
             var translations = new Dictionary<string, string> { { "hello", "hola" } };
@@ -327,7 +365,8 @@ namespace Tests.Runtime
             yield return null;
         }
 
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator GetTranslation_KeyNotFound_ReturnsKey()
         {
             var translations = new Dictionary<string, string> { { "hello", "hola" } };
@@ -336,7 +375,8 @@ namespace Tests.Runtime
             yield return null;
         }
 
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator GetTranslation_NullTranslations_ReturnsKey()
         {
             var result = Utility.GetTranslation("some_key", null);
@@ -346,7 +386,8 @@ namespace Tests.Runtime
 
         // PrintFields tests
 
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator PrintFields_Null_ReturnsEmpty()
         {
             var result = Utility.PrintFields<object>(null);
@@ -354,7 +395,8 @@ namespace Tests.Runtime
             yield return null;
         }
 
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator PrintFields_PrimitiveString_ReturnsEmpty()
         {
             var result = "hello".PrintFields();
@@ -362,7 +404,8 @@ namespace Tests.Runtime
             yield return null;
         }
 
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator PrintFields_SimpleObject_ContainsFieldNames()
         {
             var obj = new SimpleTestClass { Name = "test", Value = 42 };
@@ -372,7 +415,8 @@ namespace Tests.Runtime
             yield return null;
         }
 
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator PrintFields_Array_ContainsItems()
         {
             var arr = new SimpleTestClass[]
@@ -386,7 +430,8 @@ namespace Tests.Runtime
             yield return null;
         }
 
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator PrintFields_List_ContainsItems()
         {
             var list = new List<SimpleTestClass>
@@ -399,7 +444,8 @@ namespace Tests.Runtime
             yield return null;
         }
 
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator PrintFields_Dictionary_ContainsKeyValues()
         {
             var dict = new Dictionary<string, string> { { "k1", "v1" }, { "k2", "v2" } };

@@ -107,9 +107,10 @@ namespace Tests.Runtime
             if (File.Exists(eventStorePath)) File.Delete(eventStorePath);
         }
 
-        [UnityTest]
-        public IEnumerator SendAnEvent_AllMandatoryFieldsAreIncluded() => UniTask.ToCoroutine(
-            async () =>
+        [Test]
+        [Timeout(5000)]
+        public async Task SendAnEvent_AllMandatoryFieldsAreIncluded()
+        {
             {
                 var eventSender = new EventSender(
                     new EventSenderConfig
@@ -159,9 +160,9 @@ namespace Tests.Runtime
             }
         );
 
-        [UnityTest]
-        public IEnumerator SetAndClearProperties_EventPropertiesAffected() => UniTask.ToCoroutine(
-            async () =>
+        [Test]
+        [Timeout(5000)]
+        public async Task SetAndClearProperties_EventPropertiesAffected()
             {
                 var eventSender = new EventSender(
                     new EventSenderConfig
@@ -262,9 +263,9 @@ namespace Tests.Runtime
             }
         );
 
-        [UnityTest]
-        public IEnumerator SendEvents_DontReachBatchingNumberThreshold_DontSendToServer() => UniTask.ToCoroutine(
-            async () =>
+        [Test]
+        [Timeout(5000)]
+        public async Task SendEvents_DontReachBatchingNumberThreshold_DontSendToServer()
             {
                 var eventSender = new EventSender(
                     new EventSenderConfig
@@ -290,9 +291,9 @@ namespace Tests.Runtime
             }
         );
 
-        [UnityTest]
-        public IEnumerator SendEvents_DontReachBatchingNumberThresholdButFlushed_SendToServer() => UniTask.ToCoroutine(
-            async () =>
+        [Test]
+        [Timeout(5000)]
+        public async Task SendEvents_DontReachBatchingNumberThresholdButFlushed_SendToServer()
             {
                 var eventSender = new EventSender(
                     new EventSenderConfig
@@ -323,9 +324,9 @@ namespace Tests.Runtime
             }
         );
 
-        [UnityTest]
-        public IEnumerator SendEvents_ReachBatchingNumberThreshold_SendToServer() => UniTask.ToCoroutine(
-            async () =>
+        [Test]
+        [Timeout(5000)]
+        public async Task SendEvents_ReachBatchingNumberThreshold_SendToServer()
             {
                 var eventSender = new EventSender(
                     new EventSenderConfig
@@ -376,9 +377,9 @@ namespace Tests.Runtime
             }
         );
 
-        [UnityTest]
-        public IEnumerator SendEvents_ReachBatchingTimeout_SendToServer() => UniTask.ToCoroutine(
-            async () =>
+        [Test]
+        [Timeout(5000)]
+        public async Task SendEvents_ReachBatchingTimeout_SendToServer()
             {
                 var eventSender = new EventSender(
                     new EventSenderConfig
@@ -429,9 +430,9 @@ namespace Tests.Runtime
             }
         );
 
-        [UnityTest]
-        public IEnumerator SessionTracker_OnStartPauseAndResume_SendStartPauseAndResumeEvents() => UniTask.ToCoroutine(
-            async () =>
+        [Test]
+        [Timeout(5000)]
+        public async Task SessionTracker_OnStartPauseAndResume_SendStartPauseAndResumeEvents()
             {
                 var eventSender = new EventSender(
                     new EventSenderConfig
@@ -486,9 +487,9 @@ namespace Tests.Runtime
             }
         );
 
-        [UnityTest]
-        public IEnumerator SendEvents_SessionTrackerPaused_FlushedAndSendToServer() => UniTask.ToCoroutine(
-            async () =>
+        [Test]
+        [Timeout(5000)]
+        public async Task SendEvents_SessionTrackerPaused_FlushedAndSendToServer()
             {
                 var eventSender = new EventSender(
                     new EventSenderConfig
@@ -535,9 +536,9 @@ namespace Tests.Runtime
             }
         );
 
-        [UnityTest]
-        public IEnumerator SessionTracker_NotStarted_NoEvents() => UniTask.ToCoroutine(
-            async () =>
+        [Test]
+        [Timeout(5000)]
+        public async Task SessionTracker_NotStarted_NoEvents()
             {
                 var eventSender = new EventSender(
                     new EventSenderConfig
@@ -571,9 +572,9 @@ namespace Tests.Runtime
             }
         );
 
-        [UnityTest]
-        public IEnumerator SessionTracker_OnHeartbeatPeriod_SendHeartbeatEvent() => UniTask.ToCoroutine(
-            async () =>
+        [Test]
+        [Timeout(5000)]
+        public async Task SessionTracker_OnHeartbeatPeriod_SendHeartbeatEvent()
             {
                 var eventSender = new EventSender(
                     new EventSenderConfig
@@ -621,9 +622,9 @@ namespace Tests.Runtime
             }
         );
 
-        [UnityTest]
-        public IEnumerator SessionTracker_OnSessionTimeout_EndSessionAndStartNewSession() => UniTask.ToCoroutine(
-            async () =>
+        [Test]
+        [Timeout(5000)]
+        public async Task SessionTracker_OnSessionTimeout_EndSessionAndStartNewSession()
             {
                 var eventSender = new EventSender(
                     new EventSenderConfig
@@ -724,9 +725,9 @@ namespace Tests.Runtime
 
         // ===== New tests for bug fixes =====
 
-        [UnityTest]
-        public IEnumerator QueueCap_ExceedMaxSize_DropsOldestEvents() => UniTask.ToCoroutine(
-            async () =>
+        [Test]
+        [Timeout(5000)]
+        public async Task QueueCap_ExceedMaxSize_DropsOldestEvents()
             {
                 var eventSender = new EventSender(
                     new EventSenderConfig
@@ -771,9 +772,9 @@ namespace Tests.Runtime
             }
         );
 
-        [UnityTest]
-        public IEnumerator PersistenceRoundTrip_SaveAndLoad_EventsRecovered() => UniTask.ToCoroutine(
-            async () =>
+        [Test]
+        [Timeout(5000)]
+        public async Task PersistenceRoundTrip_SaveAndLoad_EventsRecovered()
             {
                 // Phase 1: Send events and dispose (events are persisted immediately via write queue)
                 var eventSender1 = new EventSender(
@@ -828,9 +829,9 @@ namespace Tests.Runtime
             }
         );
 
-        [UnityTest]
-        public IEnumerator FlushRaceCondition_ConcurrentFlushAndSendLoop_NoDataLoss() => UniTask.ToCoroutine(
-            async () =>
+        [Test]
+        [Timeout(5000)]
+        public async Task FlushRaceCondition_ConcurrentFlushAndSendLoop_NoDataLoss()
             {
                 var eventSender = new EventSender(
                     new EventSenderConfig
@@ -867,9 +868,9 @@ namespace Tests.Runtime
             }
         );
 
-        [UnityTest]
-        public IEnumerator EventOrdering_MultipleEvents_ArriveInOrder() => UniTask.ToCoroutine(
-            async () =>
+        [Test]
+        [Timeout(5000)]
+        public async Task EventOrdering_MultipleEvents_ArriveInOrder()
             {
                 var eventSender = new EventSender(
                     new EventSenderConfig
@@ -909,9 +910,9 @@ namespace Tests.Runtime
             }
         );
 
-        [UnityTest]
-        public IEnumerator AppKillDuringSend_EventsSurvive() => UniTask.ToCoroutine(
-            async () =>
+        [Test]
+        [Timeout(5000)]
+        public async Task AppKillDuringSend_EventsSurvive()
             {
                 // Events are written to per-row storage immediately after Send(), so they survive app kill
                 var nativePlugin = new DefaultNativePlugin();
@@ -973,9 +974,9 @@ namespace Tests.Runtime
             return lines.Select(JsonConvert.DeserializeObject<EventData>).ToList();
         }
 
-        [UnityTest]
-        public IEnumerator SessionStart_SendsExactlyOnce_NoDoubleTracking() => UniTask.ToCoroutine(
-            async () =>
+        [Test]
+        [Timeout(5000)]
+        public async Task SessionStart_SendsExactlyOnce_NoDoubleTracking()
             {
                 var eventSender = new EventSender(
                     new EventSenderConfig
@@ -1015,9 +1016,9 @@ namespace Tests.Runtime
             }
         );
 
-        [UnityTest]
-        public IEnumerator IsSandbox_NotIncludedWhenNotSet() => UniTask.ToCoroutine(
-            async () =>
+        [Test]
+        [Timeout(5000)]
+        public async Task IsSandbox_NotIncludedWhenNotSet()
             {
                 var eventSender = new EventSender(
                     new EventSenderConfig
@@ -1045,9 +1046,9 @@ namespace Tests.Runtime
             }
         );
 
-        [UnityTest]
-        public IEnumerator IsSandbox_IncludedWhenExplicitlySet() => UniTask.ToCoroutine(
-            async () =>
+        [Test]
+        [Timeout(5000)]
+        public async Task IsSandbox_IncludedWhenExplicitlySet()
             {
                 var eventSender = new EventSender(
                     new EventSenderConfig
@@ -1157,8 +1158,9 @@ namespace Tests.Runtime
         }
 
         // Queuing more events than the batch size drains completely via multiple HTTP trips.
-        [UnityTest]
-        public IEnumerator EventsExceedingBatchSize_AreFlushedInMultipleBatches() => UniTask.ToCoroutine(async () =>
+        [Test]
+        [Timeout(5000)]
+        public async Task EventsExceedingBatchSize_AreFlushedInMultipleBatches()
         {
             var sender = MakeSender(batchSize: 3, cycleDelay: 100, offline: true);
 
@@ -1172,11 +1174,12 @@ namespace Tests.Runtime
             Assert.GreaterOrEqual(events.Count, 7, $"Expected ≥7 events across multiple batches, got {events.Count}");
 
             sender.Dispose();
-        });
+        }
 
         // Offline mode prevents the background send loop from flushing to HTTP.
-        [UnityTest]
-        public IEnumerator OfflineMode_EventsStoredNotFlushed() => UniTask.ToCoroutine(async () =>
+        [Test]
+        [Timeout(5000)]
+        public async Task OfflineMode_EventsStoredNotFlushed()
         {
             var sender = MakeSender(batchSize: 1, cycleDelay: 100, offline: true);
 
@@ -1189,11 +1192,12 @@ namespace Tests.Runtime
                 "No HTTP requests should be made while offline mode is active");
 
             sender.Dispose();
-        });
+        }
 
         // Experiment name set via ExperimentManager is injected into every event payload.
-        [UnityTest]
-        public IEnumerator ExperimentName_IsInjectedIntoEventPayload() => UniTask.ToCoroutine(async () =>
+        [Test]
+        [Timeout(5000)]
+        public async Task ExperimentName_IsInjectedIntoEventPayload()
         {
             ExperimentManager.SetExperiment("test_experiment_abc");
 
@@ -1213,11 +1217,12 @@ namespace Tests.Runtime
             Assert.AreEqual("test_experiment_abc", raw["experiment"]?.ToString());
 
             sender.Dispose();
-        });
+        }
 
         // noctua_user_engagement fires before the paired session_pause event.
-        [UnityTest]
-        public IEnumerator UserEngagement_FiresBeforePairedSessionEvent() => UniTask.ToCoroutine(async () =>
+        [Test]
+        [Timeout(5000)]
+        public async Task UserEngagement_FiresBeforePairedSessionEvent()
         {
             var mock = new MockEventSender();
             var locale = new NoctuaLocale();
@@ -1238,11 +1243,12 @@ namespace Tests.Runtime
             Assert.Less(engIdx, pauseIdx, "noctua_user_engagement must precede session_pause");
 
             tracker.Dispose();
-        });
+        }
 
         // 200 events enqueued all arrive at the server after Flush().
-        [UnityTest]
-        public IEnumerator LargeQueue_200Events_FlushedCompletely() => UniTask.ToCoroutine(async () =>
+        [Test]
+        [Timeout(5000)]
+        public async Task LargeQueue_200Events_FlushedCompletely()
         {
             var sender = MakeSender(batchSize: 50, cycleDelay: 200, offline: true);
 
@@ -1256,11 +1262,12 @@ namespace Tests.Runtime
             Assert.AreEqual(200, events.Count, $"Expected exactly 200 events, got {events.Count}");
 
             sender.Dispose();
-        });
+        }
 
         // After Dispose(), the background loop stops and no HTTP calls are made for subsequent Sends.
-        [UnityTest]
-        public IEnumerator Stop_PreventsAutoSend_AfterDispose() => UniTask.ToCoroutine(async () =>
+        [Test]
+        [Timeout(5000)]
+        public async Task Stop_PreventsAutoSend_AfterDispose()
         {
             var sender = MakeSender(batchSize: 1, cycleDelay: 100);
             sender.Dispose(); // stop the background loop immediately
@@ -1272,11 +1279,12 @@ namespace Tests.Runtime
 
             Assert.AreEqual(0, _server.Requests.Count,
                 "No HTTP requests should be made after Dispose()");
-        });
+        }
 
         // Calling Flush() drains queued events before Dispose() stops the loop.
-        [UnityTest]
-        public IEnumerator Flush_ThenDispose_SendsRemainingEvents() => UniTask.ToCoroutine(async () =>
+        [Test]
+        [Timeout(5000)]
+        public async Task Flush_ThenDispose_SendsRemainingEvents()
         {
             var sender = MakeSender(batchSize: 100, cycleDelay: 300_000, offline: true);
 
@@ -1293,6 +1301,6 @@ namespace Tests.Runtime
             var events = await CollectAsync(timeoutMs: 6000, settleMs: 1000);
             Assert.GreaterOrEqual(events.Count, 3,
                 $"Flush before Dispose must send all queued events, got {events.Count}");
-        });
+        }
     }
 }

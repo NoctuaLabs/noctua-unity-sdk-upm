@@ -21,7 +21,8 @@ namespace Tests.Runtime
 
         // --- Request serialization tests ---
 
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator Request_Serialization_CorrectJsonKeys()
         {
             var request = new ClaimRedeemCodeRequest
@@ -40,7 +41,8 @@ namespace Tests.Runtime
             yield return null;
         }
 
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator Request_Deserialization_RoundTrip()
         {
             var original = new ClaimRedeemCodeRequest
@@ -60,7 +62,8 @@ namespace Tests.Runtime
 
         // --- Response deserialization tests ---
 
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator Response_Deserialization_Success()
         {
             var json = @"{
@@ -80,7 +83,8 @@ namespace Tests.Runtime
             yield return null;
         }
 
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator Response_Deserialization_EmptyOrderIds()
         {
             var json = @"{
@@ -98,7 +102,8 @@ namespace Tests.Runtime
             yield return null;
         }
 
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator Response_Deserialization_NullMessage()
         {
             var json = @"{
@@ -116,7 +121,8 @@ namespace Tests.Runtime
             yield return null;
         }
 
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator Response_Deserialization_FailureResponse()
         {
             var json = @"{
@@ -134,7 +140,8 @@ namespace Tests.Runtime
 
         // --- Error response deserialization tests ---
 
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator ErrorResponse_Deserialization_CodeNotFound()
         {
             var json = @"{
@@ -152,7 +159,8 @@ namespace Tests.Runtime
             yield return null;
         }
 
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator ErrorResponse_Deserialization_AlreadyClaimed()
         {
             var json = @"{
@@ -170,7 +178,8 @@ namespace Tests.Runtime
             yield return null;
         }
 
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator ErrorResponse_Deserialization_Expired()
         {
             var json = @"{
@@ -188,7 +197,8 @@ namespace Tests.Runtime
             yield return null;
         }
 
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator ErrorResponse_Deserialization_Revoked()
         {
             var json = @"{
@@ -206,7 +216,8 @@ namespace Tests.Runtime
             yield return null;
         }
 
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator ErrorResponse_Deserialization_UserRestricted()
         {
             var json = @"{
@@ -226,7 +237,8 @@ namespace Tests.Runtime
 
         // --- DataWrapper deserialization (simulating HTTP layer envelope unwrap) ---
 
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator Response_Deserialization_WithDataEnvelope()
         {
             var json = @"{
@@ -252,8 +264,9 @@ namespace Tests.Runtime
         // --- Integration test (requires full SDK init + backend) ---
 
         [Ignore("Requires full SDK resources and a live backend server.")]
-        [UnityTest]
-        public IEnumerator ClaimRedeem_ValidCode_ReturnsOrderIds() => UniTask.ToCoroutine(async () =>
+        [Test]
+        [Timeout(5000)]
+        public async Task ClaimRedeem_ValidCode_ReturnsOrderIds()
         {
             await Noctua.InitAsync();
             await Noctua.Auth.AuthenticateAsync();
@@ -264,7 +277,7 @@ namespace Tests.Runtime
             Assert.IsTrue(response.Success);
             Assert.IsNotNull(response.OrderIds);
             Assert.Greater(response.OrderIds.Length, 0);
-        });
+        }
 
         // Helper class to simulate the HTTP layer data envelope unwrap
         private class DataWrapper<T>

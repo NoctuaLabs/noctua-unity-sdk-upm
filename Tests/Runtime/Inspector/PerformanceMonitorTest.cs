@@ -35,7 +35,8 @@ namespace Tests.Runtime.Inspector
             if (_go != null) Object.DestroyImmediate(_go);
         }
 
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator Sample_recorded_each_frame()
         {
             // Wait two frames so Update has run at least once after Awake.
@@ -49,7 +50,8 @@ namespace Tests.Runtime.Inspector
             Assert.Greater(s.FrameTimeMs, 0f, "FrameTimeMs should be positive");
         }
 
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator Raw_buffer_caps_at_RawCapacity()
         {
             // Drive Unity for enough frames to overflow the raw buffer.
@@ -60,7 +62,8 @@ namespace Tests.Runtime.Inspector
             Assert.LessOrEqual(_mon.SnapshotRaw().Count, PerformanceMonitor.RawCapacity);
         }
 
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator OnSample_fires_per_frame()
         {
             int seen = 0;
@@ -71,7 +74,8 @@ namespace Tests.Runtime.Inspector
             Assert.GreaterOrEqual(seen, 1, "OnSample should fire on at least one frame");
         }
 
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator ResetCounters_zeroes_dropped_frame_totals()
         {
             // Force a slow frame by sleeping the main thread — guaranteed

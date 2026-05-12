@@ -27,7 +27,8 @@ namespace Tests.Runtime
     {
         // ─── DateChangedEvent ────────────────────────────────────────────────
 
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator DateChangedEvent_ValidDateString_InvokesOnDateChangedCallback()
         {
             // Use ID 1001 — unique to this test to avoid cross-test static state collision
@@ -54,7 +55,8 @@ namespace Tests.Runtime
             yield return null;
         }
 
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator DateChangedEvent_UnknownId_DoesNotThrow()
         {
             // ID 9999 has no registered picker — should be a safe no-op
@@ -66,7 +68,8 @@ namespace Tests.Runtime
 
         // ─── PickerClosedEvent ────────────────────────────────────────────────
 
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator PickerClosedEvent_ValidDateString_InvokesOnPickerClosedCallback()
         {
             // Use ID 1002 — unique to this test
@@ -92,7 +95,8 @@ namespace Tests.Runtime
             yield return null; // let deferred Destroy() complete
         }
 
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator CreateDate_DuplicateId_DestroysOldPickerAndRegistersNew()
         {
             // Use ID 1003 — unique to this test

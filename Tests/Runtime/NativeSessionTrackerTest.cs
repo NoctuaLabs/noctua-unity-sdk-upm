@@ -26,9 +26,10 @@ namespace Tests.Runtime
             };
         }
 
-        [UnityTest]
-        public IEnumerator OnResumePause_SendsNativeUserEngagement() => UniTask.ToCoroutine(
-            async () =>
+        [Test]
+        [Timeout(5000)]
+        public async Task OnResumePause_SendsNativeUserEngagement()
+        {
             {
                 var tracker = new NativeSessionTracker(_config, _mockSender);
 
@@ -56,9 +57,9 @@ namespace Tests.Runtime
             }
         );
 
-        [UnityTest]
-        public IEnumerator OnHeartbeat_SendsNativeUserEngagement() => UniTask.ToCoroutine(
-            async () =>
+        [Test]
+        [Timeout(5000)]
+        public async Task OnHeartbeat_SendsNativeUserEngagement()
             {
                 var tracker = new NativeSessionTracker(_config, _mockSender);
 
@@ -82,9 +83,9 @@ namespace Tests.Runtime
             }
         );
 
-        [UnityTest]
-        public IEnumerator OnDispose_SendsEndAndPerSession() => UniTask.ToCoroutine(
-            async () =>
+        [Test]
+        [Timeout(5000)]
+        public async Task OnDispose_SendsEndAndPerSession()
             {
                 var tracker = new NativeSessionTracker(_config, _mockSender);
 
@@ -103,9 +104,9 @@ namespace Tests.Runtime
             }
         );
 
-        [UnityTest]
-        public IEnumerator EngagementTime_IsIncremental() => UniTask.ToCoroutine(
-            async () =>
+        [Test]
+        [Timeout(5000)]
+        public async Task EngagementTime_IsIncremental()
             {
                 var config = new SessionTrackerConfig
                 {
@@ -139,9 +140,9 @@ namespace Tests.Runtime
             }
         );
 
-        [UnityTest]
-        public IEnumerator SessionTimeout_ResetsAndSendsPerSession() => UniTask.ToCoroutine(
-            async () =>
+        [Test]
+        [Timeout(5000)]
+        public async Task SessionTimeout_ResetsAndSendsPerSession()
             {
                 var tracker = new NativeSessionTracker(_config, _mockSender);
 
@@ -167,9 +168,9 @@ namespace Tests.Runtime
             }
         );
 
-        [UnityTest]
-        public IEnumerator PerSessionEngagement_CumulativeTotal() => UniTask.ToCoroutine(
-            async () =>
+        [Test]
+        [Timeout(5000)]
+        public async Task PerSessionEngagement_CumulativeTotal()
             {
                 var config = new SessionTrackerConfig
                 {
@@ -198,9 +199,9 @@ namespace Tests.Runtime
             }
         );
 
-        [UnityTest]
-        public IEnumerator NoSessionEvents_AreSent() => UniTask.ToCoroutine(
-            async () =>
+        [Test]
+        [Timeout(5000)]
+        public async Task NoSessionEvents_AreSent()
             {
                 var tracker = new NativeSessionTracker(_config, _mockSender);
 

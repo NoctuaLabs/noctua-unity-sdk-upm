@@ -282,10 +282,10 @@ namespace Tests.Runtime
         ///
         /// The caller IS the main/test thread, so PlayerPrefs is accessible once the action runs.
         /// </summary>
-        [UnityTest]
-        public IEnumerator PostToMainThread_MainThread_RevenueProcessed() =>
-            UniTask.ToCoroutine(async () =>
-            {
+        [Test]
+        [Timeout(5000)]
+        public async Task PostToMainThread_MainThread_RevenueProcessed()
+        {
                 var mgr            = NullIaaManager();
                 var revenueTracker = new MockAdRevenueTracker();
                 var revenueManager = new AdRevenueTrackingManager(revenueTracker, DefaultTaichiConfig());
@@ -303,7 +303,7 @@ namespace Tests.Runtime
                 Assert.IsTrue(revenueTracker.WasFired("Total_Ads_Revenue_001"),
                     "Revenue threshold event must fire after PostToMainThread queues and the " +
                     "SynchronizationContext pumps the action on the next frame");
-            });
+        }
 
         /// <summary>
         /// C2 — Documents the broken path: when <c>_mainThreadContext</c> is null AND
@@ -449,10 +449,10 @@ namespace Tests.Runtime
         ///
         /// Uses <c>SessionTimeoutMs = 50</c> so the test completes in under a second.
         /// </summary>
-        [UnityTest]
-        public IEnumerator OnApplicationPause_Resume_WithExpiredSession_FromBackgroundThread_Throws() =>
-            UniTask.ToCoroutine(async () =>
-            {
+        [Test]
+        [Timeout(5000)]
+        public async Task OnApplicationPause_Resume_WithExpiredSession_FromBackgroundThread_Throws()
+        {
                 var mock    = new MockEventSender();
                 var config  = new SessionTrackerConfig { SessionTimeoutMs = 50 }; // 50 ms
                 var tracker = new SessionTracker(config, mock, null);
@@ -481,7 +481,7 @@ namespace Tests.Runtime
                 StringAssert.Contains("main thread", caughtEx.Message);
 
                 tracker.Dispose();
-            });
+        }
 
         // ════════════════════════════════════════════════════════════════════════
         // Group E — SessionTracker.RunHeartbeat main-thread switch
@@ -498,10 +498,10 @@ namespace Tests.Runtime
         ///
         /// Uses <c>HeartbeatPeriodMs = 200</c> so the key appears within one second.
         /// </summary>
-        [UnityTest]
-        public IEnumerator RunHeartbeat_WritesPlayerPrefs_AfterMainThreadSwitch() =>
-            UniTask.ToCoroutine(async () =>
-            {
+        [Test]
+        [Timeout(5000)]
+        public async Task RunHeartbeat_WritesPlayerPrefs_AfterMainThreadSwitch()
+        {
                 var mock    = new MockEventSender();
                 var config  = new SessionTrackerConfig { HeartbeatPeriodMs = 200 };
                 var tracker = new SessionTracker(config, mock, null);
@@ -523,7 +523,7 @@ namespace Tests.Runtime
                     $"Stored PlayerPrefs value '{stored}' must be a parseable long (cumulative engagement ms)");
 
                 tracker.Dispose();
-            });
+        }
 
         /// <summary>
         /// E2 — With a short heartbeat period, multiple <c>session_heartbeat</c> events
@@ -535,10 +535,10 @@ namespace Tests.Runtime
         /// If <c>SwitchToMainThread()</c> were broken (e.g. incorrect cancellation token
         /// propagation), the loop would stop after the first heartbeat.
         /// </summary>
-        [UnityTest]
-        public IEnumerator RunHeartbeat_ShortPeriod_FiresMultipleHeartbeats() =>
-            UniTask.ToCoroutine(async () =>
-            {
+        [Test]
+        [Timeout(5000)]
+        public async Task RunHeartbeat_ShortPeriod_FiresMultipleHeartbeats()
+        {
                 var mock    = new MockEventSender();
                 var config  = new SessionTrackerConfig { HeartbeatPeriodMs = 200 };
                 var tracker = new SessionTracker(config, mock, null);
@@ -560,6 +560,6 @@ namespace Tests.Runtime
                     $"UniTask.SwitchToMainThread().");
 
                 tracker.Dispose();
-            });
+        }
     }
 }

@@ -26,7 +26,8 @@ namespace Tests.Runtime
             yield return null;
         }
 
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator SetCountry_GetCountry_UpperCase()
         {
             var locale = new NoctuaLocale("");
@@ -35,7 +36,8 @@ namespace Tests.Runtime
             yield return null;
         }
 
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator GetCountry_Default_ReturnsEmpty()
         {
             var locale = new NoctuaLocale("");
@@ -43,7 +45,8 @@ namespace Tests.Runtime
             yield return null;
         }
 
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator SetCurrency_GetCurrency_UpperCase()
         {
             var locale = new NoctuaLocale("");
@@ -52,7 +55,8 @@ namespace Tests.Runtime
             yield return null;
         }
 
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator GetCurrency_Default_ReturnsUSD()
         {
             var locale = new NoctuaLocale("");
@@ -60,7 +64,8 @@ namespace Tests.Runtime
             yield return null;
         }
 
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator OnLanguageChanged_FiresWhenLanguageChanges()
         {
             var locale = new NoctuaLocale("");
@@ -74,7 +79,8 @@ namespace Tests.Runtime
             yield return null;
         }
 
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator OnLanguageChanged_DoesNotFire_WhenSameLanguage()
         {
             var locale = new NoctuaLocale("");
@@ -88,7 +94,8 @@ namespace Tests.Runtime
             yield return null;
         }
 
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator GetLanguage_RegionTh_ReturnsTh()
         {
             var locale = new NoctuaLocale("th");
@@ -97,7 +104,8 @@ namespace Tests.Runtime
             yield return null;
         }
 
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator SetUserPrefsLanguage_ClearWithEmpty_FallsBackToRegion()
         {
             var locale = new NoctuaLocale("vn");
@@ -130,7 +138,8 @@ namespace Tests.Runtime
             yield return null;
         }
 
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator GetLanguage_NoRegionNoPrefs_ReturnsFallbackString()
         {
             var locale = new NoctuaLocale("");
@@ -141,7 +150,8 @@ namespace Tests.Runtime
             yield return null;
         }
 
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator SetUserPrefsLanguage_Null_ClearsOverrideAndFallsBackToRegion()
         {
             var locale = new NoctuaLocale("th");
@@ -154,7 +164,8 @@ namespace Tests.Runtime
             yield return null;
         }
 
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator GetLanguage_UnknownRegion_FallsBackToSystemLanguage()
         {
             var locale = new NoctuaLocale("xx");
@@ -165,7 +176,8 @@ namespace Tests.Runtime
             yield return null;
         }
 
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator SetCountry_AlreadyUppercase_RoundTripsCorrectly()
         {
             var locale = new NoctuaLocale("");
@@ -174,7 +186,8 @@ namespace Tests.Runtime
             yield return null;
         }
 
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator SetCurrency_AlreadyUppercase_RoundTripsCorrectly()
         {
             var locale = new NoctuaLocale("");
@@ -183,7 +196,8 @@ namespace Tests.Runtime
             yield return null;
         }
 
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator SetCountry_MultipleTimes_LastOneWins()
         {
             var locale = new NoctuaLocale("");
@@ -193,7 +207,8 @@ namespace Tests.Runtime
             yield return null;
         }
 
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator GetTranslation_StringKey_UnknownKey_ReturnsKey()
         {
             // NoctuaLocale.GetTranslation(string) returns the key itself when no translation is found
@@ -203,7 +218,8 @@ namespace Tests.Runtime
             yield return null;
         }
 
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator GetTranslation_LocaleTextKey_DelegatesToStringOverload()
         {
             // GetTranslation(LocaleTextKey) must call GetTranslation(key.ToString())
@@ -214,7 +230,8 @@ namespace Tests.Runtime
             yield return null;
         }
 
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator GetTranslations_ReturnsNonNullDictionary()
         {
             var locale = new NoctuaLocale("");
@@ -223,7 +240,8 @@ namespace Tests.Runtime
             yield return null;
         }
 
-        [UnityTest]
+        [Test]
+        [Timeout(5000)]
         public IEnumerator OnLanguageChanged_Unsubscribe_NoFireAfterRemoval()
         {
             var locale = new NoctuaLocale("");

@@ -81,9 +81,10 @@ namespace Tests.Runtime
             PlayerPrefs.Save();
         }
 
-        [UnityTest]
-        public IEnumerator OnPause_SendsUserEngagementBeforeSessionPause() => UniTask.ToCoroutine(
-            async () =>
+        [Test]
+        [Timeout(5000)]
+        public async Task OnPause_SendsUserEngagementBeforeSessionPause()
+        {
             {
                 var tracker = new SessionTracker(_config, _mockSender);
 
@@ -115,9 +116,9 @@ namespace Tests.Runtime
             }
         );
 
-        [UnityTest]
-        public IEnumerator OnHeartbeat_SendsUserEngagementBeforeHeartbeat() => UniTask.ToCoroutine(
-            async () =>
+        [Test]
+        [Timeout(5000)]
+        public async Task OnHeartbeat_SendsUserEngagementBeforeHeartbeat()
             {
                 var tracker = new SessionTracker(_config, _mockSender);
 
@@ -145,9 +146,9 @@ namespace Tests.Runtime
             }
         );
 
-        [UnityTest]
-        public IEnumerator OnDispose_SendsUserEngagementBeforeSessionEnd() => UniTask.ToCoroutine(
-            async () =>
+        [Test]
+        [Timeout(5000)]
+        public async Task OnDispose_SendsUserEngagementBeforeSessionEnd()
             {
                 var tracker = new SessionTracker(_config, _mockSender);
 
@@ -169,9 +170,9 @@ namespace Tests.Runtime
             }
         );
 
-        [UnityTest]
-        public IEnumerator EngagementTime_IsIncremental_ResetsAfterEachSend() => UniTask.ToCoroutine(
-            async () =>
+        [Test]
+        [Timeout(5000)]
+        public async Task EngagementTime_IsIncremental_ResetsAfterEachSend()
             {
                 var config = new SessionTrackerConfig
                 {
@@ -211,9 +212,9 @@ namespace Tests.Runtime
             }
         );
 
-        [UnityTest]
-        public IEnumerator SessionTimeout_DiscardsAccumulatedEngagementTime() => UniTask.ToCoroutine(
-            async () =>
+        [Test]
+        [Timeout(5000)]
+        public async Task SessionTimeout_DiscardsAccumulatedEngagementTime()
             {
                 var tracker = new SessionTracker(_config, _mockSender);
 
@@ -243,9 +244,9 @@ namespace Tests.Runtime
             }
         );
 
-        [UnityTest]
-        public IEnumerator NoForegroundTime_EngagementEventSentWithZeroMs() => UniTask.ToCoroutine(
-            async () =>
+        [Test]
+        [Timeout(5000)]
+        public async Task NoForegroundTime_EngagementEventSentWithZeroMs()
             {
                 var tracker = new SessionTracker(_config, _mockSender);
 
@@ -273,9 +274,9 @@ namespace Tests.Runtime
             }
         );
 
-        [UnityTest]
-        public IEnumerator ExistingSessionEvents_RemainUnchanged() => UniTask.ToCoroutine(
-            async () =>
+        [Test]
+        [Timeout(5000)]
+        public async Task ExistingSessionEvents_RemainUnchanged()
             {
                 var tracker = new SessionTracker(_config, _mockSender);
 
@@ -301,9 +302,9 @@ namespace Tests.Runtime
             }
         );
 
-        [UnityTest]
-        public IEnumerator PerSessionEngagement_CumulativeTotal_AtDispose() => UniTask.ToCoroutine(
-            async () =>
+        [Test]
+        [Timeout(5000)]
+        public async Task PerSessionEngagement_CumulativeTotal_AtDispose()
             {
                 var config = new SessionTrackerConfig
                 {
@@ -330,9 +331,9 @@ namespace Tests.Runtime
             }
         );
 
-        [UnityTest]
-        public IEnumerator PerSessionEngagement_SentOnSessionTimeout() => UniTask.ToCoroutine(
-            async () =>
+        [Test]
+        [Timeout(5000)]
+        public async Task PerSessionEngagement_SentOnSessionTimeout()
             {
                 var tracker = new SessionTracker(_config, _mockSender);
 
@@ -361,9 +362,9 @@ namespace Tests.Runtime
 
         // ─── 0ms engagement for short sessions ───────────────────────────────────
 
-        [UnityTest]
-        public IEnumerator ShortSession_PauseAndEnd_Always_SendEngagementEvenAtZeroMs() => UniTask.ToCoroutine(
-            async () =>
+        [Test]
+        [Timeout(5000)]
+        public async Task ShortSession_PauseAndEnd_Always_SendEngagementEvenAtZeroMs()
             {
                 // Verifies the fix for zero timespent: lifecycle=pause and lifecycle=end must
                 // always send, even when no foreground time was accumulated (0ms). Previously
@@ -392,9 +393,9 @@ namespace Tests.Runtime
 
         // ─── Recovery double-counting fix ────────────────────────────────────────
 
-        [UnityTest]
-        public IEnumerator RecoveryEvent_SendsOnlyUnsentPortion_NotFullCumulative() => UniTask.ToCoroutine(
-            async () =>
+        [Test]
+        [Timeout(5000)]
+        public async Task RecoveryEvent_SendsOnlyUnsentPortion_NotFullCumulative()
             {
                 // Simulate a crashed session that had already sent heartbeats.
                 // Before the fix, the full cumulativeMs was re-sent as noctua_user_engagement,
@@ -442,9 +443,9 @@ namespace Tests.Runtime
             }
         );
 
-        [UnityTest]
-        public IEnumerator RecoveryEvent_OldSchema_NoUnsentKey_SendsZeroEngagementAndCorrectPerSession() => UniTask.ToCoroutine(
-            async () =>
+        [Test]
+        [Timeout(5000)]
+        public async Task RecoveryEvent_OldSchema_NoUnsentKey_SendsZeroEngagementAndCorrectPerSession()
             {
                 // Devices upgrading from an old SDK that did not persist unsentMs.
                 // The key is absent → defaults to 0 → no noctua_user_engagement recovery event,
@@ -483,9 +484,9 @@ namespace Tests.Runtime
 
         // ─── Min session gap guard ────────────────────────────────────────────────
 
-        [UnityTest]
-        public IEnumerator MinSessionGap_AllowsSessionStart_AfterTimeout() => UniTask.ToCoroutine(
-            async () =>
+        [Test]
+        [Timeout(5000)]
+        public async Task MinSessionGap_AllowsSessionStart_AfterTimeout()
             {
                 // After a session TIMES OUT, the next resume must always create a new session —
                 // even if the time since the previous session_start is less than SessionMinGapMs.
@@ -527,9 +528,9 @@ namespace Tests.Runtime
             }
         );
 
-        [UnityTest]
-        public IEnumerator MinSessionGap_AllowsSessionStart_AfterGapExpires() => UniTask.ToCoroutine(
-            async () =>
+        [Test]
+        [Timeout(5000)]
+        public async Task MinSessionGap_AllowsSessionStart_AfterGapExpires()
             {
                 // Verify that session start is NOT suppressed when invoked fresh (gap is infinite
                 // from DateTime.MinValue) — normal first-launch behavior must be unaffected.
@@ -549,9 +550,9 @@ namespace Tests.Runtime
             }
         );
 
-        [UnityTest]
-        public IEnumerator Heartbeat_DoesNotFire_BeforeSessionStarts() => UniTask.ToCoroutine(
-            async () =>
+        [Test]
+        [Timeout(5000)]
+        public async Task Heartbeat_DoesNotFire_BeforeSessionStarts()
             {
                 // The heartbeat loop guards on `_sessionId == null` — no events should be
                 // emitted until a session is actually started via OnApplicationPause(false).
@@ -577,9 +578,9 @@ namespace Tests.Runtime
             }
         );
 
-        [UnityTest]
-        public IEnumerator LifecycleParam_AllFourValues() => UniTask.ToCoroutine(
-            async () =>
+        [Test]
+        [Timeout(5000)]
+        public async Task LifecycleParam_AllFourValues()
             {
                 var config = new SessionTrackerConfig
                 {
@@ -621,9 +622,9 @@ namespace Tests.Runtime
 
         // ─── Dispose idempotency ─────────────────────────────────────────────
 
-        [UnityTest]
-        public IEnumerator Dispose_IsIdempotent_DoesNotThrowOrDoubleSessionEnd() => UniTask.ToCoroutine(
-            async () =>
+        [Test]
+        [Timeout(5000)]
+        public async Task Dispose_IsIdempotent_DoesNotThrowOrDoubleSessionEnd()
             {
                 var tracker = new SessionTracker(_config, _mockSender);
                 tracker.OnApplicationPause(false);
@@ -641,9 +642,9 @@ namespace Tests.Runtime
 
         // ─── OnApplicationPause same-status guard ────────────────────────────
 
-        [UnityTest]
-        public IEnumerator OnApplicationPause_SameStatus_IsIgnored() => UniTask.ToCoroutine(
-            async () =>
+        [Test]
+        [Timeout(5000)]
+        public async Task OnApplicationPause_SameStatus_IsIgnored()
             {
                 var tracker = new SessionTracker(_config, _mockSender);
                 tracker.OnApplicationPause(false); // start session
@@ -668,9 +669,9 @@ namespace Tests.Runtime
 
         // ─── Session continue ────────────────────────────────────────────────
 
-        [UnityTest]
-        public IEnumerator SessionContinue_ResumeWithinTimeout_SendsContinue() => UniTask.ToCoroutine(
-            async () =>
+        [Test]
+        [Timeout(5000)]
+        public async Task SessionContinue_ResumeWithinTimeout_SendsContinue()
             {
                 var config = new SessionTrackerConfig
                 {
@@ -697,9 +698,9 @@ namespace Tests.Runtime
 
         // ─── Remote feature flags ────────────────────────────────────────────
 
-        [UnityTest]
-        public IEnumerator RemoteFeatureFlags_FlushEnabled_CallsFlushOnDispose() => UniTask.ToCoroutine(
-            async () =>
+        [Test]
+        [Timeout(5000)]
+        public async Task RemoteFeatureFlags_FlushEnabled_CallsFlushOnDispose()
             {
                 var flags = new Dictionary<string, bool> { { "sendEventsOnFlushEnabled", true } };
                 var tracker = new SessionTracker(_config, _mockSender, flags);
@@ -714,9 +715,9 @@ namespace Tests.Runtime
             }
         );
 
-        [UnityTest]
-        public IEnumerator RemoteFeatureFlags_FlushDisabled_DoesNotCallFlushOnDispose() => UniTask.ToCoroutine(
-            async () =>
+        [Test]
+        [Timeout(5000)]
+        public async Task RemoteFeatureFlags_FlushDisabled_DoesNotCallFlushOnDispose()
             {
                 var flags = new Dictionary<string, bool> { { "sendEventsOnFlushEnabled", false } };
                 var tracker = new SessionTracker(_config, _mockSender, flags);
@@ -731,9 +732,9 @@ namespace Tests.Runtime
             }
         );
 
-        [UnityTest]
-        public IEnumerator RemoteFeatureFlags_Null_DoesNotCallFlushOnDispose() => UniTask.ToCoroutine(
-            async () =>
+        [Test]
+        [Timeout(5000)]
+        public async Task RemoteFeatureFlags_Null_DoesNotCallFlushOnDispose()
             {
                 // null flags dict → defaults to no-flush on dispose
                 var tracker = new SessionTracker(_config, _mockSender, remoteFeatureFlags: null);
@@ -750,9 +751,9 @@ namespace Tests.Runtime
 
         // ─── Session timeout ─────────────────────────────────────────────────
 
-        [UnityTest]
-        public IEnumerator SessionTimeout_PerSessionEngagement_SentBeforeNewSession() => UniTask.ToCoroutine(
-            async () =>
+        [Test]
+        [Timeout(5000)]
+        public async Task SessionTimeout_PerSessionEngagement_SentBeforeNewSession()
             {
                 var config = new SessionTrackerConfig
                 {
@@ -818,9 +819,9 @@ namespace Tests.Runtime
 
         // ─── Rapid session gap suppression ───────────────────────────────────
 
-        [UnityTest]
-        public IEnumerator MinSessionGap_RapidResume_SuppressesSecondSessionStart() => UniTask.ToCoroutine(
-            async () =>
+        [Test]
+        [Timeout(5000)]
+        public async Task MinSessionGap_RapidResume_SuppressesSecondSessionStart()
             {
                 // The min-gap guard (10s) must suppress a second session_start fired
                 // immediately after the first one — simulating the rapid
@@ -855,9 +856,9 @@ namespace Tests.Runtime
             }
         );
 
-        [UnityTest]
-        public IEnumerator MinSessionGap_RapidSessionAfterTimeout_IsSuppressedWithinGap() => UniTask.ToCoroutine(
-            async () =>
+        [Test]
+        [Timeout(5000)]
+        public async Task MinSessionGap_RapidSessionAfterTimeout_IsSuppressedWithinGap()
             {
                 // After a session ends via timeout, if a second timeout+resume pair fires
                 // before 10s have elapsed since the FIRST session_start, the new session is
@@ -891,9 +892,9 @@ namespace Tests.Runtime
 
         // ─── Orphan recovery — both cumulative and unsent are zero ───────────
 
-        [UnityTest]
-        public IEnumerator RecoveryEvent_ZeroCumulativeAndUnsent_SendsOnlySessionEnd() => UniTask.ToCoroutine(
-            async () =>
+        [Test]
+        [Timeout(5000)]
+        public async Task RecoveryEvent_ZeroCumulativeAndUnsent_SendsOnlySessionEnd()
             {
                 // Orphaned session with 0 cumulative and 0 unsent (e.g. crash before any
                 // foreground time was accumulated). The recovery should skip both engagement
@@ -938,9 +939,9 @@ namespace Tests.Runtime
 
         // ─── Orphan recovery — PlayerPrefs cleared after recovery ────────────
 
-        [UnityTest]
-        public IEnumerator RecoveryEvent_ClearsPlayerPrefsAfterRecovery() => UniTask.ToCoroutine(
-            async () =>
+        [Test]
+        [Timeout(5000)]
+        public async Task RecoveryEvent_ClearsPlayerPrefsAfterRecovery()
             {
                 // After RecoverOrphanedSession() runs, all four PlayerPrefs keys must be deleted
                 // so the same orphaned session is not recovered twice on subsequent launches.
@@ -970,9 +971,9 @@ namespace Tests.Runtime
 
         // ─── HeartbeatTask SaveSessionState — main thread path ───────────────
 
-        [UnityTest]
-        public IEnumerator Heartbeat_SavesSessionState_AfterFiring() => UniTask.ToCoroutine(
-            async () =>
+        [Test]
+        [Timeout(5000)]
+        public async Task Heartbeat_SavesSessionState_AfterFiring()
             {
                 // After a heartbeat fires, SaveSessionState() writes PlayerPrefs on the main
                 // thread (via UniTask.SwitchToMainThread). Verify the key is present after

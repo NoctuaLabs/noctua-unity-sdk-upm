@@ -313,23 +313,23 @@ namespace Tests.Runtime
         }
 
 
-        [UnityTest]
-        public IEnumerator RetryAsyncTask_SuccessOnFirstTry() => UniTask.ToCoroutine(
-            async () =>
+        [Test]
+        [Timeout(5000)]
+        public async Task RetryAsyncTask_SuccessOnFirstTry()
+        {
             {
                 var result = await Utility.RetryAsyncTask(async () => await UniTask.FromResult("Success"));
                 Assert.AreEqual("Success", result);
             }
         );
 
-        [UnityTest]
-        public IEnumerator RetryAsyncTask_SuccessAfterRetries() => UniTask.ToCoroutine(
-            async () =>
+        [Test]
+        [Timeout(5000)]
+        public async Task RetryAsyncTask_SuccessAfterRetries()
             {
                 int attempt = 0;
 
                 var result = await Utility.RetryAsyncTask(
-                    async () =>
                     {
                         if (attempt < 2)
                         {
@@ -347,9 +347,9 @@ namespace Tests.Runtime
             }
         );
 
-        [UnityTest]
-        public IEnumerator RetryAsyncTask_ThrowsNonNetworkingException() => UniTask.ToCoroutine(
-            async () =>
+        [Test]
+        [Timeout(5000)]
+        public async Task RetryAsyncTask_ThrowsNonNetworkingException()
             {
                 bool exceptionThrown = false;
 
@@ -369,9 +369,9 @@ namespace Tests.Runtime
             }
         );
 
-        [UnityTest]
-        public IEnumerator RetryAsyncTask_ThrowsOtherNonNetworkingException() => UniTask.ToCoroutine(
-            async () =>
+        [Test]
+        [Timeout(5000)]
+        public async Task RetryAsyncTask_ThrowsOtherNonNetworkingException()
             {
                 bool exceptionThrown = false;
 
@@ -388,9 +388,9 @@ namespace Tests.Runtime
             }
         );
 
-        [UnityTest]
-        public IEnumerator RetryAsyncTask_MaxRetriesReached() => UniTask.ToCoroutine(
-            async () =>
+        [Test]
+        [Timeout(5000)]
+        public async Task RetryAsyncTask_MaxRetriesReached()
             {
                 int attempt = 0;
                 double initialDelay = 0.5;
@@ -404,7 +404,6 @@ namespace Tests.Runtime
                     stopwatch.Start();
 
                     await Utility.RetryAsyncTask<object>(
-                        async () =>
                         {
                             delays.Add(stopwatch.Elapsed.TotalSeconds);
                             stopwatch.Restart();
@@ -433,9 +432,9 @@ namespace Tests.Runtime
             }
         );
         
-        [UnityTest]
-        public IEnumerator RetryAsyncTask_MaxDelayReached() => UniTask.ToCoroutine(
-            async () =>
+        [Test]
+        [Timeout(5000)]
+        public async Task RetryAsyncTask_MaxDelayReached()
             {
                 int attempt = 0;
 
@@ -447,7 +446,6 @@ namespace Tests.Runtime
                     stopwatch.Start();
 
                     await Utility.RetryAsyncTask<object>(
-                        async () =>
                         {
                             delays.Add(stopwatch.Elapsed.TotalSeconds);
                             stopwatch.Restart();
