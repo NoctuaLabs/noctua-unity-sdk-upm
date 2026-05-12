@@ -1373,6 +1373,7 @@ namespace Tests.Runtime.IAP
         // ══════════════════════════════════════════════════════════════════════
 
         [UnityTest]
+        [Timeout(15000)]
         public IEnumerator DeliverPendingDeliverablesAsync_NoPendingItems_DoesNotCallVerifyOrder()
             => UniTask.ToCoroutine(async () =>
         {
@@ -1399,6 +1400,7 @@ namespace Tests.Runtime.IAP
         });
 
         [UnityTest]
+        [Timeout(15000)]
         public IEnumerator DeliverPendingDeliverablesAsync_ServerError_DoesNotThrow()
             => UniTask.ToCoroutine(async () =>
         {
@@ -1407,8 +1409,13 @@ namespace Tests.Runtime.IAP
             try
             {
                 var svc = CreateEnabledService();
-                // DeliverPendingDeliverablesAsync wraps errors internally — must NOT re-throw
-                Assert.DoesNotThrow(() => svc.DeliverPendingDeliverablesAsync().Forget());
+                // DeliverPendingDeliverablesAsync wraps errors internally — must NOT re-throw.
+                // Await directly (instead of .Forget()) so the HTTP task completes before
+                // this test ends; otherwise the orphan request races the next test's handler.
+                Exception thrown = null;
+                try { await svc.DeliverPendingDeliverablesAsync(); }
+                catch (Exception ex) { thrown = ex; }
+                Assert.IsNull(thrown, $"Unexpected exception escaped: {thrown}");
             }
             finally
             {
@@ -2155,6 +2162,7 @@ namespace Tests.Runtime.IAP
         // ══════════════════════════════════════════════════════════════════════
 
         [UnityTest]
+        [Timeout(15000)]
         public IEnumerator DeliverPendingDeliverablesAsync_CanceledStatus_EnqueuesForRetry()
             => UniTask.ToCoroutine(async () =>
         {
@@ -2183,6 +2191,7 @@ namespace Tests.Runtime.IAP
         });
 
         [UnityTest]
+        [Timeout(15000)]
         public IEnumerator DeliverPendingDeliverablesAsync_RefundedStatus_EnqueuesForRetry()
             => UniTask.ToCoroutine(async () =>
         {
@@ -2203,6 +2212,7 @@ namespace Tests.Runtime.IAP
         });
 
         [UnityTest]
+        [Timeout(15000)]
         public IEnumerator DeliverPendingDeliverablesAsync_VoidedStatus_RemovesFromRetry()
             => UniTask.ToCoroutine(async () =>
         {
@@ -2223,6 +2233,7 @@ namespace Tests.Runtime.IAP
         });
 
         [UnityTest]
+        [Timeout(15000)]
         public IEnumerator DeliverPendingDeliverablesAsync_PendingStatus_CaughtInnerException()
             => UniTask.ToCoroutine(async () =>
         {
@@ -2246,6 +2257,7 @@ namespace Tests.Runtime.IAP
         });
 
         [UnityTest]
+        [Timeout(15000)]
         public IEnumerator DeliverPendingDeliverablesAsync_MultipleDeliverables_ProcessesAll()
             => UniTask.ToCoroutine(async () =>
         {
@@ -2268,6 +2280,7 @@ namespace Tests.Runtime.IAP
         // ══════════════════════════════════════════════════════════════════════
 
         [UnityTest]
+        [Timeout(15000)]
         public IEnumerator DeliverPendingDeliverablesAsync_NoPendingDeliverables_DoesNotFireOnPurchaseDone()
             => UniTask.ToCoroutine(async () =>
         {
@@ -2289,6 +2302,7 @@ namespace Tests.Runtime.IAP
         });
 
         [UnityTest]
+        [Timeout(15000)]
         public IEnumerator DeliverPendingDeliverablesAsync_OneCompletedDeliverable_FiresOnPurchaseDone()
             => UniTask.ToCoroutine(async () =>
         {
@@ -2312,6 +2326,7 @@ namespace Tests.Runtime.IAP
         });
 
         [UnityTest]
+        [Timeout(15000)]
         public IEnumerator DeliverPendingDeliverablesAsync_CanceledDeliverable_DoesNotFireOnPurchaseDone()
             => UniTask.ToCoroutine(async () =>
         {
@@ -2335,6 +2350,7 @@ namespace Tests.Runtime.IAP
         });
 
         [UnityTest]
+        [Timeout(15000)]
         public IEnumerator DeliverPendingDeliverablesAsync_RefundedDeliverable_DoesNotFireOnPurchaseDone()
             => UniTask.ToCoroutine(async () =>
         {
@@ -2358,6 +2374,7 @@ namespace Tests.Runtime.IAP
         });
 
         [UnityTest]
+        [Timeout(15000)]
         public IEnumerator DeliverPendingDeliverablesAsync_VoidedDeliverable_DoesNotFireOnPurchaseDone()
             => UniTask.ToCoroutine(async () =>
         {
@@ -2381,6 +2398,7 @@ namespace Tests.Runtime.IAP
         });
 
         [UnityTest]
+        [Timeout(15000)]
         public IEnumerator DeliverPendingDeliverablesAsync_PendingDeliverable_DoesNotFireOnPurchaseDone()
             => UniTask.ToCoroutine(async () =>
         {
@@ -2404,6 +2422,7 @@ namespace Tests.Runtime.IAP
         });
 
         [UnityTest]
+        [Timeout(15000)]
         public IEnumerator DeliverPendingDeliverablesAsync_GetDeliverablesServerError_DoesNotThrow()
             => UniTask.ToCoroutine(async () =>
         {
@@ -2412,11 +2431,14 @@ namespace Tests.Runtime.IAP
             try
             {
                 var svc = CreateEnabledService();
-                // Should NOT propagate — the method has an outer try/catch
-                Assert.DoesNotThrow(() =>
-                    svc.DeliverPendingDeliverablesAsync()
-                       .Forget(ex => Assert.Fail("Unexpected exception: " + ex)));
-                await UniTask.Delay(200);
+                // The method has an outer try/catch — awaiting it directly must NOT throw.
+                // Awaiting (instead of .Forget() + UniTask.Delay(200)) ensures the HTTP
+                // roundtrip completes before the next test starts, preventing orphan-task
+                // interference with subsequent tests.
+                Exception thrown = null;
+                try { await svc.DeliverPendingDeliverablesAsync(); }
+                catch (Exception ex) { thrown = ex; }
+                Assert.IsNull(thrown, $"Unexpected exception escaped: {thrown}");
             }
             finally
             {
@@ -2425,6 +2447,7 @@ namespace Tests.Runtime.IAP
         });
 
         [UnityTest]
+        [Timeout(15000)]
         public IEnumerator DeliverPendingDeliverablesAsync_VerifyOrderServerError_DoesNotPropagateException()
             => UniTask.ToCoroutine(async () =>
         {
@@ -2453,6 +2476,7 @@ namespace Tests.Runtime.IAP
         });
 
         [UnityTest]
+        [Timeout(15000)]
         public IEnumerator DeliverPendingDeliverablesAsync_MultipleDeliverables_AllProcessed()
             => UniTask.ToCoroutine(async () =>
         {
@@ -2481,6 +2505,7 @@ namespace Tests.Runtime.IAP
         });
 
         [UnityTest]
+        [Timeout(15000)]
         public IEnumerator DeliverPendingDeliverablesAsync_CompletedDeliverable_AddsToHistory()
             => UniTask.ToCoroutine(async () =>
         {
