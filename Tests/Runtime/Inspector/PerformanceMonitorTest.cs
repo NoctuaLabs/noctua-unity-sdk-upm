@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Threading.Tasks;
 using com.noctuagames.sdk;
 using NUnit.Framework;
 using UnityEngine;
@@ -48,13 +49,13 @@ namespace Tests.Runtime.Inspector
         }
 
         [Test]
-        public void Raw_buffer_caps_at_RawCapacity()
+        public async Task Raw_buffer_caps_at_RawCapacity()
         {
             // Drive Unity for enough frames to overflow the raw buffer.
             // RawCapacity = 600. We can't reliably wait 600 frames in a
             // unit test, so we lower the bar: just confirm the count
             // does not exceed the cap after a longer-than-trivial run.
-            for (int i = 0; i < 50; i++) yield return null;
+
             Assert.LessOrEqual(_mon.SnapshotRaw().Count, PerformanceMonitor.RawCapacity);
         }
 

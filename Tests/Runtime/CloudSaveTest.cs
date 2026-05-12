@@ -348,8 +348,8 @@ namespace Tests.Runtime
     {
         private NoctuaAuthenticationService _authService;
 
-        [UnitySetUp]
-        public IEnumerator SetUp()
+        [SetUp]
+        public void SetUp()
         {
             LogAssert.ignoreFailingMessages = true;
             PlayerPrefs.DeleteKey("NoctuaAccountContainer");
@@ -367,8 +367,8 @@ namespace Tests.Runtime
 
         }
 
-        [UnityTearDown]
-        public IEnumerator TearDown()
+        [TearDown]
+        public void TearDown()
         {
             LogAssert.ignoreFailingMessages = false;
             PlayerPrefs.DeleteKey("NoctuaAccountContainer");

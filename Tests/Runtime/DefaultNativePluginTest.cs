@@ -12,15 +12,15 @@ namespace Tests.Runtime
     {
         private DefaultNativePlugin _plugin;
 
-        [UnitySetUp]
-        public IEnumerator SetUp()
+        [SetUp]
+        public void SetUp()
         {
             PlayerPrefs.DeleteKey("NoctuaAccountContainer");
             _plugin = new DefaultNativePlugin();
         }
 
-        [UnityTearDown]
-        public IEnumerator TearDown()
+        [TearDown]
+        public void TearDown()
         {
             PlayerPrefs.DeleteKey("NoctuaAccountContainer");
         }

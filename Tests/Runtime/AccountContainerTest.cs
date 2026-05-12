@@ -2,6 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using com.noctuagames.sdk;
 using NUnit.Framework;
 using UnityEngine.TestTools;
@@ -45,16 +46,16 @@ namespace Tests.Runtime
             }
         }
 
-        [UnitySetUp]
-        public IEnumerator SetUp()
+        [SetUp]
+        public void SetUp()
         {
             PlayerPrefs.DeleteKey("NoctuaAccountContainer");
             PlayerPrefs.DeleteKey("NoctuaAccountContainer.UseFallback");
 
         }
 
-        [UnityTearDown]
-        public IEnumerator TearDown()
+        [TearDown]
+        public void TearDown()
         {
             PlayerPrefs.DeleteKey("NoctuaAccountContainer");
             PlayerPrefs.DeleteKey("NoctuaAccountContainer.UseFallback");
@@ -218,7 +219,7 @@ namespace Tests.Runtime
 
 
         [Test]
-        public void ContainerWithGuestAccount_AddAccountWithTheSamePlayer_GuestRemoved()
+        public async Task ContainerWithGuestAccount_AddAccountWithTheSamePlayer_GuestRemoved()
         {
             var mockStore = new MockNativeAccountStore();
             var accountContainer = new AccountContainer(mockStore, Application.identifier);
@@ -259,7 +260,7 @@ namespace Tests.Runtime
 
             accountContainer.UpdateRecentAccount(playerToken);
 
-            yield return new WaitForSeconds(0.01f);
+            await Task.Delay(10);
 
             var playerToken2 = new PlayerToken
             {
@@ -456,7 +457,7 @@ namespace Tests.Runtime
         }
 
         [Test]
-        public void ContainerWithRecentAccount_AddAccountFromThisGame_AccountIsRecent()
+        public async Task ContainerWithRecentAccount_AddAccountFromThisGame_AccountIsRecent()
         {
             var mockStore = new MockNativeAccountStore();
             var accountContainer = new AccountContainer(mockStore, Application.identifier);
@@ -496,7 +497,7 @@ namespace Tests.Runtime
 
             accountContainer.UpdateRecentAccount(playerToken);
 
-            yield return new WaitForSeconds(0.01f);
+            await Task.Delay(10);
 
             var playerToken2 = new PlayerToken
             {
@@ -559,7 +560,7 @@ namespace Tests.Runtime
         }
 
         [Test]
-        public void ContainerWithRecentAccount_AddSameUserFromOtherGame_AddedToPlayerAccounts()
+        public async Task ContainerWithRecentAccount_AddSameUserFromOtherGame_AddedToPlayerAccounts()
         {
             var mockStore = new MockNativeAccountStore();
             var accountContainer = new AccountContainer(mockStore, Application.identifier);
@@ -598,7 +599,7 @@ namespace Tests.Runtime
 
             accountContainer.UpdateRecentAccount(playerToken);
 
-            yield return new WaitForSeconds(0.01f);
+            await Task.Delay(10);
 
             var playerToken2 = new PlayerToken
             {
@@ -678,7 +679,7 @@ namespace Tests.Runtime
         }
 
         [Test]
-        public void ContainerWithRecentAccount_AddSameUserFromThisGame_PlayerUpdated()
+        public async Task ContainerWithRecentAccount_AddSameUserFromThisGame_PlayerUpdated()
         {
             var mockStore = new MockNativeAccountStore();
             var accountContainer = new AccountContainer(mockStore, Application.identifier);
@@ -716,7 +717,7 @@ namespace Tests.Runtime
 
             accountContainer.UpdateRecentAccount(playerToken);
 
-            yield return new WaitForSeconds(0.01f);
+            await Task.Delay(10);
 
             var playerToken2 = new PlayerToken
             {
@@ -781,7 +782,7 @@ namespace Tests.Runtime
         }
 
         [Test]
-        public void ContainerWithRecentAccount_AddGuestFromThisGame_AccountIsGuestAndRecent()
+        public async Task ContainerWithRecentAccount_AddGuestFromThisGame_AccountIsGuestAndRecent()
         {
             var mockStore = new MockNativeAccountStore();
             var accountContainer = new AccountContainer(mockStore, Application.identifier);
@@ -821,7 +822,7 @@ namespace Tests.Runtime
 
             accountContainer.UpdateRecentAccount(playerToken);
 
-            yield return new WaitForSeconds(0.01f);
+            await Task.Delay(10);
 
             var playerToken2 = new PlayerToken
             {
@@ -887,7 +888,7 @@ namespace Tests.Runtime
         }
 
         [Test]
-        public void ContainerWithAccountsFromDifferentGames_ResetAccounts_OnlyDeletesCurrentGameButClearsMemory()
+        public async Task ContainerWithAccountsFromDifferentGames_ResetAccounts_OnlyDeletesCurrentGameButClearsMemory()
         {
             var mockStore = new MockNativeAccountStore();
             var accountContainer = new AccountContainer(mockStore, Application.identifier);
@@ -926,7 +927,7 @@ namespace Tests.Runtime
 
             accountContainer.UpdateRecentAccount(playerToken1);
 
-            yield return new WaitForSeconds(0.01f);
+            await Task.Delay(10);
 
             var playerToken2 = new PlayerToken
             {
@@ -961,7 +962,7 @@ namespace Tests.Runtime
 
             accountContainer2.UpdateRecentAccount(playerToken2);
 
-            yield return new WaitForSeconds(0.01f);
+            await Task.Delay(10);
 
             var playerToken3 = new PlayerToken
             {
@@ -996,7 +997,7 @@ namespace Tests.Runtime
 
             accountContainer2.UpdateRecentAccount(playerToken3);
 
-            yield return new WaitForSeconds(0.01f);
+            await Task.Delay(10);
 
             var playerToken4 = new PlayerToken
             {
@@ -1439,16 +1440,16 @@ namespace Tests.Runtime
             }
         }
         
-        [UnitySetUp]
-        public IEnumerator SetUp()
+        [SetUp]
+        public void SetUp()
         {
             PlayerPrefs.DeleteKey("NoctuaAccountContainer");
             PlayerPrefs.DeleteKey("NoctuaAccountContainer.UseFallback");
 
         }
 
-        [UnityTearDown]
-        public IEnumerator TearDown()
+        [TearDown]
+        public void TearDown()
         {
             PlayerPrefs.DeleteKey("NoctuaAccountContainer");
             PlayerPrefs.DeleteKey("NoctuaAccountContainer.UseFallback");
@@ -1900,16 +1901,16 @@ namespace Tests.Runtime
 
     public class AccountContainerConstructorTest
     {
-        [UnitySetUp]
-        public IEnumerator SetUp()
+        [SetUp]
+        public void SetUp()
         {
             PlayerPrefs.DeleteKey("NoctuaAccountContainer");
             PlayerPrefs.DeleteKey("NoctuaAccountContainer.UseFallback");
 
         }
 
-        [UnityTearDown]
-        public IEnumerator TearDown()
+        [TearDown]
+        public void TearDown()
         {
             PlayerPrefs.DeleteKey("NoctuaAccountContainer");
             PlayerPrefs.DeleteKey("NoctuaAccountContainer.UseFallback");
@@ -1990,16 +1991,16 @@ namespace Tests.Runtime
             }
         }
 
-        [UnitySetUp]
-        public IEnumerator SetUp()
+        [SetUp]
+        public void SetUp()
         {
             PlayerPrefs.DeleteKey("NoctuaAccountContainer");
             PlayerPrefs.DeleteKey("NoctuaAccountContainer.UseFallback");
 
         }
 
-        [UnityTearDown]
-        public IEnumerator TearDown()
+        [TearDown]
+        public void TearDown()
         {
             PlayerPrefs.DeleteKey("NoctuaAccountContainer");
             PlayerPrefs.DeleteKey("NoctuaAccountContainer.UseFallback");
@@ -2153,7 +2154,7 @@ namespace Tests.Runtime
         }
 
         [Test]
-        public void Logout_FiresOnAccountChangedEvent()
+        public async Task Logout_FiresOnAccountChangedEvent()
         {
             var mockStore = new MockNativeAccountStore();
             var container = new AccountContainer(mockStore, Application.identifier);
@@ -2164,7 +2165,7 @@ namespace Tests.Runtime
 
             container.Logout();
 
-            yield return new WaitForSeconds(0.05f);
+            await Task.Delay(50);
 
             Assert.IsNull(receivedBundle,
                 "Logout must fire OnAccountChanged with null (the new RecentAccount value)");
@@ -2186,13 +2187,13 @@ namespace Tests.Runtime
         }
 
         [Test]
-        public void DeleteRecentAccount_WithRecentAccount_RemovesItAndReloads()
+        public async Task DeleteRecentAccount_WithRecentAccount_RemovesItAndReloads()
         {
             var mockStore = new MockNativeAccountStore();
             var container = new AccountContainer(mockStore, Application.identifier);
             container.UpdateRecentAccount(MakePlayerToken(userId: 1, playerId: 1));
 
-            yield return new WaitForSeconds(0.01f);
+            await Task.Delay(10);
 
             container.UpdateRecentAccount(MakePlayerToken(userId: 2, playerId: 2));
 
@@ -2237,7 +2238,7 @@ namespace Tests.Runtime
         // ── OnAccountChanged event wiring ─────────────────────────────────────
 
         [Test]
-        public void UpdateRecentAccount_FiresOnAccountChangedWhenUserChanges()
+        public async Task UpdateRecentAccount_FiresOnAccountChangedWhenUserChanges()
         {
             var mockStore = new MockNativeAccountStore();
             var container = new AccountContainer(mockStore, Application.identifier);
@@ -2247,7 +2248,7 @@ namespace Tests.Runtime
 
             container.UpdateRecentAccount(MakePlayerToken(userId: 1, playerId: 1));
 
-            yield return new WaitForSeconds(0.05f);
+            await Task.Delay(50);
 
             Assert.AreEqual(1, changedAccounts.Count,
                 "OnAccountChanged must fire once when a new account is set");
@@ -2255,14 +2256,14 @@ namespace Tests.Runtime
         }
 
         [Test]
-        public void UpdateRecentAccount_SameUserAndPlayer_DoesNotFireOnAccountChanged()
+        public async Task UpdateRecentAccount_SameUserAndPlayer_DoesNotFireOnAccountChanged()
         {
             var mockStore = new MockNativeAccountStore();
             var container = new AccountContainer(mockStore, Application.identifier);
 
             container.UpdateRecentAccount(MakePlayerToken(userId: 1, playerId: 1));
 
-            yield return new WaitForSeconds(0.05f);
+            await Task.Delay(50);
 
             int changeCount = 0;
             container.OnAccountChanged += _ => changeCount++;
@@ -2270,7 +2271,7 @@ namespace Tests.Runtime
             // Update same user+player — RecentAccount setter should early-return without firing
             container.UpdateRecentAccount(MakePlayerToken(userId: 1, playerId: 1));
 
-            yield return new WaitForSeconds(0.05f);
+            await Task.Delay(50);
 
             Assert.AreEqual(0, changeCount,
                 "OnAccountChanged must NOT fire when the same user+player is set again");

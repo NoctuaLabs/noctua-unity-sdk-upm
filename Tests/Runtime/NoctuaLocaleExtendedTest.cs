@@ -8,16 +8,16 @@ namespace Tests.Runtime
 {
     public class NoctuaLocaleExtendedTest
     {
-        [UnitySetUp]
-        public IEnumerator SetUp()
+        [SetUp]
+        public void SetUp()
         {
             PlayerPrefs.DeleteKey("NoctuaLocaleUserPrefsLanguage");
             PlayerPrefs.DeleteKey("NoctuaLocaleCountry");
             PlayerPrefs.DeleteKey("NoctuaLocaleCurrency");
         }
 
-        [UnityTearDown]
-        public IEnumerator TearDown()
+        [TearDown]
+        public void TearDown()
         {
             PlayerPrefs.DeleteKey("NoctuaLocaleUserPrefsLanguage");
             PlayerPrefs.DeleteKey("NoctuaLocaleCountry");
@@ -102,16 +102,16 @@ namespace Tests.Runtime
 
     public class NoctuaLocaleEdgeCaseTests
     {
-        [UnitySetUp]
-        public IEnumerator SetUp()
+        [SetUp]
+        public void SetUp()
         {
             PlayerPrefs.DeleteKey("NoctuaLocaleUserPrefsLanguage");
             PlayerPrefs.DeleteKey("NoctuaLocaleCountry");
             PlayerPrefs.DeleteKey("NoctuaLocaleCurrency");
         }
 
-        [UnityTearDown]
-        public IEnumerator TearDown()
+        [TearDown]
+        public void TearDown()
         {
             PlayerPrefs.DeleteKey("NoctuaLocaleUserPrefsLanguage");
             PlayerPrefs.DeleteKey("NoctuaLocaleCountry");

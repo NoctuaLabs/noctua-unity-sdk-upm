@@ -51,16 +51,16 @@ namespace Tests.Runtime
     [TestFixture]
     public class NoctuaLocaleAdditionalTest
     {
-        [UnitySetUp]
-        public IEnumerator SetUp()
+        [SetUp]
+        public void SetUp()
         {
             PlayerPrefs.DeleteKey("NoctuaLocaleUserPrefsLanguage");
             PlayerPrefs.DeleteKey("NoctuaLocaleCountry");
             PlayerPrefs.DeleteKey("NoctuaLocaleCurrency");
         }
 
-        [UnityTearDown]
-        public IEnumerator TearDown()
+        [TearDown]
+        public void TearDown()
         {
             PlayerPrefs.DeleteKey("NoctuaLocaleUserPrefsLanguage");
             PlayerPrefs.DeleteKey("NoctuaLocaleCountry");

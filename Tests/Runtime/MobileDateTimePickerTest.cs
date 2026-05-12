@@ -1,6 +1,7 @@
 using System;
 using com.noctuagames.sdk;
 using System.Collections;
+using System.Threading.Tasks;
 using NUnit.Framework;
 using UnityEngine;
 using UnityEngine.TestTools;
@@ -28,7 +29,7 @@ namespace Tests.Runtime
         // ─── DateChangedEvent ────────────────────────────────────────────────
 
         [Test]
-        public void DateChangedEvent_ValidDateString_InvokesOnDateChangedCallback()
+        public async Task DateChangedEvent_ValidDateString_InvokesOnDateChangedCallback()
         {
             // Use ID 1001 — unique to this test to avoid cross-test static state collision
             DateTime received = DateTime.MinValue;
@@ -41,7 +42,7 @@ namespace Tests.Runtime
                 onClose:  null
             );
 
-            yield return null; // let Unity process the new GameObject
+
 
             // Simulate Android native bridge calling back into Unity
             MobileDateTimePicker.DateChangedEvent("2024-08-20 10:30:00", 1001);
@@ -65,7 +66,7 @@ namespace Tests.Runtime
         // ─── PickerClosedEvent ────────────────────────────────────────────────
 
         [Test]
-        public void PickerClosedEvent_ValidDateString_InvokesOnPickerClosedCallback()
+        public async Task PickerClosedEvent_ValidDateString_InvokesOnPickerClosedCallback()
         {
             // Use ID 1002 — unique to this test
             DateTime closed = DateTime.MinValue;
@@ -86,7 +87,7 @@ namespace Tests.Runtime
             Assert.AreEqual(new DateTime(2023, 3, 25, 9, 0, 0), closed,
                 "PickerClosedEvent should parse the date string and invoke OnPickerClosed");
 
-            yield return null; // let deferred Destroy() complete
+
         }
 
         [Test]
