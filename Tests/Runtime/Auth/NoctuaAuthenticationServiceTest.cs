@@ -2012,7 +2012,8 @@ namespace Tests.Runtime.Auth
         {
             var svc = CreateService();
             // RecentAccount is null — accessing .IsGuest will throw NullReferenceException
-            Assert.ThrowsAsync<Exception>(
+            // CatchAsync (not ThrowsAsync) is used because NullReferenceException is a subclass of Exception
+            Assert.CatchAsync<Exception>(
                 () => svc.BeginVerifyEmailRegistrationAsync(1, "123456").AsTask()
             );
         }
@@ -2636,12 +2637,7 @@ namespace Tests.Runtime.Auth
                     { "age_confirmed", "true" }
                 };
 
-                CredentialVerification result = null;
-                Assert.DoesNotThrow(() =>
-                {
-                    result = svc.RegisterWithEmailAsync("extra@test.com", "pass", regExtra).GetAwaiter().GetResult();
-                });
-
+                var result = await svc.RegisterWithEmailAsync("extra@test.com", "pass", regExtra);
                 Assert.IsNotNull(result);
             }
             finally
@@ -2862,12 +2858,6 @@ namespace Tests.Runtime.Auth
             LogAssert.ignoreFailingMessages = true;
             _store = new MockNativeAccountStore();
             while (_server.Requests.TryDequeue(out _)) { }
-        }
-
-        [TearDown]
-        public void TearDown()
-        {
-            LogAssert.ignoreFailingMessages = false;
         }
 
         // ── Factory helpers ───────────────────────────────────────────────────
@@ -3301,12 +3291,6 @@ namespace Tests.Runtime.Auth
             LogAssert.ignoreFailingMessages = true;
             _store = new MockNativeAccountStore();
             while (_server.Requests.TryDequeue(out _)) { }
-        }
-
-        [TearDown]
-        public void TearDown()
-        {
-            LogAssert.ignoreFailingMessages = false;
         }
 
         // ── Factory helpers ───────────────────────────────────────────────────

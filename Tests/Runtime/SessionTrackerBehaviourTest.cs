@@ -202,9 +202,12 @@ namespace Tests.Runtime
 
             // Invoking OnApplicationPause from a background thread reaches
             // PlayerPrefs.SetString which throws UnityException — the Task fault
-            // wraps it inside an AggregateException.
+            // wraps it inside an AggregateException which Task.Wait re-throws.
             var task = Task.Run(() => Invoke(behaviour, "OnApplicationPause", true));
-            Assert.IsTrue(task.Wait(2000), "Task must settle within 2 s");
+            bool settled = false;
+            try { settled = task.Wait(2000); }
+            catch (AggregateException) { settled = true; } // faulted task = settled
+            Assert.IsTrue(settled, "Task must settle within 2 s");
             Assert.IsNotNull(task.Exception,
                 "OnApplicationPause from a background thread must fault: " +
                 "PlayerPrefs.SetString is main-thread only (UnityException)");

@@ -220,11 +220,12 @@ namespace com.noctuagames.sdk
             try
             {
                 TextAsset jsonFile = Resources.Load<TextAsset>(GetTranslationByLanguage(language));
+                if (jsonFile == null) return new Dictionary<string, string>();
                 return JsonConvert.DeserializeObject<Dictionary<string, string>>(jsonFile.text);
             }
-            catch (Exception e)
+            catch (Exception)
             {
-                return null;
+                return new Dictionary<string, string>();
             }
         }
 

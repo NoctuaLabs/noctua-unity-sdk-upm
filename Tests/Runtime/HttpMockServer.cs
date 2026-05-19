@@ -54,10 +54,25 @@ namespace Tests.Runtime
         {
             if (_listener.IsListening) throw new InvalidOperationException("Server is already running.");
 
-            _listener.Start();
-            _ = Task.Run(HandleIncomingConnections);
+            const int maxRetries = 5;
+            HttpListenerException lastEx = null;
+            for (int i = 0; i < maxRetries; i++)
+            {
+                try
+                {
+                    _listener.Start();
+                    _ = Task.Run(HandleIncomingConnections);
+                    Debug.Log("HttpMockServer started.");
+                    return;
+                }
+                catch (HttpListenerException ex)
+                {
+                    lastEx = ex;
+                    System.Threading.Thread.Sleep(200 * (i + 1));
+                }
+            }
 
-            Debug.Log("HttpMockServer started.");
+            throw new InvalidOperationException($"HttpMockServer: port still in use after {maxRetries} retries.", lastEx);
         }
 
         private async Task HandleIncomingConnections()
@@ -99,7 +114,7 @@ namespace Tests.Runtime
                                 new RequestData
                                 {
                                     Method = request.HttpMethod,
-                                    Path = request.Url.AbsolutePath,
+                                    Path = request.Url.PathAndQuery,
                                     Headers = request.Headers,
                                     Body = requestString,
                                 }
@@ -175,8 +190,11 @@ namespace Tests.Runtime
 
         public void Dispose()
         {
-            Stop();
+            if (_listener.IsListening)
+                _listener.Stop();
+
             _listener.Close();
+            Debug.Log("HttpMockServer stopped.");
         }
     }
 }

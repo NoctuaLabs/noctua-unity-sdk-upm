@@ -642,7 +642,6 @@ namespace Tests.Runtime.IAA
         [TearDown]
         public void TearDown()
         {
-            LogAssert.ignoreFailingMessages = false;
         }
 
         // ─── GetNetworkForFormat — primary-only (no secondary) ────────────────

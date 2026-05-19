@@ -377,7 +377,6 @@ namespace Tests.Runtime
         [UnityTearDown]
         public IEnumerator TearDown()
         {
-            LogAssert.ignoreFailingMessages = false;
             PlayerPrefs.DeleteKey("NoctuaAccountContainer");
             yield return null;
         }

@@ -555,7 +555,6 @@ namespace Tests.Runtime.IAA
         [TearDown]
         public void TearDown()
         {
-            UnityEngine.TestTools.LogAssert.ignoreFailingMessages = false;
         }
 
         private TaichiConfig DefaultConfig() => new TaichiConfig
@@ -1022,7 +1021,6 @@ namespace Tests.Runtime.IAA
         [TearDown]
         public void TearDown()
         {
-            UnityEngine.TestTools.LogAssert.ignoreFailingMessages = false;
         }
 
         private TaichiConfig DefaultConfig() => new TaichiConfig

@@ -1038,7 +1038,14 @@ namespace com.noctuagames.sdk
                 .WithHeader("X-BUNDLE-ID", _bundleId)
                 .WithHeader("Authorization", "Bearer " + RecentAccount.Player.AccessToken);
 
-            return await request.SendRaw();
+            try
+            {
+                return await request.SendRaw();
+            }
+            catch (UnityEngine.Networking.UnityWebRequestException ex)
+            {
+                throw new NoctuaException(NoctuaErrorCode.Application, $"HTTP error {(int)ex.ResponseCode}: {ex.Message}");
+            }
         }
 
         /// <summary>

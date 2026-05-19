@@ -769,7 +769,6 @@ namespace Tests.Runtime.IAA
         [TearDown]
         public void TearDown()
         {
-            LogAssert.ignoreFailingMessages = false;
         }
 
         // ── Helpers ────────────────────────────────────────────────────────────
@@ -1288,7 +1287,6 @@ namespace Tests.Runtime.IAA
         [TearDown]
         public void TearDown()
         {
-            LogAssert.ignoreFailingMessages = false;
             PlayerPrefs.DeleteAll();
             PlayerPrefs.Save();
         }

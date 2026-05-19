@@ -16,6 +16,9 @@ namespace Tests.Runtime
         public IEnumerator SetUp()
         {
             PlayerPrefs.DeleteKey("NoctuaAccountContainer");
+            PlayerPrefs.DeleteKey("NoctuaEvents");
+            var eventsPath = System.IO.Path.Combine(Application.persistentDataPath, "noctua_events.jsonl");
+            if (System.IO.File.Exists(eventsPath)) System.IO.File.Delete(eventsPath);
             _plugin = new DefaultNativePlugin();
             yield return null;
         }
@@ -24,6 +27,9 @@ namespace Tests.Runtime
         public IEnumerator TearDown()
         {
             PlayerPrefs.DeleteKey("NoctuaAccountContainer");
+            PlayerPrefs.DeleteKey("NoctuaEvents");
+            var eventsPath = System.IO.Path.Combine(Application.persistentDataPath, "noctua_events.jsonl");
+            if (System.IO.File.Exists(eventsPath)) System.IO.File.Delete(eventsPath);
             yield return null;
         }
 

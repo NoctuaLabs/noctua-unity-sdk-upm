@@ -1,4 +1,5 @@
 .PHONY: test coverage clean check-unity
+SHELL := /bin/bash
 
 # Auto-detect Unity 6000.x — override with: make test UNITY=/path/to/Unity
 UNAME := $(shell uname -s)
@@ -58,6 +59,33 @@ for cov, name, lines in sorted(classes, reverse=True):
 endef
 export PARSE_COVERAGE_PY
 
+define PROGRESS_WATCHER_PY
+import sys, time, os
+log_path = sys.argv[1]
+while not os.path.exists(log_path):
+    time.sleep(0.1)
+count = 0
+initialized = False
+spinner = ['|', '/', '-', '\\\\']
+spin_i = 0
+with open(log_path, 'r', errors='replace') as f:
+    while True:
+        line = f.readline()
+        if not line:
+            if not initialized:
+                print(f'\r  {spinner[spin_i % 4]} Initializing Unity...                                        ', end='', flush=True)
+                spin_i += 1
+            time.sleep(0.1)
+            continue
+        if 'Running tests for ExecutionSettings' in line:
+            initialized = True
+        elif line.startswith('Tests.') and ' () (at ' in line:
+            count += 1
+            name = line.split(' () (at ')[0].strip().replace('Tests.Runtime.', '')
+            print(f'\r  [{count:3d}] {name:<110}', end='', flush=True)
+endef
+export PROGRESS_WATCHER_PY
+
 check-unity:
 ifeq ($(UNITY),)
 	$(error Unity 6000.x not found. Install it or set UNITY=/path/to/Unity)
@@ -78,7 +106,8 @@ test: check-unity
 	json.dump(m, open(p,'w'), indent=2); \
 	print('  patched OK')"
 	@echo "Running tests with code coverage ..."
-	@cd $(TMPDIR) && "$(UNITY)" \
+	@touch $(SDK_ROOT)/$(TEST_LOG); \
+	cd $(TMPDIR) && "$(UNITY)" \
 		-batchmode \
 		-nographics \
 		-projectPath TestProject \
@@ -89,7 +118,11 @@ test: check-unity
 		-enableCodeCoverage \
 		-coverageResultsPath $(COVERAGE_DIR) \
 		-coverageOptions "generateHtmlReport;generateBadgeReport;assemblyFilters:+com.noctuagames.sdk" \
-		; TEST_EXIT=$$?; \
+		& UNITY_PID=$$!; \
+	echo "$$PROGRESS_WATCHER_PY" | python3 - "$(SDK_ROOT)/$(TEST_LOG)" & WATCHER_PID=$$!; \
+	wait $$UNITY_PID; TEST_EXIT=$$?; \
+	kill $$WATCHER_PID 2>/dev/null; wait $$WATCHER_PID 2>/dev/null; \
+	printf "\n"; \
 	echo ""; \
 	echo "=== Test Results ==="; \
 	if [ -f "$(SDK_ROOT)/$(TEST_RESULTS)" ]; then \
@@ -125,7 +158,8 @@ coverage: check-unity
 	json.dump(m, open(p,'w'), indent=2); \
 	print('  patched OK')"
 	@echo "Running tests with code coverage ..."
-	@cd $(TMPDIR) && "$(UNITY)" \
+	@touch $(SDK_ROOT)/$(TEST_LOG); \
+	cd $(TMPDIR) && "$(UNITY)" \
 		-batchmode \
 		-nographics \
 		-projectPath TestProject \
@@ -136,7 +170,11 @@ coverage: check-unity
 		-enableCodeCoverage \
 		-coverageResultsPath $(COVERAGE_DIR) \
 		-coverageOptions "generateHtmlReport;generateBadgeReport;assemblyFilters:+com.noctuagames.sdk" \
-		; TEST_EXIT=$$?; \
+		& UNITY_PID=$$!; \
+	echo "$$PROGRESS_WATCHER_PY" | python3 - "$(SDK_ROOT)/$(TEST_LOG)" & WATCHER_PID=$$!; \
+	wait $$UNITY_PID; TEST_EXIT=$$?; \
+	kill $$WATCHER_PID 2>/dev/null; wait $$WATCHER_PID 2>/dev/null; \
+	printf "\n"; \
 	echo ""; \
 	echo "=== Test Results ==="; \
 	if [ -f "$(SDK_ROOT)/$(TEST_RESULTS)" ]; then \

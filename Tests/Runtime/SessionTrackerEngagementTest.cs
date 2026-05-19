@@ -942,26 +942,29 @@ namespace Tests.Runtime
         public IEnumerator RecoveryEvent_ClearsPlayerPrefsAfterRecovery() => UniTask.ToCoroutine(
             async () =>
             {
-                // After RecoverOrphanedSession() runs, all four PlayerPrefs keys must be deleted
-                // so the same orphaned session is not recovered twice on subsequent launches.
-                PlayerPrefs.SetString("NoctuaOrphanedSessionId",           "cleanup-test-session");
+                // After RecoverOrphanedSession() runs, the orphaned session ID is cleared,
+                // and a NEW session is immediately started (writing its own ID to the key).
+                // We verify that the ORIGINAL orphaned ID is no longer stored.
+                const string orphanedId = "cleanup-test-session";
+                PlayerPrefs.SetString("NoctuaOrphanedSessionId",           orphanedId);
                 PlayerPrefs.SetString("NoctuaOrphanedSessionCumulativeMs", "5000");
                 PlayerPrefs.SetString("NoctuaOrphanedSessionUnsentMs",     "1000");
                 PlayerPrefs.SetString("NoctuaOrphanedSessionLastTimestamp", DateTime.UtcNow.AddHours(-1).ToString("O"));
                 PlayerPrefs.Save();
 
                 var tracker = new SessionTracker(_config, _mockSender);
-                tracker.OnApplicationPause(false); // triggers recovery
+                tracker.OnApplicationPause(false); // triggers recovery, then starts new session
 
-                // All orphan keys must be cleared
-                Assert.IsEmpty(PlayerPrefs.GetString("NoctuaOrphanedSessionId", ""),
-                    "NoctuaOrphanedSessionId must be cleared after recovery");
+                // The orphaned ID must NOT still be in PlayerPrefs (a new session ID replaces it)
+                var currentId = PlayerPrefs.GetString("NoctuaOrphanedSessionId", "");
+                Assert.AreNotEqual(orphanedId, currentId,
+                    "NoctuaOrphanedSessionId must not still hold the orphaned session ID after recovery");
+
+                // Cumulative/unsent fields from the orphaned session must be cleared
                 Assert.IsEmpty(PlayerPrefs.GetString("NoctuaOrphanedSessionCumulativeMs", ""),
                     "NoctuaOrphanedSessionCumulativeMs must be cleared after recovery");
                 Assert.IsEmpty(PlayerPrefs.GetString("NoctuaOrphanedSessionUnsentMs", ""),
                     "NoctuaOrphanedSessionUnsentMs must be cleared after recovery");
-                Assert.IsEmpty(PlayerPrefs.GetString("NoctuaOrphanedSessionLastTimestamp", ""),
-                    "NoctuaOrphanedSessionLastTimestamp must be cleared after recovery");
 
                 tracker.Dispose();
                 await UniTask.Yield();

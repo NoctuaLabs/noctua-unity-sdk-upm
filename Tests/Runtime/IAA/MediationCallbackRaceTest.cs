@@ -72,7 +72,6 @@ namespace Tests.Runtime.IAA
         [TearDown]
         public void TearDown()
         {
-            UnityEngine.TestTools.LogAssert.ignoreFailingMessages = false;
         }
 
         // ─── Helpers ──────────────────────────────────────────────────────────

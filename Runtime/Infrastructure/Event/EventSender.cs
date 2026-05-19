@@ -1042,11 +1042,15 @@ namespace com.noctuagames.sdk.Events
         private string SanitizeHeaderValue(string value)
         {
             if (string.IsNullOrEmpty(value)) return string.Empty;
-            var sanitized = new string(value.Where(c => c >= 32 && c != 127).ToArray());
-            if (sanitized != value)
+            var sb = new System.Text.StringBuilder(value.Length);
+            foreach (var c in value)
             {
-                _log.Info($"[Event Sender] Header value sanitized. Original: {value}, Sanitized: {sanitized}");
+                if (c >= 32 && c != 127)
+                    sb.Append(c);
             }
+            var sanitized = sb.ToString();
+            if (sanitized != value)
+                _log.Info($"[Event Sender] Header value sanitized. Original: {value}, Sanitized: {sanitized}");
             return sanitized;
         }
 

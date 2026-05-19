@@ -323,7 +323,6 @@ namespace Tests.Runtime.IAP
         [TearDown]
         public void TearDown()
         {
-            LogAssert.ignoreFailingMessages = false;
             PlayerPrefs.DeleteKey("NoctuaPendingPurchases");
             PlayerPrefs.DeleteKey("NoctuaPurchaseHistory");
             PlayerPrefs.DeleteKey("NoctuaRefundTracking");
@@ -550,7 +549,6 @@ namespace Tests.Runtime.IAP
         [TearDown]
         public void TearDown()
         {
-            LogAssert.ignoreFailingMessages = false;
             PlayerPrefs.DeleteKey(RefundTrackingKey);
             PlayerPrefs.Save();
         }
@@ -721,7 +719,6 @@ namespace Tests.Runtime.IAP
         [TearDown]
         public void TearDown()
         {
-            LogAssert.ignoreFailingMessages = false;
         }
 
         [Test]
@@ -880,7 +877,6 @@ namespace Tests.Runtime.IAP
         [TearDown]
         public void TearDown()
         {
-            LogAssert.ignoreFailingMessages = false;
         }
 
         [Test]
@@ -1030,7 +1026,6 @@ namespace Tests.Runtime.IAP
         [TearDown]
         public void TearDownHttp()
         {
-            LogAssert.ignoreFailingMessages = false;
             PlayerPrefs.DeleteKey("NoctuaAccessToken");
             PlayerPrefs.Save();
         }
@@ -1928,7 +1923,6 @@ namespace Tests.Runtime.IAP
         [TearDown]
         public void TearDown()
         {
-            LogAssert.ignoreFailingMessages = false;
             PlayerPrefs.DeleteKey("NoctuaAccessToken");
             PlayerPrefs.DeleteKey("NoctuaPendingPurchases");
             PlayerPrefs.DeleteKey("NoctuaPurchaseHistory");

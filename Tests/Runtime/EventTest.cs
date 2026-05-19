@@ -347,9 +347,11 @@ namespace Tests.Runtime
                 eventSender.Send("test_event_1");
 
                 // GeoIP enrichment fire-and-forget tasks write events to storage asynchronously.
-                // Use a generous timeout+settle so every batch cycle the EventSender runs
-                // after enrichment completes has time to deliver all events to the server.
-                var events = await GetEventsFromServerAsync(5000, 2000);
+                // Wait for enrichment to complete (first GeoIP call ~2-3s, subsequent calls use cache).
+                // Once all 4 events are in storage (count >= BatchSize=3), the send cycle triggers.
+                await UniTask.Delay(4000);
+
+                var events = await GetEventsFromServerAsync(10000, 3000);
 
                 Assert.GreaterOrEqual(events.Count, 3);
 

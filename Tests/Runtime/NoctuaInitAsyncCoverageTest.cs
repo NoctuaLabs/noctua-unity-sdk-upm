@@ -101,7 +101,6 @@ namespace Tests.Runtime
         [TearDown]
         public void TearDown()
         {
-            LogAssert.ignoreFailingMessages = false;
             ResetStaticState();
             // Clear the static event so handlers from Group F tests do not
             // accumulate across test runs (static event survives test boundaries).

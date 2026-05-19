@@ -85,6 +85,7 @@ namespace com.noctuagames.sdk
         {
             if (_config?.Enabled != true) return false;
             if (_config.Floors == null) return false;
+            if (format == null) return false;
             return _config.Floors.ContainsKey(format);
         }
 
