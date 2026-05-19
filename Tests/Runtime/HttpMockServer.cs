@@ -196,5 +196,18 @@ namespace Tests.Runtime
             _listener.Close();
             Debug.Log("HttpMockServer stopped.");
         }
+
+        /// <summary>
+        /// Returns an OS-assigned free port. Uses TcpListener with port 0 so the kernel picks
+        /// a port that is guaranteed free at the moment of the call.
+        /// </summary>
+        public static int FindFreePort()
+        {
+            var listener = new System.Net.Sockets.TcpListener(System.Net.IPAddress.Loopback, 0);
+            listener.Start();
+            int port = ((System.Net.IPEndPoint)listener.LocalEndpoint).Port;
+            listener.Stop();
+            return port;
+        }
     }
 }

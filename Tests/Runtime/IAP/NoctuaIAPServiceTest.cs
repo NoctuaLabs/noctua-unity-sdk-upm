@@ -1919,8 +1919,8 @@ namespace Tests.Runtime.IAP
     [TestFixture]
     public class NoctuaIAPServiceDeliverPendingTest
     {
-        private const string BaseUrl   = "http://localhost:17786/api/v1";
-        private const string ServerUrl = "http://localhost:17786/api/v1/";
+        private string _baseUrl;
+        private string _serverUrl;
 
         private HttpMockServer _server;
 
@@ -1929,7 +1929,10 @@ namespace Tests.Runtime.IAP
         [OneTimeSetUp]
         public void OneTimeSetUp()
         {
-            _server = new HttpMockServer(ServerUrl);
+            int port = HttpMockServer.FindFreePort();
+            _baseUrl   = $"http://localhost:{port}/api/v1";
+            _serverUrl = $"http://localhost:{port}/api/v1/";
+            _server = new HttpMockServer(_serverUrl);
             _server.Start();
         }
 
@@ -2017,7 +2020,7 @@ namespace Tests.Runtime.IAP
         {
             var config = new NoctuaIAPService.Config
             {
-                BaseUrl  = BaseUrl,
+                BaseUrl  = _baseUrl,
                 ClientId = "test-client",
             };
             var tokenProvider = MakeTokenProvider(accessToken);

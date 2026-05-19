@@ -294,6 +294,10 @@ namespace Tests.Runtime
         public IEnumerator SendEvents_DontReachBatchingNumberThresholdButFlushed_SendToServer() => UniTask.ToCoroutine(
             async () =>
             {
+                // Pre-warm locale so GeoIP calls are skipped (country already set)
+                var locale = new NoctuaLocale();
+                locale.SetCountry("US");
+
                 var eventSender = new EventSender(
                     new EventSenderConfig
                     {
@@ -303,20 +307,18 @@ namespace Tests.Runtime
                         CycleDelay = 100,
                         NativePlugin = new DefaultNativePlugin()
                     },
-                    new NoctuaLocale()
+                    locale
                 );
 
                 eventSender.Send("test_event_1");
-
                 eventSender.Send("test_event_1");
 
-                // Wait for GeoIP enrichment to complete before flushing.
-                // GeoIP for first event ~2-3s; second event may also need its own call concurrently.
-                await UniTask.Delay(6000);
+                // Wait for fire-and-forget enrichment tasks to write to storage
+                await UniTask.Delay(1000);
 
                 eventSender.Flush();
 
-                var events = await GetEventsFromServerAsync(10000, 2000);
+                var events = await GetEventsFromServerAsync(5000, 500);
 
                 Assert.AreEqual(2, events.Count);
 
@@ -328,6 +330,10 @@ namespace Tests.Runtime
         public IEnumerator SendEvents_ReachBatchingNumberThreshold_SendToServer() => UniTask.ToCoroutine(
             async () =>
             {
+                // Pre-warm locale so GeoIP calls are skipped (country already set)
+                var locale = new NoctuaLocale();
+                locale.SetCountry("US");
+
                 var eventSender = new EventSender(
                     new EventSenderConfig
                     {
@@ -337,7 +343,7 @@ namespace Tests.Runtime
                         CycleDelay = 100,
                         NativePlugin = new DefaultNativePlugin()
                     },
-                    new NoctuaLocale()
+                    locale
                 );
 
                 eventSender.SetProperties(gameId: 7, gamePlatformId: 17);
@@ -347,16 +353,14 @@ namespace Tests.Runtime
                 eventSender.Send("test_event_1");
                 eventSender.Send("test_event_1");
 
-                // GeoIP enrichment fire-and-forget tasks write events to storage asynchronously.
-                // All 4 events may need independent GeoIP calls (concurrent, ~2-3s each).
-                // Wait long enough for all to complete even if they don't share the cache lookup.
-                await UniTask.Delay(8000);
+                // Wait for fire-and-forget enrichment tasks to write to storage
+                await UniTask.Delay(2000);
 
                 // Force-flush any events that haven't been sent yet by the automatic batch cycle
                 eventSender.Flush();
-                await UniTask.Delay(1000);
+                await UniTask.Delay(500);
 
-                var events = await GetEventsFromServerAsync(15000, 4000);
+                var events = await GetEventsFromServerAsync(5000, 1000);
 
                 Assert.GreaterOrEqual(events.Count, 3);
 
@@ -387,6 +391,10 @@ namespace Tests.Runtime
         public IEnumerator SendEvents_ReachBatchingTimeout_SendToServer() => UniTask.ToCoroutine(
             async () =>
             {
+                // Pre-warm locale so GeoIP calls are skipped (country already set)
+                var locale = new NoctuaLocale();
+                locale.SetCountry("US");
+
                 var eventSender = new EventSender(
                     new EventSenderConfig
                     {
@@ -397,7 +405,7 @@ namespace Tests.Runtime
                         CycleDelay = 100,
                         NativePlugin = new DefaultNativePlugin()
                     },
-                    new NoctuaLocale()
+                    locale
                 );
 
                 eventSender.SetProperties(gameId: 7, gamePlatformId: 17);
@@ -405,13 +413,10 @@ namespace Tests.Runtime
                 eventSender.Send("test_event_1");
                 eventSender.Send("test_event_1");
 
-                // Wait for all GeoIP enrichment fire-and-forget tasks to complete before the
-                // batch timeout fires — otherwise some events may not yet be written to storage.
-                // GeoIP takes 2-3s for the first call; wait 4s to ensure both events are stored
-                // before any batch timer fires.
-                await UniTask.Delay(4000);
+                // Wait for enrichment tasks to write to storage; batch timeout (500ms) will fire automatically
+                await UniTask.Delay(2000);
 
-                var events = await GetEventsFromServerAsync(8000, 2000);
+                var events = await GetEventsFromServerAsync(5000, 500);
 
                 Assert.AreEqual(2, events.Count);
 
