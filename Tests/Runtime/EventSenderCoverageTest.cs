@@ -885,7 +885,9 @@ namespace Tests.Runtime
                 Assert.AreEqual("", result, "DEL (char 127) must be stripped");
 
                 // DEL embedded among printable chars — only the DEL is removed
-                string embedded = (string)method.Invoke(sender, new object[] { "abc\x7fdef" });
+                // NOTE: use  (not \x7f) because \x greedily consumes hex digits:
+                // "abc\x7fdef" parses as 'a','b','c',char(0x7FDE=翞),'f' — not the intended input.
+                string embedded = (string)method.Invoke(sender, new object[] { "abc" + (char)127 + "def" });
                 Assert.AreEqual("abcdef", embedded, "DEL embedded in printable text must be stripped");
             }
             finally { sender.Dispose(); }
@@ -909,7 +911,7 @@ namespace Tests.Runtime
                 }
 
                 // Control chars mixed with printable text
-                string mixed = (string)method.Invoke(sender, new object[] { "a\x01b\x0dc" });
+                string mixed = (string)method.Invoke(sender, new object[] { "a" + (char)1 + "b" + (char)13 + "c" });
                 Assert.AreEqual("abc", mixed,
                     "Control chars embedded in printable text must all be stripped");
             }
