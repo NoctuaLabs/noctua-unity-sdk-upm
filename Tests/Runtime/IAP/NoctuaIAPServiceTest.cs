@@ -1913,14 +1913,14 @@ namespace Tests.Runtime.IAP
     // Covers DeliverPendingDeliverablesAsync, VerifyOrderImplAsync (via deliver path),
     // RetryPendingPurchaseByOrderId, and EnqueueToRetryPendingPurchases branches.
     //
-    // Port 7786 — distinct from NoctuaIAPServiceHttpTest (7782) and auth tests.
+    // Port 17786 — distinct from NoctuaIAPServiceHttpTest (7782) and auth tests.
     // ══════════════════════════════════════════════════════════════════════════════
 
     [TestFixture]
     public class NoctuaIAPServiceDeliverPendingTest
     {
-        private const string BaseUrl   = "http://localhost:7786/api/v1";
-        private const string ServerUrl = "http://localhost:7786/api/v1/";
+        private const string BaseUrl   = "http://localhost:17786/api/v1";
+        private const string ServerUrl = "http://localhost:17786/api/v1/";
 
         private HttpMockServer _server;
 
