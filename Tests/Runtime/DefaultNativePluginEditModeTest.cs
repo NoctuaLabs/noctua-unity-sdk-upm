@@ -41,6 +41,8 @@ namespace Tests.Runtime
         {
             PlayerPrefs.DeleteKey("NoctuaAccountContainer");
             PlayerPrefs.DeleteKey("NoctuaEvents");
+            var eventsPath = System.IO.Path.Combine(Application.persistentDataPath, "noctua_events.jsonl");
+            if (System.IO.File.Exists(eventsPath)) System.IO.File.Delete(eventsPath);
             _plugin = new DefaultNativePlugin();
         }
 
@@ -49,6 +51,8 @@ namespace Tests.Runtime
         {
             PlayerPrefs.DeleteKey("NoctuaAccountContainer");
             PlayerPrefs.DeleteKey("NoctuaEvents");
+            var eventsPath = System.IO.Path.Combine(Application.persistentDataPath, "noctua_events.jsonl");
+            if (System.IO.File.Exists(eventsPath)) System.IO.File.Delete(eventsPath);
         }
 
         // ─── GetAccounts ──────────────────────────────────────────────────────

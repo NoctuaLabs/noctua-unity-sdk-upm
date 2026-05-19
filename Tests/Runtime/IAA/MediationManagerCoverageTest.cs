@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using com.noctuagames.sdk;
@@ -1685,6 +1686,7 @@ namespace Tests.Runtime.IAA
             var mgr    = CreateBare();
             var config = new IAAConfig { Mediation = "admob" };
 
+            LogAssert.Expect(LogType.Error, new Regex("CreateNetworks.*No ad network"));
             mgr.ApplyIaaConfigFromRemote(config);
 
             string origin = GetField<string>(mgr, "_nextConfigOrigin");
@@ -1698,6 +1700,7 @@ namespace Tests.Runtime.IAA
             var mgr    = CreateBare();
             var config = new IAAConfig { Mediation = "applovin" };
 
+            LogAssert.Expect(LogType.Error, new Regex("CreateNetworks.*No ad network"));
             mgr.ApplyIaaConfigFromRemote(config);
 
             var stored = GetField<IAAConfig>(mgr, "_iaaResponse");

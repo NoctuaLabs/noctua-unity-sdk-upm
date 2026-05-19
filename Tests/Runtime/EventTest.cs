@@ -310,12 +310,12 @@ namespace Tests.Runtime
 
                 eventSender.Send("test_event_1");
 
-                // Wait for fire-and-forget Send tasks to complete and write to storage
-                await UniTask.Delay(500);
+                // Wait for GeoIP enrichment to complete before flushing (enrichment ~2-3s)
+                await UniTask.Delay(4000);
 
                 eventSender.Flush();
 
-                var events = await GetEventsFromServerAsync();
+                var events = await GetEventsFromServerAsync(8000, 1000);
 
                 Assert.AreEqual(2, events.Count);
 
@@ -349,9 +349,9 @@ namespace Tests.Runtime
                 // GeoIP enrichment fire-and-forget tasks write events to storage asynchronously.
                 // Wait for enrichment to complete (first GeoIP call ~2-3s, subsequent calls use cache).
                 // Once all 4 events are in storage (count >= BatchSize=3), the send cycle triggers.
-                await UniTask.Delay(4000);
+                await UniTask.Delay(6000);
 
-                var events = await GetEventsFromServerAsync(10000, 3000);
+                var events = await GetEventsFromServerAsync(15000, 4000);
 
                 Assert.GreaterOrEqual(events.Count, 3);
 

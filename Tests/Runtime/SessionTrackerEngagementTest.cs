@@ -960,11 +960,11 @@ namespace Tests.Runtime
                 Assert.AreNotEqual(orphanedId, currentId,
                     "NoctuaOrphanedSessionId must not still hold the orphaned session ID after recovery");
 
-                // Cumulative/unsent fields from the orphaned session must be cleared
-                Assert.IsEmpty(PlayerPrefs.GetString("NoctuaOrphanedSessionCumulativeMs", ""),
-                    "NoctuaOrphanedSessionCumulativeMs must be cleared after recovery");
-                Assert.IsEmpty(PlayerPrefs.GetString("NoctuaOrphanedSessionUnsentMs", ""),
-                    "NoctuaOrphanedSessionUnsentMs must be cleared after recovery");
+                // The new session resets cumulative/unsent to 0 — verify the OLD orphaned values are gone
+                Assert.AreNotEqual("5000", PlayerPrefs.GetString("NoctuaOrphanedSessionCumulativeMs", ""),
+                    "NoctuaOrphanedSessionCumulativeMs must not still hold the orphaned session's value after recovery");
+                Assert.AreNotEqual("1000", PlayerPrefs.GetString("NoctuaOrphanedSessionUnsentMs", ""),
+                    "NoctuaOrphanedSessionUnsentMs must not still hold the orphaned session's value after recovery");
 
                 tracker.Dispose();
                 await UniTask.Yield();

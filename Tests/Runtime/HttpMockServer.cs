@@ -55,7 +55,7 @@ namespace Tests.Runtime
             if (_listener.IsListening) throw new InvalidOperationException("Server is already running.");
 
             const int maxRetries = 5;
-            HttpListenerException lastEx = null;
+            Exception lastEx = null;
             for (int i = 0; i < maxRetries; i++)
             {
                 try
@@ -65,7 +65,7 @@ namespace Tests.Runtime
                     Debug.Log("HttpMockServer started.");
                     return;
                 }
-                catch (HttpListenerException ex)
+                catch (Exception ex) when (ex is HttpListenerException || ex is System.Net.Sockets.SocketException)
                 {
                     lastEx = ex;
                     System.Threading.Thread.Sleep(200 * (i + 1));

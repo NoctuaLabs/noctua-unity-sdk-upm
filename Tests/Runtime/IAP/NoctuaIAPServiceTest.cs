@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using com.noctuagames.sdk;
 using Cysharp.Threading.Tasks;
@@ -424,6 +425,7 @@ namespace Tests.Runtime.IAP
         {
             IAPTestHelpers.StorePending(IAPTestHelpers.MakePendingItemJson(5));
             var svc = IAPTestHelpers.CreateService();
+            LogAssert.Expect(LogType.Error, new Regex("GetPendingPurchaseByOrderId"));
             Assert.Throws<Exception>(() => svc.GetPendingPurchaseByOrderId(999),
                 "Should throw when order ID is not in the stored list");
         }
@@ -568,6 +570,7 @@ namespace Tests.Runtime.IAP
             PlayerPrefs.SetString(RefundTrackingKey, "{{bad-json}}");
             PlayerPrefs.Save();
             var svc = IAPTestHelpers.CreateService();
+            LogAssert.Expect(LogType.Error, new Regex("GetRefundTrackingEntries"));
             var result = svc.GetRefundTrackingEntries();
             Assert.IsNotNull(result);
             Assert.AreEqual(0, result.Count, "Malformed JSON should gracefully return empty list");
@@ -1215,6 +1218,7 @@ namespace Tests.Runtime.IAP
                 var svc = CreateEnabledService();
                 try
                 {
+                    LogAssert.Expect(LogType.Error, new Regex("HttpRequest\\.Send.*500"));
                     await svc.GetNoctuaGold();
                     Assert.Fail("Expected NoctuaException from HTTP 500");
                 }
@@ -1329,6 +1333,7 @@ namespace Tests.Runtime.IAP
                 var svc = CreateEnabledService();
                 try
                 {
+                    LogAssert.Expect(LogType.Error, new Regex("HttpRequest\\.Send.*500"));
                     await svc.GetPendingDeliverables();
                     Assert.Fail("Expected NoctuaException from HTTP 500");
                 }
@@ -1408,6 +1413,7 @@ namespace Tests.Runtime.IAP
                 // Await directly (instead of .Forget()) so the HTTP task completes before
                 // this test ends; otherwise the orphan request races the next test's handler.
                 Exception thrown = null;
+                LogAssert.Expect(LogType.Error, new Regex("HttpRequest\\.Send.*500"));
                 try { await svc.DeliverPendingDeliverablesAsync(); }
                 catch (Exception ex) { thrown = ex; }
                 Assert.IsNull(thrown, $"Unexpected exception escaped: {thrown}");
@@ -1564,6 +1570,7 @@ namespace Tests.Runtime.IAP
 
                 try
                 {
+                    LogAssert.Expect(LogType.Error, new Regex("HttpRequest\\.Send.*500"));
                     await svc.ClaimRedeemAsync("FAIL-CODE");
                     Assert.Fail("Expected NoctuaException from HTTP 500");
                 }
@@ -1600,6 +1607,7 @@ namespace Tests.Runtime.IAP
 
                 try
                 {
+                    LogAssert.Expect(LogType.Error, new Regex("HttpRequest\\.Send.*500"));
                     await svc.ClaimRedeemAsync("USED-CODE");
                     Assert.Fail("Expected NoctuaException");
                 }
@@ -1827,6 +1835,7 @@ namespace Tests.Runtime.IAP
 
                 try
                 {
+                    LogAssert.Expect(LogType.Error, new Regex("HttpRequest\\.Send.*500"));
                     await svc.GetProductListAsync();
                     Assert.Fail("Expected NoctuaException from HTTP 500");
                 }
@@ -1862,6 +1871,7 @@ namespace Tests.Runtime.IAP
 
             try
             {
+                LogAssert.Expect(LogType.Error, new Regex("EnsureEnabled"));
                 await svc.GetProductListAsync();
                 Assert.Fail("Expected NoctuaException");
             }
