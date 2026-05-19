@@ -1,1 +1,8 @@
 GithubRelease.md
+GithubRelease.md.meta
+CodeCoverage/
+CodeCoverage.meta
+testresults.xml
+testresults.xml.meta
+unity-test.log
+unity-test.log.meta
