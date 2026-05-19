@@ -1042,7 +1042,7 @@ namespace com.noctuagames.sdk
             {
                 return await request.SendRaw();
             }
-            catch (UnityEngine.Networking.UnityWebRequestException ex)
+            catch (Cysharp.Threading.Tasks.UnityWebRequestException ex)
             {
                 throw new NoctuaException(NoctuaErrorCode.Application, $"HTTP error {(int)ex.ResponseCode}: {ex.Message}");
             }
