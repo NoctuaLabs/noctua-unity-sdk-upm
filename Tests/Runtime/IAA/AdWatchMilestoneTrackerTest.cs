@@ -258,5 +258,28 @@ namespace Tests.Runtime.IAA
             _tracker.InstallAsDefault();
             Assert.AreSame(_tracker, AdWatchMilestoneTracker.Default);
         }
+
+        // ═══════════════════════════════════════════════════════════════════
+        // ResetForAdType — early-return guard (line 132)
+        // NOTE: The catch block in RecordWatch (lines 117-120) is structurally
+        // unreachable from EditMode tests because PlayerPrefs.SetInt never
+        // throws in the Unity EditMode test runner.
+        // ═══════════════════════════════════════════════════════════════════
+
+        [Test]
+        public void ResetForAdType_WithNullAdType_DoesNotThrow()
+        {
+            // Line 132: if (string.IsNullOrEmpty(adType)) return; — null branch
+            Assert.DoesNotThrow(() => AdWatchMilestoneTracker.ResetForAdType(null),
+                "ResetForAdType(null) must return early without throwing");
+        }
+
+        [Test]
+        public void ResetForAdType_WithEmptyAdType_DoesNotThrow()
+        {
+            // Line 132: if (string.IsNullOrEmpty(adType)) return; — empty branch
+            Assert.DoesNotThrow(() => AdWatchMilestoneTracker.ResetForAdType(""),
+                "ResetForAdType(\"\") must return early without throwing");
+        }
     }
 }

@@ -2,7 +2,7 @@
 
 SDK package at `Packages/com.noctuagames.sdk/`. All runtime code under `Runtime/`, Editor tooling under `Editor/`, tests under `Tests/`.
 
-- **Version:** 0.114.0
+- **Version:** 0.117.0
 - **Repo:** `gitlab.com/evosverse/noctua/noctua-sdk-unity-upm`
 - **Namespace:** `com.noctuagames.sdk`
 
@@ -18,16 +18,38 @@ Platform   UI          (no upward deps)
 
 ```
 Runtime/
-├── Core/           Shared interfaces (ILocaleProvider, IConnectivityProvider)
-├── Model/          DTOs/ and Entities/ — pure data, no logic
-├── Infrastructure/ EventSender, Http, InternetChecker, Storage, Utility
-├── Presenter/      NoctuaIAPService, NoctuaAuthenticationService, SessionTracker
-│   └── Interfaces/ IEventSender, IIAPService, IAuthProvider, IPaymentUI, etc.
-├── Platform/       Native bridges: Android/ (JNI), iOS/ (P/Invoke)
-├── UI/             UIElements controllers, UIUtility
-├── View/           Composition root — Noctua.cs, Noctua.Initialization.cs, facades
-├── AdsManager/     MediationManager, AppLovin, AdMob, AdPlaceholder
-└── Plugins/        Third-party plugins (UniWebView, etc.)
+├── CATEGORIES.md      Cross-layer index — single source of truth for "where does feature X live"
+├── Core/              Shared interfaces (ILocaleProvider, IConnectivityProvider, Logging/)
+├── Model/             Pure data classes, organised by category (Auth/, IAP/, Event/, Platform/, App/, Common/)
+├── Infrastructure/
+│   ├── Event/         EventSender (split into partials)
+│   ├── Network/       Http, HttpExchange, InternetChecker
+│   ├── Debug/         HttpInspectorHooks, HttpInspectorLog
+│   ├── Storage/       AccessTokenProvider
+│   └── Common/        Utility, MobileDateTimePicker
+├── Presenter/         Business logic services, organised by category
+│   ├── Auth/          NoctuaAuthenticationService (split into partials), SocialAuthenticationService, AccountContainer
+│   ├── IAP/           NoctuaIAPService (split into partials), InternalPurchaseItem
+│   ├── IAA/           MediationManager (split into partials), AppOpenAdManager, AdRevenueTrackingManager, AdFrequencyManager, HybridAdOrchestrator, CpmFloorManager, UserSegmentManager
+│   ├── Event/         NoctuaEventService, ExperimentManager
+│   ├── Session/       SessionTracker, NativeSessionTracker, SessionTrackerBehaviour, NativeSessionTrackerBehaviour, NativeCrashForwarder
+│   ├── App/           NoctuaGameService
+│   ├── Debug/         TrackerDebugMonitor, TrackerEmission, TrackerObserverRegistry
+│   └── Interfaces/    IEventSender, IIAPService, IAuthProvider, IPaymentUI, IAdRevenueTracker, etc. — kept flat
+├── Platform/          Native bridges: Android/ (JNI), iOS/ (P/Invoke), Editor/ (stub)
+├── UI/
+│   ├── Controllers/   UIElements presenters by category (Auth/, IAP/, IAA/, Platform/, Common/)
+│   └── UIFactory, UIUtility, BasePresenter, Spinner, ColorModule, ScreenRotationMonitor
+├── View/              Composition root + thin facades, organised by category
+│   ├── Auth/          NoctuaAuthentication
+│   ├── IAP/           PaymentUIAdapter
+│   ├── Platform/      NoctuaPlatform, NoctuaLocale, NoctuaConnectivityProvider, NoctuaWebContent
+│   ├── App/           NoctuaAppManager, Noctua.Firebase.cs, Noctua.PlayerPrefs.cs
+│   ├── Common/        LazyAuthProvider
+│   └── Noctua.cs, Noctua.Initialization.cs (composition root at View/ root)
+├── AdsManager/        Ad network adapters: Admob/, AppLovin/, AdPlaceholder/
+├── Inspector/         Debug overlay: NoctuaInspectorController (split into partials), InspectorExporter, FirebaseProjectLookup
+└── Plugins/           Third-party native/managed plugins (UniWebView, etc.)
 ```
 
 | Rule |
@@ -41,6 +63,12 @@ Runtime/
 ## Class Visibility Rule
 
 **All SDK classes must be `public`, never `internal`.** Tests (`com.noctuagames.sdk.Tests`) and game developers need access. `internal` causes CS0122 errors. Do NOT use `InternalsVisibleTo` — just make the class `public`.
+
+**Audit before each release:**
+```sh
+grep -rn "internal class\|internal static class" Runtime/
+```
+Any matches are violations — change to `public`.
 
 ## Dependency Injection Patterns
 
@@ -61,22 +89,26 @@ Runtime/
 |------|-------|---------|
 | `Runtime/View/Noctua.cs` | View | Public API entry point |
 | `Runtime/View/Noctua.Initialization.cs` | View | Composition root — wires all services |
-| `Runtime/View/NoctuaAuthentication.cs` | View | Auth facade |
-| `Runtime/View/NoctuaLocale.cs` | View | `ILocaleProvider` impl |
-| `Runtime/View/NoctuaConnectivityProvider.cs` | View | `IConnectivityProvider` adapter |
-| `Runtime/View/PaymentUIAdapter.cs` | View | Adapts `UIFactory` → `IPaymentUI` |
-| `Runtime/View/LazyAuthProvider.cs` | View | Deferred `IAuthProvider` for circular init |
-| `Runtime/Presenter/NoctuaIAPService.cs` | Presenter | IAP: purchases, products, payment types |
-| `Runtime/Presenter/NoctuaAuthenticationService.cs` | Presenter | Auth: social login, account mgmt |
-| `Runtime/Presenter/SessionTracker.cs` | Presenter | Session lifecycle, heartbeat, engagement |
-| `Runtime/Presenter/ExperimentManager.cs` | Presenter | A/B testing, session tags |
-| `Runtime/Presenter/NoctuaEventService.cs` | Presenter | High-level event tracking API |
-| `Runtime/Infrastructure/EventSender.cs` | Infra | Event storage, batching, HTTP flush |
+| `Runtime/View/Auth/NoctuaAuthentication.cs` | View | Auth facade |
+| `Runtime/View/Platform/NoctuaLocale.cs` | View | `ILocaleProvider` impl |
+| `Runtime/View/Platform/NoctuaConnectivityProvider.cs` | View | `IConnectivityProvider` adapter |
+| `Runtime/View/IAP/PaymentUIAdapter.cs` | View | Adapts `UIFactory` → `IPaymentUI` |
+| `Runtime/View/Common/LazyAuthProvider.cs` | View | Deferred `IAuthProvider` for circular init |
+| `Runtime/Presenter/IAP/NoctuaIAPService.cs` | Presenter | IAP: purchases, products, payment types |
+| `Runtime/Presenter/Auth/NoctuaAuthenticationService.cs` | Presenter | Auth: social login, account mgmt |
+| `Runtime/Presenter/IAA/MediationManager.cs` | Presenter | Ad mediation orchestration |
+| `Runtime/Presenter/Session/SessionTracker.cs` | Presenter | Session lifecycle, heartbeat, engagement |
+| `Runtime/Presenter/Session/SessionTrackerBehaviour.cs` | Presenter | MonoBehaviour bridge → SessionTracker |
+| `Runtime/Presenter/Session/NativeSessionTracker.cs` | Presenter | Native OS engagement tracking |
+| `Runtime/Presenter/Session/NativeSessionTrackerBehaviour.cs` | Presenter | MonoBehaviour bridge → NativeSessionTracker |
+| `Runtime/Presenter/Event/ExperimentManager.cs` | Presenter | A/B testing, session tags |
+| `Runtime/Presenter/Event/NoctuaEventService.cs` | Presenter | High-level event tracking API |
+| `Runtime/Infrastructure/Event/EventSender.cs` | Infra | Event storage, batching, HTTP flush |
 | `Runtime/Infrastructure/Network/Http.cs` | Infra | `HttpRequest` with JSON serialization |
 | `Runtime/Infrastructure/Network/InternetChecker.cs` | Infra | Connectivity ping check |
-| `Runtime/Infrastructure/Utility.cs` | Infra | Validation, parsing, retry helpers |
-| `Runtime/Infrastructure/MobileDateTimePicker.cs` | Infra | Date picker bridge (static delegate) |
-| `Runtime/Platform/INativePlugin.cs` | Platform | All native sub-interfaces (incl. `INativeLogStream`, `INativeDeviceMetrics` for Inspector Logs/Memory tabs) |
+| `Runtime/Infrastructure/Common/Utility.cs` | Infra | Validation, parsing, retry helpers |
+| `Runtime/Infrastructure/Common/MobileDateTimePicker.cs` | Infra | Date picker bridge (static delegate) |
+| `Runtime/Platform/INativePlugin.cs` | Platform | All native sub-interfaces (incl. `INativeLogStream`, `INativeDeviceMetrics`) |
 | `Runtime/Platform/iOS/IosPlugin.cs` | Platform | iOS P/Invoke declarations |
 | `Runtime/Platform/Android/AndroidPlugin.cs` | Platform | Android JNI bridge |
 | `Editor/Menu/NoctuaSDKMenu.cs` | Editor | Integration Manager window |
@@ -213,30 +245,62 @@ Platform-layer reference.
 
 ## Engagement Tracking Architecture
 
-Three parallel engagement signals in `SessionTracker.cs`:
+Three parallel engagement signals across two tracker classes:
 
-| Event | Driver | Trigger |
-|-------|--------|---------|
-| `noctua_user_engagement` | Unity `Stopwatch` | Start, heartbeat (60s), pause, end |
-| `native_user_engagement` | OS callbacks | iOS `UIApplication`, Android `Activity` |
-| `noctua_user_engagement_per_session` | Cumulative | Session timeout resume / graceful quit |
+| Event | Driver class | Trigger |
+|-------|-------------|---------|
+| `noctua_user_engagement` | `SessionTracker.cs` | Unity Stopwatch: start, heartbeat (60s), pause, end |
+| `native_user_engagement` | `NativeSessionTracker.cs` | OS callbacks: iOS `UIApplication`, Android `Activity` |
+| `noctua_user_engagement_per_session` | `NativeSessionTracker.cs` | Session timeout resume / graceful quit |
 
 `engagement_time_msec` is **incremental** (since last send), not cumulative. `noctua_user_engagement` always fires **before** its paired session event (`session_heartbeat`, `session_pause`, `session_end`).
 
 ## Session Events
 
-`EventSender.cs` includes these in the `sessionEvents` HashSet (receive `tag` from `ExperimentManager`): `session_start`, `session_pause`, `session_continue`, `session_heartbeat`, `session_end`, `noctua_user_engagement`, `noctua_user_engagement_per_session`, `native_user_engagement`.
+Events in the `sessionEvents` HashSet in `EventSender.cs` receive the `tag` property from `ExperimentManager.GetSessionTag()`. See the HashSet definition in `Runtime/Infrastructure/Event/EventSender.cs` for the authoritative list — do not maintain a duplicate here. Current members include: `session_start`, `session_pause`, `session_continue`, `session_heartbeat`, `session_end`, `noctua_user_engagement`, `noctua_user_engagement_per_session`, `native_user_engagement`.
 
 ## Testing
 
 Tests in `Tests/Runtime/`. All test classes must be `public`. Use `MockEventSender` for unit tests — no HTTP needed.
 
+**`MockEventSender`** is defined at the top of `Tests/Runtime/SessionTrackerEngagementTest.cs` (not a separate file). Import namespace `Tests.Runtime` to use it in new test files.
+
 Key test files:
-- `SessionTrackerEngagementTest.cs` — 7 tests for engagement tracking
-- `EventTest.cs` — integration tests; filters `noctua_user_engagement` to verify session events unchanged
-- `IAAConfigTest.cs` — IAA unit tests (80%+ coverage)
+
+| File | What it covers |
+|------|---------------|
+| `SessionTrackerEngagementTest.cs` | `noctua_user_engagement` lifecycle |
+| `SessionTrackerBehaviourTest.cs` | `SessionTrackerBehaviour` MonoBehaviour bridge |
+| `NativeSessionTrackerCoverageTest.cs` | `NativeSessionTracker` + `NativeSessionTrackerBehaviour` |
+| `EventSenderCoverageTest.cs` | `EventSender` — offline, queuing, flush, HTTP paths |
+| `IAA/MediationManagerCoverageTest.cs` | `MediationManager` — init, show, frequency, CPM |
+| `UITests.cs` + `UITests_Extended.cs` | `UIUtility`, `DropdownNoctua`, `InputFieldNoctua`, `Spinner` |
+| `EventTest.cs` | Integration tests — session events pipeline |
+| `IAA/IAAConfigTest.cs` | IAA config parsing and validation |
 
 **Coverage target:** 80%+ per class.
+
+### Test Patterns
+
+**Private lifecycle methods (MonoBehaviour):** Unity does not fire lifecycle hooks in EditMode. Invoke via reflection:
+```csharp
+typeof(MyBehaviour).GetMethod("OnDestroy", BindingFlags.NonPublic | BindingFlags.Instance)
+    .Invoke(behaviour, null);
+```
+
+**Time-dependent state:** Inject private fields via reflection instead of `Thread.Sleep`:
+```csharp
+typeof(NativeSessionTracker)
+    .GetField("_nextSessionTimeout", BindingFlags.NonPublic | BindingFlags.Instance)
+    .SetValue(tracker, DateTime.UtcNow.AddMilliseconds(-1));
+```
+
+**`[Test]` vs `[UnityTest]`:** Use `[Test]` for pure logic (no Unity frame tick needed). Use `[UnityTest]` + `UniTask.ToCoroutine()` only when a coroutine yield or PlayerLoop tick is required.
+
+**Null events:** Public event-handler methods that do not dereference their event parameter (e.g. `OnFocusChange(FocusInEvent evt)`) may be invoked with `null` in tests:
+```csharp
+_sut.OnFocusChange((FocusInEvent)null);
+```
 
 ### Code Coverage settings (committed)
 
@@ -250,12 +314,96 @@ The Unity Code Coverage window settings are persisted in `ProjectSettings/Packag
   **/Runtime/Platform/Android/**
   **/Runtime/UI/Controllers/**
   **/Runtime/Inspector/**
+  **/Editor/Build/**
+  **/Editor/Menu/**
   ```
-  These folders are structurally untestable in EditMode (P/Invoke / JNI bridges, runtime UI presenters, debug overlays, vendored third-party plugins) and would otherwise inflate the denominator.
+  These folders are structurally untestable in EditMode (P/Invoke / JNI bridges, runtime UI presenters, debug overlays, vendored third-party plugins, Unity Editor build post-processors and menu windows) and would otherwise inflate the denominator.
+
+  **`Editor/Build/**` and `Editor/Menu/**`** exclude `BuildPostProcessor`, `CocoaPodsConflictFixer`, `BuildPreprocessor`, `NoctuaIntegrationManagerWindow`, `EmbedFrameworksDeduper`, `NoctuaAdapterStabilizer`, and similar Editor-only utilities. These classes require a full Unity Editor build context (not available in EditMode tests) and are validated manually during builds. Note: `Runtime/Platform/Editor/DefaultNativePlugin.cs` is **not** excluded (it has `Editor` in its path but sits under `Runtime/`, not the package-root `Editor/` directory).
 
   **Note:** `AdsManager/AppLovin/**` and `AdsManager/Admob/**` are intentionally **not** excluded — they have tests in `Tests/Runtime/IAA/AppLovinManagerTests.cs` and `AdmobManagerTests.cs`. These tests are wrapped in `#if UNITY_APPLOVIN` / `#if UNITY_ADMOB` and only compile when the respective UPM packages are installed. SDK-calling paths (`Initialize`, `Load*`, `Show*`, ad callbacks) cannot be exercised in EditMode without a real device, so partial coverage of these files is expected.
 
 After changing either, re-run the EditMode test suite and click **Generate from Last** in the Code Coverage window to refresh `CodeCoverage/Report/index.html`.
+
+## Unit Testing Rules
+
+### 1. Isolation and Determinism
+
+Every test must be fully self-contained: no shared mutable state, no real network calls, no real clock. Reset all state in `[SetUp]` / `[TearDown]`. A test that passes sometimes and fails other times is broken — fix it immediately.
+
+Inject all external dependencies. Never let production singletons (`PlayerPrefs`, `Noctua.*` statics, `DateTime.UtcNow`) leak into tests. Substitute controllable fakes:
+
+| Production dependency | Test substitute |
+|---|---|
+| HTTP | `HttpMockServer` (in-process) |
+| Event pipeline | `MockEventSender` (captures sent events) |
+| Platform bridge | `MockNativeLifecycle` / fake `INativePlugin` |
+| Time | Inject `DateTime` via field reflection or a `Func<DateTime>` config param |
+
+### 2. Mock/Stub Discipline
+
+- Mock at **process boundaries only** — HTTP, platform bridges, file system, time, randomness.
+- Do **not** mock pure domain logic or value objects — test them directly.
+- Prefer **fakes** over mocks for complex collaborators (e.g. an in-memory event sink is more stable than a mock with many `Verify` calls).
+- If a test has more `mock.Verify` calls than real-output assertions, it is testing wiring, not behaviour — redesign it.
+
+### 3. Coverage Targets and Exclusions
+
+**Target: 80% line/branch coverage** on testable production code.
+
+Exclude from metrics (via Code Coverage path filters):
+- `Runtime/Platform/iOS/**` and `Runtime/Platform/Android/**` — P/Invoke / JNI bridges; validated on-device
+- `Runtime/UI/Controllers/**` — runtime UIElements presenters requiring a live game window
+- `Runtime/Inspector/**` — debug overlay; sandbox-gated
+- `Runtime/Plugins/**` — vendored third-party code
+
+`#if UNITY_IOS` / `#if UNITY_ANDROID` blocks that cannot compile in EditMode are **structurally unreachable** — document them with a comment rather than trying to force coverage.
+
+### 4. Naming Convention
+
+Use `MethodName_StateUnderTest_ExpectedBehavior`:
+
+```csharp
+OnNativeResume_WhenFirstResume_EmitsNativeUserEngagement
+FlushAsync_WhenIsQuitting_ExitsEarly
+GetProductList_WhenOffline_ReturnsEmptyList
+```
+
+Never use `Test1`, `HappyPath`, or vague verb names. The test name is executable documentation.
+
+### 5. Test Organisation
+
+- One test class per production class, mirroring the source layout under `Tests/Runtime/`.
+- Test doubles (fakes, stubs, mock servers) live in `Tests/Runtime/` alongside the tests, never inside the production assembly.
+- Keep test files under 400 lines; extract `TestHelpers` / builder utilities when setup code grows beyond ~30 lines.
+- `MockEventSender` is defined in `SessionTrackerEngagementTest.cs` — import `using Tests.Runtime;` to reuse it.
+
+### 6. EditMode vs PlayMode
+
+- **Default to EditMode** for all pure logic — parsing, serialization, state machines, event routing, HTTP response mapping, MonoBehaviour lifecycle via reflection.
+- Use **PlayMode** only when a coroutine scheduler tick or real `Start`/`Update` cycle is unavoidable. PlayMode tests require a domain reload and run significantly slower.
+- For MonoBehaviour lifecycle (`OnDestroy`, `OnApplicationPause`, `Start`), prefer EditMode + reflection over spinning up a full PlayMode scene:
+  ```csharp
+  typeof(MyBehaviour).GetMethod("OnDestroy", BindingFlags.NonPublic | BindingFlags.Instance)
+      .Invoke(behaviour, null);
+  ```
+
+### 7. Async / UniTask Patterns
+
+- Return `async Task` (not `async UniTask`) from NUnit test methods — Unity Test Framework resolves `Task` natively in EditMode.
+- Wrap UniTask-returning production methods with `.AsTask()` at the test boundary when needed.
+- **Never `await` coroutines inside EditMode tests** — the coroutine scheduler does not tick; the test will hang. Use `UniTask.ToCoroutine()` only in PlayMode `[UnityTest]` methods.
+- Add `[Timeout(5000)]` on all async tests to catch hangs instead of blocking CI indefinitely.
+
+### 8. What to Avoid
+
+| Anti-pattern | Why / what to do instead |
+|---|---|
+| Calling private methods via reflection for logic | Extract into a testable internal class; only use reflection for unavoidable lifecycle hooks |
+| Asserting on internal field values | Assert observable outputs (events sent, return values, thrown exceptions) |
+| Sharing static state between tests | Reset via `[TearDown]` or redesign with injected state |
+| Testing that a mock was called exactly N times | Assert the real output the mock enables, not the call count |
+| `Thread.Sleep` in tests | Inject time or fast-forward state via reflection (e.g. set `_nextSessionTimeout` to past) |
 
 ## Git Workflow
 

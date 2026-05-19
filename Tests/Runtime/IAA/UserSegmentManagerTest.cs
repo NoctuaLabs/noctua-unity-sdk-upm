@@ -282,6 +282,62 @@ namespace Tests.Runtime.IAA
             Assert.AreEqual("t2", mgr.GetCountryTierKey("BR"));
             Assert.AreEqual("t3", mgr.GetCountryTierKey("VN"));
         }
+
+        [Test]
+        public void GetCountryTierKey_EmptyCountry_ReturnsT3()
+        {
+            // GetCountryTier: if (string.IsNullOrEmpty(isoCountryCode)) return "t3"; — empty branch
+            var mgr = new UserSegmentManager();
+
+            Assert.AreEqual("t3", mgr.GetCountryTierKey(""));
+        }
+
+        // ─── InitializeInstallTimestamp — "already has key" path ──────────────
+
+        [Test]
+        public void InitializeInstallTimestamp_KeyAlreadyExists_DoesNotOverwrite()
+        {
+            // First construction writes the key; second construction must not overwrite it.
+            // This exercises the if (!PlayerPrefs.HasKey(key)) == false branch.
+            var mgr1 = new UserSegmentManager();
+            string ticksAfterFirst = PlayerPrefs.GetString($"{PrefsPrefix}install_ticks", "");
+
+            var mgr2 = new UserSegmentManager();
+            string ticksAfterSecond = PlayerPrefs.GetString($"{PrefsPrefix}install_ticks", "");
+
+            Assert.IsFalse(string.IsNullOrEmpty(ticksAfterFirst), "Install ticks must be written on first construction");
+            Assert.AreEqual(ticksAfterFirst, ticksAfterSecond,
+                "Second construction must not overwrite existing install timestamp");
+        }
+
+        // ─── GetDaysSinceInstall — empty stored ticks branch ──────────────────
+
+        [Test]
+        public void GetInstallCohort_EmptyStoredTicks_ReturnsD0D1()
+        {
+            // string.IsNullOrEmpty(stored) branch in GetDaysSinceInstall — distinct from
+            // the !long.TryParse branch exercised by the "not-a-number" test.
+            // Set an empty string explicitly to hit the IsNullOrEmpty guard.
+            PlayerPrefs.SetString($"{PrefsPrefix}install_ticks", "");
+            var mgr = new UserSegmentManager();
+
+            // GetDaysSinceInstall returns 0 → "d0d1"
+            Assert.AreEqual("d0d1", mgr.GetInstallCohort(),
+                "Empty install_ticks string must result in d0d1 cohort (0 days)");
+        }
+
+        // ─── GetCompositeSegment — null country hits t3 branch ────────────────
+
+        [Test]
+        public void GetCompositeSegment_NullCountry_StartsWithT3()
+        {
+            // Ensures GetCountryTier(null) path is exercised through GetCompositeSegment.
+            var mgr = new UserSegmentManager();
+            string segment = mgr.GetCompositeSegment(null);
+
+            StringAssert.StartsWith("t3_", segment,
+                "null country code must produce a t3_... composite segment");
+        }
     }
 
     /// <summary>

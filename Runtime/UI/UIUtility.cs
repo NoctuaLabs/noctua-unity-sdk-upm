@@ -8,7 +8,7 @@ namespace com.noctuagames.sdk
     /// UI-specific utility methods extracted from <see cref="Utility"/>.
     /// These depend on <c>UnityEngine.UIElements</c> and belong in the UI layer.
     /// </summary>
-    internal static class UIUtility
+    public static class UIUtility
     {
         private static readonly ILogger _sLog = new NoctuaLogger(typeof(UIUtility));
 

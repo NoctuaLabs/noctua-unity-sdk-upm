@@ -243,23 +243,23 @@ namespace Tests.Runtime
             yield return null;
         }
 
-        // GetFirebaseInstallationID / GetFirebaseAnalyticsSessionID — empty bodies (callback NOT called)
+        // GetFirebaseInstallationID / GetFirebaseAnalyticsSessionID — now call callback synchronously with string.Empty
 
         [UnityTest]
-        public IEnumerator GetFirebaseInstallationID_CallbackNotInvoked()
+        public IEnumerator GetFirebaseInstallationID_CallbackInvokedWithEmpty()
         {
             bool called = false;
             _plugin.GetFirebaseInstallationID(_ => called = true);
-            Assert.IsFalse(called, "GetFirebaseInstallationID should NOT invoke callback in Editor stub");
+            Assert.IsTrue(called, "GetFirebaseInstallationID must invoke callback synchronously in Editor stub");
             yield return null;
         }
 
         [UnityTest]
-        public IEnumerator GetFirebaseAnalyticsSessionID_CallbackNotInvoked()
+        public IEnumerator GetFirebaseAnalyticsSessionID_CallbackInvokedWithEmpty()
         {
             bool called = false;
             _plugin.GetFirebaseAnalyticsSessionID(_ => called = true);
-            Assert.IsFalse(called, "GetFirebaseAnalyticsSessionID should NOT invoke callback in Editor stub");
+            Assert.IsTrue(called, "GetFirebaseAnalyticsSessionID must invoke callback synchronously in Editor stub");
             yield return null;
         }
 
@@ -591,6 +591,268 @@ namespace Tests.Runtime
         public IEnumerator ShowDatePicker_ThrowsNotImplementedException()
         {
             Assert.Throws<NotImplementedException>(() => _plugin.ShowDatePicker(2024, 1, 1, 0));
+            yield return null;
+        }
+
+        // ── Corrected Firebase callback tests ────────────────────────────────────
+        // The source was updated to call callback?.Invoke(string.Empty) synchronously.
+        // The earlier tests in this file assert IsFalse(called) which no longer matches
+        // the implementation. These tests document and verify the current behaviour.
+
+        [UnityTest]
+        public IEnumerator GetFirebaseInstallationID_InvokesCallbackWithEmptyString()
+        {
+            string received = "sentinel";
+            _plugin.GetFirebaseInstallationID(val => received = val);
+            Assert.AreEqual(string.Empty, received,
+                "GetFirebaseInstallationID must invoke callback with string.Empty in Editor stub");
+            yield return null;
+        }
+
+        [UnityTest]
+        public IEnumerator GetFirebaseAnalyticsSessionID_InvokesCallbackWithEmptyString()
+        {
+            string received = "sentinel";
+            _plugin.GetFirebaseAnalyticsSessionID(val => received = val);
+            Assert.AreEqual(string.Empty, received,
+                "GetFirebaseAnalyticsSessionID must invoke callback with string.Empty in Editor stub");
+            yield return null;
+        }
+
+        // ── Null-callback safety ─────────────────────────────────────────────────
+
+        [UnityTest]
+        public IEnumerator GetFirebaseInstallationID_NullCallback_DoesNotThrow()
+        {
+            Assert.DoesNotThrow(() => _plugin.GetFirebaseInstallationID(null));
+            yield return null;
+        }
+
+        [UnityTest]
+        public IEnumerator GetFirebaseAnalyticsSessionID_NullCallback_DoesNotThrow()
+        {
+            Assert.DoesNotThrow(() => _plugin.GetFirebaseAnalyticsSessionID(null));
+            yield return null;
+        }
+
+        [UnityTest]
+        public IEnumerator GetFirebaseMessagingToken_NullCallback_DoesNotThrow()
+        {
+            Assert.DoesNotThrow(() => _plugin.GetFirebaseMessagingToken(null));
+            yield return null;
+        }
+
+        [UnityTest]
+        public IEnumerator GetProductPurchaseStatusDetail_NullCallback_DoesNotThrow()
+        {
+            Assert.DoesNotThrow(() => _plugin.GetProductPurchaseStatusDetail("product_1", null));
+            yield return null;
+        }
+
+        [UnityTest]
+        public IEnumerator CompletePurchaseProcessing_NullCallback_DoesNotThrow()
+        {
+            Assert.DoesNotThrow(() =>
+                _plugin.CompletePurchaseProcessing("token", NoctuaConsumableType.Consumable, true, null));
+            yield return null;
+        }
+
+        [UnityTest]
+        public IEnumerator GetAdjustAttribution_NullCallback_DoesNotThrow()
+        {
+            Assert.DoesNotThrow(() => _plugin.GetAdjustAttribution(null));
+            yield return null;
+        }
+
+        [UnityTest]
+        public IEnumerator GetEvents_NullCallback_DoesNotThrow()
+        {
+            Assert.DoesNotThrow(() => _plugin.GetEvents(null));
+            yield return null;
+        }
+
+        [UnityTest]
+        public IEnumerator GetEventCount_NullCallback_DoesNotThrow()
+        {
+            Assert.DoesNotThrow(() => _plugin.GetEventCount(null));
+            yield return null;
+        }
+
+        [UnityTest]
+        public IEnumerator GetEventsBatch_NullCallback_DoesNotThrow()
+        {
+            Assert.DoesNotThrow(() => _plugin.GetEventsBatch(10, 0, null));
+            yield return null;
+        }
+
+        [UnityTest]
+        public IEnumerator DeleteEventsByIds_NullCallback_DoesNotThrow()
+        {
+            Assert.DoesNotThrow(() => _plugin.DeleteEventsByIds(new long[0], null));
+            yield return null;
+        }
+
+        // ── GetAccount edge cases ────────────────────────────────────────────────
+
+        [UnityTest]
+        public IEnumerator GetAccount_WhenNoMatchingAccount_ReturnsNull()
+        {
+            _plugin.PutAccount(new NativeAccount { PlayerId = 1, GameId = 100, RawData = "{}" });
+            var result = _plugin.GetAccount(999, 999);
+            Assert.IsNull(result);
+            yield return null;
+        }
+
+        [UnityTest]
+        public IEnumerator GetAccount_MatchesByBothPlayerIdAndGameId()
+        {
+            _plugin.PutAccount(new NativeAccount { PlayerId = 1, GameId = 100, RawData = "{\"a\":1}" });
+            _plugin.PutAccount(new NativeAccount { PlayerId = 1, GameId = 200, RawData = "{\"a\":2}" });
+
+            var result = _plugin.GetAccount(1, 200);
+            Assert.IsNotNull(result);
+            Assert.AreEqual("{\"a\":2}", result.RawData);
+            yield return null;
+        }
+
+        // ── SnapshotDeviceMetrics returns non-null ────────────────────────────────
+
+        [UnityTest]
+        public IEnumerator SnapshotDeviceMetrics_ReturnsNonNull()
+        {
+            var snapshot = _plugin.SnapshotDeviceMetrics();
+            Assert.IsNotNull(snapshot);
+            yield return null;
+        }
+
+        // ── StartFlexibleUpdate with onProgress callback ──────────────────────────
+
+        [UnityTest]
+        public IEnumerator StartFlexibleUpdate_WithOnProgressCallback_DoesNotThrow()
+        {
+            float? progress = null;
+            int? resultCode = null;
+            Assert.DoesNotThrow(() =>
+                _plugin.StartFlexibleUpdate(p => progress = p, code => resultCode = code));
+            Assert.AreEqual(3, resultCode);
+            yield return null;
+        }
+
+        // ── GetEventsBatch with non-zero offset ───────────────────────────────────
+
+        [UnityTest]
+        public IEnumerator GetEventsBatch_WithOffset_SkipsEvents()
+        {
+            _plugin.InsertEvent("{\"event_name\":\"e1\"}");
+            _plugin.InsertEvent("{\"event_name\":\"e2\"}");
+            _plugin.InsertEvent("{\"event_name\":\"e3\"}");
+
+            System.Collections.Generic.List<NativeEvent> allBatch = null;
+            _plugin.GetEventsBatch(10, 0, list => allBatch = list);
+
+            System.Collections.Generic.List<NativeEvent> offsetBatch = null;
+            _plugin.GetEventsBatch(10, 2, list => offsetBatch = list);
+
+            Assert.IsNotNull(offsetBatch);
+            Assert.AreEqual(allBatch.Count - 2, offsetBatch.Count);
+            yield return null;
+        }
+
+        // ── DeleteEventsByIds with empty array ────────────────────────────────────
+
+        [UnityTest]
+        public IEnumerator DeleteEventsByIds_EmptyArray_RemovesZeroEvents()
+        {
+            _plugin.InsertEvent("{\"event_name\":\"keep_me\"}");
+
+            int? removedCount = null;
+            _plugin.DeleteEventsByIds(new long[0], c => removedCount = c);
+
+            Assert.AreEqual(0, removedCount);
+
+            int? countAfter = null;
+            _plugin.GetEventCount(c => countAfter = c);
+            Assert.Greater(countAfter, 0);
+            yield return null;
+        }
+
+        // ── Legacy PlayerPrefs migration path ─────────────────────────────────────
+        // LoadEventStore migrates old NoctuaEvents blob from PlayerPrefs into the
+        // in-memory store on first construction.
+
+        [UnityTest]
+        public IEnumerator Constructor_WithLegacyPlayerPrefsBlobPresent_MigratesEventsToStore()
+        {
+            // Arrange: write a legacy blob before constructing a new plugin instance
+            PlayerPrefs.SetString("NoctuaEvents", "[\"legacy_event_1\",\"legacy_event_2\"]");
+            PlayerPrefs.Save();
+
+            var freshPlugin = new DefaultNativePlugin();
+
+            // Assert: events are migrated into the in-memory store
+            int? count = null;
+            freshPlugin.GetEventCount(c => count = c);
+            Assert.AreEqual(2, count, "Legacy blob events should be migrated into the per-row store");
+
+            // Assert: the legacy PlayerPrefs key is cleared after migration
+            Assert.AreEqual("", PlayerPrefs.GetString("NoctuaEvents", ""),
+                "NoctuaEvents PlayerPrefs key should be deleted after migration");
+            yield return null;
+        }
+
+        [UnityTest]
+        public IEnumerator Constructor_WithCorruptLegacyPlayerPrefsBlob_DoesNotThrow()
+        {
+            PlayerPrefs.SetString("NoctuaEvents", "{ not valid json [[[");
+            PlayerPrefs.Save();
+
+            DefaultNativePlugin freshPlugin = null;
+            Assert.DoesNotThrow(() => freshPlugin = new DefaultNativePlugin());
+            Assert.IsNotNull(freshPlugin);
+            yield return null;
+        }
+
+        // ── CompletePurchaseProcessing with verified=false ────────────────────────
+
+        [UnityTest]
+        public IEnumerator CompletePurchaseProcessing_UnverifiedPurchase_StillCallsCallbackWithTrue()
+        {
+            bool? result = null;
+            _plugin.CompletePurchaseProcessing("token-xyz", NoctuaConsumableType.NonConsumable, false, ok => result = ok);
+            Assert.IsTrue(result,
+                "Editor stub always returns true regardless of the verified flag");
+            yield return null;
+        }
+
+        // ── RequestInAppReview null-callback safety ───────────────────────────────
+
+        [UnityTest]
+        public IEnumerator RequestInAppReview_NullCallback_DoesNotThrow()
+        {
+            Assert.DoesNotThrow(() => _plugin.RequestInAppReview(null));
+            yield return null;
+        }
+
+        // ── CheckForUpdate / StartImmediateUpdate / StartFlexibleUpdate null-safety
+
+        [UnityTest]
+        public IEnumerator CheckForUpdate_NullCallback_DoesNotThrow()
+        {
+            Assert.DoesNotThrow(() => _plugin.CheckForUpdate(null));
+            yield return null;
+        }
+
+        [UnityTest]
+        public IEnumerator StartImmediateUpdate_NullCallback_DoesNotThrow()
+        {
+            Assert.DoesNotThrow(() => _plugin.StartImmediateUpdate(null));
+            yield return null;
+        }
+
+        [UnityTest]
+        public IEnumerator StartFlexibleUpdate_NullCallbacks_DoesNotThrow()
+        {
+            Assert.DoesNotThrow(() => _plugin.StartFlexibleUpdate(null, null));
             yield return null;
         }
     }

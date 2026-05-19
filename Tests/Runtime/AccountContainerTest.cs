@@ -1927,4 +1927,459 @@ namespace Tests.Runtime
             yield return null;
         }
     }
+
+    public class AccountContainerConstructorTest
+    {
+        [UnitySetUp]
+        public IEnumerator SetUp()
+        {
+            PlayerPrefs.DeleteKey("NoctuaAccountContainer");
+            PlayerPrefs.DeleteKey("NoctuaAccountContainer.UseFallback");
+
+            yield return null;
+        }
+
+        [UnityTearDown]
+        public IEnumerator TearDown()
+        {
+            PlayerPrefs.DeleteKey("NoctuaAccountContainer");
+            PlayerPrefs.DeleteKey("NoctuaAccountContainer.UseFallback");
+
+            yield return null;
+        }
+
+        [Test]
+        public void Constructor_NullNativeAccountStore_ThrowsArgumentNullException()
+        {
+            Assert.Throws<ArgumentNullException>(
+                () => new AccountContainer(null, "com.example.game"),
+                "Null nativeAccountStore must throw ArgumentNullException"
+            );
+        }
+
+        [Test]
+        public void Constructor_NullBundleId_ThrowsArgumentNullException()
+        {
+            var mockStore = new MockNativeAccountStore();
+
+            Assert.Throws<ArgumentNullException>(
+                () => new AccountContainer(mockStore, null),
+                "Null bundleId must throw ArgumentNullException"
+            );
+        }
+
+        [Test]
+        public void Constructor_EmptyBundleId_ThrowsArgumentNullException()
+        {
+            var mockStore = new MockNativeAccountStore();
+
+            Assert.Throws<ArgumentNullException>(
+                () => new AccountContainer(mockStore, ""),
+                "Empty bundleId must throw ArgumentNullException"
+            );
+        }
+
+        private class MockNativeAccountStore : INativeAccountStore
+        {
+            public NativeAccount GetAccount(long userId, long gameId) => null;
+            public List<NativeAccount> GetAccounts() => new List<NativeAccount>();
+            public void PutAccount(NativeAccount account) { }
+            public int DeleteAccount(NativeAccount account) => 0;
+        }
+    }
+
+    public class AccountContainerBehaviourTest
+    {
+        private class MockNativeAccountStore : INativeAccountStore
+        {
+            public readonly List<NativeAccount> _accounts = new();
+
+            public NativeAccount GetAccount(long userId, long gameId)
+            {
+                return _accounts.First(account => account.PlayerId == userId && account.GameId == gameId);
+            }
+
+            public List<NativeAccount> GetAccounts()
+            {
+                return new List<NativeAccount>(_accounts);
+            }
+
+            public void PutAccount(NativeAccount account)
+            {
+                if (account.LastUpdated == 0)
+                {
+                    account.LastUpdated = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+                }
+
+                _accounts.RemoveAll(a => a.PlayerId == account.PlayerId && a.GameId == account.GameId);
+                _accounts.Add(account);
+            }
+
+            public int DeleteAccount(NativeAccount account)
+            {
+                _accounts.RemoveAll(a => a.PlayerId == account.PlayerId && a.GameId == account.GameId);
+                return 1;
+            }
+        }
+
+        [UnitySetUp]
+        public IEnumerator SetUp()
+        {
+            PlayerPrefs.DeleteKey("NoctuaAccountContainer");
+            PlayerPrefs.DeleteKey("NoctuaAccountContainer.UseFallback");
+
+            yield return null;
+        }
+
+        [UnityTearDown]
+        public IEnumerator TearDown()
+        {
+            PlayerPrefs.DeleteKey("NoctuaAccountContainer");
+            PlayerPrefs.DeleteKey("NoctuaAccountContainer.UseFallback");
+
+            yield return null;
+        }
+
+        private static PlayerToken MakePlayerToken(
+            long userId = 1, long playerId = 1, string bundleId = null,
+            bool isGuest = false, string provider = "email")
+        {
+            return new PlayerToken
+            {
+                AccessToken = "token_" + playerId,
+                User = new User { Id = userId, Nickname = "User" + userId, IsGuest = isGuest },
+                Player = new Player { Id = playerId, Username = "Player" + playerId, GameId = 1, UserId = userId },
+                Credential = new Credential { Id = userId, Provider = provider, DisplayText = "cred_" + userId },
+                Game = new Game { Id = 1, Name = "Game1" },
+                GamePlatform = new GamePlatform
+                {
+                    BundleId = bundleId ?? Application.identifier,
+                    OS = "Android"
+                }
+            };
+        }
+
+        // ── UpdateRecentAccount(UserBundle) — guard branches ─────────────────
+
+        [UnityTest]
+        public IEnumerator UpdateRecentAccount_NullUserBundle_ReturnsEarlyNoAccountAdded()
+        {
+            var mockStore = new MockNativeAccountStore();
+            var container = new AccountContainer(mockStore, Application.identifier);
+
+            container.UpdateRecentAccount((UserBundle)null);
+
+            Assert.IsEmpty(container.Accounts, "Null user bundle must not add an account");
+            Assert.IsNull(container.RecentAccount);
+
+            yield return null;
+        }
+
+        [UnityTest]
+        public IEnumerator UpdateRecentAccount_WrongBundleId_ReturnsEarlyNoAccountAdded()
+        {
+            var mockStore = new MockNativeAccountStore();
+            var container = new AccountContainer(mockStore, Application.identifier);
+
+            var wrongBundle = new UserBundle
+            {
+                User = new User { Id = 99, Nickname = "WrongGame" },
+                Player = new Player { Id = 99, BundleId = Application.identifier + ".other", UserId = 99 },
+                Credential = new Credential { Id = 99, Provider = "email", DisplayText = "wrong@game.com" },
+                PlayerAccounts = new List<Player>()
+            };
+
+            container.UpdateRecentAccount(wrongBundle);
+
+            Assert.IsEmpty(container.Accounts, "Account with wrong bundle ID must not be added");
+            Assert.IsNull(container.RecentAccount);
+
+            yield return null;
+        }
+
+        // ── UpdateRecentAccount(PlayerToken) — null argument guards ──────────
+
+        [Test]
+        public void UpdateRecentAccount_NullPlayerToken_ThrowsArgumentNullException()
+        {
+            var mockStore = new MockNativeAccountStore();
+            var container = new AccountContainer(mockStore, Application.identifier);
+
+            Assert.Throws<ArgumentNullException>(
+                () => container.UpdateRecentAccount((PlayerToken)null),
+                "Null PlayerToken must throw ArgumentNullException"
+            );
+        }
+
+        [Test]
+        public void UpdateRecentAccount_PlayerTokenNullUser_ThrowsArgumentNullException()
+        {
+            var mockStore = new MockNativeAccountStore();
+            var container = new AccountContainer(mockStore, Application.identifier);
+
+            var token = MakePlayerToken();
+            token.User = null;
+
+            Assert.Throws<ArgumentNullException>(
+                () => container.UpdateRecentAccount(token),
+                "PlayerToken with null User must throw ArgumentNullException"
+            );
+        }
+
+        [Test]
+        public void UpdateRecentAccount_PlayerTokenNullPlayer_ThrowsArgumentNullException()
+        {
+            var mockStore = new MockNativeAccountStore();
+            var container = new AccountContainer(mockStore, Application.identifier);
+
+            var token = MakePlayerToken();
+            token.Player = null;
+
+            Assert.Throws<ArgumentNullException>(
+                () => container.UpdateRecentAccount(token),
+                "PlayerToken with null Player must throw ArgumentNullException"
+            );
+        }
+
+        [Test]
+        public void UpdateRecentAccount_PlayerTokenNullCredential_ThrowsArgumentNullException()
+        {
+            var mockStore = new MockNativeAccountStore();
+            var container = new AccountContainer(mockStore, Application.identifier);
+
+            var token = MakePlayerToken();
+            token.Credential = null;
+
+            Assert.Throws<ArgumentNullException>(
+                () => container.UpdateRecentAccount(token),
+                "PlayerToken with null Credential must throw ArgumentNullException"
+            );
+        }
+
+        // ── Logout ────────────────────────────────────────────────────────────
+
+        [UnityTest]
+        public IEnumerator Logout_WithRecentAccount_SetsRecentAccountToNull()
+        {
+            var mockStore = new MockNativeAccountStore();
+            var container = new AccountContainer(mockStore, Application.identifier);
+            container.UpdateRecentAccount(MakePlayerToken());
+
+            Assert.IsNotNull(container.RecentAccount, "Pre-condition: should have recent account");
+
+            container.Logout();
+
+            Assert.IsNull(container.RecentAccount, "Logout must clear the recent account");
+
+            yield return null;
+        }
+
+        [UnityTest]
+        public IEnumerator Logout_AccountsRemainsInMemory()
+        {
+            var mockStore = new MockNativeAccountStore();
+            var container = new AccountContainer(mockStore, Application.identifier);
+            container.UpdateRecentAccount(MakePlayerToken());
+
+            container.Logout();
+
+            // Accounts list itself is not cleared by Logout — only RecentAccount reference
+            Assert.AreEqual(1, container.Accounts.Count,
+                "Logout must not clear the in-memory accounts list");
+
+            yield return null;
+        }
+
+        [UnityTest]
+        public IEnumerator Logout_FiresOnAccountChangedEvent()
+        {
+            var mockStore = new MockNativeAccountStore();
+            var container = new AccountContainer(mockStore, Application.identifier);
+            container.UpdateRecentAccount(MakePlayerToken());
+
+            UserBundle receivedBundle = new UserBundle(); // sentinel non-null
+            container.OnAccountChanged += bundle => receivedBundle = bundle;
+
+            container.Logout();
+
+            yield return new WaitForSeconds(0.05f);
+
+            Assert.IsNull(receivedBundle,
+                "Logout must fire OnAccountChanged with null (the new RecentAccount value)");
+        }
+
+        // ── DeleteRecentAccount ───────────────────────────────────────────────
+
+        [UnityTest]
+        public IEnumerator DeleteRecentAccount_WhenRecentAccountIsNull_DoesNotThrow()
+        {
+            var mockStore = new MockNativeAccountStore();
+            var container = new AccountContainer(mockStore, Application.identifier);
+
+            Assert.IsNull(container.RecentAccount, "Pre-condition: no recent account");
+
+            Assert.DoesNotThrow(() => container.DeleteRecentAccount(),
+                "DeleteRecentAccount with no recent account must not throw");
+
+            yield return null;
+        }
+
+        [UnityTest]
+        public IEnumerator DeleteRecentAccount_WithRecentAccount_RemovesItAndReloads()
+        {
+            var mockStore = new MockNativeAccountStore();
+            var container = new AccountContainer(mockStore, Application.identifier);
+            container.UpdateRecentAccount(MakePlayerToken(userId: 1, playerId: 1));
+
+            yield return new WaitForSeconds(0.01f);
+
+            container.UpdateRecentAccount(MakePlayerToken(userId: 2, playerId: 2));
+
+            Assert.AreEqual(2, container.Accounts.Count, "Pre-condition: two accounts");
+
+            container.DeleteRecentAccount();
+
+            // recent was the last one added (userId=2). After delete, it should no longer be there.
+            Assert.IsTrue(
+                container.Accounts.All(a => a.User.Id != 2),
+                "Deleted player must not appear in accounts after DeleteRecentAccount"
+            );
+
+            yield return null;
+        }
+
+        // ── CurrentGameAccounts / OtherGamesAccounts properties ──────────────
+
+        [UnityTest]
+        public IEnumerator CurrentGameAccounts_ReturnsOnlyAccountsForCurrentGame()
+        {
+            var mockStore = new MockNativeAccountStore();
+            var container1 = new AccountContainer(mockStore, Application.identifier);
+            var container2 = new AccountContainer(mockStore, Application.identifier + ".other");
+
+            container1.UpdateRecentAccount(MakePlayerToken(userId: 1, playerId: 1));
+            container2.UpdateRecentAccount(MakePlayerToken(
+                userId: 2, playerId: 2, bundleId: Application.identifier + ".other"));
+
+            container1.Load();
+
+            var currentGame = container1.CurrentGameAccounts;
+            var otherGames = container1.OtherGamesAccounts;
+
+            Assert.AreEqual(1, currentGame.Count,
+                "CurrentGameAccounts must include only accounts matching current bundle ID");
+            Assert.AreEqual(1, otherGames.Count,
+                "OtherGamesAccounts must include only accounts NOT matching current bundle ID");
+            Assert.AreEqual(1, currentGame[0].User.Id);
+
+            yield return null;
+        }
+
+        // ── OnAccountChanged event wiring ─────────────────────────────────────
+
+        [UnityTest]
+        public IEnumerator UpdateRecentAccount_FiresOnAccountChangedWhenUserChanges()
+        {
+            var mockStore = new MockNativeAccountStore();
+            var container = new AccountContainer(mockStore, Application.identifier);
+
+            var changedAccounts = new List<UserBundle>();
+            container.OnAccountChanged += bundle => changedAccounts.Add(bundle);
+
+            container.UpdateRecentAccount(MakePlayerToken(userId: 1, playerId: 1));
+
+            yield return new WaitForSeconds(0.05f);
+
+            Assert.AreEqual(1, changedAccounts.Count,
+                "OnAccountChanged must fire once when a new account is set");
+            Assert.AreEqual(1L, changedAccounts[0].User.Id);
+        }
+
+        [UnityTest]
+        public IEnumerator UpdateRecentAccount_SameUserAndPlayer_DoesNotFireOnAccountChanged()
+        {
+            var mockStore = new MockNativeAccountStore();
+            var container = new AccountContainer(mockStore, Application.identifier);
+
+            container.UpdateRecentAccount(MakePlayerToken(userId: 1, playerId: 1));
+
+            yield return new WaitForSeconds(0.05f);
+
+            int changeCount = 0;
+            container.OnAccountChanged += _ => changeCount++;
+
+            // Update same user+player — RecentAccount setter should early-return without firing
+            container.UpdateRecentAccount(MakePlayerToken(userId: 1, playerId: 1));
+
+            yield return new WaitForSeconds(0.05f);
+
+            Assert.AreEqual(0, changeCount,
+                "OnAccountChanged must NOT fire when the same user+player is set again");
+        }
+
+        // ── FromNativeAccounts — malformed / incomplete raw data skipped ──────
+
+        [UnityTest]
+        public IEnumerator Load_MalformedJsonInRawData_SkipsEntryAndLoadsRest()
+        {
+            var mockStore = new MockNativeAccountStore();
+
+            mockStore._accounts.Add(new NativeAccount
+            {
+                PlayerId = 1,
+                GameId = 1,
+                RawData = "NOT VALID JSON {{{",
+                LastUpdated = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()
+            });
+
+            mockStore._accounts.Add(new NativeAccount
+            {
+                PlayerId = 2,
+                GameId = 1,
+                RawData = @"{
+                    ""user"":       { ""id"": 2, ""nickname"": ""GoodUser"" },
+                    ""player"":     { ""id"": 2, ""username"": ""GoodPlayer"",
+                                      ""bundle_id"": """ + Application.identifier + @""", ""game_id"": 1 },
+                    ""credential"": { ""id"": 2, ""provider"": ""email"", ""display_text"": ""good@example.com"" }
+                }",
+                LastUpdated = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()
+            });
+
+            var container = new AccountContainer(mockStore, Application.identifier);
+            container.Load();
+
+            Assert.AreEqual(1, container.Accounts.Count,
+                "Malformed JSON entry must be skipped; valid entry must still load");
+            Assert.AreEqual(2L, container.Accounts[0].User.Id);
+
+            yield return null;
+        }
+
+        [UnityTest]
+        public IEnumerator Load_NullUserInParsedData_SkipsEntry()
+        {
+            var mockStore = new MockNativeAccountStore();
+
+            // JSON that parses fine but results in null user field
+            mockStore._accounts.Add(new NativeAccount
+            {
+                PlayerId = 1,
+                GameId = 1,
+                RawData = @"{
+                    ""player"":     { ""id"": 1, ""username"": ""P1"",
+                                      ""bundle_id"": """ + Application.identifier + @""" },
+                    ""credential"": { ""id"": 1, ""provider"": ""email"", ""display_text"": ""x"" }
+                }",
+                LastUpdated = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()
+            });
+
+            var container = new AccountContainer(mockStore, Application.identifier);
+            container.Load();
+
+            Assert.IsEmpty(container.Accounts,
+                "Entry with null user in parsed data must be skipped");
+
+            yield return null;
+        }
+    }
 }

@@ -382,29 +382,4 @@ namespace Tests.Runtime.Events
             _events.Where(e => e.Name == name).Select(e => e.Data).ToList();
     }
 
-    /// <summary>
-    /// INativeTracker that always throws InvalidOperationException.
-    /// Used to verify that NoctuaEventService does not propagate native tracker failures
-    /// and still delivers events to the EventSender (survivability S1/S2/S3).
-    /// </summary>
-    public class ThrowingNativeTracker : INativeTracker
-    {
-        public void TrackAdRevenue(string source, double revenue, string currency,
-            Dictionary<string, IConvertible> extraPayload = null)
-            => throw new InvalidOperationException("Simulated native tracker failure in TrackAdRevenue");
-
-        public void TrackPurchase(string orderId, double amount, string currency,
-            Dictionary<string, IConvertible> extraPayload = null)
-            => throw new InvalidOperationException("Simulated native tracker failure in TrackPurchase");
-
-        public void TrackCustomEvent(string name, Dictionary<string, IConvertible> extraPayload = null)
-            => throw new InvalidOperationException($"Simulated native tracker failure in TrackCustomEvent('{name}')");
-
-        public void TrackCustomEventWithRevenue(string name, double revenue, string currency,
-            Dictionary<string, IConvertible> extraPayload = null)
-            => throw new InvalidOperationException($"Simulated native tracker failure in TrackCustomEventWithRevenue('{name}')");
-
-        public void OnOnline()  => throw new InvalidOperationException("Simulated failure in OnOnline");
-        public void OnOffline() => throw new InvalidOperationException("Simulated failure in OnOffline");
-    }
 }

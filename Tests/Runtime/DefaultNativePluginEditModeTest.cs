@@ -238,19 +238,23 @@ namespace Tests.Runtime
         // ─── Firebase stubs ───────────────────────────────────────────────────
 
         [Test]
-        public void GetFirebaseInstallationID_DoesNotInvokeCallback()
+        public void GetFirebaseInstallationID_InvokesCallbackWithEmpty()
         {
             bool called = false;
-            _plugin.GetFirebaseInstallationID(_ => called = true);
-            Assert.IsFalse(called, "Editor stub must NOT invoke the callback");
+            string received = "not_called";
+            _plugin.GetFirebaseInstallationID(v => { called = true; received = v; });
+            Assert.IsTrue(called, "Editor stub must invoke the callback synchronously");
+            Assert.AreEqual(string.Empty, received, "Callback value must be string.Empty");
         }
 
         [Test]
-        public void GetFirebaseAnalyticsSessionID_DoesNotInvokeCallback()
+        public void GetFirebaseAnalyticsSessionID_InvokesCallbackWithEmpty()
         {
             bool called = false;
-            _plugin.GetFirebaseAnalyticsSessionID(_ => called = true);
-            Assert.IsFalse(called, "Editor stub must NOT invoke the callback");
+            string received = "not_called";
+            _plugin.GetFirebaseAnalyticsSessionID(v => { called = true; received = v; });
+            Assert.IsTrue(called, "Editor stub must invoke the callback synchronously");
+            Assert.AreEqual(string.Empty, received, "Callback value must be string.Empty");
         }
 
         [Test]
