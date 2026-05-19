@@ -53,6 +53,7 @@ namespace com.noctuagames.sdk
                         SaveEventStoreToFile();
                         PlayerPrefs.DeleteKey("NoctuaEvents");
                         PlayerPrefs.Save();
+                        return; // _eventStore already populated from migration; skip file re-read
                     }
                 }
                 catch

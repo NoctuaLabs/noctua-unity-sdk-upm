@@ -54,7 +54,7 @@ namespace Tests.Runtime
         {
             if (_listener.IsListening) throw new InvalidOperationException("Server is already running.");
 
-            const int maxRetries = 5;
+            const int maxRetries = 30;
             Exception lastEx = null;
             for (int i = 0; i < maxRetries; i++)
             {
@@ -68,7 +68,7 @@ namespace Tests.Runtime
                 catch (Exception ex) when (ex is HttpListenerException || ex is System.Net.Sockets.SocketException)
                 {
                     lastEx = ex;
-                    System.Threading.Thread.Sleep(200 * (i + 1));
+                    System.Threading.Thread.Sleep(500);
                 }
             }
 

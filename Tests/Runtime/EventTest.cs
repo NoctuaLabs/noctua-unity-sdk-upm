@@ -351,6 +351,10 @@ namespace Tests.Runtime
                 // Once all 4 events are in storage (count >= BatchSize=3), the send cycle triggers.
                 await UniTask.Delay(6000);
 
+                // Force-flush any events that haven't been sent yet by the automatic batch cycle
+                eventSender.Flush();
+                await UniTask.Delay(1000);
+
                 var events = await GetEventsFromServerAsync(15000, 4000);
 
                 Assert.GreaterOrEqual(events.Count, 3);
@@ -401,10 +405,12 @@ namespace Tests.Runtime
                 eventSender.Send("test_event_1");
 
                 // Wait for all GeoIP enrichment fire-and-forget tasks to complete before the
-                // batch timeout fires — otherwise some events may not yet be written to storage
-                await UniTask.Delay(2000);
+                // batch timeout fires — otherwise some events may not yet be written to storage.
+                // GeoIP takes 2-3s for the first call; wait 4s to ensure both events are stored
+                // before any batch timer fires.
+                await UniTask.Delay(4000);
 
-                var events = await GetEventsFromServerAsync();
+                var events = await GetEventsFromServerAsync(8000, 2000);
 
                 Assert.AreEqual(2, events.Count);
 

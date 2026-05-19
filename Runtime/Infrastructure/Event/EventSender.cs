@@ -1042,7 +1042,14 @@ namespace com.noctuagames.sdk.Events
         private string SanitizeHeaderValue(string value)
         {
             if (string.IsNullOrEmpty(value)) return string.Empty;
-            var sanitized = System.Text.RegularExpressions.Regex.Replace(value, @"[\x00-\x1F\x7F]", "");
+            var sb = new System.Text.StringBuilder(value.Length);
+            for (int i = 0; i < value.Length; i++)
+            {
+                int c = value[i];
+                if (c >= 32 && c != 127)
+                    sb.Append(value[i]);
+            }
+            var sanitized = sb.ToString();
             if (sanitized != value)
                 _log.Info($"[Event Sender] Header value sanitized. Original: {value}, Sanitized: {sanitized}");
             return sanitized;
