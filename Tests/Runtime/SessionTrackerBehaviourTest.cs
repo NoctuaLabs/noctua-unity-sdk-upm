@@ -45,7 +45,7 @@ namespace Tests.Runtime
         [TearDown]
         public void TearDown()
         {
-            if (_go != null) Object.DestroyImmediate(_go);
+            if (_go != null) UnityEngine.Object.DestroyImmediate(_go);
         }
 
         private static void Invoke(SessionTrackerBehaviour b, string name, params object[] args)
