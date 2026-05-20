@@ -37,6 +37,8 @@ namespace com.noctuagames.sdk.AppLovin
         public event Action<MaxSdkBase.AdInfo> InterstitialOnAdRevenuePaid;
         private readonly long _timeoutThreshold = 5000; // 5 seconds
         private bool _callbacksRegistered;
+        // Cached on the main thread — SystemInfo.deviceUniqueIdentifier cannot be read off-thread.
+        private readonly string _deviceId = UnityEngine.SystemInfo.deviceUniqueIdentifier;
         // Per-show stopwatch, used to populate `engagement_time` on ad_impression.
         // Restarted on every Show() call; read on the impression callback.
         private readonly Stopwatch _showStopwatch = new();
@@ -49,7 +51,7 @@ namespace com.noctuagames.sdk.AppLovin
         {
             if (adUnitID == null)
             {
-                _log.Error("Ad unit ID Interstitial is empty.");
+                _log.Warning("Ad unit ID Interstitial is empty.");
                 return;
             }
 
@@ -65,7 +67,7 @@ namespace com.noctuagames.sdk.AppLovin
         {
             if (_adUnitIDInterstitial == null)
             {
-                _log.Error("Ad unit ID Interstitial is empty.");
+                _log.Warning("Ad unit ID Interstitial is empty.");
                 return;
             }
 
@@ -100,7 +102,7 @@ namespace com.noctuagames.sdk.AppLovin
         {
             if (string.IsNullOrEmpty(_adUnitIDInterstitial))
             {
-                _log.Info("Ad unit ID Interstitial is empty.");
+                _log.Warning("Ad unit ID Interstitial is empty.");
                 return;
             }
 
@@ -115,7 +117,7 @@ namespace com.noctuagames.sdk.AppLovin
             }
             else
             {
-                _log.Error("Interstitial ad is not ready to be shown for ad unit id : " + _adUnitIDInterstitial);
+                _log.Warning("Interstitial ad is not ready to be shown for ad unit id : " + _adUnitIDInterstitial);
 
                 TrackAdCustomEventInterstitial("wf_interstitial_show_not_ready");
                 TrackAdCustomEventInterstitial("wf_interstitial_show_failed_null");
@@ -130,7 +132,7 @@ namespace com.noctuagames.sdk.AppLovin
         {
             if (string.IsNullOrEmpty(_adUnitIDInterstitial))
             {
-                _log.Info("Ad unit ID Interstitial is empty.");
+                _log.Warning("Ad unit ID Interstitial is empty.");
                 return;
             }
 
@@ -145,7 +147,7 @@ namespace com.noctuagames.sdk.AppLovin
             }
             else
             {
-                _log.Error("Interstitial ad is not ready to be shown for ad unit id : " + _adUnitIDInterstitial);
+                _log.Warning("Interstitial ad is not ready to be shown for ad unit id : " + _adUnitIDInterstitial);
 
                 TrackAdCustomEventInterstitial("wf_interstitial_show_not_ready");
                 TrackAdCustomEventInterstitial("wf_interstitial_show_failed_null");
@@ -221,7 +223,7 @@ namespace com.noctuagames.sdk.AppLovin
             // AppLovin recommends that you retry with exponentially higher delays, up to a maximum delay (in this case 64 seconds)
             RetryLoadInterstitialAsync().Forget();
 
-            _log.Debug("Interstitial ad failed to load for ad unit id : " + adUnitId + " with error code : " + errorInfo.Code);
+            _log.Warning("Interstitial ad failed to load for ad unit id : " + adUnitId + " with error code : " + errorInfo.Code);
             
             // Track ad load failed event
             var extraPayload = new Dictionary<string, IConvertible>
@@ -290,7 +292,7 @@ namespace com.noctuagames.sdk.AppLovin
             // Interstitial ad failed to display. AppLovin recommends that you load the next ad.
             LoadInterstitialInternal();
 
-            _log.Debug("Interstitial ad failed to display for ad unit id : " + adUnitId + " with error code : " + errorInfo.Code);
+            _log.Warning("Interstitial ad failed to display for ad unit id : " + adUnitId + " with error code : " + errorInfo.Code);
 
             // Track ad show failed event
             var extraPayload = new Dictionary<string, IConvertible>
@@ -371,7 +373,8 @@ namespace com.noctuagames.sdk.AppLovin
             // Canonical ad_impression: AppLovin reports `Revenue` in USD per docs,
             // so value == value_usd. Engagement = ms between Show() and impression callback.
             var engagementMs = _showStopwatch.IsRunning ? _showStopwatch.ElapsedMilliseconds : 0;
-            EmitCanonical(IAAEventNames.AdImpression, IAAPayloadBuilder.BuildAdImpression(
+            var impressionId = Guid.NewGuid().ToString("N");
+            var impPayload = IAAPayloadBuilder.BuildAdImpression(
                 placement:        placement,
                 adType:           AdFormatKey.Interstitial,
                 adUnitId:         adUnitIdentifier ?? _adUnitIDInterstitial,
@@ -382,10 +385,29 @@ namespace com.noctuagames.sdk.AppLovin
                 adSource:         networkName,
                 adPlatform:       AdNetworkName.AppLovin,
                 engagementTimeMs: engagementMs
-            ));
+            );
+            impPayload["impression_id"] = impressionId;
+            EmitCanonical(IAAEventNames.AdImpression, impPayload);
             _showStopwatch.Reset();
             // Keep the legacy per-format alias for one release.
             TrackAdCustomEventInterstitial("ad_impression_interstitial");
+
+            UniTask.Void(async () =>
+            {
+                await UniTask.SwitchToMainThread();
+                try
+                {
+                    var countryCode = MaxSdk.GetSdkConfiguration().CountryCode;
+                    var revPayload = IAAPayloadBuilder.BuildAppLovinRevenuePayload(adInfo, _deviceId, countryCode);
+                    revPayload["impression_id"] = impressionId;
+                    revPayload["revenue_id"]    = Guid.NewGuid().ToString("N");
+                    Noctua.Event.TrackAdRevenue("applovin_max_sdk", revenue, "USD", revPayload);
+                }
+                catch (Exception ex)
+                {
+                    _log.Error($"Error tracking AppLovin interstitial revenue: {ex.Message}\n{ex.StackTrace}");
+                }
+            });
 
             InterstitialOnAdImpressionRecorded?.Invoke();
             InterstitialOnAdRevenuePaid?.Invoke(adInfo);
@@ -448,7 +470,7 @@ namespace com.noctuagames.sdk.AppLovin
             }
             catch (Exception ex)
             {
-                _log.Error($"Error tracking canonical event '{eventName}': {ex.Message}");
+                _log.Error($"Error tracking canonical event '{eventName}': {ex.Message}\n{ex.StackTrace}");
             }
         }
     }

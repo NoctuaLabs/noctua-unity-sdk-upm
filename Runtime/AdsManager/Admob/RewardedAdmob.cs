@@ -50,6 +50,10 @@ namespace com.noctuagames.sdk.Admob
         private AdValue _lastAdValue;
         // Monotonic clock — engagement_time = ms between Show() and impression callback.
         private readonly Stopwatch _showStopwatch = new();
+        // Cached on the main thread — SystemInfo.deviceUniqueIdentifier cannot be read off-thread.
+        private readonly string _deviceId = UnityEngine.SystemInfo.deviceUniqueIdentifier;
+        // Minted in OnAdImpressionRecorded; read by OnAdPaid (which empirically fires after) for impression↔revenue linkage.
+        private string _currentImpressionId;
         
         /// <summary>
         /// Sets the ad unit ID for the rewarded ad.
@@ -59,7 +63,7 @@ namespace com.noctuagames.sdk.Admob
         {
             if (adUnitID == null)
             {
-                _log.Error("Ad unit ID Rewarded is empty.");
+                _log.Warning("Ad unit ID Rewarded is empty.");
                 return;
             }
 
@@ -77,7 +81,7 @@ namespace com.noctuagames.sdk.Admob
 
             if (string.IsNullOrEmpty(_adUnitIDRewarded) || _adUnitIDRewarded == "unknown")
             {
-                _log.Error("Ad unit ID Rewarded is not configured.");
+                _log.Warning("Ad unit ID Rewarded is not configured.");
                 return;
             }
 
@@ -214,7 +218,7 @@ namespace com.noctuagames.sdk.Admob
                 TrackAdCustomEventRewarded("wf_rewarded_show_not_ready");
                 TrackAdCustomEventRewarded("wf_rewarded_show_failed_null");
 
-                _log.Error("Rewarded ad is not ready to be shown.");
+                _log.Warning("Rewarded ad is not ready to be shown.");
             }
         }
 
@@ -228,17 +232,42 @@ namespace com.noctuagames.sdk.Admob
                     adValue.CurrencyCode));
 
                 _lastAdValue = adValue;
+
+                var capturedResponseInfo = ad.GetResponseInfo();
+                var capturedImpressionId = _currentImpressionId ?? "";
+                if (string.IsNullOrEmpty(capturedImpressionId))
+                    _log.Warning("OnAdPaid fired before OnAdImpressionRecorded; impression_id will be empty in revenue payload.");
+                UniTask.Void(async () =>
+                {
+                    await UniTask.SwitchToMainThread();
+                    try
+                    {
+                        var revenue    = adValue.Value / 1_000_000.0;
+                        var revPayload = IAAPayloadBuilder.BuildAdmobRevenuePayload(adValue, capturedResponseInfo, _deviceId);
+                        revPayload["impression_id"] = capturedImpressionId;
+                        revPayload["revenue_id"]    = Guid.NewGuid().ToString("N");
+                        Noctua.Event.TrackAdRevenue("admob_sdk", revenue, adValue.CurrencyCode, revPayload);
+                    }
+                    catch (Exception ex)
+                    {
+                        _log.Error($"Error tracking AdMob rewarded revenue: {ex.Message}\n{ex.StackTrace}");
+                    }
+                });
+
                 AdmobOnAdRevenuePaid?.Invoke(adValue, ad.GetResponseInfo());
             };
             // Raised when an impression is recorded for an ad.
             ad.OnAdImpressionRecorded += () =>
             {
                 _log.Debug("Rewarded ad recorded an impression.");
+                _currentImpressionId = Guid.NewGuid().ToString("N");
 
                 var engagementMs = _showStopwatch.IsRunning ? _showStopwatch.ElapsedMilliseconds : 0L;
                 _showStopwatch.Reset();
 
                 var valueMicros = _lastAdValue?.Value ?? 0L;
+                if (_lastAdValue == null)
+                    _log.Warning("OnAdImpressionRecorded fired before OnAdPaid; revenue value will be 0 in impression payload.");
                 var value       = valueMicros / 1_000_000d;
                 var currency    = _lastAdValue?.CurrencyCode;
                 var valueUsd    = currency == "USD" ? value : 0d;
@@ -247,7 +276,7 @@ namespace com.noctuagames.sdk.Admob
                 string adSource = null;
                 try { adSource = loadedAdapter?.AdSourceName; } catch {}
 
-                EmitCanonical(IAAEventNames.AdImpression, IAAPayloadBuilder.BuildAdImpression(
+                var impPayload = IAAPayloadBuilder.BuildAdImpression(
                     placement:        _lastPlacement,
                     adType:           AdFormatKey.Rewarded,
                     adUnitId:         _adUnitIDRewarded,
@@ -258,7 +287,9 @@ namespace com.noctuagames.sdk.Admob
                     adSource:         adSource,
                     adPlatform:       AdNetworkName.Admob,
                     engagementTimeMs: engagementMs
-                ));
+                );
+                impPayload["impression_id"] = _currentImpressionId ?? "";
+                EmitCanonical(IAAEventNames.AdImpression, impPayload);
 
                 TrackAdCustomEventRewarded("ad_impression_rewarded");
 
@@ -461,7 +492,7 @@ namespace com.noctuagames.sdk.Admob
             }
             catch (Exception ex)
             {
-                _log.Error($"Error emitting canonical rewarded event '{eventName}': {ex.Message}");
+                _log.Error($"Error emitting canonical rewarded event '{eventName}': {ex.Message}\n{ex.StackTrace}");
             }
         }
     }

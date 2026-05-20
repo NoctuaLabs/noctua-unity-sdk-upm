@@ -55,6 +55,11 @@ namespace com.noctuagames.sdk.Admob
         private AdValue _lastAdValue;
         // Placement captured via SetPlacement. Forwarded to canonical IAA events.
         private string _lastPlacement;
+        // Cached on the main thread — SystemInfo.deviceUniqueIdentifier cannot be read off-thread.
+        private readonly string _deviceId = UnityEngine.SystemInfo.deviceUniqueIdentifier;
+        // Banner has no OnAdFullScreenContentOpened; mint in OnAdPaid so OnAdImpressionRecorded
+        // can read the same id. Best-effort linkage — order is not guaranteed.
+        private string _currentImpressionId;
 
         /// <summary>Records the placement name to attach to subsequent canonical IAA events.</summary>
         public void SetPlacement(string placement) => _lastPlacement = placement;
@@ -67,7 +72,7 @@ namespace com.noctuagames.sdk.Admob
         {
             if (adUnitId == null)
             {
-                _log.Error("Ad unit ID Banner is empty.");
+                _log.Warning("Ad unit ID Banner is empty.");
                 return;
             }
 
@@ -83,7 +88,7 @@ namespace com.noctuagames.sdk.Admob
         {
             if(_adUnitIdBanner == null)
             {
-                _log.Error("Ad unit ID Banner is empty.");
+                _log.Warning("Ad unit ID Banner is empty.");
                 return;
             }
 
@@ -115,7 +120,7 @@ namespace com.noctuagames.sdk.Admob
         {
             if (string.IsNullOrEmpty(_adUnitIdBanner) || _adUnitIdBanner == "unknown")
             {
-                _log.Error("Ad unit ID Banner is not configured.");
+                _log.Warning("Ad unit ID Banner is not configured.");
                 return;
             }
 
@@ -256,6 +261,28 @@ namespace com.noctuagames.sdk.Admob
                     adValue.CurrencyCode));
 
                 _lastAdValue = adValue;
+                // Mint for this refresh cycle; OnAdImpressionRecorded reads the same id (best-effort).
+                _currentImpressionId = Guid.NewGuid().ToString("N");
+
+                var capturedResponseInfo = _bannerView.GetResponseInfo();
+                var capturedImpressionId = _currentImpressionId;
+                UniTask.Void(async () =>
+                {
+                    await UniTask.SwitchToMainThread();
+                    try
+                    {
+                        var revenue    = adValue.Value / 1_000_000.0;
+                        var revPayload = IAAPayloadBuilder.BuildAdmobRevenuePayload(adValue, capturedResponseInfo, _deviceId);
+                        revPayload["impression_id"] = capturedImpressionId;
+                        revPayload["revenue_id"]    = Guid.NewGuid().ToString("N");
+                        Noctua.Event.TrackAdRevenue("admob_sdk", revenue, adValue.CurrencyCode, revPayload);
+                    }
+                    catch (Exception ex)
+                    {
+                        _log.Error($"Error tracking AdMob banner revenue: {ex.Message}\n{ex.StackTrace}");
+                    }
+                });
+
                 AdmobOnAdRevenuePaid?.Invoke(adValue, _bannerView.GetResponseInfo());
             };
             // Raised when an impression is recorded for an ad.
@@ -272,7 +299,7 @@ namespace com.noctuagames.sdk.Admob
                 string adSource = null;
                 try { adSource = loadedAdapter?.AdSourceName; } catch {}
 
-                EmitCanonical(IAAEventNames.AdImpression, IAAPayloadBuilder.BuildAdImpression(
+                var impPayload = IAAPayloadBuilder.BuildAdImpression(
                     placement:        _lastPlacement,
                     adType:           AdFormatKey.Banner,
                     adUnitId:         _adUnitIdBanner,
@@ -285,7 +312,9 @@ namespace com.noctuagames.sdk.Admob
                     // Banner has no close event → engagement time per impression is not meaningful.
                     // Send 0 rather than load-latency (which was semantically incorrect).
                     engagementTimeMs: 0
-                ));
+                );
+                impPayload["impression_id"] = _currentImpressionId ?? "";
+                EmitCanonical(IAAEventNames.AdImpression, impPayload);
 
                 // Keep legacy banner-specific impression marker for one release.
                 TrackAdCustomEventBanner("ad_impression_banner");
@@ -463,7 +492,7 @@ namespace com.noctuagames.sdk.Admob
             }
             catch (Exception ex)
             {
-                _log.Error($"Error emitting canonical banner event '{eventName}': {ex.Message}");
+                _log.Error($"Error emitting canonical banner event '{eventName}': {ex.Message}\n{ex.StackTrace}");
             }
         }
     }

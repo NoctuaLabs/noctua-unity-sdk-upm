@@ -42,6 +42,8 @@ namespace com.noctuagames.sdk.AppLovin
         public event Action<MaxSdkBase.AdInfo> BannerOnAdRevenuePaid;
         private readonly long _timeoutThreshold = 5000; // 5 seconds
         private bool _callbacksRegistered;
+        // Cached on the main thread — SystemInfo.deviceUniqueIdentifier cannot be read off-thread.
+        private readonly string _deviceId = UnityEngine.SystemInfo.deviceUniqueIdentifier;
 
         /// <summary>
         /// Sets the ad unit ID for the banner ad.
@@ -51,7 +53,7 @@ namespace com.noctuagames.sdk.AppLovin
         {
             if (adUnitIDBanner == null)
             {
-                _log.Error("Ad unit ID banner is empty.");
+                _log.Warning("Ad unit ID banner is empty.");
                 return;
             }
 
@@ -110,7 +112,7 @@ namespace com.noctuagames.sdk.AppLovin
         {
             if (string.IsNullOrEmpty(_adUnitIDBanner))
             {
-                _log.Error("Ad unit ID banner is empty.");
+                _log.Warning("Ad unit ID banner is empty.");
                 return;
             }
 
@@ -294,7 +296,7 @@ namespace com.noctuagames.sdk.AppLovin
         }
 
         private void OnBannerAdLoadFailedEvent(string adUnitId, MaxSdkBase.ErrorInfo errorInfo) {
-            _log.Error("Banner ad failed to load for ad unit id : " + adUnitId + " with error code : " + errorInfo.Code + " and message : " + errorInfo.Message);
+            _log.Warning("Banner ad failed to load for ad unit id : " + adUnitId + " with error code : " + errorInfo.Code + " and message : " + errorInfo.Message);
 
             // Track ad load failed event
             var extraPayload = new Dictionary<string, IConvertible>
@@ -354,8 +356,8 @@ namespace com.noctuagames.sdk.AppLovin
 
             // AppLovin MAX revenue values are reported in USD per AppLovin docs.
             var revenueUsd = adInfo?.Revenue ?? 0d;
-
-            EmitCanonical(IAAEventNames.AdImpression, IAAPayloadBuilder.BuildAdImpression(
+            var impressionId = Guid.NewGuid().ToString("N");
+            var impPayload = IAAPayloadBuilder.BuildAdImpression(
                 placement:        adInfo?.Placement,
                 adType:           AdFormatKey.Banner,
                 adUnitId:         adUnitId,
@@ -366,10 +368,29 @@ namespace com.noctuagames.sdk.AppLovin
                 adSource:         adInfo?.NetworkName,
                 adPlatform:       AdNetworkName.AppLovin,
                 engagementTimeMs: adInfo?.LatencyMillis ?? 0L
-            ));
+            );
+            impPayload["impression_id"] = impressionId;
+            EmitCanonical(IAAEventNames.AdImpression, impPayload);
 
             // Keep legacy banner-specific impression marker for one release for dashboard back-compat.
             TrackAdCustomEventBanner("ad_impression_banner");
+
+            UniTask.Void(async () =>
+            {
+                await UniTask.SwitchToMainThread();
+                try
+                {
+                    var countryCode = MaxSdk.GetSdkConfiguration().CountryCode;
+                    var revPayload = IAAPayloadBuilder.BuildAppLovinRevenuePayload(adInfo, _deviceId, countryCode);
+                    revPayload["impression_id"] = impressionId;
+                    revPayload["revenue_id"]    = Guid.NewGuid().ToString("N");
+                    Noctua.Event.TrackAdRevenue("applovin_max_sdk", revenueUsd, "USD", revPayload);
+                }
+                catch (Exception ex)
+                {
+                    _log.Error($"Error tracking AppLovin banner revenue: {ex.Message}\n{ex.StackTrace}");
+                }
+            });
 
             BannerOnAdImpressionRecorded?.Invoke();
             BannerOnAdRevenuePaid?.Invoke(adInfo);
@@ -413,7 +434,7 @@ namespace com.noctuagames.sdk.AppLovin
             }
             catch (Exception ex)
             {
-                _log.Error($"Error emitting canonical banner event '{eventName}': {ex.Message}");
+                _log.Error($"Error emitting canonical banner event '{eventName}': {ex.Message}\n{ex.StackTrace}");
             }
         }
         

@@ -32,16 +32,6 @@ namespace com.noctuagames.sdk
         // cannot be called from background threads (AdMob revenue callbacks fire from JNI thread).
         private readonly string _deviceId;
 
-        // Counts events dropped because _adRevenueTracker was null — visible in logs as [REVENUE LOST #N].
-        private int _droppedEventCount;
-
-        /// <summary>
-        /// Number of ad revenue events dropped because <see cref="SetAdRevenueTracker"/> had not
-        /// been called when the impression callback fired. Non-zero means revenue data was lost.
-        /// Resets to zero when a valid tracker is wired via <see cref="SetAdRevenueTracker"/>.
-        /// </summary>
-        public int DroppedEventCount => _droppedEventCount;
-
         // PlayerPrefs keys — prefixed to avoid collisions
         private const string KeyTotalRevenue          = "Noctua_Taichi_TotalRevenue";
         private const string KeyTotalAdCount          = "Noctua_Taichi_TotalAdCount";
@@ -79,16 +69,10 @@ namespace com.noctuagames.sdk
         /// </summary>
         public void SetAdRevenueTracker(IAdRevenueTracker tracker)
         {
-            bool wasNull = _adRevenueTracker == null;
-            bool isNull  = tracker == null;
-
-            if (isNull)
-                _log.Warning("SetAdRevenueTracker(null) called — future ad revenue will not be tracked");
-            else if (wasNull)
-            {
-                _log.Info($"SetAdRevenueTracker: tracker successfully wired (was previously null; {_droppedEventCount} events were dropped)");
-                _droppedEventCount = 0;
-            }
+            if (tracker == null)
+                _log.Warning("SetAdRevenueTracker(null) called — future Taichi events will not fire");
+            else if (_adRevenueTracker == null)
+                _log.Info("SetAdRevenueTracker: tracker wired");
             else
                 _log.Info("SetAdRevenueTracker: tracker replaced");
 
@@ -140,50 +124,14 @@ namespace com.noctuagames.sdk
             string currencyCode = adValue.CurrencyCode;
             PrecisionType precision = adValue.Precision;
 
-            string responseId = responseInfo?.GetResponseId() ?? "empty";
             AdapterResponseInfo loadedAdapterResponseInfo = responseInfo?.GetLoadedAdapterResponseInfo();
-
-            string adSourceId           = loadedAdapterResponseInfo?.AdSourceId ?? "empty";
-            string adSourceInstanceId   = loadedAdapterResponseInfo?.AdSourceInstanceId ?? "empty";
-            string adSourceInstanceName = loadedAdapterResponseInfo?.AdSourceInstanceName ?? "empty";
-            string adSourceName         = loadedAdapterResponseInfo?.AdSourceName ?? "empty";
-            string adapterClassName     = loadedAdapterResponseInfo?.AdapterClassName ?? "empty";
-            long latencyMillis          = loadedAdapterResponseInfo?.LatencyMillis ?? 0;
-
-            Dictionary<string, string> extras = responseInfo?.GetResponseExtras();
-            string mediationGroupName     = extras != null && extras.ContainsKey("mediation_group_name")     ? extras["mediation_group_name"]     : "empty";
-            string mediationABTestName    = extras != null && extras.ContainsKey("mediation_ab_test_name")    ? extras["mediation_ab_test_name"]    : "empty";
-            string mediationABTestVariant = extras != null && extras.ContainsKey("mediation_ab_test_variant") ? extras["mediation_ab_test_variant"] : "empty";
+            string adSourceName     = loadedAdapterResponseInfo?.AdSourceName     ?? "empty";
+            string adapterClassName = loadedAdapterResponseInfo?.AdapterClassName ?? "empty";
 
             double revenue = valueMicros / 1_000_000.0;
 
             _log.Debug($"Admob Ad Revenue: value micros: {adValue.Value} / converted: {revenue}, {currencyCode} " +
                 $"Precision: {precision} Ad Source: {adSourceName}, Adapter: {adapterClassName}");
-
-            if (_adRevenueTracker == null)
-            {
-                _droppedEventCount++;
-                _log.Error($"[REVENUE LOST #{_droppedEventCount}] AdRevenueTracker is null — dropping AdMob revenue: {revenue} {currencyCode} " +
-                    $"(source: {adSourceName}, adapter: {adapterClassName}). Call SetAdRevenueTracker() before ads are shown.");
-            }
-            else
-            {
-                _log.Info($"Tracking AdMob revenue: {revenue:F6} {currencyCode} source={adSourceName} adapter={adapterClassName}");
-                _adRevenueTracker.TrackAdRevenue("admob_sdk", revenue, currencyCode, new Dictionary<string, IConvertible>
-                {
-                    { "ad_source_id",             adSourceId },
-                    { "ad_source_instance_id",    adSourceInstanceId },
-                    { "ad_source_instance_name",  adSourceInstanceName },
-                    { "ad_source_name",           adSourceName },
-                    { "adapter_class_name",       adapterClassName },
-                    { "latency_millis",           latencyMillis },
-                    { "response_id",              responseId },
-                    { "mediation_group_name",     mediationGroupName },
-                    { "mediation_ab_test_name",   mediationABTestName },
-                    { "mediation_ab_test_variant",mediationABTestVariant },
-                    { "ad_user_id",               _deviceId }
-                });
-            }
 
             return revenue;
         }
@@ -214,42 +162,15 @@ namespace com.noctuagames.sdk
         private double TrackAppLovinRevenue(MaxSdkBase.AdInfo adInfo)
         {
             double revenue = adInfo.Revenue;
-
-            string countryCode       = MaxSdk.GetSdkConfiguration().CountryCode;
-            string networkName       = adInfo.NetworkName;
-            string adUnitIdentifier  = adInfo.AdUnitIdentifier;
-            string placement         = adInfo.Placement;
-            string networkPlacement  = adInfo.NetworkPlacement;
-            string revenuePrecision  = adInfo.RevenuePrecision;
-            string adFormat          = adInfo.AdFormat;
-            string dspName           = adInfo.DspName ?? "";
+            string countryCode      = MaxSdk.GetSdkConfiguration().CountryCode;
+            string networkName      = adInfo.NetworkName;
+            string adUnitIdentifier = adInfo.AdUnitIdentifier;
+            string placement        = adInfo.Placement;
+            string adFormat         = adInfo.AdFormat;
 
             _log.Debug($"AppLovin Ad Revenue: revenue: {revenue}, USD, " +
                 $"country: {countryCode}, network: {networkName}, format: {adFormat}, " +
                 $"ad unit: {adUnitIdentifier}, placement: {placement}");
-
-            if (_adRevenueTracker == null)
-            {
-                _droppedEventCount++;
-                _log.Error($"[REVENUE LOST #{_droppedEventCount}] AdRevenueTracker is null — dropping AppLovin revenue: {revenue:F6} USD " +
-                    $"(network: {networkName}, format: {adFormat}, placement: {placement}). Call SetAdRevenueTracker() before ads are shown.");
-            }
-            else
-            {
-                _log.Info($"Tracking AppLovin revenue: {revenue:F6} USD network={networkName} format={adFormat} placement={placement}");
-                _adRevenueTracker.TrackAdRevenue("applovin_max_sdk", revenue, "USD", new Dictionary<string, IConvertible>
-                {
-                    { "country_code",      countryCode },
-                    { "network_name",      networkName },
-                    { "ad_unit_identifier",adUnitIdentifier },
-                    { "placement",         placement },
-                    { "network_placement", networkPlacement },
-                    { "revenue_precision", revenuePrecision },
-                    { "ad_format",         adFormat },
-                    { "dsp_name",          dspName },
-                    { "ad_user_id",        _deviceId }
-                });
-            }
 
             return revenue;
         }

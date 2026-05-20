@@ -576,29 +576,6 @@ namespace Tests.Runtime.IAA
         }
 
         [Test]
-        public void T7_DroppedEventCount_OnlyIncrementsInPlatformGatedCode_NotInTaichiPaths()
-        {
-            // DroppedEventCount is incremented only inside the platform-conditional
-            // TrackAdmobRevenue (#if UNITY_ADMOB) and TrackAppLovinRevenue (#if UNITY_APPLOVIN)
-            // methods. The Taichi threshold paths (ProcessAllFormatsThresholds etc.) use the
-            // null-conditional ?. operator and never increment DroppedEventCount.
-            //
-            // This test documents that contract: firing many impressions through Taichi
-            // paths with a null tracker must not increment DroppedEventCount.
-            var mgr = new AdRevenueTrackingManager(null, DefaultConfig());
-
-            for (int i = 0; i < 15; i++)
-            {
-                mgr.ProcessAllFormatsThresholds(0.001);
-                mgr.ProcessInterstitialThresholds(0.001);
-                mgr.ProcessRewardedThresholds(0.001);
-            }
-
-            Assert.AreEqual(0, mgr.DroppedEventCount,
-                "Taichi threshold paths must not increment DroppedEventCount — only platform-gated revenue methods do");
-        }
-
-        [Test]
         public void T8_MultipleThresholdCycles_BothNetworks_CorrectFireCount()
         {
             // AdCountThreshold = 10. Send 30 impressions (alternating AppLovin/AdMob).

@@ -48,6 +48,10 @@ namespace com.noctuagames.sdk.Admob
         private int _retryAttempt;
         private AdValue _lastAdValue;
         private readonly Stopwatch _showStopwatch = new();
+        // Cached on the main thread — SystemInfo.deviceUniqueIdentifier cannot be read off-thread.
+        private readonly string _deviceId = UnityEngine.SystemInfo.deviceUniqueIdentifier;
+        // Minted in OnAdImpressionRecorded; read by OnAdPaid (which empirically fires after) for impression↔revenue linkage.
+        private string _currentImpressionId;
         
         /// <summary>
         /// Sets the ad unit ID for the rewarded interstitial ad.
@@ -57,7 +61,7 @@ namespace com.noctuagames.sdk.Admob
         {
             if (adUnitID == null)
             {
-                _log.Error("Ad unit ID Rewarded Interstitial is empty.");
+                _log.Warning("Ad unit ID Rewarded Interstitial is empty.");
                 return;
             }
 
@@ -75,7 +79,7 @@ namespace com.noctuagames.sdk.Admob
 
             if (string.IsNullOrEmpty(_adUnitIDRewarded) || _adUnitIDRewarded == "unknown")
             {
-                _log.Error("Ad unit ID Rewarded Interstitial is not configured.");
+                _log.Warning("Ad unit ID Rewarded Interstitial is not configured.");
                 return;
             }
 
@@ -201,7 +205,7 @@ namespace com.noctuagames.sdk.Admob
                 TrackAdCustomEventRewardedInterstitial("wf_ri_show_not_ready");
                 TrackAdCustomEventRewardedInterstitial("wf_ri_show_failed_null");
 
-                _log.Error("Rewarded Interstitial ad is not ready to be shown.");
+                _log.Warning("Rewarded Interstitial ad is not ready to be shown.");
             }
         }
 
@@ -215,17 +219,42 @@ namespace com.noctuagames.sdk.Admob
                     adValue.CurrencyCode));
 
                 _lastAdValue = adValue;
+
+                var capturedResponseInfo = ad.GetResponseInfo();
+                var capturedImpressionId = _currentImpressionId ?? "";
+                if (string.IsNullOrEmpty(capturedImpressionId))
+                    _log.Warning("OnAdPaid fired before OnAdImpressionRecorded; impression_id will be empty in revenue payload.");
+                UniTask.Void(async () =>
+                {
+                    await UniTask.SwitchToMainThread();
+                    try
+                    {
+                        var revenue    = adValue.Value / 1_000_000.0;
+                        var revPayload = IAAPayloadBuilder.BuildAdmobRevenuePayload(adValue, capturedResponseInfo, _deviceId);
+                        revPayload["impression_id"] = capturedImpressionId;
+                        revPayload["revenue_id"]    = Guid.NewGuid().ToString("N");
+                        Noctua.Event.TrackAdRevenue("admob_sdk", revenue, adValue.CurrencyCode, revPayload);
+                    }
+                    catch (Exception ex)
+                    {
+                        _log.Error($"Error tracking AdMob rewarded-interstitial revenue: {ex.Message}\n{ex.StackTrace}");
+                    }
+                });
+
                 AdmobOnAdRevenuePaid?.Invoke(adValue, ad.GetResponseInfo());
             };
             // Raised when an impression is recorded for an ad.
             ad.OnAdImpressionRecorded += () =>
             {
                 _log.Debug("Rewarded Interstitial ad recorded an impression.");
+                _currentImpressionId = Guid.NewGuid().ToString("N");
 
                 var engagementMs = _showStopwatch.IsRunning ? _showStopwatch.ElapsedMilliseconds : 0L;
                 _showStopwatch.Reset();
 
                 var valueMicros = _lastAdValue?.Value ?? 0L;
+                if (_lastAdValue == null)
+                    _log.Warning("OnAdImpressionRecorded fired before OnAdPaid; revenue value will be 0 in impression payload.");
                 var value       = valueMicros / 1_000_000d;
                 var currency    = _lastAdValue?.CurrencyCode;
                 var valueUsd    = currency == "USD" ? value : 0d;
@@ -234,7 +263,7 @@ namespace com.noctuagames.sdk.Admob
                 string adSource = null;
                 try { adSource = loadedAdapter?.AdSourceName; } catch {}
 
-                EmitCanonical(IAAEventNames.AdImpression, IAAPayloadBuilder.BuildAdImpression(
+                var impPayload = IAAPayloadBuilder.BuildAdImpression(
                     placement:        _lastPlacement,
                     adType:           AdFormatKey.RewardedInterstitial,
                     adUnitId:         _adUnitIDRewarded,
@@ -245,7 +274,9 @@ namespace com.noctuagames.sdk.Admob
                     adSource:         adSource,
                     adPlatform:       AdNetworkName.Admob,
                     engagementTimeMs: engagementMs
-                ));
+                );
+                impPayload["impression_id"] = _currentImpressionId ?? "";
+                EmitCanonical(IAAEventNames.AdImpression, impPayload);
 
                 TrackAdCustomEventRewardedInterstitial("ad_impression_rewarded_interstitial");
 
@@ -439,7 +470,7 @@ namespace com.noctuagames.sdk.Admob
             }
             catch (Exception ex)
             {
-                _log.Error($"Error emitting canonical RI event '{eventName}': {ex.Message}");
+                _log.Error($"Error emitting canonical RI event '{eventName}': {ex.Message}\n{ex.StackTrace}");
             }
         }
     }

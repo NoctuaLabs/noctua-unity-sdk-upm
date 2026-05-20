@@ -777,35 +777,6 @@ namespace Tests.Runtime.IAA
                 "All 5 ad-count threshold crossings must be forwarded to tracker");
         }
 
-        // ─── DroppedEventCount edge cases ─────────────────────────────────────
-
-        [Test]
-        public void DroppedEventCount_AfterNullThenRewire_ResetsToZero()
-        {
-            // Construct with valid tracker → set null (DroppedEventCount doesn't change via Taichi paths)
-            // → rewire → DroppedEventCount must be 0
-            var mgr = new AdRevenueTrackingManager(_tracker, DefaultConfig());
-            Assert.AreEqual(0, mgr.DroppedEventCount, "Starts at zero with valid tracker");
-
-            mgr.SetAdRevenueTracker(null);
-            // DroppedEventCount only increments via TrackAdmobRevenue / TrackAppLovinRevenue
-            // (platform-conditional code). Taichi paths use ?. operator and don't increment.
-            Assert.AreEqual(0, mgr.DroppedEventCount,
-                "DroppedEventCount does not increment from Taichi threshold paths");
-
-            mgr.SetAdRevenueTracker(_tracker); // rewire
-            Assert.AreEqual(0, mgr.DroppedEventCount,
-                "DroppedEventCount must be 0 after rewiring (was already 0)");
-        }
-
-        [Test]
-        public void DroppedEventCount_NullConstructorNullConfig_AlwaysZero()
-        {
-            var mgr = new AdRevenueTrackingManager(null, null);
-            Assert.AreEqual(0, mgr.DroppedEventCount,
-                "DroppedEventCount must be 0 when both tracker and config are null");
-        }
-
         // ─── Null config guard on all threshold methods ───────────────────────
 
         [Test]

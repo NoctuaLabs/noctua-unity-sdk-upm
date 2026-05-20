@@ -14,8 +14,6 @@ namespace Tests.Runtime.IAA
     ///   - Boundary conditions (threshold = 1, revenue = 0)
     ///   - Step 6 (rewarded revenue) multi-cycle and reset
     ///   - Step 3 shared counter reset after cross-format fire
-    ///   - DroppedEventCount property reflecting null-tracker drops
-    ///   - DroppedEventCount reset when tracker is wired
     ///   - SetAdRevenueTracker mid-session swap with in-flight Taichi state
     ///   - Per-event payload value correctness for all 6 Taichi steps
     /// </summary>
@@ -340,55 +338,6 @@ namespace Tests.Runtime.IAA
             Assert.IsTrue(_tracker.WasFired("taichi_interstitial_ad_impression"));
             Assert.IsTrue(_tracker.WasFired("taichi_rewarded_ad_impression"));
             Assert.IsTrue(_tracker.WasFired("taichi_rewarded_ad_revenue"));
-        }
-
-        // ─── DroppedEventCount ────────────────────────────────────────────────
-
-        [Test]
-        public void DroppedEventCount_StartsAtZero_WithWiredTracker()
-        {
-            var mgr = new AdRevenueTrackingManager(_tracker, DefaultConfig());
-            Assert.AreEqual(0, mgr.DroppedEventCount);
-        }
-
-        [Test]
-        public void DroppedEventCount_StartsAtZero_WithNullTracker()
-        {
-            var mgr = new AdRevenueTrackingManager(null, DefaultConfig());
-            Assert.AreEqual(0, mgr.DroppedEventCount,
-                "DroppedEventCount starts at zero even when constructed with null tracker");
-        }
-
-        [Test]
-        public void DroppedEventCount_DoesNotIncrementForTaichiThreshold_WhenTrackerNull()
-        {
-            // Taichi threshold methods use ?. operator — they don't increment DroppedEventCount.
-            // Only TrackAdmobRevenue / TrackAppLovinRevenue (platform-conditional) do.
-            // This test documents that Taichi drops are a separate concern from revenue drops.
-            var mgr = new AdRevenueTrackingManager(null, DefaultConfig());
-
-            for (int i = 0; i < 15; i++) mgr.ProcessAllFormatsThresholds(0.01);
-
-            Assert.AreEqual(0, mgr.DroppedEventCount,
-                "DroppedEventCount must not increment for Taichi threshold drops — those are silent by design; " +
-                "only TrackAdmobRevenue / TrackAppLovinRevenue increment the counter");
-        }
-
-        [Test]
-        public void DroppedEventCount_ResetsToZero_WhenTrackerWired()
-        {
-            // We can't directly call TrackAdmobRevenue (requires UNITY_ADMOB).
-            // Instead, simulate a lifecycle where we manually set the count via
-            // null construction, then re-wire, and verify the count was reset.
-            //
-            // The count reset is a SetAdRevenueTracker() side-effect when going null→valid.
-            var mgr = new AdRevenueTrackingManager(null, DefaultConfig());
-
-            // Count is 0 at start; wiring should log "0 events were dropped"
-            mgr.SetAdRevenueTracker(_tracker);
-
-            Assert.AreEqual(0, mgr.DroppedEventCount,
-                "DroppedEventCount must be 0 after wiring tracker (no events were dropped in this path)");
         }
 
         // ─── SetAdRevenueTracker mid-session with in-flight Taichi state ──────

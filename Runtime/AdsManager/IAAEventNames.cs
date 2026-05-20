@@ -1,5 +1,8 @@
 using System;
 using System.Collections.Generic;
+#if UNITY_ADMOB
+using GoogleMobileAds.Api;
+#endif
 
 namespace com.noctuagames.sdk
 {
@@ -188,6 +191,56 @@ namespace com.noctuagames.sdk
                 { IAAPayloadKey.Count,  count  },
             };
         }
+
+#if UNITY_APPLOVIN
+        /// <summary>
+        /// Build payload for the <c>ad_revenue</c> event emitted by AppLovin MAX handlers.
+        /// Keys match the existing AppLovin revenue payload exactly (no downstream behaviour change).
+        /// </summary>
+        public static Dictionary<string, IConvertible> BuildAppLovinRevenuePayload(
+            MaxSdkBase.AdInfo adInfo, string deviceId, string countryCode)
+        {
+            return new Dictionary<string, IConvertible>
+            {
+                { "country_code",       countryCode                ?? "" },
+                { "network_name",       adInfo?.NetworkName        ?? "" },
+                { "ad_unit_identifier", adInfo?.AdUnitIdentifier   ?? "" },
+                { "placement",          adInfo?.Placement          ?? "" },
+                { "network_placement",  adInfo?.NetworkPlacement   ?? "" },
+                { "revenue_precision",  adInfo?.RevenuePrecision   ?? "" },
+                { "ad_format",          adInfo?.AdFormat           ?? "" },
+                { "dsp_name",           adInfo?.DspName            ?? "" },
+                { "ad_user_id",         deviceId                   ?? "" },
+            };
+        }
+#endif
+
+#if UNITY_ADMOB
+        /// <summary>
+        /// Build payload for the <c>ad_revenue</c> event emitted by AdMob handlers.
+        /// Keys match the existing AdMob revenue payload exactly (no downstream behaviour change).
+        /// </summary>
+        public static Dictionary<string, IConvertible> BuildAdmobRevenuePayload(
+            AdValue adValue, ResponseInfo responseInfo, string deviceId)
+        {
+            var loadedAdapter = responseInfo?.GetLoadedAdapterResponseInfo();
+            var extras = responseInfo?.GetResponseExtras();
+            return new Dictionary<string, IConvertible>
+            {
+                { "ad_source_id",              loadedAdapter?.AdSourceId           ?? "empty" },
+                { "ad_source_instance_id",     loadedAdapter?.AdSourceInstanceId   ?? "empty" },
+                { "ad_source_instance_name",   loadedAdapter?.AdSourceInstanceName ?? "empty" },
+                { "ad_source_name",            loadedAdapter?.AdSourceName         ?? "empty" },
+                { "adapter_class_name",        loadedAdapter?.AdapterClassName     ?? "empty" },
+                { "latency_millis",            loadedAdapter?.LatencyMillis ?? 0L  },
+                { "response_id",               responseInfo?.GetResponseId()       ?? "empty" },
+                { "mediation_group_name",      extras != null && extras.ContainsKey("mediation_group_name")     ? extras["mediation_group_name"]     : "empty" },
+                { "mediation_ab_test_name",    extras != null && extras.ContainsKey("mediation_ab_test_name")    ? extras["mediation_ab_test_name"]    : "empty" },
+                { "mediation_ab_test_variant", extras != null && extras.ContainsKey("mediation_ab_test_variant") ? extras["mediation_ab_test_variant"] : "empty" },
+                { "ad_user_id",                deviceId ?? "" },
+            };
+        }
+#endif
 
         /// <summary>
         /// Combine error code/message and (optional) mediator-level error code/message into the

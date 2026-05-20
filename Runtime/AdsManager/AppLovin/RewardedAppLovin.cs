@@ -40,6 +40,8 @@ namespace com.noctuagames.sdk.AppLovin
         public event Action<MaxSdkBase.AdInfo> RewardedOnAdRevenuePaid;
         private readonly long _timeoutThreshold = 5000; // 5 seconds
         private bool _callbacksRegistered;
+        // Cached on the main thread — SystemInfo.deviceUniqueIdentifier cannot be read off-thread.
+        private readonly string _deviceId = UnityEngine.SystemInfo.deviceUniqueIdentifier;
         // Per-show stopwatch — populates `engagement_time` on canonical ad_impression.
         private readonly Stopwatch _showStopwatch = new();
 
@@ -51,7 +53,7 @@ namespace com.noctuagames.sdk.AppLovin
         {
             if (adUnitID == null)
             {
-                _log.Error("Ad unit ID rewarded is empty.");
+                _log.Warning("Ad unit ID rewarded is empty.");
                 return;
             }
 
@@ -67,7 +69,7 @@ namespace com.noctuagames.sdk.AppLovin
         {
             if(_adUnitIDRewarded == null)
             {
-                _log.Error("Ad unit ID rewarded is empty.");
+                _log.Warning("Ad unit ID rewarded is empty.");
                 return;
             }
 
@@ -133,7 +135,7 @@ namespace com.noctuagames.sdk.AppLovin
         {
             if (string.IsNullOrEmpty(_adUnitIDRewarded))
             {
-                _log.Error("Ad unit ID rewarded is empty.");
+                _log.Warning("Ad unit ID rewarded is empty.");
                 return;
             }
 
@@ -163,7 +165,7 @@ namespace com.noctuagames.sdk.AppLovin
         {
             if (string.IsNullOrEmpty(_adUnitIDRewarded))
             {
-                _log.Error("Ad unit ID rewarded is empty.");
+                _log.Warning("Ad unit ID rewarded is empty.");
                 return;
             }
 
@@ -225,7 +227,7 @@ namespace com.noctuagames.sdk.AppLovin
             // AppLovin recommends that you retry with exponentially higher delays, up to a maximum delay (in this case 64 seconds).
             RetryLoadRewardedAsync().Forget();
 
-            _log.Debug("Rewarded ad failed to load for ad unit id : " + adUnitId + " with error code : " + errorInfo.Code);
+            _log.Warning("Rewarded ad failed to load for ad unit id : " + adUnitId + " with error code : " + errorInfo.Code);
 
             // Track ad load failed event
             var extraPayload = new Dictionary<string, IConvertible>
@@ -294,7 +296,7 @@ namespace com.noctuagames.sdk.AppLovin
             // Rewarded ad failed to display. AppLovin recommends that you load the next ad.
             LoadRewardedAd();
 
-            _log.Debug("Rewarded ad failed to display for ad unit id : " + adUnitId + " with error code : " + errorInfo.Code);
+            _log.Warning("Rewarded ad failed to display for ad unit id : " + adUnitId + " with error code : " + errorInfo.Code);
 
             // Track ad show failed event
             var extraPayload = new Dictionary<string, IConvertible>
@@ -381,21 +383,42 @@ namespace com.noctuagames.sdk.AppLovin
 
             // Canonical ad_impression with revenue + engagement_time.
             var engagementMs = _showStopwatch.IsRunning ? _showStopwatch.ElapsedMilliseconds : 0;
-            EmitCanonical(IAAEventNames.AdImpression, IAAPayloadBuilder.BuildAdImpression(
+            var revenueUsd = adInfo?.Revenue ?? 0;
+            var impressionId = Guid.NewGuid().ToString("N");
+            var impPayload = IAAPayloadBuilder.BuildAdImpression(
                 placement:        adInfo?.Placement,
                 adType:           AdFormatKey.Rewarded,
                 adUnitId:         adInfo?.AdUnitIdentifier ?? adUnitId ?? _adUnitIDRewarded,
                 adUnitName:       _adUnitIDRewarded,
-                value:            adInfo?.Revenue ?? 0,
-                valueUsd:         adInfo?.Revenue ?? 0,
+                value:            revenueUsd,
+                valueUsd:         revenueUsd,
                 adSize:           IAAAdSize.Fullscreen,
                 adSource:         adInfo?.NetworkName,
                 adPlatform:       AdNetworkName.AppLovin,
                 engagementTimeMs: engagementMs
-            ));
+            );
+            impPayload["impression_id"] = impressionId;
+            EmitCanonical(IAAEventNames.AdImpression, impPayload);
             _showStopwatch.Reset();
             // Legacy per-format alias retained one release.
             TrackAdCustomEventRewarded("ad_impression_rewarded", adUnitId: adUnitId, adInfo: adInfo);
+
+            UniTask.Void(async () =>
+            {
+                await UniTask.SwitchToMainThread();
+                try
+                {
+                    var countryCode = MaxSdk.GetSdkConfiguration().CountryCode;
+                    var revPayload = IAAPayloadBuilder.BuildAppLovinRevenuePayload(adInfo, _deviceId, countryCode);
+                    revPayload["impression_id"] = impressionId;
+                    revPayload["revenue_id"]    = Guid.NewGuid().ToString("N");
+                    Noctua.Event.TrackAdRevenue("applovin_max_sdk", revenueUsd, "USD", revPayload);
+                }
+                catch (Exception ex)
+                {
+                    _log.Error($"Error tracking AppLovin rewarded revenue: {ex.Message}\n{ex.StackTrace}");
+                }
+            });
 
             RewardedOnAdImpressionRecorded?.Invoke();
             RewardedOnAdRevenuePaid?.Invoke(adInfo);
@@ -457,7 +480,7 @@ namespace com.noctuagames.sdk.AppLovin
             }
             catch (Exception ex)
             {
-                _log.Error($"Error tracking canonical event '{eventName}': {ex.Message}");
+                _log.Error($"Error tracking canonical event '{eventName}': {ex.Message}\n{ex.StackTrace}");
             }
         }
     }

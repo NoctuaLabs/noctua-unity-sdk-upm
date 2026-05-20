@@ -43,7 +43,6 @@ namespace Tests.Runtime
     ///   Group B — AdRevenueTrackingManager BG-safe setter methods
     ///     B1. SetAdRevenueTracker_FromBackgroundThread_DoesNotThrow
     ///     B2. SetTaichiConfig_FromBackgroundThread_DoesNotThrow
-    ///     B3. DroppedEventCount_ReadFromBackgroundThread_DoesNotThrow
     ///
     ///   Group C — MediationManager.PostToMainThread wrapping revenue callbacks
     ///     C1. PostToMainThread_NullContext_MainThread_RevenueProcessed
@@ -234,36 +233,6 @@ namespace Tests.Runtime
 
             Assert.IsNull(caughtEx,
                 $"SetTaichiConfig() must not throw from a background thread. Got: {caughtEx}");
-        }
-
-        /// <summary>
-        /// B3 — The <see cref="AdRevenueTrackingManager.DroppedEventCount"/> property
-        /// returns a plain <c>int</c> field with no Unity API involvement.
-        /// Reading it from a background thread must not throw.
-        ///
-        /// This property is used by monitoring / alerting code that may query it from
-        /// background threads (e.g. a periodic health-check coroutine).
-        /// </summary>
-        [Test]
-        public void DroppedEventCount_ReadFromBackgroundThread_DoesNotThrow()
-        {
-            var mgr = new AdRevenueTrackingManager(null, DefaultTaichiConfig());
-
-            Exception caughtEx = null;
-            int readValue = -1;
-            var thread = new Thread(() =>
-            {
-                try   { readValue = mgr.DroppedEventCount; }
-                catch (Exception ex) { caughtEx = ex; }
-            }) { IsBackground = true };
-
-            thread.Start();
-            thread.Join(3000);
-
-            Assert.IsNull(caughtEx,
-                $"DroppedEventCount must be readable from a background thread. Got: {caughtEx}");
-            Assert.AreEqual(0, readValue,
-                "DroppedEventCount must be 0 when no events were dropped");
         }
 
         // ════════════════════════════════════════════════════════════════════════

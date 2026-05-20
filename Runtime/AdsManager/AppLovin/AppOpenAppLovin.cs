@@ -17,6 +17,8 @@ namespace com.noctuagames.sdk.AppLovin
         private string _adUnitIDAppOpen;
         private int _retryAttempt;
         private bool _callbacksRegistered;
+        // Cached on the main thread — SystemInfo.deviceUniqueIdentifier cannot be read off-thread.
+        private readonly string _deviceId = UnityEngine.SystemInfo.deviceUniqueIdentifier;
         // Monotonic clock — used to compute engagement_time (ms between Show() and impression callback).
         private readonly Stopwatch _showStopwatch = new();
 
@@ -46,7 +48,7 @@ namespace com.noctuagames.sdk.AppLovin
         {
             if (adUnitID == null)
             {
-                _log.Error("Ad unit ID App Open is empty.");
+                _log.Warning("Ad unit ID App Open is empty.");
                 return;
             }
 
@@ -61,7 +63,7 @@ namespace com.noctuagames.sdk.AppLovin
         {
             if (_adUnitIDAppOpen == null)
             {
-                _log.Error("Ad unit ID App Open is empty.");
+                _log.Warning("Ad unit ID App Open is empty.");
                 return;
             }
 
@@ -89,7 +91,7 @@ namespace com.noctuagames.sdk.AppLovin
         {
             if (string.IsNullOrEmpty(_adUnitIDAppOpen))
             {
-                _log.Info("Ad unit ID App Open is empty.");
+                _log.Warning("Ad unit ID App Open is empty.");
                 return;
             }
 
@@ -103,7 +105,7 @@ namespace com.noctuagames.sdk.AppLovin
             }
             else
             {
-                _log.Error("App open ad is not ready to be shown for ad unit id: " + _adUnitIDAppOpen);
+                _log.Warning("App open ad is not ready to be shown for ad unit id: " + _adUnitIDAppOpen);
                 TrackAdCustomEvent("wf_app_open_show_not_ready");
                 TrackAdCustomEvent("wf_app_open_show_failed_null");
             }
@@ -166,7 +168,7 @@ namespace com.noctuagames.sdk.AppLovin
 
         private void OnAdLoadFailedEvent(string adUnitId, MaxSdkBase.ErrorInfo errorInfo)
         {
-            _log.Debug("App open ad failed to load for ad unit id: " + adUnitId +
+            _log.Warning("App open ad failed to load for ad unit id: " + adUnitId +
                 " with error code: " + errorInfo.Code);
 
             var extraPayload = new Dictionary<string, IConvertible>
@@ -226,7 +228,7 @@ namespace com.noctuagames.sdk.AppLovin
         {
             LoadAppOpenAdInternal();
 
-            _log.Debug("App open ad failed to display for ad unit id: " + adUnitId +
+            _log.Warning("App open ad failed to display for ad unit id: " + adUnitId +
                 " with error code: " + errorInfo.Code);
 
             var extraPayload = new Dictionary<string, IConvertible>
@@ -292,8 +294,8 @@ namespace com.noctuagames.sdk.AppLovin
 
             // AppLovin MAX revenue values are reported in USD per AppLovin docs.
             var revenueUsd = adInfo?.Revenue ?? 0d;
-
-            EmitCanonical(IAAEventNames.AdImpression, IAAPayloadBuilder.BuildAdImpression(
+            var impressionId = Guid.NewGuid().ToString("N");
+            var impPayload = IAAPayloadBuilder.BuildAdImpression(
                 placement:        adInfo?.Placement,
                 adType:           AdFormatKey.AppOpen,
                 adUnitId:         adUnitId,
@@ -304,10 +306,30 @@ namespace com.noctuagames.sdk.AppLovin
                 adSource:         adInfo?.NetworkName,
                 adPlatform:       AdNetworkName.AppLovin,
                 engagementTimeMs: engagementMs
-            ));
+            );
+            impPayload["impression_id"] = impressionId;
+            EmitCanonical(IAAEventNames.AdImpression, impPayload);
 
             // Keep legacy AO-specific impression marker for one release for dashboard back-compat.
             TrackAdCustomEvent("ad_impression_app_open");
+
+            UniTask.Void(async () =>
+            {
+                await UniTask.SwitchToMainThread();
+                try
+                {
+                    var countryCode = MaxSdk.GetSdkConfiguration().CountryCode;
+                    var revPayload = IAAPayloadBuilder.BuildAppLovinRevenuePayload(adInfo, _deviceId, countryCode);
+                    revPayload["impression_id"] = impressionId;
+                    revPayload["revenue_id"]    = Guid.NewGuid().ToString("N");
+                    Noctua.Event.TrackAdRevenue("applovin_max_sdk", revenueUsd, "USD", revPayload);
+                }
+                catch (Exception ex)
+                {
+                    _log.Error($"Error tracking AppLovin app open revenue: {ex.Message}\n{ex.StackTrace}");
+                }
+            });
+
             AppOpenOnAdImpressionRecorded?.Invoke();
             AppOpenOnAdRevenuePaid?.Invoke(adInfo);
         }
@@ -322,7 +344,7 @@ namespace com.noctuagames.sdk.AppLovin
             }
             catch (Exception ex)
             {
-                _log.Error($"Error emitting canonical app open event '{eventName}': {ex.Message}");
+                _log.Error($"Error emitting canonical app open event '{eventName}': {ex.Message}\n{ex.StackTrace}");
             }
         }
 

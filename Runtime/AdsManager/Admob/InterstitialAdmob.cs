@@ -52,6 +52,11 @@ namespace com.noctuagames.sdk.Admob
         private AdValue _lastAdValue;
         // Monotonic clock — engagement_time = ms between Show() and impression callback.
         private readonly Stopwatch _showStopwatch = new();
+        // Cached on the main thread — SystemInfo.deviceUniqueIdentifier cannot be read off-thread.
+        private readonly string _deviceId = UnityEngine.SystemInfo.deviceUniqueIdentifier;
+        // Minted in OnAdImpressionRecorded; read by OnAdPaid (which empirically fires after) for
+        // OnAdPaid (revenue) so both events carry the same impression_id regardless of callback order.
+        private string _currentImpressionId;
         
         /// <summary>
         /// Sets the ad unit ID for the interstitial ad.
@@ -61,7 +66,7 @@ namespace com.noctuagames.sdk.Admob
         {
             if (adUnitID == null)
             {
-                _log.Error("Ad unit ID Interstitial is empty.");
+                _log.Warning("Ad unit ID Interstitial is empty.");
                 return;
             }
 
@@ -79,7 +84,7 @@ namespace com.noctuagames.sdk.Admob
             
             if (string.IsNullOrEmpty(_adUnitIDInterstitial) || _adUnitIDInterstitial == "unknown")
             {
-                _log.Error("Ad unit ID Interstitial is not configured.");
+                _log.Warning("Ad unit ID Interstitial is not configured.");
                 return;
             }
 
@@ -202,7 +207,7 @@ namespace com.noctuagames.sdk.Admob
                 TrackAdCustomEventInterstitial("wf_interstitial_show_not_ready");
                 TrackAdCustomEventInterstitial("wf_interstitial_show_failed_null");
 
-                _log.Error("Interstitial ad is not ready yet.");
+                _log.Warning("Interstitial ad is not ready yet.");
             }
         }
 
@@ -218,18 +223,42 @@ namespace com.noctuagames.sdk.Admob
                 // Cache for the upcoming OnAdImpressionRecorded — AdMob fires Paid first.
                 _lastAdValue = adValue;
 
+                var capturedResponseInfo = interstitialAd.GetResponseInfo();
+                var capturedImpressionId = _currentImpressionId ?? "";
+                if (string.IsNullOrEmpty(capturedImpressionId))
+                    _log.Warning("OnAdPaid fired before OnAdImpressionRecorded; impression_id will be empty in revenue payload.");
+                UniTask.Void(async () =>
+                {
+                    await UniTask.SwitchToMainThread();
+                    try
+                    {
+                        var revenue    = adValue.Value / 1_000_000.0;
+                        var revPayload = IAAPayloadBuilder.BuildAdmobRevenuePayload(adValue, capturedResponseInfo, _deviceId);
+                        revPayload["impression_id"] = capturedImpressionId;
+                        revPayload["revenue_id"]    = Guid.NewGuid().ToString("N");
+                        Noctua.Event.TrackAdRevenue("admob_sdk", revenue, adValue.CurrencyCode, revPayload);
+                    }
+                    catch (Exception ex)
+                    {
+                        _log.Error($"Error tracking AdMob interstitial revenue: {ex.Message}\n{ex.StackTrace}");
+                    }
+                });
+
                 AdmobOnAdRevenuePaid?.Invoke(adValue, interstitialAd.GetResponseInfo());
             };
             // Raised when an impression is recorded for an ad.
             interstitialAd.OnAdImpressionRecorded += () =>
             {
                 _log.Debug("Interstitial ad recorded an impression.");
+                _currentImpressionId = Guid.NewGuid().ToString("N");
 
                 var engagementMs = _showStopwatch.IsRunning ? _showStopwatch.ElapsedMilliseconds : 0L;
                 _showStopwatch.Reset();
 
                 // AdValue.Value is reported in micros of the currency unit.
                 var valueMicros = _lastAdValue?.Value ?? 0L;
+                if (_lastAdValue == null)
+                    _log.Warning("OnAdImpressionRecorded fired before OnAdPaid; revenue value will be 0 in impression payload.");
                 var value       = valueMicros / 1_000_000d;
                 // value_usd only populated when AdMob reports USD. Otherwise 0 so the
                 // dashboard knows to apply FX conversion server-side instead of trusting
@@ -241,7 +270,7 @@ namespace com.noctuagames.sdk.Admob
                 string adSource = null;
                 try { adSource = loadedAdapter?.AdSourceName; } catch {}
 
-                EmitCanonical(IAAEventNames.AdImpression, IAAPayloadBuilder.BuildAdImpression(
+                var impPayload = IAAPayloadBuilder.BuildAdImpression(
                     placement:        _lastPlacement,
                     adType:           AdFormatKey.Interstitial,
                     adUnitId:         _adUnitIDInterstitial,
@@ -252,7 +281,9 @@ namespace com.noctuagames.sdk.Admob
                     adSource:         adSource,
                     adPlatform:       AdNetworkName.Admob,
                     engagementTimeMs: engagementMs
-                ));
+                );
+                impPayload["impression_id"] = _currentImpressionId ?? "";
+                EmitCanonical(IAAEventNames.AdImpression, impPayload);
 
                 // Keep legacy interstitial-specific impression marker for one release for dashboard back-compat.
                 TrackAdCustomEventInterstitial("ad_impression_interstitial");
@@ -457,7 +488,7 @@ namespace com.noctuagames.sdk.Admob
             }
             catch (Exception ex)
             {
-                _log.Error($"Error emitting canonical interstitial event '{eventName}': {ex.Message}");
+                _log.Error($"Error emitting canonical interstitial event '{eventName}': {ex.Message}\n{ex.StackTrace}");
             }
         }
     }

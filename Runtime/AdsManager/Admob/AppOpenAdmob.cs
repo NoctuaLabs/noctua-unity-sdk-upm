@@ -1,4 +1,5 @@
 #if UNITY_ADMOB
+using Cysharp.Threading.Tasks;
 using GoogleMobileAds.Api;
 using UnityEngine;
 using System;
@@ -25,6 +26,10 @@ namespace com.noctuagames.sdk.Admob
         private AppOpenAd _legacyAppOpenAd;
         private AdValue _lastAdValue;
         private readonly Stopwatch _showStopwatch = new();
+        // Cached on the main thread — SystemInfo.deviceUniqueIdentifier cannot be read off-thread.
+        private readonly string _deviceId = UnityEngine.SystemInfo.deviceUniqueIdentifier;
+        // Minted in OnAdImpressionRecorded; read by OnAdPaid (which empirically fires after) for impression↔revenue linkage.
+        private string _currentImpressionId;
 
         /// <summary>Raised when the app open ad is successfully displayed.</summary>
         public event Action AppOpenOnAdDisplayed;
@@ -174,7 +179,7 @@ namespace com.noctuagames.sdk.Admob
                     }
                     catch (Exception ex)
                     {
-                        _log.Error($"Exception showing legacy app open ad: {ex.Message}");
+                        _log.Error($"Exception showing legacy app open ad: {ex.Message}\n{ex.StackTrace}");
                         _legacyAppOpenAd = null;
                         AppOpenOnAdFailedDisplayed?.Invoke();
                         // Fall through to try preload path
@@ -244,17 +249,37 @@ namespace com.noctuagames.sdk.Admob
             {
                 _log.Debug($"App open ad paid {adValue.Value} {adValue.CurrencyCode}.");
                 _lastAdValue = adValue;
-                AdmobOnAdRevenuePaid?.Invoke(adValue, ad.GetResponseInfo());
+                var capturedResponseInfo = ad.GetResponseInfo();
+                var capturedImpressionId = _currentImpressionId ?? "";
+                if (string.IsNullOrEmpty(capturedImpressionId))
+                    _log.Warning("OnAdPaid fired before OnAdImpressionRecorded; impression_id will be empty in revenue payload.");
+                UniTask.Void(async () =>
+                {
+                    await UniTask.SwitchToMainThread();
+                    try
+                    {
+                        var revenue    = adValue.Value / 1_000_000.0;
+                        var revPayload = IAAPayloadBuilder.BuildAdmobRevenuePayload(adValue, capturedResponseInfo, _deviceId);
+                        revPayload["impression_id"] = capturedImpressionId;
+                        revPayload["revenue_id"]    = Guid.NewGuid().ToString("N");
+                        Noctua.Event.TrackAdRevenue("admob_sdk", revenue, adValue.CurrencyCode, revPayload);
+                    }
+                    catch (Exception ex) { _log.Error($"Error tracking AdMob app open revenue: {ex.Message}\n{ex.StackTrace}"); }
+                });
+                AdmobOnAdRevenuePaid?.Invoke(adValue, capturedResponseInfo);
             };
 
             ad.OnAdImpressionRecorded += () =>
             {
                 _log.Debug("App open ad recorded an impression.");
+                _currentImpressionId = Guid.NewGuid().ToString("N");
 
                 var engagementMs = _showStopwatch.IsRunning ? _showStopwatch.ElapsedMilliseconds : 0L;
                 _showStopwatch.Reset();
 
                 var valueMicros = _lastAdValue?.Value ?? 0L;
+                if (_lastAdValue == null)
+                    _log.Warning("OnAdImpressionRecorded fired before OnAdPaid; revenue value will be 0 in impression payload.");
                 var value       = valueMicros / 1_000_000d;
                 var currency    = _lastAdValue?.CurrencyCode;
                 var valueUsd    = currency == "USD" ? value : 0d;
@@ -263,7 +288,7 @@ namespace com.noctuagames.sdk.Admob
                 string adSource = null;
                 try { adSource = loadedAdapter?.AdSourceName; } catch {}
 
-                EmitCanonical(IAAEventNames.AdImpression, IAAPayloadBuilder.BuildAdImpression(
+                var impPayload = IAAPayloadBuilder.BuildAdImpression(
                     placement:        _lastPlacement,
                     adType:           AdFormatKey.AppOpen,
                     adUnitId:         _adUnitIDAppOpen,
@@ -274,7 +299,9 @@ namespace com.noctuagames.sdk.Admob
                     adSource:         adSource,
                     adPlatform:       AdNetworkName.Admob,
                     engagementTimeMs: engagementMs
-                ));
+                );
+                impPayload["impression_id"] = _currentImpressionId ?? "";
+                EmitCanonical(IAAEventNames.AdImpression, impPayload);
 
                 TrackAdCustomEvent("ad_impression_app_open");
                 AppOpenOnAdImpressionRecorded?.Invoke();
@@ -370,7 +397,7 @@ namespace com.noctuagames.sdk.Admob
             }
             catch (Exception ex)
             {
-                _log.Error($"Error emitting canonical AO event '{eventName}': {ex.Message}");
+                _log.Error($"Error emitting canonical AO event '{eventName}': {ex.Message}\n{ex.StackTrace}");
             }
         }
 
