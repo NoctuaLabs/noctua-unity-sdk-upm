@@ -231,8 +231,8 @@ namespace com.noctuagames.sdk.Admob
                     {
                         var revenue    = adValue.Value / 1_000_000.0;
                         var revPayload = IAAPayloadBuilder.BuildAdmobRevenuePayload(adValue, capturedResponseInfo, _deviceId);
-                        revPayload["impression_id"] = capturedImpressionId;
-                        revPayload["revenue_id"]    = Guid.NewGuid().ToString("N");
+                        revPayload["sdk_impression_id"] = capturedImpressionId;
+                        revPayload["sdk_revenue_id"]    = Guid.NewGuid().ToString("N");
                         Noctua.Event.TrackAdRevenue("admob_sdk", revenue, adValue.CurrencyCode, revPayload);
                     }
                     catch (Exception ex)
@@ -275,7 +275,7 @@ namespace com.noctuagames.sdk.Admob
                     adPlatform:       AdNetworkName.Admob,
                     engagementTimeMs: engagementMs
                 );
-                impPayload["impression_id"] = _currentImpressionId ?? "";
+                impPayload["sdk_impression_id"] = _currentImpressionId ?? "";
                 EmitCanonical(IAAEventNames.AdImpression, impPayload);
 
                 TrackAdCustomEventRewardedInterstitial("ad_impression_rewarded_interstitial");

@@ -307,7 +307,7 @@ namespace com.noctuagames.sdk.AppLovin
                 adPlatform:       AdNetworkName.AppLovin,
                 engagementTimeMs: engagementMs
             );
-            impPayload["impression_id"] = impressionId;
+            impPayload["sdk_impression_id"] = impressionId;
             EmitCanonical(IAAEventNames.AdImpression, impPayload);
 
             // Keep legacy AO-specific impression marker for one release for dashboard back-compat.
@@ -320,8 +320,8 @@ namespace com.noctuagames.sdk.AppLovin
                 {
                     var countryCode = MaxSdk.GetSdkConfiguration().CountryCode;
                     var revPayload = IAAPayloadBuilder.BuildAppLovinRevenuePayload(adInfo, _deviceId, countryCode);
-                    revPayload["impression_id"] = impressionId;
-                    revPayload["revenue_id"]    = Guid.NewGuid().ToString("N");
+                    revPayload["sdk_impression_id"] = impressionId;
+                    revPayload["sdk_revenue_id"]    = Guid.NewGuid().ToString("N");
                     Noctua.Event.TrackAdRevenue("applovin_max_sdk", revenueUsd, "USD", revPayload);
                 }
                 catch (Exception ex)
