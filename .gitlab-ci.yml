@@ -91,7 +91,7 @@ publish:
     - gh auth setup-git
     # Strip test files before publishing to public GitHub
     - git rm -r --ignore-unmatch Tests Tests.meta
-    - git commit -m "chore: exclude test files from public release [skip ci]"
+    - 'git commit -m "chore: exclude test files from public release [skip ci]"'
     - git push github main || true
     # Push tag to gitlab repo
     - git tag $NEW_VERSION_TAG || true
