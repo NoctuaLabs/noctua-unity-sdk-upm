@@ -293,7 +293,6 @@ namespace com.noctuagames.sdk.Admob
                     adType:           AdFormatKey.AppOpen,
                     adUnitId:         _adUnitIDAppOpen,
                     adUnitName:       _adUnitIDAppOpen,
-                    value:            value,
                     valueUsd:         valueUsd,
                     adSize:           IAAAdSize.Fullscreen,
                     adSource:         adSource,

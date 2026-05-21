@@ -304,7 +304,6 @@ namespace com.noctuagames.sdk.Admob
                     adType:           AdFormatKey.Banner,
                     adUnitId:         _adUnitIdBanner,
                     adUnitName:       _adUnitIdBanner,
-                    value:            value,
                     valueUsd:         valueUsd,
                     adSize:           IAAAdSize.Banner320,
                     adSource:         adSource,

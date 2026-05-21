@@ -281,7 +281,6 @@ namespace com.noctuagames.sdk.Admob
                     adType:           AdFormatKey.Rewarded,
                     adUnitId:         _adUnitIDRewarded,
                     adUnitName:       _adUnitIDRewarded,
-                    value:            value,
                     valueUsd:         valueUsd,
                     adSize:           IAAAdSize.Fullscreen,
                     adSource:         adSource,

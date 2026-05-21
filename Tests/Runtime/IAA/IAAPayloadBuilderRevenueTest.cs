@@ -8,7 +8,7 @@ namespace Tests.Runtime.IAA
     /// Unit tests for the revenue-specific payload builders added in Plan 1.
     /// Verifies exact key sets — no device/SDK context required (pure, thread-free helpers).
     ///
-    /// Note: BuildAdImpression (12-key) is covered by IAAPayloadBuilderTest and is not
+    /// Note: BuildAdImpression (10-key) is covered by IAAPayloadBuilderTest and is not
     /// re-tested here.
     /// </summary>
     [TestFixture]

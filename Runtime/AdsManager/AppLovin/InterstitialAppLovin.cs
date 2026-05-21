@@ -379,7 +379,6 @@ namespace com.noctuagames.sdk.AppLovin
                 adType:           AdFormatKey.Interstitial,
                 adUnitId:         adUnitIdentifier ?? _adUnitIDInterstitial,
                 adUnitName:       _adUnitIDInterstitial,
-                value:            revenue,
                 valueUsd:         revenue,
                 adSize:           IAAAdSize.Fullscreen,
                 adSource:         networkName,

@@ -79,8 +79,6 @@ namespace com.noctuagames.sdk
     /// </summary>
     public static class IAAPayloadBuilder
     {
-        private const string CurrencyUsd = "USD";
-
         /// <summary>
         /// Build payload for <see cref="IAAEventNames.AdImpression"/>.
         /// All revenue values must already be in USD (callers pre-convert if the network
@@ -91,7 +89,6 @@ namespace com.noctuagames.sdk
             string adType,
             string adUnitId,
             string adUnitName,
-            double value,
             double valueUsd,
             string adSize,
             string adSource,
@@ -104,8 +101,6 @@ namespace com.noctuagames.sdk
                 { IAAPayloadKey.AdType,         adType         ?? "unknown" },
                 { IAAPayloadKey.AdUnitId,       adUnitId       ?? "unknown" },
                 { IAAPayloadKey.AdUnitName,     adUnitName     ?? "unknown" },
-                { IAAPayloadKey.Value,          value          },
-                { IAAPayloadKey.Currency,       CurrencyUsd    },
                 { IAAPayloadKey.ValueUsd,       valueUsd       },
                 { IAAPayloadKey.AdFormat,       adType         ?? "unknown" },
                 { IAAPayloadKey.AdSize,         adSize         ?? IAAAdSize.Unknown },

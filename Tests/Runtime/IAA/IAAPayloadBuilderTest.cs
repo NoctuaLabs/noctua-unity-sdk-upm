@@ -9,7 +9,7 @@ namespace Tests.Runtime.IAA
     /// <see cref="IAAPayloadKey"/>, and <see cref="IAAAdSize"/>.
     ///
     /// Covers:
-    ///   — <c>BuildAdImpression</c>    — all 12 required keys present, null-coalescing
+    ///   — <c>BuildAdImpression</c>    — all 10 required keys present, null-coalescing
     ///   — <c>BuildAdLoaded</c>        — all 8 required keys present
     ///   — <c>BuildAdLoadFailed</c>    — all 4 required keys
     ///   — <c>BuildAdShowFailed</c>    — delegates to BuildAdLoadFailed
@@ -32,37 +32,26 @@ namespace Tests.Runtime.IAA
         {
             var p = IAAPayloadBuilder.BuildAdImpression(
                 "main", "rewarded", "unit-1", "Rewarded HD",
-                0.01, 0.01, "fullscreen", "admob", "applovin", 12345L);
+                0.01, "fullscreen", "admob", "applovin", 12345L);
 
             Assert.IsTrue(p.ContainsKey(IAAPayloadKey.Placement));
             Assert.IsTrue(p.ContainsKey(IAAPayloadKey.AdType));
             Assert.IsTrue(p.ContainsKey(IAAPayloadKey.AdUnitId));
             Assert.IsTrue(p.ContainsKey(IAAPayloadKey.AdUnitName));
-            Assert.IsTrue(p.ContainsKey(IAAPayloadKey.Value));
-            Assert.IsTrue(p.ContainsKey(IAAPayloadKey.Currency));
             Assert.IsTrue(p.ContainsKey(IAAPayloadKey.ValueUsd));
             Assert.IsTrue(p.ContainsKey(IAAPayloadKey.AdFormat));
             Assert.IsTrue(p.ContainsKey(IAAPayloadKey.AdSize));
             Assert.IsTrue(p.ContainsKey(IAAPayloadKey.AdSource));
             Assert.IsTrue(p.ContainsKey(IAAPayloadKey.AdPlatform));
             Assert.IsTrue(p.ContainsKey(IAAPayloadKey.EngagementTime));
-            Assert.AreEqual(12, p.Count, "AdImpression payload must have exactly 12 keys");
-        }
-
-        [Test]
-        public void BuildAdImpression_CurrencyIsUSD()
-        {
-            var p = IAAPayloadBuilder.BuildAdImpression(
-                "p", "rewarded", "u", "n", 1.0, 1.0, "fullscreen", "s", "pl", 0L);
-
-            Assert.AreEqual("USD", p[IAAPayloadKey.Currency].ToString());
+            Assert.AreEqual(10, p.Count, "AdImpression payload must have exactly 10 keys");
         }
 
         [Test]
         public void BuildAdImpression_NullPlacement_CoalescesToUnknown()
         {
             var p = IAAPayloadBuilder.BuildAdImpression(
-                null, "rewarded", "u", "n", 0, 0, "fs", "s", "pl", 0L);
+                null, "rewarded", "u", "n", 0, "fs", "s", "pl", 0L);
 
             Assert.AreEqual("unknown", p[IAAPayloadKey.Placement].ToString());
         }
@@ -71,7 +60,7 @@ namespace Tests.Runtime.IAA
         public void BuildAdImpression_NullAdType_CoalescesToUnknown()
         {
             var p = IAAPayloadBuilder.BuildAdImpression(
-                "p", null, "u", "n", 0, 0, "fs", "s", "pl", 0L);
+                "p", null, "u", "n", 0, "fs", "s", "pl", 0L);
 
             Assert.AreEqual("unknown", p[IAAPayloadKey.AdType].ToString());
             Assert.AreEqual("unknown", p[IAAPayloadKey.AdFormat].ToString());
@@ -81,7 +70,7 @@ namespace Tests.Runtime.IAA
         public void BuildAdImpression_EngagementTimeStored()
         {
             var p = IAAPayloadBuilder.BuildAdImpression(
-                "p", "rewarded", "u", "n", 0, 0, "fs", "s", "pl", 99_000L);
+                "p", "rewarded", "u", "n", 0, "fs", "s", "pl", 99_000L);
 
             Assert.AreEqual(99_000L, (long)p[IAAPayloadKey.EngagementTime]);
         }

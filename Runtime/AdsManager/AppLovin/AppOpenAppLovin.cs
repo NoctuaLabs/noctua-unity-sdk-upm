@@ -300,7 +300,6 @@ namespace com.noctuagames.sdk.AppLovin
                 adType:           AdFormatKey.AppOpen,
                 adUnitId:         adUnitId,
                 adUnitName:       adUnitId,
-                value:            revenueUsd,
                 valueUsd:         revenueUsd,
                 adSize:           IAAAdSize.Fullscreen,
                 adSource:         adInfo?.NetworkName,
