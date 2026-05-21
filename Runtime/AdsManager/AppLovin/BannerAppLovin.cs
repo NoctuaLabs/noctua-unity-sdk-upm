@@ -374,22 +374,7 @@ namespace com.noctuagames.sdk.AppLovin
             // Keep legacy banner-specific impression marker for one release for dashboard back-compat.
             TrackAdCustomEventBanner("ad_impression_banner");
 
-            UniTask.Void(async () =>
-            {
-                await UniTask.SwitchToMainThread();
-                try
-                {
-                    var countryCode = MaxSdk.GetSdkConfiguration().CountryCode;
-                    var revPayload = IAAPayloadBuilder.BuildAppLovinRevenuePayload(adInfo, _deviceId, countryCode);
-                    revPayload["sdk_impression_id"] = impressionId;
-                    revPayload["sdk_revenue_id"]    = Guid.NewGuid().ToString("N");
-                    Noctua.Event.TrackAdRevenue("applovin_max_sdk", revenueUsd, "USD", revPayload);
-                }
-                catch (Exception ex)
-                {
-                    _log.Error($"Error tracking AppLovin banner revenue: {ex.Message}\n{ex.StackTrace}");
-                }
-            });
+            AppLovinRevenueHelper.TrackRevenueOnMainThread(adInfo, revenueUsd, impressionId, _deviceId, _log, "banner");
 
             BannerOnAdImpressionRecorded?.Invoke();
             BannerOnAdRevenuePaid?.Invoke(adInfo);

@@ -402,22 +402,7 @@ namespace com.noctuagames.sdk.AppLovin
             // Legacy per-format alias retained one release.
             TrackAdCustomEventRewarded("ad_impression_rewarded", adUnitId: adUnitId, adInfo: adInfo);
 
-            UniTask.Void(async () =>
-            {
-                await UniTask.SwitchToMainThread();
-                try
-                {
-                    var countryCode = MaxSdk.GetSdkConfiguration().CountryCode;
-                    var revPayload = IAAPayloadBuilder.BuildAppLovinRevenuePayload(adInfo, _deviceId, countryCode);
-                    revPayload["sdk_impression_id"] = impressionId;
-                    revPayload["sdk_revenue_id"]    = Guid.NewGuid().ToString("N");
-                    Noctua.Event.TrackAdRevenue("applovin_max_sdk", revenueUsd, "USD", revPayload);
-                }
-                catch (Exception ex)
-                {
-                    _log.Error($"Error tracking AppLovin rewarded revenue: {ex.Message}\n{ex.StackTrace}");
-                }
-            });
+            AppLovinRevenueHelper.TrackRevenueOnMainThread(adInfo, revenueUsd, impressionId, _deviceId, _log, "rewarded");
 
             RewardedOnAdImpressionRecorded?.Invoke();
             RewardedOnAdRevenuePaid?.Invoke(adInfo);

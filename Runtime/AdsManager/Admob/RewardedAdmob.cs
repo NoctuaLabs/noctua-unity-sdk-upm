@@ -237,22 +237,7 @@ namespace com.noctuagames.sdk.Admob
                 var capturedImpressionId = _currentImpressionId ?? "";
                 if (string.IsNullOrEmpty(capturedImpressionId))
                     _log.Warning("OnAdPaid fired before OnAdImpressionRecorded; impression_id will be empty in revenue payload.");
-                UniTask.Void(async () =>
-                {
-                    await UniTask.SwitchToMainThread();
-                    try
-                    {
-                        var revenue    = adValue.Value / 1_000_000.0;
-                        var revPayload = IAAPayloadBuilder.BuildAdmobRevenuePayload(adValue, capturedResponseInfo, _deviceId);
-                        revPayload["sdk_impression_id"] = capturedImpressionId;
-                        revPayload["sdk_revenue_id"]    = Guid.NewGuid().ToString("N");
-                        Noctua.Event.TrackAdRevenue("admob_sdk", revenue, adValue.CurrencyCode, revPayload);
-                    }
-                    catch (Exception ex)
-                    {
-                        _log.Error($"Error tracking AdMob rewarded revenue: {ex.Message}\n{ex.StackTrace}");
-                    }
-                });
+                AdmobRevenueHelper.TrackRevenueOnMainThread(adValue, capturedResponseInfo, capturedImpressionId, _deviceId, _log, "rewarded");
 
                 AdmobOnAdRevenuePaid?.Invoke(adValue, ad.GetResponseInfo());
             };

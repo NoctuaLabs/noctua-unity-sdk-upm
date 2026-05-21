@@ -391,22 +391,7 @@ namespace com.noctuagames.sdk.AppLovin
             // Keep the legacy per-format alias for one release.
             TrackAdCustomEventInterstitial("ad_impression_interstitial");
 
-            UniTask.Void(async () =>
-            {
-                await UniTask.SwitchToMainThread();
-                try
-                {
-                    var countryCode = MaxSdk.GetSdkConfiguration().CountryCode;
-                    var revPayload = IAAPayloadBuilder.BuildAppLovinRevenuePayload(adInfo, _deviceId, countryCode);
-                    revPayload["sdk_impression_id"] = impressionId;
-                    revPayload["sdk_revenue_id"]    = Guid.NewGuid().ToString("N");
-                    Noctua.Event.TrackAdRevenue("applovin_max_sdk", revenue, "USD", revPayload);
-                }
-                catch (Exception ex)
-                {
-                    _log.Error($"Error tracking AppLovin interstitial revenue: {ex.Message}\n{ex.StackTrace}");
-                }
-            });
+            AppLovinRevenueHelper.TrackRevenueOnMainThread(adInfo, revenue, impressionId, _deviceId, _log, "interstitial");
 
             InterstitialOnAdImpressionRecorded?.Invoke();
             InterstitialOnAdRevenuePaid?.Invoke(adInfo);

@@ -266,22 +266,7 @@ namespace com.noctuagames.sdk.Admob
 
                 var capturedResponseInfo = _bannerView.GetResponseInfo();
                 var capturedImpressionId = _currentImpressionId;
-                UniTask.Void(async () =>
-                {
-                    await UniTask.SwitchToMainThread();
-                    try
-                    {
-                        var revenue    = adValue.Value / 1_000_000.0;
-                        var revPayload = IAAPayloadBuilder.BuildAdmobRevenuePayload(adValue, capturedResponseInfo, _deviceId);
-                        revPayload["sdk_impression_id"] = capturedImpressionId;
-                        revPayload["sdk_revenue_id"]    = Guid.NewGuid().ToString("N");
-                        Noctua.Event.TrackAdRevenue("admob_sdk", revenue, adValue.CurrencyCode, revPayload);
-                    }
-                    catch (Exception ex)
-                    {
-                        _log.Error($"Error tracking AdMob banner revenue: {ex.Message}\n{ex.StackTrace}");
-                    }
-                });
+                AdmobRevenueHelper.TrackRevenueOnMainThread(adValue, capturedResponseInfo, capturedImpressionId, _deviceId, _log, "banner");
 
                 AdmobOnAdRevenuePaid?.Invoke(adValue, _bannerView.GetResponseInfo());
             };
