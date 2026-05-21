@@ -253,7 +253,7 @@ namespace com.noctuagames.sdk.Admob
                 var capturedImpressionId = _currentImpressionId ?? "";
                 if (string.IsNullOrEmpty(capturedImpressionId))
                     _log.Warning("OnAdPaid fired before OnAdImpressionRecorded; impression_id will be empty in revenue payload.");
-                AdmobRevenueHelper.TrackRevenueOnMainThread(adValue, capturedResponseInfo, capturedImpressionId, _deviceId, _log, "app-open");
+                AdmobRevenueHelper.TrackRevenueOnMainThread(adValue, capturedResponseInfo, capturedImpressionId, _deviceId, _log, AdFormatKey.AppOpen);
                 AdmobOnAdRevenuePaid?.Invoke(adValue, capturedResponseInfo);
             };
 

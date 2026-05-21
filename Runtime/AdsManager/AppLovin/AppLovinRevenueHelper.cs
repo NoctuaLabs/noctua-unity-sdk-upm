@@ -23,7 +23,7 @@ namespace com.noctuagames.sdk.AppLovin
         /// <param name="impressionId">Impression ID already emitted in the canonical ad_impression event.</param>
         /// <param name="deviceId">Cached <c>SystemInfo.deviceUniqueIdentifier</c> (must be read on main thread beforehand).</param>
         /// <param name="log">Caller's logger instance, used for error reporting.</param>
-        /// <param name="adFormat">Human-readable ad format label for the error message (e.g. "interstitial").</param>
+        /// <param name="adFormat">Ad format label for the error message; use an <see cref="AdFormatKey"/> constant.</param>
         public static void TrackRevenueOnMainThread(
             MaxSdkBase.AdInfo adInfo,
             double revenue,

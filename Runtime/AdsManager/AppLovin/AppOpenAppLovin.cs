@@ -312,7 +312,7 @@ namespace com.noctuagames.sdk.AppLovin
             // Keep legacy AO-specific impression marker for one release for dashboard back-compat.
             TrackAdCustomEvent("ad_impression_app_open");
 
-            AppLovinRevenueHelper.TrackRevenueOnMainThread(adInfo, revenueUsd, impressionId, _deviceId, _log, "app-open");
+            AppLovinRevenueHelper.TrackRevenueOnMainThread(adInfo, revenueUsd, impressionId, _deviceId, _log, AdFormatKey.AppOpen);
 
             AppOpenOnAdImpressionRecorded?.Invoke();
             AppOpenOnAdRevenuePaid?.Invoke(adInfo);

@@ -266,7 +266,7 @@ namespace com.noctuagames.sdk.Admob
 
                 var capturedResponseInfo = _bannerView.GetResponseInfo();
                 var capturedImpressionId = _currentImpressionId;
-                AdmobRevenueHelper.TrackRevenueOnMainThread(adValue, capturedResponseInfo, capturedImpressionId, _deviceId, _log, "banner");
+                AdmobRevenueHelper.TrackRevenueOnMainThread(adValue, capturedResponseInfo, capturedImpressionId, _deviceId, _log, AdFormatKey.Banner);
 
                 AdmobOnAdRevenuePaid?.Invoke(adValue, _bannerView.GetResponseInfo());
             };

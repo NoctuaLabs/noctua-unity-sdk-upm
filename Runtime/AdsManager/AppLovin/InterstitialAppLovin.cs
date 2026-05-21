@@ -391,7 +391,7 @@ namespace com.noctuagames.sdk.AppLovin
             // Keep the legacy per-format alias for one release.
             TrackAdCustomEventInterstitial("ad_impression_interstitial");
 
-            AppLovinRevenueHelper.TrackRevenueOnMainThread(adInfo, revenue, impressionId, _deviceId, _log, "interstitial");
+            AppLovinRevenueHelper.TrackRevenueOnMainThread(adInfo, revenue, impressionId, _deviceId, _log, AdFormatKey.Interstitial);
 
             InterstitialOnAdImpressionRecorded?.Invoke();
             InterstitialOnAdRevenuePaid?.Invoke(adInfo);

@@ -374,7 +374,7 @@ namespace com.noctuagames.sdk.AppLovin
             // Keep legacy banner-specific impression marker for one release for dashboard back-compat.
             TrackAdCustomEventBanner("ad_impression_banner");
 
-            AppLovinRevenueHelper.TrackRevenueOnMainThread(adInfo, revenueUsd, impressionId, _deviceId, _log, "banner");
+            AppLovinRevenueHelper.TrackRevenueOnMainThread(adInfo, revenueUsd, impressionId, _deviceId, _log, AdFormatKey.Banner);
 
             BannerOnAdImpressionRecorded?.Invoke();
             BannerOnAdRevenuePaid?.Invoke(adInfo);

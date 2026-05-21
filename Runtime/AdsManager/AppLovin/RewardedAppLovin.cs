@@ -402,7 +402,7 @@ namespace com.noctuagames.sdk.AppLovin
             // Legacy per-format alias retained one release.
             TrackAdCustomEventRewarded("ad_impression_rewarded", adUnitId: adUnitId, adInfo: adInfo);
 
-            AppLovinRevenueHelper.TrackRevenueOnMainThread(adInfo, revenueUsd, impressionId, _deviceId, _log, "rewarded");
+            AppLovinRevenueHelper.TrackRevenueOnMainThread(adInfo, revenueUsd, impressionId, _deviceId, _log, AdFormatKey.Rewarded);
 
             RewardedOnAdImpressionRecorded?.Invoke();
             RewardedOnAdRevenuePaid?.Invoke(adInfo);
