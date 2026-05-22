@@ -63,6 +63,8 @@ namespace com.noctuagames.sdk
         private readonly IConnectivityProvider _connectivity;
         private bool _enabled;
         private string _distributionPlaftorm;
+        private IAPTaichiConfig _taichiConfig;
+        private const string KeyIAPTotalRevenue = "Noctua_Taichi_IAPTotalRevenue";
 
         /// <summary>
         /// Internal constructor for Noctua IAP service.
@@ -145,6 +147,8 @@ namespace com.noctuagames.sdk
             // The sequence represent the priority.
             _distributionPlaftorm = platform;
         }
+
+        public void SetIAPTaichiConfig(IAPTaichiConfig config) => _taichiConfig = config;
 
         /// <summary>
         /// Fetch list of products available for purchase from server.
@@ -418,6 +422,8 @@ namespace com.noctuagames.sdk
                         (double)orderRequest.Price,
                         orderRequest.Currency
                     );
+
+                    TrackTaichiIAP(orderRequest);
 
                     // Assign store pricing
                     orderRequest.StoreAmount = verifyOrderResponse.StoreAmount;
@@ -904,6 +910,8 @@ namespace com.noctuagames.sdk
                         { "orig_amount", purchaseRequest.Price },
                         { "orig_currency", editorCurrency }
                     });
+
+                    TrackTaichiIAP(editorOrderRequest);
 
                     SendFirstPurchaseEventIfFirstTime(editorOrderRequest);
 
@@ -2499,6 +2507,40 @@ namespace com.noctuagames.sdk
             {
                 // Never let first_purchase tracking disrupt the purchase flow.
                 _log.Warning($"Failed to send first_purchase event: {e.Message}");
+            }
+        }
+
+        private void TrackTaichiIAP(OrderRequest order)
+        {
+            if (_taichiConfig == null)
+            {
+                _log.Warning("[TaichiIAP] config is null, skipping revenue tracking");
+                return;
+            }
+
+            try
+            {
+                var stored = double.TryParse(PlayerPrefs.GetString(KeyIAPTotalRevenue, "0"), out var prev) ? prev : 0.0;
+                var totalRevenue = stored + (double)order.PriceInUSD;
+                PlayerPrefs.SetString(KeyIAPTotalRevenue, totalRevenue.ToString("G"));
+
+                _log.Debug($"[TaichiIAP] revenue progress: {totalRevenue:G} / {_taichiConfig.RevenueThreshold:G} USD");
+
+                if (totalRevenue >= _taichiConfig.RevenueThreshold)
+                {
+                    var payload = new Dictionary<string, IConvertible>
+                    {
+                        { "value",    totalRevenue },
+                        { "currency", "USD" }
+                    };
+                    _nativePlugin?.TrackCustomEvent("taichi_iap_revenue", payload);
+                    PlayerPrefs.SetString(KeyIAPTotalRevenue, "0");
+                    PlayerPrefs.Save();
+                }
+            }
+            catch (Exception e)
+            {
+                _log.Warning($"TrackTaichiIAP failed: {e.Message}");
             }
         }
 

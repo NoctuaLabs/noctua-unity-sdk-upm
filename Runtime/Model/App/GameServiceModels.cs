@@ -281,6 +281,21 @@ namespace com.noctuagames.sdk
     }
 
     /// <summary>
+    /// Taichi threshold configuration for IAP revenue tracking.
+    /// Thresholds are loaded from Firebase Remote Config; these are the fallback defaults.
+    /// </summary>
+    [Preserve]
+    public class IAPTaichiConfig
+    {
+        /// <summary>
+        /// Cumulative IAP spend threshold in USD. Fires taichi_iap_revenue when crossed.
+        /// Default: 0.99
+        /// </summary>
+        [JsonProperty("revenue_threshold")]
+        public double RevenueThreshold = 0.99;
+    }
+
+    /// <summary>
     /// Per-network ad configuration containing ad format definitions.
     /// </summary>
     [Preserve]

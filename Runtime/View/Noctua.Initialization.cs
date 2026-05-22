@@ -949,6 +949,26 @@ namespace com.noctuagames.sdk
             // Disabled for production to reduce event noise
             // Instance.Value._eventSender.Send("sdk_init_set_distribution_platform");
 
+            try
+            {
+                var rcIAPRevenue = await GetFirebaseRemoteConfigDouble("taichi_iap_revenue_threshold");
+
+                if (rcIAPRevenue > 0)
+                {
+                    var iapTaichi = new IAPTaichiConfig { RevenueThreshold = rcIAPRevenue };
+                    Instance.Value._iap.SetIAPTaichiConfig(iapTaichi);
+                    log.Debug($"[TaichiIAP] config applied: revenueThreshold={iapTaichi.RevenueThreshold:G} USD");
+                }
+                else
+                {
+                    log.Warning("[TaichiIAP] Firebase Remote Config value is empty or not set, skipping config");
+                }
+            }
+            catch (Exception e)
+            {
+                log.Warning($"[TaichiIAP] failed to load Firebase Remote Config: {e.Message}");
+            }
+
             Instance.Value._eventSender.Send("init");
 
             if (IsFirstOpen())
