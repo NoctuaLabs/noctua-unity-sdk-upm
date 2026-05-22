@@ -80,12 +80,15 @@ namespace Tests.Runtime.IAA
         // ─── Watch-milestone tracker is wired to canonical names ─────────────
 
         [Test]
-        public void AdWatchMilestoneTracker_ReferencesAllFourMilestoneConstants()
+        public void AdWatchMilestoneTracker_ReferencesAllMilestoneConstants()
         {
             AssertFileReferences("AdWatchMilestoneTracker.cs", new[]
             {
+                nameof(IAAEventNames.WatchAds1x),
                 nameof(IAAEventNames.WatchAds5x),
                 nameof(IAAEventNames.WatchAds10x),
+                nameof(IAAEventNames.WatchAds15x),
+                nameof(IAAEventNames.WatchAds20x),
                 nameof(IAAEventNames.WatchAds25x),
                 nameof(IAAEventNames.WatchAds50x),
             });

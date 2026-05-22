@@ -28,8 +28,11 @@ namespace com.noctuagames.sdk
         public const string AdExpanded    = "ad_expanded";
 
         // Watch-count milestones — fire once per install for rewarded + interstitial only.
+        public const string WatchAds1x    = "watch_ads_1x";
         public const string WatchAds5x    = "watch_ads_5x";
         public const string WatchAds10x   = "watch_ads_10x";
+        public const string WatchAds15x   = "watch_ads_15x";
+        public const string WatchAds20x   = "watch_ads_20x";
         public const string WatchAds25x   = "watch_ads_25x";
         public const string WatchAds50x   = "watch_ads_50x";
 

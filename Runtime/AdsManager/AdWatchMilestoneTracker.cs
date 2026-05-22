@@ -6,7 +6,8 @@ namespace com.noctuagames.sdk
 {
     /// <summary>
     /// Tracks cumulative ad-view counts per ad type and fires the canonical
-    /// <c>watch_ads_5x</c> / <c>watch_ads_10x</c> / <c>watch_ads_25x</c> / <c>watch_ads_50x</c>
+    /// <c>watch_ads_1x</c> / <c>watch_ads_5x</c> / <c>watch_ads_10x</c> /
+    /// <c>watch_ads_15x</c> / <c>watch_ads_20x</c> / <c>watch_ads_25x</c> / <c>watch_ads_50x</c>
     /// events exactly once each per install.
     ///
     /// Spec: only <see cref="AdFormatKey.Rewarded"/> and <see cref="AdFormatKey.Interstitial"/>
@@ -15,7 +16,7 @@ namespace com.noctuagames.sdk
     /// State is persisted in <see cref="PlayerPrefs"/>:
     /// <list type="bullet">
     ///   <item><c>noctua.ads.watch.count.&lt;adType&gt;</c> — int counter</item>
-    ///   <item><c>noctua.ads.watch.fired.&lt;adType&gt;</c> — int bitmask: bit0=5x bit1=10x bit2=25x bit3=50x</item>
+    ///   <item><c>noctua.ads.watch.fired.&lt;adType&gt;</c> — int bitmask: bit0=5x bit1=10x bit2=25x bit3=50x bit4=1x bit5=15x bit6=20x</item>
     /// </list>
     ///
     /// Lives in the AdsManager layer (same as mediations) — emits via the global
@@ -29,18 +30,26 @@ namespace com.noctuagames.sdk
         private const string CountKeyPrefix = "noctua.ads.watch.count.";
         private const string FiredKeyPrefix = "noctua.ads.watch.fired.";
 
-        // Bit positions within the per-ad-type "fired" bitmask
+        // Bit positions within the per-ad-type "fired" bitmask.
+        // Bits 0-3 are reserved for the original thresholds and must not be reassigned
+        // (existing installs have these bits persisted in PlayerPrefs).
         private const int Bit5x  = 0;
         private const int Bit10x = 1;
         private const int Bit25x = 2;
         private const int Bit50x = 3;
+        private const int Bit1x  = 4;
+        private const int Bit15x = 5;
+        private const int Bit20x = 6;
 
         // Threshold → (bit, eventName). Order matters: smallest first so that a single
         // increment crossing two thresholds still fires both, lowest first.
         private static readonly (int Threshold, int Bit, string EventName)[] Milestones =
         {
+            ( 1, Bit1x,  IAAEventNames.WatchAds1x  ),
             ( 5, Bit5x,  IAAEventNames.WatchAds5x  ),
             (10, Bit10x, IAAEventNames.WatchAds10x ),
+            (15, Bit15x, IAAEventNames.WatchAds15x ),
+            (20, Bit20x, IAAEventNames.WatchAds20x ),
             (25, Bit25x, IAAEventNames.WatchAds25x ),
             (50, Bit50x, IAAEventNames.WatchAds50x ),
         };

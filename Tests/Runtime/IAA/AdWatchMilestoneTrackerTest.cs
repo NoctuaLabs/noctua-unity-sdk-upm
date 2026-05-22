@@ -11,7 +11,7 @@ namespace Tests.Runtime.IAA
     /// Covers:
     ///   — Constructor rejects null emit delegate
     ///   — <c>RecordWatch</c> ignores ineligible formats (banner, rewarded_interstitial)
-    ///   — Milestone events fire at 5 / 10 / 25 / 50 cumulative views
+    ///   — Milestone events fire at 1 / 5 / 10 / 15 / 20 / 25 / 50 cumulative views
     ///   — Each milestone fires only once (bitmask dedup)
     ///   — Persisted counts/masks survive across instances (PlayerPrefs round-trip)
     ///   — <c>GetCount</c> / <c>GetFiredMask</c> / <c>ResetForAdType</c> test helpers
@@ -95,10 +95,19 @@ namespace Tests.Runtime.IAA
         // ═══════════════════════════════════════════════════════════════════
 
         [Test]
-        public void RecordWatch_FiveRewarded_Fires5xEvent()
+        public void RecordWatch_OneRewarded_Fires1xEvent()
+        {
+            _tracker.RecordWatch(AdFormatKey.Rewarded);
+
+            Assert.Contains(IAAEventNames.WatchAds1x, _emittedEvents);
+        }
+
+        [Test]
+        public void RecordWatch_FiveRewarded_Fires1xAnd5xEvents()
         {
             for (int i = 0; i < 5; i++) _tracker.RecordWatch(AdFormatKey.Rewarded);
 
+            Assert.Contains(IAAEventNames.WatchAds1x, _emittedEvents);
             Assert.Contains(IAAEventNames.WatchAds5x, _emittedEvents);
         }
 
@@ -112,24 +121,54 @@ namespace Tests.Runtime.IAA
         }
 
         [Test]
-        public void RecordWatch_TwentyFiveRewarded_FiresAllThreeBelow()
+        public void RecordWatch_FifteenRewarded_Fires15xEvent()
+        {
+            for (int i = 0; i < 15; i++) _tracker.RecordWatch(AdFormatKey.Rewarded);
+
+            Assert.Contains(IAAEventNames.WatchAds1x,  _emittedEvents);
+            Assert.Contains(IAAEventNames.WatchAds5x,  _emittedEvents);
+            Assert.Contains(IAAEventNames.WatchAds10x, _emittedEvents);
+            Assert.Contains(IAAEventNames.WatchAds15x, _emittedEvents);
+            Assert.IsFalse(_emittedEvents.Contains(IAAEventNames.WatchAds20x),
+                "20x milestone must not fire at 15 views");
+        }
+
+        [Test]
+        public void RecordWatch_TwentyRewarded_Fires20xEvent()
+        {
+            for (int i = 0; i < 20; i++) _tracker.RecordWatch(AdFormatKey.Rewarded);
+
+            Assert.Contains(IAAEventNames.WatchAds15x, _emittedEvents);
+            Assert.Contains(IAAEventNames.WatchAds20x, _emittedEvents);
+            Assert.IsFalse(_emittedEvents.Contains(IAAEventNames.WatchAds25x),
+                "25x milestone must not fire at 20 views");
+        }
+
+        [Test]
+        public void RecordWatch_TwentyFiveRewarded_FiresAllBelow25x()
         {
             for (int i = 0; i < 25; i++) _tracker.RecordWatch(AdFormatKey.Rewarded);
 
+            Assert.Contains(IAAEventNames.WatchAds1x,  _emittedEvents);
             Assert.Contains(IAAEventNames.WatchAds5x,  _emittedEvents);
             Assert.Contains(IAAEventNames.WatchAds10x, _emittedEvents);
+            Assert.Contains(IAAEventNames.WatchAds15x, _emittedEvents);
+            Assert.Contains(IAAEventNames.WatchAds20x, _emittedEvents);
             Assert.Contains(IAAEventNames.WatchAds25x, _emittedEvents);
             Assert.IsFalse(_emittedEvents.Contains(IAAEventNames.WatchAds50x),
                 "50x milestone must not fire at 25 views");
         }
 
         [Test]
-        public void RecordWatch_FiftyRewarded_FiresAllFourMilestones()
+        public void RecordWatch_FiftyRewarded_FiresAllSevenMilestones()
         {
             for (int i = 0; i < 50; i++) _tracker.RecordWatch(AdFormatKey.Rewarded);
 
+            Assert.Contains(IAAEventNames.WatchAds1x,  _emittedEvents);
             Assert.Contains(IAAEventNames.WatchAds5x,  _emittedEvents);
             Assert.Contains(IAAEventNames.WatchAds10x, _emittedEvents);
+            Assert.Contains(IAAEventNames.WatchAds15x, _emittedEvents);
+            Assert.Contains(IAAEventNames.WatchAds20x, _emittedEvents);
             Assert.Contains(IAAEventNames.WatchAds25x, _emittedEvents);
             Assert.Contains(IAAEventNames.WatchAds50x, _emittedEvents);
         }
@@ -137,6 +176,19 @@ namespace Tests.Runtime.IAA
         // ═══════════════════════════════════════════════════════════════════
         // Once-only dedup via bitmask
         // ═══════════════════════════════════════════════════════════════════
+
+        [Test]
+        public void RecordWatch_1xMilestoneFiredOnce_EvenAfterMoreViews()
+        {
+            _tracker.RecordWatch(AdFormatKey.Rewarded);
+            int countAfterFirst = _emittedEvents.FindAll(e => e == IAAEventNames.WatchAds1x).Count;
+            Assert.AreEqual(1, countAfterFirst);
+
+            // More views → must NOT fire watch_ads_1x again
+            for (int i = 0; i < 5; i++) _tracker.RecordWatch(AdFormatKey.Rewarded);
+            int countAfterMore = _emittedEvents.FindAll(e => e == IAAEventNames.WatchAds1x).Count;
+            Assert.AreEqual(1, countAfterMore, "1x milestone must fire at most once per install");
+        }
 
         [Test]
         public void RecordWatch_5xMilestoneFiredOnce_EvenAfterMoreViews()
@@ -157,10 +209,11 @@ namespace Tests.Runtime.IAA
         // ═══════════════════════════════════════════════════════════════════
 
         [Test]
-        public void RecordWatch_InterstitialFiveViews_Fires5xEvent()
+        public void RecordWatch_InterstitialFiveViews_Fires1xAnd5xEvents()
         {
             for (int i = 0; i < 5; i++) _tracker.RecordWatch(AdFormatKey.Interstitial);
 
+            Assert.Contains(IAAEventNames.WatchAds1x, _emittedEvents);
             Assert.Contains(IAAEventNames.WatchAds5x, _emittedEvents);
             Assert.AreEqual(5, AdWatchMilestoneTracker.GetCount(AdFormatKey.Interstitial));
         }
