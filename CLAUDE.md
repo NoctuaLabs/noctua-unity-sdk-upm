@@ -2,7 +2,7 @@
 
 SDK package at `Packages/com.noctuagames.sdk/`. All runtime code under `Runtime/`, Editor tooling under `Editor/`, tests under `Tests/`.
 
-- **Version:** 0.114.0
+- **Version:** 0.126.0
 - **Repo:** `gitlab.com/evosverse/noctua/noctua-sdk-unity-upm`
 - **Namespace:** `com.noctuagames.sdk`
 
@@ -59,26 +59,31 @@ Runtime/
 
 | File | Layer | Purpose |
 |------|-------|---------|
-| `Runtime/View/Noctua.cs` | View | Public API entry point |
+| `Runtime/View/Noctua.cs` | View | Public API entry point — static facade + lifecycle |
 | `Runtime/View/Noctua.Initialization.cs` | View | Composition root — wires all services |
-| `Runtime/View/NoctuaAuthentication.cs` | View | Auth facade |
-| `Runtime/View/NoctuaLocale.cs` | View | `ILocaleProvider` impl |
-| `Runtime/View/NoctuaConnectivityProvider.cs` | View | `IConnectivityProvider` adapter |
-| `Runtime/View/PaymentUIAdapter.cs` | View | Adapts `UIFactory` → `IPaymentUI` |
-| `Runtime/View/LazyAuthProvider.cs` | View | Deferred `IAuthProvider` for circular init |
-| `Runtime/Presenter/NoctuaIAPService.cs` | Presenter | IAP: purchases, products, payment types |
-| `Runtime/Presenter/NoctuaAuthenticationService.cs` | Presenter | Auth: social login, account mgmt |
-| `Runtime/Presenter/SessionTracker.cs` | Presenter | Session lifecycle, heartbeat, engagement |
-| `Runtime/Presenter/ExperimentManager.cs` | Presenter | A/B testing, session tags |
-| `Runtime/Presenter/NoctuaEventService.cs` | Presenter | High-level event tracking API |
-| `Runtime/Infrastructure/EventSender.cs` | Infra | Event storage, batching, HTTP flush |
+| `Runtime/View/App/Noctua.Adjust.cs` | View | Adjust attribution & device info API (ADID, IDFA, IDFV, Google/Amazon Ad ID, SDK version) |
+| `Runtime/View/App/Noctua.Firebase.cs` | View | Firebase Remote Config, FCM token, push notification events |
+| `Runtime/View/App/Noctua.PlayerPrefs.cs` | View | PlayerPrefs backup/restore utilities |
+| `Runtime/View/App/NoctuaAppManager.cs` | View | In-app review & flexible app updates |
+| `Runtime/View/Auth/NoctuaAuthentication.cs` | View | Auth facade |
+| `Runtime/View/Platform/NoctuaLocale.cs` | View | `ILocaleProvider` impl |
+| `Runtime/View/Platform/NoctuaConnectivityProvider.cs` | View | `IConnectivityProvider` adapter |
+| `Runtime/View/Common/LazyAuthProvider.cs` | View | Deferred `IAuthProvider` for circular init |
+| `Runtime/View/Common/NoctuaDeviceMetricsAdapter.cs` | View | Wraps `INativePlugin` → `IDeviceMetricsProvider` |
+| `Runtime/Presenter/IAP/NoctuaIAPService.cs` | Presenter | IAP: purchases, products, payment types |
+| `Runtime/Presenter/Auth/NoctuaAuthenticationService.cs` | Presenter | Auth: social login, account mgmt |
+| `Runtime/Presenter/Session/SessionTracker.cs` | Presenter | Session lifecycle, heartbeat, engagement |
+| `Runtime/Presenter/Event/ExperimentManager.cs` | Presenter | A/B testing, session tags |
+| `Runtime/Presenter/Event/NoctuaEventService.cs` | Presenter | High-level event tracking API |
+| `Runtime/Infrastructure/Event/EventSender.cs` | Infra | Event storage, batching, HTTP flush |
 | `Runtime/Infrastructure/Network/Http.cs` | Infra | `HttpRequest` with JSON serialization |
-| `Runtime/Infrastructure/Network/InternetChecker.cs` | Infra | Connectivity ping check |
-| `Runtime/Infrastructure/Utility.cs` | Infra | Validation, parsing, retry helpers |
-| `Runtime/Infrastructure/MobileDateTimePicker.cs` | Infra | Date picker bridge (static delegate) |
-| `Runtime/Platform/INativePlugin.cs` | Platform | All native sub-interfaces (incl. `INativeLogStream`, `INativeDeviceMetrics` for Inspector Logs/Memory tabs) |
-| `Runtime/Platform/iOS/IosPlugin.cs` | Platform | iOS P/Invoke declarations |
-| `Runtime/Platform/Android/AndroidPlugin.cs` | Platform | Android JNI bridge |
+| `Runtime/Infrastructure/Common/Utility.cs` | Infra | Validation, parsing, retry helpers |
+| `Runtime/Infrastructure/Common/MobileDateTimePicker.cs` | Infra | Date picker bridge (static delegate) |
+| `Runtime/Platform/INativePlugin.cs` | Platform | Aggregate of all native sub-interfaces |
+| `Runtime/Platform/iOS/IosPlugin.cs` | Platform | iOS P/Invoke declarations + trampolines |
+| `Runtime/Platform/Android/AndroidPlugin.cs` | Platform | Android JNI bridge via `AndroidJavaClass` |
+| `Runtime/Plugins/iOS/NoctuaInterop.h` | Platform | C function declarations for iOS native bridge |
+| `Runtime/Plugins/iOS/NoctuaInterop.m` | Platform | C function implementations → `Noctua.swift` |
 | `Editor/Menu/NoctuaSDKMenu.cs` | Editor | Integration Manager window |
 | `Editor/Build/CocoaPodsConflictFixer.cs` | Editor | CocoaPods conflict auto-fixer |
 | `Editor/Build/BuildPostProcessor.cs` | Editor | iOS/Android post-build processing |
@@ -95,7 +100,24 @@ Runtime/
 | `IAdRevenueTracker` | `Presenter/Interfaces/` | Ad revenue tracking |
 | `ILocaleProvider` | `Core/` | Language, country, currency, translations |
 | `IConnectivityProvider` | `Core/` | Offline check, init status |
-| `INativePlugin` | `Platform/` | Aggregate of all native sub-interfaces |
+| `INativePlugin` | `Platform/` | Aggregate of all native sub-interfaces (see below) |
+
+### `INativePlugin` sub-interfaces (`Runtime/Platform/INativePlugin.cs`)
+
+| Sub-interface | Key methods | Notes |
+|---|---|---|
+| `INativeLifecycle` | `Init`, `OnApplicationPause`, `DisposeStoreKit`, `IsStoreKitReady` | App lifecycle |
+| `INativeTracker` | `TrackAdRevenue`, `TrackPurchase`, `TrackCustomEvent`, `OnOnline`, `OnOffline` | Analytics |
+| `INativeIAP` | `QueryProductDetails`, `Purchase`, `QueryPurchases`, `RestorePurchases`, etc. | In-app purchases |
+| `INativeAccountStore` | `PutAccount`, `GetAllAccounts`, `GetSingleAccount`, `DeleteAccount` | Account persistence |
+| `INativeFirebase` | `GetFirebaseInstallationID`, `GetFirebaseAnalyticsSessionID`, `GetAdjustAttribution`, `GetAdjust*` | Firebase + Adjust |
+| `INativeEventStorage` | `SaveEvents`, `GetEvents`, `DeleteEvents`, `InsertEvent`, `GetEventsBatch`, etc. | Event persistence |
+| `INativeDatePicker` | `ShowDatePicker`, `CloseDatePicker` | Native date picker |
+| `INativeAppManagement` | `RequestInAppReview`, `CheckForUpdate`, `StartImmediateUpdate`, `StartFlexibleUpdate` | App updates |
+| `INativeLogStream` | `SetLogStreamEnabled`, `RegisterNativeLogCallback` | Inspector Logs tab |
+| `INativeDeviceMetrics` | `SnapshotDeviceMetrics` | Inspector Memory tab |
+| `INativeBuildInfo` | `GetNativeSdkVersion`, `GetFirebaseProjectId`, etc. | Inspector Build tab |
+| `INativeMaintenance` | `ClearNativeHttpCache` | Cache management |
 
 ## Logging Convention
 
@@ -121,6 +143,33 @@ In `Noctua.cs` static methods: `var log = Instance.Value._log;` — NOT `_log` d
 **Android chain:** `AndroidPlugin.cs` → `AndroidJavaClass`/`AndroidJavaObject` JNI → `Noctua.kt`
 
 **Static callback pitfall (iOS):** `IosPlugin.cs` uses single static callback fields. Concurrent async calls overwrite the pending callback — only last one completes. Use caching instead of per-call async fetching (see `EventSender.cs`).
+
+### Adding a new native method
+
+Follow this checklist (use `GetAdjustAttribution` as reference):
+
+1. **`NoctuaInterop.h`** — declare C function + typedef delegate
+2. **`NoctuaInterop.m`** — implement C function calling `[Noctua methodWithCompletion:]`
+3. **`INativePlugin.cs`** — add method signature to the correct sub-interface
+4. **`IosPlugin.cs`** — add `[DllImport]`, static field, delegate type, `[MonoPInvokeCallback]` trampoline, interface impl
+5. **`AndroidPlugin.cs`** — add JNI impl via `noctua.Call("methodName", new AndroidCallback<T>(callback))`; return empty/default on unsupported platform
+6. **`Noctua.Adjust.cs`** (or appropriate partial) — add public `async Task<T>` wrapping `TaskCompletionSource<T>`
+
+## Adjust Device Info (`Runtime/View/App/Noctua.Adjust.cs`)
+
+All Adjust public API lives here. `GetAdjustAttribution` was moved here from `Noctua.Firebase.cs`.
+
+| Method | Return | iOS | Android |
+|---|---|---|---|
+| `GetAdjustAttributionAsync()` | `Task<NoctuaAdjustAttribution>` | ✅ | ✅ |
+| `GetAdjustAdidAsync()` | `Task<string>` | ✅ | ✅ |
+| `GetAdjustIdfaAsync()` | `Task<string>` | ✅ | ❌ `""` |
+| `GetAdjustIdfvAsync()` | `Task<string>` | ✅ | ❌ `""` |
+| `GetAdjustGoogleAdIdAsync()` | `Task<string>` | ❌ `""` | ✅ |
+| `GetAdjustAmazonAdIdAsync()` | `Task<string>` | ❌ `""` | ✅ |
+| `GetAdjustSdkVersionAsync()` | `Task<string>` | ✅ | ✅ |
+
+All methods use `NativeStringCallAsync()` helper (private, in `Noctua.Adjust.cs`) — avoids repeating `TaskCompletionSource` boilerplate. Platform-only methods return `string.Empty` silently on the unsupported platform.
 
 ## Editor Tooling
 
@@ -218,6 +267,91 @@ new tab means: extend `Tab` enum + new partial file with `RenderXxx`.
 (`Runtime/View/Common/`) wraps `INativePlugin` to satisfy
 `IDeviceMetricsProvider` (Presenter); keeps `MemoryMonitor` free of any
 Platform-layer reference.
+
+## Public API — `Noctua` static class
+
+### Static properties
+
+| Member | Type | Description |
+|--------|------|-------------|
+| `Noctua.Event` | `NoctuaEventService` | Analytics (TrackCustomEvent, SetSessionTag, GetSessionTag) |
+| `Noctua.Auth` | `NoctuaAuthentication` | Authentication (AuthenticateAsync, LoginAsGuest, etc.) |
+| `Noctua.IAP` | `NoctuaIAPService` | In-app purchases |
+| `Noctua.Platform` | `NoctuaPlatform` | Platform features (Content, Locale) |
+| `Noctua.IAA` | `MediationManager` | Ad mediation |
+| `Noctua.App` | `NoctuaAppManager` | In-app review / in-app updates |
+| `Noctua.Config` | `GlobalConfig` | Loaded `noctuagg.json` config |
+| `Noctua.HttpLog` | `HttpInspectorLog` | HTTP ring buffer (sandbox only) |
+| `Noctua.DebugMonitor` | `TrackerDebugMonitor` | Tracker ring buffer (sandbox only) |
+| `Noctua.LogLedger` | `LogInspectorLedger` | Log ring buffer (sandbox only) |
+| `Noctua.PerfMonitor` | `PerformanceMonitor` | FPS monitor (sandbox only) |
+| `Noctua.MemMonitor` | `MemoryMonitor` | Memory monitor (sandbox only) |
+| `Noctua.Inspector` | `NoctuaInspectorController` | Inspector overlay handle (sandbox only) |
+
+### Static methods (`Noctua.cs`)
+
+| Method | Description |
+|--------|-------------|
+| `InitAsync()` | SDK entry point |
+| `IsInitialized()` | Whether SDK has completed init |
+| `IsOfflineMode()` | Whether SDK is in offline mode |
+| `IsOfflineFirst()` | Whether SDK was configured offline-first |
+| `IsSandbox()` | Whether `sandboxEnabled: true` in config |
+| `IsOfflineAsync()` | Checks connectivity and updates offline mode |
+| `BuildSanity()` | Returns `BuildSanityInfo` (sandbox only) |
+| `ShowInspector()` / `HideInspector()` / `ToggleInspector()` | Inspector overlay control |
+| `OnOnline()` / `OnOffline()` | Notify native plugin of connectivity change |
+| `AdjustOfflineModeDisabled()` | Checks remote feature flag |
+| `GetPseudoUserId()` | Deterministic pseudo user ID |
+| `SetGeneralExperiment(key, value)` | Set A/B experiment key/value |
+| `GetGeneralExperiment(key)` | Get experiment value by key |
+| `SetExperiment(name)` | Set active experiment identifier |
+| `GetActiveExperiment()` | Get currently active experiment |
+| `ShowDatePicker(year, month, day, id)` | Show native date picker |
+| `CloseDatePicker()` | Close native date picker |
+| `SaveEvents(jsonString)` | Save events to native storage |
+| `GetEventsAsync()` | Get saved events from native storage |
+| `DeleteEvents()` | Delete saved events from native storage |
+| `InsertEvent(eventJson)` | Insert single event into per-row storage |
+| `GetEventsBatchAsync(limit, offset)` | Batch read from per-row storage |
+| `DeleteEventsByIdsAsync(ids)` | Delete events by ID from per-row storage |
+| `GetEventCountAsync()` | Total stored event count |
+| `OnInitSuccess` | `Action?` callback after successful init |
+
+### Adjust methods (`Noctua.Adjust.cs`)
+
+| Method | Return | Platform |
+|--------|--------|----------|
+| `GetAdjustAttributionAsync()` | `Task<NoctuaAdjustAttribution>` | Both |
+| `GetAdjustAdidAsync()` | `Task<string>` | Both |
+| `GetAdjustIdfaAsync()` | `Task<string>` | iOS only |
+| `GetAdjustIdfvAsync()` | `Task<string>` | iOS only |
+| `GetAdjustGoogleAdIdAsync()` | `Task<string>` | Android only |
+| `GetAdjustAmazonAdIdAsync()` | `Task<string>` | Android only |
+| `GetAdjustSdkVersionAsync()` | `Task<string>` | Both |
+
+### Firebase methods (`Noctua.Firebase.cs`)
+
+| Method | Return |
+|--------|--------|
+| `GetFirebaseInstallationID()` | `Task<string>` |
+| `GetFirebaseAnalyticsSessionID()` | `Task<string>` |
+| `GetFirebaseMessagingToken()` | `Task<string>` |
+| `GetFirebaseRemoteConfigString(key)` | `Task<string>` |
+| `GetFirebaseRemoteConfigBoolean(key)` | `Task<bool>` |
+| `GetFirebaseRemoteConfigDouble(key)` | `Task<double>` |
+| `GetFirebaseRemoteConfigLong(key)` | `Task<long>` |
+| `OnRemoteNotificationReceived` | `event Action<NoctuaNotificationPayload>` |
+| `OnNotificationTapped` | `event Action<NoctuaNotificationPayload>` |
+| `OnFirebaseMessagingTokenRefresh` | `event Action<string>` |
+
+### PlayerPrefs utilities (`Noctua.PlayerPrefs.cs`)
+
+| Method | Description |
+|--------|-------------|
+| `BackupPlayerPrefs()` | Returns all PlayerPrefs as `KeyValuePair<string, string>[]` |
+| `RestorePlayerPrefs(keyValues)` | Restores PlayerPrefs from backup array |
+| `GetPlayerPrefsKeys()` | Returns all current PlayerPrefs keys |
 
 ## Engagement Tracking Architecture
 
