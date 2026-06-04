@@ -468,44 +468,5 @@ namespace com.noctuagames.sdk
         }
 
 
-        /// <summary>
-        /// Gets the Adjust attribution data asynchronously using the native plugin.
-        /// </summary>
-        /// <returns>A task that resolves to the attribution data, or a default instance when not available.</returns>
-        public static Task<NoctuaAdjustAttribution> GetAdjustAttributionAsync()
-        {
-        #if UNITY_ANDROID || UNITY_IOS
-            var tcs = new TaskCompletionSource<NoctuaAdjustAttribution>();
-
-            try
-            {
-                if (Instance.Value._nativePlugin != null)
-                {
-                    Instance.Value._nativePlugin.GetAdjustAttribution((result) =>
-                    {
-                        var attribution = NoctuaAdjustAttribution.FromJson(result);
-                        tcs.TrySetResult(attribution);
-                    });
-                }
-                else
-                {
-                    Instance.Value._log.Warning("Native plugin is null");
-                    tcs.TrySetResult(new NoctuaAdjustAttribution());
-                    return tcs.Task;
-                }
-            }
-            catch (Exception ex)
-            {
-                Instance.Value._log.Warning("exception: " + ex.Message);
-
-                tcs.TrySetResult(new NoctuaAdjustAttribution());
-                return tcs.Task;
-            }
-
-            return tcs.Task;
-        #else
-            return Task.FromResult(new NoctuaAdjustAttribution());
-        #endif
-        }
     }
 }

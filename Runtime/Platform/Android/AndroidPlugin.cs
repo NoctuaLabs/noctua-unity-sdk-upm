@@ -660,6 +660,72 @@ namespace com.noctuagames.sdk
         }
 
         /// <inheritdoc />
+        public void GetAdjustAdid(Action<string> callback)
+        {
+            try
+            {
+                using var noctua = new AndroidJavaClass("com.noctuagames.sdk.Noctua").GetStatic<AndroidJavaObject>("INSTANCE");
+                noctua.Call("getAdjustAdid", new AndroidCallback<string>(callback));
+            }
+            catch (Exception e)
+            {
+                _log.Warning($"[Noctua] Failed to get Adjust ADID: {e.Message}");
+                callback?.Invoke(string.Empty);
+            }
+        }
+
+        /// <inheritdoc />
+        public void GetAdjustIdfa(Action<string> callback) => callback?.Invoke(string.Empty); // iOS only
+
+        /// <inheritdoc />
+        public void GetAdjustIdfv(Action<string> callback) => callback?.Invoke(string.Empty); // iOS only
+
+        /// <inheritdoc />
+        public void GetAdjustGoogleAdId(Action<string> callback)
+        {
+            try
+            {
+                using var noctua = new AndroidJavaClass("com.noctuagames.sdk.Noctua").GetStatic<AndroidJavaObject>("INSTANCE");
+                noctua.Call("getAdjustGoogleAdId", new AndroidCallback<string>(callback));
+            }
+            catch (Exception e)
+            {
+                _log.Warning($"[Noctua] Failed to get Google Ad ID: {e.Message}");
+                callback?.Invoke(string.Empty);
+            }
+        }
+
+        /// <inheritdoc />
+        public void GetAdjustAmazonAdId(Action<string> callback)
+        {
+            try
+            {
+                using var noctua = new AndroidJavaClass("com.noctuagames.sdk.Noctua").GetStatic<AndroidJavaObject>("INSTANCE");
+                noctua.Call("getAdjustAmazonAdId", new AndroidCallback<string>(callback));
+            }
+            catch (Exception e)
+            {
+                _log.Warning($"[Noctua] Failed to get Amazon Ad ID: {e.Message}");
+                callback?.Invoke(string.Empty);
+            }
+        }
+
+        /// <inheritdoc />
+        public void GetAdjustSdkVersion(Action<string> callback)
+        {
+            try
+            {
+                using var noctua = new AndroidJavaClass("com.noctuagames.sdk.Noctua").GetStatic<AndroidJavaObject>("INSTANCE");
+                noctua.Call("getAdjustSdkVersion", new AndroidCallback<string>(callback));
+            }
+            catch (Exception e)
+            {
+                _log.Warning($"[Noctua] Failed to get Adjust SDK version: {e.Message}");
+                callback?.Invoke(string.Empty);
+            }
+        }
+
+        /// <inheritdoc />
         public void SaveEvents(string jsonString)
         {
             try

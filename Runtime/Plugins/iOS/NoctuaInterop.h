@@ -45,6 +45,11 @@ typedef void (*GetFirebaseRemoteConfigLongCallbackDelegate)(long long configLong
 void noctuaGetFirebaseRemoteConfigLong(const char* key, GetFirebaseRemoteConfigLongCallbackDelegate callback);
 typedef void (*AdjustAttributionCallbackDelegate)(const char* jsonString);
 void noctuaGetAdjustAttribution(AdjustAttributionCallbackDelegate callback);
+typedef void (*AdjustDeviceInfoCallbackDelegate)(const char* value);
+void noctuaGetAdjustAdid(AdjustDeviceInfoCallbackDelegate callback);
+void noctuaGetAdjustIdfa(AdjustDeviceInfoCallbackDelegate callback);
+void noctuaGetAdjustIdfv(AdjustDeviceInfoCallbackDelegate callback);
+void noctuaGetAdjustSdkVersion(AdjustDeviceInfoCallbackDelegate callback);
 typedef void (*GetEventsCallbackDelegate)(const char* eventsJson);
 void noctuaGetEvents(GetEventsCallbackDelegate callback);
 

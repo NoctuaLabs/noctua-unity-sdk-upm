@@ -241,6 +241,24 @@ namespace com.noctuagames.sdk
         /// </summary>
         /// <param name="callback">Callback with the attribution JSON, or empty on failure.</param>
         void GetAdjustAttribution(Action<string> callback);
+
+        /// <summary>Retrieves the Adjust Device Identifier (ADID). Available on both platforms.</summary>
+        void GetAdjustAdid(Action<string> callback);
+
+        /// <summary>Retrieves the ID For Advertisers (IDFA). iOS only — empty string on Android.</summary>
+        void GetAdjustIdfa(Action<string> callback);
+
+        /// <summary>Retrieves the ID For Vendors (IDFV). iOS only — empty string on Android.</summary>
+        void GetAdjustIdfv(Action<string> callback);
+
+        /// <summary>Retrieves the Google Play Advertising ID. Android only — empty string on iOS.</summary>
+        void GetAdjustGoogleAdId(Action<string> callback);
+
+        /// <summary>Retrieves the Amazon Advertiser ID. Android only — empty string on iOS.</summary>
+        void GetAdjustAmazonAdId(Action<string> callback);
+
+        /// <summary>Retrieves the Adjust SDK version string. Available on both platforms.</summary>
+        void GetAdjustSdkVersion(Action<string> callback);
     }
 
     /// <summary>

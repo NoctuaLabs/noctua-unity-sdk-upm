@@ -106,6 +106,18 @@ namespace com.noctuagames.sdk
         private static extern void noctuaGetAdjustAttribution(GetAdjustAttributionJsonCallbackDelegate callback);
 
         [DllImport("__Internal")]
+        private static extern void noctuaGetAdjustAdid(AdjustDeviceInfoCallbackDelegate callback);
+
+        [DllImport("__Internal")]
+        private static extern void noctuaGetAdjustIdfa(AdjustDeviceInfoCallbackDelegate callback);
+
+        [DllImport("__Internal")]
+        private static extern void noctuaGetAdjustIdfv(AdjustDeviceInfoCallbackDelegate callback);
+
+        [DllImport("__Internal")]
+        private static extern void noctuaGetAdjustSdkVersion(AdjustDeviceInfoCallbackDelegate callback);
+
+        [DllImport("__Internal")]
         private static extern void noctuaSaveEvents(string eventsJson);
 
         [DllImport("__Internal")]
@@ -171,6 +183,10 @@ namespace com.noctuagames.sdk
         private static Action<double> storedFirebaseRemoteConfigDoubleCompletion;
         private static Action<long> storedFirebaseRemoteConfigLongCompletion;
         private static Action<string> storedAdjustAttributionCallback;
+        private static Action<string> storedAdjustAdidCallback;
+        private static Action<string> storedAdjustIdfaCallback;
+        private static Action<string> storedAdjustIdfvCallback;
+        private static Action<string> storedAdjustSdkVersionCallback;
         private static Action<List<string>> storedGetEventsCompletion;
         private static Action<List<NativeEvent>> storedGetEventsBatchCompletion;
         private static Action<int> storedDeleteEventsByIdsCompletion;
@@ -212,6 +228,9 @@ namespace com.noctuagames.sdk
         
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
         private delegate void GetAdjustAttributionJsonCallbackDelegate(string json);
+
+        [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+        private delegate void AdjustDeviceInfoCallbackDelegate(string value);
 
 
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
@@ -322,6 +341,34 @@ namespace com.noctuagames.sdk
         {
             storedAdjustAttributionCallback?.Invoke(json);
             storedAdjustAttributionCallback = null;
+        }
+
+        [AOT.MonoPInvokeCallback(typeof(AdjustDeviceInfoCallbackDelegate))]
+        private static void GetAdjustAdidCallback(string value)
+        {
+            storedAdjustAdidCallback?.Invoke(value);
+            storedAdjustAdidCallback = null;
+        }
+
+        [AOT.MonoPInvokeCallback(typeof(AdjustDeviceInfoCallbackDelegate))]
+        private static void GetAdjustIdfaCallback(string value)
+        {
+            storedAdjustIdfaCallback?.Invoke(value);
+            storedAdjustIdfaCallback = null;
+        }
+
+        [AOT.MonoPInvokeCallback(typeof(AdjustDeviceInfoCallbackDelegate))]
+        private static void GetAdjustIdfvCallback(string value)
+        {
+            storedAdjustIdfvCallback?.Invoke(value);
+            storedAdjustIdfvCallback = null;
+        }
+
+        [AOT.MonoPInvokeCallback(typeof(AdjustDeviceInfoCallbackDelegate))]
+        private static void GetAdjustSdkVersionCallback(string value)
+        {
+            storedAdjustSdkVersionCallback?.Invoke(value);
+            storedAdjustSdkVersionCallback = null;
         }
 
         [AOT.MonoPInvokeCallback(typeof(GetEventsCallbackDelegate))]
@@ -787,6 +834,76 @@ namespace com.noctuagames.sdk
             }
         }
         
+        /// <inheritdoc />
+        public void GetAdjustAdid(Action<string> callback)
+        {
+            try
+            {
+                storedAdjustAdidCallback = callback;
+                noctuaGetAdjustAdid(GetAdjustAdidCallback);
+                _log.Debug("noctuaGetAdjustAdid called");
+            }
+            catch (Exception e)
+            {
+                _log.Warning($"GetAdjustAdid failed: {e.Message}");
+                callback?.Invoke(string.Empty);
+            }
+        }
+
+        /// <inheritdoc />
+        public void GetAdjustIdfa(Action<string> callback)
+        {
+            try
+            {
+                storedAdjustIdfaCallback = callback;
+                noctuaGetAdjustIdfa(GetAdjustIdfaCallback);
+                _log.Debug("noctuaGetAdjustIdfa called");
+            }
+            catch (Exception e)
+            {
+                _log.Warning($"GetAdjustIdfa failed: {e.Message}");
+                callback?.Invoke(string.Empty);
+            }
+        }
+
+        /// <inheritdoc />
+        public void GetAdjustIdfv(Action<string> callback)
+        {
+            try
+            {
+                storedAdjustIdfvCallback = callback;
+                noctuaGetAdjustIdfv(GetAdjustIdfvCallback);
+                _log.Debug("noctuaGetAdjustIdfv called");
+            }
+            catch (Exception e)
+            {
+                _log.Warning($"GetAdjustIdfv failed: {e.Message}");
+                callback?.Invoke(string.Empty);
+            }
+        }
+
+        /// <inheritdoc />
+        public void GetAdjustSdkVersion(Action<string> callback)
+        {
+            try
+            {
+                storedAdjustSdkVersionCallback = callback;
+                noctuaGetAdjustSdkVersion(GetAdjustSdkVersionCallback);
+                _log.Debug("noctuaGetAdjustSdkVersion called");
+            }
+            catch (Exception e)
+            {
+                _log.Warning($"GetAdjustSdkVersion failed: {e.Message}");
+                callback?.Invoke(string.Empty);
+            }
+        }
+
+        /// <inheritdoc />
+        public void GetAdjustGoogleAdId(Action<string> callback) => callback?.Invoke(string.Empty); // Android only
+
+        /// <inheritdoc />
+        public void GetAdjustAmazonAdId(Action<string> callback) => callback?.Invoke(string.Empty); // Android only
+
         /// <inheritdoc />
         public void SaveEvents(string eventsJson)
         {

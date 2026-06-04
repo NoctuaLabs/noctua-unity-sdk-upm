@@ -620,6 +620,38 @@ void noctuaGetAdjustAttribution(AdjustAttributionCallbackDelegate callback) {
     }];
 }
 
+// MARK: - Adjust Device Info
+
+typedef void (*AdjustDeviceInfoCallbackDelegate)(const char* value);
+
+void noctuaGetAdjustAdid(AdjustDeviceInfoCallbackDelegate callback) {
+    if (callback == NULL) return;
+    [Noctua getAdjustAdidWithCompletion:^(NSString * _Nullable adid) {
+        callback(adid ? [adid UTF8String] : "");
+    }];
+}
+
+void noctuaGetAdjustIdfa(AdjustDeviceInfoCallbackDelegate callback) {
+    if (callback == NULL) return;
+    [Noctua getAdjustIdfaWithCompletion:^(NSString * _Nullable idfa) {
+        callback(idfa ? [idfa UTF8String] : "");
+    }];
+}
+
+void noctuaGetAdjustIdfv(AdjustDeviceInfoCallbackDelegate callback) {
+    if (callback == NULL) return;
+    [Noctua getAdjustIdfvWithCompletion:^(NSString * _Nullable idfv) {
+        callback(idfv ? [idfv UTF8String] : "");
+    }];
+}
+
+void noctuaGetAdjustSdkVersion(AdjustDeviceInfoCallbackDelegate callback) {
+    if (callback == NULL) return;
+    [Noctua getAdjustSdkVersionWithCompletion:^(NSString * _Nullable version) {
+        callback(version ? [version UTF8String] : "");
+    }];
+}
+
 // MARK: - Legacy Blob Event Storage
 
 typedef void (*GetEventsCallbackDelegate)(const char* eventsJson);
