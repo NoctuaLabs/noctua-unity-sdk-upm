@@ -336,6 +336,24 @@ namespace com.noctuagames.sdk
             callback?.Invoke(string.Empty);
         }
 
+        /// <inheritdoc />
+        public void GetAdjustAdid(Action<string> callback) => callback?.Invoke(string.Empty);
+
+        /// <inheritdoc />
+        public void GetAdjustIdfa(Action<string> callback) => callback?.Invoke(string.Empty);
+
+        /// <inheritdoc />
+        public void GetAdjustIdfv(Action<string> callback) => callback?.Invoke(string.Empty);
+
+        /// <inheritdoc />
+        public void GetAdjustGoogleAdId(Action<string> callback) => callback?.Invoke(string.Empty);
+
+        /// <inheritdoc />
+        public void GetAdjustAmazonAdId(Action<string> callback) => callback?.Invoke(string.Empty);
+
+        /// <inheritdoc />
+        public void GetAdjustSdkVersion(Action<string> callback) => callback?.Invoke(string.Empty);
+
         /// <summary>
         /// Saves events as a JSON blob to PlayerPrefs (legacy blob API).
         /// </summary>
