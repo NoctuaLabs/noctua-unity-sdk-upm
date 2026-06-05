@@ -152,6 +152,11 @@ namespace com.noctuagames.sdk.Events
         // all enter the fetch block, overwrite the single static iOS callback slot, and hang forever.
         private readonly SemaphoreSlim _firebaseFetchLock = new SemaphoreSlim(1, 1);
 
+        // Cached Adjust ADID — same single-static-callback pitfall as Firebase IDs on iOS.
+        private string _cachedAdjustAdid;
+        private bool _adjustAdidFetched;
+        private readonly SemaphoreSlim _adjustAdidFetchLock = new SemaphoreSlim(1, 1);
+
         // Write queue for burst-safe storage writes — each item is a serialized JSON string
         private readonly ConcurrentQueue<string> _writeQueue = new();
         private volatile bool _isProcessingWriteQueue;
@@ -668,6 +673,39 @@ namespace com.noctuagames.sdk.Events
                     if (!string.IsNullOrEmpty(_cachedFirebaseInstallationId))
                         data.TryAdd("firebase_installation_id", _cachedFirebaseInstallationId);
                 }
+
+                if (!_adjustAdidFetched)
+                {
+                    await _adjustAdidFetchLock.WaitAsync();
+                    try
+                    {
+                        if (!_adjustAdidFetched && _config.NativeFirebase != null)
+                        {
+                            try
+                            {
+                                var adidTcs = new TaskCompletionSource<string>();
+                                _config.NativeFirebase.GetAdjustAdid(id => adidTcs.TrySetResult(id ?? string.Empty));
+                                var adidResult = await Task.WhenAny(adidTcs.Task, Task.Delay(5000));
+                                _cachedAdjustAdid = adidResult == adidTcs.Task ? adidTcs.Task.Result : string.Empty;
+                                if (adidResult != adidTcs.Task)
+                                    _log.Warning("[Event Sender] GetAdjustAdid timed out after 5s");
+
+                                _adjustAdidFetched = true;
+                            }
+                            catch (Exception e)
+                            {
+                                _log.Warning($"[Event Sender] Failed to get Adjust ADID: {e.Message}");
+                            }
+                        }
+                    }
+                    finally
+                    {
+                        _adjustAdidFetchLock.Release();
+                    }
+                }
+
+                if (!string.IsNullOrEmpty(_cachedAdjustAdid))
+                    data.TryAdd("adjust_adid", _cachedAdjustAdid);
                 #endif
 
                 // Serialize to JSON and enqueue for per-row INSERT.
@@ -911,6 +949,7 @@ namespace com.noctuagames.sdk.Events
             if (_disposed) return;
             _cancelSendSource.Cancel();
             _firebaseFetchLock.Dispose();
+            _adjustAdidFetchLock.Dispose();
             _disposed = true;
         }
 
