@@ -51,6 +51,9 @@ namespace com.noctuagames.sdk.Events
         /// <summary>Native plugin for retrieving Firebase analytics session and installation IDs.</summary>
         public INativeFirebase NativeFirebase;
 
+        /// <summary>Native plugin for retrieving the Adjust device identifier (ADID).</summary>
+        public INativeAdjust NativeAdjust;
+
         /// <summary>Native plugin for notifying the tracker of online/offline state transitions.</summary>
         public INativeTracker NativeTracker;
 
@@ -679,12 +682,12 @@ namespace com.noctuagames.sdk.Events
                     await _adjustAdidFetchLock.WaitAsync();
                     try
                     {
-                        if (!_adjustAdidFetched && _config.NativeFirebase != null)
+                        if (!_adjustAdidFetched && _config.NativeAdjust != null)
                         {
                             try
                             {
                                 var adidTcs = new TaskCompletionSource<string>();
-                                _config.NativeFirebase.GetAdjustAdid(id => adidTcs.TrySetResult(id ?? string.Empty));
+                                _config.NativeAdjust.GetAdjustAdid(id => adidTcs.TrySetResult(id ?? string.Empty));
                                 var adidResult = await Task.WhenAny(adidTcs.Task, Task.Delay(5000));
                                 _cachedAdjustAdid = adidResult == adidTcs.Task ? adidTcs.Task.Result : string.Empty;
                                 if (adidResult != adidTcs.Task)

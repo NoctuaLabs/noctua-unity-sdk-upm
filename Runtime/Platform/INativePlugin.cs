@@ -160,6 +160,15 @@ namespace com.noctuagames.sdk
     }
 
     /// <summary>
+    /// Adjust analytics bridge — device identifiers fetched from the Adjust SDK.
+    /// </summary>
+    public interface INativeAdjust
+    {
+        /// <summary>Retrieves the Adjust Device Identifier (ADID). Available on both platforms.</summary>
+        void GetAdjustAdid(Action<string> callback);
+    }
+
+    /// <summary>
     /// Firebase and Adjust analytics bridge methods.
     /// </summary>
     public interface INativeFirebase
@@ -475,7 +484,7 @@ namespace com.noctuagames.sdk
     /// Platform implementations (AndroidPlugin, IosPlugin, DefaultNativePlugin) implement this.
     /// </summary>
     public interface INativePlugin : INativeTracker, INativeIAP, INativeAccountStore,
-        INativeDatePicker, INativeFirebase, INativeEventStorage, INativeLifecycle,
+        INativeDatePicker, INativeFirebase, INativeAdjust, INativeEventStorage, INativeLifecycle,
         INativeAppManagement, INativeLogStream, INativeDeviceMetrics,
         INativeMaintenance, INativeBuildInfo
     {

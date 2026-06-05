@@ -187,6 +187,7 @@ namespace com.noctuagames.sdk
                     NativePlugin = _nativePlugin,
                     FirebaseConfig = _config.Firebase,
                     NativeFirebase = _nativePlugin,
+                    NativeAdjust = _nativePlugin,
                     NativeTracker = _nativePlugin,
                     IsOfflineModeFunc = () => _offlineMode,
                     AdjustOfflineModeDisabledFunc = AdjustOfflineModeDisabled,
