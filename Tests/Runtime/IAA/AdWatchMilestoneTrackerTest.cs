@@ -44,6 +44,11 @@ namespace Tests.Runtime.IAA
         {
             AdWatchMilestoneTracker.ResetForAdType(AdFormatKey.Rewarded);
             AdWatchMilestoneTracker.ResetForAdType(AdFormatKey.Interstitial);
+            PlayerPrefs.DeleteKey(LegacyCountRewarded);
+            PlayerPrefs.DeleteKey(LegacyCountInterstitial);
+            PlayerPrefs.DeleteKey(LegacyFiredRewarded);
+            PlayerPrefs.DeleteKey(LegacyFiredInterstitial);
+            PlayerPrefs.Save();
         }
 
         // ═══════════════════════════════════════════════════════════════════
@@ -205,7 +210,7 @@ namespace Tests.Runtime.IAA
         }
 
         // ═══════════════════════════════════════════════════════════════════
-        // Interstitial format — independent counter
+        // Interstitial format — feeds the same combined counter
         // ═══════════════════════════════════════════════════════════════════
 
         [Test]
@@ -215,18 +220,78 @@ namespace Tests.Runtime.IAA
 
             Assert.Contains(IAAEventNames.WatchAds1x, _emittedEvents);
             Assert.Contains(IAAEventNames.WatchAds5x, _emittedEvents);
-            Assert.AreEqual(5, AdWatchMilestoneTracker.GetCount(AdFormatKey.Interstitial));
+            Assert.AreEqual(5, AdWatchMilestoneTracker.GetCount());
+        }
+
+        // ═══════════════════════════════════════════════════════════════════
+        // Combined counting — rewarded + interstitial share one counter
+        // ═══════════════════════════════════════════════════════════════════
+
+        [Test]
+        public void RecordWatch_RewardedAndInterstitial_CombinedCounter()
+        {
+            for (int i = 0; i < 3; i++) _tracker.RecordWatch(AdFormatKey.Rewarded);
+            for (int i = 0; i < 2; i++) _tracker.RecordWatch(AdFormatKey.Interstitial);
+
+            // 3 rewarded + 2 interstitial = 5 combined → 5x must fire exactly once
+            Assert.Contains(IAAEventNames.WatchAds5x, _emittedEvents,
+                "3 rewarded + 2 interstitial (5 combined) must trigger the 5x milestone");
+            Assert.AreEqual(1, _emittedEvents.FindAll(e => e == IAAEventNames.WatchAds5x).Count,
+                "5x milestone must fire exactly once for combined views");
+            Assert.AreEqual(5, AdWatchMilestoneTracker.GetCount(),
+                "Combined counter must total both formats");
         }
 
         [Test]
-        public void RecordWatch_RewardedAndInterstitial_IndependentCounters()
+        public void RecordWatch_MixedFormats_FireFiveAndTen()
         {
-            for (int i = 0; i < 3; i++) _tracker.RecordWatch(AdFormatKey.Rewarded);
-            for (int i = 0; i < 3; i++) _tracker.RecordWatch(AdFormatKey.Interstitial);
+            for (int i = 0; i < 6; i++) _tracker.RecordWatch(AdFormatKey.Interstitial);
+            for (int i = 0; i < 4; i++) _tracker.RecordWatch(AdFormatKey.Rewarded);
 
-            // Neither has reached 5 yet
-            Assert.AreEqual(0, _emittedEvents.Count,
-                "3+3 views (different types) must not yet trigger 5x milestone");
+            // 6 + 4 = 10 combined
+            Assert.Contains(IAAEventNames.WatchAds5x,  _emittedEvents);
+            Assert.Contains(IAAEventNames.WatchAds10x, _emittedEvents);
+            Assert.AreEqual(10, AdWatchMilestoneTracker.GetCount());
+        }
+
+        // ═══════════════════════════════════════════════════════════════════
+        // Migration from legacy per-format state
+        // ═══════════════════════════════════════════════════════════════════
+
+        private const string LegacyCountRewarded     = "noctua.ads.watch.count." + AdFormatKey.Rewarded;
+        private const string LegacyCountInterstitial = "noctua.ads.watch.count." + AdFormatKey.Interstitial;
+        private const string LegacyFiredRewarded     = "noctua.ads.watch.fired." + AdFormatKey.Rewarded;
+        private const string LegacyFiredInterstitial = "noctua.ads.watch.fired." + AdFormatKey.Interstitial;
+
+        [Test]
+        public void RecordWatch_Migration_SumsLegacyCounts()
+        {
+            // Legacy install had 4 rewarded + 3 interstitial views (7 total), nothing fired yet.
+            PlayerPrefs.SetInt(LegacyCountRewarded, 4);
+            PlayerPrefs.SetInt(LegacyCountInterstitial, 3);
+            PlayerPrefs.Save();
+
+            // First watch after upgrade → migration seeds combined=7, then +1 = 8.
+            _tracker.RecordWatch(AdFormatKey.Rewarded);
+
+            Assert.AreEqual(8, AdWatchMilestoneTracker.GetCount(),
+                "Combined counter must be seeded from the sum of legacy per-format counts");
+            Assert.Contains(IAAEventNames.WatchAds5x, _emittedEvents,
+                "Crossing 5 via migrated total must fire the 5x milestone");
+        }
+
+        [Test]
+        public void RecordWatch_Migration_PreservesFiredMask_NoDuplicateFire()
+        {
+            // Legacy install already fired 5x on the rewarded counter (bit 0 set), 6 total views.
+            PlayerPrefs.SetInt(LegacyCountRewarded, 6);
+            PlayerPrefs.SetInt(LegacyFiredRewarded, 1); // bit0 = 5x
+            PlayerPrefs.Save();
+
+            _tracker.RecordWatch(AdFormatKey.Interstitial); // combined 6 → 7
+
+            Assert.IsFalse(_emittedEvents.Contains(IAAEventNames.WatchAds5x),
+                "5x must not re-fire after migrating a legacy mask that already has it set");
         }
 
         // ═══════════════════════════════════════════════════════════════════

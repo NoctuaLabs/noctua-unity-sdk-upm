@@ -42,7 +42,11 @@ namespace com.noctuagames.sdk.UI
                 });
 
             _log.Debug($"TrackCustomEvent OnAccountChanged Login");
-            
+
+            // Fire login retention milestones (login_on_d1/d3/d7/d14/d30) if today lands on a
+            // milestone day since install. Same cross-layer pattern as AdWatchMilestoneTracker.
+            LoginMilestoneTracker.Default?.RecordLogin();
+
             Show(userBundle);
         }
 

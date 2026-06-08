@@ -14,6 +14,13 @@ namespace com.noctuagames.sdk
         private readonly NoctuaLogger _log = new(typeof(UserSegmentManager));
         private const string PrefsPrefix = "NoctuaSeg_";
 
+        /// <summary>
+        /// PlayerPrefs key holding the UTC install timestamp (in <see cref="DateTime.Ticks"/>,
+        /// stored as a string). Written once on first launch. Exposed so other trackers
+        /// (e.g. login retention milestones) read the same single source of truth.
+        /// </summary>
+        public const string InstallTicksKey = PrefsPrefix + "install_ticks";
+
         // ── Country tier tables ────────────────────────────────────────────────────
         private static readonly HashSet<string> Tier1Countries = new(StringComparer.OrdinalIgnoreCase)
         {
@@ -139,15 +146,43 @@ namespace com.noctuagames.sdk
 
         // ── Private helpers ────────────────────────────────────────────────────────
 
+        /// <summary>
+        /// Returns the persisted UTC install timestamp ticks, or <c>null</c> if it has not
+        /// been written yet. Side-effect free.
+        /// </summary>
+        public static long? GetInstallTicks()
+        {
+            string stored = PlayerPrefs.GetString(InstallTicksKey, "");
+            if (string.IsNullOrEmpty(stored) || !long.TryParse(stored, out long ticks))
+            {
+                return null;
+            }
+            return ticks;
+        }
+
+        /// <summary>
+        /// Writes the UTC install timestamp on first call (no-op if already present). Static so the
+        /// SDK composition root can anchor the install date at init time, independent of whether the
+        /// ads/mediation path (which constructs <see cref="UserSegmentManager"/>) ever runs. Other
+        /// consumers (e.g. login retention milestones) depend on this key existing.
+        /// </summary>
+        public static void EnsureInstallTimestamp()
+        {
+            if (PlayerPrefs.HasKey(InstallTicksKey))
+            {
+                return;
+            }
+            PlayerPrefs.SetString(InstallTicksKey, DateTime.UtcNow.Ticks.ToString());
+            PlayerPrefs.Save();
+        }
+
         private void InitializeInstallTimestamp()
         {
-            string key = $"{PrefsPrefix}install_ticks";
-            if (!PlayerPrefs.HasKey(key))
+            bool firstLaunch = !PlayerPrefs.HasKey(InstallTicksKey);
+            EnsureInstallTimestamp();
+            if (firstLaunch)
             {
-                long ticks = DateTime.UtcNow.Ticks;
-                PlayerPrefs.SetString(key, ticks.ToString());
-                PlayerPrefs.Save();
-                _log.Debug($"Install timestamp recorded: {ticks}");
+                _log.Debug($"Install timestamp recorded: {PlayerPrefs.GetString(InstallTicksKey, "")}");
             }
         }
 
@@ -160,15 +195,13 @@ namespace com.noctuagames.sdk
 
         private int GetDaysSinceInstall()
         {
-            string key = $"{PrefsPrefix}install_ticks";
-            string stored = PlayerPrefs.GetString(key, "");
-
-            if (string.IsNullOrEmpty(stored) || !long.TryParse(stored, out long installTicks))
+            long? installTicks = GetInstallTicks();
+            if (installTicks == null)
             {
                 return 0;
             }
 
-            var installDate = new DateTime(installTicks, DateTimeKind.Utc);
+            var installDate = new DateTime(installTicks.Value, DateTimeKind.Utc);
             return (int)(DateTime.UtcNow - installDate).TotalDays;
         }
 

@@ -143,9 +143,14 @@ namespace com.noctuagames.sdk
                 // list; TrackerDebugMonitor subscribes to the static tracker
                 // registry which also receives native-bridge emissions from
                 // the iOS / Android SDKs.
-                _httpLog = new HttpInspectorLog();
-                _debugMonitor = new TrackerDebugMonitor();
-                _logLedger = new LogInspectorLedger();
+                // Size the ring buffers by device RAM — high-end QA devices keep much more
+                // history; low-RAM devices stay at the conservative defaults (no OOM risk).
+                var inspectorLimits = InspectorBufferLimits.ForCurrentDevice();
+                _log.Info($"Inspector buffer limits (RAM {SystemInfo.systemMemorySize}MB): " +
+                          $"logs={inspectorLimits.Logs}, trackers={inspectorLimits.Trackers}, http={inspectorLimits.Http}");
+                _httpLog = new HttpInspectorLog(inspectorLimits.Http);
+                _debugMonitor = new TrackerDebugMonitor(inspectorLimits.Trackers);
+                _logLedger = new LogInspectorLedger(inspectorLimits.Logs);
                 _unityLogStream = new UnityLogStream();
                 HttpInspectorHooks.RegisterObserver(_httpLog);
                 TrackerObserverRegistry.Register(_debugMonitor);
@@ -317,6 +322,18 @@ namespace com.noctuagames.sdk
             // Route through NoctuaEventService.TrackCustomEvent so milestones reach Noctua Analytics
             // AND third-party trackers (Adjust / Firebase / Facebook) via the unified dispatch path.
             new AdWatchMilestoneTracker((eventName, payload) => _event.TrackCustomEvent(eventName, payload))
+                .InstallAsDefault();
+
+            // Anchor the install timestamp at SDK init. Without this, the install date is only
+            // written lazily when UserSegmentManager is constructed in the mediation path
+            // (MediationManager.CreateNetworks) — so games that log in before/without ads would
+            // never have an install date, and login_on_dN could never fire.
+            UserSegmentManager.EnsureInstallTimestamp();
+
+            // Install the login-retention milestone tracker. WelcomeNotificationPresenter calls
+            // LoginMilestoneTracker.Default.RecordLogin() on each login (account changed). Routed
+            // through TrackCustomEvent so login_on_dN reaches Noctua Analytics AND third-party trackers.
+            new LoginMilestoneTracker((eventName, payload) => _event.TrackCustomEvent(eventName, payload))
                 .InstallAsDefault();
             _eventSender.SetProperties(isSandbox: _config.Noctua.IsSandbox, gameId: _config.GameID);
             _isOfflineFirst = _config.Noctua.IsOfflineFirst;
@@ -957,16 +974,16 @@ namespace com.noctuagames.sdk
                 {
                     var iapTaichi = new IAPTaichiConfig { RevenueThreshold = rcIAPRevenue };
                     Instance.Value._iap.SetIAPTaichiConfig(iapTaichi);
-                    log.Debug($"[TaichiIAP] config applied: revenueThreshold={iapTaichi.RevenueThreshold:G} USD");
+                    log.Debug($"[taichi] iap config applied: revenueThreshold={iapTaichi.RevenueThreshold:G} USD");
                 }
                 else
                 {
-                    log.Warning("[TaichiIAP] Firebase Remote Config value is empty or not set, skipping config");
+                    log.Warning("[taichi] iap Firebase Remote Config value is empty or not set, skipping config");
                 }
             }
             catch (Exception e)
             {
-                log.Warning($"[TaichiIAP] failed to load Firebase Remote Config: {e.Message}");
+                log.Warning($"[taichi] iap failed to load Firebase Remote Config: {e.Message}");
             }
 
             Instance.Value._eventSender.Send("init");

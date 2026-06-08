@@ -51,6 +51,8 @@ namespace com.noctuagames.sdk.Inspector
         private bool _editorBannerDismissed;
         private Tab _tab = Tab.Timeline;
         private string _trackerFilter = "All";
+        private string _trackerSearch = "";                 // keyword filter for the Trackers tab
+        private System.Text.RegularExpressions.Regex _trackerSearchRegex; // non-null when `re:` prefix is set
 
         private VisualElement _root;
         private VisualElement _listContainer;
@@ -444,6 +446,7 @@ namespace com.noctuagames.sdk.Inspector
                 case "Firebase": return new Color(0xFF / 255f, 0xA0 / 255f, 0x00 / 255f, 1f); // Firebase orange
                 case "Adjust":   return Ok;                                                   // green
                 case "Facebook": return AccentHttp;                                           // Facebook blue
+                case "Taichi":   return new Color(0x2D / 255f, 0xD4 / 255f, 0xBF / 255f, 1f); // teal/cyan
                 default:         return AccentTracker;
             }
         }
@@ -489,7 +492,7 @@ namespace com.noctuagames.sdk.Inspector
             bar.style.backgroundColor = Bg1;
 
             _filterChips.Clear();
-            foreach (var key in new[] { "All", "Noctua", "Firebase", "Adjust", "Facebook" })
+            foreach (var key in new[] { "All", "Noctua", "Firebase", "Adjust", "Facebook", "Taichi" })
             {
                 var chip = new Label(key);
                 chip.style.paddingLeft = 10; chip.style.paddingRight = 10;
@@ -511,6 +514,20 @@ namespace com.noctuagames.sdk.Inspector
                 bar.Add(chip);
             }
             UpdateFilterChipStyles();
+
+            // Keyword search — matches event name, provider, error, and payload/extra params.
+            // Supports `re:<pattern>` for regex; plain substring otherwise.
+            var search = new TextField { value = _trackerSearch };
+            search.style.minWidth = 140;
+            search.style.marginLeft = 4; search.style.marginRight = 4;
+            search.tooltip = "Search trackers: event name / provider / payload. Prefix `re:` for regex.";
+            search.RegisterValueChangedCallback(evt =>
+            {
+                _trackerSearch = evt.newValue ?? "";
+                CompileTrackerSearch();
+                RenderList();
+            });
+            bar.Add(search);
 
             var clear = MakeTextButton("Clear", Err);
             clear.RegisterCallback<ClickEvent>(_ =>
@@ -693,11 +710,34 @@ namespace com.noctuagames.sdk.Inspector
             if (!_editorBannerDismissed) _listContainer.Add(EditorOnlyBanner());
 #endif
 
-            var filter = _trackerFilter == "All" ? null : _trackerFilter;
-            var snap = _monitor.Snapshot(filter);
+            // "Taichi" is not a provider — taichi_* events are emitted under the Noctua provider.
+            // Filter by event-name prefix instead of provider equality.
+            IReadOnlyList<TrackerEmission> snap;
+            if (_trackerFilter == "Taichi")
+            {
+                snap = _monitor.Snapshot(null)
+                    .Where(e => e.EventName != null &&
+                                e.EventName.StartsWith("taichi_", StringComparison.OrdinalIgnoreCase))
+                    .ToList();
+            }
+            else
+            {
+                var filter = _trackerFilter == "All" ? null : _trackerFilter;
+                snap = _monitor.Snapshot(filter);
+            }
+
+            // Apply the keyword search on top of the provider/Taichi filter.
+            if (!string.IsNullOrEmpty(_trackerSearch))
+            {
+                snap = snap.Where(PassesTrackerSearch).ToList();
+            }
+
             if (snap.Count == 0)
             {
-                _listContainer.Add(Placeholder("No tracker events yet. Play the game or send a test event to see activity here."));
+                _listContainer.Add(Placeholder(
+                    string.IsNullOrEmpty(_trackerSearch)
+                        ? "No tracker events yet. Play the game or send a test event to see activity here."
+                        : $"No tracker events match \"{_trackerSearch}\". Adjust the filter or search above."));
                 return;
             }
             foreach (var em in snap.Reverse())
@@ -706,6 +746,70 @@ namespace com.noctuagames.sdk.Inspector
                 if (em.Phase == TrackerEventPhase.Failed || em.Phase == TrackerEventPhase.TimedOut) failing++;
                 else if (em.Phase == TrackerEventPhase.Acknowledged) ok++;
                 else inflight++;
+            }
+        }
+
+        /// <summary>
+        /// Compiles <see cref="_trackerSearch"/> into <see cref="_trackerSearchRegex"/> when it uses
+        /// the <c>re:</c> prefix. Invalid patterns fall back to plain substring matching.
+        /// </summary>
+        private void CompileTrackerSearch()
+        {
+            const string prefix = "re:";
+            if (!string.IsNullOrEmpty(_trackerSearch) &&
+                _trackerSearch.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+            {
+                var pattern = _trackerSearch.Substring(prefix.Length);
+                try
+                {
+                    _trackerSearchRegex = string.IsNullOrEmpty(pattern)
+                        ? null
+                        : new System.Text.RegularExpressions.Regex(
+                            pattern, System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+                }
+                catch
+                {
+                    _trackerSearchRegex = null; // invalid regex → substring fallback on the raw text
+                }
+            }
+            else
+            {
+                _trackerSearchRegex = null;
+            }
+        }
+
+        /// <summary>
+        /// True when the emission matches the current keyword search. Matches against provider,
+        /// event name, error, and the flattened payload / extra-param key=value pairs.
+        /// </summary>
+        private bool PassesTrackerSearch(TrackerEmission em)
+        {
+            if (em == null) return false;
+            var haystack = BuildTrackerSearchText(em);
+            if (_trackerSearchRegex != null)
+            {
+                return _trackerSearchRegex.IsMatch(haystack);
+            }
+            return haystack.IndexOf(_trackerSearch, StringComparison.OrdinalIgnoreCase) >= 0;
+        }
+
+        private static string BuildTrackerSearchText(TrackerEmission em)
+        {
+            var sb = new System.Text.StringBuilder();
+            sb.Append(em.Provider).Append(' ')
+              .Append(em.EventName).Append(' ')
+              .Append(em.Error).Append(' ');
+            AppendDictForSearch(sb, em.Payload);
+            AppendDictForSearch(sb, em.ExtraParams);
+            return sb.ToString();
+        }
+
+        private static void AppendDictForSearch(System.Text.StringBuilder sb, IReadOnlyDictionary<string, object> dict)
+        {
+            if (dict == null) return;
+            foreach (var kv in dict)
+            {
+                sb.Append(kv.Key).Append('=').Append(kv.Value).Append(' ');
             }
         }
 

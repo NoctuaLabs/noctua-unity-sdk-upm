@@ -13,12 +13,24 @@ namespace com.noctuagames.sdk
     /// </summary>
     public class HttpInspectorLog : IHttpObserver
     {
+        /// <summary>Default capacity, used when no explicit value is passed to the constructor.</summary>
         public const int Capacity = 100;
+
+        private readonly int _capacity;
 
         private readonly Dictionary<Guid, HttpExchange> _byId = new();
         private readonly LinkedList<Guid> _order = new();
         private readonly ConcurrentQueue<Action> _mainThreadWork = new();
         private readonly object _lock = new();
+
+        /// <summary>
+        /// Creates a ring buffer holding at most <paramref name="capacity"/> exchanges
+        /// (oldest dropped on overflow). Non-positive values fall back to <see cref="Capacity"/>.
+        /// </summary>
+        public HttpInspectorLog(int capacity = Capacity)
+        {
+            _capacity = capacity > 0 ? capacity : Capacity;
+        }
 
         /// <summary>
         /// Fires whenever an exchange transitions or completes.
@@ -91,7 +103,7 @@ namespace com.noctuagames.sdk
                 if (!_byId.ContainsKey(ex.Id))
                 {
                     _order.AddLast(ex.Id);
-                    if (_order.Count > Capacity)
+                    if (_order.Count > _capacity)
                     {
                         var first = _order.First;
                         _byId.Remove(first.Value);
