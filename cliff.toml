@@ -1,0 +1,101 @@
+# git-cliff configuration for noctua-sdk-unity-upm
+# Docs: https://git-cliff.org/docs/configuration
+#
+# Semver bump rules (conventional commits):
+#   feat:             → MINOR  (0.x.0)
+#   fix:              → PATCH  (0.0.x)  — real runtime bugs only
+#   improve:          → PATCH  (0.0.x)  — non-bug improvements (perf, refactor, UX/observability)
+#   correct:          → PATCH  (0.0.x)  — corrections that are not bugs (config, naming, copy)
+#   feat! / BREAKING  → MAJOR  (x.0.0)
+#   chore:            → PATCH  (0.0.x)  — dep bumps and tooling (shown in changelog)
+#   docs/test/ci/etc. → no bump, hidden from changelog
+
+[changelog]
+header = """
+# Changelog
+
+All notable changes to this project will be documented in this file.
+Versions follow [Semantic Versioning](https://semver.org/).
+
+"""
+body = """
+{% if version %}\
+## [{{ version | trim_start_matches(pat="v") }}] - {{ timestamp | date(format="%Y-%m-%d") }}
+{% else %}\
+## [Unreleased]
+{% endif %}\
+{% for group, commits in commits | group_by(attribute="group") %}
+### {{ group | striptags | trim }}
+{% for commit in commits %}
+- {% if commit.breaking %}**BREAKING** {% endif %}\
+  {% if commit.scope %}*({{ commit.scope }})* {% endif %}\
+  {{ commit.message | upper_first }}\
+  {% if commit.github.username %} by @{{ commit.github.username }}{% endif %}\
+  {% if commit.github.pr_number %} in [#{{ commit.github.pr_number }}]({{ commit.github.pr_url }}){% endif %}\
+{% endfor %}
+{% endfor %}\n
+"""
+trim = true
+footer = ""
+
+[git]
+# Parse commits according to the Conventional Commits specification.
+# https://www.conventionalcommits.org
+conventional_commits = true
+
+# Only include commits that match the conventional commit format.
+filter_unconventional = true
+
+# Split commits on newlines so multi-line bodies are handled correctly.
+split_commits = false
+
+# Regex for parsing commit messages.
+commit_parsers = [
+  # Internal-scope fixes — skip before the general fix: rule catches them
+  { message = "^fix\\(ci\\)", skip = true },
+  { message = "^fix\\(cd\\)", skip = true },
+  { message = "^fix\\(build\\)", skip = true },
+  { message = "^fix\\(test\\)", skip = true },
+  { message = "^fix\\(deps\\)", skip = true },
+  # Internal feat scopes — same treatment
+  { message = "^feat\\(ci\\)", skip = true },
+  { message = "^feat\\(cd\\)", skip = true },
+  # User-facing types
+  { message = "^feat", group = "🚀 Features" },
+  { message = "^fix", group = "🐛 Bug Fixes" },
+  { message = "^improve", group = "✨ Improvements" },
+  { message = "^correct", group = "✨ Improvements" },
+  { message = "^perf", group = "✨ Improvements" },
+  { message = "^refactor", group = "✨ Improvements" },
+  # Internal types — no changelog, no bump
+  { message = "^docs", skip = true },
+  { message = "^test", skip = true },
+  { message = "^chore\\(release\\)", skip = true },
+  { message = "^chore", group = "⚙️ Miscellaneous" },
+  { message = "^ci", skip = true },
+  { message = "^style", skip = true },
+  { message = "^build", skip = true },
+  { message = "^bump", skip = true },
+  { body = ".*security", group = "🔒 Security" },
+]
+
+# Protect breaking changes from being skipped due to their group.
+protect_breaking_commits = true
+
+# Filter commits out of the changelog.
+filter_commits = false
+
+# Glob/regex pattern for matching git tags.
+# This repo uses bare semver tags (e.g. 0.126.0) — no v / platform prefix.
+tag_pattern = "[0-9]+\\.[0-9]+\\.[0-9]+"
+
+# Sort commits inside sections by oldest/newest.
+sort_commits = "oldest"
+
+[bump]
+# Semver bump logic:
+#   BREAKING CHANGE  → MAJOR
+#   feat             → MINOR
+#   fix / perf       → PATCH
+features_always_bump_minor = true
+breaking_always_bump_major = true
