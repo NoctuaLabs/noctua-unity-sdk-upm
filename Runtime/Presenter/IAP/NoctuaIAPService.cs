@@ -2472,8 +2472,11 @@ namespace com.noctuagames.sdk
         /// <param name="orderRequest">The completed order. Payload mirrors <c>purchase_completed</c>.</param>
         private void SendFirstPurchaseEventIfFirstTime(OrderRequest orderRequest)
         {
+            // Every log line in this method carries the [first_purchase] tag so the whole flow
+            // (skips, send, failures) can be found with one grep.
             if (orderRequest == null)
             {
+                _log.Debug("[first_purchase] skipped: orderRequest is null");
                 return;
             }
 
@@ -2481,8 +2484,11 @@ namespace com.noctuagames.sdk
             {
                 if (PlayerPrefs.GetInt(FirstPurchasePrefKey, 0) == 1)
                 {
+                    _log.Debug($"[first_purchase] skipped: already sent previously (FirstPurchasePrefKey set), orderID {orderRequest.Id}, productID {orderRequest.ProductId}");
                     return;
                 }
+
+                _log.Debug($"[first_purchase] first-time purchase detected, preparing event for orderID {orderRequest.Id}, productID {orderRequest.ProductId}");
 
                 var payload = new Dictionary<string, IConvertible>
                 {
@@ -2501,20 +2507,22 @@ namespace com.noctuagames.sdk
                 PlayerPrefs.SetInt(FirstPurchasePrefKey, 1);
                 PlayerPrefs.Save();
 
-                _log.Info($"first_purchase event sent for orderID {orderRequest.Id}, productID {orderRequest.ProductId}");
+                _log.Info($"[first_purchase] event sent for orderID {orderRequest.Id}, productID {orderRequest.ProductId}");
             }
             catch (Exception e)
             {
                 // Never let first_purchase tracking disrupt the purchase flow.
-                _log.Warning($"Failed to send first_purchase event: {e.Message}");
+                _log.Warning($"[first_purchase] failed to send event: {e.Message}");
             }
         }
 
         private void TrackTaichiIAP(OrderRequest order)
         {
+            // All log lines carry the [taichi] tag so the IAP-revenue path can be found alongside
+            // the ad-impression taichi steps with one grep.
             if (_taichiConfig == null)
             {
-                _log.Warning("[TaichiIAP] config is null, skipping revenue tracking");
+                _log.Warning("[taichi] iap config is null, skipping revenue tracking");
                 return;
             }
 
@@ -2524,7 +2532,7 @@ namespace com.noctuagames.sdk
                 var totalRevenue = stored + (double)order.PriceInUSD;
                 PlayerPrefs.SetString(KeyIAPTotalRevenue, totalRevenue.ToString("G"));
 
-                _log.Debug($"[TaichiIAP] revenue progress: {totalRevenue:G} / {_taichiConfig.RevenueThreshold:G} USD");
+                _log.Debug($"[taichi] iap revenue progress: {totalRevenue:G} / {_taichiConfig.RevenueThreshold:G} USD");
 
                 if (totalRevenue >= _taichiConfig.RevenueThreshold)
                 {
@@ -2533,6 +2541,7 @@ namespace com.noctuagames.sdk
                         { "value",    totalRevenue },
                         { "currency", "USD" }
                     };
+                    _log.Info($"[taichi] taichi_iap_revenue fired (total={totalRevenue:G} >= {_taichiConfig.RevenueThreshold:G} USD)");
                     _nativePlugin?.TrackCustomEvent("taichi_iap_revenue", payload);
                     PlayerPrefs.SetString(KeyIAPTotalRevenue, "0");
                     PlayerPrefs.Save();
@@ -2540,7 +2549,7 @@ namespace com.noctuagames.sdk
             }
             catch (Exception e)
             {
-                _log.Warning($"TrackTaichiIAP failed: {e.Message}");
+                _log.Warning($"[taichi] iap revenue tracking failed: {e.Message}");
             }
         }
 

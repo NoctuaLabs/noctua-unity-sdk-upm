@@ -48,6 +48,9 @@ namespace com.noctuagames.sdk.Events
         private  Dictionary<string, bool> _remoteFeatureFlags;
         private readonly ILogger _log = new NoctuaLogger(typeof(SessionTracker));
 
+        /// <summary>Stable, greppable tag prefixed to every log line from this tracker.
+        /// Search the logs for <c>[session_tracker]</c> to find all related output.</summary>
+        private const string LogTag = "[session_tracker]";
 
         private DateTime _nextHeartbeat;
         private DateTime _nextSessionTimeout;
@@ -106,7 +109,7 @@ namespace com.noctuagames.sdk.Events
 
             _cumulativeSessionEngagementMs += totalMs;
 
-            _log.Info($"[Session Tracker] Sending noctua_user_engagement: engagement_time_msec={totalMs}, lifecycle={lifecycle}");
+            _log.Info($"{LogTag} Sending noctua_user_engagement: engagement_time_msec={totalMs}, lifecycle={lifecycle}");
             _eventSender.Send("noctua_user_engagement", new Dictionary<string, IConvertible>
             {
                 { "engagement_time_msec", totalMs },
@@ -121,7 +124,7 @@ namespace com.noctuagames.sdk.Events
         {
             if (_cumulativeSessionEngagementMs <= 0) return;
 
-            _log.Info($"[Session Tracker] Sending noctua_user_engagement_per_session: engagement_time_msec={_cumulativeSessionEngagementMs}");
+            _log.Info($"{LogTag} Sending noctua_user_engagement_per_session: engagement_time_msec={_cumulativeSessionEngagementMs}");
             _eventSender.Send("noctua_user_engagement_per_session", new Dictionary<string, IConvertible>
             {
                 { "engagement_time_msec", _cumulativeSessionEngagementMs }
@@ -181,7 +184,7 @@ namespace com.noctuagames.sdk.Events
             if (!long.TryParse(PlayerPrefs.GetString(KeyOrphanedSessionUnsentMs, "0"), out var unsentMs))
                 unsentMs = 0;
 
-            _log.Info($"[Session Tracker] Recovering orphaned session {savedSessionId}, cumulativeMs={cumulativeMs}, unsentMs={unsentMs}");
+            _log.Info($"{LogTag} Recovering orphaned session {savedSessionId}, cumulativeMs={cumulativeMs}, unsentMs={unsentMs}");
 
             // Tag recovery events with the old session_id.
             // session_id is also baked into each data dict so the async enrichment
@@ -234,7 +237,7 @@ namespace com.noctuagames.sdk.Events
         {
             if (_pauseStatus == pauseStatus)
             {
-                _log.Info($"[Session Tracker] Application pause status unchanged: {pauseStatus}");
+                _log.Info($"{LogTag} Application pause status unchanged: {pauseStatus}");
                 return;
             }
 
@@ -246,7 +249,7 @@ namespace com.noctuagames.sdk.Events
                 SendUserEngagementEvent("pause");
 
                 _eventSender.Send("session_pause");
-                _log.Info($"[Session Tracker] Application paused, let's flush events");
+                _log.Info($"{LogTag} Application paused, let's flush events");
                 _eventSender.Flush();
                 _nextSessionTimeout = DateTime.UtcNow.AddMilliseconds(_config.SessionTimeoutMs);
 
@@ -280,7 +283,7 @@ namespace com.noctuagames.sdk.Events
 
             if (_sessionId != null)
             {
-            	_log.Info($"[Session Tracker] Application unpaused, resume session");
+            	_log.Info($"{LogTag} Application unpaused, resume session");
                 _eventSender.Send("session_continue");
                 _foregroundStopwatch.Start();
             }
@@ -292,11 +295,11 @@ namespace com.noctuagames.sdk.Events
                 var msSinceLastStart = (DateTime.UtcNow - _lastSessionStartTime).TotalMilliseconds;
                 if (msSinceLastStart < SessionMinGapMs)
                 {
-                    _log.Warning($"[Session Tracker] Rapid session_start suppressed: {msSinceLastStart:F0}ms since last session_start (min gap: {SessionMinGapMs}ms). Foreground time during this window will not be tracked.");
+                    _log.Warning($"{LogTag} Rapid session_start suppressed: {msSinceLastStart:F0}ms since last session_start (min gap: {SessionMinGapMs}ms). Foreground time during this window will not be tracked.");
                     return;
                 }
 
-            	_log.Info($"[Session Tracker] Application unpaused, start a new session");
+            	_log.Info($"{LogTag} Application unpaused, start a new session");
 
                 // Recover any session orphaned by a previous force-kill before starting the new one.
                 // This runs here (not in Noctua.Initialization) to guarantee ordering:

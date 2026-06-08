@@ -19,6 +19,10 @@ namespace com.noctuagames.sdk.Events
         private readonly CancellationTokenSource _cancelHeartbeatSource;
         private readonly ILogger _log = new NoctuaLogger(typeof(NativeSessionTracker));
 
+        /// <summary>Stable, greppable tag prefixed to every log line from this tracker.
+        /// Search the logs for <c>[native_session_tracker]</c> to find all related output.</summary>
+        private const string LogTag = "[native_session_tracker]";
+
         private DateTime _nextHeartbeat;
         private DateTime _nextSessionTimeout;
         private bool _pauseStatus;
@@ -52,7 +56,7 @@ namespace com.noctuagames.sdk.Events
         {
             if (!_pauseStatus)
             {
-                _log.Info("[Native Session Tracker] Already in foreground, ignoring duplicate resume");
+                _log.Info($"{LogTag} Already in foreground, ignoring duplicate resume");
                 return;
             }
 
@@ -70,7 +74,7 @@ namespace com.noctuagames.sdk.Events
 
             if (!_started)
             {
-                _log.Info("[Native Session Tracker] First resume, sending lifecycle=start");
+                _log.Info($"{LogTag} First resume, sending lifecycle=start");
                 _started = true;
                 _cumulativeSessionEngagementMs = 0;
                 SendNativeUserEngagementEvent("start");
@@ -78,7 +82,7 @@ namespace com.noctuagames.sdk.Events
             }
             else
             {
-                _log.Info("[Native Session Tracker] Resume from pause");
+                _log.Info($"{LogTag} Resume from pause");
                 _foregroundStopwatch.Start();
             }
         }
@@ -90,7 +94,7 @@ namespace com.noctuagames.sdk.Events
         {
             if (_pauseStatus)
             {
-                _log.Info("[Native Session Tracker] Already paused, ignoring duplicate pause");
+                _log.Info($"{LogTag} Already paused, ignoring duplicate pause");
                 return;
             }
 
@@ -117,7 +121,7 @@ namespace com.noctuagames.sdk.Events
 
             _cumulativeSessionEngagementMs += totalMs;
 
-            _log.Info($"[Native Session Tracker] Sending native_user_engagement: engagement_time_msec={totalMs}, lifecycle={lifecycle}");
+            _log.Info($"{LogTag} Sending native_user_engagement: engagement_time_msec={totalMs}, lifecycle={lifecycle}");
             _eventSender.Send("native_user_engagement", new Dictionary<string, IConvertible>
             {
                 { "engagement_time_msec", totalMs },
@@ -129,7 +133,7 @@ namespace com.noctuagames.sdk.Events
         {
             if (_cumulativeSessionEngagementMs <= 0) return;
 
-            _log.Info($"[Native Session Tracker] Sending native_user_engagement_per_session: engagement_time_msec={_cumulativeSessionEngagementMs}");
+            _log.Info($"{LogTag} Sending native_user_engagement_per_session: engagement_time_msec={_cumulativeSessionEngagementMs}");
             _eventSender.Send("native_user_engagement_per_session", new Dictionary<string, IConvertible>
             {
                 { "engagement_time_msec", _cumulativeSessionEngagementMs }
