@@ -687,17 +687,28 @@ namespace com.noctuagames.sdk.Events
                             try
                             {
                                 var adidTcs = new TaskCompletionSource<string>();
-                                _config.NativeAdjust.GetAdjustAdid(id => adidTcs.TrySetResult(id ?? string.Empty));
+                                // iOS: use IDFA (Apple's advertising ID, requires ATT permission)
+                                // Android: use Google Advertising ID
+#if UNITY_IOS
+                                _config.NativeAdjust.GetAdjustIdfa(id => adidTcs.TrySetResult(id ?? string.Empty));
                                 var adidResult = await Task.WhenAny(adidTcs.Task, Task.Delay(5000));
-                                _cachedAdjustAdid = adidResult == adidTcs.Task ? adidTcs.Task.Result : string.Empty;
                                 if (adidResult != adidTcs.Task)
-                                    _log.Warning("[Event Sender] GetAdjustAdid timed out after 5s");
-
+                                    _log.Warning("[Event Sender] GetAdjustIdfa timed out after 5s");
+#elif UNITY_ANDROID
+                                _config.NativeAdjust.GetAdjustGoogleAdId(id => adidTcs.TrySetResult(id ?? string.Empty));
+                                var adidResult = await Task.WhenAny(adidTcs.Task, Task.Delay(5000));
+                                if (adidResult != adidTcs.Task)
+                                    _log.Warning("[Event Sender] GetAdjustGoogleAdId timed out after 5s");
+#else
+                                adidTcs.TrySetResult(string.Empty);
+                                var adidResult = adidTcs.Task;
+#endif
+                                _cachedAdjustAdid = adidResult == adidTcs.Task ? adidTcs.Task.Result : string.Empty;
                                 _adjustAdidFetched = true;
                             }
                             catch (Exception e)
                             {
-                                _log.Warning($"[Event Sender] Failed to get Adjust ADID: {e.Message}");
+                                _log.Warning($"[Event Sender] Failed to get adjust_adid: {e.Message}");
                             }
                         }
                     }
