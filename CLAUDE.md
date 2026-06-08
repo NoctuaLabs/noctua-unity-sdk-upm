@@ -190,11 +190,19 @@ check — pile new debug surfaces onto this same gate.
 | Tab | Source | Backing class |
 |---|---|---|
 | Timeline | combined HTTP + Trackers | `NoctuaInspectorController.cs` |
-| HTTP | `HttpInspectorLog` ring buffer (100 cap) | `Runtime/Infrastructure/Debug/HttpInspectorLog.cs` |
-| Trackers | `TrackerDebugMonitor` ring buffer (200 cap) | `Runtime/Presenter/Debug/TrackerDebugMonitor.cs` |
-| Logs | Unity `Application.logMessageReceivedThreaded` + native bus | `Runtime/Infrastructure/Debug/LogInspectorLedger.cs` (5,000 cap), `UnityLogStream.cs` |
+| HTTP | `HttpInspectorLog` ring buffer | `Runtime/Infrastructure/Debug/HttpInspectorLog.cs` |
+| Trackers | `TrackerDebugMonitor` ring buffer | `Runtime/Presenter/Debug/TrackerDebugMonitor.cs` |
+| Logs | Unity `Application.logMessageReceivedThreaded` + native bus | `Runtime/Infrastructure/Debug/LogInspectorLedger.cs`, `UnityLogStream.cs` |
 | Perf | `PerformanceMonitor` MonoBehaviour, per-frame | `Runtime/Presenter/Debug/PerformanceMonitor.cs` |
 | Memory | `MemoryMonitor` MonoBehaviour, 1 Hz, + native bridge | `Runtime/Presenter/Debug/MemoryMonitor.cs` |
+
+**Ring-buffer capacities are RAM-tiered** by `InspectorBufferLimits.ForCurrentDevice()`
+(`Runtime/Infrastructure/Debug/InspectorBufferLimits.cs`), chosen at init from
+`SystemInfo.systemMemorySize` and passed to the three buffers' constructors. Tiers
+(logs / trackers / http): `<3GB` → 5000/200/100 (historical defaults, floor — never regresses),
+`≥3GB` → 10000/500/200, `≥4GB` → 20000/1000/300, `≥6GB` → 40000/1500/500. The chosen limits are
+logged at init: `Inspector buffer limits (RAM …MB): logs=…, trackers=…, http=…`. All three buffers
+drop the oldest entry on overflow.
 
 **Static accessors on `Noctua` (View facade):** `HttpLog`, `DebugMonitor`,
 `LogLedger`, `PerfMonitor`, `MemMonitor`, `Inspector`. Each is null-safe
@@ -259,8 +267,7 @@ After changing either, re-run the EditMode test suite and click **Generate from 
 
 ## Git Workflow
 
-Branch naming: `feat/name`, `fix/name`, `chore/name`  
-Commit style: conventional commits (`feat:`, `fix:`, `chore:`, `test:`, `docs:`)
+Branch naming: `feat/name`, `fix/name`, `improve/name`, `chore/name`
 
 To commit changes in this submodule:
 ```sh
@@ -271,12 +278,86 @@ git push -u origin fix/branch-name
 # Create MR via GitLab link in push output
 ```
 
+### Commit Types & Changelog Sections (git-cliff)
+
+We follow [**Conventional Commits 1.0.0**](https://www.conventionalcommits.org/en/v1.0.0/) and
+[**Semantic Versioning 2.0.0**](https://semver.org/). Versioning + changelog are automated by
+**git-cliff** (see `cliff.toml`). The commit **type** controls both the **semver bump** and the
+**changelog section**, so choose it deliberately — `fix:` is reserved for runtime-impacting bugs,
+not every change.
+
+**Authoritative rules (from the spec):**
+- `feat:` → **MINOR**, `fix:` → **PATCH**. These are the only two types the Conventional Commits
+  spec defines normatively.
+- A commit is **MAJOR** when it is breaking — indicated by a `!` after the type/scope
+  (`feat!:`, `refactor(iap)!:`) **or** a `BREAKING CHANGE:` footer in the body. Per the spec,
+  *"Commits with `BREAKING CHANGE`, regardless of type, … translate to MAJOR releases."*
+- `build / chore / ci / docs / style / refactor / perf / test` come from the
+  [Angular convention](https://github.com/angular/angular/blob/main/CONTRIBUTING.md#commit) — the
+  spec says these *"have no implicit effect in Semantic Versioning"*, so **we** assign their bump
+  behaviour below via `cliff.toml`.
+- `improve:` and `correct:` are **repo-custom** types (adopted from the native SDK) for non-bug,
+  patch-level changes — they are **not** standard Conventional Commits types.
+
+| Type | Semver bump | Changelog section | Use when |
+|---|---|---|---|
+| `feat:` | **MINOR** | 🚀 Features | New public API / capability |
+| `fix:` | **PATCH** | 🐛 Bug Fixes | A defect that affected runtime behaviour — something was broken and now works |
+| `improve:` *(custom)* | **PATCH** | ✨ Improvements | Non-bug enhancement: UX tweak, better logging/observability, cleaner flow |
+| `correct:` *(custom)* | **PATCH** | ✨ Improvements | Correction that isn't a bug: wrong config value, **misleading/renamed field**, bad default |
+| `perf:` | **PATCH** | ✨ Improvements | Performance optimisation |
+| `refactor:` | **PATCH** | ✨ Improvements | Code restructure, no behaviour change |
+| `chore:` | **PATCH** | ⚙️ Miscellaneous | Dependency bumps, build tooling (user-visible, so it bumps) |
+| `feat!:` / any `!` / `BREAKING CHANGE:` | **MAJOR** | (its type's section) | Removes/changes existing public API or event/data contract in a breaking way |
+| `docs:` | none | *(hidden)* | Docs and comments — internal only |
+| `test:` | none | *(hidden)* | Adding or fixing tests — internal only |
+| `ci:` | none | *(hidden)* | CI pipeline changes only |
+| `style:` | none | *(hidden)* | Formatting / whitespace only |
+| `build:` | none | *(hidden)* | Build-system changes only |
+
+> **Rule:** anything visible to SDK consumers bumps a version. Anything purely internal (docs,
+> tests, CI) does not. Internal scopes (`fix(ci)`, `feat(ci)`, `fix(build)`, `fix(test)`,
+> `fix(deps)`, `feat(cd)`) are hidden from the changelog and do not bump.
+
+#### Pick the right type — common mistakes
+
+git-cliff groups **only by the type token**; it never judges whether a change is "really" a bug.
+A wrong type permanently mislabels the changelog and can mis-bump the version. Frequent traps:
+
+| Change | ❌ Wrong | ✅ Right | Why |
+|---|---|---|---|
+| Rename an event/payload field (`impression_id` → `sdk_impression_id`) | `fix:` | `correct:` — or `feat!:` / `BREAKING CHANGE:` if dashboards/marts query the old name | A rename isn't a runtime defect; if downstream data consumers depend on the field name it's a **breaking** contract change |
+| Add more logging / diagnostics | `fix:` | `improve:` | Nothing was broken — it's an observability enhancement |
+| Tidy code, no behaviour change | `fix:` | `refactor:` | Restructure, not a defect |
+| Adjust a wrong default / config value | `fix:` | `correct:` | A correction, not a runtime bug (unless it actually caused a crash/wrong behaviour at runtime) |
+| Bump a dependency | `fix:`/`feat:` | `chore:` | Tooling/deps |
+| New SDK method that removes an old one | `feat:` | `feat!:` (+ `BREAKING CHANGE:` footer) | Removing public API breaks integrations → MAJOR |
+
+Rule of thumb: **use `fix:` only when something was broken at runtime and now works.** Everything
+else that's a patch-level change is `improve:` / `correct:` / `perf:` / `refactor:`.
+
+**Squash + correct typing:** land each logical change as one squashed commit with the correct type.
+Preview the changelog locally before relying on CI:
+```sh
+git-cliff --bump            # full changelog incl. the bumped (unreleased) section
+git-cliff --unreleased      # just the pending section for the next release
+```
+> ⚠️ Do **not** trust `git-cliff --bumped-version` for the version number on this repo: release
+> tags are created by the `publish` job on a divergent (test-stripped) commit, so they are not
+> ancestors of `main` and git-cliff bumps from a stale base. The CI `bump-version-for-release` job
+> instead anchors the base to `package.json` and derives only the bump *level* from the commits
+> (see `.gitlab-ci.yml`). The proper long-term fix is to tag the `main` lineage (as the native SDK
+> does), after which `--bumped-version` becomes reliable.
+
 ## Release Checklist
 
-1. Bump version in `package.json` and `Runtime/AssemblyInfo.cs`
-2. Update `CHANGELOG.md` with new version section
-3. Update `README.md` version badge and install snippet
-4. If native SDK updated: bump version in `Editor/NativePluginDependencies.xml`
-5. Commit: `git commit -m "chore: release vX.Y.Z"`
-6. Tag: `git tag -a vX.Y.Z -m "Release vX.Y.Z"`
-7. Push: `git push origin main --follow-tags`
+Releases are automated by the GitLab CI `bump-version-for-release` job (manual trigger on `main`),
+which runs git-cliff to compute the next version and regenerate `CHANGELOG.md`, then bumps
+`package.json` + `Runtime/AssemblyInfo.cs` and tags. You normally only need to:
+
+1. Ensure your commits use the correct conventional-commit types (table above).
+2. Merge to `main`.
+3. Trigger the manual `bump-version-for-release` job in GitLab CI.
+4. If native SDK updated: bump version in `Editor/NativePluginDependencies.xml` beforehand.
+
+Do **not** hand-edit `CHANGELOG.md` or the version fields — git-cliff/CI owns them.
