@@ -1,257 +1,487 @@
 # Changelog
 
 All notable changes to this project will be documented in this file.
+Versions follow [Semantic Versioning](https://semver.org/).
 
-## [0.114.0]
+## [0.127.0] - 2026-06-09
 
-### 🚀 Phase 2 power features for the Inspector
+### ⚙️ Miscellaneous
 
-- *(build-tab)* New 7th tab. Read-only sanity panel with three sections (SDK / Build, Config, Platform) plus an Adjust event-map and an experiment overrides section. Surfaces every "is this build configured correctly?" answer in one view: Unity SDK / native plugin versions, bundle ID + app version, sandbox flag, region, `noctuagg.json` SHA-256, masked Adjust app token (last 6 chars), Firebase project ID, GoogleServices presence, SKAdNetworks count (iOS) / permissions count (Android). Tap any row to copy `<label>: <value>` to the system clipboard.
-- *(bug-report)* "Export bug report" button bundles the last 500 logs + 50 events + 20 HTTP exchanges + build sanity + device info + screenshot into a timestamped `.zip` under `Application.persistentDataPath`. Captured at `WaitForEndOfFrame` so the screenshot matches the frame the user sees.
-- *(event-replay)* "Re-fire" button on every Trackers tab row replays the captured event through the live pipeline (Adjust + Firebase + Facebook + Noctua + Inspector observers). Lets QA repro side effects without restarting the game. Composition root injects `EventReplayHandler` so the Inspector keeps zero direct references to the View layer or `EventSender`.
-- *(network-sim)* New "Net:" strip at the top of the HTTP tab — Normal / Slow 3G / Offline / Drop 30%. Pure Unity-side fault injection in `NetworkConditioner` between `HttpRequest.Send` and `UnityWebRequest.SendWebRequest()`. Production fast-path is one enum read (`Mode == Normal → return`). Synthetic failures surface as the same `RequestConnectionError` real network failures throw, so existing error-handling paths test cleanly.
-- *(experiments)* New "Experiments & feature flags" section on the Build tab. Lists every key in `ExperimentManager` with inline-editable values; "+ Add" form below appends new keys. Edits commit on focus loss (`BlurEvent`) so we don't burn a write per keystroke.
-- *(adjust-mapping)* New "Adjust event mapping" section. Walks the platform-active `eventMap` and renders `game_event_name → adjust_token · last seen: PHASE @ HH:mm:ss` per row. Indexes the live tracker monitor for emissions where `Provider=Adjust` and `ExtraParams["adjustToken"]` matches.
+- Bump native SDKs to android-sdk-v0.33.0 and ios-sdk-v0.38.0
 
-### 🚀 Other
-- New `INativeBuildInfo` and `INativeMaintenance` sub-interfaces on `INativePlugin`. iOS via 4 new C-ABI exports; Android via `NoctuaInspector` facade methods.
+### ✨ Improvements
 
-### 📦 Native plugin deps
-
-- `noctua-android-sdk` 0.32.0 (unchanged)
-- `NoctuaSDK` (iOS pod) 0.36.0 (unchanged)
-
-### 🔭 Deferred to follow-up PRs
-
-- HTTP mock injection (needs synthesised response path because `UnityWebRequest.responseCode` is read-only).
-- IAP sandbox panel (simulate-purchase / refund / pending).
-- Account switcher (cached accounts dropdown, force-token-expiry).
-
-## [0.113.0]
-
-### 🚀 Features
-
-- Add **Noctua Inspector — Logs / Performance / Memory tabs** (sandbox-only debug overlay). All three new tabs are gated behind the existing `sandboxEnabled: true` flag in `noctuagg.json` — production builds spawn no `GameObject`, allocate no buffers, and `Noctua.LogLedger` / `Noctua.PerfMonitor` / `Noctua.MemMonitor` return `null`.
-    - **Logs** — verbose log viewer over Unity logs (`Application.logMessageReceivedThreaded`) and native iOS / Android logs (opt-in toggle via "Native: ON" chip; the native bus stays dormant by default to avoid the high-volume os_log / logcat traffic). Filters: level (V/D/I/W/E), source (Unity / iOS / Android / Firebase / Adjust / Facebook / Noctua), free-text. Pause / Resume / Clear / Native-toggle. 5,000-entry ring buffer.
-    - **Performance** — instant FPS, 1s and 5s rolling averages, p95 frame time over a 60s sliding window, dropped-frame counters at 16.7ms (60Hz) and 33.3ms (30Hz) thresholds. Sparkline + numeric readouts + dropped-frame reset. Zero per-frame allocations once warm (pre-allocated buffers, in-place sort).
-    - **Memory** — Mono used / heap, Unity native allocated / reserved, GC view, asset cache, plus native phys footprint, available memory, low-memory flag, and thermal pressure (iOS `task_vm_info` + `os_proc_available_memory` + `ProcessInfo.thermalState`; Android PSS + `ActivityManager.MemoryInfo` + `PowerManager.currentThermalStatus` API 29+). Action panel: Force GC, Unload Unused Assets, Clear Asset Cache, Wipe PlayerPrefs (2-tap confirm).
-- Add **`INativeLogStream` and `INativeDeviceMetrics`** sub-interfaces on `INativePlugin` — bridge the Logs and Memory tabs to platform metrics. Implementations: iOS via P/Invoke to `noctuaSetLogStreamCallback` / `noctuaSnapshotDeviceMetrics`; Android via JNI to `NoctuaInspector.setLogStreamCallback` and `NoctuaInspector.snapshotDeviceMetricsTuple` (returns shared `long[5]` to avoid GC churn at 1Hz). Editor stub returns `DeviceMetricsSnapshot.Empty`.
+- *(iaa)* Extract revenue tracking into AppLovinRevenueHelper and AdmobRevenueHelper
+- *(iaa)* Replace ad format string literals with AdFormatKey constants in revenue helpers
+- Greppable [tag] logging and first_purchase diagnostics
+- *(inspector)* Eliminate per-frame cost of debug PerformanceMonitor
+- *(inspector)* Shrink overlay via higher referenceDpi
+- *(inspector)* Harden Taichi filter and render tick against exceptions
+- *(inspector)* Make Taichi filter key a constant and case-insensitive
+- Introduce INativeAdjust interface for ADID; decouple from INativeFirebase in EventSender
+- Name adjust-adid fetched flag as a predicate
 
 ### 🐛 Bug Fixes
 
-- *(inspector)* Firebase Analytics 12.x log format — log-tail regex now captures the event name from the new `Logging event: origin, name, params: app, <name>, {…}` shape (previously matched the literal `origin` field).
-- *(inspector)* Adjust on iOS — Adjust SDK uses `NSLog(@"[Adjust]d: …")` which routes through the app's default subsystem, not `com.adjust.sdk`. Added content-match so its lines are picked up.
-- *(inspector)* Android — added `FirebaseService:V` to the logcat tag filter so Noctua's Firebase wrapper logs (`'<eventName>' (custom) tracked: payload: {…}`) are surfaced as `EMITTED` (or standalone `ACKNOWLEDGED`) on the Trackers tab even when Firebase Analytics' verbose logging is off.
-
-### ✨ Inspector polish (rolled into the same release)
-
-- *(logs)* **Multi-select source chips** — "All" clears the set, individual chips toggle membership.
-- *(logs)* **`re:` regex prefix** in the text filter — case-insensitive; malformed patterns silently fall back to "no match".
-- *(logs)* **Tap a row to copy** its formatted line to the system clipboard (logcat-shape: `YYYY-MM-DD HH:mm:ss.fff L Source/Tag: msg`). New `Copy` button copies the entire filtered view; new `Export` button writes to `{persistentDataPath}/noctua-logs-{ts}.txt`. Toast banner surfaces row count + path.
-- *(memory)* **`Clear Native HTTP Cache` button** — wires through the new `INativeMaintenance` bridge (URLCache + WKWebsiteDataStore on iOS; WebView.clearCache + cacheDir wipe on Android).
-- *(memory)* **Two-tap confirm** for `Clear Asset Cache` and `Clear Native HTTP Cache`.
-- *(memory)* **Hold-to-confirm 3 s** for `Wipe PlayerPrefs` (PointerDown + UI Toolkit scheduler; PointerUp / PointerLeave / PointerCancel cancel).
-- *(memory)* **10-min time-series chart** of mono / Unity-allocated / native phys-footprint, drawn via `generateVisualContent` + Painter2D — no per-frame allocations once realised. Skips native series when bridge sentinels report -1.
-- *(perf)* **GPU / CPU split** via `FrameTimingManager.GetLatestTimings()` — added `GpuFrameTimeMs`, `CpuMainThreadMs`, `CpuRenderThreadMs` to `PerformanceSample`. Sentinels -1 when the platform / graphics API doesn't expose timings.
-- *(perf)* **`Show HUD` toggle** — top-right always-on overlay (DontDestroyOnLoad-rooted, `PickingMode.Ignore` so it never absorbs game touches). Visible even when the Inspector overlay is closed.
-
-### 🐛 Bug Fixes (rolled in)
-
-- *(iap)* iOS — `StoreKit1Service.getProductPurchaseStatus` now returns `true` for previously-purchased non-consumables. The old impl only checked the in-flight `pendingTransactions` queue, which is wiped by `finishTransaction` during the original purchase. Fixed by falling through to `Transaction.currentEntitlements` (StoreKit 2, available alongside SK1 since iOS 15) when no in-flight match is found. Repro: buy a non-consumable, restart, call `Noctua.IAP.GetPurchaseStatusAsync(...)` — was `false`, now `true`.
-
-### 📦 Native plugin deps
-
-- `noctua-android-sdk` 0.31.0 → **0.32.0**
-- `NoctuaSDK` (iOS pod) 0.35.0 → **0.36.0**
-
-## [Unreleased]
-
-### ⚠️ Breaking / Action Required
-
-- **Remove manual emission of `watch_ads_Nx`, `taichi_*`, and `first_purchase` events from your game.** From this release the SDK auto-emits these events and forwards them to Noctua Analytics, Adjust, Firebase, and Facebook. If your game code still calls `Noctua.Event.TrackCustomEvent(...)` for any of them, every firing will be **double-counted** across every analytics dashboard:
-    - `watch_ads_0`, `watch_ads_1x`, `watch_ads_5x`, `watch_ads_10x`, `watch_ads_25x`, `watch_ads_50x` — driven by `AdWatchMilestoneTracker`
-    - All `taichi_*` events (`taichi_total_ad_impression`, `taichi_interstitial_ad_impression`, `taichi_rewarded_ad_impression`, `taichi_rewarded_ad_revenue`, …) — driven by the Taichi pipeline
-    - `first_purchase` — emitted by `NoctuaIAPService` on first verified purchase **per device** (PlayerPrefs-guarded); manual calls bypass the guard
-  See [Built-in Analytics](https://docs.noctuaprojects.com/docs/unity/tracking/built-in-analytics) for the canonical schema after removal.
+- Co-locate ad revenue tracking with impression emit + add impression↔revenue linkage + defensive logging
+- Rename impression_id → sdk_impression_id and revenue_id → sdk_revenue_id
+- *(iaa)* Remove value and currency fields from AdImpression event payload
+- *(iaa)* Use 'app-open' (hyphenated) in revenue helper ad format label
+- Add missing .meta files for Admob/AppLovin RevenueHelper
+- *(inspector)* Render search fields and perf HUD text in themeless panel
+- *(iap)* Correct ItemAlreadyOwned message to say the item is already owned (en/id/vi)
+- Add missing Adjust stub methods to DefaultNativePlugin (CS0535)
+- Move all Adjust methods from INativeFirebase to INativeAdjust — resolve CS0121 ambiguity
+- Adjust_adid uses IDFA on iOS and Google Ad ID on Android in EventSender
+- Do not block SDK init when IAA enabled but local config is null
 
 ### 🚀 Features
 
-- Add **`Noctua.IAP.IsRefundEligibleAsync(productId)` for non-consumable refund detection** — encapsulates the four-condition manual check from the [refund-mechanism doc](https://docs.noctua.gg/docs/unity/iap/refund-mechanism) so game code becomes a single `await` with **no game-side declarations required**. On every successful purchase the SDK probes `GetPurchaseStatusAsync` once: a `true` result confirms the product is non-consumable (consumables always return `false`) and the SDK persists `{productId, paymentType, timestamp(UTC)}` to a dedicated PlayerPrefs store (key: `NoctuaRefundTracking`, model: `RefundTrackingEntry`). `IsRefundEligibleAsync` reads that record, applies the offline filters (≥ `minAgeDays` (default 2), payment type ∈ `{playstore, appstore}`), and only then calls `GetPurchaseStatusAsync` again — returning `true` only when the store now reports the product is no longer purchased. Returns `false` conservatively when no record exists (legacy purchases, fresh installs, consumables) so the SDK never tells the game to remove an item it cannot vouch for.
-- Add **Native crash forwarding for iOS and Android** — OS-reported crashes (SIGSEGV, SIGABRT, SIGBUS, ANRs, OOM kills) now surface in Noctua Analytics as `client_error` with `source=native` on the **next app launch** after a crash. Uses Apple MetricKit (`MXCrashDiagnostic`, iOS 14+, weak-linked) and Android `ActivityManager.getHistoricalProcessExitReasons()` (API 30+) — no signal-handler, no extra SDK, no extra dashboard. Complements the existing `source=managed` path from `GlobalExceptionLogger`; dashboard keeps one event name (`client_error`) and filters by `source`. Per-platform dedup via PlayerPrefs (iOS MetricKit UUID set, Android last-seen timestamp). Older OS versions are silently unsupported.
-- Add **Sentry-style `client_error` event forwarding** — `GlobalExceptionLogger` now forwards Unity `LogType.Warning`, `LogType.Error`, `LogType.Exception`, and `AppDomain.UnhandledException` to the Noctua event pipeline as a single `client_error` event.
-    - **What it carries:** `severity` (`warning`/`error`/`exception`), `error_type`, truncated `message` (500 chars) + `stack_trace` (4000 chars), `thread`, `scene`, `platform`, `app_version`, `dedup_count`, `suppressed_count`.
-    - **How it's routed:** directly through `EventSender.Send(...)` — **not** via `TrackCustomEvent` — so errors are not forwarded to Firebase / Adjust / Facebook native trackers.
-    - **How it's throttled:** rate-limited to 30 events/minute, 60s dedup keyed on `(error_type, message, stack-head)`, `[ThreadStatic]` re-entrancy guard. Safe for hot exception loops.
-    - **Kill-switch:** `SetEventSender(null)` disables forwarding at runtime.
-    - **⚠️ PII note for game developers:** `message` and `stack_trace` carry the strings your game logs. If your code ever writes user input (usernames, email, payload fields) into exception messages, those strings will be exfiltrated to Noctua Analytics. Sanitize any user-sourced data at the `throw`/`Debug.LogError` site, or wrap in a typed exception that redacts sensitive fields before `.Message`.
-- Add **Noctua Inspector (Beta)** — in-app debug overlay bundled with the SDK that surfaces every Noctua SDK HTTP request, tracker event, and the Firebase / Adjust / Facebook lifecycle (Queued → Emitted → Acknowledged) on-device, without attaching Xcode or `adb logcat`. Auto-spawns when `noctuagg.json` has `sandboxEnabled: true`; zero runtime cost in production. Open via 3× device shake, 4-finger tap, or `Noctua.ShowInspector()`. See [Noctua Inspector docs](https://docs.noctuaprojects.com/docs/unity/debug-and-testing/noctua-inspector).
-- Add **network-agnostic `Noctua.IAA.HideBannerAd()`** — routes through the orchestrator to both Primary and Secondary networks so game code can hide the banner from a single call site (e.g. on a successful "remove ads" IAP) regardless of whether AdMob or AppLovin is the active mediation. Safe no-op when IAA is uninitialized or the selected network has no active banner. Legacy `HideAppLovinBanner` / `DestroyBannerAppLovin` / `HideBannerAppLovin` remain for fine-grained control.
+- Add Taichi IAP revenue tracker with Firebase Remote Config
+- Add watch_ads_1x / watch_ads_15x / watch_ads_20x milestone thresholds
+- Login retention milestones, taichi inspector filter/search, RAM-tiered buffers
+- Add Adjust device info getters to Unity SDK
+- Add adjust_adid to every event payload via cached single-flight fetch
+
+## [0.122.0] - 2026-05-18
+
+### ⚙️ Miscellaneous
+
+- Bump native SDK deps — Android 0.32.2, iOS 0.37.0
+
+## [0.121.0] - 2026-05-12
 
 ### 🐛 Bug Fixes
 
-- **Prevent `NotImplementedException` crash from `IAdNetwork` default methods** — all 20 default interface methods (`DestroyBannerAppLovin`, `HideBannerAppLovin`, `CreateBannerViewAdAppLovin`, `CreateBannerViewAdAdmob`, `SetAppOpenAdUnitID`, `ShowMediationDebugger`, etc.) are now **safe no-ops** instead of throwing. Previously, calling an AppLovin-only helper while AdMob was the active primary — which is exactly what happens in an IAP "remove ads" flow — fell through to the default method body and crashed the IAP completion callback. `AppLovinManager` and `AdmobManager` still override their respective implementations with real behavior; only the cross-network fallback path changed.
-- Add `AdmobManager.HideBannerAd()` and `AppLovinManager.HideBannerAd()` overrides so each network hides its own banner when invoked through the network-agnostic orchestrator path.
-- Resolve **Maio vs AppLovin GAM `Google-Mobile-Ads-SDK` 13.x pod conflict** — `com.google.ads.mobile.mediation.maio 3.0.1` wraps `GoogleMobileAdsMediationMaio 2.1.6.1` which pins GMA `~> 12.0`; incompatible with AppLovin GAM adapter `13.2.0.0` pinning GMA `= 13.2.0`. Integration Manager now detects this plus the deeper **mutual exclusion** between AppLovin Maio (`MaioSDK-v2 = 2.1.6`) and AdMob Maio 3.1.6 (`MaioSDK-v2 = 2.2.1`) — these two adapters cannot coexist at any version. Editor startup warning fires when both are installed; `Fix CocoaPods Conflicts` reports `⚠ MUTUALLY EXCLUSIVE — remove one` and intentionally skips auto-patch.
+- Skip CocoaPods-managed frameworks in EmbedDynamicPodsFrameworks
 
-## [0.101.0] - 2026-04-16
+## [0.120.0] - 2026-05-12
 
 ### 🐛 Bug Fixes
 
-- Route AdMob ad revenue to the **correct Taichi Process method per format** — interstitial/rewarded/appopen now call their dedicated `ProcessXxxThresholds` path instead of the banner-only method. Added progress logs for Taichi Steps 3–6 and `ProcessAllFormatsThresholds` for traceability.
+- Correct fileRef Pods/ check in RemovePodsEmbedConflicts
+- Remove unverified InMobiSDK from framework conflict checks
 
-### 🧪 Testing
+## [0.119.0] - 2026-05-12
 
-- Add unit tests for AdMob per-format Taichi routing
+### 🐛 Bug Fixes
 
-## [0.100.0] - 2026-04-15
+- Remove AppLovin xcframework embed that conflicts with CocoaPods script
+
+## [0.118.0] - 2026-05-12
+
+### 🐛 Bug Fixes
+
+- Match nested-brace PBXBuildFile entries in EmbedFrameworksDeduper
+
+## [0.117.0] - 2026-05-08
+
+### ⚙️ Miscellaneous
+
+- Track Unity .meta files for new test scripts
+- Track .meta for RetryAsyncTaskEditModeTest
+- Add missing .meta for MediationCallbackHandlerRaceTest
+
+### ✨ Improvements
+
+- Rename IsRefundEligibleAsync, fix callback guard flags, add ReportError API, remove Sentry
+
+### 🐛 Bug Fixes
+
+- *(tests)* Resolve CS0118 — alias IAA model class to avoid namespace collision
+- *(tests)* Correct 6 failing test assertions
+- *(tests)* Remove LogAssert reference from AppOpenAdManagerTest (missing using)
+- *(tests)* Correct 5 compile errors in Auth, Event, and MediationManager tests
+- *(tests)* Correct SessionTracker constructor call in EventTest
+- Resolve CS0118 IAA namespace/type ambiguity in GameServiceModelsTest
+- Rename IAA alias to IAAModel in GameServiceModelsTest to avoid CS0118
+- Update MiscModelTest for SDK enum rename and GeoIPData namespace
+- Gate _log.Error/_log.Exception on ForwardToEvents dedup result
+- Three test failures — null Info message, Unknown phone codes, IAP error code type
+- Five test failures across model, config, HTTP, and floor logic
+- Add missing using com.noctuagames.sdk in all namespace-migrated test files
+- Add missing using com.noctuagames.sdk to ExperimentManagerTest
+- Correct API usage in BugReportExporterTest and AdFrequencyManagerTest
+- Replace ignoreFailingMessages with LogAssert.Expect in NotEnabledTest
+- Resolve test failures and LogAssert noise in IAP/Event/Utility tests
+- Replace LogAssert.Expect with scoped ignoreFailingMessages for Serilog-routed error logs
+- Eliminate session recovery double-count and session inflation
+- Allow 0ms engagement events for pause and end lifecycles
+- Crash-persist events before Firebase fetch; persistent pseudo_user_id
+- Add missing UnityEngine using to SessionTrackerEngagementTest
+- Add missing System.Linq using to AdRevenueTrackingManagerTest
+- Add missing com.noctuagames.sdk.Events using to AdRevenueAndSessionThreadingTest
+- Resolve 5 test failures in threading and session tests
+- Correct device_os assertion in BackgroundAndMainThreadTest C1
+- Correct event names and context assumptions in 5 test cases
+- Replace fragile raw-pattern match with proper deserialization in C1 test
+- Close NoctuaEventServiceTest class brace prematurely causing CS0116
+- Replace ConcurrentBag.Contains with Any() to avoid MemoryExtensions overload
+- Catch AggregateException in P2 — Task.Wait throws when tasks are faulted
+- Use IsNullOrEmpty in SetCurrentFeature null test — ExperimentManager returns null not empty
+- Address code review issues in MediationCallbackHandlerRaceTest
+- Rename ClientErrorSource.Sdk → NoctuaSdk and fix AdRevenueTrackingManager null-tracker warning
+- Broaden DetermineSource to match 'octua' substring for obfuscated Noctua frames
 
 ### 🚀 Features
 
-- Add **canonical IAA event tracking** with ad-watch milestones — unified schema for ad impression lifecycle (load, show, click, complete, milestones) across AppLovin MAX and AdMob. Enables server-side IAA funnel analysis without mediator-specific shims.
+- Add thread-safety + survivability tests for EventSender and NoctuaEventService
+- Track ad_rewarded_complete event when user earns a rewarded ad reward
+- Add ad_rewarded_complete event with main-thread safety and unit tests
+
+## [0.116.0] - 2026-05-04
+
+### ✨ Improvements
+
+- *(iaa)* Rename applied_iaa_config "source" field to "config_origin"
+
+### 🐛 Bug Fixes
+
+- *(iaa)* Marshal AppLovin and AdMob revenue handlers to main thread
+- *(iaa)* Make MediationManager.CreateNetworks config-driven, not define-driven
+- *(iaa)* Plug edge cases in CreateNetworks network selection
+
+### 🚀 Features
+
+- *(iaa)* Visible per-network init logs and SDK availability check
+- *(iaa)* Emit applied_iaa_config event on every CreateNetworks success
+- *(iaa)* Tag applied_iaa_config with source (local vs remote_override)
+
+## [0.115.0] - 2026-04-30
+
+### 🐛 Bug Fixes
+
+- *(iaa)* AdMob banner shows at top instead of caller's requested position
+- *(inspector)* Mobile-device compatibility pass
+- *(inspector)* Logs rows tertumpuk + Editor preview too small
+- *(inspector)* Logs row tertumpuk — switch to two-line layout
+- *(inspector)* Mobile-readable fonts + paddings across all tabs
+- *(inspector)* Rows tertumpuk in Build/Memory/Perf tabs
+- *(inspector)* Noctuagg.json overlap when expanded
+- *(inspector)* Drop GoogleServices file + Firebase project ID rows
+- *(inspector)* Tab labels wrapped per-character + panel transparency
+- *(inspector)* Drop checksum row + label-above-value rows for long values
+
+### 🚀 Features
+
+- *(inspector)* Expandable Logs rows with tap-to-expand UX
+- *(inspector)* Header + tabs scroll with content (sticky bottom only)
+- *(inspector)* Show full noctuagg.json on Build tab
+
+## [0.114.0] - 2026-04-29
+
+### 🐛 Bug Fixes
+
+- Align purchase_canceled spelling + add 5 orphan .cs.meta files
+
+## [0.113.0] - 2026-04-29
+
+### ✨ Improvements
+
+- *(iap)* Rename IsRefundedAsync to IsRefundEligibleAsync
+
+### 🐛 Bug Fixes
+
+- *(inspector)* Disambiguate CompressionLevel in BugReportExporter
+
+### 🚀 Features
+
+- *(iap)* Add Noctua.IAP.IsRefundedAsync for non-consumable refund detection
+- *(inspector)* Add Logs / Performance / Memory tabs
+- *(inspector)* Polish pass on Logs / Performance / Memory tabs
+- *(inspector)* Build sanity panel (Phase 2.1)
+- *(inspector)* One-tap bug report export (Phase 2.2)
+- *(inspector)* Event replay via 'Re-fire' button (Phase 2.3)
+- *(inspector)* Network condition simulator (Phase 2.5)
+- *(inspector)* Experiment / feature flag overrides on Build tab (Phase 2.6)
+- *(inspector)* Adjust event-map panel (Phase 2.9)
+
+## [0.112.0] - 2026-04-28
+
+### revert
+
+- *(iaa)* Restore exponential backoff for ad load retries
+
+### 🐛 Bug Fixes
+
+- *(iaa)* Guard primary ad unit setup against missing/unknown ad unit IDs
+- *(iaa)* Use linear backoff (10s * attempt) for ad load retries
+- *(iaa)* Apply CPM hard floor to interstitial/rewarded show + fallback
+
+## [0.111.0] - 2026-04-28
+
+### 🐛 Bug Fixes
+
+- Compile MediationManager when only UNITY_APPLOVIN is defined; enable ObjC exceptions for NoctuaCrashReporter
+
+## [0.110.0] - 2026-04-27
+
+### ✨ Improvements
+
+- Organize Runtime/ by SDK category within each layer
+
+### 🐛 Bug Fixes
+
+- *(iap)* Observe fire-and-forget VerifyOrderImplAsync tasks
+- *(ads)* Marshal orchestrator events to main thread
+- Address MR#569 review (herpiko1)
+- Detect LocalNotificationAppController sibling via mm scan
+- *(integration-manager)* Pin default AppLovin MAX SDK to 8.6.1
+- *(iaa)* Init secondary network only after primary ready
+
+### 🚀 Features
+
+- Sentry-style client_error tracker (managed + native)
+
+## [0.109.0] - 2026-04-22
+
+### 🐛 Bug Fixes
+
+- *(adapters)* Restore safe default pairings for ByteDance iOS + Maio
+
+## [0.108.0] - 2026-04-22
+
+### 🐛 Bug Fixes
+
+- *(adapters)* Pin ByteDance iOS to 709010100, Maio to 3.0.1
+
+## [0.107.0] - 2026-04-22
+
+### 🐛 Bug Fixes
+
+- *(ios)* Harden CustomAppController APNs + FIRMessaging wiring
+- *(push)* Buffer cold-start payloads until Unity registers the handler
+- 4 integration gaps surfaced by post-release audit
+
+### 🚀 Features
+
+- *(ios)* Auto-bridge CustomAppController to LocalNotificationAppController + sibling-conflict detector
+- *(firebase)* Expose Noctua.GetFirebaseMessagingToken() public API
+- *(firebase)* Auto-log FCM token on sandbox builds after init
+- *(push)* Expose remote-notification + tap + FCM token-refresh callbacks
+- *(tracking)* Add stage_session_id + stage_time_msec to game_stage_failed
+- Noctua Inspector (Beta) + SDK stabilizers
+
+## [0.106.0] - 2026-04-17
+
+### 🐛 Bug Fixes
+
+- *(ios)* Skip dynamic XCFramework embed when Podfile uses dynamic linkage
+- *(ios)* Auto-cleanup stale Pods xcframework embeds on SDK upgrade
+- *(iaa)* Populate placement / value_usd / engagement_time correctly for AdMob ad_impression
+- *(iaa)* Propagate placement across all ad-load events and all ad formats + AppLovin banner ad_shown
+- *(iaa)* Block app-open pop immediately after rewarded/interstitial close
+- *(iaa)* Decouple banner display/close from shared fullscreen event channel
+- *(iaa)* Emit canonical ad_impression/shown/clicked/show_failed on AdMob preload path
+- *(iaa)* Close remaining preload/legacy parity gaps (ad_loaded + RecordWatch)
+
+### 🚀 Features
+
+- *(analytics)* Route ad watch milestones through TrackCustomEvent
+
+## [0.105.0] - 2026-04-16
+
+### 🚀 Features
+
+- *(iap)* Auto-emit first_purchase event to native trackers
+
+## [0.104.0] - 2026-04-16
+
+### 🐛 Bug Fixes
+
+- *(iaa)* No-op IAdNetwork default methods + add cross-network HideBannerAd()
+
+## [0.103.0] - 2026-04-16
+
+### 🐛 Bug Fixes
+
+- Resolve Maio vs AppLovin GAM GMA 13.x pod conflict
+- Eliminate null-tracker revenue loss in AdRevenueTrackingManager
+
+## [0.102.0] - 2026-04-15
+
+### 🐛 Bug Fixes
+
+- Route AdMob revenue to correct Taichi Process method per format
+
+### 🚀 Features
+
+- Add progress logs to Taichi ProcessAllFormatsThresholds
+- Add progress logs for Taichi Steps 3-6
+
+## [0.101.0] - 2026-04-15
+
+### 🚀 Features
+
+- Add canonical IAA event tracking + ad-watch milestones
+
+## [0.100.0] - 2026-04-14
+
+### 🐛 Bug Fixes
+
+- Dispatch AdMob preloaded-ad callbacks to Unity main thread
+- Skip secondary readiness check when ad_format_overrides pins the format
+- Guard AdMob preload setup behind #if !UNITY_EDITOR
+- Post banner AdMob revenue callback to main thread + add GetNetworkForFormat debug logs
+- Marshal AdMob MobileAds.Initialize completion callback to Unity main thread
 
 ## [0.99.0] - 2026-04-14
 
 ### 🐛 Bug Fixes
 
-- **Main-thread marshalling** for AdMob callbacks: `MobileAds.Initialize` completion, banner revenue callbacks, and preloaded-ad callbacks now dispatched to Unity main thread (previously fired on Google SDK worker threads, causing Unity API `Must be on main thread` exceptions).
-- Guard AdMob preload setup behind `#if !UNITY_EDITOR` — prevents editor-time initialization crashes when AdMob native bridge is unavailable.
-- Skip secondary readiness check when `ad_format_overrides` pins the format — avoids double-check that blocked fallback waterfall when a single network is hard-pinned per format.
-- Add `GetNetworkForFormat` debug logs for banner ad revenue routing.
+- Field-by-field merge for FrequencyCaps and CooldownSeconds in IAA.MergeWith
+- Secondary network fallback and Editor legacy path for banner/interstitial/rewarded
 
-## [0.98.0] - 2026-04-14
+## [0.98.0] - 2026-04-13
+
+### ⚙️ Miscellaneous
+
+- Add ConfigLoadTest.cs.meta
 
 ### 🐛 Bug Fixes
 
-- Add **secondary network fallback** for banner / interstitial / rewarded — when primary mediator (AppLovin MAX or AdMob) is unavailable or returns no fill, SDK now automatically attempts the configured secondary mediator. Also restores Editor legacy code path for MediationScene so development builds work without native bridges.
-- **Field-by-field merge** for `FrequencyCaps` and `CooldownSeconds` in `IAA.MergeWith` — previously the entire nested object was replaced wholesale, dropping unset fields from the remote config when a local override was partial.
-- `CreateBannerViewAdAdmob` / `CreateBannerViewAdAppLovin` now wired with platform-conditional (`#if UNITY_ADMOB` / `#if UNITY_APPLOVIN`) gating in `MediationScript.SetupBanner()` (sample app).
-
-## [0.97.0] - 2026-04-13
+- Correct AdjustConfig field reference in ConfigLoadTest (Android not AppToken)
 
 ### 🚀 Features
 
-- Add **CPM floor bidding**, **A/B experiment segmentation**, and **IAA diagnostics** — runtime config for per-format CPM floors, user segment A/B test assignment via `UserSegmentManager` / `AdExperimentManager`, and inspection APIs surfaced in the sample app's IAA diagnostics buttons (Show Segment, Show Experiments, Show CPM Floors).
+- CPM floor bidding, A/B experiment segmentation, and IAA diagnostics
 
-### 🧪 Testing
-
-- Add unit tests for `CpmFloorManager`, `UserSegmentManager`, `AdExperimentManager`
-- Fix IAA namespace ambiguity in `ConfigLoadTest`
-
-## [0.96.0] - 2026-04-12
+## [0.97.0] - 2026-04-11
 
 ### 🐛 Bug Fixes
 
-- Scripting define symbols (`UNITY_ADMOB`, `UNITY_APPLOVIN`) not being added when installing/updating ad SDKs — Integration Manager now runs define refresh after every install/update action, so platform-conditional ad code compiles on first reload.
+- Scripting define symbols not added when installing/updating ad SDKs
 
-## [0.95.0] - 2026-04-12
+## [0.96.0] - 2026-04-11
 
 ### 🐛 Bug Fixes
 
-- Remove Phase 1 immediate-persist from `EventSender.Send()` — minimal event was stored synchronously before Firebase ID fetch, causing a duplicate event row alongside the enriched Phase 2 event. Server received two `session_start` / `noctua_user_engagement` events per trigger (double-tracking). Removed `_immediateEvents` HashSet and Phase 1 block entirely.
-- Fix Bloblang processing error (`parsing time "1775805644" as RFC3339`) — Phase 1 payload included `event_time` as Unix milliseconds integer without a `timestamp` ISO 8601 field; server pipeline failed to parse it. Resolved by removing Phase 1.
-- Fix `is_sandbox` null serialization — `_isSandbox` (`bool?`) was unconditionally added to event payloads, serializing as JSON `null` when not set. Now only added when explicitly configured via `SetProperties(isSandbox: ...)`.
-- Fix ByteDance / Pangle iOS adapter version: `com.applovin.mediation.adapters.bytedance.ios` corrected from `709000000.0.0` (non-existent) to `709010100.0.0` (only available registry version). Fixes `Package cannot be found` UPM resolution error.
-- Bump AdMob Pangle adapter (`com.google.ads.mobile.mediation.pangle`) from `5.9.0` to `5.9.1`.
+- Remove Phase 1 immediate persist, fix is_sandbox null, fix ByteDance iOS version
 
-## [0.94.0] - 2026-04-11
+## [0.95.0] - 2026-04-10
 
-### ⚙️ Miscellaneous Tasks
+### ⚙️ Miscellaneous
 
-- Add missing `CLAUDE.md.meta` to silence Unity immutable-folder warning
+- Add missing CLAUDE.md.meta to silence Unity immutable-folder warning
 
-## [0.93.0] - 2026-04-11
+## [0.94.0] - 2026-04-10
+
+### 🐛 Bug Fixes
+
+- Detect and auto-fix 6 more cross-catalog iOS CocoaPods version conflicts
+
+## [0.93.0] - 2026-04-10
+
+### 🐛 Bug Fixes
+
+- Downgrade Meta/Facebook Android MAX adapter to 6.20.0 to avoid Gradle 8 build failure
+- Clean up Recommended Setup section UI
+- Repaint window immediately after Install/Update/Remove click
+- Compare MAX adapter versions per-platform, not cross-platform
+- Set ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES=YES in iOS post-build
+- Conditionally embed Swift runtime only when Swift adapter installed
+- Remove redundant Swift dummy file injection — EDM4U already provides Dummy.swift
+- Patch Podfile post_install to set BUILD_LIBRARY_FOR_DISTRIBUTION=NO for AppMetricaLibraryAdapter
+- Auto-embed dynamic xcframeworks in Unity-iPhone via Podfile post_install hook
+- Replace Podfile post_install with PBXProject embed for dynamic xcframeworks
+- Move BUILD_LIBRARY_FOR_DISTRIBUTION fix from Podfile to PBXProject on Pods.xcodeproj
+- Detect and auto-fix BidMachine cross-catalog iOS version conflict
 
 ### 🚀 Features
 
-- Auto-fix **Android duplicate dependencies** and **iOS CocoaPods conflicts** via Noctua menu — one-click patching for common cross-catalog version drifts in `GoogleMobileAdsDependencies.xml` and adjacent adapter XMLs.
+- Add CocoaPods conflict fixer + ad network adapter installer
+- Auto-resolve UPM packages on Install/Update/Remove
+- Show separate Android and iOS version columns in MAX adapter table
+- Auto-fix Android duplicate deps and iOS CocoaPods conflicts via Noctua menu
+
+## [0.92.0] - 2026-04-09
+
+### ⚙️ Miscellaneous
+
+- Remove TestMode from IAA config model and MediationManager
+- Remove deprecated app_open_cooldown_seconds field
 
 ### 🐛 Bug Fixes
 
-- Detect and auto-fix **BidMachine** cross-catalog iOS version conflict (AppLovin adapter vs AdMob adapter pin different BidMachine CocoaPod versions).
-- Detect and auto-fix **6 additional cross-catalog iOS CocoaPods version conflicts** (Vungle, Mintegral, UnityAds, Fyber/DT Exchange, Verve/Hybid, AppLovin).
-- Move `BUILD_LIBRARY_FOR_DISTRIBUTION` fix from `Podfile` to `PBXProject` on `Pods.xcodeproj` — avoids Podfile post_install clobber after subsequent pod install.
-- Replace `Podfile` `post_install` hook with `PBXProject` embed for dynamic xcframeworks — more reliable than shell script patching.
-- Auto-embed dynamic xcframeworks in `Unity-iPhone` via `Podfile` `post_install` hook (superseded by PBXProject embed above; kept as fallback).
-- Patch `Podfile` `post_install` to set `BUILD_LIBRARY_FOR_DISTRIBUTION=NO` for `AppMetricaLibraryAdapter` (Yandex adapter Swift distribution conflict).
-- Remove redundant Swift dummy file injection — EDM4U already provides `Dummy.swift`.
-- Conditionally embed Swift runtime only when Swift adapter is installed.
-- Set `ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES=YES` in iOS post-build.
-
-### 💼 Other
-
-- Show separate Android and iOS version columns in MAX adapter table (Integration Manager UI).
-- Compare MAX adapter versions **per-platform**, not cross-platform — green/amber badges now reflect the platform being built.
-- Repaint Integration Manager window immediately after Install/Update/Remove click.
-
-## [0.92.0] - 2026-04-10
+- Guard AdMob Preload API IsAdAvailable calls against JNI NPE and remove duplicate CreateNetworks call
+- Defer secondary ad loading until secondary SDK has finished initialization
+- Close missing #endif for UNITY_ADMOB rewarded block and move placement methods out of UNITY_APPLOVIN guard
+- Revert rewarded_interstitial to legacy Load() path — Preload API not supported by AdMob SDK
+- Add missing using com.noctuagames.sdk.Admob for RewardedInterstitialAdmob
+- Scope TestMode AdMob test IDs to AdMob network only
+- Copy extraPayload before mutating in TrackAdCustomEventRewardedInterstitial
+- Switch to Unity main thread before invoking init callbacks in AdmobManager
+- Dispatch MobileAds.Preload() on Android UI thread via Activity.runOnUiThread()
+- Catch MobileAds.Preload NPE from GMS Dynamite module failure
+- Reset _isFullscreenAdShowing on OnAdFailedDisplayed
+- IsAppOpenAdReady includes cooldown check + OnAdNotAvailable for app_open
+- Configure App Open secondary when secondary inits before primary
+- Add missing TrackAdRevenue to MockAdRevenueTracker
+- Resolve IAA namespace/type collision in IAAConfigTest using type alias
 
 ### 🚀 Features
 
-- Add **Noctua Integration Manager** (`Noctua > Noctua Integration Manager`) — Unity Editor window for browsing and installing ad network adapter UPM packages
-  - Recommended Setup section: pre-validated 6-package combination (AppLovin MAX + AdMob) that runs on both Android and iOS without CocoaPods or Gradle version conflicts
-  - AppLovin MAX — Ad Network Adapters: 22 adapters with Install / → Stable / Remove buttons; version color-coded (green = up-to-date, amber = outdated)
-  - AdMob — Mediation Adapters: 17 unified packages from OpenUPM
-  - Adaptive layout — name columns expand to window width; all adapter versions pre-populated to verified-stable releases
-  - Clicking Install/Update/Remove auto-resolves UPM packages immediately via `Client.Resolve()`
-- Add **CocoaPods Conflict Fixer** (`Noctua > iOS > Fix CocoaPods Conflicts`) — auto-detects and patches `Google-Mobile-Ads-SDK` version conflicts between `com.google.ads.mobile` and AppLovin MAX Google adapter
-  - Menu items greyed out unless active build target is iOS
-  - Dynamic version detection from `Library/PackageCache` — stays correct as packages update
-
-### 🐛 Bug Fixes
-
-- Downgrade Meta/Facebook Android MAX adapter to `6.20.0` — version `6.21.0` has a documented `D8: NullPointerException` build failure with Gradle 8 / AGP 7.x (AppLovin issue #563)
+- Migrate all AdMob ad loading to Preload API exclusively
+- Per-format ad network routing, placement support, and centralised constants
+- Selective remote config merge + OnAdNotAvailable callback
 
 ## [0.91.0] - 2026-04-07
 
-### 🚀 Features
-
-- Add `feature_engagement` event with time tracking and visit ID per game feature interaction
-- Add `stage_time_msec` auto-injection into `game_stage_complete` events (measured via stopwatch from `game_stage_start`)
-
 ### 🐛 Bug Fixes
 
-- Fix element-wise batch parse recovery for corrupted event batches on Android and iOS — falls back to per-element deserialization when full-batch parse fails
-- Fix null/empty event name: log error and return instead of throwing, preventing unhandled exceptions
+- Add element-wise batch parse recovery for Android and iOS
+- Log error and return instead of throwing on null/empty event name
+
+### 🚀 Features
+
+- Add stage_time_msec to game_stage_complete event
+- Add feature_engagement event with time tracking and visit ID
 
 ## [0.90.0] - 2026-04-07
 
 ### 🐛 Bug Fixes
 
-- Make `NativeSessionTracker` fields and properties public to resolve CS1061 build errors in consuming assemblies
+- Make NativeSessionTracker members public to resolve CS1061 build errors
 
 ## [0.89.0] - 2026-04-07
 
 ### 🐛 Bug Fixes
 
-- Make `NativeSessionTracker` class `public` to resolve CS0122 build errors in consuming assemblies
+- Make NativeSessionTracker public to resolve CS0122 build error
 
 ## [0.88.0] - 2026-04-06
 
-### 🚀 Features
+### revert
 
-- Add native lifecycle callback bridge for OS-level engagement tracking (`native_user_engagement`, `native_user_engagement_per_session`)
-- Add `lifecycle` param (`start`, `foreground`, `pause`, `end`) to `noctua_user_engagement` and `native_user_engagement` events
-- Add `noctua_user_engagement_per_session` — cumulative foreground time sent on session timeout/end
-- Add `pseudo_user_id` to all events for cross-device user stitching
-- Add `GetPseudoUserId()` public API; deprecate `ExperimentManager` session_id methods
-- Route `session_id` through `SetProperties` for consistent event enrichment
-- Add in-app review and in-app updates bridge (Google Play / App Store)
+- Remove Obsolete from ExperimentManager session_id methods
+
+### ⚙️ Miscellaneous
+
+- Bump native SDKs and fix main thread marshalling
+- Add missing .meta files for AppUpdateInfo and NoctuaAppManager
+- Bump native SDK versions, add typedef fix, and add missing .meta files
 
 ### 🐛 Bug Fixes
 
-- Fix `session_end` / `noctua_user_engagement_per_session` never sent on force-kill (SIGKILL): persist session state to PlayerPrefs on every lifecycle event; recover orphaned sessions on next launch
-- Fix `session_start` lost when app is killed during Firebase ID fetch: immediate synchronous persist to native storage before async enrichment for `session_start` and `noctua_user_engagement` events
-- Fix recovery events (`session_end`, `noctua_user_engagement_per_session`) tagged with wrong `session_id`: capture `callerProvidedSessionId` before reserved-key strip in `EventSender.Send()`; add `session_end` and `noctua_user_engagement_per_session` to `_immediateEvents` for synchronous persist before Firebase ID fetch
-- Fix recovery events' async tasks hanging indefinitely when Firebase SDK is not yet initialized: add 5-second `Task.WhenAny` timeout to `GetFirebaseAnalyticsSessionID` / `GetFirebaseInstallationID`; add single-flight `SemaphoreSlim` so concurrent recovery tasks don't overwrite the iOS static callback slot
-- Fix `native_user_engagement` never emitted: register native lifecycle callback after `Init()` so Kotlin's `ensureInit()` guard does not silently drop the call; fire synthetic first-resume when app is already in foreground at registration time
-- Fix clean-exit leaving orphaned session in PlayerPrefs: call `SessionTracker.Dispose()` inside `PauseBehaviour.OnApplicationQuit()` so graceful `Application.Quit()` clears orphan keys
-- Fix `NoctuaLocale` CS0122 build error: replace `ImmutableDictionary` with `Dictionary`
-- Remove `GetPseudoUserId()` accidentally leaked from unrelated branch
+- Remove GetPseudoUserId() leaked from unrelated branch
+- Crash-recovery for orphaned sessions + immediate persist for session_start
+- Register native lifecycle callback immediately to avoid missing first onResume
+- Fire synthetic resume on NativeSessionTracker when app already in foreground
+- Register native lifecycle callback after Init() to pass ensureInit() guard
+- Correct session_id on recovery events and dispose tracker on graceful quit
+- Capture caller session_id before reserved-key strip in EventSender.Send()
+- Add timeout and single-flight lock to Firebase ID fetch in EventSender
+- Replace ImmutableDictionary with Dictionary in NoctuaLocale to resolve CS0122
+- Remove empty SSV options builder from RewardedAdmob
 
-### 💼 Other
+### 🚀 Features
 
-- Bump native SDKs and fix main thread marshalling for iOS callbacks
-- Add XML documentation to `ExperimentManager` session_id methods
+- Add in-app review and in-app updates bridge
+- Add native lifecycle callback bridge for engagement tracking
+- Add PseudoUserId property to IEventSender interface
+- Add pseudo_user_id to all events and route session_id through SetProperties
+- Add lifecycle param to engagement events, per-session engagement, and session_id routing via SetProperties
+- Expose GetPseudoUserId() public API, deprecate ExperimentManager session_id methods
 
 ## [0.87.0] - 2026-03-17
 
@@ -267,148 +497,182 @@ All notable changes to this project will be documented in this file.
 
 ## [0.85.0] - 2026-03-12
 
-### 🚀 Features
+### ⚙️ Miscellaneous
 
-- Add Editor mock IAP payment sheet for dev testing
-- Add landscape support for editor payment sheet UI
-- Skip create order for editor mock — show UI directly
-- Send payment type `direct` to server for editor mock orders
-- Add `ad_user_id` to ad revenue events and set AppLovin user ID
-- Add IAA improvements for AppLovin and AdMob
+- Add Unity meta files for editor payment sheet assets
+- Bump noctua-android-sdk to 0.27.1
 
 ### 🐛 Bug Fixes
 
 - Filter out editor payment type from product list API request
-- Use correct Kotlin JVM getter names for `is`-prefixed booleans
+- Use correct Kotlin JVM getter names for is-prefixed booleans
 
-### 💼 Other
+### 🚀 Features
 
-- Bump noctua-android-sdk to 0.27.1
+- Add IAA improvements for AppLovin and AdMob
+- Add Editor mock IAP payment sheet for dev testing
+- Send payment type 'direct' to server for editor mock orders
+- Skip create order for editor mock, show UI directly
+- Add landscape support for editor payment sheet UI
+- Add ad_user_id to ad revenue events and set AppLovin user ID
 
 ## [0.84.0] - 2026-03-10
 
-### 🐛 Bug Fixes
+### 🚀 Features
 
-- Fallback to `game_level` when level is empty in `game_stage_start`
+- Fallback to game_level when level is empty in game_stage_start
 
 ## [0.83.0] - 2026-03-10
 
 ### 🚀 Features
 
-- Add `ad_format` to AppLovin ad revenue event
+- Add ad_format to AppLovin ad revenue event
 
 ## [0.82.0] - 2026-03-10
 
 ### 🚀 Features
 
-- Enrich all events with `current_stage_level` and `current_stage_mode`
+- Enrich all events with current_stage_level and current_stage_mode
 
 ## [0.81.0] - 2026-03-09
 
 ### 🚀 Features
 
-- Auto-save `game_stage_complete` level and use for IAP `CurrentStageLevel`
+- Auto-save game_stage_complete level and use for IAP CurrentStageLevel
 
 ## [0.80.0] - 2026-03-09
 
-### 🚀 Features
-
-- Add `noctua_user_engagement` event for Firebase-like engagement time tracking (monotonic stopwatch, foreground-only, incremental)
-
 ### 🐛 Bug Fixes
 
-- Wire `CompletePurchaseProcessing` to finish SK1 transactions after server verification
-- Fix CI publish pipeline — variable name, manual trigger, GitLab tag push, draft release
+- Wire CompletePurchaseProcessing to finish SK1 transactions after server verification
+- Fix CI publish pipeline — variable name, manual trigger, gitlab tag push, draft release
 
-## [0.79.0] - 2026-03-04
+### 🚀 Features
 
-### 💼 Other
-
-- Internal release — no user-facing changes
+- Add noctua_user_engagement event for Firebase-like engagement time tracking
 
 ## [0.78.0] - 2026-03-04
 
-### 🚀 Features
+### misc
 
-- Add `GetProductPurchaseStatusDetailAsync` with full status model and expiry time
-- Implement Cloud Saves
-- Add ClaimRedeemAsync API
-- Track `first_open` custom event on initial app launch
-- Migrate Google Play Billing and iOS StoreKit to delegate to noctua-sdk-native
-- Add Firebase Remote Config bridge (Objective-C → C#)
-- Add Adjust attribution tracking (iOS + Android)
-- Add Facebook install referrer
-- Add `offline_mode` param to internal tracker
-- Add session id to all internal tracker events
-- Prevent reserved event keys from being overridden in internal tracker
-- Prevent game ID null while offline
-- Add `sendEventsOnFlushEnabled` remote config flag to prevent crash during flush
-- Expose ad unit ID
-- Pass store pricing amount and currency to `OnPurchaseDone`
-- Treat unpaired orders as redeems and verify normally
-- Add restore purchased products
-- Optimize iOS build process (Adjust attribution endpoint, SKAdNetwork items, AdjustSignature XCFramework)
+- Set minimum IOS version to 15 for ICM.
+- Update native ios sdk version to 0.24.0 and 0.24.1 for icm in ci variable
+- Update native android sdk to 0.20.0
+- Update noctua native sdk ios to 0.24.0
+
+### ⚙️ Miscellaneous
+
+- Add debug log for active product id before currency lookup
+- Bump native SDK versions (Android 0.27.0, iOS 0.30.0)
+- Bump native iOS SDK version to 0.30.0
+- Add Unity meta files for new directories and files
+- Remove empty directories and stale meta files
+- Add .meta files for Phase 4 new files
+- Add missing .meta files, remove flaky FlushOnResume test
+- Remove accidentally committed test artifacts
+
+### ✨ Improvements
+
+- IAAPreprocessor to BuildPreprocessor
+- Remove unnecessary code
+- Reorganize SDK into MVP + Platform Bridge architecture (Phase 1)
+- Extract INativeFirebase, INativeEventStorage, INativeLifecycle from INativePlugin
+- Narrow EventSenderConfig to INativeEventStorage and NoctuaIAPService to INativeIAP
+- Extract IEventSender interface from EventSender
+- Update services and UI to accept IEventSender instead of concrete EventSender
+- Extract IPaymentUI interface, decouple UI creation from NoctuaIAPService
+- Introduce IAuthProvider to decouple NoctuaIAPService from static Noctua.Auth
+- Define IIAPService and IAuthenticationService presenter interfaces
+- Move ad integrations from Platform/ to AdsManager/
+- Fix AccessTokenProvider layer violation with IAccountEvents
+- Decouple MediationManager from UIFactory and static Noctua.Event
+- Extract nested PurchaseItem to InternalPurchaseItem, expand IIAPService
+- Decouple Http.cs from static Noctua.Platform.Locale
+- Decouple NoctuaIAPService from static Noctua.Platform.Locale
+- Extract UI utility methods from Infrastructure/Utility.cs to UI/UIUtility.cs
+- Add GetTranslation to ILocaleProvider, remove static locale calls
+- Inject IConnectivityProvider into NoctuaIAPService
+- Decouple MobileDateTimePicker from Noctua static facade
+- Decouple EventSender from Noctua static facade
+- Move EventSender from Network/ to Infrastructure/ root
 
 ### 🐛 Bug Fixes
 
-- Cache Firebase IDs to prevent iOS event loss and guard against quit-time crashes
-- Resolve native plugin init race condition before `GetActiveCurrencyAsync`
-- Move `OnInitSuccess` callback after `sdk_init_complete` for offline support
-- Fix Adjust attribution tracking
-- Resolve push notification capability crash by providing entitlements path
-- Fix failing unit tests for per-row event storage migration
+- Adjust redeems API endpoint.
+- Call OnPurchaseDone in one place to avoid double delivery.
+- Fetch the playerID from recent account if not exist.
+- Fetch the playerID from recent account if not exist.
 - Persist access token in PlayerPrefs to avoid users becoming unauthenticated
-- Replace all `Debug.Log` / `Debug.LogWarning` with `NoctuaLogger` in runtime code
-- Fix AppLovin `onUserEarnedReward` callback not triggering
-- Revert `NoctuaIAPService` native plugin type to `INativePlugin`
-- Add `Flush()` to `IEventSender` interface
-- Fix comprehensive `AdsManager` bugs
+- Remove unused ~> matcher in sed command for updating pod versions
+- Text field email address in login dialog is stuck on the whole screens
+- Applovin on user earned reward callback is not triggered
+- Reduce size image ad placeholder
+- Align deprecated AppLovin banner methods with AdViewPosition replacement
+- Add empty dictionary to prevent null object
+- Fix failing unit tests for per-row event storage migration
+- Cache Firebase IDs to prevent iOS event loss and guard against quit-time crashes
+- Adjust attribution is not track properly
+- Move OnInitSuccess callback after sdk_init_complete for offline support
+- Remove verbose debug log from GetEventCount
+- Resolve push notification capability crash by providing entitlements path
 - Update google-services to 4.3.15 and crashlytics to 3.0.6
+- Comprehensive AdsManager bug fixes and improvements
+- Resolve native plugin init race condition before GetActiveCurrencyAsync
+- Replace Debug.Log with _log/_sLog in NoctuaIAPService and IosPlugin
+- Add Flush() to IEventSender interface, include missing meta files
+- Revert NoctuaIAPService native plugin type to INativePlugin
+- Replace Debug.LogWarning with NoctuaLogger in infrastructure layer
+- Make InternalPurchaseItem public to match IIAPService accessibility
+- Replace Debug.Log with NoctuaLogger in remaining runtime code
 
-### 🏗️ Architecture
+### 🚀 Features
 
-- Reorganize SDK into MVP + Platform Bridge architecture
-- Extract `IEventSender`, `IIAPService`, `IAuthenticationService`, `IPaymentUI`, `IAuthProvider` presenter interfaces
-- Extract `INativeFirebase`, `INativeEventStorage`, `INativeLifecycle` sub-interfaces from `INativePlugin`
-- Decouple `EventSender`, `MobileDateTimePicker`, `NoctuaIAPService`, `Http.cs`, `MediationManager` from static `Noctua.*` facade
-- Inject `IConnectivityProvider` into `NoctuaIAPService`
-- Move `EventSender` from `Network/` to `Infrastructure/` root
-- Move ad integrations from `Platform/` to `AdsManager/`
-- Extract UI utility methods to `UI/UIUtility.cs`
-- Add XML documentation comments across all SDK layers
-
-### 💼 Other
-
-- Bump native iOS SDK to 0.30.0, Android to 0.27.0
-- Increase unit test coverage from 3.7% to 5.9%
+- Prevent game id null while offline
+- Prevent reserved event keys from being overridden in internal tracker
+- Add session id for all events internal tracker
+- Handle purchase data from Redeem.
+- Treat unpaired order as redeem and verify it like usual order.
+- Add store pricing to onPurchaseDone callback parameters
+- Pass the store pricing amount and currency to OnPurchaseDone.
+- Implement bridge against firebase remote config methods.
+- Add Objective-C → C# bridging function remote config
+- Implement direct redeem as backup.
+- Provide zero amount in purchase tracking for redeem.
+- Automate the embedding process for AdjustSignature XCFramework
+- Optimize iOS build process to add Adjust attribution endpoint and SKAdNetwork items
+- Add offline_mode param into internal tracker
+- Add meta file automation sh
+- Add new remote config flag sendEventsOnFlushEnabled to prevent crash while flush event
+- Add restore purchased products
+- Add track adjust attribution with internal tracker
+- Add get adjust attribution - ios
+- Get adjust attribution ios
 - Add unit test infrastructure with Makefile and code coverage
-
-## [0.59.0] - 2025-11-04
-
-### 💼 Other
-
-- Improve GitLab CI pipeline
-
-## [0.57.0] - 2025-11-04
-
-### 💼 Other
-
-- Improve GitLab CI pipeline
+- Increase unit test coverage from 3.7% to 5.9%
+- Expose ad unit id
+- Add ClaimRedeemAsync API and unit tests
+- Migrate Google Play Billing and iOS StoreKit to delegate to noctua-sdk-native
+- Add debug log for event enqueue in EventSender
+- Implement Cloud Saves.
+- Track first_open custom event on initial app launch
+- Add GetProductPurchaseStatusDetailAsync with full status model and expiry time
+- Add current stage level to IAP purchase request
+- Add logging for Adjust attribution details
 
 ## [0.56.0] - 2025-11-03
+
+### misc
+
+- Update readme
+
+### ✨ Improvements
+
+- Restrict IAP Init() and enable visibility to internal for SDK-only access
+- Restrict authentication enable() visibility to internal for SDK-only access
 
 ### 🚀 Features
 
 - Prevent requests to server while offline
-
-### 💼 Other
-
-- Update readme
-
-### 🚜 Refactor
-
-- Restrict IAP Init() and enable visibility to internal for SDK-only access
-- Restrict authentication enable() visibility to internal for SDK-only access
 
 ## [0.55.0] - 2025-10-28
 
@@ -420,6 +684,15 @@ All notable changes to this project will be documented in this file.
 
 ## [0.54.0] - 2025-10-24
 
+### misc
+
+- Bump version applovin sdk to 8.5.0
+- Remove ui toolkit class ad-placeholder-banner
+
+### 🐛 Bug Fixes
+
+- Disabled internal tracker for debugger
+
 ### 🚀 Features
 
 - Enhance initialization internal IAA
@@ -429,16 +702,15 @@ All notable changes to this project will be documented in this file.
 - Increase SDK init retry delay to 10 seconds
 - Add internal event tracker sdk init complete
 
+## [0.53.0] - 2025-10-21
+
+### misc
+
+- Bump version to v0.53.0.
+
 ### 🐛 Bug Fixes
 
-- Disabled internal tracker for debugger
-
-### 💼 Other
-
-- Bump version applovin sdk to 8.5.0
-- Remove ui toolkit class ad-placeholder-banner
-
-## [0.53.0] - 2025-10-21
+- Catch exceptions within event's geoIP.
 
 ### 🚀 Features
 
@@ -449,14 +721,6 @@ All notable changes to this project will be documented in this file.
 - Add xml documentation noctua event class
 - Allow game to retrieve purchase orderID via event and exception.
 
-### 🐛 Bug Fixes
-
-- Catch exceptions within event's geoIP.
-
-### 💼 Other
-
-- Bump version to v0.53.0.
-
 ## [0.52.0] - 2025-10-15
 
 ### 🚀 Features
@@ -466,15 +730,15 @@ All notable changes to this project will be documented in this file.
 
 ## [0.51.0] - 2025-10-06
 
+### ✨ Improvements
+
+- Load country in tracker.
+- Determine country from geoIP first before call cloudflare API.
+
 ### 🚀 Features
 
 - Add exception guards for Firebase ID native calls
 - Prevent NullReferenceException when EventSystem is missing in scene
-
-### 💼 Other
-
-- Load country in tracker.
-- Determine country from geoIP first before call cloudflare API.
 
 ## [0.50.0] - 2025-09-18
 
@@ -542,18 +806,18 @@ All notable changes to this project will be documented in this file.
 
 ## [0.45.0] - 2025-07-22
 
-### 🚀 Features
+### ✨ Improvements
 
-- Add internal event tracker game_platform_type on init sdk
+- Change GetStoreName to GetPlatformType
 
 ### 🐛 Bug Fixes
 
 - Update asset ad placeholder and make it random show ad placeholder per ad type
 - Add condition if iaa enabled equal false dont add the symbol
 
-### 🚜 Refactor
+### 🚀 Features
 
-- Change GetStoreName to GetPlatformType
+- Add internal event tracker game_platform_type on init sdk
 
 ## [0.44.1] - 2025-07-14
 
@@ -563,10 +827,9 @@ All notable changes to this project will be documented in this file.
 
 ## [0.44.0] - 2025-07-14
 
-### 🚀 Features
+### ✨ Improvements
 
-- Improve VN legal purpose, do not allow user to exit KYC.
-- Add init callback
+- Change to use Swift Package Manager and remove Cocoapods
 
 ### 🐛 Bug Fixes
 
@@ -574,9 +837,10 @@ All notable changes to this project will be documented in this file.
 - Add more null check for lean noctuagg.json config.
 - Add more null check.
 
-### 🚜 Refactor
+### 🚀 Features
 
-- Change to use Swift Package Manager and remove Cocoapods
+- Improve VN legal purpose, do not allow user to exit KYC.
+- Add init callback
 
 ## [0.43.1] - 2025-06-26
 
@@ -586,10 +850,6 @@ All notable changes to this project will be documented in this file.
 
 ## [0.43.0] - 2025-06-26
 
-### 🚀 Features
-
-- Noctua menu for unity editor
-
 ### 🐛 Bug Fixes
 
 - Issues collection was modified; enumeration operation may not execute on event sender
@@ -597,12 +857,11 @@ All notable changes to this project will be documented in this file.
 - Version package not defined, noctua menu
 - Install and remove iaa sdk not working properly
 
-## [0.42.0] - 2025-06-16
-
 ### 🚀 Features
 
-- Built in event tracker iaa admob
-- Built in event tracker iaa applovin max
+- Noctua menu for unity editor
+
+## [0.42.0] - 2025-06-16
 
 ### 🐛 Bug Fixes
 
@@ -613,7 +872,44 @@ All notable changes to this project will be documented in this file.
 - Translation error not found on email register vn dialog
 - Validation form not working properly in email register vn dialog
 
+### 🚀 Features
+
+- Built in event tracker iaa admob
+- Built in event tracker iaa applovin max
+
 ## [0.41.0] - 2025-06-05
+
+### ⚙️ Miscellaneous
+
+- Remove Script folder as we already have separated repository for config generation.
+
+### ✨ Improvements
+
+- AdFormat class into AdFormatNoctua to avoid confused class from Admob preloading configuration
+- Change ad placeholder use uitoolkit
+- Remove vn flow from email register dialog
+- Adjust and add translation for email registration flow
+- Translation for date of issues
+
+### 🐛 Bug Fixes
+
+- Adjust new config for sanbdox.
+- Improve loop internet checker
+- Enhance AuthenticateAsync to return empty data
+- Remove double check offline status
+- Improve init IAA SDK and analytics SDK
+- Change variable config to _config
+- Improve track ad custom event admob
+- Improve IAA event queue
+- PreloadManager class error not found when admob sdk is not installed
+- Loop for override the client RemoteFeatureFlags if any is not working properly
+- Adjust close ad placeholder for applovin max and add show ad placeholder for rewarded interstitial
+- Class not found because admob not installed
+- Adjust event queue name.
+- Safely handle missing or null RemoteFeatureFlags for VN legal purpose
+- Init not completed when remote config data is null
+- Ui closed earlier when email verification got error
+- Ui issues email register vn dialog
 
 ### 🚀 Features
 
@@ -636,38 +932,6 @@ All notable changes to this project will be documented in this file.
 - Implement VN OEG phone number verification.
 - Email register and phone verification for VN
 
-### 🐛 Bug Fixes
-
-- Adjust new config for sanbdox.
-- Improve loop internet checker
-- Enhance AuthenticateAsync to return empty data
-- Remove double check offline status
-- Improve init IAA SDK and analytics SDK
-- Change variable config to _config
-- Improve track ad custom event admob
-- Improve IAA event queue
-- PreloadManager class error not found when admob sdk is not installed
-- Loop for override the client RemoteFeatureFlags if any is not working properly
-- Adjust close ad placeholder for applovin max and add show ad placeholder for rewarded interstitial
-- Class not found because admob not installed
-- Adjust event queue name.
-- Safely handle missing or null RemoteFeatureFlags for VN legal purpose
-- Init not completed when remote config data is null
-- Ui closed earlier when email verification got error
-- Ui issues email register vn dialog
-
-### 🚜 Refactor
-
-- AdFormat class into AdFormatNoctua to avoid confused class from Admob preloading configuration
-- Change ad placeholder use uitoolkit
-- Remove vn flow from email register dialog
-- Adjust and add translation for email registration flow
-- Translation for date of issues
-
-### ⚙️ Miscellaneous Tasks
-
-- Remove Script folder as we already have separated repository for config generation.
-
 ## [0.40.1] - 2025-05-27
 
 ### 🐛 Bug Fixes
@@ -676,9 +940,9 @@ All notable changes to this project will be documented in this file.
 
 ## [0.40.0] - 2025-05-27
 
-### 🚀 Features
+### misc
 
-- Add limit to event queue length.
+- Improve log when the event queue is full.
 
 ### 🐛 Bug Fixes
 
@@ -687,9 +951,9 @@ All notable changes to this project will be documented in this file.
 - Adjust event queue name.
 - Change cycle delay to 5 seconds
 
-### 💼 Other
+### 🚀 Features
 
-- Improve log when the event queue is full.
+- Add limit to event queue length.
 
 ## [0.39.7] - 2025-05-05
 
@@ -705,15 +969,15 @@ All notable changes to this project will be documented in this file.
 
 ## [0.39.5] - 2025-04-30
 
+### ⚙️ Miscellaneous
+
+- Update ios native sdk to 0.13.5 (support for disabling IAP).
+- Update noctua sdk ios to 0.14.0
+
 ### 🐛 Bug Fixes
 
 - Handle internet checker crashes when app is quitting
 - Handle event flush crashes when app is quitting
-
-### ⚙️ Miscellaneous Tasks
-
-- Update ios native sdk to 0.13.5 (support for disabling IAP).
-- Update noctua sdk ios to 0.14.0
 
 ## [0.39.4] - 2025-04-29
 
@@ -745,10 +1009,6 @@ All notable changes to this project will be documented in this file.
 
 ## [0.39.0] - 2025-04-21
 
-### 🚀 Features
-
-- Add bridging against native onOnline and onOffline methods.
-
 ### 🐛 Bug Fixes
 
 - Keep init nativePlugin outside the IAA case.
@@ -760,7 +1020,33 @@ All notable changes to this project will be documented in this file.
 - Handle 500 error in offline-first.
 - Catch IsOfflineAsync result with ContinueWith.
 
+### 🚀 Features
+
+- Add bridging against native onOnline and onOffline methods.
+
 ## [0.38.0] - 2025-04-16
+
+### 🐛 Bug Fixes
+
+- Rename IAAResponse to IAA
+- Remove unecessary code
+- Remove whitespace
+- Function not found when IAA SDK not installed
+- Update comment for IAA init flow
+- Update comment for IAA flow
+- Refactor log error offline mode as info
+- Missing responseInfo class admob
+- Change convert value micros
+- Preprocessor ios symbols
+- Ad revenue tracker crashes
+- Ios init ianalytics flow code is not working
+- Change condition when iaaEnabled is false
+- Keep native plugin init one time
+- Improve EventSender.
+- Backup internal tracker events to PlayerPrefs. Remove RetryAsync since there is already main loop that handle retries. Reenqueue if failed.
+- Try to parse to IConvertible first before parse to object to reduce computation cost.
+- Guard flush with try catch inside the async await.
+- Remove merge conflict marker.
 
 ### 🚀 Features
 
@@ -788,28 +1074,6 @@ All notable changes to this project will be documented in this file.
 - Add ad revenue internal tracker
 - Add internal tracker
 - Add NoctuaEvents to registered player prefs keys.
-
-### 🐛 Bug Fixes
-
-- Rename IAAResponse to IAA
-- Remove unecessary code
-- Remove whitespace
-- Function not found when IAA SDK not installed
-- Update comment for IAA init flow
-- Update comment for IAA flow
-- Refactor log error offline mode as info
-- Missing responseInfo class admob
-- Change convert value micros
-- Preprocessor ios symbols
-- Ad revenue tracker crashes
-- Ios init ianalytics flow code is not working
-- Change condition when iaaEnabled is false
-- Keep native plugin init one time
-- Improve EventSender.
-- Backup internal tracker events to PlayerPrefs. Remove RetryAsync since there is already main loop that handle retries. Reenqueue if failed.
-- Try to parse to IConvertible first before parse to object to reduce computation cost.
-- Guard flush with try catch inside the async await.
-- Remove merge conflict marker.
 
 ## [0.37.3] - 2025-04-09
 
@@ -844,13 +1108,13 @@ All notable changes to this project will be documented in this file.
 
 ## [0.36.0] - 2025-03-11
 
-### 🚀 Features
-
-- Add OnPurchaseDone event to let the game know if a purchase is completed.
-
 ### 🐛 Bug Fixes
 
 - Error message not expected
+
+### 🚀 Features
+
+- Add OnPurchaseDone event to let the game know if a purchase is completed.
 
 ## [0.35.1] - 2025-02-25
 
@@ -860,23 +1124,15 @@ All notable changes to this project will be documented in this file.
 
 ## [0.35.0] - 2025-02-24
 
-### 🚀 Features
+### refacor
 
-- Logout confirm dialog
-- Logout left icon
-- Localization for logout confirmation dialog
-- Add Apple SSO
-- Add text setting asset and font Noto Sans Thai
-- Add text setting for config default font to panel setting
-- Implement QueryPurchases to handle pending purchase. Split log to 800-char chunks.
-- Pair unpaired purchase to unpaired order for both QueryPurchasesAsync and OnPurchaseUpdate. Add purchase history list.
-- Get store/platform name
-- Add request header X-PLATFORM into build config
-- Add request header X-PLATFORM, X-OS-AGENT, X-OS for all http request
-- Add request params exhange token, login as guest
-- Add is auth with sdk checker to hide welcome notification
-- Add default variable _offlineMode
-- Add information about who trigger the verify order API call.
+- Add comment for closeDatepicker android
+
+### ✨ Improvements
+
+- Improve code close datepicker and open datepicker
+- Clean IAP Service code for handle offline mode
+- Clean web content code for handle offline mode
 
 ### 🐛 Bug Fixes
 
@@ -919,19 +1175,23 @@ All notable changes to this project will be documented in this file.
 - Handle Online then Offline to show retry dialog
 - Handle retry platform when Online then Offline to show retry dialog
 
-### 💼 Other
+### 🚀 Features
 
-- Add comment for closeDatepicker android
-
-### 🚜 Refactor
-
-- Improve code close datepicker and open datepicker
-- Clean IAP Service code for handle offline mode
-- Clean web content code for handle offline mode
-
-### 🧪 Testing
-
-- Add test for locale / language
+- Logout confirm dialog
+- Logout left icon
+- Localization for logout confirmation dialog
+- Add Apple SSO
+- Add text setting asset and font Noto Sans Thai
+- Add text setting for config default font to panel setting
+- Implement QueryPurchases to handle pending purchase. Split log to 800-char chunks.
+- Pair unpaired purchase to unpaired order for both QueryPurchasesAsync and OnPurchaseUpdate. Add purchase history list.
+- Get store/platform name
+- Add request header X-PLATFORM into build config
+- Add request header X-PLATFORM, X-OS-AGENT, X-OS for all http request
+- Add request params exhange token, login as guest
+- Add is auth with sdk checker to hide welcome notification
+- Add default variable _offlineMode
+- Add information about who trigger the verify order API call.
 
 ## [0.34.1] - 2025-01-24
 
@@ -941,14 +1201,14 @@ All notable changes to this project will be documented in this file.
 
 ## [0.34.0] - 2025-01-24
 
-### 🚀 Features
-
-- Hide native payment button for direct APK distribution.
-
 ### 🐛 Bug Fixes
 
 - Reinit if the Playstore billing get disconnected at purchase.
 - Add translation for IAPNotReady error.
+
+### 🚀 Features
+
+- Hide native payment button for direct APK distribution.
 
 ## [0.33.1] - 2025-01-14
 
@@ -958,16 +1218,13 @@ All notable changes to this project will be documented in this file.
 
 ## [0.33.0] - 2025-01-14
 
-### 🚀 Features
+### refacor
 
-- Logout confirm dialog
-- Logout left icon
-- Localization for logout confirmation dialog
-- Add Apple SSO
-- Implement remote config to enable or disable SSO.
-- Implement remote config for user center SSO linking.
-- Add HTTP timeout at 10 seconds. Add X-DEVICE-ID in the header.
-- Add APIs to help gamedev maintains SDK playerPrefs.
+- Add comment for closeDatepicker android
+
+### ✨ Improvements
+
+- Improve code close datepicker and open datepicker
 
 ### 🐛 Bug Fixes
 
@@ -999,23 +1256,18 @@ All notable changes to this project will be documented in this file.
 - Work around for fullscreen web content on iOS not aligned
 - Restore readonly property of _credentials.
 
-### 💼 Other
-
-- Add comment for closeDatepicker android
-
-### 🚜 Refactor
-
-- Improve code close datepicker and open datepicker
-
-### 🧪 Testing
-
-- Add test for locale / language
-
-## [0.32.0] - 2025-01-09
-
 ### 🚀 Features
 
-- Allow user to pay with native payment in custom payment complete dialog.
+- Logout confirm dialog
+- Logout left icon
+- Localization for logout confirmation dialog
+- Add Apple SSO
+- Implement remote config to enable or disable SSO.
+- Implement remote config for user center SSO linking.
+- Add HTTP timeout at 10 seconds. Add X-DEVICE-ID in the header.
+- Add APIs to help gamedev maintains SDK playerPrefs.
+
+## [0.32.0] - 2025-01-09
 
 ### 🐛 Bug Fixes
 
@@ -1029,11 +1281,11 @@ All notable changes to this project will be documented in this file.
 - Birthdate value not set - edit profile
 - Adjust clean code
 
-## [0.31.0] - 2025-01-08
-
 ### 🚀 Features
 
-- Allow payment type override from backend.
+- Allow user to pay with native payment in custom payment complete dialog.
+
+## [0.31.0] - 2025-01-08
 
 ### 🐛 Bug Fixes
 
@@ -1075,6 +1327,10 @@ All notable changes to this project will be documented in this file.
 - Add retry to event sender
 - Usercenter design not matches
 
+### 🚀 Features
+
+- Allow payment type override from backend.
+
 ## [0.30.1] - 2024-12-27
 
 ### 🐛 Bug Fixes
@@ -1083,9 +1339,9 @@ All notable changes to this project will be documented in this file.
 
 ## [0.30.0] - 2024-12-27
 
-### 🚀 Features
+### ⚙️ Miscellaneous
 
-- Add pending purhase menu translation vn
+- No verbose log for HTTP requests with passwords
 
 ### 🐛 Bug Fixes
 
@@ -1098,28 +1354,22 @@ All notable changes to this project will be documented in this file.
 - Scale should adjust with auto rotate
 - Check for existing instance before call Firebase::configure.
 
-### ⚙️ Miscellaneous Tasks
+### 🚀 Features
 
-- No verbose log for HTTP requests with passwords
+- Add pending purhase menu translation vn
 
 ## [0.29.0] - 2024-12-22
+
+### 🐛 Bug Fixes
+
+- Update native sdk for ios
 
 ### 🚀 Features
 
 - Add custom app controller
 - Automation add capability push notification
 
-### 🐛 Bug Fixes
-
-- Update native sdk for ios
-
 ## [0.28.0] - 2024-12-20
-
-### 🚀 Features
-
-- Add copublisher logo on register widget. Improve register user experience.
-- Pop up success message linked account
-- Localization wording account linked
 
 ### 🐛 Bug Fixes
 
@@ -1136,6 +1386,12 @@ All notable changes to this project will be documented in this file.
 - Remove duplicate lines.
 - Reload the entire user center presenter to avoid unexpected bug.
 
+### 🚀 Features
+
+- Add copublisher logo on register widget. Improve register user experience.
+- Pop up success message linked account
+- Localization wording account linked
+
 ## [0.27.1] - 2024-12-20
 
 ### 🐛 Bug Fixes
@@ -1151,12 +1407,9 @@ All notable changes to this project will be documented in this file.
 
 ## [0.27.0] - 2024-12-19
 
-### 🚀 Features
+### ⚙️ Miscellaneous
 
-- Add Accept-Language in HTTP header to help error message translation in backend side.
-- Show switch account menu in user center for guest account.
-- Add copy localization languages
-- Localization for text input validation message - edit profile
+- Add SDK version to header.
 
 ### 🐛 Bug Fixes
 
@@ -1209,19 +1462,18 @@ All notable changes to this project will be documented in this file.
 - Typo key
 - Update android native sdk to 0.9.0
 
-### ⚙️ Miscellaneous Tasks
+### 🚀 Features
 
-- Add SDK version to header.
+- Add Accept-Language in HTTP header to help error message translation in backend side.
+- Show switch account menu in user center for guest account.
+- Add copy localization languages
+- Localization for text input validation message - edit profile
 
 ## [0.26.0] - 2024-12-16
 
-### 🚀 Features
+### ⚙️ Miscellaneous
 
-- Registration wizard for Vietnam region.
-- Add locale information in HTTP request header.
-- Add translation for Retry and Custom Payment Complete dialog.
-- Prepare retry pending purchases container.
-- Add Pending Purchase widget for both guest and authenticated user.
+- Downgrade locale log to Debug.
 
 ### 🐛 Bug Fixes
 
@@ -1238,9 +1490,13 @@ All notable changes to this project will be documented in this file.
 - Reset password doesn't automatically login
 - Rename SDK first_open to sdk_first_open to differentiate with custom tracker event.
 
-### ⚙️ Miscellaneous Tasks
+### 🚀 Features
 
-- Downgrade locale log to Debug.
+- Registration wizard for Vietnam region.
+- Add locale information in HTTP request header.
+- Add translation for Retry and Custom Payment Complete dialog.
+- Prepare retry pending purchases container.
+- Add Pending Purchase widget for both guest and authenticated user.
 
 ## [0.25.2] - 2024-12-12
 
@@ -1256,26 +1512,19 @@ All notable changes to this project will be documented in this file.
 
 ## [0.25.0] - 2024-12-12
 
-### 🚀 Features
-
-- Enable secondary payment after Noctuastore payment get canceled.
-
 ### 🐛 Bug Fixes
 
 - Tidy up some UIs.
 
-## [0.24.0] - 2024-12-12
-
 ### 🚀 Features
 
-- Default avatar
-- Add action help button
-- Add geo metadata in tracker event's extra payload.
-- Retry dialog ui
-- Retry mechanism for create order and verify order
-- Show error notification - purchase
-- Get noctua gold
-- Add Noctua Payment implementation using native browser with improved retry pending purchase.
+- Enable secondary payment after Noctuastore payment get canceled.
+
+## [0.24.0] - 2024-12-12
+
+### ⚙️ Miscellaneous
+
+- Print all custom tracker event parameters for easier debugging.
 
 ### 🐛 Bug Fixes
 
@@ -1295,15 +1544,22 @@ All notable changes to this project will be documented in this file.
 - Filter payment type by runtime platform. Open payment URL with native browser.
 - Remove currency from edit profile to prevent user playing around with currency to get cheaper goods.
 
-### ⚙️ Miscellaneous Tasks
+### 🚀 Features
 
-- Print all custom tracker event parameters for easier debugging.
+- Default avatar
+- Add action help button
+- Add geo metadata in tracker event's extra payload.
+- Retry dialog ui
+- Retry mechanism for create order and verify order
+- Show error notification - purchase
+- Get noctua gold
+- Add Noctua Payment implementation using native browser with improved retry pending purchase.
 
 ## [0.23.0] - 2024-12-10
 
-### 🚀 Features
+### ⚙️ Miscellaneous
 
-- Improve currency accuracy by using country to currency map.
+- Add LICENSE
 
 ### 🐛 Bug Fixes
 
@@ -1316,9 +1572,9 @@ All notable changes to this project will be documented in this file.
 - Remove superfluous exception message
 - Remove permission conflict
 
-### ⚙️ Miscellaneous Tasks
+### 🚀 Features
 
-- Add LICENSE
+- Improve currency accuracy by using country to currency map.
 
 ## [0.22.1] - 2024-12-06
 
@@ -1327,13 +1583,6 @@ All notable changes to this project will be documented in this file.
 - Match OrderStatus enum to backen types
 
 ## [0.22.0] - 2024-12-05
-
-### 🚀 Features
-
-- Show/Hide password in email login pop up
-- Add extra params in purchase request
-- Add display_price in product class
-- Add extra param in UpdatePlayerAccountAsync - purchase
 
 ### 🐛 Bug Fixes
 
@@ -1344,13 +1593,18 @@ All notable changes to this project will be documented in this file.
 - Show error when playstore payment failed
 - Addtional params for product purchase
 
-## [0.21.0] - 2024-12-05
-
 ### 🚀 Features
 
-- Copy user data to clipboard when selected account held down for 3 seconds
-- Bind confirmation and connect conflict dialogs
 - Show/Hide password in email login pop up
+- Add extra params in purchase request
+- Add display_price in product class
+- Add extra param in UpdatePlayerAccountAsync - purchase
+
+## [0.21.0] - 2024-12-05
+
+### ✨ Improvements
+
+- Sso logo stretched code
 
 ### 🐛 Bug Fixes
 
@@ -1361,19 +1615,23 @@ All notable changes to this project will be documented in this file.
 - Add translation to Bind Confirmation and Connect Conflict Dialog
 - Wording id 'continue with another account'
 
-### 🚜 Refactor
+### 🚀 Features
 
-- Sso logo stretched code
+- Copy user data to clipboard when selected account held down for 3 seconds
+- Bind confirmation and connect conflict dialogs
+- Show/Hide password in email login pop up
 
 ## [0.20.0] - 2024-12-03
 
-### 🚀 Features
+### ⚙️ Miscellaneous
 
-- Add sentry dll files
-- Add configuration sentry
-- Add Dsn sentry url to config
-- Log json body http
-- Update sdk native version
+- Add logging to aid debugging
+
+### ✨ Improvements
+
+- Do not write if url sentry is empty
+- Change _log to Debug.Log
+- Change noctua logger init position
 
 ### 🐛 Bug Fixes
 
@@ -1382,15 +1640,13 @@ All notable changes to this project will be documented in this file.
 - Set result for google billing product details and makes CreateOrder works again
 - Forgotten temporary undef
 
-### 🚜 Refactor
+### 🚀 Features
 
-- Do not write if url sentry is empty
-- Change _log to Debug.Log
-- Change noctua logger init position
-
-### ⚙️ Miscellaneous Tasks
-
-- Add logging to aid debugging
+- Add sentry dll files
+- Add configuration sentry
+- Add Dsn sentry url to config
+- Log json body http
+- Update sdk native version
 
 ## [0.19.9] - 2024-11-29
 
@@ -1406,6 +1662,10 @@ All notable changes to this project will be documented in this file.
 
 ## [0.19.7] - 2024-11-28
 
+### ⚙️ Miscellaneous
+
+- Initiate locale once, then inject it anywhere we need.
+
 ### 🐛 Bug Fixes
 
 - Determine language by this priority; user preference, region, system language.
@@ -1415,10 +1675,6 @@ All notable changes to this project will be documented in this file.
 - Update the user language preference immediately after successfully update to backend.
 - Remove duplicate HTTP log.
 - Keyboard not closed after entering input
-
-### ⚙️ Miscellaneous Tasks
-
-- Initiate locale once, then inject it anywhere we need.
 
 ## [0.19.6] - 2024-11-27
 
@@ -1435,13 +1691,13 @@ All notable changes to this project will be documented in this file.
 
 ## [0.19.4] - 2024-11-26
 
+### ✨ Improvements
+
+- Change throw exeption to log warning
+
 ### 🐛 Bug Fixes
 
 - Use fallback if native account store is unavailable.
-
-### 🚜 Refactor
-
-- Change throw exeption to log warning
 
 ## [0.19.3] - 2024-11-25
 
@@ -1471,13 +1727,14 @@ All notable changes to this project will be documented in this file.
 
 ## [0.19.0] - 2024-11-20
 
-### 🚀 Features
+### ✨ Improvements
 
-- Add translation for user banned info
-- Add exception error code for user banned
-- General confirm dialog for user banned
-- Add public method general confirm dialog
-- Add handle error user banned - login with email
+- Method authenticateAsync
+- Rename GeneralConfirmDialog to ConfirmationDialog
+- Used color for hyperlink - translation for user banned
+- Rename with spesific name banned confirmation dialog
+- Rename method name to ShowBannedConfirmationDialog
+- Changed to async and return UniTask
 
 ### 🐛 Bug Fixes
 
@@ -1487,14 +1744,13 @@ All notable changes to this project will be documented in this file.
 - Make throw exeption after user clicked button or hyperlink
 - Retry saving account if failed
 
-### 🚜 Refactor
+### 🚀 Features
 
-- Method authenticateAsync
-- Rename GeneralConfirmDialog to ConfirmationDialog
-- Used color for hyperlink - translation for user banned
-- Rename with spesific name banned confirmation dialog
-- Rename method name to ShowBannedConfirmationDialog
-- Changed to async and return UniTask
+- Add translation for user banned info
+- Add exception error code for user banned
+- General confirm dialog for user banned
+- Add public method general confirm dialog
+- Add handle error user banned - login with email
 
 ## [0.18.2] - 2024-11-19
 
@@ -1518,12 +1774,6 @@ All notable changes to this project will be documented in this file.
 
 ## [0.17.0] - 2024-11-13
 
-### 🚀 Features
-
-- Makes accounts available across games in iOS
-- Add bridging function close keyboard ios
-- Firebase crashlytics
-
 ### 🐛 Bug Fixes
 
 - Virtual keyboard not hidden in iOS
@@ -1531,12 +1781,13 @@ All notable changes to this project will be documented in this file.
 - Update noctua android sdk native to 0.6.0
 - Change to follow BE payment type
 
-## [0.16.0] - 2024-11-07
-
 ### 🚀 Features
 
-- Dynamic custom event suffix for Android and iOS
-- Add sdk version to account selection and user center
+- Makes accounts available across games in iOS
+- Add bridging function close keyboard ios
+- Firebase crashlytics
+
+## [0.16.0] - 2024-11-07
 
 ### 🐛 Bug Fixes
 
@@ -1544,9 +1795,10 @@ All notable changes to this project will be documented in this file.
 - Support ban user by exchange token for current game
 - Track USD as revenue while still keeping  original currency
 
-### 📚 Documentation
+### 🚀 Features
 
-- Add manual release guide [skip ci]
+- Dynamic custom event suffix for Android and iOS
+- Add sdk version to account selection and user center
 
 ## [0.15.1] - 2024-11-01
 
@@ -1566,15 +1818,6 @@ All notable changes to this project will be documented in this file.
 
 ## [0.15.0] - 2024-10-29
 
-### 🚀 Features
-
-- Add events to IAP and fix retry pending purchases
-- Add platform content events
-- Translation vn
-- Add translation vn language
-- Add translation for select gender and country
-- Add session tracking
-
 ### 🐛 Bug Fixes
 
 - Text not translated - user center
@@ -1584,16 +1827,16 @@ All notable changes to this project will be documented in this file.
 - Add retry to Google Billing init
 - Use WebUtility instead of HttpUtility to be compatible with .NET Framework API Level
 
-## [0.14.0] - 2024-10-25
-
 ### 🚀 Features
 
-- Authentication builtin tracker
-- Add events  to Auth UIs, add double events to some auth process
-- Add localization EN json file
-- Add configuration for localization
-- Add localization
-- Add indonesia localization file
+- Add events to IAP and fix retry pending purchases
+- Add platform content events
+- Translation vn
+- Add translation vn language
+- Add translation for select gender and country
+- Add session tracking
+
+## [0.14.0] - 2024-10-25
 
 ### 🐛 Bug Fixes
 
@@ -1612,27 +1855,20 @@ All notable changes to this project will be documented in this file.
 - Optional copublisher config should be ignored instead of exception
 - Add elvis operators to potentially null configs
 
-### 🧪 Testing
+### 🚀 Features
 
-- Fix tests to adjust with original requirements
+- Authentication builtin tracker
+- Add events  to Auth UIs, add double events to some auth process
+- Add localization EN json file
+- Add configuration for localization
+- Add localization
+- Add indonesia localization file
 
 ## [0.13.0] - 2024-10-22
 
-### 🚀 Features
+### ✨ Improvements
 
-- Add cross-game account storage
-- Add countries data and phone code
-- Add registration extra params for behaviour vn
-- Form field for behaviour whitelabel vn
-- Picker id param
-- Add form register for behaviour whitelabel vn
-- Configuration behaviour whitelabel vn
-- Remove close/back button in login with email for behaviour whitelabel vn
-- Don't show notif user guest if behavior whitelabel vn is true
-- Disable SSO for Behaviour whitelabel vn
-- Show direct login with email when player continue with other account
-- Add reusable ContainsFlag Checker
-- Add event tracker generator for multiple platforms and multiple thirdparty trackers.
+- Open date picker - user center
 
 ### 🐛 Bug Fixes
 
@@ -1650,11 +1886,33 @@ All notable changes to this project will be documented in this file.
 - Enhance flag checking more robust
 - Make token optional for fetching platform content.
 
-### 🚜 Refactor
+### 🚀 Features
 
-- Open date picker - user center
+- Add cross-game account storage
+- Add countries data and phone code
+- Add registration extra params for behaviour vn
+- Form field for behaviour whitelabel vn
+- Picker id param
+- Add form register for behaviour whitelabel vn
+- Configuration behaviour whitelabel vn
+- Remove close/back button in login with email for behaviour whitelabel vn
+- Don't show notif user guest if behavior whitelabel vn is true
+- Disable SSO for Behaviour whitelabel vn
+- Show direct login with email when player continue with other account
+- Add reusable ContainsFlag Checker
+- Add event tracker generator for multiple platforms and multiple thirdparty trackers.
 
 ## [0.12.0] - 2024-10-16
+
+### ✨ Improvements
+
+- Name logo with text - user center
+- Method get co publisher logo
+
+### 🐛 Bug Fixes
+
+- Tnc and privacy can clickable
+- Don't destroy panelSettings when switching scene
 
 ### 🚀 Features
 
@@ -1665,22 +1923,7 @@ All notable changes to this project will be documented in this file.
 - Add reusbale get co publisher logo
 - Add configuration for whitelabel
 
-### 🐛 Bug Fixes
-
-- Tnc and privacy can clickable
-- Don't destroy panelSettings when switching scene
-
-### 🚜 Refactor
-
-- Name logo with text - user center
-- Method get co publisher logo
-
 ## [0.11.0] - 2024-10-14
-
-### 🚀 Features
-
-- Add copy user id to clipboard
-- Reusable validate textfield
 
 ### 🐛 Bug Fixes
 
@@ -1694,11 +1937,12 @@ All notable changes to this project will be documented in this file.
 - Optimaze validate textfield code
 - Calculating webview frame
 
-## [0.10.0] - 2024-10-11
-
 ### 🚀 Features
 
-- Add method detect multiple values changes
+- Add copy user id to clipboard
+- Reusable validate textfield
+
+## [0.10.0] - 2024-10-11
 
 ### 🐛 Bug Fixes
 
@@ -1708,17 +1952,22 @@ All notable changes to this project will be documented in this file.
 - Spinner ui, profile url null will not loaded, detect value changes to enable button save
 - Dont destroy UI with new scene
 
+### 🚀 Features
+
+- Add method detect multiple values changes
+
 ## [0.9.1] - 2024-10-10
 
-### ⚙️ Miscellaneous Tasks
+### ⚙️ Miscellaneous
 
 - Split long log
 
 ## [0.9.0] - 2024-10-10
 
-### 🚀 Features
+### ✨ Improvements
 
-- Add method remove white space
+- Remove utility method remove white space
+- Use method directly to remove white space
 
 ### 🐛 Bug Fixes
 
@@ -1736,29 +1985,21 @@ All notable changes to this project will be documented in this file.
 - Error label not showing when email verif code
 - Apply scaling consistently between editor and real device
 
-### 🚜 Refactor
+### 🚀 Features
 
-- Remove utility method remove white space
-- Use method directly to remove white space
+- Add method remove white space
 
 ## [0.8.0] - 2024-10-07
 
-### 🚀 Features
+### ✨ Improvements
 
-- Add 3rd party NativeGallery
-- Add edit profile service
-- Add file uploader services
-- Add get profile options service
-- Date picker and refactor code
-- Image picker
-- Add payment by noctua website
-- Spinner, error label and styling dropdown
-- Add NoctuaWebContent
-- Add payment type in user profile
-- Noctua logo with text footer in edit profile left side
-- Add date picker
-- Add loading progress when iap
-- Add parse query string
+- Moves Event methods under NoctuaEventService class
+- Makes UI creation more reusable via UIFactory
+- Take out social authentication flow from AuthenticationModel
+- Use enum status and move tcs out of retry
+- General notificaiton can be reusable
+- Hide loading progress for temporary
+- General notification message and loading progress
 
 ### 🐛 Bug Fixes
 
@@ -1784,33 +2025,29 @@ All notable changes to this project will be documented in this file.
 - Verif order not processed
 - Get receipt data from response payment url noctua wallet
 
-### 🚜 Refactor
+### 🚀 Features
 
-- Moves Event methods under NoctuaEventService class
-- Makes UI creation more reusable via UIFactory
-- Take out social authentication flow from AuthenticationModel
-- Use enum status and move tcs out of retry
-- General notificaiton can be reusable
-- Hide loading progress for temporary
-- General notification message and loading progress
-
-### 📚 Documentation
-
-- Update readme
+- Add 3rd party NativeGallery
+- Add edit profile service
+- Add file uploader services
+- Add get profile options service
+- Date picker and refactor code
+- Image picker
+- Add payment by noctua website
+- Spinner, error label and styling dropdown
+- Add NoctuaWebContent
+- Add payment type in user profile
+- Noctua logo with text footer in edit profile left side
+- Add date picker
+- Add loading progress when iap
+- Add parse query string
 
 ## [0.7.0] - 2024-09-18
 
-### 🚀 Features
+### ✨ Improvements
 
-- Implement account deletion with confirmation dialog.
-- Implement purchaseItem bridging against native SDK.
-- Icon two hand carousel
-- Code to show object in Noctua.uss
-- Uss code configuration for carousel
-- Add uxml carousel in user center
-- Add carousel logic in user center presenter
-- Wire up GetActiveCurrency for Android. Use UniTask for PurchaseItemAsync.
-- Apply facebook config to android project
+- Indicator style code to uss code
+- Remove comparation state
 
 ### 🐛 Bug Fixes
 
@@ -1827,21 +2064,23 @@ All notable changes to this project will be documented in this file.
 - Guest connect button
 - Remove GoogleService-Info.plist from project if Firebase disabled
 
-### 🚜 Refactor
+### 🚀 Features
 
-- Indicator style code to uss code
-- Remove comparation state
+- Implement account deletion with confirmation dialog.
+- Implement purchaseItem bridging against native SDK.
+- Icon two hand carousel
+- Code to show object in Noctua.uss
+- Uss code configuration for carousel
+- Add uxml carousel in user center
+- Add carousel logic in user center presenter
+- Wire up GetActiveCurrency for Android. Use UniTask for PurchaseItemAsync.
+- Apply facebook config to android project
 
 ## [0.6.0] - 2024-09-09
 
-### 🚀 Features
+### ✨ Improvements
 
-- Add UniWebView
-- Warning icon (error notification icon)
-- Error notification ui
-- Add public method show general notification error
-- Add method show notification error user center
-- Add method show notification error login options
+- Makes config load more robust
 
 ### 🐛 Bug Fixes
 
@@ -1851,9 +2090,14 @@ All notable changes to this project will be documented in this file.
 - Handle error on social login failed
 - Should throw error response from BE
 
-### 🚜 Refactor
+### 🚀 Features
 
-- Makes config load more robust
+- Add UniWebView
+- Warning icon (error notification icon)
+- Error notification ui
+- Add public method show general notification error
+- Add method show notification error user center
+- Add method show notification error login options
 
 ## [0.5.2] - 2024-09-07
 
@@ -1871,10 +2115,6 @@ All notable changes to this project will be documented in this file.
 
 ## [0.5.0] - 2024-09-04
 
-### 🚀 Features
-
-- Click outside to close MoreOptionsMenu
-
 ### 🐛 Bug Fixes
 
 - Use link endpoints instead of login
@@ -1882,7 +2122,33 @@ All notable changes to this project will be documented in this file.
 - Make icons on MoreOptionsMenu smaller
 - IOS and Android runtime error
 
+### 🚀 Features
+
+- Click outside to close MoreOptionsMenu
+
 ## [0.4.0] - 2024-09-02
+
+### wip
+
+- User center
+
+### ✨ Improvements
+
+- Move UI actions to NoctuaBehavior
+- Conform more closely to MVP pattern
+- Delete unused bind dialog
+
+### 🐛 Bug Fixes
+
+- Change name function
+- Split account list into game users and noctua users
+- Fix dummy var initiation
+- Reset password endpoint and request
+- VerifyCode is only for registration
+- Check size before slicing
+- Styling, navigation, memory leak
+- Rename ShowUserCenterUI() to UserCenter()
+- User center get data from /api/v1/user/profile
 
 ### 🚀 Features
 
@@ -1902,28 +2168,6 @@ All notable changes to this project will be documented in this file.
 - OnAccountChanged and OnAccountDeleted
 - Social login user center
 - Change user center layout based on screen orientation
-
-### 🐛 Bug Fixes
-
-- Change name function
-- Split account list into game users and noctua users
-- Fix dummy var initiation
-- Reset password endpoint and request
-- VerifyCode is only for registration
-- Check size before slicing
-- Styling, navigation, memory leak
-- Rename ShowUserCenterUI() to UserCenter()
-- User center get data from /api/v1/user/profile
-
-### 💼 Other
-
-- User center
-
-### 🚜 Refactor
-
-- Move UI actions to NoctuaBehavior
-- Conform more closely to MVP pattern
-- Delete unused bind dialog
 
 ## [0.3.0] - 2024-08-15
 
@@ -1946,17 +2190,8 @@ All notable changes to this project will be documented in this file.
 
 ## [0.1.1] - 2024-07-25
 
-### 🐛 Bug Fixes
+### ⚙️ Miscellaneous
 
-- .gitlab-ci.yml rules
-
-### 📚 Documentation
-
-- Reformat bullets
-
-### ⚙️ Miscellaneous Tasks
-
-- Add trigger CI
 - Add CI for release
 - *(ci)* Fix invalid yaml
 - *(ci)* Fix invalid yaml again
@@ -1964,18 +2199,14 @@ All notable changes to this project will be documented in this file.
 - *(ci)* Fix skipped bump-version
 - *(ci)* Generate release notes for github
 
+### 🐛 Bug Fixes
+
+- .gitlab-ci.yml rules
+
 ## [0.1.0] - 2024-07-24
 
 ### 🚀 Features
 
 - Basic event trackers wrapping Noctua Android SDK
 
-### 📚 Documentation
 
-- Add README.md for getting started with this package
-- Add README.md.meta from Unity Editor
-- Add README.md for installation and getting started
-- Edit README.md to add required config file
-- Add platform settings for EDM
-
-<!-- generated by git-cliff -->
