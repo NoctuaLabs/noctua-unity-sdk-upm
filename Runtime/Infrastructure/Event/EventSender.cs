@@ -157,7 +157,7 @@ namespace com.noctuagames.sdk.Events
 
         // Cached Adjust ADID — same single-static-callback pitfall as Firebase IDs on iOS.
         private string _cachedAdjustAdid;
-        private bool _adjustAdidFetched;
+        private bool _isAdjustAdidFetched;
         private readonly SemaphoreSlim _adjustAdidFetchLock = new SemaphoreSlim(1, 1);
 
         // Write queue for burst-safe storage writes — each item is a serialized JSON string
@@ -677,12 +677,12 @@ namespace com.noctuagames.sdk.Events
                         data.TryAdd("firebase_installation_id", _cachedFirebaseInstallationId);
                 }
 
-                if (!_adjustAdidFetched)
+                if (!_isAdjustAdidFetched)
                 {
                     await _adjustAdidFetchLock.WaitAsync();
                     try
                     {
-                        if (!_adjustAdidFetched && _config.NativeAdjust != null)
+                        if (!_isAdjustAdidFetched && _config.NativeAdjust != null)
                         {
                             try
                             {
@@ -704,7 +704,7 @@ namespace com.noctuagames.sdk.Events
                                 var adidResult = adidTcs.Task;
 #endif
                                 _cachedAdjustAdid = adidResult == adidTcs.Task ? adidTcs.Task.Result : string.Empty;
-                                _adjustAdidFetched = true;
+                                _isAdjustAdidFetched = true;
                             }
                             catch (Exception e)
                             {
