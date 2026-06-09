@@ -272,19 +272,18 @@ namespace com.noctuagames.sdk
             // See the line that has this comment:
             // - Initialize IAA (In-App Advertising) SDK and prepare IAA to be ready for showing ads to the user.
             // Do not move or reorder this code since it follows a specific initialization flow.
-            if (!_config.Noctua.isIAAEnabled)
+            // IAA flagged on but no local config — do NOT block init. Warn and fall through
+            // to the else branch below, which inits the native plugin and continues wiring
+            // the SDK (no ads). Aborting here would leave _iap/_auth/_game/_platform/_app null
+            // and crash the async init phase at _iap.IsReady.
+            if (_config.Noctua.isIAAEnabled && _config.IAA == null)
             {
-                _log.Info("Initialize nativePlugin while IAA is not enabled");
-                InitializeNativePlugin();
+                _log.Warning("IAA is enabled but local IAA config is null — skipping IAA setup; " +
+                             "SDK init will continue without ads. Please check your config file.");
             }
-            else
-            {
-                if (_config.IAA == null)
-                {
-                    _log.Error("IAA local config is null, please check your config file");
-                    return;
-                }
 
+            if (_config.Noctua.isIAAEnabled && _config.IAA != null)
+            {
                 // Create NoctuaEventService FIRST so the tracker can be injected directly into
                 // MediationManager's constructor. This ensures CreateNetworks() — called inside
                 // the constructor via the IAAResponse property setter — receives a non-null
@@ -308,6 +307,13 @@ namespace com.noctuagames.sdk
                 InitializeNativePlugin();
                 _log.Info("Initialize nativePlugin while IAA is not enabled and UNITY_ADMOB or UNITY_APPLOVIN is not defined");
 #endif
+            }
+            else
+            {
+                // IAA disabled, or enabled with a null config (warned above):
+                // no mediation — just init the native plugin and continue.
+                _log.Info("Initialize nativePlugin while IAA is not enabled");
+                InitializeNativePlugin();
             }
 
             // _event is already created above in the IAA-enabled branch.
