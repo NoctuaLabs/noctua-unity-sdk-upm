@@ -139,7 +139,7 @@
     "EmailConfirmResetPasswordDialogPresenter.SuccessNotification": "Password reset successfully. Please login with your new password.",
 
     "FailedPaymentDialogPresenter.CSButton.Button.text": "Contact Support",
-    "FailedPaymentDialogPresenter.ItemAlreadyOwned": "Something went wrong with your previous purchase. Please contact customer service.",
+    "FailedPaymentDialogPresenter.ItemAlreadyOwned": "You already own this item. Please restart the game to restore your purchase.",
     "FailedPaymentDialogPresenter.PendingPurchaseOngoing": "Your purchase is still being processed. Please wait for a few minutes and try to restart the game.",
     
     "AccountDeletionConfirmationDialogPresenter.Question.Label.text": "Are you sure you want to\ndelete this account?",

@@ -139,7 +139,7 @@
     "EmailConfirmResetPasswordDialogPresenter.SuccessNotification": "Đã đặt lại mật khẩu thành công. Vui lòng đăng nhập bằng mật khẩu mới của bạn.",
 
     "FailedPaymentDialogPresenter.CSButton.Button.text": "Liên hệ CS",
-    "FailedPaymentDialogPresenter.ItemAlreadyOwned": "Có vấn đề gì đó xảy ra với giao dịch mua trước đó của bạn. Vui lòng liên hệ với bộ phận chăm sóc khách hàng.",
+    "FailedPaymentDialogPresenter.ItemAlreadyOwned": "Bạn đã sở hữu vật phẩm này. Vui lòng khởi động lại trò chơi để khôi phục giao dịch mua của bạn.",
     "FailedPaymentDialogPresenter.PendingPurchaseOngoing": "Giao dịch mua của bạn vẫn đang được xử lý. Vui lòng đợi vài phút và thử khởi động lại trò chơi.",
 
     "AccountDeletionConfirmationDialogPresenter.Question.Label.text": "Bạn có chắc muốn xóa\n tài khoản này không?",

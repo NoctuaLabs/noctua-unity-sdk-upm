@@ -139,7 +139,7 @@
     "EmailConfirmResetPasswordDialogPresenter.SuccessNotification": "Kata sandi berhasil diatur ulang. Silakan masuk kembali.",
 
     "FailedPaymentDialogPresenter.CSButton.Button.text": "Hubungi CS",
-    "FailedPaymentDialogPresenter.ItemAlreadyOwned": "Ada yang salah dengan pembelian Anda sebelumnya. Silakan hubungi layanan pelanggan.",
+    "FailedPaymentDialogPresenter.ItemAlreadyOwned": "Anda sudah memiliki item ini. Silakan mulai ulang permainan untuk memulihkan pembelian Anda.",
     "FailedPaymentDialogPresenter.PendingPurchaseOngoing": "Pembelian Anda masih diproses. Harap tunggu beberapa menit dan coba mulai ulang permainan.",
 
     "AccountDeletionConfirmationDialogPresenter.Question.Label.text": "Apakah Anda yakin ingin\nmenghapus akun ini?",
