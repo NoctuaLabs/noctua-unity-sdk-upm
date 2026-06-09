@@ -39,6 +39,15 @@ namespace com.noctuagames.sdk.Inspector
 
         private UIDocument _doc;
         private PanelSettings _panelSettings;
+
+        // UI density knob for the whole overlay. Under ConstantPhysicalSize the effective
+        // px-per-point scale is Screen.dpi / referenceDpi, so a HIGHER referenceDpi renders the
+        // entire inspector SMALLER (every font/padding shrinks uniformly). Raised from the old
+        // 64/96 to make the overlay more compact. To resize globally, change only these two
+        // numbers — do not hand-tune individual fontSize values.
+        private const int ReferenceDpiEditor = 96;   // was 64 — ~33% smaller in the Editor/Game view
+        private const int ReferenceDpiDevice = 128;  // was 96 — ~25% smaller on device
+        private int _referenceDpi;
         private InspectorTrigger _trigger;
         private HttpInspectorLog _httpLog;
         private TrackerDebugMonitor _monitor;
@@ -148,19 +157,13 @@ namespace com.noctuagames.sdk.Inspector
             _panelSettings = ScriptableObject.CreateInstance<PanelSettings>();
             _panelSettings.sortingOrder = 32767;
             _panelSettings.scaleMode = PanelScaleMode.ConstantPhysicalSize;
-            // ConstantPhysicalSize divides Screen.dpi by referenceDpi to pick
-            // the px-per-pt scale. The default 96 is correct for real
-            // devices (a 320dpi phone yields 320/96 = 3.3x, so a 14pt label
-            // renders ~46px and looks about right physically). In Unity's
-            // Editor / Game-view the host monitor reports 96-110dpi, so the
-            // panel renders almost 1:1 and 14pt feels tiny.
-            //
-            // Drop referenceDpi to 64 in the Editor only so 14pt becomes
-            // ~21px in the Game view — comfortable to read while iterating
-            // without having to launch on device. Player builds keep 96.
-            int referenceDpi = Application.isEditor ? 64 : 96;
-            _panelSettings.referenceDpi = referenceDpi;
-            _panelSettings.fallbackDpi  = referenceDpi;
+            // ConstantPhysicalSize divides Screen.dpi by referenceDpi to pick the px-per-pt scale.
+            // HIGHER referenceDpi => smaller overlay. The Editor/Game view reports ~96-110dpi (so it
+            // renders near 1:1), hence a separate, slightly lower reference there. See the
+            // ReferenceDpi* constants to resize the whole inspector in one place.
+            _referenceDpi = Application.isEditor ? ReferenceDpiEditor : ReferenceDpiDevice;
+            _panelSettings.referenceDpi = _referenceDpi;
+            _panelSettings.fallbackDpi  = _referenceDpi;
 
             _doc = gameObject.AddComponent<UIDocument>();
             _doc.panelSettings = _panelSettings;
@@ -230,7 +233,7 @@ namespace com.noctuagames.sdk.Inspector
             // We sample Screen.safeArea once at Awake — rotation isn't handled
             // here because the Inspector is a one-off debug surface and
             // re-applying on every render would cost more than it's worth.
-            ApplySafeAreaInsets(_root);
+            ApplySafeAreaInsets(_root, _referenceDpi);
 
             // PanelSettings created via ScriptableObject.CreateInstance has no
             // default theme assigned, so text glyphs render as empty. Assign
@@ -1239,7 +1242,7 @@ namespace com.noctuagames.sdk.Inspector
         /// orientation change would cost more frames than it's worth. Devs
         /// expecting landscape/portrait flips should re-open the Inspector.
         /// </summary>
-        private static void ApplySafeAreaInsets(VisualElement root)
+        private static void ApplySafeAreaInsets(VisualElement root, int referenceDpi)
         {
             try
             {
@@ -1256,13 +1259,13 @@ namespace com.noctuagames.sdk.Inspector
                 float bottomPx = safe.yMin;
                 float topPx    = screenH - safe.yMax;
 
-                // Convert screen px → design pt for ConstantPhysicalSize. The
-                // panel's reference is 96 DPI; if Screen.dpi reports 0 (some
-                // editors / desktop builds) we leave the values in pixels —
-                // the difference is invisible because the desktop preview has
-                // no notch to step around.
+                // Convert screen px → design pt for ConstantPhysicalSize. Must use the SAME
+                // referenceDpi the panel was configured with (_referenceDpi), or the notch padding
+                // is over/under-sized. If Screen.dpi reports 0 (some editors / desktop builds) we
+                // leave the values in pixels — invisible because the desktop preview has no notch.
                 float dpi = Screen.dpi;
-                float scale = dpi > 0f ? 96f / dpi : 1f;
+                float refDpi = referenceDpi > 0 ? referenceDpi : 96;
+                float scale = dpi > 0f ? refDpi / dpi : 1f;
 
                 root.style.paddingLeft   = leftPx   * scale;
                 root.style.paddingRight  = rightPx  * scale;
