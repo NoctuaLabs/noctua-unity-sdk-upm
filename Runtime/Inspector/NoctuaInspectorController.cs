@@ -63,6 +63,13 @@ namespace com.noctuagames.sdk.Inspector
         private string _trackerSearch = "";                 // keyword filter for the Trackers tab
         private System.Text.RegularExpressions.Regex _trackerSearchRegex; // non-null when `re:` prefix is set
 
+        // Single source of truth for the "Taichi" pseudo-filter. Unlike the other chips it is NOT a
+        // provider — it matches events whose name starts with TaichiEventPrefix. Keeping these as
+        // constants (used by the chip, ProviderAccent, and RenderTrackers) avoids the magic string
+        // drifting out of sync across the three call sites.
+        private const string TaichiFilterKey  = "Taichi";
+        private const string TaichiEventPrefix = "taichi_";
+
         private VisualElement _root;
         private VisualElement _listContainer;
         private VisualElement _filterBar;
@@ -459,7 +466,7 @@ namespace com.noctuagames.sdk.Inspector
                 case "Firebase": return new Color(0xFF / 255f, 0xA0 / 255f, 0x00 / 255f, 1f); // Firebase orange
                 case "Adjust":   return Ok;                                                   // green
                 case "Facebook": return AccentHttp;                                           // Facebook blue
-                case "Taichi":   return new Color(0x2D / 255f, 0xD4 / 255f, 0xBF / 255f, 1f); // teal/cyan
+                case TaichiFilterKey: return new Color(0x2D / 255f, 0xD4 / 255f, 0xBF / 255f, 1f); // teal/cyan
                 default:         return AccentTracker;
             }
         }
@@ -505,7 +512,7 @@ namespace com.noctuagames.sdk.Inspector
             bar.style.backgroundColor = Bg1;
 
             _filterChips.Clear();
-            foreach (var key in new[] { "All", "Noctua", "Firebase", "Adjust", "Facebook", "Taichi" })
+            foreach (var key in new[] { "All", "Noctua", "Firebase", "Adjust", "Facebook", TaichiFilterKey })
             {
                 var chip = new Label(key);
                 chip.style.paddingLeft = 10; chip.style.paddingRight = 10;
@@ -760,15 +767,16 @@ namespace com.noctuagames.sdk.Inspector
 #endif
 
             // "Taichi" is not a provider — taichi_* events are emitted under the Noctua provider.
-            // Filter by event-name prefix instead of provider equality.
+            // Filter by event-name prefix instead of provider equality. The key compare is
+            // case-insensitive so it can't silently break if the chip key casing ever changes.
             IReadOnlyList<TrackerEmission> snap;
-            if (_trackerFilter == "Taichi")
+            if (string.Equals(_trackerFilter, TaichiFilterKey, StringComparison.OrdinalIgnoreCase))
             {
                 // Snapshot() never returns null (it ToList()s), but guard the entry and EventName
                 // so a stray null can't throw out of the per-frame render tick.
                 snap = (_monitor.Snapshot(null) ?? (IReadOnlyList<TrackerEmission>)System.Array.Empty<TrackerEmission>())
                     .Where(e => e != null && e.EventName != null &&
-                                e.EventName.StartsWith("taichi_", StringComparison.OrdinalIgnoreCase))
+                                e.EventName.StartsWith(TaichiEventPrefix, StringComparison.OrdinalIgnoreCase))
                     .ToList();
             }
             else
