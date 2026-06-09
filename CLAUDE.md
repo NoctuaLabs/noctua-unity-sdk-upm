@@ -349,6 +349,76 @@ git-cliff --unreleased      # just the pending section for the next release
 > (see `.gitlab-ci.yml`). The proper long-term fix is to tag the `main` lineage (as the native SDK
 > does), after which `--bumped-version` becomes reliable.
 
+### Squashing Commits
+
+**Squash before pushing when commits are noisy or don't tell a coherent story.** `git-cliff`
+reads every commit merged to `main` to build the changelog and decide the version bump — WIP /
+fixup / "oops" commits pollute both the changelog and the semver level.
+
+#### When to squash
+
+| Situation | Action |
+|---|---|
+| WIP / checkpoint commits (`wip: halfway`, `tmp: debug log`) | Always squash |
+| Multiple fixups to the same change (`fix typo`, `fix build`, `oops`, `address review`) | Squash into the parent |
+| One feature spread across many tiny commits with no individual value | Squash into one `feat:` |
+| Each commit is a meaningful, self-contained unit (separate feature / fix / chore) | Keep as-is |
+
+> **Rule of thumb: one logical change = one commit on `main`.** If a branch has 8 commits that
+> all implement the same feature, squash to 1–2 before merging. If they are genuinely independent
+> (separate fixes/features), keep them separate so each gets its own changelog line.
+
+#### How to squash
+
+`git rebase -i` is the usual tool but is **interactive** (opens an editor) — not available in
+non-interactive/agent shells. Prefer the non-interactive forms:
+
+```sh
+# Squash the entire branch into one commit (most common for a single-feature branch):
+git reset --soft main
+git commit -m "feat: <one-line summary of the whole change>"
+
+# Squash the last N commits into one:
+git reset --soft HEAD~N
+git commit -m "improve: <summary>"
+
+# Fold a just-made fixup into the previous commit (keeps its message):
+git commit --amend --no-edit
+```
+
+After squashing an already-pushed branch you must force-push (feature branches only, never a
+shared/protected branch):
+
+```sh
+git push --force-with-lease
+```
+
+#### Examples
+
+**Before (noisy — squash):**
+```
+wip: start login milestones
+fix build error
+oops forgot .meta
+add test
+fix test
+```
+**After (clean — one meaningful commit):**
+```
+feat: add login retention milestones (login_on_d0..d30)
+```
+
+**Before (keep — each is independent):**
+```
+feat: add taichi inspector filter
+fix: NPE in AdWatchMilestoneTracker on null adType
+chore: bump native SDK deps
+```
+
+> **Mixed-concern files:** when one file legitimately spans concerns (e.g. `Noctua.Initialization.cs`
+> wires several features), hunk-level splitting needs interactive staging which isn't available
+> here — group the file under its **dominant** type rather than forcing artificial splits.
+
 ## Release Checklist
 
 Releases are automated by the GitLab CI `bump-version-for-release` job (manual trigger on `main`),
