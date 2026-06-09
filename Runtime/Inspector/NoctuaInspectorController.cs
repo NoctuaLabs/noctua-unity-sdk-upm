@@ -179,8 +179,18 @@ namespace com.noctuagames.sdk.Inspector
             _logLedger?.Pump();
             if (_visible && _dirty)
             {
-                RenderList();
+                // Reset _dirty BEFORE rendering: if RenderList throws, _dirty stays false so the
+                // error can't re-throw every frame. Catch so a render bug never breaks the overlay.
                 _dirty = false;
+                try
+                {
+                    RenderList();
+                }
+                catch (Exception e)
+                {
+                    _listContainer?.Clear();
+                    _listContainer?.Add(Placeholder($"Inspector render error: {e.Message}"));
+                }
             }
         }
 
@@ -754,15 +764,17 @@ namespace com.noctuagames.sdk.Inspector
             IReadOnlyList<TrackerEmission> snap;
             if (_trackerFilter == "Taichi")
             {
-                snap = _monitor.Snapshot(null)
-                    .Where(e => e.EventName != null &&
+                // Snapshot() never returns null (it ToList()s), but guard the entry and EventName
+                // so a stray null can't throw out of the per-frame render tick.
+                snap = (_monitor.Snapshot(null) ?? (IReadOnlyList<TrackerEmission>)System.Array.Empty<TrackerEmission>())
+                    .Where(e => e != null && e.EventName != null &&
                                 e.EventName.StartsWith("taichi_", StringComparison.OrdinalIgnoreCase))
                     .ToList();
             }
             else
             {
                 var filter = _trackerFilter == "All" ? null : _trackerFilter;
-                snap = _monitor.Snapshot(filter);
+                snap = _monitor.Snapshot(filter) ?? (IReadOnlyList<TrackerEmission>)System.Array.Empty<TrackerEmission>();
             }
 
             // Apply the keyword search on top of the provider/Taichi filter.
