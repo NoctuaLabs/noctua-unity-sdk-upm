@@ -521,8 +521,7 @@ namespace com.noctuagames.sdk.Inspector
             // Keyword search — matches event name, provider, error, and payload/extra params.
             // Supports `re:<pattern>` for regex; plain substring otherwise.
             var search = new TextField { value = _trackerSearch };
-            search.style.minWidth = 140;
-            search.style.marginLeft = 4; search.style.marginRight = 4;
+            StyleSearchField(search);
             search.tooltip = "Search trackers: event name / provider / payload. Prefix `re:` for regex.";
             search.RegisterValueChangedCallback(evt =>
             {
@@ -567,6 +566,43 @@ namespace com.noctuagames.sdk.Inspector
             lbl.style.paddingTop = 8; lbl.style.paddingBottom = 8;
             lbl.style.fontSize = 13;
             return lbl;
+        }
+
+        /// <summary>
+        /// Make a <see cref="TextField"/> visible in this themeless panel. PanelSettings created via
+        /// <c>CreateInstance</c> has no theme stylesheet, so UI Toolkit never sizes/paints the inner
+        /// <c>unity-text-input</c> — a raw TextField renders collapsed/invisible. We style the field
+        /// and its inner input explicitly (background, border, text colour, font) so it shows.
+        /// </summary>
+        private void StyleSearchField(TextField field)
+        {
+            field.style.height = 26;
+            field.style.minWidth = 150;
+            field.style.marginLeft = 4; field.style.marginRight = 4;
+            field.style.marginTop = 2; field.style.marginBottom = 2;
+            field.style.backgroundColor = Bg2;
+            field.style.color = TextHi;
+            field.style.fontSize = 12;
+            field.style.borderTopWidth = 1; field.style.borderBottomWidth = 1;
+            field.style.borderLeftWidth = 1; field.style.borderRightWidth = 1;
+            field.style.borderTopColor = Stroke; field.style.borderBottomColor = Stroke;
+            field.style.borderLeftColor = Stroke; field.style.borderRightColor = Stroke;
+            field.style.borderTopLeftRadius = 4; field.style.borderTopRightRadius = 4;
+            field.style.borderBottomLeftRadius = 4; field.style.borderBottomRightRadius = 4;
+
+            // The inner text-input child needs explicit styling + font in a themeless panel.
+            var input = field.Q("unity-text-input");
+            if (input != null)
+            {
+                input.style.backgroundColor = Bg2;
+                input.style.color = TextHi;
+                input.style.paddingLeft = 6; input.style.paddingRight = 6;
+                input.style.paddingTop = 2; input.style.paddingBottom = 2;
+                input.style.borderTopWidth = 0; input.style.borderBottomWidth = 0;
+                input.style.borderLeftWidth = 0; input.style.borderRightWidth = 0;
+                var f = LoadBuiltinFont();
+                if (f != null) input.style.unityFont = f;
+            }
         }
 
         // -------- toolbar actions --------

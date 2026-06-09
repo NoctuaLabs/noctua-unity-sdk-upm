@@ -234,6 +234,11 @@ namespace com.noctuagames.sdk.Inspector
             if (docRoot == null) return;
 
             _perfHud = new VisualElement();
+            // The HUD attaches to docRoot (a sibling of _root) so it survives the Inspector being
+            // closed — but that means it does NOT inherit the font set on _root. Without an explicit
+            // font the label glyphs render empty (the box shows, the text is blank). Set it here.
+            var hudFont = LoadBuiltinFont();
+            if (hudFont != null) _perfHud.style.unityFont = hudFont;
             _perfHud.style.position = Position.Absolute;
             _perfHud.style.top = 8; _perfHud.style.right = 8;
             _perfHud.style.paddingLeft = 8; _perfHud.style.paddingRight = 8;

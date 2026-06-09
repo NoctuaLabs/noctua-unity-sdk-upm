@@ -168,8 +168,7 @@ namespace com.noctuagames.sdk.Inspector
 
             // Text filter — supports `re:<pattern>` for regex; plain substring otherwise.
             var textField = new TextField { value = _logTextFilter };
-            textField.style.minWidth = 140;
-            textField.style.marginLeft = 4; textField.style.marginRight = 4;
+            StyleSearchField(textField);
             textField.tooltip = "Plain substring; prefix `re:` for regex (e.g. `re:^GET .* 5\\d\\d`)";
             textField.RegisterValueChangedCallback(evt =>
             {
