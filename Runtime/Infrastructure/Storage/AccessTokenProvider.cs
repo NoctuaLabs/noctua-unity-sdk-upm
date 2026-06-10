@@ -61,7 +61,21 @@ namespace com.noctuagames.sdk
         private string _accessToken;
 
         /// <inheritdoc />
-        public bool IsAuthenticated => !string.IsNullOrEmpty(_accessToken);
+        public bool IsAuthenticated
+        {
+            get
+            {
+                if (!string.IsNullOrEmpty(_accessToken))
+                {
+                    return true;
+                }
+
+                // Mirror the AccessToken getter's PlayerPrefs fallback (without throwing):
+                // a valid persisted token means the user is authenticated even if no code
+                // has touched the AccessToken getter yet this session.
+                return !string.IsNullOrEmpty(PlayerPrefs.GetString("NoctuaAccessToken"));
+            }
+        }
         
         private void OnAccountChanged(UserBundle user)
         {

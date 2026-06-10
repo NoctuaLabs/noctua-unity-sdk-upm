@@ -336,6 +336,9 @@ namespace com.noctuagames.sdk
             
             if (completedTask != contextTask)
             {
+                // Stop the listener so the port is released and the pending
+                // GetContextAsync is aborted — otherwise both leak until process exit.
+                _listener.Stop();
                 throw new TimeoutException("Timeout while waiting for the HTTP server to respond");
             }
             

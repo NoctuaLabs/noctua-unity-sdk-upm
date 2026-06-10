@@ -56,7 +56,10 @@ namespace com.noctuagames.sdk
                 
                 _log.Debug($"account changed to '{_recentAccount?.User?.Id}-{_recentAccount?.Player?.Id}-{_recentAccount?.Credential?.DisplayText}'");
 
-                UniTask.Void(async () => OnAccountChanged?.Invoke(RecentAccount));
+                // Invoke synchronously: the async-void wrapper had no await (so it ran
+                // synchronously anyway) but swallowed subscriber exceptions and could
+                // observe a newer RecentAccount on rapid account switches.
+                OnAccountChanged?.Invoke(RecentAccount);
             }
         }
 

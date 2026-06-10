@@ -485,7 +485,7 @@ namespace com.noctuagames.sdk
 
             var request = new HttpRequest(HttpMethod.Post, $"{_baseUrl}/auth/email/link")
                 .WithHeader("X-CLIENT-ID", _clientId)
-                .WithHeader("X-BUNDLE-ID", Application.identifier)
+                .WithHeader("X-BUNDLE-ID", _bundleId)
                 .WithHeader("Authorization", "Bearer " + RecentAccount.Player.AccessToken)
                 .WithJsonBody(
                     new CredPair
@@ -549,7 +549,7 @@ namespace com.noctuagames.sdk
         /// <exception cref="NoctuaException">Thrown when the current account is not a guest.</exception>
         public async UniTask<PlayerToken> BeginVerifyEmailRegistrationAsync(int id, string code)
         {
-            if (!RecentAccount.IsGuest)
+            if (RecentAccount == null || !RecentAccount.IsGuest)
             {
                 throw new NoctuaException(NoctuaErrorCode.Authentication, "Account is not a guest account");
             }
@@ -580,7 +580,7 @@ namespace com.noctuagames.sdk
         /// <exception cref="NoctuaException">Thrown when the current account is not a guest.</exception>
         public async UniTask<PlayerToken> BeginVerifyEmailLinkingAsync(int id, string code)
         {
-            if (!RecentAccount.IsGuest)
+            if (RecentAccount == null || !RecentAccount.IsGuest)
             {
                 throw new NoctuaException(NoctuaErrorCode.Authentication, "Account is not a guest account");
             }
@@ -611,7 +611,7 @@ namespace com.noctuagames.sdk
         /// <exception cref="NoctuaException">Thrown when the current account is not a guest.</exception>
         public async UniTask<PlayerToken> GetSocialLoginTokenAsync(string provider, SocialLoginRequest payload)
         {
-            if (!RecentAccount.IsGuest)
+            if (RecentAccount == null || !RecentAccount.IsGuest)
             {
                 throw new NoctuaException(NoctuaErrorCode.Authentication, "Account is not a guest account");
             }
@@ -638,7 +638,7 @@ namespace com.noctuagames.sdk
         // TODO: Add support for phone
         public async UniTask<PlayerToken> GetEmailLoginTokenAsync(string email, string password)
         {
-            if (!RecentAccount.IsGuest)
+            if (RecentAccount == null || !RecentAccount.IsGuest)
             {
                 throw new NoctuaException(NoctuaErrorCode.Authentication, "Account is not a guest account");
             }
@@ -691,7 +691,7 @@ namespace com.noctuagames.sdk
         /// <exception cref="NoctuaException">Thrown when the current account is not a guest or tokens are missing.</exception>
         public async UniTask<UserBundle> BindGuestAndLoginAsync(PlayerToken targetPlayer)
         {
-            if (!RecentAccount.IsGuest)
+            if (RecentAccount == null || !RecentAccount.IsGuest)
             {
                 throw new NoctuaException(NoctuaErrorCode.Authentication, "Account is not a guest account");
             }
@@ -708,7 +708,7 @@ namespace com.noctuagames.sdk
 
             var request = new HttpRequest(HttpMethod.Post, $"{_baseUrl}/auth/bind")
                 .WithHeader("X-CLIENT-ID", _clientId)
-                .WithHeader("X-BUNDLE-ID", Application.identifier)
+                .WithHeader("X-BUNDLE-ID", _bundleId)
                 .WithHeader("Authorization", "Bearer " + targetPlayer?.AccessToken)
                 .WithJsonBody(new BindRequest { GuestToken = RecentAccount.Player.AccessToken });
 
@@ -738,7 +738,19 @@ namespace com.noctuagames.sdk
         /// <returns>The new guest user bundle.</returns>
         public async UniTask<UserBundle> LogoutAsync()
         {
-            return await LoginAsGuestAsync(); // will always back to guest
+            try
+            {
+                return await LoginAsGuestAsync(); // will always back to guest
+            }
+            catch (Exception e)
+            {
+                // Offline / server failure: still clear the local session so the user
+                // is not stuck logged in with no way out. OnAccountChanged(null) fires
+                // via the container, which also clears the cached access token.
+                _log.Warning($"Guest login during logout failed ({e.Message}); clearing local session.");
+                _accountContainer.Logout();
+                throw;
+            }
         }
 
         /// <summary>
@@ -884,7 +896,14 @@ namespace com.noctuagames.sdk
                 throw new NoctuaException(NoctuaErrorCode.Authentication, $"User {user.User.Id} not found in account list");
             }
 
-            await ExchangeTokenAsync(user.PlayerAccounts.First().AccessToken);
+            var switchToken = user.PlayerAccounts?.FirstOrDefault()?.AccessToken;
+
+            if (string.IsNullOrEmpty(switchToken))
+            {
+                throw new NoctuaException(NoctuaErrorCode.Authentication, $"User {user.User?.Id} has no player account to switch to");
+            }
+
+            await ExchangeTokenAsync(switchToken);
 
             SetEventProperties(_accountContainer.RecentAccount);
             SendEvent("account_switched");
