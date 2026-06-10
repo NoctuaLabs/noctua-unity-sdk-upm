@@ -145,22 +145,41 @@ namespace com.noctuagames.sdk
 
             _locale?.SetUserPrefsLanguage(newUser.User.Language);
 
+            bool IsNewUser(UserBundle x) => x.Player?.Id == newUser.Player.Id && x.Player?.AccessToken == newUser.Player?.AccessToken;
+
+            // The just-saved account IS the recent account by contract. Load() picks
+            // the recent account by LastUpdated timestamp, which has millisecond
+            // resolution — two logins within the same millisecond tie and the sort
+            // picks arbitrarily. Pin the result explicitly instead.
+            bool TrySetRecentToSavedUser()
+            {
+                var saved = _accounts.FirstOrDefault(IsNewUser);
+                if (saved == null) return false;
+
+                foreach (var account in _accounts)
+                {
+                    account.IsRecent = false;
+                }
+                saved.IsRecent = true;
+                RecentAccount = saved;
+
+                return true;
+            }
+
             try
             {
                 Save(newUser);
                 Load();
-                
-                bool IsNewUser(UserBundle x) => x.Player?.Id == newUser.Player.Id && x.Player?.AccessToken == newUser.Player?.AccessToken;
 
-                if (_accounts.Any(x => IsNewUser(x))) return;
+                if (TrySetRecentToSavedUser()) return;
 
                 _log.Warning("failed to save account, retrying");
 
                 Save(newUser);
                 Load();
 
-                if (_accounts.Any(x => IsNewUser(x))) return;
-                
+                if (TrySetRecentToSavedUser()) return;
+
                 _log.Warning("failed to save account, fallback to PlayerPrefs");
                 _accountStore.EnableFallback();
             }
@@ -169,14 +188,18 @@ namespace com.noctuagames.sdk
                 _log.Warning($"saving account throws exception, fallback to PlayerPrefs: {e.Message}");
                 _accountStore.EnableFallback();
             }
-            
+
             Save(newUser);
             Load();
-            
-            if (_accounts.Count != 0) return;
+
+            if (_accounts.Count != 0)
+            {
+                TrySetRecentToSavedUser();
+                return;
+            }
 
             _log.Error("failed to save account, fallback failed");
-                
+
             throw new NoctuaException(NoctuaErrorCode.AccountStorage, "failed to save account");
         }
 
