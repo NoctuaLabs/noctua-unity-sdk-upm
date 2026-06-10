@@ -34,11 +34,13 @@ namespace Tests.Runtime.IAA
         {
             _tracker = new MockAdRevenueTracker();
             PlayerPrefs.DeleteKey(KeyTotalRevenue);
+            PlayerPrefs.DeleteKey(KeyTotalRevenue + "_micro");
             PlayerPrefs.DeleteKey(KeyTotalAdCount);
             PlayerPrefs.DeleteKey(KeyTotalImpressions);
             PlayerPrefs.DeleteKey(KeyInterstitialCount);
             PlayerPrefs.DeleteKey(KeyRewardedCount);
             PlayerPrefs.DeleteKey(KeyRewardedRevenue);
+            PlayerPrefs.DeleteKey(KeyRewardedRevenue + "_micro");
             PlayerPrefs.Save();
         }
 

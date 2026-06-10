@@ -33,11 +33,13 @@ namespace Tests.Runtime.IAA
 
             // Clear all Taichi PlayerPrefs
             PlayerPrefs.DeleteKey(KeyTotalRevenue);
+            PlayerPrefs.DeleteKey(KeyTotalRevenue + "_micro");
             PlayerPrefs.DeleteKey(KeyTotalAdCount);
             PlayerPrefs.DeleteKey(KeyTotalImpressions);
             PlayerPrefs.DeleteKey(KeyInterstitialCount);
             PlayerPrefs.DeleteKey(KeyRewardedCount);
             PlayerPrefs.DeleteKey(KeyRewardedRevenue);
+            PlayerPrefs.DeleteKey(KeyRewardedRevenue + "_micro");
             PlayerPrefs.Save();
         }
 
@@ -540,11 +542,13 @@ namespace Tests.Runtime.IAA
             _tracker = new MockAdRevenueTracker();
 
             PlayerPrefs.DeleteKey(KeyTotalRevenue);
+            PlayerPrefs.DeleteKey(KeyTotalRevenue + "_micro");
             PlayerPrefs.DeleteKey(KeyTotalAdCount);
             PlayerPrefs.DeleteKey(KeyTotalImpressions);
             PlayerPrefs.DeleteKey(KeyInterstitialCount);
             PlayerPrefs.DeleteKey(KeyRewardedCount);
             PlayerPrefs.DeleteKey(KeyRewardedRevenue);
+            PlayerPrefs.DeleteKey(KeyRewardedRevenue + "_micro");
             PlayerPrefs.Save();
 
             // Suppress expected warning logs for tests that deliberately pass null trackers
