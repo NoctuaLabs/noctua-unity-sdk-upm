@@ -1728,7 +1728,7 @@ namespace com.noctuagames.sdk
                 ).Forget(e => _log.Warning($"HandleUnpairedPurchase(unpaired) verify failed: {e.Message}"));
             }
 
-            if (!foundInPurchaseHistory && !foundInPurchaseHistory && !foundUnpairedOrder) {
+            if (!foundInPendingPurchases && !foundInPurchaseHistory && !foundUnpairedOrder) {
                 _log.Warning($"NoctuaIAPService.HandleUnpairedPurchase No unpaired order or pending purchase found for receipt data {result.ReceiptData}. Treat it as redeem.");
 
                 var redeemOrderRequest = new RedeemOrderRequest
