@@ -798,20 +798,37 @@ namespace com.noctuagames.sdk.Events
         {
             try
             {
-                await UniTask.SwitchToThreadPool();
-
-                // JNI calls from a non-Unity thread require an attached JNI env.
-                AndroidJNI.AttachCurrentThread();
-                string id;
-                try
+                // Dedicated thread (NOT the shared pool): we own its lifecycle, so the
+                // JNI AttachCurrentThread/DetachCurrentThread pair cannot interfere with
+                // other users of a pooled thread, and the thread never exits while
+                // attached. One-shot at init; the cost is negligible.
+                var tcs = new TaskCompletionSource<string>();
+                var thread = new Thread(() =>
                 {
-                    id = GetGoogleAdId();
-                }
-                finally
+                    try
+                    {
+                        AndroidJNI.AttachCurrentThread();
+                        try
+                        {
+                            tcs.TrySetResult(GetGoogleAdId());
+                        }
+                        finally
+                        {
+                            AndroidJNI.DetachCurrentThread();
+                        }
+                    }
+                    catch (Exception e)
+                    {
+                        tcs.TrySetException(e);
+                    }
+                })
                 {
-                    AndroidJNI.DetachCurrentThread();
-                }
+                    IsBackground = true,
+                    Name = "NoctuaGoogleAdIdFetch"
+                };
+                thread.Start();
 
+                var id = await tcs.Task;
                 await UniTask.SwitchToMainThread();
                 _uniqueId = id;
             }

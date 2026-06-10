@@ -16,6 +16,14 @@ namespace com.noctuagames.sdk
         private readonly ILogger _log = new NoctuaLogger(typeof(AndroidPlugin));
         private static readonly ILogger _sLog = new NoctuaLogger(typeof(AndroidPlugin));
 
+        // Captured at construction (the composition root runs on the Unity main thread).
+        // Used to marshal Track* JNI work back to the main thread when game code calls
+        // from ad/purchase SDK callbacks that resume on thread-pool threads.
+        private readonly System.Threading.SynchronizationContext _mainThreadContext =
+            System.Threading.SynchronizationContext.Current;
+        private readonly int _mainThreadId =
+            System.Threading.Thread.CurrentThread.ManagedThreadId;
+
         /// <summary>
         /// JNI proxy implementing <c>com.noctuagames.sdk.inspector.TrackerEmissionCallback</c>.
         /// Native SDK invokes <c>onEmission(...)</c> on the JNI worker thread;
@@ -168,15 +176,30 @@ namespace com.noctuagames.sdk
         }
 
         /// <summary>
-        /// Attaches the current thread to the JVM before any JNI call. Track* methods are
-        /// invoked from game code inside ad/purchase SDK callbacks that often resume on
-        /// thread-pool threads; AndroidJavaObject calls from an unattached thread crash
-        /// inside _AndroidJNIHelper.GetSignature with a NullReferenceException.
-        /// Attaching an already-attached thread is a no-op.
+        /// Runs JNI work on the Unity main thread. Track* methods are invoked from game
+        /// code inside ad/purchase SDK callbacks that often resume on thread-pool threads,
+        /// where AndroidJavaObject calls crash inside _AndroidJNIHelper.GetSignature with
+        /// a NullReferenceException (unattached JNI thread).
+        ///
+        /// Marshaling (instead of AttachCurrentThread) avoids both JNI attach hazards:
+        /// attach-without-detach aborts the JVM if a pooled thread later exits while
+        /// attached, and attach+detach would detach the Unity main thread when the caller
+        /// is already on it (the common case). On the main thread the action runs inline,
+        /// preserving the previous synchronous behavior.
         /// </summary>
-        private static void EnsureJniAttached()
+        private void RunOnMainThread(Action action)
         {
-            AndroidJNI.AttachCurrentThread();
+            if (System.Threading.Thread.CurrentThread.ManagedThreadId == _mainThreadId
+                || _mainThreadContext == null)
+            {
+                // Already on the main thread — or no context captured (should not happen
+                // in production; composition root constructs this on the main thread).
+                // Run inline; the per-method try/catch still guards the JNI work.
+                action();
+                return;
+            }
+
+            _mainThreadContext.Post(_ => action(), null);
         }
 
         /// <inheritdoc />
@@ -189,18 +212,20 @@ namespace com.noctuagames.sdk
         {
             // Telemetry must never crash the game: catch Exception (not just
             // AndroidJavaException — the production GetSignature crash was a plain NRE).
-            try
+            RunOnMainThread(() =>
             {
-                EnsureJniAttached();
-                using AndroidJavaObject javaPayload = ConvertToJavaHashMap(extraPayload);
-                using AndroidJavaObject noctua = new AndroidJavaClass("com.noctuagames.sdk.Noctua").GetStatic<AndroidJavaObject>("INSTANCE");
+                try
+                {
+                    using AndroidJavaObject javaPayload = ConvertToJavaHashMap(extraPayload);
+                    using AndroidJavaObject noctua = new AndroidJavaClass("com.noctuagames.sdk.Noctua").GetStatic<AndroidJavaObject>("INSTANCE");
 
-                noctua.Call("trackAdRevenue", source, revenue, currency, javaPayload);
-            }
-            catch (Exception e)
-            {
-                _log.Warning($"TrackAdRevenue failed: {e.Message}");
-            }
+                    noctua.Call("trackAdRevenue", source, revenue, currency, javaPayload);
+                }
+                catch (Exception e)
+                {
+                    _log.Warning($"TrackAdRevenue failed: {e.Message}");
+                }
+            });
         }
 
         /// <inheritdoc />
@@ -211,18 +236,20 @@ namespace com.noctuagames.sdk
             Dictionary<string, IConvertible> extraPayload = null
         )
         {
-            try
+            RunOnMainThread(() =>
             {
-                EnsureJniAttached();
-                using AndroidJavaObject javaPayload = ConvertToJavaHashMap(extraPayload);
-                using AndroidJavaObject noctua = new AndroidJavaClass("com.noctuagames.sdk.Noctua").GetStatic<AndroidJavaObject>("INSTANCE");
+                try
+                {
+                    using AndroidJavaObject javaPayload = ConvertToJavaHashMap(extraPayload);
+                    using AndroidJavaObject noctua = new AndroidJavaClass("com.noctuagames.sdk.Noctua").GetStatic<AndroidJavaObject>("INSTANCE");
 
-                noctua.Call("trackPurchase", orderId, amount, currency, javaPayload);
-            }
-            catch (Exception e)
-            {
-                _log.Warning($"TrackPurchase failed: {e.Message}");
-            }
+                    noctua.Call("trackPurchase", orderId, amount, currency, javaPayload);
+                }
+                catch (Exception e)
+                {
+                    _log.Warning($"TrackPurchase failed: {e.Message}");
+                }
+            });
         }
 
         /// <inheritdoc />
@@ -231,20 +258,22 @@ namespace com.noctuagames.sdk
             Dictionary<string, IConvertible> extraPayload = null
         )
         {
-            try
+            RunOnMainThread(() =>
             {
-                EnsureJniAttached();
-                using AndroidJavaObject javaPayload = ConvertToJavaHashMap(extraPayload);
-                using AndroidJavaObject noctua = new AndroidJavaClass("com.noctuagames.sdk.Noctua").GetStatic<AndroidJavaObject>("INSTANCE");
+                try
+                {
+                    using AndroidJavaObject javaPayload = ConvertToJavaHashMap(extraPayload);
+                    using AndroidJavaObject noctua = new AndroidJavaClass("com.noctuagames.sdk.Noctua").GetStatic<AndroidJavaObject>("INSTANCE");
 
-                noctua.Call("trackCustomEvent", name, javaPayload);
+                    noctua.Call("trackCustomEvent", name, javaPayload);
 
-                _log.Info($"forwarded event '{name}' to native tracker");
-            }
-            catch (Exception e)
-            {
-                _log.Warning($"TrackCustomEvent('{name}') failed: {e.Message}");
-            }
+                    _log.Info($"forwarded event '{name}' to native tracker");
+                }
+                catch (Exception e)
+                {
+                    _log.Warning($"TrackCustomEvent('{name}') failed: {e.Message}");
+                }
+            });
         }
 
         /// <inheritdoc />
@@ -255,20 +284,22 @@ namespace com.noctuagames.sdk
             Dictionary<string, IConvertible> extraPayload = null
         )
         {
-            try
+            RunOnMainThread(() =>
             {
-                EnsureJniAttached();
-                using AndroidJavaObject javaPayload = ConvertToJavaHashMap(extraPayload);
-                using AndroidJavaObject noctua = new AndroidJavaClass("com.noctuagames.sdk.Noctua").GetStatic<AndroidJavaObject>("INSTANCE");
+                try
+                {
+                    using AndroidJavaObject javaPayload = ConvertToJavaHashMap(extraPayload);
+                    using AndroidJavaObject noctua = new AndroidJavaClass("com.noctuagames.sdk.Noctua").GetStatic<AndroidJavaObject>("INSTANCE");
 
-                noctua.Call("trackCustomEventWithRevenue", name, revenue, currency, javaPayload);
+                    noctua.Call("trackCustomEventWithRevenue", name, revenue, currency, javaPayload);
 
-                _log.Info($"forwarded event '{name}' to native tracker");
-            }
-            catch (Exception e)
-            {
-                _log.Warning($"TrackCustomEventWithRevenue('{name}') failed: {e.Message}");
-            }
+                    _log.Info($"forwarded event '{name}' to native tracker");
+                }
+                catch (Exception e)
+                {
+                    _log.Warning($"TrackCustomEventWithRevenue('{name}') failed: {e.Message}");
+                }
+            });
         }
 
         /// <summary>
@@ -1362,20 +1393,19 @@ public class AndroidCallback<T> : AndroidJavaProxy
 /// </summary>
 public static class KotlinUnit
 {
-    private static AndroidJavaObject _instance;
+    // Static initializer (CLR-guaranteed thread-safe, runs once) instead of a lazy
+    // check-then-set: Instance is read from concurrent JNI callback threads, where a
+    // racy lazy init could leak a JNI global ref or briefly expose a disposed object.
+    // First access always happens on a JVM-attached thread (a Kotlin->C# callback),
+    // so the JNI lookup here is safe.
+    private static readonly AndroidJavaObject _instance = LoadInstance();
 
-    public static AndroidJavaObject Instance
+    public static AndroidJavaObject Instance => _instance;
+
+    private static AndroidJavaObject LoadInstance()
     {
-        get
-        {
-            if (_instance == null)
-            {
-                using var unitClass = new AndroidJavaClass("kotlin.Unit");
-                _instance = unitClass.GetStatic<AndroidJavaObject>("INSTANCE");
-            }
-
-            return _instance;
-        }
+        using var unitClass = new AndroidJavaClass("kotlin.Unit");
+        return unitClass.GetStatic<AndroidJavaObject>("INSTANCE");
     }
 }
 

@@ -359,13 +359,6 @@ namespace com.noctuagames.sdk
         }
 
         /// <summary>
-        /// Cumulative revenue is stored as micro-USD (long, string-encoded) instead of
-        /// PlayerPrefs float: typical impression values are sub-cent and float's ~7
-        /// significant digits accumulate drift, which can make an exact threshold
-        /// (e.g. $1.00) over- or under-fire. Reads fall back to the legacy float key
-        /// once for migration; writes always use the micro key.
-        /// </summary>
-        /// <summary>
         /// Threshold comparison in micro-USD: the config threshold is a float, and its
         /// promotion to double sits slightly above the decimal value (e.g. (double)0.001f
         /// = 0.0010000000475), so a direct >= misses exact-boundary crossings. Rounding
@@ -376,6 +369,13 @@ namespace com.noctuagames.sdk
             return (long)Math.Round(accumulated * 1_000_000.0) >= (long)Math.Round(threshold * 1_000_000.0);
         }
 
+        /// <summary>
+        /// Cumulative revenue is stored as micro-USD (long, string-encoded) instead of
+        /// PlayerPrefs float: typical impression values are sub-cent and float's ~7
+        /// significant digits accumulate drift, which can make an exact threshold
+        /// (e.g. $1.00) over- or under-fire. Reads fall back to the legacy float key
+        /// once for migration; writes always use the micro key.
+        /// </summary>
         private static double LoadRevenue(string key)
         {
             var stored = PlayerPrefs.GetString(key + "_micro", "");
@@ -391,6 +391,9 @@ namespace com.noctuagames.sdk
         private static void SaveRevenue(string key, double value)
         {
             PlayerPrefs.SetString(key + "_micro", ((long)Math.Round(value * 1_000_000.0)).ToString());
+            // Remove the legacy float key so the one-time migration is deterministic —
+            // a lingering float value could resurface if the _micro key is ever lost.
+            PlayerPrefs.DeleteKey(key);
         }
 
         private void IncrementAndFireIfReady(string key, int threshold, string eventName, double revenue, string logLabel)
