@@ -391,6 +391,11 @@ namespace Tests.Runtime
         public IEnumerator SendEvents_ReachBatchingTimeout_SendToServer() => UniTask.ToCoroutine(
             async () =>
             {
+                // Clean per-row store: the JSONL file in persistentDataPath survives
+                // across tests and leftover events would inflate the strict count below.
+                var plugin = new DefaultNativePlugin();
+                plugin.DeleteEvents();
+
                 var eventSender = new EventSender(
                     new EventSenderConfig
                     {
@@ -399,15 +404,18 @@ namespace Tests.Runtime
                         BatchSize = 3,
                         BatchPeriodMs = 500,
                         CycleDelay = 100,
-                        NativePlugin = new DefaultNativePlugin()
+                        NativePlugin = plugin
                     },
                     new NoctuaLocale()
                 );
 
                 eventSender.SetProperties(gameId: 7, gamePlatformId: 17);
 
+                // Distinct names: identical events sent within the same millisecond
+                // serialize byte-identically and are collapsed by the test helper's
+                // de-duplication, undercounting deliveries.
                 eventSender.Send("test_event_1");
-                eventSender.Send("test_event_1");
+                eventSender.Send("test_event_2");
 
                 // Wait for all GeoIP enrichment fire-and-forget tasks to complete before the
                 // batch timeout fires — otherwise some events may not yet be written to storage
