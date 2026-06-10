@@ -219,7 +219,7 @@ namespace com.noctuagames.sdk
             double prevRevenue    = currentRevenue;
             double updatedRevenue = prevRevenue + impressionRevenue;
 
-            if (updatedRevenue >= _taichiConfig.RevenueThreshold)
+            if (CrossesThreshold(updatedRevenue, _taichiConfig.RevenueThreshold))
             {
                 _log.Info($"{LogTag} Step 1: Total_Ads_Revenue_001 crossed ({updatedRevenue:F4} >= {_taichiConfig.RevenueThreshold})");
                 _adRevenueTracker?.TrackCustomEvent("Total_Ads_Revenue_001", new Dictionary<string, IConvertible>
@@ -339,7 +339,7 @@ namespace com.noctuagames.sdk
             double prevRewardedRevenue    = currentRewardedRevenue;
             double updatedRewardedRevenue = prevRewardedRevenue + impressionRevenue;
 
-            if (updatedRewardedRevenue >= _taichiConfig.RewardedRevenueThreshold)
+            if (CrossesThreshold(updatedRewardedRevenue, _taichiConfig.RewardedRevenueThreshold))
             {
                 _log.Info($"{LogTag} Step 6: taichi_rewarded_ad_revenue crossed ({updatedRewardedRevenue:F4} >= {_taichiConfig.RewardedRevenueThreshold})");
                 _adRevenueTracker?.TrackCustomEvent("taichi_rewarded_ad_revenue", new Dictionary<string, IConvertible>
@@ -365,6 +365,17 @@ namespace com.noctuagames.sdk
         /// (e.g. $1.00) over- or under-fire. Reads fall back to the legacy float key
         /// once for migration; writes always use the micro key.
         /// </summary>
+        /// <summary>
+        /// Threshold comparison in micro-USD: the config threshold is a float, and its
+        /// promotion to double sits slightly above the decimal value (e.g. (double)0.001f
+        /// = 0.0010000000475), so a direct >= misses exact-boundary crossings. Rounding
+        /// both sides to whole micro-USD makes the boundary inclusive and deterministic.
+        /// </summary>
+        private static bool CrossesThreshold(double accumulated, double threshold)
+        {
+            return (long)Math.Round(accumulated * 1_000_000.0) >= (long)Math.Round(threshold * 1_000_000.0);
+        }
+
         private static double LoadRevenue(string key)
         {
             var stored = PlayerPrefs.GetString(key + "_micro", "");

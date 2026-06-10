@@ -385,6 +385,12 @@ namespace com.noctuagames.sdk
         /// </summary>
         public void DeleteEvents()
         {
+            // Clear the actual per-row store (memory + JSONL file), not just the
+            // legacy PlayerPrefs blob — otherwise "deleted" events reappear on the
+            // next LoadEventStore().
+            _eventStore.Clear();
+            SaveEventStoreToFile();
+
             PlayerPrefs.DeleteKey("NoctuaEvents");
             PlayerPrefs.Save();
         }

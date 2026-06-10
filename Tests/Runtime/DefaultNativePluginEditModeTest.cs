@@ -42,6 +42,9 @@ namespace Tests.Runtime
             PlayerPrefs.DeleteKey("NoctuaAccountContainer");
             PlayerPrefs.DeleteKey("NoctuaEvents");
             _plugin = new DefaultNativePlugin();
+            // Start from a clean per-row store: the JSONL file in persistentDataPath
+            // survives across tests/runs and would leak events into count assertions.
+            _plugin.DeleteEvents();
         }
 
         [TearDown]

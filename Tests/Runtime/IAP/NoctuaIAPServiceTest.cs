@@ -423,8 +423,12 @@ namespace Tests.Runtime.IAP
         {
             IAPTestHelpers.StorePending(IAPTestHelpers.MakePendingItemJson(5));
             var svc = IAPTestHelpers.CreateService();
+            // The service logs an error before throwing; without this the runner
+            // fails on the unhandled error log instead of observing the throw.
+            LogAssert.ignoreFailingMessages = true;
             Assert.Throws<Exception>(() => svc.GetPendingPurchaseByOrderId(999),
                 "Should throw when order ID is not in the stored list");
+            LogAssert.ignoreFailingMessages = false;
         }
 
         // ── GetPurchaseHistory ─────────────────────────────────────────────────
@@ -568,7 +572,11 @@ namespace Tests.Runtime.IAP
             PlayerPrefs.SetString(RefundTrackingKey, "{{bad-json}}");
             PlayerPrefs.Save();
             var svc = IAPTestHelpers.CreateService();
+            // The service logs the parse error before returning the empty list;
+            // ignore it so the runner asserts the graceful-return contract instead.
+            LogAssert.ignoreFailingMessages = true;
             var result = svc.GetRefundTrackingEntries();
+            LogAssert.ignoreFailingMessages = false;
             Assert.IsNotNull(result);
             Assert.AreEqual(0, result.Count, "Malformed JSON should gracefully return empty list");
         }

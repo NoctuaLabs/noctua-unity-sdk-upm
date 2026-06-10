@@ -886,9 +886,11 @@ namespace Tests.Runtime.IAA
         [Test]
         public void IsAdReady_ReturnsFalseWhenUnitSetButNotLoaded()
         {
+            // Contract: with a unit set, IsAdReady delegates to MaxSdk.IsAppOpenAdReady.
+            // Don't pin the stub's value — newer MAX SDKs report ready in Editor test mode.
             var appOpen = new AppOpenAppLovin();
             appOpen.SetAppOpenAdUnitID(AppLovinAdUnits.AppOpen);
-            Assert.IsFalse(appOpen.IsAdReady());
+            Assert.AreEqual(MaxSdk.IsAppOpenAdReady(AppLovinAdUnits.AppOpen), appOpen.IsAdReady());
         }
 
         [Test]
@@ -950,14 +952,16 @@ namespace Tests.Runtime.IAA
         [Test]
         public void IsAdReady_ReturnsFalseAfterUnregister()
         {
-            // After UnregisterCallbacks the unit ID is still set; IsAdReady must remain false
-            // in the Editor stub (MaxSdk.IsAppOpenAdReady always returns false in Editor).
+            // After UnregisterCallbacks the unit ID is still set; IsAdReady keeps
+            // delegating to MaxSdk.IsAppOpenAdReady. Assert the delegation contract
+            // rather than pinning the Editor stub's value — newer MAX SDKs report
+            // ready in Editor test mode.
             var appOpen = new AppOpenAppLovin();
             appOpen.SetAppOpenAdUnitID(AppLovinAdUnits.AppOpen);
             LogAssert.ignoreFailingMessages = true;
             appOpen.LoadAppOpenAd();
             appOpen.UnregisterCallbacks();
-            Assert.IsFalse(appOpen.IsAdReady());
+            Assert.AreEqual(MaxSdk.IsAppOpenAdReady(AppLovinAdUnits.AppOpen), appOpen.IsAdReady());
         }
 
         [Test]

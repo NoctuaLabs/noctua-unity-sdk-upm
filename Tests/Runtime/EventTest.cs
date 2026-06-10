@@ -294,6 +294,11 @@ namespace Tests.Runtime
         public IEnumerator SendEvents_DontReachBatchingNumberThresholdButFlushed_SendToServer() => UniTask.ToCoroutine(
             async () =>
             {
+                // Clean per-row store: the JSONL file in persistentDataPath survives
+                // across tests and leftover events would inflate the strict count below.
+                var plugin = new DefaultNativePlugin();
+                plugin.DeleteEvents();
+
                 var eventSender = new EventSender(
                     new EventSenderConfig
                     {
@@ -301,14 +306,17 @@ namespace Tests.Runtime
                         ClientId = "test_client_id",
                         BatchSize = 3,
                         CycleDelay = 100,
-                        NativePlugin = new DefaultNativePlugin()
+                        NativePlugin = plugin
                     },
                     new NoctuaLocale()
                 );
 
+                // Distinct names: GetEventsFromServerAsync de-duplicates identical NDJSON
+                // lines, and two identical events sent within the same millisecond
+                // serialize byte-identically and collapse into one.
                 eventSender.Send("test_event_1");
 
-                eventSender.Send("test_event_1");
+                eventSender.Send("test_event_2");
 
                 // Wait for fire-and-forget Send tasks to complete and write to storage
                 await UniTask.Delay(500);
@@ -341,10 +349,13 @@ namespace Tests.Runtime
 
                 eventSender.SetProperties(gameId: 7, gamePlatformId: 17);
 
+                // Distinct names: identical events sent within the same millisecond
+                // serialize byte-identically and are collapsed by the test helper's
+                // de-duplication, undercounting deliveries.
                 eventSender.Send("test_event_1");
-                eventSender.Send("test_event_1");
-                eventSender.Send("test_event_1");
-                eventSender.Send("test_event_1");
+                eventSender.Send("test_event_2");
+                eventSender.Send("test_event_3");
+                eventSender.Send("test_event_4");
 
                 // GeoIP enrichment fire-and-forget tasks write events to storage asynchronously.
                 // Use a generous timeout+settle so every batch cycle the EventSender runs
