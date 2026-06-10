@@ -103,8 +103,15 @@ namespace com.noctuagames.sdk
         /// <inheritdoc />
         public void OnApplicationPause(bool pause)
         {
-            using AndroidJavaObject noctua = new AndroidJavaClass("com.noctuagames.sdk.Noctua").GetStatic<AndroidJavaObject>("INSTANCE");
-            noctua.Call(pause ? "onPause" : "onResume");
+            try
+            {
+                using AndroidJavaObject noctua = new AndroidJavaClass("com.noctuagames.sdk.Noctua").GetStatic<AndroidJavaObject>("INSTANCE");
+                noctua.Call(pause ? "onPause" : "onResume");
+            }
+            catch (Exception e)
+            {
+                _log.Warning($"OnApplicationPause({pause}) failed: {e.Message}");
+            }
         }
 
         /// <inheritdoc />
@@ -180,11 +187,20 @@ namespace com.noctuagames.sdk
             Dictionary<string, IConvertible> extraPayload = null
         )
         {
-            EnsureJniAttached();
-            using AndroidJavaObject javaPayload = ConvertToJavaHashMap(extraPayload);
-            using AndroidJavaObject noctua = new AndroidJavaClass("com.noctuagames.sdk.Noctua").GetStatic<AndroidJavaObject>("INSTANCE");
+            // Telemetry must never crash the game: catch Exception (not just
+            // AndroidJavaException — the production GetSignature crash was a plain NRE).
+            try
+            {
+                EnsureJniAttached();
+                using AndroidJavaObject javaPayload = ConvertToJavaHashMap(extraPayload);
+                using AndroidJavaObject noctua = new AndroidJavaClass("com.noctuagames.sdk.Noctua").GetStatic<AndroidJavaObject>("INSTANCE");
 
-            noctua.Call("trackAdRevenue", source, revenue, currency, javaPayload);
+                noctua.Call("trackAdRevenue", source, revenue, currency, javaPayload);
+            }
+            catch (Exception e)
+            {
+                _log.Warning($"TrackAdRevenue failed: {e.Message}");
+            }
         }
 
         /// <inheritdoc />
@@ -195,11 +211,18 @@ namespace com.noctuagames.sdk
             Dictionary<string, IConvertible> extraPayload = null
         )
         {
-            EnsureJniAttached();
-            using AndroidJavaObject javaPayload = ConvertToJavaHashMap(extraPayload);
-            using AndroidJavaObject noctua = new AndroidJavaClass("com.noctuagames.sdk.Noctua").GetStatic<AndroidJavaObject>("INSTANCE");
+            try
+            {
+                EnsureJniAttached();
+                using AndroidJavaObject javaPayload = ConvertToJavaHashMap(extraPayload);
+                using AndroidJavaObject noctua = new AndroidJavaClass("com.noctuagames.sdk.Noctua").GetStatic<AndroidJavaObject>("INSTANCE");
 
-            noctua.Call("trackPurchase", orderId, amount, currency, javaPayload);
+                noctua.Call("trackPurchase", orderId, amount, currency, javaPayload);
+            }
+            catch (Exception e)
+            {
+                _log.Warning($"TrackPurchase failed: {e.Message}");
+            }
         }
 
         /// <inheritdoc />
@@ -208,13 +231,20 @@ namespace com.noctuagames.sdk
             Dictionary<string, IConvertible> extraPayload = null
         )
         {
-            EnsureJniAttached();
-            using AndroidJavaObject javaPayload = ConvertToJavaHashMap(extraPayload);
-            using AndroidJavaObject noctua = new AndroidJavaClass("com.noctuagames.sdk.Noctua").GetStatic<AndroidJavaObject>("INSTANCE");
+            try
+            {
+                EnsureJniAttached();
+                using AndroidJavaObject javaPayload = ConvertToJavaHashMap(extraPayload);
+                using AndroidJavaObject noctua = new AndroidJavaClass("com.noctuagames.sdk.Noctua").GetStatic<AndroidJavaObject>("INSTANCE");
 
-            noctua.Call("trackCustomEvent", name, javaPayload);
+                noctua.Call("trackCustomEvent", name, javaPayload);
 
-            _log.Info($"forwarded event '{name}' to native tracker");
+                _log.Info($"forwarded event '{name}' to native tracker");
+            }
+            catch (Exception e)
+            {
+                _log.Warning($"TrackCustomEvent('{name}') failed: {e.Message}");
+            }
         }
 
         /// <inheritdoc />
@@ -225,13 +255,20 @@ namespace com.noctuagames.sdk
             Dictionary<string, IConvertible> extraPayload = null
         )
         {
-            EnsureJniAttached();
-            using AndroidJavaObject javaPayload = ConvertToJavaHashMap(extraPayload);
-            using AndroidJavaObject noctua = new AndroidJavaClass("com.noctuagames.sdk.Noctua").GetStatic<AndroidJavaObject>("INSTANCE");
+            try
+            {
+                EnsureJniAttached();
+                using AndroidJavaObject javaPayload = ConvertToJavaHashMap(extraPayload);
+                using AndroidJavaObject noctua = new AndroidJavaClass("com.noctuagames.sdk.Noctua").GetStatic<AndroidJavaObject>("INSTANCE");
 
-            noctua.Call("trackCustomEventWithRevenue", name, revenue, currency, javaPayload);
+                noctua.Call("trackCustomEventWithRevenue", name, revenue, currency, javaPayload);
 
-            _log.Info($"forwarded event '{name}' to native tracker");
+                _log.Info($"forwarded event '{name}' to native tracker");
+            }
+            catch (Exception e)
+            {
+                _log.Warning($"TrackCustomEventWithRevenue('{name}') failed: {e.Message}");
+            }
         }
 
         /// <summary>
@@ -347,8 +384,10 @@ namespace com.noctuagames.sdk
                     noctua.Call("completePurchaseProcessing", purchaseToken, typeEnum, verified, null);
                 }
             }
-            catch (AndroidJavaException e)
+            catch (Exception e)
             {
+                // Exception (not just AndroidJavaException): index/marshalling errors must
+                // also resolve the callback or the purchase flow hangs.
                 _log.Warning("Failed to call completePurchaseProcessing: " + e.Message);
                 callback?.Invoke(false);
             }
@@ -357,8 +396,15 @@ namespace com.noctuagames.sdk
         /// <inheritdoc />
         public void ShowDatePicker(int year, int month, int day, int id)
         {
-            AndroidJavaClass javaUnityClass = new AndroidJavaClass("com.pingak9.nativepopup.Bridge");
-            javaUnityClass.CallStatic("ShowDatePicker", year, month, day, id);
+            try
+            {
+                using AndroidJavaClass javaUnityClass = new AndroidJavaClass("com.pingak9.nativepopup.Bridge");
+                javaUnityClass.CallStatic("ShowDatePicker", year, month, day, id);
+            }
+            catch (Exception e)
+            {
+                _log.Warning($"ShowDatePicker failed: {e.Message}");
+            }
         }
 
         /// <inheritdoc />
@@ -368,8 +414,14 @@ namespace com.noctuagames.sdk
         public NativeAccount GetAccount(long playerId, long gameId)
         {
             using AndroidJavaObject noctua = new AndroidJavaClass("com.noctuagames.sdk.Noctua").GetStatic<AndroidJavaObject>("INSTANCE");
-            AndroidJavaObject javaAccount = noctua.Call<AndroidJavaObject>("getAccount", playerId, gameId);
-            
+            using AndroidJavaObject javaAccount = noctua.Call<AndroidJavaObject>("getAccount", playerId, gameId);
+
+            if (javaAccount == null)
+            {
+                _log.Warning($"GetAccount({playerId}, {gameId}): native store returned null");
+                return null;
+            }
+
             return new NativeAccount
             {
                 PlayerId = javaAccount.Get<long>("userId"),
@@ -439,13 +491,14 @@ namespace com.noctuagames.sdk
         /// <inheritdoc />
         public void OnOnline()
         {
-            using var noctua = new AndroidJavaClass("com.noctuagames.sdk.Noctua").GetStatic<AndroidJavaObject>("INSTANCE");
             try
             {
+                // GetStatic is inside the try too — it is itself a JNI call that can throw.
+                using var noctua = new AndroidJavaClass("com.noctuagames.sdk.Noctua").GetStatic<AndroidJavaObject>("INSTANCE");
                 noctua.Call("onOnline");
                 _log.Info($"trigger online mode to native plugin");
             }
-            catch (AndroidJavaException e)
+            catch (Exception e)
             {
                 _log.Warning("Failed to call onOnline method: " + e.Message);
             }
@@ -454,13 +507,14 @@ namespace com.noctuagames.sdk
         /// <inheritdoc />
         public void OnOffline()
         {
-            using var noctua = new AndroidJavaClass("com.noctuagames.sdk.Noctua").GetStatic<AndroidJavaObject>("INSTANCE");
             try
             {
+                // GetStatic is inside the try too — it is itself a JNI call that can throw.
+                using var noctua = new AndroidJavaClass("com.noctuagames.sdk.Noctua").GetStatic<AndroidJavaObject>("INSTANCE");
                 noctua.Call("onOffline");
                 _log.Info($"trigger offline mode to native plugin");
             }
-            catch (AndroidJavaException e)
+            catch (Exception e)
             {
                 _log.Warning("Failed to call onOffline method: " + e.Message);
             }
@@ -1161,6 +1215,10 @@ namespace com.noctuagames.sdk
 /// <typeparam name="T">The expected callback parameter type (string, bool, int, long, double, or AndroidJavaObject).</typeparam>
 public class AndroidCallback<T> : AndroidJavaProxy
 {
+    // Fully qualified: this class lives outside the com.noctuagames.sdk namespace,
+    // where bare ILogger would resolve to UnityEngine.ILogger.
+    private static readonly com.noctuagames.sdk.ILogger _sLog =
+        new com.noctuagames.sdk.NoctuaLogger(typeof(AndroidCallback<T>));
     private readonly Action<T> _callback;
 
     /// <summary>
@@ -1174,12 +1232,28 @@ public class AndroidCallback<T> : AndroidJavaProxy
     }
 
     /// <summary>
+    /// Invokes the managed callback inside a guard: an exception thrown here would
+    /// cross the JNI proxy boundary back into Kotlin and can crash natively.
+    /// </summary>
+    private void SafeInvoke(T value)
+    {
+        try
+        {
+            _callback?.Invoke(value);
+        }
+        catch (Exception e)
+        {
+            _sLog.Warning($"AndroidCallback<{typeof(T).Name}> handler threw: {e.Message}");
+        }
+    }
+
+    /// <summary>
     /// Handles Kotlin invoking the lambda with a string argument.
     /// </summary>
     public AndroidJavaObject invoke(string arg)
     {
         if (typeof(T) == typeof(string))
-            _callback?.Invoke((T)(object)arg);
+            SafeInvoke((T)(object)arg);
 
         return KotlinUnit.Instance;
     }
@@ -1190,7 +1264,7 @@ public class AndroidCallback<T> : AndroidJavaProxy
     public AndroidJavaObject invoke(bool arg)
     {
         if (typeof(T) == typeof(bool))
-            _callback?.Invoke((T)(object)arg);
+            SafeInvoke((T)(object)arg);
 
         return KotlinUnit.Instance;
     }
@@ -1201,7 +1275,7 @@ public class AndroidCallback<T> : AndroidJavaProxy
     public AndroidJavaObject invoke(double arg)
     {
         if (typeof(T) == typeof(double))
-            _callback?.Invoke((T)(object)arg);
+            SafeInvoke((T)(object)arg);
 
         return KotlinUnit.Instance;
     }
@@ -1212,7 +1286,7 @@ public class AndroidCallback<T> : AndroidJavaProxy
     public AndroidJavaObject invoke(long arg)
     {
         if (typeof(T) == typeof(long))
-            _callback?.Invoke((T)(object)arg);
+            SafeInvoke((T)(object)arg);
 
         return KotlinUnit.Instance;
     }
@@ -1223,7 +1297,7 @@ public class AndroidCallback<T> : AndroidJavaProxy
     public AndroidJavaObject invoke(int arg)
     {
         if (typeof(T) == typeof(int))
-            _callback?.Invoke((T)(object)arg);
+            SafeInvoke((T)(object)arg);
 
         return KotlinUnit.Instance;
     }
@@ -1269,7 +1343,7 @@ public class AndroidCallback<T> : AndroidJavaProxy
             value = arg;
         }
 
-        _callback?.Invoke((T)value);
+        SafeInvoke((T)value);
 
         // The boxed argument holds a JNI global reference; once its value has been
         // extracted it must be released or it leaks (one ref per native callback).
@@ -1312,6 +1386,10 @@ public static class KotlinUnit
 /// </summary>
 public class AndroidCallback2 : AndroidJavaProxy
 {
+    // Fully qualified: this class lives outside the com.noctuagames.sdk namespace,
+    // where bare ILogger would resolve to UnityEngine.ILogger.
+    private static readonly com.noctuagames.sdk.ILogger _sLog =
+        new com.noctuagames.sdk.NoctuaLogger(typeof(AndroidCallback2));
     private readonly Action<AndroidJavaObject, AndroidJavaObject> _callback;
 
     /// <summary>
@@ -1329,8 +1407,17 @@ public class AndroidCallback2 : AndroidJavaProxy
     /// </summary>
     public AndroidJavaObject invoke(AndroidJavaObject arg1, AndroidJavaObject arg2)
     {
-        // Args are passed through; the callback owns them and is responsible for disposal.
-        _callback?.Invoke(arg1, arg2);
+        try
+        {
+            // Args are passed through; the callback owns them and is responsible for disposal.
+            _callback?.Invoke(arg1, arg2);
+        }
+        catch (Exception e)
+        {
+            // An exception here would cross the JNI proxy boundary back into Kotlin
+            // and can crash natively.
+            _sLog.Warning($"AndroidCallback2 handler threw: {e.Message}");
+        }
         return KotlinUnit.Instance;
     }
 }
