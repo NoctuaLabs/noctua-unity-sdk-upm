@@ -302,28 +302,32 @@ namespace Tests.Runtime
         private async UniTask<Dictionary<string, object>> SendAndCapture(
             EventSender sender,
             string eventName,
-            int timeoutMs = 4000)
+            int timeoutMs = 8000)
         {
             _propServer.Requests.Clear();
             sender.Send(eventName);
 
-            await UniTask.WhenAny(
-                UniTask.Delay(timeoutMs),
-                UniTask.WaitUntil(() => _propServer.Requests.Count > 0)
-            );
-            await UniTask.Delay(300);
+            // Poll-and-drain until the named event appears or the deadline passes.
+            // A single wait-then-scan flaked under full-suite load: the event can
+            // arrive in a later request, or after the first-request window.
+            var deadline = DateTime.UtcNow.AddMilliseconds(timeoutMs);
 
-            while (_propServer.Requests.TryDequeue(out var req))
+            while (DateTime.UtcNow < deadline)
             {
-                var lines = req.Body.Trim().Split('\n');
-                foreach (var line in lines)
+                while (_propServer.Requests.TryDequeue(out var req))
                 {
-                    if (string.IsNullOrWhiteSpace(line)) continue;
-                    var ev = JsonConvert.DeserializeObject<Dictionary<string, object>>(line);
-                    if (ev != null && ev.ContainsKey("event_name") &&
-                        ev["event_name"]?.ToString() == eventName)
-                        return ev;
+                    var lines = req.Body.Trim().Split('\n');
+                    foreach (var line in lines)
+                    {
+                        if (string.IsNullOrWhiteSpace(line)) continue;
+                        var ev = JsonConvert.DeserializeObject<Dictionary<string, object>>(line);
+                        if (ev != null && ev.ContainsKey("event_name") &&
+                            ev["event_name"]?.ToString() == eventName)
+                            return ev;
+                    }
                 }
+
+                await UniTask.Delay(200);
             }
 
             return null;
