@@ -94,7 +94,11 @@ namespace com.noctuagames.sdk
             if (cap != null && cap.WindowSeconds > 0)
             {
                 var windowStart = now.AddSeconds(-cap.WindowSeconds);
-                _impressionHistory[format].RemoveAll(t => t < windowStart);
+                var pruned = _impressionHistory[format].RemoveAll(t => t < windowStart);
+                if (pruned > 0)
+                {
+                    _log.Debug($"Pruned {pruned} expired impression(s) for '{format}' outside the {cap.WindowSeconds}s window");
+                }
             }
 
             _impressionHistory[format].Add(now);

@@ -632,6 +632,10 @@ namespace com.noctuagames.sdk
 
 #elif UNITY_ANDROID && !UNITY_EDITOR
             _log.Info("GetActiveCurrencyAsync: Android");
+            if (_activeCurrencyGate.CurrentCount == 0)
+            {
+                _log.Debug($"GetActiveCurrencyAsync: another product-details query is in progress, queuing '{productId}'");
+            }
             await _activeCurrencyGate.WaitAsync();
             try
             {
@@ -1119,7 +1123,12 @@ namespace com.noctuagames.sdk
 
             // Gate the section that owns _paymentTcs. Released in the finally below,
             // or early before the secondary-payment fallback recursion.
+            if (_purchaseFlowGate.CurrentCount == 0)
+            {
+                _log.Warning($"PurchaseItemImplAsync: another purchase flow is in progress, queuing order {orderId}");
+            }
             await _purchaseFlowGate.WaitAsync();
+            _log.Debug($"PurchaseItemImplAsync: purchase flow gate acquired for order {orderId}");
             var purchaseFlowGateReleased = false;
 
             PaymentResult paymentResult;
@@ -1246,6 +1255,7 @@ namespace com.noctuagames.sdk
                             // Fallback to secondary payment option.
                             // Release the flow gate first — the recursive call below
                             // re-enters this method and must be able to acquire it.
+                            _log.Debug($"PurchaseItemImplAsync: releasing purchase flow gate before secondary-payment fallback for order {orderId}");
                             _paymentTcs = null;
                             purchaseFlowGateReleased = true;
                             _purchaseFlowGate.Release();
@@ -1311,6 +1321,7 @@ namespace com.noctuagames.sdk
                 {
                     _paymentTcs = null;
                     _purchaseFlowGate.Release();
+                    _log.Debug($"PurchaseItemImplAsync: purchase flow gate released for order {orderId}");
                 }
             }
 

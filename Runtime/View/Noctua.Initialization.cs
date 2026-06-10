@@ -676,6 +676,7 @@ namespace com.noctuagames.sdk
                     // would NRE on initResponse.OfflineMode right after the error dialog.
                     // Rethrow so the game receives the original init failure cleanly
                     // (InitAsync is documented as reusable for the next attempt).
+                    log.Warning($"Init failed without offline-first fallback; rethrowing to caller: {errorMessage}");
                     throw;
                 }
             }

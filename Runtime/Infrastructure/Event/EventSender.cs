@@ -831,6 +831,8 @@ namespace com.noctuagames.sdk.Events
                 var id = await tcs.Task;
                 await UniTask.SwitchToMainThread();
                 _uniqueId = id;
+                // Don't log the ID itself — it is an advertising identifier.
+                _log.Debug($"[Event Sender] Google Advertising ID fetched (present={!string.IsNullOrEmpty(id)}); unique_id available for subsequent events.");
             }
             catch (Exception e)
             {
@@ -939,7 +941,11 @@ namespace com.noctuagames.sdk.Events
 
             // Atomic check-then-set — a plain bool guard is two operations and lets the
             // background send loop and an OnApplicationPause flush both enter.
-            if (Interlocked.CompareExchange(ref _isFlushingFlag, 1, 0) != 0) return;
+            if (Interlocked.CompareExchange(ref _isFlushingFlag, 1, 0) != 0)
+            {
+                _log.Debug("[Event Sender] Flush skipped: another flush is already in progress.");
+                return;
+            }
 
             UniTask.Void(async () =>
             {

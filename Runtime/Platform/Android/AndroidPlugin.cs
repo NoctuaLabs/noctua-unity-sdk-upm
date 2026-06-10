@@ -189,16 +189,25 @@ namespace com.noctuagames.sdk
         /// </summary>
         private void RunOnMainThread(Action action)
         {
-            if (System.Threading.Thread.CurrentThread.ManagedThreadId == _mainThreadId
-                || _mainThreadContext == null)
+            if (System.Threading.Thread.CurrentThread.ManagedThreadId == _mainThreadId)
             {
-                // Already on the main thread — or no context captured (should not happen
-                // in production; composition root constructs this on the main thread).
-                // Run inline; the per-method try/catch still guards the JNI work.
+                // Already on the main thread — run inline; the per-method try/catch
+                // still guards the JNI work.
                 action();
                 return;
             }
 
+            if (_mainThreadContext == null)
+            {
+                // Should not happen in production: the composition root constructs this
+                // plugin on the main thread. Running JNI inline on a background thread
+                // here may crash with the GetSignature NRE — surface it loudly.
+                _log.Warning("RunOnMainThread: no main-thread context captured; running JNI work inline on a background thread.");
+                action();
+                return;
+            }
+
+            _log.Debug("RunOnMainThread: marshaling JNI work from background thread to main thread.");
             _mainThreadContext.Post(_ => action(), null);
         }
 

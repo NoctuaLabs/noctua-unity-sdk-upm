@@ -24,6 +24,8 @@ namespace com.noctuagames.sdk
     public class AdRevenueTrackingManager
     {
         private readonly NoctuaLogger _log = new(typeof(AdRevenueTrackingManager));
+        // Static logger for the static LoadRevenue/SaveRevenue helpers.
+        private static readonly NoctuaLogger _sLog = new(typeof(AdRevenueTrackingManager));
 
         /// <summary>Stable, greppable tag prefixed to every Taichi-pipeline log line.
         /// Search the logs for <c>[taichi]</c> to find all Taichi threshold/event output
@@ -385,7 +387,13 @@ namespace com.noctuagames.sdk
             }
 
             // Legacy float key (pre-micro format) — migrated on the next SaveRevenue.
-            return PlayerPrefs.GetFloat(key, 0f);
+            var legacy = PlayerPrefs.GetFloat(key, 0f);
+            if (legacy > 0f)
+            {
+                _sLog.Debug($"{LogTag} migrating legacy float revenue for '{key}': {legacy:F6} USD (micro key will be written on next save)");
+            }
+
+            return legacy;
         }
 
         private static void SaveRevenue(string key, double value)

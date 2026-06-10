@@ -176,6 +176,7 @@ public class GoogleBilling : System.IDisposable
     /// </summary>
     public void Dispose()
     {
+        _log.Debug("GoogleBilling.Dispose: releasing JNI references");
         _noctua?.Dispose();
         _noctua = null;
         _activity?.Dispose();

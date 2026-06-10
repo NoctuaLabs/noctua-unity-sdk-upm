@@ -267,7 +267,17 @@ namespace com.noctuagames.sdk
             string message = messagePtr != IntPtr.Zero ? Marshal.PtrToStringAnsi(messagePtr) : "Unknown error";
             var completion = storedPurchaseCompletion;
             storedPurchaseCompletion = null;
-            completion?.Invoke(success, message);
+
+            if (completion == null)
+            {
+                // Late or duplicate native callback — the pending slot was already
+                // consumed. Surfacing this catches any regression of the shared-slot
+                // callback corruption this split was introduced to fix.
+                _sLog.Warning($"PurchaseCompletionCallback fired with no pending completion (success={success}, message='{message}')");
+                return;
+            }
+
+            completion.Invoke(success, message);
         }
 
         [AOT.MonoPInvokeCallback(typeof(CompletionDelegate))]
@@ -276,7 +286,14 @@ namespace com.noctuagames.sdk
             string message = messagePtr != IntPtr.Zero ? Marshal.PtrToStringAnsi(messagePtr) : "Unknown error";
             var completion = storedActiveCurrencyCompletion;
             storedActiveCurrencyCompletion = null;
-            completion?.Invoke(success, message);
+
+            if (completion == null)
+            {
+                _sLog.Warning($"ActiveCurrencyCompletionCallback fired with no pending completion (success={success})");
+                return;
+            }
+
+            completion.Invoke(success, message);
         }
 
         [AOT.MonoPInvokeCallback(typeof(CompletionProductPurchasedDelegate))]

@@ -337,6 +337,7 @@ namespace com.noctuagames.sdk.Events
             // orphaned end event with no paired session_start.
             if (_sessionId == null)
             {
+                _log.Debug("Dispose: no session was started; skipping session_end and engagement events.");
                 return;
             }
 

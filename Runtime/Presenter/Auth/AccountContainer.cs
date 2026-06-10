@@ -154,7 +154,11 @@ namespace com.noctuagames.sdk
             bool TrySetRecentToSavedUser()
             {
                 var saved = _accounts.FirstOrDefault(IsNewUser);
-                if (saved == null) return false;
+                if (saved == null)
+                {
+                    _log.Debug($"saved account {newUser.User?.Id}-{newUser.Player?.Id} not found in loaded accounts yet");
+                    return false;
+                }
 
                 foreach (var account in _accounts)
                 {
@@ -162,6 +166,7 @@ namespace com.noctuagames.sdk
                 }
                 saved.IsRecent = true;
                 RecentAccount = saved;
+                _log.Debug($"pinned just-saved account {saved.User?.Id}-{saved.Player?.Id} as recent");
 
                 return true;
             }
