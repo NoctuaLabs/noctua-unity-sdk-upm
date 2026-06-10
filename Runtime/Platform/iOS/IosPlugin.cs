@@ -165,7 +165,11 @@ namespace com.noctuagames.sdk
 
         // Store the callback to be used in the static methods
         private static Action<string> storedLifecycleCallback;
-        private static Action<bool, string> storedCompletion;
+        // One field per operation: PurchaseItem and GetActiveCurrency can overlap
+        // in the payment flow, so sharing a single slot would let the second call
+        // overwrite the pending purchase callback.
+        private static Action<bool, string> storedPurchaseCompletion;
+        private static Action<bool, string> storedActiveCurrencyCompletion;
         private static Action<bool> storedHasPurchasedCompletion;
         private static Action<string> storedGetReceiptCompletion;
         private static Action<string> storedFirebaseInstallationIdCompletion;
@@ -258,10 +262,21 @@ namespace com.noctuagames.sdk
 
         //Delegate for methods returning string values
         [AOT.MonoPInvokeCallback(typeof(CompletionDelegate))]
-        private static void CompletionCallback(bool success, IntPtr messagePtr)
+        private static void PurchaseCompletionCallback(bool success, IntPtr messagePtr)
         {
             string message = messagePtr != IntPtr.Zero ? Marshal.PtrToStringAnsi(messagePtr) : "Unknown error";
-            storedCompletion?.Invoke(success, message);
+            var completion = storedPurchaseCompletion;
+            storedPurchaseCompletion = null;
+            completion?.Invoke(success, message);
+        }
+
+        [AOT.MonoPInvokeCallback(typeof(CompletionDelegate))]
+        private static void ActiveCurrencyCompletionCallback(bool success, IntPtr messagePtr)
+        {
+            string message = messagePtr != IntPtr.Zero ? Marshal.PtrToStringAnsi(messagePtr) : "Unknown error";
+            var completion = storedActiveCurrencyCompletion;
+            storedActiveCurrencyCompletion = null;
+            completion?.Invoke(success, message);
         }
 
         [AOT.MonoPInvokeCallback(typeof(CompletionProductPurchasedDelegate))]
@@ -482,8 +497,8 @@ namespace com.noctuagames.sdk
                 return;
             }
 
-            storedCompletion = completion;
-            noctuaPurchaseItem(productId, new CompletionDelegate(CompletionCallback));
+            storedPurchaseCompletion = completion;
+            noctuaPurchaseItem(productId, new CompletionDelegate(PurchaseCompletionCallback));
 
             _log.Debug("noctuaPurchaseItem called");
         }
@@ -547,8 +562,8 @@ namespace com.noctuagames.sdk
                 return;
             }
 
-            storedCompletion = completion;
-            noctuaGetActiveCurrency(productId, new CompletionDelegate(CompletionCallback));
+            storedActiveCurrencyCompletion = completion;
+            noctuaGetActiveCurrency(productId, new CompletionDelegate(ActiveCurrencyCompletionCallback));
 
             _log.Debug("noctuaGetActiveCurrency called");
         }
@@ -616,7 +631,9 @@ namespace com.noctuagames.sdk
         {
             noctuaGetAllAccounts(OnGetAccounts);
 
-            var accounts = _nativeAccounts;
+            // OnGetAccounts leaves _nativeAccounts null when the native side returns a
+            // null pointer (empty store on first launch / after ResetAccounts).
+            var accounts = _nativeAccounts ?? new List<NativeAccount>();
             _nativeAccounts = null;
 
             foreach (var account in accounts)
