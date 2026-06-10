@@ -123,7 +123,8 @@ namespace com.noctuagames.sdk.Events
         private readonly CancellationTokenSource _cancelSendSource;
         private readonly DateTime _start;
         private readonly string _sdkVersion;
-        private readonly string _uniqueId;
+        // Not readonly: on Android it is populated asynchronously off the main thread.
+        private string _uniqueId;
         private readonly string _deviceId;
         private readonly string _pseudoUserId;
 
@@ -139,7 +140,9 @@ namespace com.noctuagames.sdk.Events
         private string _ipAddress;
         private bool? _isSandbox;
         private static bool _isQuitting = false;
-        private volatile bool _isFlushing;
+        // 0 = idle, 1 = flushing. Int + Interlocked because a volatile bool
+        // check-then-set is two operations and allows a double-flush race.
+        private int _isFlushingFlag;
         private DateTime _lastConnectivityCheck = DateTime.MinValue;
         private static readonly TimeSpan ConnectivityCheckInterval = TimeSpan.FromSeconds(30);
         private readonly Stopwatch _stageStopwatch = new Stopwatch();
@@ -149,7 +152,7 @@ namespace com.noctuagames.sdk.Events
         // on iOS when multiple async calls race (IosPlugin uses single static callback slots).
         private string _cachedFirebaseSessionId;
         private string _cachedFirebaseInstallationId;
-        private bool _firebaseIdsFetched;
+        private volatile bool _firebaseIdsFetched;
         // Single-flight lock: prevents multiple concurrent tasks from all calling GetFirebaseAnalyticsSessionID
         // simultaneously. Without this, recovery events spawned at ~300ms post-launch (before Firebase initializes)
         // all enter the fetch block, overwrite the single static iOS callback slot, and hang forever.
@@ -157,12 +160,13 @@ namespace com.noctuagames.sdk.Events
 
         // Cached Adjust ADID — same single-static-callback pitfall as Firebase IDs on iOS.
         private string _cachedAdjustAdid;
-        private bool _isAdjustAdidFetched;
+        private volatile bool _isAdjustAdidFetched;
         private readonly SemaphoreSlim _adjustAdidFetchLock = new SemaphoreSlim(1, 1);
 
         // Write queue for burst-safe storage writes — each item is a serialized JSON string
         private readonly ConcurrentQueue<string> _writeQueue = new();
-        private volatile bool _isProcessingWriteQueue;
+        // 0 = idle, 1 = processing. Int + Interlocked for an atomic check-then-set.
+        private int _isProcessingWriteQueueFlag;
         private volatile bool _writeQueuePaused;
 
         // --- Private helpers that call _config.NativePlugin directly ---
@@ -234,7 +238,10 @@ namespace com.noctuagames.sdk.Events
 
         /// <summary>
         /// Sets the user, player, credential, game, and session properties attached to subsequent events.
-        /// Pass the default value (0 for numeric, empty string for text) to leave a property unchanged.
+        /// Sentinel semantics: the default value (0 for numeric, empty string for text) leaves a
+        /// property UNCHANGED, while an explicit <c>null</c> CLEARS it (the field is omitted from
+        /// subsequent events). E.g. <c>SetProperties(userId: 0)</c> keeps the current user ID;
+        /// <c>SetProperties(userId: null)</c> clears it (used on logout / session recovery).
         /// </summary>
         /// <param name="userId">The Noctua user ID, or 0 to keep the current value.</param>
         /// <param name="playerId">The game-specific player ID, or 0 to keep the current value.</param>
@@ -329,7 +336,10 @@ namespace com.noctuagames.sdk.Events
             _sdkVersion = Assembly.GetExecutingAssembly().GetName().Version.ToString();
 
 #if UNITY_ANDROID && !UNITY_EDITOR
-            _uniqueId = GetGoogleAdId();
+            // getAdvertisingIdInfo performs IPC/disk I/O and must not run on the main
+            // thread (Google docs; ANR risk at SDK init). Fetch it off the hot path —
+            // events sent before it resolves simply omit unique_id (secondary identifier).
+            FetchGoogleAdIdAsync().Forget();
 #elif UNITY_IOS && !UNITY_EDITOR
             _uniqueId = UnityEngine.iOS.Device.vendorIdentifier;
 #else
@@ -597,7 +607,8 @@ namespace com.noctuagames.sdk.Events
                 // to prevent event loss if the app is killed during the up-to-5 s lookup.
                 // This only applies the first time (while !_firebaseIdsFetched). Pre-persisted
                 // events lack firebase_analytics_session_id / firebase_installation_id; that
-                // is an acceptable trade-off since all core analytics fields are already set.
+                // is an acceptable trade-off since all core analytics fields (including
+                // adjust_adid, fetched above) are already set.
                 // After _firebaseIdsFetched = true every subsequent call skips this path.
                 var prePersisted = false;
 
@@ -608,6 +619,54 @@ namespace com.noctuagames.sdk.Events
                 #elif UNITY_IOS
                     shouldFetchFirebaseIds = !_config.FirebaseConfig.Ios.CustomEventDisabled;
                 #endif
+
+                // Adjust ADID enrichment runs BEFORE the pre-persist below: pre-persisted
+                // rows skip the final serialization, so anything added to `data` after the
+                // pre-persist would never reach storage (adjust_adid was silently lost for
+                // every event sent during the first Firebase-init window).
+                if (!_isAdjustAdidFetched)
+                {
+                    await _adjustAdidFetchLock.WaitAsync();
+                    try
+                    {
+                        if (!_isAdjustAdidFetched && _config.NativeAdjust != null)
+                        {
+                            try
+                            {
+                                var adidTcs = new TaskCompletionSource<string>();
+                                // iOS: use IDFA (Apple's advertising ID, requires ATT permission)
+                                // Android: use Google Advertising ID
+#if UNITY_IOS
+                                _config.NativeAdjust.GetAdjustIdfa(id => adidTcs.TrySetResult(id ?? string.Empty));
+                                var adidResult = await Task.WhenAny(adidTcs.Task, Task.Delay(5000));
+                                if (adidResult != adidTcs.Task)
+                                    _log.Warning("[Event Sender] GetAdjustIdfa timed out after 5s");
+#elif UNITY_ANDROID
+                                _config.NativeAdjust.GetAdjustGoogleAdId(id => adidTcs.TrySetResult(id ?? string.Empty));
+                                var adidResult = await Task.WhenAny(adidTcs.Task, Task.Delay(5000));
+                                if (adidResult != adidTcs.Task)
+                                    _log.Warning("[Event Sender] GetAdjustGoogleAdId timed out after 5s");
+#else
+                                adidTcs.TrySetResult(string.Empty);
+                                var adidResult = adidTcs.Task;
+#endif
+                                _cachedAdjustAdid = adidResult == adidTcs.Task ? adidTcs.Task.Result : string.Empty;
+                                _isAdjustAdidFetched = true;
+                            }
+                            catch (Exception e)
+                            {
+                                _log.Warning($"[Event Sender] Failed to get adjust_adid: {e.Message}");
+                            }
+                        }
+                    }
+                    finally
+                    {
+                        _adjustAdidFetchLock.Release();
+                    }
+                }
+
+                if (!string.IsNullOrEmpty(_cachedAdjustAdid))
+                    data.TryAdd("adjust_adid", _cachedAdjustAdid);
 
                 if (shouldFetchFirebaseIds && !_firebaseIdsFetched)
                 {
@@ -677,49 +736,6 @@ namespace com.noctuagames.sdk.Events
                         data.TryAdd("firebase_installation_id", _cachedFirebaseInstallationId);
                 }
 
-                if (!_isAdjustAdidFetched)
-                {
-                    await _adjustAdidFetchLock.WaitAsync();
-                    try
-                    {
-                        if (!_isAdjustAdidFetched && _config.NativeAdjust != null)
-                        {
-                            try
-                            {
-                                var adidTcs = new TaskCompletionSource<string>();
-                                // iOS: use IDFA (Apple's advertising ID, requires ATT permission)
-                                // Android: use Google Advertising ID
-#if UNITY_IOS
-                                _config.NativeAdjust.GetAdjustIdfa(id => adidTcs.TrySetResult(id ?? string.Empty));
-                                var adidResult = await Task.WhenAny(adidTcs.Task, Task.Delay(5000));
-                                if (adidResult != adidTcs.Task)
-                                    _log.Warning("[Event Sender] GetAdjustIdfa timed out after 5s");
-#elif UNITY_ANDROID
-                                _config.NativeAdjust.GetAdjustGoogleAdId(id => adidTcs.TrySetResult(id ?? string.Empty));
-                                var adidResult = await Task.WhenAny(adidTcs.Task, Task.Delay(5000));
-                                if (adidResult != adidTcs.Task)
-                                    _log.Warning("[Event Sender] GetAdjustGoogleAdId timed out after 5s");
-#else
-                                adidTcs.TrySetResult(string.Empty);
-                                var adidResult = adidTcs.Task;
-#endif
-                                _cachedAdjustAdid = adidResult == adidTcs.Task ? adidTcs.Task.Result : string.Empty;
-                                _isAdjustAdidFetched = true;
-                            }
-                            catch (Exception e)
-                            {
-                                _log.Warning($"[Event Sender] Failed to get adjust_adid: {e.Message}");
-                            }
-                        }
-                    }
-                    finally
-                    {
-                        _adjustAdidFetchLock.Release();
-                    }
-                }
-
-                if (!string.IsNullOrEmpty(_cachedAdjustAdid))
-                    data.TryAdd("adjust_adid", _cachedAdjustAdid);
                 #endif
 
                 // Serialize to JSON and enqueue for per-row INSERT.
@@ -778,6 +794,33 @@ namespace com.noctuagames.sdk.Events
         }
 
 #if UNITY_ANDROID && !UNITY_EDITOR
+        private async UniTask FetchGoogleAdIdAsync()
+        {
+            try
+            {
+                await UniTask.SwitchToThreadPool();
+
+                // JNI calls from a non-Unity thread require an attached JNI env.
+                AndroidJNI.AttachCurrentThread();
+                string id;
+                try
+                {
+                    id = GetGoogleAdId();
+                }
+                finally
+                {
+                    AndroidJNI.DetachCurrentThread();
+                }
+
+                await UniTask.SwitchToMainThread();
+                _uniqueId = id;
+            }
+            catch (Exception e)
+            {
+                _log.Warning("[Event Sender] Async Google Advertising ID fetch failed: " + e.Message);
+            }
+        }
+
         private string GetGoogleAdId()
         {
             try
@@ -869,22 +912,24 @@ namespace com.noctuagames.sdk.Events
                 return;
             }
 
-            if (!Thread.CurrentThread.IsBackground && Thread.CurrentThread.ManagedThreadId != 1)
+            if (Thread.CurrentThread.ManagedThreadId != 1)
             {
-                // Extra safety: if somehow called from a non-main thread that isn't
-                // the background thread (e.g. finalizer), skip to avoid Unity API crashes.
+                // Extra safety: only the main thread may flush. Finalizer and thread-pool
+                // threads (both IsBackground == true) must not touch Unity APIs.
+                _log.Debug("[Event Sender] Flush skipped: called from non-main thread.");
                 return;
             }
 
-            if (_isFlushing) return;
-            _isFlushing = true;
+            // Atomic check-then-set — a plain bool guard is two operations and lets the
+            // background send loop and an OnApplicationPause flush both enter.
+            if (Interlocked.CompareExchange(ref _isFlushingFlag, 1, 0) != 0) return;
 
             UniTask.Void(async () =>
             {
                 try
                 {
                     // Wait for any in-progress write queue to finish first
-                    while (_isProcessingWriteQueue)
+                    while (Volatile.Read(ref _isProcessingWriteQueueFlag) != 0)
                     {
                         if (_isQuitting) break;
                         await UniTask.Yield();
@@ -944,7 +989,7 @@ namespace com.noctuagames.sdk.Events
                 }
                 finally
                 {
-                    _isFlushing = false;
+                    Interlocked.Exchange(ref _isFlushingFlag, 0);
                     // RESUME write queue
                     _writeQueuePaused = false;
                     if (!_isQuitting)
@@ -1011,7 +1056,7 @@ namespace com.noctuagames.sdk.Events
                     continue;
                 }
 
-                if (_isFlushing)
+                if (Volatile.Read(ref _isFlushingFlag) != 0)
                 {
                     _log.Debug("[Event Sender] flush in progress, skipping send cycle");
                     continue;
@@ -1075,16 +1120,22 @@ namespace com.noctuagames.sdk.Events
 
                     var remainingCount = await GetEventCountDirectAsync();
                     _log.Info($"[Event Sender] sent {eventDicts.Count} events, deleted {deletedCount}. {remainingCount} remaining.");
+
+                    // Reset batch timer only on success. On failure it is retained so
+                    // the surviving events retry on the next cycle instead of waiting
+                    // a full extra BatchPeriodMs.
+                    batchStartTime = null;
                 }
                 catch (Exception e)
                 {
                     _log.Error($"[Event Sender] failed to send events: {e.Message}");
-                    // Events remain in per-row storage for retry
+                    // Events remain in per-row storage for retry. Restart the batch
+                    // window explicitly: the next attempt happens after BatchPeriodMs,
+                    // which rate-limits retries while the server/network is down.
+                    batchStartTime = DateTime.UtcNow;
                 }
                 finally
                 {
-                    // Reset batch timer after send attempt (success or failure)
-                    batchStartTime = null;
                     // RESUME write queue
                     _writeQueuePaused = false;
                     ProcessWriteQueue();
@@ -1207,13 +1258,16 @@ namespace com.noctuagames.sdk.Events
         /// </summary>
         private void ProcessWriteQueue()
         {
-            if (_isProcessingWriteQueue) return;
             if (_writeQueuePaused) return;
-            _isProcessingWriteQueue = true;
+            // Atomic check-then-set: two concurrent callers must not both drain the
+            // queue (InsertEvent would run concurrently and eviction would fire twice).
+            if (Interlocked.CompareExchange(ref _isProcessingWriteQueueFlag, 1, 0) != 0) return;
 
             try
             {
-                while (_writeQueue.TryDequeue(out var eventJson))
+                // Loop (not tail recursion in finally) so a burst of writes can't grow
+                // the stack; pause is honored between items.
+                while (!_writeQueuePaused && _writeQueue.TryDequeue(out var eventJson))
                 {
                     _config.NativePlugin?.InsertEvent(eventJson);
                 }
@@ -1251,9 +1305,11 @@ namespace com.noctuagames.sdk.Events
             }
             finally
             {
-                _isProcessingWriteQueue = false;
+                Interlocked.Exchange(ref _isProcessingWriteQueueFlag, 0);
 
-                // If new events arrived during processing, process again
+                // If new events arrived after the drain loop exited but before the flag
+                // was cleared, run one more pass. Bounded: each pass drains the queue,
+                // so this re-entry happens at most once per racing enqueue.
                 if (_writeQueue.Count > 0 && !_writeQueuePaused)
                 {
                     ProcessWriteQueue();

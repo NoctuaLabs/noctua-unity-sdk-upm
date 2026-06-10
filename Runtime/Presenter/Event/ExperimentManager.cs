@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 
 /// <summary>
@@ -10,7 +11,10 @@ public static class ExperimentManager
     private const string KEY_CURRENT_FEATURE = "current_feature";
     private const string KEY_CURRENT_SESSION_ID = "current_session_id";
 
-    private static Dictionary<string, object> _experimentFlags = new Dictionary<string, object>();
+    // ConcurrentDictionary: setters are public API callable from any thread while
+    // event-enrichment tasks read concurrently — a plain Dictionary corrupts or
+    // throws on a racing write.
+    private static readonly ConcurrentDictionary<string, object> _experimentFlags = new ConcurrentDictionary<string, object>();
 
     /// <summary>
     /// Sets an experiment flag with the given key and value.
@@ -40,8 +44,7 @@ public static class ExperimentManager
     /// Returns a copy of every flag currently set. Used by the
     /// Inspector "Build" tab's experiment override section so the UI
     /// can render and inline-edit. Copy returned so the caller can
-    /// iterate without holding a lock; the underlying dictionary
-    /// isn't intentionally thread-safe but copies are safe to read.
+    /// iterate a stable snapshot.
     /// </summary>
     public static System.Collections.Generic.IReadOnlyDictionary<string, object> Snapshot()
     {

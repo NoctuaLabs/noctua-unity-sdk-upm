@@ -32,8 +32,8 @@ namespace com.noctuagames.sdk.Events
         /// </summary>
         /// <param name="country">ISO country code (e.g., "US").</param>
         /// <param name="ipAddress">Client IP address.</param>
-        /// <param name="isSandbox">Whether the current environment is a sandbox/test environment.</param>
-        public void SetProperties(string country = "", string ipAddress = "", bool isSandbox = false)
+        /// <param name="isSandbox">Whether the current environment is a sandbox/test environment; null keeps the current value.</param>
+        public void SetProperties(string country = "", string ipAddress = "", bool? isSandbox = null)
         {
             if (country != "")
             {
@@ -45,9 +45,11 @@ namespace com.noctuagames.sdk.Events
                 _ipAddress = ipAddress;
             }
 
-            if (isSandbox)
+            // Nullable so the flag can also be cleared: the old `if (isSandbox)` guard
+            // made a true value sticky for the rest of the session.
+            if (isSandbox.HasValue)
             {
-                _isSandbox = true;
+                _isSandbox = isSandbox.Value;
             }
         }
 

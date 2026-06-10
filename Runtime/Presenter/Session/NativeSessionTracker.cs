@@ -10,6 +10,11 @@ namespace com.noctuagames.sdk.Events
     /// Tracks user engagement time driven by native platform lifecycle callbacks (Android Activity / iOS UIApplication).
     /// Sends <c>native_user_engagement</c> and <c>native_user_engagement_per_session</c> events.
     /// This is a parallel tracker to <see cref="SessionTracker"/>, which is driven by Unity's OnApplicationPause.
+    ///
+    /// Known limitation (intentional): unlike <see cref="SessionTracker"/>, this tracker has no
+    /// orphaned-session persistence/recovery. If the process is killed while in the foreground
+    /// (e.g. OOM kill), engagement accumulated since the last pause and the pending
+    /// <c>native_user_engagement_per_session</c> total are lost.
     /// </summary>
     public class NativeSessionTracker : IDisposable
     {

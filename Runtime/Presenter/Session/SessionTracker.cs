@@ -332,6 +332,14 @@ namespace com.noctuagames.sdk.Events
             _cancelHeartbeatSource.Cancel();
             _disposed = true;
 
+            // No session ever started (e.g. SDK torn down before the first resume):
+            // there is nothing to end — emitting session_end here would create an
+            // orphaned end event with no paired session_start.
+            if (_sessionId == null)
+            {
+                return;
+            }
+
             // Send final engagement time before session_end
             _foregroundStopwatch.Stop();
             SendUserEngagementEvent("end");
