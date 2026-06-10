@@ -46,12 +46,9 @@ namespace com.noctuagames.sdk.Admob
         public event Action<AdValue, ResponseInfo> AdmobOnAdRevenuePaid;
         private readonly long _timeoutThreshold = 5000; // 5 seconds
         private int _retryAttempt;
-        private AdValue _lastAdValue;
         private readonly Stopwatch _showStopwatch = new();
         // Cached on the main thread — SystemInfo.deviceUniqueIdentifier cannot be read off-thread.
         private readonly string _deviceId = UnityEngine.SystemInfo.deviceUniqueIdentifier;
-        // Minted in OnAdImpressionRecorded; read by OnAdPaid (which empirically fires after) for impression↔revenue linkage.
-        private string _currentImpressionId;
         
         /// <summary>
         /// Sets the ad unit ID for the rewarded interstitial ad.
@@ -211,6 +208,11 @@ namespace com.noctuagames.sdk.Admob
 
         private void RegisterEventHandlers(RewardedInterstitialAd ad)
         {
+            // Per-ad closure state: instance fields here would cross-contaminate revenue
+            // attribution when a second ad's callbacks interleave with the first's.
+            AdValue lastAdValue = null;
+            string currentImpressionId = null;
+
             // Raised when the ad is estimated to have earned money.
             ad.OnAdPaid += (AdValue adValue) =>
             {
@@ -218,10 +220,10 @@ namespace com.noctuagames.sdk.Admob
                     adValue.Value,
                     adValue.CurrencyCode));
 
-                _lastAdValue = adValue;
+                lastAdValue = adValue;
 
                 var capturedResponseInfo = ad.GetResponseInfo();
-                var capturedImpressionId = _currentImpressionId ?? "";
+                var capturedImpressionId = currentImpressionId ?? "";
                 if (string.IsNullOrEmpty(capturedImpressionId))
                     _log.Warning("OnAdPaid fired before OnAdImpressionRecorded; impression_id will be empty in revenue payload.");
                 AdmobRevenueHelper.TrackRevenueOnMainThread(adValue, capturedResponseInfo, capturedImpressionId, _deviceId, _log, AdFormatKey.RewardedInterstitial);
@@ -232,16 +234,16 @@ namespace com.noctuagames.sdk.Admob
             ad.OnAdImpressionRecorded += () =>
             {
                 _log.Debug("Rewarded Interstitial ad recorded an impression.");
-                _currentImpressionId = Guid.NewGuid().ToString("N");
+                currentImpressionId = Guid.NewGuid().ToString("N");
 
                 var engagementMs = _showStopwatch.IsRunning ? _showStopwatch.ElapsedMilliseconds : 0L;
                 _showStopwatch.Reset();
 
-                var valueMicros = _lastAdValue?.Value ?? 0L;
-                if (_lastAdValue == null)
+                var valueMicros = lastAdValue?.Value ?? 0L;
+                if (lastAdValue == null)
                     _log.Warning("OnAdImpressionRecorded fired before OnAdPaid; revenue value will be 0 in impression payload.");
                 var value       = valueMicros / 1_000_000d;
-                var currency    = _lastAdValue?.CurrencyCode;
+                var currency    = lastAdValue?.CurrencyCode;
                 var valueUsd    = currency == "USD" ? value : 0d;
 
                 var loadedAdapter = ad.GetResponseInfo()?.GetLoadedAdapterResponseInfo();
@@ -259,7 +261,7 @@ namespace com.noctuagames.sdk.Admob
                     adPlatform:       AdNetworkName.Admob,
                     engagementTimeMs: engagementMs
                 );
-                impPayload["sdk_impression_id"] = _currentImpressionId ?? "";
+                impPayload["sdk_impression_id"] = currentImpressionId ?? "";
                 EmitCanonical(IAAEventNames.AdImpression, impPayload);
 
                 TrackAdCustomEventRewardedInterstitial("ad_impression_rewarded_interstitial");

@@ -52,14 +52,10 @@ namespace com.noctuagames.sdk.Admob
         private readonly long _timeoutThreshold = 5000; // milliseconds,
         private bool _bannerEventsRegistered;
         // Cached AdValue from OnAdPaid for canonical ad_impression payload.
-        private AdValue _lastAdValue;
         // Placement captured via SetPlacement. Forwarded to canonical IAA events.
         private string _lastPlacement;
         // Cached on the main thread — SystemInfo.deviceUniqueIdentifier cannot be read off-thread.
         private readonly string _deviceId = UnityEngine.SystemInfo.deviceUniqueIdentifier;
-        // Banner has no OnAdFullScreenContentOpened; mint in OnAdPaid so OnAdImpressionRecorded
-        // can read the same id. Best-effort linkage — order is not guaranteed.
-        private string _currentImpressionId;
 
         /// <summary>Records the placement name to attach to subsequent canonical IAA events.</summary>
         public void SetPlacement(string placement) => _lastPlacement = placement;
@@ -164,6 +160,14 @@ namespace com.noctuagames.sdk.Admob
             if (_bannerEventsRegistered) return;
             _bannerEventsRegistered = true;
 
+            // Per-registration closure state: revenue value and impression id are
+            // per-refresh-cycle linkage; instance fields would leak across banner
+            // view instances. Banner has no OnAdFullScreenContentOpened; the id is
+            // minted in OnAdPaid so OnAdImpressionRecorded can read the same id —
+            // best-effort linkage, order is not guaranteed.
+            AdValue lastAdValue = null;
+            string currentImpressionId = null;
+
             // Raised when an ad is loaded into the banner view.
             _bannerView.OnBannerAdLoaded += () =>
             {
@@ -260,12 +264,12 @@ namespace com.noctuagames.sdk.Admob
                     adValue.Value,
                     adValue.CurrencyCode));
 
-                _lastAdValue = adValue;
+                lastAdValue = adValue;
                 // Mint for this refresh cycle; OnAdImpressionRecorded reads the same id (best-effort).
-                _currentImpressionId = Guid.NewGuid().ToString("N");
+                currentImpressionId = Guid.NewGuid().ToString("N");
 
                 var capturedResponseInfo = _bannerView.GetResponseInfo();
-                var capturedImpressionId = _currentImpressionId;
+                var capturedImpressionId = currentImpressionId;
                 AdmobRevenueHelper.TrackRevenueOnMainThread(adValue, capturedResponseInfo, capturedImpressionId, _deviceId, _log, AdFormatKey.Banner);
 
                 AdmobOnAdRevenuePaid?.Invoke(adValue, _bannerView.GetResponseInfo());
@@ -275,9 +279,9 @@ namespace com.noctuagames.sdk.Admob
             {
                 _log.Debug("Banner view recorded an impression.");
 
-                var valueMicros = _lastAdValue?.Value ?? 0L;
+                var valueMicros = lastAdValue?.Value ?? 0L;
                 var value       = valueMicros / 1_000_000d;
-                var currency    = _lastAdValue?.CurrencyCode;
+                var currency    = lastAdValue?.CurrencyCode;
                 var valueUsd    = currency == "USD" ? value : 0d;
 
                 var loadedAdapter = _bannerView?.GetResponseInfo()?.GetLoadedAdapterResponseInfo();
@@ -297,7 +301,7 @@ namespace com.noctuagames.sdk.Admob
                     // Send 0 rather than load-latency (which was semantically incorrect).
                     engagementTimeMs: 0
                 );
-                impPayload["sdk_impression_id"] = _currentImpressionId ?? "";
+                impPayload["sdk_impression_id"] = currentImpressionId ?? "";
                 EmitCanonical(IAAEventNames.AdImpression, impPayload);
 
                 // Keep legacy banner-specific impression marker for one release.

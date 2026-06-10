@@ -170,16 +170,18 @@ namespace com.noctuagames.sdk
             return bestNetwork;
         }
 
+        // No PlayerPrefs.Save() here: these fire on every fill attempt / revenue event
+        // (several times per second during ad init) and Save() is a synchronous disk
+        // write on the main thread. Unity flushes PlayerPrefs automatically on
+        // OnApplicationPause/quit; this data is a soft cache, not transactional.
         private void PersistFillRate(string key, double fillRate)
         {
             PlayerPrefs.SetFloat($"{PrefsPrefix}fill_{key}", (float)fillRate);
-            PlayerPrefs.Save();
         }
 
         private void PersistAvgRevenue(string key, double avgRevenue)
         {
             PlayerPrefs.SetFloat($"{PrefsPrefix}rev_{key}", (float)avgRevenue);
-            PlayerPrefs.Save();
         }
     }
 }

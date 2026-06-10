@@ -65,6 +65,13 @@ namespace com.noctuagames.sdk
             if (floor == null)
                 return CpmFloorResult.Allow;
 
+            if (floor.Hard > floor.Soft)
+            {
+                // Misconfiguration: with hard > soft, the checks below degenerate to
+                // "allow everything above soft" and the hard floor never triggers.
+                _log.Warning($"CPM floor misconfigured for {format}/{segmentKey}: hard ${floor.Hard:F4} > soft ${floor.Soft:F4}; hard floor will never trigger.");
+            }
+
             if (avgCpm >= floor.Soft)
                 return CpmFloorResult.Allow;
 

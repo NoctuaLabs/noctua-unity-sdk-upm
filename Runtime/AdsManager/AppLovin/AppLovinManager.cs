@@ -41,6 +41,7 @@ namespace com.noctuagames.sdk
         private bool _bannerEventsSubscribed;
         private bool _appOpenEventsSubscribed;
         private bool _sdkInitCallbackSubscribed;
+        private Action<MaxSdkBase.SdkConfiguration> _sdkInitHandler;
 
         // Tracks whether a banner ad unit ID has been configured
         private bool _bannerAdUnitSet;
@@ -118,7 +119,10 @@ namespace com.noctuagames.sdk
             if (!_sdkInitCallbackSubscribed)
             {
                 _sdkInitCallbackSubscribed = true;
-                MaxSdkCallbacks.OnSdkInitializedEvent += (MaxSdk.SdkConfiguration sdkConfiguration) =>
+                // Named handler (stored in a field) so Cleanup() can unsubscribe it from
+                // the static MaxSdkCallbacks event — an inline lambda can never be removed
+                // and would accumulate one stale closure per manager instance.
+                _sdkInitHandler = (MaxSdk.SdkConfiguration sdkConfiguration) =>
                 {
                     // Info-level so the AppLovin init checkpoint is visible in
                     // production logs alongside AdMob's "Admob initialized" line.
@@ -129,6 +133,7 @@ namespace com.noctuagames.sdk
                     initCompleteAction?.Invoke();
                     _initCompleteAction?.Invoke();
                 };
+                MaxSdkCallbacks.OnSdkInitializedEvent += _sdkInitHandler;
             }
 
             #if DEBUG || DEVELOPMENT_BUILD
@@ -399,7 +404,16 @@ namespace com.noctuagames.sdk
             _bannerAppLovin?.UnregisterCallbacks();
             _appOpenAppLovin?.UnregisterCallbacks();
 
+            // Unsubscribe the SDK-init handler from the static event so it does not
+            // accumulate across manager instances (e.g. on IAA config re-apply).
+            if (_sdkInitHandler != null)
+            {
+                MaxSdkCallbacks.OnSdkInitializedEvent -= _sdkInitHandler;
+                _sdkInitHandler = null;
+            }
+
             // Reset subscription guards so a new instance can re-subscribe cleanly.
+            _sdkInitCallbackSubscribed = false;
             _interstitialEventsSubscribed = false;
             _rewardedEventsSubscribed = false;
             _bannerEventsSubscribed = false;

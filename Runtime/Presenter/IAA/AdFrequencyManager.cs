@@ -87,6 +87,16 @@ namespace com.noctuagames.sdk
             if (!_impressionHistory.ContainsKey(format))
                 _impressionHistory[format] = new List<DateTime>();
 
+            // Prune expired entries here — the write path — so the persisted history
+            // stays in sync. Pruning in the read path left PlayerPrefs holding expired
+            // entries that resurrected on the next launch and overcounted the cap.
+            var cap = GetFrequencyCapEntry(format);
+            if (cap != null && cap.WindowSeconds > 0)
+            {
+                var windowStart = now.AddSeconds(-cap.WindowSeconds);
+                _impressionHistory[format].RemoveAll(t => t < windowStart);
+            }
+
             _impressionHistory[format].Add(now);
 
             _log.Debug($"Recorded impression for '{format}'. Total in window: {_impressionHistory[format].Count}");
@@ -135,11 +145,17 @@ namespace com.noctuagames.sdk
 
             if (!_impressionHistory.TryGetValue(format, out var history)) return false;
 
-            // Prune expired entries outside the rolling window
+            // Pure read: count only entries inside the rolling window. Mutating here
+            // (without persisting) desynced the in-memory list from PlayerPrefs;
+            // pruning now happens in RecordImpression, which saves afterwards.
             var windowStart = DateTime.UtcNow.AddSeconds(-cap.WindowSeconds);
-            history.RemoveAll(t => t < windowStart);
+            var liveCount = 0;
+            for (var i = 0; i < history.Count; i++)
+            {
+                if (history[i] >= windowStart) liveCount++;
+            }
 
-            return history.Count >= cap.MaxImpressions;
+            return liveCount >= cap.MaxImpressions;
         }
 
         private int GetCooldownSeconds(string format)

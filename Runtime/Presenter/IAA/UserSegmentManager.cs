@@ -55,6 +55,11 @@ namespace com.noctuagames.sdk
         /// Initializes a new <see cref="UserSegmentManager"/>.
         /// Writes the install timestamp on first launch and increments the session counter.
         /// </summary>
+        // NOTE: every construction increments the session counter (behavior pinned by
+        // UserSegmentManagerTest). Session count drives GetSessionTier(), so this type
+        // must be constructed at most once per launch in production — MediationManager
+        // guarantees that via `_segmentManager ??= new UserSegmentManager()`. Do not
+        // construct additional instances outside tests.
         public UserSegmentManager()
         {
             InitializeInstallTimestamp();

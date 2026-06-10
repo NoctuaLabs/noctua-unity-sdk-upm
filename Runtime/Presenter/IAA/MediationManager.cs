@@ -1629,6 +1629,8 @@ namespace com.noctuagames.sdk
                     Noctua.Event.TrackAdRevenue("admob_sdk", revenue, adValue.CurrencyCode, revPayload);
                 }
                 catch (Exception ex) { _log.Error($"Error tracking AdMob interstitial preload revenue: {ex.Message}\n{ex.StackTrace}"); }
+                // Not double-tracking: ProcessAdmob*Revenue only logs + accumulates Taichi
+                // thresholds; the TrackAdRevenue call above is the sole revenue event emitter.
                 _revenueTracker.ProcessAdmobInterstitialRevenue(adValue, capturedResponseInfo);
                 _admobOnAdRevenuePaid?.Invoke(adValue, capturedResponseInfo);
                 _performanceTracker?.RecordRevenue(AdNetworkName.Admob, AdFormatKey.Interstitial, adValue.Value / 1_000_000.0);
@@ -1896,6 +1898,8 @@ namespace com.noctuagames.sdk
                     Noctua.Event.TrackAdRevenue("admob_sdk", revenue, adValue.CurrencyCode, revPayload);
                 }
                 catch (Exception ex) { _log.Error($"Error tracking AdMob rewarded preload revenue: {ex.Message}\n{ex.StackTrace}"); }
+                // Not double-tracking: ProcessAdmob*Revenue only logs + accumulates Taichi
+                // thresholds; the TrackAdRevenue call above is the sole revenue event emitter.
                 _revenueTracker.ProcessAdmobRewardedRevenue(adValue, capturedResponseInfo);
                 _admobOnAdRevenuePaid?.Invoke(adValue, capturedResponseInfo);
                 _performanceTracker?.RecordRevenue(AdNetworkName.Admob, AdFormatKey.Rewarded, adValue.Value / 1_000_000.0);

@@ -24,12 +24,9 @@ namespace com.noctuagames.sdk.Admob
         /// <summary>Records the placement name to attach to subsequent canonical IAA events.</summary>
         public void SetPlacement(string placement) => _lastPlacement = placement;
         private AppOpenAd _legacyAppOpenAd;
-        private AdValue _lastAdValue;
         private readonly Stopwatch _showStopwatch = new();
         // Cached on the main thread — SystemInfo.deviceUniqueIdentifier cannot be read off-thread.
         private readonly string _deviceId = UnityEngine.SystemInfo.deviceUniqueIdentifier;
-        // Minted in OnAdImpressionRecorded; read by OnAdPaid (which empirically fires after) for impression↔revenue linkage.
-        private string _currentImpressionId;
 
         /// <summary>Raised when the app open ad is successfully displayed.</summary>
         public event Action AppOpenOnAdDisplayed;
@@ -245,12 +242,19 @@ namespace com.noctuagames.sdk.Admob
 
         private void RegisterEventHandlers(AppOpenAd ad)
         {
+            // Per-ad closure state: revenue value and impression id minted in
+            // OnAdImpressionRecorded, read by OnAdPaid. Instance fields here would
+            // cross-contaminate attribution when a second ad's callbacks interleave
+            // with the first's (preload refills quickly on app-open cycles).
+            AdValue lastAdValue = null;
+            string currentImpressionId = null;
+
             ad.OnAdPaid += (AdValue adValue) =>
             {
                 _log.Debug($"App open ad paid {adValue.Value} {adValue.CurrencyCode}.");
-                _lastAdValue = adValue;
+                lastAdValue = adValue;
                 var capturedResponseInfo = ad.GetResponseInfo();
-                var capturedImpressionId = _currentImpressionId ?? "";
+                var capturedImpressionId = currentImpressionId ?? "";
                 if (string.IsNullOrEmpty(capturedImpressionId))
                     _log.Warning("OnAdPaid fired before OnAdImpressionRecorded; impression_id will be empty in revenue payload.");
                 AdmobRevenueHelper.TrackRevenueOnMainThread(adValue, capturedResponseInfo, capturedImpressionId, _deviceId, _log, AdFormatKey.AppOpen);
@@ -260,16 +264,16 @@ namespace com.noctuagames.sdk.Admob
             ad.OnAdImpressionRecorded += () =>
             {
                 _log.Debug("App open ad recorded an impression.");
-                _currentImpressionId = Guid.NewGuid().ToString("N");
+                currentImpressionId = Guid.NewGuid().ToString("N");
 
                 var engagementMs = _showStopwatch.IsRunning ? _showStopwatch.ElapsedMilliseconds : 0L;
                 _showStopwatch.Reset();
 
-                var valueMicros = _lastAdValue?.Value ?? 0L;
-                if (_lastAdValue == null)
+                var valueMicros = lastAdValue?.Value ?? 0L;
+                if (lastAdValue == null)
                     _log.Warning("OnAdImpressionRecorded fired before OnAdPaid; revenue value will be 0 in impression payload.");
                 var value       = valueMicros / 1_000_000d;
-                var currency    = _lastAdValue?.CurrencyCode;
+                var currency    = lastAdValue?.CurrencyCode;
                 var valueUsd    = currency == "USD" ? value : 0d;
 
                 var loadedAdapter = ad.GetResponseInfo()?.GetLoadedAdapterResponseInfo();
@@ -287,7 +291,7 @@ namespace com.noctuagames.sdk.Admob
                     adPlatform:       AdNetworkName.Admob,
                     engagementTimeMs: engagementMs
                 );
-                impPayload["sdk_impression_id"] = _currentImpressionId ?? "";
+                impPayload["sdk_impression_id"] = currentImpressionId ?? "";
                 EmitCanonical(IAAEventNames.AdImpression, impPayload);
 
                 TrackAdCustomEvent("ad_impression_app_open");

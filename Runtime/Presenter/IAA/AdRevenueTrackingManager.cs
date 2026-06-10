@@ -209,29 +209,29 @@ namespace com.noctuagames.sdk
                 return;
             }
 
-            float currentRevenue = PlayerPrefs.GetFloat(KeyTotalRevenue, 0f);
-            int   currentCount   = PlayerPrefs.GetInt(KeyTotalAdCount, 0);
+            double currentRevenue = LoadRevenue(KeyTotalRevenue);
+            int    currentCount   = PlayerPrefs.GetInt(KeyTotalAdCount, 0);
             _log.Info($"{LogTag} ProcessAllFormatsThresholds called — impressionRevenue={impressionRevenue:F6} USD | " +
                 $"Step 1 revenue {currentRevenue:F4}/{_taichiConfig.RevenueThreshold} | " +
                 $"Step 2 count {currentCount}/{_taichiConfig.AdCountThreshold}");
 
             // Step 1: Total_Ads_Revenue_001
-            float prevRevenue     = currentRevenue;
-            float updatedRevenue  = prevRevenue + (float)impressionRevenue;
+            double prevRevenue    = currentRevenue;
+            double updatedRevenue = prevRevenue + impressionRevenue;
 
             if (updatedRevenue >= _taichiConfig.RevenueThreshold)
             {
                 _log.Info($"{LogTag} Step 1: Total_Ads_Revenue_001 crossed ({updatedRevenue:F4} >= {_taichiConfig.RevenueThreshold})");
                 _adRevenueTracker?.TrackCustomEvent("Total_Ads_Revenue_001", new Dictionary<string, IConvertible>
                 {
-                    { "value",    (double)updatedRevenue },
+                    { "value",    updatedRevenue },
                     { "currency", "USD" }
                 });
-                PlayerPrefs.SetFloat(KeyTotalRevenue, 0f);
+                SaveRevenue(KeyTotalRevenue, 0);
             }
             else
             {
-                PlayerPrefs.SetFloat(KeyTotalRevenue, updatedRevenue);
+                SaveRevenue(KeyTotalRevenue, updatedRevenue);
                 _log.Info($"{LogTag} Step 1: Total_Ads_Revenue_001 progress {updatedRevenue:F4}/{_taichiConfig.RevenueThreshold} USD (not fired)");
             }
 
@@ -309,9 +309,9 @@ namespace com.noctuagames.sdk
                 return;
             }
 
-            int   currentTotal           = PlayerPrefs.GetInt(KeyTotalImpressions, 0);
-            int   currentRewarded        = PlayerPrefs.GetInt(KeyRewardedCount, 0);
-            float currentRewardedRevenue = PlayerPrefs.GetFloat(KeyRewardedRevenue, 0f);
+            int    currentTotal           = PlayerPrefs.GetInt(KeyTotalImpressions, 0);
+            int    currentRewarded        = PlayerPrefs.GetInt(KeyRewardedCount, 0);
+            double currentRewardedRevenue = LoadRevenue(KeyRewardedRevenue);
             _log.Info($"{LogTag} ProcessRewardedThresholds called — impressionRevenue={impressionRevenue:F6} USD | " +
                 $"Step 3 total {currentTotal}/{_taichiConfig.TotalImpressionThreshold} | " +
                 $"Step 5 rewarded {currentRewarded}/{_taichiConfig.RewardedCountThreshold} | " +
@@ -336,26 +336,50 @@ namespace com.noctuagames.sdk
             );
 
             // Step 6: taichi_rewarded_ad_revenue
-            float prevRewardedRevenue    = currentRewardedRevenue;
-            float updatedRewardedRevenue = prevRewardedRevenue + (float)impressionRevenue;
+            double prevRewardedRevenue    = currentRewardedRevenue;
+            double updatedRewardedRevenue = prevRewardedRevenue + impressionRevenue;
 
             if (updatedRewardedRevenue >= _taichiConfig.RewardedRevenueThreshold)
             {
                 _log.Info($"{LogTag} Step 6: taichi_rewarded_ad_revenue crossed ({updatedRewardedRevenue:F4} >= {_taichiConfig.RewardedRevenueThreshold})");
                 _adRevenueTracker?.TrackCustomEvent("taichi_rewarded_ad_revenue", new Dictionary<string, IConvertible>
                 {
-                    { "value",    (double)updatedRewardedRevenue },
+                    { "value",    updatedRewardedRevenue },
                     { "currency", "USD" }
                 });
-                PlayerPrefs.SetFloat(KeyRewardedRevenue, 0f);
+                SaveRevenue(KeyRewardedRevenue, 0);
             }
             else
             {
-                PlayerPrefs.SetFloat(KeyRewardedRevenue, updatedRewardedRevenue);
+                SaveRevenue(KeyRewardedRevenue, updatedRewardedRevenue);
                 _log.Info($"{LogTag} Step 6: taichi_rewarded_ad_revenue progress {updatedRewardedRevenue:F4}/{_taichiConfig.RewardedRevenueThreshold} USD (not fired)");
             }
 
             PlayerPrefs.Save();
+        }
+
+        /// <summary>
+        /// Cumulative revenue is stored as micro-USD (long, string-encoded) instead of
+        /// PlayerPrefs float: typical impression values are sub-cent and float's ~7
+        /// significant digits accumulate drift, which can make an exact threshold
+        /// (e.g. $1.00) over- or under-fire. Reads fall back to the legacy float key
+        /// once for migration; writes always use the micro key.
+        /// </summary>
+        private static double LoadRevenue(string key)
+        {
+            var stored = PlayerPrefs.GetString(key + "_micro", "");
+            if (long.TryParse(stored, out var micro))
+            {
+                return micro / 1_000_000.0;
+            }
+
+            // Legacy float key (pre-micro format) — migrated on the next SaveRevenue.
+            return PlayerPrefs.GetFloat(key, 0f);
+        }
+
+        private static void SaveRevenue(string key, double value)
+        {
+            PlayerPrefs.SetString(key + "_micro", ((long)Math.Round(value * 1_000_000.0)).ToString());
         }
 
         private void IncrementAndFireIfReady(string key, int threshold, string eventName, double revenue, string logLabel)

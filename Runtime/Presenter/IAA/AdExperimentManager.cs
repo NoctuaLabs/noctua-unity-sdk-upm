@@ -75,6 +75,9 @@ namespace com.noctuagames.sdk
                 var variant = FindVariant(experiment.Variants, variantId);
                 if (variant == null) continue;
 
+                // Intentionally fired for control variants too (IaaOverride == null):
+                // experiment analysis needs the control cohort identified just like
+                // treatment cohorts. De-duplicated once per install inside TrackAssignment.
                 TrackAssignment(experiment.ExperimentId, variantId, segmentKey);
 
                 if (variant.IaaOverride != null)
