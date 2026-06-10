@@ -412,6 +412,29 @@ git push -u origin fix/branch-name
 # Create MR via GitLab link in push output
 ```
 
+### ALWAYS commit the `.meta` alongside every asset (CRITICAL)
+
+Every Unity asset (`.cs`, folder, `.asset`, texture, etc.) has a sibling `.meta`
+holding its **GUID**. Consumers install this package via UPM into an **immutable**
+`Library/PackageCache/...` folder. If a `.cs` is committed **without** its `.meta`,
+Unity logs `"has no meta file, but it's in an immutable folder. The asset will be
+ignored"` and **drops the file from compilation** — every symbol it defines becomes
+`CS0103: name does not exist`. (This is exactly how `Noctua.Adjust.cs` shipping
+without `Noctua.Adjust.cs.meta` broke `GetAdjustAttributionAsync`.)
+
+**Rules:**
+- When you add/move/rename a file, stage its `.meta` in the **same commit**. When you
+  delete a file, delete its `.meta` too. Never stage one without the other.
+- New folders also need their own `<folder>.meta`.
+- Do **not** `git add -p`/partial-stage in a way that leaves a `.cs` without its `.meta`.
+- Before pushing, verify no asset is missing its tracked meta:
+  ```sh
+  # lists every tracked .cs whose .meta is NOT tracked — must print nothing
+  comm -23 <(git ls-files '*.cs' | sed 's/$/.meta/' | sort) <(git ls-files '*.cs.meta' | sort)
+  ```
+- Never commit Unity output artifacts or their metas (`CodeCoverage/`, `*.log`,
+  `unity-test.log.meta`, etc.) — keep them in `.gitignore`.
+
 ### Commit Types & Changelog Sections (git-cliff)
 
 We follow [**Conventional Commits 1.0.0**](https://www.conventionalcommits.org/en/v1.0.0/) and

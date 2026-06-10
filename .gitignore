@@ -1,1 +1,7 @@
 GithubRelease.md
+
+# Unity test / coverage output artifacts (never commit these or their .meta)
+CodeCoverage/
+CodeCoverage.meta
+*.log
+unity-test.log.meta
