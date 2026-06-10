@@ -3,7 +3,7 @@
 All notable changes to this project will be documented in this file.
 Versions follow [Semantic Versioning](https://semver.org/).
 
-## [0.127.0] - 2026-06-09
+## [0.128.0] - 2026-06-10
 
 ### ⚙️ Miscellaneous
 
@@ -34,6 +34,7 @@ Versions follow [Semantic Versioning](https://semver.org/).
 - Move all Adjust methods from INativeFirebase to INativeAdjust — resolve CS0121 ambiguity
 - Adjust_adid uses IDFA on iOS and Google Ad ID on Android in EventSender
 - Do not block SDK init when IAA enabled but local config is null
+- Add missing Noctua.Adjust.cs.meta to restore Adjust API compilation
 
 ### 🚀 Features
 
