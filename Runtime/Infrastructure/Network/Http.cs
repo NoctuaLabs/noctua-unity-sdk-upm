@@ -456,7 +456,9 @@ namespace com.noctuagames.sdk
             }
             
 
-            if ((int)_request.responseCode >= 400 && (int)_request.responseCode <= 408)
+            // 408 Request Timeout is excluded: it falls through to the retryable
+            // Networking branch below (matching the comment there).
+            if ((int)_request.responseCode >= 400 && (int)_request.responseCode < 408)
             {
                 ErrorResponse errorResponse;
 
@@ -489,7 +491,7 @@ namespace com.noctuagames.sdk
                 FireEndIfObserved(exchange, sw, response, HttpExchangeState.Failed);
                 throw new NoctuaException((NoctuaErrorCode)errorResponse.ErrorCode, errorResponse.ErrorMessage);
             }
-            else if ((int)_request.responseCode > 408) // Including 5XX
+            else if ((int)_request.responseCode >= 408) // Including 5XX
             {
                 // Retryable HTTP status codes are treated as networking error:
                 // 408 Request Timeout

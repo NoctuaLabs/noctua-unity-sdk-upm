@@ -232,7 +232,11 @@ namespace com.noctuagames.sdk
 
             foreach (var pair in dictionary)
             {
-                var boxValue = pair.Value switch
+                // Dispose the boxed value (and put's return — the previous mapping) after
+                // each entry: every AndroidJavaObject holds a JNI global reference, and
+                // this runs per payload field on every tracked event. Undisposed, the
+                // refs accumulate toward Android's 51,200 global-reference limit.
+                using var boxValue = pair.Value switch
                 {
                     sbyte sbyteValue => new AndroidJavaObject("java.lang.Byte", sbyteValue),
                     short shortValue => new AndroidJavaObject("java.lang.Short", shortValue),
@@ -247,7 +251,7 @@ namespace com.noctuagames.sdk
                     _ => new AndroidJavaObject("java.lang.String", pair.Value.ToString(CultureInfo.InvariantCulture))
                 };
 
-                hashMap.Call<AndroidJavaObject>("put", pair.Key, boxValue);
+                using var previousValue = hashMap.Call<AndroidJavaObject>("put", pair.Key, boxValue);
             }
 
             return hashMap;
@@ -1152,7 +1156,7 @@ public class AndroidCallback<T> : AndroidJavaProxy
         if (typeof(T) == typeof(string))
             _callback?.Invoke((T)(object)arg);
 
-        return new AndroidJavaClass("kotlin.Unit").GetStatic<AndroidJavaObject>("INSTANCE");
+        return KotlinUnit.Instance;
     }
 
     /// <summary>
@@ -1163,7 +1167,7 @@ public class AndroidCallback<T> : AndroidJavaProxy
         if (typeof(T) == typeof(bool))
             _callback?.Invoke((T)(object)arg);
 
-        return new AndroidJavaClass("kotlin.Unit").GetStatic<AndroidJavaObject>("INSTANCE");
+        return KotlinUnit.Instance;
     }
 
     /// <summary>
@@ -1174,7 +1178,7 @@ public class AndroidCallback<T> : AndroidJavaProxy
         if (typeof(T) == typeof(double))
             _callback?.Invoke((T)(object)arg);
 
-        return new AndroidJavaClass("kotlin.Unit").GetStatic<AndroidJavaObject>("INSTANCE");
+        return KotlinUnit.Instance;
     }
 
     /// <summary>
@@ -1185,7 +1189,7 @@ public class AndroidCallback<T> : AndroidJavaProxy
         if (typeof(T) == typeof(long))
             _callback?.Invoke((T)(object)arg);
 
-        return new AndroidJavaClass("kotlin.Unit").GetStatic<AndroidJavaObject>("INSTANCE");
+        return KotlinUnit.Instance;
     }
 
     /// <summary>
@@ -1196,7 +1200,7 @@ public class AndroidCallback<T> : AndroidJavaProxy
         if (typeof(T) == typeof(int))
             _callback?.Invoke((T)(object)arg);
 
-        return new AndroidJavaClass("kotlin.Unit").GetStatic<AndroidJavaObject>("INSTANCE");
+        return KotlinUnit.Instance;
     }
 
     /// <summary>
@@ -1206,23 +1210,73 @@ public class AndroidCallback<T> : AndroidJavaProxy
     public AndroidJavaObject invoke(AndroidJavaObject arg)
     {
         object value = null;
+        var argConsumed = false;
 
         if (typeof(T) == typeof(string))
+        {
             value = arg?.Call<string>("toString");
+            argConsumed = true;
+        }
         else if (typeof(T) == typeof(int))
+        {
             value = arg?.Call<int>("intValue");
+            argConsumed = true;
+        }
         else if (typeof(T) == typeof(bool))
+        {
             value = arg?.Call<bool>("booleanValue");
+            argConsumed = true;
+        }
         else if (typeof(T) == typeof(double))
+        {
             value = arg?.Call<double>("doubleValue");
+            argConsumed = true;
+        }
         else if (typeof(T) == typeof(long))
+        {
             value = arg?.Call<long>("longValue");
+            argConsumed = true;
+        }
         else
+        {
+            // T is a reference type (e.g. AndroidJavaObject): ownership transfers to
+            // the callback, which must dispose it. Do not dispose here.
             value = arg;
+        }
 
         _callback?.Invoke((T)value);
 
-        return new AndroidJavaClass("kotlin.Unit").GetStatic<AndroidJavaObject>("INSTANCE");
+        // The boxed argument holds a JNI global reference; once its value has been
+        // extracted it must be released or it leaks (one ref per native callback).
+        if (argConsumed)
+        {
+            arg?.Dispose();
+        }
+
+        return KotlinUnit.Instance;
+    }
+}
+
+/// <summary>
+/// Caches the <c>kotlin.Unit.INSTANCE</c> singleton so callback trampolines do not
+/// allocate a new <see cref="AndroidJavaClass"/> (a JNI object) on every invocation.
+/// </summary>
+public static class KotlinUnit
+{
+    private static AndroidJavaObject _instance;
+
+    public static AndroidJavaObject Instance
+    {
+        get
+        {
+            if (_instance == null)
+            {
+                using var unitClass = new AndroidJavaClass("kotlin.Unit");
+                _instance = unitClass.GetStatic<AndroidJavaObject>("INSTANCE");
+            }
+
+            return _instance;
+        }
     }
 }
 
@@ -1250,8 +1304,9 @@ public class AndroidCallback2 : AndroidJavaProxy
     /// </summary>
     public AndroidJavaObject invoke(AndroidJavaObject arg1, AndroidJavaObject arg2)
     {
+        // Args are passed through; the callback owns them and is responsible for disposal.
         _callback?.Invoke(arg1, arg2);
-        return new AndroidJavaClass("kotlin.Unit").GetStatic<AndroidJavaObject>("INSTANCE");
+        return KotlinUnit.Instance;
     }
 }
 #endif

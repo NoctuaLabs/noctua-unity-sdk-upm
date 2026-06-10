@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using com.noctuagames.sdk.Events;
 using com.noctuagames.sdk.UI;
@@ -49,7 +50,10 @@ namespace com.noctuagames.sdk
 
             while (!configLoadRequest.isDone && now < timeout)
             {
-                Task.Delay(10).Wait();
+                // Thread.Sleep instead of Task.Delay(..).Wait(): same blocking wait
+                // (this runs inside the Lazy<T> constructor and cannot be async) but
+                // without allocating a Task + timer per 10 ms tick.
+                Thread.Sleep(10);
                 now = DateTime.UtcNow;
             }
 
@@ -667,6 +671,12 @@ namespace com.noctuagames.sdk
                         // });
                         log.Warning($"_uiFactory is null, cannot show error dialog: {errorMessage}");
                     }
+
+                    // initResponse was never assigned on this path — falling through
+                    // would NRE on initResponse.OfflineMode right after the error dialog.
+                    // Rethrow so the game receives the original init failure cleanly
+                    // (InitAsync is documented as reusable for the next attempt).
+                    throw;
                 }
             }
             log.Debug("Initial noctua config: " + JsonConvert.SerializeObject(Noctua.Instance.Value._config?.Noctua));

@@ -336,7 +336,7 @@ namespace com.noctuagames.sdk
         /// Get saved events from native plugin asynchronously where supported.
         /// </summary>
         /// <returns>A task that resolves to the list of saved events.</returns>
-       public static Task<List<string>> GetEventsAsync()
+       public static async Task<List<string>> GetEventsAsync()
         {
             var tcs = new TaskCompletionSource<List<string>>();
 
@@ -344,16 +344,24 @@ namespace com.noctuagames.sdk
             {
                 Instance.Value._nativePlugin.GetEvents(events =>
                 {
-                    tcs.SetResult(events);
+                    tcs.TrySetResult(events);
                 });
+
+                // Same 5 s guard as GetEventCountAsync: if the native callback never
+                // fires, callers (including the event flush loop) must not hang forever.
+                var completed = await Task.WhenAny(tcs.Task, Task.Delay(5000));
+                if (completed != tcs.Task)
+                {
+                    Instance.Value._log.Warning("GetEventsAsync timed out after 5s");
+                    return new List<string>();
+                }
+                return tcs.Task.Result;
             }
             catch (Exception ex)
             {
                 Instance.Value._log.Warning("GetEvents exception: " + ex.Message);
-                tcs.SetResult(new List<string>());
+                return new List<string>();
             }
-
-            return tcs.Task;
         }
 
         /// <summary>
@@ -391,43 +399,57 @@ namespace com.noctuagames.sdk
         /// <summary>
         /// Get a batch of events from per-row native storage asynchronously.
         /// </summary>
-        public static Task<List<NativeEvent>> GetEventsBatchAsync(int limit, int offset)
+        public static async Task<List<NativeEvent>> GetEventsBatchAsync(int limit, int offset)
         {
             var tcs = new TaskCompletionSource<List<NativeEvent>>();
             try
             {
                 Instance.Value._nativePlugin.GetEventsBatch(limit, offset, events =>
                 {
-                    tcs.SetResult(events);
+                    tcs.TrySetResult(events);
                 });
+
+                var completed = await Task.WhenAny(tcs.Task, Task.Delay(5000));
+                if (completed != tcs.Task)
+                {
+                    Instance.Value._log.Warning("GetEventsBatchAsync timed out after 5s");
+                    return new List<NativeEvent>();
+                }
+                return tcs.Task.Result;
             }
             catch (Exception ex)
             {
                 Instance.Value._log.Warning("GetEventsBatch exception: " + ex.Message);
-                tcs.SetResult(new List<NativeEvent>());
+                return new List<NativeEvent>();
             }
-            return tcs.Task;
         }
 
         /// <summary>
         /// Delete specific events by ID from per-row native storage asynchronously.
         /// </summary>
-        public static Task<int> DeleteEventsByIdsAsync(long[] ids)
+        public static async Task<int> DeleteEventsByIdsAsync(long[] ids)
         {
             var tcs = new TaskCompletionSource<int>();
             try
             {
                 Instance.Value._nativePlugin.DeleteEventsByIds(ids, deletedCount =>
                 {
-                    tcs.SetResult(deletedCount);
+                    tcs.TrySetResult(deletedCount);
                 });
+
+                var completed = await Task.WhenAny(tcs.Task, Task.Delay(5000));
+                if (completed != tcs.Task)
+                {
+                    Instance.Value._log.Warning("DeleteEventsByIdsAsync timed out after 5s");
+                    return 0;
+                }
+                return tcs.Task.Result;
             }
             catch (Exception ex)
             {
                 Instance.Value._log.Warning("DeleteEventsByIds exception: " + ex.Message);
-                tcs.SetResult(0);
+                return 0;
             }
-            return tcs.Task;
         }
 
         /// <summary>

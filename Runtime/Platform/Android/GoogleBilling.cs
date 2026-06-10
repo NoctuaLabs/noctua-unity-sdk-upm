@@ -8,7 +8,7 @@ using ILogger = com.noctuagames.sdk.ILogger;
 /// <summary>
 /// Wraps Google Play Billing via the Kotlin native SDK, handling purchases, product queries, and billing lifecycle.
 /// </summary>
-public class GoogleBilling
+public class GoogleBilling : System.IDisposable
 {
     private readonly ILogger _log = new NoctuaLogger(typeof(GoogleBilling));
     private AndroidJavaObject _noctua;
@@ -160,10 +160,26 @@ public class GoogleBilling
             _activity = unityPlayer.GetStatic<AndroidJavaObject>("currentActivity");
         }
 
-        _noctua = new AndroidJavaClass("com.noctuagames.sdk.Noctua")
-            .GetStatic<AndroidJavaObject>("INSTANCE");
+        // Dispose the temporary class object — only the INSTANCE ref is kept.
+        using (var noctuaClass = new AndroidJavaClass("com.noctuagames.sdk.Noctua"))
+        {
+            _noctua = noctuaClass.GetStatic<AndroidJavaObject>("INSTANCE");
+        }
 
         _log.Debug("GoogleBilling constructed with native SDK delegation");
+    }
+
+    /// <summary>
+    /// Releases the JNI global references held by this wrapper. In production the
+    /// instance lives for the app lifetime (owned by NoctuaIAPService), but tests
+    /// or future teardown paths should dispose it.
+    /// </summary>
+    public void Dispose()
+    {
+        _noctua?.Dispose();
+        _noctua = null;
+        _activity?.Dispose();
+        _activity = null;
     }
 
     /// <summary>

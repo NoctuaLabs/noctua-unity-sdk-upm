@@ -32,6 +32,9 @@ namespace com.noctuagames.sdk
             if (_isQuitting || !Application.isPlaying)
             {
                 _sLog.Warning("[InternetChecker] Skipped check: application is quitting or not playing.");
+                // Resolve the callback (treat as offline) — callers awaiting a
+                // TaskCompletionSource wrapped around onResult would hang forever otherwise.
+                onResult?.Invoke(false);
                 return;
             }
 
@@ -47,6 +50,7 @@ namespace com.noctuagames.sdk
                 if (_isQuitting)
                 {
                     _sLog.Warning("[InternetChecker] App is quitting. Ignoring result.");
+                    onResult?.Invoke(false);
                     return;
                 }
 
