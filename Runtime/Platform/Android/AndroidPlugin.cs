@@ -160,6 +160,18 @@ namespace com.noctuagames.sdk
             }
         }
 
+        /// <summary>
+        /// Attaches the current thread to the JVM before any JNI call. Track* methods are
+        /// invoked from game code inside ad/purchase SDK callbacks that often resume on
+        /// thread-pool threads; AndroidJavaObject calls from an unattached thread crash
+        /// inside _AndroidJNIHelper.GetSignature with a NullReferenceException.
+        /// Attaching an already-attached thread is a no-op.
+        /// </summary>
+        private static void EnsureJniAttached()
+        {
+            AndroidJNI.AttachCurrentThread();
+        }
+
         /// <inheritdoc />
         public void TrackAdRevenue(
             string source,
@@ -168,6 +180,7 @@ namespace com.noctuagames.sdk
             Dictionary<string, IConvertible> extraPayload = null
         )
         {
+            EnsureJniAttached();
             using AndroidJavaObject javaPayload = ConvertToJavaHashMap(extraPayload);
             using AndroidJavaObject noctua = new AndroidJavaClass("com.noctuagames.sdk.Noctua").GetStatic<AndroidJavaObject>("INSTANCE");
 
@@ -182,6 +195,7 @@ namespace com.noctuagames.sdk
             Dictionary<string, IConvertible> extraPayload = null
         )
         {
+            EnsureJniAttached();
             using AndroidJavaObject javaPayload = ConvertToJavaHashMap(extraPayload);
             using AndroidJavaObject noctua = new AndroidJavaClass("com.noctuagames.sdk.Noctua").GetStatic<AndroidJavaObject>("INSTANCE");
 
@@ -194,6 +208,7 @@ namespace com.noctuagames.sdk
             Dictionary<string, IConvertible> extraPayload = null
         )
         {
+            EnsureJniAttached();
             using AndroidJavaObject javaPayload = ConvertToJavaHashMap(extraPayload);
             using AndroidJavaObject noctua = new AndroidJavaClass("com.noctuagames.sdk.Noctua").GetStatic<AndroidJavaObject>("INSTANCE");
 
@@ -210,6 +225,7 @@ namespace com.noctuagames.sdk
             Dictionary<string, IConvertible> extraPayload = null
         )
         {
+            EnsureJniAttached();
             using AndroidJavaObject javaPayload = ConvertToJavaHashMap(extraPayload);
             using AndroidJavaObject noctua = new AndroidJavaClass("com.noctuagames.sdk.Noctua").GetStatic<AndroidJavaObject>("INSTANCE");
 
@@ -232,6 +248,15 @@ namespace com.noctuagames.sdk
 
             foreach (var pair in dictionary)
             {
+                // Null keys/values would reach hashMap.Call("put", ...) as null JNI
+                // arguments and crash inside _AndroidJNIHelper.GetSignature with an
+                // opaque NullReferenceException. Skip them instead.
+                if (pair.Key == null || pair.Value == null)
+                {
+                    _sLog.Warning($"ConvertToJavaHashMap: skipping null payload entry (key='{pair.Key ?? "<null>"}')");
+                    continue;
+                }
+
                 // Dispose the boxed value (and put's return — the previous mapping) after
                 // each entry: every AndroidJavaObject holds a JNI global reference, and
                 // this runs per payload field on every tracked event. Undisposed, the
