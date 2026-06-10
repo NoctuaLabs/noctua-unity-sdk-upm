@@ -27,6 +27,10 @@ namespace com.noctuagames.sdk
         private readonly ILogger _log = new NoctuaLogger(typeof(NoctuaIAPService));
 
         private TaskCompletionSource<string> _activeCurrencyTcs;
+        // Serializes Android active-currency queries: _activeCurrencyTcs is a single
+        // shared slot consumed by HandleGoogleProductDetails, so concurrent queries
+        // would overwrite each other's completion source.
+        private readonly SemaphoreSlim _activeCurrencyGate = new(1, 1);
 
         /// <summary>
         /// Fired when a purchase flow completes and an OrderRequest should be processed by game.
@@ -43,6 +47,11 @@ namespace com.noctuagames.sdk
         private readonly INativePlugin _nativePlugin;
         private readonly ProductList _usdProducts = new();
         private TaskCompletionSource<PaymentResult> _paymentTcs;
+        // Serializes the user-facing payment flow. _paymentTcs is a single shared slot
+        // (and doubles as the "payment flow running" flag for Google callbacks), so two
+        // concurrent purchases would overwrite each other's completion source. Queued
+        // callers wait their turn instead of racing.
+        private readonly SemaphoreSlim _purchaseFlowGate = new(1, 1);
 
 #if UNITY_ANDROID && !UNITY_EDITOR
         private readonly GoogleBilling GoogleBillingInstance = new();
@@ -623,14 +632,22 @@ namespace com.noctuagames.sdk
 
 #elif UNITY_ANDROID && !UNITY_EDITOR
             _log.Info("GetActiveCurrencyAsync: Android");
-            _activeCurrencyTcs = new TaskCompletionSource<string>();
-            GoogleBillingInstance.QueryProductDetails(productId);
+            await _activeCurrencyGate.WaitAsync();
+            try
+            {
+                _activeCurrencyTcs = new TaskCompletionSource<string>();
+                GoogleBillingInstance.QueryProductDetails(productId);
 
-            var activeCurrency = await _activeCurrencyTcs.Task;
-            _activeCurrencyTcs.TrySetCanceled();
-            _activeCurrencyTcs = null;
+                var activeCurrency = await _activeCurrencyTcs.Task;
+                _activeCurrencyTcs.TrySetCanceled();
 
-            return activeCurrency;
+                return activeCurrency;
+            }
+            finally
+            {
+                _activeCurrencyTcs = null;
+                _activeCurrencyGate.Release();
+            }
 
 #else // TODO for Other platforms
 
@@ -1100,8 +1117,16 @@ namespace com.noctuagames.sdk
                 throw;
             }
 
-            _paymentTcs = new TaskCompletionSource<PaymentResult>();
+            // Gate the section that owns _paymentTcs. Released in the finally below,
+            // or early before the secondary-payment fallback recursion.
+            await _purchaseFlowGate.WaitAsync();
+            var purchaseFlowGateReleased = false;
+
             PaymentResult paymentResult;
+
+            try
+            {
+            _paymentTcs = new TaskCompletionSource<PaymentResult>();
 
             switch (paymentType)
             {
@@ -1219,6 +1244,11 @@ namespace com.noctuagames.sdk
                         )
                         {
                             // Fallback to secondary payment option.
+                            // Release the flow gate first — the recursive call below
+                            // re-enters this method and must be able to acquire it.
+                            _paymentTcs = null;
+                            purchaseFlowGateReleased = true;
+                            _purchaseFlowGate.Release();
                             return await PurchaseItemImplAsync(purchaseRequest, true);
                         } else if (verifiedAtCancelation) {
                             // Verified at cancelation, set the paymentResult to confirmed
@@ -1273,9 +1303,16 @@ namespace com.noctuagames.sdk
                     _log.Warning($"Unsupported payment type");
                     throw new NoctuaException(NoctuaErrorCode.Payment, "Unsupported payment type " + paymentType);
             }
-
-            // Clear up the payment flow instance
-            _paymentTcs = null;
+            }
+            finally
+            {
+                // Clear up the payment flow instance and let the next queued purchase in.
+                if (!purchaseFlowGateReleased)
+                {
+                    _paymentTcs = null;
+                    _purchaseFlowGate.Release();
+                }
+            }
 
             // Assign the update value
             verifyOrderRequest.ReceiptId = paymentResult.ReceiptId;
@@ -1501,8 +1538,6 @@ namespace com.noctuagames.sdk
                 _log.Error("Exception: " + e);
                 return OrderStatus.error;
             }
-
-            return OrderStatus.completed;
         }
 
         private async UniTask<T> RetryAsync<T>(Func<UniTask<T>> action)
@@ -1780,14 +1815,11 @@ namespace com.noctuagames.sdk
                         Currency = _localeProvider?.GetCurrency() ?? "USD",
                     };
 
-                    try
-                    {
-                        CreateUnpairedPurchaseAsync(unpairedPurchaseRequest); // Async, but don't wait.
-                    }
-                    catch (Exception unpairedErr)
-                    {
-                        _log.Error("NoctuaIAPService.HandleUnpairedPurchase failed to create unpaired purchase: " + unpairedErr);
-                    }
+                    // Fire-and-forget, but route async failures to the log — a plain
+                    // try/catch around a discarded UniTask never observes them.
+                    CreateUnpairedPurchaseAsync(unpairedPurchaseRequest)
+                        .Forget(unpairedErr => _log.Error(
+                            "NoctuaIAPService.HandleUnpairedPurchase failed to create unpaired purchase: " + unpairedErr));
                 }
             }
         }
@@ -2104,19 +2136,25 @@ namespace com.noctuagames.sdk
             CancellationTokenSource cts = new();
             var quitting = false;
 
-            Application.quitting += () =>
+            // Named handler so it can be unsubscribed when the loop exits — a lambda
+            // added per call would leak one closure on every invocation.
+            Action quitHandler = () =>
             {
                 _log.Info("Quitting pending purchases retry loop.");
                 quitting = true;
                 cts.Cancel();
             };
+            Application.quitting += quitHandler;
+
+            try
+            {
 
             var retryCount = 0;
-            
+
             if (_enabledPaymentTypes == null || _enabledPaymentTypes.Count == 0)
             {
                 _log.Warning("no payment types enabled, quitting");
-                
+
                 return;
             }
 
@@ -2260,8 +2298,13 @@ namespace com.noctuagames.sdk
             }
             
             _log.Info("Quitting, saving pending purchases: " + runningPendingPurchases.Count);
-            
+
             SavePendingPurchases(_waitingPendingPurchases.ToList());
+            }
+            finally
+            {
+                Application.quitting -= quitHandler;
+            }
         }
 
         /// <summary>
@@ -2359,11 +2402,11 @@ namespace com.noctuagames.sdk
 
         private TimeSpan GetBackoffDelay(Random random, int retryCount)
         {
-            var baseDelay = TimeSpan.FromSeconds(5); // Base delay of 1 second
-            var maxDelay = TimeSpan.FromHours(3); // Maximum delay of 1 hour
+            var baseDelay = TimeSpan.FromSeconds(5); // Base delay of 5 seconds
+            var maxDelay = TimeSpan.FromHours(3); // Maximum delay of 3 hours
             var randomFactor = (random.NextDouble() * 0.5) + 0.75; // Random factor between 0.75 and 1.25
 
-            var delay = TimeSpan.FromMinutes(baseDelay.TotalMinutes * Math.Pow(2, retryCount - 1) * randomFactor);
+            var delay = TimeSpan.FromSeconds(baseDelay.TotalSeconds * Math.Pow(2, retryCount - 1) * randomFactor);
             return delay > maxDelay ? maxDelay : delay;
         }
 
