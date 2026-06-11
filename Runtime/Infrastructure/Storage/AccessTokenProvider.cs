@@ -67,13 +67,17 @@ namespace com.noctuagames.sdk
             {
                 if (!string.IsNullOrEmpty(_accessToken))
                 {
+                    // Never log the token value — only its presence/source.
+                    _log.Debug("IsAuthenticated=true (in-memory token present)");
                     return true;
                 }
 
                 // Mirror the AccessToken getter's PlayerPrefs fallback (without throwing):
                 // a valid persisted token means the user is authenticated even if no code
                 // has touched the AccessToken getter yet this session.
-                return !string.IsNullOrEmpty(PlayerPrefs.GetString("NoctuaAccessToken"));
+                var hasPersistedToken = !string.IsNullOrEmpty(PlayerPrefs.GetString("NoctuaAccessToken"));
+                _log.Debug($"IsAuthenticated={hasPersistedToken} (in-memory token empty; PlayerPrefs fallback present={hasPersistedToken})");
+                return hasPersistedToken;
             }
         }
         

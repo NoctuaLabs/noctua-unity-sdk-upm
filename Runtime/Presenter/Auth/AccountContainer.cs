@@ -145,6 +145,9 @@ namespace com.noctuagames.sdk
 
             _locale?.SetUserPrefsLanguage(newUser.User.Language);
 
+            // Log account IDs only — never Credential.DisplayText (email/social name).
+            _log.Debug($"UpdateRecentAccount: persisting account {newUser.User?.Id}-{newUser.Player?.Id} (bundle={newUser.Player?.BundleId})");
+
             bool IsNewUser(UserBundle x) => x.Player?.Id == newUser.Player.Id && x.Player?.AccessToken == newUser.Player?.AccessToken;
 
             // The just-saved account IS the recent account by contract. Load() picks
@@ -173,6 +176,7 @@ namespace com.noctuagames.sdk
 
             try
             {
+                _log.Debug("UpdateRecentAccount: save attempt 1 (native store)");
                 Save(newUser);
                 Load();
 
@@ -180,6 +184,7 @@ namespace com.noctuagames.sdk
 
                 _log.Warning("failed to save account, retrying");
 
+                _log.Debug("UpdateRecentAccount: save attempt 2 (native store)");
                 Save(newUser);
                 Load();
 
@@ -194,11 +199,13 @@ namespace com.noctuagames.sdk
                 _accountStore.EnableFallback();
             }
 
+            _log.Debug("UpdateRecentAccount: save attempt 3 (PlayerPrefs fallback store)");
             Save(newUser);
             Load();
 
             if (_accounts.Count != 0)
             {
+                _log.Debug($"UpdateRecentAccount: recovered via PlayerPrefs fallback ({_accounts.Count} account(s) loaded)");
                 TrySetRecentToSavedUser();
                 return;
             }
