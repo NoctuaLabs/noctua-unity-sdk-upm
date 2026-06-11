@@ -33,6 +33,14 @@ namespace com.noctuagames.sdk
             auth.OnAccountDeleted += OnAccountDeleted;
         }
 
+        // KNOWN SMELL (tracked debt, intentionally not fixed in the hardening MR):
+        // both AccessToken and IsAuthenticated do PlayerPrefs I/O inside a property
+        // getter, AccessToken also throws and memoizes via a side-effecting write, and
+        // neither validates token freshness/expiry. The clean fix is a non-throwing
+        // method API (e.g. bool TryGetAccessToken(out string token)) added *alongside*
+        // these members, with the throwing getter deprecated over a major version — a
+        // breaking change that does not belong in a behaviour-preserving patch. Do not
+        // "fix" the getters in place: callers depend on the throw and the lazy fallback.
         /// <inheritdoc />
         public string AccessToken
         {
