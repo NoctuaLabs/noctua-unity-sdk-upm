@@ -137,6 +137,7 @@ namespace com.noctuagames.sdk.Inspector
             ctrl._monitor = monitor;
             ctrl._logLedger = logLedger;
             ctrl._perfMonitor = go.AddComponent<PerformanceMonitor>();
+            ctrl._perfMonitor.enabled = false; // default OFF — user starts it from the Perf tab
             ctrl._memMonitor = go.AddComponent<MemoryMonitor>();
             ctrl._trigger = go.AddComponent<InspectorTrigger>();
             ctrl._trigger.OnTrigger += ctrl.Toggle;

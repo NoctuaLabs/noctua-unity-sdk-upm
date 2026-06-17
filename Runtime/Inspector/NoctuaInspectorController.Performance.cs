@@ -29,6 +29,13 @@ namespace com.noctuagames.sdk.Inspector
                 return;
             }
 
+            // When the monitor is stopped (default state), it isn't sampling — the readout below
+            // shows the last sample or zeros. Surface that so an OFF tab isn't read as a 0-fps hang.
+            if (!_perfMonitor.enabled)
+            {
+                _listContainer.Add(MakeMutedLabel("Monitor stopped — tap Start monitor to begin sampling."));
+            }
+
             var latest = _perfMonitor.LatestOrDefault();
             // Big readout
             _listContainer.Add(BuildPerfReadout(latest));
@@ -49,6 +56,12 @@ namespace com.noctuagames.sdk.Inspector
             btnRow.style.flexDirection = FlexDirection.Row;
             btnRow.style.flexWrap = Wrap.Wrap;
             btnRow.style.paddingLeft = 12; btnRow.style.paddingTop = 8;
+            // Start/Stop sampling. Listed first so the running state is the obvious primary action.
+            btnRow.Add(MakeButton(_perfMonitor.enabled ? "Stop monitor" : "Start monitor", () =>
+            {
+                _perfMonitor.enabled = !_perfMonitor.enabled;
+                _dirty = true; // re-render so the button label and frozen/live readout update
+            }));
             btnRow.Add(MakeButton("Reset dropped-frame counters", () =>
             {
                 _perfMonitor.ResetCounters();
