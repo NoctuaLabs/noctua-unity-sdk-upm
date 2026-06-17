@@ -73,7 +73,13 @@ namespace com.noctuagames.sdk
         private bool _enabled;
         private string _distributionPlaftorm;
         private IAPTaichiConfig _taichiConfig;
+        // Cumulative IAP revenue in the product's own (local) currency — both the threshold decision
+        // and the reported value use this amount.
         private const string KeyIAPTotalRevenue = "Noctua_Taichi_IAPTotalRevenue";
+        // Currency of the amount stored in KeyIAPTotalRevenue. The accumulator sums raw local amounts,
+        // so mixing currencies is meaningless — this lets us warn when a later purchase arrives in a
+        // different currency than what is already accumulated.
+        private const string KeyIAPRevenueCurrency = "Noctua_Taichi_IAPRevenueCurrency";
 
         /// <summary>
         /// Internal constructor for Noctua IAP service.
@@ -2582,22 +2588,37 @@ namespace com.noctuagames.sdk
 
             try
             {
-                var stored = double.TryParse(PlayerPrefs.GetString(KeyIAPTotalRevenue, "0"), out var prev) ? prev : 0.0;
-                var totalRevenue = stored + (double)order.PriceInUSD;
-                PlayerPrefs.SetString(KeyIAPTotalRevenue, totalRevenue.ToString("G"));
+                // Report the product's currency; fall back to USD if the order carries none.
+                var currency = string.IsNullOrWhiteSpace(order.Currency) ? "USD" : order.Currency;
 
-                _log.Debug($"[taichi] iap revenue progress: {totalRevenue:G} / {_taichiConfig.RevenueThreshold:G} USD");
+                var stored = double.TryParse(PlayerPrefs.GetString(KeyIAPTotalRevenue, "0"), out var prev) ? prev : 0.0;
+                var storedCurrency = PlayerPrefs.GetString(KeyIAPRevenueCurrency, "");
+
+                // The accumulator sums raw local amounts, so appending a different currency to a
+                // non-zero total is meaningless. Warn (but still append) so the mismatch is visible
+                // in logs without disrupting the purchase flow.
+                if (stored > 0 && !string.IsNullOrEmpty(storedCurrency) && storedCurrency != currency)
+                {
+                    _log.Warning($"[taichi] iap currency mismatch: stored {stored:G} {storedCurrency}, incoming {(double)order.Price:G} {currency}; appending to the same accumulator anyway");
+                }
+
+                var totalRevenue = stored + (double)order.Price;
+                PlayerPrefs.SetString(KeyIAPTotalRevenue, totalRevenue.ToString("G"));
+                PlayerPrefs.SetString(KeyIAPRevenueCurrency, currency);
+
+                _log.Debug($"[taichi] iap revenue progress: {totalRevenue:G} / {_taichiConfig.RevenueThreshold:G} {currency}");
 
                 if (totalRevenue >= _taichiConfig.RevenueThreshold)
                 {
                     var payload = new Dictionary<string, IConvertible>
                     {
                         { "value",    totalRevenue },
-                        { "currency", "USD" }
+                        { "currency", currency }
                     };
-                    _log.Info($"[taichi] taichi_iap_revenue fired (total={totalRevenue:G} >= {_taichiConfig.RevenueThreshold:G} USD)");
+                    _log.Info($"[taichi] taichi_iap_revenue fired (value={totalRevenue:G} {currency} >= {_taichiConfig.RevenueThreshold:G})");
                     _nativePlugin?.TrackCustomEvent("taichi_iap_revenue", payload);
                     PlayerPrefs.SetString(KeyIAPTotalRevenue, "0");
+                    PlayerPrefs.DeleteKey(KeyIAPRevenueCurrency);
                     PlayerPrefs.Save();
                 }
             }
