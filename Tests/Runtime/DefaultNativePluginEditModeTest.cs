@@ -141,7 +141,7 @@ namespace Tests.Runtime
         [Test]
         public void Init_WithEmptyList_DoesNotThrow()
         {
-            Assert.DoesNotThrow(() => _plugin.Init(new List<string>()));
+            Assert.DoesNotThrow(() => _plugin.Init(new List<string>(), false));
         }
 
         [Test]

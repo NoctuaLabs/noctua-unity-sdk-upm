@@ -142,7 +142,7 @@ namespace Tests.Runtime
         [UnityTest]
         public IEnumerator Init_WithEmptyList_DoesNotThrow()
         {
-            Assert.DoesNotThrow(() => _plugin.Init(new System.Collections.Generic.List<string>()));
+            Assert.DoesNotThrow(() => _plugin.Init(new System.Collections.Generic.List<string>(), false));
             yield return null;
         }
 

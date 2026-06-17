@@ -100,7 +100,7 @@ namespace com.noctuagames.sdk
         }
 
         /// <inheritdoc />
-        public void Init(List<string> activeBundleIds)
+        public void Init(List<string> activeBundleIds, bool sandboxEnabled)
         {
         }
 

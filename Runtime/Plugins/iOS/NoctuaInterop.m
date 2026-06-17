@@ -3,9 +3,10 @@
 
 // MARK: - Initialization
 
-void noctuaInitialize(bool verifyPurchasesOnServer, bool useStoreKit1) {
+void noctuaInitialize(bool verifyPurchasesOnServer, bool useStoreKit1, bool sandboxEnabled) {
     NSError *error = nil;
-    [Noctua initNoctuaWithVerifyPurchasesOnServer:verifyPurchasesOnServer useStoreKit1:useStoreKit1 error:&error];
+    // Explicit override (plain BOOL) — wins over noctuagg.json.
+    [Noctua initNoctuaWithVerifyPurchasesOnServer:verifyPurchasesOnServer useStoreKit1:useStoreKit1 sandboxEnabled:sandboxEnabled error:&error];
     if (error) {
         NSLog(@"Error initializing Noctua: %@", error);
     }

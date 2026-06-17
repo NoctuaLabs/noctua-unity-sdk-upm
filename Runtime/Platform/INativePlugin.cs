@@ -326,7 +326,11 @@ namespace com.noctuagames.sdk
         /// Initializes the native plugin with the list of active bundle identifiers.
         /// </summary>
         /// <param name="activeBundleIds">Bundle IDs of the active games/apps.</param>
-        void Init(List<String> activeBundleIds);
+        /// <param name="sandboxEnabled">
+        /// Unity-resolved sandbox flag. Overrides the native layer's bundled
+        /// <c>noctuagg.json</c> value so the native logger + Inspector bus follow Unity.
+        /// </param>
+        void Init(List<String> activeBundleIds, bool sandboxEnabled);
 
         /// <summary>
         /// Notifies the native plugin of application pause or resume state changes.

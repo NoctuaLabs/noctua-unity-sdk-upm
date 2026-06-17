@@ -19,6 +19,22 @@ namespace com.noctuagames.sdk
 {
     public partial class Noctua
     {
+        // PlayerPrefs key caching the last remote-resolved sandbox override (from
+        // RemoteFeatureFlags.sandboxEnabled). Read at construction so services wire from it;
+        // written after init when the remote flag provides a value, deleted when init no
+        // longer provides it (reverting the source of truth to noctuagg.json).
+        // Stored as 1 / 0.
+        private const string SandboxOverridePrefKey = "NoctuaSandboxOverride";
+
+        // The bundled noctuagg.json sandboxEnabled value, captured before any persisted
+        // override is applied. This is the source of truth that init reverts to when the
+        // server stops sending the sandbox flag.
+        private bool _sandboxFromJson;
+
+        // Stable, greppable tag prefixed to every sandbox-override log line.
+        // Search the logs for [sandbox-override] to trace this flow end-to-end.
+        private const string SandboxLogTag = "[sandbox-override]";
+
         /// <summary>
         /// Private constructor - initializes Noctua SDK internals by reading <c>noctuagg.json</c> and preparing services.
         /// </summary>
@@ -131,6 +147,25 @@ namespace com.noctuagames.sdk
             if (string.IsNullOrEmpty(_config.Noctua.TrackerUrl))
             {
                 _config.Noctua.TrackerUrl = NoctuaConfig.DefaultTrackerUrl;
+            }
+
+            // Flowchart: a prior session may have persisted a sandbox override resolved from
+            // RemoteFeatureFlags. Apply it here — before any sandbox-dependent wiring (base
+            // URL, Inspector, native init) — so services are built from the persisted value
+            // rather than only the bundled noctuagg.json.
+            // Source of truth is noctuagg.json; the persisted override is only a cache of the
+            // last remote value. Capture the json value before applying the override so init
+            // can revert to it if the server stops sending the sandbox flag.
+            _sandboxFromJson = _config.Noctua.IsSandbox;
+
+            var hasSandboxOverride = PlayerPrefs.HasKey(SandboxOverridePrefKey);
+            var persistedSandbox = hasSandboxOverride && PlayerPrefs.GetInt(SandboxOverridePrefKey) == 1;
+            var effectiveSandbox = SandboxOverrideResolver.ResolveEffective(
+                hasSandboxOverride, persistedSandbox, _sandboxFromJson);
+            if (effectiveSandbox != _config.Noctua.IsSandbox)
+            {
+                _log.Info($"{SandboxLogTag} Applying persisted sandbox override: {effectiveSandbox} (noctuagg.json={_sandboxFromJson})");
+                _config.Noctua.IsSandbox = effectiveSandbox;
             }
 
             if (_config.Noctua.IsSandbox)
@@ -412,7 +447,9 @@ namespace com.noctuagames.sdk
                 return;
             }
 
-            _nativePlugin?.Init(new List<string>());
+            // Pass Unity's resolved sandbox flag so native logging + Inspector bus follow
+            // Unity instead of the native layer's own noctuagg.json (single source of truth).
+            _nativePlugin?.Init(new List<string>(), _config.Noctua.IsSandbox);
             _isNativePluginInitialized = true;
             _nativePluginInitTcs.TrySetResult();
             _log.Debug("nativePlugin is initialized");
@@ -547,6 +584,64 @@ namespace com.noctuagames.sdk
                 _log.Warning("Native plugin init timed out. Force-initializing.");
                 InitializeNativePlugin();
             }
+        }
+
+        /// <summary>
+        /// Resolves the runtime sandbox override after init (decisions in
+        /// <see cref="SandboxOverrideResolver"/>): cache a remote value, or revert to
+        /// noctuagg.json when the flag is no longer provided, then prompt a restart if the
+        /// resolved value differs from the one used to wire this session.
+        /// </summary>
+        private async UniTask ResolveSandboxOverrideAsync(IReadOnlyDictionary<string, string> remoteFlags)
+        {
+            var remoteProvided = SandboxOverrideResolver.TryGetRemoteSandbox(remoteFlags, out var remoteSandbox);
+
+            // Remote provides a value -> cache it.
+            if (remoteProvided)
+            {
+                PlayerPrefs.SetInt(SandboxOverridePrefKey, remoteSandbox ? 1 : 0);
+                PlayerPrefs.Save();
+                _log.Debug($"{SandboxLogTag} remote sandboxEnabled={remoteSandbox} cached.");
+                await PromptRestartIfChangedAsync(remoteSandbox);
+                return;
+            }
+
+            // Remote omitted the flag but a stale cache exists -> revert to noctuagg.json.
+            if (SandboxOverrideResolver.ShouldRevertToConfig(remoteProvided, PlayerPrefs.HasKey(SandboxOverridePrefKey)))
+            {
+                PlayerPrefs.DeleteKey(SandboxOverridePrefKey);
+                PlayerPrefs.Save();
+                _log.Info($"{SandboxLogTag} sandboxEnabled no longer provided — reverting to noctuagg.json={_sandboxFromJson}.");
+                await PromptRestartIfChangedAsync(_sandboxFromJson);
+                return;
+            }
+
+            // No remote flag and no cache -> nothing to do.
+            _log.Debug($"{SandboxLogTag} unchanged (no remote flag and no cache).");
+        }
+
+        /// <summary>
+        /// Prompts a one-time restart when <paramref name="target"/> differs from the sandbox
+        /// value used to wire this session (service wiring + native init can't change mid-session).
+        /// </summary>
+        private async UniTask PromptRestartIfChangedAsync(bool target)
+        {
+            if (!SandboxOverrideResolver.NeedsRestart(target, _config.Noctua.IsSandbox))
+            {
+                return;
+            }
+
+            _log.Info($"{SandboxLogTag} value {target} differs from current={_config.Noctua.IsSandbox} — prompting restart.");
+            if (_uiFactory == null)
+            {
+                _log.Warning($"{SandboxLogTag} cannot prompt restart: _uiFactory is null.");
+                return;
+            }
+
+            // Blocking dialog; acknowledging it quits the app so the constructor picks up the
+            // new value on relaunch.
+            await _uiFactory.ShowStartGameErrorDialog(
+                "Sandbox mode has changed and will apply after a restart. Please reopen the app.");
         }
 
         /// <summary>
@@ -914,6 +1009,11 @@ namespace com.noctuagames.sdk
             }
 
             Noctua.Instance.Value._auth.SetFlag(Noctua.Instance.Value._config.Noctua.RemoteFeatureFlags);
+
+            // Resolve the runtime sandbox override: cache a remote value, or revert to
+            // noctuagg.json when it's no longer provided; restart-if-different. (noctuagg.json
+            // is the source of truth; the PlayerPref is only a cache of the last remote value.)
+            await Instance.Value.ResolveSandboxOverrideAsync(remoteFlags);
 
             // Disabled for production to reduce event noise
             // Instance.Value._eventSender.Send("sdk_init_set_remote_feature_flags_success");

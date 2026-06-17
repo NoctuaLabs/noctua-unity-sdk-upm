@@ -91,7 +91,7 @@ namespace com.noctuagames.sdk
         }
 
         /// <inheritdoc />
-        public void Init(List<string> activeBundleIds)
+        public void Init(List<string> activeBundleIds, bool sandboxEnabled)
         {
             _log.Info($"Initialize to nativePlugin");
             using var unityPlayer = new AndroidJavaClass("com.unity3d.player.UnityPlayer");
@@ -103,8 +103,10 @@ namespace com.noctuagames.sdk
             using var helper = new AndroidJavaClass("com.noctuagames.sdk.NoctuaBillingConfigHelper");
             var billingConfig = helper.CallStatic<AndroidJavaObject>("create", true, true, true);
 
+            // Pass the Unity-resolved sandbox flag; resolves to the non-null primitive
+            // init(Context, List, NoctuaBillingConfig, Boolean) overload (C# bool -> jboolean).
             using var noctua = new AndroidJavaClass("com.noctuagames.sdk.Noctua").GetStatic<AndroidJavaObject>("INSTANCE");
-            noctua.Call("init", unityActivity, javaActiveBundleIds, billingConfig);
+            noctua.Call("init", unityActivity, javaActiveBundleIds, billingConfig, sandboxEnabled);
             noctua.Call("onResume");
         }
 
