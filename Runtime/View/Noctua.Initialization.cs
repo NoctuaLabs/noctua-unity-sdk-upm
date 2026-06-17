@@ -1164,7 +1164,7 @@ namespace com.noctuagames.sdk
 
             var attribution = await GetAdjustAttributionAsync();
 
-            log.Info("Adjust Attribution: " +
+            log.Debug("Adjust Attribution: " +
                 $"tracker_token={attribution.TrackerToken}, " +
                 $"tracker_name={attribution.TrackerName}, " +
                 $"network={attribution.Network}, " +
