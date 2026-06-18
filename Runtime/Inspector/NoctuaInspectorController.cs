@@ -35,7 +35,7 @@ namespace com.noctuagames.sdk.Inspector
         private static readonly Color AccentHttp = new(0x3B / 255f, 0x82 / 255f, 0xF6 / 255f, 1f);
         private static readonly Color AccentTracker = new(0xA8 / 255f, 0x5F / 255f, 0xF7 / 255f, 1f);
 
-        private enum Tab { Timeline, Http, Trackers, Logs, Perf, Memory, Build }
+        private enum Tab { Timeline, Http, Trackers, Logs, Perf, Memory, Build, Inject }
 
         private UIDocument _doc;
         private PanelSettings _panelSettings;
@@ -74,7 +74,7 @@ namespace com.noctuagames.sdk.Inspector
         private VisualElement _listContainer;
         private VisualElement _filterBar;
         private readonly Dictionary<string, Label> _filterChips = new();
-        private Label _tabTimelineBtn, _tabHttpBtn, _tabTrackersBtn, _tabLogsBtn, _tabPerfBtn, _tabMemoryBtn, _tabBuildBtn;
+        private Label _tabTimelineBtn, _tabHttpBtn, _tabTrackersBtn, _tabLogsBtn, _tabPerfBtn, _tabMemoryBtn, _tabBuildBtn, _tabInjectBtn;
         private Label _statusBar;
 
         /// <summary>Exposed for the composition root to wire the native metrics provider after init.</summary>
@@ -142,10 +142,12 @@ namespace com.noctuagames.sdk.Inspector
             ctrl._trigger = go.AddComponent<InspectorTrigger>();
             ctrl._trigger.OnTrigger += ctrl.Toggle;
             // Mark dirty on every new entry so RenderList refreshes on
-            // change instead of every frame.
-            if (httpLog != null) httpLog.OnExchange += _ => ctrl._dirty = true;
-            if (monitor != null) monitor.OnEmission += _ => ctrl._dirty = true;
-            if (logLedger != null) logLedger.OnEntry += _ => ctrl._dirty = true;
+            // change instead of every frame. Skip while the Inject tab is
+            // open — it shows none of these feeds, and a rebuild there would
+            // steal focus from a text field the user is typing into.
+            if (httpLog != null) httpLog.OnExchange += _ => { if (ctrl._tab != Tab.Inject) ctrl._dirty = true; };
+            if (monitor != null) monitor.OnEmission += _ => { if (ctrl._tab != Tab.Inject) ctrl._dirty = true; };
+            if (logLedger != null) logLedger.OnEntry += _ => { if (ctrl._tab != Tab.Inject) ctrl._dirty = true; };
             // Performance fires per-frame — only flip dirty when the perf
             // tab is visible to avoid pointless re-render of HTTP / Tracker.
             // Memory fires at 1Hz — always dirty (cheap).
@@ -157,6 +159,9 @@ namespace com.noctuagames.sdk.Inspector
             {
                 if (ctrl._tab == Tab.Memory) ctrl._dirty = true;
             };
+            // Refresh the Inject tab when the game registers/unregisters a
+            // debug action after the overlay has spawned.
+            InspectorActionRegistry.Changed += ctrl.OnInspectorActionsChanged;
             return ctrl;
         }
 
@@ -205,6 +210,7 @@ namespace com.noctuagames.sdk.Inspector
         private void OnDestroy()
         {
             if (_trigger != null) _trigger.OnTrigger -= Toggle;
+            InspectorActionRegistry.Changed -= OnInspectorActionsChanged;
             if (_panelSettings != null) Destroy(_panelSettings);
         }
 
@@ -350,6 +356,7 @@ namespace com.noctuagames.sdk.Inspector
             _tabPerfBtn     = MakeTab("Perf",     () => { _tab = Tab.Perf;     UpdateTabChrome(); UpdateFilterBarVisibility(); RenderList(); });
             _tabMemoryBtn   = MakeTab("Memory",   () => { _tab = Tab.Memory;   UpdateTabChrome(); UpdateFilterBarVisibility(); RenderList(); });
             _tabBuildBtn    = MakeTab("Build",    () => { _tab = Tab.Build;    UpdateTabChrome(); UpdateFilterBarVisibility(); RenderList(); });
+            _tabInjectBtn   = MakeTab("Inject",   () => { _tab = Tab.Inject;   UpdateTabChrome(); UpdateFilterBarVisibility(); RenderList(); });
             tabs.Add(_tabTimelineBtn);
             tabs.Add(_tabHttpBtn);
             tabs.Add(_tabTrackersBtn);
@@ -357,6 +364,7 @@ namespace com.noctuagames.sdk.Inspector
             tabs.Add(_tabPerfBtn);
             tabs.Add(_tabMemoryBtn);
             tabs.Add(_tabBuildBtn);
+            tabs.Add(_tabInjectBtn);
             tabsScroll.Add(tabs);
             outerScroll.Add(tabsScroll);
             UpdateTabChrome();
@@ -500,6 +508,7 @@ namespace com.noctuagames.sdk.Inspector
             SetActive(_tabPerfBtn,     _tab == Tab.Perf);
             SetActive(_tabMemoryBtn,   _tab == Tab.Memory);
             SetActive(_tabBuildBtn,    _tab == Tab.Build);
+            SetActive(_tabInjectBtn,   _tab == Tab.Inject);
         }
 
         private VisualElement MakeFilterBar()
@@ -693,6 +702,9 @@ namespace com.noctuagames.sdk.Inspector
                     break;
                 case Tab.Build:
                     RenderBuild(ref ok, ref failing, ref inflight);
+                    break;
+                case Tab.Inject:
+                    RenderInject(ref ok, ref failing, ref inflight);
                     break;
             }
             _statusBar.text = $"{ok} ok  ·  {failing} failing  ·  {inflight} in-flight";
