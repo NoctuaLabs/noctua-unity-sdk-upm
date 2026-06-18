@@ -134,6 +134,7 @@ namespace com.noctuagames.sdk
 
             var locale = new NoctuaLocale(_config.Noctua.Region);
             HttpRequest.SetLocaleProvider(locale);
+            HttpRequest.SetSandboxProvider(ResolveLiveSandbox);
 
             _config.Noctua ??= new NoctuaConfig();
             _config.Adjust ??= new AdjustConfig();
@@ -621,6 +622,19 @@ namespace com.noctuagames.sdk
         }
 
         /// <summary>
+        /// Live (per-request) sandbox state for the X-SANDBOX-ENABLED HTTP header: a freshly
+        /// read persisted override wins; otherwise the bundled noctuagg.json value. Re-read on
+        /// each call so a mid-session <see cref="ResolveSandboxOverrideAsync"/> cache update is
+        /// reflected immediately (the session itself still requires a restart to switch base
+        /// URL / service wiring).
+        /// </summary>
+        private bool ResolveLiveSandbox()
+            => SandboxOverrideResolver.ResolveEffective(
+                PlayerPrefs.HasKey(SandboxOverridePrefKey),
+                PlayerPrefs.GetInt(SandboxOverridePrefKey, 0) == 1,
+                _sandboxFromJson);
+
+        /// <summary>
         /// Prompts a one-time restart when <paramref name="target"/> differs from the sandbox
         /// value used to wire this session (service wiring + native init can't change mid-session).
         /// </summary>
@@ -640,7 +654,7 @@ namespace com.noctuagames.sdk
 
             // Blocking dialog; acknowledging it quits the app so the constructor picks up the
             // new value on relaunch.
-            await _uiFactory.ShowStartGameErrorDialog(
+            await _uiFactory.ShowSandboxChangedDialog(
                 "Sandbox mode has changed and will apply after a restart. Please reopen the app.");
         }
 

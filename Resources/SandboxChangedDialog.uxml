@@ -1,0 +1,10 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" xsi="http://www.w3.org/2001/XMLSchema-instance" engine="UnityEngine.UIElements" editor="UnityEditor.UIElements" noNamespaceSchemaLocation="../../../../UIElementsSchema/UIElements.xsd" editor-extension-mode="False">
+    <Style src="./Noctua.uss" />
+    <Style src="./SandboxChangedDialog.uss" />
+    <ui:VisualElement name="Root" class="root" >
+        <ui:VisualElement name="SandboxChangedDialog" class="base dialog-box sandbox-changed-dialog" >
+            <ui:Label name="MessageLabel" text="Sandbox mode has changed and will apply after a restart. Please reopen the app." class="label" />
+            <ui:Button name="RestartButton" text="Restart Now" class="primary-button" />
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>

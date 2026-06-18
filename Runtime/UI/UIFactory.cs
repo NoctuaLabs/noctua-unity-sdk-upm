@@ -21,6 +21,7 @@ namespace com.noctuagames.sdk.UI
         private readonly BannedConfirmationDialogPresenter _confirmDialog;
         private readonly RetryDialogPresenter _retryDialog;
         private readonly StartGameErrorDialogPresenter _startGameErrorDialog;
+        private readonly SandboxChangedDialogPresenter _sandboxChangedDialog;
         private readonly NoctuaAdPlaceholder _adPlaceholder;
 
         /// <summary>
@@ -46,6 +47,8 @@ namespace com.noctuagames.sdk.UI
             _retryDialog.GetComponent<UIDocument>().sortingOrder = 1;
             _startGameErrorDialog = Create<StartGameErrorDialogPresenter, object>(new object());
             _startGameErrorDialog.GetComponent<UIDocument>().sortingOrder = 1;
+            _sandboxChangedDialog = Create<SandboxChangedDialogPresenter, object>(new object());
+            _sandboxChangedDialog.GetComponent<UIDocument>().sortingOrder = 1;
             _adPlaceholder = Create<NoctuaAdPlaceholder, object>(new object());
             _adPlaceholder.GetComponent<UIDocument>().sortingOrder = 1;
         }
@@ -161,6 +164,16 @@ namespace com.noctuagames.sdk.UI
         public async UniTask ShowStartGameErrorDialog(string errorMessage)
         {
             await _startGameErrorDialog.Show(errorMessage);
+        }
+
+        /// <summary>
+        /// Displays the sandbox-changed dialog, then quits the application after acknowledgment
+        /// so the next launch wires services from the new sandbox value.
+        /// </summary>
+        /// <param name="message">The message describing the sandbox change.</param>
+        public async UniTask ShowSandboxChangedDialog(string message)
+        {
+            await _sandboxChangedDialog.Show(message);
         }
 
         /// <summary>

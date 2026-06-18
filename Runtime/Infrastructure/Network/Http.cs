@@ -110,6 +110,16 @@ namespace com.noctuagames.sdk
         /// <param name="provider">The locale provider to inject.</param>
         internal static void SetLocaleProvider(ILocaleProvider provider) => _localeProvider = provider;
 
+        private static Func<bool> _sandboxProvider;
+
+        /// <summary>
+        /// Sets the static provider that reports the live sandbox state, used by all
+        /// <see cref="HttpRequest"/> instances to populate the X-SANDBOX-ENABLED header.
+        /// Injected from the composition root to avoid a dependency on the View layer.
+        /// </summary>
+        /// <param name="provider">The sandbox-state provider to inject.</param>
+        internal static void SetSandboxProvider(Func<bool> provider) => _sandboxProvider = provider;
+
         private readonly NoctuaLogger _log = new(typeof(HttpRequest));
         private readonly UnityWebRequest _request = new();
 
@@ -152,6 +162,9 @@ namespace com.noctuagames.sdk
             
             _request.SetRequestHeader("X-SDK-VERSION", Assembly.GetExecutingAssembly().GetName().Version.ToString());
 
+            // Inject the live sandbox state via static provider (avoids Noctua singleton dependency)
+            var isSandbox = _sandboxProvider?.Invoke() ?? false;
+            _request.SetRequestHeader("X-SANDBOX-ENABLED", isSandbox ? "true" : "false");
         }
 
         /// <summary>
@@ -389,7 +402,8 @@ namespace com.noctuagames.sdk
                     $"X-PLATFORM: {_request.GetRequestHeader("X-PLATFORM")}\n"         +
                     $"X-OS: {_request.GetRequestHeader("X-OS")}\n"                     +
                     $"X-OS-AGENT: {_request.GetRequestHeader("X-OS-AGENT")}\n"         +
-                    $"X-SDK-VERSION: {_request.GetRequestHeader("X-SDK-VERSION")}\n\n" +
+                    $"X-SDK-VERSION: {_request.GetRequestHeader("X-SDK-VERSION")}\n"   +
+                    $"X-SANDBOX-ENABLED: {_request.GetRequestHeader("X-SANDBOX-ENABLED")}\n\n" +
                     $"{Encoding.UTF8.GetString(_request.uploadHandler?.data ?? Array.Empty<byte>())}"
                 );
             }
