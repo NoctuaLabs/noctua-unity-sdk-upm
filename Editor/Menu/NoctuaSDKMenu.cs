@@ -137,6 +137,23 @@ public class NoctuaIntegrationManagerWindow : EditorWindow
     private Dictionary<string, (bool androidInstalled, bool iosInstalled, string curAndroidVer, string curIosVer)> maxAdapterStates = new();
     private Dictionary<string, (bool installed, string currentVersion)> admobAdapterStates = new();
 
+    // ── Bulk multi-select state ───────────────────────────────────────────
+    // Display-name keys ticked in each section. A batch Install/Remove applies
+    // every selection in ONE manifest write + ONE Client.Resolve(), instead of
+    // one resolve per adapter. Transient UI state — cleared after each batch.
+    private readonly HashSet<string> _selectedIaa = new();
+    private readonly HashSet<string> _selectedMax = new();
+    private readonly HashSet<string> _selectedAdmob = new();
+
+    private int TotalSelected() => _selectedIaa.Count + _selectedMax.Count + _selectedAdmob.Count;
+
+    private void ClearSelection()
+    {
+        _selectedIaa.Clear();
+        _selectedMax.Clear();
+        _selectedAdmob.Clear();
+    }
+
     // ── Menu ─────────────────────────────────────────────────────────────
 
     [MenuItem("Noctua/Documentation")]
@@ -257,6 +274,8 @@ public class NoctuaIntegrationManagerWindow : EditorWindow
 
         DrawFoldoutSection("★ Recommended Setup — AppLovin MAX + AdMob (Conflict-Free)", ref recommendedFoldout, DrawRecommendedSection);
         EditorGUILayout.Space(8);
+        DrawBatchActionBar();
+        EditorGUILayout.Space(8);
         DrawFoldoutSection("IAA Providers (UPM Only)", ref iaaFoldout, DrawIAASection);
         EditorGUILayout.Space(8);
         DrawFoldoutSection("AppLovin MAX — Ad Network Adapters", ref maxAdaptersFoldout, DrawMaxAdaptersSection);
@@ -265,6 +284,37 @@ public class NoctuaIntegrationManagerWindow : EditorWindow
         EditorGUILayout.Space(6);
 
         EditorGUILayout.EndScrollView();
+    }
+
+    // ── Bulk multi-select action bar ──────────────────────────────────────
+
+    /// <summary>
+    /// Sticky bar showing how many adapters are ticked across all sections,
+    /// with one-write batch Install / Remove. Tick checkboxes in the IAA,
+    /// AppLovin MAX, and AdMob sections below, then act on the whole set at
+    /// once — a single manifest write and a single <c>Client.Resolve()</c>
+    /// instead of one resolve per adapter.
+    /// </summary>
+    private void DrawBatchActionBar()
+    {
+        int n = TotalSelected();
+
+        EditorGUILayout.BeginHorizontal(EditorStyles.helpBox);
+
+        string status = n == 0
+            ? Colored("Bulk install — tick adapters in the sections below", ColorMuted)
+            : Colored($"{n} adapter(s) selected", ColorStable);
+        GUILayout.Label(status, RichLabel, GUILayout.ExpandWidth(true));
+
+        using (new EditorGUI.DisabledScope(n == 0))
+        {
+            DrawButton($"Install Selected ({n})", InstallColor, 150f, InstallSelected);
+            DrawButton($"Remove Selected ({n})", RemoveColor, 150f, RemoveSelected);
+            if (GUILayout.Button("Clear", GUILayout.Width(60)))
+                ClearSelection();
+        }
+
+        EditorGUILayout.EndHorizontal();
     }
 
     // ── Section renderers ─────────────────────────────────────────────────
@@ -366,6 +416,7 @@ public class NoctuaIntegrationManagerWindow : EditorWindow
 
         // Header
         EditorGUILayout.BeginHorizontal(EditorStyles.helpBox);
+        GUILayout.Space(SelectW);
         GUILayout.Label("Name",                EditorStyles.boldLabel, GUILayout.ExpandWidth(true), GUILayout.MinWidth(MinNameW));
         GUILayout.Label("Installed",           EditorStyles.boldLabel, GUILayout.Width(VerW));
         GUILayout.Label("★ Recommended",       EditorStyles.boldLabel, GUILayout.Width(VerW));
@@ -380,7 +431,8 @@ public class NoctuaIntegrationManagerWindow : EditorWindow
                 kv.installed, kv.currentVersion, kv.latestVersion,
                 onInstall: () => { AddPackageToManifest(provider); CheckIAAInstallStates(); },
                 onUpdate:  () => { AddPackageToManifest(provider); CheckIAAInstallStates(); },
-                onRemove:  () => { RemovePackageFromManifest(provider); CheckIAAInstallStates(); });
+                onRemove:  () => { RemovePackageFromManifest(provider); CheckIAAInstallStates(); },
+                selection: _selectedIaa, selKey: provider);
         }
     }
 
@@ -400,6 +452,7 @@ public class NoctuaIntegrationManagerWindow : EditorWindow
 
         // Header — separate Android / iOS columns
         EditorGUILayout.BeginHorizontal(EditorStyles.helpBox);
+        GUILayout.Space(SelectW);
         GUILayout.Label("Network",         EditorStyles.boldLabel, GUILayout.ExpandWidth(true), GUILayout.MinWidth(MinNameW));
         GUILayout.Label("Android",         EditorStyles.boldLabel, GUILayout.Width(VerW));
         GUILayout.Label("★ Rec (Andr)",    EditorStyles.boldLabel, GUILayout.Width(VerW));
@@ -420,7 +473,8 @@ public class NoctuaIntegrationManagerWindow : EditorWindow
                 s.iosInstalled,     s.curIosVer,     pkg.iosVer,
                 onInstall: () => AddMaxAdapterToManifest(name),
                 onUpdate:  () => AddMaxAdapterToManifest(name),
-                onRemove:  () => RemoveMaxAdapterFromManifest(name));
+                onRemove:  () => RemoveMaxAdapterFromManifest(name),
+                selection: _selectedMax, selKey: name);
         }
     }
 
@@ -428,7 +482,8 @@ public class NoctuaIntegrationManagerWindow : EditorWindow
         string label,
         bool androidInstalled, string curAndroidVer, string recAndroidVer,
         bool iosInstalled,     string curIosVer,     string recIosVer,
-        Action onInstall, Action onUpdate, Action onRemove)
+        Action onInstall, Action onUpdate, Action onRemove,
+        HashSet<string> selection = null, string selKey = null)
     {
         bool androidNeedsUpdate = androidInstalled && IsUpdateAvailable(curAndroidVer, recAndroidVer);
         bool iosNeedsUpdate     = iosInstalled     && IsUpdateAvailable(curIosVer,     recIosVer);
@@ -456,6 +511,7 @@ public class NoctuaIntegrationManagerWindow : EditorWindow
             : label;
 
         EditorGUILayout.BeginHorizontal();
+        DrawSelectionToggle(selection, selKey);
         GUILayout.Label(displayLabel,   RichLabel, GUILayout.ExpandWidth(true), GUILayout.MinWidth(MinNameW));
         GUILayout.Label(androidLabel,   RichLabel, GUILayout.Width(VerW));
         GUILayout.Label(recAndroidLabel,RichLabel, GUILayout.Width(VerW));
@@ -496,6 +552,7 @@ public class NoctuaIntegrationManagerWindow : EditorWindow
 
         // Header
         EditorGUILayout.BeginHorizontal(EditorStyles.helpBox);
+        GUILayout.Space(SelectW);
         GUILayout.Label("Network",             EditorStyles.boldLabel, GUILayout.ExpandWidth(true), GUILayout.MinWidth(MinNameW));
         GUILayout.Label("Installed",           EditorStyles.boldLabel, GUILayout.Width(VerW));
         GUILayout.Label("★ Recommended",       EditorStyles.boldLabel, GUILayout.Width(VerW));
@@ -522,7 +579,8 @@ public class NoctuaIntegrationManagerWindow : EditorWindow
                 s.installed, s.currentVersion, admobAdapterPackages[name].ver,
                 onInstall: () => AddAdmobAdapterToManifest(name),
                 onUpdate:  () => AddAdmobAdapterToManifest(name),
-                onRemove:  () => RemoveAdmobAdapterFromManifest(name));
+                onRemove:  () => RemoveAdmobAdapterFromManifest(name),
+                selection: _selectedAdmob, selKey: name);
         }
     }
 
@@ -536,7 +594,8 @@ public class NoctuaIntegrationManagerWindow : EditorWindow
     private void DrawPackageRow(
         string label,
         bool isInstalled, string currentVer, string recommendedVer,
-        Action onInstall, Action onUpdate, Action onRemove)
+        Action onInstall, Action onUpdate, Action onRemove,
+        HashSet<string> selection = null, string selKey = null)
     {
         bool canUpdate = isInstalled && IsUpdateAvailable(currentVer, recommendedVer);
 
@@ -549,6 +608,7 @@ public class NoctuaIntegrationManagerWindow : EditorWindow
         string recommendedLabel = Colored($"★ {recommendedVer ?? "-"}", ColorStable);
 
         EditorGUILayout.BeginHorizontal();
+        DrawSelectionToggle(selection, selKey);
         GUILayout.Label(label, RichLabel, GUILayout.ExpandWidth(true), GUILayout.MinWidth(MinNameW));
 
         GUILayout.Label(installedLabel,   RichLabel, GUILayout.Width(VerW));
@@ -573,6 +633,24 @@ public class NoctuaIntegrationManagerWindow : EditorWindow
     }
 
     // ── Shared draw primitive ─────────────────────────────────────────────
+
+    // Leading checkbox cell for a selectable row. When no selection set is
+    // provided (e.g. the read-only Recommended table) it reserves the same
+    // width so columns stay aligned across sections.
+    private const float SelectW = 18f;
+
+    private void DrawSelectionToggle(HashSet<string> selection, string selKey)
+    {
+        if (selection == null || string.IsNullOrEmpty(selKey))
+        {
+            GUILayout.Space(SelectW);
+            return;
+        }
+        bool sel = selection.Contains(selKey);
+        bool now = EditorGUILayout.Toggle(sel, GUILayout.Width(SelectW));
+        if (now == sel) return;
+        if (now) selection.Add(selKey); else selection.Remove(selKey);
+    }
 
     private void DrawButton(string label, Color color, float width, Action onClick)
     {
@@ -827,47 +905,136 @@ public class NoctuaIntegrationManagerWindow : EditorWindow
         return manifest["dependencies"] as JObject;
     }
 
+    // ── Scoped-registry constants ─────────────────────────────────────────
+    private const string ApplovinRegistryUrl = "https://unity.packages.applovin.com/";
+    private const string OpenUpmRegistryUrl  = "https://package.openupm.com";
+    private static readonly string[] ApplovinScopes =
+        { "com.applovin.mediation.ads", "com.applovin.mediation.adapters", "com.applovin.mediation.dsp" };
+    private static readonly string[] OpenUpmScopes =
+        { "com.google.ads.mobile", "com.google.external-dependency-manager" };
+
+    private static JArray EnsureScopedRegistries(JObject manifest)
+    {
+        if (manifest["scopedRegistries"] is JArray regs) return regs;
+        regs = new JArray();
+        manifest["scopedRegistries"] = regs;
+        return regs;
+    }
+
+    // ── In-memory manifest mutations (no write, no Client.Resolve) ─────────
+    // These return true if they changed the manifest. The single-item public
+    // methods wrap one Apply* with load → write; the batch methods loop many
+    // Apply* calls between a single load and a single write.
+
+    private bool ApplyAddIaa(JObject manifest, JObject deps, string provider)
+    {
+        if (!upmPackages.ContainsKey(provider)) return false;
+        var (packageName, version) = upmPackages[provider];
+        var regs = EnsureScopedRegistries(manifest);
+        if (provider == "AppLovin")
+            AddScopedRegistryIfMissing(regs, "AppLovin MAX Unity", ApplovinRegistryUrl, ApplovinScopes);
+        else if (provider == "AdMob")
+            AddScopedRegistryIfMissing(regs, "package.openupm.com", OpenUpmRegistryUrl, OpenUpmScopes);
+        return SetVersion(deps, packageName, version);
+    }
+
+    private bool ApplyRemoveIaa(JObject manifest, JObject deps, string provider)
+    {
+        if (!upmPackages.ContainsKey(provider)) return false;
+        var (packageName, _) = upmPackages[provider];
+        bool changed = false;
+        if (deps.ContainsKey(packageName)) { deps.Remove(packageName); changed = true; }
+        if (manifest["scopedRegistries"] is JArray regs)
+        {
+            if (provider == "AppLovin")
+                RemoveUnusedScopedRegistry(regs, deps, ApplovinRegistryUrl);
+            else if (provider == "AdMob")
+                RemoveUnusedScopedRegistry(regs, deps, OpenUpmRegistryUrl);
+        }
+        return changed;
+    }
+
+    private bool ApplyAddMax(JObject manifest, JObject deps, string name)
+    {
+        if (!maxAdapterPackages.ContainsKey(name)) return false;
+        var regs = EnsureScopedRegistries(manifest);
+        AddScopedRegistryIfMissing(regs, "AppLovin MAX Unity", ApplovinRegistryUrl, ApplovinScopes);
+        var (androidPkg, androidVer, iosPkg, iosVer) = maxAdapterPackages[name];
+        return SetVersion(deps, androidPkg, androidVer) | SetVersion(deps, iosPkg, iosVer);
+    }
+
+    private bool ApplyRemoveMax(JObject manifest, JObject deps, string name)
+    {
+        if (!maxAdapterPackages.ContainsKey(name)) return false;
+        var (androidPkg, _, iosPkg, _) = maxAdapterPackages[name];
+        bool changed = false;
+        if (deps.ContainsKey(androidPkg)) { deps.Remove(androidPkg); changed = true; }
+        if (deps.ContainsKey(iosPkg))     { deps.Remove(iosPkg);     changed = true; }
+        if (changed && manifest["scopedRegistries"] is JArray regs)
+            RemoveUnusedScopedRegistry(regs, deps, ApplovinRegistryUrl);
+        return changed;
+    }
+
+    private bool ApplyAddAdmob(JObject manifest, JObject deps, string name)
+    {
+        if (!admobAdapterPackages.ContainsKey(name)) return false;
+        var regs = EnsureScopedRegistries(manifest);
+        AddScopedRegistryIfMissing(regs, "package.openupm.com", OpenUpmRegistryUrl, OpenUpmScopes);
+        var (pkg, ver) = admobAdapterPackages[name];
+        return SetVersion(deps, pkg, ver);
+    }
+
+    private bool ApplyRemoveAdmob(JObject manifest, JObject deps, string name)
+    {
+        if (!admobAdapterPackages.ContainsKey(name)) return false;
+        var (pkg, _) = admobAdapterPackages[name];
+        if (!deps.ContainsKey(pkg)) return false;
+        deps.Remove(pkg);
+        if (manifest["scopedRegistries"] is JArray regs)
+            RemoveUnusedScopedRegistry(regs, deps, OpenUpmRegistryUrl);
+        return true;
+    }
+
+    // ── Define-symbol sync for IAA providers ───────────────────────────────
+    // Adapters never touch define symbols — only the AppLovin / AdMob *SDK*
+    // packages gate #if UNITY_APPLOVIN / #if UNITY_ADMOB code.
+    private static void SetIaaDefineSymbols(string provider, bool add)
+    {
+        string sym = provider switch
+        {
+            "AppLovin" => "UNITY_APPLOVIN",
+            "AdMob"    => "UNITY_ADMOB",
+            _          => null,
+        };
+        if (sym == null) return;
+        if (add)
+        {
+            BuildPreprocessor.AddDefineSymbol(sym, BuildTargetGroup.Android);
+            BuildPreprocessor.AddDefineSymbol(sym, BuildTargetGroup.iOS);
+        }
+        else
+        {
+            BuildPreprocessor.RemoveDefineSymbol(sym, BuildTargetGroup.Android);
+            BuildPreprocessor.RemoveDefineSymbol(sym, BuildTargetGroup.iOS);
+        }
+    }
+
+    // ── Single-item public methods (thin wrappers over Apply*) ─────────────
+
     private void AddPackageToManifest(string provider)
     {
         if (!upmPackages.ContainsKey(provider)) return;
-
         if (!TryLoadManifest(out var manifest, out var deps)) return;
 
-        var (packageName, version) = upmPackages[provider];
-
-        if (manifest["scopedRegistries"] is not JArray scopedRegistries)
-        {
-            scopedRegistries = new JArray();
-            manifest["scopedRegistries"] = scopedRegistries;
-        }
-
-        if (provider == "AppLovin")
-            AddScopedRegistryIfMissing(scopedRegistries, "AppLovin MAX Unity", "https://unity.packages.applovin.com/",
-                new[] { "com.applovin.mediation.ads", "com.applovin.mediation.adapters", "com.applovin.mediation.dsp" });
-        else if (provider == "AdMob")
-            AddScopedRegistryIfMissing(scopedRegistries, "package.openupm.com", "https://package.openupm.com",
-                new[] { "com.google.ads.mobile", "com.google.external-dependency-manager" });
-
-        bool changed = SetVersion(deps, packageName, version);
-        if (changed)
+        if (ApplyAddIaa(manifest, deps, provider))
         {
             WriteManifest(manifest);
-            Debug.Log($"[NoctuaSDK] {provider} ({packageName}) → {version}");
+            Debug.Log($"[NoctuaSDK] {provider} ({upmPackages[provider].packageName}) → {upmPackages[provider].version}");
         }
-
         // Always ensure the define symbol is present — WriteManifest triggers Client.Resolve()
         // but domain reload may not happen immediately (e.g. on version-only updates), so
         // set the symbol explicitly here rather than waiting for [InitializeOnLoad] to re-run.
-        if (provider == "AppLovin")
-        {
-            BuildPreprocessor.AddDefineSymbol("UNITY_APPLOVIN", BuildTargetGroup.Android);
-            BuildPreprocessor.AddDefineSymbol("UNITY_APPLOVIN", BuildTargetGroup.iOS);
-        }
-        else if (provider == "AdMob")
-        {
-            BuildPreprocessor.AddDefineSymbol("UNITY_ADMOB", BuildTargetGroup.Android);
-            BuildPreprocessor.AddDefineSymbol("UNITY_ADMOB", BuildTargetGroup.iOS);
-        }
+        SetIaaDefineSymbols(provider, add: true);
     }
 
     private void RemovePackageFromManifest(string provider)
@@ -875,107 +1042,144 @@ public class NoctuaIntegrationManagerWindow : EditorWindow
         if (!upmPackages.ContainsKey(provider)) return;
         if (!TryLoadManifest(out var manifest, out var deps)) return;
 
-        var (packageName, _) = upmPackages[provider];
-        bool changed = false;
-
-        if (deps.ContainsKey(packageName)) { deps.Remove(packageName); changed = true; }
-
-        JArray scopedRegistries = manifest["scopedRegistries"] as JArray;
-        if (scopedRegistries != null)
-        {
-            if (provider == "AppLovin")
-                RemoveUnusedScopedRegistry(scopedRegistries, deps, "https://unity.packages.applovin.com/");
-            else if (provider == "AdMob")
-                RemoveUnusedScopedRegistry(scopedRegistries, deps, "https://package.openupm.com");
-        }
-
-        if (changed) WriteManifest(manifest);
-
-        if (provider == "AppLovin")
-        {
-            BuildPreprocessor.RemoveDefineSymbol("UNITY_APPLOVIN", BuildTargetGroup.Android);
-            BuildPreprocessor.RemoveDefineSymbol("UNITY_APPLOVIN", BuildTargetGroup.iOS);
-        }
-        else
-        {
-            BuildPreprocessor.RemoveDefineSymbol("UNITY_ADMOB", BuildTargetGroup.Android);
-            BuildPreprocessor.RemoveDefineSymbol("UNITY_ADMOB", BuildTargetGroup.iOS);
-        }
+        if (ApplyRemoveIaa(manifest, deps, provider)) WriteManifest(manifest);
+        SetIaaDefineSymbols(provider, add: false);
     }
 
     private void AddMaxAdapterToManifest(string name)
     {
-        if (!maxAdapterPackages.ContainsKey(name)) return;
         if (!TryLoadManifest(out var manifest, out var deps)) return;
-
-        if (manifest["scopedRegistries"] is not JArray regs) { regs = new JArray(); manifest["scopedRegistries"] = regs; }
-        AddScopedRegistryIfMissing(regs, "AppLovin MAX Unity", "https://unity.packages.applovin.com/",
-            new[] { "com.applovin.mediation.ads", "com.applovin.mediation.adapters", "com.applovin.mediation.dsp" });
-
-        var (androidPkg, androidVer, iosPkg, iosVer) = maxAdapterPackages[name];
-        bool changed = SetVersion(deps, androidPkg, androidVer) | SetVersion(deps, iosPkg, iosVer);
-
-        if (changed)
+        if (ApplyAddMax(manifest, deps, name))
         {
+            var pkg = maxAdapterPackages[name];
             WriteManifest(manifest);
-            Debug.Log($"[NoctuaSDK] AppLovin MAX adapter '{name}' → {androidVer} / {iosVer}");
+            Debug.Log($"[NoctuaSDK] AppLovin MAX adapter '{name}' → {pkg.androidVer} / {pkg.iosVer}");
         }
         CheckMaxAdapterInstallStates();
     }
 
     private void RemoveMaxAdapterFromManifest(string name)
     {
-        if (!maxAdapterPackages.ContainsKey(name)) return;
         if (!TryLoadManifest(out var manifest, out var deps)) return;
-
-        var (androidPkg, _, iosPkg, _) = maxAdapterPackages[name];
-        bool changed = false;
-        if (deps.ContainsKey(androidPkg)) { deps.Remove(androidPkg); changed = true; }
-        if (deps.ContainsKey(iosPkg))     { deps.Remove(iosPkg);     changed = true; }
-
-        if (changed)
-        {
-            if (manifest["scopedRegistries"] is JArray regs)
-                RemoveUnusedScopedRegistry(regs, deps, "https://unity.packages.applovin.com/");
-            WriteManifest(manifest);
-        }
+        if (ApplyRemoveMax(manifest, deps, name)) WriteManifest(manifest);
         CheckMaxAdapterInstallStates();
     }
 
     private void AddAdmobAdapterToManifest(string name)
     {
-        if (!admobAdapterPackages.ContainsKey(name)) return;
         if (!TryLoadManifest(out var manifest, out var deps)) return;
-
-        if (manifest["scopedRegistries"] is not JArray regs) { regs = new JArray(); manifest["scopedRegistries"] = regs; }
-        AddScopedRegistryIfMissing(regs, "package.openupm.com", "https://package.openupm.com",
-            new[] { "com.google.ads.mobile", "com.google.external-dependency-manager" });
-
-        var (pkg, ver) = admobAdapterPackages[name];
-        bool changed = SetVersion(deps, pkg, ver);
-
-        if (changed)
+        if (ApplyAddAdmob(manifest, deps, name))
         {
             WriteManifest(manifest);
-            Debug.Log($"[NoctuaSDK] AdMob adapter '{name}' ({pkg}) → {ver}");
+            Debug.Log($"[NoctuaSDK] AdMob adapter '{name}' ({admobAdapterPackages[name].pkg}) → {admobAdapterPackages[name].ver}");
         }
         CheckAdmobAdapterInstallStates();
     }
 
     private void RemoveAdmobAdapterFromManifest(string name)
     {
-        if (!admobAdapterPackages.ContainsKey(name)) return;
+        if (!TryLoadManifest(out var manifest, out var deps)) return;
+        if (ApplyRemoveAdmob(manifest, deps, name)) WriteManifest(manifest);
+        CheckAdmobAdapterInstallStates();
+    }
+
+    // ── Batch (multi-select) install / remove ──────────────────────────────
+
+    /// <summary>
+    /// Installs every ticked adapter across all sections in a single manifest
+    /// write + single <c>Client.Resolve()</c>. Surfaces a confirmation dialog
+    /// first if the resulting set would put a mutually-exclusive network in
+    /// both catalogs (an unresolvable iOS pod clash).
+    /// </summary>
+    private void InstallSelected()
+    {
+        int count = TotalSelected();
+        if (count == 0) return;
+        if (!ConfirmIfSelectionConflicts()) return;
         if (!TryLoadManifest(out var manifest, out var deps)) return;
 
-        var (pkg, _) = admobAdapterPackages[name];
-        if (!deps.ContainsKey(pkg)) { CheckAdmobAdapterInstallStates(); return; }
+        bool changed = false;
+        foreach (var provider in _selectedIaa)   changed |= ApplyAddIaa(manifest, deps, provider);
+        foreach (var name in _selectedMax)       changed |= ApplyAddMax(manifest, deps, name);
+        foreach (var name in _selectedAdmob)     changed |= ApplyAddAdmob(manifest, deps, name);
 
-        deps.Remove(pkg);
-        if (manifest["scopedRegistries"] is JArray regs)
-            RemoveUnusedScopedRegistry(regs, deps, "https://package.openupm.com");
+        if (changed) WriteManifest(manifest);
+        foreach (var provider in _selectedIaa) SetIaaDefineSymbols(provider, add: true);
 
-        WriteManifest(manifest);
-        CheckAdmobAdapterInstallStates();
+        Debug.Log($"[NoctuaSDK] Batch install: {count} package(s) in one resolve.");
+        ClearSelection();
+        RefreshAllStates();
+    }
+
+    /// <summary>
+    /// Removes every ticked adapter across all sections in a single manifest
+    /// write + single <c>Client.Resolve()</c>, cleaning up scoped registries
+    /// that no remaining package needs.
+    /// </summary>
+    private void RemoveSelected()
+    {
+        int count = TotalSelected();
+        if (count == 0) return;
+        if (!TryLoadManifest(out var manifest, out var deps)) return;
+
+        bool changed = false;
+        foreach (var provider in _selectedIaa)   changed |= ApplyRemoveIaa(manifest, deps, provider);
+        foreach (var name in _selectedMax)       changed |= ApplyRemoveMax(manifest, deps, name);
+        foreach (var name in _selectedAdmob)     changed |= ApplyRemoveAdmob(manifest, deps, name);
+
+        if (changed) WriteManifest(manifest);
+        foreach (var provider in _selectedIaa) SetIaaDefineSymbols(provider, add: false);
+
+        Debug.Log($"[NoctuaSDK] Batch remove: {count} package(s) in one resolve.");
+        ClearSelection();
+        RefreshAllStates();
+    }
+
+    /// <summary>
+    /// Pre-install guard: if the current selection would result in a
+    /// mutually-exclusive network (e.g. Maio) being present in BOTH the
+    /// AppLovin MAX and AdMob catalogs, ask the user to confirm before
+    /// writing. Returns true to proceed, false to abort.
+    /// </summary>
+    private bool ConfirmIfSelectionConflicts()
+    {
+        var conflicts = GetSelectionMutuallyExclusiveConflicts();
+        if (conflicts.Count == 0) return true;
+
+        return EditorUtility.DisplayDialog(
+            "Mutually exclusive adapters",
+            "After this install, these networks would have adapters from BOTH catalogs: " +
+            string.Join(", ", conflicts) + ".\n\n" +
+            "They pin the same native iOS pod to different exact versions, so pod install " +
+            "will fail. Recommended: keep only the AppLovin MAX adapter.\n\n" +
+            "Install anyway?",
+            "Install anyway", "Cancel");
+    }
+
+    /// <summary>
+    /// Networks that would end up in both catalogs after applying the current
+    /// selection on top of what is already installed.
+    /// </summary>
+    private List<string> GetSelectionMutuallyExclusiveConflicts()
+    {
+        var hits = new List<string>();
+        foreach (var kv in AdmobToMaxConflict)
+        {
+            var admobPkg = kv.Key;
+            var maxName  = kv.Value;
+            if (!MutuallyExclusiveNetworks.Contains(maxName)) continue;
+
+            var admobName = admobAdapterPackages.FirstOrDefault(a => a.Value.pkg == admobPkg).Key;
+            if (admobName == null) continue;
+
+            bool maxAfter = _selectedMax.Contains(maxName)
+                || (maxAdapterStates.TryGetValue(maxName, out var ms) && (ms.androidInstalled || ms.iosInstalled));
+            bool admobAfter = _selectedAdmob.Contains(admobName)
+                || (admobAdapterStates.TryGetValue(admobName, out var asx) && asx.installed);
+
+            if (maxAfter && admobAfter) hits.Add(maxName);
+        }
+        return hits;
     }
 
     // ── Manifest utilities ────────────────────────────────────────────────
