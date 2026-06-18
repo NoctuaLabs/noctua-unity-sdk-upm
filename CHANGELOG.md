@@ -3,7 +3,7 @@
 All notable changes to this project will be documented in this file.
 Versions follow [Semantic Versioning](https://semver.org/).
 
-## [0.128.0] - 2026-06-10
+## [0.129.0] - 2026-06-18
 
 ### ⚙️ Miscellaneous
 
@@ -20,6 +20,15 @@ Versions follow [Semantic Versioning](https://semver.org/).
 - *(inspector)* Make Taichi filter key a constant and case-insensitive
 - Introduce INativeAdjust interface for ADID; decouple from INativeFirebase in EventSender
 - Name adjust-adid fetched flag as a predicate
+- Check pending purchases in HandleUnpairedPurchase redeem guard
+- Defensive exception guards across AndroidPlugin JNI surface
+- Add debug/warning logs on previously silent guard paths
+- Add auth-flow diagnostic logs (token source, account save attempts)
+- *(iaa)* Add detectable [mediation] entry logs to every MediationManager method
+- *(iaa)* Downgrade non-ad-show [mediation] entry logs to Debug
+- Track IAP taichi revenue in product local currency
+- Lower Adjust attribution log from Info to Debug
+- Bulk multi-select adapter install in Integration Manager
 
 ### 🐛 Bug Fixes
 
@@ -35,6 +44,16 @@ Versions follow [Semantic Versioning](https://semver.org/).
 - Adjust_adid uses IDFA on iOS and Google Ad ID on Android in EventSender
 - Do not block SDK init when IAA enabled but local config is null
 - Add missing Noctua.Adjust.cs.meta to restore Adjust API compilation
+- IOS bridge — per-operation purchase callbacks and GetAccounts null guard
+- Serialize concurrent IAP flows and surface fire-and-forget failures
+- Auth null guards, offline logout fallback, and token/listener hygiene
+- Event pipeline thread safety, adjust_adid pre-persist loss, and session-end guard
+- IAA frequency-cap persistence, revenue precision, and callback hygiene
+- Platform/network hardening — 408 retry, JNI leaks, native-call timeouts
+- Editor event store clearing and exact-boundary Taichi threshold comparison
+- Pin just-saved account as RecentAccount instead of timestamp ordering
+- TrackAdRevenue crash from unattached threads and null payload entries
+- Marshal Android Track* JNI to main thread and fix KotlinUnit init race
 
 ### 🚀 Features
 
@@ -43,6 +62,10 @@ Versions follow [Semantic Versioning](https://semver.org/).
 - Login retention milestones, taichi inspector filter/search, RAM-tiered buffers
 - Add Adjust device info getters to Unity SDK
 - Add adjust_adid to every event payload via cached single-flight fetch
+- Add on/off toggle for Performance Monitor in Inspector
+- Runtime sandbox override (remote-driven, noctuagg.json as source of truth)
+- Add X-SANDBOX-ENABLED request header and dedicated sandbox-changed dialog
+- Add Inspector debug-action registry + Inject tab
 
 ## [0.122.0] - 2026-05-18
 
