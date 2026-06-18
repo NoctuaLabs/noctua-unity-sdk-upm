@@ -1,7 +1,6 @@
 # Changelog
 
 All notable changes to this project will be documented in this file.
-Versions follow [Semantic Versioning](https://semver.org/).
 
 ## [0.129.0] - 2026-06-18
 
