@@ -2,7 +2,7 @@
 
 SDK package at `Packages/com.noctuagames.sdk/`. All runtime code under `Runtime/`, Editor tooling under `Editor/`, tests under `Tests/`.
 
-- **Version:** 0.126.0
+- **Version:** 0.129.1 (CI-managed — never hand-edit `package.json`/`AssemblyInfo.cs`)
 - **Repo:** `gitlab.com/evosverse/noctua/noctua-sdk-unity-upm`
 - **Namespace:** `com.noctuagames.sdk`
 
@@ -440,8 +440,9 @@ without `Noctua.Adjust.cs.meta` broke `GetAdjustAttributionAsync`.)
 We follow [**Conventional Commits 1.0.0**](https://www.conventionalcommits.org/en/v1.0.0/) and
 [**Semantic Versioning 2.0.0**](https://semver.org/). Versioning + changelog are automated by
 **git-cliff** (see `cliff.toml`). The commit **type** controls both the **semver bump** and the
-**changelog section**, so choose it deliberately — `fix:` is reserved for runtime-impacting bugs,
-not every change.
+**changelog section**, so choose it deliberately — `fix:` is reserved for **real bugs that blocked
+or broke progress** in the code or game (crash, build failure, wrong result, broken flow), not
+every change.
 
 **Authoritative rules (from the spec):**
 - `feat:` → **MINOR**, `fix:` → **PATCH**. These are the only two types the Conventional Commits
@@ -459,7 +460,7 @@ not every change.
 | Type | Semver bump | Changelog section | Use when |
 |---|---|---|---|
 | `feat:` | **MINOR** | 🚀 Features | New public API / capability |
-| `fix:` | **PATCH** | 🐛 Bug Fixes | A defect that affected runtime behaviour — something was broken and now works |
+| `fix:` | **PATCH** | 🐛 Bug Fixes | A real bug that **blocked or broke progress** — crash, build/compile failure, wrong result, or a flow that couldn't proceed in the code or game; it was broken and now works |
 | `improve:` *(custom)* | **PATCH** | ✨ Improvements | Non-bug enhancement: UX tweak, better logging/observability, cleaner flow |
 | `correct:` *(custom)* | **PATCH** | ✨ Improvements | Correction that isn't a bug: wrong config value, **misleading/renamed field**, bad default |
 | `perf:` | **PATCH** | ✨ Improvements | Performance optimisation |
@@ -490,8 +491,10 @@ A wrong type permanently mislabels the changelog and can mis-bump the version. F
 | Bump a dependency | `fix:`/`feat:` | `chore:` | Tooling/deps |
 | New SDK method that removes an old one | `feat:` | `feat!:` (+ `BREAKING CHANGE:` footer) | Removing public API breaks integrations → MAJOR |
 
-Rule of thumb: **use `fix:` only when something was broken at runtime and now works.** Everything
-else that's a patch-level change is `improve:` / `correct:` / `perf:` / `refactor:`.
+Rule of thumb: **use `fix:` only when a real bug blocked or broke progress** (crash, build
+failure, wrong result, a flow that couldn't proceed in the code or game) and now works. If nothing
+was actually broken, it is NOT a `fix:` — every other patch-level change is `improve:` /
+`correct:` / `perf:` / `refactor:`.
 
 **Squash + correct typing:** land each logical change as one squashed commit with the correct type.
 Preview the changelog locally before relying on CI:
