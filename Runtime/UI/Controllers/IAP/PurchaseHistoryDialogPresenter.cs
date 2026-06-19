@@ -18,7 +18,7 @@ namespace com.noctuagames.sdk.UI
     /// </summary>
     internal class PurchaseHistoryDialogPresenter : Presenter<AuthUIController>
     {
-        private readonly ILogger _log = new NoctuaLogger();
+        private readonly ILogger _log = new NoctuaLogger(typeof(PurchaseHistoryDialogPresenter));
         private readonly List<PurchaseItem> _purchaseHistory = new();
 
         private VisualTreeAsset _itemTemplate;

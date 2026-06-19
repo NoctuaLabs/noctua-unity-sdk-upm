@@ -9,7 +9,7 @@ namespace com.noctuagames.sdk.UI
     /// </summary>
     internal class BindConfirmationDialogPresenter : Presenter<AuthUIController>
     {
-        private readonly ILogger _log = new NoctuaLogger();
+        private readonly ILogger _log = new NoctuaLogger(typeof(BindConfirmationDialogPresenter));
         private PlayerToken _bindTarget;
         private VisualElement _targetPlayerAvatar;
         private Label _guestDisplayName;

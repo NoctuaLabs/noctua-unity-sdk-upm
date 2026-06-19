@@ -13,7 +13,7 @@ namespace com.noctuagames.sdk.UI
     /// </summary>
     internal class EmailVerificationDialogPresenter : Presenter<AuthUIController>
     {
-        private readonly ILogger _log = new NoctuaLogger();
+        private readonly ILogger _log = new NoctuaLogger(typeof(EmailVerificationDialogPresenter));
 
         private string _email;
         private string _password;

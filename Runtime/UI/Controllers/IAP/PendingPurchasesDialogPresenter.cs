@@ -18,7 +18,7 @@ namespace com.noctuagames.sdk.UI
     /// </summary>
     internal class PendingPurchasesDialogPresenter : Presenter<AuthUIController>
     {
-        private readonly ILogger _log = new NoctuaLogger();
+        private readonly ILogger _log = new NoctuaLogger(typeof(PendingPurchasesDialogPresenter));
         private readonly List<PurchaseItem> _pendingPurchases = new();
 
         private VisualTreeAsset _itemTemplate;

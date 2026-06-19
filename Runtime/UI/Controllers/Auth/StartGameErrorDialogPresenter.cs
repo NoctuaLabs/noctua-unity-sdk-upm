@@ -17,7 +17,7 @@ namespace com.noctuagames.sdk.UI
         private Label _errorLabel;
         private Label _messageLabel;
 
-        private readonly ILogger _log = new NoctuaLogger();
+        private readonly ILogger _log = new NoctuaLogger(typeof(StartGameErrorDialogPresenter));
 
         private UniTaskCompletionSource _tcs;
 

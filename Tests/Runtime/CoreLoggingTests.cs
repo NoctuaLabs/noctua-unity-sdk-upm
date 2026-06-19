@@ -1,4 +1,5 @@
 using System;
+using System.Reflection;
 using com.noctuagames.sdk;
 using NUnit.Framework;
 
@@ -190,6 +191,91 @@ namespace Tests.Runtime
             Assert.DoesNotThrow(() => log.Info(""));
             Assert.DoesNotThrow(() => log.Warning(""));
             Assert.DoesNotThrow(() => log.Error(""));
+        }
+    }
+
+    /// <summary>
+    /// Regression tests for the <see cref="NoctuaLogger"/> constructor's
+    /// reflection fallback. On Android/iOS IL2CPP release builds the managed
+    /// stack-frame metadata is stripped, so <c>new StackTrace().GetFrame(1)</c>,
+    /// <c>GetMethod()</c>, and <c>DeclaringType</c> can each return <c>null</c> —
+    /// which previously threw <see cref="NullReferenceException"/> from the ctor
+    /// and crashed <c>Noctua</c> construction (the whole Lazy factory). The ctor
+    /// must now be crash-proof and always produce a non-empty type-name prefix.
+    ///
+    /// EditMode runs under Mono, where stack frames are always available, so we
+    /// cannot reproduce the null-frame condition directly. Instead we lock in the
+    /// observable contract: the private <c>_typeName</c> field is never null/empty,
+    /// the explicit-type path captures the exact type name, and the no-arg / null
+    /// paths never throw.
+    /// </summary>
+    public class NoctuaLoggerCtorGuardTests
+    {
+        private static string ReadTypeName(NoctuaLogger logger)
+        {
+            var field = typeof(NoctuaLogger).GetField(
+                "_typeName", BindingFlags.NonPublic | BindingFlags.Instance);
+            Assert.IsNotNull(field, "_typeName field not found — has the implementation changed?");
+            return (string)field.GetValue(logger);
+        }
+
+        [Test]
+        public void Ctor_ExplicitType_CapturesTypeName()
+        {
+            var logger = new NoctuaLogger(typeof(NoctuaException));
+            Assert.AreEqual("NoctuaException", ReadTypeName(logger));
+        }
+
+        [Test]
+        public void Ctor_ExplicitNull_ProducesNonEmptyTypeName()
+        {
+            // type == null takes the reflection fallback; whatever it resolves
+            // (caller type under Mono, or the "Noctua" fallback when the chain is
+            // null under IL2CPP) the result must be a usable, non-empty prefix.
+            var logger = new NoctuaLogger(null);
+            var name = ReadTypeName(logger);
+            Assert.IsFalse(string.IsNullOrEmpty(name),
+                "Reflection fallback must never leave _typeName null/empty.");
+        }
+
+        [Test]
+        public void Ctor_NoArg_ProducesNonEmptyTypeName()
+        {
+            var logger = new NoctuaLogger();
+            var name = ReadTypeName(logger);
+            Assert.IsFalse(string.IsNullOrEmpty(name),
+                "No-arg ctor must never leave _typeName null/empty.");
+        }
+
+        [Test]
+        public void Ctor_ExplicitNull_DoesNotThrow()
+        {
+            Assert.DoesNotThrow(() => new NoctuaLogger(null));
+        }
+
+        [Test]
+        public void Ctor_FromCompilerGeneratedFrame_DoesNotThrow()
+        {
+            // Construct from inside a lambda so the calling frame's declaring type
+            // is a compiler-generated closure — exercises the fallback path with a
+            // non-standard caller frame.
+            Func<NoctuaLogger> make = () => new NoctuaLogger();
+            Assert.DoesNotThrow(() =>
+            {
+                var logger = make();
+                Assert.IsFalse(string.IsNullOrEmpty(ReadTypeName(logger)));
+            });
+        }
+
+        [Test]
+        public void Ctor_ManyNoArgInstances_AllCrashProof()
+        {
+            // Stress the reflection path repeatedly — every instance must be valid.
+            for (var i = 0; i < 100; i++)
+            {
+                var logger = new NoctuaLogger();
+                Assert.IsFalse(string.IsNullOrEmpty(ReadTypeName(logger)));
+            }
         }
     }
 }

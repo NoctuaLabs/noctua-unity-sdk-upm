@@ -74,7 +74,7 @@ namespace com.noctuagames.sdk
             remove => _service.OnAccountDeleted -= value;
         }
 
-        private readonly ILogger _log = new NoctuaLogger();
+        private readonly ILogger _log = new NoctuaLogger(typeof(NoctuaAuthentication));
         private bool _enabled;
         private readonly Config _config;
         private readonly PanelSettings _panelSettings;

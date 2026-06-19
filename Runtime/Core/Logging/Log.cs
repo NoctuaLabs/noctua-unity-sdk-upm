@@ -100,13 +100,18 @@ namespace com.noctuagames.sdk
         {
             if (type == null)
             {
-                var stackTrace = new StackTrace();
-                var frame = stackTrace.GetFrame(1); // Get the calling method frame
-                var method = frame.GetMethod();
-                type = method.DeclaringType;
+                // Reflection fallback for callers that don't pass an explicit type.
+                // Every link in this chain can be null on Android/iOS IL2CPP release
+                // builds, where managed stack-frame metadata is stripped:
+                // GetFrame(1) may return null, GetMethod() may return null, and
+                // DeclaringType may be null for compiler-generated frames. Guard the
+                // whole chain so the ctor can never throw NullReferenceException
+                // (which previously crashed Noctua construction — see Log.cs history).
+                var method = new StackTrace().GetFrame(1)?.GetMethod();
+                type = method?.DeclaringType;
             }
-            
-            _typeName = type?.Name;
+
+            _typeName = type?.Name ?? "Noctua";
         }
 
         public void Debug(string message, [CallerMemberName] string memberName = "")

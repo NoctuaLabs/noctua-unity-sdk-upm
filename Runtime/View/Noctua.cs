@@ -148,7 +148,7 @@ namespace com.noctuagames.sdk
         }
 #endif
 
-        private readonly ILogger _log = new NoctuaLogger();
+        private readonly ILogger _log = new NoctuaLogger(typeof(Noctua));
         private readonly EventSender _eventSender;
         private HttpInspectorLog _httpLog;
         private TrackerDebugMonitor _debugMonitor;
@@ -637,7 +637,7 @@ namespace com.noctuagames.sdk
         {
             private void OnApplicationPause(bool pause)
             {
-                var log = new NoctuaLogger();
+                var log = new NoctuaLogger(typeof(PauseBehaviour));
                 log.Info($"NoctuaPauseBehaviour: OnApplicationPause: {pause}");
 
                 Noctua.Instance.Value._nativePlugin?.OnApplicationPause(pause);
@@ -653,7 +653,7 @@ namespace com.noctuagames.sdk
             {
                 try
                 {
-                    var log = new NoctuaLogger();
+                    var log = new NoctuaLogger(typeof(PauseBehaviour));
                     log.Info("NoctuaPauseBehaviour: OnApplicationQuit — disposing StoreKit and session tracker");
                     Noctua.Instance.Value._nativePlugin?.DisposeStoreKit();
                     Noctua.Instance.Value._sessionTracker?.Dispose();
@@ -663,12 +663,12 @@ namespace com.noctuagames.sdk
 
             private void OnApplicationResumed()
             {
-                var log = new NoctuaLogger();
+                var log = new NoctuaLogger(typeof(PauseBehaviour));
                 log.Info("NoctuaPauseBehaviour: OnApplicationResumed");
             }
             private void OnApplicationFocusGained()
             {
-                var log = new NoctuaLogger();
+                var log = new NoctuaLogger(typeof(PauseBehaviour));
                 log.Info("NoctuaPauseBehaviour: OnApplicationFocusGained");
             }
         }

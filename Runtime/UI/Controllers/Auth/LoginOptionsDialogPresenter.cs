@@ -11,7 +11,7 @@ namespace com.noctuagames.sdk.UI
     /// </summary>
     internal class LoginOptionsDialogPresenter : Presenter<AuthUIController>
     {
-        private readonly ILogger _log = new NoctuaLogger();
+        private readonly ILogger _log = new NoctuaLogger(typeof(LoginOptionsDialogPresenter));
 
         // Flags
         private bool _ssoDisabled = false;

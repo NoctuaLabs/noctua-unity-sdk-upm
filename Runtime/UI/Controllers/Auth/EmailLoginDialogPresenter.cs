@@ -21,7 +21,7 @@ namespace com.noctuagames.sdk.UI
     /// </summary>
     internal class EmailLoginDialogPresenter : Presenter<AuthUIController>
     {
-        private readonly ILogger _log = new NoctuaLogger();
+        private readonly ILogger _log = new NoctuaLogger(typeof(EmailLoginDialogPresenter));
        
         private List<TextField> _textFields;
         private InputFieldNoctua _inputEmail;

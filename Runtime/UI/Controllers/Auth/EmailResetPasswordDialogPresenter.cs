@@ -15,7 +15,7 @@ namespace com.noctuagames.sdk.UI
     {
         public IEventSender EventSender;
 
-        private readonly ILogger _log = new NoctuaLogger();
+        private readonly ILogger _log = new NoctuaLogger(typeof(EmailResetPasswordDialogPresenter));
         
         private List<TextField> _textFields;
         private ButtonNoctua _submitButton;

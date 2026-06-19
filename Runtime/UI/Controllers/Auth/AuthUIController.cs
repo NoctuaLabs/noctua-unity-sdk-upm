@@ -25,7 +25,7 @@ namespace com.noctuagames.sdk
     /// </summary>
     internal class AuthUIController
     {
-        private readonly ILogger _log = new NoctuaLogger();
+        private readonly ILogger _log = new NoctuaLogger(typeof(AuthUIController));
         private readonly UIFactory _uiFactory;
         
         private readonly LogoutConfirmDialogPresenter _logoutConfirmDialog;

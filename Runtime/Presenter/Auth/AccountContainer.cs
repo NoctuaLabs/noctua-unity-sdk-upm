@@ -458,7 +458,7 @@ namespace com.noctuagames.sdk
 
         private class AccountStoreWithFallback
         {
-            private readonly ILogger _log = new NoctuaLogger();
+            private readonly ILogger _log = new NoctuaLogger(typeof(AccountStoreWithFallback));
             private readonly INativeAccountStore _mainStore;
             private readonly INativeAccountStore _fallbackStore;
             private bool _useFallback;

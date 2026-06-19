@@ -17,7 +17,7 @@ namespace com.noctuagames.sdk.UI
         private Button _restartButton;
         private Label _messageLabel;
 
-        private readonly ILogger _log = new NoctuaLogger();
+        private readonly ILogger _log = new NoctuaLogger(typeof(SandboxChangedDialogPresenter));
 
         private UniTaskCompletionSource _tcs;
 

@@ -18,7 +18,7 @@ namespace com.noctuagames.sdk
     {
         private readonly NoctuaAuthenticationService _authService;
         private readonly GlobalConfig _config;
-        private readonly ILogger _log = new NoctuaLogger();
+        private readonly ILogger _log = new NoctuaLogger(typeof(SocialAuthenticationService));
         
         internal SocialAuthenticationService(NoctuaAuthenticationService authService, GlobalConfig config)
         {
@@ -300,7 +300,7 @@ namespace com.noctuagames.sdk
     internal class OauthRedirectListener
     {
         private readonly HttpListener _listener = new();
-        private readonly ILogger _log = new NoctuaLogger();
+        private readonly ILogger _log = new NoctuaLogger(typeof(OauthRedirectListener));
 
         /// <summary>The URL path component for the redirect listener.</summary>
         public string Path;

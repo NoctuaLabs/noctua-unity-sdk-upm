@@ -21,7 +21,7 @@ namespace com.noctuagames.sdk
         private readonly string _clientId;
         private readonly string _baseUrl;
         private readonly bool _isOfflineFirst;
-        private readonly ILogger _log = new NoctuaLogger();
+        private readonly ILogger _log = new NoctuaLogger(typeof(NoctuaGameService));
 
         internal NoctuaGameService(Config config)
         {

@@ -10,7 +10,7 @@ namespace com.noctuagames.sdk.UI
     /// </summary>
     internal class PhoneVerificationDialogPresenter : Presenter<AuthUIController>
     {
-        private readonly ILogger _log = new NoctuaLogger();
+        private readonly ILogger _log = new NoctuaLogger(typeof(PhoneVerificationDialogPresenter));
 
         private string _credVerifyId;
         private string _phoneNumber;

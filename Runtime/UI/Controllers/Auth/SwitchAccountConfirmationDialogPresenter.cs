@@ -8,7 +8,7 @@ namespace com.noctuagames.sdk.UI
     /// </summary>
     internal class SwitchAccountConfirmationDialogPresenter : Presenter<AuthUIController>
     {
-        private readonly ILogger _log = new NoctuaLogger();
+        private readonly ILogger _log = new NoctuaLogger(typeof(SwitchAccountConfirmationDialogPresenter));
         
         private UserBundle _recentAccount;
 

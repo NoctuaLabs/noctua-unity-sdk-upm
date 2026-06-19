@@ -8,7 +8,7 @@ namespace com.noctuagames.sdk.UI
     /// </summary>
     internal class LogoutConfirmDialogPresenter : Presenter<AuthUIController>
     {
-        private readonly ILogger _log = new NoctuaLogger();
+        private readonly ILogger _log = new NoctuaLogger(typeof(LogoutConfirmDialogPresenter));
 
         /// <summary>
         /// Displays the logout confirmation dialog with confirm and cancel options.

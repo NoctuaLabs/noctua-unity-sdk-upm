@@ -8,7 +8,7 @@ namespace com.noctuagames.sdk.UI
     /// </summary>
     internal class AccountDeletionConfirmationDialogPresenter : Presenter<AuthUIController>
     {
-        private readonly ILogger _log = new NoctuaLogger();
+        private readonly ILogger _log = new NoctuaLogger(typeof(AccountDeletionConfirmationDialogPresenter));
         private UserBundle _recentAccount;
 
         /// <summary>

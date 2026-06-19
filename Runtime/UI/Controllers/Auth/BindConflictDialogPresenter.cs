@@ -7,7 +7,7 @@ namespace com.noctuagames.sdk.UI
     /// </summary>
     internal class BindConflictDialogPresenter : Presenter<AuthUIController>
     {
-        private readonly ILogger _log = new NoctuaLogger();
+        private readonly ILogger _log = new NoctuaLogger(typeof(BindConflictDialogPresenter));
         private Button _switchAccountButton;
         private Button _cancelButton;
         private VisualElement _playerAvatarImage;
