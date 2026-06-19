@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## [0.129.0] - 2026-06-18
+## [0.129.1] - 2026-06-19
 
 ### ⚙️ Miscellaneous
 
@@ -28,10 +28,6 @@ All notable changes to this project will be documented in this file.
 - Track IAP taichi revenue in product local currency
 - Lower Adjust attribution log from Info to Debug
 - Bulk multi-select adapter install in Integration Manager
-- Auth null guards, offline logout fallback, and token/listener hygiene
-- Platform/network hardening — 408 retry, JNI leaks, native-call timeouts
-- Editor event store clearing and exact-boundary Taichi threshold comparison
-- Pin just-saved account as RecentAccount instead of timestamp ordering
 
 ### 🐛 Bug Fixes
 
@@ -49,10 +45,15 @@ All notable changes to this project will be documented in this file.
 - Add missing Noctua.Adjust.cs.meta to restore Adjust API compilation
 - IOS bridge — per-operation purchase callbacks and GetAccounts null guard
 - Serialize concurrent IAP flows and surface fire-and-forget failures
+- Auth null guards, offline logout fallback, and token/listener hygiene
 - Event pipeline thread safety, adjust_adid pre-persist loss, and session-end guard
 - IAA frequency-cap persistence, revenue precision, and callback hygiene
+- Platform/network hardening — 408 retry, JNI leaks, native-call timeouts
+- Editor event store clearing and exact-boundary Taichi threshold comparison
+- Pin just-saved account as RecentAccount instead of timestamp ordering
 - TrackAdRevenue crash from unattached threads and null payload entries
 - Marshal Android Track* JNI to main thread and fix KotlinUnit init race
+- Guard NoctuaLogger ctor against IL2CPP null stack frames
 
 ### 🚀 Features
 
