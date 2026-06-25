@@ -139,7 +139,17 @@ namespace com.noctuagames.sdk
         [JsonProperty("current_stage_level")]
         public string CurrentStageLevel;
 
+        /// <summary>Exchange rate to convert this order's local currency to USD. 0 when backend has no rate.</summary>
+        [JsonProperty("currency_to_usd_rate")]
+        public decimal CurrencyToUsdRate;
 
+        /// <summary>Order price already converted to USD by the backend. 0 when no exchange rate is available.</summary>
+        [JsonProperty("local_price_in_usd")]
+        public decimal LocalPriceInUsd;
+
+        /// <summary>Product type (consumable / non_consumable / subscription).</summary>
+        [JsonProperty("type")]
+        public IapProductType Type;
     }
 
     /// <summary>
@@ -235,6 +245,18 @@ namespace com.noctuagames.sdk
         /// <summary>Payment channel assigned by the server for this order.</summary>
         [JsonProperty("payment_type")]
         public PaymentType PaymentType;
+
+        /// <summary>Exchange rate to convert the order's local currency to USD. 0 when backend has no rate.</summary>
+        [JsonProperty("currency_to_usd_rate")]
+        public decimal CurrencyToUsdRate;
+
+        /// <summary>Order price already converted to USD by the backend. 0 when no exchange rate is available.</summary>
+        [JsonProperty("local_price_in_usd")]
+        public decimal LocalPriceInUsd;
+
+        /// <summary>Product type (consumable / non_consumable / subscription).</summary>
+        [JsonProperty("type")]
+        public IapProductType Type;
     }
 
     /// <summary>
@@ -394,6 +416,20 @@ namespace com.noctuagames.sdk
         voided,
         /// <summary>Server requests fallback to native store payment flow.</summary>
         fallback_to_native_payment
+    }
+
+    /// <summary>IAP product type as reported by the backend on an order.</summary>
+    [Preserve]
+    public enum IapProductType
+    {
+        /// <summary>Unknown or not provided by the backend.</summary>
+        unknown,
+        /// <summary>Consumable product (re-purchasable).</summary>
+        consumable,
+        /// <summary>Non-consumable product (one-time, owned permanently).</summary>
+        non_consumable,
+        /// <summary>Auto-renewable / subscription product.</summary>
+        subscription,
     }
 
     /// <summary>

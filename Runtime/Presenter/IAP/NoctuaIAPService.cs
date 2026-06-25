@@ -1043,6 +1043,9 @@ namespace com.noctuagames.sdk
 
                 orderResponse = await RetryAsync(() => CreateOrderAsync(orderRequest));
                 orderRequest.Id = orderResponse.Id;
+                orderRequest.CurrencyToUsdRate = orderResponse.CurrencyToUsdRate;
+                orderRequest.LocalPriceInUsd  = orderResponse.LocalPriceInUsd;
+                orderRequest.Type             = orderResponse.Type;
 
                 // Override the payment type in case this get altered from backend.
                 // TODO this will cause payment loop if both of these conditions meet:
@@ -2588,34 +2591,46 @@ namespace com.noctuagames.sdk
 
             try
             {
-                // Report the product's currency; fall back to USD if the order carries none.
-                var currency = string.IsNullOrWhiteSpace(order.Currency) ? "USD" : order.Currency;
+                var localPriceInUsd = (double)order.LocalPriceInUsd;
+                var rate            = (double)order.CurrencyToUsdRate;
+                var type            = order.Type.ToString();   // "consumable" / "non_consumable" / "subscription" / "unknown"
 
-                var stored = double.TryParse(PlayerPrefs.GetString(KeyIAPTotalRevenue, "0"), out var prev) ? prev : 0.0;
-                var storedCurrency = PlayerPrefs.GetString(KeyIAPRevenueCurrency, "");
-
-                // The accumulator sums raw local amounts, so appending a different currency to a
-                // non-zero total is meaningless. Warn (but still append) so the mismatch is visible
-                // in logs without disrupting the purchase flow.
-                if (stored > 0 && !string.IsNullOrEmpty(storedCurrency) && storedCurrency != currency)
+                // No exchange rate from backend -> cannot value this in USD on device.
+                // Track directly (per purchase, no accumulator) so the backend converts manually.
+                if (localPriceInUsd <= 0)
                 {
-                    _log.Warning($"[taichi] iap currency mismatch: stored {stored:G} {storedCurrency}, incoming {(double)order.Price:G} {currency}; appending to the same accumulator anyway");
+                    var unconverted = new Dictionary<string, IConvertible>
+                    {
+                        { "value",                order.Price },                                                      // raw local amount
+                        { "currency",             string.IsNullOrWhiteSpace(order.Currency) ? "USD" : order.Currency },
+                        { "currency_to_usd_rate", rate },                                                             // 0
+                        { "local_price_in_usd",   localPriceInUsd },                                                  // 0
+                        { "type",                 type }
+                    };
+                    _log.Info($"[taichi] taichi_iap_revenue_unconverted fired (local value={order.Price:G} {order.Currency}, type={type})");
+                    _nativePlugin?.TrackCustomEvent("taichi_iap_revenue_unconverted", unconverted);
+                    return;
                 }
 
-                var totalRevenue = stored + (double)order.Price;
+                // Rate available: accumulate in USD against the USD threshold.
+                var stored = double.TryParse(PlayerPrefs.GetString(KeyIAPTotalRevenue, "0"), out var prev) ? prev : 0.0;
+                var totalRevenue = stored + localPriceInUsd;
                 PlayerPrefs.SetString(KeyIAPTotalRevenue, totalRevenue.ToString("G"));
-                PlayerPrefs.SetString(KeyIAPRevenueCurrency, currency);
+                PlayerPrefs.SetString(KeyIAPRevenueCurrency, "USD");
 
-                _log.Debug($"[taichi] iap revenue progress: {totalRevenue:G} / {_taichiConfig.RevenueThreshold:G} {currency}");
+                _log.Debug($"[taichi] iap revenue progress: {totalRevenue:G} / {_taichiConfig.RevenueThreshold:G} USD");
 
                 if (totalRevenue >= _taichiConfig.RevenueThreshold)
                 {
                     var payload = new Dictionary<string, IConvertible>
                     {
-                        { "value",    totalRevenue },
-                        { "currency", currency }
+                        { "value",                totalRevenue },     // cumulative USD
+                        { "currency",             "USD" },
+                        { "currency_to_usd_rate", rate },
+                        { "local_price_in_usd",   localPriceInUsd },  // this order's USD
+                        { "type",                 type }
                     };
-                    _log.Info($"[taichi] taichi_iap_revenue fired (value={totalRevenue:G} {currency} >= {_taichiConfig.RevenueThreshold:G})");
+                    _log.Info($"[taichi] taichi_iap_revenue fired (value={totalRevenue:G} USD >= {_taichiConfig.RevenueThreshold:G}, rate={rate:G}, type={type})");
                     _nativePlugin?.TrackCustomEvent("taichi_iap_revenue", payload);
                     PlayerPrefs.SetString(KeyIAPTotalRevenue, "0");
                     PlayerPrefs.DeleteKey(KeyIAPRevenueCurrency);
