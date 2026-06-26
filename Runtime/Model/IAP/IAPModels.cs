@@ -147,9 +147,9 @@ namespace com.noctuagames.sdk
         [JsonProperty("local_price_in_usd")]
         public decimal LocalPriceInUsd;
 
-        /// <summary>Product type (consumable / non_consumable / subscription).</summary>
-        [JsonProperty("type")]
-        public IapProductType Type;
+        // /// <summary>Product type (consumable / non_consumable / subscription).</summary>
+        // [JsonProperty("type")]
+        // public IapProductType Type;
     }
 
     /// <summary>

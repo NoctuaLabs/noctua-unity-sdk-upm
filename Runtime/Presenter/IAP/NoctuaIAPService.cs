@@ -2600,21 +2600,20 @@ namespace com.noctuagames.sdk
             {
                 var localPriceInUsd = (double)order.LocalPriceInUsd;
                 var rate            = (double)order.CurrencyToUsdRate;
-                var type            = order.Type.ToString();   // "consumable" / "non_consumable" / "subscription" / "unknown"
 
                 // Dump every input the decision below depends on, so a single [taichi] grep
                 // shows exactly what the backend returned for this order.
-                _log.Info(
+                _log.Debug(
                     $"[taichi] iap tracking start — orderId={order.Id}, productId={order.ProductId}, " +
                     $"price={order.Price:G} {order.Currency}, priceInUsd={order.PriceInUSD:G}, " +
-                    $"local_price_in_usd={localPriceInUsd:G}, currency_to_usd_rate={rate:G}, type={type}, " +
+                    $"local_price_in_usd={localPriceInUsd:G}, currency_to_usd_rate={rate:G}, " +
                     $"revenueThreshold={_taichiConfig.RevenueThreshold:G} USD");
 
                 // No exchange rate from backend -> cannot value this in USD on device.
                 // Track directly (per purchase, no accumulator) so the backend converts manually.
                 if (localPriceInUsd <= 0)
                 {
-                    _log.Info(
+                    _log.Debug(
                         $"[taichi] no usd rate (local_price_in_usd={localPriceInUsd:G}) — routing to " +
                         $"taichi_iap_revenue_unconverted; accumulator left untouched");
 
@@ -2623,13 +2622,12 @@ namespace com.noctuagames.sdk
                         { "value",                order.Price },                                                      // raw local amount
                         { "currency",             string.IsNullOrWhiteSpace(order.Currency) ? "USD" : order.Currency },
                         { "currency_to_usd_rate", rate },                                                             // 0
-                        { "local_price_in_usd",   localPriceInUsd },                                                  // 0
-                        { "type",                 type }
+                        { "local_price_in_usd",   localPriceInUsd }                                                  // 0
                     };
-                    _log.Info(
+                    _log.Debug(
                         $"[taichi] taichi_iap_revenue_unconverted fired — payload: value={order.Price:G}, " +
                         $"currency={(string.IsNullOrWhiteSpace(order.Currency) ? "USD" : order.Currency)}, " +
-                        $"currency_to_usd_rate={rate:G}, local_price_in_usd={localPriceInUsd:G}, type={type}");
+                        $"currency_to_usd_rate={rate:G}, local_price_in_usd={localPriceInUsd:G}");
                     if (_nativePlugin == null)
                         _log.Warning("[taichi] native plugin is null — taichi_iap_revenue_unconverted NOT delivered to native tracker");
                     _nativePlugin?.TrackCustomEvent("taichi_iap_revenue_unconverted", unconverted);
@@ -2642,7 +2640,7 @@ namespace com.noctuagames.sdk
                 PlayerPrefs.SetString(KeyIAPTotalRevenue, totalRevenue.ToString("G"));
                 PlayerPrefs.SetString(KeyIAPRevenueCurrency, "USD");
 
-                _log.Info(
+                _log.Debug(
                     $"[taichi] iap accumulate — stored={stored:G} + thisOrder={localPriceInUsd:G} = " +
                     $"total={totalRevenue:G} USD (threshold={_taichiConfig.RevenueThreshold:G})");
                 _log.Debug($"[taichi] iap revenue progress: {totalRevenue:G} / {_taichiConfig.RevenueThreshold:G} USD");
@@ -2654,13 +2652,12 @@ namespace com.noctuagames.sdk
                         { "value",                totalRevenue },     // cumulative USD
                         { "currency",             "USD" },
                         { "currency_to_usd_rate", rate },
-                        { "local_price_in_usd",   localPriceInUsd },  // this order's USD
-                        { "type",                 type }
+                        { "local_price_in_usd",   localPriceInUsd }  // this order's USD
                     };
-                    _log.Info(
+                    _log.Debug(
                         $"[taichi] taichi_iap_revenue fired — threshold crossed ({totalRevenue:G} >= " +
                         $"{_taichiConfig.RevenueThreshold:G}); payload: value={totalRevenue:G}, currency=USD, " +
-                        $"currency_to_usd_rate={rate:G}, local_price_in_usd={localPriceInUsd:G}, type={type}");
+                        $"currency_to_usd_rate={rate:G}, local_price_in_usd={localPriceInUsd:G}");
                     if (_nativePlugin == null)
                         _log.Warning("[taichi] native plugin is null — taichi_iap_revenue NOT delivered to native tracker");
                     _nativePlugin?.TrackCustomEvent("taichi_iap_revenue", payload);
@@ -2671,7 +2668,7 @@ namespace com.noctuagames.sdk
                 }
                 else
                 {
-                    _log.Info(
+                    _log.Debug(
                         $"[taichi] taichi_iap_revenue NOT fired — below threshold " +
                         $"({totalRevenue:G} < {_taichiConfig.RevenueThreshold:G}); accumulator persisted");
                 }
