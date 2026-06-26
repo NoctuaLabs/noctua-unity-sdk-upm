@@ -1047,7 +1047,6 @@ namespace com.noctuagames.sdk
                 orderRequest.Id = orderResponse.Id;
                 orderRequest.CurrencyToUsdRate = orderResponse.CurrencyToUsdRate;
                 orderRequest.LocalPriceInUsd  = orderResponse.LocalPriceInUsd;
-                orderRequest.Type             = orderResponse.Type;
 
                 // Override the payment type in case this get altered from backend.
                 // TODO this will cause payment loop if both of these conditions meet:
@@ -2585,6 +2584,12 @@ namespace com.noctuagames.sdk
         {
             // All log lines carry the [taichi] tag so the IAP-revenue path can be found alongside
             // the ad-impression taichi steps with one grep.
+            if (order == null)
+            {
+                _log.Warning("[taichi] iap skipped: order is null");
+                return;
+            }
+
             if (_taichiConfig == null)
             {
                 _log.Warning("[taichi] iap config is null, skipping revenue tracking");
@@ -2597,10 +2602,22 @@ namespace com.noctuagames.sdk
                 var rate            = (double)order.CurrencyToUsdRate;
                 var type            = order.Type.ToString();   // "consumable" / "non_consumable" / "subscription" / "unknown"
 
+                // Dump every input the decision below depends on, so a single [taichi] grep
+                // shows exactly what the backend returned for this order.
+                _log.Info(
+                    $"[taichi] iap tracking start — orderId={order.Id}, productId={order.ProductId}, " +
+                    $"price={order.Price:G} {order.Currency}, priceInUsd={order.PriceInUSD:G}, " +
+                    $"local_price_in_usd={localPriceInUsd:G}, currency_to_usd_rate={rate:G}, type={type}, " +
+                    $"revenueThreshold={_taichiConfig.RevenueThreshold:G} USD");
+
                 // No exchange rate from backend -> cannot value this in USD on device.
                 // Track directly (per purchase, no accumulator) so the backend converts manually.
                 if (localPriceInUsd <= 0)
                 {
+                    _log.Info(
+                        $"[taichi] no usd rate (local_price_in_usd={localPriceInUsd:G}) — routing to " +
+                        $"taichi_iap_revenue_unconverted; accumulator left untouched");
+
                     var unconverted = new Dictionary<string, IConvertible>
                     {
                         { "value",                order.Price },                                                      // raw local amount
@@ -2609,7 +2626,12 @@ namespace com.noctuagames.sdk
                         { "local_price_in_usd",   localPriceInUsd },                                                  // 0
                         { "type",                 type }
                     };
-                    _log.Info($"[taichi] taichi_iap_revenue_unconverted fired (local value={order.Price:G} {order.Currency}, type={type})");
+                    _log.Info(
+                        $"[taichi] taichi_iap_revenue_unconverted fired — payload: value={order.Price:G}, " +
+                        $"currency={(string.IsNullOrWhiteSpace(order.Currency) ? "USD" : order.Currency)}, " +
+                        $"currency_to_usd_rate={rate:G}, local_price_in_usd={localPriceInUsd:G}, type={type}");
+                    if (_nativePlugin == null)
+                        _log.Warning("[taichi] native plugin is null — taichi_iap_revenue_unconverted NOT delivered to native tracker");
                     _nativePlugin?.TrackCustomEvent("taichi_iap_revenue_unconverted", unconverted);
                     return;
                 }
@@ -2620,6 +2642,9 @@ namespace com.noctuagames.sdk
                 PlayerPrefs.SetString(KeyIAPTotalRevenue, totalRevenue.ToString("G"));
                 PlayerPrefs.SetString(KeyIAPRevenueCurrency, "USD");
 
+                _log.Info(
+                    $"[taichi] iap accumulate — stored={stored:G} + thisOrder={localPriceInUsd:G} = " +
+                    $"total={totalRevenue:G} USD (threshold={_taichiConfig.RevenueThreshold:G})");
                 _log.Debug($"[taichi] iap revenue progress: {totalRevenue:G} / {_taichiConfig.RevenueThreshold:G} USD");
 
                 if (totalRevenue >= _taichiConfig.RevenueThreshold)
@@ -2632,16 +2657,28 @@ namespace com.noctuagames.sdk
                         { "local_price_in_usd",   localPriceInUsd },  // this order's USD
                         { "type",                 type }
                     };
-                    _log.Info($"[taichi] taichi_iap_revenue fired (value={totalRevenue:G} USD >= {_taichiConfig.RevenueThreshold:G}, rate={rate:G}, type={type})");
+                    _log.Info(
+                        $"[taichi] taichi_iap_revenue fired — threshold crossed ({totalRevenue:G} >= " +
+                        $"{_taichiConfig.RevenueThreshold:G}); payload: value={totalRevenue:G}, currency=USD, " +
+                        $"currency_to_usd_rate={rate:G}, local_price_in_usd={localPriceInUsd:G}, type={type}");
+                    if (_nativePlugin == null)
+                        _log.Warning("[taichi] native plugin is null — taichi_iap_revenue NOT delivered to native tracker");
                     _nativePlugin?.TrackCustomEvent("taichi_iap_revenue", payload);
                     PlayerPrefs.SetString(KeyIAPTotalRevenue, "0");
                     PlayerPrefs.DeleteKey(KeyIAPRevenueCurrency);
                     PlayerPrefs.Save();
+                    _log.Info("[taichi] iap accumulator reset to 0 after firing taichi_iap_revenue");
+                }
+                else
+                {
+                    _log.Info(
+                        $"[taichi] taichi_iap_revenue NOT fired — below threshold " +
+                        $"({totalRevenue:G} < {_taichiConfig.RevenueThreshold:G}); accumulator persisted");
                 }
             }
             catch (Exception e)
             {
-                _log.Warning($"[taichi] iap revenue tracking failed: {e.Message}");
+                _log.Warning($"[taichi] iap revenue tracking failed: {e.Message}\n{e.StackTrace}");
             }
         }
 
