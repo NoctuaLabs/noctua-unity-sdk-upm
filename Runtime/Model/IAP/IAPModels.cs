@@ -489,6 +489,14 @@ namespace com.noctuagames.sdk
         [JsonProperty("ingame_item_name")]
         public string IngameItemName;
 
+        /// <summary>Exchange rate to convert this order's local currency to USD. 0 when backend has no rate.</summary>
+        [JsonProperty("currency_to_usd_rate")]
+        public decimal CurrencyToUsdRate;
+
+        /// <summary>Order price already converted to USD by the backend. 0 when no exchange rate is available.</summary>
+        [JsonProperty("local_price_in_usd")]
+        public decimal LocalPriceInUsd;
+
         /// <summary>Additional key-value metadata for the purchase.</summary>
         [JsonProperty("extra")]
         public Dictionary<string, string> Extra;

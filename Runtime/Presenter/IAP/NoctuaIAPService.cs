@@ -1009,6 +1009,8 @@ namespace com.noctuagames.sdk
                     IngameItemId = purchaseRequest.IngameItemId,
                     IngameItemName = purchaseRequest.IngameItemName,
                     CurrentStageLevel = PlayerPrefs.GetString("NoctuaCurrentStageLevel", ""),
+                    CurrencyToUsdRate = purchaseRequest.CurrencyToUsdRate,
+                    LocalPriceInUsd = purchaseRequest.LocalPriceInUsd,
                     Extra = purchaseRequest.Extra
                 };
 
