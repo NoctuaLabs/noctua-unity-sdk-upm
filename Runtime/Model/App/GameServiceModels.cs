@@ -144,6 +144,15 @@ namespace com.noctuagames.sdk
         public List<AdExperimentConfig> AdExperiments;
 
         /// <summary>
+        /// Cross-promotion ad placeholder configuration. When non-null, a CDN asset (image or video)
+        /// per ad format is shown as a fallback when no real ad displays. When null, the placeholder is
+        /// fully disabled — nothing is fetched or shown. There is no separate enable flag and no bundled
+        /// static-image fallback; the presence of this object is the gate.
+        /// </summary>
+        [JsonProperty("cross_promotion")]
+        public CrossPromotionConfig CrossPromotion;
+
+        /// <summary>
         /// Returns a new IAA config where fields from <paramref name="remote"/> override
         /// only when they are non-null. Fields absent in the remote response retain their
         /// local values, so game developers can set defaults in noctuagg.json that survive
@@ -168,6 +177,28 @@ namespace com.noctuagames.sdk
                 Taichi              = remote.Taichi              ?? Taichi,
                 CpmFloors           = remote.CpmFloors           ?? CpmFloors,
                 AdExperiments       = remote.AdExperiments       ?? AdExperiments,
+                CrossPromotion      = MergeCrossPromotion(CrossPromotion, remote.CrossPromotion),
+            };
+        }
+
+        /// <summary>
+        /// Merges cross-promotion configs field-by-field. A null entry in <paramref name="remote"/>
+        /// for a given format means that format was not specified in the override — the base value is
+        /// kept. An explicit entry in <paramref name="remote"/> always wins. When both sides are null
+        /// the result is null, which keeps the placeholder disabled.
+        /// </summary>
+        private static CrossPromotionConfig MergeCrossPromotion(
+            CrossPromotionConfig local, CrossPromotionConfig remote)
+        {
+            if (remote == null) return local;
+            if (local == null) return remote;
+
+            return new CrossPromotionConfig
+            {
+                Interstitial         = remote.Interstitial         ?? local.Interstitial,
+                Rewarded             = remote.Rewarded             ?? local.Rewarded,
+                RewardedInterstitial = remote.RewardedInterstitial ?? local.RewardedInterstitial,
+                Banner               = remote.Banner               ?? local.Banner,
             };
         }
 
@@ -400,6 +431,58 @@ namespace com.noctuagames.sdk
         /// <summary>Whether app open ads are enabled. Null means "not specified" (defaults to true at usage site).</summary>
         [JsonProperty("app_open")]
         public bool? AppOpen;
+    }
+
+    /// <summary>
+    /// Per-format cross-promotion asset configuration for the ad placeholder. The presence of this
+    /// object (and a per-format entry with an asset URL) enables the cross-promotion placeholder for
+    /// that format. A null object or a missing/empty entry disables the placeholder for that format.
+    /// </summary>
+    [Preserve]
+    public class CrossPromotionConfig
+    {
+        /// <summary>Cross-promotion asset for interstitial placeholders. Null disables it for this format.</summary>
+        [JsonProperty("interstitial")]
+        public CrossPromotionEntry Interstitial;
+
+        /// <summary>Cross-promotion asset for rewarded placeholders. Null disables it for this format.</summary>
+        [JsonProperty("rewarded")]
+        public CrossPromotionEntry Rewarded;
+
+        /// <summary>Cross-promotion asset for rewarded interstitial placeholders. Null disables it for this format.</summary>
+        [JsonProperty("rewarded_interstitial")]
+        public CrossPromotionEntry RewardedInterstitial;
+
+        /// <summary>Cross-promotion asset for banner placeholders. Null disables it for this format.</summary>
+        [JsonProperty("banner")]
+        public CrossPromotionEntry Banner;
+    }
+
+    /// <summary>
+    /// A single cross-promotion placeholder asset for one ad format.
+    /// </summary>
+    [Preserve]
+    public class CrossPromotionEntry
+    {
+        /// <summary>
+        /// CDN URL of the asset to display. Image or video, detected by file extension
+        /// (".mp4"/".webm"/".ogv" are treated as video; everything else as an image). When empty or
+        /// unreachable, no placeholder is shown (there is no bundled static-image fallback).
+        /// </summary>
+        [JsonProperty("asset_url")]
+        public string AssetUrl;
+
+        /// <summary>Optional click-through URL opened when the user taps the asset. Null/empty means non-clickable.</summary>
+        [JsonProperty("click_url")]
+        public string ClickUrl;
+
+        /// <summary>
+        /// Minimum seconds the placeholder must be shown before the close button appears. For videos
+        /// the close button also appears when playback ends, whichever comes first. Null or 0 allows
+        /// closing as soon as the video ends (or immediately for images).
+        /// </summary>
+        [JsonProperty("min_watch_seconds")]
+        public int? MinWatchSeconds;
     }
 
     /// <summary>

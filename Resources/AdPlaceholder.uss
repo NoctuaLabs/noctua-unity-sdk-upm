@@ -1,8 +1,14 @@
+/* Flexible creative: the container spans the whole placeholder, but the asset (image or video
+   render texture) is scaled to FIT — preserving its aspect ratio so the entire creative is visible
+   on any screen size or orientation instead of being cropped to fullscreen. The .base parent paints
+   a black backdrop behind the letterbox bars. */
 .noctua-ad-placeholder {
-   height: 90%; 
-   width: 90%; 
-   padding-top: 5%; 
-   align-self: center;
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    -unity-background-scale-mode: scale-to-fit;
 }
 
 .banner-box {
@@ -20,6 +26,39 @@
     border-left-width: 0;
 }
 
-.ad-placeholder-banner {
-   background-image: resource("NoctuaAdPlaceholder/BannerAd");
+/* Small, clean close (X): a compact circular tap target pinned top-right over the creative.
+   Loaded after Noctua.uss so it overrides .close-icon's size/background while keeping that
+   class's X background-image. The X icon (20px) is centred and scaled down inside the circle. */
+.cross-promo-close {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    width: 28px;
+    height: 28px;
+    background-color: rgba(0, 0, 0, 0.45);
+    border-top-left-radius: 14px;
+    border-top-right-radius: 14px;
+    border-bottom-left-radius: 14px;
+    border-bottom-right-radius: 14px;
+    background-position: center;
+}
+
+/* Mediation-style skip countdown, pinned bottom-left over the creative. */
+.cross-promo-countdown {
+    position: absolute;
+    bottom: 16px;
+    left: 16px;
+    color: rgb(234, 234, 234);
+    font-size: 18px;
+    -unity-font-style: bold;
+    -unity-text-align: middle-center;
+    background-color: rgba(0, 0, 0, 0.45);
+    padding-top: 4px;
+    padding-bottom: 4px;
+    padding-left: 12px;
+    padding-right: 12px;
+    border-top-left-radius: 14px;
+    border-top-right-radius: 14px;
+    border-bottom-left-radius: 14px;
+    border-bottom-right-radius: 14px;
 }

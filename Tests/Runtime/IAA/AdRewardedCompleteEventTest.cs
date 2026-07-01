@@ -55,8 +55,14 @@ namespace Tests.Runtime.IAA
 
         private class NoopAdPlaceholderUI : IAdPlaceholderUI
         {
-            public void ShowAdPlaceholder(AdPlaceholderType adType) { }
+            public void ShowAdPlaceholder(AdPlaceholderType adType, CrossPromotionEntry entry) { }
+            public void PreloadAdPlaceholder(CrossPromotionConfig config) { }
+            public void SetPlaceholderClosedCallback(System.Action onClosed) { }
+            public void SetPlaceholderClickedCallback(System.Action onClicked) { }
+            public void SetPlaceholderShownCallback(System.Action onShown) { }
+            public void SetPlaceholderFailedCallback(System.Action onFailed) { }
             public void CloseAdPlaceholder() { }
+            public bool IsAssetCached(string assetUrl) => false;
         }
 
         // ── Test helpers ───────────────────────────────────────────────────────────

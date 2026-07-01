@@ -381,5 +381,85 @@ namespace Tests.Runtime.IAA
             Assert.AreEqual(15, result.CooldownSeconds.Interstitial);
             Assert.AreEqual(30, result.CooldownSeconds.AppOpen);
         }
+
+        // ─── MergeWith: CrossPromotion ───────────────────────────────────────
+
+        [Test]
+        public void MergeWith_BothCrossPromotionNull_ResultIsNull()
+        {
+            var local  = new IAAModel { CrossPromotion = null };
+            var remote = new IAAModel { CrossPromotion = null };
+
+            var result = local.MergeWith(remote);
+
+            Assert.IsNull(result.CrossPromotion,
+                "Both sides null should stay null so the placeholder remains disabled");
+        }
+
+        [Test]
+        public void MergeWith_RemoteCrossPromotionNull_LocalPreserved()
+        {
+            var local = new IAAModel
+            {
+                CrossPromotion = new CrossPromotionConfig
+                {
+                    Interstitial = new CrossPromotionEntry { AssetUrl = "https://cdn/local.mp4" }
+                }
+            };
+            var remote = new IAAModel { CrossPromotion = null };
+
+            var result = local.MergeWith(remote);
+
+            Assert.IsNotNull(result.CrossPromotion);
+            Assert.AreEqual("https://cdn/local.mp4", result.CrossPromotion.Interstitial.AssetUrl,
+                "Remote null should preserve the local cross-promotion config");
+        }
+
+        [Test]
+        public void MergeWith_LocalCrossPromotionNull_RemoteApplied()
+        {
+            var local  = new IAAModel { CrossPromotion = null };
+            var remote = new IAAModel
+            {
+                CrossPromotion = new CrossPromotionConfig
+                {
+                    Rewarded = new CrossPromotionEntry { AssetUrl = "https://cdn/remote.png" }
+                }
+            };
+
+            var result = local.MergeWith(remote);
+
+            Assert.IsNotNull(result.CrossPromotion);
+            Assert.AreEqual("https://cdn/remote.png", result.CrossPromotion.Rewarded.AssetUrl,
+                "Remote config should apply when local is null");
+        }
+
+        [Test]
+        public void MergeWith_CrossPromotion_PartialOverridePerFormat()
+        {
+            var local = new IAAModel
+            {
+                CrossPromotion = new CrossPromotionConfig
+                {
+                    Interstitial = new CrossPromotionEntry { AssetUrl = "https://cdn/local-inter.mp4" },
+                    Rewarded     = new CrossPromotionEntry { AssetUrl = "https://cdn/local-rewarded.mp4" }
+                }
+            };
+            var remote = new IAAModel
+            {
+                CrossPromotion = new CrossPromotionConfig
+                {
+                    // Only override rewarded; interstitial absent in remote.
+                    Rewarded = new CrossPromotionEntry { AssetUrl = "https://cdn/remote-rewarded.png" }
+                }
+            };
+
+            var result = local.MergeWith(remote);
+
+            Assert.AreEqual("https://cdn/local-inter.mp4", result.CrossPromotion.Interstitial.AssetUrl,
+                "Format absent in remote should keep the local entry");
+            Assert.AreEqual("https://cdn/remote-rewarded.png", result.CrossPromotion.Rewarded.AssetUrl,
+                "Format present in remote should override the local entry");
+        }
     }
 }

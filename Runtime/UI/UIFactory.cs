@@ -180,9 +180,19 @@ namespace com.noctuagames.sdk.UI
         /// Displays an ad placeholder UI for the specified ad type while the real ad loads.
         /// </summary>
         /// <param name="adType">The type of ad placeholder to display (banner, interstitial, or rewarded).</param>
-        public void ShowAdPlaceholder(AdPlaceholderType adType)
+        /// <param name="entry">The resolved cross-promotion asset for this format.</param>
+        public void ShowAdPlaceholder(AdPlaceholderType adType, CrossPromotionEntry entry)
         {
-            _adPlaceholder.Show(adType: adType);
+            _adPlaceholder.Show(adType, entry);
+        }
+
+        /// <summary>
+        /// Preloads cross-promotion assets into the cache so a later show renders instantly.
+        /// </summary>
+        /// <param name="config">The cross-promotion config whose per-format assets should be cached.</param>
+        public void PreloadAdPlaceholder(CrossPromotionConfig config)
+        {
+            AdPlaceholder.PlaceholderAssetSource.Instance.Preload(config);
         }
 
         /// <summary>
@@ -191,6 +201,39 @@ namespace com.noctuagames.sdk.UI
         public void CloseAdPlaceholder()
         {
             _adPlaceholder.CloseAdPlaceholder();
+        }
+
+        /// <summary>
+        /// Returns true when the cross-promotion asset at <paramref name="assetUrl"/> is cached
+        /// locally and can be shown without a network fetch.
+        /// </summary>
+        public bool IsAssetCached(string assetUrl)
+        {
+            return AdPlaceholder.PlaceholderAssetSource.Instance.IsCached(assetUrl);
+        }
+
+        /// <summary>Registers a callback invoked whenever the placeholder is dismissed.</summary>
+        public void SetPlaceholderClosedCallback(System.Action onClosed)
+        {
+            _adPlaceholder.SetClosedCallback(onClosed);
+        }
+
+        /// <summary>Registers a callback invoked when the placeholder asset is tapped (click-through).</summary>
+        public void SetPlaceholderClickedCallback(System.Action onClicked)
+        {
+            _adPlaceholder.SetClickedCallback(onClicked);
+        }
+
+        /// <summary>Registers a callback invoked once the placeholder asset has rendered.</summary>
+        public void SetPlaceholderShownCallback(System.Action onShown)
+        {
+            _adPlaceholder.SetShownCallback(onShown);
+        }
+
+        /// <summary>Registers a callback invoked when the placeholder asset fails to load/show.</summary>
+        public void SetPlaceholderFailedCallback(System.Action onFailed)
+        {
+            _adPlaceholder.SetFailedCallback(onFailed);
         }
 
         private void ApplyLocalization(VisualElement root, string uxmlName, Dictionary<string, string> localization)

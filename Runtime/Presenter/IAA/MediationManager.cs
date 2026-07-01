@@ -131,7 +131,21 @@ namespace com.noctuagames.sdk
 
         private readonly IAdPlaceholderUI _adPlaceholderUI;
         private IAdRevenueTracker _adRevenueTracker;
+        // True once the cross-promotion placeholder has been dismissed for the CURRENT ad request.
+        // Reset to false at the start of every game-initiated Show* call. Guards against an async
+        // network straggler (e.g. a late OnAdFailedDisplayed arriving after the user already closed
+        // the cross-promo) re-showing the placeholder a second time for the same request.
         private bool _hasClosedPlaceholder;
+        // Cross-promotion is a FALLBACK house-ad shown only when no real ad displays. Its asset loads
+        // asynchronously, so the ad lifecycle is driven by UI callbacks: OnAdDisplayed fires only once
+        // the asset actually renders (placeholder "shown"); if the asset can't be loaded the placeholder
+        // reports "failed" and we fire OnAdNotAvailable (treated as no ad). OnAdClicked on CTA,
+        // OnAdClosed on dismiss. The "no real ad" signal is deferred until that shown/failed outcome.
+        private bool _crossPromoPending; // show requested, awaiting the shown/failed callback
+        private bool _crossPromoShown;   // asset rendered (OnAdDisplayed fired)
+        private string _pendingCrossPromoFormat;
+        private AdPlaceholderType _lastRequestedType;
+        private bool _suppressNextCloseEvent;
         private bool _adNetworkEventsSubscribed;
         private bool _preloadManagerEventsSubscribed;
 
@@ -160,6 +174,10 @@ namespace com.noctuagames.sdk
                     _adNetworkEventsSubscribed = false;
                     _preloadManagerEventsSubscribed = false;
                     CreateNetworks(value);
+                    // Warm the cross-promotion cache so the placeholder shows instantly when needed
+                    // (load-then-show, like mediation ads). No-op when cross-promotion is unconfigured.
+                    _log.Debug($"{LogTag} preload_cross_promotion - warm placeholder cache from applied IAA config");
+                    _adPlaceholderUI?.PreloadAdPlaceholder(value.CrossPromotion);
                     // Reset back to the default so the next assignment that
                     // doesn't pre-declare its origin isn't mis-tagged.
                     _nextConfigOrigin = IaaConfigOriginLocal;
@@ -358,6 +376,14 @@ namespace com.noctuagames.sdk
             // Must be called from Unity's main thread (it is — Noctua() ctor runs on main thread).
             _mainThreadContext = SynchronizationContext.Current;
             _adPlaceholderUI = adPlaceholderUI;
+
+            // Wire the cross-promotion placeholder into the ad lifecycle: a dismiss fires OnAdClosed
+            // (game resumes, no reward) and a CTA tap fires OnAdClicked — the same handlers the game
+            // already uses for real ads.
+            _adPlaceholderUI?.SetPlaceholderClosedCallback(OnPlaceholderClosed);
+            _adPlaceholderUI?.SetPlaceholderClickedCallback(OnPlaceholderClicked);
+            _adPlaceholderUI?.SetPlaceholderShownCallback(OnPlaceholderShown);
+            _adPlaceholderUI?.SetPlaceholderFailedCallback(OnPlaceholderFailed);
 
             if (iAAResponse == null)
             {
@@ -850,16 +876,16 @@ namespace com.noctuagames.sdk
 
             _orchestrator.OnAdDisplayed += () => PostToMainThread(() =>
             {
-                CloseAdPlaceholder();
+                CloseAdPlaceholder(force: true);
                 _appOpenAdManager?.SetFullscreenAdShowing(true);
                 _onAdDisplayed?.Invoke();
             });
 
             _orchestrator.OnAdFailedDisplayed += () => PostToMainThread(() =>
             {
-                CloseAdPlaceholder();
                 _appOpenAdManager?.SetFullscreenAdShowing(false);
-                _onAdFailedDisplayed?.Invoke();
+                // Show the cross-promotion fallback; only report failure to the game if it can't show.
+                if (!ShowCrossPromoFallback(_lastRequestedType)) _onAdFailedDisplayed?.Invoke();
             });
 
             _orchestrator.OnAdClicked += () => PostToMainThread(() => _onAdClicked?.Invoke());
@@ -1099,8 +1125,8 @@ namespace com.noctuagames.sdk
                 {
                     _rewardedInterstitialAdmob = new RewardedInterstitialAdmob();
                     _rewardedInterstitialAdmob.SetRewardedInterstitialAdUnitID(_rewardedInterstitialAdUnitID);
-                    _rewardedInterstitialAdmob.RewardedOnAdDisplayed += () => { CloseAdPlaceholder(); _frequencyManager?.RecordImpression(AdFormatKey.RewardedInterstitial); _onAdDisplayed?.Invoke(); };
-                    _rewardedInterstitialAdmob.RewardedOnAdFailedDisplayed += () => { CloseAdPlaceholder(); _onAdFailedDisplayed?.Invoke(); };
+                    _rewardedInterstitialAdmob.RewardedOnAdDisplayed += () => { CloseAdPlaceholder(force: true); _frequencyManager?.RecordImpression(AdFormatKey.RewardedInterstitial); _onAdDisplayed?.Invoke(); };
+                    _rewardedInterstitialAdmob.RewardedOnAdFailedDisplayed += () => { if (!ShowCrossPromoFallback(AdPlaceholderType.RewardedInterstitial)) _onAdFailedDisplayed?.Invoke(); };
                     _rewardedInterstitialAdmob.RewardedOnAdClosed += () => _onAdClosed?.Invoke();
                     _rewardedInterstitialAdmob.RewardedOnAdClicked += () => _onAdClicked?.Invoke();
                     _rewardedInterstitialAdmob.RewardedOnAdImpressionRecorded += () => _onAdImpressionRecorded?.Invoke();
@@ -1269,7 +1295,7 @@ namespace com.noctuagames.sdk
                 frequencyManager: _frequencyManager,
                 autoShowOnForeground: iAAResponse.AppOpenAutoShow ?? false,
                 preferredNetworkName: preferredAppOpenNetwork,
-                onAdNotAvailable: format => _onAdNotAvailable?.Invoke(format)
+                onAdNotAvailable: format => NotifyAdNotAvailable(format)
             );
 
             // Only pass primary here; secondary will be added in SetupSecondaryAppOpen after secondary SDK is ready.
@@ -1475,7 +1501,7 @@ namespace com.noctuagames.sdk
 
                 // Preload path failed — try secondary or fire not-available.
                 if (!isFallback) TryInterstitialFallback(admobNetwork, placement);
-                else _onAdNotAvailable?.Invoke(AdFormatKey.Interstitial);
+                else NotifyAdNotAvailable(AdFormatKey.Interstitial);
                 return;
             }
 #endif
@@ -1497,7 +1523,7 @@ namespace com.noctuagames.sdk
                 _log.Info("Admob Interstitial Ad not ready (legacy path)");
                 CloseAdPlaceholder();
                 if (!isFallback) TryInterstitialFallback(admobNetwork, placement);
-                else _onAdNotAvailable?.Invoke(AdFormatKey.Interstitial);
+                else NotifyAdNotAvailable(AdFormatKey.Interstitial);
             }
         }
 #endif
@@ -1512,14 +1538,14 @@ namespace com.noctuagames.sdk
             if (fallback == null)
             {
                 _log.Info("Interstitial: no secondary network to fall back to.");
-                _onAdNotAvailable?.Invoke(AdFormatKey.Interstitial);
+                NotifyAdNotAvailable(AdFormatKey.Interstitial);
                 return;
             }
 
             if (!IsCpmFloorAcceptable(fallback, AdFormatKey.Interstitial))
             {
                 _log.Info($"Interstitial fallback to {fallback.NetworkName} blocked by CPM hard floor. No ad available.");
-                _onAdNotAvailable?.Invoke(AdFormatKey.Interstitial);
+                NotifyAdNotAvailable(AdFormatKey.Interstitial);
                 return;
             }
 
@@ -1547,7 +1573,7 @@ namespace com.noctuagames.sdk
             else
             {
                 _log.Info($"{fallback.NetworkName} interstitial also not ready. No ad available.");
-                _onAdNotAvailable?.Invoke(AdFormatKey.Interstitial);
+                NotifyAdNotAvailable(AdFormatKey.Interstitial);
             }
         }
 
@@ -1596,7 +1622,7 @@ namespace com.noctuagames.sdk
 
             interstitialAd.OnAdFullScreenContentOpened += () => PostToMainThread(() =>
             {
-                CloseAdPlaceholder();
+                CloseAdPlaceholder(force: true);
                 EmitCanonicalIaa(IAAEventNames.AdShown, IAAPayloadBuilder.BuildAdLoaded(
                     placement:  placement,
                     adType:     AdFormatKey.Interstitial,
@@ -1609,13 +1635,13 @@ namespace com.noctuagames.sdk
             });
             interstitialAd.OnAdFullScreenContentFailed += (AdError error) => PostToMainThread(() =>
             {
-                CloseAdPlaceholder();
                 EmitCanonicalIaa(IAAEventNames.AdShowFailed, IAAPayloadBuilder.BuildAdShowFailed(
                     adFormat:   AdFormatKey.Interstitial,
                     adPlatform: AdNetworkName.Admob,
                     adUnitName: _interstitialAdUnitID,
                     error:      IAAPayloadBuilder.FormatError(error.GetCode(), error.GetMessage(), error.GetDomain())));
-                _onAdFailedDisplayed?.Invoke();
+                // Show the cross-promotion fallback; only report failure to the game if it can't show.
+                if (!ShowCrossPromoFallback(AdPlaceholderType.Interstitial)) _onAdFailedDisplayed?.Invoke();
                 _log.Warning("Interstitial Ad failed to show. Error: " + error);
             });
             interstitialAd.OnAdFullScreenContentClosed += () => PostToMainThread(() =>
@@ -1775,7 +1801,7 @@ namespace com.noctuagames.sdk
 
                 // Preload path failed — try secondary or fire not-available.
                 if (!isFallback) TryRewardedFallback(admobNetwork, placement);
-                else _onAdNotAvailable?.Invoke(AdFormatKey.Rewarded);
+                else NotifyAdNotAvailable(AdFormatKey.Rewarded);
                 return;
             }
 #endif
@@ -1797,7 +1823,7 @@ namespace com.noctuagames.sdk
                 _log.Info("Admob Rewarded Ad not ready (legacy path)");
                 CloseAdPlaceholder();
                 if (!isFallback) TryRewardedFallback(admobNetwork, placement);
-                else _onAdNotAvailable?.Invoke(AdFormatKey.Rewarded);
+                else NotifyAdNotAvailable(AdFormatKey.Rewarded);
             }
         }
 #endif
@@ -1812,14 +1838,14 @@ namespace com.noctuagames.sdk
             if (fallback == null)
             {
                 _log.Info("Rewarded: no secondary network to fall back to.");
-                _onAdNotAvailable?.Invoke(AdFormatKey.Rewarded);
+                NotifyAdNotAvailable(AdFormatKey.Rewarded);
                 return;
             }
 
             if (!IsCpmFloorAcceptable(fallback, AdFormatKey.Rewarded))
             {
                 _log.Info($"Rewarded fallback to {fallback.NetworkName} blocked by CPM hard floor. No ad available.");
-                _onAdNotAvailable?.Invoke(AdFormatKey.Rewarded);
+                NotifyAdNotAvailable(AdFormatKey.Rewarded);
                 return;
             }
 
@@ -1847,7 +1873,7 @@ namespace com.noctuagames.sdk
             else
             {
                 _log.Info($"{fallback.NetworkName} rewarded also not ready. No ad available.");
-                _onAdNotAvailable?.Invoke(AdFormatKey.Rewarded);
+                NotifyAdNotAvailable(AdFormatKey.Rewarded);
             }
         }
 
@@ -1870,7 +1896,7 @@ namespace com.noctuagames.sdk
 
             rewardedAd.OnAdFullScreenContentOpened += () => PostToMainThread(() =>
             {
-                CloseAdPlaceholder();
+                CloseAdPlaceholder(force: true);
                 EmitCanonicalIaa(IAAEventNames.AdShown, IAAPayloadBuilder.BuildAdLoaded(
                     placement:  placement,
                     adType:     AdFormatKey.Rewarded,
@@ -1883,13 +1909,13 @@ namespace com.noctuagames.sdk
             });
             rewardedAd.OnAdFullScreenContentFailed += (AdError error) => PostToMainThread(() =>
             {
-                CloseAdPlaceholder();
                 EmitCanonicalIaa(IAAEventNames.AdShowFailed, IAAPayloadBuilder.BuildAdShowFailed(
                     adFormat:   AdFormatKey.Rewarded,
                     adPlatform: AdNetworkName.Admob,
                     adUnitName: _rewardedAdUnitID,
                     error:      IAAPayloadBuilder.FormatError(error.GetCode(), error.GetMessage(), error.GetDomain())));
-                _onAdFailedDisplayed?.Invoke();
+                // Show the cross-promotion fallback; only report failure to the game if it can't show.
+                if (!ShowCrossPromoFallback(AdPlaceholderType.Rewarded)) _onAdFailedDisplayed?.Invoke();
                 _log.Warning("Rewarded Ad failed to show. Error: " + error);
             });
             rewardedAd.OnAdFullScreenContentClosed += () => PostToMainThread(() =>
@@ -1990,10 +2016,13 @@ namespace com.noctuagames.sdk
                 return;
             }
 
+            // New game-initiated request — re-arm the cross-promo (clears any dismiss from a prior request).
+            _hasClosedPlaceholder = false;
+
             if (_frequencyManager != null && !_frequencyManager.CanShowAd(AdFormatKey.RewardedInterstitial))
             {
                 _log.Info("Rewarded interstitial ad blocked by frequency manager.");
-                _onAdNotAvailable?.Invoke(AdFormatKey.RewardedInterstitial);
+                NotifyAdNotAvailable(AdFormatKey.RewardedInterstitial);
                 return;
             }
 
@@ -2021,7 +2050,7 @@ namespace com.noctuagames.sdk
             }
 
             _hasClosedPlaceholder = false;
-            ShowAdPlaceholder(AdPlaceholderType.Rewarded);
+            ShowAdPlaceholder(AdPlaceholderType.RewardedInterstitial);
             // Placeholder is closed via RewardedOnAdDisplayed / RewardedOnAdFailedDisplayed events
             // wired during SetupAdUnitID. RewardedInterstitialAdmob manages its own reload lifecycle.
             _rewardedInterstitialAdmob.ShowRewardedInterstitialAd();
@@ -2038,10 +2067,13 @@ namespace com.noctuagames.sdk
                 return;
             }
 
+            // New game-initiated request — re-arm the cross-promo (clears any dismiss from a prior request).
+            _hasClosedPlaceholder = false;
+
             if (_frequencyManager != null && !_frequencyManager.CanShowAd(AdFormatKey.Banner))
             {
                 _log.Info("Banner ad blocked by frequency/enabled config.");
-                _onAdNotAvailable?.Invoke(AdFormatKey.Banner);
+                NotifyAdNotAvailable(AdFormatKey.Banner);
                 return;
             }
 
@@ -2061,7 +2093,7 @@ namespace com.noctuagames.sdk
             }
 
             _log.Warning("No banner ad unit configured on any network.");
-            _onAdNotAvailable?.Invoke(AdFormatKey.Banner);
+            NotifyAdNotAvailable(AdFormatKey.Banner);
         }
 
         /// <summary>
@@ -2202,10 +2234,13 @@ namespace com.noctuagames.sdk
                 return;
             }
 
+            // New game-initiated request — re-arm the cross-promo (clears any dismiss from a prior request).
+            _hasClosedPlaceholder = false;
+
             if (_frequencyManager != null && !_frequencyManager.CanShowAd(AdFormatKey.Interstitial))
             {
                 _log.Info("Interstitial ad blocked by frequency manager.");
-                _onAdNotAvailable?.Invoke(AdFormatKey.Interstitial);
+                NotifyAdNotAvailable(AdFormatKey.Interstitial);
                 return;
             }
 
@@ -2263,10 +2298,13 @@ namespace com.noctuagames.sdk
                 return;
             }
 
+            // New game-initiated request — re-arm the cross-promo (clears any dismiss from a prior request).
+            _hasClosedPlaceholder = false;
+
             if (_frequencyManager != null && !_frequencyManager.CanShowAd(AdFormatKey.Rewarded))
             {
                 _log.Info("Rewarded ad blocked by frequency manager.");
-                _onAdNotAvailable?.Invoke(AdFormatKey.Rewarded);
+                NotifyAdNotAvailable(AdFormatKey.Rewarded);
                 return;
             }
 
@@ -2339,6 +2377,12 @@ namespace com.noctuagames.sdk
         {
             _log.Debug($"{LogTag} is_interstitial_ready - check interstitial ready");
             if (_orchestrator == null) return false;
+
+            // A configured cross-promotion creative is served by ShowInterstitial() as a house-ad
+            // fallback whenever no real ad displays — so report ready to keep the game unblocked even
+            // when the network is dry or frequency-capped (parity with the actual show path).
+            if (IsCrossPromoAvailable(AdPlaceholderType.Interstitial)) return true;
+
             if (_frequencyManager != null && !_frequencyManager.CanShowAd(AdFormatKey.Interstitial)) return false;
 
             var preferred = _orchestrator.GetNetworkForFormat(AdFormatKey.Interstitial);
@@ -2376,6 +2420,13 @@ namespace com.noctuagames.sdk
         {
             _log.Debug($"{LogTag} is_rewarded_ready - check rewarded ad ready");
             if (_orchestrator == null) return false;
+
+            // A configured cross-promotion creative is served by ShowRewardedAd() as a house-ad
+            // fallback whenever no real ad displays — so report ready to keep the game unblocked.
+            // NOTE: the cross-promo grants NO reward (it fires OnAdClosed, never OnUserEarnedReward),
+            // so treat a rewarded "ready" as "something will show", not "a reward is guaranteed".
+            if (IsCrossPromoAvailable(AdPlaceholderType.Rewarded)) return true;
+
             if (_frequencyManager != null && !_frequencyManager.CanShowAd(AdFormatKey.Rewarded)) return false;
 
             var preferred = _orchestrator.GetNetworkForFormat(AdFormatKey.Rewarded);
@@ -2400,6 +2451,26 @@ namespace com.noctuagames.sdk
                 return _preloadManager.IsAdAvailable(_rewardedAdUnitID, AdFormat.REWARDED);
 #endif
             return network.IsRewardedAdReady();
+        }
+
+        /// <summary>
+        /// Returns <c>true</c> when a cross-promotion creative is configured for the given format AND
+        /// its asset is already cached locally — i.e. <c>Show*()</c> can serve the house-ad placeholder
+        /// as a fallback and render it immediately. Requiring the cache hit (not just configuration)
+        /// keeps the <c>Is*Ready</c> checkers honest: a configured-but-uncached creative would flash a
+        /// blank placeholder while it downloads (or fail when offline), so it is not reported ready.
+        /// </summary>
+        private bool IsCrossPromoAvailable(AdPlaceholderType type)
+        {
+            if (_adPlaceholderUI == null) return false;
+
+            var crossPromotion = IAAResponse?.CrossPromotion;
+            if (crossPromotion == null) return false;
+
+            var entry = ResolveCrossPromotionEntry(crossPromotion, type);
+            if (entry == null || string.IsNullOrEmpty(entry.AssetUrl)) return false;
+
+            return _adPlaceholderUI.IsAssetCached(entry.AssetUrl);
         }
 
         /// <summary>Handles app foreground transitions for app open ad auto-show.</summary>
@@ -2509,36 +2580,194 @@ namespace com.noctuagames.sdk
 
         // --- Placeholder methods ---
 
-        /// <summary>Shows a loading placeholder overlay while an ad is being prepared.</summary>
+        /// <summary>
+        /// Arms the cross-promotion placeholder for the given ad format. Nothing is shown yet — the
+        /// cross-promotion is a fallback house-ad that only appears if the real ad attempt fails / has
+        /// no fill / is offline (see <see cref="CloseAdPlaceholder"/>). If the real ad displays, the
+        /// arming is cleared (force-close) so a ready ad never flashes the placeholder.
+        /// Arming is a no-op when <c>cross_promotion</c> is not configured for this format.
+        /// </summary>
         public void ShowAdPlaceholder(AdPlaceholderType adType)
         {
-            _log.Debug($"{LogTag} show_ad_placeholder - show ad placeholder");
-            _log.Info($"Showing ad placeholder for type: {adType}");
-
-            if (_adPlaceholderUI == null)
-            {
-                _log.Warning("Ad placeholder UI is not initialized.");
-                return;
-            }
-
-            _adPlaceholderUI.ShowAdPlaceholder(adType);
+            // Record the requested format only. The cross-promotion is a FALLBACK — it is shown when
+            // the real ad does not display (no fill / fail / offline), via ShowCrossPromoFallback.
+            // Nothing is shown up-front, so a ready ad never flashes a placeholder.
+            _lastRequestedType = adType;
         }
 
-        /// <summary>Closes the ad loading placeholder overlay. No-op if already closed.</summary>
-        public void CloseAdPlaceholder()
+        /// <summary>Resolves the per-format cross-promotion entry, or null when unset for that format.</summary>
+        private static CrossPromotionEntry ResolveCrossPromotionEntry(CrossPromotionConfig config, AdPlaceholderType adType)
         {
-            _log.Debug($"{LogTag} close_ad_placeholder - close ad placeholder");
-            if (_hasClosedPlaceholder) return;
-
-            if (_adPlaceholderUI == null)
+            switch (adType)
             {
-                _log.Warning("Ad placeholder UI is not initialized.");
+                case AdPlaceholderType.Interstitial:         return config.Interstitial;
+                case AdPlaceholderType.Rewarded:             return config.Rewarded;
+                case AdPlaceholderType.RewardedInterstitial: return config.RewardedInterstitial;
+                case AdPlaceholderType.Banner:               return config.Banner;
+                default:                                     return null;
+            }
+        }
+
+        /// <summary>
+        /// Closes a shown cross-promotion placeholder. Used when a real ad is about to display
+        /// (<paramref name="force"/> = true) so the real ad takes the screen; the cross-promotion's
+        /// OnAdClosed is suppressed in that case because the real ad fires its own lifecycle. No-op
+        /// when no cross-promotion is showing.
+        /// </summary>
+        /// <param name="force">True when a real ad is taking over — suppresses the cross-promo OnAdClosed.</param>
+        public void CloseAdPlaceholder(bool force = false)
+        {
+            if (_adPlaceholderUI == null) return;
+            if (!_crossPromoShown && !_crossPromoPending) return;
+
+            if (force) _suppressNextCloseEvent = true;
+
+            // A real ad is taking over while the cross-promo was still loading: cancel the pending
+            // show so its later shown/failed callback is ignored.
+            _crossPromoPending = false;
+
+            // OnPlaceholderClosed (the UI close callback) clears _crossPromoShown and fires OnAdClosed
+            // unless suppressed.
+            _adPlaceholderUI.CloseAdPlaceholder();
+        }
+
+        /// <summary>
+        /// Requests the cross-promotion placeholder as a fallback house-ad for a format with no real ad
+        /// (no fill / not ready / failed display / offline). The asset loads asynchronously: the ad
+        /// lifecycle (OnAdDisplayed / OnAdNotAvailable) is driven by the UI's shown/failed callbacks,
+        /// not here. Returns true if a show was requested (caller should NOT fire its own failure event —
+        /// the outcome arrives via OnPlaceholderShown / OnPlaceholderFailed). Returns false when no
+        /// cross-promotion asset is configured for the format.
+        /// </summary>
+        private bool ShowCrossPromoFallback(AdPlaceholderType type)
+        {
+            if (_adPlaceholderUI == null) return false;
+            if (_crossPromoShown || _crossPromoPending) return true;
+
+            // The user already dismissed the cross-promo for this ad request — a late/duplicate
+            // network callback must not resurrect it. Suppress the re-show; the game already received
+            // its terminal event (OnAdClosed) when the placeholder was closed. Cleared by the next
+            // game-initiated Show* call.
+            if (_hasClosedPlaceholder)
+            {
+                _log.Debug($"{LogTag} cross_promo_fallback - placeholder already dismissed for this request; suppressing re-show ({type})");
+                return true;
+            }
+
+            var crossPromotion = IAAResponse?.CrossPromotion;
+            var entry = crossPromotion == null ? null : ResolveCrossPromotionEntry(crossPromotion, type);
+            if (entry == null || string.IsNullOrEmpty(entry.AssetUrl))
+            {
+                _log.Debug($"{LogTag} cross_promo_fallback - no asset for {type}, nothing to show");
+                return false;
+            }
+
+            _log.Info($"{LogTag} cross_promo_fallback - requesting cross-promotion for {type} (awaiting asset)");
+            _crossPromoPending = true;
+            _pendingCrossPromoFormat = PlaceholderTypeToFormat(type);
+            _suppressNextCloseEvent = false;
+            _adPlaceholderUI.ShowAdPlaceholder(type, entry);
+            return true;
+        }
+
+        /// <summary>
+        /// Invoked when the cross-promotion asset has actually rendered. Enters the ad lifecycle by
+        /// firing OnAdDisplayed (the game pauses). OnAdClosed follows on dismiss.
+        /// </summary>
+        private void OnPlaceholderShown()
+        {
+            if (!_crossPromoPending) return; // superseded (e.g. force-closed) — ignore
+            _crossPromoPending = false;
+            _crossPromoShown = true;
+            _log.Info($"{LogTag} cross_promo - asset shown, firing OnAdDisplayed");
+            _onAdDisplayed?.Invoke();
+        }
+
+        /// <summary>
+        /// Invoked when the cross-promotion asset could not be loaded/shown (not ready / offline / no
+        /// cache). No ad is on screen, so report it through the existing "no ad available" path.
+        /// </summary>
+        private void OnPlaceholderFailed()
+        {
+            if (!_crossPromoPending) return; // superseded — ignore
+            _crossPromoPending = false;
+            _crossPromoShown = false;
+
+            var format = _pendingCrossPromoFormat;
+            _pendingCrossPromoFormat = null;
+            _log.Info($"{LogTag} cross_promo - asset not ready, reporting OnAdNotAvailable ({format})");
+            _onAdNotAvailable?.Invoke(format);
+        }
+
+        /// <summary>
+        /// Invoked when the cross-promotion placeholder is dismissed (user close / auto-close). Mirrors
+        /// a real ad's close by firing OnAdClosed so the game resumes — unless the close was forced by
+        /// a real ad taking over (then the real ad's own OnAdClosed fires). Never grants a reward.
+        /// </summary>
+        private void OnPlaceholderClosed()
+        {
+            if (!_crossPromoShown) return;
+            _crossPromoShown = false;
+            // Block any async straggler from re-showing the placeholder for this request (cleared on
+            // the next game-initiated Show*). Covers both the user-close and force-close (real ad
+            // took over) paths.
+            _hasClosedPlaceholder = true;
+
+            if (_suppressNextCloseEvent)
+            {
+                _suppressNextCloseEvent = false;
                 return;
             }
 
-            _log.Info("Closing ad placeholder");
-            _adPlaceholderUI.CloseAdPlaceholder();
-            _hasClosedPlaceholder = true;
+            _log.Info($"{LogTag} cross_promo - placeholder dismissed, firing OnAdClosed (no reward)");
+            _onAdClosed?.Invoke();
+        }
+
+        /// <summary>Invoked when the user taps the cross-promotion asset; fires OnAdClicked.</summary>
+        private void OnPlaceholderClicked()
+        {
+            _log.Debug($"{LogTag} cross_promo - CTA tapped, firing OnAdClicked");
+            _onAdClicked?.Invoke();
+        }
+
+        /// <summary>Maps an <see cref="AdFormatKey"/> string to its placeholder type, or null (app open has none).</summary>
+        private static AdPlaceholderType? MapFormatToPlaceholderType(string format)
+        {
+            switch (format)
+            {
+                case AdFormatKey.Interstitial:         return AdPlaceholderType.Interstitial;
+                case AdFormatKey.Rewarded:             return AdPlaceholderType.Rewarded;
+                case AdFormatKey.RewardedInterstitial: return AdPlaceholderType.RewardedInterstitial;
+                case AdFormatKey.Banner:               return AdPlaceholderType.Banner;
+                default:                               return null; // app_open: no placeholder
+            }
+        }
+
+        /// <summary>Maps a placeholder type back to its <see cref="AdFormatKey"/> string.</summary>
+        private static string PlaceholderTypeToFormat(AdPlaceholderType type)
+        {
+            switch (type)
+            {
+                case AdPlaceholderType.Interstitial:         return AdFormatKey.Interstitial;
+                case AdPlaceholderType.Rewarded:             return AdFormatKey.Rewarded;
+                case AdPlaceholderType.RewardedInterstitial: return AdFormatKey.RewardedInterstitial;
+                case AdPlaceholderType.Banner:               return AdFormatKey.Banner;
+                default:                                     return AdFormatKey.Interstitial;
+            }
+        }
+
+        /// <summary>
+        /// Single choke point for "no ad available" for a format. If a cross-promotion fallback can be
+        /// shown, it is shown (firing OnAdDisplayed) and OnAdNotAvailable is deferred — the game gets
+        /// OnAdClosed when the user dismisses the cross-promo. Only when no cross-promo can be shown is
+        /// the game notified immediately via <see cref="_onAdNotAvailable"/>. All no-fill / not-ready /
+        /// frequency-capped / exhausted-fallback paths route through here.
+        /// </summary>
+        private void NotifyAdNotAvailable(string format)
+        {
+            var type = MapFormatToPlaceholderType(format);
+            if (type.HasValue && ShowCrossPromoFallback(type.Value)) return;
+            _onAdNotAvailable?.Invoke(format);
         }
 
         private bool IsAppLovin()
