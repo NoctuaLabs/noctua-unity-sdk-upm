@@ -162,6 +162,10 @@ namespace com.noctuagames.sdk.UI
 
             Visible = false;
 
+            // Coming from the login flow the user intends to register/switch accounts.
+            // Set explicitly so downstream verification never sees AuthIntention.None.
+            Model.AuthIntention = AuthIntention.Switch;
+
             Model.ShowEmailRegistration(true);
         }
 

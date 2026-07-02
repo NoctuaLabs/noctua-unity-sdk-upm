@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.53.2] - 2026-07-02
+
+### 🐛 Bug Fixes
+
+- Set AuthIntention to Switch when registering from email login; tolerate AuthIntention.None in email verification (VN KYC "Invalid AuthIntention None").
+
 ## [0.53.0] - 2025-10-21
 
 ### 🚀 Features

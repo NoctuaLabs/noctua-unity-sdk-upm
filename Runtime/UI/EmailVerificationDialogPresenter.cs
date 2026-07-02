@@ -163,9 +163,10 @@ namespace com.noctuagames.sdk.UI
                         Model.ShowBindConfirmation(token);
 
                         break;
+                    case AuthIntention.None:
                     case AuthIntention.Switch when Model.AuthService.RecentAccount is null or { IsGuest: false }:
                         await Model.AuthService.VerifyEmailRegistrationAsync(_credVerifyId, verificationCode);
-                        
+
                         break;
                     case AuthIntention.Link when Model.AuthService.RecentAccount is { IsGuest: false }:
                         await Model.AuthService.VerifyEmailLinkingAsync(_credVerifyId, verificationCode);
