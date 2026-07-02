@@ -734,8 +734,8 @@ using UnityEditor.Graphs;
                 return gradleContent;
             }
 
-            const string pluginEntry = "\n    id 'com.google.gms.google-services' version '4.4.2' apply false";
-            const string crashlyticsPluginEntry = "\n    id 'com.google.firebase.crashlytics' version '2.9.5' apply false";
+            const string pluginEntry = "\n    id 'com.google.gms.google-services' version '4.3.15' apply false";
+            const string crashlyticsPluginEntry = "\n    id 'com.google.firebase.crashlytics' version '3.0.6' apply false";
 
             gradleContent = gradleContent.Insert(index + appPluginString.Length, pluginEntry + crashlyticsPluginEntry);
 
@@ -745,12 +745,12 @@ using UnityEditor.Graphs;
         private static string ExcludeGoogleServicesPluginForGradle7(string gradleContent)
         {
             gradleContent = gradleContent.Replace(
-                "\n    id 'com.google.gms.google-services' version '4.4.2' apply false",
+                "\n    id 'com.google.gms.google-services' version '4.3.15' apply false",
                 string.Empty
             );
             
             gradleContent = gradleContent.Replace(
-                "\n    id 'com.google.firebase.crashlytics' version '2.9.5' apply false",
+                "\n    id 'com.google.firebase.crashlytics' version '3.0.6' apply false",
                 string.Empty
             );
 
@@ -769,8 +769,8 @@ using UnityEditor.Graphs;
                 return gradleContent;
             }
 
-            const string pluginEntry = "\n            classpath 'com.google.gms:google-services:4.3.10'";
-            const string crashlyticsPluginEntry = "\n            classpath 'com.google.firebase:firebase-crashlytics-gradle:2.9.5'";
+            const string pluginEntry = "\n            classpath 'com.google.gms:google-services:4.3.15'";
+            const string crashlyticsPluginEntry = "\n            classpath 'com.google.firebase:firebase-crashlytics-gradle:3.0.6'";
 
             gradleContent = gradleContent.Insert(index + appPluginString.Length, pluginEntry + crashlyticsPluginEntry);
 
@@ -780,12 +780,12 @@ using UnityEditor.Graphs;
         private static string ExcludeGoogleServicesPluginForGradle6(string gradleContent)
         {
             gradleContent = gradleContent.Replace(
-                "\n            classpath 'com.google.gms:google-services:4.3.10'",
+                "\n            classpath 'com.google.gms:google-services:4.3.15'",
                 string.Empty
             );
 
             gradleContent = gradleContent.Replace(
-                "\n            classpath 'com.google.firebase:firebase-crashlytics-gradle:2.9.5'",
+                "\n            classpath 'com.google.firebase:firebase-crashlytics-gradle:3.0.6'",
                 string.Empty
             );
 
