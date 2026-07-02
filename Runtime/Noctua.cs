@@ -224,9 +224,20 @@ namespace com.noctuagames.sdk
             // For Android
             #if UNITY_ANDROID || UNITY_EDITOR_WIN
             
-            Debug.Log("Loading streaming assets in Android by using UnityWebRequest: " + configPath);
-            
-            var configLoadRequest = UnityWebRequest.Get(configPath);
+            // In any Editor environment, Application.streamingAssetsPath is a bare filesystem path.
+            // UnityWebRequest needs a proper file:// URI or it treats the path as a network URL
+            // (fails with "Cannot connect to destination host").
+            // On Android device, streamingAssetsPath is already "jar:file://..." so no change needed.
+            // new Uri() correctly produces file:///C:/... on Windows and file:///Users/... on macOS.
+            #if UNITY_EDITOR
+            var requestUri = new System.Uri(configPath).AbsoluteUri;
+            #else
+            var requestUri = configPath;
+            #endif
+
+            Debug.Log("Loading streaming assets in Android by using UnityWebRequest: " + requestUri);
+
+            var configLoadRequest = UnityWebRequest.Get(requestUri);
             var now = DateTime.UtcNow;
             var timeout = now.AddSeconds(5);
             configLoadRequest.SendWebRequest();
@@ -269,8 +280,8 @@ namespace com.noctuagames.sdk
                 throw new NoctuaException(NoctuaErrorCode.Application, "Failed to parse config: " + e.Message);
             }
             
-            #elif UNITY_IOS || UNITY_EDITOR_OSX
-            
+            #elif UNITY_IOS || UNITY_EDITOR_OSX || UNITY_EDITOR_LINUX
+
             Debug.Log("Loading streaming assets in IOS by using System.IO.File.ReadAllText: " + configPath);
 
             try {

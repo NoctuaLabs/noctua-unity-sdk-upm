@@ -8,6 +8,7 @@ All notable changes to this project will be documented in this file.
 
 - Set AuthIntention to Switch when registering from email login; tolerate AuthIntention.None in email verification (VN KYC "Invalid AuthIntention None").
 - Update injected Firebase Crashlytics Gradle plugin to 3.0.6 and google-services to 4.3.15 (AGP 8 compatibility) — fixes runtime "Crashlytics build ID is missing" crash.
+- Load noctuagg.json via a proper file:// URI in the Editor (Android target on macOS/Linux) — fixes editor-only init crash "Failed to load config: Cannot connect to destination host".
 
 ## [0.53.0] - 2025-10-21
 
