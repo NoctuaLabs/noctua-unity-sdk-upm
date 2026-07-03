@@ -527,7 +527,7 @@ using UnityEditor.Graphs;
             {
                 if (firebaseEnabled && !gradleContent.Contains("com.google.gms.google-services"))
                 {
-                    gradleContent = IncludeGoogleServicesPluginForGradle7(gradleContent);
+                    gradleContent = IncludeGoogleServicesPluginForGradle7(gradleContent, gradleVersion);
                     File.WriteAllText(rootGradlePath, gradleContent);
 
                     Log("Added Google Services plugin to root build.gradle.");
@@ -722,7 +722,15 @@ using UnityEditor.Graphs;
             return gradleContent;
         }
 
-        private static string IncludeGoogleServicesPluginForGradle7(string gradleContent)
+        // Crashlytics Gradle plugin 3.0.x requires AGP 8.1+; 2.9.5 is the last release compatible
+        // with AGP 7 (and works down to AGP 4.1). Gradle major version is a reliable proxy for AGP
+        // in Unity-generated projects (Gradle 8 <-> AGP 8, Gradle 7 <-> AGP 7).
+        private static string CrashlyticsPluginVersionFor(Version gradleVersion)
+        {
+            return gradleVersion.Major >= 8 ? "3.0.6" : "2.9.5";
+        }
+
+        private static string IncludeGoogleServicesPluginForGradle7(string gradleContent, Version gradleVersion)
         {
             const string appPluginString = "plugins {";
             var index = gradleContent.IndexOf(appPluginString, StringComparison.Ordinal);
@@ -735,7 +743,7 @@ using UnityEditor.Graphs;
             }
 
             const string pluginEntry = "\n    id 'com.google.gms.google-services' version '4.3.15' apply false";
-            const string crashlyticsPluginEntry = "\n    id 'com.google.firebase.crashlytics' version '3.0.6' apply false";
+            var crashlyticsPluginEntry = $"\n    id 'com.google.firebase.crashlytics' version '{CrashlyticsPluginVersionFor(gradleVersion)}' apply false";
 
             gradleContent = gradleContent.Insert(index + appPluginString.Length, pluginEntry + crashlyticsPluginEntry);
 
@@ -748,9 +756,14 @@ using UnityEditor.Graphs;
                 "\n    id 'com.google.gms.google-services' version '4.3.15' apply false",
                 string.Empty
             );
-            
+
+            // Remove whichever Crashlytics version was injected (AGP-8 or below-8 build).
             gradleContent = gradleContent.Replace(
                 "\n    id 'com.google.firebase.crashlytics' version '3.0.6' apply false",
+                string.Empty
+            );
+            gradleContent = gradleContent.Replace(
+                "\n    id 'com.google.firebase.crashlytics' version '2.9.5' apply false",
                 string.Empty
             );
 
@@ -770,7 +783,7 @@ using UnityEditor.Graphs;
             }
 
             const string pluginEntry = "\n            classpath 'com.google.gms:google-services:4.3.15'";
-            const string crashlyticsPluginEntry = "\n            classpath 'com.google.firebase:firebase-crashlytics-gradle:3.0.6'";
+            const string crashlyticsPluginEntry = "\n            classpath 'com.google.firebase:firebase-crashlytics-gradle:2.9.5'";
 
             gradleContent = gradleContent.Insert(index + appPluginString.Length, pluginEntry + crashlyticsPluginEntry);
 
@@ -785,7 +798,7 @@ using UnityEditor.Graphs;
             );
 
             gradleContent = gradleContent.Replace(
-                "\n            classpath 'com.google.firebase:firebase-crashlytics-gradle:3.0.6'",
+                "\n            classpath 'com.google.firebase:firebase-crashlytics-gradle:2.9.5'",
                 string.Empty
             );
 

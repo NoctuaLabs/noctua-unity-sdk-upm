@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.53.3] - 2026-07-03
+
+### 🐛 Bug Fixes
+
+- Select the injected Firebase Crashlytics Gradle plugin version by detected Gradle/AGP version (3.0.6 for Gradle 8+/AGP 8, 2.9.5 for Gradle 7 and below) — restores support for AGP below 8 that 0.53.2 broke, while keeping the AGP 8 fix.
+
 ## [0.53.2] - 2026-07-02
 
 ### 🐛 Bug Fixes
