@@ -2679,6 +2679,18 @@ namespace com.noctuagames.sdk
             if (!_crossPromoPending) return; // superseded (e.g. force-closed) — ignore
             _crossPromoPending = false;
             _crossPromoShown = true;
+
+            // House-ad impression analytics. This is a cross-promotion (house-ad) impression only —
+            // it carries NO revenue and is intentionally decoupled from the real IAA ad-revenue
+            // pipeline (TrackAdRevenue / ProcessAdmob*Revenue). "ad_placement" is the real ad format
+            // this cross-promo stood in for (interstitial / rewarded / rewarded_interstitial /
+            // banner), so downstream can attribute the impression to its placement.
+            var adPlacement = _pendingCrossPromoFormat ?? "";
+            _adRevenueTracker?.TrackCustomEvent("cross_ad_impression", new Dictionary<string, IConvertible>
+            {
+                { "ad_placement", adPlacement }
+            });
+
             _log.Info($"{LogTag} cross_promo - asset shown, firing OnAdDisplayed");
             _onAdDisplayed?.Invoke();
         }

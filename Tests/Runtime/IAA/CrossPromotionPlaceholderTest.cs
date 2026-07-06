@@ -58,6 +58,21 @@ namespace Tests.Runtime.IAA
             public bool IsAssetCached(string assetUrl) => AssetCached;
         }
 
+        /// <summary>Recording revenue tracker: captures custom events so tests can assert on the house-ad impression.</summary>
+        private class RecordingAdRevenueTracker : IAdRevenueTracker
+        {
+            public readonly System.Collections.Generic.List<(string name, System.Collections.Generic.Dictionary<string, IConvertible> payload)> CustomEvents
+                = new System.Collections.Generic.List<(string, System.Collections.Generic.Dictionary<string, IConvertible>)>();
+            public int AdRevenueCount;
+
+            public void TrackAdRevenue(string source, double revenue, string currency,
+                System.Collections.Generic.Dictionary<string, IConvertible> extraPayload = null) => AdRevenueCount++;
+
+            public void TrackCustomEvent(string name,
+                System.Collections.Generic.Dictionary<string, IConvertible> extraPayload = null)
+                => CustomEvents.Add((name, extraPayload));
+        }
+
         [SetUp]
         public void SetUp()
         {
@@ -235,6 +250,44 @@ namespace Tests.Runtime.IAA
             ui.OnClicked.Invoke();
 
             Assert.IsTrue(clicked, "OnAdClicked should fire on a CTA tap");
+        }
+
+        // ─── House-ad impression analytics ───────────────────────────────────
+
+        [Test]
+        public void CrossPromoShown_TracksCrossAdImpression_WithSourceAdPlacement()
+        {
+            var ui = new RecordingAdPlaceholderUI();
+            var tracker = new RecordingAdRevenueTracker();
+            var m = new MediationManager(ui, ConfigWith(new CrossPromotionConfig { Rewarded = Entry("https://cdn/rew.mp4") }), tracker);
+
+            Assert.IsTrue(InvokeShowFallback(m, AdPlaceholderType.Rewarded), "fallback show should be requested");
+
+            // No impression event until the asset actually renders.
+            Assert.AreEqual(0, tracker.CustomEvents.Count, "no event before the asset renders");
+
+            ui.OnShown.Invoke(); // asset renders → "shown"
+
+            Assert.AreEqual(1, tracker.CustomEvents.Count, "exactly one cross-promo impression event should fire");
+            var (name, payload) = tracker.CustomEvents[0];
+            Assert.AreEqual("cross_ad_impression", name);
+            Assert.IsNotNull(payload);
+            Assert.AreEqual(AdFormatKey.Rewarded, payload["ad_placement"],
+                "ad_placement should carry the real ad format the cross-promo stood in for");
+            Assert.AreEqual(0, tracker.AdRevenueCount, "house-ad impression must NOT emit ad revenue");
+        }
+
+        [Test]
+        public void CrossPromoFailed_DoesNotTrackCrossAdImpression()
+        {
+            var ui = new RecordingAdPlaceholderUI();
+            var tracker = new RecordingAdRevenueTracker();
+            var m = new MediationManager(ui, ConfigWith(new CrossPromotionConfig { Interstitial = Entry("https://cdn/inter.mp4") }), tracker);
+
+            Assert.IsTrue(InvokeShowFallback(m, AdPlaceholderType.Interstitial));
+            ui.OnFailed.Invoke(); // asset never rendered
+
+            Assert.AreEqual(0, tracker.CustomEvents.Count, "no impression event when the asset never renders");
         }
 
         [Test]
