@@ -538,5 +538,85 @@ namespace Tests.Runtime.IAA
             Assert.IsTrue(adDisplayed, "the config-driven fallback must keep firing the shared OnAdDisplayed");
             Assert.IsFalse(crossPromoDisplayed, "the fallback must NOT fire the dedicated OnCrossPromoDisplayed");
         }
+
+        // ─── Effortless ShowCrossPromotion(adType) — Firebase Remote Config ───
+
+        // A completed Task lets `await` continue inline, so the show is requested synchronously
+        // within the call (no coroutine needed to observe the result).
+        private static System.Threading.Tasks.Task<string> Completed(string s)
+            => System.Threading.Tasks.Task.FromResult(s);
+
+        [Test]
+        public void ShowCrossPromotion_AdTypeOnly_FetchesFromRemoteConfig_AndShows()
+        {
+            var ui = new RecordingAdPlaceholderUI();
+            var m = Create(ui, ConfigWith(null));
+            const string json =
+                "{\"interstitial\":{\"asset_url\":\"https://cdn/rc.mp4\",\"click_url\":\"https://x\",\"min_watch_seconds\":7}," +
+                "\"rewarded\":{\"asset_url\":\"https://cdn/rc-rew.mp4\",\"min_watch_seconds\":12}}";
+            m.SetRemoteConfigProvider(key => Completed(key == MediationManager.CrossPromotionRemoteConfigKey ? json : ""));
+
+            bool displayed = false;
+            m.OnCrossPromoDisplayed += () => displayed = true;
+
+            m.ShowCrossPromotion(AdPlaceholderType.Interstitial);
+
+            Assert.AreEqual(1, ui.ShowCount, "should request the show from the fetched creative");
+            Assert.AreEqual(AdPlaceholderType.Interstitial, ui.LastShownType);
+            Assert.AreEqual("https://cdn/rc.mp4", ui.LastShownEntry.AssetUrl);
+            Assert.AreEqual(7, ui.LastShownEntry.MinWatchSeconds);
+
+            ui.OnShown.Invoke();
+            Assert.IsTrue(displayed, "OnCrossPromoDisplayed should fire once the fetched asset renders");
+        }
+
+        [Test]
+        public void ShowCrossPromotion_AdTypeOnly_NoProvider_FiresFailed()
+        {
+            var ui = new RecordingAdPlaceholderUI();
+            var m = Create(ui, ConfigWith(null)); // no provider wired
+
+            int failed = 0;
+            m.OnCrossPromoFailed += () => failed++;
+
+            m.ShowCrossPromotion(AdPlaceholderType.Interstitial);
+
+            Assert.AreEqual(0, ui.ShowCount, "nothing to show without a remote config provider");
+            Assert.AreEqual(1, failed);
+        }
+
+        [Test]
+        public void ShowCrossPromotion_AdTypeOnly_NoEntryForFormat_FiresFailed()
+        {
+            var ui = new RecordingAdPlaceholderUI();
+            var m = Create(ui, ConfigWith(null));
+            // Remote config only has interstitial; ask for rewarded.
+            const string json = "{\"interstitial\":{\"asset_url\":\"https://cdn/rc.mp4\"}}";
+            m.SetRemoteConfigProvider(_ => Completed(json));
+
+            int failed = 0;
+            m.OnCrossPromoFailed += () => failed++;
+
+            m.ShowCrossPromotion(AdPlaceholderType.Rewarded);
+
+            Assert.AreEqual(0, ui.ShowCount, "no rewarded creative in remote config → nothing shown");
+            Assert.AreEqual(1, failed);
+        }
+
+        [Test]
+        public void ShowCrossPromotion_AdTypeOnly_EmptyRemoteConfig_FiresFailed()
+        {
+            var ui = new RecordingAdPlaceholderUI();
+            var m = Create(ui, ConfigWith(null));
+            m.SetRemoteConfigProvider(_ => Completed("")); // empty (e.g. Editor / not fetched yet)
+
+            int failed = 0;
+            m.OnCrossPromoFailed += () => failed++;
+
+            m.ShowCrossPromotion(AdPlaceholderType.Interstitial);
+
+            Assert.AreEqual(0, ui.ShowCount);
+            Assert.AreEqual(1, failed);
+        }
     }
 }

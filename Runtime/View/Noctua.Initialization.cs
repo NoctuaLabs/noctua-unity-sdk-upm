@@ -336,6 +336,13 @@ namespace com.noctuagames.sdk
                 _iaa = new MediationManager(adPlaceholderUI: _uiFactory, iAAResponse: _config.IAA, adRevenueTracker: _event);
                 _log.Info("Ad revenue tracker wired at MediationManager construction");
 
+                // Inject the Firebase Remote Config fetcher so the effortless
+                // ShowCrossPromotion(adType) overload can pull creatives from the
+                // "cross_promotion" key without the Presenter touching the Noctua static facade.
+                // The delegate is invoked lazily at show-time, never during construction, so it
+                // does not trigger Lazy<Noctua> re-entry.
+                _iaa.SetRemoteConfigProvider(GetFirebaseRemoteConfigString);
+
 #if UNITY_ADMOB || UNITY_APPLOVIN
                 _iaa.Initialize(() =>
                 {

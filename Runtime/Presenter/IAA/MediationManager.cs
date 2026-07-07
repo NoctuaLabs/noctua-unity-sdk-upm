@@ -1,7 +1,9 @@
 using System;
 using System.Threading;
+using System.Threading.Tasks;
 using UnityEngine;
 using System.Collections.Generic;
+using Newtonsoft.Json;
 using com.noctuagames.sdk.AdPlaceholder;
 using com.noctuagames.sdk.Events;
 
@@ -319,6 +321,23 @@ namespace com.noctuagames.sdk
             _adRevenueTracker = tracker;
             _revenueTracker?.SetAdRevenueTracker(tracker);
             FlushPendingAppliedIaaConfigEvent();
+        }
+
+        // Fetches a Firebase Remote Config string by key. Injected from the composition root
+        // (View layer) so the Presenter never calls the Noctua static facade directly — keeps the
+        // layer dependency rules intact. Used by the no-data ShowCrossPromotion(adType) overload.
+        private Func<string, Task<string>> _remoteConfigStringProvider;
+
+        /// <summary>
+        /// Injects the Firebase Remote Config string fetcher (wired to
+        /// <c>Noctua.GetFirebaseRemoteConfigString</c> in the composition root). Enables the
+        /// effortless <see cref="ShowCrossPromotion(AdPlaceholderType)"/> overload to pull creatives
+        /// from remote config without the game passing any data.
+        /// </summary>
+        public void SetRemoteConfigProvider(Func<string, Task<string>> provider)
+        {
+            _log.Debug($"{LogTag} set_remote_config_provider - set remote config string provider");
+            _remoteConfigStringProvider = provider;
         }
 
         /// <summary>
@@ -2615,6 +2634,58 @@ namespace com.noctuagames.sdk
             // the real ad does not display (no fill / fail / offline), via ShowCrossPromoFallback.
             // Nothing is shown up-front, so a ready ad never flashes a placeholder.
             _lastRequestedType = adType;
+        }
+
+        /// <summary>
+        /// Remote-config key holding the cross-promotion creatives as a JSON object keyed by ad
+        /// placement (<c>interstitial</c> / <c>rewarded</c> / <c>rewarded_interstitial</c> /
+        /// <c>banner</c>), each with <c>asset_url</c>, <c>click_url</c>, <c>min_watch_seconds</c>.
+        /// </summary>
+        public const string CrossPromotionRemoteConfigKey = "cross_promotion";
+
+        /// <summary>
+        /// Effortless cross-promotion: the game passes ONLY the placement type — the SDK fetches the
+        /// creative for that placement from Firebase Remote Config (key <c>cross_promotion</c>, a JSON
+        /// object keyed by placement), then caches, renders, and reports lifecycle exactly like
+        /// <see cref="ShowCrossPromotion(AdPlaceholderType, CrossPromotionEntry)"/>. No URLs, config,
+        /// or manual caching needed. Fires <see cref="OnCrossPromoFailed"/> when remote config is
+        /// unavailable or has no creative for the requested placement.
+        /// </summary>
+        /// <param name="adType">Which placement to show (interstitial / rewarded / rewarded interstitial / banner).</param>
+        public async void ShowCrossPromotion(AdPlaceholderType adType)
+        {
+            _log.Info($"{LogTag} show_cross_promotion - remote-config cross-promotion show ({adType})");
+
+            if (_remoteConfigStringProvider == null)
+            {
+                _log.Warning("Remote config provider not wired; cannot fetch cross_promotion creatives.");
+                _onCrossPromoFailed?.Invoke();
+                return;
+            }
+
+            CrossPromotionEntry entry = null;
+            try
+            {
+                var json = await _remoteConfigStringProvider(CrossPromotionRemoteConfigKey);
+                if (!string.IsNullOrEmpty(json))
+                {
+                    var config = JsonConvert.DeserializeObject<CrossPromotionConfig>(json);
+                    entry = config == null ? null : ResolveCrossPromotionEntry(config, adType);
+                }
+            }
+            catch (Exception e)
+            {
+                _log.Warning($"Failed to parse '{CrossPromotionRemoteConfigKey}' remote config: {e.Message}");
+            }
+
+            if (entry == null || string.IsNullOrEmpty(entry.AssetUrl))
+            {
+                _log.Warning($"No cross-promotion creative for {adType} in remote config '{CrossPromotionRemoteConfigKey}'.");
+                _onCrossPromoFailed?.Invoke();
+                return;
+            }
+
+            ShowCrossPromotion(adType, entry);
         }
 
         /// <summary>
