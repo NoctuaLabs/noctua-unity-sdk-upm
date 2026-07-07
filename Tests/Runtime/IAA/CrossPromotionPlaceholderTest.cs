@@ -421,5 +421,122 @@ namespace Tests.Runtime.IAA
             Assert.AreEqual("ri", ((CrossPromotionEntry)mi.Invoke(null, new object[] { config, AdPlaceholderType.RewardedInterstitial })).AssetUrl);
             Assert.AreEqual("ban", ((CrossPromotionEntry)mi.Invoke(null, new object[] { config, AdPlaceholderType.Banner })).AssetUrl);
         }
+
+        // ─── Direct ShowCrossPromotion API (dedicated events) ────────────────
+
+        [Test]
+        public void ShowCrossPromotion_OnRender_FiresOnCrossPromoDisplayed_NotOnAdDisplayed()
+        {
+            var ui = new RecordingAdPlaceholderUI();
+            var tracker = new RecordingAdRevenueTracker();
+            // No cross_promotion in config — the data comes straight from the call.
+            var m = new MediationManager(ui, ConfigWith(null), tracker);
+
+            bool crossPromoDisplayed = false, adDisplayed = false;
+            m.OnCrossPromoDisplayed += () => crossPromoDisplayed = true;
+            m.OnAdDisplayed         += () => adDisplayed = true;
+
+            m.ShowCrossPromotion(AdPlaceholderType.Interstitial, Entry("https://cdn/direct.mp4"));
+
+            Assert.AreEqual(1, ui.ShowCount, "the creative should be requested from the UI");
+            Assert.AreEqual(AdPlaceholderType.Interstitial, ui.LastShownType);
+            Assert.AreEqual("https://cdn/direct.mp4", ui.LastShownEntry.AssetUrl);
+            Assert.IsFalse(crossPromoDisplayed, "OnCrossPromoDisplayed must wait until the asset renders");
+
+            ui.OnShown.Invoke(); // asset renders
+
+            Assert.IsTrue(crossPromoDisplayed, "OnCrossPromoDisplayed should fire on render");
+            Assert.IsFalse(adDisplayed, "the shared real-ad OnAdDisplayed must NOT fire for a direct cross-promo");
+
+            Assert.AreEqual(1, tracker.CustomEvents.Count, "one cross_ad_impression should still fire");
+            var (name, payload) = tracker.CustomEvents[0];
+            Assert.AreEqual("cross_ad_impression", name);
+            Assert.AreEqual(AdFormatKey.Interstitial, payload["ad_placement"]);
+            Assert.AreEqual(0, tracker.AdRevenueCount, "direct cross-promo must NOT emit ad revenue");
+        }
+
+        [Test]
+        public void ShowCrossPromotion_NullOrEmptyAsset_FiresOnCrossPromoFailed_NoShow()
+        {
+            var ui = new RecordingAdPlaceholderUI();
+            var m = Create(ui, ConfigWith(null));
+
+            int failed = 0;
+            m.OnCrossPromoFailed += () => failed++;
+
+            m.ShowCrossPromotion(AdPlaceholderType.Interstitial, (CrossPromotionEntry)null);
+            m.ShowCrossPromotion(AdPlaceholderType.Rewarded, new CrossPromotionEntry { AssetUrl = "" });
+
+            Assert.AreEqual(0, ui.ShowCount, "nothing should be shown when there is no asset");
+            Assert.AreEqual(2, failed, "each invalid request should fire OnCrossPromoFailed");
+        }
+
+        [Test]
+        public void ShowCrossPromotion_Clicked_FiresOnCrossPromoClicked_NotOnAdClicked()
+        {
+            var ui = new RecordingAdPlaceholderUI();
+            var m = Create(ui, ConfigWith(null));
+
+            bool crossPromoClicked = false, adClicked = false;
+            m.OnCrossPromoClicked += () => crossPromoClicked = true;
+            m.OnAdClicked         += () => adClicked = true;
+
+            m.ShowCrossPromotion(AdPlaceholderType.Rewarded, Entry("https://cdn/direct.png"));
+            ui.OnShown.Invoke();
+            ui.OnClicked.Invoke();
+
+            Assert.IsTrue(crossPromoClicked, "OnCrossPromoClicked should fire on a CTA tap");
+            Assert.IsFalse(adClicked, "the shared OnAdClicked must NOT fire for a direct cross-promo");
+        }
+
+        [Test]
+        public void ShowCrossPromotion_Closed_FiresOnCrossPromoClosed_NotOnAdClosed()
+        {
+            var ui = new RecordingAdPlaceholderUI();
+            var m = Create(ui, ConfigWith(null));
+
+            bool crossPromoClosed = false, adClosed = false;
+            m.OnCrossPromoClosed += () => crossPromoClosed = true;
+            m.OnAdClosed         += () => adClosed = true;
+
+            m.ShowCrossPromotion(AdPlaceholderType.Interstitial, Entry("https://cdn/direct.mp4"));
+            ui.OnShown.Invoke();
+            ui.OnClosed.Invoke();
+
+            Assert.IsTrue(crossPromoClosed, "OnCrossPromoClosed should fire on dismiss");
+            Assert.IsFalse(adClosed, "the shared OnAdClosed must NOT fire for a direct cross-promo");
+        }
+
+        [Test]
+        public void ShowCrossPromotion_ConvenienceOverload_PassesEntryToUI()
+        {
+            var ui = new RecordingAdPlaceholderUI();
+            var m = Create(ui, ConfigWith(null));
+
+            m.ShowCrossPromotion(AdPlaceholderType.Banner, "https://cdn/banner.png", "https://noctua/play", 5);
+
+            Assert.AreEqual(1, ui.ShowCount);
+            Assert.AreEqual(AdPlaceholderType.Banner, ui.LastShownType);
+            Assert.AreEqual("https://cdn/banner.png", ui.LastShownEntry.AssetUrl);
+            Assert.AreEqual("https://noctua/play", ui.LastShownEntry.ClickUrl);
+            Assert.AreEqual(5, ui.LastShownEntry.MinWatchSeconds);
+        }
+
+        [Test]
+        public void Fallback_StillFires_SharedAdEvents_NotCrossPromoEvents()
+        {
+            var ui = new RecordingAdPlaceholderUI();
+            var m = Create(ui, ConfigWith(new CrossPromotionConfig { Interstitial = Entry("https://cdn/inter.mp4") }));
+
+            bool adDisplayed = false, crossPromoDisplayed = false;
+            m.OnAdDisplayed         += () => adDisplayed = true;
+            m.OnCrossPromoDisplayed += () => crossPromoDisplayed = true;
+
+            Assert.IsTrue(InvokeShowFallback(m, AdPlaceholderType.Interstitial));
+            ui.OnShown.Invoke();
+
+            Assert.IsTrue(adDisplayed, "the config-driven fallback must keep firing the shared OnAdDisplayed");
+            Assert.IsFalse(crossPromoDisplayed, "the fallback must NOT fire the dedicated OnCrossPromoDisplayed");
+        }
     }
 }

@@ -77,6 +77,24 @@ namespace com.noctuagames.sdk
         /// <summary>Fires when a displayed ad is closed by the user.</summary>
         public event Action OnAdClosed { add => _onAdClosed += value; remove => _onAdClosed -= value; }
 
+        private event Action _onCrossPromoDisplayed;
+        private event Action _onCrossPromoClicked;
+        private event Action _onCrossPromoClosed;
+        private event Action _onCrossPromoFailed;
+
+        /// <summary>
+        /// Fires when a direct <see cref="ShowCrossPromotion(AdPlaceholderType, CrossPromotionEntry)"/>
+        /// creative actually renders on screen. Separate from <see cref="OnAdDisplayed"/> so games
+        /// running their own mediation never get cross-wired with real-ad events.
+        /// </summary>
+        public event Action OnCrossPromoDisplayed { add => _onCrossPromoDisplayed += value; remove => _onCrossPromoDisplayed -= value; }
+        /// <summary>Fires when the user taps a direct cross-promotion creative (its click-through).</summary>
+        public event Action OnCrossPromoClicked { add => _onCrossPromoClicked += value; remove => _onCrossPromoClicked -= value; }
+        /// <summary>Fires when a direct cross-promotion creative is dismissed (user close / auto-close).</summary>
+        public event Action OnCrossPromoClosed { add => _onCrossPromoClosed += value; remove => _onCrossPromoClosed -= value; }
+        /// <summary>Fires when a direct cross-promotion creative could not be loaded/shown (bad URL, offline, no cache).</summary>
+        public event Action OnCrossPromoFailed { add => _onCrossPromoFailed += value; remove => _onCrossPromoFailed -= value; }
+
         private event Action<string> _onAdNotAvailable;
 
         /// <summary>
@@ -144,6 +162,10 @@ namespace com.noctuagames.sdk
         private bool _crossPromoPending; // show requested, awaiting the shown/failed callback
         private bool _crossPromoShown;   // asset rendered (OnAdDisplayed fired)
         private string _pendingCrossPromoFormat;
+        // True while the currently-showing placeholder was triggered by the public ShowCrossPromotion(...)
+        // API rather than the mediation fallback. Routes the OnPlaceholder* callbacks to the dedicated
+        // OnCrossPromo* events instead of the shared real-ad events. Reset on terminal (closed/failed).
+        private bool _crossPromoDirect;
         private AdPlaceholderType _lastRequestedType;
         private bool _suppressNextCloseEvent;
         private bool _adNetworkEventsSubscribed;
@@ -2595,6 +2617,66 @@ namespace com.noctuagames.sdk
             _lastRequestedType = adType;
         }
 
+        /// <summary>
+        /// Directly shows a Noctua cross-promotion (house-ad) creative from data you pass in — no
+        /// <c>noctuagg.json</c> config or remote fetch required. Intended for games running their own
+        /// ad mediation that still want to display Noctua cross-promotions on demand. The SDK handles
+        /// caching (memory → disk → network, write-through), rendering, the close/min-watch gate, and
+        /// the <c>cross_ad_impression</c> analytics event internally — just call it with the creative.
+        ///
+        /// Lifecycle is reported through the dedicated <see cref="OnCrossPromoDisplayed"/> /
+        /// <see cref="OnCrossPromoClicked"/> / <see cref="OnCrossPromoClosed"/> /
+        /// <see cref="OnCrossPromoFailed"/> events — kept separate from the real-ad events
+        /// (<see cref="OnAdDisplayed"/> etc.) so your own mediation's events never get cross-wired.
+        /// This is a house-ad only: it carries NO revenue and never touches the ad-revenue pipeline.
+        /// </summary>
+        /// <param name="adType">Which placement format to render as (interstitial / rewarded / rewarded interstitial / banner).</param>
+        /// <param name="data">The creative to show: asset URL (image or video), optional click-through URL, optional min-watch seconds.</param>
+        public void ShowCrossPromotion(AdPlaceholderType adType, CrossPromotionEntry data)
+        {
+            _log.Info($"{LogTag} show_cross_promotion - direct cross-promotion show ({adType})");
+
+            if (_adPlaceholderUI == null)
+            {
+                _log.Warning("Ad placeholder UI not initialized. Cannot show cross-promotion.");
+                _onCrossPromoFailed?.Invoke();
+                return;
+            }
+            if (data == null || string.IsNullOrEmpty(data.AssetUrl))
+            {
+                _log.Warning("Cross-promotion data is null or has no asset URL.");
+                _onCrossPromoFailed?.Invoke();
+                return;
+            }
+            if (_crossPromoShown || _crossPromoPending)
+            {
+                _log.Warning("A cross-promotion is already showing or pending; ignoring duplicate request.");
+                return;
+            }
+
+            _crossPromoDirect        = true;
+            _hasClosedPlaceholder    = false;   // fresh request
+            _crossPromoPending       = true;
+            _pendingCrossPromoFormat = PlaceholderTypeToFormat(adType);
+            _suppressNextCloseEvent  = false;
+            _adPlaceholderUI.ShowAdPlaceholder(adType, data); // downloads-then-shows, caches internally
+        }
+
+        /// <summary>
+        /// Convenience overload of <see cref="ShowCrossPromotion(AdPlaceholderType, CrossPromotionEntry)"/>
+        /// that builds the <see cref="CrossPromotionEntry"/> for you from primitive values.
+        /// </summary>
+        /// <param name="adType">Which placement format to render as.</param>
+        /// <param name="assetUrl">CDN URL of the creative (image or video, detected by extension).</param>
+        /// <param name="clickUrl">Optional click-through URL opened on tap. Null/empty = non-clickable.</param>
+        /// <param name="minWatchSeconds">Optional seconds before the close button appears. 0 = closable as soon as it renders (or the video ends).</param>
+        public void ShowCrossPromotion(AdPlaceholderType adType, string assetUrl,
+                                       string clickUrl = null, int minWatchSeconds = 0)
+            => ShowCrossPromotion(adType, new CrossPromotionEntry
+            {
+                AssetUrl = assetUrl, ClickUrl = clickUrl, MinWatchSeconds = minWatchSeconds
+            });
+
         /// <summary>Resolves the per-format cross-promotion entry, or null when unset for that format.</summary>
         private static CrossPromotionEntry ResolveCrossPromotionEntry(CrossPromotionConfig config, AdPlaceholderType adType)
         {
@@ -2663,6 +2745,7 @@ namespace com.noctuagames.sdk
             }
 
             _log.Info($"{LogTag} cross_promo_fallback - requesting cross-promotion for {type} (awaiting asset)");
+            _crossPromoDirect = false; // fallback always routes to the shared real-ad events
             _crossPromoPending = true;
             _pendingCrossPromoFormat = PlaceholderTypeToFormat(type);
             _suppressNextCloseEvent = false;
@@ -2691,8 +2774,16 @@ namespace com.noctuagames.sdk
                 { "ad_placement", adPlacement }
             });
 
-            _log.Info($"{LogTag} cross_promo - asset shown, firing OnAdDisplayed");
-            _onAdDisplayed?.Invoke();
+            if (_crossPromoDirect)
+            {
+                _log.Info($"{LogTag} cross_promo - direct asset shown, firing OnCrossPromoDisplayed");
+                _onCrossPromoDisplayed?.Invoke();
+            }
+            else
+            {
+                _log.Info($"{LogTag} cross_promo - asset shown, firing OnAdDisplayed");
+                _onAdDisplayed?.Invoke();
+            }
         }
 
         /// <summary>
@@ -2707,6 +2798,15 @@ namespace com.noctuagames.sdk
 
             var format = _pendingCrossPromoFormat;
             _pendingCrossPromoFormat = null;
+
+            if (_crossPromoDirect)
+            {
+                _crossPromoDirect = false; // terminal — next fallback routes to shared events
+                _log.Info($"{LogTag} cross_promo - direct asset not ready, firing OnCrossPromoFailed ({format})");
+                _onCrossPromoFailed?.Invoke();
+                return;
+            }
+
             _log.Info($"{LogTag} cross_promo - asset not ready, reporting OnAdNotAvailable ({format})");
             _onAdNotAvailable?.Invoke(format);
         }
@@ -2725,21 +2825,42 @@ namespace com.noctuagames.sdk
             // took over) paths.
             _hasClosedPlaceholder = true;
 
+            // Terminal for a direct show either way (placeholder is gone) — capture then reset so the
+            // next mediation fallback routes to the shared events.
+            bool wasDirect = _crossPromoDirect;
+            _crossPromoDirect = false;
+
             if (_suppressNextCloseEvent)
             {
                 _suppressNextCloseEvent = false;
                 return;
             }
 
-            _log.Info($"{LogTag} cross_promo - placeholder dismissed, firing OnAdClosed (no reward)");
-            _onAdClosed?.Invoke();
+            if (wasDirect)
+            {
+                _log.Info($"{LogTag} cross_promo - direct placeholder dismissed, firing OnCrossPromoClosed (no reward)");
+                _onCrossPromoClosed?.Invoke();
+            }
+            else
+            {
+                _log.Info($"{LogTag} cross_promo - placeholder dismissed, firing OnAdClosed (no reward)");
+                _onAdClosed?.Invoke();
+            }
         }
 
-        /// <summary>Invoked when the user taps the cross-promotion asset; fires OnAdClicked.</summary>
+        /// <summary>Invoked when the user taps the cross-promotion asset; fires the clicked event.</summary>
         private void OnPlaceholderClicked()
         {
-            _log.Debug($"{LogTag} cross_promo - CTA tapped, firing OnAdClicked");
-            _onAdClicked?.Invoke();
+            if (_crossPromoDirect)
+            {
+                _log.Debug($"{LogTag} cross_promo - direct CTA tapped, firing OnCrossPromoClicked");
+                _onCrossPromoClicked?.Invoke();
+            }
+            else
+            {
+                _log.Debug($"{LogTag} cross_promo - CTA tapped, firing OnAdClicked");
+                _onAdClicked?.Invoke();
+            }
         }
 
         /// <summary>Maps an <see cref="AdFormatKey"/> string to its placeholder type, or null (app open has none).</summary>
