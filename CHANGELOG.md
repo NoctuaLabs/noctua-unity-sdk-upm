@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## [0.129.1] - 2026-06-19
+## [0.130.0] - 2026-07-08
 
 ### ⚙️ Miscellaneous
 
@@ -28,6 +28,10 @@ All notable changes to this project will be documented in this file.
 - Track IAP taichi revenue in product local currency
 - Lower Adjust attribution log from Info to Debug
 - Bulk multi-select adapter install in Integration Manager
+- *(iap)* Value taichi IAP revenue in USD with currency_to_usd_rate, local_price_in_usd, and type
+- *(iap)* Accept currency_to_usd_rate and local_price_in_usd via PurchaseRequest
+- *(iap)* Add detailed [taichi] logging for IAP revenue tracking
+- *(iap)* Make taichi IAP logs Debug-level and drop type field
 
 ### 🐛 Bug Fixes
 
@@ -66,6 +70,10 @@ All notable changes to this project will be documented in this file.
 - Runtime sandbox override (remote-driven, noctuagg.json as source of truth)
 - Add X-SANDBOX-ENABLED request header and dedicated sandbox-changed dialog
 - Add Inspector debug-action registry + Inject tab
+- *(iaa)* Add CDN cross-promotion ad placeholder gated by remote config
+- *(iaa)* Track cross_ad_impression house-ad event on cross-promotion render
+- *(iaa)* Add ShowCrossPromotion direct cross-promotion API
+- *(iaa)* Add effortless ShowCrossPromotion(adType) via Firebase Remote Config
 
 ## [0.122.0] - 2026-05-18
 
