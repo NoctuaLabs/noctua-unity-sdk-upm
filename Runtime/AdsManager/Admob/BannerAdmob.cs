@@ -82,9 +82,12 @@ namespace com.noctuagames.sdk.Admob
         /// </summary>
         public void CreateBannerView(AdSize adSize, AdPosition adPosition)
         {
-            if(_adUnitIdBanner == null)
+            // Guard the native create call — constructing a BannerView with a null/empty/
+            // unconfigured ad unit ID fails at the native layer. LoadAd() already guards;
+            // the create path must too for callers that reach it directly.
+            if (string.IsNullOrEmpty(_adUnitIdBanner) || _adUnitIdBanner == "unknown")
             {
-                _log.Warning("Ad unit ID Banner is empty.");
+                _log.Warning("Ad unit ID Banner is not configured. Skipping banner creation.");
                 return;
             }
 

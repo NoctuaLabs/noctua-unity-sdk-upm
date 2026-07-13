@@ -72,6 +72,15 @@ namespace com.noctuagames.sdk.AppLovin
         )]
         public void InitializeBannerAds(Color color, MaxSdkBase.BannerPosition bannerPosition)
         {
+            // Guard the native create call — MaxSdk.CreateBanner(null/empty, …) raises an
+            // uncaught NSException inside MAUnityAdManager.retrieveAdViewForAdUnitIdentifier,
+            // crashing the app. ShowBanner() already guards; the create path must too.
+            if (string.IsNullOrEmpty(_adUnitIDBanner))
+            {
+                _log.Warning("Ad unit ID banner is empty. Skipping banner creation.");
+                return;
+            }
+
             TrackAdCustomEventBanner("wf_banner_request_start");
 
             MaxSdk.CreateBanner(_adUnitIDBanner, bannerPosition);
@@ -91,6 +100,15 @@ namespace com.noctuagames.sdk.AppLovin
         /// <param name="bannerPosition">The screen position where the banner should be displayed.</param>
         public void InitializeBannerAds(Color color, MaxSdk.AdViewPosition bannerPosition)
         {
+            // Guard the native create call — MaxSdk.CreateBanner(null/empty, …) raises an
+            // uncaught NSException inside MAUnityAdManager.retrieveAdViewForAdUnitIdentifier,
+            // crashing the app. ShowBanner() already guards; the create path must too.
+            if (string.IsNullOrEmpty(_adUnitIDBanner))
+            {
+                _log.Warning("Ad unit ID banner is empty. Skipping banner creation.");
+                return;
+            }
+
             _lastColor    = color;
             _lastPosition = bannerPosition;
 
