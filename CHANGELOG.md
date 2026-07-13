@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## [0.130.0] - 2026-07-08
+## [0.130.1] - 2026-07-13
 
 ### ⚙️ Miscellaneous
 
@@ -32,6 +32,8 @@ All notable changes to this project will be documented in this file.
 - *(iap)* Accept currency_to_usd_rate and local_price_in_usd via PurchaseRequest
 - *(iap)* Add detailed [taichi] logging for IAP revenue tracking
 - *(iap)* Make taichi IAP logs Debug-level and drop type field
+- *(iaa)* Guard banner create paths against empty/unconfigured ad unit id
+- *(iaa)* Guard AppLovin banner lifecycle methods against empty ad unit id
 
 ### 🐛 Bug Fixes
 
