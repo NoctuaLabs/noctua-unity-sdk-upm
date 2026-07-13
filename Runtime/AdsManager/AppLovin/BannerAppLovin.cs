@@ -165,6 +165,15 @@ namespace com.noctuagames.sdk.AppLovin
         /// </summary>
         public void HideBanner()
         {
+            // No configured/created banner — nothing to hide. Calling MaxSdk with a
+            // null/empty ad unit id raises a native NSException. Safe no-op keeps
+            // partial IAA configs (e.g. app-open-only games) crash-free.
+            if (string.IsNullOrEmpty(_adUnitIDBanner))
+            {
+                _log.Debug("Banner ad unit ID is empty. Skipping hide.");
+                return;
+            }
+
             MaxSdk.HideBanner(_adUnitIDBanner);
 
             _log.Debug("Banner ad hidden for ad unit id : " + _adUnitIDBanner);
@@ -181,6 +190,12 @@ namespace com.noctuagames.sdk.AppLovin
         /// </summary>
         public void DestroyBanner()
         {
+            if (string.IsNullOrEmpty(_adUnitIDBanner))
+            {
+                _log.Debug("Banner ad unit ID is empty. Skipping destroy.");
+                return;
+            }
+
             MaxSdk.DestroyBanner(_adUnitIDBanner);
             _bannerCreated = false;
 
@@ -195,6 +210,12 @@ namespace com.noctuagames.sdk.AppLovin
         /// <param name="width">The desired banner width in pixels.</param>
         public void SetBannerWidth(int width)
         {
+            if (string.IsNullOrEmpty(_adUnitIDBanner))
+            {
+                _log.Debug("Banner ad unit ID is empty. Skipping set width.");
+                return;
+            }
+
             MaxSdk.SetBannerWidth(_adUnitIDBanner, width);
 
             _log.Debug("Banner ad width set to : " + width + " for ad unit id : " + _adUnitIDBanner);
@@ -206,6 +227,12 @@ namespace com.noctuagames.sdk.AppLovin
         /// <returns>A <see cref="Rect"/> representing the banner’s layout position and dimensions.</returns>
         public Rect GetBannerPosition()
         {
+            if (string.IsNullOrEmpty(_adUnitIDBanner))
+            {
+                _log.Debug("Banner ad unit ID is empty. Returning zero rect.");
+                return Rect.zero;
+            }
+
             _log.Debug("Getting banner position for ad unit id : " + _adUnitIDBanner);
 
             return MaxSdk.GetBannerLayout(_adUnitIDBanner);
@@ -215,6 +242,12 @@ namespace com.noctuagames.sdk.AppLovin
         /// </summary>
         public void StopBannerAutoRefresh()
         {
+            if (string.IsNullOrEmpty(_adUnitIDBanner))
+            {
+                _log.Debug("Banner ad unit ID is empty. Skipping stop auto refresh.");
+                return;
+            }
+
             _log.Debug("Stopping banner auto refresh for ad unit id : " + _adUnitIDBanner);
 
             MaxSdk.StopBannerAutoRefresh(_adUnitIDBanner);
@@ -225,6 +258,12 @@ namespace com.noctuagames.sdk.AppLovin
         /// </summary>
         public void StartBannerAutoRefresh()
         {
+            if (string.IsNullOrEmpty(_adUnitIDBanner))
+            {
+                _log.Debug("Banner ad unit ID is empty. Skipping start auto refresh.");
+                return;
+            }
+
             _log.Debug("Starting banner auto refresh for ad unit id : " + _adUnitIDBanner);
 
             MaxSdk.StartBannerAutoRefresh(_adUnitIDBanner);
@@ -241,6 +280,13 @@ namespace com.noctuagames.sdk.AppLovin
         public void SetPlacement(string placement)
         {
             _lastPlacement = placement;
+
+            if (string.IsNullOrEmpty(_adUnitIDBanner))
+            {
+                _log.Debug("Banner ad unit ID is empty. Skipping set placement.");
+                return;
+            }
+
             MaxSdk.SetBannerPlacement(_adUnitIDBanner, placement);
 
             _log.Debug($"Banner placement set to '{placement}' for ad unit id : {_adUnitIDBanner}");
@@ -252,6 +298,12 @@ namespace com.noctuagames.sdk.AppLovin
         /// <param name="seconds">Refresh interval in seconds (10-120).</param>
         public void SetRefreshInterval(int seconds)
         {
+            if (string.IsNullOrEmpty(_adUnitIDBanner))
+            {
+                _log.Debug("Banner ad unit ID is empty. Skipping set refresh interval.");
+                return;
+            }
+
             seconds = Math.Max(10, Math.Min(120, seconds));
             MaxSdk.SetBannerExtraParameter(_adUnitIDBanner, "ad_refresh_seconds", seconds.ToString());
 
