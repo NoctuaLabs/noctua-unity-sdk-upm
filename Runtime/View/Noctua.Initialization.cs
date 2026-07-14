@@ -294,6 +294,19 @@ namespace com.noctuagames.sdk
             var sessionTrackerBehaviour = noctuaUIGameObject.AddComponent<SessionTrackerBehaviour>();
             sessionTrackerBehaviour.SessionTracker = _sessionTracker;
 
+            // Caches the FCM token so HttpRequest can stamp X-FCM-TOKEN onto every request without
+            // touching the native plugin per call. The fetch lambda is deferred — invoking
+            // GetFirebaseMessagingToken() here would re-enter the Lazy<Noctua> factory we are inside.
+            _fcmTokenRegistrar = new FcmTokenRegistrar(
+                () => GetFirebaseMessagingToken().AsUniTask(),
+                ResolveLiveSandbox()
+            );
+            HttpRequest.SetFcmTokenProvider(() => _fcmTokenRegistrar.Current);
+
+            // Android has no onNewToken bridge into Unity (AndroidPlugin.SetFirebaseMessagingToken-
+            // RefreshHandler is a no-op), so a resume re-fetch is how a rotated token is picked up.
+            sessionTrackerBehaviour.OnResume += _fcmTokenRegistrar.OnApplicationResume;
+
             _nativeSessionTrackerBehaviour = noctuaUIGameObject.AddComponent<NativeSessionTrackerBehaviour>();
             _nativeSessionTrackerBehaviour.NativeSessionTracker = _nativeSessionTracker;
             _nativeSessionTrackerBehaviour.NativeLifecycle = _nativePlugin;
@@ -1221,53 +1234,12 @@ namespace com.noctuagames.sdk
             // plugin is guaranteed to be constructed.
             RegisterPushHandlers();
 
-            // Sandbox-only convenience: log the FCM token to Unity console so QA can copy it
-            // for backend push testing without writing extra game code. Production builds
-            // (isSandbox = false) skip this — prevents accidental token leakage in release
-            // logs that could be scraped by third-party log collectors.
-            if (Instance.Value._config?.Noctua?.IsSandbox == true)
-            {
-                LogFirebaseMessagingTokenForSandbox().Forget();
-            }
-        }
+            // Feed native token rotations (iOS) straight into the cache backing X-FCM-TOKEN.
+            OnFirebaseMessagingTokenRefresh += Instance.Value._fcmTokenRegistrar.Accept;
 
-        /// <summary>
-        /// Fires inside a short retry loop after init completes on sandbox builds. The iOS
-        /// APNs ↔ FCM handshake typically finishes within a few seconds of init when the
-        /// user has previously granted notification permission; on Android the token is
-        /// usually available immediately. The loop caps at ~12 s (6 attempts × 2 s) so a
-        /// permanently-unavailable token never becomes a long-lived background task.
-        /// </summary>
-        private static async UniTaskVoid LogFirebaseMessagingTokenForSandbox()
-        {
-            var log = Instance.Value._log;
-            const int maxAttempts = 6;
-            const int retryDelayMs = 2000;
-
-            for (int attempt = 1; attempt <= maxAttempts; attempt++)
-            {
-                try
-                {
-                    var token = await GetFirebaseMessagingToken();
-                    if (!string.IsNullOrEmpty(token))
-                    {
-                        log.Info($"[sandbox] FCM token: {token}");
-                        return;
-                    }
-                }
-                catch (Exception ex)
-                {
-                    log.Warning($"[sandbox] FCM token fetch attempt {attempt} failed: {ex.Message}");
-                }
-
-                if (attempt < maxAttempts)
-                {
-                    await UniTask.Delay(retryDelayMs);
-                }
-            }
-
-            log.Warning("[sandbox] FCM token still unavailable after retries — " +
-                        "check notification permission grant, APNs entitlement, or Firebase Messaging library link.");
+            // Start polling for the token now that the native plugin is up. On sandbox builds the
+            // registrar also logs the acquired token so QA can copy it into backend push tests.
+            Instance.Value._fcmTokenRegistrar.StartInitialFetch().Forget();
         }
 
         /// <summary>

@@ -286,6 +286,18 @@ namespace com.noctuagames.sdk
         /// <summary>Internal hook — call after InitAsync to register the native push bridges.</summary>
         internal static void RegisterPushHandlers() => PushHandlers.Poke(_pushHandlers);
 
+        /// <summary>
+        /// The FCM token currently being sent to the Noctua backend on the <c>X-FCM-TOKEN</c>
+        /// header of every request, or an empty string when no token has been acquired yet
+        /// (on iOS, until the user grants notification permission).
+        /// </summary>
+        /// <remarks>
+        /// This is a cached read and never blocks — unlike <see cref="GetFirebaseMessagingToken"/>,
+        /// which round-trips to the native plugin. A non-empty value means the backend is
+        /// receiving the token and can target this device with a push.
+        /// </remarks>
+        public static string RegisteredFcmToken => Instance.Value._fcmTokenRegistrar?.Current ?? string.Empty;
+
         public static Task<string> GetFirebaseMessagingToken()
         {
         #if UNITY_ANDROID || UNITY_IOS

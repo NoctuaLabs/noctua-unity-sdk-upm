@@ -120,6 +120,20 @@ namespace com.noctuagames.sdk
         /// <param name="provider">The sandbox-state provider to inject.</param>
         internal static void SetSandboxProvider(Func<bool> provider) => _sandboxProvider = provider;
 
+        private static Func<string> _fcmTokenProvider;
+
+        /// <summary>
+        /// Sets the static provider supplying the current FCM registration token, used by all
+        /// <see cref="HttpRequest"/> instances to populate the X-FCM-TOKEN header. Injected from
+        /// the composition root to avoid a dependency on the View layer.
+        /// </summary>
+        /// <remarks>
+        /// The provider runs in the constructor of every request, so it must be non-blocking —
+        /// read a cached field, never fetch from the native plugin here.
+        /// </remarks>
+        /// <param name="provider">The FCM token provider to inject.</param>
+        internal static void SetFcmTokenProvider(Func<string> provider) => _fcmTokenProvider = provider;
+
         private readonly NoctuaLogger _log = new(typeof(HttpRequest));
         private readonly UnityWebRequest _request = new();
 
@@ -165,6 +179,14 @@ namespace com.noctuagames.sdk
             // Inject the live sandbox state via static provider (avoids Noctua singleton dependency)
             var isSandbox = _sandboxProvider?.Invoke() ?? false;
             _request.SetRequestHeader("X-SANDBOX-ENABLED", isSandbox ? "true" : "false");
+
+            // Omitted entirely while unavailable — on iOS no token exists until the user grants
+            // notification permission, which may be long after init, or never.
+            var fcmToken = _fcmTokenProvider?.Invoke();
+            if (!string.IsNullOrEmpty(fcmToken))
+            {
+                _request.SetRequestHeader("X-FCM-TOKEN", fcmToken);
+            }
         }
 
         /// <summary>
@@ -380,6 +402,16 @@ namespace com.noctuagames.sdk
 
             var auth = !string.IsNullOrEmpty(_request.GetRequestHeader("Authorization")) ? "Authorization: Bearer" : "";
 
+            // Printed in full on sandbox builds so QA can copy the token straight into a backend
+            // push test; reduced to presence-only otherwise, so a device-addressable token never
+            // lands in release logs that third-party collectors can scrape.
+            // "(absent)" is the expected state until a token exists (on iOS, until notification
+            // permission is granted) — it means the backend cannot push to this device yet.
+            var rawFcmToken = _request.GetRequestHeader("X-FCM-TOKEN");
+            var fcmToken = string.IsNullOrEmpty(rawFcmToken)
+                ? "(absent)"
+                : (_sandboxProvider?.Invoke() ?? false) ? rawFcmToken : "(sent)";
+
             if (_noVerboseLog)
             {
                 _log.Debug($"=> {_request.method} {_request.url}\n");
@@ -403,7 +435,8 @@ namespace com.noctuagames.sdk
                     $"X-OS: {_request.GetRequestHeader("X-OS")}\n"                     +
                     $"X-OS-AGENT: {_request.GetRequestHeader("X-OS-AGENT")}\n"         +
                     $"X-SDK-VERSION: {_request.GetRequestHeader("X-SDK-VERSION")}\n"   +
-                    $"X-SANDBOX-ENABLED: {_request.GetRequestHeader("X-SANDBOX-ENABLED")}\n\n" +
+                    $"X-SANDBOX-ENABLED: {_request.GetRequestHeader("X-SANDBOX-ENABLED")}\n" +
+                    $"X-FCM-TOKEN: {fcmToken}\n\n"                                     +
                     $"{Encoding.UTF8.GetString(_request.uploadHandler?.data ?? Array.Empty<byte>())}"
                 );
             }
@@ -564,7 +597,7 @@ namespace com.noctuagames.sdk
             foreach (var key in new[] {
                 "Content-Type", "X-CLIENT-ID", "X-BUNDLE-ID", "X-LANGUAGE", "X-COUNTRY",
                 "X-CURRENCY", "X-DEVICE-ID", "X-PLATFORM", "X-OS", "X-OS-AGENT",
-                "X-SDK-VERSION", "Authorization", "X-Access-Token",
+                "X-SDK-VERSION", "Authorization", "X-Access-Token", "X-FCM-TOKEN",
             })
             {
                 var val = _request.GetRequestHeader(key);
@@ -603,6 +636,13 @@ namespace com.noctuagames.sdk
 
         private static bool IsSensitiveHeader(string key)
         {
+            // X-FCM-TOKEN is shown in full on sandbox builds — QA reads it off the Inspector HTTP
+            // tab to target a device with a test push — and redacted everywhere else.
+            if (key.Equals("X-FCM-TOKEN", StringComparison.OrdinalIgnoreCase))
+            {
+                return !(_sandboxProvider?.Invoke() ?? false);
+            }
+
             return key.Equals("Authorization",  StringComparison.OrdinalIgnoreCase)
                 || key.Equals("X-Access-Token", StringComparison.OrdinalIgnoreCase)
                 || key.Equals("Cookie",         StringComparison.OrdinalIgnoreCase)
