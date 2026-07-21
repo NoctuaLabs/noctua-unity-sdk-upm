@@ -303,6 +303,11 @@ namespace com.noctuagames.sdk
             );
             HttpRequest.SetFcmTokenProvider(() => _fcmTokenRegistrar.Current);
 
+            // Caches the Firebase Installation ID so HttpRequest can stamp X-FID onto every
+            // request without touching the native plugin per call. The actual fetch is deferred
+            // to InitNativePlugin() — the native plugin must be initialised first.
+            HttpRequest.SetFidProvider(() => _cachedFid);
+
             // Android has no onNewToken bridge into Unity (AndroidPlugin.SetFirebaseMessagingToken-
             // RefreshHandler is a no-op), so a resume re-fetch is how a rotated token is picked up.
             sessionTrackerBehaviour.OnResume += _fcmTokenRegistrar.OnApplicationResume;
@@ -1240,6 +1245,39 @@ namespace com.noctuagames.sdk
             // Start polling for the token now that the native plugin is up. On sandbox builds the
             // registrar also logs the acquired token so QA can copy it into backend push tests.
             Instance.Value._fcmTokenRegistrar.StartInitialFetch().Forget();
+
+            // Fetch Firebase Installation ID once and cache it for the X-FID header.
+            // Unlike FCM tokens, the FID is stable across sessions — a single fetch suffices.
+            FetchAndCacheFid().Forget();
+        }
+
+        /// <summary>
+        /// Fetches the Firebase Installation ID from the native plugin and caches it in
+        /// <see cref="_cachedFid"/> so that every subsequent <see cref="HttpRequest"/> can
+        /// stamp the <c>X-FID</c> header without a native round-trip.
+        /// </summary>
+        private static async UniTaskVoid FetchAndCacheFid()
+        {
+            try
+            {
+                var id = await GetFirebaseInstallationID();
+
+                if (!string.IsNullOrEmpty(id))
+                {
+                    Instance.Value._cachedFid = id;
+                    Instance.Value._log.Info("Firebase Installation ID cached for X-FID header");
+                }
+                else
+                {
+                    Instance.Value._log.Warning(
+                        "Firebase Installation ID unavailable — requests will omit X-FID header"
+                    );
+                }
+            }
+            catch (Exception e)
+            {
+                Instance.Value._log.Warning($"Failed to fetch Firebase Installation ID: {e.Message}");
+            }
         }
 
         /// <summary>

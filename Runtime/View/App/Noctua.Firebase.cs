@@ -298,6 +298,18 @@ namespace com.noctuagames.sdk
         /// </remarks>
         public static string RegisteredFcmToken => Instance.Value._fcmTokenRegistrar?.Current ?? string.Empty;
 
+        /// <summary>
+        /// The Firebase Installation ID currently being sent to the Noctua backend on the
+        /// <c>X-FID</c> header of every request, or an empty string when the ID has not been
+        /// fetched yet.
+        /// </summary>
+        /// <remarks>
+        /// This is a cached read and never blocks — unlike <see cref="GetFirebaseInstallationID"/>,
+        /// which round-trips to the native plugin. The FID is stable across sessions and does not
+        /// rotate like the FCM token.
+        /// </remarks>
+        public static string RegisteredFid => Instance.Value._cachedFid ?? string.Empty;
+
         public static Task<string> GetFirebaseMessagingToken()
         {
         #if UNITY_ANDROID || UNITY_IOS

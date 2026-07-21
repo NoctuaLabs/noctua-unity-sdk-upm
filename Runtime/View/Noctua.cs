@@ -173,6 +173,7 @@ namespace com.noctuagames.sdk
         private readonly NativeSessionTracker _nativeSessionTracker;
         private NativeSessionTrackerBehaviour _nativeSessionTrackerBehaviour;
         private readonly FcmTokenRegistrar _fcmTokenRegistrar;
+        private volatile string _cachedFid = string.Empty;
         private GlobalConfig _config;
 
         private readonly INativePlugin _nativePlugin;

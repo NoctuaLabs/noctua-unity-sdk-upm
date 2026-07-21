@@ -134,6 +134,20 @@ namespace com.noctuagames.sdk
         /// <param name="provider">The FCM token provider to inject.</param>
         internal static void SetFcmTokenProvider(Func<string> provider) => _fcmTokenProvider = provider;
 
+        private static Func<string> _fidProvider;
+
+        /// <summary>
+        /// Sets the static provider supplying the cached Firebase Installation ID, used by all
+        /// <see cref="HttpRequest"/> instances to populate the X-FID header. Injected from
+        /// the composition root to avoid a dependency on the View layer.
+        /// </summary>
+        /// <remarks>
+        /// The provider runs in the constructor of every request, so it must be non-blocking —
+        /// read a cached field, never fetch from the native plugin here.
+        /// </remarks>
+        /// <param name="provider">The FID provider to inject.</param>
+        internal static void SetFidProvider(Func<string> provider) => _fidProvider = provider;
+
         private readonly NoctuaLogger _log = new(typeof(HttpRequest));
         private readonly UnityWebRequest _request = new();
 
@@ -186,6 +200,13 @@ namespace com.noctuagames.sdk
             if (!string.IsNullOrEmpty(fcmToken))
             {
                 _request.SetRequestHeader("X-FCM-TOKEN", fcmToken);
+            }
+
+            // Omitted while unavailable — the ID is fetched asynchronously after init and cached.
+            var fid = _fidProvider?.Invoke();
+            if (!string.IsNullOrEmpty(fid))
+            {
+                _request.SetRequestHeader("X-FID", fid);
             }
         }
 
@@ -412,6 +433,9 @@ namespace com.noctuagames.sdk
                 ? "(absent)"
                 : (_sandboxProvider?.Invoke() ?? false) ? rawFcmToken : "(sent)";
 
+            var rawFid = _request.GetRequestHeader("X-FID");
+            var fid = string.IsNullOrEmpty(rawFid) ? "(absent)" : rawFid;
+
             if (_noVerboseLog)
             {
                 _log.Debug($"=> {_request.method} {_request.url}\n");
@@ -436,7 +460,8 @@ namespace com.noctuagames.sdk
                     $"X-OS-AGENT: {_request.GetRequestHeader("X-OS-AGENT")}\n"         +
                     $"X-SDK-VERSION: {_request.GetRequestHeader("X-SDK-VERSION")}\n"   +
                     $"X-SANDBOX-ENABLED: {_request.GetRequestHeader("X-SANDBOX-ENABLED")}\n" +
-                    $"X-FCM-TOKEN: {fcmToken}\n\n"                                     +
+                    $"X-FCM-TOKEN: {fcmToken}\n" +
+                    $"X-FID: {fid}\n\n"                                               +
                     $"{Encoding.UTF8.GetString(_request.uploadHandler?.data ?? Array.Empty<byte>())}"
                 );
             }
@@ -597,7 +622,7 @@ namespace com.noctuagames.sdk
             foreach (var key in new[] {
                 "Content-Type", "X-CLIENT-ID", "X-BUNDLE-ID", "X-LANGUAGE", "X-COUNTRY",
                 "X-CURRENCY", "X-DEVICE-ID", "X-PLATFORM", "X-OS", "X-OS-AGENT",
-                "X-SDK-VERSION", "Authorization", "X-Access-Token", "X-FCM-TOKEN",
+                "X-SDK-VERSION", "Authorization", "X-Access-Token", "X-FCM-TOKEN", "X-FID",
             })
             {
                 var val = _request.GetRequestHeader(key);
