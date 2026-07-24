@@ -172,7 +172,7 @@ namespace com.noctuagames.sdk
         private readonly NoctuaAppManager _app;
         private readonly NativeSessionTracker _nativeSessionTracker;
         private NativeSessionTrackerBehaviour _nativeSessionTrackerBehaviour;
-        private readonly FcmTokenRegistrar _fcmTokenRegistrar;
+        private volatile string _cachedFcmToken = string.Empty;
         private volatile string _cachedFid = string.Empty;
         private GlobalConfig _config;
 

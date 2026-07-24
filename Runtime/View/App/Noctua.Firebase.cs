@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
+using System.Threading;
 using System.Threading.Tasks;
+using Cysharp.Threading.Tasks;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
@@ -286,6 +288,95 @@ namespace com.noctuagames.sdk
         /// <summary>Internal hook — call after InitAsync to register the native push bridges.</summary>
         internal static void RegisterPushHandlers() => PushHandlers.Poke(_pushHandlers);
 
+        // IosPlugin stores a single static callback slot per native call, so two concurrent
+        // GetFirebaseMessagingToken() fetches would leave all but the last one hanging.
+        private static readonly SemaphoreSlim _fcmTokenRefreshLock = new(1, 1);
+
+        /// <summary>
+        /// Records a token pushed by the native refresh callback (iOS) or a manual fetch.
+        /// Empty/null means "not available yet", not "revoked" — never clears a good token.
+        /// </summary>
+        private static void AcceptFcmToken(string token)
+        {
+            var self = Instance.Value;
+
+            if (string.IsNullOrEmpty(token) || string.Equals(token, self._cachedFcmToken, StringComparison.Ordinal))
+            {
+                return;
+            }
+
+            var isFirst = string.IsNullOrEmpty(self._cachedFcmToken);
+            self._cachedFcmToken = token;
+
+            self._log.Info(isFirst ? "FCM token acquired" : "FCM token rotated");
+
+            if (self.ResolveLiveSandbox())
+            {
+                self._log.Info($"[sandbox] FCM token: {token}");
+            }
+        }
+
+        /// <summary>
+        /// Fetches the current token from the native plugin once and records it via
+        /// <see cref="AcceptFcmToken"/>. Concurrent calls are serialized; a failure or an empty
+        /// result leaves any previously-cached token intact.
+        /// </summary>
+        private static async UniTask RefreshFcmTokenAsync()
+        {
+            await _fcmTokenRefreshLock.WaitAsync();
+
+            try
+            {
+                AcceptFcmToken(await GetFirebaseMessagingToken());
+            }
+            catch (Exception e)
+            {
+                Instance.Value._log.Warning($"FCM token fetch failed: {e.Message}");
+            }
+            finally
+            {
+                _fcmTokenRefreshLock.Release();
+            }
+        }
+
+        /// <summary>
+        /// Called after init. The iOS APNs ↔ FCM handshake usually completes within a few seconds
+        /// when permission was granted on a previous run; on Android the token is normally ready
+        /// immediately. Caps at ~12s so a permanently-unavailable token never becomes a long-lived
+        /// background task.
+        /// </summary>
+        private static async UniTaskVoid FetchAndCacheFcmToken()
+        {
+            const int initialFetchAttempts = 6;
+            const int initialFetchRetryDelayMs = 2000;
+
+            for (var attempt = 1; attempt <= initialFetchAttempts; attempt++)
+            {
+                await RefreshFcmTokenAsync();
+
+                if (!string.IsNullOrEmpty(Instance.Value._cachedFcmToken))
+                {
+                    return;
+                }
+
+                if (attempt < initialFetchAttempts)
+                {
+                    await UniTask.Delay(initialFetchRetryDelayMs);
+                }
+            }
+
+            Instance.Value._log.Warning("FCM token still unavailable after retries — check notification " +
+                "permission grant, APNs entitlement, or Firebase Messaging library link. Requests will " +
+                "omit X-FCM-TOKEN until a token arrives.");
+        }
+
+        /// <summary>
+        /// Re-checks the token when the app returns to the foreground. This is how Android picks up
+        /// a rotated token: <c>AndroidPlugin.SetFirebaseMessagingTokenRefreshHandler</c> is a no-op,
+        /// so there is no push-based rotation signal on that platform.
+        /// </summary>
+        private static void OnFcmTokenResume() => RefreshFcmTokenAsync().Forget();
+
         /// <summary>
         /// The FCM token currently being sent to the Noctua backend on the <c>X-FCM-TOKEN</c>
         /// header of every request, or an empty string when no token has been acquired yet
@@ -296,7 +387,7 @@ namespace com.noctuagames.sdk
         /// which round-trips to the native plugin. A non-empty value means the backend is
         /// receiving the token and can target this device with a push.
         /// </remarks>
-        public static string RegisteredFcmToken => Instance.Value._fcmTokenRegistrar?.Current ?? string.Empty;
+        public static string RegisteredFcmToken => Instance.Value._cachedFcmToken ?? string.Empty;
 
         /// <summary>
         /// The Firebase Installation ID currently being sent to the Noctua backend on the

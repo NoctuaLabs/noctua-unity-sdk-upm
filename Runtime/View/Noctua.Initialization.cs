@@ -294,23 +294,15 @@ namespace com.noctuagames.sdk
             var sessionTrackerBehaviour = noctuaUIGameObject.AddComponent<SessionTrackerBehaviour>();
             sessionTrackerBehaviour.SessionTracker = _sessionTracker;
 
-            // Caches the FCM token so HttpRequest can stamp X-FCM-TOKEN onto every request without
-            // touching the native plugin per call. The fetch lambda is deferred — invoking
-            // GetFirebaseMessagingToken() here would re-enter the Lazy<Noctua> factory we are inside.
-            _fcmTokenRegistrar = new FcmTokenRegistrar(
-                () => GetFirebaseMessagingToken().AsUniTask(),
-                ResolveLiveSandbox()
-            );
-            HttpRequest.SetFcmTokenProvider(() => _fcmTokenRegistrar.Current);
-
-            // Caches the Firebase Installation ID so HttpRequest can stamp X-FID onto every
-            // request without touching the native plugin per call. The actual fetch is deferred
-            // to InitNativePlugin() — the native plugin must be initialised first.
+            // Caches the FCM token and Firebase Installation ID so HttpRequest can stamp
+            // X-FCM-TOKEN / X-FID onto every request without touching the native plugin per
+            // call. Fetch/retry logic lives in Noctua.Firebase.cs.
+            HttpRequest.SetFcmTokenProvider(() => _cachedFcmToken);
             HttpRequest.SetFidProvider(() => _cachedFid);
 
-            // Android has no onNewToken bridge into Unity (AndroidPlugin.SetFirebaseMessagingToken-
-            // RefreshHandler is a no-op), so a resume re-fetch is how a rotated token is picked up.
-            sessionTrackerBehaviour.OnResume += _fcmTokenRegistrar.OnApplicationResume;
+            // Android has no onNewToken bridge into Unity, so a resume re-fetch is how a
+            // rotated FCM token is picked up.
+            sessionTrackerBehaviour.OnResume += OnFcmTokenResume;
 
             _nativeSessionTrackerBehaviour = noctuaUIGameObject.AddComponent<NativeSessionTrackerBehaviour>();
             _nativeSessionTrackerBehaviour.NativeSessionTracker = _nativeSessionTracker;
@@ -1239,15 +1231,11 @@ namespace com.noctuagames.sdk
             // plugin is guaranteed to be constructed.
             RegisterPushHandlers();
 
-            // Feed native token rotations (iOS) straight into the cache backing X-FCM-TOKEN.
-            OnFirebaseMessagingTokenRefresh += Instance.Value._fcmTokenRegistrar.Accept;
-
-            // Start polling for the token now that the native plugin is up. On sandbox builds the
-            // registrar also logs the acquired token so QA can copy it into backend push tests.
-            Instance.Value._fcmTokenRegistrar.StartInitialFetch().Forget();
-
-            // Fetch Firebase Installation ID once and cache it for the X-FID header.
-            // Unlike FCM tokens, the FID is stable across sessions — a single fetch suffices.
+            // Feed native token rotations (iOS) straight into the cache backing X-FCM-TOKEN, then
+            // fetch both the FCM token and Firebase Installation ID now that the native plugin
+            // is up.
+            OnFirebaseMessagingTokenRefresh += AcceptFcmToken;
+            FetchAndCacheFcmToken().Forget();
             FetchAndCacheFid().Forget();
         }
 
