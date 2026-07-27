@@ -95,9 +95,20 @@ public class GoogleBilling
             ))
         {
             _log.Debug("start");
+
+            // Billing v8+ requires PendingPurchasesParams for enablePendingPurchases
+            AndroidJavaClass pendingParamsClass = new AndroidJavaClass(
+                "com.android.billingclient.api.PendingPurchasesParams"
+            );
+            AndroidJavaObject pendingPurchasesParams = pendingParamsClass
+                .CallStatic<AndroidJavaObject>("newBuilder")
+                .Call<AndroidJavaObject>("enableOneTimeProducts")
+                .Call<AndroidJavaObject>("build");
+
             billingClient = billingClientClass.CallStatic<AndroidJavaObject>("newBuilder", activity)
                 .Call<AndroidJavaObject>("setListener", new PurchasesUpdatedListener(this))
-                .Call<AndroidJavaObject>("enablePendingPurchases")
+                .Call<AndroidJavaObject>("enablePendingPurchases", pendingPurchasesParams)
+                .Call<AndroidJavaObject>("enableAutoServiceReconnection")
                 .Call<AndroidJavaObject>("build");
             _log.Debug("done");
         }
@@ -164,7 +175,7 @@ public class GoogleBilling
             googleBilling = parentGoogleBilling;
         }
 
-        void onProductDetailsResponse(AndroidJavaObject billingResult, AndroidJavaObject productDetailsList)
+        void onProductDetailsResponse(AndroidJavaObject billingResult, AndroidJavaObject productDetailsResult)
         {
             _log.Debug("GoogleBilling.ProductDetailsResponseListener");
             int responseCode = billingResult.Call<int>("getResponseCode");
@@ -174,6 +185,8 @@ public class GoogleBilling
             {
                 _log.Debug("Product details query successful");
 
+                // Billing v8+ returns QueryProductDetailsResult instead of List<ProductDetails>
+                AndroidJavaObject productDetailsList = productDetailsResult.Call<AndroidJavaObject>("getProductDetailsList");
                 int size = productDetailsList.Call<int>("size");
                 _log.Debug(size.ToString());
 
@@ -395,12 +408,14 @@ public class GoogleBilling
             googleBilling = parent;
         }
 
-        void onProductDetailsResponse(AndroidJavaObject billingResult, AndroidJavaObject productDetailsList)
+        void onProductDetailsResponse(AndroidJavaObject billingResult, AndroidJavaObject productDetailsResult)
         {
             _log.Debug("GoogleBilling.ProductDetailsResponseListener");
             int responseCode = billingResult.Call<int>("getResponseCode");
             if (responseCode == 0) // BillingResponseCode.OK
             {
+                // Billing v8+ returns QueryProductDetailsResult instead of List<ProductDetails>
+                AndroidJavaObject productDetailsList = productDetailsResult.Call<AndroidJavaObject>("getProductDetailsList");
                 int size = productDetailsList.Call<int>("size");
                 _log.Debug("Product details list length: " + size);
 
