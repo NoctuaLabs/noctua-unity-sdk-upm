@@ -1,22 +1,38 @@
+[33;1mWARN [0m [1m[90mgit_cliff_core::changelog[39m[0m > Variables ["commit.github", "commit.gitea", "commit.gitlab", "commit.bitbucket", "commit.azure_devops"] are deprecated and will be removed in the future. Use `commit.remote` instead.
+[33;1mWARN [0m [1m[90mgit_cliff_core::changelog[39m[0m > [1m[90mprocess_commits[39m[0m[1m[90m: [39m[0m445 commit(s) were skipped due to parse error(s) (run with `-vv` for details)
 # Changelog
 
 All notable changes to this project will be documented in this file.
+
+## [0.53.4] - 2026-07-28
+
+### 🐛 Bug Fixes
+
+- Upgrade Google Play Billing from v7.0.0 to v9.1.0
 
 ## [0.53.3] - 2026-07-03
 
 ### 🐛 Bug Fixes
 
-- Select the injected Firebase Crashlytics Gradle plugin version by detected Gradle/AGP version (3.0.6 for Gradle 8+/AGP 8, 2.9.5 for Gradle 7 and below) — restores support for AGP below 8 that 0.53.2 broke, while keeping the AGP 8 fix.
+- Select injected Crashlytics gradle plugin version by AGP/Gradle version to support AGP below 8
 
 ## [0.53.2] - 2026-07-02
 
 ### 🐛 Bug Fixes
 
-- Set AuthIntention to Switch when registering from email login; tolerate AuthIntention.None in email verification (VN KYC "Invalid AuthIntention None").
-- Update injected Firebase Crashlytics Gradle plugin to 3.0.6 and google-services to 4.3.15 (AGP 8 compatibility) — fixes runtime "Crashlytics build ID is missing" crash.
-- Load noctuagg.json via a proper file:// URI in the Editor (Android target on macOS/Linux) — fixes editor-only init crash "Failed to load config: Cannot connect to destination host".
+- Set AuthIntention before email registration to avoid "Invalid AuthIntention None" (VN KYC)
+- Bump injected Crashlytics gradle plugin to 3.0.6 and google-services to 4.3.15 for AGP 8 compatibility
+- Load noctuagg.json via file:// URI in Editor to avoid "Cannot connect to destination host" init crash
 
 ## [0.53.0] - 2025-10-21
+
+### misc
+
+- Bump version to v0.53.0.
+
+### 🐛 Bug Fixes
+
+- Catch exceptions within event's geoIP.
 
 ### 🚀 Features
 
@@ -27,14 +43,6 @@ All notable changes to this project will be documented in this file.
 - Add xml documentation noctua event class
 - Allow game to retrieve purchase orderID via event and exception.
 
-### 🐛 Bug Fixes
-
-- Catch exceptions within event's geoIP.
-
-### 💼 Other
-
-- Bump version to v0.53.0.
-
 ## [0.52.0] - 2025-10-15
 
 ### 🚀 Features
@@ -44,15 +52,15 @@ All notable changes to this project will be documented in this file.
 
 ## [0.51.0] - 2025-10-06
 
+### ✨ Improvements
+
+- Load country in tracker.
+- Determine country from geoIP first before call cloudflare API.
+
 ### 🚀 Features
 
 - Add exception guards for Firebase ID native calls
 - Prevent NullReferenceException when EventSystem is missing in scene
-
-### 💼 Other
-
-- Load country in tracker.
-- Determine country from geoIP first before call cloudflare API.
 
 ## [0.50.0] - 2025-09-18
 
@@ -120,18 +128,18 @@ All notable changes to this project will be documented in this file.
 
 ## [0.45.0] - 2025-07-22
 
-### 🚀 Features
+### ✨ Improvements
 
-- Add internal event tracker game_platform_type on init sdk
+- Change GetStoreName to GetPlatformType
 
 ### 🐛 Bug Fixes
 
 - Update asset ad placeholder and make it random show ad placeholder per ad type
 - Add condition if iaa enabled equal false dont add the symbol
 
-### 🚜 Refactor
+### 🚀 Features
 
-- Change GetStoreName to GetPlatformType
+- Add internal event tracker game_platform_type on init sdk
 
 ## [0.44.1] - 2025-07-14
 
@@ -141,10 +149,9 @@ All notable changes to this project will be documented in this file.
 
 ## [0.44.0] - 2025-07-14
 
-### 🚀 Features
+### ✨ Improvements
 
-- Improve VN legal purpose, do not allow user to exit KYC.
-- Add init callback
+- Change to use Swift Package Manager and remove Cocoapods
 
 ### 🐛 Bug Fixes
 
@@ -152,9 +159,10 @@ All notable changes to this project will be documented in this file.
 - Add more null check for lean noctuagg.json config.
 - Add more null check.
 
-### 🚜 Refactor
+### 🚀 Features
 
-- Change to use Swift Package Manager and remove Cocoapods
+- Improve VN legal purpose, do not allow user to exit KYC.
+- Add init callback
 
 ## [0.43.1] - 2025-06-26
 
@@ -164,10 +172,6 @@ All notable changes to this project will be documented in this file.
 
 ## [0.43.0] - 2025-06-26
 
-### 🚀 Features
-
-- Noctua menu for unity editor
-
 ### 🐛 Bug Fixes
 
 - Issues collection was modified; enumeration operation may not execute on event sender
@@ -175,12 +179,11 @@ All notable changes to this project will be documented in this file.
 - Version package not defined, noctua menu
 - Install and remove iaa sdk not working properly
 
-## [0.42.0] - 2025-06-16
-
 ### 🚀 Features
 
-- Built in event tracker iaa admob
-- Built in event tracker iaa applovin max
+- Noctua menu for unity editor
+
+## [0.42.0] - 2025-06-16
 
 ### 🐛 Bug Fixes
 
@@ -191,7 +194,44 @@ All notable changes to this project will be documented in this file.
 - Translation error not found on email register vn dialog
 - Validation form not working properly in email register vn dialog
 
+### 🚀 Features
+
+- Built in event tracker iaa admob
+- Built in event tracker iaa applovin max
+
 ## [0.41.0] - 2025-06-05
+
+### ⚙️ Miscellaneous
+
+- Remove Script folder as we already have separated repository for config generation.
+
+### ✨ Improvements
+
+- AdFormat class into AdFormatNoctua to avoid confused class from Admob preloading configuration
+- Change ad placeholder use uitoolkit
+- Remove vn flow from email register dialog
+- Adjust and add translation for email registration flow
+- Translation for date of issues
+
+### 🐛 Bug Fixes
+
+- Adjust new config for sanbdox.
+- Improve loop internet checker
+- Enhance AuthenticateAsync to return empty data
+- Remove double check offline status
+- Improve init IAA SDK and analytics SDK
+- Change variable config to _config
+- Improve track ad custom event admob
+- Improve IAA event queue
+- PreloadManager class error not found when admob sdk is not installed
+- Loop for override the client RemoteFeatureFlags if any is not working properly
+- Adjust close ad placeholder for applovin max and add show ad placeholder for rewarded interstitial
+- Class not found because admob not installed
+- Adjust event queue name.
+- Safely handle missing or null RemoteFeatureFlags for VN legal purpose
+- Init not completed when remote config data is null
+- Ui closed earlier when email verification got error
+- Ui issues email register vn dialog
 
 ### 🚀 Features
 
@@ -214,38 +254,6 @@ All notable changes to this project will be documented in this file.
 - Implement VN OEG phone number verification.
 - Email register and phone verification for VN
 
-### 🐛 Bug Fixes
-
-- Adjust new config for sanbdox.
-- Improve loop internet checker
-- Enhance AuthenticateAsync to return empty data
-- Remove double check offline status
-- Improve init IAA SDK and analytics SDK
-- Change variable config to _config
-- Improve track ad custom event admob
-- Improve IAA event queue
-- PreloadManager class error not found when admob sdk is not installed
-- Loop for override the client RemoteFeatureFlags if any is not working properly
-- Adjust close ad placeholder for applovin max and add show ad placeholder for rewarded interstitial
-- Class not found because admob not installed
-- Adjust event queue name.
-- Safely handle missing or null RemoteFeatureFlags for VN legal purpose
-- Init not completed when remote config data is null
-- Ui closed earlier when email verification got error
-- Ui issues email register vn dialog
-
-### 🚜 Refactor
-
-- AdFormat class into AdFormatNoctua to avoid confused class from Admob preloading configuration
-- Change ad placeholder use uitoolkit
-- Remove vn flow from email register dialog
-- Adjust and add translation for email registration flow
-- Translation for date of issues
-
-### ⚙️ Miscellaneous Tasks
-
-- Remove Script folder as we already have separated repository for config generation.
-
 ## [0.40.1] - 2025-05-27
 
 ### 🐛 Bug Fixes
@@ -254,9 +262,9 @@ All notable changes to this project will be documented in this file.
 
 ## [0.40.0] - 2025-05-27
 
-### 🚀 Features
+### misc
 
-- Add limit to event queue length.
+- Improve log when the event queue is full.
 
 ### 🐛 Bug Fixes
 
@@ -265,9 +273,9 @@ All notable changes to this project will be documented in this file.
 - Adjust event queue name.
 - Change cycle delay to 5 seconds
 
-### 💼 Other
+### 🚀 Features
 
-- Improve log when the event queue is full.
+- Add limit to event queue length.
 
 ## [0.39.7] - 2025-05-05
 
@@ -283,15 +291,15 @@ All notable changes to this project will be documented in this file.
 
 ## [0.39.5] - 2025-04-30
 
+### ⚙️ Miscellaneous
+
+- Update ios native sdk to 0.13.5 (support for disabling IAP).
+- Update noctua sdk ios to 0.14.0
+
 ### 🐛 Bug Fixes
 
 - Handle internet checker crashes when app is quitting
 - Handle event flush crashes when app is quitting
-
-### ⚙️ Miscellaneous Tasks
-
-- Update ios native sdk to 0.13.5 (support for disabling IAP).
-- Update noctua sdk ios to 0.14.0
 
 ## [0.39.4] - 2025-04-29
 
@@ -323,10 +331,6 @@ All notable changes to this project will be documented in this file.
 
 ## [0.39.0] - 2025-04-21
 
-### 🚀 Features
-
-- Add bridging against native onOnline and onOffline methods.
-
 ### 🐛 Bug Fixes
 
 - Keep init nativePlugin outside the IAA case.
@@ -338,7 +342,33 @@ All notable changes to this project will be documented in this file.
 - Handle 500 error in offline-first.
 - Catch IsOfflineAsync result with ContinueWith.
 
+### 🚀 Features
+
+- Add bridging against native onOnline and onOffline methods.
+
 ## [0.38.0] - 2025-04-16
+
+### 🐛 Bug Fixes
+
+- Rename IAAResponse to IAA
+- Remove unecessary code
+- Remove whitespace
+- Function not found when IAA SDK not installed
+- Update comment for IAA init flow
+- Update comment for IAA flow
+- Refactor log error offline mode as info
+- Missing responseInfo class admob
+- Change convert value micros
+- Preprocessor ios symbols
+- Ad revenue tracker crashes
+- Ios init ianalytics flow code is not working
+- Change condition when iaaEnabled is false
+- Keep native plugin init one time
+- Improve EventSender.
+- Backup internal tracker events to PlayerPrefs. Remove RetryAsync since there is already main loop that handle retries. Reenqueue if failed.
+- Try to parse to IConvertible first before parse to object to reduce computation cost.
+- Guard flush with try catch inside the async await.
+- Remove merge conflict marker.
 
 ### 🚀 Features
 
@@ -366,28 +396,6 @@ All notable changes to this project will be documented in this file.
 - Add ad revenue internal tracker
 - Add internal tracker
 - Add NoctuaEvents to registered player prefs keys.
-
-### 🐛 Bug Fixes
-
-- Rename IAAResponse to IAA
-- Remove unecessary code
-- Remove whitespace
-- Function not found when IAA SDK not installed
-- Update comment for IAA init flow
-- Update comment for IAA flow
-- Refactor log error offline mode as info
-- Missing responseInfo class admob
-- Change convert value micros
-- Preprocessor ios symbols
-- Ad revenue tracker crashes
-- Ios init ianalytics flow code is not working
-- Change condition when iaaEnabled is false
-- Keep native plugin init one time
-- Improve EventSender.
-- Backup internal tracker events to PlayerPrefs. Remove RetryAsync since there is already main loop that handle retries. Reenqueue if failed.
-- Try to parse to IConvertible first before parse to object to reduce computation cost.
-- Guard flush with try catch inside the async await.
-- Remove merge conflict marker.
 
 ## [0.37.3] - 2025-04-09
 
@@ -422,13 +430,13 @@ All notable changes to this project will be documented in this file.
 
 ## [0.36.0] - 2025-03-11
 
-### 🚀 Features
-
-- Add OnPurchaseDone event to let the game know if a purchase is completed.
-
 ### 🐛 Bug Fixes
 
 - Error message not expected
+
+### 🚀 Features
+
+- Add OnPurchaseDone event to let the game know if a purchase is completed.
 
 ## [0.35.1] - 2025-02-25
 
@@ -438,23 +446,15 @@ All notable changes to this project will be documented in this file.
 
 ## [0.35.0] - 2025-02-24
 
-### 🚀 Features
+### refacor
 
-- Logout confirm dialog
-- Logout left icon
-- Localization for logout confirmation dialog
-- Add Apple SSO
-- Add text setting asset and font Noto Sans Thai
-- Add text setting for config default font to panel setting
-- Implement QueryPurchases to handle pending purchase. Split log to 800-char chunks.
-- Pair unpaired purchase to unpaired order for both QueryPurchasesAsync and OnPurchaseUpdate. Add purchase history list.
-- Get store/platform name
-- Add request header X-PLATFORM into build config
-- Add request header X-PLATFORM, X-OS-AGENT, X-OS for all http request
-- Add request params exhange token, login as guest
-- Add is auth with sdk checker to hide welcome notification
-- Add default variable _offlineMode
-- Add information about who trigger the verify order API call.
+- Add comment for closeDatepicker android
+
+### ✨ Improvements
+
+- Improve code close datepicker and open datepicker
+- Clean IAP Service code for handle offline mode
+- Clean web content code for handle offline mode
 
 ### 🐛 Bug Fixes
 
@@ -497,19 +497,23 @@ All notable changes to this project will be documented in this file.
 - Handle Online then Offline to show retry dialog
 - Handle retry platform when Online then Offline to show retry dialog
 
-### 💼 Other
+### 🚀 Features
 
-- Add comment for closeDatepicker android
-
-### 🚜 Refactor
-
-- Improve code close datepicker and open datepicker
-- Clean IAP Service code for handle offline mode
-- Clean web content code for handle offline mode
-
-### 🧪 Testing
-
-- Add test for locale / language
+- Logout confirm dialog
+- Logout left icon
+- Localization for logout confirmation dialog
+- Add Apple SSO
+- Add text setting asset and font Noto Sans Thai
+- Add text setting for config default font to panel setting
+- Implement QueryPurchases to handle pending purchase. Split log to 800-char chunks.
+- Pair unpaired purchase to unpaired order for both QueryPurchasesAsync and OnPurchaseUpdate. Add purchase history list.
+- Get store/platform name
+- Add request header X-PLATFORM into build config
+- Add request header X-PLATFORM, X-OS-AGENT, X-OS for all http request
+- Add request params exhange token, login as guest
+- Add is auth with sdk checker to hide welcome notification
+- Add default variable _offlineMode
+- Add information about who trigger the verify order API call.
 
 ## [0.34.1] - 2025-01-24
 
@@ -519,14 +523,14 @@ All notable changes to this project will be documented in this file.
 
 ## [0.34.0] - 2025-01-24
 
-### 🚀 Features
-
-- Hide native payment button for direct APK distribution.
-
 ### 🐛 Bug Fixes
 
 - Reinit if the Playstore billing get disconnected at purchase.
 - Add translation for IAPNotReady error.
+
+### 🚀 Features
+
+- Hide native payment button for direct APK distribution.
 
 ## [0.33.1] - 2025-01-14
 
@@ -536,16 +540,13 @@ All notable changes to this project will be documented in this file.
 
 ## [0.33.0] - 2025-01-14
 
-### 🚀 Features
+### refacor
 
-- Logout confirm dialog
-- Logout left icon
-- Localization for logout confirmation dialog
-- Add Apple SSO
-- Implement remote config to enable or disable SSO.
-- Implement remote config for user center SSO linking.
-- Add HTTP timeout at 10 seconds. Add X-DEVICE-ID in the header.
-- Add APIs to help gamedev maintains SDK playerPrefs.
+- Add comment for closeDatepicker android
+
+### ✨ Improvements
+
+- Improve code close datepicker and open datepicker
 
 ### 🐛 Bug Fixes
 
@@ -577,23 +578,18 @@ All notable changes to this project will be documented in this file.
 - Work around for fullscreen web content on iOS not aligned
 - Restore readonly property of _credentials.
 
-### 💼 Other
-
-- Add comment for closeDatepicker android
-
-### 🚜 Refactor
-
-- Improve code close datepicker and open datepicker
-
-### 🧪 Testing
-
-- Add test for locale / language
-
-## [0.32.0] - 2025-01-09
-
 ### 🚀 Features
 
-- Allow user to pay with native payment in custom payment complete dialog.
+- Logout confirm dialog
+- Logout left icon
+- Localization for logout confirmation dialog
+- Add Apple SSO
+- Implement remote config to enable or disable SSO.
+- Implement remote config for user center SSO linking.
+- Add HTTP timeout at 10 seconds. Add X-DEVICE-ID in the header.
+- Add APIs to help gamedev maintains SDK playerPrefs.
+
+## [0.32.0] - 2025-01-09
 
 ### 🐛 Bug Fixes
 
@@ -607,11 +603,11 @@ All notable changes to this project will be documented in this file.
 - Birthdate value not set - edit profile
 - Adjust clean code
 
-## [0.31.0] - 2025-01-08
-
 ### 🚀 Features
 
-- Allow payment type override from backend.
+- Allow user to pay with native payment in custom payment complete dialog.
+
+## [0.31.0] - 2025-01-08
 
 ### 🐛 Bug Fixes
 
@@ -653,6 +649,10 @@ All notable changes to this project will be documented in this file.
 - Add retry to event sender
 - Usercenter design not matches
 
+### 🚀 Features
+
+- Allow payment type override from backend.
+
 ## [0.30.1] - 2024-12-27
 
 ### 🐛 Bug Fixes
@@ -661,9 +661,9 @@ All notable changes to this project will be documented in this file.
 
 ## [0.30.0] - 2024-12-27
 
-### 🚀 Features
+### ⚙️ Miscellaneous
 
-- Add pending purhase menu translation vn
+- No verbose log for HTTP requests with passwords
 
 ### 🐛 Bug Fixes
 
@@ -676,28 +676,22 @@ All notable changes to this project will be documented in this file.
 - Scale should adjust with auto rotate
 - Check for existing instance before call Firebase::configure.
 
-### ⚙️ Miscellaneous Tasks
+### 🚀 Features
 
-- No verbose log for HTTP requests with passwords
+- Add pending purhase menu translation vn
 
 ## [0.29.0] - 2024-12-22
+
+### 🐛 Bug Fixes
+
+- Update native sdk for ios
 
 ### 🚀 Features
 
 - Add custom app controller
 - Automation add capability push notification
 
-### 🐛 Bug Fixes
-
-- Update native sdk for ios
-
 ## [0.28.0] - 2024-12-20
-
-### 🚀 Features
-
-- Add copublisher logo on register widget. Improve register user experience.
-- Pop up success message linked account
-- Localization wording account linked
 
 ### 🐛 Bug Fixes
 
@@ -714,6 +708,12 @@ All notable changes to this project will be documented in this file.
 - Remove duplicate lines.
 - Reload the entire user center presenter to avoid unexpected bug.
 
+### 🚀 Features
+
+- Add copublisher logo on register widget. Improve register user experience.
+- Pop up success message linked account
+- Localization wording account linked
+
 ## [0.27.1] - 2024-12-20
 
 ### 🐛 Bug Fixes
@@ -729,12 +729,9 @@ All notable changes to this project will be documented in this file.
 
 ## [0.27.0] - 2024-12-19
 
-### 🚀 Features
+### ⚙️ Miscellaneous
 
-- Add Accept-Language in HTTP header to help error message translation in backend side.
-- Show switch account menu in user center for guest account.
-- Add copy localization languages
-- Localization for text input validation message - edit profile
+- Add SDK version to header.
 
 ### 🐛 Bug Fixes
 
@@ -787,19 +784,18 @@ All notable changes to this project will be documented in this file.
 - Typo key
 - Update android native sdk to 0.9.0
 
-### ⚙️ Miscellaneous Tasks
+### 🚀 Features
 
-- Add SDK version to header.
+- Add Accept-Language in HTTP header to help error message translation in backend side.
+- Show switch account menu in user center for guest account.
+- Add copy localization languages
+- Localization for text input validation message - edit profile
 
 ## [0.26.0] - 2024-12-16
 
-### 🚀 Features
+### ⚙️ Miscellaneous
 
-- Registration wizard for Vietnam region.
-- Add locale information in HTTP request header.
-- Add translation for Retry and Custom Payment Complete dialog.
-- Prepare retry pending purchases container.
-- Add Pending Purchase widget for both guest and authenticated user.
+- Downgrade locale log to Debug.
 
 ### 🐛 Bug Fixes
 
@@ -816,9 +812,13 @@ All notable changes to this project will be documented in this file.
 - Reset password doesn't automatically login
 - Rename SDK first_open to sdk_first_open to differentiate with custom tracker event.
 
-### ⚙️ Miscellaneous Tasks
+### 🚀 Features
 
-- Downgrade locale log to Debug.
+- Registration wizard for Vietnam region.
+- Add locale information in HTTP request header.
+- Add translation for Retry and Custom Payment Complete dialog.
+- Prepare retry pending purchases container.
+- Add Pending Purchase widget for both guest and authenticated user.
 
 ## [0.25.2] - 2024-12-12
 
@@ -834,26 +834,19 @@ All notable changes to this project will be documented in this file.
 
 ## [0.25.0] - 2024-12-12
 
-### 🚀 Features
-
-- Enable secondary payment after Noctuastore payment get canceled.
-
 ### 🐛 Bug Fixes
 
 - Tidy up some UIs.
 
-## [0.24.0] - 2024-12-12
-
 ### 🚀 Features
 
-- Default avatar
-- Add action help button
-- Add geo metadata in tracker event's extra payload.
-- Retry dialog ui
-- Retry mechanism for create order and verify order
-- Show error notification - purchase
-- Get noctua gold
-- Add Noctua Payment implementation using native browser with improved retry pending purchase.
+- Enable secondary payment after Noctuastore payment get canceled.
+
+## [0.24.0] - 2024-12-12
+
+### ⚙️ Miscellaneous
+
+- Print all custom tracker event parameters for easier debugging.
 
 ### 🐛 Bug Fixes
 
@@ -873,15 +866,22 @@ All notable changes to this project will be documented in this file.
 - Filter payment type by runtime platform. Open payment URL with native browser.
 - Remove currency from edit profile to prevent user playing around with currency to get cheaper goods.
 
-### ⚙️ Miscellaneous Tasks
+### 🚀 Features
 
-- Print all custom tracker event parameters for easier debugging.
+- Default avatar
+- Add action help button
+- Add geo metadata in tracker event's extra payload.
+- Retry dialog ui
+- Retry mechanism for create order and verify order
+- Show error notification - purchase
+- Get noctua gold
+- Add Noctua Payment implementation using native browser with improved retry pending purchase.
 
 ## [0.23.0] - 2024-12-10
 
-### 🚀 Features
+### ⚙️ Miscellaneous
 
-- Improve currency accuracy by using country to currency map.
+- Add LICENSE
 
 ### 🐛 Bug Fixes
 
@@ -894,9 +894,9 @@ All notable changes to this project will be documented in this file.
 - Remove superfluous exception message
 - Remove permission conflict
 
-### ⚙️ Miscellaneous Tasks
+### 🚀 Features
 
-- Add LICENSE
+- Improve currency accuracy by using country to currency map.
 
 ## [0.22.1] - 2024-12-06
 
@@ -905,13 +905,6 @@ All notable changes to this project will be documented in this file.
 - Match OrderStatus enum to backen types
 
 ## [0.22.0] - 2024-12-05
-
-### 🚀 Features
-
-- Show/Hide password in email login pop up
-- Add extra params in purchase request
-- Add display_price in product class
-- Add extra param in UpdatePlayerAccountAsync - purchase
 
 ### 🐛 Bug Fixes
 
@@ -922,13 +915,18 @@ All notable changes to this project will be documented in this file.
 - Show error when playstore payment failed
 - Addtional params for product purchase
 
-## [0.21.0] - 2024-12-05
-
 ### 🚀 Features
 
-- Copy user data to clipboard when selected account held down for 3 seconds
-- Bind confirmation and connect conflict dialogs
 - Show/Hide password in email login pop up
+- Add extra params in purchase request
+- Add display_price in product class
+- Add extra param in UpdatePlayerAccountAsync - purchase
+
+## [0.21.0] - 2024-12-05
+
+### ✨ Improvements
+
+- Sso logo stretched code
 
 ### 🐛 Bug Fixes
 
@@ -939,19 +937,23 @@ All notable changes to this project will be documented in this file.
 - Add translation to Bind Confirmation and Connect Conflict Dialog
 - Wording id 'continue with another account'
 
-### 🚜 Refactor
+### 🚀 Features
 
-- Sso logo stretched code
+- Copy user data to clipboard when selected account held down for 3 seconds
+- Bind confirmation and connect conflict dialogs
+- Show/Hide password in email login pop up
 
 ## [0.20.0] - 2024-12-03
 
-### 🚀 Features
+### ⚙️ Miscellaneous
 
-- Add sentry dll files
-- Add configuration sentry
-- Add Dsn sentry url to config
-- Log json body http
-- Update sdk native version
+- Add logging to aid debugging
+
+### ✨ Improvements
+
+- Do not write if url sentry is empty
+- Change _log to Debug.Log
+- Change noctua logger init position
 
 ### 🐛 Bug Fixes
 
@@ -960,15 +962,13 @@ All notable changes to this project will be documented in this file.
 - Set result for google billing product details and makes CreateOrder works again
 - Forgotten temporary undef
 
-### 🚜 Refactor
+### 🚀 Features
 
-- Do not write if url sentry is empty
-- Change _log to Debug.Log
-- Change noctua logger init position
-
-### ⚙️ Miscellaneous Tasks
-
-- Add logging to aid debugging
+- Add sentry dll files
+- Add configuration sentry
+- Add Dsn sentry url to config
+- Log json body http
+- Update sdk native version
 
 ## [0.19.9] - 2024-11-29
 
@@ -984,6 +984,10 @@ All notable changes to this project will be documented in this file.
 
 ## [0.19.7] - 2024-11-28
 
+### ⚙️ Miscellaneous
+
+- Initiate locale once, then inject it anywhere we need.
+
 ### 🐛 Bug Fixes
 
 - Determine language by this priority; user preference, region, system language.
@@ -993,10 +997,6 @@ All notable changes to this project will be documented in this file.
 - Update the user language preference immediately after successfully update to backend.
 - Remove duplicate HTTP log.
 - Keyboard not closed after entering input
-
-### ⚙️ Miscellaneous Tasks
-
-- Initiate locale once, then inject it anywhere we need.
 
 ## [0.19.6] - 2024-11-27
 
@@ -1013,13 +1013,13 @@ All notable changes to this project will be documented in this file.
 
 ## [0.19.4] - 2024-11-26
 
+### ✨ Improvements
+
+- Change throw exeption to log warning
+
 ### 🐛 Bug Fixes
 
 - Use fallback if native account store is unavailable.
-
-### 🚜 Refactor
-
-- Change throw exeption to log warning
 
 ## [0.19.3] - 2024-11-25
 
@@ -1049,13 +1049,14 @@ All notable changes to this project will be documented in this file.
 
 ## [0.19.0] - 2024-11-20
 
-### 🚀 Features
+### ✨ Improvements
 
-- Add translation for user banned info
-- Add exception error code for user banned
-- General confirm dialog for user banned
-- Add public method general confirm dialog
-- Add handle error user banned - login with email
+- Method authenticateAsync
+- Rename GeneralConfirmDialog to ConfirmationDialog
+- Used color for hyperlink - translation for user banned
+- Rename with spesific name banned confirmation dialog
+- Rename method name to ShowBannedConfirmationDialog
+- Changed to async and return UniTask
 
 ### 🐛 Bug Fixes
 
@@ -1065,14 +1066,13 @@ All notable changes to this project will be documented in this file.
 - Make throw exeption after user clicked button or hyperlink
 - Retry saving account if failed
 
-### 🚜 Refactor
+### 🚀 Features
 
-- Method authenticateAsync
-- Rename GeneralConfirmDialog to ConfirmationDialog
-- Used color for hyperlink - translation for user banned
-- Rename with spesific name banned confirmation dialog
-- Rename method name to ShowBannedConfirmationDialog
-- Changed to async and return UniTask
+- Add translation for user banned info
+- Add exception error code for user banned
+- General confirm dialog for user banned
+- Add public method general confirm dialog
+- Add handle error user banned - login with email
 
 ## [0.18.2] - 2024-11-19
 
@@ -1096,12 +1096,6 @@ All notable changes to this project will be documented in this file.
 
 ## [0.17.0] - 2024-11-13
 
-### 🚀 Features
-
-- Makes accounts available across games in iOS
-- Add bridging function close keyboard ios
-- Firebase crashlytics
-
 ### 🐛 Bug Fixes
 
 - Virtual keyboard not hidden in iOS
@@ -1109,12 +1103,13 @@ All notable changes to this project will be documented in this file.
 - Update noctua android sdk native to 0.6.0
 - Change to follow BE payment type
 
-## [0.16.0] - 2024-11-07
-
 ### 🚀 Features
 
-- Dynamic custom event suffix for Android and iOS
-- Add sdk version to account selection and user center
+- Makes accounts available across games in iOS
+- Add bridging function close keyboard ios
+- Firebase crashlytics
+
+## [0.16.0] - 2024-11-07
 
 ### 🐛 Bug Fixes
 
@@ -1122,9 +1117,10 @@ All notable changes to this project will be documented in this file.
 - Support ban user by exchange token for current game
 - Track USD as revenue while still keeping  original currency
 
-### 📚 Documentation
+### 🚀 Features
 
-- Add manual release guide [skip ci]
+- Dynamic custom event suffix for Android and iOS
+- Add sdk version to account selection and user center
 
 ## [0.15.1] - 2024-11-01
 
@@ -1144,15 +1140,6 @@ All notable changes to this project will be documented in this file.
 
 ## [0.15.0] - 2024-10-29
 
-### 🚀 Features
-
-- Add events to IAP and fix retry pending purchases
-- Add platform content events
-- Translation vn
-- Add translation vn language
-- Add translation for select gender and country
-- Add session tracking
-
 ### 🐛 Bug Fixes
 
 - Text not translated - user center
@@ -1162,16 +1149,16 @@ All notable changes to this project will be documented in this file.
 - Add retry to Google Billing init
 - Use WebUtility instead of HttpUtility to be compatible with .NET Framework API Level
 
-## [0.14.0] - 2024-10-25
-
 ### 🚀 Features
 
-- Authentication builtin tracker
-- Add events  to Auth UIs, add double events to some auth process
-- Add localization EN json file
-- Add configuration for localization
-- Add localization
-- Add indonesia localization file
+- Add events to IAP and fix retry pending purchases
+- Add platform content events
+- Translation vn
+- Add translation vn language
+- Add translation for select gender and country
+- Add session tracking
+
+## [0.14.0] - 2024-10-25
 
 ### 🐛 Bug Fixes
 
@@ -1190,27 +1177,20 @@ All notable changes to this project will be documented in this file.
 - Optional copublisher config should be ignored instead of exception
 - Add elvis operators to potentially null configs
 
-### 🧪 Testing
+### 🚀 Features
 
-- Fix tests to adjust with original requirements
+- Authentication builtin tracker
+- Add events  to Auth UIs, add double events to some auth process
+- Add localization EN json file
+- Add configuration for localization
+- Add localization
+- Add indonesia localization file
 
 ## [0.13.0] - 2024-10-22
 
-### 🚀 Features
+### ✨ Improvements
 
-- Add cross-game account storage
-- Add countries data and phone code
-- Add registration extra params for behaviour vn
-- Form field for behaviour whitelabel vn
-- Picker id param
-- Add form register for behaviour whitelabel vn
-- Configuration behaviour whitelabel vn
-- Remove close/back button in login with email for behaviour whitelabel vn
-- Don't show notif user guest if behavior whitelabel vn is true
-- Disable SSO for Behaviour whitelabel vn
-- Show direct login with email when player continue with other account
-- Add reusable ContainsFlag Checker
-- Add event tracker generator for multiple platforms and multiple thirdparty trackers.
+- Open date picker - user center
 
 ### 🐛 Bug Fixes
 
@@ -1228,11 +1208,33 @@ All notable changes to this project will be documented in this file.
 - Enhance flag checking more robust
 - Make token optional for fetching platform content.
 
-### 🚜 Refactor
+### 🚀 Features
 
-- Open date picker - user center
+- Add cross-game account storage
+- Add countries data and phone code
+- Add registration extra params for behaviour vn
+- Form field for behaviour whitelabel vn
+- Picker id param
+- Add form register for behaviour whitelabel vn
+- Configuration behaviour whitelabel vn
+- Remove close/back button in login with email for behaviour whitelabel vn
+- Don't show notif user guest if behavior whitelabel vn is true
+- Disable SSO for Behaviour whitelabel vn
+- Show direct login with email when player continue with other account
+- Add reusable ContainsFlag Checker
+- Add event tracker generator for multiple platforms and multiple thirdparty trackers.
 
 ## [0.12.0] - 2024-10-16
+
+### ✨ Improvements
+
+- Name logo with text - user center
+- Method get co publisher logo
+
+### 🐛 Bug Fixes
+
+- Tnc and privacy can clickable
+- Don't destroy panelSettings when switching scene
 
 ### 🚀 Features
 
@@ -1243,22 +1245,7 @@ All notable changes to this project will be documented in this file.
 - Add reusbale get co publisher logo
 - Add configuration for whitelabel
 
-### 🐛 Bug Fixes
-
-- Tnc and privacy can clickable
-- Don't destroy panelSettings when switching scene
-
-### 🚜 Refactor
-
-- Name logo with text - user center
-- Method get co publisher logo
-
 ## [0.11.0] - 2024-10-14
-
-### 🚀 Features
-
-- Add copy user id to clipboard
-- Reusable validate textfield
 
 ### 🐛 Bug Fixes
 
@@ -1272,11 +1259,12 @@ All notable changes to this project will be documented in this file.
 - Optimaze validate textfield code
 - Calculating webview frame
 
-## [0.10.0] - 2024-10-11
-
 ### 🚀 Features
 
-- Add method detect multiple values changes
+- Add copy user id to clipboard
+- Reusable validate textfield
+
+## [0.10.0] - 2024-10-11
 
 ### 🐛 Bug Fixes
 
@@ -1286,17 +1274,22 @@ All notable changes to this project will be documented in this file.
 - Spinner ui, profile url null will not loaded, detect value changes to enable button save
 - Dont destroy UI with new scene
 
+### 🚀 Features
+
+- Add method detect multiple values changes
+
 ## [0.9.1] - 2024-10-10
 
-### ⚙️ Miscellaneous Tasks
+### ⚙️ Miscellaneous
 
 - Split long log
 
 ## [0.9.0] - 2024-10-10
 
-### 🚀 Features
+### ✨ Improvements
 
-- Add method remove white space
+- Remove utility method remove white space
+- Use method directly to remove white space
 
 ### 🐛 Bug Fixes
 
@@ -1314,29 +1307,21 @@ All notable changes to this project will be documented in this file.
 - Error label not showing when email verif code
 - Apply scaling consistently between editor and real device
 
-### 🚜 Refactor
+### 🚀 Features
 
-- Remove utility method remove white space
-- Use method directly to remove white space
+- Add method remove white space
 
 ## [0.8.0] - 2024-10-07
 
-### 🚀 Features
+### ✨ Improvements
 
-- Add 3rd party NativeGallery
-- Add edit profile service
-- Add file uploader services
-- Add get profile options service
-- Date picker and refactor code
-- Image picker
-- Add payment by noctua website
-- Spinner, error label and styling dropdown
-- Add NoctuaWebContent
-- Add payment type in user profile
-- Noctua logo with text footer in edit profile left side
-- Add date picker
-- Add loading progress when iap
-- Add parse query string
+- Moves Event methods under NoctuaEventService class
+- Makes UI creation more reusable via UIFactory
+- Take out social authentication flow from AuthenticationModel
+- Use enum status and move tcs out of retry
+- General notificaiton can be reusable
+- Hide loading progress for temporary
+- General notification message and loading progress
 
 ### 🐛 Bug Fixes
 
@@ -1362,33 +1347,29 @@ All notable changes to this project will be documented in this file.
 - Verif order not processed
 - Get receipt data from response payment url noctua wallet
 
-### 🚜 Refactor
+### 🚀 Features
 
-- Moves Event methods under NoctuaEventService class
-- Makes UI creation more reusable via UIFactory
-- Take out social authentication flow from AuthenticationModel
-- Use enum status and move tcs out of retry
-- General notificaiton can be reusable
-- Hide loading progress for temporary
-- General notification message and loading progress
-
-### 📚 Documentation
-
-- Update readme
+- Add 3rd party NativeGallery
+- Add edit profile service
+- Add file uploader services
+- Add get profile options service
+- Date picker and refactor code
+- Image picker
+- Add payment by noctua website
+- Spinner, error label and styling dropdown
+- Add NoctuaWebContent
+- Add payment type in user profile
+- Noctua logo with text footer in edit profile left side
+- Add date picker
+- Add loading progress when iap
+- Add parse query string
 
 ## [0.7.0] - 2024-09-18
 
-### 🚀 Features
+### ✨ Improvements
 
-- Implement account deletion with confirmation dialog.
-- Implement purchaseItem bridging against native SDK.
-- Icon two hand carousel
-- Code to show object in Noctua.uss
-- Uss code configuration for carousel
-- Add uxml carousel in user center
-- Add carousel logic in user center presenter
-- Wire up GetActiveCurrency for Android. Use UniTask for PurchaseItemAsync.
-- Apply facebook config to android project
+- Indicator style code to uss code
+- Remove comparation state
 
 ### 🐛 Bug Fixes
 
@@ -1405,21 +1386,23 @@ All notable changes to this project will be documented in this file.
 - Guest connect button
 - Remove GoogleService-Info.plist from project if Firebase disabled
 
-### 🚜 Refactor
+### 🚀 Features
 
-- Indicator style code to uss code
-- Remove comparation state
+- Implement account deletion with confirmation dialog.
+- Implement purchaseItem bridging against native SDK.
+- Icon two hand carousel
+- Code to show object in Noctua.uss
+- Uss code configuration for carousel
+- Add uxml carousel in user center
+- Add carousel logic in user center presenter
+- Wire up GetActiveCurrency for Android. Use UniTask for PurchaseItemAsync.
+- Apply facebook config to android project
 
 ## [0.6.0] - 2024-09-09
 
-### 🚀 Features
+### ✨ Improvements
 
-- Add UniWebView
-- Warning icon (error notification icon)
-- Error notification ui
-- Add public method show general notification error
-- Add method show notification error user center
-- Add method show notification error login options
+- Makes config load more robust
 
 ### 🐛 Bug Fixes
 
@@ -1429,9 +1412,14 @@ All notable changes to this project will be documented in this file.
 - Handle error on social login failed
 - Should throw error response from BE
 
-### 🚜 Refactor
+### 🚀 Features
 
-- Makes config load more robust
+- Add UniWebView
+- Warning icon (error notification icon)
+- Error notification ui
+- Add public method show general notification error
+- Add method show notification error user center
+- Add method show notification error login options
 
 ## [0.5.2] - 2024-09-07
 
@@ -1449,10 +1437,6 @@ All notable changes to this project will be documented in this file.
 
 ## [0.5.0] - 2024-09-04
 
-### 🚀 Features
-
-- Click outside to close MoreOptionsMenu
-
 ### 🐛 Bug Fixes
 
 - Use link endpoints instead of login
@@ -1460,7 +1444,33 @@ All notable changes to this project will be documented in this file.
 - Make icons on MoreOptionsMenu smaller
 - IOS and Android runtime error
 
+### 🚀 Features
+
+- Click outside to close MoreOptionsMenu
+
 ## [0.4.0] - 2024-09-02
+
+### wip
+
+- User center
+
+### ✨ Improvements
+
+- Move UI actions to NoctuaBehavior
+- Conform more closely to MVP pattern
+- Delete unused bind dialog
+
+### 🐛 Bug Fixes
+
+- Change name function
+- Split account list into game users and noctua users
+- Fix dummy var initiation
+- Reset password endpoint and request
+- VerifyCode is only for registration
+- Check size before slicing
+- Styling, navigation, memory leak
+- Rename ShowUserCenterUI() to UserCenter()
+- User center get data from /api/v1/user/profile
 
 ### 🚀 Features
 
@@ -1480,28 +1490,6 @@ All notable changes to this project will be documented in this file.
 - OnAccountChanged and OnAccountDeleted
 - Social login user center
 - Change user center layout based on screen orientation
-
-### 🐛 Bug Fixes
-
-- Change name function
-- Split account list into game users and noctua users
-- Fix dummy var initiation
-- Reset password endpoint and request
-- VerifyCode is only for registration
-- Check size before slicing
-- Styling, navigation, memory leak
-- Rename ShowUserCenterUI() to UserCenter()
-- User center get data from /api/v1/user/profile
-
-### 💼 Other
-
-- User center
-
-### 🚜 Refactor
-
-- Move UI actions to NoctuaBehavior
-- Conform more closely to MVP pattern
-- Delete unused bind dialog
 
 ## [0.3.0] - 2024-08-15
 
@@ -1524,17 +1512,8 @@ All notable changes to this project will be documented in this file.
 
 ## [0.1.1] - 2024-07-25
 
-### 🐛 Bug Fixes
+### ⚙️ Miscellaneous
 
-- .gitlab-ci.yml rules
-
-### 📚 Documentation
-
-- Reformat bullets
-
-### ⚙️ Miscellaneous Tasks
-
-- Add trigger CI
 - Add CI for release
 - *(ci)* Fix invalid yaml
 - *(ci)* Fix invalid yaml again
@@ -1542,18 +1521,14 @@ All notable changes to this project will be documented in this file.
 - *(ci)* Fix skipped bump-version
 - *(ci)* Generate release notes for github
 
+### 🐛 Bug Fixes
+
+- .gitlab-ci.yml rules
+
 ## [0.1.0] - 2024-07-24
 
 ### 🚀 Features
 
 - Basic event trackers wrapping Noctua Android SDK
 
-### 📚 Documentation
 
-- Add README.md for getting started with this package
-- Add README.md.meta from Unity Editor
-- Add README.md for installation and getting started
-- Edit README.md to add required config file
-- Add platform settings for EDM
-
-<!-- generated by git-cliff -->
