@@ -18,10 +18,20 @@ namespace Tests.Runtime.IAA
         public bool AppOpenReady       { get; set; } = true;
 
         /// <summary>
-        /// Controls what <see cref="HasBannerAdUnit"/> returns.
-        /// Also set to <c>true</c> automatically by <see cref="SetBannerAdUnitId"/>.
+        /// Controls what <see cref="HasBannerAdUnit"/> (and <see cref="HasAdUnitForFormat"/> for
+        /// <see cref="AdFormatKey.Banner"/>) returns. Also set to <c>true</c> automatically by
+        /// <see cref="SetBannerAdUnitId"/>.
         /// </summary>
         public bool BannerAdUnitSet    { get; set; } = false;
+
+        /// <summary>
+        /// Controls what <see cref="HasAdUnitForFormat"/> returns for the interstitial/rewarded/
+        /// app-open formats. Also set to <c>true</c> automatically by the matching
+        /// <c>Set*AdUnitID</c> call, mirroring production behavior.
+        /// </summary>
+        public bool InterstitialAdUnitSet { get; set; } = false;
+        public bool RewardedAdUnitSet     { get; set; } = false;
+        public bool AppOpenAdUnitSet      { get; set; } = false;
 
         // ── Call tracking ─────────────────────────────────────────────────
         public int  InitializeCallCount          { get; private set; }
@@ -108,22 +118,39 @@ namespace Tests.Runtime.IAA
             initCompleteAction?.Invoke();
         }
 
-        public void SetInterstitialAdUnitID(string adUnitID) => LastInterstitialAdUnitId = adUnitID;
+        public void SetInterstitialAdUnitID(string adUnitID)
+        {
+            LastInterstitialAdUnitId = adUnitID;
+            InterstitialAdUnitSet = true;
+        }
         public void LoadInterstitialAd()  => LoadInterstitialCallCount++;
         public void ShowInterstitial()    => ShowInterstitialCallCount++;
 
-        public void SetRewardedAdUnitID(string adUnitID) => LastRewardedAdUnitId = adUnitID;
+        public void SetRewardedAdUnitID(string adUnitID)
+        {
+            LastRewardedAdUnitId = adUnitID;
+            RewardedAdUnitSet = true;
+        }
         public void LoadRewardedAd()  => LoadRewardedCallCount++;
         public void ShowRewardedAd()  => ShowRewardedCallCount++;
 
         public void SetBannerAdUnitId(string adUnitID) { BannerAdUnitSet = true; }
         public bool HasBannerAdUnit() => BannerAdUnitSet;
+        public bool HasAdUnitForFormat(string format) => format switch
+        {
+            AdFormatKey.Interstitial => InterstitialAdUnitSet,
+            AdFormatKey.Rewarded => RewardedAdUnitSet,
+            AdFormatKey.Banner => BannerAdUnitSet,
+            AdFormatKey.AppOpen => AppOpenAdUnitSet,
+            _ => false
+        };
         public void ShowBannerAd() => ShowBannerCallCount++;
 
         public void SetAppOpenAdUnitID(string adUnitID)
         {
             LastAppOpenAdUnitId = adUnitID;
             SetAppOpenAdUnitCallCount++;
+            AppOpenAdUnitSet = true;
         }
 
         public void LoadAppOpenAd()   => LoadAppOpenCallCount++;

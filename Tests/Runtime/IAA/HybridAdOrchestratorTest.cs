@@ -191,6 +191,59 @@ namespace Tests.Runtime.IAA
             Assert.AreSame(_primary,   orc.GetNetworkForFormat(AdFormatKey.Banner));
         }
 
+        // ─── GetNetworkForFormat — prefer whichever network has a configured unit ──
+
+        [Test]
+        public void GetNetworkForFormat_PrimaryHasNoUnit_SecondaryDoes_ReturnsSecondary()
+        {
+            // No override, no dynamic-opt: nominal pick is primary, but primary has no
+            // interstitial unit configured while secondary does — should swap to secondary.
+            _secondary.SetInterstitialAdUnitID("secondary-unit");
+            var orc = new HybridAdOrchestrator(_primary, _secondary);
+
+            var net = orc.GetNetworkForFormat(AdFormatKey.Interstitial);
+
+            Assert.AreSame(_secondary, net);
+        }
+
+        [Test]
+        public void GetNetworkForFormat_NeitherHasUnit_ReturnsNominalPrimary()
+        {
+            var orc = new HybridAdOrchestrator(_primary, _secondary);
+
+            var net = orc.GetNetworkForFormat(AdFormatKey.Interstitial);
+
+            Assert.AreSame(_primary, net, "Neither network has a configured unit — keep nominal pick so downstream readiness/CPM fallback can handle it.");
+        }
+
+        [Test]
+        public void GetNetworkForFormat_OverrideTargetsNetworkWithNoUnit_OtherHasUnit_SwapsToOther()
+        {
+            // Override pins interstitial to primary, but only secondary has a unit configured.
+            var overrides = new Dictionary<string, string>
+            {
+                [AdFormatKey.Interstitial] = "admob"
+            };
+            _secondary.SetInterstitialAdUnitID("secondary-unit");
+            var orc = new HybridAdOrchestrator(_primary, _secondary, overrides);
+
+            var net = orc.GetNetworkForFormat(AdFormatKey.Interstitial);
+
+            Assert.AreSame(_secondary, net);
+        }
+
+        [Test]
+        public void GetNetworkForFormat_BothHaveUnit_ReturnsNominalPrimary()
+        {
+            _primary.SetInterstitialAdUnitID("primary-unit");
+            _secondary.SetInterstitialAdUnitID("secondary-unit");
+            var orc = new HybridAdOrchestrator(_primary, _secondary);
+
+            var net = orc.GetNetworkForFormat(AdFormatKey.Interstitial);
+
+            Assert.AreSame(_primary, net);
+        }
+
         [Test]
         public void GetNetworkForFormat_DynamicOptimization_PrefersBestScoringNetwork()
         {

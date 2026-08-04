@@ -124,6 +124,41 @@ namespace Tests.Runtime.IAA
             Assert.AreEqual(0, _secondary.LoadAppOpenCallCount);
         }
 
+        [Test]
+        public void ConfigureSecondary_PrimaryUnitEmpty_SecondaryValid_IsAppOpenAdReadyTrue()
+        {
+            // Primary has no App Open unit configured; only secondary does.
+            _secondary.AppOpenReady = true;
+            var mgr = new AppOpenAdManager(_primary, _secondary);
+
+            mgr.Configure(string.Empty); // primary — no-ops
+            mgr.ConfigureSecondary("unit-secondary");
+
+            Assert.AreEqual("unit-secondary", _secondary.LastAppOpenAdUnitId);
+            Assert.AreEqual(1, _secondary.LoadAppOpenCallCount);
+            Assert.IsTrue(mgr.IsAppOpenAdReady());
+        }
+
+        [Test]
+        public void ConfigureSecondary_PrimaryUnitEmpty_SecondaryValid_ForegroundAutoShowFiresFromSecondary()
+        {
+            // Regression test: previously, primary-empty meant _appOpenAdUnitConfigured stayed
+            // false forever, so foreground auto-show never fired even with a valid secondary unit.
+            // Primary never got an ad unit set, so — matching real network behavior — it has
+            // nothing loaded and is not ready.
+            _primary.AppOpenReady = false;
+            _secondary.AppOpenReady = true;
+            var mgr = new AppOpenAdManager(_primary, _secondary, autoShowOnForeground: true);
+
+            mgr.Configure(string.Empty);
+            mgr.ConfigureSecondary("unit-secondary");
+
+            mgr.OnApplicationForeground();
+
+            Assert.AreEqual(1, _secondary.ShowAppOpenCallCount);
+            Assert.AreEqual(0, _primary.ShowAppOpenCallCount);
+        }
+
         // ─── IsAppOpenAdReady ─────────────────────────────────────────────────
 
         [Test]

@@ -52,6 +52,10 @@ namespace com.noctuagames.sdk
 
         // Tracks whether a banner ad unit ID has been configured
         private bool _bannerAdUnitSet;
+        private bool _interstitialAdUnitSet;
+        private bool _rewardedAdUnitSet;
+        private bool _rewardedInterstitialAdUnitSet;
+        private bool _appOpenAdUnitSet;
 
         // Captured Unity main-thread SynchronizationContext. GMA fires its
         // initialization completion callback on the Android JNI thread, so any
@@ -203,6 +207,7 @@ namespace com.noctuagames.sdk
         /// <inheritdoc />
         public void SetInterstitialAdUnitID(string adUnitID)
         {
+            _interstitialAdUnitSet = true;
             _interstitialAdmob.SetInterstitialAdUnitID(adUnitID);
 
             if (!_interstitialEventsSubscribed)
@@ -244,6 +249,7 @@ namespace com.noctuagames.sdk
         /// <inheritdoc />
         public void SetRewardedAdUnitID(string adUnitID)
         {
+            _rewardedAdUnitSet = true;
             _rewardedAdmob.SetRewardedAdUnitID(adUnitID);
 
             if (!_rewardedEventsSubscribed)
@@ -285,6 +291,17 @@ namespace com.noctuagames.sdk
 
         /// <inheritdoc />
         public bool HasBannerAdUnit() => _bannerAdUnitSet;
+
+        /// <inheritdoc />
+        public bool HasAdUnitForFormat(string format) => format switch
+        {
+            AdFormatKey.Interstitial => _interstitialAdUnitSet,
+            AdFormatKey.Rewarded => _rewardedAdUnitSet,
+            AdFormatKey.RewardedInterstitial => _rewardedInterstitialAdUnitSet,
+            AdFormatKey.Banner => _bannerAdUnitSet,
+            AdFormatKey.AppOpen => _appOpenAdUnitSet,
+            _ => false
+        };
 
         /// <inheritdoc />
         public bool IsInterstitialReady() => _interstitialAdmob.IsReady();
@@ -350,6 +367,7 @@ namespace com.noctuagames.sdk
         /// <inheritdoc />
         public void SetRewardedInterstitialAdUnitID(string adUnitID)
         {
+            _rewardedInterstitialAdUnitSet = true;
             _rewardedInterstitialAdmob.SetRewardedInterstitialAdUnitID(adUnitID);
 
             if (!_rewardedInterstitialEventsSubscribed)
@@ -391,6 +409,7 @@ namespace com.noctuagames.sdk
         /// <inheritdoc />
         public void SetAppOpenAdUnitID(string adUnitID)
         {
+            _appOpenAdUnitSet = true;
             _appOpenAdmob.SetAppOpenAdUnitID(adUnitID);
 
             if (!_appOpenEventsSubscribed)

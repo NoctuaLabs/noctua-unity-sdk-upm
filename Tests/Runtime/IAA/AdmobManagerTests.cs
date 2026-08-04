@@ -74,6 +74,51 @@ namespace Tests.Runtime.IAA
         }
 
         [Test]
+        public void HasAdUnitForFormat_FalseByDefaultForAllFormats()
+        {
+            Assert.IsFalse(_manager.HasAdUnitForFormat(AdFormatKey.Interstitial));
+            Assert.IsFalse(_manager.HasAdUnitForFormat(AdFormatKey.Rewarded));
+            Assert.IsFalse(_manager.HasAdUnitForFormat(AdFormatKey.RewardedInterstitial));
+            Assert.IsFalse(_manager.HasAdUnitForFormat(AdFormatKey.Banner));
+            Assert.IsFalse(_manager.HasAdUnitForFormat(AdFormatKey.AppOpen));
+        }
+
+        [Test]
+        public void HasAdUnitForFormat_TrueAfterSetInterstitialAdUnitID()
+        {
+            _manager.SetInterstitialAdUnitID(AdmobAdUnits.Interstitial);
+            Assert.IsTrue(_manager.HasAdUnitForFormat(AdFormatKey.Interstitial));
+        }
+
+        [Test]
+        public void HasAdUnitForFormat_TrueAfterSetRewardedAdUnitID()
+        {
+            _manager.SetRewardedAdUnitID(AdmobAdUnits.Rewarded);
+            Assert.IsTrue(_manager.HasAdUnitForFormat(AdFormatKey.Rewarded));
+        }
+
+        [Test]
+        public void HasAdUnitForFormat_TrueAfterSetRewardedInterstitialAdUnitID()
+        {
+            _manager.SetRewardedInterstitialAdUnitID(AdmobAdUnits.RewardedInterstitial);
+            Assert.IsTrue(_manager.HasAdUnitForFormat(AdFormatKey.RewardedInterstitial));
+        }
+
+        [Test]
+        public void HasAdUnitForFormat_TrueAfterSetBannerAdUnitId()
+        {
+            _manager.SetBannerAdUnitId(AdmobAdUnits.Banner);
+            Assert.IsTrue(_manager.HasAdUnitForFormat(AdFormatKey.Banner));
+        }
+
+        [Test]
+        public void HasAdUnitForFormat_TrueAfterSetAppOpenAdUnitID()
+        {
+            _manager.SetAppOpenAdUnitID(AdmobAdUnits.AppOpen);
+            Assert.IsTrue(_manager.HasAdUnitForFormat(AdFormatKey.AppOpen));
+        }
+
+        [Test]
         public void IsInterstitialReady_ReturnsFalseWhenNotLoaded()
         {
             _manager.SetInterstitialAdUnitID(AdmobAdUnits.Interstitial);

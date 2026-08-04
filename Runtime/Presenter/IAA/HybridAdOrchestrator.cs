@@ -165,7 +165,7 @@ namespace com.noctuagames.sdk
                 if (_secondary != null && preferredNetwork == _secondary.NetworkName)
                 {
                     _log.Debug($"GetNetworkForFormat({format}): override='{preferredNetwork}' → secondary ({_secondary.NetworkName})");
-                    return _secondary;
+                    return PreferNetworkWithConfiguredUnit(_secondary, format);
                 }
 
                 // Override target requested a network that isn't available (e.g. secondary not
@@ -177,7 +177,7 @@ namespace com.noctuagames.sdk
                 }
 
                 _log.Debug($"GetNetworkForFormat({format}): override='{preferredNetwork}' → primary ({_primary.NetworkName})");
-                return _primary;
+                return PreferNetworkWithConfiguredUnit(_primary, format);
             }
 
             // Dynamic optimization: use performance tracker
@@ -187,12 +187,38 @@ namespace com.noctuagames.sdk
                 if (best != null && _secondary != null && best == _secondary.NetworkName)
                 {
                     _log.Debug($"GetNetworkForFormat({format}): dynamic-opt picked secondary ({_secondary.NetworkName})");
-                    return _secondary;
+                    return PreferNetworkWithConfiguredUnit(_secondary, format);
                 }
             }
 
             _log.Debug($"GetNetworkForFormat({format}): no override, no dynamic-opt → primary ({_primary.NetworkName})");
-            return _primary;
+            return PreferNetworkWithConfiguredUnit(_primary, format);
+        }
+
+        /// <summary>
+        /// Corrects a nominally-preferred network to whichever network actually has an ad unit
+        /// configured for <paramref name="format"/>, when the nominal one doesn't. This lets
+        /// game config leave the primary network's ad unit id empty for a format and configure
+        /// it only on secondary, without needing a failed load attempt first.
+        /// </summary>
+        private IAdNetwork PreferNetworkWithConfiguredUnit(IAdNetwork nominal, string format)
+        {
+            if (nominal.HasAdUnitForFormat(format))
+            {
+                return nominal;
+            }
+
+            var other = nominal == _primary ? _secondary : _primary;
+
+            if (other != null && other.HasAdUnitForFormat(format))
+            {
+                _log.Debug($"GetNetworkForFormat({format}): {nominal.NetworkName} has no configured unit; using {other.NetworkName} instead.");
+                return other;
+            }
+
+            // Neither network has a configured unit — keep the nominal choice; existing
+            // readiness/CPM-floor fallback logic downstream handles the "no ad available" case.
+            return nominal;
         }
 
         /// <summary>

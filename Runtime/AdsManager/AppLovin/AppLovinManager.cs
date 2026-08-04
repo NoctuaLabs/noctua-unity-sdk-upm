@@ -45,6 +45,9 @@ namespace com.noctuagames.sdk
 
         // Tracks whether a banner ad unit ID has been configured
         private bool _bannerAdUnitSet;
+        private bool _interstitialAdUnitSet;
+        private bool _rewardedAdUnitSet;
+        private bool _appOpenAdUnitSet;
 
         /// <summary>Raised when the AppLovin MAX SDK has completed initialization.</summary>
         public event Action OnInitialized { add => _initCompleteAction += value; remove => _initCompleteAction -= value; }
@@ -146,6 +149,7 @@ namespace com.noctuagames.sdk
         /// <inheritdoc />
         public void SetInterstitialAdUnitID(string adUnitID)
         {
+            _interstitialAdUnitSet = true;
             _interstitialAppLovin.SetInterstitialAdUnitID(adUnitID);
 
             if (!_interstitialEventsSubscribed)
@@ -186,6 +190,7 @@ namespace com.noctuagames.sdk
         /// <inheritdoc />
         public void SetRewardedAdUnitID(string adUnitID)
         {
+            _rewardedAdUnitSet = true;
             _rewardedAppLovin.SetRewardedAdUnitID(adUnitID);
 
             if (!_rewardedEventsSubscribed)
@@ -226,6 +231,16 @@ namespace com.noctuagames.sdk
 
         /// <inheritdoc />
         public bool HasBannerAdUnit() => _bannerAdUnitSet;
+
+        /// <inheritdoc />
+        public bool HasAdUnitForFormat(string format) => format switch
+        {
+            AdFormatKey.Interstitial => _interstitialAdUnitSet,
+            AdFormatKey.Rewarded => _rewardedAdUnitSet,
+            AdFormatKey.Banner => _bannerAdUnitSet,
+            AdFormatKey.AppOpen => _appOpenAdUnitSet,
+            _ => false
+        };
 
         /// <inheritdoc />
         public void SetBannerAdUnitId(string adUnitID)
@@ -334,6 +349,7 @@ namespace com.noctuagames.sdk
         /// <inheritdoc />
         public void SetAppOpenAdUnitID(string adUnitID)
         {
+            _appOpenAdUnitSet = true;
             _appOpenAppLovin.SetAppOpenAdUnitID(adUnitID);
 
             if (!_appOpenEventsSubscribed)

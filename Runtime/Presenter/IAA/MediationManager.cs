@@ -1320,11 +1320,11 @@ namespace com.noctuagames.sdk
             _log.Debug($"{LogTag} setup_app_open_ads - setup app-open ad units");
             string primaryAppOpenId = ResolveAdUnitIdForNetwork(iAAResponse, _orchestrator.Primary.NetworkName, AdFormatKey.AppOpen);
 
-            if (string.IsNullOrEmpty(primaryAppOpenId) || primaryAppOpenId == "unknown")
-            {
-                _log.Debug("No primary app open ad unit ID configured.");
-                return;
-            }
+            // NOTE: intentionally do NOT bail out when primaryAppOpenId is empty — the manager
+            // must still be created so a secondary-only App Open unit (set later via
+            // SetupSecondaryAppOpen, or applied immediately below from _pendingSecondaryAppOpenId)
+            // has something to attach to. AppOpenAdManager.Configure() already no-ops gracefully
+            // per-network when an id is empty/"unknown".
 
             // Resolve preferred network from format overrides (null = primary first, default behaviour).
             string preferredAppOpenNetwork = null;

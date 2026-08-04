@@ -123,6 +123,43 @@ namespace Tests.Runtime.IAA
         }
 
         [Test]
+        public void HasAdUnitForFormat_FalseByDefaultForAllFormats()
+        {
+            Assert.IsFalse(_manager.HasAdUnitForFormat(AdFormatKey.Interstitial));
+            Assert.IsFalse(_manager.HasAdUnitForFormat(AdFormatKey.Rewarded));
+            Assert.IsFalse(_manager.HasAdUnitForFormat(AdFormatKey.Banner));
+            Assert.IsFalse(_manager.HasAdUnitForFormat(AdFormatKey.AppOpen));
+        }
+
+        [Test]
+        public void HasAdUnitForFormat_TrueAfterSetInterstitialAdUnitID()
+        {
+            _manager.SetInterstitialAdUnitID(AppLovinAdUnits.Interstitial);
+            Assert.IsTrue(_manager.HasAdUnitForFormat(AdFormatKey.Interstitial));
+        }
+
+        [Test]
+        public void HasAdUnitForFormat_TrueAfterSetRewardedAdUnitID()
+        {
+            _manager.SetRewardedAdUnitID(AppLovinAdUnits.Rewarded);
+            Assert.IsTrue(_manager.HasAdUnitForFormat(AdFormatKey.Rewarded));
+        }
+
+        [Test]
+        public void HasAdUnitForFormat_TrueAfterSetBannerAdUnitId()
+        {
+            _manager.SetBannerAdUnitId(AppLovinAdUnits.Banner);
+            Assert.IsTrue(_manager.HasAdUnitForFormat(AdFormatKey.Banner));
+        }
+
+        [Test]
+        public void HasAdUnitForFormat_TrueAfterSetAppOpenAdUnitID()
+        {
+            _manager.SetAppOpenAdUnitID(AppLovinAdUnits.AppOpen);
+            Assert.IsTrue(_manager.HasAdUnitForFormat(AdFormatKey.AppOpen));
+        }
+
+        [Test]
         public void Cleanup_ResetsSubscriptionGuards_AllowResubscribe()
         {
             _manager.SetInterstitialAdUnitID(AppLovinAdUnits.Interstitial);

@@ -240,6 +240,7 @@ namespace com.noctuagames.sdk
 
             _secondaryNetwork.SetAppOpenAdUnitID(secondaryAdUnitId);
             _secondaryNetwork.LoadAppOpenAd();
+            _appOpenAdUnitConfigured = true;
             _log.Info($"App Open ad configured on secondary network ({_secondaryNetwork.NetworkName}) with unit: {secondaryAdUnitId}");
         }
 

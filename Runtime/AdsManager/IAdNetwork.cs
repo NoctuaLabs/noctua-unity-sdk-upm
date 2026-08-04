@@ -232,6 +232,13 @@ namespace com.noctuagames.sdk
         bool HasBannerAdUnit() { return false; }
 
         /// <summary>
+        /// Returns true if an ad unit ID has been configured on this network for the given
+        /// <see cref="AdFormatKey"/> format. Used by <see cref="HybridAdOrchestrator.GetNetworkForFormat"/>
+        /// to prefer whichever network actually has a unit configured for that format.
+        /// </summary>
+        bool HasAdUnitForFormat(string format) { return false; }
+
+        /// <summary>
         /// Returns whether an interstitial ad is loaded and ready to show.
         /// </summary>
         bool IsInterstitialReady() { return false; }
