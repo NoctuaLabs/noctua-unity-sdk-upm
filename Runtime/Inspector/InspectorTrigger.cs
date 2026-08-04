@@ -1,5 +1,8 @@
 using System;
 using UnityEngine;
+#if ENABLE_INPUT_SYSTEM
+using UnityEngine.InputSystem;
+#endif
 
 namespace com.noctuagames.sdk.Inspector
 {
@@ -43,7 +46,13 @@ namespace com.noctuagames.sdk.Inspector
         private bool DetectShake()
         {
             // Some platforms (Editor, Desktop) return zero; skip cheaply.
+#if ENABLE_INPUT_SYSTEM && !ENABLE_LEGACY_INPUT_MANAGER
+            var accelDevice = Accelerometer.current;
+            if (accelDevice == null) return false;
+            var accel = accelDevice.acceleration.ReadValue();
+#else
             var accel = Input.acceleration;
+#endif
             if (accel == Vector3.zero) return false;
 
             // High-pass via exponential moving-average low-pass subtraction.
@@ -65,21 +74,53 @@ namespace com.noctuagames.sdk.Inspector
 
         private bool DetectFourFingerTap()
         {
+#if ENABLE_INPUT_SYSTEM && !ENABLE_LEGACY_INPUT_MANAGER
+            var touchscreen = Touchscreen.current;
+            if (touchscreen == null) return false;
+
+            var touches = touchscreen.touches;
+            int pressedCount = 0;
+            for (int i = 0; i < touches.Count; i++)
+            {
+                if (touches[i].press.isPressed) pressedCount++;
+            }
+            if (pressedCount != 4) return false;
+
+            for (int i = 0; i < touches.Count; i++)
+            {
+                if (touches[i].press.isPressed && touches[i].phase.ReadValue() != UnityEngine.InputSystem.TouchPhase.Began)
+                {
+                    return false;
+                }
+            }
+            return true;
+#else
             if (Input.touchCount != 4) return false;
             for (int i = 0; i < 4; i++)
             {
                 if (Input.GetTouch(i).phase != TouchPhase.Began) return false;
             }
             return true;
+#endif
         }
 
         private bool DetectKeyboardCombo()
         {
             // Ctrl+Shift+D (also macOS Cmd+Shift+D) — editor/desktop fallback.
+#if ENABLE_INPUT_SYSTEM && !ENABLE_LEGACY_INPUT_MANAGER
+            var kb = Keyboard.current;
+            if (kb == null) return false;
+
+            var ctrl = kb.leftCtrlKey.isPressed || kb.rightCtrlKey.isPressed
+                    || kb.leftCommandKey.isPressed || kb.rightCommandKey.isPressed;
+            var shift = kb.leftShiftKey.isPressed || kb.rightShiftKey.isPressed;
+            return ctrl && shift && kb.dKey.wasPressedThisFrame;
+#else
             var ctrl = Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl)
                     || Input.GetKey(KeyCode.LeftCommand) || Input.GetKey(KeyCode.RightCommand);
             var shift = Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift);
             return ctrl && shift && Input.GetKeyDown(KeyCode.D);
+#endif
         }
     }
 }
