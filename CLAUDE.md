@@ -341,6 +341,10 @@ Platform-layer reference.
 | `GetFirebaseRemoteConfigBoolean(key)` | `Task<bool>` |
 | `GetFirebaseRemoteConfigDouble(key)` | `Task<double>` |
 | `GetFirebaseRemoteConfigLong(key)` | `Task<long>` |
+| `SubscribeToFcmTopic(topic)` | `Task<bool>` |
+| `UnsubscribeFromFcmTopic(topic)` | `Task<bool>` |
+| `GetFcmToken()` | `Task<string>` |
+| `DeleteFcmToken()` | `Task<bool>` |
 | `OnRemoteNotificationReceived` | `event Action<NoctuaNotificationPayload>` |
 | `OnNotificationTapped` | `event Action<NoctuaNotificationPayload>` |
 | `OnFirebaseMessagingTokenRefresh` | `event Action<string>` |

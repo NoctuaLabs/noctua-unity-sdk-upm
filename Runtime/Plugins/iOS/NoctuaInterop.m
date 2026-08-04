@@ -595,6 +595,52 @@ void noctuaGetFirebaseRemoteConfigLong(const char* key, GetFirebaseRemoteConfigL
     callback(result);
 }
 
+typedef void (*FcmBoolCallbackDelegate)(bool success);
+void noctuaSubscribeToFcmTopic(const char* topic, FcmBoolCallbackDelegate callback) {
+    if (topic == NULL) {
+        if (callback != NULL) callback(false);
+        return;
+    }
+
+    NSString* nsTopic = [NSString stringWithUTF8String:topic];
+    [Noctua subscribeToFcmTopic:nsTopic completion:^(BOOL success) {
+        if (callback != NULL) {
+            callback(success == YES);
+        }
+    }];
+}
+
+void noctuaUnsubscribeFromFcmTopic(const char* topic, FcmBoolCallbackDelegate callback) {
+    if (topic == NULL) {
+        if (callback != NULL) callback(false);
+        return;
+    }
+
+    NSString* nsTopic = [NSString stringWithUTF8String:topic];
+    [Noctua unsubscribeFromFcmTopic:nsTopic completion:^(BOOL success) {
+        if (callback != NULL) {
+            callback(success == YES);
+        }
+    }];
+}
+
+typedef void (*GetFcmTokenCallbackDelegate)(const char* token);
+void noctuaGetFcmToken(GetFcmTokenCallbackDelegate callback) {
+    [Noctua getFcmTokenWithCompletion:^(NSString * _Nonnull token) {
+        if (callback != NULL) {
+            callback(token != nil ? [token UTF8String] : "");
+        }
+    }];
+}
+
+void noctuaDeleteFcmToken(FcmBoolCallbackDelegate callback) {
+    [Noctua deleteFcmTokenWithCompletion:^(BOOL success) {
+        if (callback != NULL) {
+            callback(success == YES);
+        }
+    }];
+}
+
 typedef void (*AdjustAttributionCallbackDelegate)(const char* jsonString);
 void noctuaGetAdjustAttribution(AdjustAttributionCallbackDelegate callback) {
     if (callback == NULL) {

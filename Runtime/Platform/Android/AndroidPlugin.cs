@@ -770,6 +770,66 @@ namespace com.noctuagames.sdk
         }
 
         /// <inheritdoc />
+        public void SubscribeToFcmTopic(string topic, Action<bool> callback)
+        {
+            try
+            {
+                using var noctua = new AndroidJavaClass("com.noctuagames.sdk.Noctua").GetStatic<AndroidJavaObject>("INSTANCE");
+                noctua.Call("subscribeToFcmTopic", topic, new AndroidCallback<bool>(callback));
+            }
+            catch (Exception e)
+            {
+                _log.Warning($"[Noctua] Failed to subscribe to FCM topic '{topic}': {e.Message}");
+                callback?.Invoke(false);
+            }
+        }
+
+        /// <inheritdoc />
+        public void UnsubscribeFromFcmTopic(string topic, Action<bool> callback)
+        {
+            try
+            {
+                using var noctua = new AndroidJavaClass("com.noctuagames.sdk.Noctua").GetStatic<AndroidJavaObject>("INSTANCE");
+                noctua.Call("unsubscribeFromFcmTopic", topic, new AndroidCallback<bool>(callback));
+            }
+            catch (Exception e)
+            {
+                _log.Warning($"[Noctua] Failed to unsubscribe from FCM topic '{topic}': {e.Message}");
+                callback?.Invoke(false);
+            }
+        }
+
+        /// <inheritdoc />
+        public void GetFcmToken(Action<string> callback)
+        {
+            try
+            {
+                using var noctua = new AndroidJavaClass("com.noctuagames.sdk.Noctua").GetStatic<AndroidJavaObject>("INSTANCE");
+                noctua.Call("getFcmToken", new AndroidCallback<string>(callback));
+            }
+            catch (Exception e)
+            {
+                _log.Warning($"[Noctua] Failed to get FCM token: {e.Message}");
+                callback?.Invoke(string.Empty);
+            }
+        }
+
+        /// <inheritdoc />
+        public void DeleteFcmToken(Action<bool> callback)
+        {
+            try
+            {
+                using var noctua = new AndroidJavaClass("com.noctuagames.sdk.Noctua").GetStatic<AndroidJavaObject>("INSTANCE");
+                noctua.Call("deleteFcmToken", new AndroidCallback<bool>(callback));
+            }
+            catch (Exception e)
+            {
+                _log.Warning($"[Noctua] Failed to delete FCM token: {e.Message}");
+                callback?.Invoke(false);
+            }
+        }
+
+        /// <inheritdoc />
         public void GetAdjustAttribution(Action<string> callback)
         {
             try

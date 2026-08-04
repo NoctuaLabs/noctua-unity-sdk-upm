@@ -172,6 +172,30 @@ namespace com.noctuagames.sdk
             callback?.Invoke(0L);
         }
 
+        /// <inheritdoc />
+        public void SubscribeToFcmTopic(string topic, Action<bool> callback)
+        {
+            callback?.Invoke(false);
+        }
+
+        /// <inheritdoc />
+        public void UnsubscribeFromFcmTopic(string topic, Action<bool> callback)
+        {
+            callback?.Invoke(false);
+        }
+
+        /// <inheritdoc />
+        public void GetFcmToken(Action<string> callback)
+        {
+            callback?.Invoke(string.Empty);
+        }
+
+        /// <inheritdoc />
+        public void DeleteFcmToken(Action<bool> callback)
+        {
+            callback?.Invoke(false);
+        }
+
         /// <summary>
         /// Not supported in the Editor. Always throws <see cref="NotImplementedException"/>.
         /// </summary>

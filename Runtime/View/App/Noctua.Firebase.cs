@@ -582,6 +582,151 @@ namespace com.noctuagames.sdk
         #endif
         }
 
+        /// <summary>
+        /// Subscribes the device to a Firebase Cloud Messaging (FCM) topic.
+        /// </summary>
+        /// <param name="topic">The FCM topic name.</param>
+        /// <returns>A task that resolves to true on success, false on failure or when not supported.</returns>
+        public static Task<bool> SubscribeToFcmTopic(string topic)
+        {
+        #if UNITY_ANDROID || UNITY_IOS
+            var tcs = new TaskCompletionSource<bool>();
+
+            try
+            {
+                if (Instance.Value._nativePlugin != null)
+                {
+                    Instance.Value._nativePlugin.SubscribeToFcmTopic(topic, (success) =>
+                    {
+                        tcs.TrySetResult(success);
+                    });
+                }
+                else
+                {
+                    Instance.Value._log.Warning("Native plugin is null");
+                    tcs.TrySetResult(false);
+                }
+            }
+            catch (Exception ex)
+            {
+                Instance.Value._log.Warning($"SubscribeToFcmTopic exception: {ex.Message}");
+                tcs.TrySetResult(false);
+            }
+
+            return tcs.Task;
+        #else
+            return Task.FromResult(false);
+        #endif
+        }
+
+        /// <summary>
+        /// Unsubscribes the device from a Firebase Cloud Messaging (FCM) topic.
+        /// </summary>
+        /// <param name="topic">The FCM topic name.</param>
+        /// <returns>A task that resolves to true on success, false on failure or when not supported.</returns>
+        public static Task<bool> UnsubscribeFromFcmTopic(string topic)
+        {
+        #if UNITY_ANDROID || UNITY_IOS
+            var tcs = new TaskCompletionSource<bool>();
+
+            try
+            {
+                if (Instance.Value._nativePlugin != null)
+                {
+                    Instance.Value._nativePlugin.UnsubscribeFromFcmTopic(topic, (success) =>
+                    {
+                        tcs.TrySetResult(success);
+                    });
+                }
+                else
+                {
+                    Instance.Value._log.Warning("Native plugin is null");
+                    tcs.TrySetResult(false);
+                }
+            }
+            catch (Exception ex)
+            {
+                Instance.Value._log.Warning($"UnsubscribeFromFcmTopic exception: {ex.Message}");
+                tcs.TrySetResult(false);
+            }
+
+            return tcs.Task;
+        #else
+            return Task.FromResult(false);
+        #endif
+        }
+
+        /// <summary>
+        /// Retrieves the current Firebase Cloud Messaging (FCM) registration token.
+        /// </summary>
+        /// <returns>A task that resolves to the FCM token string, or empty when not available.</returns>
+        public static Task<string> GetFcmToken()
+        {
+        #if UNITY_ANDROID || UNITY_IOS
+            var tcs = new TaskCompletionSource<string>();
+
+            try
+            {
+                if (Instance.Value._nativePlugin != null)
+                {
+                    Instance.Value._nativePlugin.GetFcmToken((token) =>
+                    {
+                        tcs.TrySetResult(token ?? string.Empty);
+                    });
+                }
+                else
+                {
+                    Instance.Value._log.Warning("Native plugin is null");
+                    tcs.TrySetResult(string.Empty);
+                }
+            }
+            catch (Exception ex)
+            {
+                Instance.Value._log.Warning($"GetFcmToken exception: {ex.Message}");
+                tcs.TrySetResult(string.Empty);
+            }
+
+            return tcs.Task;
+        #else
+            return Task.FromResult(string.Empty);
+        #endif
+        }
+
+        /// <summary>
+        /// Deletes the current Firebase Cloud Messaging (FCM) registration token.
+        /// </summary>
+        /// <returns>A task that resolves to true on success, false on failure or when not supported.</returns>
+        public static Task<bool> DeleteFcmToken()
+        {
+        #if UNITY_ANDROID || UNITY_IOS
+            var tcs = new TaskCompletionSource<bool>();
+
+            try
+            {
+                if (Instance.Value._nativePlugin != null)
+                {
+                    Instance.Value._nativePlugin.DeleteFcmToken((success) =>
+                    {
+                        tcs.TrySetResult(success);
+                    });
+                }
+                else
+                {
+                    Instance.Value._log.Warning("Native plugin is null");
+                    tcs.TrySetResult(false);
+                }
+            }
+            catch (Exception ex)
+            {
+                Instance.Value._log.Warning($"DeleteFcmToken exception: {ex.Message}");
+                tcs.TrySetResult(false);
+            }
+
+            return tcs.Task;
+        #else
+            return Task.FromResult(false);
+        #endif
+        }
 
     }
 }

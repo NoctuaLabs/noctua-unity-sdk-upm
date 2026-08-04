@@ -265,6 +265,32 @@ namespace com.noctuagames.sdk
         /// <param name="key">The Remote Config parameter key.</param>
         /// <param name="callback">Callback with the config long value.</param>
         void GetFirebaseRemoteConfigLong(string key, Action<long> callback);
+
+        /// <summary>
+        /// Subscribes the device to a Firebase Cloud Messaging (FCM) topic via the native SDK.
+        /// </summary>
+        /// <param name="topic">The FCM topic name.</param>
+        /// <param name="callback">Callback with true on success, false on failure.</param>
+        void SubscribeToFcmTopic(string topic, Action<bool> callback) { callback?.Invoke(false); }
+
+        /// <summary>
+        /// Unsubscribes the device from a Firebase Cloud Messaging (FCM) topic via the native SDK.
+        /// </summary>
+        /// <param name="topic">The FCM topic name.</param>
+        /// <param name="callback">Callback with true on success, false on failure.</param>
+        void UnsubscribeFromFcmTopic(string topic, Action<bool> callback) { callback?.Invoke(false); }
+
+        /// <summary>
+        /// Retrieves the current FCM registration token via the native SDK.
+        /// </summary>
+        /// <param name="callback">Callback with the FCM token string, or empty on failure.</param>
+        void GetFcmToken(Action<string> callback) { callback?.Invoke(string.Empty); }
+
+        /// <summary>
+        /// Deletes the current FCM registration token via the native SDK.
+        /// </summary>
+        /// <param name="callback">Callback with true on success, false on failure.</param>
+        void DeleteFcmToken(Action<bool> callback) { callback?.Invoke(false); }
     }
 
     /// <summary>

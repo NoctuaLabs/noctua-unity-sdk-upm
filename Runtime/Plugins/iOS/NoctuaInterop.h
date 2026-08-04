@@ -43,6 +43,14 @@ typedef void (*GetFirebaseRemoteConfigDoubleCallbackDelegate)(const double confi
 void noctuaGetFirebaseRemoteConfigDouble(const char* key, GetFirebaseRemoteConfigDoubleCallbackDelegate callback);
 typedef void (*GetFirebaseRemoteConfigLongCallbackDelegate)(long long configLong);
 void noctuaGetFirebaseRemoteConfigLong(const char* key, GetFirebaseRemoteConfigLongCallbackDelegate callback);
+
+// FCM Topics
+typedef void (*FcmBoolCallbackDelegate)(bool success);
+void noctuaSubscribeToFcmTopic(const char* topic, FcmBoolCallbackDelegate callback);
+void noctuaUnsubscribeFromFcmTopic(const char* topic, FcmBoolCallbackDelegate callback);
+typedef void (*GetFcmTokenCallbackDelegate)(const char* token);
+void noctuaGetFcmToken(GetFcmTokenCallbackDelegate callback);
+void noctuaDeleteFcmToken(FcmBoolCallbackDelegate callback);
 typedef void (*AdjustAttributionCallbackDelegate)(const char* jsonString);
 void noctuaGetAdjustAttribution(AdjustAttributionCallbackDelegate callback);
 typedef void (*AdjustDeviceInfoCallbackDelegate)(const char* value);

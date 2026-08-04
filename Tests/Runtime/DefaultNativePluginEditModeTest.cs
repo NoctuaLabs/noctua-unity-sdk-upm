@@ -527,6 +527,40 @@ namespace Tests.Runtime
             Assert.AreEqual(0L, result);
         }
 
+        // ─── FCM Topics stub ───────────────────────────────────────────────────
+
+        [Test]
+        public void SubscribeToFcmTopic_ReturnsFalse()
+        {
+            bool? result = null;
+            _plugin.SubscribeToFcmTopic("topic", val => result = val);
+            Assert.AreEqual(false, result);
+        }
+
+        [Test]
+        public void UnsubscribeFromFcmTopic_ReturnsFalse()
+        {
+            bool? result = null;
+            _plugin.UnsubscribeFromFcmTopic("topic", val => result = val);
+            Assert.AreEqual(false, result);
+        }
+
+        [Test]
+        public void GetFcmToken_ReturnsEmptyString()
+        {
+            string result = null;
+            _plugin.GetFcmToken(val => result = val);
+            Assert.AreEqual(string.Empty, result);
+        }
+
+        [Test]
+        public void DeleteFcmToken_ReturnsFalse()
+        {
+            bool? result = null;
+            _plugin.DeleteFcmToken(val => result = val);
+            Assert.AreEqual(false, result);
+        }
+
         // ─── GetAdjustAttribution stub ────────────────────────────────────────
 
         [Test]

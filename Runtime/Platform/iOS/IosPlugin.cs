@@ -101,7 +101,19 @@ namespace com.noctuagames.sdk
 
         [DllImport("__Internal")]
         private static extern void noctuaGetFirebaseRemoteConfigLong(string key, GetFirebaseRemoteConfigLongCallbackDelegate callback);
-        
+
+        [DllImport("__Internal")]
+        private static extern void noctuaSubscribeToFcmTopic(string topic, FcmBoolCallbackDelegate callback);
+
+        [DllImport("__Internal")]
+        private static extern void noctuaUnsubscribeFromFcmTopic(string topic, FcmBoolCallbackDelegate callback);
+
+        [DllImport("__Internal")]
+        private static extern void noctuaGetFcmToken(GetFcmTokenCallbackDelegate callback);
+
+        [DllImport("__Internal")]
+        private static extern void noctuaDeleteFcmToken(FcmBoolCallbackDelegate callback);
+
         [DllImport("__Internal")]
         private static extern void noctuaGetAdjustAttribution(GetAdjustAttributionJsonCallbackDelegate callback);
 
@@ -186,6 +198,10 @@ namespace com.noctuagames.sdk
         private static Action<bool> storedFirebaseRemoteConfigBooleanCompletion;
         private static Action<double> storedFirebaseRemoteConfigDoubleCompletion;
         private static Action<long> storedFirebaseRemoteConfigLongCompletion;
+        private static Action<bool> storedSubscribeToFcmTopicCompletion;
+        private static Action<bool> storedUnsubscribeFromFcmTopicCompletion;
+        private static Action<string> storedGetFcmTokenCompletion;
+        private static Action<bool> storedDeleteFcmTokenCompletion;
         private static Action<string> storedAdjustAttributionCallback;
         private static Action<string> storedAdjustAdidCallback;
         private static Action<string> storedAdjustIdfaCallback;
@@ -229,7 +245,12 @@ namespace com.noctuagames.sdk
 
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
         private delegate void GetFirebaseRemoteConfigLongCallbackDelegate(long value);
-        
+
+        [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+        private delegate void FcmBoolCallbackDelegate(bool value);
+
+        private delegate void GetFcmTokenCallbackDelegate(string token);
+
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
         private delegate void GetAdjustAttributionJsonCallbackDelegate(string json);
 
@@ -366,6 +387,30 @@ namespace com.noctuagames.sdk
         private static void GetFirebaseRemoteConfigLongCallback(long value)
         {
             storedFirebaseRemoteConfigLongCompletion?.Invoke(value);
+        }
+
+        [AOT.MonoPInvokeCallback(typeof(FcmBoolCallbackDelegate))]
+        private static void SubscribeToFcmTopicCallback(bool value)
+        {
+            storedSubscribeToFcmTopicCompletion?.Invoke(value);
+        }
+
+        [AOT.MonoPInvokeCallback(typeof(FcmBoolCallbackDelegate))]
+        private static void UnsubscribeFromFcmTopicCallback(bool value)
+        {
+            storedUnsubscribeFromFcmTopicCompletion?.Invoke(value);
+        }
+
+        [AOT.MonoPInvokeCallback(typeof(GetFcmTokenCallbackDelegate))]
+        private static void GetFcmTokenCallback(string token)
+        {
+            storedGetFcmTokenCompletion?.Invoke(token ?? string.Empty);
+        }
+
+        [AOT.MonoPInvokeCallback(typeof(FcmBoolCallbackDelegate))]
+        private static void DeleteFcmTokenCallback(bool value)
+        {
+            storedDeleteFcmTokenCompletion?.Invoke(value);
         }
 
         [AOT.MonoPInvokeCallback(typeof(GetAdjustAttributionJsonCallbackDelegate))]
@@ -848,6 +893,74 @@ namespace com.noctuagames.sdk
             {
                 _log.Warning($"GetFirebaseRemoteConfigLong failed for key '{key}': {e.Message}");
                 callback?.Invoke(0L);
+            }
+        }
+
+        /// <inheritdoc />
+        public void SubscribeToFcmTopic(string topic, Action<bool> callback)
+        {
+            try
+            {
+                storedSubscribeToFcmTopicCompletion = callback;
+
+                noctuaSubscribeToFcmTopic(topic, new FcmBoolCallbackDelegate(SubscribeToFcmTopicCallback));
+                _log.Debug($"noctuaSubscribeToFcmTopic called for topic: {topic}");
+            }
+            catch (Exception e)
+            {
+                _log.Warning($"SubscribeToFcmTopic failed for topic '{topic}': {e.Message}");
+                callback?.Invoke(false);
+            }
+        }
+
+        /// <inheritdoc />
+        public void UnsubscribeFromFcmTopic(string topic, Action<bool> callback)
+        {
+            try
+            {
+                storedUnsubscribeFromFcmTopicCompletion = callback;
+
+                noctuaUnsubscribeFromFcmTopic(topic, new FcmBoolCallbackDelegate(UnsubscribeFromFcmTopicCallback));
+                _log.Debug($"noctuaUnsubscribeFromFcmTopic called for topic: {topic}");
+            }
+            catch (Exception e)
+            {
+                _log.Warning($"UnsubscribeFromFcmTopic failed for topic '{topic}': {e.Message}");
+                callback?.Invoke(false);
+            }
+        }
+
+        /// <inheritdoc />
+        public void GetFcmToken(Action<string> callback)
+        {
+            try
+            {
+                storedGetFcmTokenCompletion = callback;
+
+                noctuaGetFcmToken(new GetFcmTokenCallbackDelegate(GetFcmTokenCallback));
+                _log.Debug("noctuaGetFcmToken called");
+            }
+            catch (Exception e)
+            {
+                _log.Warning($"GetFcmToken failed: {e.Message}");
+                callback?.Invoke(string.Empty);
+            }
+        }
+
+        /// <inheritdoc />
+        public void DeleteFcmToken(Action<bool> callback)
+        {
+            try
+            {
+                storedDeleteFcmTokenCompletion = callback;
+
+                noctuaDeleteFcmToken(new FcmBoolCallbackDelegate(DeleteFcmTokenCallback));
+                _log.Debug("noctuaDeleteFcmToken called");
+            }
+            catch (Exception e)
+            {
+                _log.Warning($"DeleteFcmToken failed: {e.Message}");
+                callback?.Invoke(false);
             }
         }
 

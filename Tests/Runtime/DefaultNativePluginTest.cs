@@ -572,6 +572,44 @@ namespace Tests.Runtime
             yield return null;
         }
 
+        // FCM Topics tests
+
+        [UnityTest]
+        public IEnumerator SubscribeToFcmTopic_ReturnsFalse()
+        {
+            bool? result = null;
+            _plugin.SubscribeToFcmTopic("topic", val => result = val);
+            Assert.AreEqual(false, result);
+            yield return null;
+        }
+
+        [UnityTest]
+        public IEnumerator UnsubscribeFromFcmTopic_ReturnsFalse()
+        {
+            bool? result = null;
+            _plugin.UnsubscribeFromFcmTopic("topic", val => result = val);
+            Assert.AreEqual(false, result);
+            yield return null;
+        }
+
+        [UnityTest]
+        public IEnumerator GetFcmToken_ReturnsEmptyString()
+        {
+            string result = null;
+            _plugin.GetFcmToken(val => result = val);
+            Assert.AreEqual(string.Empty, result);
+            yield return null;
+        }
+
+        [UnityTest]
+        public IEnumerator DeleteFcmToken_ReturnsFalse()
+        {
+            bool? result = null;
+            _plugin.DeleteFcmToken(val => result = val);
+            Assert.AreEqual(false, result);
+            yield return null;
+        }
+
         // GetAdjustAttribution test
 
         [UnityTest]
