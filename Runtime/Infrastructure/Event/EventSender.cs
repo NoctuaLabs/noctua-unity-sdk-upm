@@ -152,6 +152,11 @@ namespace com.noctuagames.sdk.Events
         // on iOS when multiple async calls race (IosPlugin uses single static callback slots).
         private string _cachedFirebaseSessionId;
         private string _cachedFirebaseInstallationId;
+        // Cached FCM token — same single-static-callback rationale as the Firebase IDs above.
+        // Independently cached here (not reused from Noctua._cachedFcmToken, which backs the
+        // X-FCM-TOKEN HTTP header) since Infrastructure must not depend on the View-layer Noctua
+        // static class.
+        private string _cachedFcmToken;
         private volatile bool _firebaseIdsFetched;
         // Single-flight lock: prevents multiple concurrent tasks from all calling GetFirebaseAnalyticsSessionID
         // simultaneously. Without this, recovery events spawned at ~300ms post-launch (before Firebase initializes)
@@ -716,6 +721,13 @@ namespace com.noctuagames.sdk.Events
                                     if (installResult != installTcs.Task)
                                         _log.Warning("[Event Sender] GetFirebaseInstallationID timed out after 5s");
 
+                                    var fcmTcs = new TaskCompletionSource<string>();
+                                    _config.NativeFirebase.GetFirebaseMessagingToken(id => fcmTcs.TrySetResult(id ?? ""));
+                                    var fcmResult = await Task.WhenAny(fcmTcs.Task, Task.Delay(5000));
+                                    _cachedFcmToken = fcmResult == fcmTcs.Task ? fcmTcs.Task.Result : "";
+                                    if (fcmResult != fcmTcs.Task)
+                                        _log.Warning("[Event Sender] GetFirebaseMessagingToken timed out after 5s");
+
                                     _firebaseIdsFetched = true;
                                 }
                                 catch (Exception e)
@@ -734,6 +746,8 @@ namespace com.noctuagames.sdk.Events
                         data.TryAdd("firebase_analytics_session_id", _cachedFirebaseSessionId);
                     if (!string.IsNullOrEmpty(_cachedFirebaseInstallationId))
                         data.TryAdd("firebase_installation_id", _cachedFirebaseInstallationId);
+                    if (!string.IsNullOrEmpty(_cachedFcmToken))
+                        data.TryAdd("fcm_token", _cachedFcmToken);
                 }
 
                 #endif
