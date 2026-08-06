@@ -1237,6 +1237,11 @@ namespace com.noctuagames.sdk
             OnFirebaseMessagingTokenRefresh += AcceptFcmToken;
             FetchAndCacheFcmToken().Forget();
             FetchAndCacheFid().Forget();
+
+            // Auto-subscribe to server-driven FCM topics, diff-unsubscribing from any topics
+            // previously subscribed that are no longer present in this response. Fire-and-forget —
+            // must not block InitAsync() completion.
+            SyncFcmTopicsAsync(initResponse.RemoteConfigs?.Topics).Forget();
         }
 
         /// <summary>

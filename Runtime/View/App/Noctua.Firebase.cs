@@ -1,10 +1,12 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Cysharp.Threading.Tasks;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using UnityEngine;
 
 namespace com.noctuagames.sdk
 {
@@ -728,5 +730,152 @@ namespace com.noctuagames.sdk
         #endif
         }
 
+        private const string SubscribedFcmTopicsPrefsKey = "NoctuaSubscribedFcmTopics";
+
+        // IosPlugin uses a single static callback slot per Subscribe/UnsubscribeFromFcmTopic call,
+        // so concurrent awaits would race and overwrite each other's pending callback — same
+        // hazard as the FCM token / Firebase ID single-callback pitfall. Serialize the whole sync.
+        private static readonly SemaphoreSlim _fcmTopicsSyncLock = new(1, 1);
+
+        /// <summary>
+        /// Diffs <paramref name="topics"/> against the last-persisted subscribed-topic set,
+        /// subscribes to newly-added topics, and unsubscribes from topics no longer present.
+        /// Intended to be called (fire-and-forget) after every successful <c>InitAsync()</c> with
+        /// the server's <c>remote_configs.topics</c> field.
+        /// </summary>
+        /// <param name="topics">
+        /// <c>null</c> means the server omitted the field (older backend) — a no-op that leaves
+        /// existing subscriptions untouched. An empty list explicitly means "subscribe to
+        /// nothing", unsubscribing from everything previously tracked.
+        /// </param>
+        internal static async UniTask SyncFcmTopicsAsync(List<string> topics)
+        {
+            if (topics == null)
+            {
+                return;
+            }
+
+            await _fcmTopicsSyncLock.WaitAsync();
+
+            try
+            {
+                var desired = new HashSet<string>(
+                    topics.Where(t => !string.IsNullOrWhiteSpace(t)),
+                    StringComparer.Ordinal);
+
+                var stored = LoadStoredFcmTopics();
+
+                var toSubscribe = desired.Except(stored).ToList();
+                var toUnsubscribe = stored.Except(desired).ToList();
+
+                if (toSubscribe.Count == 0 && toUnsubscribe.Count == 0)
+                {
+                    return;
+                }
+
+                // Sequential, not parallel — see the lock's comment on iOS static callback slots.
+                foreach (var topic in toSubscribe)
+                {
+                    if (await SubscribeToFcmTopicWithTimeout(topic))
+                    {
+                        stored.Add(topic);
+                        SaveStoredFcmTopics(stored);
+                    }
+                }
+
+                foreach (var topic in toUnsubscribe)
+                {
+                    if (await UnsubscribeFromFcmTopicWithTimeout(topic))
+                    {
+                        stored.Remove(topic);
+                        SaveStoredFcmTopics(stored);
+                    }
+                }
+            }
+            finally
+            {
+                _fcmTopicsSyncLock.Release();
+            }
+        }
+
+        private static async UniTask<bool> SubscribeToFcmTopicWithTimeout(string topic)
+        {
+            try
+            {
+                var task = SubscribeToFcmTopic(topic);
+                var winner = await Task.WhenAny(task, Task.Delay(5000));
+                if (winner != task)
+                {
+                    Instance.Value._log.Warning($"SubscribeToFcmTopic('{topic}') timed out after 5s");
+                    return false;
+                }
+
+                var ok = task.Result;
+                if (!ok)
+                {
+                    Instance.Value._log.Warning($"SubscribeToFcmTopic('{topic}') returned false");
+                }
+
+                return ok;
+            }
+            catch (Exception e)
+            {
+                Instance.Value._log.Warning($"SubscribeToFcmTopic('{topic}') failed: {e.Message}");
+                return false;
+            }
+        }
+
+        private static async UniTask<bool> UnsubscribeFromFcmTopicWithTimeout(string topic)
+        {
+            try
+            {
+                var task = UnsubscribeFromFcmTopic(topic);
+                var winner = await Task.WhenAny(task, Task.Delay(5000));
+                if (winner != task)
+                {
+                    Instance.Value._log.Warning($"UnsubscribeFromFcmTopic('{topic}') timed out after 5s");
+                    return false;
+                }
+
+                var ok = task.Result;
+                if (!ok)
+                {
+                    Instance.Value._log.Warning($"UnsubscribeFromFcmTopic('{topic}') returned false");
+                }
+
+                return ok;
+            }
+            catch (Exception e)
+            {
+                Instance.Value._log.Warning($"UnsubscribeFromFcmTopic('{topic}') failed: {e.Message}");
+                return false;
+            }
+        }
+
+        private static HashSet<string> LoadStoredFcmTopics()
+        {
+            var json = PlayerPrefs.GetString(SubscribedFcmTopicsPrefsKey, "");
+            if (string.IsNullOrEmpty(json))
+            {
+                return new HashSet<string>(StringComparer.Ordinal);
+            }
+
+            try
+            {
+                var list = JsonConvert.DeserializeObject<List<string>>(json);
+                return new HashSet<string>(list ?? new List<string>(), StringComparer.Ordinal);
+            }
+            catch (Exception e)
+            {
+                Instance.Value._log.Warning($"Failed to parse stored FCM topics, resetting: {e.Message}");
+                return new HashSet<string>(StringComparer.Ordinal);
+            }
+        }
+
+        private static void SaveStoredFcmTopics(HashSet<string> topics)
+        {
+            PlayerPrefs.SetString(SubscribedFcmTopicsPrefsKey, JsonConvert.SerializeObject(topics.ToList()));
+            PlayerPrefs.Save();
+        }
     }
 }

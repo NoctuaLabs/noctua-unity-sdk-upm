@@ -39,6 +39,7 @@ namespace com.noctuagames.sdk
                 "NoctuaOrphanedSessionId",
                 "NoctuaOrphanedSessionCumulativeMs",
                 "NoctuaOrphanedSessionLastTimestamp",
+                "NoctuaSubscribedFcmTopics",
             };
 
             foreach (var key in IntegerKeys)
@@ -124,6 +125,7 @@ namespace com.noctuagames.sdk
                 "NoctuaOrphanedSessionId",
                 "NoctuaOrphanedSessionCumulativeMs",
                 "NoctuaOrphanedSessionLastTimestamp",
+                "NoctuaSubscribedFcmTopics",
             };
         }
     }

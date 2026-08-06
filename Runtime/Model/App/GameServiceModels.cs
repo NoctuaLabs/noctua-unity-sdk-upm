@@ -79,6 +79,12 @@ namespace com.noctuagames.sdk
         /// <summary>Generic feature flags as string key-value pairs (values are stringified booleans/integers).</summary>
         [JsonProperty("feature_flags")]
         public Dictionary<string, string> RemoteFeatureFlags;
+
+        /// <summary>FCM topics the device should be subscribed to. Null when the server omits the
+        /// field (older backend — no-op, existing subscriptions untouched); an empty list
+        /// explicitly means "unsubscribe from all".</summary>
+        [JsonProperty("topics")]
+        public List<string> Topics;
     }
 
     /// <summary>
