@@ -73,5 +73,9 @@ namespace com.noctuagames.sdk
         /// <summary>Client-side remote feature flags as key-value pairs (overridden by server config at runtime).</summary>
         [JsonProperty("remoteFeatureFlags")]
         public Dictionary<string, bool> RemoteFeatureFlags;
+
+        /// <summary>Client-side per-player config, currently the FCM tag list (overridden by server config at runtime).</summary>
+        [JsonProperty("playerRemoteConfigs")]
+        public PlayerRemoteConfigs PlayerRemoteConfigs;
     }
 }

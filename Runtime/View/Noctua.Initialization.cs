@@ -1041,6 +1041,28 @@ namespace com.noctuagames.sdk
 
             Noctua.Instance.Value._auth.SetFlag(Noctua.Instance.Value._config.Noctua.RemoteFeatureFlags);
 
+            // Override the client PlayerRemoteConfigs if any — same contract as RemoteFeatureFlags
+            // above: the local noctuagg.json supplies defaults, the server overrides them, and
+            // everything downstream reads the merged config rather than the raw response.
+            log.Debug("Overriding PlayerRemoteConfigs...");
+
+            var remoteTags = initResponse?.PlayerRemoteConfigs?.Tags;
+
+            if (remoteTags != null)
+            {
+                var noctuaConfig = Noctua.Instance.Value._config.Noctua;
+
+                // The local file may omit the whole block; materialize it so the server value
+                // always has somewhere to land.
+                noctuaConfig.PlayerRemoteConfigs ??= new PlayerRemoteConfigs();
+
+                // Tags is a list, not a keyed map, so there is no per-key merge to do: the server
+                // list replaces the local one wholesale. An empty list is a meaningful value
+                // ("subscribe to nothing"), not an absent one.
+                noctuaConfig.PlayerRemoteConfigs.Tags = remoteTags;
+                log.Debug($"Tags set: [{string.Join(", ", remoteTags)}]");
+            }
+
             // Resolve the runtime sandbox override: cache a remote value, or revert to
             // noctuagg.json when it's no longer provided; restart-if-different. (noctuagg.json
             // is the source of truth; the PlayerPref is only a cache of the last remote value.)
@@ -1238,10 +1260,11 @@ namespace com.noctuagames.sdk
             FetchAndCacheFcmToken().Forget();
             FetchAndCacheFid().Forget();
 
-            // Auto-subscribe to the server-driven tag list (one FCM topic per tag),
-            // diff-unsubscribing from any previously subscribed that are no longer present in this
-            // response. Fire-and-forget — must not block InitAsync() completion.
-            SyncFcmTopicsAsync(initResponse.PlayerRemoteConfigs?.Tags).Forget();
+            // Auto-subscribe to the merged tag list (one FCM topic per tag), diff-unsubscribing
+            // from any previously subscribed that are no longer present. Reads the merged config,
+            // not the raw response, so local noctuagg.json defaults apply when the server omits
+            // the field. Fire-and-forget — must not block InitAsync() completion.
+            SyncFcmTopicsAsync(Instance.Value._config?.Noctua?.PlayerRemoteConfigs?.Tags).Forget();
         }
 
         /// <summary>

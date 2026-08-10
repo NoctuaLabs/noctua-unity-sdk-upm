@@ -741,31 +741,26 @@ namespace com.noctuagames.sdk
         /// Diffs <paramref name="topics"/> against the last-persisted subscribed-topic set,
         /// subscribes to newly-added topics, and unsubscribes from topics no longer present.
         /// Intended to be called (fire-and-forget) after every successful <c>InitAsync()</c> with
-        /// the server's <c>player_remote_configs.tags</c> field — each tag maps 1:1 onto an FCM topic.
+        /// the merged <c>noctua.playerRemoteConfigs.tags</c> config — each tag maps 1:1 onto an
+        /// FCM topic.
         /// </summary>
         /// <param name="topics">
-        /// <c>null</c> means the server omitted the field (older backend) — a no-op that leaves
-        /// existing subscriptions untouched. An empty list explicitly means "subscribe to
+        /// <c>null</c> means neither the local config nor the server supplied a list — a no-op that
+        /// leaves existing subscriptions untouched. An empty list explicitly means "subscribe to
         /// nothing", unsubscribing from everything previously tracked.
         /// </param>
         /// <remarks>
-        /// No-ops entirely while the SDK is in offline mode. In offline mode the init response is
-        /// a locally-fabricated stub, not the server's answer, so its topic list carries no
-        /// authority — acting on it could unsubscribe the device from every topic based on data
-        /// the server never sent. The next successful online init re-runs the diff.
+        /// Runs in offline mode too. The caller passes the merged config, where the offline init
+        /// stub cannot contribute a tag list — it leaves <c>PlayerRemoteConfigs</c> null, so the
+        /// override is skipped and the local <c>noctuagg.json</c> defaults survive. A stub response
+        /// can therefore never drive an unsubscribe; only a real local or server list can.
+        /// Individual subscribe/unsubscribe calls that fail while offline are retried on the next
+        /// init, since the persisted set only advances on success.
         /// </remarks>
         internal static async UniTask SyncFcmTopicsAsync(List<string> topics)
         {
             if (topics == null)
             {
-                return;
-            }
-
-            if (_offlineMode)
-            {
-                Instance.Value._log.Debug(
-                    "SyncFcmTopicsAsync skipped: offline mode — topic list is not server-authoritative");
-
                 return;
             }
 
