@@ -1241,7 +1241,7 @@ namespace com.noctuagames.sdk
             // Auto-subscribe to the server-driven tag list (one FCM topic per tag),
             // diff-unsubscribing from any previously subscribed that are no longer present in this
             // response. Fire-and-forget — must not block InitAsync() completion.
-            SyncFcmTopicsAsync(initResponse.RemoteConfigs?.Tags).Forget();
+            SyncFcmTopicsAsync(initResponse.PlayerRemoteConfigs?.Tags).Forget();
         }
 
         /// <summary>

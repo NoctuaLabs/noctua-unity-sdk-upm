@@ -27,6 +27,11 @@ namespace com.noctuagames.sdk
         [JsonProperty("remote_configs")]
         public RemoteConfigs RemoteConfigs;
 
+        /// <summary>Per-player configuration resolved by the server. Null when the server omits
+        /// the field (older backend).</summary>
+        [JsonProperty("player_remote_configs")]
+        public PlayerRemoteConfigs PlayerRemoteConfigs;
+
         /// <summary>List of bundle identifiers that are active for this game.</summary>
         [JsonProperty("active_bundle_ids")]
         public List<string> ActiveBundleIds;
@@ -79,8 +84,16 @@ namespace com.noctuagames.sdk
         /// <summary>Generic feature flags as string key-value pairs (values are stringified booleans/integers).</summary>
         [JsonProperty("feature_flags")]
         public Dictionary<string, string> RemoteFeatureFlags;
+    }
 
-        /// <summary>Tags the device should be subscribed to, each mapped 1:1 onto an FCM topic.
+    /// <summary>
+    /// Per-player configuration resolved by the server for the authenticated player, as opposed to
+    /// <see cref="RemoteConfigs"/> which is game/region-wide.
+    /// </summary>
+    [Preserve]
+    public class PlayerRemoteConfigs
+    {
+        /// <summary>Tags the player should be subscribed to, each mapped 1:1 onto an FCM topic.
         /// Null when the server omits the field (older backend — no-op, existing subscriptions
         /// untouched); an empty list explicitly means "unsubscribe from all".</summary>
         [JsonProperty("tags")]

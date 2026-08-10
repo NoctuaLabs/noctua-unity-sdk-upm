@@ -741,7 +741,7 @@ namespace com.noctuagames.sdk
         /// Diffs <paramref name="topics"/> against the last-persisted subscribed-topic set,
         /// subscribes to newly-added topics, and unsubscribes from topics no longer present.
         /// Intended to be called (fire-and-forget) after every successful <c>InitAsync()</c> with
-        /// the server's <c>remote_configs.tags</c> field — each tag maps 1:1 onto an FCM topic.
+        /// the server's <c>player_remote_configs.tags</c> field — each tag maps 1:1 onto an FCM topic.
         /// </summary>
         /// <param name="topics">
         /// <c>null</c> means the server omitted the field (older backend) — a no-op that leaves
