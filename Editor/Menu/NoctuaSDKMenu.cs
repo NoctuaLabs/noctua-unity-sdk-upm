@@ -50,6 +50,7 @@ public class NoctuaIntegrationManagerWindow : EditorWindow
     private bool iaaFoldout          = false;
     private bool maxAdaptersFoldout  = false;
     private bool admobAdaptersFoldout = false;
+    private bool agpFoldout          = false;
 
     private Vector2 scrollPosition;
     private GlobalConfig config;
@@ -59,16 +60,21 @@ public class NoctuaIntegrationManagerWindow : EditorWindow
     // simultaneously without CocoaPods version conflicts.
     //
     // Why it works:
-    //   • com.google.ads.mobile 11.0.0 → pins GMA iOS ~> 13.0.0  (allows any 13.x)
-    //   • AppLovin Google adapter 13.2.0.0 → requires GMA iOS = 13.2.0  (satisfies ~> 13.0.0)
-    //   → No conflict. Both constraints resolve to GMA iOS 13.2.0.
+    //   • com.google.ads.mobile 11.3.0 → wraps GMA iOS 13.6.0 / Android 25.4.0
+    //     (bumped from 11.0.0 — re-verify the exact iOS pod constraint against
+    //     the installed package's GoogleMobileAdsDependencies.xml; this was not
+    //     hand-inspected as part of the bump, only the package's own advertised
+    //     native SDK versions)
+    //   • AppLovin Google adapter 13.2.0.0 → requires GMA iOS = 13.2.0
+    //   → Expected to still resolve without conflict since 13.2.0 falls within
+    //     GMA iOS 13.x, same as before the bump.
     //
     // Each entry: (display name, pkg, version, note, registry)
     // registry: "applovin" | "openupm"
     private readonly List<(string name, string pkg, string ver, string note, string registry)> recommendedSetup = new()
     {
         ( "AppLovin MAX SDK",           "com.applovin.mediation.ads",                          "8.6.1",         "Primary mediation — wraps MAX SDK 13.6.1 (pinned to avoid GMA conflict with AdMob AppLovin adapter)", "applovin" ),
-        ( "AdMob / GMA SDK",            "com.google.ads.mobile",                               "11.0.0",        "Compatible: GMA iOS ~> 13.0.0, Android 25.0.0",       "openupm"  ),
+        ( "AdMob / GMA SDK",            "com.google.ads.mobile",                               "11.3.0",        "Compatible: GMA iOS 13.6.0, Android 25.4.0",          "openupm"  ),
         ( "AppLovin → Google (Android)","com.applovin.mediation.adapters.google.android",       "25010000.0.0",  "Routes AdMob demand through AppLovin MAX (Android)",   "applovin" ),
         ( "AppLovin → Google (iOS)",    "com.applovin.mediation.adapters.google.ios",           "13020000.0.0",  "Routes AdMob demand through AppLovin MAX (iOS)",       "applovin" ),
         ( "AppLovin → Ad Manager (Android)","com.applovin.mediation.adapters.googleadmanager.android","25010000.0.0","Routes Google Ad Manager demand (Android)",       "applovin" ),
@@ -281,9 +287,61 @@ public class NoctuaIntegrationManagerWindow : EditorWindow
         DrawFoldoutSection("AppLovin MAX — Ad Network Adapters", ref maxAdaptersFoldout, DrawMaxAdaptersSection);
         EditorGUILayout.Space(8);
         DrawFoldoutSection("AdMob — Mediation Adapters", ref admobAdaptersFoldout, DrawAdmobAdaptersSection);
+        EditorGUILayout.Space(8);
+        DrawFoldoutSection("Android Gradle Plugin (AGP) Version", ref agpFoldout, DrawAgpSection);
         EditorGUILayout.Space(6);
 
         EditorGUILayout.EndScrollView();
+    }
+
+    // ── Android Gradle Plugin version override ──────────────────────────────
+
+    /// <summary>
+    /// Free-text AGP version override, applied by
+    /// <see cref="AndroidGradlePluginVersionManager"/> to the *generated*
+    /// Gradle project's root build.gradle at build time. Left empty by
+    /// default — the consumer project's own template/generated AGP pin
+    /// (AGP 8.x today) is left completely untouched. Any 9.x (or later)
+    /// value entered here requires Gradle >= 9.1.0 and JDK >= 17, and triggers
+    /// a version check against com.google.ads.mobile (GMA) — versions below
+    /// 11.3.0 hit the googleads-mobile-unity#4212 namespace conflict on AGP 9;
+    /// that's fixed by upgrading GMA, not by anything this SDK patches.
+    /// </summary>
+    private void DrawAgpSection()
+    {
+        var current = AndroidGradlePluginVersionManager.VersionOverride;
+
+        EditorGUILayout.HelpBox(
+            "Leave empty to build with whatever AGP version this project's own Gradle " +
+            "templates already pin (AGP 8.10.0, stable, default). Entering a version here " +
+            "overrides ONLY the generated build.gradle at build time — no project files are " +
+            "hand-edited.",
+            MessageType.None);
+
+        EditorGUILayout.BeginHorizontal();
+        GUILayout.Label("AGP version override", GUILayout.Width(MinNameW));
+        var updated = EditorGUILayout.TextField(current, GUILayout.Width(VerW));
+        if (GUILayout.Button("Clear (use default)", GUILayout.Width(140)))
+        {
+            updated = string.Empty;
+        }
+        EditorGUILayout.EndHorizontal();
+
+        if (updated != current)
+        {
+            AndroidGradlePluginVersionManager.VersionOverride = updated;
+        }
+
+        if (AndroidGradlePluginVersionManager.IsAgp9OrHigher)
+        {
+            EditorGUILayout.HelpBox(
+                $"AGP {updated}:\n" +
+                "• Requires Gradle >= 9.1.0 and JDK >= 17 (Preferences > External Tools).\n" +
+                "• Requires com.google.ads.mobile (GMA) >= 11.3.0 — older versions hit the " +
+                "googleads-mobile-unity#4212 namespace conflict under AGP 9. Use the Recommended " +
+                "Setup above to install 11.3.0+. The build log will flag it if you're below that.",
+                MessageType.Warning);
+        }
     }
 
     // ── Bulk multi-select action bar ──────────────────────────────────────
@@ -340,7 +398,7 @@ public class NoctuaIntegrationManagerWindow : EditorWindow
         EditorGUILayout.HelpBox(
             "Runs AppLovin MAX and AdMob demand on BOTH Android and iOS without conflicts.\n" +
             "Android: GMA 25.1.0 compatible with AppLovin MAX 13.6.1 adapters.\n" +
-            "iOS:     AdMob 11.0.0 pins GMA iOS ~> 13.0.0 — satisfied by AppLovin Google adapter (13.2.0).\n" +
+            "iOS:     AdMob 11.3.0 pins GMA iOS ~> 13.x (verify against GoogleMobileAdsDependencies.xml once installed) — satisfied by AppLovin Google adapter (13.2.0).\n" +
             "AppLovin MAX mediates AdMob demand via the Google adapter — one dependency tree, no version conflicts.",
             MessageType.Info);
 
@@ -539,7 +597,7 @@ public class NoctuaIntegrationManagerWindow : EditorWindow
     private void DrawAdmobAdaptersSection()
     {
         EditorGUILayout.HelpBox(
-            "★ Recommended versions are tested with AdMob SDK 11.0.0 (GMA iOS 13.0 / Android 25.0). " +
+            "★ Recommended versions are tested with AdMob SDK 11.3.0 (GMA iOS 13.6.0 / Android 25.4.0). " +
             "Update to recommended to avoid mediation errors and rejected store submissions.",
             MessageType.None);
 
