@@ -80,11 +80,11 @@ namespace com.noctuagames.sdk
         [JsonProperty("feature_flags")]
         public Dictionary<string, string> RemoteFeatureFlags;
 
-        /// <summary>FCM topics the device should be subscribed to. Null when the server omits the
-        /// field (older backend — no-op, existing subscriptions untouched); an empty list
-        /// explicitly means "unsubscribe from all".</summary>
-        [JsonProperty("topics")]
-        public List<string> Topics;
+        /// <summary>Tags the device should be subscribed to, each mapped 1:1 onto an FCM topic.
+        /// Null when the server omits the field (older backend — no-op, existing subscriptions
+        /// untouched); an empty list explicitly means "unsubscribe from all".</summary>
+        [JsonProperty("tags")]
+        public List<string> Tags;
     }
 
     /// <summary>
