@@ -748,10 +748,24 @@ namespace com.noctuagames.sdk
         /// existing subscriptions untouched. An empty list explicitly means "subscribe to
         /// nothing", unsubscribing from everything previously tracked.
         /// </param>
+        /// <remarks>
+        /// No-ops entirely while the SDK is in offline mode. In offline mode the init response is
+        /// a locally-fabricated stub, not the server's answer, so its topic list carries no
+        /// authority — acting on it could unsubscribe the device from every topic based on data
+        /// the server never sent. The next successful online init re-runs the diff.
+        /// </remarks>
         internal static async UniTask SyncFcmTopicsAsync(List<string> topics)
         {
             if (topics == null)
             {
+                return;
+            }
+
+            if (_offlineMode)
+            {
+                Instance.Value._log.Debug(
+                    "SyncFcmTopicsAsync skipped: offline mode — topic list is not server-authoritative");
+
                 return;
             }
 
