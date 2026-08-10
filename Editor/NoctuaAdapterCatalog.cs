@@ -23,7 +23,7 @@ namespace com.noctuagames.sdk.Editor
         /// <summary>AppLovin MAX core SDK + AdMob core SDK UPM pins.</summary>
         public static readonly Dictionary<string, (string packageName, string version)> IaaProviders = new()
         {
-            { "AdMob",    ("com.google.ads.mobile",      "11.0.0") }, // wraps GMA iOS 13.0.0 + Android 25.0.0
+            { "AdMob",    ("com.google.ads.mobile",      "11.3.0") }, // wraps GMA iOS 13.6.0 + Android 25.4.0 (Next-Gen SDK 1.2.1)
             { "AppLovin", ("com.applovin.mediation.ads", "8.6.1")  }, // wraps MAX SDK 13.6.1 — pinned to avoid GMA conflict with AdMob AppLovin adapter
         };
 

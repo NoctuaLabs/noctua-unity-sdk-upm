@@ -87,6 +87,7 @@ Runtime/
 | `Editor/Menu/NoctuaSDKMenu.cs` | Editor | Integration Manager window |
 | `Editor/Build/CocoaPodsConflictFixer.cs` | Editor | CocoaPods conflict auto-fixer |
 | `Editor/Build/BuildPostProcessor.cs` | Editor | iOS/Android post-build processing |
+| `Editor/Build/AndroidGradlePluginVersionManager.cs` | Editor | AGP version override (opt-in AGP 9) + GMA/AGP9 version check |
 
 ## Key Interfaces
 
@@ -189,9 +190,36 @@ Open via **Noctua > Noctua Integration Manager**. Manages ad SDK UPM packages di
 
 **Adding a new adapter to the catalog:**
 1. Add entry to `maxAdapterPackages` (Android + iOS pkg/ver tuple) or `admobAdapterPackages`
-2. Version must be verified stable against current MAX SDK (8.6.1) or AdMob SDK (11.0.0)
+2. Version must be verified stable against current MAX SDK (8.6.1) or AdMob SDK (11.3.0)
 3. For AppLovin adapters: versions come from `unity.packages.applovin.com/-/all`
 4. For AdMob adapters: versions come from `package.openupm.com`
+
+### AGP 9 (experimental)
+
+Android Gradle Plugin defaults to whatever the consumer project's own Gradle templates
+pin (AGP 8.10.0 in the sample app) — the SDK never touches that pin. Integrators who want
+to try AGP 9 enter a version in the Integration Manager's "Android Gradle Plugin (AGP)
+Version" field; `AndroidGradlePluginVersionManager` overrides AGP's version string in the
+**generated** root `build.gradle` at build time (same "patch the generated project"
+pattern `BuildPostProcessor.ModifyRootBuildGradle` already uses for google-services).
+No AGP version is hardcoded — any value with a leading major version `>= 9` is treated as
+AGP 9 mode.
+
+Requirements when opting in: Gradle **>= 9.1.0** and JDK **>= 17** (Preferences >
+External Tools) — validated with an actionable log message, not enforced silently.
+
+**GMA + AGP 9:** `com.google.ads.mobile` (GMA) versions below **11.3.0** hit
+`googleads-mobile-unity#4212` under AGP 9 — `GoogleMobileAdsPlugin.androidlib` and the
+plugin's own AAR both declare the `com.google.unity.ads` namespace, which AGP 9 rejects
+as a duplicate. **Confirmed fix: upgrade GMA to 11.3.0+** (already the catalog's
+recommended pin — see `NoctuaAdapterCatalog.IaaProviders`) — there is no AGP-9-side file
+to patch for it; earlier code in this SDK speculatively rewrote
+`GoogleMobileAdsPlugin.androidlib/build.gradle`, but that file doesn't exist in the
+source package (the conflict comes from `AndroidManifest.xml`'s `package` attribute,
+synthesized into the generated project by Unity, not an explicit `namespace` line), so
+that approach never actually did anything. `AndroidGradlePluginVersionManager.WarnIfGmaNeedsAgp9Upgrade`
+now just reads the installed GMA version from `Packages/manifest.json` and logs an
+actionable error if it's below 11.3.0 — it never edits any file.
 
 **Conflict-free compatibility (Recommended Setup):**
 - `com.google.ads.mobile` 11.0.0 → GMA iOS `~> 13.0.0` (allows any 13.x)
