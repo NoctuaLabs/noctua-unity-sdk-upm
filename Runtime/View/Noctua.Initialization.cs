@@ -231,6 +231,7 @@ namespace com.noctuagames.sdk
                     NativeTracker = _nativePlugin,
                     IsOfflineModeFunc = () => _offlineMode,
                     AdjustOfflineModeDisabledFunc = AdjustOfflineModeDisabled,
+                    PlayerTagsFunc = () => _config.Noctua?.PlayerRemoteConfigs?.Tags,
                 },
                 locale
             );

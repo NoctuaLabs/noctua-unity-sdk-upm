@@ -34,6 +34,10 @@ namespace Tests.Runtime
     /// Group E — Pre-persist path: first-launch events survive a simulated kill (1 test)
     ///   Verifies that events sent before _firebaseIdsFetched = true are written to
     ///   storage (jsonl file) even when the HTTP server is unreachable.
+    ///
+    /// Group F — PlayerTagsFunc → "tags" payload field (3 tests)
+    ///   Verifies player remote-config tags are attached as a JSON array when the
+    ///   delegate returns a non-empty list, and omitted when null/empty.
     /// </summary>
     [TestFixture]
     public class EventSenderBehaviorTest
@@ -285,7 +289,7 @@ namespace Tests.Runtime
             _propServer?.Dispose();
         }
 
-        private EventSender MakePropSender() =>
+        private EventSender MakePropSender(Func<List<string>> playerTagsFunc = null) =>
             new EventSender(
                 new EventSenderConfig
                 {
@@ -295,6 +299,7 @@ namespace Tests.Runtime
                     BatchSize    = 1,
                     CycleDelay   = 100,
                     NativePlugin = new DefaultNativePlugin(),
+                    PlayerTagsFunc = playerTagsFunc,
                 },
                 new NoctuaLocale()
             );
@@ -542,6 +547,69 @@ namespace Tests.Runtime
                     Assert.IsTrue(hasEvent,
                         "pre_persist_probe must be written to noctua_events.jsonl " +
                         "even when the app is in offline mode (pre-persist path)");
+                }
+                finally
+                {
+                    sender.Dispose();
+                }
+            });
+
+        // ═══════════════════════════════════════════════════════════════════════
+        // Group F — PlayerTagsFunc → "tags" payload field
+        // ═══════════════════════════════════════════════════════════════════════
+
+        [UnityTest]
+        public IEnumerator PlayerTagsFunc_NonEmptyList_AttachesTagsArray() =>
+            UniTask.ToCoroutine(async () =>
+            {
+                var sender = MakePropSender(() => new List<string> { "vip", "beta" });
+                try
+                {
+                    var ev = await SendAndCapture(sender, "tags_test_nonempty");
+                    Assert.IsNotNull(ev, "No tags_test_nonempty event received");
+                    Assert.IsTrue(ev.ContainsKey("tags"),
+                        "tags must be present when PlayerTagsFunc returns a non-empty list");
+
+                    var tags = JsonConvert.DeserializeObject<List<string>>(
+                        JsonConvert.SerializeObject(ev["tags"]));
+                    CollectionAssert.AreEqual(new List<string> { "vip", "beta" }, tags,
+                        "tags must serialize as an array matching the source list, in order");
+                }
+                finally
+                {
+                    sender.Dispose();
+                }
+            });
+
+        [UnityTest]
+        public IEnumerator PlayerTagsFunc_Null_OmitsTagsKey() =>
+            UniTask.ToCoroutine(async () =>
+            {
+                var sender = MakePropSender(() => null);
+                try
+                {
+                    var ev = await SendAndCapture(sender, "tags_test_null");
+                    Assert.IsNotNull(ev, "No tags_test_null event received");
+                    Assert.IsFalse(ev.ContainsKey("tags"),
+                        "tags must be absent when PlayerTagsFunc returns null");
+                }
+                finally
+                {
+                    sender.Dispose();
+                }
+            });
+
+        [UnityTest]
+        public IEnumerator PlayerTagsFunc_EmptyList_OmitsTagsKey() =>
+            UniTask.ToCoroutine(async () =>
+            {
+                var sender = MakePropSender(() => new List<string>());
+                try
+                {
+                    var ev = await SendAndCapture(sender, "tags_test_empty");
+                    Assert.IsNotNull(ev, "No tags_test_empty event received");
+                    Assert.IsFalse(ev.ContainsKey("tags"),
+                        "tags must be absent when PlayerTagsFunc returns an empty list");
                 }
                 finally
                 {

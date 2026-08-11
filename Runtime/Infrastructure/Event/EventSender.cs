@@ -63,6 +63,9 @@ namespace com.noctuagames.sdk.Events
         /// <summary>Delegate that returns whether Adjust offline mode toggling is disabled.</summary>
         public Func<bool> AdjustOfflineModeDisabledFunc;
 
+        /// <summary>Delegate that returns the player's current remote-config tags (may be null before init or if unset).</summary>
+        public Func<List<string>> PlayerTagsFunc;
+
         /// <summary>Firebase configuration controlling custom event tracking per platform.</summary>
         public FirebaseConfig FirebaseConfig = new FirebaseConfig();
     }
@@ -505,6 +508,10 @@ namespace com.noctuagames.sdk.Events
                     data.TryAdd("experiment", activeExperiment);
                 }
 
+                // Player remote-config tags — read lazily since PlayerRemoteConfigs is
+                // fetched asynchronously by InitGameAsync() long after EventSender is
+                // constructed; the func returns null until that resolves.
+                var playerTags = _config.PlayerTagsFunc?.Invoke();
 
                 // Enrich with timestamp, user identity, and stage data BEFORE the async
                 // Firebase ID fetch so all core fields are present in the pre-persisted copy.
@@ -678,9 +685,9 @@ namespace com.noctuagames.sdk.Events
                     // Persist now — before yielding for the Firebase lookup.
                     // If the process is killed during the awaits below, storage already
                     // has the event. prePersisted prevents a second write after the fetch.
-                    var preJson = JsonConvert.SerializeObject(
-                        data.ToDictionary(kv => kv.Key, kv => (object)kv.Value)
-                    );
+                    var preData = data.ToDictionary(kv => kv.Key, kv => (object)kv.Value);
+                    if (playerTags != null && playerTags.Count > 0) preData["tags"] = playerTags;
+                    var preJson = JsonConvert.SerializeObject(preData);
                     EnqueueEventForStorage(preJson);
                     prePersisted = true;
                 }
@@ -756,9 +763,9 @@ namespace com.noctuagames.sdk.Events
                 // Skipped when already pre-persisted above to avoid storing the event twice.
                 if (!prePersisted)
                 {
-                    var eventJson = JsonConvert.SerializeObject(
-                        data.ToDictionary(kv => kv.Key, kv => (object)kv.Value)
-                    );
+                    var eventData = data.ToDictionary(kv => kv.Key, kv => (object)kv.Value);
+                    if (playerTags != null && playerTags.Count > 0) eventData["tags"] = playerTags;
+                    var eventJson = JsonConvert.SerializeObject(eventData);
                     EnqueueEventForStorage(eventJson);
                 }
 
