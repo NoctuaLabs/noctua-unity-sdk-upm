@@ -209,5 +209,22 @@ namespace Tests.Runtime
             Assert.AreEqual(fromString, fromEnum);
             yield return null;
         }
+
+        // 13. GetTimezone() — returns a non-null, non-empty string; matches TimeZoneInfo.Local.Id
+        //     unless the runtime can't resolve a real zone, in which case it falls back to "UTC"
+        //     (covers headless/CI environments where TimeZoneInfo.Local.Id itself is "Local").
+        [UnityTest]
+        public IEnumerator GetTimezone_ReturnsNonEmptyString_MatchingLocalTimeZoneId()
+        {
+            var locale = new NoctuaLocale("");
+            var timezone = locale.GetTimezone();
+            var localId = TimeZoneInfo.Local.Id;
+            var expected = string.IsNullOrEmpty(localId) || localId == "Local" ? "UTC" : localId;
+
+            Assert.IsNotNull(timezone);
+            Assert.IsNotEmpty(timezone);
+            Assert.AreEqual(expected, timezone);
+            yield return null;
+        }
     }
 }

@@ -62,6 +62,7 @@ namespace Tests.Runtime.IAP
             public string GetLanguage() => "en";
             public string GetCountry() => "US";
             public string GetCurrency() => "USD";
+            public string GetTimezone() => "UTC";
             public string GetTranslation(LocaleTextKey textKey) => textKey.ToString();
         }
 

@@ -82,6 +82,12 @@ namespace com.noctuagames.sdk
         private readonly ILogger _log = new NoctuaLogger(typeof(NoctuaLocale));
         private Dictionary<string,string> _translations;
         private readonly Dictionary<string,string> _defaultTranslations;
+        private string _cachedTimezone;
+
+#if UNITY_IOS && !UNITY_EDITOR
+        [System.Runtime.InteropServices.DllImport("__Internal")]
+        private static extern string noctuaGetTimezone();
+#endif
 
         /// <summary>
         /// Creates a new locale instance, loading translations for the resolved language.
@@ -208,7 +214,70 @@ namespace com.noctuagames.sdk
         {
             return PlayerPrefs.GetString(PlayerPrefsKeyLocaleCurrency, "USD"); // Default to USD
         }
-        
+
+        /// <summary>
+        /// Gets the device's local IANA timezone identifier. The result is cached after the
+        /// first call, since resolving it natively on Android/iOS is not free and the timezone
+        /// is not expected to change mid-session.
+        /// </summary>
+        /// <remarks>
+        /// <see cref="TimeZoneInfo.Local"/> unreliably resolves to a synthetic zone with Id
+        /// "Local" instead of a real IANA identifier on both Android and iOS real devices,
+        /// because IL2CPP/Mono's bundled timezone database doesn't reliably match the OS zone.
+        /// We query the native platform APIs instead — Android's
+        /// <c>java.util.TimeZone.getDefault().getID()</c> and iOS's
+        /// <c>NSTimeZone.localTimeZone.name</c> via <c>NoctuaInterop.m</c> — both of which
+        /// return a proper IANA identifier (e.g. "Asia/Jakarta").
+        /// </remarks>
+        /// <returns>An IANA timezone ID (e.g. "Asia/Jakarta"). Falls back to "UTC" if unavailable.</returns>
+        public string GetTimezone()
+        {
+            if (!string.IsNullOrEmpty(_cachedTimezone))
+            {
+                return _cachedTimezone;
+            }
+
+            try
+            {
+#if UNITY_ANDROID && !UNITY_EDITOR
+                using var timeZoneClass = new AndroidJavaClass("java.util.TimeZone");
+                using var defaultTimeZone = timeZoneClass.CallStatic<AndroidJavaObject>("getDefault");
+                var androidId = defaultTimeZone.Call<string>("getID");
+
+                if (!string.IsNullOrEmpty(androidId))
+                {
+                    _cachedTimezone = androidId;
+                    return _cachedTimezone;
+                }
+#elif UNITY_IOS && !UNITY_EDITOR
+                var iosId = noctuaGetTimezone();
+
+                if (!string.IsNullOrEmpty(iosId))
+                {
+                    _cachedTimezone = iosId;
+                    return _cachedTimezone;
+                }
+#endif
+                var localId = TimeZoneInfo.Local.Id;
+
+                if (string.IsNullOrEmpty(localId) || localId == "Local")
+                {
+                    _log.Warning("TimeZoneInfo.Local.Id could not be resolved to an IANA identifier (got: " + localId + ")");
+                    _cachedTimezone = "UTC";
+                    return _cachedTimezone;
+                }
+
+                _cachedTimezone = localId;
+                return _cachedTimezone;
+            }
+            catch (Exception e)
+            {
+                _log.Warning("Failed to resolve local timezone: " + e.Message);
+                _cachedTimezone = "UTC";
+                return _cachedTimezone;
+            }
+        }
+
         /// <summary>
         /// Gets the localized translation for the specified string key.
         /// Falls back to English if the current language has no translation.

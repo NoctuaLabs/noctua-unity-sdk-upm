@@ -10,6 +10,10 @@ void noctuaOnOffline();
 void noctuaSaveEvents(const char* eventsJson);
 void noctuaDeleteEvents();
 
+// MARK: - Locale
+// Pure Foundation call — does not go through the native Noctua SDK.
+const char* noctuaGetTimezone(void);
+
 typedef void (*PurchaseCompletionDelegate)(bool success, const char* message);
 void noctuaPurchaseItem(const char* productId, PurchaseCompletionDelegate callback);
 typedef void (*ActiveCurrencyCompletionDelegate)(bool success, const char* currency);

@@ -25,6 +25,12 @@ namespace com.noctuagames.sdk
         string GetCurrency();
 
         /// <summary>
+        /// Gets the current IANA timezone identifier of the device (e.g. "Asia/Jakarta", "America/New_York").
+        /// </summary>
+        /// <returns>An IANA timezone ID string.</returns>
+        string GetTimezone();
+
+        /// <summary>
         /// Gets the localized translation string for the given text key.
         /// </summary>
         /// <param name="textKey">The locale text key to look up.</param>

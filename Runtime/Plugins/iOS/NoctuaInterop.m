@@ -57,6 +57,25 @@ void noctuaTrackCustomEventWithRevenue(const char* eventName, double revenue, co
     [Noctua trackCustomEventWithRevenue:eventNameStr revenue:revenue currency:currencyStr payload:payload];
 }
 
+// MARK: - Locale
+
+// Returns the device's local IANA timezone identifier (e.g. "Asia/Jakarta").
+// Unlike Android, iOS/Mono's TimeZoneInfo.Local.Id resolves reliably most of
+// the time, but real-device testing has shown it can still fall back to a
+// non-IANA "Local" placeholder — so we resolve it natively via Foundation
+// here, the same way we work around the equivalent Android/IL2CPP gap.
+// Caller (NoctuaLocale) caches the result, so this is safe to allocate on
+// every call — it's expected to run at most once per app session.
+const char* noctuaGetTimezone(void) {
+    NSString *timezoneName = [[NSTimeZone localTimeZone] name];
+
+    if (timezoneName == nil) {
+        return NULL;
+    }
+
+    return strdup([timezoneName UTF8String]);
+}
+
 // MARK: - StoreKit / In-App Purchases (New API)
 
 // Static state for StoreKit callback bridging

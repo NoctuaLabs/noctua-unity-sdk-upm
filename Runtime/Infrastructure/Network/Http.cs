@@ -179,10 +179,12 @@ namespace com.noctuagames.sdk
             var lang = _localeProvider?.GetLanguage() ?? "en";
             var country = _localeProvider?.GetCountry() ?? "";
             var currency = _localeProvider?.GetCurrency() ?? "";
+            var timezone = _localeProvider?.GetTimezone() ?? "UTC";
             _request.SetRequestHeader("Accept-Language", lang);
             _request.SetRequestHeader("X-LANGUAGE", lang);
             _request.SetRequestHeader("X-COUNTRY", country);
             _request.SetRequestHeader("X-CURRENCY", currency);
+            _request.SetRequestHeader("X-TIMEZONE", timezone);
             _request.SetRequestHeader("X-DEVICE-ID", SystemInfo.deviceUniqueIdentifier);
             _request.SetRequestHeader("X-PLATFORM", Utility.GetPlatformType());
             _request.SetRequestHeader("X-OS-AGENT", SystemInfo.operatingSystem);
@@ -454,6 +456,7 @@ namespace com.noctuagames.sdk
                     $"X-LANGUAGE: {_request.GetRequestHeader("X-LANGUAGE")}\n"         +
                     $"X-COUNTRY: {_request.GetRequestHeader("X-COUNTRY")}\n"           +
                     $"X-CURRENCY: {_request.GetRequestHeader("X-CURRENCY")}\n"         +
+                    $"X-TIMEZONE: {_request.GetRequestHeader("X-TIMEZONE")}\n"         +
                     $"X-DEVICE-ID: {_request.GetRequestHeader("X-DEVICE-ID")}\n"       +
                     $"X-PLATFORM: {_request.GetRequestHeader("X-PLATFORM")}\n"         +
                     $"X-OS: {_request.GetRequestHeader("X-OS")}\n"                     +
