@@ -500,6 +500,7 @@ namespace com.noctuagames.sdk.Events
                 }
 
                 data.TryAdd("country", country);
+                data.TryAdd("timezone", _locale.GetTimezone());
 
                 var activeExperiment = ExperimentManager.GetActiveExperiment();
 

@@ -361,6 +361,24 @@ namespace Tests.Runtime
             });
 
         [UnityTest]
+        public IEnumerator Send_IncludesTimezoneProperty() =>
+            UniTask.ToCoroutine(async () =>
+            {
+                var sender = MakePropSender();
+                try
+                {
+                    var ev = await SendAndCapture(sender, "timezone_test_event");
+                    Assert.IsNotNull(ev, "No timezone_test_event event received within timeout");
+                    Assert.IsTrue(ev.ContainsKey("timezone"), "timezone must be present on every event");
+                    Assert.IsFalse(string.IsNullOrEmpty(ev["timezone"]?.ToString()));
+                }
+                finally
+                {
+                    sender.Dispose();
+                }
+            });
+
+        [UnityTest]
         public IEnumerator SetProperties_NullUserId_ClearsPreviousValue() =>
             UniTask.ToCoroutine(async () =>
             {
