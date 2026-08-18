@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## [0.130.1] - 2026-07-13
+## [0.131.0] - 2026-08-18
 
 ### ⚙️ Miscellaneous
 
@@ -34,6 +34,14 @@ All notable changes to this project will be documented in this file.
 - *(iap)* Make taichi IAP logs Debug-level and drop type field
 - *(iaa)* Guard banner create paths against empty/unconfigured ad unit id
 - *(iaa)* Guard AppLovin banner lifecycle methods against empty ad unit id
+- Fold FcmTokenRegistrar into Noctua.Firebase.cs
+- *(inspector)* Make InspectorTrigger gestures New Input System safe
+- *(iaa)* Add FCM topic subscription support
+- *(iaa)* Let ad-unit config leave primary empty and fall back to secondary
+- *(event)* Include fcm_token property in every tracked event
+- *(app)* Add server-driven FCM topic subscription sync
+- *(app)* Skip FCM topic sync while in offline mode
+- *(app)* Move the FCM tag list into player_remote_configs
 
 ### 🐛 Bug Fixes
 
@@ -60,6 +68,7 @@ All notable changes to this project will be documented in this file.
 - TrackAdRevenue crash from unattached threads and null payload entries
 - Marshal Android Track* JNI to main thread and fix KotlinUnit init race
 - Guard NoctuaLogger ctor against IL2CPP null stack frames
+- *(app)* Read the server tag list from "tags", not "topics"
 
 ### 🚀 Features
 
@@ -76,6 +85,12 @@ All notable changes to this project will be documented in this file.
 - *(iaa)* Track cross_ad_impression house-ad event on cross-promotion render
 - *(iaa)* Add ShowCrossPromotion direct cross-promotion API
 - *(iaa)* Add effortless ShowCrossPromotion(adType) via Firebase Remote Config
+- *(push)* Send FCM registration token via X-FCM-TOKEN header
+- Add X-FID header with cached Firebase Installation ID on every HTTP request
+- *(app)* Give FCM tags local defaults with server override
+- *(event)* Attach player remote-config tags to every event payload
+- Send device local timezone via X-TIMEZONE header
+- *(event)* Add timezone property to event sender payload
 
 ## [0.122.0] - 2026-05-18
 
