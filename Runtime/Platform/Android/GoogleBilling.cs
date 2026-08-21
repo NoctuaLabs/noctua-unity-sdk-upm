@@ -14,8 +14,16 @@ public class GoogleBilling : System.IDisposable
     private AndroidJavaObject _noctua;
     private AndroidJavaObject _activity;
     private bool _isPurchaseFlow;
-    private System.Action<PurchaseResult> _pendingGetPurchasedCallback;
-    private System.Action<ProductPurchaseStatus> _pendingPurchaseStatusCallback;
+
+    // FIFO queues, not single-slot fields: getProductPurchaseStatus is a single native call
+    // shared by GetPurchasedProductById and GetProductPurchaseStatusDetail. A single-slot
+    // callback field gets silently overwritten when a second call goes out before the first
+    // one's native response arrives (e.g. the SDK's own refund-tracking probe racing another
+    // concurrent purchase-status check), leaving the first caller's TaskCompletionSource
+    // waiting forever. The native side dispatches responses in call order, so FIFO draining
+    // here is correct without needing per-call request ids.
+    private readonly Queue<System.Action<PurchaseResult>> _pendingGetPurchasedCallbacks = new();
+    private readonly Queue<System.Action<ProductPurchaseStatus>> _pendingPurchaseStatusCallbacks = new();
 
     /// <summary>
     /// Delegate invoked when a purchase flow completes (success or failure).
@@ -308,9 +316,10 @@ public class GoogleBilling : System.IDisposable
             long expiryTime = status.Call<long>("getExpiryTime");
             string originalJson = status.Call<string>("getOriginalJson");
 
-            if (_billing._pendingPurchaseStatusCallback != null)
+            if (_billing._pendingPurchaseStatusCallbacks.Count > 0)
             {
-                _billing._pendingPurchaseStatusCallback.Invoke(new ProductPurchaseStatus
+                var callback = _billing._pendingPurchaseStatusCallbacks.Dequeue();
+                callback?.Invoke(new ProductPurchaseStatus
                 {
                     ProductId = productId,
                     IsPurchased = isPurchased,
@@ -324,14 +333,14 @@ public class GoogleBilling : System.IDisposable
                     OriginalJson = originalJson ?? "",
                     TransactionJson = "",
                 });
-                _billing._pendingPurchaseStatusCallback = null;
             }
 
-            if (_billing._pendingGetPurchasedCallback != null)
+            if (_billing._pendingGetPurchasedCallbacks.Count > 0)
             {
+                var callback = _billing._pendingGetPurchasedCallbacks.Dequeue();
                 if (isPurchased)
                 {
-                    _billing._pendingGetPurchasedCallback.Invoke(new PurchaseResult
+                    callback?.Invoke(new PurchaseResult
                     {
                         Success = true,
                         ProductId = productId,
@@ -342,9 +351,8 @@ public class GoogleBilling : System.IDisposable
                 }
                 else
                 {
-                    _billing._pendingGetPurchasedCallback.Invoke(null);
+                    callback?.Invoke(null);
                 }
-                _billing._pendingGetPurchasedCallback = null;
             }
         }
 
@@ -431,7 +439,7 @@ public class GoogleBilling : System.IDisposable
     public void GetPurchasedProductById(string productId, System.Action<PurchaseResult> callback)
     {
         _log.Debug($"GetPurchasedProductById via native SDK: {productId}");
-        _pendingGetPurchasedCallback = callback;
+        _pendingGetPurchasedCallbacks.Enqueue(callback);
         _noctua.Call("getProductPurchaseStatus", productId);
     }
 
@@ -443,7 +451,7 @@ public class GoogleBilling : System.IDisposable
     public void GetProductPurchaseStatusDetail(string productId, System.Action<ProductPurchaseStatus> callback)
     {
         _log.Debug($"GetProductPurchaseStatusDetail via native SDK: {productId}");
-        _pendingPurchaseStatusCallback = callback;
+        _pendingPurchaseStatusCallbacks.Enqueue(callback);
         _noctua.Call("getProductPurchaseStatus", productId);
     }
 

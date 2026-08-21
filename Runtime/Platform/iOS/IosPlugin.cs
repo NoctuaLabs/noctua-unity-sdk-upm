@@ -182,7 +182,11 @@ namespace com.noctuagames.sdk
         // overwrite the pending purchase callback.
         private static Action<bool, string> storedPurchaseCompletion;
         private static Action<bool, string> storedActiveCurrencyCompletion;
-        private static Action<bool> storedHasPurchasedCompletion;
+        // Queue, not a single slot: GetProductPurchasedById can be called again (e.g. the
+        // SDK's own refund-tracking probe) before a prior call's native response arrives.
+        // A single-slot field would get silently overwritten, leaving the earlier caller's
+        // TaskCompletionSource waiting forever. The native side answers in call order.
+        private static readonly Queue<Action<bool>> storedHasPurchasedCompletions = new();
         private static Action<string> storedGetReceiptCompletion;
         private static Action<string> storedFirebaseInstallationIdCompletion;
         private static Action<string> storedFirebaseSessionIdCompletion;
@@ -212,7 +216,8 @@ namespace com.noctuagames.sdk
         private static Action<int> storedDeleteEventsByIdsCompletion;
         private static Action<int> storedGetEventCountCompletion;
         private static Action<bool> storedCompletePurchaseProcessingCompletion;
-        private static Action<ProductPurchaseStatus> storedPurchaseStatusDetailCompletion;
+        // Queue for the same reason as storedHasPurchasedCompletions above.
+        private static readonly Queue<Action<ProductPurchaseStatus>> storedPurchaseStatusDetailCompletions = new();
 
         // Define delegates for the native callbacks
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
@@ -320,7 +325,10 @@ namespace com.noctuagames.sdk
         [AOT.MonoPInvokeCallback(typeof(CompletionProductPurchasedDelegate))]
         private static void CompletionHasPurchasedCallback(bool hasPurchased)
         {
-            storedHasPurchasedCompletion?.Invoke(hasPurchased);
+            if (storedHasPurchasedCompletions.Count > 0)
+            {
+                storedHasPurchasedCompletions.Dequeue()?.Invoke(hasPurchased);
+            }
         }
 
         [AOT.MonoPInvokeCallback(typeof(CompletionGetReceiptDelegate))]
@@ -486,11 +494,18 @@ namespace com.noctuagames.sdk
         [AOT.MonoPInvokeCallback(typeof(ProductPurchaseStatusDetailDelegate))]
         private static void ProductPurchaseStatusDetailCallback(IntPtr statusJsonPtr)
         {
+            if (storedPurchaseStatusDetailCompletions.Count == 0)
+            {
+                return;
+            }
+
+            var completion = storedPurchaseStatusDetailCompletions.Dequeue();
+
             try
             {
                 if (statusJsonPtr == IntPtr.Zero)
                 {
-                    storedPurchaseStatusDetailCompletion?.Invoke(new ProductPurchaseStatus());
+                    completion?.Invoke(new ProductPurchaseStatus());
                     return;
                 }
 
@@ -498,17 +513,17 @@ namespace com.noctuagames.sdk
 
                 if (string.IsNullOrEmpty(json) || json == "{}")
                 {
-                    storedPurchaseStatusDetailCompletion?.Invoke(new ProductPurchaseStatus());
+                    completion?.Invoke(new ProductPurchaseStatus());
                     return;
                 }
 
                 var status = JsonConvert.DeserializeObject<ProductPurchaseStatus>(json) ?? new ProductPurchaseStatus();
-                storedPurchaseStatusDetailCompletion?.Invoke(status);
+                completion?.Invoke(status);
             }
             catch (Exception e)
             {
                 _sLog.Warning($"[Noctua] ProductPurchaseStatusDetail callback failed: {e.Message}");
-                storedPurchaseStatusDetailCompletion?.Invoke(new ProductPurchaseStatus());
+                completion?.Invoke(new ProductPurchaseStatus());
             }
         }
 
@@ -576,7 +591,7 @@ namespace com.noctuagames.sdk
             }
 
 
-            storedHasPurchasedCompletion = completion;
+            storedHasPurchasedCompletions.Enqueue(completion);
             noctuaGetProductPurchasedById(productId, new CompletionProductPurchasedDelegate(CompletionHasPurchasedCallback));
 
             _log.Debug("noctuaGetProductPurchasedById called");
@@ -592,7 +607,7 @@ namespace com.noctuagames.sdk
                 return;
             }
 
-            storedPurchaseStatusDetailCompletion = callback;
+            storedPurchaseStatusDetailCompletions.Enqueue(callback);
             noctuaGetProductPurchaseStatusDetail(productId, new ProductPurchaseStatusDetailDelegate(ProductPurchaseStatusDetailCallback));
 
             _log.Debug("noctuaGetProductPurchaseStatusDetail called");

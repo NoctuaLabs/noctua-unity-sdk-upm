@@ -295,6 +295,47 @@ namespace com.noctuagames.sdk
             return response;
         }
 
+        /// <summary>
+        /// Maps a verify-order backend error code to the <see cref="OrderStatus"/> that should
+        /// drive client-side handling. Returns <c>null</c> for unrecognized codes, which leaves
+        /// the response status at its default (<see cref="OrderStatus.unknown"/>) so the order
+        /// falls into the generic "verification failed, retry later" path.
+        ///
+        /// Pure/static so the mapping can be unit-tested directly without standing up HTTP or
+        /// native-plugin dependencies — see <c>NoctuaIAPServiceTest.cs</c>.
+        /// </summary>
+        public static OrderStatus? MapVerifyOrderErrorCodeToStatus(int errorCode)
+        {
+            switch (errorCode)
+            {
+            case 2042:
+                // Backend's IsReceiptDataAlreadyUsed check excludes the order being verified
+                // (WHERE id != $1 AND receipt_data = $2), so this does NOT mean "this order was
+                // already completed" — it means this receipt string is attached to a *different*
+                // order id, which already owns (and likely already completed with) it. This
+                // order is a dead-end duplicate — usually created by HandleUnpairedPurchase
+                // re-pairing the same receipt across an app restart — that can never itself be
+                // verified. Map to voided (not completed) so it's dropped from the retry queue
+                // without firing OnPurchaseDone/completion side effects, which would risk
+                // double-crediting the player for a purchase the *other* order already delivered.
+                return OrderStatus.voided;
+            case 2043:
+                return OrderStatus.pending;
+            case 2044:
+                return OrderStatus.verification_failed;
+            case 2045:
+                return OrderStatus.delivery_callback_failed;
+            case 2046:
+                return OrderStatus.canceled;
+            case 2047:
+                return OrderStatus.refunded;
+            case 2048:
+                return OrderStatus.voided;
+            default:
+                return null;
+            }
+        }
+
         private async UniTask<VerifyOrderResponse> VerifyOrderImplAsync(
             OrderRequest orderRequest,
             VerifyOrderRequest verifyOrderRequest,
@@ -324,34 +365,11 @@ namespace com.noctuagames.sdk
                     verifyOrderResponse.Id = verifyOrderRequest.Id;
                     if (e is NoctuaException noctuaEx)
                     {
-                        switch (noctuaEx.ErrorCode)
+                        var mappedStatus = MapVerifyOrderErrorCodeToStatus(noctuaEx.ErrorCode);
+                        if (mappedStatus.HasValue)
                         {
-                        case 2043:
-                            verifyOrderResponse.Status = OrderStatus.pending;
+                            verifyOrderResponse.Status = mappedStatus.Value;
                             verifyOrderErrorMessage = e.Message;
-                            break;
-                        case 2044:
-                            verifyOrderResponse.Status = OrderStatus.verification_failed;
-                            verifyOrderErrorMessage = e.Message;
-                            break;
-                        case 2045:
-                            verifyOrderResponse.Status = OrderStatus.delivery_callback_failed;
-                            verifyOrderErrorMessage = e.Message;
-                            break;
-                        case 2046:
-                            verifyOrderResponse.Status = OrderStatus.canceled;
-                            verifyOrderErrorMessage = e.Message;
-                            break;
-                        case 2047:
-                            verifyOrderResponse.Status = OrderStatus.refunded;
-                            verifyOrderErrorMessage = e.Message;
-                            break;
-                        case 2048:
-                            verifyOrderResponse.Status = OrderStatus.voided;
-                            verifyOrderErrorMessage = e.Message;
-                            break;
-                        default:
-                            break;
                         }
                     } else {
                         _log.Warning($"VerifyOrderImplAsync failed. orderID={verifyOrderRequest.Id}, caller={callerMember}, trigger={verifyOrderRequest?.Trigger}, isTriggeredByIAP={isTriggeredByIAP}, error={e.Message}");
@@ -397,18 +415,35 @@ namespace com.noctuagames.sdk
                     // Refund-tracking probe: GetPurchaseStatusAsync returns true only for
                     // non-consumables, so we use it to auto-detect product type. Consumables
                     // never make it into NoctuaRefundTracking and are never flagged refunded.
+                    //
+                    // Defense in depth: wrapped with a timeout. The native purchase-status
+                    // check can, in rare cases, never call back (see the queue-based fix in
+                    // GoogleBilling.cs / IosPlugin.cs for the primary fix to that). If it still
+                    // doesn't return in time, skip refund tracking for this order rather than
+                    // hanging the whole purchase-completion flow (and the caller's loading UI)
+                    // forever.
                     if (orderRequest != null && !string.IsNullOrEmpty(orderRequest.ProductId))
                     {
                         try
                         {
-                            bool isNonConsumable = await GetPurchaseStatusAsync(orderRequest.ProductId);
-                            if (isNonConsumable)
+                            var probeTask = GetPurchaseStatusAsync(orderRequest.ProductId);
+                            var timeoutTask = Task.Delay(TimeSpan.FromSeconds(5));
+
+                            if (await Task.WhenAny(probeTask, timeoutTask) != probeTask)
                             {
-                                SaveRefundTrackingEntry(orderRequest.ProductId, orderRequest.PaymentType);
+                                _log.Warning($"Refund-tracking probe timed out for '{orderRequest.ProductId}' after 5s; skipping.");
                             }
                             else
                             {
-                                _log.Debug($"Refund-tracking probe: GetPurchaseStatusAsync('{orderRequest.ProductId}') returned false; treating as consumable, not tracking.");
+                                bool isNonConsumable = await probeTask;
+                                if (isNonConsumable)
+                                {
+                                    SaveRefundTrackingEntry(orderRequest.ProductId, orderRequest.PaymentType);
+                                }
+                                else
+                                {
+                                    _log.Debug($"Refund-tracking probe: GetPurchaseStatusAsync('{orderRequest.ProductId}') returned false; treating as consumable, not tracking.");
+                                }
                             }
                         }
                         catch (Exception e)

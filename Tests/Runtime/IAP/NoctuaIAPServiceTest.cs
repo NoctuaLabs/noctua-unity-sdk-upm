@@ -975,5 +975,48 @@ namespace Tests.Runtime.IAP
             Assert.AreEqual(0, countA);
             Assert.AreEqual(0, countB);
         }
+
+        // ─── MapVerifyOrderErrorCodeToStatus ────────────────────────────────────
+        //
+        // Pure mapping used by VerifyOrderImplAsync's error-handling switch. Tested directly
+        // here (rather than by driving VerifyOrderImplAsync itself, which needs a live/mocked
+        // HTTP backend) since it's a static, side-effect-free function.
+
+        [Test]
+        public void MapVerifyOrderErrorCodeToStatus_2042_ReturnsVoided_NotCompleted()
+        {
+            // 2042 ("ReceiptData is already used") means this order's receipt belongs to a
+            // DIFFERENT order (see backend IsReceiptDataAlreadyUsed: WHERE id != $1). It must
+            // map to voided, not completed, so the duplicate order is dropped from the retry
+            // queue without re-firing OnPurchaseDone/delivery side effects for a purchase a
+            // different order already owns.
+            var status = NoctuaIAPService.MapVerifyOrderErrorCodeToStatus(2042);
+
+            Assert.AreEqual(OrderStatus.voided, status);
+            Assert.AreNotEqual(OrderStatus.completed, status);
+        }
+
+        [TestCase(2043, OrderStatus.pending)]
+        [TestCase(2044, OrderStatus.verification_failed)]
+        [TestCase(2045, OrderStatus.delivery_callback_failed)]
+        [TestCase(2046, OrderStatus.canceled)]
+        [TestCase(2047, OrderStatus.refunded)]
+        [TestCase(2048, OrderStatus.voided)]
+        public void MapVerifyOrderErrorCodeToStatus_KnownCodes_MapToExpectedStatus(int errorCode, OrderStatus expected)
+        {
+            var status = NoctuaIAPService.MapVerifyOrderErrorCodeToStatus(errorCode);
+
+            Assert.AreEqual(expected, status);
+        }
+
+        [Test]
+        public void MapVerifyOrderErrorCodeToStatus_UnknownCode_ReturnsNull()
+        {
+            // Unrecognized codes must return null so callers leave the response status at its
+            // default (unknown) — same behavior as before this mapping was extracted.
+            var status = NoctuaIAPService.MapVerifyOrderErrorCodeToStatus(9999);
+
+            Assert.IsNull(status);
+        }
     }
 }
