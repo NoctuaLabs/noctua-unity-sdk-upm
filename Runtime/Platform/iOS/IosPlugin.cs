@@ -185,8 +185,9 @@ namespace com.noctuagames.sdk
         // Queue, not a single slot: GetProductPurchasedById can be called again (e.g. the
         // SDK's own refund-tracking probe) before a prior call's native response arrives.
         // A single-slot field would get silently overwritten, leaving the earlier caller's
-        // TaskCompletionSource waiting forever. The native side answers in call order.
-        private static readonly Queue<Action<bool>> storedHasPurchasedCompletions = new();
+        // TaskCompletionSource waiting forever. The native side answers in call order. See
+        // NativeCallbackQueue<T> for the (unit-tested) queue behavior itself.
+        private static readonly NativeCallbackQueue<bool> storedHasPurchasedCompletions = new();
         private static Action<string> storedGetReceiptCompletion;
         private static Action<string> storedFirebaseInstallationIdCompletion;
         private static Action<string> storedFirebaseSessionIdCompletion;
@@ -217,7 +218,7 @@ namespace com.noctuagames.sdk
         private static Action<int> storedGetEventCountCompletion;
         private static Action<bool> storedCompletePurchaseProcessingCompletion;
         // Queue for the same reason as storedHasPurchasedCompletions above.
-        private static readonly Queue<Action<ProductPurchaseStatus>> storedPurchaseStatusDetailCompletions = new();
+        private static readonly NativeCallbackQueue<ProductPurchaseStatus> storedPurchaseStatusDetailCompletions = new();
 
         // Define delegates for the native callbacks
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
@@ -325,10 +326,7 @@ namespace com.noctuagames.sdk
         [AOT.MonoPInvokeCallback(typeof(CompletionProductPurchasedDelegate))]
         private static void CompletionHasPurchasedCallback(bool hasPurchased)
         {
-            if (storedHasPurchasedCompletions.Count > 0)
-            {
-                storedHasPurchasedCompletions.Dequeue()?.Invoke(hasPurchased);
-            }
+            storedHasPurchasedCompletions.InvokeNext(hasPurchased);
         }
 
         [AOT.MonoPInvokeCallback(typeof(CompletionGetReceiptDelegate))]
@@ -494,12 +492,10 @@ namespace com.noctuagames.sdk
         [AOT.MonoPInvokeCallback(typeof(ProductPurchaseStatusDetailDelegate))]
         private static void ProductPurchaseStatusDetailCallback(IntPtr statusJsonPtr)
         {
-            if (storedPurchaseStatusDetailCompletions.Count == 0)
+            if (!storedPurchaseStatusDetailCompletions.TryDequeue(out var completion))
             {
                 return;
             }
-
-            var completion = storedPurchaseStatusDetailCompletions.Dequeue();
 
             try
             {

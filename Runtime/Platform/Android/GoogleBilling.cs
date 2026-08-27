@@ -21,9 +21,10 @@ public class GoogleBilling : System.IDisposable
     // one's native response arrives (e.g. the SDK's own refund-tracking probe racing another
     // concurrent purchase-status check), leaving the first caller's TaskCompletionSource
     // waiting forever. The native side dispatches responses in call order, so FIFO draining
-    // here is correct without needing per-call request ids.
-    private readonly Queue<System.Action<PurchaseResult>> _pendingGetPurchasedCallbacks = new();
-    private readonly Queue<System.Action<ProductPurchaseStatus>> _pendingPurchaseStatusCallbacks = new();
+    // here is correct without needing per-call request ids. See NativeCallbackQueue<T> for the
+    // (unit-tested) queue behavior itself.
+    private readonly NativeCallbackQueue<PurchaseResult> _pendingGetPurchasedCallbacks = new();
+    private readonly NativeCallbackQueue<ProductPurchaseStatus> _pendingPurchaseStatusCallbacks = new();
 
     /// <summary>
     /// Delegate invoked when a purchase flow completes (success or failure).
@@ -316,43 +317,35 @@ public class GoogleBilling : System.IDisposable
             long expiryTime = status.Call<long>("getExpiryTime");
             string originalJson = status.Call<string>("getOriginalJson");
 
-            if (_billing._pendingPurchaseStatusCallbacks.Count > 0)
+            _billing._pendingPurchaseStatusCallbacks.InvokeNext(new ProductPurchaseStatus
             {
-                var callback = _billing._pendingPurchaseStatusCallbacks.Dequeue();
-                callback?.Invoke(new ProductPurchaseStatus
+                ProductId = productId,
+                IsPurchased = isPurchased,
+                IsAcknowledged = isAcknowledged,
+                IsAutoRenewing = isAutoRenewing,
+                PurchaseState = purchaseStateInt,
+                PurchaseToken = purchaseToken,
+                PurchaseTime = purchaseTime,
+                ExpiryTime = expiryTime,
+                OrderId = orderId ?? "",
+                OriginalJson = originalJson ?? "",
+                TransactionJson = "",
+            });
+
+            if (isPurchased)
+            {
+                _billing._pendingGetPurchasedCallbacks.InvokeNext(new PurchaseResult
                 {
+                    Success = true,
                     ProductId = productId,
-                    IsPurchased = isPurchased,
-                    IsAcknowledged = isAcknowledged,
-                    IsAutoRenewing = isAutoRenewing,
-                    PurchaseState = purchaseStateInt,
-                    PurchaseToken = purchaseToken,
-                    PurchaseTime = purchaseTime,
-                    ExpiryTime = expiryTime,
-                    OrderId = orderId ?? "",
-                    OriginalJson = originalJson ?? "",
-                    TransactionJson = "",
+                    PurchaseState = (PurchaseState)purchaseStateInt,
+                    ReceiptId = orderId ?? "",
+                    ReceiptData = purchaseToken,
                 });
             }
-
-            if (_billing._pendingGetPurchasedCallbacks.Count > 0)
+            else
             {
-                var callback = _billing._pendingGetPurchasedCallbacks.Dequeue();
-                if (isPurchased)
-                {
-                    callback?.Invoke(new PurchaseResult
-                    {
-                        Success = true,
-                        ProductId = productId,
-                        PurchaseState = (PurchaseState)purchaseStateInt,
-                        ReceiptId = orderId ?? "",
-                        ReceiptData = purchaseToken,
-                    });
-                }
-                else
-                {
-                    callback?.Invoke(null);
-                }
+                _billing._pendingGetPurchasedCallbacks.InvokeNext(null);
             }
         }
 
