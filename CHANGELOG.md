@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## [0.131.0] - 2026-08-18
+## [0.131.1] - 2026-08-28
 
 ### ⚙️ Miscellaneous
 
@@ -42,6 +42,9 @@ All notable changes to this project will be documented in this file.
 - *(app)* Add server-driven FCM topic subscription sync
 - *(app)* Skip FCM topic sync while in offline mode
 - *(app)* Move the FCM tag list into player_remote_configs
+- *(iap)* Fix purchase-verification deadlock and unhandled already-used-receipt error
+- *(iap)* Extract callback queue into testable NativeCallbackQueue
+- *(iap)* Move NativeCallbackQueue into Utility.cs
 
 ### 🐛 Bug Fixes
 
