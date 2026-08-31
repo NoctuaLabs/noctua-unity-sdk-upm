@@ -43,6 +43,24 @@
     background-position: center;
 }
 
+/* Compact close (X) for the BANNER cross-promo — the 28px circle is too heavy on a 50px-tall
+   banner. Loaded after Noctua.uss so it overrides .close-icon's size and shrinks the X via
+   background-size. No skip countdown on the banner. */
+.banner-close {
+    position: absolute;
+    top: 3px;
+    right: 3px;
+    width: 18px;
+    height: 18px;
+    background-color: rgba(0, 0, 0, 0.55);
+    border-top-left-radius: 9px;
+    border-top-right-radius: 9px;
+    border-bottom-left-radius: 9px;
+    border-bottom-right-radius: 9px;
+    background-position: center;
+    background-size: 10px 10px;
+}
+
 /* Mediation-style skip countdown, pinned bottom-left over the creative. */
 .cross-promo-countdown {
     position: absolute;

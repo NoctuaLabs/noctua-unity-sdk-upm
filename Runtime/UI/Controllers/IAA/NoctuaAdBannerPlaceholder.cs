@@ -19,7 +19,6 @@ namespace com.noctuagames.sdk.UI
         private VisualElement _root;
         private VisualElement _box;
         private VisualElement _closeBtn;
-        private Label _countdownLabel;
 
         private readonly ILogger _log = new NoctuaLogger(typeof(NoctuaAdBannerPlaceholder));
         private const string LogTag = "[cross_promo_banner_ui]";
@@ -34,9 +33,6 @@ namespace com.noctuagames.sdk.UI
         // Safety net: auto-close if the asset never loads.
         private CancellationTokenSource _loadTimeoutCts;
         private const int LOAD_TIMEOUT_MS = 10000;
-
-        // Reveals the close button after the minimum watch time.
-        private CancellationTokenSource _minWatchCts;
 
         private string _clickUrl;
         private VideoPlayer _activePlayer;
@@ -56,7 +52,6 @@ namespace com.noctuagames.sdk.UI
             _root = View.Q<VisualElement>("Root");
             _box = View.Q<VisualElement>("BannerBox");
             _closeBtn = View.Q<VisualElement>("BannerCloseButton");
-            _countdownLabel = View.Q<Label>("BannerCountdown");
 
             _closeBtn.RegisterCallback<ClickEvent>(OnCloseClicked);
             ApplyLayout();
@@ -73,8 +68,8 @@ namespace com.noctuagames.sdk.UI
 
         /// <summary>
         /// Loads the creative referenced by <paramref name="entry"/> (image or video) into the banner
-        /// box and shows it. The close (X) stays hidden until <c>MinWatchSeconds</c> elapses (or the
-        /// video ends), matching the full-screen placeholder.
+        /// box and shows it. The banner has NO skip gate — the close (X) is shown as soon as the
+        /// creative renders (<c>MinWatchSeconds</c> is ignored for the banner surface).
         /// </summary>
         public void Show(CrossPromotionEntry entry)
         {
@@ -92,10 +87,7 @@ namespace com.noctuagames.sdk.UI
             _clickUrl = entry.ClickUrl;
             _assetHandled = false;
             SetCloseButtonVisible(false);
-            HideCountdown();
             ApplyLayout();
-
-            int minWatchMs = Mathf.Max(0, (entry.MinWatchSeconds ?? 0) * 1000);
 
             _log.Info($"{LogTag} show - banner placeholder shown");
 
@@ -121,15 +113,6 @@ namespace com.noctuagames.sdk.UI
                 {
                     _box.style.backgroundImage = new StyleBackground(Background.FromRenderTexture(asset.Video));
                     _activePlayer = asset.Player;
-                    asset.Player.loopPointReached += OnVideoEnded;
-
-                    int lengthSec = asset.Player.length > 0.5 ? Mathf.CeilToInt((float)asset.Player.length) : 0;
-                    int minWatchSec = minWatchMs / 1000;
-                    int countdownSec = minWatchSec > 0
-                        ? (lengthSec > 0 ? Mathf.Min(minWatchSec, lengthSec) : minWatchSec)
-                        : lengthSec;
-                    if (countdownSec > 0) StartCloseCountdownAsync(countdownSec).Forget();
-
                     asset.Player.Play();
                 }
                 else
@@ -141,12 +124,10 @@ namespace com.noctuagames.sdk.UI
                         return;
                     }
                     _box.style.backgroundImage = new StyleBackground(asset.Image);
-
-                    int minWatchSec = minWatchMs / 1000;
-                    if (minWatchSec > 0) StartCloseCountdownAsync(minWatchSec).Forget();
-                    else SetCloseButtonVisible(true);
                 }
 
+                // No skip gate on the banner — close is available immediately.
+                SetCloseButtonVisible(true);
                 RegisterClickThrough();
                 _log.Info($"{LogTag} show - banner asset rendered");
                 _onShown?.Invoke();
@@ -242,48 +223,6 @@ namespace com.noctuagames.sdk.UI
             Application.OpenURL(_clickUrl);
         }
 
-        private void OnVideoEnded(VideoPlayer source)
-        {
-            UniTask.Void(async () =>
-            {
-                await UniTask.SwitchToMainThread();
-                _minWatchCts?.Cancel();
-                HideCountdown();
-                SetCloseButtonVisible(true);
-            });
-        }
-
-        private async UniTaskVoid StartCloseCountdownAsync(int totalSeconds)
-        {
-            _minWatchCts?.Cancel();
-            _minWatchCts?.Dispose();
-            _minWatchCts = new CancellationTokenSource();
-            var token = _minWatchCts.Token;
-
-            try
-            {
-                SetCloseButtonVisible(false);
-                for (int remaining = totalSeconds; remaining > 0; remaining--)
-                {
-                    ShowCountdown(remaining);
-                    await UniTask.Delay(1000, cancellationToken: token);
-                }
-                await UniTask.SwitchToMainThread();
-                HideCountdown();
-                SetCloseButtonVisible(true);
-            }
-            catch (System.OperationCanceledException) { }
-        }
-
-        private void ShowCountdown(int seconds)
-        {
-            if (_countdownLabel == null) return;
-            _countdownLabel.text = $"Ad · {seconds}";
-            _countdownLabel.RemoveFromClassList("hide");
-        }
-
-        private void HideCountdown() => _countdownLabel?.AddToClassList("hide");
-
         private async UniTaskVoid StartLoadTimeoutAsync(CancellationToken cancellationToken)
         {
             try
@@ -318,24 +257,13 @@ namespace com.noctuagames.sdk.UI
         private void CancelTimers()
         {
             CancelLoadTimeout();
-            if (_minWatchCts != null)
-            {
-                _minWatchCts.Cancel();
-                _minWatchCts.Dispose();
-                _minWatchCts = null;
-            }
         }
 
         private void StopActiveAsset()
         {
-            if (_activePlayer != null)
-            {
-                _activePlayer.loopPointReached -= OnVideoEnded;
-                _activePlayer = null;
-            }
+            _activePlayer = null;
             PlaceholderAssetSource.Instance.StopVideo();
             UnregisterClickThrough();
-            HideCountdown();
             _clickUrl = null;
             _box?.AddToClassList("hide");
         }

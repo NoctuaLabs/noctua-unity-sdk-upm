@@ -267,7 +267,7 @@ namespace com.noctuagames.sdk.UI
         private void ShowCountdown(int seconds)
         {
             if (_countdownLabel == null) return;
-            _countdownLabel.text = $"Ad · {seconds}";
+            _countdownLabel.text = $"Ad · {seconds}s";
             _countdownLabel.RemoveFromClassList("hide");
         }
 

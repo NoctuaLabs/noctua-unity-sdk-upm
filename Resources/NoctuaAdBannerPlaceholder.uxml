@@ -3,8 +3,7 @@
     <Style src="project://database/Packages/com.noctuagames.sdk/Resources/AdPlaceholder.uss?fileID=7433441132597879392&amp;guid=5b1bbb7ce94b10b43b19537d0b1c315f&amp;type=3#AdPlaceholder" />
     <ui:VisualElement name="Root" class="root" style="flex-grow: 1;">
         <ui:VisualElement name="BannerBox" class="banner-box hide">
-            <ui:Label name="BannerCountdown" class="cross-promo-countdown hide" text="" />
-            <ui:VisualElement name="BannerCloseButton" class="close-icon cross-promo-close hide" style="" />
+            <ui:VisualElement name="BannerCloseButton" class="close-icon banner-close hide" style="" />
         </ui:VisualElement>
     </ui:VisualElement>
 </ui:UXML>
