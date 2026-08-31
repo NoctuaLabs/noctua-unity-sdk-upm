@@ -20,7 +20,8 @@ namespace Tests.Runtime.IAA
     [TestFixture]
     public class CrossPromotionPlaceholderTest
     {
-        /// <summary>Recording placeholder UI: captures the closed/clicked callbacks and Show/Close calls.</summary>
+        /// <summary>Recording placeholder UI: captures the closed/clicked callbacks and Show/Close calls
+        /// for both the full-screen and the (independent) banner surface.</summary>
         private class RecordingAdPlaceholderUI : IAdPlaceholderUI
         {
             public int ShowCount;
@@ -32,6 +33,14 @@ namespace Tests.Runtime.IAA
             public Action OnShown;
             public Action OnFailed;
 
+            public int BannerShowCount;
+            public int BannerCloseCount;
+            public CrossPromotionEntry LastBannerEntry;
+            public Action OnBannerClosed;
+            public Action OnBannerClicked;
+            public Action OnBannerShown;
+            public Action OnBannerFailed;
+
             /// <summary>Controls what <see cref="IsAssetCached"/> returns (readiness tests).</summary>
             public bool AssetCached = true;
 
@@ -42,18 +51,34 @@ namespace Tests.Runtime.IAA
                 LastShownEntry = entry;
             }
 
+            public void ShowBannerPlaceholder(CrossPromotionEntry entry)
+            {
+                BannerShowCount++;
+                LastBannerEntry = entry;
+            }
+
             public void SetBannerLayout(AdPlaceholderSize size, AdPlaceholderPosition position) { }
             public void PreloadAdPlaceholder(CrossPromotionConfig config) { }
             public void SetPlaceholderClosedCallback(Action onClosed) => OnClosed = onClosed;
             public void SetPlaceholderClickedCallback(Action onClicked) => OnClicked = onClicked;
             public void SetPlaceholderShownCallback(Action onShown) => OnShown = onShown;
             public void SetPlaceholderFailedCallback(Action onFailed) => OnFailed = onFailed;
+            public void SetBannerPlaceholderClosedCallback(Action onClosed) => OnBannerClosed = onClosed;
+            public void SetBannerPlaceholderClickedCallback(Action onClicked) => OnBannerClicked = onClicked;
+            public void SetBannerPlaceholderShownCallback(Action onShown) => OnBannerShown = onShown;
+            public void SetBannerPlaceholderFailedCallback(Action onFailed) => OnBannerFailed = onFailed;
 
-            // Simulate the real UI: closing it fires the registered closed callback.
+            // Simulate the real UI: closing a surface fires its registered closed callback.
             public void CloseAdPlaceholder()
             {
                 CloseCount++;
                 OnClosed?.Invoke();
+            }
+
+            public void CloseBannerPlaceholder()
+            {
+                BannerCloseCount++;
+                OnBannerClosed?.Invoke();
             }
 
             public bool IsAssetCached(string assetUrl) => AssetCached;
@@ -509,52 +534,49 @@ namespace Tests.Runtime.IAA
         }
 
         [Test]
-        public void ShowCrossPromotion_ConvenienceOverload_PassesEntryToUI()
+        public void ShowCrossPromotion_Banner_ConvenienceOverload_PassesEntryToBannerSurface()
         {
             var ui = new RecordingAdPlaceholderUI();
             var m = Create(ui, ConfigWith(null));
 
             m.ShowCrossPromotion(AdPlaceholderType.Banner, "https://cdn/banner.png", "https://noctua/play", 5);
 
-            Assert.AreEqual(1, ui.ShowCount);
-            Assert.AreEqual(AdPlaceholderType.Banner, ui.LastShownType);
-            Assert.AreEqual("https://cdn/banner.png", ui.LastShownEntry.AssetUrl);
-            Assert.AreEqual("https://noctua/play", ui.LastShownEntry.ClickUrl);
-            Assert.AreEqual(5, ui.LastShownEntry.MinWatchSeconds);
+            Assert.AreEqual(0, ui.ShowCount, "a banner does not go through the full-screen surface");
+            Assert.AreEqual(1, ui.BannerShowCount);
+            Assert.AreEqual("https://cdn/banner.png", ui.LastBannerEntry.AssetUrl);
+            Assert.AreEqual("https://noctua/play", ui.LastBannerEntry.ClickUrl);
+            Assert.AreEqual(5, ui.LastBannerEntry.MinWatchSeconds);
         }
 
         [Test]
-        public void ShowCrossPromotion_FullScreen_SupersedesShownBannerCrossPromo()
+        public void Banner_And_FullScreen_CrossPromo_Coexist_ClosingFullScreenLeavesBanner()
         {
             var ui = new RecordingAdPlaceholderUI();
             var m = Create(ui, ConfigWith(null));
 
-            int bannerClosed = 0, adClosed = 0;
-            m.OnCrossPromoClosed += () => bannerClosed++;
-            m.OnAdClosed         += () => adClosed++;
+            int bannerClosed = 0, crossPromoClosed = 0;
+            m.OnCrossPromoClosed += () => crossPromoClosed++;
 
-            // A banner cross-promo is up (non-modal).
+            // Banner cross-promo up.
             m.ShowCrossPromotion(AdPlaceholderType.Banner, Entry("https://cdn/banner.png"));
-            ui.OnShown.Invoke();
+            ui.OnBannerShown.Invoke();
 
-            // Only count the rewarded's display, not the banner's.
-            int rewardedDisplayed = 0;
-            m.OnCrossPromoDisplayed += () => rewardedDisplayed++;
-
-            // The game now wants a rewarded cross-promo — it must NOT be blocked by the banner.
+            // A rewarded cross-promo shows over it — the banner surface is untouched.
             m.ShowCrossPromotion(AdPlaceholderType.Rewarded, Entry("https://cdn/rew.mp4"));
-
-            Assert.AreEqual(2, ui.ShowCount, "the rewarded cross-promo must still show over the banner");
-            Assert.AreEqual(AdPlaceholderType.Rewarded, ui.LastShownType);
-            Assert.AreEqual(1, bannerClosed, "the superseded banner should emit its OnCrossPromoClosed once");
-            Assert.AreEqual(0, adClosed, "a direct banner routes to OnCrossPromoClosed, not the shared OnAdClosed");
-
             ui.OnShown.Invoke();
-            Assert.AreEqual(1, rewardedDisplayed, "the rewarded cross-promo fires OnCrossPromoDisplayed on render");
+
+            Assert.AreEqual(1, ui.BannerShowCount, "the banner is not re-shown");
+            Assert.AreEqual(0, ui.BannerCloseCount, "the banner is NOT closed when the full-screen cross-promo shows");
+
+            // Close the rewarded cross-promo → only the full-screen surface closes; banner stays.
+            ui.OnClosed.Invoke();
+
+            Assert.AreEqual(1, crossPromoClosed, "closing the full-screen cross-promo fires its close once");
+            Assert.AreEqual(0, ui.BannerCloseCount, "the banner is still shown after the full-screen cross-promo closes");
         }
 
         [Test]
-        public void ShowCrossPromotion_Banner_DoesNotSupersedeShownFullScreenCrossPromo()
+        public void ShowCrossPromotion_Banner_WhileFullScreenCrossPromoUp_StillShows()
         {
             var ui = new RecordingAdPlaceholderUI();
             var m = Create(ui, ConfigWith(null));
@@ -562,32 +584,63 @@ namespace Tests.Runtime.IAA
             m.ShowCrossPromotion(AdPlaceholderType.Interstitial, Entry("https://cdn/inter.mp4"));
             ui.OnShown.Invoke();
 
-            // A banner request must not interrupt a full-screen cross-promo that is already up.
+            // The banner is a separate surface — it shows regardless of the full-screen placeholder.
             m.ShowCrossPromotion(AdPlaceholderType.Banner, Entry("https://cdn/banner.png"));
 
-            Assert.AreEqual(1, ui.ShowCount, "banner-over-full-screen is a no-op");
-            Assert.AreEqual(AdPlaceholderType.Interstitial, ui.LastShownType);
+            Assert.AreEqual(1, ui.ShowCount, "the full-screen surface is untouched");
+            Assert.AreEqual(1, ui.BannerShowCount, "the banner shows on its own surface");
         }
 
         [Test]
-        public void ShowCrossPromoFallback_SupersedesShownBannerCrossPromo()
+        public void ShowCrossPromoFallback_Banner_ShowsOnBannerSurface_IndependentOfFullScreen()
         {
             var ui = new RecordingAdPlaceholderUI();
-            var m = Create(ui, ConfigWith(new CrossPromotionConfig { Rewarded = Entry("https://cdn/rew.mp4") }));
+            var m = Create(ui, ConfigWith(new CrossPromotionConfig
+            {
+                Rewarded = Entry("https://cdn/rew.mp4"),
+                Banner   = Entry("https://cdn/ban.png"),
+            }));
 
-            int bannerClosed = 0;
-            m.OnCrossPromoClosed += () => bannerClosed++;
-
-            // A direct banner cross-promo is up.
-            m.ShowCrossPromotion(AdPlaceholderType.Banner, Entry("https://cdn/banner.png"));
+            // A full-screen rewarded cross-promo fallback is up.
+            Assert.IsTrue(InvokeShowFallback(m, AdPlaceholderType.Rewarded));
             ui.OnShown.Invoke();
 
-            // A real rewarded ad has no fill → the rewarded cross-promo fallback must still show.
-            Assert.IsTrue(InvokeShowFallback(m, AdPlaceholderType.Rewarded));
+            // A banner no-fill also routes to a fallback — on the independent banner surface.
+            Assert.IsTrue(InvokeShowFallback(m, AdPlaceholderType.Banner));
 
-            Assert.AreEqual(2, ui.ShowCount, "the rewarded fallback must show over the banner");
-            Assert.AreEqual(AdPlaceholderType.Rewarded, ui.LastShownType);
-            Assert.AreEqual(1, bannerClosed, "the superseded direct banner should emit its OnCrossPromoClosed once");
+            Assert.AreEqual(1, ui.ShowCount, "the full-screen surface still shows just the rewarded");
+            Assert.AreEqual(1, ui.BannerShowCount, "the banner fallback shows on the banner surface");
+            Assert.AreEqual("https://cdn/ban.png", ui.LastBannerEntry.AssetUrl);
+        }
+
+        [Test]
+        public void ShowCrossPromotion_Banner_AlreadyShown_DoesNotShowTwice()
+        {
+            var ui = new RecordingAdPlaceholderUI();
+            var m = Create(ui, ConfigWith(null));
+
+            m.ShowCrossPromotion(AdPlaceholderType.Banner, Entry("https://cdn/banner.png"));
+            ui.OnBannerShown.Invoke(); // rendered → "shown"
+            m.ShowCrossPromotion(AdPlaceholderType.Banner, Entry("https://cdn/banner2.png"));
+
+            Assert.AreEqual(1, ui.BannerShowCount, "a second banner request while one is already shown is ignored");
+        }
+
+        [Test]
+        public void CloseCrossPromoBanner_ClosesBannerSurface_LeavesFullScreen()
+        {
+            var ui = new RecordingAdPlaceholderUI();
+            var m = Create(ui, ConfigWith(null));
+
+            m.ShowCrossPromotion(AdPlaceholderType.Interstitial, Entry("https://cdn/inter.mp4"));
+            ui.OnShown.Invoke();
+            m.ShowCrossPromotion(AdPlaceholderType.Banner, Entry("https://cdn/banner.png"));
+            ui.OnBannerShown.Invoke();
+
+            m.CloseCrossPromoBanner();
+
+            Assert.AreEqual(1, ui.BannerCloseCount, "the banner surface is closed");
+            Assert.AreEqual(0, ui.CloseCount, "the full-screen surface is left alone");
         }
 
         [Test]

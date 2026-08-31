@@ -8,31 +8,24 @@ using UnityEngine.Video;
 namespace com.noctuagames.sdk.UI
 {
     /// <summary>
-    /// Presenter that displays a cross-promotion placeholder (CDN image or video) while an ad is
-    /// loading. Supports a click-through CTA and gates the close (X) button behind a bottom-left
-    /// skip countdown that ends when the video finishes or the minimum watch time elapses.
-    /// Closes itself if the CDN asset fails to load (no static fallback).
+    /// Presenter for the <b>full-screen</b> cross-promotion placeholder (interstitial / rewarded /
+    /// rewarded interstitial) shown while an ad loads or as a no-fill house ad. Modal: the whole
+    /// screen is captured. Loads a CDN image or video, supports a click-through CTA, and gates the
+    /// close (X) behind a bottom-left skip countdown that ends when the video finishes or the minimum
+    /// watch time elapses. Closes itself if the asset fails to load (no static fallback).
+    /// The <b>banner</b> cross-promotion has its own presenter — <see cref="NoctuaAdBannerPlaceholder"/>.
     /// </summary>
     internal class NoctuaAdPlaceholder : Presenter<object>
     {
-        private VisualElement _rootContainer;
         private VisualElement _closeBtn;
         private VisualElement _fullScreenContainer;
         private VisualElement _adPlaceholder;
-        private VisualElement _bannerPlaceholder;
         private Label _countdownLabel;
 
         private readonly ILogger _log = new NoctuaLogger(typeof(NoctuaAdPlaceholder));
 
         /// <summary>Structured log tag for all cross-promotion placeholder UI logs.</summary>
         private const string LogTag = "[cross_promo_ui]";
-
-        // Banner placeholder box layout — defaults mirror BannerAdmob's own defaults
-        // (AdSize.Banner / AdPosition.Bottom) so it looks like a real network banner out of the box.
-        // Configurable via SetBannerLayout so games can match wherever their real banner sits.
-        private AdPlaceholderSize _bannerSize = AdPlaceholderSize.Banner;
-        private AdPlaceholderPosition _bannerPosition = AdPlaceholderPosition.Bottom;
-        private const int BannerEdgeOffsetPx = 10;
 
         // Safety net: auto-close if the asset never loads (e.g. prepare hangs).
         private CancellationTokenSource _loadTimeoutCts;
@@ -72,114 +65,20 @@ namespace com.noctuagames.sdk.UI
 
         private void Start()
         {
-            _rootContainer = View.Q<VisualElement>("Root");
             _closeBtn = View.Q<VisualElement>("CloseButton");
             _fullScreenContainer = View.Q<VisualElement>("NoctuaAdPlaceholder");
             _adPlaceholder = View.Q<VisualElement>("AdPlaceholder");
-            _bannerPlaceholder = View.Q<VisualElement>("BannerPlaceholder");
             _countdownLabel = View.Q<Label>("Countdown");
 
             _closeBtn.RegisterCallback<ClickEvent>(CloseDialog);
-            ApplyBannerLayout();
         }
 
         /// <summary>
-        /// A cross-promo <b>banner</b> must not block the game — only the banner box itself is
-        /// tappable and every pointer event outside it passes straight through to the game. A
-        /// full-screen placeholder (interstitial / rewarded) stays modal. This toggles pointer
-        /// hit-testing on the full-screen root/containers; the banner box keeps its default
-        /// pickable mode so its click-through still works.
+        /// Displays the full-screen cross-promotion placeholder for the specified ad type, loading the
+        /// asset (image or video) referenced by <paramref name="entry"/>. The close button stays
+        /// hidden until the video ends or <c>MinWatchSeconds</c> elapses.
         /// </summary>
-        private void SetScreenPassthrough(bool passthrough)
-        {
-            var mode = passthrough ? PickingMode.Ignore : PickingMode.Position;
-
-            if (View != null) View.pickingMode = mode;
-            if (_rootContainer != null) _rootContainer.pickingMode = mode;
-            if (_fullScreenContainer != null) _fullScreenContainer.pickingMode = mode;
-        }
-
-        /// <summary>
-        /// Configures the size and screen anchor of the banner placeholder box, mirroring the
-        /// flexibility of <c>MediationManager.CreateBannerViewAdAdmob(AdSize, AdPosition)</c> /
-        /// <c>CreateBannerViewAdAppLovin(Color, AdViewPosition)</c> so the cross-promo banner can be
-        /// laid out the same way as a real network banner. Safe to call before <see cref="Start"/>
-        /// runs (e.g. right after init) — the layout is (re)applied once the view is queried, and
-        /// again immediately if the view is already available.
-        /// </summary>
-        public void SetBannerLayout(AdPlaceholderSize size, AdPlaceholderPosition position)
-        {
-            _bannerSize = size;
-            _bannerPosition = position;
-            ApplyBannerLayout();
-        }
-
-        /// <summary>
-        /// Applies <see cref="_bannerSize"/> / <see cref="_bannerPosition"/> to the banner placeholder
-        /// box via inline styles, anchoring it the same way a real AdMob/AppLovin banner would sit
-        /// (edge-pinned with a small margin, or dead-center).
-        /// </summary>
-        private void ApplyBannerLayout()
-        {
-            if (_bannerPlaceholder == null) return;
-
-            var s = _bannerPlaceholder.style;
-
-            s.width = _bannerSize.Width;
-            s.height = _bannerSize.Height;
-
-            // Reset every edge/margin before applying the selected anchor so switching position
-            // at runtime never leaves a stale offset from the previous anchor behind.
-            s.left = StyleKeyword.Auto;
-            s.right = StyleKeyword.Auto;
-            s.top = StyleKeyword.Auto;
-            s.bottom = StyleKeyword.Auto;
-            s.marginLeft = 0;
-            s.marginTop = 0;
-
-            switch (_bannerPosition)
-            {
-                case AdPlaceholderPosition.Top:
-                    s.left = new Length(50, LengthUnit.Percent);
-                    s.marginLeft = -_bannerSize.Width / 2f;
-                    s.top = BannerEdgeOffsetPx;
-                    break;
-                case AdPlaceholderPosition.Bottom:
-                    s.left = new Length(50, LengthUnit.Percent);
-                    s.marginLeft = -_bannerSize.Width / 2f;
-                    s.bottom = BannerEdgeOffsetPx;
-                    break;
-                case AdPlaceholderPosition.TopLeft:
-                    s.left = BannerEdgeOffsetPx;
-                    s.top = BannerEdgeOffsetPx;
-                    break;
-                case AdPlaceholderPosition.TopRight:
-                    s.right = BannerEdgeOffsetPx;
-                    s.top = BannerEdgeOffsetPx;
-                    break;
-                case AdPlaceholderPosition.BottomLeft:
-                    s.left = BannerEdgeOffsetPx;
-                    s.bottom = BannerEdgeOffsetPx;
-                    break;
-                case AdPlaceholderPosition.BottomRight:
-                    s.right = BannerEdgeOffsetPx;
-                    s.bottom = BannerEdgeOffsetPx;
-                    break;
-                case AdPlaceholderPosition.Center:
-                    s.left = new Length(50, LengthUnit.Percent);
-                    s.marginLeft = -_bannerSize.Width / 2f;
-                    s.top = new Length(50, LengthUnit.Percent);
-                    s.marginTop = -_bannerSize.Height / 2f;
-                    break;
-            }
-        }
-
-        /// <summary>
-        /// Displays the cross-promotion placeholder for the specified ad type, loading the asset
-        /// (image or video) referenced by <paramref name="entry"/>. The close button stays hidden
-        /// until the video ends or <c>MinWatchSeconds</c> elapses.
-        /// </summary>
-        /// <param name="adType">The type of ad placeholder to display (banner, interstitial, or rewarded).</param>
+        /// <param name="adType">Full-screen placeholder type (interstitial / rewarded / rewarded interstitial).</param>
         /// <param name="entry">The resolved cross-promotion asset for this format.</param>
         public void Show(AdPlaceholderType adType, CrossPromotionEntry entry)
         {
@@ -194,9 +93,6 @@ namespace com.noctuagames.sdk.UI
             }
 
             Visible = true;
-            // A banner never blocks the game; a full-screen placeholder is modal. Set this up front
-            // so the game stays interactive during the async asset-load window too.
-            SetScreenPassthrough(adType == AdPlaceholderType.Banner);
             _clickUrl = entry.ClickUrl;
             _currentMinWatchMs = Mathf.Max(0, (entry.MinWatchSeconds ?? 0) * 1000);
             _assetHandled = false;
@@ -239,7 +135,7 @@ namespace com.noctuagames.sdk.UI
 
         private void ShowVideo(AdPlaceholderType adType, CrossPromoAsset asset, int minWatchMs)
         {
-            var element = SelectElement(adType);
+            var element = SelectElement();
             element.style.backgroundImage = new StyleBackground(Background.FromRenderTexture(asset.Video));
             _activeElement = element;
             _activePlayer = asset.Player;
@@ -274,7 +170,7 @@ namespace com.noctuagames.sdk.UI
                 return;
             }
 
-            var element = SelectElement(adType);
+            var element = SelectElement();
             element.style.backgroundImage = new StyleBackground(texture);
             _activeElement = element;
 
@@ -290,33 +186,11 @@ namespace com.noctuagames.sdk.UI
             _onShown?.Invoke();
         }
 
-        /// <summary>
-        /// Picks the correct visual element for the ad type (banner box vs. full-screen) and toggles
-        /// the other one off.
-        /// </summary>
-        private VisualElement SelectElement(AdPlaceholderType adType)
+        /// <summary>Reveals the full-screen creative element and returns it for the caller to fill.</summary>
+        private VisualElement SelectElement()
         {
-            if (adType == AdPlaceholderType.Banner)
-            {
-                _fullScreenContainer?.AddToClassList("hide");
-                _bannerPlaceholder.RemoveFromClassList("hide");
-                _adPlaceholder.AddToClassList("hide");
-                // Re-apply size/anchor here (not just in Start / SetBannerLayout): on the very first
-                // show the visual tree may not have been realised when Start() ran, so the inline
-                // layout never landed on the element and the box stretched full-bleed. Applying it on
-                // every banner show — against the live element about to be rendered — is the reliable
-                // point and also picks up any SetBannerLayout() change made while hidden.
-                ApplyBannerLayout();
-                // Authoritative: a banner box overlays a tiny slice of the screen — the rest must
-                // stay tappable by the game.
-                SetScreenPassthrough(true);
-                return _bannerPlaceholder;
-            }
-
-            _bannerPlaceholder.AddToClassList("hide");
             _fullScreenContainer?.RemoveFromClassList("hide");
             _adPlaceholder.RemoveFromClassList("hide");
-            SetScreenPassthrough(false); // full-screen placeholder is modal
             return _adPlaceholder;
         }
 

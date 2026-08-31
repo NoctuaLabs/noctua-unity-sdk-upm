@@ -23,6 +23,7 @@ namespace com.noctuagames.sdk.UI
         private readonly StartGameErrorDialogPresenter _startGameErrorDialog;
         private readonly SandboxChangedDialogPresenter _sandboxChangedDialog;
         private readonly NoctuaAdPlaceholder _adPlaceholder;
+        private readonly NoctuaAdBannerPlaceholder _bannerPlaceholder;
 
         /// <summary>
         /// Initializes the UI factory and creates shared presenters for loading, notifications, and dialogs.
@@ -50,7 +51,11 @@ namespace com.noctuagames.sdk.UI
             _sandboxChangedDialog = Create<SandboxChangedDialogPresenter, object>(new object());
             _sandboxChangedDialog.GetComponent<UIDocument>().sortingOrder = 1;
             _adPlaceholder = Create<NoctuaAdPlaceholder, object>(new object());
-            _adPlaceholder.GetComponent<UIDocument>().sortingOrder = 1;
+            // Full-screen cross-promo sits above the banner (and the other dialogs) so it visually
+            // takes over the screen; the banner keeps rendering underneath.
+            _adPlaceholder.GetComponent<UIDocument>().sortingOrder = 2;
+            _bannerPlaceholder = Create<NoctuaAdBannerPlaceholder, object>(new object());
+            _bannerPlaceholder.GetComponent<UIDocument>().sortingOrder = 1;
         }
         
         /// <summary>
@@ -177,13 +182,26 @@ namespace com.noctuagames.sdk.UI
         }
 
         /// <summary>
-        /// Displays an ad placeholder UI for the specified ad type while the real ad loads.
+        /// Displays the full-screen ad placeholder UI for the specified ad type while the real ad loads.
         /// </summary>
-        /// <param name="adType">The type of ad placeholder to display (banner, interstitial, or rewarded).</param>
+        /// <param name="adType">The full-screen placeholder type (interstitial / rewarded / rewarded interstitial).</param>
         /// <param name="entry">The resolved cross-promotion asset for this format.</param>
         public void ShowAdPlaceholder(AdPlaceholderType adType, CrossPromotionEntry entry)
         {
             _adPlaceholder.Show(adType, entry);
+        }
+
+        /// <summary>Displays the banner cross-promotion placeholder (independent from the full-screen one).</summary>
+        /// <param name="entry">The resolved banner cross-promotion asset.</param>
+        public void ShowBannerPlaceholder(CrossPromotionEntry entry)
+        {
+            _bannerPlaceholder.Show(entry);
+        }
+
+        /// <summary>Closes the banner cross-promotion placeholder.</summary>
+        public void CloseBannerPlaceholder()
+        {
+            _bannerPlaceholder.Close();
         }
 
         /// <summary>
@@ -193,7 +211,7 @@ namespace com.noctuagames.sdk.UI
         /// <param name="position">Screen anchor (edge, corner, or center).</param>
         public void SetBannerLayout(AdPlaceholderSize size, AdPlaceholderPosition position)
         {
-            _adPlaceholder.SetBannerLayout(size, position);
+            _bannerPlaceholder.SetLayout(size, position);
         }
 
         /// <summary>
@@ -244,6 +262,30 @@ namespace com.noctuagames.sdk.UI
         public void SetPlaceholderFailedCallback(System.Action onFailed)
         {
             _adPlaceholder.SetFailedCallback(onFailed);
+        }
+
+        /// <summary>Registers a callback invoked whenever the banner placeholder is dismissed.</summary>
+        public void SetBannerPlaceholderClosedCallback(System.Action onClosed)
+        {
+            _bannerPlaceholder.SetClosedCallback(onClosed);
+        }
+
+        /// <summary>Registers a callback invoked when the banner placeholder asset is tapped.</summary>
+        public void SetBannerPlaceholderClickedCallback(System.Action onClicked)
+        {
+            _bannerPlaceholder.SetClickedCallback(onClicked);
+        }
+
+        /// <summary>Registers a callback invoked once the banner placeholder asset has rendered.</summary>
+        public void SetBannerPlaceholderShownCallback(System.Action onShown)
+        {
+            _bannerPlaceholder.SetShownCallback(onShown);
+        }
+
+        /// <summary>Registers a callback invoked when the banner placeholder asset fails to load/show.</summary>
+        public void SetBannerPlaceholderFailedCallback(System.Action onFailed)
+        {
+            _bannerPlaceholder.SetFailedCallback(onFailed);
         }
 
         private void ApplyLocalization(VisualElement root, string uxmlName, Dictionary<string, string> localization)

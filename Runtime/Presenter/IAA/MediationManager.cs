@@ -170,6 +170,13 @@ namespace com.noctuagames.sdk
         private bool _crossPromoDirect;
         private AdPlaceholderType _lastRequestedType;
         private bool _suppressNextCloseEvent;
+
+        // The banner cross-promotion is a SEPARATE, non-modal surface (own presenter / UIDocument):
+        // it coexists with the full-screen placeholder above, so it has its own independent state.
+        private bool _bannerCrossPromoPending;
+        private bool _bannerCrossPromoShown;
+        private bool _bannerCrossPromoDirect;
+        private bool _suppressNextBannerCloseEvent;
         private bool _adNetworkEventsSubscribed;
         private bool _preloadManagerEventsSubscribed;
 
@@ -408,6 +415,12 @@ namespace com.noctuagames.sdk
             _adPlaceholderUI?.SetPlaceholderClickedCallback(OnPlaceholderClicked);
             _adPlaceholderUI?.SetPlaceholderShownCallback(OnPlaceholderShown);
             _adPlaceholderUI?.SetPlaceholderFailedCallback(OnPlaceholderFailed);
+
+            // The banner cross-promotion surface has its own independent lifecycle callbacks.
+            _adPlaceholderUI?.SetBannerPlaceholderClosedCallback(OnBannerPlaceholderClosed);
+            _adPlaceholderUI?.SetBannerPlaceholderClickedCallback(OnBannerPlaceholderClicked);
+            _adPlaceholderUI?.SetBannerPlaceholderShownCallback(OnBannerPlaceholderShown);
+            _adPlaceholderUI?.SetBannerPlaceholderFailedCallback(OnBannerPlaceholderFailed);
 
             if (iAAResponse == null)
             {
@@ -2707,9 +2720,18 @@ namespace com.noctuagames.sdk
                 _onCrossPromoFailed?.Invoke();
                 return;
             }
-            if ((_crossPromoShown || _crossPromoPending) && !TrySupersedeBannerCrossPromo(adType))
+
+            // The banner is a separate, non-modal surface — it coexists with the full-screen
+            // placeholder and never blocks it (nor vice versa).
+            if (adType == AdPlaceholderType.Banner)
             {
-                _log.Warning("A cross-promotion is already showing or pending; ignoring duplicate request.");
+                ShowBannerCrossPromotion(data, direct: true);
+                return;
+            }
+
+            if (_crossPromoShown || _crossPromoPending)
+            {
+                _log.Warning("A full-screen cross-promotion is already showing or pending; ignoring duplicate request.");
                 return;
             }
 
@@ -2719,6 +2741,38 @@ namespace com.noctuagames.sdk
             _pendingCrossPromoFormat = PlaceholderTypeToFormat(adType);
             _suppressNextCloseEvent  = false;
             _adPlaceholderUI.ShowAdPlaceholder(adType, data); // downloads-then-shows, caches internally
+        }
+
+        /// <summary>
+        /// Requests the banner cross-promotion placeholder. Independent from the full-screen
+        /// placeholder — no supersede, they coexist. <paramref name="direct"/> routes the lifecycle to
+        /// the dedicated <c>OnCrossPromo*</c> events (public API) vs. the shared real-ad events
+        /// (no-fill fallback). Returns true when a show was requested.
+        /// </summary>
+        private bool ShowBannerCrossPromotion(CrossPromotionEntry data, bool direct)
+        {
+            if (_adPlaceholderUI == null)
+            {
+                if (direct) _onCrossPromoFailed?.Invoke();
+                return false;
+            }
+            if (data == null || string.IsNullOrEmpty(data.AssetUrl))
+            {
+                if (direct) _onCrossPromoFailed?.Invoke();
+                else        _onAdNotAvailable?.Invoke(AdFormatKey.Banner);
+                return false;
+            }
+            if (_bannerCrossPromoShown || _bannerCrossPromoPending)
+            {
+                _log.Warning("A banner cross-promotion is already showing or pending; ignoring duplicate request.");
+                return false;
+            }
+
+            _bannerCrossPromoDirect  = direct;
+            _bannerCrossPromoPending = true;
+            _suppressNextBannerCloseEvent = false;
+            _adPlaceholderUI.ShowBannerPlaceholder(data); // downloads-then-shows, caches internally
+            return true;
         }
 
         /// <summary>
@@ -2750,12 +2804,13 @@ namespace com.noctuagames.sdk
         }
 
         /// <summary>
-        /// Closes a shown cross-promotion placeholder. Used when a real ad is about to display
-        /// (<paramref name="force"/> = true) so the real ad takes the screen; the cross-promotion's
-        /// OnAdClosed is suppressed in that case because the real ad fires its own lifecycle. No-op
-        /// when no cross-promotion is showing.
+        /// Closes a shown <b>full-screen</b> cross-promotion placeholder. Used when a real ad is about
+        /// to display (<paramref name="force"/> = true) so the real ad takes the screen; the
+        /// cross-promotion's close event is suppressed in that case because the real ad fires its own
+        /// lifecycle. Does NOT touch the banner surface — use <see cref="CloseCrossPromoBanner"/> for
+        /// that. No-op when no full-screen cross-promotion is showing.
         /// </summary>
-        /// <param name="force">True when a real ad is taking over — suppresses the cross-promo OnAdClosed.</param>
+        /// <param name="force">True when a real ad is taking over — suppresses the cross-promo close event.</param>
         public void CloseAdPlaceholder(bool force = false)
         {
             if (_adPlaceholderUI == null) return;
@@ -2767,44 +2822,25 @@ namespace com.noctuagames.sdk
             // show so its later shown/failed callback is ignored.
             _crossPromoPending = false;
 
-            // OnPlaceholderClosed (the UI close callback) clears _crossPromoShown and fires OnAdClosed
-            // unless suppressed.
+            // OnPlaceholderClosed (the UI close callback) clears _crossPromoShown and fires the close
+            // event unless suppressed.
             _adPlaceholderUI.CloseAdPlaceholder();
         }
 
         /// <summary>
-        /// A cross-promotion <b>banner</b> is non-modal and must never block a full-screen
-        /// cross-promotion (interstitial / rewarded / rewarded interstitial) — the full-screen
-        /// placeholder simply takes over the screen, exactly as a real ad would over a banner.
-        /// Call this from an "already showing / pending" guard: returns <c>true</c> when the new
-        /// request for <paramref name="requestType"/> may proceed by superseding a shown/pending
-        /// banner (this also tears the banner's state down and emits its close event so the game's
-        /// lifecycle stays consistent), or <c>false</c> when the overlap is a genuine duplicate
-        /// (a full-screen placeholder is already up, or banner-over-banner) and the caller must
-        /// ignore the request.
+        /// Closes the <b>banner</b> cross-promotion placeholder. Independent from
+        /// <see cref="CloseAdPlaceholder"/> — the full-screen surface is left alone. Use e.g. from a
+        /// "remove ads" purchase, or when a real banner ad fills. No-op when the banner is not showing.
         /// </summary>
-        private bool TrySupersedeBannerCrossPromo(AdPlaceholderType requestType)
+        /// <param name="force">True when a real ad / "remove ads" is taking over — suppresses the banner close event.</param>
+        public void CloseCrossPromoBanner(bool force = false)
         {
-            bool activeIsBanner =
-                _pendingCrossPromoFormat == PlaceholderTypeToFormat(AdPlaceholderType.Banner);
-            if (!activeIsBanner || requestType == AdPlaceholderType.Banner) return false;
+            if (_adPlaceholderUI == null) return;
+            if (!_bannerCrossPromoShown && !_bannerCrossPromoPending) return;
 
-            _log.Info($"{LogTag} cross_promo - {requestType} supersedes the shown banner cross-promotion");
-
-            bool wasDirect = _crossPromoDirect;
-            _crossPromoShown        = false;
-            _crossPromoPending      = false;
-            _crossPromoDirect       = false;
-            _hasClosedPlaceholder   = false; // superseding starts a fresh request
-            _suppressNextCloseEvent = false;
-
-            // Mirror OnPlaceholderClosed: a direct banner routes to the dedicated cross-promo event,
-            // a fallback banner to the shared real-ad event, so the game resumes cleanly before the
-            // full-screen placeholder's own OnAdDisplayed / OnCrossPromoDisplayed fires.
-            if (wasDirect) _onCrossPromoClosed?.Invoke();
-            else           _onAdClosed?.Invoke();
-
-            return true;
+            if (force) _suppressNextBannerCloseEvent = true;
+            _bannerCrossPromoPending = false;
+            _adPlaceholderUI.CloseBannerPlaceholder();
         }
 
         /// <summary>
@@ -2818,7 +2854,20 @@ namespace com.noctuagames.sdk
         private bool ShowCrossPromoFallback(AdPlaceholderType type)
         {
             if (_adPlaceholderUI == null) return false;
-            if ((_crossPromoShown || _crossPromoPending) && !TrySupersedeBannerCrossPromo(type)) return true;
+
+            // Banner fallback goes to the separate, non-modal banner surface — it coexists with the
+            // full-screen placeholder, so it is never gated by _crossPromoShown / _crossPromoPending.
+            if (type == AdPlaceholderType.Banner)
+            {
+                if (_bannerCrossPromoShown || _bannerCrossPromoPending) return true;
+                var bannerCfg = IAAResponse?.CrossPromotion;
+                var bannerEntry = bannerCfg == null ? null : ResolveCrossPromotionEntry(bannerCfg, type);
+                if (bannerEntry == null || string.IsNullOrEmpty(bannerEntry.AssetUrl)) return false;
+                _log.Info($"{LogTag} cross_promo_fallback - requesting banner cross-promotion (awaiting asset)");
+                return ShowBannerCrossPromotion(bannerEntry, direct: false);
+            }
+
+            if (_crossPromoShown || _crossPromoPending) return true;
 
             // The user already dismissed the cross-promo for this ad request — a late/duplicate
             // network callback must not resurrect it. Suppress the re-show; the game already received
@@ -2953,6 +3002,94 @@ namespace com.noctuagames.sdk
             else
             {
                 _log.Debug($"{LogTag} cross_promo - CTA tapped, firing OnAdClicked");
+                _onAdClicked?.Invoke();
+            }
+        }
+
+        // ── Banner cross-promotion surface — independent lifecycle (mirrors the full-screen handlers
+        //    above, but on _bannerCrossPromo* state so the two never interfere). ──────────────────
+
+        /// <summary>The banner cross-promotion asset rendered — fires the displayed event + house-ad impression.</summary>
+        private void OnBannerPlaceholderShown()
+        {
+            if (!_bannerCrossPromoPending) return;
+            _bannerCrossPromoPending = false;
+            _bannerCrossPromoShown = true;
+
+            _adRevenueTracker?.TrackCustomEvent("cross_ad_impression", new Dictionary<string, IConvertible>
+            {
+                { "ad_placement", AdFormatKey.Banner }
+            });
+
+            if (_bannerCrossPromoDirect)
+            {
+                _log.Info($"{LogTag} cross_promo - direct banner shown, firing OnCrossPromoDisplayed");
+                _onCrossPromoDisplayed?.Invoke();
+            }
+            else
+            {
+                _log.Info($"{LogTag} cross_promo - banner shown, firing OnAdDisplayed");
+                _onAdDisplayed?.Invoke();
+            }
+        }
+
+        /// <summary>The banner cross-promotion asset could not be loaded/shown.</summary>
+        private void OnBannerPlaceholderFailed()
+        {
+            if (!_bannerCrossPromoPending) return;
+            _bannerCrossPromoPending = false;
+            _bannerCrossPromoShown = false;
+
+            if (_bannerCrossPromoDirect)
+            {
+                _bannerCrossPromoDirect = false;
+                _log.Info($"{LogTag} cross_promo - direct banner not ready, firing OnCrossPromoFailed");
+                _onCrossPromoFailed?.Invoke();
+                return;
+            }
+
+            _log.Info($"{LogTag} cross_promo - banner not ready, reporting OnAdNotAvailable (banner)");
+            _onAdNotAvailable?.Invoke(AdFormatKey.Banner);
+        }
+
+        /// <summary>The banner cross-promotion was dismissed (user close / auto-close / external close).</summary>
+        private void OnBannerPlaceholderClosed()
+        {
+            if (!_bannerCrossPromoShown) return;
+            _bannerCrossPromoShown = false;
+
+            bool wasDirect = _bannerCrossPromoDirect;
+            _bannerCrossPromoDirect = false;
+
+            if (_suppressNextBannerCloseEvent)
+            {
+                _suppressNextBannerCloseEvent = false;
+                return;
+            }
+
+            if (wasDirect)
+            {
+                _log.Info($"{LogTag} cross_promo - direct banner dismissed, firing OnCrossPromoClosed (no reward)");
+                _onCrossPromoClosed?.Invoke();
+            }
+            else
+            {
+                _log.Info($"{LogTag} cross_promo - banner dismissed, firing OnAdClosed (no reward)");
+                _onAdClosed?.Invoke();
+            }
+        }
+
+        /// <summary>The user tapped the banner cross-promotion asset (click-through).</summary>
+        private void OnBannerPlaceholderClicked()
+        {
+            if (_bannerCrossPromoDirect)
+            {
+                _log.Debug($"{LogTag} cross_promo - direct banner CTA tapped, firing OnCrossPromoClicked");
+                _onCrossPromoClicked?.Invoke();
+            }
+            else
+            {
+                _log.Debug($"{LogTag} cross_promo - banner CTA tapped, firing OnAdClicked");
                 _onAdClicked?.Invoke();
             }
         }
