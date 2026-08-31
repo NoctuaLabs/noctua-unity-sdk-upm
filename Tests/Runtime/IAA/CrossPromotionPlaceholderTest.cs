@@ -42,6 +42,7 @@ namespace Tests.Runtime.IAA
                 LastShownEntry = entry;
             }
 
+            public void SetBannerLayout(AdPlaceholderSize size, AdPlaceholderPosition position) { }
             public void PreloadAdPlaceholder(CrossPromotionConfig config) { }
             public void SetPlaceholderClosedCallback(Action onClosed) => OnClosed = onClosed;
             public void SetPlaceholderClickedCallback(Action onClicked) => OnClicked = onClicked;
@@ -523,6 +524,73 @@ namespace Tests.Runtime.IAA
         }
 
         [Test]
+        public void ShowCrossPromotion_FullScreen_SupersedesShownBannerCrossPromo()
+        {
+            var ui = new RecordingAdPlaceholderUI();
+            var m = Create(ui, ConfigWith(null));
+
+            int bannerClosed = 0, adClosed = 0;
+            m.OnCrossPromoClosed += () => bannerClosed++;
+            m.OnAdClosed         += () => adClosed++;
+
+            // A banner cross-promo is up (non-modal).
+            m.ShowCrossPromotion(AdPlaceholderType.Banner, Entry("https://cdn/banner.png"));
+            ui.OnShown.Invoke();
+
+            // Only count the rewarded's display, not the banner's.
+            int rewardedDisplayed = 0;
+            m.OnCrossPromoDisplayed += () => rewardedDisplayed++;
+
+            // The game now wants a rewarded cross-promo — it must NOT be blocked by the banner.
+            m.ShowCrossPromotion(AdPlaceholderType.Rewarded, Entry("https://cdn/rew.mp4"));
+
+            Assert.AreEqual(2, ui.ShowCount, "the rewarded cross-promo must still show over the banner");
+            Assert.AreEqual(AdPlaceholderType.Rewarded, ui.LastShownType);
+            Assert.AreEqual(1, bannerClosed, "the superseded banner should emit its OnCrossPromoClosed once");
+            Assert.AreEqual(0, adClosed, "a direct banner routes to OnCrossPromoClosed, not the shared OnAdClosed");
+
+            ui.OnShown.Invoke();
+            Assert.AreEqual(1, rewardedDisplayed, "the rewarded cross-promo fires OnCrossPromoDisplayed on render");
+        }
+
+        [Test]
+        public void ShowCrossPromotion_Banner_DoesNotSupersedeShownFullScreenCrossPromo()
+        {
+            var ui = new RecordingAdPlaceholderUI();
+            var m = Create(ui, ConfigWith(null));
+
+            m.ShowCrossPromotion(AdPlaceholderType.Interstitial, Entry("https://cdn/inter.mp4"));
+            ui.OnShown.Invoke();
+
+            // A banner request must not interrupt a full-screen cross-promo that is already up.
+            m.ShowCrossPromotion(AdPlaceholderType.Banner, Entry("https://cdn/banner.png"));
+
+            Assert.AreEqual(1, ui.ShowCount, "banner-over-full-screen is a no-op");
+            Assert.AreEqual(AdPlaceholderType.Interstitial, ui.LastShownType);
+        }
+
+        [Test]
+        public void ShowCrossPromoFallback_SupersedesShownBannerCrossPromo()
+        {
+            var ui = new RecordingAdPlaceholderUI();
+            var m = Create(ui, ConfigWith(new CrossPromotionConfig { Rewarded = Entry("https://cdn/rew.mp4") }));
+
+            int bannerClosed = 0;
+            m.OnCrossPromoClosed += () => bannerClosed++;
+
+            // A direct banner cross-promo is up.
+            m.ShowCrossPromotion(AdPlaceholderType.Banner, Entry("https://cdn/banner.png"));
+            ui.OnShown.Invoke();
+
+            // A real rewarded ad has no fill → the rewarded cross-promo fallback must still show.
+            Assert.IsTrue(InvokeShowFallback(m, AdPlaceholderType.Rewarded));
+
+            Assert.AreEqual(2, ui.ShowCount, "the rewarded fallback must show over the banner");
+            Assert.AreEqual(AdPlaceholderType.Rewarded, ui.LastShownType);
+            Assert.AreEqual(1, bannerClosed, "the superseded direct banner should emit its OnCrossPromoClosed once");
+        }
+
+        [Test]
         public void Fallback_StillFires_SharedAdEvents_NotCrossPromoEvents()
         {
             var ui = new RecordingAdPlaceholderUI();
@@ -539,49 +607,50 @@ namespace Tests.Runtime.IAA
             Assert.IsFalse(crossPromoDisplayed, "the fallback must NOT fire the dedicated OnCrossPromoDisplayed");
         }
 
-        // ─── Effortless ShowCrossPromotion(adType) — Firebase Remote Config ───
-
-        // A completed Task lets `await` continue inline, so the show is requested synchronously
-        // within the call (no coroutine needed to observe the result).
-        private static System.Threading.Tasks.Task<string> Completed(string s)
-            => System.Threading.Tasks.Task.FromResult(s);
+        // ── Effortless ShowCrossPromotion(adType) — resolves from the active Noctua IAA config ──
+        // Same source as the automatic no-fill fallback (IAAResponse.CrossPromotion), i.e.
+        // remote_configs.iaa.cross_promotion merged with the local noctuagg.json. No Firebase, no
+        // async fetch — the resolution is synchronous within the call.
 
         [Test]
-        public void ShowCrossPromotion_AdTypeOnly_FetchesFromRemoteConfig_AndShows()
+        public void ShowCrossPromotion_AdTypeOnly_ResolvesFromIaaConfig_AndShows()
         {
             var ui = new RecordingAdPlaceholderUI();
-            var m = Create(ui, ConfigWith(null));
-            const string json =
-                "{\"interstitial\":{\"asset_url\":\"https://cdn/rc.mp4\",\"click_url\":\"https://x\",\"min_watch_seconds\":7}," +
-                "\"rewarded\":{\"asset_url\":\"https://cdn/rc-rew.mp4\",\"min_watch_seconds\":12}}";
-            m.SetRemoteConfigProvider(key => Completed(key == MediationManager.CrossPromotionRemoteConfigKey ? json : ""));
+            var m = Create(ui, ConfigWith(new CrossPromotionConfig
+            {
+                Interstitial = new CrossPromotionEntry
+                {
+                    AssetUrl = "https://cdn/rc.mp4", ClickUrl = "https://x", MinWatchSeconds = 7
+                },
+                Rewarded = new CrossPromotionEntry { AssetUrl = "https://cdn/rc-rew.mp4", MinWatchSeconds = 12 },
+            }));
 
             bool displayed = false;
             m.OnCrossPromoDisplayed += () => displayed = true;
 
             m.ShowCrossPromotion(AdPlaceholderType.Interstitial);
 
-            Assert.AreEqual(1, ui.ShowCount, "should request the show from the fetched creative");
+            Assert.AreEqual(1, ui.ShowCount, "should request the show from the configured creative");
             Assert.AreEqual(AdPlaceholderType.Interstitial, ui.LastShownType);
             Assert.AreEqual("https://cdn/rc.mp4", ui.LastShownEntry.AssetUrl);
             Assert.AreEqual(7, ui.LastShownEntry.MinWatchSeconds);
 
             ui.OnShown.Invoke();
-            Assert.IsTrue(displayed, "OnCrossPromoDisplayed should fire once the fetched asset renders");
+            Assert.IsTrue(displayed, "OnCrossPromoDisplayed should fire once the configured asset renders");
         }
 
         [Test]
-        public void ShowCrossPromotion_AdTypeOnly_NoProvider_FiresFailed()
+        public void ShowCrossPromotion_AdTypeOnly_NoCrossPromoConfig_FiresFailed()
         {
             var ui = new RecordingAdPlaceholderUI();
-            var m = Create(ui, ConfigWith(null)); // no provider wired
+            var m = Create(ui, ConfigWith(null)); // no cross_promotion section in the IAA config
 
             int failed = 0;
             m.OnCrossPromoFailed += () => failed++;
 
             m.ShowCrossPromotion(AdPlaceholderType.Interstitial);
 
-            Assert.AreEqual(0, ui.ShowCount, "nothing to show without a remote config provider");
+            Assert.AreEqual(0, ui.ShowCount, "nothing to show without a cross_promotion config");
             Assert.AreEqual(1, failed);
         }
 
@@ -589,26 +658,23 @@ namespace Tests.Runtime.IAA
         public void ShowCrossPromotion_AdTypeOnly_NoEntryForFormat_FiresFailed()
         {
             var ui = new RecordingAdPlaceholderUI();
-            var m = Create(ui, ConfigWith(null));
-            // Remote config only has interstitial; ask for rewarded.
-            const string json = "{\"interstitial\":{\"asset_url\":\"https://cdn/rc.mp4\"}}";
-            m.SetRemoteConfigProvider(_ => Completed(json));
+            // Config only has interstitial; ask for rewarded.
+            var m = Create(ui, ConfigWith(new CrossPromotionConfig { Interstitial = Entry("https://cdn/rc.mp4") }));
 
             int failed = 0;
             m.OnCrossPromoFailed += () => failed++;
 
             m.ShowCrossPromotion(AdPlaceholderType.Rewarded);
 
-            Assert.AreEqual(0, ui.ShowCount, "no rewarded creative in remote config → nothing shown");
+            Assert.AreEqual(0, ui.ShowCount, "no rewarded creative in the IAA config → nothing shown");
             Assert.AreEqual(1, failed);
         }
 
         [Test]
-        public void ShowCrossPromotion_AdTypeOnly_EmptyRemoteConfig_FiresFailed()
+        public void ShowCrossPromotion_AdTypeOnly_EntryWithEmptyAssetUrl_FiresFailed()
         {
             var ui = new RecordingAdPlaceholderUI();
-            var m = Create(ui, ConfigWith(null));
-            m.SetRemoteConfigProvider(_ => Completed("")); // empty (e.g. Editor / not fetched yet)
+            var m = Create(ui, ConfigWith(new CrossPromotionConfig { Interstitial = new CrossPromotionEntry() }));
 
             int failed = 0;
             m.OnCrossPromoFailed += () => failed++;

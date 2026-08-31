@@ -11,12 +11,12 @@
     -unity-background-scale-mode: scale-to-fit;
 }
 
+/* Size and screen anchor (top/bottom/corners/center) are applied at runtime via inline styles by
+   NoctuaAdPlaceholder.SetBannerLayout(AdPlaceholderSize, AdPlaceholderPosition) — mirroring
+   CreateBannerViewAdAdmob/CreateBannerViewAdAppLovin's flexible size+position. Only structural,
+   position-independent styling lives here. */
 .banner-box {
     position: absolute;
-    align-self: center;
-    top: 10px;
-    width: 200px;
-    height: 50px;
     flex-direction: row;
     justify-content: space-between;
     align-items: center;

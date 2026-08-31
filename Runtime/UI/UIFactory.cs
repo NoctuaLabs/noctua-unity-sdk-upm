@@ -187,6 +187,16 @@ namespace com.noctuagames.sdk.UI
         }
 
         /// <summary>
+        /// Configures the size and screen anchor of the banner placeholder box.
+        /// </summary>
+        /// <param name="size">Placeholder box size in pixels (presets or a custom size).</param>
+        /// <param name="position">Screen anchor (edge, corner, or center).</param>
+        public void SetBannerLayout(AdPlaceholderSize size, AdPlaceholderPosition position)
+        {
+            _adPlaceholder.SetBannerLayout(size, position);
+        }
+
+        /// <summary>
         /// Preloads cross-promotion assets into the cache so a later show renders instantly.
         /// </summary>
         /// <param name="config">The cross-promotion config whose per-format assets should be cached.</param>

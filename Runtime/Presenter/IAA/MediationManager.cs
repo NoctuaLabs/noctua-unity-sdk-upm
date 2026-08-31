@@ -323,23 +323,6 @@ namespace com.noctuagames.sdk
             FlushPendingAppliedIaaConfigEvent();
         }
 
-        // Fetches a Firebase Remote Config string by key. Injected from the composition root
-        // (View layer) so the Presenter never calls the Noctua static facade directly — keeps the
-        // layer dependency rules intact. Used by the no-data ShowCrossPromotion(adType) overload.
-        private Func<string, Task<string>> _remoteConfigStringProvider;
-
-        /// <summary>
-        /// Injects the Firebase Remote Config string fetcher (wired to
-        /// <c>Noctua.GetFirebaseRemoteConfigString</c> in the composition root). Enables the
-        /// effortless <see cref="ShowCrossPromotion(AdPlaceholderType)"/> overload to pull creatives
-        /// from remote config without the game passing any data.
-        /// </summary>
-        public void SetRemoteConfigProvider(Func<string, Task<string>> provider)
-        {
-            _log.Debug($"{LogTag} set_remote_config_provider - set remote config string provider");
-            _remoteConfigStringProvider = provider;
-        }
-
         /// <summary>
         /// Sets the resolved country code so CPM floor and segmentation can use the correct tier.
         /// Call this after the country is resolved in Noctua.Initialization.cs (before or after
@@ -2637,50 +2620,55 @@ namespace com.noctuagames.sdk
         }
 
         /// <summary>
-        /// Remote-config key holding the cross-promotion creatives as a JSON object keyed by ad
-        /// placement (<c>interstitial</c> / <c>rewarded</c> / <c>rewarded_interstitial</c> /
-        /// <c>banner</c>), each with <c>asset_url</c>, <c>click_url</c>, <c>min_watch_seconds</c>.
+        /// Configures the size and screen anchor of the banner cross-promotion placeholder box —
+        /// the house-ad equivalent of <see cref="CreateBannerViewAdAdmob"/> /
+        /// <see cref="CreateBannerViewAdAppLovin(Color, MaxSdkBase.AdViewPosition)"/>. Only affects
+        /// <see cref="AdPlaceholderType.Banner"/>; call any time before (or after) the banner
+        /// cross-promotion shows — a running placeholder picks up the new layout immediately.
+        /// Defaults to <see cref="AdPlaceholderSize.Banner"/> (320×50) at
+        /// <see cref="AdPlaceholderPosition.Bottom"/> when never called, matching
+        /// <c>BannerAdmob</c>'s own defaults.
+        /// </summary>
+        /// <param name="size">Placeholder box size in pixels (presets or a custom size).</param>
+        /// <param name="position">Screen anchor (edge, corner, or center).</param>
+        public void SetCrossPromoBannerLayout(AdPlaceholderSize size, AdPlaceholderPosition position)
+        {
+            _log.Info($"{LogTag} set_cross_promo_banner_layout - {size.Width}x{size.Height} @ {position}");
+            _adPlaceholderUI?.SetBannerLayout(size, position);
+        }
+
+        /// <summary>
+        /// Name of the Noctua IAA config section holding the cross-promotion creatives —
+        /// <c>remote_configs.iaa.cross_promotion</c> in the init-game response (merged with the local
+        /// <c>noctuagg.json</c> <c>iaa.cross_promotion</c>). A JSON object keyed by ad placement
+        /// (<c>interstitial</c> / <c>rewarded</c> / <c>rewarded_interstitial</c> / <c>banner</c>),
+        /// each with <c>asset_url</c>, <c>click_url</c>, <c>min_watch_seconds</c>.
         /// </summary>
         public const string CrossPromotionRemoteConfigKey = "cross_promotion";
 
         /// <summary>
-        /// Effortless cross-promotion: the game passes ONLY the placement type — the SDK fetches the
-        /// creative for that placement from Firebase Remote Config (key <c>cross_promotion</c>, a JSON
-        /// object keyed by placement), then caches, renders, and reports lifecycle exactly like
-        /// <see cref="ShowCrossPromotion(AdPlaceholderType, CrossPromotionEntry)"/>. No URLs, config,
-        /// or manual caching needed. Fires <see cref="OnCrossPromoFailed"/> when remote config is
-        /// unavailable or has no creative for the requested placement.
+        /// Effortless cross-promotion: the game passes ONLY the placement type — the SDK resolves the
+        /// creative for that placement from the active Noctua IAA config
+        /// (<c>remote_configs.iaa.cross_promotion</c> from the init-game response, merged with the
+        /// local <c>noctuagg.json</c> <c>iaa.cross_promotion</c>), then caches, renders, and reports
+        /// lifecycle exactly like <see cref="ShowCrossPromotion(AdPlaceholderType, CrossPromotionEntry)"/>.
+        /// No URLs, config, or manual caching needed. This is the same source the automatic
+        /// no-fill fallback (<see cref="ShowCrossPromoFallback"/>) uses — there is no Firebase Remote
+        /// Config dependency. Fires <see cref="OnCrossPromoFailed"/> when no creative is configured for
+        /// the requested placement.
         /// </summary>
         /// <param name="adType">Which placement to show (interstitial / rewarded / rewarded interstitial / banner).</param>
-        public async void ShowCrossPromotion(AdPlaceholderType adType)
+        public void ShowCrossPromotion(AdPlaceholderType adType)
         {
             _log.Info($"{LogTag} show_cross_promotion - remote-config cross-promotion show ({adType})");
 
-            if (_remoteConfigStringProvider == null)
-            {
-                _log.Warning("Remote config provider not wired; cannot fetch cross_promotion creatives.");
-                _onCrossPromoFailed?.Invoke();
-                return;
-            }
-
-            CrossPromotionEntry entry = null;
-            try
-            {
-                var json = await _remoteConfigStringProvider(CrossPromotionRemoteConfigKey);
-                if (!string.IsNullOrEmpty(json))
-                {
-                    var config = JsonConvert.DeserializeObject<CrossPromotionConfig>(json);
-                    entry = config == null ? null : ResolveCrossPromotionEntry(config, adType);
-                }
-            }
-            catch (Exception e)
-            {
-                _log.Warning($"Failed to parse '{CrossPromotionRemoteConfigKey}' remote config: {e.Message}");
-            }
+            var crossPromotion = IAAResponse?.CrossPromotion;
+            var entry = crossPromotion == null ? null : ResolveCrossPromotionEntry(crossPromotion, adType);
 
             if (entry == null || string.IsNullOrEmpty(entry.AssetUrl))
             {
-                _log.Warning($"No cross-promotion creative for {adType} in remote config '{CrossPromotionRemoteConfigKey}'.");
+                _log.Warning($"No cross-promotion creative for {adType} in the active Noctua IAA config " +
+                             $"('{CrossPromotionRemoteConfigKey}').");
                 _onCrossPromoFailed?.Invoke();
                 return;
             }
@@ -2719,7 +2707,7 @@ namespace com.noctuagames.sdk
                 _onCrossPromoFailed?.Invoke();
                 return;
             }
-            if (_crossPromoShown || _crossPromoPending)
+            if ((_crossPromoShown || _crossPromoPending) && !TrySupersedeBannerCrossPromo(adType))
             {
                 _log.Warning("A cross-promotion is already showing or pending; ignoring duplicate request.");
                 return;
@@ -2785,6 +2773,41 @@ namespace com.noctuagames.sdk
         }
 
         /// <summary>
+        /// A cross-promotion <b>banner</b> is non-modal and must never block a full-screen
+        /// cross-promotion (interstitial / rewarded / rewarded interstitial) — the full-screen
+        /// placeholder simply takes over the screen, exactly as a real ad would over a banner.
+        /// Call this from an "already showing / pending" guard: returns <c>true</c> when the new
+        /// request for <paramref name="requestType"/> may proceed by superseding a shown/pending
+        /// banner (this also tears the banner's state down and emits its close event so the game's
+        /// lifecycle stays consistent), or <c>false</c> when the overlap is a genuine duplicate
+        /// (a full-screen placeholder is already up, or banner-over-banner) and the caller must
+        /// ignore the request.
+        /// </summary>
+        private bool TrySupersedeBannerCrossPromo(AdPlaceholderType requestType)
+        {
+            bool activeIsBanner =
+                _pendingCrossPromoFormat == PlaceholderTypeToFormat(AdPlaceholderType.Banner);
+            if (!activeIsBanner || requestType == AdPlaceholderType.Banner) return false;
+
+            _log.Info($"{LogTag} cross_promo - {requestType} supersedes the shown banner cross-promotion");
+
+            bool wasDirect = _crossPromoDirect;
+            _crossPromoShown        = false;
+            _crossPromoPending      = false;
+            _crossPromoDirect       = false;
+            _hasClosedPlaceholder   = false; // superseding starts a fresh request
+            _suppressNextCloseEvent = false;
+
+            // Mirror OnPlaceholderClosed: a direct banner routes to the dedicated cross-promo event,
+            // a fallback banner to the shared real-ad event, so the game resumes cleanly before the
+            // full-screen placeholder's own OnAdDisplayed / OnCrossPromoDisplayed fires.
+            if (wasDirect) _onCrossPromoClosed?.Invoke();
+            else           _onAdClosed?.Invoke();
+
+            return true;
+        }
+
+        /// <summary>
         /// Requests the cross-promotion placeholder as a fallback house-ad for a format with no real ad
         /// (no fill / not ready / failed display / offline). The asset loads asynchronously: the ad
         /// lifecycle (OnAdDisplayed / OnAdNotAvailable) is driven by the UI's shown/failed callbacks,
@@ -2795,7 +2818,7 @@ namespace com.noctuagames.sdk
         private bool ShowCrossPromoFallback(AdPlaceholderType type)
         {
             if (_adPlaceholderUI == null) return false;
-            if (_crossPromoShown || _crossPromoPending) return true;
+            if ((_crossPromoShown || _crossPromoPending) && !TrySupersedeBannerCrossPromo(type)) return true;
 
             // The user already dismissed the cross-promo for this ad request — a late/duplicate
             // network callback must not resurrect it. Suppress the re-show; the game already received

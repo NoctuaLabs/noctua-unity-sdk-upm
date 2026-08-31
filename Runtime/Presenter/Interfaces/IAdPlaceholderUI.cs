@@ -21,6 +21,15 @@ namespace com.noctuagames.sdk
         void ShowAdPlaceholder(AdPlaceholderType adType, CrossPromotionEntry entry);
 
         /// <summary>
+        /// Configures the size and screen anchor of the banner placeholder box, mirroring the
+        /// flexible size/position of a real network banner (<c>CreateBannerViewAdAdmob</c> /
+        /// <c>CreateBannerViewAdAppLovin</c>). Only affects <see cref="AdPlaceholderType.Banner"/>.
+        /// </summary>
+        /// <param name="size">Placeholder box size in pixels (presets or a custom size).</param>
+        /// <param name="position">Screen anchor (edge, corner, or center).</param>
+        void SetBannerLayout(AdPlaceholderSize size, AdPlaceholderPosition position);
+
+        /// <summary>
         /// Preloads cross-promotion assets for all configured formats into the cache so a later
         /// <see cref="ShowAdPlaceholder"/> renders instantly (load-then-show, like mediation ads).
         /// No-op when <paramref name="config"/> is null.

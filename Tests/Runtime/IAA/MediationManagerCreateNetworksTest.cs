@@ -43,6 +43,7 @@ namespace Tests.Runtime.IAA
         private class NoopAdPlaceholderUI : IAdPlaceholderUI
         {
             public void ShowAdPlaceholder(AdPlaceholderType adType, CrossPromotionEntry entry) { }
+            public void SetBannerLayout(AdPlaceholderSize size, AdPlaceholderPosition position) { }
             public void PreloadAdPlaceholder(CrossPromotionConfig config) { }
             public void SetPlaceholderClosedCallback(System.Action onClosed) { }
             public void SetPlaceholderClickedCallback(System.Action onClicked) { }
@@ -304,6 +305,7 @@ namespace Tests.Runtime.IAA
         private class NoopAdPlaceholderUI : IAdPlaceholderUI
         {
             public void ShowAdPlaceholder(AdPlaceholderType adType, CrossPromotionEntry entry) { }
+            public void SetBannerLayout(AdPlaceholderSize size, AdPlaceholderPosition position) { }
             public void PreloadAdPlaceholder(CrossPromotionConfig config) { }
             public void SetPlaceholderClosedCallback(System.Action onClosed) { }
             public void SetPlaceholderClickedCallback(System.Action onClicked) { }
@@ -554,6 +556,7 @@ namespace Tests.Runtime.IAA
         private class NoopAdPlaceholderUI : IAdPlaceholderUI
         {
             public void ShowAdPlaceholder(AdPlaceholderType adType, CrossPromotionEntry entry) { }
+            public void SetBannerLayout(AdPlaceholderSize size, AdPlaceholderPosition position) { }
             public void PreloadAdPlaceholder(CrossPromotionConfig config) { }
             public void SetPlaceholderClosedCallback(System.Action onClosed) { }
             public void SetPlaceholderClickedCallback(System.Action onClicked) { }
@@ -877,6 +880,7 @@ namespace Tests.Runtime.IAA
         private class NoopAdPlaceholderUI : IAdPlaceholderUI
         {
             public void ShowAdPlaceholder(AdPlaceholderType adType, CrossPromotionEntry entry) { }
+            public void SetBannerLayout(AdPlaceholderSize size, AdPlaceholderPosition position) { }
             public void PreloadAdPlaceholder(CrossPromotionConfig config) { }
             public void SetPlaceholderClosedCallback(System.Action onClosed) { }
             public void SetPlaceholderClickedCallback(System.Action onClicked) { }
