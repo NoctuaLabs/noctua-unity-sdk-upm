@@ -329,14 +329,13 @@ namespace com.noctuagames.sdk.UI
 
         private void StopActiveAsset()
         {
-            // Only stop the shared VideoPlayer when THIS surface owns the playing video — the banner
-            // placeholder shares the same PlaceholderAssetSource player, so an unconditional
-            // StopVideo() here would freeze a banner cross-promo video.
+            // Stop only THIS surface's video slot (the banner has its own), and only when this
+            // surface actually owns a playing video.
             if (_activePlayer != null)
             {
                 _activePlayer.loopPointReached -= OnVideoEnded;
                 _activePlayer = null;
-                PlaceholderAssetSource.Instance.StopVideo();
+                PlaceholderAssetSource.Instance.StopVideo(PlaceholderAssetSource.FullScreenSlot);
             }
 
             UnregisterClickThrough();

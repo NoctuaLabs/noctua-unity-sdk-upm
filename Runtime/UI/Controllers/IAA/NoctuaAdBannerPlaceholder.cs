@@ -11,14 +11,10 @@ namespace com.noctuagames.sdk.UI
     /// Presenter for the <b>banner</b> cross-promotion placeholder. Deliberately independent from
     /// <see cref="NoctuaAdPlaceholder"/> (the full-screen placeholder): it lives on its own
     /// <c>UIDocument</c>, is non-modal (only the banner box itself is tappable — the rest of the
-    /// screen passes straight through to the game), and persists on its own lifecycle. A full-screen
-    /// placeholder or a real ad simply draws over it; when that closes, the banner is still here.
-    ///
-    /// <para><b>Video caveat:</b> <see cref="PlaceholderAssetSource"/> holds a single shared
-    /// <c>VideoPlayer</c>/<c>RenderTexture</c>, so the banner and a full-screen cross-promo cannot
-    /// both play <i>video</i> at the same time — whichever loads second repurposes the player and the
-    /// first one's frame goes blank. Use an <b>image</b> creative for the banner (real ad networks do
-    /// too); image + full-screen video coexist fine.</para>
+    /// screen passes straight through to the game), persists on its own lifecycle, and draws its
+    /// video into its own <see cref="PlaceholderAssetSource.BannerSlot"/> player. A full-screen
+    /// placeholder or a real ad simply draws over it; when that closes, the banner is still here —
+    /// and a full-screen cross-promo video keeps playing while a banner video plays too.
     /// </summary>
     internal class NoctuaAdBannerPlaceholder : Presenter<object>
     {
@@ -137,7 +133,7 @@ namespace com.noctuagames.sdk.UI
                 RegisterClickThrough();
                 _log.Info($"{LogTag} show - banner asset rendered");
                 _onShown?.Invoke();
-            });
+            }, PlaceholderAssetSource.BannerSlot);
         }
 
         /// <summary>
@@ -267,13 +263,12 @@ namespace com.noctuagames.sdk.UI
 
         private void StopActiveAsset()
         {
-            // Only stop the shared VideoPlayer when THIS surface owns the playing video — the
-            // full-screen placeholder shares the same PlaceholderAssetSource player, so an
-            // unconditional StopVideo() here would freeze a full-screen cross-promo video.
+            // Stop only the banner's own video slot (the full-screen surface has its own), and only
+            // when this surface actually owns a playing video.
             if (_activePlayer != null)
             {
                 _activePlayer = null;
-                PlaceholderAssetSource.Instance.StopVideo();
+                PlaceholderAssetSource.Instance.StopVideo(PlaceholderAssetSource.BannerSlot);
             }
             UnregisterClickThrough();
             _clickUrl = null;

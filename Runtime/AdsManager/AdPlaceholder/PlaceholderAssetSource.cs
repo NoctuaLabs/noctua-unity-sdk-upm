@@ -78,18 +78,47 @@ namespace com.noctuagames.sdk.AdPlaceholder
             }
         }
 
-        private Coroutine _activeCrossPromoCoroutine;
-        private VideoPlayer _videoPlayer;
-        private RenderTexture _videoRenderTexture;
+        /// <summary>Default playback slot — the full-screen cross-promo placeholder.</summary>
+        public const string FullScreenSlot = "fullscreen";
 
-        // In-memory cache of decoded cross-promo images, keyed by source URL.
+        /// <summary>Playback slot for the banner cross-promo surface — has its own <see cref="VideoPlayer"/>
+        /// and <see cref="RenderTexture"/> so the banner and the full-screen placeholder can each play a
+        /// video at the same time without one blanking the other.</summary>
+        public const string BannerSlot = "banner";
+
+        /// <summary>
+        /// One independent playback slot: its own <see cref="VideoPlayer"/> + <see cref="RenderTexture"/>
+        /// + <see cref="AudioSource"/>, its own in-flight load coroutine, and its own monotonic attempt
+        /// id so a superseded prepare (self-heal, re-show) is ignored per surface.
+        /// </summary>
+        private sealed class PlaybackSlot
+        {
+            public VideoPlayer Player;
+            public RenderTexture RenderTexture;
+            public AudioSource Audio;
+            public int Attempt;
+            public Coroutine ActiveCoroutine;
+        }
+
+        // Playback slots keyed by slot id (FullScreenSlot / BannerSlot), created on first use.
+        private readonly Dictionary<string, PlaybackSlot> _slots = new();
+
+        private PlaybackSlot GetSlot(string id)
+        {
+            if (!_slots.TryGetValue(id, out var slot))
+            {
+                slot = new PlaybackSlot();
+                _slots[id] = slot;
+            }
+            return slot;
+        }
+
+        // In-memory cache of decoded cross-promo images, keyed by source URL (shared — images are
+        // immutable and safe to hand to any slot).
         private readonly Dictionary<string, Texture2D> _imageCache = new();
 
         // URLs with a download currently in flight — guards against concurrent/duplicate caching.
         private readonly HashSet<string> _caching = new();
-
-        // Monotonic id so a superseded video-prepare attempt (e.g. after self-heal) is ignored.
-        private int _videoAttempt;
 
         /// <summary>Max seconds to wait for a cached video to prepare before treating it as corrupt.</summary>
         private const float CachedVideoPrepareTimeoutSec = 6f;
@@ -181,7 +210,12 @@ namespace com.noctuagames.sdk.AdPlaceholder
         /// </summary>
         /// <param name="assetUrl">The CDN URL of the asset to load.</param>
         /// <param name="callback">Callback invoked with the loaded asset, or null on failure.</param>
-        public void GetAdAsset(string assetUrl, Action<CrossPromoAsset> callback)
+        /// <param name="slotId">
+        /// Playback slot — <see cref="FullScreenSlot"/> (default) or <see cref="BannerSlot"/>. Each slot
+        /// owns an independent <see cref="VideoPlayer"/>/<see cref="RenderTexture"/> and in-flight load,
+        /// so the banner and the full-screen placeholder never clobber each other.
+        /// </param>
+        public void GetAdAsset(string assetUrl, Action<CrossPromoAsset> callback, string slotId = FullScreenSlot)
         {
             if (string.IsNullOrEmpty(assetUrl))
             {
@@ -190,10 +224,11 @@ namespace com.noctuagames.sdk.AdPlaceholder
                 return;
             }
 
-            if (_activeCrossPromoCoroutine != null)
+            var slot = GetSlot(slotId);
+            if (slot.ActiveCoroutine != null)
             {
-                StopCoroutine(_activeCrossPromoCoroutine);
-                _activeCrossPromoCoroutine = null;
+                StopCoroutine(slot.ActiveCoroutine);
+                slot.ActiveCoroutine = null;
             }
 
             string cachedFile = CacheFilePath(assetUrl);
@@ -203,14 +238,14 @@ namespace com.noctuagames.sdk.AdPlaceholder
                 if (File.Exists(cachedFile))
                 {
                     // Cached → play from local file (fast, offline-safe), self-healing if it's corrupt.
-                    _log.Debug($"{LogTag} get_asset - video cache HIT (disk), playing local file: {assetUrl}");
-                    _activeCrossPromoCoroutine = StartCoroutine(PlayCachedVideo(assetUrl, cachedFile, callback));
+                    _log.Debug($"{LogTag} get_asset - video cache HIT (disk), playing local file [{slotId}]: {assetUrl}");
+                    slot.ActiveCoroutine = StartCoroutine(PlayCachedVideo(assetUrl, cachedFile, callback, slot));
                 }
                 else
                 {
                     // Not cached → decide by size (mediation only fetches small creatives on demand).
-                    _log.Debug($"{LogTag} get_asset - video cache MISS: {assetUrl}");
-                    _activeCrossPromoCoroutine = StartCoroutine(LoadVideoOnMiss(assetUrl, callback));
+                    _log.Debug($"{LogTag} get_asset - video cache MISS [{slotId}]: {assetUrl}");
+                    slot.ActiveCoroutine = StartCoroutine(LoadVideoOnMiss(assetUrl, callback, slot));
                 }
                 return;
             }
@@ -228,7 +263,7 @@ namespace com.noctuagames.sdk.AdPlaceholder
             else
                 _log.Debug($"{LogTag} get_asset - image cache MISS, downloading: {assetUrl}");
 
-            _activeCrossPromoCoroutine = File.Exists(cachedFile)
+            slot.ActiveCoroutine = File.Exists(cachedFile)
                 ? StartCoroutine(LoadImageFromDisk(assetUrl, cachedFile, callback))
                 : StartCoroutine(LoadImageFromNetwork(assetUrl, callback));
         }
@@ -269,7 +304,7 @@ namespace com.noctuagames.sdk.AdPlaceholder
         /// for next time); if it's larger or its size is unknown we DON'T stream — we report not-ready
         /// (callback null) and precache it in the background (Wi-Fi only) so a later attempt is instant.
         /// </summary>
-        private IEnumerator LoadVideoOnMiss(string url, Action<CrossPromoAsset> callback)
+        private IEnumerator LoadVideoOnMiss(string url, Action<CrossPromoAsset> callback, PlaybackSlot slot)
         {
             long size = -1;
             using (UnityWebRequest head = UnityWebRequest.Head(url))
@@ -282,7 +317,7 @@ namespace com.noctuagames.sdk.AdPlaceholder
             if (size > 0 && size <= VideoStreamSizeLimitBytes)
             {
                 _log.Debug($"{LogTag} get_asset - video {size / 1024}KB within stream limit, streaming + caching: {url}");
-                LoadVideoAsset(url, callback);
+                LoadVideoAsset(url, callback, slot);
                 StartCoroutine(EnsureCached(url));
             }
             else
@@ -465,18 +500,19 @@ namespace com.noctuagames.sdk.AdPlaceholder
         /// Prepares a streaming video from the URL and returns a render texture + player. The caller
         /// owns playback. Invokes the callback with null if preparation fails.
         /// </summary>
-        private void LoadVideoAsset(string url, Action<CrossPromoAsset> callback)
+        private void LoadVideoAsset(string url, Action<CrossPromoAsset> callback, PlaybackSlot slot)
         {
-            EnsureVideoPlayer();
+            EnsureVideoPlayer(slot);
 
-            // Each call supersedes the previous: a stale attempt's events are ignored. This makes the
-            // shared single VideoPlayer safe across re-attempts (e.g. self-heal falling back to stream).
-            int attempt = ++_videoAttempt;
+            // Each call supersedes the previous FOR THIS SLOT: a stale attempt's events are ignored.
+            // Makes the slot's single VideoPlayer safe across re-attempts (e.g. self-heal → stream).
+            int attempt = ++slot.Attempt;
+            var player = slot.Player;
 
-            _videoPlayer.Stop();
-            _videoPlayer.source = VideoSource.Url;
-            _videoPlayer.url = url;
-            _videoPlayer.renderMode = VideoRenderMode.RenderTexture;
+            player.Stop();
+            player.source = VideoSource.Url;
+            player.url = url;
+            player.renderMode = VideoRenderMode.RenderTexture;
 
             _log.Debug($"{LogTag} prepare_video - preparing video (attempt {attempt}): {url}");
 
@@ -484,20 +520,20 @@ namespace com.noctuagames.sdk.AdPlaceholder
             {
                 vp.prepareCompleted -= OnPrepared;
                 vp.errorReceived -= OnError;
-                if (attempt != _videoAttempt) return; // superseded — ignore
+                if (attempt != slot.Attempt) return; // superseded — ignore
 
-                ReleaseRenderTexture();
+                ReleaseRenderTexture(slot);
                 int width = Mathf.Max(1, (int)vp.width);
                 int height = Mathf.Max(1, (int)vp.height);
-                _videoRenderTexture = new RenderTexture(width, height, 0);
-                vp.targetTexture = _videoRenderTexture;
+                slot.RenderTexture = new RenderTexture(width, height, 0);
+                vp.targetTexture = slot.RenderTexture;
 
                 _log.Debug($"{LogTag} prepare_video - video prepared ({width}x{height}): {url}");
 
                 callback?.Invoke(new CrossPromoAsset
                 {
                     IsVideo = true,
-                    Video = _videoRenderTexture,
+                    Video = slot.RenderTexture,
                     Player = vp
                 });
             }
@@ -506,14 +542,14 @@ namespace com.noctuagames.sdk.AdPlaceholder
             {
                 vp.prepareCompleted -= OnPrepared;
                 vp.errorReceived -= OnError;
-                if (attempt != _videoAttempt) return; // superseded — ignore
+                if (attempt != slot.Attempt) return; // superseded — ignore
                 _log.Warning($"{LogTag} prepare_video - failed to prepare video from {url}: {message}");
                 callback?.Invoke(null);
             }
 
-            _videoPlayer.prepareCompleted += OnPrepared;
-            _videoPlayer.errorReceived += OnError;
-            _videoPlayer.Prepare();
+            player.prepareCompleted += OnPrepared;
+            player.errorReceived += OnError;
+            player.Prepare();
         }
 
         /// <summary>
@@ -521,12 +557,12 @@ namespace com.noctuagames.sdk.AdPlaceholder
         /// fails or does not prepare within <see cref="CachedVideoPrepareTimeoutSec"/>, the bad file is
         /// deleted and the original URL is streamed (and re-cached) instead.
         /// </summary>
-        private IEnumerator PlayCachedVideo(string url, string file, Action<CrossPromoAsset> callback)
+        private IEnumerator PlayCachedVideo(string url, string file, Action<CrossPromoAsset> callback, PlaybackSlot slot)
         {
             bool finished = false;
             CrossPromoAsset result = null;
 
-            LoadVideoAsset("file://" + file, asset => { finished = true; result = asset; });
+            LoadVideoAsset("file://" + file, asset => { finished = true; result = asset; }, slot);
 
             float elapsed = 0f;
             while (!finished && elapsed < CachedVideoPrepareTimeoutSec)
@@ -544,59 +580,64 @@ namespace com.noctuagames.sdk.AdPlaceholder
             // Corrupt or hung cached file — invalidate and stream the original (which re-caches).
             _log.Warning($"{LogTag} play_cached_video - cached video unplayable (timeout/error), invalidating + streaming: {url}");
             TryDelete(file);
-            LoadVideoAsset(url, callback); // new attempt id supersedes the stale cached attempt
+            LoadVideoAsset(url, callback, slot); // new attempt id supersedes the stale cached attempt
             StartCoroutine(EnsureCached(url));
         }
 
         /// <summary>
-        /// Lazily creates the shared <see cref="VideoPlayer"/> + <see cref="AudioSource"/> on this GameObject.
+        /// Lazily creates the slot's own <see cref="VideoPlayer"/> + <see cref="AudioSource"/> on this
+        /// GameObject (multiple VideoPlayer components on one GameObject is supported).
         /// </summary>
-        private void EnsureVideoPlayer()
+        private void EnsureVideoPlayer(PlaybackSlot slot)
         {
-            if (_videoPlayer != null) return;
+            if (slot.Player != null) return;
 
-            _videoPlayer = gameObject.AddComponent<VideoPlayer>();
-            _videoPlayer.playOnAwake = false;
-            _videoPlayer.isLooping = false;
-            _videoPlayer.audioOutputMode = VideoAudioOutputMode.AudioSource;
+            slot.Player = gameObject.AddComponent<VideoPlayer>();
+            slot.Player.playOnAwake = false;
+            slot.Player.isLooping = false;
+            slot.Player.audioOutputMode = VideoAudioOutputMode.AudioSource;
 
-            var audioSource = gameObject.AddComponent<AudioSource>();
-            audioSource.playOnAwake = false;
-            _videoPlayer.SetTargetAudioSource(0, audioSource);
+            slot.Audio = gameObject.AddComponent<AudioSource>();
+            slot.Audio.playOnAwake = false;
+            slot.Player.SetTargetAudioSource(0, slot.Audio);
         }
 
-        private void ReleaseRenderTexture()
+        private void ReleaseRenderTexture(PlaybackSlot slot)
         {
-            if (_videoRenderTexture == null) return;
+            if (slot.RenderTexture == null) return;
 
-            if (_videoPlayer != null && _videoPlayer.targetTexture == _videoRenderTexture)
+            if (slot.Player != null && slot.Player.targetTexture == slot.RenderTexture)
             {
-                _videoPlayer.targetTexture = null;
+                slot.Player.targetTexture = null;
             }
 
-            _videoRenderTexture.Release();
-            Destroy(_videoRenderTexture);
-            _videoRenderTexture = null;
+            slot.RenderTexture.Release();
+            Destroy(slot.RenderTexture);
+            slot.RenderTexture = null;
         }
 
         /// <summary>
-        /// Stops video playback and releases the render texture. Call when the placeholder closes.
+        /// Stops video playback for a slot and releases its render texture. Call when that placeholder
+        /// surface closes. Defaults to the full-screen slot.
         /// </summary>
-        public void StopVideo()
+        /// <param name="slotId"><see cref="FullScreenSlot"/> (default) or <see cref="BannerSlot"/>.</param>
+        public void StopVideo(string slotId = FullScreenSlot)
         {
-            // Invalidate any in-flight prepare so a late callback after close is ignored.
-            _videoAttempt++;
+            if (!_slots.TryGetValue(slotId, out var slot)) return;
 
-            if (_videoPlayer != null)
+            // Invalidate any in-flight prepare for this slot so a late callback after close is ignored.
+            slot.Attempt++;
+
+            if (slot.Player != null)
             {
-                _videoPlayer.Stop();
+                slot.Player.Stop();
             }
-            ReleaseRenderTexture();
+            ReleaseRenderTexture(slot);
         }
 
         private void OnDestroy()
         {
-            ReleaseRenderTexture();
+            foreach (var slot in _slots.Values) ReleaseRenderTexture(slot);
         }
     }
 }
