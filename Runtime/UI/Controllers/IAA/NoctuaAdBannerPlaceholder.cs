@@ -13,6 +13,12 @@ namespace com.noctuagames.sdk.UI
     /// <c>UIDocument</c>, is non-modal (only the banner box itself is tappable — the rest of the
     /// screen passes straight through to the game), and persists on its own lifecycle. A full-screen
     /// placeholder or a real ad simply draws over it; when that closes, the banner is still here.
+    ///
+    /// <para><b>Video caveat:</b> <see cref="PlaceholderAssetSource"/> holds a single shared
+    /// <c>VideoPlayer</c>/<c>RenderTexture</c>, so the banner and a full-screen cross-promo cannot
+    /// both play <i>video</i> at the same time — whichever loads second repurposes the player and the
+    /// first one's frame goes blank. Use an <b>image</b> creative for the banner (real ad networks do
+    /// too); image + full-screen video coexist fine.</para>
     /// </summary>
     internal class NoctuaAdBannerPlaceholder : Presenter<object>
     {
@@ -261,8 +267,14 @@ namespace com.noctuagames.sdk.UI
 
         private void StopActiveAsset()
         {
-            _activePlayer = null;
-            PlaceholderAssetSource.Instance.StopVideo();
+            // Only stop the shared VideoPlayer when THIS surface owns the playing video — the
+            // full-screen placeholder shares the same PlaceholderAssetSource player, so an
+            // unconditional StopVideo() here would freeze a full-screen cross-promo video.
+            if (_activePlayer != null)
+            {
+                _activePlayer = null;
+                PlaceholderAssetSource.Instance.StopVideo();
+            }
             UnregisterClickThrough();
             _clickUrl = null;
             _box?.AddToClassList("hide");
