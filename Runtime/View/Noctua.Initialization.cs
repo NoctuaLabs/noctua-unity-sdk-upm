@@ -259,6 +259,10 @@ namespace com.noctuagames.sdk
             // Initialize ui factory
             var panelSettings = Resources.Load<PanelSettings>("NoctuaPanelSettings");
             panelSettings.themeStyleSheet = Resources.Load<ThemeStyleSheet>("NoctuaTheme");
+            // Captured for InitCampaigns() in the async init phase — the campaign UI host
+            // reuses the shared panel + locale.
+            _campaignPanelSettings = panelSettings;
+            _campaignLocale = locale;
             var noctuaUIGameObject = new GameObject("NoctuaUI");
             noctuaUIGameObject.AddComponent<PauseBehaviour>();
             var globalExceptionLogger = noctuaUIGameObject.AddComponent<GlobalExceptionLogger>();
@@ -918,6 +922,9 @@ namespace com.noctuagames.sdk
                 // Instance.Value._eventSender.Send("sdk_init_set_locale_success");
             }
 
+            // Wire the server-driven campaign feature (own module — no IAA coupling).
+            InitCampaigns(log, initResponse);
+
             // Try to get active currency
             if (!string.IsNullOrEmpty(initResponse.ActiveProductId))
             {
@@ -1405,6 +1412,44 @@ namespace com.noctuagames.sdk
                 log.Debug("IAA experiments evaluated — no overrides applied (control for all).");
             }
 #endif
+        }
+
+        /// <summary>
+        /// Builds the server-driven campaign feature: merges the local <c>noctuagg.json</c>
+        /// <c>campaigns</c> section with <c>remote_configs.campaigns</c> (remote wins per id),
+        /// constructs <see cref="com.noctuagames.sdk.Campaign.NoctuaCampaign"/>, and runs any
+        /// <c>auto_show</c> popup. Its own module — no dependency on IAA / MediationManager.
+        /// </summary>
+        private static void InitCampaigns(ILogger log, InitGameResponse initResponse)
+        {
+            try
+            {
+                var local = Instance.Value._config?.Campaigns;
+                var remote = initResponse?.RemoteConfigs?.Campaigns;
+
+                if (local == null && remote == null)
+                {
+                    log.Debug("No campaign config (local or remote) — campaign feature idle");
+                    return;
+                }
+
+                var merged = (local ?? new com.noctuagames.sdk.Campaign.CampaignConfig()).MergeWith(remote);
+
+                Instance.Value._campaign = new com.noctuagames.sdk.Campaign.NoctuaCampaign(
+                    merged,
+                    Instance.Value._campaignPanelSettings,
+                    Instance.Value._campaignLocale,
+                    Instance.Value._eventSender,
+                    () => Instance.Value._config?.Noctua?.PlayerRemoteConfigs?.Tags);
+
+                log.Info($"Campaign feature ready: {merged.Campaigns?.Count ?? 0} campaign(s), schema v{merged.SchemaVersion}");
+
+                Instance.Value._campaign.RunAutoShow();
+            }
+            catch (Exception e)
+            {
+                log.Warning("InitCampaigns failed — campaign feature disabled: " + e.Message);
+            }
         }
 
         /// <summary>

@@ -35,7 +35,7 @@ namespace com.noctuagames.sdk.Inspector
         private static readonly Color AccentHttp = new(0x3B / 255f, 0x82 / 255f, 0xF6 / 255f, 1f);
         private static readonly Color AccentTracker = new(0xA8 / 255f, 0x5F / 255f, 0xF7 / 255f, 1f);
 
-        private enum Tab { Timeline, Http, Trackers, Logs, Perf, Memory, Build, Inject }
+        private enum Tab { Timeline, Http, Trackers, Logs, Perf, Memory, Build, Inject, Campaigns }
 
         private UIDocument _doc;
         private PanelSettings _panelSettings;
@@ -74,7 +74,7 @@ namespace com.noctuagames.sdk.Inspector
         private VisualElement _listContainer;
         private VisualElement _filterBar;
         private readonly Dictionary<string, Label> _filterChips = new();
-        private Label _tabTimelineBtn, _tabHttpBtn, _tabTrackersBtn, _tabLogsBtn, _tabPerfBtn, _tabMemoryBtn, _tabBuildBtn, _tabInjectBtn;
+        private Label _tabTimelineBtn, _tabHttpBtn, _tabTrackersBtn, _tabLogsBtn, _tabPerfBtn, _tabMemoryBtn, _tabBuildBtn, _tabInjectBtn, _tabCampaignsBtn;
         private Label _statusBar;
 
         /// <summary>Exposed for the composition root to wire the native metrics provider after init.</summary>
@@ -357,6 +357,7 @@ namespace com.noctuagames.sdk.Inspector
             _tabMemoryBtn   = MakeTab("Memory",   () => { _tab = Tab.Memory;   UpdateTabChrome(); UpdateFilterBarVisibility(); RenderList(); });
             _tabBuildBtn    = MakeTab("Build",    () => { _tab = Tab.Build;    UpdateTabChrome(); UpdateFilterBarVisibility(); RenderList(); });
             _tabInjectBtn   = MakeTab("Inject",   () => { _tab = Tab.Inject;   UpdateTabChrome(); UpdateFilterBarVisibility(); RenderList(); });
+            _tabCampaignsBtn = MakeTab("Campaigns", () => { _tab = Tab.Campaigns; UpdateTabChrome(); UpdateFilterBarVisibility(); RenderList(); });
             tabs.Add(_tabTimelineBtn);
             tabs.Add(_tabHttpBtn);
             tabs.Add(_tabTrackersBtn);
@@ -365,6 +366,7 @@ namespace com.noctuagames.sdk.Inspector
             tabs.Add(_tabMemoryBtn);
             tabs.Add(_tabBuildBtn);
             tabs.Add(_tabInjectBtn);
+            tabs.Add(_tabCampaignsBtn);
             tabsScroll.Add(tabs);
             outerScroll.Add(tabsScroll);
             UpdateTabChrome();
@@ -509,6 +511,7 @@ namespace com.noctuagames.sdk.Inspector
             SetActive(_tabMemoryBtn,   _tab == Tab.Memory);
             SetActive(_tabBuildBtn,    _tab == Tab.Build);
             SetActive(_tabInjectBtn,   _tab == Tab.Inject);
+            SetActive(_tabCampaignsBtn, _tab == Tab.Campaigns);
         }
 
         private VisualElement MakeFilterBar()
@@ -705,6 +708,9 @@ namespace com.noctuagames.sdk.Inspector
                     break;
                 case Tab.Inject:
                     RenderInject(ref ok, ref failing, ref inflight);
+                    break;
+                case Tab.Campaigns:
+                    RenderCampaigns(ref ok, ref failing, ref inflight);
                     break;
             }
             _statusBar.text = $"{ok} ok  ·  {failing} failing  ·  {inflight} in-flight";

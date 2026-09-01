@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using Newtonsoft.Json;
 using UnityEngine.Scripting;
 using System;
+using com.noctuagames.sdk.Campaign;
 
 namespace com.noctuagames.sdk
 {
@@ -84,6 +85,14 @@ namespace com.noctuagames.sdk
         /// <summary>Generic feature flags as string key-value pairs (values are stringified booleans/integers).</summary>
         [JsonProperty("feature_flags")]
         public Dictionary<string, string> RemoteFeatureFlags;
+
+        /// <summary>
+        /// Server-driven campaign payload (popup + feed). Merged with the local
+        /// <c>noctuagg.json</c> <c>live_ops_engagement_campaigns</c> section at init; consumed by
+        /// <see cref="Campaign.CampaignManager"/>, not by the IAA graph.
+        /// </summary>
+        [JsonProperty("live_ops_engagement_campaigns")]
+        public CampaignConfig Campaigns;
     }
 
     /// <summary>

@@ -1,0 +1,107 @@
+/* Shell styling for the campaign popup. Palette mirrors NoctuaUIHelper / ColorModule.
+   Enter/exit is a transition on opacity + translate ONLY — never on layout properties
+   (see the renderer's animation rule and Unity's USS-transition perf guidance). */
+
+.campaign-root {
+    position: absolute;
+    left: 0;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    align-items: center;
+    justify-content: center;
+    background-color: rgba(0, 0, 0, 0.66);
+    opacity: 0;
+    translate: 0 24px;
+    transition-property: opacity, translate;
+    transition-duration: 220ms, 220ms;
+    transition-timing-function: ease-out, ease-out;
+}
+
+.campaign-root.campaign--shown {
+    opacity: 1;
+    translate: 0 0;
+}
+
+/* ---- popup ---- */
+
+.campaign-card {
+    max-width: 92%;
+    max-height: 88%;
+    min-width: 240px;
+    background-color: #25282E;
+    border-top-left-radius: 16px;
+    border-top-right-radius: 16px;
+    border-bottom-left-radius: 16px;
+    border-bottom-right-radius: 16px;
+    padding-top: 12px;
+    padding-right: 12px;
+    padding-bottom: 12px;
+    padding-left: 12px;
+    overflow: hidden;
+}
+
+.campaign-card--fullscreen {
+    max-width: 100%;
+    max-height: 100%;
+    width: 100%;
+    height: 100%;
+    border-top-left-radius: 0;
+    border-top-right-radius: 0;
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+    padding-top: 0;
+    padding-right: 0;
+    padding-bottom: 0;
+    padding-left: 0;
+    background-color: rgba(0, 0, 0, 0);
+}
+
+.campaign-card--borderless {
+    background-color: rgba(0, 0, 0, 0);
+    padding-top: 0;
+    padding-right: 0;
+    padding-bottom: 0;
+    padding-left: 0;
+    border-top-left-radius: 0;
+    border-top-right-radius: 0;
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+}
+
+.campaign-mount {
+    flex-grow: 1;
+}
+
+.campaign-close {
+    position: absolute;
+    top: 14px;
+    right: 14px;
+    width: 36px;
+    height: 36px;
+    padding-top: 0;
+    padding-right: 0;
+    padding-bottom: 0;
+    padding-left: 0;
+    border-top-left-radius: 18px;
+    border-top-right-radius: 18px;
+    border-bottom-left-radius: 18px;
+    border-bottom-right-radius: 18px;
+    border-top-width: 1px;
+    border-right-width: 1px;
+    border-bottom-width: 1px;
+    border-left-width: 1px;
+    border-top-color: rgba(255, 255, 255, 0.55);
+    border-right-color: rgba(255, 255, 255, 0.55);
+    border-bottom-color: rgba(255, 255, 255, 0.55);
+    border-left-color: rgba(255, 255, 255, 0.55);
+    background-color: rgba(0, 0, 0, 0.62);
+    color: #FFFFFF;
+    font-size: 17px;
+    -unity-text-align: middle-center;
+    -unity-font-style: bold;
+}
+
+.campaign-close:hover {
+    background-color: rgba(0, 0, 0, 0.82);
+}

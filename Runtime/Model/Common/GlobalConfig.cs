@@ -1,5 +1,6 @@
 using Newtonsoft.Json;
 using UnityEngine.Scripting;
+using com.noctuagames.sdk.Campaign;
 
 namespace com.noctuagames.sdk
 {
@@ -31,5 +32,11 @@ namespace com.noctuagames.sdk
 
         /// <summary>In-app advertising configuration (optional).</summary>
         [JsonProperty("iaa")] public IAA IAA;
+
+        /// <summary>
+        /// Local/offline seed for the server-driven campaign feature. Merged with
+        /// <c>remote_configs.live_ops_engagement_campaigns</c> at init (remote wins per campaign id).
+        /// </summary>
+        [JsonProperty("live_ops_engagement_campaigns")] public CampaignConfig Campaigns;
     }
 }

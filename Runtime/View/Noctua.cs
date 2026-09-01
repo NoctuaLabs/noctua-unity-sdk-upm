@@ -42,6 +42,12 @@ namespace com.noctuagames.sdk
         /// <summary>Access in-app review and update manager.</summary>
         public static NoctuaAppManager App => Instance.Value._app;
 
+        /// <summary>
+        /// Access the server-driven campaign feature (offer/reward popup + news/events feed).
+        /// <c>null</c> until <see cref="InitAsync"/> has resolved remote config.
+        /// </summary>
+        public static com.noctuagames.sdk.Campaign.NoctuaCampaign Campaign => Instance.Value._campaign;
+
         /// <summary>Access loaded global configuration.</summary>
         public static GlobalConfig Config => Instance.Value._config;
 
@@ -170,6 +176,11 @@ namespace com.noctuagames.sdk
         private readonly UIFactory _uiFactory;
         private readonly MediationManager _iaa;
         private readonly NoctuaAppManager _app;
+        // Assigned during the async init phase (InitCampaigns) — needs the merged remote config.
+        private com.noctuagames.sdk.Campaign.NoctuaCampaign _campaign;
+        // Captured in the constructor so InitCampaigns (async phase) can build the campaign UI host.
+        private UnityEngine.UIElements.PanelSettings _campaignPanelSettings;
+        private NoctuaLocale _campaignLocale;
         private readonly NativeSessionTracker _nativeSessionTracker;
         private NativeSessionTrackerBehaviour _nativeSessionTrackerBehaviour;
         private volatile string _cachedFcmToken = string.Empty;
