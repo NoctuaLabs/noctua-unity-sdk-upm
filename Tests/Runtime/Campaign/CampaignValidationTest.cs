@@ -101,7 +101,7 @@ namespace Tests.Runtime.Campaign
         public void Text_LocKeyResolved_Passes()
         {
             var view = CampaignFactory.Node(CampaignNode.TypeText,
-                new Dictionary<string, object> { { "locKey", "greeting" } });
+                new Dictionary<string, object> { { "loc_key", "greeting" } });
             Assert.IsTrue(Valid(Popup(view, new Dictionary<string, string> { { "greeting", "Hello" } }), out _));
         }
 

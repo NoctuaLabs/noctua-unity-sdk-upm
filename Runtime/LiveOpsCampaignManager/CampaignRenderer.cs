@@ -179,7 +179,7 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
         {
             var ve = new VisualElement { name = "campaign-image" };
 
-            var scaleMode = node.PropString("scaleMode", "contain")
+            var scaleMode = node.PropString("scale_mode", "contain")
                 .Replace("-", string.Empty).Replace("_", string.Empty).ToLowerInvariant();
             ve.style.backgroundSize = scaleMode switch
             {
@@ -417,7 +417,7 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
 
         private string ResolveText(CampaignNode node, CampaignItem item)
         {
-            var locKey = node.PropString("locKey");
+            var locKey = node.PropString("loc_key");
             string raw;
             if (!string.IsNullOrEmpty(locKey) && item?.Data != null && item.Data.TryGetValue(locKey, out var loc))
             {
