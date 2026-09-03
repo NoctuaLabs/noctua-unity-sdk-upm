@@ -3,11 +3,11 @@ using UnityEngine;
 using UnityEngine.UIElements;
 using com.noctuagames.sdk.UI;
 
-namespace com.noctuagames.sdk.Campaign
+namespace com.noctuagames.sdk.LiveOpsCampaign
 {
     /// <summary>
     /// Owns the campaign popup presenter <c>GameObject</c> under a dedicated
-    /// <c>NoctuaCampaignUI</c> root. Replicates the parts of <c>UIFactory.Create</c> the
+    /// <c>NoctuaLiveOpsCampaignUI</c> root. Replicates the parts of <c>UIFactory.Create</c> the
     /// module needs (Init → localization → activate) without going through <c>UIFactory</c>,
     /// so nothing here references <c>IAdPlaceholderUI</c> or any IAA type.
     /// </summary>
@@ -29,7 +29,7 @@ namespace com.noctuagames.sdk.Campaign
             _locale = locale;
             _renderer = renderer;
 
-            _root = new GameObject("NoctuaCampaignUI");
+            _root = new GameObject("NoctuaLiveOpsCampaignUI");
             UnityEngine.Object.DontDestroyOnLoad(_root);
         }
 

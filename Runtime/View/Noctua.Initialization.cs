@@ -1417,7 +1417,7 @@ namespace com.noctuagames.sdk
         /// <summary>
         /// Builds the server-driven campaign feature: merges the local <c>noctuagg.json</c>
         /// <c>campaigns</c> section with <c>remote_configs.campaigns</c> (remote wins per id),
-        /// constructs <see cref="com.noctuagames.sdk.Campaign.NoctuaCampaign"/>, and runs any
+        /// constructs <see cref="com.noctuagames.sdk.LiveOpsCampaign.NoctuaLiveOpsCampaign"/>, and runs any
         /// <c>auto_show</c> popup. Its own module — no dependency on IAA / MediationManager.
         /// </summary>
         private static void InitCampaigns(ILogger log, InitGameResponse initResponse)
@@ -1433,9 +1433,9 @@ namespace com.noctuagames.sdk
                     return;
                 }
 
-                var merged = (local ?? new com.noctuagames.sdk.Campaign.CampaignConfig()).MergeWith(remote);
+                var merged = (local ?? new com.noctuagames.sdk.LiveOpsCampaign.CampaignConfig()).MergeWith(remote);
 
-                Instance.Value._campaign = new com.noctuagames.sdk.Campaign.NoctuaCampaign(
+                Instance.Value._campaign = new com.noctuagames.sdk.LiveOpsCampaign.NoctuaLiveOpsCampaign(
                     merged,
                     Instance.Value._campaignPanelSettings,
                     Instance.Value._campaignLocale,

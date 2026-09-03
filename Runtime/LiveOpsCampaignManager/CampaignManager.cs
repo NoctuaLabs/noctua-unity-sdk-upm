@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 
-namespace com.noctuagames.sdk.Campaign
+namespace com.noctuagames.sdk.LiveOpsCampaign
 {
     /// <summary>Ambient facts campaign eligibility depends on. Kept off the <c>Noctua</c> static class.</summary>
     public interface ICampaignEnvironment

@@ -3,7 +3,7 @@ using UnityEngine;
 using UnityEngine.UIElements;
 using com.noctuagames.sdk.UI;
 
-namespace com.noctuagames.sdk.Campaign
+namespace com.noctuagames.sdk.LiveOpsCampaign
 {
     /// <summary>
     /// Modal presenter for a single <c>popup</c> campaign. Loads the <c>CampaignPopup.uxml</c>

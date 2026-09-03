@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using com.noctuagames.sdk.Events;
 
-namespace com.noctuagames.sdk.Campaign
+namespace com.noctuagames.sdk.LiveOpsCampaign
 {
     /// <summary>
     /// Game/SDK-side hooks the dispatcher calls. The facade wires each to a concrete

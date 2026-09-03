@@ -1,7 +1,7 @@
 using System;
 using System.Globalization;
 
-namespace com.noctuagames.sdk.Campaign
+namespace com.noctuagames.sdk.LiveOpsCampaign
 {
     /// <summary>
     /// Structural pre-flight for a <see cref="CampaignItem"/>: does every node and action have

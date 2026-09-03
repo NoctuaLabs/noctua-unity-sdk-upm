@@ -3,19 +3,19 @@ using System.Collections.Generic;
 using UnityEngine.UIElements;
 using com.noctuagames.sdk.Events;
 
-namespace com.noctuagames.sdk.Campaign
+namespace com.noctuagames.sdk.LiveOpsCampaign
 {
     /// <summary>
     /// Public entry point for the server-driven campaign feature, exposed as
-    /// <c>Noctua.Campaign</c> (the way <c>MediationManager</c> is <c>Noctua.IAA</c>).
+    /// <c>Noctua.LiveOpsCampaign</c> (the way <c>MediationManager</c> is <c>Noctua.IAA</c>).
     /// Owns the manager, renderer, dispatcher and UI host for the module.
     /// </summary>
-    public sealed class NoctuaCampaign
+    public sealed class NoctuaLiveOpsCampaign
     {
         private const string ImpressionEvent = "live_ops_campaign_impression";
         private const string DismissEvent = "live_ops_campaign_dismiss";
 
-        private readonly ILogger _log = new NoctuaLogger(typeof(NoctuaCampaign));
+        private readonly ILogger _log = new NoctuaLogger(typeof(NoctuaLiveOpsCampaign));
         private readonly CampaignManager _manager;
         private readonly CampaignUIHost _host;
         private readonly CampaignActionDispatcher _dispatcher;
@@ -39,7 +39,7 @@ namespace com.noctuagames.sdk.Campaign
         /// </summary>
         public event Action<string, CampaignItem> OnCampaignPurchaseRequested;
 
-        public NoctuaCampaign(
+        public NoctuaLiveOpsCampaign(
             CampaignConfig merged,
             PanelSettings panelSettings,
             NoctuaLocale locale,

@@ -46,7 +46,7 @@ namespace com.noctuagames.sdk
         /// Access the server-driven campaign feature (offer/reward popup + news/events feed).
         /// <c>null</c> until <see cref="InitAsync"/> has resolved remote config.
         /// </summary>
-        public static com.noctuagames.sdk.Campaign.NoctuaCampaign LiveOpsCampaign => Instance.Value._campaign;
+        public static com.noctuagames.sdk.LiveOpsCampaign.NoctuaLiveOpsCampaign LiveOpsCampaign => Instance.Value._campaign;
 
         /// <summary>Access loaded global configuration.</summary>
         public static GlobalConfig Config => Instance.Value._config;
@@ -177,7 +177,7 @@ namespace com.noctuagames.sdk
         private readonly MediationManager _iaa;
         private readonly NoctuaAppManager _app;
         // Assigned during the async init phase (InitCampaigns) — needs the merged remote config.
-        private com.noctuagames.sdk.Campaign.NoctuaCampaign _campaign;
+        private com.noctuagames.sdk.LiveOpsCampaign.NoctuaLiveOpsCampaign _campaign;
         // Captured in the constructor so InitCampaigns (async phase) can build the campaign UI host.
         private UnityEngine.UIElements.PanelSettings _campaignPanelSettings;
         private NoctuaLocale _campaignLocale;

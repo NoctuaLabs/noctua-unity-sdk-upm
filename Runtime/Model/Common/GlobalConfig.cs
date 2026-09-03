@@ -1,6 +1,6 @@
 using Newtonsoft.Json;
 using UnityEngine.Scripting;
-using com.noctuagames.sdk.Campaign;
+using com.noctuagames.sdk.LiveOpsCampaign;
 
 namespace com.noctuagames.sdk
 {

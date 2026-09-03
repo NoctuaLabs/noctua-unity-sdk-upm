@@ -1,5 +1,5 @@
 using System.Collections.Generic;
-using com.noctuagames.sdk.Campaign;
+using com.noctuagames.sdk.LiveOpsCampaign;
 using NUnit.Framework;
 using UnityEngine.TextCore.Text;
 
