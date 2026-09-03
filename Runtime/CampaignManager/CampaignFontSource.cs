@@ -8,10 +8,14 @@ namespace com.noctuagames.sdk.Campaign
     /// <summary>
     /// Resolves a campaign <c>style.fontFamily</c> key to a UI Toolkit <see cref="FontAsset"/>.
     /// The <see cref="CampaignConfig.Fonts"/> registry maps a server-chosen family name to a
-    /// <c>Resources</c> path of a Font Asset the game ships in its build (Unity 6.3 has no
-    /// runtime API to build a <see cref="FontAsset"/> from a downloaded TTF/OTF, so the font
-    /// file must be bundled — only the <em>choice</em> of font per campaign is server-driven).
-    /// An unknown key or a missing asset resolves to <c>null</c> and the text keeps the panel's
+    /// <c>Resources</c> path. That path may point at either a TextCore <see cref="FontAsset"/>
+    /// the game bundles, or the raw <c>.ttf</c>/<c>.otf</c> (imported as <see cref="Font"/>) —
+    /// in the latter case a dynamic <see cref="FontAsset"/> is built at runtime via
+    /// <see cref="FontAsset.CreateFontAsset(Font)"/>. A <c>TMP_FontAsset</c> at the path does
+    /// not count: it is a separate type and will not load as a <see cref="FontAsset"/>, so
+    /// point the registry at that font's source <c>.ttf</c> instead. Only the <em>choice</em>
+    /// of font per campaign is server-driven; the file itself must ship in the build.
+    /// An unknown key or a missing file resolves to <c>null</c> and the text keeps the panel's
     /// default typeface — a custom font never blocks a campaign.
     /// </summary>
     public sealed class CampaignFontSource : ICampaignFontSource
@@ -71,9 +75,31 @@ namespace com.noctuagames.sdk.Campaign
             try { fa = Resources.Load<FontAsset>(path); }
             catch (Exception e) { _log.Warning($"{LogTag} load error for '{family}' ({path}): {e.Message}"); }
 
+            // Fallback: the game may only bundle the raw .ttf/.otf (imported as UnityEngine.Font),
+            // or a TMP_FontAsset — a different type — sits at that path. Build a dynamic UI Toolkit
+            // FontAsset from the bundled Font at runtime.
             if (fa == null)
             {
-                _log.Warning($"{LogTag} no Font Asset at Resources path '{path}' for family '{family}'");
+                try
+                {
+                    var font = Resources.Load<Font>(path);
+                    if (font != null)
+                    {
+                        fa = FontAsset.CreateFontAsset(font);
+                        if (fa != null)
+                        {
+                            fa.name = font.name + " (campaign)";
+                            _log.Info($"{LogTag} built dynamic FontAsset for '{family}' from Font '{path}'");
+                        }
+                    }
+                }
+                catch (Exception e) { _log.Warning($"{LogTag} dynamic build failed for '{family}' ({path}): {e.Message}"); }
+            }
+
+            if (fa == null)
+            {
+                _log.Warning($"{LogTag} no font at Resources path '{path}' for family '{family}' — " +
+                             "point the registry at a TextCore FontAsset or the source .ttf/.otf (not a TMP_FontAsset)");
                 _misses.Add(family);
                 return null;
             }
