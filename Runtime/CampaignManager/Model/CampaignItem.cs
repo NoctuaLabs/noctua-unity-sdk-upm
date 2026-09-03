@@ -61,6 +61,16 @@ namespace com.noctuagames.sdk.Campaign
         public Dictionary<string, string> Data;
 
         /// <summary>
+        /// Optional per-campaign custom-font registry: family name → <c>Resources</c> path of a
+        /// Font Asset (or source <c>.ttf</c>/<c>.otf</c>) the game ships in its build. A node's
+        /// <c>style.fontFamily</c> is looked up here; when it isn't a key (or there is no
+        /// registry) the value is used as the <c>Resources</c> path directly. An unknown key or
+        /// a missing asset falls back to the default typeface.
+        /// </summary>
+        [JsonProperty("fonts")]
+        public Dictionary<string, string> Fonts;
+
+        /// <summary>
         /// When true, the SDK shows this campaign once automatically right after init
         /// (subject to targeting/frequency).
         /// </summary>

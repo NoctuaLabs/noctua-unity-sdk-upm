@@ -44,7 +44,7 @@ namespace com.noctuagames.sdk.Campaign
         [JsonProperty("fontSize")] public string FontSize;
         [JsonProperty("fontWeight")] public string FontWeight;         // normal | bold | italic | bold-italic
         [JsonProperty("textAlign")] public string TextAlign;           // upper-left ... middle-center ... lower-right
-        [JsonProperty("fontFamily")] public string FontFamily;         // key into CampaignConfig.Fonts (bundled Font Asset)
+        [JsonProperty("fontFamily")] public string FontFamily;         // a CampaignItem.Fonts key, else a direct Resources path (e.g. "Fonts/Honk-Regular")
         [JsonProperty("fontOutlineWidth")] public string FontOutlineWidth; // "2" | "2px" — glyph stroke
         [JsonProperty("fontOutlineColor")] public string FontOutlineColor; // #RRGGBB[AA]
 

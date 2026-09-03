@@ -21,13 +21,13 @@ namespace com.noctuagames.sdk.Campaign
 
     /// <summary>
     /// Executes the closed <see cref="CampaignActionType"/> set (deeplink / purchase /
-    /// dismiss). Every dispatch also emits <c>campaign_click</c>. Never throws — a bad or
+    /// dismiss). Every dispatch also emits <c>live_ops_campaign_click</c>. Never throws — a bad or
     /// unknown action is logged and dropped.
     /// </summary>
     public sealed class CampaignActionDispatcher : ICampaignActions
     {
         /// <summary>Analytics event fired on every dispatched action.</summary>
-        public const string ClickEvent = "campaign_click";
+        public const string ClickEvent = "live_ops_campaign_click";
 
         private readonly CampaignActionHandlers _handlers;
         private readonly IEventSender _events;

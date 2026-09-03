@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using UnityEngine.Scripting;
 
 namespace com.noctuagames.sdk.Campaign
@@ -77,6 +79,37 @@ namespace com.noctuagames.sdk.Campaign
         {
             var f = PropFloat(key);
             return f.HasValue ? (int?)Mathf_RoundToInt(f.Value) : null;
+        }
+
+        /// <summary>
+        /// Reads the <c>image</c> node's <c>srcset</c> as a list of <see cref="CampaignImageSrc"/>,
+        /// sorted ascending by width, with empty-url / non-positive-width entries dropped.
+        /// Returns an empty list when <c>srcset</c> is absent, not an array, or unparseable —
+        /// callers then fall back to <c>props.url</c>.
+        /// </summary>
+        public List<CampaignImageSrc> PropSrcset()
+        {
+            if (Props == null || !Props.TryGetValue("srcset", out var raw) || raw == null)
+                return new List<CampaignImageSrc>();
+
+            try
+            {
+                // `raw` is a JArray when it came through Newtonsoft (runtime), or a plain
+                // IEnumerable when built in code (tests) — JToken.FromObject handles a JToken
+                // by returning it and serializes anything else.
+                var token = raw as JToken ?? JToken.FromObject(raw);
+                if (token.Type != JTokenType.Array) return new List<CampaignImageSrc>();
+
+                var parsed = token.ToObject<List<CampaignImageSrc>>() ?? new List<CampaignImageSrc>();
+                return parsed
+                    .Where(e => e != null && !string.IsNullOrWhiteSpace(e.Url) && e.Width > 0)
+                    .OrderBy(e => e.Width)
+                    .ToList();
+            }
+            catch
+            {
+                return new List<CampaignImageSrc>();
+            }
         }
 
         /// <summary>Reads a bool prop, or <paramref name="fallback"/> when missing/unparseable.</summary>

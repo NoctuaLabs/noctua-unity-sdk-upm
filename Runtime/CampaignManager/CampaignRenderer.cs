@@ -138,7 +138,7 @@ namespace com.noctuagames.sdk.Campaign
             {
                 case CampaignNode.TypeContainer: ve = BuildContainer(node, item, controller); break;
                 case CampaignNode.TypeText: ve = BuildText(node, item); break;
-                case CampaignNode.TypeImage: ve = BuildImage(node, item); break;
+                case CampaignNode.TypeImage: ve = BuildImage(node, item, controller); break;
                 case CampaignNode.TypeButton: ve = BuildButton(node, item); break;
                 case CampaignNode.TypeSpacer: ve = BuildSpacer(node); break;
                 case CampaignNode.TypeDivider: ve = BuildDivider(node); break;
@@ -154,7 +154,7 @@ namespace com.noctuagames.sdk.Campaign
             if (ve == null) return null;
 
             ApplyStyleWithResponsive(ve, node, controller);
-            ApplyFontFamily(ve, node);
+            ApplyFontFamily(ve, node, item);
             WireAction(ve, node, item);
             return ve;
         }
@@ -175,7 +175,7 @@ namespace com.noctuagames.sdk.Campaign
             return label;
         }
 
-        private VisualElement BuildImage(CampaignNode node, CampaignItem item)
+        private VisualElement BuildImage(CampaignNode node, CampaignItem item, CampaignRuntimeController controller)
         {
             var ve = new VisualElement { name = "campaign-image" };
 
@@ -189,15 +189,101 @@ namespace com.noctuagames.sdk.Campaign
             };
 
             var url = ResolveTokens(node.PropString("url"), item);
-            if (!string.IsNullOrEmpty(url) && _images != null)
+
+            void LoadSingle(string u)
             {
-                _renderUrls.Add(url);
-                _images.GetImage(url, tex =>
+                if (string.IsNullOrEmpty(u) || _images == null) return;
+                _renderUrls.Add(u);
+                _images.GetImage(u, tex =>
                 {
                     if (tex != null) ve.style.backgroundImage = new StyleBackground(tex);
                 });
             }
+
+            // Resolve the srcset tokens up front; an entry that fails to resolve is dropped.
+            var tiers = new List<CampaignImageSrc>();
+            foreach (var s in node.PropSrcset())
+            {
+                var resolved = ResolveTokens(s.Url, item);
+                if (!string.IsNullOrWhiteSpace(resolved))
+                    tiers.Add(new CampaignImageSrc { Url = resolved, Width = s.Width });
+            }
+
+            if (tiers.Count == 0)
+            {
+                // No usable srcset — single-source path, unchanged behaviour.
+                LoadSingle(url);
+                return ve;
+            }
+
+            // Responsive path: pick the tier against the element's resolved box once it has a
+            // layout, and re-pick only when the box crosses a tier boundary.
+            var lastPickWidth = -1;
+            string pinnedUrl = null;
+            var fallbackApplied = false;
+
+            void ApplyUrlFallback()
+            {
+                if (fallbackApplied) return;
+                fallbackApplied = true;
+                LoadSingle(url);
+            }
+
+            void Pick()
+            {
+                if (_images == null) return;
+                if (ve.panel == null) { ApplyUrlFallback(); return; }
+
+                var boxW = ve.layout.width;
+                var refW = ve.panel.visualTree?.layout.width ?? 0f;
+                if (float.IsNaN(boxW) || boxW < 1f || float.IsNaN(refW) || refW < 1f) return;
+
+                var targetPx = boxW * (Screen.width / refW);
+                var choice = PickSrcset(tiers, targetPx);
+                if (choice == null || choice.Width == lastPickWidth) return;
+
+                lastPickWidth = choice.Width;
+                var chosenUrl = choice.Url;
+                _images.GetImage(chosenUrl, tex =>
+                {
+                    if (tex != null) ve.style.backgroundImage = new StyleBackground(tex);
+                });
+                _images.Pin(new[] { chosenUrl });
+                if (pinnedUrl != null && pinnedUrl != chosenUrl) _images.Unpin(new[] { pinnedUrl });
+                pinnedUrl = chosenUrl;
+            }
+
+            EventCallback<GeometryChangedEvent> cb = _ => Pick();
+            ve.RegisterCallback(cb);
+            Pick(); // in case the element is already laid out (re-show)
+
+            controller?.OnDispose(() =>
+            {
+                ve.UnregisterCallback(cb);
+                if (pinnedUrl != null) _images?.Unpin(new[] { pinnedUrl });
+            });
+
             return ve;
+        }
+
+        /// <summary>
+        /// Smallest entry whose width is at least <paramref name="targetPx"/>; the widest entry
+        /// when the target exceeds them all; <c>null</c> when <paramref name="entries"/> is empty.
+        /// Order-independent — does not assume the list is sorted.
+        /// </summary>
+        public static CampaignImageSrc PickSrcset(IReadOnlyList<CampaignImageSrc> entries, float targetPx)
+        {
+            if (entries == null || entries.Count == 0) return null;
+
+            CampaignImageSrc bestAtLeast = null;
+            CampaignImageSrc widest = null;
+            foreach (var e in entries)
+            {
+                if (e == null) continue;
+                if (widest == null || e.Width > widest.Width) widest = e;
+                if (e.Width >= targetPx && (bestAtLeast == null || e.Width < bestAtLeast.Width)) bestAtLeast = e;
+            }
+            return bestAtLeast ?? widest;
         }
 
         private VisualElement BuildButton(CampaignNode node, CampaignItem item)
@@ -276,20 +362,38 @@ namespace com.noctuagames.sdk.Campaign
         }
 
         /// <summary>
-        /// Resolves <c>style.fontFamily</c> against the config font registry and applies the
-        /// downloaded font to <paramref name="ve"/>. UI Toolkit inherits <c>unityFontDefinition</c>
-        /// to children, so a <c>fontFamily</c> on a container styles all its text. A missing
-        /// source, an empty family, or a failed/offline load leaves the panel's default font.
+        /// Resolves <c>style.fontFamily</c> to a font and applies it directly to
+        /// <paramref name="ve"/>. UI Toolkit inherits <c>unityFontDefinition</c> to children, so
+        /// a <c>fontFamily</c> on a container also styles its text; setting it here on the text
+        /// element itself works whether or not a container carried one. A missing source, an
+        /// empty family, or a failed load leaves the panel's default font.
         /// </summary>
-        private void ApplyFontFamily(VisualElement ve, CampaignNode node)
+        private void ApplyFontFamily(VisualElement ve, CampaignNode node, CampaignItem item)
         {
-            var family = node.Style?.FontFamily;
-            if (string.IsNullOrWhiteSpace(family) || _fonts == null) return;
+            if (_fonts == null) return;
 
-            _fonts.GetFont(family.Trim(), fa =>
+            var path = ResolveFontPath(node.Style?.FontFamily, item?.Fonts);
+            if (string.IsNullOrEmpty(path)) return;
+
+            _fonts.GetFont(path, fa =>
             {
                 if (fa != null) ve.style.unityFontDefinition = new StyleFontDefinition(fa);
             });
+        }
+
+        /// <summary>
+        /// <c>style.fontFamily</c> → <c>Resources</c> path: a key in the campaign's own
+        /// <see cref="CampaignItem.Fonts"/> registry when it has one, otherwise the value is
+        /// itself the path. Returns <c>null</c> for an empty family.
+        /// </summary>
+        public static string ResolveFontPath(string family, IReadOnlyDictionary<string, string> itemFonts)
+        {
+            if (string.IsNullOrWhiteSpace(family)) return null;
+            family = family.Trim();
+
+            if (itemFonts != null && itemFonts.TryGetValue(family, out var mapped) && !string.IsNullOrWhiteSpace(mapped))
+                return mapped.Trim();
+            return family;
         }
 
         private void WireAction(VisualElement ve, CampaignNode node, CampaignItem item)

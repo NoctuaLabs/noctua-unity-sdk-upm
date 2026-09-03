@@ -69,6 +69,23 @@
     border-bottom-right-radius: 0;
 }
 
+/* Vertical scroll host: a view tree taller than the card scrolls instead of being
+   clipped; a shorter one still fills (content-container grows), so a fullscreen
+   image keeps its 100% height. */
+.campaign-mount-scroll {
+    flex-grow: 1;
+    flex-shrink: 1;
+    min-height: 0;
+}
+
+.campaign-mount-scroll .unity-scroll-view__content-viewport {
+    flex-grow: 1;
+}
+
+.campaign-mount-scroll .unity-scroll-view__content-container {
+    flex-grow: 1;
+}
+
 .campaign-mount {
     flex-grow: 1;
 }

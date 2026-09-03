@@ -12,8 +12,8 @@ namespace com.noctuagames.sdk.Campaign
     /// </summary>
     public sealed class NoctuaCampaign
     {
-        private const string ImpressionEvent = "campaign_impression";
-        private const string DismissEvent = "campaign_dismiss";
+        private const string ImpressionEvent = "live_ops_campaign_impression";
+        private const string DismissEvent = "live_ops_campaign_dismiss";
 
         private readonly ILogger _log = new NoctuaLogger(typeof(NoctuaCampaign));
         private readonly CampaignManager _manager;
@@ -50,7 +50,7 @@ namespace com.noctuagames.sdk.Campaign
 
             var env = new DefaultCampaignEnvironment(playerTags, locale);
             var assets = new CampaignAssetSource(isOffline: Noctua.IsOfflineMode);
-            var fonts = new CampaignFontSource(merged.Fonts);
+            var fonts = new CampaignFontSource();
 
             _manager = new CampaignManager(
                 merged, env, new CampaignFrequencyGate(),
@@ -136,7 +136,7 @@ namespace com.noctuagames.sdk.Campaign
         /// <summary>
         /// Closes the campaign popup if one is showing — e.g. from inside a deeplink handler
         /// after navigating the player away. No-op when nothing is showing. Fires
-        /// <c>campaign_dismiss</c> and <see cref="OnCampaignDismissed"/> like the close button.
+        /// <c>live_ops_campaign_dismiss</c> and <see cref="OnCampaignDismissed"/> like the close button.
         /// </summary>
         public void ClosePopup()
         {

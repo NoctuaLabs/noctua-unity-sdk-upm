@@ -87,7 +87,7 @@ namespace Tests.Runtime.Campaign
     }
 
     /// <summary>
-    /// Records requested font families and calls back with <see cref="Next"/> (null by
+    /// Records requested font Resources paths and calls back with <see cref="Next"/> (null by
     /// default — the renderer must handle "unknown/failed" gracefully).
     /// </summary>
     public sealed class FakeFontSource : ICampaignFontSource
@@ -95,9 +95,9 @@ namespace Tests.Runtime.Campaign
         public readonly List<string> Requested = new List<string>();
         public UnityEngine.TextCore.Text.FontAsset Next;
 
-        public void GetFont(string family, Action<UnityEngine.TextCore.Text.FontAsset> onLoaded)
+        public void GetFont(string resourcesPath, Action<UnityEngine.TextCore.Text.FontAsset> onLoaded)
         {
-            Requested.Add(family);
+            Requested.Add(resourcesPath);
             onLoaded?.Invoke(Next);
         }
     }

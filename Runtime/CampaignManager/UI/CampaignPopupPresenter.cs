@@ -1,4 +1,5 @@
 using System;
+using UnityEngine;
 using UnityEngine.UIElements;
 using com.noctuagames.sdk.UI;
 
@@ -21,8 +22,10 @@ namespace com.noctuagames.sdk.Campaign
 
         private VisualElement _root;
         private VisualElement _card;
+        private ScrollView _mountScroll;
         private VisualElement _mount;
         private Button _closeBtn;
+        private bool _safeAreaActive;
 
         private CampaignRenderer _renderer;
         private CampaignRuntimeController _controller;
@@ -52,10 +55,16 @@ namespace com.noctuagames.sdk.Campaign
 
             _root = View.Q<VisualElement>("Root");
             _card = View.Q<VisualElement>("Card");
+            _mountScroll = View.Q<ScrollView>("MountScroll");
             _mount = View.Q<VisualElement>("Mount");
             _closeBtn = View.Q<Button>("CloseButton");
 
-            if (_root != null) _root.usageHints = UsageHints.DynamicTransform;
+            if (_root != null)
+            {
+                _root.usageHints = UsageHints.DynamicTransform;
+                // Screen size / orientation changes → recompute the safe-area inset.
+                _root.RegisterCallback<GeometryChangedEvent>(_ => { if (IsShowing) ApplySafeArea(); });
+            }
             if (_closeBtn != null) _closeBtn.clicked += Close;
 
             Visible = false;
@@ -86,6 +95,7 @@ namespace com.noctuagames.sdk.Campaign
 
             TeardownController();
             _mount.Clear();
+            if (_mountScroll != null) _mountScroll.scrollOffset = Vector2.zero;
             _closing = false;
 
             _controller = new CampaignRuntimeController();
@@ -104,6 +114,10 @@ namespace com.noctuagames.sdk.Campaign
                 _card.EnableInClassList(FullscreenClass, item.Fullscreen);
                 _card.EnableInClassList(BorderlessClass, item.Borderless);
             }
+
+            // Edge-to-edge creatives must stay clear of the notch / home indicator.
+            _safeAreaActive = item.Fullscreen || item.Borderless;
+            ApplySafeArea();
 
             // Keep the close button on top of whatever the renderer built (a
             // full-bleed image would otherwise paint over it).
@@ -147,6 +161,39 @@ namespace com.noctuagames.sdk.Campaign
             IsShowing = false;
             _closing = false;
             _mount?.Clear();
+            _safeAreaActive = false;
+            ApplySafeArea();
+        }
+
+        /// <summary>
+        /// Insets <c>#Root</c>'s content by the device safe area when a fullscreen / borderless
+        /// creative is showing, so it clears the notch and home indicator. The dim background
+        /// still paints to the physical edges. No-op (and zeroes the padding) otherwise, or
+        /// until the panel has a usable layout — the <c>#Root</c> geometry callback retries.
+        /// </summary>
+        private void ApplySafeArea()
+        {
+            if (_root == null) return;
+
+            if (!_safeAreaActive)
+            {
+                _root.style.paddingTop = 0f;
+                _root.style.paddingRight = 0f;
+                _root.style.paddingBottom = 0f;
+                _root.style.paddingLeft = 0f;
+                return;
+            }
+
+            var refW = _root.panel?.visualTree?.layout.width ?? 0f;
+            if (float.IsNaN(refW) || refW < 1f || Screen.width < 1 || Screen.height < 1) return;
+
+            var scale = refW / Screen.width; // physical px → panel points
+            var safe = Screen.safeArea;      // origin bottom-left, physical px
+
+            _root.style.paddingLeft = safe.xMin * scale;
+            _root.style.paddingRight = (Screen.width - safe.xMax) * scale;
+            _root.style.paddingTop = (Screen.height - safe.yMax) * scale;
+            _root.style.paddingBottom = safe.yMin * scale;
         }
 
         private void TeardownController()
