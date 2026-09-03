@@ -46,7 +46,7 @@ namespace com.noctuagames.sdk
         /// Access the server-driven campaign feature (offer/reward popup + news/events feed).
         /// <c>null</c> until <see cref="InitAsync"/> has resolved remote config.
         /// </summary>
-        public static com.noctuagames.sdk.Campaign.NoctuaCampaign Campaign => Instance.Value._campaign;
+        public static com.noctuagames.sdk.Campaign.NoctuaCampaign LiveOpsCampaign => Instance.Value._campaign;
 
         /// <summary>Access loaded global configuration.</summary>
         public static GlobalConfig Config => Instance.Value._config;
