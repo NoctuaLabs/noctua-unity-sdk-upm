@@ -5,7 +5,7 @@ using Cysharp.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.UIElements;
 
-namespace com.noctuagames.sdk.Campaign
+namespace com.noctuagames.sdk.LiveOpsCampaign
 {
     /// <summary>
     /// The three widgets that carry runtime behaviour — <c>carousel</c> (paging + optional

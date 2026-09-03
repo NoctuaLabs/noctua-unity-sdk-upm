@@ -1,4 +1,4 @@
-namespace com.noctuagames.sdk.Campaign
+namespace com.noctuagames.sdk.LiveOpsCampaign
 {
     /// <summary>
     /// Narrow contract the renderer uses to fire a node's action without referencing the

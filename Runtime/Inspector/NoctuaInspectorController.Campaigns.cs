@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using Newtonsoft.Json;
 using UnityEngine;
 using UnityEngine.UIElements;
-using com.noctuagames.sdk.Campaign;
+using com.noctuagames.sdk.LiveOpsCampaign;
 
 namespace com.noctuagames.sdk.Inspector
 {

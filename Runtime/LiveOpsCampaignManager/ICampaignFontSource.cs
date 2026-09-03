@@ -1,7 +1,7 @@
 using System;
 using UnityEngine.TextCore.Text;
 
-namespace com.noctuagames.sdk.Campaign
+namespace com.noctuagames.sdk.LiveOpsCampaign
 {
     /// <summary>
     /// Narrow custom-font contract the renderer depends on. Implemented by

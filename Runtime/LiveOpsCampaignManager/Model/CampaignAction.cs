@@ -2,7 +2,7 @@ using System;
 using Newtonsoft.Json;
 using UnityEngine.Scripting;
 
-namespace com.noctuagames.sdk.Campaign
+namespace com.noctuagames.sdk.LiveOpsCampaign
 {
     /// <summary>
     /// The closed set of things a campaign button/tap can do. Anything the client

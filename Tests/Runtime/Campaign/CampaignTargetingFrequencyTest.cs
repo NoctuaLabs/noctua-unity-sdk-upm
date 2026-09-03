@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using com.noctuagames.sdk.Campaign;
+using com.noctuagames.sdk.LiveOpsCampaign;
 using NUnit.Framework;
 
 namespace Tests.Runtime.Campaign

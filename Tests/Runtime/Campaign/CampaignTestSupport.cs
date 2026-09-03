@@ -1,6 +1,6 @@
 using System;
 using System.Collections.Generic;
-using com.noctuagames.sdk.Campaign;
+using com.noctuagames.sdk.LiveOpsCampaign;
 using UnityEngine;
 using UnityEngine.UIElements;
 

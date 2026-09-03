@@ -3,7 +3,7 @@ using System.Linq;
 using Newtonsoft.Json;
 using UnityEngine.Scripting;
 
-namespace com.noctuagames.sdk.Campaign
+namespace com.noctuagames.sdk.LiveOpsCampaign
 {
     /// <summary>
     /// Top-level server-driven campaign payload. Delivered either in <c>noctuagg.json</c>

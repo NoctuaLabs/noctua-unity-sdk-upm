@@ -2,17 +2,17 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 
-namespace com.noctuagames.sdk.Campaign
+namespace com.noctuagames.sdk.LiveOpsCampaign
 {
     /// <summary>
     /// Per-device display-frequency enforcement for campaigns, persisted in
-    /// <c>PlayerPrefs</c> under <c>Noctua.Campaign.&lt;id&gt;.*</c>. Independent of the
+    /// <c>PlayerPrefs</c> under <c>Noctua.LiveOpsCampaign.&lt;id&gt;.*</c>. Independent of the
     /// IAA <c>AdFrequencyManager</c>; the persistence idiom mirrors <c>NoctuaWebContent</c>.
     /// The clock is injectable so it can be unit-tested without real time.
     /// </summary>
     public sealed class CampaignFrequencyGate
     {
-        private const string KeyPrefix = "Noctua.Campaign.";
+        private const string KeyPrefix = "Noctua.LiveOpsCampaign.";
         private readonly Func<DateTime> _utcNow;
         private readonly IPlayerPrefsStore _prefs;
 

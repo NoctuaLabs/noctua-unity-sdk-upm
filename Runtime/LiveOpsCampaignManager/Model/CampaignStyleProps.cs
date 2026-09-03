@@ -1,7 +1,7 @@
 using Newtonsoft.Json;
 using UnityEngine.Scripting;
 
-namespace com.noctuagames.sdk.Campaign
+namespace com.noctuagames.sdk.LiveOpsCampaign
 {
     /// <summary>
     /// A whitelisted subset of USS layout/appearance properties, expressed as JSON.

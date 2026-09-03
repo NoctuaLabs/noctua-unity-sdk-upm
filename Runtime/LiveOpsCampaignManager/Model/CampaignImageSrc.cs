@@ -1,7 +1,7 @@
 using Newtonsoft.Json;
 using UnityEngine.Scripting;
 
-namespace com.noctuagames.sdk.Campaign
+namespace com.noctuagames.sdk.LiveOpsCampaign
 {
     /// <summary>
     /// One entry in an <c>image</c> node's <c>props.srcset</c> — a candidate asset plus the

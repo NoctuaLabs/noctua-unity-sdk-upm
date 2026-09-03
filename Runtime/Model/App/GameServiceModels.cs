@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using Newtonsoft.Json;
 using UnityEngine.Scripting;
 using System;
-using com.noctuagames.sdk.Campaign;
+using com.noctuagames.sdk.LiveOpsCampaign;
 
 namespace com.noctuagames.sdk
 {
