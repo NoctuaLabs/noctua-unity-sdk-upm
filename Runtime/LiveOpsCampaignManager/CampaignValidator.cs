@@ -148,7 +148,7 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
 
         private static string ResolveLabel(CampaignNode node, CampaignItem item, out bool tokenMissing)
         {
-            var locKey = node.PropString("locKey");
+            var locKey = node.PropString("loc_key");
             if (!string.IsNullOrEmpty(locKey) && item?.Data != null && item.Data.TryGetValue(locKey, out var loc))
             {
                 return ResolveRequired(loc, item, out tokenMissing);

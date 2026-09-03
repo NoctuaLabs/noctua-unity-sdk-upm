@@ -34,7 +34,7 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
             var title = ResolveTokens(node.PropString("title"), item);
             if (!string.IsNullOrEmpty(title)) pb.title = title;
 
-            if (CampaignStyleMapper.TryColor(node.PropString("barColor"), out var barColor))
+            if (CampaignStyleMapper.TryColor(node.PropString("bar_color"), out var barColor))
             {
                 var fill = pb.Q(className: "unity-progress-bar__progress");
                 if (fill != null) fill.style.backgroundColor = barColor;
