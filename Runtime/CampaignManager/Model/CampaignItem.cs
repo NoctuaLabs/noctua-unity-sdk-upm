@@ -75,12 +75,28 @@ namespace com.noctuagames.sdk.Campaign
         public bool Fullscreen;
 
         /// <summary>
+        /// Raw JSON binding for <see cref="Borderless"/>. Null when the campaign omits
+        /// <c>"borderless"</c> — read <see cref="Borderless"/> for the effective value.
+        /// </summary>
+        [JsonProperty("borderless")]
+        public bool? BorderlessRaw;
+
+        /// <summary>
         /// Drop the card chrome (dark background, padding, rounded corners) but keep the popup
         /// centered and content-sized — the view tree draws its own frame. Use when the
         /// creative is a self-contained rounded card image.
+        /// <para>
+        /// Defaults to <c>true</c> when <c>"borderless"</c> is absent from the payload: most
+        /// campaign creatives are self-framed images. Set <c>"borderless": false</c> to opt
+        /// back into the SDK card chrome.
+        /// </para>
         /// </summary>
-        [JsonProperty("borderless")]
-        public bool Borderless;
+        [JsonIgnore]
+        public bool Borderless
+        {
+            get => BorderlessRaw ?? true;
+            set => BorderlessRaw = value;
+        }
 
         /// <summary>Effective widget-schema version (see <see cref="SchemaVersion"/>).</summary>
         public int EffectiveSchemaVersion(int configDefault) =>
