@@ -181,6 +181,26 @@ namespace Tests.Runtime.Campaign
         }
 
         [Test]
+        public void Countdown_WithIconUrl_RendersRow_WithIconRequestedAndFormattedLabel()
+        {
+            var end = System.DateTime.UtcNow.AddSeconds(65).ToString("o");
+            var node = CampaignFactory.Node(CampaignNode.TypeCountdown, new Dictionary<string, object>
+            {
+                { "end_ts", end }, { "prefix", "Ends in " },
+                { "icon_url", "https://cdn/clock.png" }, { "icon_size", 18 },
+            });
+
+            var ve = Render(node);
+
+            Assert.IsNotInstanceOf<Label>(ve);                              // now a row, not a bare Label
+            CollectionAssert.Contains(_images.Requested, "https://cdn/clock.png");
+            var text = ve.Q<Label>("campaign-countdown-label");
+            Assert.NotNull(text);
+            StringAssert.StartsWith("Ends in 00:0", text.text);
+            Assert.NotNull(ve.Q("campaign-countdown-icon"));
+        }
+
+        [Test]
         public void UnknownType_Rendered_AsNull_NoThrow()
         {
             var node = CampaignFactory.Node("hologram");

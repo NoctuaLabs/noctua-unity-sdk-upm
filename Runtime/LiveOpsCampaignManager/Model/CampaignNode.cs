@@ -33,7 +33,9 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
         /// Per-type scalar properties. Common keys:
         /// text/button: <c>text</c>, <c>loc_key</c>;
         /// image: <c>url</c>, <c>scale_mode</c>, <c>srcset</c>;
-        /// countdown: <c>end_ts</c> (ISO-8601 or unix seconds), <c>prefix</c>, <c>suffix</c>;
+        /// countdown: <c>end_ts</c> (ISO-8601 or unix seconds), <c>prefix</c>, <c>suffix</c>,
+        ///   <c>icon_url</c> (leading icon, supports tokens), <c>icon_size</c> (px, default 16),
+        ///   <c>icon_gap</c> (px, default 6), <c>icon_position</c> (<c>leading</c> | <c>trailing</c>);
         /// progressbar: <c>value</c>, <c>min</c>, <c>max</c>;
         /// carousel: <c>autoplay</c>, <c>interval_ms</c>, <c>loop</c>.
         /// </summary>
