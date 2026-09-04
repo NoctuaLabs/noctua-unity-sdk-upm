@@ -18,16 +18,19 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
         private readonly PanelSettings _panelSettings;
         private readonly NoctuaLocale _locale;
         private readonly CampaignRenderer _renderer;
+        private readonly ICampaignImageSource _images;
         private readonly GameObject _root;
         private readonly ILogger _log = new NoctuaLogger(typeof(CampaignUIHost));
 
         private CampaignPopupPresenter _popup;
 
-        public CampaignUIHost(PanelSettings panelSettings, NoctuaLocale locale, CampaignRenderer renderer)
+        public CampaignUIHost(PanelSettings panelSettings, NoctuaLocale locale, CampaignRenderer renderer,
+            ICampaignImageSource images = null)
         {
             _panelSettings = panelSettings;
             _locale = locale;
             _renderer = renderer;
+            _images = images;
 
             _root = new GameObject("NoctuaLiveOpsCampaignUI");
             UnityEngine.Object.DontDestroyOnLoad(_root);
@@ -41,7 +44,7 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
                 if (_popup == null)
                 {
                     _popup = Create<CampaignPopupPresenter>("CampaignPopupPresenter");
-                    _popup.Configure(_renderer);
+                    _popup.Configure(_renderer, _images);
                 }
                 return _popup;
             }
