@@ -151,6 +151,11 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
                 var url = CampaignTokens.Resolve(node.PropString("url"), data);
                 if (!string.IsNullOrWhiteSpace(url)) sink(url);
             }
+            else if (string.Equals(node.Type, CampaignNode.TypeCountdown, StringComparison.OrdinalIgnoreCase))
+            {
+                var iconUrl = CampaignTokens.Resolve(node.PropString("icon_url"), data);
+                if (!string.IsNullOrWhiteSpace(iconUrl)) sink(iconUrl);
+            }
 
             if (node.Children == null) return;
             foreach (var child in node.Children) CollectImageUrls(child, data, sink);

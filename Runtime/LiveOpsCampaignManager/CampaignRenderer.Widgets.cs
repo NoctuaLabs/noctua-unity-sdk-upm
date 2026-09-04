@@ -64,7 +64,40 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
                 RunCountdownLoop(Refresh, endUtc, controller.Token).Forget();
             }
 
-            return label;
+            var iconUrl = ResolveTokens(node.PropString("icon_url"), item);
+            if (string.IsNullOrEmpty(iconUrl) || _images == null)
+            {
+                return label; // no icon → a bare Label, unchanged
+            }
+
+            // Icon + text on one line. The node's `style` (pill background / radius / padding /
+            // text colour, which inherits) is applied by the caller to this row.
+            var row = new VisualElement { name = "campaign-countdown" };
+            row.style.flexDirection = FlexDirection.Row;
+            row.style.alignItems = Align.Center;
+            label.name = "campaign-countdown-label";
+
+            var iconSize = node.PropFloat("icon_size") ?? 16f;
+            var gap = node.PropFloat("icon_gap") ?? 6f;
+            var trailing = string.Equals(node.PropString("icon_position", "leading"), "trailing",
+                StringComparison.OrdinalIgnoreCase);
+
+            var icon = new VisualElement { name = "campaign-countdown-icon" };
+            icon.style.width = iconSize;
+            icon.style.height = iconSize;
+            icon.style.flexShrink = 0f;
+            icon.style.backgroundSize = new BackgroundSize(BackgroundSizeType.Contain);
+            if (trailing) icon.style.marginLeft = gap; else icon.style.marginRight = gap;
+
+            _renderUrls.Add(iconUrl);
+            _images.GetImage(iconUrl, tex =>
+            {
+                if (tex != null) icon.style.backgroundImage = new StyleBackground(tex);
+            });
+
+            if (trailing) { row.Add(label); row.Add(icon); }
+            else { row.Add(icon); row.Add(label); }
+            return row;
         }
 
         private static async UniTaskVoid RunCountdownLoop(Action refresh, DateTime endUtc, System.Threading.CancellationToken ct)
