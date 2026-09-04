@@ -208,21 +208,27 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
 
         /// <summary>
         /// Applies <see cref="CampaignItem.CloseButton"/> to the shell close button, resetting to
-        /// the USS default first so each campaign starts clean. <c>hidden</c> removes it;
-        /// <c>image_url</c> skins it (no chip background / border / glyph); <c>size</c> / <c>inset</c>
-        /// reposition it. A failed image load leaves the (now chrome-less) button — the creative
-        /// should also carry its own <c>dismiss</c> affordance in that case.
+        /// the USS default first so each campaign starts clean. Everything is overridable:
+        /// <c>hidden</c> removes it; <c>image_url</c> skins it (no chip chrome / glyph);
+        /// <c>size</c> / <c>width</c> / <c>height</c> resize it; <c>anchor</c> + <c>inset</c>,
+        /// explicit <c>top/right/bottom/left</c>, and <c>translate</c> place it anywhere on the
+        /// card. A failed image load leaves the chrome-less button — the creative should also
+        /// carry its own <c>dismiss</c> affordance in that case.
         /// </summary>
         private void ApplyCloseButton(CampaignItem item)
         {
             if (_closeBtn == null) return;
 
+            // Reset every property this method can touch → back to .campaign-close USS.
             _closeBtn.EnableInClassList(SkinnedCloseClass, false);
             _closeBtn.style.backgroundImage = StyleKeyword.Null;
             _closeBtn.style.width = StyleKeyword.Null;
             _closeBtn.style.height = StyleKeyword.Null;
             _closeBtn.style.top = StyleKeyword.Null;
             _closeBtn.style.right = StyleKeyword.Null;
+            _closeBtn.style.bottom = StyleKeyword.Null;
+            _closeBtn.style.left = StyleKeyword.Null;
+            _closeBtn.style.translate = StyleKeyword.Null;
             _closeBtn.style.display = StyleKeyword.Null;
             _closeBtn.text = "✕";
 
@@ -235,17 +241,42 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
                 return;
             }
 
-            if (cfg.Size is int size && size > 0)
+            // ---- size --------------------------------------------------------
+            if (CampaignStyleMapper.TryLength(cfg.Width, out var w)) _closeBtn.style.width = w;
+            else if (cfg.Size is int sw && sw > 0) _closeBtn.style.width = (float)sw;
+            if (CampaignStyleMapper.TryLength(cfg.Height, out var h)) _closeBtn.style.height = h;
+            else if (cfg.Size is int sh && sh > 0) _closeBtn.style.height = (float)sh;
+
+            // ---- placement -----------------------------------------------
+            // Any placement override escapes the .campaign-close USS baseline (top:14; right:14)
+            // by first clearing all four edges to their initial `auto`.
+            var hasEdge = cfg.Top != null || cfg.Right != null || cfg.Bottom != null || cfg.Left != null;
+            if (hasEdge || cfg.Anchor != null || cfg.Inset != null)
             {
-                _closeBtn.style.width = (float)size;
-                _closeBtn.style.height = (float)size;
-            }
-            if (cfg.Inset is int inset && inset >= 0)
-            {
-                _closeBtn.style.top = (float)inset;
-                _closeBtn.style.right = (float)inset;
+                _closeBtn.style.top = StyleKeyword.Initial;
+                _closeBtn.style.right = StyleKeyword.Initial;
+                _closeBtn.style.bottom = StyleKeyword.Initial;
+                _closeBtn.style.left = StyleKeyword.Initial;
             }
 
+            if (hasEdge)
+            {
+                if (CampaignStyleMapper.TryLength(cfg.Top, out var t)) _closeBtn.style.top = t;
+                if (CampaignStyleMapper.TryLength(cfg.Right, out var r)) _closeBtn.style.right = r;
+                if (CampaignStyleMapper.TryLength(cfg.Bottom, out var b)) _closeBtn.style.bottom = b;
+                if (CampaignStyleMapper.TryLength(cfg.Left, out var l)) _closeBtn.style.left = l;
+            }
+            else if (cfg.Anchor != null || cfg.Inset != null)
+            {
+                var inset = (float)(cfg.Inset ?? 14);
+                var anchor = (cfg.Anchor ?? "top-right").Trim().ToLowerInvariant().Replace('_', '-');
+                if (anchor.Contains("bottom")) _closeBtn.style.bottom = inset; else _closeBtn.style.top = inset;
+                if (anchor.Contains("left")) _closeBtn.style.left = inset; else _closeBtn.style.right = inset;
+            }
+
+            if (TryParseTranslate(cfg.Translate, out var translate)) _closeBtn.style.translate = translate;
+
+            // ---- skin --------------------------------------------------------
             var url = _renderer?.ResolveTokens(cfg.ImageUrl, item);
             if (string.IsNullOrEmpty(url) || _closeImages == null) return;
 
@@ -258,6 +289,28 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
             {
                 if (tex != null && _closeBtn != null) _closeBtn.style.backgroundImage = new StyleBackground(tex);
             });
+        }
+
+        /// <summary>Parses <c>"x y"</c> (two length tokens) into a <see cref="Translate"/>.</summary>
+        private static bool TryParseTranslate(string raw, out Translate value)
+        {
+            value = default;
+            if (string.IsNullOrWhiteSpace(raw)) return false;
+
+            var parts = raw.Trim().Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+            if (parts.Length == 1 && CampaignStyleMapper.TryLength(parts[0], out var only))
+            {
+                value = new Translate(only, only, 0f);
+                return true;
+            }
+            if (parts.Length >= 2
+                && CampaignStyleMapper.TryLength(parts[0], out var x)
+                && CampaignStyleMapper.TryLength(parts[1], out var y))
+            {
+                value = new Translate(x, y, 0f);
+                return true;
+            }
+            return false;
         }
 
         private void TeardownController()

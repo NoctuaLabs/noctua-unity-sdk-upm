@@ -43,5 +43,34 @@ namespace Tests.Runtime.Campaign
             Assert.AreEqual(44, cb.Size);
             Assert.AreEqual(10, cb.Inset);
         }
+
+        [Test]
+        public void Anchor_close_button_Maps()
+        {
+            var item = JsonConvert.DeserializeObject<CampaignItem>(
+                "{ \"id\": \"c\", \"close_button\": { \"anchor\": \"bottom-left\", \"inset\": 8 } }");
+
+            var cb = item.CloseButton;
+            Assert.AreEqual("bottom-left", cb.Anchor);
+            Assert.AreEqual(8, cb.Inset);
+        }
+
+        [Test]
+        public void ExplicitEdges_And_Translate_Map()
+        {
+            var item = JsonConvert.DeserializeObject<CampaignItem>(
+                "{ \"id\": \"c\", \"close_button\": { " +
+                "\"left\": \"50%\", \"top\": \"50%\", \"translate\": \"-50% -50%\", " +
+                "\"width\": \"48\", \"height\": \"48\" } }");
+
+            var cb = item.CloseButton;
+            Assert.AreEqual("50%", cb.Left);
+            Assert.AreEqual("50%", cb.Top);
+            Assert.IsNull(cb.Right);
+            Assert.IsNull(cb.Bottom);
+            Assert.AreEqual("-50% -50%", cb.Translate);
+            Assert.AreEqual("48", cb.Width);
+            Assert.AreEqual("48", cb.Height);
+        }
     }
 }
