@@ -154,7 +154,7 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
             if (ve == null) return null;
 
             ApplyStyleWithResponsive(ve, node, controller);
-            ApplyFontFamily(ve, node, item);
+            ApplyFontPath(ve, node, item);
             WireAction(ve, node, item);
             return ve;
         }
@@ -362,17 +362,17 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
         }
 
         /// <summary>
-        /// Resolves <c>style.fontFamily</c> to a font and applies it directly to
+        /// Resolves <c>style.font_path</c> to a font and applies it directly to
         /// <paramref name="ve"/>. UI Toolkit inherits <c>unityFontDefinition</c> to children, so
-        /// a <c>fontFamily</c> on a container also styles its text; setting it here on the text
+        /// a <c>font_path</c> on a container also styles its text; setting it here on the text
         /// element itself works whether or not a container carried one. A missing source, an
-        /// empty family, or a failed load leaves the panel's default font.
+        /// empty value, or a failed load leaves the panel's default font.
         /// </summary>
-        private void ApplyFontFamily(VisualElement ve, CampaignNode node, CampaignItem item)
+        private void ApplyFontPath(VisualElement ve, CampaignNode node, CampaignItem item)
         {
             if (_fonts == null) return;
 
-            var path = ResolveFontPath(node.Style?.FontFamily, item?.Fonts);
+            var path = ResolveFontPath(node.Style?.FontPath, item?.Fonts);
             if (string.IsNullOrEmpty(path)) return;
 
             _fonts.GetFont(path, fa =>
@@ -382,18 +382,18 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
         }
 
         /// <summary>
-        /// <c>style.fontFamily</c> → <c>Resources</c> path: a key in the campaign's own
+        /// <c>style.font_path</c> → <c>Resources</c> path: a key in the campaign's own
         /// <see cref="CampaignItem.Fonts"/> registry when it has one, otherwise the value is
-        /// itself the path. Returns <c>null</c> for an empty family.
+        /// itself the path. Returns <c>null</c> for an empty value.
         /// </summary>
-        public static string ResolveFontPath(string family, IReadOnlyDictionary<string, string> itemFonts)
+        public static string ResolveFontPath(string value, IReadOnlyDictionary<string, string> itemFonts)
         {
-            if (string.IsNullOrWhiteSpace(family)) return null;
-            family = family.Trim();
+            if (string.IsNullOrWhiteSpace(value)) return null;
+            value = value.Trim();
 
-            if (itemFonts != null && itemFonts.TryGetValue(family, out var mapped) && !string.IsNullOrWhiteSpace(mapped))
+            if (itemFonts != null && itemFonts.TryGetValue(value, out var mapped) && !string.IsNullOrWhiteSpace(mapped))
                 return mapped.Trim();
-            return family;
+            return value;
         }
 
         private void WireAction(VisualElement ve, CampaignNode node, CampaignItem item)

@@ -45,7 +45,7 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
         [JsonProperty("font_size")] public string FontSize;
         [JsonProperty("font_weight")] public string FontWeight;         // normal | bold | italic | bold-italic
         [JsonProperty("text_align")] public string TextAlign;           // upper-left ... middle-center ... lower-right
-        [JsonProperty("font_family")] public string FontFamily;         // a CampaignItem.fonts key, else a direct Resources path (e.g. "Fonts/Honk-Regular")
+        [JsonProperty("font_path")] public string FontPath;             // a CampaignItem.fonts key, else a direct Resources path (e.g. "Fonts/Honk-Regular")
         [JsonProperty("font_outline_width")] public string FontOutlineWidth; // "2" | "2px" — glyph stroke
         [JsonProperty("font_outline_color")] public string FontOutlineColor; // #RRGGBB[AA]
 
