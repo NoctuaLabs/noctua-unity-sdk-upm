@@ -313,11 +313,11 @@ namespace Tests.Runtime.Campaign
         }
 
         [Test]
-        public void FontFamily_OnText_QueriesFontSource_WithFamily()
+        public void FontPath_OnText_QueriesFontSource_WithValue()
         {
             var node = CampaignFactory.Node(CampaignNode.TypeText,
                 new Dictionary<string, object> { { "text", "hi" } },
-                style: new CampaignStyleProps { FontFamily = "Poppins" });
+                style: new CampaignStyleProps { FontPath = "Poppins" });
 
             Render(node);
 
@@ -325,10 +325,10 @@ namespace Tests.Runtime.Campaign
         }
 
         [Test]
-        public void FontFamily_OnContainer_QueriesFontSource_InheritancePath()
+        public void FontPath_OnContainer_QueriesFontSource_InheritancePath()
         {
             var node = CampaignFactory.Node(CampaignNode.TypeContainer,
-                style: new CampaignStyleProps { FontFamily = "Poppins" },
+                style: new CampaignStyleProps { FontPath = "Poppins" },
                 children: new[] { CampaignFactory.Node(CampaignNode.TypeText,
                     new Dictionary<string, object> { { "text", "hi" } }) });
 
@@ -338,12 +338,12 @@ namespace Tests.Runtime.Campaign
         }
 
         [Test]
-        public void FontFamily_SourceReturnsNull_NoThrow_ElementStillBuilt()
+        public void FontPath_SourceReturnsNull_NoThrow_ElementStillBuilt()
         {
             _fonts.Next = null; // unknown / failed / offline
             var node = CampaignFactory.Node(CampaignNode.TypeText,
                 new Dictionary<string, object> { { "text", "hi" } },
-                style: new CampaignStyleProps { FontFamily = "Missing" });
+                style: new CampaignStyleProps { FontPath = "Missing" });
 
             VisualElement ve = null;
             Assert.DoesNotThrow(() => ve = Render(node));
@@ -351,7 +351,7 @@ namespace Tests.Runtime.Campaign
         }
 
         [Test]
-        public void NoFontFamily_FontSourceNeverQueried()
+        public void NoFontPath_FontSourceNeverQueried()
         {
             var node = CampaignFactory.Node(CampaignNode.TypeText,
                 new Dictionary<string, object> { { "text", "hi" } });

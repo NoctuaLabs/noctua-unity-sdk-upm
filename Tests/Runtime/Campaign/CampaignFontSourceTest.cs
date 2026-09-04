@@ -83,13 +83,13 @@ namespace Tests.Runtime.Campaign
         }
 
         [Test]
-        public void BlankRegistryValue_FallsThroughToTheFamilyString()
+        public void BlankRegistryValue_FallsThroughToTheRawValue()
         {
             Assert.AreEqual("Blank", CampaignRenderer.ResolveFontPath("Blank", ItemFonts));
         }
 
         [Test]
-        public void EmptyFamily_ReturnsNull()
+        public void EmptyValue_ReturnsNull()
         {
             Assert.IsNull(CampaignRenderer.ResolveFontPath(null, ItemFonts));
             Assert.IsNull(CampaignRenderer.ResolveFontPath("   ", null));

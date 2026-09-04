@@ -8,7 +8,7 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
     /// <summary>
     /// Resolves a <c>Resources</c> path to a UI Toolkit <see cref="FontAsset"/>. The path comes
     /// from a campaign's own font registry (<see cref="CampaignItem.Fonts"/>) or straight from
-    /// <c>style.fontFamily</c> when it is written as a path. The path may point at either a TextCore
+    /// <c>style.font_path</c> when it is written as a path. The path may point at either a TextCore
     /// <see cref="FontAsset"/> the game bundles, or the raw <c>.ttf</c>/<c>.otf</c> (imported as
     /// <see cref="Font"/>) — in the latter case a dynamic <see cref="FontAsset"/> is built at
     /// runtime via <see cref="FontAsset.CreateFontAsset(Font)"/>. A <c>TMP_FontAsset</c> at the
