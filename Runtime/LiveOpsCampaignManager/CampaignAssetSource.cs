@@ -122,15 +122,23 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
             return allCached;
         }
 
-        /// <summary>Warms the cache for every <c>image</c> node URL in <paramref name="config"/>.</summary>
+        /// <summary>
+        /// Warms the cache for every <c>image</c> node URL in <paramref name="config"/>, plus each
+        /// campaign's custom close-button image.
+        /// </summary>
         public void Preload(CampaignConfig config)
         {
             if (config?.Campaigns == null) return;
 
             foreach (var item in config.Campaigns)
             {
-                if (item?.View == null) continue;
-                CollectImageUrls(item.View, item.Data, url => GetImage(url, null));
+                if (item == null) continue;
+
+                if (item.View != null)
+                    CollectImageUrls(item.View, item.Data, url => GetImage(url, null));
+
+                var closeUrl = CampaignTokens.Resolve(item.CloseButton?.ImageUrl, item.Data);
+                if (!string.IsNullOrWhiteSpace(closeUrl)) GetImage(closeUrl, null);
             }
         }
 

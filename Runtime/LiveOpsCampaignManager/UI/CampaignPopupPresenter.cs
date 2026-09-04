@@ -16,6 +16,7 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
         private const string ShownClass = "campaign--shown";
         private const string FullscreenClass = "campaign-card--fullscreen";
         private const string BorderlessClass = "campaign-card--borderless";
+        private const string SkinnedCloseClass = "campaign-close--skinned";
         private const int ExitTransitionMs = 240;
 
         private readonly ILogger _log = new NoctuaLogger(typeof(CampaignPopupPresenter));
@@ -28,6 +29,7 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
         private bool _safeAreaActive;
 
         private CampaignRenderer _renderer;
+        private ICampaignImageSource _closeImages;
         private CampaignRuntimeController _controller;
         private Action<CampaignItem> _onShown;
         private Action _onClosed;
@@ -70,8 +72,15 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
             Visible = false;
         }
 
-        /// <summary>Injects the shared renderer. Call once, before the first <see cref="Show"/>.</summary>
-        public void Configure(CampaignRenderer renderer) => _renderer = renderer;
+        /// <summary>
+        /// Injects the shared renderer and the image source used to skin a custom close button.
+        /// Call once, before the first <see cref="Show"/>.
+        /// </summary>
+        public void Configure(CampaignRenderer renderer, ICampaignImageSource closeImages = null)
+        {
+            _renderer = renderer;
+            _closeImages = closeImages;
+        }
 
         /// <summary>Wires lifecycle callbacks (all optional).</summary>
         public void SetCallbacks(Action<CampaignItem> onShown, Action onClosed, Action onFailed)
@@ -122,6 +131,7 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
             // Keep the close button on top of whatever the renderer built (a
             // full-bleed image would otherwise paint over it).
             _closeBtn?.BringToFront();
+            ApplyCloseButton(item);
 
             Visible = true;
             IsShowing = true;
@@ -194,6 +204,60 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
             _root.style.paddingRight = (Screen.width - safe.xMax) * scale;
             _root.style.paddingTop = (Screen.height - safe.yMax) * scale;
             _root.style.paddingBottom = safe.yMin * scale;
+        }
+
+        /// <summary>
+        /// Applies <see cref="CampaignItem.CloseButton"/> to the shell close button, resetting to
+        /// the USS default first so each campaign starts clean. <c>hidden</c> removes it;
+        /// <c>image_url</c> skins it (no chip background / border / glyph); <c>size</c> / <c>inset</c>
+        /// reposition it. A failed image load leaves the (now chrome-less) button — the creative
+        /// should also carry its own <c>dismiss</c> affordance in that case.
+        /// </summary>
+        private void ApplyCloseButton(CampaignItem item)
+        {
+            if (_closeBtn == null) return;
+
+            _closeBtn.EnableInClassList(SkinnedCloseClass, false);
+            _closeBtn.style.backgroundImage = StyleKeyword.Null;
+            _closeBtn.style.width = StyleKeyword.Null;
+            _closeBtn.style.height = StyleKeyword.Null;
+            _closeBtn.style.top = StyleKeyword.Null;
+            _closeBtn.style.right = StyleKeyword.Null;
+            _closeBtn.style.display = StyleKeyword.Null;
+            _closeBtn.text = "✕";
+
+            var cfg = item?.CloseButton;
+            if (cfg == null) return;
+
+            if (cfg.Hidden)
+            {
+                _closeBtn.style.display = DisplayStyle.None;
+                return;
+            }
+
+            if (cfg.Size is int size && size > 0)
+            {
+                _closeBtn.style.width = (float)size;
+                _closeBtn.style.height = (float)size;
+            }
+            if (cfg.Inset is int inset && inset >= 0)
+            {
+                _closeBtn.style.top = (float)inset;
+                _closeBtn.style.right = (float)inset;
+            }
+
+            var url = _renderer?.ResolveTokens(cfg.ImageUrl, item);
+            if (string.IsNullOrEmpty(url) || _closeImages == null) return;
+
+            _closeBtn.EnableInClassList(SkinnedCloseClass, true);
+            _closeBtn.text = string.Empty;
+
+            _closeImages.Pin(new[] { url });
+            _controller?.OnDispose(() => _closeImages.Unpin(new[] { url }));
+            _closeImages.GetImage(url, tex =>
+            {
+                if (tex != null && _closeBtn != null) _closeBtn.style.backgroundImage = new StyleBackground(tex);
+            });
         }
 
         private void TeardownController()

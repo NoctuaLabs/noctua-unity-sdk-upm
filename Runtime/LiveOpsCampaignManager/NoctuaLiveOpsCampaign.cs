@@ -75,7 +75,7 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
                 onDispatched: (item, _) => { if (item != null) SafeInvoke(OnCampaignClicked, item.Id); });
 
             var renderer = new CampaignRenderer(_dispatcher, assets, fonts);
-            _host = new CampaignUIHost(panelSettings, locale, renderer);
+            _host = new CampaignUIHost(panelSettings, locale, renderer, assets);
         }
 
         /// <summary>The resolver behind this facade — read by the sandbox Inspector.</summary>

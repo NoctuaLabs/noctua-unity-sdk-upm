@@ -85,6 +85,13 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
         public bool Fullscreen;
 
         /// <summary>
+        /// Optional override for the popup's built-in close button (hide it, or skin it with a
+        /// custom image + size + inset). Null → the SDK's default "✕" chip.
+        /// </summary>
+        [JsonProperty("close_button")]
+        public CampaignCloseButton CloseButton;
+
+        /// <summary>
         /// Raw JSON binding for <see cref="Borderless"/>. Null when the campaign omits
         /// <c>"borderless"</c> — read <see cref="Borderless"/> for the effective value.
         /// </summary>
