@@ -30,6 +30,7 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
         private readonly ICampaignImageSource _images;
         private readonly ICampaignFontSource _fonts;
         private readonly ILogger _log;
+        private readonly Func<Vector2> _viewportSize;
 
         private const string LogTag = "[campaign_render]";
 
@@ -39,14 +40,35 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
         private bool _budgetExceeded;
         private readonly List<string> _renderUrls = new List<string>();
 
+        /// <param name="viewportSize">
+        /// Overrides how the responsive orientation is measured. Defaults to the panel the
+        /// element is attached to, falling back to <c>Screen</c>. Tests inject this because an
+        /// EditMode panel takes its size from the Game view, so the landscape branch is
+        /// otherwise unreachable.
+        /// </param>
         public CampaignRenderer(ICampaignActions actions, ICampaignImageSource images,
-            ICampaignFontSource fonts = null, ILogger log = null)
+            ICampaignFontSource fonts = null, ILogger log = null, Func<Vector2> viewportSize = null)
         {
             _actions = actions;
             _images = images;
             _fonts = fonts;
             _log = log ?? new NoctuaLogger(typeof(CampaignRenderer));
+            _viewportSize = viewportSize;
         }
+
+        /// <summary>
+        /// The <c>responsive</c> key for a viewport of <paramref name="width"/> ×
+        /// <paramref name="height"/>. A square viewport reads as portrait, matching the
+        /// admin's default orientation.
+        /// </summary>
+        public static string ResolveOrientationKey(float width, float height) =>
+            width > height ? OrientationLandscape : OrientationPortrait;
+
+        /// <summary>Responsive override keys (<see cref="CampaignNode.Responsive"/>).</summary>
+        public const string OrientationPortrait = "portrait";
+
+        /// <inheritdoc cref="OrientationPortrait"/>
+        public const string OrientationLandscape = "landscape";
 
         /// <summary>
         /// Builds the view for <paramref name="item"/>. Returns <c>null</c> when the campaign's
@@ -104,6 +126,17 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
         public VisualElement Render(CampaignNode node, CampaignItem item, CampaignRuntimeController controller)
         {
             if (node == null) return null;
+
+            // A top-level Render() is its own pass. RenderCampaign seeds the budget for a whole
+            // tree and spends it down; without this, calling Render() directly afterwards — or
+            // instead of RenderCampaign, which the public API allows — would meet an already
+            // spent budget and return null for every node. Only the outermost call re-seeds, so
+            // a tree that genuinely blows the cap mid-walk (depth > 0) still gets truncated.
+            if (_depth == 0 && _nodeBudget <= 0)
+            {
+                _nodeBudget = MaxNodes;
+                _budgetExceeded = false;
+            }
 
             if (_depth >= MaxDepth)
             {
@@ -345,9 +378,8 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
             void ReapplyForOrientation()
             {
                 CampaignStyleMapper.Apply(ve, node.Style);
-                var key = (ve.panel?.visualTree?.layout.width ?? Screen.width)
-                          > (ve.panel?.visualTree?.layout.height ?? Screen.height)
-                    ? "landscape" : "portrait";
+                var viewport = ViewportSize(ve);
+                var key = ResolveOrientationKey(viewport.x, viewport.y);
                 if (node.Responsive.TryGetValue(key, out var overrideStyle))
                 {
                     CampaignStyleMapper.Apply(ve, overrideStyle);
@@ -359,6 +391,20 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
             EventCallback<GeometryChangedEvent> cb = _ => ReapplyForOrientation();
             ve.RegisterCallback<GeometryChangedEvent>(cb);
             controller?.OnDispose(() => ve.UnregisterCallback<GeometryChangedEvent>(cb));
+        }
+
+        /// <summary>
+        /// The viewport the responsive overrides are measured against: the injected override,
+        /// else the attached panel, else the screen.
+        /// </summary>
+        private Vector2 ViewportSize(VisualElement ve)
+        {
+            if (_viewportSize != null) return _viewportSize();
+
+            var layout = ve?.panel?.visualTree?.layout;
+            return layout.HasValue
+                ? new Vector2(layout.Value.width, layout.Value.height)
+                : new Vector2(Screen.width, Screen.height);
         }
 
         /// <summary>

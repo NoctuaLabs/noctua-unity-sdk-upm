@@ -27,6 +27,8 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
         private VisualElement _mount;
         private Button _closeBtn;
         private bool _safeAreaActive;
+        private VisualElement _fitBox;
+        private float _fitScale = 1f;
 
         private CampaignRenderer _renderer;
         private ICampaignImageSource _closeImages;
@@ -104,6 +106,8 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
 
             TeardownController();
             _mount.Clear();
+            _fitBox = null;
+            _fitScale = 1f;
             if (_mountScroll != null) _mountScroll.scrollOffset = Vector2.zero;
             _closing = false;
 
@@ -116,7 +120,7 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
                 return;
             }
 
-            _mount.Add(built);
+            MountFitted(built, item);
 
             if (_card != null)
             {
@@ -171,8 +175,81 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
             IsShowing = false;
             _closing = false;
             _mount?.Clear();
+            _fitBox = null;
+            _fitScale = 1f;
             _safeAreaActive = false;
             ApplySafeArea();
+        }
+
+        /// <summary>
+        /// Attaches the rendered tree, wrapped in a box that shrinks it to fit the card when
+        /// the campaign's design box is bigger than the space available — see
+        /// <see cref="CampaignPopupFit"/> for why that happens and why clipping is the wrong
+        /// answer.
+        ///
+        /// The wrapper is what carries the fitted size in layout: UI Toolkit's <c>scale</c> is
+        /// a transform, so scaling the tree alone would shrink what you see while it still
+        /// reserved — and overflowed — its full design width. The tree keeps its authored box
+        /// and scales from its top-left corner into the wrapper, so absolutely positioned
+        /// children keep their design coordinates and come along with it.
+        ///
+        /// A campaign whose root is elastic (percentage / auto box) is mounted as-is.
+        /// </summary>
+        private void MountFitted(VisualElement built, CampaignItem item)
+        {
+            if (_card == null || !CampaignPopupFit.TryDesignSize(item?.View?.Style, out var dw, out var dh))
+            {
+                _mount.Add(built);
+                return;
+            }
+
+            var fitBox = new VisualElement { name = "FitBox" };
+            fitBox.style.width = dw;
+            fitBox.style.height = dh;
+            fitBox.style.flexShrink = 0f;
+            fitBox.style.alignSelf = Align.Center;
+            fitBox.style.overflow = Overflow.Hidden;
+
+            built.style.transformOrigin = new TransformOrigin(Length.Percent(0), Length.Percent(0), 0f);
+            fitBox.Add(built);
+            _mount.Add(fitBox);
+
+            _fitBox = fitBox;
+            _fitScale = 1f;
+
+            // The card only has a measurable size once it has been laid out, and that size
+            // changes with the safe-area inset and (on an unlocked build) rotation.
+            EventCallback<GeometryChangedEvent> onGeometry = _ => ApplyFit(built, dw, dh);
+            _card.RegisterCallback(onGeometry);
+            _controller?.OnDispose(() => _card.UnregisterCallback(onGeometry));
+
+            ApplyFit(built, dw, dh);
+        }
+
+        /// <summary>
+        /// Rescales the mounted tree to the card's current content box. Converges in one pass:
+        /// the scale is always recomputed from the unchanged design size rather than compounded,
+        /// so re-entering from the geometry change this method itself causes lands on the same
+        /// value and the epsilon guard stops the loop.
+        /// </summary>
+        private void ApplyFit(VisualElement built, float designWidth, float designHeight)
+        {
+            if (_fitBox == null || _card == null || built == null) return;
+
+            var box = _card.contentRect;
+            var scale = CampaignPopupFit.ScaleFor(designWidth, designHeight, box.width, box.height);
+            if (Mathf.Abs(scale - _fitScale) < 0.001f) return;
+
+            _fitScale = scale;
+            built.style.scale = new Scale(new Vector2(scale, scale));
+            _fitBox.style.width = designWidth * scale;
+            _fitBox.style.height = designHeight * scale;
+
+            if (scale < 1f)
+            {
+                _log.Debug($"popup scaled to {scale:0.###} — design {designWidth}x{designHeight} " +
+                           $"exceeds the card ({box.width:0.#}x{box.height:0.#}); check the campaign's orientation");
+            }
         }
 
         /// <summary>

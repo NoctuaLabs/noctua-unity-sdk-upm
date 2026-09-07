@@ -107,11 +107,15 @@ namespace Tests.Runtime.Campaign
             {
                 fixture.Add(button);
                 using var e = ClickEvent.GetPooled();
-                button.SendEvent(e); // SendEvent sets e.target to the receiver when unset
+                e.target = button; // an untargeted pooled event is dropped, not routed
+                button.SendEvent(e);
             }
 
             Assert.AreEqual(1, _actions.Calls.Count);
-            Assert.AreSame(action, _actions.Calls[0].action);
+            // Not the same instance: WireAction dispatches a token-resolved copy (see
+            // Action_ProductId_TokenResolvedBeforeDispatch), so compare what it carries.
+            Assert.AreEqual(action.TypeRaw, _actions.Calls[0].action.TypeRaw);
+            Assert.AreEqual(CampaignActionType.Dismiss, _actions.Calls[0].action.Type);
         }
 
         [Test]
@@ -293,9 +297,13 @@ namespace Tests.Runtime.Campaign
                 { "portrait", new CampaignStyleProps { Width = "77" } },
             };
 
-            var ve = Render(node);
+            // Detached elements have no panel, so orientation would fall back to `Screen` —
+            // which a -nographics batch run reports as landscape. State the viewport instead
+            // of depending on the host. See CampaignPopupFitTest for the landscape half.
+            var renderer = new CampaignRenderer(_actions, _images, _fonts,
+                viewportSize: () => new Vector2(360f, 800f));
+            var ve = renderer.Render(node, null, _controller);
 
-            // No panel in EditMode → orientation resolves to portrait (Screen defaults).
             Assert.AreEqual(77f, ve.style.width.value.value);
         }
 
@@ -313,6 +321,7 @@ namespace Tests.Runtime.Campaign
             {
                 fixture.Add(button);
                 using var e = ClickEvent.GetPooled();
+                e.target = button;
                 button.SendEvent(e);
             }
 
