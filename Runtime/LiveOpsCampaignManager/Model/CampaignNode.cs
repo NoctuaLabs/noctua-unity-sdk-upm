@@ -20,9 +20,6 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
 
         /// <summary>Countdown end instant.</summary>
         public const string PropEndTimestamp = "end_timestamp";
-
-        /// <summary>Pre-rename spelling of <see cref="PropEndTimestamp"/>.</summary>
-        public const string PropEndTimestampLegacy = "end_ts";
         public const string TypeButton = "button";
         public const string TypeSpacer = "spacer";
         public const string TypeDivider = "divider";
@@ -39,7 +36,7 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
         /// Per-type scalar properties. Common keys:
         /// text/button: <c>text</c>, <c>loc_key</c>;
         /// image: <c>url</c>, <c>scale_mode</c>, <c>srcset</c>;
-        /// countdown: <c>end_timestamp</c> (ISO-8601 or unix seconds; <c>end_ts</c> pre-rename), <c>prefix</c>, <c>suffix</c>,
+        /// countdown: <c>end_timestamp</c> (ISO-8601 or unix seconds), <c>prefix</c>, <c>suffix</c>,
         ///   <c>icon_url</c> (leading icon, supports tokens), <c>icon_size</c> (px, default 16),
         ///   <c>icon_gap</c> (px, default 6), <c>icon_position</c> (<c>leading</c> | <c>trailing</c>);
         /// progressbar: <c>value</c>, <c>min</c>, <c>max</c>;
@@ -75,20 +72,11 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
         }
 
         /// <summary>
-        /// The countdown's end instant, read from <c>end_timestamp</c> and falling back
-        /// to the pre-rename <c>end_ts</c>.
-        ///
-        /// Both are accepted because the two ends of this contract ship separately: a
-        /// payload written by an admin that has been renamed can reach a client that
-        /// has not, and vice versa. A countdown that stops resolving takes its whole
-        /// campaign off the air, so the fallback stays until no live payload uses the
-        /// old key.
+        /// The countdown's end instant. Read through here rather than a bare
+        /// <see cref="PropString"/> at each call site so the validator and the widget
+        /// cannot drift apart on which key they read.
         /// </summary>
-        public string EndTimestamp()
-        {
-            var value = PropString(PropEndTimestamp);
-            return string.IsNullOrWhiteSpace(value) ? PropString(PropEndTimestampLegacy) : value;
-        }
+        public string EndTimestamp() => PropString(PropEndTimestamp);
 
         /// <summary>Reads a float prop, or <c>null</c> when missing/unparseable.</summary>
         public float? PropFloat(string key)

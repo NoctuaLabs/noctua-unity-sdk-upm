@@ -106,16 +106,16 @@ namespace Tests.Runtime.Campaign
         }
 
         [Test]
-        public void Countdown_UnparseableEndTs_Fails()
+        public void Countdown_UnparseableEndTimestamp_Fails()
         {
             var view = CampaignFactory.Node(CampaignNode.TypeCountdown,
-                new Dictionary<string, object> { { "end_ts", "soon" } });
+                new Dictionary<string, object> { { "end_timestamp", "soon" } });
             Assert.IsFalse(Valid(Popup(view), out var err));
             StringAssert.Contains("end_timestamp", err);
         }
 
         [Test]
-        public void Countdown_MissingEndTs_Fails()
+        public void Countdown_MissingEndTimestamp_Fails()
         {
             var view = CampaignFactory.Node(CampaignNode.TypeCountdown);
             Assert.IsFalse(Valid(Popup(view), out var err));
@@ -126,11 +126,11 @@ namespace Tests.Runtime.Campaign
         public void Countdown_IsoAndUnix_Pass()
         {
             var iso = CampaignFactory.Node(CampaignNode.TypeCountdown,
-                new Dictionary<string, object> { { "end_ts", "2026-09-01T11:42:27Z" } });
+                new Dictionary<string, object> { { "end_timestamp", "2026-09-01T11:42:27Z" } });
             Assert.IsTrue(Valid(Popup(iso), out _));
 
             var unix = CampaignFactory.Node(CampaignNode.TypeCountdown,
-                new Dictionary<string, object> { { "end_ts", "1790000000" } });
+                new Dictionary<string, object> { { "end_timestamp", "1790000000" } });
             Assert.IsTrue(Valid(Popup(unix), out _));
         }
 
@@ -253,29 +253,6 @@ namespace Tests.Runtime.Campaign
             StringAssert.StartsWith("invalid:", mgr.LastResolutions[0].Reason);
         }
     
-        [Test]
-        public void Countdown_AcceptsPreRenameEndTsKey()
-        {
-            // The admin and the client ship separately, so a payload written
-            // before the rename still reaches an updated client. A countdown
-            // that stopped resolving would take the whole campaign off the air.
-            var view = CampaignFactory.Node(CampaignNode.TypeCountdown,
-                new Dictionary<string, object> { { "end_ts", "2026-12-31T23:59:59Z" } });
 
-            Assert.IsTrue(Valid(Popup(view), out _));
-        }
-
-        [Test]
-        public void Countdown_PrefersEndTimestampOverLegacyKey()
-        {
-            var view = CampaignFactory.Node(CampaignNode.TypeCountdown,
-                new Dictionary<string, object>
-                {
-                    { "end_ts", "not-a-date" },
-                    { "end_timestamp", "2026-12-31T23:59:59Z" },
-                });
-
-            Assert.IsTrue(Valid(Popup(view), out _));
-        }
 }
 }
