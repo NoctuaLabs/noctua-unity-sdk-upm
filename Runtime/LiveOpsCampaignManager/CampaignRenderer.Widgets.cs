@@ -48,7 +48,7 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
             var label = new Label { name = "campaign-countdown" };
             var prefix = ResolveTokens(node.PropString("prefix", string.Empty), item);
             var suffix = ResolveTokens(node.PropString("suffix", string.Empty), item);
-            var endUtc = ParseEndTimestamp(node.PropString("end_ts"), item);
+            var endUtc = ParseEndTimestamp(node.EndTimestamp(), item);
 
             void Refresh()
             {
@@ -259,7 +259,7 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
                 return dt;
             }
 
-            _log.Warning($"{LogTag} countdown end_ts '{raw}' unparseable in campaign '{item?.Id}'");
+            _log.Warning($"{LogTag} countdown end_timestamp '{raw}' unparseable in campaign '{item?.Id}'");
             return DateTime.UtcNow;
         }
 

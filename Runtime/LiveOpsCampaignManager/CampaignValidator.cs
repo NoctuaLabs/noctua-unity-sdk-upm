@@ -78,10 +78,10 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
 
                 case CampaignNode.TypeCountdown:
                 {
-                    var endTs = ResolveRequired(node.PropString("end_ts"), item, out var endMissing);
+                    var endTs = ResolveRequired(node.EndTimestamp(), item, out var endMissing);
                     if (string.IsNullOrWhiteSpace(endTs) || endMissing || !CanParseTimestamp(endTs))
                     {
-                        error = "countdown node: missing or unparseable 'end_ts'";
+                        error = "countdown node: missing or unparseable 'end_timestamp'";
                         return false;
                     }
                     break;

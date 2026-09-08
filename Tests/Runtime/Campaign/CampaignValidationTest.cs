@@ -111,7 +111,7 @@ namespace Tests.Runtime.Campaign
             var view = CampaignFactory.Node(CampaignNode.TypeCountdown,
                 new Dictionary<string, object> { { "end_ts", "soon" } });
             Assert.IsFalse(Valid(Popup(view), out var err));
-            StringAssert.Contains("end_ts", err);
+            StringAssert.Contains("end_timestamp", err);
         }
 
         [Test]
@@ -119,7 +119,7 @@ namespace Tests.Runtime.Campaign
         {
             var view = CampaignFactory.Node(CampaignNode.TypeCountdown);
             Assert.IsFalse(Valid(Popup(view), out var err));
-            StringAssert.Contains("end_ts", err);
+            StringAssert.Contains("end_timestamp", err);
         }
 
         [Test]
@@ -252,5 +252,30 @@ namespace Tests.Runtime.Campaign
             Assert.AreEqual(0, mgr.GetActiveCampaigns(CampaignItem.EngagementPurchase).Count);
             StringAssert.StartsWith("invalid:", mgr.LastResolutions[0].Reason);
         }
-    }
+    
+        [Test]
+        public void Countdown_AcceptsPreRenameEndTsKey()
+        {
+            // The admin and the client ship separately, so a payload written
+            // before the rename still reaches an updated client. A countdown
+            // that stopped resolving would take the whole campaign off the air.
+            var view = CampaignFactory.Node(CampaignNode.TypeCountdown,
+                new Dictionary<string, object> { { "end_ts", "2026-12-31T23:59:59Z" } });
+
+            Assert.IsTrue(Valid(Popup(view), out _));
+        }
+
+        [Test]
+        public void Countdown_PrefersEndTimestampOverLegacyKey()
+        {
+            var view = CampaignFactory.Node(CampaignNode.TypeCountdown,
+                new Dictionary<string, object>
+                {
+                    { "end_ts", "not-a-date" },
+                    { "end_timestamp", "2026-12-31T23:59:59Z" },
+                });
+
+            Assert.IsTrue(Valid(Popup(view), out _));
+        }
+}
 }
