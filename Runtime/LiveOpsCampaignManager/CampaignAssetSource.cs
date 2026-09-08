@@ -146,6 +146,13 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
         {
             if (node == null) return;
 
+            // Any node can carry background_image, so this is checked before the
+            // per-type props rather than as one more branch beside them --
+            // otherwise a button drawn on artwork would miss the prefetch and
+            // pop in after the popup is already on screen.
+            var backgroundUrl = CampaignTokens.Resolve(node.Style?.BackgroundImage, data);
+            if (!string.IsNullOrWhiteSpace(backgroundUrl)) sink(backgroundUrl);
+
             if (string.Equals(node.Type, CampaignNode.TypeImage, StringComparison.OrdinalIgnoreCase))
             {
                 var url = CampaignTokens.Resolve(node.PropString("url"), data);

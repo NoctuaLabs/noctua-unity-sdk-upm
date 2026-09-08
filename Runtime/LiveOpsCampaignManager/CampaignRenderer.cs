@@ -188,6 +188,7 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
 
             ApplyStyleWithResponsive(ve, node, controller);
             ApplyFontPath(ve, node, item);
+            ApplyBackgroundImage(ve, node, item);
             WireAction(ve, node, item);
             return ve;
         }
@@ -212,14 +213,7 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
         {
             var ve = new VisualElement { name = "campaign-image" };
 
-            var scaleMode = node.PropString("scale_mode", "contain")
-                .Replace("-", string.Empty).Replace("_", string.Empty).ToLowerInvariant();
-            ve.style.backgroundSize = scaleMode switch
-            {
-                "cover" or "scaleandcrop" => new BackgroundSize(BackgroundSizeType.Cover),
-                "stretch" or "stretchtofill" => new BackgroundSize(Length.Percent(100), Length.Percent(100)),
-                _ => new BackgroundSize(BackgroundSizeType.Contain),
-            };
+            ve.style.backgroundSize = ParseBackgroundSize(node.PropString("scale_mode", "contain"));
 
             var url = ResolveTokens(node.PropString("url"), item);
 
@@ -414,6 +408,54 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
         /// element itself works whether or not a container carried one. A missing source, an
         /// empty value, or a failed load leaves the panel's default font.
         /// </summary>
+        /// <summary>
+        /// Maps a scale-mode word onto a <see cref="UnityEngine.UIElements.BackgroundSize"/>.
+        /// Shared by the <c>image</c> node's <c>scale_mode</c> prop and the
+        /// <c>background_size</c> style so the same word means the same thing in both.
+        /// Anything unrecognised falls back to contain, which crops nothing.
+        /// </summary>
+        private static BackgroundSize ParseBackgroundSize(string raw)
+        {
+            var mode = (raw ?? string.Empty)
+                .Replace("-", string.Empty).Replace("_", string.Empty).ToLowerInvariant();
+            return mode switch
+            {
+                "cover" or "scaleandcrop" => new BackgroundSize(BackgroundSizeType.Cover),
+                "stretch" or "stretchtofill" => new BackgroundSize(Length.Percent(100), Length.Percent(100)),
+                _ => new BackgroundSize(BackgroundSizeType.Contain),
+            };
+        }
+
+        /// <summary>
+        /// Applies the <c>background_image</c> style to any node, so a button (or a
+        /// container, or a text label) can be drawn on artwork without wrapping it in
+        /// an <c>image</c> node.
+        ///
+        /// Lives here rather than in <see cref="CampaignStyleMapper"/> because the URL
+        /// needs token resolution and an async fetch through the image source, exactly
+        /// like <c>font_path</c> needs the font source. A URL that fails to load simply
+        /// leaves the element on its background colour — decorative, so never fatal.
+        /// </summary>
+        private void ApplyBackgroundImage(VisualElement ve, CampaignNode node, CampaignItem item)
+        {
+            var raw = node.Style?.BackgroundImage;
+            if (string.IsNullOrWhiteSpace(raw) || _images == null) return;
+
+            var url = ResolveTokens(raw, item);
+            if (string.IsNullOrWhiteSpace(url)) return;
+
+            // Only set when the payload asks for one: an image node has already set its
+            // own size from scale_mode, and overwriting that here would ignore it.
+            if (!string.IsNullOrWhiteSpace(node.Style?.BackgroundSize))
+                ve.style.backgroundSize = ParseBackgroundSize(node.Style.BackgroundSize);
+
+            _renderUrls.Add(url);
+            _images.GetImage(url, tex =>
+            {
+                if (tex != null) ve.style.backgroundImage = new StyleBackground(tex);
+            });
+        }
+
         private void ApplyFontPath(VisualElement ve, CampaignNode node, CampaignItem item)
         {
             if (_fonts == null) return;
