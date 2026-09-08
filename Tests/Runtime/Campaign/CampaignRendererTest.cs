@@ -73,6 +73,63 @@ namespace Tests.Runtime.Campaign
         }
 
         [Test]
+        public void BackgroundImage_OnButton_RequestsUrlFromImageSource()
+        {
+            // A button drawn on artwork: the client has no wrapper node here, the
+            // picture comes straight from the style.
+            var node = CampaignFactory.Node(CampaignNode.TypeButton,
+                new Dictionary<string, object> { { "text", "Buy" } },
+                new CampaignStyleProps { BackgroundImage = "https://cdn.example/cta.png" });
+
+            var ve = Render(node);
+
+            Assert.IsInstanceOf<Button>(ve);
+            CollectionAssert.Contains(_images.Requested, "https://cdn.example/cta.png");
+        }
+
+        [Test]
+        public void BackgroundImage_ResolvesTokensAgainstItemData()
+        {
+            var item = CampaignFactory.Item("c", CampaignItem.EngagementPurchase,
+                CampaignFactory.Node(CampaignNode.TypeContainer),
+                new Dictionary<string, string> { { "cta", "https://cdn.example/from-token.png" } });
+            var node = CampaignFactory.Node(CampaignNode.TypeButton,
+                new Dictionary<string, object> { { "text", "Buy" } },
+                new CampaignStyleProps { BackgroundImage = "{{cta}}" });
+
+            Render(node, item);
+
+            CollectionAssert.Contains(_images.Requested, "https://cdn.example/from-token.png");
+        }
+
+        [Test]
+        public void BackgroundImage_Absent_RequestsNothing()
+        {
+            var node = CampaignFactory.Node(CampaignNode.TypeButton,
+                new Dictionary<string, object> { { "text", "Buy" } },
+                new CampaignStyleProps { BackgroundColor = "#17C07B" });
+
+            Render(node);
+
+            Assert.IsEmpty(_images.Requested);
+        }
+
+        [Test]
+        public void BackgroundImage_UnresolvableToken_IsNotRequested()
+        {
+            // Decorative, so an unresolved URL leaves the element on its colour
+            // rather than failing the node the way a missing image node url does.
+            var node = CampaignFactory.Node(CampaignNode.TypeButton,
+                new Dictionary<string, object> { { "text", "Buy" } },
+                new CampaignStyleProps { BackgroundImage = "{{nope}}" });
+
+            var ve = Render(node);
+
+            Assert.IsInstanceOf<Button>(ve);
+            Assert.IsEmpty(_images.Requested);
+        }
+
+        [Test]
         public void RenderCampaign_PinsImages_AndUnpinsOnControllerDispose()
         {
             var root = CampaignFactory.Node(CampaignNode.TypeContainer, children: new[]

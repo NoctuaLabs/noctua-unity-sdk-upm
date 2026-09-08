@@ -41,6 +41,8 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
         [JsonProperty("margin_left")] public string MarginLeft;
 
         [JsonProperty("background_color")] public string BackgroundColor;
+        [JsonProperty("background_image")] public string BackgroundImage; // remote URL, or a {{token}} resolving to one
+        [JsonProperty("background_size")] public string BackgroundSize;   // cover | contain | stretch
         [JsonProperty("color")] public string Color;
         [JsonProperty("font_size")] public string FontSize;
         [JsonProperty("font_weight")] public string FontWeight;         // normal | bold | italic | bold-italic
