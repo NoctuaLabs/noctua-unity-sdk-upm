@@ -232,7 +232,7 @@ namespace Tests.Runtime.Campaign
             var end = System.DateTime.UtcNow.AddSeconds(65).ToString("o");
             var node = CampaignFactory.Node(CampaignNode.TypeCountdown, new Dictionary<string, object>
             {
-                { "end_ts", end }, { "prefix", "Ends in " },
+                { "end_timestamp", end }, { "prefix", "Ends in " },
             });
 
             var label = Render(node) as Label;
@@ -247,7 +247,7 @@ namespace Tests.Runtime.Campaign
             var end = System.DateTime.UtcNow.AddSeconds(65).ToString("o");
             var node = CampaignFactory.Node(CampaignNode.TypeCountdown, new Dictionary<string, object>
             {
-                { "end_ts", end }, { "prefix", "Ends in " },
+                { "end_timestamp", end }, { "prefix", "Ends in " },
                 { "icon_url", "https://cdn/clock.png" }, { "icon_size", 18 },
             });
 
