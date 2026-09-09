@@ -16,6 +16,8 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
         private const string DismissEvent = "live_ops_campaign_dismiss";
 
         private readonly ILogger _log = new NoctuaLogger(typeof(NoctuaLiveOpsCampaign));
+
+        private const string LogTag = "[campaign]";
         private readonly CampaignManager _manager;
         private readonly CampaignUIHost _host;
         private readonly CampaignActionDispatcher _dispatcher;
@@ -63,10 +65,36 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
             try { fonts.Preload(merged); }
             catch (Exception e) { _log.Warning("campaign font preload failed: " + e.Message); }
 
+            // Both hooks are always non-null here, so the dispatcher's own
+            // "no handler wired" warning can never fire for them -- it checks the
+            // hook, and the hook exists. What can be missing is the game's
+            // subscriber behind it, and that failed silently: a popup shown by
+            // auto_show, with nothing subscribed, swallowed every tap with no
+            // log anywhere. So the emptiness is reported here, where it is
+            // actually visible.
             var handlers = new CampaignActionHandlers
             {
-                Deeplink = route => _deeplinkHandler?.Invoke(route),
-                Purchase = (pid, item) => OnCampaignPurchaseRequested?.Invoke(pid, item),
+                Deeplink = route =>
+                {
+                    if (_deeplinkHandler == null)
+                    {
+                        _log.Warning($"{LogTag} a campaign's deeplink action fired, but no handler " +
+                                     "is registered -- call RegisterDeeplinkHandler after init.");
+                        return;
+                    }
+                    _deeplinkHandler.Invoke(route);
+                },
+                Purchase = (pid, item) =>
+                {
+                    if (OnCampaignPurchaseRequested == null)
+                    {
+                        _log.Warning($"{LogTag} campaign '{item?.Id}' asked to purchase '{pid}', but " +
+                                     "nothing is subscribed to OnCampaignPurchaseRequested -- the tap " +
+                                     "was dropped. Subscribe after init; auto-shown popups need it too.");
+                        return;
+                    }
+                    OnCampaignPurchaseRequested.Invoke(pid, item);
+                },
             };
 
             _dispatcher = new CampaignActionDispatcher(
