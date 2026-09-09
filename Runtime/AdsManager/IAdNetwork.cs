@@ -23,8 +23,21 @@ namespace com.noctuagames.sdk
         /// <summary>Raised when an ad is successfully displayed to the user.</summary>
         event Action OnAdDisplayed { add{} remove{} }
 
-        /// <summary>Raised when an ad fails to display after being requested to show.</summary>
+        /// <summary>
+        /// Raised when an ad fails to display after being requested to show.
+        /// <para><b>Format-agnostic.</b> Every ad format (interstitial, rewarded, rewarded
+        /// interstitial, banner, app open) raises this same event, so a subscriber cannot tell
+        /// which format failed. Prefer <see cref="OnAdFailedDisplayedFormat"/> for any decision
+        /// that depends on the format — this overload is kept for back-compat.</para>
+        /// </summary>
         event Action OnAdFailedDisplayed { add{} remove{} }
+
+        /// <summary>
+        /// Raised when an ad fails to display, carrying the <see cref="AdFormatKey"/> of the format
+        /// that actually failed. Always raised together with <see cref="OnAdFailedDisplayed"/>, so
+        /// subscribing to both double-counts a single failure — pick one.
+        /// </summary>
+        event Action<string> OnAdFailedDisplayedFormat { add{} remove{} }
 
         /// <summary>Raised when the user clicks on a displayed ad.</summary>
         event Action OnAdClicked { add{} remove{} }

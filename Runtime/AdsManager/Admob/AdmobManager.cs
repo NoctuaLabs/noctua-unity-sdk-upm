@@ -69,8 +69,26 @@ namespace com.noctuagames.sdk
         /// <summary>Raised when any ad format is successfully displayed to the user.</summary>
         public event Action OnAdDisplayed { add => _onAdDisplayed += value; remove => _onAdDisplayed -= value; }
 
-        /// <summary>Raised when any ad format fails to display.</summary>
+        /// <summary>Raised when any ad format fails to display (format-agnostic — see
+        /// <see cref="OnAdFailedDisplayedFormat"/> when the format matters).</summary>
         public event Action OnAdFailedDisplayed { add => _onAdFailedDisplayed += value; remove => _onAdFailedDisplayed -= value; }
+
+        /// <summary>Raised when an ad fails to display, carrying the <see cref="AdFormatKey"/> that failed.</summary>
+        public event Action<string> OnAdFailedDisplayedFormat { add => _onAdFailedDisplayedFormat += value; remove => _onAdFailedDisplayedFormat -= value; }
+
+        private event Action<string> _onAdFailedDisplayedFormat;
+
+        /// <summary>
+        /// Single choke point for every ad-failed-to-display signal. Raises the format-carrying
+        /// event first, then the legacy format-agnostic one, so the two can never disagree about
+        /// whether a failure happened.
+        /// </summary>
+        /// <param name="adFormat">The <see cref="AdFormatKey"/> of the format that failed.</param>
+        private void RaiseAdFailedDisplayed(string adFormat)
+        {
+            _onAdFailedDisplayedFormat?.Invoke(adFormat);
+            _onAdFailedDisplayed?.Invoke();
+        }
 
         /// <summary>Raised when the user clicks on any displayed ad.</summary>
         public event Action OnAdClicked { add => _onAdClicked += value; remove => _onAdClicked -= value; }
@@ -214,7 +232,7 @@ namespace com.noctuagames.sdk
             {
                 // Subscribe to events (only once)
                 _interstitialAdmob.InterstitialOnAdDisplayed += () => { _onAdDisplayed?.Invoke(); };
-                _interstitialAdmob.InterstitialOnAdFailedDisplayed += () => { _onAdFailedDisplayed?.Invoke(); };
+                _interstitialAdmob.InterstitialOnAdFailedDisplayed += () => { RaiseAdFailedDisplayed(AdFormatKey.Interstitial); };
                 _interstitialAdmob.InterstitialOnAdClicked += () => { _onAdClicked?.Invoke(); };
                 _interstitialAdmob.InterstitialOnAdImpressionRecorded += () => { _onAdImpressionRecorded?.Invoke(); };
                 _interstitialAdmob.InterstitialOnAdClosed += () => { _onAdClosed?.Invoke(); };
@@ -256,7 +274,7 @@ namespace com.noctuagames.sdk
             {
                 // Subscribe to events (only once)
                 _rewardedAdmob.RewardedOnAdDisplayed += () => { _onAdDisplayed?.Invoke(); };
-                _rewardedAdmob.RewardedOnAdFailedDisplayed += () => { _onAdFailedDisplayed?.Invoke(); };
+                _rewardedAdmob.RewardedOnAdFailedDisplayed += () => { RaiseAdFailedDisplayed(AdFormatKey.Rewarded); };
                 _rewardedAdmob.RewardedOnAdClicked += () => { _onAdClicked?.Invoke(); };
                 _rewardedAdmob.RewardedOnAdImpressionRecorded += () => { _onAdImpressionRecorded?.Invoke(); };
                 _rewardedAdmob.RewardedOnAdClosed += () => { _onAdClosed?.Invoke(); };
@@ -327,7 +345,7 @@ namespace com.noctuagames.sdk
                 //
                 // Games that need per-banner display signals can subscribe to BannerOnAdDisplayed
                 // directly on the AdmobManager/BannerAdmob layer.
-                _bannerAdmob.BannerOnAdFailedDisplayed += () => { _onAdFailedDisplayed?.Invoke(); };
+                _bannerAdmob.BannerOnAdFailedDisplayed += () => { RaiseAdFailedDisplayed(AdFormatKey.Banner); };
                 _bannerAdmob.BannerOnAdClicked += () => { _onAdClicked?.Invoke(); };
                 _bannerAdmob.BannerOnAdImpressionRecorded += () => { _onAdImpressionRecorded?.Invoke(); };
                 _bannerAdmob.AdmobOnAdRevenuePaid += (adValue, responseInfo) =>
@@ -374,7 +392,7 @@ namespace com.noctuagames.sdk
             {
                 // Subscribe to events (only once)
                 _rewardedInterstitialAdmob.RewardedOnAdDisplayed += () => { _onAdDisplayed?.Invoke(); };
-                _rewardedInterstitialAdmob.RewardedOnAdFailedDisplayed += () => { _onAdFailedDisplayed?.Invoke(); };
+                _rewardedInterstitialAdmob.RewardedOnAdFailedDisplayed += () => { RaiseAdFailedDisplayed(AdFormatKey.RewardedInterstitial); };
                 _rewardedInterstitialAdmob.RewardedOnAdClicked += () => { _onAdClicked?.Invoke(); };
                 _rewardedInterstitialAdmob.RewardedOnAdImpressionRecorded += () => { _onAdImpressionRecorded?.Invoke(); };
                 _rewardedInterstitialAdmob.RewardedOnAdClosed += () => { _onAdClosed?.Invoke(); };
@@ -415,7 +433,7 @@ namespace com.noctuagames.sdk
             if (!_appOpenEventsSubscribed)
             {
                 _appOpenAdmob.AppOpenOnAdDisplayed += () => { _onAdDisplayed?.Invoke(); };
-                _appOpenAdmob.AppOpenOnAdFailedDisplayed += () => { _onAdFailedDisplayed?.Invoke(); };
+                _appOpenAdmob.AppOpenOnAdFailedDisplayed += () => { RaiseAdFailedDisplayed(AdFormatKey.AppOpen); };
                 _appOpenAdmob.AppOpenOnAdClicked += () => { _onAdClicked?.Invoke(); };
                 _appOpenAdmob.AppOpenOnAdImpressionRecorded += () => { _onAdImpressionRecorded?.Invoke(); };
                 _appOpenAdmob.AppOpenOnAdClosed += () => { _onAdClosed?.Invoke(); };

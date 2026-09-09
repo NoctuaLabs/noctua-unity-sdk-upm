@@ -55,8 +55,26 @@ namespace com.noctuagames.sdk
         /// <summary>Raised when any ad format is successfully displayed to the user.</summary>
         public event Action OnAdDisplayed { add => _onAdDisplayed += value; remove => _onAdDisplayed -= value; }
 
-        /// <summary>Raised when any ad format fails to display.</summary>
+        /// <summary>Raised when any ad format fails to display (format-agnostic — see
+        /// <see cref="OnAdFailedDisplayedFormat"/> when the format matters).</summary>
         public event Action OnAdFailedDisplayed { add => _onAdFailedDisplayed += value; remove => _onAdFailedDisplayed -= value; }
+
+        /// <summary>Raised when an ad fails to display, carrying the <see cref="AdFormatKey"/> that failed.</summary>
+        public event Action<string> OnAdFailedDisplayedFormat { add => _onAdFailedDisplayedFormat += value; remove => _onAdFailedDisplayedFormat -= value; }
+
+        private event Action<string> _onAdFailedDisplayedFormat;
+
+        /// <summary>
+        /// Single choke point for every ad-failed-to-display signal. Raises the format-carrying
+        /// event first, then the legacy format-agnostic one, so the two can never disagree about
+        /// whether a failure happened.
+        /// </summary>
+        /// <param name="adFormat">The <see cref="AdFormatKey"/> of the format that failed.</param>
+        private void RaiseAdFailedDisplayed(string adFormat)
+        {
+            _onAdFailedDisplayedFormat?.Invoke(adFormat);
+            _onAdFailedDisplayed?.Invoke();
+        }
 
         /// <summary>Raised when the user clicks on any displayed ad.</summary>
         public event Action OnAdClicked { add => _onAdClicked += value; remove => _onAdClicked -= value; }
@@ -158,7 +176,7 @@ namespace com.noctuagames.sdk
 
                 // Subscribe to events (only once)
                 _interstitialAppLovin.InterstitialOnAdDisplayed += () => { _onAdDisplayed?.Invoke(); };
-                _interstitialAppLovin.InterstitialOnAdFailedDisplayed += () => { _onAdFailedDisplayed?.Invoke(); };
+                _interstitialAppLovin.InterstitialOnAdFailedDisplayed += () => { RaiseAdFailedDisplayed(AdFormatKey.Interstitial); };
                 _interstitialAppLovin.InterstitialOnAdClicked += () => { _onAdClicked?.Invoke(); };
                 _interstitialAppLovin.InterstitialOnAdImpressionRecorded += () => { _onAdImpressionRecorded?.Invoke(); };
                 _interstitialAppLovin.InterstitialOnAdClosed += () => { _onAdClosed?.Invoke(); };
@@ -199,7 +217,7 @@ namespace com.noctuagames.sdk
 
                 // Subscribe to events (only once)
                 _rewardedAppLovin.RewardedOnAdDisplayed += () => { _onAdDisplayed?.Invoke(); };
-                _rewardedAppLovin.RewardedOnAdFailedDisplayed += () => { _onAdFailedDisplayed?.Invoke(); };
+                _rewardedAppLovin.RewardedOnAdFailedDisplayed += () => { RaiseAdFailedDisplayed(AdFormatKey.Rewarded); };
                 _rewardedAppLovin.RewardedOnAdClicked += () => { _onAdClicked?.Invoke(); };
                 _rewardedAppLovin.RewardedOnAdImpressionRecorded += () => { _onAdImpressionRecorded?.Invoke(); };
                 _rewardedAppLovin.RewardedOnAdClosed += () => { _onAdClosed?.Invoke(); };
@@ -260,7 +278,7 @@ namespace com.noctuagames.sdk
                 // incorrectly blocking app-open auto-show and polluting the fullscreen-close
                 // grace window used to prevent rewarded→app-open races. See AdmobManager for
                 // matching fix.
-                _bannerAppLovin.BannerOnAdFailedDisplayed += () => { _onAdFailedDisplayed?.Invoke(); };
+                _bannerAppLovin.BannerOnAdFailedDisplayed += () => { RaiseAdFailedDisplayed(AdFormatKey.Banner); };
                 _bannerAppLovin.BannerOnAdClicked += () => { _onAdClicked?.Invoke(); };
                 _bannerAppLovin.BannerOnAdImpressionRecorded += () => { _onAdImpressionRecorded?.Invoke(); };
                 _bannerAppLovin.BannerOnAdRevenuePaid += (adInfo) => { _appLovinOnAdRevenuePaid?.Invoke(adInfo); };
@@ -357,7 +375,7 @@ namespace com.noctuagames.sdk
                 _appOpenEventsSubscribed = true;
 
                 _appOpenAppLovin.AppOpenOnAdDisplayed += () => { _onAdDisplayed?.Invoke(); };
-                _appOpenAppLovin.AppOpenOnAdFailedDisplayed += () => { _onAdFailedDisplayed?.Invoke(); };
+                _appOpenAppLovin.AppOpenOnAdFailedDisplayed += () => { RaiseAdFailedDisplayed(AdFormatKey.AppOpen); };
                 _appOpenAppLovin.AppOpenOnAdClicked += () => { _onAdClicked?.Invoke(); };
                 _appOpenAppLovin.AppOpenOnAdImpressionRecorded += () => { _onAdImpressionRecorded?.Invoke(); };
                 _appOpenAppLovin.AppOpenOnAdClosed += () => { _onAdClosed?.Invoke(); };

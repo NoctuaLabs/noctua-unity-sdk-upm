@@ -168,7 +168,6 @@ namespace com.noctuagames.sdk
         // API rather than the mediation fallback. Routes the OnPlaceholder* callbacks to the dedicated
         // OnCrossPromo* events instead of the shared real-ad events. Reset on terminal (closed/failed).
         private bool _crossPromoDirect;
-        private AdPlaceholderType _lastRequestedType;
         private bool _suppressNextCloseEvent;
 
         // The banner cross-promotion is a SEPARATE, non-modal surface (own presenter / UIDocument):
@@ -918,11 +917,27 @@ namespace com.noctuagames.sdk
                 _onAdDisplayed?.Invoke();
             });
 
-            _orchestrator.OnAdFailedDisplayed += () => PostToMainThread(() =>
+            // Subscribe to the format-carrying failure event, never the format-agnostic one: the
+            // failing format decides which cross-promotion surface (if any) stands in for it.
+            // Guessing from _lastRequestedType made every banner auto-refresh load failure — which
+            // fires unprompted while the user is idle — pop the *fullscreen* interstitial house ad.
+            _orchestrator.OnAdFailedDisplayedFormat += format => PostToMainThread(() =>
             {
-                _appOpenAdManager?.SetFullscreenAdShowing(false);
-                // Show the cross-promotion fallback; only report failure to the game if it can't show.
-                if (!ShowCrossPromoFallback(_lastRequestedType)) _onAdFailedDisplayed?.Invoke();
+                // Only a fullscreen ad occupied the screen, so only a fullscreen failure releases
+                // the app-open guard. A banner failure never blocked app-open in the first place.
+                if (format != AdFormatKey.Banner)
+                {
+                    _appOpenAdManager?.SetFullscreenAdShowing(false);
+                }
+
+                // Show the cross-promotion fallback for the format that actually failed; only report
+                // failure to the game if it can't show. A banner failure routes to the non-modal
+                // banner house ad; app_open has no cross-promotion surface and reports directly.
+                var placeholderType = MapFormatToPlaceholderType(format);
+
+                if (placeholderType.HasValue && ShowCrossPromoFallback(placeholderType.Value)) return;
+
+                _onAdFailedDisplayed?.Invoke();
             });
 
             _orchestrator.OnAdClicked += () => PostToMainThread(() => _onAdClicked?.Invoke());
@@ -2618,18 +2633,20 @@ namespace com.noctuagames.sdk
         // --- Placeholder methods ---
 
         /// <summary>
-        /// Arms the cross-promotion placeholder for the given ad format. Nothing is shown yet — the
-        /// cross-promotion is a fallback house-ad that only appears if the real ad attempt fails / has
-        /// no fill / is offline (see <see cref="CloseAdPlaceholder"/>). If the real ad displays, the
-        /// arming is cleared (force-close) so a ready ad never flashes the placeholder.
-        /// Arming is a no-op when <c>cross_promotion</c> is not configured for this format.
+        /// No-op, retained for source compatibility.
+        /// <para>This used to record the last-requested format so a later failure could guess which
+        /// cross-promotion to show. That guess was wrong for any failure the game did not ask for —
+        /// notably a banner's auto-refresh load failure, which fires while the user is idle and was
+        /// attributed to the last fullscreen request, popping an interstitial house ad out of
+        /// nowhere. The failing format now travels with the failure itself
+        /// (<see cref="IAdNetwork.OnAdFailedDisplayedFormat"/>), so nothing needs to be recorded.</para>
+        /// <para>The cross-promotion remains a fallback: it appears only when a real ad attempt
+        /// fails / has no fill / is offline, via <c>ShowCrossPromoFallback</c>. To show one on
+        /// purpose, call <see cref="ShowCrossPromotion(AdPlaceholderType)"/>.</para>
         /// </summary>
+        /// <param name="adType">Ignored.</param>
         public void ShowAdPlaceholder(AdPlaceholderType adType)
         {
-            // Record the requested format only. The cross-promotion is a FALLBACK — it is shown when
-            // the real ad does not display (no fill / fail / offline), via ShowCrossPromoFallback.
-            // Nothing is shown up-front, so a ready ad never flashes a placeholder.
-            _lastRequestedType = adType;
         }
 
         /// <summary>
