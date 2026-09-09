@@ -28,6 +28,7 @@ namespace com.noctuagames.sdk
         // Events forwarded from whichever network showed the ad
         private event Action _onAdDisplayed;
         private event Action _onAdFailedDisplayed;
+        private event Action<string> _onAdFailedDisplayedFormat;
         private event Action _onAdClicked;
         private event Action _onAdImpressionRecorded;
         private event Action _onAdClosed;
@@ -36,8 +37,14 @@ namespace com.noctuagames.sdk
 
         /// <summary>Fires when any ad is successfully displayed.</summary>
         public event Action OnAdDisplayed { add => _onAdDisplayed += value; remove => _onAdDisplayed -= value; }
-        /// <summary>Fires when any ad fails to display.</summary>
+        /// <summary>Fires when any ad fails to display (format-agnostic — see
+        /// <see cref="OnAdFailedDisplayedFormat"/> when the format matters).</summary>
         public event Action OnAdFailedDisplayed { add => _onAdFailedDisplayed += value; remove => _onAdFailedDisplayed -= value; }
+        /// <summary>
+        /// Fires when an ad fails to display, carrying the <see cref="AdFormatKey"/> that failed.
+        /// Always raised together with <see cref="OnAdFailedDisplayed"/> — subscribe to one, not both.
+        /// </summary>
+        public event Action<string> OnAdFailedDisplayedFormat { add => _onAdFailedDisplayedFormat += value; remove => _onAdFailedDisplayedFormat -= value; }
         /// <summary>Fires when any displayed ad is clicked.</summary>
         public event Action OnAdClicked { add => _onAdClicked += value; remove => _onAdClicked -= value; }
         /// <summary>Fires when an ad impression is recorded.</summary>
@@ -264,7 +271,7 @@ namespace com.noctuagames.sdk
             }
 
             _log.Warning($"No network has a ready {format} ad (floor or availability check failed).");
-            _onAdFailedDisplayed?.Invoke();
+            RaiseAdFailedDisplayed(format);
         }
 
         /// <summary>
@@ -284,6 +291,19 @@ namespace com.noctuagames.sdk
             return result != CpmFloorResult.HardFail;
         }
 
+        /// <summary>Returns true when <paramref name="format"/> is the (non-fullscreen) banner format.</summary>
+        private static bool IsBannerFormat(string format) => format == AdFormatKey.Banner;
+
+        /// <summary>
+        /// Raises the format-carrying failure event and the legacy format-agnostic one together,
+        /// so the two can never disagree about whether a failure happened.
+        /// </summary>
+        private void RaiseAdFailedDisplayed(string format)
+        {
+            _onAdFailedDisplayedFormat?.Invoke(format);
+            _onAdFailedDisplayed?.Invoke();
+        }
+
         private void SubscribeToNetworkEvents(IAdNetwork network)
         {
             network.OnAdDisplayed += () =>
@@ -292,10 +312,19 @@ namespace com.noctuagames.sdk
                 _onAdDisplayed?.Invoke();
             };
 
-            network.OnAdFailedDisplayed += () =>
+            // Subscribe to the format-carrying event only: every network raises it alongside the
+            // legacy format-agnostic OnAdFailedDisplayed, so taking both would double-count.
+            network.OnAdFailedDisplayedFormat += format =>
             {
-                _isAdShowing = false;
-                _onAdFailedDisplayed?.Invoke();
+                // Only a fullscreen format occupies the screen. A banner failure (including the
+                // load failures its auto-refresh produces while the user is idle) must not clear
+                // the fullscreen flag out from under a real interstitial/rewarded that is showing.
+                if (!IsBannerFormat(format))
+                {
+                    _isAdShowing = false;
+                }
+
+                RaiseAdFailedDisplayed(format);
             };
 
             network.OnAdClicked += () =>

@@ -55,6 +55,7 @@ namespace Tests.Runtime.IAA
         private event Action _onInitialized;
         private event Action _onAdDisplayed;
         private event Action _onAdFailedDisplayed;
+        private event Action<string> _onAdFailedDisplayedFormat;
         private event Action _onAdClicked;
         private event Action _onAdImpressionRecorded;
         private event Action _onAdClosed;
@@ -78,6 +79,12 @@ namespace Tests.Runtime.IAA
         {
             add    => _onAdFailedDisplayed += value;
             remove => _onAdFailedDisplayed -= value;
+        }
+
+        event Action<string> IAdNetwork.OnAdFailedDisplayedFormat
+        {
+            add    => _onAdFailedDisplayedFormat += value;
+            remove => _onAdFailedDisplayedFormat -= value;
         }
 
         event Action IAdNetwork.OnAdClicked
@@ -163,7 +170,16 @@ namespace Tests.Runtime.IAA
         // ── Event triggers (used by tests to simulate network callbacks) ──
 
         public void TriggerAdDisplayed()          => _onAdDisplayed?.Invoke();
-        public void TriggerAdFailedDisplayed()    => _onAdFailedDisplayed?.Invoke();
+        /// <summary>
+        /// Raises a failure for <paramref name="adFormat"/> exactly as a real network manager does —
+        /// the format-carrying event first, then the legacy format-agnostic one. Defaults to
+        /// <see cref="AdFormatKey.Interstitial"/> so callers that don't care get a fullscreen format.
+        /// </summary>
+        public void TriggerAdFailedDisplayed(string adFormat = AdFormatKey.Interstitial)
+        {
+            _onAdFailedDisplayedFormat?.Invoke(adFormat);
+            _onAdFailedDisplayed?.Invoke();
+        }
         public void TriggerAdClicked()            => _onAdClicked?.Invoke();
         public void TriggerAdImpressionRecorded() => _onAdImpressionRecorded?.Invoke();
         public void TriggerAdClosed()             => _onAdClosed?.Invoke();
