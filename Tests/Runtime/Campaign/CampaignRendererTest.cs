@@ -130,6 +130,25 @@ namespace Tests.Runtime.Campaign
         }
 
         [Test]
+        public void Countdown_DoesNotWrap_SoThePillHugsItsText()
+        {
+            // Wrapping broke the timer mid-value inside its pill, which read as
+            // a squashed box and disagreed with the admin canvas -- that has
+            // always drawn the countdown nowrap.
+            var node = CampaignFactory.Node(CampaignNode.TypeCountdown,
+                new Dictionary<string, object>
+                {
+                    { "end_timestamp", "2030-01-01T00:00:00Z" },
+                    { "prefix", "Ends in " },
+                });
+
+            var ve = Render(node);
+
+            Assert.IsInstanceOf<Label>(ve);
+            Assert.AreEqual(WhiteSpace.NoWrap, ve.style.whiteSpace.value);
+        }
+
+        [Test]
         public void RenderCampaign_PinsImages_AndUnpinsOnControllerDispose()
         {
             var root = CampaignFactory.Node(CampaignNode.TypeContainer, children: new[]

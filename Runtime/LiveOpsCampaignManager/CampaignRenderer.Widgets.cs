@@ -46,6 +46,16 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
         private VisualElement BuildCountdown(CampaignNode node, CampaignItem item, CampaignRuntimeController controller)
         {
             var label = new Label { name = "campaign-countdown" };
+            // A timer is one line. Without this the label inherits the default
+            // wrapping and breaks mid-value once the text outgrows its box --
+            // "Ends in 2d" over "12:38:44" inside a rounded pill, which reads as
+            // a squashed box rather than a countdown. The admin's canvas has
+            // always drawn this nowrap, so wrapping also made the device
+            // disagree with the preview the campaign was designed against.
+            label.style.whiteSpace = WhiteSpace.NoWrap;
+            // Keeps the text at full width beside an icon instead of being
+            // compressed to fit the row.
+            label.style.flexShrink = 0f;
             var prefix = ResolveTokens(node.PropString("prefix", string.Empty), item);
             var suffix = ResolveTokens(node.PropString("suffix", string.Empty), item);
             var endUtc = ParseEndTimestamp(node.EndTimestamp(), item);
