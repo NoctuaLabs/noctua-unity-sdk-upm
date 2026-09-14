@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## [0.131.1] - 2026-08-28
+## [0.132.0] - 2026-09-14
 
 ### ⚙️ Miscellaneous
 
@@ -45,6 +45,15 @@ All notable changes to this project will be documented in this file.
 - *(iap)* Fix purchase-verification deadlock and unhandled already-used-receipt error
 - *(iap)* Extract callback queue into testable NativeCallbackQueue
 - *(iap)* Move NativeCallbackQueue into Utility.cs
+- *(iaa)* No countdown / no skip gate on the cross-promo banner, smaller close, "s" on the full-screen skip timer
+- *(campaign)* Default `borderless` to true when the key is omitted
+- *(campaign)* Accept raw .ttf/.otf for campaign fontFamily
+- *(campaign)* Namespace/class/folder -> LiveOpsCampaign
+- *(campaign)* Snake_case all campaign JSON keys
+- *(campaign)* Rename the style key font_family -> font_path
+- *(campaign)* Read the countdown end from end_timestamp
+- *(campaign)* Read the countdown end from end_timestamp only
+- *(campaign)* Show a blocking busy state while a purchase CTA runs
 
 ### 🐛 Bug Fixes
 
@@ -72,6 +81,10 @@ All notable changes to this project will be documented in this file.
 - Marshal Android Track* JNI to main thread and fix KotlinUnit init race
 - Guard NoctuaLogger ctor against IL2CPP null stack frames
 - *(app)* Read the server tag list from "tags", not "topics"
+- *(iaa)* Banner teardown must not stop a full-screen cross-promo video
+- *(campaign)* Keep the countdown on one line so its pill fits the text
+- *(campaign)* Say something when an action has nowhere to go
+- *(iaa)* Stop idle banner failures popping a fullscreen cross-promo
 
 ### 🚀 Features
 
@@ -94,6 +107,18 @@ All notable changes to this project will be documented in this file.
 - *(event)* Attach player remote-config tags to every event payload
 - Send device local timezone via X-TIMEZONE header
 - *(event)* Add timezone property to event sender payload
+- *(iaa)* Configurable cross-promo banner layout, resolve creatives from Noctua IAA config
+- *(iaa)* Banner cross-promotion is its own independent surface
+- *(iaa)* Per-surface video slots so banner + full-screen cross-promo can both play video
+- *(campaign)* Server-driven live-ops engagement campaign module
+- *(campaign)* Responsive popup assets + per-campaign fonts, rename events to live_ops_
+- *(campaign)* Rename the public accessor Noctua.Campaign -> Noctua.LiveOpsCampaign
+- *(campaign)* Customisable popup close button
+- *(campaign)* Optional leading/trailing icon on the countdown widget
+- *(campaign)* Free placement for the popup close button
+- *(campaign)* Fit an oversized popup to the card instead of clipping it
+- *(campaign)* Support background_image on any node
+- *(android)* Add opt-in AGP 9 support alongside AGP 8 default
 
 ## [0.122.0] - 2026-05-18
 
