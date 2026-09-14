@@ -17,6 +17,7 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
         private const string FullscreenClass = "campaign-card--fullscreen";
         private const string BorderlessClass = "campaign-card--borderless";
         private const string SkinnedCloseClass = "campaign-close--skinned";
+        private const string BusyClass = "campaign-busy--on";
         private const int ExitTransitionMs = 240;
 
         private readonly ILogger _log = new NoctuaLogger(typeof(CampaignPopupPresenter));
@@ -26,6 +27,7 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
         private ScrollView _mountScroll;
         private VisualElement _mount;
         private Button _closeBtn;
+        private VisualElement _busyOverlay;
         private bool _safeAreaActive;
         private VisualElement _fitBox;
         private float _fitScale = 1f;
@@ -62,6 +64,7 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
             _mountScroll = View.Q<ScrollView>("MountScroll");
             _mount = View.Q<VisualElement>("Mount");
             _closeBtn = View.Q<Button>("CloseButton");
+            _busyOverlay = View.Q<VisualElement>("BusyOverlay");
 
             if (_root != null)
             {
@@ -110,6 +113,8 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
             _fitScale = 1f;
             if (_mountScroll != null) _mountScroll.scrollOffset = Vector2.zero;
             _closing = false;
+            // A new campaign must never inherit a veil left over from the previous one.
+            ClearBusy();
 
             _controller = new CampaignRuntimeController();
             var built = _renderer.RenderCampaign(item, _controller, configSchemaVersion);
@@ -146,6 +151,47 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
             _onShown?.Invoke(item);
         }
 
+        /// <summary>
+        /// Shows or hides the veil that blocks taps on the creative while an awaitable purchase
+        /// runs. Wired to <see cref="CampaignActionDispatcher.CurrentBusy"/> by the facade.
+        /// Safe to call after the popup closed or the presenter was destroyed — the purchase
+        /// continuation routinely outlives both.
+        /// </summary>
+        public void SetBusy(bool busy)
+        {
+            // Same Unity-lifetime guard HideNow() needs: the game's purchase can settle long
+            // after this presenter was destroyed.
+            if (this == null || _busyOverlay == null) return;
+
+            if (!busy)
+            {
+                ClearBusy();
+                return;
+            }
+
+            // Never light up a popup that is already on its way out.
+            if (!IsShowing || _closing) return;
+
+            _busyOverlay.AddToClassList(BusyClass);
+            if (_busyOverlay.childCount == 0) _busyOverlay.Add(new Spinner(56, 56));
+
+            // Show() already called _closeBtn.BringToFront(), so order here is what decides:
+            // veil over the creative, close chip back on top of the veil. Leaving the chip
+            // reachable is deliberate — a handler that never returns would otherwise trap
+            // the player behind a permanent veil.
+            _busyOverlay.BringToFront();
+            _closeBtn?.BringToFront();
+        }
+
+        private void ClearBusy()
+        {
+            if (_busyOverlay == null) return;
+
+            _busyOverlay.RemoveFromClassList(BusyClass);
+            // Drops the Spinner, stopping its repeating schedule.
+            _busyOverlay.Clear();
+        }
+
         /// <summary>Plays the exit transition, disposes timers, then hides. Idempotent.</summary>
         public void Close()
         {
@@ -175,6 +221,7 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
             IsShowing = false;
             _closing = false;
             _mount?.Clear();
+            ClearBusy();
             _fitBox = null;
             _fitScale = 1f;
             _safeAreaActive = false;

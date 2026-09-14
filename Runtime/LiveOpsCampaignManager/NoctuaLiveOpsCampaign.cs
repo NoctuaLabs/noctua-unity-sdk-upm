@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using UnityEngine.UIElements;
 using com.noctuagames.sdk.Events;
+using Cysharp.Threading.Tasks;
 
 namespace com.noctuagames.sdk.LiveOpsCampaign
 {
@@ -21,6 +22,7 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
         private readonly CampaignManager _manager;
         private readonly CampaignUIHost _host;
         private readonly CampaignActionDispatcher _dispatcher;
+        private readonly CampaignActionHandlers _handlers;
         private readonly IEventSender _events;
 
         private Action<string> _deeplinkHandler;
@@ -72,7 +74,7 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
             // auto_show, with nothing subscribed, swallowed every tap with no
             // log anywhere. So the emptiness is reported here, where it is
             // actually visible.
-            var handlers = new CampaignActionHandlers
+            _handlers = new CampaignActionHandlers
             {
                 Deeplink = route =>
                 {
@@ -98,7 +100,7 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
             };
 
             _dispatcher = new CampaignActionDispatcher(
-                handlers,
+                _handlers,
                 events,
                 onDispatched: (item, _) => { if (item != null) SafeInvoke(OnCampaignClicked, item.Id); });
 
@@ -111,6 +113,20 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
 
         /// <summary>Registers the game's deeplink router for <c>deeplink</c> actions.</summary>
         public void RegisterDeeplinkHandler(Action<string> handler) => _deeplinkHandler = handler;
+
+        /// <summary>
+        /// Registers an awaitable purchase handler — the recommended way to handle
+        /// <c>purchase</c> actions. While it runs the popup veils itself with a spinner and
+        /// further purchase taps are ignored; the popup stays open, so a failed or cancelled
+        /// purchase returns the player to the offer. Pass <c>null</c> to clear.
+        ///
+        /// When set, <see cref="OnCampaignPurchaseRequested"/> is NOT raised for purchase
+        /// actions — raising both would start two purchases. The event remains for games that
+        /// have not migrated, but it gives the SDK no completion signal, so it gets a short
+        /// double-tap debounce instead of a real busy state.
+        /// </summary>
+        public void SetPurchaseHandler(Func<string, CampaignItem, UniTask> handler)
+            => _handlers.PurchaseAsync = handler;
 
         /// <summary>
         /// Eligible campaigns, highest priority first. Pass
@@ -147,12 +163,14 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
                     onClosed: () =>
                     {
                         if (_dispatcher.CurrentDismiss == (Action)popup.Close) _dispatcher.CurrentDismiss = null;
+                        if (_dispatcher.CurrentBusy == (Action<bool>)popup.SetBusy) _dispatcher.CurrentBusy = null;
                         _events?.Send(DismissEvent, IdPayload(item.Id));
                         SafeInvoke(OnCampaignDismissed, item.Id);
                     },
                     onFailed: () => _log.Warning($"ShowPopup: campaign '{item.Id}' failed to render"));
 
                 _dispatcher.CurrentDismiss = popup.Close;
+                _dispatcher.CurrentBusy = popup.SetBusy;
                 popup.Show(item, _manager.Config.SchemaVersion);
             }
             catch (Exception e)

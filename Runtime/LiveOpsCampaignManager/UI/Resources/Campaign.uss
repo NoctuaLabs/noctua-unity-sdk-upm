@@ -137,3 +137,32 @@
 .campaign-close--skinned:hover {
     background-color: rgba(0, 0, 0, 0);
 }
+
+/* Purchase-in-flight veil. Gated on `display` rather than opacity so the spinner's
+   10 Hz scheduler is never ticking behind a hidden popup.
+   The negative insets cancel .campaign-card's 12px padding so the veil covers the whole
+   card rather than just its content box; the card's `overflow: hidden` clips the overhang. */
+.campaign-busy {
+    position: absolute;
+    left: -12px;
+    top: -12px;
+    right: -12px;
+    bottom: -12px;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    background-color: rgba(0, 0, 0, 0.55);
+}
+
+/* Both variants drop the card's padding, so there is nothing to cancel. */
+.campaign-card--fullscreen .campaign-busy,
+.campaign-card--borderless .campaign-busy {
+    left: 0;
+    top: 0;
+    right: 0;
+    bottom: 0;
+}
+
+.campaign-busy--on {
+    display: flex;
+}

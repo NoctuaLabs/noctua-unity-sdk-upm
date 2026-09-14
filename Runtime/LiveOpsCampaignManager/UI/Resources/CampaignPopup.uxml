@@ -6,6 +6,7 @@
                 <ui:VisualElement name="Mount" class="campaign-mount" />
             </ui:ScrollView>
             <ui:Button name="CloseButton" text="✕" class="campaign-close" />
+            <ui:VisualElement name="BusyOverlay" class="campaign-busy" picking-mode="Position" />
         </ui:VisualElement>
     </ui:VisualElement>
 </ui:UXML>
