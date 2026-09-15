@@ -104,6 +104,15 @@ namespace com.noctuagames.sdk
         /// <param name="verified">Whether the server verification succeeded.</param>
         /// <param name="callback">Optional callback with success status.</param>
         void CompletePurchaseProcessing(string purchaseToken, NoctuaConsumableType consumableType, bool verified, Action<bool> callback);
+
+        /// <summary>
+        /// Registers the handler for purchased App Store transactions that no in-flight purchase
+        /// claimed — StoreKit replays of unfinished transactions, or purchases that finished after the
+        /// purchase flow stopped waiting. The handler must verify and deliver them, otherwise the user
+        /// is charged without receiving the item. iOS only; a no-op on other platforms.
+        /// </summary>
+        /// <param name="handler">Receives each unclaimed purchased transaction.</param>
+        void SetUnsolicitedPurchaseHandler(Action<StoreKitTransaction> handler);
     }
 
     /// <summary>

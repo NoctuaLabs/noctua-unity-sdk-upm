@@ -52,6 +52,9 @@ namespace com.noctuagames.sdk
         // concurrent purchases would overwrite each other's completion source. Queued
         // callers wait their turn instead of racing.
         private readonly SemaphoreSlim _purchaseFlowGate = new(1, 1);
+#if UNITY_IOS && !UNITY_EDITOR
+        private const string UnpairedOrdersKey = "NoctuaUnpairedOrders";
+#endif
 
 #if UNITY_ANDROID && !UNITY_EDITOR
         private readonly GoogleBilling GoogleBillingInstance = new();
@@ -115,6 +118,10 @@ namespace com.noctuagames.sdk
             GoogleBillingInstance.OnQueryPurchasesDone += HandleGoogleQueryPurchasesDone;
 #endif
             _nativePlugin = nativePlugin;
+
+#if UNITY_IOS && !UNITY_EDITOR
+            _nativePlugin?.SetUnsolicitedPurchaseHandler(HandleUnsolicitedAppStorePurchase);
+#endif
         }
         
         /// <summary>
@@ -409,6 +416,8 @@ namespace com.noctuagames.sdk
                             AccessToken = _accessTokenProvider.AccessToken,
                             Status = "completed",
                             PlayerId = _authProvider?.PlayerId,
+                            // Lets a replayed StoreKit transaction be recognized as already delivered.
+                            PurchaseToken = purchaseToken,
                         }
                     );
 
@@ -1188,15 +1197,35 @@ namespace com.noctuagames.sdk
 #if UNITY_IOS && !UNITY_EDITOR
                     _log.Info("NoctuaIAPService.PurchaseItemAsync purchase on ios: " + orderResponse.ProductId);
                     orderResponse.ProductId = purchaseRequest.ProductId;
-                    _nativePlugin.PurchaseItem(orderResponse.ProductId, (success, message) => {
+                    // Captured locally: the callback may run after this flow has finished and the
+                    // shared _paymentTcs field belongs to a later purchase (or is null).
+                    var appStorePaymentTcs = _paymentTcs;
+                    var appStoreProductId = orderResponse.ProductId;
+                    _nativePlugin.PurchaseItem(appStoreProductId, (success, message) => {
                         _log.Info("NoctuaIAPService.PurchaseItemAsync PurchaseItem callback");
                         _log.Info("NoctuaIAPService.PurchaseItemAsync PurchaseItem callback success: " + success);
                         _log.Info("NoctuaIAPService.PurchaseItemAsync PurchaseItem callback message: " + message);
-                        
-                        _paymentTcs.TrySetResult(GetAppstorePaymentResult(orderResponse.Id, success, message));
+
+                        var appStoreResult = GetAppstorePaymentResult(orderResponse.Id, success, message);
+                        if (!appStorePaymentTcs.TrySetResult(appStoreResult) && appStoreResult.Status == PaymentStatus.Successful)
+                        {
+                            // Defensive: this flow already has a result, yet the user was charged.
+                            // Deliver the transaction instead of dropping it.
+                            _log.Warning($"App Store purchase for '{appStoreProductId}' completed after its payment flow had a result; handling as unsolicited");
+                            HandleUnsolicitedAppStorePurchase(new StoreKitTransaction
+                            {
+                                ProductId = appStoreProductId,
+                                Success = true,
+                                PurchaseToken = appStoreResult.PurchaseToken,
+                                Receipt = appStoreResult.ReceiptData
+                            });
+                        }
                     });
 
-                    var task = await _paymentTcs.Task;
+                    // No timeout on purpose: releasing _purchaseFlowGate while the SKPayment may still be
+                    // live would let a retry queue a second payment for the same product (double charge).
+                    // StoreKit always ends a payment as purchased, failed or deferred.
+                    var task = await appStorePaymentTcs.Task;
                     _log.Info("NoctuaIAPService.PurchaseItemAsync user side payment flow completed, clear up _paymentTcs then continue the payment flow.");
                     
                     paymentResult = _paymentTcs.Task.Result;
@@ -2004,6 +2033,98 @@ namespace com.noctuagames.sdk
 #endif
 
 #if UNITY_IOS && !UNITY_EDITOR
+        /// <summary>
+        /// Delivers an App Store transaction no in-flight purchase claimed (e.g. a StoreKit replay of an
+        /// unfinished transaction whose purchase flow never received it).
+        /// </summary>
+        private void HandleUnsolicitedAppStorePurchase(StoreKitTransaction transaction)
+        {
+            UniTask.Void(async () =>
+            {
+                await UniTask.SwitchToMainThread();
+                try
+                {
+                    ProcessUnsolicitedAppStorePurchase(transaction);
+                }
+                catch (Exception e)
+                {
+                    _log.Warning($"Failed to handle unsolicited App Store purchase for '{transaction?.ProductId}': {e.Message}");
+                }
+            });
+        }
+
+        private void ProcessUnsolicitedAppStorePurchase(StoreKitTransaction transaction)
+        {
+            var unpairedOrders = LoadUnpairedOrders();
+            var decision = AppStoreUnsolicitedPurchaseMatcher.Decide(
+                transaction, GetPendingPurchases(), GetPurchaseHistory(), unpairedOrders);
+
+            var decisionLog = $"Unsolicited App Store purchase '{transaction.ProductId}' (token {transaction.PurchaseToken}): {decision.Action} — {decision.Reason}";
+            if (decision.Action == UnsolicitedAppStorePurchaseAction.LeaveUnfinished)
+            {
+                // Paid but not delivered yet; StoreKit re-delivers it next launch.
+                _log.Warning(decisionLog);
+            }
+            else
+            {
+                _log.Info(decisionLog);
+            }
+
+            switch (decision.Action)
+            {
+            case UnsolicitedAppStorePurchaseAction.FinishAlreadyCompleted:
+                _nativePlugin?.CompletePurchaseProcessing(
+                    transaction.PurchaseToken,
+                    NoctuaConsumableType.Consumable,
+                    true,
+                    success => _log.Debug($"Finished already-completed transaction {transaction.PurchaseToken}: {success}")
+                );
+                break;
+            case UnsolicitedAppStorePurchaseAction.PairUnpairedOrder:
+                var remainingUnpaired = unpairedOrders
+                    .Where(entry => entry.Key != transaction.ProductId)
+                    .ToDictionary(entry => entry.Key, entry => entry.Value);
+                PlayerPrefs.SetString(UnpairedOrdersKey, JsonConvert.SerializeObject(remainingUnpaired));
+                PlayerPrefs.Save();
+                VerifyUnsolicitedAppStorePurchase(decision.Item);
+                break;
+            case UnsolicitedAppStorePurchaseAction.VerifyPendingPurchase:
+                VerifyUnsolicitedAppStorePurchase(decision.Item);
+                break;
+            default:
+                // Left unfinished on purpose: StoreKit re-delivers it on the next launch.
+                break;
+            }
+        }
+
+        private void VerifyUnsolicitedAppStorePurchase(InternalPurchaseItem item)
+        {
+            EnqueueToRetryPendingPurchases(item);
+            VerifyOrderImplAsync(
+                item.OrderRequest,
+                item.VerifyOrderRequest,
+                item.AccessToken,
+                item.PlayerId,
+                false,
+                item.PurchaseToken
+            ).Forget(e => _log.Warning($"Unsolicited App Store purchase verify failed for order {item.OrderId}: {e.Message}"));
+        }
+
+        private Dictionary<string, InternalPurchaseItem> LoadUnpairedOrders()
+        {
+            try
+            {
+                return JsonConvert.DeserializeObject<Dictionary<string, InternalPurchaseItem>>(
+                    PlayerPrefs.GetString(UnpairedOrdersKey, "{}")
+                ) ?? new Dictionary<string, InternalPurchaseItem>();
+            }
+            catch (Exception e)
+            {
+                _log.Warning($"Failed to parse unpaired orders: {e.Message}");
+                return new Dictionary<string, InternalPurchaseItem>();
+            }
+        }
+
         private PaymentResult GetAppstorePaymentResult(int orderId, bool success, string message)
         {
             _log.Info("Noctua.HandleIosPurchaseDone");
@@ -2011,10 +2132,12 @@ namespace com.noctuagames.sdk
             _log.Info("Noctua.HandleIosPurchaseDone success: " + success);
             _log.Info("Noctua.HandleIosPurchaseDone message: " + message);
 
+            message ??= string.Empty;
+
             if (!success)
             {
-                // Check if message contains cancel keyword
-                if (message.Contains("cancel")) {
+                // The bridge labels StoreKit user cancellations "User cancelled"
+                if (message.IndexOf("cancel", StringComparison.OrdinalIgnoreCase) >= 0) {
                     _log.Error("Purchase canceled: ");
 
                     return new PaymentResult

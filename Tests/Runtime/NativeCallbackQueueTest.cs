@@ -6,7 +6,8 @@ namespace Tests.Runtime
 {
     /// <summary>
     /// Unit tests for <see cref="NativeCallbackQueue{T}"/> — the FIFO queue that replaced the
-    /// single-slot callback fields in GoogleBilling.cs (Android) and IosPlugin.cs (iOS).
+    /// single-slot callback fields in GoogleBilling.cs (Android). The iOS StoreKit bridge uses
+    /// StoreKitRequestRouter instead (see StoreKitRequestRouterTest).
     ///
     /// These tests exercise exactly the scenario that used to deadlock purchase completion: two
     /// calls going out before either native response arrives. With the old single-slot field,

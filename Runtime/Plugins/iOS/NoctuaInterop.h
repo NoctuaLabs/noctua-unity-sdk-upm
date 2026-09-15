@@ -14,16 +14,13 @@ void noctuaDeleteEvents();
 // Pure Foundation call — does not go through the native Noctua SDK.
 const char* noctuaGetTimezone(void);
 
-typedef void (*PurchaseCompletionDelegate)(bool success, const char* message);
-void noctuaPurchaseItem(const char* productId, PurchaseCompletionDelegate callback);
-typedef void (*ActiveCurrencyCompletionDelegate)(bool success, const char* currency);
-void noctuaGetActiveCurrency(const char* productId, ActiveCurrencyCompletionDelegate callback);
-typedef void (*ProductPurchasedCompletionDelegate)(bool hasPurchased);
-void noctuaGetProductPurchasedById(const char* productId, ProductPurchasedCompletionDelegate callback);
-typedef void (*ReceiptCompletionDelegate)(const char* receipt);
-void noctuaGetReceiptProductPurchasedStoreKit1(const char* productId, ReceiptCompletionDelegate callback);
-typedef void (*ProductPurchaseStatusDetailDelegate)(const char* statusJson);
-void noctuaGetProductPurchaseStatusDetail(const char* productId, ProductPurchaseStatusDetailDelegate callback);
+// StoreKit: calls carry no callback; every result arrives as an event (kind + JSON payload that
+// includes the product id) on the callback registered with noctuaSetStoreKitEventCallback.
+typedef void (*StoreKitEventDelegate)(int kind, const char* json);
+void noctuaSetStoreKitEventCallback(StoreKitEventDelegate callback);
+void noctuaPurchaseItem(const char* productId);
+void noctuaQueryPurchaseStatus(const char* productId);
+void noctuaQueryActiveCurrency(const char* productId);
 typedef void (*GetFirebaseIDCallbackDelegate)(const char* firebaseId);
 void noctuaGetFirebaseInstallationID(GetFirebaseIDCallbackDelegate callback);
 typedef void (*GetFirebaseSessionIDCallbackDelegate)(const char* sessionId);
@@ -74,8 +71,8 @@ void noctuaDeleteAccount(int64_t gameId, int64_t playerId);
 
 // Additional StoreKit Functions
 void noctuaRegisterProduct(const char* productId, int consumableType);
-typedef void (*BoolCallbackDelegate)(bool success);
-void noctuaCompletePurchaseProcessing(const char* purchaseToken, int consumableType, bool verified, BoolCallbackDelegate callback);
+typedef void (*CompletePurchaseProcessingDelegate)(int requestId, bool success);
+void noctuaCompletePurchaseProcessing(const char* purchaseToken, int consumableType, bool verified, int requestId, CompletePurchaseProcessingDelegate callback);
 void noctuaRestorePurchases(void);
 void noctuaDisposeStoreKit(void);
 bool noctuaIsStoreKitReady(void);

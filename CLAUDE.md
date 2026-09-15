@@ -143,7 +143,15 @@ In `Noctua.cs` static methods: `var log = Instance.Value._log;` — NOT `_log` d
 
 **Android chain:** `AndroidPlugin.cs` → `AndroidJavaClass`/`AndroidJavaObject` JNI → `Noctua.kt`
 
-**Static callback pitfall (iOS):** `IosPlugin.cs` uses single static callback fields. Concurrent async calls overwrite the pending callback — only last one completes. Use caching instead of per-call async fetching (see `EventSender.cs`).
+**Static callback pitfall (iOS):** most `IosPlugin.cs` callbacks (Firebase, Adjust, events, …) still use single static callback fields. Concurrent async calls overwrite the pending callback — only last one completes. Use caching instead of per-call async fetching (see `EventSender.cs`).
+
+**StoreKit is the exception** (`IosPlugin.StoreKit.cs`). StoreKit calls carry no callback: `NoctuaInterop.m` forwards every StoreKit event (kind + JSON including the product id) to one C# callback, and `StoreKitRequestRouter` (`Runtime/Infrastructure/Common/`) matches it to the waiting call:
+- Purchases match by product id; a transaction dated well before the purchase started is a StoreKit replay, not the answer.
+- Status checks for the same product coalesce (at most one follow-up query), and different products never cross.
+- Currency queries run one at a time. Status and currency waits time out; purchases do not.
+- Purchased transactions nobody claimed go to `INativeIAP.SetUnsolicitedPurchaseHandler` → `AppStoreUnsolicitedPurchaseMatcher`, so the user is never charged without delivery.
+
+Never reintroduce a per-operation callback slot for StoreKit, and never fail a pending purchase on an error that doesn't name its product. Never drop a repeated transaction token: StoreKit 1 re-sends finished transactions and can answer the next purchase of the same product with one, so repeats go to the unsolicited handler (to be finished) and a purchase answered with a repeat fails immediately with `RepeatedTransactionMessage` — dropping it hangs every later purchase behind `_purchaseFlowGate`. Tests: `Tests/Runtime/IAP/StoreKitRequestRouterTest.cs`.
 
 ### Adding a new native method
 

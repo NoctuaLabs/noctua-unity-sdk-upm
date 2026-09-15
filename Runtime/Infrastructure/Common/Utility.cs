@@ -403,10 +403,13 @@ namespace com.noctuagames.sdk
     ///
     /// A FIFO queue removes the overwrite: every call enqueues its own callback, and every native
     /// response dequeues and invokes the oldest one. This is correct exactly when the native side
-    /// answers calls in the order they were made (true for both the Android JNI bridge and the
-    /// iOS P/Invoke trampolines this class backs — see <c>GoogleBilling.cs</c> and
-    /// <c>IosPlugin.cs</c>), and is a strict improvement over the single-slot field either way:
-    /// callbacks always eventually fire instead of some of them hanging forever.
+    /// answers calls in the order they were made (true for the Android JNI bridge this class backs —
+    /// see <c>GoogleBilling.cs</c>), and is a strict improvement over the single-slot field either
+    /// way: callbacks always eventually fire instead of some of them hanging forever.
+    ///
+    /// The iOS StoreKit bridge does NOT use this: its native side does not answer in call order and
+    /// can drop responses, so it matches events by product id instead — see
+    /// <see cref="StoreKitRequestRouter"/>.
     ///
     /// Platform-agnostic and dependency-free by design (no UnityEngine / native plugin
     /// references) so the FIFO behavior itself is unit-testable in EditMode, unlike the

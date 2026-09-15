@@ -13,7 +13,7 @@ namespace com.noctuagames.sdk
     /// Uses <c>[DllImport("__Internal")]</c> for calling Objective-C/Swift interop functions and
     /// <c>[MonoPInvokeCallback]</c> static delegates for receiving native callbacks.
     /// </summary>
-    internal class IosPlugin : INativePlugin
+    internal partial class IosPlugin : INativePlugin
     {
         private readonly ILogger _log = new NoctuaLogger(typeof(IosPlugin));
         private static readonly ILogger _sLog = new NoctuaLogger(typeof(IosPlugin));
@@ -32,21 +32,6 @@ namespace com.noctuagames.sdk
 
         [DllImport("__Internal")]
         private static extern void noctuaTrackCustomEventWithRevenue(string eventName, double amount, string currency, string payloadJson);
-
-        [DllImport("__Internal")]
-        private static extern void noctuaPurchaseItem(string productId, CompletionDelegate callback);
-
-        [DllImport("__Internal")]
-        private static extern void noctuaGetProductPurchasedById(string productId, CompletionProductPurchasedDelegate callback);
-
-        [DllImport("__Internal")]
-        private static extern void noctuaGetReceiptProductPurchasedStoreKit1(string productId, CompletionGetReceiptDelegate callback);
-
-        [DllImport("__Internal")]
-        private static extern void noctuaGetActiveCurrency(string productId, CompletionDelegate callback);
-
-        [DllImport("__Internal")]
-        private static extern void noctuaGetProductPurchaseStatusDetail(string productId, ProductPurchaseStatusDetailDelegate callback);
 
         [DllImport("__Internal")]
         private static extern void noctuaPutAccount(long gameId, long playerId, string rawData);
@@ -138,22 +123,6 @@ namespace com.noctuagames.sdk
         [DllImport("__Internal")]
         private static extern void noctuaDeleteEvents();
 
-        // Additional StoreKit functions
-        [DllImport("__Internal")]
-        private static extern void noctuaRegisterProduct(string productId, int consumableType);
-
-        [DllImport("__Internal")]
-        private static extern void noctuaCompletePurchaseProcessing(string purchaseToken, int consumableType, bool verified, BoolCallbackDelegate callback);
-
-        [DllImport("__Internal")]
-        private static extern void noctuaRestorePurchases();
-
-        [DllImport("__Internal")]
-        private static extern void noctuaDisposeStoreKit();
-
-        [DllImport("__Internal")]
-        private static extern bool noctuaIsStoreKitReady();
-
         // Per-row event storage
         [DllImport("__Internal")]
         private static extern void noctuaInsertEvent(string eventJson);
@@ -177,18 +146,6 @@ namespace com.noctuagames.sdk
 
         // Store the callback to be used in the static methods
         private static Action<string> storedLifecycleCallback;
-        // One field per operation: PurchaseItem and GetActiveCurrency can overlap
-        // in the payment flow, so sharing a single slot would let the second call
-        // overwrite the pending purchase callback.
-        private static Action<bool, string> storedPurchaseCompletion;
-        private static Action<bool, string> storedActiveCurrencyCompletion;
-        // Queue, not a single slot: GetProductPurchasedById can be called again (e.g. the
-        // SDK's own refund-tracking probe) before a prior call's native response arrives.
-        // A single-slot field would get silently overwritten, leaving the earlier caller's
-        // TaskCompletionSource waiting forever. The native side answers in call order. See
-        // NativeCallbackQueue<T> for the (unit-tested) queue behavior itself.
-        private static readonly NativeCallbackQueue<bool> storedHasPurchasedCompletions = new();
-        private static Action<string> storedGetReceiptCompletion;
         private static Action<string> storedFirebaseInstallationIdCompletion;
         private static Action<string> storedFirebaseSessionIdCompletion;
         private static Action<string> storedFirebaseMessagingTokenCompletion;
@@ -216,20 +173,8 @@ namespace com.noctuagames.sdk
         private static Action<List<NativeEvent>> storedGetEventsBatchCompletion;
         private static Action<int> storedDeleteEventsByIdsCompletion;
         private static Action<int> storedGetEventCountCompletion;
-        private static Action<bool> storedCompletePurchaseProcessingCompletion;
-        // Queue for the same reason as storedHasPurchasedCompletions above.
-        private static readonly NativeCallbackQueue<ProductPurchaseStatus> storedPurchaseStatusDetailCompletions = new();
 
         // Define delegates for the native callbacks
-        [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-        private delegate void CompletionDelegate(bool success, IntPtr messagePtr);
-
-        [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-        private delegate void CompletionProductPurchasedDelegate(bool hasPurchased);
-
-        [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-        private delegate void CompletionGetReceiptDelegate(string receipt);
-
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
         private delegate void GetFirebaseIDCallbackDelegate(string installationId);
 
@@ -270,10 +215,6 @@ namespace com.noctuagames.sdk
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
         private delegate void GetEventsCallbackDelegate(IntPtr eventsJson);
 
-        // Bool callback delegate (for completePurchaseProcessing, etc.)
-        [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-        private delegate void BoolCallbackDelegate(bool success);
-
         // Per-row event delegates
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
         private delegate void GetEventsBatchCallbackDelegate(IntPtr eventsJson);
@@ -283,57 +224,6 @@ namespace com.noctuagames.sdk
 
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
         private delegate void GetEventCountCallbackDelegate(int count);
-
-        [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-        private delegate void ProductPurchaseStatusDetailDelegate(IntPtr statusJsonPtr);
-
-        //Delegate for methods returning string values
-        [AOT.MonoPInvokeCallback(typeof(CompletionDelegate))]
-        private static void PurchaseCompletionCallback(bool success, IntPtr messagePtr)
-        {
-            string message = messagePtr != IntPtr.Zero ? Marshal.PtrToStringAnsi(messagePtr) : "Unknown error";
-            var completion = storedPurchaseCompletion;
-            storedPurchaseCompletion = null;
-
-            if (completion == null)
-            {
-                // Late or duplicate native callback — the pending slot was already
-                // consumed. Surfacing this catches any regression of the shared-slot
-                // callback corruption this split was introduced to fix.
-                _sLog.Warning($"PurchaseCompletionCallback fired with no pending completion (success={success}, message='{message}')");
-                return;
-            }
-
-            completion.Invoke(success, message);
-        }
-
-        [AOT.MonoPInvokeCallback(typeof(CompletionDelegate))]
-        private static void ActiveCurrencyCompletionCallback(bool success, IntPtr messagePtr)
-        {
-            string message = messagePtr != IntPtr.Zero ? Marshal.PtrToStringAnsi(messagePtr) : "Unknown error";
-            var completion = storedActiveCurrencyCompletion;
-            storedActiveCurrencyCompletion = null;
-
-            if (completion == null)
-            {
-                _sLog.Warning($"ActiveCurrencyCompletionCallback fired with no pending completion (success={success})");
-                return;
-            }
-
-            completion.Invoke(success, message);
-        }
-
-        [AOT.MonoPInvokeCallback(typeof(CompletionProductPurchasedDelegate))]
-        private static void CompletionHasPurchasedCallback(bool hasPurchased)
-        {
-            storedHasPurchasedCompletions.InvokeNext(hasPurchased);
-        }
-
-        [AOT.MonoPInvokeCallback(typeof(CompletionGetReceiptDelegate))]
-        private static void CompletionGetReceiptCallback(string receipt)
-        {
-            storedGetReceiptCompletion?.Invoke(receipt);
-        } 
 
         [AOT.MonoPInvokeCallback(typeof(GetFirebaseIDCallbackDelegate))]
         private static void GetFirebaseInstallationIDCallback(string installationId) 
@@ -483,46 +373,6 @@ namespace com.noctuagames.sdk
             }
         }
 
-        [AOT.MonoPInvokeCallback(typeof(BoolCallbackDelegate))]
-        private static void CompletePurchaseProcessingCallback(bool success)
-        {
-            storedCompletePurchaseProcessingCompletion?.Invoke(success);
-        }
-
-        [AOT.MonoPInvokeCallback(typeof(ProductPurchaseStatusDetailDelegate))]
-        private static void ProductPurchaseStatusDetailCallback(IntPtr statusJsonPtr)
-        {
-            if (!storedPurchaseStatusDetailCompletions.TryDequeue(out var completion))
-            {
-                return;
-            }
-
-            try
-            {
-                if (statusJsonPtr == IntPtr.Zero)
-                {
-                    completion?.Invoke(new ProductPurchaseStatus());
-                    return;
-                }
-
-                string json = Marshal.PtrToStringUTF8(statusJsonPtr);
-
-                if (string.IsNullOrEmpty(json) || json == "{}")
-                {
-                    completion?.Invoke(new ProductPurchaseStatus());
-                    return;
-                }
-
-                var status = JsonConvert.DeserializeObject<ProductPurchaseStatus>(json) ?? new ProductPurchaseStatus();
-                completion?.Invoke(status);
-            }
-            catch (Exception e)
-            {
-                _sLog.Warning($"[Noctua] ProductPurchaseStatusDetail callback failed: {e.Message}");
-                completion?.Invoke(new ProductPurchaseStatus());
-            }
-        }
-
         /// <inheritdoc />
         public void Init(List<string> activeBundleIds, bool sandboxEnabled)
         {
@@ -558,87 +408,6 @@ namespace com.noctuagames.sdk
         public void TrackCustomEventWithRevenue(string eventName, double revenue, string currency, Dictionary<string, IConvertible> payload)
         {
             noctuaTrackCustomEventWithRevenue(eventName, revenue, currency, JsonConvert.SerializeObject(payload));
-        }
-
-        /// <inheritdoc />
-        public void PurchaseItem(string productId, Action<bool, string> completion)
-        {
-            if (string.IsNullOrEmpty(productId))
-            {
-                _log.Error("Product ID is null or empty");
-                completion?.Invoke(false, "Product ID is null or empty");
-                return;
-            }
-
-            storedPurchaseCompletion = completion;
-            noctuaPurchaseItem(productId, new CompletionDelegate(PurchaseCompletionCallback));
-
-            _log.Debug("noctuaPurchaseItem called");
-        }
-
-        /// <inheritdoc />
-        public void GetProductPurchasedById(string productId, Action<bool> completion)
-        {
-            if (string.IsNullOrEmpty(productId))
-            {
-                _log.Error("Product ID is null or empty");
-                completion?.Invoke(false);
-                return;
-            }
-
-
-            storedHasPurchasedCompletions.Enqueue(completion);
-            noctuaGetProductPurchasedById(productId, new CompletionProductPurchasedDelegate(CompletionHasPurchasedCallback));
-
-            _log.Debug("noctuaGetProductPurchasedById called");
-        }
-
-        /// <inheritdoc />
-        public void GetProductPurchaseStatusDetail(string productId, Action<ProductPurchaseStatus> callback)
-        {
-            if (string.IsNullOrEmpty(productId))
-            {
-                _log.Error("Product ID is null or empty");
-                callback?.Invoke(new ProductPurchaseStatus());
-                return;
-            }
-
-            storedPurchaseStatusDetailCompletions.Enqueue(callback);
-            noctuaGetProductPurchaseStatusDetail(productId, new ProductPurchaseStatusDetailDelegate(ProductPurchaseStatusDetailCallback));
-
-            _log.Debug("noctuaGetProductPurchaseStatusDetail called");
-        }
-
-        /// <inheritdoc />
-        public void GetReceiptProductPurchasedStoreKit1(string productId, Action<string> completion)
-        {
-            if (string.IsNullOrEmpty(productId))
-            {
-                _log.Error("Product ID is null or empty");
-                completion?.Invoke(string.Empty);
-                return;
-            }
-
-            storedGetReceiptCompletion = completion;
-            noctuaGetReceiptProductPurchasedStoreKit1(productId, new CompletionGetReceiptDelegate(CompletionGetReceiptCallback));
-
-            _log.Debug("noctuaGetReceiptProductPurchasedStoreKit1 called");
-        }
-
-        /// <inheritdoc />
-        public void GetActiveCurrency(string productId, Action<bool, string> completion)
-        {
-            if (string.IsNullOrEmpty(productId))
-            {
-                _log.Debug("Product ID is null or empty");
-                completion?.Invoke(false, "Product ID is null or empty");
-                return;
-            }
-
-            storedActiveCurrencyCompletion = completion;
-            noctuaGetActiveCurrency(productId, new CompletionDelegate(ActiveCurrencyCompletionCallback));
-
-            _log.Debug("noctuaGetActiveCurrency called");
         }
 
         /// <inheritdoc />
@@ -1225,58 +994,6 @@ namespace com.noctuagames.sdk
                 if (e.Message == null) return;
                 _log.Warning($"GetEventCount failed: {e.Message}");
             }
-        }
-
-        /// <summary>
-        /// Registers a product with its consumable type in the native StoreKit layer.
-        /// </summary>
-        /// <param name="productId">The App Store product identifier.</param>
-        /// <param name="consumableType">The consumable type of the product.</param>
-        public void RegisterProduct(string productId, NoctuaConsumableType consumableType)
-        {
-            _log.Debug($"IosPlugin.RegisterProduct: {productId}, type={consumableType}");
-            noctuaRegisterProduct(productId, (int)consumableType);
-        }
-
-        /// <summary>
-        /// Completes purchase processing in the native StoreKit layer after server verification.
-        /// </summary>
-        /// <param name="purchaseToken">The purchase token (transaction ID) to finalize.</param>
-        /// <param name="consumableType">The consumable type of the product.</param>
-        /// <param name="verified">Whether the server verification succeeded.</param>
-        /// <param name="callback">Callback with success status.</param>
-        public void CompletePurchaseProcessing(string purchaseToken, NoctuaConsumableType consumableType, bool verified, Action<bool> callback)
-        {
-            _log.Debug($"IosPlugin.CompletePurchaseProcessing: token={purchaseToken}, type={consumableType}, verified={verified}");
-            storedCompletePurchaseProcessingCompletion = callback;
-            noctuaCompletePurchaseProcessing(purchaseToken, (int)consumableType, verified, CompletePurchaseProcessingCallback);
-        }
-
-        /// <summary>
-        /// Restores all previously completed purchases via the native StoreKit layer.
-        /// </summary>
-        public void RestorePurchases()
-        {
-            _log.Debug("IosPlugin.RestorePurchases");
-            noctuaRestorePurchases();
-        }
-
-        /// <summary>
-        /// Disposes the native StoreKit service and releases resources.
-        /// </summary>
-        public void DisposeStoreKit()
-        {
-            _log.Debug("IosPlugin.DisposeStoreKit");
-            noctuaDisposeStoreKit();
-        }
-
-        /// <summary>
-        /// Returns whether the native StoreKit service is initialized and ready for operations.
-        /// </summary>
-        /// <returns>True if StoreKit is ready, false otherwise.</returns>
-        public bool IsStoreKitReady()
-        {
-            return noctuaIsStoreKitReady();
         }
 
         // ------------------------------------

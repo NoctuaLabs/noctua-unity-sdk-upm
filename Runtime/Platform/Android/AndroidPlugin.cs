@@ -435,6 +435,13 @@ namespace com.noctuagames.sdk
             }
         }
 
+        /// <summary>
+        /// No-op on Android; unsolicited Google Play purchases are handled via <see cref="GoogleBilling"/>.
+        /// </summary>
+        public void SetUnsolicitedPurchaseHandler(Action<StoreKitTransaction> handler)
+        {
+        }
+
         /// <inheritdoc />
         public void ShowDatePicker(int year, int month, int day, int id)
         {

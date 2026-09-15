@@ -76,364 +76,292 @@ const char* noctuaGetTimezone(void) {
     return strdup([timezoneName UTF8String]);
 }
 
-// MARK: - StoreKit / In-App Purchases (New API)
+// MARK: - StoreKit / In-App Purchases
 
-// Static state for StoreKit callback bridging
+// This bridge keeps NO per-request state. Every StoreKit event is forwarded — with the product id
+// it belongs to — to a single C# callback (IosPlugin -> StoreKitRequestRouter), which matches events
+// to the calls waiting for them.
+//
+// The previous design kept one global callback slot per operation and completed whatever happened
+// to be waiting when any event arrived. Under fast or overlapping calls that dropped callbacks
+// (hanging the caller), answered a status check with another product's status, failed an in-flight
+// purchase on an unrelated StoreKit error, and let a replayed old transaction complete a brand-new
+// purchase while the new transaction was silently left unfinished.
+//
+// Threading: Unity may call these functions from any thread. Every StoreKit call is hopped onto
+// the main queue (C strings are copied first; they are only valid for the duration of the call),
+// and the native SDK delivers its events on main, so events reach C# in native order.
+
+typedef NS_ENUM(int, NoctuaStoreKitEventKind) {
+    NoctuaStoreKitEventPurchaseCompleted = 1,
+    NoctuaStoreKitEventPurchaseUpdated = 2,
+    NoctuaStoreKitEventServerVerificationRequired = 3,
+    NoctuaStoreKitEventPurchaseStatus = 4,
+    NoctuaStoreKitEventProductDetails = 5,
+    NoctuaStoreKitEventError = 6,
+};
+
+typedef void (*StoreKitEventDelegate)(int kind, const char* json);
+typedef void (*CompletePurchaseProcessingDelegate)(int requestId, bool success);
+
+static StoreKitEventDelegate _storeKitEventCallback = NULL;
 static BOOL _storeKitInitialized = NO;
 
-// Pending callback pointers for purchase flow
-typedef void (*CompletionDelegate)(bool success, const char* message);
-static CompletionDelegate _pendingPurchaseCallback = NULL;
+static NSObject *storeKitBridgeLock(void) {
+    static NSObject *lock;
+    static dispatch_once_t once;
+    dispatch_once(&once, ^{
+        lock = [NSObject new];
+    });
+    return lock;
+}
 
-// Pending callback for get active currency
-static CompletionDelegate _pendingActiveCurrencyCallback = NULL;
+static void runStoreKitOnMain(dispatch_block_t block) {
+    if ([NSThread isMainThread]) {
+        block();
+    } else {
+        dispatch_async(dispatch_get_main_queue(), block);
+    }
+}
 
-// Pending callback for get product purchased by id
-typedef void (*ProductPurchasedCompletionDelegate)(bool success);
-static ProductPurchasedCompletionDelegate _pendingProductPurchasedCallback = NULL;
+static NSString *copyCString(const char* value) {
+    return value == NULL ? nil : [NSString stringWithUTF8String:value];
+}
 
-// Pending callback for get receipt
-typedef void (*ReceiptCompletionDelegate)(const char* message);
-static ReceiptCompletionDelegate _pendingReceiptCallback = NULL;
-
-// Pending callback for full purchase status detail
-typedef void (*ProductPurchaseStatusDetailDelegate)(const char* statusJson);
-static ProductPurchaseStatusDetailDelegate _pendingPurchaseStatusDetailCallback = NULL;
-
-static void ensureStoreKitInitialized(void) {
-    if (_storeKitInitialized) {
+static void emitStoreKitEvent(NoctuaStoreKitEventKind kind, id payload) {
+    StoreKitEventDelegate callback;
+    @synchronized (storeKitBridgeLock()) {
+        callback = _storeKitEventCallback;
+    }
+    if (callback == NULL) {
+        NSLog(@"[NoctuaStoreKit] Dropping event %d: no event callback registered", kind);
         return;
     }
-    _storeKitInitialized = YES;
+
+    NSError *error = nil;
+    NSData *data = [NSJSONSerialization dataWithJSONObject:payload options:0 error:&error];
+    if (data == nil) {
+        NSLog(@"[NoctuaStoreKit] Failed to serialize event %d: %@", kind, error);
+        return;
+    }
+
+    NSString *json = [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding];
+    callback(kind, json.UTF8String);
+}
+
+static NSDictionary *transactionPayload(NoctuaPurchaseResult *result, int consumableType) {
+    return @{
+        @"ProductId": result.productId ?: @"",
+        @"Success": @(result.success),
+        @"ErrorCode": @(result.errorCode),
+        @"PurchaseState": @(result.purchaseState),
+        @"PurchaseToken": result.purchaseToken ?: @"",
+        @"PurchaseTimeMs": @(result.purchaseTime),
+        @"Receipt": result.originalJson ?: @"",
+        @"ConsumableType": @(consumableType),
+        @"Message": result.message ?: @""
+    };
+}
+
+static void logTransaction(NSString *event, NoctuaPurchaseResult *result) {
+    NSLog(@"[NoctuaStoreKit] %@: productId=%@, success=%d, errorCode=%ld, purchaseState=%ld, token=%@, message=%@",
+        event, result.productId, result.success, (long)result.errorCode, (long)result.purchaseState,
+        result.purchaseToken, result.message);
+}
+
+static NSString *const StoreKitUnavailableMessage = @"StoreKit is not available (IAP disabled in config, or the native SDK is not initialized)";
+
+// Must be called on the main queue. Returns whether StoreKit is available. Only a successful
+// initialization is remembered, so a call made before the native SDK is ready retries later
+// instead of leaving StoreKit permanently uninitialized.
+static BOOL ensureStoreKitInitialized(void) {
+    @synchronized (storeKitBridgeLock()) {
+        if (_storeKitInitialized) {
+            return YES;
+        }
+    }
 
     [Noctua initializeStoreKitOnPurchaseCompleted:^(NoctuaPurchaseResult * _Nonnull result) {
-        NSLog(@"StoreKit onPurchaseCompleted: success=%d, productId=%@", result.success, result.productId);
-        NSLog(@"StoreKit onPurchaseCompleted detail: purchaseToken=%@, orderId=%@, errorCode=%ld, purchaseState=%ld, originalJson.length=%lu, message=%@",
-            result.purchaseToken, result.orderId, (long)result.errorCode, (long)result.purchaseState,
-            (unsigned long)result.originalJson.length, result.message);
-        if (_pendingPurchaseCallback != NULL) {
-            CompletionDelegate callback = _pendingPurchaseCallback;
-            _pendingPurchaseCallback = NULL;
-
-            if (result.success) {
-                const char* receipt = [result.originalJson UTF8String];
-                callback(true, receipt ? receipt : "");
-            } else {
-                NSString *msg = result.message ?: @"Purchase failed";
-                callback(false, [msg UTF8String]);
-            }
-        }
+        logTransaction(@"onPurchaseCompleted", result);
+        emitStoreKitEvent(NoctuaStoreKitEventPurchaseCompleted, transactionPayload(result, 0));
     } onPurchaseUpdated:^(NoctuaPurchaseResult * _Nonnull result) {
-        NSLog(@"StoreKit onPurchaseUpdated: success=%d, productId=%@", result.success, result.productId);
-        NSLog(@"StoreKit onPurchaseUpdated detail: purchaseToken=%@, orderId=%@, errorCode=%ld, purchaseState=%ld, originalJson.length=%lu, message=%@",
-            result.purchaseToken, result.orderId, (long)result.errorCode, (long)result.purchaseState,
-            (unsigned long)result.originalJson.length, result.message);
-        // If purchase callback is still pending (e.g., for pending state updates), handle it
-        if (_pendingPurchaseCallback != NULL) {
-            CompletionDelegate callback = _pendingPurchaseCallback;
-            _pendingPurchaseCallback = NULL;
-
-            if (result.success) {
-                const char* receipt = [result.originalJson UTF8String];
-                callback(true, receipt ? receipt : "");
-            } else {
-                NSString *msg = result.message ?: @"Purchase updated with failure";
-                callback(false, [msg UTF8String]);
-            }
-        }
+        logTransaction(@"onPurchaseUpdated", result);
+        emitStoreKitEvent(NoctuaStoreKitEventPurchaseUpdated, transactionPayload(result, 0));
     } onProductDetailsLoaded:^(NSArray<NoctuaProductDetails *> * _Nonnull details) {
-        NSLog(@"StoreKit onProductDetailsLoaded: count=%lu", (unsigned long)details.count);
-        if (_pendingActiveCurrencyCallback != NULL) {
-            CompletionDelegate callback = _pendingActiveCurrencyCallback;
-            _pendingActiveCurrencyCallback = NULL;
-
-            if (details.count > 0) {
-                NoctuaProductDetails *first = details[0];
-                const char* currency = [first.priceCurrencyCode UTF8String];
-                callback(true, currency ? currency : "");
-            } else {
-                callback(false, "No product details found");
-            }
+        NSLog(@"[NoctuaStoreKit] onProductDetailsLoaded: count=%lu", (unsigned long)details.count);
+        NSMutableArray *products = [NSMutableArray arrayWithCapacity:details.count];
+        for (NoctuaProductDetails *detail in details) {
+            [products addObject:@{
+                @"ProductId": detail.productId ?: @"",
+                @"Currency": detail.priceCurrencyCode ?: @""
+            }];
         }
+        emitStoreKitEvent(NoctuaStoreKitEventProductDetails, products);
     } onQueryPurchasesCompleted:^(NSArray<NoctuaPurchaseResult *> * _Nonnull results) {
-        NSLog(@"StoreKit onQueryPurchasesCompleted: count=%lu", (unsigned long)results.count);
+        NSLog(@"[NoctuaStoreKit] onQueryPurchasesCompleted: count=%lu", (unsigned long)results.count);
     } onRestorePurchasesCompleted:^(NSArray<NoctuaPurchaseResult *> * _Nonnull results) {
-        NSLog(@"StoreKit onRestorePurchasesCompleted: count=%lu", (unsigned long)results.count);
+        NSLog(@"[NoctuaStoreKit] onRestorePurchasesCompleted: count=%lu", (unsigned long)results.count);
     } onProductPurchaseStatusResult:^(NoctuaProductPurchaseStatus * _Nonnull status) {
-        NSLog(@"StoreKit onProductPurchaseStatusResult: productId=%@, isPurchased=%d", status.productId, status.isPurchased);
-        NSLog(@"StoreKit onProductPurchaseStatusResult detail: purchaseToken=%@, orderId=%@, isAcknowledged=%d, isAutoRenewing=%d, purchaseTime=%lld, originalJson.length=%lu",
-            status.purchaseToken, status.orderId, status.isAcknowledged, status.isAutoRenewing,
-            status.purchaseTime, (unsigned long)status.originalJson.length);
-        if (_pendingProductPurchasedCallback != NULL) {
-            ProductPurchasedCompletionDelegate callback = _pendingProductPurchasedCallback;
-            _pendingProductPurchasedCallback = NULL;
-            callback(status.isPurchased);
-        }
-        if (_pendingReceiptCallback != NULL) {
-            ReceiptCompletionDelegate callback = _pendingReceiptCallback;
-            _pendingReceiptCallback = NULL;
-            if (status.isPurchased) {
-                const char* token = [status.purchaseToken UTF8String];
-                callback(token ? token : "");
-            } else {
-                callback(NULL);
-            }
-        }
-        if (_pendingPurchaseStatusDetailCallback != NULL) {
-            ProductPurchaseStatusDetailDelegate callback = _pendingPurchaseStatusDetailCallback;
-            _pendingPurchaseStatusDetailCallback = NULL;
-
-            NSDictionary *statusDict = @{
-                @"ProductId": status.productId ?: @"",
-                @"IsPurchased": @(status.isPurchased),
-                @"IsAcknowledged": @(status.isAcknowledged),
-                @"IsAutoRenewing": @(status.isAutoRenewing),
-                @"PurchaseState": @(status.purchaseState),
-                @"PurchaseToken": status.purchaseToken ?: @"",
-                @"PurchaseTime": @(status.purchaseTime),
-                @"ExpiryTime": @(status.expiryTime),
-                @"OrderId": status.orderId ?: @"",
-                @"OriginalJson": status.originalJson ?: @"",
-                @"TransactionJson": status.transactionJson ?: @""
-            };
-
-            NSError *error = nil;
-            NSData *jsonData = [NSJSONSerialization dataWithJSONObject:statusDict options:0 error:&error];
-            if (jsonData) {
-                NSString *jsonString = [[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding];
-                callback([jsonString UTF8String]);
-            } else {
-                callback("{}");
-            }
-        }
+        NSLog(@"[NoctuaStoreKit] onProductPurchaseStatusResult: productId=%@, isPurchased=%d, token=%@",
+            status.productId, status.isPurchased, status.purchaseToken);
+        emitStoreKitEvent(NoctuaStoreKitEventPurchaseStatus, @{
+            @"ProductId": status.productId ?: @"",
+            @"IsPurchased": @(status.isPurchased),
+            @"IsAcknowledged": @(status.isAcknowledged),
+            @"IsAutoRenewing": @(status.isAutoRenewing),
+            @"PurchaseState": @(status.purchaseState),
+            @"PurchaseToken": status.purchaseToken ?: @"",
+            @"PurchaseTime": @(status.purchaseTime),
+            @"ExpiryTime": @(status.expiryTime),
+            @"OrderId": status.orderId ?: @"",
+            @"OriginalJson": status.originalJson ?: @"",
+            @"TransactionJson": status.transactionJson ?: @""
+        });
     } onServerVerificationRequired:^(NoctuaPurchaseResult * _Nonnull result, enum ConsumableType consumableType) {
-        NSLog(@"StoreKit onServerVerificationRequired: productId=%@, success=%d", result.productId, result.success);
-        NSLog(@"StoreKit onServerVerificationRequired detail: purchaseToken=%@, orderId=%@, errorCode=%ld, purchaseState=%ld, originalJson.length=%lu, message=%@",
-            result.purchaseToken, result.orderId, (long)result.errorCode, (long)result.purchaseState,
-            (unsigned long)result.originalJson.length, result.message);
-        // Forward to pending purchase callback so Unity can run its own VerifyOrderAsync
-        // Pass purchaseToken + consumableType alongside the receipt so Unity can call
-        // completePurchaseProcessing after server verification succeeds.
-        if (_pendingPurchaseCallback != NULL) {
-            CompletionDelegate callback = _pendingPurchaseCallback;
-            _pendingPurchaseCallback = NULL;
-            if (result.success) {
-                NSDictionary *callbackData = @{
-                    @"receipt": result.originalJson ?: @"",
-                    @"purchaseToken": result.purchaseToken ?: @"",
-                    @"consumableType": @(consumableType)
-                };
-                NSData *jsonData = [NSJSONSerialization dataWithJSONObject:callbackData options:0 error:nil];
-                NSString *jsonString = [[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding];
-                const char* msg = [jsonString UTF8String];
-                callback(true, msg ? msg : "");
-            } else {
-                NSString *msg = result.message ?: @"Server verification required";
-                callback(false, [msg UTF8String]);
-            }
-        }
+        logTransaction(@"onServerVerificationRequired", result);
+        emitStoreKitEvent(NoctuaStoreKitEventServerVerificationRequired, transactionPayload(result, (int)consumableType));
     } onStoreKitError:^(enum StoreKitErrorCode errorCode, NSString * _Nonnull message) {
-        NSLog(@"StoreKit onStoreKitError: code=%ld, message=%@", (long)errorCode, message);
-        // If a purchase was pending, fail it
-        if (_pendingPurchaseCallback != NULL) {
-            CompletionDelegate callback = _pendingPurchaseCallback;
-            _pendingPurchaseCallback = NULL;
-            const char* msg = [message UTF8String];
-            callback(false, msg ? msg : "StoreKit error");
-        }
-        // If currency query was pending, fail it
-        if (_pendingActiveCurrencyCallback != NULL) {
-            CompletionDelegate callback = _pendingActiveCurrencyCallback;
-            _pendingActiveCurrencyCallback = NULL;
-            const char* msg = [message UTF8String];
-            callback(false, msg ? msg : "StoreKit error");
-        }
+        NSLog(@"[NoctuaStoreKit] onStoreKitError: code=%ld, message=%@", (long)errorCode, message);
+        emitStoreKitEvent(NoctuaStoreKitEventError, @{
+            @"Code": @(errorCode),
+            @"Message": message ?: @""
+        });
     }];
+
+    BOOL ready = [Noctua isStoreKitReady];
+    @synchronized (storeKitBridgeLock()) {
+        _storeKitInitialized = ready;
+    }
+    if (!ready) {
+        NSLog(@"[NoctuaStoreKit] %@", StoreKitUnavailableMessage);
+    }
+    return ready;
 }
 
-void noctuaPurchaseItem(const char* productId, CompletionDelegate callback) {
-    NSLog(@"noctuaPurchaseItem called with productId: %s", productId);
-
-    if (productId == NULL) {
-        NSLog(@"Product ID is null");
-        if (callback != NULL) {
-            callback(false, "Product ID is null");
-        }
-        return;
+void noctuaSetStoreKitEventCallback(StoreKitEventDelegate callback) {
+    @synchronized (storeKitBridgeLock()) {
+        _storeKitEventCallback = callback;
     }
+}
 
-    NSString *productIdStr = [NSString stringWithUTF8String:productId];
+void noctuaPurchaseItem(const char* productId) {
+    NSString *productIdStr = copyCString(productId);
     if (productIdStr.length == 0) {
-        NSLog(@"Product ID is empty");
-        if (callback != NULL) {
-            callback(false, "Product ID is empty");
-        }
+        NSLog(@"[NoctuaStoreKit] noctuaPurchaseItem: product ID is empty");
         return;
     }
 
-    ensureStoreKitInitialized();
-
-    _pendingPurchaseCallback = callback;
-
-    NSLog(@"Calling Noctua purchase via new StoreKit API");
-    [Noctua purchaseWithProductId:productIdStr];
+    runStoreKitOnMain(^{
+        if (!ensureStoreKitInitialized()) {
+            // Answer the purchase instead of letting it wait for an event that will never come.
+            emitStoreKitEvent(NoctuaStoreKitEventPurchaseCompleted, @{
+                @"ProductId": productIdStr,
+                @"Success": @NO,
+                @"ErrorCode": @(StoreKitErrorCodeStoreKitUnavailable),
+                @"PurchaseState": @(PurchaseStateUnspecified),
+                @"Message": StoreKitUnavailableMessage
+            });
+            return;
+        }
+        NSLog(@"[NoctuaStoreKit] purchase: %@", productIdStr);
+        [Noctua purchaseWithProductId:productIdStr];
+    });
 }
 
-void noctuaGetActiveCurrency(const char* productId, CompletionDelegate callback) {
-    NSLog(@"noctuaGetActiveCurrency called with productId: %s", productId);
-
-    if (productId == NULL) {
-        NSLog(@"Product ID is null");
-        if (callback != NULL) {
-            callback(false, "Product ID is null");
-        }
-        return;
-    }
-
-    NSString *productIdStr = [NSString stringWithUTF8String:productId];
+void noctuaQueryPurchaseStatus(const char* productId) {
+    NSString *productIdStr = copyCString(productId);
     if (productIdStr.length == 0) {
-        NSLog(@"Product ID is empty");
-        if (callback != NULL) {
-            callback(false, "Product ID is empty");
-        }
+        NSLog(@"[NoctuaStoreKit] noctuaQueryPurchaseStatus: product ID is empty");
         return;
     }
 
-    ensureStoreKitInitialized();
-
-    _pendingActiveCurrencyCallback = callback;
-
-    [Noctua queryProductDetailsWithProductIds:@[productIdStr] productType:ProductTypeInapp];
+    runStoreKitOnMain(^{
+        if (!ensureStoreKitInitialized()) {
+            emitStoreKitEvent(NoctuaStoreKitEventPurchaseStatus, @{
+                @"ProductId": productIdStr,
+                @"IsPurchased": @NO
+            });
+            return;
+        }
+        [Noctua getProductPurchaseStatusWithProductId:productIdStr];
+    });
 }
 
-void noctuaGetProductPurchasedById(const char* productId, ProductPurchasedCompletionDelegate callback) {
-    NSLog(@"noctuaGetProductPurchasedById called with productId: %s", productId);
-
-    if (productId == NULL) {
-        NSLog(@"Product ID is null");
-        if (callback != NULL) {
-            callback(false);
-        }
-        return;
-    }
-
-    NSString *productIdStr = [NSString stringWithUTF8String:productId];
+void noctuaQueryActiveCurrency(const char* productId) {
+    NSString *productIdStr = copyCString(productId);
     if (productIdStr.length == 0) {
-        NSLog(@"Product ID is empty");
-        if (callback != NULL) {
-            callback(false);
-        }
+        NSLog(@"[NoctuaStoreKit] noctuaQueryActiveCurrency: product ID is empty");
         return;
     }
 
-    ensureStoreKitInitialized();
-
-    _pendingProductPurchasedCallback = callback;
-
-    [Noctua getProductPurchaseStatusWithProductId:productIdStr];
+    runStoreKitOnMain(^{
+        if (!ensureStoreKitInitialized()) {
+            emitStoreKitEvent(NoctuaStoreKitEventError, @{
+                @"Code": @(StoreKitErrorCodeStoreKitUnavailable),
+                @"Message": [NSString stringWithFormat:@"Failed to query product details: %@", StoreKitUnavailableMessage]
+            });
+            return;
+        }
+        [Noctua queryProductDetailsWithProductIds:@[productIdStr] productType:ProductTypeInapp];
+    });
 }
-
-void noctuaGetReceiptProductPurchasedStoreKit1(const char* productId, ReceiptCompletionDelegate callback) {
-    NSLog(@"noctuaGetReceiptProductPurchasedStoreKit1 called with productId: %s", productId);
-
-    if (productId == NULL) {
-        NSLog(@"Product ID is null");
-        if (callback != NULL) {
-            callback(NULL);
-        }
-        return;
-    }
-
-    NSString *productIdStr = [NSString stringWithUTF8String:productId];
-    if (productIdStr.length == 0) {
-        NSLog(@"Product ID is empty");
-        if (callback != NULL) {
-            callback(NULL);
-        }
-        return;
-    }
-
-    ensureStoreKitInitialized();
-
-    _pendingReceiptCallback = callback;
-
-    [Noctua getProductPurchaseStatusWithProductId:productIdStr];
-}
-
-void noctuaGetProductPurchaseStatusDetail(const char* productId, ProductPurchaseStatusDetailDelegate callback) {
-    NSLog(@"noctuaGetProductPurchaseStatusDetail called with productId: %s", productId);
-
-    if (productId == NULL) {
-        NSLog(@"Product ID is null");
-        if (callback != NULL) {
-            callback("{}");
-        }
-        return;
-    }
-
-    NSString *productIdStr = [NSString stringWithUTF8String:productId];
-    if (productIdStr.length == 0) {
-        NSLog(@"Product ID is empty");
-        if (callback != NULL) {
-            callback("{}");
-        }
-        return;
-    }
-
-    ensureStoreKitInitialized();
-
-    _pendingPurchaseStatusDetailCallback = callback;
-
-    [Noctua getProductPurchaseStatusWithProductId:productIdStr];
-}
-
-// MARK: - Additional StoreKit Functions
 
 void noctuaRegisterProduct(const char* productId, int consumableType) {
-    NSLog(@"noctuaRegisterProduct called with productId: %s, type: %d", productId, consumableType);
-    if (productId == NULL) {
-        NSLog(@"Product ID is null");
+    NSString *productIdStr = copyCString(productId);
+    if (productIdStr.length == 0) {
+        NSLog(@"[NoctuaStoreKit] noctuaRegisterProduct: product ID is empty");
         return;
     }
-    NSString *productIdStr = [NSString stringWithUTF8String:productId];
 
-    ensureStoreKitInitialized();
-
-    [Noctua registerProductWithProductId:productIdStr consumableType:(enum ConsumableType)consumableType];
+    runStoreKitOnMain(^{
+        if (!ensureStoreKitInitialized()) {
+            return;
+        }
+        [Noctua registerProductWithProductId:productIdStr consumableType:(enum ConsumableType)consumableType];
+    });
 }
 
-typedef void (*BoolCallbackDelegate)(bool success);
-
-void noctuaCompletePurchaseProcessing(const char* purchaseToken, int consumableType, bool verified, BoolCallbackDelegate callback) {
-    NSLog(@"noctuaCompletePurchaseProcessing called with token: %s, type: %d, verified: %d", purchaseToken, consumableType, verified);
-    if (purchaseToken == NULL) {
-        NSLog(@"Purchase token is null");
+void noctuaCompletePurchaseProcessing(const char* purchaseToken, int consumableType, bool verified, int requestId, CompletePurchaseProcessingDelegate callback) {
+    NSString *tokenStr = copyCString(purchaseToken);
+    if (tokenStr.length == 0) {
+        NSLog(@"[NoctuaStoreKit] noctuaCompletePurchaseProcessing: purchase token is empty");
         if (callback != NULL) {
-            callback(false);
+            callback(requestId, false);
         }
         return;
     }
-    NSString *tokenStr = [NSString stringWithUTF8String:purchaseToken];
 
-    ensureStoreKitInitialized();
-
-    [Noctua completePurchaseProcessingWithPurchaseToken:tokenStr consumableType:(enum ConsumableType)consumableType verified:verified callback:^(BOOL success) {
-        if (callback != NULL) {
-            callback(success);
+    runStoreKitOnMain(^{
+        if (!ensureStoreKitInitialized()) {
+            if (callback != NULL) {
+                callback(requestId, false);
+            }
+            return;
         }
-    }];
+        [Noctua completePurchaseProcessingWithPurchaseToken:tokenStr consumableType:(enum ConsumableType)consumableType verified:verified callback:^(BOOL success) {
+            if (callback != NULL) {
+                callback(requestId, success);
+            }
+        }];
+    });
 }
 
 void noctuaRestorePurchases(void) {
-    NSLog(@"noctuaRestorePurchases called");
-    ensureStoreKitInitialized();
-    [Noctua restorePurchases];
+    runStoreKitOnMain(^{
+        if (!ensureStoreKitInitialized()) {
+            return;
+        }
+        [Noctua restorePurchases];
+    });
 }
 
 void noctuaDisposeStoreKit(void) {
-    NSLog(@"noctuaDisposeStoreKit called");
-    [Noctua disposeStoreKit];
-    _storeKitInitialized = NO;
+    runStoreKitOnMain(^{
+        [Noctua disposeStoreKit];
+        @synchronized (storeKitBridgeLock()) {
+            _storeKitInitialized = NO;
+        }
+    });
 }
 
 bool noctuaIsStoreKitReady(void) {

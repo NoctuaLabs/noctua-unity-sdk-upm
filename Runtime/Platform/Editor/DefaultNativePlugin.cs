@@ -296,6 +296,13 @@ namespace com.noctuagames.sdk
         }
 
         /// <summary>
+        /// No-op in the Editor; there are no App Store transactions.
+        /// </summary>
+        public void SetUnsolicitedPurchaseHandler(Action<StoreKitTransaction> handler)
+        {
+        }
+
+        /// <summary>
         /// Retrieves a single account from PlayerPrefs-backed storage by player and game ID.
         /// </summary>
         public NativeAccount GetAccount(long userId, long gameId)
