@@ -131,6 +131,7 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
             {
                 _card.EnableInClassList(FullscreenClass, item.Fullscreen);
                 _card.EnableInClassList(BorderlessClass, item.Borderless);
+                ApplyFrameColor(item);
             }
 
             // Edge-to-edge creatives must stay clear of the notch / home indicator.
@@ -328,6 +329,28 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
             _root.style.paddingRight = (Screen.width - safe.xMax) * scale;
             _root.style.paddingTop = (Screen.height - safe.yMax) * scale;
             _root.style.paddingBottom = safe.yMin * scale;
+        }
+
+        /// <summary>
+        /// Applies <see cref="CampaignItem.FrameColor"/> as the card border. Always resets the
+        /// inline border first so a previous campaign's frame never leaks into the next one.
+        /// </summary>
+        private void ApplyFrameColor(CampaignItem item)
+        {
+            var s = _card.style;
+            s.borderTopColor = s.borderRightColor = s.borderBottomColor = s.borderLeftColor = StyleKeyword.Null;
+            s.borderTopWidth = s.borderRightWidth = s.borderBottomWidth = s.borderLeftWidth = StyleKeyword.Null;
+
+            if (!CampaignFrameStyle.TryResolve(item, out var color))
+            {
+                if (!string.IsNullOrWhiteSpace(item.FrameColor) && !item.Borderless && !item.Fullscreen)
+                    _log.Warning($"campaign '{item.Id}': invalid frame_color '{item.FrameColor}' — ignored");
+                return;
+            }
+
+            s.borderTopColor = s.borderRightColor = s.borderBottomColor = s.borderLeftColor = color;
+            s.borderTopWidth = s.borderRightWidth = s.borderBottomWidth = s.borderLeftWidth =
+                CampaignFrameStyle.FrameWidthPx;
         }
 
         /// <summary>

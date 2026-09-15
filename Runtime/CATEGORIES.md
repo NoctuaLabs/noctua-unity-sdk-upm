@@ -100,6 +100,22 @@ App lifecycle, init, remote configs, Firebase, PlayerPrefs, push, deep links, in
 
 ---
 
+## LiveOps Campaign — `Noctua.LiveOpsCampaign`
+
+Server-driven engagement popups (purchase / event-deeplink CTAs): config merge, eligibility (schedule, targeting, frequency, offline asset cache), rendering, action dispatch. Self-contained module under `LiveOpsCampaignManager/`.
+
+| Layer | Files |
+|---|---|
+| Facade | `LiveOpsCampaignManager/NoctuaLiveOpsCampaign.cs` (events, `RegisterDeeplinkHandler`, `SetPurchaseHandler`, `ShowPopup`) |
+| Logic | `CampaignManager.cs`, `CampaignValidator.cs`, `CampaignFrequencyGate.cs`, `CampaignActionDispatcher.cs`, `CampaignTokens.cs`, `CampaignAssetSource.cs`, `CampaignFontSource.cs` |
+| Render | `CampaignRenderer.cs`, `CampaignRenderer.Widgets.cs`, `CampaignStyleMapper.cs`, `CampaignRuntimeController.cs`, `CampaignUIHost.cs` |
+| UI | `UI/CampaignPopupPresenter.cs`, `UI/CampaignPopupFit.cs`, `UI/CampaignFrameStyle.cs`, `UI/Resources/CampaignPopup.uxml`, `UI/Resources/Campaign.uss` |
+| Model | `Model/CampaignConfig.cs`, `Model/CampaignItem.cs`, `Model/CampaignNode.cs`, `Model/CampaignAction.cs`, `Model/CampaignTargeting.cs`, `Model/CampaignCloseButton.cs`, `Model/CampaignStyleProps.cs`, `Model/CampaignImageSrc.cs` |
+| Wiring | `View/Noctua.Initialization.cs` → `InitCampaigns` |
+| Tests | `Tests/Runtime/Campaign/` |
+
+---
+
 ## Debug & Testing
 
 Inspector tooling, tracker debug monitor, HTTP inspection hooks, JSON/cURL exporters.

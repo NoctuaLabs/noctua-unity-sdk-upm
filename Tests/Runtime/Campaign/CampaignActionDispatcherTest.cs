@@ -116,6 +116,24 @@ namespace Tests.Runtime.Campaign
         }
 
         [Test]
+        public void DeeplinkClick_CarriesRoute()
+        {
+            Dispatch(new CampaignAction { TypeRaw = "deeplink", Deeplink = "event/weekend-tournament" });
+
+            var click = _events.GetEventsByName(CampaignActionDispatcher.ClickEvent)[0];
+            Assert.AreEqual("event/weekend-tournament", click.Data["deeplink"]);
+        }
+
+        [Test]
+        public void NonDeeplinkClick_HasNoRoute()
+        {
+            Dispatch(new CampaignAction { TypeRaw = "dismiss" });
+
+            var click = _events.GetEventsByName(CampaignActionDispatcher.ClickEvent)[0];
+            Assert.IsFalse(click.Data.ContainsKey("deeplink"));
+        }
+
+        [Test]
         public void UnknownAction_NoHandlerCalled_NoThrow()
         {
             Assert.DoesNotThrow(() => Dispatch(new CampaignAction { TypeRaw = "frobnicate" }));

@@ -92,6 +92,14 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
         public CampaignCloseButton CloseButton;
 
         /// <summary>
+        /// Optional hex colour (e.g. <c>#3B82F6</c>) for the SDK card's frame border. Only
+        /// applies with card chrome on (<c>"borderless": false</c>, not fullscreen). An
+        /// unparseable value is ignored — the card keeps its default border.
+        /// </summary>
+        [JsonProperty("frame_color")]
+        public string FrameColor;
+
+        /// <summary>
         /// Raw JSON binding for <see cref="Borderless"/>. Null when the campaign omits
         /// <c>"borderless"</c> — read <see cref="Borderless"/> for the effective value.
         /// </summary>

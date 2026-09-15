@@ -211,11 +211,19 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
 
         private void EmitClick(CampaignAction action, CampaignItem campaign)
         {
-            _events?.Send(ClickEvent, new Dictionary<string, IConvertible>
+            var payload = new Dictionary<string, IConvertible>
             {
                 { "campaign_id", campaign?.Id ?? string.Empty },
                 { "action_type", action.Type.ToString() },
-            });
+            };
+
+            // The route tells reporting which card in a multi-card popup was tapped.
+            if (action.Type == CampaignActionType.Deeplink && !string.IsNullOrEmpty(action.Deeplink))
+            {
+                payload["deeplink"] = action.Deeplink;
+            }
+
+            _events?.Send(ClickEvent, payload);
         }
     }
 }
