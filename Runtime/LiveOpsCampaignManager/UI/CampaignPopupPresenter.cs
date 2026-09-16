@@ -133,6 +133,7 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
                 _card.EnableInClassList(BorderlessClass, item.Borderless);
                 ApplyFrameColor(item);
             }
+            ApplyBackdrop(item);
 
             // Edge-to-edge creatives must stay clear of the notch / home indicator.
             _safeAreaActive = item.Fullscreen || item.Borderless;
@@ -363,6 +364,25 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
             _root.style.paddingRight = (Screen.width - safe.xMax) * scale;
             _root.style.paddingTop = (Screen.height - safe.yMax) * scale;
             _root.style.paddingBottom = safe.yMin * scale;
+        }
+
+        /// <summary>
+        /// Paints <see cref="CampaignItem.BackdropColor"/> behind the card. Always resets first so
+        /// one campaign's backdrop never carries into the next.
+        /// </summary>
+        private void ApplyBackdrop(CampaignItem item)
+        {
+            if (_root == null) return;
+            _root.style.backgroundColor = StyleKeyword.Null;
+
+            if (CampaignBackdropStyle.TryResolve(item, out var color))
+            {
+                _root.style.backgroundColor = color;
+            }
+            else if (!string.IsNullOrWhiteSpace(item?.BackdropColor))
+            {
+                _log.Warning($"campaign '{item.Id}': invalid backdrop_color '{item.BackdropColor}' — using default");
+            }
         }
 
         /// <summary>

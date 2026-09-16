@@ -109,6 +109,13 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
         public string FrameColor;
 
         /// <summary>
+        /// Optional hex colour for the dim behind the popup, e.g. <c>#000000A8</c>; the alpha
+        /// channel is the opacity. Null or unparseable keeps the SDK default dim.
+        /// </summary>
+        [JsonProperty("backdrop_color")]
+        public string BackdropColor;
+
+        /// <summary>
         /// Raw JSON binding for <see cref="Borderless"/>. Null when the campaign omits
         /// <c>"borderless"</c> — read <see cref="Borderless"/> for the effective value.
         /// </summary>
