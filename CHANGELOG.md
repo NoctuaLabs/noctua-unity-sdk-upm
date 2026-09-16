@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## [0.132.0] - 2026-09-14
+## [0.132.1] - 2026-09-16
 
 ### ⚙️ Miscellaneous
 
@@ -54,6 +54,7 @@ All notable changes to this project will be documented in this file.
 - *(campaign)* Read the countdown end from end_timestamp
 - *(campaign)* Read the countdown end from end_timestamp only
 - *(campaign)* Show a blocking busy state while a purchase CTA runs
+- *(campaign)* Frame_color card border and deeplink route in click event
 
 ### 🐛 Bug Fixes
 
@@ -85,6 +86,11 @@ All notable changes to this project will be documented in this file.
 - *(campaign)* Keep the countdown on one line so its pill fits the text
 - *(campaign)* Say something when an action has nowhere to go
 - *(iaa)* Stop idle banner failures popping a fullscreen cross-promo
+- *(iap)* Match iOS StoreKit bridge events to their callers
+- *(iap)* Bound active-currency query so a silent Play billing client cannot hang init
+- *(iap)* Evaluate store payment availability per purchase, not once at init
+- *(iap)* Require native Android SDK 0.35.1 for billing reconnection
+- *(iap)* Bound the iOS active-currency query so silent StoreKit cannot hang init
 
 ### 🚀 Features
 
