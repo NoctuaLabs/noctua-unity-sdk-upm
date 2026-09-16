@@ -31,10 +31,11 @@ namespace com.noctuagames.sdk
         // shared slot consumed by HandleGoogleProductDetails, so concurrent queries
         // would overwrite each other's completion source.
         private readonly SemaphoreSlim _activeCurrencyGate = new(1, 1);
-        // Deadline for the Google Play product-details query that resolves the store currency.
-        // Chosen to sit just under the 5s IAP-ready guard in Noctua.Initialization.cs so a silent
-        // billing client cannot dominate startup. Google documents no response-time guarantee for
-        // queryProductDetailsAsync, so owning the deadline is the app's responsibility.
+        // Deadline for the native store query that resolves the active currency — Google Play's
+        // product-details query on Android, StoreKit on iOS. Chosen to sit just under the 5s
+        // IAP-ready guard in Noctua.Initialization.cs so a silent store cannot dominate startup.
+        // Neither platform guarantees a response time for these calls, so owning the deadline is
+        // the app's responsibility.
         private const int ActiveCurrencyTimeoutMs = 3000;
         // Whether Init() has driven the native billing connection at least once. Distinguishes
         // "never started" (needs Init) from "started but not connected" (needs a reconnect).
@@ -750,7 +751,31 @@ namespace com.noctuagames.sdk
                 tcs.TrySetResult(currency);
             });
 
-            var activeCurrency = await tcs.Task;
+            // Bounded for the same reason as Android: StoreKit going silent would otherwise block
+            // Noctua.InitAsync() forever, and a task that never completes cannot be caught. The
+            // failure path above faults the TCS, so only genuine silence reaches the deadline —
+            // for example when a concurrent native call overwrites this one's pending callback
+            // (IosPlugin keeps single static callback fields).
+            var (timedOut, activeCurrency) = await TaskTimeout.OrTimeoutAsync(
+                tcs.Task,
+                ActiveCurrencyTimeoutMs
+            );
+
+            // The native callback completes the TCS off the Unity main thread; callers set locale
+            // state, so come back to the main thread before returning.
+            await UniTask.SwitchToMainThread();
+
+            if (timedOut)
+            {
+                _log.Warning(
+                    $"GetActiveCurrencyAsync: StoreKit did not respond within {ActiveCurrencyTimeoutMs}ms " +
+                    $"for '{productId}'. Continuing without store currency; caller falls back to " +
+                    "the country-to-currency map."
+                );
+
+                return "";
+            }
+
             tcs.TrySetCanceled();
 
             return activeCurrency;
