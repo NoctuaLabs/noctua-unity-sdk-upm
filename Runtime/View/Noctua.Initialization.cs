@@ -839,7 +839,7 @@ namespace com.noctuagames.sdk
             {
                 // Disabled for production to reduce event noise
                 // Instance.Value._eventSender.Send("sdk_init_iap_init");
-                Instance.Value._iap.Init();
+                Instance.Value._iap.EnsureBillingConnected();
 
                 var completedTask = await UniTask.WhenAny(
                     UniTask.WaitUntil(() => Noctua.Instance.Value._iap.IsReady),
@@ -1074,14 +1074,13 @@ namespace com.noctuagames.sdk
 
             log.Debug("Final noctua config: " + JsonConvert.SerializeObject(Noctua.Instance.Value._config?.Noctua));
 
-            if (!Noctua.Instance.Value._iap.IsReady)
-            {
-                enabledPaymentTypes.Remove(PaymentType.appstore);
-                enabledPaymentTypes.Remove(PaymentType.playstore);
-
-                // Disabled for production to reduce event noise
-                // Instance.Value._eventSender.Send("sdk_init_remove_platform_payment_types");
-            }
+            // Store payment types are deliberately NOT filtered by billing readiness here.
+            // Readiness at this instant is a snapshot, but this list lives for the whole session:
+            // stripping playstore/appstore because Google Play happened to be unreachable at
+            // launch left the session permanently unable to purchase, to fetch the product list,
+            // or to retry pending purchases — even after Play became available and the billing
+            // client reconnected. The check now happens per operation, against live readiness;
+            // see NoctuaIAPService.GetAvailablePaymentTypes().
 
             log.Info("FeatureFlags: " + Noctua.Instance.Value._config.Noctua.RemoteFeatureFlags);
 

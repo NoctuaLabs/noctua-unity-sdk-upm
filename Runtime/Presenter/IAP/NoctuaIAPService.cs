@@ -36,6 +36,9 @@ namespace com.noctuagames.sdk
         // billing client cannot dominate startup. Google documents no response-time guarantee for
         // queryProductDetailsAsync, so owning the deadline is the app's responsibility.
         private const int ActiveCurrencyTimeoutMs = 3000;
+        // Whether Init() has driven the native billing connection at least once. Distinguishes
+        // "never started" (needs Init) from "started but not connected" (needs a reconnect).
+        private bool _billingInitCalled;
 
         /// <summary>
         /// Fired when a purchase flow completes and an OrderRequest should be processed by game.
@@ -152,7 +155,74 @@ namespace com.noctuagames.sdk
 #if UNITY_ANDROID && !UNITY_EDITOR
             GoogleBillingInstance.Init();
             _paymentTcs = null;
+            _billingInitCalled = true;
 #endif
+        }
+
+        /// <summary>
+        /// Ensures the native billing client is connected, re-driving the Play connection when an
+        /// earlier attempt failed. Safe to call repeatedly; does nothing once billing is ready.
+        /// </summary>
+        /// <remarks>
+        /// Calling <see cref="Init"/> again cannot recover a client that never connected. The
+        /// native BillingService sets <c>isInitialized = true</c> as soon as
+        /// <c>startConnection()</c> is *called*, not when it succeeds, so every later
+        /// <c>initialize()</c> returns early with "already initialized" even though the connection
+        /// attempt failed. Google Play Billing's own auto-reconnection does not cover this case
+        /// either: it re-establishes a connection that was made and later severed, not one that
+        /// never succeeded. Reconnecting explicitly is the only way back.
+        ///
+        /// Without this, a session that starts while Google Play is unavailable (user not signed
+        /// in, Play Store disabled or blocked — frequently observed on OPPO/ColorOS) can never
+        /// complete a purchase for the rest of that session, even after the user signs in. It
+        /// fails with "no payment types enabled" without ever reaching Google Play.
+        /// </remarks>
+        internal void EnsureBillingConnected()
+        {
+#if UNITY_ANDROID && !UNITY_EDITOR
+            if (IsReady)
+            {
+                return;
+            }
+
+            // First attempt: start the connection. Reconnecting in the same breath would re-enter
+            // startConnection() while the initial attempt is still in flight.
+            if (!_billingInitCalled)
+            {
+                Init();
+
+                return;
+            }
+
+            _log.Info("EnsureBillingConnected: billing client not ready, reconnecting to Google Play");
+            GoogleBillingInstance.ReconnectBilling();
+#endif
+        }
+
+        /// <summary>
+        /// The configured payment types that are actually usable right now, in priority order.
+        /// </summary>
+        /// <remarks>
+        /// Native store payment (Play / App Store) needs a live billing connection, so that check
+        /// belongs at the moment of use rather than once at startup. Evaluating it at init made a
+        /// transient condition permanent: if Google Play was unreachable at launch, the store
+        /// payment type was removed from the session's list for good, and the user could not
+        /// purchase for the rest of that session even after Play recovered — the purchase failed
+        /// with "no payment types enabled" without ever reaching Google Play.
+        ///
+        /// Returns a new list rather than mutating the configured one, so the server-provided
+        /// configuration stays intact and a later call sees the recovered state.
+        /// </remarks>
+        private List<PaymentType> GetAvailablePaymentTypes()
+        {
+            if (IsReady)
+            {
+                return _enabledPaymentTypes;
+            }
+
+            return _enabledPaymentTypes
+                .Where(pt => pt != PaymentType.playstore && pt != PaymentType.appstore)
+                .ToList();
         }
 
         /// <summary>
@@ -206,7 +276,7 @@ namespace com.noctuagames.sdk
 
             // Filter out 'editor' — it's a local-only mock type, not recognized by the server
             string enabledPaymentTypes = string.Join(",",
-                _enabledPaymentTypes.Where(pt => pt != PaymentType.editor)).ToLower();
+                GetAvailablePaymentTypes().Where(pt => pt != PaymentType.editor)).ToLower();
 
             _log.Debug(_config.BaseUrl);
             _log.Debug(_config.ClientId);
@@ -836,7 +906,10 @@ namespace com.noctuagames.sdk
             var iapReadyTimeout = DateTime.UtcNow.AddSeconds(5);
             while (!IsReady && DateTime.UtcNow < iapReadyTimeout)
             {
-                Init();
+                // Reconnects rather than re-initializing: if billing failed to connect at SDK
+                // init (Google Play unavailable at launch), Init() is a no-op natively and the
+                // purchase would fail with "no payment types enabled" without ever reaching Play.
+                EnsureBillingConnected();
 
                 var completedTask = await UniTask.WhenAny(
                     UniTask.WaitUntil(() => IsReady),
@@ -890,7 +963,11 @@ namespace com.noctuagames.sdk
                 throw new NoctuaException(NoctuaErrorCode.Authentication, "Purchase requires user authentication");
             }
             
-            if (_enabledPaymentTypes.Count == 0)
+            // Resolved once per purchase against live billing readiness, so a billing client that
+            // reconnected after a failed startup is usable again in this session.
+            var availablePaymentTypes = GetAvailablePaymentTypes();
+
+            if (availablePaymentTypes.Count == 0)
             {
                 _paymentUI.ShowError(LocaleTextKey.IAPPaymentDisabled);
 
@@ -902,10 +979,10 @@ namespace com.noctuagames.sdk
             // and filtered by runtime platform in InitAsync()
             // This payment type could be override by
             // the response of create order.
-            var paymentType = _enabledPaymentTypes.First();
-            if (tryToUseSecondaryPayment && _enabledPaymentTypes.Count > 1)
+            var paymentType = availablePaymentTypes.First();
+            if (tryToUseSecondaryPayment && availablePaymentTypes.Count > 1)
             {
-                paymentType = _enabledPaymentTypes[1];
+                paymentType = availablePaymentTypes[1];
                 _log.Info($"Fallback to secondary payment type: {paymentType}");
             }
 
@@ -1348,10 +1425,10 @@ namespace com.noctuagames.sdk
                             );
                         }
 
-                        if (_enabledPaymentTypes.Count > 1 &&
+                        if (availablePaymentTypes.Count > 1 &&
                         !verifiedAtCancelation &&
                         enforcedPaymentType == PaymentType.unknown &&
-                        _enabledPaymentTypes[1] != paymentType
+                        availablePaymentTypes[1] != paymentType
                         )
                         {
                             // Fallback to secondary payment option.
