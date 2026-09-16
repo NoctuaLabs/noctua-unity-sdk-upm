@@ -14,6 +14,11 @@ public class GoogleBilling : System.IDisposable
     private AndroidJavaObject _noctua;
     private AndroidJavaObject _activity;
     private bool _isPurchaseFlow;
+    // Tracks whether a non-purchase QueryProductDetails call is still awaiting a native response,
+    // so onBillingError knows whether the failure belongs to the product-details channel or the
+    // purchase channel. Written only from the Unity main thread (QueryProductDetails) and the
+    // native callback thread, which never run a query and its own response concurrently.
+    private bool _isProductDetailsQueryPending;
 
     // FIFO queues, not single-slot fields: getProductPurchaseStatus is a single native call
     // shared by GetPurchasedProductById and GetProductPurchaseStatusDetail. A single-slot
@@ -262,6 +267,8 @@ public class GoogleBilling : System.IDisposable
             }
             else
             {
+                _billing._isProductDetailsQueryPending = false;
+
                 if (size > 0)
                 {
                     var javaDetails = products.Call<AndroidJavaObject>("get", 0);
@@ -360,10 +367,29 @@ public class GoogleBilling : System.IDisposable
         {
             _log.Debug("onBillingError callback received");
             int errorCodeInt = error.Call<int>("getCode");
+            var errorCode = (BillingErrorCode)errorCodeInt;
+
+            // A failed product-details query must fail the caller waiting on OnProductDetailsDone,
+            // not the purchase channel. The native SDK reports every billing failure through this
+            // one callback, so routing it all to OnPurchaseDone left a pending QueryProductDetails
+            // caller (GetActiveCurrencyAsync) waiting on a result that could never arrive.
+            if (!_billing._isPurchaseFlow && _billing._isProductDetailsQueryPending)
+            {
+                _billing._isProductDetailsQueryPending = false;
+                _log.Warning($"Product details query failed: {errorCode} - {message}");
+                _billing.InvokeOnProductDetailsResponse(null);
+
+                return;
+            }
+
+            // Clear the purchase-flow latch so a later product-details query is not mistaken for a
+            // purchase still in progress.
+            _billing._isPurchaseFlow = false;
+
             _billing.InvokeOnPurchaseDone(new PurchaseResult
             {
                 Success = false,
-                ErrorCode = (BillingErrorCode)errorCodeInt,
+                ErrorCode = errorCode,
                 PurchaseState = PurchaseState.Unspecified,
                 Message = message,
                 ReceiptData = "",
@@ -403,6 +429,7 @@ public class GoogleBilling : System.IDisposable
     {
         _log.Debug("GoogleBilling.QueryProductDetails via native SDK: " + productId);
         _isPurchaseFlow = false;
+        _isProductDetailsQueryPending = true;
 
         using var javaList = new AndroidJavaObject("java.util.ArrayList");
         javaList.Call<bool>("add", productId);

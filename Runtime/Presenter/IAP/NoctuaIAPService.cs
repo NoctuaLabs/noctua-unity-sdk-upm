@@ -31,6 +31,11 @@ namespace com.noctuagames.sdk
         // shared slot consumed by HandleGoogleProductDetails, so concurrent queries
         // would overwrite each other's completion source.
         private readonly SemaphoreSlim _activeCurrencyGate = new(1, 1);
+        // Deadline for the Google Play product-details query that resolves the store currency.
+        // Chosen to sit just under the 5s IAP-ready guard in Noctua.Initialization.cs so a silent
+        // billing client cannot dominate startup. Google documents no response-time guarantee for
+        // queryProductDetailsAsync, so owning the deadline is the app's responsibility.
+        private const int ActiveCurrencyTimeoutMs = 3000;
 
         /// <summary>
         /// Fired when a purchase flow completes and an OrderRequest should be processed by game.
@@ -692,7 +697,30 @@ namespace com.noctuagames.sdk
                 _activeCurrencyTcs = new TaskCompletionSource<string>();
                 GoogleBillingInstance.QueryProductDetails(productId);
 
-                var activeCurrency = await _activeCurrencyTcs.Task;
+                // Bounded await: Google Play may never call back at all when the billing client
+                // cannot connect (user not signed in to Google Play, Play Store disabled or
+                // blocked — common on OPPO/ColorOS). An unbounded await here blocks
+                // Noctua.InitAsync() forever and the game never leaves its loading screen.
+                var (timedOut, activeCurrency) = await TaskTimeout.OrTimeoutAsync(
+                    _activeCurrencyTcs.Task,
+                    ActiveCurrencyTimeoutMs
+                );
+
+                // Native callbacks complete the TCS off the Unity main thread; callers set locale
+                // state, so come back to the main thread before returning.
+                await UniTask.SwitchToMainThread();
+
+                if (timedOut)
+                {
+                    _log.Warning(
+                        $"GetActiveCurrencyAsync: Google Play did not respond within {ActiveCurrencyTimeoutMs}ms " +
+                        $"for '{productId}'. Continuing without store currency; caller falls back to " +
+                        "the country-to-currency map."
+                    );
+
+                    return "";
+                }
+
                 _activeCurrencyTcs.TrySetCanceled();
 
                 return activeCurrency;
@@ -1708,7 +1736,12 @@ namespace com.noctuagames.sdk
 
             if (_activeCurrencyTcs == null)
             {
-                throw NoctuaException.MissingCompletionHandler;
+                // Expected when the query already timed out: the waiter gave up and cleared the
+                // slot, and this is Google Play answering late. Throwing here would escape onto a
+                // JNI callback thread where nothing can catch it.
+                _log.Warning("NoctuaIAPService.HandleGoogleProductDetails: no pending active-currency request, ignoring late response");
+
+                return;
             }
             
             if (response is null)
