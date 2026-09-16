@@ -153,6 +153,40 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
         }
 
         /// <summary>
+        /// Re-renders the open popup with <paramref name="item"/> — the same campaign with new
+        /// player data — without replaying the entrance, firing <c>onShown</c> or losing the
+        /// scroll position. The new tree is built before the old one is removed, so a render
+        /// failure leaves the current content up. Returns false when nothing is showing or the
+        /// new tree cannot render.
+        /// </summary>
+        public bool Refresh(CampaignItem item, int configSchemaVersion)
+        {
+            if (!IsShowing || _closing || _renderer == null || _mount == null) return false;
+
+            var controller = new CampaignRuntimeController();
+            var built = _renderer.RenderCampaign(item, controller, configSchemaVersion);
+            if (built == null)
+            {
+                controller.Dispose();
+                return false;
+            }
+
+            var scroll = _mountScroll?.scrollOffset ?? Vector2.zero;
+
+            TeardownController();
+            _controller = controller;
+            _mount.Clear();
+            _fitBox = null;
+            _fitScale = 1f;
+            MountFitted(built, item);
+            _closeBtn?.BringToFront();
+
+            // The new content lays out next frame; restore the offset once it has a size.
+            if (_mountScroll != null) _mountScroll.schedule.Execute(() => _mountScroll.scrollOffset = scroll);
+            return true;
+        }
+
+        /// <summary>
         /// Shows or hides the veil that blocks taps on the creative while an awaitable purchase
         /// runs. Wired to <see cref="CampaignActionDispatcher.CurrentBusy"/> by the facade.
         /// Safe to call after the popup closed or the presenter was destroyed — the purchase

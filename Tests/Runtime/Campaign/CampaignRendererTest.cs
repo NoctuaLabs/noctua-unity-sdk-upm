@@ -246,6 +246,84 @@ namespace Tests.Runtime.Campaign
         }
 
         [Test]
+        public void ProgressBar_ResolvesTokensInValueMinMax()
+        {
+            var item = CampaignFactory.Item("c", CampaignItem.EngagementEvent, null,
+                new Dictionary<string, string> { { "progress", "12" }, { "target", "20" } });
+            var node = CampaignFactory.Node(CampaignNode.TypeProgressBar, new Dictionary<string, object>
+            {
+                { "max", "{{target}}" }, { "value", "{{progress}}" },
+            });
+
+            var pb = Render(node, item) as ProgressBar;
+
+            Assert.NotNull(pb);
+            Assert.AreEqual(20f, pb.highValue);
+            Assert.AreEqual(12f, pb.value);
+        }
+
+        [Test]
+        public void ProgressBar_UnparseableToken_FallsBackToDefaults()
+        {
+            var item = CampaignFactory.Item("c", CampaignItem.EngagementEvent, null,
+                new Dictionary<string, string> { { "progress", "lots" } });
+            var node = CampaignFactory.Node(CampaignNode.TypeProgressBar, new Dictionary<string, object>
+            {
+                { "value", "{{progress}}" },
+            });
+
+            var pb = Render(node, item) as ProgressBar;
+
+            Assert.AreEqual(0f, pb.value);
+            Assert.AreEqual(100f, pb.highValue);
+        }
+
+        [Test]
+        public void VisibleIf_False_OmitsTheNode()
+        {
+            var item = CampaignFactory.Item("c", CampaignItem.EngagementEvent, null,
+                new Dictionary<string, string> { { "progress", "3" } });
+            var claim = CampaignFactory.Node(CampaignNode.TypeText, new Dictionary<string, object> { { "text", "Claim" } });
+            claim.VisibleIf = new CampaignCondition
+            {
+                All = new List<CampaignConditionClause>
+                {
+                    new CampaignConditionClause { Left = "{{progress}}", Op = "gte", Right = "20" },
+                },
+            };
+            var go = CampaignFactory.Node(CampaignNode.TypeText, new Dictionary<string, object> { { "text", "Go" } });
+            var node = CampaignFactory.Node(CampaignNode.TypeContainer, children: new[] { claim, go });
+
+            var ve = Render(node, item);
+
+            Assert.AreEqual(1, ve.childCount);
+            Assert.AreEqual("Go", ((Label)ve[0]).text);
+        }
+
+        [Test]
+        public void Action_KeepOpen_SurvivesTokenResolution()
+        {
+            var item = CampaignFactory.Item("c", CampaignItem.EngagementEvent, null,
+                new Dictionary<string, string> { { "key", "stm" } });
+            var node = CampaignFactory.Node(CampaignNode.TypeButton,
+                new Dictionary<string, object> { { "text", "Claim" } },
+                action: new CampaignAction { TypeRaw = "deeplink", Deeplink = "missions/claim/{{key}}", KeepOpen = true });
+
+            var ve = Render(node, item);
+            using (var fixture = new CampaignPanelFixture())
+            {
+                fixture.Add(ve);
+                using var click = ClickEvent.GetPooled();
+                click.target = ve; // an untargeted pooled event is dropped, not routed
+                ve.SendEvent(click);
+            }
+
+            Assert.AreEqual(1, _actions.Calls.Count);
+            Assert.AreEqual("missions/claim/stm", _actions.Calls[0].action.Deeplink);
+            Assert.IsTrue(_actions.Calls[0].action.KeepOpen);
+        }
+
+        [Test]
         public void Countdown_Rendered_WithInitialFormattedLabel()
         {
             var end = System.DateTime.UtcNow.AddSeconds(65).ToString("o");

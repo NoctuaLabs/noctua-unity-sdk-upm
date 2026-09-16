@@ -61,6 +61,15 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
         public Dictionary<string, string> Data;
 
         /// <summary>
+        /// Keys the game supplies when it shows the popup (<c>ShowPopup(id, playerData)</c>),
+        /// each with a default — per-player values such as mission progress that cannot ship in
+        /// the shared <see cref="Data"/>. Their <c>{{tokens}}</c> resolve like any other; a key
+        /// the game leaves out renders its default. Must not repeat a <see cref="Data"/> key.
+        /// </summary>
+        [JsonProperty("player_data")]
+        public Dictionary<string, string> PlayerData;
+
+        /// <summary>
         /// Optional per-campaign custom-font registry: alias → <c>Resources</c> path of a
         /// Font Asset (or source <c>.ttf</c>/<c>.otf</c>) the game ships in its build. A node's
         /// <c>style.font_path</c> is looked up here; when it isn't a key (or there is no
@@ -122,6 +131,10 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
             get => BorderlessRaw ?? true;
             set => BorderlessRaw = value;
         }
+
+        /// <summary>A member-wise copy sharing nested objects — for render-time variants such as
+        /// <see cref="CampaignPlayerData.Merge"/>, which replace a field rather than edit it.</summary>
+        public CampaignItem ShallowCopy() => (CampaignItem)MemberwiseClone();
 
         /// <summary>Effective widget-schema version (see <see cref="SchemaVersion"/>).</summary>
         public int EffectiveSchemaVersion(int configDefault) =>

@@ -18,7 +18,9 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
     public partial class CampaignRenderer
     {
         /// <summary>Highest widget-schema version this build understands.</summary>
-        public const int SupportedSchemaVersion = 1;
+        /// <remarks>v2 adds <c>player_data</c>, <c>visible_if</c>, <c>keep_open</c> and
+        /// token-resolved progress bar values.</remarks>
+        public const int SupportedSchemaVersion = 2;
 
         /// <summary>Recursion cap — a pathologically nested tree would otherwise StackOverflow (uncatchable).</summary>
         private const int MaxDepth = 40;
@@ -137,6 +139,11 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
                 _nodeBudget = MaxNodes;
                 _budgetExceeded = false;
             }
+
+            // Hidden by its condition: skipped before it spends any budget, exactly as the
+            // validator skips it.
+            if (node.VisibleIf != null && !CampaignConditions.Evaluate(node.VisibleIf, item?.Data))
+                return null;
 
             if (_depth >= MaxDepth)
             {
@@ -500,6 +507,7 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
                 TypeRaw = a.TypeRaw,
                 Deeplink = ResolveTokens(a.Deeplink, item),
                 ProductId = ResolveTokens(a.ProductId, item),
+                KeepOpen = a.KeepOpen,
             };
         }
 

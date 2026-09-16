@@ -64,6 +64,13 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
         [JsonProperty("action")]
         public CampaignAction Action;
 
+        /// <summary>
+        /// Optional render condition. When it evaluates false the node and its subtree are
+        /// skipped — by the renderer and by the validator alike. Requires schema v2.
+        /// </summary>
+        [JsonProperty("visible_if")]
+        public CampaignCondition VisibleIf;
+
         /// <summary>Reads a string prop, or <paramref name="fallback"/> when missing.</summary>
         public string PropString(string key, string fallback = null)
         {

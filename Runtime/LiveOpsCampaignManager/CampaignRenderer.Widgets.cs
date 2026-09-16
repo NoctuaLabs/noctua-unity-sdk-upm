@@ -16,12 +16,23 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
     /// </summary>
     public partial class CampaignRenderer
     {
+        /// <summary>A numeric prop that may be a <c>{{token}}</c> (e.g. player progress). Null when
+        /// missing or not a number, so the caller's default applies.</summary>
+        private float? ResolveFloat(CampaignNode node, string key, CampaignItem item)
+        {
+            var raw = node.PropString(key);
+            if (string.IsNullOrWhiteSpace(raw)) return null;
+            var resolved = ResolveTokens(raw, item);
+            return float.TryParse(resolved, System.Globalization.NumberStyles.Float,
+                System.Globalization.CultureInfo.InvariantCulture, out var f) ? f : (float?)null;
+        }
+
         private VisualElement BuildProgressBar(CampaignNode node, CampaignItem item)
         {
-            var min = node.PropFloat("min") ?? 0f;
-            var max = node.PropFloat("max") ?? 100f;
+            var min = ResolveFloat(node, "min", item) ?? 0f;
+            var max = ResolveFloat(node, "max", item) ?? 100f;
             if (max <= min) max = min + 1f;
-            var value = Mathf.Clamp(node.PropFloat("value") ?? min, min, max);
+            var value = Mathf.Clamp(ResolveFloat(node, "value", item) ?? min, min, max);
 
             var pb = new ProgressBar
             {

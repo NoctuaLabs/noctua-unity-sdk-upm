@@ -111,8 +111,9 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
                 {
                     case CampaignActionType.Deeplink:
                         Invoke(_handlers.Deeplink, action.Deeplink, "deeplink");
-                        // A deeplink navigates the player away — close the popup behind them.
-                        CurrentDismiss?.Invoke();
+                        // A deeplink navigates the player away — close the popup behind them,
+                        // unless it is an in-place action such as a claim.
+                        if (!action.KeepOpen) CurrentDismiss?.Invoke();
                         break;
                     case CampaignActionType.Purchase:
                         HandlePurchase(action, campaign);

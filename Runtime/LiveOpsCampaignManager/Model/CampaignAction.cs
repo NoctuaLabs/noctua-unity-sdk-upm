@@ -38,6 +38,14 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
         public string ProductId;
 
         /// <summary>
+        /// Deeplink only: when true the popup stays open after the route is handed to the game,
+        /// so the game can claim a reward and refresh the popup with
+        /// <c>UpdatePopupData</c>. Default false — a deeplink navigates away and closes it.
+        /// </summary>
+        [JsonProperty("keep_open")]
+        public bool KeepOpen;
+
+        /// <summary>
         /// Resolved action type. Matches <see cref="TypeRaw"/> case- and separator-insensitively
         /// (<c>"deeplink"</c> / <c>"deep-link"</c> / <c>"DeepLink"</c> all map to
         /// <see cref="CampaignActionType.Deeplink"/>); anything unrecognised → <see cref="CampaignActionType.None"/>.

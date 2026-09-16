@@ -73,6 +73,24 @@ namespace Tests.Runtime.Campaign
         }
 
         [Test]
+        public void Deeplink_KeepOpen_ForwardsRouteWithoutClosing()
+        {
+            var closed = false;
+            _dispatcher.CurrentDismiss = () => closed = true;
+            Dispatch(new CampaignAction { TypeRaw = "deeplink", Deeplink = "missions/claim/stm", KeepOpen = true });
+            Assert.AreEqual("missions/claim/stm", _deeplink);
+            Assert.IsFalse(closed, "keep_open must leave the popup up so the game can refresh it");
+        }
+
+        [Test]
+        public void KeepOpen_DeserializesFromJson()
+        {
+            var action = Newtonsoft.Json.JsonConvert.DeserializeObject<CampaignAction>(
+                "{ \"type\": \"deeplink\", \"deeplink\": \"x\", \"keep_open\": true }");
+            Assert.IsTrue(action.KeepOpen);
+        }
+
+        [Test]
         public void Purchase_ForwardsProductId()
         {
             Dispatch(new CampaignAction { TypeRaw = "purchase", ProductId = "gold_pack_1" });

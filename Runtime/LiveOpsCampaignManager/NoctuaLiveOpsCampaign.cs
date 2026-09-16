@@ -28,6 +28,11 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
         private Action<string> _deeplinkHandler;
         private bool _autoShown;
 
+        // The stored campaign currently on screen and the game values it was shown with, so
+        // UpdatePopupData can re-merge against the original rather than a merged copy.
+        private CampaignItem _shownItem;
+        private IReadOnlyDictionary<string, string> _shownPlayerData;
+
         /// <summary>Fires with a campaign id when its popup is shown.</summary>
         public event Action<string> OnCampaignShown;
 
@@ -141,16 +146,25 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
         /// highest-priority eligible campaign of any engagement type when <paramref name="id"/>
         /// is null. No-op when nothing is eligible.
         /// </summary>
-        public void ShowPopup(string id = null)
+        public void ShowPopup(string id = null) => ShowPopup(id, null);
+
+        /// <summary>
+        /// Shows a campaign with per-player values — e.g. mission progress — for the keys the
+        /// campaign declares in <c>player_data</c>. Keys the campaign does not declare are
+        /// ignored (and logged); declared keys left out render their defaults.
+        /// </summary>
+        public void ShowPopup(string id, IReadOnlyDictionary<string, string> playerData)
         {
             try
             {
-                var item = _manager.GetTopCampaign(id: id);
-                if (item == null)
+                var stored = _manager.GetTopCampaign(id: id);
+                if (stored == null)
                 {
                     _log.Debug($"ShowPopup: no eligible campaign (id='{id}')");
                     return;
                 }
+
+                var item = MergePlayerData(stored, playerData);
 
                 var popup = _host.Popup;
                 popup.SetCallbacks(
@@ -162,6 +176,11 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
                     },
                     onClosed: () =>
                     {
+                        if (ReferenceEquals(_shownItem, stored))
+                        {
+                            _shownItem = null;
+                            _shownPlayerData = null;
+                        }
                         if (_dispatcher.CurrentDismiss == (Action)popup.Close) _dispatcher.CurrentDismiss = null;
                         if (_dispatcher.CurrentBusy == (Action<bool>)popup.SetBusy) _dispatcher.CurrentBusy = null;
                         _events?.Send(DismissEvent, IdPayload(item.Id));
@@ -171,6 +190,8 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
 
                 _dispatcher.CurrentDismiss = popup.Close;
                 _dispatcher.CurrentBusy = popup.SetBusy;
+                _shownItem = stored;
+                _shownPlayerData = playerData;
                 popup.Show(item, _manager.Config.SchemaVersion);
             }
             catch (Exception e)
@@ -178,6 +199,44 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
                 _log.Error("ShowPopup failed: " + e.Message);
             }
         }
+
+        /// <summary>
+        /// Refreshes the open popup with new per-player values — call it after the game handles
+        /// a <c>keep_open</c> deeplink such as a claim, so the card flips to its new state in
+        /// place. Keys left out keep the value the popup was last shown or updated with. No-op
+        /// when nothing is showing.
+        /// </summary>
+        public void UpdatePopupData(IReadOnlyDictionary<string, string> playerData)
+        {
+            try
+            {
+                var popup = _host.PopupIfCreated;
+                if (_shownItem == null || popup == null || !popup.IsShowing)
+                {
+                    _log.Debug("UpdatePopupData: no campaign popup is showing");
+                    return;
+                }
+
+                var combined = new Dictionary<string, string>();
+                if (_shownPlayerData != null) foreach (var pair in _shownPlayerData) combined[pair.Key] = pair.Value;
+                if (playerData != null) foreach (var pair in playerData) combined[pair.Key] = pair.Value;
+
+                if (!popup.Refresh(MergePlayerData(_shownItem, combined), _manager.Config.SchemaVersion))
+                {
+                    _log.Warning($"UpdatePopupData: campaign '{_shownItem.Id}' could not re-render; kept current content");
+                    return;
+                }
+                _shownPlayerData = combined;
+            }
+            catch (Exception e)
+            {
+                _log.Error("UpdatePopupData failed: " + e.Message);
+            }
+        }
+
+        private CampaignItem MergePlayerData(CampaignItem stored, IReadOnlyDictionary<string, string> playerData) =>
+            CampaignPlayerData.Merge(stored, playerData, key =>
+                _log.Warning($"{LogTag} campaign '{stored.Id}' does not declare player_data key '{key}' — ignored"));
 
         /// <summary>
         /// Closes the campaign popup if one is showing — e.g. from inside a deeplink handler

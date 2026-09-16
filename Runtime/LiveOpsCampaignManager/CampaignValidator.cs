@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Globalization;
 
 namespace com.noctuagames.sdk.LiveOpsCampaign
@@ -37,14 +38,32 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
 
             if (item.View == null) { error = "no view tree"; return false; }
 
+            if (item.PlayerData != null && item.Data != null)
+            {
+                foreach (var key in item.PlayerData.Keys)
+                {
+                    if (!item.Data.ContainsKey(key)) continue;
+                    error = $"player_data key '{key}' is also a data key";
+                    return false;
+                }
+            }
+
+            // Resolve against data + player_data defaults, so a declared runtime token is not
+            // "unresolved" before the game has supplied it.
+            var data = CampaignPlayerData.ValidationData(item);
             var nodeBudget = MaxNodes;
-            return ValidateNode(item.View, item, 0, ref nodeBudget, out error);
+            return ValidateNode(item.View, item, data, 0, ref nodeBudget, out error);
         }
 
-        private static bool ValidateNode(CampaignNode node, CampaignItem item, int depth, ref int nodeBudget, out string error)
+        private static bool ValidateNode(CampaignNode node, CampaignItem item, IReadOnlyDictionary<string, string> data,
+            int depth, ref int nodeBudget, out string error)
         {
             error = null;
             if (node == null) return true;
+
+            if (!CampaignConditions.TryValidate(node.VisibleIf, out error)) return false;
+            // A hidden subtree never renders, so its requirements do not apply.
+            if (!CampaignConditions.Evaluate(node.VisibleIf, data)) return true;
 
             // Over-limit subtrees are truncated by the renderer the same way — not a failure.
             if (depth >= MaxDepth || nodeBudget <= 0) return true;
@@ -56,7 +75,7 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
                 case CampaignNode.TypeText:
                 case CampaignNode.TypeButton:
                 {
-                    var label = ResolveLabel(node, item, out var labelMissing);
+                    var label = ResolveLabel(node, data, out var labelMissing);
                     if (string.IsNullOrWhiteSpace(label) || labelMissing)
                     {
                         error = $"{type} node: empty or unresolved label";
@@ -67,7 +86,7 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
 
                 case CampaignNode.TypeImage:
                 {
-                    var url = ResolveRequired(node.PropString("url"), item, out var urlMissing);
+                    var url = ResolveRequired(node.PropString("url"), data, out var urlMissing);
                     if (string.IsNullOrWhiteSpace(url) || urlMissing)
                     {
                         error = "image node: missing or unresolved 'url'";
@@ -78,7 +97,7 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
 
                 case CampaignNode.TypeCountdown:
                 {
-                    var endTs = ResolveRequired(node.EndTimestamp(), item, out var endMissing);
+                    var endTs = ResolveRequired(node.EndTimestamp(), data, out var endMissing);
                     if (string.IsNullOrWhiteSpace(endTs) || endMissing || !CanParseTimestamp(endTs))
                     {
                         error = "countdown node: missing or unparseable 'end_timestamp'";
@@ -98,20 +117,20 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
                 }
             }
 
-            if (!ValidateAction(node.Action, item, out error)) return false;
+            if (!ValidateAction(node.Action, data, out error)) return false;
 
             if (node.Children != null)
             {
                 foreach (var child in node.Children)
                 {
-                    if (!ValidateNode(child, item, depth + 1, ref nodeBudget, out error)) return false;
+                    if (!ValidateNode(child, item, data, depth + 1, ref nodeBudget, out error)) return false;
                 }
             }
 
             return true;
         }
 
-        private static bool ValidateAction(CampaignAction a, CampaignItem item, out string error)
+        private static bool ValidateAction(CampaignAction a, IReadOnlyDictionary<string, string> data, out string error)
         {
             error = null;
             if (a == null || a.Type == CampaignActionType.None) return true;
@@ -120,7 +139,7 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
             {
                 case CampaignActionType.Purchase:
                 {
-                    var pid = ResolveRequired(a.ProductId, item, out var pidMissing);
+                    var pid = ResolveRequired(a.ProductId, data, out var pidMissing);
                     if (string.IsNullOrWhiteSpace(pid) || pidMissing)
                     {
                         error = "purchase action: missing 'product_id'";
@@ -131,7 +150,7 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
 
                 case CampaignActionType.Deeplink:
                 {
-                    var route = ResolveRequired(a.Deeplink, item, out var routeMissing);
+                    var route = ResolveRequired(a.Deeplink, data, out var routeMissing);
                     if (string.IsNullOrWhiteSpace(route) || routeMissing)
                     {
                         error = "deeplink action: missing 'deeplink'";
@@ -146,14 +165,14 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
 
         // ---- helpers -------------------------------------------------------
 
-        private static string ResolveLabel(CampaignNode node, CampaignItem item, out bool tokenMissing)
+        private static string ResolveLabel(CampaignNode node, IReadOnlyDictionary<string, string> data, out bool tokenMissing)
         {
             var locKey = node.PropString("loc_key");
-            if (!string.IsNullOrEmpty(locKey) && item?.Data != null && item.Data.TryGetValue(locKey, out var loc))
+            if (!string.IsNullOrEmpty(locKey) && data != null && data.TryGetValue(locKey, out var loc))
             {
-                return ResolveRequired(loc, item, out tokenMissing);
+                return ResolveRequired(loc, data, out tokenMissing);
             }
-            return ResolveRequired(node.PropString("text", string.Empty), item, out tokenMissing);
+            return ResolveRequired(node.PropString("text", string.Empty), data, out tokenMissing);
         }
 
         /// <summary>
@@ -161,10 +180,10 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
         /// <paramref name="tokenMissing"/> when a referenced key is absent — an unresolved
         /// token in a required field is treated as a missing value.
         /// </summary>
-        private static string ResolveRequired(string raw, CampaignItem item, out bool tokenMissing)
+        private static string ResolveRequired(string raw, IReadOnlyDictionary<string, string> data, out bool tokenMissing)
         {
             var missing = false;
-            var result = CampaignTokens.Resolve(raw, item?.Data, _ => missing = true);
+            var result = CampaignTokens.Resolve(raw, data, _ => missing = true);
             tokenMissing = missing;
             return result;
         }
