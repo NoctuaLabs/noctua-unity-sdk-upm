@@ -1,0 +1,1091 @@
+{
+  "id": "daily_missions_season_4",
+  "engagement_type": "event",
+  "auto_show": false,
+  "priority": 80,
+  "frequency": {
+    "max_per_day": 2,
+    "cooldown_hours": 0,
+    "once_ever": false
+  },
+  "schema_version": 2,
+  "data": {
+    "section_label": "DAILY MISSIONS",
+    "go_label": "Go",
+    "claim_label": "Claim",
+    "claimed_label": "Claimed",
+    "reset_prefix": "Resets in ",
+    "m_use_stm_title": "Use 20 STM",
+    "m_use_stm_reward_qty": "25",
+    "m_craft_badge_title": "Craft a Badge x1",
+    "m_craft_badge_reward_qty": "25",
+    "m_defeat_enemies_title": "Defeat 2000 enemies"
+  },
+  "i18n": {
+    "id": {
+      "section_label": "MISI HARIAN",
+      "reset_prefix": "Reset dalam ",
+      "go_label": "Ayo",
+      "claim_label": "Klaim",
+      "claimed_label": "Diklaim",
+      "m_use_stm_title": "Gunakan 20 STM"
+    }
+  },
+  "view": {
+    "type": "container",
+    "style": {
+      "width": "300",
+      "flex_direction": "column",
+      "padding": "4",
+      "font_path": "Fonts/Honk-Regular"
+    },
+    "children": [
+      {
+        "type": "image",
+        "props": {
+          "url": "https://cdn.example.com/missions/banner-s4.png",
+          "scale_mode": "contain"
+        },
+        "style": {
+          "height": "120",
+          "border_radius": "8"
+        }
+      },
+      {
+        "type": "container",
+        "style": {
+          "flex_direction": "row",
+          "align_items": "center",
+          "margin_top": "8"
+        },
+        "children": [
+          {
+            "type": "text",
+            "props": {
+              "text": "{{points}}"
+            },
+            "style": {
+              "color": "#22C55E",
+              "font_size": "16",
+              "font_weight": "bold"
+            }
+          },
+          {
+            "type": "container",
+            "style": {
+              "flex_grow": "1",
+              "margin_left": "8"
+            },
+            "children": [
+              {
+                "type": "progressbar",
+                "props": {
+                  "value": "{{points}}",
+                  "max": "100",
+                  "bar_color": "#22C55E"
+                }
+              },
+              {
+                "type": "container",
+                "style": {
+                  "flex_direction": "row",
+                  "justify_content": "space-between",
+                  "margin_top": "4"
+                },
+                "children": [
+                  {
+                    "type": "container",
+                    "style": {
+                      "align_items": "center"
+                    },
+                    "children": [
+                      {
+                        "type": "image",
+                        "props": {
+                          "url": "https://cdn.example.com/missions/chest-25-locked.png",
+                          "scale_mode": "contain"
+                        },
+                        "style": {
+                          "width": "28",
+                          "height": "28"
+                        },
+                        "visible_if": {
+                          "all": [
+                            {
+                              "left": "{{points}}",
+                              "op": "lt",
+                              "right": "25"
+                            },
+                            {
+                              "left": "{{milestone_25_claimed}}",
+                              "op": "ne",
+                              "right": "true"
+                            }
+                          ]
+                        }
+                      },
+                      {
+                        "type": "image",
+                        "props": {
+                          "url": "https://cdn.example.com/missions/chest-25-open.png",
+                          "scale_mode": "contain"
+                        },
+                        "style": {
+                          "width": "28",
+                          "height": "28"
+                        },
+                        "visible_if": {
+                          "all": [
+                            {
+                              "left": "{{points}}",
+                              "op": "gte",
+                              "right": "25"
+                            },
+                            {
+                              "left": "{{milestone_25_claimed}}",
+                              "op": "ne",
+                              "right": "true"
+                            }
+                          ]
+                        },
+                        "action": {
+                          "type": "deeplink",
+                          "deeplink": "missions/milestone/25",
+                          "keep_open": true
+                        }
+                      },
+                      {
+                        "type": "image",
+                        "props": {
+                          "url": "https://cdn.example.com/missions/chest-25-done.png",
+                          "scale_mode": "contain"
+                        },
+                        "style": {
+                          "width": "28",
+                          "height": "28"
+                        },
+                        "visible_if": {
+                          "all": [
+                            {
+                              "left": "{{milestone_25_claimed}}",
+                              "op": "eq",
+                              "right": "true"
+                            }
+                          ]
+                        }
+                      },
+                      {
+                        "type": "text",
+                        "props": {
+                          "text": "25"
+                        },
+                        "style": {
+                          "color": "#FFFFFF",
+                          "font_size": "10"
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "type": "container",
+                    "style": {
+                      "align_items": "center"
+                    },
+                    "children": [
+                      {
+                        "type": "image",
+                        "props": {
+                          "url": "https://cdn.example.com/missions/chest-50-locked.png",
+                          "scale_mode": "contain"
+                        },
+                        "style": {
+                          "width": "28",
+                          "height": "28"
+                        },
+                        "visible_if": {
+                          "all": [
+                            {
+                              "left": "{{points}}",
+                              "op": "lt",
+                              "right": "50"
+                            },
+                            {
+                              "left": "{{milestone_50_claimed}}",
+                              "op": "ne",
+                              "right": "true"
+                            }
+                          ]
+                        }
+                      },
+                      {
+                        "type": "image",
+                        "props": {
+                          "url": "https://cdn.example.com/missions/chest-50-open.png",
+                          "scale_mode": "contain"
+                        },
+                        "style": {
+                          "width": "28",
+                          "height": "28"
+                        },
+                        "visible_if": {
+                          "all": [
+                            {
+                              "left": "{{points}}",
+                              "op": "gte",
+                              "right": "50"
+                            },
+                            {
+                              "left": "{{milestone_50_claimed}}",
+                              "op": "ne",
+                              "right": "true"
+                            }
+                          ]
+                        },
+                        "action": {
+                          "type": "deeplink",
+                          "deeplink": "missions/milestone/50",
+                          "keep_open": true
+                        }
+                      },
+                      {
+                        "type": "image",
+                        "props": {
+                          "url": "https://cdn.example.com/missions/chest-50-done.png",
+                          "scale_mode": "contain"
+                        },
+                        "style": {
+                          "width": "28",
+                          "height": "28"
+                        },
+                        "visible_if": {
+                          "all": [
+                            {
+                              "left": "{{milestone_50_claimed}}",
+                              "op": "eq",
+                              "right": "true"
+                            }
+                          ]
+                        }
+                      },
+                      {
+                        "type": "text",
+                        "props": {
+                          "text": "50"
+                        },
+                        "style": {
+                          "color": "#FFFFFF",
+                          "font_size": "10"
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "type": "container",
+                    "style": {
+                      "align_items": "center"
+                    },
+                    "children": [
+                      {
+                        "type": "image",
+                        "props": {
+                          "url": "https://cdn.example.com/missions/chest-75-locked.png",
+                          "scale_mode": "contain"
+                        },
+                        "style": {
+                          "width": "28",
+                          "height": "28"
+                        },
+                        "visible_if": {
+                          "all": [
+                            {
+                              "left": "{{points}}",
+                              "op": "lt",
+                              "right": "75"
+                            },
+                            {
+                              "left": "{{milestone_75_claimed}}",
+                              "op": "ne",
+                              "right": "true"
+                            }
+                          ]
+                        }
+                      },
+                      {
+                        "type": "image",
+                        "props": {
+                          "url": "https://cdn.example.com/missions/chest-75-open.png",
+                          "scale_mode": "contain"
+                        },
+                        "style": {
+                          "width": "28",
+                          "height": "28"
+                        },
+                        "visible_if": {
+                          "all": [
+                            {
+                              "left": "{{points}}",
+                              "op": "gte",
+                              "right": "75"
+                            },
+                            {
+                              "left": "{{milestone_75_claimed}}",
+                              "op": "ne",
+                              "right": "true"
+                            }
+                          ]
+                        },
+                        "action": {
+                          "type": "deeplink",
+                          "deeplink": "missions/milestone/75",
+                          "keep_open": true
+                        }
+                      },
+                      {
+                        "type": "image",
+                        "props": {
+                          "url": "https://cdn.example.com/missions/chest-75-done.png",
+                          "scale_mode": "contain"
+                        },
+                        "style": {
+                          "width": "28",
+                          "height": "28"
+                        },
+                        "visible_if": {
+                          "all": [
+                            {
+                              "left": "{{milestone_75_claimed}}",
+                              "op": "eq",
+                              "right": "true"
+                            }
+                          ]
+                        }
+                      },
+                      {
+                        "type": "text",
+                        "props": {
+                          "text": "75"
+                        },
+                        "style": {
+                          "color": "#FFFFFF",
+                          "font_size": "10"
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "type": "container",
+                    "style": {
+                      "align_items": "center"
+                    },
+                    "children": [
+                      {
+                        "type": "image",
+                        "props": {
+                          "url": "https://cdn.example.com/missions/chest-100-locked.png",
+                          "scale_mode": "contain"
+                        },
+                        "style": {
+                          "width": "28",
+                          "height": "28"
+                        },
+                        "visible_if": {
+                          "all": [
+                            {
+                              "left": "{{points}}",
+                              "op": "lt",
+                              "right": "100"
+                            },
+                            {
+                              "left": "{{milestone_100_claimed}}",
+                              "op": "ne",
+                              "right": "true"
+                            }
+                          ]
+                        }
+                      },
+                      {
+                        "type": "image",
+                        "props": {
+                          "url": "https://cdn.example.com/missions/chest-100-open.png",
+                          "scale_mode": "contain"
+                        },
+                        "style": {
+                          "width": "28",
+                          "height": "28"
+                        },
+                        "visible_if": {
+                          "all": [
+                            {
+                              "left": "{{points}}",
+                              "op": "gte",
+                              "right": "100"
+                            },
+                            {
+                              "left": "{{milestone_100_claimed}}",
+                              "op": "ne",
+                              "right": "true"
+                            }
+                          ]
+                        },
+                        "action": {
+                          "type": "deeplink",
+                          "deeplink": "missions/milestone/100",
+                          "keep_open": true
+                        }
+                      },
+                      {
+                        "type": "image",
+                        "props": {
+                          "url": "https://cdn.example.com/missions/chest-100-done.png",
+                          "scale_mode": "contain"
+                        },
+                        "style": {
+                          "width": "28",
+                          "height": "28"
+                        },
+                        "visible_if": {
+                          "all": [
+                            {
+                              "left": "{{milestone_100_claimed}}",
+                              "op": "eq",
+                              "right": "true"
+                            }
+                          ]
+                        }
+                      },
+                      {
+                        "type": "text",
+                        "props": {
+                          "text": "100"
+                        },
+                        "style": {
+                          "color": "#FFFFFF",
+                          "font_size": "10"
+                        }
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "container",
+        "style": {
+          "flex_direction": "row",
+          "justify_content": "space-between",
+          "align_items": "center",
+          "margin_top": "8"
+        },
+        "children": [
+          {
+            "type": "text",
+            "props": {
+              "text": "{{section_label}}"
+            },
+            "style": {
+              "color": "#FB923C",
+              "font_size": "13",
+              "font_weight": "bold"
+            }
+          },
+          {
+            "type": "countdown",
+            "props": {
+              "end_timestamp": "{{reset_at}}",
+              "prefix": "{{reset_prefix}}"
+            },
+            "style": {
+              "color": "#FFFFFF",
+              "font_size": "12"
+            },
+            "visible_if": {
+              "all": [
+                {
+                  "left": "{{reset_at}}",
+                  "op": "ne",
+                  "right": ""
+                }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "type": "container",
+        "style": {
+          "margin_top": "8",
+          "border_radius": "8",
+          "overflow": "hidden",
+          "background_color": "#E4E4E8"
+        },
+        "children": [
+          {
+            "type": "container",
+            "style": {
+              "background_color": "#6B3A45",
+              "padding": "6 10"
+            },
+            "children": [
+              {
+                "type": "text",
+                "props": {
+                  "text": "{{m_use_stm_title}}"
+                },
+                "style": {
+                  "color": "#FFFFFF",
+                  "font_size": "14",
+                  "font_weight": "bold"
+                }
+              }
+            ]
+          },
+          {
+            "type": "container",
+            "style": {
+              "flex_direction": "row",
+              "align_items": "center",
+              "padding": "10"
+            },
+            "children": [
+              {
+                "type": "container",
+                "style": {
+                  "width": "56",
+                  "height": "56",
+                  "position": "relative"
+                },
+                "children": [
+                  {
+                    "type": "image",
+                    "props": {
+                      "url": "https://cdn.example.com/missions/badge.png",
+                      "scale_mode": "contain"
+                    },
+                    "style": {
+                      "position": "absolute",
+                      "top": "0",
+                      "left": "0",
+                      "right": "0",
+                      "bottom": "0"
+                    }
+                  },
+                  {
+                    "type": "text",
+                    "props": {
+                      "text": "{{m_use_stm_reward_qty}}"
+                    },
+                    "style": {
+                      "position": "absolute",
+                      "right": "0",
+                      "bottom": "0",
+                      "background_color": "#000000",
+                      "color": "#FFFFFF",
+                      "font_size": "10",
+                      "padding": "1 3"
+                    }
+                  }
+                ]
+              },
+              {
+                "type": "container",
+                "style": {
+                  "flex_grow": "1",
+                  "margin_left": "12"
+                },
+                "children": [
+                  {
+                    "type": "progressbar",
+                    "props": {
+                      "value": "{{m_use_stm_progress}}",
+                      "max": "20",
+                      "title": "{{m_use_stm_progress}}/20",
+                      "bar_color": "#22C55E"
+                    }
+                  },
+                  {
+                    "type": "button",
+                    "props": {
+                      "text": "{{go_label}}"
+                    },
+                    "style": {
+                      "height": "34",
+                      "border_radius": "17",
+                      "background_color": "#6B6B6B",
+                      "color": "#FFFFFF",
+                      "font_weight": "bold",
+                      "text_align": "middle-center",
+                      "margin_top": "6"
+                    },
+                    "action": {
+                      "type": "deeplink",
+                      "deeplink": "missions/go/use_stm"
+                    },
+                    "visible_if": {
+                      "all": [
+                        {
+                          "left": "{{m_use_stm_progress}}",
+                          "op": "lt",
+                          "right": "20"
+                        },
+                        {
+                          "left": "{{m_use_stm_claimed}}",
+                          "op": "ne",
+                          "right": "true"
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "type": "button",
+                    "props": {
+                      "text": "{{claim_label}}"
+                    },
+                    "style": {
+                      "height": "34",
+                      "border_radius": "17",
+                      "background_color": "#17A34A",
+                      "color": "#FFFFFF",
+                      "font_weight": "bold",
+                      "text_align": "middle-center",
+                      "margin_top": "6"
+                    },
+                    "action": {
+                      "type": "deeplink",
+                      "deeplink": "missions/claim/use_stm",
+                      "keep_open": true
+                    },
+                    "visible_if": {
+                      "all": [
+                        {
+                          "left": "{{m_use_stm_progress}}",
+                          "op": "gte",
+                          "right": "20"
+                        },
+                        {
+                          "left": "{{m_use_stm_claimed}}",
+                          "op": "ne",
+                          "right": "true"
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "type": "text",
+                    "props": {
+                      "text": "{{claimed_label}}"
+                    },
+                    "style": {
+                      "height": "34",
+                      "border_radius": "17",
+                      "background_color": "#6B6B6B",
+                      "color": "#FFFFFF",
+                      "font_weight": "bold",
+                      "text_align": "middle-center",
+                      "margin_top": "6"
+                    },
+                    "visible_if": {
+                      "all": [
+                        {
+                          "left": "{{m_use_stm_claimed}}",
+                          "op": "eq",
+                          "right": "true"
+                        }
+                      ]
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "container",
+        "style": {
+          "margin_top": "8",
+          "border_radius": "8",
+          "overflow": "hidden",
+          "background_color": "#E4E4E8"
+        },
+        "children": [
+          {
+            "type": "container",
+            "style": {
+              "background_color": "#6B3A45",
+              "padding": "6 10"
+            },
+            "children": [
+              {
+                "type": "text",
+                "props": {
+                  "text": "{{m_craft_badge_title}}"
+                },
+                "style": {
+                  "color": "#FFFFFF",
+                  "font_size": "14",
+                  "font_weight": "bold"
+                }
+              }
+            ]
+          },
+          {
+            "type": "container",
+            "style": {
+              "flex_direction": "row",
+              "align_items": "center",
+              "padding": "10"
+            },
+            "children": [
+              {
+                "type": "container",
+                "style": {
+                  "width": "56",
+                  "height": "56",
+                  "position": "relative"
+                },
+                "children": [
+                  {
+                    "type": "image",
+                    "props": {
+                      "url": "https://cdn.example.com/missions/badge.png",
+                      "scale_mode": "contain"
+                    },
+                    "style": {
+                      "position": "absolute",
+                      "top": "0",
+                      "left": "0",
+                      "right": "0",
+                      "bottom": "0"
+                    }
+                  },
+                  {
+                    "type": "text",
+                    "props": {
+                      "text": "{{m_craft_badge_reward_qty}}"
+                    },
+                    "style": {
+                      "position": "absolute",
+                      "right": "0",
+                      "bottom": "0",
+                      "background_color": "#000000",
+                      "color": "#FFFFFF",
+                      "font_size": "10",
+                      "padding": "1 3"
+                    }
+                  }
+                ]
+              },
+              {
+                "type": "container",
+                "style": {
+                  "flex_grow": "1",
+                  "margin_left": "12"
+                },
+                "children": [
+                  {
+                    "type": "progressbar",
+                    "props": {
+                      "value": "{{m_craft_badge_progress}}",
+                      "max": "1",
+                      "title": "{{m_craft_badge_progress}}/1",
+                      "bar_color": "#22C55E"
+                    }
+                  },
+                  {
+                    "type": "button",
+                    "props": {
+                      "text": "{{go_label}}"
+                    },
+                    "style": {
+                      "height": "34",
+                      "border_radius": "17",
+                      "background_color": "#6B6B6B",
+                      "color": "#FFFFFF",
+                      "font_weight": "bold",
+                      "text_align": "middle-center",
+                      "margin_top": "6"
+                    },
+                    "action": {
+                      "type": "deeplink",
+                      "deeplink": "mygame://craft/badge"
+                    },
+                    "visible_if": {
+                      "all": [
+                        {
+                          "left": "{{m_craft_badge_progress}}",
+                          "op": "lt",
+                          "right": "1"
+                        },
+                        {
+                          "left": "{{m_craft_badge_claimed}}",
+                          "op": "ne",
+                          "right": "true"
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "type": "button",
+                    "props": {
+                      "text": "{{claim_label}}"
+                    },
+                    "style": {
+                      "height": "34",
+                      "border_radius": "17",
+                      "background_color": "#17A34A",
+                      "color": "#FFFFFF",
+                      "font_weight": "bold",
+                      "text_align": "middle-center",
+                      "margin_top": "6"
+                    },
+                    "action": {
+                      "type": "deeplink",
+                      "deeplink": "missions/claim/craft_badge",
+                      "keep_open": true
+                    },
+                    "visible_if": {
+                      "all": [
+                        {
+                          "left": "{{m_craft_badge_progress}}",
+                          "op": "gte",
+                          "right": "1"
+                        },
+                        {
+                          "left": "{{m_craft_badge_claimed}}",
+                          "op": "ne",
+                          "right": "true"
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "type": "text",
+                    "props": {
+                      "text": "{{claimed_label}}"
+                    },
+                    "style": {
+                      "height": "34",
+                      "border_radius": "17",
+                      "background_color": "#6B6B6B",
+                      "color": "#FFFFFF",
+                      "font_weight": "bold",
+                      "text_align": "middle-center",
+                      "margin_top": "6"
+                    },
+                    "visible_if": {
+                      "all": [
+                        {
+                          "left": "{{m_craft_badge_claimed}}",
+                          "op": "eq",
+                          "right": "true"
+                        }
+                      ]
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "container",
+        "style": {
+          "margin_top": "8",
+          "border_radius": "8",
+          "overflow": "hidden",
+          "background_color": "#E4E4E8"
+        },
+        "children": [
+          {
+            "type": "container",
+            "style": {
+              "background_color": "#6B3A45",
+              "padding": "6 10"
+            },
+            "children": [
+              {
+                "type": "text",
+                "props": {
+                  "text": "{{m_defeat_enemies_title}}"
+                },
+                "style": {
+                  "color": "#FFFFFF",
+                  "font_size": "14",
+                  "font_weight": "bold"
+                }
+              }
+            ]
+          },
+          {
+            "type": "container",
+            "style": {
+              "flex_direction": "row",
+              "align_items": "center",
+              "padding": "10"
+            },
+            "children": [
+              {
+                "type": "container",
+                "style": {
+                  "width": "56",
+                  "height": "56",
+                  "position": "relative"
+                },
+                "children": [
+                  {
+                    "type": "image",
+                    "props": {
+                      "url": "https://cdn.example.com/missions/gems.png",
+                      "scale_mode": "contain"
+                    },
+                    "style": {
+                      "position": "absolute",
+                      "top": "0",
+                      "left": "0",
+                      "right": "0",
+                      "bottom": "0"
+                    }
+                  }
+                ]
+              },
+              {
+                "type": "container",
+                "style": {
+                  "flex_grow": "1",
+                  "margin_left": "12"
+                },
+                "children": [
+                  {
+                    "type": "progressbar",
+                    "props": {
+                      "value": "{{m_defeat_enemies_progress}}",
+                      "max": "2000",
+                      "title": "{{m_defeat_enemies_progress}}/2000",
+                      "bar_color": "#22C55E"
+                    }
+                  },
+                  {
+                    "type": "button",
+                    "props": {
+                      "text": "{{go_label}}"
+                    },
+                    "style": {
+                      "height": "34",
+                      "border_radius": "17",
+                      "background_color": "#6B6B6B",
+                      "color": "#FFFFFF",
+                      "font_weight": "bold",
+                      "text_align": "middle-center",
+                      "margin_top": "6"
+                    },
+                    "action": {
+                      "type": "deeplink",
+                      "deeplink": "missions/go/defeat_enemies"
+                    },
+                    "visible_if": {
+                      "all": [
+                        {
+                          "left": "{{m_defeat_enemies_progress}}",
+                          "op": "lt",
+                          "right": "2000"
+                        },
+                        {
+                          "left": "{{m_defeat_enemies_claimed}}",
+                          "op": "ne",
+                          "right": "true"
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "type": "button",
+                    "props": {
+                      "text": "{{claim_label}}"
+                    },
+                    "style": {
+                      "height": "34",
+                      "border_radius": "17",
+                      "background_color": "#17A34A",
+                      "color": "#FFFFFF",
+                      "font_weight": "bold",
+                      "text_align": "middle-center",
+                      "margin_top": "6"
+                    },
+                    "action": {
+                      "type": "deeplink",
+                      "deeplink": "missions/claim/defeat_enemies",
+                      "keep_open": true
+                    },
+                    "visible_if": {
+                      "all": [
+                        {
+                          "left": "{{m_defeat_enemies_progress}}",
+                          "op": "gte",
+                          "right": "2000"
+                        },
+                        {
+                          "left": "{{m_defeat_enemies_claimed}}",
+                          "op": "ne",
+                          "right": "true"
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "type": "text",
+                    "props": {
+                      "text": "{{claimed_label}}"
+                    },
+                    "style": {
+                      "height": "34",
+                      "border_radius": "17",
+                      "background_color": "#6B6B6B",
+                      "color": "#FFFFFF",
+                      "font_weight": "bold",
+                      "text_align": "middle-center",
+                      "margin_top": "6"
+                    },
+                    "visible_if": {
+                      "all": [
+                        {
+                          "left": "{{m_defeat_enemies_claimed}}",
+                          "op": "eq",
+                          "right": "true"
+                        }
+                      ]
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "borderless": false,
+  "close_button": {
+    "size": 32,
+    "anchor": "top-left",
+    "inset": 8
+  },
+  "frame_color": "#A85FF7",
+  "player_data": {
+    "reset_at": "",
+    "points": "0",
+    "m_use_stm_progress": "0",
+    "m_use_stm_claimed": "false",
+    "m_craft_badge_progress": "0",
+    "m_craft_badge_claimed": "false",
+    "m_defeat_enemies_progress": "0",
+    "m_defeat_enemies_claimed": "false",
+    "milestone_25_claimed": "false",
+    "milestone_50_claimed": "false",
+    "milestone_75_claimed": "false",
+    "milestone_100_claimed": "false"
+  }
+}
