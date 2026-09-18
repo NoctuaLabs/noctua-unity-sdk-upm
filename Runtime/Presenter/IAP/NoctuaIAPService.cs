@@ -1646,11 +1646,12 @@ namespace com.noctuagames.sdk
                         }
                     );
 
-                    if (paymentType == PaymentType.playstore || paymentType == PaymentType.appstore)
+                    if (paymentType == PaymentType.playstore)
                     {
-                        // The store made no purchase, so the order enqueued above can never be
-                        // verified. Custom (web) payments stay queued: the player may have paid
-                        // before closing the payment page.
+                        // Google Billing reported UserCanceled: no purchase was made, so the order
+                        // enqueued above can never be verified. App Store cancels are matched by
+                        // message text and custom (web) payments may have been paid before the page
+                        // was closed, so those stay queued.
                         RemoveFromRetryPendingPurchasesByOrderID(orderResponse.Id);
                     }
 
