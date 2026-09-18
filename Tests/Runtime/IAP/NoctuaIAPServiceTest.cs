@@ -526,6 +526,73 @@ namespace Tests.Runtime.IAP
             Assert.AreEqual(0, result.OrderId,
                 "Should return an empty InternalPurchaseItem when the queue has no matching entry");
         }
+
+        // ── Persisted retry queue (regression: first write after launch dropped saved orders) ──
+
+        private static InternalPurchaseItem MakePendingItem(int orderId, string status = "pending")
+        {
+            return new InternalPurchaseItem
+            {
+                OrderId            = orderId,
+                OrderRequest       = new OrderRequest { Id = orderId, ProductId = "prod_" + orderId },
+                VerifyOrderRequest = new VerifyOrderRequest { Id = orderId },
+                AccessToken        = "fake-token",
+                Status             = status,
+            };
+        }
+
+        [Test]
+        public void RemoveFromRetryPendingPurchasesByOrderID_KeepsOtherPersistedOrders()
+        {
+            IAPTestHelpers.StorePending(JsonConvert.SerializeObject(new[] { MakePendingItem(1), MakePendingItem(2) }));
+            var svc = IAPTestHelpers.CreateService();
+
+            svc.RemoveFromRetryPendingPurchasesByOrderID(1);
+
+            var remaining = svc.GetPendingPurchases();
+            Assert.AreEqual(1, remaining.Count, "Only the removed order should leave the persisted queue");
+            Assert.AreEqual(2, remaining[0].OrderId);
+        }
+
+        [Test]
+        public void GetThenRemoveFromRetryPendingPurchasesByOrderID_ReturnsOrderPersistedByEarlierSession()
+        {
+            IAPTestHelpers.StorePending(IAPTestHelpers.MakePendingItemJson(7));
+            var svc = IAPTestHelpers.CreateService();
+
+            var removed = svc.GetThenRemoveFromRetryPendingPurchasesByOrderID(7);
+
+            Assert.AreEqual(7, removed.OrderId);
+            Assert.AreEqual(0, svc.GetPendingPurchases().Count);
+        }
+
+        // ── IsRetryablePendingPurchase ─────────────────────────────────────────
+
+        [TestCase("pending", true)]
+        [TestCase("verification_failed", true)]
+        [TestCase("network_error", true)]
+        [TestCase(null, true)]
+        [TestCase("canceled", false)]
+        [TestCase("refunded", false)]
+        public void IsRetryablePendingPurchase_ByStatus(string status, bool expected)
+        {
+            Assert.AreEqual(expected, NoctuaIAPService.IsRetryablePendingPurchase(MakePendingItem(5, status)));
+        }
+
+        [Test]
+        public void IsRetryablePendingPurchase_MissingVerifyRequest_ReturnsFalse()
+        {
+            var item = MakePendingItem(5);
+            item.VerifyOrderRequest = null;
+
+            Assert.IsFalse(NoctuaIAPService.IsRetryablePendingPurchase(item));
+        }
+
+        [Test]
+        public void IsRetryablePendingPurchase_Null_ReturnsFalse()
+        {
+            Assert.IsFalse(NoctuaIAPService.IsRetryablePendingPurchase(null));
+        }
     }
 
     // ══════════════════════════════════════════════════════════════════════════════

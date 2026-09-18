@@ -52,7 +52,18 @@ namespace com.noctuagames.sdk
 
         private readonly IEventSender _eventSender;
         private readonly AccessTokenProvider _accessTokenProvider;
+        // Retry queue for orders awaiting verification. Mirrors the "NoctuaPendingPurchases"
+        // PlayerPrefs entry, which is the persisted source of truth; loaded lazily so the first
+        // write after launch does not overwrite orders persisted by an earlier session.
         private readonly Queue<InternalPurchaseItem> _waitingPendingPurchases = new();
+        private bool _pendingPurchaseQueueLoaded;
+        private bool _pendingPurchaseRetryLoopRunning;
+        private readonly HashSet<int> _verifyingOrderIds = new();
+        // Orders already reported through OnPurchasePending this session.
+        private readonly HashSet<int> _pendingNotifiedOrderIds = new();
+        // verify-order error: the receipt is attached to a different order that owns the payment.
+        private const int ReceiptAlreadyUsedErrorCode = 2042;
+        private static readonly TimeSpan PendingPurchaseIdlePollInterval = TimeSpan.FromSeconds(1);
         private readonly INativePlugin _nativePlugin;
         private readonly ProductList _usdProducts = new();
         private TaskCompletionSource<PaymentResult> _paymentTcs;
@@ -391,7 +402,7 @@ namespace com.noctuagames.sdk
         {
             switch (errorCode)
             {
-            case 2042:
+            case ReceiptAlreadyUsedErrorCode:
                 // Backend's IsReceiptDataAlreadyUsed check excludes the order being verified
                 // (WHERE id != $1 AND receipt_data = $2), so this does NOT mean "this order was
                 // already completed" — it means this receipt string is attached to a *different*
@@ -429,6 +440,34 @@ namespace com.noctuagames.sdk
             [CallerMemberName] string callerMember = ""
         )
         {
+            // Track in-flight verifications so the retry loop skips orders another caller
+            // (usually the purchase flow) is verifying right now.
+            var orderId = verifyOrderRequest?.Id ?? 0;
+            var tracked = orderId != 0 && _verifyingOrderIds.Add(orderId);
+            try
+            {
+                return await VerifyOrderCoreAsync(
+                    orderRequest, verifyOrderRequest, token, playerId, isTriggeredByIAP, purchaseToken, callerMember);
+            }
+            finally
+            {
+                if (tracked)
+                {
+                    _verifyingOrderIds.Remove(orderId);
+                }
+            }
+        }
+
+        private async UniTask<VerifyOrderResponse> VerifyOrderCoreAsync(
+            OrderRequest orderRequest,
+            VerifyOrderRequest verifyOrderRequest,
+            string token,
+            long? playerId,
+            bool isTriggeredByIAP,
+            string purchaseToken,
+            string callerMember
+        )
+        {
                 _log.Debug($"Attempt to verify orderID {verifyOrderRequest.Id}, triggered by IAP: {isTriggeredByIAP}, caller: {callerMember}, trigger: {verifyOrderRequest?.Trigger}");
 
                 if (orderRequest.Id == 0)
@@ -439,6 +478,7 @@ namespace com.noctuagames.sdk
                 var verifyOrderResponse = new VerifyOrderResponse();
                 verifyOrderResponse.Id = verifyOrderRequest.Id;
                 var verifyOrderErrorMessage = "";
+                var isDuplicateReceipt = false;
                 try {
                 verifyOrderResponse = await VerifyOrderAsync(verifyOrderRequest, token);
                 }
@@ -453,6 +493,27 @@ namespace com.noctuagames.sdk
                         {
                             verifyOrderResponse.Status = mappedStatus.Value;
                             verifyOrderErrorMessage = e.Message;
+                            isDuplicateReceipt = noctuaEx.ErrorCode == ReceiptAlreadyUsedErrorCode;
+                        }
+                        else if ((NoctuaErrorCode)noctuaEx.ErrorCode == NoctuaErrorCode.Networking)
+                        {
+                            // The server was not reached, so nothing is known about the payment.
+                            // Keep the order queued and rethrow as Networking: converting it into a
+                            // Payment error below made callers treat it as a failed payment.
+                            _log.Warning($"VerifyOrderImplAsync network error, keeping order queued. orderID={verifyOrderRequest.Id}, caller={callerMember}, trigger={verifyOrderRequest?.Trigger}, error={e.Message}");
+                            EnqueueToRetryPendingPurchases(
+                                new InternalPurchaseItem
+                                {
+                                    OrderId = verifyOrderRequest.Id,
+                                    OrderRequest = orderRequest,
+                                    VerifyOrderRequest = verifyOrderRequest,
+                                    AccessToken = _accessTokenProvider.AccessToken,
+                                    Status = "network_error",
+                                    PlayerId = _authProvider?.PlayerId,
+                                    PurchaseToken = purchaseToken,
+                                }
+                            );
+                            throw;
                         }
                     } else {
                         _log.Warning($"VerifyOrderImplAsync failed. orderID={verifyOrderRequest.Id}, caller={callerMember}, trigger={verifyOrderRequest?.Trigger}, isTriggeredByIAP={isTriggeredByIAP}, error={e.Message}");
@@ -647,6 +708,14 @@ namespace com.noctuagames.sdk
                     _log.Debug("remove from pending queue because it has been voided");
                     RemoveFromRetryPendingPurchasesByOrderID(verifyOrderRequest.Id);
 
+                    if (isDuplicateReceipt)
+                    {
+                        // The payment belongs to the other order that owns this receipt; this order
+                        // is only a duplicate. Reporting purchase_voided counted paid purchases as voided.
+                        _log.Info($"orderID {verifyOrderRequest.Id} dropped from pending queue: receipt already used by another order.");
+                        break;
+                    }
+
                     _eventSender?.Send(
                         "purchase_voided",
                         new()
@@ -717,7 +786,10 @@ namespace com.noctuagames.sdk
                         }
                     }
 
-                    OnPurchasePending?.Invoke(orderRequest);
+                    if (ShouldNotifyPurchasePending(verifyOrderRequest.Id, verifyOrderRequest.Trigger))
+                    {
+                        OnPurchasePending?.Invoke(orderRequest);
+                    }
                     _log.Warning($"VerifyOrderImplAsync throwing Payment error. orderID={verifyOrderRequest.Id}, caller={callerMember}, trigger={verifyOrderRequest?.Trigger}, isTriggeredByIAP={isTriggeredByIAP}, status={verifyOrderResponse.Status}, message={message}");
                     throw new NoctuaException(
                         NoctuaErrorCode.Payment,
@@ -1573,6 +1645,14 @@ namespace com.noctuagames.sdk
                             { "orig_currency", orderRequest.Currency }
                         }
                     );
+
+                    if (paymentType == PaymentType.playstore || paymentType == PaymentType.appstore)
+                    {
+                        // The store made no purchase, so the order enqueued above can never be
+                        // verified. Custom (web) payments stay queued: the player may have paid
+                        // before closing the payment page.
+                        RemoveFromRetryPendingPurchasesByOrderID(orderResponse.Id);
+                    }
 
                     _paymentUI.ShowError(LocaleTextKey.IAPCanceled);
                 
@@ -2435,35 +2515,19 @@ namespace com.noctuagames.sdk
         }
         
         /// <summary>
-        /// Retry mechanism for pending purchases. This method iterates over locally stored pending purchases
-        /// and attempts to resume verification and delivery. It respects application quitting.
+        /// Retry mechanism for pending purchases. Each pass re-reads the persisted retry queue, so
+        /// orders enqueued after the loop started (new purchases, failed verifications) are picked
+        /// up, and verifies every retryable order. VerifyOrderImplAsync keeps the queue in sync:
+        /// completed and voided orders leave it, everything else stays queued. Respects application
+        /// quitting.
         /// </summary>
         public async UniTask RetryPendingPurchasesAsync()
         {
-            _log.Info("Starting pending purchases retry loop.");
-            
-            var random = new Random();
-            
-            var runningPendingPurchases = GetPendingPurchases().ToList();
-
-            _log.Info("Queue count: " + runningPendingPurchases.Count);
-            CancellationTokenSource cts = new();
-            var quitting = false;
-
-            // Named handler so it can be unsubscribed when the loop exits — a lambda
-            // added per call would leak one closure on every invocation.
-            Action quitHandler = () =>
+            if (_pendingPurchaseRetryLoopRunning)
             {
-                _log.Info("Quitting pending purchases retry loop.");
-                quitting = true;
-                cts.Cancel();
-            };
-            Application.quitting += quitHandler;
-
-            try
-            {
-
-            var retryCount = 0;
+                _log.Info("Pending purchases retry loop already running.");
+                return;
+            }
 
             if (_enabledPaymentTypes == null || _enabledPaymentTypes.Count == 0)
             {
@@ -2472,153 +2536,209 @@ namespace com.noctuagames.sdk
                 return;
             }
 
-            while (!quitting)
-            {
-                if (runningPendingPurchases.Count == 0)
-                {
-                    await UniTask.Delay(1000, cancellationToken: cts.Token);
-                    
-                    continue;
-                }
-                
-                _log.Info("Retrying pending purchases: " + runningPendingPurchases.Count);
-                
-                // Drain the queue
-                var newPendingPurchaseCount = 0;
-                while (_waitingPendingPurchases.TryDequeue(out var pendingPurchase))
-                {
-                    runningPendingPurchases.Add(pendingPurchase);
-                    newPendingPurchaseCount++;
-                    
-                    _log.Info("Draining pending purchase: " + pendingPurchase.OrderId);
-                }
-                
-                // Retry pending purchases
-                var failedPendingPurchases = new List<InternalPurchaseItem>();
-                
-                foreach (var item in runningPendingPurchases)
-                {
+            _log.Info("Starting pending purchases retry loop.");
+            _pendingPurchaseRetryLoopRunning = true;
 
-                    if (item.Status == OrderStatus.refunded.ToString() ||
-                    item.Status == OrderStatus.canceled.ToString())
+            var random = new Random();
+            var cts = new CancellationTokenSource();
+
+            // Named handler so it can be unsubscribed when the loop exits — a lambda
+            // added per call would leak one closure on every invocation.
+            Action quitHandler = () =>
+            {
+                _log.Info("Quitting pending purchases retry loop.");
+                cts.Cancel();
+            };
+            Application.quitting += quitHandler;
+
+            try
+            {
+                EnsurePendingPurchaseQueueLoaded();
+                _log.Info("Queue count: " + _waitingPendingPurchases.Count);
+
+                var retryCount = 0;
+
+                while (!cts.IsCancellationRequested)
+                {
+                    var batch = GetRetryablePendingPurchases();
+
+                    // The purchase flow verifies its own order; do not race it.
+                    if (batch.Count == 0 || IsPurchaseFlowActive())
                     {
-                        // We want to keep these items remains in the pending list
-                        EnqueueToRetryPendingPurchases(item);
-                        failedPendingPurchases.Add(item);
+                        retryCount = 0;
+                        await UniTask.Delay(PendingPurchaseIdlePollInterval, cancellationToken: cts.Token);
 
                         continue;
                     }
 
-                    try
+                    _log.Info("Retrying pending purchases: " + batch.Count);
+
+                    foreach (var item in batch)
                     {
-                        _log.Info(
-                            $"Retrying Order ID: {item.OrderId}, " +
-                            $"Receipt Data: {item.VerifyOrderRequest.ReceiptData}"
-                        );
-
-                        if (item.OrderRequest.Id == 0) {
-                            item.OrderRequest.Id = item.OrderId;
-                        }
-
-                        item.VerifyOrderRequest.Trigger = VerifyOrderTrigger.client_automatic_retry.ToString();
-                        var verifyOrderResponse = await VerifyOrderImplAsync(
-                            item.OrderRequest,
-                            item.VerifyOrderRequest,
-                            item.AccessToken,
-                            item.PlayerId,
-                            false,
-                            item.PurchaseToken
-                        );
-
-                        if (verifyOrderResponse.Status != OrderStatus.completed &&
-                        verifyOrderResponse.Status != OrderStatus.voided)
+                        if (cts.IsCancellationRequested)
                         {
-                            // Enqueue to player prefs for future read
-                            item.Status = verifyOrderResponse.Status.ToString();
-                            EnqueueToRetryPendingPurchases(item);
-                            // Enqueue to running queue
-                            failedPendingPurchases.Add(item);
-                        }
-                    }
-                    catch (NoctuaException e)
-                    {
-                        // Do not track purchase_verify_order_failed
-                        // as we don't want it to flood our data.
-
-                        EnqueueToRetryPendingPurchases(
-                            new InternalPurchaseItem
-                            {
-                                OrderId = item.OrderId,
-                                OrderRequest = item.OrderRequest,
-                                VerifyOrderRequest = item.VerifyOrderRequest,
-                                AccessToken = item.AccessToken,
-                                Status = "verification_failed",
-                                PlayerId = _authProvider?.PlayerId,
-                            }
-                        );
-
-                        if ((NoctuaErrorCode)e.ErrorCode == NoctuaErrorCode.Networking)
-                        {
-                            failedPendingPurchases.Add(item);
-                        
-                            _log.Info("Adding pending purchase back to running queue: " + item.OrderId);
+                            break;
                         }
 
-                        _log.Error("NoctuaException: " + e.ErrorCode + " : " + e.Message);
+                        await RetryPendingPurchaseOnceAsync(item);
                     }
-                    catch (Exception e)
+
+                    var remaining = GetRetryablePendingPurchases();
+                    if (remaining.Count == 0)
                     {
-                        _log.Error("Exception: " + e);
+                        retryCount = 0;
+                        continue;
                     }
-                }
 
-                // At this point, the successful ones are already removed from the PlayerPrefs. 
-                if (failedPendingPurchases.Count > 0)
-                {
-                    _log.Info("Saving failed pending purchases: " + failedPendingPurchases.Count);
+                    // Exponential backoff with randomization, so we don't hammer the server.
+                    // A newly enqueued order ends the wait early and restarts the backoff, so it
+                    // does not inherit a long delay built up by older orders.
+                    retryCount++;
+                    var delay = GetBackoffDelay(random, retryCount);
+                    _log.Info($"Retrying {remaining.Count} pending purchase(s) in {delay.TotalSeconds} seconds...");
 
-                    // Merge with existing _waitingPendingPurchases instead of overwrite
-                    foreach (var item in failedPendingPurchases)
+                    var knownOrderIds = new HashSet<int>(remaining.Select(item => item.OrderId));
+                    if (await WaitForBackoffOrNewPendingPurchaseAsync(delay, knownOrderIds, cts.Token))
                     {
-                        EnqueueToRetryPendingPurchases(item);
+                        retryCount = 0;
                     }
-                    SavePendingPurchases(_waitingPendingPurchases.ToList());
-                }
-
-                // Continue the current failed retry. 
-                runningPendingPurchases = failedPendingPurchases;
-                
-                // No need to retry, just straight to next iteration waiting for new pending purchases
-                if (runningPendingPurchases.Count == 0)
-                {
-                    retryCount = 0;
-                    continue;
-                }
-
-                // Exponential backoff with randomization, so we don't hammer the server
-                retryCount++;
-                var delay = GetBackoffDelay(random, retryCount);
-                _log.Info($"Retrying in {delay.TotalSeconds} seconds...");
-
-                try
-                {
-                    await Task.Delay(delay, cancellationToken: cts.Token);
-                }
-                catch (Exception e)
-                {
-                    _log.Info("Operation canceled: " + e.Message);
-                    break;
                 }
             }
-            
-            _log.Info("Quitting, saving pending purchases: " + runningPendingPurchases.Count);
-
-            SavePendingPurchases(_waitingPendingPurchases.ToList());
+            catch (OperationCanceledException)
+            {
+                _log.Info("Pending purchases retry loop canceled.");
             }
             finally
             {
                 Application.quitting -= quitHandler;
+                _pendingPurchaseRetryLoopRunning = false;
+                cts.Dispose();
+
+                _log.Info("Quitting, saving pending purchases: " + _waitingPendingPurchases.Count);
+                SavePendingPurchases(_waitingPendingPurchases.ToList());
             }
+        }
+
+        private async UniTask RetryPendingPurchaseOnceAsync(InternalPurchaseItem item)
+        {
+            try
+            {
+                _log.Info(
+                    $"Retrying Order ID: {item.OrderId}, " +
+                    $"Receipt Data: {item.VerifyOrderRequest.ReceiptData}"
+                );
+
+                if (item.OrderRequest.Id == 0) {
+                    item.OrderRequest.Id = item.OrderId;
+                }
+
+                item.VerifyOrderRequest.Trigger = VerifyOrderTrigger.client_automatic_retry.ToString();
+                var verifyOrderResponse = await VerifyOrderImplAsync(
+                    item.OrderRequest,
+                    item.VerifyOrderRequest,
+                    item.AccessToken,
+                    item.PlayerId,
+                    false,
+                    item.PurchaseToken
+                );
+
+                _log.Info($"Retried Order ID: {item.OrderId}, status: {verifyOrderResponse.Status}");
+            }
+            catch (NoctuaException e)
+            {
+                // Do not track purchase_verify_order_failed
+                // as we don't want it to flood our data.
+                // The order is still in the queue; it is retried on the next pass.
+                _log.Warning($"Pending purchase {item.OrderId} not verified yet: {(NoctuaErrorCode)e.ErrorCode} : {e.Message}");
+            }
+            catch (Exception e)
+            {
+                _log.Error($"Pending purchase {item.OrderId} retry failed: {e}");
+            }
+        }
+
+        /// <returns>True when a new order ended the wait early.</returns>
+        private async UniTask<bool> WaitForBackoffOrNewPendingPurchaseAsync(
+            TimeSpan delay,
+            HashSet<int> knownOrderIds,
+            CancellationToken cancellationToken)
+        {
+            var deadline = DateTime.UtcNow + delay;
+            while (DateTime.UtcNow < deadline)
+            {
+                if (GetRetryablePendingPurchases().Any(item => !knownOrderIds.Contains(item.OrderId)))
+                {
+                    _log.Info("New pending purchase enqueued, ending retry backoff early.");
+                    return true;
+                }
+
+                await UniTask.Delay(PendingPurchaseIdlePollInterval, cancellationToken: cancellationToken);
+            }
+
+            return false;
+        }
+
+        private List<InternalPurchaseItem> GetRetryablePendingPurchases()
+        {
+            EnsurePendingPurchaseQueueLoaded();
+
+            return _waitingPendingPurchases
+                .Where(item => IsRetryablePendingPurchase(item) && !_verifyingOrderIds.Contains(item.OrderId))
+                .ToList();
+        }
+
+        /// <summary>
+        /// Whether a queued order should be re-verified. Canceled and refunded orders are final:
+        /// they stay persisted so the pending purchases dialog can show them, but are not retried.
+        /// </summary>
+        /// <param name="item">Queued pending purchase.</param>
+        /// <returns>True when the order should be verified again.</returns>
+        public static bool IsRetryablePendingPurchase(InternalPurchaseItem item)
+        {
+            if (item?.OrderRequest == null || item.VerifyOrderRequest == null || item.OrderId == 0)
+            {
+                return false;
+            }
+
+            return item.Status != OrderStatus.refunded.ToString() &&
+                   item.Status != OrderStatus.canceled.ToString();
+        }
+
+        private bool IsPurchaseFlowActive() => _purchaseFlowGate.CurrentCount == 0;
+
+        /// <summary>
+        /// Loads the persisted retry queue into memory once. Without this, the first enqueue after
+        /// launch saved only the in-memory queue and dropped orders persisted by earlier sessions.
+        /// </summary>
+        private void EnsurePendingPurchaseQueueLoaded()
+        {
+            if (_pendingPurchaseQueueLoaded)
+            {
+                return;
+            }
+
+            _pendingPurchaseQueueLoaded = true;
+
+            var queuedOrderIds = new HashSet<int>(_waitingPendingPurchases.Select(item => item.OrderId));
+            foreach (var item in GetPendingPurchases())
+            {
+                if (queuedOrderIds.Add(item.OrderId))
+                {
+                    _waitingPendingPurchases.Enqueue(item);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Automatic retries re-verify pending orders on a backoff; report each order through
+        /// <see cref="OnPurchasePending"/> once per session instead of on every pass. Other
+        /// triggers (purchase flow, manual retry) always notify.
+        /// </summary>
+        private bool ShouldNotifyPurchasePending(int orderId, string trigger)
+        {
+            var firstNotification = _pendingNotifiedOrderIds.Add(orderId);
+
+            return firstNotification || trigger != VerifyOrderTrigger.client_automatic_retry.ToString();
         }
 
         /// <summary>
@@ -2757,6 +2877,13 @@ namespace com.noctuagames.sdk
                 _log.Info($"Preserved ReceiptData for {item.OrderId}: {item.VerifyOrderRequest.ReceiptData}");
             }
 
+            // Re-enqueues from failure paths do not carry the store purchase token; keep it so a
+            // later successful retry can still finish the store transaction.
+            if (string.IsNullOrEmpty(item.PurchaseToken) && !string.IsNullOrEmpty(oldItem?.PurchaseToken))
+            {
+                item.PurchaseToken = oldItem.PurchaseToken;
+            }
+
             _log.Info($"Enqueue to retry pending purchase: {item.OrderId}");
             _waitingPendingPurchases.Enqueue(item);
             SavePendingPurchases(_waitingPendingPurchases.ToList());
@@ -2770,6 +2897,7 @@ namespace com.noctuagames.sdk
         public InternalPurchaseItem GetThenRemoveFromRetryPendingPurchasesByOrderID(int orderId)
         {
             _log.Info($"Remove from retry pending purchase: {orderId}");
+            EnsurePendingPurchaseQueueLoaded();
 
             var oldItem = _waitingPendingPurchases.FirstOrDefault(item => item.OrderId == orderId);
             if (oldItem == null)
@@ -2798,6 +2926,7 @@ namespace com.noctuagames.sdk
         public void RemoveFromRetryPendingPurchasesByOrderID(int orderId)
         {
             _log.Info($"Remove from retry pending purchase: {orderId}");
+            EnsurePendingPurchaseQueueLoaded();
 
             // Rebuild the queue excluding the item with the specified OrderID
             var updatedQueue = new Queue<InternalPurchaseItem>(
