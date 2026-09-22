@@ -430,6 +430,32 @@ namespace com.noctuagames.sdk
             }
         }
 
+        /// <summary>
+        /// Decides whether an unpairable Google Play purchase is allowed to be treated as a
+        /// promo-code redemption by <see cref="HandleUnpairedPurchase"/>.
+        ///
+        /// Google Play leaves <c>Purchase.getOrderId()</c> empty for purchases acquired with a
+        /// promo code; only paid purchases carry an order id (the "GPA.xxxx-xxxx-xxxx-xxxxx"
+        /// string surfaced as <see cref="GoogleBilling.PurchaseResult.ReceiptId"/>). So a
+        /// non-empty receipt id is positive proof the purchase was actually paid for, and
+        /// minting a $0 redeem order for it would attach a second order to a real payment —
+        /// the player can then be credited twice, once by the paid order's S2S delivery and
+        /// once by the redeem order's local OnPurchaseDone.
+        ///
+        /// Failing to pair such a purchase locally means local state was lost (reinstall,
+        /// cleared app data, new device), not that the purchase was a redemption. Those belong
+        /// in the unpaired-purchase reconciliation queue instead.
+        ///
+        /// Pure/static so the rule can be unit-tested without HTTP or native-plugin
+        /// dependencies — see <c>NoctuaIAPServiceTest.cs</c>.
+        /// </summary>
+        /// <param name="receiptId">The Google Play order id, or null/empty when absent.</param>
+        /// <returns><c>true</c> only when the purchase carries no order id.</returns>
+        public static bool CanTreatUnpairedPurchaseAsRedeem(string receiptId)
+        {
+            return string.IsNullOrWhiteSpace(receiptId);
+        }
+
         private async UniTask<VerifyOrderResponse> VerifyOrderImplAsync(
             OrderRequest orderRequest,
             VerifyOrderRequest verifyOrderRequest,
@@ -929,8 +955,17 @@ namespace com.noctuagames.sdk
         /// Debug helper to simulate an unpaired purchase on Android for testing purposes.
         /// </summary>
         /// <param name="productId">Product ID to simulate.</param>
-        /// <param name="receiptData">Receipt data to simulate.</param>
-        public async UniTask HandleUnpairedPurchaseDebugAsync(string productId, string receiptData)
+        /// <param name="receiptData">Receipt data (purchase token) to simulate.</param>
+        /// <param name="receiptId">
+        /// Google Play order ID ("GPA.xxxx-xxxx-xxxx-xxxxx") to simulate. Leave null/empty to
+        /// simulate a promo-code redemption, which is the only case allowed to become a redeem
+        /// order; pass a value to simulate an unpairable PAID purchase.
+        /// </param>
+        public async UniTask HandleUnpairedPurchaseDebugAsync(
+            string productId,
+            string receiptData,
+            string receiptId = null
+        )
         {
             await UniTask.SwitchToMainThread();
 
@@ -939,6 +974,7 @@ namespace com.noctuagames.sdk
             {
                 ProductId = productId,
                 ReceiptData = receiptData,
+                ReceiptId = receiptId ?? "",
             };
             HandleUnpairedPurchase(result);
 #endif
@@ -1939,6 +1975,26 @@ namespace com.noctuagames.sdk
             _activeCurrencyTcs.TrySetResult(response.Currency);
         }
 
+        /// <summary>
+        /// Files a Google Play purchase the client could not pair to a local order so it can be
+        /// reconciled server-side. Fire-and-forget, but async failures are routed to the log — a
+        /// plain try/catch around a discarded UniTask never observes them.
+        /// </summary>
+        private void ReportUnpairedPurchase(GoogleBilling.PurchaseResult result)
+        {
+            var unpairedPurchaseRequest = new UnpairedPurchaseRequest
+            {
+                ReceiptData = result.ReceiptData,
+                PaymentType = PaymentType.playstore, // This is always about playstore
+                ProductId = result.ProductId,
+                Currency = _localeProvider?.GetCurrency() ?? "USD",
+            };
+
+            CreateUnpairedPurchaseAsync(unpairedPurchaseRequest)
+                .Forget(unpairedErr => _log.Error(
+                    "NoctuaIAPService.ReportUnpairedPurchase failed to create unpaired purchase: " + unpairedErr));
+        }
+
         private async void HandleUnpairedPurchase(GoogleBilling.PurchaseResult result)
         {
             await UniTask.SwitchToMainThread();
@@ -2065,6 +2121,25 @@ namespace com.noctuagames.sdk
             }
 
             if (!foundInPendingPurchases && !foundInPurchaseHistory && !foundUnpairedOrder) {
+                // A purchase that carries a Google Play order id was PAID for, so it must never be
+                // re-minted as a $0 redeem order — that attaches a second order to a real payment and
+                // risks double-crediting the player. Being unable to pair it locally only means local
+                // state was lost (reinstall, cleared data, new device), so hand it to the
+                // unpaired-purchase reconciliation queue instead.
+                // See CanTreatUnpairedPurchaseAsRedeem for the full rationale.
+                if (!CanTreatUnpairedPurchaseAsRedeem(result.ReceiptId))
+                {
+                    _log.Warning(
+                        "NoctuaIAPService.HandleUnpairedPurchase Unpairable PAID purchase for product " +
+                        $"{productId} (Google Play order ID {result.ReceiptId}); local pairing state was lost. " +
+                        "Filing it as an unpaired purchase for reconciliation instead of creating a redeem order."
+                    );
+
+                    ReportUnpairedPurchase(result);
+
+                    return;
+                }
+
                 _log.Warning($"NoctuaIAPService.HandleUnpairedPurchase No unpaired order or pending purchase found for receipt data {result.ReceiptData}. Treat it as redeem.");
 
                 var redeemOrderRequest = new RedeemOrderRequest
@@ -2108,19 +2183,7 @@ namespace com.noctuagames.sdk
                 {
                     _log.Error("NoctuaIAPService.HandleUnpairedPurchase failed to verify redeem data: " + e);
 
-                    var unpairedPurchaseRequest = new UnpairedPurchaseRequest
-                    {
-                        ReceiptData = result.ReceiptData,
-                        PaymentType = PaymentType.playstore, // This is always about playstore
-                        ProductId = result.ProductId,
-                        Currency = _localeProvider?.GetCurrency() ?? "USD",
-                    };
-
-                    // Fire-and-forget, but route async failures to the log — a plain
-                    // try/catch around a discarded UniTask never observes them.
-                    CreateUnpairedPurchaseAsync(unpairedPurchaseRequest)
-                        .Forget(unpairedErr => _log.Error(
-                            "NoctuaIAPService.HandleUnpairedPurchase failed to create unpaired purchase: " + unpairedErr));
+                    ReportUnpairedPurchase(result);
                 }
             }
         }

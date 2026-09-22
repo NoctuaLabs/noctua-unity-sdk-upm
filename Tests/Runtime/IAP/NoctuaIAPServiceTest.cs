@@ -1085,5 +1085,28 @@ namespace Tests.Runtime.IAP
 
             Assert.IsNull(status);
         }
+
+        // ─── CanTreatUnpairedPurchaseAsRedeem ───────────────────────────────────
+
+        [Test]
+        public void CanTreatUnpairedPurchaseAsRedeem_PaidPurchaseWithGpaOrderId_IsRejected()
+        {
+            // Regression guard. A purchase carrying a Google Play order id was PAID for. Treating
+            // it as a redemption mints a second, $0 order against a real payment, which can credit
+            // the player twice (paid order delivers via S2S, redeem order via OnPurchaseDone).
+            // Observed in the field: one GPA with both a `playstore` and a `playstore_redeem` order.
+            Assert.IsFalse(NoctuaIAPService.CanTreatUnpairedPurchaseAsRedeem("GPA.3365-0943-3295-35695"));
+        }
+
+        [TestCase(null)]
+        [TestCase("")]
+        [TestCase("   ")]
+        public void CanTreatUnpairedPurchaseAsRedeem_NoOrderId_IsAllowed(string receiptId)
+        {
+            // Google Play leaves the order id empty for promo-code redemptions, which is the only
+            // case that legitimately becomes a redeem order. Whitespace is treated as absent
+            // because the Android bridge maps a missing order id to "" (GoogleBilling.cs).
+            Assert.IsTrue(NoctuaIAPService.CanTreatUnpairedPurchaseAsRedeem(receiptId));
+        }
     }
 }
