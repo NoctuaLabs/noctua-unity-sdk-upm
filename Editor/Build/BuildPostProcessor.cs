@@ -338,6 +338,13 @@ using UnityEditor.Graphs;
             proj.ReadFromString(File.ReadAllText(projPath));
             var targetGuid = proj.GetUnityMainTargetGuid();
 
+            // CocoaPods only creates its "[CP] Embed Pods Frameworks" script phase when the
+            // Podfile uses dynamic linkage. Under `use_frameworks! :linkage => :static` that
+            // phase does not exist, so deferring to it leaves the framework embedded by nobody
+            // -> "Library not loaded: @rpath/<Name>.framework/<Name>" at launch.
+            var hasCocoaPodsEmbedPhase =
+                File.ReadAllText(projPath).Contains("[CP] Embed Pods Frameworks");
+
             // Track names already processed to skip duplicates (same xcframework appearing
             // under multiple pod directories — e.g. transitive deps copied to several pods).
             var processed = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -364,11 +371,18 @@ using UnityEditor.Graphs;
                     .CollidingFrameworkNames
                     .Any(fw => string.Equals(Path.GetFileNameWithoutExtension(fw), xcfwBase,
                                               StringComparison.OrdinalIgnoreCase));
-                if (isCocoaPodsManaged)
+                if (isCocoaPodsManaged && hasCocoaPodsEmbedPhase)
                 {
                     Log($"Skipping '{xcfwName}' from Noctua auto-embed — CocoaPods [CP] Embed Pods " +
                         "Frameworks already embeds it. Avoids 'Multiple commands produce' Xcode error.");
                     continue;
+                }
+
+                if (isCocoaPodsManaged)
+                {
+                    Log($"Embedding '{xcfwName}' despite it being CocoaPods-managed — no " +
+                        "[CP] Embed Pods Frameworks phase exists (static linkage), so CocoaPods " +
+                        "will not embed it.");
                 }
 
                 // Project-relative path e.g. "Pods/BigoADS/BigoADS/BigoADS.xcframework"
