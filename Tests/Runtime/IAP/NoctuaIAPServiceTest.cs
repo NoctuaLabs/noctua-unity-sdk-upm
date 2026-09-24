@@ -1103,10 +1103,78 @@ namespace Tests.Runtime.IAP
         [TestCase("   ")]
         public void CanTreatUnpairedPurchaseAsRedeem_NoOrderId_IsAllowed(string receiptId)
         {
-            // Google Play leaves the order id empty for promo-code redemptions, which is the only
-            // case that legitimately becomes a redeem order. Whitespace is treated as absent
+            // A missing order id is what a promo-code redemption looks like, but it is not proof of
+            // one: Google also documents a null order id for PENDING purchases, which
+            // CanCreateOrderForUnpairedPurchase keeps out. Whitespace is treated as absent
             // because the Android bridge maps a missing order id to "" (GoogleBilling.cs).
             Assert.IsTrue(NoctuaIAPService.CanTreatUnpairedPurchaseAsRedeem(receiptId));
+        }
+
+        // ─── CanCreateOrderForUnpairedPurchase ──────────────────────────────────
+        // Values are Google Play's Purchase.PurchaseState: 0 UNSPECIFIED, 1 PURCHASED, 2 PENDING.
+
+        [Test]
+        public void CanCreateOrderForUnpairedPurchase_Pending_IsRejected()
+        {
+            // Regression guard. Google documents Purchase.getOrderId() as null while a purchase is
+            // PENDING (e.g. a QRIS pay-later purchase awaiting payment). With no order id it passes
+            // CanTreatUnpairedPurchaseAsRedeem, so without this gate an unpaid purchase whose local
+            // pairing state was lost (reinstall, cleared data) is minted as a $0 redeem order.
+            Assert.IsFalse(NoctuaIAPService.CanCreateOrderForUnpairedPurchase(2));
+        }
+
+        [TestCase(1)] // PURCHASED
+        [TestCase(0)] // UNSPECIFIED — the bridge did not report a state; keep the existing behaviour
+        public void CanCreateOrderForUnpairedPurchase_NotPending_IsAllowed(int purchaseState)
+        {
+            Assert.IsTrue(NoctuaIAPService.CanCreateOrderForUnpairedPurchase(purchaseState));
+        }
+
+        // ─── WithSettledUnpairedPurchaseToken ──────────────────────────────────
+
+        [Test]
+        public void WithSettledUnpairedPurchaseToken_AppendsNewToken()
+        {
+            var result = NoctuaIAPService.WithSettledUnpairedPurchaseToken(new List<string> { "a" }, "b");
+            CollectionAssert.AreEqual(new[] { "a", "b" }, result);
+        }
+
+        [Test]
+        public void WithSettledUnpairedPurchaseToken_ReAdded_MovesToEndWithoutDuplicating()
+        {
+            var result = NoctuaIAPService.WithSettledUnpairedPurchaseToken(new List<string> { "a", "b" }, "a");
+            CollectionAssert.AreEqual(new[] { "b", "a" }, result);
+        }
+
+        [Test]
+        public void WithSettledUnpairedPurchaseToken_OverCap_KeepsMostRecent()
+        {
+            var result = NoctuaIAPService.WithSettledUnpairedPurchaseToken(
+                new List<string> { "a", "b", "c" }, "d", max: 3);
+            CollectionAssert.AreEqual(new[] { "b", "c", "d" }, result);
+        }
+
+        [TestCase(null)]
+        [TestCase("")]
+        public void WithSettledUnpairedPurchaseToken_EmptyToken_IsIgnored(string token)
+        {
+            var result = NoctuaIAPService.WithSettledUnpairedPurchaseToken(new List<string> { "a" }, token);
+            CollectionAssert.AreEqual(new[] { "a" }, result);
+        }
+
+        [Test]
+        public void WithSettledUnpairedPurchaseToken_NullList_ReturnsSingleToken()
+        {
+            var result = NoctuaIAPService.WithSettledUnpairedPurchaseToken(null, "a");
+            CollectionAssert.AreEqual(new[] { "a" }, result);
+        }
+
+        [Test]
+        public void WithSettledUnpairedPurchaseToken_DoesNotMutateInput()
+        {
+            var input = new List<string> { "a" };
+            NoctuaIAPService.WithSettledUnpairedPurchaseToken(input, "b");
+            CollectionAssert.AreEqual(new[] { "a" }, input);
         }
     }
 }

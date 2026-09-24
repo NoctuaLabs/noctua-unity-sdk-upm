@@ -78,6 +78,14 @@ namespace com.noctuagames.sdk
 
 #if UNITY_ANDROID && !UNITY_EDITOR
         private readonly GoogleBilling GoogleBillingInstance = new();
+        // Purchase tokens HandleUnpairedPurchase is currently handling. Play delivers the same
+        // purchases again on every QueryPurchases pass, and passes overlap at startup; without this
+        // each pass minted its own order for the same token.
+        private readonly HashSet<string> _unpairedPurchasesInFlight = new();
+        private readonly object _unpairedPurchasesInFlightLock = new();
+        // Tokens the server already rejected because another order owns the receipt. Re-pairing
+        // them after a restart can only mint another dead-end duplicate order.
+        private const string SettledUnpairedPurchaseTokensKey = "NoctuaSettledUnpairedPurchaseTokens";
         // By default all major payment types are enabled, then it will be overridden by the server config at SDK init
         private List<PaymentType> _enabledPaymentTypes = new()
             { PaymentType.playstore, PaymentType.noctuastore };
@@ -454,6 +462,63 @@ namespace com.noctuagames.sdk
         public static bool CanTreatUnpairedPurchaseAsRedeem(string receiptId)
         {
             return string.IsNullOrWhiteSpace(receiptId);
+        }
+
+        // Google Play's Purchase.PurchaseState.PENDING. GoogleBilling's own enum is Android-only,
+        // so the pure rule below takes the raw value to stay unit-testable in the Editor.
+        private const int GooglePlayPurchaseStatePending = 2;
+
+        /// <summary>
+        /// Most recent settled unpaired purchase tokens kept on device: filed for reconciliation or
+        /// rejected by the server. Settled tokens are never turned into another order or report.
+        /// </summary>
+        public const int MaxSettledUnpairedPurchaseTokens = 100;
+
+        /// <summary>
+        /// Whether an unpaired Google Play purchase may be turned into an order (redeem order or
+        /// unpaired-purchase report).
+        ///
+        /// Google documents <c>Purchase.getOrderId()</c> as null while a purchase is PENDING (for
+        /// example a QRIS pay-later purchase awaiting payment), so a pending purchase whose local
+        /// pairing state was lost passes <see cref="CanTreatUnpairedPurchaseAsRedeem"/> and would be
+        /// minted as a $0 redeem order for a purchase nobody has paid for. It is handled instead
+        /// when Play re-delivers it in the PURCHASED state.
+        ///
+        /// UNSPECIFIED is allowed so a bridge that does not report the state keeps the existing
+        /// behaviour.
+        /// </summary>
+        /// <param name="purchaseState">Google Play purchase state: 0 unspecified, 1 purchased, 2 pending.</param>
+        /// <returns><c>false</c> only for a PENDING purchase.</returns>
+        public static bool CanCreateOrderForUnpairedPurchase(int purchaseState)
+        {
+            return purchaseState != GooglePlayPurchaseStatePending;
+        }
+
+        /// <summary>
+        /// Returns a new token list with <paramref name="token"/> recorded as the most recent entry:
+        /// de-duplicated and capped to the <paramref name="max"/> most recent tokens. The input is
+        /// never modified.
+        /// </summary>
+        /// <param name="tokens">Previously recorded tokens, oldest first. May be null.</param>
+        /// <param name="token">Token to record. Null or empty is ignored.</param>
+        /// <param name="max">Maximum number of tokens to keep.</param>
+        /// <returns>A new list, oldest first.</returns>
+        public static List<string> WithSettledUnpairedPurchaseToken(
+            IReadOnlyList<string> tokens,
+            string token,
+            int max = MaxSettledUnpairedPurchaseTokens)
+        {
+            var result = tokens == null ? new List<string>() : new List<string>(tokens);
+
+            if (string.IsNullOrEmpty(token))
+            {
+                return result;
+            }
+
+            result.Remove(token);
+            result.Add(token);
+
+            return result.Count > max ? result.GetRange(result.Count - max, max) : result;
         }
 
         private async UniTask<VerifyOrderResponse> VerifyOrderImplAsync(
@@ -1977,10 +2042,11 @@ namespace com.noctuagames.sdk
 
         /// <summary>
         /// Files a Google Play purchase the client could not pair to a local order so it can be
-        /// reconciled server-side. Fire-and-forget, but async failures are routed to the log — a
-        /// plain try/catch around a discarded UniTask never observes them.
+        /// reconciled server-side. On success the token is settled, so later QueryPurchases passes
+        /// and launches do not file the same purchase again (the server creates a new record per
+        /// call). A failure is logged and left unsettled so the next pass retries it.
         /// </summary>
-        private void ReportUnpairedPurchase(GoogleBilling.PurchaseResult result)
+        private async UniTask ReportUnpairedPurchaseAsync(GoogleBilling.PurchaseResult result)
         {
             var unpairedPurchaseRequest = new UnpairedPurchaseRequest
             {
@@ -1990,26 +2056,113 @@ namespace com.noctuagames.sdk
                 Currency = _localeProvider?.GetCurrency() ?? "USD",
             };
 
-            CreateUnpairedPurchaseAsync(unpairedPurchaseRequest)
-                .Forget(unpairedErr => _log.Error(
-                    "NoctuaIAPService.ReportUnpairedPurchase failed to create unpaired purchase: " + unpairedErr));
+            try
+            {
+                var response = await CreateUnpairedPurchaseAsync(unpairedPurchaseRequest);
+
+                await UniTask.SwitchToMainThread();
+                RememberSettledUnpairedPurchaseToken(result.ReceiptData);
+                _log.Info(
+                    $"NoctuaIAPService.ReportUnpairedPurchase Filed unpaired purchase {response?.Id} for product " +
+                    $"{result.ProductId}; token settled so it is not filed again."
+                );
+            }
+            catch (Exception e)
+            {
+                _log.Error("NoctuaIAPService.ReportUnpairedPurchase failed to create unpaired purchase: " + e);
+            }
         }
 
         private async void HandleUnpairedPurchase(GoogleBilling.PurchaseResult result)
         {
             await UniTask.SwitchToMainThread();
 
-            var productId = result.ProductId;
-            _log.Info($"NoctuaIAPService.HandleUnpairedPurchase Try to find the purchase token in pending purchase first to avoid duplicate token {result.ReceiptData} for product {productId}.");
-            var foundInPendingPurchases = false;
-            var foundInPurchaseHistory = false;
-            var foundUnpairedOrder = false;
-
             if (string.IsNullOrEmpty(result.ReceiptData)) {
-                _log.Warning($"NoctuaIAPService.HandleUnpairedPurchase Receipt data is empty for productId: {productId}. Skip it.");
+                _log.Warning($"NoctuaIAPService.HandleUnpairedPurchase Receipt data is empty for productId: {result.ProductId}. Skip it.");
 
                 return;
             }
+
+            if (!TryBeginUnpairedPurchaseInFlight(result.ReceiptData))
+            {
+                _log.Info(
+                    "NoctuaIAPService.HandleUnpairedPurchase Already handling this purchase token for product " +
+                    $"{result.ProductId}; skipping the duplicate delivery from an overlapping QueryPurchases pass."
+                );
+
+                return;
+            }
+
+            try
+            {
+                await HandleUnpairedPurchaseCoreAsync(result);
+            }
+            catch (Exception e)
+            {
+                _log.Error($"NoctuaIAPService.HandleUnpairedPurchase failed for product {result.ProductId}: {e}");
+            }
+            finally
+            {
+                EndUnpairedPurchaseInFlight(result.ReceiptData);
+            }
+        }
+
+        /// <summary>
+        /// Marks a purchase token as being handled in this session. In memory only, unlike the
+        /// persisted settled tokens.
+        /// </summary>
+        /// <returns><c>false</c> when the token is already in flight (overlapping QueryPurchases pass).</returns>
+        private bool TryBeginUnpairedPurchaseInFlight(string purchaseToken)
+        {
+            lock (_unpairedPurchasesInFlightLock)
+            {
+                return _unpairedPurchasesInFlight.Add(purchaseToken);
+            }
+        }
+
+        /// <summary>Releases a token marked by <see cref="TryBeginUnpairedPurchaseInFlight"/>.</summary>
+        private void EndUnpairedPurchaseInFlight(string purchaseToken)
+        {
+            lock (_unpairedPurchasesInFlightLock)
+            {
+                _unpairedPurchasesInFlight.Remove(purchaseToken);
+            }
+        }
+
+        private List<string> LoadSettledUnpairedPurchaseTokens()
+        {
+            var json = PlayerPrefs.GetString(SettledUnpairedPurchaseTokensKey, "[]");
+
+            try
+            {
+                return JsonConvert.DeserializeObject<List<string>>(json) ?? new List<string>();
+            }
+            catch (Exception e)
+            {
+                _log.Error($"NoctuaIAPService failed to parse settled unpaired purchase tokens, resetting: {e.Message}");
+
+                return new List<string>();
+            }
+        }
+
+        private void RememberSettledUnpairedPurchaseToken(string purchaseToken)
+        {
+            var updated = WithSettledUnpairedPurchaseToken(LoadSettledUnpairedPurchaseTokens(), purchaseToken);
+            PlayerPrefs.SetString(SettledUnpairedPurchaseTokensKey, JsonConvert.SerializeObject(updated));
+            PlayerPrefs.Save();
+        }
+
+        private async UniTask HandleUnpairedPurchaseCoreAsync(GoogleBilling.PurchaseResult result)
+        {
+            var productId = result.ProductId;
+            _log.Info(
+                "NoctuaIAPService.HandleUnpairedPurchase Try to find the purchase token in pending purchase first " +
+                $"to avoid duplicate token {result.ReceiptData} for product {productId} " +
+                $"(purchaseState={result.PurchaseState}, orderId={result.ReceiptId})."
+            );
+            var foundInPendingPurchases = false;
+            var foundInPurchaseHistory = false;
+            var foundUnpairedOrder = false;
 
             var pendingPurchases = GetPendingPurchases().ToList();
             foreach (var pendingPurchase in pendingPurchases)
@@ -2121,6 +2274,28 @@ namespace com.noctuagames.sdk
             }
 
             if (!foundInPendingPurchases && !foundInPurchaseHistory && !foundUnpairedOrder) {
+                if (LoadSettledUnpairedPurchaseTokens().Contains(result.ReceiptData))
+                {
+                    _log.Info(
+                        "NoctuaIAPService.HandleUnpairedPurchase This purchase token for product " +
+                        $"{productId} was already settled (filed for reconciliation, or rejected because another " +
+                        "order owns the receipt); not creating another order or report."
+                    );
+
+                    return;
+                }
+
+                if (!CanCreateOrderForUnpairedPurchase((int)result.PurchaseState))
+                {
+                    _log.Warning(
+                        $"NoctuaIAPService.HandleUnpairedPurchase Purchase for product {productId} is still PENDING " +
+                        "(not paid yet, no Google Play order id); not creating any order. It is handled when Play " +
+                        "re-delivers it as PURCHASED."
+                    );
+
+                    return;
+                }
+
                 // A purchase that carries a Google Play order id was PAID for, so it must never be
                 // re-minted as a $0 redeem order — that attaches a second order to a real payment and
                 // risks double-crediting the player. Being unable to pair it locally only means local
@@ -2135,7 +2310,7 @@ namespace com.noctuagames.sdk
                         "Filing it as an unpaired purchase for reconciliation instead of creating a redeem order."
                     );
 
-                    ReportUnpairedPurchase(result);
+                    await ReportUnpairedPurchaseAsync(result);
 
                     return;
                 }
@@ -2170,7 +2345,7 @@ namespace com.noctuagames.sdk
                         ReceiptData = result.ReceiptData,
                     };
 
-                    await VerifyOrderImplAsync(
+                    var verifyOrderResponse = await VerifyOrderImplAsync(
                         orderRequest,
                         verifyOrderRequest,
                         _accessTokenProvider.AccessToken,
@@ -2178,12 +2353,25 @@ namespace com.noctuagames.sdk
                         false,
                         result.ReceiptData // On Android, ReceiptData IS the purchase token
                     );
+
+                    // Voided here means the receipt already belongs to another order (verify error
+                    // 2042), so every later re-pairing of this token would mint another dead-end
+                    // order. Remember it so later launches skip it.
+                    if (verifyOrderResponse?.Status == OrderStatus.voided)
+                    {
+                        await UniTask.SwitchToMainThread();
+                        RememberSettledUnpairedPurchaseToken(result.ReceiptData);
+                        _log.Info(
+                            $"NoctuaIAPService.HandleUnpairedPurchase Redeem order {redeemOrderId} for product " +
+                            $"{productId} was rejected; token settled so it is not re-minted on later launches."
+                        );
+                    }
                 }
                 catch (Exception e)
                 {
                     _log.Error("NoctuaIAPService.HandleUnpairedPurchase failed to verify redeem data: " + e);
 
-                    ReportUnpairedPurchase(result);
+                    await ReportUnpairedPurchaseAsync(result);
                 }
             }
         }
