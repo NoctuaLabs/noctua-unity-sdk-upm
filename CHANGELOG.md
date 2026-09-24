@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## [0.132.1] - 2026-09-16
+## [0.133.0] - 2026-09-24
 
 ### ⚙️ Miscellaneous
 
@@ -55,6 +55,11 @@ All notable changes to this project will be documented in this file.
 - *(campaign)* Read the countdown end from end_timestamp only
 - *(campaign)* Show a blocking busy state while a purchase CTA runs
 - *(campaign)* Frame_color card border and deeplink route in click event
+- *(iap)* Retry queue picks up new orders; keep network errors and duplicate receipts distinct
+- *(iap)* Only drop Google Play user-canceled orders from the retry queue
+- *(iap)* Never mint a redeem order for a paid Google Play purchase
+- *(iap)* Stop re-filing and re-minting unpaired Google Play purchases
+- *(ios)* Embed CocoaPods-managed frameworks when Podfile uses static linkage
 
 ### 🐛 Bug Fixes
 
@@ -125,6 +130,8 @@ All notable changes to this project will be documented in this file.
 - *(campaign)* Fit an oversized popup to the card instead of clipping it
 - *(campaign)* Support background_image on any node
 - *(android)* Add opt-in AGP 9 support alongside AGP 8 default
+- *(campaign)* Per-player data, visible_if conditions and keep_open actions
+- *(campaign)* Per-campaign backdrop colour
 
 ## [0.122.0] - 2026-05-18
 
