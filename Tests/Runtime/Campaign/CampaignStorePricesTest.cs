@@ -3,30 +3,59 @@ using System.Collections.Generic;
 using com.noctuagames.sdk.LiveOpsCampaign;
 using Cysharp.Threading.Tasks;
 using NUnit.Framework;
+using UnityEngine;
 
 namespace Tests.Runtime.Campaign
 {
+    /// <summary>
+    /// Local store prices on <see cref="NoctuaLiveOpsCampaign"/>: the pure price swap
+    /// (<see cref="NoctuaLiveOpsCampaign.ApplyStorePrices"/>) and the fetch / cache / retry rules.
+    /// </summary>
     [TestFixture]
     public class CampaignStorePricesTest
     {
+        private readonly List<NoctuaLiveOpsCampaign> _created = new List<NoctuaLiveOpsCampaign>();
+
+        [TearDown]
+        public void TearDown()
+        {
+            // Each facade parks an empty UI root in DontDestroyOnLoad.
+            foreach (var go in UnityEngine.Object.FindObjectsByType<GameObject>(FindObjectsSortMode.None))
+            {
+                if (go.name == "NoctuaLiveOpsCampaignUI") UnityEngine.Object.DestroyImmediate(go);
+            }
+            _created.Clear();
+        }
+
         private static CampaignItem Item(Dictionary<string, string> data) =>
             new CampaignItem { Id = "pass", Data = data };
 
-        private static CampaignStorePrices With(Dictionary<string, string> prices, List<int> calls = null) =>
-            new CampaignStorePrices(() =>
+        private NoctuaLiveOpsCampaign Campaign(Func<UniTask<IReadOnlyDictionary<string, string>>> fetch)
+        {
+            var campaign = new NoctuaLiveOpsCampaign(
+                new CampaignConfig(), null, null, new MockEventSender(),
+                () => Array.Empty<string>(), fetch);
+            _created.Add(campaign);
+            return campaign;
+        }
+
+        private NoctuaLiveOpsCampaign With(Dictionary<string, string> prices, List<int> calls = null) =>
+            Campaign(() =>
             {
                 calls?.Add(1);
                 return UniTask.FromResult<IReadOnlyDictionary<string, string>>(prices);
             });
 
-        private static bool Fetch(CampaignStorePrices prices) =>
-            prices.EnsureFetchedAsync().GetAwaiter().GetResult();
+        private static bool Fetch(NoctuaLiveOpsCampaign campaign) =>
+            campaign.PrefetchStorePricesAsync().GetAwaiter().GetResult();
+
+        // ---- the pure swap ------------------------------------------------
 
         [Test]
-        public void Apply_BeforeAnyFetch_ReturnsTheItemUnchanged()
+        public void Apply_WithoutPrices_ReturnsTheItemUnchanged()
         {
             var item = Item(new Dictionary<string, string> { { "store_price.gold", "$9.99" } });
-            Assert.AreSame(item, With(new Dictionary<string, string>()).Apply(item));
+            Assert.AreSame(item, NoctuaLiveOpsCampaign.ApplyStorePrices(item, null));
         }
 
         [Test]
@@ -38,16 +67,22 @@ namespace Tests.Runtime.Campaign
                 { "store_price.gold", "$9.99" },
                 { "store_price.normal", "$4.99" },
             });
-            var prices = With(new Dictionary<string, string> { { "gold", "Rp161.000" }, { "other", "Rp1" } });
-            Assert.IsTrue(Fetch(prices));
-
-            var applied = prices.Apply(item);
+            var applied = NoctuaLiveOpsCampaign.ApplyStorePrices(item,
+                new Dictionary<string, string> { { "gold", "Rp161.000" }, { "other", "Rp1" } });
 
             Assert.AreEqual("Rp161.000", applied.Data["store_price.gold"]);
             Assert.AreEqual("$4.99", applied.Data["store_price.normal"]);
             Assert.AreEqual("Monthly Pass", applied.Data["title"]);
             Assert.IsFalse(applied.Data.ContainsKey("store_price.other"), "never adds keys the campaign doesn't ship");
             Assert.AreEqual("$9.99", item.Data["store_price.gold"], "the stored item is untouched");
+        }
+
+        [Test]
+        public void EmptyLocalPrice_KeepsTheFallback()
+        {
+            var item = Item(new Dictionary<string, string> { { "store_price.gold", "$9.99" } });
+            var applied = NoctuaLiveOpsCampaign.ApplyStorePrices(item, new Dictionary<string, string> { { "gold", "" } });
+            Assert.AreEqual("$9.99", applied.Data["store_price.gold"]);
         }
 
         [Test]
@@ -59,11 +94,10 @@ namespace Tests.Runtime.Campaign
                 { "product_id", "gold" },
                 { "title", "Starter" },
             });
-            Assert.IsTrue(CampaignStorePrices.Uses(item));
+            Assert.IsTrue(NoctuaLiveOpsCampaign.UsesStorePrices(item));
 
-            var prices = With(new Dictionary<string, string> { { "gold", "Rp16.000" } });
-            Fetch(prices);
-            var applied = prices.Apply(item);
+            var applied = NoctuaLiveOpsCampaign.ApplyStorePrices(item,
+                new Dictionary<string, string> { { "gold", "Rp16.000" } });
 
             Assert.AreEqual("Rp16.000", applied.Data["price"]);
             Assert.AreEqual("gold", applied.Data["product_id"]);
@@ -74,39 +108,37 @@ namespace Tests.Runtime.Campaign
         public void PriceWithoutProductId_IsLeftAlone()
         {
             var item = Item(new Dictionary<string, string> { { "price", "$0.99" } });
-            Assert.IsFalse(CampaignStorePrices.Uses(item));
-
-            var prices = With(new Dictionary<string, string> { { "gold", "Rp16.000" } });
-            Fetch(prices);
-            Assert.AreSame(item, prices.Apply(item));
+            Assert.IsFalse(NoctuaLiveOpsCampaign.UsesStorePrices(item));
+            Assert.AreSame(item, NoctuaLiveOpsCampaign.ApplyStorePrices(item,
+                new Dictionary<string, string> { { "gold", "Rp16.000" } }));
         }
 
         [Test]
-        public void EmptyLocalPrice_KeepsTheFallback()
+        public void Uses_OnlyWhenTheCampaignShipsAPrice()
         {
-            var item = Item(new Dictionary<string, string> { { "store_price.gold", "$9.99" } });
-            var prices = With(new Dictionary<string, string> { { "gold", "" } });
-            Fetch(prices);
-            Assert.AreEqual("$9.99", prices.Apply(item).Data["store_price.gold"]);
+            Assert.IsFalse(NoctuaLiveOpsCampaign.UsesStorePrices(Item(new Dictionary<string, string> { { "title", "x" } })));
+            Assert.IsTrue(NoctuaLiveOpsCampaign.UsesStorePrices(Item(new Dictionary<string, string> { { "store_price.a", "$1" } })));
         }
+
+        // ---- fetch / cache / retry ---------------------------------------
 
         [Test]
         public void FetchesOnce_ThenServesTheCache()
         {
             var calls = new List<int>();
-            var prices = With(new Dictionary<string, string> { { "gold", "Rp1" } }, calls);
+            var campaign = With(new Dictionary<string, string> { { "gold", "Rp1" } }, calls);
 
-            Assert.IsTrue(Fetch(prices));
-            Assert.IsFalse(Fetch(prices), "nothing new the second time");
+            Assert.IsTrue(Fetch(campaign));
+            Assert.IsFalse(Fetch(campaign), "nothing new the second time");
             Assert.AreEqual(1, calls.Count);
-            Assert.IsTrue(prices.HasPrices);
+            Assert.AreEqual("Rp1", campaign.StorePrices["gold"]);
         }
 
         [Test]
         public void FailedFetch_IsRetriedNextTime()
         {
             var attempts = 0;
-            var prices = new CampaignStorePrices(() =>
+            var campaign = Campaign(() =>
             {
                 attempts++;
                 if (attempts == 1) throw new Exception("Game ID not found. Please authenticate first");
@@ -114,9 +146,9 @@ namespace Tests.Runtime.Campaign
                     new Dictionary<string, string> { { "gold", "Rp1" } });
             });
 
-            Assert.IsFalse(Fetch(prices));
-            Assert.IsFalse(prices.HasPrices);
-            Assert.IsTrue(Fetch(prices));
+            Assert.IsFalse(Fetch(campaign));
+            Assert.IsNull(campaign.StorePrices);
+            Assert.IsTrue(Fetch(campaign));
             Assert.AreEqual(2, attempts);
         }
 
@@ -124,22 +156,20 @@ namespace Tests.Runtime.Campaign
         public void Clear_DropsPrices_AndDiscardsAFetchThatWasInFlight()
         {
             var gate = new UniTaskCompletionSource<IReadOnlyDictionary<string, string>>();
-            var prices = new CampaignStorePrices(() => gate.Task);
+            var campaign = Campaign(() => gate.Task);
 
-            var pending = prices.EnsureFetchedAsync();
-            prices.Clear(); // account switched while the old player's prices were loading
+            var pending = campaign.PrefetchStorePricesAsync();
+            campaign.ClearStorePrices(); // account switched while the old player's prices were loading
             gate.TrySetResult(new Dictionary<string, string> { { "gold", "Rp1" } });
 
             Assert.IsFalse(pending.GetAwaiter().GetResult());
-            Assert.IsFalse(prices.HasPrices);
+            Assert.IsNull(campaign.StorePrices);
         }
 
         [Test]
         public void NoFetch_MeansFallbacksOnly()
         {
-            var prices = new CampaignStorePrices(null);
-            Assert.IsFalse(Fetch(prices));
-            Assert.IsFalse(CampaignStorePrices.Uses(Item(new Dictionary<string, string> { { "title", "x" } })));
+            Assert.IsFalse(Fetch(Campaign(null)));
         }
     }
 }

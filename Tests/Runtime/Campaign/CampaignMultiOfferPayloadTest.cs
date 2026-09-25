@@ -50,7 +50,7 @@ namespace Tests.Runtime.Campaign
         public void Payload_Validates()
         {
             Assert.IsTrue(CampaignValidator.TryValidate(_item, out var error), error);
-            Assert.IsTrue(CampaignStorePrices.Uses(_item));
+            Assert.IsTrue(NoctuaLiveOpsCampaign.UsesStorePrices(_item));
         }
 
         [Test]
@@ -73,10 +73,7 @@ namespace Tests.Runtime.Campaign
                 { "com.example.pass.normal", "Rp80.500" },
                 { "com.example.pass.gold", "Rp161.000" },
             };
-            var local = new CampaignStorePrices(() => Cysharp.Threading.Tasks.UniTask.FromResult<IReadOnlyDictionary<string, string>>(prices));
-            Assert.IsTrue(local.EnsureFetchedAsync().GetAwaiter().GetResult());
-
-            var texts = Texts(Render(local.Apply(_item)));
+            var texts = Texts(Render(NoctuaLiveOpsCampaign.ApplyStorePrices(_item, prices)));
             CollectionAssert.Contains(texts, "Rp80.500");
             CollectionAssert.Contains(texts, "Rp161.000");
             CollectionAssert.DoesNotContain(texts, "$9.99");

@@ -24,7 +24,19 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
         private readonly CampaignActionDispatcher _dispatcher;
         private readonly CampaignActionHandlers _handlers;
         private readonly IEventSender _events;
-        private readonly CampaignStorePrices _prices;
+        // Local store prices (SKU → display price) for {{store_price.<sku>}} and the single-offer
+        // templates' price. Null until a fetch succeeds; a failed fetch is retried on the next popup.
+        private readonly Func<UniTask<IReadOnlyDictionary<string, string>>> _fetchStorePrices;
+        private IReadOnlyDictionary<string, string> _storePrices;
+        private bool _fetchingStorePrices;
+        private int _storePricesGeneration;
+
+        /// <summary>Token prefix for a local price; the rest of the key is the SKU (dots included).</summary>
+        public const string StorePricePrefix = "store_price.";
+
+        /// <summary>The single-offer templates' price key, and the SKU key it belongs to.</summary>
+        public const string PriceKey = "price";
+        public const string ProductIdKey = "product_id";
 
         private Action<string> _deeplinkHandler;
         private bool _autoShown;
@@ -58,7 +70,7 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
             Func<UniTask<IReadOnlyDictionary<string, string>>> fetchStorePrices = null)
         {
             _events = events;
-            _prices = new CampaignStorePrices(fetchStorePrices);
+            _fetchStorePrices = fetchStorePrices;
 
             var env = new DefaultCampaignEnvironment(playerTags, locale);
             var assets = new CampaignAssetSource(isOffline: Noctua.IsOfflineMode);
@@ -207,17 +219,115 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
         }
 
         /// <summary>
+        /// The player's local price per SKU, from the SKU Management product list. Null until
+        /// fetched — popups show the admin's USD fallback until then.
+        /// </summary>
+        public IReadOnlyDictionary<string, string> StorePrices => _storePrices;
+
+        /// <summary>
         /// Forgets the cached local prices — the composition root calls this when the account
         /// changes, since the currency and product list are per player.
         /// </summary>
-        public void ClearStorePrices() => _prices.Clear();
+        public void ClearStorePrices()
+        {
+            _storePrices = null;
+            _storePricesGeneration++;
+        }
+
+        /// <summary>
+        /// Loads local prices if none are cached. Popups do this on their own; call it ahead of
+        /// time to have prices ready before the first popup. Resolves true only when this call
+        /// stored new prices. A failure (offline, not logged in, IAP off) is not cached.
+        /// </summary>
+        public async UniTask<bool> PrefetchStorePricesAsync()
+        {
+            if (_fetchStorePrices == null || _storePrices != null || _fetchingStorePrices) return false;
+
+            _fetchingStorePrices = true;
+            var generation = _storePricesGeneration;
+            try
+            {
+                var prices = await _fetchStorePrices();
+                // An account switch mid-fetch makes this answer stale.
+                if (prices == null || generation != _storePricesGeneration) return false;
+
+                _storePrices = prices;
+                return true;
+            }
+            catch (Exception e)
+            {
+                _log.Debug($"{LogTag} local prices unavailable, using fallbacks: {e.Message}");
+                return false;
+            }
+            finally
+            {
+                _fetchingStorePrices = false;
+            }
+        }
+
+        /// <summary>True when <paramref name="item"/> shows at least one store price.</summary>
+        public static bool UsesStorePrices(CampaignItem item)
+        {
+            if (item?.Data == null) return false;
+            if (item.Data.ContainsKey(PriceKey) && item.Data.TryGetValue(ProductIdKey, out var sku)
+                && !string.IsNullOrEmpty(sku))
+            {
+                return true;
+            }
+            foreach (var key in item.Data.Keys)
+            {
+                if (key.StartsWith(StorePricePrefix, StringComparison.Ordinal)) return true;
+            }
+            return false;
+        }
+
+        /// <summary>
+        /// A copy of <paramref name="item"/> whose price keys carry the local price wherever
+        /// <paramref name="prices"/> has one. Keys the campaign does not ship are never added,
+        /// and SKUs with no local price keep their fallback. Pure: never mutates the stored item.
+        /// </summary>
+        public static CampaignItem ApplyStorePrices(CampaignItem item, IReadOnlyDictionary<string, string> prices)
+        {
+            if (item?.Data == null || prices == null) return item;
+
+            Dictionary<string, string> data = null;
+
+            void Override(string key, string sku, string current)
+            {
+                if (string.IsNullOrEmpty(sku)) return;
+                if (!prices.TryGetValue(sku, out var price) || string.IsNullOrEmpty(price)) return;
+                if (price == current) return;
+
+                data ??= new Dictionary<string, string>(item.Data);
+                data[key] = price;
+            }
+
+            foreach (var pair in item.Data)
+            {
+                if (pair.Key.StartsWith(StorePricePrefix, StringComparison.Ordinal))
+                {
+                    Override(pair.Key, pair.Key.Substring(StorePricePrefix.Length), pair.Value);
+                }
+            }
+            if (item.Data.TryGetValue(PriceKey, out var singlePrice)
+                && item.Data.TryGetValue(ProductIdKey, out var singleSku))
+            {
+                Override(PriceKey, singleSku, singlePrice);
+            }
+
+            if (data == null) return item;
+
+            var copy = item.ShallowCopy();
+            copy.Data = data;
+            return copy;
+        }
 
         private async UniTaskVoid RefreshStorePricesAsync(CampaignItem stored)
         {
             try
             {
-                if (!CampaignStorePrices.Uses(stored)) return;
-                if (!await _prices.EnsureFetchedAsync()) return;
+                if (!UsesStorePrices(stored)) return;
+                if (!await PrefetchStorePricesAsync()) return;
 
                 var popup = _host.PopupIfCreated;
                 if (!ReferenceEquals(_shownItem, stored) || popup == null || !popup.IsShowing) return;
@@ -232,7 +342,7 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
 
         /// <summary>The stored campaign with the game's values and the known local prices folded in.</summary>
         private CampaignItem RenderItem(CampaignItem stored, IReadOnlyDictionary<string, string> playerData) =>
-            _prices.Apply(MergePlayerData(stored, playerData));
+            ApplyStorePrices(MergePlayerData(stored, playerData), _storePrices);
 
         /// <summary>
         /// Refreshes the open popup with new per-player values — call it after the game handles
