@@ -24,6 +24,7 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
         private readonly CampaignActionDispatcher _dispatcher;
         private readonly CampaignActionHandlers _handlers;
         private readonly IEventSender _events;
+        private readonly CampaignStorePrices _prices;
 
         private Action<string> _deeplinkHandler;
         private bool _autoShown;
@@ -53,9 +54,11 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
             PanelSettings panelSettings,
             NoctuaLocale locale,
             IEventSender events,
-            Func<IReadOnlyList<string>> playerTags)
+            Func<IReadOnlyList<string>> playerTags,
+            Func<UniTask<IReadOnlyDictionary<string, string>>> fetchStorePrices = null)
         {
             _events = events;
+            _prices = new CampaignStorePrices(fetchStorePrices);
 
             var env = new DefaultCampaignEnvironment(playerTags, locale);
             var assets = new CampaignAssetSource(isOffline: Noctua.IsOfflineMode);
@@ -164,7 +167,7 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
                     return;
                 }
 
-                var item = MergePlayerData(stored, playerData);
+                var item = RenderItem(stored, playerData);
 
                 var popup = _host.Popup;
                 popup.SetCallbacks(
@@ -193,12 +196,43 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
                 _shownItem = stored;
                 _shownPlayerData = playerData;
                 popup.Show(item, _manager.Config.SchemaVersion);
+
+                // Shown with the USD fallback; swap in the player's local prices once known.
+                RefreshStorePricesAsync(stored).Forget();
             }
             catch (Exception e)
             {
                 _log.Error("ShowPopup failed: " + e.Message);
             }
         }
+
+        /// <summary>
+        /// Forgets the cached local prices — the composition root calls this when the account
+        /// changes, since the currency and product list are per player.
+        /// </summary>
+        public void ClearStorePrices() => _prices.Clear();
+
+        private async UniTaskVoid RefreshStorePricesAsync(CampaignItem stored)
+        {
+            try
+            {
+                if (!CampaignStorePrices.Uses(stored)) return;
+                if (!await _prices.EnsureFetchedAsync()) return;
+
+                var popup = _host.PopupIfCreated;
+                if (!ReferenceEquals(_shownItem, stored) || popup == null || !popup.IsShowing) return;
+
+                popup.Refresh(RenderItem(stored, _shownPlayerData), _manager.Config.SchemaVersion);
+            }
+            catch (Exception e)
+            {
+                _log.Warning($"{LogTag} local price refresh failed: {e.Message}");
+            }
+        }
+
+        /// <summary>The stored campaign with the game's values and the known local prices folded in.</summary>
+        private CampaignItem RenderItem(CampaignItem stored, IReadOnlyDictionary<string, string> playerData) =>
+            _prices.Apply(MergePlayerData(stored, playerData));
 
         /// <summary>
         /// Refreshes the open popup with new per-player values — call it after the game handles
@@ -221,7 +255,7 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
                 if (_shownPlayerData != null) foreach (var pair in _shownPlayerData) combined[pair.Key] = pair.Value;
                 if (playerData != null) foreach (var pair in playerData) combined[pair.Key] = pair.Value;
 
-                if (!popup.Refresh(MergePlayerData(_shownItem, combined), _manager.Config.SchemaVersion))
+                if (!popup.Refresh(RenderItem(_shownItem, combined), _manager.Config.SchemaVersion))
                 {
                     _log.Warning($"UpdatePopupData: campaign '{_shownItem.Id}' could not re-render; kept current content");
                     return;

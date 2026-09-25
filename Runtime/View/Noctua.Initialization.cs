@@ -1443,7 +1443,11 @@ namespace com.noctuagames.sdk
                     Instance.Value._campaignPanelSettings,
                     Instance.Value._campaignLocale,
                     Instance.Value._eventSender,
-                    () => Instance.Value._config?.Noctua?.PlayerRemoteConfigs?.Tags);
+                    () => Instance.Value._config?.Noctua?.PlayerRemoteConfigs?.Tags,
+                    FetchCampaignStorePricesAsync);
+
+                // Local prices are per player (currency, catalogue), so a new account refetches.
+                Instance.Value._auth.OnAccountChanged += _ => Instance.Value._campaign?.ClearStorePrices();
 
                 log.Info($"Campaign feature ready: {merged.Campaigns?.Count ?? 0} campaign(s), schema v{merged.SchemaVersion}");
 
@@ -1453,6 +1457,28 @@ namespace com.noctuagames.sdk
             {
                 log.Warning("InitCampaigns failed — campaign feature disabled: " + e.Message);
             }
+        }
+
+        /// <summary>
+        /// SKU → local display price for campaign <c>{{store_price.&lt;sku&gt;}}</c> tokens, from the
+        /// SKU Management product list in the player's currency (the price the payment flow
+        /// shows). Throws when the list is unavailable (IAP off, not logged in, offline); the
+        /// campaign module then keeps the admin's USD fallback and retries on the next popup.
+        /// </summary>
+        private static async UniTask<IReadOnlyDictionary<string, string>> FetchCampaignStorePricesAsync()
+        {
+            var products = await Instance.Value._iap.GetProductListAsync();
+            var prices = new Dictionary<string, string>();
+            if (products == null) return prices;
+
+            foreach (var product in products)
+            {
+                if (!string.IsNullOrEmpty(product?.Id) && !string.IsNullOrEmpty(product.DisplayPrice))
+                {
+                    prices[product.Id] = product.DisplayPrice;
+                }
+            }
+            return prices;
         }
 
         /// <summary>

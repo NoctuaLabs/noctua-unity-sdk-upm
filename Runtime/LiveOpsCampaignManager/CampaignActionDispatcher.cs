@@ -224,6 +224,18 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
                 payload["deeplink"] = action.Deeplink;
             }
 
+            // Which SKU was tapped — a multi-offer popup buys a different one per card.
+            if (action.Type == CampaignActionType.Purchase && !string.IsNullOrEmpty(action.ProductId))
+            {
+                payload["product_id"] = action.ProductId;
+            }
+
+            // The admin-assigned button id (e.g. offer_1_btn_0), stable across edits to the copy.
+            if (!string.IsNullOrEmpty(action.Id))
+            {
+                payload["button_id"] = action.Id;
+            }
+
             _events?.Send(ClickEvent, payload);
         }
     }

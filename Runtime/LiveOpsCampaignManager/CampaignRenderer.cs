@@ -508,6 +508,7 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
                 Deeplink = ResolveTokens(a.Deeplink, item),
                 ProductId = ResolveTokens(a.ProductId, item),
                 KeepOpen = a.KeepOpen,
+                Id = a.Id,
             };
         }
 

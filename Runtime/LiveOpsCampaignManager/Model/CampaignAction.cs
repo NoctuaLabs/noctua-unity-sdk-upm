@@ -46,6 +46,14 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
         public bool KeepOpen;
 
         /// <summary>
+        /// Optional stable id the admin assigns to a button (e.g. <c>offer_1_btn_0</c>). Reported
+        /// on <c>live_ops_campaign_click</c> as <c>button_id</c> so analytics can tell buttons
+        /// apart; has no effect on what the action does.
+        /// </summary>
+        [JsonProperty("id")]
+        public string Id;
+
+        /// <summary>
         /// Resolved action type. Matches <see cref="TypeRaw"/> case- and separator-insensitively
         /// (<c>"deeplink"</c> / <c>"deep-link"</c> / <c>"DeepLink"</c> all map to
         /// <see cref="CampaignActionType.Deeplink"/>); anything unrecognised → <see cref="CampaignActionType.None"/>.
