@@ -698,6 +698,10 @@ namespace com.noctuagames.sdk
                 return;
             }
 
+            // Every real init starts with a fresh product list: the next GetProductListAsync()
+            // fetches remote data instead of returning a list cached before this init.
+            Instance.Value._iap.ClearProductListCache();
+
             Instance.Value._eventSender.Send("game_platform_type", new Dictionary<string, IConvertible> {
                 { "platform_type", Utility.GetPlatformType() }
             });

@@ -65,7 +65,11 @@ namespace com.noctuagames.sdk
         private const int ReceiptAlreadyUsedErrorCode = 2042;
         private static readonly TimeSpan PendingPurchaseIdlePollInterval = TimeSpan.FromSeconds(1);
         private readonly INativePlugin _nativePlugin;
-        private readonly ProductList _usdProducts = new();
+        private const string ProductListCacheKey = "NoctuaProductListCache";
+        // In-memory product lists keyed by request params. Cleared on every SDK init
+        // (ClearProductListCache) so the first fetch after init always hits the server.
+        private readonly Dictionary<string, ProductList> _productListCache = new();
+        private readonly SemaphoreSlim _productListGate = new(1, 1);
         private TaskCompletionSource<PaymentResult> _paymentTcs;
         // Serializes the user-facing payment flow. _paymentTcs is a single shared slot
         // (and doubles as the "payment flow running" flag for Google callbacks), so two
@@ -272,9 +276,19 @@ namespace com.noctuagames.sdk
         /// </summary>
         /// <param name="currency">Optional currency to filter products. If null, uses platform locale currency.</param>
         /// <param name="platformType">Optional platform type override (e.g., "playstore").</param>
+        /// <param name="forceRefresh">Skip the cache and always fetch from the server.</param>
         /// <returns>List of products returned by server.</returns>
+        /// <remarks>
+        /// Results are cached per request params (game, currency, payment types, platform).
+        /// The cache is cleared on every SDK init (<see cref="ClearProductListCache"/>), so the
+        /// first call after init always fetches remote data. If that fetch fails, the last
+        /// list persisted in PlayerPrefs is returned as an offline fallback.
+        /// </remarks>
         /// <exception cref="Exception">Thrown when player is not authenticated or game id missing.</exception>
-        public async UniTask<ProductList> GetProductListAsync(string currency = null, string platformType = null)
+        public async UniTask<ProductList> GetProductListAsync(
+            string currency = null,
+            string platformType = null,
+            bool forceRefresh = false)
         {
             EnsureEnabled();
 
@@ -325,14 +339,121 @@ namespace com.noctuagames.sdk
                 $"&enabled_payment_types={enabledPaymentTypes}" +
                 $"&platform={platformType}";
 
-            var request = new HttpRequest(HttpMethod.Get, url)
-                .WithHeader("X-CLIENT-ID", _config.ClientId)
-                .WithHeader("X-BUNDLE-ID", Application.identifier)
-                .WithHeader("Authorization", "Bearer " + _accessTokenProvider.AccessToken);
+            var cacheKey = $"{gameId}|{currency}|{enabledPaymentTypes}|{platformType}";
 
-            var response = await request.Send<ProductList>();
+            if (!forceRefresh && _productListCache.TryGetValue(cacheKey, out var cached))
+            {
+                _log.Info($"product list served from cache ({cached.Count} products): {cacheKey}");
 
-            return response;
+                return CopyProductList(cached);
+            }
+
+            // Gate so concurrent first calls share one fetch instead of racing the server.
+            await _productListGate.WaitAsync();
+
+            try
+            {
+                if (!forceRefresh && _productListCache.TryGetValue(cacheKey, out cached))
+                {
+                    _log.Info($"product list served from cache ({cached.Count} products): {cacheKey}");
+
+                    return CopyProductList(cached);
+                }
+
+                return await FetchAndCacheProductListAsync(url, cacheKey);
+            }
+            finally
+            {
+                _productListGate.Release();
+            }
+        }
+
+        /// <summary>
+        /// Clears the in-memory product list cache so the next <see cref="GetProductListAsync"/>
+        /// fetches from the server. Called on every SDK init. The copy persisted in PlayerPrefs
+        /// is kept and only used as an offline fallback when the remote fetch fails.
+        /// </summary>
+        public void ClearProductListCache()
+        {
+            _productListCache.Clear();
+            _log.Info("product list cache cleared, next GetProductListAsync fetches from remote");
+        }
+
+        private async UniTask<ProductList> FetchAndCacheProductListAsync(string url, string cacheKey)
+        {
+            try
+            {
+                var request = new HttpRequest(HttpMethod.Get, url)
+                    .WithHeader("X-CLIENT-ID", _config.ClientId)
+                    .WithHeader("X-BUNDLE-ID", Application.identifier)
+                    .WithHeader("Authorization", "Bearer " + _accessTokenProvider.AccessToken);
+
+                var response = await request.Send<ProductList>();
+
+                _log.Info($"product list fetched from remote ({response?.Count ?? 0} products): {cacheKey}");
+
+                if (response != null)
+                {
+                    _productListCache[cacheKey] = CopyProductList(response);
+                    PersistProductList(cacheKey, response);
+                }
+
+                return response;
+            }
+            catch (Exception e)
+            {
+                if (LoadPersistedProductLists().TryGetValue(cacheKey, out var persisted) && persisted != null)
+                {
+                    _log.Warning($"product list fetch failed, using persisted fallback for {cacheKey}: {e.Message}");
+
+                    return CopyProductList(persisted);
+                }
+
+                throw;
+            }
+        }
+
+        private static ProductList CopyProductList(ProductList source)
+        {
+            var copy = new ProductList();
+            copy.AddRange(source);
+
+            return copy;
+        }
+
+        private Dictionary<string, ProductList> LoadPersistedProductLists()
+        {
+            try
+            {
+                var json = PlayerPrefs.GetString(ProductListCacheKey, "{}");
+
+                return JsonConvert.DeserializeObject<Dictionary<string, ProductList>>(json)
+                       ?? new Dictionary<string, ProductList>();
+            }
+            catch (Exception e)
+            {
+                _log.Warning($"Failed to parse persisted product list cache: {e.Message}");
+
+                return new Dictionary<string, ProductList>();
+            }
+        }
+
+        private void PersistProductList(string cacheKey, ProductList products)
+        {
+            try
+            {
+                var updated = new Dictionary<string, ProductList>(LoadPersistedProductLists())
+                {
+                    [cacheKey] = CopyProductList(products)
+                };
+
+                PlayerPrefs.SetString(ProductListCacheKey, JsonConvert.SerializeObject(updated));
+                PlayerPrefs.Save();
+            }
+            catch (Exception e)
+            {
+                _log.Warning($"Failed to persist product list cache: {e.Message}");
+            }
         }
         
         
@@ -1198,13 +1319,10 @@ namespace com.noctuagames.sdk
             {
                 _paymentUI.ShowLoadingProgress(true);
 
-                // Still fetch USD products for price display
-                if (_usdProducts.Count == 0)
-                {
-                    _usdProducts.AddRange(await GetProductListAsync(currency: "USD"));
-                }
+                // Still fetch USD products for price display (cached until next SDK init)
+                var usdProductsEditor = await GetProductListAsync(currency: "USD");
 
-                var usdProductEditor = _usdProducts.FirstOrDefault(p => p.Id == purchaseRequest.ProductId);
+                var usdProductEditor = usdProductsEditor?.FirstOrDefault(p => p.Id == purchaseRequest.ProductId);
 
                 var editorCurrency = purchaseRequest.Currency;
                 if (string.IsNullOrEmpty(editorCurrency))
@@ -1326,10 +1444,8 @@ namespace com.noctuagames.sdk
 
             try
             {
-                if (_usdProducts.Count == 0)
-                {
-                    _usdProducts.AddRange(await GetProductListAsync(currency: "USD"));
-                }
+                // USD prices for the order (cached until next SDK init)
+                var usdProducts = await GetProductListAsync(currency: "USD");
                 
                 var playerData = new PlayerAccountData
                 {
@@ -1371,7 +1487,7 @@ namespace com.noctuagames.sdk
                     orderRequest.Currency = _localeProvider?.GetCurrency() ?? "USD";
                 }
                 
-                usdProduct = _usdProducts.FirstOrDefault(p => p.Id == orderRequest.ProductId);
+                usdProduct = usdProducts?.FirstOrDefault(p => p.Id == orderRequest.ProductId);
                 
                 if (usdProduct == null)
                 {
@@ -3793,7 +3909,7 @@ namespace com.noctuagames.sdk
             throw new NoctuaException(NoctuaErrorCode.Application, "Noctua IAP is not enabled due to initialization failure.");
         }
 
-        internal void Enable()
+        public void Enable()
         {
             _enabled = true;
         }

@@ -19,8 +19,14 @@ namespace com.noctuagames.sdk
         /// <summary>Whether the native IAP subsystem (e.g. Google Billing) is ready.</summary>
         bool IsReady { get; }
 
-        /// <summary>Fetch available products from the server.</summary>
-        UniTask<ProductList> GetProductListAsync(string currency = null, string platformType = null);
+        /// <summary>
+        /// Fetch available products. Cached per request params until the next SDK init;
+        /// pass <paramref name="forceRefresh"/> to bypass the cache.
+        /// </summary>
+        UniTask<ProductList> GetProductListAsync(string currency = null, string platformType = null, bool forceRefresh = false);
+
+        /// <summary>Clear the in-memory product list cache (called on every SDK init).</summary>
+        void ClearProductListCache();
 
         /// <summary>Retry a specific pending purchase by its order ID.</summary>
         UniTask<OrderStatus> RetryPendingPurchaseByOrderId(int orderId);
