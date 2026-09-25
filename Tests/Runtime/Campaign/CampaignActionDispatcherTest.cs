@@ -152,6 +152,26 @@ namespace Tests.Runtime.Campaign
         }
 
         [Test]
+        public void PurchaseClick_CarriesProductAndButtonId()
+        {
+            Dispatch(new CampaignAction { TypeRaw = "purchase", ProductId = "pass.gold", Id = "offer_1_btn_0" });
+
+            var click = _events.GetEventsByName(CampaignActionDispatcher.ClickEvent)[0];
+            Assert.AreEqual("pass.gold", click.Data["product_id"]);
+            Assert.AreEqual("offer_1_btn_0", click.Data["button_id"]);
+        }
+
+        [Test]
+        public void ClickWithoutId_HasNoButtonId_AndNonPurchaseHasNoProduct()
+        {
+            Dispatch(new CampaignAction { TypeRaw = "deeplink", Deeplink = "pass/details" });
+
+            var click = _events.GetEventsByName(CampaignActionDispatcher.ClickEvent)[0];
+            Assert.IsFalse(click.Data.ContainsKey("button_id"));
+            Assert.IsFalse(click.Data.ContainsKey("product_id"));
+        }
+
+        [Test]
         public void UnknownAction_NoHandlerCalled_NoThrow()
         {
             Assert.DoesNotThrow(() => Dispatch(new CampaignAction { TypeRaw = "frobnicate" }));

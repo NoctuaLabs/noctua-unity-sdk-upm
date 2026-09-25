@@ -1,0 +1,286 @@
+{
+  "id": "monthly_pass",
+  "engagement_type": "purchase",
+  "auto_show": true,
+  "priority": 70,
+  "data": {
+    "title": "Monthly Pass",
+    "offer_0_name": "Normal Pass",
+    "offer_0_badge": "Get Now",
+    "offer_0_benefits_title": "Five Benefits",
+    "offer_0_benefit_0": "Sweep attempt +1",
+    "offer_0_benefit_1": "Defense attempt +1",
+    "offer_0_btn_0_label": "Buy",
+    "store_price.com.example.pass.normal": "$4.99",
+    "offer_1_name": "Gold Pass",
+    "offer_1_benefit_0": "Unlimited quick sweep",
+    "store_price.com.example.pass.gold": "$9.99",
+    "offer_1_btn_1_label": "Details"
+  },
+  "i18n": {
+    "id": {
+      "title": "Pass Bulanan",
+      "offer_0_benefit_0": "Sapu +1",
+      "offer_0_btn_0_label": "Beli"
+    }
+  },
+  "view": {
+    "type": "container",
+    "style": {
+      "width": "300",
+      "flex_direction": "column",
+      "padding": "4"
+    },
+    "children": [
+      {
+        "type": "text",
+        "props": {
+          "text": "{{title}}"
+        },
+        "style": {
+          "color": "#FFFFFF",
+          "font_size": "22",
+          "font_weight": "bold",
+          "text_align": "middle-center",
+          "margin_bottom": "12",
+          "padding_right": "40"
+        }
+      },
+      {
+        "type": "container",
+        "style": {
+          "flex_direction": "row",
+          "flex_wrap": "wrap",
+          "justify_content": "space-between"
+        },
+        "children": [
+          {
+            "type": "container",
+            "style": {
+              "width": "48%",
+              "flex_direction": "column",
+              "background_color": "#7C3AED",
+              "border_radius": "12",
+              "padding": "10",
+              "margin_bottom": "8"
+            },
+            "children": [
+              {
+                "type": "text",
+                "props": {
+                  "text": "{{offer_0_name}}"
+                },
+                "style": {
+                  "color": "#1F2937",
+                  "background_color": "#FFF7E6",
+                  "font_size": "18",
+                  "font_weight": "bold",
+                  "text_align": "middle-center",
+                  "padding": "4",
+                  "border_radius": "6"
+                }
+              },
+              {
+                "type": "image",
+                "props": {
+                  "url": "https://cdn.example.com/pass/normal.png",
+                  "scale_mode": "contain"
+                },
+                "style": {
+                  "height": "96",
+                  "margin_top": "6"
+                }
+              },
+              {
+                "type": "text",
+                "props": {
+                  "text": "{{offer_0_badge}}"
+                },
+                "style": {
+                  "color": "#FDE047",
+                  "font_size": "13",
+                  "font_weight": "bold"
+                }
+              },
+              {
+                "type": "text",
+                "props": {
+                  "text": "{{store_price.com.example.pass.normal}}"
+                },
+                "style": {
+                  "align_self": "flex-end",
+                  "background_color": "#DC2626",
+                  "color": "#FFFFFF",
+                  "font_size": "14",
+                  "font_weight": "bold",
+                  "padding": "4 10",
+                  "border_radius": "6",
+                  "margin_top": "4"
+                }
+              },
+              {
+                "type": "text",
+                "props": {
+                  "text": "{{offer_0_benefits_title}}"
+                },
+                "style": {
+                  "color": "#FFFFFF",
+                  "font_size": "15",
+                  "font_weight": "bold",
+                  "margin_top": "8"
+                }
+              },
+              {
+                "type": "text",
+                "props": {
+                  "text": "{{offer_0_benefit_0}}"
+                },
+                "style": {
+                  "color": "#FFFFFF",
+                  "font_size": "12",
+                  "background_color": "#00000033",
+                  "padding": "6 8",
+                  "border_radius": "6",
+                  "margin_top": "4"
+                }
+              },
+              {
+                "type": "text",
+                "props": {
+                  "text": "{{offer_0_benefit_1}}"
+                },
+                "style": {
+                  "color": "#FFFFFF",
+                  "font_size": "12",
+                  "background_color": "#00000033",
+                  "padding": "6 8",
+                  "border_radius": "6",
+                  "margin_top": "4"
+                }
+              },
+              {
+                "type": "container",
+                "style": {
+                  "flex_grow": "1"
+                }
+              },
+              {
+                "type": "button",
+                "props": {
+                  "text": "{{offer_0_btn_0_label}}"
+                },
+                "style": {
+                  "height": "40",
+                  "border_radius": "20",
+                  "color": "#FFFFFF",
+                  "font_size": "16",
+                  "font_weight": "bold",
+                  "text_align": "middle-center",
+                  "margin_top": "8",
+                  "background_color": "#17A34A"
+                },
+                "action": {
+                  "type": "purchase",
+                  "product_id": "com.example.pass.normal",
+                  "id": "offer_0_btn_0"
+                }
+              }
+            ]
+          },
+          {
+            "type": "container",
+            "style": {
+              "width": "48%",
+              "flex_direction": "column",
+              "background_color": "#D97706",
+              "border_radius": "12",
+              "padding": "10",
+              "margin_bottom": "8"
+            },
+            "children": [
+              {
+                "type": "text",
+                "props": {
+                  "text": "{{offer_1_name}}"
+                },
+                "style": {
+                  "color": "#1F2937",
+                  "background_color": "#FFF7E6",
+                  "font_size": "18",
+                  "font_weight": "bold",
+                  "text_align": "middle-center",
+                  "padding": "4",
+                  "border_radius": "6"
+                }
+              },
+              {
+                "type": "text",
+                "props": {
+                  "text": "{{offer_1_benefit_0}}"
+                },
+                "style": {
+                  "color": "#FFFFFF",
+                  "font_size": "12",
+                  "background_color": "#00000033",
+                  "padding": "6 8",
+                  "border_radius": "6",
+                  "margin_top": "4"
+                }
+              },
+              {
+                "type": "container",
+                "style": {
+                  "flex_grow": "1"
+                }
+              },
+              {
+                "type": "button",
+                "props": {
+                  "text": "{{store_price.com.example.pass.gold}}"
+                },
+                "style": {
+                  "height": "40",
+                  "border_radius": "20",
+                  "color": "#FFFFFF",
+                  "font_size": "16",
+                  "font_weight": "bold",
+                  "text_align": "middle-center",
+                  "margin_top": "8",
+                  "background_color": "#17A34A"
+                },
+                "action": {
+                  "type": "purchase",
+                  "product_id": "com.example.pass.gold",
+                  "id": "offer_1_btn_0"
+                }
+              },
+              {
+                "type": "button",
+                "props": {
+                  "text": "{{offer_1_btn_1_label}}"
+                },
+                "style": {
+                  "height": "40",
+                  "border_radius": "20",
+                  "color": "#FFFFFF",
+                  "font_size": "16",
+                  "font_weight": "bold",
+                  "text_align": "middle-center",
+                  "margin_top": "8",
+                  "background_color": "#4B5563"
+                },
+                "action": {
+                  "type": "deeplink",
+                  "deeplink": "pass/details/gold",
+                  "id": "offer_1_btn_1"
+                }
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "borderless": false,
+  "frame_color": "#F59E0B"
+}

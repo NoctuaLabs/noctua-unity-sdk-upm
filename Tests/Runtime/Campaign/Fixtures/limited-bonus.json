@@ -1,0 +1,569 @@
+{
+  "id": "limited_bonus",
+  "engagement_type": "purchase",
+  "auto_show": true,
+  "priority": 70,
+  "schema_version": 2,
+  "data": {
+    "title": "Limited Bonus",
+    "ends": "2026-10-01T16:59:59.000Z",
+    "countdown_prefix": "Time left: ",
+    "limit_label": "Limit: ",
+    "sold_out_label": "Sold out",
+    "offer_0_name": "Premium Pack",
+    "offer_0_discount": "500%",
+    "store_price.com.example.bonus.premium": "$11.99",
+    "offer_1_name": "Luxury Pack",
+    "offer_1_discount": "350%",
+    "store_price.com.example.bonus.luxury": "$22.99",
+    "offer_2_name": "Ultimate Pack",
+    "offer_2_discount": "240%",
+    "store_price.com.example.bonus.ultimate": "$58.99"
+  },
+  "i18n": {
+    "id": {
+      "limit_label": "Batas: "
+    }
+  },
+  "view": {
+    "type": "container",
+    "style": {
+      "width": "300",
+      "flex_direction": "column",
+      "padding": "4",
+      "background_image": "https://cdn.example.com/bonus/hero.png",
+      "background_size": "cover"
+    },
+    "children": [
+      {
+        "type": "text",
+        "props": {
+          "text": "{{title}}"
+        },
+        "style": {
+          "color": "#FFFFFF",
+          "font_size": "22",
+          "font_weight": "bold",
+          "text_align": "middle-center",
+          "margin_bottom": "12",
+          "padding_right": "40"
+        }
+      },
+      {
+        "type": "countdown",
+        "props": {
+          "end_timestamp": "{{ends}}",
+          "prefix": "{{countdown_prefix}}"
+        },
+        "style": {
+          "align_self": "center",
+          "color": "#A3E635",
+          "background_color": "#000000A6",
+          "padding": "4 12",
+          "border_radius": "14",
+          "font_size": "16",
+          "font_weight": "bold",
+          "margin_bottom": "8"
+        }
+      },
+      {
+        "type": "container",
+        "style": {
+          "height": "260"
+        }
+      },
+      {
+        "type": "container",
+        "style": {
+          "flex_direction": "row",
+          "flex_wrap": "wrap",
+          "justify_content": "space-between"
+        },
+        "children": [
+          {
+            "type": "container",
+            "style": {
+              "width": "31%",
+              "flex_direction": "column",
+              "background_color": "#7C3AED",
+              "border_radius": "12",
+              "padding": "10",
+              "margin_bottom": "8"
+            },
+            "children": [
+              {
+                "type": "text",
+                "props": {
+                  "text": "{{offer_0_name}}"
+                },
+                "style": {
+                  "color": "#1F2937",
+                  "background_color": "#FFF7E6",
+                  "font_size": "12",
+                  "font_weight": "bold",
+                  "text_align": "middle-center",
+                  "padding": "4",
+                  "border_radius": "6"
+                }
+              },
+              {
+                "type": "container",
+                "style": {
+                  "flex_direction": "column",
+                  "margin_top": "6",
+                  "padding_left": "4"
+                },
+                "children": [
+                  {
+                    "type": "container",
+                    "style": {
+                      "flex_direction": "row",
+                      "align_items": "center",
+                      "margin_top": "2"
+                    },
+                    "children": [
+                      {
+                        "type": "image",
+                        "props": {
+                          "url": "https://cdn.example.com/bonus/stm.png",
+                          "scale_mode": "contain"
+                        },
+                        "style": {
+                          "width": "22",
+                          "height": "22"
+                        }
+                      },
+                      {
+                        "type": "text",
+                        "props": {
+                          "text": "80"
+                        },
+                        "style": {
+                          "color": "#FFFFFF",
+                          "font_size": "12",
+                          "font_weight": "bold",
+                          "font_outline_width": "1",
+                          "font_outline_color": "#000000",
+                          "margin_left": "4"
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "type": "container",
+                    "style": {
+                      "flex_direction": "row",
+                      "align_items": "center",
+                      "margin_top": "2"
+                    },
+                    "children": [
+                      {
+                        "type": "image",
+                        "props": {
+                          "url": "https://cdn.example.com/bonus/coin.png",
+                          "scale_mode": "contain"
+                        },
+                        "style": {
+                          "width": "22",
+                          "height": "22"
+                        }
+                      },
+                      {
+                        "type": "text",
+                        "props": {
+                          "text": "10,000"
+                        },
+                        "style": {
+                          "color": "#FFFFFF",
+                          "font_size": "12",
+                          "font_weight": "bold",
+                          "font_outline_width": "1",
+                          "font_outline_color": "#000000",
+                          "margin_left": "4"
+                        }
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "container",
+                "style": {
+                  "position": "relative"
+                },
+                "children": [
+                  {
+                    "type": "image",
+                    "props": {
+                      "url": "https://cdn.example.com/bonus/chest.png",
+                      "scale_mode": "contain"
+                    },
+                    "style": {
+                      "height": "72",
+                      "margin_top": "6"
+                    }
+                  },
+                  {
+                    "type": "text",
+                    "props": {
+                      "text": "{{offer_0_discount}}"
+                    },
+                    "style": {
+                      "position": "absolute",
+                      "top": "0",
+                      "right": "0",
+                      "background_color": "#DC2626",
+                      "color": "#FFFFFF",
+                      "font_size": "12",
+                      "font_weight": "bold",
+                      "padding": "2 6",
+                      "border_radius": "4"
+                    }
+                  }
+                ]
+              },
+              {
+                "type": "container",
+                "style": {
+                  "flex_grow": "1"
+                }
+              },
+              {
+                "type": "text",
+                "props": {
+                  "text": "{{limit_label}}{{bought.com.example.bonus.premium}}/1"
+                },
+                "style": {
+                  "color": "#1F2937",
+                  "background_color": "#FFFFFF",
+                  "font_size": "11",
+                  "font_weight": "bold",
+                  "text_align": "middle-center",
+                  "padding": "3 4",
+                  "border_radius": "6",
+                  "margin_top": "6"
+                }
+              },
+              {
+                "type": "button",
+                "props": {
+                  "text": "{{store_price.com.example.bonus.premium}}"
+                },
+                "style": {
+                  "height": "40",
+                  "border_radius": "20",
+                  "color": "#FFFFFF",
+                  "font_size": "14",
+                  "font_weight": "bold",
+                  "text_align": "middle-center",
+                  "margin_top": "8",
+                  "background_color": "#17A34A"
+                },
+                "action": {
+                  "type": "purchase",
+                  "product_id": "com.example.bonus.premium",
+                  "id": "offer_0_btn_0"
+                },
+                "visible_if": {
+                  "all": [
+                    {
+                      "left": "{{bought.com.example.bonus.premium}}",
+                      "op": "lt",
+                      "right": "1"
+                    }
+                  ]
+                }
+              },
+              {
+                "type": "text",
+                "props": {
+                  "text": "{{sold_out_label}}"
+                },
+                "style": {
+                  "height": "40",
+                  "border_radius": "20",
+                  "color": "#FFFFFF",
+                  "font_size": "14",
+                  "font_weight": "bold",
+                  "text_align": "middle-center",
+                  "margin_top": "8",
+                  "background_color": "#6B7280"
+                },
+                "visible_if": {
+                  "all": [
+                    {
+                      "left": "{{bought.com.example.bonus.premium}}",
+                      "op": "gte",
+                      "right": "1"
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "type": "container",
+            "style": {
+              "width": "31%",
+              "flex_direction": "column",
+              "background_color": "#D97706",
+              "border_radius": "12",
+              "padding": "10",
+              "margin_bottom": "8"
+            },
+            "children": [
+              {
+                "type": "text",
+                "props": {
+                  "text": "{{offer_1_name}}"
+                },
+                "style": {
+                  "color": "#1F2937",
+                  "background_color": "#FFF7E6",
+                  "font_size": "12",
+                  "font_weight": "bold",
+                  "text_align": "middle-center",
+                  "padding": "4",
+                  "border_radius": "6"
+                }
+              },
+              {
+                "type": "container",
+                "style": {
+                  "flex_direction": "column",
+                  "margin_top": "6",
+                  "padding_left": "4"
+                },
+                "children": [
+                  {
+                    "type": "container",
+                    "style": {
+                      "flex_direction": "row",
+                      "align_items": "center",
+                      "margin_top": "2"
+                    },
+                    "children": [
+                      {
+                        "type": "image",
+                        "props": {
+                          "url": "https://cdn.example.com/bonus/stm.png",
+                          "scale_mode": "contain"
+                        },
+                        "style": {
+                          "width": "22",
+                          "height": "22"
+                        }
+                      },
+                      {
+                        "type": "text",
+                        "props": {
+                          "text": "100"
+                        },
+                        "style": {
+                          "color": "#FFFFFF",
+                          "font_size": "12",
+                          "font_weight": "bold",
+                          "font_outline_width": "1",
+                          "font_outline_color": "#000000",
+                          "margin_left": "4"
+                        }
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "container",
+                "style": {
+                  "position": "relative"
+                },
+                "children": [
+                  {
+                    "type": "image",
+                    "props": {
+                      "url": "https://cdn.example.com/bonus/chest.png",
+                      "scale_mode": "contain"
+                    },
+                    "style": {
+                      "height": "72",
+                      "margin_top": "6"
+                    }
+                  },
+                  {
+                    "type": "text",
+                    "props": {
+                      "text": "{{offer_1_discount}}"
+                    },
+                    "style": {
+                      "position": "absolute",
+                      "top": "0",
+                      "right": "0",
+                      "background_color": "#DC2626",
+                      "color": "#FFFFFF",
+                      "font_size": "12",
+                      "font_weight": "bold",
+                      "padding": "2 6",
+                      "border_radius": "4"
+                    }
+                  }
+                ]
+              },
+              {
+                "type": "container",
+                "style": {
+                  "flex_grow": "1"
+                }
+              },
+              {
+                "type": "text",
+                "props": {
+                  "text": "{{limit_label}}{{bought.com.example.bonus.luxury}}/3"
+                },
+                "style": {
+                  "color": "#1F2937",
+                  "background_color": "#FFFFFF",
+                  "font_size": "11",
+                  "font_weight": "bold",
+                  "text_align": "middle-center",
+                  "padding": "3 4",
+                  "border_radius": "6",
+                  "margin_top": "6"
+                }
+              },
+              {
+                "type": "button",
+                "props": {
+                  "text": "{{store_price.com.example.bonus.luxury}}"
+                },
+                "style": {
+                  "height": "40",
+                  "border_radius": "20",
+                  "color": "#FFFFFF",
+                  "font_size": "14",
+                  "font_weight": "bold",
+                  "text_align": "middle-center",
+                  "margin_top": "8",
+                  "background_color": "#17A34A"
+                },
+                "action": {
+                  "type": "purchase",
+                  "product_id": "com.example.bonus.luxury",
+                  "id": "offer_1_btn_0"
+                },
+                "visible_if": {
+                  "all": [
+                    {
+                      "left": "{{bought.com.example.bonus.luxury}}",
+                      "op": "lt",
+                      "right": "3"
+                    }
+                  ]
+                }
+              },
+              {
+                "type": "text",
+                "props": {
+                  "text": "{{sold_out_label}}"
+                },
+                "style": {
+                  "height": "40",
+                  "border_radius": "20",
+                  "color": "#FFFFFF",
+                  "font_size": "14",
+                  "font_weight": "bold",
+                  "text_align": "middle-center",
+                  "margin_top": "8",
+                  "background_color": "#6B7280"
+                },
+                "visible_if": {
+                  "all": [
+                    {
+                      "left": "{{bought.com.example.bonus.luxury}}",
+                      "op": "gte",
+                      "right": "3"
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "type": "container",
+            "style": {
+              "width": "31%",
+              "flex_direction": "column",
+              "background_color": "#2563EB",
+              "border_radius": "12",
+              "padding": "10",
+              "margin_bottom": "8"
+            },
+            "children": [
+              {
+                "type": "text",
+                "props": {
+                  "text": "{{offer_2_name}}"
+                },
+                "style": {
+                  "color": "#1F2937",
+                  "background_color": "#FFF7E6",
+                  "font_size": "12",
+                  "font_weight": "bold",
+                  "text_align": "middle-center",
+                  "padding": "4",
+                  "border_radius": "6"
+                }
+              },
+              {
+                "type": "text",
+                "props": {
+                  "text": "{{offer_2_discount}}"
+                },
+                "style": {
+                  "align_self": "flex-end",
+                  "background_color": "#DC2626",
+                  "color": "#FFFFFF",
+                  "font_size": "12",
+                  "font_weight": "bold",
+                  "padding": "2 6",
+                  "border_radius": "4"
+                }
+              },
+              {
+                "type": "container",
+                "style": {
+                  "flex_grow": "1"
+                }
+              },
+              {
+                "type": "button",
+                "props": {
+                  "text": "{{store_price.com.example.bonus.ultimate}}"
+                },
+                "style": {
+                  "height": "40",
+                  "border_radius": "20",
+                  "color": "#FFFFFF",
+                  "font_size": "14",
+                  "font_weight": "bold",
+                  "text_align": "middle-center",
+                  "margin_top": "8",
+                  "background_color": "#17A34A"
+                },
+                "action": {
+                  "type": "purchase",
+                  "product_id": "com.example.bonus.ultimate",
+                  "id": "offer_2_btn_0"
+                }
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "borderless": true,
+  "player_data": {
+    "bought.com.example.bonus.premium": "0",
+    "bought.com.example.bonus.luxury": "0"
+  }
+}
