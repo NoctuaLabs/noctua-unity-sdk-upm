@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## [0.133.0] - 2026-09-24
+## [0.134.0] - 2026-09-25
 
 ### ⚙️ Miscellaneous
 
@@ -132,6 +132,7 @@ All notable changes to this project will be documented in this file.
 - *(android)* Add opt-in AGP 9 support alongside AGP 8 default
 - *(campaign)* Per-player data, visible_if conditions and keep_open actions
 - *(campaign)* Per-campaign backdrop colour
+- *(iap)* Cache product list and clear on sdk init
 
 ## [0.122.0] - 2026-05-18
 
