@@ -57,14 +57,15 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
         {
             _events = events;
 
-            var env = new DefaultCampaignEnvironment(playerTags, locale);
             var assets = new CampaignAssetSource(isOffline: Noctua.IsOfflineMode);
             var fonts = new CampaignFontSource();
 
             _manager = new CampaignManager(
-                merged, env, new CampaignFrequencyGate(),
+                merged, new CampaignFrequencyGate(),
                 isOffline: Noctua.IsOfflineMode,
-                assetsReady: assets.AreAllImagesCached);
+                assetsReady: assets.AreAllImagesCached,
+                playerTags: playerTags,
+                country: () => locale?.GetCountry());
 
             try { assets.Preload(merged); }
             catch (Exception e) { _log.Warning("campaign asset preload failed: " + e.Message); }

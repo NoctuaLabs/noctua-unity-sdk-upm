@@ -48,7 +48,7 @@ namespace Tests.Runtime.Campaign
                 },
             };
 
-            var manager = new CampaignManager(config, new FakeEnv(),
+            var manager = new CampaignManager(config,
                 new CampaignFrequencyGate(prefs: new FakePrefsStore()));
 
             var active = manager.GetActiveCampaigns(CampaignItem.EngagementPurchase);
@@ -70,7 +70,7 @@ namespace Tests.Runtime.Campaign
                 Campaigns = new System.Collections.Generic.List<CampaignItem> { PopupItem("inherits", 0) },
             };
 
-            var manager = new CampaignManager(config, new FakeEnv(),
+            var manager = new CampaignManager(config,
                 new CampaignFrequencyGate(prefs: new FakePrefsStore()));
 
             Assert.AreEqual(0, manager.GetActiveCampaigns(CampaignItem.EngagementPurchase).Count);

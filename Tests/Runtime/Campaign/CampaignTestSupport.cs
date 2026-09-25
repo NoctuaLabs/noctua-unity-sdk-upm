@@ -48,18 +48,23 @@ namespace Tests.Runtime.Campaign
         public void Save() { }
     }
 
-    /// <summary>Fixed environment for <see cref="CampaignManager"/> targeting tests.</summary>
-    public sealed class FakeEnv : ICampaignEnvironment
+    /// <summary>Fixed targeting inputs and clock for <see cref="CampaignManager"/> tests.</summary>
+    public sealed class FakeEnv
     {
         public List<string> Tags = new List<string>();
         public string CountryCode = "ID";
         public string Version = "1.0.0";
         public DateTime Now = DateTime.UtcNow;
 
-        public IReadOnlyList<string> PlayerTags() => Tags;
-        public string Country() => CountryCode;
-        public string AppVersion() => Version;
-        public DateTime UtcNow() => Now;
+        /// <summary>A manager reading these fields, with the clock driving the frequency gate.</summary>
+        public CampaignManager ManagerFor(CampaignConfig config) =>
+            new CampaignManager(
+                config,
+                new CampaignFrequencyGate(utcNow: () => Now, prefs: new FakePrefsStore()),
+                playerTags: () => Tags,
+                country: () => CountryCode,
+                appVersion: () => Version,
+                utcNow: () => Now);
     }
 
     /// <summary>Records image requests + pin/unpin calls; never calls back with a texture.</summary>

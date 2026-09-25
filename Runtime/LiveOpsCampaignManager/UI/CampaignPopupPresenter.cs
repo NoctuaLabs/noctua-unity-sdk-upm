@@ -375,7 +375,7 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
             if (_root == null) return;
             _root.style.backgroundColor = StyleKeyword.Null;
 
-            if (CampaignBackdropStyle.TryResolve(item, out var color))
+            if (CampaignPopupStyle.TryResolveBackdrop(item, out var color))
             {
                 _root.style.backgroundColor = color;
             }
@@ -395,7 +395,7 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
             s.borderTopColor = s.borderRightColor = s.borderBottomColor = s.borderLeftColor = StyleKeyword.Null;
             s.borderTopWidth = s.borderRightWidth = s.borderBottomWidth = s.borderLeftWidth = StyleKeyword.Null;
 
-            if (!CampaignFrameStyle.TryResolve(item, out var color))
+            if (!CampaignPopupStyle.TryResolveFrame(item, out var color))
             {
                 if (!string.IsNullOrWhiteSpace(item.FrameColor) && !item.Borderless && !item.Fullscreen)
                     _log.Warning($"campaign '{item.Id}': invalid frame_color '{item.FrameColor}' — ignored");
@@ -404,7 +404,7 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
 
             s.borderTopColor = s.borderRightColor = s.borderBottomColor = s.borderLeftColor = color;
             s.borderTopWidth = s.borderRightWidth = s.borderBottomWidth = s.borderLeftWidth =
-                CampaignFrameStyle.FrameWidthPx;
+                CampaignPopupStyle.FrameWidthPx;
         }
 
         /// <summary>

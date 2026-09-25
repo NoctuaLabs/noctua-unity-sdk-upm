@@ -246,7 +246,7 @@ namespace Tests.Runtime.Campaign
                 new Dictionary<string, string>()); // no 'bg' → unresolved
 
             var config = new CampaignConfig { SchemaVersion = 1, Campaigns = new List<CampaignItem> { bad } };
-            var mgr = new CampaignManager(config, new FakeEnv(),
+            var mgr = new CampaignManager(config,
                 new CampaignFrequencyGate(prefs: new FakePrefsStore()));
 
             Assert.AreEqual(0, mgr.GetActiveCampaigns(CampaignItem.EngagementPurchase).Count);

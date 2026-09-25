@@ -29,14 +29,14 @@ namespace Tests.Runtime.Campaign
         {
             var item = Parse(", \"frame_color\": \"#FF0000\", \"borderless\": false");
 
-            Assert.IsTrue(CampaignFrameStyle.TryResolve(item, out var color));
+            Assert.IsTrue(CampaignPopupStyle.TryResolveFrame(item, out var color));
             Assert.AreEqual(Color.red, color);
         }
 
         [Test]
         public void TryResolve_Absent_ReturnsFalse()
         {
-            Assert.IsFalse(CampaignFrameStyle.TryResolve(Parse(", \"borderless\": false"), out _));
+            Assert.IsFalse(CampaignPopupStyle.TryResolveFrame(Parse(", \"borderless\": false"), out _));
         }
 
         [TestCase("not-a-color")]
@@ -45,7 +45,7 @@ namespace Tests.Runtime.Campaign
         public void TryResolve_InvalidHex_ReturnsFalse(string raw)
         {
             var item = Parse($", \"frame_color\": \"{raw}\", \"borderless\": false");
-            Assert.IsFalse(CampaignFrameStyle.TryResolve(item, out _));
+            Assert.IsFalse(CampaignPopupStyle.TryResolveFrame(item, out _));
         }
 
         [Test]
@@ -53,14 +53,14 @@ namespace Tests.Runtime.Campaign
         {
             // Borderless creatives draw their own frame — the SDK card has no chrome to colour.
             var item = Parse(", \"frame_color\": \"#FF0000\"");
-            Assert.IsFalse(CampaignFrameStyle.TryResolve(item, out _));
+            Assert.IsFalse(CampaignPopupStyle.TryResolveFrame(item, out _));
         }
 
         [Test]
         public void TryResolve_Fullscreen_ReturnsFalse()
         {
             var item = Parse(", \"frame_color\": \"#FF0000\", \"borderless\": false, \"fullscreen\": true");
-            Assert.IsFalse(CampaignFrameStyle.TryResolve(item, out _));
+            Assert.IsFalse(CampaignPopupStyle.TryResolveFrame(item, out _));
         }
 
         [Test]

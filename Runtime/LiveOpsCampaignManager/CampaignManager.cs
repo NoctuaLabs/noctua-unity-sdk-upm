@@ -5,22 +5,6 @@ using System.Linq;
 
 namespace com.noctuagames.sdk.LiveOpsCampaign
 {
-    /// <summary>Ambient facts campaign eligibility depends on. Kept off the <c>Noctua</c> static class.</summary>
-    public interface ICampaignEnvironment
-    {
-        /// <summary>Player tags (from <c>player_remote_configs.tags</c>). Never null.</summary>
-        IReadOnlyList<string> PlayerTags();
-
-        /// <summary>ISO country code, or empty/unknown.</summary>
-        string Country();
-
-        /// <summary>Dotted-numeric app version (e.g. <c>Application.version</c>).</summary>
-        string AppVersion();
-
-        /// <summary>Current UTC time.</summary>
-        DateTime UtcNow();
-    }
-
     /// <summary>One line in the Inspector's Campaigns tab: was this campaign shown, and if not, why.</summary>
     public readonly struct CampaignResolution
     {
@@ -46,7 +30,10 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
     /// </summary>
     public sealed class CampaignManager
     {
-        private readonly ICampaignEnvironment _env;
+        private readonly Func<IReadOnlyList<string>> _playerTags;
+        private readonly Func<string> _country;
+        private readonly Func<string> _appVersion;
+        private readonly Func<DateTime> _utcNow;
         private readonly CampaignFrequencyGate _frequency;
         private readonly Func<bool> _isOffline;
         private readonly Func<CampaignItem, bool> _assetsReady;
@@ -55,16 +42,26 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
 
         private const string LogTag = "[campaign_manager]";
 
+        /// <param name="playerTags">Player tags (<c>player_remote_configs.tags</c>) for tag targeting. Default: none.</param>
+        /// <param name="country">ISO country code for country targeting. Default: unknown.</param>
+        /// <param name="appVersion">Dotted-numeric app version for version targeting. Default: <c>Application.version</c>.</param>
+        /// <param name="utcNow">Clock for the schedule window. Default: <see cref="DateTime.UtcNow"/>.</param>
         public CampaignManager(
             CampaignConfig config,
-            ICampaignEnvironment env,
             CampaignFrequencyGate frequency,
             ILogger log = null,
             Func<bool> isOffline = null,
-            Func<CampaignItem, bool> assetsReady = null)
+            Func<CampaignItem, bool> assetsReady = null,
+            Func<IReadOnlyList<string>> playerTags = null,
+            Func<string> country = null,
+            Func<string> appVersion = null,
+            Func<DateTime> utcNow = null)
         {
             Config = config ?? new CampaignConfig();
-            _env = env;
+            _playerTags = playerTags;
+            _country = country;
+            _appVersion = appVersion ?? (() => UnityEngine.Application.version);
+            _utcNow = utcNow ?? (() => DateTime.UtcNow);
             _frequency = frequency ?? new CampaignFrequencyGate();
             _isOffline = isOffline ?? (() => false);
             _assetsReady = assetsReady ?? (_ => true);
@@ -177,7 +174,7 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
         private string CheckSchedule(CampaignSchedule schedule)
         {
             if (schedule == null) return null;
-            var now = _env?.UtcNow() ?? DateTime.UtcNow;
+            var now = _utcNow();
 
             if (TryParseInstant(schedule.Start, out var start) && now < start) return "before schedule start";
             if (TryParseInstant(schedule.End, out var end) && now >= end) return "after schedule end";
@@ -186,29 +183,36 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
 
         private string CheckTargeting(CampaignTargeting t)
         {
-            if (t == null || _env == null) return null;
+            if (t == null) return null;
 
             if (t.Tags != null && t.Tags.Count > 0)
             {
-                var playerTags = _env.PlayerTags() ?? Array.Empty<string>();
+                var playerTags = Safe(_playerTags) ?? Array.Empty<string>();
                 if (!t.Tags.Any(tag => playerTags.Contains(tag, StringComparer.OrdinalIgnoreCase)))
                     return "tag mismatch";
             }
 
             if (t.Countries != null && t.Countries.Count > 0)
             {
-                var country = _env.Country() ?? string.Empty;
+                var country = Safe(_country) ?? string.Empty;
                 if (!t.Countries.Any(c => string.Equals(c, country, StringComparison.OrdinalIgnoreCase)))
                     return "country mismatch";
             }
 
-            var appVersion = _env.AppVersion() ?? string.Empty;
+            var appVersion = Safe(_appVersion) ?? string.Empty;
             if (!string.IsNullOrEmpty(t.MinAppVersion) && CompareVersions(appVersion, t.MinAppVersion) < 0)
                 return "app version below min";
             if (!string.IsNullOrEmpty(t.MaxAppVersion) && CompareVersions(appVersion, t.MaxAppVersion) > 0)
                 return "app version above max";
 
             return null;
+        }
+
+        /// <summary>A targeting input that throws (e.g. config not loaded yet) counts as absent.</summary>
+        private static T Safe<T>(Func<T> getter) where T : class
+        {
+            try { return getter?.Invoke(); }
+            catch { return null; }
         }
 
         private static bool TryParseInstant(string raw, out DateTime utc)

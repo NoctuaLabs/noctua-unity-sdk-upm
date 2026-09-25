@@ -53,10 +53,10 @@ namespace Tests.Runtime.Campaign
         [Test]
         public void Payload_CarriesBackdropAndFrame()
         {
-            Assert.IsTrue(CampaignBackdropStyle.TryResolve(_item, out var backdrop));
+            Assert.IsTrue(CampaignPopupStyle.TryResolveBackdrop(_item, out var backdrop));
             Assert.AreEqual(0xD9 / 255f, backdrop.a, 0.001f);
             Assert.IsFalse(_item.Borderless);
-            Assert.IsTrue(CampaignFrameStyle.TryResolve(_item, out _));
+            Assert.IsTrue(CampaignPopupStyle.TryResolveFrame(_item, out _));
         }
 
         [Test]

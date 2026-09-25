@@ -21,20 +21,20 @@ namespace Tests.Runtime.Campaign
         [Test]
         public void TryResolve_Absent_ReturnsFalse()
         {
-            Assert.IsFalse(CampaignBackdropStyle.TryResolve(Parse(""), out _));
+            Assert.IsFalse(CampaignPopupStyle.TryResolveBackdrop(Parse(""), out _));
         }
 
         [Test]
         public void TryResolve_RgbHex_IsOpaque()
         {
-            Assert.IsTrue(CampaignBackdropStyle.TryResolve(Parse(", \"backdrop_color\": \"#102030\""), out var color));
+            Assert.IsTrue(CampaignPopupStyle.TryResolveBackdrop(Parse(", \"backdrop_color\": \"#102030\""), out var color));
             Assert.AreEqual(1f, color.a);
         }
 
         [Test]
         public void TryResolve_RgbaHex_CarriesOpacity()
         {
-            Assert.IsTrue(CampaignBackdropStyle.TryResolve(Parse(", \"backdrop_color\": \"#FF000080\""), out var color));
+            Assert.IsTrue(CampaignPopupStyle.TryResolveBackdrop(Parse(", \"backdrop_color\": \"#FF000080\""), out var color));
             Assert.AreEqual(1f, color.r);
             Assert.AreEqual(128f / 255f, color.a, 0.001f);
         }
@@ -43,7 +43,7 @@ namespace Tests.Runtime.Campaign
         public void TryResolve_FullyTransparent_IsAllowed()
         {
             // A campaign may deliberately drop the dim entirely.
-            Assert.IsTrue(CampaignBackdropStyle.TryResolve(Parse(", \"backdrop_color\": \"#00000000\""), out var color));
+            Assert.IsTrue(CampaignPopupStyle.TryResolveBackdrop(Parse(", \"backdrop_color\": \"#00000000\""), out var color));
             Assert.AreEqual(0f, color.a);
         }
 
@@ -52,7 +52,7 @@ namespace Tests.Runtime.Campaign
         [TestCase("   ")]
         public void TryResolve_Invalid_ReturnsFalse(string raw)
         {
-            Assert.IsFalse(CampaignBackdropStyle.TryResolve(Parse($", \"backdrop_color\": \"{raw}\""), out _));
+            Assert.IsFalse(CampaignPopupStyle.TryResolveBackdrop(Parse($", \"backdrop_color\": \"{raw}\""), out _));
         }
 
         [Test]

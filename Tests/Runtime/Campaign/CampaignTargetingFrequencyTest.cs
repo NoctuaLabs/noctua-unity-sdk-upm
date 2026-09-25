@@ -68,8 +68,7 @@ namespace Tests.Runtime.Campaign
                 SchemaVersion = 1,
                 Campaigns = new List<CampaignItem> { item },
             };
-            return new CampaignManager(config, env, new CampaignFrequencyGate(
-                utcNow: () => env.Now, prefs: new FakePrefsStore()));
+            return env.ManagerFor(config);
         }
 
         private static CampaignItem PopupWithTargeting(CampaignTargeting t)
@@ -211,7 +210,7 @@ namespace Tests.Runtime.Campaign
                 CampaignFactory.Node(CampaignNode.TypeImage,
                     new Dictionary<string, object> { { "url", "https://cdn/x.png" } }));
             var config = new CampaignConfig { SchemaVersion = 1, Campaigns = new List<CampaignItem> { item } };
-            return new CampaignManager(config, new FakeEnv(),
+            return new CampaignManager(config,
                 new CampaignFrequencyGate(prefs: new FakePrefsStore()),
                 isOffline: () => isOffline,
                 assetsReady: _ => assetsReady);
