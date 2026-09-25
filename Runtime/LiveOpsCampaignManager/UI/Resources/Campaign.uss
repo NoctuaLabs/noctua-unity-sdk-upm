@@ -123,6 +123,26 @@
     background-color: rgba(0, 0, 0, 0.82);
 }
 
+/* The cross, as two bars centred in the chip (AddCloseGlyph). Percentages keep it
+   centred when a campaign resizes the button. */
+.campaign-close__bar {
+    position: absolute;
+    left: 25%;
+    top: 47%;
+    width: 50%;
+    height: 6%;
+    min-height: 2px;
+    border-top-left-radius: 1px;
+    border-top-right-radius: 1px;
+    border-bottom-left-radius: 1px;
+    border-bottom-right-radius: 1px;
+    background-color: #FFFFFF;
+}
+
+.campaign-close--skinned .campaign-close__bar {
+    display: none;
+}
+
 /* Custom close-button image (campaign `close_button.image_url`): drop the chip
    chrome and glyph, show the art scaled to fit. */
 .campaign-close--skinned {

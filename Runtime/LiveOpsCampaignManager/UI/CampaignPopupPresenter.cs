@@ -72,7 +72,11 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
                 // Screen size / orientation changes → recompute the safe-area inset.
                 _root.RegisterCallback<GeometryChangedEvent>(_ => { if (IsShowing) ApplySafeArea(); });
             }
-            if (_closeBtn != null) _closeBtn.clicked += Close;
+            if (_closeBtn != null)
+            {
+                _closeBtn.clicked += Close;
+                AddCloseGlyph(_closeBtn);
+            }
 
             Visible = false;
         }
@@ -416,6 +420,23 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
         /// card. A failed image load leaves the chrome-less button — the creative should also
         /// carry its own <c>dismiss</c> affordance in that case.
         /// </summary>
+        private const string CloseBarClass = "campaign-close__bar";
+
+        /// <summary>
+        /// Draws the close cross from two rotated bars rather than a "✕" character, so it shows
+        /// on every device whatever fonts it has. The skinned variant hides them in USS.
+        /// </summary>
+        private static void AddCloseGlyph(Button closeButton)
+        {
+            foreach (var angle in new[] { 45f, -45f })
+            {
+                var bar = new VisualElement { pickingMode = PickingMode.Ignore };
+                bar.AddToClassList(CloseBarClass);
+                bar.style.rotate = new Rotate(new Angle(angle, AngleUnit.Degree));
+                closeButton.Add(bar);
+            }
+        }
+
         private void ApplyCloseButton(CampaignItem item)
         {
             if (_closeBtn == null) return;
@@ -431,7 +452,9 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
             _closeBtn.style.left = StyleKeyword.Null;
             _closeBtn.style.translate = StyleKeyword.Null;
             _closeBtn.style.display = StyleKeyword.Null;
-            _closeBtn.text = "✕";
+            // The ✕ is drawn by AddCloseGlyph: the glyph is missing from many Android
+            // system fonts and rendered as an empty chip.
+            _closeBtn.text = string.Empty;
 
             var cfg = item?.CloseButton;
             if (cfg == null) return;
