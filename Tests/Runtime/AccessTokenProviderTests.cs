@@ -108,8 +108,11 @@ namespace Tests.Runtime
         [Test]
         public void IAccessTokenProvider_InterfaceImplemented()
         {
+            // The interface is obsolete but kept until the next major version; it must still work.
             var stub = new StubAccountEvents();
+#pragma warning disable CS0618
             IAccessTokenProvider provider = new AccessTokenProvider(stub);
+#pragma warning restore CS0618
             Assert.IsNotNull(provider);
             Assert.IsFalse(provider.IsAuthenticated);
         }

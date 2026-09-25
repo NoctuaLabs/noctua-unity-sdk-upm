@@ -22,7 +22,7 @@ Runtime/
 ├── Model/          DTOs/ and Entities/ — pure data, no logic
 ├── Infrastructure/ EventSender, Http, InternetChecker, Storage, Utility
 ├── Presenter/      NoctuaIAPService, NoctuaAuthenticationService, SessionTracker
-│   └── Interfaces/ IEventSender, IIAPService, IAuthProvider, IPaymentUI, etc.
+│   └── Interfaces/ IEventSender, IAuthProvider, IPaymentUI, etc.
 ├── Platform/       Native bridges: Android/ (JNI), iOS/ (P/Invoke)
 ├── UI/             UIElements controllers, UIUtility
 ├── View/           Composition root — Noctua.cs, Noctua.Initialization.cs, facades
@@ -94,8 +94,6 @@ Runtime/
 | Interface | Location | Purpose |
 |-----------|----------|---------|
 | `IEventSender` | `Presenter/Interfaces/` | Event tracking abstraction |
-| `IIAPService` | `Presenter/Interfaces/` | IAP operations |
-| `IAuthenticationService` | `Presenter/Interfaces/` | Token retrieval (narrow) |
 | `IAuthProvider` | `Presenter/Interfaces/` | Decouples IAP from `Noctua.Auth` |
 | `IPaymentUI` | `Presenter/Interfaces/` | Payment dialog |
 | `IAdRevenueTracker` | `Presenter/Interfaces/` | Ad revenue tracking |
@@ -119,6 +117,9 @@ Runtime/
 | `INativeDeviceMetrics` | `SnapshotDeviceMetrics` | Inspector Memory tab |
 | `INativeBuildInfo` | `GetNativeSdkVersion`, `GetFirebaseProjectId`, etc. | Inspector Build tab |
 | `INativeMaintenance` | `ClearNativeHttpCache` | Cache management |
+
+
+**Obsolete (removal in the next major version):** `IIAPService`, `IAuthenticationService`, `IAccessTokenProvider` — each had one implementation and no consumer. Depend on the concrete classes; don't add new single-implementation interfaces unless a test fake or a layer boundary needs them.
 
 ## Logging Convention
 

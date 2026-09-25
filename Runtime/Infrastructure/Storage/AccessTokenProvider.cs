@@ -5,6 +5,7 @@ namespace com.noctuagames.sdk
     /// <summary>
     /// Provides access to the current user's authentication token and authentication status.
     /// </summary>
+    [System.Obsolete("Unused by the SDK and slated for removal in the next major version. Use AccessTokenProvider directly.")]
     public interface IAccessTokenProvider
     {
         /// <summary>Gets the current access token. Throws if the user is not authenticated.</summary>
@@ -19,7 +20,11 @@ namespace com.noctuagames.sdk
     /// account change or deletion events are raised via <see cref="IAccountEvents"/>.
     /// Falls back to <see cref="PlayerPrefs"/> if the in-memory token is not set.
     /// </summary>
+    // Still implements the obsolete interface so existing references keep compiling until the
+    // next major version removes it.
+#pragma warning disable CS0618
     public class AccessTokenProvider : IAccessTokenProvider
+#pragma warning restore CS0618
     {
         private readonly ILogger _log = new NoctuaLogger(typeof(AccessTokenProvider));
 

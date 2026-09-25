@@ -21,7 +21,11 @@ namespace com.noctuagames.sdk
     /// In-app purchase service: handles product listing, purchases, pending receipts, and verification.
     /// </summary>
     [Preserve]
+    // Still implements the obsolete interface so existing references keep compiling until the
+    // next major version removes it.
+#pragma warning disable CS0618
     public class NoctuaIAPService : IIAPService
+#pragma warning restore CS0618
     {
         private readonly Config _config;
         private readonly ILogger _log = new NoctuaLogger(typeof(NoctuaIAPService));

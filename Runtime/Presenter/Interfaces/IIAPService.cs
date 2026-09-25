@@ -8,6 +8,7 @@ namespace com.noctuagames.sdk
     /// Contract for the IAP presenter. Used by the View layer to interact
     /// with purchase functionality without depending on the concrete NoctuaIAPService.
     /// </summary>
+    [Obsolete("Unused by the SDK and slated for removal in the next major version. Use NoctuaIAPService (Noctua.IAP) directly.")]
     public interface IIAPService
     {
         /// <summary>Fired when a purchase flow completes successfully.</summary>

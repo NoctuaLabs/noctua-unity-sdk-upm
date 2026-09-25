@@ -15,7 +15,11 @@ namespace com.noctuagames.sdk
     /// <summary>
     /// Core authentication service handling guest login, email/password auth, social login, token exchange, and account management.
     /// </summary>
+    // Still implements the obsolete IAuthenticationService so existing references keep
+    // compiling until the next major version removes it.
+#pragma warning disable CS0618
     public class NoctuaAuthenticationService : IAuthenticationService, IAccountEvents
+#pragma warning restore CS0618
     {
         /// <summary>
         /// Gets the list of all known user accounts across all games.

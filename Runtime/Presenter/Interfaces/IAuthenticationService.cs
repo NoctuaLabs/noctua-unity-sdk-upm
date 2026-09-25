@@ -8,6 +8,7 @@ namespace com.noctuagames.sdk
     /// Contract for the authentication presenter. Defines the auth operations
     /// available to the View/UI layer without depending on the concrete service.
     /// </summary>
+    [Obsolete("Unused by the SDK and slated for removal in the next major version. Use NoctuaAuthenticationService (via Noctua.Auth) directly.")]
     public interface IAuthenticationService
     {
         /// <summary>All accounts known to the SDK.</summary>
