@@ -173,6 +173,11 @@ namespace com.noctuagames.sdk
             {
                 _config.Noctua.BaseUrl = NoctuaConfig.DefaultSandboxBaseUrl;
 
+                if (!string.IsNullOrWhiteSpace(_config.Noctua.SandboxProgressTrackerBaseUrl))
+                {
+                    _config.Noctua.ProgressTrackerBaseUrl = _config.Noctua.SandboxProgressTrackerBaseUrl;
+                }
+
                 // Capture raw config text for the Build sanity panel's
                 // SHA-256 checksum. Kept only when sandbox is on so
                 // production builds don't retain the text in memory.
@@ -411,6 +416,7 @@ namespace com.noctuagames.sdk
 
 
             var accessTokenProvider = new AccessTokenProvider(authService);
+            _accessTokenProvider = accessTokenProvider;
 
             var paymentUI = new PaymentUIAdapter(_uiFactory);
             var lazyAuthProvider = new LazyAuthProvider();
@@ -1429,8 +1435,11 @@ namespace com.noctuagames.sdk
             {
                 var local = Instance.Value._config?.Campaigns;
                 var remote = initResponse?.RemoteConfigs?.Campaigns;
+                var progressBaseUrl = Instance.Value._config?.Noctua?.ProgressTrackerBaseUrl;
 
-                if (local == null && remote == null)
+                // Live ops progress lives on this facade too, so a configured tracker keeps it
+                // alive for games that have no campaign of their own yet.
+                if (local == null && remote == null && string.IsNullOrWhiteSpace(progressBaseUrl))
                 {
                     log.Debug("No campaign config (local or remote) — campaign feature idle");
                     return;
@@ -1444,10 +1453,17 @@ namespace com.noctuagames.sdk
                     Instance.Value._campaignLocale,
                     Instance.Value._eventSender,
                     () => Instance.Value._config?.Noctua?.PlayerRemoteConfigs?.Tags,
-                    FetchCampaignStorePricesAsync);
+                    FetchCampaignStorePricesAsync,
+                    progressBaseUrl,
+                    Instance.Value._accessTokenProvider,
+                    () => Instance.Value._auth?.RecentAccount?.Player?.Id);
 
-                // Local prices are per player (currency, catalogue), so a new account refetches.
-                Instance.Value._auth.OnAccountChanged += _ => Instance.Value._campaign?.ClearStorePrices();
+                // Local prices and live ops progress are per player, so a new account refetches.
+                Instance.Value._auth.OnAccountChanged += _ =>
+                {
+                    Instance.Value._campaign?.ClearStorePrices();
+                    Instance.Value._campaign?.ClearProgress();
+                };
 
                 log.Info($"Campaign feature ready: {merged.Campaigns?.Count ?? 0} campaign(s), schema v{merged.SchemaVersion}");
 

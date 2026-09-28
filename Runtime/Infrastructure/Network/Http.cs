@@ -162,6 +162,7 @@ namespace com.noctuagames.sdk
         };
         
         private bool _noVerboseLog;
+        private bool _errorEnvelopeForAll4xx;
 
         /// <summary>
         /// Creates a new HTTP request with the specified method and URL, and injects default
@@ -230,7 +231,13 @@ namespace com.noctuagames.sdk
                 throw new Exception($"The path value of key={key} is null or empty.");
             }
 
-            _request.url = _request.url.Replace("{" + key + "}", Uri.EscapeDataString(value));
+            // UnityWebRequest (Unity 6) percent-encodes the braces when the URL is assigned, so the
+            // placeholder may already read %7Bkey%7D.
+            var escaped = Uri.EscapeDataString(value);
+            _request.url = _request.url
+                .Replace("{" + key + "}", escaped)
+                .Replace("%7B" + key + "%7D", escaped)
+                .Replace("%7b" + key + "%7d", escaped);
 
             return this;
         }
@@ -366,7 +373,20 @@ namespace com.noctuagames.sdk
         public HttpRequest NoVerboseLog()
         {
             _noVerboseLog = true;
-            
+
+            return this;
+        }
+
+        /// <summary>
+        /// Reads the API error envelope (<c>error_code</c>, <c>error_message</c>) for every 4xx, not
+        /// only 400–407. For services that answer with 409 / 410 / 422 and a meaningful code; a
+        /// 4xx without an envelope still ends up as the default networking error.
+        /// </summary>
+        /// <returns>This <see cref="HttpRequest"/> for method chaining.</returns>
+        public HttpRequest WithErrorEnvelope()
+        {
+            _errorEnvelopeForAll4xx = true;
+
             return this;
         }
 
@@ -568,6 +588,15 @@ namespace com.noctuagames.sdk
             }
             else if ((int)_request.responseCode >= 408) // Including 5XX
             {
+                if (_errorEnvelopeForAll4xx
+                    && _request.responseCode < 500
+                    && TryReadErrorEnvelope(response, out var envelope))
+                {
+                    _log.Error($"Noctua error {envelope.ErrorCode}: {envelope.ErrorMessage}");
+                    FireEndIfObserved(exchange, sw, response, HttpExchangeState.Failed);
+                    throw new NoctuaException((NoctuaErrorCode)envelope.ErrorCode, envelope.ErrorMessage);
+                }
+
                 // Retryable HTTP status codes are treated as networking error:
                 // 408 Request Timeout
                 // 425 Too Early
@@ -604,6 +633,24 @@ namespace com.noctuagames.sdk
                     );
                 }
             }
+        }
+
+        /// <summary>The body as an API error envelope, when it is one and carries a code.</summary>
+        private bool TryReadErrorEnvelope(string body, out ErrorResponse envelope)
+        {
+            envelope = null;
+            if (string.IsNullOrWhiteSpace(body)) return false;
+
+            try
+            {
+                envelope = JsonConvert.DeserializeObject<ErrorResponse>(body, _jsonSettings);
+            }
+            catch (Exception)
+            {
+                return false;
+            }
+
+            return envelope != null && envelope.ErrorCode != 0;
         }
 
         // ---- Inspector helpers (active only when an observer is registered) ----

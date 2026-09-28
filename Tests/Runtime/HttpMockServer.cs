@@ -22,19 +22,28 @@ namespace Tests.Runtime
     {
         public readonly ConcurrentQueue<RequestData> Requests = new();
 
+        /// <summary>"METHOD /path" of every request no handler matched.</summary>
+        public readonly ConcurrentQueue<string> Unmatched = new();
+
         private readonly HttpListener _listener;
         private readonly string _basePath;
-        private readonly Dictionary<string, Func<HttpListenerRequest, string>> _handlers;
+        private readonly Dictionary<string, Func<HttpListenerRequest, (int status, string body)>> _handlers;
 
         public HttpMockServer(string prefix)
         {
             _listener = new HttpListener();
             _listener.Prefixes.Add(prefix);
             _basePath = new Uri(prefix).AbsolutePath;
-            _handlers = new Dictionary<string, Func<HttpListenerRequest, string>>();
+            _handlers = new Dictionary<string, Func<HttpListenerRequest, (int status, string body)>>();
         }
 
         public void AddHandler(string path, Func<HttpListenerRequest, string> handler)
+        {
+            _handlers[$"{_basePath}{path[1..]}"] = request => ((int)HttpStatusCode.OK, handler(request));
+        }
+
+        /// <summary>A handler that also picks the HTTP status, e.g. to answer 409 with an error envelope.</summary>
+        public void AddHandler(string path, Func<HttpListenerRequest, (int status, string body)> handler)
         {
             _handlers[$"{_basePath}{path[1..]}"] = handler;
         }
@@ -65,7 +74,7 @@ namespace Tests.Runtime
                 // Find the handler for the requested path
                 if (_handlers.TryGetValue(request.Url.AbsolutePath, out var handler))
                 {
-                    var responseString = handler(request);
+                    var (statusCode, responseString) = handler(request);
 
                     try
                     {
@@ -85,7 +94,7 @@ namespace Tests.Runtime
                         var buffer = Encoding.UTF8.GetBytes(responseString);
                         response.ContentLength64 = buffer.Length;
                         
-                        response.StatusCode = (int)HttpStatusCode.OK;
+                        response.StatusCode = statusCode;
 
                         await response.OutputStream.WriteAsync(buffer, 0, buffer.Length);
                         
@@ -98,7 +107,12 @@ namespace Tests.Runtime
                 }
                 else
                 {
+                    Unmatched.Enqueue($"{request.HttpMethod} {request.Url.AbsolutePath}");
+                    // Name the path so a mismatch reads as one rather than a bare 404.
+                    var buffer = Encoding.UTF8.GetBytes($"no mock handler for {request.HttpMethod} {request.Url.AbsolutePath}");
                     response.StatusCode = (int)HttpStatusCode.NotFound;
+                    response.ContentLength64 = buffer.Length;
+                    await response.OutputStream.WriteAsync(buffer, 0, buffer.Length);
                 }
             }
         }

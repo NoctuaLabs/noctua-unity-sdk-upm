@@ -176,6 +176,8 @@ namespace com.noctuagames.sdk
         private readonly UIFactory _uiFactory;
         private readonly MediationManager _iaa;
         private readonly NoctuaAppManager _app;
+        // Kept for InitCampaigns (async phase): live ops progress calls need the player's token.
+        private readonly IAccessTokenProvider _accessTokenProvider;
         // Assigned during the async init phase (InitCampaigns) — needs the merged remote config.
         private com.noctuagames.sdk.LiveOpsCampaign.NoctuaLiveOpsCampaign _campaign;
         // Captured in the constructor so InitCampaigns (async phase) can build the campaign UI host.

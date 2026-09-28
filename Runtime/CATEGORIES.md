@@ -114,6 +114,18 @@ Server-driven engagement popups (purchase / event-deeplink CTAs): config merge, 
 | Wiring | `View/Noctua.Initialization.cs` → `InitCampaigns` |
 | Tests | `Tests/Runtime/Campaign/` |
 
+### LiveOps Progress — on `Noctua.LiveOpsCampaign`
+
+Client for the live-ops-progress-tracker service (per-player mission progress: read, set, claim), folded into the campaign facade. Needs a logged-in player and `noctua.progressTrackerBaseUrl` (+ optional `sandboxProgressTrackerBaseUrl`) in `noctuagg.json`; a configured tracker keeps the facade alive even with no campaigns.
+
+| Layer | Files |
+|---|---|
+| Facade | `LiveOpsCampaignManager/NoctuaLiveOpsCampaign.Progress.cs` (partial: `GetProgressAsync`, `SetProgressAsync`, `ClaimProgressAsync`, `Progress`, `OnProgressChanged`, `ClearProgress`, `ToDailyMissionsPlayerData`) |
+| Model | `LiveOpsCampaignManager/Model/LiveOpsProgress.cs`; error codes `NoctuaErrorCode.LiveOpsProgress*` (2300–2402) |
+| HTTP | `Infrastructure/Network/Http.cs` → `WithErrorEnvelope()` (keeps codes on 409 / 410 / 422) |
+| Wiring | `View/Noctua.Initialization.cs` → `InitCampaigns`; cleared on `OnAccountChanged` |
+| Tests | `Tests/Runtime/Campaign/LiveOpsProgressTest.cs` |
+
 ---
 
 ## Debug & Testing

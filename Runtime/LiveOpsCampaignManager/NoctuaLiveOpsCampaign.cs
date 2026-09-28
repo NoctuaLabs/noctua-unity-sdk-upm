@@ -11,7 +11,7 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
     /// <c>Noctua.LiveOpsCampaign</c> (the way <c>MediationManager</c> is <c>Noctua.IAA</c>).
     /// Owns the manager, renderer, dispatcher and UI host for the module.
     /// </summary>
-    public sealed class NoctuaLiveOpsCampaign
+    public sealed partial class NoctuaLiveOpsCampaign
     {
         private const string ImpressionEvent = "live_ops_campaign_impression";
         private const string DismissEvent = "live_ops_campaign_dismiss";
@@ -67,10 +67,16 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
             NoctuaLocale locale,
             IEventSender events,
             Func<IReadOnlyList<string>> playerTags,
-            Func<UniTask<IReadOnlyDictionary<string, string>>> fetchStorePrices = null)
+            Func<UniTask<IReadOnlyDictionary<string, string>>> fetchStorePrices = null,
+            string progressBaseUrl = null,
+            IAccessTokenProvider accessTokens = null,
+            Func<long?> playerId = null)
         {
             _events = events;
             _fetchStorePrices = fetchStorePrices;
+            _progressBaseUrl = (progressBaseUrl ?? "").Trim().TrimEnd('/');
+            _accessTokens = accessTokens;
+            _playerId = playerId;
 
             var env = new DefaultCampaignEnvironment(playerTags, locale);
             var assets = new CampaignAssetSource(isOffline: Noctua.IsOfflineMode);

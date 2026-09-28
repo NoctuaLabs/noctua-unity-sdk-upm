@@ -42,6 +42,15 @@ namespace com.noctuagames.sdk
 
         /// <summary>Base URL for the customer service API.</summary>
         [JsonProperty("customerServiceBaseUrl")] public string CustomerServiceBaseUrl = DefaultCustomerServiceBaseUrl;
+
+        /// <summary>
+        /// Base URL (ending in <c>/api/v1</c>) of the live ops progress tracker. Blank until the
+        /// service has a public host; <c>Noctua.LiveOpsProgress</c> then reports itself unconfigured.
+        /// </summary>
+        [JsonProperty("progressTrackerBaseUrl")] public string ProgressTrackerBaseUrl = "";
+
+        /// <summary>Used instead of <see cref="ProgressTrackerBaseUrl"/> when sandbox is on and it is set.</summary>
+        [JsonProperty("sandboxProgressTrackerBaseUrl")] public string SandboxProgressTrackerBaseUrl = "";
         /// <summary>Maximum number of events to batch before flushing to the tracker.</summary>
         [JsonProperty("trackerBatchSize")] public uint TrackerBatchSize = 20;
         /// <summary>Maximum time in milliseconds between tracker batch flushes.</summary>

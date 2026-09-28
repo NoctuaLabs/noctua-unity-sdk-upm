@@ -32,7 +32,17 @@ namespace com.noctuagames.sdk
         /// <summary>The native IAP subsystem is not ready or not initialized.</summary>
         PaymentStatusIapNotReady = 3010,
         /// <summary>The user account has been banned by the server.</summary>
-        UserBanned = 2202
+        UserBanned = 2202,
+        /// <summary>Live ops progress: the key is not configured for this game.</summary>
+        LiveOpsProgressKeyNotFound = 2300,
+        /// <summary>Live ops progress: the player has no progress recorded for this key.</summary>
+        LiveOpsProgressNotFound = 2301,
+        /// <summary>Live ops progress: the key was already claimed.</summary>
+        LiveOpsProgressAlreadyClaimed = 2400,
+        /// <summary>Live ops progress: the key cannot be claimed before it is completed.</summary>
+        LiveOpsProgressNotCompleted = 2401,
+        /// <summary>Live ops progress: the key is outside its valid window.</summary>
+        LiveOpsProgressKeyInactive = 2402
     }
     
     /// <summary>
