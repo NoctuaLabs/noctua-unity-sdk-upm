@@ -116,7 +116,7 @@ Server-driven engagement popups (purchase / event-deeplink CTAs): config merge, 
 
 ### LiveOps Progress — on `Noctua.LiveOpsCampaign`
 
-Client for the live-ops-progress-tracker service (per-player mission progress: read, set, claim), folded into the campaign facade. Needs a logged-in player and `noctua.progressTrackerBaseUrl` (+ optional `sandboxProgressTrackerBaseUrl`) in `noctuagg.json`; a configured tracker keeps the facade alive even with no campaigns.
+Client for the live-ops-progress-tracker service (per-player mission progress: read, set, claim), folded into the campaign facade. Needs a logged-in player. Talks to `https://liveops-progress-tracker.noctuaprojects.com/api/v1` (`NoctuaConfig.DefaultProgressTrackerBaseUrl`, built in — not in `noctuagg.json`), so the facade is alive after init even for games with no campaigns.
 
 When the tracker is down nothing blocks the game: loads fall back to the player's saved copy (≤ 24 h, `IsProgressStale`), updates wait on disk and are retried with backoff (`LiveOpsProgress.Pending`; safe because the tracker only raises values), claims are online only and never queued. A daily missions popup (declares `m_<id>_progress`) is never shown with made-up zeros: with no copy an auto-show is skipped and a player-opened one raises `OnCampaignUnavailable` + a translated notice.
 

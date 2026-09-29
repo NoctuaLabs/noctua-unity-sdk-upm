@@ -173,11 +173,6 @@ namespace com.noctuagames.sdk
             {
                 _config.Noctua.BaseUrl = NoctuaConfig.DefaultSandboxBaseUrl;
 
-                if (!string.IsNullOrWhiteSpace(_config.Noctua.SandboxProgressTrackerBaseUrl))
-                {
-                    _config.Noctua.ProgressTrackerBaseUrl = _config.Noctua.SandboxProgressTrackerBaseUrl;
-                }
-
                 // Capture raw config text for the Build sanity panel's
                 // SHA-256 checksum. Kept only when sandbox is on so
                 // production builds don't retain the text in memory.
@@ -1435,14 +1430,11 @@ namespace com.noctuagames.sdk
             {
                 var local = Instance.Value._config?.Campaigns;
                 var remote = initResponse?.RemoteConfigs?.Campaigns;
-                var progressBaseUrl = Instance.Value._config?.Noctua?.ProgressTrackerBaseUrl;
-
-                // Live ops progress lives on this facade too, so a configured tracker keeps it
-                // alive for games that have no campaign of their own yet.
-                if (local == null && remote == null && string.IsNullOrWhiteSpace(progressBaseUrl))
+                // Live ops progress lives on this facade too, so it is built even for games that
+                // have no campaign of their own yet.
+                if (local == null && remote == null)
                 {
-                    log.Debug("No campaign config (local or remote) — campaign feature idle");
-                    return;
+                    log.Debug("No campaign config (local or remote) — live ops progress only");
                 }
 
                 var merged = (local ?? new com.noctuagames.sdk.LiveOpsCampaign.CampaignConfig()).MergeWith(remote);
@@ -1456,7 +1448,7 @@ namespace com.noctuagames.sdk
                     FetchCampaignStorePricesAsync,
                     new com.noctuagames.sdk.LiveOpsCampaign.NoctuaLiveOpsCampaign.ProgressTrackerOptions
                     {
-                        BaseUrl = progressBaseUrl,
+                        BaseUrl = NoctuaConfig.DefaultProgressTrackerBaseUrl,
                         AccessTokens = Instance.Value._accessTokenProvider,
                         PlayerId = () => Instance.Value._auth?.RecentAccount?.Player?.Id,
                         ShowNotice = message => Instance.Value._uiFactory?.ShowError(message),

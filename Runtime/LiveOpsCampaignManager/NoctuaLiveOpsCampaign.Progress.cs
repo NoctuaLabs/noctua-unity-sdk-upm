@@ -26,7 +26,8 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
     /// with no saved copy an auto-shown one is skipped and one the player opens raises
     /// <see cref="OnCampaignUnavailable"/> with a short notice.</para>
     ///
-    /// <para>Needs a logged-in player (guest is fine) and <c>noctua.progressTrackerBaseUrl</c>.</para>
+    /// <para>Needs a logged-in player (guest is fine). The tracker is
+    /// <see cref="NoctuaConfig.DefaultProgressTrackerBaseUrl"/>.</para>
     /// </summary>
     public sealed partial class NoctuaLiveOpsCampaign
     {
@@ -104,7 +105,7 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
         /// </summary>
         public event Action<string> OnCampaignUnavailable;
 
-        /// <summary>False until <c>noctua.progressTrackerBaseUrl</c> is set in noctuagg.json.</summary>
+        /// <summary>False only when the facade was built without a tracker URL (e.g. in tests).</summary>
         public bool IsProgressConfigured => _progressBaseUrl.Length > 0;
 
         /// <summary>True while <see cref="Progress"/> is a saved copy because the last load failed.</summary>
@@ -726,7 +727,7 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
             {
                 throw new NoctuaException(
                     NoctuaErrorCode.Application,
-                    "Live ops progress tracker is not configured: set noctua.progressTrackerBaseUrl in noctuagg.json");
+                    "Live ops progress tracker URL is not set on this facade");
             }
 
             return TryProgressCaller() ?? throw new NoctuaException(

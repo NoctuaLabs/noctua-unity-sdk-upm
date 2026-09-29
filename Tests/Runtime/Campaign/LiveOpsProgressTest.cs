@@ -224,7 +224,6 @@ namespace Tests.Runtime.Campaign
 
             Assert.IsFalse(client.IsProgressConfigured);
             var e = await Throws(() => client.GetProgressAsync());
-            StringAssert.Contains("progressTrackerBaseUrl", e.Message);
             Assert.AreEqual(0, _server.Requests.Count);
         });
 
@@ -280,6 +279,23 @@ namespace Tests.Runtime.Campaign
             client.OnProgressChanged += _ => throw new InvalidOperationException("game bug");
 
             Assert.AreEqual(2, (await client.SetProgressAsync("mission_1", 2)).Value);
+        });
+
+        // ---- config -----------------------------------------------------------
+
+        [Test]
+        public void TrackerUrl_IsTheDeployedService()
+        {
+            Assert.AreEqual(
+                "https://liveops-progress-tracker.noctuaprojects.com/api/v1",
+                NoctuaConfig.DefaultProgressTrackerBaseUrl);
+        }
+
+        [UnityTest]
+        public IEnumerator NotConfigured_NamesTheMissingUrl() => UniTask.ToCoroutine(async () =>
+        {
+            var e = await Throws(() => Client(baseUrl: " ").GetProgressAsync());
+            StringAssert.Contains("URL", e.Message);
         });
 
         // ---- daily missions helper ------------------------------------------
