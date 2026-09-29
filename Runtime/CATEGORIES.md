@@ -118,13 +118,16 @@ Server-driven engagement popups (purchase / event-deeplink CTAs): config merge, 
 
 Client for the live-ops-progress-tracker service (per-player mission progress: read, set, claim), folded into the campaign facade. Needs a logged-in player and `noctua.progressTrackerBaseUrl` (+ optional `sandboxProgressTrackerBaseUrl`) in `noctuagg.json`; a configured tracker keeps the facade alive even with no campaigns.
 
+When the tracker is down nothing blocks the game: loads fall back to the player's saved copy (≤ 24 h, `IsProgressStale`), updates wait on disk and are retried with backoff (`LiveOpsProgress.Pending`; safe because the tracker only raises values), claims are online only and never queued. A daily missions popup (declares `m_<id>_progress`) is never shown with made-up zeros: with no copy an auto-show is skipped and a player-opened one raises `OnCampaignUnavailable` + a translated notice.
+
 | Layer | Files |
 |---|---|
-| Facade | `LiveOpsCampaignManager/NoctuaLiveOpsCampaign.Progress.cs` (partial: `GetProgressAsync`, `SetProgressAsync`, `ClaimProgressAsync`, `Progress`, `OnProgressChanged`, `ClearProgress`, `ToDailyMissionsPlayerData`) |
-| Model | `LiveOpsCampaignManager/Model/LiveOpsProgress.cs`; error codes `NoctuaErrorCode.LiveOpsProgress*` (2300–2402) |
-| HTTP | `Infrastructure/Network/Http.cs` → `WithErrorEnvelope()` (keeps codes on 409 / 410 / 422) |
-| Wiring | `View/Noctua.Initialization.cs` → `InitCampaigns`; cleared on `OnAccountChanged` |
-| Tests | `Tests/Runtime/Campaign/LiveOpsProgressTest.cs` |
+| Facade | `LiveOpsCampaignManager/NoctuaLiveOpsCampaign.Progress.cs` (partial: `GetProgressAsync`, `SetProgressAsync`, `ClaimProgressAsync`, `FlushPendingProgressAsync`, `Progress`, `IsProgressStale`, `HasPendingProgress`, `OnProgressChanged`, `OnCampaignUnavailable`, `ToDailyMissionsPlayerData`; saved copy + pending queue in PlayerPrefs `Noctua.LiveOpsCampaign.Progress.<playerId>`) |
+| Popup gating | `LiveOpsCampaignManager/NoctuaLiveOpsCampaign.cs` (`ShowPopup`, `RunAutoShowAsync`, `ShownPlayerData`) |
+| Model | `LiveOpsCampaignManager/Model/LiveOpsProgress.cs`; error codes `NoctuaErrorCode.LiveOpsProgress*` (2300–2402); notice key `LocaleTextKey.LiveOpsMissionsUnavailable` |
+| HTTP | `Infrastructure/Network/Http.cs` → `WithErrorEnvelope()` (keeps codes on 409 / 410 / 422), `WithTimeout()` (5 s for progress) |
+| Wiring | `View/Noctua.Initialization.cs` → `InitCampaigns` (`OnAccountChangedAsync`); `View/Noctua.cs` → `OnOnline` / `IsOfflineAsync` (`OnConnectivityRestoredAsync`) |
+| Tests | `Tests/Runtime/Campaign/LiveOpsProgressTest.cs`, `LiveOpsProgressOfflineTest.cs`, `LiveOpsProgressPopupTest.cs` (`LiveOpsProgressTestKit.cs`) |
 
 ---
 

@@ -246,6 +246,9 @@ namespace com.noctuagames.sdk
             {
                 Instance.Value._nativePlugin.OnOnline();
             }
+
+            // Live ops progress updates made while offline go out now.
+            Instance.Value._campaign?.OnConnectivityRestoredAsync().Forget();
         }
 
         /// <summary>
@@ -302,6 +305,8 @@ namespace com.noctuagames.sdk
             if (isConnected)
             {
                 log.Debug("Internet is available.");
+                // Back online: live ops progress updates made while offline go out now.
+                if (prevOfflineMode) Instance.Value._campaign?.OnConnectivityRestoredAsync().Forget();
                 if (Instance.Value._nativePlugin != null)
                 {
                     if (!AdjustOfflineModeDisabled())

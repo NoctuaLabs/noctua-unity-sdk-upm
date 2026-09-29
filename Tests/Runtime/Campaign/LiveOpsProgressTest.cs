@@ -51,6 +51,7 @@ namespace Tests.Runtime.Campaign
             }
             while (_server.Requests.TryDequeue(out _)) { }
             while (_server.Unmatched.TryDequeue(out _)) { }
+            LiveOpsProgressTestKit.ClearSaved();
         }
 
         [TearDown]
@@ -66,9 +67,9 @@ namespace Tests.Runtime.Campaign
 
         private static NoctuaLiveOpsCampaign Client(
             string baseUrl = BaseUrl, StubTokens tokens = null, long? playerId = PlayerId) =>
-            new(new CampaignConfig(), null, null, new MockEventSender(), () => Array.Empty<string>(),
-                progressBaseUrl: baseUrl,
-                accessTokens: tokens ?? new StubTokens(),
+            LiveOpsProgressTestKit.NewFacade(
+                baseUrl,
+                tokens: new LiveOpsProgressTestKit.StubTokens { Authenticated = tokens?.Authenticated ?? true },
                 playerId: () => playerId);
 
         private static string Envelope(string data) => "{\"success\":true,\"data\":" + data + "}";
@@ -255,7 +256,7 @@ namespace Tests.Runtime.Campaign
         // ---- local state ----------------------------------------------------
 
         [UnityTest]
-        public IEnumerator Clear_ForgetsProgress_AndNotifies() => UniTask.ToCoroutine(async () =>
+        public IEnumerator Clear_ForgetsMemory_KeepsTheSavedCopy() => UniTask.ToCoroutine(async () =>
         {
             _server.AddHandler("/progress/42", _ => Envelope("[" + Row("mission_1", 3, 20) + "]"));
             var client = Client();
@@ -265,8 +266,9 @@ namespace Tests.Runtime.Campaign
 
             client.ClearProgress();
 
-            Assert.AreEqual(0, client.Progress.Count);
-            Assert.AreEqual(0, notified);
+            Assert.AreEqual(0, notified, "listeners see the in-memory view emptied");
+            StringAssert.Contains("mission_1", LiveOpsProgressTestKit.Saved(), "the player's copy stays on disk");
+            Assert.AreEqual(3, client.Progress.Single().Value, "and is loaded again on next access");
         });
 
         [UnityTest]

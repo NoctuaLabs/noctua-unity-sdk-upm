@@ -25,8 +25,17 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
         /// <summary>True once the reward was claimed. A key is claimed at most once.</summary>
         [JsonProperty("claimed")] public bool Claimed;
 
+        /// <summary>
+        /// True while <see cref="Value"/> includes an update the tracker has not confirmed yet
+        /// (it was down); the SDK keeps retrying it. Local only, never sent by the server.
+        /// </summary>
+        [JsonIgnore] public bool Pending;
+
+        /// <summary>A copy, so views handed to the game never alias the SDK's own state.</summary>
+        public LiveOpsProgress Clone() => (LiveOpsProgress)MemberwiseClone();
+
         /// <inheritdoc />
         public override string ToString() =>
-            $"{Key}: {Value}/{Max}{(Claimed ? " claimed" : Completed ? " completed" : "")}";
+            $"{Key}: {Value}/{Max}{(Claimed ? " claimed" : Completed ? " completed" : "")}{(Pending ? " pending" : "")}";
     }
 }

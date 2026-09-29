@@ -163,6 +163,7 @@ namespace com.noctuagames.sdk
         
         private bool _noVerboseLog;
         private bool _errorEnvelopeForAll4xx;
+        private int? _timeoutSeconds;
 
         /// <summary>
         /// Creates a new HTTP request with the specified method and URL, and injects default
@@ -390,6 +391,19 @@ namespace com.noctuagames.sdk
             return this;
         }
 
+        /// <summary>
+        /// Gives up after <paramref name="seconds"/> instead of the default (20 s for
+        /// <see cref="Send{T}"/>, 60 s for <see cref="SendRaw"/>); a timeout surfaces as a
+        /// <see cref="NoctuaErrorCode.Networking"/> error like any lost connection.
+        /// </summary>
+        /// <returns>This <see cref="HttpRequest"/> for method chaining.</returns>
+        public HttpRequest WithTimeout(int seconds)
+        {
+            _timeoutSeconds = Math.Max(1, seconds);
+
+            return this;
+        }
+
         [Preserve]
         private class DataWrapper<T>
         {
@@ -404,7 +418,7 @@ namespace com.noctuagames.sdk
         public async UniTask<string> SendRaw()
         {
             _request.downloadHandler = new DownloadHandlerBuffer();
-            _request.timeout = 60;
+            _request.timeout = _timeoutSeconds ?? 60;
             // Inspector network conditioner — sandbox-only fault injection.
             // No-op in production (Mode defaults to Normal, single read).
             try { await NetworkConditioner.ApplyAsync(); }
@@ -491,7 +505,7 @@ namespace com.noctuagames.sdk
 
             try
             {
-                _request.timeout = 20;
+                _request.timeout = _timeoutSeconds ?? 20;
                 if (exchange != null) HttpInspectorHooks.FireStateChange(exchange.Id, HttpExchangeState.Sending);
                 // Inspector network conditioner — sandbox-only fault injection
                 // applied between Sending state-change and the actual network

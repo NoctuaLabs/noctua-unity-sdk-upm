@@ -68,15 +68,11 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
             IEventSender events,
             Func<IReadOnlyList<string>> playerTags,
             Func<UniTask<IReadOnlyDictionary<string, string>>> fetchStorePrices = null,
-            string progressBaseUrl = null,
-            IAccessTokenProvider accessTokens = null,
-            Func<long?> playerId = null)
+            ProgressTrackerOptions progress = null)
         {
             _events = events;
             _fetchStorePrices = fetchStorePrices;
-            _progressBaseUrl = (progressBaseUrl ?? "").Trim().TrimEnd('/');
-            _accessTokens = accessTokens;
-            _playerId = playerId;
+            InitProgress(progress, locale);
 
             var env = new DefaultCampaignEnvironment(playerTags, locale);
             var assets = new CampaignAssetSource(isOffline: Noctua.IsOfflineMode);
@@ -137,6 +133,12 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
         /// <summary>The resolver behind this facade — read by the sandbox Inspector.</summary>
         public CampaignManager Manager => _manager;
 
+        /// <summary>The id of the campaign on screen, or null.</summary>
+        public string ShownCampaignId => _shownItem?.Id;
+
+        /// <summary>The per-player values the popup on screen was last rendered with, or null.</summary>
+        public IReadOnlyDictionary<string, string> ShownPlayerData => _shownItem == null ? null : _shownPlayerData;
+
         /// <summary>Registers the game's deeplink router for <c>deeplink</c> actions.</summary>
         public void RegisterDeeplinkHandler(Action<string> handler) => _deeplinkHandler = handler;
 
@@ -185,6 +187,33 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
                     return;
                 }
 
+                // Daily missions with the tracker configured: shown only with real progress.
+                if (GatesOnProgress(stored))
+                {
+                    ShowWithProgressAsync(stored, playerData, auto: false).Forget();
+                    return;
+                }
+
+                ShowResolved(stored, playerData);
+            }
+            catch (Exception e)
+            {
+                _log.Error("ShowPopup failed: " + e.Message);
+            }
+        }
+
+        /// <summary>
+        /// Shows a campaign whose per-player values are settled. <paramref name="gameData"/> is the
+        /// game's own part of them, kept so later progress refreshes stay under it.
+        /// </summary>
+        private void ShowResolved(
+            CampaignItem stored,
+            IReadOnlyDictionary<string, string> playerData,
+            bool progressBacked = false,
+            IReadOnlyDictionary<string, string> gameData = null)
+        {
+            try
+            {
                 var item = RenderItem(stored, playerData);
 
                 var popup = _host.Popup;
@@ -201,6 +230,8 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
                         {
                             _shownItem = null;
                             _shownPlayerData = null;
+                            _shownProgressBacked = false;
+                            _shownGameData = null;
                         }
                         if (_dispatcher.CurrentDismiss == (Action)popup.Close) _dispatcher.CurrentDismiss = null;
                         if (_dispatcher.CurrentBusy == (Action<bool>)popup.SetBusy) _dispatcher.CurrentBusy = null;
@@ -213,6 +244,10 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
                 _dispatcher.CurrentBusy = popup.SetBusy;
                 _shownItem = stored;
                 _shownPlayerData = playerData;
+                _shownProgressBacked = progressBacked;
+                _shownGameData = gameData == null
+                    ? new Dictionary<string, string>()
+                    : new Dictionary<string, string>(gameData);
                 popup.Show(item, _manager.Config.SchemaVersion);
 
                 // Shown with the USD fallback; swap in the player's local prices once known.
@@ -370,6 +405,11 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
                 var combined = new Dictionary<string, string>();
                 if (_shownPlayerData != null) foreach (var pair in _shownPlayerData) combined[pair.Key] = pair.Value;
                 if (playerData != null) foreach (var pair in playerData) combined[pair.Key] = pair.Value;
+                // The game's values keep winning over later progress refreshes.
+                if (_shownProgressBacked && playerData != null)
+                {
+                    foreach (var pair in playerData) _shownGameData[pair.Key] = pair.Value;
+                }
 
                 if (!popup.Refresh(RenderItem(_shownItem, combined), _manager.Config.SchemaVersion))
                 {
@@ -403,23 +443,52 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
         /// Composition-root hook: shows the first eligible <c>auto_show</c> campaign once,
         /// right after init. Safe to call more than once — only the first has effect.
         /// </summary>
-        public void RunAutoShow()
-        {
-            if (_autoShown) return;
-            _autoShown = true;
+        public void RunAutoShow() => RunAutoShowAsync().Forget();
 
+        /// <summary>
+        /// <see cref="RunAutoShow"/>, awaitable: true when a popup was shown. A daily missions
+        /// campaign with no progress to show (tracker down, no saved copy) is skipped for the next
+        /// eligible one; when it was skipped only because nobody is logged in yet and nothing else
+        /// showed, it is tried again after the first login.
+        /// </summary>
+        public UniTask<bool> RunAutoShowAsync()
+        {
+            if (_autoShown) return UniTask.FromResult(false);
+            _autoShown = true;
+            return AutoShowCoreAsync();
+        }
+
+        private async UniTask<bool> AutoShowCoreAsync()
+        {
             try
             {
+                var waitingForPlayer = false;
                 foreach (var item in _manager.GetActiveCampaigns())
                 {
                     if (!item.AutoShow) continue;
-                    ShowPopup(item.Id);
-                    return;
+
+                    if (!GatesOnProgress(item))
+                    {
+                        ShowResolved(item, null);
+                        return true;
+                    }
+
+                    if (TryProgressCaller() == null)
+                    {
+                        waitingForPlayer = true;
+                        continue;
+                    }
+
+                    if (await ShowWithProgressAsync(item, null, auto: true)) return true;
                 }
+
+                _autoShowNeedsPlayer = waitingForPlayer;
+                return false;
             }
             catch (Exception e)
             {
                 _log.Warning("RunAutoShow failed: " + e.Message);
+                return false;
             }
         }
 

@@ -356,6 +356,8 @@ namespace com.noctuagames.sdk
         ErrorRePasswordEmpty,
         ErrorRePasswordNotMatch,
 
-        AuthEmailLinkingSuccessful
+        AuthEmailLinkingSuccessful,
+
+        LiveOpsMissionsUnavailable
     }
 }

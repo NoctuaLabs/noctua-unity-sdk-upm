@@ -251,5 +251,6 @@
     "ErrorPasswordEmpty": "Không được để trống mật khẩu",
     "ErrorPasswordShort": "Mật khẩu quá ngắn. Tối thiểu 6 ký tự",
     "ErrorRePasswordEmpty": "Không được để trống mật khẩu xác nhận",
-    "ErrorRePasswordNotMatch": "Mật khẩu không khớp với mật khẩu xác nhận"
+    "ErrorRePasswordNotMatch": "Mật khẩu không khớp với mật khẩu xác nhận",
+    "LiveOpsMissionsUnavailable": "Nhiệm vụ hiện không khả dụng. Vui lòng thử lại sau."
 }

@@ -1454,15 +1454,20 @@ namespace com.noctuagames.sdk
                     Instance.Value._eventSender,
                     () => Instance.Value._config?.Noctua?.PlayerRemoteConfigs?.Tags,
                     FetchCampaignStorePricesAsync,
-                    progressBaseUrl,
-                    Instance.Value._accessTokenProvider,
-                    () => Instance.Value._auth?.RecentAccount?.Player?.Id);
+                    new com.noctuagames.sdk.LiveOpsCampaign.NoctuaLiveOpsCampaign.ProgressTrackerOptions
+                    {
+                        BaseUrl = progressBaseUrl,
+                        AccessTokens = Instance.Value._accessTokenProvider,
+                        PlayerId = () => Instance.Value._auth?.RecentAccount?.Player?.Id,
+                        ShowNotice = message => Instance.Value._uiFactory?.ShowError(message),
+                    });
 
-                // Local prices and live ops progress are per player, so a new account refetches.
+                // Local prices and live ops progress are per player: a new account refetches
+                // prices, switches to its own saved progress and sends its waiting updates.
                 Instance.Value._auth.OnAccountChanged += _ =>
                 {
                     Instance.Value._campaign?.ClearStorePrices();
-                    Instance.Value._campaign?.ClearProgress();
+                    Instance.Value._campaign?.OnAccountChangedAsync().Forget();
                 };
 
                 log.Info($"Campaign feature ready: {merged.Campaigns?.Count ?? 0} campaign(s), schema v{merged.SchemaVersion}");
