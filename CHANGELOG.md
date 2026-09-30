@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## [0.134.0] - 2026-09-25
+## [0.135.0] - 2026-09-30
 
 ### ⚙️ Miscellaneous
 
@@ -60,6 +60,8 @@ All notable changes to this project will be documented in this file.
 - *(iap)* Never mint a redeem order for a paid Google Play purchase
 - *(iap)* Stop re-filing and re-minting unpaired Google Play purchases
 - *(ios)* Embed CocoaPods-managed frameworks when Podfile uses static linkage
+- *(campaign)* Fold CampaignStorePrices into NoctuaLiveOpsCampaign
+- *(live-ops)* Built-in progress tracker URL, no per-game config
 
 ### 🐛 Bug Fixes
 
@@ -96,6 +98,7 @@ All notable changes to this project will be documented in this file.
 - *(iap)* Evaluate store payment availability per purchase, not once at init
 - *(iap)* Require native Android SDK 0.35.1 for billing reconnection
 - *(iap)* Bound the iOS active-currency query so silent StoreKit cannot hang init
+- *(campaign)* Draw the popup close cross instead of the ✕ glyph
 
 ### 🚀 Features
 
@@ -133,6 +136,10 @@ All notable changes to this project will be documented in this file.
 - *(campaign)* Per-player data, visible_if conditions and keep_open actions
 - *(campaign)* Per-campaign backdrop colour
 - *(iap)* Cache product list and clear on sdk init
+- *(campaign)* Local store prices and per-button click analytics
+- *(live-ops)* Live ops progress tracker client on Noctua.LiveOpsCampaign
+- *(live-ops)* Keep live ops progress working when the tracker is down
+- *(live-ops)* Per-campaign daily mission progress keys
 
 ## [0.122.0] - 2026-05-18
 
