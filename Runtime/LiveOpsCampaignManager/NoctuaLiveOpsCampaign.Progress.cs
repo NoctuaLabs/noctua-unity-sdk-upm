@@ -18,6 +18,12 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
     /// <see cref="ClaimProgressAsync"/> when the player takes the reward, granting it only if the
     /// claim succeeds.</para>
     ///
+    /// <para><b>Daily missions</b>: each campaign keeps its own progress per mission, under the
+    /// tracker key <c>&lt;campaign scope&gt;.&lt;mission key&gt;</c> (<see cref="TrackerKey"/>).
+    /// Call <see cref="SetMissionProgressAsync"/> with the mission key — it updates every campaign
+    /// that has that mission — and <see cref="ClaimMissionAsync"/> with the campaign the player
+    /// claimed in.</para>
+    ///
     /// <para><b>When the tracker is down</b> nothing blocks the game:
     /// loads fall back to the player's last saved copy (<see cref="IsProgressStale"/>);
     /// updates are kept on disk and retried (<see cref="LiveOpsProgress.Pending"/>) — safe because
@@ -286,6 +292,68 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
         }
 
         /// <summary>
+        /// Sets daily mission <paramref name="missionKey"/> (the key in noctua-admin, e.g.
+        /// <c>use_stm</c>) to <paramref name="value"/> in every campaign that has that mission, and
+        /// returns their progress. Queues while the tracker is down, like
+        /// <see cref="SetProgressAsync"/>. A campaign whose key the tracker refuses (not set up yet,
+        /// or ended) is skipped; throws only when every one is refused. Returns an empty list when
+        /// no campaign has the mission.
+        /// </summary>
+        public async UniTask<IReadOnlyList<LiveOpsProgress>> SetMissionProgressAsync(string missionKey, long value)
+        {
+            RequireMissionKey(missionKey);
+            var keys = MissionTrackerKeys(missionKey);
+            if (keys.Count == 0)
+            {
+                _log.Debug($"{LogTag} no campaign has mission '{missionKey}'; progress not sent");
+                return Array.Empty<LiveOpsProgress>();
+            }
+
+            var stored = new List<LiveOpsProgress>(keys.Count);
+            NoctuaException firstRefusal = null;
+            foreach (var key in keys)
+            {
+                try
+                {
+                    var row = await SetProgressAsync(key, value);
+                    if (row != null) stored.Add(row);
+                }
+                catch (NoctuaException e) when (Classify(e) == ProgressFailure.Refused)
+                {
+                    _log.Warning($"{LogTag} mission progress '{key}' refused by the tracker: {e.Message}");
+                    firstRefusal ??= e;
+                }
+            }
+
+            if (stored.Count == 0 && firstRefusal != null) throw firstRefusal;
+            return stored;
+        }
+
+        /// <summary>
+        /// Claims daily mission <paramref name="missionKey"/> in campaign
+        /// <paramref name="campaignId"/> (e.g. <see cref="ShownCampaignId"/> from the claim
+        /// deeplink); grant the reward only when this returns. Same errors as
+        /// <see cref="ClaimProgressAsync"/>.
+        /// </summary>
+        public UniTask<LiveOpsProgress> ClaimMissionAsync(string campaignId, string missionKey)
+        {
+            RequireMissionKey(missionKey);
+            var item = _manager.Config?.Campaigns?.FirstOrDefault(c => c != null && c.Id == campaignId);
+            if (item == null)
+            {
+                throw new NoctuaException(NoctuaErrorCode.Application, $"No live ops campaign '{campaignId}'");
+            }
+            if (!HasMission(item, missionKey))
+            {
+                throw new NoctuaException(
+                    NoctuaErrorCode.Application,
+                    $"Campaign '{campaignId}' has no mission '{missionKey}'");
+            }
+
+            return ClaimProgressAsync(TrackerKey(item, missionKey));
+        }
+
+        /// <summary>
         /// Sends every waiting update now. Returns how many still wait (tracker down, or nobody
         /// logged in). The SDK also retries on its own with a growing delay, on reconnect and after
         /// login; call this to force it.
@@ -402,6 +470,18 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
         public static bool IsProgressBacked(CampaignItem item) =>
             item?.PlayerData != null && item.PlayerData.Keys.Any(key => MissionProgressKey.IsMatch(key));
 
+        /// <summary>
+        /// The tracker key of <paramref name="item"/>'s mission <paramref name="missionKey"/>:
+        /// <c>&lt;progress_scope&gt;.&lt;missionKey&gt;</c>, or the mission key alone when the
+        /// campaign has no <see cref="CampaignItem.ProgressScope"/>.
+        /// </summary>
+        public static string TrackerKey(CampaignItem item, string missionKey) =>
+            string.IsNullOrEmpty(item?.ProgressScope) ? missionKey : item.ProgressScope + "." + missionKey;
+
+        /// <summary>True when <paramref name="item"/>'s popup shows mission <paramref name="missionKey"/>.</summary>
+        public static bool HasMission(CampaignItem item, string missionKey) =>
+            item?.PlayerData != null && item.PlayerData.ContainsKey($"m_{missionKey}_progress");
+
         /// <summary>The retry delay after <paramref name="attempt"/> failed flushes: 30 s, doubling, at most 10 min.</summary>
         public static TimeSpan ProgressRetryDelay(int attempt)
         {
@@ -491,12 +571,36 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
             IReadOnlyDictionary<string, string> gameData)
         {
             var data = new Dictionary<string, string>(StringComparer.Ordinal);
-            foreach (var pair in ToDailyMissionsPlayerData(progress))
+            foreach (var pair in ToDailyMissionsPlayerData(progress, key => MissionOf(stored, key)))
             {
                 if (stored.PlayerData != null && stored.PlayerData.ContainsKey(pair.Key)) data[pair.Key] = pair.Value;
             }
             if (gameData != null) foreach (var pair in gameData) data[pair.Key] = pair.Value;
             return data;
+        }
+
+        /// <summary>The mission a tracker key belongs to in <paramref name="item"/>, or null for another campaign's key.</summary>
+        private static string MissionOf(CampaignItem item, string trackerKey)
+        {
+            if (string.IsNullOrEmpty(item.ProgressScope)) return trackerKey;
+            var prefix = item.ProgressScope + ".";
+            return trackerKey.StartsWith(prefix, StringComparison.Ordinal) ? trackerKey.Substring(prefix.Length) : null;
+        }
+
+        /// <summary>Every campaign's tracker key for the mission, once each.</summary>
+        private List<string> MissionTrackerKeys(string missionKey) =>
+            (_manager.Config?.Campaigns ?? new List<CampaignItem>())
+                .Where(item => HasMission(item, missionKey))
+                .Select(item => TrackerKey(item, missionKey))
+                .Distinct(StringComparer.Ordinal)
+                .ToList();
+
+        private static void RequireMissionKey(string missionKey)
+        {
+            if (string.IsNullOrEmpty(missionKey))
+            {
+                throw new NoctuaException(NoctuaErrorCode.Application, "Mission key must not be empty");
+            }
         }
 
         private void Unavailable(string campaignId)

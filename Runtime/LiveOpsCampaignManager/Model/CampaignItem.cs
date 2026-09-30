@@ -70,6 +70,15 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
         public Dictionary<string, string> PlayerData;
 
         /// <summary>
+        /// Daily missions only: scopes the campaign's mission keys on the live ops progress
+        /// tracker. Mission <c>use_stm</c> is tracker key <c>&lt;scope&gt;.use_stm</c>, so two
+        /// campaigns with the same mission never share a player's progress. Absent on older
+        /// payloads: the tracker key is then the mission key itself.
+        /// </summary>
+        [JsonProperty("progress_scope")]
+        public string ProgressScope;
+
+        /// <summary>
         /// Optional per-campaign custom-font registry: alias → <c>Resources</c> path of a
         /// Font Asset (or source <c>.ttf</c>/<c>.otf</c>) the game ships in its build. A node's
         /// <c>style.font_path</c> is looked up here; when it isn't a key (or there is no
