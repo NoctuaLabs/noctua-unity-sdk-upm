@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## [0.135.0] - 2026-09-30
+## [0.136.0] - 2026-10-06
 
 ### ⚙️ Miscellaneous
 
@@ -99,6 +99,8 @@ All notable changes to this project will be documented in this file.
 - *(iap)* Require native Android SDK 0.35.1 for billing reconnection
 - *(iap)* Bound the iOS active-currency query so silent StoreKit cannot hang init
 - *(campaign)* Draw the popup close cross instead of the ✕ glyph
+- *(ui)* Render Thai text in games without TextMesh Pro Essentials
+- *(ui)* Drop text settings' dependency on the sample's TextMesh Pro files
 
 ### 🚀 Features
 
@@ -140,6 +142,7 @@ All notable changes to this project will be documented in this file.
 - *(live-ops)* Live ops progress tracker client on Noctua.LiveOpsCampaign
 - *(live-ops)* Keep live ops progress working when the tracker is down
 - *(live-ops)* Per-campaign daily mission progress keys
+- *(ios)* Opt-in swift package manager integration
 
 ## [0.122.0] - 2026-05-18
 
