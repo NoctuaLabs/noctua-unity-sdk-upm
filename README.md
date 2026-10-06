@@ -75,6 +75,15 @@ One-click install of a pre-validated combination that runs AppLovin MAX and AdMo
 
 > **Maio is mutually exclusive.** Install Maio from **either** AppLovin MAX **or** AdMob — never both. `com.applovin.mediation.adapters.maio.ios 2.1.6.0` pins `MaioSDK-v2 = 2.1.6`; `com.google.ads.mobile.mediation.maio 3.1.6` pins `MaioSDK-v2 = 2.2.1`. The two adapters cannot coexist at any version. Fix CocoaPods Conflicts reports `⚠ MUTUALLY EXCLUSIVE — remove one` and intentionally skips auto-patch — uninstall one in Integration Manager. AppLovin MAX is the primary mediator in the Recommended Setup, so installing Maio only via AppLovin MAX is the safest choice (it continues to serve Maio demand without the AdMob adapter). See [docs.noctua.gg troubleshooting guide](https://docs.noctua.gg/troubleshoot/cocoapods-maio-gma-13-conflict) for details.
 
+### iOS Dependency Manager: CocoaPods or Swift Package Manager
+
+**Noctua > iOS > Dependency Manager** switches how the native Noctua iOS SDK is integrated:
+
+- **CocoaPods** (default) — EDM4U installs the `NoctuaSDK/*` pods.
+- **Swift Package Manager** — links [`noctua-native-sdk-ios`](https://github.com/NoctuaLabs/noctua-native-sdk-ios) into the Xcode project. Firebase, Adjust, Facebook and NoctuaInternalSDK come from SPM; ad SDKs and adapters stay on CocoaPods.
+
+The choice is saved in `ProjectSettings/NoctuaIosDependencySettings.json` — commit it so CI builds the same way. The `NOCTUA_IOS_DEPENDENCY_MANAGER` env var (`cocoapods` | `spm`) overrides it. Use a clean (Replace) build folder when switching. In SPM mode the build fails if `Podfile.lock` still installs a pod the package already provides (Firebase, Adjust, Facebook, GoogleUtilities, …), since linking both duplicates symbols.
+
 ### Ad Network Adapters
 
 - **AppLovin MAX — Ad Network Adapters**: 22 adapters from `unity.packages.applovin.com`

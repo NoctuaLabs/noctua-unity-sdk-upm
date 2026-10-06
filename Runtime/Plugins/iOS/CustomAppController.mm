@@ -88,8 +88,8 @@ static NSString* NoctuaPayloadToJson(NSDictionary *userInfo) {
 
 #import "UnityAppController.h"
 #import "UserNotifications/UserNotifications.h"
-#import "FirebaseCore.h"
-#import "FirebaseMessaging.h"
+#import <FirebaseCore/FirebaseCore.h>
+#import <FirebaseMessaging/FirebaseMessaging.h>
 #import <objc/runtime.h>
 
 // Parent class selection:

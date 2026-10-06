@@ -247,6 +247,19 @@ Menu: **Noctua > iOS > Fix CocoaPods Conflicts** (greyed out unless build target
 
 **`IsConflicting()` logic:** Checks CocoaPods pessimistic constraint `~> X.Y.Z` against required version. Three-component constraint pins minor+patch; two-component (`~> X.Y`) allows all `X.*`.
 
+### iOS Dependency Manager (`Editor/Build/NoctuaSpmIntegration.cs`)
+
+Menu: **Noctua > iOS > Dependency Manager > CocoaPods / Swift Package Manager**. Stored in `ProjectSettings/NoctuaIosDependencySettings.json`; env `NOCTUA_IOS_DEPENDENCY_MANAGER` overrides. CocoaPods mode is untouched (no hooks run).
+
+SPM mode (hybrid: ad SDKs stay on Pods):
+- `[PostProcessBuild(41)]` strips `pod 'NoctuaSDK…'` lines from the EDM4U Podfile (EDM generates it at 40, runs `pod install` at 50)
+- `[PostProcessBuild(3)]` adds `noctua-native-sdk-ios` (`DefaultPackageVersion`) — product `NoctuaSDK` → **UnityFramework only**; code-free `NoctuaSDKDynamicFrameworks` → **Unity-iPhone** so Xcode embeds the dynamic binaries (Facebook, AdjustSignature). Linking `NoctuaSDK` into both targets duplicates static Firebase/Adjust — this is why the 2025 SPM attempt was rolled back.
+- `[PostProcessBuild(int.MaxValue - 3)]` throws `BuildFailedException` if `Podfile.lock` contains a pod the package provides
+- `AddAdjustSignatureXCFramework` (Pods path) is skipped
+- `NOCTUA_SPM_PACKAGE_URL` / `NOCTUA_SPM_PACKAGE_VERSION` override the package source (e.g. a local `file://` git repo for an unreleased package)
+
+**Versioning:** the SPM repo auto-bumps with git-cliff, so its tags do not match the podspec — `noctua-native-sdk-ios` 0.6.0 = native iOS 0.40.1. Bump `DefaultPackageVersion` to the SPM repo's tag. Tests: `Tests/Editor/NoctuaSpmIntegrationTest.cs` (needs the package in the host project's `testables`).
+
 ### Mutually Exclusive Adapter Pairs
 
 Some adapter pairs cannot coexist because they pin the **same native pod** to **different exact versions** — no XML patch can reconcile this, only uninstalling one adapter resolves it.
