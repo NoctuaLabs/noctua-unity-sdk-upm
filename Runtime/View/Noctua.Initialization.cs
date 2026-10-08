@@ -1144,7 +1144,7 @@ namespace com.noctuagames.sdk
 
             try
             {
-                var rcIAPRevenue = await GetFirebaseRemoteConfigDouble("taichi_iap_revenue_threshold");
+                var rcIAPRevenue = await GetFirebaseRemoteConfigDouble(IAPTaichiConfig.RemoteConfigKey);
 
                 if (rcIAPRevenue > 0)
                 {

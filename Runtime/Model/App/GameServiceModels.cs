@@ -346,6 +346,9 @@ namespace com.noctuagames.sdk
     [Preserve]
     public class IAPTaichiConfig
     {
+        /// <summary>Firebase Remote Config key holding <see cref="RevenueThreshold"/> (Number, USD).</summary>
+        public const string RemoteConfigKey = "taichi_iap_revenue_threshold";
+
         /// <summary>
         /// Cumulative IAP spend threshold in USD. Fires taichi_iap_revenue when crossed.
         /// Default: 0.99

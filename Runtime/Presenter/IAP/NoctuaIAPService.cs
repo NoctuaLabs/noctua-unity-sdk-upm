@@ -3370,6 +3370,43 @@ namespace com.noctuagames.sdk
             }
         }
 
+        /// <summary>
+        /// Re-reads the IAP threshold from Firebase Remote Config when the init-time read came back
+        /// empty — init runs before <c>fetchAndActivate</c> has finished on a first launch, or while
+        /// a stale cached template is still inside the fetch interval. All native getters
+        /// (Android, iOS, editor stub) answer synchronously, so the value is available on return.
+        /// </summary>
+        /// <returns><c>true</c> when a positive threshold was loaded and cached.</returns>
+        private bool TryReloadTaichiConfig()
+        {
+            if (_nativePlugin == null)
+            {
+                _log.Warning("[taichi] iap config reload skipped: native plugin is null");
+                return false;
+            }
+
+            var threshold = 0.0;
+            try
+            {
+                _nativePlugin.GetFirebaseRemoteConfigDouble(IAPTaichiConfig.RemoteConfigKey, value => threshold = value);
+            }
+            catch (Exception e)
+            {
+                _log.Warning($"[taichi] iap config reload failed: {e.Message}");
+                return false;
+            }
+
+            if (threshold <= 0)
+            {
+                _log.Warning($"[taichi] iap config reload: Remote Config '{IAPTaichiConfig.RemoteConfigKey}' still empty or not set");
+                return false;
+            }
+
+            _taichiConfig = new IAPTaichiConfig { RevenueThreshold = threshold };
+            _log.Info($"[taichi] iap config reloaded from Remote Config: revenueThreshold={threshold:G} USD");
+            return true;
+        }
+
         private void TrackTaichiIAP(OrderRequest order)
         {
             // All log lines carry the [taichi] tag so the IAP-revenue path can be found alongside
@@ -3380,9 +3417,9 @@ namespace com.noctuagames.sdk
                 return;
             }
 
-            if (_taichiConfig == null)
+            if (_taichiConfig == null && !TryReloadTaichiConfig())
             {
-                _log.Warning("[taichi] iap config is null, skipping revenue tracking");
+                _log.Warning("[taichi] iap config is null after Remote Config reload, skipping revenue tracking");
                 return;
             }
 

@@ -26,7 +26,7 @@ namespace Tests.Runtime.IAP
     /// <c>TrackTaichiIAP</c> is private and only emits via <c>INativePlugin.TrackCustomEvent</c>, so the
     /// test invokes it through reflection and captures the forwarded payload with a
     /// <see cref="CapturingNativePlugin"/> (a <see cref="DefaultNativePlugin"/> subclass that
-    /// re-implements <c>TrackCustomEvent</c>). No HTTP / live backend needed.
+    /// re-implements <c>TrackCustomEvent</c> and <c>GetFirebaseRemoteConfigDouble</c>). No HTTP / live backend needed.
     /// </para>
     /// </summary>
     [TestFixture]
@@ -147,6 +147,54 @@ namespace Tests.Runtime.IAP
                 "USD values are summed across orders regardless of original currency");
         }
 
+        // ─── Lazy config reload: init-time Remote Config read came back empty ──────────────
+        // Init reads taichi_iap_revenue_threshold once; if Firebase hadn't fetched yet the config
+        // stays null. TrackTaichiIAP re-reads Remote Config at purchase time before giving up.
+
+        [Test]
+        public void TrackTaichiIAP_ConfigNull_ReloadsThresholdFromRemoteConfig()
+        {
+            var plugin = new CapturingNativePlugin { RemoteConfigDouble = 5.0 };
+            var svc    = CreateService(plugin);
+
+            InvokeTrackTaichiIAP(svc, price: 150000m, currency: "IDR", localPriceInUsd: 10m, currencyToUsdRate: 0.0000667m);
+
+            Assert.AreEqual(IAPTaichiConfig.RemoteConfigKey, plugin.RemoteConfigDoubleKeys[0],
+                "must re-read the taichi IAP threshold key");
+            var evt = AssertSingleTaichiEvent(plugin, "taichi_iap_revenue");
+            Assert.AreEqual(10.0, Convert.ToDouble(evt.Payload["value"]),
+                "reloaded threshold (5 USD) must be applied to this purchase");
+        }
+
+        [Test]
+        public void TrackTaichiIAP_ConfigNull_ReloadedConfigIsCachedForLaterPurchases()
+        {
+            var plugin = new CapturingNativePlugin { RemoteConfigDouble = 25.0 };
+            var svc    = CreateService(plugin);
+
+            InvokeTrackTaichiIAP(svc, price: 10m, currency: "USD", localPriceInUsd: 10m, currencyToUsdRate: 1m);
+            InvokeTrackTaichiIAP(svc, price: 20m, currency: "USD", localPriceInUsd: 20m, currencyToUsdRate: 1m);
+
+            Assert.AreEqual(1, plugin.RemoteConfigDoubleKeys.Count,
+                "once loaded, the config must be cached — no further Remote Config reads");
+            var evt = AssertSingleTaichiEvent(plugin, "taichi_iap_revenue");
+            Assert.AreEqual(30.0, Convert.ToDouble(evt.Payload["value"]));
+        }
+
+        [Test]
+        public void TrackTaichiIAP_ConfigAlreadySet_DoesNotQueryRemoteConfig()
+        {
+            var plugin = new CapturingNativePlugin { RemoteConfigDouble = 1.0 };
+            var svc    = CreateService(plugin);
+            svc.SetIAPTaichiConfig(new IAPTaichiConfig { RevenueThreshold = 100 });
+
+            InvokeTrackTaichiIAP(svc, price: 10m, currency: "USD", localPriceInUsd: 10m, currencyToUsdRate: 1m);
+
+            Assert.AreEqual(0, plugin.RemoteConfigDoubleKeys.Count,
+                "init-applied config wins; Remote Config must not be re-read");
+            Assert.AreEqual(0, plugin.CustomEvents.Count, "10 < 100 threshold must not fire");
+        }
+
         // ─── Helpers ───────────────────────────────────────────────────────────
 
         private static NoctuaIAPService CreateService(INativePlugin nativePlugin)
@@ -198,7 +246,7 @@ namespace Tests.Runtime.IAP
 
         /// <summary>
         /// Subclasses the editor stub <see cref="DefaultNativePlugin"/> and re-implements
-        /// <c>INativePlugin.TrackCustomEvent</c> (interface re-implementation via <c>new</c> +
+        /// <c>INativePlugin.TrackCustomEvent</c> and <c>GetFirebaseRemoteConfigDouble</c> (interface re-implementation via <c>new</c> +
         /// re-listing the interface) so taichi events are captured while every other native
         /// member keeps its no-op editor behavior.
         /// </summary>
@@ -211,6 +259,17 @@ namespace Tests.Runtime.IAP
             }
 
             public List<CustomEvent> CustomEvents { get; } = new List<CustomEvent>();
+
+            /// <summary>Value returned by <c>GetFirebaseRemoteConfigDouble</c> (editor stub returns 0).</summary>
+            public double RemoteConfigDouble { get; set; }
+
+            public List<string> RemoteConfigDoubleKeys { get; } = new List<string>();
+
+            public new void GetFirebaseRemoteConfigDouble(string key, Action<double> callback)
+            {
+                RemoteConfigDoubleKeys.Add(key);
+                callback?.Invoke(RemoteConfigDouble);
+            }
 
             public new void TrackCustomEvent(string name, Dictionary<string, IConvertible> extraPayload = null)
             {
