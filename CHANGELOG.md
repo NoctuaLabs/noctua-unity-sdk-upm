@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## [0.136.0] - 2026-10-06
+## [0.136.1] - 2026-10-09
 
 ### ⚙️ Miscellaneous
 
@@ -101,6 +101,7 @@ All notable changes to this project will be documented in this file.
 - *(campaign)* Draw the popup close cross instead of the ✕ glyph
 - *(ui)* Render Thai text in games without TextMesh Pro Essentials
 - *(ui)* Drop text settings' dependency on the sample's TextMesh Pro files
+- *(runtime)* Reference Unity.InputSystem from the SDK assembly
 
 ### 🚀 Features
 
