@@ -5,7 +5,8 @@
         "UniTask",
         "UniWebView-CSharp",
         "NativeGallery.Runtime",
-        "MaxSdk.Scripts"
+        "MaxSdk.Scripts",
+        "Unity.InputSystem"
     ],
     "includePlatforms": [
         "Android",
