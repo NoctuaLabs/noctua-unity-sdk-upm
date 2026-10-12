@@ -1,27 +1,29 @@
-﻿.container {
+.container {
     background-color: rgb(31, 35, 39);
     border-radius: 10px;
     margin: 0;
+    padding: 0;
     position: relative;
     flex-direction: column;
     align-self: center;
     display: flex;
+    overflow: hidden;
 }
 
+/* Edge to edge: no frame, no rounded corners. Safe-area insets are applied as
+   padding from WebContentPresenter, so the bar sits below the notch. */
 .container.fullscreen {
-    padding: 20px;
+    border-radius: 0;
     width: 100%;
     height: 100%;
 }
 
 .container.windowed.portrait {
-    padding: 10px;
     width: 90%;
     height: 70%;
 }
 
 .container.windowed.landscape {
-    padding: 10px;
     width: 80%;
     height: 80%;
 }
@@ -30,20 +32,44 @@
     flex-direction: row;
     justify-content: space-between;
     align-items: center;
+    flex-shrink: 0;
+    height: 48px;
+    padding-left: 16px;
+    padding-right: 4px;
+    border-bottom-width: 1px;
+    border-bottom-color: rgba(255, 255, 255, 0.08);
 }
 
 .title {
     color: white;
+    font-size: 16px;
+    -unity-font-style: bold;
+    flex-shrink: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
+/* 44px touch target around the 20px icon */
+.header .close-icon {
+    width: 44px;
+    height: 44px;
+    flex-shrink: 0;
+    background-size: 20px 20px;
+    background-repeat: no-repeat;
+}
+
+/* The native web view is laid over this element, flush with the bar above it */
 .web-view-anchor {
     flex-grow: 1;
+    margin: 0;
     background-color: rgb(31, 35, 39);
-    border-color: rgb(31, 35, 39);
-    margin-top: 10px;
-    margin-bottom: 10px;
 }
 
 .no-showing-toggle {
     color: white;
+    flex-shrink: 0;
+    margin: 0;
+    padding: 10px 16px;
+    border-top-width: 1px;
+    border-top-color: rgba(255, 255, 255, 0.08);
 }

@@ -108,6 +108,7 @@ namespace com.noctuagames.sdk.UI
             _closeButton.RegisterCallback<PointerUpEvent>(Close);
             _webViewAnchor.RegisterCallback<GeometryChangedEvent>(GeometryChanged);
 
+            ApplyContent();
             SetLayout(uniWebView);
 
             _log.Info($"Loading URL: {Model.Url}");
@@ -164,12 +165,19 @@ namespace com.noctuagames.sdk.UI
         }
 
 #if (UNITY_ANDROID || UNITY_IOS) && !UNITY_EDITOR
-        private void SetLayout(UniWebView webView)
+        /// <summary>
+        /// Sets per-open content. Kept out of <see cref="SetLayout"/>, which also runs on every
+        /// geometry change — resetting the toggle there would untick it when the device rotates.
+        /// </summary>
+        private void ApplyContent()
         {
             _title.text = Model.Title;
             _noShowingToggle.style.display = Model.LastShown.HasValue ? DisplayStyle.Flex : DisplayStyle.None;
             _noShowingToggle.value = false;
+        }
 
+        private void SetLayout(UniWebView webView)
+        {
             if (Screen.width > Screen.height)
             {
                 _container.RemoveFromClassList("portrait");
@@ -192,31 +200,99 @@ namespace com.noctuagames.sdk.UI
                 _container.AddToClassList("windowed");
             }
             
-            if (Model.ScreenMode == ScreenMode.FullScreen)
+            var pixelsPerPanelUnit = GetPixelsPerPanelUnit();
+
+            if (pixelsPerPanelUnit <= 0f)
             {
-                webView.Frame = new Rect(0.05f*Screen.width, 0.1f*Screen.height, 0.9f*Screen.width, 0.8f*Screen.height);
+                // Panel not laid out yet; GeometryChanged calls back once it is
+                return;
             }
-            else
-            {
-                webView.Frame = CalculateFrame(_webViewAnchor);
-            }
+
+            ApplySafeAreaPadding(pixelsPerPanelUnit);
+
+            // Both modes size the web view from its anchor, so it sits flush under the title bar
+            webView.Frame = CalculateFrame(_webViewAnchor, pixelsPerPanelUnit);
         }
 
-        private Rect CalculateFrame(VisualElement element)
+        /// <summary>
+        /// Screen pixels per UI Toolkit panel unit, measured from the root's resolved width so it
+        /// holds for any PanelSettings scale mode, in portrait and landscape alike.
+        /// </summary>
+        private float GetPixelsPerPanelUnit()
         {
-            var layout = element.LocalToWorld(new Rect(0, 0, element.layout.width, element.layout.height));
-            var referenceResolution = gameObject.GetComponent<UIDocument>().panelSettings.referenceResolution;
-            var isPortrait = Screen.width < Screen.height;
-            var scale = isPortrait ? 1f*Screen.width / referenceResolution.x : 1f*Screen.height / referenceResolution.y;
-            
-            var adjustedLayout = new Rect(
-                layout.position.x * scale,
-                layout.position.y * scale,
-                layout.width      * scale,
-                layout.height     * scale
-            );
+            var rootWidth = View.panel?.visualTree.layout.width ?? float.NaN;
 
-            return adjustedLayout;
+            return float.IsNaN(rootWidth) || rootWidth <= 0f ? 0f : Screen.width / rootWidth;
+        }
+
+        /// <summary>
+        /// Keeps the full-screen title bar and page clear of notches, rounded corners and the
+        /// navigation bar. Windowed popups are centered, so they need no inset.
+        /// </summary>
+        private void ApplySafeAreaPadding(float pixelsPerPanelUnit)
+        {
+            var isFullScreen = Model.ScreenMode == ScreenMode.FullScreen;
+            var safeArea = Screen.safeArea;
+            var navBar = GetNavigationBarInsets();
+
+            // Screen.safeArea has a bottom-left origin; the panel's is top-left
+            var top    = Screen.height - safeArea.yMax;
+            var bottom = Mathf.Max(safeArea.yMin, navBar.bottom);
+            var left   = Mathf.Max(safeArea.xMin, navBar.left);
+            var right  = Mathf.Max(Screen.width - safeArea.xMax, navBar.right);
+
+            _container.style.paddingTop    = isFullScreen ? top    / pixelsPerPanelUnit : 0f;
+            _container.style.paddingBottom = isFullScreen ? bottom / pixelsPerPanelUnit : 0f;
+            _container.style.paddingLeft   = isFullScreen ? left   / pixelsPerPanelUnit : 0f;
+            _container.style.paddingRight  = isFullScreen ? right  / pixelsPerPanelUnit : 0f;
+        }
+
+        /// <summary>
+        /// Pixel insets of the system navigation bar. Unity's <see cref="Screen.safeArea"/> only
+        /// covers display cutouts, but when the game draws behind a visible navigation bar the
+        /// bar overlays the web view's bottom edge (e.g. Crisp's message box).
+        /// </summary>
+        private RectOffset GetNavigationBarInsets()
+        {
+#if UNITY_ANDROID
+            try
+            {
+                using var unityPlayer = new AndroidJavaClass("com.unity3d.player.UnityPlayer");
+                using var activity = unityPlayer.GetStatic<AndroidJavaObject>("currentActivity");
+                using var window = activity.Call<AndroidJavaObject>("getWindow");
+                using var decorView = window.Call<AndroidJavaObject>("getDecorView");
+                using var insets = decorView.Call<AndroidJavaObject>("getRootWindowInsets");
+
+                if (insets == null)
+                {
+                    return new RectOffset();
+                }
+
+                return new RectOffset(
+                    insets.Call<int>("getSystemWindowInsetLeft"),
+                    insets.Call<int>("getSystemWindowInsetRight"),
+                    0, // status bar is hidden in-game; the notch comes from Screen.safeArea
+                    insets.Call<int>("getSystemWindowInsetBottom")
+                );
+            }
+            catch (Exception e)
+            {
+                _log.Warning($"Failed to read navigation bar insets: {e.Message}");
+            }
+#endif
+            return new RectOffset();
+        }
+
+        private static Rect CalculateFrame(VisualElement element, float pixelsPerPanelUnit)
+        {
+            var layout = element.worldBound;
+
+            return new Rect(
+                layout.x      * pixelsPerPanelUnit,
+                layout.y      * pixelsPerPanelUnit,
+                layout.width  * pixelsPerPanelUnit,
+                layout.height * pixelsPerPanelUnit
+            );
         }
 #endif
     }
