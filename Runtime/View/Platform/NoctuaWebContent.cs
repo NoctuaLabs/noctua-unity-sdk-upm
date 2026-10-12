@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Globalization;
 using com.noctuagames.sdk.Events;
 using com.noctuagames.sdk.UI;
 using Cysharp.Threading.Tasks;
@@ -83,7 +84,7 @@ namespace com.noctuagames.sdk
         /// <exception cref="ArgumentNullException">Thrown if the announcement base URL is not configured.</exception>
         public async UniTask<bool> ShowAnnouncement()
         {
-            await OfflineModeHandler(async () => await ShowAnnouncement());
+            await EnsureOnlineAsync();
 
             _log.Debug("calling API");
 
@@ -113,7 +114,7 @@ namespace com.noctuagames.sdk
                     _uiFactory.ShowError(e.Message);
                 }
 
-                throw e;
+                throw;
             }
             finally
             {
@@ -131,9 +132,11 @@ namespace com.noctuagames.sdk
             _webContent.Title = "Announcement";
 
             var strLastShown = PlayerPrefs.GetString("NoctuaWebContent.Announcement.LastShown", "");
-            _webContent.LastShown = DateTime.TryParse(strLastShown, out var lastShown) ? lastShown : default;
+            _webContent.LastShown = DateTime.TryParse(strLastShown, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out var lastShown)
+                ? lastShown.ToUniversalTime()
+                : default;
 
-            if (DateTime.Now.ToUniversalTime() < _webContent.LastShown.Value.Add(TimeSpan.FromDays(1)))
+            if (DateTime.UtcNow < _webContent.LastShown.Value.Add(TimeSpan.FromDays(1)))
             {
                 _log.Info($"Web content already shown today on {_webContent.LastShown.Value.ToUniversalTime():O}");
                 return false;
@@ -160,7 +163,7 @@ namespace com.noctuagames.sdk
         /// <exception cref="ArgumentNullException">Thrown if the reward base URL is not configured.</exception>
         public async UniTask ShowReward()
         {
-            await OfflineModeHandler(async () => await ShowReward());
+            await EnsureOnlineAsync();
 
             _log.Debug("calling API");
 
@@ -190,7 +193,7 @@ namespace com.noctuagames.sdk
                     _uiFactory.ShowError(e.Message);
                 }
 
-                throw e;
+                throw;
             }
             finally
             {
@@ -224,7 +227,7 @@ namespace com.noctuagames.sdk
         /// </remarks>
         public async UniTask ShowCustomerService(string reason = "general", string context = "")
         {
-            await OfflineModeHandler(async () => await ShowCustomerService(reason, context));
+            await EnsureOnlineAsync();
 
             _log.Debug("calling API");
 
@@ -254,7 +257,7 @@ namespace com.noctuagames.sdk
                     _uiFactory.ShowError(e.Message);
                 }
 
-                throw e;
+                throw;
             }
             finally
             {
@@ -269,22 +272,16 @@ namespace com.noctuagames.sdk
 
             _eventSender?.Send("customer_service_opened");
 
-            if (baseUrl.Contains("reason=general"))
-            {
-                // Replace existing
-                baseUrl = baseUrl.Replace("reason=general", $"reason={reason}");
-            }
-            else
-            {
-                // Append new one
-                baseUrl = baseUrl + $"&reason={reason}";
-            }
+            var escapedReason = Uri.EscapeDataString(reason ?? "general");
+
+            baseUrl = baseUrl.Contains("reason=general")
+                ? baseUrl.Replace("reason=general", $"reason={escapedReason}")
+                : AppendQueryParam(baseUrl, "reason", escapedReason);
 
             if (!string.IsNullOrEmpty(context))
             {
-                baseUrl = baseUrl + $"&context={context}";
+                baseUrl = AppendQueryParam(baseUrl, "context", Uri.EscapeDataString(context));
             }
-
 
             _webContent.Url = baseUrl;
             _webContent.ScreenMode = ScreenMode.FullScreen;
@@ -310,46 +307,60 @@ namespace com.noctuagames.sdk
         }
 
         /// <summary>
-        /// Handles SDK offline mode by retrying when network or initialization errors occur.
+        /// Appends <c>name=value</c> to a URL, using <c>?</c> or <c>&amp;</c> as appropriate.
+        /// The value must already be escaped.
         /// </summary>
-        /// <param name="retryFunction">The function to retry if offline mode is resolved.</param>
-        private async UniTask OfflineModeHandler(Func<UniTask> retryFunction)
+        private static string AppendQueryParam(string url, string name, string escapedValue)
         {
-            // Offline-first handler
-            _uiFactory.ShowLoadingProgress(true);
+            var separator = url.Contains("?") ? "&" : "?";
 
+            return $"{url}{separator}{name}={escapedValue}";
+        }
+
+        /// <summary>
+        /// Makes sure the SDK is online and initialized before loading web content.
+        /// While it is not, shows a retry dialog and checks again each time the player retries.
+        /// </summary>
+        /// <exception cref="NoctuaException">Thrown when the player dismisses the retry dialog.</exception>
+        private async UniTask EnsureOnlineAsync()
+        {
             var offlineModeMessage = Noctua.Platform.Locale.GetTranslation(LocaleTextKey.OfflineModeMessage) + "[PlatformContent]";
-            var isOffline = await Noctua.IsOfflineAsync();
 
-            if (!isOffline && !Noctua.IsInitialized())
+            while (true)
             {
-                try
+                _uiFactory.ShowLoadingProgress(true);
+
+                var isOffline = await Noctua.IsOfflineAsync();
+                var failureMessage = isOffline ? offlineModeMessage : null;
+
+                if (!isOffline && !Noctua.IsInitialized())
                 {
-                    await Noctua.InitAsync();
-
-                    await Noctua.Auth.AuthenticateAsync();
-
+                    try
+                    {
+                        await Noctua.InitAsync();
+                        await Noctua.Auth.AuthenticateAsync();
+                    }
+                    catch (Exception e)
+                    {
+                        _log.Warning($"Init before showing web content failed: {e.Message}");
+                        failureMessage = e.Message;
+                    }
                 }
-                catch (Exception e)
-                {
-                    _uiFactory.ShowLoadingProgress(false);
 
-                    await HandleRetryPopUpMessageAsync(offlineModeMessage, retryFunction);
-
-                    throw new NoctuaException(NoctuaErrorCode.Authentication, $"{e.Message}");
-                }
-            }
-
-            if (isOffline)
-            {
                 _uiFactory.ShowLoadingProgress(false);
 
-                await HandleRetryPopUpMessageAsync(offlineModeMessage, retryFunction);
+                if (failureMessage == null)
+                {
+                    return;
+                }
 
-                throw new NoctuaException(NoctuaErrorCode.Authentication, offlineModeMessage);
+                var isRetry = await _uiFactory.ShowRetryDialog(offlineModeMessage, "offlineMode");
+
+                if (!isRetry)
+                {
+                    throw new NoctuaException(NoctuaErrorCode.Authentication, failureMessage);
+                }
             }
-
-            _uiFactory.ShowLoadingProgress(false);
         }
 
         /// <summary>
@@ -358,7 +369,7 @@ namespace com.noctuagames.sdk
         /// <returns>True if the page was successfully displayed; false otherwise.</returns>
         public async UniTask<bool> ShowSocialMedia()
         {
-            await OfflineModeHandler(async () => await ShowSocialMedia());
+            await EnsureOnlineAsync();
 
             _log.Debug("calling API");
 
@@ -388,7 +399,7 @@ namespace com.noctuagames.sdk
                     _uiFactory.ShowError(e.Message);
                 }
 
-                throw e;
+                throw;
             }
             finally
             {
@@ -404,26 +415,13 @@ namespace com.noctuagames.sdk
             _webContent.Url = baseUrl;
             _webContent.ScreenMode = ScreenMode.FullScreen;
             _webContent.Title = "Social Media";
+            _webContent.LastShown = null;
 
             _eventSender?.Send("platform_content_social_media_opened");
 
             await _webView.OpenAsync();
 
             return true;
-        }
-        
-        /// <summary>
-        /// Displays a retry popup dialog when an offline mode or network issue occurs.
-        /// </summary>
-        /// <param name="offlineModeMessage">Message to display in the dialog.</param>
-        /// <param name="retryFunction">Function to execute when retry is chosen.</param>
-        private async UniTask HandleRetryPopUpMessageAsync(string offlineModeMessage, Func<UniTask> retryFunction)
-        {
-            bool isRetry = await _uiFactory.ShowRetryDialog(offlineModeMessage, "offlineMode");
-            if (isRetry)
-            {
-                await retryFunction();
-            }
         }
     }
 

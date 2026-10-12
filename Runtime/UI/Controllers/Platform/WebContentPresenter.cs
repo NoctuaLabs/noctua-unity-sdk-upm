@@ -80,6 +80,10 @@ namespace com.noctuagames.sdk.UI
                     uniWebView = null;
 
                     Application.OpenURL(url);
+
+                    // The web view is gone and its close button unregistered, so nothing else
+                    // would ever complete the task — callers of OpenAsync would hang forever.
+                    tcs.TrySetResult();
                 }
             }
 
@@ -139,16 +143,20 @@ namespace com.noctuagames.sdk.UI
                 _log.Info("Closing WebView");
                 
                 View.visible = false;
-                
-                uniWebView.Hide();
-                uniWebView.OnPageFinished -= PageFinished;
-                uniWebView.OnPageStarted -= PageStarted;
-                
+
                 _closeButton.UnregisterCallback<PointerUpEvent>(Close);
                 _webViewAnchor.UnregisterCallback<GeometryChangedEvent>(GeometryChanged);
 
-                Object.Destroy(uniWebView);
-                uniWebView = null;
+                // Already torn down when the page handed off to the native browser
+                if (uniWebView != null)
+                {
+                    uniWebView.Hide();
+                    uniWebView.OnPageFinished -= PageFinished;
+                    uniWebView.OnPageStarted -= PageStarted;
+
+                    Object.Destroy(uniWebView);
+                    uniWebView = null;
+                }
             }
 #else
             Application.OpenURL(Model.Url);
