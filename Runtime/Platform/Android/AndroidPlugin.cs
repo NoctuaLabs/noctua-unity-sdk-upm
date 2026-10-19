@@ -599,35 +599,47 @@ namespace com.noctuagames.sdk
 
         /// <inheritdoc />
         /// <remarks>
-        /// Remote-message + tap callbacks on Android require a native
-        /// <c>FirebaseMessagingService</c> subclass in the Noctua Android SDK. That work
-        /// is scheduled for a forthcoming native release; until then the three setters
-        /// below accept the managed handler (no crash) but no events will fire on
-        /// Android. Subscribers still get token-refresh events, since the token path
-        /// uses <c>FirebaseMessaging.getToken()</c> directly (see
-        /// <see cref="GetFirebaseMessagingToken"/>).
+        /// Received pushes come from the native <c>NoctuaFirebaseMessagingService</c> via
+        /// <c>Noctua.setRemoteNotificationReceivedListener</c> (native Android SDK 0.36.0+). FCM calls
+        /// back on a worker thread, so delivery is marshaled to the Unity main thread. With an older
+        /// native SDK the method is missing; the handler is then never called and a warning is logged.
         /// </remarks>
         public void SetRemoteNotificationReceivedHandler(Action<string> handler)
         {
-            if (handler != null)
+            try
             {
-                _log.Warning("[Noctua] OnRemoteNotificationReceived subscribed on Android — this " +
-                             "callback is not yet wired on the native Android side and will never fire. " +
-                             "Use GetFirebaseMessagingToken() for token registration; tap + receive " +
-                             "callbacks are iOS-only until the next native Android SDK release.");
+                using var noctua = new AndroidJavaClass("com.noctuagames.sdk.Noctua").GetStatic<AndroidJavaObject>("INSTANCE");
+                noctua.Call("setRemoteNotificationReceivedListener",
+                    handler == null ? null : new AndroidCallback<string>(json => RunOnMainThread(() => handler(json))));
+            }
+            catch (Exception e)
+            {
+                _log.Warning("OnRemoteNotificationReceived is not supported by this native Android SDK " +
+                             $"(needs 0.36.0+): {e.Message}");
             }
         }
 
         /// <inheritdoc />
+        /// <remarks>
+        /// Taps come from the native SDK via <c>Noctua.setNotificationTappedListener</c> (native
+        /// Android SDK 0.36.0+), which reads the tap intent in <c>onActivityResumed</c> — after
+        /// <c>onNewIntent</c>, so it covers cold start, background and taps from the shade while
+        /// the app is in the foreground. Delivery is marshaled to the Unity main thread. With an
+        /// older native SDK the method is missing; the handler is then never called and a warning
+        /// is logged.
+        /// </remarks>
         public void SetNotificationTappedHandler(Action<string> handler)
         {
-            if (handler != null)
+            try
             {
-                _log.Warning("[Noctua] OnNotificationTapped subscribed on Android — this callback " +
-                             "is not yet wired on the native Android side and will never fire. " +
-                             "Use an Android intent deeplink (activity launchMode=singleTask + " +
-                             "Intent.getData()) in your native Activity for cold-start taps until " +
-                             "the next native Android SDK release.");
+                using var noctua = new AndroidJavaClass("com.noctuagames.sdk.Noctua").GetStatic<AndroidJavaObject>("INSTANCE");
+                noctua.Call("setNotificationTappedListener",
+                    handler == null ? null : new AndroidCallback<string>(json => RunOnMainThread(() => handler(json))));
+            }
+            catch (Exception e)
+            {
+                _log.Warning("OnNotificationTapped is not supported by this native Android SDK " +
+                             $"(needs 0.36.0+): {e.Message}");
             }
         }
 

@@ -372,5 +372,65 @@ namespace Tests.Runtime
 
             Assert.AreEqual(string.Empty, result);
         }
+
+        // ─── MessageId ─────────────────────────────────────────────────────────
+
+        [Test]
+        public void MessageId_IosKey_IsParsed()
+        {
+            var payload = NoctuaNotificationPayload.FromJson(@"{""aps"": {}, ""gcm.message_id"": ""ios-1""}");
+
+            Assert.AreEqual("ios-1", payload.MessageId);
+        }
+
+        [Test]
+        public void MessageId_AndroidKey_IsParsed()
+        {
+            var payload = NoctuaNotificationPayload.FromJson(@"{""google.message_id"": ""0:android-1""}");
+
+            Assert.AreEqual("0:android-1", payload.MessageId);
+        }
+
+        [Test]
+        public void MessageId_Missing_IsEmpty()
+        {
+            Assert.AreEqual(string.Empty, NoctuaNotificationPayload.FromJson(@"{""a"": 1}").MessageId);
+            Assert.AreEqual(string.Empty, NoctuaNotificationPayload.FromJson(null).MessageId);
+            Assert.AreEqual(string.Empty, NoctuaNotificationPayload.FromJson("{not json").MessageId);
+        }
+
+        // ─── ToTrackingProperties ──────────────────────────────────────────────
+
+        [Test]
+        public void ToTrackingProperties_ContainsMessageIdTitleDeeplink()
+        {
+            var payload = NoctuaNotificationPayload.FromJson(
+                @"{""aps"": {""alert"": {""title"": ""Sale"", ""body"": ""50% off""}},
+                   ""gcm.message_id"": ""m-1"", ""deeplink"": ""game://shop""}");
+
+            var props = payload.ToTrackingProperties();
+
+            Assert.AreEqual("m-1", props["message_id"]);
+            Assert.AreEqual("Sale", props["title"]);
+            Assert.AreEqual("game://shop", props["deeplink"]);
+            Assert.AreEqual(3, props.Count);
+        }
+
+        [Test]
+        public void ToTrackingProperties_EmptyPayload_UsesEmptyStrings()
+        {
+            var props = NoctuaNotificationPayload.FromJson(null).ToTrackingProperties();
+
+            Assert.AreEqual(string.Empty, props["message_id"]);
+            Assert.AreEqual(string.Empty, props["title"]);
+            Assert.AreEqual(string.Empty, props["deeplink"]);
+        }
+
+        [Test]
+        public void EventNames_AreStable()
+        {
+            Assert.AreEqual("push_notification_received", NoctuaNotificationPayload.ReceivedEventName);
+            Assert.AreEqual("push_notification_opened", NoctuaNotificationPayload.OpenedEventName);
+        }
     }
 }

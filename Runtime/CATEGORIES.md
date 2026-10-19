@@ -96,7 +96,7 @@ App lifecycle, init, remote configs, Firebase, PlayerPrefs, push, deep links, in
 |---|---|
 | View | `View/App/NoctuaAppManager.cs`, `View/App/Noctua.Firebase.cs`, `View/App/Noctua.PlayerPrefs.cs` |
 | Presenter | `Presenter/App/NoctuaGameService.cs` (init game / geo-IP / remote configs) |
-| Model | `Model/App/AppUpdateInfo.cs`, `Model/App/FirebaseConfig.cs`, `Model/App/GameServiceModels.cs` |
+| Model | `Model/App/AppUpdateInfo.cs`, `Model/App/FirebaseConfig.cs`, `Model/App/GameServiceModels.cs`, `Model/App/NoctuaNotificationPayload.cs` |
 
 ---
 

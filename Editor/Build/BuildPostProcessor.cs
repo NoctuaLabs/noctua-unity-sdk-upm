@@ -853,6 +853,8 @@ using UnityEditor.Graphs;
             ModifyRootBuildGradle(rootAndroidProjectPath, noctuaConfig);
             ModifyLauncherBuildGradle(rootAndroidProjectPath, noctuaConfig);
             CopyOrRemoveGoogleServicesJson(rootAndroidProjectPath, noctuaConfig);
+            global::com.noctuagames.sdk.Editor.Build.AndroidNotificationIconInjector.Apply(
+                rootAndroidProjectPath, Directory.GetParent(Application.dataPath).FullName);
             InjectGradleDuplicateDepsFix(path);
             AndroidGradlePluginVersionManager.WarnIfGmaNeedsAgp9Upgrade();
         }
