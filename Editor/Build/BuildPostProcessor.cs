@@ -107,8 +107,37 @@ using UnityEditor.Graphs;
                 dict.SetString("SKAdNetworkIdentifier", id);
             }
 
-            Log($"Write changes to Info.plist");    
+            if (EnsureRemoteNotificationBackgroundMode(plist.root))
+            {
+                Log("Added remote-notification to UIBackgroundModes for silent pushes");
+            }
+
+            Log($"Write changes to Info.plist");
             plist.WriteToFile(plistPath);
+        }
+
+        /// <summary>
+        /// Adds <c>remote-notification</c> to <c>UIBackgroundModes</c>, keeping existing modes.
+        /// <c>CustomAppController</c> handles silent / data pushes in
+        /// <c>didReceiveRemoteNotification:fetchCompletionHandler:</c>, but iOS only wakes the app
+        /// for them when this background mode is declared. Returns false when already present.
+        /// </summary>
+        public static bool EnsureRemoteNotificationBackgroundMode(PlistElementDict root)
+        {
+            const string key = "UIBackgroundModes";
+            const string remoteNotification = "remote-notification";
+
+            var modes = root.values.TryGetValue(key, out var existing) && existing is PlistElementArray array
+                ? array
+                : root.CreateArray(key);
+
+            if (modes.values.Any(mode => mode is PlistElementString text && text.value == remoteNotification))
+            {
+                return false;
+            }
+
+            modes.AddString(remoteNotification);
+            return true;
         }
 
         [PostProcessBuild(2)]
