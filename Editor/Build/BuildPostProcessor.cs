@@ -107,7 +107,12 @@ using UnityEditor.Graphs;
                 dict.SetString("SKAdNetworkIdentifier", id);
             }
 
-            Log($"Write changes to Info.plist");    
+            if (global::com.noctuagames.sdk.Editor.Build.IosBackgroundModes.EnsureRemoteNotification(plist.root))
+            {
+                Log("Added remote-notification to UIBackgroundModes for silent pushes");
+            }
+
+            Log($"Write changes to Info.plist");
             plist.WriteToFile(plistPath);
         }
 
