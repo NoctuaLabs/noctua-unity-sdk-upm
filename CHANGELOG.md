@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## [0.136.1] - 2026-10-09
+## [0.137.0] - 2026-10-21
 
 ### ⚙️ Miscellaneous
 
@@ -62,6 +62,7 @@ All notable changes to this project will be documented in this file.
 - *(ios)* Embed CocoaPods-managed frameworks when Podfile uses static linkage
 - *(campaign)* Fold CampaignStorePrices into NoctuaLiveOpsCampaign
 - *(live-ops)* Built-in progress tracker URL, no per-game config
+- *(platform)* Borderless full-screen web content
 
 ### 🐛 Bug Fixes
 
@@ -102,6 +103,8 @@ All notable changes to this project will be documented in this file.
 - *(ui)* Render Thai text in games without TextMesh Pro Essentials
 - *(ui)* Drop text settings' dependency on the sample's TextMesh Pro files
 - *(runtime)* Reference Unity.InputSystem from the SDK assembly
+- *(platform)* Stop web content calls hanging or failing after success
+- *(push)* Let silent pushes wake the app on iOS
 
 ### 🚀 Features
 
@@ -144,6 +147,7 @@ All notable changes to this project will be documented in this file.
 - *(live-ops)* Keep live ops progress working when the tracker is down
 - *(live-ops)* Per-campaign daily mission progress keys
 - *(ios)* Opt-in swift package manager integration
+- *(push)* Track push notification received and opened
 
 ## [0.122.0] - 2026-05-18
 
