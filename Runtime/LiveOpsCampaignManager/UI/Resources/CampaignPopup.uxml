@@ -2,7 +2,7 @@
     <Style src="./Campaign.uss" />
     <ui:VisualElement name="Root" class="campaign-root campaign-popup-root" picking-mode="Position">
         <ui:VisualElement name="Card" class="campaign-card">
-            <ui:ScrollView name="MountScroll" class="campaign-mount-scroll" mode="Vertical">
+            <ui:ScrollView name="MountScroll" class="campaign-mount-scroll" mode="Vertical" horizontal-scroller-visibility="Hidden" vertical-scroller-visibility="Hidden">
                 <ui:VisualElement name="Mount" class="campaign-mount" />
             </ui:ScrollView>
             <ui:Button name="CloseButton" text="✕" class="campaign-close" />
