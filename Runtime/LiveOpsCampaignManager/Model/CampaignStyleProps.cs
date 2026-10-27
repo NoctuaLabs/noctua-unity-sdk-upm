@@ -63,5 +63,8 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
         [JsonProperty("right")] public string Right;
         [JsonProperty("bottom")] public string Bottom;
         [JsonProperty("left")] public string Left;
+
+        /// <summary>A member-wise copy (every field is a value or an immutable string).</summary>
+        public CampaignStyleProps ShallowCopy() => (CampaignStyleProps)MemberwiseClone();
     }
 }

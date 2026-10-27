@@ -50,6 +50,15 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
         /// <summary>How long one ownership check may take before the SKU is treated as unknown.</summary>
         public const int OwnershipTimeoutMs = 1500;
 
+        /// <summary>Optional <c>data</c> key overriding the text an owned product's Buy button shows.</summary>
+        public const string PurchasedLabelKey = "purchased_label";
+
+        /// <summary>Background of an owned product's button, and the label used with no translation.</summary>
+        public const string PurchasedButtonColor = "#6B7280";
+        public const string DefaultPurchasedLabel = "Purchased";
+
+        private readonly NoctuaLocale _locale;
+
         /// <summary>The single-offer templates' price key, and the SKU key it belongs to.</summary>
         public const string PriceKey = "price";
         public const string ProductIdKey = "product_id";
@@ -90,6 +99,7 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
             _events = events;
             _fetchStorePrices = fetchStorePrices;
             _isProductOwned = isProductOwned;
+            _locale = locale;
             InitProgress(progress, locale);
 
             var env = new DefaultCampaignEnvironment(playerTags, locale);
@@ -439,7 +449,10 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
 
         /// <summary>The stored campaign with the game's values and the known local prices folded in.</summary>
         private CampaignItem RenderItem(CampaignItem stored, IReadOnlyDictionary<string, string> playerData) =>
-            ApplyOwnership(ApplyStorePrices(MergePlayerData(stored, playerData), _storePrices), _ownership);
+            MarkOwnedButtons(
+                ApplyOwnership(ApplyStorePrices(MergePlayerData(stored, playerData), _storePrices), _ownership),
+                _ownership,
+                PurchasedLabel());
 
         // ── Ownership ─────────────────────────────────────────────────────
 
@@ -543,6 +556,113 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
             var copy = item.ShallowCopy();
             copy.Data = data;
             return copy;
+        }
+
+        /// <summary>
+        /// A copy of <paramref name="item"/> in which every Buy button for an owned SKU is shown as
+        /// purchased: no action, the label from <c>data.purchased_label</c> (else
+        /// <paramref name="defaultLabel"/>) and a grey background. A SKU the campaign styles itself
+        /// through an <c>owned.&lt;sku&gt;</c> key is left alone. Only the nodes on the way to a
+        /// changed button are copied; the stored item is never mutated.
+        /// </summary>
+        public static CampaignItem MarkOwnedButtons(
+            CampaignItem item, IReadOnlyDictionary<string, bool> ownership, string defaultLabel)
+        {
+            if (item?.View == null || ownership == null || ownership.Count == 0) return item;
+
+            var label = item.Data != null && item.Data.TryGetValue(PurchasedLabelKey, out var custom)
+                && !string.IsNullOrWhiteSpace(custom)
+                    ? custom
+                    : (string.IsNullOrWhiteSpace(defaultLabel) ? DefaultPurchasedLabel : defaultLabel);
+
+            var view = MarkOwnedNode(item.View, item.Data, ownership, label, depth: 0);
+            if (ReferenceEquals(view, item.View)) return item;
+
+            var copy = item.ShallowCopy();
+            copy.View = view;
+            return copy;
+        }
+
+        private static CampaignNode MarkOwnedNode(
+            CampaignNode node, IReadOnlyDictionary<string, string> data,
+            IReadOnlyDictionary<string, bool> ownership, string label, int depth)
+        {
+            if (node == null || depth >= MaxSkuSearchDepth) return node;
+
+            List<CampaignNode> children = null;
+            if (node.Children != null)
+            {
+                for (var i = 0; i < node.Children.Count; i++)
+                {
+                    var child = MarkOwnedNode(node.Children[i], data, ownership, label, depth + 1);
+                    if (ReferenceEquals(child, node.Children[i])) continue;
+
+                    children ??= new List<CampaignNode>(node.Children);
+                    children[i] = child;
+                }
+            }
+
+            var owned = IsOwnedPurchase(node.Action, data, ownership);
+            if (!owned && children == null) return node;
+
+            var copy = node.ShallowCopy();
+            if (children != null) copy.Children = children;
+            if (owned) ShowAsPurchased(copy, label);
+            return copy;
+        }
+
+        /// <summary>A purchase action for a SKU known to be owned, that the campaign does not style itself.</summary>
+        private static bool IsOwnedPurchase(
+            CampaignAction action, IReadOnlyDictionary<string, string> data, IReadOnlyDictionary<string, bool> ownership)
+        {
+            if (action == null || action.Type != CampaignActionType.Purchase) return false;
+
+            var sku = CampaignTokens.Resolve(action.ProductId, data)?.Trim();
+            if (string.IsNullOrEmpty(sku)) return false;
+            if (data != null && data.ContainsKey(OwnedPrefix + sku)) return false;
+            return ownership.TryGetValue(sku, out var owned) && owned;
+        }
+
+        /// <summary>Turns a node copy into the purchased state: untappable, and for a button relabelled and greyed.</summary>
+        private static void ShowAsPurchased(CampaignNode copy, string label)
+        {
+            copy.Action = null;
+            if (!string.Equals(copy.Type, CampaignNode.TypeButton, StringComparison.OrdinalIgnoreCase)) return;
+
+            var props = copy.Props == null
+                ? new Dictionary<string, object>()
+                : new Dictionary<string, object>(copy.Props);
+            props.Remove("loc_key");
+            props["text"] = label;
+            copy.Props = props;
+
+            var style = copy.Style?.ShallowCopy() ?? new CampaignStyleProps();
+            style.BackgroundColor = PurchasedButtonColor;
+            copy.Style = style;
+
+            // A breakpoint that sets its own background would otherwise bring the Buy colour back.
+            if (copy.Responsive == null) return;
+            var responsive = new Dictionary<string, CampaignStyleProps>();
+            foreach (var pair in copy.Responsive)
+            {
+                var variant = pair.Value;
+                if (variant?.BackgroundColor != null)
+                {
+                    variant = variant.ShallowCopy();
+                    variant.BackgroundColor = PurchasedButtonColor;
+                }
+                responsive[pair.Key] = variant;
+            }
+            copy.Responsive = responsive;
+        }
+
+        /// <summary>The player-language label for an owned product's button.</summary>
+        private string PurchasedLabel()
+        {
+            var text = _locale?.GetTranslation(LocaleTextKey.LiveOpsCampaignPurchased);
+            return string.IsNullOrEmpty(text) || text == nameof(LocaleTextKey.LiveOpsCampaignPurchased)
+                ? DefaultPurchasedLabel
+                : text;
         }
 
         private bool NeedsOwnershipCheck(CampaignItem item)

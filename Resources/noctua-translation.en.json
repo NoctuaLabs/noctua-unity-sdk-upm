@@ -250,5 +250,6 @@
     "ErrorPasswordShort": "Password is too short. Minimum 6 character",
     "ErrorRePasswordEmpty": "Repeated password should not be empty",
     "ErrorRePasswordNotMatch": "Password is not matched with repeated password",
-    "LiveOpsMissionsUnavailable": "Missions are unavailable right now. Please try again later."
+    "LiveOpsMissionsUnavailable": "Missions are unavailable right now. Please try again later.",
+    "LiveOpsCampaignPurchased": "Purchased"
 }

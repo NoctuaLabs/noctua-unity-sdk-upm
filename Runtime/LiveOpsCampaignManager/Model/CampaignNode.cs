@@ -141,6 +141,9 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
             return s == "1" || string.Equals(s, "yes", StringComparison.OrdinalIgnoreCase);
         }
 
+        /// <summary>A member-wise copy; collections and nested objects are shared, so replace rather than edit them.</summary>
+        public CampaignNode ShallowCopy() => (CampaignNode)MemberwiseClone();
+
         // Local rounding helper — avoids a UnityEngine dependency in this pure model type.
         private static int Mathf_RoundToInt(float f) => (int)Math.Round(f, MidpointRounding.AwayFromZero);
     }

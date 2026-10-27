@@ -144,6 +144,105 @@ namespace Tests.Runtime.Campaign
             Assert.AreEqual("owned", manager.LastResolutions.Single(r => r.Id == owned.Id).Reason);
         }
 
+        // ---- automatic purchased state -------------------------------------
+
+        private static CampaignItem StarterPack(Dictionary<string, string> data = null) =>
+            Offer("starter_pack_1", data,
+                CampaignFactory.Node(CampaignNode.TypeContainer, children: Buy(Gold)),
+                Buy(Normal));
+
+        private static CampaignNode GoldButton(CampaignItem item) => item.View.Children[0].Children[0];
+        private static CampaignNode NormalButton(CampaignItem item) => item.View.Children[1];
+
+        [Test]
+        public void MarkOwned_OwnedButton_BecomesAnUntappablePurchasedLabel()
+        {
+            var item = StarterPack();
+            var marked = NoctuaLiveOpsCampaign.MarkOwnedButtons(item, Owns((Gold, true), (Normal, false)), "Purchased");
+
+            var gold = GoldButton(marked);
+            Assert.IsNull(gold.Action, "an owned product can't be bought again");
+            Assert.AreEqual("Purchased", gold.PropString("text"));
+            Assert.AreEqual(NoctuaLiveOpsCampaign.PurchasedButtonColor, gold.Style.BackgroundColor);
+
+            Assert.AreSame(NormalButton(item), NormalButton(marked), "a buyable button is untouched");
+        }
+
+        [Test]
+        public void MarkOwned_NeverMutatesTheStoredItem()
+        {
+            var item = StarterPack();
+            NoctuaLiveOpsCampaign.MarkOwnedButtons(item, Owns((Gold, true)), "Purchased");
+
+            var gold = GoldButton(item);
+            Assert.IsNotNull(gold.Action);
+            Assert.AreEqual("Buy", gold.PropString("text"));
+            Assert.IsNull(gold.Style);
+        }
+
+        [Test]
+        public void MarkOwned_NothingOwned_ReturnsTheSameItem()
+        {
+            var item = StarterPack();
+            Assert.AreSame(item, NoctuaLiveOpsCampaign.MarkOwnedButtons(item, Owns((Gold, false)), "Purchased"));
+            Assert.AreSame(item, NoctuaLiveOpsCampaign.MarkOwnedButtons(item, null, "Purchased"));
+        }
+
+        [Test]
+        public void MarkOwned_CampaignLabelWins_ThenTheTranslation_ThenEnglish()
+        {
+            var custom = StarterPack(new Dictionary<string, string> { { "purchased_label", "Owned!" } });
+            Assert.AreEqual("Owned!", GoldButton(NoctuaLiveOpsCampaign.MarkOwnedButtons(custom, Owns((Gold, true)), "Sudah Dibeli")).PropString("text"));
+
+            Assert.AreEqual("Sudah Dibeli", GoldButton(NoctuaLiveOpsCampaign.MarkOwnedButtons(StarterPack(), Owns((Gold, true)), "Sudah Dibeli")).PropString("text"));
+            Assert.AreEqual(NoctuaLiveOpsCampaign.DefaultPurchasedLabel, GoldButton(NoctuaLiveOpsCampaign.MarkOwnedButtons(StarterPack(), Owns((Gold, true)), null)).PropString("text"));
+        }
+
+        [Test]
+        public void MarkOwned_SkuTheCampaignStylesItself_IsLeftToItsVisibleIf()
+        {
+            var item = StarterPack(new Dictionary<string, string> { { "owned." + Gold, "0" } });
+            var marked = NoctuaLiveOpsCampaign.MarkOwnedButtons(item, Owns((Gold, true)), "Purchased");
+            Assert.AreSame(item, marked);
+        }
+
+        [Test]
+        public void MarkOwned_TokenizedProductId_LocKeyDropped_ResponsiveColourOverridden()
+        {
+            var button = Buy("{{product_id}}");
+            button.Props["loc_key"] = "buy_label";
+            button.Responsive = new Dictionary<string, CampaignStyleProps>
+            {
+                { "landscape", new CampaignStyleProps { BackgroundColor = "#17A34A", Height = "40" } },
+                { "compact", new CampaignStyleProps { Height = "32" } },
+            };
+            var item = Offer("starter", new Dictionary<string, string> { { "product_id", Gold }, { "buy_label", "Buy" } }, button);
+
+            var marked = NoctuaLiveOpsCampaign.MarkOwnedButtons(item, Owns((Gold, true)), "Purchased").View.Children[0];
+
+            Assert.AreEqual("Purchased", marked.PropString("text"));
+            Assert.IsNull(marked.PropString("loc_key"), "loc_key would put the Buy label back");
+            Assert.AreEqual(NoctuaLiveOpsCampaign.PurchasedButtonColor, marked.Responsive["landscape"].BackgroundColor);
+            Assert.AreEqual("40", marked.Responsive["landscape"].Height);
+            Assert.AreSame(button.Responsive["compact"], marked.Responsive["compact"]);
+            Assert.AreEqual("#17A34A", button.Responsive["landscape"].BackgroundColor, "the stored style is untouched");
+        }
+
+        [Test]
+        public void MarkOwned_TappableNonButton_OnlyLosesItsAction()
+        {
+            var image = CampaignFactory.Node(CampaignNode.TypeImage,
+                props: new Dictionary<string, object> { { "url", "https://example.com/pack.png" } },
+                action: new CampaignAction { TypeRaw = "purchase", ProductId = Gold });
+            var item = Offer("starter", null, image);
+
+            var marked = NoctuaLiveOpsCampaign.MarkOwnedButtons(item, Owns((Gold, true)), "Purchased").View.Children[0];
+
+            Assert.IsNull(marked.Action);
+            Assert.AreEqual("https://example.com/pack.png", marked.PropString("url"));
+            Assert.IsNull(marked.PropString("text"));
+        }
+
         // ---- check / cache / fail open --------------------------------------
 
         [Test]
