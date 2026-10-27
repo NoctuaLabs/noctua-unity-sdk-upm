@@ -1452,13 +1452,26 @@ namespace com.noctuagames.sdk
                         AccessTokens = Instance.Value._accessTokenProvider,
                         PlayerId = () => Instance.Value._auth?.RecentAccount?.Player?.Id,
                         ShowNotice = message => Instance.Value._uiFactory?.ShowError(message),
-                    });
+                    },
+                    // Store check: a bought non-consumable / subscription hides its offer.
+                    // Games override it with SetOwnershipProvider for one-time consumables.
+                    isProductOwned: Instance.Value._iap == null
+                        ? null
+                        : (Func<string, UniTask<bool>>)(sku => Instance.Value._iap.GetPurchaseStatusAsync(sku).AsUniTask()));
 
-                // Local prices and live ops progress are per player: a new account refetches
-                // prices, switches to its own saved progress and sends its waiting updates.
+                // Any purchase, from a campaign or not, can change what an open offer shows.
+                if (Instance.Value._iap != null)
+                {
+                    Instance.Value._iap.OnPurchaseDone += order =>
+                        Instance.Value._campaign?.RefreshOwnershipAsync(order?.ProductId).Forget();
+                }
+
+                // Local prices, ownership and live ops progress are per player: a new account
+                // refetches prices, rechecks what it owns, switches to its own saved progress and sends its waiting updates.
                 Instance.Value._auth.OnAccountChanged += _ =>
                 {
                     Instance.Value._campaign?.ClearStorePrices();
+                    Instance.Value._campaign?.ClearOwnership();
                     Instance.Value._campaign?.OnAccountChangedAsync().Forget();
                 };
 

@@ -106,7 +106,7 @@ Server-driven engagement popups (purchase / event-deeplink CTAs): config merge, 
 
 | Layer | Files |
 |---|---|
-| Facade | `LiveOpsCampaignManager/NoctuaLiveOpsCampaign.cs` (events, `RegisterDeeplinkHandler`, `SetPurchaseHandler`, `ShowPopup(id, playerData)`, `UpdatePopupData`, local store prices for `{{store_price.<sku>}}`) |
+| Facade | `LiveOpsCampaignManager/NoctuaLiveOpsCampaign.cs` (events, `RegisterDeeplinkHandler`, `SetPurchaseHandler`, `ShowPopup(id, playerData)`, `UpdatePopupData`, local store prices for `{{store_price.<sku>}}`, purchase state: `SetOwnershipProvider`, `{{owned.<sku>}}`, fully-owned offers hidden) |
 | Logic | `CampaignManager.cs`, `CampaignValidator.cs`, `CampaignConditions.cs` (`visible_if`), `CampaignPlayerData.cs` (game-supplied `player_data`), `CampaignFrequencyGate.cs`, `CampaignActionDispatcher.cs`, `CampaignTokens.cs`, `CampaignAssetSource.cs`, `CampaignFontSource.cs` |
 | Render | `CampaignRenderer.cs`, `CampaignRenderer.Widgets.cs`, `CampaignStyleMapper.cs`, `CampaignRuntimeController.cs`, `CampaignUIHost.cs` |
 | UI | `UI/CampaignPopupPresenter.cs`, `UI/CampaignPopupFit.cs`, `UI/CampaignFrameStyle.cs`, `UI/CampaignBackdropStyle.cs`, `UI/Resources/CampaignPopup.uxml`, `UI/Resources/Campaign.uss` |

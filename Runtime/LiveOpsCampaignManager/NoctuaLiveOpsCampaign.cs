@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine.UIElements;
 using com.noctuagames.sdk.Events;
 using Cysharp.Threading.Tasks;
@@ -30,9 +31,24 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
         private IReadOnlyDictionary<string, string> _storePrices;
         private bool _fetchingStorePrices;
         private int _storePricesGeneration;
+        // "Does the player own this SKU?" (the store check by default). Null = ownership never
+        // hides a campaign or flips a card. Answers are cached per SKU; a SKU missing from the
+        // cache is unknown, and unknown never hides anything.
+        private Func<string, UniTask<bool>> _isProductOwned;
+        private readonly Dictionary<string, bool> _ownership = new Dictionary<string, bool>();
+        private int _ownershipGeneration;
 
         /// <summary>Token prefix for a local price; the rest of the key is the SKU (dots included).</summary>
         public const string StorePricePrefix = "store_price.";
+
+        /// <summary>
+        /// Token prefix for ownership: <c>owned.&lt;sku&gt;</c> is <c>"1"</c> when the player owns the
+        /// SKU and <c>"0"</c> when not. Ship it in <c>data</c> with a <c>"0"</c> default.
+        /// </summary>
+        public const string OwnedPrefix = "owned.";
+
+        /// <summary>How long one ownership check may take before the SKU is treated as unknown.</summary>
+        public const int OwnershipTimeoutMs = 1500;
 
         /// <summary>The single-offer templates' price key, and the SKU key it belongs to.</summary>
         public const string PriceKey = "price";
@@ -68,10 +84,12 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
             IEventSender events,
             Func<IReadOnlyList<string>> playerTags,
             Func<UniTask<IReadOnlyDictionary<string, string>>> fetchStorePrices = null,
-            ProgressTrackerOptions progress = null)
+            ProgressTrackerOptions progress = null,
+            Func<string, UniTask<bool>> isProductOwned = null)
         {
             _events = events;
             _fetchStorePrices = fetchStorePrices;
+            _isProductOwned = isProductOwned;
             InitProgress(progress, locale);
 
             var env = new DefaultCampaignEnvironment(playerTags, locale);
@@ -81,7 +99,8 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
             _manager = new CampaignManager(
                 merged, env, new CampaignFrequencyGate(),
                 isOffline: Noctua.IsOfflineMode,
-                assetsReady: assets.AreAllImagesCached);
+                assetsReady: assets.AreAllImagesCached,
+                isOwned: IsFullyOwned);
 
             try { assets.Preload(merged); }
             catch (Exception e) { _log.Warning("campaign asset preload failed: " + e.Message); }
@@ -154,7 +173,18 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
         /// double-tap debounce instead of a real busy state.
         /// </summary>
         public void SetPurchaseHandler(Func<string, CampaignItem, UniTask> handler)
-            => _handlers.PurchaseAsync = handler;
+        {
+            // Once the purchase settles, ask again whether the SKU is owned so the open popup
+            // flips its card in place. After the game's handler, so a game-supplied ownership
+            // record has already been updated.
+            _handlers.PurchaseAsync = handler == null
+                ? (Func<string, CampaignItem, UniTask>)null
+                : async (pid, item) =>
+                {
+                    try { await handler(pid, item); }
+                    finally { RefreshOwnershipAsync(pid).Forget(); }
+                };
+        }
 
         /// <summary>
         /// Eligible campaigns, highest priority first. Pass
@@ -187,14 +217,40 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
                     return;
                 }
 
-                // Daily missions with the tracker configured: shown only with real progress.
-                if (GatesOnProgress(stored))
+                // An offer whose SKUs were never checked: ask the store first, so a bought
+                // offer is not shown and an owned card never flashes its Buy button.
+                if (NeedsOwnershipCheck(stored))
                 {
-                    ShowWithProgressAsync(stored, playerData, auto: false).Forget();
+                    ShowAfterOwnershipCheckAsync(stored, playerData).Forget();
                     return;
                 }
 
-                ShowResolved(stored, playerData);
+                ShowStored(stored, playerData);
+            }
+            catch (Exception e)
+            {
+                _log.Error("ShowPopup failed: " + e.Message);
+            }
+        }
+
+        private void ShowStored(CampaignItem stored, IReadOnlyDictionary<string, string> playerData)
+        {
+            // Daily missions with the tracker configured: shown only with real progress.
+            if (GatesOnProgress(stored))
+            {
+                ShowWithProgressAsync(stored, playerData, auto: false).Forget();
+                return;
+            }
+
+            ShowResolved(stored, playerData);
+        }
+
+        private async UniTaskVoid ShowAfterOwnershipCheckAsync(CampaignItem stored, IReadOnlyDictionary<string, string> playerData)
+        {
+            try
+            {
+                if (await IsOwnedAfterCheckAsync(stored)) return;
+                ShowStored(stored, playerData);
             }
             catch (Exception e)
             {
@@ -383,7 +439,214 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
 
         /// <summary>The stored campaign with the game's values and the known local prices folded in.</summary>
         private CampaignItem RenderItem(CampaignItem stored, IReadOnlyDictionary<string, string> playerData) =>
-            ApplyStorePrices(MergePlayerData(stored, playerData), _storePrices);
+            ApplyOwnership(ApplyStorePrices(MergePlayerData(stored, playerData), _storePrices), _ownership);
+
+        // ── Ownership ─────────────────────────────────────────────────────
+
+        /// <summary>
+        /// Replaces the "does the player own this SKU?" check — by default the store's
+        /// (<c>Noctua.IAP.GetPurchaseStatusAsync</c>), which only knows non-consumables and
+        /// subscriptions. Supply the game's own record for one-time consumable offers. Pass
+        /// <c>null</c> to stop ownership from hiding campaigns. Clears cached answers.
+        /// </summary>
+        public void SetOwnershipProvider(Func<string, UniTask<bool>> isOwned)
+        {
+            _isProductOwned = isOwned;
+            ClearOwnership();
+        }
+
+        /// <summary>Known ownership per SKU (unknown SKUs are absent) — read by the Inspector.</summary>
+        public IReadOnlyDictionary<string, bool> Ownership => _ownership;
+
+        /// <summary>
+        /// Forgets every ownership answer — the composition root calls this when the account
+        /// changes, since what is owned is per player.
+        /// </summary>
+        public void ClearOwnership()
+        {
+            _ownership.Clear();
+            _ownershipGeneration++;
+        }
+
+        /// <summary>
+        /// The SKUs <paramref name="item"/>'s Buy buttons purchase, in tree order, without
+        /// duplicates; <c>{{token}}</c> product ids are resolved against its <c>data</c>.
+        /// </summary>
+        public static IReadOnlyList<string> PurchaseSkus(CampaignItem item)
+        {
+            var skus = new List<string>();
+            if (item?.View != null) CollectPurchaseSkus(item.View, item.Data, skus, depth: 0);
+            return skus;
+        }
+
+        private const int MaxSkuSearchDepth = 40;
+
+        private static void CollectPurchaseSkus(
+            CampaignNode node, IReadOnlyDictionary<string, string> data, List<string> skus, int depth)
+        {
+            if (node == null || depth >= MaxSkuSearchDepth) return;
+
+            if (node.Action != null && node.Action.Type == CampaignActionType.Purchase)
+            {
+                var sku = CampaignTokens.Resolve(node.Action.ProductId, data)?.Trim();
+                if (!string.IsNullOrEmpty(sku) && !skus.Contains(sku)) skus.Add(sku);
+            }
+
+            if (node.Children == null) return;
+            foreach (var child in node.Children) CollectPurchaseSkus(child, data, skus, depth + 1);
+        }
+
+        /// <summary>
+        /// True when <paramref name="item"/> sells something and the player is known to own all
+        /// of it. Unknown SKUs count as not owned, so a failed check never hides an offer.
+        /// </summary>
+        public bool IsFullyOwned(CampaignItem item) => IsFullyOwned(item, _ownership);
+
+        public static bool IsFullyOwned(CampaignItem item, IReadOnlyDictionary<string, bool> ownership)
+        {
+            if (ownership == null || ownership.Count == 0) return false;
+
+            var skus = PurchaseSkus(item);
+            if (skus.Count == 0) return false;
+            foreach (var sku in skus)
+            {
+                if (!ownership.TryGetValue(sku, out var owned) || !owned) return false;
+            }
+            return true;
+        }
+
+        /// <summary>
+        /// A copy of <paramref name="item"/> whose <c>owned.&lt;sku&gt;</c> keys read <c>"1"</c> or
+        /// <c>"0"</c> wherever ownership is known. Like <see cref="ApplyStorePrices"/>: keys the
+        /// campaign does not ship are never added, unknown SKUs keep the shipped default, and the
+        /// stored item is never mutated.
+        /// </summary>
+        public static CampaignItem ApplyOwnership(CampaignItem item, IReadOnlyDictionary<string, bool> ownership)
+        {
+            if (item?.Data == null || ownership == null || ownership.Count == 0) return item;
+
+            Dictionary<string, string> data = null;
+            foreach (var pair in item.Data)
+            {
+                if (!pair.Key.StartsWith(OwnedPrefix, StringComparison.Ordinal)) continue;
+                if (!ownership.TryGetValue(pair.Key.Substring(OwnedPrefix.Length), out var owned)) continue;
+
+                var value = owned ? "1" : "0";
+                if (value == pair.Value) continue;
+
+                data ??= new Dictionary<string, string>(item.Data);
+                data[pair.Key] = value;
+            }
+
+            if (data == null) return item;
+
+            var copy = item.ShallowCopy();
+            copy.Data = data;
+            return copy;
+        }
+
+        private bool NeedsOwnershipCheck(CampaignItem item)
+        {
+            if (_isProductOwned == null) return false;
+            foreach (var sku in PurchaseSkus(item))
+            {
+                if (!_ownership.ContainsKey(sku)) return true;
+            }
+            return false;
+        }
+
+        /// <summary>
+        /// Checks every SKU of <paramref name="item"/> whose ownership is not known yet, in
+        /// parallel. Resolves true when it learned something new. Failures and timeouts stay
+        /// unknown and are asked again next time.
+        /// </summary>
+        public async UniTask<bool> PrefetchOwnershipAsync(CampaignItem item)
+        {
+            var provider = _isProductOwned;
+            if (provider == null) return false;
+
+            var pending = new List<string>();
+            foreach (var sku in PurchaseSkus(item))
+            {
+                if (!_ownership.ContainsKey(sku)) pending.Add(sku);
+            }
+            if (pending.Count == 0) return false;
+
+            var generation = _ownershipGeneration;
+            var answers = await UniTask.WhenAll(pending.Select(sku => CheckOwnedAsync(provider, sku)));
+            // An account switch mid-check makes these answers someone else's.
+            if (generation != _ownershipGeneration) return false;
+
+            var learned = false;
+            for (var i = 0; i < pending.Count; i++)
+            {
+                if (answers[i] == null) continue;
+                _ownership[pending[i]] = answers[i].Value;
+                learned = true;
+            }
+            return learned;
+        }
+
+        /// <summary>
+        /// Asks again whether <paramref name="productId"/> is owned — after a purchase — and
+        /// re-renders the open popup if it sells that SKU, so its card flips in place.
+        /// </summary>
+        public async UniTask RefreshOwnershipAsync(string productId)
+        {
+            try
+            {
+                var provider = _isProductOwned;
+                if (provider == null || string.IsNullOrEmpty(productId)) return;
+
+                _ownership.Remove(productId);
+                var generation = _ownershipGeneration;
+                var owned = await CheckOwnedAsync(provider, productId);
+                if (owned == null || generation != _ownershipGeneration) return;
+                _ownership[productId] = owned.Value;
+
+                var popup = _host.PopupIfCreated;
+                if (_shownItem == null || popup == null || !popup.IsShowing) return;
+                if (!PurchaseSkus(_shownItem).Contains(productId)) return;
+
+                popup.Refresh(RenderItem(_shownItem, _shownPlayerData), _manager.Config.SchemaVersion);
+            }
+            catch (Exception e)
+            {
+                _log.Warning($"{LogTag} ownership refresh for '{productId}' failed: {e.Message}");
+            }
+        }
+
+        /// <summary>Checks ownership first; true (and logged) when the player already owns all of it.</summary>
+        private async UniTask<bool> IsOwnedAfterCheckAsync(CampaignItem item)
+        {
+            await PrefetchOwnershipAsync(item);
+            if (!IsFullyOwned(item)) return false;
+
+            _log.Info($"{LogTag} campaign '{item.Id}' not shown — the player already owns everything it sells");
+            return true;
+        }
+
+        /// <summary>One provider call: its answer, or null when it threw or took too long.</summary>
+        private async UniTask<bool?> CheckOwnedAsync(Func<string, UniTask<bool>> provider, string sku)
+        {
+            try
+            {
+                var check = provider(sku);
+                if (check.Status.IsCompleted()) return await check;
+
+                var (timedOut, owned) = await check.TimeoutWithoutException(
+                    TimeSpan.FromMilliseconds(OwnershipTimeoutMs), DelayType.Realtime);
+                if (!timedOut) return owned;
+
+                _log.Debug($"{LogTag} ownership check for '{sku}' timed out — treated as unknown");
+                return null;
+            }
+            catch (Exception e)
+            {
+                _log.Debug($"{LogTag} ownership check for '{sku}' failed — treated as unknown: {e.Message}");
+                return null;
+            }
+        }
 
         /// <summary>
         /// Refreshes the open popup with new per-player values — call it after the game handles
@@ -466,6 +729,8 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
                 foreach (var item in _manager.GetActiveCampaigns())
                 {
                     if (!item.AutoShow) continue;
+                    // A bought offer gives way to the next auto_show campaign.
+                    if (await IsOwnedAfterCheckAsync(item)) continue;
 
                     if (!GatesOnProgress(item))
                     {

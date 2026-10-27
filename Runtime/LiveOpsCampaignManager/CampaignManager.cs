@@ -50,6 +50,7 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
         private readonly CampaignFrequencyGate _frequency;
         private readonly Func<bool> _isOffline;
         private readonly Func<CampaignItem, bool> _assetsReady;
+        private readonly Func<CampaignItem, bool> _isOwned;
         private readonly ILogger _log;
         private readonly List<CampaignResolution> _lastResolutions = new List<CampaignResolution>();
 
@@ -61,13 +62,15 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
             CampaignFrequencyGate frequency,
             ILogger log = null,
             Func<bool> isOffline = null,
-            Func<CampaignItem, bool> assetsReady = null)
+            Func<CampaignItem, bool> assetsReady = null,
+            Func<CampaignItem, bool> isOwned = null)
         {
             Config = config ?? new CampaignConfig();
             _env = env;
             _frequency = frequency ?? new CampaignFrequencyGate();
             _isOffline = isOffline ?? (() => false);
             _assetsReady = assetsReady ?? (_ => true);
+            _isOwned = isOwned ?? (_ => false);
             _log = log ?? new NoctuaLogger(typeof(CampaignManager));
         }
 
@@ -162,6 +165,10 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
 
             var targetingReason = CheckTargeting(item.Targeting);
             if (targetingReason != null) return targetingReason;
+
+            // The player already owns everything this offer sells (known ownership only).
+            if (_isOwned(item))
+                return "owned";
 
             // Offline: only show a campaign whose creatives are all cached (or it has none) —
             // otherwise it would render blank image boxes.
