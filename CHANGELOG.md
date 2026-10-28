@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## [0.137.0] - 2026-10-21
+## [0.138.0] - 2026-10-28
 
 ### ⚙️ Miscellaneous
 
@@ -63,6 +63,7 @@ All notable changes to this project will be documented in this file.
 - *(campaign)* Fold CampaignStorePrices into NoctuaLiveOpsCampaign
 - *(live-ops)* Built-in progress tracker URL, no per-game config
 - *(platform)* Borderless full-screen web content
+- *(campaign)* Hide the popup's scrollbars
 
 ### 🐛 Bug Fixes
 
@@ -148,6 +149,8 @@ All notable changes to this project will be documented in this file.
 - *(live-ops)* Per-campaign daily mission progress keys
 - *(ios)* Opt-in swift package manager integration
 - *(push)* Track push notification received and opened
+- *(campaign)* Hide offers the player already owns
+- *(campaign)* Show owned offer buttons as purchased
 
 ## [0.122.0] - 2026-05-18
 
