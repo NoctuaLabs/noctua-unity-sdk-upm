@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## [0.138.0] - 2026-10-28
+## [0.138.1] - 2026-11-10
 
 ### ⚙️ Miscellaneous
 
@@ -64,6 +64,8 @@ All notable changes to this project will be documented in this file.
 - *(live-ops)* Built-in progress tracker URL, no per-game config
 - *(platform)* Borderless full-screen web content
 - *(campaign)* Hide the popup's scrollbars
+- *(liveops)* Track dismiss reason, visible time and campaign purchase result
+- *(push)* Link push events to campaigns and track token changes
 
 ### 🐛 Bug Fixes
 
@@ -106,6 +108,10 @@ All notable changes to this project will be documented in this file.
 - *(runtime)* Reference Unity.InputSystem from the SDK assembly
 - *(platform)* Stop web content calls hanging or failing after success
 - *(push)* Let silent pushes wake the app on iOS
+- *(iap)* Match Play Billing ownership answers by product id
+- *(campaign)* Show SDK dialogs above the campaign popup
+- *(campaign)* Re-check ownership when login clears it under an open popup
+- *(ios)* Queue pushes that arrive before Unity is ready
 
 ### 🚀 Features
 
