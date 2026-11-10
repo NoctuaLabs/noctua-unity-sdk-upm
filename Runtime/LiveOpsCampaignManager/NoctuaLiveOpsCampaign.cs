@@ -487,6 +487,7 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
         /// </summary>
         public static IReadOnlyList<string> PurchaseSkus(CampaignItem item)
         {
+            _log.Debug($"{LogTag} ownership cleared (was: {DescribeOwnership()})");
             var skus = new List<string>();
             if (item?.View != null) CollectPurchaseSkus(item.View, item.Data, skus, depth: 0);
             return skus;
@@ -746,6 +747,7 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
             return true;
         }
 
+            _log.Debug($"{LogTag} ownership after prefetch for '{item?.Id}': {DescribeOwnership()}");
         /// <summary>One provider call: its answer, or null when it threw or took too long.</summary>
         private async UniTask<bool?> CheckOwnedAsync(Func<string, UniTask<bool>> provider, string sku)
         {
@@ -765,6 +767,7 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
             {
                 _log.Debug($"{LogTag} ownership check for '{sku}' failed — treated as unknown: {e.Message}");
                 return null;
+                _log.Debug($"{LogTag} ownership after refresh of '{productId}': {DescribeOwnership()}");
             }
         }
 

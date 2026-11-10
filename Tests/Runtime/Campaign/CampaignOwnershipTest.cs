@@ -5,6 +5,7 @@ using com.noctuagames.sdk.LiveOpsCampaign;
 using Cysharp.Threading.Tasks;
 using NUnit.Framework;
 using UnityEngine;
+using UnityEngine.TestTools;
 
 namespace Tests.Runtime.Campaign
 {
@@ -25,6 +26,9 @@ namespace Tests.Runtime.Campaign
             // Each facade parks an empty UI root in DontDestroyOnLoad.
             foreach (var go in UnityEngine.Object.FindObjectsByType<GameObject>(FindObjectsSortMode.None))
             {
+                // A shown popup parents presenters under the root, so destroying the root also
+                // destroys them; they are still in this snapshot.
+                if (go == null) continue;
                 if (go.name == "NoctuaLiveOpsCampaignUI") UnityEngine.Object.DestroyImmediate(go);
             }
         }
@@ -338,6 +342,60 @@ namespace Tests.Runtime.Campaign
 
             Assert.IsTrue(campaign.Ownership[Gold]);
             Assert.IsFalse(campaign.Ownership[Normal], "other SKUs keep their answer");
+        }
+
+        // ---- clear while a popup is open --------------------------------
+
+        [UnityTest]
+        public System.Collections.IEnumerator ClearOwnership_WhileAPopupIsOpen_AsksAgainForItsSkus() =>
+            UniTask.ToCoroutine(async () =>
+            {
+                // The realme repro: auto_show opens the popup, then the first login lands and
+                // clears the cache. The open popup must not be left with every SKU "unknown".
+                var panel = ScriptableObject.CreateInstance<UnityEngine.UIElements.PanelSettings>();
+                try
+                {
+                    var item = Offer("cats_pass", null, Buy(Gold), Buy(Normal));
+                    var asks = new List<string>();
+                    var campaign = new NoctuaLiveOpsCampaign(
+                        new CampaignConfig { SchemaVersion = 2, Campaigns = new List<CampaignItem> { item } },
+                        panel, new com.noctuagames.sdk.NoctuaLocale(), new MockEventSender(),
+                        () => Array.Empty<string>(),
+                        isProductOwned: sku => { asks.Add(sku); return UniTask.FromResult(sku == Gold); });
+
+                    campaign.ShowPopup(item.Id);
+                    await UniTask.WaitUntil(() => campaign.ShownCampaignId != null)
+                        .Timeout(TimeSpan.FromSeconds(5));
+                    Assert.IsTrue(campaign.Ownership[Gold]);
+                    asks.Clear();
+
+                    campaign.ClearOwnership();
+
+                    await UniTask.WaitUntil(() => campaign.Ownership.Count == 2)
+                        .Timeout(TimeSpan.FromSeconds(5));
+                    Assert.IsTrue(campaign.Ownership[Gold], "the owned card stays owned");
+                    Assert.IsFalse(campaign.Ownership[Normal]);
+                    CollectionAssert.AreEquivalent(new[] { Gold, Normal }, asks);
+                }
+                finally
+                {
+                    UnityEngine.Object.DestroyImmediate(panel);
+                }
+            });
+
+        [Test]
+        public void ClearOwnership_NoPopupOpen_AsksNothing()
+        {
+            var item = MultiOffer();
+            var asks = 0;
+            var campaign = Facade(_ => { asks++; return UniTask.FromResult(true); }, item);
+            Prefetch(campaign, item);
+            asks = 0;
+
+            campaign.ClearOwnership();
+
+            Assert.IsEmpty(campaign.Ownership);
+            Assert.AreEqual(0, asks, "nothing on screen, nothing to re-check");
         }
     }
 }
