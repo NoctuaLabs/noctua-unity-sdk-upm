@@ -25,9 +25,10 @@ public class GoogleBilling : System.IDisposable
     // callback field gets silently overwritten when a second call goes out before the first
     // one's native response arrives (e.g. the SDK's own refund-tracking probe racing another
     // concurrent purchase-status check), leaving the first caller's TaskCompletionSource
-    // waiting forever. The native side dispatches responses in call order, so FIFO draining
-    // here is correct without needing per-call request ids. See NativeCallbackQueue<T> for the
-    // (unit-tested) queue behavior itself.
+    // waiting forever. Responses are NOT in call order — Play answers each SKU's query
+    // independently — so callbacks are keyed by product id (the native status always carries
+    // the requested id) and each response completes the oldest call for its own SKU. See
+    // NativeCallbackQueue<T> for the (unit-tested) queue behavior itself.
     private readonly NativeCallbackQueue<PurchaseResult> _pendingGetPurchasedCallbacks = new();
     private readonly NativeCallbackQueue<ProductPurchaseStatus> _pendingPurchaseStatusCallbacks = new();
 
@@ -324,7 +325,9 @@ public class GoogleBilling : System.IDisposable
             long expiryTime = status.Call<long>("getExpiryTime");
             string originalJson = status.Call<string>("getOriginalJson");
 
-            _billing._pendingPurchaseStatusCallbacks.InvokeNext(new ProductPurchaseStatus
+            // Routed by product id: Play answers each SKU's query independently, so two concurrent
+            // checks can come back in either order. FIFO here handed one card another card's answer.
+            _billing._pendingPurchaseStatusCallbacks.InvokeNext(productId, new ProductPurchaseStatus
             {
                 ProductId = productId,
                 IsPurchased = isPurchased,
@@ -341,7 +344,7 @@ public class GoogleBilling : System.IDisposable
 
             if (isPurchased)
             {
-                _billing._pendingGetPurchasedCallbacks.InvokeNext(new PurchaseResult
+                _billing._pendingGetPurchasedCallbacks.InvokeNext(productId, new PurchaseResult
                 {
                     Success = true,
                     ProductId = productId,
@@ -352,7 +355,7 @@ public class GoogleBilling : System.IDisposable
             }
             else
             {
-                _billing._pendingGetPurchasedCallbacks.InvokeNext(null);
+                _billing._pendingGetPurchasedCallbacks.InvokeNext(productId, null);
             }
         }
 
@@ -459,7 +462,7 @@ public class GoogleBilling : System.IDisposable
     public void GetPurchasedProductById(string productId, System.Action<PurchaseResult> callback)
     {
         _log.Debug($"GetPurchasedProductById via native SDK: {productId}");
-        _pendingGetPurchasedCallbacks.Enqueue(callback);
+        _pendingGetPurchasedCallbacks.Enqueue(productId, callback);
         _noctua.Call("getProductPurchaseStatus", productId);
     }
 
@@ -471,7 +474,7 @@ public class GoogleBilling : System.IDisposable
     public void GetProductPurchaseStatusDetail(string productId, System.Action<ProductPurchaseStatus> callback)
     {
         _log.Debug($"GetProductPurchaseStatusDetail via native SDK: {productId}");
-        _pendingPurchaseStatusCallbacks.Enqueue(callback);
+        _pendingPurchaseStatusCallbacks.Enqueue(productId, callback);
         _noctua.Call("getProductPurchaseStatus", productId);
     }
 

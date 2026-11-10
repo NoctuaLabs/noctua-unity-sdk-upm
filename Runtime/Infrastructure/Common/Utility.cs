@@ -402,10 +402,12 @@ namespace com.noctuagames.sdk
     /// <c>TaskCompletionSource</c> then never completes and hangs forever, with no exception.
     ///
     /// A FIFO queue removes the overwrite: every call enqueues its own callback, and every native
-    /// response dequeues and invokes the oldest one. This is correct exactly when the native side
-    /// answers calls in the order they were made (true for the Android JNI bridge this class backs —
-    /// see <c>GoogleBilling.cs</c>), and is a strict improvement over the single-slot field either
-    /// way: callbacks always eventually fire instead of some of them hanging forever.
+    /// response dequeues and invokes the oldest one. Plain FIFO is correct only when the native side
+    /// answers in call order. Android's purchase-status bridge does NOT: Google Play answers each
+    /// SKU's query independently, so two concurrent checks could swap answers (one card showed
+    /// "Purchased" for another card's SKU). Callers whose responses carry an identifier use the
+    /// keyed overloads — <see cref="Enqueue(string, Action{T})"/> / <see cref="InvokeNext(string, T)"/>
+    /// — which hand each response to the oldest callback waiting for that same key.
     ///
     /// The iOS StoreKit bridge does NOT use this: its native side does not answer in call order and
     /// can drop responses, so it matches events by product id instead — see
@@ -419,15 +421,27 @@ namespace com.noctuagames.sdk
     /// </summary>
     public class NativeCallbackQueue<T>
     {
-        private readonly Queue<Action<T>> _pending = new();
+        // Call order is kept across keys so the unkeyed API stays plain FIFO. Native responses can
+        // arrive on a JNI thread while calls enqueue on the main thread, hence the lock.
+        private readonly LinkedList<(string Key, Action<T> Callback)> _pending = new();
+        private readonly object _lock = new();
 
         /// <summary>Number of callbacks currently waiting for a native response.</summary>
-        public int Count => _pending.Count;
+        public int Count
+        {
+            get { lock (_lock) return _pending.Count; }
+        }
 
         /// <summary>Enqueues a callback to be invoked by the next matching native response.</summary>
-        public void Enqueue(Action<T> callback)
+        public void Enqueue(Action<T> callback) => Enqueue(null, callback);
+
+        /// <summary>
+        /// Enqueues a callback that only a response for <paramref name="key"/> (e.g. a product id)
+        /// may complete — see <see cref="InvokeNext(string, T)"/>.
+        /// </summary>
+        public void Enqueue(string key, Action<T> callback)
         {
-            _pending.Enqueue(callback);
+            lock (_lock) _pending.AddLast((key, callback));
         }
 
         /// <summary>
@@ -436,7 +450,18 @@ namespace com.noctuagames.sdk
         /// </summary>
         public bool TryDequeue(out Action<T> callback)
         {
-            return _pending.TryDequeue(out callback);
+            lock (_lock)
+            {
+                if (_pending.Count == 0)
+                {
+                    callback = null;
+                    return false;
+                }
+
+                callback = _pending.First.Value.Callback;
+                _pending.RemoveFirst();
+                return true;
+            }
         }
 
         /// <summary>
@@ -446,10 +471,44 @@ namespace com.noctuagames.sdk
         /// </summary>
         public void InvokeNext(T value)
         {
-            if (_pending.TryDequeue(out var callback))
+            if (TryDequeue(out var callback))
             {
                 callback?.Invoke(value);
             }
+        }
+
+        /// <summary>
+        /// Invokes the oldest callback enqueued for <paramref name="key"/>; responses for other keys
+        /// never reach it, whatever order they arrive in. A response with no key, or one whose key
+        /// nobody is waiting for, falls back to the oldest unkeyed callback, then to plain FIFO when
+        /// it carries no key at all — so a native build that omits the key still completes callers
+        /// instead of hanging them. Returns <c>false</c> when nothing was invoked.
+        /// </summary>
+        public bool InvokeNext(string key, T value)
+        {
+            Action<T> callback;
+            lock (_lock)
+            {
+                var node = string.IsNullOrEmpty(key) ? null : FindFirst(key);
+                node ??= FindFirst(null);
+                if (node == null && string.IsNullOrEmpty(key)) node = _pending.First;
+                if (node == null) return false;
+
+                callback = node.Value.Callback;
+                _pending.Remove(node);
+            }
+
+            callback?.Invoke(value);
+            return true;
+        }
+
+        private LinkedListNode<(string Key, Action<T> Callback)> FindFirst(string key)
+        {
+            for (var node = _pending.First; node != null; node = node.Next)
+            {
+                if (string.Equals(node.Value.Key, key, StringComparison.Ordinal)) return node;
+            }
+            return null;
         }
     }
 }

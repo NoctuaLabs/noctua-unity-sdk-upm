@@ -108,5 +108,105 @@ namespace Tests.Runtime
             queue.InvokeNext(0);
             Assert.AreEqual(1, queue.Count);
         }
+
+        // ─── Keyed (by product id) ─────────────────────────────────────────────
+
+        [Test]
+        public void Keyed_ResponsesInReverseOrder_EachReachesItsOwnCaller()
+        {
+            // The realme repro: Cat 1 (noads) and Cat 2 (pack4) checked together; Play answered
+            // pack4 first. FIFO gave noads's caller pack4's answer and vice versa.
+            var queue = new NativeCallbackQueue<bool>();
+            bool? noadsOwned = null, pack4Owned = null;
+
+            queue.Enqueue("noads", owned => noadsOwned = owned);
+            queue.Enqueue("pack4", owned => pack4Owned = owned);
+
+            queue.InvokeNext("pack4", false);
+            queue.InvokeNext("noads", true);
+
+            Assert.AreEqual(true, noadsOwned);
+            Assert.AreEqual(false, pack4Owned);
+            Assert.AreEqual(0, queue.Count);
+        }
+
+        [Test]
+        public void Keyed_SameKeyTwice_CompletesInCallOrder()
+        {
+            var queue = new NativeCallbackQueue<string>();
+            var order = new List<string>();
+
+            queue.Enqueue("noads", v => order.Add("first:" + v));
+            queue.Enqueue("noads", v => order.Add("second:" + v));
+
+            queue.InvokeNext("noads", "a");
+            queue.InvokeNext("noads", "b");
+
+            CollectionAssert.AreEqual(new[] { "first:a", "second:b" }, order);
+        }
+
+        [Test]
+        public void Keyed_ResponseForUnknownKey_IsDropped_AndOthersStillWait()
+        {
+            var queue = new NativeCallbackQueue<bool>();
+            var fired = false;
+            queue.Enqueue("noads", _ => fired = true);
+
+            Assert.IsFalse(queue.InvokeNext("pack4", true));
+
+            Assert.IsFalse(fired);
+            Assert.AreEqual(1, queue.Count);
+        }
+
+        [Test]
+        public void Keyed_ResponseWithoutKey_FallsBackToOldest()
+        {
+            // An older native build that leaves the id empty must still complete callers, not hang.
+            var queue = new NativeCallbackQueue<bool>();
+            bool? got = null;
+            queue.Enqueue("noads", v => got = v);
+
+            Assert.IsTrue(queue.InvokeNext(null, true));
+
+            Assert.AreEqual(true, got);
+        }
+
+        [Test]
+        public void Keyed_ResponseForUnmatchedKey_CompletesAnUnkeyedCaller()
+        {
+            var queue = new NativeCallbackQueue<bool>();
+            bool? unkeyed = null, keyed = null;
+            queue.Enqueue("noads", v => keyed = v);
+            queue.Enqueue(v => unkeyed = v);
+
+            queue.InvokeNext("pack4", true);
+
+            Assert.AreEqual(true, unkeyed);
+            Assert.IsNull(keyed);
+        }
+
+        [Test]
+        public void UnkeyedApi_StillPlainFifoAcrossKeys()
+        {
+            var queue = new NativeCallbackQueue<int>();
+            var order = new List<string>();
+            queue.Enqueue("b", v => order.Add("b"));
+            queue.Enqueue("a", v => order.Add("a"));
+
+            queue.InvokeNext(0);
+            queue.InvokeNext(0);
+
+            CollectionAssert.AreEqual(new[] { "b", "a" }, order);
+        }
+
+        [Test]
+        public void Keyed_NullCallback_IsConsumedWithoutThrowing()
+        {
+            var queue = new NativeCallbackQueue<int>();
+            queue.Enqueue("noads", null);
+
+            Assert.DoesNotThrow(() => queue.InvokeNext("noads", 1));
+            Assert.AreEqual(0, queue.Count);
+        }
     }
 }
