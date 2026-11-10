@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using com.noctuagames.sdk;
 using com.noctuagames.sdk.LiveOpsCampaign;
 using Cysharp.Threading.Tasks;
 using NUnit.Framework;
@@ -373,6 +374,210 @@ namespace Tests.Runtime.Campaign
 
             // With no completion signal a veil could never lift, so the legacy path shows none.
             CollectionAssert.IsEmpty(_busyLog);
+        }
+
+        // ─── Dismiss reason ────────────────────────────────────────────────────
+
+        [Test]
+        public void DismissCta_ExposesReasonOnlyDuringTheClose()
+        {
+            string seen = null;
+            _dispatcher.CurrentDismiss = () => seen = _dispatcher.ActiveDismissReason;
+
+            Dispatch(new CampaignAction { TypeRaw = "dismiss" });
+
+            Assert.AreEqual(CampaignActionDispatcher.DismissReasonCtaDismiss, seen);
+            Assert.IsNull(_dispatcher.ActiveDismissReason);
+        }
+
+        [Test]
+        public void DeeplinkCta_ClosesWithDeeplinkReason()
+        {
+            string seen = null;
+            _dispatcher.CurrentDismiss = () => seen = _dispatcher.ActiveDismissReason;
+
+            Dispatch(new CampaignAction { TypeRaw = "deeplink", Deeplink = "shop" });
+
+            Assert.AreEqual(CampaignActionDispatcher.DismissReasonCtaDeeplink, seen);
+            Assert.IsNull(_dispatcher.ActiveDismissReason);
+        }
+
+        [Test]
+        public void DeeplinkHandlerClosingThePopup_IsStillTheDeeplinkCta()
+        {
+            // Games are told to call ClosePopup() from their deeplink handler.
+            string seenInHandler = null;
+            _handlers.Deeplink = _ => seenInHandler = _dispatcher.ActiveDismissReason;
+
+            Dispatch(new CampaignAction { TypeRaw = "deeplink", Deeplink = "shop", KeepOpen = true });
+
+            Assert.AreEqual(CampaignActionDispatcher.DismissReasonCtaDeeplink, seenInHandler);
+            Assert.IsNull(_dispatcher.ActiveDismissReason);
+        }
+
+        [Test]
+        public void KeepOpenDeeplink_DoesNotClose()
+        {
+            var dismissed = false;
+            _dispatcher.CurrentDismiss = () => dismissed = true;
+
+            Dispatch(new CampaignAction { TypeRaw = "deeplink", Deeplink = "claim", KeepOpen = true });
+
+            Assert.IsFalse(dismissed);
+        }
+
+        [Test]
+        public void ThrowingDismiss_StillClearsReason()
+        {
+            _dispatcher.CurrentDismiss = () => throw new InvalidOperationException("boom");
+
+            Assert.DoesNotThrow(() => Dispatch(new CampaignAction { TypeRaw = "dismiss" }));
+            Assert.IsNull(_dispatcher.ActiveDismissReason);
+        }
+
+        [Test]
+        public void ReasonIsNullOutsideAnyDispatch()
+        {
+            Assert.IsNull(_dispatcher.ActiveDismissReason);
+        }
+
+        // ─── Purchase result attribution ──────────────────────────────────────
+
+        private PurchaseOutcome Settled(string sku, double secondsAfterTap, string status = "completed",
+            int orderId = 0, int errorCode = 0) =>
+            new PurchaseOutcome(sku, _fakeNow.AddSeconds(secondsAfterTap), status, orderId, errorCode);
+
+        private List<(string Name, Dictionary<string, IConvertible> Data)> PurchaseResults() =>
+            _events.GetEventsByName(CampaignActionDispatcher.PurchaseResultEvent);
+
+        [Test]
+        public void CampaignPurchase_Completed_EmitsResultLinkedToCampaign()
+        {
+            Dispatch(new CampaignAction { TypeRaw = "purchase", ProductId = "gem.100", Id = "offer_1_btn_0" });
+
+            _dispatcher.HandlePurchaseSettled(Settled("gem.100", 1, "completed", orderId: 42));
+
+            var results = PurchaseResults();
+            Assert.AreEqual(1, results.Count);
+            Assert.AreEqual("cmp", results[0].Data["campaign_id"]);
+            Assert.AreEqual("gem.100", results[0].Data["product_id"]);
+            Assert.AreEqual("completed", results[0].Data["status"]);
+            Assert.AreEqual(42, results[0].Data["order_id"]);
+            Assert.AreEqual("offer_1_btn_0", results[0].Data["button_id"]);
+            Assert.AreEqual(CampaignItem.EngagementPurchase, results[0].Data["engagement_type"]);
+            Assert.IsFalse(results[0].Data.ContainsKey("error_code"));
+        }
+
+        [Test]
+        public void CampaignPurchase_Cancelled_CarriesErrorCodeNotOrderId()
+        {
+            DispatchPurchase("gem.100");
+
+            _dispatcher.HandlePurchaseSettled(Settled("gem.100", 1, PurchaseOutcome.StatusCancelled,
+                errorCode: (int)com.noctuagames.sdk.NoctuaErrorCode.PaymentStatusCanceled));
+
+            var result = PurchaseResults()[0];
+            Assert.AreEqual(PurchaseOutcome.StatusCancelled, result.Data["status"]);
+            Assert.AreEqual((int)com.noctuagames.sdk.NoctuaErrorCode.PaymentStatusCanceled, result.Data["error_code"]);
+            Assert.IsFalse(result.Data.ContainsKey("order_id"));
+        }
+
+        [Test]
+        public void PurchaseWithoutCampaignTap_EmitsNothing()
+        {
+            _dispatcher.HandlePurchaseSettled(Settled("gem.100", 1));
+
+            Assert.AreEqual(0, PurchaseResults().Count);
+        }
+
+        [Test]
+        public void PurchaseOfAnotherSku_EmitsNothing()
+        {
+            DispatchPurchase("gem.100");
+
+            _dispatcher.HandlePurchaseSettled(Settled("gem.500", 1));
+
+            Assert.AreEqual(0, PurchaseResults().Count);
+        }
+
+        [Test]
+        public void SecondSettleForSameTap_IsNotCountedTwice()
+        {
+            // The offline retry dialog re-enters PurchaseItemAsync, so one tap can settle twice.
+            DispatchPurchase("gem.100");
+
+            _dispatcher.HandlePurchaseSettled(Settled("gem.100", 1, "completed", orderId: 1));
+            _dispatcher.HandlePurchaseSettled(Settled("gem.100", 1, PurchaseOutcome.StatusFailed));
+
+            Assert.AreEqual(1, PurchaseResults().Count);
+            Assert.AreEqual("completed", PurchaseResults()[0].Data["status"]);
+        }
+
+        [Test]
+        public void PurchaseStartedLongAfterTap_IsNotCredited()
+        {
+            DispatchPurchase("gem.100");
+
+            _dispatcher.HandlePurchaseSettled(
+                Settled("gem.100", CampaignActionDispatcher.PurchaseAttributionWindowSeconds + 1));
+
+            Assert.AreEqual(0, PurchaseResults().Count);
+        }
+
+        [Test]
+        public void PurchaseStartedBeforeTap_IsIgnored_AndTheTapStillCounts()
+        {
+            DispatchPurchase("gem.100");
+
+            // An older purchase of the same SKU finishing now must not steal the credit.
+            _dispatcher.HandlePurchaseSettled(Settled("gem.100", -30, "completed", orderId: 1));
+            _dispatcher.HandlePurchaseSettled(Settled("gem.100", 2, "completed", orderId: 2));
+
+            Assert.AreEqual(1, PurchaseResults().Count);
+            Assert.AreEqual(2, PurchaseResults()[0].Data["order_id"]);
+        }
+
+        [Test]
+        public void ExpiredTap_IsPrunedByTheNextTap()
+        {
+            DispatchPurchase("gem.100");
+            _fakeNow = _fakeNow.AddSeconds(CampaignActionDispatcher.PurchaseAttributionWindowSeconds + 5);
+            DispatchPurchase("gem.500"); // prunes gem.100
+
+            _dispatcher.HandlePurchaseSettled(Settled("gem.100", 0));
+
+            Assert.AreEqual(0, PurchaseResults().Count);
+        }
+
+        [Test]
+        public void NullOrEmptyOutcome_DoesNotThrow()
+        {
+            DispatchPurchase("gem.100");
+
+            Assert.DoesNotThrow(() => _dispatcher.HandlePurchaseSettled(null));
+            Assert.DoesNotThrow(() => _dispatcher.HandlePurchaseSettled(new PurchaseOutcome(null, _fakeNow, "completed")));
+            Assert.AreEqual(0, PurchaseResults().Count);
+        }
+
+        // ─── engagement_type on clicks ────────────────────────────────────────
+
+        [Test]
+        public void Click_CarriesEngagementType()
+        {
+            Dispatch(new CampaignAction { TypeRaw = "dismiss" });
+
+            var click = _events.GetEventsByName(CampaignActionDispatcher.ClickEvent)[0];
+            Assert.AreEqual(CampaignItem.EngagementPurchase, click.Data["engagement_type"]);
+        }
+
+        [Test]
+        public void Click_WithoutEngagementType_OmitsTheKey()
+        {
+            _dispatcher.Dispatch(new CampaignAction { TypeRaw = "dismiss" }, CampaignFactory.Item("cmp", null, null));
+
+            var click = _events.GetEventsByName(CampaignActionDispatcher.ClickEvent)[0];
+            Assert.IsFalse(click.Data.ContainsKey("engagement_type"));
+            Assert.AreEqual("cmp", click.Data["campaign_id"]);
         }
     }
 }

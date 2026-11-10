@@ -1466,6 +1466,10 @@ namespace com.noctuagames.sdk
                         Instance.Value._campaign?.RefreshOwnershipAsync(order?.ProductId).Forget();
                 }
 
+
+                    // Links a campaign Buy tap to how the purchase ended — no game code involved.
+                    Instance.Value._iap.OnPurchaseSettled += outcome =>
+                        Instance.Value._campaign?.HandlePurchaseSettled(outcome);
                 // Local prices, ownership and live ops progress are per player: a new account
                 // refetches prices, rechecks what it owns, switches to its own saved progress and sends its waiting updates.
                 Instance.Value._auth.OnAccountChanged += _ =>

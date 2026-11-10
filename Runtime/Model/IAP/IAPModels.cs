@@ -523,6 +523,61 @@ namespace com.noctuagames.sdk
     }
 
     /// <summary>
+    /// How one <c>PurchaseItemAsync</c> call ended, raised by
+    /// <c>NoctuaIAPService.OnPurchaseSettled</c> after the call returns or throws. Observational
+    /// only: it never changes what the caller of <c>PurchaseItemAsync</c> receives.
+    /// </summary>
+    public sealed class PurchaseOutcome
+    {
+        /// <summary><see cref="Status"/> when the player cancelled the store sheet.</summary>
+        public const string StatusCancelled = "cancelled";
+
+        /// <summary><see cref="Status"/> when the call threw for any other reason.</summary>
+        public const string StatusFailed = "failed";
+
+        /// <summary>The SKU the purchase was for.</summary>
+        public string ProductId { get; }
+
+        /// <summary>When <c>PurchaseItemAsync</c> was called (UTC).</summary>
+        public DateTime StartedAtUtc { get; }
+
+        /// <summary>
+        /// The returned <see cref="OrderStatus"/> name (e.g. <c>completed</c>, <c>pending</c>) when
+        /// the call returned, or <see cref="StatusCancelled"/> / <see cref="StatusFailed"/> when it threw.
+        /// </summary>
+        public string Status { get; }
+
+        /// <summary>Server order id, or 0 when the call threw before one was returned.</summary>
+        public int OrderId { get; }
+
+        /// <summary><see cref="NoctuaException.ErrorCode"/> of the failure, or 0.</summary>
+        public int ErrorCode { get; }
+
+        public PurchaseOutcome(string productId, DateTime startedAtUtc, string status, int orderId = 0, int errorCode = 0)
+        {
+            ProductId = productId ?? string.Empty;
+            StartedAtUtc = startedAtUtc;
+            Status = status ?? StatusFailed;
+            OrderId = orderId;
+            ErrorCode = errorCode;
+        }
+
+        /// <summary>Outcome of a call that returned <paramref name="response"/>.</summary>
+        public static PurchaseOutcome FromResponse(string productId, DateTime startedAtUtc, PurchaseResponse response) =>
+            response == null
+                ? new PurchaseOutcome(productId, startedAtUtc, StatusFailed)
+                : new PurchaseOutcome(productId, startedAtUtc, response.Status.ToString(), response.OrderId);
+
+        /// <summary>Outcome of a call that threw <paramref name="error"/>.</summary>
+        public static PurchaseOutcome FromException(string productId, DateTime startedAtUtc, Exception error)
+        {
+            var code = (error as NoctuaException)?.ErrorCode ?? 0;
+            var status = code == (int)NoctuaErrorCode.PaymentStatusCanceled ? StatusCancelled : StatusFailed;
+            return new PurchaseOutcome(productId, startedAtUtc, status, errorCode: code);
+        }
+    }
+
+    /// <summary>
     /// Noctua-specific gold/virtual currency data returned for player.
     /// </summary>
     [Preserve]

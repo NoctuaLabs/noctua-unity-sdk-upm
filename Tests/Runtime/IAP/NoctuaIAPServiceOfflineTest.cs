@@ -159,5 +159,44 @@ namespace Tests.Runtime.IAP
                 Assert.AreEqual(2, paymentUI.RetryDialogShownCount,
                     "Both offline attempts must reach the retry dialog");
             });
+
+        // ── OnPurchaseSettled ──────────────────────────────────────────────────
+
+        [UnityTest]
+        public IEnumerator PurchaseItemAsync_WhenOffline_RaisesOneFailedOutcome() =>
+            UniTask.ToCoroutine(async () =>
+            {
+                var svc = CreateOfflineService(new NoRetryPaymentUI());
+                var outcomes = new System.Collections.Generic.List<PurchaseOutcome>();
+                svc.OnPurchaseSettled += outcomes.Add;
+                var before = DateTime.UtcNow;
+
+                var thrown = await AwaitOfflinePurchase(svc);
+
+                Assert.AreEqual(1, outcomes.Count);
+                Assert.AreEqual("offline_test_product", outcomes[0].ProductId);
+                Assert.AreEqual(PurchaseOutcome.StatusFailed, outcomes[0].Status);
+                Assert.AreEqual(thrown.ErrorCode, outcomes[0].ErrorCode);
+                Assert.AreEqual(0, outcomes[0].OrderId);
+                Assert.GreaterOrEqual(outcomes[0].StartedAtUtc, before);
+            });
+
+        [UnityTest]
+        public IEnumerator PurchaseItemAsync_ThrowingSubscriber_DoesNotChangeTheResult() =>
+            UniTask.ToCoroutine(async () =>
+            {
+                var paymentUI = new NoRetryPaymentUI();
+                var svc = CreateOfflineService(paymentUI);
+                var laterSubscriberCalled = false;
+                svc.OnPurchaseSettled += _ => throw new InvalidOperationException("observer bug");
+                svc.OnPurchaseSettled += _ => laterSubscriberCalled = true;
+
+                // Still the offline NoctuaException, not the observer's exception.
+                var thrown = await AwaitOfflinePurchase(svc);
+
+                Assert.AreEqual((int)NoctuaErrorCode.Authentication, thrown.ErrorCode);
+                Assert.IsTrue(laterSubscriberCalled, "one bad observer must not starve the others");
+                Assert.AreEqual(1, paymentUI.RetryDialogShownCount);
+            });
     }
 }

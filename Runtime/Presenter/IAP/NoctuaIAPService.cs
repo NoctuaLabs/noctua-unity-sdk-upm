@@ -1177,6 +1177,47 @@ namespace com.noctuagames.sdk
         /// <exception cref="NoctuaException">Thrown when IAP is disabled, user is offline, or authentication fails.</exception>
         public async UniTask<PurchaseResponse> PurchaseItemAsync(PurchaseRequest purchaseRequest, bool tryToUseSecondaryPayment = false, PaymentType enforcedPaymentType = PaymentType.unknown)
         {
+            var productId = purchaseRequest?.ProductId;
+            var startedAt = DateTime.UtcNow;
+            PurchaseResponse result;
+
+            try
+            {
+                result = await PurchaseItemFlowAsync(purchaseRequest, tryToUseSecondaryPayment, enforcedPaymentType);
+            }
+            catch (Exception e)
+            {
+                RaisePurchaseSettled(PurchaseOutcome.FromException(productId, startedAt, e));
+                throw;
+            }
+
+            RaisePurchaseSettled(PurchaseOutcome.FromResponse(productId, startedAt, result));
+            return result;
+        }
+
+        /// <summary>
+        /// Raised once per <see cref="PurchaseItemAsync"/> call after it returns or throws, with how
+        /// it ended. Lets features that started a purchase (e.g. a live ops campaign's Buy button)
+        /// report its result without wrapping the game's own purchase code.
+        /// </summary>
+        public event Action<PurchaseOutcome> OnPurchaseSettled;
+
+        // Observers must never change the purchase result: the game still gets exactly the value
+        // or exception PurchaseItemFlowAsync produced.
+        private void RaisePurchaseSettled(PurchaseOutcome outcome)
+        {
+            var handlers = OnPurchaseSettled;
+            if (handlers == null) return;
+
+            foreach (Action<PurchaseOutcome> handler in handlers.GetInvocationList())
+            {
+                try { handler(outcome); }
+                catch (Exception e) { _log.Warning($"OnPurchaseSettled handler threw: {e.Message}"); }
+            }
+        }
+
+        private async UniTask<PurchaseResponse> PurchaseItemFlowAsync(PurchaseRequest purchaseRequest, bool tryToUseSecondaryPayment, PaymentType enforcedPaymentType)
+        {
             if (_config.isIAPDisabled)
             {
                 _paymentUI.ShowError(LocaleTextKey.IAPDisabled);

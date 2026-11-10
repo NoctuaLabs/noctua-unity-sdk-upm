@@ -168,6 +168,13 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
         /// <summary>The per-player values the popup on screen was last rendered with, or null.</summary>
         public IReadOnlyDictionary<string, string> ShownPlayerData => _shownItem == null ? null : _shownPlayerData;
 
+        /// <summary>
+        /// Composition-root hook, wired to <c>NoctuaIAPService.OnPurchaseSettled</c>: sends
+        /// <c>live_ops_campaign_purchase_result</c> for purchases started from a campaign's Buy
+        /// button. Games never call this — any purchase made through <c>Noctua.IAP</c> is seen.
+        /// </summary>
+        public void HandlePurchaseSettled(PurchaseOutcome outcome) => _dispatcher.HandlePurchaseSettled(outcome);
+
         /// <summary>Registers the game's deeplink router for <c>deeplink</c> actions.</summary>
         public void RegisterDeeplinkHandler(Action<string> handler) => _deeplinkHandler = handler;
 
@@ -283,11 +290,14 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
                 var item = RenderItem(stored, playerData);
 
                 var popup = _host.Popup;
+                // Per-showing, captured by both callbacks: a later ShowPopup gets its own timer.
+                System.Diagnostics.Stopwatch visibleTimer = null;
                 popup.SetCallbacks(
                     onShown: shown =>
                     {
+                        visibleTimer = System.Diagnostics.Stopwatch.StartNew();
                         _manager.MarkShown(shown);
-                        _events?.Send(ImpressionEvent, IdPayload(shown.Id));
+                        _events?.Send(ImpressionEvent, CampaignPayload(shown));
                         SafeInvoke(OnCampaignShown, shown.Id);
                     },
                     onClosed: () =>
@@ -301,7 +311,7 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
                         }
                         if (_dispatcher.CurrentDismiss == (Action)popup.Close) _dispatcher.CurrentDismiss = null;
                         if (_dispatcher.CurrentBusy == (Action<bool>)popup.SetBusy) _dispatcher.CurrentBusy = null;
-                        _events?.Send(DismissEvent, IdPayload(item.Id));
+                        _events?.Send(DismissEvent, DismissPayload(item, CurrentDismissReason(), visibleTimer));
                         SafeInvoke(OnCampaignDismissed, item.Id);
                     },
                     onFailed: () => _log.Warning($"ShowPopup: campaign '{item.Id}' failed to render"));
@@ -477,9 +487,42 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
         /// </summary>
         public void ClearOwnership()
         {
+            _log.Debug($"{LogTag} ownership cleared (was: {DescribeOwnership()})");
             _ownership.Clear();
             _ownershipGeneration++;
+
+            // A popup can already be open — auto_show runs before the first login finishes, and
+            // that login lands here. Without asking again its owned cards fall back to "Buy" at
+            // the next re-render (a purchase, a price update), though nothing changed in the store.
+            if (_shownItem != null) RecheckShownOwnershipAsync().Forget();
         }
+
+        /// <summary>
+        /// Re-asks ownership for the campaign on screen after the cache was cleared, then
+        /// re-renders it so its cards reflect the current player and provider.
+        /// </summary>
+        private async UniTaskVoid RecheckShownOwnershipAsync()
+        {
+            try
+            {
+                var shown = _shownItem;
+                if (shown == null || !await PrefetchOwnershipAsync(shown)) return;
+
+                // Closed, or replaced by another campaign, while the store answered.
+                if (!ReferenceEquals(_shownItem, shown)) return;
+                var popup = _host.PopupIfCreated;
+                if (popup == null || !popup.IsShowing) return;
+
+                popup.Refresh(RenderItem(shown, _shownPlayerData), _manager.Config.SchemaVersion);
+            }
+            catch (Exception e)
+            {
+                _log.Warning($"{LogTag} ownership re-check after clear failed: {e.Message}");
+            }
+        }
+
+        private string DescribeOwnership() =>
+            _ownership.Count == 0 ? "none" : string.Join(", ", _ownership.Select(p => p.Key + "=" + p.Value));
 
         /// <summary>
         /// The SKUs <paramref name="item"/>'s Buy buttons purchase, in tree order, without
@@ -487,7 +530,6 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
         /// </summary>
         public static IReadOnlyList<string> PurchaseSkus(CampaignItem item)
         {
-            _log.Debug($"{LogTag} ownership cleared (was: {DescribeOwnership()})");
             var skus = new List<string>();
             if (item?.View != null) CollectPurchaseSkus(item.View, item.Data, skus, depth: 0);
             return skus;
@@ -705,6 +747,7 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
                 _ownership[pending[i]] = answers[i].Value;
                 learned = true;
             }
+            _log.Debug($"{LogTag} ownership after prefetch for '{item?.Id}': {DescribeOwnership()}");
             return learned;
         }
 
@@ -724,6 +767,7 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
                 var owned = await CheckOwnedAsync(provider, productId);
                 if (owned == null || generation != _ownershipGeneration) return;
                 _ownership[productId] = owned.Value;
+                _log.Debug($"{LogTag} ownership after refresh of '{productId}': {DescribeOwnership()}");
 
                 var popup = _host.PopupIfCreated;
                 if (_shownItem == null || popup == null || !popup.IsShowing) return;
@@ -747,7 +791,6 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
             return true;
         }
 
-            _log.Debug($"{LogTag} ownership after prefetch for '{item?.Id}': {DescribeOwnership()}");
         /// <summary>One provider call: its answer, or null when it threw or took too long.</summary>
         private async UniTask<bool?> CheckOwnedAsync(Func<string, UniTask<bool>> provider, string sku)
         {
@@ -767,7 +810,6 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
             {
                 _log.Debug($"{LogTag} ownership check for '{sku}' failed — treated as unknown: {e.Message}");
                 return null;
-                _log.Debug($"{LogTag} ownership after refresh of '{productId}': {DescribeOwnership()}");
             }
         }
 
@@ -821,9 +863,25 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
         /// </summary>
         public void ClosePopup()
         {
+            _closingProgrammatically = true;
             try { _host.PopupIfCreated?.Close(); }
             catch (Exception e) { _log.Error("ClosePopup failed: " + e.Message); }
+            finally { _closingProgrammatically = false; }
         }
+
+        // True only while ClosePopup() runs; the popup's close callback fires inside it.
+        private bool _closingProgrammatically;
+
+        /// <summary>
+        /// Reason for the close in progress. The popup's close callback runs synchronously inside
+        /// whichever call closed it, so the dispatcher's CTA reason or ClosePopup's flag is still
+        /// set; anything else is the shell's close button, the only other caller of Close().
+        /// </summary>
+        private string CurrentDismissReason() =>
+            _dispatcher.ActiveDismissReason
+            ?? (_closingProgrammatically
+                ? CampaignActionDispatcher.DismissReasonProgrammatic
+                : CampaignActionDispatcher.DismissReasonCloseButton);
 
         /// <summary>
         /// Composition-root hook: shows the first eligible <c>auto_show</c> campaign once,
@@ -880,8 +938,30 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
             }
         }
 
-        private static Dictionary<string, IConvertible> IdPayload(string id) =>
-            new Dictionary<string, IConvertible> { { "campaign_id", id ?? string.Empty } };
+        /// <summary>
+        /// Properties shared by impression and dismiss. <c>campaign_id</c> is always present, as
+        /// before; <c>engagement_type</c> is added only when the campaign declares one, so
+        /// existing queries on these events keep matching.
+        /// </summary>
+        public static Dictionary<string, IConvertible> CampaignPayload(CampaignItem item)
+        {
+            var payload = new Dictionary<string, IConvertible> { { "campaign_id", item?.Id ?? string.Empty } };
+            if (!string.IsNullOrEmpty(item?.EngagementType)) payload["engagement_type"] = item.EngagementType;
+            return payload;
+        }
+
+        /// <summary>
+        /// <see cref="CampaignPayload"/> plus <c>reason</c> and, when the popup was actually shown,
+        /// <c>visible_ms</c>. A popup that never fired onShown sends no duration rather than a 0.
+        /// </summary>
+        public static Dictionary<string, IConvertible> DismissPayload(
+            CampaignItem item, string reason, System.Diagnostics.Stopwatch visibleTimer)
+        {
+            var payload = CampaignPayload(item);
+            if (!string.IsNullOrEmpty(reason)) payload["reason"] = reason;
+            if (visibleTimer != null) payload["visible_ms"] = visibleTimer.ElapsedMilliseconds;
+            return payload;
+        }
 
         private void SafeInvoke(Action<string> evt, string arg)
         {

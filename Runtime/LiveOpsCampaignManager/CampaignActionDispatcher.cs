@@ -49,6 +49,46 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
         /// </summary>
         public const int SyncPurchaseDebounceMs = 1000;
 
+        /// <summary><c>reason</c> on <c>live_ops_campaign_dismiss</c>: the shell's ✕ close button.</summary>
+        public const string DismissReasonCloseButton = "close_button";
+
+        /// <summary><c>reason</c> on <c>live_ops_campaign_dismiss</c>: a <c>dismiss</c> CTA was tapped.</summary>
+        public const string DismissReasonCtaDismiss = "cta_dismiss";
+
+        /// <summary><c>reason</c> on <c>live_ops_campaign_dismiss</c>: a <c>deeplink</c> CTA navigated away.</summary>
+        public const string DismissReasonCtaDeeplink = "cta_deeplink";
+
+        /// <summary><c>reason</c> on <c>live_ops_campaign_dismiss</c>: the game called <c>ClosePopup()</c>.</summary>
+        public const string DismissReasonProgrammatic = "programmatic";
+
+        /// <summary>
+        /// Analytics event fired when a purchase started from a campaign's Buy button settles —
+        /// links the campaign to the purchase's status and order id.
+        /// </summary>
+        public const string PurchaseResultEvent = "live_ops_campaign_purchase_result";
+
+        /// <summary>
+        /// A purchase is credited to a campaign tap only if <c>PurchaseItemAsync</c> was called
+        /// within this many seconds after the tap — room for the game's own confirm dialog, but a
+        /// later purchase of the same SKU from the game's shop is not credited to the campaign.
+        /// </summary>
+        public const int PurchaseAttributionWindowSeconds = 120;
+
+        // Clock skew allowance: the tap and the purchase start are stamped by different classes.
+        private const int AttributionSkewMs = 1000;
+
+        private sealed class PendingPurchase
+        {
+            public string CampaignId;
+            public string EngagementType;
+            public string ButtonId;
+            public DateTime TappedAtUtc;
+        }
+
+        // Latest campaign tap per SKU still waiting for its purchase to settle.
+        private readonly Dictionary<string, PendingPurchase> _pendingPurchases =
+            new Dictionary<string, PendingPurchase>(StringComparer.Ordinal);
+
         private readonly CampaignActionHandlers _handlers;
         private readonly IEventSender _events;
         private readonly Action<CampaignItem, CampaignAction> _onDispatched;
@@ -73,6 +113,14 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
         /// itself. A bool callback keeps this class free of any UI reference.
         /// </summary>
         public Action<bool> CurrentBusy { get; set; }
+
+        /// <summary>
+        /// Why this dispatcher is closing the popup — non-null only while its own
+        /// <see cref="CurrentDismiss"/> call runs. The popup's close callback fires inside that
+        /// call, so the facade reads it there to tag <c>live_ops_campaign_dismiss</c>; any other
+        /// close sees null.
+        /// </summary>
+        public string ActiveDismissReason { get; private set; }
 
         public CampaignActionDispatcher(
             CampaignActionHandlers handlers,
@@ -110,16 +158,21 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
                 switch (action.Type)
                 {
                     case CampaignActionType.Deeplink:
-                        Invoke(_handlers.Deeplink, action.Deeplink, "deeplink");
-                        // A deeplink navigates the player away — close the popup behind them,
-                        // unless it is an in-place action such as a claim.
-                        if (!action.KeepOpen) CurrentDismiss?.Invoke();
+                        // The reason also covers the handler: games are told to call ClosePopup()
+                        // from inside it, and that close still came from this CTA tap.
+                        WithDismissReason(DismissReasonCtaDeeplink, () =>
+                        {
+                            Invoke(_handlers.Deeplink, action.Deeplink, "deeplink");
+                            // A deeplink navigates the player away — close the popup behind them,
+                            // unless it is an in-place action such as a claim.
+                            if (!action.KeepOpen) CurrentDismiss?.Invoke();
+                        });
                         break;
                     case CampaignActionType.Purchase:
                         HandlePurchase(action, campaign);
                         break;
                     case CampaignActionType.Dismiss:
-                        CurrentDismiss?.Invoke();
+                        WithDismissReason(DismissReasonCtaDismiss, () => CurrentDismiss?.Invoke());
                         break;
                     case CampaignActionType.None:
                     default:
@@ -151,6 +204,8 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
                 _log.Warning($"{LogTag} purchase action missing product_id in campaign '{campaign?.Id}'");
                 return;
             }
+
+            RememberPurchaseTap(action, campaign);
 
             if (_handlers.PurchaseAsync != null)
             {
@@ -200,6 +255,91 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
             }
         }
 
+        /// <summary>
+        /// Reports a settled purchase. When it is for a SKU a campaign's Buy button asked for, and
+        /// the purchase started within <see cref="PurchaseAttributionWindowSeconds"/> of that tap,
+        /// emits <see cref="PurchaseResultEvent"/> once. Anything else is ignored. Never throws.
+        /// </summary>
+        public void HandlePurchaseSettled(PurchaseOutcome outcome)
+        {
+            try
+            {
+                if (outcome == null || string.IsNullOrEmpty(outcome.ProductId)) return;
+                if (!_pendingPurchases.TryGetValue(outcome.ProductId, out var tap)) return;
+
+                var sinceTapMs = (outcome.StartedAtUtc - tap.TappedAtUtc).TotalMilliseconds;
+
+                // Started before the tap: an earlier purchase of this SKU finishing. Keep waiting.
+                if (sinceTapMs < -AttributionSkewMs) return;
+
+                _pendingPurchases.Remove(outcome.ProductId);
+
+                // Started long after the tap: the player bought it somewhere else later.
+                if (sinceTapMs > PurchaseAttributionWindowSeconds * 1000.0) return;
+
+                _events?.Send(PurchaseResultEvent, PurchaseResultPayload(outcome, tap));
+            }
+            catch (Exception e)
+            {
+                _log.Warning($"{LogTag} purchase result tracking failed: {e.Message}");
+            }
+        }
+
+        private void RememberPurchaseTap(CampaignAction action, CampaignItem campaign)
+        {
+            var now = _now();
+            PruneExpiredPurchaseTaps(now);
+            _pendingPurchases[action.ProductId] = new PendingPurchase
+            {
+                CampaignId = campaign?.Id ?? string.Empty,
+                EngagementType = campaign?.EngagementType,
+                ButtonId = action.Id,
+                TappedAtUtc = now,
+            };
+        }
+
+        // Bounds the map: a tap whose purchase never started (custom store, game ignored it) expires.
+        private void PruneExpiredPurchaseTaps(DateTime now)
+        {
+            if (_pendingPurchases.Count == 0) return;
+
+            var expired = new List<string>();
+            foreach (var pair in _pendingPurchases)
+            {
+                if ((now - pair.Value.TappedAtUtc).TotalSeconds > PurchaseAttributionWindowSeconds) expired.Add(pair.Key);
+            }
+            foreach (var key in expired) _pendingPurchases.Remove(key);
+        }
+
+        private static Dictionary<string, IConvertible> PurchaseResultPayload(PurchaseOutcome outcome, PendingPurchase tap)
+        {
+            var payload = new Dictionary<string, IConvertible>
+            {
+                { "campaign_id", tap.CampaignId },
+                { "product_id", outcome.ProductId },
+                { "status", outcome.Status },
+            };
+
+            if (!string.IsNullOrEmpty(tap.EngagementType)) payload["engagement_type"] = tap.EngagementType;
+            if (!string.IsNullOrEmpty(tap.ButtonId)) payload["button_id"] = tap.ButtonId;
+            if (outcome.OrderId > 0) payload["order_id"] = outcome.OrderId;
+            if (outcome.ErrorCode != 0) payload["error_code"] = outcome.ErrorCode;
+
+            return payload;
+        }
+
+        /// <summary>
+        /// Runs <paramref name="body"/> with <paramref name="reason"/> visible through
+        /// <see cref="ActiveDismissReason"/>, and only for that long, so a stale reason can never
+        /// leak onto a later close-button or programmatic close.
+        /// </summary>
+        private void WithDismissReason(string reason, Action body)
+        {
+            ActiveDismissReason = reason;
+            try { body(); }
+            finally { ActiveDismissReason = null; }
+        }
+
         private void Invoke(Action<string> handler, string arg, string label)
         {
             if (handler == null)
@@ -217,6 +357,12 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
                 { "campaign_id", campaign?.Id ?? string.Empty },
                 { "action_type", action.Type.ToString() },
             };
+
+            // Lets reporting split clicks by purchase offers vs event announcements without a join.
+            if (!string.IsNullOrEmpty(campaign?.EngagementType))
+            {
+                payload["engagement_type"] = campaign.EngagementType;
+            }
 
             // The route tells reporting which card in a multi-card popup was tapped.
             if (action.Type == CampaignActionType.Deeplink && !string.IsNullOrEmpty(action.Deeplink))
