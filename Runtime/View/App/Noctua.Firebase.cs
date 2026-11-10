@@ -119,7 +119,7 @@ namespace com.noctuagames.sdk
         /// title/body + custom deeplink field + raw JSON. Subscribe once during SDK init.
         /// </summary>
         /// <remarks>
-        /// The SDK tracks <c>push_notification_received</c> automatically — no subscription needed.
+        /// The SDK tracks <c>live_ops_push_notification_received</c> automatically — no subscription needed.
         /// </remarks>
         public static event Action<NoctuaNotificationPayload> OnRemoteNotificationReceived
         {
@@ -134,7 +134,7 @@ namespace com.noctuagames.sdk
         /// game-specific route field and navigate to the matching scene.
         /// </summary>
         /// <remarks>
-        /// The SDK tracks <c>push_notification_opened</c> automatically — no subscription needed.
+        /// The SDK tracks <c>live_ops_push_notification_opened</c> automatically — no subscription needed.
         /// </remarks>
         public static event Action<NoctuaNotificationPayload> OnNotificationTapped
         {
@@ -243,10 +243,43 @@ namespace com.noctuagames.sdk
             self._cachedFcmToken = token;
 
             self._log.Info(isFirst ? "FCM token acquired" : "FCM token rotated");
+            TrackFcmTokenChangeAsync(token).Forget();
 
             if (self.ResolveLiveSandbox())
             {
                 self._log.Info($"[sandbox] FCM token: {token}");
+            }
+        }
+
+        private const string FcmTokenHashPrefsKey = "NoctuaFcmTokenHash";
+
+        /// <summary>
+        /// Sends <see cref="NoctuaNotificationPayload.TokenUpdatedEventName"/> once per install and
+        /// on every real rotation — not on each launch, which re-acquires the same token. Compares
+        /// against a persisted hash, so the token itself never touches local storage.
+        /// </summary>
+        private static async UniTaskVoid TrackFcmTokenChangeAsync(string token)
+        {
+            try
+            {
+                // Token fetches resume off the main thread; PlayerPrefs must not.
+                await UniTask.SwitchToMainThread();
+
+                var hash = NoctuaNotificationPayload.HashToken(token);
+                var change = NoctuaNotificationPayload.TokenChangeKind(
+                    PlayerPrefs.GetString(FcmTokenHashPrefsKey, string.Empty), hash);
+                if (change == null) return;
+
+                PlayerPrefs.SetString(FcmTokenHashPrefsKey, hash);
+                PlayerPrefs.Save();
+
+                Instance.Value?._event?.InternalTrackEvent(
+                    NoctuaNotificationPayload.TokenUpdatedEventName,
+                    new Dictionary<string, IConvertible> { { "change", change } });
+            }
+            catch (Exception e)
+            {
+                Instance.Value?._log?.Warning($"FCM token change tracking failed: {e.Message}");
             }
         }
 

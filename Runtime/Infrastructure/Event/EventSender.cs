@@ -60,6 +60,13 @@ namespace com.noctuagames.sdk.Events
         /// <summary>Delegate that returns whether the SDK is currently in offline mode.</summary>
         public Func<bool> IsOfflineModeFunc;
 
+        /// <summary>
+        /// Delegate that returns the FCM token the SDK currently holds (the one sent on the
+        /// <c>X-FCM-TOKEN</c> header), kept fresh by token refreshes. Optional: when null or empty
+        /// the sender falls back to the token it fetched itself at startup.
+        /// </summary>
+        public Func<string> FcmTokenFunc;
+
         /// <summary>Delegate that returns whether Adjust offline mode toggling is disabled.</summary>
         public Func<bool> AdjustOfflineModeDisabledFunc;
 
@@ -160,6 +167,25 @@ namespace com.noctuagames.sdk.Events
         // X-FCM-TOKEN HTTP header) since Infrastructure must not depend on the View-layer Noctua
         // static class.
         private string _cachedFcmToken;
+
+        /// <summary>
+        /// The <c>fcm_token</c> to attach: the SDK-wide token when it has one (it follows
+        /// rotations), else this sender's own startup fetch — which never re-fetches after a
+        /// timeout, so on its own it could miss the token for the whole session.
+        /// </summary>
+        public static string ResolveFcmToken(string shared, string fetchedAtStartup) =>
+            string.IsNullOrEmpty(shared) ? fetchedAtStartup : shared;
+
+        private string SafeInvoke(Func<string> func)
+        {
+            if (func == null) return null;
+            try { return func(); }
+            catch (Exception e)
+            {
+                _log.Warning($"[Event Sender] FcmTokenFunc threw: {e.Message}");
+                return null;
+            }
+        }
         private volatile bool _firebaseIdsFetched;
         // Single-flight lock: prevents multiple concurrent tasks from all calling GetFirebaseAnalyticsSessionID
         // simultaneously. Without this, recovery events spawned at ~300ms post-launch (before Firebase initializes)
@@ -754,8 +780,9 @@ namespace com.noctuagames.sdk.Events
                         data.TryAdd("firebase_analytics_session_id", _cachedFirebaseSessionId);
                     if (!string.IsNullOrEmpty(_cachedFirebaseInstallationId))
                         data.TryAdd("firebase_installation_id", _cachedFirebaseInstallationId);
-                    if (!string.IsNullOrEmpty(_cachedFcmToken))
-                        data.TryAdd("fcm_token", _cachedFcmToken);
+                    var fcmToken = ResolveFcmToken(SafeInvoke(_config.FcmTokenFunc), _cachedFcmToken);
+                    if (!string.IsNullOrEmpty(fcmToken))
+                        data.TryAdd("fcm_token", fcmToken);
                 }
 
                 #endif

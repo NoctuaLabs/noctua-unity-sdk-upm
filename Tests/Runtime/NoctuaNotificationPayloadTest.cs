@@ -1,4 +1,6 @@
+using System.Linq;
 using com.noctuagames.sdk;
+using com.noctuagames.sdk.Events;
 using NUnit.Framework;
 
 namespace Tests.Runtime
@@ -427,10 +429,85 @@ namespace Tests.Runtime
         }
 
         [Test]
+        public void ToTrackingProperties_CarriesCampaignId()
+        {
+            var props = NoctuaNotificationPayload.FromJson(
+                @"{""gcm.message_id"": ""m-1"", ""campaign_id"": ""summer_sale""}").ToTrackingProperties();
+
+            Assert.AreEqual("summer_sale", props["campaign_id"]);
+            Assert.AreEqual(4, props.Count);
+        }
+
+        [Test]
+        public void ToTrackingProperties_CopiesNoctuaPrefixedScalars_Only()
+        {
+            var props = NoctuaNotificationPayload.FromJson(
+                @"{""noctua_segment"": ""whales"", ""noctua_variant"": 2, ""noctua_obj"": {""a"": 1},
+                   ""player_secret"": ""x"", ""noctua_deeplink"": ""game://shop""}").ToTrackingProperties();
+
+            Assert.AreEqual("whales", props["noctua_segment"]);
+            Assert.AreEqual("2", props["noctua_variant"]);
+            Assert.IsFalse(props.ContainsKey("noctua_obj"), "objects are not copied");
+            Assert.IsFalse(props.ContainsKey("player_secret"), "only the allowlist is copied");
+            Assert.IsFalse(props.ContainsKey("noctua_deeplink"), "already reported as deeplink");
+            Assert.AreEqual("game://shop", props["deeplink"]);
+        }
+
+        [Test]
+        public void ToTrackingProperties_CapsKeyCountAndValueLength()
+        {
+            var json = "{" + string.Join(",", System.Linq.Enumerable.Range(0, 15)
+                           .Select(i => $"\"noctua_k{i}\": \"v{i}\"")) +
+                       $", \"campaign_id\": \"{new string('c', 300)}\"}}";
+
+            var props = NoctuaNotificationPayload.FromJson(json).ToTrackingProperties();
+
+            Assert.AreEqual(NoctuaNotificationPayload.MaxTrackedKeys,
+                props.Keys.Count(k => k.StartsWith(NoctuaNotificationPayload.TrackedKeyPrefix)));
+            Assert.AreEqual(NoctuaNotificationPayload.MaxTrackedValueLength, ((string)props["campaign_id"]).Length);
+        }
+
+        // ─── FCM token change ──────────────────────────────────────────────────
+
+        [Test]
+        public void TokenChangeKind_FirstUnchangedRotated()
+        {
+            var a = NoctuaNotificationPayload.HashToken("token-a");
+            var b = NoctuaNotificationPayload.HashToken("token-b");
+
+            Assert.AreEqual("first", NoctuaNotificationPayload.TokenChangeKind("", a));
+            Assert.AreEqual("first", NoctuaNotificationPayload.TokenChangeKind(null, a));
+            Assert.IsNull(NoctuaNotificationPayload.TokenChangeKind(a, a), "same token every launch sends nothing");
+            Assert.AreEqual("rotated", NoctuaNotificationPayload.TokenChangeKind(a, b));
+            Assert.IsNull(NoctuaNotificationPayload.TokenChangeKind(a, ""), "no token is not a change");
+        }
+
+        [Test]
+        public void HashToken_IsStableShortAndNotTheToken()
+        {
+            var hash = NoctuaNotificationPayload.HashToken("fcm-token-value");
+
+            Assert.AreEqual(hash, NoctuaNotificationPayload.HashToken("fcm-token-value"));
+            Assert.AreEqual(32, hash.Length);
+            StringAssert.DoesNotContain("fcm", hash);
+            Assert.AreEqual(string.Empty, NoctuaNotificationPayload.HashToken(null));
+        }
+
+        [Test]
+        public void ResolveFcmToken_PrefersTheSharedToken()
+        {
+            Assert.AreEqual("shared", EventSender.ResolveFcmToken("shared", "startup"));
+            Assert.AreEqual("startup", EventSender.ResolveFcmToken(null, "startup"));
+            Assert.AreEqual("startup", EventSender.ResolveFcmToken("", "startup"));
+            Assert.IsNull(EventSender.ResolveFcmToken(null, null));
+        }
+
+        [Test]
         public void EventNames_AreStable()
         {
-            Assert.AreEqual("push_notification_received", NoctuaNotificationPayload.ReceivedEventName);
-            Assert.AreEqual("push_notification_opened", NoctuaNotificationPayload.OpenedEventName);
+            Assert.AreEqual("live_ops_push_notification_received", NoctuaNotificationPayload.ReceivedEventName);
+            Assert.AreEqual("live_ops_push_notification_opened", NoctuaNotificationPayload.OpenedEventName);
+            Assert.AreEqual("live_ops_push_token_updated", NoctuaNotificationPayload.TokenUpdatedEventName);
         }
     }
 }

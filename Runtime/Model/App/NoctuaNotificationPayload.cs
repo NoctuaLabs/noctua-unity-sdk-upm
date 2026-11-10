@@ -13,10 +13,10 @@ namespace com.noctuagames.sdk
     public class NoctuaNotificationPayload
     {
         /// <summary>Built-in event sent to the Noctua backend when a push is received while the app is running.</summary>
-        public const string ReceivedEventName = "push_notification_received";
+        public const string ReceivedEventName = "live_ops_push_notification_received";
 
         /// <summary>Built-in event sent to the Noctua backend when the user taps a push notification.</summary>
-        public const string OpenedEventName = "push_notification_opened";
+        public const string OpenedEventName = "live_ops_push_notification_opened";
 
         private const string IosMessageIdKey     = "gcm.message_id";
         private const string AndroidMessageIdKey = "google.message_id";
@@ -55,13 +55,85 @@ namespace com.noctuagames.sdk
         /// </summary>
         public Dictionary<string, IConvertible> ToTrackingProperties()
         {
-            return new Dictionary<string, IConvertible>
+            var props = new Dictionary<string, IConvertible>
             {
                 { "message_id", MessageId ?? string.Empty },
                 { "title",      Title     ?? string.Empty },
                 { "deeplink",   Deeplink  ?? string.Empty },
             };
+
+            AddAttribution(props);
+            return props;
         }
+
+        /// <summary>Built-in event sent when this device's FCM token is first seen or rotates.</summary>
+        public const string TokenUpdatedEventName = "live_ops_push_token_updated";
+
+        /// <summary>
+        /// <c>change</c> for <see cref="TokenUpdatedEventName"/>: <c>"first"</c> when no token was
+        /// recorded on this install, <c>"rotated"</c> when it differs from the recorded one, or
+        /// <c>null</c> when it is unchanged (or empty) and nothing should be sent.
+        /// </summary>
+        public static string TokenChangeKind(string previousHash, string currentHash)
+        {
+            if (string.IsNullOrEmpty(currentHash)) return null;
+            if (string.IsNullOrEmpty(previousHash)) return "first";
+            return string.Equals(previousHash, currentHash, StringComparison.Ordinal) ? null : "rotated";
+        }
+
+        /// <summary>
+        /// A short SHA-256 fingerprint of an FCM token — what is persisted to detect a rotation,
+        /// so the token itself is never written to local storage. Empty for an empty token.
+        /// </summary>
+        public static string HashToken(string token)
+        {
+            if (string.IsNullOrEmpty(token)) return string.Empty;
+            using var sha = System.Security.Cryptography.SHA256.Create();
+            var bytes = sha.ComputeHash(System.Text.Encoding.UTF8.GetBytes(token));
+            return BitConverter.ToString(bytes, 0, 16).Replace("-", string.Empty).ToLowerInvariant();
+        }
+
+        /// <summary>Custom key the push sender sets to tie a push to a campaign.</summary>
+        public const string CampaignIdKey = "campaign_id";
+
+        /// <summary>Custom keys with this prefix are copied onto the push events as-is.</summary>
+        public const string TrackedKeyPrefix = "noctua_";
+
+        /// <summary>At most this many <see cref="TrackedKeyPrefix"/> keys are copied per push.</summary>
+        public const int MaxTrackedKeys = 10;
+
+        /// <summary>Longer values are cut to this many characters.</summary>
+        public const int MaxTrackedValueLength = 100;
+
+        // Only an allowlist (campaign_id + noctua_*) — a push can carry arbitrary game data, which
+        // must not leak into analytics. Absent keys add nothing, so a plain push keeps the old
+        // three-property payload.
+        private void AddAttribution(Dictionary<string, IConvertible> props)
+        {
+            if (Custom == null) return;
+
+            var campaignId = GetCustomString(CampaignIdKey);
+            if (!string.IsNullOrEmpty(campaignId)) props[CampaignIdKey] = Clip(campaignId);
+
+            var copied = 0;
+            foreach (var prop in Custom.Properties())
+            {
+                if (copied >= MaxTrackedKeys) break;
+                if (!prop.Name.StartsWith(TrackedKeyPrefix, StringComparison.Ordinal)) continue;
+                // Already reported as "deeplink"; reserved keys never get overwritten.
+                if (prop.Name == "noctua_deeplink" || props.ContainsKey(prop.Name)) continue;
+                if (prop.Value is JContainer) continue; // scalars only
+
+                var value = prop.Value?.ToString();
+                if (string.IsNullOrEmpty(value)) continue;
+
+                props[prop.Name] = Clip(value);
+                copied++;
+            }
+        }
+
+        private static string Clip(string value) =>
+            value.Length <= MaxTrackedValueLength ? value : value.Substring(0, MaxTrackedValueLength);
 
         /// <summary>
         /// Reads a custom string field by name. Returns empty string when missing.
