@@ -13,7 +13,9 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
     /// </summary>
     public sealed class CampaignUIHost
     {
-        private const int SortingOrder = 3; // above dialogs / ad placeholders
+        // Above ad placeholders, below SDK modals (retry / error / payment dialogs) so a purchase
+        // started from the popup can still show them.
+        private const int SortingOrder = UIUtility.CampaignPopupSortingOrder;
 
         private readonly PanelSettings _panelSettings;
         private readonly NoctuaLocale _locale;

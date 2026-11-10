@@ -25,6 +25,19 @@ namespace com.noctuagames.sdk
 #if UNITY_EDITOR
             _editorPaymentSheet = uiFactory.Create<EditorPaymentSheetPresenter, object>(new object());
 #endif
+            // Payment dialogs answer the player's Buy tap, which may come from an open campaign
+            // popup — keep them above it.
+            SetModal(_completeDialog);
+            SetModal(_failedDialog);
+#if UNITY_EDITOR
+            SetModal(_editorPaymentSheet);
+#endif
+        }
+
+        private static void SetModal(UnityEngine.Component presenter)
+        {
+            var doc = presenter == null ? null : presenter.GetComponent<UnityEngine.UIElements.UIDocument>();
+            if (doc != null) doc.sortingOrder = UIUtility.ModalSortingOrder;
         }
 
         /// <inheritdoc />

@@ -8,9 +8,28 @@ namespace com.noctuagames.sdk
     /// UI-specific utility methods extracted from <see cref="Utility"/>.
     /// These depend on <c>UnityEngine.UIElements</c> and belong in the UI layer.
     /// </summary>
-    internal static class UIUtility
+    public static class UIUtility
     {
         private static readonly ILogger _sLog = new NoctuaLogger(typeof(UIUtility));
+
+        // UIDocument.sortingOrder layers. All SDK presenters share one PanelSettings, so these
+        // decide which SDK screen draws on top. Higher draws above lower.
+
+        /// <summary>Banner placeholder, loading spinner — background chrome.</summary>
+        public const int BaseSortingOrder = 1;
+
+        /// <summary>Full-screen cross-promo placeholder: above the banner it replaces.</summary>
+        public const int CrossPromoSortingOrder = 2;
+
+        /// <summary>Live ops campaign popup: above banner and cross-promo placeholders.</summary>
+        public const int CampaignPopupSortingOrder = 3;
+
+        /// <summary>
+        /// Screens the player must see or answer — retry and error dialogs, toasts, payment
+        /// results. Above the campaign popup, because a purchase started from the popup shows
+        /// these while it is still open; below them the player only sees a spinner.
+        /// </summary>
+        public const int ModalSortingOrder = 4;
 
         /// <summary>
         /// Registers change callbacks on multiple named elements and enables/disables a button when any value differs from its initial state.

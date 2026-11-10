@@ -38,24 +38,28 @@ namespace com.noctuagames.sdk.UI
             _rootObject = rootObject;
             _panelSettings = panelSettings;
 
+            // Loading stays at the base layer: an open campaign popup veils itself during a
+            // purchase, and a second full-screen spinner above it would double up.
             _loading = Create<LoadingProgressPresenter, object>(new object());
-            _loading.GetComponent<UIDocument>().sortingOrder = 1;
+            _loading.GetComponent<UIDocument>().sortingOrder = UIUtility.BaseSortingOrder;
+            // Everything the player must read or answer goes above the campaign popup — a
+            // purchase started from the popup shows these while it is still open.
             _notification = Create<GeneralNotificationPresenter, object>(new object());
-            _notification.GetComponent<UIDocument>().sortingOrder = 1;
+            _notification.GetComponent<UIDocument>().sortingOrder = UIUtility.ModalSortingOrder;
             _confirmDialog = Create<BannedConfirmationDialogPresenter, object>(new object());
-            _confirmDialog.GetComponent<UIDocument>().sortingOrder = 1;
+            _confirmDialog.GetComponent<UIDocument>().sortingOrder = UIUtility.ModalSortingOrder;
             _retryDialog = Create<RetryDialogPresenter, object>(new object());
-            _retryDialog.GetComponent<UIDocument>().sortingOrder = 1;
+            _retryDialog.GetComponent<UIDocument>().sortingOrder = UIUtility.ModalSortingOrder;
             _startGameErrorDialog = Create<StartGameErrorDialogPresenter, object>(new object());
-            _startGameErrorDialog.GetComponent<UIDocument>().sortingOrder = 1;
+            _startGameErrorDialog.GetComponent<UIDocument>().sortingOrder = UIUtility.ModalSortingOrder;
             _sandboxChangedDialog = Create<SandboxChangedDialogPresenter, object>(new object());
-            _sandboxChangedDialog.GetComponent<UIDocument>().sortingOrder = 1;
+            _sandboxChangedDialog.GetComponent<UIDocument>().sortingOrder = UIUtility.ModalSortingOrder;
             _adPlaceholder = Create<NoctuaAdPlaceholder, object>(new object());
-            // Full-screen cross-promo sits above the banner (and the other dialogs) so it visually
-            // takes over the screen; the banner keeps rendering underneath.
-            _adPlaceholder.GetComponent<UIDocument>().sortingOrder = 2;
+            // Full-screen cross-promo sits above the banner so it visually takes over the screen;
+            // the banner keeps rendering underneath.
+            _adPlaceholder.GetComponent<UIDocument>().sortingOrder = UIUtility.CrossPromoSortingOrder;
             _bannerPlaceholder = Create<NoctuaAdBannerPlaceholder, object>(new object());
-            _bannerPlaceholder.GetComponent<UIDocument>().sortingOrder = 1;
+            _bannerPlaceholder.GetComponent<UIDocument>().sortingOrder = UIUtility.BaseSortingOrder;
         }
         
         /// <summary>
