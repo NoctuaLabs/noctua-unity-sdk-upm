@@ -39,9 +39,44 @@ static NoctuaPushStringCallback _noctuaOnRemoteNotificationReceived = NULL;
 static NoctuaPushStringCallback _noctuaOnNotificationTapped         = NULL;
 static NoctuaPushStringCallback _noctuaOnFcmTokenRefresh            = NULL;
 
-static NSString *_bufferedTappedJson   = nil;
-static NSString *_bufferedReceivedJson = nil;
+// Pushes that arrive before Unity registers its callbacks (cold start, early foreground) are
+// queued, not kept in one slot: a second early push used to overwrite the first, losing its
+// callback and its live_ops_push_notification_received / _opened event. Capped so a burst cannot grow
+// without bound; the oldest is dropped first. The token stays single-slot — only the newest
+// token matters. All access is on the main thread (UIKit delegates + Unity's main thread).
+static const NSUInteger kNoctuaMaxBufferedPushes = 20;
 static NSString *_bufferedFcmToken     = nil;
+
+static NSMutableArray<NSString *> *NoctuaBufferedReceived(void) {
+    static NSMutableArray<NSString *> *buffer = nil;
+    if (buffer == nil) buffer = [NSMutableArray array];
+    return buffer;
+}
+
+static NSMutableArray<NSString *> *NoctuaBufferedTapped(void) {
+    static NSMutableArray<NSString *> *buffer = nil;
+    if (buffer == nil) buffer = [NSMutableArray array];
+    return buffer;
+}
+
+static void NoctuaEnqueuePush(NSMutableArray<NSString *> *buffer, NSString *json) {
+    if (json == nil) return;
+    if (buffer.count >= kNoctuaMaxBufferedPushes) {
+        NSLog(@"[Noctua][CustomAppController] Push buffer full — dropping the oldest buffered push");
+        [buffer removeObjectAtIndex:0];
+    }
+    [buffer addObject:json];
+}
+
+static void NoctuaDrainPushes(NSMutableArray<NSString *> *buffer, NoctuaPushStringCallback cb) {
+    if (cb == NULL || buffer.count == 0) return;
+    // Copy first: a callback could re-enter and buffer again.
+    NSArray<NSString *> *pending = [buffer copy];
+    [buffer removeAllObjects];
+    for (NSString *json in pending) {
+        cb([json UTF8String]);
+    }
+}
 
 // This file is Objective-C++ (.mm) — without `extern "C"` the three
 // setters below get C++ name-mangled, so IL2CPP's `DllImport("__Internal")`
@@ -51,17 +86,11 @@ extern "C" {
 
 void noctuaSetRemoteNotificationCallback(NoctuaPushStringCallback cb) {
     _noctuaOnRemoteNotificationReceived = cb;
-    if (cb != NULL && _bufferedReceivedJson != nil) {
-        cb([_bufferedReceivedJson UTF8String]);
-        _bufferedReceivedJson = nil;
-    }
+    NoctuaDrainPushes(NoctuaBufferedReceived(), cb);
 }
 void noctuaSetNotificationTappedCallback(NoctuaPushStringCallback cb) {
     _noctuaOnNotificationTapped = cb;
-    if (cb != NULL && _bufferedTappedJson != nil) {
-        cb([_bufferedTappedJson UTF8String]);
-        _bufferedTappedJson = nil;
-    }
+    NoctuaDrainPushes(NoctuaBufferedTapped(), cb);
 }
 void noctuaSetFcmTokenRefreshCallback(NoctuaPushStringCallback cb) {
     _noctuaOnFcmTokenRefresh = cb;
@@ -238,7 +267,7 @@ NSString *const kGCMMessageIDKey = @"gcm.message_id";
     if (_noctuaOnRemoteNotificationReceived != NULL) {
         _noctuaOnRemoteNotificationReceived([foregroundJson UTF8String]);
     } else {
-        _bufferedReceivedJson = foregroundJson;
+        NoctuaEnqueuePush(NoctuaBufferedReceived(), foregroundJson);
     }
 
     completionHandler(UNNotificationPresentationOptionBadge |
@@ -267,7 +296,7 @@ NSString *const kGCMMessageIDKey = @"gcm.message_id";
     if (_noctuaOnNotificationTapped != NULL) {
         _noctuaOnNotificationTapped([tappedJson UTF8String]);
     } else {
-        _bufferedTappedJson = tappedJson;
+        NoctuaEnqueuePush(NoctuaBufferedTapped(), tappedJson);
     }
 
     completionHandler();
@@ -285,7 +314,7 @@ NSString *const kGCMMessageIDKey = @"gcm.message_id";
     if (_noctuaOnRemoteNotificationReceived != NULL) {
         _noctuaOnRemoteNotificationReceived([silentJson UTF8String]);
     } else {
-        _bufferedReceivedJson = silentJson;
+        NoctuaEnqueuePush(NoctuaBufferedReceived(), silentJson);
     }
 
     completionHandler(UIBackgroundFetchResultNewData);
