@@ -54,11 +54,13 @@ namespace Tests.Runtime.Campaign
         public List<string> Tags = new List<string>();
         public string CountryCode = "ID";
         public string Version = "1.0.0";
+        public string Sdk = "0.138.1";
         public DateTime Now = DateTime.UtcNow;
 
         public IReadOnlyList<string> PlayerTags() => Tags;
         public string Country() => CountryCode;
         public string AppVersion() => Version;
+        public string SdkVersion() => Sdk;
         public DateTime UtcNow() => Now;
     }
 

@@ -29,6 +29,18 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
         /// <summary>Maximum app version (inclusive), dotted numeric. Null/empty = no upper bound.</summary>
         [JsonProperty("max_app_version")]
         public string MaxAppVersion;
+
+        /// <summary>
+        /// Minimum Noctua SDK version (inclusive), dotted numeric, e.g. <c>0.139.0</c>.
+        /// Null/empty = no lower bound. Campaigns using it ship schema v3, so SDKs that cannot
+        /// evaluate it skip them.
+        /// </summary>
+        [JsonProperty("min_sdk_version")]
+        public string MinSdkVersion;
+
+        /// <summary>Maximum Noctua SDK version (inclusive), dotted numeric. Null/empty = no upper bound.</summary>
+        [JsonProperty("max_sdk_version")]
+        public string MaxSdkVersion;
     }
 
     /// <summary>Per-player display-frequency caps for a campaign.</summary>

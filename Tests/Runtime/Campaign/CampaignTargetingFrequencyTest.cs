@@ -124,6 +124,50 @@ namespace Tests.Runtime.Campaign
             Assert.AreEqual(1, within.GetActiveCampaigns(CampaignItem.EngagementPurchase).Count);
         }
 
+        [TestCase("0.139.0", null, false, "sdk version below min")]
+        [TestCase("0.138.1", null, true, null)]
+        [TestCase(null, "0.138.0", false, "sdk version above max")]
+        [TestCase(null, "0.138.1", true, null)]
+        [TestCase("0.138.1", "0.138.1", true, null)]
+        [TestCase("0.130", "0.140", true, null)]
+        [TestCase("0.139", "0.140", false, "sdk version below min")]
+        public void Targeting_SdkVersionRange(string min, string max, bool eligible, string reason)
+        {
+            var env = new FakeEnv { Sdk = "0.138.1" };
+            var mgr = ManagerWith(PopupWithTargeting(new CampaignTargeting { MinSdkVersion = min, MaxSdkVersion = max }), env);
+
+            Assert.AreEqual(eligible ? 1 : 0, mgr.GetActiveCampaigns(CampaignItem.EngagementPurchase).Count);
+            if (reason != null) Assert.AreEqual(reason, mgr.LastResolutions[0].Reason);
+        }
+
+        [Test]
+        public void Targeting_SdkVersionUnknown_NeverMatchesABound()
+        {
+            var env = new FakeEnv { Sdk = "" };
+            var mgr = ManagerWith(PopupWithTargeting(new CampaignTargeting { MinSdkVersion = "0.1.0" }), env);
+
+            Assert.AreEqual(0, mgr.GetActiveCampaigns(CampaignItem.EngagementPurchase).Count);
+            Assert.AreEqual("sdk version unknown", mgr.LastResolutions[0].Reason);
+        }
+
+        [Test]
+        public void Targeting_SdkVersion_DeserializesFromJson()
+        {
+            var t = Newtonsoft.Json.JsonConvert.DeserializeObject<CampaignTargeting>(
+                "{\"min_sdk_version\":\"0.139.0\",\"max_sdk_version\":\"0.140.0\"}");
+            Assert.AreEqual("0.139.0", t.MinSdkVersion);
+            Assert.AreEqual("0.140.0", t.MaxSdkVersion);
+        }
+
+        [Test]
+        public void DefaultEnvironment_ReportsThisSdksVersion()
+        {
+            var version = DefaultCampaignEnvironment.CurrentSdkVersion;
+            StringAssert.IsMatch(@"^\d+\.\d+\.\d+$", version);
+            Assert.AreEqual(typeof(DefaultCampaignEnvironment).Assembly.GetName().Version.Major,
+                int.Parse(version.Split('.')[0]));
+        }
+
         [Test]
         public void Schedule_Window_Enforced()
         {

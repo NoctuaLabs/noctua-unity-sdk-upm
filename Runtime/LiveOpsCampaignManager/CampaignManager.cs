@@ -17,6 +17,12 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
         /// <summary>Dotted-numeric app version (e.g. <c>Application.version</c>).</summary>
         string AppVersion();
 
+        /// <summary>
+        /// Dotted-numeric Noctua SDK version. Defaults to empty, which fails any SDK version
+        /// bound — an environment that cannot say never matches a version-gated campaign.
+        /// </summary>
+        string SdkVersion() => string.Empty;
+
         /// <summary>Current UTC time.</summary>
         DateTime UtcNow();
     }
@@ -214,6 +220,16 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
                 return "app version below min";
             if (!string.IsNullOrEmpty(t.MaxAppVersion) && CompareVersions(appVersion, t.MaxAppVersion) > 0)
                 return "app version above max";
+
+            if (!string.IsNullOrEmpty(t.MinSdkVersion) || !string.IsNullOrEmpty(t.MaxSdkVersion))
+            {
+                var sdkVersion = _env.SdkVersion() ?? string.Empty;
+                if (sdkVersion.Length == 0) return "sdk version unknown";
+                if (!string.IsNullOrEmpty(t.MinSdkVersion) && CompareVersions(sdkVersion, t.MinSdkVersion) < 0)
+                    return "sdk version below min";
+                if (!string.IsNullOrEmpty(t.MaxSdkVersion) && CompareVersions(sdkVersion, t.MaxSdkVersion) > 0)
+                    return "sdk version above max";
+            }
 
             return null;
         }
