@@ -51,6 +51,12 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
         /// with the popup veiled; the popup stays open and refreshes from the new progress.
         /// </summary>
         public Func<CampaignItem, UniTask> ClaimAllAsync;
+
+        /// <summary>
+        /// Claims one mission of the campaign (a <c>claim</c> button), awaited the same way as
+        /// <see cref="ClaimAllAsync"/>.
+        /// </summary>
+        public Func<CampaignItem, string, UniTask> ClaimMissionAsync;
     }
 
     /// <summary>
@@ -223,7 +229,14 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
                         WithDismissReason(DismissReasonCtaDismiss, () => CurrentDismiss?.Invoke());
                         break;
                     case CampaignActionType.ClaimAll:
-                        HandleClaimAll(campaign);
+                        RunClaim("claim_all", campaign, _handlers.ClaimAllAsync == null
+                            ? null
+                            : (Func<UniTask>)(() => _handlers.ClaimAllAsync(campaign)));
+                        break;
+                    case CampaignActionType.Claim:
+                        RunClaim("claim", campaign, _handlers.ClaimMissionAsync == null
+                            ? null
+                            : (Func<UniTask>)(() => _handlers.ClaimMissionAsync(campaign, action.Mission?.Trim())));
                         break;
                     case CampaignActionType.None:
                     default:
@@ -237,40 +250,43 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
             }
         }
 
-        private bool _claimAllInFlight;
+        private bool _claimInFlight;
 
-        private void HandleClaimAll(CampaignItem campaign)
+        /// <summary>
+        /// Runs a claim with the popup veiled, like a purchase; one at a time, so a double tap
+        /// cannot claim twice. Never throws.
+        /// </summary>
+        private void RunClaim(string kind, CampaignItem campaign, Func<UniTask> claim)
         {
-            if (_handlers.ClaimAllAsync == null)
+            if (claim == null)
             {
-                _log.Warning($"{LogTag} no handler wired for 'claim_all'");
+                _log.Warning($"{LogTag} no handler wired for '{kind}'");
                 return;
             }
-            if (_claimAllInFlight)
+            if (_claimInFlight)
             {
-                _log.Debug($"{LogTag} claim all ignored — one is already running");
+                _log.Debug($"{LogTag} {kind} ignored — a claim is already running");
                 return;
             }
-            RunClaimAllAsync(campaign).Forget();
+            RunClaimAsync(kind, campaign, claim).Forget();
         }
 
-        /// <summary>Runs the claim with the popup veiled, like a purchase; never throws.</summary>
-        private async UniTaskVoid RunClaimAllAsync(CampaignItem campaign)
+        private async UniTaskVoid RunClaimAsync(string kind, CampaignItem campaign, Func<UniTask> claim)
         {
             var busy = CurrentBusy;
-            _claimAllInFlight = true;
+            _claimInFlight = true;
             try
             {
                 busy?.Invoke(true);
-                await _handlers.ClaimAllAsync(campaign);
+                await claim();
             }
             catch (Exception e)
             {
-                _log.Error($"{LogTag} claim all failed for '{campaign?.Id}': {e.Message}");
+                _log.Error($"{LogTag} {kind} failed for '{campaign?.Id}': {e.Message}");
             }
             finally
             {
-                _claimAllInFlight = false;
+                _claimInFlight = false;
                 try { busy?.Invoke(false); }
                 catch (Exception e) { _log.Warning($"{LogTag} busy callback threw: {e.Message}"); }
             }

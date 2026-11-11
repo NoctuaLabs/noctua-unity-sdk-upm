@@ -19,9 +19,16 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
 
         /// <summary>
         /// Daily missions: claim every completed, unclaimed mission of the campaign in one tap.
-        /// The SDK does the claims and raises <c>OnMissionsClaimed</c>; the popup stays open.
+        /// The SDK does the claims and hands the rewards to the game's <c>MissionRewards</c> handler; the popup stays open.
         /// </summary>
         ClaimAll,
+
+        /// <summary>
+        /// Daily missions: claim the one mission named by <see cref="CampaignAction.Mission"/>. The
+        /// SDK does the claim and hands the reward to the game's <c>MissionRewards</c> handler; the
+        /// popup stays open.
+        /// </summary>
+        Claim,
     }
 
     /// <summary>
@@ -51,6 +58,10 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
         /// </summary>
         [JsonProperty("product_key")]
         public string ProductKey;
+
+        /// <summary>Mission key for <see cref="CampaignActionType.Claim"/>, e.g. <c>use_stm</c>.</summary>
+        [JsonProperty("mission")]
+        public string Mission;
 
         /// <summary>
         /// Deeplink only: when true the popup stays open after the route is handed to the game,

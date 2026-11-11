@@ -160,6 +160,14 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
                     break;
                 }
 
+                case CampaignActionType.Claim:
+                    if (string.IsNullOrWhiteSpace(a.Mission))
+                    {
+                        error = "claim action: missing 'mission'";
+                        return false;
+                    }
+                    break;
+
                 case CampaignActionType.Deeplink:
                 {
                     var route = ResolveRequired(a.Deeplink, data, out var routeMissing);

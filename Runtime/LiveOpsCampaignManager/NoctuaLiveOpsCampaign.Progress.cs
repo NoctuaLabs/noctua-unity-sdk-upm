@@ -340,19 +340,7 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
         public UniTask<LiveOpsProgress> ClaimMissionAsync(string campaignId, string missionKey)
         {
             RequireMissionKey(missionKey);
-            var item = _manager.Config?.Campaigns?.FirstOrDefault(c => c != null && c.Id == campaignId);
-            if (item == null)
-            {
-                throw new NoctuaException(NoctuaErrorCode.Application, $"No live ops campaign '{campaignId}'");
-            }
-            if (!HasMission(item, missionKey))
-            {
-                throw new NoctuaException(
-                    NoctuaErrorCode.Application,
-                    $"Campaign '{campaignId}' has no mission '{missionKey}'");
-            }
-
-            return ClaimProgressAsync(TrackerKey(item, missionKey));
+            return ClaimProgressAsync(TrackerKey(RequireMissionCampaign(campaignId, missionKey), missionKey));
         }
 
         /// <summary>
@@ -402,6 +390,7 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
             try
             {
                 EnsureProgressPlayer();
+                await DeliverMissionRewardsAsync();
                 await FlushPendingProgressAsync();
             }
             catch (Exception e)
@@ -426,6 +415,7 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
             _serverProgress.Clear();
             _pendingProgress.Clear();
             _pendingPurchaseClaims.Clear();
+            _undeliveredRewards.Clear();
             _progressFetchedAtUtc = null;
             _progressStale = false;
             _progressLoaded = false;
@@ -660,6 +650,7 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
             _serverProgress.Clear();
             _pendingProgress.Clear();
             _pendingPurchaseClaims.Clear();
+            _undeliveredRewards.Clear();
             _progressFetchedAtUtc = null;
             _progressStale = false;
             _progressPlayer = player;
@@ -914,6 +905,7 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
                 {
                     if (!string.IsNullOrEmpty(key)) _pendingPurchaseClaims.Add(key);
                 }
+                _undeliveredRewards.AddRange((saved.UndeliveredRewards ?? new List<MissionReward>()).Where(r => r != null));
                 _progressFetchedAtUtc = saved.FetchedAtUtc;
             }
             catch (Exception e)
@@ -934,6 +926,7 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
                     Items = _serverProgress.Values.ToList(),
                     Pending = new Dictionary<string, long>(_pendingProgress),
                     PendingClaims = _pendingPurchaseClaims.ToList(),
+                    UndeliveredRewards = _undeliveredRewards.ToList(),
                 };
                 PlayerPrefs.SetString(ProgressPrefsKey(_progressPlayer.Value), JsonConvert.SerializeObject(save));
                 PlayerPrefs.Save();
@@ -951,6 +944,7 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
             [JsonProperty("items")] public List<LiveOpsProgress> Items;
             [JsonProperty("pending")] public Dictionary<string, long> Pending;
             [JsonProperty("pending_claims")] public List<string> PendingClaims;
+            [JsonProperty("undelivered_rewards")] public List<MissionReward> UndeliveredRewards;
         }
 
         [Preserve]

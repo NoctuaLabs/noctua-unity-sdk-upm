@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using com.noctuagames.sdk;
@@ -44,6 +45,57 @@ namespace Tests.Runtime.Campaign
             new(new CampaignConfig { SchemaVersion = 3, Campaigns = campaigns.ToList() },
                 null, null, new MockEventSender(), () => Array.Empty<string>());
 
+        // ---- Noctua.LiveOps facade -----------------------------------------
+
+        [Test]
+        public void LiveOps_BeforeInit_ReadsAreEmpty_AndConfigureIsKeptForAttach()
+        {
+            var liveOps = new NoctuaCampaign();
+            liveOps.Configure(new CampaignHandlers
+            {
+                ProductResolver = (_, __, bundle) => bundle["tier"]?.ToString() == "t1" ? "pack1" : null,
+            });
+
+            Assert.IsFalse(liveOps.IsReady);
+            Assert.IsEmpty(liveOps.GetActiveCampaigns());
+            Assert.IsEmpty(liveOps.Progress);
+            Assert.DoesNotThrow(() => { liveOps.ClosePopup(); liveOps.UpdatePopupData(null); });
+
+            var item = Offer("dyn", new Dictionary<string, string> { { "offer", "{\"tier\":\"t1\"}" } }, DynamicBuy("offer"));
+            var module = Facade(item);
+            liveOps.Attach(module);
+
+            Assert.IsTrue(liveOps.IsReady);
+            Assert.AreSame(module, liveOps.Module);
+            Assert.AreEqual("pack1", module.WithDynamicProducts(item).View.Children[0].Action.ProductId,
+                "handlers set before init reach the module");
+        }
+
+        [UnityTest]
+        public IEnumerator LiveOps_CallBeforeInit_WaitsForAttach() => UniTask.ToCoroutine(async () =>
+        {
+            var liveOps = new NoctuaCampaign();
+            var call = liveOps.ClaimAllMissionsAsync("nope").Preserve();
+            Assert.AreEqual(UniTaskStatus.Pending, call.Status);
+
+            liveOps.Attach(Facade());
+
+            var e = await LiveOpsProgressTestKit.Throws(async () => await call);
+            Assert.AreEqual((int)NoctuaErrorCode.Application, e.ErrorCode, "ran against the attached module");
+        });
+
+        [UnityTest]
+        public IEnumerator LiveOps_InitFailed_WaitingCallsThrow() => UniTask.ToCoroutine(async () =>
+        {
+            var liveOps = new NoctuaCampaign();
+            var call = liveOps.GetProgressAsync().Preserve();
+
+            liveOps.Fail(new NoctuaException(NoctuaErrorCode.Application, "Live ops unavailable"));
+
+            var e = await LiveOpsProgressTestKit.Throws(async () => await call);
+            Assert.AreEqual((int)NoctuaErrorCode.Application, e.ErrorCode);
+        });
+
         // ---- Claim All as a built-in action ------------------------------
 
         [Test]
@@ -84,6 +136,36 @@ namespace Tests.Runtime.Campaign
         {
             var dispatcher = new CampaignActionDispatcher(new CampaignActionHandlers(), new MockEventSender());
             Assert.DoesNotThrow(() => dispatcher.Dispatch(new CampaignAction { TypeRaw = "claim_all" }, Offer("x", null)));
+        }
+
+        [Test]
+        public void Claim_ActionType_CarriesTheMission()
+        {
+            var action = JsonConvert.DeserializeObject<CampaignAction>("{\"type\":\"claim\",\"mission\":\"use_stm\"}");
+            Assert.AreEqual(CampaignActionType.Claim, action.Type);
+            Assert.AreEqual("use_stm", action.Mission);
+        }
+
+        [Test]
+        public void Claim_RunsTheHandlerForItsMission_OneAtATime_AlsoAgainstClaimAll()
+        {
+            var gate = new UniTaskCompletionSource();
+            var calls = new List<string>();
+            var busy = new List<bool>();
+            var dispatcher = new CampaignActionDispatcher(new CampaignActionHandlers
+            {
+                ClaimMissionAsync = (_, mission) => { calls.Add(mission); return gate.Task; },
+                ClaimAllAsync = _ => { calls.Add("all"); return UniTask.CompletedTask; },
+            }, new MockEventSender()) { CurrentBusy = busy.Add };
+            var missions = Offer("season", null);
+
+            dispatcher.Dispatch(new CampaignAction { TypeRaw = "claim", Mission = " use_stm " }, missions);
+            dispatcher.Dispatch(new CampaignAction { TypeRaw = "claim", Mission = "use_stm" }, missions); // double tap
+            dispatcher.Dispatch(new CampaignAction { TypeRaw = "claim_all" }, missions);
+            gate.TrySetResult();
+
+            CollectionAssert.AreEqual(new[] { "use_stm" }, calls, "one claim at a time, mission trimmed");
+            CollectionAssert.AreEqual(new[] { true, false }, busy);
         }
 
         // ---- Default product resolver ------------------------------------
@@ -269,39 +351,42 @@ namespace Tests.Runtime.Campaign
         // ---- One setup call ----------------------------------------------
 
         [Test]
-        public void GameHandlers_Merge_KeepsEarlierFieldsTheNewSetLeavesOut()
+        public void CampaignHandlers_Merge_KeepsEarlierFieldsTheNewSetLeavesOut()
         {
             Action<string> deeplink = _ => { };
             Func<CampaignItem, string, JToken, string> resolver = (_, __, ___) => "x";
 
-            var merged = NoctuaLiveOpsCampaign.GameHandlers.Merge(
-                new NoctuaLiveOpsCampaign.GameHandlers { Deeplink = deeplink },
-                new NoctuaLiveOpsCampaign.GameHandlers { ProductResolver = resolver });
+            var merged = CampaignHandlers.Merge(
+                new CampaignHandlers { Deeplink = deeplink },
+                new CampaignHandlers { ProductResolver = resolver });
 
             Assert.AreSame(deeplink, merged.Deeplink);
             Assert.AreSame(resolver, merged.ProductResolver);
         }
 
         [Test]
-        public void Configure_AppliesTheResolver_AndReplacesTheClaimedHandlerInsteadOfAddingOne()
+        public void Configure_AppliesTheResolver_AndReplacesTheRewardsHandlerInsteadOfAddingOne()
         {
             var item = Offer("dyn", new Dictionary<string, string> { { "offer", "{\"tier\":\"t1\"}" } }, DynamicBuy("offer"));
             var facade = Facade(item);
             var calls = new List<string>();
 
-            facade.Configure(new NoctuaLiveOpsCampaign.GameHandlers
+            facade.Configure(new CampaignHandlers
             {
                 ProductResolver = (_, __, bundle) => bundle["tier"]?.ToString() == "t1" ? "pack1" : null,
-                MissionsClaimed = (_, __) => calls.Add("first"),
+                MissionRewards = _ => { calls.Add("first"); return UniTask.CompletedTask; },
             });
-            facade.Configure(new NoctuaLiveOpsCampaign.GameHandlers { MissionsClaimed = (_, __) => calls.Add("second") });
+            facade.Configure(new CampaignHandlers
+            {
+                MissionRewards = _ => { calls.Add("second"); return UniTask.CompletedTask; },
+            });
 
             Assert.AreEqual("pack1", facade.WithDynamicProducts(item).View.Children[0].Action.ProductId,
                 "the resolver from the first call is kept");
 
-            var raise = typeof(NoctuaLiveOpsCampaign).GetMethod("NotifyMissionsClaimed",
+            var record = typeof(NoctuaLiveOpsCampaign).GetMethod("RecordRewards",
                 System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
-            raise.Invoke(facade, new object[] { "season", new List<string> { "m1" } });
+            record.Invoke(facade, new object[] { new List<MissionReward> { new() { ClaimId = "season.m1" } } });
             CollectionAssert.AreEqual(new[] { "second" }, calls);
         }
     }

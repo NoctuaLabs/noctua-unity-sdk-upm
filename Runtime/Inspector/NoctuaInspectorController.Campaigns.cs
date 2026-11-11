@@ -18,7 +18,7 @@ namespace com.noctuagames.sdk.Inspector
 
         private void RenderCampaigns(ref int ok, ref int failing, ref int inflight)
         {
-            var campaign = Noctua.LiveOpsCampaign;
+            var campaign = Noctua.LiveOps.Campaign.Module;
             if (campaign?.Manager == null)
             {
                 var muted = new Label("Campaign feature not initialised (no local or remote campaign config).");

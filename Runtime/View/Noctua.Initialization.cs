@@ -1487,14 +1487,15 @@ namespace com.noctuagames.sdk
 
                 log.Info($"Campaign feature ready: {merged.Campaigns?.Count ?? 0} campaign(s), schema v{merged.SchemaVersion}");
 
-                // Handlers the game set before init, so an auto-shown popup already has them.
-                if (_liveOpsHandlers != null) Instance.Value._campaign.Configure(_liveOpsHandlers);
+                // Applies the handlers the game set before init, so an auto-shown popup already has them.
+                LiveOps.Campaign.Attach(Instance.Value._campaign);
 
                 Instance.Value._campaign.RunAutoShow();
             }
             catch (Exception e)
             {
                 log.Warning("InitCampaigns failed — campaign feature disabled: " + e.Message);
+                LiveOps.Campaign.Fail(new NoctuaException(NoctuaErrorCode.Application, "Live ops unavailable: " + e.Message));
             }
         }
 

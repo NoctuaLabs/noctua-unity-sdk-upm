@@ -9,7 +9,7 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
 {
     /// <summary>
     /// Public entry point for the server-driven campaign feature, exposed as
-    /// <c>Noctua.LiveOpsCampaign</c> (the way <c>MediationManager</c> is <c>Noctua.IAA</c>).
+    /// <c>Noctua.LiveOps.Campaign.Module</c>; games use the <c>Noctua.LiveOps.Campaign</c> facade in front of it.
     /// Owns the manager, renderer, dispatcher and UI host for the module.
     /// </summary>
     public sealed partial class NoctuaLiveOpsCampaign
@@ -152,6 +152,7 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
                 PurchaseBlocked = OnPurchaseBlocked,
                 PurchaseCredited = OnPurchaseCredited,
                 ClaimAllAsync = ClaimAllFromPopupAsync,
+                ClaimMissionAsync = ClaimMissionFromPopupAsync,
             };
 
             _dispatcher = new CampaignActionDispatcher(
