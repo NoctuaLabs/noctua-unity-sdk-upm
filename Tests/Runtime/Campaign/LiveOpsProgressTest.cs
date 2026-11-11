@@ -313,7 +313,8 @@ namespace Tests.Runtime.Campaign
             Assert.AreEqual("false", data["m_use_stm_claimed"]);
             Assert.AreEqual("1", data["m_login_progress"]);
             Assert.AreEqual("true", data["m_login_claimed"]);
-            Assert.AreEqual(4, data.Count);
+            Assert.AreEqual("0", data[NoctuaLiveOpsCampaign.ClaimableCountKey], "login is claimed, use_stm unfinished");
+            Assert.AreEqual(5, data.Count);
         }
 
         [Test]
@@ -328,7 +329,7 @@ namespace Tests.Runtime.Campaign
                 key => key.StartsWith("daily.") ? key.Substring("daily.".Length) : null);
 
             Assert.AreEqual("3", data["m_use_stm_progress"]);
-            Assert.AreEqual(2, data.Count);
+            Assert.AreEqual(3, data.Count, "progress, claimed and claimable_count for the one mapped key");
             Assert.AreEqual(0, NoctuaLiveOpsCampaign.ToDailyMissionsPlayerData(null).Count);
         }
     }

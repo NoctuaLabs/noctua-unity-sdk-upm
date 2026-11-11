@@ -252,5 +252,6 @@
     "ErrorRePasswordEmpty": "Kata sandi ulang tidak boleh kosong",
     "ErrorRePasswordNotMatch": "Kata sandi tidak cocok dengan kata sandi ulang",
     "LiveOpsMissionsUnavailable": "Misi sedang tidak tersedia. Silakan coba lagi nanti.",
-    "LiveOpsCampaignPurchased": "Sudah Dibeli"
+    "LiveOpsCampaignPurchased": "Sudah Dibeli",
+    "LiveOpsCampaignAlreadyPurchased": "Kamu sudah membeli penawaran ini."
 }

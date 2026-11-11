@@ -148,6 +148,10 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
                     }
                     OnCampaignPurchaseRequested.Invoke(pid, item);
                 },
+                IsPurchaseBlocked = IsCampaignPurchased,
+                PurchaseBlocked = OnPurchaseBlocked,
+                PurchaseCredited = OnPurchaseCredited,
+                ClaimAllAsync = ClaimAllFromPopupAsync,
             };
 
             _dispatcher = new CampaignActionDispatcher(
@@ -231,6 +235,12 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
                 if (stored == null)
                 {
                     _log.Debug($"ShowPopup: no eligible campaign (id='{id}')");
+                    return;
+                }
+
+                if (IsCampaignPurchased(stored))
+                {
+                    _log.Info($"{LogTag} campaign '{stored.Id}' not shown — the player already bought it (purchase_once)");
                     return;
                 }
 
@@ -458,11 +468,15 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
         }
 
         /// <summary>The stored campaign with the game's values and the known local prices folded in.</summary>
-        private CampaignItem RenderItem(CampaignItem stored, IReadOnlyDictionary<string, string> playerData) =>
-            MarkOwnedButtons(
-                ApplyOwnership(ApplyStorePrices(MergePlayerData(stored, playerData), _storePrices), _ownership),
-                _ownership,
+        private CampaignItem RenderItem(CampaignItem stored, IReadOnlyDictionary<string, string> playerData)
+        {
+            var item = WithDynamicProducts(MergePlayerData(stored, playerData));
+            var ownership = OwnershipFor(item);
+            return MarkOwnedButtons(
+                ApplyOwnership(ApplyStorePrices(item, _storePrices), ownership),
+                ownership,
                 PurchasedLabel());
+        }
 
         // ── Ownership ─────────────────────────────────────────────────────
 
@@ -554,9 +568,11 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
 
         /// <summary>
         /// True when <paramref name="item"/> sells something and the player is known to own all
-        /// of it. Unknown SKUs count as not owned, so a failed check never hides an offer.
+        /// of it — or it is a <c>purchase_once</c> campaign already bought. Unknown SKUs count as
+        /// not owned, so a failed check never hides an offer.
         /// </summary>
-        public bool IsFullyOwned(CampaignItem item) => IsFullyOwned(item, _ownership);
+        public bool IsFullyOwned(CampaignItem item) =>
+            IsCampaignPurchased(item) || IsFullyOwned(WithDynamicProducts(item), _ownership);
 
         public static bool IsFullyOwned(CampaignItem item, IReadOnlyDictionary<string, bool> ownership)
         {
@@ -710,8 +726,9 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
 
         private bool NeedsOwnershipCheck(CampaignItem item)
         {
+            if (NeedsPurchaseStateCheck(item)) return true;
             if (_isProductOwned == null) return false;
-            foreach (var sku in PurchaseSkus(item))
+            foreach (var sku in SkusOf(item))
             {
                 if (!_ownership.ContainsKey(sku)) return true;
             }
@@ -729,7 +746,7 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
             if (provider == null) return false;
 
             var pending = new List<string>();
-            foreach (var sku in PurchaseSkus(item))
+            foreach (var sku in SkusOf(item))
             {
                 if (!_ownership.ContainsKey(sku)) pending.Add(sku);
             }
@@ -771,7 +788,7 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
 
                 var popup = _host.PopupIfCreated;
                 if (_shownItem == null || popup == null || !popup.IsShowing) return;
-                if (!PurchaseSkus(_shownItem).Contains(productId)) return;
+                if (!SkusOf(_shownItem).Contains(productId)) return;
 
                 popup.Refresh(RenderItem(_shownItem, _shownPlayerData), _manager.Config.SchemaVersion);
             }
@@ -784,6 +801,7 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
         /// <summary>Checks ownership first; true (and logged) when the player already owns all of it.</summary>
         private async UniTask<bool> IsOwnedAfterCheckAsync(CampaignItem item)
         {
+            await EnsurePurchaseStateAsync(item);
             await PrefetchOwnershipAsync(item);
             if (!IsFullyOwned(item)) return false;
 
@@ -910,6 +928,16 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
                 foreach (var item in _manager.GetActiveCampaigns())
                 {
                     if (!item.AutoShow) continue;
+
+                    // Whether a purchase_once offer was bought is known per player. Before login it
+                    // cannot be told, so it waits and auto-show runs again after the first login
+                    // (OnAccountChangedAsync) — a bought offer must never pop up, even greyed out.
+                    if (item.PurchaseOnce && IsProgressConfigured && TryProgressCaller() == null)
+                    {
+                        waitingForPlayer = true;
+                        continue;
+                    }
+
                     // A bought offer gives way to the next auto_show campaign.
                     if (await IsOwnedAfterCheckAsync(item)) continue;
 

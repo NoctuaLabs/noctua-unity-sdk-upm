@@ -1470,6 +1470,10 @@ namespace com.noctuagames.sdk
                     // Links a campaign Buy tap to how the purchase ended — no game code involved.
                     Instance.Value._iap.OnPurchaseSettled += outcome =>
                         Instance.Value._campaign?.HandlePurchaseSettled(outcome);
+
+                    // An order started from a campaign's Buy button carries its campaign (and
+                    // dynamic bundle) in `extra` — no game code involved either.
+                    Instance.Value._iap.SetOrderExtraProvider(sku => Instance.Value._campaign?.CampaignOrderExtra(sku));
                 }
 
                 // Local prices, ownership and live ops progress are per player: a new account
@@ -1482,6 +1486,9 @@ namespace com.noctuagames.sdk
                 };
 
                 log.Info($"Campaign feature ready: {merged.Campaigns?.Count ?? 0} campaign(s), schema v{merged.SchemaVersion}");
+
+                // Handlers the game set before init, so an auto-shown popup already has them.
+                if (_liveOpsHandlers != null) Instance.Value._campaign.Configure(_liveOpsHandlers);
 
                 Instance.Value._campaign.RunAutoShow();
             }

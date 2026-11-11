@@ -1202,6 +1202,45 @@ namespace com.noctuagames.sdk
         /// </summary>
         public event Action<PurchaseOutcome> OnPurchaseSettled;
 
+        // Extra order entries for a product, from features that started the purchase (a live ops
+        // campaign's Buy button). Null = nothing to add.
+        private Func<string, IReadOnlyDictionary<string, string>> _orderExtraProvider;
+
+        /// <summary>
+        /// Composition-root hook: entries to add to an order's <c>extra</c> for a product, e.g. the
+        /// campaign a Buy button belongs to. The game's own <see cref="PurchaseRequest.Extra"/>
+        /// keys always win. Pass null to clear.
+        /// </summary>
+        public void SetOrderExtraProvider(Func<string, IReadOnlyDictionary<string, string>> provider) =>
+            _orderExtraProvider = provider;
+
+        /// <summary>
+        /// The order's <c>extra</c>: the provider's entries under the game's own. The game's
+        /// dictionary itself when there is nothing to add, so ordinary orders are unchanged.
+        /// </summary>
+        private Dictionary<string, string> OrderExtra(PurchaseRequest request)
+        {
+            IReadOnlyDictionary<string, string> added = null;
+            try { added = _orderExtraProvider?.Invoke(request.ProductId); }
+            catch (Exception e) { _log.Warning($"order extra provider failed for '{request.ProductId}': {e.Message}"); }
+            return MergeOrderExtra(added, request.Extra);
+        }
+
+        /// <summary>
+        /// <paramref name="added"/> under <paramref name="game"/>: a new dictionary where the
+        /// game's keys win, or <paramref name="game"/> itself when nothing is added. Never mutates either.
+        /// </summary>
+        public static Dictionary<string, string> MergeOrderExtra(
+            IReadOnlyDictionary<string, string> added, Dictionary<string, string> game)
+        {
+            if (added == null || added.Count == 0) return game;
+
+            var merged = new Dictionary<string, string>();
+            foreach (var pair in added) merged[pair.Key] = pair.Value;
+            if (game != null) foreach (var pair in game) merged[pair.Key] = pair.Value;
+            return merged;
+        }
+
         // Observers must never change the purchase result: the game still gets exactly the value
         // or exception PurchaseItemFlowAsync produced.
         private void RaisePurchaseSettled(PurchaseOutcome outcome)
@@ -1515,7 +1554,7 @@ namespace com.noctuagames.sdk
                     CurrentStageLevel = PlayerPrefs.GetString("NoctuaCurrentStageLevel", ""),
                     CurrencyToUsdRate = purchaseRequest.CurrencyToUsdRate,
                     LocalPriceInUsd = purchaseRequest.LocalPriceInUsd,
-                    Extra = purchaseRequest.Extra
+                    Extra = OrderExtra(purchaseRequest)
                 };
 
                 if (string.IsNullOrEmpty(orderRequest.CurrentStageLevel))

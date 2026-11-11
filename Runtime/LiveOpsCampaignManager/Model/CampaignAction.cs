@@ -8,7 +8,7 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
     /// The closed set of things a campaign button/tap can do. Anything the client
     /// doesn't recognise resolves to <see cref="None"/> — never arbitrary code.
     /// Scoped to the purchase + event use cases: buy a product, route into the game,
-    /// or close the popup.
+    /// close the popup, or claim every finished mission.
     /// </summary>
     public enum CampaignActionType
     {
@@ -16,6 +16,12 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
         Deeplink,
         Purchase,
         Dismiss,
+
+        /// <summary>
+        /// Daily missions: claim every completed, unclaimed mission of the campaign in one tap.
+        /// The SDK does the claims and raises <c>OnMissionsClaimed</c>; the popup stays open.
+        /// </summary>
+        ClaimAll,
     }
 
     /// <summary>
@@ -36,6 +42,15 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
         /// <summary>Product id for <see cref="CampaignActionType.Purchase"/>.</summary>
         [JsonProperty("product_id")]
         public string ProductId;
+
+        /// <summary>
+        /// Dynamic product, instead of <see cref="ProductId"/>: a key into the campaign's <c>data</c>
+        /// whose value is a JSON bundle (an object, or an array of objects). The game's product
+        /// resolver (<c>SetProductResolver</c>) turns the bundle into the SKU to buy; with no
+        /// resolver, or no SKU for it, the button is hidden.
+        /// </summary>
+        [JsonProperty("product_key")]
+        public string ProductKey;
 
         /// <summary>
         /// Deeplink only: when true the popup stays open after the route is handed to the game,

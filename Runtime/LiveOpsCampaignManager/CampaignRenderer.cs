@@ -19,8 +19,9 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
     {
         /// <summary>Highest widget-schema version this build understands.</summary>
         /// <remarks>v2 adds <c>player_data</c>, <c>visible_if</c>, <c>keep_open</c> and
-        /// token-resolved progress bar values.</remarks>
-        public const int SupportedSchemaVersion = 2;
+        /// token-resolved progress bar values. v3 adds <c>purchase_once</c> campaigns and
+        /// dynamic products (<c>product_key</c> actions).</remarks>
+        public const int SupportedSchemaVersion = 3;
 
         /// <summary>Recursion cap — a pathologically nested tree would otherwise StackOverflow (uncatchable).</summary>
         private const int MaxDepth = 40;
@@ -507,6 +508,7 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
                 TypeRaw = a.TypeRaw,
                 Deeplink = ResolveTokens(a.Deeplink, item),
                 ProductId = ResolveTokens(a.ProductId, item),
+                ProductKey = a.ProductKey,
                 KeepOpen = a.KeepOpen,
                 Id = a.Id,
             };

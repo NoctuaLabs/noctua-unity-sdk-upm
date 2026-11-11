@@ -29,6 +29,28 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
         /// dispatcher the completion signal it needs to bracket the call with a busy state.
         /// </summary>
         public Func<string, CampaignItem, UniTask> PurchaseAsync;
+
+        /// <summary>
+        /// True when the campaign must not sell again (a <c>purchase_once</c> campaign already
+        /// bought). A blocked tap starts no purchase, reports <see cref="CampaignActionDispatcher.StatusAlreadyPurchased"/>
+        /// and calls <see cref="PurchaseBlocked"/>.
+        /// </summary>
+        public Func<CampaignItem, bool> IsPurchaseBlocked;
+
+        /// <summary>Called when a purchase tap was blocked by <see cref="IsPurchaseBlocked"/>.</summary>
+        public Action<CampaignItem> PurchaseBlocked;
+
+        /// <summary>
+        /// Called with the campaign id once a settled purchase is credited to that campaign's Buy
+        /// tap (the same rule as <c>live_ops_campaign_purchase_result</c>).
+        /// </summary>
+        public Action<string, PurchaseOutcome> PurchaseCredited;
+
+        /// <summary>
+        /// Claims every completed mission of the campaign (a <c>claim_all</c> button). Awaited
+        /// with the popup veiled; the popup stays open and refreshes from the new progress.
+        /// </summary>
+        public Func<CampaignItem, UniTask> ClaimAllAsync;
     }
 
     /// <summary>
@@ -74,6 +96,9 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
         /// </summary>
         public const int PurchaseAttributionWindowSeconds = 120;
 
+        /// <summary><c>status</c> on <see cref="PurchaseResultEvent"/> for a tap on a campaign the player already bought.</summary>
+        public const string StatusAlreadyPurchased = "already_purchased";
+
         // Clock skew allowance: the tap and the purchase start are stamped by different classes.
         private const int AttributionSkewMs = 1000;
 
@@ -83,6 +108,29 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
             public string EngagementType;
             public string ButtonId;
             public DateTime TappedAtUtc;
+
+            // When the game's awaitable purchase handler returned. Null while it runs, and on the
+            // legacy fire-and-forget path, which has no end signal.
+            public DateTime? HandlerEndedAtUtc;
+        }
+
+        /// <summary>
+        /// Whether a purchase that started at <paramref name="startedAtUtc"/> is this tap's. With the
+        /// awaitable handler: only one started while that handler ran, so a later purchase of the
+        /// same SKU from the game's shop is never credited, however soon after. On the legacy event
+        /// path, which gives no end signal: within <see cref="PurchaseAttributionWindowSeconds"/>.
+        /// </summary>
+        private static bool StartedInsideTap(PendingPurchase tap, DateTime startedAtUtc)
+        {
+            var sinceTap = startedAtUtc - tap.TappedAtUtc;
+            if (sinceTap.TotalMilliseconds < -AttributionSkewMs) return false;
+
+            // The handler's end and the purchase start are stamped by different classes: allow skew.
+            if (tap.HandlerEndedAtUtc.HasValue)
+            {
+                return (startedAtUtc - tap.HandlerEndedAtUtc.Value).TotalMilliseconds <= AttributionSkewMs;
+            }
+            return sinceTap.TotalSeconds <= PurchaseAttributionWindowSeconds;
         }
 
         // Latest campaign tap per SKU still waiting for its purchase to settle.
@@ -174,6 +222,9 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
                     case CampaignActionType.Dismiss:
                         WithDismissReason(DismissReasonCtaDismiss, () => CurrentDismiss?.Invoke());
                         break;
+                    case CampaignActionType.ClaimAll:
+                        HandleClaimAll(campaign);
+                        break;
                     case CampaignActionType.None:
                     default:
                         _log.Warning($"{LogTag} unknown/none action '{action.TypeRaw}' — ignored");
@@ -184,6 +235,56 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
             {
                 _log.Error($"{LogTag} dispatch failed for '{action.TypeRaw}': {e.Message}");
             }
+        }
+
+        private bool _claimAllInFlight;
+
+        private void HandleClaimAll(CampaignItem campaign)
+        {
+            if (_handlers.ClaimAllAsync == null)
+            {
+                _log.Warning($"{LogTag} no handler wired for 'claim_all'");
+                return;
+            }
+            if (_claimAllInFlight)
+            {
+                _log.Debug($"{LogTag} claim all ignored — one is already running");
+                return;
+            }
+            RunClaimAllAsync(campaign).Forget();
+        }
+
+        /// <summary>Runs the claim with the popup veiled, like a purchase; never throws.</summary>
+        private async UniTaskVoid RunClaimAllAsync(CampaignItem campaign)
+        {
+            var busy = CurrentBusy;
+            _claimAllInFlight = true;
+            try
+            {
+                busy?.Invoke(true);
+                await _handlers.ClaimAllAsync(campaign);
+            }
+            catch (Exception e)
+            {
+                _log.Error($"{LogTag} claim all failed for '{campaign?.Id}': {e.Message}");
+            }
+            finally
+            {
+                _claimAllInFlight = false;
+                try { busy?.Invoke(false); }
+                catch (Exception e) { _log.Warning($"{LogTag} busy callback threw: {e.Message}"); }
+            }
+        }
+
+        /// <summary>
+        /// The campaign whose Buy button is buying <paramref name="productId"/> right now, or null —
+        /// the same rule that credits <see cref="PurchaseResultEvent"/> (<see cref="StartedInsideTap"/>).
+        /// Lets an order carry its campaign without game code, and never tags an ordinary order.
+        /// </summary>
+        public string RecentPurchaseCampaign(string productId)
+        {
+            if (string.IsNullOrEmpty(productId) || !_pendingPurchases.TryGetValue(productId, out var tap)) return null;
+            return StartedInsideTap(tap, _now()) ? tap.CampaignId : null;
         }
 
         /// <summary>
@@ -205,11 +306,20 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
                 return;
             }
 
-            RememberPurchaseTap(action, campaign);
+            if (IsBlocked(campaign))
+            {
+                _log.Info($"{LogTag} campaign '{campaign?.Id}' was already bought — purchase of '{action.ProductId}' not started");
+                _events?.Send(PurchaseResultEvent, BlockedPayload(action, campaign));
+                try { _handlers.PurchaseBlocked?.Invoke(campaign); }
+                catch (Exception e) { _log.Warning($"{LogTag} PurchaseBlocked threw: {e.Message}"); }
+                return;
+            }
+
+            var tap = RememberPurchaseTap(action, campaign);
 
             if (_handlers.PurchaseAsync != null)
             {
-                RunPurchaseAsync(action.ProductId, campaign).Forget();
+                RunPurchaseAsync(action.ProductId, campaign, tap).Forget();
                 return;
             }
 
@@ -228,7 +338,7 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
         /// Deliberately does not touch <see cref="CurrentDismiss"/> — the popup stays open so a
         /// failed or cancelled purchase returns the player to the offer.
         /// </summary>
-        private async UniTaskVoid RunPurchaseAsync(string productId, CampaignItem campaign)
+        private async UniTaskVoid RunPurchaseAsync(string productId, CampaignItem campaign, PendingPurchase tap)
         {
             // Captured up front: this continuation can outlive the popup, and a later ShowPopup
             // may have repointed CurrentBusy by the time the finally runs — clearing the busy
@@ -249,6 +359,8 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
             }
             finally
             {
+                // Closes the tap: from now on a purchase of this SKU is the game's own, not the popup's.
+                tap.HandlerEndedAtUtc = _now();
                 _purchaseInFlight = false;
                 try { busy?.Invoke(false); }
                 catch (Exception e) { _log.Warning($"{LogTag} busy callback threw: {e.Message}"); }
@@ -257,8 +369,9 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
 
         /// <summary>
         /// Reports a settled purchase. When it is for a SKU a campaign's Buy button asked for, and
-        /// the purchase started within <see cref="PurchaseAttributionWindowSeconds"/> of that tap,
-        /// emits <see cref="PurchaseResultEvent"/> once. Anything else is ignored. Never throws.
+        /// it started inside that tap (<see cref="StartedInsideTap"/>), emits
+        /// <see cref="PurchaseResultEvent"/> once and credits the campaign. Anything else is ignored.
+        /// Never throws.
         /// </summary>
         public void HandlePurchaseSettled(PurchaseOutcome outcome)
         {
@@ -267,17 +380,18 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
                 if (outcome == null || string.IsNullOrEmpty(outcome.ProductId)) return;
                 if (!_pendingPurchases.TryGetValue(outcome.ProductId, out var tap)) return;
 
-                var sinceTapMs = (outcome.StartedAtUtc - tap.TappedAtUtc).TotalMilliseconds;
-
                 // Started before the tap: an earlier purchase of this SKU finishing. Keep waiting.
-                if (sinceTapMs < -AttributionSkewMs) return;
+                if ((outcome.StartedAtUtc - tap.TappedAtUtc).TotalMilliseconds < -AttributionSkewMs) return;
 
                 _pendingPurchases.Remove(outcome.ProductId);
 
-                // Started long after the tap: the player bought it somewhere else later.
-                if (sinceTapMs > PurchaseAttributionWindowSeconds * 1000.0) return;
+                // Started after the popup's purchase was over: the player bought it elsewhere.
+                if (!StartedInsideTap(tap, outcome.StartedAtUtc)) return;
 
                 _events?.Send(PurchaseResultEvent, PurchaseResultPayload(outcome, tap));
+
+                try { _handlers.PurchaseCredited?.Invoke(tap.CampaignId, outcome); }
+                catch (Exception e) { _log.Warning($"{LogTag} PurchaseCredited threw: {e.Message}"); }
             }
             catch (Exception e)
             {
@@ -285,17 +399,19 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
             }
         }
 
-        private void RememberPurchaseTap(CampaignAction action, CampaignItem campaign)
+        private PendingPurchase RememberPurchaseTap(CampaignAction action, CampaignItem campaign)
         {
             var now = _now();
             PruneExpiredPurchaseTaps(now);
-            _pendingPurchases[action.ProductId] = new PendingPurchase
+            var tap = new PendingPurchase
             {
                 CampaignId = campaign?.Id ?? string.Empty,
                 EngagementType = campaign?.EngagementType,
                 ButtonId = action.Id,
                 TappedAtUtc = now,
             };
+            _pendingPurchases[action.ProductId] = tap;
+            return tap;
         }
 
         // Bounds the map: a tap whose purchase never started (custom store, game ignored it) expires.
@@ -309,6 +425,30 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
                 if ((now - pair.Value.TappedAtUtc).TotalSeconds > PurchaseAttributionWindowSeconds) expired.Add(pair.Key);
             }
             foreach (var key in expired) _pendingPurchases.Remove(key);
+        }
+
+        private bool IsBlocked(CampaignItem campaign)
+        {
+            try { return _handlers.IsPurchaseBlocked != null && _handlers.IsPurchaseBlocked(campaign); }
+            catch (Exception e)
+            {
+                // Fail open: a broken check must never stop a sale.
+                _log.Warning($"{LogTag} IsPurchaseBlocked threw: {e.Message}");
+                return false;
+            }
+        }
+
+        private static Dictionary<string, IConvertible> BlockedPayload(CampaignAction action, CampaignItem campaign)
+        {
+            var payload = new Dictionary<string, IConvertible>
+            {
+                { "campaign_id", campaign?.Id ?? string.Empty },
+                { "product_id", action.ProductId },
+                { "status", StatusAlreadyPurchased },
+            };
+            if (!string.IsNullOrEmpty(campaign?.EngagementType)) payload["engagement_type"] = campaign.EngagementType;
+            if (!string.IsNullOrEmpty(action.Id)) payload["button_id"] = action.Id;
+            return payload;
         }
 
         private static Dictionary<string, IConvertible> PurchaseResultPayload(PurchaseOutcome outcome, PendingPurchase tap)

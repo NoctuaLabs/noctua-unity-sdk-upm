@@ -16,6 +16,7 @@ The Noctua SDK provides a unified set of services for mobile game development:
 | `Noctua.IAA` | Ad mediation — banner, interstitial, rewarded, app open ads ([docs](docs/IAA.md) · [advanced](docs/IAA-Advanced.md)) |
 | `Noctua.Platform` | Platform features — announcements, customer service, rewards, social media |
 | `Noctua.Platform.Locale` | Locale — language, country, currency |
+| `Noctua.LiveOpsCampaign` | Live ops — admin-authored popups (offers, events, daily missions), mission progress, one-time offers ([guide](#live-ops-campaigns--missions)) |
 
 ## Installation
 
@@ -124,6 +125,94 @@ Tracks time spent on individual game features. Call `Noctua.Event.TrackCustomEve
 
 ### Session Timeout
 Default: **15 minutes** (`sessionTimeoutMs: 900000` in `NoctuaConfig`). On timeout, the old session is closed without `session_end` (force-kill limitation) and a new session begins.
+
+## Live Ops (campaigns & missions)
+
+Popups, offers and daily missions are authored in **noctua-admin → Live Ops** and delivered by `Noctua.InitAsync`. The SDK shows them, runs their buttons, and keeps mission progress on the server. The game only supplies what the SDK cannot know: where a deeplink goes, how to buy a product, and what reward to grant.
+
+### 1. Setup — one call, before init
+
+```csharp
+using com.noctuagames.sdk;
+using com.noctuagames.sdk.LiveOpsCampaign;
+using Cysharp.Threading.Tasks;
+
+Noctua.ConfigureLiveOps(new NoctuaLiveOpsCampaign.GameHandlers
+{
+    // A popup button's deeplink, e.g. "shop/gems" or "event/summer".
+    Deeplink = route => GameRouter.Open(route),
+
+    // A popup's Buy button. The campaign is added to the order for you.
+    Purchase = async (productId, campaign) =>
+        await Noctua.IAP.PurchaseItemAsync(new PurchaseRequest
+        {
+            ProductId = productId, Price = price, Currency = currency,
+            RoleId = roleId, ServerId = serverId, IngameItemId = itemId,
+        }),
+
+    // A Claim All button claimed these missions: grant their rewards.
+    MissionsClaimed = (campaignId, missionKeys) => Rewards.Grant(campaignId, missionKeys),
+});
+
+await Noctua.InitAsync();
+```
+
+Call it before `InitAsync` so a popup the admin set to **auto show** already has its handlers. Every field is optional, and calling it again replaces only the fields you pass. Keep the handlers alive for the whole session (static or a `DontDestroyOnLoad` object), not on a scene's MonoBehaviour.
+
+### 2. Showing popups
+
+Popups marked **auto show** appear by themselves after init. To show one yourself:
+
+```csharp
+Noctua.LiveOpsCampaign.ShowPopup("summer_sale");      // by campaign id
+Noctua.LiveOpsCampaign.ShowPopup();                   // the highest-priority eligible one
+var offers = Noctua.LiveOpsCampaign.GetActiveCampaigns(CampaignItem.EngagementPurchase);
+```
+
+A campaign that is not eligible is skipped, never thrown. The reason is in `Noctua.LiveOpsCampaign.Manager.LastResolutions` and in the sandbox Inspector's Campaigns tab, e.g. `schema v3 > supported`, `sdk version below min`, `country mismatch`.
+
+### 3. Offers and purchases
+
+| Admin setting | Game code |
+|---|---|
+| Buy button with a SKU | Only the `Purchase` handler above. Bought non-consumables and subscriptions are hidden or shown as "Purchased" automatically. |
+| **One purchase per player** | None. After a completed purchase from the popup the SDK records it on the server; the campaign is not shown again and its Buy buttons read "Purchased", on every device. |
+| **Dynamic product** (a JSON bundle instead of a SKU) | None when the bundle names its SKU: `{"sku_android":"gem_500","sku_ios":"com.game.gem500"}`, or just `{"sku":"gem_500"}`. To map anything else (e.g. a price `tier`) set `ProductResolver`. |
+| Consumable offer with a limit | Optional: `OwnershipProvider = sku => myStore.OwnsAsync(sku)` — the store only knows non-consumables. |
+
+```csharp
+// Only for bundles that do not name a SKU. Returning null hides that button.
+ProductResolver = (campaign, productKey, bundle) =>
+    myCatalogue.SkuForTier((string)bundle["tier"]) ?? NoctuaLiveOpsCampaign.DefaultBundleSku(bundle),
+```
+
+Inside the `Purchase` handler, `Noctua.LiveOpsCampaign.GetProductBundleForSku(campaign, productId)` returns the bundle a dynamic button was resolved from, if you need its contents. Every order started from a popup carries `campaign_id` (and `campaign_bundle_key` / `campaign_bundle`) in its `extra`; your own `PurchaseRequest.Extra` keys always win.
+
+### 4. Daily missions
+
+The admin defines the missions (key, target, reward art); the game reports progress and grants rewards. A player must be logged in (guest is fine).
+
+```csharp
+// Report the player's absolute value for a mission key (the key from the admin, e.g. "use_stm").
+await Noctua.LiveOpsCampaign.SetMissionProgressAsync("use_stm", totalStaminaUsed);
+```
+
+- **Progress** is stored on the server, survives reinstalls, and only ever goes up. While offline it is saved on the device and sent later, so `SetMissionProgressAsync` never fails just because the network is down. It throws when nobody is logged in, or when the server refuses the key in every campaign; with no live campaign using that key it does nothing and returns an empty list.
+- **Claim All** buttons are handled by the SDK: it claims every completed mission once and calls `MissionsClaimed` with the keys — grant exactly those.
+- A popup's own **Claim** / **Go** buttons are deeplinks the admin sets (e.g. `missions/claim/use_stm`): route them in `Deeplink`, and for a claim call `ClaimMissionAsync(campaignId, missionKey)`, granting the reward only when it returns.
+- Read progress any time with `GetProgressAsync()` / `Progress`; listen with `OnProgressChanged`.
+
+### 5. Audience: SDK version
+
+An audience can require a Noctua SDK version range (admin → Audience → SDK version). There is nothing to code: popups check the running SDK's version on the device, and push notifications are filtered on the server. Campaigns that use it — and one-time offers and dynamic products — need this SDK version or newer; older SDKs skip them.
+
+### Checklist
+
+- `Noctua.ConfigureLiveOps(...)` before `Noctua.InitAsync()`.
+- The player is logged in before any missions or one-time-offer feature (guest is fine).
+- Purchases go through `Noctua.IAP.PurchaseItemAsync` — that is how the SDK sees a popup purchase complete.
+- Grant rewards only from `MissionsClaimed` or after `ClaimMissionAsync` returns, never before.
+- Something not showing? Check the Inspector's Campaigns tab or `Manager.LastResolutions` for the reason.
 
 ## Dependencies
 

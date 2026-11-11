@@ -90,6 +90,8 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
         private long? _progressPlayer;
         private readonly Dictionary<string, LiveOpsProgress> _serverProgress = new(StringComparer.Ordinal);
         private readonly Dictionary<string, long> _pendingProgress = new(StringComparer.Ordinal);
+        // purchase_once keys bought but not yet claimed on the tracker (it was down); retried with updates.
+        private readonly HashSet<string> _pendingPurchaseClaims = new(StringComparer.Ordinal);
         private DateTime? _progressFetchedAtUtc;
         private bool _progressStale;
 
@@ -420,9 +422,10 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
         /// </summary>
         public void ClearProgress()
         {
-            var had = _serverProgress.Count + _pendingProgress.Count > 0;
+            var had = _serverProgress.Count + _pendingProgress.Count + _pendingPurchaseClaims.Count > 0;
             _serverProgress.Clear();
             _pendingProgress.Clear();
+            _pendingPurchaseClaims.Clear();
             _progressFetchedAtUtc = null;
             _progressStale = false;
             _progressLoaded = false;
@@ -437,7 +440,8 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
         /// the tracker is configured; use it when passing values to
         /// <see cref="ShowPopup(string, IReadOnlyDictionary{string, string})"/> yourself.
         /// The popup's target (e.g. "/20") comes from the campaign, not from
-        /// <see cref="LiveOpsProgress.Max"/>.
+        /// <see cref="LiveOpsProgress.Max"/>. Also sets <see cref="ClaimableCountKey"/>: how many
+        /// of those missions are completed and not claimed yet (drives a Claim All button).
         /// </summary>
         /// <param name="progress">Usually <see cref="Progress"/>.</param>
         /// <param name="missionIdForKey">Maps a tracker key to its mission id; the key itself when null.
@@ -449,6 +453,7 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
             var data = new Dictionary<string, string>(StringComparer.Ordinal);
             if (progress == null) return data;
 
+            var claimable = 0;
             foreach (var item in progress)
             {
                 if (string.IsNullOrEmpty(item?.Key)) continue;
@@ -457,8 +462,10 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
 
                 data[$"m_{missionId}_progress"] = item.Value.ToString();
                 data[$"m_{missionId}_claimed"] = item.Claimed ? "true" : "false";
+                if (item.Completed && !item.Claimed) claimable++;
             }
 
+            data[ClaimableCountKey] = claimable.ToString();
             return data;
         }
 
@@ -571,7 +578,7 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
             IReadOnlyDictionary<string, string> gameData)
         {
             var data = new Dictionary<string, string>(StringComparer.Ordinal);
-            foreach (var pair in ToDailyMissionsPlayerData(progress, key => MissionOf(stored, key)))
+            foreach (var pair in ToDailyMissionsPlayerData(progress, key => DeclaredMissionOf(stored, key)))
             {
                 if (stored.PlayerData != null && stored.PlayerData.ContainsKey(pair.Key)) data[pair.Key] = pair.Value;
             }
@@ -585,6 +592,13 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
             if (string.IsNullOrEmpty(item.ProgressScope)) return trackerKey;
             var prefix = item.ProgressScope + ".";
             return trackerKey.StartsWith(prefix, StringComparison.Ordinal) ? trackerKey.Substring(prefix.Length) : null;
+        }
+
+        /// <summary>The mission a tracker key belongs to when <paramref name="item"/> shows it, else null.</summary>
+        private static string DeclaredMissionOf(CampaignItem item, string trackerKey)
+        {
+            var mission = MissionOf(item, trackerKey);
+            return mission != null && HasMission(item, mission) ? mission : null;
         }
 
         /// <summary>Every campaign's tracker key for the mission, once each.</summary>
@@ -607,7 +621,12 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
         {
             _log.Info($"{LogTag} campaign '{campaignId}' needs progress the tracker cannot give right now");
             SafeInvoke(OnCampaignUnavailable, campaignId);
+            ShowMissionsUnavailableNotice();
+        }
 
+        /// <summary>The player-language "missions are unavailable" toast.</summary>
+        private void ShowMissionsUnavailableNotice()
+        {
             var message = _progressLocale?.GetTranslation(LocaleTextKey.LiveOpsMissionsUnavailable);
             if (string.IsNullOrEmpty(message) || message == nameof(LocaleTextKey.LiveOpsMissionsUnavailable))
             {
@@ -640,6 +659,7 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
 
             _serverProgress.Clear();
             _pendingProgress.Clear();
+            _pendingPurchaseClaims.Clear();
             _progressFetchedAtUtc = null;
             _progressStale = false;
             _progressPlayer = player;
@@ -732,7 +752,7 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
         /// <summary>Sends waiting updates in turn; stops at the first sign the tracker is down.</summary>
         private async UniTask<int> FlushPendingCoreAsync(string token, string playerId)
         {
-            if (_flushingProgress || _pendingProgress.Count == 0) return _pendingProgress.Count;
+            if (_flushingProgress || _pendingProgress.Count + _pendingPurchaseClaims.Count == 0) return _pendingProgress.Count;
 
             _flushingProgress = true;
             try
@@ -758,7 +778,8 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
                     }
                 }
 
-                if (_pendingProgress.Count == 0) _retryAttempt = 0;
+                if (_pendingProgress.Count == 0) await RetryPurchaseClaimsAsync();
+                if (_pendingProgress.Count == 0 && _pendingPurchaseClaims.Count == 0) _retryAttempt = 0;
                 return _pendingProgress.Count;
             }
             finally
@@ -769,7 +790,7 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
 
         private void ScheduleProgressRetry()
         {
-            if (_retryScheduled || _pendingProgress.Count == 0) return;
+            if (_retryScheduled || _pendingProgress.Count + _pendingPurchaseClaims.Count == 0) return;
             _retryScheduled = true;
             RetryPendingAfterAsync(ProgressRetryDelay(_retryAttempt++)).Forget();
         }
@@ -889,6 +910,10 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
                 {
                     if (!string.IsNullOrEmpty(pair.Key)) _pendingProgress[pair.Key] = pair.Value;
                 }
+                foreach (var key in saved.PendingClaims ?? new List<string>())
+                {
+                    if (!string.IsNullOrEmpty(key)) _pendingPurchaseClaims.Add(key);
+                }
                 _progressFetchedAtUtc = saved.FetchedAtUtc;
             }
             catch (Exception e)
@@ -908,6 +933,7 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
                     FetchedAtUtc = _progressFetchedAtUtc,
                     Items = _serverProgress.Values.ToList(),
                     Pending = new Dictionary<string, long>(_pendingProgress),
+                    PendingClaims = _pendingPurchaseClaims.ToList(),
                 };
                 PlayerPrefs.SetString(ProgressPrefsKey(_progressPlayer.Value), JsonConvert.SerializeObject(save));
                 PlayerPrefs.Save();
@@ -924,6 +950,7 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
             [JsonProperty("fetched_at")] public DateTime? FetchedAtUtc;
             [JsonProperty("items")] public List<LiveOpsProgress> Items;
             [JsonProperty("pending")] public Dictionary<string, long> Pending;
+            [JsonProperty("pending_claims")] public List<string> PendingClaims;
         }
 
         [Preserve]

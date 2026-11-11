@@ -79,6 +79,15 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
         public string ProgressScope;
 
         /// <summary>
+        /// Purchase campaigns only: the player may buy from this campaign once, whichever offer.
+        /// Recorded on the live ops progress tracker under key <c>&lt;id&gt;.purchase</c>, so it
+        /// holds across devices and reinstalls; once recorded every Buy button shows as purchased
+        /// and the campaign is no longer shown.
+        /// </summary>
+        [JsonProperty("purchase_once")]
+        public bool PurchaseOnce;
+
+        /// <summary>
         /// Optional per-campaign custom-font registry: alias → <c>Resources</c> path of a
         /// Font Asset (or source <c>.ttf</c>/<c>.otf</c>) the game ships in its build. A node's
         /// <c>style.font_path</c> is looked up here; when it isn't a key (or there is no

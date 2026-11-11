@@ -359,6 +359,7 @@ namespace com.noctuagames.sdk
         AuthEmailLinkingSuccessful,
 
         LiveOpsMissionsUnavailable,
-        LiveOpsCampaignPurchased
+        LiveOpsCampaignPurchased,
+        LiveOpsCampaignAlreadyPurchased
     }
 }

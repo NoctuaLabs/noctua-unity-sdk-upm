@@ -48,6 +48,22 @@ namespace com.noctuagames.sdk
         /// </summary>
         public static com.noctuagames.sdk.LiveOpsCampaign.NoctuaLiveOpsCampaign LiveOpsCampaign => Instance.Value._campaign;
 
+        // Set by ConfigureLiveOps; applied when the campaign module is built (InitCampaigns).
+        private static com.noctuagames.sdk.LiveOpsCampaign.NoctuaLiveOpsCampaign.GameHandlers _liveOpsHandlers;
+
+        /// <summary>
+        /// The game's live ops handlers in one call — deeplinks, purchases, product resolver,
+        /// ownership, claimed-mission rewards. Call it any time, ideally before <see cref="InitAsync"/>:
+        /// they are kept and applied as soon as live ops is ready, before any <c>auto_show</c>
+        /// popup can appear, so no tap is ever dropped. Calling it again replaces the fields set.
+        /// </summary>
+        public static void ConfigureLiveOps(com.noctuagames.sdk.LiveOpsCampaign.NoctuaLiveOpsCampaign.GameHandlers handlers)
+        {
+            _liveOpsHandlers = com.noctuagames.sdk.LiveOpsCampaign.NoctuaLiveOpsCampaign.GameHandlers.Merge(_liveOpsHandlers, handlers);
+            // Never forces the SDK into existence: before init there is nothing to apply to yet.
+            if (Instance.IsValueCreated) Instance.Value._campaign?.Configure(handlers);
+        }
+
         /// <summary>Access loaded global configuration.</summary>
         public static GlobalConfig Config => Instance.Value._config;
 

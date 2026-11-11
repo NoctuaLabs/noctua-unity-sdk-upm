@@ -251,5 +251,6 @@
     "ErrorRePasswordEmpty": "Repeated password should not be empty",
     "ErrorRePasswordNotMatch": "Password is not matched with repeated password",
     "LiveOpsMissionsUnavailable": "Missions are unavailable right now. Please try again later.",
-    "LiveOpsCampaignPurchased": "Purchased"
+    "LiveOpsCampaignPurchased": "Purchased",
+    "LiveOpsCampaignAlreadyPurchased": "You already bought this offer."
 }
