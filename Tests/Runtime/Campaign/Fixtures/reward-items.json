@@ -1,0 +1,484 @@
+{
+  "description": "Reward item rules shared by the SDK (RewardItem.ParseList / ParseBundle), noctua-admin (reward-items.ts) and the noctua-data DAG (reward_items.py). Each side's tests must agree with every case. Edit it here, then copy it to the DAG's tests/fixtures and the SDK's Tests/Runtime/Campaign/Fixtures.",
+  "lists": [
+    {
+      "name": "one item",
+      "items": [
+        {
+          "id": "gem",
+          "qty": 500
+        }
+      ],
+      "valid": true
+    },
+    {
+      "name": "several items",
+      "items": [
+        {
+          "id": "gem",
+          "qty": 500
+        },
+        {
+          "id": "gold",
+          "qty": 20000
+        },
+        {
+          "id": "chest_bronze",
+          "qty": 1
+        }
+      ],
+      "valid": true
+    },
+    {
+      "name": "every allowed id character",
+      "items": [
+        {
+          "id": "Gem.Pack:2-x_Y",
+          "qty": 1
+        }
+      ],
+      "valid": true
+    },
+    {
+      "name": "id of 64 characters",
+      "items": [
+        {
+          "id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "qty": 1
+        }
+      ],
+      "valid": true
+    },
+    {
+      "name": "quantity at the maximum",
+      "items": [
+        {
+          "id": "gem",
+          "qty": 1000000000
+        }
+      ],
+      "valid": true
+    },
+    {
+      "name": "quantity written as a whole float",
+      "items": [
+        {
+          "id": "gem",
+          "qty": 5.0
+        }
+      ],
+      "valid": true
+    },
+    {
+      "name": "exactly 20 items",
+      "items": [
+        {
+          "id": "i0",
+          "qty": 1
+        },
+        {
+          "id": "i1",
+          "qty": 1
+        },
+        {
+          "id": "i2",
+          "qty": 1
+        },
+        {
+          "id": "i3",
+          "qty": 1
+        },
+        {
+          "id": "i4",
+          "qty": 1
+        },
+        {
+          "id": "i5",
+          "qty": 1
+        },
+        {
+          "id": "i6",
+          "qty": 1
+        },
+        {
+          "id": "i7",
+          "qty": 1
+        },
+        {
+          "id": "i8",
+          "qty": 1
+        },
+        {
+          "id": "i9",
+          "qty": 1
+        },
+        {
+          "id": "i10",
+          "qty": 1
+        },
+        {
+          "id": "i11",
+          "qty": 1
+        },
+        {
+          "id": "i12",
+          "qty": 1
+        },
+        {
+          "id": "i13",
+          "qty": 1
+        },
+        {
+          "id": "i14",
+          "qty": 1
+        },
+        {
+          "id": "i15",
+          "qty": 1
+        },
+        {
+          "id": "i16",
+          "qty": 1
+        },
+        {
+          "id": "i17",
+          "qty": 1
+        },
+        {
+          "id": "i18",
+          "qty": 1
+        },
+        {
+          "id": "i19",
+          "qty": 1
+        }
+      ],
+      "valid": true
+    },
+    {
+      "name": "zero quantity",
+      "items": [
+        {
+          "id": "gem",
+          "qty": 0
+        }
+      ],
+      "valid": false
+    },
+    {
+      "name": "negative quantity",
+      "items": [
+        {
+          "id": "gem",
+          "qty": -5
+        }
+      ],
+      "valid": false
+    },
+    {
+      "name": "quantity as text",
+      "items": [
+        {
+          "id": "gem",
+          "qty": "5"
+        }
+      ],
+      "valid": false
+    },
+    {
+      "name": "fractional quantity",
+      "items": [
+        {
+          "id": "gem",
+          "qty": 1.5
+        }
+      ],
+      "valid": false
+    },
+    {
+      "name": "quantity above the maximum",
+      "items": [
+        {
+          "id": "gem",
+          "qty": 1000000001
+        }
+      ],
+      "valid": false
+    },
+    {
+      "name": "quantity missing",
+      "items": [
+        {
+          "id": "gem"
+        }
+      ],
+      "valid": false
+    },
+    {
+      "name": "quantity true",
+      "items": [
+        {
+          "id": "gem",
+          "qty": true
+        }
+      ],
+      "valid": false
+    },
+    {
+      "name": "id with a space",
+      "items": [
+        {
+          "id": "gem pack",
+          "qty": 1
+        }
+      ],
+      "valid": false
+    },
+    {
+      "name": "empty id",
+      "items": [
+        {
+          "id": "",
+          "qty": 1
+        }
+      ],
+      "valid": false
+    },
+    {
+      "name": "id missing",
+      "items": [
+        {
+          "qty": 1
+        }
+      ],
+      "valid": false
+    },
+    {
+      "name": "id not text",
+      "items": [
+        {
+          "id": 7,
+          "qty": 1
+        }
+      ],
+      "valid": false
+    },
+    {
+      "name": "id of 65 characters",
+      "items": [
+        {
+          "id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "qty": 1
+        }
+      ],
+      "valid": false
+    },
+    {
+      "name": "21 items",
+      "items": [
+        {
+          "id": "i0",
+          "qty": 1
+        },
+        {
+          "id": "i1",
+          "qty": 1
+        },
+        {
+          "id": "i2",
+          "qty": 1
+        },
+        {
+          "id": "i3",
+          "qty": 1
+        },
+        {
+          "id": "i4",
+          "qty": 1
+        },
+        {
+          "id": "i5",
+          "qty": 1
+        },
+        {
+          "id": "i6",
+          "qty": 1
+        },
+        {
+          "id": "i7",
+          "qty": 1
+        },
+        {
+          "id": "i8",
+          "qty": 1
+        },
+        {
+          "id": "i9",
+          "qty": 1
+        },
+        {
+          "id": "i10",
+          "qty": 1
+        },
+        {
+          "id": "i11",
+          "qty": 1
+        },
+        {
+          "id": "i12",
+          "qty": 1
+        },
+        {
+          "id": "i13",
+          "qty": 1
+        },
+        {
+          "id": "i14",
+          "qty": 1
+        },
+        {
+          "id": "i15",
+          "qty": 1
+        },
+        {
+          "id": "i16",
+          "qty": 1
+        },
+        {
+          "id": "i17",
+          "qty": 1
+        },
+        {
+          "id": "i18",
+          "qty": 1
+        },
+        {
+          "id": "i19",
+          "qty": 1
+        },
+        {
+          "id": "i20",
+          "qty": 1
+        }
+      ],
+      "valid": false
+    },
+    {
+      "name": "one bad item spoils the list",
+      "items": [
+        {
+          "id": "gem",
+          "qty": 1
+        },
+        {
+          "id": "bad id",
+          "qty": 1
+        }
+      ],
+      "valid": false
+    },
+    {
+      "name": "an item that is not an object",
+      "items": ["gem"],
+      "valid": false
+    }
+  ],
+  "bundles": [
+    {
+      "name": "bundle with items",
+      "bundle": {
+        "sku": "pack_499",
+        "items": [
+          {
+            "id": "gem",
+            "qty": 500
+          }
+        ]
+      },
+      "result": "deliverable"
+    },
+    {
+      "name": "array bundle, every entry with items",
+      "bundle": [
+        {
+          "items": [
+            {
+              "id": "gem",
+              "qty": 5
+            }
+          ]
+        },
+        {
+          "items": [
+            {
+              "id": "gold",
+              "qty": 9
+            }
+          ]
+        }
+      ],
+      "result": "deliverable"
+    },
+    {
+      "name": "bundle without items",
+      "bundle": {
+        "sku": "pack_999",
+        "tier": "t3"
+      },
+      "result": "no_items"
+    },
+    {
+      "name": "bare item array is not a bundle's items",
+      "bundle": [
+        {
+          "id": "coin",
+          "qty": 10
+        }
+      ],
+      "result": "no_items"
+    },
+    {
+      "name": "bundle whose items are invalid",
+      "bundle": {
+        "items": [
+          {
+            "id": "gem",
+            "qty": 0
+          }
+        ]
+      },
+      "result": "invalid"
+    },
+    {
+      "name": "bundle whose items are not a list",
+      "bundle": {
+        "items": "gem"
+      },
+      "result": "invalid"
+    },
+    {
+      "name": "array bundle with an entry missing items",
+      "bundle": [
+        {
+          "items": [
+            {
+              "id": "gem",
+              "qty": 5
+            }
+          ]
+        },
+        {
+          "tier": "t3"
+        }
+      ],
+      "result": "invalid"
+    },
+    {
+      "name": "bundle with an empty items list",
+      "bundle": {
+        "items": []
+      },
+      "result": "invalid"
+    }
+  ]
+}

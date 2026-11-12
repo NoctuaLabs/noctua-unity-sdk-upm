@@ -102,9 +102,13 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
             var id = obj["id"]?.Type == JTokenType.String ? ((string)obj["id"]).Trim() : null;
             if (string.IsNullOrEmpty(id) || id.Length > MaxIdLength || !IdPattern.IsMatch(id)) return null;
 
+            // A whole JSON number; 5.0 counts (the admin and the DAG read it as 5), "5" and 1.5 do not.
             var qty = obj["qty"];
-            if (qty == null || qty.Type != JTokenType.Integer) return null;
-            var quantity = (long)qty;
+            long quantity;
+            if (qty?.Type == JTokenType.Integer) quantity = (long)qty;
+            else if (qty?.Type == JTokenType.Float && Math.Floor((double)qty) == (double)qty
+                     && Math.Abs((double)qty) <= MaxQuantity) quantity = (long)(double)qty;
+            else return null;
             if (quantity < 1 || quantity > MaxQuantity) return null;
 
             return new RewardItem { Id = id, Quantity = quantity };

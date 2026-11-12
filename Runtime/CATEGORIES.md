@@ -107,6 +107,7 @@ Server-driven engagement popups (purchase / event-deeplink CTAs): config merge, 
 | Layer | Files |
 |---|---|
 | Game facade | `Noctua.LiveOps` (static class nested in `View/Noctua.cs`, one property per live ops feature) + `View/LiveOps/NoctuaCampaign.cs` (`Noctua.LiveOps.Campaign`: never null, usable before init — `Configure`, popups, missions, events; `Attach`/`Fail` from `InitCampaigns`; `Module` for diagnostics). The old `Noctua.LiveOpsCampaign` is `[Obsolete]`. |
+| Module | `LiveOpsCampaignManager/NoctuaLiveOpsCampaign.Ownership.cs` (partial: ownership — `SetOwnershipProvider`, `IsFullyOwned`, `ApplyOwnership` / `MarkOwnedButtons`, prefetch and refresh after a purchase) |
 | Module | `LiveOpsCampaignManager/NoctuaLiveOpsCampaign.cs` (events, `RegisterDeeplinkHandler`, `SetPurchaseHandler`, `ShowPopup(id, playerData)`, `UpdatePopupData`, local store prices for `{{store_price.<sku>}}`, purchase state: `SetOwnershipProvider`, fully-owned offers hidden, owned Buy buttons shown as Purchased (`data.purchased_label`, `LocaleTextKey.LiveOpsCampaignPurchased`), `{{owned.<sku>}}` for custom designs) |
 | Logic | `CampaignManager.cs`, `CampaignValidator.cs`, `CampaignConditions.cs` (`visible_if`), `CampaignPlayerData.cs` (game-supplied `player_data`), `CampaignFrequencyGate.cs`, `CampaignActionDispatcher.cs`, `CampaignTokens.cs`, `CampaignAssetSource.cs`, `CampaignFontSource.cs` |
 | Render | `CampaignRenderer.cs`, `CampaignRenderer.Widgets.cs`, `CampaignStyleMapper.cs`, `CampaignRuntimeController.cs`, `CampaignUIHost.cs` |
@@ -123,6 +124,7 @@ When the tracker is down nothing blocks the game: loads fall back to the player'
 
 | Layer | Files |
 |---|---|
+| Facade | `LiveOpsCampaignManager/NoctuaLiveOpsCampaign.ProgressSync.cs` (partial: sending waiting updates to the tracker with backoff, and the per-player save on the device — progress, waiting updates and claims, undelivered rewards, reward history) |
 | Facade | `LiveOpsCampaignManager/NoctuaLiveOpsCampaign.Progress.cs` (partial: `GetProgressAsync`, `SetProgressAsync`, `ClaimProgressAsync`, `SetMissionProgressAsync`, `ClaimMissionAsync`, `TrackerKey`, `FlushPendingProgressAsync`, `Progress`, `IsProgressStale`, `HasPendingProgress`, `OnProgressChanged`, `OnCampaignUnavailable`, `ToDailyMissionsPlayerData`; saved copy + pending queue in PlayerPrefs `Noctua.LiveOpsCampaign.Progress.<playerId>`) |
 | Popup gating | `LiveOpsCampaignManager/NoctuaLiveOpsCampaign.cs` (`ShowPopup`, `RunAutoShowAsync`, `ShownPlayerData`) |
 | Facade | `LiveOpsCampaignManager/NoctuaLiveOpsCampaign.Setup.cs` (partial: `CampaignHandlers` + `Configure` — the game's deeplink / purchase / product resolver / ownership / mission rewards handlers in one call; applied by `Noctua.LiveOps.Campaign`) |

@@ -168,6 +168,30 @@ namespace Tests.Runtime.Campaign
                 RewardItem.ParseList(Items(Enumerable.Range(0, RewardItem.MaxItems).Select(n => ($"i{n}", 1L)).ToArray())).Count);
         }
 
+        // ---- the item rules shared with noctua-admin and the noctua-data DAG -------
+
+        private const string SharedRulesPath = "Packages/com.noctuagames.sdk/Tests/Runtime/Campaign/Fixtures/reward-items.json";
+
+        private static IEnumerable<TestCaseData> SharedLists() =>
+            JObject.Parse(File.ReadAllText(Path.GetFullPath(SharedRulesPath)))["lists"]!
+                .Select(c => new TestCaseData(c["items"]!.ToString(Formatting.None), (bool)c["valid"]!)
+                    .SetName("SharedRules_List_" + ((string)c["name"]!).Replace(' ', '_')));
+
+        private static IEnumerable<TestCaseData> SharedBundles() =>
+            JObject.Parse(File.ReadAllText(Path.GetFullPath(SharedRulesPath)))["bundles"]!
+                .Select(c => new TestCaseData(c["bundle"]!.ToString(Formatting.None), (string)c["result"]!)
+                    .SetName("SharedRules_Bundle_" + ((string)c["name"]!).Replace(' ', '_')));
+
+        /// <summary>Same file as noctua-admin's reward-items.json and the DAG's: all three must agree.</summary>
+        [TestCaseSource(nameof(SharedLists))]
+        public void SharedRules_ItemList(string json, bool valid) =>
+            Assert.AreEqual(valid, RewardItem.ParseList(json) != null);
+
+        /// <summary>The SDK delivers only "deliverable" bundles; "no_items" and "invalid" stay the game's.</summary>
+        [TestCaseSource(nameof(SharedBundles))]
+        public void SharedRules_Bundle(string json, string result) =>
+            Assert.AreEqual(result == "deliverable", RewardItem.ParseBundle(json) != null);
+
         // ---- which order the SDK delivers, and with which bundle ----------------
 
         [Test]
