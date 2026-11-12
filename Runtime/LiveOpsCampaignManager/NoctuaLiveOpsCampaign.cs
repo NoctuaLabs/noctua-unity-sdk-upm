@@ -152,7 +152,7 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
                 PurchaseBlocked = OnPurchaseBlocked,
                 PurchaseCredited = OnPurchaseCredited,
                 ClaimAllAsync = ClaimAllFromPopupAsync,
-                ClaimMissionAsync = ClaimMissionFromPopupAsync,
+                ClaimAsync = ClaimFromPopupAsync,
             };
 
             _dispatcher = new CampaignActionDispatcher(

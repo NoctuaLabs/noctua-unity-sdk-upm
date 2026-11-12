@@ -137,7 +137,7 @@ Everything live ops is under one entry, `Noctua.LiveOps`, one property per featu
 
 ### Campaign
 
-Popups, offers and daily missions are authored in **noctua-admin → Live Ops** and delivered by `Noctua.InitAsync`. The SDK shows them, runs their buttons, claims missions and keeps their progress on the server. The game only supplies what the SDK cannot know: where a deeplink goes, how to buy a product, and how to grant a reward.
+Popups, offers and daily missions are authored in **noctua-admin → Live Ops** and delivered by `Noctua.InitAsync`. The SDK shows them, runs their buttons, claims missions and chests, keeps progress on the server, and hands the game every reward it owes. The game only supplies what the SDK cannot know: where a deeplink goes, how to buy a product, and how to add items to its inventory.
 
 #### 1. Setup — one call, before init
 
@@ -159,10 +159,17 @@ Noctua.LiveOps.Campaign.Configure(new CampaignHandlers
             RoleId = roleId, ServerId = serverId, IngameItemId = itemId,
         }),
 
-    // Missions the SDK claimed (Claim / Claim All buttons): grant their rewards.
-    MissionRewards = async rewards =>
+    // Everything live ops gives the player: claimed missions and chests, and campaign bundle
+    // purchases. Grant and save the items, then return.
+    Rewards = async rewards =>
     {
-        foreach (var r in rewards) await Inventory.AddAsync(r.RewardId, int.Parse(r.Quantity), r.ClaimId);
+        foreach (var r in rewards)                       // r.Source: Mission / Milestone / Purchase
+        {
+            if (Inventory.HasGranted(r.ClaimId)) continue;
+            foreach (var item in r.Items) Inventory.Add(item.Id, item.Quantity);
+            Inventory.MarkGranted(r.ClaimId);
+        }
+        await Inventory.SaveAsync();
     },
 });
 
@@ -192,6 +199,7 @@ A campaign that is not eligible is skipped, never thrown. The reason is in the s
 | Buy button with a SKU | Only the `Purchase` handler above. Bought non-consumables and subscriptions are hidden or shown as "Purchased" automatically. |
 | **One purchase per player** | None. After a completed purchase from the popup the SDK records it on the server; the campaign is not shown again and its Buy buttons read "Purchased", on every device. |
 | **Dynamic product** (a JSON bundle instead of a SKU) | None when the bundle names its SKU: `{"sku_android":"gem_500","sku_ios":"com.game.gem500"}`, or just `{"sku":"gem_500"}`. To map anything else (e.g. a price `tier`) set `ProductResolver`. |
+| **Dynamic product with items** — `{"sku":"pack_499","items":[{"id":"gem","qty":500}]}` | One line in your own purchase delivery (below). After the payment is verified the SDK sends the items to `Rewards` (`Source = Purchase`, `ClaimId = order:<id>`), so one store SKU can sell any items you set in the admin, with no app update. |
 | Consumable offer with a limit | Optional: `OwnershipProvider = sku => myStore.OwnsAsync(sku)` — the store only knows non-consumables. |
 
 ```csharp
@@ -199,6 +207,18 @@ A campaign that is not eligible is skipped, never thrown. The reason is in the s
 ProductResolver = (campaign, productKey, bundle) =>
     myCatalogue.SkuForTier((string)bundle["tier"]) ?? NoctuaLiveOpsCampaign.DefaultBundleSku(bundle),
 ```
+
+**Bundles with items are delivered by the SDK.** Skip them in your own `OnPurchaseDone` delivery, or they are granted twice:
+
+```csharp
+Noctua.IAP.OnPurchaseDone += order =>
+{
+    if (Noctua.LiveOps.Campaign.IsDeliveredByRewards(order)) return;   // the Rewards handler grants it
+    GrantBySku(order.ProductId);                                         // your normal shop purchases
+};
+```
+
+The SDK decides when the purchase starts and stores it in the order (`noctua_delivery = rewards`): only for a bundle that lists valid items, bought while the game has a `Rewards` handler. Everything else — fixed SKUs, bundles without `items`, redeem orders — stays yours, exactly as before. The order carries the bundle the player saw, so editing the campaign later never changes what a paid order delivers; an order finished after a crash (the SDK's retry queue) keeps it too, and one verified before live ops is ready is kept on the device until it is. Two Buy buttons may sell the same SKU with different items — each order carries its own button's bundle. A purchase limit counts its SKU, so the admin refuses two limited cards on one SKU.
 
 Inside the `Purchase` handler, `Noctua.LiveOps.Campaign.GetProductBundleForSku(campaign, productId)` returns the bundle a dynamic button was resolved from. Every order started from a popup carries `campaign_id` (and `campaign_bundle_key` / `campaign_bundle`) in its `extra`; your own `PurchaseRequest.Extra` keys always win.
 
@@ -212,25 +232,34 @@ await Noctua.LiveOps.Campaign.SetMissionProgressAsync("use_stm", totalStaminaUse
 ```
 
 - **Progress** is stored on the server, survives reinstalls, and only ever goes up. While offline it is saved on the device and sent later.
-- **Claim** and **Claim All** buttons are handled by the SDK: it claims on the server (once per player) and calls `MissionRewards` with a `MissionReward` per mission — `MissionKey`, the admin's `RewardId` and `Quantity`, and `ClaimId`.
-- **Rewards are never lost.** A reward counts as delivered once `MissionRewards` finishes without throwing. If the app dies first or the handler throws, the SDK delivers it again after the next init or login. Granting on your server? Ignore a `ClaimId` you have already granted.
-- To claim from your own UI: `Noctua.LiveOps.Campaign.ClaimMissionAsync(campaignId, missionKey)` or `ClaimAllMissionsAsync(campaignId)` — rewards still arrive through `MissionRewards`.
+- **Claim** and **Claim All** buttons (a mission or chest with no claim deeplink in the admin) are handled by the SDK: it claims on the server, once per player, and calls `Rewards` with a `LiveOpsReward` per claim — `Source`, `Key`, the admin's reward `Items` and `ClaimId`.
+- **Milestone chests:** give missions **points** in the admin. The SDK adds up the points of claimed missions (it fills `{{points}}` for the popup), and a chest with no claim deeplink becomes claimable once the points reach it; Claim All claims the missions first, then the chests they unlock, in one tap.
+- To claim from your own UI: `ClaimMissionAsync(campaignId, missionKey)`, `ClaimMilestoneAsync(campaignId, points)` or `ClaimAllMissionsAsync(campaignId)` — rewards still arrive through `Rewards`.
+
+#### 5. Rewards, from every source
+
+- **One handler** — `Rewards` — for missions, chests and bundle purchases. Each reward has `Items` (`Id`, `Quantity`), a `Source`, the `CampaignId` and a `ClaimId`.
+- **Never lost.** A reward is saved on the device, for the player who earned or paid for it, before the handler runs, and counts as delivered once the handler finishes without throwing. If the app dies first or the handler throws, it is delivered again after the next init or login. A purchase made by another account on the same phone waits for that account.
+- **Exactly once on your side.** Redelivery means the handler can see a reward twice (granted, then the app died before it returned): ignore a `ClaimId` you already granted. Granting on your own server? Send `ClaimId` as the idempotency key.
+- **Items are granted whole.** An item list with any invalid item (bad id, quantity not a whole number ≥ 1) is not delivered at all; the admin validates the same rules.
+- **Limit:** the client delivers the items, as with any client-granted reward. A game whose inventory lives on its server should treat the items as a request; verifying them server-to-server needs Noctua backend support (the order already carries `campaign_id` and the bundle key for it).
 - Read progress any time with `GetProgressAsync()` / `Progress`; listen with `OnProgressChanged`.
 
-#### 5. Audience: SDK version
+#### 6. Audience: SDK version
 
 An audience can require a Noctua SDK version range (admin → Audience → SDK version). There is nothing to code: popups check the running SDK's version on the device, and push notifications are filtered on the server. Campaigns using it — and one-time offers, dynamic products and built-in Claim buttons — need this SDK version or newer; older SDKs skip them.
 
 #### Upgrading from `Noctua.LiveOpsCampaign`
 
-`Noctua.LiveOpsCampaign` (null until init) still works but is obsolete. Move to `Noctua.LiveOps.Campaign`: replace `RegisterDeeplinkHandler`, `SetPurchaseHandler`, `OnCampaignPurchaseRequested`, `SetProductResolver` and `SetOwnershipProvider` with one `Configure(...)`. Claim deeplinks you route yourself (`ClaimMissionAsync` on the old object, grant when it returns) keep working; switching the admin's Claim buttons to the built-in claim moves granting into `MissionRewards`.
+`Noctua.LiveOpsCampaign` (null until init) still works but is obsolete. Move to `Noctua.LiveOps.Campaign`: replace `RegisterDeeplinkHandler`, `SetPurchaseHandler`, `OnCampaignPurchaseRequested`, `SetProductResolver` and `SetOwnershipProvider` with one `Configure(...)`. Claim deeplinks you route yourself (`ClaimMissionAsync` on the old object, grant when it returns) keep working; switching the admin's Claim buttons to the built-in claim moves granting into `Rewards`.
 
 #### Checklist
 
 - `Noctua.LiveOps.Campaign.Configure(...)` before `Noctua.InitAsync()`.
 - The player is logged in before any missions or one-time-offer feature (guest is fine).
 - Purchases go through `Noctua.IAP.PurchaseItemAsync` — that is how the SDK sees a popup purchase complete.
-- Grant mission rewards only in `MissionRewards`, and finish it only once they are granted.
+- Grant live ops rewards only in `Rewards`, finish it only once they are saved, and skip a `ClaimId` already granted.
+- Skip `IsDeliveredByRewards(order)` orders in your own `OnPurchaseDone` delivery.
 - Something not showing? Check the Inspector's Campaigns tab for the reason.
 
 ## Dependencies

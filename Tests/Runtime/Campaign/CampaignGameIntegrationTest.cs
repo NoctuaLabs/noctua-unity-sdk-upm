@@ -154,7 +154,7 @@ namespace Tests.Runtime.Campaign
             var busy = new List<bool>();
             var dispatcher = new CampaignActionDispatcher(new CampaignActionHandlers
             {
-                ClaimMissionAsync = (_, mission) => { calls.Add(mission); return gate.Task; },
+                ClaimAsync = (_, mission, milestone) => { calls.Add(mission ?? "milestone " + milestone); return gate.Task; },
                 ClaimAllAsync = _ => { calls.Add("all"); return UniTask.CompletedTask; },
             }, new MockEventSender()) { CurrentBusy = busy.Add };
             var missions = Offer("season", null);
@@ -166,6 +166,9 @@ namespace Tests.Runtime.Campaign
 
             CollectionAssert.AreEqual(new[] { "use_stm" }, calls, "one claim at a time, mission trimmed");
             CollectionAssert.AreEqual(new[] { true, false }, busy);
+
+            dispatcher.Dispatch(new CampaignAction { TypeRaw = "claim", Milestone = "25" }, missions);
+            CollectionAssert.AreEqual(new[] { "use_stm", "milestone 25" }, calls, "a chest button names its points");
         }
 
         // ---- Default product resolver ------------------------------------
@@ -374,11 +377,11 @@ namespace Tests.Runtime.Campaign
             facade.Configure(new CampaignHandlers
             {
                 ProductResolver = (_, __, bundle) => bundle["tier"]?.ToString() == "t1" ? "pack1" : null,
-                MissionRewards = _ => { calls.Add("first"); return UniTask.CompletedTask; },
+                Rewards = _ => { calls.Add("first"); return UniTask.CompletedTask; },
             });
             facade.Configure(new CampaignHandlers
             {
-                MissionRewards = _ => { calls.Add("second"); return UniTask.CompletedTask; },
+                Rewards = _ => { calls.Add("second"); return UniTask.CompletedTask; },
             });
 
             Assert.AreEqual("pack1", facade.WithDynamicProducts(item).View.Children[0].Action.ProductId,
@@ -386,7 +389,7 @@ namespace Tests.Runtime.Campaign
 
             var record = typeof(NoctuaLiveOpsCampaign).GetMethod("RecordRewards",
                 System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
-            record.Invoke(facade, new object[] { new List<MissionReward> { new() { ClaimId = "season.m1" } } });
+            record.Invoke(facade, new object[] { new List<LiveOpsReward> { new() { ClaimId = "season.m1" } } });
             CollectionAssert.AreEqual(new[] { "second" }, calls);
         }
     }

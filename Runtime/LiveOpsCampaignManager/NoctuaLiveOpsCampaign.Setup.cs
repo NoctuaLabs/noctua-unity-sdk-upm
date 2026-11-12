@@ -16,7 +16,7 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
             if (handlers.ProductResolver != null) SetProductResolver(handlers.ProductResolver);
             if (handlers.OwnershipProvider != null) SetOwnershipProvider(handlers.OwnershipProvider);
 
-            if (handlers.MissionRewards != null) SetMissionRewardsHandler(handlers.MissionRewards);
+            if (handlers.Rewards != null) SetRewardsHandler(handlers.Rewards);
         }
     }
 }

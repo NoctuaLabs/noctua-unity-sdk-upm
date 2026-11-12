@@ -2,7 +2,9 @@ using System;
 using System.Collections.Generic;
 using com.noctuagames.sdk.LiveOpsCampaign;
 using Cysharp.Threading.Tasks;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using UnityEngine.Scripting;
 
 namespace com.noctuagames.sdk
 {
@@ -98,17 +100,26 @@ namespace com.noctuagames.sdk
             await (await ReadyModuleAsync()).SetMissionProgressAsync(missionKey, value);
 
         /// <summary>
-        /// Claims one mission; its reward goes to the <c>MissionRewards</c> handler (and is
-        /// returned). Popup Claim buttons do this for you.
+        /// Claims one mission; its reward goes to the <c>Rewards</c> handler (and is returned).
+        /// Popup Claim buttons do this for you.
         /// </summary>
-        public async UniTask<MissionReward> ClaimMissionAsync(string campaignId, string missionKey) =>
+        public async UniTask<LiveOpsReward> ClaimMissionAsync(string campaignId, string missionKey) =>
             await (await ReadyModuleAsync()).ClaimMissionRewardAsync(campaignId, missionKey);
 
         /// <summary>
-        /// Claims every completed mission of a campaign; the rewards go to the <c>MissionRewards</c>
-        /// handler (and are returned). Popup Claim All buttons do this for you.
+        /// Claims the milestone chest at <paramref name="points"/> once the player's points reach it;
+        /// its reward goes to the <c>Rewards</c> handler (and is returned). Popup chest buttons do
+        /// this for you.
         /// </summary>
-        public async UniTask<IReadOnlyList<MissionReward>> ClaimAllMissionsAsync(string campaignId) =>
+        public async UniTask<LiveOpsReward> ClaimMilestoneAsync(string campaignId, int points) =>
+            await (await ReadyModuleAsync()).ClaimMilestoneRewardAsync(campaignId, points);
+
+        /// <summary>
+        /// Claims every completed mission of a campaign, then every chest the points reach; the
+        /// rewards go to the <c>Rewards</c> handler (and are returned). Popup Claim All buttons do
+        /// this for you.
+        /// </summary>
+        public async UniTask<IReadOnlyList<LiveOpsReward>> ClaimAllMissionsAsync(string campaignId) =>
             await (await ReadyModuleAsync()).ClaimAllMissionsAsync(campaignId);
 
         /// <summary>The player's mission progress from the server (or the saved copy when offline).</summary>
@@ -126,6 +137,31 @@ namespace com.noctuagames.sdk
 
         /// <summary>The dynamic-product bundle a Buy button resolved to <paramref name="sku"/>, or null.</summary>
         public JToken GetProductBundleForSku(CampaignItem campaign, string sku) => _module?.GetProductBundleForSku(campaign, sku);
+
+        /// <summary>
+        /// True when the SDK delivers this order's items through the <c>Rewards</c> handler — a
+        /// campaign bundle that lists its items, bought while the game had a <c>Rewards</c>
+        /// handler. Skip such an order in the game's own purchase delivery, or it is granted twice:
+        /// <c>if (Noctua.LiveOps.Campaign.IsDeliveredByRewards(order)) return;</c>
+        /// </summary>
+        public bool IsDeliveredByRewards(OrderRequest order) => NoctuaLiveOpsCampaign.IsDeliveredByRewards(order?.Extra);
+
+        /// <summary>
+        /// SDK-only: a verified purchase (<c>Noctua.IAP.OnPurchaseDone</c>). An order the SDK
+        /// delivers becomes a <c>Purchase</c> reward for <paramref name="buyerId"/>; before live ops
+        /// is ready it waits on the device and is recorded on <see cref="Attach"/>.
+        /// </summary>
+        public void OnPurchaseDone(OrderRequest order, long? buyerId)
+        {
+            if (!IsDeliveredByRewards(order)) return;
+
+            if (_module != null)
+            {
+                _module.RecordPurchaseReward(order, buyerId);
+                return;
+            }
+            SaveToInbox(order, buyerId);
+        }
 
         // ---- composition root ----------------------------------------------------
 
@@ -150,6 +186,7 @@ namespace com.noctuagames.sdk
             module.OnProgressChanged += RaiseProgress;
             module.OnCampaignUnavailable += RaiseUnavailable;
             if (_handlers != null) module.Configure(_handlers);
+            DrainInbox(module);
             _ready.TrySetResult(module);
         }
 
@@ -157,6 +194,66 @@ namespace com.noctuagames.sdk
         public void Fail(Exception error)
         {
             if (_module == null) _ready.TrySetException(error);
+        }
+
+        // ---- purchases verified before live ops was ready ---------------------------
+
+        private const string InboxPrefsKey = "Noctua.LiveOps.Campaign.PurchaseInbox";
+
+        [Preserve]
+        private sealed class InboxEntry
+        {
+            [JsonProperty("order_id")] public int OrderId;
+            [JsonProperty("product_id")] public string ProductId;
+            [JsonProperty("extra")] public Dictionary<string, string> Extra;
+            [JsonProperty("buyer_id")] public long? BuyerId;
+        }
+
+        private void SaveToInbox(OrderRequest order, long? buyerId)
+        {
+            var inbox = ReadInbox();
+            if (inbox.Exists(entry => entry.OrderId == order.Id)) return;
+
+            inbox.Add(new InboxEntry { OrderId = order.Id, ProductId = order.ProductId, Extra = order.Extra, BuyerId = buyerId });
+            WriteInbox(inbox);
+            _log.Info($"[LiveOps.Campaign] order {order.Id} verified before live ops was ready; its reward is kept until then");
+        }
+
+        private void DrainInbox(NoctuaLiveOpsCampaign module)
+        {
+            var inbox = ReadInbox();
+            if (inbox.Count == 0) return;
+
+            foreach (var entry in inbox)
+            {
+                module.RecordPurchaseReward(
+                    new OrderRequest { Id = entry.OrderId, ProductId = entry.ProductId, Extra = entry.Extra },
+                    entry.BuyerId);
+            }
+            WriteInbox(new List<InboxEntry>());
+        }
+
+        private List<InboxEntry> ReadInbox()
+        {
+            try
+            {
+                var json = UnityEngine.PlayerPrefs.GetString(InboxPrefsKey, null);
+                return string.IsNullOrEmpty(json)
+                    ? new List<InboxEntry>()
+                    : JsonConvert.DeserializeObject<List<InboxEntry>>(json) ?? new List<InboxEntry>();
+            }
+            catch (Exception e)
+            {
+                _log.Warning($"[LiveOps.Campaign] purchase inbox unreadable, ignoring it: {e.Message}");
+                return new List<InboxEntry>();
+            }
+        }
+
+        private static void WriteInbox(List<InboxEntry> inbox)
+        {
+            if (inbox.Count == 0) UnityEngine.PlayerPrefs.DeleteKey(InboxPrefsKey);
+            else UnityEngine.PlayerPrefs.SetString(InboxPrefsKey, JsonConvert.SerializeObject(inbox));
+            UnityEngine.PlayerPrefs.Save();
         }
 
         private async UniTask<NoctuaLiveOpsCampaign> ReadyModuleAsync() => _module ?? await _ready.Task;

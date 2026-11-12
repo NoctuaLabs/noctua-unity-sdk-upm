@@ -161,12 +161,21 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
                 }
 
                 case CampaignActionType.Claim:
-                    if (string.IsNullOrWhiteSpace(a.Mission))
+                {
+                    var hasMission = !string.IsNullOrWhiteSpace(a.Mission);
+                    var hasMilestone = !string.IsNullOrWhiteSpace(a.Milestone);
+                    if (hasMission == hasMilestone)
                     {
-                        error = "claim action: missing 'mission'";
+                        error = "claim action: needs exactly one of 'mission' or 'milestone'";
+                        return false;
+                    }
+                    if (hasMilestone && (!int.TryParse(a.Milestone.Trim(), out var points) || points <= 0))
+                    {
+                        error = $"claim action: milestone '{a.Milestone}' is not a positive whole number";
                         return false;
                     }
                     break;
+                }
 
                 case CampaignActionType.Deeplink:
                 {

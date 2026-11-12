@@ -53,10 +53,10 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
         public Func<CampaignItem, UniTask> ClaimAllAsync;
 
         /// <summary>
-        /// Claims one mission of the campaign (a <c>claim</c> button), awaited the same way as
-        /// <see cref="ClaimAllAsync"/>.
+        /// Claims one mission or chest of the campaign (a <c>claim</c> button), awaited the same way
+        /// as <see cref="ClaimAllAsync"/>. Called with the mission key, or null and the chest's points.
         /// </summary>
-        public Func<CampaignItem, string, UniTask> ClaimMissionAsync;
+        public Func<CampaignItem, string, string, UniTask> ClaimAsync;
     }
 
     /// <summary>
@@ -118,6 +118,9 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
             // When the game's awaitable purchase handler returned. Null while it runs, and on the
             // legacy fire-and-forget path, which has no end signal.
             public DateTime? HandlerEndedAtUtc;
+
+            /// <summary>The tapped button's dynamic bundle key, or null for a fixed SKU.</summary>
+            public string ProductKey;
         }
 
         /// <summary>
@@ -234,9 +237,12 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
                             : (Func<UniTask>)(() => _handlers.ClaimAllAsync(campaign)));
                         break;
                     case CampaignActionType.Claim:
-                        RunClaim("claim", campaign, _handlers.ClaimMissionAsync == null
+                        RunClaim("claim", campaign, _handlers.ClaimAsync == null
                             ? null
-                            : (Func<UniTask>)(() => _handlers.ClaimMissionAsync(campaign, action.Mission?.Trim())));
+                            : (Func<UniTask>)(() => _handlers.ClaimAsync(
+                                campaign,
+                                string.IsNullOrWhiteSpace(action.Mission) ? null : action.Mission.Trim(),
+                                string.IsNullOrWhiteSpace(action.Milestone) ? null : action.Milestone.Trim())));
                         break;
                     case CampaignActionType.None:
                     default:
@@ -297,10 +303,19 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
         /// the same rule that credits <see cref="PurchaseResultEvent"/> (<see cref="StartedInsideTap"/>).
         /// Lets an order carry its campaign without game code, and never tags an ordinary order.
         /// </summary>
-        public string RecentPurchaseCampaign(string productId)
+        public string RecentPurchaseCampaign(string productId) => RecentTap(productId)?.CampaignId;
+
+        /// <summary>
+        /// The dynamic bundle key of the Buy button buying <paramref name="productId"/> right now
+        /// (same rule as <see cref="RecentPurchaseCampaign"/>), or null for a fixed SKU or no tap.
+        /// Two buttons may sell one SKU with different items; this says which one was tapped.
+        /// </summary>
+        public string RecentPurchaseProductKey(string productId) => RecentTap(productId)?.ProductKey;
+
+        private PendingPurchase RecentTap(string productId)
         {
             if (string.IsNullOrEmpty(productId) || !_pendingPurchases.TryGetValue(productId, out var tap)) return null;
-            return StartedInsideTap(tap, _now()) ? tap.CampaignId : null;
+            return StartedInsideTap(tap, _now()) ? tap : null;
         }
 
         /// <summary>
@@ -424,6 +439,7 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
                 CampaignId = campaign?.Id ?? string.Empty,
                 EngagementType = campaign?.EngagementType,
                 ButtonId = action.Id,
+                ProductKey = string.IsNullOrWhiteSpace(action.ProductKey) ? null : action.ProductKey.Trim(),
                 TappedAtUtc = now,
             };
             _pendingPurchases[action.ProductId] = tap;

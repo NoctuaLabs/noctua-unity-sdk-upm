@@ -34,13 +34,15 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
         public Func<string, UniTask<bool>> OwnershipProvider;
 
         /// <summary>
-        /// Grants mission rewards the SDK claimed (a popup's Claim / Claim All button, or
-        /// <c>Noctua.LiveOps.Campaign.ClaimMissionAsync</c>). Each <see cref="MissionReward"/> carries the
-        /// mission and the reward set in the admin. A reward counts as delivered once this
-        /// finishes without throwing; otherwise it is delivered again after the next init or
-        /// login. Grant on your server? Ignore a <see cref="MissionReward.ClaimId"/> already granted.
+        /// Grants rewards the SDK owes the game, from every source: missions and milestone chests
+        /// it claimed (popup Claim / Claim All, or <c>Noctua.LiveOps.Campaign.Claim*Async</c>) and
+        /// campaign bundle purchases whose bundle lists items. Each <see cref="LiveOpsReward"/>
+        /// carries its <see cref="LiveOpsReward.Source"/>, the admin's <see cref="LiveOpsReward.Items"/>
+        /// and a <see cref="LiveOpsReward.ClaimId"/>. A reward counts as delivered once this finishes
+        /// without throwing; otherwise it is delivered again after the next init or login, so grant
+        /// and save the items before returning, and ignore a <c>ClaimId</c> already granted.
         /// </summary>
-        public Func<IReadOnlyList<MissionReward>, UniTask> MissionRewards;
+        public Func<IReadOnlyList<LiveOpsReward>, UniTask> Rewards;
 
         /// <summary>A new set: <paramref name="newer"/>'s fields, falling back to <paramref name="older"/>'s.</summary>
         public static CampaignHandlers Merge(CampaignHandlers older, CampaignHandlers newer)
@@ -53,7 +55,7 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
                 Purchase = newer.Purchase ?? older.Purchase,
                 ProductResolver = newer.ProductResolver ?? older.ProductResolver,
                 OwnershipProvider = newer.OwnershipProvider ?? older.OwnershipProvider,
-                MissionRewards = newer.MissionRewards ?? older.MissionRewards,
+                Rewards = newer.Rewards ?? older.Rewards,
             };
         }
     }

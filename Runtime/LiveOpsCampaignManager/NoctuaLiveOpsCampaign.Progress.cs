@@ -390,7 +390,7 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
             try
             {
                 EnsureProgressPlayer();
-                await DeliverMissionRewardsAsync();
+                await DeliverRewardsAsync();
                 await FlushPendingProgressAsync();
             }
             catch (Exception e)
@@ -416,6 +416,7 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
             _pendingProgress.Clear();
             _pendingPurchaseClaims.Clear();
             _undeliveredRewards.Clear();
+            _rewardHistory.Clear();
             _progressFetchedAtUtc = null;
             _progressStale = false;
             _progressLoaded = false;
@@ -568,7 +569,8 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
             IReadOnlyDictionary<string, string> gameData)
         {
             var data = new Dictionary<string, string>(StringComparer.Ordinal);
-            foreach (var pair in ToDailyMissionsPlayerData(progress, key => DeclaredMissionOf(stored, key)))
+            foreach (var pair in ToDailyMissionsPlayerData(progress, key => DeclaredMissionOf(stored, key))
+                         .Concat(ToMilestonePlayerData(stored, progress)))
             {
                 if (stored.PlayerData != null && stored.PlayerData.ContainsKey(pair.Key)) data[pair.Key] = pair.Value;
             }
@@ -651,6 +653,7 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
             _pendingProgress.Clear();
             _pendingPurchaseClaims.Clear();
             _undeliveredRewards.Clear();
+            _rewardHistory.Clear();
             _progressFetchedAtUtc = null;
             _progressStale = false;
             _progressPlayer = player;
@@ -885,32 +888,39 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
 
         private void LoadProgress(long playerId)
         {
-            var json = PlayerPrefs.GetString(ProgressPrefsKey(playerId), null);
-            if (string.IsNullOrEmpty(json)) return;
+            var saved = ReadSave(PlayerPrefs.GetString(ProgressPrefsKey(playerId), null));
+            if (saved == null) return;
 
+            foreach (var row in saved.Items ?? new List<LiveOpsProgress>())
+            {
+                if (!string.IsNullOrEmpty(row?.Key)) _serverProgress[row.Key] = row;
+            }
+            foreach (var pair in saved.Pending ?? new Dictionary<string, long>())
+            {
+                if (!string.IsNullOrEmpty(pair.Key)) _pendingProgress[pair.Key] = pair.Value;
+            }
+            foreach (var key in saved.PendingClaims ?? new List<string>())
+            {
+                if (!string.IsNullOrEmpty(key)) _pendingPurchaseClaims.Add(key);
+            }
+            _undeliveredRewards.AddRange((saved.UndeliveredRewards ?? new List<LiveOpsReward>())
+                .Where(r => r != null && !string.IsNullOrEmpty(r.ClaimId)));
+            _rewardHistory.AddRange((saved.RewardHistory ?? new List<string>()).Where(id => !string.IsNullOrEmpty(id)));
+            _progressFetchedAtUtc = saved.FetchedAtUtc;
+        }
+
+        /// <summary>A player's save from its JSON, or null when there is none or it cannot be read.</summary>
+        private ProgressSave ReadSave(string json)
+        {
+            if (string.IsNullOrEmpty(json)) return null;
             try
             {
-                var saved = JsonConvert.DeserializeObject<ProgressSave>(json);
-                if (saved == null) return;
-
-                foreach (var row in saved.Items ?? new List<LiveOpsProgress>())
-                {
-                    if (!string.IsNullOrEmpty(row?.Key)) _serverProgress[row.Key] = row;
-                }
-                foreach (var pair in saved.Pending ?? new Dictionary<string, long>())
-                {
-                    if (!string.IsNullOrEmpty(pair.Key)) _pendingProgress[pair.Key] = pair.Value;
-                }
-                foreach (var key in saved.PendingClaims ?? new List<string>())
-                {
-                    if (!string.IsNullOrEmpty(key)) _pendingPurchaseClaims.Add(key);
-                }
-                _undeliveredRewards.AddRange((saved.UndeliveredRewards ?? new List<MissionReward>()).Where(r => r != null));
-                _progressFetchedAtUtc = saved.FetchedAtUtc;
+                return JsonConvert.DeserializeObject<ProgressSave>(json);
             }
             catch (Exception e)
             {
                 _log.Warning($"{LogTag} saved progress unreadable, ignoring it: {e.Message}");
+                return null;
             }
         }
 
@@ -927,6 +937,7 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
                     Pending = new Dictionary<string, long>(_pendingProgress),
                     PendingClaims = _pendingPurchaseClaims.ToList(),
                     UndeliveredRewards = _undeliveredRewards.ToList(),
+                    RewardHistory = _rewardHistory.ToList(),
                 };
                 PlayerPrefs.SetString(ProgressPrefsKey(_progressPlayer.Value), JsonConvert.SerializeObject(save));
                 PlayerPrefs.Save();
@@ -944,7 +955,8 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
             [JsonProperty("items")] public List<LiveOpsProgress> Items;
             [JsonProperty("pending")] public Dictionary<string, long> Pending;
             [JsonProperty("pending_claims")] public List<string> PendingClaims;
-            [JsonProperty("undelivered_rewards")] public List<MissionReward> UndeliveredRewards;
+            [JsonProperty("undelivered_rewards")] public List<LiveOpsReward> UndeliveredRewards;
+            [JsonProperty("reward_history")] public List<string> RewardHistory;
         }
 
         [Preserve]

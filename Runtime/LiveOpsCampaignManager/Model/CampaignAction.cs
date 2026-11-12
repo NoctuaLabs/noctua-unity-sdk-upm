@@ -19,14 +19,14 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
 
         /// <summary>
         /// Daily missions: claim every completed, unclaimed mission of the campaign in one tap.
-        /// The SDK does the claims and hands the rewards to the game's <c>MissionRewards</c> handler; the popup stays open.
+        /// The SDK does the claims and hands the rewards to the game's <c>Rewards</c> handler; the popup stays open.
         /// </summary>
         ClaimAll,
 
         /// <summary>
-        /// Daily missions: claim the one mission named by <see cref="CampaignAction.Mission"/>. The
-        /// SDK does the claim and hands the reward to the game's <c>MissionRewards</c> handler; the
-        /// popup stays open.
+        /// Daily missions: claim the mission named by <see cref="CampaignAction.Mission"/>, or the
+        /// chest at <see cref="CampaignAction.Milestone"/> points. The SDK does the claim and hands
+        /// the reward to the game's <c>Rewards</c> handler; the popup stays open.
         /// </summary>
         Claim,
     }
@@ -62,6 +62,10 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
         /// <summary>Mission key for <see cref="CampaignActionType.Claim"/>, e.g. <c>use_stm</c>.</summary>
         [JsonProperty("mission")]
         public string Mission;
+
+        /// <summary>Chest points for <see cref="CampaignActionType.Claim"/>, e.g. <c>25</c>; instead of <see cref="Mission"/>.</summary>
+        [JsonProperty("milestone")]
+        public string Milestone;
 
         /// <summary>
         /// Deeplink only: when true the popup stays open after the route is handed to the game,

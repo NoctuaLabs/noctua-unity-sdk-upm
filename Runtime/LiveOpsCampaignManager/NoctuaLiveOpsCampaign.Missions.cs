@@ -1,44 +1,44 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.RegularExpressions;
 using Cysharp.Threading.Tasks;
 
 namespace com.noctuagames.sdk.LiveOpsCampaign
 {
     /// <summary>
-    /// Daily mission claims done by the SDK — a popup's <c>claim</c> / <c>claim_all</c> button, or
-    /// the game calling <see cref="ClaimMissionRewardAsync"/> / <see cref="ClaimAllMissionsAsync"/>
-    /// — and delivery of their rewards to the game's <c>MissionRewards</c> handler.
+    /// Daily mission and milestone chest claims done by the SDK — a popup's <c>claim</c> /
+    /// <c>claim_all</c> button, or the game calling <see cref="ClaimMissionRewardAsync"/>,
+    /// <see cref="ClaimMilestoneRewardAsync"/> or <see cref="ClaimAllMissionsAsync"/>. Each claim
+    /// is a tracker claim (once per player, on the server); its reward goes to the game's
+    /// <c>Rewards</c> handler (see the Rewards partial).
     ///
-    /// <para>Each mission is its own tracker claim, so the server allows it once per player. The
-    /// reward is saved on the device (per player) the moment the claim succeeds and handed to the
-    /// handler; it is dropped only when the handler finishes without throwing. If the app dies
-    /// first, or the handler throws, it is delivered again after the next init or login — so a
-    /// reward is never lost, and a game that grants on its own server dedupes on
-    /// <see cref="MissionReward.ClaimId"/>.</para>
+    /// <para>Points: when the admin gives missions points (<c>m_&lt;key&gt;_points</c>), the
+    /// player's points are the sum over claimed missions, worked out here from server progress, and
+    /// a chest (<c>milestone_&lt;points&gt;_claimed</c>) becomes claimable once they reach it. A
+    /// chest the SDK claims has its own tracker key, <c>&lt;scope&gt;.milestone_&lt;points&gt;</c>
+    /// (max 1), registered by the DAG; it is set to 1 and claimed.</para>
     /// </summary>
     public sealed partial class NoctuaLiveOpsCampaign
     {
         /// <summary>
-        /// <c>player_data</c> key a daily missions popup can declare: how many of its missions are
-        /// completed and not claimed. Show a Claim All button with <c>visible_if claimable_count gt 0</c>.
+        /// <c>player_data</c> key a daily missions popup can declare: how many missions and chests
+        /// are ready to claim. Show a Claim All button with <c>visible_if claimable_count gt 0</c>.
         /// </summary>
         public const string ClaimableCountKey = "claimable_count";
 
-        private readonly List<MissionReward> _undeliveredRewards = new();
-        private Func<IReadOnlyList<MissionReward>, UniTask> _missionRewards;
-        private bool _deliveringRewards;
-        private bool _warnedNoRewardHandler;
+        /// <summary><c>player_data</c> key for the player's points; filled by the SDK when missions carry points.</summary>
+        public const string PointsKey = "points";
 
-        /// <summary>Rewards claimed for the current player that the game has not confirmed yet.</summary>
-        public IReadOnlyList<MissionReward> UndeliveredMissionRewards => _undeliveredRewards.ToList();
+        private static readonly Regex MissionPointsKey = new Regex(@"^m_(.+)_points$");
+        private static readonly Regex MilestoneClaimedKey = new Regex(@"^milestone_(\d+)_claimed$");
 
         /// <summary>
         /// Claims daily mission <paramref name="missionKey"/> of campaign <paramref name="campaignId"/>
-        /// and delivers its reward through the <c>MissionRewards</c> handler; also returns it. Throws
-        /// like <see cref="ClaimProgressAsync"/> (e.g. already claimed, not completed, offline).
+        /// and delivers its reward through the <c>Rewards</c> handler; also returns it. Throws like
+        /// <see cref="ClaimProgressAsync"/> (e.g. already claimed, not completed, offline).
         /// </summary>
-        public async UniTask<MissionReward> ClaimMissionRewardAsync(string campaignId, string missionKey)
+        public async UniTask<LiveOpsReward> ClaimMissionRewardAsync(string campaignId, string missionKey)
         {
             RequireMissionKey(missionKey);
             var item = RequireMissionCampaign(campaignId, missionKey);
@@ -46,48 +46,66 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
             var trackerKey = TrackerKey(item, missionKey);
             await ClaimProgressAsync(trackerKey);
 
-            var reward = RewardOf(item, missionKey, trackerKey);
+            var reward = MissionRewardOf(item, missionKey, trackerKey);
+            RecordRewards(new[] { reward });
+            return reward;
+        }
+
+        /// <summary>
+        /// Claims the chest at <paramref name="points"/> of campaign <paramref name="campaignId"/>
+        /// and delivers its reward through the <c>Rewards</c> handler; also returns it. Throws when
+        /// the player's points are below it (<c>LiveOpsProgressNotCompleted</c>), when it was
+        /// claimed already (<c>LiveOpsProgressAlreadyClaimed</c>), or like <see cref="ClaimProgressAsync"/>.
+        /// </summary>
+        public async UniTask<LiveOpsReward> ClaimMilestoneRewardAsync(string campaignId, int points)
+        {
+            var item = FindCampaign(campaignId)
+                       ?? throw new NoctuaException(NoctuaErrorCode.Application, $"No live ops campaign '{campaignId}'");
+            if (!DeclaredMilestones(item).Contains(points))
+            {
+                throw new NoctuaException(NoctuaErrorCode.Application, $"Campaign '{campaignId}' has no milestone at {points} points");
+            }
+
+            var reward = await ClaimMilestoneCoreAsync(item, points, await GetProgressAsync());
             RecordRewards(new[] { reward });
             return reward;
         }
 
         /// <summary>
         /// Claims every completed, unclaimed mission of daily missions campaign
-        /// <paramref name="campaignId"/> and delivers their rewards through the <c>MissionRewards</c>
-        /// handler; also returns them. Missions already claimed elsewhere are skipped. Stops when
-        /// the tracker goes down (or rejects the login) and returns what was claimed before; throws
-        /// that error only when nothing could be claimed.
+        /// <paramref name="campaignId"/>, then every chest the new points reach, and delivers their
+        /// rewards through the <c>Rewards</c> handler; also returns them. Anything claimed elsewhere
+        /// is skipped. Stops when the tracker goes down (or rejects the login) and returns what was
+        /// claimed before; throws that error only when nothing could be claimed.
         /// </summary>
-        public async UniTask<IReadOnlyList<MissionReward>> ClaimAllMissionsAsync(string campaignId)
+        public async UniTask<IReadOnlyList<LiveOpsReward>> ClaimAllMissionsAsync(string campaignId)
         {
             var item = FindCampaign(campaignId)
                        ?? throw new NoctuaException(NoctuaErrorCode.Application, $"No live ops campaign '{campaignId}'");
 
-            var progress = await GetProgressAsync();
-            var claimed = new List<MissionReward>();
+            var claimed = new List<LiveOpsReward>();
             NoctuaException down = null;
 
-            foreach (var mission in ClaimableMissions(item, progress))
+            foreach (var mission in ClaimableMissions(item, await GetProgressAsync()))
             {
                 var trackerKey = TrackerKey(item, mission);
-                try
+                down = await TryClaimAsync(campaignId, mission, async () =>
                 {
                     await ClaimProgressAsync(trackerKey);
-                    claimed.Add(RewardOf(item, mission, trackerKey));
-                }
-                catch (NoctuaException e) when (
-                    e.ErrorCode == (int)NoctuaErrorCode.Networking || Classify(e) == ProgressFailure.Auth)
+                    claimed.Add(MissionRewardOf(item, mission, trackerKey));
+                });
+                if (down != null) break;
+            }
+
+            // Chests after missions: the missions just claimed may have reached them. Progress
+            // holds those claims already.
+            if (down == null)
+            {
+                foreach (var points in ClaimableMilestones(item, Progress))
                 {
-                    down = e;
-                    break;
-                }
-                catch (NoctuaException e) when (IsClaimSkip(e))
-                {
-                    _log.Debug($"{LogTag} claim all '{campaignId}': '{mission}' skipped ({e.Message})");
-                }
-                catch (NoctuaException e)
-                {
-                    _log.Warning($"{LogTag} claim all '{campaignId}': '{mission}' refused: {e.Message}");
+                    down = await TryClaimAsync(campaignId, $"milestone {points}", async () =>
+                        claimed.Add(await ClaimMilestoneCoreAsync(item, points, Progress)));
+                    if (down != null) break;
                 }
             }
 
@@ -113,83 +131,158 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
         }
 
         /// <summary>
-        /// Hands every undelivered reward to the <c>MissionRewards</c> handler. The SDK calls it after
-        /// a claim, when the handler is set and after login; call it to retry sooner. Never throws.
+        /// The chests of <paramref name="item"/> the SDK can claim now, lowest first: the campaign
+        /// counts points, the chest has its tracker key, it is not claimed, and the points reach it.
         /// </summary>
-        public async UniTask DeliverMissionRewardsAsync()
+        public static IReadOnlyList<int> ClaimableMilestones(CampaignItem item, IEnumerable<LiveOpsProgress> progress)
         {
-            EnsureProgressPlayer();
-            if (_deliveringRewards || _undeliveredRewards.Count == 0) return;
-            if (_missionRewards == null)
+            if (!CountsPoints(item) || progress == null) return Array.Empty<int>();
+
+            var rows = progress.Where(row => !string.IsNullOrEmpty(row?.Key)).GroupBy(row => row.Key)
+                .ToDictionary(group => group.Key, group => group.First(), StringComparer.Ordinal);
+            var points = PointsOf(item, rows.Values);
+
+            return DeclaredMilestones(item)
+                .Where(chest => points >= chest
+                                && rows.TryGetValue(MilestoneTrackerKey(item, chest), out var row)
+                                && !row.Claimed)
+                .ToList();
+        }
+
+        /// <summary>
+        /// The player's points in <paramref name="item"/>: the sum of <c>m_&lt;key&gt;_points</c>
+        /// over its claimed missions. 0 for a campaign whose missions carry no points.
+        /// </summary>
+        public static long PointsOf(CampaignItem item, IEnumerable<LiveOpsProgress> progress)
+        {
+            if (item?.Data == null || progress == null) return 0;
+
+            long total = 0;
+            foreach (var mission in progress
+                         .Where(row => row != null && row.Claimed && !string.IsNullOrEmpty(row.Key))
+                         .Select(row => DeclaredMissionOf(item, row.Key))
+                         .Where(mission => !string.IsNullOrEmpty(mission))
+                         .Distinct(StringComparer.Ordinal))
             {
-                if (!_warnedNoRewardHandler)
+                if (item.Data.TryGetValue($"m_{mission}_points", out var raw) && long.TryParse(raw, out var points) && points > 0)
                 {
-                    _warnedNoRewardHandler = true;
-                    _log.Warning($"{LogTag} {_undeliveredRewards.Count} mission reward(s) are waiting for the game: " +
-                                 "set MissionRewards in Noctua.LiveOps.Campaign.Configure to grant them.");
-                }
-                return;
-            }
-
-            _deliveringRewards = true;
-            var player = _progressPlayer;
-            try
-            {
-                while (_undeliveredRewards.Count > 0 && player == _progressPlayer)
-                {
-                    var batch = _undeliveredRewards.ToList();
-                    await _missionRewards(batch);
-
-                    // Only this player's list, and only what the handler was given: rewards claimed
-                    // while it ran go in the next round.
-                    if (player != _progressPlayer) break;
-                    _undeliveredRewards.RemoveAll(batch.Contains);
-                    SaveProgress();
-                    _log.Info($"{LogTag} delivered mission rewards: {string.Join(", ", batch)}");
+                    total += points;
                 }
             }
-            catch (Exception e)
+            return total;
+        }
+
+        /// <summary>True when the admin gave the campaign's missions points, so the SDK counts them.</summary>
+        public static bool CountsPoints(CampaignItem item) =>
+            item?.Data != null && item.Data.Keys.Any(key => MissionPointsKey.IsMatch(key));
+
+        /// <summary>The chests the popup shows (<c>milestone_&lt;points&gt;_claimed</c>), lowest first.</summary>
+        public static IReadOnlyList<int> DeclaredMilestones(CampaignItem item) =>
+            item?.PlayerData == null
+                ? Array.Empty<int>()
+                : item.PlayerData.Keys
+                    .Select(key => MilestoneClaimedKey.Match(key))
+                    .Where(match => match.Success && int.TryParse(match.Groups[1].Value, out _))
+                    .Select(match => int.Parse(match.Groups[1].Value))
+                    .Distinct()
+                    .OrderBy(points => points)
+                    .ToList();
+
+        /// <summary>The tracker key of the chest at <paramref name="points"/>: <c>&lt;scope&gt;.milestone_&lt;points&gt;</c>.</summary>
+        public static string MilestoneTrackerKey(CampaignItem item, int points) => TrackerKey(item, "milestone_" + points);
+
+        /// <summary>
+        /// The <c>player_data</c> the SDK fills for points and chests: <c>points</c> (when missions
+        /// carry points), <c>milestone_&lt;points&gt;_claimed</c> for every chest with a tracker key,
+        /// and <c>claimable_count</c> covering missions and chests.
+        /// </summary>
+        public static IReadOnlyDictionary<string, string> ToMilestonePlayerData(
+            CampaignItem item, IReadOnlyList<LiveOpsProgress> progress)
+        {
+            var data = new Dictionary<string, string>(StringComparer.Ordinal);
+            if (item == null || progress == null) return data;
+
+            if (CountsPoints(item)) data[PointsKey] = PointsOf(item, progress).ToString();
+            foreach (var chest in DeclaredMilestones(item))
             {
-                _log.Warning($"{LogTag} MissionRewards handler threw, keeping the rewards to deliver again: {e.Message}");
+                var row = progress.FirstOrDefault(r => r?.Key == MilestoneTrackerKey(item, chest));
+                if (row != null) data[$"milestone_{chest}_claimed"] = row.Claimed ? "true" : "false";
             }
-            finally
+            data[ClaimableCountKey] = (ClaimableMissions(item, progress).Count + ClaimableMilestones(item, progress).Count).ToString();
+            return data;
+        }
+
+        /// <summary>Sets the chest's key to 1 and claims it; the reward is returned, not recorded.</summary>
+        private async UniTask<LiveOpsReward> ClaimMilestoneCoreAsync(CampaignItem item, int points, IReadOnlyList<LiveOpsProgress> progress)
+        {
+            if (!CountsPoints(item))
             {
-                _deliveringRewards = false;
+                throw new NoctuaException(NoctuaErrorCode.Application, $"Campaign '{item.Id}' has no mission points, so the game claims its chests");
             }
-        }
 
-        /// <summary>Sets the game's reward handler and delivers anything that was waiting for it.</summary>
-        private void SetMissionRewardsHandler(Func<IReadOnlyList<MissionReward>, UniTask> handler)
-        {
-            _missionRewards = handler;
-            _warnedNoRewardHandler = false;
-            DeliverMissionRewardsAsync().Forget();
-        }
-
-        private void RecordRewards(IReadOnlyCollection<MissionReward> rewards)
-        {
-            if (rewards.Count == 0) return;
-            _undeliveredRewards.AddRange(rewards);
-            SaveProgress();
-            DeliverMissionRewardsAsync().Forget();
-        }
-
-        /// <summary>The reward the admin set on <paramref name="mission"/> (<c>m_&lt;key&gt;_reward_id</c> / <c>_reward_qty</c>).</summary>
-        private MissionReward RewardOf(CampaignItem item, string mission, string trackerKey)
-        {
-            string Data(string field) =>
-                item.Data != null && item.Data.TryGetValue($"m_{mission}_{field}", out var value) ? value?.Trim() ?? "" : "";
-
-            return new MissionReward
+            var key = MilestoneTrackerKey(item, points);
+            var row = progress.FirstOrDefault(r => r?.Key == key)
+                      ?? throw new NoctuaException(NoctuaErrorCode.Application, $"Chest '{key}' is not registered on the tracker yet");
+            if (row.Claimed)
             {
-                ClaimId = trackerKey,
+                throw new NoctuaException(NoctuaErrorCode.LiveOpsProgressAlreadyClaimed, $"Chest '{key}' was claimed already");
+            }
+            if (PointsOf(item, progress) < points)
+            {
+                throw new NoctuaException(NoctuaErrorCode.LiveOpsProgressNotCompleted, $"Chest '{key}' needs {points} points");
+            }
+
+            if (!row.Completed) await SetProgressAsync(key, Math.Max(1, row.Max));
+            await ClaimProgressAsync(key);
+
+            return new LiveOpsReward
+            {
+                ClaimId = key,
+                Source = RewardSource.Milestone,
                 CampaignId = item.Id,
-                MissionKey = mission,
-                RewardId = Data("reward_id"),
-                Quantity = Data("reward_qty"),
+                Key = points.ToString(),
+                Items = ItemsAt(item, $"milestone_{points}_rewards"),
                 ClaimedAtUtc = _utcNow(),
             };
         }
+
+        /// <summary>
+        /// Runs one claim of Claim All. Returns the error that should stop the run (tracker down,
+        /// login rejected); a claim already made elsewhere or refused is logged and skipped.
+        /// </summary>
+        private async UniTask<NoctuaException> TryClaimAsync(string campaignId, string what, Func<UniTask> claim)
+        {
+            try
+            {
+                await claim();
+            }
+            catch (NoctuaException e) when (
+                e.ErrorCode == (int)NoctuaErrorCode.Networking || Classify(e) == ProgressFailure.Auth)
+            {
+                return e;
+            }
+            catch (NoctuaException e) when (IsClaimSkip(e))
+            {
+                _log.Debug($"{LogTag} claim all '{campaignId}': '{what}' skipped ({e.Message})");
+            }
+            catch (NoctuaException e)
+            {
+                _log.Warning($"{LogTag} claim all '{campaignId}': '{what}' refused: {e.Message}");
+            }
+            return null;
+        }
+
+        /// <summary>The reward of <paramref name="mission"/>: the items the admin set at <c>m_&lt;key&gt;_rewards</c>.</summary>
+        private LiveOpsReward MissionRewardOf(CampaignItem item, string mission, string trackerKey) =>
+            new LiveOpsReward
+            {
+                ClaimId = trackerKey,
+                Source = RewardSource.Mission,
+                CampaignId = item.Id,
+                Key = mission,
+                Items = ItemsAt(item, $"m_{mission}_rewards"),
+                ClaimedAtUtc = _utcNow(),
+            };
 
         private CampaignItem RequireMissionCampaign(string campaignId, string missionKey)
         {
@@ -207,8 +300,8 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
             || e.ErrorCode == (int)NoctuaErrorCode.LiveOpsProgressNotCompleted;
 
         /// <summary>
-        /// A <c>claim_all</c> button: claims everything finished; the rewards go to the handler and
-        /// the open popup refreshes from the new progress. When the tracker is down or the login is
+        /// A <c>claim_all</c> button: claims everything ready; the rewards go to the handler and the
+        /// open popup refreshes from the new progress. When the tracker is down or the login is
         /// gone, the player gets the usual "missions unavailable" notice. Never throws.
         /// </summary>
         private async UniTask ClaimAllFromPopupAsync(CampaignItem item)
@@ -216,7 +309,7 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
             try
             {
                 var claimed = await ClaimAllMissionsAsync(item?.Id);
-                _log.Info($"{LogTag} claim all in '{item?.Id}': {(claimed.Count == 0 ? "nothing to claim" : string.Join(", ", claimed))}");
+                _log.Info($"{LogTag} claim all in '{item?.Id}': {(claimed.Count == 0 ? "nothing to claim" : string.Join("; ", claimed))}");
             }
             catch (Exception e)
             {
@@ -226,24 +319,29 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
         }
 
         /// <summary>
-        /// A mission's <c>claim</c> button: like <see cref="ClaimAllFromPopupAsync"/> for one mission.
-        /// Already claimed (another device) or not completed just refreshes the popup. Never throws.
+        /// A mission's or chest's <c>claim</c> button. Already claimed (another device) or not ready
+        /// just refreshes the popup. Never throws.
         /// </summary>
-        private async UniTask ClaimMissionFromPopupAsync(CampaignItem item, string mission)
+        private async UniTask ClaimFromPopupAsync(CampaignItem item, string mission, string milestone)
         {
+            var what = string.IsNullOrEmpty(milestone) ? $"'{mission}'" : $"milestone {milestone}";
             try
             {
-                var reward = await ClaimMissionRewardAsync(item?.Id, mission);
+                var reward = string.IsNullOrEmpty(milestone)
+                    ? await ClaimMissionRewardAsync(item?.Id, mission)
+                    : int.TryParse(milestone, out var points)
+                        ? await ClaimMilestoneRewardAsync(item?.Id, points)
+                        : throw new NoctuaException(NoctuaErrorCode.Application, $"Milestone '{milestone}' is not a number");
                 _log.Info($"{LogTag} claimed {reward}");
             }
             catch (NoctuaException e) when (IsClaimSkip(e))
             {
-                _log.Debug($"{LogTag} claim '{mission}' in '{item?.Id}' skipped ({e.Message})");
+                _log.Debug($"{LogTag} claim {what} in '{item?.Id}' skipped ({e.Message})");
                 RefreshProgressQuietlyAsync().Forget();
             }
             catch (Exception e)
             {
-                _log.Warning($"{LogTag} claim '{mission}' in '{item?.Id}' failed: {e.Message}");
+                _log.Warning($"{LogTag} claim {what} in '{item?.Id}' failed: {e.Message}");
                 ShowMissionsUnavailableNotice();
             }
         }

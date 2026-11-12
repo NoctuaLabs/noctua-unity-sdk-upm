@@ -438,6 +438,10 @@ namespace com.noctuagames.sdk
             _auth = new NoctuaAuthentication(authService, _iap, _uiFactory, _config, _eventSender, locale);
             lazyAuthProvider.SetAuth(_auth);
 
+            // A verified campaign bundle purchase becomes a Rewards entry for the player who paid —
+            // subscribed here, before init can finish a retried purchase, so none is missed.
+            _iap.OnPurchaseDone += order => LiveOps.Campaign.OnPurchaseDone(order, _auth?.RecentAccount?.Player?.Id);
+
             _game = new NoctuaGameService(
                 new NoctuaGameService.Config
                 {

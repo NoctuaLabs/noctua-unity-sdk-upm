@@ -314,10 +314,22 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
         /// The order <c>extra</c> for a purchase from <paramref name="item"/>: the game's own
         /// <paramref name="extra"/> plus <c>campaign_id</c>, and for a dynamic product
         /// <c>campaign_bundle_key</c> and <c>campaign_bundle</c> (compact JSON). A new dictionary;
-        /// set it on <c>PurchaseRequest.Extra</c>.
+        /// set it on <c>PurchaseRequest.Extra</c>. The bundle is the one the resolver turned into
+        /// <paramref name="sku"/>; see the overload taking the button's product key.
         /// </summary>
         public Dictionary<string, string> PurchaseExtra(
-            CampaignItem item, string sku, IReadOnlyDictionary<string, string> extra = null)
+            CampaignItem item, string sku, IReadOnlyDictionary<string, string> extra = null) =>
+            PurchaseExtra(item, sku, productKey: null, extra);
+
+        /// <summary>
+        /// <see cref="PurchaseExtra(CampaignItem, string, IReadOnlyDictionary{string, string})"/> for
+        /// the Buy button whose bundle is <paramref name="productKey"/> — right even when two buttons
+        /// sell the same SKU with different items. When that bundle lists items and the game has a
+        /// <c>Rewards</c> handler, it also sets <c>noctua_delivery = rewards</c>: the SDK delivers
+        /// the items, and the game skips the order (<see cref="IsDeliveredByRewards"/>).
+        /// </summary>
+        public Dictionary<string, string> PurchaseExtra(
+            CampaignItem item, string sku, string productKey, IReadOnlyDictionary<string, string> extra)
         {
             var result = extra == null
                 ? new Dictionary<string, string>()
@@ -325,27 +337,35 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
             if (item == null) return result;
 
             result[ExtraCampaignId] = item.Id ?? string.Empty;
-            if (!string.IsNullOrEmpty(sku) && _bundleKeyBySku.TryGetValue(item.Id + BundleKeySeparator + sku, out var key))
-            {
-                result[ExtraBundleKey] = key;
-                var bundle = GetProductBundle(item, key);
-                if (bundle != null) result[ExtraBundle] = bundle.ToString(Formatting.None);
-            }
+
+            var key = !string.IsNullOrWhiteSpace(productKey)
+                ? productKey.Trim()
+                : !string.IsNullOrEmpty(sku) && _bundleKeyBySku.TryGetValue(item.Id + BundleKeySeparator + sku, out var mapped)
+                    ? mapped
+                    : null;
+            if (key == null) return result;
+
+            result[ExtraBundleKey] = key;
+            var bundle = GetProductBundle(item, key);
+            if (bundle == null) return result;
+
+            result[ExtraBundle] = bundle.ToString(Formatting.None);
+            if (_rewards != null && HasDeliverableItems(bundle)) result[ExtraDelivery] = DeliveryRewards;
             return result;
         }
 
         /// <summary>
         /// The order <c>extra</c> for a purchase of <paramref name="sku"/> started from a campaign's
-        /// Buy button in the last <see cref="CampaignActionDispatcher.PurchaseAttributionWindowSeconds"/>
-        /// (<see cref="PurchaseExtra"/>), or null for any other purchase. The composition root hands
-        /// it to <c>Noctua.IAP</c>, which adds it under the game's own keys — no game code needed.
+        /// Buy button (<see cref="PurchaseExtra(CampaignItem, string, string, IReadOnlyDictionary{string, string})"/>
+        /// with the tapped button's bundle), or null for any other purchase. The composition root
+        /// hands it to <c>Noctua.IAP</c>, which adds it under the game's own keys — no game code needed.
         /// </summary>
         public IReadOnlyDictionary<string, string> CampaignOrderExtra(string sku)
         {
             try
             {
                 var item = FindCampaign(_dispatcher.RecentPurchaseCampaign(sku));
-                return item == null ? null : PurchaseExtra(item, sku);
+                return item == null ? null : PurchaseExtra(item, sku, _dispatcher.RecentPurchaseProductKey(sku), null);
             }
             catch (Exception e)
             {

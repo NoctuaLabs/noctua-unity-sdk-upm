@@ -63,25 +63,25 @@ namespace Tests.Runtime.Campaign
             item.ProgressScope = Scope;
             item.AutoShow = false;
             item.Frequency = null;
-            item.Data["m_use_stm_reward_id"] = "gem";
+            item.Data["m_use_stm_rewards"] = "[{\"id\":\"gem\",\"qty\":25},{\"id\":\"gold\",\"qty\":500}]";
             return item;
         }
 
         private NoctuaLiveOpsCampaign Facade(string baseUrl = BaseUrl) =>
             NewFacade(baseUrl, new CampaignConfig { SchemaVersion = 2, Campaigns = new List<CampaignItem> { Missions() } });
 
-        /// <summary>A facade whose MissionRewards handler records what it is given.</summary>
-        private NoctuaLiveOpsCampaign Rewarded(List<MissionReward> delivered)
+        /// <summary>A facade whose Rewards handler records what it is given.</summary>
+        private NoctuaLiveOpsCampaign Rewarded(List<LiveOpsReward> delivered)
         {
             var facade = Facade();
             facade.Configure(new CampaignHandlers
             {
-                MissionRewards = rewards => { delivered.AddRange(rewards); return UniTask.CompletedTask; },
+                Rewards = rewards => { delivered.AddRange(rewards); return UniTask.CompletedTask; },
             });
             return facade;
         }
 
-        private static string[] Keys(IEnumerable<MissionReward> rewards) => rewards.Select(r => r.MissionKey).ToArray();
+        private static string[] Keys(IEnumerable<LiveOpsReward> rewards) => rewards.Select(r => r.Key).ToArray();
 
         private void Claimed(string path, string key) =>
             _server.AddHandler(path, _ => Envelope(Row(key, 20, 20, completed: true, claimed: true)));
@@ -123,19 +123,21 @@ namespace Tests.Runtime.Campaign
                 Row($"{Scope}.defeat_enemies", 3, 2000))));
             Claimed(Stm, $"{Scope}.use_stm");
             Claimed(Badge, $"{Scope}.craft_badge");
-            var delivered = new List<MissionReward>();
+            var delivered = new List<LiveOpsReward>();
             var facade = Rewarded(delivered);
 
             var claimed = await facade.ClaimAllMissionsAsync("season_4");
-            await facade.DeliverMissionRewardsAsync();
+            await facade.DeliverRewardsAsync();
 
             CollectionAssert.AreEquivalent(new[] { "use_stm", "craft_badge" }, Keys(claimed));
             CollectionAssert.AreEquivalent(Keys(claimed), Keys(delivered));
-            var stm = delivered.Single(r => r.MissionKey == "use_stm");
-            Assert.AreEqual("gem", stm.RewardId, "the reward the admin set");
-            Assert.AreEqual("25", stm.Quantity);
+            var stm = delivered.Single(r => r.Key == "use_stm");
+            Assert.AreEqual(RewardSource.Mission, stm.Source);
+            CollectionAssert.AreEqual(new[] { "gem x25", "gold x500" }, stm.Items.Select(i => i.ToString()).ToArray(),
+                "every item the admin set");
+            Assert.IsEmpty(delivered.Single(r => r.Key == "craft_badge").Items, "no items set: still claimed, nothing to grant");
             Assert.AreEqual($"{Scope}.use_stm", stm.ClaimId);
-            Assert.IsEmpty(facade.UndeliveredMissionRewards, "delivered rewards are dropped");
+            Assert.IsEmpty(facade.UndeliveredRewards, "delivered rewards are dropped");
             CollectionAssert.DoesNotContain(Sent(_server), "POST /api/v1" + Enemies, "an unfinished mission is not claimed");
         });
 
@@ -157,7 +159,7 @@ namespace Tests.Runtime.Campaign
         public IEnumerator ClaimAll_NothingToClaim_ReturnsEmpty_AndFiresNothing() => UniTask.ToCoroutine(async () =>
         {
             _server.AddHandler(List, _ => Envelope(Rows(Row($"{Scope}.use_stm", 3, 20))));
-            var delivered = new List<MissionReward>();
+            var delivered = new List<LiveOpsReward>();
             var facade = Rewarded(delivered);
 
             Assert.IsEmpty(await facade.ClaimAllMissionsAsync("season_4"));
@@ -184,11 +186,12 @@ namespace Tests.Runtime.Campaign
         public IEnumerator ClaimMission_DeliversItsReward() => UniTask.ToCoroutine(async () =>
         {
             Claimed(Stm, $"{Scope}.use_stm");
-            var delivered = new List<MissionReward>();
+            var delivered = new List<LiveOpsReward>();
 
             var reward = await Rewarded(delivered).ClaimMissionRewardAsync("season_4", "use_stm");
 
-            Assert.AreEqual("gem", reward.RewardId);
+            Assert.AreEqual("gem", reward.Items[0].Id);
+            Assert.AreEqual(25, reward.Items[0].Quantity);
             CollectionAssert.AreEqual(new[] { "use_stm" }, Keys(delivered));
         });
 
@@ -196,7 +199,7 @@ namespace Tests.Runtime.Campaign
         public IEnumerator ClaimMission_AlreadyClaimed_Throws_AndDeliversNothing() => UniTask.ToCoroutine(async () =>
         {
             _server.AddHandler(Stm, _ => (409, Error(2400, "Progress already claimed")));
-            var delivered = new List<MissionReward>();
+            var delivered = new List<LiveOpsReward>();
 
             var e = await Throws(async () => await Rewarded(delivered).ClaimMissionRewardAsync("season_4", "use_stm"));
 
@@ -211,23 +214,23 @@ namespace Tests.Runtime.Campaign
             var first = Facade();
             first.Configure(new CampaignHandlers
             {
-                MissionRewards = _ => throw new System.InvalidOperationException("inventory not loaded"),
+                Rewards = _ => throw new System.InvalidOperationException("inventory not loaded"),
             });
 
             await first.ClaimMissionRewardAsync("season_4", "use_stm");
-            await first.DeliverMissionRewardsAsync();
-            Assert.AreEqual(1, first.UndeliveredMissionRewards.Count);
+            await first.DeliverRewardsAsync();
+            Assert.AreEqual(1, first.UndeliveredRewards.Count);
             StringAssert.Contains("undelivered_rewards", Saved());
 
             // The app restarts: a new module for the same player delivers it.
-            var delivered = new List<MissionReward>();
+            var delivered = new List<LiveOpsReward>();
             var next = Rewarded(delivered);
-            await next.DeliverMissionRewardsAsync();
+            await next.DeliverRewardsAsync();
             CollectionAssert.AreEqual(new[] { $"{Scope}.use_stm" }, delivered.Select(r => r.ClaimId).ToArray());
 
             // Delivered once: a later session gets nothing.
-            var later = new List<MissionReward>();
-            await Rewarded(later).DeliverMissionRewardsAsync();
+            var later = new List<LiveOpsReward>();
+            await Rewarded(later).DeliverRewardsAsync();
             Assert.IsEmpty(later);
         });
 
@@ -237,14 +240,14 @@ namespace Tests.Runtime.Campaign
             Claimed(Stm, $"{Scope}.use_stm");
             var facade = Facade();
             await facade.ClaimMissionRewardAsync("season_4", "use_stm");
-            Assert.AreEqual(1, facade.UndeliveredMissionRewards.Count);
+            Assert.AreEqual(1, facade.UndeliveredRewards.Count);
 
-            var delivered = new List<MissionReward>();
+            var delivered = new List<LiveOpsReward>();
             facade.Configure(new CampaignHandlers
             {
-                MissionRewards = rewards => { delivered.AddRange(rewards); return UniTask.CompletedTask; },
+                Rewards = rewards => { delivered.AddRange(rewards); return UniTask.CompletedTask; },
             });
-            await facade.DeliverMissionRewardsAsync();
+            await facade.DeliverRewardsAsync();
 
             CollectionAssert.AreEqual(new[] { "use_stm" }, Keys(delivered));
         });

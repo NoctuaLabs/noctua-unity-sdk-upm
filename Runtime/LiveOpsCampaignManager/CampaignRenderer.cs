@@ -510,6 +510,7 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
                 ProductId = ResolveTokens(a.ProductId, item),
                 ProductKey = a.ProductKey,
                 Mission = a.Mission,
+                Milestone = a.Milestone,
                 KeepOpen = a.KeepOpen,
                 Id = a.Id,
             };
