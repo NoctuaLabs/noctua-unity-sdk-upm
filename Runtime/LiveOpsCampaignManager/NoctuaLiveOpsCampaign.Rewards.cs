@@ -147,6 +147,9 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
                 Key = order.ProductId ?? string.Empty,
                 Items = items,
                 ClaimedAtUtc = DateTime.UtcNow,
+                OrderId = order.Id,
+                Price = order.Price,
+                Currency = order.Currency,
             };
         }
 

@@ -199,7 +199,7 @@ A campaign that is not eligible is skipped, never thrown. The reason is in the s
 | Buy button with a SKU | Only the `Purchase` handler above. Bought non-consumables and subscriptions are hidden or shown as "Purchased" automatically. |
 | **One purchase per player** | None. After a completed purchase from the popup the SDK records it on the server; the campaign is not shown again and its Buy buttons read "Purchased", on every device. |
 | **Dynamic product** (a JSON bundle instead of a SKU) | None when the bundle names its SKU: `{"sku_android":"gem_500","sku_ios":"com.game.gem500"}`, or just `{"sku":"gem_500"}`. To map anything else (e.g. a price `tier`) set `ProductResolver`. |
-| **Dynamic product with items** — `{"sku":"pack_499","items":[{"id":"gem","qty":500}]}` | One line in your own purchase delivery (below). After the payment is verified the SDK sends the items to `Rewards` (`Source = Purchase`, `ClaimId = order:<id>`), so one store SKU can sell any items you set in the admin, with no app update. |
+| **Dynamic product with items** — `{"sku":"pack_499","items":[{"id":"gem","qty":500}]}` | None beyond `Rewards`. After the payment is verified the SDK sends the items to `Rewards` (`Source = Purchase`, `ClaimId = order:<id>`) and keeps the order from `Noctua.IAP.OnPurchaseDone`, so one store SKU can sell any items you set in the admin, with no app update. |
 | Consumable offer with a limit | Optional: `OwnershipProvider = sku => myStore.OwnsAsync(sku)` — the store only knows non-consumables. |
 
 ```csharp
@@ -208,15 +208,7 @@ ProductResolver = (campaign, productKey, bundle) =>
     myCatalogue.SkuForTier((string)bundle["tier"]) ?? NoctuaLiveOpsCampaign.DefaultBundleSku(bundle),
 ```
 
-**Bundles with items are delivered by the SDK.** Skip them in your own `OnPurchaseDone` delivery, or they are granted twice:
-
-```csharp
-Noctua.IAP.OnPurchaseDone += order =>
-{
-    if (Noctua.LiveOps.Campaign.IsDeliveredByRewards(order)) return;   // the Rewards handler grants it
-    GrantBySku(order.ProductId);                                         // your normal shop purchases
-};
-```
+**Bundles with items are delivered by the SDK, not by your purchase code.** Such an order never reaches `Noctua.IAP.OnPurchaseDone` — your existing delivery keeps granting fixed SKUs and shop purchases by SKU, unchanged, and can never grant a bundle twice. The bundle arrives in `Rewards` instead, as a `Purchase` reward that also carries `OrderId`, `Price` and `Currency` (for a "purchase successful" message or your own revenue tracking; Noctua's own tracking is unaffected). `Noctua.LiveOps.Campaign.IsDeliveredByRewards(order)` tells you which orders these are, if you read orders elsewhere (e.g. a purchase history).
 
 The SDK decides when the purchase starts and stores it in the order (`noctua_delivery = rewards`): only for a bundle that lists valid items, bought while the game has a `Rewards` handler. Everything else — fixed SKUs, bundles without `items`, redeem orders — stays yours, exactly as before. The order carries the bundle the player saw, so editing the campaign later never changes what a paid order delivers; an order finished after a crash (the SDK's retry queue) keeps it too, and one verified before live ops is ready is kept on the device until it is. Two Buy buttons may sell the same SKU with different items — each order carries its own button's bundle. A purchase limit counts its SKU, so the admin refuses two limited cards on one SKU.
 
@@ -259,7 +251,6 @@ An audience can require a Noctua SDK version range (admin → Audience → SDK v
 - The player is logged in before any missions or one-time-offer feature (guest is fine).
 - Purchases go through `Noctua.IAP.PurchaseItemAsync` — that is how the SDK sees a popup purchase complete.
 - Grant live ops rewards only in `Rewards`, finish it only once they are saved, and skip a `ClaimId` already granted.
-- Skip `IsDeliveredByRewards(order)` orders in your own `OnPurchaseDone` delivery.
 - Something not showing? Check the Inspector's Campaigns tab for the reason.
 
 ## Dependencies

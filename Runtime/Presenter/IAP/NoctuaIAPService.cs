@@ -43,8 +43,49 @@ namespace com.noctuagames.sdk
 
         /// <summary>
         /// Fired when a purchase flow completes and an OrderRequest should be processed by game.
+        /// Not fired for an order the SDK delivers itself (see <see cref="SetDeliveredBySdk"/>, e.g.
+        /// a live ops bundle whose items go to the game's Rewards handler), so the game never grants
+        /// it twice.
         /// </summary>
         public event Action<OrderRequest> OnPurchaseDone;
+
+        /// <summary>
+        /// Fired for every verified order, before <see cref="OnPurchaseDone"/> and including the ones
+        /// the SDK delivers itself — for the SDK's own listeners (live ops rewards, ownership, ads).
+        /// Games use <see cref="OnPurchaseDone"/>.
+        /// </summary>
+        public event Action<OrderRequest> OnOrderVerified;
+
+        // Orders the SDK delivers itself; they are kept from OnPurchaseDone. Set by the composition root.
+        private Func<OrderRequest, bool> _deliveredBySdk;
+
+        /// <summary>
+        /// Composition-root hook: which verified orders the SDK delivers itself, so
+        /// <see cref="OnPurchaseDone"/> is not raised for them. Pass null to raise it for every order.
+        /// </summary>
+        public void SetDeliveredBySdk(Func<OrderRequest, bool> isDeliveredBySdk) => _deliveredBySdk = isDeliveredBySdk;
+
+        /// <summary>
+        /// Hands a verified order on: first to the SDK's listeners (<see cref="OnOrderVerified"/>),
+        /// then to the game (<see cref="OnPurchaseDone"/>) unless the SDK delivers it itself. A broken
+        /// SDK listener or check never keeps the order from the game.
+        /// </summary>
+        private void RaisePurchaseDone(OrderRequest order)
+        {
+            try { OnOrderVerified?.Invoke(order); }
+            catch (Exception e) { _log.Warning($"OnOrderVerified listener threw for order {order?.Id}: {e.Message}"); }
+
+            var deliveredBySdk = false;
+            try { deliveredBySdk = _deliveredBySdk?.Invoke(order) == true; }
+            catch (Exception e) { _log.Warning($"delivered-by-SDK check failed for order {order?.Id}, handing it to the game: {e.Message}"); }
+
+            if (deliveredBySdk)
+            {
+                _log.Info($"Order {order?.Id} ({order?.ProductId}) is delivered by the SDK (live ops Rewards); OnPurchaseDone not raised");
+                return;
+            }
+            OnPurchaseDone?.Invoke(order);
+        }
         /// <summary>
         /// Fired when a purchase verification fails and the order is placed in a pending state for retry.
         /// </summary>
@@ -839,7 +880,7 @@ namespace com.noctuagames.sdk
 
                     _log.Debug($"Invoking OnPurchaseDone for orderID {orderRequest.Id} with store amount {orderRequest.StoreAmount} {orderRequest.StoreCurrency}");
 
-                    OnPurchaseDone?.Invoke(orderRequest);
+                    RaisePurchaseDone(orderRequest);
 
                     // Complete purchase processing on native iOS side
                     // (finishes SK1 transaction via finishTransaction)
@@ -1487,7 +1528,7 @@ namespace com.noctuagames.sdk
 
                     SendFirstPurchaseEventIfFirstTime(editorOrderRequest);
 
-                    OnPurchaseDone?.Invoke(editorOrderRequest);
+                    RaisePurchaseDone(editorOrderRequest);
 
                     return new PurchaseResponse
                     {

@@ -143,6 +143,15 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
         /// <summary>When the SDK recorded it (UTC).</summary>
         [JsonProperty("claimed_at")] public DateTime ClaimedAtUtc;
 
+        /// <summary>Purchase only: the Noctua order id; 0 otherwise.</summary>
+        [JsonProperty("order_id")] public int OrderId;
+
+        /// <summary>Purchase only: the price the player paid, in <see cref="Currency"/>; 0 otherwise.</summary>
+        [JsonProperty("price")] public decimal Price;
+
+        /// <summary>Purchase only: the price's currency (e.g. <c>IDR</c>); null otherwise.</summary>
+        [JsonProperty("currency")] public string Currency;
+
         public override string ToString() =>
             $"{Source} {CampaignId}/{Key}: {(Items == null || Items.Count == 0 ? "no items" : string.Join(", ", Items))}";
     }

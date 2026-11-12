@@ -222,10 +222,13 @@ namespace Tests.Runtime.Campaign
         }
 
         [Test]
-        public void IsDeliveredByRewards_ReadsOnlyTheMarker()
+        public void IsDeliveredByRewards_NeedsTheMarkerARealOrderAndValidItems()
         {
             var campaign = new NoctuaCampaign();
-            Assert.IsTrue(campaign.IsDeliveredByRewards(Order(1, new Dictionary<string, string> { { "noctua_delivery", "rewards" } })));
+            Assert.IsTrue(campaign.IsDeliveredByRewards(Order(1, MarkedExtra())));
+            Assert.IsFalse(campaign.IsDeliveredByRewards(Order(1, new Dictionary<string, string> { { "noctua_delivery", "rewards" } })),
+                "a marker without a readable bundle could never be delivered, so the game keeps it");
+            Assert.IsFalse(campaign.IsDeliveredByRewards(Order(0, MarkedExtra())), "no order id: the Editor's fake order");
             Assert.IsFalse(campaign.IsDeliveredByRewards(Order(1, new Dictionary<string, string> { { "campaign_bundle", "{}" } })));
             Assert.IsFalse(campaign.IsDeliveredByRewards(Order(1, null)), "a redeem / pending-deliverable order has no extra");
             Assert.IsFalse(campaign.IsDeliveredByRewards(null));
@@ -351,6 +354,74 @@ namespace Tests.Runtime.Campaign
             Assert.AreEqual("order:908", delivered.Single().ClaimId);
             Assert.IsFalse(PlayerPrefs.HasKey(InboxKey));
         });
+
+        // ---- the game's OnPurchaseDone never sees an order the SDK delivers --------
+
+        private static (NoctuaIAPService iap, List<int> game, List<int> sdk) Iap(Func<OrderRequest, bool> deliveredBySdk)
+        {
+            var iap = new NoctuaIAPService(
+                new NoctuaIAPService.Config { BaseUrl = "https://api.example.com", ClientId = "test-client-id" },
+                accessTokenProvider: null, paymentUI: null, nativePlugin: new DefaultNativePlugin());
+            var game = new List<int>();
+            var sdk = new List<int>();
+            iap.OnPurchaseDone += order => game.Add(order.Id);
+            iap.OnOrderVerified += order => sdk.Add(order.Id);
+            iap.SetDeliveredBySdk(deliveredBySdk);
+            return (iap, game, sdk);
+        }
+
+        private static void Verified(NoctuaIAPService iap, OrderRequest order) =>
+            typeof(NoctuaIAPService).GetMethod("RaisePurchaseDone", BindingFlags.Instance | BindingFlags.NonPublic)!
+                .Invoke(iap, new object[] { order });
+
+        [Test]
+        public void Iap_ABundleTheSdkDelivers_NeverReachesTheGamesOnPurchaseDone()
+        {
+            var campaign = new NoctuaCampaign();
+            var (iap, game, sdk) = Iap(order => campaign.IsDeliveredByRewards(order));
+
+            Verified(iap, Order(911, MarkedExtra()));
+            Verified(iap, Order(912, new Dictionary<string, string> { { "campaign_id", "summer" } }, "pack_fixed"));
+            Verified(iap, Order(913, null, "shop_pack"));
+
+            CollectionAssert.AreEqual(new[] { 912, 913 }, game, "fixed-SKU and shop orders stay the game's");
+            CollectionAssert.AreEqual(new[] { 911, 912, 913 }, sdk, "the SDK's own listeners see every order");
+        }
+
+        [Test]
+        public void Iap_AnOrderTheSdkCannotRecord_StillReachesTheGame()
+        {
+            var campaign = new NoctuaCampaign();
+            var (iap, game, _) = Iap(order => campaign.IsDeliveredByRewards(order));
+
+            Verified(iap, Order(0, MarkedExtra()));                                        // the Editor's fake order: no id
+            Verified(iap, Order(914, MarkedExtra("[{\"id\":\"gem\",\"qty\":0}]")));   // marked, but its items are invalid
+
+            CollectionAssert.AreEqual(new[] { 0, 914 }, game, "never hidden from the game unless the SDK can deliver it");
+        }
+
+        [Test]
+        public void Iap_ABrokenCheck_HandsTheOrderToTheGame()
+        {
+            var (iap, game, _) = Iap(_ => throw new InvalidOperationException("boom"));
+            Verified(iap, Order(915, MarkedExtra()));
+            CollectionAssert.AreEqual(new[] { 915 }, game);
+        }
+
+        [Test]
+        public void Purchase_Reward_CarriesTheOrder()
+        {
+            var order = Order(916, MarkedExtra());
+            order.Price = 75000;
+            order.Currency = "IDR";
+
+            var reward = NoctuaLiveOpsCampaign.PurchaseRewardOf(order);
+
+            Assert.AreEqual(916, reward.OrderId);
+            Assert.AreEqual(75000m, reward.Price);
+            Assert.AreEqual("IDR", reward.Currency);
+            Assert.AreEqual(0, new LiveOpsReward { Source = RewardSource.Mission }.OrderId, "only purchases carry an order");
+        }
 
         // ---- milestone chests from points per mission ---------------------------
 

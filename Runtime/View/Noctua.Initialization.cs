@@ -439,8 +439,10 @@ namespace com.noctuagames.sdk
             lazyAuthProvider.SetAuth(_auth);
 
             // A verified campaign bundle purchase becomes a Rewards entry for the player who paid —
-            // subscribed here, before init can finish a retried purchase, so none is missed.
-            _iap.OnPurchaseDone += order => LiveOps.Campaign.OnPurchaseDone(order, _auth?.RecentAccount?.Player?.Id);
+            // subscribed here, before init can finish a retried purchase, so none is missed — and is
+            // kept from the game's OnPurchaseDone, so the game never grants it by SKU too.
+            _iap.OnOrderVerified += order => LiveOps.Campaign.OnPurchaseDone(order, _auth?.RecentAccount?.Player?.Id);
+            _iap.SetDeliveredBySdk(order => LiveOps.Campaign.IsDeliveredByRewards(order));
 
             _game = new NoctuaGameService(
                 new NoctuaGameService.Config
@@ -880,7 +882,7 @@ namespace com.noctuagames.sdk
 #if UNITY_ADMOB || UNITY_APPLOVIN
                 if (Instance.Value._iaa != null)
                 {
-                    Instance.Value._iap.OnPurchaseDone += _ => Instance.Value._iaa?.RecordPurchase();
+                    Instance.Value._iap.OnOrderVerified += _ => Instance.Value._iaa?.RecordPurchase();
                 }
 #endif
             }
@@ -1468,7 +1470,7 @@ namespace com.noctuagames.sdk
                 // Any purchase, from a campaign or not, can change what an open offer shows.
                 if (Instance.Value._iap != null)
                 {
-                    Instance.Value._iap.OnPurchaseDone += order =>
+                    Instance.Value._iap.OnOrderVerified += order =>
                         Instance.Value._campaign?.RefreshOwnershipAsync(order?.ProductId).Forget();
 
                     // Links a campaign Buy tap to how the purchase ended — no game code involved.
