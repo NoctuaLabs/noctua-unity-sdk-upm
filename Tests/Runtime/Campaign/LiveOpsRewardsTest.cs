@@ -467,7 +467,19 @@ namespace Tests.Runtime.Campaign
                 item.Data["m_defeat_enemies_points"] = "30";
             }
             item.Data["milestone_25_rewards"] = "[{\"id\":\"chest_bronze\",\"qty\":1},{\"id\":\"gem\",\"qty\":50}]";
+            MakeChestBuiltIn(item.View, 25);
             return item;
+        }
+
+        /// <summary>The admin's built-in chest: its claim deeplink becomes the SDK's claim action.</summary>
+        private static void MakeChestBuiltIn(CampaignNode node, int points)
+        {
+            if (node == null) return;
+            if (node.Action?.Deeplink == $"missions/milestone/{points}")
+            {
+                node.Action = new CampaignAction { TypeRaw = "claim", Milestone = points.ToString(), Id = $"claim_milestone_{points}" };
+            }
+            foreach (var child in node.Children ?? new List<CampaignNode>()) MakeChestBuiltIn(child, points);
         }
 
         private NoctuaLiveOpsCampaign MissionsModule(CampaignItem item, List<LiveOpsReward> delivered)
@@ -477,14 +489,20 @@ namespace Tests.Runtime.Campaign
             return module;
         }
 
+        /// <summary>
+        /// The tracker as it really answers: a key the player never touched (an unopened chest) has
+        /// no row at all.
+        /// </summary>
         private void ChestServer(bool stmClaimed, bool chest25Claimed = false)
         {
-            _server.AddHandler(List, _ => Envelope(Rows(
+            var rows = new List<string>
+            {
                 Row($"{Scope}.use_stm", 20, 20, completed: true, claimed: stmClaimed),
                 Row($"{Scope}.craft_badge", 1, 1, completed: true, claimed: true),
                 Row($"{Scope}.defeat_enemies", 3, 2000),
-                Row($"{Scope}.milestone_25", chest25Claimed ? 1 : 0, 1, completed: chest25Claimed, claimed: chest25Claimed),
-                Row($"{Scope}.milestone_50", 0, 1))));
+            };
+            if (chest25Claimed) rows.Add(Row($"{Scope}.milestone_25", 1, 1, completed: true, claimed: true));
+            _server.AddHandler(List, _ => Envelope(Rows(rows.ToArray())));
             _server.AddHandler(Stm, _ => Envelope(Row($"{Scope}.use_stm", 20, 20, completed: true, claimed: true)));
             _server.AddHandler(Chest25, _ => Envelope(Row($"{Scope}.milestone_25", 1, 1, completed: true)));
             _server.AddHandler(Chest25Claim, _ => Envelope(Row($"{Scope}.milestone_25", 1, 1, completed: true, claimed: true)));
@@ -500,9 +518,9 @@ namespace Tests.Runtime.Campaign
             var data = NoctuaLiveOpsCampaign.ToMilestonePlayerData(item, await module.GetProgressAsync());
 
             Assert.AreEqual("30", data[NoctuaLiveOpsCampaign.PointsKey], "use_stm 20 + craft_badge 10, both claimed");
-            Assert.AreEqual("false", data["milestone_25_claimed"]);
-            Assert.AreEqual("false", data["milestone_50_claimed"]);
-            Assert.AreEqual("1", data[NoctuaLiveOpsCampaign.ClaimableCountKey], "only the 25 chest: 50 needs more points");
+            Assert.AreEqual("false", data["milestone_25_claimed"], "no progress row yet: unclaimed");
+            Assert.IsFalse(data.ContainsKey("milestone_50_claimed"), "the 50 chest has a deeplink: the game fills it");
+            Assert.AreEqual("1", data[NoctuaLiveOpsCampaign.ClaimableCountKey], "only the built-in 25 chest");
         });
 
         [UnityTest]
@@ -525,12 +543,28 @@ namespace Tests.Runtime.Campaign
         [UnityTest]
         public IEnumerator Chest_BelowItsPoints_IsRefused_WithoutTouchingTheTracker() => UniTask.ToCoroutine(async () =>
         {
-            ChestServer(stmClaimed: true);
+            ChestServer(stmClaimed: false);   // only craft_badge claimed: 10 points
             var module = MissionsModule(MissionsWithPoints(), new List<LiveOpsReward>());
 
-            var e = await Throws(async () => await module.ClaimMilestoneRewardAsync("season_4", 50));
+            var e = await Throws(async () => await module.ClaimMilestoneRewardAsync("season_4", 25));
 
             Assert.AreEqual((int)NoctuaErrorCode.LiveOpsProgressNotCompleted, e.ErrorCode);
+            CollectionAssert.DoesNotContain(Sent(_server), "PUT /api/v1" + Chest25);
+        });
+
+        [UnityTest]
+        public IEnumerator Chest_WithADeeplink_IsTheGamesToClaim_EvenWhenReached() => UniTask.ToCoroutine(async () =>
+        {
+            ChestServer(stmClaimed: true);
+            var item = MissionsWithPoints();
+            item.Data["m_defeat_enemies_points"] = "0";
+            item.Data["m_use_stm_points"] = "60";     // 70 points: past the 50 chest
+            var module = MissionsModule(item, new List<LiveOpsReward>());
+            await module.GetProgressAsync();
+
+            CollectionAssert.AreEqual(new[] { 25 }, NoctuaLiveOpsCampaign.ClaimableMilestones(item, module.Progress));
+            var e = await Throws(async () => await module.ClaimMilestoneRewardAsync("season_4", 50));
+            Assert.AreEqual((int)NoctuaErrorCode.Application, e.ErrorCode);
             CollectionAssert.DoesNotContain(Sent(_server), "PUT /api/v1" + Chest50);
         });
 

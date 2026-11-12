@@ -142,11 +142,37 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
                 .ToDictionary(group => group.Key, group => group.First(), StringComparer.Ordinal);
             var points = PointsOf(item, rows.Values);
 
-            return DeclaredMilestones(item)
+            // A chest the player has never touched has no progress row yet: it is simply unclaimed.
+            return BuiltInMilestones(item)
                 .Where(chest => points >= chest
-                                && rows.TryGetValue(MilestoneTrackerKey(item, chest), out var row)
-                                && !row.Claimed)
+                                && !(rows.TryGetValue(MilestoneTrackerKey(item, chest), out var row) && row.Claimed))
                 .ToList();
+        }
+
+        /// <summary>
+        /// The chests of <paramref name="item"/> the SDK claims itself, lowest first: the ones whose
+        /// popup button is a <c>claim</c> action naming them (the admin left their deeplink empty).
+        /// A chest with a deeplink is the game's to claim, so it is never counted or claimed here.
+        /// </summary>
+        public static IReadOnlyList<int> BuiltInMilestones(CampaignItem item)
+        {
+            var declared = new HashSet<int>(DeclaredMilestones(item));
+            var found = new SortedSet<int>();
+            var stack = new Stack<(CampaignNode node, int depth)>();
+            if (item?.View != null) stack.Push((item.View, 0));
+            while (stack.Count > 0)
+            {
+                var (node, depth) = stack.Pop();
+                var action = node.Action;
+                if (action?.Type == CampaignActionType.Claim
+                    && int.TryParse(action.Milestone?.Trim(), out var points) && declared.Contains(points))
+                {
+                    found.Add(points);
+                }
+                if (node.Children == null || depth >= 32) continue;
+                foreach (var child in node.Children) if (child != null) stack.Push((child, depth + 1));
+            }
+            return found.ToList();
         }
 
         /// <summary>
@@ -203,10 +229,10 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
             if (item == null || progress == null) return data;
 
             if (CountsPoints(item)) data[PointsKey] = PointsOf(item, progress).ToString();
-            foreach (var chest in DeclaredMilestones(item))
+            foreach (var chest in BuiltInMilestones(item))
             {
                 var row = progress.FirstOrDefault(r => r?.Key == MilestoneTrackerKey(item, chest));
-                if (row != null) data[$"milestone_{chest}_claimed"] = row.Claimed ? "true" : "false";
+                data[$"milestone_{chest}_claimed"] = row?.Claimed == true ? "true" : "false";
             }
             data[ClaimableCountKey] = (ClaimableMissions(item, progress).Count + ClaimableMilestones(item, progress).Count).ToString();
             return data;
@@ -221,9 +247,14 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
             }
 
             var key = MilestoneTrackerKey(item, points);
-            var row = progress.FirstOrDefault(r => r?.Key == key)
-                      ?? throw new NoctuaException(NoctuaErrorCode.Application, $"Chest '{key}' is not registered on the tracker yet");
-            if (row.Claimed)
+            if (!BuiltInMilestones(item).Contains(points))
+            {
+                throw new NoctuaException(NoctuaErrorCode.Application, $"Chest '{key}' has a deeplink, so the game claims it");
+            }
+
+            // No row yet: the chest was never touched. The DAG registered it with max 1.
+            var row = progress.FirstOrDefault(r => r?.Key == key);
+            if (row?.Claimed == true)
             {
                 throw new NoctuaException(NoctuaErrorCode.LiveOpsProgressAlreadyClaimed, $"Chest '{key}' was claimed already");
             }
@@ -232,7 +263,7 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
                 throw new NoctuaException(NoctuaErrorCode.LiveOpsProgressNotCompleted, $"Chest '{key}' needs {points} points");
             }
 
-            if (!row.Completed) await SetProgressAsync(key, Math.Max(1, row.Max));
+            if (row?.Completed != true) await SetProgressAsync(key, Math.Max(1, row?.Max ?? 1));
             await ClaimProgressAsync(key);
 
             return new LiveOpsReward
