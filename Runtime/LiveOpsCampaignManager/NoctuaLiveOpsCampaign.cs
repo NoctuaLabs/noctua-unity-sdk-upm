@@ -35,6 +35,8 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
         // hides a campaign or flips a card. Answers are cached per SKU; a SKU missing from the
         // cache is unknown, and unknown never hides anything.
         private Func<string, UniTask<bool>> _isProductOwned;
+        // True while _isProductOwned is the store check passed at construction, not a game's own.
+        private bool _ownershipIsStoreCheck = true;
         private readonly Dictionary<string, bool> _ownership = new Dictionary<string, bool>();
         private int _ownershipGeneration;
 

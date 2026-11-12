@@ -380,6 +380,49 @@ namespace Tests.Runtime.Campaign
             Assert.AreEqual(1 + NoctuaLiveOpsCampaign.OwnedRecheckDelays.Length, asks);
         }
 
+        [TestCase(false)]
+        [TestCase(true)]
+        public void RefreshOwnership_KnownProductType_IsTakenWithoutAskingTheStore(bool knownOwned)
+        {
+            // The order said consumable (false) or non-consumable (true): no store race to wait out.
+            var item = MultiOffer();
+            var asks = 0;
+            var campaign = Facade(_ => { asks++; return UniTask.FromResult(!knownOwned); }, item);
+
+            campaign.RefreshOwnershipAsync(Gold, knownOwned).GetAwaiter().GetResult();
+
+            Assert.AreEqual(knownOwned, campaign.Ownership[Gold]);
+            Assert.AreEqual(0, asks);
+        }
+
+        [Test]
+        public void RefreshOwnership_UnknownProductType_AsksTheStore()
+        {
+            var item = MultiOffer();
+            var asks = 0;
+            var campaign = Facade(_ => { asks++; return UniTask.FromResult(false); }, item);
+
+            campaign.RefreshOwnershipAsync(Gold, knownOwned: null).GetAwaiter().GetResult();
+
+            Assert.IsFalse(campaign.Ownership[Gold]);
+            Assert.AreEqual(1, asks);
+        }
+
+        [Test]
+        public void RefreshOwnership_GamesOwnProvider_IsAskedEvenWhenTheTypeIsKnown()
+        {
+            // A one-time consumable offer: the game's record says owned, though the product is consumable.
+            var item = MultiOffer();
+            var campaign = Facade(_ => UniTask.FromResult(false), item);
+            var gameAsks = 0;
+            campaign.SetOwnershipProvider(_ => { gameAsks++; return UniTask.FromResult(true); });
+
+            campaign.RefreshOwnershipAsync(Gold, knownOwned: false).GetAwaiter().GetResult();
+
+            Assert.IsTrue(campaign.Ownership[Gold]);
+            Assert.AreEqual(1 + NoctuaLiveOpsCampaign.OwnedRecheckDelays.Length, gameAsks);
+        }
+
         [Test]
         public void RefreshOwnership_WhileRechecking_SkuIsNotShownOwned()
         {

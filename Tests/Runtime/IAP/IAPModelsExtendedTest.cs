@@ -208,6 +208,28 @@ namespace Tests.Runtime.IAP
             Assert.AreEqual(PaymentType.noctuastore,     restored.PaymentType);
         }
 
+        [TestCase("{\"id\":1,\"product_type\":\"consumable\"}", IapProductType.consumable)]
+        [TestCase("{\"id\":1,\"product_type\":\"non_consumable\"}", IapProductType.non_consumable)]
+        [TestCase("{\"id\":1,\"product_type\":\"subscription\"}", IapProductType.subscription)]
+        [TestCase("{\"id\":1}", IapProductType.unknown)]
+        [TestCase("{\"id\":1,\"type\":\"consumable\"}", IapProductType.unknown)]
+        public void OrderResponse_ReadsTheBackendsProductType(string json, IapProductType expected)
+        {
+            var settings = new JsonSerializerSettings();
+            settings.Converters.Add(new Newtonsoft.Json.Converters.StringEnumConverter());
+
+            Assert.AreEqual(expected, JsonConvert.DeserializeObject<OrderResponse>(json, settings).Type);
+        }
+
+        [Test]
+        public void OrderRequest_KeepsTheProductTypeWhenSaved()
+        {
+            // Pending purchases are saved and verified again later; the type must survive.
+            var json = JsonConvert.SerializeObject(new OrderRequest { Type = IapProductType.non_consumable });
+
+            Assert.AreEqual(IapProductType.non_consumable, JsonConvert.DeserializeObject<OrderRequest>(json).Type);
+        }
+
         // ─── UnpairedPurchaseResponse ─────────────────────────────────────────
 
         [Test]

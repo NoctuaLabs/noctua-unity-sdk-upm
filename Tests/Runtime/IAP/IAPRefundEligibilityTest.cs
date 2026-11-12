@@ -150,5 +150,22 @@ namespace Tests.Runtime.IAP
             if (isStillPurchased) return false;
             return true;
         }
+
+        // ─── which purchases are tracked for refunds ──────────────────────────
+
+        [TestCase(IapProductType.consumable, false)]
+        [TestCase(IapProductType.non_consumable, true)]
+        [TestCase(IapProductType.subscription, true)]
+        public void IsNonConsumable_KnownType_IsTheAnswer(IapProductType type, bool expected)
+        {
+            Assert.AreEqual(expected, NoctuaIAPService.IsNonConsumable(type));
+        }
+
+        [Test]
+        public void IsNonConsumable_UnknownType_MeansAskTheStore()
+        {
+            // Backends before product_type send nothing: the old store probe still decides.
+            Assert.IsNull(NoctuaIAPService.IsNonConsumable(IapProductType.unknown));
+        }
     }
 }

@@ -147,9 +147,12 @@ namespace com.noctuagames.sdk
         [JsonProperty("local_price_in_usd")]
         public decimal LocalPriceInUsd;
 
-        // /// <summary>Product type (consumable / non_consumable / subscription).</summary>
-        // [JsonProperty("type")]
-        // public IapProductType Type;
+        /// <summary>
+        /// Product type (consumable / non_consumable / subscription), copied from the create order
+        /// response. <c>unknown</c> when the backend does not send it.
+        /// </summary>
+        [JsonProperty("product_type")]
+        public IapProductType Type;
     }
 
     /// <summary>
@@ -254,8 +257,8 @@ namespace com.noctuagames.sdk
         [JsonProperty("local_price_in_usd")]
         public decimal LocalPriceInUsd;
 
-        /// <summary>Product type (consumable / non_consumable / subscription).</summary>
-        [JsonProperty("type")]
+        /// <summary>Product type (consumable / non_consumable / subscription). <c>unknown</c> from backends that do not send it.</summary>
+        [JsonProperty("product_type")]
         public IapProductType Type;
     }
 

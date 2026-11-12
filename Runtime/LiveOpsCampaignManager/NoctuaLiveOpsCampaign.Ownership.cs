@@ -21,6 +21,9 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
         public void SetOwnershipProvider(Func<string, UniTask<bool>> isOwned)
         {
             _isProductOwned = isOwned;
+            // The game's own record may count a consumable as owned (a one-time offer), so the
+            // order's product type no longer stands in for its answer.
+            _ownershipIsStoreCheck = false;
             ClearOwnership();
         }
 
@@ -312,8 +315,11 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
         /// <summary>
         /// Asks again whether <paramref name="productId"/> is owned — after a purchase — and
         /// re-renders the open popup if it sells that SKU, so its card flips in place.
+        /// <paramref name="knownOwned"/> is what the order's product type says (false for a
+        /// consumable, true for a non-consumable or subscription); with the store check it is
+        /// taken as the answer, since the store lags behind it. Null asks the provider.
         /// </summary>
-        public async UniTask RefreshOwnershipAsync(string productId)
+        public async UniTask RefreshOwnershipAsync(string productId, bool? knownOwned = null)
         {
             try
             {
@@ -322,15 +328,16 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
 
                 _ownership.Remove(productId);
                 var generation = _ownershipGeneration;
-                var owned = await CheckOwnedAsync(provider, productId);
+                var trusted = knownOwned.HasValue && _ownershipIsStoreCheck;
+                var owned = trusted ? knownOwned : await CheckOwnedAsync(provider, productId);
 
-                // The store finishes a consumable after verification (Google Play consumes it on
-                // the server, StoreKit finishes it after delivery), so right after a purchase it
-                // can still list it. Believe "owned" only once it holds; until then the SKU stays
-                // unknown, which shows Buy.
+                // Without a known type: the store finishes a consumable after verification
+                // (Google Play consumes it on the server, StoreKit finishes it after delivery), so
+                // right after a purchase it can still list it. Believe "owned" only once it holds;
+                // until then the SKU stays unknown, which shows Buy.
                 foreach (var wait in OwnedRecheckDelays)
                 {
-                    if (owned != true || generation != _ownershipGeneration) break;
+                    if (trusted || owned != true || generation != _ownershipGeneration) break;
                     await _retryDelay(wait);
                     if (generation != _ownershipGeneration) return;
                     owned = await CheckOwnedAsync(provider, productId);

@@ -1471,7 +1471,9 @@ namespace com.noctuagames.sdk
                 if (Instance.Value._iap != null)
                 {
                     Instance.Value._iap.OnOrderVerified += order =>
-                        Instance.Value._campaign?.RefreshOwnershipAsync(order?.ProductId).Forget();
+                        Instance.Value._campaign?.RefreshOwnershipAsync(
+                            order?.ProductId,
+                            order == null ? null : NoctuaIAPService.IsNonConsumable(order.Type)).Forget();
 
                     // Links a campaign Buy tap to how the purchase ended — no game code involved.
                     Instance.Value._iap.OnPurchaseSettled += outcome =>

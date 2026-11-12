@@ -811,9 +811,11 @@ namespace com.noctuagames.sdk
                         }
                     );
 
-                    // Refund-tracking probe: GetPurchaseStatusAsync returns true only for
-                    // non-consumables, so we use it to auto-detect product type. Consumables
-                    // never make it into NoctuaRefundTracking and are never flagged refunded.
+                    // Refund tracking: only non-consumables and subscriptions are tracked. The
+                    // order's product type decides. Backends that do not send it leave it unknown,
+                    // and then GetPurchaseStatusAsync is the probe: it returns true only for
+                    // non-consumables — though right after a purchase the store may still list a
+                    // consumable it has not consumed yet.
                     //
                     // Defense in depth: wrapped with a timeout. The native purchase-status
                     // check can, in rare cases, never call back (see the queue-based fix in
@@ -825,24 +827,29 @@ namespace com.noctuagames.sdk
                     {
                         try
                         {
-                            var probeTask = GetPurchaseStatusAsync(orderRequest.ProductId);
-                            var timeoutTask = Task.Delay(TimeSpan.FromSeconds(5));
+                            var isNonConsumable = IsNonConsumable(orderRequest.Type);
+                            if (isNonConsumable == null)
+                            {
+                                var probeTask = GetPurchaseStatusAsync(orderRequest.ProductId);
+                                var timeoutTask = Task.Delay(TimeSpan.FromSeconds(5));
 
-                            if (await Task.WhenAny(probeTask, timeoutTask) != probeTask)
-                            {
-                                _log.Warning($"Refund-tracking probe timed out for '{orderRequest.ProductId}' after 5s; skipping.");
-                            }
-                            else
-                            {
-                                bool isNonConsumable = await probeTask;
-                                if (isNonConsumable)
+                                if (await Task.WhenAny(probeTask, timeoutTask) != probeTask)
                                 {
-                                    SaveRefundTrackingEntry(orderRequest.ProductId, orderRequest.PaymentType);
+                                    _log.Warning($"Refund-tracking probe timed out for '{orderRequest.ProductId}' after 5s; skipping.");
                                 }
                                 else
                                 {
-                                    _log.Debug($"Refund-tracking probe: GetPurchaseStatusAsync('{orderRequest.ProductId}') returned false; treating as consumable, not tracking.");
+                                    isNonConsumable = await probeTask;
                                 }
+                            }
+
+                            if (isNonConsumable == true)
+                            {
+                                SaveRefundTrackingEntry(orderRequest.ProductId, orderRequest.PaymentType);
+                            }
+                            else if (isNonConsumable == false)
+                            {
+                                _log.Debug($"Refund tracking: '{orderRequest.ProductId}' is consumable (product type {orderRequest.Type}); not tracking.");
                             }
                         }
                         catch (Exception e)
@@ -1631,6 +1638,7 @@ namespace com.noctuagames.sdk
                 orderRequest.Id = orderResponse.Id;
                 orderRequest.CurrencyToUsdRate = orderResponse.CurrencyToUsdRate;
                 orderRequest.LocalPriceInUsd  = orderResponse.LocalPriceInUsd;
+                orderRequest.Type             = orderResponse.Type;
 
                 // Override the payment type in case this get altered from backend.
                 // TODO this will cause payment loop if both of these conditions meet:
@@ -3707,6 +3715,18 @@ namespace com.noctuagames.sdk
 
             return purchased;
         }
+
+        /// <summary>
+        /// Whether a product of <paramref name="type"/> stays owned after purchase:
+        /// false for a consumable, true for a non-consumable or subscription, null when the type
+        /// is unknown (the backend did not send it) and only the store can tell.
+        /// </summary>
+        public static bool? IsNonConsumable(IapProductType type) => type switch
+        {
+            IapProductType.consumable => false,
+            IapProductType.non_consumable or IapProductType.subscription => true,
+            _ => null,
+        };
 
         /// <summary>
         /// Get whether a product is purchased using native billing or server verification.
