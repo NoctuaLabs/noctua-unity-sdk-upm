@@ -301,6 +301,15 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
         }
 
         /// <summary>
+        /// The waits before asking the store again when it says a just-bought SKU is owned: a
+        /// consumable drops out once the store finishes it, a non-consumable stays owned.
+        /// </summary>
+        public static readonly TimeSpan[] OwnedRecheckDelays =
+        {
+            TimeSpan.FromSeconds(2), TimeSpan.FromSeconds(4), TimeSpan.FromSeconds(8),
+        };
+
+        /// <summary>
         /// Asks again whether <paramref name="productId"/> is owned — after a purchase — and
         /// re-renders the open popup if it sells that SKU, so its card flips in place.
         /// </summary>
@@ -314,6 +323,18 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
                 _ownership.Remove(productId);
                 var generation = _ownershipGeneration;
                 var owned = await CheckOwnedAsync(provider, productId);
+
+                // The store finishes a consumable after verification (Google Play consumes it on
+                // the server, StoreKit finishes it after delivery), so right after a purchase it
+                // can still list it. Believe "owned" only once it holds; until then the SKU stays
+                // unknown, which shows Buy.
+                foreach (var wait in OwnedRecheckDelays)
+                {
+                    if (owned != true || generation != _ownershipGeneration) break;
+                    await _retryDelay(wait);
+                    if (generation != _ownershipGeneration) return;
+                    owned = await CheckOwnedAsync(provider, productId);
+                }
                 if (owned == null || generation != _ownershipGeneration) return;
                 _ownership[productId] = owned.Value;
                 _log.Debug($"{LogTag} ownership after refresh of '{productId}': {DescribeOwnership()}");

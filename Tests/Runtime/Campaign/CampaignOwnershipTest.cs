@@ -54,9 +54,14 @@ namespace Tests.Runtime.Campaign
             answers.ToDictionary(a => a.sku, a => a.owned);
 
         private static NoctuaLiveOpsCampaign Facade(Func<string, UniTask<bool>> isOwned, params CampaignItem[] campaigns) =>
+            Facade(isOwned, _ => UniTask.CompletedTask, campaigns);
+
+        private static NoctuaLiveOpsCampaign Facade(
+            Func<string, UniTask<bool>> isOwned, Func<TimeSpan, UniTask> delay, params CampaignItem[] campaigns) =>
             new NoctuaLiveOpsCampaign(
                 new CampaignConfig { SchemaVersion = 2, Campaigns = campaigns.ToList() },
                 null, null, new MockEventSender(), () => Array.Empty<string>(),
+                progress: new NoctuaLiveOpsCampaign.ProgressTrackerOptions { RetryDelay = delay },
                 isProductOwned: isOwned);
 
         private static bool Prefetch(NoctuaLiveOpsCampaign campaign, CampaignItem item) =>
@@ -342,6 +347,54 @@ namespace Tests.Runtime.Campaign
 
             Assert.IsTrue(campaign.Ownership[Gold]);
             Assert.IsFalse(campaign.Ownership[Normal], "other SKUs keep their answer");
+        }
+
+        [Test]
+        public void RefreshOwnership_ConsumableStillListedRightAfterPurchase_EndsNotOwned()
+        {
+            // Google Play consumes on the server after verification: the store lists the
+            // purchase as owned for a moment, then it is gone.
+            var item = MultiOffer();
+            var asks = 0;
+            var waits = new List<TimeSpan>();
+            var campaign = Facade(_ => UniTask.FromResult(++asks <= 2),
+                d => { waits.Add(d); return UniTask.CompletedTask; }, item);
+
+            campaign.RefreshOwnershipAsync(Gold).GetAwaiter().GetResult();
+
+            Assert.IsFalse(campaign.Ownership[Gold], "a consumed purchase is buyable again");
+            Assert.AreEqual(3, asks);
+            Assert.AreEqual(2, waits.Count, "waited before each re-ask");
+        }
+
+        [Test]
+        public void RefreshOwnership_NonConsumable_StaysOwnedAfterRechecks()
+        {
+            var item = MultiOffer();
+            var asks = 0;
+            var campaign = Facade(_ => { asks++; return UniTask.FromResult(true); }, item);
+
+            campaign.RefreshOwnershipAsync(Gold).GetAwaiter().GetResult();
+
+            Assert.IsTrue(campaign.Ownership[Gold]);
+            Assert.AreEqual(1 + NoctuaLiveOpsCampaign.OwnedRecheckDelays.Length, asks);
+        }
+
+        [Test]
+        public void RefreshOwnership_WhileRechecking_SkuIsNotShownOwned()
+        {
+            var item = MultiOffer();
+            NoctuaLiveOpsCampaign campaign = null;
+            var seenOwnedMidway = false;
+            campaign = Facade(_ => UniTask.FromResult(true), _ =>
+            {
+                seenOwnedMidway |= campaign.Ownership.TryGetValue(Gold, out var owned) && owned;
+                return UniTask.CompletedTask;
+            }, item);
+
+            campaign.RefreshOwnershipAsync(Gold).GetAwaiter().GetResult();
+
+            Assert.IsFalse(seenOwnedMidway, "an unconfirmed 'owned' would grey out a consumable's Buy");
         }
 
         // ---- clear while a popup is open --------------------------------
