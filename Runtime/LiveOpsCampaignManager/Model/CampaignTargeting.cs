@@ -32,8 +32,9 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
 
         /// <summary>
         /// Minimum Noctua SDK version (inclusive), dotted numeric, e.g. <c>0.139.0</c>.
-        /// Null/empty = no lower bound. Campaigns using it ship schema v3, so SDKs that cannot
-        /// evaluate it skip them.
+        /// Null/empty = no lower bound. The server already narrows the campaign's audience tag by
+        /// the device's last-seen SDK version, so SDKs that cannot evaluate this field still
+        /// respect it; this check re-tests the exact running version.
         /// </summary>
         [JsonProperty("min_sdk_version")]
         public string MinSdkVersion;
