@@ -152,7 +152,8 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
                 },
                 IsPurchaseBlocked = IsCampaignPurchased,
                 PurchaseBlocked = OnPurchaseBlocked,
-                PurchaseCredited = OnPurchaseCredited,
+                // A purchase_once campaign is recorded from its verified order instead
+                // (RecordOrderPurchaseAsync), which also covers an order verified later.
                 ClaimAllAsync = ClaimAllFromPopupAsync,
                 ClaimAsync = ClaimFromPopupAsync,
             };

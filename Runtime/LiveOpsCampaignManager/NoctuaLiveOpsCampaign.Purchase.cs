@@ -226,13 +226,37 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
             return owned;
         }
 
-        private void OnPurchaseCredited(string campaignId, PurchaseOutcome outcome)
+        /// <summary>
+        /// Records a <c>purchase_once</c> campaign as bought from its verified order, which names the
+        /// campaign in <c>extra</c> (<see cref="CampaignOrderExtra"/>). Runs for every verified order,
+        /// so one that came back pending and was verified later (the pending-purchase retry, maybe on
+        /// a later launch) still locks its campaign. Only for <paramref name="buyerId"/> when it is
+        /// the player logged in now (unknown counts as them). True once recorded. Never throws.
+        /// </summary>
+        public async UniTask<bool> RecordOrderPurchaseAsync(OrderRequest order, long? buyerId)
         {
-            if (outcome == null || outcome.Status != nameof(OrderStatus.completed)) return;
-            var item = FindCampaign(campaignId);
-            if (item == null || !item.PurchaseOnce) return;
+            try
+            {
+                if (order?.Extra == null || !order.Extra.TryGetValue(ExtraCampaignId, out var campaignId)) return false;
 
-            RecordCampaignPurchaseAsync(campaignId, outcome.OrderId).Forget();
+                var item = FindCampaign(campaignId);
+                if (item == null || !item.PurchaseOnce || IsCampaignPurchased(item)) return false;
+
+                EnsureProgressPlayer();
+                if (buyerId is > 0 && buyerId != _progressPlayer)
+                {
+                    _log.Warning($"{LogTag} order {order.Id} of '{campaignId}' was paid by player {buyerId}, " +
+                                 $"not the one logged in now; the campaign is not recorded as bought for them");
+                    return false;
+                }
+
+                return await RecordCampaignPurchaseAsync(campaignId, order.Id);
+            }
+            catch (Exception e)
+            {
+                _log.Warning($"{LogTag} recording the campaign of order {order?.Id} failed: {e.Message}");
+                return false;
+            }
         }
 
         private void OnPurchaseBlocked(CampaignItem item)
