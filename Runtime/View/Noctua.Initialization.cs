@@ -1465,7 +1465,10 @@ namespace com.noctuagames.sdk
                     // Games override it with SetOwnershipProvider for one-time consumables.
                     isProductOwned: Instance.Value._iap == null
                         ? null
-                        : (Func<string, UniTask<bool>>)(sku => Instance.Value._iap.GetPurchaseStatusAsync(sku).AsUniTask()));
+                        : (Func<string, UniTask<bool>>)(sku => Instance.Value._iap.GetPurchaseStatusAsync(sku).AsUniTask()),
+                    // The product list's type: a consumable is never owned in the store, so it is
+                    // not asked — the store still lists one just bought until it is consumed.
+                    isNonConsumable: Instance.Value._iap == null ? null : FetchCampaignProductIsNonConsumableAsync);
 
                 // Any purchase, from a campaign or not, can change what an open offer shows.
                 if (Instance.Value._iap != null)
@@ -1527,6 +1530,23 @@ namespace com.noctuagames.sdk
                 }
             }
             return prices;
+        }
+
+        /// <summary>
+        /// Whether <paramref name="sku"/> is a non-consumable or subscription (true) or a
+        /// consumable (false), from the cached SKU Management product list; null when the list
+        /// does not have it or does not say. Throws like <see cref="FetchCampaignStorePricesAsync"/>.
+        /// </summary>
+        private static async UniTask<bool?> FetchCampaignProductIsNonConsumableAsync(string sku)
+        {
+            var products = await Instance.Value._iap.GetProductListAsync();
+            if (products == null) return null;
+
+            foreach (var product in products)
+            {
+                if (product?.Id == sku) return NoctuaIAPService.IsNonConsumable(product.Type);
+            }
+            return null;
         }
 
         /// <summary>

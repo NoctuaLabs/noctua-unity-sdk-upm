@@ -22,7 +22,7 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
         {
             _isProductOwned = isOwned;
             // The game's own record may count a consumable as owned (a one-time offer), so the
-            // order's product type no longer stands in for its answer.
+            // product type no longer stands in for its answer.
             _ownershipIsStoreCheck = false;
             ClearOwnership();
         }
@@ -315,9 +315,10 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
         /// <summary>
         /// Asks again whether <paramref name="productId"/> is owned — after a purchase — and
         /// re-renders the open popup if it sells that SKU, so its card flips in place.
-        /// <paramref name="knownOwned"/> is what the order's product type says (false for a
-        /// consumable, true for a non-consumable or subscription); with the store check it is
-        /// taken as the answer, since the store lags behind it. Null asks the provider.
+        /// <paramref name="knownOwned"/> is what a verified order's product type says (false for
+        /// a consumable, true for a non-consumable or subscription); with the store check it is
+        /// taken as the answer, since the store lags behind it. Null falls back to the product
+        /// list's type, else asks the provider.
         /// </summary>
         public async UniTask RefreshOwnershipAsync(string productId, bool? knownOwned = null)
         {
@@ -328,8 +329,18 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
 
                 _ownership.Remove(productId);
                 var generation = _ownershipGeneration;
-                var trusted = knownOwned.HasValue && _ownershipIsStoreCheck;
-                var owned = trusted ? knownOwned : await CheckOwnedAsync(provider, productId);
+
+                // The order's type is the freshest; the Buy flow's refresh runs without the order.
+                var nonConsumable = _ownershipIsStoreCheck
+                    ? knownOwned ?? await IsNonConsumableAsync(productId)
+                    : null;
+                var typeKnown = nonConsumable.HasValue;
+
+                // A consumable is never owned in the store, and a verified non-consumable order is;
+                // a non-consumable without an order this time (cancelled, failed) asks the store.
+                var owned = typeKnown && (nonConsumable == false || knownOwned == true)
+                    ? nonConsumable
+                    : await CheckOwnedAsync(provider, productId);
 
                 // Without a known type: the store finishes a consumable after verification
                 // (Google Play consumes it on the server, StoreKit finishes it after delivery), so
@@ -337,7 +348,7 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
                 // until then the SKU stays unknown, which shows Buy.
                 foreach (var wait in OwnedRecheckDelays)
                 {
-                    if (trusted || owned != true || generation != _ownershipGeneration) break;
+                    if (typeKnown || owned != true || generation != _ownershipGeneration) break;
                     await _retryDelay(wait);
                     if (generation != _ownershipGeneration) return;
                     owned = await CheckOwnedAsync(provider, productId);
@@ -369,9 +380,14 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
             return true;
         }
 
-        /// <summary>One provider call: its answer, or null when it threw or took too long.</summary>
+        /// <summary>
+        /// One provider call: its answer, or null when it threw or took too long. With the store
+        /// check, a SKU the product list calls consumable is not owned without asking the store.
+        /// </summary>
         private async UniTask<bool?> CheckOwnedAsync(Func<string, UniTask<bool>> provider, string sku)
         {
+            if (_ownershipIsStoreCheck && await IsNonConsumableAsync(sku) == false) return false;
+
             try
             {
                 var check = provider(sku);
@@ -387,6 +403,29 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
             catch (Exception e)
             {
                 _log.Debug($"{LogTag} ownership check for '{sku}' failed — treated as unknown: {e.Message}");
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// The product list's type for <paramref name="sku"/>: true for a non-consumable or
+        /// subscription, false for a consumable, null when unknown, unavailable or too slow.
+        /// </summary>
+        private async UniTask<bool?> IsNonConsumableAsync(string sku)
+        {
+            if (_isNonConsumable == null) return null;
+            try
+            {
+                var lookup = _isNonConsumable(sku);
+                if (lookup.Status.IsCompleted()) return await lookup;
+
+                var (timedOut, nonConsumable) = await lookup.TimeoutWithoutException(
+                    TimeSpan.FromMilliseconds(OwnershipTimeoutMs), DelayType.Realtime);
+                return timedOut ? null : nonConsumable;
+            }
+            catch (Exception e)
+            {
+                _log.Debug($"{LogTag} product type for '{sku}' unavailable — treated as unknown: {e.Message}");
                 return null;
             }
         }

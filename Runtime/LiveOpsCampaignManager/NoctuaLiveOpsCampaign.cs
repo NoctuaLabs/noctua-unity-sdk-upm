@@ -37,6 +37,9 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
         private Func<string, UniTask<bool>> _isProductOwned;
         // True while _isProductOwned is the store check passed at construction, not a game's own.
         private bool _ownershipIsStoreCheck = true;
+        // SKU → true for a non-consumable or subscription, false for a consumable, null when
+        // unknown — the product list's type. Only used with the store check.
+        private readonly Func<string, UniTask<bool?>> _isNonConsumable;
         private readonly Dictionary<string, bool> _ownership = new Dictionary<string, bool>();
         private int _ownershipGeneration;
 
@@ -96,11 +99,13 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
             Func<IReadOnlyList<string>> playerTags,
             Func<UniTask<IReadOnlyDictionary<string, string>>> fetchStorePrices = null,
             ProgressTrackerOptions progress = null,
-            Func<string, UniTask<bool>> isProductOwned = null)
+            Func<string, UniTask<bool>> isProductOwned = null,
+            Func<string, UniTask<bool?>> isNonConsumable = null)
         {
             _events = events;
             _fetchStorePrices = fetchStorePrices;
             _isProductOwned = isProductOwned;
+            _isNonConsumable = isNonConsumable;
             _locale = locale;
             InitProgress(progress, locale);
 

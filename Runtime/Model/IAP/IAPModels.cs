@@ -58,6 +58,10 @@ namespace com.noctuagames.sdk
         /// <summary>Platform identifier.</summary>
         [JsonProperty("platform")]
         public string Platform;
+
+        /// <summary>Product type (consumable / non_consumable / subscription). <c>unknown</c> from backends that do not send it.</summary>
+        [JsonProperty("type")]
+        public IapProductType Type;
     }
 
     /// <summary>

@@ -221,6 +221,18 @@ namespace Tests.Runtime.IAP
             Assert.AreEqual(expected, JsonConvert.DeserializeObject<OrderResponse>(json, settings).Type);
         }
 
+        [TestCase("{\"id\":\"gems\",\"type\":\"consumable\"}", IapProductType.consumable)]
+        [TestCase("{\"id\":\"gems\",\"type\":\"non_consumable\"}", IapProductType.non_consumable)]
+        [TestCase("{\"id\":\"gems\",\"type\":\"subscription\"}", IapProductType.subscription)]
+        [TestCase("{\"id\":\"gems\"}", IapProductType.unknown)]
+        public void Product_ReadsTheProductListType(string json, IapProductType expected)
+        {
+            var settings = new JsonSerializerSettings();
+            settings.Converters.Add(new Newtonsoft.Json.Converters.StringEnumConverter());
+
+            Assert.AreEqual(expected, JsonConvert.DeserializeObject<Product>(json, settings).Type);
+        }
+
         [Test]
         public void OrderRequest_KeepsTheProductTypeWhenSaved()
         {

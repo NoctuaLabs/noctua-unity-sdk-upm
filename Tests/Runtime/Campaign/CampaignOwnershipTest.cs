@@ -58,11 +58,21 @@ namespace Tests.Runtime.Campaign
 
         private static NoctuaLiveOpsCampaign Facade(
             Func<string, UniTask<bool>> isOwned, Func<TimeSpan, UniTask> delay, params CampaignItem[] campaigns) =>
+            Facade(isOwned, delay, null, campaigns);
+
+        private static NoctuaLiveOpsCampaign Facade(
+            Func<string, UniTask<bool>> isOwned, Func<TimeSpan, UniTask> delay,
+            Func<string, UniTask<bool?>> isNonConsumable, params CampaignItem[] campaigns) =>
             new NoctuaLiveOpsCampaign(
                 new CampaignConfig { SchemaVersion = 2, Campaigns = campaigns.ToList() },
                 null, null, new MockEventSender(), () => Array.Empty<string>(),
                 progress: new NoctuaLiveOpsCampaign.ProgressTrackerOptions { RetryDelay = delay },
-                isProductOwned: isOwned);
+                isProductOwned: isOwned,
+                isNonConsumable: isNonConsumable);
+
+        /// <summary>What the product list says: Gold has <paramref name="goldNonConsumable"/>, other SKUs are unknown.</summary>
+        private static Func<string, UniTask<bool?>> ProductList(bool goldNonConsumable) =>
+            sku => UniTask.FromResult(sku == Gold ? goldNonConsumable : (bool?)null);
 
         private static bool Prefetch(NoctuaLiveOpsCampaign campaign, CampaignItem item) =>
             campaign.PrefetchOwnershipAsync(item).GetAwaiter().GetResult();
@@ -393,6 +403,111 @@ namespace Tests.Runtime.Campaign
 
             Assert.AreEqual(knownOwned, campaign.Ownership[Gold]);
             Assert.AreEqual(0, asks);
+        }
+
+        // ---- the product type from the product list ---------------------
+
+        [Test]
+        public void Prefetch_ProductListSaysConsumable_NotOwnedWithoutAskingTheStore()
+        {
+            // The popup opens before any purchase: a consumable is never owned in the store.
+            var item = MultiOffer();
+            var asked = new List<string>();
+            var campaign = Facade(sku => { asked.Add(sku); return UniTask.FromResult(false); },
+                _ => UniTask.CompletedTask, ProductList(goldNonConsumable: false), item);
+
+            Prefetch(campaign, item);
+
+            Assert.IsFalse(campaign.Ownership[Gold]);
+            CollectionAssert.AreEqual(new[] { Normal }, asked);
+        }
+
+        [Test]
+        public void Prefetch_ProductListSaysNonConsumable_AsksTheStore()
+        {
+            var item = MultiOffer();
+            var asked = new List<string>();
+            var campaign = Facade(sku => { asked.Add(sku); return UniTask.FromResult(true); },
+                _ => UniTask.CompletedTask, ProductList(goldNonConsumable: true), item);
+
+            Prefetch(campaign, item);
+
+            Assert.IsTrue(campaign.Ownership[Gold]);
+            CollectionAssert.AreEquivalent(new[] { Gold, Normal }, asked);
+        }
+
+        [Test]
+        public void RefreshOwnership_WithoutOrder_ProductListSaysConsumable_DoesNotAskTheStore()
+        {
+            // The Buy flow refreshes after the purchase without the order, while the store can
+            // still list the just-bought consumable.
+            var item = MultiOffer();
+            var asks = 0;
+            var campaign = Facade(_ => { asks++; return UniTask.FromResult(true); },
+                _ => UniTask.CompletedTask, ProductList(goldNonConsumable: false), item);
+
+            campaign.RefreshOwnershipAsync(Gold).GetAwaiter().GetResult();
+
+            Assert.IsFalse(campaign.Ownership[Gold]);
+            Assert.AreEqual(0, asks);
+        }
+
+        [Test]
+        public void RefreshOwnership_WithoutOrder_ProductListSaysNonConsumable_AsksTheStoreOnce()
+        {
+            // A non-consumable's store answer has no consumable lag, so no rechecks.
+            var item = MultiOffer();
+            var asks = 0;
+            var campaign = Facade(_ => { asks++; return UniTask.FromResult(true); },
+                _ => UniTask.CompletedTask, ProductList(goldNonConsumable: true), item);
+
+            campaign.RefreshOwnershipAsync(Gold).GetAwaiter().GetResult();
+
+            Assert.IsTrue(campaign.Ownership[Gold]);
+            Assert.AreEqual(1, asks);
+        }
+
+        [Test]
+        public void RefreshOwnership_OrderTypeWinsOverTheProductList()
+        {
+            var item = MultiOffer();
+            var asks = 0;
+            var campaign = Facade(_ => { asks++; return UniTask.FromResult(true); },
+                _ => UniTask.CompletedTask, ProductList(goldNonConsumable: true), item);
+
+            campaign.RefreshOwnershipAsync(Gold, knownOwned: false).GetAwaiter().GetResult();
+
+            Assert.IsFalse(campaign.Ownership[Gold]);
+            Assert.AreEqual(0, asks);
+        }
+
+        [Test]
+        public void RefreshOwnership_ProductListUnavailable_AsksTheStoreWithRechecks()
+        {
+            // Not logged in, IAP off or offline: the type stays unknown, as before.
+            var item = MultiOffer();
+            var asks = 0;
+            var campaign = Facade(_ => { asks++; return UniTask.FromResult(true); },
+                _ => UniTask.CompletedTask, _ => throw new InvalidOperationException("not logged in"), item);
+
+            campaign.RefreshOwnershipAsync(Gold).GetAwaiter().GetResult();
+
+            Assert.IsTrue(campaign.Ownership[Gold]);
+            Assert.AreEqual(1 + NoctuaLiveOpsCampaign.OwnedRecheckDelays.Length, asks);
+        }
+
+        [Test]
+        public void Prefetch_GamesOwnProvider_IgnoresTheProductList()
+        {
+            // A one-time consumable offer: the game's record decides, whatever the product type.
+            var item = MultiOffer();
+            var campaign = Facade(_ => UniTask.FromResult(false),
+                _ => UniTask.CompletedTask, ProductList(goldNonConsumable: false), item);
+            campaign.SetOwnershipProvider(_ => UniTask.FromResult(true));
+
+            Prefetch(campaign, item);
+
+            Assert.IsTrue(campaign.Ownership[Gold]);
         }
 
         [Test]
