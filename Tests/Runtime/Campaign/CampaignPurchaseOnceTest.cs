@@ -372,5 +372,98 @@ namespace Tests.Runtime.Campaign
             Assert.AreEqual(Id, credited.id);
             Assert.AreEqual(9, credited.outcome.OrderId);
         }
+
+        // ---- recorded from the verified order --------------------------------------
+
+        private const string InboxKey = "Noctua.LiveOps.Campaign.PurchaseInbox";
+
+        private static OrderRequest CampaignOrder(int id, string campaignId = Id) => new OrderRequest
+        {
+            Id = id,
+            ProductId = "pack1",
+            Extra = new Dictionary<string, string> { { NoctuaLiveOpsCampaign.ExtraCampaignId, campaignId } },
+        };
+
+        [UnityTest]
+        public IEnumerator VerifiedOrder_OfAPurchaseOnceCampaign_RecordsIt() => UniTask.ToCoroutine(async () =>
+        {
+            // The order came back pending and was verified later (pending-purchase retry): only the
+            // verified order says the campaign was bought.
+            ClaimWorks();
+            var item = Offer();
+            var facade = Facade(item);
+
+            Assert.IsTrue(await facade.RecordOrderPurchaseAsync(CampaignOrder(77), PlayerId));
+
+            CollectionAssert.AreEqual(new[] { "PUT /api/v1" + Put, "POST /api/v1" + Claim }, Sent(_server));
+            Assert.IsTrue(facade.IsCampaignPurchased(item));
+        });
+
+        [UnityTest]
+        public IEnumerator VerifiedOrder_AlreadyRecorded_IsNotClaimedAgain() => UniTask.ToCoroutine(async () =>
+        {
+            ClaimWorks();
+            var item = Offer();
+            var facade = Facade(item);
+            await facade.RecordCampaignPurchaseAsync(Id, orderId: 77);
+            ResetServer(_server, new[] { List, Put, Claim });
+            ClaimWorks();
+
+            await facade.RecordOrderPurchaseAsync(CampaignOrder(77), PlayerId);
+
+            Assert.IsEmpty(Sent(_server), "the campaign already counts as bought");
+        });
+
+        [UnityTest]
+        public IEnumerator VerifiedOrder_WithoutACampaign_OrOfAnotherKind_RecordsNothing() => UniTask.ToCoroutine(async () =>
+        {
+            ClaimWorks();
+            var item = Offer(purchaseOnce: false);
+            var facade = Facade(item);
+
+            Assert.IsFalse(await facade.RecordOrderPurchaseAsync(new OrderRequest { Id = 1, ProductId = "pack1" }, PlayerId));
+            Assert.IsFalse(await facade.RecordOrderPurchaseAsync(CampaignOrder(2), PlayerId));
+            Assert.IsFalse(await facade.RecordOrderPurchaseAsync(CampaignOrder(3, "unknown"), PlayerId));
+            Assert.IsEmpty(Sent(_server));
+        });
+
+        [UnityTest]
+        public IEnumerator VerifiedOrder_PaidByAnotherPlayer_IsNotRecordedForThisOne() => UniTask.ToCoroutine(async () =>
+        {
+            ClaimWorks();
+            var item = Offer();
+            var facade = Facade(item);
+
+            Assert.IsFalse(await facade.RecordOrderPurchaseAsync(CampaignOrder(77), OtherPlayerId));
+
+            Assert.IsEmpty(Sent(_server));
+            Assert.IsFalse(facade.IsCampaignPurchased(item));
+        });
+
+        [UnityTest]
+        public IEnumerator VerifiedOrder_BeforeLiveOpsIsReady_IsRecordedOnceItIs() => UniTask.ToCoroutine(async () =>
+        {
+            PlayerPrefs.DeleteKey(InboxKey);
+            ClaimWorks();
+            var item = Offer();
+
+            // Verified during InitAsync (the pending-purchase retry), before live ops is up.
+            var early = new NoctuaCampaign();
+            early.OnPurchaseDone(CampaignOrder(78), PlayerId);
+            StringAssert.Contains("78", PlayerPrefs.GetString(InboxKey, ""), "kept on the device in case the app dies");
+
+            var facade = Facade(item);
+            var recorded = false;
+            facade.OnCampaignPurchaseRecorded += _ => recorded = true;
+            var campaign = new NoctuaCampaign();
+            campaign.Attach(facade);
+
+            Assert.IsTrue(campaign.Module.IsCampaignPurchased(item));
+            Assert.IsFalse(PlayerPrefs.HasKey(InboxKey), "the inbox is emptied once recorded");
+
+            // Let the claim finish here, so it cannot write into the next test's saved progress.
+            await UniTask.WaitUntil(() => recorded).Timeout(TimeSpan.FromSeconds(5));
+            CollectionAssert.AreEqual(new[] { "PUT /api/v1" + Put, "POST /api/v1" + Claim }, Sent(_server));
+        });
     }
 }

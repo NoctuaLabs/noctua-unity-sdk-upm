@@ -349,7 +349,7 @@ namespace Tests.Runtime.Campaign
         {
             var early = new NoctuaCampaign();
             early.OnPurchaseDone(Order(906, MarkedExtra()), PlayerId);
-            early.OnPurchaseDone(Order(907, new Dictionary<string, string> { { "campaign_id", "x" } }), PlayerId);
+            early.OnPurchaseDone(Order(907, new Dictionary<string, string> { { "note", "x" } }), PlayerId);
             StringAssert.Contains("906", PlayerPrefs.GetString(InboxKey, ""), "kept on the device in case the app dies");
             StringAssert.DoesNotContain("907", PlayerPrefs.GetString(InboxKey, ""), "an order the game delivers is not kept");
 

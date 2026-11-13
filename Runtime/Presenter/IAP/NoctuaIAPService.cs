@@ -1519,6 +1519,8 @@ namespace com.noctuagames.sdk
                         Price = purchaseRequest.Price,
                         Currency = editorCurrency,
                         PriceInUSD = usdProductEditor?.Price ?? 0,
+                        // As on a device, so a campaign Buy tap in Play Mode still names its campaign.
+                        Extra = OrderExtra(purchaseRequest),
                     };
 
                     _eventSender?.Send("purchase_completed", new()

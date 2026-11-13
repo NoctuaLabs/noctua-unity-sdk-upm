@@ -147,20 +147,27 @@ namespace com.noctuagames.sdk
         public bool IsDeliveredByRewards(OrderRequest order) => NoctuaLiveOpsCampaign.PurchaseRewardOf(order) != null;
 
         /// <summary>
-        /// SDK-only: a verified purchase (<c>Noctua.IAP.OnPurchaseDone</c>). An order the SDK
-        /// delivers becomes a <c>Purchase</c> reward for <paramref name="buyerId"/>; before live ops
-        /// is ready it waits on the device and is recorded on <see cref="Attach"/>.
+        /// SDK-only: a verified purchase (<c>Noctua.IAP.OnOrderVerified</c>). An order the SDK
+        /// delivers becomes a <c>Purchase</c> reward for <paramref name="buyerId"/>, and an order from
+        /// a <c>purchase_once</c> campaign marks that campaign bought. Before live ops is ready a
+        /// campaign's order waits on the device and is recorded on <see cref="Attach"/>.
         /// </summary>
         public void OnPurchaseDone(OrderRequest order, long? buyerId)
         {
-            if (!IsDeliveredByRewards(order)) return;
+            if (order?.Extra == null || !order.Extra.ContainsKey(NoctuaLiveOpsCampaign.ExtraCampaignId)) return;
 
             if (_module != null)
             {
-                _module.RecordPurchaseReward(order, buyerId);
+                Record(_module, order, buyerId);
                 return;
             }
             SaveToInbox(order, buyerId);
+        }
+
+        private static void Record(NoctuaLiveOpsCampaign module, OrderRequest order, long? buyerId)
+        {
+            module.RecordPurchaseReward(order, buyerId);
+            module.RecordOrderPurchaseAsync(order, buyerId).Forget();
         }
 
         // ---- composition root ----------------------------------------------------
@@ -232,7 +239,8 @@ namespace com.noctuagames.sdk
 
             foreach (var entry in inbox)
             {
-                module.RecordPurchaseReward(
+                Record(
+                    module,
                     new OrderRequest
                     {
                         Id = entry.OrderId, ProductId = entry.ProductId, Extra = entry.Extra,
