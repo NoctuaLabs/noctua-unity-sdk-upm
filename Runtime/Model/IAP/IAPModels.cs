@@ -157,6 +157,23 @@ namespace com.noctuagames.sdk
         /// </summary>
         [JsonProperty("product_type")]
         public IapProductType Type;
+
+        // Campaign attribution, sent as typed fields so the backend can store it in its own
+        // indexed order columns. Read from Extra (keys match NoctuaLiveOpsCampaign.ExtraCampaignId,
+        // ExtraBundleKey, ExtraBundle), so they can never disagree with it, and Extra keeps the
+        // keys for games and older backends. Omitted for ordinary purchases.
+
+        /// <summary>Live ops campaign whose Buy button started this order, or null.</summary>
+        [JsonProperty("campaign_id", NullValueHandling = NullValueHandling.Ignore)]
+        public string CampaignId => Extra?.GetValueOrDefault("campaign_id");
+
+        /// <summary>Bundle key of a dynamic campaign product, or null.</summary>
+        [JsonProperty("campaign_bundle_key", NullValueHandling = NullValueHandling.Ignore)]
+        public string CampaignBundleKey => Extra?.GetValueOrDefault("campaign_bundle_key");
+
+        /// <summary>Compact JSON of the offered bundle at purchase time, or null.</summary>
+        [JsonProperty("campaign_bundle", NullValueHandling = NullValueHandling.Ignore)]
+        public string CampaignBundle => Extra?.GetValueOrDefault("campaign_bundle");
     }
 
     /// <summary>

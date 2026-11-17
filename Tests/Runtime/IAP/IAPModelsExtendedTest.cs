@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using com.noctuagames.sdk;
+using com.noctuagames.sdk.LiveOpsCampaign;
 using Newtonsoft.Json;
 using NUnit.Framework;
 
@@ -111,6 +112,63 @@ namespace Tests.Runtime.IAP
             // Default value is true per field initializer in the class
             var req = new OrderRequest();
             Assert.IsTrue(req.AllowPaymentTypeOverride);
+        }
+
+        [Test]
+        public void OrderRequest_CampaignPurchase_SendsTypedFieldsAndKeepsExtra()
+        {
+            var req = new OrderRequest
+            {
+                ProductId = "pack1",
+                Extra = new Dictionary<string, string>
+                {
+                    { NoctuaLiveOpsCampaign.ExtraCampaignId, "cmp_1" },
+                    { NoctuaLiveOpsCampaign.ExtraBundleKey, "starter_pack" },
+                    { NoctuaLiveOpsCampaign.ExtraBundle, "{\"items\":[1]}" },
+                    { "noctua_delivery", "rewards" },
+                }
+            };
+
+            var json = Newtonsoft.Json.Linq.JObject.Parse(JsonConvert.SerializeObject(req));
+
+            Assert.AreEqual("cmp_1", (string)json["campaign_id"]);
+            Assert.AreEqual("starter_pack", (string)json["campaign_bundle_key"]);
+            Assert.AreEqual("{\"items\":[1]}", (string)json["campaign_bundle"]);
+            // Extra keeps the keys for games and older backends.
+            Assert.AreEqual("cmp_1", (string)json["extra"]["campaign_id"]);
+            Assert.AreEqual("rewards", (string)json["extra"]["noctua_delivery"]);
+        }
+
+        [Test]
+        public void OrderRequest_RegularPurchase_OmitsCampaignFields()
+        {
+            var withExtra = new OrderRequest { Extra = new Dictionary<string, string> { { "promo", "yes" } } };
+            var noExtra = new OrderRequest();
+
+            foreach (var req in new[] { withExtra, noExtra })
+            {
+                var json = Newtonsoft.Json.Linq.JObject.Parse(JsonConvert.SerializeObject(req));
+                Assert.IsFalse(json.ContainsKey("campaign_id"));
+                Assert.IsFalse(json.ContainsKey("campaign_bundle_key"));
+                Assert.IsFalse(json.ContainsKey("campaign_bundle"));
+                Assert.IsNull(req.CampaignId);
+            }
+        }
+
+        [Test]
+        public void OrderRequest_CampaignFields_RoundTripFromStoredJson()
+        {
+            // Pending purchases are stored as JSON and read back; the derived fields must not
+            // break deserialization and must come back from Extra.
+            var original = new OrderRequest
+            {
+                Extra = new Dictionary<string, string> { { NoctuaLiveOpsCampaign.ExtraCampaignId, "cmp_1" } }
+            };
+
+            var restored = JsonConvert.DeserializeObject<OrderRequest>(JsonConvert.SerializeObject(original));
+
+            Assert.AreEqual("cmp_1", restored.CampaignId);
+            Assert.IsNull(restored.CampaignBundleKey);
         }
 
         // ─── UnpairedPurchaseRequest ──────────────────────────────────────────
