@@ -46,43 +46,43 @@ namespace Tests.Runtime.IAA
         };
 
         // Relative paths from the package root.
-        private const string PackageRel = "Packages/com.noctuagames.sdk/Runtime/AdsManager";
+        private const string PackageRel = "Packages/com.noctuagames.sdk/Runtime";
 
         // ─── Per-file parity ─────────────────────────────────────────────────
 
         [Test] public void AppLovin_Banner_EmitsAllCanonicalEventsForBanner()
-            => AssertFileReferences("AppLovin/BannerAppLovin.cs", BannerRequiredConstants);
+            => AssertFileReferences("Platform/Ads/AppLovin/BannerAppLovin.cs", BannerRequiredConstants);
 
         [Test] public void AppLovin_Interstitial_EmitsAllCanonicalEventsForFullScreen()
-            => AssertFileReferences("AppLovin/InterstitialAppLovin.cs", FullScreenRequiredConstants);
+            => AssertFileReferences("Platform/Ads/AppLovin/InterstitialAppLovin.cs", FullScreenRequiredConstants);
 
         [Test] public void AppLovin_Rewarded_EmitsAllCanonicalEventsForFullScreen()
-            => AssertFileReferences("AppLovin/RewardedAppLovin.cs", FullScreenRequiredConstants);
+            => AssertFileReferences("Platform/Ads/AppLovin/RewardedAppLovin.cs", FullScreenRequiredConstants);
 
         [Test] public void AppLovin_AppOpen_EmitsAllCanonicalEventsForFullScreen()
-            => AssertFileReferences("AppLovin/AppOpenAppLovin.cs", FullScreenRequiredConstants);
+            => AssertFileReferences("Platform/Ads/AppLovin/AppOpenAppLovin.cs", FullScreenRequiredConstants);
 
         [Test] public void Admob_Banner_EmitsAllCanonicalEventsForBanner()
-            => AssertFileReferences("Admob/BannerAdmob.cs", BannerRequiredConstants);
+            => AssertFileReferences("Platform/Ads/Admob/BannerAdmob.cs", BannerRequiredConstants);
 
         [Test] public void Admob_Interstitial_EmitsAllCanonicalEventsForFullScreen()
-            => AssertFileReferences("Admob/InterstitialAdmob.cs", FullScreenRequiredConstants);
+            => AssertFileReferences("Platform/Ads/Admob/InterstitialAdmob.cs", FullScreenRequiredConstants);
 
         [Test] public void Admob_Rewarded_EmitsAllCanonicalEventsForFullScreen()
-            => AssertFileReferences("Admob/RewardedAdmob.cs", FullScreenRequiredConstants);
+            => AssertFileReferences("Platform/Ads/Admob/RewardedAdmob.cs", FullScreenRequiredConstants);
 
         [Test] public void Admob_RewardedInterstitial_EmitsAllCanonicalEventsForFullScreen()
-            => AssertFileReferences("Admob/RewardedInterstitialAdmob.cs", FullScreenRequiredConstants);
+            => AssertFileReferences("Platform/Ads/Admob/RewardedInterstitialAdmob.cs", FullScreenRequiredConstants);
 
         [Test] public void Admob_AppOpen_EmitsAllCanonicalEventsForFullScreen()
-            => AssertFileReferences("Admob/AppOpenAdmob.cs", FullScreenRequiredConstants);
+            => AssertFileReferences("Platform/Ads/Admob/AppOpenAdmob.cs", FullScreenRequiredConstants);
 
         // ─── Watch-milestone tracker is wired to canonical names ─────────────
 
         [Test]
         public void AdWatchMilestoneTracker_ReferencesAllMilestoneConstants()
         {
-            AssertFileReferences("AdWatchMilestoneTracker.cs", new[]
+            AssertFileReferences("Presenter/IAA/AdWatchMilestoneTracker.cs", new[]
             {
                 nameof(IAAEventNames.WatchAds1x),
                 nameof(IAAEventNames.WatchAds5x),
@@ -126,16 +126,16 @@ namespace Tests.Runtime.IAA
         ///     <c>Packages/com.noctuagames.sdk/...</c>; (2) standalone package CI
         ///     where the package itself is the project root.
         /// </summary>
-        private static string ResolvePackagePath(string relativeFromAdsManager)
+        private static string ResolvePackagePath(string relativeFromRuntime)
         {
             // Application.dataPath = <project>/Assets — go up to project root.
             var projectRoot = Path.GetDirectoryName(Application.dataPath) ?? "";
 
-            var candidate1 = Path.Combine(projectRoot, PackageRel, relativeFromAdsManager);
+            var candidate1 = Path.Combine(projectRoot, PackageRel, relativeFromRuntime);
             if (File.Exists(candidate1)) return candidate1;
 
             // Standalone: project root IS the package.
-            var candidate2 = Path.Combine(projectRoot, "Runtime/AdsManager", relativeFromAdsManager);
+            var candidate2 = Path.Combine(projectRoot, "Runtime", relativeFromRuntime);
             if (File.Exists(candidate2)) return candidate2;
 
             // PackageCache path (immutable UPM install).
@@ -144,7 +144,7 @@ namespace Tests.Runtime.IAA
             {
                 foreach (var dir in Directory.EnumerateDirectories(candidate3, "com.noctuagames.sdk*"))
                 {
-                    var p = Path.Combine(dir, "Runtime/AdsManager", relativeFromAdsManager);
+                    var p = Path.Combine(dir, "Runtime", relativeFromRuntime);
                     if (File.Exists(p)) return p;
                 }
             }
