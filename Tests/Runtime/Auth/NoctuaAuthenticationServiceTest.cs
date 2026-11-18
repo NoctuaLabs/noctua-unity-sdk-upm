@@ -3,8 +3,10 @@ using com.noctuagames.sdk;
 using System.Collections;
 using System.Collections.Generic;
 using Cysharp.Threading.Tasks;
+using Newtonsoft.Json;
 using NUnit.Framework;
 using Tests.Runtime;
+using UnityEngine;
 using UnityEngine.TestTools;
 
 namespace Tests.Runtime.Auth
@@ -1075,6 +1077,39 @@ namespace Tests.Runtime.Auth
                     IngameServerId = "S1",
                     IngameRoleId   = "R1"
                 });
+            }
+            finally
+            {
+                _server.RemoveHandler("/auth/email/login");
+                _server.RemoveHandler("/players/sync");
+            }
+        });
+
+        [UnityTest]
+        public IEnumerator UpdatePlayerAccountAsync_SavesTheLatestRoleForPopupPurchases()
+            => UniTask.ToCoroutine(async () =>
+        {
+            _server.AddHandler("/auth/email/login", _ => PlayerTokenJson("sync-token"));
+            _server.AddHandler("/players/sync", _ => @"{""data"":{}}");
+            try
+            {
+                var svc = CreateService();
+                await svc.LoginWithEmailAsync("u@test.com", "p");
+                var key = $"{NoctuaAuthenticationService.PlayerAccountDataPrefsKey}.{svc.RecentAccount.Player.Id}";
+                PlayerPrefs.DeleteKey(key);
+
+                await svc.UpdatePlayerAccountAsync(new PlayerAccountData
+                {
+                    IngameUsername = "Hero", IngameServerId = "S1", IngameRoleId = "R1",
+                });
+                // A later update without a role (e.g. a purchase from older code) keeps the role.
+                await svc.UpdatePlayerAccountAsync(new PlayerAccountData { IngameServerId = "S2" });
+
+                var saved = JsonConvert.DeserializeObject<PlayerAccountData>(PlayerPrefs.GetString(key, ""));
+                Assert.AreEqual("R1", saved.IngameRoleId);
+                Assert.AreEqual("S2", saved.IngameServerId, "the latest server wins");
+                Assert.AreEqual("Hero", saved.IngameUsername);
+                PlayerPrefs.DeleteKey(key);
             }
             finally
             {

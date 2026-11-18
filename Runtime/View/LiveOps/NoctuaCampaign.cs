@@ -139,17 +139,9 @@ namespace com.noctuagames.sdk
         public JToken GetProductBundleForSku(CampaignItem campaign, string sku) => _module?.GetProductBundleForSku(campaign, sku);
 
         /// <summary>
-        /// True when the SDK delivers this order's items through the <c>Rewards</c> handler — a
-        /// campaign bundle that lists valid items, bought while the game had a <c>Rewards</c>
-        /// handler. The SDK keeps such orders from <c>Noctua.IAP.OnPurchaseDone</c> itself; this is
-        /// for code that reads orders elsewhere (e.g. a purchase history screen).
-        /// </summary>
-        public bool IsDeliveredByRewards(OrderRequest order) => NoctuaLiveOpsCampaign.PurchaseRewardOf(order) != null;
-
-        /// <summary>
-        /// SDK-only: a verified purchase (<c>Noctua.IAP.OnOrderVerified</c>). An order the SDK
-        /// delivers becomes a <c>Purchase</c> reward for <paramref name="buyerId"/>, and an order from
-        /// a <c>purchase_once</c> campaign marks that campaign bought. Before live ops is ready a
+        /// SDK-only: a verified purchase (<c>Noctua.IAP.OnOrderVerified</c>). An order from a
+        /// <c>purchase_once</c> campaign marks that campaign bought for <paramref name="buyerId"/>;
+        /// the game delivers every order itself from <c>Noctua.IAP.OnPurchaseDone</c>. Before live ops is ready a
         /// campaign's order waits on the device and is recorded on <see cref="Attach"/>.
         /// </summary>
         public void OnPurchaseDone(OrderRequest order, long? buyerId)
@@ -158,16 +150,10 @@ namespace com.noctuagames.sdk
 
             if (_module != null)
             {
-                Record(_module, order, buyerId);
+                _module.RecordOrderPurchaseAsync(order, buyerId).Forget();
                 return;
             }
             SaveToInbox(order, buyerId);
-        }
-
-        private static void Record(NoctuaLiveOpsCampaign module, OrderRequest order, long? buyerId)
-        {
-            module.RecordPurchaseReward(order, buyerId);
-            module.RecordOrderPurchaseAsync(order, buyerId).Forget();
         }
 
         // ---- composition root ----------------------------------------------------
@@ -214,8 +200,6 @@ namespace com.noctuagames.sdk
             [JsonProperty("product_id")] public string ProductId;
             [JsonProperty("extra")] public Dictionary<string, string> Extra;
             [JsonProperty("buyer_id")] public long? BuyerId;
-            [JsonProperty("price")] public decimal Price;
-            [JsonProperty("currency")] public string Currency;
         }
 
         private void SaveToInbox(OrderRequest order, long? buyerId)
@@ -226,10 +210,9 @@ namespace com.noctuagames.sdk
             inbox.Add(new InboxEntry
             {
                 OrderId = order.Id, ProductId = order.ProductId, Extra = order.Extra, BuyerId = buyerId,
-                Price = order.Price, Currency = order.Currency,
             });
             WriteInbox(inbox);
-            _log.Info($"[LiveOps.Campaign] order {order.Id} verified before live ops was ready; its reward is kept until then");
+            _log.Info($"[LiveOps.Campaign] order {order.Id} verified before live ops was ready; kept until then");
         }
 
         private void DrainInbox(NoctuaLiveOpsCampaign module)
@@ -239,14 +222,8 @@ namespace com.noctuagames.sdk
 
             foreach (var entry in inbox)
             {
-                Record(
-                    module,
-                    new OrderRequest
-                    {
-                        Id = entry.OrderId, ProductId = entry.ProductId, Extra = entry.Extra,
-                        Price = entry.Price, Currency = entry.Currency,
-                    },
-                    entry.BuyerId);
+                var order = new OrderRequest { Id = entry.OrderId, ProductId = entry.ProductId, Extra = entry.Extra };
+                module.RecordOrderPurchaseAsync(order, entry.BuyerId).Forget();
             }
             WriteInbox(new List<InboxEntry>());
         }

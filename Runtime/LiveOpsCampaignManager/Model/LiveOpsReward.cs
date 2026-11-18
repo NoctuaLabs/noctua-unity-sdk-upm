@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Text.RegularExpressions;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
@@ -17,9 +16,6 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
 
         /// <summary>A milestone chest the SDK claimed once the player's points reached it.</summary>
         Milestone,
-
-        /// <summary>A campaign Buy button whose bundle lists its items, paid and verified.</summary>
-        Purchase,
     }
 
     /// <summary>One item of a reward: the game's item id and how many.</summary>
@@ -51,28 +47,6 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
         /// at all, never partly.
         /// </summary>
         public static List<RewardItem> ParseList(string json) => ParseItems(ParseJson(json) as JArray);
-
-        /// <summary>
-        /// The items a dynamic product bundle lists: its <c>items</c>, or for an array bundle every
-        /// entry's <c>items</c> joined. Null when it lists none (the game delivers it by SKU) or any
-        /// item is invalid.
-        /// </summary>
-        public static List<RewardItem> ParseBundle(JToken bundle)
-        {
-            var entries = bundle is JArray array ? array.ToList() : new List<JToken> { bundle };
-            if (entries.Count == 0 || entries.All(entry => (entry as JObject)?["items"] == null)) return null;
-
-            var raw = new JArray();
-            foreach (var entry in entries)
-            {
-                if ((entry as JObject)?["items"] is not JArray items) return null;
-                foreach (var item in items) raw.Add(item);
-            }
-            return ParseItems(raw);
-        }
-
-        /// <summary><see cref="ParseBundle(JToken)"/> for the bundle's JSON text.</summary>
-        public static List<RewardItem> ParseBundle(string json) => ParseBundle(ParseJson(json));
 
         private static JToken ParseJson(string json)
         {
@@ -124,8 +98,8 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
     public sealed class LiveOpsReward
     {
         /// <summary>
-        /// Unique per player: the tracker key of a mission or chest (claimable once), or
-        /// <c>order:&lt;order id&gt;</c> for a purchase. Ignore one you have already granted.
+        /// Unique per player: the tracker key of a mission or chest (claimable once). Ignore one
+        /// you have already granted.
         /// </summary>
         [JsonProperty("claim_id")] public string ClaimId;
 
@@ -135,7 +109,7 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
         /// <summary>The campaign it came from.</summary>
         [JsonProperty("campaign_id")] public string CampaignId;
 
-        /// <summary>The mission key (<c>use_stm</c>), the chest's points (<c>25</c>), or the SKU bought.</summary>
+        /// <summary>The mission key (<c>use_stm</c>) or the chest's points (<c>25</c>).</summary>
         [JsonProperty("key")] public string Key;
 
         /// <summary>
@@ -146,15 +120,6 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
 
         /// <summary>When the SDK recorded it (UTC).</summary>
         [JsonProperty("claimed_at")] public DateTime ClaimedAtUtc;
-
-        /// <summary>Purchase only: the Noctua order id; 0 otherwise.</summary>
-        [JsonProperty("order_id")] public int OrderId;
-
-        /// <summary>Purchase only: the price the player paid, in <see cref="Currency"/>; 0 otherwise.</summary>
-        [JsonProperty("price")] public decimal Price;
-
-        /// <summary>Purchase only: the price's currency (e.g. <c>IDR</c>); null otherwise.</summary>
-        [JsonProperty("currency")] public string Currency;
 
         public override string ToString() =>
             $"{Source} {CampaignId}/{Key}: {(Items == null || Items.Count == 0 ? "no items" : string.Join(", ", Items))}";

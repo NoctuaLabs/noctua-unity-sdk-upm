@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -438,11 +439,10 @@ namespace com.noctuagames.sdk
             _auth = new NoctuaAuthentication(authService, _iap, _uiFactory, _config, _eventSender, locale);
             lazyAuthProvider.SetAuth(_auth);
 
-            // A verified campaign bundle purchase becomes a Rewards entry for the player who paid —
-            // subscribed here, before init can finish a retried purchase, so none is missed — and is
-            // kept from the game's OnPurchaseDone, so the game never grants it by SKU too.
+            // A verified campaign purchase counts toward the campaign's purchase limit for the player
+            // who paid — subscribed here, before init can finish a retried purchase, so none is
+            // missed. The game delivers it from OnPurchaseDone (the product's Items).
             _iap.OnOrderVerified += order => LiveOps.Campaign.OnPurchaseDone(order, _auth?.RecentAccount?.Player?.Id);
-            _iap.SetDeliveredBySdk(order => LiveOps.Campaign.IsDeliveredByRewards(order));
 
             _game = new NoctuaGameService(
                 new NoctuaGameService.Config
@@ -1498,6 +1498,10 @@ namespace com.noctuagames.sdk
 
                 log.Info($"Campaign feature ready: {merged.Campaigns?.Count ?? 0} campaign(s), schema v{merged.SchemaVersion}");
 
+                // A popup's Buy needs no game code: the SDK buys the SKU itself. A game's own
+                // Purchase handler (Noctua.LiveOps.Campaign.Configure) replaces this one.
+                if (Instance.Value._iap != null) Instance.Value._campaign.SetPurchaseHandler(BuyCampaignProductAsync);
+
                 // Applies the handlers the game set before init, so an auto-shown popup already has them.
                 LiveOps.Campaign.Attach(Instance.Value._campaign);
 
@@ -1603,6 +1607,49 @@ namespace com.noctuagames.sdk
                 Instance.Value.InitializeNativePlugin();
                 log.Info("nativePlugin initialized");
             }
+        }
+
+        /// <summary>
+        /// The built-in purchase for a popup's Buy button: the SKU's price and currency come from the
+        /// cached product list, the role and server from the last <c>Noctua.Auth.UpdatePlayerAccountAsync</c>
+        /// saved on the device for this player. The game delivers it from <c>Noctua.IAP.OnPurchaseDone</c>.
+        /// </summary>
+        private static async UniTask BuyCampaignProductAsync(string productId, LiveOpsCampaign.CampaignItem campaign)
+        {
+            var self = Instance.Value;
+            Product product = null;
+            try
+            {
+                product = (await self._iap.GetProductListAsync(productId: productId)).FirstOrDefault();
+            }
+            catch (Exception e)
+            {
+                self._log.Warning($"campaign purchase of '{productId}': product list unavailable ({e.Message}), buying without its price");
+            }
+
+            PlayerAccountData role = null;
+            var playerId = self._auth?.RecentAccount?.Player?.Id;
+            try
+            {
+                role = JsonConvert.DeserializeObject<PlayerAccountData>(PlayerPrefs.GetString(
+                    $"{NoctuaAuthenticationService.PlayerAccountDataPrefsKey}.{playerId}", ""));
+            }
+            catch (JsonException) { /* no usable role saved: bought without one */ }
+            if (string.IsNullOrEmpty(role?.IngameRoleId))
+            {
+                self._log.Warning($"campaign purchase of '{productId}': no role saved yet — call Noctua.Auth.UpdatePlayerAccountAsync after the player picks a role");
+            }
+
+            await self._iap.PurchaseItemAsync(new PurchaseRequest
+            {
+                ProductId = productId,
+                Price = product?.Price ?? 0,
+                Currency = product?.Currency,
+                RoleId = role?.IngameRoleId,
+                ServerId = role?.IngameServerId,
+                IngameItemId = productId,
+                IngameItemName = campaign?.Id,
+            });
         }
     }
 }

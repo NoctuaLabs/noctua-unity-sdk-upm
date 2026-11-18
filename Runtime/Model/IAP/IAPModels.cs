@@ -62,6 +62,14 @@ namespace com.noctuagames.sdk
         /// <summary>Product type (consumable / non_consumable / subscription). <c>unknown</c> from backends that do not send it.</summary>
         [JsonProperty("type")]
         public IapProductType Type;
+
+        /// <summary>
+        /// Items this product delivers, set per SKU in SKU Management: item key to quantity (a
+        /// whole number of at least 1), e.g. <c>coin = 100</c>. Empty when it has none (or the
+        /// backend does not send them): deliver the SKU by your own mapping.
+        /// </summary>
+        [JsonProperty("items", ObjectCreationHandling = ObjectCreationHandling.Replace, NullValueHandling = NullValueHandling.Ignore)]
+        public Dictionary<string, long> Items = new Dictionary<string, long>();
     }
 
     /// <summary>

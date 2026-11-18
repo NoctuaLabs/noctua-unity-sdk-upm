@@ -348,9 +348,7 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
         /// <summary>
         /// <see cref="PurchaseExtra(CampaignItem, string, IReadOnlyDictionary{string, string})"/> for
         /// the Buy button whose bundle is <paramref name="productKey"/> — right even when two buttons
-        /// sell the same SKU with different items. When that bundle lists items and the game has a
-        /// <c>Rewards</c> handler, it also sets <c>noctua_delivery = rewards</c>: the SDK delivers
-        /// the items, and the game skips the order (<see cref="IsDeliveredByRewards"/>).
+        /// sell the same SKU.
         /// </summary>
         public Dictionary<string, string> PurchaseExtra(
             CampaignItem item, string sku, string productKey, IReadOnlyDictionary<string, string> extra)
@@ -374,7 +372,6 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
             if (bundle == null) return result;
 
             result[ExtraBundle] = bundle.ToString(Formatting.None);
-            if (_rewards != null && HasDeliverableItems(bundle)) result[ExtraDelivery] = DeliveryRewards;
             return result;
         }
 

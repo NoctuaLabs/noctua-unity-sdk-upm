@@ -125,7 +125,7 @@ namespace Tests.Runtime.IAP
                     { NoctuaLiveOpsCampaign.ExtraCampaignId, "cmp_1" },
                     { NoctuaLiveOpsCampaign.ExtraBundleKey, "starter_pack" },
                     { NoctuaLiveOpsCampaign.ExtraBundle, "{\"items\":[1]}" },
-                    { "noctua_delivery", "rewards" },
+                    { "promo", "yes" },
                 }
             };
 
@@ -136,7 +136,7 @@ namespace Tests.Runtime.IAP
             Assert.AreEqual("{\"items\":[1]}", (string)json["campaign_bundle"]);
             // Extra keeps the keys for games and older backends.
             Assert.AreEqual("cmp_1", (string)json["extra"]["campaign_id"]);
-            Assert.AreEqual("rewards", (string)json["extra"]["noctua_delivery"]);
+            Assert.AreEqual("yes", (string)json["extra"]["promo"]);
         }
 
         [Test]

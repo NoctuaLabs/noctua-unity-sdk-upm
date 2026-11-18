@@ -151,19 +151,13 @@ Noctua.LiveOps.Campaign.Configure(new CampaignHandlers
     // A popup button's deeplink, e.g. "shop/gems" or "event/summer".
     Deeplink = route => GameRouter.Open(route),
 
-    // A popup's Buy button. The campaign is added to the order for you.
-    Purchase = async (productId, campaign) =>
-        await Noctua.IAP.PurchaseItemAsync(new PurchaseRequest
-        {
-            ProductId = productId, Price = price, Currency = currency,
-            RoleId = roleId, ServerId = serverId, IngameItemId = itemId,
-        }),
+    // No Purchase handler needed: a popup's Buy is bought by the SDK, with the role and server
+    // from your last Noctua.Auth.UpdatePlayerAccountAsync (call it when the player picks a role).
 
-    // Everything live ops gives the player: claimed missions and chests, and campaign bundle
-    // purchases. Grant and save the items, then return.
+    // Claimed missions and chests. Grant and save the items, then return.
     Rewards = async rewards =>
     {
-        foreach (var r in rewards)                       // r.Source: Mission / Milestone / Purchase
+        foreach (var r in rewards)                       // r.Source: Mission / Milestone
         {
             if (Inventory.HasGranted(r.ClaimId)) continue;
             foreach (var item in r.Items) Inventory.Add(item.Id, item.Quantity);
@@ -196,10 +190,9 @@ A campaign that is not eligible is skipped, never thrown. The reason is in the s
 
 | Admin setting | Game code |
 |---|---|
-| Buy button with a SKU | Only the `Purchase` handler above. Bought non-consumables and subscriptions are hidden or shown as "Purchased" automatically. |
+| Buy button with a SKU | None: the SDK buys it (role and server from `Noctua.Auth.UpdatePlayerAccountAsync`) and the game delivers it in `OnPurchaseDone`. Bought non-consumables and subscriptions are hidden or shown as "Purchased" automatically. Set `Purchase` only to build the request yourself. |
 | **One purchase per player** | None. After a completed purchase from the popup the SDK records it on the server; the campaign is not shown again and its Buy buttons read "Purchased", on every device. |
 | **Dynamic product** (a JSON bundle instead of a SKU) | None when the bundle names its SKU: `{"sku_android":"gem_500","sku_ios":"com.game.gem500"}`, or just `{"sku":"gem_500"}`. To map anything else (e.g. a price `tier`) set `ProductResolver`. |
-| **Dynamic product with items** — `{"sku":"pack_499","items":[{"id":"gem","qty":500}]}` | None beyond `Rewards`. After the payment is verified the SDK sends the items to `Rewards` (`Source = Purchase`, `ClaimId = order:<id>`) and keeps the order from `Noctua.IAP.OnPurchaseDone`, so one store SKU can sell any items you set in the admin, with no app update. |
 | Consumable offer with a limit | Optional: `OwnershipProvider = sku => myStore.OwnsAsync(sku)` — the store only knows non-consumables. |
 
 ```csharp
@@ -208,9 +201,26 @@ ProductResolver = (campaign, productKey, bundle) =>
     myCatalogue.SkuForTier((string)bundle["tier"]) ?? NoctuaLiveOpsCampaign.DefaultBundleSku(bundle),
 ```
 
-**Bundles with items are delivered by the SDK, not by your purchase code.** Such an order never reaches `Noctua.IAP.OnPurchaseDone` — your existing delivery keeps granting fixed SKUs and shop purchases by SKU, unchanged, and can never grant a bundle twice. The bundle arrives in `Rewards` instead, as a `Purchase` reward that also carries `OrderId`, `Price` and `Currency` (for a "purchase successful" message or your own revenue tracking; Noctua's own tracking is unaffected). `Noctua.LiveOps.Campaign.IsDeliveredByRewards(order)` tells you which orders these are, if you read orders elsewhere (e.g. a purchase history).
+**Every purchase is delivered from `Noctua.IAP.OnPurchaseDone`, with the items set on its SKU.** In SKU Management each SKU can list items as key → quantity (`coin = 100`, `skin = 1`; whole numbers). They come with the product list, so read them for the purchased SKU — the list is cached, so this makes no request when your shop already loaded it, and offline it uses the copy on the device:
 
-The SDK decides when the purchase starts and stores it in the order (`noctua_delivery = rewards`): only for a bundle that lists valid items, bought while the game has a `Rewards` handler. Everything else — fixed SKUs, bundles without `items`, redeem orders — stays yours, exactly as before. The order carries the bundle the player saw, so editing the campaign later never changes what a paid order delivers; an order finished after a crash (the SDK's retry queue) keeps it too, and one verified before live ops is ready is kept on the device until it is. Two Buy buttons may sell the same SKU with different items — each order carries its own button's bundle. A purchase limit counts its SKU, so the admin refuses two limited cards on one SKU.
+```csharp
+Noctua.IAP.OnPurchaseDone += async order =>
+{
+    Product product = null;
+    try { product = (await Noctua.IAP.GetProductListAsync(productId: order.ProductId)).FirstOrDefault(); }
+    catch (Exception) { /* not logged in, or offline with nothing cached */ }
+
+    if (product == null) { KeepForRetry(order); return; }  // items unknown: never guess
+    if (product.Items.Count > 0)
+    {
+        foreach (var item in product.Items) Grant(item.Key, item.Value);  // deliver one by one
+        return;
+    }
+    GrantBySku(order.ProductId);                           // no items: your own SKU mapping
+};
+```
+
+`Items` is never null. `productId` only narrows the result on the device; without it you get the whole list as before. Ignore an order id you already granted. A purchase limit counts its SKU, so the admin refuses two limited cards on one SKU.
 
 Inside the `Purchase` handler, `Noctua.LiveOps.Campaign.GetProductBundleForSku(campaign, productId)` returns the bundle a dynamic button was resolved from. Every order started from a popup carries `campaign_id` (and `campaign_bundle_key` / `campaign_bundle`) in its `extra`; your own `PurchaseRequest.Extra` keys always win.
 
@@ -230,8 +240,8 @@ await Noctua.LiveOps.Campaign.SetMissionProgressAsync("use_stm", totalStaminaUse
 
 #### 5. Rewards, from every source
 
-- **One handler** — `Rewards` — for missions, chests and bundle purchases. Each reward has `Items` (`Id`, `Quantity`), a `Source`, the `CampaignId` and a `ClaimId`.
-- **Never lost.** A reward is saved on the device, for the player who earned or paid for it, before the handler runs, and counts as delivered once the handler finishes without throwing. If the app dies first or the handler throws, it is delivered again after the next init or login. A purchase made by another account on the same phone waits for that account.
+- **One handler** — `Rewards` — for missions and chests (purchases go to `OnPurchaseDone`, above). Each reward has `Items` (`Id`, `Quantity`), a `Source`, the `CampaignId` and a `ClaimId`.
+- **Never lost.** A reward is saved on the device, for the player who earned it, before the handler runs, and counts as delivered once the handler finishes without throwing. If the app dies first or the handler throws, it is delivered again after the next init or login.
 - **Exactly once on your side.** Redelivery means the handler can see a reward twice (granted, then the app died before it returned): ignore a `ClaimId` you already granted. Granting on your own server? Send `ClaimId` as the idempotency key.
 - **Items are granted whole.** An item list with any invalid item (bad id, quantity not a whole number ≥ 1) is not delivered at all; the admin validates the same rules.
 - **Limit:** the client delivers the items, as with any client-granted reward. A game whose inventory lives on its server should treat the items as a request; verifying them server-to-server needs Noctua backend support (the order already carries `campaign_id` and the bundle key for it).

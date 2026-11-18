@@ -1,5 +1,6 @@
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using System.Linq;
 using Cysharp.Threading.Tasks;
 using NUnit.Framework;
@@ -292,6 +293,87 @@ namespace Tests.Runtime.IAP
 
                 Assert.AreEqual("pack1", products[0].Id);
                 StringAssert.Contains("pack1", PlayerPrefs.GetString(CachePrefsKey));
+            });
+
+        // ── Items set in SKU Management, and filtering by product id ────────────
+
+        // pack1 delivers items, pack2 has none, pack3 comes from a backend that sends null.
+        private const string ProductsWithItemsJson =
+            "{\"data\":[" +
+            "{\"id\":\"pack1\",\"price\":0.99,\"currency\":\"USD\",\"items\":{\"coin\":100,\"skin\":1}}," +
+            "{\"id\":\"pack2\",\"price\":1.99,\"currency\":\"USD\",\"items\":{}}," +
+            "{\"id\":\"pack3\",\"price\":2.99,\"currency\":\"USD\",\"items\":null}]}";
+
+        private NoctuaIAPService CreateServiceWithItems()
+        {
+            _server.RemoveHandler(ProductsPath);
+            _server.AddHandler(ProductsPath, _ => ProductsWithItemsJson);
+            return CreateService();
+        }
+
+        [UnityTest]
+        public IEnumerator GetProductListAsync_ReadsItems_EmptyWhenNoneOrOlderBackend() =>
+            UniTask.ToCoroutine(async () =>
+            {
+                var products = await CreateServiceWithItems().GetProductListAsync();
+
+                CollectionAssert.AreEquivalent(new Dictionary<string, long> { { "coin", 100 }, { "skin", 1 } },
+                    products.Single(p => p.Id == "pack1").Items);
+                Assert.IsEmpty(products.Single(p => p.Id == "pack2").Items);
+                Assert.IsNotNull(products.Single(p => p.Id == "pack3").Items, "null from the backend reads as no items");
+                Assert.IsEmpty(products.Single(p => p.Id == "pack3").Items);
+            });
+
+        [UnityTest]
+        public IEnumerator GetProductListAsync_ProductId_FiltersWithoutAnotherRequest() =>
+            UniTask.ToCoroutine(async () =>
+            {
+                var service = CreateServiceWithItems();
+
+                var all = await service.GetProductListAsync();
+                var one = await service.GetProductListAsync(productId: "pack1");
+                var noItems = await service.GetProductListAsync(productId: "pack2");
+                var none = await service.GetProductListAsync(productId: "unknown");
+
+                Assert.AreEqual(3, all.Count, "no filter: the whole list");
+                Assert.AreEqual("pack1", one.Single().Id);
+                Assert.AreEqual(100, one.Single().Items["coin"]);
+                Assert.IsEmpty(noItems.Single().Items, "a product without items is still returned");
+                Assert.IsEmpty(none, "an unknown product: empty list");
+                Assert.AreEqual(1, ProductRequestCount, "filtering reuses the cached list");
+
+                var again = await service.GetProductListAsync();
+                Assert.AreEqual(3, again.Count, "a filtered call never narrows the cache");
+            });
+
+        [UnityTest]
+        public IEnumerator GetProductListAsync_ProductId_FirstCallFetchesOnce() =>
+            UniTask.ToCoroutine(async () =>
+            {
+                var service = CreateServiceWithItems();
+
+                var results = await UniTask.WhenAll(
+                    service.GetProductListAsync(productId: "pack1"),
+                    service.GetProductListAsync(productId: "pack2"),
+                    service.GetProductListAsync());
+
+                Assert.AreEqual(1, ProductRequestCount, "concurrent filtered calls share one fetch");
+                Assert.AreEqual("pack1", results.Item1.Single().Id);
+                Assert.AreEqual("pack2", results.Item2.Single().Id);
+                Assert.AreEqual(3, results.Item3.Count);
+            });
+
+        [UnityTest]
+        public IEnumerator GetProductListAsync_Offline_KeepsItemsFromTheDeviceCopy() =>
+            UniTask.ToCoroutine(async () =>
+            {
+                await CreateServiceWithItems().GetProductListAsync();   // persisted on the device
+
+                SimulateServerDown();
+                var offline = CreateService();                           // a new session, cache empty
+                var product = (await offline.GetProductListAsync(productId: "pack1")).Single();
+
+                Assert.AreEqual(1, product.Items["skin"]);
             });
     }
 }

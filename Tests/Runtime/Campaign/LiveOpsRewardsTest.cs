@@ -17,10 +17,9 @@ using static Tests.Runtime.Campaign.LiveOpsProgressTestKit;
 namespace Tests.Runtime.Campaign
 {
     /// <summary>
-    /// The shared Rewards flow, case by case: reward items, campaign bundle purchases (which order
-    /// the SDK delivers, which bundle it carries, double reports, another buyer, a crash before
-    /// delivery, a purchase verified before live ops is ready), and milestone chests claimed from
-    /// points per mission.
+    /// The shared Rewards flow and campaign purchases, case by case: reward items, which bundle an
+    /// order carries, every order reaching the game's OnPurchaseDone, a purchase verified before live ops is ready, and milestone chests
+    /// claimed from points per mission.
     /// </summary>
     [TestFixture]
     public class LiveOpsRewardsTest
@@ -87,8 +86,8 @@ namespace Tests.Runtime.Campaign
                 }),
                 new Dictionary<string, string>
                 {
-                    { "offer_gems", "{\"sku\":\"pack_499\",\"items\":[{\"id\":\"gem\",\"qty\":500}]}" },
-                    { "offer_gold", "{\"sku\":\"pack_499\",\"items\":[{\"id\":\"gold\",\"qty\":20000},{\"id\":\"chest\",\"qty\":1}]}" },
+                    { "offer_gems", "{\"sku\":\"pack_499\",\"items\":[{\"key\":\"gem\",\"value\":\"500\"}]}" },
+                    { "offer_gold", "{\"sku\":\"pack_499\",\"items\":[{\"key\":\"gold\",\"value\":\"20000\"},{\"key\":\"chest\",\"value\":\"1\"}]}" },
                     { "offer_tier", "{\"sku\":\"pack_999\",\"tier\":\"t3\"}" },
                 });
 
@@ -122,18 +121,9 @@ namespace Tests.Runtime.Campaign
         // ---- reward items -----------------------------------------------------
 
         [Test]
-        public void Items_ReadAListForMissionsAndOnlyAnItemsKeyForBundles()
+        public void Items_ReadAListForMissions()
         {
             Assert.AreEqual(2, RewardItem.ParseList("[{\"id\":\"gem\",\"qty\":5},{\"id\":\"gold\",\"qty\":9}]").Count);
-            Assert.AreEqual("gem x5", RewardItem.ParseBundle("{\"sku\":\"p\",\"items\":[{\"id\":\"gem\",\"qty\":5}]}").Single().ToString());
-            CollectionAssert.AreEqual(new[] { "gem x5", "gold x9" },
-                RewardItem.ParseBundle("[{\"items\":[{\"id\":\"gem\",\"qty\":5}]},{\"items\":[{\"id\":\"gold\",\"qty\":9}]}]")
-                    .Select(i => i.ToString()).ToArray(), "a bundle array joins its entries' items");
-
-            Assert.IsNull(RewardItem.ParseBundle("[{\"id\":\"coin\",\"qty\":10}]"),
-                "a bundle lists items only under 'items' (same rule as the admin): this one stays the game's");
-            Assert.IsNull(RewardItem.ParseBundle("[{\"items\":[{\"id\":\"gem\",\"qty\":5}]},{\"tier\":\"t3\"}]"),
-                "one entry without items: not deliverable whole");
             Assert.IsNull(RewardItem.ParseList("{\"items\":[{\"id\":\"gem\",\"qty\":5}]}"), "a mission's rewards are a plain list");
         }
 
@@ -147,17 +137,12 @@ namespace Tests.Runtime.Campaign
         [TestCase("[{\"qty\":1}]", TestName = "Items_Reject_MissingId")]
         [TestCase("[{\"id\":\"gem\",\"qty\":1},{\"id\":\"bad id\",\"qty\":1}]", TestName = "Items_Reject_OneBadItemSpoilsAll")]
         [TestCase("[]", TestName = "Items_Reject_EmptyList")]
-                [TestCase("not json", TestName = "Items_Reject_BrokenJson")]
+        [TestCase("not json", TestName = "Items_Reject_BrokenJson")]
         [TestCase("", TestName = "Items_Reject_Empty")]
         public void Items_RejectAnythingNotWhollyValid(string json)
         {
             Assert.IsNull(RewardItem.ParseList(json));
-            Assert.IsNull(RewardItem.ParseBundle("{\"items\":" + (string.IsNullOrEmpty(json) ? "null" : json) + "}"));
         }
-
-        [Test]
-        public void Bundle_WithoutItems_IsNotDeliverable() =>
-            Assert.IsNull(RewardItem.ParseBundle("{\"sku\":\"p\",\"tier\":\"t3\"}"));
 
         [Test]
         public void Items_RejectAnIdTooLongOrTooManyItems()
@@ -177,29 +162,18 @@ namespace Tests.Runtime.Campaign
                 .Select(c => new TestCaseData(c["items"]!.ToString(Formatting.None), (bool)c["valid"]!)
                     .SetName("SharedRules_List_" + ((string)c["name"]!).Replace(' ', '_')));
 
-        private static IEnumerable<TestCaseData> SharedBundles() =>
-            JObject.Parse(File.ReadAllText(Path.GetFullPath(SharedRulesPath)))["bundles"]!
-                .Select(c => new TestCaseData(c["bundle"]!.ToString(Formatting.None), (string)c["result"]!)
-                    .SetName("SharedRules_Bundle_" + ((string)c["name"]!).Replace(' ', '_')));
-
         /// <summary>Same file as noctua-admin's reward-items.json and the DAG's: all three must agree.</summary>
         [TestCaseSource(nameof(SharedLists))]
         public void SharedRules_ItemList(string json, bool valid) =>
             Assert.AreEqual(valid, RewardItem.ParseList(json) != null);
 
-        /// <summary>The SDK delivers only "deliverable" bundles; "no_items" and "invalid" stay the game's.</summary>
-        [TestCaseSource(nameof(SharedBundles))]
-        public void SharedRules_Bundle(string json, string result) =>
-            Assert.AreEqual(result == "deliverable", RewardItem.ParseBundle(json) != null);
-
-        // ---- which order the SDK delivers, and with which bundle ----------------
+        // ---- which bundle an order carries --------------------------------------
 
         [Test]
         public void Order_CarriesTheTappedButtonsBundle_WhenTwoButtonsShareASku()
         {
             var item = SharedSkuOffer();
             var module = Module(item);
-            module.Configure(Collect(new List<LiveOpsReward>()));
 
             var gold = OrderExtraOfTap(module, item, "gold");
             Assert.AreEqual("offer_gold", gold[NoctuaLiveOpsCampaign.ExtraBundleKey]);
@@ -211,28 +185,11 @@ namespace Tests.Runtime.Campaign
         }
 
         [Test]
-        public void Order_IsMarkedForRewards_OnlyWithItemsAndARewardsHandler()
-        {
-            var item = SharedSkuOffer();
-
-            var noHandler = Module(item);
-            Assert.IsFalse(NoctuaLiveOpsCampaign.IsDeliveredByRewards(OrderExtraOfTap(noHandler, item, "gems")),
-                "without a Rewards handler the game keeps delivering by SKU");
-
-            var withHandler = Module(item);
-            withHandler.Configure(Collect(new List<LiveOpsReward>()));
-            Assert.IsTrue(NoctuaLiveOpsCampaign.IsDeliveredByRewards(OrderExtraOfTap(withHandler, item, "gems")));
-            Assert.IsFalse(NoctuaLiveOpsCampaign.IsDeliveredByRewards(OrderExtraOfTap(withHandler, item, "tier")),
-                "a bundle with no items list stays the game's to deliver");
-        }
-
-        [Test]
-        public void Order_FromAFixedSkuOrOutsideAPopup_IsNeverMarked()
+        public void Order_FromAFixedSku_CarriesOnlyTheCampaign()
         {
             var item = CampaignFactory.Item("fixed", CampaignItem.EngagementPurchase,
                 CampaignFactory.Node(CampaignNode.TypeButton, action: new CampaignAction { TypeRaw = "purchase", ProductId = "pack_499", Id = "buy" }));
             var module = Module(item);
-            module.Configure(Collect(new List<LiveOpsReward>()));
 
             var dispatcher = (CampaignActionDispatcher)typeof(NoctuaLiveOpsCampaign)
                 .GetField("_dispatcher", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(module);
@@ -241,156 +198,28 @@ namespace Tests.Runtime.Campaign
 
             var extra = module.CampaignOrderExtra("pack_499");
             Assert.AreEqual("fixed", extra[NoctuaLiveOpsCampaign.ExtraCampaignId]);
-            Assert.IsFalse(NoctuaLiveOpsCampaign.IsDeliveredByRewards(extra));
+            Assert.IsFalse(extra.ContainsKey(NoctuaLiveOpsCampaign.ExtraBundle));
             Assert.IsNull(module.CampaignOrderExtra("shop_pack"), "a purchase no popup started carries nothing");
         }
 
-        [Test]
-        public void IsDeliveredByRewards_NeedsTheMarkerARealOrderAndValidItems()
-        {
-            var campaign = new NoctuaCampaign();
-            Assert.IsTrue(campaign.IsDeliveredByRewards(Order(1, MarkedExtra())));
-            Assert.IsFalse(campaign.IsDeliveredByRewards(Order(1, new Dictionary<string, string> { { "noctua_delivery", "rewards" } })),
-                "a marker without a readable bundle could never be delivered, so the game keeps it");
-            Assert.IsFalse(campaign.IsDeliveredByRewards(Order(0, MarkedExtra())), "no order id: the Editor's fake order");
-            Assert.IsFalse(campaign.IsDeliveredByRewards(Order(1, new Dictionary<string, string> { { "campaign_bundle", "{}" } })));
-            Assert.IsFalse(campaign.IsDeliveredByRewards(Order(1, null)), "a redeem / pending-deliverable order has no extra");
-            Assert.IsFalse(campaign.IsDeliveredByRewards(null));
-        }
+        // ---- every order reaches the game's OnPurchaseDone ------------------------
 
-        // ---- purchase rewards -------------------------------------------------
-
-        private static Dictionary<string, string> MarkedExtra(string items = "[{\"id\":\"gem\",\"qty\":500}]") => new()
+        private static Dictionary<string, string> BundleExtra() => new()
         {
             { NoctuaLiveOpsCampaign.ExtraCampaignId, "summer" },
             { NoctuaLiveOpsCampaign.ExtraBundleKey, "offer_gems" },
-            { NoctuaLiveOpsCampaign.ExtraBundle, "{\"sku\":\"pack_499\",\"items\":" + items + "}" },
-            { NoctuaLiveOpsCampaign.ExtraDelivery, NoctuaLiveOpsCampaign.DeliveryRewards },
+            { NoctuaLiveOpsCampaign.ExtraBundle, "{\"sku\":\"pack_499\"}" },
         };
 
-        [UnityTest]
-        public IEnumerator Purchase_ReportedTwice_IsDeliveredOnce() => UniTask.ToCoroutine(async () =>
-        {
-            var delivered = new List<LiveOpsReward>();
-            var module = Module();
-            module.Configure(Collect(delivered));
-
-            module.RecordPurchaseReward(Order(901, MarkedExtra()), PlayerId);
-            module.RecordPurchaseReward(Order(901, MarkedExtra()), PlayerId);
-            await module.DeliverRewardsAsync();
-
-            var reward = delivered.Single();
-            Assert.AreEqual(RewardSource.Purchase, reward.Source);
-            Assert.AreEqual("order:901", reward.ClaimId);
-            Assert.AreEqual("summer", reward.CampaignId);
-            Assert.AreEqual("pack_499", reward.Key);
-            Assert.AreEqual("gem x500", reward.Items.Single().ToString());
-
-            // Reported again in a later session: still not twice.
-            var later = new List<LiveOpsReward>();
-            var next = Module();
-            next.Configure(Collect(later));
-            next.RecordPurchaseReward(Order(901, MarkedExtra()), PlayerId);
-            await next.DeliverRewardsAsync();
-            Assert.IsEmpty(later);
-        });
-
-        [Test]
-        public void Purchase_WithoutTheMarkerOrWithBrokenItems_RecordsNothing()
-        {
-            var module = Module();
-            var unmarked = MarkedExtra();
-            unmarked.Remove(NoctuaLiveOpsCampaign.ExtraDelivery);
-
-            module.RecordPurchaseReward(Order(902, unmarked), PlayerId);
-            module.RecordPurchaseReward(Order(903, MarkedExtra("[{\"id\":\"gem\",\"qty\":0}]")), PlayerId);
-            module.RecordPurchaseReward(Order(0, MarkedExtra()), PlayerId);
-
-            Assert.IsEmpty(module.UndeliveredRewards);
-        }
-
-        [UnityTest]
-        public IEnumerator Purchase_HandlerThrows_ThenTheAppRestarts_IsDeliveredThen() => UniTask.ToCoroutine(async () =>
-        {
-            var first = Module();
-            first.Configure(new CampaignHandlers { Rewards = _ => throw new InvalidOperationException("inventory not loaded") });
-            first.RecordPurchaseReward(Order(904, MarkedExtra()), PlayerId);
-            await first.DeliverRewardsAsync();
-            Assert.AreEqual(1, first.UndeliveredRewards.Count, "kept after the handler threw");
-
-            var delivered = new List<LiveOpsReward>();
-            var next = Module();
-            next.Configure(Collect(delivered));
-            await next.DeliverRewardsAsync();
-            Assert.AreEqual("order:904", delivered.Single().ClaimId);
-        });
-
-        [UnityTest]
-        public IEnumerator Purchase_PaidByAnotherAccount_WaitsForThatAccount() => UniTask.ToCoroutine(async () =>
-        {
-            var delivered = new List<LiveOpsReward>();
-            var module = Module();
-            module.Configure(Collect(delivered));
-
-            module.RecordPurchaseReward(Order(905, MarkedExtra()), OtherPlayerId);
-            await module.DeliverRewardsAsync();
-            Assert.IsEmpty(delivered, "the player logged in now did not pay for it");
-            StringAssert.Contains("order:905", Saved(OtherPlayerId));
-
-            var buyer = new List<LiveOpsReward>();
-            var buyersSession = NewFacade(BaseUrl, new CampaignConfig(), playerId: () => OtherPlayerId);
-            buyersSession.Configure(Collect(buyer));
-            await buyersSession.DeliverRewardsAsync();
-            Assert.AreEqual("order:905", buyer.Single().ClaimId);
-        });
-
-        [UnityTest]
-        public IEnumerator Purchase_VerifiedBeforeLiveOpsIsReady_IsKeptAndDelivered() => UniTask.ToCoroutine(async () =>
-        {
-            var early = new NoctuaCampaign();
-            early.OnPurchaseDone(Order(906, MarkedExtra()), PlayerId);
-            early.OnPurchaseDone(Order(907, new Dictionary<string, string> { { "note", "x" } }), PlayerId);
-            StringAssert.Contains("906", PlayerPrefs.GetString(InboxKey, ""), "kept on the device in case the app dies");
-            StringAssert.DoesNotContain("907", PlayerPrefs.GetString(InboxKey, ""), "an order the game delivers is not kept");
-
-            // The app restarts; live ops comes up with the game's handler.
-            var delivered = new List<LiveOpsReward>();
-            var campaign = new NoctuaCampaign();
-            campaign.Configure(Collect(delivered));
-            campaign.Attach(Module());
-            await campaign.Module.DeliverRewardsAsync();
-
-            Assert.AreEqual("order:906", delivered.Single().ClaimId);
-            Assert.IsFalse(PlayerPrefs.HasKey(InboxKey), "the inbox is emptied once recorded");
-        });
-
-        [UnityTest]
-        public IEnumerator Purchase_AfterLiveOpsIsReady_GoesStraightToTheHandler() => UniTask.ToCoroutine(async () =>
-        {
-            var delivered = new List<LiveOpsReward>();
-            var campaign = new NoctuaCampaign();
-            campaign.Configure(Collect(delivered));
-            campaign.Attach(Module());
-
-            campaign.OnPurchaseDone(Order(908, MarkedExtra()), PlayerId);
-            await campaign.Module.DeliverRewardsAsync();
-
-            Assert.AreEqual("order:908", delivered.Single().ClaimId);
-            Assert.IsFalse(PlayerPrefs.HasKey(InboxKey));
-        });
-
-        // ---- the game's OnPurchaseDone never sees an order the SDK delivers --------
-
-        private static (NoctuaIAPService iap, List<int> game, List<int> sdk) Iap(Func<OrderRequest, bool> deliveredBySdk)
+        private static (NoctuaIAPService iap, List<OrderRequest> game, List<int> sdk) Iap()
         {
             var iap = new NoctuaIAPService(
                 new NoctuaIAPService.Config { BaseUrl = "https://api.example.com", ClientId = "test-client-id" },
                 accessTokenProvider: null, paymentUI: null, nativePlugin: new DefaultNativePlugin());
-            var game = new List<int>();
+            var game = new List<OrderRequest>();
             var sdk = new List<int>();
-            iap.OnPurchaseDone += order => game.Add(order.Id);
+            iap.OnPurchaseDone += order => game.Add(order);
             iap.OnOrderVerified += order => sdk.Add(order.Id);
-            iap.SetDeliveredBySdk(deliveredBySdk);
             return (iap, game, sdk);
         }
 
@@ -399,52 +228,54 @@ namespace Tests.Runtime.Campaign
                 .Invoke(iap, new object[] { order });
 
         [Test]
-        public void Iap_ABundleTheSdkDelivers_NeverReachesTheGamesOnPurchaseDone()
+        public void Iap_EveryOrder_ReachesTheGame()
         {
-            var campaign = new NoctuaCampaign();
-            var (iap, game, sdk) = Iap(order => campaign.IsDeliveredByRewards(order));
+            var (iap, game, sdk) = Iap();
 
-            Verified(iap, Order(911, MarkedExtra()));
+            Verified(iap, Order(911, BundleExtra()));
             Verified(iap, Order(912, new Dictionary<string, string> { { "campaign_id", "summer" } }, "pack_fixed"));
             Verified(iap, Order(913, null, "shop_pack"));
 
-            CollectionAssert.AreEqual(new[] { 912, 913 }, game, "fixed-SKU and shop orders stay the game's");
-            CollectionAssert.AreEqual(new[] { 911, 912, 913 }, sdk, "the SDK's own listeners see every order");
+            CollectionAssert.AreEqual(new[] { 911, 912, 913 }, game.Select(o => o.Id).ToArray());
+            CollectionAssert.AreEqual(new[] { 911, 912, 913 }, sdk, "the SDK's own listeners see every order first");
+            Assert.AreEqual("summer", game[0].CampaignId, "a campaign order keeps its attribution");
         }
 
         [Test]
-        public void Iap_AnOrderTheSdkCannotRecord_StillReachesTheGame()
+        public void Iap_ABrokenSdkListener_StillHandsTheOrderToTheGame()
         {
+            var (iap, game, _) = Iap();
+            iap.OnOrderVerified += _ => throw new InvalidOperationException("boom");
+            Verified(iap, Order(915, BundleExtra()));
+            Assert.AreEqual(915, game.Single().Id);
+        }
+
+        [Test]
+        public void Purchase_NeverBecomesARewardsEntry()
+        {
+            var delivered = new List<LiveOpsReward>();
             var campaign = new NoctuaCampaign();
-            var (iap, game, _) = Iap(order => campaign.IsDeliveredByRewards(order));
+            campaign.Configure(Collect(delivered));
+            campaign.Attach(Module());
 
-            Verified(iap, Order(0, MarkedExtra()));                                        // the Editor's fake order: no id
-            Verified(iap, Order(914, MarkedExtra("[{\"id\":\"gem\",\"qty\":0}]")));   // marked, but its items are invalid
+            campaign.OnPurchaseDone(Order(908, BundleExtra()), PlayerId);
 
-            CollectionAssert.AreEqual(new[] { 0, 914 }, game, "never hidden from the game unless the SDK can deliver it");
+            Assert.IsEmpty(campaign.Module.UndeliveredRewards);
+            Assert.IsEmpty(delivered, "Rewards is for missions and milestones only");
         }
 
         [Test]
-        public void Iap_ABrokenCheck_HandsTheOrderToTheGame()
+        public void Purchase_VerifiedBeforeLiveOpsIsReady_IsKeptUntilItIs()
         {
-            var (iap, game, _) = Iap(_ => throw new InvalidOperationException("boom"));
-            Verified(iap, Order(915, MarkedExtra()));
-            CollectionAssert.AreEqual(new[] { 915 }, game);
-        }
+            var early = new NoctuaCampaign();
+            early.OnPurchaseDone(Order(906, BundleExtra()), PlayerId);
+            early.OnPurchaseDone(Order(907, new Dictionary<string, string> { { "note", "x" } }), PlayerId);
+            StringAssert.Contains("906", PlayerPrefs.GetString(InboxKey, ""), "a campaign order is kept for its purchase limit");
+            StringAssert.DoesNotContain("907", PlayerPrefs.GetString(InboxKey, ""), "an order outside a campaign is not kept");
 
-        [Test]
-        public void Purchase_Reward_CarriesTheOrder()
-        {
-            var order = Order(916, MarkedExtra());
-            order.Price = 75000;
-            order.Currency = "IDR";
-
-            var reward = NoctuaLiveOpsCampaign.PurchaseRewardOf(order);
-
-            Assert.AreEqual(916, reward.OrderId);
-            Assert.AreEqual(75000m, reward.Price);
-            Assert.AreEqual("IDR", reward.Currency);
-            Assert.AreEqual(0, new LiveOpsReward { Source = RewardSource.Mission }.OrderId, "only purchases carry an order");
+            var campaign = new NoctuaCampaign();
+            campaign.Attach(Module());
+            Assert.IsFalse(PlayerPrefs.HasKey(InboxKey), "the inbox is emptied once live ops is ready");
         }
 
         // ---- milestone chests from points per mission ---------------------------

@@ -1,5 +1,5 @@
 {
-  "description": "Reward item rules shared by the SDK (RewardItem.ParseList / ParseBundle), noctua-admin (reward-items.ts) and the noctua-data DAG (reward_items.py). Each side's tests must agree with every case. Edit it here, then copy it to the DAG's tests/fixtures and the SDK's Tests/Runtime/Campaign/Fixtures.",
+  "description": "Reward item rules shared by the SDK (RewardItem.ParseList), noctua-admin (reward-items.ts) and the noctua-data DAG (reward_items.py): mission and milestone rewards, a JSON list of {id, qty}. Each side's tests must agree with every case. Edit it here, then copy it to the DAG's tests/fixtures and noctua-admin's constants/live-ops-popup/__fixtures__.",
   "lists": [
     {
       "name": "one item",
@@ -379,106 +379,10 @@
     },
     {
       "name": "an item that is not an object",
-      "items": ["gem"],
+      "items": [
+        "gem"
+      ],
       "valid": false
-    }
-  ],
-  "bundles": [
-    {
-      "name": "bundle with items",
-      "bundle": {
-        "sku": "pack_499",
-        "items": [
-          {
-            "id": "gem",
-            "qty": 500
-          }
-        ]
-      },
-      "result": "deliverable"
-    },
-    {
-      "name": "array bundle, every entry with items",
-      "bundle": [
-        {
-          "items": [
-            {
-              "id": "gem",
-              "qty": 5
-            }
-          ]
-        },
-        {
-          "items": [
-            {
-              "id": "gold",
-              "qty": 9
-            }
-          ]
-        }
-      ],
-      "result": "deliverable"
-    },
-    {
-      "name": "bundle without items",
-      "bundle": {
-        "sku": "pack_999",
-        "tier": "t3"
-      },
-      "result": "no_items"
-    },
-    {
-      "name": "bare item array is not a bundle's items",
-      "bundle": [
-        {
-          "id": "coin",
-          "qty": 10
-        }
-      ],
-      "result": "no_items"
-    },
-    {
-      "name": "bundle whose items are invalid",
-      "bundle": {
-        "items": [
-          {
-            "id": "gem",
-            "qty": 0
-          }
-        ]
-      },
-      "result": "invalid"
-    },
-    {
-      "name": "bundle whose items are not a list",
-      "bundle": {
-        "items": "gem"
-      },
-      "result": "invalid"
-    },
-    {
-      "name": "array bundle with an entry missing items",
-      "bundle": [
-        {
-          "items": [
-            {
-              "id": "gem",
-              "qty": 5
-            }
-          ]
-        },
-        {
-          "tier": "t3"
-        }
-      ],
-      "result": "invalid"
-    },
-    {
-      "name": "bundle with an empty items list",
-      "bundle": {
-        "items": []
-      },
-      "result": "invalid"
     }
   ]
 }

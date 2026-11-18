@@ -42,50 +42,32 @@ namespace com.noctuagames.sdk
         private bool _billingInitCalled;
 
         /// <summary>
-        /// Fired when a purchase flow completes and an OrderRequest should be processed by game.
-        /// Not fired for an order the SDK delivers itself (see <see cref="SetDeliveredBySdk"/>, e.g.
-        /// a live ops bundle whose items go to the game's Rewards handler), so the game never grants
-        /// it twice.
+        /// Fired when a purchase flow completes and an OrderRequest should be processed by game:
+        /// deliver the product's <see cref="Product.Items"/> (read with
+        /// <c>GetProductListAsync(productId: order.ProductId)</c>), or deliver by
+        /// <see cref="OrderRequest.ProductId"/> when it has none.
         /// </summary>
         public event Action<OrderRequest> OnPurchaseDone;
 
         /// <summary>
-        /// Fired for every verified order, before <see cref="OnPurchaseDone"/> and including the ones
-        /// the SDK delivers itself — for the SDK's own listeners (live ops rewards, ownership, ads).
-        /// Games use <see cref="OnPurchaseDone"/>.
+        /// Fired for every verified order, before <see cref="OnPurchaseDone"/> — for the SDK's own
+        /// listeners (live ops purchase limits, ownership, ads). Games use <see cref="OnPurchaseDone"/>.
         /// </summary>
         public event Action<OrderRequest> OnOrderVerified;
 
-        // Orders the SDK delivers itself; they are kept from OnPurchaseDone. Set by the composition root.
-        private Func<OrderRequest, bool> _deliveredBySdk;
-
-        /// <summary>
-        /// Composition-root hook: which verified orders the SDK delivers itself, so
-        /// <see cref="OnPurchaseDone"/> is not raised for them. Pass null to raise it for every order.
-        /// </summary>
-        public void SetDeliveredBySdk(Func<OrderRequest, bool> isDeliveredBySdk) => _deliveredBySdk = isDeliveredBySdk;
-
         /// <summary>
         /// Hands a verified order on: first to the SDK's listeners (<see cref="OnOrderVerified"/>),
-        /// then to the game (<see cref="OnPurchaseDone"/>) unless the SDK delivers it itself. A broken
-        /// SDK listener or check never keeps the order from the game.
+        /// then to the game (<see cref="OnPurchaseDone"/>). A broken SDK listener never keeps the
+        /// order from the game.
         /// </summary>
         private void RaisePurchaseDone(OrderRequest order)
         {
             try { OnOrderVerified?.Invoke(order); }
             catch (Exception e) { _log.Warning($"OnOrderVerified listener threw for order {order?.Id}: {e.Message}"); }
 
-            var deliveredBySdk = false;
-            try { deliveredBySdk = _deliveredBySdk?.Invoke(order) == true; }
-            catch (Exception e) { _log.Warning($"delivered-by-SDK check failed for order {order?.Id}, handing it to the game: {e.Message}"); }
-
-            if (deliveredBySdk)
-            {
-                _log.Info($"Order {order?.Id} ({order?.ProductId}) is delivered by the SDK (live ops Rewards); OnPurchaseDone not raised");
-                return;
-            }
             OnPurchaseDone?.Invoke(order);
         }
+
         /// <summary>
         /// Fired when a purchase verification fails and the order is placed in a pending state for retry.
         /// </summary>
@@ -318,6 +300,11 @@ namespace com.noctuagames.sdk
         /// <param name="currency">Optional currency to filter products. If null, uses platform locale currency.</param>
         /// <param name="platformType">Optional platform type override (e.g., "playstore").</param>
         /// <param name="forceRefresh">Skip the cache and always fetch from the server.</param>
+        /// <param name="productId">
+        /// Only this product, e.g. <c>order.ProductId</c> to read a purchase's
+        /// <see cref="Product.Items"/> in <c>OnPurchaseDone</c>; empty when the list does not have it.
+        /// Filtered on the device after the cache, so it never costs a request.
+        /// </param>
         /// <returns>List of products returned by server.</returns>
         /// <remarks>
         /// Results are cached per request params (game, currency, payment types, platform).
@@ -329,9 +316,19 @@ namespace com.noctuagames.sdk
         public async UniTask<ProductList> GetProductListAsync(
             string currency = null,
             string platformType = null,
-            bool forceRefresh = false)
+            bool forceRefresh = false,
+            string productId = null)
         {
             EnsureEnabled();
+
+            // The full list is fetched and cached once per params; a filter only narrows the copy.
+            ProductList Only(ProductList list)
+            {
+                if (productId == null || list == null) return list;
+                var only = new ProductList();
+                only.AddRange(list.Where(product => product.Id == productId));
+                return only;
+            }
 
             _log.Debug("calling API");
 
@@ -386,7 +383,7 @@ namespace com.noctuagames.sdk
             {
                 _log.Info($"product list served from cache ({cached.Count} products): {cacheKey}");
 
-                return CopyProductList(cached);
+                return Only(CopyProductList(cached));
             }
 
             // Gate so concurrent first calls share one fetch instead of racing the server.
@@ -398,10 +395,10 @@ namespace com.noctuagames.sdk
                 {
                     _log.Info($"product list served from cache ({cached.Count} products): {cacheKey}");
 
-                    return CopyProductList(cached);
+                    return Only(CopyProductList(cached));
                 }
 
-                return await FetchAndCacheProductListAsync(url, cacheKey);
+                return Only(await FetchAndCacheProductListAsync(url, cacheKey));
             }
             finally
             {

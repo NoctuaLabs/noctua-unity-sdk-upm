@@ -16,8 +16,11 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
         public Action<string> Deeplink;
 
         /// <summary>
-        /// Buys a product from a popup's Buy button: build the <c>PurchaseRequest</c> and call
-        /// <c>Noctua.IAP.PurchaseItemAsync</c>. The campaign is added to the order for you.
+        /// Optional. Without it the SDK buys a popup's SKU itself: price and currency from the
+        /// product list, role and server from the last <c>Noctua.Auth.UpdatePlayerAccountAsync</c>.
+        /// Set it only to build the <c>PurchaseRequest</c> yourself and call
+        /// <c>Noctua.IAP.PurchaseItemAsync</c>. Either way the campaign is added to the order, and
+        /// the game delivers it from <c>Noctua.IAP.OnPurchaseDone</c>.
         /// </summary>
         public Func<string, CampaignItem, UniTask> Purchase;
 
@@ -34,9 +37,9 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
         public Func<string, UniTask<bool>> OwnershipProvider;
 
         /// <summary>
-        /// Grants rewards the SDK owes the game, from every source: missions and milestone chests
-        /// it claimed (popup Claim / Claim All, or <c>Noctua.LiveOps.Campaign.Claim*Async</c>) and
-        /// campaign bundle purchases whose bundle lists items. Each <see cref="LiveOpsReward"/>
+        /// Grants the missions and milestone chests the SDK claimed (popup Claim / Claim All, or
+        /// <c>Noctua.LiveOps.Campaign.Claim*Async</c>). Campaign purchases are not rewards: the game
+        /// delivers them from <c>Noctua.IAP.OnPurchaseDone</c> (the product's <c>Items</c>). Each <see cref="LiveOpsReward"/>
         /// carries its <see cref="LiveOpsReward.Source"/>, the admin's <see cref="LiveOpsReward.Items"/>
         /// and a <see cref="LiveOpsReward.ClaimId"/>. A reward counts as delivered once this finishes
         /// without throwing; otherwise it is delivered again after the next init or login, so grant

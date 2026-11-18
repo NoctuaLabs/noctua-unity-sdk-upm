@@ -917,8 +917,13 @@ namespace com.noctuagames.sdk
             _accountContainer.ResetAccounts();
         }
 
+        /// <summary>PlayerPrefs key prefix of the last role data per player (<c>&lt;prefix&gt;.&lt;player id&gt;</c>).</summary>
+        public const string PlayerAccountDataPrefsKey = "NoctuaPlayerAccountData";
+
         /// <summary>
-        /// Syncs in-game player account data (username, server, role) to the server.
+        /// Syncs in-game player account data (username, server, role) to the server, and keeps the
+        /// latest on the device for the current player — the SDK fills a popup purchase's role and
+        /// server from it. Empty fields keep the values saved before.
         /// </summary>
         /// <param name="playerAccountData">The player account data to sync.</param>
         public async UniTask UpdatePlayerAccountAsync(PlayerAccountData playerAccountData)
@@ -930,6 +935,19 @@ namespace com.noctuagames.sdk
                 .WithJsonBody(playerAccountData);
 
             _ = await request.Send<object>();
+
+            var key = $"{PlayerAccountDataPrefsKey}.{RecentAccount.Player.Id}";
+            PlayerAccountData saved = null;
+            try { saved = JsonConvert.DeserializeObject<PlayerAccountData>(PlayerPrefs.GetString(key, "")); }
+            catch (JsonException) { /* unreadable: replaced below */ }
+            string Latest(string value, string previous) => string.IsNullOrEmpty(value) ? previous : value;
+            PlayerPrefs.SetString(key, JsonConvert.SerializeObject(new PlayerAccountData
+            {
+                IngameUsername = Latest(playerAccountData.IngameUsername, saved?.IngameUsername),
+                IngameServerId = Latest(playerAccountData.IngameServerId, saved?.IngameServerId),
+                IngameRoleId = Latest(playerAccountData.IngameRoleId, saved?.IngameRoleId),
+            }));
+            PlayerPrefs.Save();
 
             SendEvent(
                 "role_updated",
