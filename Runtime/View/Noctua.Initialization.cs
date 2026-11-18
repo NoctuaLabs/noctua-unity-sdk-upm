@@ -203,7 +203,10 @@ namespace com.noctuagames.sdk
                 try
                 {
                     _inspector = com.noctuagames.sdk.Inspector.NoctuaInspectorController.Install(
-                        _httpLog, _debugMonitor, _logLedger);
+                        _httpLog, _debugMonitor, _logLedger,
+                        buildSanity: BuildSanity,
+                        config: () => _config,
+                        campaign: () => LiveOps.Campaign.Module);
                     _log.Info("Noctua Inspector enabled (sandboxEnabled=true) — shake 3× / 4-finger tap to open");
                 }
                 catch (Exception e)

@@ -146,7 +146,8 @@ Inspector tooling, tracker debug monitor, HTTP inspection hooks, JSON/cURL expor
 
 | Layer | Files |
 |---|---|
-| Inspector (top-level — pre-existing category-coherent folder) | `Inspector/NoctuaInspectorController.cs` (large — split into partials), `Inspector/InspectorExporter.cs`, `Inspector/InspectorTrigger.cs`, `Inspector/CurlExporter.cs`, `Inspector/FirebaseProjectLookup.cs` |
+| UI / Controllers | `UI/Controllers/Debug/NoctuaInspectorController.cs` (the sandbox overlay, split into partials: `.Chrome`, `.Feeds`, `.Logs`, `.Performance`, `.Memory`, `.Build`, `.Campaigns`, `.Inject`), `UI/Controllers/Debug/InspectorTrigger.cs`. The overlay gets its data through `Install(...)` arguments from `View/Noctua.Initialization.cs`, never the `Noctua` static class |
+| Presenter (export helpers) | `Presenter/Debug/InspectorExporter.cs`, `Presenter/Debug/CurlExporter.cs`, `Presenter/Debug/FirebaseProjectLookup.cs` |
 | Presenter | `Presenter/Debug/TrackerDebugMonitor.cs`, `Presenter/Debug/TrackerEmission.cs`, `Presenter/Debug/TrackerObserverRegistry.cs`, `Presenter/Debug/InspectorJson.cs` |
 | Presenter / Interfaces | `Presenter/Interfaces/IHttpObserver.cs`, `Presenter/Interfaces/ITrackerObserver.cs` |
 | Infrastructure | `Infrastructure/Debug/HttpInspectorHooks.cs`, `Infrastructure/Debug/HttpInspectorLog.cs` |

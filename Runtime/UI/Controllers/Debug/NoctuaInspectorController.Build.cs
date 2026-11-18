@@ -16,7 +16,7 @@ namespace com.noctuagames.sdk.Inspector
 
         private void RenderBuild(ref int ok, ref int failing, ref int inflight)
         {
-            var info = Noctua.BuildSanity();
+            var info = _buildSanity?.Invoke() ?? new BuildSanityInfo();
 
             // Versions section
             _listContainer.Add(BuildSection("SDK / Build", new[]
@@ -320,7 +320,7 @@ namespace com.noctuagames.sdk.Inspector
             head.style.paddingBottom = 6;
             box.Add(head);
 
-            var map = BuildSanityProvider.ResolveAdjustEventMap(Noctua.Config);
+            var map = BuildSanityProvider.ResolveAdjustEventMap(_config?.Invoke());
             if (map == null || map.Count == 0)
             {
                 var muted = new Label("(no Adjust eventMap configured for this platform)");

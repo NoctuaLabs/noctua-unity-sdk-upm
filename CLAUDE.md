@@ -293,7 +293,7 @@ check — pile new debug surfaces onto this same gate.
 
 | Tab | Source | Backing class |
 |---|---|---|
-| Timeline | combined HTTP + Trackers | `NoctuaInspectorController.cs` |
+| Timeline | combined HTTP + Trackers | `Runtime/UI/Controllers/Debug/NoctuaInspectorController.Feeds.cs` |
 | HTTP | `HttpInspectorLog` ring buffer | `Runtime/Infrastructure/Debug/HttpInspectorLog.cs` |
 | Trackers | `TrackerDebugMonitor` ring buffer | `Runtime/Presenter/Debug/TrackerDebugMonitor.cs` |
 | Logs | Unity `Application.logMessageReceivedThreaded` + native bus | `Runtime/Infrastructure/Debug/LogInspectorLedger.cs`, `UnityLogStream.cs` |
@@ -450,7 +450,6 @@ The Unity Code Coverage window settings are persisted in `ProjectSettings/Packag
   **/Runtime/Platform/iOS/**
   **/Runtime/Platform/Android/**
   **/Runtime/UI/Controllers/**
-  **/Runtime/Inspector/**
   ```
   These folders are structurally untestable in EditMode (P/Invoke / JNI bridges, runtime UI presenters, debug overlays, vendored third-party plugins) and would otherwise inflate the denominator.
 
