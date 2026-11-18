@@ -1493,8 +1493,7 @@ namespace com.noctuagames.sdk
 
                 log.Info($"Campaign feature ready: {merged.Campaigns?.Count ?? 0} campaign(s), schema v{merged.SchemaVersion}");
 
-                // A popup's Buy needs no game code: the SDK buys the SKU itself. A game's own
-                // Purchase handler (Noctua.LiveOps.Campaign.Configure) replaces this one.
+                // A popup's Buy needs no game code: the SDK buys the SKU itself.
                 if (Instance.Value._iap != null) Instance.Value._campaign.SetPurchaseHandler(BuyCampaignProductAsync);
 
                 // Applies the handlers the game set before init, so an auto-shown popup already has them.

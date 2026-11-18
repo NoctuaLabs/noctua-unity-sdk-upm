@@ -15,7 +15,7 @@ namespace com.noctuagames.sdk.UI
     /// watch time elapses. Closes itself if the asset fails to load (no static fallback).
     /// The <b>banner</b> cross-promotion has its own presenter — <see cref="NoctuaAdBannerPlaceholder"/>.
     /// </summary>
-    internal class NoctuaAdPlaceholder : Presenter<object>
+    public class NoctuaAdPlaceholder : Presenter<object>
     {
         private VisualElement _closeBtn;
         private VisualElement _fullScreenContainer;

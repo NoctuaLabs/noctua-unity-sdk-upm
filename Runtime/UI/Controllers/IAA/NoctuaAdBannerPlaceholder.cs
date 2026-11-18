@@ -16,7 +16,7 @@ namespace com.noctuagames.sdk.UI
     /// placeholder or a real ad simply draws over it; when that closes, the banner is still here —
     /// and a full-screen cross-promo video keeps playing while a banner video plays too.
     /// </summary>
-    internal class NoctuaAdBannerPlaceholder : Presenter<object>
+    public class NoctuaAdBannerPlaceholder : Presenter<object>
     {
         private VisualElement _root;
         private VisualElement _box;

@@ -321,7 +321,8 @@ namespace com.noctuagames.sdk
         {
             EnsureEnabled();
 
-            // The full list is fetched and cached once per params; a filter only narrows the copy.
+            // The full list is fetched and cached once per params. A filter builds its own short list,
+            // so the cached list is never handed out and is not copied whole for one product.
             ProductList Only(ProductList list)
             {
                 if (productId == null || list == null) return list;
@@ -383,7 +384,7 @@ namespace com.noctuagames.sdk
             {
                 _log.Info($"product list served from cache ({cached.Count} products): {cacheKey}");
 
-                return Only(CopyProductList(cached));
+                return productId == null ? CopyProductList(cached) : Only(cached);
             }
 
             // Gate so concurrent first calls share one fetch instead of racing the server.
@@ -395,7 +396,7 @@ namespace com.noctuagames.sdk
                 {
                     _log.Info($"product list served from cache ({cached.Count} products): {cacheKey}");
 
-                    return Only(CopyProductList(cached));
+                    return productId == null ? CopyProductList(cached) : Only(cached);
                 }
 
                 return Only(await FetchAndCacheProductListAsync(url, cacheKey));
