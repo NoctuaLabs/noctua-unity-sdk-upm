@@ -49,6 +49,8 @@ namespace com.noctuagames.sdk
                 // RewardedInterstitialAd does NOT support the Preload API — use legacy Load() path.
                 if (!string.IsNullOrEmpty(_rewardedInterstitialAdUnitID) && _rewardedInterstitialAdUnitID != "unknown")
                 {
+                    // A new config runs this again: destroy the previous ad before replacing it.
+                    _rewardedInterstitialAdmob?.CleanupAd();
                     _rewardedInterstitialAdmob = new RewardedInterstitialAdmob(_adRevenueTracker);
                     _rewardedInterstitialAdmob.SetRewardedInterstitialAdUnitID(_rewardedInterstitialAdUnitID);
                     _rewardedInterstitialAdmob.RewardedOnAdDisplayed += () => { CloseAdPlaceholder(force: true); _frequencyCap?.RecordImpression(AdFormatKey.RewardedInterstitial); _onAdDisplayed?.Invoke(); };

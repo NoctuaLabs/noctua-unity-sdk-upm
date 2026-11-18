@@ -205,7 +205,8 @@ namespace com.noctuagames.sdk
                 if (value != null)
                 {
                     _adNetworkEventsSubscribed = false;
-                    _preloadManagerEventsSubscribed = false;
+                    // _preloadManagerEventsSubscribed is not reset: the preloader outlives a config
+                    // change, so resubscribing would fire OnAdsAvailable / OnAdExhausted twice.
                     CreateNetworks(value);
                     // Warm the cross-promotion cache so the placeholder shows instantly when needed
                     // (load-then-show, like mediation ads). No-op when cross-promotion is unconfigured.
