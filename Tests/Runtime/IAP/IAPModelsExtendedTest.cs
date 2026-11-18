@@ -115,7 +115,7 @@ namespace Tests.Runtime.IAP
         }
 
         [Test]
-        public void OrderRequest_CampaignPurchase_SendsTypedFieldsAndKeepsExtra()
+        public void OrderRequest_CampaignPurchase_SendsCampaignIdAndKeepsExtra()
         {
             var req = new OrderRequest
             {
@@ -123,8 +123,6 @@ namespace Tests.Runtime.IAP
                 Extra = new Dictionary<string, string>
                 {
                     { NoctuaLiveOpsCampaign.ExtraCampaignId, "cmp_1" },
-                    { NoctuaLiveOpsCampaign.ExtraBundleKey, "starter_pack" },
-                    { NoctuaLiveOpsCampaign.ExtraBundle, "{\"items\":[1]}" },
                     { "promo", "yes" },
                 }
             };
@@ -132,8 +130,7 @@ namespace Tests.Runtime.IAP
             var json = Newtonsoft.Json.Linq.JObject.Parse(JsonConvert.SerializeObject(req));
 
             Assert.AreEqual("cmp_1", (string)json["campaign_id"]);
-            Assert.AreEqual("starter_pack", (string)json["campaign_bundle_key"]);
-            Assert.AreEqual("{\"items\":[1]}", (string)json["campaign_bundle"]);
+            Assert.IsFalse(json.ContainsKey("campaign_bundle_key"), "the backend stores only the campaign id");
             // Extra keeps the keys for games and older backends.
             Assert.AreEqual("cmp_1", (string)json["extra"]["campaign_id"]);
             Assert.AreEqual("yes", (string)json["extra"]["promo"]);
@@ -149,8 +146,6 @@ namespace Tests.Runtime.IAP
             {
                 var json = Newtonsoft.Json.Linq.JObject.Parse(JsonConvert.SerializeObject(req));
                 Assert.IsFalse(json.ContainsKey("campaign_id"));
-                Assert.IsFalse(json.ContainsKey("campaign_bundle_key"));
-                Assert.IsFalse(json.ContainsKey("campaign_bundle"));
                 Assert.IsNull(req.CampaignId);
             }
         }
@@ -168,7 +163,6 @@ namespace Tests.Runtime.IAP
             var restored = JsonConvert.DeserializeObject<OrderRequest>(JsonConvert.SerializeObject(original));
 
             Assert.AreEqual("cmp_1", restored.CampaignId);
-            Assert.IsNull(restored.CampaignBundleKey);
         }
 
         // ─── UnpairedPurchaseRequest ──────────────────────────────────────────

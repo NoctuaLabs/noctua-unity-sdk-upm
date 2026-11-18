@@ -16,12 +16,6 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
         public Action<string> Deeplink;
 
         /// <summary>
-        /// Maps a dynamic product's bundle to a SKU. Optional: without it the bundle's own
-        /// <c>sku_android</c> / <c>sku_ios</c> / <c>sku</c> is used.
-        /// </summary>
-        public Func<CampaignItem, string, JToken, string> ProductResolver;
-
-        /// <summary>
         /// "Does the player own this SKU?" for one-time consumable offers. Optional: the store
         /// check covers non-consumables and subscriptions.
         /// </summary>
@@ -46,7 +40,6 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
             return new CampaignHandlers
             {
                 Deeplink = newer.Deeplink ?? older.Deeplink,
-                ProductResolver = newer.ProductResolver ?? older.ProductResolver,
                 OwnershipProvider = newer.OwnershipProvider ?? older.OwnershipProvider,
                 Rewards = newer.Rewards ?? older.Rewards,
             };

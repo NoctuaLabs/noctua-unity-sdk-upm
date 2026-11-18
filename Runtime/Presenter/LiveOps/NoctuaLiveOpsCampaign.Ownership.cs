@@ -106,7 +106,7 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
         /// not owned, so a failed check never hides an offer.
         /// </summary>
         public bool IsFullyOwned(CampaignItem item) =>
-            IsCampaignPurchased(item) || IsFullyOwned(WithDynamicProducts(item), _ownership);
+            IsCampaignPurchased(item) || IsFullyOwned(item, _ownership);
 
         public static bool IsFullyOwned(CampaignItem item, IReadOnlyDictionary<string, bool> ownership)
         {
@@ -262,7 +262,7 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
         {
             if (NeedsPurchaseStateCheck(item)) return true;
             if (_isProductOwned == null) return false;
-            foreach (var sku in SkusOf(item))
+            foreach (var sku in PurchaseSkus(item))
             {
                 if (!_ownership.ContainsKey(sku)) return true;
             }
@@ -280,7 +280,7 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
             if (provider == null) return false;
 
             var pending = new List<string>();
-            foreach (var sku in SkusOf(item))
+            foreach (var sku in PurchaseSkus(item))
             {
                 if (!_ownership.ContainsKey(sku)) pending.Add(sku);
             }
@@ -358,7 +358,7 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
 
                 var popup = _ui;
                 if (_shownItem == null || popup == null || !popup.IsShowing) return;
-                if (!SkusOf(_shownItem).Contains(productId)) return;
+                if (!PurchaseSkus(_shownItem).Contains(productId)) return;
 
                 popup.Refresh(RenderItem(_shownItem, _shownPlayerData), _resolver.Config.SchemaVersion);
             }

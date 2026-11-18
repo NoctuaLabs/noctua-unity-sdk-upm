@@ -17,39 +17,23 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
     /// server-side and survives reinstalls. A bought campaign is no longer shown, and its Buy
     /// buttons show as purchased. While the tracker is down the purchase waits on disk and still
     /// counts as bought on this device.</para>
-    ///
-    /// <para><b>Dynamic products</b> (<see cref="CampaignAction.ProductKey"/>): the admin ships a
-    /// JSON bundle under a <c>data</c> key. The bundle names its SKU (<c>sku_android</c> /
-    /// <c>sku_ios</c> / <c>sku</c>), or the game's resolver (<see cref="SetProductResolver"/>) maps
-    /// it to one. The order carries the campaign and bundle automatically (<see cref="CampaignOrderExtra"/>).</para>
     /// </summary>
     public sealed partial class NoctuaLiveOpsCampaign
     {
         /// <summary>Suffix of a <c>purchase_once</c> campaign's tracker key.</summary>
         public const string PurchaseKeySuffix = ".purchase";
 
-        /// <summary><see cref="PurchaseExtra"/> keys.</summary>
+        /// <summary>Order <c>extra</c> key naming the campaign a purchase came from.</summary>
         public const string ExtraCampaignId = "campaign_id";
-        public const string ExtraBundleKey = "campaign_bundle_key";
-        public const string ExtraBundle = "campaign_bundle";
-
-        /// <summary>Largest bundle (UTF-8 bytes) a <c>product_key</c> may point at.</summary>
-        public const int MaxBundleBytes = 4096;
 
         /// <summary>How old loaded progress may be before a <c>purchase_once</c> campaign re-checks it.</summary>
         public static readonly TimeSpan PurchaseStateMaxAge = TimeSpan.FromMinutes(5);
 
         private const string AlreadyPurchasedFallback = "You already bought this offer.";
-        private const string BundleKeySeparator = "\n";
 
         /// <summary>Fires with a campaign id once its one-time purchase is recorded on the tracker.</summary>
         public event Action<string> OnCampaignPurchaseRecorded;
 
-        private Func<CampaignItem, string, JToken, string> _productResolver;
-        // "<campaign id>\n<product key>" → parsed bundle; null = missing or invalid (logged once).
-        private readonly Dictionary<string, JToken> _bundles = new(StringComparer.Ordinal);
-        // "<campaign id>\n<sku>" → the product key the resolver mapped to that SKU.
-        private readonly Dictionary<string, string> _bundleKeyBySku = new(StringComparer.Ordinal);
         // Purchase keys being claimed right now, so a flush never claims one twice at once.
         private readonly HashSet<string> _claimingPurchaseKeys = new(StringComparer.Ordinal);
         // Last purchase-state load attempt, so a tracker that is down is not waited on for every popup.
@@ -287,106 +271,19 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
                 ? null
                 : _resolver.Config?.Campaigns?.FirstOrDefault(c => c != null && c.Id == campaignId);
 
-        // ── Dynamic products ──────────────────────────────────────────────
-
-        /// <summary>
-        /// Registers how the game turns a dynamic product into a SKU: called with the campaign, the
-        /// action's <c>product_key</c> and that key's bundle (a JSON object or array, a copy the
-        /// resolver may keep). Return the SKU to sell, or null when the game has nothing for it —
-        /// the button is then hidden. Optional: without a resolver the SKU comes from the bundle
-        /// itself (<see cref="DefaultBundleSku"/>). Pass <c>null</c> to go back to that.
-        /// </summary>
-        public void SetProductResolver(Func<CampaignItem, string, JToken, string> resolver)
-        {
-            _productResolver = resolver;
-            _bundleKeyBySku.Clear();
-            _hiddenWarned.Clear();
-        }
-
-        /// <summary>
-        /// The bundle behind <paramref name="productKey"/> in <paramref name="item"/>'s data, or
-        /// null when it is missing, not JSON, not an object or array of objects, or over
-        /// <see cref="MaxBundleBytes"/>. Returns a copy.
-        /// </summary>
-        public JToken GetProductBundle(CampaignItem item, string productKey)
-        {
-            if (item?.Data == null || string.IsNullOrWhiteSpace(productKey)) return null;
-
-            productKey = productKey.Trim();
-            var cacheKey = item.Id + BundleKeySeparator + productKey;
-            if (!_bundles.TryGetValue(cacheKey, out var bundle))
-            {
-                bundle = item.Data.TryGetValue(productKey, out var raw) ? ParseBundle(item.Id, productKey, raw) : null;
-                _bundles[cacheKey] = bundle;
-            }
-            return bundle?.DeepClone();
-        }
-
-        /// <summary>
-        /// The bundle the resolver turned into <paramref name="sku"/> for <paramref name="item"/> —
-        /// for a purchase handler that needs the contents. Null for a fixed SKU.
-        /// </summary>
-        public JToken GetProductBundleForSku(CampaignItem item, string sku)
-        {
-            if (item == null || string.IsNullOrEmpty(sku)) return null;
-            return _bundleKeyBySku.TryGetValue(item.Id + BundleKeySeparator + sku, out var key)
-                ? GetProductBundle(item, key)
-                : null;
-        }
-
-        /// <summary>
-        /// The order <c>extra</c> for a purchase from <paramref name="item"/>: the game's own
-        /// <paramref name="extra"/> plus <c>campaign_id</c>, and for a dynamic product
-        /// <c>campaign_bundle_key</c> and <c>campaign_bundle</c> (compact JSON). A new dictionary;
-        /// set it on <c>PurchaseRequest.Extra</c>. The bundle is the one the resolver turned into
-        /// <paramref name="sku"/>; see the overload taking the button's product key.
-        /// </summary>
-        public Dictionary<string, string> PurchaseExtra(
-            CampaignItem item, string sku, IReadOnlyDictionary<string, string> extra = null) =>
-            PurchaseExtra(item, sku, productKey: null, extra);
-
-        /// <summary>
-        /// <see cref="PurchaseExtra(CampaignItem, string, IReadOnlyDictionary{string, string})"/> for
-        /// the Buy button whose bundle is <paramref name="productKey"/> — right even when two buttons
-        /// sell the same SKU.
-        /// </summary>
-        public Dictionary<string, string> PurchaseExtra(
-            CampaignItem item, string sku, string productKey, IReadOnlyDictionary<string, string> extra)
-        {
-            var result = extra == null
-                ? new Dictionary<string, string>()
-                : extra.ToDictionary(pair => pair.Key, pair => pair.Value);
-            if (item == null) return result;
-
-            result[ExtraCampaignId] = item.Id ?? string.Empty;
-
-            var key = !string.IsNullOrWhiteSpace(productKey)
-                ? productKey.Trim()
-                : !string.IsNullOrEmpty(sku) && _bundleKeyBySku.TryGetValue(item.Id + BundleKeySeparator + sku, out var mapped)
-                    ? mapped
-                    : null;
-            if (key == null) return result;
-
-            result[ExtraBundleKey] = key;
-            var bundle = GetProductBundle(item, key);
-            if (bundle == null) return result;
-
-            result[ExtraBundle] = bundle.ToString(Formatting.None);
-            return result;
-        }
+        // ── Order attribution ─────────────────────────────────────────────
 
         /// <summary>
         /// The order <c>extra</c> for a purchase of <paramref name="sku"/> started from a campaign's
-        /// Buy button (<see cref="PurchaseExtra(CampaignItem, string, string, IReadOnlyDictionary{string, string})"/>
-        /// with the tapped button's bundle), or null for any other purchase. The composition root
-        /// hands it to <c>Noctua.IAP</c>, which adds it under the game's own keys — no game code needed.
+        /// Buy button: its <c>campaign_id</c>. Null for any other purchase. The composition root
+        /// hands it to <c>Noctua.IAP</c>, which adds it under the game's own keys.
         /// </summary>
         public IReadOnlyDictionary<string, string> CampaignOrderExtra(string sku)
         {
             try
             {
                 var item = FindCampaign(_dispatcher.RecentPurchaseCampaign(sku));
-                return item == null ? null : PurchaseExtra(item, sku, _dispatcher.RecentPurchaseProductKey(sku), null);
+                return item == null ? null : new Dictionary<string, string> { { ExtraCampaignId, item.Id ?? string.Empty } };
             }
             catch (Exception e)
             {
@@ -394,171 +291,5 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
                 return null;
             }
         }
-
-        /// <summary>
-        /// A copy of <paramref name="item"/> whose dynamic Buy buttons carry the resolved SKU, and
-        /// whose unresolvable ones are hidden. The item itself when it has none; never mutates it.
-        /// </summary>
-        public CampaignItem WithDynamicProducts(CampaignItem item)
-        {
-            if (item?.View == null) return item;
-
-            var view = ResolveDynamicNode(item.View, item, depth: 0);
-            if (ReferenceEquals(view, item.View)) return item;
-
-            var copy = item.ShallowCopy();
-            copy.View = view;
-            return copy;
-        }
-
-        private CampaignNode ResolveDynamicNode(CampaignNode node, CampaignItem item, int depth)
-        {
-            if (node == null || depth >= MaxSkuSearchDepth) return node;
-
-            List<CampaignNode> children = null;
-            if (node.Children != null)
-            {
-                for (var i = 0; i < node.Children.Count; i++)
-                {
-                    var child = ResolveDynamicNode(node.Children[i], item, depth + 1);
-                    if (ReferenceEquals(child, node.Children[i])) continue;
-
-                    children ??= new List<CampaignNode>(node.Children);
-                    children[i] = child;
-                }
-            }
-
-            var dynamic = IsDynamicPurchase(node.Action);
-            if (!dynamic && children == null) return node;
-
-            var copy = node.ShallowCopy();
-            if (children != null) copy.Children = children;
-            if (!dynamic) return copy;
-
-            var sku = ResolveDynamicSku(item, node.Action.ProductKey.Trim());
-            if (string.IsNullOrEmpty(sku))
-            {
-                copy.Action = null;
-                copy.VisibleIf = Hidden();
-                return copy;
-            }
-
-            copy.Action = new CampaignAction
-            {
-                TypeRaw = node.Action.TypeRaw,
-                Deeplink = node.Action.Deeplink,
-                ProductId = sku,
-                ProductKey = node.Action.ProductKey,
-                KeepOpen = node.Action.KeepOpen,
-                Id = node.Action.Id,
-            };
-            return copy;
-        }
-
-        private static bool IsDynamicPurchase(CampaignAction action) =>
-            action != null
-            && action.Type == CampaignActionType.Purchase
-            && string.IsNullOrWhiteSpace(action.ProductId)
-            && !string.IsNullOrWhiteSpace(action.ProductKey);
-
-        private string ResolveDynamicSku(CampaignItem item, string productKey)
-        {
-            var bundle = GetProductBundle(item, productKey);
-            if (bundle == null) return null;
-
-            var resolver = _productResolver;
-            string sku;
-            try { sku = (resolver != null ? resolver(item, productKey, bundle) : DefaultBundleSku(bundle))?.Trim(); }
-            catch (Exception e)
-            {
-                _log.Warning($"{LogTag} product resolver threw for '{item.Id}'/'{productKey}': {e.Message}");
-                return null;
-            }
-
-            if (string.IsNullOrEmpty(sku))
-            {
-                WarnHiddenOnce(item.Id, productKey, resolver != null
-                    ? "the game's product resolver returned no SKU"
-                    : $"its bundle has no {PlatformSkuKey} or {GenericSkuKey}, and no product resolver is set (SetProductResolver)");
-                return null;
-            }
-            _bundleKeyBySku[item.Id + BundleKeySeparator + sku] = productKey;
-            return sku;
-        }
-
-        /// <summary>Bundle key naming the SKU on this store; read when the game sets no resolver.</summary>
-#if UNITY_IOS
-        public const string PlatformSkuKey = "sku_ios";
-#else
-        public const string PlatformSkuKey = "sku_android";
-#endif
-
-        /// <summary>Bundle key naming the SKU on every store; the fallback after <see cref="PlatformSkuKey"/>.</summary>
-        public const string GenericSkuKey = "sku";
-
-        /// <summary>
-        /// The SKU a bundle names for this store without game code: <see cref="PlatformSkuKey"/>,
-        /// else <see cref="GenericSkuKey"/>, read from the object (or an array's first entry).
-        /// Null when it names none.
-        /// </summary>
-        public static string DefaultBundleSku(JToken bundle)
-        {
-            var entry = bundle is JArray array ? array.FirstOrDefault() : bundle;
-            if (entry is not JObject obj) return null;
-
-            foreach (var key in new[] { PlatformSkuKey, GenericSkuKey })
-            {
-                if (obj.TryGetValue(key, out var value) && value.Type == JTokenType.String)
-                {
-                    var sku = value.Value<string>()?.Trim();
-                    if (!string.IsNullOrEmpty(sku)) return sku;
-                }
-            }
-            return null;
-        }
-
-        // Campaign + key pairs already warned about, so a re-render does not repeat the log.
-        private readonly HashSet<string> _hiddenWarned = new(StringComparer.Ordinal);
-
-        private void WarnHiddenOnce(string campaignId, string productKey, string reason)
-        {
-            if (!_hiddenWarned.Add(campaignId + BundleKeySeparator + productKey)) return;
-            _log.Warning($"{LogTag} dynamic product '{productKey}' in campaign '{campaignId}' is hidden: {reason}.");
-        }
-
-        private JToken ParseBundle(string campaignId, string productKey, string raw)
-        {
-            if (string.IsNullOrWhiteSpace(raw)) return null;
-            if (Encoding.UTF8.GetByteCount(raw) > MaxBundleBytes)
-            {
-                _log.Warning($"{LogTag} bundle '{productKey}' in '{campaignId}' is over {MaxBundleBytes} bytes — button hidden");
-                return null;
-            }
-
-            try
-            {
-                var token = JToken.Parse(raw);
-                var valid = token is JObject
-                            || (token is JArray array && array.Count > 0 && array.All(entry => entry is JObject));
-                if (valid) return token;
-
-                _log.Warning($"{LogTag} bundle '{productKey}' in '{campaignId}' is not an object or array of objects — button hidden");
-                return null;
-            }
-            catch (JsonException e)
-            {
-                _log.Warning($"{LogTag} bundle '{productKey}' in '{campaignId}' is not valid JSON — button hidden: {e.Message}");
-                return null;
-            }
-        }
-
-        /// <summary>A condition that is never true: the node is not rendered.</summary>
-        private static CampaignCondition Hidden() => new()
-        {
-            All = new List<CampaignConditionClause> { new() { Left = "0", Op = "eq", Right = "1" } },
-        };
-
-        /// <summary>The SKUs <paramref name="item"/> sells once dynamic products are resolved.</summary>
-        private IReadOnlyList<string> SkusOf(CampaignItem item) => PurchaseSkus(WithDynamicProducts(item));
     }
 }

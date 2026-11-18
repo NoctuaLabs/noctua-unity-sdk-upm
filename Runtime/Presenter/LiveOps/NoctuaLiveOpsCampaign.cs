@@ -172,7 +172,6 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
             if (handlers == null) return;
 
             if (handlers.Deeplink != null) _deeplinkHandler = handlers.Deeplink;
-            if (handlers.ProductResolver != null) SetProductResolver(handlers.ProductResolver);
             if (handlers.OwnershipProvider != null) SetOwnershipProvider(handlers.OwnershipProvider);
             if (handlers.Rewards != null) SetRewardsHandler(handlers.Rewards);
         }
@@ -460,7 +459,7 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
         /// <summary>The stored campaign with the game's values and the known local prices folded in.</summary>
         private CampaignItem RenderItem(CampaignItem stored, IReadOnlyDictionary<string, string> playerData)
         {
-            var item = WithDynamicProducts(MergePlayerData(stored, playerData));
+            var item = MergePlayerData(stored, playerData);
             var ownership = OwnershipFor(item);
             return MarkOwnedButtons(
                 ApplyOwnership(ApplyStorePrices(item, _storePrices), ownership),

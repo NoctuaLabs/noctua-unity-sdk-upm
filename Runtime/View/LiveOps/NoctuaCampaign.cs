@@ -135,9 +135,6 @@ namespace com.noctuagames.sdk
         public async UniTask<bool> IsCampaignPurchasedAsync(string campaignId) =>
             await (await ReadyModuleAsync()).IsCampaignPurchasedAsync(campaignId);
 
-        /// <summary>The dynamic-product bundle a Buy button resolved to <paramref name="sku"/>, or null.</summary>
-        public JToken GetProductBundleForSku(CampaignItem campaign, string sku) => _module?.GetProductBundleForSku(campaign, sku);
-
         /// <summary>
         /// SDK-only: a verified purchase (<c>Noctua.IAP.OnOrderVerified</c>). An order from a
         /// <c>purchase_once</c> campaign marks that campaign bought for <paramref name="buyerId"/>;

@@ -1480,8 +1480,8 @@ namespace com.noctuagames.sdk
                     Instance.Value._iap.OnPurchaseSettled += outcome =>
                         Instance.Value._campaign?.HandlePurchaseSettled(outcome);
 
-                    // An order started from a campaign's Buy button carries its campaign (and
-                    // dynamic bundle) in `extra` — no game code involved either.
+                    // An order started from a campaign's Buy button carries the campaign id
+                    // in `extra` — no game code involved either.
                     Instance.Value._iap.SetOrderExtraProvider(sku => Instance.Value._campaign?.CampaignOrderExtra(sku));
                 }
 

@@ -502,7 +502,6 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
                 TypeRaw = a.TypeRaw,
                 Deeplink = ResolveTokens(a.Deeplink, item),
                 ProductId = ResolveTokens(a.ProductId, item),
-                ProductKey = a.ProductKey,
                 Mission = a.Mission,
                 Milestone = a.Milestone,
                 KeepOpen = a.KeepOpen,

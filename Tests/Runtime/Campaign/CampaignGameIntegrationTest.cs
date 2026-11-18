@@ -33,10 +33,6 @@ namespace Tests.Runtime.Campaign
             CampaignFactory.Item(id, CampaignItem.EngagementPurchase,
                 CampaignFactory.Node(CampaignNode.TypeContainer, children: buttons), data);
 
-        private static CampaignNode DynamicBuy(string key) =>
-            CampaignFactory.Node(CampaignNode.TypeButton,
-                action: new CampaignAction { TypeRaw = "purchase", ProductKey = key });
-
         private static CampaignNode FixedBuy(string sku) =>
             CampaignFactory.Node(CampaignNode.TypeButton,
                 action: new CampaignAction { TypeRaw = "purchase", ProductId = sku });
@@ -51,9 +47,10 @@ namespace Tests.Runtime.Campaign
         public void LiveOps_BeforeInit_ReadsAreEmpty_AndConfigureIsKeptForAttach()
         {
             var liveOps = new NoctuaCampaign();
+            var delivered = new List<string>();
             liveOps.Configure(new CampaignHandlers
             {
-                ProductResolver = (_, __, bundle) => bundle["tier"]?.ToString() == "t1" ? "pack1" : null,
+                Rewards = rewards => { delivered.AddRange(rewards.Select(r => r.ClaimId)); return UniTask.CompletedTask; },
             });
 
             Assert.IsFalse(liveOps.IsReady);
@@ -61,14 +58,15 @@ namespace Tests.Runtime.Campaign
             Assert.IsEmpty(liveOps.Progress);
             Assert.DoesNotThrow(() => { liveOps.ClosePopup(); liveOps.UpdatePopupData(null); });
 
-            var item = Offer("dyn", new Dictionary<string, string> { { "offer", "{\"tier\":\"t1\"}" } }, DynamicBuy("offer"));
-            var module = Facade(item);
+            var module = Facade(Offer("starter", null, FixedBuy("pack1")));
             liveOps.Attach(module);
 
             Assert.IsTrue(liveOps.IsReady);
             Assert.AreSame(module, liveOps.Module);
-            Assert.AreEqual("pack1", module.WithDynamicProducts(item).View.Children[0].Action.ProductId,
-                "handlers set before init reach the module");
+            typeof(NoctuaLiveOpsCampaign).GetMethod("RecordRewards",
+                    System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)
+                .Invoke(module, new object[] { new List<LiveOpsReward> { new() { ClaimId = "season.m1" } } });
+            CollectionAssert.AreEqual(new[] { "season.m1" }, delivered, "handlers set before init reach the module");
         }
 
         [UnityTest]
@@ -169,42 +167,6 @@ namespace Tests.Runtime.Campaign
 
             dispatcher.Dispatch(new CampaignAction { TypeRaw = "claim", Milestone = "25" }, missions);
             CollectionAssert.AreEqual(new[] { "use_stm", "milestone 25" }, calls, "a chest button names its points");
-        }
-
-        // ---- Default product resolver ------------------------------------
-
-        [TestCase("{\"" + NoctuaLiveOpsCampaign.PlatformSkuKey + "\":\"store.sku\",\"sku\":\"generic.sku\"}", "store.sku")]
-        [TestCase("{\"sku\":\"generic.sku\"}", "generic.sku")]
-        [TestCase("[{\"sku\":\"first.sku\"},{\"sku\":\"second.sku\"}]", "first.sku")]
-        [TestCase("{\"sku\":\"  padded.sku  \"}", "padded.sku")]
-        [TestCase("{\"tier\":\"t3\"}", null)]
-        [TestCase("{\"sku\":42}", null)]
-        [TestCase("{\"sku\":\"\"}", null)]
-        public void DefaultBundleSku_ReadsTheStoreThenGenericKey(string bundle, string expected)
-        {
-            Assert.AreEqual(expected, NoctuaLiveOpsCampaign.DefaultBundleSku(JToken.Parse(bundle)));
-        }
-
-        [Test]
-        public void WithoutAResolver_TheBundlesOwnSkuIsSold()
-        {
-            var item = Offer("dyn", new Dictionary<string, string> { { "offer", "{\"sku\":\"pack9\"}" } }, DynamicBuy("offer"));
-
-            var resolved = Facade(item).WithDynamicProducts(item);
-
-            Assert.AreEqual("pack9", resolved.View.Children[0].Action.ProductId);
-        }
-
-        [Test]
-        public void AGameResolver_StillDecidesAlone()
-        {
-            var item = Offer("dyn", new Dictionary<string, string> { { "offer", "{\"sku\":\"pack9\"}" } }, DynamicBuy("offer"));
-            var facade = Facade(item);
-            facade.SetProductResolver((_, __, ___) => null);
-
-            var node = facade.WithDynamicProducts(item).View.Children[0];
-
-            Assert.IsNull(node.Action, "a resolver's null means 'do not sell', even if the bundle names a SKU");
         }
 
         // ---- Campaign info on orders -------------------------------------
@@ -339,35 +301,30 @@ namespace Tests.Runtime.Campaign
         public void CampaignHandlers_Merge_KeepsEarlierFieldsTheNewSetLeavesOut()
         {
             Action<string> deeplink = _ => { };
-            Func<CampaignItem, string, JToken, string> resolver = (_, __, ___) => "x";
+            Func<string, UniTask<bool>> owned = _ => UniTask.FromResult(true);
 
             var merged = CampaignHandlers.Merge(
                 new CampaignHandlers { Deeplink = deeplink },
-                new CampaignHandlers { ProductResolver = resolver });
+                new CampaignHandlers { OwnershipProvider = owned });
 
             Assert.AreSame(deeplink, merged.Deeplink);
-            Assert.AreSame(resolver, merged.ProductResolver);
+            Assert.AreSame(owned, merged.OwnershipProvider);
         }
 
         [Test]
-        public void Configure_AppliesTheResolver_AndReplacesTheRewardsHandlerInsteadOfAddingOne()
+        public void Configure_ReplacesTheRewardsHandlerInsteadOfAddingOne()
         {
-            var item = Offer("dyn", new Dictionary<string, string> { { "offer", "{\"tier\":\"t1\"}" } }, DynamicBuy("offer"));
-            var facade = Facade(item);
+            var facade = Facade(Offer("starter", null, FixedBuy("pack1")));
             var calls = new List<string>();
 
             facade.Configure(new CampaignHandlers
             {
-                ProductResolver = (_, __, bundle) => bundle["tier"]?.ToString() == "t1" ? "pack1" : null,
                 Rewards = _ => { calls.Add("first"); return UniTask.CompletedTask; },
             });
             facade.Configure(new CampaignHandlers
             {
                 Rewards = _ => { calls.Add("second"); return UniTask.CompletedTask; },
             });
-
-            Assert.AreEqual("pack1", facade.WithDynamicProducts(item).View.Children[0].Action.ProductId,
-                "the resolver from the first call is kept");
 
             var record = typeof(NoctuaLiveOpsCampaign).GetMethod("RecordRewards",
                 System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);

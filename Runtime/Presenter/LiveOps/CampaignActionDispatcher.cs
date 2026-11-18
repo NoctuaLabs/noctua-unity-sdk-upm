@@ -100,9 +100,6 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
 
             // When the purchase handler returned. Null while it runs.
             public DateTime? HandlerEndedAtUtc;
-
-            /// <summary>The tapped button's dynamic bundle key, or null for a fixed SKU.</summary>
-            public string ProductKey;
         }
 
         /// <summary>
@@ -286,13 +283,6 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
         /// </summary>
         public string RecentPurchaseCampaign(string productId) => RecentTap(productId)?.CampaignId;
 
-        /// <summary>
-        /// The dynamic bundle key of the Buy button buying <paramref name="productId"/> right now
-        /// (same rule as <see cref="RecentPurchaseCampaign"/>), or null for a fixed SKU or no tap.
-        /// Two buttons may sell one SKU with different items; this says which one was tapped.
-        /// </summary>
-        public string RecentPurchaseProductKey(string productId) => RecentTap(productId)?.ProductKey;
-
         private PendingPurchase RecentTap(string productId)
         {
             if (string.IsNullOrEmpty(productId) || !_pendingPurchases.TryGetValue(productId, out var tap)) return null;
@@ -402,7 +392,6 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
                 CampaignId = campaign?.Id ?? string.Empty,
                 EngagementType = campaign?.EngagementType,
                 ButtonId = action.Id,
-                ProductKey = string.IsNullOrWhiteSpace(action.ProductKey) ? null : action.ProductKey.Trim(),
                 TappedAtUtc = now,
             };
             _pendingPurchases[action.ProductId] = tap;

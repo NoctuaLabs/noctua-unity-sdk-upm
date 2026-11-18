@@ -75,45 +75,8 @@ namespace Tests.Runtime.Campaign
             Rewards = rewards => { delivered.AddRange(rewards); return UniTask.CompletedTask; },
         };
 
-        /// <summary>A purchase campaign with two Buy buttons that sell the same SKU with different items.</summary>
-        private static CampaignItem SharedSkuOffer() =>
-            CampaignFactory.Item("summer", CampaignItem.EngagementPurchase,
-                CampaignFactory.Node(CampaignNode.TypeContainer, children: new[]
-                {
-                    CampaignFactory.Node(CampaignNode.TypeButton, action: new CampaignAction { TypeRaw = "purchase", ProductKey = "offer_gems", Id = "gems" }),
-                    CampaignFactory.Node(CampaignNode.TypeButton, action: new CampaignAction { TypeRaw = "purchase", ProductKey = "offer_gold", Id = "gold" }),
-                    CampaignFactory.Node(CampaignNode.TypeButton, action: new CampaignAction { TypeRaw = "purchase", ProductKey = "offer_tier", Id = "tier" }),
-                }),
-                new Dictionary<string, string>
-                {
-                    { "offer_gems", "{\"sku\":\"pack_499\",\"items\":[{\"key\":\"gem\",\"value\":\"500\"}]}" },
-                    { "offer_gold", "{\"sku\":\"pack_499\",\"items\":[{\"key\":\"gold\",\"value\":\"20000\"},{\"key\":\"chest\",\"value\":\"1\"}]}" },
-                    { "offer_tier", "{\"sku\":\"pack_999\",\"tier\":\"t3\"}" },
-                });
-
         private static NoctuaLiveOpsCampaign Module(params CampaignItem[] campaigns) =>
             NewFacade(BaseUrl, new CampaignConfig { SchemaVersion = 3, Campaigns = campaigns.ToList() });
-
-        /// <summary>
-        /// Taps the resolved Buy button <paramref name="buttonId"/> with a purchase handler that is
-        /// still running — the moment the real order is created — and returns that order's extra.
-        /// </summary>
-        private static IReadOnlyDictionary<string, string> OrderExtraOfTap(NoctuaLiveOpsCampaign module, CampaignItem item, string buttonId)
-        {
-            var resolved = module.WithDynamicProducts(item);
-            var action = resolved.View.Children.Select(child => child.Action).First(a => a?.Id == buttonId);
-            var dispatcher = (CampaignActionDispatcher)typeof(NoctuaLiveOpsCampaign)
-                .GetField("_dispatcher", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(module);
-
-            // The order is created while the game's purchase handler runs; it ends afterwards, so
-            // the next tap is not ignored as a double tap.
-            var running = new UniTaskCompletionSource();
-            module.SetPurchaseHandler((_, __) => running.Task);
-            dispatcher.Dispatch(action, item);
-            var extra = module.CampaignOrderExtra(action.ProductId);
-            running.TrySetResult();
-            return extra;
-        }
 
         private static OrderRequest Order(int id, IReadOnlyDictionary<string, string> extra, string sku = "pack_499") =>
             new OrderRequest { Id = id, ProductId = sku, Extra = extra?.ToDictionary(p => p.Key, p => p.Value) };
@@ -167,25 +130,10 @@ namespace Tests.Runtime.Campaign
         public void SharedRules_ItemList(string json, bool valid) =>
             Assert.AreEqual(valid, RewardItem.ParseList(json) != null);
 
-        // ---- which bundle an order carries --------------------------------------
+        // ---- what an order carries ---------------------------------------------
 
         [Test]
-        public void Order_CarriesTheTappedButtonsBundle_WhenTwoButtonsShareASku()
-        {
-            var item = SharedSkuOffer();
-            var module = Module(item);
-
-            var gold = OrderExtraOfTap(module, item, "gold");
-            Assert.AreEqual("offer_gold", gold[NoctuaLiveOpsCampaign.ExtraBundleKey]);
-            StringAssert.Contains("chest", gold[NoctuaLiveOpsCampaign.ExtraBundle]);
-
-            var gems = OrderExtraOfTap(module, item, "gems");
-            Assert.AreEqual("offer_gems", gems[NoctuaLiveOpsCampaign.ExtraBundleKey], "the other button of the same SKU keeps its own bundle");
-            StringAssert.DoesNotContain("chest", gems[NoctuaLiveOpsCampaign.ExtraBundle]);
-        }
-
-        [Test]
-        public void Order_FromAFixedSku_CarriesOnlyTheCampaign()
+        public void Order_FromAPopup_CarriesOnlyTheCampaignId()
         {
             var item = CampaignFactory.Item("fixed", CampaignItem.EngagementPurchase,
                 CampaignFactory.Node(CampaignNode.TypeButton, action: new CampaignAction { TypeRaw = "purchase", ProductId = "pack_499", Id = "buy" }));
@@ -198,17 +146,15 @@ namespace Tests.Runtime.Campaign
 
             var extra = module.CampaignOrderExtra("pack_499");
             Assert.AreEqual("fixed", extra[NoctuaLiveOpsCampaign.ExtraCampaignId]);
-            Assert.IsFalse(extra.ContainsKey(NoctuaLiveOpsCampaign.ExtraBundle));
+            Assert.AreEqual(1, extra.Count);
             Assert.IsNull(module.CampaignOrderExtra("shop_pack"), "a purchase no popup started carries nothing");
         }
 
         // ---- every order reaches the game's OnPurchaseDone ------------------------
 
-        private static Dictionary<string, string> BundleExtra() => new()
+        private static Dictionary<string, string> CampaignExtra() => new()
         {
             { NoctuaLiveOpsCampaign.ExtraCampaignId, "summer" },
-            { NoctuaLiveOpsCampaign.ExtraBundleKey, "offer_gems" },
-            { NoctuaLiveOpsCampaign.ExtraBundle, "{\"sku\":\"pack_499\"}" },
         };
 
         private static (NoctuaIAPService iap, List<OrderRequest> game, List<int> sdk) Iap()
@@ -232,7 +178,7 @@ namespace Tests.Runtime.Campaign
         {
             var (iap, game, sdk) = Iap();
 
-            Verified(iap, Order(911, BundleExtra()));
+            Verified(iap, Order(911, CampaignExtra()));
             Verified(iap, Order(912, new Dictionary<string, string> { { "campaign_id", "summer" } }, "pack_fixed"));
             Verified(iap, Order(913, null, "shop_pack"));
 
@@ -246,7 +192,7 @@ namespace Tests.Runtime.Campaign
         {
             var (iap, game, _) = Iap();
             iap.OnOrderVerified += _ => throw new InvalidOperationException("boom");
-            Verified(iap, Order(915, BundleExtra()));
+            Verified(iap, Order(915, CampaignExtra()));
             Assert.AreEqual(915, game.Single().Id);
         }
 
@@ -258,7 +204,7 @@ namespace Tests.Runtime.Campaign
             campaign.Configure(Collect(delivered));
             campaign.Attach(Module());
 
-            campaign.OnPurchaseDone(Order(908, BundleExtra()), PlayerId);
+            campaign.OnPurchaseDone(Order(908, CampaignExtra()), PlayerId);
 
             Assert.IsEmpty(campaign.Module.UndeliveredRewards);
             Assert.IsEmpty(delivered, "Rewards is for missions and milestones only");
@@ -268,7 +214,7 @@ namespace Tests.Runtime.Campaign
         public void Purchase_VerifiedBeforeLiveOpsIsReady_IsKeptUntilItIs()
         {
             var early = new NoctuaCampaign();
-            early.OnPurchaseDone(Order(906, BundleExtra()), PlayerId);
+            early.OnPurchaseDone(Order(906, CampaignExtra()), PlayerId);
             early.OnPurchaseDone(Order(907, new Dictionary<string, string> { { "note", "x" } }), PlayerId);
             StringAssert.Contains("906", PlayerPrefs.GetString(InboxKey, ""), "a campaign order is kept for its purchase limit");
             StringAssert.DoesNotContain("907", PlayerPrefs.GetString(InboxKey, ""), "an order outside a campaign is not kept");

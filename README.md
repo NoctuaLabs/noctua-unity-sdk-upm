@@ -190,16 +190,9 @@ A campaign that is not eligible is skipped, never thrown. The reason is in the s
 
 | Admin setting | Game code |
 |---|---|
-| Buy button with a SKU | None: the SDK buys it (role and server from `Noctua.Auth.UpdatePlayerAccountAsync`) and the game delivers it in `OnPurchaseDone`. Bought non-consumables and subscriptions are hidden or shown as "Purchased" automatically. |
+| Buy button with a SKU (the same SKU id on Google Play and the App Store) | None: the SDK buys it (role and server from `Noctua.Auth.UpdatePlayerAccountAsync`) and the game delivers it in `OnPurchaseDone`. Bought non-consumables and subscriptions are hidden or shown as "Purchased" automatically. |
 | **One purchase per player** | None. After a completed purchase from the popup the SDK records it on the server; the campaign is not shown again and its Buy buttons read "Purchased", on every device. |
-| **Dynamic product** (a JSON bundle instead of a SKU) | None when the bundle names its SKU: `{"sku_android":"gem_500","sku_ios":"com.game.gem500"}`, or just `{"sku":"gem_500"}`. To map anything else (e.g. a price `tier`) set `ProductResolver`. |
 | Consumable offer with a limit | Optional: `OwnershipProvider = sku => myStore.OwnsAsync(sku)` — the store only knows non-consumables. |
-
-```csharp
-// Only for bundles that do not name a SKU. Returning null hides that button.
-ProductResolver = (campaign, productKey, bundle) =>
-    myCatalogue.SkuForTier((string)bundle["tier"]) ?? NoctuaLiveOpsCampaign.DefaultBundleSku(bundle),
-```
 
 **Every purchase is delivered from `Noctua.IAP.OnPurchaseDone`, with the items set on its SKU.** In SKU Management each SKU can list items as key → quantity (`coin = 100`, `skin = 1`; whole numbers). They come with the product list, so read them for the purchased SKU — the list is cached, so this makes no request when your shop already loaded it, and offline it uses the copy on the device:
 
@@ -222,7 +215,7 @@ Noctua.IAP.OnPurchaseDone += async order =>
 
 `Items` is never null. `productId` only narrows the result on the device; without it you get the whole list as before. Ignore an order id you already granted. A purchase limit counts its SKU, so the admin refuses two limited cards on one SKU.
 
-Inside the `Purchase` handler, `Noctua.LiveOps.Campaign.GetProductBundleForSku(campaign, productId)` returns the bundle a dynamic button was resolved from. Every order started from a popup carries `campaign_id` (and `campaign_bundle_key` / `campaign_bundle`) in its `extra`; your own `PurchaseRequest.Extra` keys always win.
+Every order started from a popup carries `campaign_id` in its `extra`; your own `PurchaseRequest.Extra` keys always win.
 
 #### 4. Daily missions
 
@@ -244,12 +237,12 @@ await Noctua.LiveOps.Campaign.SetMissionProgressAsync("use_stm", totalStaminaUse
 - **Never lost.** A reward is saved on the device, for the player who earned it, before the handler runs, and counts as delivered once the handler finishes without throwing. If the app dies first or the handler throws, it is delivered again after the next init or login.
 - **Exactly once on your side.** Redelivery means the handler can see a reward twice (granted, then the app died before it returned): ignore a `ClaimId` you already granted. Granting on your own server? Send `ClaimId` as the idempotency key.
 - **Items are granted whole.** An item list with any invalid item (bad id, quantity not a whole number ≥ 1) is not delivered at all; the admin validates the same rules.
-- **Limit:** the client delivers the items, as with any client-granted reward. A game whose inventory lives on its server should treat the items as a request; verifying them server-to-server needs Noctua backend support (the order already carries `campaign_id` and the bundle key for it).
+- **Limit:** the client delivers the items, as with any client-granted reward. A game whose inventory lives on its server should treat the items as a request; verifying them server-to-server needs Noctua backend support (the order already carries `campaign_id` for it).
 - Read progress any time with `GetProgressAsync()` / `Progress`; listen with `OnProgressChanged`.
 
 #### 6. Audience: SDK version
 
-An audience can require a Noctua SDK version range (admin → Audience → SDK version). There is nothing to code: popups check the running SDK's version on the device, and push notifications are filtered on the server. Campaigns using it — and one-time offers, dynamic products and built-in Claim buttons — need this SDK version or newer; older SDKs skip them.
+An audience can require a Noctua SDK version range (admin → Audience → SDK version). There is nothing to code: popups check the running SDK's version on the device, and push notifications are filtered on the server. Campaigns using it — and one-time offers and built-in Claim buttons — need this SDK version or newer; older SDKs skip them.
 
 #### Upgrading: renamed and removed API
 
@@ -273,6 +266,7 @@ An audience can require a Noctua SDK version range (admin → Audience → SDK v
 | `Noctua.LiveOpsCampaign` | `Noctua.LiveOps.Campaign` |
 | `RegisterDeeplinkHandler(...)` | `Configure(new CampaignHandlers { Deeplink = ... })` |
 | `CampaignHandlers.Purchase`, `OnCampaignPurchaseRequested` | removed: the SDK buys a popup's SKU itself |
+| `product_key` actions, `CampaignHandlers.ProductResolver`, `GetProductBundleForSku` | removed: a Buy button names one SKU (`product_id`), used on both stores |
 
 #### Checklist
 

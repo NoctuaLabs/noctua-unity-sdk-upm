@@ -40,28 +40,20 @@ An **action** is `{ type, id, ... }`:
 |---|---|---|
 | `dismiss` | none | Closes the popup. |
 | `deeplink` | `deeplink` (string route) | Calls the game's `Deeplink` handler. |
-| `purchase` | exactly one of `product_id` or `product_key` | Buys the SKU itself (section 4). |
+| `purchase` | `product_id` (string SKU) | Buys the SKU itself (section 4). |
 | `claim` | `mission` or `milestone` | Claims on the server, then calls `Rewards`. |
 | `claim_all` | none | Claims every claimable mission and chest, then calls `Rewards`. |
 
 ## 4. Purchase
 
-A purchase action names its SKU in one of two ways:
-
-- **`product_id`**: one SKU, bought on both stores.
-- **`product_key`**: the SKU differs per store. `data[product_key]` is a JSON string holding
-  **one object with exactly these keys**:
-
-  ```json
-  {"sku_android": "com.game.pack", "sku_ios": "com.game.pack.ios"}
-  ```
-
-  Both are non-empty strings. Arrays, `tier`, `items` and any other key are not part of the
-  contract; a bundle that is not this object resolves no SKU and its button is hidden.
+A purchase action names exactly one SKU in `product_id`. The same SKU id is bought on Google Play
+and the App Store, so ops create the product with one id on both stores. There is no per-store
+mapping and no bundle: `product_key` is not part of the contract, and a purchase action without
+`product_id` fails validation, so its campaign is skipped.
 
 The SDK starts the purchase itself: price and currency from the product list, role and server from
-the last `Noctua.Auth.UpdatePlayerAccountAsync`. The order's `extra` carries `campaign_id`, and for
-a `product_key` button also `campaign_bundle_key` and `campaign_bundle`.
+the last `Noctua.Auth.UpdatePlayerAccountAsync`. The order's `extra` carries `campaign_id`, which the
+backend stores as `orders.live_ops_campaign_id`. Nothing else about the campaign is sent.
 
 **What the player gets is not in the campaign.** Items belong to the SKU (`products.items`, an
 object of item key → whole-number quantity, e.g. `{"coin": 100}`), set in SKU Management and sent

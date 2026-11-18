@@ -50,15 +50,6 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
         [JsonProperty("product_id")]
         public string ProductId;
 
-        /// <summary>
-        /// Dynamic product, instead of <see cref="ProductId"/>: a key into the campaign's <c>data</c>
-        /// whose value is a JSON bundle (an object, or an array of objects). The game's product
-        /// resolver (<c>SetProductResolver</c>) turns the bundle into the SKU to buy; with no
-        /// resolver, or no SKU for it, the button is hidden.
-        /// </summary>
-        [JsonProperty("product_key")]
-        public string ProductKey;
-
         /// <summary>Mission key for <see cref="CampaignActionType.Claim"/>, e.g. <c>use_stm</c>.</summary>
         [JsonProperty("mission")]
         public string Mission;
