@@ -29,7 +29,7 @@ namespace com.noctuagames.sdk
     /// combined fired-mask is the OR of the legacy per-format masks. This preserves already-passed
     /// milestones (no duplicate events) and carries forward total progress.
     ///
-    /// Lives in the AdsManager layer (same as mediations) — emits via the global
+    /// Lives beside the mediation code — emits via the global
     /// <see cref="Noctua.Event"/> facade. The single instance is created by
     /// <c>Noctua.Initialization</c> and exposed as <see cref="Default"/>.
     /// </summary>

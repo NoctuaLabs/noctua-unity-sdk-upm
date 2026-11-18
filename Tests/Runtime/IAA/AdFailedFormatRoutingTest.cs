@@ -12,7 +12,7 @@ namespace Tests.Runtime.IAA
     ///
     /// <para>A banner's auto-refresh raises a load failure on its own, with no user action and no
     /// game-initiated show. That failure used to arrive as a format-agnostic
-    /// <c>OnAdFailedDisplayed</c>, which <see cref="MediationManager"/> attributed to the last
+    /// <c>OnAdFailedDisplayed</c>, which <see cref="NoctuaIAAService"/> attributed to the last
     /// requested fullscreen format — so an idle player got a fullscreen interstitial house ad out of
     /// nowhere, and a real fullscreen ad on screen had its app-open guard cleared underneath it.</para>
     ///
@@ -37,7 +37,7 @@ namespace Tests.Runtime.IAA
         [Test]
         public void NetworkFailure_ForwardsFailingFormat_NotAGuess()
         {
-            var orc = new HybridAdOrchestrator(_primary, _secondary);
+            var orc = new HybridAdRouting(_primary, _secondary);
 
             string forwarded = null;
             orc.OnAdFailedDisplayedFormat += f => forwarded = f;
@@ -51,7 +51,7 @@ namespace Tests.Runtime.IAA
         [Test]
         public void NetworkFailure_FromSecondary_ForwardsFailingFormat()
         {
-            var orc = new HybridAdOrchestrator(_primary, _secondary);
+            var orc = new HybridAdRouting(_primary, _secondary);
 
             string forwarded = null;
             orc.OnAdFailedDisplayedFormat += f => forwarded = f;
@@ -64,7 +64,7 @@ namespace Tests.Runtime.IAA
         [Test]
         public void NetworkFailure_RaisesBothEventsOnce_SoNeitherCanDisagree()
         {
-            var orc = new HybridAdOrchestrator(_primary, _secondary);
+            var orc = new HybridAdRouting(_primary, _secondary);
 
             int legacy = 0, withFormat = 0;
             orc.OnAdFailedDisplayed       += ()  => legacy++;
@@ -81,7 +81,7 @@ namespace Tests.Runtime.IAA
         {
             _primary.InterstitialReady   = false;
             _secondary.InterstitialReady = false;
-            var orc = new HybridAdOrchestrator(_primary, _secondary);
+            var orc = new HybridAdRouting(_primary, _secondary);
 
             string forwarded = null;
             orc.OnAdFailedDisplayedFormat += f => forwarded = f;
@@ -98,7 +98,7 @@ namespace Tests.Runtime.IAA
         [Test]
         public void BannerFailure_WhileFullscreenAdShowing_LeavesIsAdShowingTrue()
         {
-            var orc = new HybridAdOrchestrator(_primary, _secondary);
+            var orc = new HybridAdRouting(_primary, _secondary);
 
             _primary.TriggerAdDisplayed();
             Assert.IsTrue(orc.IsAdShowing, "precondition: a fullscreen ad is on screen");
@@ -113,7 +113,7 @@ namespace Tests.Runtime.IAA
         [Test]
         public void FullscreenFailure_ClearsIsAdShowing()
         {
-            var orc = new HybridAdOrchestrator(_primary, _secondary);
+            var orc = new HybridAdRouting(_primary, _secondary);
 
             _primary.TriggerAdDisplayed();
             Assert.IsTrue(orc.IsAdShowing);
@@ -123,7 +123,7 @@ namespace Tests.Runtime.IAA
             Assert.IsFalse(orc.IsAdShowing, "a fullscreen failure still releases the screen");
         }
 
-        // ─── MediationManager no longer guesses from the last request ────────
+        // ─── NoctuaIAAService no longer guesses from the last request ────────
 
         [Test]
         public void BannerFailure_ShowsBannerHouseAd_NeverTheFullscreenOne()
@@ -188,21 +188,21 @@ namespace Tests.Runtime.IAA
             public void SetBannerPlaceholderFailedCallback(System.Action onFailed) { }
         }
 
-        private static MediationManager CreateManager(IAdPlaceholderUI ui, CrossPromotionConfig crossPromotion)
+        private static NoctuaIAAService CreateManager(IAdPlaceholderUI ui, CrossPromotionConfig crossPromotion)
         {
-            // Constructing MediationManager runs CreateNetworks, which logs (and errors when no ad SDK
+            // Constructing NoctuaIAAService runs CreateNetworks, which logs (and errors when no ad SDK
             // is compiled in). None of that is under test here, so tolerate it.
             LogAssert.ignoreFailingMessages = true;
-            return new MediationManager(ui, new IAAConfig
+            return new NoctuaIAAService(ui, new IAAConfig
             {
                 Mediation      = "admob",
                 CrossPromotion = crossPromotion,
             });
         }
 
-        private static void InvokePrivate(MediationManager m, string method, params object[] args)
+        private static void InvokePrivate(NoctuaIAAService m, string method, params object[] args)
         {
-            var mi = typeof(MediationManager).GetMethod(method, BindingFlags.NonPublic | BindingFlags.Instance);
+            var mi = typeof(NoctuaIAAService).GetMethod(method, BindingFlags.NonPublic | BindingFlags.Instance);
             Assert.IsNotNull(mi, $"private instance method '{method}' not found");
             mi.Invoke(m, args);
         }

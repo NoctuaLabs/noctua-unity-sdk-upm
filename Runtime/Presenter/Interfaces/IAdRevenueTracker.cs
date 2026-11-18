@@ -5,7 +5,7 @@ namespace com.noctuagames.sdk
 {
     /// <summary>
     /// Abstraction for tracking ad revenue events.
-    /// Used by MediationManager (Presenter) so it doesn't depend
+    /// Used by NoctuaIAAService (Presenter) so it doesn't depend
     /// on the static Noctua.Event singleton.
     /// </summary>
     public interface IAdRevenueTracker

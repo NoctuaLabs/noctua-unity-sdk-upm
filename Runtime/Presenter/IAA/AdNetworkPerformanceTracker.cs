@@ -125,7 +125,7 @@ namespace com.noctuagames.sdk
 
         /// <summary>
         /// Returns the number of revenue impression samples tracked for the given network and format.
-        /// Used by <see cref="CpmFloorManager"/> to enforce the min_samples cold-start guard.
+        /// Used by <see cref="CpmFloor"/> to enforce the min_samples cold-start guard.
         /// </summary>
         public int GetSampleCount(string networkName, string format)
         {

@@ -9,12 +9,12 @@ using UnityEngine;
 namespace Tests.Runtime.IAA
 {
     /// <summary>
-    /// Tests for <see cref="HybridAdOrchestrator"/> callback handler behaviour and race conditions.
+    /// Tests for <see cref="HybridAdRouting"/> callback handler behaviour and race conditions.
     ///
     /// Coverage:
     ///   Group I  — Initialization callbacks (onPrimaryReady / onSecondaryReady ordering).
     ///   Group H  — Per-event handler forwarding: each of the 7 events from primary and secondary
-    ///              individually, plus <see cref="HybridAdOrchestrator.IsAdShowing"/> state transitions.
+    ///              individually, plus <see cref="HybridAdRouting.IsAdShowing"/> state transitions.
     ///   Group R  — Race conditions: both networks fire the same event simultaneously via
     ///              background <see cref="Task"/>s.  Subscriber count must reach the expected value
     ///              without deadlock, and <c>IsAdShowing</c> must land in the correct terminal state.
@@ -23,7 +23,7 @@ namespace Tests.Runtime.IAA
     ///
     /// Threading note
     /// ───────────────
-    /// <see cref="HybridAdOrchestrator._isAdShowing"/> is a plain <c>bool</c> field (no lock /
+    /// <see cref="HybridAdRouting._isAdShowing"/> is a plain <c>bool</c> field (no lock /
     /// volatile).  Concurrent writes from two threads are a benign data race on modern x86/x64
     /// (aligned bool reads/writes are natively atomic), but the RESULT is intentionally
     /// non-deterministic when both threads write different values.  Race tests that touch
@@ -71,7 +71,7 @@ namespace Tests.Runtime.IAA
         [Test]
         public void I1_Initialize_PrimaryOnly_OnPrimaryReadyFires()
         {
-            var orc = new HybridAdOrchestrator(_primary);
+            var orc = new HybridAdRouting(_primary);
 
             bool primaryReadyFired = false;
             orc.Initialize(onPrimaryReady: () => primaryReadyFired = true);
@@ -87,7 +87,7 @@ namespace Tests.Runtime.IAA
         [Test]
         public void I2_Initialize_BothNetworks_SequentialOrder_PrimaryBeforeSecondary()
         {
-            var orc   = new HybridAdOrchestrator(_primary, _secondary);
+            var orc   = new HybridAdRouting(_primary, _secondary);
             var order = new List<string>();
 
             orc.Initialize(
@@ -101,16 +101,16 @@ namespace Tests.Runtime.IAA
         }
 
         /// <summary>
-        /// I3: With primary-only orchestrator, onSecondaryReady is never invoked.
-        ///     The field-level <c>_secondary</c> mock is never passed to the orchestrator, so
-        ///     testing its <c>InitializeCallCount</c> would be tautological (the orchestrator has
+        /// I3: With primary-only routing, onSecondaryReady is never invoked.
+        ///     The field-level <c>_secondary</c> mock is never passed to the routing, so
+        ///     testing its <c>InitializeCallCount</c> would be tautological (the routing has
         ///     no reference to it).  The meaningful invariant is that <c>onSecondaryReady</c> does
         ///     not fire — that is what this test verifies.
         /// </summary>
         [Test]
         public void I3_Initialize_PrimaryOnly_SecondaryReadyNeverFires()
         {
-            var orc = new HybridAdOrchestrator(_primary); // no secondary
+            var orc = new HybridAdRouting(_primary); // no secondary
 
             bool secondaryReadyFired = false;
             orc.Initialize(
@@ -122,14 +122,14 @@ namespace Tests.Runtime.IAA
 
         /// <summary>
         /// I4: With a single Initialize() call, each callback fires exactly once.
-        ///     (Note: <see cref="HybridAdOrchestrator.Initialize"/> has no idempotency guard —
+        ///     (Note: <see cref="HybridAdRouting.Initialize"/> has no idempotency guard —
         ///     calling it twice would double-init both networks.  This test only validates the
         ///     single-call contract.)
         /// </summary>
         [Test]
         public void I4_Initialize_SingleCall_EachCallbackFiresExactlyOnce()
         {
-            var orc = new HybridAdOrchestrator(_primary, _secondary);
+            var orc = new HybridAdRouting(_primary, _secondary);
 
             int primaryCount   = 0;
             int secondaryCount = 0;
@@ -149,7 +149,7 @@ namespace Tests.Runtime.IAA
         [Test]
         public void I5_Initialize_NullCallbacks_DoesNotThrow()
         {
-            var orc = new HybridAdOrchestrator(_primary, _secondary);
+            var orc = new HybridAdRouting(_primary, _secondary);
 
             Assert.DoesNotThrow(
                 () => orc.Initialize(onPrimaryReady: null, onSecondaryReady: null),
@@ -163,12 +163,12 @@ namespace Tests.Runtime.IAA
         // ─── Group H — Per-event handler forwarding ───────────────────────────
 
         /// <summary>
-        /// H1: OnAdDisplayed from primary raises the orchestrator event and sets IsAdShowing.
+        /// H1: OnAdDisplayed from primary raises the routing event and sets IsAdShowing.
         /// </summary>
         [Test]
         public void H1_OnAdDisplayed_Primary_FiresEventAndSetsIsAdShowing()
         {
-            var orc = new HybridAdOrchestrator(_primary, _secondary);
+            var orc = new HybridAdRouting(_primary, _secondary);
             int fired = 0;
             orc.OnAdDisplayed += () => fired++;
 
@@ -179,12 +179,12 @@ namespace Tests.Runtime.IAA
         }
 
         /// <summary>
-        /// H2: OnAdDisplayed from secondary raises the orchestrator event and sets IsAdShowing.
+        /// H2: OnAdDisplayed from secondary raises the routing event and sets IsAdShowing.
         /// </summary>
         [Test]
         public void H2_OnAdDisplayed_Secondary_FiresEventAndSetsIsAdShowing()
         {
-            var orc = new HybridAdOrchestrator(_primary, _secondary);
+            var orc = new HybridAdRouting(_primary, _secondary);
             int fired = 0;
             orc.OnAdDisplayed += () => fired++;
 
@@ -200,7 +200,7 @@ namespace Tests.Runtime.IAA
         [Test]
         public void H3_OnAdFailedDisplayed_Primary_FiresEventAndClearsIsAdShowing()
         {
-            var orc = new HybridAdOrchestrator(_primary, _secondary);
+            var orc = new HybridAdRouting(_primary, _secondary);
             // Put IsAdShowing into true first
             _primary.TriggerAdDisplayed();
             Assert.IsTrue(orc.IsAdShowing);
@@ -220,7 +220,7 @@ namespace Tests.Runtime.IAA
         [Test]
         public void H4_OnAdFailedDisplayed_Secondary_FiresEventAndClearsIsAdShowing()
         {
-            var orc = new HybridAdOrchestrator(_primary, _secondary);
+            var orc = new HybridAdRouting(_primary, _secondary);
             _secondary.TriggerAdDisplayed();
             Assert.IsTrue(orc.IsAdShowing);
 
@@ -239,7 +239,7 @@ namespace Tests.Runtime.IAA
         [Test]
         public void H5_OnAdClosed_Primary_FiresEventAndClearsIsAdShowing()
         {
-            var orc = new HybridAdOrchestrator(_primary, _secondary);
+            var orc = new HybridAdRouting(_primary, _secondary);
             _primary.TriggerAdDisplayed();
 
             int fired = 0;
@@ -257,7 +257,7 @@ namespace Tests.Runtime.IAA
         [Test]
         public void H6_OnAdClosed_Secondary_FiresEventAndClearsIsAdShowing()
         {
-            var orc = new HybridAdOrchestrator(_primary, _secondary);
+            var orc = new HybridAdRouting(_primary, _secondary);
             _secondary.TriggerAdDisplayed();
 
             int fired = 0;
@@ -275,7 +275,7 @@ namespace Tests.Runtime.IAA
         [Test]
         public void H7_OnAdClicked_BothNetworks_EachFireIndependently()
         {
-            var orc = new HybridAdOrchestrator(_primary, _secondary);
+            var orc = new HybridAdRouting(_primary, _secondary);
             int clicks = 0;
             orc.OnAdClicked += () => clicks++;
 
@@ -292,7 +292,7 @@ namespace Tests.Runtime.IAA
         [Test]
         public void H8_OnAdImpressionRecorded_BothNetworks_EachFireIndependently()
         {
-            var orc = new HybridAdOrchestrator(_primary, _secondary);
+            var orc = new HybridAdRouting(_primary, _secondary);
             int impressions = 0;
             orc.OnAdImpressionRecorded += () => impressions++;
 
@@ -309,7 +309,7 @@ namespace Tests.Runtime.IAA
         [Test]
         public void H9_OnUserEarnedReward_BothNetworks_AmountAndTypeForwarded()
         {
-            var orc = new HybridAdOrchestrator(_primary, _secondary);
+            var orc = new HybridAdRouting(_primary, _secondary);
             var rewards = new List<(double Amount, string Type)>();
             orc.OnUserEarnedReward += (amt, type) => rewards.Add((amt, type));
 
@@ -327,7 +327,7 @@ namespace Tests.Runtime.IAA
         [Test]
         public void H10_OnAdRevenuePaid_BothNetworks_PayloadForwardedVerbatim()
         {
-            var orc = new HybridAdOrchestrator(_primary, _secondary);
+            var orc = new HybridAdRouting(_primary, _secondary);
             var payments = new List<(double Revenue, string Currency, Dictionary<string, string> Meta)>();
             orc.OnAdRevenuePaid += (rev, cur, meta) => payments.Add((rev, cur, meta));
 
@@ -353,7 +353,7 @@ namespace Tests.Runtime.IAA
         [Test]
         public void H11_IsAdShowing_FullCycle_DisplayedThenClosed()
         {
-            var orc = new HybridAdOrchestrator(_primary, _secondary);
+            var orc = new HybridAdRouting(_primary, _secondary);
             Assert.IsFalse(orc.IsAdShowing, "initial state: not showing");
 
             _primary.TriggerAdDisplayed();
@@ -369,7 +369,7 @@ namespace Tests.Runtime.IAA
         [Test]
         public void H12_IsAdShowing_FailedDisplayed_ResetsState()
         {
-            var orc = new HybridAdOrchestrator(_primary, _secondary);
+            var orc = new HybridAdRouting(_primary, _secondary);
 
             _secondary.TriggerAdDisplayed();
             Assert.IsTrue(orc.IsAdShowing);
@@ -388,7 +388,7 @@ namespace Tests.Runtime.IAA
         [Test]
         public void R1_Race_BothNetworks_OnAdDisplayed_Simultaneously_CountIsTwo_NoDeadlock()
         {
-            var orc = new HybridAdOrchestrator(_primary, _secondary);
+            var orc = new HybridAdRouting(_primary, _secondary);
             int count = 0;
             orc.OnAdDisplayed += () => Interlocked.Increment(ref count);
 
@@ -410,7 +410,7 @@ namespace Tests.Runtime.IAA
         [Test]
         public void R2_Race_BothNetworks_OnAdClosed_Simultaneously_CountIsTwo_IsAdShowingFalse()
         {
-            var orc = new HybridAdOrchestrator(_primary, _secondary);
+            var orc = new HybridAdRouting(_primary, _secondary);
             int count = 0;
             orc.OnAdClosed += () => Interlocked.Increment(ref count);
 
@@ -436,7 +436,7 @@ namespace Tests.Runtime.IAA
         [Test]
         public void R3_Race_BothNetworks_OnAdFailedDisplayed_Simultaneously_CountIsTwo()
         {
-            var orc = new HybridAdOrchestrator(_primary, _secondary);
+            var orc = new HybridAdRouting(_primary, _secondary);
             int count = 0;
             orc.OnAdFailedDisplayed += () => Interlocked.Increment(ref count);
 
@@ -459,7 +459,7 @@ namespace Tests.Runtime.IAA
         [Test]
         public void R4_Race_BothNetworks_OnAdClicked_Simultaneously_CountIsTwo()
         {
-            var orc = new HybridAdOrchestrator(_primary, _secondary);
+            var orc = new HybridAdRouting(_primary, _secondary);
             int count = 0;
             orc.OnAdClicked += () => Interlocked.Increment(ref count);
 
@@ -479,7 +479,7 @@ namespace Tests.Runtime.IAA
         [Test]
         public void R5_Race_BothNetworks_OnAdImpressionRecorded_Simultaneously_CountIsTwo()
         {
-            var orc = new HybridAdOrchestrator(_primary, _secondary);
+            var orc = new HybridAdRouting(_primary, _secondary);
             int count = 0;
             orc.OnAdImpressionRecorded += () => Interlocked.Increment(ref count);
 
@@ -499,7 +499,7 @@ namespace Tests.Runtime.IAA
         [Test]
         public void R6_Race_BothNetworks_OnUserEarnedReward_Simultaneously_CountIsTwo()
         {
-            var orc = new HybridAdOrchestrator(_primary, _secondary);
+            var orc = new HybridAdRouting(_primary, _secondary);
             int count = 0;
             orc.OnUserEarnedReward += (_, _amount) => Interlocked.Increment(ref count);
 
@@ -519,7 +519,7 @@ namespace Tests.Runtime.IAA
         [Test]
         public void R7_Race_BothNetworks_OnAdRevenuePaid_Simultaneously_CountIsTwo()
         {
-            var orc = new HybridAdOrchestrator(_primary, _secondary);
+            var orc = new HybridAdRouting(_primary, _secondary);
             int count = 0;
             orc.OnAdRevenuePaid += (_, _cur, _meta) => Interlocked.Increment(ref count);
 
@@ -539,7 +539,7 @@ namespace Tests.Runtime.IAA
         [Test]
         public void R8_Race_AllSevenEvents_BothNetworks_Simultaneously_AllCountsAreTwo()
         {
-            var orc = new HybridAdOrchestrator(_primary, _secondary);
+            var orc = new HybridAdRouting(_primary, _secondary);
 
             int displayed   = 0, failed    = 0, clicked = 0;
             int impression  = 0, closed    = 0, reward  = 0, revenue = 0;
@@ -603,7 +603,7 @@ namespace Tests.Runtime.IAA
         [Test]
         public void R9_Race_ConflictingIsAdShowing_DisplayedVsClosed_NoDeadlock_BothEventsFire()
         {
-            var orc = new HybridAdOrchestrator(_primary, _secondary);
+            var orc = new HybridAdRouting(_primary, _secondary);
             int displayCount = 0;
             int closedCount  = 0;
             orc.OnAdDisplayed += () => Interlocked.Increment(ref displayCount);
@@ -629,7 +629,7 @@ namespace Tests.Runtime.IAA
         [Test]
         public void M1_MultipleSubscribers_OnAdDisplayed_BothReceiveAllEvents()
         {
-            var orc = new HybridAdOrchestrator(_primary, _secondary);
+            var orc = new HybridAdRouting(_primary, _secondary);
 
             int subscriber1Count = 0;
             int subscriber2Count = 0;
@@ -650,7 +650,7 @@ namespace Tests.Runtime.IAA
         [Test]
         public void M2_MultipleSubscribers_AllEvents_BothReceiveEveryTrigger()
         {
-            var orc = new HybridAdOrchestrator(_primary, _secondary);
+            var orc = new HybridAdRouting(_primary, _secondary);
 
             // Use arrays indexed by subscriber (0 or 1) for all 7 event types
             int[] displayed   = new int[2], failed  = new int[2], clicked    = new int[2];
@@ -701,7 +701,7 @@ namespace Tests.Runtime.IAA
         [Test]
         public void M3_Subscriber_AfterUnsubscribe_NoLongerReceivesEvents()
         {
-            var orc = new HybridAdOrchestrator(_primary, _secondary);
+            var orc = new HybridAdRouting(_primary, _secondary);
             int count = 0;
             Action handler = () => count++;
 
@@ -721,7 +721,7 @@ namespace Tests.Runtime.IAA
         [Test]
         public void M4_Race_MultipleSubscribers_OnAdDisplayed_BothReceiveAllConcurrentEvents()
         {
-            var orc = new HybridAdOrchestrator(_primary, _secondary);
+            var orc = new HybridAdRouting(_primary, _secondary);
 
             int sub1 = 0, sub2 = 0;
             orc.OnAdDisplayed += () => Interlocked.Increment(ref sub1);

@@ -4,7 +4,7 @@ namespace com.noctuagames.sdk
 {
     /// <summary>
     /// Abstraction for ad placeholder UI operations.
-    /// Used by MediationManager (Presenter) so it doesn't depend
+    /// Used by NoctuaIAAService (Presenter) so it doesn't depend
     /// on the concrete UIFactory (UI layer).
     /// </summary>
     public interface IAdPlaceholderUI
@@ -17,7 +17,7 @@ namespace com.noctuagames.sdk
         /// <param name="adType">The full-screen placeholder type to display.</param>
         /// <param name="entry">
         /// The resolved cross-promotion asset for this format (CDN URL, CTA, min watch). Must be non-null
-        /// with an asset URL — the caller (MediationManager) is responsible for the master gate and will
+        /// with an asset URL — the caller (NoctuaIAAService) is responsible for the master gate and will
         /// not call this when cross-promotion is disabled for the format.
         /// </param>
         void ShowAdPlaceholder(AdPlaceholderType adType, CrossPromotionEntry entry);
@@ -57,7 +57,7 @@ namespace com.noctuagames.sdk
 
         /// <summary>
         /// Returns true when the asset at <paramref name="assetUrl"/> is cached locally and can be
-        /// shown without a network fetch. Lets the caller (MediationManager) report a cross-promotion
+        /// shown without a network fetch. Lets the caller (NoctuaIAAService) report a cross-promotion
         /// as "ready" only when its creative is actually available, not merely configured.
         /// </summary>
         /// <param name="assetUrl">The CDN URL of the cross-promotion asset to check.</param>

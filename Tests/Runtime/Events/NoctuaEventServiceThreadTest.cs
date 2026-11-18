@@ -43,8 +43,8 @@ namespace Tests.Runtime.Events
             _nativeTracker = new MockNativeTrackerTs();
             _eventSender   = new MockEventSenderTs();
 
-            // Prevent ExperimentManager static state from leaking between tests
-            ExperimentManager.Clear();
+            // Prevent NoctuaExperiment static state from leaking between tests
+            NoctuaExperiment.Clear();
         }
 
         // ═══════════════════════════════════════════════════════════════════════

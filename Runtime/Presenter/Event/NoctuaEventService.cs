@@ -72,7 +72,7 @@ namespace com.noctuagames.sdk.Events
         /// <param name="featureName">Feature or screen name. Pass empty string to clear.</param>
         public void SetCurrentFeature(string featureName)
         {
-            var previousTag = ExperimentManager.GetCurrentFeature();
+            var previousTag = NoctuaExperiment.GetCurrentFeature();
 
             if (!string.IsNullOrEmpty(previousTag) && _featureStopwatch.IsRunning)
             {
@@ -87,7 +87,7 @@ namespace com.noctuagames.sdk.Events
                 });
             }
 
-            ExperimentManager.SetCurrentFeature(featureName);
+            NoctuaExperiment.SetCurrentFeature(featureName);
 
             if (!string.IsNullOrEmpty(featureName))
             {
@@ -109,7 +109,7 @@ namespace com.noctuagames.sdk.Events
         /// <returns>Active feature name or empty string.</returns>
         public string GetCurrentFeature()
         {
-            return ExperimentManager.GetCurrentFeature();
+            return NoctuaExperiment.GetCurrentFeature();
         }
 
         /// <summary>

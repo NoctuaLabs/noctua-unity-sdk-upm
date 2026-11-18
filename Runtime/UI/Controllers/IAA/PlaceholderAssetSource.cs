@@ -286,7 +286,7 @@ namespace com.noctuagames.sdk.AdPlaceholder
             {
                 _log.Warning($"{LogTag} get_asset - video too large/unknown to stream on demand (size={size} bytes); " +
                              $"reporting not-ready and precaching in background: {url}");
-                callback?.Invoke(null); // -> UI reports failed -> MediationManager fires OnAdNotAvailable
+                callback?.Invoke(null); // -> UI reports failed -> NoctuaIAAService fires OnAdNotAvailable
                 if (IsUnmetered()) StartCoroutine(EnsureCached(url));
             }
         }

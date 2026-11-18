@@ -152,7 +152,7 @@ namespace Tests.Runtime.Campaign
         {
             var owned = MultiOffer();
             var other = Offer("starter", null, Buy(Gold));
-            var manager = new CampaignManager(
+            var manager = new CampaignResolver(
                 new CampaignConfig { SchemaVersion = 2, Campaigns = new List<CampaignItem> { owned, other } },
                 new FakeEnv(), new CampaignFrequencyGate(prefs: new FakePrefsStore()),
                 isOwned: c => c.Id == owned.Id);

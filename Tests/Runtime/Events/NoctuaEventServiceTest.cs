@@ -25,8 +25,8 @@ namespace Tests.Runtime.Events
             _nativeTracker = new MockNativeTracker();
             _eventSender   = new MockEventSenderForEvents();
 
-            // Clear ExperimentManager to prevent cross-test feature-tag pollution
-            ExperimentManager.Clear();
+            // Clear NoctuaExperiment to prevent cross-test feature-tag pollution
+            NoctuaExperiment.Clear();
         }
 
         // ─── SetProperties / AppendProperties ────────────────────────────────
@@ -763,7 +763,7 @@ namespace Tests.Runtime.Events
 
             svc.SetCurrentFeature(null); // null treated same as empty by IsNullOrEmpty check
 
-            // ExperimentManager stores null as-is; both null and "" mean "no active feature".
+            // NoctuaExperiment stores null as-is; both null and "" mean "no active feature".
             Assert.IsTrue(string.IsNullOrEmpty(svc.GetCurrentFeature()),
                 "null feature name must clear the current feature (GetCurrentFeature returns null or empty)");
         }
@@ -771,7 +771,7 @@ namespace Tests.Runtime.Events
         [Test]
         public void SetCurrentFeature_ClearThenSetNew_DoesNotFireEngagementForEmpty()
         {
-            // Clearing with "" sets ExperimentManager feature to "". Then setting a real feature
+            // Clearing with "" sets NoctuaExperiment feature to "". Then setting a real feature
             // should not fire feature_engagement because the previous tag is empty/null.
             var svc = new NoctuaEventService(_nativeTracker, _eventSender);
             svc.SetCurrentFeature("a");

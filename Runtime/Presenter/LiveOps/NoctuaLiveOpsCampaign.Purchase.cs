@@ -178,7 +178,7 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
 
         /// <summary>The id of the campaign whose purchase key is <paramref name="purchaseKey"/>, or null.</summary>
         private string CampaignIdOf(string purchaseKey) =>
-            _manager.Config?.Campaigns?.FirstOrDefault(c => c != null && c.PurchaseOnce && PurchaseKey(c) == purchaseKey)?.Id;
+            _resolver.Config?.Campaigns?.FirstOrDefault(c => c != null && c.PurchaseOnce && PurchaseKey(c) == purchaseKey)?.Id;
 
         private void SettlePurchaseClaim(string key)
         {
@@ -279,13 +279,13 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
             var popup = _host?.PopupIfCreated;
             if (_shownItem == null || _shownItem.Id != campaignId || popup == null || !popup.IsShowing) return;
 
-            popup.Refresh(RenderItem(_shownItem, _shownPlayerData), _manager.Config.SchemaVersion);
+            popup.Refresh(RenderItem(_shownItem, _shownPlayerData), _resolver.Config.SchemaVersion);
         }
 
         private CampaignItem FindCampaign(string campaignId) =>
             string.IsNullOrEmpty(campaignId)
                 ? null
-                : _manager.Config?.Campaigns?.FirstOrDefault(c => c != null && c.Id == campaignId);
+                : _resolver.Config?.Campaigns?.FirstOrDefault(c => c != null && c.Id == campaignId);
 
         // ── Dynamic products ──────────────────────────────────────────────
 

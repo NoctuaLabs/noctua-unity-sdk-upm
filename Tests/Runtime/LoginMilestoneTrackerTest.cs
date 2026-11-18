@@ -33,7 +33,7 @@ namespace Tests.Runtime
         {
             _emittedEvents = new List<string>();
             LoginMilestoneTracker.Reset();
-            PlayerPrefs.DeleteKey(UserSegmentManager.InstallTicksKey);
+            PlayerPrefs.DeleteKey(UserSegments.InstallTicksKey);
             PlayerPrefs.Save();
         }
 
@@ -41,7 +41,7 @@ namespace Tests.Runtime
         public void TearDown()
         {
             LoginMilestoneTracker.Reset();
-            PlayerPrefs.DeleteKey(UserSegmentManager.InstallTicksKey);
+            PlayerPrefs.DeleteKey(UserSegments.InstallTicksKey);
             PlayerPrefs.Save();
         }
 
@@ -49,7 +49,7 @@ namespace Tests.Runtime
 
         private void SeedInstall(DateTime installUtc)
         {
-            PlayerPrefs.SetString(UserSegmentManager.InstallTicksKey, installUtc.Ticks.ToString());
+            PlayerPrefs.SetString(UserSegments.InstallTicksKey, installUtc.Ticks.ToString());
             PlayerPrefs.Save();
         }
 

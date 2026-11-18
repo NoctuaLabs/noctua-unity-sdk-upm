@@ -7,20 +7,20 @@ namespace Tests.Runtime.IAA
     /// <summary>
     /// Unit tests for AdMob per-format Taichi routing.
     ///
-    /// Context: Before the routing fix, <c>MediationManager.SubscribeAdmobRevenueEvents</c>
-    /// subscribed only to <c>AdmobManager.AdmobOnAdRevenuePaid</c> (the aggregate event),
+    /// Context: Before the routing fix, <c>NoctuaIAAService.SubscribeAdmobRevenueEvents</c>
+    /// subscribed only to <c>AdmobNetwork.AdmobOnAdRevenuePaid</c> (the aggregate event),
     /// which routed every format — interstitial, rewarded, banner, rewarded-interstitial,
-    /// app-open — into <c>AdRevenueTrackingManager.ProcessAdmobRevenue</c> (the banner/legacy
-    /// path). That path calls only <see cref="AdRevenueTrackingManager.ProcessAllFormatsThresholds"/>,
+    /// app-open — into <c>AdRevenueReporter.ProcessAdmobRevenue</c> (the banner/legacy
+    /// path). That path calls only <see cref="AdRevenueReporter.ProcessAllFormatsThresholds"/>,
     /// so Taichi Steps 3–6 never incremented for AdMob impressions.
     ///
-    /// After the fix, <c>AdmobManager</c> exposes per-format revenue events
+    /// After the fix, <c>AdmobNetwork</c> exposes per-format revenue events
     /// (<c>AdmobOnBannerRevenuePaid</c>, <c>AdmobOnInterstitialRevenuePaid</c>,
-    /// <c>AdmobOnRewardedRevenuePaid</c>, …) and <c>MediationManager</c> subscribes to each
+    /// <c>AdmobOnRewardedRevenuePaid</c>, …) and <c>NoctuaIAAService</c> subscribes to each
     /// one and calls the matching <c>ProcessAdmob*Revenue</c> method.
     ///
     /// These tests pin the Taichi-step invariants the fix guarantees, verified at the
-    /// <see cref="AdRevenueTrackingManager"/> public-API boundary so they stay valid in
+    /// <see cref="AdRevenueReporter"/> public-API boundary so they stay valid in
     /// all build configurations (the <c>ProcessAdmob*</c> entry points themselves require
     /// <c>UNITY_ADMOB</c> and real <c>AdValue</c>/<c>ResponseInfo</c>, which are infeasible
     /// to construct in a unit test).
@@ -60,26 +60,26 @@ namespace Tests.Runtime.IAA
             RewardedRevenueThreshold   = 0.01f,
         };
 
-        // ── Helpers mirroring what MediationManager.SubscribeAdmobRevenueEvents
+        // ── Helpers mirroring what NoctuaIAAService.SubscribeAdmobRevenueEvents
         //    does per format after the routing fix. Each helper is a one-liner
-        //    that stays in lockstep with AdRevenueTrackingManager.ProcessAdmob*
+        //    that stays in lockstep with AdRevenueReporter.ProcessAdmob*
         //    (which we can't call directly in edit-mode tests because those
         //    methods take GoogleMobileAds' AdValue/ResponseInfo).
 
-        private static void SimulateBannerImpression(AdRevenueTrackingManager mgr, double revenue)
+        private static void SimulateBannerImpression(AdRevenueReporter mgr, double revenue)
         {
             // ProcessAdmobRevenue(adValue, responseInfo) → ProcessAllFormatsThresholds(revenue)
             mgr.ProcessAllFormatsThresholds(revenue);
         }
 
-        private static void SimulateInterstitialImpression(AdRevenueTrackingManager mgr, double revenue)
+        private static void SimulateInterstitialImpression(AdRevenueReporter mgr, double revenue)
         {
             // ProcessAdmobInterstitialRevenue(...) → All + Interstitial
             mgr.ProcessAllFormatsThresholds(revenue);
             mgr.ProcessInterstitialThresholds(revenue);
         }
 
-        private static void SimulateRewardedImpression(AdRevenueTrackingManager mgr, double revenue)
+        private static void SimulateRewardedImpression(AdRevenueReporter mgr, double revenue)
         {
             // ProcessAdmobRewardedRevenue(...) → All + Rewarded
             mgr.ProcessAllFormatsThresholds(revenue);
@@ -91,7 +91,7 @@ namespace Tests.Runtime.IAA
         [Test]
         public void BannerImpressions_DoNotAdvanceInterstitialOrRewardedSteps()
         {
-            var mgr = new AdRevenueTrackingManager(_tracker, DefaultConfig());
+            var mgr = new AdRevenueReporter(_tracker, DefaultConfig());
 
             for (int i = 0; i < 10; i++)
                 SimulateBannerImpression(mgr, 0);
@@ -111,7 +111,7 @@ namespace Tests.Runtime.IAA
         [Test]
         public void InterstitialImpressions_AdvanceTotalAndInterstitialSteps()
         {
-            var mgr = new AdRevenueTrackingManager(_tracker, DefaultConfig());
+            var mgr = new AdRevenueReporter(_tracker, DefaultConfig());
 
             for (int i = 0; i < 5; i++)
                 SimulateInterstitialImpression(mgr, 0);
@@ -127,7 +127,7 @@ namespace Tests.Runtime.IAA
         [Test]
         public void InterstitialImpressions_TenRounds_FireStep3()
         {
-            var mgr = new AdRevenueTrackingManager(_tracker, DefaultConfig());
+            var mgr = new AdRevenueReporter(_tracker, DefaultConfig());
 
             for (int i = 0; i < 10; i++)
                 SimulateInterstitialImpression(mgr, 0);
@@ -141,7 +141,7 @@ namespace Tests.Runtime.IAA
         [Test]
         public void RewardedImpressions_AdvanceRewardedSteps()
         {
-            var mgr = new AdRevenueTrackingManager(_tracker, DefaultConfig());
+            var mgr = new AdRevenueReporter(_tracker, DefaultConfig());
 
             for (int i = 0; i < 5; i++)
                 SimulateRewardedImpression(mgr, 0);
@@ -155,7 +155,7 @@ namespace Tests.Runtime.IAA
         [Test]
         public void RewardedImpressions_RevenueAccumulates_FiresStep6()
         {
-            var mgr = new AdRevenueTrackingManager(_tracker, DefaultConfig());
+            var mgr = new AdRevenueReporter(_tracker, DefaultConfig());
 
             // 2 rewarded impressions @ 0.006 USD each = 0.012 ≥ 0.01 threshold
             SimulateRewardedImpression(mgr, 0.006);
@@ -168,7 +168,7 @@ namespace Tests.Runtime.IAA
         [Test]
         public void BannerRevenue_DoesNotAdvanceRewardedRevenueStep()
         {
-            var mgr = new AdRevenueTrackingManager(_tracker, DefaultConfig());
+            var mgr = new AdRevenueReporter(_tracker, DefaultConfig());
 
             // Large banner revenue — must not leak into Step 6 (rewarded-only)
             SimulateBannerImpression(mgr, 10.0);
@@ -182,7 +182,7 @@ namespace Tests.Runtime.IAA
         [Test]
         public void MixedSession_CorrectlyPartitionsSteps()
         {
-            var mgr = new AdRevenueTrackingManager(_tracker, DefaultConfig());
+            var mgr = new AdRevenueReporter(_tracker, DefaultConfig());
 
             // 6 banners, 3 interstitials, 3 rewarded
             for (int i = 0; i < 6; i++) SimulateBannerImpression(mgr, 0);
@@ -217,7 +217,7 @@ namespace Tests.Runtime.IAA
             // Any regression that removes per-format routing will be caught by the
             // positive tests above; this negative test freezes the broken behavior
             // to make the intent unambiguous.
-            var mgr = new AdRevenueTrackingManager(_tracker, DefaultConfig());
+            var mgr = new AdRevenueReporter(_tracker, DefaultConfig());
 
             // 20 "interstitials" sent through the banner path = pre-fix behavior
             for (int i = 0; i < 20; i++)

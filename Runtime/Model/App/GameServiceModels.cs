@@ -89,7 +89,7 @@ namespace com.noctuagames.sdk
         /// <summary>
         /// Server-driven campaign payload (popup + feed). Merged with the local
         /// <c>noctuagg.json</c> <c>live_ops_engagement_campaigns</c> section at init; consumed by
-        /// <see cref="Campaign.CampaignManager"/>, not by the IAA graph.
+        /// <see cref="Campaign.CampaignResolver"/>, not by the IAA graph.
         /// </summary>
         [JsonProperty("live_ops_engagement_campaigns")]
         public CampaignConfig Campaigns;

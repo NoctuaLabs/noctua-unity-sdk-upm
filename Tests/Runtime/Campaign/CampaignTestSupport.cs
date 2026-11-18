@@ -48,7 +48,7 @@ namespace Tests.Runtime.Campaign
         public void Save() { }
     }
 
-    /// <summary>Fixed environment for <see cref="CampaignManager"/> targeting tests.</summary>
+    /// <summary>Fixed environment for <see cref="CampaignResolver"/> targeting tests.</summary>
     public sealed class FakeEnv : ICampaignEnvironment
     {
         public List<string> Tags = new List<string>();

@@ -39,7 +39,7 @@ namespace com.noctuagames.sdk.UI
         private VideoPlayer _activePlayer;
         private EventCallback<ClickEvent> _ctaHandler;
 
-        // Invoked whenever the placeholder is dismissed, so the presenter (MediationManager) can keep
+        // Invoked whenever the placeholder is dismissed, so the presenter (NoctuaIAAService) can keep
         // its shown/hidden state in sync (e.g. after the user taps close).
         private System.Action _onClosed;
 
@@ -87,7 +87,7 @@ namespace com.noctuagames.sdk.UI
 
             if (entry == null || string.IsNullOrEmpty(entry.AssetUrl))
             {
-                // Defensive: MediationManager already gates this, but never render an empty placeholder.
+                // Defensive: NoctuaIAAService already gates this, but never render an empty placeholder.
                 _log.Warning($"{LogTag} show - cross-promotion entry missing asset, not showing placeholder");
                 return;
             }

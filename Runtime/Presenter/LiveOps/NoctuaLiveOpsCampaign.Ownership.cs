@@ -62,7 +62,7 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
                 var popup = _host.PopupIfCreated;
                 if (popup == null || !popup.IsShowing) return;
 
-                popup.Refresh(RenderItem(shown, _shownPlayerData), _manager.Config.SchemaVersion);
+                popup.Refresh(RenderItem(shown, _shownPlayerData), _resolver.Config.SchemaVersion);
             }
             catch (Exception e)
             {
@@ -361,7 +361,7 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
                 if (_shownItem == null || popup == null || !popup.IsShowing) return;
                 if (!SkusOf(_shownItem).Contains(productId)) return;
 
-                popup.Refresh(RenderItem(_shownItem, _shownPlayerData), _manager.Config.SchemaVersion);
+                popup.Refresh(RenderItem(_shownItem, _shownPlayerData), _resolver.Config.SchemaVersion);
             }
             catch (Exception e)
             {

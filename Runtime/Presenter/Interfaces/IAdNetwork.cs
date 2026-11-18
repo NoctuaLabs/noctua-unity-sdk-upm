@@ -110,11 +110,11 @@ namespace com.noctuagames.sdk
 
         #if UNITY_ADMOB
         // NOTE: The following AdMob-specific methods default to no-ops so that
-        // non-AdMob implementations (e.g. AppLovinManager) can be called through an
+        // non-AdMob implementations (e.g. AppLovinNetwork) can be called through an
         // IAdNetwork reference without crashing. Callers should prefer the guarded
-        // MediationManager wrappers (which check IsAdmob()), but direct calls on a
+        // NoctuaIAAService wrappers (which check IsAdmob()), but direct calls on a
         // non-AdMob primary silently no-op instead of throwing
-        // NotImplementedException. Only AdmobManager overrides these with real
+        // NotImplementedException. Only AdmobNetwork overrides these with real
         // behavior.
 
         /// <summary>
@@ -165,11 +165,11 @@ namespace com.noctuagames.sdk
 
         #if UNITY_APPLOVIN
         // NOTE: The following AppLovin-specific methods default to no-ops so that
-        // non-AppLovin implementations (e.g. AdmobManager) can be called through an
+        // non-AppLovin implementations (e.g. AdmobNetwork) can be called through an
         // IAdNetwork reference without crashing. Callers should prefer the guarded
-        // MediationManager wrappers (which check IsAppLovin()), but direct calls on
+        // NoctuaIAAService wrappers (which check IsAppLovin()), but direct calls on
         // a non-AppLovin primary silently no-op instead of throwing
-        // NotImplementedException. Only AppLovinManager overrides these with real
+        // NotImplementedException. Only AppLovinNetwork overrides these with real
         // behavior.
 
         /// <summary>
@@ -246,7 +246,7 @@ namespace com.noctuagames.sdk
 
         /// <summary>
         /// Returns true if an ad unit ID has been configured on this network for the given
-        /// <see cref="AdFormatKey"/> format. Used by <see cref="HybridAdOrchestrator.GetNetworkForFormat"/>
+        /// <see cref="AdFormatKey"/> format. Used by <see cref="HybridAdRouting.GetNetworkForFormat"/>
         /// to prefer whichever network actually has a unit configured for that format.
         /// </summary>
         bool HasAdUnitForFormat(string format) { return false; }

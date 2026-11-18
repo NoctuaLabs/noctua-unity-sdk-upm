@@ -20,7 +20,7 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
         private readonly ILogger _log = new NoctuaLogger(typeof(NoctuaLiveOpsCampaign));
 
         private const string LogTag = "[campaign]";
-        private readonly CampaignManager _manager;
+        private readonly CampaignResolver _resolver;
         private readonly CampaignUIHost _host;
         private readonly CampaignActionDispatcher _dispatcher;
         private readonly CampaignActionHandlers _handlers;
@@ -113,7 +113,7 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
             var assets = new CampaignAssetSource(isOffline: Noctua.IsOfflineMode);
             var fonts = new CampaignFontSource();
 
-            _manager = new CampaignManager(
+            _resolver = new CampaignResolver(
                 merged, env, new CampaignFrequencyGate(),
                 isOffline: Noctua.IsOfflineMode,
                 assetsReady: assets.AreAllImagesCached,
@@ -173,7 +173,7 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
         }
 
         /// <summary>The resolver behind this facade — read by the sandbox Inspector.</summary>
-        public CampaignManager Manager => _manager;
+        public CampaignResolver Resolver => _resolver;
 
         /// <summary>The id of the campaign on screen, or null.</summary>
         public string ShownCampaignId => _shownItem?.Id;
@@ -222,7 +222,7 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
         /// to filter, or nothing for all.
         /// </summary>
         public IReadOnlyList<CampaignItem> GetActiveCampaigns(string engagementType = null) =>
-            _manager.GetActiveCampaigns(engagementType);
+            _resolver.GetActiveCampaigns(engagementType);
 
         /// <summary>
         /// Shows a campaign in the popup — the one with <paramref name="id"/>, or the
@@ -240,7 +240,7 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
         {
             try
             {
-                var stored = _manager.GetTopCampaign(id: id);
+                var stored = _resolver.GetTopCampaign(id: id);
                 if (stored == null)
                 {
                     _log.Debug($"ShowPopup: no eligible campaign (id='{id}')");
@@ -315,7 +315,7 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
                     onShown: shown =>
                     {
                         visibleTimer = System.Diagnostics.Stopwatch.StartNew();
-                        _manager.MarkShown(shown);
+                        _resolver.MarkShown(shown);
                         _events?.Send(ImpressionEvent, CampaignPayload(shown));
                         SafeInvoke(OnCampaignShown, shown.Id);
                     },
@@ -343,7 +343,7 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
                 _shownGameData = gameData == null
                     ? new Dictionary<string, string>()
                     : new Dictionary<string, string>(gameData);
-                popup.Show(item, _manager.Config.SchemaVersion);
+                popup.Show(item, _resolver.Config.SchemaVersion);
 
                 // Shown with the USD fallback; swap in the player's local prices once known.
                 RefreshStorePricesAsync(stored).Forget();
@@ -468,7 +468,7 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
                 var popup = _host.PopupIfCreated;
                 if (!ReferenceEquals(_shownItem, stored) || popup == null || !popup.IsShowing) return;
 
-                popup.Refresh(RenderItem(stored, _shownPlayerData), _manager.Config.SchemaVersion);
+                popup.Refresh(RenderItem(stored, _shownPlayerData), _resolver.Config.SchemaVersion);
             }
             catch (Exception e)
             {
@@ -513,7 +513,7 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
                     foreach (var pair in playerData) _shownGameData[pair.Key] = pair.Value;
                 }
 
-                if (!popup.Refresh(RenderItem(_shownItem, combined), _manager.Config.SchemaVersion))
+                if (!popup.Refresh(RenderItem(_shownItem, combined), _resolver.Config.SchemaVersion))
                 {
                     _log.Warning($"UpdatePopupData: campaign '{_shownItem.Id}' could not re-render; kept current content");
                     return;
@@ -581,7 +581,7 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
             try
             {
                 var waitingForPlayer = false;
-                foreach (var item in _manager.GetActiveCampaigns())
+                foreach (var item in _resolver.GetActiveCampaigns())
                 {
                     if (!item.AutoShow) continue;
 

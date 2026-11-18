@@ -9,8 +9,8 @@ namespace Tests.Runtime.IAA
     ///
     /// Covers:
     ///   - MockAdNetwork.HasBannerAdUnit() / BannerAdUnitSet / ShowBannerCallCount
-    ///   - HybridAdOrchestrator.ShowWithFallback banner, interstitial, and rewarded paths
-    ///   - AdRevenueTrackingManager constructor does not crash (SystemInfo.deviceUniqueIdentifier
+    ///   - HybridAdRouting.ShowWithFallback banner, interstitial, and rewarded paths
+    ///   - AdRevenueReporter constructor does not crash (SystemInfo.deviceUniqueIdentifier
     ///     must be cached on the main thread, not called from JNI callbacks)
     /// </summary>
     [TestFixture]
@@ -63,13 +63,13 @@ namespace Tests.Runtime.IAA
             Assert.AreEqual(2, _primary.ShowBannerCallCount);
         }
 
-        // ─── HybridAdOrchestrator: banner fallback ───────────────────────────
+        // ─── HybridAdRouting: banner fallback ───────────────────────────
 
         [Test]
         public void ShowWithFallback_Banner_PrimaryHasUnit_ShowsFromPrimary()
         {
             _primary.BannerAdUnitSet = true;
-            var orc = new HybridAdOrchestrator(_primary, _secondary);
+            var orc = new HybridAdRouting(_primary, _secondary);
 
             IAdNetwork shown = null;
             orc.ShowWithFallback(AdFormatKey.Banner, n => shown = n, n => n.HasBannerAdUnit());
@@ -85,20 +85,20 @@ namespace Tests.Runtime.IAA
         {
             // Primary has NO banner unit; secondary has one.
             _secondary.BannerAdUnitSet = true;
-            var orc = new HybridAdOrchestrator(_primary, _secondary);
+            var orc = new HybridAdRouting(_primary, _secondary);
 
             IAdNetwork shown = null;
             orc.ShowWithFallback(AdFormatKey.Banner, n => shown = n, n => n.HasBannerAdUnit());
 
             Assert.AreSame(_secondary, shown,
-                "When primary has no banner unit, the orchestrator should fall back to secondary");
+                "When primary has no banner unit, the routing should fall back to secondary");
         }
 
         [Test]
         public void ShowWithFallback_Banner_NeitherNetworkHasUnit_FiresOnAdFailedDisplayed()
         {
             // Neither network has a banner unit.
-            var orc = new HybridAdOrchestrator(_primary, _secondary);
+            var orc = new HybridAdRouting(_primary, _secondary);
 
             bool failedFired = false;
             orc.OnAdFailedDisplayed += () => failedFired = true;
@@ -113,7 +113,7 @@ namespace Tests.Runtime.IAA
         public void ShowWithFallback_Banner_PrimaryOnly_NoUnit_FiresOnAdFailedDisplayed()
         {
             // Single-network setup (no secondary), primary has no banner unit.
-            var orc = new HybridAdOrchestrator(_primary);
+            var orc = new HybridAdRouting(_primary);
 
             bool failedFired = false;
             orc.OnAdFailedDisplayed += () => failedFired = true;
@@ -123,14 +123,14 @@ namespace Tests.Runtime.IAA
             Assert.IsTrue(failedFired);
         }
 
-        // ─── HybridAdOrchestrator: interstitial fallback ─────────────────────
+        // ─── HybridAdRouting: interstitial fallback ─────────────────────
 
         [Test]
         public void ShowWithFallback_Interstitial_PrimaryReady_ShowsFromPrimary()
         {
             _primary.InterstitialReady   = true;
             _secondary.InterstitialReady = true;
-            var orc = new HybridAdOrchestrator(_primary, _secondary);
+            var orc = new HybridAdRouting(_primary, _secondary);
 
             IAdNetwork shown = null;
             orc.ShowWithFallback(
@@ -147,7 +147,7 @@ namespace Tests.Runtime.IAA
         {
             _primary.InterstitialReady   = false;
             _secondary.InterstitialReady = true;
-            var orc = new HybridAdOrchestrator(_primary, _secondary);
+            var orc = new HybridAdRouting(_primary, _secondary);
 
             IAdNetwork shown = null;
             orc.ShowWithFallback(
@@ -156,7 +156,7 @@ namespace Tests.Runtime.IAA
                 n => n.IsInterstitialReady());
 
             Assert.AreSame(_secondary, shown,
-                "Primary is not ready — the orchestrator should fall back to secondary");
+                "Primary is not ready — the routing should fall back to secondary");
         }
 
         [Test]
@@ -164,7 +164,7 @@ namespace Tests.Runtime.IAA
         {
             _primary.InterstitialReady   = false;
             _secondary.InterstitialReady = false;
-            var orc = new HybridAdOrchestrator(_primary, _secondary);
+            var orc = new HybridAdRouting(_primary, _secondary);
 
             bool failedFired = false;
             orc.OnAdFailedDisplayed += () => failedFired = true;
@@ -182,7 +182,7 @@ namespace Tests.Runtime.IAA
         public void ShowWithFallback_Interstitial_PrimaryOnly_NotReady_FiresOnAdFailedDisplayed()
         {
             _primary.InterstitialReady = false;
-            var orc = new HybridAdOrchestrator(_primary); // no secondary
+            var orc = new HybridAdRouting(_primary); // no secondary
 
             bool failedFired = false;
             orc.OnAdFailedDisplayed += () => failedFired = true;
@@ -195,14 +195,14 @@ namespace Tests.Runtime.IAA
             Assert.IsTrue(failedFired);
         }
 
-        // ─── HybridAdOrchestrator: rewarded fallback ─────────────────────────
+        // ─── HybridAdRouting: rewarded fallback ─────────────────────────
 
         [Test]
         public void ShowWithFallback_Rewarded_PrimaryReady_ShowsFromPrimary()
         {
             _primary.RewardedReady   = true;
             _secondary.RewardedReady = true;
-            var orc = new HybridAdOrchestrator(_primary, _secondary);
+            var orc = new HybridAdRouting(_primary, _secondary);
 
             IAdNetwork shown = null;
             orc.ShowWithFallback(
@@ -218,7 +218,7 @@ namespace Tests.Runtime.IAA
         {
             _primary.RewardedReady   = false;
             _secondary.RewardedReady = true;
-            var orc = new HybridAdOrchestrator(_primary, _secondary);
+            var orc = new HybridAdRouting(_primary, _secondary);
 
             IAdNetwork shown = null;
             orc.ShowWithFallback(
@@ -227,7 +227,7 @@ namespace Tests.Runtime.IAA
                 n => n.IsRewardedAdReady());
 
             Assert.AreSame(_secondary, shown,
-                "Primary is not ready — the orchestrator should fall back to secondary for rewarded");
+                "Primary is not ready — the routing should fall back to secondary for rewarded");
         }
 
         [Test]
@@ -235,7 +235,7 @@ namespace Tests.Runtime.IAA
         {
             _primary.RewardedReady   = false;
             _secondary.RewardedReady = false;
-            var orc = new HybridAdOrchestrator(_primary, _secondary);
+            var orc = new HybridAdRouting(_primary, _secondary);
 
             bool failedFired = false;
             orc.OnAdFailedDisplayed += () => failedFired = true;
@@ -248,24 +248,24 @@ namespace Tests.Runtime.IAA
             Assert.IsTrue(failedFired);
         }
 
-        // ─── AdRevenueTrackingManager constructor thread-safety ──────────────
+        // ─── AdRevenueReporter constructor thread-safety ──────────────
 
         [Test]
-        public void AdRevenueTrackingManager_Constructor_DoesNotThrow()
+        public void AdRevenueReporter_Constructor_DoesNotThrow()
         {
             // SystemInfo.deviceUniqueIdentifier is now cached in the constructor.
             // The Unity Test Runner runs on the main thread, so this must not throw
             // a UnityException ("can only be called from the main thread").
             Assert.DoesNotThrow(
-                () => { var _ = new AdRevenueTrackingManager(); },
-                "AdRevenueTrackingManager constructor must not throw — deviceId is cached on construction");
+                () => { var _ = new AdRevenueReporter(); },
+                "AdRevenueReporter constructor must not throw — deviceId is cached on construction");
         }
 
         [Test]
-        public void AdRevenueTrackingManager_NullParams_Constructor_DoesNotThrow()
+        public void AdRevenueReporter_NullParams_Constructor_DoesNotThrow()
         {
             Assert.DoesNotThrow(
-                () => { var _ = new AdRevenueTrackingManager(adRevenueTracker: null, taichiConfig: null); },
+                () => { var _ = new AdRevenueReporter(adRevenueTracker: null, taichiConfig: null); },
                 "Constructor with explicit null params must not throw");
         }
     }

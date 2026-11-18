@@ -4,7 +4,7 @@ using com.noctuagames.sdk;
 namespace Tests.Runtime.IAA
 {
     /// <summary>
-    /// Exhaustive 16-case matrix covering <see cref="MediationManager.ResolveMediationSelection"/>
+    /// Exhaustive 16-case matrix covering <see cref="NoctuaIAAService.ResolveMediationSelection"/>
     /// across every combination of:
     ///
     ///   - primary  ∈ { applovin, admob }
@@ -88,7 +88,7 @@ namespace Tests.Runtime.IAA
             string expectedSecondary)
         {
             var (resolvedPrimary, resolvedSecondary) =
-                MediationManager.ResolveMediationSelection(
+                NoctuaIAAService.ResolveMediationSelection(
                     primaryRaw:        primary,
                     secondaryRaw:      secondary,
                     admobAvailable:    admobEnabled,
@@ -108,7 +108,7 @@ namespace Tests.Runtime.IAA
         public void ResolveMediationSelection_MixedCaseAndWhitespace_NormalisedAndDeduped()
         {
             // "AdMob" and " admob " should normalise to the same name and dedup.
-            var (p, s) = MediationManager.ResolveMediationSelection(
+            var (p, s) = NoctuaIAAService.ResolveMediationSelection(
                 primaryRaw: "AdMob",
                 secondaryRaw: " admob ",
                 admobAvailable: true,
@@ -122,7 +122,7 @@ namespace Tests.Runtime.IAA
         public void ResolveMediationSelection_UnknownName_TreatedAsUnavailable()
         {
             // Typo / unsupported name resolves to null (no crash); secondary promoted if able.
-            var (p, s) = MediationManager.ResolveMediationSelection(
+            var (p, s) = NoctuaIAAService.ResolveMediationSelection(
                 primaryRaw: "applovin_max",
                 secondaryRaw: "admob",
                 admobAvailable: true,
@@ -135,7 +135,7 @@ namespace Tests.Runtime.IAA
         [Test]
         public void ResolveMediationSelection_NullInputs_ReturnsNoSelection()
         {
-            var (p, s) = MediationManager.ResolveMediationSelection(
+            var (p, s) = NoctuaIAAService.ResolveMediationSelection(
                 primaryRaw: null,
                 secondaryRaw: null,
                 admobAvailable: true,

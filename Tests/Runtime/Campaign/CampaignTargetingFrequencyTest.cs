@@ -54,21 +54,21 @@ namespace Tests.Runtime.Campaign
         [Test]
         public void CompareVersions_NumericSegments()
         {
-            Assert.Less(CampaignManager.CompareVersions("1.2.0", "1.10.0"), 0);
-            Assert.Greater(CampaignManager.CompareVersions("2.0", "1.9.9"), 0);
-            Assert.AreEqual(0, CampaignManager.CompareVersions("1.0.0", "1.0"));
+            Assert.Less(CampaignResolver.CompareVersions("1.2.0", "1.10.0"), 0);
+            Assert.Greater(CampaignResolver.CompareVersions("2.0", "1.9.9"), 0);
+            Assert.AreEqual(0, CampaignResolver.CompareVersions("1.0.0", "1.0"));
         }
 
         // ---- targeting -----------------------------------------------
 
-        private static CampaignManager ManagerWith(CampaignItem item, FakeEnv env)
+        private static CampaignResolver ManagerWith(CampaignItem item, FakeEnv env)
         {
             var config = new CampaignConfig
             {
                 SchemaVersion = 1,
                 Campaigns = new List<CampaignItem> { item },
             };
-            return new CampaignManager(config, env, new CampaignFrequencyGate(
+            return new CampaignResolver(config, env, new CampaignFrequencyGate(
                 utcNow: () => env.Now, prefs: new FakePrefsStore()));
         }
 
@@ -249,13 +249,13 @@ namespace Tests.Runtime.Campaign
 
         // ---- offline asset gate --------------------------------------
 
-        private static CampaignManager OfflineManager(bool isOffline, bool assetsReady)
+        private static CampaignResolver OfflineManager(bool isOffline, bool assetsReady)
         {
             var item = CampaignFactory.Item("c", CampaignItem.EngagementPurchase,
                 CampaignFactory.Node(CampaignNode.TypeImage,
                     new Dictionary<string, object> { { "url", "https://cdn/x.png" } }));
             var config = new CampaignConfig { SchemaVersion = 1, Campaigns = new List<CampaignItem> { item } };
-            return new CampaignManager(config, new FakeEnv(),
+            return new CampaignResolver(config, new FakeEnv(),
                 new CampaignFrequencyGate(prefs: new FakePrefsStore()),
                 isOffline: () => isOffline,
                 assetsReady: _ => assetsReady);

@@ -15,17 +15,17 @@ using UnityEngine.TestTools;
 namespace Tests.Runtime
 {
     /// <summary>
-    /// Threading contract tests for <see cref="AdRevenueTrackingManager"/> and
+    /// Threading contract tests for <see cref="AdRevenueReporter"/> and
     /// <see cref="SessionTracker"/>, covering background-thread safety and the
     /// main-thread marshalling requirement for PlayerPrefs access.
     ///
     /// Background:
     ///   AppLovin MAX delivers <c>OnAdRevenuePaidEvent</c> on a background thread
     ///   (<c>MaxSdkBase.HandleBackgroundCallback</c>). All three Process* methods in
-    ///   <see cref="AdRevenueTrackingManager"/> read and write PlayerPrefs — Unity's
+    ///   <see cref="AdRevenueReporter"/> read and write PlayerPrefs — Unity's
     ///   PlayerPrefs API is documented as main-thread-only and throws
     ///   <see cref="UnityException"/> when accessed from background threads.
-    ///   <see cref="MediationManager"/> wraps every revenue callback in
+    ///   <see cref="NoctuaIAAService"/> wraps every revenue callback in
     ///   <c>PostToMainThread()</c> to satisfy this constraint.
     ///
     ///   <see cref="SessionTracker"/> has the same constraint:
@@ -36,15 +36,15 @@ namespace Tests.Runtime
     ///
     /// Test groups:
     ///
-    ///   Group A — AdRevenueTrackingManager per-format background-thread constraint
+    ///   Group A — AdRevenueReporter per-format background-thread constraint
     ///     A1. ProcessInterstitialThresholds_FromBackgroundThread_Throws
     ///     A2. ProcessRewardedThresholds_FromBackgroundThread_Throws
     ///
-    ///   Group B — AdRevenueTrackingManager BG-safe setter methods
+    ///   Group B — AdRevenueReporter BG-safe setter methods
     ///     B1. SetAdRevenueTracker_FromBackgroundThread_DoesNotThrow
     ///     B2. SetTaichiConfig_FromBackgroundThread_DoesNotThrow
     ///
-    ///   Group C — MediationManager.PostToMainThread wrapping revenue callbacks
+    ///   Group C — NoctuaIAAService.PostToMainThread wrapping revenue callbacks
     ///     C1. PostToMainThread_NullContext_MainThread_RevenueProcessed
     ///     C2. PostToMainThread_NullContext_BackgroundThread_ProcessRevenueThrows
     ///
@@ -95,7 +95,7 @@ namespace Tests.Runtime
             RewardedRevenueThreshold   = 0.01f,
         };
 
-        // Minimal IAdPlaceholderUI stub for constructing a MediationManager without ad SDKs.
+        // Minimal IAdPlaceholderUI stub for constructing a NoctuaIAAService without ad SDKs.
         private class NoopAdPlaceholderUI : IAdPlaceholderUI
         {
             public void ShowAdPlaceholder(AdPlaceholderType adType, CrossPromotionEntry entry) { }
@@ -115,17 +115,17 @@ namespace Tests.Runtime
             public bool IsAssetCached(string assetUrl) => false;
         }
 
-        private static MediationManager NullIaaManager() =>
-            new MediationManager(new NoopAdPlaceholderUI(), null);
+        private static NoctuaIAAService NullIaaManager() =>
+            new NoctuaIAAService(new NoopAdPlaceholderUI(), null);
 
-        // Reflection handles for private members of MediationManager
+        // Reflection handles for private members of NoctuaIAAService
         private static readonly MethodInfo PostToMainThreadMethod =
-            typeof(MediationManager).GetMethod(
+            typeof(NoctuaIAAService).GetMethod(
                 "PostToMainThread",
                 BindingFlags.NonPublic | BindingFlags.Instance);
 
         private static readonly FieldInfo MainThreadContextField =
-            typeof(MediationManager).GetField(
+            typeof(NoctuaIAAService).GetField(
                 "_mainThreadContext",
                 BindingFlags.NonPublic | BindingFlags.Instance);
 
@@ -135,7 +135,7 @@ namespace Tests.Runtime
                 BindingFlags.NonPublic | BindingFlags.Instance);
 
         // ════════════════════════════════════════════════════════════════════════
-        // Group A — AdRevenueTrackingManager per-format background-thread contract
+        // Group A — AdRevenueReporter per-format background-thread contract
         // ════════════════════════════════════════════════════════════════════════
 
         /// <summary>
@@ -143,12 +143,12 @@ namespace Tests.Runtime
         /// KeyInterstitialCount) and must run on the Unity main thread.
         ///
         /// AppLovin MAX fires <c>OnAdRevenuePaidEvent</c> on a background thread
-        /// (<c>MaxSdkBase.HandleBackgroundCallback</c>). <see cref="MediationManager"/>
+        /// (<c>MaxSdkBase.HandleBackgroundCallback</c>). <see cref="NoctuaIAAService"/>
         /// marshals the call to the main thread via <c>PostToMainThread()</c> before
         /// invoking <c>ProcessInterstitialThresholds</c>. Calling directly from a
         /// background thread skips that marshal and throws <see cref="UnityException"/>.
         ///
-        /// Companion test: Group A in <c>AdRevenueTrackingManagerTest.cs</c> covers
+        /// Companion test: Group A in <c>AdRevenueReporterTest.cs</c> covers
         /// <c>ProcessAllFormatsThresholds</c>; this test extends that contract to the
         /// interstitial-specific path.
         /// </summary>
@@ -156,7 +156,7 @@ namespace Tests.Runtime
         public void ProcessInterstitialThresholds_FromBackgroundThread_Throws()
         {
             var tracker = new MockAdRevenueTracker();
-            var mgr     = new AdRevenueTrackingManager(tracker, DefaultTaichiConfig());
+            var mgr     = new AdRevenueReporter(tracker, DefaultTaichiConfig());
 
             var ex = Assert.Throws<AggregateException>(() =>
                 Task.Run(() => mgr.ProcessInterstitialThresholds(0.01)).Wait());
@@ -178,7 +178,7 @@ namespace Tests.Runtime
         public void ProcessRewardedThresholds_FromBackgroundThread_Throws()
         {
             var tracker = new MockAdRevenueTracker();
-            var mgr     = new AdRevenueTrackingManager(tracker, DefaultTaichiConfig());
+            var mgr     = new AdRevenueReporter(tracker, DefaultTaichiConfig());
 
             var ex = Assert.Throws<AggregateException>(() =>
                 Task.Run(() => mgr.ProcessRewardedThresholds(0.01)).Wait());
@@ -190,7 +190,7 @@ namespace Tests.Runtime
         }
 
         // ════════════════════════════════════════════════════════════════════════
-        // Group B — AdRevenueTrackingManager BG-safe setter methods
+        // Group B — AdRevenueReporter BG-safe setter methods
         // ════════════════════════════════════════════════════════════════════════
 
         /// <summary>
@@ -204,7 +204,7 @@ namespace Tests.Runtime
         [Test]
         public void SetAdRevenueTracker_FromBackgroundThread_DoesNotThrow()
         {
-            var mgr     = new AdRevenueTrackingManager(null, DefaultTaichiConfig());
+            var mgr     = new AdRevenueReporter(null, DefaultTaichiConfig());
             var tracker = new MockAdRevenueTracker();
 
             Exception caughtEx = null;
@@ -232,7 +232,7 @@ namespace Tests.Runtime
         public void SetTaichiConfig_FromBackgroundThread_DoesNotThrow()
         {
             var tracker = new MockAdRevenueTracker();
-            var mgr     = new AdRevenueTrackingManager(tracker, DefaultTaichiConfig());
+            var mgr     = new AdRevenueReporter(tracker, DefaultTaichiConfig());
 
             Exception caughtEx = null;
             var thread = new Thread(() =>
@@ -249,7 +249,7 @@ namespace Tests.Runtime
         }
 
         // ════════════════════════════════════════════════════════════════════════
-        // Group C — MediationManager.PostToMainThread wrapping revenue callbacks
+        // Group C — NoctuaIAAService.PostToMainThread wrapping revenue callbacks
         // ════════════════════════════════════════════════════════════════════════
 
         /// <summary>
@@ -270,12 +270,12 @@ namespace Tests.Runtime
             {
                 var mgr            = NullIaaManager();
                 var revenueTracker = new MockAdRevenueTracker();
-                var revenueManager = new AdRevenueTrackingManager(revenueTracker, DefaultTaichiConfig());
+                var revenueReporter = new AdRevenueReporter(revenueTracker, DefaultTaichiConfig());
 
                 // Queues action via SynchronizationContext.Post — does not execute inline
                 PostToMainThreadMethod.Invoke(mgr, new object[]
                 {
-                    (Action)(() => revenueManager.ProcessAllFormatsThresholds(0.01))
+                    (Action)(() => revenueReporter.ProcessAllFormatsThresholds(0.01))
                 });
 
                 // Yield two frames so the SynchronizationContext pumps the queued action
@@ -316,7 +316,7 @@ namespace Tests.Runtime
             MainThreadContextField?.SetValue(mgr, null);
 
             var revenueTracker = new MockAdRevenueTracker();
-            var revenueManager = new AdRevenueTrackingManager(revenueTracker, DefaultTaichiConfig());
+            var revenueReporter = new AdRevenueReporter(revenueTracker, DefaultTaichiConfig());
 
             // Task.Run → background thread → PostToMainThread (null context, inline) →
             // ProcessAllFormatsThresholds → PlayerPrefs.GetFloat → UnityException
@@ -324,7 +324,7 @@ namespace Tests.Runtime
                 Task.Run(() =>
                     PostToMainThreadMethod.Invoke(mgr, new object[]
                     {
-                        (Action)(() => revenueManager.ProcessAllFormatsThresholds(0.01))
+                        (Action)(() => revenueReporter.ProcessAllFormatsThresholds(0.01))
                     })
                 ).Wait());
 

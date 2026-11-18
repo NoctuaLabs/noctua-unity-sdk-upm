@@ -9,7 +9,7 @@ using IAAConfig = com.noctuagames.sdk.IAA;
 namespace Tests.Runtime.IAA
 {
     /// <summary>
-    /// Unit tests for the cross-promotion placeholder orchestration in <see cref="MediationManager"/>:
+    /// Unit tests for the cross-promotion placeholder orchestration in <see cref="NoctuaIAAService"/>:
     /// the fallback is shown only when no real ad displays, it drives the ad lifecycle
     /// (OnAdDisplayed → OnAdClicked → OnAdClosed), the "no real ad" signal is deferred while it shows,
     /// a real ad force-closing it suppresses OnAdClosed, and it never grants a reward.
@@ -102,7 +102,7 @@ namespace Tests.Runtime.IAA
         [SetUp]
         public void SetUp()
         {
-            // Constructing MediationManager runs CreateNetworks, which logs (and errors when no ad SDK
+            // Constructing NoctuaIAAService runs CreateNetworks, which logs (and errors when no ad SDK
             // is compiled in). None of that is under test here, so tolerate it.
             LogAssert.ignoreFailingMessages = true;
         }
@@ -116,8 +116,8 @@ namespace Tests.Runtime.IAA
         // ─── Helpers ─────────────────────────────────────────────────────────
 
         // Mirror the proven MinimalIaa("admob") construction pattern used by the sibling
-        // MediationManager fixtures so the constructor's CreateNetworks runs its normal path.
-        // The cross-promotion logic under test never touches the orchestrator/network.
+        // NoctuaIAAService fixtures so the constructor's CreateNetworks runs its normal path.
+        // The cross-promotion logic under test never touches the routing/network.
         private static IAAConfig ConfigWith(CrossPromotionConfig crossPromotion) => new IAAConfig
         {
             Mediation = "admob",
@@ -126,24 +126,24 @@ namespace Tests.Runtime.IAA
 
         private static CrossPromotionEntry Entry(string url) => new CrossPromotionEntry { AssetUrl = url };
 
-        private static MediationManager Create(RecordingAdPlaceholderUI ui, IAAConfig config)
+        private static NoctuaIAAService Create(RecordingAdPlaceholderUI ui, IAAConfig config)
         {
-            // Constructing MediationManager runs CreateNetworks which logs; tolerate it (matches the
-            // sibling MediationManager fixtures' pattern).
+            // Constructing NoctuaIAAService runs CreateNetworks which logs; tolerate it (matches the
+            // sibling NoctuaIAAService fixtures' pattern).
             LogAssert.ignoreFailingMessages = true;
-            return new MediationManager(ui, config);
+            return new NoctuaIAAService(ui, config);
         }
 
-        private static void InvokePrivate(MediationManager m, string method, params object[] args)
+        private static void InvokePrivate(NoctuaIAAService m, string method, params object[] args)
         {
-            var mi = typeof(MediationManager).GetMethod(method, BindingFlags.NonPublic | BindingFlags.Instance);
+            var mi = typeof(NoctuaIAAService).GetMethod(method, BindingFlags.NonPublic | BindingFlags.Instance);
             Assert.IsNotNull(mi, $"private instance method '{method}' not found");
             mi.Invoke(m, args);
         }
 
-        private static bool InvokeShowFallback(MediationManager m, AdPlaceholderType type)
+        private static bool InvokeShowFallback(NoctuaIAAService m, AdPlaceholderType type)
         {
-            var mi = typeof(MediationManager).GetMethod("ShowCrossPromoFallback", BindingFlags.NonPublic | BindingFlags.Instance);
+            var mi = typeof(NoctuaIAAService).GetMethod("ShowCrossPromoFallback", BindingFlags.NonPublic | BindingFlags.Instance);
             Assert.IsNotNull(mi, "ShowCrossPromoFallback not found");
             return (bool)mi.Invoke(m, new object[] { type });
         }
@@ -285,7 +285,7 @@ namespace Tests.Runtime.IAA
         {
             var ui = new RecordingAdPlaceholderUI();
             var tracker = new RecordingAdRevenueTracker();
-            var m = new MediationManager(ui, ConfigWith(new CrossPromotionConfig { Rewarded = Entry("https://cdn/rew.mp4") }), tracker);
+            var m = new NoctuaIAAService(ui, ConfigWith(new CrossPromotionConfig { Rewarded = Entry("https://cdn/rew.mp4") }), tracker);
 
             Assert.IsTrue(InvokeShowFallback(m, AdPlaceholderType.Rewarded), "fallback show should be requested");
 
@@ -308,7 +308,7 @@ namespace Tests.Runtime.IAA
         {
             var ui = new RecordingAdPlaceholderUI();
             var tracker = new RecordingAdRevenueTracker();
-            var m = new MediationManager(ui, ConfigWith(new CrossPromotionConfig { Interstitial = Entry("https://cdn/inter.mp4") }), tracker);
+            var m = new NoctuaIAAService(ui, ConfigWith(new CrossPromotionConfig { Interstitial = Entry("https://cdn/inter.mp4") }), tracker);
 
             Assert.IsTrue(InvokeShowFallback(m, AdPlaceholderType.Interstitial));
             ui.OnFailed.Invoke(); // asset never rendered
@@ -373,9 +373,9 @@ namespace Tests.Runtime.IAA
 
         // ─── Cross-promo readiness (cache-gated) ─────────────────────────────
 
-        private static bool InvokeIsCrossPromoAvailable(MediationManager m, AdPlaceholderType type)
+        private static bool InvokeIsCrossPromoAvailable(NoctuaIAAService m, AdPlaceholderType type)
         {
-            var mi = typeof(MediationManager).GetMethod("IsCrossPromoAvailable", BindingFlags.NonPublic | BindingFlags.Instance);
+            var mi = typeof(NoctuaIAAService).GetMethod("IsCrossPromoAvailable", BindingFlags.NonPublic | BindingFlags.Instance);
             Assert.IsNotNull(mi, "IsCrossPromoAvailable not found");
             return (bool)mi.Invoke(m, new object[] { type });
         }
@@ -416,7 +416,7 @@ namespace Tests.Runtime.IAA
         [Test]
         public void MapFormatToPlaceholderType_MapsEachFormat()
         {
-            var mi = typeof(MediationManager).GetMethod("MapFormatToPlaceholderType",
+            var mi = typeof(NoctuaIAAService).GetMethod("MapFormatToPlaceholderType",
                 BindingFlags.NonPublic | BindingFlags.Static);
             Assert.IsNotNull(mi, "MapFormatToPlaceholderType not found");
 
@@ -430,7 +430,7 @@ namespace Tests.Runtime.IAA
         [Test]
         public void ResolveCrossPromotionEntry_ReturnsPerFormatEntry()
         {
-            var mi = typeof(MediationManager).GetMethod("ResolveCrossPromotionEntry",
+            var mi = typeof(NoctuaIAAService).GetMethod("ResolveCrossPromotionEntry",
                 BindingFlags.NonPublic | BindingFlags.Static);
             Assert.IsNotNull(mi, "ResolveCrossPromotionEntry not found");
 
@@ -456,7 +456,7 @@ namespace Tests.Runtime.IAA
             var ui = new RecordingAdPlaceholderUI();
             var tracker = new RecordingAdRevenueTracker();
             // No cross_promotion in config — the data comes straight from the call.
-            var m = new MediationManager(ui, ConfigWith(null), tracker);
+            var m = new NoctuaIAAService(ui, ConfigWith(null), tracker);
 
             bool crossPromoDisplayed = false, adDisplayed = false;
             m.OnCrossPromoDisplayed += () => crossPromoDisplayed = true;

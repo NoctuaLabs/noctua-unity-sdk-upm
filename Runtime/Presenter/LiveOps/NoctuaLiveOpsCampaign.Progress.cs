@@ -595,7 +595,7 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
 
         /// <summary>Every campaign's tracker key for the mission, once each.</summary>
         private List<string> MissionTrackerKeys(string missionKey) =>
-            (_manager.Config?.Campaigns ?? new List<CampaignItem>())
+            (_resolver.Config?.Campaigns ?? new List<CampaignItem>())
                 .Where(item => HasMission(item, missionKey))
                 .Select(item => TrackerKey(item, missionKey))
                 .Distinct(StringComparer.Ordinal)
@@ -637,7 +637,7 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
             if (popup == null || !popup.IsShowing) return;
 
             var data = MergeProgressData(_shownItem, ProgressView(), _shownGameData);
-            if (popup.Refresh(RenderItem(_shownItem, data), _manager.Config.SchemaVersion)) _shownPlayerData = data;
+            if (popup.Refresh(RenderItem(_shownItem, data), _resolver.Config.SchemaVersion)) _shownPlayerData = data;
         }
 
         // ---- state -------------------------------------------------------------

@@ -311,7 +311,7 @@ namespace Tests.Runtime.Campaign
                 await facade.OnAccountChangedAsync();
                 await UniTask.WaitUntil(() => facade.ShownCampaignId != null).Timeout(TimeSpan.FromSeconds(5));
 
-                var reasons = string.Join("; ", facade.Manager.LastResolutions.Select(r => $"{r.Id}:{r.Eligible}:{r.Reason}"));
+                var reasons = string.Join("; ", facade.Resolver.LastResolutions.Select(r => $"{r.Id}:{r.Eligible}:{r.Reason}"));
                 Assert.AreEqual(Id, facade.ShownCampaignId, "resolutions: " + reasons + " | sent: " + string.Join(",", Sent(_server)));
             }
             finally { UnityEngine.Object.DestroyImmediate(panel); }

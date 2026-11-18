@@ -343,7 +343,7 @@ namespace com.noctuagames.sdk
             if (_config.Noctua.isIAAEnabled && _config.IAA != null)
             {
                 // Create NoctuaEventService FIRST so the tracker can be injected directly into
-                // MediationManager's constructor. This ensures CreateNetworks() — called inside
+                // NoctuaIAAService's constructor. This ensures CreateNetworks() — called inside
                 // the constructor via the IAAResponse property setter — receives a non-null
                 // IAdRevenueTracker from the start, eliminating the "created with null tracker"
                 // startup warning. NoctuaEventService only stores references at this point;
@@ -351,8 +351,8 @@ namespace com.noctuagames.sdk
                 _event = new NoctuaEventService(_nativePlugin, _eventSender);
                 _event.SetProperties(isSandbox: _config.Noctua.IsSandbox);
 
-                _iaa = new MediationManager(adPlaceholderUI: _uiFactory, iAAResponse: _config.IAA, adRevenueTracker: _event);
-                _log.Info("Ad revenue tracker wired at MediationManager construction");
+                _iaa = new NoctuaIAAService(adPlaceholderUI: _uiFactory, iAAResponse: _config.IAA, adRevenueTracker: _event);
+                _log.Info("Ad revenue tracker wired at NoctuaIAAService construction");
 
 #if UNITY_ADMOB || UNITY_APPLOVIN
                 _iaa.Initialize(() =>
@@ -390,10 +390,10 @@ namespace com.noctuagames.sdk
                 .InstallAsDefault();
 
             // Anchor the install timestamp at SDK init. Without this, the install date is only
-            // written lazily when UserSegmentManager is constructed in the mediation path
-            // (MediationManager.CreateNetworks) — so games that log in before/without ads would
+            // written lazily when UserSegments is constructed in the mediation path
+            // (NoctuaIAAService.CreateNetworks) — so games that log in before/without ads would
             // never have an install date, and login_on_dN could never fire.
-            UserSegmentManager.EnsureInstallTimestamp();
+            UserSegments.EnsureInstallTimestamp();
 
             // Install the login-retention milestone tracker. WelcomeNotificationPresenter calls
             // LoginMilestoneTracker.Default.RecordLogin() on each login (account changed). Routed
@@ -455,7 +455,7 @@ namespace com.noctuagames.sdk
 
             _platform = new NoctuaPlatform(_config.Noctua, accessTokenProvider, _uiFactory, _eventSender);
 
-            _app = new NoctuaAppManager(_nativePlugin);
+            _app = new NoctuaApp(_nativePlugin);
 
             _log.Info("Noctua instance created");
         }
@@ -916,7 +916,7 @@ namespace com.noctuagames.sdk
             }
 
             // Apply country-aware IAA features now that the country code is resolved:
-            //   1. Pass country code to MediationManager so CPM floor segment key is correct.
+            //   1. Pass country code to NoctuaIAAService so CPM floor segment key is correct.
             //   2. Evaluate A/B experiments (segment-filtered) and apply overrides without restarting networks.
 #if UNITY_ADMOB || UNITY_APPLOVIN
             if (Instance.Value._iaa != null)
@@ -1402,16 +1402,16 @@ namespace com.noctuagames.sdk
                 return;
             }
 
-            var segmentManager = iaa.GetSegmentManager();
+            var segments = iaa.GetSegments();
             var eventSender    = Instance.Value._eventSender;
 
-            var experimentManager = new AdExperimentManager(
+            var experimentAssignments = new AdExperimentAssignments(
                 currentIaa.AdExperiments,
-                segmentManager,
+                segments,
                 eventSender
             );
 
-            var effectiveIaa = experimentManager.ApplyExperiments(currentIaa, countryCode);
+            var effectiveIaa = experimentAssignments.ApplyExperiments(currentIaa, countryCode);
 
             // Only update managers if the experiment actually changed any config
             if (!ReferenceEquals(effectiveIaa, currentIaa))
@@ -1430,7 +1430,7 @@ namespace com.noctuagames.sdk
         /// Builds the server-driven campaign feature: merges the local <c>noctuagg.json</c>
         /// <c>campaigns</c> section with <c>remote_configs.campaigns</c> (remote wins per id),
         /// constructs <see cref="com.noctuagames.sdk.LiveOpsCampaign.NoctuaLiveOpsCampaign"/>, and runs any
-        /// <c>auto_show</c> popup. Its own module — no dependency on IAA / MediationManager.
+        /// <c>auto_show</c> popup. Its own module — no dependency on IAA / NoctuaIAAService.
         /// </summary>
         private static void InitCampaigns(ILogger log, InitGameResponse initResponse)
         {
@@ -1566,7 +1566,7 @@ namespace com.noctuagames.sdk
 
                 if (Instance.Value._iaa == null)
                 {
-                    log.Warning("MediationManager is not initialized. Cannot apply remote IAA config. " +
+                    log.Warning("NoctuaIAAService is not initialized. Cannot apply remote IAA config. " +
                         "Check that isIAAEnabled is true and local IAA config exists.");
                     Instance.Value.InitializeNativePlugin();
                     return;
@@ -1584,7 +1584,7 @@ namespace com.noctuagames.sdk
                 log.Debug("Noctua IAA config merged with remote config: " + JsonConvert.SerializeObject(Instance.Value._iaa.IAAResponse));
 
                 // Re-wire revenue tracker after IAAResponse assignment (which calls CreateNetworks
-                // and creates a new AdRevenueTrackingManager). Defense-in-depth: ensures tracker
+                // and creates a new AdRevenueReporter). Defense-in-depth: ensures tracker
                 // is always set even if initialization order changes in future.
                 Instance.Value._iaa.SetAdRevenueTracker(Instance.Value._event);
                 log.Info("Ad revenue tracker re-wired before IAA Initialize() from remote config");

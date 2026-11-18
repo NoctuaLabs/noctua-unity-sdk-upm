@@ -19,7 +19,7 @@ namespace com.noctuagames.sdk.Inspector
         private void RenderCampaigns(ref int ok, ref int failing, ref int inflight)
         {
             var campaign = Noctua.LiveOps.Campaign.Module;
-            if (campaign?.Manager == null)
+            if (campaign?.Resolver == null)
             {
                 var muted = new Label("Campaign feature not initialised (no local or remote campaign config).");
                 muted.style.color = TextMid;
@@ -32,7 +32,7 @@ namespace com.noctuagames.sdk.Inspector
                 return;
             }
 
-            var manager = campaign.Manager;
+            var manager = campaign.Resolver;
             var resolutions = SnapshotResolutions(manager);
 
             var box = new VisualElement();
@@ -69,7 +69,7 @@ namespace com.noctuagames.sdk.Inspector
             _listContainer.Add(BuildCampaignRawSection(manager.Config));
         }
 
-        private List<CampaignResolution> SnapshotResolutions(CampaignManager manager)
+        private List<CampaignResolution> SnapshotResolutions(CampaignResolver manager)
         {
             // One unfiltered pass — every campaign, regardless of engagement type.
             manager.GetActiveCampaigns();

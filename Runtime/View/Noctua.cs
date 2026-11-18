@@ -37,10 +37,10 @@ namespace com.noctuagames.sdk
         public static NoctuaPlatform Platform => Instance.Value._platform;
 
         /// <summary>Access mediation manager (IAA).</summary>
-        public static MediationManager IAA => Instance.Value._iaa;
+        public static NoctuaIAAService IAA => Instance.Value._iaa;
 
         /// <summary>Access in-app review and update manager.</summary>
-        public static NoctuaAppManager App => Instance.Value._app;
+        public static NoctuaApp App => Instance.Value._app;
 
         /// <summary>
         /// Live ops features, one property each. Never null and usable before <see cref="InitAsync"/>
@@ -182,8 +182,8 @@ namespace com.noctuagames.sdk
         private readonly NoctuaGameService _game;
         private readonly NoctuaPlatform _platform;
         private readonly UIFactory _uiFactory;
-        private readonly MediationManager _iaa;
-        private readonly NoctuaAppManager _app;
+        private readonly NoctuaIAAService _iaa;
+        private readonly NoctuaApp _app;
         // Kept for InitCampaigns (async phase): live ops progress calls need the player's token.
         private readonly IAccessTokenProvider _accessTokenProvider;
         // Assigned during the async init phase (InitCampaigns) — needs the merged remote config.
@@ -531,7 +531,7 @@ namespace com.noctuagames.sdk
         /// <param name="value">Experiment value.</param>
         public static void SetGeneralExperiment(string key, string value)
         {
-            ExperimentManager.SetGeneralExperiment(key, value);
+            NoctuaExperiment.SetGeneralExperiment(key, value);
         }
 
         /// <summary>
@@ -540,7 +540,7 @@ namespace com.noctuagames.sdk
         /// <param name="key">Experiment key.</param>
         public static string GetGeneralExperiment(string key)
         {
-            return ExperimentManager.GetGeneralExperiment(key);
+            return NoctuaExperiment.GetGeneralExperiment(key);
         }
 
         /// <summary>
@@ -549,7 +549,7 @@ namespace com.noctuagames.sdk
         /// <param name="experimentName">Experiment name.</param>
         public static void SetExperiment(string experimentName)
         {
-            ExperimentManager.SetExperiment(experimentName);
+            NoctuaExperiment.SetExperiment(experimentName);
         }
 
         /// <summary>
@@ -558,7 +558,7 @@ namespace com.noctuagames.sdk
         /// <returns>Active experiment name or empty string.</returns>
         public static string GetActiveExperiment()
         {
-            return ExperimentManager.GetActiveExperiment();
+            return NoctuaExperiment.GetActiveExperiment();
         }
 
         /// <summary>

@@ -10,7 +10,7 @@ namespace com.noctuagames.sdk.Admob
 {
     /// <summary>
     /// Manages AdMob App Open ad display via the Preload API.
-    /// Loading is handled entirely by <see cref="AdmobAdPreloadManager"/>; this class only
+    /// Loading is handled entirely by <see cref="AdmobAdPreloader"/>; this class only
     /// receives the ad unit ID, checks availability, and orchestrates show + event forwarding.
     /// The 4-hour expiry check is NOT needed here — the Preload API manages ad freshness.
     /// </summary>
@@ -78,7 +78,7 @@ namespace com.noctuagames.sdk.Admob
             // Check if Preload API has ads available. If so, no manual load needed.
             try
             {
-                if (AdmobAdPreloadManager.Instance.IsAdAvailable(_adUnitIDAppOpen, AdFormat.APP_OPEN_AD))
+                if (AdmobAdPreloader.Instance.IsAdAvailable(_adUnitIDAppOpen, AdFormat.APP_OPEN_AD))
                 {
                     _log.Debug("LoadAppOpenAd: preloaded ad already available. No manual load needed.");
                     return;
@@ -185,7 +185,7 @@ namespace com.noctuagames.sdk.Admob
             }
 
             // Preload path
-            var preload = AdmobAdPreloadManager.Instance;
+            var preload = AdmobAdPreloader.Instance;
 
             if (!preload.IsAdAvailable(_adUnitIDAppOpen, AdFormat.APP_OPEN_AD))
             {
@@ -232,7 +232,7 @@ namespace com.noctuagames.sdk.Admob
 
             try
             {
-                return AdmobAdPreloadManager.Instance.IsAdAvailable(_adUnitIDAppOpen, AdFormat.APP_OPEN_AD);
+                return AdmobAdPreloader.Instance.IsAdAvailable(_adUnitIDAppOpen, AdFormat.APP_OPEN_AD);
             }
             catch (Exception)
             {

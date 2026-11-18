@@ -100,9 +100,9 @@ namespace com.noctuagames.sdk.Inspector
 
         /// <summary>
         /// Experiment / feature flag override section. Lists every entry
-        /// currently in <see cref="ExperimentManager"/> and offers inline
+        /// currently in <see cref="NoctuaExperiment"/> and offers inline
         /// edit (tap value to change) plus a "+ Add" form at the bottom
-        /// for new keys. All edits route through <c>ExperimentManager.SetFlag</c>
+        /// for new keys. All edits route through <c>NoctuaExperiment.SetFlag</c>
         /// — same code path the SDK uses internally — so the override
         /// is identical to a real experiment assignment from the server.
         /// </summary>
@@ -251,7 +251,7 @@ namespace com.noctuagames.sdk.Inspector
             head.style.paddingBottom = 6;
             box.Add(head);
 
-            var snapshot = ExperimentManager.Snapshot();
+            var snapshot = NoctuaExperiment.Snapshot();
             if (snapshot.Count == 0)
             {
                 var muted = new Label("(no flags set)");
@@ -289,7 +289,7 @@ namespace com.noctuagames.sdk.Inspector
             form.Add(MakeButton("+ Add", () =>
             {
                 if (string.IsNullOrWhiteSpace(_newFlagKey)) return;
-                ExperimentManager.SetFlag(_newFlagKey.Trim(), _newFlagVal ?? "");
+                NoctuaExperiment.SetFlag(_newFlagKey.Trim(), _newFlagVal ?? "");
                 _newFlagKey = "";
                 _newFlagVal = "";
                 ShowToast($"Flag set");
@@ -438,7 +438,7 @@ namespace com.noctuagames.sdk.Inspector
             {
                 if (v.value != currentValue)
                 {
-                    ExperimentManager.SetFlag(key, v.value ?? "");
+                    NoctuaExperiment.SetFlag(key, v.value ?? "");
                     ShowToast($"Updated '{key}'");
                 }
             });

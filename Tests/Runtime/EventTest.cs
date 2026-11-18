@@ -83,7 +83,7 @@ namespace Tests.Runtime
             var eventStorePath = Path.Combine(Application.persistentDataPath, "noctua_events.jsonl");
             if (File.Exists(eventStorePath)) File.Delete(eventStorePath);
 
-            ExperimentManager.Clear();
+            NoctuaExperiment.Clear();
 
             var empty = false;
 
@@ -175,8 +175,8 @@ namespace Tests.Runtime
                     new NoctuaLocale()
                 );
 
-                // session_id in event data comes from ExperimentManager, not SetProperties
-                ExperimentManager.SetSessionId("6");
+                // session_id in event data comes from NoctuaExperiment, not SetProperties
+                NoctuaExperiment.SetSessionId("6");
 
                 eventSender.SetProperties(
                     userId: 1,
@@ -1127,7 +1127,7 @@ namespace Tests.Runtime
             var eventStorePath = Path.Combine(Application.persistentDataPath, "noctua_events.jsonl");
             if (File.Exists(eventStorePath)) File.Delete(eventStorePath);
 
-            ExperimentManager.Clear();
+            NoctuaExperiment.Clear();
             LogAssert.ignoreFailingMessages = true;
 
             while (_server.Requests.Count > 0)
@@ -1210,11 +1210,11 @@ namespace Tests.Runtime
             sender.Dispose();
         });
 
-        // Experiment name set via ExperimentManager is injected into every event payload.
+        // Experiment name set via NoctuaExperiment is injected into every event payload.
         [UnityTest]
         public IEnumerator ExperimentName_IsInjectedIntoEventPayload() => UniTask.ToCoroutine(async () =>
         {
-            ExperimentManager.SetExperiment("test_experiment_abc");
+            NoctuaExperiment.SetExperiment("test_experiment_abc");
 
             var sender = MakeSender(batchSize: 1, cycleDelay: 100);
             sender.Send("probe_event");
@@ -1228,7 +1228,7 @@ namespace Tests.Runtime
             var raw = JsonConvert.DeserializeObject<Dictionary<string, object>>(body);
 
             Assert.IsTrue(raw.ContainsKey("experiment"),
-                "Event payload must contain 'experiment' field when ExperimentManager has an active experiment");
+                "Event payload must contain 'experiment' field when NoctuaExperiment has an active experiment");
             Assert.AreEqual("test_experiment_abc", raw["experiment"]?.ToString());
 
             sender.Dispose();

@@ -12,12 +12,12 @@ namespace Tests.Runtime.IAA
 {
     /// <summary>
     /// Tests for the <c>ad_rewarded_complete</c> analytics event emitted by
-    /// <see cref="MediationManager"/> when a user earns a rewarded-ad reward.
+    /// <see cref="NoctuaIAAService"/> when a user earns a rewarded-ad reward.
     ///
     /// <para>
     /// The subscription logic lives in <c>SubscribeRewardCompletionEvent</c>, which
     /// is <c>private</c> — it is exercised via reflection, following the same pattern
-    /// used for <c>PostToMainThread</c> in <see cref="MediationManagerUtilityApiTest"/>.
+    /// used for <c>PostToMainThread</c> in <see cref="NoctuaIAAServiceUtilityApiTest"/>.
     /// </para>
     ///
     /// <para>
@@ -42,12 +42,12 @@ namespace Tests.Runtime.IAA
         // ── Reflection handles ─────────────────────────────────────────────────────
 
         private static readonly MethodInfo SubscribeRewardCompletionMethod =
-            typeof(MediationManager).GetMethod(
+            typeof(NoctuaIAAService).GetMethod(
                 "SubscribeRewardCompletionEvent",
                 BindingFlags.NonPublic | BindingFlags.Instance);
 
         private static readonly FieldInfo MainThreadContextField =
-            typeof(MediationManager).GetField(
+            typeof(NoctuaIAAService).GetField(
                 "_mainThreadContext",
                 BindingFlags.NonPublic | BindingFlags.Instance);
 
@@ -82,23 +82,23 @@ namespace Tests.Runtime.IAA
         public void VerifyReflectionHandles()
         {
             Assert.IsNotNull(SubscribeRewardCompletionMethod,
-                "Reflection could not find MediationManager.SubscribeRewardCompletionEvent — " +
+                "Reflection could not find NoctuaIAAService.SubscribeRewardCompletionEvent — " +
                 "was the private method renamed?");
             Assert.IsNotNull(MainThreadContextField,
-                "Reflection could not find MediationManager._mainThreadContext — " +
+                "Reflection could not find NoctuaIAAService._mainThreadContext — " +
                 "was the private field renamed?");
         }
 
         /// <summary>
-        /// Creates a <see cref="MediationManager"/> with the supplied tracker wired,
+        /// Creates a <see cref="NoctuaIAAService"/> with the supplied tracker wired,
         /// then forces <c>_mainThreadContext</c> to <c>null</c> so
         /// <c>PostToMainThread</c> executes inline and synchronously in EditMode.
         /// </summary>
-        private (MediationManager mgr, MockAdRevenueTracker tracker) CreateManager()
+        private (NoctuaIAAService mgr, MockAdRevenueTracker tracker) CreateManager()
         {
             LogAssert.ignoreFailingMessages = true;
             var tracker = new MockAdRevenueTracker();
-            var mgr     = new MediationManager(new NoopAdPlaceholderUI(), null, adRevenueTracker: tracker);
+            var mgr     = new NoctuaIAAService(new NoopAdPlaceholderUI(), null, adRevenueTracker: tracker);
             // Force inline (synchronous) PostToMainThread execution in EditMode
             MainThreadContextField.SetValue(mgr, null);
             return (mgr, tracker);
@@ -108,7 +108,7 @@ namespace Tests.Runtime.IAA
         /// Calls the private <c>SubscribeRewardCompletionEvent</c> on
         /// <paramref name="mgr"/> for <paramref name="network"/> via reflection.
         /// </summary>
-        private static void Subscribe(MediationManager mgr, IAdNetwork network)
+        private static void Subscribe(NoctuaIAAService mgr, IAdNetwork network)
             => SubscribeRewardCompletionMethod.Invoke(mgr, new object[] { network });
 
         // ── Tests — single network ─────────────────────────────────────────────────
@@ -261,7 +261,7 @@ namespace Tests.Runtime.IAA
             // Construct with null tracker — the null-conditional ?. operator in the
             // callback must swallow the call without throwing.
             LogAssert.ignoreFailingMessages = true;
-            var mgr = new MediationManager(new NoopAdPlaceholderUI(), null, adRevenueTracker: null);
+            var mgr = new NoctuaIAAService(new NoopAdPlaceholderUI(), null, adRevenueTracker: null);
             MainThreadContextField.SetValue(mgr, null);
 
             var network = new MockAdNetwork { NetworkName = "admob" };

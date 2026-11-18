@@ -9,16 +9,16 @@ using UnityEngine;
 namespace Tests.Runtime.IAA
 {
     /// <summary>
-    /// Race-condition tests for <see cref="AdRevenueTrackingManager"/> when both AppLovin
-    /// and AdMob revenue callbacks fire simultaneously inside <c>MediationManager</c>.
+    /// Race-condition tests for <see cref="AdRevenueReporter"/> when both AppLovin
+    /// and AdMob revenue callbacks fire simultaneously inside <c>NoctuaIAAService</c>.
     ///
     /// <b>Architecture contract (enforced by tests below):</b>
     ///
-    /// <c>MediationManager.SubscribeAdmobRevenueEvents</c> and
+    /// <c>NoctuaIAAService.SubscribeAdmobRevenueEvents</c> and
     /// <c>SubscribeAppLovinRevenueEvents</c> both wrap revenue callbacks in
     /// <c>PostToMainThread()</c>. This serialises concurrent OS-thread callbacks
     /// (AppLovin MAX background thread, AdMob GMA JNI thread) onto Unity's main
-    /// thread before touching <see cref="AdRevenueTrackingManager"/>. The design
+    /// thread before touching <see cref="AdRevenueReporter"/>. The design
     /// depends on this serialisation to avoid two known races:
     ///
     ///   Race A — PlayerPrefs threading:
@@ -110,7 +110,7 @@ namespace Tests.Runtime.IAA
             // 1. AppLovin revenue callback arrives first
             // 2. AdMob revenue callback arrives second
             // Both should increment the Taichi count (AdCountThreshold = 100000, we send 2).
-            var mgr = new AdRevenueTrackingManager(_tracker, HighThresholdConfig());
+            var mgr = new AdRevenueReporter(_tracker, HighThresholdConfig());
 
             // AppLovin impression — sequential on main thread (what PostToMainThread does)
             mgr.ProcessAllFormatsThresholds(0.001);
@@ -126,7 +126,7 @@ namespace Tests.Runtime.IAA
         [Test]
         public void S2_AdMobThenAppLovin_BothImpressions_AreCounted()
         {
-            var mgr = new AdRevenueTrackingManager(_tracker, HighThresholdConfig());
+            var mgr = new AdRevenueReporter(_tracker, HighThresholdConfig());
 
             // AdMob first, AppLovin second (reversed order)
             mgr.ProcessAllFormatsThresholds(0.001);
@@ -144,7 +144,7 @@ namespace Tests.Runtime.IAA
             // With HighThresholdConfig no thresholds are crossed so no
             // reset happens — the raw stored count reflects all 100 calls.
             const int impressions = 100;
-            var mgr = new AdRevenueTrackingManager(_tracker, HighThresholdConfig());
+            var mgr = new AdRevenueReporter(_tracker, HighThresholdConfig());
 
             for (int i = 0; i < impressions; i++)
                 mgr.ProcessAllFormatsThresholds(0.0001);
@@ -159,7 +159,7 @@ namespace Tests.Runtime.IAA
         {
             // Threshold = 10 impressions. AppLovin sends 5, AdMob sends 5.
             // Combined = 10 → TenAdsShown fires exactly once.
-            var mgr = new AdRevenueTrackingManager(_tracker, DefaultConfig());
+            var mgr = new AdRevenueReporter(_tracker, DefaultConfig());
 
             // 5 AppLovin callbacks
             for (int i = 0; i < 5; i++)
@@ -180,7 +180,7 @@ namespace Tests.Runtime.IAA
             // AppLovin sends 3 interstitials, AdMob sends 2 → total = 5 = threshold.
             // Step 3 shares a separate total-impression counter (KeyTotalImpressions),
             // also incremented here; with threshold = 10 it does NOT fire yet.
-            var mgr = new AdRevenueTrackingManager(_tracker, DefaultConfig());
+            var mgr = new AdRevenueReporter(_tracker, DefaultConfig());
 
             // AppLovin interstitials (simulated via ProcessInterstitialThresholds)
             for (int i = 0; i < 3; i++)
@@ -198,7 +198,7 @@ namespace Tests.Runtime.IAA
         public void S6_RewardedFromBothNetworks_Step5_FiresAtCombinedThreshold()
         {
             // AppLovin sends 2 rewarded, AdMob sends 3 rewarded — total = 5 = threshold.
-            var mgr = new AdRevenueTrackingManager(_tracker, DefaultConfig());
+            var mgr = new AdRevenueReporter(_tracker, DefaultConfig());
 
             for (int i = 0; i < 2; i++)
                 mgr.ProcessRewardedThresholds(0.001);
@@ -224,7 +224,7 @@ namespace Tests.Runtime.IAA
             // Background thread continuously swaps tracker between valid and null.
             // Main thread processes impressions. Neither must throw or deadlock.
             var tracker = new ConcurrentMockTracker();
-            var mgr = new AdRevenueTrackingManager(tracker, HighThresholdConfig());
+            var mgr = new AdRevenueReporter(tracker, HighThresholdConfig());
 
             using var cts = new CancellationTokenSource();
 
@@ -258,7 +258,7 @@ namespace Tests.Runtime.IAA
             // Set tracker to null — next threshold crossing finds null → event lost.
             // No exception must be thrown; the drop is documented behaviour.
             var tracker = new ConcurrentMockTracker();
-            var mgr = new AdRevenueTrackingManager(tracker, DefaultConfig());
+            var mgr = new AdRevenueReporter(tracker, DefaultConfig());
 
             // 9 impressions — threshold = 10, so TenAdsShown not yet fired
             for (int i = 0; i < 9; i++)
@@ -285,7 +285,7 @@ namespace Tests.Runtime.IAA
             // Revenue must reach the new tracker after rewiring.
             var tracker1 = new ConcurrentMockTracker();
             var tracker2 = new ConcurrentMockTracker();
-            var mgr = new AdRevenueTrackingManager(tracker1, DefaultConfig());
+            var mgr = new AdRevenueReporter(tracker1, DefaultConfig());
 
             mgr.ProcessAllFormatsThresholds(0.01); // crosses revenue threshold on tracker1
             Assert.IsTrue(tracker1.WasFired("Total_Ads_Revenue_001"), "tracker1 must receive first threshold event");
@@ -308,7 +308,7 @@ namespace Tests.Runtime.IAA
             // Stress: background thread cycles tracker 200 times while main thread
             // processes 200 impressions. No deadlock, no exception.
             var tracker = new ConcurrentMockTracker();
-            var mgr = new AdRevenueTrackingManager(tracker, HighThresholdConfig());
+            var mgr = new AdRevenueReporter(tracker, HighThresholdConfig());
 
             const int iterations = 200;
             using var cts = new CancellationTokenSource();
@@ -341,7 +341,7 @@ namespace Tests.Runtime.IAA
             var tracker1 = new ConcurrentMockTracker();
             var tracker2 = new ConcurrentMockTracker();
             var tracker3 = new ConcurrentMockTracker();
-            var mgr = new AdRevenueTrackingManager(tracker1, HighThresholdConfig());
+            var mgr = new AdRevenueReporter(tracker1, HighThresholdConfig());
 
             var tasks = new Task[]
             {
@@ -364,7 +364,7 @@ namespace Tests.Runtime.IAA
         // ─── Group P: PlayerPrefs threading constraint ─────────────────────────
         //
         // ProcessAllFormatsThresholds reads/writes PlayerPrefs which Unity
-        // restricts to the main thread. When MediationManager's PostToMainThread
+        // restricts to the main thread. When NoctuaIAAService's PostToMainThread
         // has a null context (Editor / tests), it falls back to inline execution
         // on the calling thread. A background-thread caller therefore throws
         // UnityException. This is the expected behaviour — PostToMainThread
@@ -376,7 +376,7 @@ namespace Tests.Runtime.IAA
             // Regression: AppLovin MAX callback arrives on background thread.
             // Without PostToMainThread → inline fallback → background thread
             // → PlayerPrefs.GetFloat throws UnityException.
-            var mgr = new AdRevenueTrackingManager(_tracker, DefaultConfig());
+            var mgr = new AdRevenueReporter(_tracker, DefaultConfig());
 
             var ex = Assert.Throws<AggregateException>(() =>
                 Task.Run(() => mgr.ProcessAllFormatsThresholds(0.01)).Wait());
@@ -391,7 +391,7 @@ namespace Tests.Runtime.IAA
             // Simulates both AppLovin and AdMob callbacks arriving simultaneously
             // when _mainThreadContext == null (inline fallback path in PostToMainThread).
             // Both must throw UnityException — neither should deadlock or swallow the other.
-            var mgr = new AdRevenueTrackingManager(_tracker, DefaultConfig());
+            var mgr = new AdRevenueReporter(_tracker, DefaultConfig());
 
             var t1 = Task.Run(() => mgr.ProcessAllFormatsThresholds(0.01));
             var t2 = Task.Run(() => mgr.ProcessAllFormatsThresholds(0.01));
@@ -430,7 +430,7 @@ namespace Tests.Runtime.IAA
         {
             // Contrast with P1/P2: the exact same call on the main thread must succeed.
             // This is what PostToMainThread guarantees in production.
-            var mgr = new AdRevenueTrackingManager(_tracker, DefaultConfig());
+            var mgr = new AdRevenueReporter(_tracker, DefaultConfig());
 
             Assert.DoesNotThrow(() =>
             {
@@ -443,7 +443,7 @@ namespace Tests.Runtime.IAA
         [Test]
         public void P4_InterstitialThresholds_BackgroundThread_ThrowsUnityException()
         {
-            var mgr = new AdRevenueTrackingManager(_tracker, DefaultConfig());
+            var mgr = new AdRevenueReporter(_tracker, DefaultConfig());
 
             var ex = Assert.Throws<AggregateException>(() =>
                 Task.Run(() => mgr.ProcessInterstitialThresholds(0.01)).Wait());
@@ -455,7 +455,7 @@ namespace Tests.Runtime.IAA
         [Test]
         public void P5_RewardedThresholds_BackgroundThread_ThrowsUnityException()
         {
-            var mgr = new AdRevenueTrackingManager(_tracker, DefaultConfig());
+            var mgr = new AdRevenueReporter(_tracker, DefaultConfig());
 
             var ex = Assert.Throws<AggregateException>(() =>
                 Task.Run(() => mgr.ProcessRewardedThresholds(0.01)).Wait());
@@ -481,7 +481,7 @@ namespace Tests.Runtime.IAA
                 RewardedCountThreshold     = 100000,
                 RewardedRevenueThreshold   = 1000f,
             };
-            var mgr = new AdRevenueTrackingManager(_tracker, config);
+            var mgr = new AdRevenueReporter(_tracker, config);
 
             const int appLovinImpressions = 5;
             const int admobImpressions    = 5;
@@ -501,7 +501,7 @@ namespace Tests.Runtime.IAA
         public void T2_NullTrackerThenRewire_ConcurrentMockTracker_NoLostCallAfterRewire()
         {
             // After rewiring, every impression must reach the tracker.
-            var mgr = new AdRevenueTrackingManager(null, DefaultConfig());
+            var mgr = new AdRevenueReporter(null, DefaultConfig());
             mgr.SetAdRevenueTracker(_tracker);
 
             for (int i = 0; i < 10; i++)
@@ -516,7 +516,7 @@ namespace Tests.Runtime.IAA
         {
             // A very large single impression (100× revenue threshold) must fire
             // Total_Ads_Revenue_001 exactly once — there is no loop in the threshold logic.
-            var mgr = new AdRevenueTrackingManager(_tracker, DefaultConfig());
+            var mgr = new AdRevenueReporter(_tracker, DefaultConfig());
 
             mgr.ProcessAllFormatsThresholds(100.0); // threshold = 0.01 → massively over
 
@@ -531,7 +531,7 @@ namespace Tests.Runtime.IAA
             // interstitial and rewarded impressions from any network.
             // 5 interstitials from AppLovin + 5 from AdMob = 10 = threshold.
             // Must fire exactly once — not twice (one per network).
-            var mgr = new AdRevenueTrackingManager(_tracker, DefaultConfig());
+            var mgr = new AdRevenueReporter(_tracker, DefaultConfig());
 
             for (int i = 0; i < 5; i++) mgr.ProcessInterstitialThresholds(0);
             for (int i = 0; i < 5; i++) mgr.ProcessInterstitialThresholds(0);
@@ -546,7 +546,7 @@ namespace Tests.Runtime.IAA
             // Revenue threshold = 0.01.
             // AppLovin contributes 0.006, AdMob contributes 0.005.
             // Combined 0.011 must fire Total_Ads_Revenue_001.
-            var mgr = new AdRevenueTrackingManager(_tracker, DefaultConfig());
+            var mgr = new AdRevenueReporter(_tracker, DefaultConfig());
 
             mgr.ProcessAllFormatsThresholds(0.006); // AppLovin impression
             mgr.ProcessAllFormatsThresholds(0.005); // AdMob impression
@@ -559,7 +559,7 @@ namespace Tests.Runtime.IAA
         public void T6_NullConfig_BothNetworkCallbacks_NoEvents_NoException()
         {
             // Taichi disabled (null config) — both callbacks fire many times with no crash.
-            var mgr = new AdRevenueTrackingManager(_tracker, taichiConfig: null);
+            var mgr = new AdRevenueReporter(_tracker, taichiConfig: null);
 
             Assert.DoesNotThrow(() =>
             {
@@ -580,7 +580,7 @@ namespace Tests.Runtime.IAA
         {
             // AdCountThreshold = 10. Send 30 impressions (alternating AppLovin/AdMob).
             // TenAdsShown must fire exactly 3 times (one per 10-impression cycle).
-            var mgr = new AdRevenueTrackingManager(_tracker, DefaultConfig());
+            var mgr = new AdRevenueReporter(_tracker, DefaultConfig());
 
             for (int i = 0; i < 30; i++)
                 mgr.ProcessAllFormatsThresholds(0);

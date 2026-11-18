@@ -19,7 +19,7 @@ namespace com.noctuagames.sdk
     /// </list>
     ///
     /// The install date is the single source of truth written by
-    /// <see cref="UserSegmentManager"/> (<see cref="UserSegmentManager.InstallTicksKey"/>).
+    /// <see cref="UserSegments"/> (<see cref="UserSegments.InstallTicksKey"/>).
     /// Mirrors the <see cref="AdWatchMilestoneTracker"/> pattern: the single instance is created
     /// by <c>Noctua.Initialization</c> and exposed as <see cref="Default"/>.
     /// </summary>
@@ -95,11 +95,11 @@ namespace com.noctuagames.sdk
         {
             try
             {
-                long? installTicks = UserSegmentManager.GetInstallTicks();
+                long? installTicks = UserSegments.GetInstallTicks();
                 if (installTicks == null)
                 {
                     // Install timestamp not written yet (shouldn't happen post-init, since the
-                    // composition root calls UserSegmentManager.EnsureInstallTimestamp()). Without
+                    // composition root calls UserSegments.EnsureInstallTimestamp()). Without
                     // an anchor we cannot compute the day, so skip.
                     _log.Debug($"{LogTag} skipped: install timestamp not available yet");
                     return;
