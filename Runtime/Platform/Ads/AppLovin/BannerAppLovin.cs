@@ -13,6 +13,12 @@ namespace com.noctuagames.sdk.AppLovin
     public class BannerAppLovin
     {
         private readonly NoctuaLogger _log = new(typeof(BannerAppLovin));
+        private readonly IAdRevenueTracker _tracker;
+
+        public BannerAppLovin(IAdRevenueTracker tracker = null)
+        {
+            _tracker = tracker;
+        }
 
         private string _adUnitIDBanner;
 
@@ -444,7 +450,7 @@ namespace com.noctuagames.sdk.AppLovin
             // Keep legacy banner-specific impression marker for one release for dashboard back-compat.
             TrackAdCustomEventBanner("ad_impression_banner");
 
-            AppLovinRevenueHelper.TrackRevenueOnMainThread(adInfo, revenueUsd, impressionId, _deviceId, _log, AdFormatKey.Banner);
+            AppLovinRevenueHelper.TrackRevenueOnMainThread(_tracker, adInfo, revenueUsd, impressionId, _deviceId, _log, AdFormatKey.Banner);
 
             BannerOnAdImpressionRecorded?.Invoke();
             BannerOnAdRevenuePaid?.Invoke(adInfo);
@@ -478,13 +484,13 @@ namespace com.noctuagames.sdk.AppLovin
             ));
         }
 
-        // Routes a canonical IAA event payload through Noctua.Event. Wrapped in try/catch
+        // Routes a canonical IAA event payload through the injected tracker. Wrapped in try/catch
         // so analytics failures never break ad delivery.
         private void EmitCanonical(string eventName, Dictionary<string, IConvertible> payload)
         {
             try
             {
-                Noctua.Event.TrackCustomEvent(eventName, payload);
+                _tracker?.TrackCustomEvent(eventName, payload);
             }
             catch (Exception ex)
             {
@@ -530,7 +536,7 @@ namespace com.noctuagames.sdk.AppLovin
 
                 _log.Debug($"Event name: {eventName}, Event properties: {properties}");
 
-                Noctua.Event.TrackCustomEvent(eventName, payload);
+                _tracker?.TrackCustomEvent(eventName, payload);
             }
             catch (Exception ex)
             {

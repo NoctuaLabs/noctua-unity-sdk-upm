@@ -225,7 +225,7 @@ namespace com.noctuagames.sdk
             {
                 // Parity with the legacy path: a rewarded close counts as one watched ad for
                 // the watch-milestone tracker (fires watch_ads_5x/10x/25x/50x).
-                AdWatchMilestoneTracker.Default?.RecordWatch(AdFormatKey.Rewarded);
+                _watchMilestones?.RecordWatch(AdFormatKey.Rewarded);
                 _onAdClosed?.Invoke();
             });
             rewardedAd.OnAdClicked += () => PostToMainThread(() =>
@@ -279,7 +279,7 @@ namespace com.noctuagames.sdk
                     if (string.IsNullOrEmpty(capturedImpressionId))
                         _log.Warning("OnAdPaid fired before OnAdImpressionRecorded; impression_id will be empty in revenue payload.");
                     revPayload["sdk_revenue_id"]    = System.Guid.NewGuid().ToString("N");
-                    Noctua.Event.TrackAdRevenue("admob_sdk", revenue, adValue.CurrencyCode, revPayload);
+                    _adRevenueTracker?.TrackAdRevenue("admob_sdk", revenue, adValue.CurrencyCode, revPayload);
                 }
                 catch (Exception ex) { _log.Error($"Error tracking AdMob rewarded preload revenue: {ex.Message}\n{ex.StackTrace}"); }
                 // Not double-tracking: ProcessAdmob*Revenue only logs + accumulates Taichi
@@ -291,7 +291,7 @@ namespace com.noctuagames.sdk
         }
 
         /// <summary>
-        /// Routes a canonical IAA event through <see cref="Noctua.Event.TrackCustomEvent"/>
+        /// Routes a canonical IAA event through the injected tracker
         /// with a try/catch so analytics failures never break ad delivery. Mirrors
         /// the per-format adapter's EmitCanonical.
         /// </summary>
@@ -300,7 +300,7 @@ namespace com.noctuagames.sdk
             _log.Debug($"{LogTag} emit_canonical_iaa - emit canonical IAA event");
             try
             {
-                Noctua.Event.TrackCustomEvent(eventName, payload);
+                _adRevenueTracker?.TrackCustomEvent(eventName, payload);
             }
             catch (Exception ex)
             {

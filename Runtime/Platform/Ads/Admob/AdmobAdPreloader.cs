@@ -23,13 +23,6 @@ namespace com.noctuagames.sdk
         /// <summary>Raised when the preloaded ad buffer is exhausted for a given configuration.</summary>
         public event Action<PreloadConfiguration> OnAdExhausted;
         
-        private static readonly Lazy<AdmobAdPreloader> _instance = new(() => new AdmobAdPreloader());
-
-        /// <summary>
-        /// Gets the thread-safe singleton instance of the preload manager.
-        /// </summary>
-        public static AdmobAdPreloader Instance => _instance.Value;
-        
         /// <summary>
         /// Starts preloading ads with the specified configurations
         /// </summary>

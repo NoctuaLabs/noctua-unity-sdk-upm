@@ -382,13 +382,6 @@ namespace com.noctuagames.sdk
                 _event.SetProperties(isSandbox: _config.Noctua.IsSandbox);
             }
 
-            // Install the watch-count milestone tracker. Mediations call
-            // AdWatchMilestoneTracker.Default.RecordWatch(adType) on rewarded reward / interstitial close.
-            // Route through NoctuaEventService.TrackCustomEvent so milestones reach Noctua Analytics
-            // AND third-party trackers (Adjust / Firebase / Facebook) via the unified dispatch path.
-            new AdWatchMilestoneTracker((eventName, payload) => _event.TrackCustomEvent(eventName, payload))
-                .InstallAsDefault();
-
             // Anchor the install timestamp at SDK init. Without this, the install date is only
             // written lazily when UserSegments is constructed in the mediation path
             // (NoctuaIAAService.CreateNetworks) — so games that log in before/without ads would
@@ -1449,7 +1442,8 @@ namespace com.noctuagames.sdk
 
                 Instance.Value._campaign = new com.noctuagames.sdk.LiveOpsCampaign.NoctuaLiveOpsCampaign(
                     merged,
-                    Instance.Value._campaignPanelSettings,
+                    (actions, images, fonts) => new com.noctuagames.sdk.LiveOpsCampaign.CampaignUIHost(
+                        Instance.Value._campaignPanelSettings, Instance.Value._campaignLocale, actions, images, fonts),
                     Instance.Value._campaignLocale,
                     Instance.Value._eventSender,
                     () => Instance.Value._config?.Noctua?.PlayerRemoteConfigs?.Tags,
@@ -1468,7 +1462,8 @@ namespace com.noctuagames.sdk
                         : (Func<string, UniTask<bool>>)(sku => Instance.Value._iap.GetPurchaseStatusAsync(sku).AsUniTask()),
                     // The product list's type: a consumable is never owned in the store, so it is
                     // not asked — the store still lists one just bought until it is consumed.
-                    isNonConsumable: Instance.Value._iap == null ? null : FetchCampaignProductIsNonConsumableAsync);
+                    isNonConsumable: Instance.Value._iap == null ? null : FetchCampaignProductIsNonConsumableAsync,
+                    isOffline: IsOfflineMode);
 
                 // Any purchase, from a campaign or not, can change what an open offer shows.
                 if (Instance.Value._iap != null)

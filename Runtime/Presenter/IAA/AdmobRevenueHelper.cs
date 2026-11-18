@@ -15,7 +15,7 @@ namespace com.noctuagames.sdk.Admob
     {
         /// <summary>
         /// Switches to the Unity main thread and calls
-        /// <see cref="Noctua.Event.TrackAdRevenue"/> with the supplied AdMob ad value.
+        /// <see cref="IAdRevenueTracker.TrackAdRevenue"/> with the supplied AdMob ad value.
         /// Revenue is converted from micros (<c>adValue.Value / 1_000_000.0</c>) inside
         /// the helper. Any exception is caught and logged so the caller's flow is never
         /// interrupted.
@@ -27,6 +27,7 @@ namespace com.noctuagames.sdk.Admob
         /// <param name="log">Caller's logger instance, used for error reporting.</param>
         /// <param name="adFormat">Ad format label for the error message; use an <see cref="AdFormatKey"/> constant.</param>
         public static void TrackRevenueOnMainThread(
+            IAdRevenueTracker tracker,
             AdValue adValue,
             ResponseInfo responseInfo,
             string impressionId,
@@ -43,7 +44,7 @@ namespace com.noctuagames.sdk.Admob
                     var revPayload = IAAPayloadBuilder.BuildAdmobRevenuePayload(adValue, responseInfo, deviceId);
                     revPayload["sdk_impression_id"] = impressionId;
                     revPayload["sdk_revenue_id"]    = Guid.NewGuid().ToString("N");
-                    Noctua.Event.TrackAdRevenue("admob_sdk", revenue, adValue.CurrencyCode, revPayload);
+                    tracker?.TrackAdRevenue("admob_sdk", revenue, adValue.CurrencyCode, revPayload);
                 }
                 catch (Exception ex)
                 {

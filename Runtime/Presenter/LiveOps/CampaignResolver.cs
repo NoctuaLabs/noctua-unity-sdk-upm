@@ -151,8 +151,8 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
             if (string.IsNullOrEmpty(item.Id)) return "missing id";
 
             var required = item.EffectiveSchemaVersion(Config.SchemaVersion);
-            if (required > CampaignRenderer.SupportedSchemaVersion)
-                return $"schema v{required} > supported v{CampaignRenderer.SupportedSchemaVersion}";
+            if (required > CampaignItem.SupportedSchemaVersion)
+                return $"schema v{required} > supported v{CampaignItem.SupportedSchemaVersion}";
 
             if (!string.IsNullOrEmpty(engagementType)
                 && !string.Equals(item.EngagementType, engagementType, StringComparison.OrdinalIgnoreCase))

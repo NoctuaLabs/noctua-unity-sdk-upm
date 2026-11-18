@@ -15,6 +15,13 @@ namespace com.noctuagames.sdk.Admob
     public class RewardedInterstitialAdmob
     {
         private readonly NoctuaLogger _log = new(typeof(RewardedInterstitialAdmob));
+        private readonly IAdRevenueTracker _tracker;
+
+        public RewardedInterstitialAdmob(IAdRevenueTracker tracker = null)
+        {
+            _tracker = tracker;
+        }
+
         private string _adUnitIDRewarded;
         // Placement captured on Show(placement). Forwarded to canonical IAA events.
         private string _lastPlacement;
@@ -226,7 +233,7 @@ namespace com.noctuagames.sdk.Admob
                 var capturedImpressionId = currentImpressionId ?? "";
                 if (string.IsNullOrEmpty(capturedImpressionId))
                     _log.Warning("OnAdPaid fired before OnAdImpressionRecorded; impression_id will be empty in revenue payload.");
-                AdmobRevenueHelper.TrackRevenueOnMainThread(adValue, capturedResponseInfo, capturedImpressionId, _deviceId, _log, AdFormatKey.RewardedInterstitial);
+                AdmobRevenueHelper.TrackRevenueOnMainThread(_tracker, adValue, capturedResponseInfo, capturedImpressionId, _deviceId, _log, AdFormatKey.RewardedInterstitial);
 
                 AdmobOnAdRevenuePaid?.Invoke(adValue, ad.GetResponseInfo());
             };
@@ -438,7 +445,7 @@ namespace com.noctuagames.sdk.Admob
 
                 _log.Debug($"Event name: {eventName}, Event properties: {properties}");
 
-                Noctua.Event.TrackCustomEvent(eventName, new Dictionary<string, IConvertible>(payload));
+                _tracker?.TrackCustomEvent(eventName, new Dictionary<string, IConvertible>(payload));
             }
             catch (Exception ex)
             {
@@ -446,13 +453,13 @@ namespace com.noctuagames.sdk.Admob
             }
         }
 
-        // Routes a canonical IAA event payload through Noctua.Event. Wrapped in try/catch
+        // Routes a canonical IAA event payload through the injected tracker. Wrapped in try/catch
         // so analytics failures never break ad delivery.
         private void EmitCanonical(string eventName, Dictionary<string, IConvertible> payload)
         {
             try
             {
-                Noctua.Event.TrackCustomEvent(eventName, payload);
+                _tracker?.TrackCustomEvent(eventName, payload);
             }
             catch (Exception ex)
             {

@@ -276,7 +276,7 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
         /// <summary>Re-renders the open popup when it shows <paramref name="campaignId"/>.</summary>
         private void RefreshShownCampaign(string campaignId)
         {
-            var popup = _host?.PopupIfCreated;
+            var popup = _ui;
             if (_shownItem == null || _shownItem.Id != campaignId || popup == null || !popup.IsShowing) return;
 
             popup.Refresh(RenderItem(_shownItem, _shownPlayerData), _resolver.Config.SchemaVersion);

@@ -13,6 +13,13 @@ namespace com.noctuagames.sdk.Admob
     public class BannerAdmob
     {
         private readonly NoctuaLogger _log = new(typeof(BannerAdmob));
+        private readonly IAdRevenueTracker _tracker;
+
+        public BannerAdmob(IAdRevenueTracker tracker = null)
+        {
+            _tracker = tracker;
+        }
+
         private BannerView _bannerView;
         // Cached banner config. Initialised to mobile-game-conventional
         // defaults (320x50 banner at the bottom edge) so that any code
@@ -273,7 +280,7 @@ namespace com.noctuagames.sdk.Admob
 
                 var capturedResponseInfo = _bannerView.GetResponseInfo();
                 var capturedImpressionId = currentImpressionId;
-                AdmobRevenueHelper.TrackRevenueOnMainThread(adValue, capturedResponseInfo, capturedImpressionId, _deviceId, _log, AdFormatKey.Banner);
+                AdmobRevenueHelper.TrackRevenueOnMainThread(_tracker, adValue, capturedResponseInfo, capturedImpressionId, _deviceId, _log, AdFormatKey.Banner);
 
                 AdmobOnAdRevenuePaid?.Invoke(adValue, _bannerView.GetResponseInfo());
             };
@@ -465,7 +472,7 @@ namespace com.noctuagames.sdk.Admob
 
                 _log.Debug($"Event name: {eventName}, Event properties: {properties}");
 
-                Noctua.Event.TrackCustomEvent(eventName, payload);
+                _tracker?.TrackCustomEvent(eventName, payload);
             }
             catch (Exception ex)
             {
@@ -473,13 +480,13 @@ namespace com.noctuagames.sdk.Admob
             }
         }
 
-        // Routes a canonical IAA event payload through Noctua.Event. Wrapped in try/catch
+        // Routes a canonical IAA event payload through the injected tracker. Wrapped in try/catch
         // so analytics failures never break ad delivery.
         private void EmitCanonical(string eventName, Dictionary<string, IConvertible> payload)
         {
             try
             {
-                Noctua.Event.TrackCustomEvent(eventName, payload);
+                _tracker?.TrackCustomEvent(eventName, payload);
             }
             catch (Exception ex)
             {

@@ -13,6 +13,14 @@ namespace com.noctuagames.sdk.AppLovin
     public class InterstitialAppLovin
     {
         private readonly NoctuaLogger _log = new(typeof(InterstitialAppLovin));
+        private readonly IAdRevenueTracker _tracker;
+        private readonly AdWatchMilestoneTracker _watchMilestones;
+
+        public InterstitialAppLovin(IAdRevenueTracker tracker = null, AdWatchMilestoneTracker watchMilestones = null)
+        {
+            _tracker = tracker;
+            _watchMilestones = watchMilestones;
+        }
 
         private string _adUnitIDInterstitial;
 
@@ -352,7 +360,7 @@ namespace com.noctuagames.sdk.AppLovin
 
             // A successful interstitial close counts as one ad-watch.
             // Fires watch_ads_5x/10x/25x/50x at thresholds (rewarded + interstitial only).
-            AdWatchMilestoneTracker.Default?.RecordWatch(AdFormatKey.Interstitial);
+            _watchMilestones?.RecordWatch(AdFormatKey.Interstitial);
 
             InterstitialOnAdClosed?.Invoke();
         }
@@ -391,7 +399,7 @@ namespace com.noctuagames.sdk.AppLovin
             // Keep the legacy per-format alias for one release.
             TrackAdCustomEventInterstitial("ad_impression_interstitial");
 
-            AppLovinRevenueHelper.TrackRevenueOnMainThread(adInfo, revenue, impressionId, _deviceId, _log, AdFormatKey.Interstitial);
+            AppLovinRevenueHelper.TrackRevenueOnMainThread(_tracker, adInfo, revenue, impressionId, _deviceId, _log, AdFormatKey.Interstitial);
 
             InterstitialOnAdImpressionRecorded?.Invoke();
             InterstitialOnAdRevenuePaid?.Invoke(adInfo);
@@ -435,7 +443,7 @@ namespace com.noctuagames.sdk.AppLovin
 
                 _log.Debug($"Event name: {eventName}, Event properties: {properties}");
 
-                Noctua.Event.TrackCustomEvent(eventName, payload);
+                _tracker?.TrackCustomEvent(eventName, payload);
             }
             catch (Exception ex)
             {
@@ -450,7 +458,7 @@ namespace com.noctuagames.sdk.AppLovin
         {
             try
             {
-                Noctua.Event.TrackCustomEvent(eventName, payload);
+                _tracker?.TrackCustomEvent(eventName, payload);
             }
             catch (Exception ex)
             {

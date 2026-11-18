@@ -123,6 +123,8 @@ namespace com.noctuagames.sdk
 #endif
 
 #if UNITY_ADMOB
+        private readonly AdmobAdPreloader _admobPreloader = new AdmobAdPreloader();
+        // Set only while AdMob is the primary network: non-null means "use the Preload API".
         private static AdmobAdPreloader _preloader;
         private RewardedInterstitialAdmob _rewardedInterstitialAdmob;
         private event Action<PreloadConfiguration> _onAdsAvailable;
@@ -151,6 +153,7 @@ namespace com.noctuagames.sdk
 
         private readonly IAdPlaceholderUI _adPlaceholderUI;
         private IAdRevenueTracker _adRevenueTracker;
+        private readonly AdWatchMilestoneTracker _watchMilestones;
         // True once the cross-promotion placeholder has been dismissed for the CURRENT ad request.
         // Reset to false at the start of every game-initiated Show* call. Guards against an async
         // network straggler (e.g. a late OnAdFailedDisplayed arriving after the user already closed
@@ -193,7 +196,7 @@ namespace com.noctuagames.sdk
 
         private string _nextConfigOrigin = IaaConfigOriginLocal;
 
-        internal IAA IAAResponse
+        public IAA IAAResponse
         {
             get => _iaaResponse;
             set
@@ -334,7 +337,7 @@ namespace com.noctuagames.sdk
         /// Call this after the country is resolved in Noctua.Initialization.cs (before or after
         /// IAAResponse is set — the routing's segment key is updated either way).
         /// </summary>
-        internal void SetCountryCode(string countryCode)
+        public void SetCountryCode(string countryCode)
         {
             _log.Debug($"{LogTag} set_country_code - set country code");
             _cachedCountryCode = countryCode;
@@ -347,7 +350,7 @@ namespace com.noctuagames.sdk
         /// Records a purchase for the current user, updating the payer tier in PlayerPrefs.
         /// Should be called from the IAP purchase completion callback.
         /// </summary>
-        internal void RecordPurchase()
+        public void RecordPurchase()
         {
             _log.Debug($"{LogTag} record_purchase - record a completed purchase");
             _segments?.RecordPurchase();
@@ -357,7 +360,7 @@ namespace com.noctuagames.sdk
         /// Returns the segment manager instance (used by Noctua.Initialization.cs to pass
         /// to AdExperimentAssignments without requiring a static reference).
         /// </summary>
-        internal UserSegments GetSegments()
+        public UserSegments GetSegments()
         {
             _log.Debug($"{LogTag} get_segment_manager - get segment manager");
             return _segments;
@@ -368,7 +371,7 @@ namespace com.noctuagames.sdk
         /// with the new effective config — without restarting ad networks.
         /// Called from Noctua.Initialization.cs after country is resolved and experiments are evaluated.
         /// </summary>
-        internal void ApplyExperimentOverride(IAA effectiveIaa)
+        public void ApplyExperimentOverride(IAA effectiveIaa)
         {
             _log.Debug($"{LogTag} apply_experiment_override - apply experiment override");
             if (effectiveIaa == null) return;
@@ -402,6 +405,7 @@ namespace com.noctuagames.sdk
             // IAAResponse setter — can pass it straight through to AdRevenueReporter,
             // eliminating the "created with null tracker" startup warning.
             _adRevenueTracker = adRevenueTracker;
+            _watchMilestones = new AdWatchMilestoneTracker((name, payload) => _adRevenueTracker?.TrackCustomEvent(name, payload));
 
             // Must be called from Unity's main thread (it is — Noctua() ctor runs on main thread).
             _mainThreadContext = SynchronizationContext.Current;

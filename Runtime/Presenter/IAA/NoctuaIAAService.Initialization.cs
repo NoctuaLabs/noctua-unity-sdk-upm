@@ -78,7 +78,7 @@ namespace com.noctuagames.sdk
                     if (IsAdmob())
                     {
 #if UNITY_ADMOB
-                        _preloader = AdmobAdPreloader.Instance;
+                        _preloader = _admobPreloader;
 #endif
                     }
 

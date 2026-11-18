@@ -112,13 +112,13 @@ namespace com.noctuagames.sdk
         }
 
         /// <summary>Updates the cached composite segment key used for CPM floor resolution.</summary>
-        internal void UpdateSegmentKey(string segmentKey)
+        public void UpdateSegmentKey(string segmentKey)
         {
             _segmentKey = segmentKey ?? "";
         }
 
         /// <summary>Updates the CPM floor manager (called when experiment overrides are applied).</summary>
-        internal void UpdateCpmFloor(CpmFloor cpmFloor)
+        public void UpdateCpmFloor(CpmFloor cpmFloor)
         {
             _cpmFloor = cpmFloor;
         }

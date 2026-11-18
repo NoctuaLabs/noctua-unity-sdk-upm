@@ -97,14 +97,14 @@ namespace com.noctuagames.sdk
         /// <summary>Raised when ad revenue is recorded (network-agnostic). Parameters: (revenue, currency, metadata).</summary>
         public event Action<double, string, Dictionary<string, string>> OnAdRevenuePaid { add => _onUnifiedAdRevenuePaid += value; remove => _onUnifiedAdRevenuePaid -= value; }
 
-        public AppLovinNetwork()
+        public AppLovinNetwork(IAdRevenueTracker tracker = null, AdWatchMilestoneTracker watchMilestones = null)
         {
             _log.Debug("AppLovinNetwork constructor");
 
-            _interstitialAppLovin = new InterstitialAppLovin();
-            _rewardedAppLovin = new RewardedAppLovin();
-            _bannerAppLovin = new BannerAppLovin();
-            _appOpenAppLovin = new AppOpenAppLovin();
+            _interstitialAppLovin = new InterstitialAppLovin(tracker, watchMilestones);
+            _rewardedAppLovin = new RewardedAppLovin(tracker, watchMilestones);
+            _bannerAppLovin = new BannerAppLovin(tracker);
+            _appOpenAppLovin = new AppOpenAppLovin(tracker);
 
             // Wire network-specific events to unified (network-agnostic) events
             _onUserEarnedReward += (reward) =>

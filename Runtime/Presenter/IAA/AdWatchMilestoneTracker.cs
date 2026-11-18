@@ -29,9 +29,9 @@ namespace com.noctuagames.sdk
     /// combined fired-mask is the OR of the legacy per-format masks. This preserves already-passed
     /// milestones (no duplicate events) and carries forward total progress.
     ///
-    /// Lives beside the mediation code — emits via the global
-    /// <see cref="Noctua.Event"/> facade. The single instance is created by
-    /// <c>Noctua.Initialization</c> and exposed as <see cref="Default"/>.
+    /// Lives beside the mediation code and emits through the delegate it is given.
+    /// The single instance is created by
+    /// <c>NoctuaIAAService</c> and passed to the ad adapters.
     /// </summary>
     public class AdWatchMilestoneTracker
     {
@@ -86,26 +86,13 @@ namespace com.noctuagames.sdk
         private readonly Action<string, Dictionary<string, IConvertible>> _emit;
 
         /// <summary>
-        /// Singleton accessor — set by <c>Noctua.Initialization</c>. Mediations call
-        /// <c>AdWatchMilestoneTracker.Default?.RecordWatch(adType)</c>.
-        /// Nullable until SDK init completes.
-        /// </summary>
-        public static AdWatchMilestoneTracker Default { get; private set; }
-
-        /// <summary>
-        /// Construct with an event-emit delegate. Defaulting to <c>Noctua.Event.TrackCustomEvent</c>
+        /// Construct with an event-emit delegate. Wiring it to the event service
         /// happens at the call site (composition root) — keep this class testable by injecting.
         /// </summary>
         public AdWatchMilestoneTracker(Action<string, Dictionary<string, IConvertible>> emit)
         {
             _emit = emit ?? throw new ArgumentNullException(nameof(emit));
         }
-
-        /// <summary>
-        /// Install this instance as the process-wide <see cref="Default"/>. Idempotent — a second
-        /// call replaces the previous instance (used in tests + on SDK re-init).
-        /// </summary>
-        public void InstallAsDefault() => Default = this;
 
         /// <summary>
         /// Record one successful ad view of the given type. Rewarded and interstitial views share a

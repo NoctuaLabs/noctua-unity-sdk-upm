@@ -380,7 +380,7 @@ namespace com.noctuagames.sdk
         /// Caller is expected to pass an already-normalised name (see
         /// <see cref="NormalizeMediationName"/>).
         /// </summary>
-        private static IAdNetwork TryCreateNetwork(string mediationName)
+        private IAdNetwork TryCreateNetwork(string mediationName)
         {
             _sLog.Debug($"{LogTag} try_create_network - try create network instance");
             if (string.IsNullOrEmpty(mediationName)) return null;
@@ -388,7 +388,7 @@ namespace com.noctuagames.sdk
             if (mediationName == AdNetworkName.Admob)
             {
 #if UNITY_ADMOB
-                return new AdmobNetwork();
+                return new AdmobNetwork(_adRevenueTracker, _watchMilestones, _admobPreloader);
 #else
                 return null;
 #endif
@@ -397,7 +397,7 @@ namespace com.noctuagames.sdk
             if (mediationName == AdNetworkName.AppLovin)
             {
 #if UNITY_APPLOVIN
-                return new AppLovinNetwork();
+                return new AppLovinNetwork(_adRevenueTracker, _watchMilestones);
 #else
                 return null;
 #endif

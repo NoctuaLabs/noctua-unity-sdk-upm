@@ -59,7 +59,7 @@ namespace Tests.Runtime.Campaign
             Action<string> notice = null,
             PanelSettings panel = null,
             NoctuaLocale locale = null) =>
-            new(config ?? new CampaignConfig(), panel, locale, new MockEventSender(), () => Array.Empty<string>(),
+            new(config ?? new CampaignConfig(), (actions, images, fonts) => new CampaignUIHost(panel, locale, actions, images, fonts), locale, new MockEventSender(), () => Array.Empty<string>(),
                 progress: new NoctuaLiveOpsCampaign.ProgressTrackerOptions
                 {
                     BaseUrl = baseUrl,

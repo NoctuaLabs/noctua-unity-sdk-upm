@@ -14,7 +14,7 @@ namespace com.noctuagames.sdk.AppLovin
     {
         /// <summary>
         /// Switches to the Unity main thread and calls
-        /// <see cref="Noctua.Event.TrackAdRevenue"/> with the supplied ad info.
+        /// <see cref="IAdRevenueTracker.TrackAdRevenue"/> with the supplied ad info.
         /// Any exception is caught and logged via <paramref name="log"/> so the
         /// caller's flow is never interrupted.
         /// </summary>
@@ -25,6 +25,7 @@ namespace com.noctuagames.sdk.AppLovin
         /// <param name="log">Caller's logger instance, used for error reporting.</param>
         /// <param name="adFormat">Ad format label for the error message; use an <see cref="AdFormatKey"/> constant.</param>
         public static void TrackRevenueOnMainThread(
+            IAdRevenueTracker tracker,
             MaxSdkBase.AdInfo adInfo,
             double revenue,
             string impressionId,
@@ -41,7 +42,7 @@ namespace com.noctuagames.sdk.AppLovin
                     var revPayload = IAAPayloadBuilder.BuildAppLovinRevenuePayload(adInfo, deviceId, countryCode);
                     revPayload["sdk_impression_id"] = impressionId;
                     revPayload["sdk_revenue_id"]    = Guid.NewGuid().ToString("N");
-                    Noctua.Event.TrackAdRevenue("applovin_max_sdk", revenue, "USD", revPayload);
+                    tracker?.TrackAdRevenue("applovin_max_sdk", revenue, "USD", revPayload);
                 }
                 catch (Exception ex)
                 {

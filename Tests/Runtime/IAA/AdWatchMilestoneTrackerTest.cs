@@ -15,7 +15,6 @@ namespace Tests.Runtime.IAA
     ///   — Each milestone fires only once (bitmask dedup)
     ///   — Persisted counts/masks survive across instances (PlayerPrefs round-trip)
     ///   — <c>GetCount</c> / <c>GetFiredMask</c> / <c>ResetForAdType</c> test helpers
-    ///   — <c>InstallAsDefault</c> sets the static <c>Default</c> property
     ///
     /// PlayerPrefs state is cleared before and after each test via
     /// <c>AdWatchMilestoneTracker.ResetForAdType</c>.
@@ -364,17 +363,6 @@ namespace Tests.Runtime.IAA
 
             Assert.AreEqual(0, AdWatchMilestoneTracker.GetCount(AdFormatKey.Rewarded));
             Assert.AreEqual(0, AdWatchMilestoneTracker.GetFiredMask(AdFormatKey.Rewarded));
-        }
-
-        // ═══════════════════════════════════════════════════════════════════
-        // InstallAsDefault
-        // ═══════════════════════════════════════════════════════════════════
-
-        [Test]
-        public void InstallAsDefault_SetsDotDefaultProperty()
-        {
-            _tracker.InstallAsDefault();
-            Assert.AreSame(_tracker, AdWatchMilestoneTracker.Default);
         }
     }
 }

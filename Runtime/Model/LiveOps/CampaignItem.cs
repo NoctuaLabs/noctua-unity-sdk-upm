@@ -16,6 +16,12 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
         /// <summary>Engagement type for an event / news announcement.</summary>
         public const string EngagementEvent = "event";
 
+        /// <summary>Highest widget-schema version this build understands.</summary>
+        /// <remarks>v2 adds <c>player_data</c>, <c>visible_if</c>, <c>keep_open</c> and
+        /// token-resolved progress bar values. v3 adds <c>purchase_once</c> campaigns and
+        /// dynamic products (<c>product_key</c> actions).</remarks>
+        public const int SupportedSchemaVersion = 3;
+
         /// <summary>Stable unique id. Used for merge, frequency capping, and targeting by id.</summary>
         [JsonProperty("id")]
         public string Id;
@@ -23,7 +29,7 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
         /// <summary>
         /// Widget-schema version this campaign's <see cref="View"/> tree requires.
         /// 0 or missing is treated as 1. A value above
-        /// <c>CampaignRenderer.SupportedSchemaVersion</c> makes the whole campaign skip.
+        /// <see cref="SupportedSchemaVersion"/> makes the whole campaign skip.
         /// </summary>
         [JsonProperty("schema_version")]
         public int SchemaVersion;

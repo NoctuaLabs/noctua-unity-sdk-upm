@@ -709,54 +709,54 @@ namespace Tests.Runtime.IAA
         [Test]
         public void StartPreloading_NullList_DoesNotThrow()
         {
-            Assert.DoesNotThrow(() => AdmobAdPreloader.Instance.StartPreloading(null));
+            Assert.DoesNotThrow(() => new AdmobAdPreloader().StartPreloading(null));
         }
 
         [Test]
         public void StartPreloading_EmptyList_DoesNotThrow()
         {
             Assert.DoesNotThrow(() =>
-                AdmobAdPreloader.Instance.StartPreloading(new List<PreloadConfiguration>()));
+                new AdmobAdPreloader().StartPreloading(new List<PreloadConfiguration>()));
         }
 
         [Test]
         public void ModifyPreloading_NullList_DoesNotThrow()
         {
-            Assert.DoesNotThrow(() => AdmobAdPreloader.Instance.ModifyPreloading(null));
+            Assert.DoesNotThrow(() => new AdmobAdPreloader().ModifyPreloading(null));
         }
 
         [Test]
         public void StopPreloading_DoesNotThrow()
         {
-            Assert.DoesNotThrow(() => AdmobAdPreloader.Instance.StopPreloading());
+            Assert.DoesNotThrow(() => new AdmobAdPreloader().StopPreloading());
         }
 
         [Test]
         public void IsAdAvailable_NullAdUnitId_ReturnsFalse()
         {
-            Assert.IsFalse(AdmobAdPreloader.Instance.IsAdAvailable(null, AdFormat.INTERSTITIAL));
-            Assert.IsFalse(AdmobAdPreloader.Instance.IsAdAvailable("", AdFormat.REWARDED));
+            Assert.IsFalse(new AdmobAdPreloader().IsAdAvailable(null, AdFormat.INTERSTITIAL));
+            Assert.IsFalse(new AdmobAdPreloader().IsAdAvailable("", AdFormat.REWARDED));
         }
 
         [Test]
         public void PollInterstitialAd_NullAdUnitId_ReturnsNull()
         {
-            Assert.IsNull(AdmobAdPreloader.Instance.PollInterstitialAd(null));
-            Assert.IsNull(AdmobAdPreloader.Instance.PollInterstitialAd(""));
+            Assert.IsNull(new AdmobAdPreloader().PollInterstitialAd(null));
+            Assert.IsNull(new AdmobAdPreloader().PollInterstitialAd(""));
         }
 
         [Test]
         public void PollRewardedAd_NullAdUnitId_ReturnsNull()
         {
-            Assert.IsNull(AdmobAdPreloader.Instance.PollRewardedAd(null));
-            Assert.IsNull(AdmobAdPreloader.Instance.PollRewardedAd(""));
+            Assert.IsNull(new AdmobAdPreloader().PollRewardedAd(null));
+            Assert.IsNull(new AdmobAdPreloader().PollRewardedAd(""));
         }
 
         [Test]
         public void PollAppOpenAd_NullAdUnitId_ReturnsNull()
         {
-            Assert.IsNull(AdmobAdPreloader.Instance.PollAppOpenAd(null));
-            Assert.IsNull(AdmobAdPreloader.Instance.PollAppOpenAd(""));
+            Assert.IsNull(new AdmobAdPreloader().PollAppOpenAd(null));
+            Assert.IsNull(new AdmobAdPreloader().PollAppOpenAd(""));
         }
 
         // ── CreateXxxPreloadConfig factory methods ────────────────────────────────
@@ -764,7 +764,7 @@ namespace Tests.Runtime.IAA
         [Test]
         public void CreateInterstitialPreloadConfig_ReturnsNonNull()
         {
-            var config = AdmobAdPreloader.Instance
+            var config = new AdmobAdPreloader()
                 .CreateInterstitialPreloadConfig(AdmobAdUnits.Interstitial);
             Assert.IsNotNull(config);
         }
@@ -772,7 +772,7 @@ namespace Tests.Runtime.IAA
         [Test]
         public void CreateInterstitialPreloadConfig_SetsCorrectFormat()
         {
-            var config = AdmobAdPreloader.Instance
+            var config = new AdmobAdPreloader()
                 .CreateInterstitialPreloadConfig(AdmobAdUnits.Interstitial);
             Assert.AreEqual(AdFormat.INTERSTITIAL, config.Format);
         }
@@ -780,7 +780,7 @@ namespace Tests.Runtime.IAA
         [Test]
         public void CreateInterstitialPreloadConfig_SetsAdUnitId()
         {
-            var config = AdmobAdPreloader.Instance
+            var config = new AdmobAdPreloader()
                 .CreateInterstitialPreloadConfig(AdmobAdUnits.Interstitial);
             Assert.AreEqual(AdmobAdUnits.Interstitial, config.AdUnitId);
         }
@@ -788,7 +788,7 @@ namespace Tests.Runtime.IAA
         [Test]
         public void CreateInterstitialPreloadConfig_DefaultBufferSize_IsThree()
         {
-            var config = AdmobAdPreloader.Instance
+            var config = new AdmobAdPreloader()
                 .CreateInterstitialPreloadConfig(AdmobAdUnits.Interstitial);
             Assert.AreEqual(3u, config.BufferSize);
         }
@@ -796,7 +796,7 @@ namespace Tests.Runtime.IAA
         [Test]
         public void CreateInterstitialPreloadConfig_CustomBufferSize_IsRespected()
         {
-            var config = AdmobAdPreloader.Instance
+            var config = new AdmobAdPreloader()
                 .CreateInterstitialPreloadConfig(AdmobAdUnits.Interstitial, bufferSize: 5);
             Assert.AreEqual(5u, config.BufferSize);
         }
@@ -804,7 +804,7 @@ namespace Tests.Runtime.IAA
         [Test]
         public void CreateRewardedPreloadConfig_ReturnsNonNull()
         {
-            var config = AdmobAdPreloader.Instance
+            var config = new AdmobAdPreloader()
                 .CreateRewardedPreloadConfig(AdmobAdUnits.Rewarded);
             Assert.IsNotNull(config);
         }
@@ -812,7 +812,7 @@ namespace Tests.Runtime.IAA
         [Test]
         public void CreateRewardedPreloadConfig_SetsCorrectFormat()
         {
-            var config = AdmobAdPreloader.Instance
+            var config = new AdmobAdPreloader()
                 .CreateRewardedPreloadConfig(AdmobAdUnits.Rewarded);
             Assert.AreEqual(AdFormat.REWARDED, config.Format);
         }
@@ -820,7 +820,7 @@ namespace Tests.Runtime.IAA
         [Test]
         public void CreateRewardedPreloadConfig_SetsAdUnitId()
         {
-            var config = AdmobAdPreloader.Instance
+            var config = new AdmobAdPreloader()
                 .CreateRewardedPreloadConfig(AdmobAdUnits.Rewarded);
             Assert.AreEqual(AdmobAdUnits.Rewarded, config.AdUnitId);
         }
@@ -828,7 +828,7 @@ namespace Tests.Runtime.IAA
         [Test]
         public void CreateAppOpenPreloadConfig_ReturnsNonNull()
         {
-            var config = AdmobAdPreloader.Instance
+            var config = new AdmobAdPreloader()
                 .CreateAppOpenPreloadConfig(AdmobAdUnits.AppOpen);
             Assert.IsNotNull(config);
         }
@@ -836,7 +836,7 @@ namespace Tests.Runtime.IAA
         [Test]
         public void CreateAppOpenPreloadConfig_SetsCorrectFormat()
         {
-            var config = AdmobAdPreloader.Instance
+            var config = new AdmobAdPreloader()
                 .CreateAppOpenPreloadConfig(AdmobAdUnits.AppOpen);
             Assert.AreEqual(AdFormat.APP_OPEN_AD, config.Format);
         }
@@ -844,7 +844,7 @@ namespace Tests.Runtime.IAA
         [Test]
         public void CreateAppOpenPreloadConfig_SetsAdUnitId()
         {
-            var config = AdmobAdPreloader.Instance
+            var config = new AdmobAdPreloader()
                 .CreateAppOpenPreloadConfig(AdmobAdUnits.AppOpen);
             Assert.AreEqual(AdmobAdUnits.AppOpen, config.AdUnitId);
         }
@@ -857,7 +857,7 @@ namespace Tests.Runtime.IAA
         public void PollInterstitialAd_WithRealAdUnit_ReturnsNull_WhenSdkNotReady()
         {
             LogAssert.ignoreFailingMessages = true;
-            var result = AdmobAdPreloader.Instance.PollInterstitialAd(AdmobAdUnits.Interstitial);
+            var result = new AdmobAdPreloader().PollInterstitialAd(AdmobAdUnits.Interstitial);
             Assert.IsNull(result);
         }
 
@@ -865,7 +865,7 @@ namespace Tests.Runtime.IAA
         public void PollRewardedAd_WithRealAdUnit_ReturnsNull_WhenSdkNotReady()
         {
             LogAssert.ignoreFailingMessages = true;
-            var result = AdmobAdPreloader.Instance.PollRewardedAd(AdmobAdUnits.Rewarded);
+            var result = new AdmobAdPreloader().PollRewardedAd(AdmobAdUnits.Rewarded);
             Assert.IsNull(result);
         }
 
@@ -873,7 +873,7 @@ namespace Tests.Runtime.IAA
         public void PollAppOpenAd_WithRealAdUnit_ReturnsNull_WhenSdkNotReady()
         {
             LogAssert.ignoreFailingMessages = true;
-            var result = AdmobAdPreloader.Instance.PollAppOpenAd(AdmobAdUnits.AppOpen);
+            var result = new AdmobAdPreloader().PollAppOpenAd(AdmobAdUnits.AppOpen);
             Assert.IsNull(result);
         }
 
@@ -884,7 +884,7 @@ namespace Tests.Runtime.IAA
         {
             LogAssert.ignoreFailingMessages = true;
             Assert.IsFalse(
-                AdmobAdPreloader.Instance.IsAdAvailable(AdmobAdUnits.Interstitial, AdFormat.INTERSTITIAL));
+                new AdmobAdPreloader().IsAdAvailable(AdmobAdUnits.Interstitial, AdFormat.INTERSTITIAL));
         }
 
         [Test]
@@ -892,7 +892,7 @@ namespace Tests.Runtime.IAA
         {
             LogAssert.ignoreFailingMessages = true;
             Assert.IsFalse(
-                AdmobAdPreloader.Instance.IsAdAvailable(AdmobAdUnits.Rewarded, AdFormat.REWARDED));
+                new AdmobAdPreloader().IsAdAvailable(AdmobAdUnits.Rewarded, AdFormat.REWARDED));
         }
 
         [Test]
@@ -900,7 +900,7 @@ namespace Tests.Runtime.IAA
         {
             LogAssert.ignoreFailingMessages = true;
             Assert.IsFalse(
-                AdmobAdPreloader.Instance.IsAdAvailable(AdmobAdUnits.AppOpen, AdFormat.APP_OPEN_AD));
+                new AdmobAdPreloader().IsAdAvailable(AdmobAdUnits.AppOpen, AdFormat.APP_OPEN_AD));
         }
 
         // ── GetResponseInfo (deprecated — verify it is accessible and null-safe) ──
@@ -910,7 +910,7 @@ namespace Tests.Runtime.IAA
         {
 #pragma warning disable CS0618 // GetResponseInfo is [Obsolete]
             LogAssert.ignoreFailingMessages = true;
-            var result = AdmobAdPreloader.Instance
+            var result = new AdmobAdPreloader()
                 .GetResponseInfo(AdmobAdUnits.Interstitial, AdFormat.INTERSTITIAL);
             Assert.IsNull(result,
                 "GetResponseInfo must return null when no ad is preloaded (SDK not initialised in EditMode)");
@@ -925,11 +925,11 @@ namespace Tests.Runtime.IAA
             Action<PreloadConfiguration> handler = _ => { };
             Assert.DoesNotThrow(() =>
             {
-                AdmobAdPreloader.Instance.OnAdsAvailable += handler;
-                AdmobAdPreloader.Instance.OnAdExhausted  += handler;
+                new AdmobAdPreloader().OnAdsAvailable += handler;
+                new AdmobAdPreloader().OnAdExhausted  += handler;
 
-                AdmobAdPreloader.Instance.OnAdsAvailable -= handler;
-                AdmobAdPreloader.Instance.OnAdExhausted  -= handler;
+                new AdmobAdPreloader().OnAdsAvailable -= handler;
+                new AdmobAdPreloader().OnAdExhausted  -= handler;
             });
         }
     }

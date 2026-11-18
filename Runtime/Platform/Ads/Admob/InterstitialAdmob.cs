@@ -15,6 +15,15 @@ namespace com.noctuagames.sdk.Admob
     public class InterstitialAdmob
     {
         private readonly NoctuaLogger _log = new(typeof(InterstitialAdmob));
+        private readonly IAdRevenueTracker _tracker;
+        private readonly AdWatchMilestoneTracker _watchMilestones;
+
+        public InterstitialAdmob(IAdRevenueTracker tracker = null, AdWatchMilestoneTracker watchMilestones = null)
+        {
+            _tracker = tracker;
+            _watchMilestones = watchMilestones;
+        }
+
         private string _adUnitIDInterstitial;
         // Placement captured on Show(placement). Forwarded to the canonical ad_impression /
         // ad_shown / ad_clicked payloads so dashboards can segment by in-game placement.
@@ -227,7 +236,7 @@ namespace com.noctuagames.sdk.Admob
                 var capturedImpressionId = currentImpressionId ?? "";
                 if (string.IsNullOrEmpty(capturedImpressionId))
                     _log.Warning("OnAdPaid fired before OnAdImpressionRecorded; impression_id will be empty in revenue payload.");
-                AdmobRevenueHelper.TrackRevenueOnMainThread(adValue, capturedResponseInfo, capturedImpressionId, _deviceId, _log, AdFormatKey.Interstitial);
+                AdmobRevenueHelper.TrackRevenueOnMainThread(_tracker, adValue, capturedResponseInfo, capturedImpressionId, _deviceId, _log, AdFormatKey.Interstitial);
 
                 AdmobOnAdRevenuePaid?.Invoke(adValue, interstitialAd.GetResponseInfo());
             };
@@ -331,7 +340,7 @@ namespace com.noctuagames.sdk.Admob
                 TrackAdCustomEventInterstitial("wf_interstitial_closed");
 
                 // Interstitial counts as one watched ad on close (user saw full screen).
-                AdWatchMilestoneTracker.Default?.RecordWatch(AdFormatKey.Interstitial);
+                _watchMilestones?.RecordWatch(AdFormatKey.Interstitial);
 
                 InterstitialOnAdClosed?.Invoke();
             };
@@ -454,7 +463,7 @@ namespace com.noctuagames.sdk.Admob
 
                 _log.Debug($"Event name: {eventName}, Event properties: {properties}");
 
-                Noctua.Event.TrackCustomEvent(eventName, payload);
+                _tracker?.TrackCustomEvent(eventName, payload);
             }
             catch (Exception ex)
             {
@@ -462,13 +471,13 @@ namespace com.noctuagames.sdk.Admob
             }
         }
 
-        // Routes a canonical IAA event payload through Noctua.Event. Wrapped in try/catch
+        // Routes a canonical IAA event payload through the injected tracker. Wrapped in try/catch
         // so analytics failures never break ad delivery.
         private void EmitCanonical(string eventName, Dictionary<string, IConvertible> payload)
         {
             try
             {
-                Noctua.Event.TrackCustomEvent(eventName, payload);
+                _tracker?.TrackCustomEvent(eventName, payload);
             }
             catch (Exception ex)
             {

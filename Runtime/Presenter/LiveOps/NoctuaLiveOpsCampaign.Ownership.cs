@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using UnityEngine.UIElements;
 using com.noctuagames.sdk.Events;
 using Cysharp.Threading.Tasks;
 
@@ -59,7 +58,7 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
 
                 // Closed, or replaced by another campaign, while the store answered.
                 if (!ReferenceEquals(_shownItem, shown)) return;
-                var popup = _host.PopupIfCreated;
+                var popup = _ui;
                 if (popup == null || !popup.IsShowing) return;
 
                 popup.Refresh(RenderItem(shown, _shownPlayerData), _resolver.Config.SchemaVersion);
@@ -357,7 +356,7 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
                 _ownership[productId] = owned.Value;
                 _log.Debug($"{LogTag} ownership after refresh of '{productId}': {DescribeOwnership()}");
 
-                var popup = _host.PopupIfCreated;
+                var popup = _ui;
                 if (_shownItem == null || popup == null || !popup.IsShowing) return;
                 if (!SkusOf(_shownItem).Contains(productId)) return;
 

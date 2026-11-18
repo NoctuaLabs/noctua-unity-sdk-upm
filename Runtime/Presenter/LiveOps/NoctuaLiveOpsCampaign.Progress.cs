@@ -83,7 +83,7 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
         private int _progressTimeoutSeconds = 5;
         private Func<DateTime> _utcNow = () => DateTime.UtcNow;
         private Func<TimeSpan, UniTask> _retryDelay = delay => UniTask.Delay(delay, ignoreTimeScale: true);
-        private NoctuaLocale _progressLocale;
+        private ILocaleProvider _progressLocale;
 
         // The loaded player's state: confirmed (or saved) server rows, and updates not yet confirmed.
         private bool _progressLoaded;
@@ -489,7 +489,7 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
 
         // ---- setup -------------------------------------------------------------
 
-        private void InitProgress(ProgressTrackerOptions options, NoctuaLocale locale)
+        private void InitProgress(ProgressTrackerOptions options, ILocaleProvider locale)
         {
             _progressLocale = locale;
             if (options == null) return;
@@ -633,7 +633,7 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
         private void RefreshShownProgress()
         {
             if (!_shownProgressBacked || _shownItem == null) return;
-            var popup = _host?.PopupIfCreated;
+            var popup = _ui;
             if (popup == null || !popup.IsShowing) return;
 
             var data = MergeProgressData(_shownItem, ProgressView(), _shownGameData);

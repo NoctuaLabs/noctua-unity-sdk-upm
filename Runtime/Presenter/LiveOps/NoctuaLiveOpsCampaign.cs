@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using UnityEngine.UIElements;
 using com.noctuagames.sdk.Events;
 using Cysharp.Threading.Tasks;
 
@@ -21,7 +20,7 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
 
         private const string LogTag = "[campaign]";
         private readonly CampaignResolver _resolver;
-        private readonly CampaignUIHost _host;
+        private readonly ICampaignPopupUI _ui;
         private readonly CampaignActionDispatcher _dispatcher;
         private readonly CampaignActionHandlers _handlers;
         private readonly IEventSender _events;
@@ -62,7 +61,7 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
         public const string PurchasedButtonColor = "#6B7280";
         public const string DefaultPurchasedLabel = "Purchased";
 
-        private readonly NoctuaLocale _locale;
+        private readonly ILocaleProvider _locale;
 
         /// <summary>The single-offer templates' price key, and the SKU key it belongs to.</summary>
         public const string PriceKey = "price";
@@ -93,14 +92,15 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
 
         public NoctuaLiveOpsCampaign(
             CampaignConfig merged,
-            PanelSettings panelSettings,
-            NoctuaLocale locale,
+            Func<ICampaignActions, ICampaignImageSource, ICampaignFontSource, ICampaignPopupUI> createPopupUI,
+            ILocaleProvider locale,
             IEventSender events,
             Func<IReadOnlyList<string>> playerTags,
             Func<UniTask<IReadOnlyDictionary<string, string>>> fetchStorePrices = null,
             ProgressTrackerOptions progress = null,
             Func<string, UniTask<bool>> isProductOwned = null,
-            Func<string, UniTask<bool?>> isNonConsumable = null)
+            Func<string, UniTask<bool?>> isNonConsumable = null,
+            Func<bool> isOffline = null)
         {
             _events = events;
             _fetchStorePrices = fetchStorePrices;
@@ -110,12 +110,12 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
             InitProgress(progress, locale);
 
             var env = new DefaultCampaignEnvironment(playerTags, locale);
-            var assets = new CampaignAssetSource(isOffline: Noctua.IsOfflineMode);
+            var assets = new CampaignAssetSource(isOffline: isOffline);
             var fonts = new CampaignFontSource();
 
             _resolver = new CampaignResolver(
                 merged, env, new CampaignFrequencyGate(),
-                isOffline: Noctua.IsOfflineMode,
+                isOffline: isOffline,
                 assetsReady: assets.AreAllImagesCached,
                 isOwned: IsFullyOwned);
 
@@ -168,8 +168,7 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
                 events,
                 onDispatched: (item, _) => { if (item != null) SafeInvoke(OnCampaignClicked, item.Id); });
 
-            var renderer = new CampaignRenderer(_dispatcher, assets, fonts);
-            _host = new CampaignUIHost(panelSettings, locale, renderer, assets);
+            _ui = createPopupUI?.Invoke(_dispatcher, assets, fonts);
         }
 
         /// <summary>The resolver behind this facade — read by the sandbox Inspector.</summary>
@@ -308,7 +307,7 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
             {
                 var item = RenderItem(stored, playerData);
 
-                var popup = _host.Popup;
+                var popup = _ui;
                 // Per-showing, captured by both callbacks: a later ShowPopup gets its own timer.
                 System.Diagnostics.Stopwatch visibleTimer = null;
                 popup.SetCallbacks(
@@ -465,7 +464,7 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
                 if (!UsesStorePrices(stored)) return;
                 if (!await PrefetchStorePricesAsync()) return;
 
-                var popup = _host.PopupIfCreated;
+                var popup = _ui;
                 if (!ReferenceEquals(_shownItem, stored) || popup == null || !popup.IsShowing) return;
 
                 popup.Refresh(RenderItem(stored, _shownPlayerData), _resolver.Config.SchemaVersion);
@@ -497,7 +496,7 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
         {
             try
             {
-                var popup = _host.PopupIfCreated;
+                var popup = _ui;
                 if (_shownItem == null || popup == null || !popup.IsShowing)
                 {
                     _log.Debug("UpdatePopupData: no campaign popup is showing");
@@ -538,7 +537,7 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
         public void ClosePopup()
         {
             _closingProgrammatically = true;
-            try { _host.PopupIfCreated?.Close(); }
+            try { _ui?.Close(); }
             catch (Exception e) { _log.Error("ClosePopup failed: " + e.Message); }
             finally { _closingProgrammatically = false; }
         }

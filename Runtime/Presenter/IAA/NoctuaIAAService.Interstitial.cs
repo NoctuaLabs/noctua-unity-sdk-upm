@@ -253,7 +253,7 @@ namespace com.noctuagames.sdk
             {
                 // Parity with the legacy path's OnAdFullScreenContentClosed handler:
                 // an interstitial close counts as one watched ad for the watch-milestone tracker.
-                AdWatchMilestoneTracker.Default?.RecordWatch(AdFormatKey.Interstitial);
+                _watchMilestones?.RecordWatch(AdFormatKey.Interstitial);
                 _onAdClosed?.Invoke();
             });
             interstitialAd.OnAdClicked += () => PostToMainThread(() =>
@@ -307,7 +307,7 @@ namespace com.noctuagames.sdk
                     if (string.IsNullOrEmpty(capturedImpressionId))
                         _log.Warning("OnAdPaid fired before OnAdImpressionRecorded; impression_id will be empty in revenue payload.");
                     revPayload["sdk_revenue_id"]    = System.Guid.NewGuid().ToString("N");
-                    Noctua.Event.TrackAdRevenue("admob_sdk", revenue, adValue.CurrencyCode, revPayload);
+                    _adRevenueTracker?.TrackAdRevenue("admob_sdk", revenue, adValue.CurrencyCode, revPayload);
                 }
                 catch (Exception ex) { _log.Error($"Error tracking AdMob interstitial preload revenue: {ex.Message}\n{ex.StackTrace}"); }
                 // Not double-tracking: ProcessAdmob*Revenue only logs + accumulates Taichi

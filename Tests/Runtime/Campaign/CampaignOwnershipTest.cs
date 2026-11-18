@@ -570,7 +570,8 @@ namespace Tests.Runtime.Campaign
                     var asks = new List<string>();
                     var campaign = new NoctuaLiveOpsCampaign(
                         new CampaignConfig { SchemaVersion = 2, Campaigns = new List<CampaignItem> { item } },
-                        panel, new com.noctuagames.sdk.NoctuaLocale(), new MockEventSender(),
+                        (actions, images, fonts) => new CampaignUIHost(panel, new com.noctuagames.sdk.NoctuaLocale(), actions, images, fonts),
+                        new com.noctuagames.sdk.NoctuaLocale(), new MockEventSender(),
                         () => Array.Empty<string>(),
                         isProductOwned: sku => { asks.Add(sku); return UniTask.FromResult(sku == Gold); });
 

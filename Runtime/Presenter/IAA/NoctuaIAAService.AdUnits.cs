@@ -45,11 +45,11 @@ namespace com.noctuagames.sdk
                 // or AppOpenAd.Load() — mixing preload and legacy paths for the same ad unit
                 // causes race conditions per AdMob docs.
 
-                // _preloader already assigned in Initialize() callback; reuse the same singleton.
+                // _preloader already assigned in Initialize() callback; reuse the same instance.
                 // RewardedInterstitialAd does NOT support the Preload API — use legacy Load() path.
                 if (!string.IsNullOrEmpty(_rewardedInterstitialAdUnitID) && _rewardedInterstitialAdUnitID != "unknown")
                 {
-                    _rewardedInterstitialAdmob = new RewardedInterstitialAdmob();
+                    _rewardedInterstitialAdmob = new RewardedInterstitialAdmob(_adRevenueTracker);
                     _rewardedInterstitialAdmob.SetRewardedInterstitialAdUnitID(_rewardedInterstitialAdUnitID);
                     _rewardedInterstitialAdmob.RewardedOnAdDisplayed += () => { CloseAdPlaceholder(force: true); _frequencyCap?.RecordImpression(AdFormatKey.RewardedInterstitial); _onAdDisplayed?.Invoke(); };
                     _rewardedInterstitialAdmob.RewardedOnAdFailedDisplayed += () => { if (!ShowCrossPromoFallback(AdPlaceholderType.RewardedInterstitial)) _onAdFailedDisplayed?.Invoke(); };

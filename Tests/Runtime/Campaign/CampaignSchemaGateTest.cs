@@ -19,7 +19,7 @@ namespace Tests.Runtime.Campaign
         public void Renderer_TooNewSchema_ReturnsNull()
         {
             var renderer = new CampaignRenderer(null, null);
-            var item = PopupItem("c", CampaignRenderer.SupportedSchemaVersion + 1);
+            var item = PopupItem("c", CampaignItem.SupportedSchemaVersion + 1);
 
             using var controller = new CampaignRuntimeController();
             Assert.IsNull(renderer.RenderCampaign(item, controller));
@@ -29,7 +29,7 @@ namespace Tests.Runtime.Campaign
         public void Renderer_SupportedSchema_Renders()
         {
             var renderer = new CampaignRenderer(null, null);
-            var item = PopupItem("c", CampaignRenderer.SupportedSchemaVersion);
+            var item = PopupItem("c", CampaignItem.SupportedSchemaVersion);
 
             using var controller = new CampaignRuntimeController();
             Assert.IsNotNull(renderer.RenderCampaign(item, controller));
@@ -44,7 +44,7 @@ namespace Tests.Runtime.Campaign
                 Campaigns = new System.Collections.Generic.List<CampaignItem>
                 {
                     PopupItem("ok", 1),
-                    PopupItem("future", CampaignRenderer.SupportedSchemaVersion + 5),
+                    PopupItem("future", CampaignItem.SupportedSchemaVersion + 5),
                 },
             };
 
@@ -66,7 +66,7 @@ namespace Tests.Runtime.Campaign
         {
             var config = new CampaignConfig
             {
-                SchemaVersion = CampaignRenderer.SupportedSchemaVersion + 3,
+                SchemaVersion = CampaignItem.SupportedSchemaVersion + 3,
                 Campaigns = new System.Collections.Generic.List<CampaignItem> { PopupItem("inherits", 0) },
             };
 

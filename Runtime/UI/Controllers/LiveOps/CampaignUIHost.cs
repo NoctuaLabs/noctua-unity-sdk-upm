@@ -11,7 +11,7 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
     /// module needs (Init → localization → activate) without going through <c>UIFactory</c>,
     /// so nothing here references <c>IAdPlaceholderUI</c> or any IAA type.
     /// </summary>
-    public sealed class CampaignUIHost
+    public sealed class CampaignUIHost : ICampaignPopupUI
     {
         // Above ad placeholders, below SDK modals (retry / error / payment dialogs) so a purchase
         // started from the popup can still show them.
@@ -26,12 +26,12 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
 
         private CampaignPopupPresenter _popup;
 
-        public CampaignUIHost(PanelSettings panelSettings, NoctuaLocale locale, CampaignRenderer renderer,
-            ICampaignImageSource images = null)
+        public CampaignUIHost(PanelSettings panelSettings, NoctuaLocale locale, ICampaignActions actions,
+            ICampaignImageSource images, ICampaignFontSource fonts = null)
         {
             _panelSettings = panelSettings;
             _locale = locale;
-            _renderer = renderer;
+            _renderer = new CampaignRenderer(actions, images, fonts);
             _images = images;
 
             _root = new GameObject("NoctuaLiveOpsCampaignUI");
@@ -39,7 +39,7 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
         }
 
         /// <summary>The lazily-created popup presenter.</summary>
-        public CampaignPopupPresenter Popup
+        private CampaignPopupPresenter Popup
         {
             get
             {
@@ -52,8 +52,20 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
             }
         }
 
-        /// <summary>The popup presenter if one has been created, else <c>null</c> — never creates one.</summary>
-        public CampaignPopupPresenter PopupIfCreated => _popup;
+        // Only SetCallbacks and Show create the popup; the rest act on one that already exists.
+        public bool IsShowing => _popup != null && _popup.IsShowing;
+
+        public void SetCallbacks(Action<CampaignItem> onShown, Action onClosed, Action onFailed) =>
+            Popup.SetCallbacks(onShown, onClosed, onFailed);
+
+        public void Show(CampaignItem item, int configSchemaVersion) => Popup.Show(item, configSchemaVersion);
+
+        public bool Refresh(CampaignItem item, int configSchemaVersion) =>
+            _popup != null && _popup.Refresh(item, configSchemaVersion);
+
+        public void SetBusy(bool busy) => _popup?.SetBusy(busy);
+
+        public void Close() => _popup?.Close();
 
         private T Create<T>(string presenterName) where T : Presenter<object>
         {

@@ -13,16 +13,10 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
     ///
     /// Forward-compat: an unknown node <c>type</c> (or a campaign whose
     /// <see cref="CampaignItem.EffectiveSchemaVersion"/> exceeds
-    /// <see cref="SupportedSchemaVersion"/>) is skipped and logged — never thrown.
+    /// <see cref="CampaignItem.SupportedSchemaVersion"/>) is skipped and logged — never thrown.
     /// </summary>
     public partial class CampaignRenderer
     {
-        /// <summary>Highest widget-schema version this build understands.</summary>
-        /// <remarks>v2 adds <c>player_data</c>, <c>visible_if</c>, <c>keep_open</c> and
-        /// token-resolved progress bar values. v3 adds <c>purchase_once</c> campaigns and
-        /// dynamic products (<c>product_key</c> actions).</remarks>
-        public const int SupportedSchemaVersion = 3;
-
         /// <summary>Recursion cap — a pathologically nested tree would otherwise StackOverflow (uncatchable).</summary>
         private const int MaxDepth = 40;
 
@@ -86,9 +80,9 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
             }
 
             var required = item.EffectiveSchemaVersion(configSchemaVersion);
-            if (required > SupportedSchemaVersion)
+            if (required > CampaignItem.SupportedSchemaVersion)
             {
-                _log.Warning($"{LogTag} skipping campaign '{item.Id}': schema v{required} > supported v{SupportedSchemaVersion}");
+                _log.Warning($"{LogTag} skipping campaign '{item.Id}': schema v{required} > supported v{CampaignItem.SupportedSchemaVersion}");
                 return null;
             }
 

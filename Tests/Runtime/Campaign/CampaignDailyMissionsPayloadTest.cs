@@ -52,7 +52,7 @@ namespace Tests.Runtime.Campaign
         public void Payload_DeclaresSchemaV2AndPlayerData()
         {
             Assert.AreEqual(2, _item.SchemaVersion);
-            Assert.LessOrEqual(_item.SchemaVersion, CampaignRenderer.SupportedSchemaVersion);
+            Assert.LessOrEqual(_item.SchemaVersion, CampaignItem.SupportedSchemaVersion);
             Assert.IsTrue(_item.PlayerData.ContainsKey("m_use_stm_progress"));
             Assert.IsFalse(_item.Borderless);
         }

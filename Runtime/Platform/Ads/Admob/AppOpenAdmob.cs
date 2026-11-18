@@ -17,6 +17,15 @@ namespace com.noctuagames.sdk.Admob
     public class AppOpenAdmob
     {
         private readonly NoctuaLogger _log = new(typeof(AppOpenAdmob));
+        private readonly IAdRevenueTracker _tracker;
+        private readonly AdmobAdPreloader _preloader;
+
+        public AppOpenAdmob(IAdRevenueTracker tracker = null, AdmobAdPreloader preloader = null)
+        {
+            _tracker = tracker;
+            _preloader = preloader ?? new AdmobAdPreloader();
+        }
+
         private string _adUnitIDAppOpen;
         // Placement captured on Show(placement). Forwarded to canonical IAA events.
         private string _lastPlacement;
@@ -78,7 +87,7 @@ namespace com.noctuagames.sdk.Admob
             // Check if Preload API has ads available. If so, no manual load needed.
             try
             {
-                if (AdmobAdPreloader.Instance.IsAdAvailable(_adUnitIDAppOpen, AdFormat.APP_OPEN_AD))
+                if (_preloader.IsAdAvailable(_adUnitIDAppOpen, AdFormat.APP_OPEN_AD))
                 {
                     _log.Debug("LoadAppOpenAd: preloaded ad already available. No manual load needed.");
                     return;
@@ -185,7 +194,7 @@ namespace com.noctuagames.sdk.Admob
             }
 
             // Preload path
-            var preload = AdmobAdPreloader.Instance;
+            var preload = _preloader;
 
             if (!preload.IsAdAvailable(_adUnitIDAppOpen, AdFormat.APP_OPEN_AD))
             {
@@ -232,7 +241,7 @@ namespace com.noctuagames.sdk.Admob
 
             try
             {
-                return AdmobAdPreloader.Instance.IsAdAvailable(_adUnitIDAppOpen, AdFormat.APP_OPEN_AD);
+                return _preloader.IsAdAvailable(_adUnitIDAppOpen, AdFormat.APP_OPEN_AD);
             }
             catch (Exception)
             {
@@ -257,7 +266,7 @@ namespace com.noctuagames.sdk.Admob
                 var capturedImpressionId = currentImpressionId ?? "";
                 if (string.IsNullOrEmpty(capturedImpressionId))
                     _log.Warning("OnAdPaid fired before OnAdImpressionRecorded; impression_id will be empty in revenue payload.");
-                AdmobRevenueHelper.TrackRevenueOnMainThread(adValue, capturedResponseInfo, capturedImpressionId, _deviceId, _log, AdFormatKey.AppOpen);
+                AdmobRevenueHelper.TrackRevenueOnMainThread(_tracker, adValue, capturedResponseInfo, capturedImpressionId, _deviceId, _log, AdFormatKey.AppOpen);
                 AdmobOnAdRevenuePaid?.Invoke(adValue, capturedResponseInfo);
             };
 
@@ -378,13 +387,13 @@ namespace com.noctuagames.sdk.Admob
             };
         }
 
-        // Routes a canonical IAA event payload through Noctua.Event. Wrapped in try/catch
+        // Routes a canonical IAA event payload through the injected tracker. Wrapped in try/catch
         // so analytics failures never break ad delivery.
         private void EmitCanonical(string eventName, Dictionary<string, IConvertible> payload)
         {
             try
             {
-                Noctua.Event.TrackCustomEvent(eventName, payload);
+                _tracker?.TrackCustomEvent(eventName, payload);
             }
             catch (Exception ex)
             {
@@ -414,7 +423,7 @@ namespace com.noctuagames.sdk.Admob
                 payload["ad_network"] = "unknown";
                 payload["ad_source"] = payload["ad_network"];
 
-                Noctua.Event.TrackCustomEvent(eventName, payload);
+                _tracker?.TrackCustomEvent(eventName, payload);
             }
             catch (Exception ex)
             {

@@ -126,18 +126,18 @@ namespace com.noctuagames.sdk
         /// <summary>Raised when ad revenue is recorded (network-agnostic). Parameters: (revenue, currency, metadata).</summary>
         public event Action<double, string, Dictionary<string, string>> OnAdRevenuePaid { add => _onUnifiedAdRevenuePaid += value; remove => _onUnifiedAdRevenuePaid -= value; }
 
-        public AdmobNetwork()
+        public AdmobNetwork(IAdRevenueTracker tracker = null, AdWatchMilestoneTracker watchMilestones = null, AdmobAdPreloader preloader = null)
         {
             _log.Debug("AdmobNetwork constructor");
 
             // Capture Unity main-thread SynchronizationContext for marshaling JNI callbacks.
             _mainThreadContext = SynchronizationContext.Current;
 
-            _bannerAdmob = new BannerAdmob();
-            _rewardedAdmob = new RewardedAdmob();
-            _interstitialAdmob = new InterstitialAdmob();
-            _rewardedInterstitialAdmob = new RewardedInterstitialAdmob();
-            _appOpenAdmob = new AppOpenAdmob();
+            _bannerAdmob = new BannerAdmob(tracker);
+            _rewardedAdmob = new RewardedAdmob(tracker, watchMilestones);
+            _interstitialAdmob = new InterstitialAdmob(tracker, watchMilestones);
+            _rewardedInterstitialAdmob = new RewardedInterstitialAdmob(tracker);
+            _appOpenAdmob = new AppOpenAdmob(tracker, preloader);
 
             // Wire network-specific events to unified (network-agnostic) events
             _onUserEarnedReward += (reward) =>
