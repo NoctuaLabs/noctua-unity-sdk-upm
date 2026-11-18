@@ -108,7 +108,7 @@ namespace Tests.Runtime.Campaign
             // The order is created while the game's purchase handler runs; it ends afterwards, so
             // the next tap is not ignored as a double tap.
             var running = new UniTaskCompletionSource();
-            module.Configure(new CampaignHandlers { Purchase = (_, __) => running.Task });
+            module.SetPurchaseHandler((_, __) => running.Task);
             dispatcher.Dispatch(action, item);
             var extra = module.CampaignOrderExtra(action.ProductId);
             running.TrySetResult();
@@ -193,7 +193,7 @@ namespace Tests.Runtime.Campaign
 
             var dispatcher = (CampaignActionDispatcher)typeof(NoctuaLiveOpsCampaign)
                 .GetField("_dispatcher", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(module);
-            module.Configure(new CampaignHandlers { Purchase = (_, __) => UniTask.Never(default) });
+            module.SetPurchaseHandler((_, __) => UniTask.Never(default));
             dispatcher.Dispatch(item.View.Action, item);
 
             var extra = module.CampaignOrderExtra("pack_499");

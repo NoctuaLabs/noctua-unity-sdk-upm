@@ -52,10 +52,6 @@ namespace com.noctuagames.sdk
             public static NoctuaCampaign Campaign { get; } = new NoctuaCampaign();
         }
 
-        /// <summary>The campaign module, null until init. Superseded by <c>Noctua.LiveOps.Campaign</c>.</summary>
-        [Obsolete("Use Noctua.LiveOps.Campaign: it is never null, works before init, and Configure sets every handler.")]
-        public static com.noctuagames.sdk.LiveOpsCampaign.NoctuaLiveOpsCampaign LiveOpsCampaign => Instance.Value._campaign;
-
         /// <summary>Access loaded global configuration.</summary>
         public static GlobalConfig Config => Instance.Value._config;
 

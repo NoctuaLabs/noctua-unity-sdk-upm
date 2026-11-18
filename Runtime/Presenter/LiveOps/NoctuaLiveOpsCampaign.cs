@@ -84,12 +84,6 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
         /// <summary>Fires with a campaign id when its popup is dismissed.</summary>
         public event Action<string> OnCampaignDismissed;
 
-        /// <summary>
-        /// Fires when a <c>purchase</c> action runs — the game completes it with its own
-        /// role/server/price context via <c>Noctua.IAP</c>.
-        /// </summary>
-        public event Action<string, CampaignItem> OnCampaignPurchaseRequested;
-
         public NoctuaLiveOpsCampaign(
             CampaignConfig merged,
             Func<ICampaignActions, ICampaignImageSource, ICampaignFontSource, ICampaignPopupUI> createPopupUI,
@@ -125,13 +119,6 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
             try { fonts.Preload(merged); }
             catch (Exception e) { _log.Warning("campaign font preload failed: " + e.Message); }
 
-            // Both hooks are always non-null here, so the dispatcher's own
-            // "no handler wired" warning can never fire for them -- it checks the
-            // hook, and the hook exists. What can be missing is the game's
-            // subscriber behind it, and that failed silently: a popup shown by
-            // auto_show, with nothing subscribed, swallowed every tap with no
-            // log anywhere. So the emptiness is reported here, where it is
-            // actually visible.
             _handlers = new CampaignActionHandlers
             {
                 Deeplink = route =>
@@ -139,21 +126,10 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
                     if (_deeplinkHandler == null)
                     {
                         _log.Warning($"{LogTag} a campaign's deeplink action fired, but no handler " +
-                                     "is registered -- call RegisterDeeplinkHandler after init.");
+                                     "is set -- pass Deeplink to Noctua.LiveOps.Campaign.Configure.");
                         return;
                     }
                     _deeplinkHandler.Invoke(route);
-                },
-                Purchase = (pid, item) =>
-                {
-                    if (OnCampaignPurchaseRequested == null)
-                    {
-                        _log.Warning($"{LogTag} campaign '{item?.Id}' asked to purchase '{pid}', but " +
-                                     "nothing is subscribed to OnCampaignPurchaseRequested -- the tap " +
-                                     "was dropped. Subscribe after init; auto-shown popups need it too.");
-                        return;
-                    }
-                    OnCampaignPurchaseRequested.Invoke(pid, item);
                 },
                 IsPurchaseBlocked = IsCampaignPurchased,
                 PurchaseBlocked = OnPurchaseBlocked,
@@ -187,19 +163,25 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
         /// </summary>
         public void HandlePurchaseSettled(PurchaseOutcome outcome) => _dispatcher.HandlePurchaseSettled(outcome);
 
-        /// <summary>Registers the game's deeplink router for <c>deeplink</c> actions.</summary>
-        public void RegisterDeeplinkHandler(Action<string> handler) => _deeplinkHandler = handler;
+        /// <summary>
+        /// Applies <paramref name="handlers"/>: each non-null field replaces what was set before.
+        /// Games use <c>Noctua.LiveOps.Campaign.Configure</c>, which also works before init.
+        /// </summary>
+        public void Configure(CampaignHandlers handlers)
+        {
+            if (handlers == null) return;
+
+            if (handlers.Deeplink != null) _deeplinkHandler = handlers.Deeplink;
+            if (handlers.ProductResolver != null) SetProductResolver(handlers.ProductResolver);
+            if (handlers.OwnershipProvider != null) SetOwnershipProvider(handlers.OwnershipProvider);
+            if (handlers.Rewards != null) SetRewardsHandler(handlers.Rewards);
+        }
 
         /// <summary>
-        /// Registers an awaitable purchase handler — the recommended way to handle
-        /// <c>purchase</c> actions. While it runs the popup veils itself with a spinner and
-        /// further purchase taps are ignored; the popup stays open, so a failed or cancelled
-        /// purchase returns the player to the offer. Pass <c>null</c> to clear.
-        ///
-        /// When set, <see cref="OnCampaignPurchaseRequested"/> is NOT raised for purchase
-        /// actions — raising both would start two purchases. The event remains for games that
-        /// have not migrated, but it gives the SDK no completion signal, so it gets a short
-        /// double-tap debounce instead of a real busy state.
+        /// Sets what a <c>purchase</c> action runs. The SDK wires its own purchase here at init
+        /// (<c>Noctua.Initialization</c>); games do not call it. While it runs the popup veils
+        /// itself with a spinner and further purchase taps are ignored; the popup stays open, so
+        /// a failed or cancelled purchase returns the player to the offer.
         /// </summary>
         public void SetPurchaseHandler(Func<string, CampaignItem, UniTask> handler)
         {

@@ -43,10 +43,12 @@ Ad mediation, network adapters, revenue tracking, ad frequency, user segmentatio
 
 | Layer | Files |
 |---|---|
-| Presenter | `Presenter/IAA/MediationManager.cs` (large — split into partials), `Presenter/IAA/AppOpenAdManager.cs`, `Presenter/IAA/AdRevenueTrackingManager.cs`, `Presenter/IAA/AdFrequencyManager.cs`, `Presenter/IAA/AdExperimentManager.cs`, `Presenter/IAA/AdNetworkPerformanceTracker.cs`, `Presenter/IAA/CpmFloorManager.cs`, `Presenter/IAA/HybridAdOrchestrator.cs`, `Presenter/IAA/UserSegmentManager.cs` |
+| Presenter | `Presenter/IAA/NoctuaIAAService.cs` (large — split into partials), `Presenter/IAA/AppOpenAds.cs`, `Presenter/IAA/AdRevenueReporter.cs`, `Presenter/IAA/AdFrequencyCap.cs`, `Presenter/IAA/AdExperimentAssignments.cs`, `Presenter/IAA/AdNetworkPerformanceTracker.cs`, `Presenter/IAA/CpmFloor.cs`, `Presenter/IAA/HybridAdRouting.cs`, `Presenter/IAA/UserSegments.cs` |
 | Presenter / Interfaces | `Presenter/Interfaces/IAdRevenueTracker.cs`, `Presenter/Interfaces/IAdPlaceholderUI.cs` |
-| AdsManager (network adapters — pre-existing category-coherent folder) | `AdsManager/AdConstants.cs`, `AdsManager/AdTestUnitIds.cs`, `AdsManager/AdWatchMilestoneTracker.cs`, `AdsManager/IAAEventNames.cs`, `AdsManager/IAdNetwork.cs`, `AdsManager/Admob/*.cs`, `AdsManager/AppLovin/*.cs`, `AdsManager/AdPlaceholder/PlaceholderAssetSource.cs` |
-| UI / Controllers | `UI/Controllers/IAA/NoctuaAdPlaceholder.cs` |
+| Presenter (shared ad logic) | `Presenter/IAA/AdWatchMilestoneTracker.cs`, `Presenter/IAA/IAAPayloadBuilder.cs`, `Presenter/IAA/AdmobRevenueHelper.cs`, `Presenter/IAA/AppLovinRevenueHelper.cs`; `Presenter/Interfaces/IAdNetwork.cs` |
+| Model | `Model/IAA/AdConstants.cs`, `Model/IAA/AdTestUnitIds.cs`, `Model/IAA/IAAEventNames.cs`, `Model/IAA/AdPlaceholderLayout.cs`, `Model/IAA/CrossPromoAsset.cs` |
+| Platform (ad network SDK bridges) | `Platform/Ads/Admob/*.cs`, `Platform/Ads/AppLovin/*.cs` — each adapter gets its `IAdRevenueTracker` through the constructor, never `Noctua.Event` |
+| UI / Controllers | `UI/Controllers/IAA/NoctuaAdPlaceholder.cs`, `UI/Controllers/IAA/PlaceholderAssetSource.cs` |
 
 ---
 
@@ -56,7 +58,7 @@ Analytics events, batching, persistence, network flush, A/B test session tags.
 
 | Layer | Files |
 |---|---|
-| Presenter | `Presenter/Event/NoctuaEventService.cs`, `Presenter/Event/ExperimentManager.cs` |
+| Presenter | `Presenter/Event/NoctuaEventService.cs`, `Presenter/Event/NoctuaExperiment.cs` |
 | Presenter / Interfaces | `Presenter/Interfaces/IEventSender.cs` |
 | Infrastructure | `Infrastructure/Event/EventSender.cs` (large — split into partials) |
 | Model | `Model/Event/NativeEvent.cs`, `Model/Event/AdjustConfig.cs`, `Model/Event/NoctuaAdjustAttribution.cs` |
@@ -94,7 +96,7 @@ App lifecycle, init, remote configs, Firebase, PlayerPrefs, push, deep links, in
 
 | Layer | Files |
 |---|---|
-| View | `View/App/NoctuaAppManager.cs`, `View/App/Noctua.Firebase.cs`, `View/App/Noctua.PlayerPrefs.cs` |
+| View | `View/App/NoctuaApp.cs`, `View/App/Noctua.Firebase.cs`, `View/App/Noctua.PlayerPrefs.cs` |
 | Presenter | `Presenter/App/NoctuaGameService.cs` (init game / geo-IP / remote configs) |
 | Model | `Model/App/AppUpdateInfo.cs`, `Model/App/FirebaseConfig.cs`, `Model/App/GameServiceModels.cs`, `Model/App/NoctuaNotificationPayload.cs` |
 
@@ -102,17 +104,17 @@ App lifecycle, init, remote configs, Firebase, PlayerPrefs, push, deep links, in
 
 ## LiveOps Campaign — `Noctua.LiveOps.Campaign`
 
-Server-driven engagement popups (purchase / event-deeplink CTAs): config merge, eligibility (schedule, targeting, frequency, offline asset cache), rendering, action dispatch. Self-contained module under `LiveOpsCampaignManager/`.
+Server-driven engagement popups (purchase / event-deeplink CTAs): config merge, eligibility (schedule, targeting, frequency, offline asset cache), rendering, action dispatch. Spread over the layers under the `LiveOps` category: `Model/LiveOps/`, `Infrastructure/LiveOps/`, `Presenter/LiveOps/`, `UI/Controllers/LiveOps/`. The payload and public API contract is `Documentation~/live-ops-campaign.md`.
 
 | Layer | Files |
 |---|---|
 | Game facade | `Noctua.LiveOps` (static class nested in `View/Noctua.cs`, one property per live ops feature) + `View/LiveOps/NoctuaCampaign.cs` (`Noctua.LiveOps.Campaign`: never null, usable before init — `Configure`, popups, missions, events; `Attach`/`Fail` from `InitCampaigns`; `Module` for diagnostics). The old `Noctua.LiveOpsCampaign` is `[Obsolete]`. |
-| Module | `LiveOpsCampaignManager/NoctuaLiveOpsCampaign.Ownership.cs` (partial: ownership — `SetOwnershipProvider`, `IsFullyOwned`, `ApplyOwnership` / `MarkOwnedButtons`, prefetch and refresh after a purchase) |
-| Module | `LiveOpsCampaignManager/NoctuaLiveOpsCampaign.cs` (events, `RegisterDeeplinkHandler`, `SetPurchaseHandler`, `ShowPopup(id, playerData)`, `UpdatePopupData`, local store prices for `{{store_price.<sku>}}`, purchase state: `SetOwnershipProvider`, fully-owned offers hidden, owned Buy buttons shown as Purchased (`data.purchased_label`, `LocaleTextKey.LiveOpsCampaignPurchased`), `{{owned.<sku>}}` for custom designs) |
-| Logic | `CampaignManager.cs`, `CampaignValidator.cs`, `CampaignConditions.cs` (`visible_if`), `CampaignPlayerData.cs` (game-supplied `player_data`), `CampaignFrequencyGate.cs`, `CampaignActionDispatcher.cs`, `CampaignTokens.cs`, `CampaignAssetSource.cs`, `CampaignFontSource.cs` |
-| Render | `CampaignRenderer.cs`, `CampaignRenderer.Widgets.cs`, `CampaignStyleMapper.cs`, `CampaignRuntimeController.cs`, `CampaignUIHost.cs` |
-| UI | `UI/CampaignPopupPresenter.cs`, `UI/CampaignPopupFit.cs`, `UI/CampaignFrameStyle.cs`, `UI/CampaignBackdropStyle.cs`, `UI/Resources/CampaignPopup.uxml`, `UI/Resources/Campaign.uss` |
-| Model | `Model/CampaignConfig.cs`, `Model/CampaignItem.cs`, `Model/CampaignNode.cs`, `Model/CampaignAction.cs`, `Model/CampaignCondition.cs`, `Model/CampaignTargeting.cs`, `Model/CampaignCloseButton.cs`, `Model/CampaignStyleProps.cs`, `Model/CampaignImageSrc.cs` |
+| Module | `Presenter/LiveOps/NoctuaLiveOpsCampaign.Ownership.cs` (partial: ownership — `SetOwnershipProvider`, `IsFullyOwned`, `ApplyOwnership` / `MarkOwnedButtons`, prefetch and refresh after a purchase) |
+| Module | `Presenter/LiveOps/NoctuaLiveOpsCampaign.cs` (events, `Configure`, `SetPurchaseHandler` (SDK wiring), `ShowPopup(id, playerData)`, `UpdatePopupData`, local store prices for `{{store_price.<sku>}}`, purchase state: `SetOwnershipProvider`, fully-owned offers hidden, owned Buy buttons shown as Purchased (`data.purchased_label`, `LocaleTextKey.LiveOpsCampaignPurchased`), `{{owned.<sku>}}` for custom designs) |
+| Logic (`Presenter/LiveOps/`) | `CampaignResolver.cs`, `CampaignValidator.cs`, `CampaignConditions.cs` (`visible_if`), `CampaignPlayerData.cs` (game-supplied `player_data`), `CampaignFrequencyGate.cs`, `CampaignActionDispatcher.cs`, `CampaignTokens.cs`, `CampaignAssetSource.cs`, `CampaignFontSource.cs` |
+| Render (`UI/Controllers/LiveOps/`, behind `Presenter/Interfaces/ICampaignPopupUI.cs`) | `CampaignRenderer.cs`, `CampaignRenderer.Widgets.cs`, `CampaignStyleMapper.cs`, `CampaignRuntimeController.cs`, `CampaignUIHost.cs` |
+| UI (`UI/Controllers/LiveOps/`) | `CampaignPopupPresenter.cs`, `CampaignPopupFit.cs`, `CampaignFrameStyle.cs`, `CampaignBackdropStyle.cs`, `Resources/CampaignPopup.uxml`, `Resources/Campaign.uss` |
+| Model (`Model/LiveOps/`) | `Model/CampaignConfig.cs`, `Model/CampaignItem.cs`, `Model/CampaignNode.cs`, `Model/CampaignAction.cs`, `Model/CampaignCondition.cs`, `Model/CampaignTargeting.cs`, `Model/CampaignCloseButton.cs`, `Model/CampaignStyleProps.cs`, `Model/CampaignImageSrc.cs` |
 | Wiring | `View/Noctua.Initialization.cs` → `InitCampaigns` |
 | Tests | `Tests/Runtime/Campaign/` |
 
@@ -124,14 +126,14 @@ When the tracker is down nothing blocks the game: loads fall back to the player'
 
 | Layer | Files |
 |---|---|
-| Facade | `LiveOpsCampaignManager/NoctuaLiveOpsCampaign.ProgressSync.cs` (partial: sending waiting updates to the tracker with backoff, and the per-player save on the device — progress, waiting updates and claims, undelivered rewards, reward history) |
-| Facade | `LiveOpsCampaignManager/NoctuaLiveOpsCampaign.Progress.cs` (partial: `GetProgressAsync`, `SetProgressAsync`, `ClaimProgressAsync`, `SetMissionProgressAsync`, `ClaimMissionAsync`, `TrackerKey`, `FlushPendingProgressAsync`, `Progress`, `IsProgressStale`, `HasPendingProgress`, `OnProgressChanged`, `OnCampaignUnavailable`, `ToDailyMissionsPlayerData`; saved copy + pending queue in PlayerPrefs `Noctua.LiveOpsCampaign.Progress.<playerId>`) |
-| Popup gating | `LiveOpsCampaignManager/NoctuaLiveOpsCampaign.cs` (`ShowPopup`, `RunAutoShowAsync`, `ShownPlayerData`) |
-| Facade | `LiveOpsCampaignManager/NoctuaLiveOpsCampaign.Setup.cs` (partial: `CampaignHandlers` + `Configure` — the game's deeplink / purchase / product resolver / ownership / mission rewards handlers in one call; applied by `Noctua.LiveOps.Campaign`) |
-| Facade | `LiveOpsCampaignManager/NoctuaLiveOpsCampaign.Missions.cs` (partial: SDK claims — `ClaimMissionRewardAsync`, `ClaimMilestoneRewardAsync`, `ClaimAllMissionsAsync` (missions, then the chests they unlock), `ClaimableMissions` / `ClaimableMilestones`, points per mission (`PointsOf`, `m_<key>_points`), chest tracker keys `<scope>.milestone_<points>`, `ToMilestonePlayerData` (`points`, `milestone_<p>_claimed`, `claimable_count`), the built-in `claim` (mission or milestone) / `claim_all` actions) |
-| Facade | `LiveOpsCampaignManager/NoctuaLiveOpsCampaign.Rewards.cs` (partial: the shared `Rewards` ledger — `LiveOpsReward` / `RewardItem` (`Model/LiveOpsReward.cs`), saved per player with a claim-id history and redelivered until the handler finishes (`DeliverRewardsAsync`) for missions and milestone chests; purchases are delivered by the game from `Noctua.IAP.OnPurchaseDone` with the product's `Items` (`Product.Items`, from `GetProductListAsync`); the facade keeps campaign orders verified before init in a device inbox for their purchase limit) |
-| Facade | `LiveOpsCampaignManager/NoctuaLiveOpsCampaign.Purchase.cs` (partial: one purchase per campaign — `purchase_once`, tracker key `<id>.purchase`, `IsCampaignPurchased(Async)`, `RecordCampaignPurchaseAsync`, `OnCampaignPurchaseRecorded`, waiting claims in the progress save; dynamic products — `product_key` bundles, `SetProductResolver`, `GetProductBundle(ForSku)`, `WithDynamicProducts`, `PurchaseExtra` for the order's `extra`) |
-| Model | `LiveOpsCampaignManager/Model/LiveOpsProgress.cs`; error codes `NoctuaErrorCode.LiveOpsProgress*` (2300–2402); notice key `LocaleTextKey.LiveOpsMissionsUnavailable` |
+| Facade | `Presenter/LiveOps/NoctuaLiveOpsCampaign.ProgressSync.cs` (partial: sending waiting updates to the tracker with backoff, and the per-player save on the device — progress, waiting updates and claims, undelivered rewards, reward history) |
+| Facade | `Presenter/LiveOps/NoctuaLiveOpsCampaign.Progress.cs` (partial: `GetProgressAsync`, `SetProgressAsync`, `ClaimProgressAsync`, `SetMissionProgressAsync`, `ClaimMissionAsync`, `TrackerKey`, `FlushPendingProgressAsync`, `Progress`, `IsProgressStale`, `HasPendingProgress`, `OnProgressChanged`, `OnCampaignUnavailable`, `ToDailyMissionsPlayerData`; saved copy + pending queue in PlayerPrefs `Noctua.LiveOpsCampaign.Progress.<playerId>`) |
+| Popup gating | `Presenter/LiveOps/NoctuaLiveOpsCampaign.cs` (`ShowPopup`, `RunAutoShowAsync`, `ShownPlayerData`) |
+| Facade | `Presenter/LiveOps/CampaignHandlers.cs` (the game's deeplink / product resolver / ownership / mission rewards handlers, applied by `Configure`; popup purchases need no handler) |
+| Facade | `Presenter/LiveOps/NoctuaLiveOpsCampaign.Missions.cs` (partial: SDK claims — `ClaimMissionRewardAsync`, `ClaimMilestoneRewardAsync`, `ClaimAllMissionsAsync` (missions, then the chests they unlock), `ClaimableMissions` / `ClaimableMilestones`, points per mission (`PointsOf`, `m_<key>_points`), chest tracker keys `<scope>.milestone_<points>`, `ToMilestonePlayerData` (`points`, `milestone_<p>_claimed`, `claimable_count`), the built-in `claim` (mission or milestone) / `claim_all` actions) |
+| Facade | `Presenter/LiveOps/NoctuaLiveOpsCampaign.Rewards.cs` (partial: the shared `Rewards` ledger — `LiveOpsReward` / `RewardItem` (`Model/LiveOpsReward.cs`), saved per player with a claim-id history and redelivered until the handler finishes (`DeliverRewardsAsync`) for missions and milestone chests; purchases are delivered by the game from `Noctua.IAP.OnPurchaseDone` with the product's `Items` (`Product.Items`, from `GetProductListAsync`); the facade keeps campaign orders verified before init in a device inbox for their purchase limit) |
+| Facade | `Presenter/LiveOps/NoctuaLiveOpsCampaign.Purchase.cs` (partial: one purchase per campaign — `purchase_once`, tracker key `<id>.purchase`, `IsCampaignPurchased(Async)`, `RecordCampaignPurchaseAsync`, `OnCampaignPurchaseRecorded`, waiting claims in the progress save; dynamic products — `product_key` bundles, `SetProductResolver`, `GetProductBundle(ForSku)`, `WithDynamicProducts`, `PurchaseExtra` for the order's `extra`) |
+| Model | `Model/LiveOps/LiveOpsProgress.cs`; error codes `NoctuaErrorCode.LiveOpsProgress*` (2300–2402); notice key `LocaleTextKey.LiveOpsMissionsUnavailable` |
 | HTTP | `Infrastructure/Network/Http.cs` → `WithErrorEnvelope()` (keeps codes on 409 / 410 / 422), `WithTimeout()` (5 s for progress) |
 | Wiring | `View/Noctua.Initialization.cs` → `InitCampaigns` (`OnAccountChangedAsync`); `View/Noctua.cs` → `OnOnline` / `IsOfflineAsync` (`OnConnectivityRestoredAsync`) |
 | Tests | `Tests/Runtime/Campaign/LiveOpsProgressTest.cs`, `LiveOpsProgressOfflineTest.cs`, `LiveOpsProgressPopupTest.cs`, `LiveOpsProgressMissionTest.cs` (`LiveOpsProgressTestKit.cs`) |

@@ -16,15 +16,6 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
         public Action<string> Deeplink;
 
         /// <summary>
-        /// Optional. Without it the SDK buys a popup's SKU itself: price and currency from the
-        /// product list, role and server from the last <c>Noctua.Auth.UpdatePlayerAccountAsync</c>.
-        /// Set it only to build the <c>PurchaseRequest</c> yourself and call
-        /// <c>Noctua.IAP.PurchaseItemAsync</c>. Either way the campaign is added to the order, and
-        /// the game delivers it from <c>Noctua.IAP.OnPurchaseDone</c>.
-        /// </summary>
-        public Func<string, CampaignItem, UniTask> Purchase;
-
-        /// <summary>
         /// Maps a dynamic product's bundle to a SKU. Optional: without it the bundle's own
         /// <c>sku_android</c> / <c>sku_ios</c> / <c>sku</c> is used.
         /// </summary>
@@ -55,7 +46,6 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
             return new CampaignHandlers
             {
                 Deeplink = newer.Deeplink ?? older.Deeplink,
-                Purchase = newer.Purchase ?? older.Purchase,
                 ProductResolver = newer.ProductResolver ?? older.ProductResolver,
                 OwnershipProvider = newer.OwnershipProvider ?? older.OwnershipProvider,
                 Rewards = newer.Rewards ?? older.Rewards,

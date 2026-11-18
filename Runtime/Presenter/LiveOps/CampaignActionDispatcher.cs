@@ -7,8 +7,7 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
 {
     /// <summary>
     /// Game/SDK-side hooks the dispatcher calls. The facade wires each to a concrete
-    /// service (the game's deeplink handler, <c>Noctua.IAP</c> via
-    /// <c>OnCampaignPurchaseRequested</c>); the dispatcher itself stays free of those
+    /// service (the game's deeplink handler, the SDK's own purchase); the dispatcher itself stays free of those
     /// references. Any hook may be <c>null</c> — a missing hook logs and no-ops.
     /// </summary>
     public sealed class CampaignActionHandlers
@@ -70,7 +69,7 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
         public const string ClickEvent = "live_ops_campaign_click";
 
         /// <summary>
-        /// How long a <c>purchase</c> tap suppresses further ones when only the legacy
+        /// How long a <c>purchase</c> tap suppresses further ones when only the
         /// fire-and-forget <see cref="CampaignActionHandlers.Purchase"/> hook is wired. With no
         /// completion signal a real in-flight flag could never clear, so the legacy path gets a
         /// time window instead — enough to eat a double-tap, short enough not to strand the player.
