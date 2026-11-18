@@ -21,12 +21,11 @@ Runtime/
 ├── Core/           Shared interfaces (ILocaleProvider, IConnectivityProvider)
 ├── Model/          DTOs/ and Entities/ — pure data, no logic
 ├── Infrastructure/ EventSender, Http, InternetChecker, Storage, Utility
-├── Presenter/      NoctuaIAPService, NoctuaAuthenticationService, SessionTracker
+├── Presenter/      NoctuaIAPService, NoctuaAuthenticationService, NoctuaIAAService, NoctuaLiveOpsCampaign, SessionTracker
 │   └── Interfaces/ IEventSender, IIAPService, IAuthProvider, IPaymentUI, etc.
-├── Platform/       Native bridges: Android/ (JNI), iOS/ (P/Invoke)
+├── Platform/       Native bridges: Android/ (JNI), iOS/ (P/Invoke), Ads/ (AdMob, AppLovin)
 ├── UI/             UIElements controllers, UIUtility
 ├── View/           Composition root — Noctua.cs, Noctua.Initialization.cs, facades
-├── AdsManager/     MediationManager, AppLovin, AdMob, AdPlaceholder
 └── Plugins/        Third-party plugins (UniWebView, etc.)
 ```
 
@@ -37,6 +36,13 @@ Runtime/
 | UI must NOT depend on View or `Noctua` static class |
 | Core/Model — no dependencies on other SDK layers |
 | View (composition root) — may depend on all layers |
+
+## Naming and abstraction rules
+
+- **No Java-style names.** No `*Manager`, `*Orchestrator`, or wrapper classes that only forward. Name a class after what it is (`AdFrequencyCap`, `CampaignResolver`); a module's main service is `Noctua<Module>Service`.
+- **Follow the conventions already here.** To change one, write the argument and the risk and discuss it first.
+- **Abstractions are earned.** An interface needs two implementations or a test that fakes it. No helper for one or two lines used once.
+- **Spec first.** Payload shapes and public API are written down before code (`Documentation~/live-ops-campaign.md`), and JSON has one shape per field.
 
 ## Class Visibility Rule
 
@@ -50,7 +56,7 @@ Runtime/
 | Config object injection | `EventSenderConfig.IsOfflineModeFunc` | Adding deps to existing classes |
 | Static delegate injection | `MobileDateTimePicker.SetShowDatePickerAction(action)` | Static classes or many call sites |
 | Static provider injection | `HttpRequest.SetLocaleProvider(locale)` | Cross-cutting concerns |
-| Setter injection | `MediationManager.SetAdRevenueTracker(tracker)` | Circular init deps |
+| Setter injection | `NoctuaIAAService.SetAdRevenueTracker(tracker)` | Circular init deps |
 | Interface adapter | `NoctuaConnectivityProvider : IConnectivityProvider` | Wrapping `Noctua.*` for injection |
 
 **Lazy<T> re-entry:** `Noctua()` constructor runs inside `Lazy<Noctua>`. Never call `Noctua.Instance.Value` during construction — causes `ValueFactory re-entry`. All deps use delegates/interfaces/config fields, never `Noctua.*` static calls.
@@ -64,7 +70,7 @@ Runtime/
 | `Runtime/View/App/Noctua.Adjust.cs` | View | Adjust attribution & device info API (ADID, IDFA, IDFV, Google/Amazon Ad ID, SDK version) |
 | `Runtime/View/App/Noctua.Firebase.cs` | View | Firebase Remote Config, FCM token, push notification events |
 | `Runtime/View/App/Noctua.PlayerPrefs.cs` | View | PlayerPrefs backup/restore utilities |
-| `Runtime/View/App/NoctuaAppManager.cs` | View | In-app review & flexible app updates |
+| `Runtime/View/App/NoctuaApp.cs` | View | In-app review & flexible app updates |
 | `Runtime/View/Auth/NoctuaAuthentication.cs` | View | Auth facade |
 | `Runtime/View/Platform/NoctuaLocale.cs` | View | `ILocaleProvider` impl |
 | `Runtime/View/Platform/NoctuaConnectivityProvider.cs` | View | `IConnectivityProvider` adapter |
@@ -73,7 +79,7 @@ Runtime/
 | `Runtime/Presenter/IAP/NoctuaIAPService.cs` | Presenter | IAP: purchases, products, payment types |
 | `Runtime/Presenter/Auth/NoctuaAuthenticationService.cs` | Presenter | Auth: social login, account mgmt |
 | `Runtime/Presenter/Session/SessionTracker.cs` | Presenter | Session lifecycle, heartbeat, engagement |
-| `Runtime/Presenter/Event/ExperimentManager.cs` | Presenter | A/B testing, session tags |
+| `Runtime/Presenter/Event/NoctuaExperiment.cs` | Presenter | A/B testing, session tags |
 | `Runtime/Presenter/Event/NoctuaEventService.cs` | Presenter | High-level event tracking API |
 | `Runtime/Infrastructure/Event/EventSender.cs` | Infra | Event storage, batching, HTTP flush |
 | `Runtime/Infrastructure/Network/Http.cs` | Infra | `HttpRequest` with JSON serialization |
@@ -327,8 +333,8 @@ Platform-layer reference.
 | `Noctua.Auth` | `NoctuaAuthentication` | Authentication (AuthenticateAsync, LoginAsGuest, etc.) |
 | `Noctua.IAP` | `NoctuaIAPService` | In-app purchases |
 | `Noctua.Platform` | `NoctuaPlatform` | Platform features (Content, Locale) |
-| `Noctua.IAA` | `MediationManager` | Ad mediation |
-| `Noctua.App` | `NoctuaAppManager` | In-app review / in-app updates |
+| `Noctua.IAA` | `NoctuaIAAService` | Ad mediation |
+| `Noctua.App` | `NoctuaApp` | In-app review / in-app updates |
 | `Noctua.Config` | `GlobalConfig` | Loaded `noctuagg.json` config |
 | `Noctua.HttpLog` | `HttpInspectorLog` | HTTP ring buffer (sandbox only) |
 | `Noctua.DebugMonitor` | `TrackerDebugMonitor` | Tracker ring buffer (sandbox only) |
@@ -420,7 +426,7 @@ Three parallel engagement signals in `SessionTracker.cs`:
 
 ## Session Events
 
-`EventSender.cs` includes these in the `sessionEvents` HashSet (receive `tag` from `ExperimentManager`): `session_start`, `session_pause`, `session_continue`, `session_heartbeat`, `session_end`, `noctua_user_engagement`, `noctua_user_engagement_per_session`, `native_user_engagement`.
+`EventSender.cs` includes these in the `sessionEvents` HashSet (receive `tag` from `NoctuaExperiment`): `session_start`, `session_pause`, `session_continue`, `session_heartbeat`, `session_end`, `noctua_user_engagement`, `noctua_user_engagement_per_session`, `native_user_engagement`.
 
 ## Testing
 
@@ -448,7 +454,7 @@ The Unity Code Coverage window settings are persisted in `ProjectSettings/Packag
   ```
   These folders are structurally untestable in EditMode (P/Invoke / JNI bridges, runtime UI presenters, debug overlays, vendored third-party plugins) and would otherwise inflate the denominator.
 
-  **Note:** `AdsManager/AppLovin/**` and `AdsManager/Admob/**` are intentionally **not** excluded — they have tests in `Tests/Runtime/IAA/AppLovinManagerTests.cs` and `AdmobManagerTests.cs`. These tests are wrapped in `#if UNITY_APPLOVIN` / `#if UNITY_ADMOB` and only compile when the respective UPM packages are installed. SDK-calling paths (`Initialize`, `Load*`, `Show*`, ad callbacks) cannot be exercised in EditMode without a real device, so partial coverage of these files is expected.
+  **Note:** `Platform/Ads/AppLovin/**` and `Platform/Ads/Admob/**` are intentionally **not** excluded — they have tests in `Tests/Runtime/IAA/AppLovinNetworkTests.cs` and `AdmobNetworkTests.cs`. These tests are wrapped in `#if UNITY_APPLOVIN` / `#if UNITY_ADMOB` and only compile when the respective UPM packages are installed. SDK-calling paths (`Initialize`, `Load*`, `Show*`, ad callbacks) cannot be exercised in EditMode without a real device, so partial coverage of these files is expected.
 
 After changing either, re-run the EditMode test suite and click **Generate from Last** in the Code Coverage window to refresh `CodeCoverage/Report/index.html`.
 

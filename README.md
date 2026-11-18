@@ -137,7 +137,7 @@ Everything live ops is under one entry, `Noctua.LiveOps`, one property per featu
 
 ### Campaign
 
-Popups, offers and daily missions are authored in **noctua-admin → Live Ops** and delivered by `Noctua.InitAsync`. The SDK shows them, runs their buttons, claims missions and chests, keeps progress on the server, and hands the game every reward it owes. The game only supplies what the SDK cannot know: where a deeplink goes, how to buy a product, and how to add items to its inventory.
+Popups, offers and daily missions are authored in **noctua-admin → Live Ops** and delivered by `Noctua.InitAsync`. The SDK shows them, runs their buttons, claims missions and chests, keeps progress on the server, and hands the game every reward it owes. The game only supplies what the SDK cannot know: where a deeplink goes and how to add items to its inventory.
 
 #### 1. Setup — one call, before init
 
@@ -190,7 +190,7 @@ A campaign that is not eligible is skipped, never thrown. The reason is in the s
 
 | Admin setting | Game code |
 |---|---|
-| Buy button with a SKU | None: the SDK buys it (role and server from `Noctua.Auth.UpdatePlayerAccountAsync`) and the game delivers it in `OnPurchaseDone`. Bought non-consumables and subscriptions are hidden or shown as "Purchased" automatically. Set `Purchase` only to build the request yourself. |
+| Buy button with a SKU | None: the SDK buys it (role and server from `Noctua.Auth.UpdatePlayerAccountAsync`) and the game delivers it in `OnPurchaseDone`. Bought non-consumables and subscriptions are hidden or shown as "Purchased" automatically. |
 | **One purchase per player** | None. After a completed purchase from the popup the SDK records it on the server; the campaign is not shown again and its Buy buttons read "Purchased", on every device. |
 | **Dynamic product** (a JSON bundle instead of a SKU) | None when the bundle names its SKU: `{"sku_android":"gem_500","sku_ios":"com.game.gem500"}`, or just `{"sku":"gem_500"}`. To map anything else (e.g. a price `tier`) set `ProductResolver`. |
 | Consumable offer with a limit | Optional: `OwnershipProvider = sku => myStore.OwnsAsync(sku)` — the store only knows non-consumables. |
@@ -251,9 +251,28 @@ await Noctua.LiveOps.Campaign.SetMissionProgressAsync("use_stm", totalStaminaUse
 
 An audience can require a Noctua SDK version range (admin → Audience → SDK version). There is nothing to code: popups check the running SDK's version on the device, and push notifications are filtered on the server. Campaigns using it — and one-time offers, dynamic products and built-in Claim buttons — need this SDK version or newer; older SDKs skip them.
 
-#### Upgrading from `Noctua.LiveOpsCampaign`
+#### Upgrading: renamed and removed API
 
-`Noctua.LiveOpsCampaign` (null until init) still works but is obsolete. Move to `Noctua.LiveOps.Campaign`: replace `RegisterDeeplinkHandler`, `SetPurchaseHandler`, `OnCampaignPurchaseRequested`, `SetProductResolver` and `SetOwnershipProvider` with one `Configure(...)`. Claim deeplinks you route yourself (`ClaimMissionAsync` on the old object, grant when it returns) keep working; switching the admin's Claim buttons to the built-in claim moves granting into `Rewards`.
+`Noctua.IAA.X()`, `Noctua.App.X()` and the other `Noctua.*` calls are unchanged. Only code that names these types or members needs editing:
+
+| Before | Now |
+|---|---|
+| `MediationManager` | `NoctuaIAAService` |
+| `NoctuaAppManager` | `NoctuaApp` |
+| `ExperimentManager` | `NoctuaExperiment` |
+| `AppOpenAdManager`, `Noctua.IAA.AppOpenManager` | `AppOpenAds`, `Noctua.IAA.AppOpen` |
+| `AdRevenueTrackingManager` | `AdRevenueReporter` |
+| `AdFrequencyManager` | `AdFrequencyCap` |
+| `CpmFloorManager` | `CpmFloor` |
+| `UserSegmentManager` | `UserSegments` |
+| `AdExperimentManager` | `AdExperimentAssignments` |
+| `HybridAdOrchestrator` | `HybridAdRouting` |
+| `AdmobManager` / `AppLovinManager` | `AdmobNetwork` / `AppLovinNetwork` |
+| `AdmobAdPreloadManager` (`.Instance`) | `AdmobAdPreloader` (created by the SDK) |
+| `AdWatchMilestoneTracker.Default` | removed: the SDK owns the instance |
+| `Noctua.LiveOpsCampaign` | `Noctua.LiveOps.Campaign` |
+| `RegisterDeeplinkHandler(...)` | `Configure(new CampaignHandlers { Deeplink = ... })` |
+| `CampaignHandlers.Purchase`, `OnCampaignPurchaseRequested` | removed: the SDK buys a popup's SKU itself |
 
 #### Checklist
 
