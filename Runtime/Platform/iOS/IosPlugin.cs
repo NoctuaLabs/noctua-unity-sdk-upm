@@ -13,7 +13,7 @@ namespace com.noctuagames.sdk
     /// Uses <c>[DllImport("__Internal")]</c> for calling Objective-C/Swift interop functions and
     /// <c>[MonoPInvokeCallback]</c> static delegates for receiving native callbacks.
     /// </summary>
-    internal partial class IosPlugin : INativePlugin
+    public partial class IosPlugin : INativePlugin
     {
         private readonly ILogger _log = new NoctuaLogger(typeof(IosPlugin));
         private static readonly ILogger _sLog = new NoctuaLogger(typeof(IosPlugin));

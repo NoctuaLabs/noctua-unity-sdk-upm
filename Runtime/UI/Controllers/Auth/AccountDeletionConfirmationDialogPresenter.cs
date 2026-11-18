@@ -6,7 +6,7 @@ namespace com.noctuagames.sdk.UI
     /// <summary>
     /// Presenter for the account deletion confirmation dialog, asking the user to confirm before permanently deleting their player account.
     /// </summary>
-    internal class AccountDeletionConfirmationDialogPresenter : Presenter<AuthUIController>
+    public class AccountDeletionConfirmationDialogPresenter : Presenter<AuthUIController>
     {
         private readonly ILogger _log = new NoctuaLogger(typeof(AccountDeletionConfirmationDialogPresenter));
         private UserBundle _recentAccount;

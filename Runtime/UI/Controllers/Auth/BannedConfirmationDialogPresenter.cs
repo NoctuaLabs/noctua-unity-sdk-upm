@@ -10,7 +10,7 @@ namespace com.noctuagames.sdk.UI
     /// <summary>
     /// Presenter for the banned user confirmation dialog, informing the user they have been banned and offering a link to customer service.
     /// </summary>
-    internal class BannedConfirmationDialogPresenter : Presenter<object>
+    public class BannedConfirmationDialogPresenter : Presenter<object>
     {
         private Button _btnOK;
         private Label _note;

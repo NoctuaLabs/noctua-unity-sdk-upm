@@ -9,7 +9,7 @@ namespace com.noctuagames.sdk.UI
     /// <summary>
     /// Presenter that manages the email registration dialog UI, handling new account creation with email and password.
     /// </summary>
-    internal class EmailRegisterDialogPresenter : Presenter<AuthUIController>
+    public class EmailRegisterDialogPresenter : Presenter<AuthUIController>
     {
         private readonly ILogger _log = new NoctuaLogger(typeof(EmailRegisterDialogPresenter));
 

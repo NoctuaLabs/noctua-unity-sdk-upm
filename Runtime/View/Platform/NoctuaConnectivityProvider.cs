@@ -7,7 +7,7 @@ namespace com.noctuagames.sdk
     /// Lives in the View layer (composition root). Only called at runtime (PurchaseItemAsync),
     /// never during construction — safe from Lazy re-entry.
     /// </summary>
-    internal class NoctuaConnectivityProvider : IConnectivityProvider
+    public class NoctuaConnectivityProvider : IConnectivityProvider
     {
         public UniTask<bool> IsOfflineAsync() => Noctua.IsOfflineAsync();
         public bool IsInitialized() => Noctua.IsInitialized();

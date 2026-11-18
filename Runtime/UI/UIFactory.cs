@@ -11,7 +11,7 @@ namespace com.noctuagames.sdk.UI
     /// Central factory for creating and managing UI presenters and common dialogs.
     /// Provides convenience methods for showing loading indicators, notifications, retry dialogs, and ad placeholders.
     /// </summary>
-    internal class UIFactory : IAdPlaceholderUI
+    public class UIFactory : IAdPlaceholderUI
     {
         private readonly GameObject _rootObject;
         private readonly PanelSettings _panelSettings;

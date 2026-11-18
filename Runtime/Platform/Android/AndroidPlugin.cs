@@ -11,7 +11,7 @@ namespace com.noctuagames.sdk
     /// <summary>
     /// Android implementation of <see cref="INativePlugin"/> that bridges to the Kotlin native SDK via JNI.
     /// </summary>
-    internal class AndroidPlugin : INativePlugin
+    public class AndroidPlugin : INativePlugin
     {
         private readonly ILogger _log = new NoctuaLogger(typeof(AndroidPlugin));
         private static readonly ILogger _sLog = new NoctuaLogger(typeof(AndroidPlugin));

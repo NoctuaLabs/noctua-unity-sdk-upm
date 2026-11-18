@@ -16,7 +16,7 @@ namespace com.noctuagames.sdk.UI
     /// <summary>
     /// Presenter for the purchase history dialog, displaying a scrollable list of completed purchases for the current player.
     /// </summary>
-    internal class PurchaseHistoryDialogPresenter : Presenter<AuthUIController>
+    public class PurchaseHistoryDialogPresenter : Presenter<AuthUIController>
     {
         private readonly ILogger _log = new NoctuaLogger(typeof(PurchaseHistoryDialogPresenter));
         private readonly List<PurchaseItem> _purchaseHistory = new();

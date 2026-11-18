@@ -10,7 +10,7 @@ namespace com.noctuagames.sdk.UI
     /// <summary>
     /// Presenter for the retry dialog, displayed when an operation fails and the user can choose to retry, contact customer service, or dismiss.
     /// </summary>
-    internal class RetryDialogPresenter : Presenter<object>
+    public class RetryDialogPresenter : Presenter<object>
     {
         private Button _btnRetry;
         private Button _btnClose;

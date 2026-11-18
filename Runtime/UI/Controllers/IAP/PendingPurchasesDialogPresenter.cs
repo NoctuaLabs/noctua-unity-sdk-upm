@@ -16,7 +16,7 @@ namespace com.noctuagames.sdk.UI
     /// <summary>
     /// Presenter for the pending purchases dialog, displaying a scrollable list of unverified purchases with retry, copy receipt, and customer service options.
     /// </summary>
-    internal class PendingPurchasesDialogPresenter : Presenter<AuthUIController>
+    public class PendingPurchasesDialogPresenter : Presenter<AuthUIController>
     {
         private readonly ILogger _log = new NoctuaLogger(typeof(PendingPurchasesDialogPresenter));
         private readonly List<PurchaseItem> _pendingPurchases = new();

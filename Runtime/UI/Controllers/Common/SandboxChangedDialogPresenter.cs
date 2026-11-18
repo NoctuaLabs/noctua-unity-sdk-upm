@@ -12,7 +12,7 @@ namespace com.noctuagames.sdk.UI
     /// Kept separate from <see cref="StartGameErrorDialogPresenter"/> so each can evolve
     /// its own copy and behaviour independently.
     /// </summary>
-    internal class SandboxChangedDialogPresenter : Presenter<object>
+    public class SandboxChangedDialogPresenter : Presenter<object>
     {
         private Button _restartButton;
         private Label _messageLabel;

@@ -307,7 +307,7 @@ namespace com.noctuagames.sdk
             return GetTranslation(textKey.ToString());
         }
 
-        internal class Config
+        public class Config
         {
             public string BaseUrl;
             public string ClientId;

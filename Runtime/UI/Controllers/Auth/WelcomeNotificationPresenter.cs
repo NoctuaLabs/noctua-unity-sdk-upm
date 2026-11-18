@@ -8,7 +8,7 @@ namespace com.noctuagames.sdk.UI
     /// <summary>
     /// Presenter for the welcome toast notification shown after a successful login, displaying the user's name and provider avatar.
     /// </summary>
-    internal class WelcomeNotificationPresenter : Presenter<AuthUIController>
+    public class WelcomeNotificationPresenter : Presenter<AuthUIController>
     {
         private readonly ILogger _log = new NoctuaLogger(typeof(WelcomeNotificationPresenter));
         private VisualElement _root;

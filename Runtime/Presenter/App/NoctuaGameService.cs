@@ -16,7 +16,7 @@ namespace com.noctuagames.sdk
     /// <summary>
     /// Handles game initialization and geo-IP detection by communicating with the Noctua backend API.
     /// </summary>
-    internal class NoctuaGameService
+    public class NoctuaGameService
     {
         private readonly string _clientId;
         private readonly string _baseUrl;
@@ -91,7 +91,7 @@ namespace com.noctuagames.sdk
             return locValue;
         }
 
-        internal class Config
+        public class Config
         {
             public string BaseUrl;
             public string ClientId;

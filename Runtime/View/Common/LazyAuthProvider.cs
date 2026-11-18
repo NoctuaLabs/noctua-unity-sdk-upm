@@ -6,7 +6,7 @@ namespace com.noctuagames.sdk
     /// Lazy adapter that bridges <see cref="NoctuaAuthentication"/> to the <see cref="IAuthProvider"/> interface.
     /// Uses deferred initialization because IAP is constructed before Auth in the Noctua constructor.
     /// </summary>
-    internal class LazyAuthProvider : IAuthProvider
+    public class LazyAuthProvider : IAuthProvider
     {
         private NoctuaAuthentication _auth;
 

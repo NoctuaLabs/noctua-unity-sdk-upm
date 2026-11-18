@@ -8,7 +8,7 @@ namespace com.noctuagames.sdk.UI
     /// <summary>
     /// Presenter that manages a full-screen loading spinner overlay, shown during async operations.
     /// </summary>
-    internal class LoadingProgressPresenter : Presenter<object>
+    public class LoadingProgressPresenter : Presenter<object>
     {
         private VisualElement _loadingProgress;
         protected override void Attach()

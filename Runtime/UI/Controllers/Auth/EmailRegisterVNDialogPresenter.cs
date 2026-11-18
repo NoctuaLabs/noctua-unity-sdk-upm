@@ -12,7 +12,7 @@ namespace com.noctuagames.sdk.UI
     /// <summary>
     /// Presenter that manages the Vietnam-specific email registration dialog with additional KYC wizard fields.
     /// </summary>
-    internal class EmailRegisterVNDialogPresenter : Presenter<AuthUIController>
+    public class EmailRegisterVNDialogPresenter : Presenter<AuthUIController>
     {
         private readonly ILogger _log = new NoctuaLogger(typeof(EmailRegisterVNDialogPresenter));
 

@@ -7,7 +7,7 @@ namespace com.noctuagames.sdk.UI
     /// <summary>
     /// Presenter for the bind confirmation dialog, shown when a guest account is linking to a new credential, offering to connect or create a new account.
     /// </summary>
-    internal class BindConfirmationDialogPresenter : Presenter<AuthUIController>
+    public class BindConfirmationDialogPresenter : Presenter<AuthUIController>
     {
         private readonly ILogger _log = new NoctuaLogger(typeof(BindConfirmationDialogPresenter));
         private PlayerToken _bindTarget;

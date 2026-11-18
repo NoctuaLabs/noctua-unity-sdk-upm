@@ -8,7 +8,7 @@ namespace com.noctuagames.sdk.UI
     /// <summary>
     /// Presenter that manages the phone number verification dialog for the Vietnam registration flow.
     /// </summary>
-    internal class PhoneVerificationDialogPresenter : Presenter<AuthUIController>
+    public class PhoneVerificationDialogPresenter : Presenter<AuthUIController>
     {
         private readonly ILogger _log = new NoctuaLogger(typeof(PhoneVerificationDialogPresenter));
 

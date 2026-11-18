@@ -10,7 +10,7 @@ namespace com.noctuagames.sdk.UI
     /// <summary>
     /// Presenter for the fatal startup error dialog, displayed when the game cannot start and the application must quit.
     /// </summary>
-    internal class StartGameErrorDialogPresenter : Presenter<object>
+    public class StartGameErrorDialogPresenter : Presenter<object>
     {
         private Button _quitButton;
         private Button _csButton;

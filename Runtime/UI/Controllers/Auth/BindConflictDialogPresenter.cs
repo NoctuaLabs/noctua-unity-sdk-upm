@@ -5,7 +5,7 @@ namespace com.noctuagames.sdk.UI
     /// <summary>
     /// Presenter for the bind conflict dialog, shown when a guest account tries to link a credential that already belongs to another player, offering to switch accounts.
     /// </summary>
-    internal class BindConflictDialogPresenter : Presenter<AuthUIController>
+    public class BindConflictDialogPresenter : Presenter<AuthUIController>
     {
         private readonly ILogger _log = new NoctuaLogger(typeof(BindConflictDialogPresenter));
         private Button _switchAccountButton;

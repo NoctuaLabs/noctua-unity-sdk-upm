@@ -10,7 +10,7 @@ namespace com.noctuagames.sdk.UI
     /// <summary>
     /// Presenter that manages the password reset confirmation dialog, where users enter a verification code and new password.
     /// </summary>
-    internal class EmailConfirmResetPasswordDialogPresenter : Presenter<AuthUIController>
+    public class EmailConfirmResetPasswordDialogPresenter : Presenter<AuthUIController>
     {
         public IEventSender EventSender;
 

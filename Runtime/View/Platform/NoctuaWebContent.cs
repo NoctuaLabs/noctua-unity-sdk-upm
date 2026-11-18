@@ -11,7 +11,7 @@ using UnityEngine.Scripting;
 namespace com.noctuagames.sdk
 {
     [Preserve]
-    internal class WebContentUrl
+    public class WebContentUrl
     {
         [JsonProperty("url")] public string Url;
     }
@@ -19,7 +19,7 @@ namespace com.noctuagames.sdk
     /// <summary>
     /// Model representing the state of web content to be displayed in the web view presenter.
     /// </summary>
-    internal class WebContentModel
+    public class WebContentModel
     {
         /// <summary>The resolved URL of the web content to display.</summary>
         public string Url;
@@ -428,7 +428,7 @@ namespace com.noctuagames.sdk
     /// <summary>
     /// Configuration holding base URLs for the various Noctua web content endpoints.
     /// </summary>
-    internal class NoctuaWebContentConfig
+    public class NoctuaWebContentConfig
     {
         /// <summary>Base URL for fetching in-game announcement content.</summary>
         public string AnnouncementBaseUrl;

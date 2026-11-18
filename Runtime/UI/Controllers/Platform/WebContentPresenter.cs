@@ -11,7 +11,7 @@ namespace com.noctuagames.sdk.UI
     /// <summary>
     /// Defines the display mode for the web content presenter.
     /// </summary>
-    internal enum ScreenMode
+    public enum ScreenMode
     {
         /// <summary>Web content fills the entire screen.</summary>
         FullScreen,
@@ -23,7 +23,7 @@ namespace com.noctuagames.sdk.UI
     /// <summary>
     /// Presenter that displays web content in an embedded UniWebView, supporting fullscreen and windowed modes with a close button and "do not show again" toggle.
     /// </summary>
-    internal class WebContentPresenter : Presenter<WebContentModel>
+    public class WebContentPresenter : Presenter<WebContentModel>
     {
         private readonly NoctuaLogger _log = new(typeof(WebContentPresenter));
         private VisualElement _container;

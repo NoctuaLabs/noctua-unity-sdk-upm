@@ -11,7 +11,7 @@ namespace com.noctuagames.sdk.UI
     /// <summary>
     /// Presenter that manages the email verification dialog, where users enter a verification code after registration.
     /// </summary>
-    internal class EmailVerificationDialogPresenter : Presenter<AuthUIController>
+    public class EmailVerificationDialogPresenter : Presenter<AuthUIController>
     {
         private readonly ILogger _log = new NoctuaLogger(typeof(EmailVerificationDialogPresenter));
 

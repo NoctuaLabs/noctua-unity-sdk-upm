@@ -10,7 +10,7 @@ namespace com.noctuagames.sdk.UI
     /// Shows product info and allows the developer to confirm or cancel the mock purchase.
     /// Supports both portrait and landscape orientations.
     /// </summary>
-    internal class EditorPaymentSheetPresenter : Presenter<object>
+    public class EditorPaymentSheetPresenter : Presenter<object>
     {
         private Button _payButton;
         private Button _cancelButton;

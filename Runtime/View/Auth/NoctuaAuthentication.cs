@@ -547,7 +547,7 @@ namespace com.noctuagames.sdk
         /// <summary>
         /// Internal configuration model for authentication service initialization.
         /// </summary>
-        internal class Config
+        public class Config
         {
             public string BaseUrl;
             public string ClientId;

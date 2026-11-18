@@ -14,7 +14,7 @@ namespace com.noctuagames.sdk
     /// Manages social authentication flows (Google, Facebook) using WebView on mobile
     /// and a local HTTP redirect listener on desktop/editor platforms.
     /// </summary>
-    internal class SocialAuthenticationService
+    public class SocialAuthenticationService
     {
         private readonly NoctuaAuthenticationService _authService;
         private readonly GlobalConfig _config;
@@ -297,7 +297,7 @@ namespace com.noctuagames.sdk
     /// Local HTTP listener that handles OAuth redirect callbacks on desktop/editor platforms.
     /// Listens on a random port in the 61000-61010 range.
     /// </summary>
-    internal class OauthRedirectListener
+    public class OauthRedirectListener
     {
         private readonly HttpListener _listener = new();
         private readonly ILogger _log = new NoctuaLogger(typeof(OauthRedirectListener));

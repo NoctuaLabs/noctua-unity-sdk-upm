@@ -9,7 +9,7 @@ namespace com.noctuagames.sdk.UI
     /// <summary>
     /// Presenter for the login options dialog, allowing the user to choose between social login providers (Google, Facebook, Apple), email login, or email registration.
     /// </summary>
-    internal class LoginOptionsDialogPresenter : Presenter<AuthUIController>
+    public class LoginOptionsDialogPresenter : Presenter<AuthUIController>
     {
         private readonly ILogger _log = new NoctuaLogger(typeof(LoginOptionsDialogPresenter));
 

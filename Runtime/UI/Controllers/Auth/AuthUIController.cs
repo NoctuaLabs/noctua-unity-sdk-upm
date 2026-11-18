@@ -23,7 +23,7 @@ namespace com.noctuagames.sdk
     /// Coordinates navigation between login, registration, account selection, user center, and purchase dialogs.
     /// Allows UI presenters to call each other and provides the model layer access to UI presenters.
     /// </summary>
-    internal class AuthUIController
+    public class AuthUIController
     {
         private readonly ILogger _log = new NoctuaLogger(typeof(AuthUIController));
         private readonly UIFactory _uiFactory;
@@ -414,7 +414,7 @@ namespace com.noctuagames.sdk
         
     }
     
-    internal enum AuthIntention
+    public enum AuthIntention
     {
         None,
         Switch,

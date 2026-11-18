@@ -8,7 +8,7 @@ namespace com.noctuagames.sdk.UI
     /// <summary>
     /// Presenter for temporary toast-style notifications that slide in and auto-dismiss after a configurable duration.
     /// </summary>
-    internal class GeneralNotificationPresenter : Presenter<object>
+    public class GeneralNotificationPresenter : Presenter<object>
     {
         private VisualElement _root;
         private VisualElement _notifIconBox;

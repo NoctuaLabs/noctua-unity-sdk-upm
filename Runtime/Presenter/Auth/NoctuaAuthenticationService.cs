@@ -1149,7 +1149,7 @@ namespace com.noctuagames.sdk
             _eventSender?.Send(eventName, data ?? new Dictionary<string, IConvertible>());
         }
 
-        internal class Config
+        public class Config
         {
             public string BaseUrl;
             public string ClientId;

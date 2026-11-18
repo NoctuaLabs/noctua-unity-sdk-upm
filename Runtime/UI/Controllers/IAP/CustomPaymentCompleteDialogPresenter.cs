@@ -10,7 +10,7 @@ namespace com.noctuagames.sdk.UI
     /// <summary>
     /// Presenter for the custom payment completion dialog, allowing the user to verify payment, switch to native payment, contact customer service, or cancel.
     /// </summary>
-    internal class CustomPaymentCompleteDialogPresenter : Presenter<object>
+    public class CustomPaymentCompleteDialogPresenter : Presenter<object>
     {
         private Button _btnComplete;
         private Button _btnCustomerService;

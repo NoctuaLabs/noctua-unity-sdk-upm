@@ -7,7 +7,7 @@ namespace com.noctuagames.sdk
     /// Adapts the concrete UI presenters and UIFactory into the <see cref="IPaymentUI"/> interface
     /// for consumption by NoctuaIAPService, decoupling the presenter layer from direct UI creation.
     /// </summary>
-    internal class PaymentUIAdapter : IPaymentUI
+    public class PaymentUIAdapter : IPaymentUI
     {
         private readonly CustomPaymentCompleteDialogPresenter _completeDialog;
         private readonly FailedPaymentDialogPresenter _failedDialog;

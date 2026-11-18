@@ -6,7 +6,7 @@ namespace com.noctuagames.sdk.UI
     /// <summary>
     /// Presenter for the switch account confirmation dialog, asking the user to confirm before switching to a different account.
     /// </summary>
-    internal class SwitchAccountConfirmationDialogPresenter : Presenter<AuthUIController>
+    public class SwitchAccountConfirmationDialogPresenter : Presenter<AuthUIController>
     {
         private readonly ILogger _log = new NoctuaLogger(typeof(SwitchAccountConfirmationDialogPresenter));
         

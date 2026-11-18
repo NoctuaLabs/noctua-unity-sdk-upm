@@ -14,7 +14,7 @@ namespace com.noctuagames.sdk
     /// <see cref="StoreKitRequestRouter"/>. See <c>NoctuaInterop.m</c> for why the old per-operation
     /// callback slots were replaced.
     /// </summary>
-    internal partial class IosPlugin
+    public partial class IosPlugin
     {
         // Event kinds — keep in sync with NoctuaStoreKitEventKind in NoctuaInterop.m.
         private const int StoreKitEventPurchaseCompleted = 1;

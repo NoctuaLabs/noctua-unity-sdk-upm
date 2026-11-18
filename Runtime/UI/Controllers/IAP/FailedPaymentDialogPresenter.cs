@@ -10,7 +10,7 @@ namespace com.noctuagames.sdk.UI
     /// <summary>
     /// Presenter for the failed payment dialog, showing an error message with options to retry, contact customer service, or exit.
     /// </summary>
-    internal class FailedPaymentDialogPresenter : Presenter<object>
+    public class FailedPaymentDialogPresenter : Presenter<object>
     {
         private Button _okButton;
         private Button _csButton;

@@ -11,7 +11,7 @@ namespace com.noctuagames.sdk.UI
     /// <summary>
     /// Presenter that manages the email reset password dialog, allowing users to request a password reset via email.
     /// </summary>
-    internal class EmailResetPasswordDialogPresenter : Presenter<AuthUIController>
+    public class EmailResetPasswordDialogPresenter : Presenter<AuthUIController>
     {
         public IEventSender EventSender;
 

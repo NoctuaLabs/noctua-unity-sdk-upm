@@ -14,7 +14,7 @@ namespace com.noctuagames.sdk.UI
     /// <summary>
     /// Presenter that manages the account selection dialog, displaying available game and Noctua accounts for switching.
     /// </summary>
-    internal class AccountSelectionDialogPresenter : Presenter<AuthUIController>
+    public class AccountSelectionDialogPresenter : Presenter<AuthUIController>
     {
         private VisualTreeAsset _itemTemplate;
         private ListView _gameAccountListView;
