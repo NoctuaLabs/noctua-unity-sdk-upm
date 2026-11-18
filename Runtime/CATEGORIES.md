@@ -113,7 +113,7 @@ Server-driven engagement popups (purchase / event-deeplink CTAs): config merge, 
 | Module | `Presenter/LiveOps/NoctuaLiveOpsCampaign.cs` (events, `Configure`, `SetPurchaseHandler` (SDK wiring), `ShowPopup(id, playerData)`, `UpdatePopupData`, local store prices for `{{store_price.<sku>}}`, purchase state: `SetOwnershipProvider`, fully-owned offers hidden, owned Buy buttons shown as Purchased (`data.purchased_label`, `LocaleTextKey.LiveOpsCampaignPurchased`), `{{owned.<sku>}}` for custom designs) |
 | Logic (`Presenter/LiveOps/`) | `CampaignResolver.cs`, `CampaignValidator.cs`, `CampaignConditions.cs` (`visible_if`), `CampaignPlayerData.cs` (game-supplied `player_data`), `CampaignFrequencyGate.cs`, `CampaignActionDispatcher.cs`; `Infrastructure/LiveOps/CampaignTokens.cs`, `CampaignAssetSource.cs`, `CampaignFontSource.cs` |
 | Render (`UI/Controllers/LiveOps/`, behind `Presenter/Interfaces/ICampaignPopupUI.cs`) | `CampaignRenderer.cs`, `CampaignRenderer.Widgets.cs`, `CampaignStyleMapper.cs`, `CampaignRuntimeController.cs`, `CampaignUIHost.cs` |
-| UI (`UI/Controllers/LiveOps/`) | `CampaignPopupPresenter.cs`, `CampaignPopupFit.cs`, `CampaignFrameStyle.cs`, `CampaignBackdropStyle.cs`, `Resources/CampaignPopup.uxml`, `Resources/Campaign.uss` |
+| UI (`UI/Controllers/LiveOps/`) | `CampaignPopupPresenter.cs`, `CampaignPopupFit.cs`, `Resources/CampaignPopup.uxml`, `Resources/Campaign.uss` |
 | Model (`Model/LiveOps/`) | `CampaignConfig.cs`, `CampaignItem.cs`, `CampaignNode.cs`, `CampaignAction.cs`, `CampaignCondition.cs`, `CampaignTargeting.cs`, `CampaignCloseButton.cs`, `CampaignStyleProps.cs`, `CampaignImageSrc.cs` |
 | Wiring | `View/Noctua.Initialization.cs` → `InitCampaigns` |
 | Tests | `Tests/Runtime/Campaign/` |

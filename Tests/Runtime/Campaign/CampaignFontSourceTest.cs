@@ -98,7 +98,7 @@ namespace Tests.Runtime.Campaign
 
     internal static class CampaignFontSourceTestExtensions
     {
-        /// <summary>Synchronous helper — <see cref="ICampaignFontSource.GetFont"/> calls back inline.</summary>
+        /// <summary>Synchronous helper — <c>GetFont</c> calls back inline.</summary>
         public static FontAsset SentinelGet(this CampaignFontSource src, string resourcesPath)
         {
             FontAsset got = null;

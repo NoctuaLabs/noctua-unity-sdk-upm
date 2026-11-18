@@ -379,7 +379,7 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
             if (_root == null) return;
             _root.style.backgroundColor = StyleKeyword.Null;
 
-            if (CampaignBackdropStyle.TryResolve(item, out var color))
+            if (TryResolveBackdropColor(item, out var color))
             {
                 _root.style.backgroundColor = color;
             }
@@ -399,7 +399,7 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
             s.borderTopColor = s.borderRightColor = s.borderBottomColor = s.borderLeftColor = StyleKeyword.Null;
             s.borderTopWidth = s.borderRightWidth = s.borderBottomWidth = s.borderLeftWidth = StyleKeyword.Null;
 
-            if (!CampaignFrameStyle.TryResolve(item, out var color))
+            if (!TryResolveFrameColor(item, out var color))
             {
                 if (!string.IsNullOrWhiteSpace(item.FrameColor) && !item.Borderless && !item.Fullscreen)
                     _log.Warning($"campaign '{item.Id}': invalid frame_color '{item.FrameColor}' — ignored");
@@ -408,7 +408,7 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
 
             s.borderTopColor = s.borderRightColor = s.borderBottomColor = s.borderLeftColor = color;
             s.borderTopWidth = s.borderRightWidth = s.borderBottomWidth = s.borderLeftWidth =
-                CampaignFrameStyle.FrameWidthPx;
+                FrameWidthPx;
         }
 
         /// <summary>
@@ -548,6 +548,37 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
             TeardownController();
             if (_closeBtn != null) _closeBtn.clicked -= Close;
             base.OnDestroy();
+        }
+
+        // ── Frame and backdrop colours (static, so tests need no live UI panel) ──
+
+        /// <summary>Border thickness applied when a frame colour is set.</summary>
+        public const float FrameWidthPx = 2f;
+
+        /// <summary>
+        /// True with the parsed colour when <paramref name="item"/> has a valid <c>frame_color</c>
+        /// and renders with SDK card chrome. Borderless and fullscreen campaigns have no card
+        /// frame, so they are always false.
+        /// </summary>
+        public static bool TryResolveFrameColor(CampaignItem item, out Color color)
+        {
+            color = default;
+            if (item == null || item.Fullscreen || item.Borderless) return false;
+            if (string.IsNullOrWhiteSpace(item.FrameColor)) return false;
+
+            return ColorUtility.TryParseHtmlString(item.FrameColor.Trim(), out color);
+        }
+
+        /// <summary>
+        /// True with the parsed colour when <paramref name="item"/> sets a valid
+        /// <c>backdrop_color</c>, the dim painted over the game behind the popup. The alpha
+        /// channel (<c>#RRGGBBAA</c>) is the opacity; a colour without one is opaque.
+        /// </summary>
+        public static bool TryResolveBackdropColor(CampaignItem item, out Color color)
+        {
+            color = default;
+            if (item == null || string.IsNullOrWhiteSpace(item.BackdropColor)) return false;
+            return ColorUtility.TryParseHtmlString(item.BackdropColor.Trim(), out color);
         }
     }
 }

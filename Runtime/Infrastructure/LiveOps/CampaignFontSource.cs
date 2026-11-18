@@ -18,7 +18,7 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
     /// file resolves to <c>null</c> and the text keeps the panel's default typeface — a custom
     /// font never blocks a campaign. Results are cached by path.
     /// </summary>
-    public sealed class CampaignFontSource : ICampaignFontSource
+    public sealed class CampaignFontSource
     {
         private readonly Dictionary<string, FontAsset> _byPath = new Dictionary<string, FontAsset>(StringComparer.OrdinalIgnoreCase);
         private readonly HashSet<string> _missPaths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);

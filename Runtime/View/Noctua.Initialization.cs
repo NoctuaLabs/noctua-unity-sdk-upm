@@ -1442,8 +1442,8 @@ namespace com.noctuagames.sdk
 
                 Instance.Value._campaign = new com.noctuagames.sdk.LiveOpsCampaign.NoctuaLiveOpsCampaign(
                     merged,
-                    (actions, images, fonts) => new com.noctuagames.sdk.LiveOpsCampaign.CampaignUIHost(
-                        Instance.Value._campaignPanelSettings, Instance.Value._campaignLocale, actions, images, fonts),
+                    (dispatch, images, getFont) => new com.noctuagames.sdk.LiveOpsCampaign.CampaignUIHost(
+                        Instance.Value._campaignPanelSettings, Instance.Value._campaignLocale, dispatch, images, getFont),
                     Instance.Value._campaignLocale,
                     Instance.Value._eventSender,
                     () => Instance.Value._config?.Noctua?.PlayerRemoteConfigs?.Tags,

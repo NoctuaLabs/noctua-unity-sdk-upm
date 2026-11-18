@@ -26,12 +26,13 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
 
         private CampaignPopupPresenter _popup;
 
-        public CampaignUIHost(PanelSettings panelSettings, NoctuaLocale locale, ICampaignActions actions,
-            ICampaignImageSource images, ICampaignFontSource fonts = null)
+        public CampaignUIHost(PanelSettings panelSettings, NoctuaLocale locale,
+            Action<CampaignAction, CampaignItem> dispatch, ICampaignImageSource images,
+            Action<string, Action<UnityEngine.TextCore.Text.FontAsset>> getFont = null)
         {
             _panelSettings = panelSettings;
             _locale = locale;
-            _renderer = new CampaignRenderer(actions, images, fonts);
+            _renderer = new CampaignRenderer(dispatch, images, getFont);
             _images = images;
 
             _root = new GameObject("NoctuaLiveOpsCampaignUI");

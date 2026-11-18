@@ -30,7 +30,8 @@ namespace Tests.Runtime.Campaign
             _handlers = new CampaignActionHandlers
             {
                 Deeplink = d => _deeplink = d,
-                Purchase = (p, _) => _purchasedProduct = p,
+                // Never settles, like a purchase still at the store sheet.
+                PurchaseAsync = (p, _) => { _purchasedProduct = p; return new UniTaskCompletionSource().Task; },
             };
 
             _dispatcher = new CampaignActionDispatcher(_handlers, _events, now: () => _fakeNow);
@@ -191,18 +192,6 @@ namespace Tests.Runtime.Campaign
         // ── Awaitable purchase handler ────────────────────────────────────────────
 
         [Test]
-        public void PurchaseAsync_WhenSet_TakesPrecedenceOverLegacyHandler()
-        {
-            var calls = new List<string>();
-            ArmAsyncPurchase(calls);
-
-            DispatchPurchase("gold_pack_1");
-
-            CollectionAssert.AreEqual(new[] { "gold_pack_1" }, calls);
-            Assert.IsNull(_purchasedProduct, "legacy handler must not also fire — that would double-charge");
-        }
-
-        [Test]
         public void PurchaseAsync_BracketsBusyTrueThenFalse()
         {
             var gate = ArmAsyncPurchase();
@@ -338,42 +327,6 @@ namespace Tests.Runtime.Campaign
 
             CollectionAssert.IsEmpty(calls);
             CollectionAssert.IsEmpty(_busyLog, "nothing started, so nothing to veil");
-        }
-
-        // ── Legacy fire-and-forget path ───────────────────────────────────────────
-
-        [Test]
-        public void Purchase_LegacyHandler_RapidDoubleTap_CallsHandlerOnce()
-        {
-            var calls = new List<string>();
-            _handlers.Purchase = (p, _) => calls.Add(p);
-
-            DispatchPurchase();
-            DispatchPurchase();
-
-            Assert.AreEqual(1, calls.Count, "the debounce window eats the second tap");
-        }
-
-        [Test]
-        public void Purchase_LegacyHandler_AfterDebounceWindow_PurchasesAgain()
-        {
-            var calls = new List<string>();
-            _handlers.Purchase = (p, _) => calls.Add(p);
-
-            DispatchPurchase();
-            _fakeNow = _fakeNow.AddMilliseconds(CampaignActionDispatcher.SyncPurchaseDebounceMs + 1);
-            DispatchPurchase();
-
-            Assert.AreEqual(2, calls.Count);
-        }
-
-        [Test]
-        public void Purchase_LegacyHandler_ShowsNoBusyState()
-        {
-            DispatchPurchase();
-
-            // With no completion signal a veil could never lift, so the legacy path shows none.
-            CollectionAssert.IsEmpty(_busyLog);
         }
 
         // ─── Dismiss reason ────────────────────────────────────────────────────

@@ -30,7 +30,7 @@ namespace Tests.Runtime.Campaign
         {
             _item = JsonConvert.DeserializeObject<CampaignItem>(File.ReadAllText(Path.GetFullPath(FixturePath)));
             _actions = new RecordingActions();
-            _renderer = new CampaignRenderer(_actions, new FakeImageSource(), new FakeFontSource());
+            _renderer = new CampaignRenderer(_actions.Dispatch, new FakeImageSource(), new FakeFontSource().GetFont);
             _controller = new CampaignRuntimeController();
         }
 
@@ -53,10 +53,10 @@ namespace Tests.Runtime.Campaign
         [Test]
         public void Payload_CarriesBackdropAndFrame()
         {
-            Assert.IsTrue(CampaignBackdropStyle.TryResolve(_item, out var backdrop));
+            Assert.IsTrue(CampaignPopupPresenter.TryResolveBackdropColor(_item, out var backdrop));
             Assert.AreEqual(0xD9 / 255f, backdrop.a, 0.001f);
             Assert.IsFalse(_item.Borderless);
-            Assert.IsTrue(CampaignFrameStyle.TryResolve(_item, out _));
+            Assert.IsTrue(CampaignPopupPresenter.TryResolveFrameColor(_item, out _));
         }
 
         [Test]

@@ -92,7 +92,7 @@ namespace Tests.Runtime.Campaign
     /// Records requested font Resources paths and calls back with <see cref="Next"/> (null by
     /// default — the renderer must handle "unknown/failed" gracefully).
     /// </summary>
-    public sealed class FakeFontSource : ICampaignFontSource
+    public sealed class FakeFontSource
     {
         public readonly List<string> Requested = new List<string>();
         public UnityEngine.TextCore.Text.FontAsset Next;
@@ -104,8 +104,8 @@ namespace Tests.Runtime.Campaign
         }
     }
 
-    /// <summary>Captures every <see cref="ICampaignActions.Dispatch"/> call.</summary>
-    public sealed class RecordingActions : ICampaignActions
+    /// <summary>Captures every action the renderer dispatches.</summary>
+    public sealed class RecordingActions
     {
         public readonly List<(CampaignAction action, CampaignItem item)> Calls =
             new List<(CampaignAction, CampaignItem)>();

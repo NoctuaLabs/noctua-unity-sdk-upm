@@ -325,7 +325,7 @@ namespace Tests.Runtime.Campaign
             CampaignItem blocked = null;
             var dispatcher = new CampaignActionDispatcher(new CampaignActionHandlers
             {
-                Purchase = (pid, _) => purchased = pid,
+                PurchaseAsync = (pid, _) => { purchased = pid; return new UniTaskCompletionSource().Task; },
                 IsPurchaseBlocked = _ => true,
                 PurchaseBlocked = item => blocked = item,
             }, events);
@@ -346,7 +346,7 @@ namespace Tests.Runtime.Campaign
             string purchased = null;
             var dispatcher = new CampaignActionDispatcher(new CampaignActionHandlers
             {
-                Purchase = (pid, _) => purchased = pid,
+                PurchaseAsync = (pid, _) => { purchased = pid; return new UniTaskCompletionSource().Task; },
                 IsPurchaseBlocked = _ => throw new InvalidOperationException("boom"),
             }, new MockEventSender());
 
@@ -362,7 +362,7 @@ namespace Tests.Runtime.Campaign
             (string id, PurchaseOutcome outcome) credited = default;
             var dispatcher = new CampaignActionDispatcher(new CampaignActionHandlers
             {
-                Purchase = (_, __) => { },
+                PurchaseAsync = (_, __) => new UniTaskCompletionSource().Task,
                 PurchaseCredited = (id, outcome) => credited = (id, outcome),
             }, new MockEventSender(), now: () => now);
 

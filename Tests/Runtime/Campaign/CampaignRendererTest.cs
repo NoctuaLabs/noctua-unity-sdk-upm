@@ -21,7 +21,7 @@ namespace Tests.Runtime.Campaign
             _actions = new RecordingActions();
             _images = new FakeImageSource();
             _fonts = new FakeFontSource();
-            _renderer = new CampaignRenderer(_actions, _images, _fonts);
+            _renderer = new CampaignRenderer(_actions.Dispatch, _images, _fonts.GetFont);
             _controller = new CampaignRuntimeController();
         }
 
@@ -454,7 +454,7 @@ namespace Tests.Runtime.Campaign
             // Detached elements have no panel, so orientation would fall back to `Screen` —
             // which a -nographics batch run reports as landscape. State the viewport instead
             // of depending on the host. See CampaignPopupFitTest for the landscape half.
-            var renderer = new CampaignRenderer(_actions, _images, _fonts,
+            var renderer = new CampaignRenderer(_actions.Dispatch, _images, _fonts.GetFont,
                 viewportSize: () => new Vector2(360f, 800f));
             var ve = renderer.Render(node, null, _controller);
 

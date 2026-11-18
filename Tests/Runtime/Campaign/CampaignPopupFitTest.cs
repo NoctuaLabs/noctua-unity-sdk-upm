@@ -187,7 +187,7 @@ namespace Tests.Runtime.Campaign
         private static VisualElement RenderWithViewport(float viewportWidth, float viewportHeight,
             Dictionary<string, CampaignStyleProps> responsive)
         {
-            var renderer = new CampaignRenderer(new RecordingActions(), new FakeImageSource(),
+            var renderer = new CampaignRenderer(new RecordingActions().Dispatch, new FakeImageSource(),
                 viewportSize: () => new Vector2(viewportWidth, viewportHeight));
 
             using (var controller = new CampaignRuntimeController())

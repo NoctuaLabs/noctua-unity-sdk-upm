@@ -29,7 +29,7 @@ namespace Tests.Runtime.Campaign
         {
             _item = JsonConvert.DeserializeObject<CampaignItem>(File.ReadAllText(Path.GetFullPath(FixturePath)));
             _actions = new RecordingActions();
-            _renderer = new CampaignRenderer(_actions, new FakeImageSource(), new FakeFontSource());
+            _renderer = new CampaignRenderer(_actions.Dispatch, new FakeImageSource(), new FakeFontSource().GetFont);
             _controller = new CampaignRuntimeController();
         }
 

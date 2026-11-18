@@ -213,7 +213,7 @@ namespace Tests.Runtime.Campaign
         public void CampaignOrderExtra_OnlyForAProductJustTappedInACampaign()
         {
             var item = Offer("starter", null, FixedBuy("pack1"));
-            var dispatcher = new CampaignActionDispatcher(new CampaignActionHandlers { Purchase = (_, __) => { } },
+            var dispatcher = new CampaignActionDispatcher(new CampaignActionHandlers { PurchaseAsync = (_, __) => new UniTaskCompletionSource().Task },
                 new MockEventSender());
             var facade = Facade(item);
 
@@ -316,24 +316,6 @@ namespace Tests.Runtime.Campaign
             dispatcher.HandlePurchaseSettled(new PurchaseOutcome("pack1", clock.Now, "completed", orderId: 5));
             gate.TrySetResult();
             CollectionAssert.AreEqual(new[] { "starter" }, credited, "the popup's own purchase still counts");
-        }
-
-        [Test]
-        public void TheLegacyEventPath_KeepsItsTimeWindow()
-        {
-            var clock = new Clock();
-            var credited = new List<string>();
-            var dispatcher = new CampaignActionDispatcher(new CampaignActionHandlers
-            {
-                Purchase = (_, __) => { },
-                PurchaseCredited = (campaignId, _) => credited.Add(campaignId),
-            }, new MockEventSender(), now: () => clock.Now);
-
-            dispatcher.Dispatch(new CampaignAction { TypeRaw = "purchase", ProductId = "pack1" }, Offer("starter", null));
-            clock.Advance(CampaignActionDispatcher.PurchaseAttributionWindowSeconds + 5);
-            dispatcher.HandlePurchaseSettled(new PurchaseOutcome("pack1", clock.Now, "completed", orderId: 6));
-
-            Assert.IsEmpty(credited, "no end signal, so only the window protects this path");
         }
 
         [Test]

@@ -16,16 +16,8 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
         public Action<string> Deeplink;
 
         /// <summary>
-        /// Starts a purchase for the given product id, in the campaign's context.
-        /// Fire-and-forget: the dispatcher gets no completion signal, so it cannot show a
-        /// busy state. Used only when <see cref="PurchaseAsync"/> is null.
-        /// </summary>
-        public Action<string, CampaignItem> Purchase;
-
-        /// <summary>
-        /// Opt-in awaitable purchase hook. When set it takes precedence over
-        /// <see cref="Purchase"/> — invoking both would start two purchases — and gives the
-        /// dispatcher the completion signal it needs to bracket the call with a busy state.
+        /// Buys the given product id, in the campaign's context. Awaited, so the dispatcher can
+        /// veil the popup and ignore further purchase taps until it settles.
         /// </summary>
         public Func<string, CampaignItem, UniTask> PurchaseAsync;
 
@@ -63,18 +55,10 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
     /// dismiss). Every dispatch also emits <c>live_ops_campaign_click</c>. Never throws — a bad or
     /// unknown action is logged and dropped.
     /// </summary>
-    public sealed class CampaignActionDispatcher : ICampaignActions
+    public sealed class CampaignActionDispatcher
     {
         /// <summary>Analytics event fired on every dispatched action.</summary>
         public const string ClickEvent = "live_ops_campaign_click";
-
-        /// <summary>
-        /// How long a <c>purchase</c> tap suppresses further ones when only the
-        /// fire-and-forget <see cref="CampaignActionHandlers.Purchase"/> hook is wired. With no
-        /// completion signal a real in-flight flag could never clear, so the legacy path gets a
-        /// time window instead — enough to eat a double-tap, short enough not to strand the player.
-        /// </summary>
-        public const int SyncPurchaseDebounceMs = 1000;
 
         /// <summary><c>reason</c> on <c>live_ops_campaign_dismiss</c>: the shell's ✕ close button.</summary>
         public const string DismissReasonCloseButton = "close_button";
@@ -114,8 +98,7 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
             public string ButtonId;
             public DateTime TappedAtUtc;
 
-            // When the game's awaitable purchase handler returned. Null while it runs, and on the
-            // legacy fire-and-forget path, which has no end signal.
+            // When the purchase handler returned. Null while it runs.
             public DateTime? HandlerEndedAtUtc;
 
             /// <summary>The tapped button's dynamic bundle key, or null for a fixed SKU.</summary>
@@ -123,10 +106,10 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
         }
 
         /// <summary>
-        /// Whether a purchase that started at <paramref name="startedAtUtc"/> is this tap's. With the
-        /// awaitable handler: only one started while that handler ran, so a later purchase of the
-        /// same SKU from the game's shop is never credited, however soon after. On the legacy event
-        /// path, which gives no end signal: within <see cref="PurchaseAttributionWindowSeconds"/>.
+        /// Whether a purchase that started at <paramref name="startedAtUtc"/> is this tap's. Once the
+        /// handler has returned: only one started while that handler ran, so a later purchase of the
+        /// same SKU from the game's shop is never credited, however soon after. While the
+        /// handler is still running: within <see cref="PurchaseAttributionWindowSeconds"/>.
         /// </summary>
         private static bool StartedInsideTap(PendingPurchase tap, DateTime startedAtUtc)
         {
@@ -152,7 +135,6 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
         private readonly Func<DateTime> _now;
 
         private bool _purchaseInFlight;
-        private DateTime _lastSyncPurchaseAt = DateTime.MinValue;
 
         private const string LogTag = "[campaign_action]";
 
@@ -201,7 +183,7 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
             {
                 // Ahead of EmitClick on purpose: a suppressed double-tap must not inflate
                 // live_ops_campaign_click or re-fire OnCampaignClicked.
-                if (action.Type == CampaignActionType.Purchase && IsPurchaseSuppressed())
+                if (action.Type == CampaignActionType.Purchase && _purchaseInFlight)
                 {
                     _log.Debug($"{LogTag} purchase tap ignored — one is already in flight");
                     return;
@@ -317,17 +299,6 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
             return StartedInsideTap(tap, _now()) ? tap : null;
         }
 
-        /// <summary>
-        /// True when this purchase tap should be dropped. The awaitable path knows exactly when
-        /// one is running; the legacy path can only fall back to a time window.
-        /// </summary>
-        private bool IsPurchaseSuppressed()
-        {
-            if (_handlers.PurchaseAsync != null) return _purchaseInFlight;
-
-            return (_now() - _lastSyncPurchaseAt).TotalMilliseconds < SyncPurchaseDebounceMs;
-        }
-
         private void HandlePurchase(CampaignAction action, CampaignItem campaign)
         {
             if (string.IsNullOrEmpty(action.ProductId))
@@ -347,20 +318,13 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
 
             var tap = RememberPurchaseTap(action, campaign);
 
-            if (_handlers.PurchaseAsync != null)
-            {
-                RunPurchaseAsync(action.ProductId, campaign, tap).Forget();
-                return;
-            }
-
-            if (_handlers.Purchase == null)
+            if (_handlers.PurchaseAsync == null)
             {
                 _log.Warning($"{LogTag} no handler wired for 'purchase'");
                 return;
             }
 
-            _lastSyncPurchaseAt = _now();
-            _handlers.Purchase(action.ProductId, campaign);
+            RunPurchaseAsync(action.ProductId, campaign, tap).Forget();
         }
 
         /// <summary>

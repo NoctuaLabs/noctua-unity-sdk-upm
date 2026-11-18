@@ -31,7 +31,7 @@ namespace Tests.Runtime.Campaign
         public void SetUp()
         {
             _item = JsonConvert.DeserializeObject<CampaignItem>(File.ReadAllText(Path.GetFullPath(FixturePath)));
-            _renderer = new CampaignRenderer(new RecordingActions(), new FakeImageSource(), new FakeFontSource());
+            _renderer = new CampaignRenderer(new RecordingActions().Dispatch, new FakeImageSource(), new FakeFontSource().GetFont);
             _controller = new CampaignRuntimeController();
         }
 

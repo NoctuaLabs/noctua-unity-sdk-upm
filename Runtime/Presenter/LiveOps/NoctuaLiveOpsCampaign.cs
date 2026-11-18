@@ -86,7 +86,7 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
 
         public NoctuaLiveOpsCampaign(
             CampaignConfig merged,
-            Func<ICampaignActions, ICampaignImageSource, ICampaignFontSource, ICampaignPopupUI> createPopupUI,
+            Func<Action<CampaignAction, CampaignItem>, ICampaignImageSource, Action<string, Action<UnityEngine.TextCore.Text.FontAsset>>, ICampaignPopupUI> createPopupUI,
             ILocaleProvider locale,
             IEventSender events,
             Func<IReadOnlyList<string>> playerTags,
@@ -144,7 +144,7 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
                 events,
                 onDispatched: (item, _) => { if (item != null) SafeInvoke(OnCampaignClicked, item.Id); });
 
-            _ui = createPopupUI?.Invoke(_dispatcher, assets, fonts);
+            _ui = createPopupUI?.Invoke(_dispatcher.Dispatch, assets, fonts.GetFont);
         }
 
         /// <summary>The resolver behind this facade — read by the sandbox Inspector.</summary>

@@ -23,9 +23,9 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
         /// <summary>Total node cap per campaign — bounds fan-out / VisualElement memory from a bad payload.</summary>
         private const int MaxNodes = 600;
 
-        private readonly ICampaignActions _actions;
+        private readonly Action<CampaignAction, CampaignItem> _dispatch;
         private readonly ICampaignImageSource _images;
-        private readonly ICampaignFontSource _fonts;
+        private readonly Action<string, Action<UnityEngine.TextCore.Text.FontAsset>> _getFont;
         private readonly ILogger _log;
         private readonly Func<Vector2> _viewportSize;
 
@@ -43,12 +43,12 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
         /// EditMode panel takes its size from the Game view, so the landscape branch is
         /// otherwise unreachable.
         /// </param>
-        public CampaignRenderer(ICampaignActions actions, ICampaignImageSource images,
-            ICampaignFontSource fonts = null, ILogger log = null, Func<Vector2> viewportSize = null)
+        public CampaignRenderer(Action<CampaignAction, CampaignItem> dispatch, ICampaignImageSource images,
+            Action<string, Action<UnityEngine.TextCore.Text.FontAsset>> getFont = null, ILogger log = null, Func<Vector2> viewportSize = null)
         {
-            _actions = actions;
+            _dispatch = dispatch;
             _images = images;
-            _fonts = fonts;
+            _getFont = getFont;
             _log = log ?? new NoctuaLogger(typeof(CampaignRenderer));
             _viewportSize = viewportSize;
         }
@@ -460,12 +460,12 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
 
         private void ApplyFontPath(VisualElement ve, CampaignNode node, CampaignItem item)
         {
-            if (_fonts == null) return;
+            if (_getFont == null) return;
 
             var path = ResolveFontPath(node.Style?.FontPath, item?.Fonts);
             if (string.IsNullOrEmpty(path)) return;
 
-            _fonts.GetFont(path, fa =>
+            _getFont(path, fa =>
             {
                 if (fa != null) ve.style.unityFontDefinition = new StyleFontDefinition(fa);
             });
@@ -488,10 +488,10 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
 
         private void WireAction(VisualElement ve, CampaignNode node, CampaignItem item)
         {
-            if (node.Action == null || node.Action.Type == CampaignActionType.None || _actions == null) return;
+            if (node.Action == null || node.Action.Type == CampaignActionType.None || _dispatch == null) return;
 
             var resolved = ResolveActionTokens(node.Action, item);
-            ve.RegisterCallback<ClickEvent>(_ => _actions.Dispatch(resolved, item));
+            ve.RegisterCallback<ClickEvent>(_ => _dispatch(resolved, item));
         }
 
         /// <summary>Returns a copy of <paramref name="a"/> with <c>{{token}}</c> resolved in its string fields.</summary>
