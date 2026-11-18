@@ -104,7 +104,7 @@ App lifecycle, init, remote configs, Firebase, PlayerPrefs, push, deep links, in
 
 ## LiveOps Campaign — `Noctua.LiveOps.Campaign`
 
-Server-driven engagement popups (purchase / event-deeplink CTAs): config merge, eligibility (schedule, targeting, frequency, offline asset cache), rendering, action dispatch. Spread over the layers under the `LiveOps` category: `Model/LiveOps/`, `Infrastructure/LiveOps/`, `Presenter/LiveOps/`, `UI/Controllers/LiveOps/`. The payload and public API contract is `Documentation~/live-ops-campaign.md`.
+Server-driven engagement popups (purchase / event-deeplink CTAs): config merge, eligibility (schedule, targeting, frequency, offline asset cache), rendering, action dispatch. Spread over the layers under the `LiveOps` category: `Model/LiveOps/`, `Infrastructure/LiveOps/`, `Presenter/LiveOps/`, `UI/Controllers/LiveOps/`.
 
 | Layer | Files |
 |---|---|

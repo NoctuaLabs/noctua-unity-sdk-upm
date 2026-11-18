@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using com.noctuagames.sdk.LiveOpsCampaign;
 using Cysharp.Threading.Tasks;
 using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 using UnityEngine.Scripting;
 
 namespace com.noctuagames.sdk

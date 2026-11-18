@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using Cysharp.Threading.Tasks;
-using Newtonsoft.Json.Linq;
 
 namespace com.noctuagames.sdk.LiveOpsCampaign
 {

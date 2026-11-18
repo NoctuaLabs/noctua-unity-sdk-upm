@@ -42,7 +42,7 @@ Runtime/
 - **No Java-style names.** No `*Manager`, `*Orchestrator`, or wrapper classes that only forward. Name a class after what it is (`AdFrequencyCap`, `CampaignResolver`); a module's main service is `Noctua<Module>Service`.
 - **Follow the conventions already here.** To change one, write the argument and the risk and discuss it first.
 - **Abstractions are earned.** An interface needs two implementations or a test that fakes it. No helper for one or two lines used once.
-- **Spec first.** Payload shapes and public API are written down before code (`Documentation~/live-ops-campaign.md`), and JSON has one shape per field.
+- **Spec first.** Payload shapes and public API are agreed and written down before code, and JSON has one shape per field. The fixtures in `Tests/Runtime/Campaign/Fixtures/` are the executable contract for campaign payloads.
 
 ## Class Visibility Rule
 
