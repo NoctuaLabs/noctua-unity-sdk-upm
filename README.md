@@ -222,7 +222,7 @@ Noctua.IAP.OnPurchaseDone += async order =>
 
 `Items` is never null. `productId` only narrows the result on the device; without it you get the whole list as before. Ignore an order id you already granted. A purchase limit counts its SKU, so the admin refuses two limited cards on one SKU.
 
-Inside the `Purchase` handler, `Noctua.LiveOps.Campaign.GetProductBundleForSku(campaign, productId)` returns the bundle a dynamic button was resolved from. Every order started from a popup carries `campaign_id` (and `campaign_bundle_key` / `campaign_bundle`) in its `extra`; your own `PurchaseRequest.Extra` keys always win.
+Inside the `Purchase` handler, `Noctua.LiveOps.Campaign.GetProductBundleForSku(campaign, productId)` returns the bundle a dynamic button was resolved from. Every order started from a popup carries `campaign_id` in its `extra`; your own `PurchaseRequest.Extra` keys always win.
 
 #### 4. Daily missions
 

@@ -176,7 +176,7 @@ namespace Tests.Runtime.Campaign
         }
 
         [Test]
-        public void PurchaseExtra_CarriesCampaignAndBundle_AndKeepsTheGamesOwnKeys()
+        public void PurchaseExtra_CarriesOnlyTheCampaign_AndKeepsTheGamesOwnKeys()
         {
             var item = Offer(Bundle, DynamicBuy("offer_main"));
             var facade = Facade(item);
@@ -187,8 +187,7 @@ namespace Tests.Runtime.Campaign
             var extra = facade.PurchaseExtra(item, "pack3", gameExtra);
 
             Assert.AreEqual("dyn", extra[NoctuaLiveOpsCampaign.ExtraCampaignId]);
-            Assert.AreEqual("offer_main", extra[NoctuaLiveOpsCampaign.ExtraBundleKey]);
-            Assert.AreEqual("t3", JObject.Parse(extra[NoctuaLiveOpsCampaign.ExtraBundle])["tier"].ToString());
+            Assert.AreEqual(2, extra.Count, "nothing about the bundle is sent");
             Assert.AreEqual("popup", extra["source"]);
             Assert.AreEqual(1, gameExtra.Count, "the game's dictionary is not modified");
         }

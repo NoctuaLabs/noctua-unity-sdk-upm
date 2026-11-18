@@ -30,8 +30,6 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
 
         /// <summary><see cref="PurchaseExtra"/> keys.</summary>
         public const string ExtraCampaignId = "campaign_id";
-        public const string ExtraBundleKey = "campaign_bundle_key";
-        public const string ExtraBundle = "campaign_bundle";
 
         /// <summary>Largest bundle (UTF-8 bytes) a <c>product_key</c> may point at.</summary>
         public const int MaxBundleBytes = 4096;
@@ -336,10 +334,9 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
 
         /// <summary>
         /// The order <c>extra</c> for a purchase from <paramref name="item"/>: the game's own
-        /// <paramref name="extra"/> plus <c>campaign_id</c>, and for a dynamic product
-        /// <c>campaign_bundle_key</c> and <c>campaign_bundle</c> (compact JSON). A new dictionary;
-        /// set it on <c>PurchaseRequest.Extra</c>. The bundle is the one the resolver turned into
-        /// <paramref name="sku"/>; see the overload taking the button's product key.
+        /// <paramref name="extra"/> plus <c>campaign_id</c>. A new dictionary; set it on
+        /// <c>PurchaseRequest.Extra</c>. Nothing about the bundle is sent: the backend stores only
+        /// the campaign id.
         /// </summary>
         public Dictionary<string, string> PurchaseExtra(
             CampaignItem item, string sku, IReadOnlyDictionary<string, string> extra = null) =>
@@ -359,19 +356,6 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
             if (item == null) return result;
 
             result[ExtraCampaignId] = item.Id ?? string.Empty;
-
-            var key = !string.IsNullOrWhiteSpace(productKey)
-                ? productKey.Trim()
-                : !string.IsNullOrEmpty(sku) && _bundleKeyBySku.TryGetValue(item.Id + BundleKeySeparator + sku, out var mapped)
-                    ? mapped
-                    : null;
-            if (key == null) return result;
-
-            result[ExtraBundleKey] = key;
-            var bundle = GetProductBundle(item, key);
-            if (bundle == null) return result;
-
-            result[ExtraBundle] = bundle.ToString(Formatting.None);
             return result;
         }
 
