@@ -544,8 +544,9 @@ namespace Tests.Runtime.IAA
         [Test]
         public void SetRefreshInterval_DoesNotThrow()
         {
+            // With no ad unit ID set, SetRefreshInterval returns before it reaches MaxSdk, so
+            // MaxSdk's "No MAX Ads Ad Unit ID" error is never logged.
             var banner = new BannerAppLovin();
-            LogAssert.Expect(LogType.Error, new Regex("No MAX Ads Ad Unit ID"));
             Assert.DoesNotThrow(() => banner.SetRefreshInterval(30));
         }
 

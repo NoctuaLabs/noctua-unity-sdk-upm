@@ -361,7 +361,10 @@ namespace Tests.Runtime.IAA
             ui.OnShown.Invoke();
             ui.OnClosed.Invoke();
 
-            // Second round: a later no-fill shows again, renders, then dismiss again.
+            // Second round: the game asks for an ad again (every Show* call clears the
+            // "already dismissed for this request" flag), it no-fills, shows, then is dismissed.
+            typeof(NoctuaIAAService).GetField("_hasClosedPlaceholder", BindingFlags.NonPublic | BindingFlags.Instance)
+                .SetValue(m, false);
             Assert.IsTrue(InvokeShowFallback(m, AdPlaceholderType.Rewarded),
                 "should be able to show again after the previous one was dismissed");
             ui.OnShown.Invoke();
