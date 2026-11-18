@@ -50,6 +50,15 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
         [JsonProperty("product_id")]
         public string ProductId;
 
+        /// <summary>
+        /// For a product whose SKU id differs per store, instead of <see cref="ProductId"/>: a key
+        /// into the campaign's <c>data</c> whose value is the JSON object
+        /// <c>{"sku_android": "...", "sku_ios": "..."}</c>. The SDK buys the SKU for the store it
+        /// runs on; a button whose SKU cannot be read is hidden.
+        /// </summary>
+        [JsonProperty("product_key")]
+        public string ProductKey;
+
         /// <summary>Mission key for <see cref="CampaignActionType.Claim"/>, e.g. <c>use_stm</c>.</summary>
         [JsonProperty("mission")]
         public string Mission;

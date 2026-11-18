@@ -190,8 +190,9 @@ A campaign that is not eligible is skipped, never thrown. The reason is in the s
 
 | Admin setting | Game code |
 |---|---|
-| Buy button with a SKU (the same SKU id on Google Play and the App Store) | None: the SDK buys it (role and server from `Noctua.Auth.UpdatePlayerAccountAsync`) and the game delivers it in `OnPurchaseDone`. Bought non-consumables and subscriptions are hidden or shown as "Purchased" automatically. |
+| Buy button with a SKU | None: the SDK buys it (role and server from `Noctua.Auth.UpdatePlayerAccountAsync`) and the game delivers it in `OnPurchaseDone`. Bought non-consumables and subscriptions are hidden or shown as "Purchased" automatically. |
 | **One purchase per player** | None. After a completed purchase from the popup the SDK records it on the server; the campaign is not shown again and its Buy buttons read "Purchased", on every device. |
+| **Different SKU on iOS** (the product has a different id per store) | None. The admin sends both ids (`{"sku_android":"gem_500","sku_ios":"com.game.gem500"}`) and the SDK buys the one for the store it runs on. A button with no SKU for this store is hidden. |
 | Consumable offer with a limit | Optional: `OwnershipProvider = sku => myStore.OwnsAsync(sku)` — the store only knows non-consumables. |
 
 **Every purchase is delivered from `Noctua.IAP.OnPurchaseDone`, with the items set on its SKU.** In SKU Management each SKU can list items as key → quantity (`coin = 100`, `skin = 1`; whole numbers). They come with the product list, so read them for the purchased SKU — the list is cached, so this makes no request when your shop already loaded it, and offline it uses the copy on the device:
@@ -266,7 +267,7 @@ An audience can require a Noctua SDK version range (admin → Audience → SDK v
 | `Noctua.LiveOpsCampaign` | `Noctua.LiveOps.Campaign` |
 | `RegisterDeeplinkHandler(...)` | `Configure(new CampaignHandlers { Deeplink = ... })` |
 | `CampaignHandlers.Purchase`, `OnCampaignPurchaseRequested` | removed: the SDK buys a popup's SKU itself |
-| `product_key` actions, `CampaignHandlers.ProductResolver`, `GetProductBundleForSku` | removed: a Buy button names one SKU (`product_id`), used on both stores |
+| `CampaignHandlers.ProductResolver`, `GetProductBundleForSku`, `tier` / array / `sku` bundles | removed: a per-store Buy button names its SKUs as `{"sku_android", "sku_ios"}` and needs no game code |
 
 #### Checklist
 

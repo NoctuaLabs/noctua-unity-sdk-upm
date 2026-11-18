@@ -459,7 +459,7 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
         /// <summary>The stored campaign with the game's values and the known local prices folded in.</summary>
         private CampaignItem RenderItem(CampaignItem stored, IReadOnlyDictionary<string, string> playerData)
         {
-            var item = MergePlayerData(stored, playerData);
+            var item = WithStoreSkus(MergePlayerData(stored, playerData));
             var ownership = OwnershipFor(item);
             return MarkOwnedButtons(
                 ApplyOwnership(ApplyStorePrices(item, _storePrices), ownership),

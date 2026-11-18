@@ -2,6 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Cysharp.Threading.Tasks;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
 namespace com.noctuagames.sdk.LiveOpsCampaign
 {
@@ -267,6 +269,117 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
             string.IsNullOrEmpty(campaignId)
                 ? null
                 : _resolver.Config?.Campaigns?.FirstOrDefault(c => c != null && c.Id == campaignId);
+
+        // ── Per-store SKUs ────────────────────────────────────────────────
+
+        /// <summary>The key of a <c>product_key</c> entry that names the SKU on this store.</summary>
+#if UNITY_IOS
+        public const string PlatformSkuKey = "sku_ios";
+#else
+        public const string PlatformSkuKey = "sku_android";
+#endif
+
+        /// <summary>
+        /// The SKU a <c>product_key</c> button sells on this store. <c>data[productKey]</c> is the
+        /// JSON object <c>{"sku_android": "...", "sku_ios": "..."}</c>; null when it is missing,
+        /// not that object, or names no SKU for this store.
+        /// </summary>
+        public static string StoreSku(CampaignItem item, string productKey)
+        {
+            if (item?.Data == null || string.IsNullOrWhiteSpace(productKey)) return null;
+            if (!item.Data.TryGetValue(productKey.Trim(), out var raw) || string.IsNullOrWhiteSpace(raw)) return null;
+
+            try
+            {
+                var value = (JToken.Parse(raw) as JObject)?[PlatformSkuKey];
+                var sku = value?.Type == JTokenType.String ? value.Value<string>()?.Trim() : null;
+                return string.IsNullOrEmpty(sku) ? null : sku;
+            }
+            catch (JsonException)
+            {
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// A copy of <paramref name="item"/> whose <c>product_key</c> Buy buttons carry this store's
+        /// SKU as their product id, and whose unreadable ones are hidden. The item itself when it
+        /// has none; never mutates it.
+        /// </summary>
+        public CampaignItem WithStoreSkus(CampaignItem item)
+        {
+            if (item?.View == null) return item;
+
+            var view = ResolveStoreSkus(item.View, item, depth: 0);
+            if (ReferenceEquals(view, item.View)) return item;
+
+            var copy = item.ShallowCopy();
+            copy.View = view;
+            return copy;
+        }
+
+        private CampaignNode ResolveStoreSkus(CampaignNode node, CampaignItem item, int depth)
+        {
+            if (node == null || depth >= MaxSkuSearchDepth) return node;
+
+            List<CampaignNode> children = null;
+            if (node.Children != null)
+            {
+                for (var i = 0; i < node.Children.Count; i++)
+                {
+                    var child = ResolveStoreSkus(node.Children[i], item, depth + 1);
+                    if (ReferenceEquals(child, node.Children[i])) continue;
+
+                    children ??= new List<CampaignNode>(node.Children);
+                    children[i] = child;
+                }
+            }
+
+            var action = node.Action;
+            var perStore = action != null
+                           && action.Type == CampaignActionType.Purchase
+                           && string.IsNullOrWhiteSpace(action.ProductId)
+                           && !string.IsNullOrWhiteSpace(action.ProductKey);
+            if (!perStore && children == null) return node;
+
+            var copy = node.ShallowCopy();
+            if (children != null) copy.Children = children;
+            if (!perStore) return copy;
+
+            var sku = StoreSku(item, action.ProductKey);
+            if (sku == null)
+            {
+                // Logged once per campaign and key, so a re-render does not repeat it.
+                if (_hiddenStoreSkus.Add(item.Id + "\n" + action.ProductKey))
+                {
+                    _log.Warning($"{LogTag} Buy button '{action.ProductKey}' in campaign '{item.Id}' is hidden: " +
+                                 $"its data entry has no {PlatformSkuKey}.");
+                }
+                copy.Action = null;
+                copy.VisibleIf = new CampaignCondition
+                {
+                    // Never true: the node is not rendered.
+                    All = new List<CampaignConditionClause> { new() { Left = "0", Op = "eq", Right = "1" } },
+                };
+                return copy;
+            }
+
+            copy.Action = new CampaignAction
+            {
+                TypeRaw = action.TypeRaw,
+                Deeplink = action.Deeplink,
+                ProductId = sku,
+                ProductKey = action.ProductKey,
+                KeepOpen = action.KeepOpen,
+                Id = action.Id,
+            };
+            return copy;
+        }
+
+        private readonly HashSet<string> _hiddenStoreSkus = new(StringComparer.Ordinal);
+
+        /// <summary>The SKUs <paramref name="item"/> sells on this store.</summary>
+        private IReadOnlyList<string> SkusOf(CampaignItem item) => PurchaseSkus(WithStoreSkus(item));
 
         // ── Order attribution ─────────────────────────────────────────────
 

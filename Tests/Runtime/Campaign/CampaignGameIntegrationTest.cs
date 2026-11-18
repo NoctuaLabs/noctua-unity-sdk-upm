@@ -169,6 +169,75 @@ namespace Tests.Runtime.Campaign
             CollectionAssert.AreEqual(new[] { "use_stm", "milestone 25" }, calls, "a chest button names its points");
         }
 
+        // ---- Per-store SKUs ----------------------------------------------
+
+        private static CampaignNode PerStoreBuy(string key) =>
+            CampaignFactory.Node(CampaignNode.TypeButton,
+                action: new CampaignAction { TypeRaw = "purchase", ProductKey = key });
+
+        [TestCase("{\"" + NoctuaLiveOpsCampaign.PlatformSkuKey + "\":\"store.sku\"}", "store.sku")]
+        [TestCase("{\"" + NoctuaLiveOpsCampaign.PlatformSkuKey + "\":\"  padded.sku  \"}", "padded.sku")]
+        [TestCase("{\"sku_android\":\"a.sku\",\"sku_ios\":\"i.sku\"}",
+#if UNITY_IOS
+            "i.sku")]
+#else
+            "a.sku")]
+#endif
+        [TestCase("{\"" + NoctuaLiveOpsCampaign.PlatformSkuKey + "\":\"\"}", null)]
+        [TestCase("{\"" + NoctuaLiveOpsCampaign.PlatformSkuKey + "\":42}", null)]
+        [TestCase("{\"other_store\":\"x\"}", null)]
+        [TestCase("[{\"" + NoctuaLiveOpsCampaign.PlatformSkuKey + "\":\"x\"}]", null)]
+        [TestCase("not json", null)]
+        public void StoreSku_ReadsThisStoresSkuFromTheDataEntry(string entry, string expected)
+        {
+            var item = Offer("promo", new Dictionary<string, string> { { "offer", entry } }, PerStoreBuy("offer"));
+
+            Assert.AreEqual(expected, NoctuaLiveOpsCampaign.StoreSku(item, "offer"));
+        }
+
+        [Test]
+        public void WithStoreSkus_FillsTheSku_HidesUnreadableButtons_AndLeavesTheStoredItemAlone()
+        {
+            var item = Offer("promo",
+                new Dictionary<string, string>
+                {
+                    { "good", "{\"" + NoctuaLiveOpsCampaign.PlatformSkuKey + "\":\"pack9\"}" },
+                    { "bad", "{\"other_store\":\"x\"}" },
+                },
+                PerStoreBuy("good"), PerStoreBuy("bad"), FixedBuy("pack1"));
+
+            var resolved = Facade(item).WithStoreSkus(item);
+
+            Assert.AreEqual("pack9", resolved.View.Children[0].Action.ProductId);
+            Assert.IsNull(resolved.View.Children[1].Action, "a button with no SKU for this store cannot be tapped");
+            Assert.IsNotNull(resolved.View.Children[1].VisibleIf, "and is hidden");
+            Assert.AreEqual("pack1", resolved.View.Children[2].Action.ProductId, "a fixed SKU is untouched");
+            Assert.IsNull(item.View.Children[0].Action.ProductId, "the stored campaign is not changed");
+            CollectionAssert.AreEqual(new[] { "pack9", "pack1" }, NoctuaLiveOpsCampaign.PurchaseSkus(resolved));
+        }
+
+        [Test]
+        public void WithStoreSkus_ReturnsTheSameItem_WhenNoButtonIsPerStore()
+        {
+            var item = Offer("promo", null, FixedBuy("pack1"));
+
+            Assert.AreSame(item, Facade(item).WithStoreSkus(item));
+        }
+
+        [Test]
+        public void Validator_AcceptsAProductKeyWithItsDataEntry_RejectsAMissingOne()
+        {
+            CampaignNode Buy() => CampaignFactory.Node(CampaignNode.TypeButton,
+                props: new Dictionary<string, object> { { "text", "Buy" } },
+                action: new CampaignAction { TypeRaw = "purchase", ProductKey = "offer" });
+            var withEntry = Offer("promo", new Dictionary<string, string> { { "offer", "{}" } }, Buy());
+            var noEntry = Offer("promo", new Dictionary<string, string>(), Buy());
+
+            Assert.IsTrue(CampaignValidator.TryValidate(withEntry, out _));
+            Assert.IsFalse(CampaignValidator.TryValidate(noEntry, out var error));
+            StringAssert.Contains("product_key", error);
+        }
+
         // ---- Campaign info on orders -------------------------------------
 
         [Test]

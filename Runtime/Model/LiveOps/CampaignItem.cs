@@ -18,7 +18,8 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
 
         /// <summary>Highest widget-schema version this build understands.</summary>
         /// <remarks>v2 adds <c>player_data</c>, <c>visible_if</c>, <c>keep_open</c> and
-        /// token-resolved progress bar values. v3 adds <c>purchase_once</c> campaigns.</remarks>
+        /// token-resolved progress bar values. v3 adds <c>purchase_once</c> campaigns and
+        /// per-store SKUs (<c>product_key</c> actions).</remarks>
         public const int SupportedSchemaVersion = 3;
 
         /// <summary>Stable unique id. Used for merge, frequency capping, and targeting by id.</summary>

@@ -139,6 +139,18 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
             {
                 case CampaignActionType.Purchase:
                 {
+                    // A per-store product is resolved to this store's SKU at render time; here it
+                    // only needs its entry to ship in data.
+                    if (string.IsNullOrWhiteSpace(a.ProductId) && !string.IsNullOrWhiteSpace(a.ProductKey))
+                    {
+                        if (data == null || !data.ContainsKey(a.ProductKey.Trim()))
+                        {
+                            error = $"purchase action: product_key '{a.ProductKey}' has no data entry";
+                            return false;
+                        }
+                        break;
+                    }
+
                     var pid = ResolveRequired(a.ProductId, data, out var pidMissing);
                     if (string.IsNullOrWhiteSpace(pid) || pidMissing)
                     {
