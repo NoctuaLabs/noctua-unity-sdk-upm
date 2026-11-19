@@ -30,14 +30,13 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
         private IReadOnlyDictionary<string, string> _storePrices;
         private bool _fetchingStorePrices;
         private int _storePricesGeneration;
-        // "Does the player own this SKU?" (the store check by default). Null = ownership never
-        // hides a campaign or flips a card. Answers are cached per SKU; a SKU missing from the
-        // cache is unknown, and unknown never hides anything.
-        private Func<string, UniTask<bool>> _isProductOwned;
-        // True while _isProductOwned is the store check passed at construction, not a game's own.
-        private bool _ownershipIsStoreCheck = true;
+        // "Does the player own this SKU?": the store check, which only knows non-consumables and
+        // subscriptions (a one-time consumable offer is the campaign's purchase_once). Null =
+        // ownership never hides a campaign or flips a card. Answers are cached per SKU; a SKU
+        // missing from the cache is unknown, and unknown never hides anything.
+        private readonly Func<string, UniTask<bool>> _isProductOwned;
         // SKU → true for a non-consumable or subscription, false for a consumable, null when
-        // unknown — the product list's type. Only used with the store check.
+        // unknown — the product list's type.
         private readonly Func<string, UniTask<bool?>> _isNonConsumable;
         private readonly Dictionary<string, bool> _ownership = new Dictionary<string, bool>();
         private int _ownershipGeneration;
@@ -172,7 +171,6 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
             if (handlers == null) return;
 
             if (handlers.Deeplink != null) _deeplinkHandler = handlers.Deeplink;
-            if (handlers.OwnershipProvider != null) SetOwnershipProvider(handlers.OwnershipProvider);
             if (handlers.Rewards != null) SetRewardsHandler(handlers.Rewards);
         }
 
