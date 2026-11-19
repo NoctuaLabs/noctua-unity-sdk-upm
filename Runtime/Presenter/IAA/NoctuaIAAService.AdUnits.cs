@@ -46,26 +46,7 @@ namespace com.noctuagames.sdk
                 // causes race conditions per AdMob docs.
 
                 // _preloader already assigned in Initialize() callback; reuse the same instance.
-                // RewardedInterstitialAd does NOT support the Preload API — use legacy Load() path.
-                if (!string.IsNullOrEmpty(_rewardedInterstitialAdUnitID) && _rewardedInterstitialAdUnitID != "unknown")
-                {
-                    // A new config runs this again: destroy the previous ad before replacing it.
-                    _rewardedInterstitialAdmob?.CleanupAd();
-                    _rewardedInterstitialAdmob = new RewardedInterstitialAdmob(_adRevenueTracker);
-                    _rewardedInterstitialAdmob.SetRewardedInterstitialAdUnitID(_rewardedInterstitialAdUnitID);
-                    _rewardedInterstitialAdmob.RewardedOnAdDisplayed += () => { CloseAdPlaceholder(force: true); _frequencyCap?.RecordImpression(AdFormatKey.RewardedInterstitial); _onAdDisplayed?.Invoke(); };
-                    _rewardedInterstitialAdmob.RewardedOnAdFailedDisplayed += () => { if (!ShowCrossPromoFallback(AdPlaceholderType.RewardedInterstitial)) _onAdFailedDisplayed?.Invoke(); };
-                    _rewardedInterstitialAdmob.RewardedOnAdClosed += () => _onAdClosed?.Invoke();
-                    _rewardedInterstitialAdmob.RewardedOnAdClicked += () => _onAdClicked?.Invoke();
-                    _rewardedInterstitialAdmob.RewardedOnAdImpressionRecorded += () => _onAdImpressionRecorded?.Invoke();
-                    _rewardedInterstitialAdmob.RewardedOnUserEarnedReward += reward => _admobOnUserEarnedReward?.Invoke(reward);
-                    _rewardedInterstitialAdmob.AdmobOnAdRevenuePaid += (adValue, responseInfo) => PostToMainThread(() =>
-                    {
-                        _revenueTracker.ProcessAdmobRevenue(adValue, responseInfo);
-                        _admobOnAdRevenuePaid?.Invoke(adValue, responseInfo);
-                    });
-                    _rewardedInterstitialAdmob.LoadRewardedInterstitialAd();
-                }
+                SetupAdmobRewardedInterstitial(_rewardedInterstitialAdUnitID);
 
 #if !UNITY_EDITOR
                 // Device only: AdMob Preload API. Not supported in the Unity Editor.
@@ -194,7 +175,50 @@ namespace com.noctuagames.sdk
             {
                 secondary.SetBannerAdUnitId(secondaryBanner);
             }
+
+#if UNITY_ADMOB
+            // Rewarded interstitial is AdMob-only and always shown from AdMob, so when AdMob is the
+            // secondary network it is created here (the primary setup skips it).
+            if (secondary.NetworkName == AdNetworkName.Admob)
+            {
+                SetupAdmobRewardedInterstitial(
+                    ResolveAdUnitIdForNetwork(iAAResponse, secondary.NetworkName, AdFormatKey.RewardedInterstitial));
+            }
+#endif
         }
+
+#if UNITY_ADMOB
+        /// <summary>
+        /// Creates and loads the AdMob rewarded interstitial that <c>ShowAdmobRewardedInterstitial</c>
+        /// shows, whether AdMob is the primary or the secondary network. It uses the legacy Load()
+        /// path because RewardedInterstitialAd does not support the Preload API.
+        /// </summary>
+        private void SetupAdmobRewardedInterstitial(string adUnitId)
+        {
+            if (string.IsNullOrEmpty(adUnitId) || adUnitId == "unknown")
+            {
+                _log.Info("Rewarded interstitial ad unit ID is missing for AdMob; skipping rewarded interstitial load.");
+                return;
+            }
+
+            // A new config runs this again: destroy the previous ad before replacing it.
+            _rewardedInterstitialAdmob?.CleanupAd();
+            _rewardedInterstitialAdmob = new RewardedInterstitialAdmob(_adRevenueTracker);
+            _rewardedInterstitialAdmob.SetRewardedInterstitialAdUnitID(adUnitId);
+            _rewardedInterstitialAdmob.RewardedOnAdDisplayed += () => { CloseAdPlaceholder(force: true); _frequencyCap?.RecordImpression(AdFormatKey.RewardedInterstitial); _onAdDisplayed?.Invoke(); };
+            _rewardedInterstitialAdmob.RewardedOnAdFailedDisplayed += () => { if (!ShowCrossPromoFallback(AdPlaceholderType.RewardedInterstitial)) _onAdFailedDisplayed?.Invoke(); };
+            _rewardedInterstitialAdmob.RewardedOnAdClosed += () => _onAdClosed?.Invoke();
+            _rewardedInterstitialAdmob.RewardedOnAdClicked += () => _onAdClicked?.Invoke();
+            _rewardedInterstitialAdmob.RewardedOnAdImpressionRecorded += () => _onAdImpressionRecorded?.Invoke();
+            _rewardedInterstitialAdmob.RewardedOnUserEarnedReward += reward => _admobOnUserEarnedReward?.Invoke(reward);
+            _rewardedInterstitialAdmob.AdmobOnAdRevenuePaid += (adValue, responseInfo) => PostToMainThread(() =>
+            {
+                _revenueTracker.ProcessAdmobRevenue(adValue, responseInfo);
+                _admobOnAdRevenuePaid?.Invoke(adValue, responseInfo);
+            });
+            _rewardedInterstitialAdmob.LoadRewardedInterstitialAd();
+        }
+#endif
 
         /// <summary>
         /// Sets up App Open ads on the primary network.

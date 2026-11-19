@@ -138,6 +138,36 @@ namespace Tests.Runtime.IAA
                 "Without any SDK define, no routing is created and hybrid mode is false");
 #endif
         }
+
+#if UNITY_ADMOB && UNITY_APPLOVIN
+        // Rewarded interstitial is AdMob-only, so with AppLovin primary it can only come from the
+        // AdMob secondary. Before the fix nothing created it there and every show failed with
+        // "Rewarded interstitial ad not initialized".
+        [Test]
+        public void SetupSecondaryAdUnits_AdmobSecondary_CreatesRewardedInterstitial()
+        {
+            const string unit = "ca-app-pub-3940256099942544/5354046379";
+            var iaa = JsonConvert.DeserializeObject<IAAConfig>(@"{
+                ""mediation"": ""applovin"",
+                ""secondary_mediation"": ""admob"",
+                ""networks"": { ""admob"": { ""ad_formats"": { ""rewarded_interstitial"": {
+                    ""android"": { ""ad_unit_id"": """ + unit + @""" },
+                    ""ios"": { ""ad_unit_id"": """ + unit + @""" } } } } }
+            }");
+            LogAssert.ignoreFailingMessages = true;   // AdMob logs load errors in EditMode
+            var service = new NoctuaIAAService(new NoopAdPlaceholderUI(), iaa);
+
+            const BindingFlags priv = BindingFlags.NonPublic | BindingFlags.Instance;
+            var routing = (HybridAdRouting)typeof(NoctuaIAAService).GetField("_routing", priv).GetValue(service);
+            Assume.That(routing?.Secondary?.NetworkName, Is.EqualTo(AdNetworkName.Admob));
+
+            typeof(NoctuaIAAService).GetMethod("SetupSecondaryAdUnits", priv)
+                .Invoke(service, new object[] { iaa, routing.Secondary });
+
+            Assert.IsNotNull(typeof(NoctuaIAAService).GetField("_rewardedInterstitialAdmob", priv).GetValue(service),
+                "AdMob secondary must create the rewarded interstitial so ShowRewardedInterstitialAd can show it");
+        }
+#endif
     }
 
     /// <summary>
