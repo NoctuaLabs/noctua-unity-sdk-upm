@@ -1645,7 +1645,8 @@ namespace com.noctuagames.sdk
                 RoleId = role?.IngameRoleId,
                 ServerId = role?.IngameServerId,
                 IngameItemId = productId,
-                IngameItemName = campaign?.Id,
+                // The SKU's name from SKU Management; the SKU itself when it has none.
+                IngameItemName = string.IsNullOrWhiteSpace(product?.Description) ? productId : product.Description,
             });
         }
     }

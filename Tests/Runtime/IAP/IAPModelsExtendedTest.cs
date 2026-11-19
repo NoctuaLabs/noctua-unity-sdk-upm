@@ -115,7 +115,7 @@ namespace Tests.Runtime.IAP
         }
 
         [Test]
-        public void OrderRequest_CampaignPurchase_SendsCampaignIdAndKeepsExtra()
+        public void OrderRequest_CampaignPurchase_SendsCampaignIdOnlyInExtra()
         {
             var req = new OrderRequest
             {
@@ -129,10 +129,10 @@ namespace Tests.Runtime.IAP
 
             var json = Newtonsoft.Json.Linq.JObject.Parse(JsonConvert.SerializeObject(req));
 
-            Assert.AreEqual("cmp_1", (string)json["campaign_id"]);
+            Assert.IsFalse(json.ContainsKey("campaign_id"), "the campaign is sent once, in extra");
             Assert.IsFalse(json.ContainsKey("campaign_bundle_key"), "the backend stores only the campaign id");
-            // Extra keeps the keys for games and older backends.
             Assert.AreEqual("cmp_1", (string)json["extra"]["campaign_id"]);
+            Assert.AreEqual("cmp_1", req.CampaignId, "game code still reads it from the order");
             Assert.AreEqual("yes", (string)json["extra"]["promo"]);
         }
 
