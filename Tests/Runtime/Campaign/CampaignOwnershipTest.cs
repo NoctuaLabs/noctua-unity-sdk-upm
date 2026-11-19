@@ -322,25 +322,10 @@ namespace Tests.Runtime.Campaign
         public void NoProvider_NothingIsCheckedOrHidden()
         {
             var item = MultiOffer();
-            var campaign = Facade(sku => UniTask.FromResult(true), item);
-            campaign.SetOwnershipProvider(null);
+            var campaign = Facade(null, item);
 
             Assert.IsFalse(Prefetch(campaign, item));
             Assert.AreEqual(1, campaign.GetActiveCampaigns().Count);
-        }
-
-        [Test]
-        public void SetOwnershipProvider_ClearsWhatTheOldOneSaid()
-        {
-            var item = MultiOffer();
-            var campaign = Facade(sku => UniTask.FromResult(true), item);
-            Prefetch(campaign, item);
-            Assert.IsTrue(campaign.IsFullyOwned(item));
-
-            campaign.SetOwnershipProvider(sku => UniTask.FromResult(false));
-
-            Assert.IsEmpty(campaign.Ownership);
-            Assert.IsFalse(campaign.IsFullyOwned(item));
         }
 
         [Test]
@@ -497,20 +482,6 @@ namespace Tests.Runtime.Campaign
         }
 
         [Test]
-        public void Prefetch_GamesOwnProvider_IgnoresTheProductList()
-        {
-            // A one-time consumable offer: the game's record decides, whatever the product type.
-            var item = MultiOffer();
-            var campaign = Facade(_ => UniTask.FromResult(false),
-                _ => UniTask.CompletedTask, ProductList(goldNonConsumable: false), item);
-            campaign.SetOwnershipProvider(_ => UniTask.FromResult(true));
-
-            Prefetch(campaign, item);
-
-            Assert.IsTrue(campaign.Ownership[Gold]);
-        }
-
-        [Test]
         public void RefreshOwnership_UnknownProductType_AsksTheStore()
         {
             var item = MultiOffer();
@@ -521,21 +492,6 @@ namespace Tests.Runtime.Campaign
 
             Assert.IsFalse(campaign.Ownership[Gold]);
             Assert.AreEqual(1, asks);
-        }
-
-        [Test]
-        public void RefreshOwnership_GamesOwnProvider_IsAskedEvenWhenTheTypeIsKnown()
-        {
-            // A one-time consumable offer: the game's record says owned, though the product is consumable.
-            var item = MultiOffer();
-            var campaign = Facade(_ => UniTask.FromResult(false), item);
-            var gameAsks = 0;
-            campaign.SetOwnershipProvider(_ => { gameAsks++; return UniTask.FromResult(true); });
-
-            campaign.RefreshOwnershipAsync(Gold, knownOwned: false).GetAwaiter().GetResult();
-
-            Assert.IsTrue(campaign.Ownership[Gold]);
-            Assert.AreEqual(1 + NoctuaLiveOpsCampaign.OwnedRecheckDelays.Length, gameAsks);
         }
 
         [Test]

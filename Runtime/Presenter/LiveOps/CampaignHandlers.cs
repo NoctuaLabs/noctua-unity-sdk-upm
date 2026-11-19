@@ -15,12 +15,6 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
         public Action<string> Deeplink;
 
         /// <summary>
-        /// "Does the player own this SKU?" for one-time consumable offers. Optional: the store
-        /// check covers non-consumables and subscriptions.
-        /// </summary>
-        public Func<string, UniTask<bool>> OwnershipProvider;
-
-        /// <summary>
         /// Grants the missions and milestone chests the SDK claimed (popup Claim / Claim All, or
         /// <c>Noctua.LiveOps.Campaign.Claim*Async</c>). Campaign purchases are not rewards: the game
         /// delivers them from <c>Noctua.IAP.OnPurchaseDone</c> (the product's <c>Items</c>). Each <see cref="LiveOpsReward"/>
@@ -39,7 +33,6 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
             return new CampaignHandlers
             {
                 Deeplink = newer.Deeplink ?? older.Deeplink,
-                OwnershipProvider = newer.OwnershipProvider ?? older.OwnershipProvider,
                 Rewards = newer.Rewards ?? older.Rewards,
             };
         }

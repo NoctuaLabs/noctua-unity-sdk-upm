@@ -193,7 +193,7 @@ A campaign that is not eligible is skipped, never thrown. The reason is in the s
 | Buy button with a SKU | None: the SDK buys it (role and server from `Noctua.Auth.UpdatePlayerAccountAsync`) and the game delivers it in `OnPurchaseDone`. Bought non-consumables and subscriptions are hidden or shown as "Purchased" automatically. |
 | **One purchase per player** | None. After a completed purchase from the popup the SDK records it on the server; the campaign is not shown again and its Buy buttons read "Purchased", on every device. |
 | **Different SKU on iOS** (the product has a different id per store) | None. The admin sends both ids (`{"sku_android":"gem_500","sku_ios":"com.game.gem500"}`) and the SDK buys the one for the store it runs on. A button with no SKU for this store is hidden. |
-| Consumable offer with a limit | Optional: `OwnershipProvider = sku => myStore.OwnsAsync(sku)` — the store only knows non-consumables. |
+| One-time consumable offer | None: turn on **One purchase per player**. The store only remembers non-consumables and subscriptions. If the game also sells the offer outside the popup, call `Noctua.LiveOps.Campaign.Module.RecordCampaignPurchaseAsync(campaignId)` after that sale. |
 
 **Every purchase is delivered from `Noctua.IAP.OnPurchaseDone`, with the items set on its SKU.** In SKU Management each SKU can list items as key → quantity (`coin = 100`, `skin = 1`; whole numbers). They come with the product list, so read them for the purchased SKU — the list is cached, so this makes no request when your shop already loaded it, and offline it uses the copy on the device:
 

@@ -370,14 +370,14 @@ namespace Tests.Runtime.Campaign
         public void CampaignHandlers_Merge_KeepsEarlierFieldsTheNewSetLeavesOut()
         {
             Action<string> deeplink = _ => { };
-            Func<string, UniTask<bool>> owned = _ => UniTask.FromResult(true);
+            Func<IReadOnlyList<LiveOpsReward>, UniTask> rewards = _ => UniTask.CompletedTask;
 
             var merged = CampaignHandlers.Merge(
                 new CampaignHandlers { Deeplink = deeplink },
-                new CampaignHandlers { OwnershipProvider = owned });
+                new CampaignHandlers { Rewards = rewards });
 
             Assert.AreSame(deeplink, merged.Deeplink);
-            Assert.AreSame(owned, merged.OwnershipProvider);
+            Assert.AreSame(rewards, merged.Rewards);
         }
 
         [Test]

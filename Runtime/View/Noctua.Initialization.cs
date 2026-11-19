@@ -1459,7 +1459,7 @@ namespace com.noctuagames.sdk
                         ShowNotice = message => Instance.Value._uiFactory?.ShowError(message),
                     },
                     // Store check: a bought non-consumable / subscription hides its offer.
-                    // Games override it with SetOwnershipProvider for one-time consumables.
+                    // A one-time consumable offer is the campaign's "purchase once" setting.
                     isProductOwned: Instance.Value._iap == null
                         ? null
                         : (Func<string, UniTask<bool>>)(sku => Instance.Value._iap.GetPurchaseStatusAsync(sku).AsUniTask()),
