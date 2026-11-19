@@ -195,7 +195,7 @@ A campaign that is not eligible is skipped, never thrown. The reason is in the s
 | **Different SKU on iOS** (the product has a different id per store) | None. The admin sends both ids (`{"sku_android":"gem_500","sku_ios":"com.game.gem500"}`) and the SDK buys the one for the store it runs on. A button with no SKU for this store is hidden. |
 | One-time consumable offer | None: turn on **One purchase per player**. The store only remembers non-consumables and subscriptions. If the game also sells the offer outside the popup, call `Noctua.LiveOps.Campaign.Module.RecordCampaignPurchaseAsync(campaignId)` after that sale. |
 
-**Every purchase is delivered from `Noctua.IAP.OnPurchaseDone`, with the items set on its SKU.** In SKU Management each SKU can list items as key → quantity (`coin = 100`, `skin = 1`; whole numbers). They come with the product list, so read them for the purchased SKU — the list is cached, so this makes no request when your shop already loaded it, and offline it uses the copy on the device:
+**Every purchase is delivered from `Noctua.IAP.OnPurchaseDone`, with the items of its SKU.** Each product carries `Items` as key → quantity (`coin = 100`, `skin = 1`; whole numbers). They come with the product list, so read them for the purchased SKU — the list is cached, so this makes no request when your shop already loaded it, and offline it uses the copy on the device:
 
 ```csharp
 Noctua.IAP.OnPurchaseDone += async order =>
