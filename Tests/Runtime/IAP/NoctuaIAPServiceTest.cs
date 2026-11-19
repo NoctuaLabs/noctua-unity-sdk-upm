@@ -593,6 +593,25 @@ namespace Tests.Runtime.IAP
         {
             Assert.IsFalse(NoctuaIAPService.IsRetryablePendingPurchase(null));
         }
+
+        // A store order with no receipt (item already owned, or its Play purchase still pending)
+        // can never verify: the backend answers 400 "receipt_data field is required" every time.
+        // It waits for its receipt (HandleUnpairedPurchase re-queues it with one) instead.
+        [TestCase(PaymentType.playstore, null, false)]
+        [TestCase(PaymentType.playstore, "", false)]
+        [TestCase(PaymentType.appstore, "", false)]
+        [TestCase(PaymentType.playstore, "token-abc", true)]
+        [TestCase(PaymentType.appstore, "receipt-abc", true)]
+        [TestCase(PaymentType.noctuastore, "", true)]          // verified without a receipt
+        [TestCase(PaymentType.noctuastore_redeem, "", true)]
+        public void IsRetryablePendingPurchase_ByReceipt(PaymentType paymentType, string receiptData, bool expected)
+        {
+            var item = MakePendingItem(5);
+            item.OrderRequest.PaymentType = paymentType;
+            item.VerifyOrderRequest.ReceiptData = receiptData;
+
+            Assert.AreEqual(expected, NoctuaIAPService.IsRetryablePendingPurchase(item));
+        }
     }
 
     // ══════════════════════════════════════════════════════════════════════════════

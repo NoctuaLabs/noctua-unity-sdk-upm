@@ -3187,12 +3187,23 @@ namespace com.noctuagames.sdk
         /// <summary>
         /// Whether a queued order should be re-verified. Canceled and refunded orders are final:
         /// they stay persisted so the pending purchases dialog can show them, but are not retried.
+        /// A Play Store or App Store order with no receipt yet (item already owned, or its store
+        /// purchase still pending) is not retried either: the backend rejects it every time with
+        /// "receipt_data field is required". It is queued again, with its receipt, when the store
+        /// delivers the purchase (HandleUnpairedPurchase).
         /// </summary>
         /// <param name="item">Queued pending purchase.</param>
         /// <returns>True when the order should be verified again.</returns>
         public static bool IsRetryablePendingPurchase(InternalPurchaseItem item)
         {
             if (item?.OrderRequest == null || item.VerifyOrderRequest == null || item.OrderId == 0)
+            {
+                return false;
+            }
+
+            var isStoreOrder = item.OrderRequest.PaymentType == PaymentType.playstore ||
+                               item.OrderRequest.PaymentType == PaymentType.appstore;
+            if (isStoreOrder && string.IsNullOrEmpty(item.VerifyOrderRequest.ReceiptData))
             {
                 return false;
             }
