@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using Cysharp.Threading.Tasks;
 using Newtonsoft.Json;
@@ -16,6 +17,11 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
     /// server-side and survives reinstalls. A bought campaign is no longer shown, and its Buy
     /// buttons show as purchased. While the tracker is down the purchase waits on disk and still
     /// counts as bought on this device.</para>
+    ///
+    /// <para><b>One purchase per day</b> (<see cref="CampaignItem.PurchaseDaily"/>): after a completed
+    /// purchase the SDK saves the device-local date for the player, on this device only (no tracker
+    /// key). The campaign counts as bought until the next local midnight, then shows again. A SKU the
+    /// store still reports owned (a non-consumable) stays purchased through the ownership check.</para>
     /// </summary>
     public sealed partial class NoctuaLiveOpsCampaign
     {
@@ -61,19 +67,28 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
         /// </summary>
         public bool IsCampaignPurchased(CampaignItem item)
         {
-            if (item == null || !item.PurchaseOnce || !IsProgressConfigured) return false;
+            if (item == null || !(item.PurchaseOnce || item.PurchaseDaily) || !IsProgressConfigured) return false;
             EnsureProgressPlayer();
 
             var key = PurchaseKey(item);
+            if (!item.PurchaseOnce)
+            {
+                // Ordinal >= so moving the device date back does not reopen today's offer.
+                return _dailyPurchases.TryGetValue(key, out var day) && string.CompareOrdinal(day, LocalToday()) >= 0;
+            }
             if (_pendingPurchaseClaims.Contains(key)) return true;
             return _serverProgress.TryGetValue(key, out var row) && row.Claimed;
         }
+
+        /// <summary>The device-local date now, as <c>yyyy-MM-dd</c> (sorts like the date).</summary>
+        private string LocalToday() =>
+            DateTime.SpecifyKind(_utcNow(), DateTimeKind.Utc).ToLocalTime().ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
 
         /// <summary><see cref="IsCampaignPurchased"/>, after loading progress when it is not fresh.</summary>
         public async UniTask<bool> IsCampaignPurchasedAsync(string campaignId)
         {
             var item = FindCampaign(campaignId);
-            if (item == null || !item.PurchaseOnce) return false;
+            if (item == null || !(item.PurchaseOnce || item.PurchaseDaily)) return false;
 
             await EnsurePurchaseStateAsync(item);
             return IsCampaignPurchased(item);
@@ -91,7 +106,7 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
             try
             {
                 var item = FindCampaign(campaignId);
-                if (item == null || !item.PurchaseOnce) return false;
+                if (item == null || !(item.PurchaseOnce || item.PurchaseDaily)) return false;
                 if (TryProgressCaller() == null)
                 {
                     _log.Warning($"{LogTag} purchase of '{campaignId}' not recorded: nobody is logged in");
@@ -100,6 +115,21 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
 
                 EnsureProgressPlayer();
                 var key = PurchaseKey(item);
+                if (!item.PurchaseOnce)
+                {
+                    // purchase_daily: today on this device. Older days are dropped, so the save
+                    // keeps one entry per campaign bought today.
+                    var today = LocalToday();
+                    foreach (var old in _dailyPurchases.Where(p => string.CompareOrdinal(p.Value, today) < 0).Select(p => p.Key).ToList())
+                    {
+                        _dailyPurchases.Remove(old);
+                    }
+                    _dailyPurchases[key] = today;
+                    SaveProgress();
+                    RefreshShownCampaign(item.Id);
+                    SafeInvoke(OnCampaignPurchaseRecorded, item.Id);
+                    return true;
+                }
                 _pendingPurchaseClaims.Add(key);
                 SaveProgress();
                 RefreshShownCampaign(item.Id);
@@ -223,7 +253,7 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
                 if (order?.Extra == null || !order.Extra.TryGetValue(ExtraCampaignId, out var campaignId)) return false;
 
                 var item = FindCampaign(campaignId);
-                if (item == null || !item.PurchaseOnce || IsCampaignPurchased(item)) return false;
+                if (item == null || !(item.PurchaseOnce || item.PurchaseDaily) || IsCampaignPurchased(item)) return false;
 
                 EnsureProgressPlayer();
                 if (buyerId is > 0 && buyerId != _progressPlayer)
