@@ -400,6 +400,44 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
         /// <paramref name="prices"/> has one. Keys the campaign does not ship are never added,
         /// and SKUs with no local price keep their fallback. Pure: never mutates the stored item.
         /// </summary>
+        /// <summary>
+        /// The campaign with its <c>i18n</c> overrides for <paramref name="language"/> laid over
+        /// <c>data</c>. Matches the exact code first, then the base language (<c>id-ID</c> → <c>id</c>),
+        /// ignoring case. The same item when there is nothing to override.
+        /// </summary>
+        public static CampaignItem ApplyLanguage(CampaignItem item, string language)
+        {
+            if (item?.I18n == null || string.IsNullOrWhiteSpace(language)) return item;
+
+            var overrides = FindLanguage(item.I18n, language.Trim());
+            if (overrides == null || overrides.Count == 0) return item;
+
+            var data = item.Data != null
+                ? new Dictionary<string, string>(item.Data)
+                : new Dictionary<string, string>();
+            foreach (var pair in overrides)
+            {
+                if (pair.Key != null && pair.Value != null) data[pair.Key] = pair.Value;
+            }
+
+            var copy = item.ShallowCopy();
+            copy.Data = data;
+            return copy;
+        }
+
+        private static Dictionary<string, string> FindLanguage(
+            Dictionary<string, Dictionary<string, string>> i18n, string language)
+        {
+            var baseLanguage = language.Split('-', '_')[0];
+            Dictionary<string, string> fallback = null;
+            foreach (var pair in i18n)
+            {
+                if (string.Equals(pair.Key, language, StringComparison.OrdinalIgnoreCase)) return pair.Value;
+                if (string.Equals(pair.Key, baseLanguage, StringComparison.OrdinalIgnoreCase)) fallback = pair.Value;
+            }
+            return fallback;
+        }
+
         public static CampaignItem ApplyStorePrices(CampaignItem item, IReadOnlyDictionary<string, string> prices)
         {
             if (item?.Data == null || prices == null) return item;
@@ -457,7 +495,7 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
         /// <summary>The stored campaign with the game's values and the known local prices folded in.</summary>
         private CampaignItem RenderItem(CampaignItem stored, IReadOnlyDictionary<string, string> playerData)
         {
-            var item = WithStoreSkus(MergePlayerData(stored, playerData));
+            var item = WithStoreSkus(MergePlayerData(ApplyLanguage(stored, _locale?.GetLanguage()), playerData));
             var ownership = OwnershipFor(item);
             return MarkOwnedButtons(
                 ApplyOwnership(ApplyStorePrices(item, _storePrices), ownership),

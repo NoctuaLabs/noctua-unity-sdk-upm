@@ -67,6 +67,14 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
         public Dictionary<string, string> Data;
 
         /// <summary>
+        /// Per-language overrides of <see cref="Data"/> keys, keyed by ISO 639-1 language code
+        /// (e.g. <c>"id"</c>): translated copy, images and labels. The player's language is laid over
+        /// <see cref="Data"/> before rendering; any other language sees the base copy.
+        /// </summary>
+        [JsonProperty("i18n")]
+        public Dictionary<string, Dictionary<string, string>> I18n;
+
+        /// <summary>
         /// Keys the game supplies when it shows the popup (<c>ShowPopup(id, playerData)</c>),
         /// each with a default — per-player values such as mission progress that cannot ship in
         /// the shared <see cref="Data"/>. Their <c>{{tokens}}</c> resolve like any other; a key
