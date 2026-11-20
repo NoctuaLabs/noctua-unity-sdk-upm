@@ -328,5 +328,44 @@ namespace Tests.Runtime.Campaign
             Assert.IsFalse(await facade.RunAutoShowAsync(), "before login it cannot tell if this player bought it today");
             Assert.IsNull(facade.ShownCampaignId);
         });
+
+        [UnityTest]
+        public IEnumerator AutoShow_AHigherDailyOffer_HoldsTheTurnUntilLogin() => UniTask.ToCoroutine(async () =>
+        {
+            // Auto-show runs right after init, before the game logs in. The daily offer ranks first,
+            // so a lower auto-show popup must not take its turn while the player is still unknown.
+            var daily = FixtureItem(FixturePath, "daily_first", 90);
+            var lower = FixtureItem(ExtrasFixturePath, "plain_second", 10);
+            long? player = null;
+            var panel = ScriptableObject.CreateInstance<UnityEngine.UIElements.PanelSettings>();
+            var facade = NewFacade(BaseUrl,
+                new CampaignConfig { SchemaVersion = 4, Campaigns = new List<CampaignItem> { lower, daily } },
+                playerId: () => player, clock: _clock, panel: panel, locale: new NoctuaLocale());
+            try
+            {
+                Assert.IsFalse(await facade.RunAutoShowAsync(), "nothing shows before login");
+                Assert.IsNull(facade.ShownCampaignId);
+
+                player = PlayerId;
+                await facade.OnAccountChangedAsync();
+                await UniTask.WaitUntil(() => facade.ShownCampaignId != null).Timeout(TimeSpan.FromSeconds(5));
+
+                Assert.AreEqual("daily_first", facade.ShownCampaignId, "the daily offer gets its turn after login");
+            }
+            finally { UnityEngine.Object.DestroyImmediate(panel); }
+        });
+
+        private const string ExtrasFixturePath =
+            "Packages/com.noctuagames.sdk/Tests/Runtime/Campaign/Fixtures/single-offer-extras.json";
+
+        private static CampaignItem FixtureItem(string path, string id, int priority)
+        {
+            var item = JsonConvert.DeserializeObject<CampaignItem>(File.ReadAllText(Path.GetFullPath(path)));
+            item.Id = id;
+            item.ProgressScope = null;
+            item.Priority = priority;
+            item.AutoShow = true;
+            return item;
+        }
     }
 }

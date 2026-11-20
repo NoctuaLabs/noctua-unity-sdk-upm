@@ -564,12 +564,13 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
                     if (!item.AutoShow) continue;
 
                     // Whether a purchase_once / purchase_daily offer was bought is known per player. Before login it
-                    // cannot be told, so it waits and auto-show runs again after the first login
-                    // (OnAccountChangedAsync) — a bought offer must never pop up, even greyed out.
+                    // cannot be told, so auto-show stops here and runs again after the first login
+                    // (OnAccountChangedAsync): a bought offer must never pop up, even greyed out, and a
+                    // lower-priority popup must not take this offer's turn.
                     if ((item.PurchaseOnce || item.PurchaseDaily) && IsProgressConfigured && TryProgressCaller() == null)
                     {
-                        waitingForPlayer = true;
-                        continue;
+                        _autoShowNeedsPlayer = true;
+                        return false;
                     }
 
                     // A bought offer gives way to the next auto_show campaign.
