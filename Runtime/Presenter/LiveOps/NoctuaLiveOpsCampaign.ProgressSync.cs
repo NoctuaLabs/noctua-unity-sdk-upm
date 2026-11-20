@@ -174,6 +174,10 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
             {
                 if (!string.IsNullOrEmpty(key)) _pendingPurchaseClaims.Add(key);
             }
+            foreach (var pair in saved.DailyPurchases ?? new Dictionary<string, string>())
+            {
+                if (!string.IsNullOrEmpty(pair.Key) && !string.IsNullOrEmpty(pair.Value)) _dailyPurchases[pair.Key] = pair.Value;
+            }
             _undeliveredRewards.AddRange((saved.UndeliveredRewards ?? new List<LiveOpsReward>())
                 .Where(r => r != null && !string.IsNullOrEmpty(r.ClaimId)));
             _rewardHistory.AddRange((saved.RewardHistory ?? new List<string>()).Where(id => !string.IsNullOrEmpty(id)));
@@ -207,6 +211,7 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
                     Items = _serverProgress.Values.ToList(),
                     Pending = new Dictionary<string, long>(_pendingProgress),
                     PendingClaims = _pendingPurchaseClaims.ToList(),
+                    DailyPurchases = new Dictionary<string, string>(_dailyPurchases),
                     UndeliveredRewards = _undeliveredRewards.ToList(),
                     RewardHistory = _rewardHistory.ToList(),
                 };
@@ -226,6 +231,7 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
             [JsonProperty("items")] public List<LiveOpsProgress> Items;
             [JsonProperty("pending")] public Dictionary<string, long> Pending;
             [JsonProperty("pending_claims")] public List<string> PendingClaims;
+            [JsonProperty("daily_purchases")] public Dictionary<string, string> DailyPurchases;
             [JsonProperty("undelivered_rewards")] public List<LiveOpsReward> UndeliveredRewards;
             [JsonProperty("reward_history")] public List<string> RewardHistory;
         }

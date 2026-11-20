@@ -227,7 +227,7 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
 
                 if (IsCampaignPurchased(stored))
                 {
-                    _log.Info($"{LogTag} campaign '{stored.Id}' not shown — the player already bought it (purchase_once)");
+                    _log.Info($"{LogTag} campaign '{stored.Id}' not shown — the player already bought it ({(stored.PurchaseOnce ? "purchase_once" : "purchase_daily, today")})");
                     return;
                 }
 
@@ -563,10 +563,10 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
                 {
                     if (!item.AutoShow) continue;
 
-                    // Whether a purchase_once offer was bought is known per player. Before login it
+                    // Whether a purchase_once / purchase_daily offer was bought is known per player. Before login it
                     // cannot be told, so it waits and auto-show runs again after the first login
                     // (OnAccountChangedAsync) — a bought offer must never pop up, even greyed out.
-                    if (item.PurchaseOnce && IsProgressConfigured && TryProgressCaller() == null)
+                    if ((item.PurchaseOnce || item.PurchaseDaily) && IsProgressConfigured && TryProgressCaller() == null)
                     {
                         waitingForPlayer = true;
                         continue;

@@ -19,8 +19,8 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
         /// <summary>Highest widget-schema version this build understands.</summary>
         /// <remarks>v2 adds <c>player_data</c>, <c>visible_if</c>, <c>keep_open</c> and
         /// token-resolved progress bar values. v3 adds <c>purchase_once</c> campaigns and
-        /// per-store SKUs (<c>product_key</c> actions).</remarks>
-        public const int SupportedSchemaVersion = 3;
+        /// per-store SKUs (<c>product_key</c> actions). v4 adds <c>purchase_daily</c> campaigns.</remarks>
+        public const int SupportedSchemaVersion = 4;
 
         /// <summary>Stable unique id. Used for merge, frequency capping, and targeting by id.</summary>
         [JsonProperty("id")]
@@ -92,6 +92,15 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
         /// </summary>
         [JsonProperty("purchase_once")]
         public bool PurchaseOnce;
+
+        /// <summary>
+        /// Purchase campaigns only: after a purchase from this campaign it is hidden for the rest of
+        /// the player's day and shows again from the device's next local midnight. Recorded on this
+        /// device per player, not on the tracker. Only consumables are sold again: a SKU the store
+        /// still reports owned stays purchased. <see cref="PurchaseOnce"/> wins when both are set.
+        /// </summary>
+        [JsonProperty("purchase_daily")]
+        public bool PurchaseDaily;
 
         /// <summary>
         /// Optional per-campaign custom-font registry: alias → <c>Resources</c> path of a
