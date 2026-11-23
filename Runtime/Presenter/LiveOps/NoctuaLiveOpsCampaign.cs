@@ -227,7 +227,7 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
 
                 if (IsCampaignPurchased(stored))
                 {
-                    _log.Info($"{LogTag} campaign '{stored.Id}' not shown — the player already bought it ({(stored.PurchaseOnce ? "purchase_once" : "purchase_daily, today")})");
+                    _log.Info($"{LogTag} campaign '{stored.Id}' not shown — the player already bought it ({(stored.PurchaseOnceForever ? "purchase_once" : "purchase_daily, today")})");
                     return;
                 }
 
@@ -605,7 +605,7 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
                     // cannot be told, so auto-show stops here and runs again after the first login
                     // (OnAccountChangedAsync): a bought offer must never pop up, even greyed out, and a
                     // lower-priority popup must not take this offer's turn.
-                    if ((item.PurchaseOnce || item.PurchaseDaily) && IsProgressConfigured && TryProgressCaller() == null)
+                    if ((item.PurchaseOnceForever || item.PurchaseOncePerDay) && IsProgressConfigured && TryProgressCaller() == null)
                     {
                         _autoShowNeedsPlayer = true;
                         return false;

@@ -91,9 +91,9 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
         private readonly Dictionary<string, LiveOpsProgress> _serverProgress = new(StringComparer.Ordinal);
         private readonly Dictionary<string, long> _pendingProgress = new(StringComparer.Ordinal);
         // purchase_once keys bought but not yet claimed on the tracker (it was down); retried with updates.
-        private readonly HashSet<string> _pendingPurchaseClaims = new(StringComparer.Ordinal);
+        private readonly HashSet<string> _unsentOnceForeverClaims = new(StringComparer.Ordinal);
         // purchase_daily campaigns bought on this device: purchase key -> device-local date (yyyy-MM-dd).
-        private readonly Dictionary<string, string> _dailyPurchases = new(StringComparer.Ordinal);
+        private readonly Dictionary<string, string> _oncePerDayPurchaseDates = new(StringComparer.Ordinal);
         private DateTime? _progressFetchedAtUtc;
         private bool _progressStale;
 
@@ -413,11 +413,11 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
         /// </summary>
         public void ClearProgress()
         {
-            var had = _serverProgress.Count + _pendingProgress.Count + _pendingPurchaseClaims.Count > 0;
+            var had = _serverProgress.Count + _pendingProgress.Count + _unsentOnceForeverClaims.Count > 0;
             _serverProgress.Clear();
             _pendingProgress.Clear();
-            _pendingPurchaseClaims.Clear();
-            _dailyPurchases.Clear();
+            _unsentOnceForeverClaims.Clear();
+            _oncePerDayPurchaseDates.Clear();
             _undeliveredRewards.Clear();
             _rewardHistory.Clear();
             _progressFetchedAtUtc = null;
@@ -654,8 +654,8 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
 
             _serverProgress.Clear();
             _pendingProgress.Clear();
-            _pendingPurchaseClaims.Clear();
-            _dailyPurchases.Clear();
+            _unsentOnceForeverClaims.Clear();
+            _oncePerDayPurchaseDates.Clear();
             _undeliveredRewards.Clear();
             _rewardHistory.Clear();
             _progressFetchedAtUtc = null;

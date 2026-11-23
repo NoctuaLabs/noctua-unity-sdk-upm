@@ -17,7 +17,7 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
         /// <summary>Sends waiting updates in turn; stops at the first sign the tracker is down.</summary>
         private async UniTask<int> FlushPendingCoreAsync(string token, string playerId)
         {
-            if (_flushingProgress || _pendingProgress.Count + _pendingPurchaseClaims.Count == 0) return _pendingProgress.Count;
+            if (_flushingProgress || _pendingProgress.Count + _unsentOnceForeverClaims.Count == 0) return _pendingProgress.Count;
 
             _flushingProgress = true;
             try
@@ -43,8 +43,8 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
                     }
                 }
 
-                if (_pendingProgress.Count == 0) await RetryPurchaseClaimsAsync();
-                if (_pendingProgress.Count == 0 && _pendingPurchaseClaims.Count == 0) _retryAttempt = 0;
+                if (_pendingProgress.Count == 0) await RetryOnceForeverClaimsAsync();
+                if (_pendingProgress.Count == 0 && _unsentOnceForeverClaims.Count == 0) _retryAttempt = 0;
                 return _pendingProgress.Count;
             }
             finally
@@ -55,7 +55,7 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
 
         private void ScheduleProgressRetry()
         {
-            if (_retryScheduled || _pendingProgress.Count + _pendingPurchaseClaims.Count == 0) return;
+            if (_retryScheduled || _pendingProgress.Count + _unsentOnceForeverClaims.Count == 0) return;
             _retryScheduled = true;
             RetryPendingAfterAsync(ProgressRetryDelay(_retryAttempt++)).Forget();
         }
@@ -170,13 +170,13 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
             {
                 if (!string.IsNullOrEmpty(pair.Key)) _pendingProgress[pair.Key] = pair.Value;
             }
-            foreach (var key in saved.PendingClaims ?? new List<string>())
+            foreach (var key in saved.UnsentOnceForeverClaims ?? new List<string>())
             {
-                if (!string.IsNullOrEmpty(key)) _pendingPurchaseClaims.Add(key);
+                if (!string.IsNullOrEmpty(key)) _unsentOnceForeverClaims.Add(key);
             }
-            foreach (var pair in saved.DailyPurchases ?? new Dictionary<string, string>())
+            foreach (var pair in saved.OncePerDayPurchaseDates ?? new Dictionary<string, string>())
             {
-                if (!string.IsNullOrEmpty(pair.Key) && !string.IsNullOrEmpty(pair.Value)) _dailyPurchases[pair.Key] = pair.Value;
+                if (!string.IsNullOrEmpty(pair.Key) && !string.IsNullOrEmpty(pair.Value)) _oncePerDayPurchaseDates[pair.Key] = pair.Value;
             }
             _undeliveredRewards.AddRange((saved.UndeliveredRewards ?? new List<LiveOpsReward>())
                 .Where(r => r != null && !string.IsNullOrEmpty(r.ClaimId)));
@@ -210,8 +210,8 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
                     FetchedAtUtc = _progressFetchedAtUtc,
                     Items = _serverProgress.Values.ToList(),
                     Pending = new Dictionary<string, long>(_pendingProgress),
-                    PendingClaims = _pendingPurchaseClaims.ToList(),
-                    DailyPurchases = new Dictionary<string, string>(_dailyPurchases),
+                    UnsentOnceForeverClaims = _unsentOnceForeverClaims.ToList(),
+                    OncePerDayPurchaseDates = new Dictionary<string, string>(_oncePerDayPurchaseDates),
                     UndeliveredRewards = _undeliveredRewards.ToList(),
                     RewardHistory = _rewardHistory.ToList(),
                 };
@@ -230,8 +230,8 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
             [JsonProperty("fetched_at")] public DateTime? FetchedAtUtc;
             [JsonProperty("items")] public List<LiveOpsProgress> Items;
             [JsonProperty("pending")] public Dictionary<string, long> Pending;
-            [JsonProperty("pending_claims")] public List<string> PendingClaims;
-            [JsonProperty("daily_purchases")] public Dictionary<string, string> DailyPurchases;
+            [JsonProperty("pending_claims")] public List<string> UnsentOnceForeverClaims;
+            [JsonProperty("daily_purchases")] public Dictionary<string, string> OncePerDayPurchaseDates;
             [JsonProperty("undelivered_rewards")] public List<LiveOpsReward> UndeliveredRewards;
             [JsonProperty("reward_history")] public List<string> RewardHistory;
         }

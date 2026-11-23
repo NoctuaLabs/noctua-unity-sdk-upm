@@ -74,7 +74,7 @@ namespace Tests.Runtime.Campaign
                         props: new Dictionary<string, object> { { "text", "Buy" } },
                         action: new CampaignAction { TypeRaw = "purchase", ProductId = "pack2" }),
                 }));
-            item.PurchaseOnce = purchaseOnce;
+            item.PurchaseOnceForever = purchaseOnce;
             return item;
         }
 
@@ -127,7 +127,7 @@ namespace Tests.Runtime.Campaign
         public void PurchaseOnce_DeserializesFromJson()
         {
             var item = Newtonsoft.Json.JsonConvert.DeserializeObject<CampaignItem>("{\"id\":\"x\",\"purchase_once\":true}");
-            Assert.IsTrue(item.PurchaseOnce);
+            Assert.IsTrue(item.PurchaseOnceForever);
         }
 
         [UnityTest]
@@ -257,7 +257,7 @@ namespace Tests.Runtime.Campaign
                 System.IO.File.ReadAllText(System.IO.Path.GetFullPath(MultiOfferFixture)));
             item.Id = Id;
             item.ProgressScope = null;
-            item.PurchaseOnce = true;
+            item.PurchaseOnceForever = true;
             item.AutoShow = true;
             item.Frequency = null;
             item.Targeting = null;

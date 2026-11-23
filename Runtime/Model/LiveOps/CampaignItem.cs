@@ -99,16 +99,16 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
         /// and the campaign is no longer shown.
         /// </summary>
         [JsonProperty("purchase_once")]
-        public bool PurchaseOnce;
+        public bool PurchaseOnceForever;
 
         /// <summary>
         /// Purchase campaigns only: after a purchase from this campaign it is hidden for the rest of
         /// the player's day and shows again from the device's next local midnight. Recorded on this
         /// device per player, not on the tracker. Only consumables are sold again: a SKU the store
-        /// still reports owned stays purchased. <see cref="PurchaseOnce"/> wins when both are set.
+        /// still reports owned stays purchased. <see cref="PurchaseOnceForever"/> wins when both are set.
         /// </summary>
         [JsonProperty("purchase_daily")]
-        public bool PurchaseDaily;
+        public bool PurchaseOncePerDay;
 
         /// <summary>
         /// Optional per-campaign custom-font registry: alias → <c>Resources</c> path of a

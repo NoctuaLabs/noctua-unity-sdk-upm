@@ -76,7 +76,7 @@ namespace Tests.Runtime.Campaign
                         props: new Dictionary<string, object> { { "text", "Buy" } },
                         action: new CampaignAction { TypeRaw = "purchase", ProductId = "pack2" }),
                 }));
-            item.PurchaseDaily = daily;
+            item.PurchaseOncePerDay = daily;
             return item;
         }
 
@@ -106,8 +106,8 @@ namespace Tests.Runtime.Campaign
         public void PurchaseDaily_DeserializesFromJson()
         {
             var item = JsonConvert.DeserializeObject<CampaignItem>("{\"id\":\"x\",\"purchase_daily\":true}");
-            Assert.IsTrue(item.PurchaseDaily);
-            Assert.IsFalse(item.PurchaseOnce);
+            Assert.IsTrue(item.PurchaseOncePerDay);
+            Assert.IsFalse(item.PurchaseOnceForever);
         }
 
         [Test]
@@ -115,8 +115,8 @@ namespace Tests.Runtime.Campaign
         {
             var item = JsonConvert.DeserializeObject<CampaignItem>(File.ReadAllText(Path.GetFullPath(FixturePath)));
 
-            Assert.IsTrue(item.PurchaseDaily);
-            Assert.IsFalse(item.PurchaseOnce, "one rule per campaign");
+            Assert.IsTrue(item.PurchaseOncePerDay);
+            Assert.IsFalse(item.PurchaseOnceForever, "one rule per campaign");
             Assert.AreEqual(4, item.SchemaVersion);
             Assert.AreEqual("cmpurchasedaily0001gems", item.ProgressScope);
             Assert.IsTrue(CampaignValidator.TryValidate(item, out var error), error);
@@ -226,7 +226,7 @@ namespace Tests.Runtime.Campaign
             _server.AddHandler("/progress/42/" + key, _ => Envelope(Row(key, 1, 1, completed: true)));
             _server.AddHandler("/progress/42/" + key + "/claim", _ => Envelope(Row(key, 1, 1, completed: true, claimed: true)));
             var item = Offer();
-            item.PurchaseOnce = true;
+            item.PurchaseOnceForever = true;
             var facade = Facade(item);
 
             await facade.RecordCampaignPurchaseAsync(Id);

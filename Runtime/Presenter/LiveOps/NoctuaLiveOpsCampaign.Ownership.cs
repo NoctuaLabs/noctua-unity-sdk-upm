@@ -245,7 +245,7 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
 
         private bool NeedsOwnershipCheck(CampaignItem item)
         {
-            if (NeedsPurchaseStateCheck(item)) return true;
+            if (NeedsOnceForeverStateCheck(item)) return true;
             if (_isProductOwned == null) return false;
             foreach (var sku in SkusOf(item))
             {
@@ -354,7 +354,7 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
         /// <summary>Checks ownership first; true (and logged) when the player already owns all of it.</summary>
         private async UniTask<bool> IsOwnedAfterCheckAsync(CampaignItem item)
         {
-            await EnsurePurchaseStateAsync(item);
+            await EnsureOnceForeverStateAsync(item);
             await PrefetchOwnershipAsync(item);
             if (!IsFullyOwned(item)) return false;
 

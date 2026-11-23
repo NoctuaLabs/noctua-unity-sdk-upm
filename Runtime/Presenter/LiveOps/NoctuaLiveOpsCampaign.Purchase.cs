@@ -11,14 +11,14 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
     /// <summary>
     /// Campaign purchases beyond "buy this SKU":
     ///
-    /// <para><b>One purchase per campaign</b> (<see cref="CampaignItem.PurchaseOnce"/>): after a
+    /// <para><b>One purchase per campaign</b> (<see cref="CampaignItem.PurchaseOnceForever"/>): after a
     /// completed purchase from the campaign, the SDK claims the tracker key
     /// <c>&lt;campaign id&gt;.purchase</c>. The tracker allows a claim only once, so the record is
     /// server-side and survives reinstalls. A bought campaign is no longer shown, and its Buy
     /// buttons show as purchased. While the tracker is down the purchase waits on disk and still
     /// counts as bought on this device.</para>
     ///
-    /// <para><b>One purchase per day</b> (<see cref="CampaignItem.PurchaseDaily"/>): after a completed
+    /// <para><b>One purchase per day</b> (<see cref="CampaignItem.PurchaseOncePerDay"/>): after a completed
     /// purchase the SDK saves the device-local date for the player, on this device only (no tracker
     /// key). The campaign counts as bought until the next local midnight, then shows again. A SKU the
     /// store still reports owned (a non-consumable) stays purchased through the ownership check.</para>
@@ -32,7 +32,7 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
         public const string ExtraCampaignId = "campaign_id";
 
         /// <summary>How old loaded progress may be before a <c>purchase_once</c> campaign re-checks it.</summary>
-        public static readonly TimeSpan PurchaseStateMaxAge = TimeSpan.FromMinutes(5);
+        public static readonly TimeSpan OnceForeverStateMaxAge = TimeSpan.FromMinutes(5);
 
         private const string AlreadyPurchasedFallback = "You already bought this offer.";
 
@@ -40,12 +40,12 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
         public event Action<string> OnCampaignPurchaseRecorded;
 
         // Purchase keys being claimed right now, so a flush never claims one twice at once.
-        private readonly HashSet<string> _claimingPurchaseKeys = new(StringComparer.Ordinal);
+        private readonly HashSet<string> _claimingOnceForeverKeys = new(StringComparer.Ordinal);
         // Last purchase-state load attempt, so a tracker that is down is not waited on for every popup.
         private DateTime? _purchaseStateAttemptUtc;
 
         /// <summary>After a failed purchase-state load, how long popups use what is known instead of asking again.</summary>
-        public static readonly TimeSpan PurchaseStateRetryBackoff = TimeSpan.FromMinutes(1);
+        public static readonly TimeSpan OnceForeverStateRetryBackoff = TimeSpan.FromMinutes(1);
 
         // ── One purchase per campaign ─────────────────────────────────────
 
@@ -67,16 +67,16 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
         /// </summary>
         public bool IsCampaignPurchased(CampaignItem item)
         {
-            if (item == null || !(item.PurchaseOnce || item.PurchaseDaily) || !IsProgressConfigured) return false;
+            if (item == null || !(item.PurchaseOnceForever || item.PurchaseOncePerDay) || !IsProgressConfigured) return false;
             EnsureProgressPlayer();
 
             var key = PurchaseKey(item);
-            if (!item.PurchaseOnce)
+            if (!item.PurchaseOnceForever)
             {
                 // Ordinal >= so moving the device date back does not reopen today's offer.
-                return _dailyPurchases.TryGetValue(key, out var day) && string.CompareOrdinal(day, LocalToday()) >= 0;
+                return _oncePerDayPurchaseDates.TryGetValue(key, out var day) && string.CompareOrdinal(day, LocalToday()) >= 0;
             }
-            if (_pendingPurchaseClaims.Contains(key)) return true;
+            if (_unsentOnceForeverClaims.Contains(key)) return true;
             return _serverProgress.TryGetValue(key, out var row) && row.Claimed;
         }
 
@@ -88,9 +88,9 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
         public async UniTask<bool> IsCampaignPurchasedAsync(string campaignId)
         {
             var item = FindCampaign(campaignId);
-            if (item == null || !(item.PurchaseOnce || item.PurchaseDaily)) return false;
+            if (item == null || !(item.PurchaseOnceForever || item.PurchaseOncePerDay)) return false;
 
-            await EnsurePurchaseStateAsync(item);
+            await EnsureOnceForeverStateAsync(item);
             return IsCampaignPurchased(item);
         }
 
@@ -106,7 +106,7 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
             try
             {
                 var item = FindCampaign(campaignId);
-                if (item == null || !(item.PurchaseOnce || item.PurchaseDaily)) return false;
+                if (item == null || !(item.PurchaseOnceForever || item.PurchaseOncePerDay)) return false;
                 if (TryProgressCaller() == null)
                 {
                     _log.Warning($"{LogTag} purchase of '{campaignId}' not recorded: nobody is logged in");
@@ -115,26 +115,26 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
 
                 EnsureProgressPlayer();
                 var key = PurchaseKey(item);
-                if (!item.PurchaseOnce)
+                if (!item.PurchaseOnceForever)
                 {
                     // purchase_daily: today on this device. Older days are dropped, so the save
                     // keeps one entry per campaign bought today.
                     var today = LocalToday();
-                    foreach (var old in _dailyPurchases.Where(p => string.CompareOrdinal(p.Value, today) < 0).Select(p => p.Key).ToList())
+                    foreach (var old in _oncePerDayPurchaseDates.Where(p => string.CompareOrdinal(p.Value, today) < 0).Select(p => p.Key).ToList())
                     {
-                        _dailyPurchases.Remove(old);
+                        _oncePerDayPurchaseDates.Remove(old);
                     }
-                    _dailyPurchases[key] = today;
+                    _oncePerDayPurchaseDates[key] = today;
                     SaveProgress();
                     RefreshShownCampaign(item.Id);
                     SafeInvoke(OnCampaignPurchaseRecorded, item.Id);
                     return true;
                 }
-                _pendingPurchaseClaims.Add(key);
+                _unsentOnceForeverClaims.Add(key);
                 SaveProgress();
                 RefreshShownCampaign(item.Id);
 
-                await ClaimPurchaseKeyAsync(key, orderId);
+                await ClaimOnceForeverPurchaseAsync(key, orderId);
                 return true;
             }
             catch (Exception e)
@@ -149,15 +149,15 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
         /// when it already did). A tracker that is down or a logged-out player keeps the purchase
         /// waiting; a refused key (not set up for the game) is dropped and logged.
         /// </summary>
-        private async UniTask<bool> ClaimPurchaseKeyAsync(string key, long orderId)
+        private async UniTask<bool> ClaimOnceForeverPurchaseAsync(string key, long orderId)
         {
-            if (!_claimingPurchaseKeys.Add(key)) return false;
+            if (!_claimingOnceForeverKeys.Add(key)) return false;
 
             try
             {
                 await SetProgressAsync(key, 1);
                 await ClaimProgressAsync(key);
-                SettlePurchaseClaim(key);
+                SettleOnceForeverClaim(key);
                 SafeInvoke(OnCampaignPurchaseRecorded, CampaignIdOf(key));
                 return true;
             }
@@ -165,7 +165,7 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
             {
                 _log.Warning($"{LogTag} '{key}' was already claimed — a second purchase of a purchase_once campaign" +
                              (orderId > 0 ? $" (order {orderId})" : string.Empty));
-                SettlePurchaseClaim(key);
+                SettleOnceForeverClaim(key);
                 SafeInvoke(OnCampaignPurchaseRecorded, CampaignIdOf(key));
                 return true;
             }
@@ -179,54 +179,54 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
             {
                 _log.Error($"{LogTag} purchase claim '{key}' refused by the tracker, so the campaign can be " +
                            $"bought again — is the key set up for this game? {e.Message}");
-                SettlePurchaseClaim(key);
+                SettleOnceForeverClaim(key);
                 RefreshShownCampaign(CampaignIdOf(key));
                 return false;
             }
             finally
             {
-                _claimingPurchaseKeys.Remove(key);
+                _claimingOnceForeverKeys.Remove(key);
             }
         }
 
         /// <summary>The id of the campaign whose purchase key is <paramref name="purchaseKey"/>, or null.</summary>
         private string CampaignIdOf(string purchaseKey) =>
-            _resolver.Config?.Campaigns?.FirstOrDefault(c => c != null && c.PurchaseOnce && PurchaseKey(c) == purchaseKey)?.Id;
+            _resolver.Config?.Campaigns?.FirstOrDefault(c => c != null && c.PurchaseOnceForever && PurchaseKey(c) == purchaseKey)?.Id;
 
-        private void SettlePurchaseClaim(string key)
+        private void SettleOnceForeverClaim(string key)
         {
-            if (!_pendingPurchaseClaims.Remove(key)) return;
+            if (!_unsentOnceForeverClaims.Remove(key)) return;
             SaveProgress();
         }
 
         /// <summary>Claims purchases bought while the tracker was down; stops at the first that still waits.</summary>
-        private async UniTask RetryPurchaseClaimsAsync()
+        private async UniTask RetryOnceForeverClaimsAsync()
         {
-            foreach (var key in _pendingPurchaseClaims.ToList())
+            foreach (var key in _unsentOnceForeverClaims.ToList())
             {
                 // Being claimed by another call right now: that call settles it.
-                if (_claimingPurchaseKeys.Contains(key)) continue;
-                if (!await ClaimPurchaseKeyAsync(key, 0) && _pendingPurchaseClaims.Contains(key)) break;
+                if (_claimingOnceForeverKeys.Contains(key)) continue;
+                if (!await ClaimOnceForeverPurchaseAsync(key, 0) && _unsentOnceForeverClaims.Contains(key)) break;
             }
         }
 
         /// <summary>Loads progress for a <c>purchase_once</c> campaign when it is missing or old. Never throws.</summary>
-        private async UniTask EnsurePurchaseStateAsync(CampaignItem item)
+        private async UniTask EnsureOnceForeverStateAsync(CampaignItem item)
         {
-            if (!NeedsPurchaseStateCheck(item)) return;
+            if (!NeedsOnceForeverStateCheck(item)) return;
 
             _purchaseStateAttemptUtc = _utcNow();
             try { await GetProgressAsync(); }
             catch (Exception e) { _log.Debug($"{LogTag} purchase state for '{item.Id}' unavailable: {e.Message}"); }
         }
 
-        private bool NeedsPurchaseStateCheck(CampaignItem item)
+        private bool NeedsOnceForeverStateCheck(CampaignItem item)
         {
-            if (item == null || !item.PurchaseOnce || TryProgressCaller() == null) return false;
+            if (item == null || !item.PurchaseOnceForever || TryProgressCaller() == null) return false;
             EnsureProgressPlayer();
             var now = _utcNow();
-            if (_purchaseStateAttemptUtc.HasValue && now - _purchaseStateAttemptUtc.Value < PurchaseStateRetryBackoff) return false;
-            return !_progressFetchedAtUtc.HasValue || now - _progressFetchedAtUtc.Value > PurchaseStateMaxAge;
+            if (_purchaseStateAttemptUtc.HasValue && now - _purchaseStateAttemptUtc.Value < OnceForeverStateRetryBackoff) return false;
+            return !_progressFetchedAtUtc.HasValue || now - _progressFetchedAtUtc.Value > OnceForeverStateMaxAge;
         }
 
         /// <summary>Ownership to render <paramref name="item"/> with: every SKU owned once the campaign was bought.</summary>
@@ -253,7 +253,7 @@ namespace com.noctuagames.sdk.LiveOpsCampaign
                 if (order?.Extra == null || !order.Extra.TryGetValue(ExtraCampaignId, out var campaignId)) return false;
 
                 var item = FindCampaign(campaignId);
-                if (item == null || !(item.PurchaseOnce || item.PurchaseDaily) || IsCampaignPurchased(item)) return false;
+                if (item == null || !(item.PurchaseOnceForever || item.PurchaseOncePerDay) || IsCampaignPurchased(item)) return false;
 
                 EnsureProgressPlayer();
                 if (buyerId is > 0 && buyerId != _progressPlayer)
