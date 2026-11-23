@@ -2,11 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
-## [0.138.1] - 2026-11-10
+## [0.139.0] - 2026-11-23
 
 ### ⚙️ Miscellaneous
 
 - Bump native SDKs to android-sdk-v0.33.0 and ios-sdk-v0.38.0
+- Drop the Documentation~ spec from the package
 
 ### ✨ Improvements
 
@@ -66,6 +67,24 @@ All notable changes to this project will be documented in this file.
 - *(campaign)* Hide the popup's scrollbars
 - *(liveops)* Track dismiss reason, visible time and campaign purchase result
 - *(push)* Link push events to campaigns and track token changes
+- *(live-ops)* Share the reward item rules and split the large campaign files
+- *(live-ops)* Read the product type from the product list for campaign ownership
+- *(iap)* Send campaign fields as typed order request fields
+- Move ads and live ops code into the layer folders
+- Rename *Manager and *Orchestrator classes
+- Stop ads and live ops code from reaching up the layers
+- Keep one way to configure live ops campaigns
+- Fix the layer and visibility issues found in review
+- Trim live ops abstractions that were not earned
+- Move the Inspector into the layer folders
+- Sell one SKU per campaign Buy button, on both stores
+- Make the remaining internal SDK types public
+- Keep per-store SKUs on campaign Buy buttons
+- *(iap)* Send only campaign_id for a campaign order
+- *(iap)* Send the campaign id once, and the SKU name as the item name
+- *(liveops)* Remove OwnershipProvider
+- *(liveops)* Hold auto-show for a purchase-limited offer until login
+- *(liveops)* Rename the purchase limits to once forever and once per day
 
 ### 🐛 Bug Fixes
 
@@ -112,6 +131,13 @@ All notable changes to this project will be documented in this file.
 - *(campaign)* Show SDK dialogs above the campaign popup
 - *(campaign)* Re-check ownership when login clears it under an open popup
 - *(ios)* Queue pushes that arrive before Unity is ready
+- *(live-ops)* Claim a built-in chest the player never touched
+- *(live-ops)* Keep a just-bought consumable buyable in an open offer
+- *(iap)* Trust the order's product type over the store right after purchase
+- *(live-ops)* Record a purchase_once campaign when its order is verified
+- *(iaa)* Stop duplicate preload events and a leaked ad after a remote config
+- *(iaa)* Show the rewarded interstitial when admob is the secondary network
+- *(iap)* Stop retrying store orders that have no receipt
 
 ### 🚀 Features
 
@@ -157,6 +183,14 @@ All notable changes to this project will be documented in this file.
 - *(push)* Track push notification received and opened
 - *(campaign)* Hide offers the player already owns
 - *(campaign)* Show owned offer buttons as purchased
+- *(live-ops)* Target campaigns by sdk version
+- *(live-ops)* Buy-once offers, claim all missions and dynamic product bundles
+- *(live-ops)* Noctua.LiveOps.Campaign entry point and built-in mission claim with rewards
+- *(live-ops)* One Rewards handler for missions, chests and bundle purchases
+- *(live-ops)* Keep SDK-delivered bundle orders out of OnPurchaseDone
+- *(iap)* Deliver the items set on a SKU, and buy popup offers in the SDK
+- *(liveops)* Hide a purchase_daily campaign for the rest of the player's local day
+- *(liveops)* Show campaign translations in the player's language
 
 ## [0.122.0] - 2026-05-18
 
