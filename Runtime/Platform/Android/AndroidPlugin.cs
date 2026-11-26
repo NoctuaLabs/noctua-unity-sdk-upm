@@ -644,13 +644,27 @@ namespace com.noctuagames.sdk
         }
 
         /// <inheritdoc />
+        /// <remarks>
+        /// Tokens come from <c>NoctuaFirebaseMessagingService.onNewToken</c> via
+        /// <c>Noctua.setFcmTokenRefreshListener</c> (native Android SDK 0.37.0+); a token minted
+        /// before registration is buffered natively and delivered on registration. FCM calls back
+        /// on a worker thread, so delivery is marshaled to the Unity main thread. With an older
+        /// native SDK the method is missing: rotations are then only picked up by the re-fetch on
+        /// app resume, and a warning is logged.
+        /// </remarks>
         public void SetFirebaseMessagingTokenRefreshHandler(Action<string> handler)
         {
-            // Android token refresh relies on FirebaseMessagingService.onNewToken in the
-            // native SDK. Until that bridges to Unity, subscribers will only see the
-            // current-token value from GetFirebaseMessagingToken() — not proactive
-            // refresh notifications. No loud warning here because the common usage
-            // (fetch once on init + re-fetch periodically) still works.
+            try
+            {
+                using var noctua = new AndroidJavaClass("com.noctuagames.sdk.Noctua").GetStatic<AndroidJavaObject>("INSTANCE");
+                noctua.Call("setFcmTokenRefreshListener",
+                    handler == null ? null : new AndroidCallback<string>(token => RunOnMainThread(() => handler(token))));
+            }
+            catch (Exception e)
+            {
+                _log.Warning("OnFirebaseMessagingTokenRefresh is not supported by this native Android SDK " +
+                             $"(needs 0.37.0+), falling back to re-fetch on resume: {e.Message}");
+            }
         }
 
         /// <inheritdoc />

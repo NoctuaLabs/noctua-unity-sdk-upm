@@ -1256,16 +1256,21 @@ namespace com.noctuagames.sdk
                 { "fb_install_referrer", attribution.FbInstallReferrer ?? "" }
             });
 
+            // Feed native token rotations (iOS, Android native SDK 0.37.0+) straight into the
+            // cache backing X-FCM-TOKEN. Must subscribe before RegisterPushHandlers(): both
+            // natives replay a token minted before registration synchronously on the
+            // registering thread while the listener is being set, and it is lost if nobody is
+            // subscribed.
+            OnFirebaseMessagingTokenRefresh += AcceptFcmToken;
+
             // Register push-notification bridges with the native plugin so game code can
             // subscribe to Noctua.OnRemoteNotificationReceived / OnNotificationTapped /
             // OnFirebaseMessagingTokenRefresh. Deferred until init completes so the native
             // plugin is guaranteed to be constructed.
             RegisterPushHandlers();
 
-            // Feed native token rotations (iOS) straight into the cache backing X-FCM-TOKEN, then
-            // fetch both the FCM token and Firebase Installation ID now that the native plugin
+            // Fetch both the FCM token and Firebase Installation ID now that the native plugin
             // is up.
-            OnFirebaseMessagingTokenRefresh += AcceptFcmToken;
             FetchAndCacheFcmToken().Forget();
             FetchAndCacheFid().Forget();
 

@@ -338,9 +338,9 @@ namespace com.noctuagames.sdk
         }
 
         /// <summary>
-        /// Re-checks the token when the app returns to the foreground. This is how Android picks up
-        /// a rotated token: <c>AndroidPlugin.SetFirebaseMessagingTokenRefreshHandler</c> is a no-op,
-        /// so there is no push-based rotation signal on that platform.
+        /// Re-checks the token when the app returns to the foreground. A safety net behind the native
+        /// rotation callback, and the only rotation signal on Android with a native SDK older than
+        /// 0.37.0 (no <c>setFcmTokenRefreshListener</c>).
         /// </summary>
         private static void OnFcmTokenResume() => RefreshFcmTokenAsync().Forget();
 
