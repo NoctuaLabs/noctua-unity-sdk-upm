@@ -121,7 +121,35 @@ Parallel tracker driven by native platform callbacks (iOS `UIApplication`, Andro
 Cumulative foreground time for the entire session. Fires on session timeout resume or graceful app quit.
 
 ### `feature_engagement` (feature-level engagement)
-Tracks time spent on individual game features. Call `Noctua.Event.TrackCustomEvent("feature_engagement_start", ...)` and `feature_engagement_end` to bracket feature interactions; the SDK computes `time_msec` and attaches a `visit_id` for grouping related start/end pairs.
+Tracks time spent on individual game features or screens. Call `Noctua.Event.SetCurrentFeature(name)` whenever the player enters a feature. The SDK then sends one `feature_engagement` event for the feature being **left**, with the elapsed time and a visit id; the new feature starts a fresh timer. Pass an empty string to stop tracking.
+
+```csharp
+Noctua.Event.SetCurrentFeature("Shop");   // entering Shop
+Noctua.Event.SetCurrentFeature("Battle"); // leaving Shop -> sends feature_engagement for "Shop"
+```
+
+```json
+{
+  "event_name": "feature_engagement",
+  "feature_tag": "Shop",
+  "feature_time_msec": 14250,
+  "feature_visit_id": "6f1c0c1e-5d0b-4c1a-9a55-2b7a3f6e1f10"
+}
+```
+
+**Optional: use the Unity scene name as the feature.** Any string works as a feature name. If each feature is its own scene, you can instead pass the active scene name:
+
+```csharp
+using UnityEngine.SceneManagement;
+
+var sceneName = SceneManager.GetActiveScene().name;
+Noctua.Event.SetCurrentFeature(sceneName);
+```
+
+Call it again after each scene load (for example in the new scene's `Start()` or from `SceneManager.activeSceneChanged`), because the SDK does not follow scene changes for `feature_engagement` on its own.
+
+### `current_scene` (on every event)
+Independently of `SetCurrentFeature`, the SDK adds `current_scene` (the active scene name from `SceneManager.GetActiveScene().name`) to every event it sends to Noctua. It is left out when the scene has no name, and a value you pass yourself in an event's properties is kept as is. The name `feature_tag` is reserved for `feature_engagement` and is not added to other events.
 
 ### Session Timeout
 Default: **15 minutes** (`sessionTimeoutMs: 900000` in `NoctuaConfig`). On timeout, the old session is closed without `session_end` (force-kill limitation) and a new session begins.
