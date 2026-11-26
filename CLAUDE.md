@@ -329,7 +329,7 @@ Platform-layer reference.
 
 | Member | Type | Description |
 |--------|------|-------------|
-| `Noctua.Event` | `NoctuaEventService` | Analytics (TrackCustomEvent, SetSessionTag, GetSessionTag) |
+| `Noctua.Event` | `NoctuaEventService` | Analytics (TrackCustomEvent, SetCurrentFeature) |
 | `Noctua.Auth` | `NoctuaAuthentication` | Authentication (AuthenticateAsync, LoginAsGuest, etc.) |
 | `Noctua.IAP` | `NoctuaIAPService` | In-app purchases |
 | `Noctua.Platform` | `NoctuaPlatform` | Platform features (Content, Locale) |
@@ -424,9 +424,9 @@ Three parallel engagement signals in `SessionTracker.cs`:
 
 `engagement_time_msec` is **incremental** (since last send), not cumulative. `noctua_user_engagement` always fires **before** its paired session event (`session_heartbeat`, `session_pause`, `session_end`).
 
-## Session Events
+## Common Event Properties
 
-`EventSender.cs` includes these in the `sessionEvents` HashSet (receive `tag` from `NoctuaExperiment`): `session_start`, `session_pause`, `session_continue`, `session_heartbeat`, `session_end`, `noctua_user_engagement`, `noctua_user_engagement_per_session`, `native_user_engagement`.
+`EventSender.Send` adds these with `TryAdd` (caller values win) to every event, among others: `experiment` (active experiment), `tags` (player remote-config tags) and `current_scene` (`SceneManager.GetActiveScene().name`, omitted when the scene name is empty). `feature_tag` is **not** a common property — it only appears on `feature_engagement` (the feature being left).
 
 ## Testing
 

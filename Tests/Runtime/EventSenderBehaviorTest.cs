@@ -9,6 +9,7 @@ using Cysharp.Threading.Tasks;
 using Newtonsoft.Json;
 using NUnit.Framework;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 using UnityEngine.TestTools;
 
 namespace Tests.Runtime
@@ -38,6 +39,9 @@ namespace Tests.Runtime
     /// Group F — PlayerTagsFunc → "tags" payload field (3 tests)
     ///   Verifies player remote-config tags are attached as a JSON array when the
     ///   delegate returns a non-empty list, and omitted when null/empty.
+    ///
+    /// Group G — current_scene attached to every event (2 tests)
+    ///   Active Unity scene name is added via TryAdd, so caller values win.
     /// </summary>
     [TestFixture]
     public class EventSenderBehaviorTest
@@ -307,10 +311,11 @@ namespace Tests.Runtime
         private async UniTask<Dictionary<string, object>> SendAndCapture(
             EventSender sender,
             string eventName,
-            int timeoutMs = 8000)
+            int timeoutMs = 8000,
+            Dictionary<string, IConvertible> data = null)
         {
             _propServer.Requests.Clear();
-            sender.Send(eventName);
+            sender.Send(eventName, data);
 
             // Poll-and-drain until the named event appears or the deadline passes.
             // A single wait-then-scan flaked under full-suite load: the event can
@@ -565,6 +570,47 @@ namespace Tests.Runtime
                     Assert.IsTrue(hasEvent,
                         "pre_persist_probe must be written to noctua_events.jsonl " +
                         "even when the app is in offline mode (pre-persist path)");
+                }
+                finally
+                {
+                    sender.Dispose();
+                }
+            });
+
+        // ═══════════════════════════════════════════════════════════════════════
+        // Group G — current_scene on every event
+        // ═══════════════════════════════════════════════════════════════════════
+
+        [UnityTest]
+        public IEnumerator CurrentScene_AttachedFromActiveScene() =>
+            UniTask.ToCoroutine(async () =>
+            {
+                var sender = MakePropSender();
+                try
+                {
+                    var ev = await SendAndCapture(sender, "scene_test_default");
+                    Assert.IsNotNull(ev, "No scene_test_default event received");
+                    Assert.IsTrue(ev.ContainsKey("current_scene"),
+                        "current_scene must be present when a named scene is active");
+                    Assert.AreEqual(SceneManager.GetActiveScene().name, ev["current_scene"]?.ToString());
+                }
+                finally
+                {
+                    sender.Dispose();
+                }
+            });
+
+        [UnityTest]
+        public IEnumerator CurrentScene_CallerValueNotOverwritten() =>
+            UniTask.ToCoroutine(async () =>
+            {
+                var sender = MakePropSender();
+                try
+                {
+                    var ev = await SendAndCapture(sender, "scene_test_caller",
+                        data: new Dictionary<string, IConvertible> { { "current_scene", "CallerScene" } });
+                    Assert.IsNotNull(ev, "No scene_test_caller event received");
+                    Assert.AreEqual("CallerScene", ev["current_scene"]?.ToString());
                 }
                 finally
                 {

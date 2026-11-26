@@ -11,6 +11,7 @@ using System.Threading.Tasks;
 using Cysharp.Threading.Tasks;
 using Newtonsoft.Json;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 using UnityEngine.Scripting;
 
 namespace com.noctuagames.sdk.Events
@@ -494,6 +495,10 @@ namespace com.noctuagames.sdk.Events
             {
                 await UniTask.SwitchToMainThread();
 
+                // Captured before the country await below: a network round trip there
+                // could otherwise let a scene change land before the event is tagged.
+                var sceneName = SceneManager.GetActiveScene().name;
+
                 data.TryAdd("event_version", 1);
                 data.TryAdd("event_name", name);
                 data.TryAdd("sdk_version", _sdkVersion);
@@ -533,6 +538,11 @@ namespace com.noctuagames.sdk.Events
                 if (!string.IsNullOrEmpty(activeExperiment))
                 {
                     data.TryAdd("experiment", activeExperiment);
+                }
+
+                if (!string.IsNullOrEmpty(sceneName))
+                {
+                    data.TryAdd("current_scene", sceneName);
                 }
 
                 // Player remote-config tags — read lazily since PlayerRemoteConfigs is
