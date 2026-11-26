@@ -148,9 +148,6 @@ Noctua.Event.SetCurrentFeature(sceneName);
 
 Call it again after each scene load (for example in the new scene's `Start()` or from `SceneManager.activeSceneChanged`), because the SDK does not follow scene changes for `feature_engagement` on its own.
 
-### `current_scene` (on every event)
-Independently of `SetCurrentFeature`, the SDK adds `current_scene` (the active scene name from `SceneManager.GetActiveScene().name`) to every event it sends to Noctua. It is left out when the scene has no name, and a value you pass yourself in an event's properties is kept as is. The name `feature_tag` is reserved for `feature_engagement` and is not added to other events.
-
 ### Session Timeout
 Default: **15 minutes** (`sessionTimeoutMs: 900000` in `NoctuaConfig`). On timeout, the old session is closed without `session_end` (force-kill limitation) and a new session begins.
 
